@@ -38,7 +38,7 @@ type result = {
   (* ocaml: not in original python implem, but just enough to get
    * Semgrep_scan.cli_output_of_core_results to work
    *)
-  core : Out.core_match_results;
+  core : Out.core_output;
   hrules : Rule.hrules;
   scanned : Fpath.t Set_.t;
       (* in python implem *)
@@ -52,6 +52,20 @@ type result = {
      explanations : Out.matching_explanation list option;
   *)
 }
+
+(* Type for the core runner function, which can either be invoked by
+   invoke_semgrep_core or invoke_semgrep_core_proprietary *)
+
+type semgrep_core_runner =
+  ?respect_git_ignore:bool ->
+  ?file_match_results_hook:
+    (Fpath.t -> Report.partial_profiling Report.match_result -> unit) option ->
+  conf ->
+  (* LATER? use Config_resolve.rules_and_origin instead? *)
+  Rule.rules ->
+  Rule.invalid_rule_error list ->
+  Fpath.t list ->
+  Exception.t option * Report.final_result * Fpath.t Set_.t
 
 (*************************************************************************)
 (* Helpers *)
@@ -153,18 +167,16 @@ let prepare_config_for_semgrep_core (config : Runner_config.t)
     lang_jobs
     |> List.fold_left
          (fun (n, acc_mappings, acc_rules) lang_job ->
-           let num_rules, mappings, rule_ids =
+           let num_rules, mappings, rules =
              target_mappings_of_lang_job lang_job n
            in
-           ( n + num_rules,
-             mappings :: acc_mappings,
-             List.rev rule_ids :: acc_rules ))
+           (n + num_rules, mappings :: acc_mappings, List.rev rules :: acc_rules))
          (0, [], [])
   in
   let target_mappings = List.concat target_mappings in
   let rules = rules |> List.rev |> List.concat in
   let rule_ids =
-    Common.map (fun r -> fst r.Rule.id |> Rule.ID.to_string) rules
+    Common.map (fun r -> fst r.Rule.id |> Rule_ID.to_string) rules
   in
   let targets : Input_to_core_t.targets = { target_mappings; rule_ids } in
   {
@@ -173,6 +185,35 @@ let prepare_config_for_semgrep_core (config : Runner_config.t)
     rule_source = Some (Rules rules);
   }
 
+(* Create the core result structure from the results *)
+(* LATER: we want to avoid this intermediate data structure but
+ * for now that's what pysemgrep used to get so simpler to return it.
+ *)
+let create_core_result all_rules (_exns, (res : RP.final_result), scanned) =
+  let match_results =
+    Core_json_output.core_output_of_matches_and_errors (Some Autofix.render_fix)
+      (Set_.cardinal scanned) res
+  in
+
+  (* TOPORT? or move in semgrep-core so get info ASAP
+     if match_results.skipped_targets:
+         for skip in match_results.skipped_targets:
+             if skip.rule_id:
+                 rule_info = f"rule {skip.rule_id}"
+             else:
+                 rule_info = "all rules"
+             logger.verbose(
+                 f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
+             )
+  *)
+
+  (* TOADAPT:
+      match exn with
+      | Some e -> Runner_exit.exit_semgrep (Unknown_exception e)
+      | None -> ())
+  *)
+  { core = match_results; hrules = Rule.hrules_of_rules all_rules; scanned }
+
 (*************************************************************************)
 (* Entry point *)
 (*************************************************************************)
@@ -180,113 +221,63 @@ let prepare_config_for_semgrep_core (config : Runner_config.t)
 (*
    Take in rules and targets and return object with findings.
 *)
-let invoke_semgrep_core ?(respect_git_ignore = true)
-    ?(file_match_results_hook = None) (conf : conf) (all_rules : Rule.t list)
-    (rule_errors : Rule.invalid_rule_error list) (all_targets : Fpath.t list) :
-    result =
+let invoke_semgrep_core
+    ?(engine = Run_semgrep.semgrep_with_raw_results_and_exn_handler)
+    ?(respect_git_ignore = true) ?(file_match_results_hook = None) (conf : conf)
+    (all_rules : Rule.t list) (invalid_rules : Rule.invalid_rule_error list)
+    (all_targets : Fpath.t list) =
+  let rule_errors = Run_semgrep.errors_of_invalid_rule_errors invalid_rules in
   let config : Runner_config.t = runner_config_of_conf conf in
   let config = { config with file_match_results_hook } in
+  (* TODO: we should not need to use Common.map below, because
+     Run_semgrep.semgrep_with_raw_results_and_exn_handler can accept
+     a list of targets with different languages! We just
+     need to pass the right target object (and not a lang_job)
+     TODO: Martin said the issue was that Run_semgrep.targets_of_config
+     requires the xlang object to contain a single language.
+     TODO: Martin says there's no fundamental reason to split
+     a scanning job by programming language. Several optimizations
+     are possible based on target project structure, number and diversity
+     of rules, presence of rule-specific include/exclude patterns etc.
+     Right now we're constrained by the pysemgrep/semgrep-core interface
+     that requires a split by "language". While this interface is still
+     in use, bypassing it without removing it seems complicated.
+     See https://www.notion.so/r2cdev/Osemgrep-scanning-algorithm-5962232bfd74433ba50f97c86bd1a0f3
+  *)
+  let lang_jobs = split_jobs_by_language all_rules all_targets in
+  Logs.app (fun m ->
+      m "%a"
+        (fun ppf () ->
+          Status_report.pp_status ~num_rules:(List.length all_rules)
+            ~num_targets:(List.length all_targets) ~respect_git_ignore lang_jobs
+            ppf)
+        ());
+  List.iter
+    (fun { Lang_job.xlang; _ } ->
+      Metrics_.add_feature "language" (Xlang.to_string xlang))
+    lang_jobs;
+  let config = prepare_config_for_semgrep_core config lang_jobs in
 
-  match rule_errors with
-  (* with pysemgrep, semgrep-core is passed all the rules unparsed,
-   * and as soon as semgrep-core detects an error in a rule, it raises
-   * InvalidRule which is caught and translated to JSON before exiting.
-   * Here we emulate the same behavior, even though the rules
-   * were parsed in the caller already.
-   *)
-  | err :: _ ->
-      (* like in Run_semgrep.sanity_check_rules_and_invalid_rules *)
-      let exn = Rule.Err (Rule.InvalidRule err) in
-      (* like in Run_semgrep.semgrep_with_raw_results_and_exn_handler *)
-      let e = Exception.catch exn in
-      let err = Semgrep_error_code.exn_to_error "" e in
-      (* like in semgrep_with_rules_and_formatted_output *)
-      let error = JSON_report.error_to_error err in
-      let core =
-        {
-          Out.matches = [];
-          errors = [ error ];
-          skipped_targets = None;
-          skipped_rules = None;
-          explanations = None;
-          time = None;
-          stats = { okfiles = 0; errorfiles = 0 };
-          rules_by_engine = [];
-          engine_requested = `OSS;
-        }
-      in
-      { core; hrules = Rule.hrules_of_rules all_rules; scanned = Set_.empty }
-  | [] ->
-      (* TODO: we should not need to use Common.map below, because
-         Run_semgrep.semgrep_with_raw_results_and_exn_handler can accept
-         a list of targets with different languages! We just
-         need to pass the right target object (and not a lang_job)
-         TODO: Martin said the issue was that Run_semgrep.targets_of_config
-         requires the xlang object to contain a single language.
-         TODO: Martin says there's no fundamental reason to split
-         a scanning job by programming language. Several optimizations
-         are possible based on target project structure, number and diversity
-         of rules, presence of rule-specific include/exclude patterns etc.
-         Right now we're constrained by the pysemgrep/semgrep-core interface
-         that requires a split by "language". While this interface is still
-         in use, bypassing it without removing it seems complicated.
-         See https://www.notion.so/r2cdev/Osemgrep-scanning-algorithm-5962232bfd74433ba50f97c86bd1a0f3
-      *)
-      let lang_jobs = split_jobs_by_language all_rules all_targets in
-      Logs.app (fun m ->
-          m "%a"
-            (fun ppf () ->
-              Status_report.pp_status ~num_rules:(List.length all_rules)
-                ~num_targets:(List.length all_targets) ~respect_git_ignore
-                lang_jobs ppf)
-            ());
-      List.iter
-        (fun { Lang_job.xlang; _ } ->
-          Metrics_.add_feature "language" (Xlang.to_string xlang))
-        lang_jobs;
-      let config = prepare_config_for_semgrep_core config lang_jobs in
+  (* !!!!Finally! this is where we branch to semgrep-core!!! *)
+  let exn, res, files = engine config in
 
-      (* !!!!Finally! this is where we branch to semgrep-core!!! *)
-      let _exn_opt_TODO, res, files =
-        Run_semgrep.semgrep_with_raw_results_and_exn_handler config
-      in
+  (* Reinject rule errors *)
+  let res =
+    {
+      res with
+      errors = rule_errors @ res.errors;
+      skipped_rules = invalid_rules @ res.skipped_rules;
+    }
+  in
 
-      let scanned = Set_.of_list files in
+  let scanned = Set_.of_list files in
 
-      (* TODO(dinosaure): currently, we don't collect metrics when we invoke
-         semgrep-core but we should. However, if we implement a way to collect
-         metrics, we will just need to set [final_result.extra] to
-         [RP.Debug]/[RP.Time] and this line of code will not change. *)
-      Metrics_.add_max_memory_bytes (RP.debug_info_to_option res.extra);
-      Metrics_.add_targets scanned (RP.debug_info_to_option res.extra);
+  (* TODO(dinosaure): currently, we don't collect metrics when we invoke
+     semgrep-core but we should. However, if we implement a way to collect
+     metrics, we will just need to set [final_result.extra] to
+     [RP.Debug]/[RP.Time] and this line of code will not change. *)
+  Metrics_.add_max_memory_bytes (RP.debug_info_to_option res.extra);
+  Metrics_.add_targets scanned (RP.debug_info_to_option res.extra);
 
-      (* TODO: should get this from Run_semgrep *)
-      let _exnTODO = None in
-      (* similar to Run_semgrep.semgrep_with_rules_and_formatted_output *)
-      (* LATER: we want to avoid this intermediate data structure but
-       * for now that's what pysemgrep used to get so simpler to return it.
-       *)
-      let match_results =
-        JSON_report.match_results_of_matches_and_errors
-          (Some Autofix.render_fix) (Set_.cardinal scanned) res
-      in
-
-      (* TOPORT? or move in semgrep-core so get info ASAP
-         if match_results.skipped_targets:
-             for skip in match_results.skipped_targets:
-                 if skip.rule_id:
-                     rule_info = f"rule {skip.rule_id}"
-                 else:
-                     rule_info = "all rules"
-                 logger.verbose(
-                     f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
-                 )
-      *)
-
-      (* TOADAPT:
-          match exn with
-          | Some e -> Runner_exit.exit_semgrep (Unknown_exception e)
-          | None -> ())
-      *)
-      { core = match_results; hrules = Rule.hrules_of_rules all_rules; scanned }
+  (exn, res, scanned)
   [@@profiling]

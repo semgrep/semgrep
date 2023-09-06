@@ -44,6 +44,9 @@ const PCRE_INFO_NAMETABLE = 9;
 //Provides: PCRE_ERROR_NOMATCH const
 const PCRE_ERROR_NOMATCH = -1;
 
+//Provides: PCRE_ERROR_NOSUBSTRING const
+const PCRE_ERROR_NOSUBSTRING = -7;
+
 //Provides: STRUCT_PCRE_EXTRA const
 var STRUCT_PCRE_EXTRA = {
   flags: 0,
@@ -82,12 +85,14 @@ var STRUCT_PCRE = {
 
 //Provides: auto_malloc
 //Requires: libpcre
-function auto_malloc(size, func) {
-  const ptr = libpcre._malloc(size);
+function auto_malloc(sizes, func) {
+  const ptrs = sizes.map((size) => libpcre._malloc(size));
   try {
-    return func(ptr);
+    return func(ptrs);
   } finally {
-    libpcre._free(ptr);
+    ptrs.forEach((ptr) => {
+      libpcre._free(ptr);
+    });
   }
 }
 
@@ -105,7 +110,7 @@ function pcre_version_stub() {
 //Provides: pcre_config_get_int
 //Requires: libpcre, auto_malloc
 function pcre_config_get_int(what) {
-  return auto_malloc(1, (ptr) => {
+  return auto_malloc([1], ([ptr]) => {
     libpcre._pcre_config(what, ptr);
     return libpcre.getValue(ptr, "i8");
   });
@@ -114,7 +119,7 @@ function pcre_config_get_int(what) {
 //Provides: pcre_config_get_long
 //Requires: libpcre, auto_malloc
 function pcre_config_get_long(what) {
-  return auto_malloc(2, (ptr) => {
+  return auto_malloc([2], ([ptr]) => {
     libpcre._pcre_config(what, ptr);
     return libpcre.getValue(ptr, "i16");
   });
@@ -172,77 +177,62 @@ function pcre_alloc_string(v_opt, js_string) {
 }
 
 //Provides: pcre_compile_stub_bc
-//Requires: PCRE_INFO_SIZE, NULL, libpcre, pcre_alloc_string
+//Requires: PCRE_INFO_SIZE, NULL, libpcre, pcre_alloc_string, auto_malloc
 function pcre_compile_stub_bc(v_opt, v_tables, v_pat) {
-  //size_t regexp_size, ocaml_regexp_size = sizeof(struct pcre_ocaml_regexp);
-  var regexp_info_ptr = libpcre._malloc(16);
-  var error_ptr = libpcre._malloc(4);
-  var error_ptr_ptr = libpcre._malloc(4);
-  libpcre.setValue(error_ptr_ptr, error_ptr, "i32");
-  var error_ofs_ptr =
-    libpcre._malloc(4); /* offset in the pattern at which error occurred */
+  const regexp_ptr = auto_malloc([4, 4], ([error_ptr_ptr, error_ofs_ptr]) => {
+    if (v_tables != 0) {
+      throw new Error("v_tables not supported");
+    }
 
-  /* If v_tables = [None], then pointer to tables is NULL, otherwise
-     set it to the appropriate value */
-  //chartables tables = Is_none(v_tables) ? NULL : get_tables(Field(v_tables, 0));
-  if (v_tables != 0) {
-    throw new Error("need to do something with v_tables");
-  }
-
-  var pattern_ptr = pcre_alloc_string(v_opt, v_pat);
-
-  /* Compiles the pattern */
-  var regexp_ptr = libpcre._pcre_compile(
-    pattern_ptr,
-    v_opt,
-    error_ptr_ptr,
-    error_ofs_ptr,
-    0
-  );
-
-  /* Raises appropriate exception with [BadPattern] if the pattern
-     could not be compiled */
-  if (regexp_ptr == NULL) {
-    var errorString = libpcre.UTF8ToString(
-      libpcre.getValue(error_ptr_ptr, "i32")
+    const ptr = libpcre._pcre_compile(
+      pcre_alloc_string(v_opt, v_pat),
+      v_opt,
+      error_ptr_ptr,
+      error_ofs_ptr,
+      0
     );
-    throw new Error(errorString + " at offset " + libpcre.HEAP8[error_ofs_ptr]);
-  }
 
-  /* It's unknown at this point whether the user will study the pattern
-     later (probably), or if JIT compilation is going to be used, but we
-     have to decide on a size.  Tests with some simple patterns indicate a
-     roughly 50% increase in size when studying without JIT.  A factor of
-     two times hence seems like a reasonable bound to use here. */
-  var fullinfo_result = libpcre._pcre_fullinfo(
-    regexp_ptr,
-    0,
-    PCRE_INFO_SIZE,
-    regexp_info_ptr
-  );
+    /* Raises appropriate exception with [BadPattern] if the pattern
+      could not be compiled */
+    if (ptr == NULL) {
+      const errorString = libpcre.UTF8ToString(
+        libpcre.getValue(error_ptr_ptr, "i32")
+      );
+      throw new Error(
+        `${errorString} at offset ${libpcre.getValue(error_ofs_ptr, "i32")}`
+      );
+    }
+
+    return ptr;
+  });
 
   return {
-    regexp_ptr: regexp_ptr,
+    regexp_ptr,
     extra_ptr: NULL,
     studied: 0,
   };
 }
 
 //Provides: pcre_study_stub
-//Requires: PCRE_STUDY_JIT_COMPILE, NULL, libpcre
+//Requires: PCRE_STUDY_JIT_COMPILE, NULL, libpcre, auto_malloc
 function pcre_study_stub(v_rex, v_jit_compile) {
   if (!v_rex.studied) {
-    var flags = v_jit_compile ? PCRE_STUDY_JIT_COMPILE : 0;
-    var error_ptr = libpcre._malloc(1024);
-    var extra_ptr = libpcre._pcre_study(v_rex.regexp_ptr, flags, error_ptr);
-    if (libpcre.HEAP8[error_ptr] != NULL) {
-      throw new Error(
-        "invalid argument: " +
-          libpcre.UTF8ToString(libpcre.getValue(error_ptr, "i32"))
+    const flags = v_jit_compile ? PCRE_STUDY_JIT_COMPILE : 0;
+    auto_malloc([4], ([error_ptr_ptr]) => {
+      const extra_ptr = libpcre._pcre_study(
+        v_rex.regexp_ptr,
+        flags,
+        error_ptr_ptr
       );
-    }
-    v_rex.extra_ptr = extra_ptr;
-    v_rex.studied = 1;
+      if (libpcre.getValue(error_ptr_ptr, "i8") != NULL) {
+        throw new Error(
+          "invalid argument: " +
+            libpcre.UTF8ToString(libpcre.getValue(error_ptr_ptr, "i32"))
+        );
+      }
+      v_rex.extra_ptr = extra_ptr;
+      v_rex.studied = 1;
+    });
   }
   return v_rex;
 }
@@ -300,19 +290,20 @@ function pcre_set_imp_match_limit_recursion_stub_bc(v_rex, v_lim) {
 }
 
 //Provides: pcre_capturecount_stub_bc
-//Requires: PCRE_INFO_CAPTURECOUNT, libpcre
+//Requires: PCRE_INFO_CAPTURECOUNT, libpcre, auto_malloc
 function pcre_capturecount_stub_bc(v_rex) {
-  var options_ptr = libpcre._malloc(4);
-  var ret = libpcre._pcre_fullinfo(
-    v_rex.regexp_ptr,
-    v_rex.extra_ptr,
-    PCRE_INFO_CAPTURECOUNT,
-    options_ptr
-  );
-  if (ret != 0) {
-    throw new Error("TODO");
-  }
-  return libpcre.getValue(options_ptr, "i32");
+  return auto_malloc([4], (options_ptr) => {
+    const ret = libpcre._pcre_fullinfo(
+      v_rex.regexp_ptr,
+      v_rex.extra_ptr,
+      PCRE_INFO_CAPTURECOUNT,
+      options_ptr
+    );
+    if (ret != 0) {
+      throw new Error("TODO");
+    }
+    return libpcre.getValue(options_ptr, "i32");
+  });
 }
 
 //Provides: handle_exec_error
@@ -323,12 +314,12 @@ function handle_exec_error(loc, ret) {
       caml_raise_not_found();
       return;
     default:
-      throw new Error("dont know what to do with error: " + ret);
+      throw new Error(`${loc}: unhandled PCRE error code: ${ret}`); // TODO: make pcre-ocaml's raise_internal_error() work
   }
 }
 
 //Provides: pcre_exec_stub_bc
-//Requires: handle_exec_error, libpcre, pcre_alloc_string, caml_invalid_argument
+//Requires: handle_exec_error, libpcre, pcre_alloc_string, caml_invalid_argument, auto_malloc
 function pcre_exec_stub_bc(
   v_opt,
   v_rex,
@@ -342,7 +333,7 @@ function pcre_exec_stub_bc(
   var ret;
   var is_dfa = !!v_workspace;
   var pos = v_pos;
-  var len = new TextEncoder().encode(v_subj).length; // TODO: bytes or characters?
+  var len = new TextEncoder().encode(v_subj).length;
   var subj_start = v_subj_start;
 
   var v_subj_ptr = pcre_alloc_string(v_opt, v_subj);
@@ -364,92 +355,114 @@ function pcre_exec_stub_bc(
   const opt = v_opt;
 
   if (!v_maybe_cof) {
-    var ovec_ptr = libpcre._malloc(ovec_len * 4);
-    if (is_dfa) {
-      ret = libpcre._pcre_dfa_exec();
-    } else {
-      ret = libpcre._pcre_exec(
-        v_rex.regexp_ptr,
-        v_rex.extra_ptr,
-        ocaml_subj_ptr,
-        len,
-        pos,
-        opt,
-        ovec_ptr,
-        ovec_len
-      );
-    }
-    if (ret < 0) {
-      handle_exec_error("pcre_exec_stub", ret);
-    } else {
-      for (var i = 0; i < ovec_len; i++) {
-        v_ovec[i + 1] = libpcre.getValue(ovec_ptr + i * 4, "i32");
+    auto_malloc([ovec_len * 4], ([ovec_ptr]) => {
+      if (is_dfa) {
+        ret = libpcre._pcre_dfa_exec();
+      } else {
+        ret = libpcre._pcre_exec(
+          v_rex.regexp_ptr,
+          v_rex.extra_ptr,
+          ocaml_subj_ptr,
+          len,
+          pos,
+          opt,
+          ovec_ptr,
+          ovec_len
+        );
       }
-    }
+      if (ret < 0) {
+        handle_exec_error("pcre_exec_stub", ret);
+      } else {
+        for (var i = 0; i < ovec_len; i++) {
+          const val = libpcre.getValue(ovec_ptr + i * 4, "i32");
+          if (val > -1) {
+            v_ovec[i + 1] = val + subj_start;
+          } else {
+            v_ovec[i + 1] = -1;
+          }
+        }
+      }
+    });
   } else {
     throw new Error("callout functions unimplemented");
   }
 }
 
 //Provides: pcre_names_stub
-//Requires: libpcre, PCRE_INFO_NAMECOUNT, PCRE_INFO_NAMEENTRYSIZE, PCRE_INFO_NAMETABLE, caml_js_to_array
+//Requires: libpcre, PCRE_INFO_NAMECOUNT, PCRE_INFO_NAMEENTRYSIZE, PCRE_INFO_NAMETABLE, caml_js_to_array, auto_malloc
 function pcre_names_stub(v_rex) {
   const { regexp_ptr, extra_ptr } = v_rex;
 
-  var name_count_ptr = libpcre._malloc(4);
-  var entry_size_ptr = libpcre._malloc(4);
-  var tbl_ptr_ptr = libpcre._malloc(4);
+  return auto_malloc(
+    [4, 4, 4],
+    ([name_count_ptr, entry_size_ptr, tbl_ptr_ptr]) => {
+      var ret = libpcre._pcre_fullinfo(
+        regexp_ptr,
+        extra_ptr,
+        PCRE_INFO_NAMECOUNT,
+        name_count_ptr
+      );
+      if (ret != 0) throw new Error("pcre_names_stub: namecount");
 
-  var ret = libpcre._pcre_fullinfo(
-    regexp_ptr,
-    extra_ptr,
-    PCRE_INFO_NAMECOUNT,
-    name_count_ptr
+      ret = libpcre._pcre_fullinfo(
+        regexp_ptr,
+        extra_ptr,
+        PCRE_INFO_NAMEENTRYSIZE,
+        entry_size_ptr
+      );
+      if (ret != 0) throw new Error("pcre_names_stub: nameentrysize");
+
+      ret = libpcre._pcre_fullinfo(
+        regexp_ptr,
+        extra_ptr,
+        PCRE_INFO_NAMETABLE,
+        tbl_ptr_ptr
+      );
+      if (ret != 0) throw new Error("pcre_names_stub: nametable");
+
+      var result = [];
+
+      const name_count = libpcre.getValue(name_count_ptr, "i32");
+      const entry_size = libpcre.getValue(entry_size_ptr, "i32");
+      var tbl_ptr = libpcre.getValue(tbl_ptr_ptr, "i32");
+
+      for (var i = 0; i < name_count; i++) {
+        result[i] = libpcre.UTF8ToString(tbl_ptr + 2);
+        tbl_ptr += entry_size;
+      }
+      return caml_js_to_array(result);
+    }
   );
-  if (ret != 0) throw new Error("pcre_names_stub: namecount");
+}
 
-  ret = libpcre._pcre_fullinfo(
-    regexp_ptr,
-    extra_ptr,
-    PCRE_INFO_NAMEENTRYSIZE,
-    entry_size_ptr
-  );
-  if (ret != 0) throw new Error("pcre_names_stub: nameentrysize");
+//Provides: pcre_get_stringnumber_stub_bc
+//Requires: caml_invalid_argument, PCRE_INFO_SIZE, NULL, libpcre, pcre_alloc_string, PCRE_CONFIG_UTF8, PCRE_ERROR_NOSUBSTRING, auto_malloc
+function pcre_get_stringnumber_stub_bc(v_rex, v_name) {
+  const { regexp_ptr } = v_rex;
+  const string_ptr = pcre_alloc_string(PCRE_CONFIG_UTF8, v_name);
+  try {
+    const ret = libpcre._pcre_get_stringnumber(regexp_ptr, string_ptr);
 
-  ret = libpcre._pcre_fullinfo(
-    regexp_ptr,
-    extra_ptr,
-    PCRE_INFO_NAMETABLE,
-    tbl_ptr_ptr
-  );
-  if (ret != 0) throw new Error("pcre_names_stub: nametable");
+    if (ret == PCRE_ERROR_NOSUBSTRING) {
+      caml_invalid_argument("Named string not found");
+    }
 
-  var result = [];
-
-  const name_count = libpcre.getValue(name_count_ptr, "i32");
-  const entry_size = libpcre.getValue(entry_size_ptr, "i32");
-  var tbl_ptr = libpcre.getValue(tbl_ptr_ptr, "i32");
-
-  for (var i = 0; i < name_count; i++) {
-    result[i] = libpcre.UTF8ToString(tbl_ptr + 2);
-    tbl_ptr += entry_size;
+    return ret;
+  } finally {
+    libpcre._free(string_ptr);
   }
-
-  libpcre._free(name_count_ptr);
-  libpcre._free(entry_size_ptr);
-  libpcre._free(tbl_ptr_ptr);
-
-  return caml_js_to_array(result);
 }
 
 //Always
-//Requires: pcre_version_stub,pcre_config_stackrecurse_stub
+//Requires: pcre_version_stub,pcre_config_utf8_stub,pcre_compile_stub_bc,pcre_exec_stub_bc,pcre_get_stringnumber_stub_bc
 (() => {
   if (globalThis.exposePcreStubsForTesting) {
     module.exports = {
       pcre_version_stub,
       pcre_config_utf8_stub,
       pcre_compile_stub_bc,
+      pcre_exec_stub_bc,
+      pcre_get_stringnumber_stub_bc,
     };
   }
 })();

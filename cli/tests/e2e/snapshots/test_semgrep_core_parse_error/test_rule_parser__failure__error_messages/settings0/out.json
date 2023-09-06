@@ -9,7 +9,8 @@
         {
           "config_end": {
             "col": 67,
-            "line": 0
+            "line": 0,
+            "offset": -1
           },
           "config_path": [
             "rules",
@@ -20,16 +21,19 @@
           ],
           "config_start": {
             "col": 1,
-            "line": 0
+            "line": 0,
+            "offset": -1
           },
           "end": {
             "col": 92,
-            "line": 14
+            "line": 14,
+            "offset": 292
           },
-          "file": "tmp/masked/path",
+          "file": "<MASKED>.json",
           "start": {
             "col": 26,
-            "line": 14
+            "line": 14,
+            "offset": 226
           }
         }
       ],
@@ -40,11 +44,12 @@
     "scanned": [],
     "skipped": [
       {
-        "path": "/tmp/masked/path",
+        "path": "<MASKED>.json",
         "reason": "analysis_failed_parser_or_internal_error"
       }
     ]
   },
   "results": [],
+  "skipped_rules": [],
   "version": "0.42"
 }

@@ -87,8 +87,6 @@ let freshvar =
     incr store;
     ("!tmp" ^ string_of_int !store, fk)
 
-let todo _env _v = failwith "TODO"
-
 (*****************************************************************************)
 (* Builtins *)
 (*****************************************************************************)
@@ -424,7 +422,7 @@ and desugar_assert_ (env : env) (v : assert_ * bind list) : C.obj_assert =
 
 and desugar_field (env : env) (v : field * bind list) : C.field =
   let { fld_name; fld_attr; fld_hidden; fld_value = e' }, binds = v in
-  let fld_name = desugar_field_name env fld_name in
+  let fld_name_desugared = desugar_field_name env fld_name in
   let fld_hidden = (desugar_wrap desugar_hidden) env fld_hidden in
   let fld_value =
     desugar_expr
@@ -432,8 +430,25 @@ and desugar_field (env : env) (v : field * bind list) : C.field =
       (Local (fk, binds, fk, e'))
   in
   match fld_attr with
-  | None -> { C.fld_name; fld_hidden; fld_value }
-  | Some (PlusField _) -> todo env "PlusField"
+  | None -> { C.fld_name = fld_name_desugared; fld_hidden; fld_value }
+  | Some (PlusField _) ->
+      let name =
+        match fld_name with
+        | FId ident ->
+            let id = desugar_ident env ident in
+            let str = mk_str_literal id in
+            L str
+        | FStr str -> L (Str str)
+        | FDynamic (_, p, _) -> p
+      in
+
+      let index = desugar_expr env name in
+      let obj = C.IdSpecial (Super, fk) in
+
+      let rhs = C.ArrayAccess (obj, (fk, index, fk)) in
+
+      let new_fld_value = C.BinaryOp (rhs, (C.Plus, fk), fld_value) in
+      { C.fld_name = fld_name_desugared; fld_hidden; fld_value = new_fld_value }
 
 and desugar_field_name env v =
   match v with
@@ -494,9 +509,6 @@ let desugar_program ?(import_callback = default_callback) ?(use_std = true)
       import_callback;
     }
   in
-  (* TODO: skipped for now because std.jsonnet contains too many complicated
-   * things we don't handle, and it actually does not even parse right now.
-   *)
   let e =
     if use_std then
       let std = Std_jsonnet.get_std_jsonnet () in

@@ -21,18 +21,24 @@ from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.external.parsy import success
 from semdep.parsers.util import consume_line
+from semdep.parsers.util import DependencyFileToParse
+from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import extract_npm_lockfile_hash
+from semdep.parsers.util import JSON
 from semdep.parsers.util import json_doc
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import pair
-from semdep.parsers.util import ParserName
 from semdep.parsers.util import quoted
-from semdep.parsers.util import safe_path_parse
+from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Jsondoc
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Yarn1
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Yarn2
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -197,16 +203,17 @@ yarn2 = (
 )
 
 
-def get_manifest_deps(manifest_path: Optional[Path]) -> Optional[Set[Tuple[str, str]]]:
+def get_manifest_deps(
+    parsed_manifest: Optional[JSON],
+) -> Optional[Set[Tuple[str, str]]]:
     """
     Extract a set of constraints from a package.json file
     """
-    if not manifest_path:
+    if not parsed_manifest:
         return None
-    json_opt = safe_path_parse(manifest_path, json_doc, ParserName.jsondoc)
-    if not json_opt:
+    if not parsed_manifest:
         return None
-    json = json_opt.as_dict()
+    json = parsed_manifest.as_dict()
     deps = json.get("dependencies")
     if not deps:
         return set()
@@ -222,18 +229,28 @@ def remove_trailing_octothorpe(s: Optional[str]) -> Optional[str]:
 
 def parse_yarn(
     lockfile_path: Path, manifest_path: Optional[Path]
-) -> List[FoundDependency]:
+) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
+
     with open(lockfile_path) as f:
         lockfile_text = f.read()
-    manifest_deps = get_manifest_deps(manifest_path)
     yarn_version = 1 if lockfile_text.startswith(YARN1_PREFIX) else 2
     parser = yarn1 if yarn_version == 1 else yarn2
-    parser_name = ParserName.yarn_1 if yarn_version == 1 else ParserName.yarn_2
-    deps = safe_path_parse(lockfile_path, parser, parser_name)
-    if not deps:
-        return []
+    parser_name = (
+        ScaParserName(Yarn1()) if yarn_version == 1 else ScaParserName(Yarn2())
+    )
+    parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
+        DependencyFileToParse(lockfile_path, parser, parser_name),
+        DependencyFileToParse(manifest_path, json_doc, ScaParserName(Jsondoc()))
+        if manifest_path
+        else None,
+    )
+
+    if not parsed_lockfile:
+        return [], errors
+
+    manifest_deps = get_manifest_deps(parsed_manifest)
     output = []
-    for line_number, (sources, fields) in deps:
+    for line_number, (sources, fields) in parsed_lockfile:
         if len(sources) < 1:
             continue
         if "version" not in fields:
@@ -255,4 +272,4 @@ def parse_yarn(
                 line_number=line_number,
             )
         )
-    return output
+    return output, errors

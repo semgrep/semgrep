@@ -1,5 +1,5 @@
 <?php
 
 //ruleid: xxx
-include("foobar")
+include("foobar");
 

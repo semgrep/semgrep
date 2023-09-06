@@ -1,12 +1,12 @@
-               
-               
+
+
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
   Scanning 2 files tracked by git with 1 Code rule:
   Scanning 2 files.
-                
-                
+
+
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘

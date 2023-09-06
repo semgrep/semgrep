@@ -22,8 +22,7 @@ open Common
  * but it's easy to be confused on what is a pattern and what is the target,
  * so at least using different G and B helps a bit.
  *
- * subtle: use 'b' to report errors, because 'a' is the sgrep pattern and it
- * has no file information usually.
+ * subtle: use 'b' to report errors, because 'a' is the pattern.
  *)
 module B = AST_generic
 module G = AST_generic
@@ -76,7 +75,7 @@ let hook_find_possible_parents = ref None
 (*****************************************************************************)
 
 let env_add_matched_stmt rightmost_stmt (tin : tin) =
-  [ extend_stmts_match_span rightmost_stmt tin ]
+  [ extend_stmts_matched rightmost_stmt tin ]
 
 (* equivalence: on different indentation
  * todo? work? was copy-pasted from XHP sgrep matcher
@@ -168,6 +167,11 @@ let should_match_call = function
   | G.IncrDecr _ ->
       false
 
+let m_id_string case_insensitive =
+  if case_insensitive then fun a b ->
+    m_string (String.lowercase_ascii a) (String.lowercase_ascii b)
+  else m_string
+
 (*****************************************************************************)
 (* Name *)
 (*****************************************************************************)
@@ -187,8 +191,12 @@ let m_ident a b =
   | (stra, _), (strb, _) when Pattern.is_regexp_string stra ->
       let re_match = Matching_generic.regexp_matcher_of_regexp_string stra in
       if re_match strb then return () else fail ()
+  (* Note: We should try to avoid allowing case insensitive
+   *  identifiers to get here because we have no way of
+   *  distinguishing them from case sensitive identifiers
+   *)
   (* general case *)
-  | a, b -> (m_wrap m_string) a b
+  | a, b -> m_wrap m_string a b
 
 (* see also m_dotted_name_prefix_ok *)
 let m_dotted_name a b =
@@ -349,7 +357,12 @@ let m_regexp_options a_opt b_opt =
 (* TODO: factorize with metavariable and aliasing logic in m_expr
  * TODO: remove MV.Id and use always MV.N?
  *)
-let rec m_name a b =
+let rec m_name_inner a b =
+  (* Inside of this function, any recursive call to m_name means to not
+     start another round of entry-specific logic. We only recurse with
+     the inner m_name function.
+  *)
+  let m_name = m_name_inner in
   let try_parents dotted =
     let parents =
       match !hook_find_possible_parents with
@@ -391,31 +404,33 @@ let rec m_name a b =
                        _sid );
                };
              _;
-           } as infob) ) ) -> (
+           } as infob) ) ) ->
       let dotted = G.canonical_to_dotted (snd idb) canonical in
-      m_name a (B.Id (idb, { infob with B.id_resolved = ref None }))
-      >||> try_alternate_names idb resolved
-      (* Try the resolved entity *)
-      >||> m_name a (H.name_of_ids dotted)
-      >||>
-      (* Try the resolved entity and parents *)
-      match a with
-      (* > If we're matching against a metavariable, don't bother checking
-       * > the resolved entity or parents. It will only cause duplicate matches
-       * > that can't be deduped, since the captured metavariable will be
-       * > different.
-       *
-       * FIXME:
-       * This is actually not the correct way of dealing with the problem,
-       * because there could be `metavariable-xyz` operators filtering the
-       * potential values of the metavariable. See DeepSemgrep commit
-       *
-       *     5b2766ee30e "test: Tests for matching metavariable patterns against resolved names"
-       *)
-      | G.Id ((str, _tok), _info) when MV.is_metavar_name str -> fail ()
-      | _ ->
-          (* Try matching against parent classes *)
-          try_parents dotted)
+      (* coupling: resolved names with wildcards *)
+      wipe_wildcard_imports
+        (m_name a (B.Id (idb, { infob with B.id_resolved = ref None }))
+        >||> try_alternate_names idb resolved
+        (* Try the resolved entity *)
+        >||> m_name a (H.name_of_ids dotted)
+        >||>
+        (* Try the resolved entity and parents *)
+        match a with
+        (* > If we're matching against a metavariable, don't bother checking
+         * > the resolved entity or parents. It will only cause duplicate matches
+         * > that can't be deduped, since the captured metavariable will be
+         * > different.
+         *
+         * FIXME:
+         * This is actually not the correct way of dealing with the problem,
+         * because there could be `metavariable-xyz` operators filtering the
+         * potential values of the metavariable. See DeepSemgrep commit
+         *
+         *     5b2766ee30e "test: Tests for matching metavariable patterns against resolved names"
+         *)
+        | G.Id ((str, _tok), _info) when MV.is_metavar_name str -> fail ()
+        | _ ->
+            (* Try matching against parent classes *)
+            try_parents dotted)
   | G.Id (a1, a2), B.Id (b1, b2) ->
       (* this will handle metavariables in Id *)
       m_ident_and_id_info (a1, a2) (b1, b2)
@@ -442,25 +457,27 @@ let rec m_name a b =
          } as nameinfo) ) ->
       (* TODO? use all the tokens in b1? not just idb? *)
       let dotted = G.canonical_to_dotted (snd idb) canonical in
-      try_parents dotted
-      >||> try_alternate_names idb resolved
-      (* try without resolving anything *)
-      >||> m_name a
-             (B.IdQualified { nameinfo with name_info = B.empty_id_info () })
-      >||>
-      (* try this time by replacing the qualifier by the resolved one *)
-      let new_qualifier =
-        match List.rev dotted with
-        | [] -> raise Impossible
-        | _x :: xs -> List.rev xs |> Common.map (fun id -> (id, None))
-      in
-      m_name a
-        (B.IdQualified
-           {
-             nameinfo with
-             name_middle = Some (B.QDots new_qualifier);
-             name_info = B.empty_id_info ();
-           })
+      (* coupling: resolved names with wildcards *)
+      wipe_wildcard_imports
+        (try_parents dotted
+        >||> try_alternate_names idb resolved
+        (* try without resolving anything *)
+        >||> m_name a
+               (B.IdQualified { nameinfo with name_info = B.empty_id_info () })
+        >||>
+        (* try this time by replacing the qualifier by the resolved one *)
+        let new_qualifier =
+          match List.rev dotted with
+          | [] -> raise Impossible
+          | _x :: xs -> List.rev xs |> Common.map (fun id -> (id, None))
+        in
+        m_name a
+          (B.IdQualified
+             {
+               nameinfo with
+               name_middle = Some (B.QDots new_qualifier);
+               name_info = B.empty_id_info ();
+             }))
   (* semantic! try to handle open in OCaml by querying LSP! The
    * target code is using an unqualified Id possibly because of some open!
    *)
@@ -495,19 +512,90 @@ let rec m_name a b =
                _;
              };
            _;
-         } as b1) ) -> (
+         } as b1) ) ->
       (* TODO? use all the tokens in the name? not just idb? *)
       let dotted = G.canonical_to_dotted (snd idb) canonical in
-      try_parents dotted
-      >||> try_alternate_names idb resolved
-      >||>
-      match a with
-      | IdQualified a1 -> m_name_info a1 b1
-      | Id _ -> fail ())
+      (* coupling: resolved names with wildcards *)
+      wipe_wildcard_imports
+        (try_parents dotted
+        >||> try_alternate_names idb resolved
+        >||>
+        match a with
+        | IdQualified a1 -> m_name_info a1 b1
+        | Id _ -> fail ())
   | G.IdQualified a1, B.IdQualified b1 -> m_name_info a1 b1
   | G.Id _, _
   | G.IdQualified _, _ ->
       fail ()
+
+(* This is just an entry point for m_name_inner, which just ensures that we only
+   ever unpack wildcard imports once, before entering the main recursive loop of
+   m_name_inner.
+   Since we might reach m_name through many entry points (IdQualified,
+   DotAccess, Id, etc), it's easier to intercept all of these "naming-related"
+   matching procedures at a common point. This is where they all meet.
+*)
+and m_name a b =
+  let dotted_contains_mvars dotted =
+    List.exists (fun (s, _) -> Metavariable.is_metavar_name s) dotted
+  in
+  let dotted_b = H.dotted_ident_of_name b in
+  m_name_inner a b >!> fun () tin ->
+  match (b, dotted_b) with
+  (* If we are matching with a pattern that has a metavariable in it,
+     let's not unpack the wildcard import.
+
+     Usually, someone wants a wildcard import to activate when they know the full path
+     of the thing they want to match, e.g. A.B.C.foo. But if they write a pattern like
+     $X.$Y, this will suddenly start to match every single identifier that lies under
+     a wildcard import, which is potentially dangerous.
+  *)
+  | _ when dotted_contains_mvars (H.dotted_ident_of_name a) -> fail () tin
+  (* coupling: resolved names with wildcards
+     If the name we are trying to match has a resolved name, then its "true name" is
+     something which we already know. We don't need to patch it with the information
+     from wildcard imports to try and match it.
+
+     This also means that any time in matching that we find ourselves matching something
+     with a resolved name, we have to ensure any future calls to `m_name` do not unpack
+     wildcard imports. This case here is insufficient, because for instance if we were
+     matching `B.foo` to `foo` with a resolved name of `A.foo`, one valid code path is
+     to try and match `foo` with no resolved name.
+
+     This will cause the wildcard import logic to trigger, despite the fact that this
+     `foo` identifier had a resolved name, because we got rid of it. So anywhere we
+     decompose on an `ImportedEntity` or similar, we should wipe wildcard imports from
+     `tin` to prevent this case.
+  *)
+  (* For this case, we can just fail here, because this will be taken care of by
+     the main `m_name_inner` call.
+  *)
+  | ( Id
+        ( _,
+          {
+            id_resolved =
+              {
+                contents =
+                  Some ((GlobalName _ | ImportedEntity _ | ImportedModule _), _);
+              };
+            _;
+          } ),
+      _ ) ->
+      fail () tin
+  | _ ->
+      List.fold_left
+        (fun acc import ->
+          acc
+          >||>
+          (* By precondition, the pattern should not have any metavariables in it, meaning
+             that the location data of the imports we are inserting should not matter.
+          *)
+          let import_with_fake_location =
+            Common.map (fun (s, _) -> (s, G.fake "")) import
+          in
+          let b_ids = import_with_fake_location @ dotted_b in
+          m_name_inner a (H.name_of_ids b_ids))
+        (fail ()) tin.wildcard_imports tin
 
 and m_name_info a b =
   match (a, b) with
@@ -571,7 +659,10 @@ and m_ident_and_id_info (a1, a2) (b1, b2) =
       if re_match strb then return () else fail ()
   (* general case *)
   | _, _ ->
-      let* () = m_wrap m_string a1 b1 in
+      let case_insensitive =
+        G.is_case_insensitive a2 && B.is_case_insensitive b2
+      in
+      let* () = m_wrap (m_id_string case_insensitive) a1 b1 in
       m_id_info a2 b2
 
 and m_ident_and_empty_id_info a1 b1 =
@@ -590,14 +681,14 @@ and m_id_info a b =
         G.id_resolved = _a1;
         id_type = _a2;
         id_svalue = _a3;
-        id_hidden = _a4;
+        id_flags = _a4;
         id_info_id = _a5;
       },
       {
         B.id_resolved = _b1;
         id_type = _b2;
         id_svalue = _b3;
-        id_hidden = _b4;
+        id_flags = _b4;
         id_info_id = _b5;
       } ) ->
       (* old: (m_ref m_resolved_name) a3 b3  >>= (fun () ->
@@ -735,9 +826,11 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
        * bugfix: important to call with empty_id_info() below to avoid
        * infinite recursion.
        *)
-      m_expr a (B.N (B.Id (idb, B.empty_id_info ())) |> G.e)
-      >||> (* try this time a match with the resolved entity *)
-      m_expr a (make_dotted dotted)
+      (* coupling: resolved names with wildcards *)
+      wipe_wildcard_imports
+        (m_expr a (B.N (B.Id (idb, B.empty_id_info ())) |> G.e)
+        >||> (* try this time a match with the resolved entity *)
+        m_expr a (make_dotted dotted))
   (* equivalence: name resolving on qualified ids (for OCaml) *)
   (* Put this before the next case to prevent overly eager dealiasing *)
   | G.N (G.IdQualified _ as na), B.N ((B.IdQualified _ | B.Id _) as nb) ->
@@ -2238,15 +2331,14 @@ and m_stmts_deep ~inside ~less_is_ok (xsa : G.stmt list) (xsb : G.stmt list) =
       m_stmts_deep ~inside ~less_is_ok xsa bbs
   | ( ({ s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } :: _ as xsa),
       (_ :: _ as xsb) ) ->
-      (* let's first try without going deep *)
-      m_list__m_stmt xsa xsb >!> fun () ->
-      if_config
-        (fun x -> x.go_deeper_stmt)
-        ~then_:
-          (match SubAST_generic.flatten_substmts_of_stmts xsb with
-          | None -> fail () (* was already flat *)
-          | Some (xsb, _UNUSED_last_stmt) -> m_list__m_stmt xsa xsb)
-        ~else_:(fail ())
+      m_list__m_stmt xsa xsb
+      >||> if_config
+             (fun x -> x.go_deeper_stmt)
+             ~then_:
+               (match SubAST_generic.flatten_substmts_of_stmts xsb with
+               | None -> fail () (* was already flat *)
+               | Some (xsb, _UNUSED_last_stmt) -> m_list__m_stmt xsa xsb)
+             ~else_:(fail ())
   (* dots: metavars: $...BODY *)
   | ( ({ s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _idinfo)); _ }, _); _ } :: _
       as xsa),
@@ -2911,6 +3003,39 @@ and m_parameter_list a b =
 
 and m_parameter a b =
   match (a, b) with
+  (* Only match a metavariable unconditionally if it has no other characteristics than
+     being a metavariable.
+     Otherwise, we might match and not check that things like types or default
+     instantiation are the same.
+     Decided not to match ParamRest and ParamHashSplat, and ParamEllipsis, which
+     don't behave like "singular" params.
+  *)
+  | ( G.Param
+        ({
+           pname = Some (str, tok);
+           ptype = None;
+           pdefault = None;
+           pattrs = [];
+           pinfo = _;
+         } as a1),
+      b )
+    when Metavariable.is_metavar_name str -> (
+      match b with
+      | OtherParam _
+      | ParamPattern _
+      | ParamReceiver _ ->
+          envf (str, tok) (MV.Params [ b ])
+      (* We want to first match in the same way `m_parameter_classic` would,
+         to maintain previous behavior.
+         If there are no matches, then we can just unconditionally match.
+      *)
+      | Param b1 ->
+          m_parameter_classic a1 b1 >!> fun () ->
+          envf (str, tok) (MV.Params [ b ])
+      | ParamRest _
+      | ParamHashSplat _
+      | ParamEllipsis _ ->
+          fail ())
   (* boilerplate *)
   | G.Param a1, B.Param b1 -> m_parameter_classic a1 b1
   | G.ParamRest (a1, a2), B.ParamRest (b1, b2) ->

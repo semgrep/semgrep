@@ -1,0 +1,12 @@
+rules:
+  - id: metavar-type-func-param
+    patterns:
+    - pattern: $FUN($X)
+    - metavariable-type:
+        metavariable: $X
+        type: String
+    message: Type awareness for Julia.
+    languages:
+      - julia
+    severity: WARNING
+

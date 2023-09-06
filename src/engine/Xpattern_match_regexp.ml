@@ -24,15 +24,17 @@ let regexp_matcher big_str file regexp =
   subs |> Array.to_list
   |> Common.map (fun sub ->
          let matched_str = Pcre.get_substring sub 0 in
-         let charpos, _ = Pcre.get_substring_ofs sub 0 in
+         let bytepos, _ = Pcre.get_substring_ofs sub 0 in
          let str = matched_str in
-         let line, column = line_col_of_charpos file charpos in
-         let loc1 = { Tok.str; pos = { charpos; file; line; column } } in
+         let line, column = line_col_of_charpos file bytepos in
+         let pos = Pos.make ~file ~line ~column bytepos in
+         let loc1 = { Tok.str; pos } in
 
-         let charpos = charpos + String.length str in
+         let bytepos = bytepos + String.length str in
          let str = "" in
-         let line, column = line_col_of_charpos file charpos in
-         let loc2 = { Tok.str; pos = { charpos; file; line; column } } in
+         let line, column = line_col_of_charpos file bytepos in
+         let pos = Pos.make ~file ~line ~column bytepos in
+         let loc2 = { Tok.str; pos } in
 
          (* the names of all capture groups within the regexp *)
          let names = Pcre.names re |> Array.to_list in
@@ -47,12 +49,11 @@ let regexp_matcher big_str file regexp =
                Common2.enum 1 (n - 1)
                |> Common.map_filter (fun n ->
                       try
-                        let charpos, _ = Pcre.get_substring_ofs sub n in
+                        let bytepos, _ = Pcre.get_substring_ofs sub n in
                         let str = Pcre.get_substring sub n in
-                        let line, column = line_col_of_charpos file charpos in
-                        let loc =
-                          { Tok.str; pos = { charpos; file; line; column } }
-                        in
+                        let line, column = line_col_of_charpos file bytepos in
+                        let pos = Pos.make ~file ~line ~column bytepos in
+                        let loc = { Tok.str; pos } in
                         let t = Tok.tok_of_loc loc in
                         Some (spf "$%d" n, MV.Text (str, t, t))
                       with
@@ -65,12 +66,11 @@ let regexp_matcher big_str file regexp =
            names
            |> Common.map_filter (fun name ->
                   try
-                    let charpos, _ = Pcre.get_named_substring_ofs re name sub in
+                    let bytepos, _ = Pcre.get_named_substring_ofs re name sub in
                     let str = Pcre.get_named_substring re name sub in
-                    let line, column = line_col_of_charpos file charpos in
-                    let loc =
-                      { Tok.str; pos = { charpos; file; line; column } }
-                    in
+                    let line, column = line_col_of_charpos file bytepos in
+                    let pos = Pos.make ~file ~line ~column bytepos in
+                    let loc = { Tok.str; pos } in
                     let t = Tok.tok_of_loc loc in
                     Some (spf "$%s" name, MV.Text (str, t, t))
                   with

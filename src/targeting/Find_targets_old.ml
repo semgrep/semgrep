@@ -1,8 +1,8 @@
 open Common
 open File.Operators
 module In = Input_to_core_t
-module Out = Output_from_core_t
-module Resp = Output_from_core_t
+module Out = Semgrep_output_v1_t
+module Resp = Semgrep_output_v1_t
 open Find_targets (* conf type *)
 
 (*************************************************************************)
@@ -283,8 +283,9 @@ let get_targets conf scanning_roots =
                           Resp.path = !!path;
                           reason;
                           details =
-                            "excluded by --include/--exclude, gitignore, or \
-                             semgrepignore";
+                            Some
+                              "excluded by --include/--exclude, gitignore, or \
+                               semgrepignore";
                           rule_id = None;
                         }
                       in
@@ -310,8 +311,9 @@ let get_targets conf scanning_roots =
                         Resp.path = !!path;
                         reason = Too_big;
                         details =
-                          spf "target file size exceeds %i bytes at %i bytes"
-                            conf.max_target_bytes size;
+                          Some
+                            (spf "target file size exceeds %i bytes at %i bytes"
+                               conf.max_target_bytes size);
                         rule_id = None;
                       }
                   else Ok path)

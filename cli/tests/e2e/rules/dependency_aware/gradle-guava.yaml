@@ -1,0 +1,10 @@
+rules:
+  - id: java-gradle-sca
+    pattern: bad()
+    r2c-internal-project-depends-on:
+      namespace: maven
+      package: com.google.guava:guava
+      version: <= 40.0
+    message: oh no
+    languages: [java]
+    severity: WARNING

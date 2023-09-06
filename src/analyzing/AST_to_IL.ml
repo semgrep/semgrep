@@ -1223,7 +1223,7 @@ and stmt_aux env st =
                  obj_lval with
                  rev_offset = [ { o = Dot cons'; oorig = NoOrig } ];
                })
-            (SameAs (N cons |> G.e))
+            (SameAs (G.N cons |> G.e))
           (* THINK: ^^^^^ We need to construct a `SameAs` eorig here because Pro
            * looks at the eorig, but maybe it shouldn't? *)
         in
@@ -1598,7 +1598,8 @@ and stmt env st =
 and function_body env fbody =
   let implicit_return_hack body_stmt =
     match body_stmt with
-    | G.Block (_, ss, _) when env.lang =*= Lang.Ruby -> (
+    | G.Block (_, ss, _) when env.lang =*= Lang.Ruby || env.lang =*= Lang.Rust
+      -> (
         match List.rev ss with
         | { s = G.ExprStmt (e, tok); _ } :: rev_ss' ->
             Some (List.rev rev_ss', (e, tok))

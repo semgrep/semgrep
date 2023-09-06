@@ -59,6 +59,10 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/gradle_trailing_newline",
         ),
         (
+            "rules/dependency_aware/java-gradle-sca.yaml",
+            "dependency_aware/gradle_empty=",
+        ),
+        (
             "rules/dependency_aware/python-poetry-sca.yaml",
             "dependency_aware/poetry",
         ),
@@ -77,6 +81,7 @@ pytestmark = pytest.mark.kinda_slow
         ("rules/dependency_aware/js-yarn2-sca.yaml", "dependency_aware/yarn2"),
         ("rules/dependency_aware/js-pnpm-sca.yaml", "dependency_aware/pnpm"),
         ("rules/dependency_aware/js-pnpm-sca.yaml", "dependency_aware/pnpm-workspaces"),
+        ("rules/dependency_aware/js-pnpm-sca.yaml", "dependency_aware/pnpm-v6"),
         (
             "rules/dependency_aware/python-requirements-sca.yaml",
             "dependency_aware/requirements",
@@ -145,6 +150,25 @@ pytestmark = pytest.mark.kinda_slow
             "rules/dependency_aware/python-poetry-sca.yaml",
             "dependency_aware/poetry_empty_table",
         ),
+        # This test should produce a parse error in the manifest file, but it should *still* produce findings, because the lockfile can be parsed
+        (
+            "rules/dependency_aware/python-poetry-sca.yaml",
+            "dependency_aware/manifest_parse_error",
+        ),
+        (
+            "rules/dependency_aware/nuget-sca-simple.yaml",
+            "dependency_aware/nuget",
+        ),
+        (
+            "rules/dependency_aware/nuget-sca-simple.yaml",
+            "dependency_aware/nuget-large",
+        ),
+        # This test intentionally runs poetry rules against C# to check that scan runs correctly and does not produce findings
+        (
+            "rules/dependency_aware/python-poetry-sca.yaml",
+            "dependency_aware/nuget",
+        ),
+        ("rules/dependency_aware/gradle-guava.yaml", "dependency_aware/gradle-direct"),
     ],
 )
 def test_dependency_aware_rules(
@@ -263,8 +287,15 @@ def test_maven_version_comparison(version, specifier, outcome):
 def test_osv_parsing(parse_lockfile_path_in_tmp, caplog, target):
     caplog.set_level(logging.ERROR)
     _, error = parse_lockfile_path_in_tmp(Path(target))
+    # These two files have some packages we cannot really make sense of, so we ignore them
+    # We include our failures in the error output for informational purposes
+    if target.endswith("files/pnpm-lock.yaml"):
+        assert len(error) == 1
+    elif target.endswith("exotic/pnpm-lock.yaml"):
+        assert len(error) == 5
+    else:
+        assert len(error) == 0
     assert len(caplog.records) == 0
-    assert error is None
 
 
 # Quite awkward. To test that we can handle a target whose toplevel parent

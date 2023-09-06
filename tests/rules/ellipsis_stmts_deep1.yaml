@@ -1,0 +1,19 @@
+rules:
+  - id: test
+    message: >
+      Test
+    languages:
+      - typescript
+    severity: WARNING
+    patterns:
+      - pattern: baz()
+      - pattern-inside: |
+          foo();
+          ...
+          $X = baz();
+      - pattern-not-inside: |
+          foo();
+          ...
+          bar();
+          ...
+          $X = baz();

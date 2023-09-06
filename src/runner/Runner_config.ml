@@ -46,9 +46,8 @@ type t = {
   lang : Xlang.t option;
   roots : Fpath.t list;
   output_format : output_format;
-  match_format : Matching_report.match_format;
+  match_format : Core_text_output.match_format;
   mvars : Metavariable.mvar list;
-  ls : bool;
   (* Limits *)
   (* maximum time to spend running a rule on a single file *)
   timeout : float;
@@ -73,6 +72,17 @@ type t = {
   version : string;
 }
 [@@deriving show]
+
+(* The type of the semgrep core runner. We define it here so that
+   semgrep and semgrep-proprietary use the same definition *)
+type semgrep_engine =
+  t ->
+  (* Exceptions raised *)
+  Exception.t option
+  * (* Result *)
+    Report.final_result
+  * (* The processed targets *)
+  Fpath.t list
 
 (*
    Default values for all the semgrep-core command-line arguments and options.
@@ -105,9 +115,8 @@ let default =
     lang = None;
     roots = [];
     output_format = Text;
-    match_format = Matching_report.Normal;
+    match_format = Core_text_output.Normal;
     mvars = [];
-    ls = false;
     (* Limits *)
     (* maximum time to spend running a rule on a single file *)
     timeout = 0.;

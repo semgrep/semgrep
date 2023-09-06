@@ -31,6 +31,7 @@ class JsonFormatter(BaseFormatter):
             metavars=rule_match.match.extra.metavars,
             dataflow_trace=rule_match.dataflow_trace,
             engine_kind=rule_match.match.extra.engine_kind,
+            validation_state=rule_match.match.extra.validation_state,
         )
 
         if rule_match.extra.get("sca_info"):
@@ -74,6 +75,7 @@ class JsonFormatter(BaseFormatter):
             paths=cli_output_extra.paths,
             time=cli_output_extra.time,
             explanations=cli_output_extra.explanations,
+            skipped_rules=[],  # TODO: concatenate skipped_rules field from core responses
         )
         # Sort keys for predictable output. This helps with snapshot tests, etc.
         return json.dumps(output.to_json(), sort_keys=True, default=to_json)

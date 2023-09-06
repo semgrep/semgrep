@@ -6,7 +6,7 @@
 # which can be statically linked.
 #
 # Then 'semgrep-core' alone is copied to another Alpine-based container
-# which takes care of the 'semgrep-cli' Python wrapping.
+# which takes care of the 'semgrep-cli' (a.k.a. pysemgrep) Python wrapping.
 #
 # We use Alpine because it allows to generate the smallest Docker images.
 # We use this two-steps process because *building* semgrep-core itself
@@ -32,6 +32,9 @@ WORKDIR /src/semgrep
 COPY . .
 
 # remove files and folders that aren't necessary for the semgrep-core build
+# coupling: see the (dirs ...) directive in the toplevel dune file for the list
+# of directories containing OCaml code and which should not be added below
+# (except js/ which contains OCaml code but is not used to build semgrep-core)
 RUN rm -rf cli js .github .circleci Dockerfile
 
 # we *do* need the cli's semgrep_interfaces folder, however
@@ -60,6 +63,10 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 #    is not without problems when used inside Github actions (GHA) or even inside
 #    this Dockerfile.
 #
+#    update: we recently started to cache the ~/.opam/ directory in CI so
+#    in theory we could get rid of ocaml-layer and instead use the official
+#    opam docker image combined with this ~/.opam/ caching to speedup things.
+#
 #  - 'alpine', the official Alpine Docker image, but this would require some
 #    extra 'apk' commands to install opam, and extra commands to setup OCaml
 #    with this opam from scratch, and more importantly this would take
@@ -68,6 +75,8 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 #    tools like gcc, make, which are not provided by default on Alpine.
 #
 # An alternative to ocaml-layer would be to use https://depot.dev/
+# update: we actually started to use depot.dev to speedup multi-arch (arm)
+# docker image, so maybe we could use it to get rid of ocaml-layer
 #
 # Note that the Docker base image below currently uses OCaml 5.0
 # coupling: if you modify the OCaml version there, you probably also need
@@ -101,33 +110,32 @@ RUN eval "$(opam env)" &&\
 ###############################################################################
 # This is an intermediary stage used for building Python wheels. Semgrep users
 # don't need to use this.
-FROM python:3.7-alpine AS semgrep-wheel
+FROM python:3.11-alpine AS semgrep-wheel
 
 WORKDIR /semgrep
 
-# Install some deps (build-base because ruamel.yaml has native code, zip because we need zip)
-RUN apk add --no-cache build-base zip
+# Install some deps (build-base because ruamel.yaml has native code)
+RUN apk add --no-cache build-base zip bash
 
 # Copy in the CLI
-COPY cli ./
+COPY cli ./cli
 
 # Copy in semgrep-core executable
-COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe src/semgrep/bin/semgrep-core
+COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe cli/src/semgrep/bin/semgrep-core
 
-# Build the source distribution and binary wheel
-# TODO: do we actually need the sdist?
-RUN python setup.py sdist bdist_wheel
+# Copy in scripts folder
+COPY scripts/ ./scripts/
 
-# Copy and run scripts/validate-wheel.sh to ensure that the generated wheel works properly
-COPY scripts/validate-wheel.sh ./scripts/validate-wheel.sh
-RUN ./scripts/validate-wheel.sh dist/*.whl
+# Build the source distribution and binary wheel, validate that the wheel installs correctly
+# We're only checking the musllinux wheel because this is an Alpine container. It shouldnt be a problem because the content of the wheels are identical.
+RUN scripts/build-wheels.sh && scripts/validate-wheel.sh cli/dist/*musllinux*.whl
 
 ###############################################################################
 # Step3: Build the final docker image with Python wrapper and semgrep-core bin
 ###############################################################################
 # We change container, bringing the 'semgrep-core' binary with us.
 
-FROM python:3.11.3-alpine AS semgrep-cli
+FROM python:3.11.4-alpine AS semgrep-cli
 
 WORKDIR /semgrep
 
@@ -150,7 +158,7 @@ RUN apk update &&\
 # - libstdc++: for the Python jsonnet binding now used in pysemgrep
 #   note: do not put libstdc++6, you'll get 'missing library' or 'unresolved
 #   symbol' errors
-#   TODO: remove once the osemgrep port is done
+#   TODO: remove once the osemgrep/ojsonnet port is done
 # - git, git-lfs, openssh: so that the semgrep docker image can be used in
 #   Github actions (GHA) and get git submodules and use ssh to get those submodules
 # - bash, curl, jq: various utilities useful in CI jobs (e.g., our benchmark jobs,
@@ -183,8 +191,6 @@ COPY cli ./
 RUN apk add --no-cache --virtual=.build-deps build-base make g++ &&\
      pip install jsonnet &&\
      pip install /semgrep &&\
-     # running this pre-compiles some python files for faster startup times
-     semgrep --version &&\
      apk del .build-deps
 
 # Let the user know how their container was built
@@ -206,15 +212,16 @@ WORKDIR /src
 
 # Better to avoid running semgrep as root
 # See https://stackoverflow.com/questions/49193283/why-it-is-unsafe-to-run-applications-as-root-in-docker-container
-RUN addgroup --system semgrep \
-    && adduser --system --shell /bin/false --ingroup semgrep semgrep \
+RUN adduser -D -u 1000 -h /home/semgrep semgrep \
     && chown semgrep /src
 
 # Disabling defaulting to the user semgrep for now
 # We can set it by default once we fix the circle ci workflows
+# See nonroot build stage below.
 #USER semgrep
 
-# Workaround for rootless containers as git operations may fail due to dubious ownership of /src
+# Workaround for rootless containers as git operations may fail due to dubious
+# ownership of /src
 RUN printf "[safe]\n	directory = /src"  > ~root/.gitconfig
 RUN printf "[safe]\n	directory = /src"  > ~semgrep/.gitconfig && \
 	chown semgrep:semgrep ~semgrep/.gitconfig
@@ -225,3 +232,10 @@ RUN printf "[safe]\n	directory = /src"  > ~semgrep/.gitconfig && \
 # to interactively explore the docker image.
 CMD ["semgrep", "--help"]
 LABEL maintainer="support@semgrep.com"
+
+# Additional build stage that sets a non-root user.
+# Can't make this the default in semgrep-cli stage because of permissions errors
+# on the mounted volume when using instructions for running semgrep with docker:
+# `docker run -v "${PWD}:/src" -i returntocorp/semgrep semgrep`
+FROM semgrep-cli AS nonroot
+USER semgrep

@@ -968,6 +968,9 @@ val filesize : filename -> int
 val filemtime : filename -> float
 val lfile_exists : filename -> bool
 
+(* no raised Unix_error if the directory does not exist *)
+val dir_exists : path -> bool
+
 (* raise Unix_error if the directory does not exist *)
 val is_directory : path -> bool
 

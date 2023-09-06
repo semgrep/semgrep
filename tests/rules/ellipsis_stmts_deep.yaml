@@ -1,0 +1,29 @@
+rules:
+  - id: reproducer-660
+    patterns:
+      - pattern-inside: |
+          def $F(...):
+              ...
+              def $FF(...):
+                 ...
+              ...
+      - pattern-not-inside: |
+          def $F(...):
+              ...
+              def $FF(...):
+                 ...
+              ...
+              <... $FF ...>
+      - pattern: |
+          def $FF(...):
+            ...
+      - focus-metavariable: $FF
+    message: function `$FF` is defined inside a function but never used
+    languages:
+      - python
+    severity: ERROR
+    metadata:
+      category: maintainability
+      technology:
+        - python
+      license: Commons Clause License Condition v1.0[LGPL-2.1-only]

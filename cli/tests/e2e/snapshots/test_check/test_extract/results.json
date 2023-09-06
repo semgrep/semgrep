@@ -22,7 +22,8 @@
         "message": "Found match",
         "metadata": {},
         "metavars": {},
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/extract/js_html_concat.html",
       "start": {
@@ -46,7 +47,8 @@
         "message": "Found match",
         "metadata": {},
         "metavars": {},
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/extract/js_html_concat.html",
       "start": {
@@ -70,7 +72,8 @@
         "message": "Found match",
         "metadata": {},
         "metavars": {},
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/extract/js_html_concat.html",
       "start": {
@@ -94,7 +97,8 @@
         "message": "Found match",
         "metadata": {},
         "metavars": {},
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/extract/js_html_concat.html",
       "start": {
@@ -180,8 +184,8 @@
             "abstract_content": "x",
             "end": {
               "col": 14,
-              "line": 7,
-              "offset": 325
+              "line": 10,
+              "offset": 369
             },
             "propagated_value": {
               "svalue_abstract_content": "foo()",
@@ -198,12 +202,13 @@
             },
             "start": {
               "col": 13,
-              "line": 7,
-              "offset": 324
+              "line": 10,
+              "offset": 368
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/extract/js_html_concat.html",
       "start": {
@@ -289,8 +294,8 @@
             "abstract_content": "x",
             "end": {
               "col": 18,
-              "line": 14,
-              "offset": 655
+              "line": 27,
+              "offset": 900
             },
             "propagated_value": {
               "svalue_abstract_content": "foo()",
@@ -307,12 +312,13 @@
             },
             "start": {
               "col": 17,
-              "line": 14,
-              "offset": 654
+              "line": 27,
+              "offset": 899
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/extract/js_html_concat.html",
       "start": {
@@ -322,5 +328,6 @@
       }
     }
   ],
+  "skipped_rules": [],
   "version": "0.42"
 }

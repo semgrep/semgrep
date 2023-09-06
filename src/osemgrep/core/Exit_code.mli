@@ -12,6 +12,9 @@ type t = private int
 val to_int : t -> int
 val of_int : int -> t
 
+(* Short error message describing the meaning of each exit code *)
+val to_message : t -> string
+
 (*
    Standard exit codes.
    All calls to exit must use one of these.

@@ -1,3 +1,7 @@
+##############################################################################
+# Prelude
+##############################################################################
+# Helper functions and classes useful for writing tests.
 import json
 import os
 import re
@@ -28,9 +32,17 @@ from semgrep import __VERSION__
 from semgrep.cli import cli
 from semgrep.constants import OutputFormat
 
+##############################################################################
+# Constants
+##############################################################################
+
 TESTS_PATH = Path(__file__).parent
 
+##############################################################################
+# Pytest hacks
+##############################################################################
 
+# ???
 def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption(
         "--run-only-snapshots",
@@ -40,6 +52,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
 
 
+# ???
 def pytest_collection_modifyitems(items: pytest.Item, config: pytest.Config) -> None:
     if config.getoption("--run-only-snapshots"):
         selected_items: List[pytest.Item] = []
@@ -55,6 +68,11 @@ def pytest_collection_modifyitems(items: pytest.Item, config: pytest.Config) -> 
 
         config.hook.pytest_deselected(items=deselected_items)
         items[:] = selected_items
+
+
+##############################################################################
+# Helper functions
+##############################################################################
 
 
 def make_semgrepconfig_file(dir_path: Path, contents: str) -> None:
@@ -114,6 +132,10 @@ def _clean_output_json(output_json: str, clean_fingerprint: bool) -> str:
     ]
     for path in masked_keys:
         mark_masked(output, path)
+
+    # The masking code below is a little complicated. We could use the
+    # regexp-based mechanism above (mark_masked) for everything to simplify
+    # the porting to osemgrep.
 
     # Remove temp file paths
     results = output.get("results")
@@ -196,6 +218,8 @@ def mask_capture_group(match: re.Match) -> str:
     return text
 
 
+# ProTip: make sure your regexps can't match JSON quotes so as to keep any
+# JSON parseable after a substitution!
 ALWAYS_MASK: Maskers = (
     _clean_output_sarif,
     __VERSION__,
@@ -203,6 +227,11 @@ ALWAYS_MASK: Maskers = (
     re.compile(r'SEMGREP_SETTINGS_FILE="(.+?)"'),
     re.compile(r'SEMGREP_VERSION_CACHE_PATH="(.+?)"'),
     re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"),
+    # Temporary rule file stored in temporary folder.
+    # Need to mask (1) temp folder location and (2) random part of file name.
+    # Note that paths are masked using a more fine-grained mechanism below
+    # but it's more complicated.
+    re.compile(r"([/A-Za-z0-9_-]*/tmp[a-z0-9_]+).json"),
 )
 
 
@@ -304,6 +333,7 @@ def _run_semgrep(
     force_metrics_off: bool = True,
     stdin: Optional[str] = None,
     clean_fingerprint: bool = True,
+    use_click_runner: bool = False,  # Deprecated! see semgrep_runner.py toplevel comment
 ) -> SemgrepResult:
     """Run the semgrep CLI.
 
@@ -373,7 +403,7 @@ def _run_semgrep(
     args = " ".join(shlex.quote(str(c)) for c in [*options, *targets])
     env_string = " ".join(f'{k}="{v}"' for k, v in env.items())
 
-    runner = SemgrepRunner(env=env, mix_stderr=False)
+    runner = SemgrepRunner(env=env, mix_stderr=False, use_click_runner=use_click_runner)
     click_result = runner.invoke(cli, args, input=stdin)
     result = SemgrepResult(
         # the actual executable was either semgrep or osemgrep. Is it bad?
@@ -391,6 +421,11 @@ def _run_semgrep(
         assert result.exit_code == assert_exit_code
 
     return result
+
+
+##############################################################################
+# Fixtures
+##############################################################################
 
 
 @pytest.fixture()
@@ -442,7 +477,7 @@ def git_tmp_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     # Initialize State
     subprocess.run(["git", "init"], check=True, capture_output=True)
     subprocess.run(
-        ["git", "config", "user.email", "baselinetest@r2c.dev"],
+        ["git", "config", "user.email", "baselinetest@semgrep.com"],
         check=True,
         capture_output=True,
     )
@@ -462,6 +497,20 @@ def git_tmp_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
 @pytest.fixture
 def parse_lockfile_path_in_tmp(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
+    (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
+    monkeypatch.chdir(tmp_path)
+    return parse_lockfile_path
+
+
+# similar to parse_lockfile_path_in_tmp but with different targets path to save
+# disk space (see performance/targets_perf_sca/readme.txt)
+@pytest.fixture
+def parse_lockfile_path_in_tmp_for_perf(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    (tmp_path / "targets_perf_sca").symlink_to(
+        Path(TESTS_PATH / "performance" / "targets_perf_sca").resolve()
+    )
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
     monkeypatch.chdir(tmp_path)
     return parse_lockfile_path

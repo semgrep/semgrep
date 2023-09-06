@@ -3,7 +3,7 @@
    other.*)
 module MkId () : sig
   (* abstract type! *)
-  type t [@@deriving show, eq, ord, hash]
+  type t [@@deriving show, eq, ord, hash, sexp]
 
   val mk : unit -> t
   val to_int : t -> int
@@ -18,4 +18,17 @@ module MkId () : sig
      generate already-generated identifiers.
   *)
   val unsafe_reset_counter : unit -> unit
+
+  type partition = A | B
+
+  (* Defaults to partition A. IDs generated from different partitions are
+   * guaranteed to be distinct from each other even across different runs of the
+   * binary.
+   *
+   * This is useful if we want to serialize a data structure that includes IDs,
+   * then deserialize it in a different run for use alongside fresh IDs. Using
+   * one partition when constructing the serialized data, and another for a
+   * normal run ensures that we will avoid collisions.
+   * *)
+  val set_partition : partition -> unit
 end

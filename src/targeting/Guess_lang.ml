@@ -258,6 +258,7 @@ let inspect_file_p (lang : Lang.t) path =
     | Lisp
     | Lua
     | Ocaml
+    | Promql
     | Protobuf
     | Python2
     | Python3
@@ -280,7 +281,7 @@ let inspect_file_p (lang : Lang.t) path =
   eval test path
 
 let wrap_with_error_message lang path bool_res :
-    (Fpath.t, Output_from_core_t.skipped_target) result =
+    (Fpath.t, Semgrep_output_v1_t.skipped_target) result =
   match bool_res with
   | true -> Ok path
   | false ->
@@ -289,8 +290,9 @@ let wrap_with_error_message lang path bool_res :
           path = !!path;
           reason = Wrong_language;
           details =
-            spf "target file doesn't look like language %s"
-              (Lang.to_string lang);
+            Some
+              (spf "target file doesn't look like language %s"
+                 (Lang.to_string lang));
           rule_id = None;
         }
 

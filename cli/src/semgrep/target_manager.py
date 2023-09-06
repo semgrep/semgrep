@@ -62,6 +62,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Composer
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Nuget
 
 logger = getLogger(__name__)
 
@@ -88,6 +89,7 @@ ECOSYSTEM_TO_LOCKFILES = {
     Ecosystem(Cargo()): ["Cargo.lock"],
     Ecosystem(Maven()): ["maven_dep_tree.txt", "gradle.lockfile"],
     Ecosystem(Composer()): ["composer.lock"],
+    Ecosystem(Nuget()): ["packages.lock.json"],
 }
 
 
@@ -338,7 +340,7 @@ class FileTargetingLog:
 
         return output
 
-    # TODO: return directly a out.CliSkippedTarget
+    # TODO: return directly a out.SkippedTarget
     def yield_json_objects(self) -> Iterable[Dict[str, Any]]:
         # coupling: if you add a reason here,
         # add it also to semgrep_output_v1.atd.
@@ -503,7 +505,7 @@ class TargetManager:
     """
     Handles all file include/exclude logic for semgrep
 
-    Assumes file system does not change during it's existence to cache
+    Assumes file system does not change during its existence to cache
     files for a given language etc. If file system changes (i.e. git checkout),
     create a new TargetManager object
 
@@ -783,6 +785,7 @@ class TargetManager:
             Ecosystem(Cargo()),
             Ecosystem(Maven()),
             Ecosystem(Composer()),
+            Ecosystem(Nuget()),
         }
 
         return {

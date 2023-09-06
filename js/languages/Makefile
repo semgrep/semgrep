@@ -28,3 +28,7 @@ package-%:
 .PHONY: clean
 clean:
 	rm -rf **/dist
+
+.PHONY: distclean
+distclean:
+	rm -rf **/dist **/node_modules

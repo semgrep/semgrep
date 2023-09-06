@@ -51,7 +51,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/exclude_include/excluded/included.js",
       "start": {
@@ -102,7 +103,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/exclude_include/included/included.js",
       "start": {
@@ -153,7 +155,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/exclude_include/excluded/included.js",
       "start": {
@@ -204,7 +207,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/exclude_include/included/included.js",
       "start": {
@@ -255,7 +259,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/exclude_include/included/excluded.js",
       "start": {
@@ -306,7 +311,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/exclude_include/included/included.js",
       "start": {
@@ -357,7 +363,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/exclude_include/included/excluded.js",
       "start": {
@@ -408,7 +415,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/exclude_include/included/included.js",
       "start": {
@@ -459,7 +467,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/exclude_include/excluded/included.js",
       "start": {
@@ -510,7 +519,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/exclude_include/included/included.js",
       "start": {
@@ -561,7 +571,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/exclude_include/excluded/included.js",
       "start": {
@@ -612,7 +623,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/exclude_include/included/included.js",
       "start": {
@@ -663,7 +675,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/exclude_include/included/included.js",
       "start": {
@@ -714,7 +727,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/exclude_include/included/included.js",
       "start": {
@@ -724,5 +738,6 @@
       }
     }
   ],
+  "skipped_rules": [],
   "version": "0.42"
 }

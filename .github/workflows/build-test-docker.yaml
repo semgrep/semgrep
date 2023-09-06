@@ -5,6 +5,10 @@ name: build-test-docker
 on:
   workflow_dispatch:
     inputs:
+      docker-flavor:
+        required: true
+        type: string
+        description: A multi-line string in the format accepted by docker metadata tag action for the flavor of the image
       docker-tags:
         required: true
         type: string
@@ -23,17 +27,21 @@ on:
         type: string
         description: Dockerfile to build
         default: Dockerfile
+      target:
+        required: true
+        type: string
+        description: Dockerfile target to build
       enable-tests:
         required: true
         type: boolean
         description: Whether or not to run validation on the built image
-      use-depot-for-docker-build:
-        type: boolean
-        description: Whether or not to use depot.dev instead of docker buildx to build the docker image
-        default: true
 
   workflow_call:
     inputs:
+      docker-flavor:
+        required: true
+        type: string
+        description: A multi-line string in the format accepted by docker metadata tag action for the flavor of the image
       docker-tags:
         required: true
         type: string
@@ -50,15 +58,14 @@ on:
         required: true
         type: string
         description: Dockerfile to build
+      target:
+        required: true
+        type: string
+        description: Dockerfile target to build
       enable-tests:
         required: true
         type: boolean
         description: Whether or not to run validation on the built image
-      use-depot-for-docker-build:
-        type: boolean
-        description: Whether or not to use depot.dev instead of docker buildx to build the docker image
-        default: true
-
 jobs:
   build-test-docker:
     name: Build and test Semgrep Docker image
@@ -80,13 +87,12 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: ${{ inputs.repository-name }}
+          flavor: ${{ inputs.docker-flavor }}
           tags: ${{ inputs.docker-tags }}
       - uses: depot/setup-action@v1
-        if: ${{ inputs.use-depot-for-docker-build }}
-      - name: Build image (via depot.dev)
-        id: build-image-depot
-        if: ${{ inputs.use-depot-for-docker-build }}
-        uses: depot/build-push-action@v1.7.1
+      - name: Build image
+        id: build-image
+        uses: depot/build-push-action@v1.8.0
         with:
           project: fhmxj6w9z8
           platforms: linux/${{ matrix.architecture }}
@@ -94,20 +100,8 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ${{ inputs.file }}
+          target: ${{ inputs.target }}
           buildx-fallback: true
-      - name: Build image (via docker buildx)
-        id: build-image-docker
-        if: ${{ ! inputs.use-depot-for-docker-build }}
-        uses: docker/build-push-action@v4.1.1
-        with:
-          platforms: linux/${{ matrix.architecture }}
-          outputs: type=docker,dest=/tmp/image.tar
-          cache-from: type=gha,src=/tmp/.buildx-cache
-          cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          file: ${{ inputs.file }}
-          provenance: false
       - name: Load image
         if: ${{ inputs.enable-tests }}
         run: |
@@ -116,7 +110,7 @@ jobs:
         if: ${{ inputs.enable-tests }}
       - name: Test Image
         if: ${{ inputs.enable-tests }}
-        run: ./scripts/validate-docker-build.sh ${{ inputs.use-depot-for-docker-build && steps.build-image-depot.outputs.imageid || steps.build-image-docker.outputs.imageid }} linux/${{ matrix.architecture }}
+        run: ./scripts/validate-docker-build.sh ${{ steps.build-image.outputs.imageid }} linux/${{ matrix.architecture }}
       - uses: actions/upload-artifact@v3
         with:
           name: ${{ inputs.artifact-name }}-arch-${{ matrix.architecture }}

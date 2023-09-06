@@ -62,7 +62,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/message_interpolation/multi_pattern_inside_nested.py",
       "start": {
@@ -126,7 +127,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/message_interpolation/multi_pattern_inside_nested.py",
       "start": {
@@ -190,7 +192,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/message_interpolation/multi_pattern_inside_nested.py",
       "start": {
@@ -254,7 +257,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/message_interpolation/multi_pattern_inside_nested.py",
       "start": {
@@ -318,7 +322,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/message_interpolation/multi_pattern_inside_nested.py",
       "start": {
@@ -382,7 +387,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/message_interpolation/multi_pattern_inside_nested.py",
       "start": {
@@ -392,5 +398,6 @@
       }
     }
   ],
+  "skipped_rules": [],
   "version": "0.42"
 }

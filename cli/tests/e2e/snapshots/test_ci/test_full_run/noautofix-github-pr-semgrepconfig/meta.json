@@ -11,6 +11,7 @@
     "commit_author_username": "test-username",
     "commit_author_image_url": "some.test.avatar.url.com",
     "commit_title": "Some other commit/ message",
+    "commit_timestamp": "1970-01-01T00:00:00",
     "on": "pull_request",
     "pull_request_author_username": "user-login",
     "pull_request_author_image_url": "some.user.avatar.com",
@@ -19,6 +20,7 @@
     "scan_environment": "github-actions",
     "is_full_scan": false,
     "is_sca_scan": false,
+    "is_secrets_scan": false,
     "tags": [
       "tag1",
       "tag_key:tag_val"

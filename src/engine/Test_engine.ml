@@ -277,7 +277,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
 
              res :: eres
              |> List.iter (fun (res : RP.partial_profiling RP.match_result) ->
-                    res.matches |> List.iter JSON_report.match_to_error);
+                    res.matches |> List.iter Core_json_output.match_to_error);
              (if not (Report.ErrorSet.is_empty res.errors) then
               let errors =
                 Report.ErrorSet.elements res.errors

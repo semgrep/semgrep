@@ -40,7 +40,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/ignores/find.js",
       "start": {
@@ -78,7 +79,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/ignores/ignore.min.js",
       "start": {
@@ -116,7 +118,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/ignores/ignore_test.js",
       "start": {
@@ -154,7 +157,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/ignores/ok/find.js",
       "start": {
@@ -192,7 +196,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/ignores/tests/ignore.js",
       "start": {
@@ -202,5 +207,6 @@
       }
     }
   ],
+  "skipped_rules": [],
   "version": "0.42"
 }

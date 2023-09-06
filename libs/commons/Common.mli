@@ -155,7 +155,7 @@ val split : string (* sep regexp *) -> string -> string list
  * Ideally 'filename' should be a different type like in Scala with the
  * Path module: https://www.lihaoyi.com/post/HowtoworkwithFilesinScala.html
  *)
-type filename = string [@@deriving show, eq]
+type filename = string [@@deriving show, eq, ord, sexp]
 
 (*
    Check that the file exists and produce a valid absolute path for the file.
@@ -414,7 +414,7 @@ val ( ||| ) : 'a option -> 'a -> 'a
  *)
 
 (* Haskell-inspired either type *)
-type ('a, 'b) either = Left of 'a | Right of 'b [@@deriving eq, show]
+type ('a, 'b) either = Left of 'a | Right of 'b [@@deriving eq, show, sexp]
 
 val partition_either : ('a -> ('b, 'c) either) -> 'a list -> 'b list * 'c list
 

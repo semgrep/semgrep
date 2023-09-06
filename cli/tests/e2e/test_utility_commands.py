@@ -41,13 +41,3 @@ def test_dump_engine():
     )
 
     assert re.match(r"/[\w/]+/semgrep-core", result)
-
-
-@pytest.mark.kinda_slow
-def test_dump_engine_pro():
-    result = subprocess.check_output(
-        SEMGREP_BASE_COMMAND + ["--dump-engine-path", "--pro"],
-        encoding="utf-8",
-    )
-
-    assert re.match(r"/[\w/]+/semgrep-core-proprietary", result)

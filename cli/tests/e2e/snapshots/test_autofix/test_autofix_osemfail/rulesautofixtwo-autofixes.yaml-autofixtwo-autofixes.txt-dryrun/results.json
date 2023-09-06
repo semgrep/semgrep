@@ -26,7 +26,8 @@
         "message": "This rule changes the line numbers for the other rule's match",
         "metadata": {},
         "metavars": {},
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/autofix/two-autofixes.txt",
       "start": {
@@ -54,7 +55,8 @@
         "message": "If semgrep is not smart enough, the match of this rule will be out of range",
         "metadata": {},
         "metavars": {},
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/autofix/two-autofixes.txt",
       "start": {
@@ -64,5 +66,6 @@
       }
     }
   ],
+  "skipped_rules": [],
   "version": "0.42"
 }

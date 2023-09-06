@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2022 r2c
+ * Copyright (C) 2019-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-module G = AST_generic
 module MV = Metavariable
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -28,82 +27,17 @@ open Ppx_hash_lib.Std.Hash.Builtin
  * See also Mini_rule.ml where formula and many other features disappear.
  *)
 
-(*
-   A rule ID is a string. This creates a dedicated type to clarify interfaces
-   and error messages. The coercion operator can be used as an alternative
-   to 'to_string x': '(x :> string)' to obtain a plain string.
-*)
-module ID : sig
-  type t = private string [@@deriving show, eq]
-
-  exception Malformed_rule_ID of string
-
-  val to_string : t -> string
-  val of_string : string -> t
-  val of_string_opt : string -> t option
-  val to_string_list : t list -> string list
-  val of_string_list : string list -> t list
-  val compare : t -> t -> int
-
-  (* Validation function called by of_string.
-     Checks for the format [a-zA-Z0-9._-]* *)
-  val validate : string -> bool
-
-  (* Remove any forbidden characters to produce a valid rule ID fragment. *)
-  val sanitize_string : string -> string
-
-  (*
-     Rule ids are prepended with the `path.to.the.rules.file.`, so
-     when comparing a rule (r) with the rule to be included or excluded,
-     allow for a preceding path
-
-       "path.to.foo.bar" ~suffix:"foo.bar" -> true
-       "foo.bar" ~suffix:"foo.bar" -> true
-       "xfoo.bar" ~suffix:"foo.bar" -> false
-  *)
-  val ends_with : t -> suffix:t -> bool
-end = struct
-  type t = string [@@deriving show, eq]
-
-  exception Malformed_rule_ID of string
-
-  let to_string x = x
-
-  let validate =
-    let rex = SPcre.regexp "^[a-zA-Z0-9._-]*$" in
-    fun str -> SPcre.pmatch_noerr ~rex str
-
-  let sanitize_string str =
-    let buf = Buffer.create (String.length str) in
-    String.iter
-      (function
-        | ('a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '.' | '_' | '-') as c ->
-            Buffer.add_char buf c
-        | _junk -> ())
-      str;
-    Buffer.contents buf
-
-  let of_string x = if not (validate x) then raise (Malformed_rule_ID x) else x
-  let of_string_opt x = if validate x then Some x else None
-  let to_string_list x = x
-  let of_string_list x = x
-  let compare = String.compare
-
-  let ends_with r ~suffix:inc_or_exc_rule =
-    r = inc_or_exc_rule || String.ends_with ~suffix:("." ^ inc_or_exc_rule) r
-end
-
-type rule_id = ID.t [@@deriving show, eq]
-
 (*****************************************************************************)
 (* Position information *)
 (*****************************************************************************)
 
 (* This is similar to what we do in AST_generic to get precise
- * error location when a rule is malformed.
+ * error location when a rule is malformed (and also to get some
+ * special equality and hashing; see the comment for Tok.t_always_equal
+ * in Tok.mli)
  *)
-type tok = AST_generic.tok [@@deriving show, eq, hash]
-type 'a wrap = 'a AST_generic.wrap [@@deriving show, eq, hash]
+type tok = Tok.t_always_equal [@@deriving show, eq, hash]
+type 'a wrap = 'a * tok [@@deriving show, eq, hash]
 
 (* To help report pattern errors in the playground *)
 type 'a loc = {
@@ -122,6 +56,9 @@ type 'a loc = {
  * negation in the presence of metavariables.
  *
  * less? enforce invariant that Not can only appear in And?
+ *
+ * We use 'deriving hash' for formula because of the
+ * Match_tainting_mode.Formula_tbl formula cache.
  *)
 type formula =
   | P of Xpattern.t (* a leaf pattern *)
@@ -141,10 +78,6 @@ type formula =
    * https://github.com/returntocorp/semgrep/issues/1218
    *)
   | Inside of tok * formula
-
-(* Represents all of the metavariables that are being focused by a single
-   `focus-metavariable`. *)
-and focus_mv_list = tok * MV.mvar list
 
 (* The conjunction must contain at least
  * one positive "term" (unless it's inside a CondNestedFormula, in which
@@ -182,26 +115,10 @@ and metavar_cond =
   | CondNestedFormula of MV.mvar * Xlang.t option * formula
 
 and metavar_analysis_kind = CondEntropy | CondReDoS
-[@@deriving show, eq, hash]
 
-(* TODO? store also the compiled glob directly? but we preprocess the pattern
- * in Filter_target.filter_paths, so we would need to recompile it anyway,
- * or call Filter_target.filter_paths preprocessing in Parse_rule.ml
- *)
-type glob = string (* original string *) * Glob.Pattern.t (* parsed glob *)
-[@@deriving show]
-
-type paths = {
-  (* If not empty, list of file path patterns (globs) that
-   * the file path must at least match once to be considered for the rule.
-   * Called 'include' in our doc but really it is a 'require'.
-   * TODO? use wrap? to also get location of include/require field?
-   *)
-  require : glob list;
-  (* List of file path patterns we want to exclude. *)
-  exclude : glob list;
-}
-[@@deriving show]
+(* Represents all of the metavariables that are being focused by a single
+   `focus-metavariable`. *)
+and focus_mv_list = tok * MV.mvar list [@@deriving show, eq, hash]
 
 (*****************************************************************************)
 (* Taint-specific types *)
@@ -216,6 +133,12 @@ type precondition =
   | PAnd of precondition list
   | POr of precondition list
   | PNot of precondition
+[@@deriving show, ord]
+
+type precondition_with_range = {
+  precondition : precondition;
+  range : (Tok.location * Tok.location) option;
+}
 [@@deriving show]
 
 (* The sources/sanitizers/sinks used to be a simple 'formula list',
@@ -223,7 +146,7 @@ type precondition =
  *)
 type taint_spec = {
   sources : tok * taint_source list;
-  sanitizers : taint_sanitizer list;
+  sanitizers : (tok * taint_sanitizer list) option;
   sinks : tok * taint_sink list;
   propagators : taint_propagator list;
 }
@@ -231,11 +154,12 @@ type taint_spec = {
 and taint_source = {
   source_formula : formula;
   source_by_side_effect : bool;
+  source_control : bool;
   label : string;
       (* The label to attach to the data.
        * Alt: We could have an optional label instead, allow taint that is not
        * labeled, and allow sinks that work for any kind of taint? *)
-  source_requires : precondition;
+  source_requires : precondition_with_range option;
       (* A Boolean expression over taint labels, using Python syntax
        * (see Parse_rule). The operators allowed are 'not', 'or', and 'and'.
        *
@@ -278,7 +202,7 @@ and taint_sanitizer = {
 and taint_sink = {
   sink_id : string;  (** See 'Parse_rule.parse_taint_sink'. *)
   sink_formula : formula;
-  sink_requires : tok * precondition option;
+  sink_requires : precondition_with_range option;
       (* A Boolean expression over taint labels. See also 'taint_source'.
        * The sink will only trigger a finding if the data that reaches it
        * has a set of labels attached that satisfies the 'requires'.
@@ -295,7 +219,7 @@ and taint_propagator = {
   propagator_by_side_effect : bool;
   from : MV.mvar wrap;
   to_ : MV.mvar wrap;
-  propagator_requires : precondition;
+  propagator_requires : precondition_with_range option;
       (* A Boolean expression over taint labels. See also 'taint_source'.
        * This propagator will only propagate taint if the incoming taint
        * satisfies the 'requires'.
@@ -316,34 +240,51 @@ and taint_propagator = {
 [@@deriving show]
 
 let default_source_label = "__SOURCE__"
-let default_source_requires _tok = PBool true
-let default_propagator_requires _tok = PBool true
+let default_source_requires = PBool true
+let default_propagator_requires = PBool true
 
-let get_sink_requires { sink_requires = _, expr; _ } =
-  match expr with
+let get_source_precondition { source_requires; _ } =
+  match source_requires with
+  | None -> default_source_requires
+  | Some { precondition; _ } -> precondition
+
+let get_propagator_precondition { propagator_requires; _ } =
+  match propagator_requires with
+  | None -> default_propagator_requires
+  | Some { precondition; _ } -> precondition
+
+let get_sink_requires { sink_requires; _ } =
+  match sink_requires with
   | None -> PLabel default_source_label
-  | Some expr -> expr
+  | Some { precondition; _ } -> precondition
 
 (*****************************************************************************)
 (* Extract mode (semgrep as a preprocessor) *)
 (*****************************************************************************)
 
-type extract_spec = {
+type extract = {
   formula : formula;
-  reduce : extract_reduction;
   dst_lang : Xlang.t;
   (* e.g., $...BODY, $CMD *)
   extract : MV.mvar;
   extract_rule_ids : extract_rule_ids option;
+  (* map/reduce *)
   transform : extract_transform;
+  reduce : extract_reduction;
 }
 
-(* SR wants to be able to choose rules to run on
-   Behaves the same as paths *)
+(* SR wants to be able to choose rules to run on.
+   Behaves the same as paths. *)
 and extract_rule_ids = {
-  required_rules : rule_id wrap list;
-  excluded_rules : rule_id wrap list;
+  required_rules : Rule_ID.t wrap list;
+  excluded_rules : Rule_ID.t wrap list;
 }
+
+(* Method to transform extracted content:
+    - either treat them as a raw string; or
+    - transform JSON array into a raw string
+*)
+and extract_transform = NoTransform | Unquote | ConcatJsonArray
 
 (* Method to combine extracted ranges within a file:
     - either treat them as separate files; or
@@ -351,11 +292,56 @@ and extract_rule_ids = {
 *)
 and extract_reduction = Separate | Concat [@@deriving show]
 
-(* Method to transform extracted content:
-    - either treat them as a raw string; or
-    - transform JSON array into a raw string
-*)
-and extract_transform = NoTransform | Unquote | ConcatJsonArray
+(*****************************************************************************)
+(* secrets mode *)
+(*****************************************************************************)
+
+(* This type encodes a basic HTTP request; mainly used for in the secrets
+ * post-processor; such that a basic http request like
+ * GET semgrep.dev
+ * Auth: ok
+ * Type: tau
+ * would be represented as
+ * {
+ *   url     = semgrep.dev/user;
+ *   meth    = `GET;
+ *   headers =
+ *  [
+ *    { n = Auth, v = ok};
+ *    { n = Type, v = tau};
+ *  ]
+ * }
+ * NOTE: we don't reuse cohttp's abstract type Cohttp.Headers.t; we still need
+ * it to not be abstract for metavariable substitution.
+ *)
+
+type header = { name : string; value : string } [@@deriving show]
+type meth = [ `DELETE | `GET | `POST | `HEAD | `PUT ] [@@deriving show]
+
+(* why is url : string? metavariables (i.e http://$X) are present at parsing; which
+ * if parsed with Uri.of_string translates it to http://%24x
+ *)
+type request = {
+  url : string;
+  meth : meth;
+  headers : header list;
+  body : string option;
+}
+[@@deriving show]
+
+(* Used to match on the returned response of some request *)
+type response = { return_code : int; regex : Xpattern.regexp_string option }
+[@@deriving show]
+
+type secrets = {
+  (* postprocessor-patterns:
+   * Each pattern in this list represents a piece of a "secret"; with any
+   * bindings made available in the request post matching.
+   *)
+  secrets : formula list;
+  request : request;
+  response : response;
+}
 [@@deriving show]
 
 (*****************************************************************************)
@@ -424,28 +410,57 @@ type languages = {
 [@@deriving show]
 
 (*****************************************************************************)
+(* Paths *)
+(*****************************************************************************)
+
+(* TODO? store also the compiled glob directly? but we preprocess the pattern
+ * in Filter_target.filter_paths, so we would need to recompile it anyway,
+ * or call Filter_target.filter_paths preprocessing in Parse_rule.ml
+ *)
+type glob = string (* original string *) * Glob.Pattern.t (* parsed glob *)
+[@@deriving show]
+
+(* TODO? should we provide a pattern-path: Xpattern to combine
+ * with other Xpattern instead of adhoc paths: extra field in the rule?
+ *)
+type paths = {
+  (* If not empty, list of file path patterns (globs) that
+   * the file path must at least match once to be considered for the rule.
+   * Called 'include' in our doc but really it is a 'require'.
+   * TODO? use wrap? to also get location of include/require field?
+   *)
+  require : glob list;
+  (* List of file path patterns we want to exclude. *)
+  exclude : glob list;
+}
+[@@deriving show]
+
+(*****************************************************************************)
 (* Shared mode definitions *)
 (*****************************************************************************)
 
 (* Polymorhic variants used to improve type checking of rules (see below) *)
 type search_mode = [ `Search of formula ] [@@deriving show]
 type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
-type extract_mode = [ `Extract of extract_spec ] [@@deriving show]
+type extract_mode = [ `Extract of extract ] [@@deriving show]
+type secrets_mode = [ `Secrets of secrets ] [@@deriving show]
+
+(* Steps mode includes rules that use search_mode and taint_mode.
+ * Later, if we keep it, we might want to make all rules have steps,
+ * but for the experiment this is easier to remove.
+ *)
+type steps_mode = [ `Steps of step list ] [@@deriving show]
 
 (*****************************************************************************)
-(* Step mode *)
+(* Steps mode *)
 (*****************************************************************************)
-
-type mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
-
-type step = {
+and step = {
   step_mode : mode_for_step;
   step_languages : languages;
   step_paths : paths option;
 }
-[@@deriving show]
 
-type steps = step list [@@deriving show]
+and mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
 
 (*****************************************************************************)
 (* The rule *)
@@ -453,8 +468,13 @@ type steps = step list [@@deriving show]
 
 type 'mode rule_info = {
   (* MANDATORY fields *)
-  id : rule_id wrap;
+  id : Rule_ID.t wrap;
   mode : 'mode;
+  (* Range of Semgrep versions supported by the rule.
+     Note that a rule with these fields may not even be parseable
+     in the current version of Semgrep and wouldn't even reach this point. *)
+  min_version : Version_info.t option;
+  max_version : Version_info.t option;
   (* Currently a dummy value for extract mode rules *)
   message : string;
   (* Currently a dummy value for extract mode rules *)
@@ -479,18 +499,10 @@ and severity = Error | Warning | Info | Inventory | Experiment
 (* Step mode includes rules that use search_mode and taint_mode *)
 (* Later, if we keep it, we might want to make all rules have steps,
    but for the experiment this is easier to remove *)
-type step_mode = [ `Step of steps ] [@@deriving show]
 
-type mode = [ search_mode | taint_mode | extract_mode | step_mode ]
+type mode =
+  [ search_mode | taint_mode | extract_mode | secrets_mode | steps_mode ]
 [@@deriving show]
-
-(* If you know your function accepts only a certain kind of rule,
- * you can use those precise types below.
- *)
-type search_rule = search_mode rule_info [@@deriving show]
-type taint_rule = taint_mode rule_info [@@deriving show]
-type extract_rule = extract_mode rule_info [@@deriving show]
-type step_rule = step_mode rule_info [@@deriving show]
 
 (* the general type *)
 type rule = mode rule_info [@@deriving show]
@@ -498,7 +510,16 @@ type rule = mode rule_info [@@deriving show]
 (* aliases *)
 type t = rule [@@deriving show]
 type rules = rule list [@@deriving show]
-type hrules = (rule_id, t) Hashtbl.t
+type hrules = (Rule_ID.t, t) Hashtbl.t
+
+(* If you know your function accepts only a certain kind of rule,
+ * you can use those precise types below.
+ *)
+type search_rule = search_mode rule_info [@@deriving show]
+type taint_rule = taint_mode rule_info [@@deriving show]
+type extract_rule = extract_mode rule_info [@@deriving show]
+type secrets_rule = secrets_mode rule_info [@@deriving show]
+type steps_rule = steps_mode rule_info [@@deriving show]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -508,21 +529,42 @@ let hrules_of_rules (rules : t list) : hrules =
   rules |> Common.map (fun r -> (fst r.id, r)) |> Common.hash_of_list
 
 let partition_rules (rules : rules) :
-    search_rule list * taint_rule list * extract_rule list * step_rule list =
-  let rec part_rules search taint extract step = function
-    | [] -> (List.rev search, List.rev taint, List.rev extract, List.rev step)
+    search_rule list
+    * taint_rule list
+    * extract_rule list
+    * secrets_rule list
+    * steps_rule list =
+  let rec part_rules search taint extract secrets step = function
+    | [] ->
+        ( List.rev search,
+          List.rev taint,
+          List.rev extract,
+          List.rev secrets,
+          List.rev step )
     | r :: l -> (
         match r.mode with
         | `Search _ as s ->
-            part_rules ({ r with mode = s } :: search) taint extract step l
+            part_rules
+              ({ r with mode = s } :: search)
+              taint extract secrets step l
         | `Taint _ as t ->
-            part_rules search ({ r with mode = t } :: taint) extract step l
+            part_rules search
+              ({ r with mode = t } :: taint)
+              extract secrets step l
         | `Extract _ as e ->
-            part_rules search taint ({ r with mode = e } :: extract) step l
-        | `Step _ as j ->
-            part_rules search taint extract ({ r with mode = j } :: step) l)
+            part_rules search taint
+              ({ r with mode = e } :: extract)
+              secrets step l
+        | `Secrets _ as s ->
+            part_rules search taint extract
+              ({ r with mode = s } :: secrets)
+              step l
+        | `Steps _ as j ->
+            part_rules search taint extract secrets
+              ({ r with mode = j } :: step)
+              l)
   in
-  part_rules [] [] [] [] rules
+  part_rules [] [] [] [] [] rules
 
 (*****************************************************************************)
 (* Error Management *)
@@ -531,12 +573,12 @@ let partition_rules (rules : rules) :
 (* This is used to let the user know which rule the engine was using when
  * a Timeout or OutOfMemory exn occured.
  *)
-let last_matched_rule : rule_id option ref = ref None
+let last_matched_rule : Rule_ID.t option ref = ref None
 
 (* Those are recoverable errors; We can just skip the rules containing them.
  * TODO? put in Output_from_core.atd?
  *)
-type invalid_rule_error = invalid_rule_error_kind * rule_id * Tok.t
+type invalid_rule_error = invalid_rule_error_kind * Rule_ID.t * Tok.t
 
 and invalid_rule_error_kind =
   | InvalidLanguage of string (* the language string *)
@@ -550,18 +592,37 @@ and invalid_rule_error_kind =
   | InvalidRegexp of string (* PCRE error message *)
   | DeprecatedFeature of string (* e.g., pattern-where-python: *)
   | MissingPositiveTermInAnd
+  | IncompatibleRule of
+      Version_info.t (* this version of Semgrep *)
+      * (Version_info.t option (* minimum version supported by this rule *)
+        * Version_info.t option (* maximum version *))
   | InvalidOther of string
 [@@deriving show]
 
 (* General errors *)
-type error =
+type error_kind =
   | InvalidRule of invalid_rule_error
   | InvalidYaml of string * Tok.t
   | DuplicateYamlKey of string * Tok.t
   | UnparsableYamlException of string
 
-(* can't use Error because it's used for severity *)
-exception Err of error
+type error = {
+  (* Some errors are in the YAML file before we can enter a specific rule
+     or it could be a rule without an ID. This is why the rule ID is
+     optional. *)
+  rule_id : Rule_ID.t option;
+  kind : error_kind;
+}
+
+exception Error of error
+
+(*
+   You must provide a rule ID for a rule to be reported properly as an invalid
+   rule. The argument is not optional because it's important to not forget to
+   specify a rule ID whenever possible.
+*)
+let raise_error optional_rule_id kind =
+  raise (Error { rule_id = optional_rule_id; kind })
 
 (*****************************************************************************)
 (* String-of *)
@@ -583,6 +644,24 @@ let string_of_invalid_rule_error_kind = function
   | MissingPositiveTermInAnd ->
       "you need at least one positive term (not just negations or conditions)"
   | DeprecatedFeature s -> spf "deprecated feature: %s" s
+  | IncompatibleRule (cur, (Some min_version, None)) ->
+      spf "This rule requires upgrading Semgrep from version %s to at least %s"
+        (Version_info.to_string cur)
+        (Version_info.to_string min_version)
+  | IncompatibleRule (cur, (None, Some max_version)) ->
+      spf
+        "This rule is no longer supported by Semgrep. The last compatible \
+         version was %s. This version of Semgrep is %s"
+        (Version_info.to_string max_version)
+        (Version_info.to_string cur)
+  | IncompatibleRule (cur, (Some min_version, Some max_version)) ->
+      spf
+        "This rule requires a version of Semgrep within [%s, %s] but we're \
+         using version %s"
+        (Version_info.to_string min_version)
+        (Version_info.to_string max_version)
+        (Version_info.to_string cur)
+  | IncompatibleRule (_, (None, None)) -> assert false
   | InvalidOther s -> s
 
 let string_of_invalid_rule_error ((kind, rule_id, pos) : invalid_rule_error) =
@@ -592,7 +671,7 @@ let string_of_invalid_rule_error ((kind, rule_id, pos) : invalid_rule_error) =
     (string_of_invalid_rule_error_kind kind)
 
 let string_of_error (error : error) : string =
-  match error with
+  match error.kind with
   | InvalidRule x -> string_of_invalid_rule_error x
   | InvalidYaml (msg, pos) ->
       spf "invalid YAML, %s: %s" (Tok.stringpos_of_tok pos) msg
@@ -607,13 +686,10 @@ let string_of_error (error : error) : string =
 *)
 let opt_string_of_exn (exn : exn) =
   match exn with
-  | Err x -> Some (string_of_error x)
-  | _else_ -> None
+  | Error x -> Some (string_of_error x)
+  | _ -> None
 
-(* To be called by the application's main().
- * TODO? why not evaluate it now like let () = Printexc.register_printer ...?
- *)
-let register_exception_printer () = Printexc.register_printer opt_string_of_exn
+let () = Printexc.register_printer opt_string_of_exn
 
 (*****************************************************************************)
 (* Visitor/extractor *)
@@ -657,6 +733,32 @@ let kind_of_formula = function
   | Not _ ->
       "formula"
 
+let rec formula_of_mode (mode : mode) =
+  match mode with
+  | `Search formula -> [ formula ]
+  | `Taint { sources = _, sources; sanitizers; sinks = _, sinks; propagators }
+    ->
+      Common.map (fun src -> src.source_formula) sources
+      @ (match sanitizers with
+        | None -> []
+        | Some (_, sanitizers) ->
+            Common.map (fun sanitizer -> sanitizer.sanitizer_formula) sanitizers)
+      @ Common.map (fun sink -> sink.sink_formula) sinks
+      @ Common.map (fun prop -> prop.propagator_formula) propagators
+  | `Extract { formula; extract = _; _ } -> [ formula ]
+  | `Secrets { secrets; _ } -> secrets
+  | `Steps steps ->
+      List.concat_map
+        (fun step -> formula_of_mode (step.step_mode :> mode))
+        steps
+
+let xpatterns_of_rule rule =
+  let formulae = formula_of_mode rule.mode in
+  let xpat_store = ref [] in
+  let visit xpat _ = xpat_store := xpat :: !xpat_store in
+  List.iter (visit_new_formula visit) formulae;
+  !xpat_store
+
 (*****************************************************************************)
 (* Converters *)
 (*****************************************************************************)
@@ -693,8 +795,10 @@ let split_and (xs : formula list) : formula list * (tok * formula) list =
 let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
   let fk = Tok.unsafe_fake_tok "" in
   {
-    id = (ID.of_string "-e", fk);
+    id = (Rule_ID.of_string "-e", fk);
     mode = `Search (P xpat);
+    min_version = None;
+    max_version = None;
     (* alt: could put xpat.pstr for the message *)
     message = "";
     severity = Error;
@@ -724,4 +828,4 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
    which is clearly not enough comparing to the Python code. But, again, we can
    improve that by serialize everything and compute a hash from it. *)
 let sha256_of_rule rule =
-  Digestif.SHA256.digest_string (ID.to_string (fst rule.id))
+  Digestif.SHA256.digest_string (Rule_ID.to_string (fst rule.id))

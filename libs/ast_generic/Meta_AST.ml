@@ -21,7 +21,13 @@ let vof_token_location
     {
       Tok.str = v_str;
       pos =
-        { charpos = v_charpos; line = v_line; column = v_column; file = v_file };
+        {
+          bytepos = v_charpos;
+          line = v_line;
+          column = v_column;
+          file = v_file;
+          _;
+        };
     } =
   let bnds = [] in
   let arg = vof_filename v_file in
@@ -34,7 +40,7 @@ let vof_token_location
   let bnd = ("line", arg) in
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_int v_charpos in
-  let bnd = ("charpos", arg) in
+  let bnd = ("bytepos", arg) in
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_string v_str in
   let bnd = ("str", arg) in
@@ -45,7 +51,7 @@ let vof_token_origin = function
   | OriginTok v1 ->
       let v1 = vof_token_location v1 in
       OCaml.VSum ("OriginTok", [ v1 ])
-  | FakeTokStr (v1, opt) ->
+  | FakeTok (v1, opt) ->
       let v1 = OCaml.vof_string v1 in
       let opt =
         OCaml.vof_option
@@ -53,7 +59,7 @@ let vof_token_origin = function
             OCaml.VTuple [ vof_token_location p1; OCaml.vof_int i ])
           opt
       in
-      OCaml.VSum ("FakeTokStr", [ v1; opt ])
+      OCaml.VSum ("FakeTok", [ v1; opt ])
   | Ab -> OCaml.VSum ("Ab", [])
   | ExpandedTok (v1, (v2, v3)) ->
       let v1 = vof_token_location v1 in
@@ -195,7 +201,7 @@ and vof_id_info
       id_resolved = v_id_resolved;
       id_type = v_id_type;
       id_svalue = v3;
-      id_hidden;
+      id_flags;
       id_info_id;
     } =
   let bnds = [] in
@@ -208,8 +214,12 @@ and vof_id_info
   let arg = OCaml.vof_ref (OCaml.vof_option vof_resolved_name) v_id_resolved in
   let bnd = ("id_resolved", arg) in
   let bnds = bnd :: bnds in
-  let arg = OCaml.vof_bool id_hidden in
-  let bnd = ("id_hidden", arg) in
+  let arg =
+    OCaml.vof_ref
+      (fun id_flags -> OCaml.vof_int (IdFlags.to_int id_flags))
+      id_flags
+  in
+  let bnd = ("id_flags", arg) in
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_int (IdInfoId.to_int id_info_id) in
   let bnd = ("id_info_id", arg) in

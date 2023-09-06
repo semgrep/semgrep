@@ -27,8 +27,6 @@ from semgrep.app import auth
 from semgrep.console import console
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import Colors
-from semgrep.constants import DEFAULT_CONFIG_FILE
-from semgrep.constants import DEFAULT_CONFIG_FOLDER
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
 from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
 from semgrep.constants import ID_KEY
@@ -50,7 +48,6 @@ from semgrep.state import get_state
 from semgrep.util import is_config_suffix
 from semgrep.util import is_rules
 from semgrep.util import is_url
-from semgrep.util import terminal_wrap
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
@@ -89,7 +86,6 @@ class ConfigLoader:
     _origin = ConfigType.LOCAL
     _config_path = ""
     _project_url = None
-    _extra_headers: Dict[str, str] = {}
 
     def __init__(
         self,
@@ -106,6 +102,7 @@ class ConfigLoader:
         state = get_state()
         self._project_url = project_url
         self._origin = ConfigType.REGISTRY
+        self._supports_fallback_config = False
         if config_str == "r2c":
             state.metrics.add_feature("config", "r2c")
             self._config_path = "https://semgrep.dev/c/p/r2c"
@@ -115,9 +112,11 @@ class ConfigLoader:
         elif is_policy_id(config_str):
             state.metrics.add_feature("config", "policy")
             self._config_path = url_for_policy()
+            self._supports_fallback_config = True
         elif is_supply_chain(config_str):
             state.metrics.add_feature("config", "sca")
             self._config_path = url_for_supply_chain()
+            self._supports_fallback_config = True
         elif is_registry_id(config_str):
             state.metrics.add_feature("config", f"registry:prefix-{config_str[0]}")
             self._config_path = registry_id_to_url(config_str)
@@ -169,20 +168,55 @@ class ConfigLoader:
         """
         Download a configuration from semgrep.dev
         """
-        config_url = self._config_path
-        logger.debug(f"trying to download from {self._nice_semgrep_url(config_url)}")
         try:
-            config = ConfigFile(
-                None,
-                self._make_config_request(),
-                config_url,
-            )
-            logger.debug(f"finished downloading from {config_url}")
-            return config
-        except Exception as e:
-            raise SemgrepError(
-                terminal_wrap(f"Failed to download config from {config_url}: {str(e)}")
-            )
+            return self._download_config_from_url(self._config_path)
+        except Exception:
+            if self._supports_fallback_config:
+                try:
+                    fallback_url = re.sub(
+                        r"^[^?]*",  # replace everything but query params
+                        f"{get_state().env.fail_open_url}/config",
+                        self._config_path,
+                    )
+                    return self._download_config_from_url(fallback_url)
+                except Exception:
+                    pass
+
+            raise  # error from first fetch
+
+    def _download_config_from_url(self, url: str) -> ConfigFile:
+        app_session = get_state().app_session
+        logger.debug("Downloading config from %s", url)
+        error = f"Failed to download configuration from {url}"
+        try:
+            resp = app_session.get(url, headers={"Accept": "application/json"})
+            if resp.status_code == requests.codes.ok:
+                try:
+                    rule_config = resp.json()["rule_config"]
+
+                    # The backend wants to return native json, but we support a json string here too
+                    config_str = (
+                        rule_config
+                        if isinstance(rule_config, str)
+                        else json.dumps(rule_config)
+                    )
+
+                    return ConfigFile(None, config_str, url)
+                except Exception as ex:
+                    # catch JSONDecodeError, AssertionError, etc. is this needed?
+                    logger.debug("Failed to decode JSON: %s", repr(ex))
+                    return ConfigFile(
+                        None, resp.content.decode("utf-8", errors="replace"), url
+                    )
+                finally:
+                    logger.debug(f"Downloaded config from %s", url)
+
+            error += f" HTTP {resp.status_code}."
+        except requests.exceptions.RetryError as ex:
+            error += f" Failed after multiple attempts ({ex.args[0].reason})"
+
+        logger.debug(error)  # since the raised exception may be caught and suppressed
+        raise SemgrepError(error)
 
     def _load_config_from_local_path(self) -> List[ConfigFile]:
         """
@@ -208,24 +242,6 @@ class ConfigLoader:
             )
         logger.debug(f"Done loading local config from {loc}")
         return config
-
-    def _make_config_request(self) -> str:
-        app_session = get_state().app_session
-        resp = app_session.get(
-            self._config_path,
-            headers={"Accept": "application/json", **self._extra_headers},
-        )
-        if resp.status_code == requests.codes.ok:
-            try:
-                rule_config = resp.json()["rule_config"]
-                assert isinstance(rule_config, str)
-                return rule_config
-            except Exception:  # catch JSONDecodeError, AssertionError, etc.
-                return resp.content.decode("utf-8", errors="replace")
-        else:
-            raise SemgrepError(
-                f"bad status code: {resp.status_code} returned by config url: {self._config_path}"
-            )
 
     def is_registry_url(self) -> bool:
         return self._origin == ConfigType.REGISTRY
@@ -355,12 +371,6 @@ class Config:
         """
         config_dict: Dict[str, YamlTree] = {}
         errors: List[SemgrepError] = []
-
-        if not configs:
-            try:
-                config_dict.update(load_default_config())
-            except SemgrepError as e:
-                errors.append(e)
 
         for i, config in enumerate(configs):
             try:
@@ -681,20 +691,6 @@ def _is_hidden_config(loc: Path) -> bool:
     )
 
 
-def load_default_config() -> Dict[str, YamlTree]:
-    """
-    Load config from DEFAULT_CONFIG_FILE or DEFAULT_CONFIG_FOLDER
-    """
-    default_file = Path(DEFAULT_CONFIG_FILE)
-    default_folder = Path(DEFAULT_CONFIG_FOLDER)
-    config_infos = []
-    if default_file.exists():
-        config_infos = [read_config_at_path(default_file)]
-    elif default_folder.exists():
-        config_infos = read_config_folder(default_folder, relative=True)
-    return parse_config_files(config_infos)
-
-
 def is_registry_id(config_str: str) -> bool:
     """
     Starts with r/, p/, s/ for registry, pack, and snippet respectively
@@ -755,16 +751,17 @@ def is_policy_id(config_str: str) -> bool:
 
 def url_for_supply_chain() -> str:
     env = get_state().env
-    repo_name = os.environ.get("SEMGREP_REPO_NAME")
 
     # The app considers anything that will not POST back to it to be a dry_run
     params = {
         "sca": True,
         "dry_run": True,
         "full_scan": True,
-        "repo_name": repo_name,
         "semgrep_version": __VERSION__,
     }
+    if "SEMGREP_REPO_NAME" in os.environ:
+        params["repo_name"] = os.environ.get("SEMGREP_REPO_NAME")
+
     params_str = urlencode(params)
     return f"{env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{params_str}"
 
@@ -807,7 +804,7 @@ def get_config(
 
     if not config:
         raise SemgrepError(
-            f"No config given and {DEFAULT_CONFIG_FILE} was not found. Try running with --help to debug or if you want to download a default config, try running with --config r2c"
+            f"No config given. Try running with --help to debug or if you want to download a default config, try running with --config r2c"
         )
 
     return config, errors

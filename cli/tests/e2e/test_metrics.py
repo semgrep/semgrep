@@ -19,7 +19,9 @@ from tests.fixtures import RunSemgrep
 from tests.semgrep_runner import SemgrepRunner
 
 from semgrep.cli import cli
+from semgrep.config_resolver import ConfigFile
 from semgrep.profiling import ProfilingData
+
 
 # Test data to avoid making web calls in test code
 
@@ -56,8 +58,8 @@ USELESS_EQEQ = """rules:
 @pytest.fixture(scope="function")
 def mock_config_request(monkeypatch: MonkeyPatch) -> Iterator[None]:
     monkeypatch.setattr(
-        "semgrep.config_resolver.ConfigLoader._make_config_request",
-        lambda s: USELESS_EQEQ,
+        "semgrep.config_resolver.ConfigLoader._download_config_from_url",
+        lambda s, url: ConfigFile(None, USELESS_EQEQ, url),
     )
     yield
 
@@ -166,68 +168,6 @@ def test_flags_actual_send(run_semgrep_in_tmp: RunSemgrep):
     assert "Failed to send pseudonymous metrics" not in stderr
 
 
-@pytest.mark.slow
-def test_legacy_flags(run_semgrep_in_tmp: RunSemgrep):
-    """
-    Test metrics sending respects legacy flags. Flags take precedence over envvar
-    """
-    _, stderr = run_semgrep_in_tmp(
-        "rules/eqeq.yaml",
-        options=["--debug", "--enable-metrics"],
-        force_metrics_off=False,
-    )
-    assert "Sending pseudonymous metrics" in stderr
-
-    _, stderr = run_semgrep_in_tmp(
-        "rules/eqeq.yaml",
-        options=["--debug", "--enable-metrics"],
-        env={"SEMGREP_SEND_METRICS": ""},
-        force_metrics_off=False,
-    )
-    assert "Sending pseudonymous metrics" in stderr
-
-    _, stderr = run_semgrep_in_tmp(
-        "rules/eqeq.yaml",
-        options=["--debug", "--disable-metrics"],
-        force_metrics_off=False,
-    )
-    assert "Sending pseudonymous metrics" not in stderr
-
-    _, stderr = run_semgrep_in_tmp(
-        "rules/eqeq.yaml",
-        options=["--disable-metrics"],
-        env={"SEMGREP_SEND_METRICS": "1"},
-        force_metrics_off=False,
-        assert_exit_code=2,
-    )
-    assert (
-        "--enable-metrics/--disable-metrics can not be used with either --metrics or SEMGREP_SEND_METRICS"
-        in stderr
-    )
-
-    _, stderr = run_semgrep_in_tmp(
-        "rules/eqeq.yaml",
-        options=["--disable-metrics"],
-        env={"SEMGREP_SEND_METRICS": "off"},
-        force_metrics_off=False,
-    )
-    assert (
-        "--enable-metrics/--disable-metrics can not be used with either --metrics or SEMGREP_SEND_METRICS"
-        not in stderr
-    )
-
-    _, stderr = run_semgrep_in_tmp(
-        "rules/eqeq.yaml",
-        options=["--enable-metrics"],
-        env={"SEMGREP_SEND_METRICS": "on"},
-        force_metrics_off=False,
-    )
-    assert (
-        "--enable-metrics/--disable-metrics can not be used with either --metrics or SEMGREP_SEND_METRICS"
-        not in stderr
-    )
-
-
 def _mask_version(value: str) -> str:
     return re.sub(r"\d+", "x", value)
 
@@ -269,7 +209,8 @@ def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch, pro_flag):
         env={
             "SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml"),
             "SEMGREP_INTEGRATION_NAME": "funkyintegration",
-        }
+        },
+        use_click_runner=True,
     )
     runner.invoke(
         cli, ["scan", "--config=rule.yaml", "--metrics=on", "code.py"] + pro_flag

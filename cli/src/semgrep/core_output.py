@@ -18,6 +18,7 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 import semgrep.util as util
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import Level
+from semgrep.error import OK_EXIT_CODE
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.error import TARGET_PARSE_FAILURE_EXIT_CODE
@@ -33,8 +34,8 @@ logger = getLogger(__name__)
 def _core_location_to_error_span(location: core.Location) -> out.ErrorSpan:
     return out.ErrorSpan(
         file=location.path,
-        start=out.PositionBis(line=location.start.line, col=location.start.col),
-        end=out.PositionBis(line=location.end.line, col=location.end.col),
+        start=location.start,
+        end=location.end,
     )
 
 
@@ -51,10 +52,11 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
     if isinstance(err.error_type.value, core.PatternParseError):
         yaml_path = err.error_type.value.value[::-1]
         error_span = _core_location_to_error_span(err.location)
-        config_start = out.PositionBis(line=0, col=1)
-        config_end = out.PositionBis(
+        config_start = out.Position(line=0, col=1, offset=-1)
+        config_end = out.Position(
             line=err.location.end.line - err.location.start.line,
             col=err.location.end.col - err.location.start.col + 1,
+            offset=-1,
         )
         spans = [
             dataclasses.replace(
@@ -73,7 +75,9 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
 
     # TODO benchmarking code relies on error code value right now
     # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
-    if (
+    if level == Level.INFO:
+        code = OK_EXIT_CODE
+    elif (
         isinstance(err.error_type.value, core.ParseError)
         or isinstance(err.error_type.value, core.LexicalError)
         or isinstance(err.error_type.value, core.PartialParsing)
@@ -91,8 +95,8 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
     return SemgrepCoreError(code, level, spans, err)
 
 
-def parse_core_output(raw_json: JsonObject) -> core.CoreMatchResults:
-    match_results = core.CoreMatchResults.from_json(raw_json)
+def parse_core_output(raw_json: JsonObject) -> core.CoreOutput:
+    match_results = core.CoreOutput.from_json(raw_json)
     if match_results.skipped_targets:
         for skip in match_results.skipped_targets:
             if skip.rule_id:
@@ -106,7 +110,7 @@ def parse_core_output(raw_json: JsonObject) -> core.CoreMatchResults:
 
 
 def core_matches_to_rule_matches(
-    rules: List[Rule], res: core.CoreMatchResults
+    rules: List[Rule], res: core.CoreOutput
 ) -> Dict[Rule, List[RuleMatch]]:
     """
     Convert core_match objects into RuleMatch objects that the rest of the codebase
@@ -137,7 +141,7 @@ def core_matches_to_rule_matches(
         propagated_values = {}
 
         # open path and ignore non-utf8 bytes. https://stackoverflow.com/a/56441652
-        with open(match.location.path.value, errors="replace") as fd:
+        with open(match.path.value, errors="replace") as fd:
             for metavariable, metavariable_data in match.extra.metavars.value.items():
                 # Offsets are start inclusive and end exclusive
                 start_offset = metavariable_data.start.offset
@@ -159,7 +163,7 @@ def core_matches_to_rule_matches(
         return matched_values, propagated_values
 
     def convert_to_rule_match(match: core.CoreMatch) -> RuleMatch:
-        rule = rule_table[match.rule_id.value]
+        rule = rule_table[match.check_id.value]
         matched_values, propagated_values = read_metavariables(match)
         message = interpolate(rule.message, matched_values, propagated_values)
         if match.extra.rendered_fix is not None:
@@ -205,8 +209,8 @@ def core_matches_to_rule_matches(
     # TODO: Dict[core.RuleId, RuleMatchSet]
     findings: Dict[Rule, RuleMatchSet] = {rule: RuleMatchSet(rule) for rule in rules}
     seen_cli_unique_keys: Set[Tuple] = set()
-    for match in res.matches:
-        rule = rule_table[match.rule_id.value]
+    for match in res.results:
+        rule = rule_table[match.check_id.value]
         rule_match = convert_to_rule_match(match)
         if rule_match.cli_unique_key in seen_cli_unique_keys:
             continue

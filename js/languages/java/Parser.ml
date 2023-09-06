@@ -11,6 +11,7 @@ let parse_pattern print_errors _ str =
 
 let parse_target _ file =
   Pfff_or_tree_sitter.run file
+    (* coupling: check src/parsing_languages/Parse_pattern2.ml *)
     [
       (* we used to start with the pfff one; it was quite good and faster
        * than tree-sitter (because we need to wrap tree-sitter inside

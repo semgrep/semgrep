@@ -33,7 +33,8 @@
           "source-rule-url": "https://find-sec-bugs.github.io/bugs.htm#DEFAULT_HTTP_CLIENT"
         },
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/autofix/defaulthttpclient.java",
       "start": {
@@ -43,5 +44,6 @@
       }
     }
   ],
+  "skipped_rules": [],
   "version": "0.42"
 }

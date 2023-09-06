@@ -1,3 +1,4 @@
+# TODO: pad: Not sure why this needs to be in a separate file and how it works.
 from __future__ import annotations
 
 from pathlib import Path
@@ -28,5 +29,6 @@ class RunSemgrep(Protocol):
         force_metrics_off: bool = True,
         stdin: str | None = None,
         clean_fingerprint: bool = True,
+        use_click_runner: bool = False,
     ) -> SemgrepResult:
         ...

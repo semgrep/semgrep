@@ -1,0 +1,2 @@
+Julia: `using` and `import` now match separately, instead of before, where
+if you wrote `using $X`, you would also match to `import`s.

@@ -37,7 +37,8 @@
             }
           }
         },
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/autofix/java-string-wrap.java",
       "start": {
@@ -76,7 +77,8 @@
             }
           }
         },
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/autofix/java-string-wrap.java",
       "start": {
@@ -86,5 +88,6 @@
       }
     }
   ],
+  "skipped_rules": [],
   "version": "0.42"
 }

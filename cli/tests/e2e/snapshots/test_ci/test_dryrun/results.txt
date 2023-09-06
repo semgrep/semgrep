@@ -82,6 +82,7 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
 Would have sent POST request to create scan
   Reporting start of scan for deployment_name
   Fetching configuration from Semgrep Cloud Platform
+  Enabled products: Semgrep Code, Semgrep Supply Chain
 
 ┌─────────────┐
 │ Scan Status │
@@ -480,24 +481,6 @@ Would have sent findings and ignores blob: {
             }
         }
     ],
-    "token": null,
-    "gitlab_token": null,
-    "searched_paths": [
-        "foo.py",
-        "poetry.lock",
-        "yarn.lock"
-    ],
-    "rule_ids": [
-        "eqeq-bad",
-        "eqeq-five",
-        "eqeq-four",
-        "abceversion1",
-        "taint-test",
-        "supply-chain1",
-        "supply-chain2",
-        "supply-chain3"
-    ],
-    "renamed_paths": [],
     "ignores": [
         {
             "check_id": "abceversion1",
@@ -667,11 +650,27 @@ Would have sent findings and ignores blob: {
                 "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
             }
         }
+    ],
+    "token": null,
+    "searched_paths": [
+        "foo.py",
+        "poetry.lock",
+        "yarn.lock"
+    ],
+    "renamed_paths": [],
+    "rule_ids": [
+        "eqeq-bad",
+        "eqeq-five",
+        "eqeq-four",
+        "abceversion1",
+        "taint-test",
+        "supply-chain1",
+        "supply-chain2",
+        "supply-chain3"
     ]
 }
 Would have sent complete blob: {
     "exit_code": 1,
-    "dependency_parser_errors": [],
     "stats": {
         "findings": 10,
         "errors": [],
@@ -692,7 +691,8 @@ Would have sent complete blob: {
             }
         },
         "engine_requested": "OSS"
-    }
+    },
+    "dependency_parser_errors": []
 }
   View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings

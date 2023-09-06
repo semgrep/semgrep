@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 from typing import Dict
 
 import click
@@ -10,7 +9,6 @@ from semgrep.commands.login import logout
 from semgrep.commands.lsp import lsp
 from semgrep.commands.publish import publish
 from semgrep.commands.scan import scan
-from semgrep.commands.shouldafound import shouldafound
 from semgrep.default_group import DefaultGroup
 from semgrep.state import get_state
 from semgrep.util import git_check_output
@@ -48,13 +46,7 @@ def maybe_set_git_safe_directories() -> None:
 @click.help_option("--help", "-h")
 @click.pass_context
 def cli(ctx: click.Context) -> None:
-    """
-    To get started quickly, run `semgrep scan --config auto`
-
-    Run `semgrep SUBCOMMAND --help` for more information on each subcommand
-
-    If no subcommand is passed, will run `scan` subcommand by default
-    """
+    """ """
     state = get_state()
     state.terminal.init_for_cli()
 
@@ -67,7 +59,6 @@ def cli(ctx: click.Context) -> None:
     state.app_session.authenticate()
     state.app_session.user_agent.tags.add(f"command/{subcommand}")
     state.metrics.add_feature("subcommand", subcommand)
-    state.command.set_subcommand(subcommand)
 
     maybe_set_git_safe_directories()
 
@@ -78,5 +69,4 @@ cli.add_command(logout)
 cli.add_command(publish)
 cli.add_command(scan)
 cli.add_command(install_semgrep_pro)
-cli.add_command(shouldafound)
 cli.add_command(lsp)

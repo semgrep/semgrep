@@ -53,7 +53,8 @@ let partition_rules_and_errors (xs : rules_and_origin list) :
   in
   (rules, errors)
 
-let fetch_content_from_url ?(token_opt = None) (url : Uri.t) : string =
+let fetch_content_from_url_async ?(token_opt = None) (url : Uri.t) :
+    string Lwt.t =
   (* TOPORT? _nice_semgrep_url() *)
   Logs.debug (fun m -> m "trying to download from %s" (Uri.to_string url));
   let content =
@@ -62,8 +63,9 @@ let fetch_content_from_url ?(token_opt = None) (url : Uri.t) : string =
       | None -> None
       | Some token -> Some [ ("authorization", "Bearer " ^ token) ]
     in
-    match Http_helpers.get ?headers url with
-    | Ok body -> body
+    let%lwt res = Http_helpers.get_async ?headers url in
+    match res with
+    | Ok body -> Lwt.return body
     | Error msg ->
         (* was raise Semgrep_error, but equivalent to abort now *)
         Error.abort
@@ -71,6 +73,9 @@ let fetch_content_from_url ?(token_opt = None) (url : Uri.t) : string =
   in
   Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
   content
+
+let fetch_content_from_url ?(token_opt = None) (url : Uri.t) : string =
+  Lwt_main.run (fetch_content_from_url_async ~token_opt url)
 
 (*****************************************************************************)
 (* Rewrite rule ids *)
@@ -99,8 +104,8 @@ let prefix_for_fpath_opt (fpath : Fpath.t) : string option =
       in
       Some prefix
 
-let add_prefix prefix (rule_id : Rule.ID.t) =
-  Rule.ID.of_string (Rule.ID.sanitize_string prefix ^ (rule_id :> string))
+let add_prefix prefix (rule_id : Rule_ID.t) =
+  Rule_ID.of_string (Rule_ID.sanitize_string prefix ^ (rule_id :> string))
 
 let rules_rewrite_rule_ids ~rewrite_rule_ids (x : rules_and_origin) :
     rules_and_origin =
@@ -297,8 +302,9 @@ let load_rules_from_file ~registry_caching (file : Fpath.t) : rules_and_origin =
      *)
     Error.abort (spf "file %s does not exist anymore" !!file)
 
-let load_rules_from_url ?token_opt ?(ext = "yaml") url : rules_and_origin =
-  let content = fetch_content_from_url ?token_opt url in
+let load_rules_from_url_async ?token_opt ?(ext = "yaml") url :
+    rules_and_origin Lwt.t =
+  let%lwt content = fetch_content_from_url_async ?token_opt url in
   let ext, content =
     if ext = "policy" then
       (* project rule_config, from config_resolver.py in _make_config_request *)
@@ -313,15 +319,21 @@ let load_rules_from_url ?token_opt ?(ext = "yaml") url : rules_and_origin =
       | _failure -> (ext, content)
     else (ext, content)
   in
-  Common2.with_tmp_file ~str:content ~ext (fun file ->
-      let file = Fpath.v file in
-      let res = load_rules_from_file ~registry_caching:false file in
-      { res with origin = None })
+  let rules =
+    Common2.with_tmp_file ~str:content ~ext (fun file ->
+        let file = Fpath.v file in
+        let res = load_rules_from_file ~registry_caching:false file in
+        { res with origin = None })
+  in
+  Lwt.return rules
 
-let rules_from_dashdash_config ~token_opt ~registry_caching kind :
-    rules_and_origin list =
+let load_rules_from_url ?token_opt ?(ext = "yaml") url : rules_and_origin =
+  Lwt_main.run (load_rules_from_url_async ?token_opt ~ext url)
+
+let rules_from_dashdash_config_async ~token_opt ~registry_caching kind :
+    rules_and_origin list Lwt.t =
   match kind with
-  | C.File file -> [ load_rules_from_file ~registry_caching file ]
+  | C.File file -> Lwt.return [ load_rules_from_file ~registry_caching file ]
   | C.Dir dir ->
       List_files.list dir
       (* TOPORT:
@@ -342,8 +354,33 @@ let rules_from_dashdash_config ~token_opt ~registry_caching kind :
       *)
       |> List.filter Parse_rule.is_valid_rule_filename
       |> Common.map (load_rules_from_file ~registry_caching)
-  | C.URL url -> [ load_rules_from_url url ]
+      |> Lwt.return
+  | C.URL url ->
+      let%lwt rules = load_rules_from_url_async url in
+      Lwt.return [ rules ]
   | C.R rkind ->
+      let url = Semgrep_Registry.url_of_registry_config_kind rkind in
+      let%lwt content = fetch_content_from_url_async ~token_opt url in
+      (* TODO: this also assumes every registry URL is for yaml *)
+      let rules =
+        Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
+            let file = Fpath.v file in
+            let res = load_rules_from_file ~registry_caching file in
+            [ { res with origin = None } ])
+      in
+      Lwt.return rules
+  | C.A Policy ->
+      let%lwt rules =
+        load_rules_from_url_async ~token_opt ~ext:"policy"
+          (Semgrep_App.url_for_policy ~token_opt)
+      in
+      Lwt.return [ rules ]
+  | C.A SupplyChain -> failwith "TODO: SupplyChain not handled yet"
+
+let rules_from_dashdash_config ~token_opt ~registry_caching kind :
+    rules_and_origin list =
+  match kind with
+  | C.R rkind when registry_caching ->
       let url = Semgrep_Registry.url_of_registry_config_kind rkind in
       let content = fetch_content_from_registry_url ~registry_caching url in
       (* TODO: this also assumes every registry URL is for yaml *)
@@ -351,12 +388,9 @@ let rules_from_dashdash_config ~token_opt ~registry_caching kind :
           let file = Fpath.v file in
           let res = load_rules_from_file ~registry_caching file in
           [ { res with origin = None } ])
-  | C.A Policy ->
-      [
-        load_rules_from_url ~token_opt ~ext:"policy"
-          (Semgrep_App.url_for_policy ~token_opt);
-      ]
-  | C.A SupplyChain -> failwith "TODO: SupplyChain not handled yet"
+  | _ ->
+      Lwt_main.run
+        (rules_from_dashdash_config_async ~token_opt ~registry_caching kind)
 
 (*****************************************************************************)
 (* Entry point *)
@@ -423,7 +457,7 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
                        m "language %s valid for the pattern" (Lang.show l));
                    Some r
                  with
-                 | R.Err _
+                 | R.Error _
                  | Failure _ ->
                      None))
   [@@profiling]

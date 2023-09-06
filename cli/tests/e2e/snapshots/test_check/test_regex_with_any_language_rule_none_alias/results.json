@@ -28,7 +28,8 @@
           ]
         },
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/regex-any-language.html",
       "start": {
@@ -38,5 +39,6 @@
       }
     }
   ],
+  "skipped_rules": [],
   "version": "0.42"
 }

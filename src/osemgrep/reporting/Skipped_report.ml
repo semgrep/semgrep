@@ -17,7 +17,7 @@ module Out = Semgrep_output_v1_t
 
 let pp_skipped ppf
     ( respect_git_ignore,
-      legacy,
+      maturity,
       max_target_bytes,
       semgrep_ignored,
       include_ignored,
@@ -87,10 +87,14 @@ let pp_skipped ppf
   pp_list file_size_ignored;
   Fmt.pf ppf "@.";
 
-  if not legacy then (
-    Fmt.pf ppf " %a@.@." Fmt.(styled `Bold string) "Skipped for other reasons:";
-    pp_list other_ignored;
-    Fmt.pf ppf "@.");
+  (match maturity with
+  | Maturity.Develop ->
+      Fmt.pf ppf " %a@.@."
+        Fmt.(styled `Bold string)
+        "Skipped for other reasons:";
+      pp_list other_ignored;
+      Fmt.pf ppf "@."
+  | _else_ -> ());
 
   Fmt.pf ppf " %a@.@."
     Fmt.(styled `Bold string)

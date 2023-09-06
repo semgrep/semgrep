@@ -56,7 +56,7 @@ RUN ./_build/install/default/bin/semgrep-core -version
 #
 
 FROM python:3.9.1-alpine3.13
-LABEL maintainer="support@r2c.dev"
+LABEL maintainer="support@semgrep.com"
 
 # ugly: circle CI requires valid git and ssh programs in the container
 # when running semgrep on a repository containing submodules

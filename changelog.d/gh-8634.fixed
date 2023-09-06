@@ -1,0 +1,2 @@
+The error message for skipped rules due to incompatible `min-version` or
+`max-version` constraints now makes sense.

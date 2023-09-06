@@ -6,21 +6,21 @@ open Cmdliner
 (*
    Shared CLI flags, CLI processing helpers, and help messages for the
    semgrep CLI.
-
-   TODO: parser+printer for file path so we can write things like:
-
-        Arg.value (Arg.opt (Arg.some CLI_common.fpath) None info)
-
-      instead of
-
-        Arg.value (Arg.opt (Arg.some Arg.string) None info)
-        (* + having to convert the string to an fpath by hand *)
-
-      The main benefit would be to clarify error messages by having Fpath.t
-      instead of string.
-
-   val fpath : Fpath.t Cmdliner.conv????
 *)
+
+(*************************************************************************)
+(* Types *)
+(*************************************************************************)
+
+type conf = {
+  (* mix of --debug, --quiet, --verbose *)
+  logging_level : Logs.level option;
+  (* osemgrep-only: pad poor's man profiling info for now *)
+  profile : bool;
+  (* osemgrep-only: mix of --experimental, --legacy, --develop *)
+  maturity : Maturity.t;
+}
+[@@deriving show]
 
 (*************************************************************************)
 (* Verbosity options (mutually exclusive) *)
@@ -113,19 +113,23 @@ let o_profile : bool Term.t =
   Arg.value (Arg.flag info)
 
 (*************************************************************************)
-(* Misc *)
+(* Term for all common CLI flags *)
 (*************************************************************************)
 
-let o_experimental : bool Term.t =
-  let info =
-    Arg.info [ "experimental" ] ~doc:{|Enable experimental features.|}
+let o_common : conf Term.t =
+  let combine logging profile maturity =
+    { logging_level = logging; profile; maturity }
   in
-  Arg.value (Arg.flag info)
+  Term.(const combine $ o_logging $ o_profile $ Maturity.o_maturity)
+
+(*************************************************************************)
+(* Misc *)
+(*************************************************************************)
 
 let help_page_bottom =
   [
     `S Manpage.s_authors;
-    `P "r2c <support@r2c.dev>";
+    `P "Semgrep Inc. <support@semgrep.com>";
     `S Manpage.s_bugs;
     `P
       "If you encounter an issue, please report it at\n\

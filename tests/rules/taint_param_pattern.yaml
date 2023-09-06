@@ -1,0 +1,19 @@
+rules:
+  - id: taint-param-pattern
+    mode: taint
+    languages:
+      - rust
+    message: |
+      We can taint nested identifiers in patterns!
+    pattern-sinks:
+      - pattern: sink(...)
+    pattern-sources:
+      - patterns:
+        - pattern: |
+            fn f ($X: $T1, $Y : $T2, $Z : $T3) {
+              ...
+            }
+        - focus-metavariable:
+            - $X
+            - $Y
+    severity: ERROR

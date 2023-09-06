@@ -1,0 +1,24 @@
+rules:
+- id: too-long-range-in-query
+  languages: [yaml]
+  severity: WARNING
+  patterns:
+  - pattern-inside: |
+      expr: $PROMQL
+  - metavariable-pattern:
+      language: promql 
+      metavariable: $PROMQL
+      patterns:
+      - pattern-either: 
+        - pattern: |
+            (...)[$RANGE:$STEP]
+        - pattern: |
+            (...)[$RANGE:]
+        - pattern: |
+            {...}[$RANGE]
+      - metavariable-comparison:
+          metavariable: $RANGE
+          comparison: parse_promql_duration(str($RANGE)) > parse_promql_duration("1d")
+  message: Ranges should be smaller than 1d; got $RANGE.
+
+

@@ -1,0 +1,1 @@
+sum by (route) (rate(http_requests_total{status_code=~"4..$"}[5m]))

@@ -17,7 +17,7 @@ from click_option_group import MutuallyExclusiveOptionGroup
 from click_option_group import optgroup
 
 import semgrep.config_resolver
-import semgrep.semgrep_main
+import semgrep.run_scan
 import semgrep.test
 from semgrep import __VERSION__
 from semgrep import bytesize
@@ -35,7 +35,6 @@ from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
-from semgrep.dump_ast import dump_parsed_ast
 from semgrep.engine import EngineType
 from semgrep.error import SemgrepError
 from semgrep.metrics import MetricsState
@@ -319,9 +318,9 @@ _scan_options: List[Callable] = [
         "--max-memory",
         type=int,
         help="""
-            Maximum system memory to use running a rule on a single file in MiB. If set to
-            0 will not have memory limit. Defaults to 0 for all CLI scans. For CI scans
-            that use the pro engine, it defaults to 5000 MiB
+            Maximum system memory to use running a rule on a single file in MiB.
+            If set to 0 will not have memory limit. Defaults to 0. For CI scans
+            that use the Pro Engine, it defaults to 5000 MiB.
         """,
     ),
     optgroup.option(
@@ -518,21 +517,21 @@ _scan_options: List[Callable] = [
         "requested_engine",
         type=EngineType,
         flag_value=EngineType.PRO_INTERFILE,
-        help="Inter-file analysis and Pro languages (currently just Apex). Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
+        help="Inter-file analysis and Pro languages (currently just Apex). Requires Semgrep Pro Engine, contact support@semgrep.com for more information on this.",
     ),
     optgroup.option(
         "--pro-intrafile",
         "requested_engine",
         type=EngineType,
         flag_value=EngineType.PRO_INTRAFILE,
-        help="Intra-file inter-procedural taint analysis. Implies --pro-languages. Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
+        help="Intra-file inter-procedural taint analysis. Implies --pro-languages. Requires Semgrep Pro Engine, contact support@semgrep.com for more information on this.",
     ),
     optgroup.option(
         "--pro-languages",
         "requested_engine",
         type=EngineType,
         flag_value=EngineType.PRO_LANG,
-        help="Enable Pro languages (currently just Apex). Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
+        help="Enable Pro languages (currently just Apex). Requires Semgrep Pro Engine, contact support@semgrep.com for more information on this.",
     ),
     optgroup.option(
         "--oss-only",
@@ -613,11 +612,6 @@ def scan_options(func: Callable) -> Callable:
     """,
     shell_complete=__get_severity_options,
 )
-@click.option(
-    "--show-supported-languages",
-    is_flag=True,
-    help=("Print a list of languages that are currently supported by Semgrep."),
-)
 @optgroup.group("Alternate modes", help="No search is performed in these modes")
 @optgroup.option(
     "--validate",
@@ -635,15 +629,6 @@ def scan_options(func: Callable) -> Callable:
     is_flag=True,
     default=False,
     help="If --test-ignore-todo, ignores rules marked as '#todoruleid:' in test files.",
-)
-@optgroup.option(
-    "--dump-ast/--no-dump-ast",
-    is_flag=True,
-    default=False,
-    help="""
-        If --dump-ast, shows AST of the input file or passed expression and then exit
-        (can use --json).
-    """,
 )
 @click.option(
     "--error/--no-error",
@@ -663,7 +648,7 @@ def scan_options(func: Callable) -> Callable:
     "--dump-engine-path",
     is_flag=True,
     hidden=True
-    # help="contact support@r2c.dev for more information on this"
+    # help="contact support@semgrep.com for more information on this"
 )
 @scan_options
 @handle_command_errors
@@ -677,7 +662,6 @@ def scan(
     dump_engine_path: bool,
     requested_engine: Optional[EngineType],
     dryrun: bool,
-    dump_ast: bool,
     dump_command_for_core: bool,
     enable_nosem: bool,
     enable_version_check: bool,
@@ -704,7 +688,6 @@ def scan(
     rewrite_rule_ids: bool,
     scan_unknown_extensions: bool,
     severity: Optional[Tuple[str, ...]],
-    show_supported_languages: bool,
     strict: bool,
     targets: Sequence[str],
     test: bool,
@@ -718,24 +701,7 @@ def scan(
     verbose: bool,
     version: bool,
 ) -> ScanReturn:
-    """
-    Run semgrep rules on files
-
-    Searches TARGET paths for matches to rules or patterns. Defaults to searching entire current working directory.
-
-    To get started quickly, run
-
-        semgrep --config auto .
-
-    This will automatically fetch rules for your project from the Semgrep Registry. NOTE: Using `--config auto` will
-    log in to the Semgrep Registry with your project URL.
-
-    For more information about Semgrep, go to https://semgrep.dev.
-
-    NOTE: By default, Semgrep will report pseudonymous usage metrics to its server if you pull your configuration from
-    the Semgrep registry. To learn more about how and why these metrics are collected, please see
-    https://semgrep.dev/docs/metrics. To modify this behavior, see the --metrics option below.
-    """
+    """ """
 
     if version:
         print(__VERSION__)
@@ -745,12 +711,10 @@ def scan(
             version_check()
         return None
 
-    if show_supported_languages:
-        click.echo(LANGUAGE.show_suppported_languages_message())
-        return None
-
     engine_type = EngineType.decide_engine_type(requested_engine=requested_engine)
 
+    # this is useful for our CI job to find where semgrep-core (or semgrep-core-proprietary)
+    # is installed and check if the binary is statically linked.
     if dump_engine_path:
         if engine_type == EngineType.OSS:
             print(SemgrepCore.path())
@@ -847,14 +811,7 @@ def scan(
         output_handler = OutputHandler(output_settings)
         return_data: ScanReturn = None
 
-        if dump_ast:
-            dump_parsed_ast(
-                output_format == OutputFormat.JSON,
-                __validate_lang("--dump-ast", lang),
-                pattern,
-                targets,
-            )
-        elif validate:
+        if validate:
             if not (pattern or lang or config):
                 logger.error(
                     f"Nothing to validate, use the --config or --pattern flag to specify a rule"
@@ -904,7 +861,8 @@ def scan(
                     shown_severities,
                     _dependencies,
                     _dependency_parser_errors,
-                ) = semgrep.semgrep_main.main(
+                    _num_executed_rules,
+                ) = semgrep.run_scan.run_scan(
                     core_opts_str=core_opts,
                     dump_command_for_core=dump_command_for_core,
                     engine_type=engine_type,

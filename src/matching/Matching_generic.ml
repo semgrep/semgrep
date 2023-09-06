@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -13,12 +13,13 @@
  * LICENSE for more details.
  *)
 open Common
+
+(* See the comment in Generic_vs_generic for the choice of B below *)
 module B = AST_generic
 module G = AST_generic
 module MV = Metavariable
 module H = AST_generic_helpers
 module Flag = Flag_semgrep
-module Env = Metavariable_capture
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -71,15 +72,49 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *   type ('a, 'b) matcher = 'a -> 'b -> tin -> tout
  *)
 
-(* tin is for 'type in' and tout for 'type out' *)
+(* tin is for 'type in' and tout further below for 'type out' *)
 (* incoming environment *)
 type tin = {
-  mv : Metavariable_capture.t;
-  stmts_match_span : Stmts_match_span.t;
-  (* TODO: this does not have to be in tout; maybe split tin in 2? *)
+  (* the metavariables already matched in the caller *)
+  mv : Metavariable.bindings;
+  (* This field is for storing the subset of statements that are actually
+   * matched in Match_patterns.match_sts_sts.
+
+   * This hack is needed because when we have stmts patterns (Ss) like
+   *      foo();
+   *      ...
+   *      bar();
+   * there is really an implicit '...' at the end after the 'bar();'. However,
+   * when we match this pattern against a long sequence of statements,
+   * we don't want to return the whole sequence as a match; just the statements
+   * until we find the bar(). Hence this hack.
+   * Note that in Match_patterns.ml we use visit_stmts which visit
+   * sequence of statements repeatidely, because we try the pattern above
+   * on every suffix of the stmts (to emulate an implicit '...' before 'foo();').
+   * Once we find the suffix with 'foo()' as its beginning, we call
+   * match_sts_sts which will be repeatidely called until it finds
+   * a 'bar();' in which case we want to drop the rest of the stmts,
+   * hance this hack.
+   *
+   * alt: we could instead abuse the mv field and store those
+   * statements in a magical "!STMTS!" metavar, but using a
+   * separate field seems cleaner.
+   *
+   * Note that the stmts are stored in reverse order (in the example above,
+   * the stmt with 'bar();' will be at the head of the list).
+   *)
+  stmts_matched : AST_generic.stmt list;
+  (* TODO: this does not have to be in 'tout', because those fields are not
+   * modified, so maybe we should split tin in two and have tout use only one
+   * part of this new tin?
+   * alt: use globals or have an another 'env' parameter in the matcher in
+   * additionto tin instead of passing them through tin (but that's maybe a big
+   * refactoring of Generic_vs_generic).
+   *)
   lang : Lang.t;
   config : Rule_options.t;
   deref_sym_vals : int;
+  wildcard_imports : AST_generic.dotted_ident list;
 }
 
 (* list of possible outcoming matching environments *)
@@ -91,21 +126,14 @@ and tout = tin list
  * information tin, and it will return something (tout) that will
  * represent a match between element A and B.
  *)
+type ('a, 'b) general_matcher = 'a -> 'b -> tin -> tout
+
 (* currently A and B are usually the same type as we use the
  * same language for the host language and pattern language
  *)
 type 'a matcher = 'a -> 'a -> tin -> tout
-type ('a, 'b) general_matcher = 'a -> 'b -> tin -> tout
 type 'a comb_result = tin -> ('a * tout) list
 type 'a comb_matcher = 'a -> 'a list -> 'a list comb_result
-
-(*****************************************************************************)
-(* Globals *)
-(*****************************************************************************)
-
-(*****************************************************************************)
-(* Debugging *)
-(*****************************************************************************)
 
 (*****************************************************************************)
 (* Monadic operators *)
@@ -141,12 +169,6 @@ let (( >>= ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout) =
 (* the disjunctive combinator *)
 let (( >||> ) : (tin -> tout) -> (tin -> tout) -> tin -> tout) =
  fun m1 m2 tin ->
-  (* CHOICE
-        let xs = m1 tin in
-        if null xs
-        then m2 tin
-        else xs
-  *)
   (* opti? use set instead of list *)
   m1 tin @ m2 tin
 
@@ -197,13 +219,11 @@ let ( let* ) o f = o >>= f
 (*****************************************************************************)
 
 let add_mv_capture key value (env : tin) =
-  { env with mv = Env.add_capture key value env.mv }
+  { env with mv = (key, value) :: env.mv }
 
-let extend_stmts_match_span rightmost_stmt (env : tin) =
-  let stmts_match_span =
-    Stmts_match_span.extend rightmost_stmt env.stmts_match_span
-  in
-  { env with stmts_match_span }
+let extend_stmts_matched rightmost_stmt (env : tin) =
+  let stmts_matched = rightmost_stmt :: env.stmts_matched in
+  { env with stmts_matched }
 
 (* pre: both 'a' and 'b' contains only regular code; there are no
  * metavariables inside them.
@@ -212,23 +232,45 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
     (b : MV.mvalue) : bool =
   let res =
     match (a, b) with
-    (* if one of the two IDs is not resolved, then we allow
-     * a match, so a pattern like 'self.$FOO = $FOO' matches
-     * code like 'self.foo = foo'.
-     * Maybe we should not ... but let's try.
-     *
-     * At least we don't allow a resolved id with a precise sid to match
-     * another id with a different sid (same id but in different scope),
-     * which we rely on with our deep stmt matching hacks.
-     *
-     * TODO: relax even more and allow some id_resolved EnclosedVar (a field)
-     * to match anything?
-     *)
-    | ( MV.Id ((s1, _), Some { G.id_resolved = { contents = None }; _ }),
-        MV.Id ((s2, _), _) )
-    | ( MV.Id ((s1, _), _),
-        MV.Id ((s2, _), Some { G.id_resolved = { contents = None }; _ }) ) ->
-        s1 = s2
+    | MV.Id ((s1, _), i1), MV.Id ((s2, _), i2) -> (
+        (match (i1, i2) with
+        (* Since this is a newer feature and we are not sure how much
+         * support for this is actually needed. Only allow matching in
+         * a case insensitive fashion if both ids are expected to be
+         * case insensitive. This covers all the use cases in the test
+         * suite so far.
+         *)
+        | Some i1, Some i2
+          when G.is_case_insensitive i1 && G.is_case_insensitive i2 ->
+            String.(lowercase_ascii s1 = lowercase_ascii s2)
+        | _, _ -> s1 = s2)
+        &&
+        match (i1, i2) with
+        (* if one of the two IDs is not resolved, then we allow
+         * a match, so a pattern like 'self.$FOO = $FOO' matches
+         * code like 'self.foo = foo'.
+         * Maybe we should not ... but let's try.
+         *
+         * At least we don't allow a resolved id with a precise sid to match
+         * another id with a different sid (same id but in different scope),
+         * which we rely on with our deep stmt matching hacks.
+         *
+         * TODO: relax even more and allow some id_resolved EnclosedVar (a field)
+         * to match anything?
+         *)
+        | Some { id_resolved = { contents = None }; _ }, _
+        | _, Some { id_resolved = { contents = None }; _ }
+        (* We're adding this in as a hack, so that idents without id_infos can be allowed to
+           match to metavariables. Notably, this allows things like qualified identifiers
+           (within decorators) to match to metavariables.
+           This almost certainly should break something at some point in the future, but for
+           now we can allow it.
+        *)
+        | None, _ ->
+            true
+        | Some i1, Some i2 ->
+            AST_generic_equals.with_structural_equal G.equal_id_info i1 i2
+        | Some _, None -> false)
     (* In Ruby, they use atoms for metaprogramming to generate fields
      * (e.g., 'serialize :tags ... post.tags') in which case we want
      * a Text metavariable like :$INPUT to be compared with an Id
@@ -251,19 +293,11 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
         MV.E { e = B.L b_lit; _ } )
       when config.constant_propagation ->
         G.equal_literal a_lit b_lit
-    (* We're adding this in as a hack, so that idents without id_infos can be allowed to
-       match to metavariables. Notably, this allows things like qualified identifiers
-       (within decorators) to match to metavariables.
-       This almost certainly should break something at some point in the future, but for
-       now we can allow it.
-    *)
-    | MV.Id ((s1, _), None), MV.Id ((s2, _), Some _) -> s1 = s2
     (* general case, equality modulo-position-and-svalue.
      * TODO: in theory we should use user-defined equivalence to allow
      * equality modulo-equivalence rewriting!
      * TODO? missing MV.Ss _, MV.Ss _ ??
      *)
-    | MV.Id _, MV.Id _
     | MV.N _, MV.N _
     | MV.E _, MV.E _
     | MV.S _, MV.S _
@@ -274,6 +308,17 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
     | MV.Params _, MV.Params _
     | MV.Args _, MV.Args _
     | MV.Xmls _, MV.Xmls _ ->
+        (* TODO: Case insensitive identifiers can still be embedded in
+           expressions and other complext ASTs being compared
+           structurally right now in this case, and the derived equality
+           being used in this case does not currently respect case
+           insensitivity. I think the quickest fix would be to override
+           the derived structural equality to respect this, but that
+           task isn't quite as easy as it sounds do to limitations of
+           deriving eq. I think the ideal situation would be for this
+           code and the matching code to be the same, but we also seem
+           to be a ways from that. *)
+
         (* Note that because we want to retain the position information
          * of the matched code in the environment (e.g. for the -pvar
          * sgrep command line argument), we can not just use the
@@ -313,7 +358,6 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
         equal_ast_bound_code config (MV.Id (a_id, Some a_id_info)) b
     | _, _ -> false
   in
-
   if not res then
     logger#ldebug
       (lazy
@@ -321,7 +365,7 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
   res
 
 let check_and_add_metavar_binding ((mvar : MV.mvar), valu) (tin : tin) =
-  match Common2.assoc_opt mvar tin.mv.full_env with
+  match Common2.assoc_opt mvar tin.mv with
   | Some valu' ->
       (* Should we use generic_vs_generic itself for comparing the code?
        * Hmmm, we can't because it leads to a circular dependencies.
@@ -332,10 +376,6 @@ let check_and_add_metavar_binding ((mvar : MV.mvar), valu) (tin : tin) =
         (* valu remains the metavar witness *)
       else None
   | None ->
-      (* 'backrefs' is the set of metavariables that may be referenced later
-         in the pattern. It's inherited from the last stmt pattern,
-         so it might contain a few extra members.
-      *)
       (* first time the metavar is bound, just add it to the environment *)
       Some (add_mv_capture mvar valu tin)
 
@@ -350,14 +390,26 @@ let (envf : MV.mvar G.wrap -> MV.mvalue -> tin -> tout) =
         (lazy (spf "envf: success, %s (%s)" mvar (MV.str_of_mval any)));
       return new_binding
 
-let empty_environment ?(mvar_context = None) lang config =
-  let mv =
-    match mvar_context with
-    | None -> Env.empty
-    | Some bindings ->
-        { full_env = bindings; min_env = []; last_stmt_backrefs = Set_.empty }
-  in
-  { mv; stmts_match_span = Empty; lang; config; deref_sym_vals = 0 }
+let default_environment lang config =
+  {
+    mv = [];
+    stmts_matched = [];
+    lang;
+    config;
+    deref_sym_vals = 0;
+    wildcard_imports = [];
+  }
+
+let environment_of_program lang config prog =
+  let wildcard_imports = Visit_wildcard_imports.visit_toplevel prog in
+  { (default_environment lang config) with wildcard_imports }
+
+let environment_of_any lang config any =
+  match any with
+  | G.Pr prog -> environment_of_program lang config prog
+  | _ -> default_environment lang config
+
+let wipe_wildcard_imports f tin = f { tin with wildcard_imports = [] }
 
 (*****************************************************************************)
 (* Helpers *)
@@ -704,7 +756,7 @@ let adjust_info_remove_enclosing_quotes (s, info) =
             pos =
               {
                 loc.pos with
-                charpos = loc.pos.charpos + pos;
+                bytepos = loc.pos.bytepos + pos;
                 column = loc.pos.column + pos;
               };
           }

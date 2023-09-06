@@ -26,7 +26,7 @@ module T = Taint
 module Lval_env = Taint_lval_env
 module MV = Metavariable
 module ME = Matching_explanation
-module Out = Output_from_core_t
+module Out = Semgrep_output_v1_t
 module Labels = Set.Make (String)
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -149,7 +149,7 @@ module Formula_tbl = struct
   include Hashtbl.Make (struct
     type t = Rule.formula
 
-    let equal = AST_utils.with_structural_equal Rule.equal_formula
+    let equal = AST_generic_equals.with_structural_equal Rule.equal_formula
     let hash = Rule.hash_formula
   end)
 
@@ -203,7 +203,9 @@ let mk_specialized_formula_cache (rules : Rule.taint_rule list) =
            Common.map (fun source -> source.R.source_formula) (snd spec.sources)
            @ Common.map
                (fun sanitizer -> sanitizer.R.sanitizer_formula)
-               spec.sanitizers
+               (match spec.sanitizers with
+               | None -> []
+               | Some (_, sanitizers) -> sanitizers)
            @ Common.map (fun sink -> sink.R.sink_formula) (snd spec.sinks)
            @ Common.map
                (fun propagator -> propagator.R.propagator_formula)
@@ -256,7 +258,7 @@ let find_sanitizers_matches formula_cache (xconf : Match_env.xconfig)
     (bool * RM.t * R.taint_sanitizer) list * ME.t list =
   specs
   |> concat_map_with_expls (fun (sanitizer : R.taint_sanitizer) ->
-         let ranges, exps =
+         let ranges, expls =
            Formula_tbl.cached_find_opt formula_cache sanitizer.sanitizer_formula
              (fun () ->
                range_w_metas_of_formula xconf xtarget rule
@@ -265,7 +267,7 @@ let find_sanitizers_matches formula_cache (xconf : Match_env.xconfig)
          ( ranges
            |> Common.map (fun x ->
                   (sanitizer.Rule.not_conflicting, x, sanitizer)),
-           exps ))
+           expls ))
 
 (* Finds all matches of `pattern-propagators`. *)
 let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
@@ -324,7 +326,7 @@ let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
                     in
                     let id =
                       Common.spf "propagator:%d:%d:%d:%d:%d:%d"
-                        loc_pfrom.pos.charpos loc_pto.pos.charpos
+                        loc_pfrom.pos.bytepos loc_pto.pos.bytepos
                         from.Range.start from.Range.end_ to_.Range.start
                         to_.Range.end_
                     in
@@ -465,8 +467,11 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
       |> Common.map (fun (sink : Rule.taint_sink) -> (sink.sink_formula, sink))
       )
   in
-  let sanitizers_ranges, _exps_sanitizersTODO =
-    find_sanitizers_matches formula_cache xconf xtarget rule spec.sanitizers
+  let sanitizers_ranges, expls_sanitizers =
+    match spec.sanitizers with
+    | None -> ([], [])
+    | Some (_, sanitizers_spec) ->
+        find_sanitizers_matches formula_cache xconf xtarget rule sanitizers_spec
   in
   let (sanitizers_ranges : (RM.t * R.taint_sanitizer) list) =
     (* A sanitizer cannot conflict with a sink or a source, otherwise it is
@@ -510,8 +515,26 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
           children = expls_sinks;
           matches = ranges_to_pms sinks_ranges;
         }
-        (* TODO: sanitizer and propagators *);
+        (* TODO: propagators *);
       ]
+      @
+      match spec.sanitizers with
+      | None -> []
+      | Some (tok, _) ->
+          [
+            {
+              ME.op = Out.TaintSanitizer;
+              pos = tok;
+              children = expls_sanitizers;
+              (* 'sanitizer_ranges' will be affected by `not-conflicting: true`:
+               * if a sanitizer coincides exactly with a source/sink then it will
+               * be filtered out. So the sanitizer matches may not be the union of
+               * the matches of the individual sanitizers. Anyhow, not-conflicting
+               * has been deprecated for quite some time, and we will remove it at
+               * some point. *)
+              matches = ranges_to_pms sanitizers_ranges;
+            };
+          ]
     else []
   in
   let config = xconf.config in
@@ -559,8 +582,6 @@ let pm_of_finding finding =
         sink = { pm = sink_pm; _ };
         merged_env;
       } ->
-      (* TODO: We might want to report functions that let input taint
-         * go into a sink (?) *)
       if
         not
           (T.taints_satisfy_requires
@@ -568,17 +589,20 @@ let pm_of_finding finding =
              requires)
       then None
       else
-        (* these arg taints are not useful to us, because we are within
-           the function, not at the call-site. so we don't know what
-           the argument taints are.
-        *)
-        let source_taints, _args_taints =
+        (* We only report actual sources reaching a sink. If users want Semgrep to
+         * report function parameters reaching a sink without sanitization, then
+         * they need to specify the parameters as taint sources. *)
+        let source_taints =
           taints
-          |> Common.partition_either
+          |> Common.map_filter
                (fun { T.taint = { orig; tokens }; sink_trace } ->
                  match orig with
-                 | Src src -> Left (src, tokens, sink_trace)
-                 | Arg arg -> Right arg)
+                 | Src src -> Some (src, tokens, sink_trace)
+                 (* even if there is any taint "variable", it's irrelevant for the
+                  * finding, since the precondition is satisfied. *)
+                 | Arg _
+                 | Control ->
+                     None)
         in
         (* The old behavior used to be that, for sinks with a `requires`, we would
            generate a finding per every single taint source going in. Later deduplication
@@ -614,12 +638,7 @@ let pm_of_finding finding =
         let taint_trace = Some (lazy traces) in
         Some { sink_pm with env = merged_env; taint_trace }
 
-let check_fundef lang options taint_config opt_ent ctx java_props_cache fdef =
-  let name =
-    let* ent = opt_ent in
-    let* name = AST_to_IL.name_of_entity ent in
-    Some (D.str_of_name name)
-  in
+let mk_params_env lang options taint_config fdef =
   let add_to_env env id ii pdefault =
     let var = AST_to_IL.var_of_id_info id ii in
     let var_type = Typing.resolved_type_of_id_info lang var.id_info in
@@ -681,8 +700,18 @@ let check_fundef lang options taint_config opt_ent ctx java_props_cache fdef =
                     add_to_env env id ii None
                 | G.F _ -> env)
               env fields
+        | G.ParamPattern pat ->
+            (* Here, we just get all the identifiers in the pattern, which may
+               themselves be sources.
+               This is so we can handle patterns such as:
+               (x, (y, z, (a, b)))
+               and taint all the inner identifiers
+            *)
+            let ids = Visit_pattern_ids.visit (G.P pat) in
+            List.fold_left
+              (fun env (id, pinfo) -> add_to_env env id pinfo None)
+              env ids
         | G.Param { pname = None; _ }
-        | G.ParamPattern _
         | G.ParamRest (_, _)
         | G.ParamHashSplat (_, _)
         | G.ParamEllipsis _
@@ -692,8 +721,17 @@ let check_fundef lang options taint_config opt_ent ctx java_props_cache fdef =
       Lval_env.empty
       (Tok.unbracket fdef.G.fparams)
   in
+  in_env
+
+let check_fundef lang options taint_config opt_ent ctx java_props_cache fdef =
+  let name =
+    let* ent = opt_ent in
+    let* name = AST_to_IL.name_of_entity ent in
+    Some (D.str_of_name name)
+  in
   let _, xs = AST_to_IL.function_definition lang ~ctx fdef in
   let flow = CFG_build.cfg_of_stmts xs in
+  let in_env = mk_params_env lang options taint_config fdef in
   let mapping =
     Dataflow_tainting.fixpoint ~in_env ?name lang options taint_config
       java_props_cache flow

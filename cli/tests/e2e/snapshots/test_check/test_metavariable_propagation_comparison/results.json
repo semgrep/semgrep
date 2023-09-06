@@ -36,7 +36,8 @@
             }
           }
         },
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/metavariable_propagation/metavariable-comparison-propagation.py",
       "start": {
@@ -74,7 +75,8 @@
             }
           }
         },
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/metavariable_propagation/metavariable-comparison-propagation.py",
       "start": {
@@ -84,5 +86,6 @@
       }
     }
   ],
+  "skipped_rules": [],
   "version": "0.42"
 }

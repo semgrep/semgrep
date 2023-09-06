@@ -1,0 +1,56 @@
+{
+  "Gin Martini": {
+    "garnish": "Olive",
+    "ingredients": [
+      {
+        "kind": "Farmer's Gin",
+        "qty": 2
+      },
+      {
+        "kind": "Dry White Vermouth",
+        "qty": 1
+      }
+    ],
+    "served": "Straight Up"
+  },
+  "Martini": {
+    "garnish": "Olive",
+    "ingredients": [
+      {
+        "kind": "Farmer's Gin",
+        "qty": 2
+      },
+      {
+        "kind": "Dry White Vermouth",
+        "qty": 1
+      }
+    ],
+    "served": "Straight Up"
+  },
+  "Tom Collins": {
+    "garnish": "Maraschino Cherry",
+    "ingredients": [
+      {
+        "kind": "Farmer's Gin",
+        "qty": 1.5
+      },
+      {
+        "kind": "Lemon",
+        "qty": 1
+      },
+      {
+        "kind": "Simple Syrup",
+        "qty": 0.5
+      },
+      {
+        "kind": "Soda",
+        "qty": 2
+      },
+      {
+        "kind": "Angostura",
+        "qty": "dash"
+      }
+    ],
+    "served": "Tall"
+  }
+}
