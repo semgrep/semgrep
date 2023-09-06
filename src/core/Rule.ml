@@ -317,9 +317,16 @@ and extract_reduction = Separate | Concat [@@deriving show]
 
 type header = { name : string; value : string } [@@deriving show]
 type meth = [ `DELETE | `GET | `POST | `HEAD | `PUT ] [@@deriving show]
+
 (* Used to request additional auth headers are computed and added automatically,
  * e.g., because they depend on other headers and/or body *)
-type auth = AWS_SIGV4 of { secret_access_key : string; access_key_id : string; service : string; region : string; }
+type auth =
+  | AWS_SIGV4 of {
+      secret_access_key : string;
+      access_key_id : string;
+      service : string;
+      region : string;
+    }
 [@@deriving show]
 
 (* why is url : string? metavariables (i.e http://$X) are present at parsing; which
