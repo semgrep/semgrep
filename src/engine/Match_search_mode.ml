@@ -565,8 +565,13 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
                    | Xlang.LAliengrep ->
                        raise Impossible
                  in
+                 let ast, _ = Lazy.force env.xtarget.lazy_ast_and_errors in
+                 (* This call iterates over the program's top-level statements, and
+                    thus incurs some cost, but it shouldn't be much.
+                 *)
                  let env =
-                   Matching_generic.empty_environment lang env.xconf.config
+                   Matching_generic.environment_of_program lang env.xconf.config
+                     ast
                  in
                  let matches =
                    GG.m_compatible_type lang
