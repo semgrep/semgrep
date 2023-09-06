@@ -13,7 +13,7 @@ val lines_of_file :
 (* for now used only to interpolate metavars in the 'message:' field *)
 val contents_of_file :
   Semgrep_output_v1_t.position * Semgrep_output_v1_t.position ->
-  Common.filename ->
+  Fpath.t ->
   string
 
 val position_of_token_location : Tok.location -> Semgrep_output_v1_t.position

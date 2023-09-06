@@ -64,7 +64,7 @@ let interpolate_metavars (text : string) (metavars : metavars) (file : filename)
           * name in semgrep_output_v1.atd *)
          let (v : Out.metavar_value) = mval in
          let content =
-           lazy (Output_utils.contents_of_file (v.start, v.end_) file)
+           lazy (Output_utils.contents_of_file (v.start, v.end_) (Fpath.v file))
          in
          text
          (* first value($X), and then $X *)
