@@ -141,8 +141,7 @@ Plus, you can manage your rules and code findings with Semgrep Cloud Platform.
                        connect to Semgrep servers. Please check your internet \
                        connection and try again. If this issue persists, \
                        please reach out to Semgrep support at @{<cyan;ul>%s@}"
-                      (Logs_helpers.with_err_tag ())
-                      support_url
+                      (Logs_helpers.err_tag ()) support_url
                   in
                   Logs.err (fun m -> m "%s" msg);
                   Exit_code.fatal
@@ -172,7 +171,7 @@ Plus, you can manage your rules and code findings with Semgrep Cloud Platform.
                                   m
                                     "%s Successfully logged in as %s! You can \
                                      now run `semgrep ci` to start a scan."
-                                    (Logs_helpers.with_success_tag ())
+                                    (Logs_helpers.success_tag ())
                                     user_name);
                               Exit_code.ok)
                             else Exit_code.fatal
@@ -208,8 +207,8 @@ Plus, you can manage your rules and code findings with Semgrep Cloud Platform.
                              (status code %d).\n\
                              Please try again or reach out to Semgrep support \
                              at @{<cyan;ul>%s@}"
-                            (Logs_helpers.with_err_tag ())
-                            (Uri.to_string url) status_code support_url
+                            (Logs_helpers.err_tag ()) (Uri.to_string url)
+                            status_code support_url
                         in
                         Logs.err (fun m -> m "%s" msg);
                         Logs.info (fun m -> m "HTTP error: %s" err);
@@ -223,7 +222,7 @@ Plus, you can manage your rules and code findings with Semgrep Cloud Platform.
           m
             "%s You're already logged in. Use `semgrep logout` to log out \
              first, and then you can login with a new access token."
-            (Logs_helpers.with_err_tag ()));
+            (Logs_helpers.err_tag ()));
       Exit_code.fatal
 (*****************************************************************************)
 (* Entry point *)
