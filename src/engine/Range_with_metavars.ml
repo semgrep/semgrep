@@ -65,6 +65,14 @@ let included_in config rv1 rv2 =
      |> List.for_all (fun (mvar, mval1) ->
             match List.assoc_opt mvar rv2.mvars with
             | None -> true
+            (* Capture group metavariables (of the form $1, $2, etc) may
+               be introduced implicitly via regular expressions that have
+               capture groups in them.
+               The unification of these metavariables can be dangerous, as
+               it will prevent matches, when users may not even know these
+               metavariables exist.
+               To be safe, let's assume they always unify.
+            *)
             | _ when Metavariable.is_metavar_for_capture_group mvar -> true
             | Some mval2 ->
                 Matching_generic.equal_ast_bound_code config mval1 mval2)
