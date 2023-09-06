@@ -137,7 +137,8 @@ let string_literal (env : env) ((v1, v2, v3) : CST.string_literal) : string wrap
     Common.map
       (fun x ->
         match x with
-        | `Imm_tok_pat_c7f65b4 tok -> str env tok (* pattern "[^\\\\\"\\n]+" *)
+        | `Imm_tok_prec_p1_pat_c7f65b4 tok ->
+            str env tok (* pattern "[^\\\\\"\\n]+" *)
         | `Esc_seq tok -> str env tok
         (* escape_sequence *))
       v2
@@ -216,8 +217,8 @@ let preproc_defined (env : env) (x : CST.preproc_defined) : tok * name =
       let v2 = identifier env v2 (* pattern [a-zA-Z_]\w* *) in
       (v1, v2)
 
-let anon_choice_type_id_d3c4b5f (env : env)
-    (x : CST.anon_choice_type_id_d3c4b5f) =
+let anon_choice_stmt_id_d3c4b5f (env : env)
+    (x : CST.anon_choice_stmt_id_d3c4b5f) =
   match x with
   | `Id tok -> str env tok (* pattern [a-zA-Z_]\w* *)
   | `DOTDOTDOT tok -> ("...", token env tok)
@@ -424,12 +425,12 @@ let preproc_params (env : env) ((v1, v2, v3) : CST.preproc_params) : name list =
   let v2 =
     match v2 with
     | Some (v1, v2) ->
-        let v1 = anon_choice_type_id_d3c4b5f env v1 in
+        let v1 = anon_choice_stmt_id_d3c4b5f env v1 in
         let v2 =
           Common.map
             (fun (v1, v2) ->
               let _v1 = token env v1 (* "," *) in
-              let v2 = anon_choice_type_id_d3c4b5f env v2 in
+              let v2 = anon_choice_stmt_id_d3c4b5f env v2 in
               v2)
             v2
         in
@@ -605,8 +606,8 @@ and anon_choice_stor_class_spec_5764fed (env : env)
       let _ = ms_declspec_modifier env x in
       ()
 
-and anon_choice_type_id_opt_field_decl_list_9aebd83 (env : env)
-    (x : CST.anon_choice_type_id_opt_field_decl_list_9aebd83) :
+and map_anon_choice_stmt_id_opt_field_decl_list_9aebd83 (env : env)
+    (x : CST.anon_choice_stmt_id_opt_field_decl_list_9aebd83) :
     name option * field_def list bracket =
   match x with
   | `Id_opt_field_decl_list (v1, v2) ->
@@ -1190,7 +1191,7 @@ and type_specifier (env : env) (x : CST.type_specifier) : type_ =
         | None -> None
       in
       let nameopt, flds =
-        anon_choice_type_id_opt_field_decl_list_9aebd83 env v3
+        map_anon_choice_stmt_id_opt_field_decl_list_9aebd83 env v3
       in
       let env = env.extra in
       let name =
@@ -1212,7 +1213,7 @@ and type_specifier (env : env) (x : CST.type_specifier) : type_ =
         | None -> None
       in
       let nameopt, flds =
-        anon_choice_type_id_opt_field_decl_list_9aebd83 env v3
+        map_anon_choice_stmt_id_opt_field_decl_list_9aebd83 env v3
       in
       let env = env.extra in
       let name =

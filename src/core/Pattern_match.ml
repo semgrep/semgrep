@@ -78,6 +78,18 @@ type taint_trace_item = {
 type taint_trace = taint_trace_item list [@@deriving show, eq]
 type engine_kind = OSS | Pro [@@deriving show, eq]
 
+(* This type is used by postprocessors to report back the validity
+   of a finding. No_validator is currently also used when no
+   validation has yet occurred, which if that becomes confusing we
+   could adjust that, by adding another state. This corresponds to
+   a identically named type in semgrep_interfaces output types.*)
+type validation_state =
+  | Confirmed_valid
+  | Confirmed_invalid
+  | Validation_error
+  | No_validator
+[@@deriving show, eq]
+
 type t = {
   (* rule (or mini rule) responsible for the pattern match found *)
   rule_id : rule_id; [@equal fun a b -> a.id = b.id]
@@ -102,6 +114,8 @@ type t = {
      from a Pro run.
   *)
   engine_kind : engine_kind;
+  (* This flag indicates whether a postprocessor ran and validated this result. *)
+  validation_state : validation_state;
 }
 
 (* This is currently a record, but really only the rule id should matter.
@@ -120,7 +134,7 @@ and rule_id = {
    * Note that when we process a full rule, this id can temporarily
    * contain a Rule.pattern_id.
    *)
-  id : Rule.ID.t;
+  id : Rule_ID.t;
   (* other parts of a rule (or mini_rule) used in JSON_report.ml.
    *
    * TODO should we remove these fields and just pass around a Rule.t or
@@ -134,7 +148,7 @@ and rule_id = {
 [@@deriving show, eq]
 
 let uniq pms =
-  let eq = AST_utils.with_structural_equal equal in
+  let eq = AST_generic_equals.with_structural_equal equal in
   let tbl = Hashtbl.create 1_024 in
   pms
   |> List.iter (fun pm ->

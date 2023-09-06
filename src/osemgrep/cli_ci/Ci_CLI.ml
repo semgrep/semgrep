@@ -1,4 +1,4 @@
-open Cmdliner
+module Cmd = Cmdliner.Cmd
 
 (*****************************************************************************)
 (* Prelude *)
@@ -22,9 +22,9 @@ type conf = Scan_CLI.conf
 
 let doc = "the recommended way to run semgrep in CI"
 
-let man : Manpage.block list =
+let man : Cmdliner.Manpage.block list =
   [
-    `S Manpage.s_description;
+    `S Cmdliner.Manpage.s_description;
     `P
       "In pull_request/merge_request (PR/MR) contexts, `semgrep ci` will only \
        report findings that were introduced by the PR/MR.";

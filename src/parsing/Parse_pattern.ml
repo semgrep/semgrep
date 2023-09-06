@@ -41,10 +41,16 @@ let rec normalize_any (lang : Lang.t) (any : G.any) : G.any =
   | G.S { G.s = G.ExprStmt (e, sc); _ }
     when Tok.is_fake sc || Tok.content_of_tok sc = "" ->
       normalize_any lang (G.E e)
+  (* Any name pattern which is a metavariable should be sorted into an
+     E pattern, so we can properly match it against E nodes.
+  *)
+  | G.Name (Id ((s, t), idinfo)) when Metavariable.is_metavar_name s ->
+      G.E (G.N (Id ((s, t), idinfo)) |> G.e)
   (* TODO: generalizing to other languages generate many regressions *)
   | G.E { e = G.N name; _ } when lang =*= Lang.Rust ->
       normalize_any lang (G.Name name)
   | G.E { e = G.RawExpr x; _ } -> normalize_any lang (G.Raw x)
+  | G.E { e = G.StmtExpr s; _ } -> normalize_any lang (G.S s)
   | G.Raw (List [ x ]) -> normalize_any lang (G.Raw x)
   (* TODO: taken from ml_to_generic.ml:
    * | G.E {e = G.StmtExpr s; _} -> G.S s?

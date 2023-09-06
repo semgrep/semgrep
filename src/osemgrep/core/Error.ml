@@ -24,7 +24,7 @@ exception Semgrep_error of string * Exit_code.t option
 exception Exit of Exit_code.t
 
 (* TOPORT?
-   exception Semgrep_core_error of Output_from_core_t.core_error
+   exception Semgrep_core_error of Semgrep_output_v1_t.core_error
 
    (*
       python: class ErrorWithSpan(SemgrepError)
@@ -69,18 +69,23 @@ exception Exit of Exit_code.t
 (* string of/registering exns *)
 (*****************************************************************************)
 
-(* TODO
-   let register_exception_printer () =
-     Printexc.register_printer (function
-       | Semgrep_error err -> Some (string_of_error err)
-       | _else_ -> None)
-
-   (*
-      Modify the behavior of 'Printexc.to_string' to print Semgrep exceptions
-      nicely.
-   *)
-   let () = register_exception_printer ()
-*)
+let () =
+  Printexc.register_printer (function
+    | Semgrep_error (msg, opt_exit_code) ->
+        let base_msg = Printf.sprintf "Fatal error: %s" msg in
+        Some
+          (match opt_exit_code with
+          | None -> base_msg
+          | Some exit_code ->
+              Printf.sprintf "%s\nExit code %i: %s" base_msg
+                (Exit_code.to_int exit_code)
+                (Exit_code.to_message exit_code))
+    | Exit exit_code ->
+        Some
+          (Printf.sprintf "Exit code %i: %s"
+             (Exit_code.to_int exit_code)
+             (Exit_code.to_message exit_code))
+    | _ -> None)
 
 (*****************************************************************************)
 (* Misc *)

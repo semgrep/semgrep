@@ -852,7 +852,7 @@ type any =
 (* Some constructors *)
 (*****************************************************************************)
 (* TODO: reuse Tok.fake_tok ? *)
-let fakeInfo ?(next_to = None) str = Tok.FakeTokStr (str, next_to)
+let fakeInfo ?(next_to = None) str = Tok.FakeTok (str, next_to)
 
 (*****************************************************************************)
 (* Wrappers *)

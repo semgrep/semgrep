@@ -16,6 +16,11 @@ def url(value: str) -> str:
     return value.rstrip("/")
 
 
+def migrate_fail_open_url(value: str) -> str:
+    # Supports the fail_open_url being the hostname without the path even when some folks might set the path
+    return url(value.replace("/failure", ""))
+
+
 @overload
 def EnvFactory(envvars: Union[str, Iterable[str]], default: str) -> str:
     ...
@@ -53,18 +58,12 @@ class Env:
     fail_open_url: str = field(
         default=EnvFactory(
             ["SEMGREP_FAIL_OPEN_URL"],
-            "https://fail-open.prod.semgrep.dev/failure",
+            "https://fail-open.prod.semgrep.dev",
         ),
-        converter=url,
+        converter=migrate_fail_open_url,
     )
     semgrep_url: str = field(
         default=EnvFactory(["SEMGREP_URL", "SEMGREP_APP_URL"], "https://semgrep.dev"),
-        converter=url,
-    )
-    shouldafound_base_url: str = field(
-        default=EnvFactory(
-            "SEMGREP_SHOULDAFOUND_BASE_URL", "https://shouldafound.semgrep.dev"
-        ),
         converter=url,
     )
     app_token: Optional[str] = field(default=EnvFactory("SEMGREP_APP_TOKEN"))
@@ -87,7 +86,7 @@ class Env:
     in_docker: bool = field()
     in_gh_action: bool = field()
     in_agent: bool = field()
-    shouldafound_no_email: bool = field()
+    with_new_cli_ux: bool = field()
     min_fetch_depth: int = field()
 
     upload_findings_timeout: int = field()
@@ -151,9 +150,9 @@ class Env:
     def in_agent_default(self) -> bool:
         return "SEMGREP_AGENT" in os.environ
 
-    @shouldafound_no_email.default
-    def shouldafound_no_email_default(self) -> bool:
-        return "SEMGREP_SHOULDAFOUND_NO_EMAIL" in os.environ
+    @with_new_cli_ux.default
+    def with_new_cli_default(self) -> bool:
+        return os.environ.get("SEMGREP_NEW_CLI_UX", "0") == "1"
 
     @min_fetch_depth.default
     def min_fetch_depth_default(self) -> int:

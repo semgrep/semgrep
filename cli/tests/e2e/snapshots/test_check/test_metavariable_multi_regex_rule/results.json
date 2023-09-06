@@ -59,7 +59,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/metavariable-regex-multi-regex.py",
       "start": {
@@ -69,5 +70,6 @@
       }
     }
   ],
+  "skipped_rules": [],
   "version": "0.42"
 }

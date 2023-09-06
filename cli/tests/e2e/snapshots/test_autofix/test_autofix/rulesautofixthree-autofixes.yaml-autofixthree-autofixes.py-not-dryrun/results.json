@@ -50,7 +50,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/autofix/three-autofixes.py",
       "start": {
@@ -102,7 +103,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/autofix/three-autofixes.py",
       "start": {
@@ -154,7 +156,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/autofix/three-autofixes.py",
       "start": {
@@ -164,5 +167,6 @@
       }
     }
   ],
+  "skipped_rules": [],
   "version": "0.42"
 }

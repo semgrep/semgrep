@@ -6,9 +6,11 @@ import re
 from pathlib import Path
 from typing import List
 from typing import Optional
+from typing import Tuple
 
-from semdep.parsers.util import ParserName
-from semdep.parsers.util import safe_path_parse
+from semdep.parsers.util import DependencyFileToParse
+from semdep.parsers.util import DependencyParserError
+from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
 from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import YamlMap
@@ -16,6 +18,8 @@ from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
+from semgrep.semgrep_interfaces.semgrep_output_v1 import PnpmLock
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 
 
 def get_key_values(yaml: YamlTree[YamlMap], field: str) -> List[str]:
@@ -30,44 +34,63 @@ def parse_direct_pre_6(yaml: YamlTree[YamlMap]) -> List[str]:
     return get_key_values(yaml, "specifiers")
 
 
+def parse_package_key_pre_6(key: str) -> Optional[Tuple[str, str]]:
+    match = re.compile(r"/(.+)/([^/]+)").match(key)
+    return match.groups() if match else None  # type: ignore
+
+
 def parse_direct_post_6(yaml: YamlTree[YamlMap]) -> List[str]:
     return get_key_values(yaml, "dependencies") + get_key_values(
         yaml, "devDependencies"
     )
 
 
-def parse_pnpm(lockfile_path: Path, _: Optional[Path]) -> List[FoundDependency]:
-    yaml: Optional[YamlTree] = safe_path_parse(
-        lockfile_path,
-        (
+def parse_package_key_post_6(key: str) -> Optional[Tuple[str, str]]:
+    match = re.compile(r"/(.+?)@([^(@]+)").match(key)
+    return match.groups() if match else None  # type: ignore
+
+
+def parse_pnpm(
+    lockfile_path: Path, _: Optional[Path]
+) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
+
+    parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
+        DependencyFileToParse(
+            lockfile_path,
             lambda text: parse_yaml_preserve_spans(
                 text, str(lockfile_path), allow_null=True
-            )
+            ),
+            ScaParserName(PnpmLock()),
         ),
-        ParserName.pnpm_lock,
+        None,
     )
-    if not yaml or not isinstance(yaml.value, YamlMap):
-        return []
-    try:
-        lockfile_version = float(yaml.value["lockfileVersion"].value)
-    except KeyError:
-        return []
-    if lockfile_version <= 5.4:
-        parse_direct = parse_direct_pre_6
-    else:
-        parse_direct = parse_direct_post_6
 
-    if "importers" in yaml.value:
+    if not parsed_lockfile or not isinstance(parsed_lockfile.value, YamlMap):
+        return [], errors
+    try:
+        lockfile_version = float(parsed_lockfile.value["lockfileVersion"].value)
+    except KeyError:
+        return [], errors
+
+    parse_direct, parse_package_key = (
+        (parse_direct_pre_6, parse_package_key_pre_6)
+        if lockfile_version <= 5.4
+        else (parse_direct_post_6, parse_package_key_post_6)
+    )
+
+    if "importers" in parsed_lockfile.value:
         direct_deps = {
-            x for _, v in yaml.value["importers"].value.items() for x in parse_direct(v)
+            x
+            for _, v in parsed_lockfile.value["importers"].value.items()
+            for x in parse_direct(v)
         }
     else:
-        direct_deps = set(parse_direct(yaml))
+        direct_deps = set(parse_direct(parsed_lockfile))
     try:
-        package_map = yaml.value["packages"].value
+        package_map = parsed_lockfile.value["packages"].value
         if not package_map:
-            return []
-        all_deps: List[tuple[int, tuple[str, str]]] = []
+            return [], errors
+        all_deps: List[Tuple[int, Tuple[str, str]]] = []
         for key, map in package_map.items():
             if map.value and "name" in map.value and "version" in map.value:
                 all_deps.append(
@@ -77,13 +100,21 @@ def parse_pnpm(lockfile_path: Path, _: Optional[Path]) -> List[FoundDependency]:
                     )
                 )
             else:
-                match = re.compile(r"/(.+)/([^/]+)").match(key.value)
-                if match:
+                data = parse_package_key(key.value)
+                if data:
                     # re does not have a way for us to refine the type of the match to what we know it is
-                    all_deps.append((key.span.start.line, match.groups()))  # type: ignore
+                    all_deps.append((key.span.start.line, data))
+                else:
+                    errors.append(
+                        DependencyParserError(
+                            str(lockfile_path),
+                            key.span.start.line,
+                            f"Could not parse package key {key.value}",
+                        )
+                    )
 
     except KeyError:
-        return []
+        return [], errors
     output = []
     for line_number, (package_str, version_str) in all_deps:
         if not package_str or not version_str:
@@ -98,4 +129,4 @@ def parse_pnpm(lockfile_path: Path, _: Optional[Path]) -> List[FoundDependency]:
                 allowed_hashes={},
             )
         )
-    return output
+    return output, errors

@@ -5,7 +5,7 @@
 # This config defines also 2 "jobs" with the `stages: [manual]` directive
 # which are only exercised in CI (see .github/workflows/lint.yml).
 
-exclude: "^tests|^cli/tests/e2e/(targets|snapshots|rules/syntax)|^cli/src/semgrep/external|^cli/src/semdep/external|^cli/bin|\\binvalid\\b|TOPORT"
+exclude: "^tests|^cli/tests/e2e/(targets|snapshots|rules/syntax)|^cli/tests/performance/targets_perf_sca|^cli/src/semgrep/external|^cli/src/semdep/external|^cli/bin|\\binvalid\\b|TOPORT"
 default_stages: [commit]
 # See https://pre-commit.com/#pre-commit-configyaml---repos
 # for more information on the format of the content below
@@ -93,7 +93,8 @@ repos:
 
           # some packages ship with type definitions
           - attrs~=21.3
-          - click~=8.0
+          # click 8.1.4's new decorator type hints don't seem to work well
+          - click<8.1.4
           - defusedxml~=0.7.1
           - packaging~=21.0
           - requests~=2.22

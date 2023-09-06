@@ -6,6 +6,11 @@ exception NotAnExpr
 
 val expr_to_pattern : AST_generic.expr -> AST_generic.pattern
 
+(* This executes some simplifications, such as not producing
+   ExprStmt (StmtExpr ...)
+*)
+val expr_to_stmt : AST_generic.expr -> AST_generic.stmt
+
 (* may raise NotAnExpr *)
 val pattern_to_expr : AST_generic.pattern -> AST_generic.expr
 
@@ -13,6 +18,7 @@ val pattern_to_expr : AST_generic.pattern -> AST_generic.expr
 val argument_to_expr : AST_generic.argument -> AST_generic.expr
 val expr_to_type : AST_generic.expr -> AST_generic.type_
 val expr_to_class_parent : AST_generic.expr -> AST_generic.class_parent
+val expr_to_entity_name_opt : AST_generic.expr -> AST_generic.entity_name option
 
 (* should avoid; used mainly during expr->condition migration for If/While/..*)
 val cond_to_expr : AST_generic.condition -> AST_generic.expr
@@ -21,6 +27,11 @@ val cond_to_expr : AST_generic.condition -> AST_generic.expr
 
 val vardef_to_assign :
   AST_generic.entity * AST_generic.variable_definition -> AST_generic.expr
+
+(* only translates an assign to a vardef if we definitely have a name on the LHS *)
+val assign_to_vardef_opt :
+  AST_generic.expr * AST_generic.tok * AST_generic.expr ->
+  AST_generic.stmt option
 
 val funcdef_to_lambda :
   AST_generic.entity * AST_generic.function_definition ->
@@ -31,8 +42,10 @@ val funcbody_to_stmt : AST_generic.function_body -> AST_generic.stmt
 
 (* name building *)
 
-val name_of_id : AST_generic.ident -> AST_generic.name
-val name_of_ids : AST_generic.dotted_ident -> AST_generic.name
+val name_of_id : ?case_insensitive:bool -> AST_generic.ident -> AST_generic.name
+
+val name_of_ids :
+  ?case_insensitive:bool -> AST_generic.dotted_ident -> AST_generic.name
 
 val name_of_ids_with_opt_typeargs :
   (AST_generic.ident * AST_generic.type_arguments option) list ->
@@ -110,6 +123,11 @@ val undo_ac_matching_nf :
 (* Sets the e_range on the expression based on the left and right tokens
  * provided. No-op if either has a fake location. *)
 val set_e_range : Tok.t -> Tok.t -> AST_generic.expr -> unit
+
+(* Sets the e_range on the expression to the range defined by the given anys.
+ * Noop if no location information for the anys is available (including if the
+ * any list is empty). *)
+val set_e_range_with_anys : AST_generic.any list -> AST_generic.expr -> unit
 val ii_of_any : AST_generic.any -> Tok.t list
 val info_of_any : AST_generic.any -> Tok.t
 
@@ -117,6 +135,11 @@ val info_of_any : AST_generic.any -> Tok.t
 val first_info_of_any : AST_generic.any -> Tok.t
 val range_of_tokens : Tok.t list -> Tok_range.t
 val range_of_any_opt : AST_generic.any -> (Tok.location * Tok.location) option
+
+val nearest_any_of_pos :
+  AST_generic.program ->
+  int ->
+  (AST_generic.any * (Tok.location * Tok.location)) option
 
 val fix_token_locations_any :
   (Tok.location -> Tok.location) -> AST_generic.any -> AST_generic.any

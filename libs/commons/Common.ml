@@ -13,6 +13,8 @@
  * license.txt for more details.
  *)
 
+open Sexplib.Std
+
 let logger = Logging.get_logger [ __MODULE__ ]
 
 (*###########################################################################*)
@@ -586,7 +588,7 @@ let ( ||| ) a b =
   | Some x -> x
   | None -> b
 
-type ('a, 'b) either = Left of 'a | Right of 'b [@@deriving eq, show]
+type ('a, 'b) either = Left of 'a | Right of 'b [@@deriving eq, show, sexp]
 
 (* with sexp *)
 type ('a, 'b, 'c) either3 = Left3 of 'a | Middle3 of 'b | Right3 of 'c
@@ -739,7 +741,7 @@ let null_string s = s = ""
 
 (* TODO: we should use strong types like in Li Haoyi filename Scala library! *)
 type filename = string (* TODO could check that exist :) type sux *)
-[@@deriving show, eq]
+[@@deriving show, eq, ord, sexp]
 
 let chop_dirsymbol = function
   | s when s =~ "\\(.*\\)/$" -> matched1 s

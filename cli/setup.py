@@ -29,11 +29,30 @@ if WHEEL_CMD in sys.argv:
 
         def get_tag(self):
             _, _, plat = bdist_wheel.get_tag(self)
+
+            # For more information about python compatibility tags, check out:
+            # https://packaging.python.org/en/latest/specifications/platform-compatibility-tags/
+
+            # We support Python 3.7+
             python = "cp37.cp38.cp39.cp310.cp311.py37.py38.py39.py310.py311"
+
+            # We don't require a specific Python ABI
             abi = "none"
-            if "macosx" in plat:
-                plat = "macosx_11_0_arm64" if "arm" in plat else "macosx_10_14_x86_64"
-            else:
+
+            # To prevent potential compatibility issues when mixing glibc and libmusl,
+            # PyPI does not accept the default linux_x86_64 and linux_aarch64 platform
+            # tags. Instead, package maintainers must explicity identify if their package
+            # supports glibc and/or libmusl. Semgrep-core is statically compiled,
+            # so this isn't a concern for us.
+            #
+            # For linux_aarch64, we indicate that we support both platforms
+            #   (musllinux_1_0 == libmusl, manylinux2014 == glibc)
+            #
+            # For linux_x86_64, we use the catch-all "any" tag
+            #
+            if plat == "linux_aarch64":
+                plat = "musllinux_1_0_aarch64.manylinux2014_aarch64"
+            elif plat == "linux_x86_64":
                 plat = "any"
             return python, abi, plat
 
@@ -113,9 +132,9 @@ extras_require = {"experiments": ["jsonnet~=0.18"]}
 
 setuptools.setup(
     name="semgrep",
-    version="1.30.0",
-    author="Return To Corporation",
-    author_email="support@r2c.dev",
+    version="1.38.3",
+    author="Semgrep Inc.",
+    author_email="support@semgrep.com",
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",
     cmdclass=cmdclass,
     install_requires=install_requires,

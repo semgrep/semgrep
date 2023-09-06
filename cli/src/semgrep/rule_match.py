@@ -22,7 +22,6 @@ from attrs import frozen
 
 import semgrep.output_from_core as core
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
-import semgrep.util as util
 from semgrep.constants import NOSEM_INLINE_COMMENT_RE
 from semgrep.constants import RuleScanSource
 from semgrep.constants import RuleSeverity
@@ -112,19 +111,19 @@ class RuleMatch:
     # TODO: return a out.RuleId
     @property
     def rule_id(self) -> str:
-        return self.match.rule_id.value
+        return self.match.check_id.value
 
     @property
     def path(self) -> Path:
-        return Path(self.match.location.path.value)
+        return Path(self.match.path.value)
 
     @property
     def start(self) -> core.Position:
-        return self.match.location.start
+        return self.match.start
 
     @property
     def end(self) -> core.Position:
-        return self.match.location.end
+        return self.match.end
 
     @property
     def product(self) -> RuleProduct:
@@ -449,72 +448,7 @@ class RuleMatch:
 
     @property
     def dataflow_trace(self) -> Optional[core.CliMatchDataflowTrace]:
-        # We need this to quickly get augment a Location with the contents of the location
-        # Convenient to just have it as a separate function
-        def translate_loc(location: core.Location) -> Tuple[core.Location, str]:
-            with open(location.path.value, errors="replace") as fd:
-                content = util.read_range(
-                    fd, location.start.offset, location.end.offset
-                )
-            return (location, content)
-
-        def translate_core_match_call_trace(
-            call_trace: core.CoreMatchCallTrace,
-        ) -> core.CliMatchCallTrace:
-            if isinstance(call_trace.value, core.CoreLoc):
-                return core.CliMatchCallTrace(
-                    core.CliLoc(translate_loc(call_trace.value.value))
-                )
-            elif isinstance(call_trace.value, core.CoreCall):
-                intermediate_vars = [
-                    core.CliMatchIntermediateVar(*translate_loc(var.location))
-                    for var in call_trace.value.value[1]
-                ]
-
-                return core.CliMatchCallTrace(
-                    core.CliCall(
-                        (
-                            translate_loc(call_trace.value.value[0]),
-                            intermediate_vars,
-                            translate_core_match_call_trace(call_trace.value.value[2]),
-                        )
-                    )
-                )
-
-        dataflow_trace = self.match.extra.dataflow_trace
-        if dataflow_trace:
-            taint_source = None
-            intermediate_vars = None
-            taint_sink = None
-            if dataflow_trace.taint_source:
-                taint_source = translate_core_match_call_trace(
-                    dataflow_trace.taint_source
-                )
-            if dataflow_trace.intermediate_vars:
-                intermediate_vars = []
-                for var in dataflow_trace.intermediate_vars:
-                    location = var.location
-                    # TODO avoid repeated opens in the common case (i.e. not
-                    # DeepSemgrep) where all of these locations are in the same
-                    # file?
-                    with open(location.path.value, errors="replace") as fd:
-                        content = util.read_range(
-                            fd, location.start.offset, location.end.offset
-                        )
-                    intermediate_vars.append(
-                        core.CliMatchIntermediateVar(
-                            location=location,
-                            content=content,
-                        )
-                    )
-            if dataflow_trace.taint_sink:
-                taint_sink = translate_core_match_call_trace(dataflow_trace.taint_sink)
-            return core.CliMatchDataflowTrace(
-                taint_source=taint_source,
-                intermediate_vars=intermediate_vars,
-                taint_sink=taint_sink,
-            )
-        return None
+        return self.match.extra.dataflow_trace
 
     @property
     def exposure_type(self) -> Optional[str]:

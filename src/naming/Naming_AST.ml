@@ -195,12 +195,28 @@ let _add_ident_function_scope _id _resolved _scopes = raise Todo
 let untyped_ent name = { entname = name; enttype = None }
 
 (* see also lookup_scope_opt below taking as a parameter the environment *)
-let rec lookup s xxs =
+let rec lookup ?(class_attr = false) s xxs =
   match xxs with
   | [] -> None
   | xs :: xxs -> (
       match List.assoc_opt s xs with
       | None -> lookup s xxs
+      | Some res when class_attr -> (
+          match res.entname with
+          | EnclosedVar, _ -> Some res
+          (* If we are looking for a class attribute, and we encounter something
+           * else, e.g. a 'Parameter', then we should keep looking. This happens
+           * e.g. in this situation:
+           *
+           *     class Test {
+           *         private int x;
+           *         public void test(int x) {
+           *             foo(this.x);           // <--- this.x is not shadowed by
+           *                                    //      the `x` parameter.
+           *         }
+           *     }
+           *)
+          | __else__ -> lookup s xxs)
       | Some res -> Some res)
 
 (* for Python, PHP *)
@@ -274,7 +290,7 @@ let set_resolved env id_info x =
   if not !(env.in_type) then id_info.id_type := x.enttype
 
 (* accessors *)
-let lookup_scope_opt (s, _) env =
+let lookup_scope_opt ?(class_attr = false) (s, _) env =
   let scopes = env.names in
 
   let actual_scopes =
@@ -294,7 +310,7 @@ let lookup_scope_opt (s, _) env =
         *)
         | _ -> [ xs ] @ xxs @ [ !(scopes.global); !(scopes.imported) ])
   in
-  lookup s actual_scopes
+  lookup ~class_attr s actual_scopes
 
 (*****************************************************************************)
 (* Error management *)
@@ -590,6 +606,10 @@ let resolve lang prog =
                     (* TODO handle nested destructuring? *)
                 | _ -> ())
               fields
+        (* In Rust, the left-hand side (lhs) of the let variable definition is
+         * parsed as a pattern.
+         * TODO handle more cases than just the simple identifier pattern. *)
+        | { name = EPattern (PatId (id, id_info)); _ }, VarDef { vinit; vtype }
         | { name = EN (Id (id, id_info)); _ }, VarDef { vinit; vtype }
         (* note that some languages such as Python do not have VarDef
          * construct
@@ -797,11 +817,16 @@ let resolve lang prog =
       method! visit_name venv x =
         match x with
         | Id (id, id_info) -> (
-            match lookup_scope_opt id env with
-            | Some resolved ->
-                (* name resolution *)
-                set_resolved env id_info resolved
-            | _ -> ())
+            if
+              (* Avoid overwriting 'id_resolved'.
+               * THINK: Maybe log something if we were going to overwrite ? *)
+              Option.is_none !(id_info.id_resolved)
+            then
+              match lookup_scope_opt id env with
+              | Some resolved ->
+                  (* name resolution *)
+                  set_resolved env id_info resolved
+              | _ -> ())
         | IdQualified
             {
               name_last = id, None;
@@ -904,14 +929,15 @@ let resolve lang prog =
         | DotAccess
             ({ e = IdSpecial ((This | Self), _); _ }, _, FN (Id (id, id_info)))
           -> (
-            match lookup_scope_opt id env with
+            match lookup_scope_opt ~class_attr:true id env with
             (* TODO: this is a v0 for doing naming and typing of fields.
              * we should really use a different lookup_scope_class, that
              * would handle shadowing of fields from locals, etc. but it's
              * a start.
              *)
             | Some ({ entname = EnclosedVar, _sid; _ } as resolved) ->
-                set_resolved env id_info resolved
+                set_resolved env id_info resolved;
+                recurse := false
             | _ ->
                 let s, tok = id in
                 error tok (spf "could not find '%s' field in environment" s))

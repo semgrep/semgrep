@@ -49,7 +49,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/message_interpolation/pattern_inside_complex.py",
       "start": {
@@ -100,7 +101,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/message_interpolation/pattern_inside_complex.py",
       "start": {
@@ -151,7 +153,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/message_interpolation/pattern_inside_complex.py",
       "start": {
@@ -161,5 +164,6 @@
       }
     }
   ],
+  "skipped_rules": [],
   "version": "0.42"
 }

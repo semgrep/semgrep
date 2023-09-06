@@ -169,7 +169,14 @@ jobs:
           gh pr -R returntocorp/e2e checks "${{ needs.semgrep-ci-on-pr.outputs.pr-number }}" --interval 30 --watch
 
   notify-failure:
-    needs: [semgrep-ci, semgrep-ci-on-pr, wait-for-checks, semgrep-ci-fail-open]
+    needs:
+      [
+        semgrep-ci,
+        semgrep-ci-on-pr,
+        wait-for-checks,
+        semgrep-ci-fail-open,
+        get-inputs,
+      ]
     name: Notify of Failure
     runs-on: ubuntu-20.04
     if: failure()

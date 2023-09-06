@@ -36,7 +36,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/yaml/target.yaml",
       "start": {
@@ -74,7 +75,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/yaml/target.yaml",
       "start": {
@@ -95,24 +97,25 @@
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "- key: |\n    three",
-        "message": "|\n    three\n\n",
+        "message": "\n    three\n\n",
         "metadata": {},
         "metavars": {
           "$VALUE": {
-            "abstract_content": "|\n    three\n",
+            "abstract_content": "\n    three\n",
             "end": {
               "col": 1,
               "line": 5,
               "offset": 45
             },
             "start": {
-              "col": 8,
+              "col": 9,
               "line": 3,
-              "offset": 33
+              "offset": 34
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/yaml/target.yaml",
       "start": {
@@ -133,24 +136,25 @@
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "- key: |\n   four",
-        "message": "|\n   four\n\n",
+        "message": "\n   four\n\n",
         "metadata": {},
         "metavars": {
           "$VALUE": {
-            "abstract_content": "|\n   four\n",
+            "abstract_content": "\n   four\n",
             "end": {
               "col": 1,
               "line": 7,
               "offset": 62
             },
             "start": {
-              "col": 8,
+              "col": 9,
               "line": 5,
-              "offset": 52
+              "offset": 53
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/yaml/target.yaml",
       "start": {
@@ -171,24 +175,25 @@
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "- key: |       \n    fi\n\n    ve",
-        "message": "|       \n    fi\n\n    ve\n\n",
+        "message": "       \n    fi\n\n    ve\n\n",
         "metadata": {},
         "metavars": {
           "$VALUE": {
-            "abstract_content": "|       \n    fi\n\n    ve\n",
+            "abstract_content": "       \n    fi\n\n    ve\n",
             "end": {
               "col": 1,
               "line": 11,
               "offset": 93
             },
             "start": {
-              "col": 8,
+              "col": 9,
               "line": 7,
-              "offset": 69
+              "offset": 70
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/yaml/target.yaml",
       "start": {
@@ -209,24 +214,25 @@
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "- key: |\n    si\n\n      x",
-        "message": "|\n    si\n\n      x\n    \n\n",
+        "message": "\n    si\n\n      x\n    \n\n",
         "metadata": {},
         "metavars": {
           "$VALUE": {
-            "abstract_content": "|\n    si\n\n      x\n    \n",
+            "abstract_content": "\n    si\n\n      x\n    \n",
             "end": {
               "col": 1,
               "line": 16,
               "offset": 123
             },
             "start": {
-              "col": 8,
+              "col": 9,
               "line": 11,
-              "offset": 100
+              "offset": 101
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/yaml/target.yaml",
       "start": {
@@ -247,24 +253,25 @@
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "- key: >\n    seven",
-        "message": ">\n    seven\n\n",
+        "message": "\n    seven\n\n",
         "metadata": {},
         "metavars": {
           "$VALUE": {
-            "abstract_content": ">\n    seven\n",
+            "abstract_content": "\n    seven\n",
             "end": {
               "col": 1,
               "line": 18,
               "offset": 142
             },
             "start": {
-              "col": 8,
+              "col": 9,
               "line": 16,
-              "offset": 130
+              "offset": 131
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/yaml/target.yaml",
       "start": {
@@ -285,24 +292,25 @@
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "- key: >\n    eig\n\n    ht",
-        "message": ">\n    eig\n\n    ht\n",
+        "message": "\n    eig\n\n    ht\n",
         "metadata": {},
         "metavars": {
           "$VALUE": {
-            "abstract_content": ">\n    eig\n\n    ht",
+            "abstract_content": "\n    eig\n\n    ht",
             "end": {
               "col": 7,
               "line": 21,
               "offset": 166
             },
             "start": {
-              "col": 8,
+              "col": 9,
               "line": 18,
-              "offset": 149
+              "offset": 150
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/yaml/target.yaml",
       "start": {
@@ -312,5 +320,6 @@
       }
     }
   ],
+  "skipped_rules": [],
   "version": "0.42"
 }

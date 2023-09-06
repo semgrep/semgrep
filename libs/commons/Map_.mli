@@ -48,7 +48,7 @@ module type S =
 (** The type of the map keys. *)
 
 (*type (+'a) t *)
-type ('key, 'a) t
+type ('key, 'a) t [@@deriving show]
 (** The type of maps from type [key] to type ['a]. *)
 
 val empty : ('key, 'a) t

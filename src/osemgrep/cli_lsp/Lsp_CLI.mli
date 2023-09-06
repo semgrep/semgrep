@@ -6,7 +6,7 @@
    The result of parsing a 'semgrep lsp' command.
 *)
 
-type conf = { logging_level : Logs.level option } [@@deriving show]
+type conf = { common : CLI_common.conf } [@@deriving show]
 
 (*
    Usage: parse_argv [| "semgrep-lsp"; <args> |]

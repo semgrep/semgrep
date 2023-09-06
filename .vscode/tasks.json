@@ -5,16 +5,39 @@
     {
       "label": "Build",
       "type": "shell",
-      "command": "dune build",
+      "command": "make",
       "group": {
-        "kind": "build",
-        "isDefault": true
+        "kind": "build"
+      }
+    },
+    {
+      "label": "Build Core",
+      "type": "shell",
+      "command": "make core",
+      "group": {
+        "kind": "build"
+      }
+    },
+    {
+      "label": "Build Core Bytecode",
+      "type": "shell",
+      "command": "make core-bc",
+      "group": {
+        "kind": "build"
+      }
+    },
+    {
+      "label": "Build Test Bytecode",
+      "type": "shell",
+      "command": "make test-bc",
+      "group": {
+        "kind": "build"
       }
     },
     {
       "label": "Test",
       "type": "shell",
-      "command": "dune runtest -f",
+      "command": "make test",
       "group": {
         "kind": "test",
         "isDefault": true

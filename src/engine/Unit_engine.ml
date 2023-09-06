@@ -5,7 +5,7 @@ module R = Rule
 module MR = Mini_rule
 module P = Pattern_match
 module E = Semgrep_error_code
-module Out = Output_from_core_t
+module Out = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -283,7 +283,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =
   in
   let rule =
     {
-      MR.id = Rule.ID.of_string "unit-testing";
+      MR.id = Rule_ID.of_string "unit-testing";
       pattern;
       inside = false;
       message = "";
@@ -348,7 +348,7 @@ let regression_tests_for_lang ~polyglot_pattern_path files lang =
                  ~hook:(fun { Pattern_match.range_loc; _ } ->
                    let start_loc, _end_loc = range_loc in
                    E.error
-                     (Rule.ID.of_string "test-pattern")
+                     (Rule_ID.of_string "test-pattern")
                      start_loc "" Out.SemgrepMatchFound)
                  ~file ~pattern ~fix_pattern
              in
@@ -390,6 +390,7 @@ let lang_regression_tests ~polyglot_pattern_path =
         (Lang.Bash, "bash", ".bash");
         (Lang.Dockerfile, "dockerfile", ".dockerfile");
         (Lang.Python, "python", ".py");
+        (Lang.Promql, "promql", ".promql");
         (Lang.Js, "js", ".js");
         (Lang.Ts, "ts", ".ts");
         (Lang.Json, "json", ".json");
@@ -415,10 +416,7 @@ let lang_regression_tests ~polyglot_pattern_path =
         (Lang.Solidity, "solidity", ".sol");
         (Lang.Elixir, "elixir", ".ex");
         (Lang.R, "r", ".r");
-        (* TODO: weird because the tests work in check_maturity above
-         * but note here
-         * (Lang.Julia, "julia", ".jl");
-         *)
+        (Lang.Julia, "julia", ".jl");
         (Lang.Jsonnet, "jsonnet", ".jsonnet");
         (Lang.Clojure, "clojure", ".clj");
         (Lang.Xml, "xml", ".xml");
@@ -528,7 +526,7 @@ let filter_irrelevant_rules_tests () =
 (*****************************************************************************)
 
 let get_extract_source_lang file rules =
-  let _, _, erules, _ = R.partition_rules rules in
+  let _, _, erules, _, _ = R.partition_rules rules in
   let erule_langs =
     erules |> Common.map (fun r -> r.R.languages) |> List.sort_uniq compare
   in
@@ -578,11 +576,12 @@ let tainting_test lang rules_file file =
            | Xlang.L (x, xs) -> List.mem lang (x :: xs)
            | _ -> false)
   in
-  let search_rules, taint_rules, extract_rules, join_rules =
+  let search_rules, taint_rules, extract_rules, secrets_rules, join_rules =
     Rule.partition_rules rules
   in
   assert (search_rules =*= []);
   assert (extract_rules =*= []);
+  assert (secrets_rules =*= []);
   assert (join_rules =*= []);
   let xconf = Match_env.default_xconfig in
 

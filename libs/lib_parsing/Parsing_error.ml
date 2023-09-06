@@ -85,7 +85,7 @@ let shorten_string s =
 let show_token_value (x : Tok.t) : string =
   match x with
   | OriginTok loc -> spf "%S" (shorten_string loc.str)
-  | FakeTokStr (fake, _opt_loc) -> spf "fake %S" (shorten_string fake)
+  | FakeTok (fake, _opt_loc) -> spf "fake %S" (shorten_string fake)
   | ExpandedTok (first_loc, _) ->
       (* not sure about this *)
       spf "%S" (shorten_string first_loc.str)
@@ -109,5 +109,6 @@ let string_of_exn e =
       Some (spf "Parsing_error.Other_error (%s, %s)" msg (p tok))
   | _ -> None
 
-(* val register_exception_printer : unit -> unit *)
-let register_exception_printer () = Printexc.register_printer string_of_exn
+(* It's appropriate to register the exception printers here because they
+   were freshly defined and nobody expects other printers to be active. *)
+let () = Printexc.register_printer string_of_exn

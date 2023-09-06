@@ -49,7 +49,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/aliengrep/httpresponse.txt",
       "start": {
@@ -59,5 +60,6 @@
       }
     }
   ],
+  "skipped_rules": [],
   "version": "0.42"
 }

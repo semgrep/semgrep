@@ -1,0 +1,10 @@
+self-hosted-runner:
+  # Labels of self-hosted runner in array of strings.
+  labels:
+    - ubuntu-latest-16-core
+    - ghcr.io/cirruslabs/macos-monterey-xcode:latest
+    - ghcr.io/cirruslabs/macos-monterey-base:latest
+# Configuration variables in array of strings defined in your repository or
+# organization. `null` means disabling configuration variables check.
+# Empty array means no configuration variable is allowed.
+config-variables: null

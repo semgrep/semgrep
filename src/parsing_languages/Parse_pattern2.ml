@@ -26,6 +26,11 @@ open Pfff_or_tree_sitter
 (* Entry point *)
 (*****************************************************************************)
 let parse_pattern print_errors lang str =
+  (* coupling: update the files semgrep/js/languages/<lang>/Parser.ml
+     when updating this function.
+     TODO: Share the logic of which parser to try for each language to
+     remove this coupling. https://github.com/returntocorp/semgrep/issues/8331
+  *)
   match lang with
   (* use adhoc parser (neither menhir nor tree-sitter) *)
   | Lang.Yaml -> Yaml_to_generic.any str
@@ -46,15 +51,13 @@ let parse_pattern print_errors lang str =
   | Lang.Ocaml ->
       let any = Parse_ml.any_of_string str in
       Ml_to_generic.any any
-  | Lang.Ruby ->
-      let any = Parse_ruby.any_of_string str in
-      Ruby_to_generic.any any
   | Lang.Python
   | Lang.Python2
   | Lang.Python3 ->
       let any =
         str
         |> run_pattern ~print_errors
+             (* coupling: semgrep/js/languages/python/Parser.ml *)
              [
                PfffPat
                  (let parsing_mode =
@@ -71,6 +74,7 @@ let parse_pattern print_errors lang str =
       let any =
         str
         |> run_pattern ~print_errors
+             (* coupling: semgrep/js/languages/cpp/Parser.ml *)
              [
                PfffPat
                  (fun x -> Parse_cpp.any_of_string Flag_parsing_cpp.Cplusplus x);
@@ -82,6 +86,7 @@ let parse_pattern print_errors lang str =
       let any =
         str
         |> run_pattern ~print_errors
+             (* coupling: semgrep/js/languages/java/Parser.ml *)
              [
                (* TODO: we should switch to TreeSitterPat first, but
                 * we get regressions on generic_args.sgrep because
@@ -99,6 +104,7 @@ let parse_pattern print_errors lang str =
       let js_ast =
         str
         |> run_pattern ~print_errors
+             (* coupling: semgrep/js/languages/typescript/Parser.ml *)
              [
                PfffPat Parse_js.any_of_string;
                TreeSitterPat Parse_typescript_tree_sitter.parse_pattern;
@@ -156,6 +162,9 @@ let parse_pattern print_errors lang str =
   | Lang.Lua ->
       let res = Parse_lua_tree_sitter.parse_pattern str in
       extract_pattern_from_tree_sitter_result res print_errors
+  | Lang.Promql ->
+      let res = Parse_promql_tree_sitter.parse_pattern str in
+      extract_pattern_from_tree_sitter_result res print_errors
   | Lang.Protobuf ->
       let res = Parse_protobuf_tree_sitter.parse_pattern str in
       extract_pattern_from_tree_sitter_result res print_errors
@@ -168,6 +177,10 @@ let parse_pattern print_errors lang str =
   | Lang.Julia ->
       let res = Parse_julia_tree_sitter.parse_pattern str in
       extract_pattern_from_tree_sitter_result res print_errors
+  | Lang.Ruby ->
+      let res = Parse_ruby_tree_sitter.parse_pattern str in
+      let program = extract_pattern_from_tree_sitter_result res print_errors in
+      Ruby_to_generic.any program
   | Lang.R ->
       let res = Parse_r_tree_sitter.parse_pattern str in
       extract_pattern_from_tree_sitter_result res print_errors

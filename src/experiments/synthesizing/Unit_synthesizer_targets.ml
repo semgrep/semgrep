@@ -2,7 +2,7 @@
 open Common
 module R = Rule
 module E = Semgrep_error_code
-module Out = Output_from_core_t
+module Out = Semgrep_output_v1_t
 
 (* ran from the root of the semgrep repository *)
 let test_path = "tests/synthesizing/targets/"
@@ -59,7 +59,7 @@ let ranges_matched lang file pattern : Range.t list =
   let ast = parse_file lang file in
   let rule =
     {
-      Mini_rule.id = Rule.ID.of_string "unit-testing";
+      Mini_rule.id = Rule_ID.of_string "unit-testing";
       pattern;
       inside = false;
       message = "";
@@ -78,7 +78,7 @@ let ranges_matched lang file pattern : Range.t list =
         let minii, _maxii = Tok_range.min_max_toks_by_pos toks in
         let minii_loc = Tok.unsafe_loc_of_tok minii in
         E.error
-          (Rule.ID.of_string "Synthesizer-tests")
+          (Rule_ID.of_string "Synthesizer-tests")
           minii_loc "" Out.SemgrepMatchFound)
       (Rule_options.default_config, equiv)
       [ rule ] (file, lang, ast)

@@ -54,7 +54,9 @@ let just_parse_with_lang lang file =
   | Lang.Yaml ->
       {
         ast = Yaml_to_generic.program file;
+        errors = [];
         skipped_tokens = [];
+        inserted_tokens = [];
         stat = Parsing_stat.default_stat file;
       }
   (* Menhir and Tree-sitter *)
@@ -145,18 +147,6 @@ let just_parse_with_lang lang file =
           TreeSitter Parse_python_tree_sitter.parse;
         ]
         Python_to_generic.program
-  | Lang.Ruby ->
-      (* for Ruby we start with the tree-sitter parser because the pfff parser
-       * is not great and some of the token positions may be wrong.
-       *)
-      run file
-        [
-          TreeSitter Parse_ruby_tree_sitter.parse;
-          (* right now the parser is verbose and the token positions
-           * may be wrong, but better than nothing. *)
-          Pfff (throw_tokens Parse_ruby.parse);
-        ]
-        Ruby_to_generic.program
   (* Tree-sitter only *)
   | Lang.Bash ->
       run file
@@ -183,13 +173,13 @@ let just_parse_with_lang lang file =
         Js_to_generic.program
   | Lang.Vue ->
       let parse_embedded_js file =
-        let { Parsing_result2.ast; skipped_tokens; stat = _ } =
+        let { Parsing_result2.ast; errors; _ } =
           Parse_target.just_parse_with_lang Lang.Js file
         in
         (* TODO: pass the errors down to Parse_vue_tree_sitter.parse
          * and accumulate with other vue parse errors
          *)
-        if skipped_tokens <> [] then failwith "parse error in embedded JS";
+        if errors <> [] then failwith "parse error in embedded JS";
         ast
       in
       run file
@@ -207,6 +197,10 @@ let just_parse_with_lang lang file =
       run file
         [ TreeSitter Parse_elixir_tree_sitter.parse ]
         Elixir_to_generic.program
+  | Lang.Ruby ->
+      run file
+        [ TreeSitter Parse_ruby_tree_sitter.parse ]
+        Ruby_to_generic.program
   (* tree-sitter-dart is currently buggy and can generate some segfaults *)
   | Lang.Dart ->
       run file [ TreeSitter Parse_dart_tree_sitter.parse ] (fun x -> x)
@@ -225,6 +219,8 @@ let just_parse_with_lang lang file =
   | Lang.Clojure ->
       run file [ TreeSitter Parse_clojure_tree_sitter.parse ] (fun x -> x)
   | Lang.Lua -> run file [ TreeSitter Parse_lua_tree_sitter.parse ] (fun x -> x)
+  | Lang.Promql ->
+      run file [ TreeSitter Parse_promql_tree_sitter.parse ] (fun x -> x)
   | Lang.Protobuf ->
       run file [ TreeSitter Parse_protobuf_tree_sitter.parse ] (fun x -> x)
   | Lang.Rust ->

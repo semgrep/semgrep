@@ -19,29 +19,19 @@ module H = AST_generic_helpers
 module Flag = Flag_semgrep
 module MV = Metavariable
 module Eq = Equivalence
-module Env = Metavariable_capture
 
 (*****************************************************************************)
 (* Matchers for code equivalence mode *)
 (*****************************************************************************)
 
-let match_e_e_for_equivalences _ruleid lang a b =
+let match_e_e_for_equivalences _ruleid env a b =
   Common.save_excursion Flag.equivalence_mode true (fun () ->
-      let config =
-        {
-          Rule_options.default_config with
-          go_deeper_expr = false;
-          go_deeper_stmt = false;
-        }
-      in
-      let env = Matching_generic.empty_environment lang config in
       Generic_vs_generic.m_expr_root a b env)
 
 (*****************************************************************************)
 (* Substituters *)
 (*****************************************************************************)
-let subst_e (env : Env.t) e =
-  let bindings = env.full_env in
+let subst_e (bindings : MV.bindings) e =
   let visitor =
     object (_self : 'self)
       inherit [_] AST_generic.map_legacy as super
@@ -102,7 +92,7 @@ let apply equivs lang any =
           | (l, r) :: xs -> (
               (* look for a match on original x, not x' *)
               let matches_with_env =
-                match_e_e_for_equivalences "<equivalence>" lang l x
+                match_e_e_for_equivalences "<equivalence>" env l x
               in
               match matches_with_env with
               (* todo: should generate a Disj for each possibilities? *)
@@ -123,5 +113,13 @@ let apply equivs lang any =
       method! visit_stmt _env x = x
     end
   in
-  visitor#visit_any () any
+  let config =
+    {
+      Rule_options.default_config with
+      go_deeper_expr = false;
+      go_deeper_stmt = false;
+    }
+  in
+  let env = Matching_generic.environment_of_any lang config any in
+  visitor#visit_any env any
   [@@profiling]

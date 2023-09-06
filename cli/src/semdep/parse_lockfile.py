@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Callable
@@ -12,19 +13,23 @@ from semdep.parsers.gem import parse_gemfile
 from semdep.parsers.go_mod import parse_go_mod
 from semdep.parsers.gradle import parse_gradle
 from semdep.parsers.package_lock import parse_package_lock
+from semdep.parsers.packages_lock_c_sharp import (
+    parse_packages_lock as parse_packages_lock_c_sharp,
+)
 from semdep.parsers.pipfile import parse_pipfile
 from semdep.parsers.pnpm import parse_pnpm
 from semdep.parsers.poetry import parse_poetry
 from semdep.parsers.pom_tree import parse_pom_tree
 from semdep.parsers.requirements import parse_requirements
 from semdep.parsers.util import DependencyParserError
-from semdep.parsers.util import ParserName
 from semdep.parsers.yarn import parse_yarn
 from semgrep.console import console
 from semgrep.error import SemgrepError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
+from semgrep.semgrep_interfaces.semgrep_output_v1 import CargoParser
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 from semgrep.verbose_logging import getLogger
@@ -61,7 +66,11 @@ OLD_LOCKFILE_PARSERS = {
 }
 
 NEW_LOCKFILE_PARSERS: Dict[
-    str, Callable[[Path, Optional[Path]], List[FoundDependency]]
+    str,
+    Callable[
+        [Path, Optional[Path]],
+        Tuple[List[FoundDependency], List[DependencyParserError]],
+    ],
 ] = {
     "requirements.txt": parse_requirements,  # Python
     "requirements3.txt": parse_requirements,  # Python
@@ -74,7 +83,8 @@ NEW_LOCKFILE_PARSERS: Dict[
     "poetry.lock": parse_poetry,  # Python
     "go.mod": parse_go_mod,  # Go
     "pnpm-lock.yaml": parse_pnpm,  # JavaScript
-    "composer.lock": parse_composer_lock,  # PHP
+    "composer.lock": parse_composer_lock,  # PHP,
+    "packages.lock.json": parse_packages_lock_c_sharp,  # C#
 }
 
 LOCKFILE_TO_MANIFEST: Dict[str, Optional[str]] = {
@@ -91,6 +101,7 @@ LOCKFILE_TO_MANIFEST: Dict[str, Optional[str]] = {
     "maven_dep_tree.txt": None,
     "gradle.lockfile": "build.gradle",
     "pnpm-lock.yaml": None,
+    "packages.lock.json": None,
 }
 
 
@@ -114,25 +125,36 @@ def lockfile_path_to_manifest_path(lockfile_path: Path) -> Optional[Path]:
     return manifest_path
 
 
-@lru_cache(maxsize=1000)
 def parse_lockfile_path(
     lockfile_path: Path,
-) -> Tuple[List[FoundDependency], Optional[DependencyParserError]]:
+) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
     """
     Parse a lockfile and return it as a list of dependency objects
 
     Also returns Optional DependencyParseError as second return value if there was a problem
     parsing the lockfile
+
+    Raises SemgrepError if the lockfile is not supported
+    """
+    file_changed_timestamp = os.stat(lockfile_path).st_mtime
+    return _parse_lockfile_path_helper(lockfile_path, file_changed_timestamp)
+
+
+@lru_cache(maxsize=1000)
+def _parse_lockfile_path_helper(
+    lockfile_path: Path, file_changed_timestamp: float
+) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
+    """
+    Parse a lockfile and return it as a list of dependency objects
+
+    Takes file_changed_timestamp to help invalidate the cache in case the file has changed
+    which can happen between a head <-> baseline scan transition
     """
     manifest_path = lockfile_path_to_manifest_path(lockfile_path)
     lockfile_name = lockfile_path.name.lower()
     if lockfile_name in NEW_LOCKFILE_PARSERS:
         parse_lockfile = NEW_LOCKFILE_PARSERS[lockfile_name]
-
-        try:
-            return (parse_lockfile(lockfile_path, manifest_path), None)
-        except DependencyParserError as e:
-            return ([], e)
+        return parse_lockfile(lockfile_path, manifest_path)
 
     if lockfile_name in OLD_LOCKFILE_PARSERS:
         lockfile_text = lockfile_path.read_text()
@@ -144,7 +166,7 @@ def parse_lockfile_path(
         try:
             return (
                 list(OLD_LOCKFILE_PARSERS[lockfile_name](lockfile_text, manifest_text)),
-                None,
+                [],
             )
         # Such a general except clause is suspect, but the parsing error could be any number of
         # python errors, since our parsers are just using stdlib string processing functions
@@ -153,7 +175,11 @@ def parse_lockfile_path(
             console.print(f"Failed to parse {lockfile_path} with exception {e}")
             return (
                 [],
-                DependencyParserError(lockfile_path, ParserName.cargo, str(e)),
+                [
+                    DependencyParserError(
+                        str(lockfile_path), ScaParserName(CargoParser()), str(e)
+                    )
+                ],
             )
     else:
         raise SemgrepError(f"don't know how to parse this filename: {lockfile_path}")

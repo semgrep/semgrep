@@ -1,0 +1,39 @@
+rules:
+- id: detect-JsonConvert-usage-08-2023
+  severity: WARNING
+  pattern: |
+    JsonConvert.SerializeObject(...);
+  r2c-internal-project-depends-on:
+    namespace: nuget
+    package: Newtonsoft.Json
+    version: "> 9.0.0"
+  message: let's assume newtonsoft json has a vulnerability
+  languages: [csharp]
+- id: detect-System.Linq
+  languages:
+    - csharp
+  message: Depends on vulnerable System.Linq
+  severity: WARNING
+  r2c-internal-project-depends-on:
+    namespace: nuget
+    package: System.Linq
+    version: "<= 5.0.0"
+- id: System.Linq.Expressions-2023-08-14
+  severity: INFO
+  r2c-internal-project-depends-on:
+    namespace: nuget
+    package: System.Runtime.CompilerServices.Unsafe
+    version: ">= 4.3.0"
+  message: let's assume System.Linq.Expressions has a vulnerability
+  languages: [csharp]
+- id: detect-CodePagesEncodingProvider
+  languages:
+    - csharp
+  message: Usage of CodePagesEncodingProvider.Instance detected
+  pattern: |
+    $METHOD(..., CodePagesEncodingProvider.Instance, ...)
+  severity: WARNING
+  r2c-internal-project-depends-on:
+    namespace: nuget
+    package: System.Text.Encoding.CodePages
+    version: ">= 7.0.0"

@@ -2,7 +2,7 @@ open Js_of_ocaml
 
 (* js_of_ocaml gives each executable its own pseudo-filesystem, which means we must
    expose the engine's mount points in order for reads to work properly in browser environments
-   (see companion setter in Semgrep_js_shared.ml) *)
+   (see companion setter in semgrep.semgrep_js_shared.ml) *)
 external get_jsoo_mount_point : unit -> 'any list = "get_jsoo_mount_point"
 
 type jbool = bool Js.t
@@ -49,7 +49,9 @@ let _ =
              | Lang.Yaml ->
                  {
                    ast = Yaml_to_generic.program filename;
+                   errors = [];
                    skipped_tokens = [];
+                   inserted_tokens = [];
                    stat = Parsing_stat.default_stat filename;
                  }
              | _ ->
@@ -71,26 +73,57 @@ let _ =
          | Some lang -> Js.some (Js.string (Lang.to_lowercase_alnum lang))
          | None -> Js.null
 
-       method execute language rule_file source_file : string =
+       (* Here we take in root, and source_files, where source_files are
+          the scan targets. Normally the playground will only scan one file
+          and have no use for roots. The pro engine can scan multiple files
+          and needs roots, so to keep the API consistent we have oss accept
+          a root and multiple source_files.
+       *)
+       (* coupling: This is similar to semgrep_with_rules, the main
+          difference being we prepare the rules and targets ourselves
+          since we have a narrow use case of running one rule file on
+          set files *)
+       method execute language rule_file _root source_files : string =
+         let xlang = Xlang.of_string (Js.to_string language) in
+         let rules_and_errors =
+           Parse_rule.parse_and_filter_invalid_rules
+             (Fpath.v (Js.to_string rule_file))
+         in
+         let source_files =
+           Js.to_array source_files |> Array.to_list |> List.map Js.to_string
+         in
+         let rule_ids =
+           rules_and_errors |> fst |> List.map (fun r -> fst r.Rule.id)
+         in
+         let target_mappings =
+           List.map
+             (fun f ->
+               Input_to_core_t.
+                 {
+                   path = f;
+                   language = xlang;
+                   rule_nums = Common.mapi (fun i _ -> i) rule_ids;
+                 })
+             source_files
+         in
+         let targets =
+           Input_to_core_t.
+             { target_mappings; rule_ids = (rule_ids :> string list) }
+         in
          let config : Runner_config.t =
            {
              Runner_config.default with
              rule_source = Some (Rule_file (Fpath.v (Js.to_string rule_file)));
-             lang = Some (Xlang.of_string (Js.to_string language));
              output_format = Json false;
-             roots = [ Fpath.v (Js.to_string source_file) ];
+             target_source = Some (Runner_config.Targets targets);
              matching_explanations = true;
            }
          in
-         let timed_rules =
-           ( Parse_rule.parse_and_filter_invalid_rules
-               (Fpath.v (Js.to_string rule_file)),
-             0. )
-         in
+         let timed_rules = (rules_and_errors, 0.) in
          let res, files = Run_semgrep.semgrep_with_rules config timed_rules in
          let res =
-           JSON_report.match_results_of_matches_and_errors
+           Core_json_output.core_output_of_matches_and_errors
              (Some Autofix.render_fix) (List.length files) res
          in
-         Output_from_core_j.string_of_core_match_results res
+         Semgrep_output_v1_j.string_of_core_output res
     end)

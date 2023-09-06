@@ -1,0 +1,2 @@
+# MATCH:
+rate((sum by (route) (http_request_over_time))[5m:)

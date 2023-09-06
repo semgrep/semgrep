@@ -8,7 +8,7 @@ type t = {
 }
 
 (* loading the ~/.semgrep/settings.yml in memory *)
-val load : ?legacy:bool -> unit -> t
+val load : ?maturity:Maturity.t -> unit -> t
 
 (* returns whether the save was successful *)
 val save : t -> bool

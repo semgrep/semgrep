@@ -1,3 +1,5 @@
+module Out = Semgrep_output_v1_t
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -6,8 +8,6 @@
 
    Translated from ci.py
 *)
-
-module Out = Semgrep_output_v1_t
 
 (*****************************************************************************)
 (* Types *)
@@ -132,7 +132,7 @@ let partition_rules (filtered_rules : Rule.t list) =
       (fun r ->
         Common2.string_match_substring
           (Str.regexp "r2c-internal-cai")
-          (Rule.ID.to_string (fst r.Rule.id)))
+          (Rule_ID.to_string (fst r.Rule.id)))
       filtered_rules
   in
   let blocking_rules, non_blocking_rules =
@@ -170,10 +170,10 @@ let partition_findings ~keep_ignored (results : Out.cli_match list) =
 
 (* from rule_match.py *)
 let severity_to_int = function
-  | "EXPERIMENT" -> 4
-  | "WARNING" -> 1
-  | "ERROR" -> 2
-  | _ -> 0
+  | "EXPERIMENT" -> `Int 4
+  | "WARNING" -> `Int 1
+  | "ERROR" -> `Int 2
+  | _ -> `Int 0
 
 let finding_of_cli_match _commit_date index (m : Out.cli_match) : Out.finding =
   let (r : Out.finding) =
@@ -203,16 +203,18 @@ let finding_of_cli_match _commit_date index (m : Out.cli_match) : Out.finding =
           (* TODO: if self.extra.get("fixed_lines"): ret.fixed_lines = self.extra.get("fixed_lines") *);
         sca_info = None;
         (* TODO *)
-        dataflow_trace = None (* TODO *);
+        dataflow_trace = None;
+        validation_state = None;
       }
   in
   r
 
 (* from scans.py *)
-let prepare_for_report ~blocking_findings:_ findings _errors rules ~targets
-    ~ignored_targets:_ ~commit_date ~engine_requested:_ =
+let prepare_for_report ~blocking_findings findings errors rules ~targets
+    ~(ignored_targets : Out.skipped_target list option) ~commit_date
+    ~engine_requested =
   let rule_ids =
-    Common.map (fun r -> Rule.ID.to_string (fst r.Rule.id)) rules
+    Common.map (fun r -> Rule_ID.to_string (fst r.Rule.id)) rules
   in
   (*
       we want date stamps assigned by the app to be assigned such that the
@@ -252,32 +254,25 @@ let prepare_for_report ~blocking_findings:_ findings _errors rules ~targets
         | Some _ as t -> t
         | None -> Sys.getenv_opt "BITBUCKET_TOKEN" (* Bitbucket Cloud *))
   in
-  let api_scans_findings =
+  let ci_scan_results =
     Out.
       {
         (* send a backup token in case the app is not available *)
         findings;
+        ignores;
         token = ci_token;
-        gitlab_token = None;
         searched_paths = List.sort String.compare targets;
+        (* TODO: get renamed_paths, depends on baseline_commit *)
+        renamed_paths = [];
         rule_ids;
+        contributions = None;
+        (* TODO: Figure out correct value for this. *)
+        dependencies = None;
       }
   in
-  (* TODO: add those fields below in semgrep_output_v1.atd spec *)
   let findings_and_ignores =
-    let ignores =
-      Common.map
-        (fun f -> JSON.json_of_string (Semgrep_output_v1_j.string_of_finding f))
-        ignores
-    in
-    match
-      JSON.json_of_string
-        (Semgrep_output_v1_j.string_of_api_scans_findings api_scans_findings)
-    with
-    | JSON.Object data ->
-        JSON.Object
-          (("renamed_paths", Array []) :: ("ignores", Array ignores) :: data)
-    | _ -> invalid_arg "expected a json object"
+    JSON.json_of_string
+    @@ Semgrep_output_v1_j.string_of_ci_scan_results ci_scan_results
   in
   if
     List.exists
@@ -286,37 +281,56 @@ let prepare_for_report ~blocking_findings:_ findings _errors rules ~targets
   then
     Logs.app (fun m -> m "Some experimental rules were run during execution.");
 
-  (* (*ignored_ext_freqs = Counter(
-         [os.path.splitext(path)[1] for path in ignored_targets]
-       )
-       ignored_ext_freqs.pop("", None)  # don't count files with no extension
-       *)
-       (* dependency_counts = {k: len(v) for k, v in lockfile_dependencies.items()} *)
+  let ignored_ext_freqs =
+    Option.value ~default:[] ignored_targets
+    |> Common.group_by (fun (skipped_target : Out.skipped_target) ->
+           Fpath.get_ext (Fpath.v skipped_target.Out.path))
+    |> List.filter (fun (ext, _) -> not (String.equal ext ""))
+    (* don't count files with no extension *)
+    |> Common.map (fun (ext, xs) -> (ext, JSON.Int (List.length xs)))
+  in
 
-       let complete = {
-         "exit_code" = if blocking_finding then 1 else 0 ;
-         "dependency_parser_errors": List [] ; (* [e.to_json() for e in dependency_parser_errors], *)
-         "stats": {
-           "findings": List.length new_matches ;
-           "errors": [error.to_dict() for error in errors];
-           "total_time": total_time;
-           "unsupported_exts": dict(ignored_ext_freqs);
-           "lockfile_scan_info": { } (* dependency_counts *) ;
-           "parse_rate": {
-         lang: {
-           "targets_parsed": data.num_targets - data.targets_with_errors,
-                             "num_targets": data.num_targets,
-                             "bytes_parsed": data.num_bytes - data.error_bytes,
-                             "num_bytes": data.num_bytes,
-                         }
-                         for (lang, data) in parse_rate.get_errors_by_lang().items()
-                     },
-                     "engine_requested": engine_requested.name,
-                 },
-     }
-       in
+  (* dependency_counts = {k: len(v) for k, v in lockfile_dependencies.items()} *)
 
-     (*
+  (* TODO: add this data structure to the semgrep_output_v1.atd spec
+     POST to /api/agent/scans/<scan_id>/complete *)
+  let complete =
+    let errors =
+      Common.map
+        (fun e ->
+          JSON.json_of_string (Semgrep_output_v1_j.string_of_cli_error e))
+        errors
+    in
+    JSON.Object
+      [
+        ("exit_code", if blocking_findings then JSON.Int 1 else JSON.Int 0);
+        ("dependency_parser_errors", JSON.Array []);
+        (* [e.to_json() for e in dependency_parser_errors], *)
+        ( "stats",
+          JSON.Object
+            [
+              ("findings", JSON.Int (List.length new_matches));
+              ("errors", JSON.Array errors);
+              ("total_time", JSON.Float 0.0);
+              (* total_time *)
+              ("unsupported_exts", JSON.Object ignored_ext_freqs);
+              ("lockfile_scan_info", JSON.Object []);
+              (* dependency_counts *)
+              ("parse_rate", JSON.Object [])
+              (*
+  lang: {
+    "targets_parsed": data.num_targets - data.targets_with_errors,
+                      "num_targets": data.num_targets,
+                      "bytes_parsed": data.num_bytes - data.error_bytes,
+                      "num_bytes": data.num_bytes,
+  }
+      for (lang, data) in parse_rate.get_errors_by_lang().items() *);
+            ] );
+        ( "engine_requested",
+          JSON.String
+            (Semgrep_output_v1_j.string_of_engine_kind engine_requested) );
+        ("dependencies", JSON.Object [])
+        (*
              if self._dependency_query:
                  lockfile_dependencies_json = {}
                  for path, dependencies in lockfile_dependencies.items():
@@ -324,9 +338,10 @@ let prepare_for_report ~blocking_findings:_ findings _errors rules ~targets
                          dependency.to_json() for dependency in dependencies
                      ]
                  complete["dependencies"] = lockfile_dependencies_json
-     *)
-  *)
-  (findings_and_ignores, JSON.Null)
+     *);
+      ]
+  in
+  (findings_and_ignores, complete)
 
 (*****************************************************************************)
 (* Main logic *)
@@ -334,11 +349,11 @@ let prepare_for_report ~blocking_findings:_ findings _errors rules ~targets
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run (conf : Ci_CLI.conf) : Exit_code.t =
+let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:conf.force_color
-    ~level:conf.logging_level;
+    ~level:conf.common.logging_level;
   Metrics_.configure conf.metrics;
-  let settings = Semgrep_settings.load ~legacy:conf.legacy () in
+  let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
   let deployment =
     match (settings.api_token, conf.rules_source) with
     | None, Rules_source.Configs [] ->
@@ -474,7 +489,14 @@ let run (conf : Ci_CLI.conf) : Exit_code.t =
                baseline_commit_is_mergebase=True,
             *)
             let profiler = Profiler.make () in
-            match Scan_subcommand.scan_files rules_and_origin profiler conf with
+            let targets_and_ignored =
+              Find_targets.get_targets conf.targeting_conf conf.target_roots
+            in
+            let res =
+              Scan_subcommand.run_scan_files conf profiler rules_and_origin
+                targets_and_ignored
+            in
+            match res with
             | Error e ->
                 (match (depl, scan_id) with
                 | Some (token, _), Some scan_id ->
@@ -567,7 +589,7 @@ let run (conf : Ci_CLI.conf) : Exit_code.t =
                         List.exists
                           (fun r ->
                             String.equal "r2c-internal-project-depends-on"
-                              (Rule.ID.to_string (fst r.Rule.id)))
+                              (Rule_ID.to_string (fst r.Rule.id)))
                           filtered_rules
                       then
                         Logs.app (fun m ->
@@ -626,4 +648,4 @@ let run (conf : Ci_CLI.conf) : Exit_code.t =
 
 let main (argv : string array) : Exit_code.t =
   let conf = Ci_CLI.parse_argv argv in
-  run conf
+  run_conf conf

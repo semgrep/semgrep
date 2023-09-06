@@ -60,7 +60,7 @@ type debug_mode = MDebug | MTime | MNo_info [@@deriving show]
 type 'a debug_info =
   (* -debug: save all the information that could be useful *)
   | Debug of {
-      skipped_targets : Output_from_core_t.skipped_target list;
+      skipped_targets : Semgrep_output_v1_t.skipped_target list;
       profiling : 'a;
     }
   (* -json_time: save just profiling information; currently our metrics record this *)
@@ -83,7 +83,7 @@ let mode = ref MNo_info
 (* Save time information as we run each rule *)
 
 type rule_profiling = {
-  rule_id : Rule.rule_id;
+  rule_id : Rule_ID.t;
   parse_time : float;
   match_time : float;
 }
@@ -127,7 +127,7 @@ type final_profiling = {
 }
 [@@deriving show]
 
-type rule_id_and_engine_kind = Rule.ID.t * Pattern_match.engine_kind
+type rule_id_and_engine_kind = Rule_ID.t * Pattern_match.engine_kind
 [@@deriving show]
 
 type final_result = {

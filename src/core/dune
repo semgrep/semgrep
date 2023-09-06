@@ -6,9 +6,13 @@
  (name semgrep_core)
  (wrapped false)
  (libraries
+   semver
+   stdcompat
    str
+   uri
    yaml
    atdgen-runtime
+   sexplib
 
    commons
    glob
@@ -28,8 +32,10 @@
      ppx_profiling
      ppx_deriving.show
      ppx_deriving.eq
+     ppx_deriving.ord
      ppx_hash
      visitors.ppx
+     ppx_sexp_conv
    )
  )
 )

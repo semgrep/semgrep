@@ -15,10 +15,7 @@
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type conf = {
-  exclude_rule_ids : Rule.rule_id list;
-  severity : Severity.rule_severity list;
-}
+type conf = { exclude_rule_ids : Rule_ID.t list; severity : Severity.t list }
 [@@deriving show]
 
 (*****************************************************************************)
@@ -32,9 +29,7 @@ let filter_rules (conf : conf) (rules : Rule.rules) : Rule.rules =
     | xs ->
         rules
         |> List.filter (fun r ->
-               match
-                 Severity.rule_severity_of_rule_severity_opt r.Rule.severity
-               with
+               match Severity.of_rule_severity_opt r.Rule.severity with
                | None -> false
                | Some x -> List.mem x xs)
   in

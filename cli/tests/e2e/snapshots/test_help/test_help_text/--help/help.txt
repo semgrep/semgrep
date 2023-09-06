@@ -14,7 +14,7 @@ Commands:
   install-semgrep-pro  Install the Semgrep Pro Engine
   login                Obtain and save credentials for semgrep.dev
   logout               Remove locally stored credentials to semgrep.dev
-  lsp                  [EXPERIMENTAL] Start the Semgrep LSP server
+  lsp                  Start the Semgrep LSP server (useful for IDEs)
   publish              Upload rule to semgrep.dev
   scan                 Run semgrep rules on files
-  shouldafound         Report a false negative in this project.
+  show                 Show various information about Semgrep

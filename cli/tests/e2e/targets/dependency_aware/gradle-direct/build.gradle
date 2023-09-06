@@ -1,0 +1,32 @@
+plugins {
+    id 'java'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.google.guava:guava:30.1-jre'
+}
+
+allprojects { project -> 
+    dependencyLocking {
+        lockAllConfigurations()
+    }
+    task resolveAndLockAll {
+        doFirst {
+            assert gradle.startParameter.writeDependencyLocks
+        }
+        doLast {
+            configurations.findAll {
+                it.canBeResolved
+            }.each { it.resolve() }
+        }
+    }
+}
+
+task run(type: JavaExec) {
+    main = 'com.example.Main'
+    classpath = sourceSets.main.runtimeClasspath
+}

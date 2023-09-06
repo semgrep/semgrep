@@ -16,7 +16,9 @@
     ; -6 is to allow to omit labels in function application
     ; -52 is to allow to match on Failure "precise_string"
     ; -58 is to allow missing cmx files (only a problem with Dyp)
-    (flags (:standard  -w -6-52-58))
+    ; -67 is to allow unused functor paramaters (introduced by dune 3.7)
+    ; -69 allows unused structure fields (introduced by dune 3.7)
+    (flags (:standard  -w -6-52-58-67-69))
     ; TODO: I've tried this, but this does not work so I've added --table in
     ; the few dune files using menhir
     ;(menhir_flags (--table))

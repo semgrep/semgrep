@@ -34,7 +34,11 @@ def test_default_semgrepignore(run_semgrep_in_tmp: RunSemgrep, snapshot):
 # Input from stdin will not have a path that is relative to tmp_path, where we're running semgrep
 @pytest.mark.kinda_slow
 def test_file_not_relative_to_base_path(run_semgrep: RunSemgrep, snapshot):
-    results = run_semgrep(options=["--json", "-e", "a", "--lang", "js", "-"], stdin="a")
+    results = run_semgrep(
+        options=["--json", "-e", "a", "--lang", "js", "-"],
+        stdin="a",
+        use_click_runner=True,  # TODO: probably because of stdin?
+    )
     results.raw_stdout = _clean_output_json(results.raw_stdout, True)
     snapshot.assert_match(results.as_snapshot(), "results.txt")
 

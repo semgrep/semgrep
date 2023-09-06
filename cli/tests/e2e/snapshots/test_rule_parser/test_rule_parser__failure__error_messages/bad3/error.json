@@ -9,13 +9,15 @@
         {
           "end": {
             "col": 5,
-            "line": 5
+            "line": 5,
+            "offset": -1
           },
           "file": "rules/syntax/bad3.yaml",
           "source_hash": "97733e185fa4cbd70969a362e968e43dd266202401e7a68a23b52c8d1cf3e547",
           "start": {
             "col": 7,
-            "line": 4
+            "line": 4,
+            "offset": -1
           }
         }
       ],
@@ -33,5 +35,6 @@
     "scanned": []
   },
   "results": [],
+  "skipped_rules": [],
   "version": "0.42"
 }

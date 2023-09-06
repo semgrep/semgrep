@@ -4,6 +4,7 @@
  (libraries
    pcre
    atdgen-runtime
+   sexplib
 
    commons
    lib_parsing
@@ -12,9 +13,11 @@
    (pps
       ppx_deriving.show
       ppx_deriving.eq
+      ppx_deriving.ord
       ppx_hash
       profiling.ppx
       visitors.ppx
+      ppx_sexp_conv
    )
  )
 )

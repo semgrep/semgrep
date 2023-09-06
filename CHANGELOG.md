@@ -6,6 +6,447 @@
 
 <!-- insertion point -->
 
+## [1.38.3](https://github.com/returntocorp/semgrep/releases/tag/v1.38.3) - 2023-09-02
+
+No significant changes.
+
+## [1.38.2](https://github.com/returntocorp/semgrep/releases/tag/v1.38.2) - 2023-09-01
+
+### Fixed
+
+- restore access to the --text option (gh-8610)
+
+## [1.38.1](https://github.com/returntocorp/semgrep/releases/tag/v1.38.1) - 2023-09-01
+
+### Fixed
+
+- restored access to the --output flag (gh-8602)
+- Adds an error message clarifying the removal of `python -m semgrep`. This change originated in https://github.com/returntocorp/semgrep/pull/8504. (gh-8605)
+
+## [1.38.0](https://github.com/returntocorp/semgrep/releases/tag/v1.38.0) - 2023-08-31
+
+### Added
+
+- The CLI now returns the commit timestamp when using `semgrep ci` (cli-timestamp)
+- Add support for `min-version` and `max-version` fields for each rule,
+  specifying a range of compatible Semgrep versions. If a rule is incompatible
+  with the version of Semgrep being used, it is reported in the JSON output at
+  the "info" level which doesn't cause an exit failure. (gh-8496)
+- Dependency data is now also sent to the /results endpoint of semgrep app. It is still sent to the /complete endpoint. (sc-async)
+
+### Changed
+
+- Adjust the count printed at the conclusion summary to match the top summary
+  (only printing the count of rules actually run by semgrep and not just the number of rules received from the server). (counts)
+- The option to omit --config and to look for the presence of a .semgrep.yml
+  or .semgrep/.semgrep.yml in the current directory has been removed. You now
+  have to explicitly use --config. (dotsemgrep)
+- The deprecated --enable-metrics and --disable-metrics flags have finally been
+  removed. Use --metrics=on or --metrics=off instead (or --metrics=auto). (enable_metrics)
+- The semgrep_main.py module has been renamed to run_scan.py and its
+  invoke_semgrep() function renamed to run_scan_and_return_json().
+  External tools (e.g., semgrep wrappers) using directly those functions
+  should be updated. Note that this function will soon disappear as
+  part of a migration effort converting Python code to OCaml. Thus,
+  those tools should instead wrap the semgrep CLI and rely on
+  semgrep_output_v1.atd for a more stable official API. (internals)
+
+### Fixed
+
+- Running just `semgrep` now displays the help message. Semgrep does not
+  try anymore to look for a .semgrep.yml config file or .semgrep/ in the
+  current directory, which used to cause issues when running from your
+  home directory which can contain the .semgrep/settings.yml file (which
+  is actually not a semgrep rule). (gh-4457)
+- Fixed CLI output to display matches from different rules with the same message. (gh-8557)
+- Semgrep PyPI package can now be pip install-ed on aarch64 libmusl platforms (e.g. Alpine) (gh-8565)
+- Updated `--max-memory` help description to make it more clear/concise. To say "Defaults to 0 for all CLI scans." implies a different default for non-CLI scans, where in practicality the default is 0 for all scans except when using Pro Engine, where the default is 5000. (max_memory_help)
+- Julia: Fixed a bug where `let end` blocks were not being parsed
+  correctly, causing their contents to not strictly match while inside of
+  a block.
+
+  For instance, `let ... end` would not count as being inside of the `let`,
+  and would match everything. (pa-3029)
+
+- Fixed bug where dependencies in (pnpm-lock.yaml at version 6.0 or above) files were not parsed. (sc-1033)
+
+## [1.37.0](https://github.com/returntocorp/semgrep/releases/tag/v1.37.0) - 2023-08-25
+
+### Added
+
+- `semgrep scan` is now more resilient to failures when fetching config from semgrep.dev. If it can't fetch a config from semgrep.dev it will use backup infrastructure to fetch the most recent successful config for that customers environment. (gh-8459)
+- C#: Added experimental NuGet ecosystem parser (gh-8484)
+- metavariable-comparison: You can now use "in" and "not in" for strings
+  in the same sense as in Python, for substring checking. (pa-2979)
+- Julia: Added the deep expression operator, so now you can write patterns like
+  foo(<... 42 ...>) to find instances of calls to `foo` that contain `42` somewhere
+  inside of it. (pa-3018)
+- `semgrep ci` displays enabled products when scans are created and/or when the scan
+  config is generated from Semgrep Cloud Platform. Additionally, if no products are
+  enabled then a friendly error is raised. (scp-432)
+
+### Changed
+
+- The --dump-ast flag now requires the additional --experimental flag
+  and does not require to pass a --config flag anymore.
+  Example of use: `semgrep --experimental --lang python --dump-ast foo.py` (dumpast)
+- The 'semgrep shouldafound' command has been removed. It was not really used
+  and it might be better to offer such a functionality in the IDE instead of
+  in the CLI. (shouldafound)
+
+### Fixed
+
+- Parsing: Some parsing errors involving tree-sitter inserting fake "missing"
+  nodes were previously unreported. They are now reported as errors although the
+  parse tree is preserved, including the phony node inserted by tree-sitter.
+  This should not result in different Semgrep findings. It results only in more
+  reports of partial parsing. See the original issue at
+  https://github.com/returntocorp/ocaml-tree-sitter-core/issues/8 for technical
+  details. (gh-8190)
+- fix(extract): correctly map metavariable locations into source file (gh-8416)
+- fix(julia): correctly parse BitOr and BitAnd (gh-8449)
+- Implement missing pcre-ocaml stub (pcre_get_stringnumber_stub_bc) in JavaScript (gh-8520)
+- Julia: Fixed a bug where parenthesized expressions would sometimes
+  not match in constructs like `metavariable-comparison`. (pa-2991)
+- Fixed a regression introduced three years ago in 0.9.0, when optimizing
+  the evaluation of `...` (ellipsis) to be faster. We made `...` only match
+  deeply (inside an `if` for example) if nothing matched non-deeply, thus
+  causing that this pattern:
+
+  ```python
+  foo()
+  ...
+  bar($A)
+  ```
+
+  would only produce a match rather than two on this code:
+
+  ```python
+  foo()
+  if cond:
+      bar(x)
+  bar(y)
+  ```
+
+  Semgrep matched from `foo()` to `bar(y)` and because of that it did not
+  try to match inside the `if`, thus there was no match from `foo()` to `bar(x)`.
+  However, if we commented out `bar(y)`, then Semgrep did match `bar(x)`.
+
+  Semgrep now produces the two expected matches. (pa-2992)
+
+- Julia: Type information from declarations can now be used in
+  `metavariable-type`. For instance, the program:
+  ```
+  x :: Int64 = 2
+  ```
+  will now allow uses of `x` to match to the type `Int64`. (pa-3001)
+- Julia: Metavariables should now be able to appear anywhere that
+  identifiers can.
+
+  For instance, they were not able to appear as the argument to a
+  do block. Now, we can write patterns like:
+
+  ````
+  map($Y) do $X
+    ...
+  end
+  ``` (pa-3007)
+  ````
+
+- Java: Fixed naming bug affecting Java and other OO languages that allowed a
+  method parameter to shadow a class attribute, e.g. in:
+
+  ```java
+  class Test {
+
+      private int x;
+
+      public void test2(int x) {
+          foo(this.x);
+      }
+
+  }
+  ```
+
+  Semgrep was considering that `this.x` referred to the parameter `x` of `test2`
+  rather than to the class attribute `x`. (pa-3010)
+
+- Fixed bug where packages in build.gradle files had their names incorrectly parsed without their group ID (sc-1012)
+
+## [1.36.0](https://github.com/returntocorp/semgrep/releases/tag/v1.36.0) - 2023-08-14
+
+### Added
+
+- Added general machinery to support languages with case insensitive identifiers and generalized php to use these case insensitive identifiers.
+
+  For example, in php the pattern `MyClass()` will now match calls with different capitalization such as `myclass()` and `Myclass()`. (gh-8356)
+
+### Fixed
+
+- Convert all '@r2c.dev' email addresses to '@semgrep.com'. (gh-8437)
+- Semgrep LSP now compiled with tls, should no longer crash with not compiled with tls error (ls-conduit)
+- Fixed multiprocess testing crash due to new osemgrep entrypoint (pa-2963)
+- Pro: JS/TS: taint-mode: Fix bug introduced in 1.33.1 that had the side-effect of
+  hurting performance of taint rules on JS/TS repos that used destructuring in
+  functions formal parameters. (pro-119)
+
+## [1.35.0](https://github.com/returntocorp/semgrep/releases/tag/v1.35.0) - 2023-08-09
+
+### Added
+
+- Maven Dep Tree parsing now surfaces children dependencies per package (sc-996)
+
+### Fixed
+
+- fix(promql): make aggregation labels not depend on order
+
+  "sum by (..., b, a, c, ...) (X)" should match "sum by (a,b,c) (X)" (gh-8399)
+
+## [1.34.1](https://github.com/returntocorp/semgrep/releases/tag/v1.34.1) - 2023-07-28
+
+### Added
+
+- feat(eval): add "parse_promql_duration" function to convert a `promql` duration into milliseconds. This makes it possible to write comparisons like this:
+
+  ````
+  - metavariable-comparison:
+      metavariable: $RANGE
+      comparison: parse_promql_duration(str($RANGE)) > parse_promql_duration("1d")
+  ``` (gh-8381)
+  ````
+
+### Fixed
+
+- fix(yaml): fix captures for sequences that contain mappings (gh-8388)
+
+## [1.34.0](https://github.com/returntocorp/semgrep/releases/tag/v1.34.0) - 2023-07-27
+
+### Added
+
+- Added support for naming propagation when the left-hand side (lhs) of a variable definition is an identifier pattern
+
+  In certain languages like Rust, the variable definition is parsed as a pattern assignment, for example:
+
+  ```
+  let x: SomeType = SomeFunction();
+  ```
+
+  This commit ensures that the annotated type is propagated to the identifier pattern on the left-hand side (lhs) of the assignment, thus ensuring proper naming behavior. (gh-8365)
+
+- feat(metavar type): Metavariable type support for Julia
+
+  Metavariable type is supported for Julia. (gh-8367)
+
+- New --legacy flag to force the use of the old Python implementation of
+  Semgrep (also known as 'pysemgrep'). Note that by default most semgrep
+  commands are still using the Python implementation (except 'semgrep
+  interactive'), so in practice you don't need to add this flag, but as
+  we port more commands to OCaml, the new --legacy flag might be useful
+  if you find some regressions. (legacy)
+- Matching: Added the ability to use metavariables in parameters to match more
+  sophisticated kinds of parameters.
+
+  In particular, metavariables should now be able to match `self` parameters,
+  such as in Rust.
+
+  So `fn $F($X, ...) { ... }` should match `fn $F(self) { }`. (pa-2937)
+
+- taint-mode: Added **experimental** `control: true` option to `pattern-sources`,
+  e.g.:
+
+  ```yaml
+  pattern-sources:
+    - control: true
+      pattern: source(...)
+  ```
+
+  Such sources taint the "control flow" (or the program counter) so that it is
+  possible to implement reachability queries that do not require the flow of any
+  data. Thus, Semgrep reports a finding in the code below, because after `source()`
+  the flow of control will reach `sink()`, even if no data is flowing between both:
+
+  ````python
+  def test():
+    source()
+    foo()
+    bar()
+    #ruleid: test
+    sink()
+  ``` (pa-2958)
+  ````
+
+- taint-mode: Taint sanitizers will be included in matching explanations. (pa-2975)
+
+### Changed
+
+- Started using ATD to define the schema for data sent to the /complete endpoint of semgrep app (app-4255)
+- Targets in a `.yarn/` directory are now ignored by the default .semgrepignore patterns. (dotyarn)
+
+### Fixed
+
+- Aliengrep mode: Fix whitespace bug preventing correct matching of parentheses. (gh-7990)
+- yaml: exclude style markers from matched token in block scalars (gh-8348)
+- Fixed stack overflow caused by symbolic propagation. (pa-2933)
+- Rust: Macro calls which involve dereferencing and reference operators
+  (such as `foo!(&x)` and `foo!(*x)`) now properly transmit taint (pa-2951)
+- Semgrep no longer crashes when running --test (pa-2963)
+- Exceptions raised during parsing of manifest files no longer interrupt general parser execution, which previously prevented lockfile parsing if a manifest failed to parse. (sc-exceptions)
+
+## [1.33.2](https://github.com/returntocorp/semgrep/releases/tag/v1.33.2) - 2023-07-21
+
+No significant changes.
+
+## [1.33.1](https://github.com/returntocorp/semgrep/releases/tag/v1.33.1) - 2023-07-21
+
+### Added
+
+- Rust: Added support for ellipsis patterns in attribute argument position. (e.g. `#[get(...)]`) (gh-8234)
+- Promql: Initial language support (gh-8281)
+- `.h` files will now run when C or C++ are selected as the language. (pa-123)
+- `.cjs` and `.mjs` files will now run when javascript is selected as the language. (pa-124)
+- Tainting: Parameters to functions in languages with pattern matching in function
+  arguments, such as Rust and OCaml, now transmit taint when they are sources.
+  This works with nested patterns too. For instance, in Rust:
+  ```
+  fn f ((x, (y, z)): t) {
+    let x = 2;
+  }
+  ```
+  tainting the sole argument to this function will result in all of the identifiers
+  `x`, `y`, and `z` now being tainted. (pa-2919)
+- Added rule option `interfile: true`, so this can be set under `options:` as it
+  is the norm for rule options. This rule option shall replace setting `interfile`
+  under `metadata`. Metadata is not mean to have any effect on how a rule is run. (pro-94)
+
+### Changed
+
+- Updated semgrep-interfaces, changed `api_scans_findings` to `ci_scan_results`, removed `gitlab_token` field and added `ignores` and `renamed_paths` field to `ci_scan_results`. (app-4252)
+
+### Fixed
+
+- Dockerfile language support: String matching is now done by contents, treating
+  the strings `foo`, `'foo'`, or `"foo"` as equal. (gh-8229)
+- Fixed error where we were not filtering the logging of a new third party library. (gh-8310)
+- Julia: Fixed a bug where try-catch patterns would not match properly.
+  Now, you can use an empty try-catch pattern, such as:
+
+  ```
+  try
+    ...
+  catch
+    ...
+  end
+  ```
+
+  to catch _only_ Julia code which does not specify an identifier for the `catch`.
+
+  Otherwise, if you want to match any kind of try-catch, you can specify an ellipsis
+  for the catch identifier instead:
+
+  ```
+  try
+    ...
+  catch ...
+    ...
+  end
+  ```
+
+  and this will match any try-catch, including those that do not specify an
+  identifier for the `catch`. It is strictly more general than the previous. (pa-2918)
+
+- Rust: Fixed an issue where implicit returns did not allow taint to flow,
+  and various other small translation issues that would affect taint. (pa-2936)
+- Fixed bug in gradle.lockfile parser where we would error on `empty=` with nothing after it (sc-987)
+
+## [1.32.0](https://github.com/returntocorp/semgrep/releases/tag/v1.32.0) - 2023-07-13
+
+### Added
+
+- feat(docker): Create a semgrep user for our docker container so that people can run it as a non-root user (gh-8116)
+- feat(typed metavar): Typed metavariable support for Rust
+
+  Users can create `TypedMetavar` using Rust's type annotation syntax `:`.
+  For example, the following rule works for matching `HttpResponseBuilder`
+  type of variables:
+
+  ````
+  rules:
+  - id: no-direct-response-write
+    patterns:
+    - pattern: '($BUILDER : HttpResponseBuilder).body(...)'
+    - pattern-not: '($BUILDER : HttpResponseBuilder).body("...".to_string())'
+    message: find dangerous codes
+    severity: WARNING
+    languages: [rust]
+  ``` (gh-8200)
+  ````
+
+### Fixed
+
+- baseline scans reporting on existing findings (baseline-supply-chain)
+- Fixed an issue leading to incorrect autofix results involving JS/TS async arrow functions (e.g. `async () => {}`, etc.). (gh-7353)
+- Workaround for rootless containers as git operations may fail due to dubious ownership of /src (gh-8267)
+
+## [1.31.2](https://github.com/returntocorp/semgrep/releases/tag/v1.31.2) - 2023-07-07
+
+No significant changes.
+
+## [1.31.1](https://github.com/returntocorp/semgrep/releases/tag/v1.31.1) - 2023-07-07
+
+No significant changes.
+
+## [1.31.0](https://github.com/returntocorp/semgrep/releases/tag/v1.31.0) - 2023-07-07
+
+### Added
+
+- Make CLI hit the new endpoint for the reliable fixed status on the Semgrep app. (cod-16)
+- feat(rule syntax): Metavariable Type Extension for Semgrep Rule Syntax 2.0
+
+  This PR introduces the changes made in Semgrep rule syntax 1.0 to version 2.0 as well.
+
+  # rule syntax 2.0
+
+  rules:
+
+  - id: no-string-eqeq
+    message: find errors
+    severity: WARNING
+    languages:
+    - java
+      match:
+      all: - not: null == (String $Y) - $X == (String $Y)
+
+  # rule syntax 2.0 after proposed change
+
+  rules:
+
+  - id: no-string-eqeq
+    message: find errors
+    severity: WARNING
+    languages:
+    - java
+      match:
+      all: - not: null == $Y - $X == $Y
+      where: - metavariable: $Y
+      type: String (gh-8183)
+
+- Rust: Added the ability to taint macro calls through its arguments, in macro calls
+  with multiple arguments. (pa-2902)
+- Add severity and suggested upgrade versions to Supply Chain findings (sc-772)
+- Added support for pnpm lockfile versions >= 6.0 (sc-824)
+- (sc-866)
+
+### Fixed
+
+- Fixed an issue leading to incorrect autofix results involving JS/TS arrow functions (e.g. `() => {}`). (gh-7353)
+- Dockerfile support: single-quoted strings are now parsed without an error. (gh-7780)
+- Fixes Go issue with patterns like make(...); make(...,$X); make($A,$B). (gh-8171)
+- Fixed rust attribute patterns to allow matching on simple attribute syntax. (pa-2903)
+- Rust: Fixed a bug where standalone metavariable patterns
+  were not matching as expected (pa-2915)
+- Fixed python semgrep pattern parsing to also parse match statements, by chaining in the python tree-sitter parser, and adding metavariable support to the python tree-sitter parser. (pa-6442)
+- poetry.lock parsing: handle empty toml tables, quoted table keys, and arbitrarily placed comments (sc-834)
+
 ## [1.30.0](https://github.com/returntocorp/semgrep/releases/tag/v1.30.0) - 2023-06-28
 
 ### Added

@@ -2,7 +2,6 @@
 #
 # Run semgrep-core on a series of pairs (target, pattern) and report the
 # time it takes. Optionally upload the results to the semgrep dashboard.
-#
 import argparse
 import os
 import subprocess
@@ -11,6 +10,9 @@ import urllib.request
 from typing import List
 
 HOST = "https://dashboard.semgrep.dev"
+
+# This script assumes it's run from the current directory
+SEMGREP_CORE = "../../bin/semgrep-core"
 
 
 class Test:
@@ -98,7 +100,7 @@ def run_tests(
 
         t1 = time.time()
         args = [
-            "semgrep-core",
+            SEMGREP_CORE,
             "-lang",
             test.lang,
             flag,

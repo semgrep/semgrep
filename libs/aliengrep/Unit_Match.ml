@@ -174,6 +174,22 @@ let test_explicit_brackets () =
   check slconf {|(...)|} {|([)]|} [ Num_matches 0 ];
   check slconf {|(...)|} {|[([)]|} [ Num_matches 0 ]
 
+let test_custom_brackets () =
+  check mlconf {|(...)|} "((x))" [ Num_matches 1; Match_value "((x))" ];
+  check mlconf {|(...)|} "((x ))" [ Num_matches 1; Match_value "((x ))" ];
+  check
+    { mlconf with brackets = [ ('<', '>') ] }
+    {|<...>|} {|<<x>>|}
+    [ Num_matches 1; Match_value "<<x>>" ];
+  check
+    { mlconf with brackets = [ ('<', '>') ] }
+    {|<...>|} "<< x >>"
+    [ Num_matches 1; Match_value "<< x >>" ];
+  check
+    { mlconf with brackets = [ ('(', ')'); ('<', '>') ] }
+    {|<...>|} {|<(<x>)>|}
+    [ Num_matches 1; Match_value "<(<x>)>" ]
+
 let test_backreferences () =
   check slconf {|$A ... $A|} {|a, b, c, a, d|}
     [
@@ -313,6 +329,7 @@ let tests =
     ("metavariables", test_metavariables);
     ("ellipsis brackets", test_ellipsis_brackets);
     ("explicit brackets", test_explicit_brackets);
+    ("custom brackets", test_custom_brackets);
     ("backreferences", test_backreferences);
     ("ellipsis metavariable", test_ellipsis_metavariable);
     ("skip lines", test_skip_lines);

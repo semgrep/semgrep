@@ -141,5 +141,7 @@ let string_of_exn (e : exn) =
          |> assert false
        with e -> Printexc.to_string e;;
      - : string = "Pcre.Error(MatchLimit)"
+
+   See Exception.mli for notes on exception printer registration.
 *)
 let register_exception_printer () = Printexc.register_printer string_of_exn

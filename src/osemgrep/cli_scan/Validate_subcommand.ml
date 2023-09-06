@@ -46,7 +46,7 @@ type conf = {
    *)
   rules_source : Rules_source.t;
   core_runner_conf : Core_runner.conf;
-  logging_level : Logs.level option;
+  common : CLI_common.conf;
 }
 [@@deriving show]
 
@@ -102,15 +102,17 @@ let run (conf : conf) : Exit_code.t =
         if metaerrors <> [] then
           Error.abort (spf "error in metachecks! please fix %s" metarules_pack);
 
-        let res =
+        let exn_and_matches =
           Core_runner.invoke_semgrep_core conf.core_runner_conf metarules []
             targets
         in
+        let res = Core_runner.create_core_result metarules exn_and_matches in
 
         (* TODO? sanity check errors below too? *)
         let { Out.results; errors = _; _ } =
           Cli_json_output.cli_output_of_core_results
-            ~logging_level:conf.logging_level res
+            ~logging_level:conf.common.logging_level res.core res.hrules
+            res.scanned
         in
         (* TOPORT?
                 ... run -check_rules in semgrep-core ...

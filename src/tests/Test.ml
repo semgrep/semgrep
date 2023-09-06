@@ -47,7 +47,6 @@ let tests () =
       Glob.Unit_glob.tests;
       Unit_semgrepignore.tests;
       Unit_parsing.tests ();
-      Unit_reporting.tests ();
       Unit_entropy.tests;
       Unit_ReDoS.tests;
       Unit_guess_lang.tests;
@@ -69,6 +68,7 @@ let tests () =
       (* TODO Unit_matcher.spatch_unittest ~xxx *)
       (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
       Unit_engine.tests ();
+      Unit_jsonnet_subst.tests ();
       Unit_metachecking.tests ();
       Unit_LS.tests;
       Aliengrep.Unit_tests.tests;

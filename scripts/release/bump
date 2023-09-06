@@ -37,7 +37,7 @@ update_init_py() {
 }
 
 update_version_ml() {
-  target=src/core_cli/version.ml
+  target=src/core/Version.ml
   targets+=" $target"
   echo "Updating $target"
   sed_in_place 's/let version = ".*"/let version = "'"$release"'"/g' "$target"
@@ -106,7 +106,7 @@ fi
 
 bump
 
-if git status -s | grep -vq 'cli/src/semgrep/__init__.py\|cli/setup.py\|setup.py\|src/core_cli/version.ml'; then
+if git status -s | grep -vq 'cli/src/semgrep/__init__.py\|cli/setup.py\|setup.py\|src/core/Version.ml'; then
   error <<EOF
 The release branch contains unexpected changes, cancelling release.
 EOF

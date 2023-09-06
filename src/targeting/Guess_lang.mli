@@ -14,7 +14,7 @@
 val inspect_file_p : Lang.t -> Fpath.t -> bool
 
 val inspect_file :
-  Lang.t -> Fpath.t -> (Fpath.t, Output_from_core_t.skipped_target) result
+  Lang.t -> Fpath.t -> (Fpath.t, Semgrep_output_v1_t.skipped_target) result
 
 (*
    Split selected files (left) from excluded files (right).
@@ -22,7 +22,7 @@ val inspect_file :
 val inspect_files :
   Lang.t ->
   Fpath.t list ->
-  Fpath.t list * Output_from_core_t.skipped_target list
+  Fpath.t list * Semgrep_output_v1_t.skipped_target list
 
 (*
    Get the first 'block_size' bytes of the file, which is ideally obtained

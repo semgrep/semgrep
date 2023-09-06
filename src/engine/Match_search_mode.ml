@@ -165,7 +165,7 @@ let (mini_rule_of_pattern :
       MR.t) =
  fun xlang rule (pattern, inside, id, pstr) ->
   {
-    MR.id = Rule.ID.of_string (string_of_int id);
+    MR.id = Rule_ID.of_string (string_of_int id);
     pattern;
     inside;
     (* parts that are not really needed I think in this context, since
@@ -380,7 +380,8 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
                PM.tokens = lazy (MV.ii_of_mval mval);
                PM.env = range.mvars;
                PM.taint_trace = None;
-               engine_kind = PM.OSS;
+               PM.engine_kind = PM.OSS;
+               PM.validation_state = PM.No_validator;
              })
     in
     let focused_ranges =
@@ -512,7 +513,7 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
                  in
                  let matches = match_result.matches in
                  (* TODO: equivalent to an abstract_content, so not great *)
-                 let pstr = JSON_report.metavar_string_of_any pat in
+                 let pstr = Core_json_output.metavar_string_of_any pat in
                  (* TODO: could use first_info_of_any pat, but not sure the
                   * tok position in pat are related to the rule of the intermediate
                   * file used to parse the pattern in xpat.pat.
@@ -564,17 +565,20 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
                    | Xlang.LAliengrep ->
                        raise Impossible
                  in
+                 let ast, _ = Lazy.force env.xtarget.lazy_ast_and_errors in
+                 (* This call iterates over the program's top-level statements, and
+                    thus incurs some cost, but it shouldn't be much.
+                 *)
                  let env =
-                   Matching_generic.empty_environment lang env.xconf.config
+                   Matching_generic.environment_of_program lang env.xconf.config
+                     ast
                  in
                  let matches =
                    GG.m_compatible_type lang
                      (mvar, Tok.unsafe_fake_tok "")
                      t e env
                  in
-                 logger#info
-                   "range %d-%d filtered from metavar %s type mismatch."
-                   r.r.start r.r.end_ mvar;
+
                  (* the type can also contain metavariables, but we probably
                   * don't want to use that in other parts of the rules, so it's
                   * probably fine to just check whether the match is empty or
@@ -583,7 +587,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
              | None ->
                  error env
                    (spf "couldn't find metavar %s in the match results." mvar);
-                 Some (r, new_bindings))
+                 None)
          (* todo: would be nice to have CondRegexp also work on
           * eval'ed bindings.
           * We could also use re.match(), to be close to python, but really

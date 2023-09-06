@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 import sys
 
-from semgrep.cli import cli
-
-
-def main() -> int:
-    cli()
-    return 0
-
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.stderr.write(
+        "Using `python -m semgrep` to run Semgrep is deprecated as of 1.38.0. Please simply run `semgrep` instead.\n"
+    )
+    sys.exit(2)

@@ -1,0 +1,2 @@
+#MATCH:
+foo{a="b", c="d"}

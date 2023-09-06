@@ -97,7 +97,8 @@ jobs:
 
   upload-javascript-artifacts:
     needs: [build-test-js-artifacts]
-    if: github.ref == 'refs/heads/develop' || github.event.pull_request.head.repo.full_name == github.repository
+    # in english: (this pull request is not from a fork) AND (branch is "develop" OR branch starts with "release-" OR pull request has a "publish-js" label applied to it)
+    if: github.event.pull_request.head.repo.full_name == github.repository && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/release-') || contains(github.event.pull_request.labels.*.name, 'publish-js'))
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -116,7 +117,8 @@ jobs:
           path: /tmp/semgrep
       - name: Upload to S3
         run: |
+          cd /tmp/semgrep
+          tar xvzf semgrep-js-artifacts.tar.gz
           branch_name=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
           urlencoded_branch_name=$(printf %s $branch_name | jq -sRr @uri)
-          current_datetime=$(date +"%Y-%m-%dT%H:%M:%S")
-          aws s3 cp /tmp/semgrep/semgrep-js-artifacts.tar.gz "s3://semgrep-oss-js-artifacts/branch/${urlencoded_branch_name}/sha/${{ github.sha }}/semgrep-js-artifacts_${current_datetime}.tar.gz"
+          aws s3 sync /tmp/semgrep/js/ "s3://semgrep-app-static-assets/static/turbo/${urlencoded_branch_name}/"

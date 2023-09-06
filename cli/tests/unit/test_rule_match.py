@@ -46,12 +46,10 @@ def test_rule_match_attributes(mocker):
         message="message",
         severity=RuleSeverity.ERROR,
         match=core.CoreMatch(
-            rule_id=core.RuleId("long.rule.id"),
-            location=core.Location(
-                path=core.Fpath("relative/path/to/foo.py"),
-                start=core.Position(3, 1, 24),
-                end=core.Position(3, 15, 38),
-            ),
+            check_id=core.RuleId("long.rule.id"),
+            path=core.Fpath("relative/path/to/foo.py"),
+            start=core.Position(3, 1, 24),
+            end=core.Position(3, 15, 38),
             extra=core.CoreMatchExtra(
                 metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
@@ -84,12 +82,10 @@ def test_rule_match_sorting(mocker):
         message="message",
         severity=RuleSeverity.ERROR,
         match=core.CoreMatch(
-            rule_id=core.RuleId("rule_id"),
-            location=core.Location(
-                path=core.Fpath("foo.py"),
-                start=core.Position(3, 1, 24),
-                end=core.Position(3, 15, 38),
-            ),
+            check_id=core.RuleId("rule_id"),
+            path=core.Fpath("foo.py"),
+            start=core.Position(3, 1, 24),
+            end=core.Position(3, 15, 38),
             extra=core.CoreMatchExtra(
                 metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
@@ -99,12 +95,10 @@ def test_rule_match_sorting(mocker):
         message="message",
         severity=RuleSeverity.ERROR,
         match=core.CoreMatch(
-            rule_id=core.RuleId("rule_id"),
-            location=core.Location(
-                path=core.Fpath("foo.py"),
-                start=core.Position(4, 1, 36),
-                end=core.Position(4, 15, 50),
-            ),
+            check_id=core.RuleId("rule_id"),
+            path=core.Fpath("foo.py"),
+            start=core.Position(4, 1, 36),
+            end=core.Position(4, 15, 50),
             extra=core.CoreMatchExtra(
                 metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
@@ -131,12 +125,10 @@ def test_rule_match_hashing(mocker):
         message="message",
         severity=RuleSeverity.ERROR,
         match=core.CoreMatch(
-            rule_id=core.RuleId("rule_id"),
-            location=core.Location(
-                path=core.Fpath("foo.py"),
-                start=core.Position(3, 1, 24),
-                end=core.Position(3, 15, 38),
-            ),
+            check_id=core.RuleId("rule_id"),
+            path=core.Fpath("foo.py"),
+            start=core.Position(3, 1, 24),
+            end=core.Position(3, 15, 38),
             extra=core.CoreMatchExtra(
                 metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
@@ -161,12 +153,10 @@ def test_rule_match_is_nosemgrep_agnostic(mocker):
         message="message",
         severity=RuleSeverity.ERROR,
         match=core.CoreMatch(
-            rule_id=core.RuleId("rule_id"),
-            location=core.Location(
-                path=core.Fpath("foo.py"),
-                start=core.Position(3, 1, 28),
-                end=core.Position(5, 2, 48),
-            ),
+            check_id=core.RuleId("rule_id"),
+            path=core.Fpath("foo.py"),
+            start=core.Position(3, 1, 28),
+            end=core.Position(5, 2, 48),
             extra=core.CoreMatchExtra(
                 metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
@@ -186,12 +176,10 @@ def test_rule_match_is_nosemgrep_agnostic(mocker):
         message="message",
         severity=RuleSeverity.ERROR,
         match=core.CoreMatch(
-            rule_id=core.RuleId("rule_id"),
-            location=core.Location(
-                path=core.Fpath("foo.py"),
-                start=core.Position(3, 1, 28),
-                end=core.Position(5, 2, 72),
-            ),
+            check_id=core.RuleId("rule_id"),
+            path=core.Fpath("foo.py"),
+            start=core.Position(3, 1, 28),
+            end=core.Position(5, 2, 72),
             extra=core.CoreMatchExtra(
                 metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
@@ -212,12 +200,10 @@ def test_rule_match_is_nosemgrep_agnostic(mocker):
         message="message",
         severity=RuleSeverity.ERROR,
         match=core.CoreMatch(
-            rule_id=core.RuleId("rule_id"),
-            location=core.Location(
-                path=core.Fpath("foo.py"),
-                start=core.Position(4, 1, 55),
-                end=core.Position(6, 2, 75),
-            ),
+            check_id=core.RuleId("rule_id"),
+            path=core.Fpath("foo.py"),
+            start=core.Position(4, 1, 55),
+            end=core.Position(6, 2, 75),
             extra=core.CoreMatchExtra(
                 metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
@@ -249,12 +235,10 @@ def test_rule_match_set_indexes(mocker):
         message="message",
         severity=RuleSeverity.ERROR,
         match=core.CoreMatch(
-            rule_id=core.RuleId("rule_id"),
-            location=core.Location(
-                path=core.Fpath("foo.py"),
-                start=core.Position(3, 1, 24),
-                end=core.Position(3, 15, 38),
-            ),
+            check_id=core.RuleId("rule_id"),
+            path=core.Fpath("foo.py"),
+            start=core.Position(3, 1, 24),
+            end=core.Position(3, 15, 38),
             extra=core.CoreMatchExtra(
                 metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
@@ -264,12 +248,10 @@ def test_rule_match_set_indexes(mocker):
         message="message",
         severity=RuleSeverity.ERROR,
         match=core.CoreMatch(
-            rule_id=core.RuleId("rule_id"),
-            location=core.Location(
-                path=core.Fpath("foo.py"),
-                start=core.Position(4, 1, 36),
-                end=core.Position(4, 15, 50),
-            ),
+            check_id=core.RuleId("rule_id"),
+            path=core.Fpath("foo.py"),
+            start=core.Position(4, 1, 36),
+            end=core.Position(4, 15, 50),
             extra=core.CoreMatchExtra(
                 metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
@@ -279,12 +261,10 @@ def test_rule_match_set_indexes(mocker):
         message="message",
         severity=RuleSeverity.ERROR,
         match=core.CoreMatch(
-            rule_id=core.RuleId("rule_id"),
-            location=core.Location(
-                path=core.Fpath("foo.py"),
-                start=core.Position(5, 1, 48),
-                end=core.Position(5, 15, 62),
-            ),
+            check_id=core.RuleId("rule_id"),
+            path=core.Fpath("foo.py"),
+            start=core.Position(5, 1, 48),
+            end=core.Position(5, 15, 62),
             extra=core.CoreMatchExtra(
                 metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
@@ -294,12 +274,10 @@ def test_rule_match_set_indexes(mocker):
         message="message",
         severity=RuleSeverity.ERROR,
         match=core.CoreMatch(
-            rule_id=core.RuleId("rule_id"),
-            location=core.Location(
-                path=core.Fpath("foo.py"),
-                start=core.Position(6, 1, 60),
-                end=core.Position(6, 15, 74),
-            ),
+            check_id=core.RuleId("rule_id"),
+            path=core.Fpath("foo.py"),
+            start=core.Position(6, 1, 60),
+            end=core.Position(6, 15, 74),
             extra=core.CoreMatchExtra(
                 metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
@@ -310,12 +288,10 @@ def test_rule_match_set_indexes(mocker):
         message="message",
         severity=RuleSeverity.ERROR,
         match=core.CoreMatch(
-            rule_id=core.RuleId("rule_id_wrong_one"),
-            location=core.Location(
-                path=core.Fpath("foo.py"),
-                start=core.Position(7, 1, 60),
-                end=core.Position(7, 15, 74),
-            ),
+            check_id=core.RuleId("rule_id_wrong_one"),
+            path=core.Fpath("foo.py"),
+            start=core.Position(7, 1, 60),
+            end=core.Position(7, 15, 74),
             extra=core.CoreMatchExtra(
                 metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
@@ -366,12 +342,10 @@ def test_rule_match_to_app_finding(snapshot, mocker):
         message="message",
         severity=RuleSeverity.ERROR,
         match=core.CoreMatch(
-            rule_id=core.RuleId("rule.id"),
-            location=core.Location(
-                path=core.Fpath("foo.py"),
-                start=core.Position(0, 0, 0),
-                end=core.Position(0, 0, 0),
-            ),
+            check_id=core.RuleId("rule.id"),
+            path=core.Fpath("foo.py"),
+            start=core.Position(0, 0, 0),
+            end=core.Position(0, 0, 0),
             extra=core.CoreMatchExtra(
                 metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
@@ -420,12 +394,10 @@ def create_sca_rule_match(sca_kind, reachable_in_code, transitivity):
         metadata={"sca-kind": sca_kind, "dev.semgrep.actions": ["block"]},
         severity=RuleSeverity.ERROR,
         match=core.CoreMatch(
-            rule_id=core.RuleId("rule.id"),
-            location=core.Location(
-                path=core.Fpath("foo.py"),
-                start=core.Position(0, 0, 0),
-                end=core.Position(0, 0, 0),
-            ),
+            check_id=core.RuleId("rule.id"),
+            path=core.Fpath("foo.py"),
+            start=core.Position(0, 0, 0),
+            end=core.Position(0, 0, 0),
             extra=core.CoreMatchExtra(
                 metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
             ),
@@ -441,6 +413,7 @@ def create_sca_rule_match(sca_kind, reachable_in_code, transitivity):
     )
 
 
+@pytest.mark.quick
 def test_supply_chain_blocking():
     assert create_sca_rule_match("reachable", True, out.Direct()).is_blocking
     assert create_sca_rule_match("reachable", True, out.Transitive()).is_blocking

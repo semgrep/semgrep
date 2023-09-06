@@ -1,5 +1,5 @@
 # Cron to verify that the Homebrew Core Formula Works.
-# This formula is stored in https://github.com/Homebrew/homebrew-core/blob/HEAD/Formula/semgrep.rb
+# This formula is stored in https://github.com/Homebrew/homebrew-core/blob/HEAD/Formula/s/semgrep.rb
 # and "bumped" in release.yml by dawidd6/action-homebrew-bump-formula@v3
 #
 # This formula is created by our release process with the PR to homebrew/homebrew-core.
@@ -35,7 +35,9 @@ jobs:
       - name: Brew Install
         env:
           HOMEBREW_NO_INSTALL_FROM_API: 1
-        run: brew install semgrep --HEAD --debug
+          NONINTERACTIVE: 1
+        # See https://github.com/Homebrew/brew/issues/1742 for context on the brew link step.
+        run: brew install semgrep --HEAD --debug || brew link --overwrite semgrep
       - name: Check installed correctly
         env:
           HOMEBREW_NO_INSTALL_FROM_API: 1
@@ -59,6 +61,6 @@ jobs:
           --url  ${{ secrets.HOMEBREW_NIGHTLY_NOTIFICATIONS_URL }} \
           --header 'content-type: application/json' \
           --data '{
-            "commit_sha": "${{needs.release-setup.outputs.version}}",
+            "commit_sha": "${{ github.sha }}",
             "workflow_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
           }'

@@ -1,0 +1,197 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`yaml parser parses a pattern with pattern-regex 1`] = `
+{
+  "engine_requested": "OSS",
+  "errors": [],
+  "explanations": [
+    {
+      "children": [],
+      "loc": {
+        "end": {
+          "col": 30,
+          "line": 6,
+          "offset": 99,
+        },
+        "path": "test-rule-yaml.json",
+        "start": {
+          "col": 24,
+          "line": 6,
+          "offset": 93,
+        },
+      },
+      "matches": [
+        {
+          "check_id": "test",
+          "end": {
+            "col": 4,
+            "line": 1,
+            "offset": 3,
+          },
+          "extra": {
+            "engine_kind": "OSS",
+            "message": "test",
+            "metavars": {},
+            "validation_state": "NO_VALIDATOR",
+          },
+          "path": "test.yaml",
+          "start": {
+            "col": 1,
+            "line": 1,
+            "offset": 0,
+          },
+        },
+      ],
+      "op": [
+        "XPat",
+        "^fo+",
+      ],
+    },
+  ],
+  "results": [
+    {
+      "check_id": "test",
+      "end": {
+        "col": 4,
+        "line": 1,
+        "offset": 3,
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "message": "test",
+        "metavars": {},
+        "validation_state": "NO_VALIDATOR",
+      },
+      "path": "test.yaml",
+      "start": {
+        "col": 1,
+        "line": 1,
+        "offset": 0,
+      },
+    },
+  ],
+  "rules_by_engine": [
+    [
+      "test",
+      "OSS",
+    ],
+  ],
+  "skipped_rules": [],
+  "stats": {
+    "errorfiles": 0,
+    "okfiles": 1,
+  },
+}
+`;
+
+exports[`yaml parser parses a simple pattern 1`] = `
+{
+  "engine_requested": "OSS",
+  "errors": [],
+  "explanations": [
+    {
+      "children": [],
+      "loc": {
+        "end": {
+          "col": 27,
+          "line": 6,
+          "offset": 96,
+        },
+        "path": "test-rule-yaml.json",
+        "start": {
+          "col": 18,
+          "line": 6,
+          "offset": 87,
+        },
+      },
+      "matches": [
+        {
+          "check_id": "test",
+          "end": {
+            "col": 9,
+            "line": 1,
+            "offset": 8,
+          },
+          "extra": {
+            "engine_kind": "OSS",
+            "message": "test",
+            "metavars": {
+              "$X": {
+                "abstract_content": "bar",
+                "end": {
+                  "col": 9,
+                  "line": 1,
+                  "offset": 8,
+                },
+                "start": {
+                  "col": 6,
+                  "line": 1,
+                  "offset": 5,
+                },
+              },
+            },
+            "validation_state": "NO_VALIDATOR",
+          },
+          "path": "test.yaml",
+          "start": {
+            "col": 1,
+            "line": 1,
+            "offset": 0,
+          },
+        },
+      ],
+      "op": [
+        "XPat",
+        "foo: $X",
+      ],
+    },
+  ],
+  "results": [
+    {
+      "check_id": "test",
+      "end": {
+        "col": 9,
+        "line": 1,
+        "offset": 8,
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "message": "test",
+        "metavars": {
+          "$X": {
+            "abstract_content": "bar",
+            "end": {
+              "col": 9,
+              "line": 1,
+              "offset": 8,
+            },
+            "start": {
+              "col": 6,
+              "line": 1,
+              "offset": 5,
+            },
+          },
+        },
+        "validation_state": "NO_VALIDATOR",
+      },
+      "path": "test.yaml",
+      "start": {
+        "col": 1,
+        "line": 1,
+        "offset": 0,
+      },
+    },
+  ],
+  "rules_by_engine": [
+    [
+      "test",
+      "OSS",
+    ],
+  ],
+  "skipped_rules": [],
+  "stats": {
+    "errorfiles": 0,
+    "okfiles": 1,
+  },
+}
+`;

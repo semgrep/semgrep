@@ -4,7 +4,7 @@
 *)
 open Common
 open File.Operators
-module Resp = Output_from_core_t
+module Resp = Semgrep_output_v1_t
 
 (****************************************************************************)
 (* Minified files detection (via whitespace stats) *)
@@ -91,9 +91,11 @@ let is_minified (path : Fpath.t) =
             Resp.path = !!path;
             reason = Minified;
             details =
-              spf "file contains too little whitespace: %.3f%% (min = %.1f%%)"
-                (100. *. stat.ws_freq)
-                (100. *. min_whitespace_frequency);
+              Some
+                (spf
+                   "file contains too little whitespace: %.3f%% (min = %.1f%%)"
+                   (100. *. stat.ws_freq)
+                   (100. *. min_whitespace_frequency));
             rule_id = None;
           }
       else if stat.line_freq < min_line_frequency then
@@ -102,11 +104,12 @@ let is_minified (path : Fpath.t) =
             Resp.path = !!path;
             reason = Minified;
             details =
-              spf
-                "file contains too few lines for its size: %.4f%% (min = \
-                 %.2f%%)"
-                (100. *. stat.line_freq)
-                (100. *. min_line_frequency);
+              Some
+                (spf
+                   "file contains too few lines for its size: %.4f%% (min = \
+                    %.2f%%)"
+                   (100. *. stat.line_freq)
+                   (100. *. min_line_frequency));
             rule_id = None;
           }
       else Ok path
@@ -137,8 +140,9 @@ let exclude_big_files paths =
                Resp.path = !!path;
                reason = Too_big;
                details =
-                 spf "target file size exceeds %i bytes at %i bytes" max_bytes
-                   size;
+                 Some
+                   (spf "target file size exceeds %i bytes at %i bytes"
+                      max_bytes size);
                rule_id = None;
              }
          else Ok path)

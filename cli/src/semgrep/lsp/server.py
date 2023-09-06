@@ -1,13 +1,9 @@
-import contextlib
-import json
 import logging
 import subprocess
 import sys
-import tempfile
 import threading
 import time
 import traceback
-from tempfile import _TemporaryFileWrapper
 from typing import Any
 from typing import List
 from typing import Optional
@@ -17,7 +13,6 @@ from pylsp_jsonrpc.streams import JsonRpcStreamWriter
 
 from semgrep.app import auth
 from semgrep.commands.login import make_login_url
-from semgrep.core_runner import CoreRunner
 from semgrep.error import SemgrepError
 from semgrep.lsp.config import LSPConfig
 from semgrep.state import get_state
@@ -26,71 +21,23 @@ from semgrep.types import JsonObject
 log = logging.getLogger(__name__)
 
 # This is essentially a "middleware" between the client and the core LS. Since
-# core/osemgrep does't have the target manager yet, we need to do that stuff
+# core/osemgrep does't have login functionality, we need to do that stuff
 # here.
 class SemgrepCoreLSServer:
-    def __init__(
-        self, rule_file: _TemporaryFileWrapper, target_file: _TemporaryFileWrapper
-    ) -> None:
+    def __init__(self) -> None:
         self.std_reader = JsonRpcStreamReader(sys.stdin.buffer)
         self.std_writer = JsonRpcStreamWriter(sys.stdout.buffer)
-        self.config = LSPConfig({}, [])
-        self.rule_file = rule_file
-        self.target_file = target_file
+        self.config = LSPConfig({})
         self.core_process: Optional[subprocess.Popen] = None
         self.exit_code: int = 0
-
-    def update_targets_file(self) -> None:
-        self.config.refresh_target_manager()
-        self.plan = CoreRunner.plan_core_run(
-            self.config.rules, self.config.target_manager, set()
-        )
-        target_file_contents = json.dumps(self.plan.to_json())
-        # So semgrep-core could try to open the target file when it's empty if
-        # we just truncated then wrote it (since the truncate may write without
-        # a flush call). If we simply write then truncate, it'll be ok because
-        # the core will only take the first occurence of the target json in the
-        # file. Weird
-        self.target_file.seek(0, 0)
-        self.target_file.write(target_file_contents)
-        self.target_file.truncate(len(target_file_contents))
-        self.target_file.flush()
-
-    def update_rules_file(self) -> None:
-        self.config.refresh_rules()
-        rules = self.config.rules
-        rule_file_contents = json.dumps(
-            {"rules": [rule._raw for rule in rules]}, indent=2, sort_keys=True
-        )
-        # Same as before re: sharing files with semgrep-core
-        self.rule_file.seek(0, 0)
-        self.rule_file.write(rule_file_contents)
-        self.rule_file.truncate(len(rule_file_contents))
-        self.rule_file.flush()
+        self.polling: bool = True
 
     def start_ls(self) -> None:
-        cmd = [
-            str(self.config.engine_type.get_binary_path()),
-            "-j",
-            str(self.config.jobs),
-            "-rules",
-            self.rule_file.name,
-            "-targets",
-            self.target_file.name,
-            "-max_memory",
-            str(self.config.max_memory),
-            "-timeout",
-            str(self.config.timeout),
-            "-timeout_threshold",
-            str(self.config.timeout_threshold),
-            "-fast",
-            "-ls",
-        ]
-        if self.config.debug:
-            cmd.append("-debug")
-
+        args = ["osemgrep", "lsp", "--experimental"]
+        executable = str(self.config.engine_type.get_binary_path())
         self.core_process = subprocess.Popen(
-            cmd,
+            args,
+            executable=executable,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
         )
@@ -104,7 +51,7 @@ class SemgrepCoreLSServer:
             self.core_reader.listen(self.on_core_message)
 
         def core_poller() -> None:
-            while True:
+            while self.polling:
                 self.poll_ls()
                 time.sleep(1)
 
@@ -123,9 +70,10 @@ class SemgrepCoreLSServer:
         if status is not None and status != 0:
             self.notify_show_message(
                 1,
-                "Semgrep core process died, exiting...",
+                f"OSemgrep process died with status {status}, exiting...",
             )
             self.exit_code = status
+            self.polling = False
             self.stop()
 
     def notify(self, method: str, params: JsonObject) -> None:
@@ -162,19 +110,9 @@ class SemgrepCoreLSServer:
         )
         # Clients don't need to send initializationOptions :(
         config = initializationOptions if initializationOptions is not None else {}
-        if workspaceFolders is not None:
-            self.config = LSPConfig(config, workspaceFolders)
-            if len(workspaceFolders) > 1:
-                self.notify_show_message(
-                    2,
-                    "Running Semgrep Language Server with multiple workspace folders may degrade performance",
-                )
-        elif rootUri is not None:
-            self.config = LSPConfig(config, [{"name": "root", "uri": rootUri}])
-        else:
-            self.config = LSPConfig(config, [])
-
+        self.config = LSPConfig(config)
         self.config.send_metrics()
+        self.start_ls()
 
     def m_semgrep__login(self, id: str) -> None:
         """Called by client to login to Semgrep App. Returns None if already logged in"""
@@ -208,8 +146,6 @@ class SemgrepCoreLSServer:
                     auth.set_token(login_token)
                     state = get_state()
                     state.app_session.authenticate()
-                    self.update_rules_file()
-                    self.update_targets_file()
                     self.notify_show_message(
                         3, f"Successfully logged in to Semgrep Code"
                     )
@@ -219,32 +155,17 @@ class SemgrepCoreLSServer:
             elif r.status_code != 404:
                 self.notify_show_message(
                     1,
-                    f"Unexpected failure from {state.env.semgrep_url}: status code {r.status_code}; please contact support@r2c.dev if this persists",
+                    f"Unexpected failure from {state.env.semgrep_url}: status code {r.status_code}; please contact support@semgrep.com if this persists",
                 )
 
             time.sleep(WAIT_BETWEEN_RETRY_IN_SEC)
 
     def on_std_message(self, msg: JsonObject) -> None:
-        # We love a middleware
         id = msg.get("id", "")
         method = msg.get("method", "")
         params = msg.get("params", {})
         if method == "initialize":
             self.m_initialize(**params)
-            self.start_ls()
-
-        if method == "initialized":
-            self.update_rules_file()
-            self.update_targets_file()
-
-        update_targets_methods = [
-            "workspace/didCreateFiles",
-            "workspace/didDeleteFiles",
-            "workspace/didRenameFiles",
-            "workspace/didChangeWorkspaceFolders",
-        ]
-        if method in update_targets_methods:
-            self.update_targets_file()
 
         if method == "semgrep/login":
             self.m_semgrep__login(id)
@@ -252,24 +173,24 @@ class SemgrepCoreLSServer:
 
         if method == "semgrep/loginFinish":
             self.m_semgrep__login_finish(**params)
-
-        if method == "semgrep/logout":
-            auth.delete_token()
-            self.notify_show_message(3, "Logged out of Semgrep Code")
-            self.update_rules_file()
-            self.update_targets_file()
-
-        if method == "semgrep/refreshRules":
-            self.update_rules_file()
-            self.update_targets_file()
-
         if method == "semgrep/loginStatus":
             response = {"id": id, "result": {"loggedIn": self.config.logged_in}}
             self.on_core_message(response)
             return
-        if method == "shutdown" or method == "exit":
-            self.stop()
-            return
+        if method == "semgrep/logout":
+            auth.delete_token()
+            self.notify_show_message(3, "Logged out of Semgrep Code")
+
+        log.info(f"Received message: {msg}")
+        if (
+            method == "semgrep/scanWorkspace"
+            and params.get("full", False)
+            and self.config.extension_metrics.get("isNewAppInstall", False)
+        ):
+            self.notify_show_message(
+                3,
+                "Scanning all files regardless of git status. These diagnostics will persist until a file is edited. To default to always scanning regardless of git status, please disable 'Only Git Dirty' in settings",
+            )
 
         self.core_writer.write(msg)
 
@@ -297,6 +218,8 @@ class SemgrepCoreLSServer:
         try:
             self.core_reader.close()
             self.core_writer.close()
+            self.poll_thread.join()
+            self.thread.join()
         except Exception:
             pass
 
@@ -305,14 +228,10 @@ class SemgrepCoreLSServer:
 
 def run_server() -> None:
     log.info("Starting Semgrep language server.")
-    exit_stack = contextlib.ExitStack()
-    rule_file = exit_stack.enter_context(
-        tempfile.NamedTemporaryFile("w+", suffix=".json")
-    )
-    target_file = exit_stack.enter_context(tempfile.NamedTemporaryFile("w+"))
-    server = SemgrepCoreLSServer(rule_file, target_file)
-    exit_stack.callback(server.stop)
-    with exit_stack:
+    server = SemgrepCoreLSServer()
+    try:
         server.start()
+    finally:
+        server.stop()
     log.info("Server stopped!")
     sys.exit(server.exit_code)

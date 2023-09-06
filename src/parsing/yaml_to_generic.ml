@@ -97,8 +97,8 @@ let _pos_str
     s_index (s_line + 1) s_column e_index (e_line + 1) e_column
 
 let tok (index, line, column) str env =
-  Tok.OriginTok
-    { str; pos = { charpos = index; line = line + 1; column; file = env.file } }
+  let pos = Pos.make ~file:env.file ~line:(line + 1) ~column index in
+  Tok.OriginTok { str; pos }
 
 let mk_tok ?(style = `Plain)
     {
@@ -106,16 +106,25 @@ let mk_tok ?(style = `Plain)
       E.end_mark = { M.index = e_index; _ };
       _;
     } str env =
-  let str =
+  let index, line, column, str =
     match style with
-    (* This is for strings that use `|`, `>`, or quotes.
+    (* This is for strings that use `|`, `>` and strip markers `+`, `-`
      *)
     | `Literal
-    | `Folded
+    | `Folded ->
+        let s = String.sub env.text (index + 1) (e_index - index - 1) in
+        let l = String.length s in
+        if String.starts_with "+" s then
+          (index + 2, line, column + 2, String.sub s 1 (l - 1))
+        else if String.starts_with "-" s then
+          (index + 2, line, column + 2, String.sub s 1 (l - 1))
+        else (index + 1, line, column + 1, s)
+    (* This is for strings that use quotes.
+     *)
     | `Double_quoted
     | `Single_quoted ->
-        String.sub env.text index (e_index - index)
-    | __else__ -> str
+        (index, line, column, String.sub env.text index (e_index - index))
+    | __else__ -> (index, line, column, str)
   in
   (* their tokens are 0 indexed for line and column, AST_generic's are 1
    * indexed for line, 0 for column *)
@@ -339,8 +348,20 @@ let parse (env : env) : G.expr list =
     | v, pos ->
         error "Expected a valid YAML element or end of sequence, got" v pos env
   and read_sequence acc : G.expr list * E.pos =
+    (* Capture the mutable `last_event` field prior to parsing, as the *)
+    (* `Sequence_end` event needs to make use of it. *)
+    let last_ev = env.last_event in
     match do_parse env with
-    | E.Sequence_end, pos -> (acc, pos)
+    | E.Sequence_end, pos ->
+        (* The `Sequence_end` event position is inaccurate: it specifies the *)
+        (* position immediately prior to the next token. This causes comments *)
+        (* and the leading whitespace of the next yaml element to be chomped on *)
+        (* autofix. *)
+        let pos' = Option.fold ~none:pos ~some:(fun (_, pos) -> pos) last_ev in
+        (* Important: we mess with the pos, we need to propagate it for consumers *)
+        (* of env.last_ev. *)
+        env.last_event <- Some (E.Sequence_end, pos');
+        (acc, pos')
     | v, pos ->
         let seq = fst (read_node ~node_val:(Some (v, pos)) ()) in
         let rest, end_pos = read_sequence acc in
@@ -356,6 +377,9 @@ let parse (env : env) : G.expr list =
         (* and the leading whitespace of the next yaml element to be chomped on *)
         (* autofix. *)
         let pos' = Option.fold ~none:pos ~some:(fun (_, pos) -> pos) last_ev in
+        (* Important: we mess with the pos, we need to propagate it for consumers *)
+        (* of env.last_ev. *)
+        env.last_event <- Some (E.Mapping_end, pos');
         (acc, pos')
     | v, pos ->
         let map = read_mapping (v, pos) in

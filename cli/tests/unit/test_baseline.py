@@ -16,7 +16,7 @@ def test_baseline_context(monkeypatch, tmp_path):
 
     # Initialize State
     subprocess.check_call(["git", "init"])
-    subprocess.check_call(["git", "config", "user.email", "baselinetest@r2c.dev"])
+    subprocess.check_call(["git", "config", "user.email", "baselinetest@semgrep.com"])
     subprocess.check_call(["git", "config", "user.name", "Baseline Test"])
     subprocess.check_call(["git", "checkout", "-B", "main"])
 

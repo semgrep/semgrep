@@ -51,9 +51,16 @@ let assoc : (string * t) list =
   @ [
       ("regex", LRegex);
       ("none", LRegex);
-      ("generic", LSpacegrep);
-      ("spacegrep", LSpacegrep);
-      ("aliengrep", LAliengrep);
+      ("generic", LSpacegrep)
+      (* this is commented because only 'generic' is allowed in
+       * the languages: field in a Semgrep rule and we don't
+       * want error messages about supported_xlangs to display
+       * those entries.
+       * coupling: see Parse_rule.parse_languages
+       *
+       * ("spacegrep", LSpacegrep);
+       * ("aliengrep", LAliengrep);
+       *);
     ]
 
 let map = Common.hash_of_list assoc
@@ -66,7 +73,6 @@ let unsupported_xlang_message (xlang_s : string) =
     Common.spf "unsupported language: %s; supported language tags are: %s"
       xlang_s supported_xlangs
 
-(* coupling: Parse_mini_rule.parse_languages *)
 let of_string ?rule_id:id_opt s =
   match s with
   | "none"

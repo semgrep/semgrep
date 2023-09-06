@@ -6,6 +6,7 @@
   (libraries
      fpath
      bos
+     uuidm
 
      commons
   )
