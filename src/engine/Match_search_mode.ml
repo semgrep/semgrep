@@ -513,7 +513,7 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
                  in
                  let matches = match_result.matches in
                  (* TODO: equivalent to an abstract_content, so not great *)
-                 let pstr = JSON_report.metavar_string_of_any pat in
+                 let pstr = Core_json_output.metavar_string_of_any pat in
                  (* TODO: could use first_info_of_any pat, but not sure the
                   * tok position in pat are related to the rule of the intermediate
                   * file used to parse the pattern in xpat.pat.
@@ -573,9 +573,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
                      (mvar, Tok.unsafe_fake_tok "")
                      t e env
                  in
-                 logger#info
-                   "range %d-%d filtered from metavar %s type mismatch."
-                   r.r.start r.r.end_ mvar;
+
                  (* the type can also contain metavariables, but we probably
                   * don't want to use that in other parts of the rules, so it's
                   * probably fine to just check whether the match is empty or
@@ -584,7 +582,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
              | None ->
                  error env
                    (spf "couldn't find metavar %s in the match results." mvar);
-                 Some (r, new_bindings))
+                 None)
          (* todo: would be nice to have CondRegexp also work on
           * eval'ed bindings.
           * We could also use re.match(), to be close to python, but really

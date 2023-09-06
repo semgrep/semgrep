@@ -22,26 +22,24 @@ exports[`yaml parser parses a pattern with pattern-regex 1`] = `
       },
       "matches": [
         {
+          "check_id": "test",
+          "end": {
+            "col": 4,
+            "line": 1,
+            "offset": 3,
+          },
           "extra": {
             "engine_kind": "OSS",
             "message": "test",
             "metavars": {},
             "validation_state": "NO_VALIDATOR",
           },
-          "location": {
-            "end": {
-              "col": 4,
-              "line": 1,
-              "offset": 3,
-            },
-            "path": "test.yaml",
-            "start": {
-              "col": 1,
-              "line": 1,
-              "offset": 0,
-            },
+          "path": "test.yaml",
+          "start": {
+            "col": 1,
+            "line": 1,
+            "offset": 0,
           },
-          "rule_id": "test",
         },
       ],
       "op": [
@@ -52,26 +50,24 @@ exports[`yaml parser parses a pattern with pattern-regex 1`] = `
   ],
   "results": [
     {
+      "check_id": "test",
+      "end": {
+        "col": 4,
+        "line": 1,
+        "offset": 3,
+      },
       "extra": {
         "engine_kind": "OSS",
         "message": "test",
         "metavars": {},
         "validation_state": "NO_VALIDATOR",
       },
-      "location": {
-        "end": {
-          "col": 4,
-          "line": 1,
-          "offset": 3,
-        },
-        "path": "test.yaml",
-        "start": {
-          "col": 1,
-          "line": 1,
-          "offset": 0,
-        },
+      "path": "test.yaml",
+      "start": {
+        "col": 1,
+        "line": 1,
+        "offset": 0,
       },
-      "rule_id": "test",
     },
   ],
   "rules_by_engine": [
@@ -110,6 +106,12 @@ exports[`yaml parser parses a simple pattern 1`] = `
       },
       "matches": [
         {
+          "check_id": "test",
+          "end": {
+            "col": 9,
+            "line": 1,
+            "offset": 8,
+          },
           "extra": {
             "engine_kind": "OSS",
             "message": "test",
@@ -130,20 +132,12 @@ exports[`yaml parser parses a simple pattern 1`] = `
             },
             "validation_state": "NO_VALIDATOR",
           },
-          "location": {
-            "end": {
-              "col": 9,
-              "line": 1,
-              "offset": 8,
-            },
-            "path": "test.yaml",
-            "start": {
-              "col": 1,
-              "line": 1,
-              "offset": 0,
-            },
+          "path": "test.yaml",
+          "start": {
+            "col": 1,
+            "line": 1,
+            "offset": 0,
           },
-          "rule_id": "test",
         },
       ],
       "op": [
@@ -154,6 +148,12 @@ exports[`yaml parser parses a simple pattern 1`] = `
   ],
   "results": [
     {
+      "check_id": "test",
+      "end": {
+        "col": 9,
+        "line": 1,
+        "offset": 8,
+      },
       "extra": {
         "engine_kind": "OSS",
         "message": "test",
@@ -174,20 +174,12 @@ exports[`yaml parser parses a simple pattern 1`] = `
         },
         "validation_state": "NO_VALIDATOR",
       },
-      "location": {
-        "end": {
-          "col": 9,
-          "line": 1,
-          "offset": 8,
-        },
-        "path": "test.yaml",
-        "start": {
-          "col": 1,
-          "line": 1,
-          "offset": 0,
-        },
+      "path": "test.yaml",
+      "start": {
+        "col": 1,
+        "line": 1,
+        "offset": 0,
       },
-      "rule_id": "test",
     },
   ],
   "rules_by_engine": [

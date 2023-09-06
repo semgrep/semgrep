@@ -170,6 +170,11 @@ let dotted_ident_of_name (n : name) : dotted_ident =
       in
       before @ [ ident ]
 
+let expr_to_stmt e =
+  match e.e with
+  | StmtExpr stmt -> stmt
+  | _ -> ExprStmt (e, sc) |> G.s
+
 (* In Go/Swift a pattern can be a complex expressions. It is just
  * matched for equality with the thing it's matched against, so in that
  * case it should be a pattern like | _ when expr = x.

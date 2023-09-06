@@ -168,12 +168,16 @@ class SemgrepCoreError(SemgrepError):
         Generate error message exposed to user
         """
         if self.core.rule_id:
-            # For rule errors path is a temp file so for now will just be confusing to add
+            # For rule errors, the path is a temporary JSON file containing
+            # the rule(s).
             if isinstance(
                 self.core.error_type.value, core.RuleParseError
             ) or isinstance(self.core.error_type.value, core.PatternParseError):
                 error_context = f"in rule {self.core.rule_id.value}"
+            elif isinstance(self.core.error_type.value, core.IncompatibleRule_):
+                error_context = self.core.rule_id.value
             else:
+                # This message is suitable only if the error is in a target file:
                 error_context = f"when running {self.core.rule_id.value} on {self.core.location.path.value}"
         else:
             error_context = f"at line {self.core.location.path.value}:{self.core.location.start.line}"

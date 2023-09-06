@@ -77,12 +77,10 @@ def get_rule_match(
         message="message",
         severity=RuleSeverity.ERROR,
         match=core.CoreMatch(
-            rule_id=core.RuleId(rule_id),
-            location=core.Location(
-                path=core.Fpath(filepath),
-                start=core.Position(start_line, 0, start_line * 5),
-                end=core.Position(end_line, 5, end_line * 5 + 5),
-            ),
+            check_id=core.RuleId(rule_id),
+            path=core.Fpath(filepath),
+            start=core.Position(start_line, 0, start_line * 5),
+            end=core.Position(end_line, 5, end_line * 5 + 5),
             extra=core.CoreMatchExtra(
                 metavars=core.Metavars(metavars if metavars else {}),
                 engine_kind=core.EngineKind(core.OSS()),

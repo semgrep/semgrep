@@ -1,0 +1,12 @@
+When `metavariable-type` cannot be evaluated then it defauls to "false", that is,
+it filters out the range. Therefore e.g. this rule:
+
+```yaml
+    patterns:
+      - pattern: private int $X;
+      - metavariable-type:
+          metavariable: $Y
+          type: int
+```
+
+now will produce no matches because `$Y` is not bound to anything.

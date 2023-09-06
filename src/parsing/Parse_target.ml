@@ -20,7 +20,6 @@ open Parsing_result2
 module Flag = Flag_semgrep
 module E = Semgrep_error_code
 module Out = Semgrep_output_v1_t
-module OutH = Output_from_core_util
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -46,7 +45,7 @@ let errors_from_skipped_tokens xs =
   | x :: _ ->
       let e = exn_of_loc x in
       let err = E.exn_to_error None x.Tok.pos.file e in
-      let locs = xs |> Common.map OutH.location_of_token_location in
+      let locs = xs |> Common.map Output_utils.location_of_token_location in
       Report.ErrorSet.singleton { err with typ = Out.PartialParsing locs }
 
 let undefined_just_parse_with_lang _lang _file =

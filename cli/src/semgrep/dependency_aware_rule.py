@@ -96,19 +96,13 @@ def generate_unreachable_sca_findings(
                     fix=None,
                     fix_regex=None,
                     match=core.CoreMatch(
-                        rule_id=core.RuleId(rule.id),
-                        location=core.Location(
-                            path=core.Fpath(str(lockfile_path)),
-                            start=core.Position(found_dep.line_number or 0, 0, 0),
-                            end=core.Position(
-                                (
-                                    found_dep.line_number + 1
-                                    if found_dep.line_number
-                                    else 0
-                                ),
-                                0,
-                                0,
-                            ),
+                        check_id=core.RuleId(rule.id),
+                        path=core.Fpath(str(lockfile_path)),
+                        start=core.Position(found_dep.line_number or 0, 0, 0),
+                        end=core.Position(
+                            (found_dep.line_number + 1 if found_dep.line_number else 0),
+                            0,
+                            0,
                         ),
                         # TODO: we need to define the fields below in
                         # Output_from_core.atd so we can reuse core.MatchExtra

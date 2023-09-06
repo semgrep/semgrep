@@ -740,7 +740,7 @@ class TextFormatter(BaseFormatter):
                 grouped_matches[match.product, subgroup].append(match)
 
             first_party_blocking_rules = {
-                match.match.rule_id.value
+                match.match.check_id.value
                 for match in grouped_matches[RuleProduct.sast, "blocking"]
             }
 

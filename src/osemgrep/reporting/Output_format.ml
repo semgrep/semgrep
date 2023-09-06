@@ -17,16 +17,3 @@ type t =
    *)
   | TextIncremental
 [@@deriving show]
-
-let _output_format_is_json = function
-  | Json
-  | Sarif ->
-      true
-  | Text
-  | Gitlab_sast
-  | Gitlab_secrets
-  | Junit_xml
-  | Emacs
-  | Vim
-  | TextIncremental ->
-      false
