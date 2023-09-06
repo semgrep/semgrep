@@ -511,7 +511,10 @@ class RuleMatch:
             metadata=out.RawJson(self.metadata),
             is_blocking=self.is_blocking,
             dataflow_trace=self.dataflow_trace,
-            validation_state=self.extra.get("validation_state"),
+            # TODO: Currently bypassing extra because it stores a
+            # string instead of a ValidationState. Fix the monkey
+            # patchable version if you want monkey patching to work.
+            validation_state=self.match.extra.validation_state,
         )
 
         if self.extra.get("fixed_lines"):
