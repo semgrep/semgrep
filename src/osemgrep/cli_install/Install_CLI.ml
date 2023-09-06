@@ -25,6 +25,7 @@ type conf = {
   ci_env : ci_env_flavor;
   repo : repo_kind;
   update : bool;
+  dry_run : bool;
   common : CLI_common.conf;
 }
 [@@deriving show]
@@ -72,6 +73,15 @@ let o_update : bool Term.t =
   let doc = "Update any existing workflow and secrets (absent=false)." in
   H.negatable_flag [ "update" ] ~neg_options:[ "no-update" ] ~default:false ~doc
 
+(* NOTE: Should only be required when previous attempts only partially succeeded *)
+let o_dry_run : bool Term.t =
+  let doc =
+    "Simulate outputs without actually running any system commands \
+     (absent=false)."
+  in
+  H.negatable_flag [ "dry-run" ] ~neg_options:[ "no-dry-run" ] ~default:false
+    ~doc
+
 (*************************************************************************)
 (* Command-line parsing: turn argv into conf *)
 (*************************************************************************)
@@ -80,7 +90,7 @@ let cmdline_term =
    * it easier to add new flags as the order must be the same further
    * below after 'const combine'
    *)
-  let combine ci_env common repo_kw repo_pos update =
+  let combine ci_env common dry_run repo_kw repo_pos update =
     let repo_arg = if repo_kw = "." then repo_pos else repo_kw in
     let repo =
       match repo_arg with
@@ -99,11 +109,11 @@ let cmdline_term =
       | "github" -> Github
       | s -> Error.abort (spf "CI_ENV '%s' not supported!" s)
     in
-    { common; ci_env; repo; update }
+    { ci_env; common; dry_run; repo; update }
   in
   Term.(
-    const combine $ o_ci_env $ CLI_common.o_common $ o_repo_kw $ o_repo_pos
-    $ o_update)
+    const combine $ o_ci_env $ CLI_common.o_common $ o_dry_run $ o_repo_kw
+    $ o_repo_pos $ o_update)
 
 let parse_argv (argv : string array) : conf =
   let cmd : conf Cmd.t = Cmd.v cmdline_info cmdline_term in
