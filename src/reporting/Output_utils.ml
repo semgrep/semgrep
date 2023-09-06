@@ -40,7 +40,8 @@ let first_and_last = function
  * python: # 'lines' already contains '\n' at the end of each line
  *   lines="".join(rule_match.lines).rstrip(),
  *)
-let lines_of_file (range : position * position) (file : Fpath.t) : string list =
+let lines_of_file_at_range (range : position * position) (file : Fpath.t) :
+    string list =
   let start, end_ = range in
   File.lines_of_file (start.line, end_.line) file
   [@@profiling]
@@ -51,7 +52,8 @@ let lines_of_file (range : position * position) (file : Fpath.t) : string list =
  * to ignore non-utf8 bytes.
  * See https://stackoverflow.com/a/56441652.
  *)
-let contents_of_file (range : position * position) (file : Fpath.t) : string =
+let content_of_file_at_range (range : position * position) (file : Fpath.t) :
+    string =
   let start, end_ = range in
   let str = File.read_file file in
   String.sub str start.offset (end_.offset - start.offset)

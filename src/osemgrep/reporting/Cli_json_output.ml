@@ -64,7 +64,9 @@ let interpolate_metavars (text : string) (metavars : metavars) (file : filename)
           * name in semgrep_output_v1.atd *)
          let (v : Out.metavar_value) = mval in
          let content =
-           lazy (Output_utils.contents_of_file (v.start, v.end_) (Fpath.v file))
+           lazy
+             (Output_utils.content_of_file_at_range (v.start, v.end_)
+                (Fpath.v file))
          in
          text
          (* first value($X), and then $X *)
@@ -329,8 +331,10 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
         | None -> `Assoc []
         | Some json -> JSON.to_yojson json
       in
+      (* TODO? at this point why not using content_of_file_at_range since
+       * we concatenate the lines after? *)
       let lines =
-        Output_utils.lines_of_file (start, end_) (Fpath.v path)
+        Output_utils.lines_of_file_at_range (start, end_) (Fpath.v path)
         |> String.concat "\n"
       in
       {

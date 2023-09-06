@@ -175,7 +175,7 @@ let metavars startp_of_match_range (s, mval) =
  * pysemgrep).
  *)
 let content_of_loc (loc : Out.location) : string =
-  Output_utils.contents_of_file (loc.start, loc.end_) (Fpath.v loc.path)
+  Output_utils.content_of_file_at_range (loc.start, loc.end_) (Fpath.v loc.path)
 
 let token_to_intermediate_var token : Out.cli_match_intermediate_var option =
   let* location = Output_utils.tokens_to_single_loc [ token ] in
