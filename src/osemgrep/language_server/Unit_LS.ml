@@ -224,10 +224,14 @@ let processed_run () =
 
 let session_rules () =
   let with_ci_client =
-    let make_fn req body =
+    let make_fn (req : Cohttp.Request.t) body =
       ignore body;
-      Testing_client.check_method req "GET";
-      Lwt.return Testing_client.(basic_response "./tests/ls/ci/response.json")
+      Testing_client.check_method `GET req.meth;
+      Lwt.return
+        Testing_client.(
+          basic_response
+            ("./tests/ls/ci/response.json" |> Common.read_file
+           |> Cohttp_lwt.Body.of_string))
     in
     Testing_client.with_testing_client make_fn
   in
