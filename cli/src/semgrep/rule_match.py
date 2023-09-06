@@ -447,7 +447,7 @@ class RuleMatch:
             return blocking
 
     @property
-    def dataflow_trace(self) -> Optional[core.CliMatchDataflowTrace]:
+    def dataflow_trace(self) -> Optional[core.MatchDataflowTrace]:
         return self.match.extra.dataflow_trace
 
     @property
