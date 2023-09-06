@@ -31,11 +31,34 @@ open Common
    Translated from cli.py and commands/wrapper.py
 *)
 
+module Env = Semgrep_envvars
+
 (*****************************************************************************)
 (* Constants *)
 (*****************************************************************************)
 
 let default_subcommand = "scan"
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+(* Minimal adaptation of pysemgrep state.terminal.init_for_cli()  *)
+let init_for_cli () : unit =
+  (* TOPORT:
+     1. GITHUB_ACTIONS specific output requirements
+     2. Any NO_COLOR / SEMGREP_FORCE_NO_COLOR behavior
+  *)
+  match Env.v.user_agent_append with
+  | Some str -> Metrics_.add_user_agent_tag ~str
+  | _ -> ()
+
+(* Minimal adaptation of pysemgrep state.app_session.authenticate()  *)
+let authenticate () : unit =
+  let settings = Semgrep_settings.load () in
+  let api_token = settings.Semgrep_settings.api_token in
+  Metrics_.add_token (Some api_token);
+  ()
 
 (*****************************************************************************)
 (* Subcommands dispatch *)
@@ -108,6 +131,8 @@ let dispatch_subcommand argv =
       (* coupling: with known_subcommands if you add an entry below.
        * coupling: with Help.ml if you add an entry below.
        *)
+      Metrics_.add_feature "subcommand" subcmd;
+      Metrics_.add_user_agent_tag ~str:(spf "command/%s" subcmd);
       try
         match subcmd with
         (* TODO: gradually remove those 'when experimental' guards as
@@ -251,14 +276,13 @@ let main argv : Exit_code.t =
   (* hacks for having a smaller engine.js file *)
   Parsing_init.init ();
   Data_init.init ();
+  init_for_cli ();
+  authenticate ();
 
   (* TOPORT:
-      state.terminal.init_for_cli()
-      state.app_session.authenticate()
-      state.app_session.user_agent.tags.add(f"command/{subcommand}")
-      state.metrics.add_feature("subcommand", subcommand)
       maybe_set_git_safe_directories()
   *)
+
   (*TOADAPT? adapt more of Common.boilerplate? *)
   let exit_code = safe_run ~debug (fun () -> dispatch_subcommand argv) in
   Metrics_.add_exit_code exit_code;

@@ -385,8 +385,10 @@ let write_workflow_file ~git_dir:dir : unit =
    2. Commit and push changes to the repo
    3. Open a PR to the repo to merge the changes
 *)
-let add_semgrep_workflow ~repo ~token ~update : unit =
-  if semgrep_workflow_exists ~repo && not update then
+let add_semgrep_workflow ~repo ~token ~update ~dry_run : unit =
+  if dry_run then
+    Logs.info (fun m -> m "Skipping actual workflow operations for dry-run")
+  else if semgrep_workflow_exists ~repo && not update then
     Logs.info (fun m -> m "Semgrep workflow already present, skipping")
   else (
     Logs.info (fun m -> m "Preparing Semgrep workflow for %s" repo);
@@ -420,7 +422,8 @@ let run (conf : Install_CLI.conf) : Exit_code.t =
       prompt_gh_auth_if_needed ();
       set_ssh_as_default ();
       (* let's go! *)
-      add_semgrep_workflow ~repo:(get_repo conf.repo) ~token ~update:conf.update;
+      add_semgrep_workflow ~repo:(get_repo conf.repo) ~token ~update:conf.update
+        ~dry_run:conf.dry_run;
       Logs.app (fun m ->
           m "%s Installed semgrep workflow for this repository"
             (Logs_helpers.success_tag ()));

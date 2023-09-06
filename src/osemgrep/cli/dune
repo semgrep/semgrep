@@ -20,6 +20,7 @@
     osemgrep_cli_install
     osemgrep_cli_show
     osemgrep_cli_test
+    osemgrep_configuring
 
     ; reusing code from Core_cli
     semgrep_core_cli

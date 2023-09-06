@@ -16,6 +16,7 @@ val converter : config Cmdliner.Arg.conv
 
 type t = {
   mutable is_using_registry : bool;
+  mutable user_agent : string list;
   mutable payload : Semgrep_metrics_t.payload;
   mutable config : config;
 }
@@ -31,6 +32,7 @@ val g : t
 val configure : config -> unit
 val add_engine_type : name:string -> unit
 val is_using_registry : unit -> bool
+val add_user_agent_tag : str:string -> unit
 val add_project_url : string option -> unit
 val add_configs : configs:string list -> unit
 val add_integration_name : string option -> unit

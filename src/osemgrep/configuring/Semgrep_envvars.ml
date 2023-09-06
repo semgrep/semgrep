@@ -55,11 +55,13 @@ type t = {
   semgrep_url : Uri.t;
   fail_open_url : Uri.t;
   app_token : string option;
+  integration_name : string option;
   version_check_url : Uri.t;
   version_check_timeout : int;
   version_check_cache_path : Fpath.t;
   git_command_timeout : int;
   src_directory : Fpath.t;
+  user_agent_append : string option;
   user_dot_semgrep_dir : Fpath.t;
   user_log_file : Fpath.t;
   user_settings_file : Fpath.t;
@@ -88,6 +90,7 @@ let v : t =
       env_or Uri.of_string "SEMGREP_FAIL_OPEN_URL"
         (Uri.of_string "https://fail-open.prod.semgrep.dev/failure");
     app_token = env_opt "SEMGREP_APP_TOKEN";
+    integration_name = env_opt "SEMGREP_INTEGRATION_NAME";
     version_check_url =
       env_or Uri.of_string "SEMGREP_VERSION_CHECK_URL"
         (Uri.of_string "https://semgrep.dev/api/check-version");
@@ -98,6 +101,7 @@ let v : t =
         (Fpath.v (Sys.getcwd ()) / ".cache" / "semgrep_version");
     git_command_timeout = env_or int_of_string "SEMGREP_GIT_COMMAND_TIMEOUT" 300;
     src_directory = env_or Fpath.v "SEMGREP_SRC_DIRECTORY" (Fpath.v "/src");
+    user_agent_append = env_opt "SEMGREP_USER_AGENT_APPEND";
     user_dot_semgrep_dir;
     user_log_file =
       env_or Fpath.v "SEMGREP_LOG_FILE" (user_dot_semgrep_dir / "semgrep.log");

@@ -14,6 +14,7 @@ type t = {
   (* $SEMGREP_xxx *)
   fail_open_url : Uri.t;
   app_token : string option;
+  integration_name : string option;
   version_check_url : Uri.t;
   version_check_timeout : int;
   (* .cache/semgrep_version *)
@@ -21,6 +22,8 @@ type t = {
   git_command_timeout : int;
   (* "/src" *)
   src_directory : Fpath.t;
+  (* $SEMGREP_USER_AGENT_APPEND (Docker) *)
+  user_agent_append : string option;
   (* $XDG_CONFIG_HOME/.semgrep or ~/.semgrep *)
   user_dot_semgrep_dir : Fpath.t;
   (* $SEMGREP_LOG_FILE or ~/.semgrep/semgrep.log  *)

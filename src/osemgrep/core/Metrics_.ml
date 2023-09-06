@@ -1,3 +1,4 @@
+open Common
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -24,6 +25,7 @@ module Out = Semgrep_output_v1_t
 (*****************************************************************************)
 
 let _metrics_endpoint = "https://metrics.semgrep.dev"
+let _base_user_agent = spf "Semgrep/%s" Version.version
 
 (*
      Configures metrics upload.
@@ -50,6 +52,7 @@ let converter = Cmdliner.Arg.enum [ ("on", On); ("off", Off); ("auto", Auto) ]
 
 type t = {
   mutable is_using_registry : bool;
+  mutable user_agent : string list;
   mutable payload : Semgrep_metrics_t.payload;
   mutable config : config;
 }
@@ -101,7 +104,12 @@ let default_payload =
   }
 
 let default =
-  { is_using_registry = false; payload = default_payload; config = Off }
+  {
+    is_using_registry = false;
+    user_agent = [ _base_user_agent ];
+    payload = default_payload;
+    config = Off;
+  }
 
 (*****************************************************************************)
 (* Global! *)
@@ -123,6 +131,15 @@ open Semgrep_metrics_t
 
 let add_engine_type ~name = g.payload.value.engineRequested <- name
 let is_using_registry () = g.is_using_registry
+
+let add_user_agent_tag ~str =
+  let str =
+    spf "(%s)"
+      (str
+      |> Base.String.chop_prefix_if_exists "("
+      |> Base.String.chop_suffix_if_exists ")")
+  in
+  g.user_agent <- g.user_agent @ [ str ]
 
 let add_project_url = function
   | None -> g.payload.environment.projectHash <- None
