@@ -97,7 +97,8 @@ jobs:
 
   upload-javascript-artifacts:
     needs: [build-test-js-artifacts]
-    if: github.ref == 'refs/heads/develop' || github.event.pull_request.head.repo.full_name == github.repository
+    # in english: (this pull request is not from a fork) AND (branch is "develop" OR branch starts with "release-" OR pull request has a "publish-js" label applied to it)
+    if: github.event.pull_request.head.repo.full_name == github.repository && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/release-') || contains(github.event.pull_request.labels.*.name, 'publish-js'))
     runs-on: ubuntu-latest
     permissions:
       id-token: write
