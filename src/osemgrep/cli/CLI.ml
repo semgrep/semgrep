@@ -175,18 +175,6 @@ let dispatch_subcommand argv =
     - Handles metric sending before exit
  *)
 let safe_run ~debug f : Exit_code.t =
-  (* TOPORT:
-     the maybe_set_git_safe_directories() but would be better
-      to do that in the Dockerfile or set the ownership rights
-      in CI calls.
-     finally:
-      metrics = get_state().metrics
-      metrics.add_exit_code(exit_code)
-      metrics.send()
-
-      error_handler = get_state().error_handler
-      exit_code = error_handler.send(exit_code)
-  *)
   if debug then f ()
   else
     try f () with
@@ -279,13 +267,12 @@ let main argv : Exit_code.t =
   init_for_cli ();
   authenticate ();
 
-  (* TOPORT:
-      maybe_set_git_safe_directories()
-  *)
+  (* TOPORT: maybe_set_git_safe_directories() *)
 
   (*TOADAPT? adapt more of Common.boilerplate? *)
   let exit_code = safe_run ~debug (fun () -> dispatch_subcommand argv) in
   Metrics_.add_exit_code exit_code;
+  Logs.debug (fun m -> m "Metrics: %s" (Metrics_.string_of_metrics ()));
   (* TODO(dinosaure): currently, even if we record the [exit_code], we will
    * never send the final report **with** the exit code to the server. We
    * send it before this call. At some point, we should handle correctly

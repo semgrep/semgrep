@@ -32,6 +32,7 @@ val g : t
 val configure : config -> unit
 val add_engine_type : name:string -> unit
 val is_using_registry : unit -> bool
+val string_of_metrics : unit -> string
 val add_user_agent_tag : str:string -> unit
 val add_project_url : string option -> unit
 val add_configs : configs:string list -> unit

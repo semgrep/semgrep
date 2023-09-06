@@ -132,6 +132,11 @@ open Semgrep_metrics_t
 let add_engine_type ~name = g.payload.value.engineRequested <- name
 let is_using_registry () = g.is_using_registry
 
+let string_of_metrics () =
+  let json = Semgrep_metrics_j.string_of_payload g.payload in
+  let json = Yojson.Safe.from_string json in
+  Yojson.Safe.pretty_to_string json
+
 let add_user_agent_tag ~str =
   let str =
     spf "(%s)"
