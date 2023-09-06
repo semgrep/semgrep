@@ -31,7 +31,7 @@ from semgrep.semgrep_types import SEARCH_MODE
 class RuleProduct(Enum):
     sast = auto()
     sca = auto()
-
+    secrets = auto()
 
 class Rule:
     def __init__(

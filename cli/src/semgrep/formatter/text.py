@@ -63,6 +63,9 @@ GROUP_TITLES: Dict[Tuple[RuleProduct, str], str] = {
     (RuleProduct.sast, "nonblocking"): "Non-blocking Code Finding",
     (RuleProduct.sast, "blocking"): "Blocking Code Finding",
     (RuleProduct.sast, "merged"): "Code Finding",
+    (RuleProduct.secrets, "valid"): "Valid Secrets Finding",
+    (RuleProduct.secrets, "invalid"): "Invalid Secrets Finding",
+    (RuleProduct.secrets, "unvalidated"): "Unvalidated Secrets Finding",
 }
 
 
@@ -726,9 +729,12 @@ class TextFormatter(BaseFormatter):
                 # ordered most important to least important
                 (RuleProduct.sast, "blocking"): [],
                 (RuleProduct.sca, "reachable"): [],
+                (RuleProduct.secrets, "valid"): [],
                 (RuleProduct.sca, "undetermined"): [],
+                (RuleProduct.secrets, "unvalidated"): [],
                 (RuleProduct.sca, "unreachable"): [],
                 (RuleProduct.sast, "nonblocking"): [],
+                (RuleProduct.secrets, "invalid"): [],
             }
 
             for match in rule_matches:
