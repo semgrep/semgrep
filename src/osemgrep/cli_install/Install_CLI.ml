@@ -25,7 +25,7 @@ type conf = {
   ci_env : ci_env_flavor;
   repo : repo_kind;
   update : bool;
-  commons : CLI_common.conf;
+  common : CLI_common.conf;
 }
 [@@deriving show]
 
@@ -80,7 +80,7 @@ let cmdline_term =
    * it easier to add new flags as the order must be the same further
    * below after 'const combine'
    *)
-  let combine ci_env commons repo_kw repo_pos update =
+  let combine ci_env common repo_kw repo_pos update =
     let repo_arg = if repo_kw = "." then repo_pos else repo_kw in
     let repo =
       match repo_arg with
@@ -99,7 +99,7 @@ let cmdline_term =
       | "github" -> Github
       | s -> Error.abort (spf "CI_ENV '%s' not supported!" s)
     in
-    { commons; ci_env; repo; update }
+    { common; ci_env; repo; update }
   in
   Term.(
     const combine $ o_ci_env $ CLI_common.o_common $ o_repo_kw $ o_repo_pos

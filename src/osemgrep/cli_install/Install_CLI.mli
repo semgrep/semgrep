@@ -18,7 +18,7 @@ type conf = {
    * Should only be required when previous attempts only partially succeeded.
    *)
   update : bool;
-  commons : CLI_common.conf;
+  common : CLI_common.conf;
 }
 [@@deriving show]
 
