@@ -37,10 +37,20 @@ let get_repo (repo : repo_kind) : string =
 (*****************************************************************************)
 (* Manpage Documentation *)
 (*****************************************************************************)
-let doc = "Install semgrep in CI environment"
+let doc = "Install semgrep as a workflow within a CI environment."
+
+let long_desc =
+  Printf.sprintf
+    {|%s Specify a git repository path (e.g. ".") or qualified repo name (e.g. "owner/repo"),
+and this command will add the semgrep actions workflow. The workflow file will run `semgrep ci`
+on every pull request opened on a main branch.
+
+NOTE: Currently, this command only supports Github Actions.
+|}
+    doc
 
 let man : Cmdliner.Manpage.block list =
-  [ `S Cmdliner.Manpage.s_description; `P "Install semgrep in CI environment" ]
+  [ `S Cmdliner.Manpage.s_description; `P long_desc ]
   @ CLI_common.help_page_bottom
 
 let cmdline_info : Cmd.info = Cmd.info "semgrep install" ~doc ~man
@@ -48,20 +58,23 @@ let cmdline_info : Cmd.info = Cmd.info "semgrep install" ~doc ~man
 (*****************************************************************************)
 (* Flags *)
 (*****************************************************************************)
+(* TODO: Maybe support other CI environments? *)
 let o_ci_env : string Term.t =
   let doc = "Specify a CI environment." in
   Arg.(value & opt string "Github" & info [ "env" ] ~docv:"CI_ENV" ~doc)
 
+(* NOTE: Takes precedence over o_repo_pos *)
 let o_repo_kw : string Term.t =
-  let doc = "Specify a repository path." in
+  let doc = "Specify a repository path or repo name." in
   Arg.(value & opt string "." & info [ "r"; "repo" ] ~docv:"REPO_PATH" ~doc)
 
 let o_repo_pos : string Term.t =
-  let doc = "Specify a repository path (via positional argument)." in
+  let doc = "Specify a repository path or repo name." in
   Arg.(value & pos 0 string "." & info [] ~docv:"REPO_PATH" ~doc)
 
+(* NOTE: Should only be required when previous attempts only partially succeeded *)
 let o_update : bool Term.t =
-  let doc = "Update existing workflow and secrets." in
+  let doc = "Update any existing workflow and secrets (absent=false)." in
   H.negatable_flag [ "update" ] ~neg_options:[ "no-update" ] ~default:false ~doc
 
 (*************************************************************************)
@@ -86,7 +99,7 @@ let cmdline_term =
       let provider = String.lowercase_ascii provider in
       match provider with
       | "github" -> Github
-      | _ -> Error.abort (spf "ci env not supported: %s" provider)
+      | _ -> Error.abort (spf "CI_ENV '%s' not supported!" provider)
     in
     { logging_level; ci_env; repo; update }
   in
