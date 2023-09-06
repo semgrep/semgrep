@@ -102,6 +102,8 @@ and id_kind =
   | ID_Global (* prefixed by $ *)
 [@@deriving show { with_path = false }, eq, ord]
 
+type qualified = variable list [@@deriving show { with_path = false }, eq, ord]
+
 (* ------------------------------------------------------------------------- *)
 (* Operators *)
 (* ------------------------------------------------------------------------- *)
@@ -214,14 +216,17 @@ type expr =
   (* TODO: ArrayAccess of expr * expr list bracket *)
   (* old: was Binop(e1, Op_DOT, e2) before *)
   | DotAccess of expr * tok (* . or &. *) * method_name
+  | DotAccessEllipsis of expr * tok (* '...' *)
   (* in argument, pattern, exn, assignment lhs or rhs.
    * old: was Unary(Op_UStar), or UOperator(Op_UStar).
    * expr is None only when Splat is used as last element in assign.
    *)
   | Splat of tok (* '*', but also ',' in mlhs *) * expr option
+  | Rescue of expr * (* rescue *) tok * expr
   (* true = {}, false = do/end *)
   | CodeBlock of bool bracket * formal_param list option * stmts
   | Lambda of tok * formal_param list option * stmts
+  | Match of expr * (* => or in *) tok * pattern
   | S of stmt
   | D of definition
   (* sgrep-ext: *)
@@ -229,6 +234,8 @@ type expr =
   | DeepEllipsis of expr bracket
   (* TODO: unused for now, need find a syntax *)
   | TypedMetavar of ident * tok * type_
+  (* only really for standalone ampersand & and hash splat ** *)
+  | TodoExpr of string * tok
 
 (* less: use for Assign, can be Id, Tuple, Array, more? *)
 and lhs = expr
@@ -242,6 +249,7 @@ and argument =
    * They are converted to AST_generic.ArgKwd in ruby_to_generic.ml though.
    *)
   | ArgKwd of ident * tok (* : *) * expr
+  | ArgAmp of tok
 
 and arguments = argument list
 
@@ -330,7 +338,32 @@ and variable_or_method_name =
 (* arg or splat_argument in case/when, but
  * also tuple in lhs of Assign.
  *)
-and pattern = expr
+and pattern =
+  | PatId of variable
+  | PatLiteral of literal
+  | PatAtom of atom
+  | PatDisj of pattern * pattern
+  | PatExpr of expr
+  | PatTuple of pattern list bracket
+  | PatConstructor of qualified * pattern list
+  | PatList of patlist_arg list bracket
+  | PatWhen of pattern * expr
+  | PatAs of pattern * ident
+  (* This is an example of "variable pinning", which lets a variable's value be
+     used during a pattern match, instead of binding a new identifier.
+     https://jemma.dev/blog/variable-pinning
+
+     I don't know if the expression general case also is... I can't find any
+     documentation on it *anywhere*. But let's assume so.
+  *)
+  | PatPin of tok * expr
+
+and patlist_arg =
+  | PArgSplat of tok * ident option
+  | PArgKeyVal of pattern * (* : *) tok * pattern option
+  | PArgPat of pattern
+  (* sgrep-ext: *)
+  | PArgEllipsis of tok
 
 (*****************************************************************************)
 (* Type *)
@@ -410,7 +443,7 @@ and definition =
 and formal_param =
   (* old: was of expr before *)
   | Formal_id of ident (* usually just xx but sometimes also @xx or $xx *)
-  | Formal_amp of tok * ident
+  | Formal_amp of tok * ident option
   (* less: Formal_splat of tok * ident option *)
   | Formal_star of tok * ident (* as in *x *)
   | Formal_rest of tok (* just '*' *)
@@ -419,6 +452,8 @@ and formal_param =
   (* treesitter: TSNOTDYP *)
   | Formal_hash_splat of tok * ident option
   | Formal_kwd of ident * tok * expr option
+  (* https://blog.saeloun.com/2019/12/04/ruby-2-7-adds-new-operator-for-arguments-forwarding/ *)
+  | Formal_fwd of (* ... *) tok
   (* sgrep-ext: *)
   | ParamEllipsis of tok
 
@@ -495,6 +530,7 @@ let keyword_arg_to_expr id tk arg =
 let arg_to_expr = function
   | Arg e -> e
   | ArgKwd (id, tk, arg) -> keyword_arg_to_expr id tk arg
+  | ArgAmp tk -> TodoExpr ("ArgAmp", tk)
 
 let args_to_exprs xs = List.map arg_to_expr xs
 let exprs_to_args xs = List.map (fun x -> Arg x) xs
