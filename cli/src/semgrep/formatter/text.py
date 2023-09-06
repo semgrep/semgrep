@@ -239,7 +239,7 @@ def match_to_lines(
 
 def call_trace_to_lines(
     ref_path: Path,
-    call_trace: out.CliMatchCallTrace,
+    call_trace: out.MatchCallTrace,
     color_output: bool,
     per_finding_max_lines_limit: Optional[int],
     per_line_max_chars_limit: Optional[int],
@@ -309,7 +309,7 @@ def call_trace_to_lines(
 
 def dataflow_trace_to_lines(
     rule_match_path: Path,
-    dataflow_trace: Optional[out.CliMatchDataflowTrace],
+    dataflow_trace: Optional[out.MatchDataflowTrace],
     color_output: bool,
     per_finding_max_lines_limit: Optional[int],
     per_line_max_chars_limit: Optional[int],
