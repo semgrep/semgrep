@@ -106,6 +106,7 @@ jobs:
   build-test-docker-nonroot:
     uses: ./.github/workflows/build-test-docker.yaml
     secrets: inherit
+    needs: [inputs]
     with:
       docker-flavor: |
         latest=auto
