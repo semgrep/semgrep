@@ -3,7 +3,7 @@ rules:
     patterns:
       - pattern-regex: "'foo(.*)bar.*qux'"
       - pattern-regex: "'foo.*bar(.*)qux'"
-    message: Demo $X. This also demonstrates Julia singleton parens.
+    message: These should not unify and kill the match!
     languages:
       - python
     severity: WARNING

@@ -1,6 +1,6 @@
 
-# ERROR:
+# ruleid: capture-group-unification
 x = 'foo1bar2qux'
 
-# ERROR:
+# ruleid: capture-group-unification
 y = 'foo1bar1qux'
