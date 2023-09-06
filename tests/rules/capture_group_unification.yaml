@@ -1,0 +1,9 @@
+rules:
+  - id: capture-group-unification
+    patterns:
+      - pattern-regex: "'foo(.*)bar.*qux'"
+      - pattern-regex: "'foo.*bar(.*)qux'"
+    message: Demo $X. This also demonstrates Julia singleton parens.
+    languages:
+      - python
+    severity: WARNING

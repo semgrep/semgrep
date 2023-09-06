@@ -65,6 +65,7 @@ let included_in config rv1 rv2 =
      |> List.for_all (fun (mvar, mval1) ->
             match List.assoc_opt mvar rv2.mvars with
             | None -> true
+            | _ when Metavariable.is_metavar_for_capture_group mvar -> true
             | Some mval2 ->
                 Matching_generic.equal_ast_bound_code config mval1 mval2)
 
