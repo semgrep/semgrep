@@ -5,15 +5,17 @@
 (* internal function used for the 'lines:' field in the JSON output
  * but also now in Output.ml for the Emacs output.
  *)
-val lines_of_file :
+val lines_of_file_at_range :
   Semgrep_output_v1_t.position * Semgrep_output_v1_t.position ->
   Fpath.t ->
   string list
 
-(* for now used only to interpolate metavars in the 'message:' field *)
-val contents_of_file :
+(* used to interpolate metavars in the 'message:' field and
+ * for the dataflow call traces.
+ *)
+val content_of_file_at_range :
   Semgrep_output_v1_t.position * Semgrep_output_v1_t.position ->
-  Common.filename ->
+  Fpath.t ->
   string
 
 val position_of_token_location : Tok.location -> Semgrep_output_v1_t.position
