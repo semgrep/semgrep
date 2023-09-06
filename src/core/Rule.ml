@@ -596,6 +596,7 @@ and invalid_rule_error_kind =
       Version_info.t (* this version of Semgrep *)
       * (Version_info.t option (* minimum version supported by this rule *)
         * Version_info.t option (* maximum version *))
+  | MissingPlugin of string (* error message *)
   | InvalidOther of string
 [@@deriving show]
 
@@ -662,6 +663,7 @@ let string_of_invalid_rule_error_kind = function
         (Version_info.to_string max_version)
         (Version_info.to_string cur)
   | IncompatibleRule (_, (None, None)) -> assert false
+  | MissingPlugin msg -> msg
   | InvalidOther s -> s
 
 let string_of_invalid_rule_error ((kind, rule_id, pos) : invalid_rule_error) =

@@ -132,12 +132,14 @@ let try_and_raise_invalid_pattern_if_error (env : env) (s, t) f =
   | (Time_limit.Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
   (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
   | exn ->
-      Rule.raise_error (Some env.id)
-        (InvalidRule
-           ( InvalidPattern
-               (s, env.languages.target_analyzer, Common.exn_to_s exn, env.path),
-             env.id,
-             t ))
+      let error_kind : R.invalid_rule_error_kind =
+        match exn with
+        | Parsing_plugin.Missing_plugin msg -> MissingPlugin msg
+        | exn ->
+            InvalidPattern
+              (s, env.languages.target_analyzer, Common.exn_to_s exn, env.path)
+      in
+      Rule.raise_error (Some env.id) (InvalidRule (error_kind, env.id, t))
 
 (*****************************************************************************)
 (* Helpers *)

@@ -116,6 +116,8 @@ class SemgrepCoreError(SemgrepError):
             return "Pattern parse error"
         if isinstance(type_.value, core.IncompatibleRule_):
             return "Incompatible rule"
+        if isinstance(type_.value, core.MissingPlugin):
+            return "Missing plugin"
         # All the other cases don't have arguments in Semgrep_output_v1.atd
         # and have some <json name="..."> annotations to generate the right string
         else:
@@ -176,6 +178,8 @@ class SemgrepCoreError(SemgrepError):
                 error_context = f"in rule {self.core.rule_id.value}"
             elif isinstance(self.core.error_type.value, core.IncompatibleRule_):
                 error_context = self.core.rule_id.value
+            elif isinstance(self.core.error_type.value, core.MissingPlugin):
+                error_context = f"for rule {self.core.rule_id.value}"
             else:
                 # This message is suitable only if the error is in a target file:
                 error_context = f"when running {self.core.rule_id.value} on {self.core.location.path.value}"
