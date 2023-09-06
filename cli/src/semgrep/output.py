@@ -440,7 +440,7 @@ class OutputHandler:
 
     def _build_output(self) -> str:
         # CliOutputExtra members
-        cli_paths = out.CliPaths(
+        cli_paths = out.ScannedAndSkipped(
             scanned=[str(path) for path in sorted(self.all_targets)],
             _comment=None,
             skipped=None,
@@ -463,14 +463,14 @@ class OutputHandler:
                 self.profiler,
             )
         if self.settings.verbose_errors:
-            # TODO: use CliSkippedTarget directly in ignore_log or in yield_json_objects at least
+            # TODO: use SkippedTarget directly in ignore_log or in yield_json_objects at least
             skipped = sorted(
                 self.ignore_log.yield_json_objects(), key=lambda x: Path(x["path"])
             )
             cli_paths = dataclasses.replace(
                 cli_paths,
                 skipped=[
-                    out.CliSkippedTarget(
+                    out.SkippedTarget(
                         path=out.Fpath(x["path"]),
                         reason=out.SkipReason.from_json(x["reason"]),
                     )
