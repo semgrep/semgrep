@@ -1,25 +1,26 @@
 (*
-   'semgrep install' command-line parsing.
+   'semgrep install-ci ...' command-line parsing.
 *)
 
-(*
-   The result of parsing a 'semgrep install' command.
-*)
-
+(* we only support Github Actions (GHA) for now *)
 type ci_env_flavor = Github [@@deriving show]
 
 type repo_kind =
-  | Dir of Fpath.t (* local directory *)
+  | Dir of Fpath.t (* local directory, usually simply "." *)
   | Repository of string * string (* owner, repo *)
 [@@deriving show]
 
+(* The result of parsing a 'semgrep install-ci ...' command *)
 type conf = {
   ci_env : ci_env_flavor;
-  logging_level : Logs.level option;
   repo : repo_kind;
+  (* To update an existing workflow (default to false).
+   * Should only be required when previous attempts only partially succeeded.
+   *)
   update : bool;
+  commons : CLI_common.conf;
 }
 [@@deriving show]
 
-val get_repo : repo_kind -> string
+(* entry point *)
 val parse_argv : string array -> conf
