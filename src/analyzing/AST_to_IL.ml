@@ -112,6 +112,15 @@ let fixme_stmt kind gany =
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+
+let treats_expr_as_stmt (lang : Lang.t) =
+  match lang with
+  | Rust
+  | Julia
+  | Ruby ->
+      true
+  | _ -> false
+
 let fresh_var ?(str = "_tmp") _env tok =
   let tok =
     (* We don't want "fake" auxiliary variables to have non-fake tokens, otherwise
@@ -178,7 +187,27 @@ let add_instr env instr = Common.push (mk_s (Instr instr)) env.stmts
  * itself is already a variable! *)
 let mk_aux_var ?str env tok exp =
   match exp.e with
-  | Fetch ({ base = Var var; rev_offset = []; _ } as lval) -> (var, lval)
+  | Fetch ({ base = Var var; rev_offset = []; _ } as lval) ->
+      (* Create an assignment instruction for languages that treat
+       * expressions as statements. This is needed in case the
+       * expression is returning from a function.
+       *
+       * If we don't generate this assignment, functions like,
+       *   function f(s) {
+       *     s
+       *   }
+       * will end up having an empty CFG, losing information about s.
+       *)
+      (if env.lang |> treats_expr_as_stmt then
+       let var = fresh_var ?str env tok in
+       let lval = lval_of_base (Var var) in
+       add_instr env (mk_i (Assign (lval, exp)) NoOrig));
+      (* We would still want to return the original lval because if
+       * this lval is part of a larger expression with side-effects, we
+       * want the analysis to know that the side-effect is happening to
+       * this lval.
+       *)
+      (var, lval)
   | _ ->
       let var = fresh_var ?str env tok in
       let lval = lval_of_base (Var var) in
