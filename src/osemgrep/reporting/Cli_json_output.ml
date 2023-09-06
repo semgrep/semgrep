@@ -159,10 +159,17 @@ let error_message ~rule_id ~(location : Out.location)
   let path = location.path in
   let error_context =
     match (rule_id, error_type) with
-    (* # For rule errors, path is a temp file so will just be confusing *)
+    (* For rule errors, the path is a temporary JSON file containing
+       the broken rule(s). *)
     | Some id, (RuleParseError | PatternParseError _) -> spf "in rule %s" id
-    | Some id, _else_ -> spf "when running %s on %s" id path
-    | _else_ -> spf "at line %s:%d" path location.start.line
+    | ( Some id,
+        ( PartialParsing _ | ParseError | SpecifiedParseError | AstBuilderError
+        | InvalidYaml | MatchingError | SemgrepMatchFound | TooManyMatches
+        | FatalError | Timeout | OutOfMemory | TimeoutDuringInterfile
+        | OutOfMemoryDuringInterfile ) ) ->
+        spf "when running %s on %s" id path
+    | Some id, IncompatibleRule _ -> id
+    | _ -> spf "at line %s:%d" path location.start.line
   in
   spf "%s %s:\n %s" (error_type_string error_type) error_context core_message
 
