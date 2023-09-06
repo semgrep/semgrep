@@ -137,7 +137,7 @@ let get_merge_base commit =
   | Ok (merge_base, (_, `Exited 0)) -> merge_base
   | _ -> raise (Error "Could not get merge base from git merge-base")
 
-let run_with_worktree ~commit f =
+let run_with_worktree ~commit ?(branch = None) f =
   let cwd = Sys.getcwd () |> Fpath.v |> Fpath.to_dir_path in
   let git_root = get_git_root_path () |> Fpath.v |> Fpath.to_dir_path in
   let relative_path =
@@ -153,7 +153,13 @@ let run_with_worktree ~commit f =
     dir
   in
   let temp_dir = rand_dir () in
-  let cmd = Bos.Cmd.(v "git" % "worktree" % "add" % temp_dir % commit) in
+  let cmd =
+    match branch with
+    | None -> Bos.Cmd.(v "git" % "worktree" % "add" % temp_dir % commit)
+    | Some new_branch ->
+        Bos.Cmd.(
+          v "git" % "worktree" % "add" % temp_dir % commit % "-b" % new_branch)
+  in
   let status = Bos.OS.Cmd.run_status ~quiet:true cmd in
   match status with
   | Ok (`Exited 0) ->

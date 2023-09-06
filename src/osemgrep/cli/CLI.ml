@@ -55,6 +55,7 @@ let known_subcommands =
     "publish";
     "scan";
     (* osemgrep-only *)
+    "install";
     "interactive";
     "show";
   ]
@@ -123,6 +124,7 @@ let dispatch_subcommand argv =
         (* partial support, still use Pysemgrep.Fallback in it *)
         | "scan" -> Scan_subcommand.main subcmd_argv
         (* osemgrep-only: and by default! no need experimental! *)
+        | "install" -> Install_subcommand.main subcmd_argv
         | "interactive" -> Interactive_subcommand.main subcmd_argv
         | "show" -> Show_subcommand.main subcmd_argv
         (* LATER: "test" *)
