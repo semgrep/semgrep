@@ -64,6 +64,10 @@ val mk_params_env :
   Dataflow_tainting.config ->
   AST_generic.function_definition ->
   Taint_lval_env.t
+(** Constructs the initial taint environment for a given function definition.
+ * Essentially, it records the parameters that are taint sources, or whose
+ * default value is a taint source.
+ * It is exposed to be used by inter-file taint analysis in Pro.  *)
 
 val check_fundef :
   Lang.t ->
