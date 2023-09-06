@@ -203,7 +203,8 @@ let finding_of_cli_match _commit_date index (m : Out.cli_match) : Out.finding =
           (* TODO: if self.extra.get("fixed_lines"): ret.fixed_lines = self.extra.get("fixed_lines") *);
         sca_info = None;
         (* TODO *)
-        dataflow_trace = None (* TODO *);
+        dataflow_trace = None;
+        validation_state = None;
       }
   in
   r
