@@ -92,7 +92,6 @@ let setup_logging ~force_color ~level =
          | "bos"
          | "cohttp.lwt.client"
          | "cohttp.lwt.io"
-         | "cohttp.async.io"
          | "conduit_lwt_server"
          | "mirage-crypto-rng.lwt"
          | "mirage-crypto-rng-lwt"
