@@ -379,7 +379,7 @@ For more information see https://semgrep.dev
 ; These are build dependencies.
 ; Development-only dependencies are in 'dev/dev.opam'.
 
-;coupling: for semgrep CI to be fast, we try to pre-install these packages as
+; coupling: for semgrep CI to be fast, we try to pre-install these packages as
 ; part of of the base docker image. When you add a new package or change a version
 ; here, please also update the list of packages there:
 ;
@@ -444,6 +444,9 @@ For more information see https://semgrep.dev
     uri
     cohttp-lwt-unix
     tls-lwt ; needed for TLS support in the cohttp HTTP client
+    (cohttp-async (>= 5.3.0) ) ; preferred HTTP client for cohttp
+    (async_ssl (>= v0.16.1) ) ; HTTPS support for cohttp-async
+    (async_kernel (>= v0.16.0) ) ; needed for cohttp-async
     emile
     (digestif (>= 1.0.0))
     ; concurrency
