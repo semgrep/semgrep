@@ -39,12 +39,6 @@ module Env = Semgrep_envvars
 
 let default_subcommand = "scan"
 
-(* This is used to determine if we should add the flag to our metrics.
- * Individual subcommands can add their own "interesting" flags to the metrics.
- *)
-let interesting_shared_flags =
-  [ "--debug"; "--verbose"; "--experimental"; "--help"; "--json"; "--text" ]
-
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -76,12 +70,10 @@ let authenticate () : unit =
   ()
 
 let log_cli_feature flag : unit =
-  if List.mem flag interesting_shared_flags then
-    Metrics_.add_feature "cli-flag"
-      (flag
-      |> Base.String.chop_prefix_if_exists ~prefix:"-"
-      |> Base.String.chop_prefix_if_exists ~prefix:"-")
-  else ()
+  Metrics_.add_feature "cli-flag"
+    (flag
+    |> Base.String.chop_prefix_if_exists ~prefix:"-"
+    |> Base.String.chop_prefix_if_exists ~prefix:"-")
 
 (*****************************************************************************)
 (* Subcommands dispatch *)
