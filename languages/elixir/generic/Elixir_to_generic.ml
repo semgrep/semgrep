@@ -26,6 +26,7 @@ module H = AST_generic_helpers
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+type env = Program | Pattern
 
 (* TODO: use this behavior also in AST_generic.exprstmt? breaking tests? *)
 let exprstmt (e : G.expr) : G.stmt =
@@ -43,6 +44,8 @@ let map_option f env x = Option.map (f env) x
 let either_to_either3 = function
   | Left x -> Left3 x
   | Right (l, x, r) -> Right3 (l, Some x, r)
+
+exception UnhandledIdEllipsis
 
 type quoted_generic = (string G.wrap, G.expr G.bracket) either list G.bracket
 type keywords_generic = ((G.ident, quoted_generic) either * G.expr) list
@@ -171,23 +174,26 @@ let args_of_do_block_opt (blopt : do_block_generic option) : G.argument list =
 let map_wrap f env (v1, v2) = (f env v1, v2)
 let map_bracket f env (v1, v2, v3) = (v1, f env v2, v3)
 
-let map_ident env v : G.ident =
+let map_ident_or_metavar_only_exn_on_ellipsis env v : G.ident =
   match v with
   | Id v ->
       let id = (map_wrap map_string) env v in
       id
-  | IdEllipsis v -> ("...", v)
+  | IdEllipsis _ -> raise UnhandledIdEllipsis
   | IdMetavar v ->
       let id = (map_wrap map_string) env v in
       id
 
-let map_ident_expr env v : G.expr =
+(* you should not use it because it's likely that if you
+ * are in a pattern context, you want to interpret
+ * IdEllipsis
+ *)
+let map_ident_should_not_use env v : G.ident =
   match v with
-  | IdEllipsis v -> G.Ellipsis v |> G.e
+  | IdEllipsis v -> ("...", v)
   | Id _
   | IdMetavar _ ->
-      let id = map_ident env v in
-      G.N (H.name_of_id id) |> G.e
+      map_ident_or_metavar_only_exn_on_ellipsis env v
 
 (* TODO: this should really return a dotted_ident *)
 let map_alias env v : G.ident = (map_wrap map_string) env v
@@ -297,7 +303,7 @@ and map_stmt env (v : stmt) : G.stmt =
 and map_definition env (v : definition) : G.definition =
   match v with
   | FuncDef { f_def; f_name; f_params; f_body } ->
-      let id = map_ident env f_name in
+      let id = map_ident_should_not_use env f_name in
       let ent = G.basic_entity id in
       let fparams = map_parameters env f_params in
       let body = map_compound env f_body in
@@ -330,17 +336,20 @@ and map_parameters env (params : parameters) : G.parameters =
 
 and map_parameter env (p : parameter) : G.parameter =
   match p with
-  | P { pname; pdefault } ->
-      let id = map_ident env pname in
-      let pdefault =
-        match pdefault with
-        | None -> None
-        | Some (_tk, e) ->
-            let e = map_expr env e in
-            Some e
-      in
-      let pclassic = G.param_of_id ~pdefault id in
-      G.Param pclassic
+  | P { pname; pdefault } -> (
+      match (pname, pdefault, env) with
+      | IdEllipsis t, None, Pattern -> G.ParamEllipsis t
+      | _else_ ->
+          let id = map_ident_should_not_use env pname in
+          let pdefault =
+            match pdefault with
+            | None -> None
+            | Some (_tk, e) ->
+                let e = map_expr env e in
+                Some e
+          in
+          let pclassic = G.param_of_id ~pdefault id in
+          G.Param pclassic)
   | OtherParamExpr e ->
       let e = map_expr env e in
       G.OtherParam (("OtherParamExpr", G.fake ""), [ G.E e ])
@@ -363,7 +372,13 @@ and map_expr env v : G.expr =
   | S x ->
       let st = map_stmt env x in
       G.stmt_to_expr st
-  | I v -> map_ident_expr env v
+  | I v -> (
+      match v with
+      | IdEllipsis v -> G.Ellipsis v |> G.e
+      | Id _
+      | IdMetavar _ ->
+          let id = map_ident_or_metavar_only_exn_on_ellipsis env v in
+          G.N (H.name_of_id id) |> G.e)
   | L lit -> G.L lit |> G.e
   | A v -> map_atom env v
   | String v ->
@@ -531,7 +546,7 @@ and map_remote_dot env (v1, tdot, v3) : G.expr =
     | X2 id_or_op ->
         let id =
           match id_or_op with
-          | Left id -> map_ident env id
+          | Left id -> map_ident_should_not_use env id
           | Right op -> map_wrap_operator_ident env op
         in
         X1 id
@@ -594,11 +609,11 @@ let map_any env v =
 (*****************************************************************************)
 
 let program x =
-  let env = () in
+  let env = Program in
   let x = Elixir_to_elixir.map_program x in
   map_program env x
 
 let any x =
-  let env = () in
+  let env = Pattern in
   let x = Elixir_to_elixir.map_any x in
   map_any env x
