@@ -2002,11 +2002,7 @@ and map_source_file (env : env) (opt : CST.source_file) =
 and map_source_file_stmt (env : env) (opt : CST.source_file) =
   match opt with
   | None -> Block (fb []) |> G.s
-  | Some x -> (
-      (* No point in re-injecting into Block if it's a single statement. *)
-      match map_block env x with
-      | [ stmt ] -> stmt
-      | _ -> Block (map_block env x |> fb) |> G.s)
+  | Some x -> Block (map_block env x |> fb) |> G.s
 
 and map_statement (env : env) (x : CST.statement) : stmt list =
   match x with
