@@ -10,6 +10,7 @@
     cmdliner
     ocolor
     commons
+    async_kernel
 
     ; Internal libraries
     osemgrep_cli_scan

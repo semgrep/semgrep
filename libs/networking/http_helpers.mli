@@ -35,3 +35,12 @@ val post :
     [headers] (default: content-type: application/json) and [body]. The returned
     value is either [Ok body] if the request was successful, or an
     [Error (code, msg)], including the HTTP status [code] and a message. *)
+
+val send_metrics :
+  user_agent:string ->
+  data:string ->
+  Uri.t ->
+  Base.string Async_kernel__Types.Deferred.t
+(** [send_metrics ~body ~headers uri] sends a POST request to [uri] with the provided
+    [headers] (default: content-type: application/json) and [body]. The returned
+    value is epxected to be a deferred string. *)
