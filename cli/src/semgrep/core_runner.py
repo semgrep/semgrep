@@ -1124,7 +1124,7 @@ class CoreRunner:
                             f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
                         )
 
-            if ("time" in output_json) and core_output.time:
+            if core_output.time:
                 timing = core_output.time
                 profiling_data.profile = core_output.time
                 for t in timing.targets:
