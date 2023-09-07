@@ -1,6 +1,4 @@
 open Cohttp
-open Cohttp_async
-open Async_kernel
 
 (* Below we separate the methods out by async (returns Lwt promise),
    and sync (runs async method in lwt runtime)
@@ -74,10 +72,3 @@ let post ~body ?(headers = [ ("content-type", "application/json") ])
     ?(chunked = false) url =
   Lwt_main.run (post_async ~body ~headers ~chunked url)
   [@@profiling]
-
-let send_metrics ~user_agent ~data uri =
-  let headers = Cohttp.Header.init_with "Content-Type" "application/json" in
-  let headers = Cohttp.Header.replace headers "User-Agent" user_agent in
-  let body = Cohttp_async.Body.of_string data in
-  Cohttp_async.Client.post ~body ~headers uri >>= fun (_, body) ->
-  Cohttp_async.Body.to_string body

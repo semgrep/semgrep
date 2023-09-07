@@ -80,24 +80,16 @@ let send_metrics () : unit =
   let user_agent = Metrics_.string_of_user_agent () in
   let metrics = Metrics_.string_of_metrics () in
   let url = Env.v.metrics_url in
+  let headers =
+    [ ("Content-Type", "application/json"); ("User-Agent", user_agent) ]
+  in
   Logs.debug (fun m -> m "Metrics: %s" metrics);
   Logs.debug (fun m -> m "userAgent: '%s'" user_agent);
-  (* let data =
-       {|{"event_id":"75f11709-9c2d-4615-93e5-8969a2554418","anonymous_user_id":"a3f7b3a4-9ce6-41d9-bfdb-ef5a85029778","started_at":"2023-09-07T03:14:46+00:00","sent_at":"2023-09-07T03:14:46+00:00","environment":{"version":"1.38.3","projectHash":null,"configNamesHash":"","ci":null,"isAuthenticated":true},"performance":{},"extension":{},"errors":{"returnCode":0},"value":{"features":["cli-flag/debug","cli-flag/experimental","cli-flag/version","subcommand/scan"],"engineRequested":"OSS"}}|}
-     in *)
-  let promise = Http_helpers.send_metrics ~user_agent ~data:metrics url in
-  match
-    (fun _ ->
-      Async.Deferred.repeat_until_finished promise (fun result ->
-          match Async.Deferred.peek result with
-          | Some str ->
-              Logs.debug (fun m -> m "Metrics sent: %s" str);
-              Async.Deferred.return (`Finished ())
-          | _ -> Async.Deferred.return (`Repeat result))
-      |> Async.Deferred.ignore_m)
-    |> Async.Thread_safe.block_on_async
-  with
-  | _ -> Logs.debug (fun m -> m "Metrics sent")
+  match Http_helpers.post ~body:metrics ~headers url with
+  | Ok body -> Logs.debug (fun m -> m "Metrics Endpoint response: %s" body)
+  | Error (status_code, err) ->
+      Logs.warn (fun m -> m "Metrics Endpoint error: %d %s" status_code err);
+      ()
 
 (*****************************************************************************)
 (* Subcommands dispatch *)

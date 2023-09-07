@@ -6,9 +6,6 @@
     uri
     cohttp
     cohttp-lwt-unix
-    cohttp-async
-    async_kernel
-    async_ssl
     profiling
   )
   (preprocess
