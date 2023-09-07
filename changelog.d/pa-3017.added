@@ -1,3 +1,0 @@
-Ruby: Replaced old Ruby parser with the latest tree-sitter ruby parser,
-meaning that there could be small edge cases of differences in how
-Semgrep matches Ruby programs.
