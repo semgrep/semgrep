@@ -21,9 +21,10 @@ class Times(NamedTuple):
 
 
 class ProfilingData:
-    profile: Optional[core.CoreTiming] = None
+    profile: core.CoreTiming
 
-    def __init__(self) -> None:
+    def __init__(self, profile: core.CoreTiming) -> None:
+        self.profile = profile
         self._file_parse_time: Dict[Path, float] = defaultdict(float)
         self._file_run_time: Dict[Path, float] = defaultdict(float)
         self._match_time_matrix: Dict[Semgrep_run, Times] = defaultdict(Times)
