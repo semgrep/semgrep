@@ -39,6 +39,12 @@ module Env = Semgrep_envvars
 
 let default_subcommand = "scan"
 
+(* This is used to determine if we should add the flag to our metrics.
+ * Individual subcommands can add their own "interesting" flags to the metrics.
+ *)
+let interesting_shared_flags =
+  [ "--debug"; "--verbose"; "--experimental"; "--help"; "--json"; "--text" ]
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -68,6 +74,14 @@ let authenticate () : unit =
   let api_token = settings.Semgrep_settings.api_token in
   Metrics_.add_token (Some api_token);
   ()
+
+let log_cli_feature flag : unit =
+  if List.mem flag interesting_shared_flags then
+    Metrics_.add_feature "cli-flag"
+      (flag
+      |> Base.String.chop_prefix_if_exists ~prefix:"-"
+      |> Base.String.chop_prefix_if_exists ~prefix:"-")
+  else ()
 
 (*****************************************************************************)
 (* Subcommands dispatch *)
@@ -142,6 +156,12 @@ let dispatch_subcommand argv =
        *)
       Metrics_.add_feature "subcommand" subcmd;
       Metrics_.add_user_agent_tag ~str:(spf "command/%s" subcmd);
+      let flags =
+        subcmd_argv |> Array.to_list
+        |> exclude (fun x -> not (Base.String.is_prefix ~prefix:"-" x))
+        |> uniq_by ( =*= )
+      in
+      List.iter log_cli_feature flags;
       try
         match subcmd with
         (* TODO: gradually remove those 'when experimental' guards as
