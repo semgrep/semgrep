@@ -38,11 +38,12 @@ let get_async ?(headers = []) url =
       Lwt.return (Error err)
   [@@profiling]
 
-let post_async ~body ?(headers = [ ("content-type", "application/json") ]) url =
+let post_async ~body ?(headers = [ ("content-type", "application/json") ])
+    ?(chunked = false) url =
   let module Client = (val !client_ref) in
   let headers = Header.of_list headers in
   let%lwt response, body =
-    Client.post ~headers ~body:(Cohttp_lwt.Body.of_string body) url
+    Client.post ~headers ~body:(Cohttp_lwt.Body.of_string body) ~chunked url
   in
   let%lwt body = Cohttp_lwt.Body.to_string body in
   let code = response |> Response.status |> Code.code_of_status in
@@ -67,6 +68,7 @@ let post_async ~body ?(headers = [ ("content-type", "application/json") ]) url =
 (* TODO: extend to allow to curl with JSON as answer *)
 let get ?headers url = Lwt_main.run (get_async ?headers url) [@@profiling]
 
-let post ~body ?(headers = [ ("content-type", "application/json") ]) url =
-  Lwt_main.run (post_async ~body ~headers url)
+let post ~body ?(headers = [ ("content-type", "application/json") ])
+    ?(chunked = false) url =
+  Lwt_main.run (post_async ~body ~headers ~chunked url)
   [@@profiling]

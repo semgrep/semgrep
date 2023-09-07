@@ -166,10 +166,14 @@ let init ~anonymous_user_id ~ci =
   set_anonymous_user_id ~anonymous_user_id;
   if ci then set_ci ()
 
+let prepare_to_send () =
+  let sent_at = string_of_gmtime (Unix.gmtime (Unix.gettimeofday ())) in
+  set_sent_at ~sent_at
+
 let string_of_metrics () =
   let json = Semgrep_metrics_j.string_of_payload g.payload in
   let json = Yojson.Safe.from_string json in
-  Yojson.Safe.pretty_to_string json
+  Yojson.Safe.to_string json
 
 let string_of_user_agent () = String.concat " " g.user_agent
 

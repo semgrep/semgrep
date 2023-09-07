@@ -39,6 +39,7 @@ val set_sent_at : sent_at:string -> unit
 val set_event_id : event_id:string -> unit
 val set_ci : unit -> unit
 val init : anonymous_user_id:Uuidm.t -> ci:bool -> unit
+val prepare_to_send : unit -> unit
 val string_of_metrics : unit -> string
 val string_of_user_agent : unit -> string
 val add_user_agent_tag : str:string -> unit

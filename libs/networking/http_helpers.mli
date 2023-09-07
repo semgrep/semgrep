@@ -12,6 +12,7 @@ val get_async :
 val post_async :
   body:string ->
   ?headers:(string * string) list ->
+  ?chunked:bool ->
   Uri.t ->
   (string, int * string) result Lwt.t
 (** [post_async ~body ~headers uri] sends a POST request to [uri] with the provided
@@ -27,6 +28,7 @@ val get : ?headers:(string * string) list -> Uri.t -> (string, string) result
 val post :
   body:string ->
   ?headers:(string * string) list ->
+  ?chunked:bool ->
   Uri.t ->
   (string, int * string) result
 (** [post ~body ~headers uri] sends a POST request to [uri] with the provided

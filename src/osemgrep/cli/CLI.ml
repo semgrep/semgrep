@@ -43,29 +43,25 @@ let default_subcommand = "scan"
 (* Helpers *)
 (*****************************************************************************)
 
-(* Minimal adaptation of
-   - pysemgrep state.terminal.init_for_cli()
-   - pysemgrep metrics.py associated code
-*)
-let init_for_cli () : unit =
-  (* TOPORT:
+(* Placeholder for adaptation of pysemgrep state.terminal.init_for_cli() *)
+(* TOPORT:
      1. GITHUB_ACTIONS specific output requirements
      2. Any NO_COLOR / SEMGREP_FORCE_NO_COLOR behavior
-  *)
+*)
+(* let init_for_cli () : unit =
+   ()
+*)
+
+let metrics_init () : unit =
   let () =
     match Env.v.user_agent_append with
     | Some str -> Metrics_.add_user_agent_tag ~str
     | _ -> ()
   in
   let settings = Semgrep_settings.load () in
+  let api_token = settings.Semgrep_settings.api_token in
   let anonymous_user_id = settings.Semgrep_settings.anonymous_user_id in
   Metrics_.init ~anonymous_user_id ~ci:Env.v.is_ci;
-  ()
-
-(* Minimal adaptation of pysemgrep state.app_session.authenticate()  *)
-let authenticate () : unit =
-  let settings = Semgrep_settings.load () in
-  let api_token = settings.Semgrep_settings.api_token in
   Metrics_.add_token (Some api_token);
   ()
 
@@ -74,6 +70,29 @@ let log_cli_feature flag : unit =
     (flag
     |> Base.String.chop_prefix_if_exists ~prefix:"-"
     |> Base.String.chop_prefix_if_exists ~prefix:"-")
+
+(* NOTE: We could implement send_metrics in Metrics_.ml,
+   but we would need to add a dependency on Http_helpers.
+*)
+let send_metrics () : unit =
+  Metrics_.prepare_to_send ();
+  (* Populates the sent_at timestamp *)
+  let user_agent = Metrics_.string_of_user_agent () in
+  let metrics = Metrics_.string_of_metrics () in
+  let url = Env.v.metrics_url in
+  let headers =
+    [ ("Content-Type", "application/json"); ("User-Agent", user_agent) ]
+  in
+  Logs.debug (fun m -> m "Metrics: %s" metrics);
+  Logs.debug (fun m -> m "userAgent: '%s'" user_agent);
+  let body =
+    {|{"event_id":"75f11709-9c2d-4615-93e5-8969a2554418","anonymous_user_id":"a3f7b3a4-9ce6-41d9-bfdb-ef5a85029778","started_at":"2023-09-07T03:14:46+00:00","sent_at":"2023-09-07T03:14:46+00:00","environment":{"version":"1.38.3","projectHash":null,"configNamesHash":"","ci":null,"isAuthenticated":true},"performance":{},"extension":{},"errors":{"returnCode":0},"value":{"features":["cli-flag/debug","cli-flag/experimental","cli-flag/version","subcommand/scan"],"engineRequested":"OSS"}}|}
+  in
+  match Http_helpers.post ~body ~headers url with
+  | Ok body -> Logs.debug (fun m -> m "Metrics Endpoint response: %s" body)
+  | Error (status_code, err) ->
+      Logs.warn (fun m -> m "Metrics Endpoint error: %d %s" status_code err);
+      ()
 
 (*****************************************************************************)
 (* Subcommands dispatch *)
@@ -285,16 +304,14 @@ let main argv : Exit_code.t =
   (* hacks for having a smaller engine.js file *)
   Parsing_init.init ();
   Data_init.init ();
-  init_for_cli ();
-  authenticate ();
+  metrics_init ();
 
   (* TOPORT: maybe_set_git_safe_directories() *)
 
   (*TOADAPT? adapt more of Common.boilerplate? *)
   let exit_code = safe_run ~debug (fun () -> dispatch_subcommand argv) in
   Metrics_.add_exit_code exit_code;
-  Logs.debug (fun m -> m "Metrics: %s" (Metrics_.string_of_metrics ()));
-  Logs.debug (fun m -> m "userAgent: '%s'" (Metrics_.string_of_user_agent ()));
+  send_metrics ();
 
   (* TODO(dinosaure): currently, even if we record the [exit_code], we will
    * never send the final report **with** the exit code to the server. We

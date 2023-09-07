@@ -54,6 +54,7 @@ let in_env var = env_opt var <> None
 type t = {
   semgrep_url : Uri.t;
   fail_open_url : Uri.t;
+  metrics_url : Uri.t;
   app_token : string option;
   integration_name : string option;
   version_check_url : Uri.t;
@@ -90,6 +91,9 @@ let v : t =
     fail_open_url =
       env_or Uri.of_string "SEMGREP_FAIL_OPEN_URL"
         (Uri.of_string "https://fail-open.prod.semgrep.dev/failure");
+    metrics_url =
+      env_or Uri.of_string "SEMGREP_METRICS_URL"
+        (Uri.of_string "https://metrics.semgrep.dev");
     app_token = env_opt "SEMGREP_APP_TOKEN";
     integration_name = env_opt "SEMGREP_INTEGRATION_NAME";
     version_check_url =

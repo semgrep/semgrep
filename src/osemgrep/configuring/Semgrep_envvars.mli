@@ -13,6 +13,7 @@ type t = {
   semgrep_url : Uri.t;
   (* $SEMGREP_xxx *)
   fail_open_url : Uri.t;
+  metrics_url : Uri.t;
   app_token : string option;
   integration_name : string option;
   version_check_url : Uri.t;
