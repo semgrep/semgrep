@@ -13,6 +13,10 @@ clean:
 	rm -rf dist
 	cd downloads/pcre-8.45; $(MAKE) clean
 
+.PHONY: distclean
+distclean:
+	rm -rf dist downloads node_modules
+
 .PHONY: test
 test: build
 	npm ci

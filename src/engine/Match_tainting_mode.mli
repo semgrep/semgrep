@@ -58,6 +58,17 @@ val taint_config_of_rule :
   unit) ->
   Dataflow_tainting.config * debug_taint * Matching_explanation.t list
 
+val mk_params_env :
+  Language.t ->
+  Rule_options_t.t ->
+  Dataflow_tainting.config ->
+  AST_generic.function_definition ->
+  Taint_lval_env.t
+(** Constructs the initial taint environment for a given function definition.
+ * Essentially, it records the parameters that are taint sources, or whose
+ * default value is a taint source.
+ * It is exposed to be used by inter-file taint analysis in Pro.  *)
+
 val check_fundef :
   Lang.t ->
   Rule_options.t ->

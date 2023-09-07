@@ -15,7 +15,6 @@
     parser_ocaml.menhir
     parser_java.menhir
     parser_go.menhir
-    parser_ruby.dyp
     parser_php.menhir
     parser_scala.recursive_descent
  )

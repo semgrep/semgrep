@@ -18,8 +18,6 @@
    parser_c.menhir parser_c.tree_sitter parser_c.ast_generic
    parser_cpp.menhir parser_cpp.tree_sitter parser_cpp.ast_generic
    parser_php.menhir parser_php.tree_sitter parser_php.ast_generic
-   ; dyp not menhir this time
-   parser_ruby.dyp parser_ruby.tree_sitter parser_ruby.ast_generic
    ; no tree_sitter (use the one for typescript)
    parser_javascript.menhir parser_javascript.ast_generic
    ; no ast_generic (use the one for javascript)
@@ -34,6 +32,7 @@
    parser_jsonnet.tree_sitter parser_jsonnet.ast_generic
    parser_terraform.tree_sitter parser_terraform.ast_generic
    parser_elixir.tree_sitter parser_elixir.ast_generic
+   parser_ruby.tree_sitter parser_ruby.ast_generic
    ; directly to generic AST
    parser_cairo.ast_generic
    parser_lisp.tree_sitter

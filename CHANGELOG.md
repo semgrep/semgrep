@@ -6,6 +6,47 @@
 
 <!-- insertion point -->
 
+## [1.39.0](https://github.com/returntocorp/semgrep/releases/tag/v1.39.0) - 2023-09-07
+
+### Added
+
+- Matching: Qualified names written as patterns can now match valid instances of
+  identifiers which lie underneath a wildcard import. For instance, in Python,
+  we could write the pattern `A.B.C.x`, and match the usage in the program
+
+  ````
+  from A.B import *
+
+  foo(C.x)
+  ``` (pa-1006)
+  ````
+
+- Ruby: Replaced old Ruby parser with the latest tree-sitter ruby parser,
+  meaning that there could be small edge cases of differences in how
+  Semgrep matches Ruby programs. (pa-3017)
+
+### Fixed
+
+- Request retry logic now includes 504's (gh-8629)
+- The error message for skipped rules due to incompatible `min-version` or
+  `max-version` constraints now makes sense. (gh-8634)
+- When `metavariable-type` cannot be evaluated then it defauls to "false", that is,
+  it filters out the range. Therefore e.g. this rule:
+
+  ```yaml
+  patterns:
+    - pattern: private int $X;
+    - metavariable-type:
+        metavariable: $Y
+        type: int
+  ```
+
+  now will produce no matches because `$Y` is not bound to anything. (pa-3027)
+
+- Julia: `using` and `import` now match separately, instead of before, where
+  if you wrote `using $X`, you would also match to `import`s. (pa-3028)
+- Diagnostics from a full scan through Semgrep LS no longer disappear when file is opened (pa-3046)
+
 ## [1.38.3](https://github.com/returntocorp/semgrep/releases/tag/v1.38.3) - 2023-09-02
 
 No significant changes.

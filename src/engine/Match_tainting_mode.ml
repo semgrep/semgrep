@@ -638,12 +638,7 @@ let pm_of_finding finding =
         let taint_trace = Some (lazy traces) in
         Some { sink_pm with env = merged_env; taint_trace }
 
-let check_fundef lang options taint_config opt_ent ctx java_props_cache fdef =
-  let name =
-    let* ent = opt_ent in
-    let* name = AST_to_IL.name_of_entity ent in
-    Some (D.str_of_name name)
-  in
+let mk_params_env lang options taint_config fdef =
   let add_to_env env id ii pdefault =
     let var = AST_to_IL.var_of_id_info id ii in
     let var_type = Typing.resolved_type_of_id_info lang var.id_info in
@@ -726,8 +721,17 @@ let check_fundef lang options taint_config opt_ent ctx java_props_cache fdef =
       Lval_env.empty
       (Tok.unbracket fdef.G.fparams)
   in
+  in_env
+
+let check_fundef lang options taint_config opt_ent ctx java_props_cache fdef =
+  let name =
+    let* ent = opt_ent in
+    let* name = AST_to_IL.name_of_entity ent in
+    Some (D.str_of_name name)
+  in
   let _, xs = AST_to_IL.function_definition lang ~ctx fdef in
   let flow = CFG_build.cfg_of_stmts xs in
+  let in_env = mk_params_env lang options taint_config fdef in
   let mapping =
     Dataflow_tainting.fixpoint ~in_env ?name lang options taint_config
       java_props_cache flow

@@ -46,3 +46,10 @@ clean:
 	cd libyaml; $(MAKE) clean
 	cd engine; $(MAKE) clean
 	cd languages; $(MAKE) clean
+
+.PHONY: distclean
+distclean:
+	cd libpcre; $(MAKE) distclean
+	cd libyaml; $(MAKE) distclean
+	cd engine; $(MAKE) distclean
+	cd languages; $(MAKE) distclean

@@ -469,10 +469,10 @@ let options actions =
       Arg.Clear Flag.gc_tuning,
       " use OCaml's default garbage collector settings" );
     ( "-emacs",
-      Arg.Unit (fun () -> match_format := Matching_report.Emacs),
+      Arg.Unit (fun () -> match_format := Core_text_output.Emacs),
       " print matches on the same line than the match position" );
     ( "-oneline",
-      Arg.Unit (fun () -> match_format := Matching_report.OneLine),
+      Arg.Unit (fun () -> match_format := Core_text_output.OneLine),
       " print matches on one line, in normalized form" );
     ( "-json",
       Arg.Unit (fun () -> output_format := Json true),

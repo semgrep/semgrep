@@ -35,7 +35,7 @@ rules:
         - cli/*.ml
         - cli_*/*.ml
         - Test.ml
-        - Matching_report.ml
+        - Core_text_output.ml
         - Matching_explanation.ml
         - Unit_*.ml
         - Test_*.ml

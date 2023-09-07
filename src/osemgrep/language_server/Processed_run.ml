@@ -51,11 +51,10 @@ let filter_clean_lines matches =
 let of_matches ?(only_git_dirty = true) (result : Core_runner.result) =
   let matches = result.core.results in
   let hrules = result.hrules in
-  let env = { Cli_json_output.hrules } in
-  (* Match up the rules with the matches so we can get fixes, rule ids, messages *)
+  (* Match the rules with the matches so we can get fixes/rule-ids/messages *)
   let matches =
     matches
-    |> Common.map (Cli_json_output.cli_match_of_core_match env)
+    |> Common.map (Cli_json_output.cli_match_of_core_match hrules)
     |> Common.exclude (fun m ->
            let to_ignore, _errs = Nosemgrep.rule_match_nosem ~strict:false m in
            to_ignore)

@@ -114,6 +114,7 @@ type tin = {
   lang : Lang.t;
   config : Rule_options.t;
   deref_sym_vals : int;
+  wildcard_imports : AST_generic.dotted_ident list;
 }
 
 (* list of possible outcoming matching environments *)
@@ -389,8 +390,26 @@ let (envf : MV.mvar G.wrap -> MV.mvalue -> tin -> tout) =
         (lazy (spf "envf: success, %s (%s)" mvar (MV.str_of_mval any)));
       return new_binding
 
-let empty_environment lang config =
-  { mv = []; stmts_matched = []; lang; config; deref_sym_vals = 0 }
+let default_environment lang config =
+  {
+    mv = [];
+    stmts_matched = [];
+    lang;
+    config;
+    deref_sym_vals = 0;
+    wildcard_imports = [];
+  }
+
+let environment_of_program lang config prog =
+  let wildcard_imports = Visit_wildcard_imports.visit_toplevel prog in
+  { (default_environment lang config) with wildcard_imports }
+
+let environment_of_any lang config any =
+  match any with
+  | G.Pr prog -> environment_of_program lang config prog
+  | _ -> default_environment lang config
+
+let wipe_wildcard_imports f tin = f { tin with wildcard_imports = [] }
 
 (*****************************************************************************)
 (* Helpers *)

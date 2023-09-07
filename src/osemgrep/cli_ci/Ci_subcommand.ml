@@ -203,14 +203,15 @@ let finding_of_cli_match _commit_date index (m : Out.cli_match) : Out.finding =
           (* TODO: if self.extra.get("fixed_lines"): ret.fixed_lines = self.extra.get("fixed_lines") *);
         sca_info = None;
         (* TODO *)
-        dataflow_trace = None (* TODO *);
+        dataflow_trace = None;
+        validation_state = None;
       }
   in
   r
 
 (* from scans.py *)
 let prepare_for_report ~blocking_findings findings errors rules ~targets
-    ~(ignored_targets : Out.cli_skipped_target list option) ~commit_date
+    ~(ignored_targets : Out.skipped_target list option) ~commit_date
     ~engine_requested =
   let rule_ids =
     Common.map (fun r -> Rule_ID.to_string (fst r.Rule.id)) rules
@@ -282,7 +283,7 @@ let prepare_for_report ~blocking_findings findings errors rules ~targets
 
   let ignored_ext_freqs =
     Option.value ~default:[] ignored_targets
-    |> Common.group_by (fun (skipped_target : Out.cli_skipped_target) ->
+    |> Common.group_by (fun (skipped_target : Out.skipped_target) ->
            Fpath.get_ext (Fpath.v skipped_target.Out.path))
     |> List.filter (fun (ext, _) -> not (String.equal ext ""))
     (* don't count files with no extension *)

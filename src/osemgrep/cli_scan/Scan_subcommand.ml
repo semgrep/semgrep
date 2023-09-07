@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
 open Common
 
 (*****************************************************************************)
@@ -108,12 +107,13 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
      *)
     let (pms : Pattern_match.t list) = match_results.matches in
     let (core_matches : Out.core_match list) =
-      pms |> Common.partition_either (JSON_report.match_to_match None) |> fst
+      pms
+      |> Common.partition_either (Core_json_output.match_to_match None)
+      |> fst
     in
     let hrules = Rule.hrules_of_rules rules in
-    let env = { Cli_json_output.hrules } in
     core_matches
-    |> Common.map (Cli_json_output.cli_match_of_core_match env)
+    |> Common.map (Cli_json_output.cli_match_of_core_match hrules)
     |> Cli_json_output.dedup_and_sort
   in
   (* TODO? needed? given the call to dedup_and_sort above? I just imitate
@@ -148,7 +148,7 @@ let errors_to_skipped (errors : Out.core_error list) : Out.skipped_target list =
            {
              path = location.path;
              reason = Analysis_failed_parser_or_internal_error;
-             details = message;
+             details = Some message;
              rule_id;
            })
 
@@ -408,7 +408,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
                m "Ignoring %s due to %s (%s)" x.Semgrep_output_v1_t.path
                  (Semgrep_output_v1_t.show_skip_reason
                     x.Semgrep_output_v1_t.reason)
-                 x.Semgrep_output_v1_t.details));
+                 (x.Semgrep_output_v1_t.details ||| "")));
 
     (* step 3: choose the right engine and right hooks *)
     let output_format, file_match_results_hook =
