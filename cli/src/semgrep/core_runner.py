@@ -909,19 +909,6 @@ class CoreRunner:
             f"Error while matching: {reason}\n{details}" f"{PLEASE_FILE_ISSUE_TEXT}"
         )
 
-    def _add_match_times(
-        self,
-        profiling_data: ProfilingData,
-        timing: core.CoreTiming,
-    ) -> None:
-        profiling_data.set_rules_parse_time(timing.rules_parse_time)
-
-        for t in timing.targets:
-            rule_timings = {
-                rt.rule_id: Times(rt.parse_time, rt.match_time) for rt in t.rule_times
-            }
-            profiling_data.set_file_times(Path(t.path.value), rule_timings, t.run_time)
-
     @staticmethod
     def plan_core_run(
         rules: List[Rule],
@@ -1130,11 +1117,18 @@ class CoreRunner:
             core_output = parse_core_output(output_json)
 
             if ("time" in output_json) and core_output.time:
-                self._add_match_times(profiling_data, core_output.time)
-                if core_output.time.max_memory_bytes:
-                    profiling_data.set_max_memory_bytes(
-                        core_output.time.max_memory_bytes
+                timing = core_output.time
+                profiling_data.set_rules_parse_time(timing.rules_parse_time)
+                for t in timing.targets:
+                    rule_timings = {
+                        rt.rule_id: Times(rt.parse_time, rt.match_time)
+                        for rt in t.rule_times
+                    }
+                    profiling_data.set_file_times(
+                        Path(t.path.value), rule_timings, t.run_time
                     )
+                if timing.max_memory_bytes:
+                    profiling_data.set_max_memory_bytes(timing.max_memory_bytes)
 
             # end with tempfile.NamedTemporaryFile(...) ...
             outputs = core_matches_to_rule_matches(rules, core_output)
