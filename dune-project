@@ -442,7 +442,7 @@ For more information see https://semgrep.dev
     (lsp (= 1.15.1-5.0))
     ; web stuff
     uri
-    (cohttp-lwt-unix (>= 5.3.0) )
+    cohttp-lwt-unix
     (lwt_ssl (>= 1.2.0)) ; needed for HTTPS support in the cohttp HTTP client
     emile
     (digestif (>= 1.0.0))
