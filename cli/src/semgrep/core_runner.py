@@ -1126,7 +1126,7 @@ class CoreRunner:
 
             if ("time" in output_json) and core_output.time:
                 timing = core_output.time
-                profiling_data.set_rules_parse_time(timing.rules_parse_time)
+                profiling_data.profile = core_output.time
                 for t in timing.targets:
                     rule_timings = {
                         rt.rule_id: Times(rt.parse_time, rt.match_time)
@@ -1135,8 +1135,6 @@ class CoreRunner:
                     profiling_data.set_file_times(
                         Path(t.path.value), rule_timings, t.run_time
                     )
-                if timing.max_memory_bytes:
-                    profiling_data.set_max_memory_bytes(timing.max_memory_bytes)
 
             # end with tempfile.NamedTemporaryFile(...) ...
             outputs = core_matches_to_rule_matches(rules, core_output)
