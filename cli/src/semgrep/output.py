@@ -110,7 +110,7 @@ def _build_time_json(
     targets: Set[Path],
     profiling_data: ProfilingData,  # (rule, target) -> times
     profiler: Optional[ProfileManager],
-) -> out.CliTiming:
+) -> out.Profile:
     """Convert match times to a json-ready format.
 
     Match times are obtained for each pair (rule, target) by running
@@ -120,10 +120,10 @@ def _build_time_json(
     same AST.
     """
     target_bytes = [Path(str(target)).resolve().stat().st_size for target in targets]
-    return out.CliTiming(
-        # this list of all rules names is given here so they don't have to be
+    return out.Profile(
+        # this list of all rules ids is given here so they don't have to be
         # repeated for each target in the 'targets' field, saving space.
-        rules=[out.RuleIdDict(id=out.RuleId(rule.id)) for rule in rules],
+        rules=[out.RuleId(rule.id) for rule in rules],
         rules_parse_time=profiling_data.get_rules_parse_time(),
         profiling_times=profiler.dump_stats() if profiler else {},
         targets=[
@@ -445,7 +445,7 @@ class OutputHandler:
             _comment=None,
             skipped=None,
         )
-        cli_timing: Optional[out.CliTiming] = None
+        cli_timing: Optional[out.Profile] = None
 
         explanations: Optional[List[out.MatchingExplanation]] = self.explanations
         rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = self.rules_by_engine
