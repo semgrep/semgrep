@@ -78,7 +78,6 @@ let post ~body ?(headers = [ ("content-type", "application/json") ])
 let send_metrics ~user_agent ~data uri =
   let headers = Cohttp.Header.init_with "Content-Type" "application/json" in
   let headers = Cohttp.Header.replace headers "User-Agent" user_agent in
-  (* Cohttp.Header.prepend_user_agent headers user_agent; *)
   let body = Cohttp_async.Body.of_string data in
   Cohttp_async.Client.post ~body ~headers uri >>= fun (_, body) ->
   Cohttp_async.Body.to_string body

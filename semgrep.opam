@@ -53,6 +53,9 @@ depends: [
   "uri"
   "cohttp-lwt-unix"
   "tls-lwt"
+  "cohttp-async" {>= "5.3.0"}
+  "async_ssl" {>= "v0.16.1"}
+  "async_kernel" {>= "v0.16.0"}
   "emile"
   "digestif" {>= "1.0.0"}
   "lwt"
