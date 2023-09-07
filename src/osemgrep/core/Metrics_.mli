@@ -40,6 +40,7 @@ val set_event_id : event_id:string -> unit
 val set_ci : unit -> unit
 val init : anonymous_user_id:Uuidm.t -> ci:bool -> unit
 val string_of_metrics : unit -> string
+val string_of_user_agent : unit -> string
 val add_user_agent_tag : str:string -> unit
 val add_project_url : string option -> unit
 val add_configs : configs:string list -> unit

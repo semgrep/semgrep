@@ -26,7 +26,8 @@ module Out = Semgrep_output_v1_t
 (*****************************************************************************)
 
 let _metrics_endpoint = "https://metrics.semgrep.dev"
-let _base_user_agent = spf "Semgrep/%s" Version.version
+let _version = spf "%s" Version.version
+let _base_user_agent = spf "Semgrep/%s" _version
 
 (*
      Configures metrics upload.
@@ -66,7 +67,7 @@ let default_payload =
     sent_at = "";
     environment =
       {
-        version = "0";
+        version = _version;
         projectHash = None;
         configNamesHash = "";
         rulesHash = None;
@@ -170,12 +171,14 @@ let string_of_metrics () =
   let json = Yojson.Safe.from_string json in
   Yojson.Safe.pretty_to_string json
 
+let string_of_user_agent () = String.concat " " g.user_agent
+
 let add_user_agent_tag ~str =
   let str =
-    spf "(%s)"
-      (str
-      |> Base.String.chop_prefix_if_exists "("
-      |> Base.String.chop_suffix_if_exists ")")
+    str
+    |> Base.String.chop_prefix_if_exists ~prefix:"("
+    |> Base.String.chop_suffix_if_exists ~suffix:")"
+    |> String.trim |> spf "(%s)"
   in
   g.user_agent <- g.user_agent @ [ str ]
 

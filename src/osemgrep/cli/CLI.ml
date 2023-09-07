@@ -282,6 +282,8 @@ let main argv : Exit_code.t =
   let exit_code = safe_run ~debug (fun () -> dispatch_subcommand argv) in
   Metrics_.add_exit_code exit_code;
   Logs.debug (fun m -> m "Metrics: %s" (Metrics_.string_of_metrics ()));
+  Logs.debug (fun m -> m "userAgent: '%s'" (Metrics_.string_of_user_agent ()));
+
   (* TODO(dinosaure): currently, even if we record the [exit_code], we will
    * never send the final report **with** the exit code to the server. We
    * send it before this call. At some point, we should handle correctly
