@@ -65,6 +65,7 @@ type t = {
   user_dot_semgrep_dir : Fpath.t;
   user_log_file : Fpath.t;
   user_settings_file : Fpath.t;
+  is_ci : bool;
   in_docker : bool;
   in_gh_action : bool;
   (* deprecated *)
@@ -108,6 +109,7 @@ let v : t =
     user_settings_file =
       env_or Fpath.v "SEMGREP_SETTINGS_FILE"
         (user_dot_semgrep_dir / settings_filename);
+    is_ci = in_env "CI";
     in_docker = in_env "SEMGREP_IN_DOCKER";
     in_gh_action = in_env "GITHUB_WORKSPACE";
     in_agent = in_env "SEMGREP_AGENT";

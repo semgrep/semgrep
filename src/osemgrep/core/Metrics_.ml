@@ -1,4 +1,5 @@
 open Common
+open Unix
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -123,6 +124,16 @@ let default =
 let g = default
 
 (*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+let string_of_gmtime tm =
+  let str =
+    Printf.sprintf "%04d-%02d-%02dT%02d:%02d:%02d+00:00" (1900 + tm.tm_year)
+      (1 + tm.tm_mon) tm.tm_mday tm.tm_hour tm.tm_min tm.tm_sec
+  in
+  str
+
+(*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
 let configure config = g.config <- config
@@ -131,6 +142,28 @@ open Semgrep_metrics_t
 
 let add_engine_type ~name = g.payload.value.engineRequested <- name
 let is_using_registry () = g.is_using_registry
+
+let set_is_using_registry ~is_using_registry =
+  g.is_using_registry <- is_using_registry
+
+let set_anonymous_user_id ~anonymous_user_id =
+  g.payload.anonymous_user_id <- anonymous_user_id
+
+let set_started_at ~started_at = g.payload.started_at <- started_at
+let set_sent_at ~sent_at = g.payload.sent_at <- sent_at
+let set_event_id ~event_id = g.payload.event_id <- event_id
+let set_ci () = g.payload.environment.ci <- Some "true"
+(* quirk of the python implementation *)
+
+(* NOTE: we pass anonymous_user_id here to avoid a dependency on semgrep settings *)
+let init ~anonymous_user_id ~ci =
+  let started_at = string_of_gmtime (Unix.gmtime (Unix.gettimeofday ())) in
+  let event_id = Uuidm.to_string (Uuidm.v4_gen (Random.get_state ()) ()) in
+  let anonymous_user_id = Uuidm.to_string anonymous_user_id in
+  set_started_at ~started_at;
+  set_event_id ~event_id;
+  set_anonymous_user_id ~anonymous_user_id;
+  if ci then set_ci ()
 
 let string_of_metrics () =
   let json = Semgrep_metrics_j.string_of_payload g.payload in

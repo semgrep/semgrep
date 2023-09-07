@@ -30,6 +30,7 @@ type t = {
   user_log_file : Fpath.t;
   (* $SEMGREP_SETTINGS_FILE ~/.semgrep/settings.yml *)
   user_settings_file : Fpath.t;
+  is_ci : bool;
   in_docker : bool;
   (* $GITHUB_WORKSPACE *)
   in_gh_action : bool;

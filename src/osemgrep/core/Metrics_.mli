@@ -32,6 +32,13 @@ val g : t
 val configure : config -> unit
 val add_engine_type : name:string -> unit
 val is_using_registry : unit -> bool
+val set_is_using_registry : is_using_registry:bool -> unit
+val set_anonymous_user_id : anonymous_user_id:string -> unit
+val set_started_at : started_at:string -> unit
+val set_sent_at : sent_at:string -> unit
+val set_event_id : event_id:string -> unit
+val set_ci : unit -> unit
+val init : anonymous_user_id:Uuidm.t -> ci:bool -> unit
 val string_of_metrics : unit -> string
 val add_user_agent_tag : str:string -> unit
 val add_project_url : string option -> unit

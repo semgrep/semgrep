@@ -43,15 +43,24 @@ let default_subcommand = "scan"
 (* Helpers *)
 (*****************************************************************************)
 
-(* Minimal adaptation of pysemgrep state.terminal.init_for_cli()  *)
+(* Minimal adaptation of
+   - pysemgrep state.terminal.init_for_cli()
+   - pysemgrep metrics.py associated code
+*)
 let init_for_cli () : unit =
   (* TOPORT:
      1. GITHUB_ACTIONS specific output requirements
      2. Any NO_COLOR / SEMGREP_FORCE_NO_COLOR behavior
   *)
-  match Env.v.user_agent_append with
-  | Some str -> Metrics_.add_user_agent_tag ~str
-  | _ -> ()
+  let () =
+    match Env.v.user_agent_append with
+    | Some str -> Metrics_.add_user_agent_tag ~str
+    | _ -> ()
+  in
+  let settings = Semgrep_settings.load () in
+  let anonymous_user_id = settings.Semgrep_settings.anonymous_user_id in
+  Metrics_.init ~anonymous_user_id ~ci:Env.v.is_ci;
+  ()
 
 (* Minimal adaptation of pysemgrep state.app_session.authenticate()  *)
 let authenticate () : unit =
