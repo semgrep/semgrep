@@ -50,7 +50,6 @@ from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.core_output import core_error_to_semgrep_error
 from semgrep.core_output import core_matches_to_rule_matches
-from semgrep.core_output import parse_core_output
 from semgrep.engine import EngineType
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
@@ -816,7 +815,7 @@ class CoreRunner:
             )
 
             if "errors" in output_json:
-                parsed_output = parse_core_output(output_json)
+                parsed_output = core.CoreOutput.from_json(output_json)
                 errors = parsed_output.errors
                 if len(errors) < 1:
                     self._fail(
@@ -1114,7 +1113,16 @@ class CoreRunner:
                 runner.stdout,
                 runner.stderr,
             )
-            core_output = parse_core_output(output_json)
+            core_output = core.CoreOutput.from_json(output_json)
+            if core_output.skipped_targets:
+                for skip in core_output.skipped_targets:
+                    if skip.rule_id:
+                        rule_info = f"rule {skip.rule_id}"
+                    else:
+                        rule_info = "all rules"
+                        logger.verbose(
+                            f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
+                        )
 
             if ("time" in output_json) and core_output.time:
                 timing = core_output.time
@@ -1286,7 +1294,7 @@ Exception raised: `{e}`
             output_json = self._extract_core_output(
                 metachecks, returncode, " ".join(cmd), runner.stdout, runner.stderr
             )
-            core_output = parse_core_output(output_json)
+            core_output = core.CoreOutput.from_json(output_json)
 
             parsed_errors += [
                 core_error_to_semgrep_error(e) for e in core_output.errors

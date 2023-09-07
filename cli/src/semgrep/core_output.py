@@ -29,7 +29,6 @@ from semgrep.error import TARGET_PARSE_FAILURE_EXIT_CODE
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchSet
-from semgrep.types import JsonObject
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -97,20 +96,6 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
         code = FATAL_EXIT_CODE
 
     return SemgrepCoreError(code, level, spans, err)
-
-
-def parse_core_output(raw_json: JsonObject) -> core.CoreOutput:
-    match_results = core.CoreOutput.from_json(raw_json)
-    if match_results.skipped_targets:
-        for skip in match_results.skipped_targets:
-            if skip.rule_id:
-                rule_info = f"rule {skip.rule_id}"
-            else:
-                rule_info = "all rules"
-            logger.verbose(
-                f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
-            )
-    return match_results
 
 
 def core_matches_to_rule_matches(
