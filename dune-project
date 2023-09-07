@@ -442,8 +442,8 @@ For more information see https://semgrep.dev
     (lsp (= 1.15.1-5.0))
     ; web stuff
     uri
-    cohttp-lwt-unix
-    tls-lwt ; needed for TLS support in the cohttp HTTP client
+    (cohttp-lwt-unix (>= 5.3.0) )
+    (lwt_ssl (>= 1.2.0)) ; needed for HTTPS support in the cohttp HTTP client
     (cohttp-async (>= 5.3.0) ) ; preferred HTTP client for cohttp
     (async_ssl (>= v0.16.1) ) ; HTTPS support for cohttp-async
     (async_kernel (>= v0.16.0) ) ; needed for cohttp-async
