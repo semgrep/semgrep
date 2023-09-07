@@ -1,3 +1,5 @@
+# TODO: should just reuse the 'profile' type in semgrep_output_v1.atd
+# and get rid of this whole file
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict

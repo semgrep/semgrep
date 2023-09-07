@@ -1,9 +1,13 @@
 """
 This file encapsulates classes necessary in parsing semgrep-core
-json output into a typed object
+json output into a typed object.
+
+Not everything is done here though; Some of the parsing
+of semgrep-core output is done in core_runner.py (e.g.,
+parsing and interpreting the semgrep-core profiling information).
 
 The precise type of the response from semgrep-core is specified in
-https://github.com/returntocorp/semgrep/blob/develop/interfaces/Output_from_core.atd
+semgrep_interfaces/semgrep_output_v1.atd
 """
 import dataclasses
 from dataclasses import replace
