@@ -39,12 +39,6 @@ let _base_user_agent = spf "Semgrep/%s" _version
 *)
 type config = On | Off | Auto [@@deriving show]
 
-let is_enabled = function
-  | On
-  | Auto ->
-      true
-  | Off -> false
-
 (* For Cmdliner
  * TOPORT? use lowercase_ascii before? accept ON/OFF/AUTO?
  * TOPORT? Support setting via old environment variable values 0/1/true/false
@@ -143,6 +137,7 @@ open Semgrep_metrics_t
 
 let add_engine_type ~name = g.payload.value.engineRequested <- name
 let is_using_registry () = g.is_using_registry
+let is_enabled () = g.config <> Off
 
 let set_is_using_registry ~is_using_registry =
   g.is_using_registry <- is_using_registry

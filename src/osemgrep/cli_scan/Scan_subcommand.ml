@@ -486,7 +486,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
       Output.output_result { conf with output_format } profiler res
     in
     Profiler.stop_ign profiler ~name:"total_time";
-    if Metrics_.is_enabled conf.metrics then (
+    if Metrics_.is_enabled () then (
       Metrics_.add_rules ?profiling:res.core.time filtered_rules;
       Metrics_.add_profiling profiler);
 
@@ -539,7 +539,7 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
     (fun () ->
       Metrics_.configure conf.metrics;
       let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
-      if Metrics_.is_enabled conf.metrics then
+      if Metrics_.is_enabled () then
         Metrics_.add_project_url (Git_wrapper.get_project_url ());
       Metrics_.add_integration_name Env.v.integration_name;
       (match conf.rules_source with

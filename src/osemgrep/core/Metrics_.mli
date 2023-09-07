@@ -7,10 +7,6 @@
 *)
 type config = On | Off | Auto [@@deriving show]
 
-val is_enabled : config -> bool
-(** [is_enabled config] returns [true] if the given configuration enables metrics.
-    Otherwise, it returns [false]. *)
-
 (* For Cmdliner *)
 val converter : config Cmdliner.Arg.conv
 
@@ -32,6 +28,7 @@ val g : t
 val configure : config -> unit
 val add_engine_type : name:string -> unit
 val is_using_registry : unit -> bool
+val is_enabled : unit -> bool
 val set_is_using_registry : is_using_registry:bool -> unit
 val set_anonymous_user_id : anonymous_user_id:string -> unit
 val set_started_at : started_at:string -> unit

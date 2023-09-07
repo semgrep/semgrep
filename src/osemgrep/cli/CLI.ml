@@ -75,21 +75,29 @@ let log_cli_feature flag : unit =
    but we would need to add a dependency on Http_helpers.
 *)
 let send_metrics () : unit =
-  Metrics_.prepare_to_send ();
-  (* Populates the sent_at timestamp *)
-  let user_agent = Metrics_.string_of_user_agent () in
-  let metrics = Metrics_.string_of_metrics () in
-  let url = Env.v.metrics_url in
-  let headers =
-    [ ("Content-Type", "application/json"); ("User-Agent", user_agent) ]
-  in
-  Logs.debug (fun m -> m "Metrics: %s" metrics);
-  Logs.debug (fun m -> m "userAgent: '%s'" user_agent);
-  match Http_helpers.post ~body:metrics ~headers url with
-  | Ok body -> Logs.debug (fun m -> m "Metrics Endpoint response: %s" body)
-  | Error (status_code, err) ->
-      Logs.warn (fun m -> m "Metrics Endpoint error: %d %s" status_code err);
-      ()
+  (* NOTE: CLI subcmd needs to call Metrics_.configure conf.metrics;
+     otherwise, metrics will not be enabled as our default state
+     for our metrics singleton is false.
+  *)
+  if Metrics_.is_enabled () then (
+    (* Populate the sent_at timestamp *)
+    Metrics_.prepare_to_send ();
+    let user_agent = Metrics_.string_of_user_agent () in
+    let metrics = Metrics_.string_of_metrics () in
+    let url = Env.v.metrics_url in
+    let headers =
+      [ ("Content-Type", "application/json"); ("User-Agent", user_agent) ]
+    in
+    Logs.debug (fun m -> m "Metrics: %s" metrics);
+    Logs.debug (fun m -> m "userAgent: '%s'" user_agent);
+    match Http_helpers.post ~body:metrics ~headers url with
+    | Ok body -> Logs.debug (fun m -> m "Metrics Endpoint response: %s" body)
+    | Error (status_code, err) ->
+        Logs.warn (fun m -> m "Metrics Endpoint error: %d %s" status_code err);
+        ())
+  else (
+    Logs.debug (fun m -> m "Metrics not enabled, skipping sending");
+    ())
 
 (*****************************************************************************)
 (* Subcommands dispatch *)
