@@ -21,9 +21,10 @@ class Times(NamedTuple):
 
 
 class ProfilingData:
-    profile: Optional[out.CoreTiming] = None
+    profile: out.CoreTiming
 
-    def __init__(self) -> None:
+    def __init__(self, profile: out.CoreTiming) -> None:
+        self.profile = profile
         self._file_parse_time: Dict[Path, float] = defaultdict(float)
         self._file_run_time: Dict[Path, float] = defaultdict(float)
         self._match_time_matrix: Dict[Semgrep_run, Times] = defaultdict(Times)
@@ -32,18 +33,6 @@ class ProfilingData:
         self._rule_bytes_scanned: Dict[out.RuleId, int] = defaultdict(int)
         self._file_match_times: Dict[Path, float] = defaultdict(float)
         self._file_num_times_scanned: Dict[Path, int] = defaultdict(int)
-
-    def get_max_memory_bytes(self) -> Optional[int]:
-        if self.profile:
-            return self.profile.max_memory_bytes
-        else:
-            return None
-
-    def get_rules_parse_time(self) -> float:
-        if self.profile:
-            return self.profile.rules_parse_time
-        else:
-            return 0.0
 
     def get_run_times(self, rule: Rule, target: Path) -> Times:
         return self._match_time_matrix[Semgrep_run(rule=rule.id2, target=target)]
