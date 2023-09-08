@@ -33,6 +33,7 @@ class RuleProduct(Enum):
     sca = auto()
     secrets = auto()
 
+
 class Rule:
     def __init__(
         self, raw: Dict[str, Any], yaml: Optional[YamlTree[YamlMap]] = None
