@@ -85,15 +85,22 @@ let v : t =
     parent_dir / ".semgrep"
   in
   {
-    (* TOPORT: also SEMGREP_APP_URL *)
+    (* semgrep_url is set by env vars SEMGREP_URL | SEMGREP_APP_URL, or default *)
     semgrep_url =
-      env_or Uri.of_string "SEMGREP_URL" (Uri.of_string "https://semgrep.dev");
+      env_opt "SEMGREP_URL"
+      |> Option.value
+           ~default:
+             (env_opt "SEMGREP_APP_URL"
+             |> Option.value ~default:"https://semgrep.dev")
+      |> Uri.of_string;
     fail_open_url =
       env_or Uri.of_string "SEMGREP_FAIL_OPEN_URL"
         (Uri.of_string "https://fail-open.prod.semgrep.dev/failure");
+    (* TODO: set metrics_url to the cannonical "metrics.semgrep.dev" url once we upgrade the host from TLS 1.2 to TLS 1.3 *)
     metrics_url =
       env_or Uri.of_string "SEMGREP_METRICS_URL"
-        (Uri.of_string "https://metrics.semgrep.dev");
+        (Uri.of_string
+           "https://oeyc6oyp4f.execute-api.us-west-2.amazonaws.com/Prod/");
     app_token = env_opt "SEMGREP_APP_TOKEN";
     integration_name = env_opt "SEMGREP_INTEGRATION_NAME";
     version_check_url =

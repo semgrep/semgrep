@@ -39,8 +39,8 @@ depends: [
   "ppx_deriving"
   "ppx_hash"
   "ppx_inline_test"
-  "ppx_sexp_conv" {= "v0.16.0"}
   "ppx_expect"
+  "ppx_sexp_conv" {= "v0.16.0"}
   "visitors" {= "20210608"}
   "re"
   "pcre"
@@ -52,7 +52,7 @@ depends: [
   "lsp" {= "1.15.1-5.0"}
   "uri"
   "cohttp-lwt-unix"
-  "lwt_ssl" {>= "1.2.0"}
+  "tls-lwt"
   "emile"
   "digestif" {>= "1.0.0"}
   "lwt"
