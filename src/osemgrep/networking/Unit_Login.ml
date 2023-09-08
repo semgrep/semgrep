@@ -31,40 +31,40 @@ let login_session =
 
 let fake_settings =
   "has_shown_metrics_notification: true\n\
-   anonymous_user_id: 5a06eb03-071d-4c89-b297-993c4912fa8f"
+   anonymous_user_id: 11111111-1111-1111-1111-111111111111"
 
-let with_login_client =
+let with_mock_normal_responses =
   let make_fn req body =
     let uri = Cohttp.Request.uri req in
     match Uri.path uri with
     | "/api/agent/deployments/current" ->
         let status, body =
-          match Testing_client.get_header req "Authorization" with
+          match Http_mock_client.get_header req "Authorization" with
           | Some "Bearer ok_token" -> (200, "./tests/login/ok_response.json")
           | Some "Bearer bad_token" -> (401, "./tests/login/bad_response.json")
           | _ -> failwith "Unexpected token"
         in
-        Lwt.return Testing_client.(basic_response ~status body)
+        Lwt.return Http_mock_client.(basic_response ~status body)
     | "/api/agent/tokens/requests" ->
         let%lwt () =
-          Testing_client.check_body body "./tests/login/fetch_body.json"
+          Http_mock_client.check_body body "./tests/login/fetch_body.json"
         in
         Lwt.return
-          (Testing_client.basic_response ~status:200
+          (Http_mock_client.basic_response ~status:200
              "./tests/login/token_response.json")
     | _ -> failwith ("Unexpected path: " ^ Uri.path uri)
   in
-  Testing_client.with_testing_client make_fn
+  Http_mock_client.with_testing_client make_fn
 
-let with_four_o_four_client =
+let with_mock_four_o_four_responses =
   let make_fn req body =
     ignore body;
     ignore req;
-    Lwt.return Testing_client.(basic_response ~status:404 "/dev/null")
+    Lwt.return Http_mock_client.(basic_response ~status:404 "/dev/null")
   in
-  Testing_client.with_testing_client make_fn
+  Http_mock_client.with_testing_client make_fn
 
-let with_tmp_settings_file f () =
+let with_mock_envvars f () =
   Common2.with_tmp_file ~str:fake_settings ~ext:"yml" (fun tmp_settings_file ->
       let old_settings = !Semgrep_envvars.v in
       let new_settings =
@@ -74,8 +74,8 @@ let with_tmp_settings_file f () =
       f ();
       Semgrep_envvars.v := old_settings)
 
-let with_tmp_settings_and_login_client f =
-  with_login_client (with_tmp_settings_file f)
+let with_mock_envvars_and_normal_responses f =
+  with_mock_normal_responses (with_mock_envvars f)
 
 let with_logged_in f =
   let token = ok_token in
@@ -109,7 +109,7 @@ let save_token_tests () =
         ("invalid token", invalid_token_test); ("valid token", valid_token_test);
       ]
   in
-  Common.map (fun (n, f) -> (n, with_tmp_settings_and_login_client f)) tests
+  Common.map (fun (n, f) -> (n, with_mock_envvars_and_normal_responses f)) tests
 
 let fetch_token_tests () =
   let fetch_basic () =
@@ -129,7 +129,7 @@ let fetch_token_tests () =
       | _ -> retry_count := !retry_count + 1
     in
     let token =
-      Semgrep_login.fetch_token ~min_wait:0 ~next_wait:0 ~wait_hook
+      Semgrep_login.fetch_token ~min_wait_ms:0 ~next_wait_ms:0 ~wait_hook
         login_session
     in
     match token with
@@ -142,9 +142,9 @@ let fetch_token_tests () =
   in
   pack_tests "fetch_token"
     [
-      ("basic", with_tmp_settings_and_login_client fetch_basic);
+      ("basic", with_mock_envvars_and_normal_responses fetch_basic);
       ( "no internet",
-        with_tmp_settings_file (with_four_o_four_client fetch_no_internet) );
+        with_mock_envvars (with_mock_four_o_four_responses fetch_no_internet) );
     ]
 
 let tests =

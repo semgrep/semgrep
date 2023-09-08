@@ -10,13 +10,13 @@ let with_foo_client =
     let make_fn = (fun req body ->
         match Uri.path (Cohttp.Request.uri req) with
         | "http://foo.com/api/v1/blah" ->
-            Testing_client.check_method req "GET";
-            Testing_client.check_body body "./tests/foo/request.json"
-            Lwt.return Testing_client.(basic_response "./tests/foo/response.json")
+            Http_mock_client.check_method req "GET";
+            Http_mock_client.check_body body "./tests/foo/request.json"
+            Lwt.return Http_mock_client.(basic_response "./tests/foo/response.json")
         | _ -> Alcotest.fail "unexpected request"
     )
     in
-    Testing_client.with_testing_client make_fn
+    Http_mock_client.with_testing_client make_fn
    ...
 
    let test_foo = ... in

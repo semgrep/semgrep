@@ -49,10 +49,10 @@ let is_logged_in () =
   let settings = Semgrep_settings.load () in
   Option.is_some settings.api_token
 
-let fetch_token ?(min_wait = 2000) ?(next_wait = 1000) ?(max_retries = 12)
+let fetch_token ?(min_wait_ms = 2000) ?(next_wait_ms = 1000) ?(max_retries = 12)
     ?(wait_hook = fun () -> ()) login_session =
-  let apply_backoff current_wait =
-    Float.to_int (Float.ceil (Float.of_int current_wait *. 1.3))
+  let apply_backoff current_wait_ms =
+    Float.to_int (Float.ceil (Float.of_int current_wait_ms *. 1.3))
   in
   let url =
     Uri.with_path !Semgrep_envvars.v.semgrep_url "api/agent/tokens/requests"
@@ -60,7 +60,7 @@ let fetch_token ?(min_wait = 2000) ?(next_wait = 1000) ?(max_retries = 12)
   let body =
     {|{"token_request_key": "|} ^ Uuidm.to_string (fst login_session) ^ {|"}|}
   in
-  let rec fetch_token' next_wait' = function
+  let rec fetch_token' next_wait_ms' = function
     | 0 ->
         let msg =
           Ocolor_format.asprintf
@@ -95,9 +95,9 @@ let fetch_token ?(min_wait = 2000) ?(next_wait = 1000) ?(max_retries = 12)
             | 404 ->
                 wait_hook ();
                 (* 100 steps for each iteration with variable sleep time between *)
-                Unix.sleepf (Float.of_int (min_wait + next_wait));
+                Unix.sleepf (Float.of_int (min_wait_ms + next_wait_ms));
 
-                fetch_token' (apply_backoff next_wait') (n - 1)
+                fetch_token' (apply_backoff next_wait_ms') (n - 1)
             | _ ->
                 let msg =
                   Ocolor_format.asprintf
@@ -112,4 +112,4 @@ let fetch_token ?(min_wait = 2000) ?(next_wait = 1000) ?(max_retries = 12)
                 Logs.info (fun m -> m "HTTP error: %s" err);
                 Error msg))
   in
-  fetch_token' next_wait max_retries
+  fetch_token' next_wait_ms max_retries

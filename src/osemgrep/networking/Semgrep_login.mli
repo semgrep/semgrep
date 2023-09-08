@@ -17,20 +17,20 @@ val save_token : string -> (unit, string) result
 
 val is_logged_in : unit -> bool
 (** [is_logged_in ()] will check if the user is logged in by checking if a
-  * valid token in the settings file exists.
+  * token in the settings file exists.
   *)
 
 val fetch_token :
-  ?min_wait:int ->
-  ?next_wait:int ->
+  ?min_wait_ms:int ->
+  ?next_wait_ms:int ->
   ?max_retries:int ->
   ?wait_hook:(unit -> unit) ->
   login_session ->
   (string * string, string) result
-(** [fetch_token ?min_wait ?next_wait ?max_retries wait_hook login_session] will
+(** [fetch_token ?min_wait_ms ?next_wait_ms ?max_retries wait_hook login_session] will
   * fetch the token using the request token and url the login session. It will retry up to [max_retries]
-  * times, waiting [min_wait] seconds between each retry, and increasing the
-  * wait time by [next_wait] seconds each time. If it fails, it will return an
-  * error message.
+  * times, waiting [min_wait_ms] ms between each retry, and increasing the
+  * wait time by [next_wait_ms] ms each time. If it fails, it will return an
+  * error message. These will give users ~2 minutes to login
   * [wait_hook] is a function that will be called before each retry
   *)
