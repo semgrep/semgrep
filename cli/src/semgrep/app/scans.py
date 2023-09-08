@@ -203,7 +203,7 @@ class ScanHandler:
             logger.info(f"Would have sent POST request to create scan")
             return
 
-        logger.debug(f"Starting scan: {json.dumps({'meta': meta}, indent=4)}")
+        logger.debug("Starting scan")
         response = state.app_session.post(
             f"{state.env.semgrep_url}/api/agent/deployments/scans",
             json={"meta": meta},
@@ -399,7 +399,7 @@ class ScanHandler:
         except requests.RequestException as exc:
             raise Exception(f"API server returned this error: {response.text}") from exc
 
-        try_until = datetime.now() + timedelta(minutes=20)
+        try_until = datetime.now() + timedelta(minutes=10)
         complete_task = progress_bar.add_task("Finalizing scan")
         while datetime.now() < try_until:
             logger.debug("Sending /complete")

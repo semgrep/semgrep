@@ -173,9 +173,7 @@ class AppSession(requests.Session):
         return self.token is not None
 
     def request(self, *args: Any, **kwargs: Any) -> requests.Response:
-        kwargs.setdefault(
-            "timeout", 70
-        )  # most backend endpoints are 60s, ideally we have the backend time out before the client
+        kwargs.setdefault("timeout", 60)
         kwargs.setdefault("headers", {})
         kwargs["headers"].setdefault("User-Agent", str(self.user_agent))
         if self.token:
