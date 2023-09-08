@@ -1,3 +1,5 @@
+# TODO: should just reuse the 'profile' type in semgrep_output_v1.atd
+# and get rid of this whole file
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict
@@ -19,8 +21,10 @@ class Times(NamedTuple):
 
 
 class ProfilingData:
-    def __init__(self) -> None:
-        self._rules_parse_time: float = 0.0
+    profile: core.CoreTiming
+
+    def __init__(self, profile: core.CoreTiming) -> None:
+        self.profile = profile
         self._file_parse_time: Dict[Path, float] = defaultdict(float)
         self._file_run_time: Dict[Path, float] = defaultdict(float)
         self._match_time_matrix: Dict[Semgrep_run, Times] = defaultdict(Times)
@@ -29,8 +33,6 @@ class ProfilingData:
         self._rule_bytes_scanned: Dict[core.RuleId, int] = defaultdict(int)
         self._file_match_times: Dict[Path, float] = defaultdict(float)
         self._file_num_times_scanned: Dict[Path, int] = defaultdict(int)
-
-        self._max_memory_bytes: Optional[int] = None
 
     def get_run_times(self, rule: Rule, target: Path) -> Times:
         return self._match_time_matrix[Semgrep_run(rule=rule.id2, target=target)]
@@ -86,13 +88,6 @@ class ProfilingData:
         """
         return self._file_num_times_scanned[target]
 
-    def get_max_memory_bytes(self) -> Optional[int]:
-        """
-        Returns the amount of bytes of memory used during Semgrep's
-        run on the OCaml side.
-        """
-        return self._max_memory_bytes
-
     def set_file_times(
         self, target: Path, times: Dict[core.RuleId, Times], run_time: float
     ) -> None:
@@ -112,12 +107,3 @@ class ProfilingData:
             self._match_time_matrix[Semgrep_run(rule=rule, target=target)] = rule_times
             self._rule_match_times[rule] += rule_times.match_time
             self._rule_bytes_scanned[rule] += num_bytes
-
-    def get_rules_parse_time(self) -> float:
-        return self._rules_parse_time
-
-    def set_rules_parse_time(self, parse_time: float) -> None:
-        self._rules_parse_time = parse_time
-
-    def set_max_memory_bytes(self, max_memory_bytes: int) -> None:
-        self._max_memory_bytes = max_memory_bytes
