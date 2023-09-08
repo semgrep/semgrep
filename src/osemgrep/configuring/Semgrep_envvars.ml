@@ -86,7 +86,7 @@ let v : t ref =
   in
   ref
     {
-      (* semgrep_url is set by env vars SEMGREP_URL | SEMGREP_APP_URL, or default *)
+      (* semgrep_url is set by env vars $SEMGREP_URL | $SEMGREP_APP_URL, or default *)
       semgrep_url =
         env_opt "SEMGREP_URL"
         |> Option.value
@@ -103,6 +103,7 @@ let v : t ref =
           (Uri.of_string
              "https://oeyc6oyp4f.execute-api.us-west-2.amazonaws.com/Prod/");
       app_token = env_opt "SEMGREP_APP_TOKEN";
+      (* integration_name can take a label like "funkyintegration" for custom partner integrations *)
       integration_name = env_opt "SEMGREP_INTEGRATION_NAME";
       version_check_url =
         env_or Uri.of_string "SEMGREP_VERSION_CHECK_URL"
@@ -115,6 +116,7 @@ let v : t ref =
       git_command_timeout =
         env_or int_of_string "SEMGREP_GIT_COMMAND_TIMEOUT" 300;
       src_directory = env_or Fpath.v "SEMGREP_SRC_DIRECTORY" (Fpath.v "/src");
+      (* user_agent_append is a literal string like "(Docker)" for inclusion in our metrics user agent field *)
       user_agent_append = env_opt "SEMGREP_USER_AGENT_APPEND";
       user_dot_semgrep_dir;
       user_log_file =
