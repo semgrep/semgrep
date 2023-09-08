@@ -1167,7 +1167,9 @@ and type_ env (ty : G.type_) : type_ =
 
 (* TODO: What other languages have no fallthrough? *)
 and no_switch_fallthrough : Lang.t -> bool = function
-  | Go -> true
+  | Go
+  | Ruby ->
+      true
   | _ -> false
 
 and mk_break_continue_labels env tok =
