@@ -36,4 +36,8 @@ type t = {
   min_fetch_depth : int;
 }
 
-val v : t
+val v : t ref
+(** [v] is a reference to environment variables and user settings gathered
+  * during initialization. This is a reference to allow these settings to
+  * be modified by tests.
+  *)
