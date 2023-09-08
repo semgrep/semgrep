@@ -159,20 +159,6 @@ let is_js env =
   | None -> false
   | Some lang -> Lang.is_js lang
 
-let is_global = function
-  | Global (* OSS *)
-  | GlobalName _ (* Pro *) ->
-      true
-  | LocalVar
-  | Parameter
-  | EnclosedVar
-  | ImportedEntity _
-  | ImportedModule _
-  | TypeName
-  | Macro
-  | EnumConstant ->
-      false
-
 let is_class_field env = function
   | EnclosedVar (* OSS *)
   | GlobalName _ (* Pro *) ->
@@ -668,6 +654,7 @@ let propagate_basic lang prog =
                       {
                         id_resolved = { contents = Some (_kind, sid) };
                         id_svalue;
+                        id_flags;
                         _;
                       } ));
               attrs;
@@ -679,29 +666,30 @@ let propagate_basic lang prog =
             let assigned_just_once =
               is_assigned_just_once stats.var_stats (H.str_of_ident id, sid)
             in
-            (if
-             H.has_keyword_attr Const attrs
-             || H.has_keyword_attr Final attrs
-             || (assigned_just_once && is_js env)
-             || assigned_just_once && is_lang env Lang.Java
-                && List.exists is_private attrs
-            then
-             match (!id_svalue, e.e) with
-             (* When the name already has an svalue computed, just use
-              * that. DeepSemgrep assigns svalues sometimes in its naming
-              * phase. *)
-             | Some svalue, _ -> add_constant_env id (sid, svalue) env
-             | None, L literal -> add_constant_env id (sid, Lit literal) env
-             (* For any other symbolic expression, it is OK to propagate it symbolically so long as
-                the lvalue is only assigned to once.
-                Although we may propagate expressions with identifiers in them, those identifiers
-                will simply not have an `svalue` if they are non-propagated as well.
-             *)
-             | None, _
-               when Dataflow_svalue.is_symbolic_expr e
-                    && no_cycles_in_sym_prop sid e ->
-                 add_constant_env id (sid, Sym e) env
-             | None, _ -> ());
+            if
+              H.has_keyword_attr Const attrs
+              || H.has_keyword_attr Final attrs
+              || (assigned_just_once && is_js env)
+              || assigned_just_once && is_lang env Lang.Java
+                 && List.exists is_private attrs
+            then (
+              id_flags := IdFlags.set_final !id_flags;
+              match (!id_svalue, e.e) with
+              (* When the name already has an svalue computed, just use
+               * that. DeepSemgrep assigns svalues sometimes in its naming
+               * phase. *)
+              | Some svalue, _ -> add_constant_env id (sid, svalue) env
+              | None, L literal -> add_constant_env id (sid, Lit literal) env
+              (* For any other symbolic expression, it is OK to propagate it symbolically so long as
+                 the lvalue is only assigned to once.
+                 Although we may propagate expressions with identifiers in them, those identifiers
+                 will simply not have an `svalue` if they are non-propagated as well.
+              *)
+              | None, _
+                when Dataflow_svalue.is_symbolic_expr e
+                     && no_cycles_in_sym_prop sid e ->
+                  add_constant_env id (sid, Sym e) env
+              | None, _ -> ());
             super#visit_definition (env, ctx) x
         | _ -> super#visit_definition (env, ctx) x
 
@@ -739,8 +727,11 @@ let propagate_basic lang prog =
                   ( N
                       (Id
                         ( id,
-                          { id_resolved = { contents = Some (kind, sid) }; _ }
-                        ))
+                          {
+                            id_resolved = { contents = Some (kind, sid) };
+                            id_flags;
+                            _;
+                          } ))
                   | DotAccess
                       ( { e = IdSpecial ((This | Self), _); _ },
                         _,
@@ -749,6 +740,7 @@ let propagate_basic lang prog =
                             ( id,
                               {
                                 id_resolved = { contents = Some (kind, sid) };
+                                id_flags;
                                 _;
                               } )) ) );
                 _;
@@ -756,38 +748,39 @@ let propagate_basic lang prog =
               _,
               rexp ) ->
             let opt_svalue = eval env rexp in
-            (let is_private_class_field =
-               match Hashtbl.find_opt env.attributes (fst id, sid) with
-               | None -> false
-               | Some attrs ->
-                   List.exists is_private attrs && is_class_field env kind
-             in
-             let in_unique_constructor =
-               match ctx.in_class with
-               | None -> false
-               | Some cid ->
-                   ctx.in_constructor
-                   && has_just_one_constructor stats.class_stats (fst cid)
-             in
-             if
-               is_assigned_just_once stats.var_stats (H.str_of_ident id, sid)
-               (* restricted to prevent unexpected const-prop FPs *)
-               && ((is_lang env Lang.Python || is_lang env Lang.Ruby
-                  || is_lang env Lang.Php || is_js env)
-                   && is_global kind
-                  (* TODO: Add other Java-like OO languages, maybe Apex and C# ? *)
-                  || is_lang env Lang.Java && is_private_class_field
-                     && (ctx.in_static_block || in_unique_constructor))
-               && is_resolved_name kind sid
-             then
-               match opt_svalue with
-               | Some svalue -> add_constant_env id (sid, svalue) env
-               | None ->
-                   if
-                     Dataflow_svalue.is_symbolic_expr rexp
-                     && no_cycles_in_sym_prop sid rexp
-                   then add_constant_env id (sid, Sym rexp) env;
-                   ());
+            let is_private_class_field =
+              match Hashtbl.find_opt env.attributes (fst id, sid) with
+              | None -> false
+              | Some attrs ->
+                  List.exists is_private attrs && is_class_field env kind
+            in
+            let in_unique_constructor =
+              match ctx.in_class with
+              | None -> false
+              | Some cid ->
+                  ctx.in_constructor
+                  && has_just_one_constructor stats.class_stats (fst cid)
+            in
+            if
+              is_assigned_just_once stats.var_stats (H.str_of_ident id, sid)
+              (* restricted to prevent unexpected const-prop FPs *)
+              && ((is_lang env Lang.Python || is_lang env Lang.Ruby
+                 || is_lang env Lang.Php || is_js env)
+                  && H.name_is_global kind
+                 (* TODO: Add other Java-like OO languages, maybe Apex and C# ? *)
+                 || is_lang env Lang.Java && is_private_class_field
+                    && (ctx.in_static_block || in_unique_constructor))
+              && is_resolved_name kind sid
+            then (
+              id_flags := IdFlags.set_final !id_flags;
+              match opt_svalue with
+              | Some svalue -> add_constant_env id (sid, svalue) env
+              | None ->
+                  if
+                    Dataflow_svalue.is_symbolic_expr rexp
+                    && no_cycles_in_sym_prop sid rexp
+                  then add_constant_env id (sid, Sym rexp) env;
+                  ());
             super#visit_expr (env, ctx) rexp
         | __else__ -> super#visit_expr (env, ctx) x
     end

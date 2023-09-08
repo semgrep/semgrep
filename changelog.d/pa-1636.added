@@ -1,0 +1,17 @@
+taint-mode: Semgrep will now track taint via globals or class attributes that are
+_effectively_ `final` (as in Java), e.g.:
+
+```java
+class Test {
+  private String x = source();
+
+  void test() {
+    sink(x); // finding here !
+  }
+}
+```
+
+Semgrep will recognize that `x` must be tainted because it is a private class
+attribute that is initialized to `source()`, and it is not re-defined anywhere
+else. This will also work if `x` is initialized in _the_ constructor (if there
+is only one constructor), or in a `static` block.

@@ -1,0 +1,11 @@
+rules:
+  - id: test
+    message: Test
+    severity: ERROR
+    languages:
+      - java
+    mode: taint
+    pattern-sources:
+      - pattern: javax.xml.parsers.DocumentBuilderFactory.newInstance()
+    pattern-sinks:
+      - pattern: $FACTORY.newDocumentBuilder()
