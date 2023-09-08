@@ -1,9 +1,13 @@
 """
 This file encapsulates classes necessary in parsing semgrep-core
-json output into a typed object
+json output into a typed object.
+
+Not everything is done here though; Some of the parsing
+of semgrep-core output is done in core_runner.py (e.g.,
+parsing and interpreting the semgrep-core profiling information).
 
 The precise type of the response from semgrep-core is specified in
-https://github.com/returntocorp/semgrep/blob/develop/interfaces/Output_from_core.atd
+semgrep_interfaces/semgrep_output_v1.atd
 """
 import dataclasses
 from dataclasses import replace
@@ -25,7 +29,6 @@ from semgrep.error import TARGET_PARSE_FAILURE_EXIT_CODE
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchSet
-from semgrep.types import JsonObject
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -93,20 +96,6 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
         code = FATAL_EXIT_CODE
 
     return SemgrepCoreError(code, level, spans, err)
-
-
-def parse_core_output(raw_json: JsonObject) -> core.CoreOutput:
-    match_results = core.CoreOutput.from_json(raw_json)
-    if match_results.skipped_targets:
-        for skip in match_results.skipped_targets:
-            if skip.rule_id:
-                rule_info = f"rule {skip.rule_id}"
-            else:
-                rule_info = "all rules"
-            logger.verbose(
-                f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
-            )
-    return match_results
 
 
 def core_matches_to_rule_matches(

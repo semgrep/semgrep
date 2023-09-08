@@ -190,8 +190,6 @@ def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch, pro_flag):
 
     # make the rule, file timings, and memory usage deterministic
     mocker.patch.object(ProfilingData, "set_file_times")
-    mocker.patch.object(ProfilingData, "set_rules_parse_time")
-    mocker.patch.object(ProfilingData, "set_max_memory_bytes")
 
     # make the event ID deterministic
     mocker.patch("uuid.uuid4", return_value=uuid.UUID("0" * 32))
@@ -219,6 +217,8 @@ def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch, pro_flag):
     payload = json.loads(mock_post.call_args.kwargs["data"])
     payload["environment"]["version"] = _mask_version(payload["environment"]["version"])
     payload["environment"]["isAuthenticated"] = False
+    # undeterministic
+    del payload["performance"]["maxMemoryBytes"]
 
     snapshot.assert_match(
         json.dumps(payload, indent=2, sort_keys=True), "metrics-payload.json"

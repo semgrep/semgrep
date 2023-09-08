@@ -3,6 +3,7 @@
 # Run semgrep on a series of pairs (rules, repo) with different options,
 # and report the time it takes. Optionally upload the results to the semgrep
 # dashboard.
+# This script assumes the presence of 'semgrep' in the PATH.
 #
 import argparse
 import copy
@@ -127,6 +128,7 @@ def upload(url: str, value: str) -> None:
     print(r.read().decode())
 
 
+# coupling: timings has type Semgrep_output_v1.profile
 def upload_result(
     variant_name: str, metric_name: str, value: float, timings: dict
 ) -> None:
