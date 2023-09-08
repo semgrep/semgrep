@@ -405,6 +405,11 @@ let add_semgrep_workflow ~repo ~token ~update ~dry_run : unit =
 
 let run (conf : Install_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:true ~level:conf.common.logging_level;
+  (* NOTE: In theory, we should be able to use the same metrics config option as scan,
+     but given that this is an experimental command that we need to validate in the wild,
+     we are hard-coding the metrics config to Auto for now. We can revisit whether we
+     should even support disabling metrics for this command at a later date.
+  *)
   Metrics_.configure Metrics_.Auto;
   Logs.debug (fun m -> m "conf = %s" (Install_CLI.show_conf conf));
   let settings = Semgrep_settings.load () in

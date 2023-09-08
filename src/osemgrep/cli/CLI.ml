@@ -53,16 +53,26 @@ let default_subcommand = "scan"
 *)
 
 let metrics_init () : unit =
-  let () =
-    match Env.v.user_agent_append with
-    | Some str -> Metrics_.add_user_agent_tag ~str
-    | _ -> ()
-  in
   let settings = Semgrep_settings.load () in
   let api_token = settings.Semgrep_settings.api_token in
   let anonymous_user_id = settings.Semgrep_settings.anonymous_user_id in
-  Metrics_.init ~anonymous_user_id ~ci:Env.v.is_ci;
+  Metrics_.init ~anonymous_user_id ~ci:!Env.v.is_ci;
   Metrics_.add_token (Some api_token);
+  (* We override the user agent (e.g. "ocaml-cohttp/5.3.0")
+     with a custom string built from the version of semgrep,
+     the submcommand, and any custom value specified by the environment
+     variable $SEMGREP_USER_AGENT_APPEND.
+
+     For example, we set this extra field
+     as "Docker" by default when running from a Docker container by baking
+     this field into the Docker image. This allows us to measure usage of
+     semgrep running from Docker container images that we distribute.
+
+     A sample user agent string might look like this:
+      "Semgrep/1.39.0 (Docker) (command/scan)"
+  *)
+  !Env.v.user_agent_append
+  |> Option.iter (fun str -> Metrics_.add_user_agent_tag ~str);
   ()
 
 let log_cli_feature flag : unit =
@@ -84,7 +94,7 @@ let send_metrics () : unit =
     Metrics_.prepare_to_send ();
     let user_agent = Metrics_.string_of_user_agent () in
     let metrics = Metrics_.string_of_metrics () in
-    let url = Env.v.metrics_url in
+    let url = !Env.v.metrics_url in
     let headers =
       [ ("Content-Type", "application/json"); ("User-Agent", user_agent) ]
     in
@@ -318,10 +328,5 @@ let main argv : Exit_code.t =
   Metrics_.add_exit_code exit_code;
   send_metrics ();
 
-  (* TODO(dinosaure): currently, even if we record the [exit_code], we will
-   * never send the final report **with** the exit code to the server. We
-   * send it before this call. At some point, we should handle correctly
-   * the [exit_code] and properly send the report with it.
-   *)
   before_exit ~profile ();
   exit_code

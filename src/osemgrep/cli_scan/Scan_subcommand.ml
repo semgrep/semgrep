@@ -485,7 +485,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     in
     Profiler.stop_ign profiler ~name:"total_time";
 
-    if Metrics_.is_enabled conf.metrics then (
+    if Metrics_.is_enabled () then (
       Metrics_.add_errors cli_output.errors;
       Metrics_.add_rules ?profiling:res.core.time filtered_rules;
       Metrics_.add_profiling profiler);
