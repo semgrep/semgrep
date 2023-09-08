@@ -52,6 +52,11 @@ module Make (M : S) : Cohttp_lwt.S.Client = struct
       | None -> false
     in
     let req = Request.make_for_client ~headers ~chunked meth uri in
+    Logs.debug (fun m ->
+        m "[Testing client] Request: %s"
+          (Request.sexp_of_t req |> Sexplib.Sexp.to_string_hum));
+    let%lwt _body = Body.to_string body in
+    Logs.debug (fun m -> m "[Testing client] Body: %s" _body);
     let%lwt response = make_response req body in
     let response_body =
       response.body_path |> Common.read_file |> Cohttp_lwt.Body.of_string
@@ -77,14 +82,16 @@ end
 (* Helper Functions *)
 (*****************************************************************************)
 
-let basic_response ?(status = `OK) ?(headers = Header.init ()) body_path =
+let basic_response ?(status = 200) ?(headers = Header.init ()) body_path =
+  let status = Cohttp.Code.status_of_code status in
   let response = Response.make ~status ~headers ~flush:true () in
   { response; body_path }
 
 let check_body body path =
   let expected_body = path |> Common.read_file in
   let%lwt actual_body = Cohttp_lwt.Body.to_string body in
-  Alcotest.(check string) "body" expected_body actual_body;
+  (* Read file above adds a newline :( *)
+  Alcotest.(check string) "body" expected_body (actual_body ^ "\n");
   Lwt.return_unit
 
 let check_method req meth =
@@ -101,6 +108,9 @@ let check_header req header header_val =
            (Cohttp.Header.to_string (Cohttp.Request.headers req)))
   | Some actual_header ->
       Alcotest.(check string) "header" header_val actual_header
+
+let get_header req header =
+  Cohttp.Header.get (Cohttp.Request.headers req) header
 
 (*****************************************************************************)
 (* Entrypoint *)
