@@ -1,0 +1,3 @@
+const-prop: Semgrep can now identify as constants private class attributes
+that are assigned just once in a class constructor, e.g.:
+https://semgrep.dev/playground/s/R1re.

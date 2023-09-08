@@ -42,10 +42,18 @@ let json_of_v (v : OCaml.v) =
   aux v
 
 (* temporary *)
-let dump_elixir_ast file =
+let dump_elixir_raw_ast file =
   let x = Parse_elixir_tree_sitter.parse file in
   match x.program with
   | Some x -> pr (AST_elixir.show_program x)
+  | None -> failwith (spf "could not parse %s" file)
+
+let dump_elixir_ast file =
+  let x = Parse_elixir_tree_sitter.parse file in
+  match x.program with
+  | Some x ->
+      let x = Elixir_to_elixir.map_program x in
+      pr (AST_elixir.show_program x)
   | None -> failwith (spf "could not parse %s" file)
 
 (* mostly a copy paste of Test_analyze_generic.ml *)
