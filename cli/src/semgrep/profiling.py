@@ -34,6 +34,18 @@ class ProfilingData:
         self._file_match_times: Dict[Path, float] = defaultdict(float)
         self._file_num_times_scanned: Dict[Path, int] = defaultdict(int)
 
+    def get_max_memory_bytes(self) -> Optional[int]:
+        if self.profile:
+            return self.profile.max_memory_bytes
+        else:
+            return None
+
+    def get_rules_parse_time(self) -> float:
+        if self.profile:
+            return self.profile.rules_parse_time
+        else:
+            return 0.0
+
     def get_run_times(self, rule: Rule, target: Path) -> Times:
         return self._match_time_matrix[Semgrep_run(rule=rule.id2, target=target)]
 

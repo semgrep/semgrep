@@ -108,7 +108,7 @@ def _build_time_target_json(
 def _build_time_json(
     rules: List[Rule],
     targets: Set[Path],
-    profiling_data: ProfilingData,
+    profiling_data: ProfilingData,  # (rule, target) -> times
     profiler: Optional[ProfileManager],
 ) -> out.Profile:
     """Convert match times to a json-ready format.
@@ -124,14 +124,14 @@ def _build_time_json(
         # this list of all rules ids is given here so they don't have to be
         # repeated for each target in the 'targets' field, saving space.
         rules=[out.RuleId(rule.id) for rule in rules],
+        rules_parse_time=profiling_data.get_rules_parse_time(),
         profiling_times=profiler.dump_stats() if profiler else {},
         targets=[
             _build_time_target_json(rules, target, num_bytes, profiling_data)
             for target, num_bytes in zip(targets, target_bytes)
         ],
         total_bytes=sum(n for n in target_bytes),
-        rules_parse_time=profiling_data.profile.rules_parse_time,
-        max_memory_bytes=profiling_data.profile.max_memory_bytes,
+        max_memory_bytes=profiling_data.get_max_memory_bytes(),
     )
 
 
