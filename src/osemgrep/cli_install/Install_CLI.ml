@@ -71,7 +71,7 @@ let o_repo_pos : string Term.t =
 (* NOTE: Should only be required when previous attempts only partially succeeded *)
 let o_update : bool Term.t =
   let doc = "Update any existing workflow and secrets (absent=false)." in
-  H.negatable_flag [ "update" ] ~neg_options:[ "no-update" ] ~default:false ~doc
+  Arg.(value & flag & info [ "u"; "update" ] ~doc)
 
 (* NOTE: Should only be required when previous attempts only partially succeeded *)
 let o_dry_run : bool Term.t =
@@ -79,8 +79,7 @@ let o_dry_run : bool Term.t =
     "Simulate outputs without actually running any system commands \
      (absent=false)."
   in
-  H.negatable_flag [ "dry-run" ] ~neg_options:[ "no-dry-run" ] ~default:false
-    ~doc
+  Arg.(value & flag & info [ "n"; "dryrun"; "dry-run" ] ~doc)
 
 (*************************************************************************)
 (* Command-line parsing: turn argv into conf *)

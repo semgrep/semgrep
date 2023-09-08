@@ -75,6 +75,9 @@ let metrics_init () : unit =
   |> Option.iter (fun str -> Metrics_.add_user_agent_tag ~str);
   ()
 
+(* For debugging customer issues, we append the CLI flags for each subcommand,
+   handling the logic in this base CLI entry point pre- subcommand dispatch.
+*)
 let log_cli_feature flag : unit =
   Metrics_.add_feature "cli-flag"
     (flag

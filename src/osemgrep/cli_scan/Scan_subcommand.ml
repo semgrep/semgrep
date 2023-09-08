@@ -541,7 +541,7 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
       let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
       if Metrics_.is_enabled () then
         Metrics_.add_project_url (Git_wrapper.get_project_url ());
-      Metrics_.add_integration_name Env.v.integration_name;
+      Metrics_.add_integration_name !Env.v.integration_name;
       (match conf.rules_source with
       | Rules_source.Configs configs -> Metrics_.add_configs configs
       | _ -> ());
