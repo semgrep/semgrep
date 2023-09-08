@@ -3,7 +3,7 @@ from textwrap import dedent
 
 import pytest
 
-import semgrep.output_from_core as core
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.config_resolver import parse_config_string
 from semgrep.constants import RuleSeverity
 from semgrep.rule import Rule
@@ -76,14 +76,14 @@ def get_rule_match(
     return RuleMatch(
         message="message",
         severity=RuleSeverity.ERROR,
-        match=core.CoreMatch(
-            check_id=core.RuleId(rule_id),
-            path=core.Fpath(filepath),
-            start=core.Position(start_line, 0, start_line * 5),
-            end=core.Position(end_line, 5, end_line * 5 + 5),
-            extra=core.CoreMatchExtra(
-                metavars=core.Metavars(metavars if metavars else {}),
-                engine_kind=core.EngineKind(core.OSS()),
+        match=out.CoreMatch(
+            check_id=out.RuleId(rule_id),
+            path=out.Fpath(filepath),
+            start=out.Position(start_line, 0, start_line * 5),
+            end=out.Position(end_line, 5, end_line * 5 + 5),
+            extra=out.CoreMatchExtra(
+                metavars=out.Metavars(metavars if metavars else {}),
+                engine_kind=out.EngineKind(out.OSS()),
             ),
         ),
         extra={"metavars": metavars if metavars else {}},

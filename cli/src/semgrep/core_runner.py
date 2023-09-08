@@ -42,7 +42,7 @@ from rich.progress import TimeElapsedColumn
 from rich.table import Table
 from ruamel.yaml import YAML
 
-import semgrep.output_from_core as core
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.app import auth
 from semgrep.config_resolver import Config
 from semgrep.console import console
@@ -152,7 +152,7 @@ def dedup_errors(errors: List[SemgrepCoreError]) -> List[SemgrepCoreError]:
 
 def uniq_error_id(
     error: SemgrepCoreError,
-) -> Tuple[int, Path, core.Position, core.Position, str]:
+) -> Tuple[int, Path, out.Position, out.Position, str]:
     return (
         error.code,
         Path(error.core.location.path.value),
@@ -815,7 +815,7 @@ class CoreRunner:
             )
 
             if "errors" in output_json:
-                parsed_output = core.CoreOutput.from_json(output_json)
+                parsed_output = out.CoreOutput.from_json(output_json)
                 errors = parsed_output.errors
                 if len(errors) < 1:
                     self._fail(
@@ -1113,7 +1113,7 @@ class CoreRunner:
                 runner.stdout,
                 runner.stderr,
             )
-            core_output = core.CoreOutput.from_json(output_json)
+            core_output = out.CoreOutput.from_json(output_json)
             if core_output.skipped_targets:
                 for skip in core_output.skipped_targets:
                     if skip.rule_id:
@@ -1140,7 +1140,7 @@ class CoreRunner:
             outputs = core_matches_to_rule_matches(rules, core_output)
             parsed_errors = [core_error_to_semgrep_error(e) for e in core_output.errors]
             for err in core_output.errors:
-                if isinstance(err.error_type.value, core.Timeout):
+                if isinstance(err.error_type.value, out.Timeout):
                     assert err.location.path is not None
 
                     file_timeouts[Path(err.location.path.value)] += 1
@@ -1153,11 +1153,11 @@ class CoreRunner:
                 if isinstance(
                     err.error_type.value,
                     (
-                        core.LexicalError,
-                        core.ParseError,
-                        core.PartialParsing,
-                        core.SpecifiedParseError,
-                        core.AstBuilderError,
+                        out.LexicalError,
+                        out.ParseError,
+                        out.PartialParsing,
+                        out.SpecifiedParseError,
+                        out.AstBuilderError,
                     ),
                 ):
                     parsing_data.add_error(err)
@@ -1292,7 +1292,7 @@ Exception raised: `{e}`
             output_json = self._extract_core_output(
                 metachecks, returncode, " ".join(cmd), runner.stdout, runner.stderr
             )
-            core_output = core.CoreOutput.from_json(output_json)
+            core_output = out.CoreOutput.from_json(output_json)
 
             parsed_errors += [
                 core_error_to_semgrep_error(e) for e in core_output.errors
