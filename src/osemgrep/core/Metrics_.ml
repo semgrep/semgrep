@@ -3,20 +3,75 @@ open Unix
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Small wrapper around Semgrep_metrics.atd to manipulate
+(*
+   Small wrapper around Semgrep_metrics.atd to manipulate
    semgrep metrics data to send to metrics.semgrep.dev.
 
-    """
-    To prevent sending unintended metrics:
-    1. send all data into this class with add_* methods
-    2. ensure all add_* methods only set sanitized data
+   This implementation is a port of the python implementation (metrics.py)
+   and currently is targeting functionality, not parity.
 
-    These methods go directly from raw data to transported data,
-    thereby skipping a "stored data" step,
-    and enforcing that we sanitize before saving, not before sending.
-    """
+   To date, we have implemented the following features from the python
+   implementation:
+     - base payload structure
+     - required timing information (started_at, sent_at)
+     - required event information (event_id, anonymous_user_id)
+     - basic environment information (version, ci, isAuthenticated, integrationName)
+     - basic feature tags (subcommands, language)
+     - user agent information (version, subommand)
+     - language information (language, numRules, numTargets, totalBytesScanned)
 
-   Translated from metrics.py (with some parts in scan.py)
+    Sending the metrics is handled from the main CLI entrypoint following the
+    execution of the CLI.safe_run() function to report the exit code.
+
+    With the original implementation, we specified the following rules to guard
+    against sending malformed metrics:
+      1. inject all data into the metrics class with add_* methods
+      2. ensure all add_* methods only set sanitized data
+
+    The idea was to enforce that we sanitize before write, not before sending.
+
+    Here, we follow a similar approach and try to exclusively use the helper methods
+    prefixed by `add_*` as exposed by the metrics interface. Setter methods `set_*`
+    are currently exposed as well, but we should plan to keep them as internal to
+    this file in the future to help ensure we send consistent and correct data.
+
+    Metrics Flow:
+      1. init() - set started_at, event_id, anonymous_user_id
+      2. add_feature – tag subcommand, CLI flags, language, etc.
+      3. add_user_agent_tag – add CLI version, subcommand, etc.
+      4. add_* methods - any other data
+      5. prepare_to_send() - set sent_at
+      6. string_of_metrics() - serialize metrics payload as JSON string
+      7. send_metrics() - send payload to our endpoint (i.e. metrics.semgrep.dev)
+
+    Life of a Metric Payload After Sending:
+      -> API Gateway (Name=Telemetry)
+      -> Lambda (Name=SemgrepMetricsGatewayToKinesisIntegration)
+      -> Kinesis Stream (Name=semgrep-cli-telemetry)
+        |-> S3 Bucket (Name=semgrep-cli-metrics)
+          -> Snowflake (SEMGREP_CLI_TELEMETRY)
+            -> Metabase (SEMGREP CLI - SNOWFLAKE)
+        |-> OpenSearch (Name=semgrep-metrics)
+
+    Notes:
+      - Raw payload is ingested by our metrics endpoint exposed via our API Gateway
+      - We parse the payload and add additional metadata (i.e. sender ip address) in our Lambda function
+      - We pass the transformed payload to our AWS Kinesis stream ("semgrep-cli-telemetry")
+      - The payload can be viewed in our internal AWS console (if you can guess the shard ID?)
+        The shard ID is based on the Partition Key (which is set to the ip address). If someone
+        can figure out how to determine the shard ID easily please update this docstring!!!
+
+        In practice, your shard ID only needs to found once through trial and error by sending multiple payloads
+        until you find a match. There is probably a better way to do this...
+
+        I found the following StackOverflow link helpful, but not enough to automate this process:
+        https://stackoverflow.com/questions/31893297/how-to-determine-shard-id-for-a-specific-partition-key-with-kcl
+
+      - The data viewer URL will look something like https://us-west-2.console.aws.amazon.com/kinesis/home?region=us-west-2#/streams/details/semgrep-cli-telemetry/dataViewer
+        where each row is a payload with the IP address as the Partition Key
+      - The data is then stored in our S3 bucket ("semgrep-cli-metrics") and can be queried via Snowflake or Metabase
+
+
 *)
 
 module Out = Semgrep_output_v1_t
