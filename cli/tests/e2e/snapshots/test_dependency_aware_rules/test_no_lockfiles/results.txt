@@ -11,6 +11,8 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of stdout - plain
 
 === stderr - plain
+Bad settings format; /tmp/tmpfsvn4l3k will be overriden. Contents:
+has_shown_metrics_notification: true
 
 
 ┌─────────────┐
@@ -27,3 +29,27 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 Ran 1 rule on 0 files: 0 findings.
 
 === end of stderr - plain
+
+=== stdout - color
+
+=== end of stdout - color
+
+=== stderr - color
+[33mBad settings format; /tmp/tmpfsvn4l3k will be overriden. Contents:
+has_shown_metrics_notification: true
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 0 Code rules:
+  Nothing to scan.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+
+Ran 1 rule on 0 files: 0 findings.
+
+=== end of stderr - color

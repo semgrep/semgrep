@@ -1,3 +1,5 @@
+[33mBad settings format; /tmp/tmpdgv1x_kk will be overriden. Contents:
+has_shown_metrics_notification: true
 git could not find a single branch-off point, so we will compare the baseline commit directly
 
 

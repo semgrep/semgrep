@@ -1,3 +1,5 @@
+[33mBad settings format; /tmp/tmpwezhwbk6 will be overriden. Contents:
+has_shown_metrics_notification: true
 [ERROR] Command failed with exit code: 128
 -----
 Command failed with output:

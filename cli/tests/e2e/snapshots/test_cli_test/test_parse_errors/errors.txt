@@ -1,3 +1,5 @@
+[33mBad settings format; /tmp/tmpz8e69epi will be overriden. Contents:
+has_shown_metrics_notification: true
 running 2 rules from 2 configs
 No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
 Rules:

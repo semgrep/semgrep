@@ -75,6 +75,8 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of stdout - plain
 
 === stderr - plain
+Bad settings format; /tmp/tmppt_o996_ will be overriden. Contents:
+has_shown_metrics_notification: true
 
 
 ┌─────────────┐
@@ -97,3 +99,97 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 Ran 1 rule on 1 file: 1 finding.
 
 === end of stderr - plain
+
+=== stdout - color
+{
+  "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/dependency_aware/yarn/yarn.lock"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.dependency_aware.sass",
+      "end": {
+        "col": 0,
+        "line": 6,
+        "offset": 0
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "sass@^1.43.4:\n  name node-sass",
+        "message": "that's a bad lib",
+        "metadata": {
+          "sca-kind": "upgrade-only"
+        },
+        "metavars": {},
+        "sca_info": {
+          "dependency_match": {
+            "dependency_pattern": {
+              "ecosystem": "npm",
+              "package": "sass",
+              "semver_range": "<= 1.43.5"
+            },
+            "found_dependency": {
+              "allowed_hashes": {
+                "sha512": [
+                  "fe9b46eca13d971a464988979fb02bfa528ebf7ef17d6b1946d1586a5d901cd8a0c95403c7af395454ff87b7a356bf91f30ec7e2d99482dba5b0a979629bde3a"
+                ]
+              },
+              "ecosystem": "npm",
+              "line_number": 5,
+              "package": "sass",
+              "resolved_url": "https://registry.yarnpkg.com/sass/-/sass-1.43.4.tgz",
+              "transitivity": "unknown",
+              "version": "1.43.4"
+            },
+            "lockfile": "targets/dependency_aware/yarn/yarn.lock"
+          },
+          "reachability_rule": false,
+          "reachable": false,
+          "sca_finding_schema": 20220913
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/dependency_aware/yarn/yarn.lock",
+      "start": {
+        "col": 0,
+        "line": 5,
+        "offset": 0
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}
+=== end of stdout - color
+
+=== stderr - color
+[33mBad settings format; /tmp/tmppt_o996_ will be overriden. Contents:
+has_shown_metrics_notification: true
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 0 Code rules, 1 Supply Chain rule:
+
+
+  CODE RULES
+  Nothing to scan.
+
+  SUPPLY CHAIN RULES
+  Nothing to scan.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+
+Ran 1 rule on 1 file: 1 finding.
+
+=== end of stderr - color

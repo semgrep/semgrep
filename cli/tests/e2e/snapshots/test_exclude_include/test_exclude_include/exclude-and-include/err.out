@@ -1,3 +1,5 @@
+[33mBad settings format; /tmp/tmpvzc9wlqm will be overriden. Contents:
+has_shown_metrics_notification: true
 Paths that match both --include and --exclude will be skipped by Semgrep.
 
 

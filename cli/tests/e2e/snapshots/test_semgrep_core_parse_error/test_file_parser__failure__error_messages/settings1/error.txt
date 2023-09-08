@@ -1,3 +1,5 @@
+[33mBad settings format; /tmp/tmpn35nf8dw will be overriden. Contents:
+has_shown_metrics_notification: true
 running 2 rules from 1 config rules/eqeq-python.yaml_0
 No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
 Rules:

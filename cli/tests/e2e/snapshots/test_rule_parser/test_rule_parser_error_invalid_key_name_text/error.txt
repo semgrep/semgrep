@@ -1,3 +1,5 @@
+[33mBad settings format; /tmp/tmpq501x9pu will be overriden. Contents:
+has_shown_metrics_notification: true
 [31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m Invalid YAML file rules/syntax/invalid-patterns-key.yml:
 	while parsing a block mapping
 	  in "<file>", line 4, column 7

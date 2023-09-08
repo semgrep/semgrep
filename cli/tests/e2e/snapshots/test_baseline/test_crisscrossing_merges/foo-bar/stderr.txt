@@ -1,3 +1,5 @@
+[33mBad settings format; /tmp/tmpx5buu_4t will be overriden. Contents:
+has_shown_metrics_notification: true
 
 
 ┌─────────────┐

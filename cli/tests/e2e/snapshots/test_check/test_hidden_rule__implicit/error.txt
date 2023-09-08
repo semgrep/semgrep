@@ -1,2 +1,4 @@
+[33mBad settings format; /tmp/tmprvc4gico will be overriden. Contents:
+has_shown_metrics_notification: true
 [ERROR] No config given. Run with `--config auto` or see https://semgrep.dev/docs/running-rules/ for instructions on running with a specific config
 

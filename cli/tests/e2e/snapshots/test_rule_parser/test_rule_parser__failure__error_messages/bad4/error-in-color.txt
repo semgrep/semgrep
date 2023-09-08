@@ -1,3 +1,5 @@
+[33mBad settings format; /tmp/tmpbp_1jtao will be overriden. Contents:
+has_shown_metrics_notification: true
 [31m[22m[24msemgrep error[0m: Invalid rule schema
   --> rules/syntax/bad4.yaml:4
 [94m[22m[24m4 | [0m      pattern-inside: |

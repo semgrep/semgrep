@@ -70,6 +70,8 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of stdout - plain
 
 === stderr - plain
+Bad settings format; /tmp/tmp31u0zfot will be overriden. Contents:
+has_shown_metrics_notification: true
 
 
 ┌─────────────┐
@@ -92,3 +94,92 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 Ran 1 rule on 2 files: 1 finding.
 
 === end of stderr - plain
+
+=== stdout - color
+{
+  "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/dependency_aware/requirements/foo.py",
+      "targets/dependency_aware/requirements/requirements.txt"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.dependency_aware.python-requirements-sca",
+      "end": {
+        "col": 6,
+        "line": 1,
+        "offset": 5
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "bad()",
+        "message": "oh no",
+        "metadata": {},
+        "metavars": {},
+        "sca_info": {
+          "dependency_match": {
+            "dependency_pattern": {
+              "ecosystem": "pypi",
+              "package": "pandas",
+              "semver_range": "<= 1.4.2"
+            },
+            "found_dependency": {
+              "allowed_hashes": {},
+              "ecosystem": "pypi",
+              "line_number": 37,
+              "package": "pandas",
+              "transitivity": "direct",
+              "version": "1.4.2"
+            },
+            "lockfile": "targets/dependency_aware/requirements/requirements.txt"
+          },
+          "reachability_rule": true,
+          "reachable": true,
+          "sca_finding_schema": 20220913
+        },
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/dependency_aware/requirements/foo.py",
+      "start": {
+        "col": 1,
+        "line": 1,
+        "offset": 0
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}
+=== end of stdout - color
+
+=== stderr - color
+[33mBad settings format; /tmp/tmp31u0zfot will be overriden. Contents:
+has_shown_metrics_notification: true
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 3 files tracked by git with 0 Code rules, 1 Supply Chain rule:
+
+
+  CODE RULES
+  Nothing to scan.
+
+  SUPPLY CHAIN RULES
+  Scanning 1 file.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+
+Ran 1 rule on 2 files: 1 finding.
+
+=== end of stderr - color

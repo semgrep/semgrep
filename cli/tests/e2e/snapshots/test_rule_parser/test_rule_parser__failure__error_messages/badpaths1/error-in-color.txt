@@ -1,3 +1,5 @@
+[33mBad settings format; /tmp/tmpm2vcorrn will be overriden. Contents:
+has_shown_metrics_notification: true
 [31m[22m[24msemgrep error[0m: Invalid rule schema
   --> rules/syntax/badpaths1.yaml:8
 [94m[22m[24m8  | [0m      - "*.py"

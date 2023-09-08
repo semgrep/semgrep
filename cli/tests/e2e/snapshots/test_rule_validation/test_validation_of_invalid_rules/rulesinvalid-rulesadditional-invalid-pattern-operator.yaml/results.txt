@@ -1,3 +1,5 @@
+[33mBad settings format; /tmp/tmp78qhgfys will be overriden. Contents:
+has_shown_metrics_notification: true
 Configuration is invalid - found 1 configuration error(s), and 1 rule(s).
 [ERROR] Rule parse error in rule eqeq:
  Expected exactly one key of `pattern`, `all`, `any`, `regex`, `not`, or `inside`
