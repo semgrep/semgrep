@@ -461,7 +461,6 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
 
     let filtered_matches = rules_and_counted_matches res in
     Metrics_.add_findings filtered_matches;
-    Metrics_.add_errors res.core.errors;
 
     (* step 4: report matches *)
     let errors_skipped = errors_to_skipped res.core.errors in
@@ -484,6 +483,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
       Output.output_result { conf with output_format } profiler res
     in
     Profiler.stop_ign profiler ~name:"total_time";
+    Metrics_.add_errors cli_output.errors;
     if Metrics_.is_enabled conf.metrics then (
       Metrics_.add_rules ?profiling:res.core.time filtered_rules;
       Metrics_.add_profiling profiler);
