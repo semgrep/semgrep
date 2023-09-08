@@ -7,6 +7,7 @@ import pytest
 from semgrep.config_resolver import Config
 from semgrep.metrics import Metrics
 from semgrep.metrics import MetricsState
+from semgrep.profiling import ProfilingData
 
 pytestmark = pytest.mark.freeze_time("2017-03-03")
 
@@ -90,9 +91,9 @@ def test_rules_hash(first, second, is_equal) -> None:
     second_rules = [rules[i] for i in second]
 
     first_metrics = Metrics()
-    first_metrics.add_rules(first_rules, None)
+    first_metrics.add_rules(first_rules, ProfilingData())
     second_metrics = Metrics()
-    second_metrics.add_rules(second_rules, None)
+    second_metrics.add_rules(second_rules, ProfilingData())
 
     # this provides better error messages than `(first_metrics == second_metrics) == is_equal`
     if is_equal:
