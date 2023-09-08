@@ -207,7 +207,9 @@ class Metrics:
         self.payload.environment.configNamesHash = Sha256hash(m.hexdigest())
 
     @suppress_errors
-    def add_rules(self, rules: Sequence[Rule], profiling_data: ProfilingData) -> None:
+    def add_rules(
+        self, rules: Sequence[Rule], profiling_data: Optional[ProfilingData]
+    ) -> None:
         rules = sorted(rules, key=lambda r: r.full_hash)
         m = hashlib.sha256()
         for rule in rules:
@@ -215,20 +217,22 @@ class Metrics:
         self.payload.environment.rulesHash = Sha256hash(m.hexdigest())
 
         self.payload.performance.numRules = len(rules)
-        self.payload.performance.ruleStats = [
-            RuleStats(
-                ruleHash=rule.full_hash,
-                matchTime=profiling_data.get_rule_match_time(rule),
-                bytesScanned=profiling_data.get_rule_bytes_scanned(rule),
-            )
-            for rule in rules
-        ]
+        if profiling_data:
+            self.payload.performance.ruleStats = [
+                RuleStats(
+                    ruleHash=rule.full_hash,
+                    matchTime=profiling_data.get_rule_match_time(rule),
+                    bytesScanned=profiling_data.get_rule_bytes_scanned(rule),
+                )
+                for rule in rules
+            ]
 
     @suppress_errors
-    def add_max_memory_bytes(self, profiling_data: ProfilingData) -> None:
-        self.payload.performance.maxMemoryBytes = (
-            profiling_data.profile.max_memory_bytes
-        )
+    def add_max_memory_bytes(self, profiling_data: Optional[ProfilingData]) -> None:
+        if profiling_data:
+            self.payload.performance.maxMemoryBytes = (
+                profiling_data.profile.max_memory_bytes
+            )
 
     @suppress_errors
     def add_findings(self, findings: FilteredMatches) -> None:
@@ -239,17 +243,20 @@ class Metrics:
         self.payload.value.numIgnored = sum(len(v) for v in findings.removed.values())
 
     @suppress_errors
-    def add_targets(self, targets: Set[Path], profiling_data: ProfilingData) -> None:
-        self.payload.performance.fileStats = [
-            FileStats(
-                size=target.stat().st_size,
-                numTimesScanned=profiling_data.get_file_num_times_scanned(target),
-                parseTime=profiling_data.get_file_parse_time(target),
-                matchTime=profiling_data.get_file_match_time(target),
-                runTime=profiling_data.get_file_run_time(target),
-            )
-            for target in targets
-        ]
+    def add_targets(
+        self, targets: Set[Path], profiling_data: Optional[ProfilingData]
+    ) -> None:
+        if profiling_data:
+            self.payload.performance.fileStats = [
+                FileStats(
+                    size=target.stat().st_size,
+                    numTimesScanned=profiling_data.get_file_num_times_scanned(target),
+                    parseTime=profiling_data.get_file_parse_time(target),
+                    matchTime=profiling_data.get_file_match_time(target),
+                    runTime=profiling_data.get_file_run_time(target),
+                )
+                for target in targets
+            ]
 
         total_bytes_scanned = sum(t.stat().st_size for t in targets)
         self.payload.performance.totalBytesScanned = total_bytes_scanned
