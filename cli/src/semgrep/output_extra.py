@@ -16,7 +16,7 @@ from semgrep.profiling import ProfilingData
 @frozen
 class OutputExtra:
     all_targets: Set[Path]
-    profiling_data: Optional[ProfilingData]
+    profiling_data: ProfilingData
     parsing_data: ParsingData
     explanations: Optional[List[core.MatchingExplanation]]
     rules_by_engine: List[core.RuleIdAndEngineKind]

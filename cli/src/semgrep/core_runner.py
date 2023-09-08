@@ -982,7 +982,7 @@ class CoreRunner:
         max_timeout_files: Set[Path] = set()
         # TODO this is a quick fix, refactor this logic
 
-        profiling_data: Optional[ProfilingData] = None
+        profiling_data: ProfilingData = ProfilingData()
         parsing_data: ParsingData = ParsingData()
 
         # Create an exit stack context manager to properly handle closing
@@ -1126,7 +1126,7 @@ class CoreRunner:
 
             if core_output.time:
                 timing = core_output.time
-                profiling_data = ProfilingData(core_output.time)
+                profiling_data.profile = core_output.time
                 for t in timing.targets:
                     rule_timings = {
                         rt.rule_id: Times(rt.parse_time, rt.match_time)

@@ -180,7 +180,9 @@ class OutputHandler:
         self.has_output = False
         self.is_ci_invocation = False
         self.filtered_rules: List[Rule] = []
-        self.profiling_data: Optional[ProfilingData] = None
+        self.profiling_data: ProfilingData = (
+            ProfilingData()
+        )  # (rule, target) -> duration
         self.severities: Collection[RuleSeverity] = DEFAULT_SHOWN_SEVERITIES
         self.explanations: Optional[List[out.MatchingExplanation]] = None
         self.rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = None
@@ -453,7 +455,7 @@ class OutputHandler:
         # - The text formatter uses it to store settings
         # You should use CliOutputExtra for better type checking
         extra: Dict[str, Any] = {}
-        if self.settings.output_time and self.profiling_data:
+        if self.settings.output_time:
             cli_timing = _build_time_json(
                 self.filtered_rules,
                 self.all_targets,
