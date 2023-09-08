@@ -42,7 +42,7 @@ from rich.progress import TimeElapsedColumn
 from rich.table import Table
 from ruamel.yaml import YAML
 
-import semgrep.output_from_core as core
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.app import auth
 from semgrep.config_resolver import Config
 from semgrep.console import console
@@ -153,7 +153,7 @@ def dedup_errors(errors: List[SemgrepCoreError]) -> List[SemgrepCoreError]:
 
 def uniq_error_id(
     error: SemgrepCoreError,
-) -> Tuple[int, Path, core.Position, core.Position, str]:
+) -> Tuple[int, Path, out.Position, out.Position, str]:
     return (
         error.code,
         Path(error.core.location.path.value),
@@ -912,7 +912,7 @@ class CoreRunner:
     def _add_match_times(
         self,
         profiling_data: ProfilingData,
-        timing: core.CoreTiming,
+        timing: out.CoreTiming,
     ) -> None:
         if timing.rules_parse_time:
             profiling_data.set_rules_parse_time(timing.rules_parse_time)
@@ -1151,7 +1151,7 @@ class CoreRunner:
             outputs = core_matches_to_rule_matches(rules, core_output)
             parsed_errors = [core_error_to_semgrep_error(e) for e in core_output.errors]
             for err in core_output.errors:
-                if isinstance(err.error_type.value, core.Timeout):
+                if isinstance(err.error_type.value, out.Timeout):
                     assert err.location.path is not None
 
                     file_timeouts[Path(err.location.path.value)] += 1
@@ -1164,11 +1164,11 @@ class CoreRunner:
                 if isinstance(
                     err.error_type.value,
                     (
-                        core.LexicalError,
-                        core.ParseError,
-                        core.PartialParsing,
-                        core.SpecifiedParseError,
-                        core.AstBuilderError,
+                        out.LexicalError,
+                        out.ParseError,
+                        out.PartialParsing,
+                        out.SpecifiedParseError,
+                        out.AstBuilderError,
                     ),
                 ):
                     parsing_data.add_error(err)

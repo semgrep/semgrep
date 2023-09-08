@@ -4,12 +4,12 @@ from typing import Dict
 from typing import NamedTuple
 from typing import Optional
 
-import semgrep.output_from_core as core
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.rule import Rule
 
 
 class Semgrep_run(NamedTuple):
-    rule: core.RuleId
+    rule: out.RuleId
     target: Path
 
 
@@ -25,8 +25,8 @@ class ProfilingData:
         self._file_run_time: Dict[Path, float] = defaultdict(float)
         self._match_time_matrix: Dict[Semgrep_run, Times] = defaultdict(Times)
 
-        self._rule_match_times: Dict[core.RuleId, float] = defaultdict(float)
-        self._rule_bytes_scanned: Dict[core.RuleId, int] = defaultdict(int)
+        self._rule_match_times: Dict[out.RuleId, float] = defaultdict(float)
+        self._rule_bytes_scanned: Dict[out.RuleId, int] = defaultdict(int)
         self._file_match_times: Dict[Path, float] = defaultdict(float)
         self._file_num_times_scanned: Dict[Path, int] = defaultdict(int)
 
@@ -94,7 +94,7 @@ class ProfilingData:
         return self._max_memory_bytes
 
     def set_file_times(
-        self, target: Path, times: Dict[core.RuleId, Times], run_time: float
+        self, target: Path, times: Dict[out.RuleId, Times], run_time: float
     ) -> None:
         num_bytes = target.stat().st_size
 

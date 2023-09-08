@@ -6,7 +6,7 @@ from typing import Iterator
 from typing import List
 from typing import Tuple
 
-import semgrep.output_from_core as core
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.external.packaging.specifiers import InvalidSpecifier  # type: ignore
 from semdep.external.packaging.specifiers import SpecifierSet  # type: ignore
 from semdep.package_restrictions import dependencies_range_match_any
@@ -95,20 +95,20 @@ def generate_unreachable_sca_findings(
                     severity=rule.severity,
                     fix=None,
                     fix_regex=None,
-                    match=core.CoreMatch(
-                        check_id=core.RuleId(rule.id),
-                        path=core.Fpath(str(lockfile_path)),
-                        start=core.Position(found_dep.line_number or 0, 0, 0),
-                        end=core.Position(
+                    match=out.CoreMatch(
+                        check_id=out.RuleId(rule.id),
+                        path=out.Fpath(str(lockfile_path)),
+                        start=out.Position(found_dep.line_number or 0, 0, 0),
+                        end=out.Position(
                             (found_dep.line_number + 1 if found_dep.line_number else 0),
                             0,
                             0,
                         ),
                         # TODO: we need to define the fields below in
-                        # Output_from_core.atd so we can reuse core.MatchExtra
-                        extra=core.CoreMatchExtra(
-                            metavars=core.Metavars({}),
-                            engine_kind=core.EngineKind(core.OSS()),
+                        # Output_from_core.atd so we can reuse out.MatchExtra
+                        extra=out.CoreMatchExtra(
+                            metavars=out.Metavars({}),
+                            engine_kind=out.EngineKind(out.OSS()),
                         ),
                     ),
                     extra={

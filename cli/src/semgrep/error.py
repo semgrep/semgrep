@@ -14,7 +14,6 @@ from typing import Tuple
 
 import attr  # TODO: update to next-gen API with @define; difficult cause these subclass of Exception
 
-import semgrep.output_from_core as core
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import Colors
 from semgrep.rule_lang import Position
@@ -104,17 +103,17 @@ class SemgrepCoreError(SemgrepError):
     level: Level
     # TODO: spans are used only for PatternParseError
     spans: Optional[List[out.ErrorSpan]]
-    core: core.CoreError
+    core: out.CoreError
 
     # TODO: we should return a proper variant instead of converting to a str
     def _error_type_string(self) -> str:
         type_ = self.core.error_type
-        # convert to the same string of core.ParseError for now
-        if isinstance(type_.value, core.PartialParsing):
+        # convert to the same string of out.ParseError for now
+        if isinstance(type_.value, out.PartialParsing):
             return "Syntax error"
-        if isinstance(type_.value, core.PatternParseError):
+        if isinstance(type_.value, out.PatternParseError):
             return "Pattern parse error"
-        if isinstance(type_.value, core.IncompatibleRule_):
+        if isinstance(type_.value, out.IncompatibleRule_):
             return "Incompatible rule"
         # All the other cases don't have arguments in Semgrep_output_v1.atd
         # and have some <json name="..."> annotations to generate the right string
@@ -130,8 +129,8 @@ class SemgrepCoreError(SemgrepError):
 
         # For rule errors path is a temp file so for now will just be confusing to add
         if not isinstance(
-            self.core.error_type.value, core.RuleParseError
-        ) and not isinstance(self.core.error_type.value, core.PatternParseError):
+            self.core.error_type.value, out.RuleParseError
+        ) and not isinstance(self.core.error_type.value, out.PatternParseError):
             base = dataclasses.replace(base, path=self.core.location.path)
 
         if self.spans:
@@ -150,14 +149,14 @@ class SemgrepCoreError(SemgrepError):
         TODO remove this when we remove the interfile specific errors
         """
         return isinstance(
-            self.core.error_type.value, core.OutOfMemoryDuringInterfile
-        ) or isinstance(self.core.error_type.value, core.TimeoutDuringInterfile)
+            self.core.error_type.value, out.OutOfMemoryDuringInterfile
+        ) or isinstance(self.core.error_type.value, out.TimeoutDuringInterfile)
 
     def is_timeout(self) -> bool:
         """
         Return if this error is a match timeout
         """
-        return isinstance(self.core.error_type.value, core.Timeout)
+        return isinstance(self.core.error_type.value, out.Timeout)
 
     def semgrep_error_type(self) -> str:
         return f"{type(self).__name__}: {self._error_type_string()}"
@@ -170,11 +169,11 @@ class SemgrepCoreError(SemgrepError):
         if self.core.rule_id:
             # For rule errors, the path is a temporary JSON file containing
             # the rule(s).
-            if isinstance(
-                self.core.error_type.value, core.RuleParseError
-            ) or isinstance(self.core.error_type.value, core.PatternParseError):
+            if isinstance(self.core.error_type.value, out.RuleParseError) or isinstance(
+                self.core.error_type.value, out.PatternParseError
+            ):
                 error_context = f"in rule {self.core.rule_id.value}"
-            elif isinstance(self.core.error_type.value, core.IncompatibleRule_):
+            elif isinstance(self.core.error_type.value, out.IncompatibleRule_):
                 error_context = self.core.rule_id.value
             else:
                 # This message is suitable only if the error is in a target file:
@@ -189,7 +188,7 @@ class SemgrepCoreError(SemgrepError):
         """
         Returns stack trace if error_type is Fatal error else returns empty strings
         """
-        if isinstance(self.core.error_type.value, core.FatalError):
+        if isinstance(self.core.error_type.value, out.FatalError):
             error_trace = self.core.details or "<no stack trace returned>"
             return f"\n====[ BEGIN error trace ]====\n{error_trace}=====[ END error trace ]=====\n"
         else:
@@ -198,7 +197,7 @@ class SemgrepCoreError(SemgrepError):
     def __str__(self) -> str:
         return self._error_message + self._stack_trace
 
-    # TODO: I didn't manage to get core.Error to be hashable because it contains lists or
+    # TODO: I didn't manage to get out.Error to be hashable because it contains lists or
     # objects (e.g., Error_) which are not hashable
     def __hash__(self) -> int:
         return hash(
