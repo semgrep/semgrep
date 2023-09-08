@@ -323,11 +323,14 @@ def ci(
                     else ""
                 )
 
-                start_scan_task = progress_bar.add_task(
-                    f"Reporting start of scan for [bold]{scan_handler.deployment_name}[/bold]"
-                )
+                start_scan_desc = f"Reporting start of scan for [bold]{scan_handler.deployment_name}[/bold]"
+                start_scan_task = progress_bar.add_task(start_scan_desc)
                 scan_handler.start_scan(metadata_dict)
-                progress_bar.update(start_scan_task, completed=100)
+                progress_bar.update(
+                    start_scan_task,
+                    completed=100,
+                    description=f"{start_scan_desc} (scan_id={scan_handler.scan_id})",
+                )
 
                 connection_task = progress_bar.add_task(
                     f"Fetching configuration from Semgrep Cloud Platform{at_url_maybe}"
