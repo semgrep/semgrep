@@ -215,8 +215,8 @@ class Metrics:
         for rule in rules:
             m.update(rule.full_hash.encode())
         self.payload.environment.rulesHash = Sha256hash(m.hexdigest())
-        self.payload.performance.numRules = len(rules)
         if profiling_data:
+            self.payload.performance.numRules = len(rules)
             self.payload.performance.ruleStats = [
                 RuleStats(
                     ruleHash=rule.full_hash,
