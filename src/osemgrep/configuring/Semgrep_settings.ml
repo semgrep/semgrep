@@ -21,7 +21,7 @@ let default_settings =
     anonymous_user_id = Uuidm.v `V4;
   }
 
-let settings = Semgrep_envvars.v.user_settings_file
+let settings () = !Semgrep_envvars.v.user_settings_file
 
 (*****************************************************************************)
 (* Helpers *)
@@ -79,24 +79,25 @@ let to_yaml { has_shown_metrics_notification; api_token; anonymous_user_id } =
 (*****************************************************************************)
 
 let load ?(maturity = Maturity.Default) () =
+  Logs.debug (fun m -> m "Loading settings from %a" Fpath.pp (settings ()));
   try
     if
-      Sys.file_exists (Fpath.to_string settings)
-      && Unix.(stat (Fpath.to_string settings)).st_kind = Unix.S_REG
+      Sys.file_exists (Fpath.to_string (settings ()))
+      && Unix.(stat (Fpath.to_string (settings ()))).st_kind = Unix.S_REG
     then
-      let data = File.read_file settings in
+      let data = File.read_file (settings ()) in
       match Yaml.of_string data with
       | Error _ ->
           Logs.warn (fun m ->
               m "Bad settings format; %a will be overriden. Contents:\n%s"
-                Fpath.pp settings data);
+                Fpath.pp (settings ()) data);
           default_settings
       | Ok value -> (
           match of_yaml value with
           | Error (`Msg msg) ->
               Logs.warn (fun m ->
                   m "Bad settings format; %a will be overriden. Contents:\n%s"
-                    Fpath.pp settings data);
+                    Fpath.pp (settings ()) data);
               Logs.info (fun m -> m "Decode error: %s" msg);
               default_settings
           | Ok s -> s)
@@ -105,7 +106,7 @@ let load ?(maturity = Maturity.Default) () =
       | Maturity.Develop ->
           Logs.warn (fun m ->
               m "Settings file %a does not exist or is not a regular file"
-                Fpath.pp settings)
+                Fpath.pp (settings ()))
       | _else_ -> ());
       default_settings)
   with
@@ -115,17 +116,17 @@ let save setting =
   let yaml = to_yaml setting in
   let str = Yaml.to_string_exn yaml in
   try
-    let dir = Fpath.(to_string (parent settings)) in
+    let dir = Fpath.(to_string (parent (settings ()))) in
     if not (Sys.file_exists dir) then Sys.mkdir dir 0o755;
     let tmp = Filename.temp_file ~temp_dir:dir "settings" "yml" in
     if Sys.file_exists tmp then Sys.remove tmp;
     File.write_file (Fpath.v tmp) str;
     (* Create a temporary file and rename to have a consistent settings file,
        even if the power fails (or a Ctrl-C happens) during the write_file. *)
-    Unix.rename tmp (Fpath.to_string settings);
+    Unix.rename tmp (Fpath.to_string (settings ()));
     true
   with
   | Sys_error e ->
       Logs.warn (fun m ->
-          m "Could not write settings file at %a: %s" Fpath.pp settings e);
+          m "Could not write settings file at %a: %s" Fpath.pp (settings ()) e);
       false

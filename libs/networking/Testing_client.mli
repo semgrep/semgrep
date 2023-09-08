@@ -42,10 +42,7 @@ type make_response_fn =
   *)
 
 val basic_response :
-  ?status:Cohttp.Code.status_code ->
-  ?headers:Cohttp.Header.t ->
-  string ->
-  test_response
+  ?status:int -> ?headers:Cohttp.Header.t -> string -> test_response
 (** [basic_response ~status ~headers path_to_body] creates a [test_response]
   * with optional status and headers.
   * Example: [basic_response "./tests/FOO/BAR/response.json"].
@@ -67,6 +64,12 @@ val check_header : Cohttp_lwt.Request.t -> string -> string -> unit
 (** [check_header request header header_value] will use Alcotest to assert a request
   * was made with a certain header and value
   * Example: [check_header request "Authorization" "Bearer <token>"]
+  *)
+
+val get_header : Cohttp_lwt.Request.t -> string -> string option
+(** [get_header request header] will return the value of a header in a request
+  * or None if the header is not present
+  * Example: [get_header request "Authorization"]
   *)
 
 val with_testing_client : make_response_fn -> (unit -> unit) -> unit -> unit
