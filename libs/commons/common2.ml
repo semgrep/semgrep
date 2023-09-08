@@ -2939,6 +2939,15 @@ let lfile_exists filename =
   with
   | Unix.Unix_error (Unix.ENOENT, _, _) -> false
 
+(* Helps avoid the `Fatal error: exception Unix_error: No such file or directory stat` *)
+let dir_exists path =
+  try
+    match (Unix.lstat path).Unix.st_kind with
+    | S_DIR -> true
+    | _ -> false
+  with
+  | Unix.Unix_error (Unix.ENOENT, _, _) -> false
+
 let is_directory file = (unix_stat file).Unix.st_kind =*= Unix.S_DIR
 let is_file file = (unix_stat file).Unix.st_kind =*= Unix.S_REG
 let is_symlink file = (Unix.lstat file).Unix.st_kind =*= Unix.S_LNK

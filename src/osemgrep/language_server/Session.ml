@@ -16,7 +16,7 @@ type t = {
   incoming : Lwt_io.input_channel;
   outgoing : Lwt_io.output_channel;
   workspace_folders : Fpath.t list;
-  documents : (Fpath.t, Out.cli_match list) Hashtbl.t;
+  cached_scans : (Fpath.t, Out.cli_match list) Hashtbl.t;
   cached_rules : rule_cache;
   user_settings : UserSettings.t;
   token : string option; (* Mostly for testing *)
@@ -33,7 +33,7 @@ let create capabilities =
     incoming = Lwt_io.stdin;
     outgoing = Lwt_io.stdout;
     workspace_folders = [];
-    documents = Hashtbl.create 10;
+    cached_scans = Hashtbl.create 10;
     cached_rules;
     user_settings = UserSettings.default;
     token = None;
@@ -177,11 +177,14 @@ let cache_rules session =
  * rules we've run *)
 let scanned_files session =
   (* We can get duplicates apparently *)
-  Hashtbl.fold (fun file _ acc -> file :: acc) session.documents []
+  Hashtbl.fold (fun file _ acc -> file :: acc) session.cached_scans []
   |> List.sort_uniq Fpath.compare
 
 let runner_conf session =
   UserSettings.core_runner_conf_of_t session.user_settings
+
+let previous_scan_of_file session file =
+  Hashtbl.find_opt session.cached_scans file
 
 (*****************************************************************************)
 (* State setters *)
@@ -199,8 +202,8 @@ let record_results session results files =
   let results_by_file =
     Common.group_by (fun (r : Out.cli_match) -> Fpath.v r.path) results
   in
-  List.iter (fun f -> Hashtbl.replace session.documents f []) files;
+  List.iter (fun f -> Hashtbl.replace session.cached_scans f []) files;
   List.iter
-    (fun (f, results) -> Hashtbl.add session.documents f results)
+    (fun (f, results) -> Hashtbl.add session.cached_scans f results)
     results_by_file;
   ()

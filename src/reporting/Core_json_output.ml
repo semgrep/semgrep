@@ -174,33 +174,33 @@ let metavars startp_of_match_range (s, mval) =
  * directly from semgrep-core (to avoid some boilerplate code in
  * pysemgrep).
  *)
-let todo_content_for_location = "??"
+let content_of_loc (loc : Out.location) : string =
+  Output_utils.content_of_file_at_range (loc.start, loc.end_) (Fpath.v loc.path)
 
-let token_to_intermediate_var token : Out.cli_match_intermediate_var option =
+let token_to_intermediate_var token : Out.match_intermediate_var option =
   let* location = Output_utils.tokens_to_single_loc [ token ] in
   Some
-    ({ Out.location; content = todo_content_for_location }
-      : Out.cli_match_intermediate_var)
+    ({ Out.location; content = content_of_loc location }
+      : Out.match_intermediate_var)
 
 let tokens_to_intermediate_vars tokens =
   Common.map_filter token_to_intermediate_var tokens
 
 let rec taint_call_trace (trace : PM.taint_call_trace) :
-    Out.cli_match_call_trace option =
+    Out.match_call_trace option =
   match trace with
   | Toks toks ->
       let* loc = Output_utils.tokens_to_single_loc toks in
-      Some (Out.CliLoc (loc, todo_content_for_location))
+      Some (Out.CliLoc (loc, content_of_loc loc))
   | Call { call_trace; intermediate_vars; call_toks } ->
-      let* location = Output_utils.tokens_to_single_loc call_toks in
+      let* loc = Output_utils.tokens_to_single_loc call_toks in
       let intermediate_vars = tokens_to_intermediate_vars intermediate_vars in
       let* call_trace = taint_call_trace call_trace in
       Some
-        (Out.CliCall
-           ((location, todo_content_for_location), intermediate_vars, call_trace))
+        (Out.CliCall ((loc, content_of_loc loc), intermediate_vars, call_trace))
 
 let taint_trace_to_dataflow_trace (traces : PM.taint_trace_item list) :
-    Out.cli_match_dataflow_trace =
+    Out.match_dataflow_trace =
   (* Here, we ignore all but the first taint trace, for source or sink.
      This is because we added support for multiple sources/sinks in a single
      trace, but only internally to semgrep-core. Externally, our CLI dataflow
@@ -319,7 +319,8 @@ let rec explanation_to_explanation (exp : Matching_explanation.t) :
     loc = Output_utils.location_of_token_location tloc;
   }
 
-let json_time_of_profiling_data profiling_data =
+let profiling_to_profiling (profiling_data : RP.final_profiling) :
+    Out.core_timing =
   let json_time_of_rule_times rule_times =
     rule_times
     |> Common.map (fun { RP.rule_id; parse_time; match_time } ->
@@ -338,8 +339,8 @@ let json_time_of_profiling_data profiling_data =
       Common.map
         (fun rule -> (fst rule.Rule.id :> string))
         profiling_data.RP.rules;
-    rules_parse_time = Some profiling_data.RP.rules_parse_time;
-    max_memory_bytes = profiling_data.max_memory_bytes;
+    rules_parse_time = profiling_data.rules_parse_time;
+    max_memory_bytes = Some profiling_data.max_memory_bytes;
   }
 
 (*****************************************************************************)
@@ -381,7 +382,7 @@ let core_output_of_matches_and_errors render_fix nfiles (res : RP.final_result)
                position = Output_utils.position_of_token_location loc;
              });
     stats = { okfiles = count_ok; errorfiles = count_errors };
-    time = profiling |> Option.map json_time_of_profiling_data;
+    time = profiling |> Option.map profiling_to_profiling;
     explanations =
       ( res.RP.explanations |> Common.map explanation_to_explanation |> fun x ->
         Some x );

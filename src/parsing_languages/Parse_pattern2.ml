@@ -51,9 +51,6 @@ let parse_pattern print_errors lang str =
   | Lang.Ocaml ->
       let any = Parse_ml.any_of_string str in
       Ml_to_generic.any any
-  | Lang.Ruby ->
-      let any = Parse_ruby.any_of_string str in
-      Ruby_to_generic.any any
   | Lang.Python
   | Lang.Python2
   | Lang.Python3 ->
@@ -180,6 +177,10 @@ let parse_pattern print_errors lang str =
   | Lang.Julia ->
       let res = Parse_julia_tree_sitter.parse_pattern str in
       extract_pattern_from_tree_sitter_result res print_errors
+  | Lang.Ruby ->
+      let res = Parse_ruby_tree_sitter.parse_pattern str in
+      let program = extract_pattern_from_tree_sitter_result res print_errors in
+      Ruby_to_generic.any program
   | Lang.R ->
       let res = Parse_r_tree_sitter.parse_pattern str in
       extract_pattern_from_tree_sitter_result res print_errors

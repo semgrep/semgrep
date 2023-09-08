@@ -1,15 +1,13 @@
-let parse_pattern _ _ str =
-  let any = Parse_ruby.any_of_string str in
-  Ruby_to_generic.any any
+let parse_pattern print_errors _ str =
+  let res = Parse_ruby_tree_sitter.parse_pattern str in
+  let pattern =
+    Pfff_or_tree_sitter.extract_pattern_from_tree_sitter_result res print_errors
+  in
+  Ruby_to_generic.any pattern
 
 let parse_target _ file =
   Pfff_or_tree_sitter.run file
-    [
-      TreeSitter Parse_ruby_tree_sitter.parse;
-      (* right now the parser is verbose and the token positions
-       * may be wrong, but better than nothing. *)
-      Pfff (Pfff_or_tree_sitter.throw_tokens Parse_ruby.parse);
-    ]
+    [ TreeSitter Parse_ruby_tree_sitter.parse ]
     Ruby_to_generic.program
 
 let _ =

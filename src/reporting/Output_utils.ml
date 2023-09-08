@@ -33,13 +33,15 @@ let first_and_last = function
  * TODO: could be moved to another helper module.
  *
  * Should we use a faster implementation, using a cache
- * to avoid rereading the same file again and again? probably fast
- * enough like this thanks to OS buffer cache.
+ * to avoid rereading the same file again and again?
+ * Use weak hashtable or LRU cache?
+ * Or maybe fast enough like this thanks to OS buffer cache?
  *
  * python: # 'lines' already contains '\n' at the end of each line
  *   lines="".join(rule_match.lines).rstrip(),
  *)
-let lines_of_file (range : position * position) (file : Fpath.t) : string list =
+let lines_of_file_at_range (range : position * position) (file : Fpath.t) :
+    string list =
   let start, end_ = range in
   File.lines_of_file (start.line, end_.line) file
   [@@profiling]
@@ -50,10 +52,10 @@ let lines_of_file (range : position * position) (file : Fpath.t) : string list =
  * to ignore non-utf8 bytes.
  * See https://stackoverflow.com/a/56441652.
  *)
-let contents_of_file (range : position * position) (file : Common.filename) :
+let content_of_file_at_range (range : position * position) (file : Fpath.t) :
     string =
   let start, end_ = range in
-  let str = Common.read_file file in
+  let str = File.read_file file in
   String.sub str start.offset (end_.offset - start.offset)
   [@@profiling]
 

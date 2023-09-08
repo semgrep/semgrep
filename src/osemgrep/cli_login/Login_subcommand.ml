@@ -11,28 +11,13 @@
 (* Helpers *)
 (*****************************************************************************)
 
-let support_url = "https://semgrep.dev/docs/support/"
-
-let make_login_url () =
-  let session_id = Uuidm.v `V4 in
-  ( session_id,
-    Uri.(
-      add_query_params'
-        (with_path Semgrep_envvars.v.semgrep_url "login")
-        [
-          ("cli-token", Uuidm.to_string session_id);
-          ("docker", if Semgrep_envvars.v.in_docker then "True" else "False");
-          ("gha", if Semgrep_envvars.v.in_gh_action then "True" else "False");
-        ]) )
-
 (* from login.py *)
-let save_token settings token =
-  if Semgrep_App.get_deployment_from_token token <> None then
-    let settings = Semgrep_settings.{ settings with api_token = Some token } in
-    if Semgrep_settings.save settings then (
+let save_token token =
+  match Semgrep_login.save_token token with
+  | Ok () ->
       Logs.app (fun m ->
           m "\nSaved access token in %a" Fpath.pp
-            Semgrep_envvars.v.user_settings_file);
+            !Semgrep_envvars.v.user_settings_file);
       let epilog =
         Ocolor_format.asprintf
           {|
@@ -43,11 +28,10 @@ let save_token settings token =
 |}
       in
       Logs.app (fun m -> m "%s" epilog);
-      true)
-    else false
-  else (
-    Logs.err (fun m -> m "Login token is not valid. Please try again.");
-    false)
+      Exit_code.ok
+  | Error msg ->
+      Logs.err (fun m -> m "%s" msg);
+      Exit_code.fatal
 
 (*****************************************************************************)
 (* Console Experience *)
@@ -55,10 +39,13 @@ let save_token settings token =
 
 let spinner = [| "⠋"; "⠙"; "⠹"; "⠸"; "⠼"; "⠴"; "⠦"; "⠧"; "⠇"; "⠏" |]
 
-let show_spinner ~frame_index:i =
-  let spinner = spinner.(i mod Array.length spinner) in
-  ANSITerminal.set_cursor 1 (-1);
-  ANSITerminal.printf [ ANSITerminal.green ] "%s Waiting for sign in..." spinner
+let show_spinner () =
+  for frame_index = 1 to 100 do
+    let spinner = spinner.(frame_index mod Array.length spinner) in
+    ANSITerminal.set_cursor 1 (-1);
+    ANSITerminal.printf [ ANSITerminal.green ] "%s Waiting for sign in..."
+      spinner
+  done
 
 let erase_spinner () =
   ANSITerminal.move_cursor 0 (-1);
@@ -69,17 +56,6 @@ let erase_spinner () =
 (* Main logic *)
 (*****************************************************************************)
 
-let min_wait_between_retry_in_ms = 2000 (* initially start with 2 seconds *)
-
-let next_wait_offset_in_ms =
-  ref 1000 (* increase wait time relative to number of attempts *)
-
-let max_retries = 12 (* Give users ~2 minutes to log in *)
-
-let apply_backoff () =
-  next_wait_offset_in_ms :=
-    Float.to_int (Float.ceil (Float.of_int !next_wait_offset_in_ms *. 1.3))
-
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
 let run (conf : Login_CLI.conf) : Exit_code.t =
@@ -87,11 +63,10 @@ let run (conf : Login_CLI.conf) : Exit_code.t =
   let settings = Semgrep_settings.load () in
   match settings.Semgrep_settings.api_token with
   | None -> (
-      match Semgrep_envvars.v.app_token with
-      | Some token when String.length token > 0 ->
-          if save_token settings token then Exit_code.ok else Exit_code.fatal
+      match !Semgrep_envvars.v.app_token with
+      | Some token when String.length token > 0 -> save_token token
       | None
-      | Some _ ->
+      | Some _ -> (
           if not Unix.(isatty stdin) then (
             Logs.err (fun m ->
                 m
@@ -99,7 +74,7 @@ let run (conf : Login_CLI.conf) : Exit_code.t =
                    interactive terminal (or define SEMGREP_APP_TOKEN)");
             Exit_code.fatal)
           else
-            let session_id, url = make_login_url () in
+            let session_id, url = Semgrep_login.make_login_url () in
             Logs.app (fun m -> m "%a" Fmt_helpers.pp_heading "Login");
             let preamble =
               Ocolor_format.asprintf
@@ -132,98 +107,30 @@ Plus, you can manage your rules and code findings with Semgrep Cloud Platform.
                   Logs.app (fun m -> m "%s" msg)
               | __else__ -> ()
             in
-            let rec fetch = function
-              | 0 ->
-                  let msg =
-                    Ocolor_format.asprintf
-                      "%s Login Failed!\n\
-                       Your login attempt either timed out or we couldn't \
-                       connect to Semgrep servers. Please check your internet \
-                       connection and try again. If this issue persists, \
-                       please reach out to Semgrep support at @{<cyan;ul>%s@}"
-                      (Logs_helpers.with_err_tag ())
-                      support_url
-                  in
-                  Logs.err (fun m -> m "%s" msg);
-                  Exit_code.fatal
-              | n -> (
-                  let url =
-                    Uri.with_path Semgrep_envvars.v.semgrep_url
-                      "api/agent/tokens/requests"
-                  in
-                  let body =
-                    {|{"token_request_key": "|} ^ Uuidm.to_string session_id
-                    ^ {|"}|}
-                  in
-                  match Http_helpers.post ~body url with
-                  | Ok body -> (
-                      erase_spinner ();
-                      (* Remove the spinner from the console *)
-                      try
-                        let json = Yojson.Basic.from_string body in
-                        let open Yojson.Basic.Util in
-                        match json |> member "token" with
-                        | `String token ->
-                            if save_token settings token then (
-                              let user_name =
-                                json |> member "user_name" |> to_string
-                              in
-                              Logs.app (fun m ->
-                                  m
-                                    "%s Successfully logged in as %s! You can \
-                                     now run `semgrep ci` to start a scan."
-                                    (Logs_helpers.with_success_tag ())
-                                    user_name);
-                              Exit_code.ok)
-                            else Exit_code.fatal
-                        | `Null
-                        | _ ->
-                            Logs.debug (fun m ->
-                                m "failed to decode json token %s" body);
-                            Exit_code.fatal
-                      with
-                      | Yojson.Json_error msg ->
-                          Logs.debug (fun m ->
-                              m "failed to parse json %s: %s" msg body);
-                          Exit_code.fatal)
-                  | Error (status_code, err) ->
-                      if status_code = 404 then (
-                        let steps = 100 in
-                        for i = 1 to steps do
-                          (* 100 steps for each iteration with variable sleep time between *)
-                          show_spinner ~frame_index:i;
-                          Unix.sleepf
-                            (Float.of_int
-                               (min_wait_between_retry_in_ms
-                              + !next_wait_offset_in_ms)
-                            /. Float.of_int (1000 * steps))
-                        done;
-                        apply_backoff ();
-                        fetch (n - 1))
-                      else
-                        let msg =
-                          Ocolor_format.asprintf
-                            "%s Login Failed!\n\
-                             We hit an unexpected failure with our endpoint %s \
-                             (status code %d).\n\
-                             Please try again or reach out to Semgrep support \
-                             at @{<cyan;ul>%s@}"
-                            (Logs_helpers.with_err_tag ())
-                            (Uri.to_string url) status_code support_url
-                        in
-                        Logs.err (fun m -> m "%s" msg);
-                        Logs.info (fun m -> m "HTTP error: %s" err);
-                        Exit_code.fatal)
-            in
             Unix.sleepf 0.1;
             (* wait 100ms for the browser to open and then start showing the spinner *)
-            fetch max_retries)
+            match
+              Semgrep_login.fetch_token ~wait_hook:show_spinner (session_id, url)
+            with
+            | Error msg ->
+                Logs.err (fun m -> m "%s" msg);
+                Exit_code.fatal
+            | Ok (token, user_name) ->
+                erase_spinner ();
+
+                Logs.app (fun m ->
+                    m
+                      "%s Successfully logged in as %s! You can now run \
+                       `semgrep ci` to start a scan."
+                      (Logs_helpers.success_tag ())
+                      user_name);
+                save_token token))
   | Some _ ->
       Logs.app (fun m ->
           m
             "%s You're already logged in. Use `semgrep logout` to log out \
              first, and then you can login with a new access token."
-            (Logs_helpers.with_err_tag ()));
+            (Logs_helpers.err_tag ()));
       Exit_code.fatal
 (*****************************************************************************)
 (* Entry point *)

@@ -20,13 +20,13 @@ module Out = Semgrep_output_v1_t
 (* eventually output the origin (if the semgrep_url is not semgrep.dev) *)
 let at_url_maybe ppf () =
   if
-    Uri.equal Semgrep_envvars.v.semgrep_url
+    Uri.equal !Semgrep_envvars.v.semgrep_url
       (Uri.of_string "https://semgrep.dev")
   then Fmt.string ppf ""
   else
     Fmt.pf ppf " at %a"
       Fmt.(styled `Bold string)
-      (Uri.to_string Semgrep_envvars.v.semgrep_url)
+      (Uri.to_string !Semgrep_envvars.v.semgrep_url)
 
 let decode_rules data =
   Common2.with_tmp_file ~str:data ~ext:"json" (fun file ->
@@ -203,14 +203,15 @@ let finding_of_cli_match _commit_date index (m : Out.cli_match) : Out.finding =
           (* TODO: if self.extra.get("fixed_lines"): ret.fixed_lines = self.extra.get("fixed_lines") *);
         sca_info = None;
         (* TODO *)
-        dataflow_trace = None (* TODO *);
+        dataflow_trace = None;
+        validation_state = None;
       }
   in
   r
 
 (* from scans.py *)
 let prepare_for_report ~blocking_findings findings errors rules ~targets
-    ~(ignored_targets : Out.cli_skipped_target list option) ~commit_date
+    ~(ignored_targets : Out.skipped_target list option) ~commit_date
     ~engine_requested =
   let rule_ids =
     Common.map (fun r -> Rule_ID.to_string (fst r.Rule.id)) rules
@@ -282,7 +283,7 @@ let prepare_for_report ~blocking_findings findings errors rules ~targets
 
   let ignored_ext_freqs =
     Option.value ~default:[] ignored_targets
-    |> Common.group_by (fun (skipped_target : Out.cli_skipped_target) ->
+    |> Common.group_by (fun (skipped_target : Out.skipped_target) ->
            Fpath.get_ext (Fpath.v skipped_target.Out.path))
     |> List.filter (fun (ext, _) -> not (String.equal ext ""))
     (* don't count files with no extension *)
@@ -430,7 +431,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
                metadata_dict = {**metadata_dict, **proj_config.to_dict()} *)
             match
               Scan_helper.start_scan ~dry_run:conf.dryrun ~token
-                Semgrep_envvars.v.semgrep_url metadata_dict
+                !Semgrep_envvars.v.semgrep_url metadata_dict
             with
             | Error msg ->
                 Logs.err (fun m -> m "Could not start scan %s" msg);

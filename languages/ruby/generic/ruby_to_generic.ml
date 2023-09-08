@@ -126,6 +126,7 @@ let rec expr e =
             | Right e -> G.FDynamic e
           in
           G.DotAccess (e, t, fld))
+  | DotAccessEllipsis (e, t) -> G.DotAccessEllipsis (expr e, t)
   | Splat (t, eopt) ->
       let xs = option expr eopt |> Option.to_list |> Common.map G.arg in
       let special = G.IdSpecial (G.Spread, t) |> G.e in
@@ -164,6 +165,37 @@ let rec expr e =
         }
       in
       G.Lambda def
+  | Rescue (e1, t, e2) ->
+      (* We translate `e1 rescue e2` to
+
+         try e1 with _ -> e2
+      *)
+      let e1 = expr e1 in
+      let e2 = expr e2 in
+      let st =
+        G.Try
+          ( t,
+            G.exprstmt e1,
+            [ (t, CatchPattern (PatUnderscore t), G.exprstmt e2) ],
+            None )
+        |> G.s
+      in
+      let x = G.stmt_to_expr st in
+      x.G.e
+  | Match (e, tk, p) ->
+      (* we translate `e in p` to
+
+         switch e of
+           p => true
+         | _ => false
+      *)
+      let t = G.N (Id (("true", G.fake "true"), G.empty_id_info ())) |> G.e in
+      let f = G.N (Id (("false", G.fake "false"), G.empty_id_info ())) |> G.e in
+      let case = G.case_of_pat_and_expr ~tok:(Some tk) (pattern p, t) in
+      let uncase =
+        G.CasesAndBody ([ Case (tk, PatUnderscore tk) ], G.exprstmt f)
+      in
+      G.StmtExpr (Switch (tk, Some (Cond (expr e)), [ case; uncase ]) |> G.s)
   | S x ->
       let st = stmt x in
       let x = G.stmt_to_expr st in
@@ -181,7 +213,8 @@ let rec expr e =
   | TypedMetavar (v1, v2, v3) ->
       let v1 = ident v1 in
       let v3 = type_ v3 in
-      G.TypedMetavar (v1, v2, v3))
+      G.TypedMetavar (v1, v2, v3)
+  | TodoExpr (s, tk) -> G.OtherExpr ((s, G.fake s), [ G.Tk tk ]))
   |> G.e
 
 and argument arg : G.argument =
@@ -195,12 +228,19 @@ and argument arg : G.argument =
       let id = ident id in
       let arg = expr arg in
       G.ArgKwd (id, arg)
+  | ArgAmp tk -> G.OtherArg (("Amp", G.fake "Amp"), [ G.Tk tk ])
 
 and formal_param = function
   | Formal_id id -> G.Param (G.param_of_id id)
-  | Formal_amp (t, id) ->
-      let param = G.Param (G.param_of_id id) in
-      G.OtherParam (("Ref", t), [ G.Pa param ])
+  | Formal_amp (t, idopt) ->
+      let param =
+        match idopt with
+        | None -> []
+        | Some id ->
+            let param = G.Param (G.param_of_id id) in
+            [ G.Pa param ]
+      in
+      G.OtherParam (("Ref", t), param)
   | Formal_star (t, id) -> G.ParamRest (t, G.param_of_id id)
   | Formal_rest t ->
       let p =
@@ -240,6 +280,7 @@ and formal_param = function
         | Some e -> { (G.param_of_id id) with G.pdefault = Some e }
       in
       G.Param p
+  | Formal_fwd t -> G.ParamRest (t, G.param_of_id ("...", t))
   | Formal_tuple (_t1, xs, _t2) ->
       let xs = list formal_param_pattern xs in
       let pat = G.PatTuple (Tok.unsafe_fake_bracket xs) in
@@ -251,8 +292,9 @@ and formal_param_pattern = function
   | Formal_tuple (_t1, xs, _t2) ->
       let xs = list formal_param_pattern xs in
       G.PatTuple (Tok.unsafe_fake_bracket xs)
-  | ( Formal_amp _ | Formal_star _ | Formal_rest _ | Formal_default _
-    | Formal_hash_splat _ | Formal_kwd _ | ParamEllipsis _ ) as x ->
+  | ( Formal_amp _ | Formal_star _ | Formal_rest _ | Formal_fwd _
+    | Formal_default _ | Formal_hash_splat _ | Formal_kwd _ | ParamEllipsis _ )
+    as x ->
       let x = formal_param x in
       G.OtherPat (("ParamPattern", Tok.unsafe_fake_tok ""), [ G.Pa x ])
 
@@ -335,7 +377,21 @@ and method_name (mn : method_name) : (G.ident, G.expr) Common.either =
   | MethodEllipsis t -> raise (Parsing_error.Syntax_error t)
 
 and interpolated_string (t1, xs, t2) : G.expr_kind =
-  let xs = list (string_contents t1) xs in
+  (* Here, we combine all adjacent literal strings, and only
+     leave them delimited by the interpolations.
+  *)
+  let rec fold_constants xs =
+    match xs with
+    | [] -> []
+    | [ x ] -> [ x ]
+    | x :: y :: xs -> (
+        match (x, fold_constants (y :: xs)) with
+        | StrChars (s1, t1), StrChars (s2, t2) :: rest ->
+            let t' = Tok.combine_toks t1 [ t2 ] in
+            StrChars (s1 ^ s2, t') :: rest
+        | x, other -> x :: other)
+  in
+  let xs = xs |> fold_constants |> list (string_contents t1) in
   G.Call
     ( G.IdSpecial (G.ConcatString G.InterpolatedConcat, t1) |> G.e,
       (t1, xs |> Common.map (fun e -> G.Arg e), t2) )
@@ -506,7 +562,8 @@ and expr_as_stmt = function
          * unless it's a metavariable
       *)
       | G.N (G.Id ((s, _), _)) ->
-          if AST_generic.is_metavar_name s then G.exprstmt e
+          if AST_generic.is_metavar_name s || !Flag_parsing.sgrep_mode then
+            G.exprstmt e
           else
             let call = G.Call (e, fb []) |> G.e in
             G.exprstmt call
@@ -618,9 +675,79 @@ and exprs_to_eopt = function
       let xs = list expr xs in
       Some (G.Container (G.Tuple, Tok.unsafe_fake_bracket xs) |> G.e)
 
+and qualified qual = Common.map variable qual
+
+and pattern_as_exp pat =
+  match pat with
+  (* coupling: this should include only the cases below in `pattern`
+     which involve `promote`
+  *)
+  | PatLiteral lit -> literal lit |> G.e
+  | PatAtom (tk, a) -> atom tk a |> G.e
+  | PatExpr e -> expr e
+  | _ -> H.pattern_to_expr (pattern pat)
+
 and pattern pat =
-  let e = expr pat in
-  H.expr_to_pattern e
+  (* coupling: this function should be used in a way that is inverted by
+     `pattern_as_exp` above
+  *)
+  let promote expr =
+    match expr with
+    | G.L l -> G.PatLiteral l
+    | _ -> G.OtherPat (("expr", G.fake "expr"), [ G.E (G.e expr) ])
+  in
+  match pat with
+  | PatId var -> G.PatId (variable var, G.empty_id_info ())
+  | PatLiteral lit -> promote (literal lit)
+  | PatAtom (tk, a) -> promote (atom tk a)
+  | PatDisj (p1, p2) -> G.PatDisj (pattern p1, pattern p2)
+  | PatExpr e -> promote (expr e).G.e
+  | PatTuple (l, ps, r) -> G.PatTuple (l, Common.map pattern ps, r)
+  | PatConstructor (qual, ps) ->
+      let name =
+        match List.rev (qualified qual) with
+        | [] ->
+            (* should be impossible *)
+            raise Impossible
+        | last :: rev_prefix ->
+            let qualifier =
+              Common.map (fun id -> (id, None)) rev_prefix |> List.rev
+            in
+            G.IdQualified
+              {
+                G.name_last = (last, None);
+                name_middle = Some (G.QDots qualifier);
+                name_top = None;
+                name_info = G.empty_id_info ();
+              }
+      in
+      G.PatConstructor (name, Common.map pattern ps)
+  | PatList (l, ps, r) -> G.PatList (l, Common.map patlist_arg ps, r)
+  | PatWhen (pat, exp) -> G.PatWhen (pattern pat, expr exp)
+  | PatAs (pat, id) -> G.PatAs (pattern pat, (ident id, G.empty_id_info ()))
+  | PatPin (_tk, exp) ->
+      OtherPat (("PatPin", G.fake "PatPin"), [ G.E (expr exp) ])
+
+and patlist_arg = function
+  | PArgSplat (tk, idopt) ->
+      let arg =
+        match idopt with
+        | None -> []
+        | Some x -> [ G.Arg (G.N (G.Id (ident x, G.empty_id_info ())) |> G.e) ]
+      in
+      let exp =
+        G.E (G.Call (G.IdSpecial (G.Spread, tk) |> G.e, arg |> fb) |> G.e)
+      in
+      G.OtherPat (("PArgSplat", G.fake "PArgSplat"), [ exp ])
+  | PArgKeyVal (p1, tk, p2) ->
+      let p2 =
+        match p2 with
+        | Some p2 -> pattern p2
+        | None -> PatUnderscore tk
+      in
+      G.PatKeyVal (pattern p1, p2)
+  | PArgPat p -> pattern p
+  | PArgEllipsis tok -> PatEllipsis tok
 
 and type_ e =
   let e = expr e in
@@ -819,17 +946,37 @@ and list_stmt1 xs =
 (* was called stmts, but you should either use list_stmt1 or list_stmts *)
 and list_stmts xs = list expr_as_stmt xs
 
-let program xs = list_stmts xs
+let program xs =
+  Common.save_excursion Flag_parsing.sgrep_mode false (fun () -> list_stmts xs)
 
 let any x =
-  match x with
-  | E x -> (
+  (* We need this sgrep_mode flag because we want some branching behavior
+     for the Generic translation depending on whether we are parsing a program
+     or pattern.
+     In particular, this comes into play when translating a single name on its
+     own line, which may be a call in a target.
+  *)
+  Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
       match x with
-      | S x -> G.S (stmt x)
-      | D x -> G.S (definition x)
-      | e -> expr_special_cases (expr e))
-  | S2 x -> G.S (stmt x)
-  | Ss xs -> G.Ss (list_stmts xs)
-  | Pr xs -> G.Ss (list_stmts xs)
-  (* sgrep_spatch_pattern just generate E/S2/Ss *)
-  | _ -> raise Impossible
+      (* coupling: match pattern
+         This is what a standalone pattern looks like in Ruby.
+         For a pattern, we prefer to parse this as a hash, which is
+         more likely what the rule-writer means.
+         See the other "coupling: match pattern" for more.*)
+      | Ss [ (Match (e, _tk, pat) as orig_e) ] -> (
+          try
+            let pat_expr = pattern_as_exp pat in
+            let e = expr e in
+            G.E (Container (Tuple, fb [ e; pat_expr ]) |> G.e)
+          with
+          | H.NotAnExpr -> G.E (expr orig_e))
+      | E x -> (
+          match x with
+          | S x -> G.S (stmt x)
+          | D x -> G.S (definition x)
+          | e -> expr_special_cases (expr e))
+      | S2 x -> G.S (stmt x)
+      | Ss xs -> G.Ss (list_stmts xs)
+      | Pr xs -> G.Ss (list_stmts xs)
+      (* sgrep_spatch_pattern just generate E/S2/Ss *)
+      | _ -> raise Impossible)

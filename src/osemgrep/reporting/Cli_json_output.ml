@@ -64,7 +64,9 @@ let interpolate_metavars (text : string) (metavars : metavars) (file : filename)
           * name in semgrep_output_v1.atd *)
          let (v : Out.metavar_value) = mval in
          let content =
-           lazy (Output_utils.contents_of_file (v.start, v.end_) file)
+           lazy
+             (Output_utils.content_of_file_at_range (v.start, v.end_)
+                (Fpath.v file))
          in
          text
          (* first value($X), and then $X *)
@@ -333,8 +335,10 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
         | None -> `Assoc []
         | Some json -> JSON.to_yojson json
       in
+      (* TODO? at this point why not using content_of_file_at_range since
+       * we concatenate the lines after? *)
       let lines =
-        Output_utils.lines_of_file (start, end_) (Fpath.v path)
+        Output_utils.lines_of_file_at_range (start, end_) (Fpath.v path)
         |> String.concat "\n"
       in
       {
@@ -390,27 +394,22 @@ let dedup_and_sort (xs : Out.cli_match list) : Out.cli_match list =
 (* Skipped target *)
 (*****************************************************************************)
 
-let cli_skipped_target_of_skipped_target (x : Out.skipped_target) :
-    Out.cli_skipped_target =
-  { path = x.path; reason = x.reason }
-
-(* skipping the python intermediate FileTargetingLog for now *)
+(* Skipping the python intermediate FileTargetingLog for now.
+ * We used to have a cli_skipped_target and core_skipped_target type,
+ * but now they are merged so this function is the identity.
+ * In theory we could remove the details: and rule_id: from it
+ * because they used to not be included in the final JSON output
+ * (but the info was used in the text output to display skipping information).
+ *)
 let cli_skipped_targets ~(skipped_targets : Out.skipped_target list option) :
-    Out.cli_skipped_target list option =
-  let* skipped_targets_list = skipped_targets in
-
-  (* TODO: skipped targets are coming from the FileIgnoreLog which is
+    Out.skipped_target list option =
+  (* Still? skipped targets are coming from the FileIgnoreLog which is
    * populated from many places in the code.
-   *)
-
-  (* TODO: see _make_failed_to_analyze() in output.py,
+   * Still? see _make_failed_to_analyze() in output.py,
    * core_failure_lines_by_file in target_manager.py
+   * Still? need to sort
    *)
-  let core_skipped =
-    skipped_targets_list |> Common.map cli_skipped_target_of_skipped_target
-  in
-  (* TODO: need to sort *)
-  Some core_skipped
+  skipped_targets
 
 (*****************************************************************************)
 (* Entry point *)
@@ -446,7 +445,7 @@ let cli_output_of_core_results ~logging_level (core : Out.core_output)
        * python: scanned=[str(path) for path in sorted(self.all_targets)]
        *)
       let scanned = scanned |> Set_.elements |> File.Path.to_strings in
-      let (paths : Out.cli_paths) =
+      let (paths : Out.scanned_and_skipped) =
         match logging_level with
         | Some (Logs.Info | Logs.Debug) ->
             let skipped = cli_skipped_targets ~skipped_targets in

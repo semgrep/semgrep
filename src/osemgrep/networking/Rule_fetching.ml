@@ -160,7 +160,7 @@ type _registry_cached_value =
 let fetch_content_from_registry_url ~registry_caching url =
   if not registry_caching then fetch_content_from_url url
   else
-    let cache_dir = Env.v.user_dot_semgrep_dir / "cache" / "registry" in
+    let cache_dir = !Env.v.user_dot_semgrep_dir / "cache" / "registry" in
     let cache_methods =
       {
         Cache_disk.cache_file_for_input =
@@ -360,7 +360,7 @@ let rules_from_dashdash_config_async ~token_opt ~registry_caching kind :
       Lwt.return [ rules ]
   | C.R rkind ->
       let url = Semgrep_Registry.url_of_registry_config_kind rkind in
-      let%lwt content = fetch_content_from_url_async url in
+      let%lwt content = fetch_content_from_url_async ~token_opt url in
       (* TODO: this also assumes every registry URL is for yaml *)
       let rules =
         Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->

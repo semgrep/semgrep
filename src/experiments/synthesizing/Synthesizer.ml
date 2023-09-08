@@ -2,7 +2,6 @@ open Common
 open File.Operators
 module J = JSON
 module In = Input_to_core_j
-module Out = Semgrep_output_v1_j
 
 let range_to_ast file lang s =
   let r = Range.range_of_linecol_spec s !!file in
@@ -29,7 +28,8 @@ let locate_patched_functions f =
   let d = In.diff_files_of_string f in
   let diff_files = d.In.cve_diffs in
   let diffs = Common.map Pattern_from_diff.pattern_from_diff diff_files in
-  Out.string_of_cve_results diffs
+  let json = J.Array diffs in
+  J.string_of_json json
 
 let target_to_string lang target =
   "target:\n" ^ Pretty_print_pattern.pattern_to_string lang target ^ "\n"

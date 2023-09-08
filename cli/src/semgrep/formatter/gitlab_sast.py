@@ -55,6 +55,10 @@ class GitlabSastFormatter(BaseFormatter):
                 rule_match.rule_id,
             ),
             "message": rule_match.message,
+            # added to the GitLab SAST schema in 16.x, c.f.
+            # https://gitlab.com/gitlab-org/gitlab/-/issues/339812
+            # The above "message" field should be unused in 16.x and later!
+            "description": rule_match.message,
             "severity": _to_gitlab_severity(rule_match.severity),
             "scanner": {
                 "id": "semgrep",

@@ -292,12 +292,13 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
              sorted_offending_rules
              |> Common.map (fun (((rule_id : Rule_ID.t), _pat), n) ->
                     let details =
-                      spf
-                        "found %i matches for rule %s, which exceeds the \
-                         maximum of %i matches."
-                        n
-                        (rule_id :> string)
-                        max_match_per_file
+                      Some
+                        (spf
+                           "found %i matches for rule %s, which exceeds the \
+                            maximum of %i matches."
+                           n
+                           (rule_id :> string)
+                           max_match_per_file)
                     in
                     {
                       Semgrep_output_v1_t.path = file;

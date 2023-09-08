@@ -283,8 +283,9 @@ let get_targets conf scanning_roots =
                           Resp.path = !!path;
                           reason;
                           details =
-                            "excluded by --include/--exclude, gitignore, or \
-                             semgrepignore";
+                            Some
+                              "excluded by --include/--exclude, gitignore, or \
+                               semgrepignore";
                           rule_id = None;
                         }
                       in
@@ -310,8 +311,9 @@ let get_targets conf scanning_roots =
                         Resp.path = !!path;
                         reason = Too_big;
                         details =
-                          spf "target file size exceeds %i bytes at %i bytes"
-                            conf.max_target_bytes size;
+                          Some
+                            (spf "target file size exceeds %i bytes at %i bytes"
+                               conf.max_target_bytes size);
                         rule_id = None;
                       }
                   else Ok path)

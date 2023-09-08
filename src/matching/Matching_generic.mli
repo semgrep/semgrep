@@ -10,6 +10,13 @@ type tin = {
   deref_sym_vals : int;
       (** Counts the number of times that we "follow" symbollically propagated
     * values. This is bound to prevent potential infinite loops. *)
+  wildcard_imports : AST_generic.dotted_ident list;
+      (** Stores the "wildcard imports" that import everything from a given
+          module, but only the ones that occur at the top level of the program
+          being matched. This might change the matching behavior of qualified
+          name patterns, for instance.
+          These look like "from A import *" in Python.
+        *)
 }
 
 (* list of possible outcoming matching environments *)
@@ -48,7 +55,16 @@ val or_list : 'a matcher -> 'a -> 'a list -> tin -> tout
 
 (* Shortcut for >>=. Since OCaml 4.08, you can define those "extended-let" *)
 val ( let* ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout
-val empty_environment : Lang.t -> Rule_options.t -> tin
+
+val environment_of_program :
+  Lang.t -> Rule_options.t -> AST_generic.program -> tin
+
+val environment_of_any : Lang.t -> Rule_options.t -> AST_generic.any -> tin
+
+(* This is mostly helpful for Generic_vs_generic, because we want to disable
+   wildcard imports in certain cases (resolved name matching).
+*)
+val wipe_wildcard_imports : (tin -> tout) -> tin -> tout
 val add_mv_capture : Metavariable.mvar -> Metavariable.mvalue -> tin -> tin
 
 (* Update the matching list of statements by providing a new matching
