@@ -34,13 +34,13 @@ from semgrep.semgrep_interfaces.semgrep_metrics import Environment
 from semgrep.semgrep_interfaces.semgrep_metrics import Errors
 from semgrep.semgrep_interfaces.semgrep_metrics import Extension
 from semgrep.semgrep_interfaces.semgrep_metrics import FileStats
+from semgrep.semgrep_interfaces.semgrep_metrics import Misc
 from semgrep.semgrep_interfaces.semgrep_metrics import ParseStat
 from semgrep.semgrep_interfaces.semgrep_metrics import Payload
 from semgrep.semgrep_interfaces.semgrep_metrics import Performance
 from semgrep.semgrep_interfaces.semgrep_metrics import RuleStats
 from semgrep.semgrep_interfaces.semgrep_metrics import Sha256hash
 from semgrep.semgrep_interfaces.semgrep_metrics import Uuid
-from semgrep.semgrep_interfaces.semgrep_metrics import Value
 from semgrep.types import FilteredMatches
 from semgrep.verbose_logging import getLogger
 
@@ -120,7 +120,7 @@ class Metrics:
             errors=Errors(),
             performance=Performance(maxMemoryBytes=None),
             extension=Extension(),
-            value=Value(features=[]),
+            value=Misc(features=[]),
             started_at=Datetime(datetime.now().astimezone().isoformat()),
             event_id=Uuid(str(uuid.uuid4())),
             anonymous_user_id="",
