@@ -504,3 +504,17 @@ def test_sca_lockfile_only_output(run_semgrep_on_copied_files: RunSemgrep, snaps
         results,
         "results.txt",
     )
+
+
+@pytest.mark.kinda_slow
+def test_cli_test_secret_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    results, _ = run_semgrep_in_tmp(
+        "rules/secrets.yaml",
+        target_name="cli_test/basic/",
+        output_format=OutputFormat.TEXT,
+        force_color=True,
+    )
+    snapshot.assert_match(
+        results,
+        "results.txt",
+    )
