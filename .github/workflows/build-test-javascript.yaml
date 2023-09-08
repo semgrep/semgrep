@@ -97,8 +97,9 @@ jobs:
 
   upload-javascript-artifacts:
     needs: [build-test-js-artifacts]
-    # in english: (this pull request is not from a fork) AND (branch is "develop" OR branch starts with "release-" OR pull request has a "publish-js" label applied to it)
-    if: github.event.pull_request.head.repo.full_name == github.repository && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/release-') || contains(github.event.pull_request.labels.*.name, 'publish-js'))
+    # in english: (branch name is "develop") OR (branch name starts with "release-")
+    # we restrict this so that we don't fill up the S3 bucket with tons of semgrep.js builds
+    if: (github.ref == 'refs/heads/develop') || startsWith(github.ref, 'refs/heads/release-')
     runs-on: ubuntu-latest
     permissions:
       id-token: write

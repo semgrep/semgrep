@@ -71,7 +71,7 @@ type t = {
 }
 
 (* less: make it Lazy? so at least not run in ocaml init time before main() *)
-let v : t =
+let v : t ref =
   let user_dot_semgrep_dir =
     let parent_dir =
       match Sys.getenv_opt "XDG_CONFIG_HOME" with
@@ -80,32 +80,34 @@ let v : t =
     in
     parent_dir / ".semgrep"
   in
-  {
-    (* TOPORT: also SEMGREP_APP_URL *)
-    semgrep_url =
-      env_or Uri.of_string "SEMGREP_URL" (Uri.of_string "https://semgrep.dev");
-    fail_open_url =
-      env_or Uri.of_string "SEMGREP_FAIL_OPEN_URL"
-        (Uri.of_string "https://fail-open.prod.semgrep.dev/failure");
-    app_token = env_opt "SEMGREP_APP_TOKEN";
-    version_check_url =
-      env_or Uri.of_string "SEMGREP_VERSION_CHECK_URL"
-        (Uri.of_string "https://semgrep.dev/api/check-version");
-    version_check_timeout =
-      env_or int_of_string "SEMGREP_VERSION_CHECK_TIMEOUT" 2;
-    version_check_cache_path =
-      env_or Fpath.v "SEMGREP_VERSION_CACHE_PATH"
-        (Fpath.v (Sys.getcwd ()) / ".cache" / "semgrep_version");
-    git_command_timeout = env_or int_of_string "SEMGREP_GIT_COMMAND_TIMEOUT" 300;
-    src_directory = env_or Fpath.v "SEMGREP_SRC_DIRECTORY" (Fpath.v "/src");
-    user_dot_semgrep_dir;
-    user_log_file =
-      env_or Fpath.v "SEMGREP_LOG_FILE" (user_dot_semgrep_dir / "semgrep.log");
-    user_settings_file =
-      env_or Fpath.v "SEMGREP_SETTINGS_FILE"
-        (user_dot_semgrep_dir / settings_filename);
-    in_docker = in_env "SEMGREP_IN_DOCKER";
-    in_gh_action = in_env "GITHUB_WORKSPACE";
-    in_agent = in_env "SEMGREP_AGENT";
-    min_fetch_depth = env_or int_of_string "SEMGREP_GHA_MIN_FETCH_DEPTH" 0;
-  }
+  ref
+    {
+      (* TOPORT: also SEMGREP_APP_URL *)
+      semgrep_url =
+        env_or Uri.of_string "SEMGREP_URL" (Uri.of_string "https://semgrep.dev");
+      fail_open_url =
+        env_or Uri.of_string "SEMGREP_FAIL_OPEN_URL"
+          (Uri.of_string "https://fail-open.prod.semgrep.dev/failure");
+      app_token = env_opt "SEMGREP_APP_TOKEN";
+      version_check_url =
+        env_or Uri.of_string "SEMGREP_VERSION_CHECK_URL"
+          (Uri.of_string "https://semgrep.dev/api/check-version");
+      version_check_timeout =
+        env_or int_of_string "SEMGREP_VERSION_CHECK_TIMEOUT" 2;
+      version_check_cache_path =
+        env_or Fpath.v "SEMGREP_VERSION_CACHE_PATH"
+          (Fpath.v (Sys.getcwd ()) / ".cache" / "semgrep_version");
+      git_command_timeout =
+        env_or int_of_string "SEMGREP_GIT_COMMAND_TIMEOUT" 300;
+      src_directory = env_or Fpath.v "SEMGREP_SRC_DIRECTORY" (Fpath.v "/src");
+      user_dot_semgrep_dir;
+      user_log_file =
+        env_or Fpath.v "SEMGREP_LOG_FILE" (user_dot_semgrep_dir / "semgrep.log");
+      user_settings_file =
+        env_or Fpath.v "SEMGREP_SETTINGS_FILE"
+          (user_dot_semgrep_dir / settings_filename);
+      in_docker = in_env "SEMGREP_IN_DOCKER";
+      in_gh_action = in_env "GITHUB_WORKSPACE";
+      in_agent = in_env "SEMGREP_AGENT";
+      min_fetch_depth = env_or int_of_string "SEMGREP_GHA_MIN_FETCH_DEPTH" 0;
+    }

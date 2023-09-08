@@ -52,6 +52,11 @@ module Make (M : S) : Cohttp_lwt.S.Client = struct
       | None -> false
     in
     let req = Request.make_for_client ~headers ~chunked meth uri in
+    Logs.debug (fun m ->
+        m "[Testing client] Request: %s"
+          (Request.sexp_of_t req |> Sexplib.Sexp.to_string_hum));
+    let%lwt _body = Body.to_string body in
+    Logs.debug (fun m -> m "[Testing client] Body: %s" _body);
     let%lwt response = make_response req body in
     Lwt.return (response.response, response.body)
 
@@ -74,7 +79,8 @@ end
 (* Helper Functions *)
 (*****************************************************************************)
 
-let basic_response ?(status = `OK) ?(headers = Header.init ()) body =
+let basic_response ?(status = 200) ?(headers = Header.init ()) body =
+  let status = Cohttp.Code.status_of_code status in
   let response = Response.make ~status ~headers ~flush:true () in
   { response; body }
 
@@ -112,6 +118,9 @@ let check_headers expected_headers actual_headers =
   in
   Alcotest.(check (list (pair string string)))
     "headers" expected_headers actual_headers
+
+let get_header req header =
+  Cohttp.Header.get (Cohttp.Request.headers req) header
 
 (*****************************************************************************)
 (* Entrypoint *)

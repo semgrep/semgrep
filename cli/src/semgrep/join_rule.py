@@ -21,8 +21,8 @@ from peewee import CTE
 from peewee import ModelSelect
 from ruamel.yaml import YAML
 
-import semgrep.output_from_core as core
 import semgrep.run_scan
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.config_resolver import Config
 from semgrep.config_resolver import ConfigPath
 from semgrep.constants import RuleSeverity
@@ -367,8 +367,8 @@ def generate_recursive_cte(model: Type[BaseModel], column1: str, column2: str) -
 # RuleMatches from that. Ideally something would be refactored so that we don't
 # need to move backwards in the pipeline like this.
 def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> RuleMatch:
-    cli_match_extra = core.CliMatchExtra.from_json(match.get("extra", {}))
-    extra = core.CoreMatchExtra(
+    cli_match_extra = out.CliMatchExtra.from_json(match.get("extra", {}))
+    extra = out.CoreMatchExtra(
         message=cli_match_extra.message,
         # cli_match_extra.metavars is optional, but core_match_extra.metavars is
         # not. This is unsafe, but before it was just implicitly unsafe.
@@ -376,7 +376,7 @@ def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> Rule
         dataflow_trace=cli_match_extra.dataflow_trace,
         engine_kind=cli_match_extra.engine_kind
         if cli_match_extra.engine_kind
-        else core.EngineKind(core.OSS()),
+        else out.EngineKind(out.OSS()),
     )
     return RuleMatch(
         message=join_rule.get(
@@ -386,11 +386,11 @@ def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> Rule
         severity=RuleSeverity(
             join_rule.get("severity", match.get("severity", RuleSeverity.INFO.value))
         ),
-        match=core.CoreMatch(
-            check_id=core.RuleId(join_rule.get("id", match.get("check_id", "[empty]"))),
-            path=core.Fpath(match.get("path", "[empty]")),
-            start=core.Position.from_json(match["start"]),
-            end=core.Position.from_json(match["end"]),
+        match=out.CoreMatch(
+            check_id=out.RuleId(join_rule.get("id", match.get("check_id", "[empty]"))),
+            path=out.Fpath(match.get("path", "[empty]")),
+            start=out.Position.from_json(match["start"]),
+            end=out.Position.from_json(match["end"]),
             extra=extra,
         ),
         # still needed?

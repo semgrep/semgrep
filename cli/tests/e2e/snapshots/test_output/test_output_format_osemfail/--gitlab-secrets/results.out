@@ -34,6 +34,7 @@
         "sha": "0000000"
       },
       "cve": "targets/basic/stupid.py:4eb070c4173775f0145392a730b9f22018e5e44638f8d085bd48e7cd18fec7da:rules.eqeq-is-bad",
+      "description": "useless comparison operation `a + b == a + b` or `a + b != a + b`",
       "details": {},
       "flags": [],
       "id": "30b0accd-52fb-52b0-995b-f1a7f094320f",

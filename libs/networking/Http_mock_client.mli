@@ -10,17 +10,17 @@ let with_foo_client =
     let make_fn = (fun req body ->
         match Uri.path (Cohttp.Request.uri req) with
         | "http://foo.com/api/v1/blah" ->
-            Testing_client.check_method req "GET";
-            Testing_client.check_body body "./tests/foo/request.json";
+            Http_mock_client.check_method req "GET";
+            Http_mock_client.check_body body "./tests/foo/request.json";
             let response_body =
               "./tests/ls/ci/response.json"
               |> Common.read_file
               |> Cohttp_lwt.Body.of_string in
-            Lwt.return Testing_client.(basic_response response_body)
+            Lwt.return Http_mock_client.(basic_response response_body)
         | _ -> Alcotest.fail "unexpected request"
     )
     in
-    Testing_client.with_testing_client make_fn
+    Http_mock_client.with_testing_client make_fn
    ...
 
    let test_foo = ... in
@@ -49,10 +49,7 @@ type make_response_fn =
   *)
 
 val basic_response :
-  ?status:Cohttp.Code.status_code ->
-  ?headers:Cohttp.Header.t ->
-  Cohttp_lwt.Body.t ->
-  test_response
+  ?status:int -> ?headers:Cohttp.Header.t -> Cohttp_lwt.Body.t -> test_response
 (** [basic_response ~status ~headers body] creates a [test_response]
   * with optional status and headers.
   * Example: [basic_response "{ \"api_code\": 304, \"info\": \"example\" }"].
@@ -81,6 +78,12 @@ val check_headers : Cohttp.Header.t -> Cohttp.Header.t -> unit
   * two lists of headers are equal. Note that order and header capitlisation
   * does not matter---header lists which differ only in these aspects will
   * compare equal.
+  *)
+
+val get_header : Cohttp_lwt.Request.t -> string -> string option
+(** [get_header request header] will return the value of a header in a request
+  * or None if the header is not present
+  * Example: [get_header request "Authorization"]
   *)
 
 val with_testing_client : make_response_fn -> (unit -> unit) -> unit -> unit
@@ -118,11 +121,11 @@ val client_from_file :
   * > Host: www.github.com
   * > User-Agent: curl/8.1.2
   * > Accept: */*
-  * > 
+  * >
   * > secret:very legit secret
   * < HTTP/1.1 200 OK
   * < Date: Thu, 07 Sep 2023 21:29:57 GMT
-  * < 
+  * <
   * ```
   * NOTE: currently, blank lines should still have "> " or "< ", i.e., there
   * should be a space after the indicator.

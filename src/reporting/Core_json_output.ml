@@ -319,7 +319,8 @@ let rec explanation_to_explanation (exp : Matching_explanation.t) :
     loc = Output_utils.location_of_token_location tloc;
   }
 
-let json_time_of_profiling_data profiling_data =
+let profiling_to_profiling (profiling_data : RP.final_profiling) :
+    Out.core_timing =
   let json_time_of_rule_times rule_times =
     rule_times
     |> Common.map (fun { RP.rule_id; parse_time; match_time } ->
@@ -338,7 +339,7 @@ let json_time_of_profiling_data profiling_data =
       Common.map
         (fun rule -> (fst rule.Rule.id :> string))
         profiling_data.RP.rules;
-    rules_parse_time = Some profiling_data.RP.rules_parse_time;
+    rules_parse_time = Some profiling_data.rules_parse_time;
     max_memory_bytes = profiling_data.max_memory_bytes;
   }
 
@@ -381,7 +382,7 @@ let core_output_of_matches_and_errors render_fix nfiles (res : RP.final_result)
                position = Output_utils.position_of_token_location loc;
              });
     stats = { okfiles = count_ok; errorfiles = count_errors };
-    time = profiling |> Option.map json_time_of_profiling_data;
+    time = profiling |> Option.map profiling_to_profiling;
     explanations =
       ( res.RP.explanations |> Common.map explanation_to_explanation |> fun x ->
         Some x );
