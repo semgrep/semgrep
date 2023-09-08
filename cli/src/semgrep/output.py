@@ -108,9 +108,9 @@ def _build_time_target_json(
 def _build_time_json(
     rules: List[Rule],
     targets: Set[Path],
-    profiling_data: ProfilingData,  # (rule, target) -> times
+    profiling_data: ProfilingData,
     profiler: Optional[ProfileManager],
-) -> out.CliTiming:
+) -> out.Profile:
     """Convert match times to a json-ready format.
 
     Match times are obtained for each pair (rule, target) by running
@@ -120,18 +120,18 @@ def _build_time_json(
     same AST.
     """
     target_bytes = [Path(str(target)).resolve().stat().st_size for target in targets]
-    return out.CliTiming(
-        # this list of all rules names is given here so they don't have to be
+    return out.Profile(
+        # this list of all rules ids is given here so they don't have to be
         # repeated for each target in the 'targets' field, saving space.
-        rules=[out.RuleIdDict(id=out.RuleId(rule.id)) for rule in rules],
-        rules_parse_time=profiling_data.get_rules_parse_time(),
+        rules=[out.RuleId(rule.id) for rule in rules],
         profiling_times=profiler.dump_stats() if profiler else {},
         targets=[
             _build_time_target_json(rules, target, num_bytes, profiling_data)
             for target, num_bytes in zip(targets, target_bytes)
         ],
         total_bytes=sum(n for n in target_bytes),
-        max_memory_bytes=profiling_data.get_max_memory_bytes(),
+        rules_parse_time=profiling_data.profile.rules_parse_time,
+        max_memory_bytes=profiling_data.profile.max_memory_bytes,
     )
 
 
@@ -180,9 +180,7 @@ class OutputHandler:
         self.has_output = False
         self.is_ci_invocation = False
         self.filtered_rules: List[Rule] = []
-        self.profiling_data: ProfilingData = (
-            ProfilingData()
-        )  # (rule, target) -> duration
+        self.profiling_data: Optional[ProfilingData] = None
         self.severities: Collection[RuleSeverity] = DEFAULT_SHOWN_SEVERITIES
         self.explanations: Optional[List[out.MatchingExplanation]] = None
         self.rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = None
@@ -445,7 +443,7 @@ class OutputHandler:
             _comment=None,
             skipped=None,
         )
-        cli_timing: Optional[out.CliTiming] = None
+        cli_timing: Optional[out.Profile] = None
 
         explanations: Optional[List[out.MatchingExplanation]] = self.explanations
         rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = self.rules_by_engine
@@ -455,7 +453,7 @@ class OutputHandler:
         # - The text formatter uses it to store settings
         # You should use CliOutputExtra for better type checking
         extra: Dict[str, Any] = {}
-        if self.settings.output_time:
+        if self.settings.output_time and self.profiling_data:
             cli_timing = _build_time_json(
                 self.filtered_rules,
                 self.all_targets,
