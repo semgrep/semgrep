@@ -5,7 +5,7 @@ from typing import Set
 
 from attrs import frozen
 
-import semgrep.output_from_core as core
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.parsing_data import ParsingData
 from semgrep.profiling import ProfilingData
 
@@ -18,5 +18,5 @@ class OutputExtra:
     all_targets: Set[Path]
     profiling_data: ProfilingData
     parsing_data: ParsingData
-    explanations: Optional[List[core.MatchingExplanation]]
-    rules_by_engine: List[core.RuleIdAndEngineKind]
+    explanations: Optional[List[out.MatchingExplanation]]
+    rules_by_engine: List[out.RuleIdAndEngineKind]

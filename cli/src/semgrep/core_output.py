@@ -13,7 +13,6 @@ from typing import Optional
 from typing import Set
 from typing import Tuple
 
-import semgrep.output_from_core as core
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 import semgrep.util as util
 from semgrep.error import FATAL_EXIT_CODE
@@ -31,7 +30,7 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
-def _core_location_to_error_span(location: core.Location) -> out.ErrorSpan:
+def _core_location_to_error_span(location: out.Location) -> out.ErrorSpan:
     return out.ErrorSpan(
         file=location.path,
         start=location.start,
@@ -39,7 +38,7 @@ def _core_location_to_error_span(location: core.Location) -> out.ErrorSpan:
     )
 
 
-def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
+def core_error_to_semgrep_error(err: out.CoreError) -> SemgrepCoreError:
     # Hackily convert the level string to Semgrep expectations
     level_str = err.severity.kind
     if level_str.upper() == "WARNING":
@@ -49,7 +48,7 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
     level = Level[level_str.upper()]
 
     spans: Optional[List[out.ErrorSpan]] = None
-    if isinstance(err.error_type.value, core.PatternParseError):
+    if isinstance(err.error_type.value, out.PatternParseError):
         yaml_path = err.error_type.value.value[::-1]
         error_span = _core_location_to_error_span(err.location)
         config_start = out.Position(line=0, col=1, offset=-1)
@@ -66,7 +65,7 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
                 config_path=yaml_path,
             )
         ]
-    elif isinstance(err.error_type.value, core.PartialParsing):
+    elif isinstance(err.error_type.value, out.PartialParsing):
         # The spans for PartialParsing errors are contained in the "error_type" object
         spans = [
             _core_location_to_error_span(location)
@@ -78,13 +77,13 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
     if level == Level.INFO:
         code = OK_EXIT_CODE
     elif (
-        isinstance(err.error_type.value, core.ParseError)
-        or isinstance(err.error_type.value, core.LexicalError)
-        or isinstance(err.error_type.value, core.PartialParsing)
+        isinstance(err.error_type.value, out.ParseError)
+        or isinstance(err.error_type.value, out.LexicalError)
+        or isinstance(err.error_type.value, out.PartialParsing)
     ):
         code = TARGET_PARSE_FAILURE_EXIT_CODE
         err = replace(err, rule_id=None)  # Rule id not important for parse errors
-    elif isinstance(err.error_type.value, core.PatternParseError):
+    elif isinstance(err.error_type.value, out.PatternParseError):
         # TODO This should probably be RULE_PARSE_FAILURE_EXIT_CODE
         # but we have been exiting with FATAL_EXIT_CODE, so we need
         # to be deliberate about changing it
@@ -95,8 +94,8 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
     return SemgrepCoreError(code, level, spans, err)
 
 
-def parse_core_output(raw_json: JsonObject) -> core.CoreOutput:
-    match_results = core.CoreOutput.from_json(raw_json)
+def parse_core_output(raw_json: JsonObject) -> out.CoreOutput:
+    match_results = out.CoreOutput.from_json(raw_json)
     if match_results.skipped_targets:
         for skip in match_results.skipped_targets:
             if skip.rule_id:
@@ -110,7 +109,7 @@ def parse_core_output(raw_json: JsonObject) -> core.CoreOutput:
 
 
 def core_matches_to_rule_matches(
-    rules: List[Rule], res: core.CoreOutput
+    rules: List[Rule], res: out.CoreOutput
 ) -> Dict[Rule, List[RuleMatch]]:
     """
     Convert core_match objects into RuleMatch objects that the rest of the codebase
@@ -135,7 +134,7 @@ def core_matches_to_rule_matches(
         return text
 
     def read_metavariables(
-        match: core.CoreMatch,
+        match: out.CoreMatch,
     ) -> Tuple[Dict[str, str], Dict[str, str]]:
         matched_values = {}
         propagated_values = {}
@@ -162,7 +161,7 @@ def core_matches_to_rule_matches(
 
         return matched_values, propagated_values
 
-    def convert_to_rule_match(match: core.CoreMatch) -> RuleMatch:
+    def convert_to_rule_match(match: out.CoreMatch) -> RuleMatch:
         rule = rule_table[match.check_id.value]
         matched_values, propagated_values = read_metavariables(match)
         message = interpolate(rule.message, matched_values, propagated_values)
@@ -206,7 +205,7 @@ def core_matches_to_rule_matches(
             fix_regex=fix_regex,
         )
 
-    # TODO: Dict[core.RuleId, RuleMatchSet]
+    # TODO: Dict[out.RuleId, RuleMatchSet]
     findings: Dict[Rule, RuleMatchSet] = {rule: RuleMatchSet(rule) for rule in rules}
     seen_cli_unique_keys: Set[Tuple] = set()
     for match in res.results:
