@@ -1,3 +1,5 @@
+[33mBad settings format; /tmp/tmpizpsfp1o will be overriden. Contents:
+has_shown_metrics_notification: true
 [31m[22m[24msemgrep error[0m: invalid language: intercal
   --> rules/syntax/badlanguage.yaml:7
 [94m[22m[24m6 | [0m    message: "$X is being assigned to one or two"

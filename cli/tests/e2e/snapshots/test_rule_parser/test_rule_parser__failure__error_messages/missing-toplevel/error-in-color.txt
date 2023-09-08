@@ -1,3 +1,5 @@
+[33mBad settings format; /tmp/tmpz3ojqehk will be overriden. Contents:
+has_shown_metrics_notification: true
 [31m[22m[24msemgrep error[0m: Invalid rule schema
   --> rules/syntax/missing-toplevel.yaml:2
 [94m[22m[24m2  | [0mrule:

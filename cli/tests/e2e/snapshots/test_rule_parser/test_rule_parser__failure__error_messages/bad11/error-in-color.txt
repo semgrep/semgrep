@@ -1,3 +1,5 @@
+[33mBad settings format; /tmp/tmpx8sgw2wq will be overriden. Contents:
+has_shown_metrics_notification: true
 [31m[22m[24msemgrep error[0m: null values prohibited
   --> rules/syntax/bad11.yaml:2
 [94m[22m[24m1 | [0mrules:

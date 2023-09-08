@@ -69,6 +69,8 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of stdout - plain
 
 === stderr - plain
+Bad settings format; /tmp/tmpdud055sx will be overriden. Contents:
+has_shown_metrics_notification: true
 
 
 ┌─────────────┐
@@ -91,3 +93,91 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 Ran 1 rule on 1 file: 1 finding.
 
 === end of stderr - plain
+
+=== stdout - color
+{
+  "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/dependency_aware/maven_dep_tree_optional/maven_dep_tree.txt"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.dependency_aware.maven-guice",
+      "end": {
+        "col": 0,
+        "line": 3,
+        "offset": 0
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "+- com.google.inject:guice:jar:no_aop:4.2.2:test (optional)",
+        "message": "got em",
+        "metadata": {},
+        "metavars": {},
+        "sca_info": {
+          "dependency_match": {
+            "dependency_pattern": {
+              "ecosystem": "maven",
+              "package": "com.google.inject:guice",
+              "semver_range": "<= 4.3.3"
+            },
+            "found_dependency": {
+              "allowed_hashes": {},
+              "children": [],
+              "ecosystem": "maven",
+              "line_number": 2,
+              "package": "com.google.inject:guice",
+              "transitivity": "direct",
+              "version": "4.2.2"
+            },
+            "lockfile": "targets/dependency_aware/maven_dep_tree_optional/maven_dep_tree.txt"
+          },
+          "reachability_rule": false,
+          "reachable": false,
+          "sca_finding_schema": 20220913
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/dependency_aware/maven_dep_tree_optional/maven_dep_tree.txt",
+      "start": {
+        "col": 0,
+        "line": 2,
+        "offset": 0
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}
+=== end of stdout - color
+
+=== stderr - color
+[33mBad settings format; /tmp/tmpdud055sx will be overriden. Contents:
+has_shown_metrics_notification: true
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 0 Code rules, 1 Supply Chain rule:
+
+
+  CODE RULES
+  Nothing to scan.
+
+  SUPPLY CHAIN RULES
+  Nothing to scan.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+
+Ran 1 rule on 1 file: 1 finding.
+
+=== end of stderr - color

@@ -1,3 +1,5 @@
+[33mBad settings format; /tmp/tmp765vnd_3 will be overriden. Contents:
+has_shown_metrics_notification: true
 [31m[22m[24msemgrep error[0m: Invalid rule schema
   --> rules/syntax/bad12.yaml:5
 [94m[22m[24m5 | [0m      - pattern-not: $Y

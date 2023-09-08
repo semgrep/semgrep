@@ -1,3 +1,5 @@
+[33mBad settings format; /tmp/tmpdisa_inw will be overriden. Contents:
+has_shown_metrics_notification: true
 [31m[22m[24msemgrep error[0m: Invalid rule schema
   --> rules/syntax/bad14.yaml:2
 [94m[22m[24m2  | [0m  - id: tainty

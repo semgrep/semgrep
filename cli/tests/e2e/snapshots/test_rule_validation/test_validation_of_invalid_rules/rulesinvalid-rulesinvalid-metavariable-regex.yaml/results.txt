@@ -1,3 +1,5 @@
+[33mBad settings format; /tmp/tmp5sey45x3 will be overriden. Contents:
+has_shown_metrics_notification: true
 Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
 semgrep error: Detected duplicate key
   --> rules/invalid-rules/invalid-metavariable-regex.yaml:6

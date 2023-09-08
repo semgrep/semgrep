@@ -73,6 +73,8 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of stdout - plain
 
 === stderr - plain
+Bad settings format; /tmp/tmpb_zhgj5s will be overriden. Contents:
+has_shown_metrics_notification: true
 
 
 ┌─────────────┐
@@ -95,3 +97,95 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 Ran 1 rule on 2 files: 1 finding.
 
 === end of stderr - plain
+
+=== stdout - color
+{
+  "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/dependency_aware/rust/Cargo.lock",
+      "targets/dependency_aware/rust/sca.rs"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.dependency_aware.rust-sca",
+      "end": {
+        "col": 14,
+        "line": 1,
+        "offset": 13
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "let x = bad();",
+        "message": "oh no",
+        "metadata": {},
+        "metavars": {},
+        "sca_info": {
+          "dependency_match": {
+            "dependency_pattern": {
+              "ecosystem": "cargo",
+              "package": "adler",
+              "semver_range": "<= 1.0.3"
+            },
+            "found_dependency": {
+              "allowed_hashes": {
+                "sha256": [
+                  "f26201604c87b1e01bd3d98f8d5d9a8fcbb815e8cedb41ffccbeb4bf593a35fe"
+                ]
+              },
+              "ecosystem": "cargo",
+              "package": "adler",
+              "transitivity": "unknown",
+              "version": "1.0.2"
+            },
+            "lockfile": "targets/dependency_aware/rust/Cargo.lock"
+          },
+          "reachability_rule": true,
+          "reachable": true,
+          "sca_finding_schema": 20220913
+        },
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/dependency_aware/rust/sca.rs",
+      "start": {
+        "col": 9,
+        "line": 1,
+        "offset": 8
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}
+=== end of stdout - color
+
+=== stderr - color
+[33mBad settings format; /tmp/tmpb_zhgj5s will be overriden. Contents:
+has_shown_metrics_notification: true
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 2 files tracked by git with 0 Code rules, 1 Supply Chain rule:
+
+
+  CODE RULES
+  Nothing to scan.
+
+  SUPPLY CHAIN RULES
+  Scanning 1 file.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+
+Ran 1 rule on 2 files: 1 finding.
+
+=== end of stderr - color

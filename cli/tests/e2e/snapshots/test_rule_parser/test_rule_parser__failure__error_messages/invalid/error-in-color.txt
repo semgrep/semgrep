@@ -1,3 +1,5 @@
+[33mBad settings format; /tmp/tmp33vnkbmd will be overriden. Contents:
+has_shown_metrics_notification: true
 [31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m Invalid YAML file rules/syntax/invalid.yaml:
 	mapping values are not allowed here
 	  in "<file>", line 2, column 7

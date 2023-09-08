@@ -11,6 +11,8 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of stdout - plain
 
 === stderr - plain
+Bad settings format; /tmp/tmptx6og4t2 will be overriden. Contents:
+has_shown_metrics_notification: true
 semgrep version <MASKED>
 Failed to get project url from 'git ls-remote': Command failed with exit code: 128
 -----
@@ -95,3 +97,95 @@ Ran 1 rule on 1 file: 0 findings.
 Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False
 
 === end of stderr - plain
+
+=== stdout - color
+
+=== end of stdout - color
+
+=== stderr - color
+[33mBad settings format; /tmp/tmptx6og4t2 will be overriden. Contents:
+has_shown_metrics_notification: true
+semgrep version <MASKED>
+Failed to get project url from 'git ls-remote': Command failed with exit code: 128
+-----
+Command failed with output:
+fatal: No remote configured to list refs from.
+
+
+Failed to run 'git ls-remote --get-url'. Possible reasons:
+
+- the git binary is not available
+- the current working directory is not a git repository
+- the current working directory is not marked as safe
+    (fix with `git config --global --add safe.directory $(pwd)`)
+
+Try running the command yourself to debug the issue.
+Loading local config from rules/experiment/experiment.yaml
+Done loading local config from rules/experiment/experiment.yaml
+loaded 1 configs in<MASKED>
+running 1 rules from 1 config rules/experiment/experiment.yaml_0
+No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev<MASKED>
+Rules:
+Experimental Rules:
+- rules.experiment.research-experiment
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 1 Code rule:
+  Scanning 1 file.
+Passing whole rules directly to semgrep_core
+Running Semgrep engine with command:
+/<MASKED>/semgrep-core -json -rules <MASKED>-json_time -fast --debug
+--- semgrep-core stderr ---
+<semgrep-core stderr not captured, should be printed above>
+--- end semgrep-core stderr ---
+semgrep ran in <MASKED> on 1 files
+findings summary: 2 experiment
+
+========================================
+Files skipped:
+========================================
+
+  Always skipped by Semgrep:
+
+   • <none>
+
+  Skipped by .gitignore:
+  (Disable by passing --no-git-ignore)
+
+   • <all files not listed by `git ls-files` were skipped>
+
+  Skipped by .semgrepignore:
+  (See: https://semgrep.dev<MASKED>
+
+   • <none>
+
+  Skipped by --include patterns:
+
+   • <none>
+
+  Skipped by --exclude patterns:
+
+   • <none>
+
+  Skipped by limiting to files smaller than 1000000 bytes:
+  (Adjust with the --max-target-bytes flag)
+
+   • <none>
+
+  Partially analyzed due to parsing or internal Semgrep errors
+
+   • <none>
+
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+
+Ran 1 rule on 1 file: 0 findings.
+Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False
+
+=== end of stderr - color
