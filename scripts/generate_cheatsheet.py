@@ -555,6 +555,10 @@ def lang_dir_to_ext(lang: str):
         "csharp": "cs",
         "rust": "rs",
         "solidity": "sol",
+        "elixir": "ex",
+        "kotlin": "kt",
+        "terraform": "tf",
+        "julia": "jl",
     }
     return LANG_DIR_TO_EXT.get(lang, lang)
 

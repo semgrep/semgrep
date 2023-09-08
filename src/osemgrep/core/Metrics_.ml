@@ -298,9 +298,11 @@ let add_targets (targets : Fpath.t Set_.t)
   g.payload.performance.numTargets <- Some numTargets_value
 
 let add_errors errors =
-  let string_of_error = Format.asprintf "%a" Out.pp_core_error in
-  let errors = Common.map string_of_error errors in
-  g.payload.errors.errors <- Some errors
+  g.payload.errors.errors <-
+    Some
+      (errors
+      |> Common.map (fun (err : Out.cli_error) -> (* TODO? enough? *)
+                                                  err.type_))
 
 let add_profiling profiler =
   g.payload.performance.profilingTimes <- Some (Profiler.dump profiler)

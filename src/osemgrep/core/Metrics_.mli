@@ -47,7 +47,7 @@ val add_rules : ?profiling:Semgrep_output_v1_t.core_timing -> Rule.rules -> unit
 val add_max_memory_bytes : Report.final_profiling option -> unit
 val add_findings : (Rule.t * int) list -> unit
 val add_targets : Fpath.t Set_.t -> Report.final_profiling option -> unit
-val add_errors : Semgrep_output_v1_t.core_error list -> unit
+val add_errors : Semgrep_output_v1_t.cli_error list -> unit
 val add_profiling : Profiler.t -> unit
 val add_token : 'a option -> unit
 val add_version : string -> unit

@@ -75,7 +75,7 @@ type t = {
 }
 
 (* less: make it Lazy? so at least not run in ocaml init time before main() *)
-let v : t =
+let v : t ref =
   let user_dot_semgrep_dir =
     let parent_dir =
       match Sys.getenv_opt "XDG_CONFIG_HOME" with
@@ -84,45 +84,47 @@ let v : t =
     in
     parent_dir / ".semgrep"
   in
-  {
-    (* semgrep_url is set by env vars SEMGREP_URL | SEMGREP_APP_URL, or default *)
-    semgrep_url =
-      env_opt "SEMGREP_URL"
-      |> Option.value
-           ~default:
-             (env_opt "SEMGREP_APP_URL"
-             |> Option.value ~default:"https://semgrep.dev")
-      |> Uri.of_string;
-    fail_open_url =
-      env_or Uri.of_string "SEMGREP_FAIL_OPEN_URL"
-        (Uri.of_string "https://fail-open.prod.semgrep.dev/failure");
-    (* TODO: set metrics_url to the cannonical "metrics.semgrep.dev" url once we upgrade the host from TLS 1.2 to TLS 1.3 *)
-    metrics_url =
-      env_or Uri.of_string "SEMGREP_METRICS_URL"
-        (Uri.of_string
-           "https://oeyc6oyp4f.execute-api.us-west-2.amazonaws.com/Prod/");
-    app_token = env_opt "SEMGREP_APP_TOKEN";
-    integration_name = env_opt "SEMGREP_INTEGRATION_NAME";
-    version_check_url =
-      env_or Uri.of_string "SEMGREP_VERSION_CHECK_URL"
-        (Uri.of_string "https://semgrep.dev/api/check-version");
-    version_check_timeout =
-      env_or int_of_string "SEMGREP_VERSION_CHECK_TIMEOUT" 2;
-    version_check_cache_path =
-      env_or Fpath.v "SEMGREP_VERSION_CACHE_PATH"
-        (Fpath.v (Sys.getcwd ()) / ".cache" / "semgrep_version");
-    git_command_timeout = env_or int_of_string "SEMGREP_GIT_COMMAND_TIMEOUT" 300;
-    src_directory = env_or Fpath.v "SEMGREP_SRC_DIRECTORY" (Fpath.v "/src");
-    user_agent_append = env_opt "SEMGREP_USER_AGENT_APPEND";
-    user_dot_semgrep_dir;
-    user_log_file =
-      env_or Fpath.v "SEMGREP_LOG_FILE" (user_dot_semgrep_dir / "semgrep.log");
-    user_settings_file =
-      env_or Fpath.v "SEMGREP_SETTINGS_FILE"
-        (user_dot_semgrep_dir / settings_filename);
-    is_ci = in_env "CI";
-    in_docker = in_env "SEMGREP_IN_DOCKER";
-    in_gh_action = in_env "GITHUB_WORKSPACE";
-    in_agent = in_env "SEMGREP_AGENT";
-    min_fetch_depth = env_or int_of_string "SEMGREP_GHA_MIN_FETCH_DEPTH" 0;
-  }
+  ref
+    {
+      (* semgrep_url is set by env vars SEMGREP_URL | SEMGREP_APP_URL, or default *)
+      semgrep_url =
+        env_opt "SEMGREP_URL"
+        |> Option.value
+             ~default:
+               (env_opt "SEMGREP_APP_URL"
+               |> Option.value ~default:"https://semgrep.dev")
+        |> Uri.of_string;
+      fail_open_url =
+        env_or Uri.of_string "SEMGREP_FAIL_OPEN_URL"
+          (Uri.of_string "https://fail-open.prod.semgrep.dev/failure");
+      (* TODO: set metrics_url to the cannonical "metrics.semgrep.dev" url once we upgrade the host from TLS 1.2 to TLS 1.3 *)
+      metrics_url =
+        env_or Uri.of_string "SEMGREP_METRICS_URL"
+          (Uri.of_string
+             "https://oeyc6oyp4f.execute-api.us-west-2.amazonaws.com/Prod/");
+      app_token = env_opt "SEMGREP_APP_TOKEN";
+      integration_name = env_opt "SEMGREP_INTEGRATION_NAME";
+      version_check_url =
+        env_or Uri.of_string "SEMGREP_VERSION_CHECK_URL"
+          (Uri.of_string "https://semgrep.dev/api/check-version");
+      version_check_timeout =
+        env_or int_of_string "SEMGREP_VERSION_CHECK_TIMEOUT" 2;
+      version_check_cache_path =
+        env_or Fpath.v "SEMGREP_VERSION_CACHE_PATH"
+          (Fpath.v (Sys.getcwd ()) / ".cache" / "semgrep_version");
+      git_command_timeout =
+        env_or int_of_string "SEMGREP_GIT_COMMAND_TIMEOUT" 300;
+      src_directory = env_or Fpath.v "SEMGREP_SRC_DIRECTORY" (Fpath.v "/src");
+      user_agent_append = env_opt "SEMGREP_USER_AGENT_APPEND";
+      user_dot_semgrep_dir;
+      user_log_file =
+        env_or Fpath.v "SEMGREP_LOG_FILE" (user_dot_semgrep_dir / "semgrep.log");
+      user_settings_file =
+        env_or Fpath.v "SEMGREP_SETTINGS_FILE"
+          (user_dot_semgrep_dir / settings_filename);
+      is_ci = in_env "CI";
+      in_docker = in_env "SEMGREP_IN_DOCKER";
+      in_gh_action = in_env "GITHUB_WORKSPACE";
+      in_agent = in_env "SEMGREP_AGENT";
+      min_fetch_depth = env_or int_of_string "SEMGREP_GHA_MIN_FETCH_DEPTH" 0;
+    }

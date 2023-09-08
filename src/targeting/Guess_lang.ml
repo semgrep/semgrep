@@ -290,8 +290,9 @@ let wrap_with_error_message lang path bool_res :
           path = !!path;
           reason = Wrong_language;
           details =
-            spf "target file doesn't look like language %s"
-              (Lang.to_string lang);
+            Some
+              (spf "target file doesn't look like language %s"
+                 (Lang.to_string lang));
           rule_id = None;
         }
 

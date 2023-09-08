@@ -162,8 +162,9 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
                      Out.path = !!fpath;
                      reason;
                      details =
-                       "excluded by --include/--exclude, gitignore, or \
-                        semgrepignore";
+                       Some
+                         "excluded by --include/--exclude, gitignore, or \
+                          semgrepignore";
                      rule_id = None;
                    }
                  in

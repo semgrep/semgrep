@@ -22,7 +22,7 @@ from typing import Set
 from typing import Tuple
 from typing import Union
 
-import semgrep.output_from_core as core
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.git import BaselineHandler
 
 # usually this would be a try...except ImportError
@@ -138,7 +138,7 @@ class FileTargetingLog:
 
     # "None" indicates that all lines were skipped
     core_failure_lines_by_file: Mapping[
-        Path, Tuple[Optional[int], List[core.RuleId]]
+        Path, Tuple[Optional[int], List[out.RuleId]]
     ] = Factory(dict)
 
     # Indicates which files were NOT scanned by each language
@@ -340,7 +340,7 @@ class FileTargetingLog:
 
         return output
 
-    # TODO: return directly a out.CliSkippedTarget
+    # TODO: return directly a out.SkippedTarget
     def yield_json_objects(self) -> Iterable[Dict[str, Any]]:
         # coupling: if you add a reason here,
         # add it also to semgrep_output_v1.atd.

@@ -10,7 +10,7 @@ type t = {
   incoming : Lwt_io.input_channel;
   outgoing : Lwt_io.output_channel;
   workspace_folders : Fpath.t list;
-  documents : (Fpath.t, Semgrep_output_v1_t.cli_match list) Hashtbl.t;
+  cached_scans : (Fpath.t, Semgrep_output_v1_t.cli_match list) Hashtbl.t;
   cached_rules : rule_cache;
   user_settings : UserSettings.t;
   token : string option; (* Mostly for testing *)
@@ -35,6 +35,10 @@ val runner_conf : t -> Core_runner.conf
 
 val scanned_files : t -> Fpath.t list
 (** [scanned_files t] returns the list of files that have been scanned in the session *)
+
+val previous_scan_of_file :
+  t -> Fpath.t -> Semgrep_output_v1_t.cli_match list option
+(** [previous_scan_of_file session path] returns the last results of a scan on a file if it exists *)
 
 val record_results :
   t -> Semgrep_output_v1_t.cli_match list -> Fpath.t list -> unit
