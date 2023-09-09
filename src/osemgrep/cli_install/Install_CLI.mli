@@ -18,7 +18,9 @@ type conf = {
    * Should only be required when previous attempts only partially succeeded.
    *)
   update : bool;
-  commons : CLI_common.conf;
+  dry_run : bool;
+      (* simulate outputs without actually running any system commands *)
+  common : CLI_common.conf;
 }
 [@@deriving show]
 
