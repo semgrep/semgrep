@@ -222,14 +222,17 @@ def test_terminal_output_quiet(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 @pytest.mark.kinda_slow
 def test_stdin_input(snapshot):
-    settings_file = tempfile.NamedTemporaryFile().name
-    Path(settings_file).write_text("has_shown_metrics_notification: true")
+    unique_settings_file = tempfile.NamedTemporaryFile().name
+    Path(unique_settings_file).write_text(
+        "anonymous_user_id: 5f52484c-3f82-4779-9353-b29bbd3193b6\n"
+        "has_shown_metrics_notification: true\n"
+    )
     process = subprocess.Popen(
         SEMGREP_BASE_COMMAND + ["--json", "-e", "a", "--lang", "js", "-"],
         encoding="utf-8",
         env={
             **os.environ,
-            "SEMGREP_SETTINGS_FILE": settings_file,
+            "SEMGREP_SETTINGS_FILE": unique_settings_file,
             "SEMGREP_VERSION_CACHE_PATH": tempfile.TemporaryDirectory().name,
             "SEMGREP_ENABLE_VERSION_CHECK": "0",
             "SEMGREP_SEND_METRICS": "off",
@@ -243,8 +246,11 @@ def test_stdin_input(snapshot):
 
 @pytest.mark.kinda_slow
 def test_subshell_input(snapshot):
-    settings_file = tempfile.NamedTemporaryFile().name
-    Path(settings_file).write_text("has_shown_metrics_notification: true")
+    unique_settings_file = tempfile.NamedTemporaryFile().name
+    Path(unique_settings_file).write_text(
+        "anonymous_user_id: 5f52484c-3f82-4779-9353-b29bbd3193b6\n"
+        "has_shown_metrics_notification: true\n"
+    )
     stdout = subprocess.check_output(
         [
             "bash",
@@ -254,7 +260,7 @@ def test_subshell_input(snapshot):
         encoding="utf-8",
         env={
             **os.environ,
-            "SEMGREP_SETTINGS_FILE": settings_file,
+            "SEMGREP_SETTINGS_FILE": unique_settings_file,
             "SEMGREP_VERSION_CACHE_PATH": tempfile.TemporaryDirectory().name,
             "SEMGREP_ENABLE_VERSION_CHECK": "0",
             "SEMGREP_SEND_METRICS": "off",
@@ -267,8 +273,11 @@ def test_subshell_input(snapshot):
 
 @pytest.mark.kinda_slow
 def test_multi_subshell_input(snapshot):
-    settings_file = tempfile.NamedTemporaryFile().name
-    Path(settings_file).write_text("has_shown_metrics_notification: true")
+    unique_settings_file = tempfile.NamedTemporaryFile().name
+    Path(unique_settings_file).write_text(
+        "anonymous_user_id: 5f52484c-3f82-4779-9353-b29bbd3193b6\n"
+        "has_shown_metrics_notification: true\n"
+    )
     stdout = subprocess.check_output(
         [
             "bash",
@@ -278,7 +287,7 @@ def test_multi_subshell_input(snapshot):
         encoding="utf-8",
         env={
             **os.environ,
-            "SEMGREP_SETTINGS_FILE": settings_file,
+            "SEMGREP_SETTINGS_FILE": unique_settings_file,
             "SEMGREP_VERSION_CACHE_PATH": tempfile.TemporaryDirectory().name,
             "SEMGREP_ENABLE_VERSION_CHECK": "0",
             "SEMGREP_SEND_METRICS": "off",
