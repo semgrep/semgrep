@@ -49,7 +49,7 @@ let with_mock_normal_responses =
     | "/api/agent/tokens/requests" ->
         let%lwt () =
           Http_mock_client.check_body body
-            ("./tests/login/fetch_body.json" |> Common.read_file
+            ("./tests/login/fetch_body.json" |> Common.read_file |> String.trim
            |> Cohttp_lwt.Body.of_string)
         in
         Lwt.return
