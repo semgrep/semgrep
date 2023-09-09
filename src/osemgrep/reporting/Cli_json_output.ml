@@ -154,6 +154,7 @@ let error_type_string (error_type : Out.core_error_kind) : string =
   | TimeoutDuringInterfile -> "Timeout during interfile analysis"
   | OutOfMemoryDuringInterfile -> "OOM during interfile analysis"
   | IncompatibleRule _ -> "Incompatible rule"
+  | MissingPlugin -> "Missing plugin"
 
 (* Generate error message exposed to user *)
 let error_message ~rule_id ~(location : Out.location)
@@ -171,6 +172,7 @@ let error_message ~rule_id ~(location : Out.location)
         | OutOfMemoryDuringInterfile ) ) ->
         spf "when running %s on %s" id path
     | Some id, IncompatibleRule _ -> id
+    | Some id, MissingPlugin -> spf "for rule %s" id
     | _ -> spf "at line %s:%d" path location.start.line
   in
   spf "%s %s:\n %s" (error_type_string error_type) error_context core_message
@@ -225,7 +227,9 @@ let exit_code_of_error_type (error_type : Out.core_error_kind) : Exit_code.t =
   | TimeoutDuringInterfile
   | OutOfMemoryDuringInterfile ->
       Exit_code.fatal
-  | IncompatibleRule _ -> Exit_code.ok
+  | IncompatibleRule _
+  | MissingPlugin ->
+      Exit_code.ok
 
 (* Skipping the intermediate python SemgrepCoreError for now.
  * TODO: should we return an Error.Semgrep_core_error instead? like we
