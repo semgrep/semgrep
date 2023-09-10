@@ -126,7 +126,16 @@ class RuleMatch:
 
     @property
     def product(self) -> RuleProduct:
-        return RuleProduct.sca if "sca_info" in self.extra else RuleProduct.sast
+        if "product" in self.metadata and self.metadata["product"] == "secrets":
+            return RuleProduct.secrets
+        elif "sca_info" in self.extra:
+            return RuleProduct.sca
+        else:
+            return RuleProduct.sast
+
+    @property
+    def validation_state(self) -> Optional[out.ValidationState]:
+        return self.match.extra.validation_state
 
     @property
     def title(self) -> str:

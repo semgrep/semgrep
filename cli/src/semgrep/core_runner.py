@@ -504,9 +504,29 @@ class Plan:
 
     # TODO: make this counts_by_lang_label, returning TaskCounts
     def split_by_lang_label(self) -> Dict[str, "TargetMappings"]:
+        return self.split_by_lang_label_for_product()
+
+    # Divides rule mapping up into the rule counts per language
+    # filtering out rules for a specific product. If product = None
+    # then all products are included.
+    def split_by_lang_label_for_product(
+        self, product: Optional[RuleProduct] = None
+    ) -> Dict[str, "TargetMappings"]:
         result: Dict[str, TargetMappings] = collections.defaultdict(TargetMappings)
         for task in self.target_mappings:
-            result[task.language_label].append(task)
+            result[task.language_label].append(
+                task
+                if product is None
+                else Task(
+                    path=task.path,
+                    language=task.language,
+                    rule_nums=tuple(
+                        num
+                        for num in task.rule_nums
+                        if self.rules[num].product == product
+                    ),
+                )
+            )
         return result
 
     @lru_cache(maxsize=1000)  # caching this saves 60+ seconds on mid-sized repos
@@ -559,19 +579,20 @@ class Plan:
     def num_targets(self) -> int:
         return len(self.target_mappings)
 
-    def table_by_language(self) -> Table:
+    def table_by_language(self, with_tables_for: Optional[RuleProduct] = None) -> Table:
         table = Table(box=box.SIMPLE_HEAD, show_edge=False)
         table.add_column("Language")
         table.add_column("Rules", justify="right")
         table.add_column("Files", justify="right")
 
         plans_by_language = sorted(
-            self.split_by_lang_label().items(),
+            self.split_by_lang_label_for_product(with_tables_for).items(),
             key=lambda x: (x[1].file_count, x[1].rule_count),
             reverse=True,
         )
         for language, plan in plans_by_language:
-            table.add_row(language, str(plan.rule_count), str(plan.file_count))
+            if plan.rule_count:
+                table.add_row(language, str(plan.rule_count), str(plan.file_count))
 
         return table
 
@@ -606,7 +627,7 @@ class Plan:
 
         return table
 
-    def table_by_origin(self) -> Table:
+    def table_by_origin(self, with_tables_for: Optional[RuleProduct] = None) -> Table:
         table = Table(box=box.SIMPLE_HEAD, show_edge=False)
         table.add_column("Origin")
         table.add_column("Rules", justify="right")
@@ -614,7 +635,7 @@ class Plan:
         origin_counts = collections.Counter(
             get_path(rule.metadata, ("semgrep.dev", "rule", "origin"), default="custom")
             for rule in self.rules
-            if rule.product == RuleProduct.sast
+            if rule.product == with_tables_for
         )
 
         for origin, count in sorted(
@@ -690,8 +711,8 @@ class Plan:
         # default to SAST table if sca is specified
         tables = (
             [
-                self.table_by_language(),
-                self.table_by_origin(),
+                self.table_by_language(with_tables_for),
+                self.table_by_origin(with_tables_for),
             ]
             if with_tables_for != RuleProduct.sca
             else [
@@ -726,8 +747,8 @@ class Plan:
 
         if with_tables_for == RuleProduct.sast:
             tables = [
-                self.table_by_language(),
-                self.table_by_origin(),
+                self.table_by_language(with_tables_for),
+                self.table_by_origin(with_tables_for),
             ]
         elif with_tables_for == RuleProduct.sca:
             tables = [
