@@ -86,11 +86,11 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 5 files tracked by git with 4 Code rules, 3 Supply Chain rules:
+  Scanning 5 files tracked by git with 5 Code rules, 3 Supply Chain rules:
 
 
   CODE RULES
-  Scanning 1 file with 4 python rules.
+  Scanning 1 file with 5 python rules.
 
   SUPPLY CHAIN RULES
   Scanning 1 file.
@@ -108,7 +108,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 8 findings (6 blocking) from 7 rules.
+  Found 8 findings (6 blocking) from 8 rules.
   Uploading scan results
   Finalizing scan           View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings
