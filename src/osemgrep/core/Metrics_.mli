@@ -79,10 +79,10 @@ val string_of_metrics : unit -> string
 val add_project_url_hash : string -> unit
 
 (* again, we just send the hash of the --config used
- * TODO: should also take the parsed form, so can add registry metrics.
+ * TODO: could also take the parsed form Rules_config.t so can add registry
+ * metrics.
  *)
-val add_configs_hash :
-  string (* Semgrep_dashdash_config.config_str*) list -> unit
+val add_configs_hash : Rules_config.config_string list -> unit
 
 val add_rules_hashes_and_rules_profiling :
   ?profiling:Semgrep_output_v1_t.core_timing -> Rule.rules -> unit

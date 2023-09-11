@@ -82,10 +82,11 @@ let run (conf : Show_CLI.conf) : Exit_code.t =
       Logs.app (fun m -> m "%s" s);
       Exit_code.ok
   | Config config_str ->
-      let kind = Semgrep_dashdash_config.parse_config_string config_str in
+      let in_docker = !Semgrep_envvars.v.in_docker in
+      let config = Rules_config.parse_config_string ~in_docker config_str in
       let rules_and_origins =
         Rule_fetching.rules_from_dashdash_config ~token_opt
-          ~registry_caching:false kind
+          ~registry_caching:false config
       in
       rules_and_origins
       |> List.iter (fun x ->

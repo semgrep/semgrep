@@ -2,7 +2,7 @@
 type config_string = string [@@deriving show]
 
 (* config_string in a parsed form *)
-type config_kind =
+type t =
   (* ex: 'foo.yaml' *)
   | File of Fpath.t
   (* ex: 'myrules/' (will go also recursively in subdirs of myrules) *)
@@ -34,4 +34,5 @@ and app_config_kind =
   | SupplyChain
 [@@deriving show]
 
-val parse_config_string : config_string -> config_kind
+(* the in_docker parameter is useful just for better error reporting *)
+val parse_config_string : in_docker:bool -> config_string -> t
