@@ -11,7 +11,7 @@ module XP = Xpattern
 (* Prelude *)
 (*****************************************************************************)
 (*
-   Partially translated from config_resolver.py
+   Fetching rules from the local filesystem or from the network (registry).
 
    TODO:
     - lots of stuff ...
@@ -19,6 +19,8 @@ module XP = Xpattern
    osemgrep-only:
     - can pass -e without -l (try all possible languages)
     - use a registry cache to speedup things
+
+   Partially translated from config_resolver.py
  *)
 
 (*****************************************************************************)

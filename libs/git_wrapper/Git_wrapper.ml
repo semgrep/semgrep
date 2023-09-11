@@ -329,7 +329,8 @@ let commit cwd msg =
   | Ok (`Exited 0) -> ()
   | _ -> raise (Error "Error running git commit")
 
-let get_project_url () =
+(* TODO: should return Uri.t option *)
+let get_project_url () : string option =
   let cmd = Bos.Cmd.(v "git" % "ls-remote" % "--get-url") in
   let out = Bos.OS.Cmd.run_out cmd in
   match Bos.OS.Cmd.out_string ~trim:true out with

@@ -58,21 +58,7 @@ let metrics_init () : unit =
   let anonymous_user_id = settings.Semgrep_settings.anonymous_user_id in
   Metrics_.init ~anonymous_user_id ~ci:!Env.v.is_ci;
   Metrics_.add_token (Some api_token);
-  (* We override the user agent (e.g. "ocaml-cohttp/5.3.0")
-     with a custom string built from the version of semgrep,
-     the submcommand, and any custom value specified by the environment
-     variable $SEMGREP_USER_AGENT_APPEND.
-
-     For example, we set this extra field
-     as "Docker" by default when running from a Docker container by baking
-     this field into the Docker image. This allows us to measure usage of
-     semgrep running from Docker container images that we distribute.
-
-     A sample user agent string might look like this:
-      "Semgrep/1.39.0 (Docker) (command/scan)"
-  *)
-  !Env.v.user_agent_append
-  |> Option.iter (fun str -> Metrics_.add_user_agent_tag ~str);
+  !Env.v.user_agent_append |> Option.iter Metrics_.add_user_agent_tag;
   ()
 
 (* For debugging customer issues, we append the CLI flags for each subcommand,
@@ -184,7 +170,7 @@ let dispatch_subcommand argv =
        * coupling: with Help.ml if you add an entry below.
        *)
       Metrics_.add_feature "subcommand" subcmd;
-      Metrics_.add_user_agent_tag ~str:(spf "command/%s" subcmd);
+      Metrics_.add_user_agent_tag (spf "command/%s" subcmd);
       let flags =
         subcmd_argv |> Array.to_list
         |> exclude (fun x -> not (Base.String.is_prefix ~prefix:"-" x))

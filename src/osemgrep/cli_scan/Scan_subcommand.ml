@@ -454,11 +454,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     let (res : Core_runner.result) =
       Core_runner.create_core_result filtered_rules exn_and_matches
     in
-
-    Metrics_.add_engine_type
-      ~name:
-        (Format.asprintf "%a" Out.pp_engine_kind
-           res.Core_runner.core.engine_requested);
+    Metrics_.add_engine_kind res.Core_runner.core.engine_requested;
 
     let filtered_matches = rules_and_counted_matches res in
     Metrics_.add_findings filtered_matches;
@@ -487,7 +483,8 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
 
     if Metrics_.is_enabled () then (
       Metrics_.add_errors cli_output.errors;
-      Metrics_.add_rules ?profiling:res.core.time filtered_rules;
+      Metrics_.add_rules_hashes_and_rules_profiling ?profiling:res.core.time
+        filtered_rules;
       Metrics_.add_profiling profiler);
 
     Logs.info (fun m ->
@@ -540,11 +537,12 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
       Metrics_.configure conf.metrics;
       let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
       if Metrics_.is_enabled () then
-        Metrics_.add_project_url (Git_wrapper.get_project_url ());
-      Metrics_.add_integration_name !Env.v.integration_name;
+        Git_wrapper.get_project_url ()
+        |> Option.iter Metrics_.add_project_url_hash;
+      Metrics_.g.payload.environment.integrationName <- !Env.v.integration_name;
       (match conf.rules_source with
-      | Rules_source.Configs configs -> Metrics_.add_configs configs
-      | _ -> ());
+      | Configs configs -> Metrics_.add_configs_hash configs
+      | Pattern _ -> ());
       settings)
     |> Profiler.record profiler ~name:"config_time"
   in
