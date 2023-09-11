@@ -580,6 +580,13 @@ class Plan:
     def num_targets(self) -> int:
         return len(self.target_mappings)
 
+    def has_target_for_product(self, product: RuleProduct) -> bool:
+        for task in self.target_mappings:
+            for rule_num in task.rule_nums:
+                if self.rules[rule_num].product == product:
+                    return True
+        return False
+
     def table_by_language(self, with_tables_for: Optional[RuleProduct] = None) -> Table:
         table = Table(box=box.SIMPLE_HEAD, show_edge=False)
         table.add_column("Language")
@@ -732,7 +739,7 @@ class Plan:
         """
         Print the plan to stdout with the original CLI UX.
         """
-        if self.target_mappings.rule_count == 0:
+        if self.has_target_for_product(with_tables_for):
             console.print("Nothing to scan.")
             return
 
@@ -746,7 +753,10 @@ class Plan:
             )
             return
 
-        if with_tables_for == RuleProduct.sast:
+        if (
+            with_tables_for == RuleProduct.sast
+            or with_tables_for == RuleProduct.secrets
+        ):
             tables = [
                 self.table_by_language(with_tables_for),
                 self.table_by_origin(with_tables_for),

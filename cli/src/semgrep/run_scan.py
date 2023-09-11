@@ -181,24 +181,6 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> i
         target_manager,
     )
 
-    code_plan = CoreRunner.plan_core_run(
-        [
-            rule
-            for rule in rules
-            if (rule.product == RuleProduct.sast and (not rule.from_transient_scan))
-        ],
-        target_manager,
-    )
-
-    secrets_plan = CoreRunner.plan_core_run(
-        [
-            rule
-            for rule in rules
-            if (rule.product == RuleProduct.secrets and (not rule.from_transient_scan))
-        ],
-        target_manager,
-    )
-
     sca_plan = CoreRunner.plan_core_run(
         [rule for rule in rules if rule.product == RuleProduct.sca],
         target_manager,
@@ -208,11 +190,11 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> i
 
     if new_cli_ux:
         console.print(Title("Code Rules", order=2))
-        code_plan.print(with_tables_for=RuleProduct.sast)
-        # TODO after launch this should no longer be conditional.
-        if len(secrets_plan.rules):
+        sast_plan.print(with_tables_for=RuleProduct.sast)
+        # TODO: after launch this should no longer be conditional.
+        if sast_plan.has_target_for_product(RuleProduct.secrets):
             console.print(Title("Secrets Rules", order=2))
-            secrets_plan.print(with_tables_for=RuleProduct.secrets)
+            sast_plan.print(with_tables_for=RuleProduct.secrets)
         console.print(Title("Supply Chain Rules", order=2))
         sca_plan.print(with_tables_for=RuleProduct.sca)
         console.print(Title("Progress", order=2))
@@ -226,6 +208,10 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> i
 
     console.print(Padding(Title("Code Rules", order=2), (1, 0, 0, 0)))
     sast_plan.print(with_tables_for=RuleProduct.sast)
+    # TODO: after launch this should no longer be conditional.
+    if sast_plan.has_target_for_product(RuleProduct.secrets):
+        console.print(Title("Secrets Rules", order=2))
+        sast_plan.print(with_tables_for=RuleProduct.secrets)
     console.print(Title("Supply Chain Rules", order=2))
     sca_plan.print(with_tables_for=RuleProduct.sca)
 
