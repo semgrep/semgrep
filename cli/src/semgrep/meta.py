@@ -153,7 +153,7 @@ class GitMeta:
             return branch
 
         try:
-            return git_check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+            return git_check_output(["git", "rev-parse", "--symbolic-full-name", "HEAD"])
         except Exception as e:
             logger.debug(f"Could not get branch name using git: {e}")
             return None
