@@ -38,20 +38,24 @@ let with_mock_normal_responses =
     let uri = Cohttp.Request.uri req in
     match Uri.path uri with
     | "/api/agent/deployments/current" ->
-        let status, body =
+        let status, body_path =
           match Http_mock_client.get_header req "Authorization" with
           | Some "Bearer ok_token" -> (200, "./tests/login/ok_response.json")
           | Some "Bearer bad_token" -> (401, "./tests/login/bad_response.json")
           | _ -> failwith "Unexpected token"
         in
+        let body = body_path |> Common.read_file |> Cohttp_lwt.Body.of_string in
         Lwt.return Http_mock_client.(basic_response ~status body)
     | "/api/agent/tokens/requests" ->
         let%lwt () =
-          Http_mock_client.check_body body "./tests/login/fetch_body.json"
+          Http_mock_client.check_body body
+            ("./tests/login/fetch_body.json" |> Common.read_file |> String.trim
+           |> Cohttp_lwt.Body.of_string)
         in
         Lwt.return
           (Http_mock_client.basic_response ~status:200
-             "./tests/login/token_response.json")
+             ("./tests/login/token_response.json" |> Common.read_file
+            |> Cohttp_lwt.Body.of_string))
     | _ -> failwith ("Unexpected path: " ^ Uri.path uri)
   in
   Http_mock_client.with_testing_client make_fn
@@ -60,7 +64,9 @@ let with_mock_four_o_four_responses =
   let make_fn req body =
     ignore body;
     ignore req;
-    Lwt.return Http_mock_client.(basic_response ~status:404 "/dev/null")
+    Lwt.return
+      Http_mock_client.(
+        basic_response ~status:404 (Cohttp_lwt.Body.of_string ""))
   in
   Http_mock_client.with_testing_client make_fn
 
