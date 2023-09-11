@@ -580,12 +580,13 @@ class Plan:
     def num_targets(self) -> int:
         return len(self.target_mappings)
 
-    def has_target_for_product(self, product: RuleProduct) -> bool:
+    def rule_count_for_product(self, product: RuleProduct) -> int:
+        rule_nums: Set[int] = set()
         for task in self.target_mappings:
             for rule_num in task.rule_nums:
                 if self.rules[rule_num].product == product:
-                    return True
-        return False
+                    rule_nums.add(rule_num)
+        return len(rule_nums)
 
     def table_by_language(self, with_tables_for: Optional[RuleProduct] = None) -> Table:
         table = Table(box=box.SIMPLE_HEAD, show_edge=False)
@@ -739,17 +740,21 @@ class Plan:
         """
         Print the plan to stdout with the original CLI UX.
         """
-        if self.has_target_for_product(with_tables_for):
+        rule_count = self.rule_count_for_product(with_tables_for)
+        if not rule_count:
             console.print("Nothing to scan.")
             return
 
-        if self.target_mappings.rule_count == 1:
+        if rule_count == 1:
             console.print(f"Scanning {unit_str(len(self.target_mappings), 'file')}.")
             return
 
-        if len(self.split_by_lang_label()) == 1:
+        plan_by_lang = self.split_by_lang_label_for_product(with_tables_for)
+        if len(plan_by_lang) == 1:
+            # TODO: File count is wrong here.
+            [(language, target_mapping)] = plan_by_lang.items()
             console.print(
-                f"Scanning {unit_str(self.target_mappings.file_count, 'file')} with {unit_str(self.target_mappings.rule_count, f'{list(self.split_by_lang_label())[0]} rule')}."
+                f"Scanning {unit_str(target_mapping.file_count, 'file')} with {unit_str(rule_count, f'{language} rule')}."
             )
             return
 

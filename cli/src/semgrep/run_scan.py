@@ -124,10 +124,14 @@ def print_summary_line(
     if target_manager.respect_git_ignore:
         summary_line += " tracked by git"
 
-    # The sast_plan contains secrets rules too.
+    # The sast_plan contains secrets rules too.  You might be tempted
+    # to use rule_count_by_product but the summary line doesn't
+    # historically take into account the effects of not scanning
+    # files, which rule_count_by_product includes.
     sast_rule_count = len(sast_plan.rules)
     is_secret_rule = lambda r: r.product == RuleProduct.secrets
     secrets_rule_count = len(list(filter(is_secret_rule, sast_plan.rules)))
+    # TODO code_rule_count currently double counts pro_rules.
     code_rule_count = sast_rule_count - secrets_rule_count
     summary_line += f" with {unit_str(code_rule_count, 'Code rule')}"
 
@@ -173,8 +177,10 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> i
             rule
             for rule in rules
             if (
-                rule.product == RuleProduct.sast
-                or rule.product == RuleProduct.secrets
+                (
+                    rule.product == RuleProduct.sast
+                    or rule.product == RuleProduct.secrets
+                )
                 and (not rule.from_transient_scan)
             )
         ],
@@ -192,7 +198,7 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> i
         console.print(Title("Code Rules", order=2))
         sast_plan.print(with_tables_for=RuleProduct.sast)
         # TODO: after launch this should no longer be conditional.
-        if sast_plan.has_target_for_product(RuleProduct.secrets):
+        if sast_plan.rule_count_for_product(RuleProduct.secrets):
             console.print(Title("Secrets Rules", order=2))
             sast_plan.print(with_tables_for=RuleProduct.secrets)
         console.print(Title("Supply Chain Rules", order=2))
@@ -209,7 +215,7 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> i
     console.print(Padding(Title("Code Rules", order=2), (1, 0, 0, 0)))
     sast_plan.print(with_tables_for=RuleProduct.sast)
     # TODO: after launch this should no longer be conditional.
-    if sast_plan.has_target_for_product(RuleProduct.secrets):
+    if sast_plan.rule_count_for_product(RuleProduct.secrets):
         console.print(Title("Secrets Rules", order=2))
         sast_plan.print(with_tables_for=RuleProduct.secrets)
     console.print(Title("Supply Chain Rules", order=2))
