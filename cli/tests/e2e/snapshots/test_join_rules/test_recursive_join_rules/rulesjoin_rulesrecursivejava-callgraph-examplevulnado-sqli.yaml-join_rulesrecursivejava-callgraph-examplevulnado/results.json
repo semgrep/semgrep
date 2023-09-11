@@ -20,6 +20,19 @@
         "message": "SQLi",
         "metadata": {},
         "metavars": {
+          "$1": {
+            "abstract_content": "select",
+            "end": {
+              "col": 7,
+              "line": 1,
+              "offset": 6
+            },
+            "start": {
+              "col": 1,
+              "line": 1,
+              "offset": 0
+            }
+          },
           "$METHODNAME": {
             "abstract_content": "fetch",
             "end": {

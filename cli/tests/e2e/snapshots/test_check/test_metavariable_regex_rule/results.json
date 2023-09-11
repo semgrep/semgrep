@@ -32,6 +32,19 @@
         "message": "Metavariable regex test",
         "metadata": {},
         "metavars": {
+          "$1": {
+            "abstract_content": "\"test\"",
+            "end": {
+              "col": 7,
+              "line": 1,
+              "offset": 6
+            },
+            "start": {
+              "col": 1,
+              "line": 1,
+              "offset": 0
+            }
+          },
           "$X": {
             "abstract_content": "\"test\"",
             "end": {
@@ -71,6 +84,19 @@
         "message": "Metavariable regex test",
         "metadata": {},
         "metavars": {
+          "$1": {
+            "abstract_content": "\"example\"",
+            "end": {
+              "col": 10,
+              "line": 1,
+              "offset": 9
+            },
+            "start": {
+              "col": 1,
+              "line": 1,
+              "offset": 0
+            }
+          },
           "$X": {
             "abstract_content": "\"example\"",
             "end": {
