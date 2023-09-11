@@ -6,6 +6,9 @@
   (libraries
     lwt
     cohttp-lwt-unix
+    ocolor
+
+    commons
 
     profiling
     networking

@@ -239,7 +239,7 @@ def match_to_lines(
 
 def call_trace_to_lines(
     ref_path: Path,
-    call_trace: out.CliMatchCallTrace,
+    call_trace: out.MatchCallTrace,
     color_output: bool,
     per_finding_max_lines_limit: Optional[int],
     per_line_max_chars_limit: Optional[int],
@@ -309,7 +309,7 @@ def call_trace_to_lines(
 
 def dataflow_trace_to_lines(
     rule_match_path: Path,
-    dataflow_trace: Optional[out.CliMatchDataflowTrace],
+    dataflow_trace: Optional[out.MatchDataflowTrace],
     color_output: bool,
     per_finding_max_lines_limit: Optional[int],
     per_line_max_chars_limit: Optional[int],
@@ -383,7 +383,7 @@ def get_details_shortlink(rule_match: RuleMatch) -> Optional[str]:
 
 
 def print_time_summary(
-    time_data: out.CliTiming, error_output: Sequence[SemgrepError]
+    time_data: out.Profile, error_output: Sequence[SemgrepError]
 ) -> None:
     items_to_show = 5
     col_lim = 50
@@ -393,7 +393,7 @@ def print_time_summary(
     # Compute summary timings
     rule_parsing_time = time_data.rules_parse_time
     rule_match_timings = {
-        rule.id.value: sum(t.match_times[i] for t in targets if t.match_times[i] >= 0)
+        rule.value: sum(t.match_times[i] for t in targets if t.match_times[i] >= 0)
         for i, rule in enumerate(time_data.rules)
     }
     file_parsing_time = sum(

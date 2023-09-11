@@ -581,11 +581,12 @@ let parse_secrets_fields env rule_dict : R.secrets =
       h []
   in
   let body = take_opt req env parse_string "body" in
+  let auth = take_opt req env parse_auth "auth" in
   let return_code = take res env parse_int "return_code" in
   let regex = take_opt res env parse_string "pattern-regex" in
   {
     secrets;
-    request = { url; meth; headers; body };
+    request = { url; meth; headers; body; auth };
     response = { return_code; regex };
   }
 

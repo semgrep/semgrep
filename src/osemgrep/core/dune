@@ -10,6 +10,7 @@
   (libraries
     cmdliner
     uri
+    uuidm
 
     commons
 

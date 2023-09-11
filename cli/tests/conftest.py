@@ -343,7 +343,7 @@ def _run_semgrep(
     :param output_format: which format to use
     :param stderr: whether to merge stderr into the returned string
     :param settings_file: what setting file for semgrep to use. If None, a random temp file is generated
-                          with default params ("has_shown_metrics_notification: true")
+                          with default params for anonymous_user_id and has_shown_metrics_notification
     """
     env = {} if not env else env.copy()
 
@@ -358,7 +358,10 @@ def _run_semgrep(
     # Use a unique settings file so multithreaded pytest works well
     if "SEMGREP_SETTINGS_FILE" not in env:
         unique_settings_file = tempfile.NamedTemporaryFile().name
-        Path(unique_settings_file).write_text("has_shown_metrics_notification: true")
+        Path(unique_settings_file).write_text(
+            "anonymous_user_id: 5f52484c-3f82-4779-9353-b29bbd3193b6\n"
+            "has_shown_metrics_notification: true\n"
+        )
 
         env["SEMGREP_SETTINGS_FILE"] = unique_settings_file
     if "SEMGREP_VERSION_CACHE_PATH" not in env:

@@ -24,6 +24,7 @@ open Common
    from semgrep_main.py and core_runner.py.
 *)
 
+module Env = Semgrep_envvars
 module Out = Semgrep_output_v1_t
 module RP = Report
 module SS = Set.Make (String)
@@ -461,7 +462,6 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
 
     let filtered_matches = rules_and_counted_matches res in
     Metrics_.add_findings filtered_matches;
-    Metrics_.add_errors res.core.errors;
 
     (* step 4: report matches *)
     let errors_skipped = errors_to_skipped res.core.errors in
@@ -484,7 +484,9 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
       Output.output_result { conf with output_format } profiler res
     in
     Profiler.stop_ign profiler ~name:"total_time";
-    if Metrics_.is_enabled conf.metrics then (
+
+    if Metrics_.is_enabled () then (
+      Metrics_.add_errors cli_output.errors;
       Metrics_.add_rules ?profiling:res.core.time filtered_rules;
       Metrics_.add_profiling profiler);
 
@@ -537,9 +539,9 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
     (fun () ->
       Metrics_.configure conf.metrics;
       let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
-      if Metrics_.is_enabled conf.metrics then
+      if Metrics_.is_enabled () then
         Metrics_.add_project_url (Git_wrapper.get_project_url ());
-      Metrics_.add_integration_name (Sys.getenv_opt "SEMGREP_INTEGRATION_NAME");
+      Metrics_.add_integration_name !Env.v.integration_name;
       (match conf.rules_source with
       | Rules_source.Configs configs -> Metrics_.add_configs configs
       | _ -> ());

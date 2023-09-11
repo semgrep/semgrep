@@ -181,6 +181,17 @@ class SemgrepCoreLSServer:
             auth.delete_token()
             self.notify_show_message(3, "Logged out of Semgrep Code")
 
+        log.info(f"Received message: {msg}")
+        if (
+            method == "semgrep/scanWorkspace"
+            and params.get("full", False)
+            and self.config.extension_metrics.get("isNewAppInstall", False)
+        ):
+            self.notify_show_message(
+                3,
+                "Scanning all files regardless of git status. These diagnostics will persist until a file is edited. To default to always scanning regardless of git status, please disable 'Only Git Dirty' in settings",
+            )
+
         self.core_writer.write(msg)
 
     def on_core_message(self, msg: JsonObject) -> None:

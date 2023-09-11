@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from semgrep.core_runner import Plan
 
-import semgrep.output_from_core as core
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.semgrep_types import Language
 
 
@@ -45,7 +45,7 @@ class ParsingData:
                 pass
             self._parse_errors_by_lang[task.language] = entry
 
-    def add_error(self, err: core.CoreError) -> None:
+    def add_error(self, err: out.CoreError) -> None:
         """
         Records the targets/bytes which were not parsed as a result of the
         given error. The file the error originated from should have been
@@ -73,10 +73,10 @@ class ParsingData:
         if isinstance(
             err.error_type.value,
             (
-                core.LexicalError,
-                core.ParseError,
-                core.SpecifiedParseError,
-                core.AstBuilderError,
+                out.LexicalError,
+                out.ParseError,
+                out.SpecifiedParseError,
+                out.AstBuilderError,
             ),
         ):
             try:
@@ -87,7 +87,7 @@ class ParsingData:
                 # purposes.
                 pass
         # Partial errors for a subsection of the file
-        elif isinstance(err.error_type.value, core.PartialParsing):
+        elif isinstance(err.error_type.value, out.PartialParsing):
             for loc in err.error_type.value.value:
                 lang_parse_data.error_bytes += loc.end.offset - loc.start.offset
         else:

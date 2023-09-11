@@ -282,6 +282,19 @@ let method_ env (key : key) x =
   | "PUT" -> `PUT
   | _ -> error_at_key env.id key ("non-supported HTTP method: " ^ meth)
 
+let parse_auth env (key : key) x : Rule.auth =
+  let auth = yaml_to_dict env key x in
+  match take auth env parse_string "type" with
+  | "sigv4" ->
+      let secret_access_key = take auth env parse_string "secret_access_key" in
+      let access_key_id = take auth env parse_string "access_key_id" in
+      let region = take auth env parse_string "region" in
+      let service = take auth env parse_string "service" in
+      AWS_SIGV4 { secret_access_key; access_key_id; region; service }
+  | auth_ty ->
+      error_at_key env.id key
+        ("Unknown authorization type requested to be added: " ^ auth_ty)
+
 let parse_list env (key : key) f x =
   match x.G.e with
   | G.Container (Array, (_, xs, _)) -> Common.map (f env) xs
