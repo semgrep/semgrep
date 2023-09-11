@@ -10,9 +10,11 @@ val make_login_url : unit -> login_session
   * environment (gha, cli etc.)
   *)
 
-val save_token : string -> (unit, string) result
-(** [save_token token] will save the token to the user's home directory.
+val save_token : ?ident:string option -> string -> (unit, string) result
+(** [save_token ?ident token] will save the token to the user's settings file.
   * If it fails, it will return an error message.
+  * [ident] is the login identifier to be used as an opaque UUID once hashed
+  * [token] (auth token) is the token to save for future API calls
   *)
 
 val is_logged_in : unit -> bool
@@ -24,7 +26,7 @@ val fetch_token :
   ?min_wait_ms:int ->
   ?next_wait_ms:int ->
   ?max_retries:int ->
-  ?wait_hook:(unit -> unit) ->
+  ?wait_hook:(int -> unit) ->
   login_session ->
   (string * string, string) result
 (** [fetch_token ?min_wait_ms ?next_wait_ms ?max_retries wait_hook login_session] will

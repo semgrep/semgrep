@@ -37,12 +37,23 @@ let make_login_url () =
           ("gha", if !Semgrep_envvars.v.in_gh_action then "True" else "False");
         ]) )
 
-let save_token token =
+let save_token ?(ident = None) token =
   let settings = Semgrep_settings.load () in
-  let settings = Semgrep_settings.{ settings with api_token = Some token } in
   match Semgrep_App.get_deployment_from_token token with
   | None -> Error "Login token is not valid. Please try again."
-  | Some _ when Semgrep_settings.save settings -> Ok ()
+  | Some (_name, id)
+    when Semgrep_settings.save
+           Semgrep_settings.
+             {
+               settings with
+               api_token = Some token;
+               anonymous_user_id =
+                 Uuidm.v5 Uuidm.nil
+                   (match ident with
+                   | Some ident -> ident
+                   | None -> id);
+             } ->
+      Ok ()
   | _ -> Error "Failed to save token. Please try again."
 
 let is_logged_in () =
@@ -50,7 +61,7 @@ let is_logged_in () =
   Option.is_some settings.api_token
 
 let fetch_token ?(min_wait_ms = 2000) ?(next_wait_ms = 1000) ?(max_retries = 12)
-    ?(wait_hook = fun () -> ()) login_session =
+    ?(wait_hook = fun _delay_ms -> ()) login_session =
   let apply_backoff current_wait_ms =
     Float.to_int (Float.ceil (Float.of_int current_wait_ms *. 1.3))
   in
@@ -80,8 +91,10 @@ let fetch_token ?(min_wait_ms = 2000) ?(next_wait_ms = 1000) ?(max_retries = 12)
               let open Yojson.Basic.Util in
               match json |> member "token" with
               | `String token ->
-                  Result.bind (save_token token) (fun () ->
-                      Ok (token, json |> member "user_name" |> to_string))
+                  (* NOTE: We should probably use user_id over user_name for uniqueness constraints *)
+                  let ident = json |> member "user_name" |> to_string in
+                  Result.bind (save_token ~ident:(Some ident) token) (fun () ->
+                      Ok (token, ident))
               | `Null
               | _ ->
                   let message = Printf.sprintf "Failed to get token: %s" body in
@@ -93,10 +106,7 @@ let fetch_token ?(min_wait_ms = 2000) ?(next_wait_ms = 1000) ?(max_retries = 12)
         | Error (status_code, err) -> (
             match status_code with
             | 404 ->
-                wait_hook ();
-                (* 100 steps for each iteration with variable sleep time between *)
-                Unix.sleepf (Float.of_int (min_wait_ms + next_wait_ms));
-
+                wait_hook (min_wait_ms + next_wait_ms');
                 fetch_token' (apply_backoff next_wait_ms') (n - 1)
             | _ ->
                 let msg =

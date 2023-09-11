@@ -123,7 +123,7 @@ let fetch_token_tests () =
   let fetch_no_internet () =
     let retry_count = ref 0 in
     (* please ignore the nesting *)
-    let wait_hook () =
+    let wait_hook _delay =
       match !retry_count with
       | 12 -> failwith "Unexpected wait"
       | _ -> retry_count := !retry_count + 1
