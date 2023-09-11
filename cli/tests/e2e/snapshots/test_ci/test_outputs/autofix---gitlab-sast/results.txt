@@ -290,7 +290,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
   environment - running in environment git, triggering event is unknown
 
   CONNECTION
-  Reporting start of scan for deployment_name (scan_id=<MagicMock name='post()…
+  Reporting start of scan for deployment_name (scan_id={scan_handler.scan_id})
   Fetching configuration from Semgrep Cloud Platform
   Enabled products: Semgrep Code, Semgrep Supply Chain
 
