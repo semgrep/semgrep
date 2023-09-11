@@ -1225,9 +1225,10 @@ and stmt_aux env st =
            * is implemented.
            *
            * Right now, this missing node is not an issue because we already
-           * have a hack for implicit return statements. However, it only works for simple cases.
-           * We plan to make it more general by building the CFG, mark "returning" nodes,
-           * then build an updated CFG that converts the marked nodes as Return nodes.
+           * have a hack for implicit return statements. However, it only works for
+           * simple cases. We plan to make it more general by building the CFG, mark
+           * "returning" nodes, then build an updated CFG that converts the marked
+           * nodes as Return nodes.
            *
            * Here, create a fake "no-op" assignment
            *   tmp = some_var
