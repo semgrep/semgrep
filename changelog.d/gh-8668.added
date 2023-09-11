@@ -1,0 +1,4 @@
+Skip rules with an informational message if they can't run due to an
+unavailable plugin such as those provided by the Pro version of Semgrep.
+The intended use is for a public rule registry to provide all kinds of rules
+including some that require particular plugins.
