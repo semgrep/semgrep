@@ -4,7 +4,11 @@
 │ Scan Status │
 └─────────────┘
   Scanning 0 files tracked by git with 1 Code rule:
-  Nothing to scan.
+
+  Language   Rules   Files          Origin   Rules                              
+ ──────────────────────────        ────────────────                             
+                                    Custom       1                              
+
   Current version has 0 findings.
 
 Skipping baseline scan, because there are no current findings.

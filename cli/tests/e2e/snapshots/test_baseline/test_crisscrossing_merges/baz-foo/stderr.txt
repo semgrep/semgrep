@@ -5,7 +5,7 @@ git could not find a single branch-off point, so we will compare the baseline co
 │ Scan Status │
 └─────────────┘
   Scanning 3 files tracked by git with 1 Code rule:
-  Scanning 3 files.
+  Nothing to scan.
   Current version has 21 findings.
 
 Creating git worktree from 'foo' to scan baseline.
@@ -55,7 +55,7 @@ Creating git worktree from 'foo' to scan baseline.
 │ Scan Status │
 └─────────────┘
   Scanning 1 file tracked by git with 1 Code rule:
-  Scanning 1 file.
+  Nothing to scan.
 
 
 ┌──────────────┐

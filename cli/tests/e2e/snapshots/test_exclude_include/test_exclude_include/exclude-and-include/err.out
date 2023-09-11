@@ -5,7 +5,7 @@ Paths that match both --include and --exclude will be skipped by Semgrep.
 │ Scan Status │
 └─────────────┘
   Scanning 5 files tracked by git with 4 Code rules:
-  Scanning 1 file.
+  Nothing to scan.
 
 
 ┌──────────────┐

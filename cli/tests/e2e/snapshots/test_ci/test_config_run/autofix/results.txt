@@ -86,14 +86,14 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 4 files tracked by git with 4 Code rules, 3 Supply Chain rules:
+  Scanning 4 files tracked by git with 5 Code rules, 3 Supply Chain rules:
 
 
   CODE RULES
-  Scanning 1 file with 4 python rules.
+  Nothing to scan.
 
   SUPPLY CHAIN RULES
-  Scanning 1 file.
+  Nothing to scan.
 
 
 ┌──────────────┐
@@ -103,7 +103,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 10 findings (8 blocking) from 7 rules.
+  Found 10 findings (8 blocking) from 8 rules.
   Has findings for blocking rules so exiting with code 1
 
 === end of stderr - plain

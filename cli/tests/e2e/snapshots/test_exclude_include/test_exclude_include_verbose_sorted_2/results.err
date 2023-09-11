@@ -8,7 +8,11 @@ Rules:
 │ Scan Status │
 └─────────────┘
   Scanning 23 files tracked by git with 1 Code rule:
-  Nothing to scan.
+
+  Language   Rules   Files          Origin   Rules
+ ──────────────────────────        ────────────────
+                                    Custom       1
+
 
 ========================================
 Files skipped:

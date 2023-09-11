@@ -4,7 +4,7 @@
 │ Scan Status │
 └─────────────┘
   Scanning 1 file tracked by git with 1 Code rule:
-  Scanning 1 file.
+  Nothing to scan.
   Current version has 9 findings.
 
 Creating git worktree from 'baz' to scan baseline.
@@ -43,7 +43,7 @@ Creating git worktree from 'baz' to scan baseline.
 │ Scan Status │
 └─────────────┘
   Scanning 1 file tracked by git with 1 Code rule:
-  Scanning 1 file.
+  Nothing to scan.
 
 
 ┌──────────────┐

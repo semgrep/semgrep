@@ -4,7 +4,7 @@
 │ Scan Status │
 └─────────────┘
   Scanning 1 file tracked by git with 1 Code rule:
-  Scanning 1 file.
+  Nothing to scan.
   Current version has 2 findings.
 
 Creating git worktree from '4b63ca493df05e223404a80ac5f30d2aa830a704' to scan baseline.
@@ -15,7 +15,7 @@ Creating git worktree from '4b63ca493df05e223404a80ac5f30d2aa830a704' to scan ba
 │ Scan Status │
 └─────────────┘
   Scanning 1 file tracked by git with 1 Code rule:
-  Scanning 1 file.
+  Nothing to scan.
 
 
 ┌──────────────┐

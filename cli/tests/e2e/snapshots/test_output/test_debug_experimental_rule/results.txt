@@ -40,7 +40,7 @@ Experimental Rules:
 │ Scan Status │
 └─────────────┘
   Scanning 1 file tracked by git with 1 Code rule:
-  Scanning 1 file.
+  Nothing to scan.
 Passing whole rules directly to semgrep_core
 Running Semgrep engine with command:
 /<MASKED>/semgrep-core -json -rules <MASKED>-json_time -fast --debug

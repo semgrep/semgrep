@@ -4,7 +4,7 @@
 │ Scan Status │
 └─────────────┘
   Scanning 1 file tracked by git with 1 Code rule:
-  Scanning 1 file.
+  Nothing to scan.
   Current version has 1 finding.
 
 Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit.

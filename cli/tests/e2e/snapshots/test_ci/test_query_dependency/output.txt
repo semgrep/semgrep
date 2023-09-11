@@ -66,10 +66,10 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 
 
   CODE RULES
-  Scanning 1 file.
+  Nothing to scan.
 
   SUPPLY CHAIN RULES
-  Scanning 1 file.
+  Nothing to scan.
 
 
 ┌──────────────┐

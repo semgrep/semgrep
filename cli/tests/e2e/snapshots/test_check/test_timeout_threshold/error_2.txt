@@ -10,7 +10,7 @@ Rules:
 │ Scan Status │
 └─────────────┘
   Scanning 1 file tracked by git with 3 Code rules:
-  Scanning 1 file with 3 python rules.
+  Nothing to scan.
 [31m[22m[24mWarning: 1 timeout error(s) in targets/equivalence/open_redirect.py when running the following rules:
 [rules.forcetimeout2][0m
 

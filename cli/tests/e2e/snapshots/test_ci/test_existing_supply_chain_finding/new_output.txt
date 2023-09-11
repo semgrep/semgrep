@@ -33,10 +33,17 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 
 
   CODE RULES
-  Nothing to scan.
+
+  Language   Rules   Files          Origin   Rules
+ ──────────────────────────        ────────────────
+
 
   SUPPLY CHAIN RULES
-  Nothing to scan.
+
+  Ecosystem   Rules   Files   Lockfiles            Analysis   Rules
+ ─────────────────────────────────────────        ──────────────────
+  Pypi            1       0   poetry.lock          Basic          1
+
   Current version has 1 finding.
 
 Creating git worktree from '<MASKED>' to scan baseline.
@@ -52,10 +59,17 @@ Creating git worktree from '<MASKED>' to scan baseline.
 
 
   CODE RULES
-  Nothing to scan.
+
+  Language   Rules   Files          Origin   Rules
+ ──────────────────────────        ────────────────
+
 
   SUPPLY CHAIN RULES
-  Nothing to scan.
+
+  Ecosystem   Rules   Files   Lockfiles            Analysis   Rules
+ ─────────────────────────────────────────        ──────────────────
+  Pypi            1       0   poetry.lock          Basic          1
+
 
 
 ┌──────────────┐
