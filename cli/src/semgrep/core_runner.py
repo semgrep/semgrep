@@ -693,7 +693,7 @@ class Plan:
         """
         Pretty print the plan to stdout with the new CLI UX.
         """
-        if self.target_mappings.rule_count == 0:
+        if self.rule_count_for_product(with_tables_for):
             sep = "\n   "
             message = "No rules to run."
             if with_tables_for == RuleProduct.sca:
