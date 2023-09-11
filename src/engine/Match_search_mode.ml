@@ -532,7 +532,7 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
 
 let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
     (cond : R.metavar_cond) : (RM.t * MV.bindings list) list =
-  let file = Fpath.to_string env.xtarget.file in
+  let file = env.xtarget.file in
   xs
   |> Common.map_filter (fun (r, new_bindings) ->
          let map_bool r b = if b then Some (r, new_bindings) else None in

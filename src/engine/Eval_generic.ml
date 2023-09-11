@@ -56,7 +56,12 @@ type value =
 type env = {
   mvars : (MV.mvar, value) Hashtbl.t;
   constant_propagation : bool;
-  file : string;
+  file : Fpath.t;
+      (** The file that we are currently matching the AST of. We need this so that
+        `eval` can call the `Metavariable_regex` logic, whcih needs to produce
+        matches that have position data localized to the originating file,
+        rather than the originating match.
+      *)
 }
 
 (* we restrict ourselves to simple expressions for now *)
@@ -107,7 +112,7 @@ let parse_json file =
             {
               mvars = Common.hash_of_list metavars;
               constant_propagation = true;
-              file;
+              file = Fpath.v file;
             }
           in
           (env, code)
@@ -220,7 +225,8 @@ let eval_regexp_matches ?(base_offset = 0) ~file ~regexp:re str =
   *)
   let regexp = Regexp_engine.pcre_compile_with_flags ~flags:[ `ANCHORED ] re in
   let matches =
-    Xpattern_match_regexp.regexp_matcher ~base_offset str file regexp
+    Xpattern_match_regexp.regexp_matcher ~base_offset str (Fpath.to_string file)
+      regexp
   in
   matches
 
