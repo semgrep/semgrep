@@ -25,7 +25,7 @@ Not on head ref: <MASKED>; checking that out now.
 
   CONNECTION
 Using <MASKED> as the merge-base of <MASKED> and <MASKED>
-  Reporting start of scan for deployment_name
+  Reporting start of scan for deployment_name (scan_id=<MagicMock name='post()…
   Fetching configuration from Semgrep Cloud Platform
   Enabled products: Semgrep Code, Semgrep Supply Chain
 
