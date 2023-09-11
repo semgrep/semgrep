@@ -1,0 +1,17 @@
+Rule-writing: Capture group metavariables used in regexes in a
+`metavariable-regex` can now introduce their bindings into the
+scope of the pattern, similarly to `metavariable-pattern`.
+
+For instance, in the pattern:
+patterns:
+  - pattern: |
+      foo($BAR)
+  - metavariable-regex:
+      metavariable: $BAR
+      regex: "(?<X>.*)end"
+  - focus-metavariable: $X
+
+the rule will match the contents of what is inside of the
+`foo` to the regex that binds anything before an "end" to
+the metavariable `$X`. This metavariable can then be focused
+at a later time, or processed somewhere above this pattern.

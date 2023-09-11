@@ -32,6 +32,19 @@
         "message": "Metavariable regex test",
         "metadata": {},
         "metavars": {
+          "$1": {
+            "abstract_content": "\"test\"",
+            "end": {
+              "col": 7,
+              "line": 1,
+              "offset": 6
+            },
+            "start": {
+              "col": 1,
+              "line": 1,
+              "offset": 0
+            }
+          },
           "$X": {
             "abstract_content": "\"test\"",
             "end": {
@@ -54,6 +67,97 @@
         "col": 1,
         "line": 1,
         "offset": 0
+      }
+    },
+    {
+      "check_id": "rules.metavar-test",
+      "end": {
+        "col": 32,
+        "line": 1,
+        "offset": 31
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "metavariable_regex_test(\"test\")",
+        "message": "Metavariable regex test",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "\"test\"",
+            "end": {
+              "col": 31,
+              "line": 1,
+              "offset": 30
+            },
+            "start": {
+              "col": 25,
+              "line": 1,
+              "offset": 24
+            }
+          }
+        },
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/basic/metavariable-regex.py",
+      "start": {
+        "col": 1,
+        "line": 1,
+        "offset": 0
+      }
+    },
+    {
+      "check_id": "rules.metavar-test",
+      "end": {
+        "col": 35,
+        "line": 2,
+        "offset": 66
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "metavariable_regex_test(\"example\")",
+        "message": "Metavariable regex test",
+        "metadata": {},
+        "metavars": {
+          "$1": {
+            "abstract_content": "\"example\"",
+            "end": {
+              "col": 10,
+              "line": 1,
+              "offset": 9
+            },
+            "start": {
+              "col": 1,
+              "line": 1,
+              "offset": 0
+            }
+          },
+          "$X": {
+            "abstract_content": "\"example\"",
+            "end": {
+              "col": 34,
+              "line": 2,
+              "offset": 65
+            },
+            "start": {
+              "col": 25,
+              "line": 2,
+              "offset": 56
+            }
+          }
+        },
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/basic/metavariable-regex.py",
+      "start": {
+        "col": 1,
+        "line": 2,
+        "offset": 32
       }
     },
     {
