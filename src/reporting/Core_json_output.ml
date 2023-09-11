@@ -339,8 +339,8 @@ let profiling_to_profiling (profiling_data : RP.final_profiling) :
       Common.map
         (fun rule -> (fst rule.Rule.id :> string))
         profiling_data.RP.rules;
-    rules_parse_time = Some profiling_data.rules_parse_time;
-    max_memory_bytes = profiling_data.max_memory_bytes;
+    rules_parse_time = profiling_data.rules_parse_time;
+    max_memory_bytes = Some profiling_data.max_memory_bytes;
   }
 
 (*****************************************************************************)
