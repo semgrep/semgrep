@@ -31,6 +31,7 @@ from semgrep.semgrep_types import SEARCH_MODE
 class RuleProduct(Enum):
     sast = auto()
     sca = auto()
+    secrets = auto()
 
 
 class Rule:
@@ -256,11 +257,15 @@ class Rule:
 
     @property
     def product(self) -> RuleProduct:
-        return (
-            RuleProduct.sca
-            if "r2c-internal-project-depends-on" in self._raw
-            else RuleProduct.sast
-        )
+        if "r2c-internal-project-depends-on" in self._raw:
+            return RuleProduct.sca
+        elif "product" in self.metadata:
+            if self.metadata.get("product") == "secrets":
+                return RuleProduct.secrets
+            else:
+                return RuleProduct.sast
+        else:
+            return RuleProduct.sast
 
     @property
     def scan_source(self) -> RuleScanSource:
