@@ -1,0 +1,9 @@
+rules:
+  - id: capture-group-unification
+    patterns:
+      - pattern-regex: "'foo(.*)bar.*qux'"
+      - pattern-regex: "'foo.*bar(.*)qux'"
+    message: These should not unify and kill the match!
+    languages:
+      - python
+    severity: WARNING
