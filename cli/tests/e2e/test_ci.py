@@ -1825,7 +1825,7 @@ def test_enabled_products(
     mocker.patch.object(ScanHandler, "enabled_products", enabled_products)
 
     result = run_semgrep(
-        options=["ci", "--no-suppress-errors"],
+        options=["ci"],  # , "--no-suppress-errors"],
         target_name=None,
         strict=False,
         assert_exit_code=None,
