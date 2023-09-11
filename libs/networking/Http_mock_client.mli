@@ -115,7 +115,10 @@ val client_from_file :
   * < RESPONSE (possibly multiple lines)
   * ```
   * repeated as needed, with lines beginning with charaters other than < or >
-  * ignored. For example,
+  * ignored.
+  * A request/response above is essentially just the bytes/text comprising the
+  * HTTP frame, with the exception of using normal line endings intead of \r\n.
+  * For example,
   * ```
   * > POST /api/v4 HTTP/1.1
   * > Host: www.github.com
