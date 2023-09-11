@@ -71,6 +71,22 @@ let fetch_token ?(min_wait_ms = 2000) ?(next_wait_ms = 1000) ?(max_retries = 12)
   let body =
     {|{"token_request_key": "|} ^ Uuidm.to_string (fst login_session) ^ {|"}|}
   in
+  let settings = Semgrep_settings.load () in
+  let anonymous_user_id = settings.Semgrep_settings.anonymous_user_id in
+  let user_agent = Metrics_.string_of_user_agent () in
+  let headers =
+    [
+      ("Content-Type", "application/json");
+      (* include the user_agent which encodes the current semgrep version *)
+      ("User-Agent", user_agent);
+      (* include the anonymous user id to help with debugging and analysis.
+       * We use pseudonymization to preserve user privacy while still
+       * supporting our ability to identify usage trends and compare behavior
+       * across different cohorts.
+       *)
+      ("X-Semgrep-Client-Id", Uuidm.to_string anonymous_user_id);
+    ]
+  in
   let rec fetch_token' next_wait_ms' = function
     | 0 ->
         let msg =
@@ -84,7 +100,7 @@ let fetch_token ?(min_wait_ms = 2000) ?(next_wait_ms = 1000) ?(max_retries = 12)
         in
         Error msg
     | n -> (
-        match Http_helpers.post ~body url with
+        match Http_helpers.post ~body ~headers url with
         | Ok body -> (
             try
               let json = Yojson.Basic.from_string body in
