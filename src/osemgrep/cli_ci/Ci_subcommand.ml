@@ -377,7 +377,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
                   "API token not valid. Try to run `semgrep logout` and \
                    `semgrep login` again.");
             Error Exit_code.invalid_api_key
-        | Some t -> Ok (Some (token, t)))
+        | Some (_id, name) -> Ok (Some (token, name)))
   in
   (* TODO: pass baseline commit! *)
   let metadata = generate_meta_from_environment None in

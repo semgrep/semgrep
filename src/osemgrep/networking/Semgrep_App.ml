@@ -9,73 +9,50 @@ open Common
  *)
 
 (*****************************************************************************)
+(* Types and constants *)
+(*****************************************************************************)
+
+let semgrep_app_config_path = "api/agent/deployments/scans/config"
+let semgrep_app_deployment_path = "api/agent/deployments/current"
+
+(*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
 
-(* from auth.py *)
-let get_deployment_id ~token_opt =
-  match token_opt with
-  | None -> None
-  | Some token -> (
-      match
-        Http_helpers.get
-          ~headers:[ ("authorization", "Bearer " ^ token) ]
-          (Uri.with_path !Semgrep_envvars.v.semgrep_url
-             "api/agent/deployments/current")
-      with
-      | Error msg ->
-          Logs.debug (fun m -> m "error while retrieving deployment: %s" msg);
-          None
-      | Ok json -> (
-          try
-            match Yojson.Basic.from_string json with
-            | `Assoc e -> (
-                match List.assoc_opt "deployment" e with
-                | Some (`Assoc e) -> (
-                    match List.assoc_opt "id" e with
-                    | Some (`Int i) -> Some i
-                    | _else -> None)
-                | _else -> None)
-            | _else -> None
-          with
-          | Yojson.Json_error msg ->
-              Logs.debug (fun m -> m "failed to parse json %s: %s" msg json);
-              None))
-
-(* from auth.py *)
+(* Returns the deployment id and name if the token is valid, otherwise None *)
 let get_deployment_from_token ~token =
   match
     Http_helpers.get
       ~headers:[ ("authorization", "Bearer " ^ token) ]
-      (Uri.with_path !Semgrep_envvars.v.semgrep_url
-         "api/agent/deployments/current")
+      (Uri.with_path !Semgrep_envvars.v.semgrep_url semgrep_app_deployment_path)
   with
   | Error msg ->
       Logs.debug (fun m -> m "error while retrieving deployment: %s" msg);
       None
-  | Ok json -> (
+  | Ok body -> (
       try
-        match Yojson.Basic.from_string json with
-        | `Assoc e -> (
-            match List.assoc_opt "deployment" e with
-            | Some (`Assoc e) -> (
-                match List.assoc_opt "name" e with
-                | Some (`String s) -> Some s
-                | _else -> None)
-            | _else -> None)
-        | _else -> None
+        let json = Yojson.Basic.from_string body in
+        let open Yojson.Basic.Util in
+        match json |> member "deployment" |> member "name" with
+        | `String name ->
+            let id = json |> member "deployment" |> member "id" |> to_int in
+            Some (id, name)
+        | `Null
+        | _ ->
+            Logs.debug (fun m ->
+                m "could not destructure deployment response: %s"
+                  (json |> to_string));
+            None
       with
       | Yojson.Json_error msg ->
-          Logs.debug (fun m -> m "failed to parse json %s: %s" msg json);
+          Logs.debug (fun m -> m "failed to parse json %s: %s" msg body);
           None)
-
-let default_semgrep_app_config_url = "api/agent/deployments/scans/config"
 
 let scan_config ?(sca = false) ?(dry_run = true) ?(full_scan = true) repo_name =
   let json_bool_to_string b = JSON.(string_of_json (Bool b)) in
   Uri.(
     add_query_params'
-      (with_path !Semgrep_envvars.v.semgrep_url default_semgrep_app_config_url)
+      (with_path !Semgrep_envvars.v.semgrep_url semgrep_app_config_path)
       [
         ("sca", json_bool_to_string sca);
         ("dry_run", json_bool_to_string dry_run);
@@ -84,12 +61,14 @@ let scan_config ?(sca = false) ?(dry_run = true) ?(full_scan = true) repo_name =
         ("semgrep_version", Version.version);
       ])
 
-let url_for_policy ~token_opt =
-  match get_deployment_id ~token_opt with
+(* Returns a url with scan config encoded via search params based on a magic environment variable *)
+let url_for_policy ~token =
+  match get_deployment_from_token ~token with
   | None ->
       Error.abort
         (spf "Invalid API Key. Run `semgrep logout` and `semgrep login` again.")
-  | Some _deployment_id -> (
+  | Some (_id, _name) -> (
+      (* NOTE: This logic is ported directly from python but seems very sus *)
       match Sys.getenv_opt "SEMGREP_REPO_NAME" with
       | None ->
           Error.abort
