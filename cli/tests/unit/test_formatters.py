@@ -6,7 +6,7 @@ from textwrap import dedent
 import pytest
 from ruamel.yaml import YAML
 
-import semgrep.output_from_core as core
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import RuleSeverity
 from semgrep.formatter.sarif import SarifFormatter
 from semgrep.rule import Rule
@@ -21,50 +21,50 @@ def create_taint_rule_match():
     match = RuleMatch(
         message="message",
         severity=RuleSeverity.ERROR,
-        match=core.CoreMatch(
-            check_id=core.RuleId("rule.id"),
-            path=core.Fpath("foo.py"),
-            start=core.Position(3, 4, 6),
-            end=core.Position(3, 5, 7),
-            extra=core.CoreMatchExtra(
-                metavars=core.Metavars({}),
-                dataflow_trace=core.CliMatchDataflowTrace(
-                    taint_source=core.CliMatchCallTrace(
-                        core.CliLoc(
+        match=out.CoreMatch(
+            check_id=out.RuleId("rule.id"),
+            path=out.Fpath("foo.py"),
+            start=out.Position(3, 4, 6),
+            end=out.Position(3, 5, 7),
+            extra=out.CoreMatchExtra(
+                metavars=out.Metavars({}),
+                dataflow_trace=out.MatchDataflowTrace(
+                    taint_source=out.MatchCallTrace(
+                        out.CliLoc(
                             (
-                                core.Location(
-                                    path=core.Fpath("foo.py"),
-                                    start=core.Position(8, 9, 11),
-                                    end=core.Position(8, 10, 12),
+                                out.Location(
+                                    path=out.Fpath("foo.py"),
+                                    start=out.Position(8, 9, 11),
+                                    end=out.Position(8, 10, 12),
                                 ),
                                 "??",
                             )
                         )
                     ),
                     intermediate_vars=[
-                        core.CliMatchIntermediateVar(
-                            location=core.Location(
-                                path=core.Fpath("foo.py"),
-                                start=core.Position(13, 14, 16),
-                                end=core.Position(13, 15, 17),
+                        out.MatchIntermediateVar(
+                            location=out.Location(
+                                path=out.Fpath("foo.py"),
+                                start=out.Position(13, 14, 16),
+                                end=out.Position(13, 15, 17),
                             ),
                             content="??",
                         )
                     ],
-                    taint_sink=core.CliMatchCallTrace(
-                        core.CliLoc(
+                    taint_sink=out.MatchCallTrace(
+                        out.CliLoc(
                             (
-                                core.Location(
-                                    path=core.Fpath("foo.py"),
-                                    start=core.Position(15, 16, 20),
-                                    end=core.Position(15, 17, 21),
+                                out.Location(
+                                    path=out.Fpath("foo.py"),
+                                    start=out.Position(15, 16, 20),
+                                    end=out.Position(15, 17, 21),
                                 ),
                                 "??",
                             )
                         )
                     ),
                 ),
-                engine_kind=core.EngineKind(core.OSS()),
+                engine_kind=out.EngineKind(out.OSS()),
             ),
         ),
     )

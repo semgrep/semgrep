@@ -1,8 +1,0 @@
-Matching: Qualified names written as patterns can now match valid instances of
-identifiers which lie underneath a wildcard import. For instance, in Python,
-we could write the pattern `A.B.C.x`, and match the usage in the program
-```
-from A.B import *
-
-foo(C.x)
-```

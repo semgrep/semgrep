@@ -112,7 +112,7 @@ let report_failure ~dry_run ~token ~scan_id exit_code =
     Ok ())
   else
     let uri =
-      Uri.with_path Semgrep_envvars.v.semgrep_url
+      Uri.with_path !Semgrep_envvars.v.semgrep_url
         ("/api/agent/scans/" ^ scan_id ^ "/error")
     in
     let headers =
@@ -211,7 +211,7 @@ let report_findings ~token ~scan_id ~dry_run ~findings_and_ignores ~complete =
         m "Sending complete blob: %s" (JSON.string_of_json complete));
 
     let url =
-      Uri.with_path Semgrep_envvars.v.semgrep_url
+      Uri.with_path !Semgrep_envvars.v.semgrep_url
         ("/api/agent/scans/" ^ scan_id ^ "/findings_and_ignores")
     in
     let headers =
@@ -227,7 +227,7 @@ let report_findings ~token ~scan_id ~dry_run ~findings_and_ignores ~complete =
         Logs.warn (fun m -> m "API server returned %u, this error: %s" code msg));
     (* mark as complete *)
     let url =
-      Uri.with_path Semgrep_envvars.v.semgrep_url
+      Uri.with_path !Semgrep_envvars.v.semgrep_url
         ("/api/agent/scans/" ^ scan_id ^ "/complete")
     in
     let body = JSON.string_of_json complete in

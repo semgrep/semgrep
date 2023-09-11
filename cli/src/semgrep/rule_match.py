@@ -20,7 +20,6 @@ from attrs import evolve
 from attrs import field
 from attrs import frozen
 
-import semgrep.output_from_core as core
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import NOSEM_INLINE_COMMENT_RE
 from semgrep.constants import RuleScanSource
@@ -51,7 +50,7 @@ class RuleMatch:
     TODO: Rename this class to Finding?
     """
 
-    match: core.CoreMatch
+    match: out.CoreMatch
 
     # fields from the rule
     message: str = field(repr=False)
@@ -118,11 +117,11 @@ class RuleMatch:
         return Path(self.match.path.value)
 
     @property
-    def start(self) -> core.Position:
+    def start(self) -> out.Position:
         return self.match.start
 
     @property
-    def end(self) -> core.Position:
+    def end(self) -> out.Position:
         return self.match.end
 
     @property
@@ -447,7 +446,7 @@ class RuleMatch:
             return blocking
 
     @property
-    def dataflow_trace(self) -> Optional[core.CliMatchDataflowTrace]:
+    def dataflow_trace(self) -> Optional[out.MatchDataflowTrace]:
         return self.match.extra.dataflow_trace
 
     @property
@@ -511,6 +510,10 @@ class RuleMatch:
             metadata=out.RawJson(self.metadata),
             is_blocking=self.is_blocking,
             dataflow_trace=self.dataflow_trace,
+            # TODO: Currently bypassing extra because it stores a
+            # string instead of a ValidationState. Fix the monkey
+            # patchable version if you want monkey patching to work.
+            validation_state=self.match.extra.validation_state,
         )
 
         if self.extra.get("fixed_lines"):

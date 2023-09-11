@@ -9,11 +9,16 @@
  * it's not in the environment).
  *)
 type t = {
-  (* $SEMGREP_URL *)
+  (* $SEMGREP_URL | $SEMGREP_APP_URL *)
   semgrep_url : Uri.t;
-  (* $SEMGREP_xxx *)
+  (* $SEMGREP_FAIL_OPEN_URL *)
   fail_open_url : Uri.t;
+  (* $SEMGREP_METRICS_URL *)
+  metrics_url : Uri.t;
   app_token : string option;
+  (* $SEMGREP_INTEGRATION_NAME *)
+  integration_name : string option;
+  (* $SEMGREP_VERSION_CHECK_URL *)
   version_check_url : Uri.t;
   version_check_timeout : int;
   (* .cache/semgrep_version *)
@@ -21,12 +26,15 @@ type t = {
   git_command_timeout : int;
   (* "/src" *)
   src_directory : Fpath.t;
+  (* $SEMGREP_USER_AGENT_APPEND -> "(Docker)" *)
+  user_agent_append : string option;
   (* $XDG_CONFIG_HOME/.semgrep or ~/.semgrep *)
   user_dot_semgrep_dir : Fpath.t;
   (* $SEMGREP_LOG_FILE or ~/.semgrep/semgrep.log  *)
   user_log_file : Fpath.t;
   (* $SEMGREP_SETTINGS_FILE ~/.semgrep/settings.yml *)
   user_settings_file : Fpath.t;
+  is_ci : bool;
   in_docker : bool;
   (* $GITHUB_WORKSPACE *)
   in_gh_action : bool;
@@ -36,4 +44,8 @@ type t = {
   min_fetch_depth : int;
 }
 
-val v : t
+val v : t ref
+(** [v] is a reference to environment variables and user settings gathered
+  * during initialization. This is a reference to allow these settings to
+  * be modified by tests.
+  *)

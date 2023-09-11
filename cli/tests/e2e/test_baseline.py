@@ -94,7 +94,10 @@ def run_sentinel_scan(check: bool = True, base_commit: Optional[str] = None):
     env = {"LANG": "en_US.UTF-8"}
     env["SEMGREP_USER_AGENT_APPEND"] = "testing"
     unique_settings_file = tempfile.NamedTemporaryFile().name
-    Path(unique_settings_file).write_text("has_shown_metrics_notification: true")
+    Path(unique_settings_file).write_text(
+        "anonymous_user_id: 5f52484c-3f82-4779-9353-b29bbd3193b6\n"
+        "has_shown_metrics_notification: true\n"
+    )
     env["SEMGREP_SETTINGS_FILE"] = unique_settings_file
     env["PATH"] = os.environ.get("PATH", "")
 

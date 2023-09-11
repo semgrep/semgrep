@@ -33,6 +33,7 @@ DEFAULT_CAPABILITIES = {
         "trace": {"server": "verbose"},
         "metrics": {
             "enabled": True,
+            "isNewAppInstall": True,
         },
         "doHover": True,
     },
@@ -339,6 +340,11 @@ def assert_notif(response, method, message=None, kind=None):
         assert response["params"]["value"]["kind"] == kind
 
 
+def assert_message(response, message):
+    assert response["method"] == "window/showMessage"
+    assert response["params"]["message"] == message
+
+
 def assert_progress(responses, message):
     response = next(responses)
     assert_notif(response, "window/workDoneProgress/create")
@@ -390,7 +396,8 @@ def test_ls_specs(
 
     for file in files:
         # didOpen
-        send_did_open(server, file)
+
+        send_did_save(server, file)
         # add content
         response = next(responses)
         old_ids = [d["code"] for d in response["params"]["diagnostics"]]
@@ -462,6 +469,12 @@ def test_ls_ext(
     # scan workspace full
     send_semgrep_scan_workspace_full(server)
 
+    response = next(responses)
+    assert_message(
+        response,
+        "Scanning all files regardless of git status. These diagnostics will persist until a file is edited. To default to always scanning regardless of git status, please disable 'Only Git Dirty' in settings",
+    )
+
     assert_progress(responses, "Scanning Workspace")
 
     for i in range(len(files)):
@@ -470,6 +483,11 @@ def test_ls_ext(
         if "modified" in uri:
             print(response)
             assert len(response["params"]["diagnostics"]) > num_ids[i]
+
+    # Check did open does not rescan if diagnostics exist
+    for i in range(len(files)):
+        if len(files[i]) > 0:
+            send_did_open(server, files[i])
 
     send_semgrep_search(server, "print(...)")
     response = next(responses)

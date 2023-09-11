@@ -160,7 +160,7 @@ type _registry_cached_value =
 let fetch_content_from_registry_url ~registry_caching url =
   if not registry_caching then fetch_content_from_url url
   else
-    let cache_dir = Env.v.user_dot_semgrep_dir / "cache" / "registry" in
+    let cache_dir = !Env.v.user_dot_semgrep_dir / "cache" / "registry" in
     let cache_methods =
       {
         Cache_disk.cache_file_for_input =

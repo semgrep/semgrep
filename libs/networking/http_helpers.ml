@@ -38,11 +38,12 @@ let get_async ?(headers = []) url =
       Lwt.return (Error err)
   [@@profiling]
 
-let post_async ~body ?(headers = [ ("content-type", "application/json") ]) url =
+let post_async ~body ?(headers = [ ("content-type", "application/json") ])
+    ?(chunked = false) url =
   let module Client = (val !client_ref) in
   let headers = Header.of_list headers in
   let%lwt response, body =
-    Client.post ~headers ~body:(Cohttp_lwt.Body.of_string body) url
+    Client.post ~headers ~body:(Cohttp_lwt.Body.of_string body) ~chunked url
   in
   let%lwt body = Cohttp_lwt.Body.to_string body in
   let code = response |> Response.status |> Code.code_of_status in
@@ -67,6 +68,33 @@ let post_async ~body ?(headers = [ ("content-type", "application/json") ]) url =
 (* TODO: extend to allow to curl with JSON as answer *)
 let get ?headers url = Lwt_main.run (get_async ?headers url) [@@profiling]
 
-let post ~body ?(headers = [ ("content-type", "application/json") ]) url =
-  Lwt_main.run (post_async ~body ~headers url)
+let post ~body ?(headers = [ ("content-type", "application/json") ])
+    ?(chunked = false) url =
+  (* We add an exception handler to handle otherwise uncaught unix errors
+     (e.g. ECONNREFUSED) and return a more helpful error message.
+
+     Currently, we're observing high failure rates from our metrics endpoint
+     with the corresponding error `Unix_error: Connection reset by peer read` when
+     the server initiates a connection with SSL via TLS v1.2 instead of v1.3
+
+     For investigative work, we're currently using an internal AWS Lambda URL instead
+     of our human-friendly metrics endpoint. This is because the Lambda URL tends to
+     get matched to a node with TLS v1.3 support, whereas our metrics endpoint for some
+     reason almost exclusively is matched with a node that initiaties TLS v1.2 which
+     is causing the connection reset error.
+
+     This is a somewhat temporary workaround as even our Lambda URL will not always
+     respond with TLS v1.3, as we are not guaranteed to hit the same node. Currently,
+     AWS does not support specifying a minimum TLS version of v1.3, and we will need
+     to figure out a better solution for ensuring reliable metrics delivery.
+  *)
+  Lwt_main.run
+    ((Lwt.catch (fun () -> post_async ~body ~headers ~chunked url)) (fun exn ->
+         let err = Printexc.to_string exn in
+         (* NOTE: the caller will have the responsibility to handle and log the error
+            with the appropriate log level serverity (e.g. warn / error / app)
+         *)
+         Logs.debug (fun m ->
+             m "send to '%s' failed: %s" (Uri.to_string url) err);
+         Lwt.return (Error (0, err))))
   [@@profiling]
