@@ -62,6 +62,7 @@ from semgrep.rule import Rule
 from semgrep.rule import RuleProduct
 from semgrep.rule_match import RuleMatchMap
 from semgrep.rule_match import RuleMatchSet
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Contributions
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
@@ -381,6 +382,7 @@ def run_scan(
     optimizations: str = "none",
     baseline_commit: Optional[str] = None,
     baseline_commit_is_mergebase: bool = False,
+    dump_contributions: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -393,6 +395,7 @@ def run_scan(
     Dict[str, List[FoundDependency]],
     List[DependencyParserError],
     int,
+    Contributions,
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
 
@@ -514,6 +517,11 @@ def run_scan(
         optimizations=optimizations,
         core_opts_str=core_opts_str,
     )
+
+    if dump_contributions:
+        contributions = core_runner.invoke_semgrep_dump_contributions()
+    else:
+        contributions = Contributions([])
 
     experimental_rules, unexperimental_rules = partition(
         filtered_rules, lambda rule: rule.severity == RuleSeverity.EXPERIMENT
@@ -660,6 +668,7 @@ def run_scan(
         dependencies,
         dependency_parser_errors,
         num_executed_rules,
+        contributions,
     )
 
 
@@ -693,6 +702,7 @@ def run_scan_and_return_json(
         profiler,
         output_extra,
         shown_severities,
+        _,
         _,
         _,
         _,

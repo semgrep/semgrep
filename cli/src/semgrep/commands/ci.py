@@ -412,6 +412,7 @@ def ci(
             dependencies,
             dependency_parser_errors,
             num_executed_rules,
+            contributions,
         ) = semgrep.run_scan.run_scan(
             core_opts_str=core_opts,
             engine_type=engine_type,
@@ -441,6 +442,7 @@ def ci(
             optimizations=optimizations,
             baseline_commit=metadata.merge_base_ref,
             baseline_commit_is_mergebase=True,
+            dump_contributions=True,
         )
     except SemgrepError as e:
         output_handler.handle_semgrep_errors([e])
@@ -554,6 +556,7 @@ def ci(
                 metadata.commit_datetime,
                 dependencies,
                 dependency_parser_errors,
+                contributions,
                 engine_type,
                 progress_bar,
             )

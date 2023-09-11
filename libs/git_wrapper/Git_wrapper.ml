@@ -74,6 +74,11 @@ exception Error of string
 let _git_diff_lines_re = {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
 let git_diff_lines_re = SPcre.regexp _git_diff_lines_re
 
+let git_log_json_format =
+  "--pretty=format:{\"commit_hash\": \"%H\", \"commit_timestamp\": \"%ai\", \
+   \"contributor\": {\"commit_author_name\": \"%an\", \"commit_author_email\": \
+   \"%ae\"}}"
+
 (** Given some git diff ranges (see above), extract the range info *)
 let range_of_git_diff lines =
   let range_of_substrings substrings =
@@ -342,3 +347,15 @@ let get_project_url () : string option =
    environment variable. I just copied what [pysemgrep] does.
    [git ls-remote --get-url] is also enough and if we can not get such
    information, that's fine - the metadata is used only [Metrics_] actually. *)
+
+let get_git_logs () : string list =
+  let cmd = Bos.Cmd.(v "git" % "log" % git_log_json_format) in
+  let lines_r = Bos.OS.Cmd.run_out cmd in
+  let lines = Bos.OS.Cmd.out_lines ~trim:true lines_r in
+  let lines =
+    match lines with
+    | Ok (lines, (_, `Exited 0)) -> lines
+    | _ -> []
+  in
+  (* out_lines splits on newlines, so we always have an extra space at the end *)
+  List.filter (fun f -> not (String.trim f = "")) lines

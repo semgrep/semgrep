@@ -211,6 +211,7 @@ let finding_of_cli_match _commit_date index (m : Out.cli_match) : Out.finding =
 
 (* from scans.py *)
 let prepare_for_report ~blocking_findings findings errors rules ~targets
+    ~(contributions : Out.contributions option)
     ~(ignored_targets : Out.skipped_target list option) ~commit_date
     ~engine_requested =
   let rule_ids =
@@ -265,7 +266,7 @@ let prepare_for_report ~blocking_findings findings errors rules ~targets
         (* TODO: get renamed_paths, depends on baseline_commit *)
         renamed_paths = [];
         rule_ids;
-        contributions = None;
+        contributions;
         (* TODO: Figure out correct value for this. *)
         dependencies = None;
       }
@@ -381,6 +382,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
   in
   (* TODO: pass baseline commit! *)
   let metadata = generate_meta_from_environment None in
+  let contributions = Parse_contribution.get_contributions () in
   match deployment with
   | Error e -> e
   | Ok depl -> (
@@ -568,6 +570,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
                           ~targets:cli_output.Out.paths.Out.scanned
                           ~ignored_targets:cli_output.Out.paths.skipped
                           ~commit_date:"" ~engine_requested:`OSS
+                          ~contributions:(Some contributions)
                       in
                       let result =
                         match
