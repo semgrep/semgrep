@@ -53,10 +53,10 @@ let please_file_issue_text =
 let mk_error opt_rule_id loc msg err =
   let msg =
     match (err : Out.core_error_kind) with
-    | Out.MatchingError
-    | Out.AstBuilderError
-    | Out.FatalError
-    | Out.TooManyMatches ->
+    | MatchingError
+    | AstBuilderError
+    | FatalError
+    | TooManyMatches ->
         Printf.sprintf "%s\n\n%s" please_file_issue_text msg
     | LexicalError
     | ParseError
@@ -70,7 +70,8 @@ let mk_error opt_rule_id loc msg err =
     | OutOfMemoryDuringInterfile
     | PatternParseError _
     | PartialParsing _
-    | IncompatibleRule _ ->
+    | IncompatibleRule _
+    | MissingPlugin ->
         msg
   in
   { rule_id = opt_rule_id; loc; typ = err; msg; details = None }
@@ -95,6 +96,7 @@ let error_of_invalid_rule_error ((kind, rule_id, pos) : R.invalid_rule_error) :
             min_version = Option.map Version_info.to_string min_version;
             max_version = Option.map Version_info.to_string max_version;
           }
+    | MissingPlugin _msg -> Out.MissingPlugin
     | _ -> Out.RuleParseError
   in
   mk_error_tok (Some rule_id) pos msg err
@@ -234,7 +236,8 @@ let severity_of_error typ =
   | OutOfMemory -> Warning
   | TimeoutDuringInterfile -> Error
   | OutOfMemoryDuringInterfile -> Error
-  | IncompatibleRule _ ->
+  | IncompatibleRule _
+  | MissingPlugin ->
       (* Running into an incompatible rule may be normal, with nothing to fix *)
       Info
 

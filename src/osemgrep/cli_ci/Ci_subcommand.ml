@@ -20,13 +20,13 @@ module Out = Semgrep_output_v1_t
 (* eventually output the origin (if the semgrep_url is not semgrep.dev) *)
 let at_url_maybe ppf () =
   if
-    Uri.equal Semgrep_envvars.v.semgrep_url
+    Uri.equal !Semgrep_envvars.v.semgrep_url
       (Uri.of_string "https://semgrep.dev")
   then Fmt.string ppf ""
   else
     Fmt.pf ppf " at %a"
       Fmt.(styled `Bold string)
-      (Uri.to_string Semgrep_envvars.v.semgrep_url)
+      (Uri.to_string !Semgrep_envvars.v.semgrep_url)
 
 let decode_rules data =
   Common2.with_tmp_file ~str:data ~ext:"json" (fun file ->
@@ -431,7 +431,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
                metadata_dict = {**metadata_dict, **proj_config.to_dict()} *)
             match
               Scan_helper.start_scan ~dry_run:conf.dryrun ~token
-                Semgrep_envvars.v.semgrep_url metadata_dict
+                !Semgrep_envvars.v.semgrep_url metadata_dict
             with
             | Error msg ->
                 Logs.err (fun m -> m "Could not start scan %s" msg);

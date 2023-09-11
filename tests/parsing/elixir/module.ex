@@ -1,8 +1,4 @@
-defmodule MyAppWeb.UserController do
-  use MyAppWeb, :controller
-
-  def show(conn, %{"id" => id}) do
-    user = Repo.get(User, id)
-    render(conn, :show, user: user)
-  end
+defmodule Number do
+  def one, do: 1
+  def two, do: 2
 end

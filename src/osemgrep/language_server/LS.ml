@@ -117,10 +117,21 @@ module MessageHandler = struct
           let content = Some first.text in
           scan_file ~content server uri;
           server
-      | CN.DidSaveTextDocument { textDocument = { uri }; _ }
-      | CN.TextDocumentDidOpen { textDocument = { uri; _ } } ->
-          Logs.app (fun m -> m "Scanning file %s" (Uri.to_string uri));
+      | CN.DidSaveTextDocument { textDocument = { uri }; _ } ->
+          Logs.app (fun m -> m "Scanning file %s on save" (Uri.to_string uri));
           scan_file server uri;
+          server
+      | CN.TextDocumentDidOpen { textDocument = { uri; _ } } ->
+          let path = uri |> Uri.to_path |> Fpath.v in
+          let prev_scan = Session.previous_scan_of_file server.session path in
+          (* We usually scan every file on startup, so let's only rescan an opened
+             file if there weren't previous results *)
+          if Option.is_some prev_scan then
+            Logs.app (fun m ->
+                m "File %s already scanned, not rescanning" (Uri.to_string uri))
+          else (
+            Logs.app (fun m -> m "Scanning file %s on open" (Uri.to_string uri));
+            scan_file server uri);
           server
       | CN.ChangeWorkspaceFolders { event = { added; removed }; _ } ->
           let added = Conv.workspace_folders_to_paths added in
@@ -257,8 +268,8 @@ module MessageHandler = struct
           (None, server)
       | CR.CodeAction { textDocument = { uri }; context; _ } ->
           let file = uri |> Uri.to_path |> Fpath.v in
-          let results = Hashtbl.find_opt server.session.documents file in
-          let matches = Option.value results ~default:[] in
+          let matches_opt = Session.previous_scan_of_file server.session file in
+          let matches = Option.value ~default:[] matches_opt in
           let diagnostics = context.diagnostics in
           let ranges =
             Common.map (fun (d : Diagnostic.t) -> d.range) diagnostics

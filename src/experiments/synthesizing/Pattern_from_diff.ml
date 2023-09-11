@@ -1,7 +1,7 @@
 module In = Input_to_core_j
-module Out = Semgrep_output_v1_j
 module R = Range
 module Set = Set_
+module J = JSON
 
 (*****************************************************************************)
 (* Prelude *)
@@ -124,4 +124,14 @@ let pattern_from_diff f =
     with
     | _ -> []
   in
-  { Out.url = f.In.url; filename = f.In.filename; funcnames = functions }
+  (* old: we used to have this specified in semgrep_output_v1.atd
+   * in a cve_result type, but better to keep semgrep_output_v1.atd
+   * clean
+   * { Out.url = f.In.url; filename = f.In.filename; funcnames = functions }
+   *)
+  J.Object
+    [
+      ("url", J.String f.In.url);
+      ("filename", J.String f.In.filename);
+      ("funcnames", J.Array (functions |> Common.map (fun f -> J.String f)));
+    ]

@@ -1,0 +1,9 @@
+#
+# Rules that should be skipped due to a missing plugin.
+#
+rules:
+  - id: dummy-apex-rule
+    pattern: x
+    message: "found x"
+    languages: [apex]
+    severity: ERROR

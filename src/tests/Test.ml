@@ -71,6 +71,7 @@ let tests () =
       Unit_jsonnet_subst.tests ();
       Unit_metachecking.tests ();
       Unit_LS.tests;
+      Unit_Login.tests;
       Aliengrep.Unit_tests.tests;
       (* Inline tests *)
       Testutil.get_registered_tests ();
