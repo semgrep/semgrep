@@ -236,8 +236,10 @@ let parse_resp =
               Cohttp.Response.version;
               headers;
               status;
-              (* Not sure what this field is for. Not documented *)
-              flush = false;
+              (* Not sure exactly how cohttp uses this. Not documented.
+               * Doesn't seem like there's any buffering in our tests anyway.
+               *)
+              flush = true;
               encoding = Body.transfer_encoding body;
             },
             body ))
