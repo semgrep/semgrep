@@ -63,6 +63,34 @@ BAD_CONFIG = dedent(
 FROZEN_ISOTIMESTAMP = "1970-01-01T00:00:00"
 
 
+# To ensure our tests are as accurate as possible, lets try to autodetect what GITHUB_ vars
+# the app code uses, so the tests can enforce the env is mocked appropriately.
+_cli_src = (Path(__file__).parent.parent.parent / "src").resolve()
+USED_GITHUB_VARS = set(
+    subprocess.run(
+        f"git grep -hPo 'GITHUB_[\\w_]*' {_cli_src}", shell=True, capture_output=True
+    )
+    .stdout.decode()
+    .strip()
+    .split("\n")
+) - {
+    "GITHUB_TOKEN",  # not used in the cli, just passed to the backend
+    "GITHUB_EVENT_PATH",  # TODO: mock this for more than just PR events
+}
+
+assert "GITHUB_ACTIONS" in USED_GITHUB_VARS  # ensure the parsing did something
+
+# And then mock the baseline github env that is shared for all event types.
+DEFAULT_GITHUB_VARS = {
+    "GITHUB_ACTIONS": "true",
+    "GITHUB_ACTOR": "some_test_username",
+    "GITHUB_API_URL": "https://api.github.com",
+    "GITHUB_REPOSITORY": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
+    "GITHUB_RUN_ID": "35",
+    "GITHUB_SERVER_URL": "https://github.com",
+    "GITHUB_WORKSPACE": "/home/runner/work/actions-test/actions-test",
+}
+
 ##############################################################################
 # Fixtures
 ##############################################################################
@@ -195,7 +223,7 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
         check=True,
         capture_output=True,
     )
-    subprocess.run(["git", "pull", "origin"])
+    subprocess.run(["git", "fetch", "origin"])
     subprocess.run(["git", "checkout", f"{MAIN_BRANCH_NAME}"])
     subprocess.run(["git", "checkout", f"{BRANCH_NAME}"])
     subprocess.run(
@@ -376,6 +404,11 @@ def mock_autofix(request, mocker):
 # The tests
 ##############################################################################
 
+# "GITHUB_EVENT_NAME": "",
+#     "GITHUB_EVENT_PATH": "",
+#     "GITHUB_HEAD_REF": "", #
+#     "GITHUB_REF": "",
+
 
 @pytest.mark.parametrize(
     "env",
@@ -386,46 +419,52 @@ def mock_autofix(request, mocker):
         },
         {  # Github full scan
             "CI": "true",
-            "GITHUB_ACTIONS": "true",
+            **DEFAULT_GITHUB_VARS,
             "GITHUB_EVENT_NAME": "push",
-            "GITHUB_REPOSITORY": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
-            # Sent in metadata but no functionality change
-            "GITHUB_RUN_ID": "35",
-            "GITHUB_ACTOR": "some_test_username",
-            "GITHUB_REF": BRANCH_NAME,
-            "GITHUB_SERVER_URL": "https://github.com",
+            "GITHUB_REF": f"refs/heads/{BRANCH_NAME}",
+            "GITHUB_BASE_REF": "",
+            "GITHUB_HEAD_REF": "",
         },
         {  # Github full scan with SEMGREP env vars set
             "CI": "true",
-            "GITHUB_ACTIONS": "true",
+            **DEFAULT_GITHUB_VARS,
             "GITHUB_EVENT_NAME": "push",
+            "GITHUB_REF": f"refs/heads/{BRANCH_NAME}",
+            "GITHUB_BASE_REF": "",
+            "GITHUB_HEAD_REF": "",
             "SEMGREP_REPO_NAME": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
             "SEMGREP_JOB_URL": "customjoburl.com",
-            "GITHUB_ACTOR": "some_test_username",
             "SEMGREP_PR_ID": "312",  # should make the event_name `pull_request`
             "SEMGREP_PR_TITLE": "PR_TITLE",
             "SEMGREP_BRANCH": BRANCH_NAME,
         },
         {  # github but different server url - full scan
             "CI": "true",
-            "GITHUB_ACTIONS": "true",
+            **DEFAULT_GITHUB_VARS,
             "GITHUB_EVENT_NAME": "push",
-            "GITHUB_REPOSITORY": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
-            # Sent in metadata but no functionality change
-            "GITHUB_RUN_ID": "35",
-            "GITHUB_ACTOR": "some_test_username",
-            "GITHUB_REF": BRANCH_NAME,
+            "GITHUB_REF": f"refs/heads/{BRANCH_NAME}",
+            "GITHUB_BASE_REF": "",
+            "GITHUB_HEAD_REF": "",
             "GITHUB_SERVER_URL": "https://some.enterprise.url.com",
         },
         {  # Github PR
             "CI": "true",
-            "GITHUB_ACTIONS": "true",
+            **DEFAULT_GITHUB_VARS,
             "GITHUB_EVENT_NAME": "pull_request",
-            "GITHUB_REPOSITORY": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
             # Sent in metadata but no functionality change
-            "GITHUB_RUN_ID": "35",
-            "GITHUB_ACTOR": "some_test_username",
-            "GITHUB_REF": BRANCH_NAME,
+            "GITHUB_REF": "refs/pull/123/merge",
+            "GITHUB_BASE_REF": MAIN_BRANCH_NAME,
+            "GITHUB_HEAD_REF": BRANCH_NAME,
+        },
+        {  # Github PR with additional project metadata
+            "CI": "true",
+            **DEFAULT_GITHUB_VARS,
+            "GITHUB_EVENT_NAME": "pull_request",
+            # Sent in metadata but no functionality change
+            "GITHUB_REF": "refs/pull/123/merge",
+            "GITHUB_BASE_REF": MAIN_BRANCH_NAME,
+            "GITHUB_HEAD_REF": BRANCH_NAME,
+            "SEMGREP_PROJECT_CONFIG": "tags:\n- tag1\n- tag_key:tag_val\n",
         },
         {  # Gitlab PR
             "CI": "true",
@@ -640,17 +679,6 @@ def mock_autofix(request, mocker):
             "SEMGREP_PR_ID": "35",
             "SEMGREP_BRANCH": BRANCH_NAME,
         },
-        {  # Github PR with additional project metadata
-            "CI": "true",
-            "GITHUB_ACTIONS": "true",
-            "GITHUB_EVENT_NAME": "pull_request",
-            "GITHUB_REPOSITORY": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
-            # Sent in metadata but no functionality change
-            "GITHUB_RUN_ID": "35",
-            "GITHUB_ACTOR": "some_test_username",
-            "GITHUB_REF": BRANCH_NAME,
-            "SEMGREP_PROJECT_CONFIG": "tags:\n- tag1\n- tag_key:tag_val\n",
-        },
     ],
     ids=[
         "local",
@@ -658,6 +686,7 @@ def mock_autofix(request, mocker):
         "github-push-special-env-vars",
         "github-enterprise",
         "github-pr",
+        "github-pr-semgrepconfig",
         "gitlab",
         "gitlab-special-env-vars",
         "gitlab-push",
@@ -676,7 +705,6 @@ def mock_autofix(request, mocker):
         "travis-overwrite-autodetected-variables",
         "self-hosted",
         "unparsable_url",
-        "github-pr-semgrepconfig",
     ],
 )
 @pytest.mark.skipif(
@@ -728,6 +756,11 @@ def test_full_run(
             event_path = tmp_path / "event_path.json"
             event_path.write_text(json.dumps(event))
             env["GITHUB_EVENT_PATH"] = str(event_path)
+
+        assert USED_GITHUB_VARS <= set(
+            env.keys()
+        ), f"not all github vars are set, missing: {USED_GITHUB_VARS - set(env.keys())}"
+
     if env.get("CIRCLECI"):
         env["CIRCLE_SHA1"] = head_commit
     if env.get("JENKINS_URL"):

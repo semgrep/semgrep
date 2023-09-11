@@ -3,7 +3,7 @@
     "semgrep_version": "<sanitized version>",
     "repository": "project_name/project_name",
     "repo_url": "https://github.com/project_name/project_name",
-    "branch": "some/branch-name",
+    "branch": "refs/heads/some/branch-name",
     "ci_job_url": "https://github.com/project_name/project_name/actions/runs/35",
     "commit": "sanitized",
     "commit_author_email": "test_environment@test.r2c.dev",
