@@ -124,8 +124,17 @@ def print_summary_line(
     if target_manager.respect_git_ignore:
         summary_line += " tracked by git"
 
+    # The sast_plan contains secrets rules too.
     sast_rule_count = len(sast_plan.rules)
-    summary_line += f" with {unit_str(sast_rule_count, 'Code rule')}"
+    is_secret_rule = lambda r: r.product == RuleProduct.secrets
+    secrets_rule_count = len(list(filter(is_secret_rule, sast_plan.rules)))
+    code_rule_count = sast_rule_count - secrets_rule_count
+    summary_line += f" with {unit_str(code_rule_count, 'Code rule')}"
+
+    # TODO After the secrets release we should also include a check
+    # for new_cli_ux as done below.
+    if secrets_rule_count:
+        summary_line += f", {unit_str(secrets_rule_count, 'Secrets rule')}"
 
     sca_rule_count = len(sca_plan.rules)
     if sca_rule_count:
@@ -163,10 +172,15 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> i
         [
             rule
             for rule in rules
-            if rule.product == RuleProduct.sast and (not rule.from_transient_scan)
+            if (
+                rule.product == RuleProduct.sast
+                or rule.product == RuleProduct.secrets
+                and (not rule.from_transient_scan)
+            )
         ],
         target_manager,
     )
+
     sca_plan = CoreRunner.plan_core_run(
         [rule for rule in rules if rule.product == RuleProduct.sca],
         target_manager,
@@ -177,6 +191,10 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> i
     if new_cli_ux:
         console.print(Title("Code Rules", order=2))
         sast_plan.print(with_tables_for=RuleProduct.sast)
+        # TODO: after launch this should no longer be conditional.
+        if sast_plan.has_target_for_product(RuleProduct.secrets):
+            console.print(Title("Secrets Rules", order=2))
+            sast_plan.print(with_tables_for=RuleProduct.secrets)
         console.print(Title("Supply Chain Rules", order=2))
         sca_plan.print(with_tables_for=RuleProduct.sca)
         console.print(Title("Progress", order=2))
@@ -190,6 +208,10 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> i
 
     console.print(Padding(Title("Code Rules", order=2), (1, 0, 0, 0)))
     sast_plan.print(with_tables_for=RuleProduct.sast)
+    # TODO: after launch this should no longer be conditional.
+    if sast_plan.has_target_for_product(RuleProduct.secrets):
+        console.print(Title("Secrets Rules", order=2))
+        sast_plan.print(with_tables_for=RuleProduct.secrets)
     console.print(Title("Supply Chain Rules", order=2))
     sca_plan.print(with_tables_for=RuleProduct.sca)
 
