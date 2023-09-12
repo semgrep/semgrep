@@ -68,7 +68,7 @@ CI="true" GITLAB_CI="true" SEMGREP_REPO_NAME="project_name/project_name" CI_PIPE
                 pull_request
 
   CONNECTION
-  Reporting start of scan for deployment_name (scan_id={scan_handler.scan_id})
+  Reporting start of scan for deployment_name (scan_id=<MagicMock name='post()…
   Fetching configuration from Semgrep Cloud Platform
   Enabled products: Semgrep Code, Semgrep Supply Chain
 
