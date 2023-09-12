@@ -133,7 +133,9 @@ Plus, you can manage your rules and code findings with Semgrep Cloud Platform.
                        `semgrep ci` to start a scan."
                       (Logs_helpers.success_tag ())
                       display_name);
-                (* TODO: figure out why we call save_token twice...*)
+                (* TODO: refactor to avoid calling Semgrep_login.save_token twice:
+                 *  once in Semgrep_login.fetch_token and again here.
+                 *)
                 save_token ~ident:(Some display_name) token))
   | Some _ ->
       Logs.app (fun m ->
