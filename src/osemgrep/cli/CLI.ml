@@ -61,9 +61,11 @@ let metrics_init () : unit =
   let api_token = settings.Semgrep_settings.api_token in
   let anonymous_user_id = settings.Semgrep_settings.anonymous_user_id in
   Metrics_.init ~anonymous_user_id ~ci:!Env.v.is_ci;
-  (* TODO: we always send is_authenticated metrics then? *)
-  Metrics_.add_token (Some api_token);
+  api_token
+  |> Option.iter (fun (_token : Auth.token) ->
+         Metrics_.g.payload.environment.isAuthenticated <- true);
   !Env.v.user_agent_append |> Option.iter Metrics_.add_user_agent_tag;
+  Metrics_.g.payload.environment.integrationName <- !Env.v.integration_name;
   ()
 
 (* For debugging customer issues, we append the CLI flags for each subcommand,

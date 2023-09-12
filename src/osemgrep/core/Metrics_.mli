@@ -1,8 +1,8 @@
 (*
    Configures metrics upload.
 
-   On - Metrics always sent
-   Off - Metrics never sent
+   On   - Metrics always sent
+   Off  - Metrics never sent
    Auto - Metrics only sent if config is pulled from the registry
           or if using the Semgrep App.
 *)
@@ -66,6 +66,8 @@ val string_of_user_agent : unit -> string
 (* initialize the payload in g, which can then be modified by the
  * add_xxx functions below (or by accessing directly g.payload) and
  * finally accessed in string_of_metrics().
+ * You should not call this function though; only CLI.metrics_init()
+ * should call it.
  *)
 val init : anonymous_user_id:Uuidm.t -> ci:bool -> unit
 
@@ -91,12 +93,9 @@ val add_configs_hash : Rules_config.config_string list -> unit
 val add_rules_hashes_and_rules_profiling :
   ?profiling:Semgrep_output_v1_t.core_timing -> Rule.rules -> unit
 
-val add_findings : (Rule.t * int) list -> unit
+val add_rules_hashes_and_findings_count : (Rule.t * int) list -> unit
 val add_targets_stats : Fpath.t Set_.t -> Report.final_profiling option -> unit
 val add_engine_kind : Semgrep_output_v1_t.engine_kind -> unit
-
-(* just sent whether the user had a token and so was authenticated *)
-val add_token : 'a option -> unit
 val add_exit_code : Exit_code.t -> unit
 
 (* ex: "language/python" *)

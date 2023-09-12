@@ -91,13 +91,13 @@ let metrics_url =
 (*
      Configures metrics upload.
 
-     On - Metrics always sent
-     Off - Metrics never sent
+     On   - Metrics always sent
+     Off  - Metrics never sent
      Auto - Metrics only sent if config is pulled from the registry
-          or if using the Semgrep App.
+            or if using the Semgrep App.
 
   What is the rational for Auto? I guess if the user is requesting rules
-  from our registry, we already can identify him (the request and his IP),
+  from our Registry or App, we already can identify him by his IP
   so we might as well get more data from him?
 
   python: was in an intermediate MetricsState before.
@@ -170,7 +170,11 @@ let default_payload =
 
 let default =
   {
+    (* default to Off, so don't forget to call Metrics_.configure()
+     * to change it in the different subcommands.
+     *)
     config = Off;
+    (* should be set in Rule_fetching.ml when using the Registry or App *)
     is_using_registry = false;
     is_using_app = false;
     user_agent = [ spf "Semgrep/%s" Version.version ];
@@ -319,7 +323,8 @@ let add_max_memory_bytes (profiling_data : Report.final_profiling option) =
       g.payload.performance.maxMemoryBytes <- Some max_memory_bytes)
     profiling_data
 
-let add_findings (filtered_matches : (Rule.t * int) list) =
+let add_rules_hashes_and_findings_count (filtered_matches : (Rule.t * int) list)
+    =
   let ruleHashesWithFindings_value =
     filtered_matches
     |> Common.map (fun (rule, rule_matches) ->
@@ -381,9 +386,6 @@ let add_errors errors =
 
 let add_profiling profiler =
   g.payload.performance.profilingTimes <- Some (Profiler.dump profiler)
-
-let add_token token =
-  g.payload.environment.isAuthenticated <- Option.is_some token
 
 let add_exit_code code =
   let code = Exit_code.to_int code in
