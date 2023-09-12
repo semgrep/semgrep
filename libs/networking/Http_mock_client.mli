@@ -132,4 +132,27 @@ val client_from_file :
   * ```
   * NOTE: currently, blank lines should still have "> " or "< ", i.e., there
   * should be a space after the indicator.
+  *
+  * The easiest way to create a file in this format is to make a request using
+  * curl, with the -v flag. For example, `curl -v google.com` would give
+  * *   Trying 142.251.46.206:80...
+  * * Connected to google.com (142.251.46.206) port 80 (#0)
+  * > GET / HTTP/1.1
+  * > Host: google.com
+  * > User-Agent: curl/8.1.2
+  * > Accept: */*
+  * >
+  * < HTTP/1.1 301 Moved Permanently
+  * < [snipped, more headers]
+  * <
+  * <HTML><HEAD><meta content="text/html;charset=utf-8">
+  * <TITLE>301 Moved</TITLE></HEAD><BODY>
+  * <H1>301 Moved</H1>
+  * The document has moved
+  * <A HREF="http://www.google.com/">here</A>.
+  * </BODY></HTML>
+  * * Connection #0 to host google.com left intact
+  * This can be used almost directly: the only change required is to prefix the
+  * response body (bzw. request body, if it were non-empty) with "< "
+  * (bzw. "> ").
   *)
