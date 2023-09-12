@@ -71,6 +71,9 @@ open Semgrep_metrics_t
         where each row is a payload with the IP address as the Partition Key
       - The data is then stored in our S3 bucket ("semgrep-cli-metrics") and
         can be queried via Snowflake or Metabase
+
+    This file should be called simply Metrics.ml but this would conflict with
+    a module using the same name in one of the OCaml library we use.
 *)
 
 (*****************************************************************************)
