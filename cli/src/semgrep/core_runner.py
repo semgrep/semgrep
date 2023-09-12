@@ -65,6 +65,7 @@ from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Contributions
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
+from semgrep.state import get_context
 from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
 from semgrep.util import unit_str
@@ -668,20 +669,54 @@ class Plan:
             sep = "\n   "
             message = "No rules to run."
             if with_tables_for == RuleProduct.sca:
-                if auth.get_token() is None:
-                    message = sep.join(
-                        wrap(
-                            "💎 Sign in with `semgrep login` and run `semgrep ci` to find dependency vulnerabilities and advanced cross-file findings.",
-                            width=70,
+                """
+                We need to account for several edges cases:
+                 - `semgrep ci` was invoked but no rules were found (e.g. no lockfile).
+                 - `semgrep scan` was invoked with the supply-chain flag and no rules found.
+                 - `semgrep ci` was invoked without the supply-chain flag or feature enabled.
+                """
+                # 1. Validate that the user is indeed running SCA.
+                ctx = get_context()
+                # we only want to print the message if the user is running `semgrep scan`
+                command_name = ctx.command.name if hasattr(ctx, "command") else "unset"
+                is_scan = command_name == "scan"
+                params = ctx.params if hasattr(ctx, "params") else {}
+                # --supply-chain flag is passed directly for `semgrep ci`
+                # whereas for scan supply-chain is passed via --config
+                is_supply_chain = (
+                    "supply-chain" in list(params.get("config") or ())
+                    if is_scan
+                    else (params.get("supply-chain") or False)
+                )
+                # 2. Check if the user has metrics enabled.
+                metrics = get_state().metrics
+                metrics_enabled = metrics.is_enabled
+                # If the user has metrics enabled, we can suggest they run `semgrep ci` to get more findings.
+                # Otherwise, we should expect the user to be already aware of the other products.
+                # 3. Check if the user has logged in.
+                has_auth = auth.get_token() is not None
+                # Users who have not logged in will not be able to run `semgrep ci`.
+                # For users with metrics enabled who are running scan without auth,
+                # we should suggest they login and run semgrep ci.
+                if is_scan and metrics_enabled:
+                    if not has_auth:
+                        message = sep.join(
+                            wrap(
+                                "💎 Sign in with `semgrep login` and run `semgrep ci` to find dependency vulnerabilities and advanced cross-file findings.",
+                                width=70,
+                            )
                         )
-                    )
-                else:  # logged in but --config supply-chain not passed
-                    message = sep.join(
-                        wrap(
-                            "💎 Run `semgrep ci` to find dependency vulnerabilities and advanced cross-file findings.",
-                            width=70,
+                    elif not is_supply_chain:
+                        message = sep.join(
+                            wrap(
+                                "💎 Run `semgrep ci` to find dependency vulnerabilities and advanced cross-file findings.",
+                                width=70,
+                            )
                         )
-                    )
+                    else:  # supply chain but no rules (e.g. no lockfile)
+                        pass
+                else:  # skip nudge for users who have not enabled metrics or are already running ci
+                    pass
             else:  # sast or another product without rules
                 pass
             console.print(f"\n{message}\n")

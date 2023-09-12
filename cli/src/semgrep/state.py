@@ -26,9 +26,9 @@ class SemgrepState:
     terminal: Terminal = Factory(Terminal)
 
 
-def get_state() -> SemgrepState:
+def get_context() -> click.Context:
     """
-    Get the current CLI invocation's global state.
+    Get the current CLI invocation's click context.
     """
     ctx = click.get_current_context(silent=True)
     if ctx is None:
@@ -37,4 +37,12 @@ def get_state() -> SemgrepState:
 
         ctx = click.Context(command=cli).scope().__enter__()
 
+    return ctx
+
+
+def get_state() -> SemgrepState:
+    """
+    Get the current CLI invocation's global state.
+    """
+    ctx = get_context()
     return ctx.ensure_object(SemgrepState)
