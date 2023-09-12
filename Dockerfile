@@ -198,13 +198,14 @@ RUN apk add --no-cache --virtual=.build-deps build-base make g++ &&\
 COPY Dockerfile /Dockerfile
 
 # Get semgrep-core from step1
-COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe /usr/local/bin/semgrep-core
+COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe /home/semgrep/semgrep-core
 
-RUN ln -s semgrep-core /usr/local/bin/osemgrep
+RUN ln -s semgrep-core /home/semgrep/osemgrep
 
 # ???
 ENV SEMGREP_IN_DOCKER=1 \
     SEMGREP_USER_AGENT_APPEND="Docker"
+    PATH="/home/semgrep:$PATH"
 
 # The command we tell people to run for testing semgrep in Docker is
 #   docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep --config=auto
