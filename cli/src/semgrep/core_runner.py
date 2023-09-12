@@ -751,7 +751,6 @@ class Plan:
 
         plan_by_lang = self.split_by_lang_label_for_product(with_tables_for)
         if len(plan_by_lang) == 1:
-            # TODO: File count is wrong here.
             [(language, target_mapping)] = plan_by_lang.items()
             console.print(
                 f"Scanning {unit_str(target_mapping.file_count, 'file')} with {unit_str(rule_count, f'{language} rule')}."
