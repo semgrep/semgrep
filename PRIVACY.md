@@ -193,19 +193,19 @@ Semgrep, Inc will:
 
 > `anonymous_user_id: "5f52484c-3f82-4779-9353-b29bbd3193b6"`
 
-We will generate a new random UUID and save the ID locally to a `~/.semgrep/settings.yml` file
+Semgrep generates a new random UUID and saves the ID locally to a `~/.semgrep/settings.yml` file
 when the ID is not present (and upon log out) to help improve the Semgrep product while commiting to promote online privacy and anonymity.
 
 The Semgrep team uses this ID to help answer the following questions:
 
 - > How many people use a given rule/ruleset/snippet?
 
-  This enables our security researchers to assess their performance,
+  This enables the Semgrep Security Research Team to assess their performance,
   and we're planning to make these numbers public for all rule authors in the community.
 
 - > What percentage of users log in?
 
-  We use this to evaluate our success as we build new authenticated features for the Semgrep App.
+  We use this to evaluate our success as we build new authenticated features for the Semgrep Cloud Platform.
 
 - > How often are individual subcommands and CLI features used?
 
@@ -216,7 +216,7 @@ By using privacy by design principles, we intend to limit the ability for this I
 1. **Randomization:** This ID is generated using a random algorithm (UUID V4) and does not contain any personally identifiable information (PII). Even with access to this ID, third-parties will not be able to associate this ID with a specific person.
 2. **Rotation:** This ID can be regularly reset, changed, or rotated, which limits entities to observe individual usage over an extended period of time.
 3. **Isolation:** This ID is only used for a specific purpose of analytics within a limited context of Semgrep and its product offerings.
-4. **Pseudonymization:** For logged in users who have accepted our terms of service and privacy policy, we will sanitize and transform (using a deterministic cryptographically secure hash) the PII used in generating a stable ID before sending data to our Semgrep, Inc backend and associated metrics collection endpoints.
+4. **Pseudonymization:** For logged in users who have accepted Semgrep’s terms of service and privacy policy, we will sanitize and transform (using a deterministic cryptographically secure hash) the PII used in generating a stable ID before sending data to the Semgrep, Inc backend and associated metrics collection endpoints.
 5. **User Consent and Control:** Users have control over their ID and can opt out in metrics collection at any time.
 
 ### Feature usage
