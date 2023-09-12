@@ -204,7 +204,7 @@ RUN ln -s semgrep-core /home/semgrep/osemgrep
 
 # ???
 ENV SEMGREP_IN_DOCKER=1 \
-    SEMGREP_USER_AGENT_APPEND="Docker"
+    SEMGREP_USER_AGENT_APPEND="Docker" \
     PATH="/home/semgrep:$PATH"
 
 # The command we tell people to run for testing semgrep in Docker is
