@@ -402,6 +402,7 @@ class ScanHandler:
             raise Exception(f"API server returned this error: {response.text}") from exc
 
         try_until = datetime.now() + timedelta(minutes=20)
+        slow_down_after = datetime.now() + timedelta(minutes=2)
         complete_task = progress_bar.add_task("Finalizing scan")
         while datetime.now() < try_until:
             logger.debug("Sending /complete")
@@ -430,7 +431,7 @@ class ScanHandler:
                 )
             else:
                 progress_bar.advance(complete_task)
-                sleep(5)
+                sleep(5 if datetime.utcnow() < slow_down_after else 30)
                 continue
 
         raise Exception(
