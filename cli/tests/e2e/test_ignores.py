@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import pytest
-from tests.conftest import _clean_output_if_json
+from tests.conftest import mask_variable_text
 from tests.fixtures import RunSemgrep
 
 from ..conftest import TESTS_PATH
@@ -39,7 +39,7 @@ def test_file_not_relative_to_base_path(run_semgrep: RunSemgrep, snapshot):
         stdin="a",
         use_click_runner=True,  # TODO: probably because of stdin?
     )
-    results.raw_stdout = _clean_output_if_json(results.raw_stdout, True)
+    results.raw_stdout = mask_variable_text(results.raw_stdout)
     snapshot.assert_match(results.as_snapshot(), "results.txt")
 
 

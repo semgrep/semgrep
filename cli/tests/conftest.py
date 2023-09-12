@@ -107,15 +107,6 @@ def _clean_stdout(out):
     if json_output.get("version"):
         json_output["version"] = "0.42"
 
-    # Necessary because some tests produce temp files
-    if json_output.get("errors"):
-        for error in json_output.get("errors"):
-            if error.get("spans"):
-                for span in error.get("spans"):
-                    if span.get("file"):
-                        file = span.get("file")
-                        span["file"] = file if "tmp" not in file else "tmp/masked/path"
-
     return json.dumps(json_output)
 
 
@@ -149,31 +140,6 @@ def _clean_output_if_json(output_json: str, clean_fingerprint: bool) -> str:
                 r["path"] = "/tmp/masked/path"
             if clean_fingerprint:
                 r["extra"]["fingerprint"] = "0x42"
-
-    paths = output.get("paths", {})
-    if paths.get("scanned"):
-        paths["scanned"] = [
-            p if "/tmp" not in p else "/tmp/masked/path" for p in paths["scanned"]
-        ]
-    if paths.get("skipped"):
-        paths["skipped"] = [
-            {
-                **skip,
-                "path": skip["path"]
-                if "/tmp" not in skip["path"]
-                else "/tmp/masked/path",
-            }
-            for skip in paths["skipped"]
-        ]
-
-    # Necessary because some tests produce temp files
-    if output.get("errors"):
-        for error in output.get("errors"):
-            if error.get("spans"):
-                for span in error.get("spans"):
-                    if span.get("file"):
-                        file = span.get("file")
-                        span["file"] = file if "tmp" not in file else "tmp/masked/path"
 
     return json.dumps(output, indent=2, sort_keys=True)
 
@@ -227,12 +193,39 @@ ALWAYS_MASK: Maskers = (
     re.compile(r'SEMGREP_SETTINGS_FILE="(.+?)"'),
     re.compile(r'SEMGREP_VERSION_CACHE_PATH="(.+?)"'),
     re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"),
-    # Temporary rule file stored in temporary folder.
-    # Need to mask (1) temp folder location and (2) random part of file name.
-    # Note that paths are masked using a more fine-grained mechanism below
-    # but it's more complicated.
-    re.compile(r"([/A-Za-z0-9_-]*/tmp[a-z0-9_]+).json"),
+    # Hide any substring that resembles a temporary file path.
+    # This may be a little too broad but it's simpler than inspecting
+    # specific JSON fields on case-per-case basis.
+    #
+    # In the future, we may have to hide the temporary folder since it
+    # can vary from one OS to another.
+    # This regexp masks the tail of a path containing 'tmp' or '/tmp'.
+    re.compile(r"((?:/?tmp[A-Za-z0-9_-]*)(?:/[A-Za-z0-9_.-]*)*)"),
+    # osemgrep only. Needed to match the pysemgrep output b/c pysemgrep
+    # uses a temporary path to store rules by osemgrep doesn't.
+    re.compile(r'"path": *"(rules/[^"]*)"'),
 )
+
+
+def mask_variable_text(
+    text: str, mask: Optional[Maskers] = None, clean_fingerprint: bool = True
+) -> str:
+    if mask is None:
+        mask = []
+    for pattern in [*mask, *ALWAYS_MASK]:
+        if isinstance(pattern, str):
+            text = text.replace(pattern, "<MASKED>")
+        elif isinstance(pattern, re.Pattern):
+            text = pattern.sub(mask_capture_group, text)
+        elif callable(pattern):
+            text = pattern(text)
+    # strip trailing whitespace characters that are emitted by pysemgrep,
+    # but we do not plan to emit them in osemgrep
+    text = re.sub(r"[ \t]+$", "", text, flags=re.M)
+    # special code for JSON cleaning, used to be in ALWAYS_MASK
+    # but sometimes we want fingerprint masking and sometimes not
+    text = _clean_output_if_json(text, clean_fingerprint)
+    return text
 
 
 @dataclass
@@ -250,37 +243,29 @@ class SemgrepResult:
         stream.seek(0)
         return stream.read()
 
-    def mask_text(self, text: str, mask: Optional[Maskers] = None) -> str:
-        if mask is None:
-            mask = []
-        for pattern in [*mask, *ALWAYS_MASK]:
-            if isinstance(pattern, str):
-                text = text.replace(pattern, "<MASKED>")
-            elif isinstance(pattern, re.Pattern):
-                text = pattern.sub(mask_capture_group, text)
-            elif callable(pattern):
-                text = pattern(text)
-        # strip trailing whitespace characters that are emitted by pysemgrep,
-        # but we do not plan to emit them in osemgrep
-        text = re.sub(r"[ \t]+$", "", text, flags=re.M)
-        # special code for JSON cleaning, used to be in ALWAYS_MASK
-        # but sometimes we want fingerprint masking and sometimes not
-        text = _clean_output_if_json(text, self.clean_fingerprint)
-        return text
-
     @property
     def stdout(self) -> str:
-        return self.mask_text(self.raw_stdout)
+        return mask_variable_text(
+            self.raw_stdout, clean_fingerprint=self.clean_fingerprint
+        )
 
     @property
     def stderr(self) -> str:
-        return self.mask_text(self.raw_stderr)
+        return mask_variable_text(
+            self.raw_stderr, clean_fingerprint=self.clean_fingerprint
+        )
 
     def as_snapshot(self, mask: Optional[Maskers] = None):
-        stdout = self.mask_text(self.raw_stdout, mask)
-        stderr = self.mask_text(self.raw_stderr, mask)
+        stdout = mask_variable_text(
+            self.raw_stdout, mask, clean_fingerprint=self.clean_fingerprint
+        )
+        stderr = mask_variable_text(
+            self.raw_stderr, mask, clean_fingerprint=self.clean_fingerprint
+        )
         sections = {
-            "command": self.mask_text(self.command, mask),
+            "command": mask_variable_text(
+                self.command, mask, clean_fingerprint=self.clean_fingerprint
+            ),
             "exit code": self.exit_code,
             "stdout - plain": self.strip_color(stdout),
             "stderr - plain": self.strip_color(stderr),
