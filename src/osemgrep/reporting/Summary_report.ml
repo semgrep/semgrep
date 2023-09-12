@@ -16,7 +16,7 @@ module Out = Semgrep_output_v1_t
 (*****************************************************************************)
 
 let pp_summary ppf
-    (respect_git_ignore, maturity, max_target_bytes, skipped_groups) =
+    (respect_git_ignore, maturity, max_target_bytes, skipped_groups) : unit =
   let {
     Skipped_report.ignored = semgrep_ignored;
     include_ = include_ignored;

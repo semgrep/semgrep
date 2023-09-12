@@ -91,7 +91,7 @@ let group_skipped (skipped : Out.skipped_target list) : skipped_targets_grouped
 (*****************************************************************************)
 
 let pp_skipped ppf
-    (respect_git_ignore, maturity, max_target_bytes, skipped_groups) =
+    (respect_git_ignore, maturity, max_target_bytes, skipped_groups) : unit =
   let {
     ignored = semgrep_ignored;
     include_ = include_ignored;
