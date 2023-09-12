@@ -881,9 +881,11 @@ and body_exn x =
           G.Block (fb [ try_ ]) |> G.s
       | Some (t, sts) ->
           let st = list_stmt1 sts in
-          let try_ = G.Try (fake t "try", body, catches, finally_opt) |> G.s in
+          let try_ =
+            G.Try (unsafe_fake "try", body, catches, finally_opt) |> G.s
+          in
           let st = G.Block (fb [ try_; st ]) |> G.s in
-          G.OtherStmtWithStmt (G.OSWS_Else_in_try, [], st) |> G.s)
+          G.OtherStmtWithStmt (G.OSWS_Else_in_try, [ G.Tk t ], st) |> G.s)
 
 and rescue_clause (t, exns, exnvaropt, sts) : G.catch =
   let st = list_stmt1 sts in
