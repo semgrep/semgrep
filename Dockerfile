@@ -197,12 +197,14 @@ RUN apk add --no-cache --virtual=.build-deps build-base make g++ &&\
 # Let the user know how their container was built
 COPY Dockerfile /Dockerfile
 
-# Get semgrep-core from step1
+# Get semgrep-core from step1 and place in the semgrep user HOME directory
+# to avoid permissions issues when installing Pro Engine on nonroot image
 COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe /home/semgrep/semgrep-core
 
 RUN ln -s semgrep-core /home/semgrep/osemgrep
 
-# ???
+# Set some env variables, including updating PATH with
+# location of semgrep-core binary
 ENV SEMGREP_IN_DOCKER=1 \
     SEMGREP_USER_AGENT_APPEND="Docker" \
     PATH="/home/semgrep:$PATH"
