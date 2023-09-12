@@ -44,20 +44,19 @@ let filter_clean_lines matches =
   let not_in_git_matches = not_in_git |> List.concat_map snd in
   in_git_matches @ not_in_git_matches
 
+let scan_conf = { Scan_CLI.default with strict = false; nosem = true }
 (*************************************************************************)
 (* Entry point *)
 (*************************************************************************)
 
-let of_matches ?(only_git_dirty = true) (result : Core_runner.result) =
-  let matches = result.core.results in
-  let hrules = result.hrules in
+let of_matches ?(skipped_fingerprints = []) ?(only_git_dirty = true)
+    (result : Core_runner.result) =
+  let result = (Output.preprocess_result scan_conf result) () in
   (* Match the rules with the matches so we can get fixes/rule-ids/messages *)
   let matches =
-    matches
-    |> Common.map (Cli_json_output.cli_match_of_core_match hrules)
-    |> Common.exclude (fun m ->
-           let to_ignore, _errs = Nosemgrep.rule_match_nosem ~strict:false m in
-           to_ignore)
+    result.results
+    |> List.filter (fun (m : Out.cli_match) ->
+           not (List.mem m.extra.fingerprint skipped_fingerprints))
   in
   (* Filter dirty lines *)
   if only_git_dirty then filter_clean_lines matches else matches

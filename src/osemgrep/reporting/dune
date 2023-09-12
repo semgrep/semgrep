@@ -7,6 +7,8 @@
    commons
    fmt
    terminal_size
+   digestif
+
    osemgrep_core
    semgrep.reporting
  )

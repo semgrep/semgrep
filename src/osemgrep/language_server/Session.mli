@@ -1,8 +1,12 @@
 open Lsp
 open Types
 
-type rule_cache = { mutable rules : Rule.t list; lock : Lwt_mutex.t }
-(** Cache of active rules. Protected by mutex as [cache_rules] below can be called asynchronously,
+type session_cache = {
+  mutable rules : Rule.t list;
+  mutable skipped_fingerprints : string list;
+  lock : Lwt_mutex.t;
+}
+(** Cache of active rules and skipped fingerprints. Protected by mutex as [cache_session] below can be called asynchronously,
     and so this cache needs to be safe *)
 
 type t = {
@@ -11,18 +15,17 @@ type t = {
   outgoing : Lwt_io.output_channel;
   workspace_folders : Fpath.t list;
   cached_scans : (Fpath.t, Semgrep_output_v1_t.cli_match list) Hashtbl.t;
-  cached_rules : rule_cache;
+  cached_session : session_cache;
   user_settings : UserSettings.t;
-  token : string option; (* Mostly for testing *)
 }
 
 val create : ServerCapabilities.t -> t
 (** [create capabilities] creates a [Session.t] given server capabilities *)
 
-val cache_rules : t -> unit Lwt.t
-(** [cache_rules t] caches the rules for the session. Fetches rules from any configured source
+val cache_session : t -> unit Lwt.t
+(** [cache_session t] caches the rules and skipped fingerprints for the session. Fetches rules from any configured source
     as in [t.user_settings], and CI if an api token is available. This is an asynchronous operation,
-    and so the rules are stored in a [rule_cache] *)
+    and so the rules are stored in a [session_cache] *)
 
 val targets : t -> Fpath.t list
 (** [targets t] returns the list of targets for the session. This is a list of files in

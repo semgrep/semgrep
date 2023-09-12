@@ -1,5 +1,3 @@
-open Lsp
-open Types
 open Testutil
 open File.Operators
 module Out = Semgrep_output_v1_t
@@ -7,9 +5,12 @@ module In = Input_to_core_t
 
 (** Try to test all of the more complex parts of the LS, but save the e2e stuff
     for the python side as testing there is easier *)
+(*****************************************************************************)
+(* Mocks *)
+(*****************************************************************************)
 
 let mock_session () =
-  let capabilities = ServerCapabilities.create () in
+  let capabilities = Lsp.Types.ServerCapabilities.create () in
   let session = Session.create capabilities in
   session
 
@@ -90,6 +91,17 @@ let add_file ?(git = false) ?(dirty = false)
   if git then Git_wrapper.add workspace [ Fpath.v file ];
   if (not dirty) && git then Git_wrapper.commit workspace "test";
   file
+
+let with_mock_envvars f () =
+  let old_settings = !Semgrep_envvars.v in
+  let new_settings = { old_settings with app_token = Some "123456789" } in
+  Semgrep_envvars.v := new_settings;
+  f ();
+  Semgrep_envvars.v := old_settings
+
+(*****************************************************************************)
+(* Tests *)
+(*****************************************************************************)
 
 let session_targets () =
   let test_session expected workspace_folders only_git_dirty =
@@ -222,29 +234,46 @@ let processed_run () =
   in
   pack_tests "Processed Run" tests
 
-let session_rules () =
+let ci_tests () =
   let with_ci_client =
     let make_fn (req : Cohttp.Request.t) body =
       ignore body;
+      let uri = req |> Cohttp.Request.uri |> Uri.path in
       Http_mock_client.check_method `GET req.meth;
+      let body_file =
+        match uri with
+        | "/api/agent/deployments/scans/config" ->
+            "./tests/ls/ci/rule_conf_resp.json"
+        | "/api/agent/deployments/current" ->
+            "./tests/ls/ci/deployment_conf_resp.json"
+        | _ ->
+            failwith (Printf.sprintf "Unexpected request to %s in CI tests" uri)
+      in
       Lwt.return
         Http_mock_client.(
           basic_response
-            ("./tests/ls/ci/response.json" |> Common.read_file
-           |> Cohttp_lwt.Body.of_string))
+            (body_file |> Common.read_file |> Cohttp_lwt.Body.of_string))
     in
     Http_mock_client.with_testing_client make_fn
   in
-  let test_cache_rules () =
+  let test_cache_session () =
     let session = mock_session () in
-    let session = { session with token = Some "123456789" } in
-    Lwt_main.run (Session.cache_rules session);
-    let rules = session.cached_rules.rules in
-    Alcotest.(check int) "rules" 1 (List.length rules)
+    Lwt_main.run (Session.cache_session session);
+    let rules = session.cached_session.rules in
+    Alcotest.(check int) "rules" 1 (List.length rules);
+    let skipped_fingerprints = session.cached_session.skipped_fingerprints in
+    Alcotest.(check int)
+      "skipped_fingerprints" 1
+      (List.length skipped_fingerprints)
   in
-  let tests = [ ("Test session rules", with_ci_client test_cache_rules) ] in
-  pack_tests "Session Rules" tests
+  let tests =
+    [
+      ( "Test session cache",
+        with_mock_envvars (with_ci_client test_cache_session) );
+    ]
+  in
+  pack_tests "CI Tests" tests
 
 let tests =
   pack_suites "Language Server"
-    [ session_targets (); processed_run (); session_rules () ]
+    [ session_targets (); processed_run (); ci_tests () ]
