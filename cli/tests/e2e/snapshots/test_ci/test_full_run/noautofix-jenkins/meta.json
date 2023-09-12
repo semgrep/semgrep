@@ -20,6 +20,7 @@
     "scan_environment": "jenkins",
     "is_full_scan": true,
     "is_sca_scan": false,
+    "is_code_scan": false,
     "is_secrets_scan": false
   }
 }
