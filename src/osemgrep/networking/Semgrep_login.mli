@@ -13,7 +13,7 @@ val make_login_url : unit -> login_session
 val save_token : ?ident:string option -> string -> (unit, string) result
 (** [save_token ?ident token] will save the token to the user's settings file.
   * If it fails, it will return an error message.
-  * [ident] is the login identifier to be used as an opaque UUID once hashed
+  * [ident] is the login identifier that can be used as an opaque UUID once hashed
   * [token] (auth token) is the token to save for future API calls
   *)
 

@@ -194,7 +194,7 @@ Semgrep, Inc will:
 > `anonymous_user_id: "5f52484c-3f82-4779-9353-b29bbd3193b6"`
 
 Semgrep generates a new random UUID and saves the ID locally to a `~/.semgrep/settings.yml` file
-when the ID is not present (and upon log out) to help improve the Semgrep product while commiting to promote online privacy and anonymity.
+when the ID is not present to help improve Semgrep products.
 
 The Semgrep team uses this ID to help answer the following questions:
 
@@ -210,14 +210,6 @@ The Semgrep team uses this ID to help answer the following questions:
 - > How often are individual subcommands and CLI features used?
 
   This helps our product and developer experience teams measure feature adoption rate, analyze anonymized usage, and compare cohort behavior to improve our product offerings.
-
-By using privacy by design principles, we intend to limit the ability for this ID to be used to track users across the web.
-
-1. **Randomization:** This ID is generated using a random algorithm (UUID V4) and does not contain any personally identifiable information (PII). Even with access to this ID, third-parties will not be able to associate this ID with a specific person.
-2. **Rotation:** This ID can be regularly reset, changed, or rotated, which limits entities to observe individual usage over an extended period of time.
-3. **Isolation:** This ID is only used for a specific purpose of analytics within a limited context of Semgrep and its product offerings.
-4. **Pseudonymization:** For logged in users who have accepted Semgrep’s terms of service and privacy policy, we will sanitize and transform (using a deterministic cryptographically secure hash) the PII used in generating a stable ID before sending data to the Semgrep, Inc backend and associated metrics collection endpoints.
-5. **User Consent and Control:** Users have control over their ID and can opt out in metrics collection at any time.
 
 ### Feature usage
 

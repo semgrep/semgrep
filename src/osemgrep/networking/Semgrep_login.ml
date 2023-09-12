@@ -43,16 +43,7 @@ let save_token ?(ident = None) token =
   | None -> Error "Login token is not valid. Please try again."
   | Some (_name, id)
     when Semgrep_settings.save
-           Semgrep_settings.
-             {
-               settings with
-               api_token = Some token;
-               anonymous_user_id =
-                 Uuidm.v5 Uuidm.nil
-                   (match ident with
-                   | Some ident -> ident
-                   | None -> id);
-             } ->
+           Semgrep_settings.{ settings with api_token = Some token } ->
       Ok ()
   | _ -> Error "Failed to save token. Please try again."
 
@@ -79,11 +70,7 @@ let fetch_token ?(min_wait_ms = 2000) ?(next_wait_ms = 1000) ?(max_retries = 12)
       ("Content-Type", "application/json");
       (* include the user_agent which encodes the current semgrep version *)
       ("User-Agent", user_agent);
-      (* include the anonymous user id to help with debugging and analysis.
-       * We use pseudonymization to preserve user privacy while still
-       * supporting our ability to identify usage trends and compare behavior
-       * across different cohorts.
-       *)
+      (* include the anonymous user id to help with debugging and analysis.*)
       ("X-Semgrep-Client-Id", Uuidm.to_string anonymous_user_id);
     ]
   in
