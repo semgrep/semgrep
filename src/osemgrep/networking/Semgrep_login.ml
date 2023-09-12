@@ -38,10 +38,13 @@ let make_login_url () =
         ]) )
 
 let save_token ?(ident = None) token =
+  Option.iter
+    (fun v -> Logs.debug (fun m -> m "saving token for user %s" v))
+    ident;
   let settings = Semgrep_settings.load () in
   match Semgrep_App.get_deployment_from_token token with
   | None -> Error "Login token is not valid. Please try again."
-  | Some (_name, id)
+  | Some (_name, _id)
     when Semgrep_settings.save
            Semgrep_settings.{ settings with api_token = Some token } ->
       Ok ()
