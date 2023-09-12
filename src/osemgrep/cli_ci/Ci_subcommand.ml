@@ -20,13 +20,13 @@ module Out = Semgrep_output_v1_t
 (* eventually output the origin (if the semgrep_url is not semgrep.dev) *)
 let at_url_maybe ppf () =
   if
-    Uri.equal Semgrep_envvars.v.semgrep_url
+    Uri.equal !Semgrep_envvars.v.semgrep_url
       (Uri.of_string "https://semgrep.dev")
   then Fmt.string ppf ""
   else
     Fmt.pf ppf " at %a"
       Fmt.(styled `Bold string)
-      (Uri.to_string Semgrep_envvars.v.semgrep_url)
+      (Uri.to_string !Semgrep_envvars.v.semgrep_url)
 
 let decode_rules data =
   Common2.with_tmp_file ~str:data ~ext:"json" (fun file ->
@@ -211,6 +211,7 @@ let finding_of_cli_match _commit_date index (m : Out.cli_match) : Out.finding =
 
 (* from scans.py *)
 let prepare_for_report ~blocking_findings findings errors rules ~targets
+    ~(contributions : Out.contributions option)
     ~(ignored_targets : Out.skipped_target list option) ~commit_date
     ~engine_requested =
   let rule_ids =
@@ -265,7 +266,7 @@ let prepare_for_report ~blocking_findings findings errors rules ~targets
         (* TODO: get renamed_paths, depends on baseline_commit *)
         renamed_paths = [];
         rule_ids;
-        contributions = None;
+        contributions;
         (* TODO: Figure out correct value for this. *)
         dependencies = None;
       }
@@ -381,6 +382,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
   in
   (* TODO: pass baseline commit! *)
   let metadata = generate_meta_from_environment None in
+  let contributions = Parse_contribution.get_contributions () in
   match deployment with
   | Error e -> e
   | Ok depl -> (
@@ -431,7 +433,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
                metadata_dict = {**metadata_dict, **proj_config.to_dict()} *)
             match
               Scan_helper.start_scan ~dry_run:conf.dryrun ~token
-                Semgrep_envvars.v.semgrep_url metadata_dict
+                !Semgrep_envvars.v.semgrep_url metadata_dict
             with
             | Error msg ->
                 Logs.err (fun m -> m "Could not start scan %s" msg);
@@ -568,6 +570,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
                           ~targets:cli_output.Out.paths.Out.scanned
                           ~ignored_targets:cli_output.Out.paths.skipped
                           ~commit_date:"" ~engine_requested:`OSS
+                          ~contributions:(Some contributions)
                       in
                       let result =
                         match

@@ -224,12 +224,16 @@ let processed_run () =
 
 let session_rules () =
   let with_ci_client =
-    let make_fn req body =
+    let make_fn (req : Cohttp.Request.t) body =
       ignore body;
-      Testing_client.check_method req "GET";
-      Lwt.return Testing_client.(basic_response "./tests/ls/ci/response.json")
+      Http_mock_client.check_method `GET req.meth;
+      Lwt.return
+        Http_mock_client.(
+          basic_response
+            ("./tests/ls/ci/response.json" |> Common.read_file
+           |> Cohttp_lwt.Body.of_string))
     in
-    Testing_client.with_testing_client make_fn
+    Http_mock_client.with_testing_client make_fn
   in
   let test_cache_rules () =
     let session = mock_session () in

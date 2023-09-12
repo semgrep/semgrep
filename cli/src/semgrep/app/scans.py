@@ -263,6 +263,7 @@ class ScanHandler:
         commit_date: str,
         lockfile_dependencies: Dict[str, List[out.FoundDependency]],
         dependency_parser_errors: List[DependencyParserError],
+        contributions: out.Contributions,
         engine_requested: "EngineType",
         progress_bar: "Progress",
     ) -> Tuple[bool, str]:
@@ -314,6 +315,7 @@ class ScanHandler:
             searched_paths=[str(t) for t in sorted(targets)],
             renamed_paths=[str(rt) for rt in sorted(renamed_targets)],
             rule_ids=rule_ids,
+            contributions=contributions,
         )
         if self._dependency_query:
             ci_scan_results.dependencies = out.CiScanDependencies(lockfile_dependencies)

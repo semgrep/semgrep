@@ -40,6 +40,7 @@ type partial_profiling = {
 [@@deriving show]
 
 type file_profiling = {
+  (* TODO: Fpath.t *)
   file : Common.filename;
   rule_times : rule_profiling list;
   run_time : float;

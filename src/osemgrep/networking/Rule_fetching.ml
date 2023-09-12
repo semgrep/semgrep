@@ -11,7 +11,7 @@ module XP = Xpattern
 (* Prelude *)
 (*****************************************************************************)
 (*
-   Partially translated from config_resolver.py
+   Fetching rules from the local filesystem or from the network (registry).
 
    TODO:
     - lots of stuff ...
@@ -19,6 +19,8 @@ module XP = Xpattern
    osemgrep-only:
     - can pass -e without -l (try all possible languages)
     - use a registry cache to speedup things
+
+   Partially translated from config_resolver.py
  *)
 
 (*****************************************************************************)
@@ -160,7 +162,7 @@ type _registry_cached_value =
 let fetch_content_from_registry_url ~registry_caching url =
   if not registry_caching then fetch_content_from_url url
   else
-    let cache_dir = Env.v.user_dot_semgrep_dir / "cache" / "registry" in
+    let cache_dir = !Env.v.user_dot_semgrep_dir / "cache" / "registry" in
     let cache_methods =
       {
         Cache_disk.cache_file_for_input =

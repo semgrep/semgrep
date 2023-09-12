@@ -20,7 +20,7 @@ let get_deployment_id ~token_opt =
       match
         Http_helpers.get
           ~headers:[ ("authorization", "Bearer " ^ token) ]
-          (Uri.with_path Semgrep_envvars.v.semgrep_url
+          (Uri.with_path !Semgrep_envvars.v.semgrep_url
              "api/agent/deployments/current")
       with
       | Error msg ->
@@ -47,7 +47,7 @@ let get_deployment_from_token ~token =
   match
     Http_helpers.get
       ~headers:[ ("authorization", "Bearer " ^ token) ]
-      (Uri.with_path Semgrep_envvars.v.semgrep_url
+      (Uri.with_path !Semgrep_envvars.v.semgrep_url
          "api/agent/deployments/current")
   with
   | Error msg ->
@@ -75,7 +75,7 @@ let scan_config ?(sca = false) ?(dry_run = true) ?(full_scan = true) repo_name =
   let json_bool_to_string b = JSON.(string_of_json (Bool b)) in
   Uri.(
     add_query_params'
-      (with_path Semgrep_envvars.v.semgrep_url default_semgrep_app_config_url)
+      (with_path !Semgrep_envvars.v.semgrep_url default_semgrep_app_config_url)
       [
         ("sca", json_bool_to_string sca);
         ("dry_run", json_bool_to_string dry_run);

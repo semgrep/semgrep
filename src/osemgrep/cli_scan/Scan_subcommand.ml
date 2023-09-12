@@ -24,6 +24,7 @@ open Common
    from semgrep_main.py and core_runner.py.
 *)
 
+module Env = Semgrep_envvars
 module Out = Semgrep_output_v1_t
 module RP = Report
 module SS = Set.Make (String)
@@ -453,15 +454,10 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     let (res : Core_runner.result) =
       Core_runner.create_core_result filtered_rules exn_and_matches
     in
-
-    Metrics_.add_engine_type
-      ~name:
-        (Format.asprintf "%a" Out.pp_engine_kind
-           res.Core_runner.core.engine_requested);
+    Metrics_.add_engine_kind res.Core_runner.core.engine_requested;
 
     let filtered_matches = rules_and_counted_matches res in
     Metrics_.add_findings filtered_matches;
-    Metrics_.add_errors res.core.errors;
 
     (* step 4: report matches *)
     let errors_skipped = errors_to_skipped res.core.errors in
@@ -484,8 +480,11 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
       Output.output_result { conf with output_format } profiler res
     in
     Profiler.stop_ign profiler ~name:"total_time";
-    if Metrics_.is_enabled conf.metrics then (
-      Metrics_.add_rules ?profiling:res.core.time filtered_rules;
+
+    if Metrics_.is_enabled () then (
+      Metrics_.add_errors cli_output.errors;
+      Metrics_.add_rules_hashes_and_rules_profiling ?profiling:res.core.time
+        filtered_rules;
       Metrics_.add_profiling profiler);
 
     Logs.info (fun m ->
@@ -537,12 +536,13 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
     (fun () ->
       Metrics_.configure conf.metrics;
       let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
-      if Metrics_.is_enabled conf.metrics then
-        Metrics_.add_project_url (Git_wrapper.get_project_url ());
-      Metrics_.add_integration_name (Sys.getenv_opt "SEMGREP_INTEGRATION_NAME");
+      if Metrics_.is_enabled () then
+        Git_wrapper.get_project_url ()
+        |> Option.iter Metrics_.add_project_url_hash;
+      Metrics_.g.payload.environment.integrationName <- !Env.v.integration_name;
       (match conf.rules_source with
-      | Rules_source.Configs configs -> Metrics_.add_configs configs
-      | _ -> ());
+      | Configs configs -> Metrics_.add_configs_hash configs
+      | Pattern _ -> ());
       settings)
     |> Profiler.record profiler ~name:"config_time"
   in

@@ -121,7 +121,7 @@ let runner_config_of_conf (conf : conf) : Runner_config.t =
       let output_format = Runner_config.Json false (* no dots *) in
       let filter_irrelevant_rules = optimizations in
       let parsing_cache_dir =
-        if ast_caching then Some (Env.v.user_dot_semgrep_dir / "cache" / "asts")
+        if ast_caching then Some (!Env.v.user_dot_semgrep_dir / "cache" / "asts")
         else None
       in
       {
@@ -277,7 +277,7 @@ let invoke_semgrep_core
      metrics, we will just need to set [final_result.extra] to
      [RP.Debug]/[RP.Time] and this line of code will not change. *)
   Metrics_.add_max_memory_bytes (RP.debug_info_to_option res.extra);
-  Metrics_.add_targets scanned (RP.debug_info_to_option res.extra);
+  Metrics_.add_targets_stats scanned (RP.debug_info_to_option res.extra);
 
   (exn, res, scanned)
   [@@profiling]
