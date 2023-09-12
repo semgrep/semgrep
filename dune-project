@@ -442,6 +442,7 @@ For more information see https://semgrep.dev
     (lsp (= 1.15.1-5.0))
     ; web stuff
     uri
+    jwto
     cohttp-lwt-unix
     tls-lwt ; needed for TLS support in the cohttp HTTP client (only TLS 1.3 seems to work)
     emile

@@ -51,6 +51,7 @@ depends: [
   "uuidm"
   "lsp" {= "1.15.1-5.0"}
   "uri"
+  "jwto"
   "cohttp-lwt-unix"
   "tls-lwt"
   "emile"

@@ -73,6 +73,28 @@ let run (conf : Login_CLI.conf) : Exit_code.t =
                   "Error: semgrep login is an interactive command: run in an \
                    interactive terminal (or define SEMGREP_APP_TOKEN)");
             Exit_code.fatal)
+          else if true then (
+            (* FAKE hook *)
+            let payload =
+              [
+                ("deployment_id", "12345");
+                ("deployment_name", "zz");
+                ("user_id", "1234");
+                ("user_name", "zzeleznick");
+                ("token", "abcdefg");
+              ]
+            in
+            let signed_token = Jwto.encode Jwto.HS256 "secret" payload in
+            let signed_token = Result.get_ok signed_token in
+            Logs.app (fun m -> m "%s" signed_token);
+            let decoded_token = Jwto.decode signed_token in
+            Result.iter
+              (fun v ->
+                Logs.app (fun m ->
+                    m "decoded: %s"
+                      (Jwto.get_payload v |> Jwto.payload_to_string)))
+              decoded_token;
+            Exit_code.ok)
           else
             let session_id, url = Semgrep_login.make_login_url () in
             Logs.app (fun m -> m "%a" Fmt_helpers.pp_heading "Login");
