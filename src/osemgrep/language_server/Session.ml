@@ -137,9 +137,10 @@ let fetch_rules session =
   let%lwt rules_and_origins =
     Lwt_list.map_p
       (fun source ->
-        let kind = Semgrep_dashdash_config.parse_config_string source in
+        let in_docker = !Semgrep_envvars.v.in_docker in
+        let config = Rules_config.parse_config_string ~in_docker source in
         Rule_fetching.rules_from_dashdash_config_async
-          ~token_opt:(auth_token ()) ~registry_caching:true kind)
+          ~token_opt:(auth_token ()) ~registry_caching:true config)
       rules_source
   in
   let rules_and_origins = List.flatten rules_and_origins in

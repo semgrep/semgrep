@@ -3,7 +3,7 @@ open File.Operators
 module E = Error
 module Env = Semgrep_envvars
 module FT = File_type
-module C = Semgrep_dashdash_config
+module C = Rules_config
 module R = Rule
 module XP = Xpattern
 
@@ -216,7 +216,8 @@ let import_callback ~registry_caching base str =
   | s ->
       let url_opt =
         try
-          let kind = Semgrep_dashdash_config.parse_config_string s in
+          let in_docker = !Semgrep_envvars.v.in_docker in
+          let kind = Rules_config.parse_config_string ~in_docker s in
           match kind with
           | C.A _ -> failwith "TODO: app_config in jsonnet not handled"
           | C.R rkind ->
@@ -405,8 +406,9 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
   | Configs xs ->
       xs
       |> List.concat_map (fun str ->
-             let kind = Semgrep_dashdash_config.parse_config_string str in
-             rules_from_dashdash_config ~token_opt ~registry_caching kind)
+             let in_docker = !Semgrep_envvars.v.in_docker in
+             let config = Rules_config.parse_config_string ~in_docker str in
+             rules_from_dashdash_config ~token_opt ~registry_caching config)
       |> Common.map (rules_rewrite_rule_ids ~rewrite_rule_ids)
   (* better: '-e foo -l regex' was not handled in pysemgrep
    *  (got a weird 'invalid pattern clause' error)

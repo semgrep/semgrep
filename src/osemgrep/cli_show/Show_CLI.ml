@@ -35,7 +35,7 @@ and target_kind =
    * alt: we could accept multiple Files via multiple target_roots *)
   | File of Fpath.t * Lang.t
   (* 'semgrep show dump-config <config_str>' *)
-  | Config of Semgrep_dashdash_config.config_string
+  | Config of Rules_config.config_string
   (* 'semgrep show ???'
    * accessible also as 'semgrep scan --dump-engine-path
    * LATER: get rid of it? *)
