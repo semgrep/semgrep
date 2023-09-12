@@ -58,10 +58,11 @@ val taint_config_of_rule :
   unit) ->
   Dataflow_tainting.config * debug_taint * Matching_explanation.t list
 
-val mk_params_env :
+val mk_fun_input_env :
   Language.t ->
   Rule_options_t.t ->
   Dataflow_tainting.config ->
+  ?glob_env:Taint_lval_env.t ->
   AST_generic.function_definition ->
   Taint_lval_env.t
 (** Constructs the initial taint environment for a given function definition.
@@ -75,6 +76,7 @@ val check_fundef :
   Dataflow_tainting.config ->
   AST_generic.entity option (** entity being analyzed *) ->
   AST_to_IL.ctx ->
+  ?glob_env:Taint_lval_env.t ->
   Dataflow_tainting.java_props_cache ->
   AST_generic.function_definition ->
   IL.cfg * Dataflow_tainting.mapping

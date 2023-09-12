@@ -335,6 +335,20 @@ let has_keyword_attr kwd attrs =
        | KeywordAttr (kwd2, _) -> kwd =*= kwd2
        | _ -> false)
 
+let name_is_global = function
+  | Global (* OSS *)
+  | GlobalName _ (* Pro *)
+  | EnclosedVar (* OSS / a class variable *) ->
+      true
+  | LocalVar
+  | Parameter
+  | ImportedEntity _
+  | ImportedModule _
+  | TypeName
+  | Macro
+  | EnumConstant ->
+      false
+
 (* just used in cpp_to_generic.ml for now, could be moved there *)
 let parameter_to_catch_exn_opt p =
   match p with

@@ -76,6 +76,8 @@ val dotted_ident_of_name : AST_generic.name -> AST_generic.dotted_ident
 
 (* misc *)
 
+val name_is_global : AST_generic.resolved_name_kind -> bool
+
 val parameter_to_catch_exn_opt :
   AST_generic.parameter -> AST_generic.catch_exn option
 
