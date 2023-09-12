@@ -254,7 +254,22 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
         | LexicalError
         | PartialParsing _ ->
             None
-        | _else_ -> rule_id
+        | SpecifiedParseError
+        | AstBuilderError
+        | RuleParseError
+        | PatternParseError _
+        | InvalidYaml
+        | MatchingError
+        | SemgrepMatchFound
+        | TooManyMatches
+        | FatalError
+        | Timeout
+        | OutOfMemory
+        | TimeoutDuringInterfile
+        | OutOfMemoryDuringInterfile
+        | IncompatibleRule _
+        | MissingPlugin ->
+            rule_id
       in
       let path =
         (* # For rule errors path is a temp file so will just be confusing *)
@@ -262,7 +277,23 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
         | RuleParseError
         | PatternParseError _ ->
             None
-        | _else_ -> Some location.path
+        | ParseError
+        | LexicalError
+        | PartialParsing _
+        | SpecifiedParseError
+        | AstBuilderError
+        | InvalidYaml
+        | MatchingError
+        | SemgrepMatchFound
+        | TooManyMatches
+        | FatalError
+        | Timeout
+        | OutOfMemory
+        | TimeoutDuringInterfile
+        | OutOfMemoryDuringInterfile
+        | IncompatibleRule _
+        | MissingPlugin ->
+            Some location.path
       in
       let message =
         Some (error_message ~rule_id ~error_type ~location ~core_message)
