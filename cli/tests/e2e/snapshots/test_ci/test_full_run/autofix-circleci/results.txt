@@ -80,7 +80,7 @@ CI="true" CIRCLECI="true" CIRCLE_PROJECT_USERNAME="project_name" CIRCLE_PROJECT_
                 pull_request
 
   CONNECTION
-  Reporting start of scan for deployment_name (scan_id={scan_handler.scan_id})
+  Reporting start of scan for deployment_name (scan_id=<MagicMock name='post()…
   Fetching configuration from Semgrep Cloud Platform
   Enabled products: Semgrep Code, Semgrep Supply Chain
 

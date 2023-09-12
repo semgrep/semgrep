@@ -80,7 +80,7 @@ BUILD_BUILDID="some_id" BUILD_REPOSITORY_URI="https://github.com/project_name/pr
                 pull_request
 
   CONNECTION
-  Reporting start of scan for deployment_name (scan_id={scan_handler.scan_id})
+  Reporting start of scan for deployment_name (scan_id=<MagicMock name='post()…
   Fetching configuration from Semgrep Cloud Platform
   Enabled products: Semgrep Code, Semgrep Supply Chain
 

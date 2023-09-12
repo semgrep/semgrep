@@ -80,7 +80,7 @@ BUILDKITE="true" BUILDKITE_REPO="git@github.com/project_name/project_name.git" B
                 pull_request
 
   CONNECTION
-  Reporting start of scan for deployment_name (scan_id={scan_handler.scan_id})
+  Reporting start of scan for deployment_name (scan_id=<MagicMock name='post()…
   Fetching configuration from Semgrep Cloud Platform
   Enabled products: Semgrep Code, Semgrep Supply Chain
 
