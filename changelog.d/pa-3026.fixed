@@ -1,0 +1,4 @@
+Updated location of `semgrep-core` binary to `/home/semgrep` and
+updated `$PATH` env variable with the new location. This avoids
+permissions issues when running/installing Pro Engine while using
+the non-root Docker image.
