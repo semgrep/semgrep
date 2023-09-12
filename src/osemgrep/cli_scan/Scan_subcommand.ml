@@ -473,13 +473,13 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
 let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
   let profiler = Profiler.make () in
   Profiler.start profiler ~name:"total_time";
+  (* Metrics initialization (and finalization) is done in CLI.ml,
+   * but here we "configure" it (enable or disable it) based on CLI flags.
+   *)
+  Metrics_.configure conf.metrics;
   let settings =
     (fun () ->
       let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
-      (* Metrics initialization (and finalization) is done in CLI.ml,
-       * but here we "configure" it (enable or disable it) based on CLI flags.
-       *)
-      Metrics_.configure conf.metrics;
       Metrics_.add_token settings.api_token;
       (* TODO? why guard this one with is_enabled? because calling
        * git can take time (and generate errors on stderr)?
