@@ -48,6 +48,13 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 # which seems more complicated).
 PATH = os.environ.get("PATH", "")
 os.environ["PATH"] = PATH + os.pathsep + os.path.dirname(os.path.abspath(__file__))
+
+class CoreNotFound(Exception):
+    def __init__(self, value):
+        self.value = value
+ 
+    def __str__(self):
+        return(self.value)
            
 # similar to cli/src/semgrep/semgrep_core.py compute_executable_path()
 def find_semgrep_core_path(core="semgrep-core", extra_message=""):
@@ -71,10 +78,11 @@ def find_semgrep_core_path(core="semgrep-core", extra_message=""):
     if path is not None:
         return path
  
-    print(f"Failed to find {core} in PATH or in the semgrep package.{extra_message}",
-          file=sys.stderr)
-    # fatal error, see src/osemgrep/core/Exit_code.ml
-    sys.exit(2)
+    raise CoreNotFound(f"Failed to find {core} in PATH or in the semgrep package.{extra_message}")
+
+def exec_legacy_semgrep():
+    import semgrep.main
+    sys.exit(semgrep.main.main())
 
 # We could have moved the code below in a separate 'osemgrep' file, like
 # for 'pysemgrep', but we don't want users to be exposed to another command,
@@ -86,13 +94,29 @@ def find_semgrep_core_path(core="semgrep-core", extra_message=""):
 # they'll get the old behavior.
 def exec_osemgrep():
     if "--pro" in sys.argv:
-        path = find_semgrep_core_path(core="semgrep-core-proprietary",
+        try:
+            path = find_semgrep_core_path(core="semgrep-core-proprietary",
                                       extra_message="\nYou may need to run `semgrep install-semgrep-pro`"    )
+        except CoreNotFound as e:
+            print(str(e), file=sys.stderr)
+            if "ci" in sys.argv:
+                # CI users usually want things to just work. In particular, if they
+                # are running `semgrep ci --pro` they don't want to have to add an
+                # extra step to install-semgrep-pro. This wrapper doesn't have a way
+                # to install semgrep-pro, however, so have them run legacy `semgrep`. 
+                print("Since `semgrep ci` was run, defaulting to legacy semgrep", file=sys.stderr)
+                exec_legacy_semgrep()
         # If you call semgrep-core-proprietary as osemgrep-pro, then we get
         # osemgrep-pro behavior, see semgrep-proprietary/src/main/Pro_main.ml
         sys.argv[0] = "osemgrep-pro"
     else:
-        path = find_semgrep_core_path()
+        try:
+            path = find_semgrep_core_path()
+        except CoreNotFound as e:
+            print(str(e), file=sys.stderr)
+            # fatal error, see src/osemgrep/core/Exit_code.ml
+            sys.exit(2)
+
         # If you call semgrep-core as osemgrep, then we get
         # osemgrep behavior, see src/main/Main.ml
         sys.argv[0] = "osemgrep"
@@ -112,8 +136,7 @@ if __name__ == "__main__":
        # thing not supported by osemgrep anyway),
        #TODO: we should fix --test instead.
        # The past investigation of Austin is available in #8360 PR comments
-       import semgrep.main
-       sys.exit(semgrep.main.main())
+       exec_legacy_semgrep()
     elif "--experimental" in sys.argv:
        exec_osemgrep()
     else:
