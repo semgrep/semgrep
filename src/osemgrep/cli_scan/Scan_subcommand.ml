@@ -328,7 +328,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
 (*****************************************************************************)
 let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     (rules_and_origins : Rule_fetching.rules_and_origin list)
-    (targets_and_ignored : Fpath.t list * Out.skipped_target list) :
+    (targets_and_skipped : Fpath.t list * Out.skipped_target list) :
     (Rule.rule list * Core_runner.result * Out.cli_output, Exit_code.t) result =
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origins
@@ -349,12 +349,12 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
         m "%a" Rules_report.pp_rules (conf.rules_source, filtered_rules));
 
     (* step 2: printing the skipped targets *)
-    let targets, semgrepignored_targets = targets_and_ignored in
+    let targets, skipped = targets_and_skipped in
     Logs.debug (fun m ->
         m "%a" Targets_report.pp_targets_debug
-          (conf.target_roots, semgrepignored_targets, targets));
+          (conf.target_roots, skipped, targets));
     Logs.info (fun m ->
-        semgrepignored_targets
+        skipped
         |> List.iter (fun (x : Semgrep_output_v1_t.skipped_target) ->
                m "Ignoring %s due to %s (%s)" x.Semgrep_output_v1_t.path
                  (Semgrep_output_v1_t.show_skip_reason
@@ -411,11 +411,13 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
 
     (* step 4: adjust the skipped_targets *)
     let errors_skipped = Skipped_report.errors_to_skipped res.core.errors in
+    let skipped = skipped @ errors_skipped in
     let (res : Core_runner.result) =
+      (* TODO: what is in core.skipped_targets? should we add them to
+       * skipped above too?
+       *)
       let skipped_targets =
-        Some
-          (semgrepignored_targets @ errors_skipped
-          @ Common.optlist_to_list res.core.skipped_targets)
+        Some (skipped @ Common.optlist_to_list res.core.skipped_targets)
       in
       (* Add the targets that were semgrepignored or errorneous *)
       let core = { res.core with skipped_targets } in
@@ -435,10 +437,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
         filtered_rules;
       Metrics_.add_profiling profiler);
 
-    (* TODO? just concatenate errors_skipped earlier? *)
-    let skipped_groups =
-      Skipped_report.group_skipped ~errors_skipped semgrepignored_targets
-    in
+    let skipped_groups = Skipped_report.group_skipped skipped in
     Logs.info (fun m ->
         m "%a" Skipped_report.pp_skipped
           ( conf.targeting_conf.respect_git_ignore,
@@ -531,12 +530,12 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
   in
 
   (* step2: getting the targets *)
-  let targets_and_ignored =
+  let targets_and_skipped =
     Find_targets.get_targets conf.targeting_conf conf.target_roots
   in
   (* step3: let's go *)
   let res =
-    run_scan_files conf profiler rules_and_origins targets_and_ignored
+    run_scan_files conf profiler rules_and_origins targets_and_skipped
   in
   match res with
   | Error ex -> ex

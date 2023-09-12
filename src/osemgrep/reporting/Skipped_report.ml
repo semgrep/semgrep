@@ -18,8 +18,8 @@ type skipped_targets_grouped = {
   include_ : Semgrep_output_v1_t.skipped_target list;
   exclude : Semgrep_output_v1_t.skipped_target list;
   other : Semgrep_output_v1_t.skipped_target list;
-  (* targets skipped because there was parsing/matching
-   * errors while running the engine on it.
+  (* targets possibly skipped because there was a parsing/matching/...
+   * error while running the engine on it.
    *)
   errors : Semgrep_output_v1_t.skipped_target list;
 }
@@ -39,8 +39,8 @@ let errors_to_skipped (errors : Out.core_error list) : Out.skipped_target list =
              rule_id;
            })
 
-let group_skipped ~errors_skipped (skipped : Out.skipped_target list) :
-    skipped_targets_grouped =
+let group_skipped (skipped : Out.skipped_target list) : skipped_targets_grouped
+    =
   let groups =
     Common.group_by
       (fun (Out.{ reason; _ } : Out.skipped_target) ->
@@ -53,8 +53,8 @@ let group_skipped ~errors_skipped (skipped : Out.skipped_target list) :
             `Size
         | Cli_include_flags_do_not_match -> `Include
         | Cli_exclude_flags_match -> `Exclude
+        | Analysis_failed_parser_or_internal_error -> `Error
         | Always_skipped
-        | Analysis_failed_parser_or_internal_error
         | Excluded_by_config
         | Wrong_language
         | Minified
@@ -81,7 +81,9 @@ let group_skipped ~errors_skipped (skipped : Out.skipped_target list) :
     other =
       (try List.assoc `Other groups with
       | Not_found -> []);
-    errors = errors_skipped;
+    errors =
+      (try List.assoc `Error groups with
+      | Not_found -> []);
   }
 
 (*****************************************************************************)

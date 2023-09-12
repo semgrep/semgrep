@@ -17,9 +17,7 @@ val errors_to_skipped :
   Semgrep_output_v1_t.core_error list -> Semgrep_output_v1_t.skipped_target list
 
 val group_skipped :
-  errors_skipped:Semgrep_output_v1_t.skipped_target list ->
-  Semgrep_output_v1_t.skipped_target list ->
-  skipped_targets_grouped
+  Semgrep_output_v1_t.skipped_target list -> skipped_targets_grouped
 
 val pp_skipped :
   Format.formatter -> bool * Maturity.t * int * skipped_targets_grouped -> unit
