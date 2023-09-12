@@ -155,6 +155,7 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     is_flag=True,
     hidden=True,
 )
+@click.option("--code", is_flag=True, hidden=True)
 @click.option("--beta-testing-secrets", is_flag=True, hidden=True)
 @click.option(
     "--suppress-errors/--no-suppress-errors",
@@ -175,6 +176,7 @@ def ci(
     autofix: bool,
     baseline_commit: Optional[str],
     beta_testing_secrets: bool,
+    code: bool,
     core_opts: Optional[str],
     config: Optional[Tuple[str, ...]],
     debug: bool,
@@ -309,6 +311,7 @@ def ci(
             console.print(Title("Connection", order=2))
             metadata_dict = metadata.to_dict()
             metadata_dict["is_sca_scan"] = supply_chain
+            metadata_dict["is_code_scan"] = code
             metadata_dict["is_secrets_scan"] = beta_testing_secrets
             proj_config = ProjectConfig.load_all()
             metadata_dict = {**metadata_dict, **proj_config.to_dict()}
