@@ -80,7 +80,7 @@ CI="true" BITBUCKET_BUILD_NUMBER="hi" BITBUCKET_REPO_FULL_NAME="project_name/pro
                 pull_request
 
   CONNECTION
-  Reporting start of scan for deployment_name (scan_id={scan_handler.scan_id})
+  Reporting start of scan for deployment_name (scan_id=<MagicMock name='post()…
   Fetching configuration from Semgrep Cloud Platform
   Enabled products: Semgrep Code, Semgrep Supply Chain
 
