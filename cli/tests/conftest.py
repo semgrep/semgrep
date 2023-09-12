@@ -119,7 +119,7 @@ def _clean_stdout(out):
     return json.dumps(json_output)
 
 
-def _clean_output_json(output_json: str, clean_fingerprint: bool) -> str:
+def _clean_output_if_json(output_json: str, clean_fingerprint: bool) -> str:
     """Make semgrep's output deterministic and nicer to read."""
     try:
         output = json.loads(output_json)
@@ -178,7 +178,7 @@ def _clean_output_json(output_json: str, clean_fingerprint: bool) -> str:
     return json.dumps(output, indent=2, sort_keys=True)
 
 
-def _clean_output_sarif(output_json: str) -> str:
+def _clean_output_if_sarif(output_json: str) -> str:
     try:
         output = json.loads(output_json)
     except json.decoder.JSONDecodeError:
@@ -221,7 +221,7 @@ def mask_capture_group(match: re.Match) -> str:
 # ProTip: make sure your regexps can't match JSON quotes so as to keep any
 # JSON parseable after a substitution!
 ALWAYS_MASK: Maskers = (
-    _clean_output_sarif,
+    _clean_output_if_sarif,
     __VERSION__,
     re.compile(r"python (\d+[.]\d+[.]\d+[ ]+)"),
     re.compile(r'SEMGREP_SETTINGS_FILE="(.+?)"'),
@@ -265,7 +265,7 @@ class SemgrepResult:
         text = re.sub(r"[ \t]+$", "", text, flags=re.M)
         # special code for JSON cleaning, used to be in ALWAYS_MASK
         # but sometimes we want fingerprint masking and sometimes not
-        text = _clean_output_json(text, self.clean_fingerprint)
+        text = _clean_output_if_json(text, self.clean_fingerprint)
         return text
 
     @property
