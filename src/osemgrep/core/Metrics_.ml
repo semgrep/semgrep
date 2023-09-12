@@ -116,7 +116,7 @@ type t = {
   mutable config : config;
   (* works with Auto *)
   mutable is_using_registry : bool;
-  (* TODO: not set for now *)
+  (* TODO: not fully set for now; should set in CI and more contexts *)
   mutable is_using_app : bool;
   mutable user_agent : string list;
   mutable payload : Semgrep_metrics_t.payload;
