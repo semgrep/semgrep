@@ -3,7 +3,8 @@
 
    On - Metrics always sent
    Off - Metrics never sent
-   Auto - Metrics only sent if config is pulled from the server
+   Auto - Metrics only sent if config is pulled from the registry
+          or if using the Semgrep App.
 *)
 type config = On | Off | Auto [@@deriving show]
 
@@ -15,7 +16,9 @@ val metrics_url : Uri.t
 
 type t = {
   mutable config : config;
+  (* this works with the Auto option *)
   mutable is_using_registry : bool;
+  mutable is_using_app : bool;
   (* The user agent used when sending data to https://metrics.semgrep.dev.
    * We override the default value (e.g. "ocaml-cohttp/5.3.0") with a
    * custom string built from:
@@ -49,7 +52,8 @@ val g : t
 (* set g.config *)
 val configure : config -> unit
 
-(* check whether g.config is On (or Auto) *)
+(* check whether g.config is On or
+ * set to Auto and (is_using_registry or is_using_app) *)
 val is_enabled : unit -> bool
 
 (* Add more tags to the user_agent string (e.g., "command/scan").
@@ -90,6 +94,8 @@ val add_rules_hashes_and_rules_profiling :
 val add_findings : (Rule.t * int) list -> unit
 val add_targets_stats : Fpath.t Set_.t -> Report.final_profiling option -> unit
 val add_engine_kind : Semgrep_output_v1_t.engine_kind -> unit
+
+(* just sent whether the user had a token and so was authenticated *)
 val add_token : 'a option -> unit
 val add_exit_code : Exit_code.t -> unit
 

@@ -75,11 +75,6 @@ let get_new_branch () : string =
 let mkdir_if_needed path : unit =
   if not (Sys.file_exists path) then Unix.mkdir path 0o777
 
-let get_repo (repo : Install_CLI.repo_kind) : string =
-  match repo with
-  | Dir v -> Fpath.to_dir_path v |> Fpath.rem_empty_seg |> Fpath.to_string
-  | Repository (owner, repo) -> spf "%s/%s" owner repo
-
 (*****************************************************************************)
 (* gh (github CLI) setup *)
 (*****************************************************************************)
@@ -385,19 +380,25 @@ let write_workflow_file ~git_dir:dir : unit =
    2. Commit and push changes to the repo
    3. Open a PR to the repo to merge the changes
 *)
-let add_semgrep_workflow ~repo ~token ~update ~dry_run : unit =
-  if dry_run then
-    Logs.info (fun m -> m "Skipping actual workflow operations for dry-run")
-  else if semgrep_workflow_exists ~repo && not update then
-    Logs.info (fun m -> m "Semgrep workflow already present, skipping")
-  else (
-    Logs.info (fun m -> m "Preparing Semgrep workflow for %s" repo);
-    let dir = prep_repo repo in
-    write_workflow_file ~git_dir:dir;
-    if semgrep_app_token_secret_exists ~git_dir:dir && not update then
-      Logs.info (fun m -> m "Semgrep secret already present, skipping")
-    else add_semgrep_gh_secret ~git_dir:dir ~token;
-    Logs.info (fun m -> m "Semgrep workflow added to %s" repo))
+let add_semgrep_workflow ~token (conf : Install_CLI.conf) : unit =
+  let (repo : string) =
+    match conf.repo with
+    | Dir v -> Fpath.to_dir_path v |> Fpath.rem_empty_seg |> Fpath.to_string
+    | Repository (owner, repo) -> spf "%s/%s" owner repo
+  in
+  match () with
+  | _ when conf.dry_run ->
+      Logs.info (fun m -> m "Skipping actual workflow operations for dry-run")
+  | _ when semgrep_workflow_exists ~repo && not conf.update ->
+      Logs.info (fun m -> m "Semgrep workflow already present, skipping")
+  | _else_ ->
+      Logs.info (fun m -> m "Preparing Semgrep workflow for %s" repo);
+      let dir = prep_repo repo in
+      write_workflow_file ~git_dir:dir;
+      if semgrep_app_token_secret_exists ~git_dir:dir && not conf.update then
+        Logs.info (fun m -> m "Semgrep secret already present, skipping")
+      else add_semgrep_gh_secret ~git_dir:dir ~token;
+      Logs.info (fun m -> m "Semgrep workflow added to %s" repo)
 
 (*****************************************************************************)
 (* Main logic *)
@@ -405,12 +406,13 @@ let add_semgrep_workflow ~repo ~token ~update ~dry_run : unit =
 
 let run (conf : Install_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:true ~level:conf.common.logging_level;
-  (* NOTE: In theory, we should be able to use the same metrics config option as scan,
-     but given that this is an experimental command that we need to validate in the wild,
-     we are hard-coding the metrics config to Auto for now. We can revisit whether we
-     should even support disabling metrics for this command at a later date.
+  (* In theory, we should use the same --metrics=xxx as in scan,
+     but given that this is an experimental command that we need to validate
+     in the wild, we are hard-coding the metrics config to On for now. We can
+     revisit whether we should even support disabling metrics for this
+     command at a later date.
   *)
-  Metrics_.configure Metrics_.Auto;
+  Metrics_.configure Metrics_.On;
   Logs.debug (fun m -> m "conf = %s" (Install_CLI.show_conf conf));
   let settings = Semgrep_settings.load () in
   let api_token = settings.Semgrep_settings.api_token in
@@ -427,9 +429,8 @@ let run (conf : Install_CLI.conf) : Exit_code.t =
       install_gh_cli_if_needed ();
       prompt_gh_auth_if_needed ();
       set_ssh_as_default ();
-      (* let's go! *)
-      add_semgrep_workflow ~repo:(get_repo conf.repo) ~token ~update:conf.update
-        ~dry_run:conf.dry_run;
+      (* let's go! this may raise some errors (catched in CLI.safe_run()) *)
+      add_semgrep_workflow ~token conf;
       Logs.app (fun m ->
           m "%s Installed semgrep workflow for this repository"
             (Logs_helpers.success_tag ()));

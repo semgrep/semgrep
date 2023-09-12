@@ -1,6 +1,5 @@
 open Common
 module Out = Semgrep_output_v1_t
-open Semgrep_metrics_t
 
 (*****************************************************************************)
 (* Prelude *)
@@ -24,7 +23,8 @@ open Semgrep_metrics_t
     - add_registry_url
     - parsing stat (parse rates)
     - rule profiling stats
-    - cli-envvar? cli-flag? cli-prompt?
+    - cli-envvar? cli-prompt?
+    - more?
 
     Sending the metrics is handled from the main CLI entrypoint following the
     execution of the CLI.safe_run() function to report the exit code.
@@ -54,6 +54,8 @@ open Semgrep_metrics_t
         Gateway
       - We parse the payload and add additional metadata (i.e. sender ip
         address) in our Lambda function
+        TODO: how do we parse the payload? in a typed way? reuse
+        semgrep_metrics.atd?
       - We pass the transformed payload to our AWS Kinesis stream
         ("semgrep-cli-telemetry")
       - The payload can be viewed in our internal AWS console (if you can
@@ -63,7 +65,7 @@ open Semgrep_metrics_t
         please update this comment!!!
         In practice, your shard ID only needs to found once through trial and
         error by sending multiple payloads until you find a match. There is
-        probably a better way to do this...
+        probably a better way to do this.
         I found the following StackOverflow link helpful, but not enough to
         automate this process:
         https://stackoverflow.com/questions/31893297/how-to-determine-shard-id-for-a-specific-partition-key-with-kcl
@@ -80,8 +82,8 @@ open Semgrep_metrics_t
 (* Types and constants *)
 (*****************************************************************************)
 
-(* TODO: set to the cannonical "metrics.semgrep.dev" once we upgrade the
- * host from TLS 1.2 to TLS 1.3
+(* TODO: set to the cannonical "https://metrics.semgrep.dev" once we upgrade
+ * the host from TLS 1.2 to TLS 1.3
  *)
 let metrics_url =
   Uri.of_string "https://oeyc6oyp4f.execute-api.us-west-2.amazonaws.com/Prod/"
@@ -89,9 +91,14 @@ let metrics_url =
 (*
      Configures metrics upload.
 
-     ON - Metrics always sent
-     OFF - Metrics never sent
-     AUTO - Metrics only sent if config is pulled from the server
+     On - Metrics always sent
+     Off - Metrics never sent
+     Auto - Metrics only sent if config is pulled from the registry
+          or if using the Semgrep App.
+
+  What is the rational for Auto? I guess if the user is requesting rules
+  from our registry, we already can identify him (the request and his IP),
+  so we might as well get more data from him?
 
   python: was in an intermediate MetricsState before.
   TODO? move in a separate Metrics_config.t instead? or rename to 'upload'?
@@ -107,7 +114,10 @@ let converter = Cmdliner.Arg.enum [ ("on", On); ("off", Off); ("auto", Auto) ]
 
 type t = {
   mutable config : config;
+  (* works with Auto *)
   mutable is_using_registry : bool;
+  (* TODO: not set for now *)
+  mutable is_using_app : bool;
   mutable user_agent : string list;
   mutable payload : Semgrep_metrics_t.payload;
 }
@@ -162,6 +172,7 @@ let default =
   {
     config = Off;
     is_using_registry = false;
+    is_using_app = false;
     user_agent = [ spf "Semgrep/%s" Version.version ];
     payload = default_payload;
   }
@@ -194,7 +205,23 @@ let now () : string = string_of_gmtime (Unix.gmtime (Unix.gettimeofday ()))
 (* Metrics config *)
 (*****************************************************************************)
 let configure config = g.config <- config
-let is_enabled () = g.config <> Off
+
+let is_enabled () =
+  match g.config with
+  | Off -> false
+  | On -> true
+  | Auto ->
+      (* TOPORT:
+         # When running logged in with `semgrep ci`, configs are
+         # resolved before `self.is_using_registry` is set.
+         # However, these scans are still pulling from the registry
+         # TODO?
+         ## using_app = (
+         ##    state.command.get_subcommand() == "ci"
+         ##    and state.app_session.is_authenticated
+         ## )
+      *)
+      g.is_using_registry || g.is_using_app
 
 (*****************************************************************************)
 (* User agent *)
@@ -277,7 +304,11 @@ let add_rules_hashes_and_rules_profiling ?profiling:_TODO rules =
   let ruleStats_value =
     Common.mapi
       (fun idx _rule ->
-        { ruleHash = List.nth hashes idx; bytesScanned = 0; matchTime = None })
+        {
+          Semgrep_metrics_t.ruleHash = List.nth hashes idx;
+          bytesScanned = 0;
+          matchTime = None;
+        })
       rules
   in
   g.payload.performance.ruleStats <- Some ruleStats_value
@@ -326,7 +357,7 @@ let add_targets_stats (targets : Fpath.t Set_.t)
              | None -> (None, None, None)
            in
            {
-             size = File.filesize path;
+             Semgrep_metrics_t.size = File.filesize path;
              numTimesScanned =
                (match Hashtbl.find_opt hprof path with
                | None -> 0

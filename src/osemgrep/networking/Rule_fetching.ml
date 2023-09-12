@@ -160,6 +160,7 @@ type _registry_cached_value =
 
 (* better: faster fetching by using a cache *)
 let fetch_content_from_registry_url ~registry_caching url =
+  Metrics_.g.is_using_registry <- true;
   if not registry_caching then fetch_content_from_url url
   else
     let cache_dir = !Env.v.user_dot_semgrep_dir / "cache" / "registry" in
@@ -364,6 +365,12 @@ let rules_from_dashdash_config_async ~token_opt ~registry_caching kind :
   | C.R rkind ->
       let url = Semgrep_Registry.url_of_registry_config_kind rkind in
       let%lwt content = fetch_content_from_url_async ~token_opt url in
+      (* TODO: reuse fetch_content_from_registry_url (need make it _async?)
+       * so we can factorize the is_using_registry modification
+       * (and also remove the when registry_caching special below
+       * as fetch_content_from_registry_url already handles caching)
+       *)
+      Metrics_.g.is_using_registry <- true;
       (* TODO: this also assumes every registry URL is for yaml *)
       let rules =
         Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
@@ -377,13 +384,20 @@ let rules_from_dashdash_config_async ~token_opt ~registry_caching kind :
         load_rules_from_url_async ~token_opt ~ext:"policy"
           (Semgrep_App.url_for_policy ~token_opt)
       in
+      Metrics_.g.is_using_app <- true;
       Lwt.return [ rules ]
-  | C.A SupplyChain -> failwith "TODO: SupplyChain not handled yet"
+  | C.A SupplyChain ->
+      Metrics_.g.is_using_app <- true;
+      failwith "TODO: SupplyChain not handled yet"
 
 let rules_from_dashdash_config ~token_opt ~registry_caching kind :
     rules_and_origin list =
   match kind with
   | C.R rkind when registry_caching ->
+      (* TODO: should not need that, we're duplicating work
+       * from fetch_content_from_registry_url() and
+       * rules_from_dashdash_config_async()
+       *)
       let url = Semgrep_Registry.url_of_registry_config_kind rkind in
       let content = fetch_content_from_registry_url ~registry_caching url in
       (* TODO: this also assumes every registry URL is for yaml *)

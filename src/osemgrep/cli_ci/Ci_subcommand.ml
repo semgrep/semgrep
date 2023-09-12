@@ -353,6 +353,7 @@ let prepare_for_report ~blocking_findings findings errors rules ~targets
 let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:conf.force_color
     ~level:conf.common.logging_level;
+  (* TODO? we probably want to set the metrics to On by default in CI ctx? *)
   Metrics_.configure conf.metrics;
   let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
   let deployment =
