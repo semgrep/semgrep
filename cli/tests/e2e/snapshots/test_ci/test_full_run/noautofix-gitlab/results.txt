@@ -68,7 +68,7 @@ CI="true" GITLAB_CI="true" CI_PROJECT_PATH="project_name/project_name" CI_PIPELI
                 pull_request
 
   CONNECTION
-  Reporting start of scan for deployment_name
+  Reporting start of scan for deployment_name (scan_id={scan_handler.scan_id})
   Fetching configuration from Semgrep Cloud Platform
   Enabled products: Semgrep Code, Semgrep Supply Chain
 

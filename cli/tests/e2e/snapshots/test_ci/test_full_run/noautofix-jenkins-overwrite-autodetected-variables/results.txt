@@ -79,7 +79,7 @@ JENKINS_URL="some_url" SEMGREP_REPO_NAME="a/repo/name" SEMGREP_REPO_URL="https:/
   environment - running in environment jenkins, triggering event is unknown
 
   CONNECTION
-  Reporting start of scan for deployment_name
+  Reporting start of scan for deployment_name (scan_id={scan_handler.scan_id})
   Fetching configuration from Semgrep Cloud Platform
   Enabled products: Semgrep Code, Semgrep Supply Chain
 
