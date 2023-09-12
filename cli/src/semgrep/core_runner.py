@@ -506,9 +506,29 @@ class Plan:
 
     # TODO: make this counts_by_lang_label, returning TaskCounts
     def split_by_lang_label(self) -> Dict[str, "TargetMappings"]:
+        return self.split_by_lang_label_for_product()
+
+    # Divides rule mapping up into the rule counts per language
+    # filtering out rules for a specific product. If product = None
+    # then all products are included.
+    def split_by_lang_label_for_product(
+        self, product: Optional[RuleProduct] = None
+    ) -> Dict[str, "TargetMappings"]:
         result: Dict[str, TargetMappings] = collections.defaultdict(TargetMappings)
         for task in self.target_mappings:
-            result[task.language_label].append(task)
+            result[task.language_label].append(
+                task
+                if product is None
+                else Task(
+                    path=task.path,
+                    language=task.language,
+                    rule_nums=tuple(
+                        num
+                        for num in task.rule_nums
+                        if self.rules[num].product == product
+                    ),
+                )
+            )
         return result
 
     @lru_cache(maxsize=1000)  # caching this saves 60+ seconds on mid-sized repos
@@ -561,19 +581,28 @@ class Plan:
     def num_targets(self) -> int:
         return len(self.target_mappings)
 
-    def table_by_language(self) -> Table:
+    def rule_count_for_product(self, product: RuleProduct) -> int:
+        rule_nums: Set[int] = set()
+        for task in self.target_mappings:
+            for rule_num in task.rule_nums:
+                if self.rules[rule_num].product == product:
+                    rule_nums.add(rule_num)
+        return len(rule_nums)
+
+    def table_by_language(self, with_tables_for: Optional[RuleProduct] = None) -> Table:
         table = Table(box=box.SIMPLE_HEAD, show_edge=False)
         table.add_column("Language")
         table.add_column("Rules", justify="right")
         table.add_column("Files", justify="right")
 
         plans_by_language = sorted(
-            self.split_by_lang_label().items(),
+            self.split_by_lang_label_for_product(with_tables_for).items(),
             key=lambda x: (x[1].file_count, x[1].rule_count),
             reverse=True,
         )
         for language, plan in plans_by_language:
-            table.add_row(language, str(plan.rule_count), str(plan.file_count))
+            if plan.rule_count:
+                table.add_row(language, str(plan.rule_count), str(plan.file_count))
 
         return table
 
@@ -608,7 +637,7 @@ class Plan:
 
         return table
 
-    def table_by_origin(self) -> Table:
+    def table_by_origin(self, with_tables_for: Optional[RuleProduct] = None) -> Table:
         table = Table(box=box.SIMPLE_HEAD, show_edge=False)
         table.add_column("Origin")
         table.add_column("Rules", justify="right")
@@ -616,7 +645,7 @@ class Plan:
         origin_counts = collections.Counter(
             get_path(rule.metadata, ("semgrep.dev", "rule", "origin"), default="custom")
             for rule in self.rules
-            if rule.product == RuleProduct.sast
+            if rule.product == with_tables_for
         )
 
         for origin, count in sorted(
@@ -665,7 +694,7 @@ class Plan:
         """
         Pretty print the plan to stdout with the new CLI UX.
         """
-        if self.target_mappings.rule_count == 0:
+        if not self.rule_count_for_product(with_tables_for):
             sep = "\n   "
             message = "No rules to run."
             if with_tables_for == RuleProduct.sca:
@@ -726,8 +755,8 @@ class Plan:
         # default to SAST table if sca is specified
         tables = (
             [
-                self.table_by_language(),
-                self.table_by_origin(),
+                self.table_by_language(with_tables_for),
+                self.table_by_origin(with_tables_for),
             ]
             if with_tables_for != RuleProduct.sca
             else [
@@ -746,24 +775,30 @@ class Plan:
         """
         Print the plan to stdout with the original CLI UX.
         """
-        if self.target_mappings.rule_count == 0:
+        rule_count = self.rule_count_for_product(with_tables_for)
+        if not rule_count:
             console.print("Nothing to scan.")
             return
 
-        if self.target_mappings.rule_count == 1:
+        if rule_count == 1:
             console.print(f"Scanning {unit_str(len(self.target_mappings), 'file')}.")
             return
 
-        if len(self.split_by_lang_label()) == 1:
+        plan_by_lang = self.split_by_lang_label_for_product(with_tables_for)
+        if len(plan_by_lang) == 1:
+            [(language, target_mapping)] = plan_by_lang.items()
             console.print(
-                f"Scanning {unit_str(self.target_mappings.file_count, 'file')} with {unit_str(self.target_mappings.rule_count, f'{list(self.split_by_lang_label())[0]} rule')}."
+                f"Scanning {unit_str(target_mapping.file_count, 'file')} with {unit_str(rule_count, f'{language} rule')}."
             )
             return
 
-        if with_tables_for == RuleProduct.sast:
+        if (
+            with_tables_for == RuleProduct.sast
+            or with_tables_for == RuleProduct.secrets
+        ):
             tables = [
-                self.table_by_language(),
-                self.table_by_origin(),
+                self.table_by_language(with_tables_for),
+                self.table_by_origin(with_tables_for),
             ]
         elif with_tables_for == RuleProduct.sca:
             tables = [

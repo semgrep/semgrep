@@ -63,6 +63,9 @@ GROUP_TITLES: Dict[Tuple[RuleProduct, str], str] = {
     (RuleProduct.sast, "nonblocking"): "Non-blocking Code Finding",
     (RuleProduct.sast, "blocking"): "Blocking Code Finding",
     (RuleProduct.sast, "merged"): "Code Finding",
+    (RuleProduct.secrets, "valid"): "Valid Secrets Finding",
+    (RuleProduct.secrets, "invalid"): "Invalid Secrets Finding",
+    (RuleProduct.secrets, "unvalidated"): "Unvalidated Secrets Finding",
 }
 
 
@@ -669,22 +672,6 @@ def print_text_output(
         ):
             console.print(line)
 
-        # Temporary CLI UI until a more thorough implementation.
-        if "validation_state" in rule_match.extra:
-            validation_state = rule_match.extra["validation_state"]
-            # Do nothing for NO_VALIDATOR to preserve previous UI.
-            if validation_state != "NO_VALIDATOR":
-                msg = ""
-                if validation_state == "CONFIRMED_VALID":
-                    msg = "Semgrep confirmed this secret is still valid."
-                elif validation_state == "CONFIRMED_INVALID":
-                    msg = "Semgrep confirmed this secret is invalid."
-                elif validation_state == "CONFIRMED_ERROR":
-                    msg = "Semgrep encountered a network error while trying to validate this secret."
-                console.print(
-                    f"{8 * ' '}{with_color(Colors.foreground, msg, bold=True)}\n"
-                )
-
         if dataflow_traces:
             for line in dataflow_trace_to_lines(
                 rule_match.path,
@@ -726,14 +713,28 @@ class TextFormatter(BaseFormatter):
                 # ordered most important to least important
                 (RuleProduct.sast, "blocking"): [],
                 (RuleProduct.sca, "reachable"): [],
+                (RuleProduct.secrets, "valid"): [],
                 (RuleProduct.sca, "undetermined"): [],
+                (RuleProduct.secrets, "unvalidated"): [],
                 (RuleProduct.sca, "unreachable"): [],
                 (RuleProduct.sast, "nonblocking"): [],
+                (RuleProduct.secrets, "invalid"): [],
             }
 
             for match in rule_matches:
                 if match.product == RuleProduct.sast:
                     subgroup = "blocking" if match.is_blocking else "nonblocking"
+                elif match.product == RuleProduct.secrets:
+                    state = match.validation_state
+                    if state is None:
+                        subgroup = "unvalidated"
+                    else:
+                        if isinstance(state.value, out.CONFIRMEDVALID):
+                            subgroup = "valid"
+                        elif isinstance(state.value, out.CONFIRMEDINVALID):
+                            subgroup = "invalid"
+                        else:
+                            subgroup = "unvalidated"
                 else:
                     subgroup = match.exposure_type or "undetermined"
 
