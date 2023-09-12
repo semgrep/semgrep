@@ -84,7 +84,7 @@ def _basic_fix(
     before_lines = lines[:start_line]
     before_on_start_line = lines[start_line][:start_col]
     after_on_end_line = lines[end_line][end_col:]  # next char after end of match
-    modified_lines = (before_on_start_line + fix + after_on_end_line).splitlines()
+    modified_lines = (before_on_start_line + fix + after_on_end_line).split(SPLIT_CHAR)
     after_lines = lines[end_line + 1 :]  # next line after end of match
     contents_after_fix = before_lines + modified_lines + after_lines
 
@@ -120,8 +120,8 @@ def _regex_replace(
 
     match_context = lines[start_line : end_line + 1]
 
-    fix = re.sub(from_str, to_str, "\n".join(match_context), count)
-    modified_context = fix.splitlines()
+    fix = re.sub(from_str, to_str, SPLIT_CHAR.join(match_context), count)
+    modified_context = fix.split(SPLIT_CHAR)
     modified_contents = before_lines + modified_context + after_lines
 
     # update offsets
