@@ -138,56 +138,6 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     (* TODO? use finalize? *)
     Unix.lockf Unix.stdout Unix.F_ULOCK 0)
 
-(*****************************************************************************)
-(* Skipped analysis *)
-(*****************************************************************************)
-
-let errors_to_skipped (errors : Out.core_error list) : Out.skipped_target list =
-  errors
-  |> Common.map (fun Out.{ location; message; rule_id; _ } ->
-         Out.
-           {
-             path = location.path;
-             reason = Analysis_failed_parser_or_internal_error;
-             details = Some message;
-             rule_id;
-           })
-
-let analyze_skipped (skipped : Out.skipped_target list) =
-  let groups =
-    Common.group_by
-      (fun (Out.{ reason; _ } : Out.skipped_target) ->
-        match reason with
-        | Out.Gitignore_patterns_match
-        | Semgrepignore_patterns_match ->
-            `Semgrepignore
-        | Too_big
-        | Exceeded_size_limit ->
-            `Size
-        | Cli_include_flags_do_not_match -> `Include
-        | Cli_exclude_flags_match -> `Exclude
-        | Always_skipped
-        | Analysis_failed_parser_or_internal_error
-        | Excluded_by_config
-        | Wrong_language
-        | Minified
-        | Binary
-        | Irrelevant_rule
-        | Too_many_matches ->
-            `Other)
-      skipped
-  in
-  ( (try List.assoc `Semgrepignore groups with
-    | Not_found -> []),
-    (try List.assoc `Include groups with
-    | Not_found -> []),
-    (try List.assoc `Exclude groups with
-    | Not_found -> []),
-    (try List.assoc `Size groups with
-    | Not_found -> []),
-    try List.assoc `Other groups with
-    | Not_found -> [] )
-
 (*************************************************************************)
 (* Helpers *)
 (*************************************************************************)
@@ -274,7 +224,7 @@ let remove_matches_in_baseline (commit : string) (baseline : RP.final_result)
         let s = extract_sig (Some renamed) m in
         if Hashtbl.mem sigs s then (
           Hashtbl.remove sigs s;
-          removed := !removed + 1;
+          incr removed;
           None)
         else Some m)
       (head.RP.matches
@@ -398,7 +348,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     Logs.info (fun m ->
         m "%a" Rules_report.pp_rules (conf.rules_source, filtered_rules));
 
-    (* step 2: printing the ignored targets *)
+    (* step 2: printing the skipped targets *)
     let targets, semgrepignored_targets = targets_and_ignored in
     Logs.debug (fun m ->
         m "%a" Targets_report.pp_targets_debug
@@ -459,12 +409,9 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     let filtered_matches = rules_and_counted_matches res in
     Metrics_.add_findings filtered_matches;
 
-    (* step 4: report matches *)
-    let errors_skipped = errors_to_skipped res.core.errors in
-    let semgrepignored, included, excluded, size, other_ignored =
-      analyze_skipped semgrepignored_targets
-    in
-    let res =
+    (* step 4: adjust the skipped_targets *)
+    let errors_skipped = Skipped_report.errors_to_skipped res.core.errors in
+    let (res : Core_runner.result) =
       let skipped_targets =
         Some
           (semgrepignored_targets @ errors_skipped
@@ -475,6 +422,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
       { res with core }
     in
 
+    (* step 5: report the matches *)
     (* outputting the result on stdout! in JSON/Text/... depending on conf *)
     let cli_output =
       Output.output_result { conf with output_format } profiler res
@@ -487,17 +435,16 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
         filtered_rules;
       Metrics_.add_profiling profiler);
 
+    (* TODO? just concatenate errors_skipped earlier? *)
+    let skipped_groups =
+      Skipped_report.group_skipped ~errors_skipped semgrepignored_targets
+    in
     Logs.info (fun m ->
         m "%a" Skipped_report.pp_skipped
           ( conf.targeting_conf.respect_git_ignore,
             conf.common.maturity,
             conf.targeting_conf.max_target_bytes,
-            semgrepignored,
-            included,
-            excluded,
-            size,
-            other_ignored,
-            errors_skipped ));
+            skipped_groups ));
     (* Note that Logs.app() is printing on stderr (but without any [XXX]
      * prefix), and is filtered when using --quiet.
      *)
@@ -506,12 +453,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
           ( conf.targeting_conf.respect_git_ignore,
             conf.common.maturity,
             conf.targeting_conf.max_target_bytes,
-            semgrepignored,
-            included,
-            excluded,
-            size,
-            other_ignored,
-            errors_skipped ));
+            skipped_groups ));
     Logs.app (fun m ->
         m "Ran %s on %s: %s."
           (String_utils.unit_str (List.length filtered_rules) "rule")
@@ -534,8 +476,15 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
   Profiler.start profiler ~name:"total_time";
   let settings =
     (fun () ->
-      Metrics_.configure conf.metrics;
       let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
+      (* Metrics initialization (and finalization) is done in CLI.ml,
+       * but here we "configure" it (enable or disable it) based on CLI flags.
+       *)
+      Metrics_.configure conf.metrics;
+      Metrics_.add_token settings.api_token;
+      (* TODO? why guard this one with is_enabled? because calling
+       * git can take time (and generate errors on stderr)?
+       *)
       if Metrics_.is_enabled () then
         Git_wrapper.get_project_url ()
         |> Option.iter Metrics_.add_project_url_hash;
@@ -580,7 +529,6 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
       ~rewrite_rule_ids:conf.rewrite_rule_ids
       ~registry_caching:conf.registry_caching conf.rules_source
   in
-  Metrics_.add_token settings.api_token;
 
   (* step2: getting the targets *)
   let targets_and_ignored =

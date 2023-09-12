@@ -1,0 +1,2 @@
+Dotfiles (e.g., .emacs) are now displayed in the skip report when
+using --verbose and --develop.

@@ -16,24 +16,18 @@ module Out = Semgrep_output_v1_t
 (*****************************************************************************)
 
 let pp_summary ppf
-    (( respect_git_ignore,
-       maturity,
-       max_target_bytes,
-       semgrep_ignored,
-       include_ignored,
-       exclude_ignored,
-       file_size_ignored,
-       other_ignored,
-       errors ) :
-      bool
-      * Maturity.t
-      * int
-      * Out.skipped_target list
-      * Out.skipped_target list
-      * Out.skipped_target list
-      * Out.skipped_target list
-      * Out.skipped_target list
-      * Out.skipped_target list) =
+    (respect_git_ignore, maturity, max_target_bytes, skipped_groups) =
+  let {
+    Skipped_report.ignored = semgrep_ignored;
+    include_ = include_ignored;
+    exclude = exclude_ignored;
+    size = file_size_ignored;
+    other = other_ignored;
+    errors;
+  } =
+    skipped_groups
+  in
+
   Fmt_helpers.pp_heading ppf "Scan Summary";
   (* TODO
         if self.target_manager.baseline_handler:
