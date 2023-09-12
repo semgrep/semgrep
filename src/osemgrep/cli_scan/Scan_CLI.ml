@@ -64,7 +64,6 @@ type conf = {
   common : CLI_common.conf;
   (* Ugly: should be in separate subcommands *)
   version : bool;
-  show_supported_languages : bool;
   show : Show_CLI.conf option;
   validate : Validate_subcommand.conf option;
   test : Test_subcommand.conf option;
@@ -143,7 +142,6 @@ let default : conf =
     version_check = true;
     (* ugly: should be separate subcommands *)
     version = false;
-    show_supported_languages = false;
     show = None;
     validate = None;
     test = None;
@@ -925,6 +923,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
           Some { Show.target = Show.EnginePath pro; json }
       | _ when dump_command_for_core ->
           Some { Show.target = Show.CommandForCore; json }
+      | _ when show_supported_languages ->
+          Some { Show.target = Show.SupportedLanguages; json }
       | _else_ -> None
     in
     (* ugly: validate should be a separate subcommand.
@@ -1026,7 +1026,6 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       common;
       (* ugly: *)
       version;
-      show_supported_languages;
       show;
       validate;
       test;

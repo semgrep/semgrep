@@ -608,9 +608,15 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
 let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
   (match conf.common.maturity with
   | Maturity.Default -> (
-      match conf with
       (* TODO: handle more confs, or fallback to pysemgrep further down *)
-      | { show_supported_languages = true; _ } -> ()
+      match conf with
+      | {
+       show =
+         Some { target = Show_CLI.EnginePath _ | Show_CLI.CommandForCore; _ };
+       _;
+      } ->
+          raise Pysemgrep.Fallback
+      | { show = Some _; _ } -> ()
       | _else_ -> raise Pysemgrep.Fallback)
   (* this should never happen because --legacy is handled in cli/bin/semgrep *)
   | Maturity.Legacy -> raise Pysemgrep.Fallback
@@ -635,9 +641,6 @@ let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
   | _ when conf.version ->
       Common.pr Version.version;
       (* TOPORT: if enable_version_check: version_check() *)
-      Exit_code.ok
-  | _ when conf.show_supported_languages ->
-      Common.pr (spf "supported languages are: %s" Xlang.supported_xlangs);
       Exit_code.ok
   | _ when conf.test <> None -> Test_subcommand.run (Common2.some conf.test)
   | _ when conf.validate <> None ->

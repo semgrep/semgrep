@@ -20,6 +20,7 @@ and target_kind =
   | Config of Rules_config.config_string
   | EnginePath of bool (* pro = true *)
   | CommandForCore
+  | SupportedLanguages
 [@@deriving show]
 
 (*

@@ -1,0 +1,5 @@
+There is a new 'semgrep show' command to display information about
+semgrep, for example 'semgrep show supported-languages'. The goal is to
+cleanup 'semgrep scan' which is currently abused to not scan but
+also display semgrep information (e.g., 'semgrep scan --show-supported-languages).
+See 'semgrep show --help' for more information.

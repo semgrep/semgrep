@@ -10,11 +10,11 @@ module J = JSON
  * redirected to this file after having built a compatible Show_CLI.conf
  *
  * LATER: get rid of Core_CLI.dump_pattern and Core_CLI.dump_ast functions
+ *
+ * Note that we're using Common.pr() here, to print on stdout (Logs.app
+ * is printing on stderr, but for a show command it's probably better to
+ * print on stdout).
  *)
-
-(*****************************************************************************)
-(* Types *)
-(*****************************************************************************)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -56,19 +56,16 @@ let dump_v_to_format ~json (v : OCaml.v) =
 (*****************************************************************************)
 
 let run (conf : Show_CLI.conf) : Exit_code.t =
-  let settings = Semgrep_settings.load () in
-  let token_opt = settings.api_token in
-
+  match conf.target with
   (* TODO? error management? improve error message for parse errors?
    * or let CLI.safe_run do the right thing?
    *)
-  match conf.target with
   | Pattern (str, lang) ->
       (* mostly a copy paste of Core_CLI.dump_pattern *)
       let any = Parse_pattern.parse_pattern lang ~print_errors:true str in
       let v = Meta_AST.vof_any any in
       let s = dump_v_to_format ~json:conf.json v in
-      Logs.app (fun m -> m "%s" s);
+      Common.pr s;
       Exit_code.ok
   | File (file, lang) ->
       (* mostly a copy paste of Core_CLI.dump_ast *)
@@ -79,9 +76,11 @@ let run (conf : Show_CLI.conf) : Exit_code.t =
       (* 80 columns is too little *)
       Format.set_margin 120;
       let s = dump_v_to_format ~json:conf.json v in
-      Logs.app (fun m -> m "%s" s);
+      Common.pr s;
       Exit_code.ok
   | Config config_str ->
+      let settings = Semgrep_settings.load () in
+      let token_opt = settings.api_token in
       let in_docker = !Semgrep_envvars.v.in_docker in
       let config = Rules_config.parse_config_string ~in_docker config_str in
       let rules_and_origins =
@@ -89,11 +88,13 @@ let run (conf : Show_CLI.conf) : Exit_code.t =
           ~registry_caching:false config
       in
       rules_and_origins
-      |> List.iter (fun x ->
-             Logs.app (fun m -> m "%s" (Rule_fetching.show_rules_and_origin x)));
+      |> List.iter (fun x -> Common.pr (Rule_fetching.show_rules_and_origin x));
       Exit_code.ok
   | EnginePath _pro -> failwith "TODO: dump-engine-path not implemented yet"
   | CommandForCore -> failwith "TODO: dump-command-for-core not implemented yet"
+  | SupportedLanguages ->
+      Common.pr (spf "supported languages are: %s" Xlang.supported_xlangs);
+      Exit_code.ok
 
 (*****************************************************************************)
 (* Entry point *)
