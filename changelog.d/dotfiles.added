@@ -1,2 +1,2 @@
-Dotfiles (e.g., .emacs) are now displayed in the skip report when
+Dot files (e.g., .vscode) are now displayed in the skip report when
 using --verbose and --develop.
