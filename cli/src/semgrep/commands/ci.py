@@ -327,7 +327,7 @@ def ci(
                 start_scan_task = progress_bar.add_task(start_scan_desc)
                 scan_handler.start_scan(metadata_dict)
                 if scan_handler.scan_id:
-                    start_scan_desc += " (scan_id={scan_handler.scan_id})"
+                    start_scan_desc += f" (scan_id={scan_handler.scan_id})"
                 progress_bar.update(
                     start_scan_task, completed=100, description=start_scan_desc
                 )
