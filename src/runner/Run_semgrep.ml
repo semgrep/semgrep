@@ -568,6 +568,34 @@ let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
     lazy_ast_and_errors;
   }
 
+(* [HACK "targets hash consing"]
+ * Since most rules do not define any 'includes'/'excludes', the 'rule_nums'
+ * for most targets of the same language tend to be the same. This results
+ * in a lot of wasted space. This data structure is then copied to each
+ * Parmap worker and, despite copy-on-write, due to GC, we may end up with
+ * one copy per thread. If we e.g. run p/default on intellij's repo, using
+ * 48 threads, this data structure alone may take over 4G of physical memory.
+ * With hash consing, it would take 480M instead (about 9x less memory).
+ * This should not be needed any more once we do file targeting in OCaml. *)
+let hack_targets_hash_consing (targets : Input_to_core_t.targets) =
+  let module T = Hashtbl.Make (struct
+    type t = int list
+
+    let equal xs ys = List.compare Int.compare xs ys =|= 0
+    let hash = Hashtbl.hash
+  end) in
+  let target_mappings =
+    let shared = T.create 10 in
+    targets.target_mappings
+    |> Common.map (fun (m : Input_to_core_t.target) ->
+           match T.find_opt shared m.rule_nums with
+           | None ->
+               T.add shared m.rule_nums m.rule_nums;
+               m
+           | Some rule_nums -> { m with rule_nums })
+  in
+  { targets with target_mappings }
+
 (* Compute the set of targets, either by reading what was passed
  * in -target, or by using our poor's man file targeting with
  * Find_target.files_of_dirs_or_files.
@@ -624,6 +652,7 @@ let targets_of_config (config : Runner_config.t)
         | Target_file target_file ->
             File.read_file target_file |> In.targets_of_string
       in
+      let targets = hack_targets_hash_consing targets in
       let skipped = [] in
       (* in deep mode we actually have a single root dir passed *)
       if roots <> [] then
