@@ -472,6 +472,45 @@ let assign_implicitly_declares lang =
   || Lang.is_js lang
 
 (*****************************************************************************)
+(* Implicit return *)
+(*****************************************************************************)
+
+let lang_supports_implicit_return (lang : Lang.t) =
+  match lang with
+  | Ruby
+  | Rust
+  | Julia ->
+      true
+  | _ -> false
+
+let rec mark_first_instr_ancestor (cfg : IL.cfg) i =
+  let node = cfg.graph#nodes#find i in
+  match node.n with
+  | Exit
+  | NOther (Noop _)
+  | NGoto _
+  | Join ->
+      CFG.predecessors cfg i
+      |> List.iter (fun (pred_i, _) -> mark_first_instr_ancestor cfg pred_i)
+  | NInstr instr -> (
+      match instr with
+      | { i = Assign (_, { eorig = SameAs e; _ }); _ } ->
+          e.is_implicit_return <- true
+      | __else__ -> ())
+  | _else_ -> ()
+
+let mark_implicit_return_nodes lang prog =
+  let _x = ref 1 in
+  prog
+  |> Visit_function_defs.visit (fun _ent fdef ->
+         let _params, body = AST_to_IL.function_definition lang fdef in
+         let cfg = CFG_build.cfg_of_stmts body in
+         (* Traverse backward from exit and mark the expression in the
+          * first instruction node along each path.
+          *)
+         mark_first_instr_ancestor cfg cfg.exit)
+
+(*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
@@ -963,5 +1002,9 @@ let resolve lang prog =
     end
   in
   visitor#visit_program () prog;
+
+  if lang_supports_implicit_return lang then
+    mark_implicit_return_nodes lang prog;
+
   ()
 [@@profiling]

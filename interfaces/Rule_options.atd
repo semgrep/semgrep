@@ -153,6 +153,12 @@ type t = {
   (* Whether a rule should be considered for interfile analysis. *)
   ~interfile <ocaml default="false"> : bool;
 
+  (* Whether last expression executed in a function is treated the
+     same as a return statement. This option is specific only to
+     languages that treat the last statement of a block inside
+     functions as a return statement, such as Ruby and Julia.  *)
+     ~implicit_return <ocaml default="true"> : bool;
+
   (* TODO: equivalences:
    *   - require_to_import (but need pass config to Js_to_generic)
    *)
