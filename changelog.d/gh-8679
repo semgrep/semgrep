@@ -1,1 +1,1 @@
-Allow Semgrep CI users to specify Code product using `--code` command-line option. This works the same as `--supply-chain` now and fleshes out the product suite. 
+Allow Semgrep CI users to specify Code product using `--code` command-line option. This works the same as `--supply-chain` now and fleshes out the product suite.
