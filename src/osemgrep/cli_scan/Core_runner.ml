@@ -144,7 +144,7 @@ let prepare_config_for_semgrep_core (config : Runner_config.t)
       x.rules
       |> Common.map (fun (x : Rule.t) ->
              let id, _tok = x.id in
-             (id :> string))
+             Rule_ID.to_string id)
     in
     let rule_nums = rule_ids |> Common.mapi (fun i _ -> i + prev_rule_count) in
     let target_mappings =

@@ -134,8 +134,8 @@ let group_matches_per_pattern_id (xs : Pattern_match.t list) :
     id_to_match_results =
   let h = Hashtbl.create 101 in
   xs
-  |> List.iter (fun m ->
-         let id = int_of_string (m.PM.rule_id.id :> string) in
+  |> List.iter (fun (m : PM.t) ->
+         let id = int_of_string (Rule_ID.to_string m.rule_id.id) in
          Hashtbl.add h id m);
   h
 
@@ -682,9 +682,7 @@ and get_nested_formula_matches env formula range =
              spf
                "When parsing a snippet as %s for metavariable-pattern in rule \
                 '%s', %s"
-               lang
-               (rule :> string)
-               err.msg
+               lang (Rule_ID.to_string rule) err.msg
            in
            { err with msg })
   in
@@ -930,7 +928,7 @@ let check_rule ({ R.mode = `Search formula; _ } as r) hook xconf xtarget =
       |> before_return (fun v ->
              v
              |> List.iter (fun (m : Pattern_match.t) ->
-                    let str = spf "with rule %s" (rule_id :> string) in
+                    let str = spf "with rule %s" (Rule_ID.to_string rule_id) in
                     hook str m));
     errors;
   }

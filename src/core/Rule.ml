@@ -691,7 +691,7 @@ let string_of_invalid_rule_error_kind = function
 
 let string_of_invalid_rule_error ((kind, rule_id, pos) : invalid_rule_error) =
   spf "invalid rule %s, %s: %s"
-    (rule_id :> string)
+    (Rule_ID.to_string rule_id)
     (Tok.stringpos_of_tok pos)
     (string_of_invalid_rule_error_kind kind)
 

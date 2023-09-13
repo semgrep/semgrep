@@ -105,7 +105,7 @@ let convert_validation_state = function
   | No_validator -> `NO_VALIDATOR
 
 let convert_rule ((id, ek) : Report.rule_id_and_engine_kind) =
-  ((id :> string), convert_engine_kind ek)
+  (Rule_ID.to_string id, convert_engine_kind ek)
 
 let metavar_string_of_any any =
   (* TODO: metavar_string_of_any is used in get_propagated_value
@@ -253,7 +253,7 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
     else x.file
   in
   {
-    Out.check_id = (x.rule_id.id :> string);
+    Out.check_id = Rule_ID.to_string x.rule_id.id;
     (* inherited location *)
     path = file;
     start = startp;
@@ -324,7 +324,7 @@ let profiling_to_profiling (profiling_data : RP.final_profiling) :
   let json_time_of_rule_times rule_times =
     rule_times
     |> Common.map (fun { RP.rule_id; parse_time; match_time } ->
-           { Out.rule_id = (rule_id :> string); parse_time; match_time })
+           { Out.rule_id = Rule_ID.to_string rule_id; parse_time; match_time })
   in
   {
     Out.targets =
@@ -337,7 +337,7 @@ let profiling_to_profiling (profiling_data : RP.final_profiling) :
              });
     rules =
       Common.map
-        (fun rule -> (fst rule.Rule.id :> string))
+        (fun rule -> Rule_ID.to_string (fst rule.Rule.id))
         profiling_data.RP.rules;
     rules_parse_time = profiling_data.rules_parse_time;
     max_memory_bytes = Some profiling_data.max_memory_bytes;
@@ -377,7 +377,7 @@ let core_output_of_matches_and_errors render_fix nfiles (res : RP.final_result)
       |> Common.map (fun ((kind, rule_id, tk) : Rule.invalid_rule_error) ->
              let loc = Tok.unsafe_loc_of_tok tk in
              {
-               Out.rule_id = (rule_id :> string);
+               Out.rule_id = Rule_ID.to_string rule_id;
                details = Rule.string_of_invalid_rule_error_kind kind;
                position = Output_utils.position_of_token_location loc;
              });

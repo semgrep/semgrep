@@ -108,7 +108,7 @@ let convert_rule_id (id, _tok) =
   {
     PM.id;
     message = "";
-    pattern_string = (id :> string);
+    pattern_string = Rule_ID.to_string id;
     fix = None;
     languages = [];
   }
@@ -893,7 +893,7 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
            v
            |> List.iter (fun (m : Pattern_match.t) ->
                   let str =
-                    Common.spf "with rule %s" (m.rule_id.id :> string)
+                    Common.spf "with rule %s" (Rule_ID.to_string m.rule_id.id)
                   in
                   match_hook str m))
     |> Common.map (fun m ->

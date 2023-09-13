@@ -107,7 +107,7 @@ let prefix_for_fpath_opt (fpath : Fpath.t) : string option =
       Some prefix
 
 let add_prefix prefix (rule_id : Rule_ID.t) =
-  Rule_ID.of_string (Rule_ID.sanitize_string prefix ^ (rule_id :> string))
+  Rule_ID.of_string (Rule_ID.sanitize_string prefix ^ Rule_ID.to_string rule_id)
 
 let rules_rewrite_rule_ids ~rewrite_rule_ids (x : rules_and_origin) :
     rules_and_origin =

@@ -196,14 +196,13 @@ let report_unbound_mvar (ruleid : Rule_ID.t) mvar m =
   logger#warning
     "The extract metavariable for rule %s (%s) wasn't bound in a match; \
      skipping extraction for this match [match was at bytes %d-%d]"
-    (ruleid :> string)
-    mvar start end_
+    (Rule_ID.to_string ruleid) mvar start end_
 
 let report_no_source_range erule =
   logger#error
     "In rule %s the extract metavariable (%s) did not have a corresponding \
      source range"
-    (fst erule.Rule.id :> string)
+    (Rule_ID.to_string (fst erule.Rule.id))
     (let (`Extract { Rule.extract; _ }) = erule.mode in
      extract)
 
@@ -376,7 +375,7 @@ let extract_and_concat erule_table xtarget ~all_rules matches =
                   "Extract rule %s extracted the following from %s at bytes \
                    %d-%d\n\
                    %s"
-                  (fst r.Rule.id :> string)
+                  (Rule_ID.to_string (fst r.Rule.id))
                   !!(xtarget.file) start_pos end_pos contents;
                 ( contents,
                   map_loc start_pos start_line start_col !!(xtarget.file) ))
@@ -446,7 +445,7 @@ let extract_and_concat erule_table xtarget ~all_rules matches =
          logger#trace
            "Extract rule %s combined matches from %s resulting in the following:\n\
             %s"
-           (fst r.Rule.id :> string)
+           (Rule_ID.to_string (fst r.Rule.id))
            !!(xtarget.file) contents;
          (* Write out the extracted text in a tmpfile *)
          let (`Extract { Rule.dst_lang; Rule.extract_rule_ids; _ }) = r.mode in
@@ -494,7 +493,7 @@ let extract_as_separate erule_table xtarget ~all_rules matches =
              logger#trace
                "Extract rule %s extracted the following from %s at bytes %d-%d\n\
                 %s"
-               (m.rule_id.id :> string)
+               (Rule_ID.to_string m.rule_id.id)
                m.file start_extract_pos end_extract_pos contents;
              (* Write out the extracted text in a tmpfile *)
              let (`Extract

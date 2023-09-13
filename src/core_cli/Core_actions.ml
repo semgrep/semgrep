@@ -162,7 +162,7 @@ let prefilter_of_rules file =
            in
            let id = r.Rule.id |> fst in
            {
-             Semgrep_prefilter_t.rule_id = (id :> string);
+             Semgrep_prefilter_t.rule_id = Rule_ID.to_string id;
              filter = pre_atd_opt;
            })
   in

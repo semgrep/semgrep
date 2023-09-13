@@ -726,7 +726,7 @@ let parse_xpattern_expr env e =
     | Some (s, t) -> (s, t)
     | None ->
         error_at_expr env.id e
-          ("Expected a string value for " ^ (env.id :> string))
+          ("Expected a string value for " ^ Rule_ID.to_string env.id)
   in
 
   (* emma: This is for later, but note that start and end_ are currently the
@@ -1001,7 +1001,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
       let env', opt_xlang =
         match take_opt mv_type_dict env parse_string "language" with
         | Some s ->
-            let xlang = Xlang.of_string ~rule_id:(env.id :> string) s in
+            let xlang = Xlang.of_string ~rule_id:(Rule_ID.to_string env.id) s in
             let env' =
               {
                 id = env.id;
@@ -1023,7 +1023,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
       let env', opt_xlang =
         match take_opt mv_pattern_dict env parse_string "language" with
         | Some s ->
-            let xlang = Xlang.of_string ~rule_id:(env.id :> string) s in
+            let xlang = Xlang.of_string ~rule_id:(Rule_ID.to_string env.id) s in
             let env' =
               {
                 id = env.id;
@@ -1206,7 +1206,7 @@ and produce_constraint env dict tok indicator =
       let env', opt_xlang =
         match take_opt dict env parse_string "language" with
         | Some s ->
-            let xlang = Xlang.of_string ~rule_id:(env.id :> string) s in
+            let xlang = Xlang.of_string ~rule_id:(Rule_ID.to_string env.id) s in
             let env' =
               {
                 env with
@@ -1892,8 +1892,7 @@ let parse_generic_ast ?(error_recovery = false) (file : Fpath.t)
                ->
                  let s = Rule.string_of_invalid_rule_error_kind kind in
                  logger#warning "skipping rule %s, error = %s"
-                   (ruleid :> string)
-                   s;
+                   (Rule_ID.to_string ruleid) s;
                  Right err)
            else Left (parse_one_rule t i rule))
   in
