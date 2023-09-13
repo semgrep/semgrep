@@ -1,0 +1,6 @@
+Implemented key path expression parsing in Swift. The following example should
+now be correctly matched by the \$X.isActive pattern:
+
+```
+employee.filter(\.isActive)
+```
