@@ -1,3 +1,8 @@
+# alt: We could have used the .github/pull_request_template.md file
+# for this checklist, but that means that the checklist will clutter
+# all commits in git log, so we decided to add the checklist as a comment
+# on the PR instead.
+
 name: PR-checklist
 
 on:
