@@ -6,6 +6,11 @@ module Out = Semgrep_output_v1_t
 let diagnostic_of_match (m : Out.cli_match) =
   let severity = Conv.severity_of_string m.extra.severity in
   let message = m.extra.message in
+  let message =
+    if String.equal message "" then
+      Printf.sprintf "Semgrep found: %s" m.check_id
+    else message
+  in
   let code = `String m.check_id in
   let shortlink =
     let metadata = (m.extra.metadata :> Yojson.Safe.t) in
