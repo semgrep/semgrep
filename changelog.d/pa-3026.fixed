@@ -1,0 +1,3 @@
+Allowed the Pro Engine binary to be installed where a non-root user has 
+permissions to (their home directory) by setting an environment variable. 
+Additionally, set this environment variable for non-root containers.
