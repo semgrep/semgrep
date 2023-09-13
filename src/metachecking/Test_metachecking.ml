@@ -93,7 +93,9 @@ let test_rules ?(unit_testing = false) xs =
          (* actual *)
          let actual_errors =
            try
-             Check_rule.run_checks config Parse_rule.parse file [ target ]
+             Check_rule.run_checks config
+               (Parse_rule.parse ~rewrite_rule_ids:None)
+               file [ target ]
            with
            | exn ->
                failwith

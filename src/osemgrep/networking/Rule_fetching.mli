@@ -1,10 +1,9 @@
 type rules_and_origin = {
-  origin : origin;
   rules : Rule.rules;
   errors : Rule.invalid_rule_error list;
+  origin : Parse_rule.origin;
 }
-
-and origin = Fpath.t option (* None for remote config *) [@@deriving show]
+[@@deriving show]
 
 val partition_rules_and_errors :
   rules_and_origin list -> Rule.rules * Rule.invalid_rule_error list
@@ -24,6 +23,7 @@ val rules_from_rules_source :
 (* internals *)
 
 val rules_from_dashdash_config_async :
+  rewrite_rule_ids:bool ->
   token_opt:Auth.token option ->
   registry_caching:bool ->
   Rules_config.t ->
@@ -34,13 +34,18 @@ val rules_from_dashdash_config_async :
  * rules_and_origin per files in this folder.
  *)
 val rules_from_dashdash_config :
+  rewrite_rule_ids:bool ->
   token_opt:Auth.token option ->
   registry_caching:bool ->
   Rules_config.t ->
   rules_and_origin list
 
 (* low-level API *)
-val load_rules_from_file : registry_caching:bool -> Fpath.t -> rules_and_origin
+val load_rules_from_file :
+  rewrite_rule_ids:Parse_rule.origin option ->
+  registry_caching:bool ->
+  Fpath.t ->
+  rules_and_origin
 
 val load_rules_from_url :
   ?token_opt:Auth.token option -> ?ext:string -> Uri.t -> rules_and_origin

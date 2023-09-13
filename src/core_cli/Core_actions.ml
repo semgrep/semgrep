@@ -148,11 +148,11 @@ let dump_equivalences file =
 
 let dump_rule file =
   let file = Run_semgrep.replace_named_pipe_by_regular_file file in
-  let rules = Parse_rule.parse file in
+  let rules = Parse_rule.parse ~rewrite_rule_ids:None file in
   rules |> List.iter (fun r -> pr (Rule.show r))
 
 let prefilter_of_rules file =
-  let rules = Parse_rule.parse file in
+  let rules = Parse_rule.parse ~rewrite_rule_ids:None file in
   let xs =
     rules
     |> Common.map (fun r ->
