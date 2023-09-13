@@ -80,7 +80,14 @@ def find_semgrep_core_path(core="semgrep-core", extra_message=""):
  
     raise CoreNotFound(f"Failed to find {core} in PATH or in the semgrep package.{extra_message}")
 
-def exec_legacy_semgrep():
+#TODO: we should just do 'execvp("pysemgrep", sys.argv)'
+# but this causes some regressions with --test (see PA-2963)
+# and autocomplete (see #8359)
+#TODO: we should get rid of autocomplete anyway (it's a Python Click
+# thing not supported by osemgrep anyway),
+#TODO: we should fix --test instead.
+# The past investigation of Austin is available in #8360 PR comments
+def exec_pysemgrep():
     import semgrep.main
     sys.exit(semgrep.main.main())
 
@@ -99,13 +106,13 @@ def exec_osemgrep():
                                       extra_message="\nYou may need to run `semgrep install-semgrep-pro`"    )
         except CoreNotFound as e:
             print(str(e), file=sys.stderr)
-            if "ci" in sys.argv:
+            if sys.argv[1] == "ci":
                 # CI users usually want things to just work. In particular, if they
                 # are running `semgrep ci --pro` they don't want to have to add an
                 # extra step to install-semgrep-pro. This wrapper doesn't have a way
                 # to install semgrep-pro, however, so have them run legacy `semgrep`. 
                 print("Since `semgrep ci` was run, defaulting to legacy semgrep", file=sys.stderr)
-                exec_legacy_semgrep()
+                exec_pysemgrep()
         # If you call semgrep-core-proprietary as osemgrep-pro, then we get
         # osemgrep-pro behavior, see semgrep-proprietary/src/main/Pro_main.ml
         sys.argv[0] = "osemgrep-pro"
@@ -129,14 +136,7 @@ if __name__ == "__main__":
     # can also call directly 'pysemgrep').
     if "--legacy" in sys.argv:
        sys.argv.remove("--legacy")
-       #TODO: we should just do 'execvp("pysemgrep", sys.argv)'
-       # but this causes some regressions with --test (see PA-2963)
-       # and autocomplete (see #8359)
-       #TODO: we should get rid of autocomplete anyway (it's a Python Click
-       # thing not supported by osemgrep anyway),
-       #TODO: we should fix --test instead.
-       # The past investigation of Austin is available in #8360 PR comments
-       exec_legacy_semgrep()
+       exec_pysemgrep()
     elif "--experimental" in sys.argv:
        exec_osemgrep()
     else:
