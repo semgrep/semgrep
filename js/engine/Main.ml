@@ -86,7 +86,7 @@ let _ =
        method execute language rule_file _root source_files : string =
          let xlang = Xlang.of_string (Js.to_string language) in
          let rules_and_errors =
-           Parse_rule.parse_and_filter_invalid_rules
+           Parse_rule.parse_and_filter_invalid_rules ~rewrite_rule_ids:None
              (Fpath.v (Js.to_string rule_file))
          in
          let source_files =
@@ -108,7 +108,7 @@ let _ =
          in
          let targets =
            Input_to_core_t.
-             { target_mappings; rule_ids = (rule_ids :> string list) }
+             { target_mappings; rule_ids = Rule_ID.to_string_list rule_ids }
          in
          let config : Runner_config.t =
            {
