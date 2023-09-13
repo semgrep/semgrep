@@ -1300,15 +1300,20 @@ Exception raised: `{e}`
             "-json",
             "-dump_contributions",
         ]
-        # only scanning combined rules
-        runner = StreamingSemgrepCore(cmd, 1, self._engine_type)
-        returncode = runner.execute()
+        try:
+            # only scanning combined rules
+            runner = StreamingSemgrepCore(cmd, 1, self._engine_type)
+            returncode = runner.execute()
 
-        # Process output
-        output_json = self._extract_core_output(
-            [], returncode, " ".join(cmd), runner.stdout, runner.stderr
-        )
-        contributions = out.Contributions.from_json(output_json)
+            # Process output
+            output_json = self._extract_core_output(
+                [], returncode, " ".join(cmd), runner.stdout, runner.stderr
+            )
+            contributions = out.Contributions.from_json(output_json)
+        except SemgrepError as e:
+            logger.error(f"Failed to collect contributions: str{e}")
+            contributions = out.Contributions([])
+
         logger.debug(f"semgrep contributions ran in {datetime.now() - start}")
         return contributions
 
