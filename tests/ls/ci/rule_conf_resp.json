@@ -1,0 +1,3 @@
+{
+  "rule_config": "{\n  \"rules\": [ {\n    \"id\": \"test\",\n    \"languages\": [\n      \"go\"\n    ],\n    \"message\": \"test\",\n    \"pattern\": \"fmt.Printf(\\'$X\\')\",\n    \"severity\": \"ERROR\"\n  } ]\n}"
+}

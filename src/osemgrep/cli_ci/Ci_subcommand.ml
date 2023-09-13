@@ -421,13 +421,13 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
                   ~token_opt:settings.api_token
                   ~rewrite_rule_ids:conf.rewrite_rule_ids
                   ~registry_caching:conf.registry_caching conf.rules_source )
-        | Some (token, deployment) -> (
+        | Some (token, deployment_config) -> (
             Logs.app (fun m ->
                 m "  %a" Fmt.(styled `Underline string) "CONNECTION");
             Logs.app (fun m ->
                 m "  Reporting start of scan for %a"
                   Fmt.(styled `Bold string)
-                  deployment);
+                  deployment_config.deployment_name);
             let metadata_dict = Project_metadata.to_dict metadata in
             (* TODO: metadata_dict["is_sca_scan"] = supply_chain *)
             (* TODO: proj_config = ProjectConfig.load_all()
@@ -560,7 +560,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
                          "rule"));
                 let app_block_override, reason =
                   match (depl, scan_id) with
-                  | Some (token, deployment_name), Some scan_id ->
+                  | Some (token, deployment_config), Some scan_id ->
                       Logs.app (fun m -> m "  Uploading findings.");
                       let findings_and_ignores, complete =
                         prepare_for_report
@@ -588,7 +588,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
                           m "  View results in Semgrep Cloud Platform:");
                       Logs.app (fun m ->
                           m "    https://semgrep.dev/orgs/%s/findings"
-                            deployment_name);
+                            deployment_config.deployment_name);
                       if
                         List.exists
                           (fun r ->
@@ -598,7 +598,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
                       then
                         Logs.app (fun m ->
                             m "    https://semgrep.dev/orgs/%s/supply-chain"
-                              deployment_name);
+                              deployment_config.deployment_name);
                       result
                   | _ -> (false, "")
                 in
