@@ -95,9 +95,7 @@ let add_file ?(git = false) ?(dirty = false)
 let with_mock_envvars f () =
   let old_settings = !Semgrep_envvars.v in
   let new_settings = { old_settings with app_token = Some "123456789" } in
-  Semgrep_envvars.v := new_settings;
-  f ();
-  Semgrep_envvars.v := old_settings
+  Common.save_excursion Semgrep_envvars.v new_settings f
 
 (*****************************************************************************)
 (* Tests *)
@@ -240,19 +238,17 @@ let ci_tests () =
       ignore body;
       let uri = req |> Cohttp.Request.uri |> Uri.path in
       Http_mock_client.check_method `GET req.meth;
-      let body_file =
+      let body =
         match uri with
         | "/api/agent/deployments/scans/config" ->
-            "./tests/ls/ci/rule_conf_resp.json"
+            Http_mock_client.body_of_file "./tests/ls/ci/rule_conf_resp.json"
         | "/api/agent/deployments/current" ->
-            "./tests/ls/ci/deployment_conf_resp.json"
+            Http_mock_client.body_of_file
+              "./tests/ls/ci/deployment_conf_resp.json"
         | _ ->
             failwith (Printf.sprintf "Unexpected request to %s in CI tests" uri)
       in
-      Lwt.return
-        Http_mock_client.(
-          basic_response
-            (body_file |> Common.read_file |> Cohttp_lwt.Body.of_string))
+      Lwt.return Http_mock_client.(basic_response body)
     in
     Http_mock_client.with_testing_client make_fn
   in

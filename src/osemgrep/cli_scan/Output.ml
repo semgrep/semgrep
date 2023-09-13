@@ -154,27 +154,27 @@ let dispatch_output_format (output_format : Output_format.t)
 (* Entry points *)
 (*****************************************************************************)
 
+(* This function takes a core runner output and makes it suitable for the user,
+ * by filtering out nosem, setting messages, adding fingerprinting etc.
+ *)
 let preprocess_result (conf : Scan_CLI.conf) (res : Core_runner.result) :
-    unit -> Out.cli_output =
+    Out.cli_output =
   let cli_output : Out.cli_output =
     Cli_json_output.cli_output_of_core_results
       ~logging_level:conf.common.logging_level res.core res.hrules res.scanned
   in
-  let cli_output () =
-    let keep_ignored =
-      (not conf.nosem) (* --disable-nosem *) || false
-      (* TODO(dinosaure): [false] depends on the output formatter. Currently,
-         we just have the JSON output. *)
-    in
-    cli_output
-    |> Nosemgrep.process_ignores ~keep_ignored ~strict:conf.Scan_CLI.strict
-    |> fun results ->
-    {
-      results with
-      results = Cli_json_output.index_match_based_ids results.results;
-    }
+  let keep_ignored =
+    (not conf.nosem) (* --disable-nosem *) || false
+    (* TODO(dinosaure): [false] depends on the output formatter. Currently,
+       we just have the JSON output. *)
   in
   cli_output
+  |> Nosemgrep.process_ignores ~keep_ignored ~strict:conf.Scan_CLI.strict
+  |> fun results ->
+  {
+    results with
+    results = Cli_json_output.index_match_based_ids results.results;
+  }
 
 (* python: mix of output.OutputSettings(), output.OutputHandler(), and
  * output.output() all at once.
@@ -187,7 +187,7 @@ let output_result (conf : Scan_CLI.conf) (profiler : Profiler.t)
    * that are useful for the other formats (e.g., Vim, Emacs), so we build
    * it here.
    *)
-  let cli_output = preprocess_result conf res in
+  let cli_output () = preprocess_result conf res in
   (* TOPORT? output.output() *)
   let cli_output = Profiler.record profiler ~name:"ignores_times" cli_output in
   (* ugly: but see the comment above why we do it here *)

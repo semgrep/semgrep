@@ -443,7 +443,18 @@ let dedup_and_sort (xs : Out.cli_match list) : Out.cli_match list =
            Hashtbl.replace seen key true;
            true)
 
-(* This is the same algorithm for indexing as in cli. We shouldn't need to update this *)
+(* This is the same algorithm for indexing as in pysemgrep. We shouldn't need to update this *)
+(* match based ids have an index appended at the end which indicates what
+ * # finding of that exact id it is in a file. This is used to dedup findings
+ * on the app side.
+ * Example:
+ * foo.py
+bad_function() # bad_function is a finding
+bad_function() # 2nd call
+ * The above findings will have the exact same match based id, but the index
+ * will be different. So the first will be <match_based_id>_0 and the second
+ * will be <match_based_id>_1.
+ *)
 let index_match_based_ids (matches : Out.cli_match list) : Out.cli_match list =
   let matches =
     matches

@@ -1,7 +1,6 @@
 module Out = Semgrep_output_v1_j
 
-val preprocess_result :
-  Scan_CLI.conf -> Core_runner.result -> unit -> Out.cli_output
+val preprocess_result : Scan_CLI.conf -> Core_runner.result -> Out.cli_output
 (** [preprocess_result conf result] preprocesses the result of a scan
   * according to the configuration [conf]. This handles
   * nosemgrep, interolating messages, and more. It returns a function that

@@ -3,11 +3,16 @@ open Types
 
 type session_cache = {
   mutable rules : Rule.t list;
+      (* Rules can take a long time to fetch + load, so we want to minimize it *)
   mutable skipped_fingerprints : string list;
+  (* Skipped fingerprints need to be fetched from the app, so we only want to do this every so often.
+   * These come from the same place ci rules do, so we fetch them at the same time as the above rules
+   *)
   lock : Lwt_mutex.t;
 }
-(** Cache of active rules and skipped fingerprints. Protected by mutex as [cache_session] below can be called asynchronously,
-    and so this cache needs to be safe *)
+(** Cache of rules that will be run, and skipped fingerprints. Protected by mutex as [cache_session] below
+  * can be called asynchronously, and so this cache needs to be safe
+  *)
 
 type t = {
   capabilities : ServerCapabilities.t;
