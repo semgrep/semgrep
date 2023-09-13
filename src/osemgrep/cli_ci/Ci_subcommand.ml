@@ -211,7 +211,7 @@ let finding_of_cli_match _commit_date index (m : Out.cli_match) : Out.finding =
 
 (* from scans.py *)
 let prepare_for_report ~blocking_findings findings errors rules ~targets
-    ~(contributions : Out.contributions option)
+    ~(contributions : Out.contribution list option)
     ~(ignored_targets : Out.skipped_target list option) ~commit_date
     ~engine_requested =
   let rule_ids =

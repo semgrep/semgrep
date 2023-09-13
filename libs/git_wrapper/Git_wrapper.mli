@@ -69,4 +69,7 @@ val get_project_url : unit -> string option
 
 val get_git_logs : unit -> string list
 (** [get_git_logs ()] tries to get the git logs of the project from
-    [git log]. It returns an empty list if it found nothing relevant. *)
+    [git log]. It returns an empty list if it found nothing relevant.
+    The strings returned contain each JSON data that
+    fit the schema defined in semgrep_output_v1.atd contribution type.
+ *)

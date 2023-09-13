@@ -439,7 +439,7 @@ class OutputHandler:
     def _build_output(self) -> str:
         # CliOutputExtra members
         cli_paths = out.ScannedAndSkipped(
-            scanned=[str(path) for path in sorted(self.all_targets)],
+            scanned=[out.Fpath(str(path)) for path in sorted(self.all_targets)],
             _comment=None,
             skipped=None,
         )
