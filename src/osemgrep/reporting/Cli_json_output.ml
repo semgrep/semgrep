@@ -372,12 +372,16 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
         try Hashtbl.find hrules (Rule_ID.of_string rule_id) with
         | Not_found -> raise Impossible
       in
+      let rule_message = rule.message in
       let message =
         match message with
-        (* message where the metavars have been interpolated *)
-        | Some s -> interpolate_metavars s metavars path
-        | None -> ""
+        | Some s when not String.(equal empty s) -> s
+        | Some _
+        | None ->
+            rule_message
       in
+      (* message where the metavars have been interpolated *)
+      let message = interpolate_metavars message metavars path in
       let fix = render_fix hrules m in
       let check_id = rule_id in
       let metavars = Some metavars in
