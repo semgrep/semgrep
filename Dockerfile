@@ -239,4 +239,5 @@ LABEL maintainer="support@semgrep.com"
 # on the mounted volume when using instructions for running semgrep with docker:
 # `docker run -v "${PWD}:/src" -i returntocorp/semgrep semgrep`
 FROM semgrep-cli AS nonroot
+ENV SEMGREP_CORE_PROPRIETARY_PATH="/home/semgrep/bin/semgrep-core-proprietary"
 USER semgrep

@@ -27,8 +27,14 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
+SEMGREP_CORE_PROPRIETARY_BINARY_NAME = "semgrep-core-proprietary"
+SEMGREP_CORE_PROPRIETARY_PATH = os.getenv("SEMGREP_CORE_PROPRIETARY_PATH")
+
 
 def determine_semgrep_pro_path() -> Path:
+    if SEMGREP_CORE_PROPRIETARY_PATH:
+        return Path(SEMGREP_CORE_PROPRIETARY_PATH)
+
     core_path = SemgrepCore.path()
     if core_path is None:
         logger.info(
@@ -37,7 +43,7 @@ def determine_semgrep_pro_path() -> Path:
         logger.info("There is something wrong with your semgrep installtation")
         sys.exit(FATAL_EXIT_CODE)
 
-    semgrep_pro_path = Path(core_path).parent / "semgrep-core-proprietary"
+    semgrep_pro_path = Path(core_path).parent / SEMGREP_CORE_PROPRIETARY_BINARY_NAME
     return semgrep_pro_path
 
 
