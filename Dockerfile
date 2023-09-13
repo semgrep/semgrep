@@ -199,15 +199,15 @@ COPY Dockerfile /Dockerfile
 
 # Get semgrep-core from step1 and place in the semgrep user HOME directory
 # to avoid permissions issues when installing Pro Engine on nonroot image
-COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe /home/semgrep/semgrep-core
+COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe /home/semgrep/bin/semgrep-core
 
-RUN ln -s semgrep-core /home/semgrep/osemgrep
+RUN ln -s semgrep-core /home/semgrep/bin/osemgrep
 
 # Set some env variables, including updating PATH with
 # location of semgrep-core binary
 ENV SEMGREP_IN_DOCKER=1 \
     SEMGREP_USER_AGENT_APPEND="Docker" \
-    PATH="/home/semgrep:$PATH"
+    PATH="/home/semgrep/bin:$PATH"
 
 # The command we tell people to run for testing semgrep in Docker is
 #   docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep --config=auto
