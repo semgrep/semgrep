@@ -469,7 +469,7 @@ let index_match_based_ids (matches : Out.cli_match list) : Out.cli_match list =
            ( path_and_rule_id,
              List.sort
                (fun (a : Out.cli_match) (b : Out.cli_match) ->
-                 compare a.start.line b.start.line)
+                 compare a.start.offset b.start.offset)
                matches ))
     (* Index per file *)
     |> Common.map (fun (path_and_rule_id, matches) ->
