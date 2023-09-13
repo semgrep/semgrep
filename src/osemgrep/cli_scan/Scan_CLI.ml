@@ -136,6 +136,7 @@ let default : conf =
     max_chars_per_line = 160;
     max_lines_per_finding = 10;
     rewrite_rule_ids = true;
+    (* will send metrics only if the user uses the registry or the app *)
     metrics = Metrics_.Auto;
     (* like maturity, should maybe be set to false when we release osemgrep *)
     registry_caching = false;

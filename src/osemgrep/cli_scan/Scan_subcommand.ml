@@ -143,7 +143,9 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
 (*************************************************************************)
 
 (* This function counts how many matches we got by rules:
-   [(Rule.t, number of matches : int) list]. *)
+   [(Rule.t, number of matches : int) list].
+   This is use for rule metrics.
+*)
 let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
   let update = function
     | Some n -> Some (succ n)
@@ -406,9 +408,6 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     in
     Metrics_.add_engine_kind res.Core_runner.core.engine_requested;
 
-    let filtered_matches = rules_and_counted_matches res in
-    Metrics_.add_findings filtered_matches;
-
     (* step 4: adjust the skipped_targets *)
     let errors_skipped = Skipped_report.errors_to_skipped res.core.errors in
     let skipped = skipped @ errors_skipped in
@@ -435,6 +434,8 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
       Metrics_.add_errors cli_output.errors;
       Metrics_.add_rules_hashes_and_rules_profiling ?profiling:res.core.time
         filtered_rules;
+      Metrics_.add_rules_hashes_and_findings_count
+        (rules_and_counted_matches res);
       Metrics_.add_profiling profiler);
 
     let skipped_groups = Skipped_report.group_skipped skipped in
@@ -480,14 +481,12 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
   let settings =
     (fun () ->
       let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
-      Metrics_.add_token settings.api_token;
       (* TODO? why guard this one with is_enabled? because calling
        * git can take time (and generate errors on stderr)?
        *)
       if Metrics_.is_enabled () then
         Git_wrapper.get_project_url ()
         |> Option.iter Metrics_.add_project_url_hash;
-      Metrics_.g.payload.environment.integrationName <- !Env.v.integration_name;
       (match conf.rules_source with
       | Configs configs -> Metrics_.add_configs_hash configs
       | Pattern _ -> ());

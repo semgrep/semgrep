@@ -1,9 +1,10 @@
 (*
    Configures metrics upload.
 
-   On - Metrics always sent
-   Off - Metrics never sent
-   Auto - Metrics only sent if config is pulled from the server
+   On   - Metrics always sent
+   Off  - Metrics never sent
+   Auto - Metrics only sent if config is pulled from the registry
+          or if using the Semgrep App.
 *)
 type config = On | Off | Auto [@@deriving show]
 
@@ -15,7 +16,9 @@ val metrics_url : Uri.t
 
 type t = {
   mutable config : config;
+  (* this works with the Auto option *)
   mutable is_using_registry : bool;
+  mutable is_using_app : bool;
   (* The user agent used when sending data to https://metrics.semgrep.dev.
    * We override the default value (e.g. "ocaml-cohttp/5.3.0") with a
    * custom string built from:
@@ -49,7 +52,8 @@ val g : t
 (* set g.config *)
 val configure : config -> unit
 
-(* check whether g.config is On (or Auto) *)
+(* check whether g.config is On or
+ * set to Auto and (is_using_registry or is_using_app) *)
 val is_enabled : unit -> bool
 
 (* Add more tags to the user_agent string (e.g., "command/scan").
@@ -62,6 +66,8 @@ val string_of_user_agent : unit -> string
 (* initialize the payload in g, which can then be modified by the
  * add_xxx functions below (or by accessing directly g.payload) and
  * finally accessed in string_of_metrics().
+ * You should not call this function though; only CLI.metrics_init()
+ * should call it.
  *)
 val init : anonymous_user_id:Uuidm.t -> ci:bool -> unit
 
@@ -87,10 +93,9 @@ val add_configs_hash : Rules_config.config_string list -> unit
 val add_rules_hashes_and_rules_profiling :
   ?profiling:Semgrep_output_v1_t.core_timing -> Rule.rules -> unit
 
-val add_findings : (Rule.t * int) list -> unit
+val add_rules_hashes_and_findings_count : (Rule.t * int) list -> unit
 val add_targets_stats : Fpath.t Set_.t -> Report.final_profiling option -> unit
 val add_engine_kind : Semgrep_output_v1_t.engine_kind -> unit
-val add_token : 'a option -> unit
 val add_exit_code : Exit_code.t -> unit
 
 (* ex: "language/python" *)

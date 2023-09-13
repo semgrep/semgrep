@@ -28,7 +28,7 @@ open Common
    We don't use Cmdliner to dispatch subcommands because it's too
    complicated and anywant we want full control on main help message.
 
-   Translated from cli.py and commands/wrapper.py
+   Translated from cli.py and commands/wrapper.py and parts of metrics.py
 *)
 
 module Env = Semgrep_envvars
@@ -52,13 +52,20 @@ let default_subcommand = "scan"
    ()
 *)
 
+(*****************************************************************************)
+(* Metrics start and end *)
+(*****************************************************************************)
+
 let metrics_init () : unit =
   let settings = Semgrep_settings.load () in
   let api_token = settings.Semgrep_settings.api_token in
   let anonymous_user_id = settings.Semgrep_settings.anonymous_user_id in
   Metrics_.init ~anonymous_user_id ~ci:!Env.v.is_ci;
-  Metrics_.add_token (Some api_token);
+  api_token
+  |> Option.iter (fun (_token : Auth.token) ->
+         Metrics_.g.payload.environment.isAuthenticated <- true);
   !Env.v.user_agent_append |> Option.iter Metrics_.add_user_agent_tag;
+  Metrics_.g.payload.environment.integrationName <- !Env.v.integration_name;
   ()
 
 (* For debugging customer issues, we append the CLI flags for each subcommand,
@@ -70,14 +77,13 @@ let log_cli_feature flag : unit =
     |> Base.String.chop_prefix_if_exists ~prefix:"-"
     |> Base.String.chop_prefix_if_exists ~prefix:"-")
 
-(* NOTE: We could implement send_metrics in Metrics_.ml,
+(* CLI subcmds need to call Metrics_.configure conf.metrics
+   otherwise metrics will not be send as Metrics.g.config default
+   to Off
+   alt: we could implement send_metrics() in Metrics_.ml,
    but we would need to add a dependency on Http_helpers.
 *)
 let send_metrics () : unit =
-  (* NOTE: CLI subcmd needs to call Metrics_.configure conf.metrics;
-     otherwise, metrics will not be enabled as our default state
-     for our metrics singleton is false.
-  *)
   if Metrics_.is_enabled () then (
     (* Populate the sent_at timestamp *)
     Metrics_.prepare_to_send ();
@@ -94,9 +100,7 @@ let send_metrics () : unit =
     | Error (status_code, err) ->
         Logs.warn (fun m -> m "Metrics Endpoint error: %d %s" status_code err);
         ())
-  else (
-    Logs.debug (fun m -> m "Metrics not enabled, skipping sending");
-    ())
+  else Logs.debug (fun m -> m "Metrics not enabled, skipping sending")
 
 (*****************************************************************************)
 (* Subcommands dispatch *)
@@ -166,17 +170,15 @@ let dispatch_subcommand argv =
         subcmd_argv0 :: subcmd_args |> Array.of_list
       in
       let experimental = Array.mem "--experimental" argv in
+      (* basic metrics on what was the command *)
+      Metrics_.add_feature "subcommand" subcmd;
+      Metrics_.add_user_agent_tag (spf "command/%s" subcmd);
+      subcmd_argv |> Array.to_list
+      |> exclude (fun x -> not (Base.String.is_prefix ~prefix:"-" x))
+      |> List.iter log_cli_feature;
       (* coupling: with known_subcommands if you add an entry below.
        * coupling: with Help.ml if you add an entry below.
        *)
-      Metrics_.add_feature "subcommand" subcmd;
-      Metrics_.add_user_agent_tag (spf "command/%s" subcmd);
-      let flags =
-        subcmd_argv |> Array.to_list
-        |> exclude (fun x -> not (Base.String.is_prefix ~prefix:"-" x))
-        |> uniq_by ( =*= )
-      in
-      List.iter log_cli_feature flags;
       try
         match subcmd with
         (* TODO: gradually remove those 'when experimental' guards as
@@ -301,21 +303,19 @@ let main argv : Exit_code.t =
    * alt: we could analyze [argv] and do it sooner for all subcommands here.
    *)
   Logs_helpers.enable_logging ();
+  (* TOADAPT: profile_start := Unix.gettimeofday (); *)
   (* pad poor's man profiler *)
   if profile then Profiling.profile := Profiling.ProfAll;
 
-  (* TOADAPT: profile_start := Unix.gettimeofday (); *)
   (* hacks for having a smaller engine.js file *)
   Parsing_init.init ();
   Data_init.init ();
+
   metrics_init ();
-
   (* TOPORT: maybe_set_git_safe_directories() *)
-
-  (*TOADAPT? adapt more of Common.boilerplate? *)
+  (* TOADAPT? adapt more of Common.boilerplate? *)
   let exit_code = safe_run ~debug (fun () -> dispatch_subcommand argv) in
   Metrics_.add_exit_code exit_code;
   send_metrics ();
-
   before_exit ~profile ();
   exit_code
