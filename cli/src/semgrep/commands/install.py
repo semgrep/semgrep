@@ -27,8 +27,14 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
+SEMGREP_PRO_PATH = os.getenv("SEMGREP_PRO_PATH")
 
 def determine_semgrep_pro_path() -> Path:
+    if SEMGREP_PRO_PATH:
+	    path = Path(SEMGREP_PRO_PATH) / "semgrep-core-proprietary"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        return path
+        
     core_path = SemgrepCore.path()
     if core_path is None:
         logger.info(
