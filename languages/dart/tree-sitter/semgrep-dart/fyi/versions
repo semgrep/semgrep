@@ -1,0 +1,33 @@
+File: semgrep-grammars/src/tree-sitter-dart/LICENSE
+Git repo name: tree-sitter-dart
+Latest commit in repo: 5549697ffeef681d57ba1ce72bed97961221f284
+Last change in file:
+  commit 8d7fc0ba6406040859aa1d473037e342a6790f59
+  Author: Han Wang <hyw2@cornell.edu>
+  Date:   Wed Apr 6 21:17:21 2022 -0400
+
+      Create LICENSE
+---
+File: semgrep-grammars/src/tree-sitter-dart/grammar.js
+Git repo name: tree-sitter-dart
+Latest commit in repo: 5549697ffeef681d57ba1ce72bed97961221f284
+Last change in file:
+  commit 4f7831394d656b1581ce115ec6afe4aa7357d142
+  Author: Martin Jambon <martin@mjambon.com>
+  Date:   Mon Jun 13 15:19:24 2022 -0700
+
+      Mark the rule '_if_null_expression' explicitly as inline so as to not
+      rely on tree-sitter auto-inlining it.
+      This a workaround to
+      https://github.com/tree-sitter/tree-sitter/issues/1683
+---
+File: semgrep-grammars/src/semgrep-dart/grammar.js
+Git repo name: ocaml-tree-sitter-semgrep
+Latest commit in repo: 40fc011bc6e5f0739e7e060e2ed92b5a693c7458
+Last change in file:
+  commit 40fc011bc6e5f0739e7e060e2ed92b5a693c7458
+  Author: brandonspark <wu.brandonj@gmail.com>
+  Date:   Wed Sep 13 12:00:05 2023 -0700
+
+      expression entry point and named ellipses
+---
