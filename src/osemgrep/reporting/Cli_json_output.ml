@@ -460,22 +460,24 @@ bad_function() # 2nd call
  * will be <match_based_id>_1.
  *)
 let index_match_based_ids (matches : Out.cli_match list) : Out.cli_match list =
-  let matches =
-    matches
-    (* Group by rule and path *)
-    |> Common.group_by (fun (x : Out.cli_match) -> (x.path, x.check_id))
-    (* Sort by start line *)
-    |> Common.map (fun (path_and_rule_id, matches) ->
-           ( path_and_rule_id,
-             List.sort
-               (fun (a : Out.cli_match) (b : Out.cli_match) ->
-                 compare a.start.offset b.start.offset)
-               matches ))
-    (* Index per file *)
-    |> Common.map (fun (path_and_rule_id, matches) ->
-           let matches =
-             Common.mapi
-               (fun i (x : Out.cli_match) ->
+  matches
+  (* preserve order *)
+  |> Common.mapi (fun i x -> (i, x))
+  (* Group by rule and path *)
+  |> Common.group_by (fun (_, (x : Out.cli_match)) -> (x.path, x.check_id))
+  (* Sort by start line *)
+  |> Common.map (fun (path_and_rule_id, matches) ->
+         ( path_and_rule_id,
+           List.sort
+             (fun (_, (a : Out.cli_match)) (_, (b : Out.cli_match)) ->
+               compare a.start.offset b.start.offset)
+             matches ))
+  (* Index per file *)
+  |> Common.map (fun (path_and_rule_id, matches) ->
+         let matches =
+           Common.mapi
+             (fun i (i', (x : Out.cli_match)) ->
+               ( i',
                  {
                    x with
                    extra =
@@ -483,14 +485,14 @@ let index_match_based_ids (matches : Out.cli_match list) : Out.cli_match list =
                        x.extra with
                        fingerprint = spf "%s_%d" x.extra.fingerprint i;
                      };
-                 })
-               matches
-           in
-           (path_and_rule_id, matches))
-       (* Flatten *)
-    |> List.concat_map snd
-  in
-  matches
+                 } ))
+             matches
+         in
+         (path_and_rule_id, matches))
+  (* Flatten *)
+  |> List.concat_map snd
+  |> List.sort (fun (a, _) (b, _) -> a - b)
+  |> Common.map snd
 
 (*****************************************************************************)
 (* Skipped target *)
