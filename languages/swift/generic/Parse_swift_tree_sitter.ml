@@ -2458,8 +2458,7 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : G.expr =
                   G.TyN name |> G.t
               | `Array_type x -> map_array_type env x
               | `Dict_type x -> map_dictionary_type env x)
-        | None ->
-            G.T (G.OtherType (("Implicit", Tok.unsafe_fake_tok ""), []) |> G.t)
+        | None -> G.T (G.OtherType (("Implicit", v1), []) |> G.t)
       in
       let _v3 =
         (* NOTE: Currently, \X.y is parsed as DotAccess, resulting in v3 always

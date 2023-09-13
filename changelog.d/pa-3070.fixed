@@ -4,3 +4,5 @@ now be correctly matched by the \$X.isActive pattern:
 ```
 employee.filter(\.isActive)
 ```
+Note that when the implicit type is used, the metavariable $X will bind to the
+backslash character instead of the type name.
