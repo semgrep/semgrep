@@ -152,7 +152,7 @@ def run_install_semgrep_pro() -> None:
     if semgrep_pro_path.exists():
         semgrep_pro_path.unlink()
     semgrep_pro_path_tmp.rename(semgrep_pro_path)
-    logger.info(f"Successfully installed Semgrep Pro Engine (version {version})!")
+    logger.info(f"\nSuccessfully installed Semgrep Pro Engine (version {version})!")
 
 
 @click.command()
