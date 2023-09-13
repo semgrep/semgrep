@@ -1,4 +1,4 @@
-name: PR
+name: PR-checklist
 
 on:
   pull_request:
@@ -8,7 +8,7 @@ env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-  checklist:
+  add-checklist-comment:
     runs-on: ubuntu-latest
     steps:
       - uses: marocchino/sticky-pull-request-comment@v2
