@@ -1,8 +1,7 @@
-from unittest.mock import patch
+import json
 
 import pytest
 
-import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.core_runner import CoreRunner
 from semgrep.core_runner import StreamingSemgrepCore
 from semgrep.engine import EngineType
@@ -24,18 +23,19 @@ CONTRIBUTION = {
 
 
 @pytest.fixture()
-def streaming_semgrep_core():
-    with patch.object(StreamingSemgrepCore, "execute") as mocked:
-        yield mocked
+def streaming_semgrep_core(mocker):
+    mocked = mocker.patch.object(StreamingSemgrepCore, "execute")
+    yield mocked
 
 
 @pytest.fixture()
-def core_runner_output(streaming_semgrep_core):
-    with patch.object(CoreRunner, "_extract_core_output") as mocked:
-        yield mocked
+def core_runner_output(mocker, streaming_semgrep_core):
+    mocked = mocker.patch.object(CoreRunner, "_extract_core_output")
+    yield mocked
 
 
 @pytest.mark.quick
+@pytest.mark.no_semgrep_cli
 def test_dump_contributions_nominal(core_runner_output):
     core_runner_output.return_value = [CONTRIBUTION]
 
@@ -51,15 +51,11 @@ def test_dump_contributions_nominal(core_runner_output):
     )
 
     contributions = core_runner.invoke_semgrep_dump_contributions()
-
-    expected_contributor = out.Contributor(COMMIT_AUTHOR_NAME, COMMIT_AUTHOR_EMAIL)
-    expected_contribution = out.Contribution(
-        COMMIT_HASH, COMMIT_TIMESTAMP, expected_contributor
-    )
-    assert contributions.value == [expected_contribution]
+    assert contributions.to_json_string() == json.dumps([CONTRIBUTION])
 
 
 @pytest.mark.quick
+@pytest.mark.no_semgrep_cli
 def test_dump_contributions_failed(core_runner_output):
     core_runner_output.side_effect = SemgrepError()
 
