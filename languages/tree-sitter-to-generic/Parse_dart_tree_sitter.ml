@@ -975,6 +975,11 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
           let _v2 = R.List (List.map (map_cascade_section env) v2) in
           v1)
   | `Semg_ellips tok -> Ellipsis ((* "..." *) token env tok) |> G.e
+  | `Semg_named_ellips tok ->
+      N
+        (Id
+           ((* pattern \$\.\.\.[A-Z_][A-Z_0-9]* *) str env tok, empty_id_info ()))
+      |> G.e
   | `Deep_ellips (v1, v2, v3) ->
       let v1 = (* "<..." *) token env v1 in
       let v2 = map_expression env v2 in
@@ -1229,11 +1234,25 @@ and map_function_signature ~attrs (env : env)
     | Some x -> Some (map_native env x)
     | None -> None
   in
+  (* This is actually ambiguous in some cases, because a forward declaration
+     might look like
+     foo();
+     because in Dart, you don't need to specify the return type.
+
+     In this case, when in a pattern, we might actually prefer to say that
+     this should be a call to a function named `foo`.
+  *)
   fun (fkind, fbody) ->
-    DefStmt
-      ( basic_entity ~attrs ~tparams id,
-        FuncDef { fkind; fparams; frettype; fbody } )
-    |> G.s
+    match (env.extra, fparams) with
+    | Pattern, (_, [], _) ->
+        ExprStmt
+          (Call (N (Id (id, empty_id_info ())) |> G.e, fb []) |> G.e, G.sc)
+        |> G.s
+    | _ ->
+        DefStmt
+          ( basic_entity ~attrs ~tparams id,
+            FuncDef { fkind; fparams; frettype; fbody } )
+        |> G.s
 
 and map_function_type (env : env) (x : CST.function_type) : type_ =
   match x with
@@ -1364,12 +1383,13 @@ and map_interface_type_list (env : env) ((v1, v2) : CST.interface_type_list) =
   in
   v1 :: v2
 
+(* This is called "lambda expression" but it actually doesn't have to be. *)
 and map_lambda_expression ~attrs (env : env) ((v1, v2) : CST.lambda_expression)
     =
   let fattrs, fbody = map_function_body env v2 in
   let v1 =
     map_function_signature ~attrs:(attrs @ fattrs) env v1
-      ((LambdaKind, fake "lambda"), fbody)
+      ((Function, fake "function"), fbody)
   in
   v1
 
@@ -2144,6 +2164,26 @@ and map_string_literal (env : env) (xs : CST.string_literal) : G.expr =
         |> Common.map (fun x -> Arg x)) )
   |> G.e
 
+and map_string_literal_to_strings (env : env) (xs : CST.string_literal) :
+    G.expr list =
+  xs
+  |> List.map (fun x ->
+         match x with
+         | `Str_lit_double_quotes x -> map_string_literal_double_quotes env x
+         | `Str_lit_single_quotes x -> map_string_literal_single_quotes env x
+         | `Str_lit_double_quotes_mult x ->
+             map_string_literal_double_quotes_multiple env x
+         | `Str_lit_single_quotes_mult x ->
+             map_string_literal_single_quotes_multiple env x
+         | `Raw_str_lit_double_quotes x ->
+             map_raw_string_literal_double_quotes env x
+         | `Raw_str_lit_single_quotes x ->
+             map_raw_string_literal_single_quotes env x
+         | `Raw_str_lit_double_quotes_mult x ->
+             map_raw_string_literal_double_quotes_multiple env x
+         | `Raw_str_lit_single_quotes_mult x ->
+             map_raw_string_literal_single_quotes_multiple env x)
+
 (* boilerplate boilerplate na na na na *)
 
 and map_string_literal_double_quotes (env : env)
@@ -2450,7 +2490,41 @@ and map_unconditional_assignable_selector (env : env)
       DotAccess (expr, dot, FN (Id (id, empty_id_info ()))) |> G.e
 
 and map_uri (env : env) (x : CST.uri) : G.module_name =
-  todo env (map_string_literal env x)
+  match map_string_literal_to_strings env x with
+  | [ { e = G.L (String (_, (s, t), _)); _ } ] ->
+      (* It's a pain, but we have to parse the string ourselves.
+         It can look like
+         dart:<path>
+         package:<path>
+         for instance, dart:foo/bar
+
+         It's a pain to separate these tokens by ourselves, so let's
+         just give them all the location of the originating token.
+      *)
+      Common.(
+        if s =~ "^\\(dart\\):\\(.*\\)$" then
+          let prefix, s = Common.matched2 s in
+          let dotted =
+            Common.map (fun s -> (s, t)) (prefix :: String.split_on_char '/' s)
+          in
+          DottedName dotted
+        else if s =~ "^\\(package\\):\\(.*\\)$" then
+          let prefix, s = Common.matched2 s in
+          let dotted =
+            Common.map (fun s -> (s, t)) (prefix :: String.split_on_char '/' s)
+          in
+          DottedName dotted
+        else DottedName [ (s, t) ])
+  | other ->
+      (* We have to make it fit in `module_name` somehow, so just drop anything we
+         can't understand.
+      *)
+      DottedName
+        (List.filter_map
+           (function
+             | { e = G.L (String (_, (s, t), _)); _ } -> Some (s, t)
+             | _ -> None)
+           other)
 
 and map_uri_expr (env : env) (x : CST.uri) : expr = map_string_literal env x
 
@@ -2821,12 +2895,13 @@ let map_initializer_list_entry (env : env) (x : CST.initializer_list_entry) :
 
 let map_configuration_uri (env : env)
     ((v1, v2, v3, v4, v5) : CST.configuration_uri) =
-  let v1 = (* "if" *) token env v1 in
-  let v2 = (* "(" *) token env v2 in
-  let v3 = map_uri_test env v3 in
-  let v4 = (* ")" *) token env v4 in
-  let v5 = map_uri env v5 in
-  todo env (v1, v2, v3, v4, v5)
+  let _v1 = (* "if" *) token env v1 in
+  let _v2 = (* "(" *) token env v2 in
+  let _v3 = map_uri_test env v3 in
+  let _v4 = (* ")" *) token env v4 in
+  let _v5 = map_uri env v5 in
+  (* TODO: What is a configuration URI??? *)
+  ()
 
 let map_mixin_application ~class_tok (env : env)
     ((v1, v2, v3) : CST.mixin_application) =
@@ -2890,7 +2965,7 @@ let map_initializers (env : env) ((v1, v2, v3) : CST.initializers) : expr list =
 let map_configurable_uri (env : env) ((v1, v2) : CST.configurable_uri) :
     G.module_name =
   let v1 = map_uri env v1 in
-  let _v2 = List.map (map_configuration_uri env) v2 |> todo env in
+  let _v2 = List.map (map_configuration_uri env) v2 in
   (* TODO: this is just totally wrong actually lmao
      the string isnt parsed -- it needs to be something like
      "foo/bar/qux"
@@ -3719,34 +3794,40 @@ let map_top_level_definition ~attrs (env : env) (x : CST.top_level_definition) :
           |> G.s)
         v3
 
-let map_program (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.program) =
-  let v1 =
-    match v1 with
-    | Some x -> [ map_script_tag env x ]
-    | None -> []
-  in
-  let v2 =
-    match v2 with
-    | Some x -> [ map_library_name env x ]
-    | None -> []
-  in
-  let v3 = Common.map (map_import_or_export env) v3 in
-  let v4 = Common.map (map_part_directive env) v4 in
-  let v5 = Common.map (map_part_of_directive env) v5 in
-  let v6 =
-    List.concat_map
-      (fun (v1, v2) ->
-        let v1 =
-          match v1 with
-          | Some x -> map_metadata env x
-          | None -> []
-        in
-        let v2 = map_top_level_definition ~attrs:v1 env v2 in
-        v2)
-      v6
-  in
-  let v7 = List.concat_map (map_statement env) v7 in
-  v1 @ v2 @ v3 @ v4 @ v5 @ v6 @ v7
+let map_program (env : env) (prog : CST.program) =
+  match prog with
+  | `Semg_exp (v1, v2) ->
+      let _v1 = (* "__SEMGREP_EXPRESSION" *) token env v1 in
+      G.E (map_expression env v2)
+  | `Opt_script_tag_opt_libr_name_rep_import_or_export_rep_part_dire_rep_part_of_dire_rep_opt_meta_top_level_defi_rep_stmt
+      (v1, v2, v3, v4, v5, v6, v7) ->
+      let v1 =
+        match v1 with
+        | Some x -> [ map_script_tag env x ]
+        | None -> []
+      in
+      let v2 =
+        match v2 with
+        | Some x -> [ map_library_name env x ]
+        | None -> []
+      in
+      let v3 = Common.map (map_import_or_export env) v3 in
+      let v4 = Common.map (map_part_directive env) v4 in
+      let v5 = Common.map (map_part_of_directive env) v5 in
+      let v6 =
+        List.concat_map
+          (fun (v1, v2) ->
+            let v1 =
+              match v1 with
+              | Some x -> map_metadata env x
+              | None -> []
+            in
+            let v2 = map_top_level_definition ~attrs:v1 env v2 in
+            v2)
+          v6
+      in
+      let v7 = List.concat_map (map_statement env) v7 in
+      G.Pr (v1 @ v2 @ v3 @ v4 @ v5 @ v6 @ v7)
 
 (*****************************************************************************)
 (* Set forward references *)
@@ -3764,15 +3845,26 @@ let parse file =
     (fun () -> Tree_sitter_dart.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = Program } in
-      let x = map_program env cst in
-      x)
+      let any = map_program env cst in
+      match any with
+      | G.Pr xs -> xs
+      | _ -> failwith "not a program")
+
+(* Cribbed from the Cairo parser. *)
+let parse_expression_or_source_file str =
+  let res = Tree_sitter_dart.Parse.string str in
+  match res.errors with
+  | [] -> res
+  | _ ->
+      let expr_str = "__SEMGREP_EXPRESSION " ^ str in
+      Tree_sitter_dart.Parse.string expr_str
 
 let parse_pattern str =
   H.wrap_parser
-    (fun () -> Tree_sitter_dart.Parse.string str)
+    (fun () -> parse_expression_or_source_file str)
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = Pattern } in
-      let e = map_program env cst in
-      (* this will be simplified if needed in Parse_pattern.normalize_any *)
-      G.Pr e)
+      let any = map_program env cst in
+      (* this will be simplified i:f needed in Parse_pattern.normalize_any *)
+      any)
