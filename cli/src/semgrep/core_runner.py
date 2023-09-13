@@ -1310,8 +1310,8 @@ Exception raised: `{e}`
                 [], returncode, " ".join(cmd), runner.stdout, runner.stderr
             )
             contributions = out.Contributions.from_json(output_json)
-        except SemgrepError as e:
-            logger.error(f"Failed to collect contributions: str{e}")
+        except SemgrepError:
+            logger.warning("Failed to collect contributions. Continuing with scan...")
             contributions = out.Contributions([])
 
         logger.debug(f"semgrep contributions ran in {datetime.now() - start}")
