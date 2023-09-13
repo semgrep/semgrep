@@ -286,10 +286,23 @@ let binop_bool_cst op b1 b2 =
       Some (Cst Cbool)
   | _b1, _b2 -> None
 
-let concat_string_cst s1 s2 =
+let concat_string_cst env s1 s2 =
   match (s1, s2) with
   | Some (Lit (String (l, (s1, t1), r))), Some (Lit (String (_, (s2, _), _))) ->
       Some (Lit (String (l, (s1 ^ s2, t1), r)))
+  | Some (Lit (String (l, (s1, t1), r))), Some (Lit (Int (Some m, _)))
+    when is_lang env Lang.Java || is_js env ->
+      (* implicit int-to-string conversion *)
+      Some (Lit (String (l, (s1 ^ string_of_int m, t1), r)))
+  | Some (Lit (String (l, (s1, t1), r))), Some (Lit (Float (Some m, _)))
+    when is_js env ->
+      (* implicit float-to-string conversion *)
+      let m_str =
+        (* JS: we parse all numbers as floats, and 1.0 is printed as "1" *)
+        if Float.is_integer m then string_of_int (int_of_float m)
+        else string_of_float m
+      in
+      Some (Lit (String (l, (s1 ^ m_str, t1), r)))
   | Some (Lit (String _)), Some (Cst Cstr)
   | Some (Cst Cstr), Some (Lit (String _))
   | Some (Cst Cstr), Some (Cst Cstr) ->
@@ -372,7 +385,7 @@ and eval_special env (special, _) args =
   (* strings *)
   | (Op (Plus | Concat) | ConcatString _), args
     when find_type_args args = Some Cstr ->
-      fold_args1 concat_string_cst args
+      fold_args1 (concat_string_cst env) args
   | __else__ -> None
 
 and eval_call env name args =
@@ -653,7 +666,6 @@ let propagate_basic lang prog =
                     ( id,
                       {
                         id_resolved = { contents = Some (_kind, sid) };
-                        id_svalue;
                         id_flags;
                         _;
                       } ));
@@ -674,7 +686,7 @@ let propagate_basic lang prog =
                  && List.exists is_private attrs
             then (
               id_flags := IdFlags.set_final !id_flags;
-              match (!id_svalue, e.e) with
+              match (eval env e, e.e) with
               (* When the name already has an svalue computed, just use
                * that. DeepSemgrep assigns svalues sometimes in its naming
                * phase. *)
