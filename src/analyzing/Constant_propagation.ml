@@ -295,9 +295,14 @@ let concat_string_cst env s1 s2 =
       (* implicit int-to-string conversion *)
       Some (Lit (String (l, (s1 ^ string_of_int m, t1), r)))
   | Some (Lit (String (l, (s1, t1), r))), Some (Lit (Float (Some m, _)))
-    when Float.is_integer m && is_js env ->
+    when is_js env ->
       (* implicit float-to-string conversion *)
-      Some (Lit (String (l, (s1 ^ string_of_int (int_of_float m), t1), r)))
+      let m_str =
+        (* JS: we parse all numbers as floats, and 1.0 is printed as "1" *)
+        if Float.is_integer m then string_of_int (int_of_float m)
+        else string_of_float m
+      in
+      Some (Lit (String (l, (s1 ^ m_str, t1), r)))
   | Some (Lit (String _)), Some (Cst Cstr)
   | Some (Cst Cstr), Some (Lit (String _))
   | Some (Cst Cstr), Some (Cst Cstr) ->
