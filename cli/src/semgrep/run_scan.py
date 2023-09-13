@@ -30,6 +30,7 @@ from boltons.iterutils import get_path
 from boltons.iterutils import partition
 from rich.padding import Padding
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parse_lockfile import parse_lockfile_path
 from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
@@ -62,7 +63,6 @@ from semgrep.rule import Rule
 from semgrep.rule import RuleProduct
 from semgrep.rule_match import RuleMatchMap
 from semgrep.rule_match import RuleMatchSet
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Contributions
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
@@ -423,7 +423,7 @@ def run_scan(
     Dict[str, List[FoundDependency]],
     List[DependencyParserError],
     int,
-    Contributions,
+    out.Contributions,
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
 
@@ -549,7 +549,7 @@ def run_scan(
     if dump_contributions:
         contributions = core_runner.invoke_semgrep_dump_contributions()
     else:
-        contributions = Contributions([])
+        contributions = out.Contributions([])
 
     experimental_rules, unexperimental_rules = partition(
         filtered_rules, lambda rule: rule.severity == RuleSeverity.EXPERIMENT
