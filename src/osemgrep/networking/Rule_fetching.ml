@@ -389,6 +389,10 @@ let rules_from_dashdash_config_async ~token_opt ~registry_caching kind :
                   token")
         | Some token -> token
       in
+      let%lwt rules =
+        load_rules_from_url_async ~token_opt ~ext:"policy"
+          (Semgrep_App.url_for_policy ~token)
+      in
       Metrics_.g.is_using_app <- true;
       Lwt.return [ rules ]
   | C.A SupplyChain ->

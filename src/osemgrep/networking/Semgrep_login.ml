@@ -44,7 +44,7 @@ let save_token ?(ident = None) token =
   let settings = Semgrep_settings.load () in
   match Semgrep_App.get_deployment_from_token token with
   | None -> Error "Login token is not valid. Please try again."
-  | Some (_name, _id)
+  | Some _deployment_config
     when Semgrep_settings.save
            Semgrep_settings.{ settings with api_token = Some token } ->
       Ok ()

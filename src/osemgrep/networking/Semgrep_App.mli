@@ -13,7 +13,7 @@ type deployment_config = {
 (** [type deployment_config] is what the app returns for info deployments. *)
 
 (* internally rely on api_token in ~/.settings and SEMGREP_REPO_NAME *)
-val url_for_policy : token_opt:Auth.token option -> Uri.t
+val url_for_policy : token:Auth.token -> Uri.t
 
 (* construct the Uri where to retrieve the scan configuration, depending on
    the parameters and the repository name *)

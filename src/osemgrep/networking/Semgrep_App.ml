@@ -86,10 +86,8 @@ let scan_config_uri ?(sca = false) ?(dry_run = true) ?(full_scan = true)
       ])
 
 (* Returns a url with scan config encoded via search params based on a magic environment variable *)
-let url_for_policy ~token_opt =
-  let deployment_config =
-    Option.bind token_opt (fun token -> get_deployment_from_token ~token)
-  in
+let url_for_policy ~token =
+  let deployment_config = get_deployment_from_token ~token in
   match deployment_config with
   | None ->
       Error.abort
