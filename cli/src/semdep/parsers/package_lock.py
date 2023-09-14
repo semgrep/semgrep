@@ -27,7 +27,6 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-
 def parse_packages_field(deps: Dict[str, JSON]) -> List[FoundDependency]:
     try:
         manifest_deps = set(deps[""].as_dict()["dependencies"].as_dict().keys())
@@ -60,9 +59,12 @@ def parse_packages_field(deps: Dict[str, JSON]) -> List[FoundDependency]:
                 if integrity
                 else {},
                 resolved_url=resolved_url,
-                transitivity=Transitivity(Transitive())
-                if nested
-                else transitivity(manifest_deps, [package]),
+                transitivity=Transitivity(Transitive()) if nested
+
+                # The manifest stores the pure package names but the deps names are all relative paths (prefix'd with 'node_modules'),
+                # so check to see if `package_name` (without the 'node_modules' prefix) is present in the manifest.
+                # https://docs.npmjs.com/cli/v10/configuring-npm/package-lock-json#packages
+                else transitivity(manifest_deps, [package_name]),
                 line_number=dep_json.line_number,
             )
         )
