@@ -1183,7 +1183,14 @@ and stmt_kind =
   | Goto of tok * label * sc (* less: use label_ident for computed goto in C*)
   (* TODO? move in expr! in C++ the expr can be an option *)
   | Throw of tok (* 'raise' in OCaml, 'throw' in Java/PHP *) * expr * sc
-  | Try of tok * stmt * catch list * try_else option * finally option
+  | Try of
+      tok (* 'try' *)
+      * stmt (* body of the try clause *)
+      * catch list (* list of exception handlers *)
+      * try_else option
+      (* optional else block that executes when no exception is thrown *)
+      * finally option
+    (* optional finally block that executes at the end no matter what *)
   | WithUsingResource of
       tok (* 'with' in Python, 'using' in C# *)
       * stmt list (* resource acquisition *)
