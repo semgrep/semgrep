@@ -1510,8 +1510,8 @@ and map_compound_statement (env : env) (x : CST.compound_statement) : stmt =
             let finally_opt = Option.map (map_finally_clause env) v3 in
             TryExcept (ttry, body, excepts, else_opt, finally_opt)
         | `Fina_clause x ->
-            let tfinal, finalbody = map_finally_clause env x in
-            TryExcept (ttry, body, [], None, Some (tfinal, finalbody))
+            let finally_opt = Some (map_finally_clause env x) in
+            TryExcept (ttry, body, [], None, finally_opt)
       in
       res
   | `With_stmt (v1, v2, v3, v4, v5) ->

@@ -52,10 +52,21 @@ type state = {
   (* Gotos pending to be resolved, a list of Goto nodes and the label
    * to which they are jumping. *)
   gotos : (nodei * label_key) list ref;
-  (* TODO: add comments. *)
+  (* Destination node that a return node should go to. *)
   return_destination : F.nodei;
+  (* True when a return may occur in any of the nodes being visited.
+   * Initialized as false, and once set to true, remains true forever.
+   * This field helps us determine whether we should propagate the return
+   * or not after executing a finally clause in exception handling.
+   *)
   may_return : bool ref;
+  (* Destination node that a return node should go to. *)
   throw_destination : F.nodei;
+  (* True when a throw may occur in any of the nodes being visited.
+   * Initialized as false, and once set to true, remains true forever.
+   * This field helps us determine whether we should propagate the throw
+   * or not after executing a finally clause in exception handling.
+   *)
   may_throw : bool ref;
   (* Lambdas are always assigned to a variable in IL, this table records the
    * name-to-lambda mapping. Whenever a lambda is fetched, we look it up here
@@ -81,12 +92,6 @@ let add_arc (starti, nodei) g = g#add_arc ((starti, nodei), F.Direct)
 let add_arc_from_opt (starti_opt, nodei) g =
   starti_opt
   |> Option.iter (fun starti -> g#add_arc ((starti, nodei), F.Direct))
-
-(* let add_arc_opt_to_opt (starti_opt, nodei_opt) g = *)
-(*   starti_opt *)
-(*   |> Option.iter (fun starti -> *)
-(*          nodei_opt *)
-(*          |> Option.iter (fun nodei -> g#add_arc ((starti, nodei), F.Direct))) *)
 
 let key_of_label ((str, _tok), sid) : label_key = (str, sid)
 
@@ -233,9 +238,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       let finalthen = cfg_stmt_list state (Some newfakethen) st in
       state.g |> add_arc_from_opt (finalthen, newi);
       CfgFirstLast (newi, Some newfakeelse)
-  | Label label ->
-      Printf.printf "where the heck is this label?\n";
-      CfgLabel label
+  | Label label -> CfgLabel label
   | Goto (tok, label) ->
       let newi = state.g#add_node { F.n = F.NGoto (tok, label) } in
       state.g |> add_arc_from_opt (previ, newi);
@@ -261,6 +264,10 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       let elsei = state.g#add_node { F.n = NOther (Noop "else") } in
       let newfakefinally = state.g#add_node { F.n = NOther (Noop "finally") } in
 
+      (* In the try/except/else clauses, if there is a return, then
+       * execute the finally clause, or if there's no finally clause, propagate
+       * the return.
+       *)
       let return_destination =
         match finally_st with
         | [] -> state.return_destination
@@ -280,13 +287,14 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       state.g |> add_arc_from_opt (finaltry, elsei);
       state.g |> add_arc_from_opt (finaltry, newfakefinally);
 
-      (* From else to finally. If control exits, go to the finally clause. *)
+      (* In the else clause, if an exception is thrown, go to the finally
+       * clause, or if there is no finally clause, propagate the exception.
+       *)
       let throw_destination =
         match finally_st with
         | [] -> state.throw_destination
         | _ -> newfakefinally
       in
-
       let else_state = { state with throw_destination; return_destination } in
       let finalelse = cfg_stmt_list else_state (Some elsei) else_st in
 
@@ -305,6 +313,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
              in
              state.g |> add_arc_from_opt (finalcatch, newfakefinally));
 
+      (* Inside the finally clause, throws and returns get propagated. *)
       let finally_state = state in
       let finalfinally =
         cfg_stmt_list finally_state (Some newfakefinally) finally_st

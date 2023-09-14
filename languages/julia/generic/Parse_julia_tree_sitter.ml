@@ -2077,16 +2077,8 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
           | `Catch_clause_opt_else_clause_opt_fina_clause
               (clause, elsee, finally) ->
               let v4 = [ map_catch_clause env clause ] in
-              let v5 =
-                match elsee with
-                | Some x -> Some (map_try_else_clause env x)
-                | None -> None
-              in
-              let v6 =
-                match finally with
-                | Some x -> Some (map_finally_clause env x)
-                | None -> None
-              in
+              let v5 = Option.map (map_try_else_clause env) elsee in
+              let v6 = Option.map (map_finally_clause env) finally in
               [ Try (v1, v3, v4, v5, v6) |> G.s ]
           | `Fina_clause_opt_catch_clause (finally, catch) ->
               let v4 =
