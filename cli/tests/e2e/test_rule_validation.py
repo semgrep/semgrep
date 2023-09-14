@@ -40,6 +40,9 @@ def test_validation_of_invalid_rules(run_semgrep_in_tmp: RunSemgrep, snapshot, r
     ],
 )
 def test_extra_top_level_valid(run_semgrep_in_tmp: RunSemgrep, snapshot, rule):
+    """
+    An extra field in the rule does not cause it to fail validation
+    """
     _, err = run_semgrep_in_tmp(
         rule,
         options=["--validate"],
