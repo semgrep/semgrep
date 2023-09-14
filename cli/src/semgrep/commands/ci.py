@@ -175,6 +175,8 @@ def ci(
     audit_on: Sequence[str],
     autofix: bool,
     baseline_commit: Optional[str],
+    # TODO: Remove after October 2023. Left for a error message
+    # redirect to `--secrets` aka run_secrets_post_processors.
     beta_testing_secrets: bool,
     code: bool,
     core_opts: Optional[str],
@@ -203,6 +205,7 @@ def ci(
     requested_engine: EngineType,
     quiet: bool,
     rewrite_rule_ids: bool,
+    run_secrets_post_processors: bool,
     supply_chain: bool,
     scan_unknown_extensions: bool,
     time_flag: bool,
@@ -260,19 +263,10 @@ def ci(
         scan_handler = ScanHandler(dry_run=dry_run, deployment_name=deployment_name)
     else:  # impossible state… until we break the code above
         raise RuntimeError("The token and/or config are misconfigured")
-
+    
     if beta_testing_secrets:
-        # TODO: I think this should eventually be PRO_INTRAFILE, but
-        # the secrets code currently hooks into the interfile search.
-        if requested_engine is EngineType.PRO_INTERFILE:
-            logger.info("No need to specify `--beta-testing-secrets` and `--pro`")
-        elif requested_engine is None:
-            requested_engine = EngineType.PRO_INTERFILE
-        else:
-            logger.info(
-                "Cannot use the `--beta-testing-secrets` flag with engine types besides `--pro`"
-            )
-            sys.exit(FATAL_EXIT_CODE)
+        logger.info("Please use --secrets instead of --beta-testing-secrets")
+        sys.exit(FATAL_EXIT_CODE)
 
     output_settings = OutputSettings(
         output_format=output_format,
@@ -312,7 +306,7 @@ def ci(
             metadata_dict = metadata.to_dict()
             metadata_dict["is_sca_scan"] = supply_chain
             metadata_dict["is_code_scan"] = code
-            metadata_dict["is_secrets_scan"] = beta_testing_secrets
+            metadata_dict["is_secrets_scan"] = run_secrets_post_processors
             proj_config = ProjectConfig.load_all()
             metadata_dict = {**metadata_dict, **proj_config.to_dict()}
             with Progress(
@@ -359,10 +353,16 @@ def ci(
         logger.info(f"Could not start scan {e}")
         sys.exit(FATAL_EXIT_CODE)
 
+    # Handled error outside engine type for more actionable advice.
+    if run_secrets_post_processors and requested_engine is EngineType.OSS:
+        logger.info("The flags --secrets and --oss are incompatible. Semgrep Secrets is a proprietary extension.")
+        sys.exit(FATAL_EXIT_CODE)
+
     engine_type = EngineType.decide_engine_type(
         requested_engine=requested_engine,
         scan_handler=scan_handler,
         git_meta=metadata,
+        run_secrets_post_processors=run_secrets_post_processors,
     )
 
     # set default settings for selected engine type

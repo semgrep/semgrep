@@ -137,11 +137,29 @@ val semgrep_with_raw_results_and_exn_handler :
     parallel, with some memory limits, and aggregate the results.
 *)
 
+
+type semgrep_with_rules_t =
+  (Rule.t list * Rule.invalid_rule_error list) * float ->
+  Report.final_result * Fpath.t list
+
 val semgrep_with_rules :
   ?match_hook:(string -> Pattern_match.t -> unit) ->
   Runner_config.t ->
-  (Rule.t list * Rule.invalid_rule_error list) * float ->
-  Report.final_result * Fpath.t list
+  semgrep_with_rules_t 
+
+(*****************************************************************************)
+(* Pre and Post Processors Hook For Semgrep Pro / Extensions        *)
+(*****************************************************************************)
+  
+module type Pre_and_post_processor = sig
+  type state
+  val pre_process : Rule.t list -> (Rule.t list * state)
+  val post_process : state -> Report.final_result -> Report.final_result
+end
+
+val hook_pre_and_post_processor : (module Pre_and_post_processor) ref
+    
+val call_with_pre_and_post_processor : semgrep_with_rules_t -> semgrep_with_rules_t
 
 (*****************************************************************************)
 (* Utilities functions used in tests or semgrep-core variants *)
@@ -232,3 +250,4 @@ val xtarget_of_file : Runner_config.t -> Xlang.t -> Fpath.t -> Xtarget.t
 *)
 val sort_targets_by_decreasing_size :
   Input_to_core_t.target list -> Input_to_core_t.target list
+

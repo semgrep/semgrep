@@ -881,12 +881,48 @@ let semgrep_with_rules ?match_hook config
     (* TODO not all_targets here, because ?? *)
     targets |> Common.map (fun x -> Fpath.v x.In.path) )
 
+(*****************************************************************************)
+(* Pre and Post Processors Hook For Semgrep Pro / Extensions        *)
+(*****************************************************************************)
+
+type semgrep_with_rules_t =
+  (Rule.t list * Rule.invalid_rule_error list) * float ->
+  Report.final_result * Fpath.t list
+
+module type Pre_and_post_processor = sig
+  type state
+  val pre_process : Rule.t list -> (Rule.t list * state)
+  val post_process : state -> Report.final_result -> Report.final_result
+end
+
+module Empty_Processor : Pre_and_post_processor = struct
+  type state = unit
+  let pre_process rules = (rules, ())
+  let post_process () results = results
+end
+
+let hook_pre_and_post_processor =
+  ref (module Empty_Processor : Pre_and_post_processor)
+
+(* Written with semgrep_with_rules abstracted to allow resuse across
+   semgrep and semgrep-pro *)
+let call_with_pre_and_post_processor semgrep_with_rules ((rules, rule_errors), rules_parse_time) =
+  let module Processor = (val !hook_pre_and_post_processor) in
+  let (rules, state) = Processor.pre_process rules in
+  let res, files = semgrep_with_rules ((rules, rule_errors), rules_parse_time) in
+  let res = Processor.post_process state res in
+  (res, files)
+
+(*****************************************************************************)
+(* Catchall Exception Handling                                                          *)
+(*****************************************************************************)
+
 let semgrep_with_raw_results_and_exn_handler config =
   try
     let timed_rules =
       Common.with_time (fun () -> rules_from_rule_source config)
     in
-    let res, files = semgrep_with_rules config timed_rules in
+    let res, files = call_with_pre_and_post_processor (semgrep_with_rules config) timed_rules in
     sanity_check_invalid_patterns res files
   with
   | exn when not !Flag_semgrep.fail_fast ->
