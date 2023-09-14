@@ -234,9 +234,11 @@ and expr e =
       let v1 = expr v1 and v2 = binaryOp v2 and v3 = expr v3 in
       G.Call (G.IdSpecial (G.Op v2, tok) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
       |> G.e
-  | CondExpr (v1, v2, v3) ->
-      let v1 = expr v1 and v2 = expr v2 and v3 = expr v3 in
-      G.Conditional (v1, v2, v3) |> G.e
+  | CondExpr (v1, v2, v3) -> (
+      let v1 = expr v1 and v2 = option expr v2 and v3 = expr v3 in
+      match v2 with
+      | None -> failwith "TODO"
+      | Some x -> G.Conditional (v1, x, v3) |> G.e)
   | Sequence (v1, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
       G.Seq [ v1; v2 ] |> G.e

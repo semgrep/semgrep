@@ -158,7 +158,9 @@ and expr =
   | Unary of expr * Ast_cpp.unaryOp wrap
   | Binary of expr * Ast_cpp.binaryOp wrap * expr
   (* todo: tok *)
-  | CondExpr of expr * expr * expr
+  (* The middle operand may be omitted, where e1 ? : e2 is semantically
+     equivalent to e1 ? e1 : e2. *)
+  | CondExpr of expr * expr option * expr
   (* should be a statement ... *)
   | Sequence of expr * expr
   | SizeOf of tok * (expr, type_) Common.either

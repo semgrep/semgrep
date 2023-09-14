@@ -391,7 +391,8 @@ and cpp_def_val for_debug env x =
   | DefinePrintWrapper (_, (_, e, _), id) ->
       Some
         (A.CppExpr
-           (A.CondExpr (expr env e, A.Id (name env id), A.Id (name env id))))
+           (A.CondExpr
+              (expr env e, Some (A.Id (name env id)), A.Id (name env id))))
   | DefineInit init -> Some (A.CppExpr (initialiser env init))
   | DefineEmpty -> None
   | DefineFunction _
@@ -575,7 +576,7 @@ and expr env e =
       A.CondExpr
         ( expr env e1,
           (match e2opt with
-          | Some e2 -> expr env e2
+          | Some e2 -> Some (expr env e2)
           | None ->
               debug (Expr e);
               raise Todo),
