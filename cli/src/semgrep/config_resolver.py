@@ -71,7 +71,8 @@ DEFAULT_CONFIG = {
     ],
 }
 
-REGISTRY_CONFIG_ID = "remote-url"
+REGISTRY_CONFIG_ID = "remote-registry"
+NON_REGISTRY_REMOTE_CONFIG_ID = "remote-url"
 
 
 class ConfigFile(NamedTuple):
@@ -291,13 +292,26 @@ def parse_config_files(
     ):
         try:
             if not config_id:  # registry rules don't have config ids
-                config_id = REGISTRY_CONFIG_ID
+                # Note: we must disambiguate registry sourced remote rules from
+                # non-registry sourced ones for security purposes. Namely, we
+                # want to avoid running postprocessors from untrusted remote
+                # sources (unless a local flag disabiling the relevant check is
+                # used).
+                config_id = (
+                    REGISTRY_CONFIG_ID
+                    if is_url(config_path)
+                    and config_path.startswith(f"{get_state().env.semgrep_url}")
+                    else NON_REGISTRY_REMOTE_CONFIG_ID
+                )
                 filename = f"{config_path[:20]}..."
             else:
                 filename = config_path
             config.update(parse_config_string(config_id, contents, filename))
         except InvalidRuleSchemaError as e:
-            if config_id == REGISTRY_CONFIG_ID:
+            if (
+                config_id == REGISTRY_CONFIG_ID
+                or config_id == NON_REGISTRY_REMOTE_CONFIG_ID
+            ):
                 notice = f"\nRules downloaded from {config_path} failed to parse.\nThis is likely because rules have been added that use functionality introduced in later versions of semgrep.\nPlease upgrade to latest version of semgrep (see https://semgrep.dev/docs/upgrading/) and try again.\n"
                 notice_color = with_color(Colors.red, notice, bold=True)
                 logger.error(notice_color)

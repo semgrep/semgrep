@@ -548,6 +548,7 @@ _scan_options: List[Callable] = [
         help="Enable support for secret validation. Requires Semgrep Secrets, contact support@semgrep.com for more informationon this.",
     ),
     optgroup.option("--dump-command-for-core", "-d", is_flag=True, hidden=True),
+    optgroup.option("--run-local-postprocessor-rules", is_flag=True, hidden=True),
 ]
 
 
@@ -694,6 +695,7 @@ def scan(
     quiet: bool,
     replacement: Optional[str],
     rewrite_rule_ids: bool,
+    run_local_postprocessor_rules: bool,
     scan_unknown_extensions: bool,
     severity: Optional[Tuple[str, ...]],
     strict: bool,
@@ -850,6 +852,7 @@ def scan(
                             timeout_threshold=timeout_threshold,
                             interfile_timeout=interfile_timeout,
                             optimizations=optimizations,
+                            run_local_postprocessor_rules=run_local_postprocessor_rules,
                             core_opts_str=core_opts,
                         ).validate_configs(config)
                     except SemgrepError as e:
@@ -908,6 +911,7 @@ def scan(
                     timeout_threshold=timeout_threshold,
                     interfile_timeout=interfile_timeout,
                     skip_unknown_extensions=(not scan_unknown_extensions),
+                    run_local_postprocessor_rules=run_local_postprocessor_rules,
                     severity=severity,
                     optimizations=optimizations,
                     baseline_commit=baseline_commit,
