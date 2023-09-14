@@ -1,0 +1,3 @@
+Fixes how semgrep identifies the transitivity of dependencies in node v9 (lockfile version 3) and above.
+Specifically, dependencies that should have been identified as "direct" were being miscategorized as "transitive",
+which should no longer be the case.
