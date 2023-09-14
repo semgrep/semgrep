@@ -33,7 +33,7 @@ def determine_semgrep_pro_path() -> Path:
     # the Pro Engine binary in the semgrep user's $HOME/bin directory where it has
     # the proper permissions to do so.
     SEMGREP_PRO_PATH = os.getenv("SEMGREP_PRO_PATH")
-    
+
     if SEMGREP_PRO_PATH:
         path = Path(SEMGREP_PRO_PATH) / "semgrep-core-proprietary"
         path.parent.mkdir(parents=True, exist_ok=True)
