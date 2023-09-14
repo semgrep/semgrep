@@ -1,5 +1,5 @@
-function secret () {
-  const password = 'tJbQjCM=' + 9 + 'SnCq' + 6 + 'LBU=' + 2 + 'h5GD' + 7
+function foo () {
+  const bar = 'abc' + 1 + '-' + 2 + '-' + 3
   //ERROR:
-  return password
+  return bar
 }
