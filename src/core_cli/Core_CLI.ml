@@ -362,6 +362,9 @@ let all_actions () =
     ( "-diff_pfff_tree_sitter",
       " <file>",
       Arg_helpers.mk_action_n_arg Test_parsing.diff_pfff_tree_sitter );
+    ( "-dump_contributions",
+      " dump on stdout the commit contributions in JSON",
+      Arg_helpers.mk_action_0_arg Core_actions.dump_contributions );
     (* Misc stuff *)
     ( "-expr_at_range",
       " <l:c-l:c> <file>",

@@ -138,62 +138,14 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     (* TODO? use finalize? *)
     Unix.lockf Unix.stdout Unix.F_ULOCK 0)
 
-(*****************************************************************************)
-(* Skipped analysis *)
-(*****************************************************************************)
-
-let errors_to_skipped (errors : Out.core_error list) : Out.skipped_target list =
-  errors
-  |> Common.map (fun Out.{ location; message; rule_id; _ } ->
-         Out.
-           {
-             path = location.path;
-             reason = Analysis_failed_parser_or_internal_error;
-             details = Some message;
-             rule_id;
-           })
-
-let analyze_skipped (skipped : Out.skipped_target list) =
-  let groups =
-    Common.group_by
-      (fun (Out.{ reason; _ } : Out.skipped_target) ->
-        match reason with
-        | Out.Gitignore_patterns_match
-        | Semgrepignore_patterns_match ->
-            `Semgrepignore
-        | Too_big
-        | Exceeded_size_limit ->
-            `Size
-        | Cli_include_flags_do_not_match -> `Include
-        | Cli_exclude_flags_match -> `Exclude
-        | Always_skipped
-        | Analysis_failed_parser_or_internal_error
-        | Excluded_by_config
-        | Wrong_language
-        | Minified
-        | Binary
-        | Irrelevant_rule
-        | Too_many_matches ->
-            `Other)
-      skipped
-  in
-  ( (try List.assoc `Semgrepignore groups with
-    | Not_found -> []),
-    (try List.assoc `Include groups with
-    | Not_found -> []),
-    (try List.assoc `Exclude groups with
-    | Not_found -> []),
-    (try List.assoc `Size groups with
-    | Not_found -> []),
-    try List.assoc `Other groups with
-    | Not_found -> [] )
-
 (*************************************************************************)
 (* Helpers *)
 (*************************************************************************)
 
 (* This function counts how many matches we got by rules:
-   [(Rule.t, number of matches : int) list]. *)
+   [(Rule.t, number of matches : int) list].
+   This is use for rule metrics.
+*)
 let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
   let update = function
     | Some n -> Some (succ n)
@@ -274,7 +226,7 @@ let remove_matches_in_baseline (commit : string) (baseline : RP.final_result)
         let s = extract_sig (Some renamed) m in
         if Hashtbl.mem sigs s then (
           Hashtbl.remove sigs s;
-          removed := !removed + 1;
+          incr removed;
           None)
         else Some m)
       (head.RP.matches
@@ -378,7 +330,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
 (*****************************************************************************)
 let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     (rules_and_origins : Rule_fetching.rules_and_origin list)
-    (targets_and_ignored : Fpath.t list * Out.skipped_target list) :
+    (targets_and_skipped : Fpath.t list * Out.skipped_target list) :
     (Rule.rule list * Core_runner.result * Out.cli_output, Exit_code.t) result =
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origins
@@ -398,13 +350,13 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     Logs.info (fun m ->
         m "%a" Rules_report.pp_rules (conf.rules_source, filtered_rules));
 
-    (* step 2: printing the ignored targets *)
-    let targets, semgrepignored_targets = targets_and_ignored in
+    (* step 2: printing the skipped targets *)
+    let targets, skipped = targets_and_skipped in
     Logs.debug (fun m ->
         m "%a" Targets_report.pp_targets_debug
-          (conf.target_roots, semgrepignored_targets, targets));
+          (conf.target_roots, skipped, targets));
     Logs.info (fun m ->
-        semgrepignored_targets
+        skipped
         |> List.iter (fun (x : Semgrep_output_v1_t.skipped_target) ->
                m "Ignoring %s due to %s (%s)" x.Semgrep_output_v1_t.path
                  (Semgrep_output_v1_t.show_skip_reason
@@ -454,31 +406,24 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     let (res : Core_runner.result) =
       Core_runner.create_core_result filtered_rules exn_and_matches
     in
+    Metrics_.add_engine_kind res.Core_runner.core.engine_requested;
 
-    Metrics_.add_engine_type
-      ~name:
-        (Format.asprintf "%a" Out.pp_engine_kind
-           res.Core_runner.core.engine_requested);
-
-    let filtered_matches = rules_and_counted_matches res in
-    Metrics_.add_findings filtered_matches;
-
-    (* step 4: report matches *)
-    let errors_skipped = errors_to_skipped res.core.errors in
-    let semgrepignored, included, excluded, size, other_ignored =
-      analyze_skipped semgrepignored_targets
-    in
-    let res =
+    (* step 4: adjust the skipped_targets *)
+    let errors_skipped = Skipped_report.errors_to_skipped res.core.errors in
+    let skipped = skipped @ errors_skipped in
+    let (res : Core_runner.result) =
+      (* TODO: what is in core.skipped_targets? should we add them to
+       * skipped above too?
+       *)
       let skipped_targets =
-        Some
-          (semgrepignored_targets @ errors_skipped
-          @ Common.optlist_to_list res.core.skipped_targets)
+        Some (skipped @ Common.optlist_to_list res.core.skipped_targets)
       in
       (* Add the targets that were semgrepignored or errorneous *)
       let core = { res.core with skipped_targets } in
       { res with core }
     in
 
+    (* step 5: report the matches *)
     (* outputting the result on stdout! in JSON/Text/... depending on conf *)
     let cli_output =
       Output.output_result { conf with output_format } profiler res
@@ -487,20 +432,19 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
 
     if Metrics_.is_enabled () then (
       Metrics_.add_errors cli_output.errors;
-      Metrics_.add_rules ?profiling:res.core.time filtered_rules;
+      Metrics_.add_rules_hashes_and_rules_profiling ?profiling:res.core.time
+        filtered_rules;
+      Metrics_.add_rules_hashes_and_findings_count
+        (rules_and_counted_matches res);
       Metrics_.add_profiling profiler);
 
+    let skipped_groups = Skipped_report.group_skipped skipped in
     Logs.info (fun m ->
         m "%a" Skipped_report.pp_skipped
           ( conf.targeting_conf.respect_git_ignore,
             conf.common.maturity,
             conf.targeting_conf.max_target_bytes,
-            semgrepignored,
-            included,
-            excluded,
-            size,
-            other_ignored,
-            errors_skipped ));
+            skipped_groups ));
     (* Note that Logs.app() is printing on stderr (but without any [XXX]
      * prefix), and is filtered when using --quiet.
      *)
@@ -509,12 +453,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
           ( conf.targeting_conf.respect_git_ignore,
             conf.common.maturity,
             conf.targeting_conf.max_target_bytes,
-            semgrepignored,
-            included,
-            excluded,
-            size,
-            other_ignored,
-            errors_skipped ));
+            skipped_groups ));
     Logs.app (fun m ->
         m "Ran %s on %s: %s."
           (String_utils.unit_str (List.length filtered_rules) "rule")
@@ -535,16 +474,22 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
 let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
   let profiler = Profiler.make () in
   Profiler.start profiler ~name:"total_time";
+  (* Metrics initialization (and finalization) is done in CLI.ml,
+   * but here we "configure" it (enable or disable it) based on CLI flags.
+   *)
+  Metrics_.configure conf.metrics;
   let settings =
     (fun () ->
-      Metrics_.configure conf.metrics;
       let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
+      (* TODO? why guard this one with is_enabled? because calling
+       * git can take time (and generate errors on stderr)?
+       *)
       if Metrics_.is_enabled () then
-        Metrics_.add_project_url (Git_wrapper.get_project_url ());
-      Metrics_.add_integration_name !Env.v.integration_name;
+        Git_wrapper.get_project_url ()
+        |> Option.iter Metrics_.add_project_url_hash;
       (match conf.rules_source with
-      | Rules_source.Configs configs -> Metrics_.add_configs configs
-      | _ -> ());
+      | Configs configs -> Metrics_.add_configs_hash configs
+      | Pattern _ -> ());
       settings)
     |> Profiler.record profiler ~name:"config_time"
   in
@@ -582,15 +527,14 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
       ~rewrite_rule_ids:conf.rewrite_rule_ids
       ~registry_caching:conf.registry_caching conf.rules_source
   in
-  Metrics_.add_token settings.api_token;
 
   (* step2: getting the targets *)
-  let targets_and_ignored =
+  let targets_and_skipped =
     Find_targets.get_targets conf.targeting_conf conf.target_roots
   in
   (* step3: let's go *)
   let res =
-    run_scan_files conf profiler rules_and_origins targets_and_ignored
+    run_scan_files conf profiler rules_and_origins targets_and_skipped
   in
   match res with
   | Error ex -> ex
@@ -610,9 +554,15 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
 let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
   (match conf.common.maturity with
   | Maturity.Default -> (
-      match conf with
       (* TODO: handle more confs, or fallback to pysemgrep further down *)
-      | { show_supported_languages = true; _ } -> ()
+      match conf with
+      | {
+       show =
+         Some { target = Show_CLI.EnginePath _ | Show_CLI.CommandForCore; _ };
+       _;
+      } ->
+          raise Pysemgrep.Fallback
+      | { show = Some _; _ } -> ()
       | _else_ -> raise Pysemgrep.Fallback)
   (* this should never happen because --legacy is handled in cli/bin/semgrep *)
   | Maturity.Legacy -> raise Pysemgrep.Fallback
@@ -637,9 +587,6 @@ let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
   | _ when conf.version ->
       Common.pr Version.version;
       (* TOPORT: if enable_version_check: version_check() *)
-      Exit_code.ok
-  | _ when conf.show_supported_languages ->
-      Common.pr (spf "supported languages are: %s" Xlang.supported_xlangs);
       Exit_code.ok
   | _ when conf.test <> None -> Test_subcommand.run (Common2.some conf.test)
   | _ when conf.validate <> None ->

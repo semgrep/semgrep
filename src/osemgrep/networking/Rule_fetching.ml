@@ -3,7 +3,7 @@ open File.Operators
 module E = Error
 module Env = Semgrep_envvars
 module FT = File_type
-module C = Semgrep_dashdash_config
+module C = Rules_config
 module R = Rule
 module XP = Xpattern
 
@@ -11,7 +11,7 @@ module XP = Xpattern
 (* Prelude *)
 (*****************************************************************************)
 (*
-   Partially translated from config_resolver.py
+   Fetching rules from the local filesystem or from the network (registry).
 
    TODO:
     - lots of stuff ...
@@ -19,6 +19,8 @@ module XP = Xpattern
    osemgrep-only:
     - can pass -e without -l (try all possible languages)
     - use a registry cache to speedup things
+
+   Partially translated from config_resolver.py
  *)
 
 (*****************************************************************************)
@@ -158,6 +160,7 @@ type _registry_cached_value =
 
 (* better: faster fetching by using a cache *)
 let fetch_content_from_registry_url ~registry_caching url =
+  Metrics_.g.is_using_registry <- true;
   if not registry_caching then fetch_content_from_url url
   else
     let cache_dir = !Env.v.user_dot_semgrep_dir / "cache" / "registry" in
@@ -214,7 +217,8 @@ let import_callback ~registry_caching base str =
   | s ->
       let url_opt =
         try
-          let kind = Semgrep_dashdash_config.parse_config_string s in
+          let in_docker = !Semgrep_envvars.v.in_docker in
+          let kind = Rules_config.parse_config_string ~in_docker s in
           match kind with
           | C.A _ -> failwith "TODO: app_config in jsonnet not handled"
           | C.R rkind ->
@@ -361,6 +365,12 @@ let rules_from_dashdash_config_async ~token_opt ~registry_caching kind :
   | C.R rkind ->
       let url = Semgrep_Registry.url_of_registry_config_kind rkind in
       let%lwt content = fetch_content_from_url_async ~token_opt url in
+      (* TODO: reuse fetch_content_from_registry_url (need make it _async?)
+       * so we can factorize the is_using_registry modification
+       * (and also remove the when registry_caching special below
+       * as fetch_content_from_registry_url already handles caching)
+       *)
+      Metrics_.g.is_using_registry <- true;
       (* TODO: this also assumes every registry URL is for yaml *)
       let rules =
         Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
@@ -379,15 +389,20 @@ let rules_from_dashdash_config_async ~token_opt ~registry_caching kind :
                   token")
         | Some token -> token
       in
-      let url = Semgrep_App.url_for_policy ~token in
-      let%lwt rules = load_rules_from_url_async ~token_opt ~ext:"policy" url in
+      Metrics_.g.is_using_app <- true;
       Lwt.return [ rules ]
-  | C.A SupplyChain -> failwith "TODO: SupplyChain not handled yet"
+  | C.A SupplyChain ->
+      Metrics_.g.is_using_app <- true;
+      failwith "TODO: SupplyChain not handled yet"
 
 let rules_from_dashdash_config ~token_opt ~registry_caching kind :
     rules_and_origin list =
   match kind with
   | C.R rkind when registry_caching ->
+      (* TODO: should not need that, we're duplicating work
+       * from fetch_content_from_registry_url() and
+       * rules_from_dashdash_config_async()
+       *)
       let url = Semgrep_Registry.url_of_registry_config_kind rkind in
       let content = fetch_content_from_registry_url ~registry_caching url in
       (* TODO: this also assumes every registry URL is for yaml *)
@@ -410,8 +425,9 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
   | Configs xs ->
       xs
       |> List.concat_map (fun str ->
-             let kind = Semgrep_dashdash_config.parse_config_string str in
-             rules_from_dashdash_config ~token_opt ~registry_caching kind)
+             let in_docker = !Semgrep_envvars.v.in_docker in
+             let config = Rules_config.parse_config_string ~in_docker str in
+             rules_from_dashdash_config ~token_opt ~registry_caching config)
       |> Common.map (rules_rewrite_rule_ids ~rewrite_rule_ids)
   (* better: '-e foo -l regex' was not handled in pysemgrep
    *  (got a weird 'invalid pattern clause' error)

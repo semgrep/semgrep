@@ -277,7 +277,7 @@ let invoke_semgrep_core
      metrics, we will just need to set [final_result.extra] to
      [RP.Debug]/[RP.Time] and this line of code will not change. *)
   Metrics_.add_max_memory_bytes (RP.debug_info_to_option res.extra);
-  Metrics_.add_targets scanned (RP.debug_info_to_option res.extra);
+  Metrics_.add_targets_stats scanned (RP.debug_info_to_option res.extra);
 
   (exn, res, scanned)
   [@@profiling]

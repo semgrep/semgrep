@@ -1,0 +1,14 @@
+rules:
+  - id: test-switch
+    languages:
+      - ruby
+    message: Match Found!
+    mode: taint
+    pattern-sinks:
+      - pattern: sink(...)
+    pattern-sources:
+      - pattern: source(...)
+    pattern-sanitizers:
+      - pattern: sanitize(...)
+    severity: WARNING
+

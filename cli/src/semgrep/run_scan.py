@@ -30,6 +30,7 @@ from boltons.iterutils import get_path
 from boltons.iterutils import partition
 from rich.padding import Padding
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parse_lockfile import parse_lockfile_path
 from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
@@ -124,8 +125,21 @@ def print_summary_line(
     if target_manager.respect_git_ignore:
         summary_line += " tracked by git"
 
+    # The sast_plan contains secrets rules too.  You might be tempted
+    # to use rule_count_by_product but the summary line doesn't
+    # historically take into account the effects of not scanning
+    # files, which rule_count_by_product includes.
     sast_rule_count = len(sast_plan.rules)
-    summary_line += f" with {unit_str(sast_rule_count, 'Code rule')}"
+    is_secret_rule = lambda r: r.product == RuleProduct.secrets
+    secrets_rule_count = len(list(filter(is_secret_rule, sast_plan.rules)))
+    # TODO code_rule_count currently double counts pro_rules.
+    code_rule_count = sast_rule_count - secrets_rule_count
+    summary_line += f" with {unit_str(code_rule_count, 'Code rule')}"
+
+    # TODO After the secrets release we should also include a check
+    # for new_cli_ux as done below.
+    if secrets_rule_count:
+        summary_line += f", {unit_str(secrets_rule_count, 'Secrets rule')}"
 
     sca_rule_count = len(sca_plan.rules)
     if sca_rule_count:
@@ -163,10 +177,17 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> i
         [
             rule
             for rule in rules
-            if rule.product == RuleProduct.sast and (not rule.from_transient_scan)
+            if (
+                (
+                    rule.product == RuleProduct.sast
+                    or rule.product == RuleProduct.secrets
+                )
+                and (not rule.from_transient_scan)
+            )
         ],
         target_manager,
     )
+
     sca_plan = CoreRunner.plan_core_run(
         [rule for rule in rules if rule.product == RuleProduct.sca],
         target_manager,
@@ -177,6 +198,10 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> i
     if new_cli_ux:
         console.print(Title("Code Rules", order=2))
         sast_plan.print(with_tables_for=RuleProduct.sast)
+        # TODO: after launch this should no longer be conditional.
+        if sast_plan.rule_count_for_product(RuleProduct.secrets):
+            console.print(Title("Secrets Rules", order=2))
+            sast_plan.print(with_tables_for=RuleProduct.secrets)
         console.print(Title("Supply Chain Rules", order=2))
         sca_plan.print(with_tables_for=RuleProduct.sca)
         console.print(Title("Progress", order=2))
@@ -190,6 +215,10 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> i
 
     console.print(Padding(Title("Code Rules", order=2), (1, 0, 0, 0)))
     sast_plan.print(with_tables_for=RuleProduct.sast)
+    # TODO: after launch this should no longer be conditional.
+    if sast_plan.rule_count_for_product(RuleProduct.secrets):
+        console.print(Title("Secrets Rules", order=2))
+        sast_plan.print(with_tables_for=RuleProduct.secrets)
     console.print(Title("Supply Chain Rules", order=2))
     sca_plan.print(with_tables_for=RuleProduct.sca)
 
@@ -381,6 +410,7 @@ def run_scan(
     optimizations: str = "none",
     baseline_commit: Optional[str] = None,
     baseline_commit_is_mergebase: bool = False,
+    dump_contributions: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -393,6 +423,7 @@ def run_scan(
     Dict[str, List[FoundDependency]],
     List[DependencyParserError],
     int,
+    out.Contributions,
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
 
@@ -514,6 +545,11 @@ def run_scan(
         optimizations=optimizations,
         core_opts_str=core_opts_str,
     )
+
+    if dump_contributions:
+        contributions = core_runner.invoke_semgrep_dump_contributions()
+    else:
+        contributions = out.Contributions([])
 
     experimental_rules, unexperimental_rules = partition(
         filtered_rules, lambda rule: rule.severity == RuleSeverity.EXPERIMENT
@@ -660,6 +696,7 @@ def run_scan(
         dependencies,
         dependency_parser_errors,
         num_executed_rules,
+        contributions,
     )
 
 
@@ -693,6 +730,7 @@ def run_scan_and_return_json(
         profiler,
         output_extra,
         shown_severities,
+        _,
         _,
         _,
         _,

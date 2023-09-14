@@ -97,11 +97,8 @@ let v : t ref =
       fail_open_url =
         env_or Uri.of_string "SEMGREP_FAIL_OPEN_URL"
           (Uri.of_string "https://fail-open.prod.semgrep.dev/failure");
-      (* TODO: set metrics_url to the cannonical "metrics.semgrep.dev" url once we upgrade the host from TLS 1.2 to TLS 1.3 *)
       metrics_url =
-        env_or Uri.of_string "SEMGREP_METRICS_URL"
-          (Uri.of_string
-             "https://oeyc6oyp4f.execute-api.us-west-2.amazonaws.com/Prod/");
+        env_or Uri.of_string "SEMGREP_METRICS_URL" Metrics_.metrics_url;
       app_token = env_opt "SEMGREP_APP_TOKEN";
       (* integration_name can take a label like "funkyintegration" for custom partner integrations *)
       integration_name = env_opt "SEMGREP_INTEGRATION_NAME";

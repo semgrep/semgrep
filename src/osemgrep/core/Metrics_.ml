@@ -1,50 +1,46 @@
 open Common
-open Unix
+module Out = Semgrep_output_v1_t
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
 (*
-   Small wrapper around Semgrep_metrics.atd to manipulate
-   semgrep metrics data to send to metrics.semgrep.dev.
+   Small wrapper around semgrep-interfaces/semgrep_metrics.atd to prepare
+   semgrep metrics data to send to https://metrics.semgrep.dev
 
-   This implementation is a port of the python implementation (metrics.py)
-   and currently is targeting functionality, not parity.
+   Partially translated from metrics.py
 
-   To date, we have implemented the following features from the python
-   implementation:
+   To date, we have ported the following features from pysemgrep:
      - base payload structure
-     - required timing information (started_at, sent_at)
-     - required event information (event_id, anonymous_user_id)
-     - basic environment information (version, ci, isAuthenticated, integrationName)
+     - required timing (started_at, sent_at)
+     - required event (event_id, anonymous_user_id)
+     - basic environment (version, ci, isAuthenticated, integrationName)
      - basic feature tags (subcommands, language)
-     - user agent information (version, subommand)
+     - user agent information (version, subcommand)
      - language information (language, numRules, numTargets, totalBytesScanned)
+
+   TODO:
+    - add_registry_url
+    - parsing stat (parse rates)
+    - rule profiling stats
+    - cli-envvar? cli-prompt?
+    - more?
 
     Sending the metrics is handled from the main CLI entrypoint following the
     execution of the CLI.safe_run() function to report the exit code.
 
-    With the original implementation, we specified the following rules to guard
-    against sending malformed metrics:
-      1. inject all data into the metrics class with add_* methods
-      2. ensure all add_* methods only set sanitized data
-
-    The idea was to enforce that we sanitize before write, not before sending.
-
-    Here, we follow a similar approach and try to exclusively use the helper methods
-    prefixed by `add_*` as exposed by the metrics interface. Setter methods `set_*`
-    are currently exposed as well, but we should plan to keep them as internal to
-    this file in the future to help ensure we send consistent and correct data.
-
     Metrics Flow:
       1. init() - set started_at, event_id, anonymous_user_id
-      2. add_feature – tag subcommand, CLI flags, language, etc.
-      3. add_user_agent_tag – add CLI version, subcommand, etc.
-      4. add_* methods - any other data
+      2. add_feature - tag subcommand, CLI flags, language, etc.
+      3. add_user_agent_tag - add CLI version, subcommand, etc.
+      4. add_* methods - any other data, or access directly g.payload
       5. prepare_to_send() - set sent_at
       6. string_of_metrics() - serialize metrics payload as JSON string
-      7. send_metrics() - send payload to our endpoint (i.e. metrics.semgrep.dev)
+      7. send_metrics() - send payload to our endpoint
+         https://metrics.semgrep.dev (can be changed via SEMGREP_METRICS_URL
+         for testing purpose)
 
-    Life of a Metric Payload After Sending:
+    "Life of a Metric Payload" after sending:
       -> API Gateway (Name=Telemetry)
       -> Lambda (Name=SemgrepMetricsGatewayToKinesisIntegration)
       -> Kinesis Stream (Name=semgrep-cli-telemetry)
@@ -54,43 +50,58 @@ open Unix
         |-> OpenSearch (Name=semgrep-metrics)
 
     Notes:
-      - Raw payload is ingested by our metrics endpoint exposed via our API Gateway
-      - We parse the payload and add additional metadata (i.e. sender ip address) in our Lambda function
-      - We pass the transformed payload to our AWS Kinesis stream ("semgrep-cli-telemetry")
-      - The payload can be viewed in our internal AWS console (if you can guess the shard ID?)
-        The shard ID is based on the Partition Key (which is set to the ip address). If someone
-        can figure out how to determine the shard ID easily please update this docstring!!!
-
-        In practice, your shard ID only needs to found once through trial and error by sending multiple payloads
-        until you find a match. There is probably a better way to do this...
-
-        I found the following StackOverflow link helpful, but not enough to automate this process:
+      - Raw payload is ingested by our metrics endpoint exposed via our API
+        Gateway
+      - We parse the payload and add additional metadata (i.e. sender ip
+        address) in our Lambda function
+        TODO: how do we parse the payload? in a typed way? reuse
+        semgrep_metrics.atd?
+      - We pass the transformed payload to our AWS Kinesis stream
+        ("semgrep-cli-telemetry")
+      - The payload can be viewed in our internal AWS console (if you can
+        guess the shard ID?). The shard ID is based on the Partition Key
+        (which is set to the ip address).
+        TODO: if someone can figure out how to determine the shard ID easily
+        please update this comment!!!
+        In practice, your shard ID only needs to found once through trial and
+        error by sending multiple payloads until you find a match. There is
+        probably a better way to do this.
+        I found the following StackOverflow link helpful, but not enough to
+        automate this process:
         https://stackoverflow.com/questions/31893297/how-to-determine-shard-id-for-a-specific-partition-key-with-kcl
-
       - The data viewer URL will look something like https://us-west-2.console.aws.amazon.com/kinesis/home?region=us-west-2#/streams/details/semgrep-cli-telemetry/dataViewer
         where each row is a payload with the IP address as the Partition Key
-      - The data is then stored in our S3 bucket ("semgrep-cli-metrics") and can be queried via Snowflake or Metabase
+      - The data is then stored in our S3 bucket ("semgrep-cli-metrics") and
+        can be queried via Snowflake or Metabase
 
-
+    This file should be called simply Metrics.ml but this would conflict with
+    a module using the same name in one of the OCaml library we use.
 *)
-
-module Out = Semgrep_output_v1_t
 
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
 
-let _metrics_endpoint = "https://metrics.semgrep.dev"
-let _version = spf "%s" Version.version
-let _base_user_agent = spf "Semgrep/%s" _version
+(* TODO: set to the cannonical "https://metrics.semgrep.dev" once we upgrade
+ * the host from TLS 1.2 to TLS 1.3
+ *)
+let metrics_url =
+  Uri.of_string "https://oeyc6oyp4f.execute-api.us-west-2.amazonaws.com/Prod/"
 
 (*
      Configures metrics upload.
 
-     ON - Metrics always sent
-     OFF - Metrics never sent
-     AUTO - Metrics only sent if config is pulled from the server
+     On   - Metrics always sent
+     Off  - Metrics never sent
+     Auto - Metrics only sent if config is pulled from the registry
+            or if using the Semgrep App.
+
+  What is the rational for Auto? I guess if the user is requesting rules
+  from our Registry or App, we already can identify him by his IP
+  so we might as well get more data from him?
+
   python: was in an intermediate MetricsState before.
+  TODO? move in a separate Metrics_config.t instead? or rename to 'upload'?
 *)
 type config = On | Off | Auto [@@deriving show]
 
@@ -102,10 +113,13 @@ type config = On | Off | Auto [@@deriving show]
 let converter = Cmdliner.Arg.enum [ ("on", On); ("off", Off); ("auto", Auto) ]
 
 type t = {
+  mutable config : config;
+  (* works with Auto *)
   mutable is_using_registry : bool;
+  (* TODO: not fully set for now; should set in CI and more contexts *)
+  mutable is_using_app : bool;
   mutable user_agent : string list;
   mutable payload : Semgrep_metrics_t.payload;
-  mutable config : config;
 }
 
 let default_payload =
@@ -116,7 +130,7 @@ let default_payload =
     sent_at = "";
     environment =
       {
-        version = _version;
+        version = Version.version;
         projectHash = None;
         configNamesHash = "";
         rulesHash = None;
@@ -156,78 +170,68 @@ let default_payload =
 
 let default =
   {
-    is_using_registry = false;
-    user_agent = [ _base_user_agent ];
-    payload = default_payload;
+    (* default to Off, so don't forget to call Metrics_.configure()
+     * to change it in the different subcommands.
+     *)
     config = Off;
+    (* should be set in Rule_fetching.ml when using the Registry or App *)
+    is_using_registry = false;
+    is_using_app = false;
+    user_agent = [ spf "Semgrep/%s" Version.version ];
+    payload = default_payload;
   }
 
 (*****************************************************************************)
-(* Global! *)
+(* Global *)
 (*****************************************************************************)
 
-(* It is ugly to have to use a global for the metrics data, but it is
+(* It looks ugly to use a global for the metrics data, but it is
  * configured in the subcommands, modified at a few places,
  * and finally accessed in CLI.safe_run() which makes it hard to pass
  * it around.
+ * Note that we're not using a ref below, but this must still be viewed
+ * as a global because all fields in Metrics_.t and the payload type
+ * are mutable.
  *)
 let g = default
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let string_of_gmtime tm =
-  let str =
-    Printf.sprintf "%04d-%02d-%02dT%02d:%02d:%02d+00:00" (1900 + tm.tm_year)
-      (1 + tm.tm_mon) tm.tm_mday tm.tm_hour tm.tm_min tm.tm_sec
-  in
-  str
+let string_of_gmtime (tm : Unix.tm) : string =
+  spf "%04d-%02d-%02dT%02d:%02d:%02d+00:00" (1900 + tm.tm_year) (1 + tm.tm_mon)
+    tm.tm_mday tm.tm_hour tm.tm_min tm.tm_sec
+
+(* ugly: would be better to have a proper time type in semgrep_metrics.atd *)
+let now () : string = string_of_gmtime (Unix.gmtime (Unix.gettimeofday ()))
 
 (*****************************************************************************)
-(* Entry points *)
+(* Metrics config *)
 (*****************************************************************************)
 let configure config = g.config <- config
 
-open Semgrep_metrics_t
+let is_enabled () =
+  match g.config with
+  | Off -> false
+  | On -> true
+  | Auto ->
+      (* TOPORT:
+         # When running logged in with `semgrep ci`, configs are
+         # resolved before `self.is_using_registry` is set.
+         # However, these scans are still pulling from the registry
+         # TODO?
+         ## using_app = (
+         ##    state.command.get_subcommand() == "ci"
+         ##    and state.app_session.is_authenticated
+         ## )
+      *)
+      g.is_using_registry || g.is_using_app
 
-let add_engine_type ~name = g.payload.value.engineRequested <- name
-let is_using_registry () = g.is_using_registry
-let is_enabled () = g.config <> Off
+(*****************************************************************************)
+(* User agent *)
+(*****************************************************************************)
 
-let set_is_using_registry ~is_using_registry =
-  g.is_using_registry <- is_using_registry
-
-let set_anonymous_user_id ~anonymous_user_id =
-  g.payload.anonymous_user_id <- anonymous_user_id
-
-let set_started_at ~started_at = g.payload.started_at <- started_at
-let set_sent_at ~sent_at = g.payload.sent_at <- sent_at
-let set_event_id ~event_id = g.payload.event_id <- event_id
-let set_ci () = g.payload.environment.ci <- Some "true"
-(* quirk of the python implementation *)
-
-(* NOTE: we pass anonymous_user_id here to avoid a dependency on semgrep settings *)
-let init ~anonymous_user_id ~ci =
-  let started_at = string_of_gmtime (Unix.gmtime (Unix.gettimeofday ())) in
-  let event_id = Uuidm.to_string (Uuidm.v4_gen (Random.get_state ()) ()) in
-  let anonymous_user_id = Uuidm.to_string anonymous_user_id in
-  set_started_at ~started_at;
-  set_event_id ~event_id;
-  set_anonymous_user_id ~anonymous_user_id;
-  if ci then set_ci ()
-
-let prepare_to_send () =
-  let sent_at = string_of_gmtime (Unix.gmtime (Unix.gettimeofday ())) in
-  set_sent_at ~sent_at
-
-let string_of_metrics () =
-  let json = Semgrep_metrics_j.string_of_payload g.payload in
-  let json = Yojson.Safe.from_string json in
-  Yojson.Safe.to_string json
-
-let string_of_user_agent () = String.concat " " g.user_agent
-
-let add_user_agent_tag ~str =
+let add_user_agent_tag (str : string) =
   let str =
     str
     |> Base.String.chop_prefix_if_exists ~prefix:"("
@@ -236,23 +240,48 @@ let add_user_agent_tag ~str =
   in
   g.user_agent <- g.user_agent @ [ str ]
 
-let add_project_url = function
-  | None -> g.payload.environment.projectHash <- None
-  | Some project_url ->
-      let parsed_url = Uri.of_string project_url in
-      let sanitized_url =
-        match Uri.scheme parsed_url with
-        | Some "https" ->
-            (* XXX(dinosaure): remove username/password from [parsed_url]. *)
-            Uri.make ~scheme:"https" ?host:(Uri.host parsed_url)
-              ~path:(Uri.path parsed_url) ()
-        | __else__ -> parsed_url
-      in
-      g.payload.environment.projectHash <-
-        Some
-          Digestif.SHA256.(to_hex (digest_string (Uri.to_string sanitized_url)))
+let string_of_user_agent () = String.concat " " g.user_agent
 
-let add_configs ~configs =
+(*****************************************************************************)
+(* Payload management *)
+(*****************************************************************************)
+
+(* we pass an anonymous_user_id here to avoid a dependency cycle with
+ * ../configuring/Semgrep_settings.ml
+ *)
+let init ~anonymous_user_id ~ci =
+  g.payload.started_at <- now ();
+  g.payload.event_id <- Uuidm.to_string (Uuidm.v4_gen (Random.get_state ()) ());
+  g.payload.anonymous_user_id <- Uuidm.to_string anonymous_user_id;
+  (* TODO: this field in semgrep_metrics.atd should be a boolean *)
+  if ci then g.payload.environment.ci <- Some "true"
+
+let prepare_to_send () = g.payload.sent_at <- now ()
+let string_of_metrics () = Semgrep_metrics_j.string_of_payload g.payload
+
+(*****************************************************************************)
+(* add_xxx wrappers *)
+(*****************************************************************************)
+
+let add_engine_kind (kind : Out.engine_kind) =
+  (* TODO: use a better type in semgrep_metrics.atd for this field *)
+  g.payload.value.engineRequested <- Out.show_engine_kind kind
+
+(* TODO? should pass Uri.t directly *)
+let add_project_url_hash (project_url : string) =
+  let parsed_url = Uri.of_string project_url in
+  let sanitized_url =
+    match Uri.scheme parsed_url with
+    | Some "https" ->
+        (* XXX(dinosaure): remove username/password from [parsed_url]. *)
+        Uri.make ~scheme:"https" ?host:(Uri.host parsed_url)
+          ~path:(Uri.path parsed_url) ()
+    | __else__ -> parsed_url
+  in
+  g.payload.environment.projectHash <-
+    Some Digestif.SHA256.(to_hex (digest_string (Uri.to_string sanitized_url)))
+
+let add_configs_hash configs =
   let ctx =
     List.fold_left
       (fun ctx str -> Digestif.SHA256.feed_string ctx str)
@@ -260,16 +289,18 @@ let add_configs ~configs =
   in
   g.payload.environment.configNamesHash <- Digestif.SHA256.(to_hex (get ctx))
 
-let add_integration_name name = g.payload.environment.integrationName <- name
-
-let add_rules ?profiling:_ rules =
-  let hashes = Common.map Rule.sha256_of_rule rules in
-  let hashes = Common.map Digestif.SHA256.to_hex hashes in
-  let hashes = List.sort String.compare hashes in
+let add_rules_hashes_and_rules_profiling ?profiling:_TODO rules =
+  let hashes =
+    rules
+    |> Common.map Rule.sha256_of_rule
+    |> Common.map Digestif.SHA256.to_hex
+    |> List.sort String.compare
+  in
   let rulesHash_value =
-    List.fold_left
-      (fun ctx str -> Digestif.SHA256.feed_string ctx str)
-      Digestif.SHA256.empty hashes
+    hashes
+    |> List.fold_left
+         (fun ctx str -> Digestif.SHA256.feed_string ctx str)
+         Digestif.SHA256.empty
   in
   g.payload.environment.rulesHash <-
     Some Digestif.SHA256.(to_hex (get rulesHash_value));
@@ -277,7 +308,11 @@ let add_rules ?profiling:_ rules =
   let ruleStats_value =
     Common.mapi
       (fun idx _rule ->
-        { ruleHash = List.nth hashes idx; bytesScanned = 0; matchTime = None })
+        {
+          Semgrep_metrics_t.ruleHash = List.nth hashes idx;
+          bytesScanned = 0;
+          matchTime = None;
+        })
       rules
   in
   g.payload.performance.ruleStats <- Some ruleStats_value
@@ -288,69 +323,59 @@ let add_max_memory_bytes (profiling_data : Report.final_profiling option) =
       g.payload.performance.maxMemoryBytes <- Some max_memory_bytes)
     profiling_data
 
-let add_findings (filtered_matches : (Rule.t * int) list) =
+let add_rules_hashes_and_findings_count (filtered_matches : (Rule.t * int) list)
+    =
   let ruleHashesWithFindings_value =
-    Common.map
-      (fun (rule, rule_matches) ->
-        let hash = Rule.sha256_of_rule rule in
-        (Digestif.SHA256.to_hex hash, rule_matches))
-      filtered_matches
+    filtered_matches
+    |> Common.map (fun (rule, rule_matches) ->
+           (Digestif.SHA256.to_hex (Rule.sha256_of_rule rule), rule_matches))
   in
   g.payload.value.ruleHashesWithFindings <- Some ruleHashesWithFindings_value
 
-let add_targets (targets : Fpath.t Set_.t)
-    (profiling_data : Report.final_profiling option) =
-  let fileStats_value =
-    Set_.fold
-      (fun path acc ->
-        let path = Fpath.to_string path in
-        let size = (Unix.stat path).Unix.st_size in
-        let file_profiling =
-          Option.bind profiling_data (fun profiling_data ->
-              List.find_opt
-                (fun { Report.file; _ } -> file = path)
-                profiling_data.Report.file_times)
-        in
-        let numTimesScanned =
-          match file_profiling with
-          | None -> 0
-          | Some file_profiling -> List.length file_profiling.Report.rule_times
-        in
-        let parseTime =
-          Option.map
-            (fun file_profiling ->
-              List.fold_left max 0.
-                (Common.map
-                   (fun { Report.parse_time; _ } -> parse_time)
-                   file_profiling.Report.rule_times))
-            file_profiling
-        in
-        let matchTime =
-          Option.map
-            (fun file_profiling ->
-              List.fold_left max 0.
-                (Common.map
-                   (fun { Report.match_time; _ } -> match_time)
-                   file_profiling.Report.rule_times))
-            file_profiling
-        in
-        let runTime =
-          Option.map
-            (fun file_profiling -> file_profiling.Report.run_time)
-            file_profiling
-        in
-        { size; numTimesScanned; parseTime; matchTime; runTime } :: acc)
-      targets []
+let add_targets_stats (targets : Fpath.t Set_.t)
+    (prof_opt : Report.final_profiling option) =
+  let targets = Set_.elements targets in
+  let (hprof : (Fpath.t, Report.file_profiling) Hashtbl.t) =
+    match prof_opt with
+    | None -> Hashtbl.create 0
+    | Some prof ->
+        prof.file_times
+        |> Common.map (fun ({ Report.file; _ } as file_prof) ->
+               (Fpath.v file, file_prof))
+        |> Common.hash_of_list
   in
-  let numTargets_value = Set_.cardinal targets in
-  let totalBytesScanned =
-    Set_.fold
-      (fun path acc -> acc + (Unix.stat (Fpath.to_string path)).Unix.st_size)
-      targets 0
+  let file_stats =
+    targets
+    |> Common.map (fun path ->
+           let runTime, parseTime, matchTime =
+             match Hashtbl.find_opt hprof path with
+             | Some fprof ->
+                 ( Some fprof.run_time,
+                   Some
+                     (fprof.rule_times
+                     |> Common.map (fun rt -> rt.Report.parse_time)
+                     |> Common2.sum_float),
+                   Some
+                     (fprof.rule_times
+                     |> Common.map (fun rt -> rt.Report.match_time)
+                     |> Common2.sum_float) )
+             | None -> (None, None, None)
+           in
+           {
+             Semgrep_metrics_t.size = File.filesize path;
+             numTimesScanned =
+               (match Hashtbl.find_opt hprof path with
+               | None -> 0
+               | Some fprof -> List.length fprof.rule_times);
+             parseTime;
+             matchTime;
+             runTime;
+           })
   in
-  g.payload.performance.fileStats <- Some fileStats_value;
-  g.payload.performance.totalBytesScanned <- Some totalBytesScanned;
-  g.payload.performance.numTargets <- Some numTargets_value
+  g.payload.performance.fileStats <- Some file_stats;
+  g.payload.performance.totalBytesScanned <-
+    Some (targets |> Common.map File.filesize |> Common2.sum_int);
+  g.payload.performance.numTargets <- Some (List.length targets)
 
 let add_errors errors =
   g.payload.errors.errors <-
@@ -362,16 +387,10 @@ let add_errors errors =
 let add_profiling profiler =
   g.payload.performance.profilingTimes <- Some (Profiler.dump profiler)
 
-let add_token token =
-  g.payload.environment.isAuthenticated <- Option.is_some token
-
-let add_version version = g.payload.environment.version <- version
-
 let add_exit_code code =
   let code = Exit_code.to_int code in
   g.payload.errors.returnCode <- Some code
 
 let add_feature ~category ~name =
   let str = Format.asprintf "%s/%s" category name in
-  g.payload.value.features <- str :: g.payload.value.features;
-  g.payload.value.features <- List.sort String.compare g.payload.value.features
+  g.payload.value.features <- str :: g.payload.value.features

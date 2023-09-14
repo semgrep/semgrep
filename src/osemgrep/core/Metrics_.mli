@@ -1,55 +1,109 @@
 (*
    Configures metrics upload.
 
-   ON - Metrics always sent
-   OFF - Metrics never sent
-   AUTO - Metrics only sent if config is pulled from the server
+   On   - Metrics always sent
+   Off  - Metrics never sent
+   Auto - Metrics only sent if config is pulled from the registry
+          or if using the Semgrep App.
 *)
 type config = On | Off | Auto [@@deriving show]
 
-(* For Cmdliner *)
+(* For Cmdliner, to process the --metrics=<xxx> flag *)
 val converter : config Cmdliner.Arg.conv
 
+(* https://metrics.semgrep.dev *)
+val metrics_url : Uri.t
+
 type t = {
-  mutable is_using_registry : bool;
-  mutable user_agent : string list;
-  mutable payload : Semgrep_metrics_t.payload;
   mutable config : config;
+  (* this works with the Auto option *)
+  mutable is_using_registry : bool;
+  mutable is_using_app : bool;
+  (* The user agent used when sending data to https://metrics.semgrep.dev.
+   * We override the default value (e.g. "ocaml-cohttp/5.3.0") with a
+   * custom string built from:
+   *  - the version of semgrep
+   *  - the subcommand
+   *  - any custom value specified in $SEMGREP_USER_AGENT_APPEND.
+   *    For example, we set this variable to "Docker" when running
+   *    from a Docker container (see Dockerfile) allowing us to measure
+   *    usage of semgrep running from Docker container images that
+   *    we distribute.
+   *
+   * For example, this field might contain
+   *    ["Semgrep/1.39.0"; "(Docker)"; "(command/scan)"]
+   * which when concatenated will look like
+   *   "Semgrep/1.39.0 (Docker) (command/scan)"
+   *
+   * alt: we could encode this information in the payload instead.
+   *)
+  mutable user_agent : string list;
+  (* The stuff we send to https://metrics.semgrep.dev
+   * Note that the user_agent itself contain useful metrics.
+   *)
+  mutable payload : Semgrep_metrics_t.payload;
 }
 
-val default : t
-
-(* global you should not access directly *)
+(* g stands for global. This is initialized with a default payload,
+ * config set to Off and the "Semgrep/<version>" in user_agent.
+ *)
 val g : t
 
-(* initialize g that is then modified by the add_xxx functions
- * below and finally accessed in send() further below.
- *)
+(* set g.config *)
 val configure : config -> unit
-val add_engine_type : name:string -> unit
-val is_using_registry : unit -> bool
+
+(* check whether g.config is On or
+ * set to Auto and (is_using_registry or is_using_app) *)
 val is_enabled : unit -> bool
-val set_is_using_registry : is_using_registry:bool -> unit
-val set_anonymous_user_id : anonymous_user_id:string -> unit
-val set_started_at : started_at:string -> unit
-val set_sent_at : sent_at:string -> unit
-val set_event_id : event_id:string -> unit
-val set_ci : unit -> unit
-val init : anonymous_user_id:Uuidm.t -> ci:bool -> unit
-val prepare_to_send : unit -> unit
-val string_of_metrics : unit -> string
+
+(* Add more tags to the user_agent string (e.g., "command/scan").
+ * Note that the function automatically wrap the tag with
+ * parenthesis around (e.g., "(command/scan)").
+ *)
+val add_user_agent_tag : string -> unit
 val string_of_user_agent : unit -> string
-val add_user_agent_tag : str:string -> unit
-val add_project_url : string option -> unit
-val add_configs : configs:string list -> unit
-val add_integration_name : string option -> unit
-val add_rules : ?profiling:Semgrep_output_v1_t.core_timing -> Rule.rules -> unit
-val add_max_memory_bytes : Report.final_profiling option -> unit
-val add_findings : (Rule.t * int) list -> unit
-val add_targets : Fpath.t Set_.t -> Report.final_profiling option -> unit
-val add_errors : Semgrep_output_v1_t.cli_error list -> unit
-val add_profiling : Profiler.t -> unit
-val add_token : 'a option -> unit
-val add_version : string -> unit
+
+(* initialize the payload in g, which can then be modified by the
+ * add_xxx functions below (or by accessing directly g.payload) and
+ * finally accessed in string_of_metrics().
+ * You should not call this function though; only CLI.metrics_init()
+ * should call it.
+ *)
+val init : anonymous_user_id:Uuidm.t -> ci:bool -> unit
+
+(* just set the payload.sent_at field *)
+val prepare_to_send : unit -> unit
+
+(* serialize the payload to send using ATD generated code *)
+val string_of_metrics : unit -> string
+
+(* important metrics *)
+
+(* we just hash the project URL; we do not send the project URL.
+ * TODO: should be Uri.t
+ *)
+val add_project_url_hash : string -> unit
+
+(* again, we just send the hash of the --config used
+ * TODO: could also take the parsed form Rules_config.t so can add registry
+ * metrics.
+ *)
+val add_configs_hash : Rules_config.config_string list -> unit
+
+val add_rules_hashes_and_rules_profiling :
+  ?profiling:Semgrep_output_v1_t.core_timing -> Rule.rules -> unit
+
+val add_rules_hashes_and_findings_count : (Rule.t * int) list -> unit
+val add_targets_stats : Fpath.t Set_.t -> Report.final_profiling option -> unit
+val add_engine_kind : Semgrep_output_v1_t.engine_kind -> unit
 val add_exit_code : Exit_code.t -> unit
+
+(* ex: "language/python" *)
 val add_feature : category:string -> name:string -> unit
+
+(* profiling data (TODO: should merge the 2 types and 2 calls) *)
+val add_profiling : Profiler.t -> unit
+val add_max_memory_bytes : Report.final_profiling option -> unit
+
+(* useful for us to improve semgrep *)
+val add_errors : Semgrep_output_v1_t.cli_error list -> unit

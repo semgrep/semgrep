@@ -36,7 +36,9 @@ module MessageHandler = struct
   (** This is the entry point for scanning, returns /relevant/ matches, and all files scanned*)
   let run_semgrep ?(targets = None) ?(rules = None) server =
     let session = server.session in
-    let rules = Option.value ~default:server.session.cached_rules.rules rules in
+    let rules =
+      Option.value ~default:server.session.cached_session.rules rules
+    in
     let targets = Option.value ~default:(Session.targets session) targets in
     Logs.app (fun m -> m "Running Semgrep with %d rules" (List.length rules));
     let runner_conf = Session.runner_conf session in
@@ -97,7 +99,7 @@ module MessageHandler = struct
   let refresh_rules server =
     let token = create_progress server "Semgrep" "Refreshing Rules" in
     Lwt.async (fun () ->
-        let%lwt () = Session.cache_rules server.session in
+        let%lwt () = Session.cache_session server.session in
         end_progress server token;
         scan_workspace server;
         Lwt.return_unit)

@@ -20,6 +20,8 @@
  *
  * History: this used to be defined in Rule.ml as a simple type alias,
  * but better to provide a precise API to manipulate Rule IDs.
+
+   TODO: distinguish the bare rule name 'foo' from the path 'path.to.foo'
  *)
 
 (*****************************************************************************)

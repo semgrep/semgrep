@@ -29,7 +29,7 @@
             "line": 14,
             "offset": 292
           },
-          "file": "<MASKED>.json",
+          "file": "<MASKED>",
           "start": {
             "col": 26,
             "line": 14,
@@ -44,7 +44,7 @@
     "scanned": [],
     "skipped": [
       {
-        "path": "<MASKED>.json",
+        "path": "<MASKED>",
         "reason": "analysis_failed_parser_or_internal_error"
       }
     ]

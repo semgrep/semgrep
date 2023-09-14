@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Any
 from typing import Callable
 from typing import List
-from typing import NewType
 from typing import Optional
 from typing import Sequence
 from typing import Set
@@ -23,6 +22,7 @@ from attr import define
 from attr import Factory
 from typing_extensions import LiteralString
 
+import semgrep.semgrep_interfaces.semgrep_metrics as met
 from semgrep import __VERSION__
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
@@ -39,8 +39,6 @@ from semgrep.semgrep_interfaces.semgrep_metrics import ParseStat
 from semgrep.semgrep_interfaces.semgrep_metrics import Payload
 from semgrep.semgrep_interfaces.semgrep_metrics import Performance
 from semgrep.semgrep_interfaces.semgrep_metrics import RuleStats
-from semgrep.semgrep_interfaces.semgrep_metrics import Sha256hash
-from semgrep.semgrep_interfaces.semgrep_metrics import Uuid
 from semgrep.types import FilteredMatches
 from semgrep.verbose_logging import getLogger
 
@@ -64,9 +62,6 @@ class MetricsState(Enum):
     ON = auto()
     OFF = auto()
     AUTO = auto()
-
-
-Sha256Hash = NewType("Sha256Hash", str)
 
 
 class MetricsJsonEncoder(json.JSONEncoder):
@@ -113,7 +108,7 @@ class Metrics:
         lambda: Payload(
             environment=Environment(
                 version=__VERSION__,
-                configNamesHash=Sha256hash(""),
+                configNamesHash=met.Sha256(""),
                 projectHash=None,
                 ci=None,
             ),
@@ -122,7 +117,7 @@ class Metrics:
             extension=Extension(),
             value=Misc(features=[]),
             started_at=Datetime(datetime.now().astimezone().isoformat()),
-            event_id=Uuid(str(uuid.uuid4())),
+            event_id=met.Uuid(str(uuid.uuid4())),
             anonymous_user_id="",
             parse_rate=[],
             sent_at=Datetime(""),
@@ -194,7 +189,7 @@ class Metrics:
             sanitized_url = project_url
 
         m = hashlib.sha256(sanitized_url.encode())
-        self.payload.environment.projectHash = Sha256hash(m.hexdigest())
+        self.payload.environment.projectHash = met.Sha256(m.hexdigest())
 
     @suppress_errors
     def add_configs(self, configs: Sequence[str]) -> None:
@@ -204,7 +199,7 @@ class Metrics:
         m = hashlib.sha256()
         for c in configs:
             m.update(c.encode())
-        self.payload.environment.configNamesHash = Sha256hash(m.hexdigest())
+        self.payload.environment.configNamesHash = met.Sha256(m.hexdigest())
 
     @suppress_errors
     def add_rules(
@@ -214,7 +209,7 @@ class Metrics:
         m = hashlib.sha256()
         for rule in rules:
             m.update(rule.full_hash.encode())
-        self.payload.environment.rulesHash = Sha256hash(m.hexdigest())
+        self.payload.environment.rulesHash = met.Sha256(m.hexdigest())
 
         self.payload.performance.numRules = len(rules)
         if profiling_data:
