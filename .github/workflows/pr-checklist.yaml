@@ -1,7 +1,23 @@
-# alt: We could have used the .github/pull_request_template.md file
-# for this checklist, but that means that the checklist will clutter
-# all commits in git log, so we decided to add the checklist as a comment
-# on the PR instead.
+# Context:
+#
+# Initially, the commit message for a merged github PR uses the
+# "squash and merge" setting, but oftentimes people write short and
+# uninformational commit messages, such as "more work", etc..
+#
+# We switched to another github setting that uses the PR title and
+# description for the commit message of a merged PR.
+#
+# At the same time, we would like to have a PR checklist for
+# developers for better PRs.
+#
+# This checklist could be automatically added to all PR descriptions
+# with .github/pull_request_template.md, but this adds noise to
+# every commit message, and requires manual work to remove before
+# merging.
+#
+# We decided to create a workflow to add the checklist as a comment
+# on the PR instead, so developers will have a checklist, and
+# the PR descriptions won't be cluttered.
 
 name: PR-checklist
 
