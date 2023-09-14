@@ -5,5 +5,6 @@ let get_contributions () : Semgrep_output_v1_j.contribution list =
    * to output the git log in a JSON format that matches
    * the definition in semgrep_output_v1.atd contribution type
    *)
-  Git_wrapper.get_git_logs ()
+  let since = Some (Common2.month_before (Common2.yesterday ())) in
+  Git_wrapper.get_git_logs ~since ()
   |> Common.map Semgrep_output_v1_j.contribution_of_string
