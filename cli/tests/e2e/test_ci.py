@@ -404,12 +404,6 @@ def mock_autofix(request, mocker):
 # The tests
 ##############################################################################
 
-# "GITHUB_EVENT_NAME": "",
-#     "GITHUB_EVENT_PATH": "",
-#     "GITHUB_HEAD_REF": "", #
-#     "GITHUB_REF": "",
-
-
 @pytest.mark.parametrize(
     "env",
     [
