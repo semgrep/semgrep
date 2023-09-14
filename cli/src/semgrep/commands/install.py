@@ -27,10 +27,13 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-SEMGREP_PRO_PATH = os.getenv("SEMGREP_PRO_PATH")
-
 
 def determine_semgrep_pro_path() -> Path:
+    # The SEMGREP_PRO_PATH env var is set for the non-root Docker image to install
+    # the Pro Engine binary in the semgrep user's $HOME/bin directory where it has
+    # the proper permissions to do so.
+    SEMGREP_PRO_PATH = os.getenv("SEMGREP_PRO_PATH")
+    
     if SEMGREP_PRO_PATH:
         path = Path(SEMGREP_PRO_PATH) / "semgrep-core-proprietary"
         path.parent.mkdir(parents=True, exist_ok=True)
