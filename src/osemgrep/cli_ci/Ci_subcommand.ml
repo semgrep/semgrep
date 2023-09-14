@@ -373,7 +373,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
     (* TODO: document why we support running the ci command without a token *)
     | None, _ -> Ok None
     | Some token, _ -> (
-        match Semgrep_App.get_deployment_from_token ~token with
+        match Semgrep_App.get_scan_config_from_token ~token with
         | None ->
             Logs.app (fun m ->
                 m

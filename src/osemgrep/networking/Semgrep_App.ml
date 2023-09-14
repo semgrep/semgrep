@@ -12,7 +12,7 @@ open Common
 (* Constants *)
 (*****************************************************************************)
 
-let semgrep_app_config_route = "api/agent/deployments/scans/config"
+let semgrep_app_scan_config_route = "api/agent/deployments/scans/config"
 let semgrep_app_deployment_route = "api/agent/deployments/current"
 
 (*****************************************************************************)
@@ -21,7 +21,7 @@ let semgrep_app_deployment_route = "api/agent/deployments/current"
 (* TODO? specify this with atd and have both app + osemgrep use it *)
 (* Pulled from cli/src/semgrep/app/scans.py *)
 (* coupling: response from semgrep app (e.g. deployment_id as int vs string ) *)
-type deployment_config = {
+type deployment_scan_config = {
   deployment_id : int;
   deployment_name : string;
   policy_names : string list;
@@ -34,6 +34,24 @@ type deployment_config = {
       [@key "triage_ignored_match_based_ids"] [@default []]
   enabled_products : string list; [@default []]
   ignore_files : string list; [@default []]
+}
+[@@deriving yojson]
+
+(* TODO? specify this with atd and have both app + osemgrep use it *)
+(* coupling: response from semgrep app (e.g. id as int vs string ) *)
+type deployment_config = {
+  id : int;
+  name : string;
+  display_name : string;
+  slug : string;
+  source_type : string;
+  has_autofix : bool; [@default false]
+  has_deepsemgrep : bool; [@default false]
+  has_triage_via_comment : bool; [@default false]
+  has_dependency_query : bool; [@default false]
+  default_user_role : string;
+  organization_id : int;
+  scm_name : string;
 }
 [@@deriving yojson]
 
@@ -53,30 +71,64 @@ let get_deployment_from_token_async ~token =
     | Error msg ->
         Logs.debug (fun m -> m "error while retrieving deployment: %s" msg);
         None
-    | Ok json -> (
+    | Ok body -> (
         try
-          let yojson = Yojson.Safe.from_string json in
-          let config = deployment_config_of_yojson yojson in
+          let yojson = Yojson.Safe.from_string body in
+          let open Yojson.Safe.Util in
+          let config =
+            deployment_config_of_yojson (yojson |> member "deployment")
+          in
           match config with
           | Ok config -> Some config
           | Error msg -> raise (Yojson.Json_error msg)
         with
         | Yojson.Json_error msg ->
-            Logs.debug (fun m -> m "failed to parse json %s: %s" msg json);
+            Logs.debug (fun m -> m "failed to parse json %s: %s" msg body);
             None)
   in
   Lwt.return deployment_opt
 
+(* Returns the scan config if the token is valid, otherwise None *)
+let get_scan_config_from_token_async ~token =
+  let%lwt response =
+    Http_helpers.get_async
+      ~headers:[ ("authorization", "Bearer " ^ token) ]
+      (Uri.with_path !Semgrep_envvars.v.semgrep_url
+         semgrep_app_scan_config_route)
+  in
+  let scan_config_opt =
+    match response with
+    | Error msg ->
+        Logs.debug (fun m -> m "error while retrieving scan config: %s" msg);
+        None
+    | Ok body -> (
+        try
+          let yojson = Yojson.Safe.from_string body in
+          let config = deployment_scan_config_of_yojson yojson in
+          match config with
+          | Ok config -> Some config
+          | Error msg -> raise (Yojson.Json_error msg)
+        with
+        | Yojson.Json_error msg ->
+            Logs.debug (fun m ->
+                m "failed to parse body as json %s: %s" msg body);
+            None)
+  in
+  Lwt.return scan_config_opt
+
 (* from auth.py *)
 let get_deployment_from_token ~token =
   Lwt_main.run (get_deployment_from_token_async ~token)
+
+let get_scan_config_from_token ~token =
+  Lwt_main.run (get_scan_config_from_token_async ~token)
 
 let scan_config_uri ?(sca = false) ?(dry_run = true) ?(full_scan = true)
     repo_name =
   let json_bool_to_string b = JSON.(string_of_json (Bool b)) in
   Uri.(
     add_query_params'
-      (with_path !Semgrep_envvars.v.semgrep_url semgrep_app_config_route)
+      (with_path !Semgrep_envvars.v.semgrep_url semgrep_app_scan_config_route)
       [
         ("sca", json_bool_to_string sca);
         ("dry_run", json_bool_to_string dry_run);

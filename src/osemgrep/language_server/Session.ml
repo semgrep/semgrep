@@ -187,7 +187,7 @@ let fetch_skipped_fingerprints () =
   match auth_token with
   | Some token -> (
       let%lwt deployment_opt =
-        Semgrep_App.get_deployment_from_token_async ~token
+        Semgrep_App.get_scan_config_from_token_async ~token
       in
       match deployment_opt with
       | Some deployment -> Lwt.return deployment.skipped_match_based_ids

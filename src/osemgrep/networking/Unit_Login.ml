@@ -40,8 +40,7 @@ let with_mock_normal_responses =
     | "/api/agent/deployments/current" ->
         let status, body_path =
           match Http_mock_client.get_header req "Authorization" with
-          | Some "Bearer ok_token" ->
-              (200, "./tests/ls/ci/deployment_conf_resp.json")
+          | Some "Bearer ok_token" -> (200, "./tests/login/ok_response.json")
           | Some "Bearer bad_token" -> (401, "./tests/login/bad_response.json")
           | _ -> failwith "Unexpected token"
         in
