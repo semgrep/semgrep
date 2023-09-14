@@ -1,6 +1,0 @@
-Matching: Numeric capture group metavariables of the form $1, $2, etc that are
-introduced by unnamed capture groups, now no longer will cause matches to fail
-if they do not unify. They are still referenceable, however.
-
-This is so that capture group metavariables (which are introduced rather implicitly)
-do not cause rules to "invisibly" fail to match.
