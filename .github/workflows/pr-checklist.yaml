@@ -2,17 +2,17 @@
 #
 # Initially, the commit message for a merged github PR uses the
 # "squash and merge" setting, but oftentimes people write short and
-# uninformational commit messages, such as "more work", etc..
+# uninformational commit messages, such as "more work", etc.
 #
 # We switched to another github setting that uses the PR title and
 # description for the commit message of a merged PR.
 #
-# At the same time, we would like to have a PR checklist for
-# developers for better PRs.
+# At the same time, we would like to have a PR checklist to help
+# developers write better PRs.
 #
 # This checklist could be automatically added to all PR descriptions
 # with .github/pull_request_template.md, but this adds noise to
-# every commit message, and requires manual work to remove before
+# every commit message and requires manual work to remove before
 # merging.
 #
 # We decided to create a workflow to add the checklist as a comment
