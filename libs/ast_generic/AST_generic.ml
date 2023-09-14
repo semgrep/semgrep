@@ -1183,7 +1183,7 @@ and stmt_kind =
   | Goto of tok * label * sc (* less: use label_ident for computed goto in C*)
   (* TODO? move in expr! in C++ the expr can be an option *)
   | Throw of tok (* 'raise' in OCaml, 'throw' in Java/PHP *) * expr * sc
-  | Try of tok * stmt * catch list * finally option
+  | Try of tok * stmt * catch list * try_else option * finally option
   | WithUsingResource of
       tok (* 'with' in Python, 'using' in C# *)
       * stmt list (* resource acquisition *)
@@ -1256,6 +1256,8 @@ and catch_exn =
   | CatchParam of parameter_classic
   (* e.g., CatchEmpty/CatchParams in Solidity *)
   | OtherCatch of todo_kind * any list
+
+and try_else = tok * stmt
 
 (* ptype should never be None *)
 

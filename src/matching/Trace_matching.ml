@@ -13,7 +13,7 @@ open Printf
 let on = false
 
 (* max_depth: Print the nodes just deep enough to see something useful. *)
-let max_depth = 3
+let max_depth = 30
 
 let print_pair name vof a b =
   printf "----- m_%s -----\n%s pattern:\n%s\n~~~~~\n%s target:\n%s\n\n" name

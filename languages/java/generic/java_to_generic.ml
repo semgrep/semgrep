@@ -488,7 +488,7 @@ and stmt_aux st =
       [ G.OtherStmtWithStmt (G.OSWS_Block ("Sync", v0), [ G.E v1 ], v2) |> G.s ]
   | Try (t, v0, v1, v2, v3) -> (
       let v1 = stmt v1 and v2 = catches v2 and v3 = option tok_and_stmt v3 in
-      let try_stmt = G.Try (t, v1, v2, v3) |> G.s in
+      let try_stmt = G.Try (t, v1, v2, None, v3) |> G.s in
       match v0 with
       | None -> [ try_stmt ]
       | Some r -> [ G.WithUsingResource (t, resources r, try_stmt) |> G.s ])

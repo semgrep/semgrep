@@ -445,16 +445,23 @@ let (mk_visitor : visitor_in -> visitor_out) =
           and v2 = v_option v_expr v2
           and v3 = v_option v_expr v3 in
           ()
-      | TryExcept (t, v1, v2, v3) ->
-          let t = v_info t in
-          let v1 = v_list v_stmt v1
+      | TryExcept (t, v1, v2, v3, v4) ->
+          let t = v_info t
+          and v1 = v_list v_stmt v1
           and v2 = v_list v_excepthandler v2
-          and v3 = v_list v_stmt v3 in
-          ()
-      | TryFinally (t, v1, t2, v2) ->
-          let t = v_info t in
-          let t2 = v_info t2 in
-          let v1 = v_list v_stmt v1 and v2 = v_list v_stmt v2 in
+          and v3 =
+            v_option
+              (fun (t, v1) ->
+                let t = v_info t and v1 = v_list v_stmt v1 in
+                ())
+              v3
+          and v4 =
+            v_option
+              (fun (t, v1) ->
+                let t = v_info t and v1 = v_list v_stmt v1 in
+                ())
+              v4
+          in
           ()
       | Assert (t, v1, v2) ->
           let t = v_info t in

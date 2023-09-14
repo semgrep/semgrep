@@ -232,7 +232,7 @@ class ['self] matching_visitor =
           self#v_partial ~recurse:false env (PartialIf (t, v1))
       | Switch (v0, Some (G.Cond v1), _v2) ->
           self#v_partial ~recurse:false env (PartialMatch (v0, v1))
-      | Try (t, v1, _v2, _v3) ->
+      | Try (t, v1, _v2, _v3, _v4) ->
           self#v_partial ~recurse:false env (PartialTry (t, v1))
       | _else -> ());
       (* todo? visit the s_id too? *)

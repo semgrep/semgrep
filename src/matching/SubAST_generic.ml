@@ -302,13 +302,18 @@ let substmts_of_stmt st =
       |> List.concat_map (function
            | CasesAndBody (_, st) -> [ st ]
            | CaseEllipsis _ -> [])
-  | Try (_, st, xs, opt) -> (
+  | Try (_, st, xs, opt1, opt2) -> (
       [ st ]
       @ (xs |> Common.map Common2.thd3)
       @
-      match opt with
+      match opt1 with
       | None -> []
-      | Some (_, st) -> [ st ])
+      | Some (_, st) -> (
+          [ st ]
+          @
+          match opt2 with
+          | None -> []
+          | Some (_, st) -> [ st ]))
   | DisjStmt _ -> raise Common.Impossible
   (* this may slow down things quite a bit *)
   | DefStmt (_ent, def) -> (
