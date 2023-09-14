@@ -400,7 +400,7 @@ def run_scan(
     max_target_bytes: int = 0,
     timeout_threshold: int = 0,
     skip_unknown_extensions: bool = False,
-    run_local_postprocessor_rules: bool = False,
+    allow_untrusted_postprocessors: bool = False,
     severity: Optional[Sequence[str]] = None,
     optimizations: str = "none",
     baseline_commit: Optional[str] = None,
@@ -539,7 +539,7 @@ def run_scan(
         interfile_timeout=interfile_timeout,
         timeout_threshold=timeout_threshold,
         optimizations=optimizations,
-        run_local_postprocessor_rules=run_local_postprocessor_rules,
+        allow_untrusted_postprocessors=allow_untrusted_postprocessors,
         core_opts_str=core_opts_str,
     )
 

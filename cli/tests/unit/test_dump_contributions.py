@@ -48,7 +48,7 @@ def test_dump_contributions_nominal(core_runner_output):
         interfile_timeout=0,
         timeout_threshold=0,
         optimizations="none",
-        run_local_postprocessor_rules=False,
+        allow_untrusted_postprocessors=False,
         core_opts_str=None,
     )
 
@@ -70,7 +70,7 @@ def test_dump_contributions_failed(core_runner_output):
         interfile_timeout=0,
         timeout_threshold=0,
         optimizations="none",
-        run_local_postprocessor_rules=False,
+        allow_untrusted_postprocessors=False,
         core_opts_str=None,
     )
 
