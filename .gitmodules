@@ -86,7 +86,7 @@
 	path = tests/semgrep-rules
 	url = https://github.com/returntocorp/semgrep-rules.git
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-dart"]
-	path = languages/tree-sitter-lang/semgrep-dart
+	path = languages/dart/tree-sitter/semgrep-dart
 	url = https://github.com/returntocorp/semgrep-dart.git
 [submodule "semgrep-core/semgrep-julia"]
 	path = languages/julia/tree-sitter/semgrep-julia
