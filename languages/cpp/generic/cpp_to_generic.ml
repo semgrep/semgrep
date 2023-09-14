@@ -853,7 +853,7 @@ and map_stmt env x : G.stmt =
       let v1 = map_tok env v1
       and v2 = map_compound env v2
       and v3 = map_of_list (map_handler env) v3 in
-      G.Try (v1, G.Block v2 |> G.s, v3, None) |> G.s
+      G.Try (v1, G.Block v2 |> G.s, v3, None, None) |> G.s
   | StmtTodo (v1, v2) ->
       let v1 = map_todo_category env v1
       and v2 = map_of_list (map_stmt env) v2 in

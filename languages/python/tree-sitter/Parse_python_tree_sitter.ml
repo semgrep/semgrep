@@ -1504,21 +1504,14 @@ and map_compound_statement (env : env) (x : CST.compound_statement) : stmt =
       let body = map_suite env v3 in
       let res =
         match v4 with
-        | `Rep1_except_clause_opt_else_clause_opt_fina_clause (v1, v2, v3) -> (
+        | `Rep1_except_clause_opt_else_clause_opt_fina_clause (v1, v2, v3) ->
             let excepts = Common.map (map_except_clause env) v1 in
-            let orelse = map_or_else_as_list env v2 in
-            match v3 with
-            | Some x ->
-                let tfinal, finalbody = map_finally_clause env x in
-                TryFinally
-                  ( ttry,
-                    [ TryExcept (ttry, body, excepts, orelse) ],
-                    tfinal,
-                    finalbody )
-            | None -> TryExcept (ttry, body, excepts, orelse))
+            let else_opt = Option.map (map_try_else_clause env) v2 in
+            let finally_opt = Option.map (map_finally_clause env) v3 in
+            TryExcept (ttry, body, excepts, else_opt, finally_opt)
         | `Fina_clause x ->
             let tfinal, finalbody = map_finally_clause env x in
-            TryFinally (ttry, body, tfinal, finalbody)
+            TryExcept (ttry, body, [], None, Some (tfinal, finalbody))
       in
       res
   | `With_stmt (v1, v2, v3, v4, v5) ->
@@ -1605,6 +1598,12 @@ and map_except_clause (env : env) ((v1, v2, v3, v4) : CST.except_clause) :
   let _tcolon = (* ":" *) token env v3 in
   let body = map_suite env v4 in
   ExceptHandler (texpect, eopt, nameopt, body)
+
+and map_try_else_clause (env : env) ((v1, v2, v3) : CST.finally_clause) =
+  let telse = (* "else" *) token env v1 in
+  let _tcolon = (* ":" *) token env v2 in
+  let body = map_suite env v3 in
+  (telse, body)
 
 and map_finally_clause (env : env) ((v1, v2, v3) : CST.finally_clause) =
   let tfinally = (* "finally" *) token env v1 in

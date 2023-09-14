@@ -766,12 +766,16 @@ and map_stmt x : B.stmt =
         let v1 = map_expr v1 in
         let sc = map_tok sc in
         `Throw (t, v1, sc)
-    | Try (t, v1, v2, v3) ->
+    | Try (t, v1, v2, v3, v4) ->
         let t = map_tok t in
         let v1 = map_stmt v1
         and v2 = map_of_list map_catch v2
-        and v3 = map_of_option map_finally v3 in
-        `Try (t, v1, v2, v3)
+        and _v3 = map_of_option map_try_else v3
+        and v4 = map_of_option map_finally v4 in
+        (* TODO: some languages such as ruby have try-catch-else-finally
+         * statements. Support the else block in the atd.
+         *)
+        `Try (t, v1, v2, v4)
     | WithUsingResource (t, v1, v2) ->
         let t = map_tok t in
         let v1 = map_of_list map_stmt v1 in
@@ -882,6 +886,7 @@ and map_catch_exn = function
       let v2 = map_of_list map_any v2 in
       `OtherCatch (v1, v2)
 
+and map_try_else v = map_tok_and_stmt v
 and map_finally v = map_tok_and_stmt v
 
 and map_tok_and_stmt (t, v) =

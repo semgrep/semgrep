@@ -2343,10 +2343,10 @@ and statement (env : env) (x : CST.statement) =
         match v4 with
         | `Catch_clause x ->
             let catch = [ catch_clause env x ] in
-            G.Try (v1, v2, v3 @ catch, None) |> G.s
+            G.Try (v1, v2, v3 @ catch, None, None) |> G.s
         | `Fina_clause x ->
             let finally = Some (finally_clause env x) in
-            G.Try (v1, v2, v3, finally) |> G.s
+            G.Try (v1, v2, v3, None, finally) |> G.s
       in
       v4
   | `Conc_stmt (v1, v2) ->

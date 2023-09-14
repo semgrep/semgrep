@@ -379,24 +379,17 @@ and try_catch_else_finally env ~try_st ~catches ~opt_else ~opt_finally =
         (name, todo_pattern @ catch_stmt) :: acc)
       [] catches
   in
-  let all_handlers_rev =
+  let else_stmt =
     match opt_else with
-    | None -> catches_stmt_rev
-    | Some (tok, else_st) ->
-        let name = fresh_var env tok in
-        let todo_pattern =
-          fixme_stmt ToDo (G.Ce (G.OtherCatch (("else_catch", tok), [])))
-        in
-        let else_stmt = stmt env else_st in
-        let else_handler = (name, todo_pattern @ else_stmt) in
-        else_handler :: catches_stmt_rev
+    | None -> []
+    | Some (_tok, else_st) -> stmt env else_st
   in
   let finally_stmt =
     match opt_finally with
     | None -> []
     | Some (_tok, finally_st) -> stmt env finally_st
   in
-  [ mk_s (Try (try_stmt, List.rev all_handlers_rev, finally_stmt)) ]
+  [ mk_s (Try (try_stmt, List.rev catches_stmt_rev, else_stmt, finally_stmt)) ]
 
 (*****************************************************************************)
 (* Assign *)
@@ -1516,8 +1509,8 @@ and stmt_aux env st =
       (* Python's `raise E1 from E2` *)
       let todo_stmt = fixme_stmt ToDo (G.E from) in
       todo_stmt @ stmt_aux env throw_stmt
-  | G.Try (_tok, try_st, catches, opt_finally) ->
-      try_catch_else_finally env ~try_st ~catches ~opt_else:None ~opt_finally
+  | G.Try (_tok, try_st, catches, opt_else, opt_finally) ->
+      try_catch_else_finally env ~try_st ~catches ~opt_else ~opt_finally
   | G.WithUsingResource (_, stmt1, stmt2) ->
       let stmt1 = List.concat_map (stmt env) stmt1 in
       let stmt2 = stmt env stmt2 in
@@ -1537,21 +1530,6 @@ and stmt_aux env st =
   | G.OtherStmtWithStmt (G.OSWS_Block _, [ G.E objorig ], stmt1) ->
       let ss, _TODO_obj = expr_with_pre_stmts env objorig in
       ss @ stmt env stmt1
-  (* Ruby: begin ... rescue ... else ... ensure ... *)
-  | G.OtherStmtWithStmt
-      ( G.OSWS_Else_in_try,
-        [ G.Tk else_tok ],
-        {
-          s =
-            G.Block
-              ( _,
-                [ { s = G.Try (_, try_st, catches, opt_finally); _ }; else_st ],
-                _ );
-          _;
-        } ) ->
-      try_catch_else_finally env ~try_st ~catches
-        ~opt_else:(Some (else_tok, else_st))
-        ~opt_finally
   | G.OtherStmt _
   | G.OtherStmtWithStmt _ ->
       todo (G.S st)
@@ -1799,11 +1777,12 @@ and python_with_stmt env manager opt_pat body =
     ss_def_pat @ stmt env body
   in
   let try_catches = [] in
+  let try_else = [] in
   let try_finally =
     let ss_exit, _ = call_mgr_method "__exit___" in
     ss_exit
   in
-  pre_try_stmts @ [ mk_s (Try (try_body, try_catches, try_finally)) ]
+  pre_try_stmts @ [ mk_s (Try (try_body, try_catches, try_else, try_finally)) ]
 
 (*****************************************************************************)
 (* Defs *)
