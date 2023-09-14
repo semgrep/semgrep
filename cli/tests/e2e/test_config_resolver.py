@@ -9,6 +9,9 @@ from semgrep.config_resolver import ConfigLoader
 from semgrep.error import SemgrepError
 
 
+# What is this test really for? The old output was an error due the field
+# 'pattern-new-feature' being unknown. The new output is another error
+# about a missing 'pattern' or similar field.
 @pytest.mark.quick
 def test_new_feature_registry_config(monkeypatch, snapshot, mocker, tmp_path):
     config_file = ConfigFile(
