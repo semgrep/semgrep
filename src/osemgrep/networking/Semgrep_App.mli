@@ -15,16 +15,16 @@ type deployment_scan_config = {
 type deployment_config = {
   id : int;
   name : string;
-  display_name : string;
-  slug : string;
-  source_type : string;
+  display_name : string; [@default ""]
+  slug : string; [@default ""]
+  source_type : string; [@default ""]
   has_autofix : bool; [@default false]
   has_deepsemgrep : bool; [@default false]
   has_triage_via_comment : bool; [@default false]
   has_dependency_query : bool; [@default false]
-  default_user_role : string;
-  organization_id : int;
-  scm_name : string;
+  default_user_role : string; [@default ""]
+  organization_id : int; [@default 0]
+  scm_name : string; [@default ""]
 }
 [@@deriving yojson]
 (** [type deployment_config] is what the app returns for deployment config. *)
