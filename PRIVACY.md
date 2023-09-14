@@ -200,7 +200,7 @@ The Semgrep team uses this ID to help answer the following questions:
 
 - > How many people use a given rule/ruleset/snippet?
 
-  This enables the Semgrep Security Research Team to assess their performance,
+  This enables the Semgrep team to assess their performance,
   and we're planning to make these numbers public for all rule authors in the community.
 
 - > What percentage of users log in?
