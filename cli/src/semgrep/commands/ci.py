@@ -29,8 +29,8 @@ from semgrep.console import Title
 from semgrep.constants import OutputFormat
 from semgrep.engine import EngineType
 from semgrep.error import FATAL_EXIT_CODE
-from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
+from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.meta import generate_meta_from_environment
@@ -351,14 +351,16 @@ def ci(
                 )
                 progress_bar.update(products_task, completed=100)
 
-            if scan_handler.rules == '{"rules":[]}' and scan_handler.enabled_products == ["sast"]:
+            if (
+                scan_handler.rules == '{"rules":[]}'
+                and scan_handler.enabled_products == ["sast"]
+            ):
                 console.print(
                     f"No rules configured. Visit {state.env.semgrep_url}/orgs/-/policies to configure rules to scan your code.\n"
                 )
                 sys.exit(MISSING_CONFIG_EXIT_CODE)
 
             config = (scan_handler.rules,)
-
 
     except Exception as e:
         import traceback
