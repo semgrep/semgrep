@@ -33,6 +33,26 @@ def test_validation_of_invalid_rules(run_semgrep_in_tmp: RunSemgrep, snapshot, r
     )
 
 
+@pytest.mark.parametrize(
+    "rule",
+    [
+        ("rules/extra_field.yaml"),
+    ],
+)
+def test_extra_top_level_valid(run_semgrep_in_tmp: RunSemgrep, snapshot, rule):
+    _, err = run_semgrep_in_tmp(
+        rule,
+        options=["--validate"],
+        output_format=OutputFormat.TEXT,
+        assert_exit_code={0},
+    )
+
+    snapshot.assert_match(
+        err,
+        "results.txt",
+    )
+
+
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "rule",
