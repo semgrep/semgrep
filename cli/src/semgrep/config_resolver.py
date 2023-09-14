@@ -521,7 +521,9 @@ class Config:
                         # origin. Without this, local rules could use
                         # postprocessors which may exfiltrate data from source
                         # code.
-                        rule.metadata.get("semgrep.dev", {})["origin"] = "local"
+                        rule.metadata.get("semgrep.dev", {}).get("rule", {})[
+                            "origin"
+                        ] = "local"
                     valid_rules.append(rule)
 
             if valid_rules:
