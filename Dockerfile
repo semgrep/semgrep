@@ -88,7 +88,14 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 # coupling: if you modify the FROM below, you probably need to modify also
 # a few .github/workflows/ files. grep for returntocorp/ocaml there.
 
-FROM returntocorp/ocaml:alpine-2023-06-16 as semgrep-core-container
+# This base image should be updated regularly to maximize the caching
+# of opam packages. We don't use a rolling ':latest' tag to ensure
+# reproducible builds and fix problems more easily.
+#
+# Visit https://hub.docker.com/r/returntocorp/ocaml/tags to see the latest
+# images available.
+#
+FROM returntocorp/ocaml:alpine-2023-09-13 as semgrep-core-container
 
 WORKDIR /src/semgrep
 COPY --from=semgrep-core-files /src/semgrep .
