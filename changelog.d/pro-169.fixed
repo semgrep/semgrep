@@ -1,3 +1,0 @@
-Constant propagation now handles implicit number-to-string conversions in Java
-and JS/TS. A Java expression such as `"foo" + 123` will now match the string
-pattern "foo123".

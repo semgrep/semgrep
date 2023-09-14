@@ -1,3 +1,0 @@
-Output: GitLab SAST output has now been updated to accommodate the new SAST schema
-as of GitLab 16.x, which means that findings in GitLab will now properly display
-descriptions of the findings.
