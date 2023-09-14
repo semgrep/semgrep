@@ -17,6 +17,6 @@ semgrep error: Invalid rule schema
 5 |   languages: [python]
 6 |   severity: ERROR
 
-Additional properties are not allowed ('pattern-new-feature' was unexpected)
+One of these properties is missing: 'match', 'pattern', 'pattern-either', 'pattern-regex', 'patterns', 'r2c-internal-project-depends-on'
 
 [ERROR] invalid configuration file found (1 configs were invalid)
