@@ -8,8 +8,6 @@ from semgrep.config_resolver import Config
 from semgrep.metrics import Metrics
 from semgrep.metrics import MetricsState
 
-pytestmark = pytest.mark.freeze_time("2017-03-03")
-
 
 @pytest.fixture(autouse=True)
 def automocks(mocker) -> None:
@@ -32,6 +30,7 @@ def metrics(mocker) -> Metrics:
         (["a", "b"], ["b", "a"], False),
     ],
 )
+@pytest.mark.freeze_time("2023-09-01 09:01:00")
 def test_configs_hash(first, second, is_equal) -> None:
     first_metrics = Metrics()
     first_metrics.add_configs(first)
@@ -56,6 +55,7 @@ def test_configs_hash(first, second, is_equal) -> None:
         ([0, 1, 2], [1], False),
     ],
 )
+@pytest.mark.freeze_time("2023-09-01 09:01:00")
 def test_rules_hash(first, second, is_equal) -> None:
     config1 = dedent(
         """
