@@ -228,6 +228,8 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Atomic -> ()
     | Mutable -> ()
     | Constexpr -> ()
+    | Constinit -> ()
+    | Consteval -> ()
   and v_expression v =
     let k x = v_expressionbis x in
     vin.kexpr (k, all_functions) v
@@ -277,7 +279,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
         and v3 = v_expression v3 in
         ()
     | ArrayAccess (v1, v2) ->
-        let v1 = v_expression v1 and v2 = v_bracket v_expression v2 in
+        let v1 = v_expression v1 and v2 = v_bracket v_initialiser v2 in
         ()
     | DotAccess (v1, t, v2) ->
         let v1 = v_expression v1 and t = v_wrap v_dotOp t and v2 = v_name v2 in
@@ -339,6 +341,14 @@ let (mk_visitor : visitor_in -> visitor_out) =
         ()
     | ParamPackExpansion (v1, v2) ->
         let v1 = v_expr v1 and v2 = v_tok v2 in
+        ()
+    | FoldExpr x ->
+        let v = v_paren v_fold_expr x in
+        ()
+    | RequiresExpr (v1, v2, v3) ->
+        let v1 = v_tok v1
+        and v2 = v_paren (v_list v_parameter) v2
+        and v3 = v_paren (v_list v_requirement) v3 in
         ()
     | DeepEllipsis v1 ->
         let v1 = v_bracket v_expr v1 in
@@ -441,6 +451,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | NotEq -> ()
     | AndLog -> ()
     | OrLog -> ()
+    | Spaceship -> ()
   and v_ptrOp = function
     | PtrStarOp -> ()
     | PtrOp -> ()
@@ -472,6 +483,8 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v1 = v_allocOp v1 in
         ()
     | UnaryTildeOp -> ()
+    | DotStarOp -> ()
+    | CoAwaitOp -> ()
     | UnaryNotOp -> ()
     | CommaOp -> ()
   and v_cast_operator = function
@@ -483,6 +496,33 @@ let (mk_visitor : visitor_in -> visitor_out) =
   and v_dotOp = function
     | Dot -> ()
     | Arrow -> ()
+  and v_fold_expr = function
+    | LeftFold (v1, v2, v3) ->
+        let v1 = v_tok v1 and v2 = v_wrap v_operator v2 and v3 = v_expr v3 in
+        ()
+    | RightFold (v1, v2, v3) ->
+        let v1 = v_expr v1 and v2 = v_wrap v_operator v2 and v3 = v_tok v3 in
+        ()
+    | BinaryFold (v1, (v2, v3, v4), v5) ->
+        let v1 = v_expr v1
+        and v2 = v_wrap v_operator v2
+        and v3 = v_tok v3
+        and v4 = v_wrap v_operator v4
+        and v5 = v_expr v5 in
+        ()
+  and v_requirement = function
+    | ExprReq (v1, v2) ->
+        let v1 = v_option v_expr v1 and v2 = v_tok v2 in
+        ()
+    | TypeNameReq (v1, v2) ->
+        let v1 = v_tok v1 and v2 = v_name v2 in
+        ()
+    | CompoundReq (v1, v2, v3, v4) ->
+        let v1 = v_paren v_expr v1
+        and v2 = v_option v_tok v2
+        and v3 = v_option v_type_ v3
+        and v4 = v_tok v4 in
+        ()
   and v_statement v =
     let k v = v_statementbis v in
     vin.kstmt (k, all_functions) v
@@ -587,19 +627,27 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let arg = v_option v_init v_v_init in
     let arg = v_type_ v_v_type in
     ()
-  and v_condition_clause = function
+  and v_condition_initializer = function
+    | InitVarsDecl v1 ->
+        let v1 = v_vars_decl v1 in
+        ()
+    | InitExprStmt v1 ->
+        let v1 = v_expr_stmt v1 in
+        ()
+    | InitUsing v1 ->
+        let v1 = v_using v1 in
+        ()
+  and v_condition_subject = function
     | CondClassic v1 ->
         let v1 = v_expr v1 in
-        ()
-    | CondDecl (v1, v2) ->
-        let v1 = v_vars_decl v1 and v2 = v_expr v2 in
-        ()
-    | CondStmt (v1, v2) ->
-        let v1 = v_expr_stmt v1 and v2 = v_expr v2 in
         ()
     | CondOneDecl v1 ->
         let v1 = v_var_decl v1 in
         ()
+  and v_condition_clause (v1, v2) =
+    let v1 = v_option v_condition_initializer v1
+    and v2 = v_condition_subject v2 in
+    ()
   and v_stmt_or_decl = function
     | S v1 ->
         let v1 = v_stmt v1 in
@@ -680,6 +728,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Register -> ()
     | Extern -> ()
     | StoInline -> ()
+    | ThreadLocal -> ()
   and v_init = function
     | EqInit (v1, v2) ->
         let v1 = v_tok v1 and v2 = v_initialiser v2 in
@@ -777,6 +826,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
         ()
     | FBDelete (v1, v2, v3) ->
         let v1 = v_tok v1 and v2 = v_tok v2 and v3 = v_sc v3 in
+        ()
+    | FBTry (v1, v2, v3) ->
+        let v1 = v_tok v1 and v2 = v_compound v2 and v3 = v_list v_handler v3 in
         ()
   and v_specifier = function
     | A v1 ->

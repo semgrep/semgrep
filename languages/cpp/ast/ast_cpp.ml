@@ -240,7 +240,7 @@ and expr =
   (* contains GetRef and Deref!! less: lift up? *)
   | Unary of unaryOp wrap * expr
   | Binary of expr * binaryOp wrap * expr
-  | ArrayAccess of expr * expr bracket
+  | ArrayAccess of expr * initialiser bracket
   (* name is usually just an ident_or_op. In rare cases it can be
    * a template_method name. *)
   | DotAccess of expr * dotOp wrap * name
@@ -275,6 +275,8 @@ and expr =
   | ParamPackExpansion of expr * tok (* '...' *)
   (* forunparser: *)
   | ParenExpr of expr paren
+  | FoldExpr of fold_expr paren
+  | RequiresExpr of tok * parameter list paren * requirement list paren
   (* sgrep-ext: *)
   | Ellipsis of tok
   | DeepEllipsis of expr bracket
@@ -340,6 +342,16 @@ and dotOp =
   (* . *)
   | Arrow (* -> *)
 
+and fold_expr =
+  | LeftFold of (* ... *) tok * operator wrap * expr
+  | RightFold of expr * operator wrap * (* ... *) tok
+  | BinaryFold of expr * (operator wrap * (* ... *) tok * operator wrap) * expr
+
+and requirement =
+  | ExprReq of expr option * sc
+  | TypeNameReq of (* typename *) tok * name
+  | CompoundReq of expr paren * (* noexcept *) tok option * type_ option * sc
+
 (* ------------------------------------------------------------------------- *)
 (* Overloaded operators *)
 (* ------------------------------------------------------------------------- *)
@@ -350,6 +362,8 @@ and operator =
   | PtrOpOp of ptrOp
   | AccessOp of accessop
   | AllocOp of allocOp
+  | DotStarOp (* .* *)
+  | CoAwaitOp
   | UnaryTildeOp
   | UnaryNotOp
   | CommaOp
@@ -369,7 +383,17 @@ and arithOp =
   | Or
   | Xor
 
-and logicalOp = Inf | Sup | InfEq | SupEq | Eq | NotEq | AndLog | OrLog
+and logicalOp =
+  | Inf
+  | Sup
+  | InfEq
+  | SupEq
+  | Eq
+  | NotEq
+  | (* <=> *) Spaceship
+  | AndLog
+  | OrLog
+
 and assignOp = SimpleAssign of tok | OpAssign of arithOp wrap
 
 (* less: migrate to AST_generic_.incr_decr? *)
@@ -405,6 +429,7 @@ and stmt =
   | If of
       tok
       * tok (* 'constexpr' *) option
+      (* The `decl` below is the "initializer" of the if. *)
       * condition_clause paren
       * stmt
       * (tok * stmt) option
@@ -434,13 +459,18 @@ and stmt =
 
 and expr_stmt = expr option * sc
 
-and condition_clause =
+and condition_initializer =
+  | InitVarsDecl of vars_decl
+  | InitExprStmt of expr_stmt
+  | InitUsing of using
+
+and condition_subject =
   | CondClassic of expr
   (* c++ext: *)
-  | CondDecl of vars_decl * expr
-  | CondStmt of expr_stmt * expr
   (* TODO? can have also StructuredBinding? switch to onedecl? *)
   | CondOneDecl of var_decl (* vinit always Some *)
+
+and condition_clause = condition_initializer option * condition_subject
 
 and for_header =
   | ForClassic of a_expr_or_vars * expr option * expr option
@@ -692,6 +722,10 @@ and function_body =
   | FBDefault of tok (* '=' *) * tok (* 'default' *) * sc
   (* c++11: deleted functions *)
   | FBDelete of tok (* '=' *) * tok (* 'delete' *) * sc
+  (* c++11: function try block
+     https://en.cppreference.com/w/cpp/language/function-try-block
+  *)
+  | FBTry of tok * compound * handler list
 
 and lambda_definition = lambda_capture list bracket * function_definition
 
@@ -814,6 +848,8 @@ and type_qualifier =
   (* c++ext? *)
   | Mutable
   | Constexpr
+  | Constinit
+  | Consteval
 
 and storage =
   (* only in C, in C++ auto is for TAuto *)
@@ -823,6 +859,8 @@ and storage =
   | Extern
   (* c++0x? *)
   | StoInline
+  (* since C++11 *)
+  | ThreadLocal
 (* Friend ???? Mutable? *)
 
 (* only in declarator (not in abstract declarator) *)

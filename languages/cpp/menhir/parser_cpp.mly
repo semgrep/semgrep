@@ -563,7 +563,7 @@ unary_op:
 postfix_expr:
  | primary_expr               { $1 }
 
- | postfix_expr "[" expr "]"              { ArrayAccess ($1, ($2, $3,$4)) }
+ | postfix_expr "[" expr "]"              { ArrayAccess ($1, ($2, InitExpr $3,$4)) }
  | postfix_expr "(" optl(listc(argument)) ")" { mk_funcall $1 ($2, $3, $4) }
 
  (*c++ext: ident is now a id_expression *)
@@ -904,14 +904,14 @@ statement_or_decl_cpp:
 
 %inline
 condition:
- | expr { CondClassic $1 }
+ | expr { None, CondClassic $1 }
  (* c++ext: *)
  | decl_spec_seq declaratori "=" initializer_clause
      { let (t_ret, _sto, mods) = type_and_storage_from_decl $1 in
        let (name, ftyp) = $2 in
        let ent = { name; specs = mods |> List.map (fun x -> M x) } in
        let var = { v_type = ftyp t_ret; v_init = Some (EqInit ($3, $4)) } in
-       CondOneDecl (ent, var) }
+       None, CondOneDecl (ent, var) }
 
 
 for_init_stmt:

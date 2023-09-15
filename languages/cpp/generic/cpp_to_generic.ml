@@ -361,6 +361,8 @@ and map_qualifier_wrap _env (qu, t) : G.attribute =
   | Atomic -> G.unhandled_keywordattr ("Atomic", t)
   | Mutable -> G.attr G.Mutable t
   | Constexpr -> G.unhandled_keywordattr ("ConstExpr", t)
+  | Constinit -> G.unhandled_keywordattr ("ConstInit", t)
+  | Consteval -> G.unhandled_keywordattr ("ConstEval", t)
 
 and map_expr env x : G.expr =
   match x with
@@ -414,7 +416,8 @@ and map_expr env x : G.expr =
       and v3 = map_expr env v3 in
       G.opcall v2 [ v1; v3 ]
   | ArrayAccess (v1, v2) ->
-      let v1 = map_expr env v1 and v2 = map_bracket env (map_expr env) v2 in
+      let v1 = map_expr env v1
+      and v2 = map_bracket env (map_initialiser env) v2 in
       G.ArrayAccess (v1, v2) |> G.e
   | DotAccess (v1, v2, v3) -> (
       let v1 = map_expr env v1
@@ -510,6 +513,42 @@ and map_expr env x : G.expr =
   | ParamPackExpansion (v1, v2) ->
       let v1 = map_expr env v1 and v2 = map_tok env v2 in
       G.OtherExpr (("Pack", v2), [ G.E v1 ]) |> G.e
+  | FoldExpr (v1, v2, v3) ->
+      (* TODO: actally migrate to real operators? *)
+      let e =
+        match v2 with
+        | LeftFold (tok, opwrap, expr) ->
+            G.OtherExpr
+              ( ("LeftFold", G.fake "LeftFold"),
+                [ G.Tk tok; G.Tk (snd opwrap); G.E (map_expr env expr) ] )
+            |> G.e
+        | RightFold (expr, opwrap, tok) ->
+            G.OtherExpr
+              ( ("RightFold", G.fake "RightFold"),
+                [ G.E (map_expr env expr); G.Tk (snd opwrap); G.Tk tok ] )
+            |> G.e
+        | BinaryFold (e1, (ow1, tk, ow2), e2) ->
+            G.OtherExpr
+              ( ("BinaryFold", G.fake "BinaryFold"),
+                [
+                  G.E (map_expr env e1);
+                  G.Tk (snd ow1);
+                  G.Tk tk;
+                  G.Tk (snd ow2);
+                  G.E (map_expr env e2);
+                ] )
+            |> G.e
+      in
+      H.set_e_range v1 v3 e;
+      e
+  | RequiresExpr (v1, (_l1, v2, _r1), (_l2, v3, _r2)) ->
+      let params =
+        v2 |> Common.map (map_parameter env) |> Common.map (fun x -> G.Pa x)
+      in
+      let reqs = v3 |> List.concat_map (map_requirement env) in
+      G.OtherExpr
+        (("RequiresExpr", G.fake "RequiresExpr"), (G.Tk v1 :: params) @ reqs)
+      |> G.e
   | ParenExpr v1 ->
       let _l, v1, _r = map_paren env (map_expr env) v1 in
       v1
@@ -638,6 +677,7 @@ and map_logicalOp _env = function
   | NotEq -> G.NotEq
   | AndLog -> G.And
   | OrLog -> G.Or
+  | Spaceship -> G.Cmp
 
 and map_ptrOp _env = function
   | PtrStarOp -> PtrStarOp
@@ -673,8 +713,30 @@ and map_operator (env : env) = function
       let _v1 = map_allocOp env v1 in
       ()
   | UnaryTildeOp -> ()
+  | DotStarOp -> ()
+  | CoAwaitOp -> ()
   | UnaryNotOp -> ()
   | CommaOp -> ()
+
+and map_requirement (env : env) = function
+  | ExprReq (expropt, _sc) -> (
+      match expropt with
+      | None -> []
+      | Some e -> [ G.E (map_expr env e) ])
+  | TypeNameReq (_tk, name) -> [ G.Name (map_name env name) ]
+  | CompoundReq ((_l1, e, _r1), tkopt, tyopt, _sc) ->
+      let v1 = [ G.E (map_expr env e) ] in
+      let v2 =
+        match tkopt with
+        | None -> []
+        | Some tk -> [ G.Tk tk ]
+      in
+      let v3 =
+        match tyopt with
+        | None -> []
+        | Some ty -> [ G.T (map_type_ env ty) ]
+      in
+      v1 @ v2 @ v3
 
 and map_cast_operator _env = function
   | Static_cast -> "Static_cast"
@@ -940,25 +1002,43 @@ and map_expr_stmt env (v1, v2) =
   let v1 = map_of_option (map_expr env) v1 and v2 = map_sc env v2 in
   (v1, v2)
 
-(* TODO: should use better CondXxx once they are available in AST_generic *)
-and map_condition_clause env x : G.condition =
+and map_condition_initializer env x =
+  match x with
+  | InitVarsDecl x -> map_vars_decl env x |> Common.map (fun def -> G.Def def)
+  | InitExprStmt x ->
+      let eopt, sc = map_expr_stmt env x in
+      [ G.S (G.ExprStmt (expr_option sc eopt, sc) |> G.s) ]
+  | InitUsing x -> [ G.S (map_using env x) ]
+
+and map_condition_subject env x =
   match x with
   | CondClassic v1 ->
       let v1 = map_expr env v1 in
-      Cond v1
-  | CondDecl (v1, v2) ->
-      let defs = map_vars_decl env v1 and v2 = map_expr env v2 in
-      OtherCond
-        ( ("CondWithDecls", G.fake ""),
-          (defs |> Common.map (fun def -> G.Def def)) @ [ G.E v2 ] )
-  | CondStmt (v1, v2) ->
-      let eopt, sc = map_expr_stmt env v1 and v2 = map_expr env v2 in
-      let st = G.ExprStmt (expr_option sc eopt, sc) |> G.s in
-      OtherCond (("CondWithStmt", G.fake ""), [ G.S st; G.E v2 ])
+      v1
   | CondOneDecl v1 ->
       let ent, vdef = map_var_decl env v1 in
-      OtherCond (("CondDecl", G.fake ""), [ G.Def (ent, G.VarDef vdef) ])
+      H.vardef_to_assign (ent, vdef)
 
+and map_condition_clause env (v1, v2) : G.condition =
+  let subject = map_condition_subject env v2 in
+  match v1 with
+  | None -> Cond subject
+  | Some init ->
+      let inits = map_condition_initializer env init in
+      OtherCond (("OtherCond", G.fake "OtherCond"), inits @ [ G.E subject ])
+
+(* TODO: should use better CondXxx once they are available in AST_generic *)
+(* and map_condition_clause env x : G.condition =
+
+   | CondDecl (v1, v2) ->
+       let defs = map_vars_decl env v1 and v2 = map_expr env v2 in
+       OtherCond
+         ( ("CondWithDecls", G.fake ""),
+           (defs |> Common.map (fun def -> G.Def def)) @ [ G.E v2 ] )
+   | CondStmt (v1, v2) ->
+       let eopt, sc = map_expr_stmt env v1 and v2 = map_expr env v2 in
+       let st = G.ExprStmt (expr_option sc eopt, sc) |> G.s in
+       OtherCond (("CondWithStmt", G.fake ""), [ G.S st; G.E v2 ]) *)
 and map_for_header env = function
   | ForEllipsis v1 -> G.ForEllipsis v1
   | ForClassic (v1, v2, v3) ->
@@ -1395,6 +1475,12 @@ and map_function_body env x : G.function_body * G.attribute list =
       let _v1 = map_tok env v1 and v2 = map_tok env v2 and v3 = map_sc env v3 in
       let attr = G.unhandled_keywordattr ("DeletedFunction", v2) in
       (G.FBDecl v3, [ attr ])
+  | FBTry (v1, v2, v3) ->
+      let v1 = map_tok env v1
+      and v2 = map_compound env v2
+      and v3 = map_of_list (map_handler env) v3 in
+      let attr = G.unhandled_keywordattr ("FunctionTryBlock", v1) in
+      (G.FBStmt (G.Try (v1, G.Block v2 |> G.s, v3, None) |> G.s), [ attr ])
 
 and map_lambda_definition env (v1, v2) : G.function_definition =
   let _v1TODO = map_bracket env (map_of_list (map_lambda_capture env)) v1
@@ -1600,6 +1686,7 @@ and map_storage _env (x, t) : G.attribute =
   | Register -> G.unhandled_keywordattr ("register", t)
   | Extern -> G.attr G.Extern t
   | StoInline -> G.attr G.Inline t
+  | ThreadLocal -> G.unhandled_keywordattr ("thread_local", t)
 
 and map_pointer_modifier env x : G.attribute =
   match x with

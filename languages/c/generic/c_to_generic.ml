@@ -111,6 +111,7 @@ and logicalOp = function
   | NotEq -> G.NotEq
   | AndLog -> G.And
   | OrLog -> G.Or
+  | Spaceship -> G.Cmp
 
 and type_ = function
   | TBase v1 ->
