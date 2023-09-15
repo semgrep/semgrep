@@ -282,8 +282,8 @@ let map_res map_loc (tmpfile : Fpath.t) (file : Fpath.t)
       mr.matches
   in
   let errors =
-    Report.ErrorSet.map
-      (fun (e : Semgrep_error_code.error) -> { e with loc = map_loc e.loc })
+    Core_error.ErrorSet.map
+      (fun (e : Core_error.t) -> { e with loc = map_loc e.loc })
       mr.errors
   in
   let extra =

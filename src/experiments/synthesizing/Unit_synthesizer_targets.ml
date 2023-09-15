@@ -1,7 +1,6 @@
-(*s: semgrep/matching/Unit_matcher.ml *)
 open Common
 module R = Rule
-module E = Semgrep_error_code
+module E = Core_error
 module Out = Semgrep_output_v1_t
 
 (* ran from the root of the semgrep repository *)

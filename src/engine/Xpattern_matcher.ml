@@ -87,7 +87,7 @@ let (matches_of_matcher :
                               validation_state = No_validator;
                             })))
         in
-        RP.make_match_result res Report.ErrorSet.empty
+        RP.make_match_result res Core_error.ErrorSet.empty
           { RP.parse_time; match_time }
 
 (* todo: same, we should not need that *)

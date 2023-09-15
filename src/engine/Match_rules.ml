@@ -17,7 +17,7 @@ open File.Operators
 module R = Rule
 module RP = Report
 module Resp = Semgrep_output_v1_t
-module E = Semgrep_error_code
+module E = Core_error
 module Out = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -153,7 +153,7 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
         let loc = Tok.first_loc_of_file file in
         let error = E.mk_error (Some rule_id) loc "" Out.Timeout in
         RP.make_match_result []
-          (Report.ErrorSet.singleton error)
+          (Core_error.ErrorSet.singleton error)
           (RP.empty_rule_profiling rule)
 
 (*****************************************************************************)

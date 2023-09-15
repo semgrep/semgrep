@@ -16,7 +16,7 @@ open Common
 open Runner_config
 open File.Operators
 module PM = Pattern_match
-module E = Semgrep_error_code
+module E = Core_error
 module MR = Mini_rule
 module R = Rule
 module RP = Report
@@ -346,7 +346,7 @@ let errors_of_invalid_rule_errors (invalid_rules : Rule.invalid_rule_error list)
 let sanity_check_invalid_patterns (res : RP.final_result) files =
   match
     res.RP.errors
-    |> List.find_opt (fun (err : E.error) ->
+    |> List.find_opt (fun (err : Core_error.t) ->
            match err.typ with
            | Out.PatternParseError _ -> true
            | _else_ -> false)
@@ -453,7 +453,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                        logger#info "full pattern is: %s" rule.MR.pattern_string);
                    let loc = Tok.first_loc_of_file !!file in
                    let errors =
-                     RP.ErrorSet.singleton
+                     Core_error.ErrorSet.singleton
                        (E.mk_error !Rule.last_matched_rule loc ""
                           (match exn with
                           | Match_rules.File_timeout ->
@@ -489,7 +489,9 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                 *)
                | exn when not !Flag_semgrep.fail_fast ->
                    let e = Exception.catch exn in
-                   let errors = RP.ErrorSet.singleton (exn_to_error !!file e) in
+                   let errors =
+                     Core_error.ErrorSet.singleton (exn_to_error !!file e)
+                   in
                    RP.make_match_result [] errors
                      (RP.empty_partial_profiling file))
          in

@@ -16,7 +16,7 @@ open Common
 open File.Operators
 module StrSet = Common2.StringSet
 open AST_generic
-module E = Semgrep_error_code
+module E = Core_error
 module J = JSON
 module MV = Metavariable
 module RP = Report
@@ -273,7 +273,7 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
   }
 
 let match_to_match render_fix (x : Pattern_match.t) :
-    (Out.core_match, Semgrep_error_code.error) Common.either =
+    (Out.core_match, Core_error.t) Common.either =
   try
     Left (unsafe_match_to_match render_fix x)
     (* raised by min_max_ii_by_pos in range_of_any when the AST of the

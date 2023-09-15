@@ -10,7 +10,7 @@ open Common
 open File.Operators
 open Runner_config
 module Flag = Flag_semgrep
-module E = Semgrep_error_code
+module E = Core_error
 module J = JSON
 
 let logger = Logging.get_logger [ __MODULE__ ]
