@@ -265,6 +265,7 @@ def run_rules(
     output_handler: OutputHandler,
     dump_command_for_core: bool,
     engine_type: EngineType,
+    run_secrets: bool,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -289,7 +290,11 @@ def run_rules(
         semgrep_errors,
         output_extra,
     ) = core_runner.invoke_semgrep_core(
-        target_manager, rest_of_the_rules, dump_command_for_core, engine_type
+        target_manager,
+        rest_of_the_rules,
+        dump_command_for_core,
+        engine_type,
+        run_secrets,
     )
 
     if join_rules:
@@ -384,6 +389,7 @@ def run_scan(
     core_opts_str: Optional[str] = None,
     dump_command_for_core: bool = False,
     engine_type: EngineType = EngineType.OSS,
+    run_secrets: bool,
     output_handler: OutputHandler,
     target: Sequence[str],
     pattern: Optional[str],
@@ -538,6 +544,7 @@ def run_scan(
     core_runner = CoreRunner(
         jobs=jobs,
         engine_type=engine_type,
+        run_secrets=run_secrets,
         timeout=timeout,
         max_memory=max_memory,
         interfile_timeout=interfile_timeout,
@@ -578,6 +585,7 @@ def run_scan(
         output_handler,
         dump_command_for_core,
         engine_type,
+        run_secrets,
     )
     profiler.save("core_time", core_start_time)
     output_handler.handle_semgrep_errors(semgrep_errors)
@@ -648,6 +656,7 @@ def run_scan(
                         output_handler,
                         dump_command_for_core,
                         engine_type,
+                        run_secrets,
                     )
                     rule_matches_by_rule = remove_matches_in_baseline(
                         rule_matches_by_rule,
