@@ -13,8 +13,8 @@
  * LICENSE for more details.
  *)
 open Common
-open Runner_config
 open File.Operators
+open Core_scan_config
 module PM = Pattern_match
 module E = Core_error
 module MR = Mini_rule
@@ -543,7 +543,7 @@ let mk_rule_table (rules : Rule.t list) (list_of_rule_ids : string list) :
   Common.hash_of_list id_pairs
 
 (* TODO: use Fpath.t for file *)
-let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
+let xtarget_of_file (config : Core_scan_config.t) (xlang : Xlang.t)
     (file : Fpath.t) : Xtarget.t =
   let lazy_ast_and_errors =
     lazy
@@ -580,7 +580,7 @@ let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
  * certain rules for certain targets in the semgrep-cli wrapper
  * by using the include/exclude fields.).
  *)
-let targets_of_config (config : Runner_config.t)
+let targets_of_config (config : Core_scan_config.t)
     (all_rule_ids_when_no_target_file : Rule_ID.t list) :
     In.targets * Out.skipped_target list =
   match (config.target_source, config.roots, config.lang) with
@@ -645,7 +645,7 @@ let targets_of_config (config : Runner_config.t)
  * to the rules to run against those new extracted targets (which should be
  * the original rules passed via -rules, without the extract-mode rules).
  *)
-let extracted_targets_of_config (config : Runner_config.t)
+let extracted_targets_of_config (config : Core_scan_config.t)
     (all_rules : Rule.t list) :
     In.target list
     * ( Common.filename,
@@ -778,7 +778,7 @@ let semgrep_with_rules ?match_hook config
              |> List.filter (fun r ->
                     (* TODO: some of this is already done in pysemgrep, so maybe
                      * we should guard with a flag that only osemgrep set
-                     * like Runner_config.paths_processing: bool?
+                     * like Core_scan_config.paths_processing: bool?
                      *)
                     match r.R.paths with
                     | None -> true
@@ -926,7 +926,7 @@ let output_semgrep_results (exn, res, files) config =
       logger#info "size of returned JSON string: %d" (String.length s);
       pr s;
       match exn with
-      | Some e -> Runner_exit.exit_semgrep (Unknown_exception e)
+      | Some e -> Core_exit_code.exit_semgrep (Unknown_exception e)
       | None -> ())
   | Text ->
       if config.matching_explanations then
