@@ -77,7 +77,7 @@ let debug_info_to_option = function
 let mode = ref MNo_info
 
 (*****************************************************************************)
-(* Different formats for profiling information as we have access to more data *)
+(* Different formats for profiling info as we have access to more data *)
 (*****************************************************************************)
 
 (* Save time information as we run each rule *)
@@ -94,6 +94,7 @@ type times = { parse_time : float; match_time : float }
 (* Save time information as we run each file *)
 
 type file_profiling = {
+  (* TODO: use Fpath.t *)
   file : Common.filename;
   rule_times : rule_profiling list;
   run_time : float;
