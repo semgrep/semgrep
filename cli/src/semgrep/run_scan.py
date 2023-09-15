@@ -389,7 +389,7 @@ def run_scan(
     core_opts_str: Optional[str] = None,
     dump_command_for_core: bool = False,
     engine_type: EngineType = EngineType.OSS,
-    run_secrets: bool,
+    run_secrets: bool = False,
     output_handler: OutputHandler,
     target: Sequence[str],
     pattern: Optional[str],
