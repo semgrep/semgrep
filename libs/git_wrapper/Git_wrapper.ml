@@ -24,8 +24,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *
  * alternatives:
  *  - use https://github.com/fxfactorial/ocaml-libgit2, but
- *    most of the current Python code use 'git' directly
- *    so easier for now to just imitate the Python code.
+ *    pysemgrep uses 'git' directly so easier for now to just imitate.
  *    Morever we need services like 'git ls-files' and this
  *    does not seem to be supported by libgit.
  *  - use https://github.com/mirage/ocaml-git, which implements
@@ -33,7 +32,10 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *    the "core" of git, not all the "porcelain" around such as
  *    'git ls-files' that we need.
  *
- * TODO: use Bos uniformly instead of Common.cmd_to_list and Lwt_process.
+ * TODO:
+ *  - use Bos uniformly instead of Common.cmd_to_list and Lwt_process.
+ *  - be more consistent and requires an Fpath instead
+ *    of relying sometimes on cwd.
  *)
 
 (*****************************************************************************)
@@ -59,18 +61,29 @@ exception Error of string
 (* Helpers *)
 (*****************************************************************************)
 
-(*diff unified format regex https://www.gnu.org/software/diffutils/manual/html_node/Detailed-Unified.html#Detailed-Unified
+(* diff unified format regex:
+ * https://www.gnu.org/software/diffutils/manual/html_node/Detailed-Unified.html#Detailed-Unified
  * The above documentation isn't great, so unified diff format is
- * @@ -start,count +end,count @@
+ *
+ *    @@ -start,count +end,count @@
+ *
  * where count is optional
- * Start and end here are misnomers. Start here refers to where this line starts in the A file being compared
- * End refers to where this line starts in the B file being compared
- * So if we have a line that starts at line 10 in the A file, and starts at line 20 in the B file, then we have
- * @@ -10 +20 @@
+ * Start and end here are misnomers. Start here refers to where this line
+ * starts in the A file being compared.
+ * End refers to where this line starts in the B file being compared.
+ * So if we have a line that starts at line 10 in the A file, and starts at
+ * line 20 in the B file, then we have
+ *
+ *     @@ -10 +20 @@
+ *
  * If we have a multiline diff, then we have
- * @@ -10,3 +20,3 @@
+ *
+ *     @@ -10,3 +20,3 @@
+ *
  * where the 3 is the number of lines that were changed
- * We use a named capture group for the lines, and then split on the comma if it's a multiline diff *)
+ * We use a named capture group for the lines, and then split on the comma if
+ * it's a multiline diff
+ *)
 let _git_diff_lines_re = {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
 let git_diff_lines_re = SPcre.regexp _git_diff_lines_re
 
@@ -101,10 +114,6 @@ let range_of_git_diff lines =
           | Not_found -> (-1, -1))
         ranges
   | Error _ -> [||]
-
-(*****************************************************************************)
-(* Wrappers *)
-(*****************************************************************************)
 
 (*****************************************************************************)
 (* Use Common.cmd_to_list *)
@@ -349,21 +358,22 @@ let git_log_json_format =
    \"contributor\": {\"commit_author_name\": \"%an\", \"commit_author_email\": \
    \"%ae\"}}"
 
-let date_to_year_str (timestamp : Common2.float_time) : string =
+let time_to_str (timestamp : Common2.float_time) : string =
   let date = Unix.gmtime timestamp in
   let year = date.tm_year + 1900 in
   let month = date.tm_mon + 1 in
   let day = date.tm_mday in
   Printf.sprintf "%04d-%02d-%02d" year month day
 
+(* TODO: should really return a JSON.t list at least *)
 let get_git_logs ?(since = None) () : string list =
-  let since_year =
+  let cmd =
     match since with
-    | None -> date_to_year_str (Common2.month_before (Common2.yesterday ()))
-    | Some since_timestamp -> date_to_year_str since_timestamp
+    | None -> Bos.Cmd.(v "git" % "log" % git_log_json_format)
+    | Some time ->
+        let after = spf "--after=\"%s\"" (time_to_str time) in
+        Bos.Cmd.(v "git" % "log" % after % git_log_json_format)
   in
-  let after_arg = Printf.sprintf "--after=\"%s\"" since_year in
-  let cmd = Bos.Cmd.(v "git" % "log" % after_arg % git_log_json_format) in
   let lines_r = Bos.OS.Cmd.run_out cmd in
   let lines = Bos.OS.Cmd.out_lines ~trim:true lines_r in
   let lines =
@@ -372,6 +382,7 @@ let get_git_logs ?(since = None) () : string list =
      * at least a JSON.t.
      *)
     | Ok (lines, (_, `Exited 0)) -> lines
+    (* TODO: maybe should raise an Error instead *)
     | _ -> []
   in
   (* out_lines splits on newlines, so we always have an extra space at the end *)
