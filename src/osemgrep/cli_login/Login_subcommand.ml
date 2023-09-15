@@ -11,23 +11,26 @@
 (* Helpers *)
 (*****************************************************************************)
 
-(* from login.py *)
-let save_token ?(ident = None) token =
-  match Semgrep_login.save_token ~ident token with
-  | Ok () ->
-      Logs.app (fun m ->
-          m "\nSaved access token in %a" Fpath.pp
-            !Semgrep_envvars.v.user_settings_file);
-      let epilog =
-        Ocolor_format.asprintf
-          {|
-💡 From now on you can run @{<cyan>`semgrep ci`@} to start a Semgrep scan.
-   Supply Chain, Secrets and Pro rules will be applied in your scans automatically.
+let print_did_save_token () : unit =
+  Logs.app (fun m ->
+      m "\nSaved access token in %a" Fpath.pp
+        !Semgrep_envvars.v.user_settings_file);
+  let epilog =
+    Ocolor_format.asprintf
+      {|
+  💡 From now on you can run @{<cyan>`semgrep ci`@} to start a Semgrep scan.
+    Supply Chain, Secrets and Pro rules will be applied in your scans automatically.
 
-💎 Happy scanning!
-|}
-      in
-      Logs.app (fun m -> m "%s" epilog);
+  💎 Happy scanning!
+  |}
+  in
+  Logs.app (fun m -> m "%s" epilog)
+
+(* Helper to call our save token implementation when the token is passed as an env var *)
+let save_token token =
+  match Semgrep_login.save_token token with
+  | Ok () ->
+      print_did_save_token ();
       Exit_code.ok
   | Error msg ->
       Logs.err (fun m -> m "%s" msg);
@@ -76,6 +79,7 @@ let start_interactive_flow () : Uuidm.t option =
         Some session_id
     | __else__ -> None)
 
+(* NOTE: fetch_token will save the token iff valid (else error) *)
 let fetch_token session_id =
   match
     Semgrep_login.fetch_token ~wait_hook:Console_Spinner.show_spinner session_id
@@ -83,7 +87,7 @@ let fetch_token session_id =
   | Error msg ->
       Logs.err (fun m -> m "%s" msg);
       Exit_code.fatal
-  | Ok (token, display_name) ->
+  | Ok (_, display_name) ->
       Console_Spinner.erase_spinner ();
       Logs.app (fun m ->
           m
@@ -91,7 +95,8 @@ let fetch_token session_id =
              start a scan."
             (Logs_helpers.success_tag ())
             display_name);
-      save_token ~ident:(Some display_name) token
+      print_did_save_token ();
+      Exit_code.ok
 
 (*****************************************************************************)
 (* Main logic *)
