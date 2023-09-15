@@ -101,13 +101,22 @@ let group_rules xconf rules xtarget =
            let relevant_rule = is_relevant_rule_for_xtarget r xconf xtarget in
            match r.R.mode with
            | _ when not relevant_rule -> Right3 r
-           (* Silently skip secrets rules for now. They are going to be
-              ported to being search rules. Not skipping them causes
-              semgrep-pro to fail currently when invoked with secrets
-              rules, but without secrets enabled. *)
-           | `Secrets _ as mode -> Right3 { r with mode }
            | `Taint _ as mode -> Left3 { r with mode }
            | (`Extract _ | `Search _) as mode -> Middle3 { r with mode }
+           (* We are planning on removing `Secret mode and adding generic
+              post processors to rules which only get run when run with secrets
+              validation enabled. Until such time, run secrets rules that haven't
+              been turned to search rule by the pro-engine as search rules, and
+              just discard the validators. *)
+           | `Secrets { secrets = [ formula ]; _ } ->
+               logger#info
+                 "Running secret rule as search rule without validation.";
+               Middle3 { r with mode = `Search formula }
+           (* Silently skip malformed secrets rules for now. *)
+           | `Secrets _ as mode ->
+               logger#error
+                 "Skipping malformed secrets rule without validation.";
+               Right3 { r with mode }
            | `Steps _ ->
                pr2 (Rule.show_rule r);
                raise Multistep_rules_not_available)
