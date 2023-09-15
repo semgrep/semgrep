@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 module StrSet = Common2.StringSet
 open AST_generic
 module E = Semgrep_error_code
@@ -331,7 +332,7 @@ let profiling_to_profiling (profiling_data : RP.final_profiling) :
       profiling_data.RP.file_times
       |> Common.map (fun { RP.file = target; rule_times; run_time } ->
              {
-               Out.path = target;
+               Out.path = !!target;
                rule_times = json_time_of_rule_times rule_times;
                run_time;
              });
@@ -341,6 +342,13 @@ let profiling_to_profiling (profiling_data : RP.final_profiling) :
         profiling_data.RP.rules;
     rules_parse_time = profiling_data.rules_parse_time;
     max_memory_bytes = Some profiling_data.max_memory_bytes;
+    (* TODO: does it cover all targets or just the relevant target we actually
+     * parsed for matching?
+     *)
+    total_bytes =
+      profiling_data.RP.file_times
+      |> Common.map (fun { RP.file = target; _ } -> File.filesize target)
+      |> Common2.sum_int;
   }
 
 (*****************************************************************************)

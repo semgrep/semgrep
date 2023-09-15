@@ -176,6 +176,7 @@ val print_match :
 *)
 val update_cli_progress : Runner_config.t -> unit
 
+(* TODO: Fpath.t *)
 val exn_to_error : Common.filename -> Exception.t -> Semgrep_error_code.error
 (**
   Small wrapper over Semgrep_error_code.exn_to_error to handle also

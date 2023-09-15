@@ -409,15 +409,15 @@ let parse_equivalences equivalences_file =
 let iter_targets_and_get_matches_and_exn_to_errors config f targets =
   targets
   |> map_targets config.ncores (fun (target : In.target) ->
-         let file = target.path in
-         logger#info "Analyzing %s" file;
+         let file = Fpath.v target.path in
+         logger#info "Analyzing %s" !!file;
          let res, run_time =
            Common.with_time (fun () ->
                try
                  let get_context () =
                    match !Rule.last_matched_rule with
-                   | None -> file
-                   | Some rule_id -> spf "%s on %s" (rule_id :> string) file
+                   | None -> !!file
+                   | Some rule_id -> spf "%s on %s" (rule_id :> string) !!file
                  in
                  Memory_limit.run_with_memory_limit ~get_context
                    ~mem_limit_mb:config.max_memory_mb (fun () ->
@@ -437,7 +437,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                       * not testing -max_memory.
                       *)
                      if config.test then Gc.full_major ();
-                     logger#trace "done with %s" file;
+                     logger#trace "done with %s" !!file;
                      v)
                with
                (* note that Semgrep_error_code.exn_to_error already handles
@@ -451,16 +451,16 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                        logger#info "critical exn while matching ruleid %s"
                          (rule.MR.id :> string);
                        logger#info "full pattern is: %s" rule.MR.pattern_string);
-                   let loc = Tok.first_loc_of_file file in
+                   let loc = Tok.first_loc_of_file !!file in
                    let errors =
                      RP.ErrorSet.singleton
                        (E.mk_error !Rule.last_matched_rule loc ""
                           (match exn with
                           | Match_rules.File_timeout ->
-                              logger#info "Timeout on %s" file;
+                              logger#info "Timeout on %s" !!file;
                               Out.Timeout
                           | Out_of_memory ->
-                              logger#info "OutOfMemory on %s" file;
+                              logger#info "OutOfMemory on %s" !!file;
                               Out.OutOfMemory
                           | _ -> raise Impossible))
                    in
@@ -489,7 +489,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                 *)
                | exn when not !Flag_semgrep.fail_fast ->
                    let e = Exception.catch exn in
-                   let errors = RP.ErrorSet.singleton (exn_to_error file e) in
+                   let errors = RP.ErrorSet.singleton (exn_to_error !!file e) in
                    RP.make_match_result [] errors
                      (RP.empty_partial_profiling file))
          in
