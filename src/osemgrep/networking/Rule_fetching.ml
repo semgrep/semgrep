@@ -380,9 +380,18 @@ let rules_from_dashdash_config_async ~token_opt ~registry_caching kind :
       in
       Lwt.return rules
   | C.A Policy ->
+      let token =
+        match token_opt with
+        | None ->
+            Error.abort
+              (spf
+                 "Cannot to download rules from policy without authorization \
+                  token")
+        | Some token -> token
+      in
       let%lwt rules =
         load_rules_from_url_async ~token_opt ~ext:"policy"
-          (Semgrep_App.url_for_policy ~token_opt)
+          (Semgrep_App.url_for_policy ~token)
       in
       Metrics_.g.is_using_app <- true;
       Lwt.return [ rules ]

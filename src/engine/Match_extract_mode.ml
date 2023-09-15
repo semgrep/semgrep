@@ -48,8 +48,8 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * although this is a bit less ergonomic for the caller.
  *)
 type match_result_location_adjuster =
-  Report.partial_profiling Report.match_result ->
-  Report.partial_profiling Report.match_result
+  Core_result.partial_profiling Core_result.match_result ->
+  Core_result.partial_profiling Core_result.match_result
 
 (*****************************************************************************)
 (* Helpers *)
@@ -264,14 +264,14 @@ let map_bindings map_loc bindings =
   let map_binding (mvar, mval) = (mvar, map_tokens map_loc mval) in
   Common.map map_binding bindings
 
-let map_res map_loc tmpfile file
-    (mr : Report.partial_profiling Report.match_result) =
+let map_res map_loc (tmpfile : Fpath.t) (file : Fpath.t)
+    (mr : Core_result.partial_profiling Core_result.match_result) =
   let matches =
     Common.map
       (fun (m : Pattern_match.t) ->
         {
           m with
-          file;
+          file = !!file;
           range_loc = Common2.pair map_loc m.range_loc;
           taint_trace =
             Option.map
@@ -282,8 +282,8 @@ let map_res map_loc tmpfile file
       mr.matches
   in
   let errors =
-    Report.ErrorSet.map
-      (fun (e : Semgrep_error_code.error) -> { e with loc = map_loc e.loc })
+    Core_error.ErrorSet.map
+      (fun (e : Core_error.t) -> { e with loc = map_loc e.loc })
       mr.errors
   in
   let extra =
@@ -292,15 +292,19 @@ let map_res map_loc tmpfile file
         let skipped_targets =
           Common.map
             (fun (st : Semgrep_output_v1_t.skipped_target) ->
-              { st with path = (if st.path = tmpfile then file else st.path) })
+              {
+                st with
+                path = (if st.path = !!tmpfile then !!file else st.path);
+              })
             skipped_targets
         in
-        Report.Debug
-          { skipped_targets; profiling = { profiling with Report.file } }
-    | Time { profiling } -> Time { profiling = { profiling with Report.file } }
+        Core_result.Debug
+          { skipped_targets; profiling = { profiling with Core_result.file } }
+    | Time { profiling } ->
+        Time { profiling = { profiling with Core_result.file } }
     | No_info -> No_info
   in
-  { Report.matches; errors; extra; explanations = [] }
+  { Core_result.matches; errors; extra; explanations = [] }
 
 (*****************************************************************************)
 (* Main logic *)
@@ -453,7 +457,7 @@ let extract_and_concat erule_table xtarget ~all_rules matches =
          let target =
            mk_extract_target extract_rule_ids dst_lang contents ~all_rules
          in
-         (target, map_res map_loc target.path !!(xtarget.file)))
+         (target, map_res map_loc (Fpath.v target.path) xtarget.file))
 
 let extract_as_separate erule_table xtarget ~all_rules matches =
   matches
@@ -516,7 +520,7 @@ let extract_as_separate erule_table xtarget ~all_rules matches =
                    map_loc start_extract_pos line_offset col_offset
                      !!(xtarget.Xtarget.file)
              in
-             Some (target, map_res map_loc target.path !!(xtarget.file))
+             Some (target, map_res map_loc (Fpath.v target.path) xtarget.file)
          | Some ({ mode = `Extract { Rule.extract; _ }; id = id, _; _ }, None)
            ->
              report_unbound_mvar id extract m;

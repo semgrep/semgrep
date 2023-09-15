@@ -1,15 +1,22 @@
+; Various operations having to do with selection of files in Semgrep.
+; What they have in common is:
+; - dependency on utilities to manipulate file paths (e.g. globbing);
+; - no dependency on full-fledged language parsing or the resulting ASTs.
+
 (library
  (public_name semgrep.targeting)
  (name semgrep_targeting)
  (wrapped false)
  (libraries
-   fpath
-
+   stdcompat
    commons
+
+   fpath
+   glob
+   gitignore
    git_wrapper
+
    semgrep.core
-   semgrep.reporting ; for skipped_target ATD type
-   osemgrep_targeting
  )
  (preprocess
    (pps

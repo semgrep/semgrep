@@ -1,7 +1,7 @@
 open Common
 open File.Operators
 module J = JSON
-module E = Semgrep_error_code
+module E = Core_error
 
 (*****************************************************************************)
 (* Prelude *)

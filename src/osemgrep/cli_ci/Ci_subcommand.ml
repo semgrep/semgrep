@@ -370,16 +370,17 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
                those findings must come from rules configured there. Drop the \
                `--config` to use rules configured on semgrep.dev or log out.");
         Error Exit_code.fatal
+    (* TODO: document why we support running the ci command without a token *)
     | None, _ -> Ok None
     | Some token, _ -> (
-        match Semgrep_App.get_deployment_from_token ~token with
+        match Semgrep_App.get_scan_config_from_token ~token with
         | None ->
             Logs.app (fun m ->
                 m
                   "API token not valid. Try to run `semgrep logout` and \
                    `semgrep login` again.");
             Error Exit_code.invalid_api_key
-        | Some t -> Ok (Some (token, t)))
+        | Some deployment_config -> Ok (Some (token, deployment_config)))
   in
   (* TODO: pass baseline commit! *)
   let metadata = generate_meta_from_environment None in
@@ -414,6 +415,10 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
                 Exit_code.t )
               result) =
         match depl with
+        (* TODO: document why we support running the ci command without a token / deployment.
+         *  Without this no token / no deployment case, we could unify the two code branches
+         *  below and work to start simplifying this massive function.
+         *)
         | None ->
             Ok
               ( None,

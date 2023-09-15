@@ -1,5 +1,5 @@
-(* will populate Semgrep_error_code.errors *)
-val check : Rule.t -> Semgrep_error_code.error list
+(* will populate Core_error.errors *)
+val check : Rule.t -> Core_error.t list
 
 (* to test -check_rules *)
 val run_checks :
@@ -7,7 +7,7 @@ val run_checks :
   (Fpath.t -> Rule.t list) ->
   Fpath.t (* metachecks *) ->
   Fpath.t list (* rules *) ->
-  Semgrep_error_code.error list
+  Core_error.t list
 
 (* -check_rules *)
 val check_files :

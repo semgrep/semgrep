@@ -1,0 +1,8 @@
+rules:
+  - id: eqeq-bad
+    patterns:
+      - pattern: $X == $X
+    message: "useless comparison"
+    some-other-extra-field: "hello"
+    languages: [js, go]
+    severity: ERROR

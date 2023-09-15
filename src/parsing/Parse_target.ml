@@ -18,7 +18,7 @@ open File.Operators
 open Pfff_or_tree_sitter
 open Parsing_result2
 module Flag = Flag_semgrep
-module E = Semgrep_error_code
+module E = Core_error
 module Out = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -41,12 +41,12 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* used by Match_search_mode and Match_tainting_mode *)
 let errors_from_skipped_tokens xs =
   match xs with
-  | [] -> Report.ErrorSet.empty
+  | [] -> Core_error.ErrorSet.empty
   | x :: _ ->
       let e = exn_of_loc x in
       let err = E.exn_to_error None x.Tok.pos.file e in
       let locs = xs |> Common.map Output_utils.location_of_token_location in
-      Report.ErrorSet.singleton { err with typ = Out.PartialParsing locs }
+      Core_error.ErrorSet.singleton { err with typ = Out.PartialParsing locs }
 
 let undefined_just_parse_with_lang _lang _file =
   failwith "just_parse_with_lang_ref unset"

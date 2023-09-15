@@ -6,7 +6,7 @@
 (* Main error type *)
 (*****************************************************************************)
 
-type error = {
+type t = {
   rule_id : Rule_ID.t option;
   typ : Semgrep_output_v1_t.core_error_kind;
   loc : Tok.location;
@@ -16,7 +16,9 @@ type error = {
 }
 [@@deriving show]
 
-val g_errors : error list ref
+val g_errors : t list ref
+
+module ErrorSet : Set.S with type elt = t
 
 (*****************************************************************************)
 (* Converter functions *)
@@ -27,7 +29,7 @@ val mk_error :
   Tok.location ->
   string ->
   Semgrep_output_v1_t.core_error_kind ->
-  error
+  t
 
 val error :
   Rule_ID.t ->
@@ -40,10 +42,10 @@ val error :
    TODO: return None for rules that are being skipped due to version
    mismatches.
 *)
-val error_of_invalid_rule_error : Rule.invalid_rule_error -> error
+val error_of_invalid_rule_error : Rule.invalid_rule_error -> t
 
 (* Convert a caught exception and its stack trace to a Semgrep error. *)
-val exn_to_error : Rule_ID.t option -> Common.filename -> Exception.t -> error
+val exn_to_error : Rule_ID.t option -> Common.filename -> Exception.t -> t
 
 (*****************************************************************************)
 (* Try with error *)
@@ -56,7 +58,7 @@ val try_with_print_exn_and_reraise : Common.filename -> (unit -> unit) -> unit
 (* Pretty printers *)
 (*****************************************************************************)
 
-val string_of_error : error -> string
+val string_of_error : t -> string
 
 val severity_of_error :
   Semgrep_output_v1_t.core_error_kind -> Semgrep_output_v1_t.core_severity
@@ -74,8 +76,8 @@ val expected_error_lines_of_files :
 
 (* Return the number of errors and an error message, if there's any error. *)
 val compare_actual_to_expected :
-  error list -> (Common.filename * int) list -> (unit, int * string) result
+  t list -> (Common.filename * int) list -> (unit, int * string) result
 
 (* Call Alcotest.fail in case of errors *)
 val compare_actual_to_expected_for_alcotest :
-  error list -> (Common.filename * int) list -> unit
+  t list -> (Common.filename * int) list -> unit

@@ -40,8 +40,7 @@ let with_mock_normal_responses =
     | "/api/agent/deployments/current" ->
         let status, body_path =
           match Http_mock_client.get_header req "Authorization" with
-          | Some "Bearer ok_token" ->
-              (200, "./tests/ls/ci/deployment_conf_resp.json")
+          | Some "Bearer ok_token" -> (200, "./tests/login/ok_response.json")
           | Some "Bearer bad_token" -> (401, "./tests/login/bad_response.json")
           | _ -> failwith "Unexpected token"
         in
@@ -129,7 +128,7 @@ let fetch_token_tests () =
   let fetch_no_internet () =
     let retry_count = ref 0 in
     (* please ignore the nesting *)
-    let wait_hook () =
+    let wait_hook _delay =
       match !retry_count with
       | 12 -> failwith "Unexpected wait"
       | _ -> retry_count := !retry_count + 1

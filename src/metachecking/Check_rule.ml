@@ -17,9 +17,9 @@ open File.Operators
 module FT = File_type
 open Rule
 module R = Rule
-module E = Semgrep_error_code
+module E = Core_error
 module P = Pattern_match
-module RP = Report
+module RP = Core_result
 module SJ = Semgrep_output_v1_j
 module Set = Set_
 module Out = Semgrep_output_v1_t
@@ -62,7 +62,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 exception No_metacheck_file of string
 
-type env = { r : Rule.t; errors : E.error list ref }
+type env = { r : Rule.t; errors : Core_error.t list ref }
 
 (*****************************************************************************)
 (* Helpers *)

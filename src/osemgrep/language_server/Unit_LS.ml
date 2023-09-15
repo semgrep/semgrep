@@ -243,8 +243,7 @@ let ci_tests () =
         | "/api/agent/deployments/scans/config" ->
             Http_mock_client.body_of_file "./tests/ls/ci/rule_conf_resp.json"
         | "/api/agent/deployments/current" ->
-            Http_mock_client.body_of_file
-              "./tests/ls/ci/deployment_conf_resp.json"
+            Http_mock_client.body_of_file "./tests/login/ok_response.json"
         | _ ->
             failwith (Printf.sprintf "Unexpected request to %s in CI tests" uri)
       in

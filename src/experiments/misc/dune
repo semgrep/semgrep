@@ -9,7 +9,6 @@
    pfff-lang_GENERIC-analyze
 
    semgrep.core
-   semgrep.reporting
    semgrep.parsing
  )
  (preprocess (pps

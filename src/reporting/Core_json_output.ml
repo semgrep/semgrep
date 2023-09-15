@@ -13,12 +13,13 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 module StrSet = Common2.StringSet
 open AST_generic
-module E = Semgrep_error_code
+module E = Core_error
 module J = JSON
 module MV = Metavariable
-module RP = Report
+module RP = Core_result
 module PM = Pattern_match
 open Pattern_match
 module SJ = Semgrep_output_v1_j (* JSON conversions *)
@@ -104,7 +105,7 @@ let convert_validation_state = function
   | Validation_error -> `VALIDATION_ERROR
   | No_validator -> `NO_VALIDATOR
 
-let convert_rule ((id, ek) : Report.rule_id_and_engine_kind) =
+let convert_rule ((id, ek) : Core_result.rule_id_and_engine_kind) =
   ((id :> string), convert_engine_kind ek)
 
 let metavar_string_of_any any =
@@ -272,7 +273,7 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
   }
 
 let match_to_match render_fix (x : Pattern_match.t) :
-    (Out.core_match, Semgrep_error_code.error) Common.either =
+    (Out.core_match, Core_error.t) Common.either =
   try
     Left (unsafe_match_to_match render_fix x)
     (* raised by min_max_ii_by_pos in range_of_any when the AST of the
@@ -331,7 +332,7 @@ let profiling_to_profiling (profiling_data : RP.final_profiling) :
       profiling_data.RP.file_times
       |> Common.map (fun { RP.file = target; rule_times; run_time } ->
              {
-               Out.path = target;
+               Out.path = !!target;
                rule_times = json_time_of_rule_times rule_times;
                run_time;
              });
@@ -341,6 +342,13 @@ let profiling_to_profiling (profiling_data : RP.final_profiling) :
         profiling_data.RP.rules;
     rules_parse_time = profiling_data.rules_parse_time;
     max_memory_bytes = Some profiling_data.max_memory_bytes;
+    (* TODO: does it cover all targets or just the relevant target we actually
+     * parsed for matching?
+     *)
+    total_bytes =
+      profiling_data.RP.file_times
+      |> Common.map (fun { RP.file = target; _ } -> File.filesize target)
+      |> Common2.sum_int;
   }
 
 (*****************************************************************************)
