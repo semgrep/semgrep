@@ -183,10 +183,6 @@ val exn_to_error : Common.filename -> Exception.t -> Semgrep_error_code.error
   See also JSON_report.json_of_exn for non-target related exn handling.
 *)
 
-val mk_rule_table :
-  Rule.t list -> string list (* rule IDs *) -> (int, Rule.t) Hashtbl.t
-(** Helper to create the table of rules to run for each file **)
-
 val extracted_targets_of_config :
   Runner_config.t ->
   Rule.t list ->
@@ -206,7 +202,6 @@ val rules_from_rule_source :
 
 val targets_of_config :
   Runner_config.t ->
-  Rule_ID.t list ->
   Input_to_core_t.targets * Semgrep_output_v1_t.skipped_target list
 (**
   Compute the set of targets, either by reading what was passed

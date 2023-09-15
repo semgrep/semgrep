@@ -573,7 +573,7 @@ class Plan:
     def to_json(self) -> Dict[str, Any]:
         return {
             "target_mappings": [asdict(task) for task in self.target_mappings],
-            "rule_ids": [rule.id for rule in self.rules],
+            "rule_ids": [rule.id for rule in self.rules],  # TODO: REMOVE
         }
 
     @property
