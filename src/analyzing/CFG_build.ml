@@ -283,9 +283,24 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       in
       let finaltry = cfg_stmt_list try_state (Some newi) try_st in
 
-      (* From end of try to else and finally. *)
+      (* The following will help determine whether we should exit
+       * or continue the flow after the whole statement
+       *)
+      (* When this is true, the flow stops after the finally clause. *)
+      let try_must_return =
+        match finaltry with
+        | None -> !(state.may_return) && not !(state.may_throw)
+        | _ -> false
+      in
+      (* When this is true, control must go to the else clause. *)
+      let try_must_not_exit =
+        match finaltry with
+        | None -> false
+        | _ -> (not !(state.may_throw)) && not !(state.may_return)
+      in
+
+      (* From end of try to else. *)
       state.g |> add_arc_from_opt (finaltry, elsei);
-      state.g |> add_arc_from_opt (finaltry, newfakefinally);
 
       (* In the else clause, if an exception is thrown, go to the finally
        * clause, or if there is no finally clause, propagate the exception.
@@ -298,9 +313,18 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       let else_state = { state with throw_destination; return_destination } in
       let finalelse = cfg_stmt_list else_state (Some elsei) else_st in
 
+      (* If the else clause is reached, and this is true, then the flow stops
+       * after the finally clause.
+       *)
+      let else_must_exit =
+        match finalelse with
+        | None -> true
+        | _ -> false
+      in
+
       state.g |> add_arc_from_opt (finalelse, newfakefinally);
 
-      (* From catches to finally. *)
+      (* From catches to finally in case of uncaught exceptions. *)
       state.g |> add_arc (catchesi, newfakefinally);
 
       catches
@@ -320,13 +344,20 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       in
 
       (* Also propagate the exit (either from throws or returns) at the end
-       * of the finally clause.
+       * of the finally clause. If there's no finally clause, the arcs
+       * should already be propagated from the logic above.
        *)
       if !(state.may_throw) then
         state.g |> add_arc_from_opt (finalfinally, state.throw_destination);
       if !(state.may_return) then
         state.g |> add_arc_from_opt (finalfinally, state.return_destination);
-      CfgFirstLast (newi, finalfinally)
+
+      (* If we absolutely know that we need to propagate the exit, then
+       * we don't continue the dataflow after this statement.
+       *)
+      if try_must_return || (try_must_not_exit && else_must_exit) then
+        CfgFirstLast (newi, None)
+      else CfgFirstLast (newi, finalfinally)
   | Throw (tok, e) ->
       let newi = state.g#add_node { F.n = F.NThrow (tok, e) } in
       state.g |> add_arc_from_opt (previ, newi);
