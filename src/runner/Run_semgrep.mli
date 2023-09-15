@@ -155,7 +155,9 @@ module type Pre_and_post_processor = sig
   type state
 
   val pre_process : Rule.t list -> Rule.t list * state
-  val post_process : state -> Core_result.final_result -> Core_result.final_result
+
+  val post_process :
+    state -> Core_result.final_result -> Core_result.final_result
 end
 
 val hook_pre_and_post_processor : (module Pre_and_post_processor) ref
