@@ -8,6 +8,7 @@ from typing import Optional
 from semgrep.app.scans import ScanHandler
 from semgrep.constants import DEFAULT_MAX_MEMORY_PRO_CI
 from semgrep.constants import DEFAULT_PRO_TIMEOUT_CI
+from semgrep.error import SemgrepError
 from semgrep.meta import GitMeta
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_interfaces import semgrep_output_v1 as out
@@ -16,6 +17,11 @@ from semgrep.util import sub_check_output
 
 class EngineType(Enum):
     OSS = auto()
+    # Secrets is abusing the fact that the runner code currently
+    # invoke semgrep_core_proprietary when PRO_LANG is the engine type
+    # instead of adding another engine type, because secrets like the
+    # pro languages is really orthogonal, but implement in
+    # semgrep-core-proprietary.
     PRO_LANG = auto()
     PRO_INTRAFILE = auto()
     PRO_INTERFILE = auto()
@@ -26,11 +32,20 @@ class EngineType(Enum):
         requested_engine: Optional["EngineType"] = None,
         scan_handler: Optional[ScanHandler] = None,
         git_meta: Optional[GitMeta] = None,
+        run_secrets: bool = False,
     ) -> "EngineType":
         """Select which Semgrep engine type to use if none is explicitly requested.
 
         Considers settings from Semgrep Cloud Platform and version control state.
         """
+        # Change default to pro-engine intrafile if secrets was requested.
+        # Secrets is built into pro-engine, but any pro-setting should work.
+        if requested_engine is None and run_secrets:
+            requested_engine = cls.PRO_LANG
+        elif run_secrets and requested_engine is cls.OSS:
+            # Should be impossible if the CLI gates impossible arguemnet combinations.
+            raise SemgrepError("Semgrep Secrets is not part of the open source engine")
+
         if git_meta and scan_handler:
             if scan_handler.deepsemgrep and requested_engine is None:
                 requested_engine = cls.PRO_INTERFILE
