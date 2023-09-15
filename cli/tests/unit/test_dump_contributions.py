@@ -42,6 +42,7 @@ def test_dump_contributions_nominal(core_runner_output):
     core_runner = CoreRunner(
         jobs=1,
         engine_type=EngineType.OSS,
+        run_secrets=False,
         timeout=1,
         max_memory=0,
         interfile_timeout=0,
@@ -62,6 +63,7 @@ def test_dump_contributions_failed(core_runner_output):
     core_runner = CoreRunner(
         jobs=1,
         engine_type=EngineType.OSS,
+        run_secrets=False,
         timeout=1,
         max_memory=0,
         interfile_timeout=0,
