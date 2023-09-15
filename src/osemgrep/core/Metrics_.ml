@@ -341,7 +341,7 @@ let add_targets_stats (targets : Fpath.t Set_.t)
     | Some prof ->
         prof.file_times
         |> Common.map (fun ({ Report.file; _ } as file_prof) ->
-               (Fpath.v file, file_prof))
+               (file, file_prof))
         |> Common.hash_of_list
   in
   let file_stats =

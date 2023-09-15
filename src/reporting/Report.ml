@@ -1,9 +1,12 @@
-(******************************************************************************
- * Full result information
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Scan result information.
  *
  * In addition to the results (matches + errors), we also may report extra
- * information, such as the skipped targets or the profiling times. Many
- * of the types here are created to collect profiling information in as
+ * information, such as the skipped targets or the profiling times.
+ *
+ * Many of the types below are created to collect profiling information in as
  * well-typed a manner as possible. Creating a type for practically every
  * stage that reports matches is annoying, but prevents us from relying on
  * dummy values or unlabeled tuples.
@@ -44,17 +47,19 @@
  *
  * TODO: We could use atdgen to specify those to factorize type definitions
  * that have to be present anyway in Output_from_core.atd.
- *****************************************************************************)
+ *)
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
 (*****************************************************************************)
-(* Options for what extra debugging information to output.
-   These are generally memory intensive fields that aren't strictly needed *)
+(* Debug/Profile choice *)
 (*****************************************************************************)
+(* Options for what extra debugging information to output.
+ *  These are generally memory intensive fields that aren't strictly needed
+ *)
 
-(* Coupling: the debug_info variant of each result record should always
-      be the same as the mode's variant *)
+(* coupling: the debug_info variant of each result record should always
+   be the same as the mode's variant *)
 type debug_mode = MDebug | MTime | MNo_info [@@deriving show]
 
 type 'a debug_info =
@@ -63,7 +68,7 @@ type 'a debug_info =
       skipped_targets : Semgrep_output_v1_t.skipped_target list;
       profiling : 'a;
     }
-  (* -json_time: save just profiling information; currently our metrics record this *)
+  (* -json_time: save just profiling info; currently our metrics record this *)
   | Time of { profiling : 'a }
   (* save nothing else *)
   | No_info
@@ -94,17 +99,13 @@ type times = { parse_time : float; match_time : float }
 (* Save time information as we run each file *)
 
 type file_profiling = {
-  (* TODO: use Fpath.t *)
-  file : Common.filename;
+  file : Fpath.t;
   rule_times : rule_profiling list;
   run_time : float;
 }
 [@@deriving show]
 
-type partial_profiling = {
-  file : Common.filename;
-  rule_times : rule_profiling list;
-}
+type partial_profiling = { file : Fpath.t; rule_times : rule_profiling list }
 [@@deriving show]
 
 (* Result object for the entire rule *)
@@ -170,7 +171,10 @@ type 'a match_result = {
 (*****************************************************************************)
 
 let empty_partial_profiling file = { file; rule_times = [] }
-let empty_file_profiling = { file = ""; rule_times = []; run_time = 0.0 }
+
+(* TODO: should get rid of that *)
+let empty_file_profiling =
+  { file = Fpath.v "TODO.fake_file"; rule_times = []; run_time = 0.0 }
 
 let empty_rule_profiling rule =
   { rule_id = fst rule.Rule.id; parse_time = 0.0; match_time = 0.0 }
@@ -312,10 +316,9 @@ let collate_pattern_results results =
   collate_results init_extra unzip_extra base_case_extra final_extra results
 
 (* Aggregate a list of rule results into one result for the target *)
-let collate_rule_results :
-    string -> rule_profiling match_result list -> partial_profiling match_result
-    =
- fun file results ->
+let collate_rule_results (file : Fpath.t)
+    (results : rule_profiling match_result list) :
+    partial_profiling match_result =
   let init_extra = ([], []) in
 
   let unzip_extra extra all_skipped_targets all_profiling =

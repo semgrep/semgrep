@@ -211,7 +211,7 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
                | `Steps _ -> raise Multistep_rules_not_available))
   in
   let res_total = res_taint_rules @ res_nontaint_rules in
-  let res = RP.collate_rule_results !!(xtarget.Xtarget.file) res_total in
+  let res = RP.collate_rule_results xtarget.Xtarget.file res_total in
   let extra =
     match res.extra with
     | RP.Debug { skipped_targets; profiling } ->
