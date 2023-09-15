@@ -5,17 +5,18 @@
    Use the Semver library to parse, print, and compare versions.
 *)
 
-type t = Semver.t
+type t [@@deriving show, ord]
 
-(* For ppx dumper. *)
-val pp : Format.formatter -> t -> unit
-val compare : t -> t -> int
+(* useful to parse the version stored in the semgrep rules in the
+ * min_version and max_version fields
+ *)
 val of_string : string -> t option
+
+(* useful for reporting errors related to versioning *)
 val to_string : t -> string
 
-(* The current Semgrep version *)
-val version : Semver.t
+(* The current Semgrep version (the parsed form of Version.version) *)
+val version : t
 val major : int
 val minor : int
 val patch : int
-val string : string
