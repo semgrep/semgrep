@@ -16,6 +16,7 @@ from typing import Sequence
 from typing import Tuple
 from urllib.parse import urlencode
 from urllib.parse import urlparse
+from urllib.parse import urlsplit
 
 import requests
 import ruamel.yaml
@@ -297,10 +298,14 @@ def parse_config_files(
                 # want to avoid running postprocessors from untrusted remote
                 # sources (unless a local flag disabiling the relevant check is
                 # used).
+                try:
+                    remote_rule_netloc = urlsplit(config_path).netloc
+                except ValueError:
+                    remote_rule_netloc = "invalid-url"
                 config_id = (
                     REGISTRY_CONFIG_ID
                     if is_url(config_path)
-                    and config_path.startswith(f"{get_state().env.semgrep_url}")
+                    and remote_rule_netloc.endswith(".semgrep.dev")
                     else NON_REGISTRY_REMOTE_CONFIG_ID
                 )
                 filename = f"{config_path[:20]}..."
