@@ -40,7 +40,9 @@ def determine_semgrep_pro_path() -> Path:
             semgrep_pro_path.parent.mkdir(parents=True, exist_ok=True)
             return semgrep_pro_path
         else:
-            logger.info("Invalid path, please set a valid path with proper permissions for SEMGREP_PRO_PATH")
+            logger.info(
+                "Invalid path, please set a valid path with proper permissions for SEMGREP_PRO_PATH"
+            )
             sys.exit(FATAL_EXIT_CODE)
 
     core_path = SemgrepCore.path()
