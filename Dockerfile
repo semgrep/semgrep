@@ -246,6 +246,6 @@ LABEL maintainer="support@semgrep.com"
 # on the mounted volume when using instructions for running semgrep with docker:
 # `docker run -v "${PWD}:/src" -i returntocorp/semgrep semgrep`
 FROM semgrep-cli AS nonroot
-ENV SEMGREP_PRO_PATH="/home/semgrep/bin" \
-    PATH="$PATH:$SEMGREP_PRO_PATH"
+ENV SEMGREP_PRO_PATH="/home/semgrep/bin"
+ENV PATH="$PATH:$SEMGREP_PRO_PATH"
 USER semgrep
