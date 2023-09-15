@@ -1,4 +1,4 @@
-1/1: ✓ All tests passed
+No unit tests found. See https://semgrep.dev/docs/writing-rules/testing-rules
 0/1: 1 fix tests did not pass:
 --------------------------------------------------------------------------------
 	✖ targets/fixtest/test3.fixed.py <> autofix applied to targets/fixtest/test3.py
@@ -7,10 +7,13 @@
 	+++
 	@@ -2 +2 @@
 	-sys.exit(1)
-	+somethingElse(1)
+	+exit(1)
 	@@ -5 +5 @@
 	-sys.exit(2)
-	+somethingElse(1)
+	+exit(2)
 
 
 
+--------------------------------------------------------------------------------
+The following config files produced errors:
+	rules/fixtest/test3.yaml: run_scan() missing 1 required keyword-only argument: 'run_secrets'

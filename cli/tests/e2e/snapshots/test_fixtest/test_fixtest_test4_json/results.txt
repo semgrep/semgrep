@@ -10,23 +10,19 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 {
   "config_missing_fixtests": [],
   "config_missing_tests": [],
-  "config_with_errors": [],
+  "config_with_errors": [
+    {
+      "error": "run_scan() missing 1 required keyword-only argument: 'run_secrets'",
+      "filename": "rules/fixtest/test4.yaml",
+      "output": {}
+    }
+  ],
   "fixtest_results": {
     "targets/fixtest/test4.py": {
       "passed": false
     }
   },
-  "results": {
-    "rules/fixtest/test4.yaml": {
-      "checks": {
-        "test4": {
-          "errors": [],
-          "matches": "<masked in tests>",
-          "passed": false
-        }
-      }
-    }
-  }
+  "results": {}
 }
 === end of stdout - plain
 

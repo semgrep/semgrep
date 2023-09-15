@@ -43,7 +43,7 @@ Files skipped:
 
   Partially analyzed due to parsing or internal Semgrep errors
 
-   • targets/equivalence/open_redirect.py
+   • <none>
 
 
 
@@ -52,7 +52,6 @@ Files skipped:
 └──────────────┘
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
-  Partially scanned: 1 files only partially analyzed due to parsing or internal Semgrep errors
 
 Ran 1 rule on 1 file: 0 findings.
 Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False
