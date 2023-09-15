@@ -837,7 +837,7 @@ class CoreRunner:
         self,
         jobs: Optional[int],
         engine_type: EngineType,
-        run_secrets_post_processors: bool,
+        run_secrets: bool,
         timeout: int,
         max_memory: int,
         timeout_threshold: int,
@@ -848,7 +848,7 @@ class CoreRunner:
         self._binary_path = engine_type.get_binary_path()
         self._jobs = jobs or engine_type.default_jobs
         self._engine_type = engine_type
-        self._run_secrets_post_processors = engine_type
+        self._run_secrets = engine_type
         self._timeout = timeout
         self._max_memory = max_memory
         self._timeout_threshold = timeout_threshold
@@ -1043,7 +1043,7 @@ class CoreRunner:
         target_manager: TargetManager,
         dump_command_for_core: bool,
         engine: EngineType,
-        run_secrets_post_processors: bool,
+        run_secrets: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         state = get_state()
         logger.debug(f"Passing whole rules directly to semgrep_core")
@@ -1126,7 +1126,7 @@ class CoreRunner:
             if self._optimizations != "none":
                 cmd.append("-fast")
 
-            if run_secrets_post_processors:
+            if run_secrets:
                 cmd += ["-secrets"]
                 if not engine.is_pro:
                     # This should be impossible, but the types don't rule it out so...
@@ -1264,7 +1264,7 @@ class CoreRunner:
         target_manager: TargetManager,
         dump_command_for_core: bool,
         engine: EngineType,
-        run_secrets_post_processors: bool,
+        run_secrets: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Sometimes we may run into synchronicity issues with the latest DeepSemgrep binary.
@@ -1280,7 +1280,7 @@ class CoreRunner:
                 target_manager,
                 dump_command_for_core,
                 engine,
-                run_secrets_post_processors,
+                run_secrets,
             )
         except SemgrepError as e:
             # Handle Semgrep errors normally
@@ -1339,7 +1339,7 @@ Exception raised: `{e}`
         rules: List[Rule],
         dump_command_for_core: bool,
         engine: EngineType,
-        run_secrets_post_processors: bool,
+        run_secrets: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Takes in rules and targets and retuns object with findings
@@ -1355,7 +1355,7 @@ Exception raised: `{e}`
             target_manager,
             dump_command_for_core,
             engine,
-            run_secrets_post_processors,
+            run_secrets,
         )
 
         logger.debug(

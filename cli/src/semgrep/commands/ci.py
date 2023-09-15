@@ -176,7 +176,7 @@ def ci(
     autofix: bool,
     baseline_commit: Optional[str],
     # TODO: Remove after October 2023. Left for a error message
-    # redirect to `--secrets` aka run_secrets_post_processors.
+    # redirect to `--secrets` aka run_secrets_flag.
     beta_testing_secrets: bool,
     code: bool,
     core_opts: Optional[str],
@@ -368,7 +368,7 @@ def ci(
         requested_engine=requested_engine,
         scan_handler=scan_handler,
         git_meta=metadata,
-        run_secrets_post_processors=run_secrets,
+        run_secrets=run_secrets,
     )
 
     # set default settings for selected engine type
@@ -426,7 +426,7 @@ def ci(
         ) = semgrep.run_scan.run_scan(
             core_opts_str=core_opts,
             engine_type=engine_type,
-            run_secrets_post_processors=run_secrets,
+            run_secrets=run_secrets,
             output_handler=output_handler,
             target=[os.curdir],  # semgrep ci only scans cwd
             pattern=None,
