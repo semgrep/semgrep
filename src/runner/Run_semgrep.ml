@@ -891,25 +891,29 @@ type semgrep_with_rules_t =
 
 module type Pre_and_post_processor = sig
   type state
-  val pre_process : Rule.t list -> (Rule.t list * state)
+
+  val pre_process : Rule.t list -> Rule.t list * state
   val post_process : state -> Report.final_result -> Report.final_result
 end
 
-module Empty_Processor : Pre_and_post_processor = struct
+(* The default processor is the identity processor which does nothing. *)
+module No_Op_Processor : Pre_and_post_processor = struct
   type state = unit
+
   let pre_process rules = (rules, ())
   let post_process () results = results
 end
 
 let hook_pre_and_post_processor =
-  ref (module Empty_Processor : Pre_and_post_processor)
+  ref (module No_Op_Processor : Pre_and_post_processor)
 
-(* Written with semgrep_with_rules abstracted to allow resuse across
+(* Written with semgrep_with_rules abstracted to allow reuse across
    semgrep and semgrep-pro *)
-let call_with_pre_and_post_processor semgrep_with_rules ((rules, rule_errors), rules_parse_time) =
+let call_with_pre_and_post_processor sg_with_rules
+    ((rules, rule_errors), rules_parse_time) =
   let module Processor = (val !hook_pre_and_post_processor) in
-  let (rules, state) = Processor.pre_process rules in
-  let res, files = semgrep_with_rules ((rules, rule_errors), rules_parse_time) in
+  let rules', state = Processor.pre_process rules in
+  let res, files = sg_with_rules ((rules', rule_errors), rules_parse_time) in
   let res = Processor.post_process state res in
   (res, files)
 
@@ -922,7 +926,9 @@ let semgrep_with_raw_results_and_exn_handler config =
     let timed_rules =
       Common.with_time (fun () -> rules_from_rule_source config)
     in
-    let res, files = call_with_pre_and_post_processor (semgrep_with_rules config) timed_rules in
+    let res, files =
+      call_with_pre_and_post_processor (semgrep_with_rules config) timed_rules
+    in
     sanity_check_invalid_patterns res files
   with
   | exn when not !Flag_semgrep.fail_fast ->

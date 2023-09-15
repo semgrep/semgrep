@@ -25,14 +25,14 @@ class EngineType(Enum):
     PRO_LANG = auto()
     PRO_INTRAFILE = auto()
     PRO_INTERFILE = auto()
-    
+
     @classmethod
     def decide_engine_type(
         cls,
         requested_engine: Optional["EngineType"] = None,
         scan_handler: Optional[ScanHandler] = None,
         git_meta: Optional[GitMeta] = None,
-        run_secrets_post_processors: bool = False,    
+        run_secrets_post_processors: bool = False,
     ) -> "EngineType":
         """Select which Semgrep engine type to use if none is explicitly requested.
 
@@ -45,7 +45,7 @@ class EngineType(Enum):
         elif run_secrets_post_processors and requested_engine is cls.OSS:
             # Should be impossible if the CLI gates impossible arguemnet combinations.
             raise SemgrepError("Semgrep Secrets is not part of the open source engine")
-            
+
         if git_meta and scan_handler:
             if scan_handler.deepsemgrep and requested_engine is None:
                 requested_engine = cls.PRO_INTERFILE
@@ -54,8 +54,6 @@ class EngineType(Enum):
                 requested_engine = cls.PRO_INTRAFILE
 
         return requested_engine or cls.OSS
-
-
 
     def get_pro_version(self) -> str:
         binary_path = self.get_binary_path()

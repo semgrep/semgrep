@@ -36,7 +36,6 @@ exception File_timeout
 
 (* TODO make this one of the Semgrep_error_code exceptions *)
 exception Multistep_rules_not_available
-exception Postprocessor_rules_not_available
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -102,11 +101,13 @@ let group_rules xconf rules xtarget =
            let relevant_rule = is_relevant_rule_for_xtarget r xconf xtarget in
            match r.R.mode with
            | _ when not relevant_rule -> Right3 r
+           (* Silently skip secrets rules for now. They are going to be
+              ported to being search rules. Not skipping them causes
+              semgrep-pro to fail currently when invoked with secrets
+              rules, but without secrets enabled. *)
+           | `Secrets _ as mode -> Right3 { r with mode }
            | `Taint _ as mode -> Left3 { r with mode }
            | (`Extract _ | `Search _) as mode -> Middle3 { r with mode }
-           | `Secrets _ ->
-               pr2 (Rule.show_rule r);
-               raise Postprocessor_rules_not_available
            | `Steps _ ->
                pr2 (Rule.show_rule r);
                raise Multistep_rules_not_available)

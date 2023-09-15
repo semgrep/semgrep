@@ -1133,7 +1133,7 @@ class CoreRunner:
                     raise SemgrepError(
                         "Secrets post processors tried to run without the pro-engine."
                     )
-                
+
             # TODO: use exact same command-line arguments so just
             # need to replace the SemgrepCore.path() part.
             if engine.is_pro:
@@ -1162,7 +1162,7 @@ class CoreRunner:
                     cmd += [root]
                 elif engine is EngineType.PRO_INTRAFILE:
                     cmd += ["-deep_intra_file"]
-                    
+
             stderr: Optional[int] = subprocess.PIPE
             if state.terminal.is_debug:
                 cmd += ["--debug"]
@@ -1226,20 +1226,20 @@ class CoreRunner:
 
                     file_timeouts[Path(err.location.path.value)] += 1
                     if (
-                            self._timeout_threshold != 0
-                            and file_timeouts[Path(err.location.path.value)]
-                            >= self._timeout_threshold
+                        self._timeout_threshold != 0
+                        and file_timeouts[Path(err.location.path.value)]
+                        >= self._timeout_threshold
                     ):
                         max_timeout_files.add(Path(err.location.path.value))
                 if isinstance(
-                        err.error_type.value,
-                        (
-                            out.LexicalError,
-                            out.ParseError,
-                            out.PartialParsing,
-                            out.SpecifiedParseError,
-                            out.AstBuilderError,
-                        ),
+                    err.error_type.value,
+                    (
+                        out.LexicalError,
+                        out.ParseError,
+                        out.PartialParsing,
+                        out.SpecifiedParseError,
+                        out.AstBuilderError,
+                    ),
                 ):
                     parsing_data.add_error(err)
                     errors.extend(parsed_errors)
@@ -1259,12 +1259,12 @@ class CoreRunner:
         )
 
     def _run_rules_direct_to_semgrep_core(
-            self,
-            rules: List[Rule],
-            target_manager: TargetManager,
-            dump_command_for_core: bool,
-            engine: EngineType,
-            run_secrets_post_processors: bool,
+        self,
+        rules: List[Rule],
+        target_manager: TargetManager,
+        dump_command_for_core: bool,
+        engine: EngineType,
+        run_secrets_post_processors: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Sometimes we may run into synchronicity issues with the latest DeepSemgrep binary.
@@ -1276,7 +1276,11 @@ class CoreRunner:
         """
         try:
             return self._run_rules_direct_to_semgrep_core_helper(
-                rules, target_manager, dump_command_for_core, engine, run_secrets_post_processors
+                rules,
+                target_manager,
+                dump_command_for_core,
+                engine,
+                run_secrets_post_processors,
             )
         except SemgrepError as e:
             # Handle Semgrep errors normally
@@ -1330,12 +1334,12 @@ Exception raised: `{e}`
         return contributions
 
     def invoke_semgrep_core(
-            self,
-            target_manager: TargetManager,
-            rules: List[Rule],
-            dump_command_for_core: bool,
-            engine: EngineType,
-            run_secrets_post_processors: bool,
+        self,
+        target_manager: TargetManager,
+        rules: List[Rule],
+        dump_command_for_core: bool,
+        engine: EngineType,
+        run_secrets_post_processors: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Takes in rules and targets and retuns object with findings
@@ -1347,7 +1351,11 @@ Exception raised: `{e}`
             errors,
             output_extra,
         ) = self._run_rules_direct_to_semgrep_core(
-            rules, target_manager, dump_command_for_core, engine, run_secrets_post_processors,
+            rules,
+            target_manager,
+            dump_command_for_core,
+            engine,
+            run_secrets_post_processors,
         )
 
         logger.debug(

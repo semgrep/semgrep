@@ -205,7 +205,7 @@ def ci(
     requested_engine: EngineType,
     quiet: bool,
     rewrite_rule_ids: bool,
-    run_secrets_post_processors: bool,
+    run_secrets_flag: bool,
     supply_chain: bool,
     scan_unknown_extensions: bool,
     time_flag: bool,
@@ -263,7 +263,7 @@ def ci(
         scan_handler = ScanHandler(dry_run=dry_run, deployment_name=deployment_name)
     else:  # impossible state… until we break the code above
         raise RuntimeError("The token and/or config are misconfigured")
-    
+
     if beta_testing_secrets:
         logger.info("Please use --secrets instead of --beta-testing-secrets")
         sys.exit(FATAL_EXIT_CODE)
@@ -306,7 +306,7 @@ def ci(
             metadata_dict = metadata.to_dict()
             metadata_dict["is_sca_scan"] = supply_chain
             metadata_dict["is_code_scan"] = code
-            metadata_dict["is_secrets_scan"] = run_secrets_post_processors
+            metadata_dict["is_secrets_scan"] = run_secrets_flag
             proj_config = ProjectConfig.load_all()
             metadata_dict = {**metadata_dict, **proj_config.to_dict()}
             with Progress(
@@ -354,15 +354,21 @@ def ci(
         sys.exit(FATAL_EXIT_CODE)
 
     # Handled error outside engine type for more actionable advice.
-    if run_secrets_post_processors and requested_engine is EngineType.OSS:
-        logger.info("The flags --secrets and --oss are incompatible. Semgrep Secrets is a proprietary extension.")
+    if run_secrets_flag and requested_engine is EngineType.OSS:
+        logger.info(
+            "The --secrets and --oss flags are incompatible. Semgrep Secrets is a proprietary extension of Open Source Semgrep."
+        )
         sys.exit(FATAL_EXIT_CODE)
+
+    run_secrets = run_secrets_flag or bool(
+        scan_handler and "secrets" in scan_handler.enabled_products
+    )
 
     engine_type = EngineType.decide_engine_type(
         requested_engine=requested_engine,
         scan_handler=scan_handler,
         git_meta=metadata,
-        run_secrets_post_processors=run_secrets_post_processors,
+        run_secrets_post_processors=run_secrets,
     )
 
     # set default settings for selected engine type
@@ -377,6 +383,8 @@ def ci(
 
     if engine_type.is_pro:
         console.print(Padding(Title("Engine", order=2), (1, 0, 0, 0)))
+        if run_secrets:
+            console.print("Semgrep Secrets requires Semgrep Pro Engine")
         if engine_type.check_if_installed():
             console.print(
                 f"Using Semgrep Pro Version: [bold]{engine_type.get_pro_version()}[/bold]",
@@ -387,10 +395,6 @@ def ci(
                 markup=True,
             )
         else:
-            if beta_testing_secrets:
-                console.print(
-                    "Secrets currently requires the pro-engine, installing now."
-                )
             run_install_semgrep_pro()
 
     try:
@@ -422,6 +426,7 @@ def ci(
         ) = semgrep.run_scan.run_scan(
             core_opts_str=core_opts,
             engine_type=engine_type,
+            run_secrets_post_processors=run_secrets,
             output_handler=output_handler,
             target=[os.curdir],  # semgrep ci only scans cwd
             pattern=None,

@@ -290,7 +290,11 @@ def run_rules(
         semgrep_errors,
         output_extra,
     ) = core_runner.invoke_semgrep_core(
-        target_manager, rest_of_the_rules, dump_command_for_core, engine_type, run_secrets_post_processors,
+        target_manager,
+        rest_of_the_rules,
+        dump_command_for_core,
+        engine_type,
+        run_secrets_post_processors,
     )
 
     if join_rules:
@@ -385,7 +389,7 @@ def run_scan(
     core_opts_str: Optional[str] = None,
     dump_command_for_core: bool = False,
     engine_type: EngineType = EngineType.OSS,
-    run_secrets_post_processors: bool = False,
+    run_secrets_post_processors: bool,
     output_handler: OutputHandler,
     target: Sequence[str],
     pattern: Optional[str],
