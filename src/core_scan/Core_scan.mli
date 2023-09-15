@@ -95,17 +95,17 @@
 (* Entry point *)
 (*****************************************************************************)
 
-val semgrep_dispatch : Runner_config.t -> unit
+val semgrep_dispatch : Core_scan_config.t -> unit
 (** Main entry point to the semgrep-core engine. This is called from Main.ml *)
 
 (*****************************************************************************)
 (* Engine functions used in tests or semgrep-core variants *)
 (*****************************************************************************)
 
-val semgrep_with_one_pattern : Runner_config.t -> unit
+val semgrep_with_one_pattern : Core_scan_config.t -> unit
 (** this is the function used when running semgrep-core with -e or -f *)
 
-val semgrep_with_rules_and_formatted_output : Runner_config.t -> unit
+val semgrep_with_rules_and_formatted_output : Core_scan_config.t -> unit
 (** [semgrep_with_rules_and_formatted_output config] calls
     [semgrep_with_raw_results_and_exn_handler] and then
     [output_semgrep_results] on the results
@@ -113,7 +113,7 @@ val semgrep_with_rules_and_formatted_output : Runner_config.t -> unit
 
 val output_semgrep_results :
   Exception.t option * Core_result.final_result * Fpath.t list ->
-  Runner_config.t ->
+  Core_scan_config.t ->
   unit
 (** [output_semgrep_results] takes the results of a semgrep run and
     format the results on stdout either in a JSON or Textual format
@@ -123,7 +123,7 @@ val output_semgrep_results :
 *)
 
 val semgrep_with_raw_results_and_exn_handler :
-  Runner_config.t ->
+  Core_scan_config.t ->
   Exception.t option * Core_result.final_result * Fpath.t list
 (** [semgrep_with_raw_results_and_exn_handler config] runs the semgrep-core
     engine with a starting list of targets and returns
@@ -140,7 +140,7 @@ val semgrep_with_raw_results_and_exn_handler :
 
 val semgrep_with_rules :
   ?match_hook:(string -> Pattern_match.t -> unit) ->
-  Runner_config.t ->
+  Core_scan_config.t ->
   (Rule.t list * Rule.invalid_rule_error list) * float ->
   Core_result.final_result * Fpath.t list
 
@@ -162,12 +162,12 @@ val replace_named_pipe_by_regular_file : Fpath.t -> Fpath.t
 *)
 
 (* Old hook to support incremental display of matches for semgrep-core
- * in text-mode. Deprecated. Use Runner_config.file_match_results_hook instead
+ * in text-mode. Deprecated. Use Core_scan_config.file_match_results_hook instead
  * now with osemgrep.
  *)
 val print_match :
   ?str:string ->
-  Runner_config.t ->
+  Core_scan_config.t ->
   Pattern_match.t ->
   (Metavariable.mvalue -> Tok.t list) ->
   unit
@@ -175,7 +175,7 @@ val print_match :
 (* This function prints a dot, which is consumed by pysemgrep to update
    the progress bar. See `core_runner.py`
 *)
-val update_cli_progress : Runner_config.t -> unit
+val update_cli_progress : Core_scan_config.t -> unit
 
 (* TODO: Fpath.t *)
 val exn_to_error : Common.filename -> Exception.t -> Core_error.t
@@ -190,7 +190,7 @@ val mk_rule_table :
 (** Helper to create the table of rules to run for each file **)
 
 val extracted_targets_of_config :
-  Runner_config.t ->
+  Core_scan_config.t ->
   Rule.t list ->
   Input_to_core_t.target list
   * ( Common.filename,
@@ -203,11 +203,11 @@ val extracted_targets_of_config :
 *)
 
 val rules_from_rule_source :
-  Runner_config.t -> Rule.rules * Rule.invalid_rule_error list
+  Core_scan_config.t -> Rule.rules * Rule.invalid_rule_error list
 (** Get the rules *)
 
 val targets_of_config :
-  Runner_config.t ->
+  Core_scan_config.t ->
   Rule_ID.t list ->
   Input_to_core_t.targets * Semgrep_output_v1_t.skipped_target list
 (**
@@ -226,7 +226,7 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
 (* TODO: This is used by semgrep-pro and not by semgrep. What is it?
    TODO: Explain what it does if xlang contains multiple langs. *)
 val rules_for_xlang : Xlang.t -> Rule.t list -> Rule.t list
-val xtarget_of_file : Runner_config.t -> Xlang.t -> Fpath.t -> Xtarget.t
+val xtarget_of_file : Core_scan_config.t -> Xlang.t -> Fpath.t -> Xtarget.t
 
 (*
    Sort targets by decreasing size. This is meant for optimizing

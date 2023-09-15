@@ -166,7 +166,7 @@ let core (conf : Scan_CLI.conf) file_match_results_hook errors targets
     match conf.engine_type with
     | OSS ->
         Core_runner.invoke_semgrep_core
-          ~engine:Run_semgrep.semgrep_with_raw_results_and_exn_handler
+          ~engine:Core_scan.semgrep_with_raw_results_and_exn_handler
     | PRO _ -> (
         match !invoke_semgrep_core_proprietary with
         | None ->

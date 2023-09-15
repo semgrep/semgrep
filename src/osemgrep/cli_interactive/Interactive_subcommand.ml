@@ -1242,12 +1242,12 @@ let run (conf : Interactive_CLI.conf) : Exit_code.t =
   let targets =
     targets |> List.filter (Filter_target.filter_target_for_xlang xlang)
   in
-  let config = Core_runner.runner_config_of_conf conf.core_runner_conf in
+  let config = Core_runner.core_scan_config_of_conf conf.core_runner_conf in
   let config = { config with roots = conf.target_roots; lang = Some xlang } in
   let xtargets =
     targets
     |> Common.map (fun file ->
-           let xtarget = Run_semgrep.xtarget_of_file config xlang file in
+           let xtarget = Core_scan.xtarget_of_file config xlang file in
            Lock_protected.protect xtarget)
   in
   interactive_loop ~turbo:conf.turbo xlang xtargets;

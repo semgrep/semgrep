@@ -28,7 +28,8 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Helpers *)
 (*****************************************************************************)
 
-let config : Runner_config.t = { Runner_config.default with version = "test" }
+let config : Core_scan_config.t =
+  { Core_scan_config.default with version = "test" }
 
 (*****************************************************************************)
 (* Entry point *)
