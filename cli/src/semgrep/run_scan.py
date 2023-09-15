@@ -265,7 +265,7 @@ def run_rules(
     output_handler: OutputHandler,
     dump_command_for_core: bool,
     engine_type: EngineType,
-    run_secrets: bool,
+    run_secrets: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
