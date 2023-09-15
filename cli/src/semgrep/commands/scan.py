@@ -540,6 +540,13 @@ _scan_options: List[Callable] = [
         flag_value=EngineType.OSS,
         help="Run using only OSS features, even if the Semgrep Pro toggle is on.",
     ),
+    optgroup.option(
+        "--secrets",
+        "run_secrets_flag",
+        is_flag=True,
+        hidden=True,
+        help="Enable support for secret validation. Requires Semgrep Secrets, contact support@semgrep.com for more informationon this.",
+    ),
     optgroup.option("--dump-command-for-core", "-d", is_flag=True, hidden=True),
 ]
 
@@ -661,6 +668,7 @@ def scan(
     debug: bool,
     dump_engine_path: bool,
     requested_engine: Optional[EngineType],
+    run_secrets_flag: bool,
     dryrun: bool,
     dump_command_for_core: bool,
     enable_nosem: bool,
@@ -711,7 +719,16 @@ def scan(
             version_check()
         return None
 
-    engine_type = EngineType.decide_engine_type(requested_engine=requested_engine)
+    # Handled error outside engine type for more actionable advice.
+    if run_secrets_flag and requested_engine is EngineType.OSS:
+        abort(
+            "The flags --secrets and --oss are incompatible. Semgrep Secrets is a proprietary extension."
+        )
+
+    engine_type = EngineType.decide_engine_type(
+        requested_engine=requested_engine,
+        run_secrets=run_secrets_flag,
+    )
 
     # this is useful for our CI job to find where semgrep-core (or semgrep-core-proprietary)
     # is installed and check if the binary is statically linked.
@@ -746,7 +763,7 @@ def scan(
     if pattern is not None and lang is None:
         abort("-e/--pattern and -l/--lang must both be specified")
 
-    if (config and "auto" in config) and metrics == MetricsState.OFF:
+    if config and "auto" in config and metrics == MetricsState.OFF:
         abort(
             "Cannot create auto config when metrics are off. Please allow metrics or run with a specific config."
         )
@@ -827,6 +844,7 @@ def scan(
                         metacheck_errors = CoreRunner(
                             jobs=jobs,
                             engine_type=engine_type,
+                            run_secrets=run_secrets_flag,
                             timeout=timeout,
                             max_memory=max_memory,
                             timeout_threshold=timeout_threshold,
@@ -867,6 +885,7 @@ def scan(
                     core_opts_str=core_opts,
                     dump_command_for_core=dump_command_for_core,
                     engine_type=engine_type,
+                    run_secrets=run_secrets_flag,
                     output_handler=output_handler,
                     target=targets,
                     pattern=pattern,
