@@ -49,9 +49,7 @@ def determine_semgrep_pro_path() -> Path:
         if os.access(semgrep_pro_path.parent, os.W_OK):
             return semgrep_pro_path
         else:
-            logger.info(
-                "Invalid path, designated SEMGREP_PRO_PATH is not writeable."
-            )
+            logger.info("Invalid path, designated SEMGREP_PRO_PATH is not writeable.")
             sys.exit(FATAL_EXIT_CODE)
 
     core_path = SemgrepCore.path()
