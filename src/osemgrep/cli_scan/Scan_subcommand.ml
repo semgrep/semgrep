@@ -26,7 +26,7 @@ open Common
 
 module Env = Semgrep_envvars
 module Out = Semgrep_output_v1_t
-module RP = Report
+module RP = Core_result
 module SS = Set.Make (String)
 
 (*****************************************************************************)

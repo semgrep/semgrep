@@ -15,7 +15,7 @@
 open Common
 module MV = Metavariable
 module PM = Pattern_match
-module RP = Report
+module RP = Core_result
 module G = AST_generic
 
 (*****************************************************************************)

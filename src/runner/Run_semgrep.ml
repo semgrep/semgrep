@@ -19,7 +19,7 @@ module PM = Pattern_match
 module E = Core_error
 module MR = Mini_rule
 module R = Rule
-module RP = Report
+module RP = Core_result
 module In = Input_to_core_j
 module Out = Semgrep_output_v1_j
 

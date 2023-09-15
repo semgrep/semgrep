@@ -1,11 +1,28 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Scan result information.
+(* (Core) Scan result information.
  *
- * In addition to the results (matches + errors), we also may report extra
+ * In addition to the results (matches + errors), we may also report extra
  * information, such as the skipped targets or the profiling times.
  *
+ * Yet another way to store matches/findings.
+ * Just like for Core_error.ml, "core" results are translated at some point in
+ * Semgrep_output_v1.core_output, then processed in pysemgrep (or osemgrep)
+ * and translated again in Semgrep_output_v1.cli_output.
+ * There's also Core_runner.result in osemgrep.
+ *
+ * From the simplest matches to the most complex we have:
+ * Pattern_match.t -> Rule_match.t
+ * -> Core_result.xxx
+ * -> Semgrep_output_v1.core_output
+ *  -> Core_runner.result
+ *  -> Semgrep_output_v1.cli_output
+ *  -> Semgrep_output_v1.findings
+ * LATER: it would be good to remove some intermediate types.
+ *
+ * On profiling:
+ * -------------
  * Many of the types below are created to collect profiling information in as
  * well-typed a manner as possible. Creating a type for practically every
  * stage that reports matches is annoying, but prevents us from relying on
@@ -44,9 +61,6 @@
  * That being said, if we wanted users to be able to "mix-and-match" request
  * fields, we should move to the option-types paradigm. Also, the collate
  * functions are quite ugly. I'm open to argument.
- *
- * TODO: We could use atdgen to specify those to factorize type definitions
- * that have to be present anyway in Output_from_core.atd.
  *)
 
 module E = Core_error

@@ -545,7 +545,7 @@ let buffer_matches_of_xtarget state (fake_rule : Rule.search_rule) xconf xtarget
       (fake_rule :> Rule.rule)
       xconf xtarget
   then
-    let ({ Report.matches; _ } : _ Report.match_result) =
+    let ({ Core_result.matches; _ } : _ Core_result.match_result) =
       (* Calling the engine! *)
       Match_search_mode.check_rule fake_rule hook xconf xtarget
     in
