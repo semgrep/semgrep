@@ -149,7 +149,7 @@ val semgrep_with_rules :
 
 (* used internally but also called by osemgrep *)
 val errors_of_invalid_rule_errors :
-  Rule.invalid_rule_error list -> Semgrep_error_code.error list
+  Rule.invalid_rule_error list -> Core_error.t list
 
 val replace_named_pipe_by_regular_file : Fpath.t -> Fpath.t
 (**
@@ -177,7 +177,7 @@ val print_match :
 val update_cli_progress : Runner_config.t -> unit
 
 (* TODO: Fpath.t *)
-val exn_to_error : Common.filename -> Exception.t -> Semgrep_error_code.error
+val exn_to_error : Common.filename -> Exception.t -> Core_error.t
 (**
   Small wrapper over Semgrep_error_code.exn_to_error to handle also
   semgrep-specific exns that have a position.
@@ -219,7 +219,7 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
   int ->
   Pattern_match.t list ->
   Pattern_match.t list
-  * Semgrep_error_code.error list
+  * Core_error.t list
   * Semgrep_output_v1_j.skipped_target list
 
 (* TODO: This is used by semgrep-pro and not by semgrep. What is it?

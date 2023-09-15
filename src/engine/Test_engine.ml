@@ -16,7 +16,7 @@ open Common
 open File.Operators
 module FT = File_type
 module R = Rule
-module E = Semgrep_error_code
+module E = Core_error
 module RP = Report
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -278,11 +278,10 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
              res :: eres
              |> List.iter (fun (res : RP.partial_profiling RP.match_result) ->
                     res.matches |> List.iter Core_json_output.match_to_error);
-             (if not (Report.ErrorSet.is_empty res.errors) then
+             (if not (E.ErrorSet.is_empty res.errors) then
               let errors =
-                Report.ErrorSet.elements res.errors
-                |> Common.map Semgrep_error_code.show_error
-                |> String.concat "-----\n"
+                E.ErrorSet.elements res.errors
+                |> Common.map Core_error.show |> String.concat "-----\n"
               in
               failwith (spf "parsing error(s) on %s:\n%s" !!file errors));
              let actual_errors = !E.g_errors in

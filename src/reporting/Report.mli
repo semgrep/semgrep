@@ -48,11 +48,9 @@ type rule_id_and_engine_kind = Rule_ID.t * Pattern_match.engine_kind
 
 (* Substitute in the profiling type we have *)
 
-module ErrorSet : Set.S with type elt = Semgrep_error_code.error
-
 type 'a match_result = {
   matches : Pattern_match.t list;
-  errors : ErrorSet.t;
+  errors : Core_error.ErrorSet.t;
   extra : 'a debug_info;
   explanations : Matching_explanation.t list;
 }
@@ -70,7 +68,7 @@ type final_profiling = {
 
 type final_result = {
   matches : Pattern_match.t list;
-  errors : Semgrep_error_code.error list;
+  errors : Core_error.t list;
   skipped_rules : Rule.invalid_rule_error list;
   extra : final_profiling debug_info;
   explanations : Matching_explanation.t list;
@@ -85,7 +83,7 @@ val empty_semgrep_result : times match_result
 val empty_final_result : final_result
 
 val make_match_result :
-  Pattern_match.t list -> ErrorSet.t -> 'a -> 'a match_result
+  Pattern_match.t list -> Core_error.ErrorSet.t -> 'a -> 'a match_result
 
 val modify_match_result_profiling :
   'a match_result -> ('a -> 'b) -> 'b match_result

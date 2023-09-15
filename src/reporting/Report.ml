@@ -49,6 +49,8 @@
  * that have to be present anyway in Output_from_core.atd.
  *)
 
+module E = Core_error
+
 let logger = Logging.get_logger [ __MODULE__ ]
 
 (*****************************************************************************)
@@ -134,7 +136,7 @@ type rule_id_and_engine_kind = Rule_ID.t * Pattern_match.engine_kind
 
 type final_result = {
   matches : Pattern_match.t list;
-  errors : Semgrep_error_code.error list;
+  errors : Core_error.t list;
   skipped_rules : Rule.invalid_rule_error list;
   extra : final_profiling debug_info;
   explanations : Matching_explanation.t list;
@@ -144,21 +146,14 @@ type final_result = {
 
 (* For each file, substitute in the profiling type we have *)
 
-module ErrorSet = Set.Make (struct
-  type t = Semgrep_error_code.error
-
-  let compare = compare
-end)
-
 type 'a match_result = {
   matches : Pattern_match.t list;
-  errors : ErrorSet.t;
+  errors : E.ErrorSet.t;
       [@printer
         fun fmt errors ->
           fprintf fmt "{ ";
-          ErrorSet.iter
-            (fun error ->
-              fprintf fmt "%s, " (Semgrep_error_code.show_error error))
+          E.ErrorSet.iter
+            (fun error -> fprintf fmt "%s, " (Core_error.show error))
             errors;
           fprintf fmt "}"]
   extra : 'a debug_info;
@@ -190,7 +185,7 @@ let empty_extra profiling =
 let empty_semgrep_result =
   {
     matches = [];
-    errors = ErrorSet.empty;
+    errors = E.ErrorSet.empty;
     extra = empty_extra empty_times_profiling;
     explanations = [];
   }
@@ -273,7 +268,7 @@ let collate_results init_extra unzip_extra base_case_extra final_extra results =
 
        See also the note in semgrep_output_v1.atd.
     *)
-    errors = List.fold_left ErrorSet.union ErrorSet.empty errors;
+    errors = List.fold_left E.ErrorSet.union E.ErrorSet.empty errors;
     extra = final_extra skipped_targets profiling;
     explanations = List.flatten explanations;
   }
@@ -353,7 +348,7 @@ let make_final_result results
     ~rules_parse_time =
   let matches = results |> List.concat_map (fun x -> x.matches) in
   let errors =
-    results |> List.concat_map (fun x -> x.errors |> ErrorSet.elements)
+    results |> List.concat_map (fun x -> x.errors |> E.ErrorSet.elements)
   in
   let explanations = results |> List.concat_map (fun x -> x.explanations) in
   let final_rules =

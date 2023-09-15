@@ -16,7 +16,7 @@ open Common
 open File.Operators
 module FT = File_type
 module R = Rule
-module E = Semgrep_error_code
+module E = Core_error
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
