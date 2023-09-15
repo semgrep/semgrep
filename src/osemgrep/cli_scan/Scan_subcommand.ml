@@ -33,13 +33,9 @@ module SS = Set.Make (String)
 (* To run the pro engine, including multistep rules *)
 (*****************************************************************************)
 
-type diff_config = { diff_targets : Fpath.t list; diff_depth : int option }
-
-let default_diff_config = { diff_targets = []; diff_depth = None }
-
 let (invoke_semgrep_core_proprietary :
       (Fpath.t list ->
-      ?diff_config:diff_config ->
+      ?diff_config:Differential_scan_config.t ->
       Engine_type.t ->
       Core_runner.semgrep_core_runner)
       option
@@ -165,7 +161,7 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
 (* Select and execute the Semgrep core engine based on the configured
    engine settings. *)
 let core (conf : Scan_CLI.conf) file_match_results_hook errors targets
-    ?(diff_config = default_diff_config) rules () =
+    ?(diff_config = Differential_scan_config.WholeScan) rules () =
   let invoke_semgrep_core =
     match conf.engine_type with
     | OSS ->
@@ -260,7 +256,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
     (status : Git_wrapper.status)
     (core :
       Fpath.t list ->
-      ?diff_config:diff_config ->
+      ?diff_config:Differential_scan_config.t ->
       Rule.rules ->
       unit ->
       Exception.t option * RP.final_result * Fpath.t Set_.t) =
@@ -319,7 +315,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
               in
               core baseline_targets
                 ~diff_config:
-                  { diff_targets = baseline_diff_targets; diff_depth = Some 0 }
+                  (Differential_scan_config.BaseLine baseline_diff_targets)
                 baseline_rules ()))
     in
     (exn, remove_matches_in_baseline commit baseline_r r status.renamed, scanned)
@@ -396,7 +392,9 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
           let head_scan_result =
             Profiler.record profiler ~name:"head_core_time"
               (core targets
-                 ~diff_config:{ diff_targets; diff_depth = None }
+                 ~diff_config:
+                   (Differential_scan_config.Depth
+                      (diff_targets, Differential_scan_config.default_depth))
                  filtered_rules)
           in
           scan_baseline_and_remove_duplicates conf profiler head_scan_result
