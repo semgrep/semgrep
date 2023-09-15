@@ -42,7 +42,7 @@ val create_core_result :
    integrated into what's currently semgrep-core.
 *)
 val invoke_semgrep_core :
-  ?engine:Runner_config.semgrep_engine -> semgrep_core_runner
+  ?engine:Core_scan_config.semgrep_engine -> semgrep_core_runner
 
 (* Helper used in Semgrep_scan.ml to setup logging *)
-val runner_config_of_conf : conf -> Runner_config.t
+val core_scan_config_of_conf : conf -> Core_scan_config.t
