@@ -67,9 +67,10 @@ val get_project_url : unit -> string option
     [git ls-remote] or from the [.git/config] file. It returns [None] if it
     found nothing relevant. *)
 
-val get_git_logs : unit -> string list
-(** [get_git_logs ()] tries to get the git logs of the project from
-    [git log]. It returns an empty list if it found nothing relevant.
+val get_git_logs : ?since:Common2.float_time option -> unit -> string list
+(** [get_git_logs since] tries to get the git logs of the project from
+    [git log] commits made after "since" timestamp (defaults to 30 days).
+    It returns an empty list if it found nothing relevant.
     The strings returned contain each JSON data that
     fit the schema defined in semgrep_output_v1.atd contribution type.
  *)

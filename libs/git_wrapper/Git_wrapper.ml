@@ -349,8 +349,21 @@ let git_log_json_format =
    \"contributor\": {\"commit_author_name\": \"%an\", \"commit_author_email\": \
    \"%ae\"}}"
 
-let get_git_logs () : string list =
-  let cmd = Bos.Cmd.(v "git" % "log" % git_log_json_format) in
+let date_to_year_str (timestamp : Common2.float_time) : string =
+  let date = Unix.gmtime timestamp in
+  let year = date.tm_year + 1900 in
+  let month = date.tm_mon + 1 in
+  let day = date.tm_mday in
+  Printf.sprintf "%04d-%02d-%02d" year month day
+
+let get_git_logs ?(since = None) () : string list =
+  let since_year =
+    match since with
+    | None -> date_to_year_str (Common2.month_before (Common2.yesterday ()))
+    | Some since_timestamp -> date_to_year_str since_timestamp
+  in
+  let after_arg = Printf.sprintf "--after=\"%s\"" since_year in
+  let cmd = Bos.Cmd.(v "git" % "log" % after_arg % git_log_json_format) in
   let lines_r = Bos.OS.Cmd.run_out cmd in
   let lines = Bos.OS.Cmd.out_lines ~trim:true lines_r in
   let lines =
