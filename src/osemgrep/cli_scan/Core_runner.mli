@@ -20,18 +20,20 @@ type result = {
 type semgrep_core_runner =
   ?respect_git_ignore:bool ->
   ?file_match_results_hook:
-    (Fpath.t -> Core_result.partial_profiling Core_result.match_result -> unit)
+    (Fpath.t ->
+    Core_profiling.partial_profiling Core_result.match_result ->
+    unit)
     option ->
   conf ->
   (* LATER? use Config_resolve.rules_and_origin instead? *)
   Rule.rules ->
   Rule.invalid_rule_error list ->
   Fpath.t list ->
-  Exception.t option * Core_result.final_result * Fpath.t Set_.t
+  Exception.t option * Core_result.t * Fpath.t Set_.t
 
 val create_core_result :
   Rule.rule list ->
-  Exception.t option * Core_result.final_result * Fpath.t Set_.t ->
+  Exception.t option * Core_result.t * Fpath.t Set_.t ->
   result
 
 (*

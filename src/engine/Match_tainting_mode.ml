@@ -902,7 +902,7 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
   let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
   let report =
     RP.make_match_result matches errors
-      { RP.rule_id = fst rule.Rule.id; parse_time; match_time }
+      { Core_profiling.rule_id = fst rule.Rule.id; parse_time; match_time }
   in
   let explanations =
     if xconf.matching_explanations then
@@ -922,10 +922,11 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
 let check_rules ~match_hook
     ~(per_rule_boilerplate_fn :
        R.rule ->
-       (unit -> RP.rule_profiling RP.match_result) ->
-       RP.rule_profiling RP.match_result) (rules : R.taint_rule list)
-    (xconf : Match_env.xconfig) (xtarget : Xtarget.t) :
-    RP.rule_profiling RP.match_result list =
+       (unit -> Core_profiling.rule_profiling Core_result.match_result) ->
+       Core_profiling.rule_profiling Core_result.match_result)
+    (rules : R.taint_rule list) (xconf : Match_env.xconfig)
+    (xtarget : Xtarget.t) :
+    Core_profiling.rule_profiling Core_result.match_result list =
   (* We create a "formula cache" here, before dealing with individual rules, to
      permit sharing of matches for sources, sanitizers, propagators, and sinks
      between rules.

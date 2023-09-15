@@ -96,8 +96,9 @@ let exit_code_of_errors ~strict (errors : Out.core_error list) : Exit_code.t =
  * the use of Unix.lockf below.
  *)
 let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
-    (_file : Fpath.t) (match_results : RP.partial_profiling RP.match_result) :
-    unit =
+    (_file : Fpath.t)
+    (match_results : Core_profiling.partial_profiling Core_result.match_result)
+    : unit =
   let (cli_matches : Out.cli_match list) =
     (* need to go through a series of transformation so that we can
      * get something that Matches_report.pp_text_outputs can operate on
@@ -191,8 +192,8 @@ let core (conf : Scan_CLI.conf) file_match_results_hook errors targets
    baseline commit scan. Matches are considered identical if the
    tuples containing the rule ID, file path, and matched code snippet
    are equal. *)
-let remove_matches_in_baseline (commit : string) (baseline : RP.final_result)
-    (head : RP.final_result) (renamed : (filename * filename) stack) =
+let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
+    (head : Core_result.t) (renamed : (filename * filename) stack) =
   let extract_sig renamed m =
     let rule_id = m.Pattern_match.rule_id in
     let path =
@@ -250,16 +251,14 @@ let remove_matches_in_baseline (commit : string) (baseline : RP.final_result)
    from the results of the head checkout scan. *)
 let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
     (profiler : Profiler.t)
-    ( (exn : Exception.t option),
-      (r : RP.final_result),
-      (scanned : Fpath.t Set_.t) ) (rules : Rule.rules) (commit : string)
-    (status : Git_wrapper.status)
+    ((exn : Exception.t option), (r : Core_result.t), (scanned : Fpath.t Set_.t))
+    (rules : Rule.rules) (commit : string) (status : Git_wrapper.status)
     (core :
       Fpath.t list ->
       ?diff_config:Differential_scan_config.t ->
       Rule.rules ->
       unit ->
-      Exception.t option * RP.final_result * Fpath.t Set_.t) =
+      Exception.t option * Core_result.t * Fpath.t Set_.t) =
   if r.matches <> [] then
     let add_renamed paths =
       List.fold_left (fun x (y, _) -> SS.add y x) paths status.renamed

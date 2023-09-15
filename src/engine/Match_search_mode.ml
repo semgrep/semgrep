@@ -222,7 +222,7 @@ let debug_semgrep config mini_rules file lang ast =
 let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
     (xtarget : Xtarget.t)
     (patterns : (Pattern.t Lazy.t * bool * Xpattern.pattern_id * string) list) :
-    Core_result.times Core_result.match_result =
+    Core_profiling.times Core_result.match_result =
   let { Xtarget.file; xlang; lazy_ast_and_errors; lazy_content = _ } =
     xtarget
   in
@@ -250,8 +250,9 @@ let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
                 ?mvar_context ?range_filter config mini_rules (!!file, lang, ast))
       in
       let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
-      RP.make_match_result matches errors { RP.parse_time; match_time }
-  | _ -> RP.empty_semgrep_result
+      RP.make_match_result matches errors
+        { Core_profiling.parse_time; match_time }
+  | _ -> Core_result.empty_match_result
 
 (*****************************************************************************)
 (* Specializations *)
@@ -448,7 +449,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
 
 let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
     (xtarget : Xtarget.t) (xpatterns : (Xpattern.t * bool) list) :
-    RP.times RP.match_result =
+    Core_profiling.times Core_result.match_result =
   let { Xtarget.file; lazy_content; _ } = xtarget in
   (* Right now you can only mix semgrep/regexps and spacegrep/regexps, but
    * in theory we could mix all of them together. This is why below
@@ -875,7 +876,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
   | R.Not _ -> failwith "Invalid Not; you can only negate inside an And"
 
 and matches_of_formula xconf rule xtarget formula opt_context :
-    RP.rule_profiling RP.match_result * RM.ranges =
+    Core_profiling.rule_profiling Core_result.match_result * RM.ranges =
   let xpatterns = xpatterns_in_formula formula in
   let mvar_context : Metavariable.bindings option =
     Option.map (fun s -> s.RM.mvars) opt_context

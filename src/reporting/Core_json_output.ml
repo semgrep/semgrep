@@ -320,34 +320,34 @@ let rec explanation_to_explanation (exp : Matching_explanation.t) :
     loc = Output_utils.location_of_token_location tloc;
   }
 
-let profiling_to_profiling (profiling_data : RP.final_profiling) :
-    Out.core_timing =
+let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.core_timing
+    =
   let json_time_of_rule_times rule_times =
     rule_times
-    |> Common.map (fun { RP.rule_id; parse_time; match_time } ->
+    |> Common.map (fun { Core_profiling.rule_id; parse_time; match_time } ->
            { Out.rule_id = (rule_id :> string); parse_time; match_time })
   in
   {
     Out.targets =
-      profiling_data.RP.file_times
-      |> Common.map (fun { RP.file = target; rule_times; run_time } ->
+      profiling_data.file_times
+      |> Common.map
+           (fun { Core_profiling.file = target; rule_times; run_time } ->
              {
                Out.path = !!target;
                rule_times = json_time_of_rule_times rule_times;
                run_time;
              });
     rules =
-      Common.map
-        (fun rule -> (fst rule.Rule.id :> string))
-        profiling_data.RP.rules;
+      Common.map (fun rule -> (fst rule.Rule.id :> string)) profiling_data.rules;
     rules_parse_time = profiling_data.rules_parse_time;
     max_memory_bytes = Some profiling_data.max_memory_bytes;
     (* TODO: does it cover all targets or just the relevant target we actually
      * parsed for matching?
      *)
     total_bytes =
-      profiling_data.RP.file_times
-      |> Common.map (fun { RP.file = target; _ } -> File.filesize target)
+      profiling_data.file_times
+      |> Common.map (fun { Core_profiling.file = target; _ } ->
+             File.filesize target)
       |> Common2.sum_int;
   }
 
@@ -355,8 +355,7 @@ let profiling_to_profiling (profiling_data : RP.final_profiling) :
 (* Final semgrep-core output *)
 (*****************************************************************************)
 
-let core_output_of_matches_and_errors render_fix nfiles (res : RP.final_result)
-    =
+let core_output_of_matches_and_errors render_fix nfiles (res : Core_result.t) =
   let matches, new_errs =
     Common.partition_either (match_to_match render_fix) res.RP.matches
   in
@@ -371,10 +370,10 @@ let core_output_of_matches_and_errors render_fix nfiles (res : RP.final_result)
   let count_ok = nfiles - count_errors in
   let skipped_targets, profiling =
     match res.extra with
-    | RP.Debug { skipped_targets; profiling } ->
+    | Core_profiling.Debug { skipped_targets; profiling } ->
         (Some skipped_targets, Some profiling)
-    | RP.Time { profiling } -> (None, Some profiling)
-    | RP.No_info -> (None, None)
+    | Core_profiling.Time { profiling } -> (None, Some profiling)
+    | Core_profiling.No_info -> (None, None)
   in
   {
     Out.results = matches;

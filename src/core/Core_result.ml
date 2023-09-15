@@ -13,146 +13,31 @@
  * There's also Core_runner.result in osemgrep.
  *
  * From the simplest matches to the most complex we have:
- * Pattern_match.t -> Rule_match.t
- * -> Core_result.xxx
+ * Pattern_match.t (and its alias Rule_match.t)
+ * -> Core_result.xxx (this file)
  * -> Semgrep_output_v1.core_output
  *  -> Core_runner.result
  *  -> Semgrep_output_v1.cli_output
  *  -> Semgrep_output_v1.findings
  * LATER: it would be good to remove some intermediate types.
- *
- * On profiling:
- * -------------
- * Many of the types below are created to collect profiling information in as
- * well-typed a manner as possible. Creating a type for practically every
- * stage that reports matches is annoying, but prevents us from relying on
- * dummy values or unlabeled tuples.
- *
- * Another challenge we face is that the extra information can take a lot
- * of memory, which scales with both the number of rules and files. On
- * large repos, this is the most significant factor driving semgrep's
- * memory consumption. Therefore, if the skipped targets (for example) are
- * not being used, we don't want to save them. On the other hand, we want
- * to feel confident in the correctness of the code and make it easy to
- * know what is or isn't being saved. And we want our code to be relatively
- * readable.
- *
- * The debug_info type attempts to solve this. It has a variant for each
- * verbosity mode semgrep-core may be invoked with, which contains all
- * the fields semgrep requests from semgrep-core in that mode. Each result
- * contains debug_info in addition to the always-reported fields. The
- * variant of debug_info used in the results is always determined either
- * by the mode, which is a global set in Main.ml after the arguments are
- * read, or by a previous result. In this way we ensure that the fields
- * stored in the result are determined by the arguments passed by the user.
- *
- * Alternatives considered to the extra field:
- * - storing the information but just ommitting it in the final result (I
- *   tried this but it still uses too much memory)
- * - using option types within the result types for field and a global
- *   config to decide which fields are in use
- *
- * I considered the latter, but I'm not a fan of mix-and-match option types.
- * Maybe I just think it makes it tempting to use map_option, where here
- * the assumption that is being made feels more obvious. It also makes it
- * extra clear what information is being used for each mode and encourages
- * us to do the work of deciding what should be included instead of giving
- * the user choice that they probably don't know how to make intelligently.
- * That being said, if we wanted users to be able to "mix-and-match" request
- * fields, we should move to the option-types paradigm. Also, the collate
- * functions are quite ugly. I'm open to argument.
  *)
-
 module E = Core_error
+open Core_profiling
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
 (*****************************************************************************)
-(* Debug/Profile choice *)
+(* Types *)
 (*****************************************************************************)
-(* Options for what extra debugging information to output.
- *  These are generally memory intensive fields that aren't strictly needed
- *)
-
-(* coupling: the debug_info variant of each result record should always
-   be the same as the mode's variant *)
-type debug_mode = MDebug | MTime | MNo_info [@@deriving show]
-
-type 'a debug_info =
-  (* -debug: save all the information that could be useful *)
-  | Debug of {
-      skipped_targets : Semgrep_output_v1_t.skipped_target list;
-      profiling : 'a;
-    }
-  (* -json_time: save just profiling info; currently our metrics record this *)
-  | Time of { profiling : 'a }
-  (* save nothing else *)
-  | No_info
-[@@deriving show]
-
-let debug_info_to_option = function
-  | Debug { profiling; _ } -> Some profiling
-  | Time { profiling } -> Some profiling
-  | No_info -> None
-
-let mode = ref MNo_info
-
-(*****************************************************************************)
-(* Different formats for profiling info as we have access to more data *)
-(*****************************************************************************)
-
-(* Save time information as we run each rule *)
-
-type rule_profiling = {
-  rule_id : Rule_ID.t;
-  parse_time : float;
-  match_time : float;
-}
-[@@deriving show]
-
-type times = { parse_time : float; match_time : float }
-
-(* Save time information as we run each file *)
-
-type file_profiling = {
-  file : Fpath.t;
-  rule_times : rule_profiling list;
-  run_time : float;
-}
-[@@deriving show]
-
-type partial_profiling = { file : Fpath.t; rule_times : rule_profiling list }
-[@@deriving show]
-
-(* Result object for the entire rule *)
-
-type final_profiling = {
-  rules : Rule.rule list;
-  rules_parse_time : float;
-  file_times : file_profiling list;
-  (* This is meant to represent the maximum amount of memory used by
-     Semgrep during the course of its execution.
-
-     This is useful to emit with the other profiling data for telemetry
-     purposes, particuarly as it relates to measuring memory management
-     with DeepSemgrep.
-
-     It's not important that this number be incredibly precise, but
-     measuring general trends is useful for ascertaining our memory
-     usage.
-  *)
-  max_memory_bytes : int;
-}
-[@@deriving show]
 
 type rule_id_and_engine_kind = Rule_ID.t * Pattern_match.engine_kind
 [@@deriving show]
 
-type final_result = {
+type t = {
   matches : Pattern_match.t list;
   errors : Core_error.t list;
   skipped_rules : Rule.invalid_rule_error list;
-  extra : final_profiling debug_info;
+  extra : Core_profiling.t Core_profiling.debug_info;
   explanations : Matching_explanation.t list;
   rules_by_engine : rule_id_and_engine_kind list;
 }
@@ -170,33 +55,22 @@ type 'a match_result = {
             (fun error -> fprintf fmt "%s, " (Core_error.show error))
             errors;
           fprintf fmt "}"]
-  extra : 'a debug_info;
+  extra : 'a Core_profiling.debug_info;
   explanations : Matching_explanation.t list;
 }
 [@@deriving show]
 
 (*****************************************************************************)
-(* Create empty versions of profiling/results objects *)
+(* Create empty versions of results objects *)
 (*****************************************************************************)
 
-let empty_partial_profiling file = { file; rule_times = [] }
+let empty_times_profiling = { parse_time = 0.0; match_time = 0.0 }
 
 (* TODO: should get rid of that *)
 let empty_file_profiling =
   { file = Fpath.v "TODO.fake_file"; rule_times = []; run_time = 0.0 }
 
-let empty_rule_profiling rule =
-  { rule_id = fst rule.Rule.id; parse_time = 0.0; match_time = 0.0 }
-
-let empty_times_profiling = { parse_time = 0.0; match_time = 0.0 }
-
-let empty_extra profiling =
-  match !mode with
-  | MDebug -> Debug { skipped_targets = []; profiling }
-  | MTime -> Time { profiling }
-  | MNo_info -> No_info
-
-let empty_semgrep_result =
+let empty_match_result : Core_profiling.times match_result =
   {
     matches = [];
     errors = E.ErrorSet.empty;
@@ -204,7 +78,7 @@ let empty_semgrep_result =
     explanations = [];
   }
 
-let empty_final_result =
+let empty_final_result : t =
   {
     matches = [];
     errors = [];
@@ -288,11 +162,16 @@ let collate_results init_extra unzip_extra base_case_extra final_extra results =
   }
 
 (* Aggregate a list of pattern results into one result *)
-let collate_pattern_results results =
+let collate_pattern_results (results : Core_profiling.times match_result list) :
+    Core_profiling.times match_result =
   let init_extra = ([], { parse_time = 0.0; match_time = 0.0 }) in
 
-  let unzip_profiling { match_time; parse_time }
-      { match_time = all_match_time; parse_time = all_parse_time } =
+  let unzip_profiling (a : Core_profiling.times) (b : Core_profiling.times) =
+    let ({ match_time; parse_time } : Core_profiling.times) = a in
+    let ({ match_time = all_match_time; parse_time = all_parse_time }
+          : Core_profiling.times) =
+      b
+    in
     {
       match_time = match_time +. all_match_time;
       parse_time = parse_time +. all_parse_time;
@@ -302,12 +181,12 @@ let collate_pattern_results results =
   let unzip_extra extra all_skipped_targets all_profiling =
     (* should match mode *)
     match extra with
-    | Debug { skipped_targets; profiling } ->
+    | Core_profiling.Debug { skipped_targets; profiling } ->
         ( skipped_targets :: all_skipped_targets,
           unzip_profiling profiling all_profiling )
-    | Time { profiling } ->
+    | Core_profiling.Time { profiling } ->
         (all_skipped_targets, unzip_profiling profiling all_profiling)
-    | No_info -> (all_skipped_targets, all_profiling)
+    | Core_profiling.No_info -> (all_skipped_targets, all_profiling)
   in
 
   let base_case_extra all_skipped_targets all_profiling =
@@ -316,10 +195,11 @@ let collate_pattern_results results =
 
   let final_extra skipped_targets profiling =
     match !mode with
-    | MDebug ->
-        Debug { skipped_targets = List.flatten skipped_targets; profiling }
-    | MTime -> Time { profiling }
-    | MNo_info -> No_info
+    | Core_profiling.MDebug ->
+        Core_profiling.Debug
+          { skipped_targets = List.flatten skipped_targets; profiling }
+    | Core_profiling.MTime -> Core_profiling.Time { profiling }
+    | Core_profiling.MNo_info -> Core_profiling.No_info
   in
 
   collate_results init_extra unzip_extra base_case_extra final_extra results

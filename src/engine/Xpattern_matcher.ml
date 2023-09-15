@@ -57,15 +57,16 @@ let (matches_of_matcher :
       ('xpattern * Xpattern.pattern_id * string) list ->
       ('target_content, 'xpattern) t ->
       filename ->
-      RP.times RP.match_result) =
+      Core_profiling.times Core_result.match_result) =
  fun xpatterns matcher file ->
-  if xpatterns =*= [] then RP.empty_semgrep_result
+  if xpatterns =*= [] then Core_result.empty_match_result
   else
     let target_content_opt, parse_time =
       Common.with_time (fun () -> matcher.init file)
     in
     match target_content_opt with
-    | None -> RP.empty_semgrep_result (* less: could include parse_time *)
+    | None ->
+        Core_result.empty_match_result (* less: could include parse_time *)
     | Some target_content ->
         let res, match_time =
           Common.with_time (fun () ->
@@ -88,7 +89,7 @@ let (matches_of_matcher :
                             })))
         in
         RP.make_match_result res Core_error.ErrorSet.empty
-          { RP.parse_time; match_time }
+          { Core_profiling.parse_time; match_time }
 
 (* todo: same, we should not need that *)
 let hmemo = Hashtbl.create 101

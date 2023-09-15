@@ -112,7 +112,7 @@ val semgrep_with_rules_and_formatted_output : Core_scan_config.t -> unit
 *)
 
 val output_semgrep_results :
-  Exception.t option * Core_result.final_result * Fpath.t list ->
+  Exception.t option * Core_result.t * Fpath.t list ->
   Core_scan_config.t ->
   unit
 (** [output_semgrep_results] takes the results of a semgrep run and
@@ -123,8 +123,7 @@ val output_semgrep_results :
 *)
 
 val semgrep_with_raw_results_and_exn_handler :
-  Core_scan_config.t ->
-  Exception.t option * Core_result.final_result * Fpath.t list
+  Core_scan_config.t -> Exception.t option * Core_result.t * Fpath.t list
 (** [semgrep_with_raw_results_and_exn_handler config] runs the semgrep-core
     engine with a starting list of targets and returns
     (success, result, targets).
@@ -142,7 +141,7 @@ val semgrep_with_rules :
   ?match_hook:(string -> Pattern_match.t -> unit) ->
   Core_scan_config.t ->
   (Rule.t list * Rule.invalid_rule_error list) * float ->
-  Core_result.final_result * Fpath.t list
+  Core_result.t * Fpath.t list
 
 (*****************************************************************************)
 (* Utilities functions used in tests or semgrep-core variants *)
