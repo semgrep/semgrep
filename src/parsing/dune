@@ -25,7 +25,7 @@
 
    semgrep_core
    semgrep_optimizing
-   semgrep_reporting
+   semgrep_reporting ; TODO: for Report.ErrorSet.ml, should move to core/
    semgrep.typing
  )
  (preprocess (pps ppx_profiling ppx_deriving.show))

@@ -1,5 +1,11 @@
 ; This library contains all the "core" data structures used by semgrep:
 ; The Rule, the Pattern, the generic AST, etc.
+;
+; This library now also includes semgrep_output_v1.atd (see the dune rules below).
+; This file used to be in reporting/ because it was concerned mostly with JSON
+; reporting of a scan result, but it now contains core data definitions
+; (e.g., engine_kind, core_error_kind, skip_reason, matching_operation) reused
+; in the OCaml core code.
 
 (library
  (public_name semgrep.core)
@@ -39,3 +45,19 @@
    )
  )
 )
+
+; '-j-defaults' is for matching the behavior of atdpy so that we can get the
+; same JSON output from pysemgrep and osemgrep. This is useful only for
+; passing end-to-end tests where osemgrep is expected to produce the same
+; output as pysemgrep. This allows us to use '~field: ... list' which is more
+; convenient than '?field: ... list option'.
+;
+(rule
+ (targets semgrep_output_v1_j.ml semgrep_output_v1_j.mli)
+ (deps    semgrep_output_v1.atd)
+ (action  (run atdgen -j -j-std -j-defaults %{deps})))
+
+(rule
+ (targets semgrep_output_v1_t.ml semgrep_output_v1_t.mli)
+ (deps    semgrep_output_v1.atd)
+ (action  (run atdgen -t %{deps})))
