@@ -1,7 +1,7 @@
 open Common
 open File.Operators
 module J = JSON
-module E = Semgrep_error_code
+module E = Core_error
 
 (*****************************************************************************)
 (* Prelude *)
@@ -168,3 +168,11 @@ let prefilter_of_rules file =
   in
   let s = Semgrep_prefilter_j.string_of_prefilters xs in
   pr s
+
+(* This is called from 'pysemgrep ci' to get contributors from
+ * 'git log'. This must print the JSON on stdout as it is
+ * processed by core_runner.py
+ *)
+let dump_contributions () =
+  Parse_contribution.get_contributions ()
+  |> Semgrep_output_v1_j.string_of_contributions |> pr

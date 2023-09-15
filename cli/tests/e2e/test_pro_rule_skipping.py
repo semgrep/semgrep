@@ -1,7 +1,8 @@
 import pytest
 from tests.fixtures import RunSemgrep
 
-# TODO: osemgrep: implement '<MASKED>' for osemgrep output
+# TODO: print message containing the full dotted path to the rule in osemgrep
+# See https://github.com/returntocorp/semgrep/pull/8686#issuecomment-1716299070
 # @pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_pro_rule_skipping(run_semgrep_in_tmp: RunSemgrep, snapshot):

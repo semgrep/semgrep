@@ -1,5 +1,6 @@
-(*
- * Copyright (C) 2021 r2c
+(* Yoann Padioleau
+ *
+ * Copyright (C) 2021 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,6 +22,12 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Prelude *)
 (****************************************************************************)
 (* Error management for semgrep-core.
+ *
+ * Note that the "core" errors are translated at some point in
+ * Semgrep_output_v1.core_error, then processed in pysemgrep (or osemgrep)
+ * and translated again in Semgrep_output_v1.error.
+ * There's also Error.ml in osemgrep.
+ * LATER: it would be good to remove some intermediate types.
  *)
 
 (****************************************************************************)
@@ -31,7 +38,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * filter_maybe_parse_and_fatal_errors.
  * less: we should define everything in Output_from_core.atd, not just typ:
  *)
-type error = {
+type t = {
   rule_id : Rule_ID.t option;
   typ : Out.core_error_kind;
   loc : Tok.location;
@@ -41,6 +48,16 @@ type error = {
 [@@deriving show]
 
 let g_errors = ref []
+
+(* ugly alias because 'type t = t' is not allowed *)
+type core_error = t
+
+(* TODO: use Set_.t instead *)
+module ErrorSet = Set.Make (struct
+  type t = core_error
+
+  let compare = compare
+end)
 
 (****************************************************************************)
 (* Convertor functions *)
@@ -84,7 +101,7 @@ let error rule_id loc msg err =
   Common.push (mk_error (Some rule_id) loc msg err) g_errors
 
 let error_of_invalid_rule_error ((kind, rule_id, pos) : R.invalid_rule_error) :
-    error =
+    t =
   let msg = Rule.string_of_invalid_rule_error_kind kind in
   let err =
     match kind with
@@ -101,7 +118,7 @@ let error_of_invalid_rule_error ((kind, rule_id, pos) : R.invalid_rule_error) :
   in
   mk_error_tok (Some rule_id) pos msg err
 
-let opt_error_of_rule_error (err : Rule.error) : error option =
+let opt_error_of_rule_error (err : Rule.error) : t option =
   let rule_id = err.rule_id in
   match err.kind with
   | InvalidRule
@@ -137,7 +154,7 @@ let opt_error_of_rule_error (err : Rule.error) : error option =
    TODO: why not capture AST_generic.error here? So we could get rid
    of Run_semgrep.exn_to_error wrapper.
 *)
-let known_exn_to_error rule_id file (e : Exception.t) : error option =
+let known_exn_to_error rule_id file (e : Exception.t) : t option =
   match Exception.get_exn e with
   (* TODO: Move the cases handling Parsing_error.XXX to the Parsing_error
      module so that we can use it for the exception printers that are
@@ -176,7 +193,7 @@ let known_exn_to_error rule_id file (e : Exception.t) : error option =
   (* general case, can't extract line information from it, default to line 1 *)
   | _exn -> None
 
-let exn_to_error rule_id file (e : Exception.t) : error =
+let exn_to_error rule_id file (e : Exception.t) : t =
   match known_exn_to_error rule_id file e with
   | Some err -> err
   | None -> (

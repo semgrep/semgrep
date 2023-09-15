@@ -1,6 +1,5 @@
 open File.Operators
 module Out = Semgrep_output_v1_t
-module RP = Report
 module Env = Semgrep_envvars
 
 (*************************************************************************)
@@ -59,13 +58,14 @@ type result = {
 type semgrep_core_runner =
   ?respect_git_ignore:bool ->
   ?file_match_results_hook:
-    (Fpath.t -> Report.partial_profiling Report.match_result -> unit) option ->
+    (Fpath.t -> Core_result.partial_profiling Core_result.match_result -> unit)
+    option ->
   conf ->
   (* LATER? use Config_resolve.rules_and_origin instead? *)
   Rule.rules ->
   Rule.invalid_rule_error list ->
   Fpath.t list ->
-  Exception.t option * Report.final_result * Fpath.t Set_.t
+  Exception.t option * Core_result.final_result * Fpath.t Set_.t
 
 (*************************************************************************)
 (* Helpers *)
@@ -189,7 +189,8 @@ let prepare_config_for_semgrep_core (config : Runner_config.t)
 (* LATER: we want to avoid this intermediate data structure but
  * for now that's what pysemgrep used to get so simpler to return it.
  *)
-let create_core_result all_rules (_exns, (res : RP.final_result), scanned) =
+let create_core_result all_rules
+    (_exns, (res : Core_result.final_result), scanned) =
   let match_results =
     Core_json_output.core_output_of_matches_and_errors (Some Autofix.render_fix)
       (Set_.cardinal scanned) res
@@ -275,9 +276,10 @@ let invoke_semgrep_core
   (* TODO(dinosaure): currently, we don't collect metrics when we invoke
      semgrep-core but we should. However, if we implement a way to collect
      metrics, we will just need to set [final_result.extra] to
-     [RP.Debug]/[RP.Time] and this line of code will not change. *)
-  Metrics_.add_max_memory_bytes (RP.debug_info_to_option res.extra);
-  Metrics_.add_targets scanned (RP.debug_info_to_option res.extra);
+     [Core_result.Debug]/[Core_result.Time] and this line of code will not change. *)
+  Metrics_.add_max_memory_bytes (Core_result.debug_info_to_option res.extra);
+  Metrics_.add_targets_stats scanned
+    (Core_result.debug_info_to_option res.extra);
 
   (exn, res, scanned)
   [@@profiling]

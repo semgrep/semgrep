@@ -1,0 +1,21 @@
+rules:
+  - id: test
+    mode: taint
+    pattern-sources:
+      - pattern: window.location.hash
+    pattern-sinks:
+      - patterns:
+          - pattern-inside: |
+              fetch(..., {
+                  ...
+              })
+          - pattern: |
+              headers: {
+                '$KEY': $H
+              }
+          - focus-metavariable: $H
+    message: "Semgrep found a match: $KEY $H"
+    languages:
+      - javascript
+      - typescript
+    severity: WARNING

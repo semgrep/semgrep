@@ -38,20 +38,23 @@ let with_mock_normal_responses =
     let uri = Cohttp.Request.uri req in
     match Uri.path uri with
     | "/api/agent/deployments/current" ->
-        let status, body =
+        let status, body_path =
           match Http_mock_client.get_header req "Authorization" with
           | Some "Bearer ok_token" -> (200, "./tests/login/ok_response.json")
           | Some "Bearer bad_token" -> (401, "./tests/login/bad_response.json")
           | _ -> failwith "Unexpected token"
         in
+        let body = body_path |> Common.read_file |> Cohttp_lwt.Body.of_string in
         Lwt.return Http_mock_client.(basic_response ~status body)
     | "/api/agent/tokens/requests" ->
         let%lwt () =
-          Http_mock_client.check_body body "./tests/login/fetch_body.json"
+          Http_mock_client.check_body body
+            Http_mock_client.(
+              body_of_file ~trim:true "./tests/login/fetch_body.json")
         in
         Lwt.return
           (Http_mock_client.basic_response ~status:200
-             "./tests/login/token_response.json")
+             Http_mock_client.(body_of_file "./tests/login/token_response.json"))
     | _ -> failwith ("Unexpected path: " ^ Uri.path uri)
   in
   Http_mock_client.with_testing_client make_fn
@@ -60,19 +63,21 @@ let with_mock_four_o_four_responses =
   let make_fn req body =
     ignore body;
     ignore req;
-    Lwt.return Http_mock_client.(basic_response ~status:404 "/dev/null")
+    Lwt.return
+      Http_mock_client.(
+        basic_response ~status:404 (Cohttp_lwt.Body.of_string ""))
   in
   Http_mock_client.with_testing_client make_fn
 
 let with_mock_envvars f () =
   Common2.with_tmp_file ~str:fake_settings ~ext:"yml" (fun tmp_settings_file ->
-      let old_settings = !Semgrep_envvars.v in
       let new_settings =
-        { old_settings with user_settings_file = Fpath.v tmp_settings_file }
+        {
+          !Semgrep_envvars.v with
+          user_settings_file = Fpath.v tmp_settings_file;
+        }
       in
-      Semgrep_envvars.v := new_settings;
-      f ();
-      Semgrep_envvars.v := old_settings)
+      Common.save_excursion Semgrep_envvars.v new_settings f)
 
 let with_mock_envvars_and_normal_responses f =
   with_mock_normal_responses (with_mock_envvars f)
@@ -123,7 +128,7 @@ let fetch_token_tests () =
   let fetch_no_internet () =
     let retry_count = ref 0 in
     (* please ignore the nesting *)
-    let wait_hook () =
+    let wait_hook _delay =
       match !retry_count with
       | 12 -> failwith "Unexpected wait"
       | _ -> retry_count := !retry_count + 1

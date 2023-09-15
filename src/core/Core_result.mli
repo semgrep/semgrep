@@ -33,14 +33,11 @@ type rule_profiling = {
 
 (* Save time information as we run each file *)
 
-type partial_profiling = {
-  file : Common.filename;
-  rule_times : rule_profiling list;
-}
+type partial_profiling = { file : Fpath.t; rule_times : rule_profiling list }
 [@@deriving show]
 
 type file_profiling = {
-  file : Common.filename;
+  file : Fpath.t;
   rule_times : rule_profiling list;
   run_time : float;
 }
@@ -51,11 +48,9 @@ type rule_id_and_engine_kind = Rule_ID.t * Pattern_match.engine_kind
 
 (* Substitute in the profiling type we have *)
 
-module ErrorSet : Set.S with type elt = Semgrep_error_code.error
-
 type 'a match_result = {
   matches : Pattern_match.t list;
-  errors : ErrorSet.t;
+  errors : Core_error.ErrorSet.t;
   extra : 'a debug_info;
   explanations : Matching_explanation.t list;
 }
@@ -73,7 +68,7 @@ type final_profiling = {
 
 type final_result = {
   matches : Pattern_match.t list;
-  errors : Semgrep_error_code.error list;
+  errors : Core_error.t list;
   skipped_rules : Rule.invalid_rule_error list;
   extra : final_profiling debug_info;
   explanations : Matching_explanation.t list;
@@ -82,19 +77,19 @@ type final_result = {
 [@@deriving show]
 
 val empty_extra : 'a -> 'a debug_info
-val empty_partial_profiling : Common.filename -> partial_profiling
+val empty_partial_profiling : Fpath.t -> partial_profiling
 val empty_rule_profiling : Rule.t -> rule_profiling
 val empty_semgrep_result : times match_result
 val empty_final_result : final_result
 
 val make_match_result :
-  Pattern_match.t list -> ErrorSet.t -> 'a -> 'a match_result
-
-val add_run_time :
-  float -> partial_profiling match_result -> file_profiling match_result
+  Pattern_match.t list -> Core_error.ErrorSet.t -> 'a -> 'a match_result
 
 val modify_match_result_profiling :
   'a match_result -> ('a -> 'b) -> 'b match_result
+
+val add_run_time :
+  float -> partial_profiling match_result -> file_profiling match_result
 
 val add_rule : Rule.rule -> times match_result -> rule_profiling match_result
 val collate_pattern_results : times match_result list -> times match_result
@@ -106,4 +101,4 @@ val make_final_result :
   final_result
 
 val collate_rule_results :
-  string -> rule_profiling match_result list -> partial_profiling match_result
+  Fpath.t -> rule_profiling match_result list -> partial_profiling match_result

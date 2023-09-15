@@ -10,6 +10,7 @@
     semgrep_core
     semgrep_parsing
     semgrep_matching
+    semgrep_reporting
     semgrep_datalog
     semgrep_engine
     semgrep_experiments_misc

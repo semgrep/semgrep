@@ -1,5 +1,5 @@
 open Common
-module C = Semgrep_dashdash_config
+module C = Rules_config
 
 (*****************************************************************************)
 (* Prelude *)

@@ -21,14 +21,8 @@ module E = Error
 (* ex: "p/python" *)
 type config_string = string [@@deriving show]
 
-(* config_kind is config_string in a parsed form.
- * alt: we could use 't', or just 'config', but 'config' is too vague.
- * 'config_kind' is not much better, because it is vague too, but
- * at least when one sees 'registry_config_kind', it is a bit less
- * ambiguous than 'registry_config' which could be some special settings
- * to interact with the registry.
- *)
-type config_kind =
+(* t is config_string in a parsed form *)
+type t =
   (* ex: 'foo.yaml' *)
   | File of Fpath.t
   (* ex: 'myrules/' (will go also recursively in subdirs of myrules) *)
@@ -38,6 +32,10 @@ type config_kind =
   | R of registry_config_kind
   | A of app_config_kind
 
+(* Not a great name but at least when one sees 'registry_config_kind',
+ * it is a bit less ambiguous than 'registry_config' which could be some
+ * special settings to interact with the registry.
+ *)
 and registry_config_kind =
   (* r/... *)
   | Registry of string
@@ -59,7 +57,7 @@ and app_config_kind = Policy | SupplyChain [@@deriving show]
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let parse_config_string config_str =
+let parse_config_string ~in_docker (config_str : config_string) : t =
   match config_str with
   | "auto" -> R Auto
   | "r2c" -> R R2c
@@ -80,7 +78,10 @@ let parse_config_string config_str =
   (* TOPORT? raise SemgrepError(f"config location `{loc}` is not a file or folder!") *)
   | str ->
       let addendum =
-        if !Semgrep_envvars.v.in_docker then
+        (* old: was !Semgrep_envvars.v.in_docker but that introduce
+         * a dependency cycle between configuring/ and core/
+         *)
+        if in_docker then
           " (since you are running in docker, you cannot specify arbitrary \
            paths on the host; they must be mounted into the container)"
         else ""

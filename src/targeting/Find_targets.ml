@@ -148,7 +148,16 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
             * TODO? maybe add a setting in conf?
             * TODO? add a skip reason for those?
             *)
-           if name =~ "^\\." then ignore ()
+           if name =~ "^\\." then
+             let skip =
+               {
+                 Out.path = !!fpath;
+                 reason = Out.Dotfile;
+                 details = None;
+                 rule_id = None;
+               }
+             in
+             Common.push skip skipped
            else
              let status, selection_events = Semgrepignore.select ign ppath in
              match status with

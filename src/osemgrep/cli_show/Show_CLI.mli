@@ -17,9 +17,10 @@ type conf = {
 and target_kind =
   | Pattern of string * Lang.t
   | File of Fpath.t * Lang.t
-  | Config of Semgrep_dashdash_config.config_string
+  | Config of Rules_config.config_string
   | EnginePath of bool (* pro = true *)
   | CommandForCore
+  | SupportedLanguages
 [@@deriving show]
 
 (*

@@ -142,6 +142,15 @@ let name_of_id ?(case_insensitive = false) id =
 let name_of_dot_access e =
   let rec fetch_ids = function
     | G.N (G.Id (x, _)) -> Some [ x ]
+    | G.N (G.IdQualified { name_last; name_middle; _ }) ->
+        let* name_middle =
+          match name_middle with
+          | None -> Some []
+          | Some (QDots xs) -> Some (List.map (fun (id, _) -> id) xs)
+          | Some (QExpr _) -> None
+        in
+        let name_last = fst name_last in
+        Some (name_middle @ [ name_last ])
     | G.DotAccess (e1, _, G.FN (G.Id (x, _))) ->
         let* xs = fetch_ids e1.e in
         Some (xs @ [ x ])
@@ -334,6 +343,20 @@ let has_keyword_attr kwd attrs =
   |> List.exists (function
        | KeywordAttr (kwd2, _) -> kwd =*= kwd2
        | _ -> false)
+
+let name_is_global = function
+  | Global (* OSS *)
+  | GlobalName _ (* Pro *)
+  | EnclosedVar (* OSS / a class variable *) ->
+      true
+  | LocalVar
+  | Parameter
+  | ImportedEntity _
+  | ImportedModule _
+  | TypeName
+  | Macro
+  | EnumConstant ->
+      false
 
 (* just used in cpp_to_generic.ml for now, could be moved there *)
 let parameter_to_catch_exn_opt p =

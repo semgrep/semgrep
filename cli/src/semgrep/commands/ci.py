@@ -30,6 +30,7 @@ from semgrep.constants import OutputFormat
 from semgrep.engine import EngineType
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
+from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.meta import generate_meta_from_environment
@@ -155,6 +156,7 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     is_flag=True,
     hidden=True,
 )
+@click.option("--code", is_flag=True, hidden=True)
 @click.option("--beta-testing-secrets", is_flag=True, hidden=True)
 @click.option(
     "--suppress-errors/--no-suppress-errors",
@@ -175,6 +177,7 @@ def ci(
     autofix: bool,
     baseline_commit: Optional[str],
     beta_testing_secrets: bool,
+    code: bool,
     core_opts: Optional[str],
     config: Optional[Tuple[str, ...]],
     debug: bool,
@@ -309,6 +312,7 @@ def ci(
             console.print(Title("Connection", order=2))
             metadata_dict = metadata.to_dict()
             metadata_dict["is_sca_scan"] = supply_chain
+            metadata_dict["is_code_scan"] = code
             metadata_dict["is_secrets_scan"] = beta_testing_secrets
             proj_config = ProjectConfig.load_all()
             metadata_dict = {**metadata_dict, **proj_config.to_dict()}
@@ -323,11 +327,14 @@ def ci(
                     else ""
                 )
 
-                start_scan_task = progress_bar.add_task(
-                    f"Reporting start of scan for [bold]{scan_handler.deployment_name}[/bold]"
-                )
+                start_scan_desc = f"Reporting start of scan for [bold]{scan_handler.deployment_name}[/bold]"
+                start_scan_task = progress_bar.add_task(start_scan_desc)
                 scan_handler.start_scan(metadata_dict)
-                progress_bar.update(start_scan_task, completed=100)
+                if scan_handler.scan_id:
+                    start_scan_desc += f" (scan_id={scan_handler.scan_id})"
+                progress_bar.update(
+                    start_scan_task, completed=100, description=start_scan_desc
+                )
 
                 connection_task = progress_bar.add_task(
                     f"Fetching configuration from Semgrep Cloud Platform{at_url_maybe}"
@@ -343,6 +350,15 @@ def ci(
                     f"Enabled products: [bold]{products_str}[/bold]"
                 )
                 progress_bar.update(products_task, completed=100)
+
+            if (
+                scan_handler.rules == '{"rules":[]}'
+                and scan_handler.enabled_products == ["sast"]
+            ):
+                console.print(
+                    f"No rules configured. Visit {state.env.semgrep_url}/orgs/-/policies to configure rules to scan your code.\n"
+                )
+                sys.exit(MISSING_CONFIG_EXIT_CODE)
 
             config = (scan_handler.rules,)
 
@@ -412,6 +428,7 @@ def ci(
             dependencies,
             dependency_parser_errors,
             num_executed_rules,
+            contributions,
         ) = semgrep.run_scan.run_scan(
             core_opts_str=core_opts,
             engine_type=engine_type,
@@ -441,6 +458,7 @@ def ci(
             optimizations=optimizations,
             baseline_commit=metadata.merge_base_ref,
             baseline_commit_is_mergebase=True,
+            dump_contributions=True,
         )
     except SemgrepError as e:
         output_handler.handle_semgrep_errors([e])
@@ -554,6 +572,7 @@ def ci(
                 metadata.commit_datetime,
                 dependencies,
                 dependency_parser_errors,
+                contributions,
                 engine_type,
                 progress_bar,
             )

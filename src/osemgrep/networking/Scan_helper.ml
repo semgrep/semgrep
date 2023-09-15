@@ -65,7 +65,7 @@ let extract_rule_config data =
   | e -> Error ("Failed to decode config: " ^ Printexc.to_string e ^ ": " ^ data)
 
 let fetch_scan_config_async ~token ~sca ~dry_run ~full_scan repository =
-  let url = Semgrep_App.scan_config ~sca ~dry_run ~full_scan repository in
+  let url = Semgrep_App.scan_config_uri ~sca ~dry_run ~full_scan repository in
   let%lwt content =
     let headers =
       [

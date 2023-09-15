@@ -1,9 +1,29 @@
-(******************************************************************************
- * Full result information
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* (Core) Scan result information.
  *
- * In addition to the results (matches + errors), we also may report extra
- * information, such as the skipped targets or the profiling times. Many
- * of the types here are created to collect profiling information in as
+ * In addition to the results (matches + errors), we may also report extra
+ * information, such as the skipped targets or the profiling times.
+ *
+ * Yet another way to store matches/findings.
+ * Just like for Core_error.ml, "core" results are translated at some point in
+ * Semgrep_output_v1.core_output, then processed in pysemgrep (or osemgrep)
+ * and translated again in Semgrep_output_v1.cli_output.
+ * There's also Core_runner.result in osemgrep.
+ *
+ * From the simplest matches to the most complex we have:
+ * Pattern_match.t -> Rule_match.t
+ * -> Core_result.xxx
+ * -> Semgrep_output_v1.core_output
+ *  -> Core_runner.result
+ *  -> Semgrep_output_v1.cli_output
+ *  -> Semgrep_output_v1.findings
+ * LATER: it would be good to remove some intermediate types.
+ *
+ * On profiling:
+ * -------------
+ * Many of the types below are created to collect profiling information in as
  * well-typed a manner as possible. Creating a type for practically every
  * stage that reports matches is annoying, but prevents us from relying on
  * dummy values or unlabeled tuples.
@@ -41,20 +61,21 @@
  * That being said, if we wanted users to be able to "mix-and-match" request
  * fields, we should move to the option-types paradigm. Also, the collate
  * functions are quite ugly. I'm open to argument.
- *
- * TODO: We could use atdgen to specify those to factorize type definitions
- * that have to be present anyway in Output_from_core.atd.
- *****************************************************************************)
+ *)
+
+module E = Core_error
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
 (*****************************************************************************)
-(* Options for what extra debugging information to output.
-   These are generally memory intensive fields that aren't strictly needed *)
+(* Debug/Profile choice *)
 (*****************************************************************************)
+(* Options for what extra debugging information to output.
+ *  These are generally memory intensive fields that aren't strictly needed
+ *)
 
-(* Coupling: the debug_info variant of each result record should always
-      be the same as the mode's variant *)
+(* coupling: the debug_info variant of each result record should always
+   be the same as the mode's variant *)
 type debug_mode = MDebug | MTime | MNo_info [@@deriving show]
 
 type 'a debug_info =
@@ -63,7 +84,7 @@ type 'a debug_info =
       skipped_targets : Semgrep_output_v1_t.skipped_target list;
       profiling : 'a;
     }
-  (* -json_time: save just profiling information; currently our metrics record this *)
+  (* -json_time: save just profiling info; currently our metrics record this *)
   | Time of { profiling : 'a }
   (* save nothing else *)
   | No_info
@@ -77,7 +98,7 @@ let debug_info_to_option = function
 let mode = ref MNo_info
 
 (*****************************************************************************)
-(* Different formats for profiling information as we have access to more data *)
+(* Different formats for profiling info as we have access to more data *)
 (*****************************************************************************)
 
 (* Save time information as we run each rule *)
@@ -94,16 +115,13 @@ type times = { parse_time : float; match_time : float }
 (* Save time information as we run each file *)
 
 type file_profiling = {
-  file : Common.filename;
+  file : Fpath.t;
   rule_times : rule_profiling list;
   run_time : float;
 }
 [@@deriving show]
 
-type partial_profiling = {
-  file : Common.filename;
-  rule_times : rule_profiling list;
-}
+type partial_profiling = { file : Fpath.t; rule_times : rule_profiling list }
 [@@deriving show]
 
 (* Result object for the entire rule *)
@@ -132,7 +150,7 @@ type rule_id_and_engine_kind = Rule_ID.t * Pattern_match.engine_kind
 
 type final_result = {
   matches : Pattern_match.t list;
-  errors : Semgrep_error_code.error list;
+  errors : Core_error.t list;
   skipped_rules : Rule.invalid_rule_error list;
   extra : final_profiling debug_info;
   explanations : Matching_explanation.t list;
@@ -142,21 +160,14 @@ type final_result = {
 
 (* For each file, substitute in the profiling type we have *)
 
-module ErrorSet = Set.Make (struct
-  type t = Semgrep_error_code.error
-
-  let compare = compare
-end)
-
 type 'a match_result = {
   matches : Pattern_match.t list;
-  errors : ErrorSet.t;
+  errors : E.ErrorSet.t;
       [@printer
         fun fmt errors ->
           fprintf fmt "{ ";
-          ErrorSet.iter
-            (fun error ->
-              fprintf fmt "%s, " (Semgrep_error_code.show_error error))
+          E.ErrorSet.iter
+            (fun error -> fprintf fmt "%s, " (Core_error.show error))
             errors;
           fprintf fmt "}"]
   extra : 'a debug_info;
@@ -169,7 +180,10 @@ type 'a match_result = {
 (*****************************************************************************)
 
 let empty_partial_profiling file = { file; rule_times = [] }
-let empty_file_profiling = { file = ""; rule_times = []; run_time = 0.0 }
+
+(* TODO: should get rid of that *)
+let empty_file_profiling =
+  { file = Fpath.v "TODO.fake_file"; rule_times = []; run_time = 0.0 }
 
 let empty_rule_profiling rule =
   { rule_id = fst rule.Rule.id; parse_time = 0.0; match_time = 0.0 }
@@ -185,7 +199,7 @@ let empty_extra profiling =
 let empty_semgrep_result =
   {
     matches = [];
-    errors = ErrorSet.empty;
+    errors = E.ErrorSet.empty;
     extra = empty_extra empty_times_profiling;
     explanations = [];
   }
@@ -268,7 +282,7 @@ let collate_results init_extra unzip_extra base_case_extra final_extra results =
 
        See also the note in semgrep_output_v1.atd.
     *)
-    errors = List.fold_left ErrorSet.union ErrorSet.empty errors;
+    errors = List.fold_left E.ErrorSet.union E.ErrorSet.empty errors;
     extra = final_extra skipped_targets profiling;
     explanations = List.flatten explanations;
   }
@@ -311,10 +325,9 @@ let collate_pattern_results results =
   collate_results init_extra unzip_extra base_case_extra final_extra results
 
 (* Aggregate a list of rule results into one result for the target *)
-let collate_rule_results :
-    string -> rule_profiling match_result list -> partial_profiling match_result
-    =
- fun file results ->
+let collate_rule_results (file : Fpath.t)
+    (results : rule_profiling match_result list) :
+    partial_profiling match_result =
   let init_extra = ([], []) in
 
   let unzip_extra extra all_skipped_targets all_profiling =
@@ -349,7 +362,7 @@ let make_final_result results
     ~rules_parse_time =
   let matches = results |> List.concat_map (fun x -> x.matches) in
   let errors =
-    results |> List.concat_map (fun x -> x.errors |> ErrorSet.elements)
+    results |> List.concat_map (fun x -> x.errors |> E.ErrorSet.elements)
   in
   let explanations = results |> List.concat_map (fun x -> x.explanations) in
   let final_rules =

@@ -12,8 +12,8 @@
 (*****************************************************************************)
 
 (* from login.py *)
-let save_token token =
-  match Semgrep_login.save_token token with
+let save_token ?(ident = None) token =
+  match Semgrep_login.save_token ~ident token with
   | Ok () ->
       Logs.app (fun m ->
           m "\nSaved access token in %a" Fpath.pp
@@ -39,12 +39,22 @@ let save_token token =
 
 let spinner = [| "⠋"; "⠙"; "⠹"; "⠸"; "⠼"; "⠴"; "⠦"; "⠧"; "⠇"; "⠏" |]
 
-let show_spinner () =
-  for frame_index = 1 to 100 do
-    let spinner = spinner.(frame_index mod Array.length spinner) in
+(*
+  Show a spinner while waiting for the user to sign in.
+  delay_ms is the total delay across all frames, in milliseconds.
+  We show each frame for 1/100th of the total delay.
+*)
+let show_spinner delay_ms =
+  let print_frame ~frame_index:i =
+    let spinner = spinner.(i mod Array.length spinner) in
     ANSITerminal.set_cursor 1 (-1);
     ANSITerminal.printf [ ANSITerminal.green ] "%s Waiting for sign in..."
       spinner
+  in
+  for frame_index = 1 to 100 do
+    print_frame ~frame_index;
+    (* Note: sleep is measured in seconds *)
+    Unix.sleepf (Float.of_int delay_ms /. Float.of_int (1000 * 100))
   done
 
 let erase_spinner () =
@@ -59,7 +69,7 @@ let erase_spinner () =
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
 let run (conf : Login_CLI.conf) : Exit_code.t =
-  CLI_common.setup_logging ~force_color:false ~level:conf.logging_level;
+  CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
   let settings = Semgrep_settings.load () in
   match settings.Semgrep_settings.api_token with
   | None -> (
@@ -115,16 +125,18 @@ Plus, you can manage your rules and code findings with Semgrep Cloud Platform.
             | Error msg ->
                 Logs.err (fun m -> m "%s" msg);
                 Exit_code.fatal
-            | Ok (token, user_name) ->
+            | Ok (token, display_name) ->
                 erase_spinner ();
-
                 Logs.app (fun m ->
                     m
                       "%s Successfully logged in as %s! You can now run \
                        `semgrep ci` to start a scan."
                       (Logs_helpers.success_tag ())
-                      user_name);
-                save_token token))
+                      display_name);
+                (* TODO: refactor to avoid calling Semgrep_login.save_token twice:
+                 *  once in Semgrep_login.fetch_token and again here.
+                 *)
+                save_token ~ident:(Some display_name) token))
   | Some _ ->
       Logs.app (fun m ->
           m

@@ -10,7 +10,7 @@ open Common
 open File.Operators
 open Runner_config
 module Flag = Flag_semgrep
-module E = Semgrep_error_code
+module E = Core_error
 module J = JSON
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -362,6 +362,9 @@ let all_actions () =
     ( "-diff_pfff_tree_sitter",
       " <file>",
       Arg_helpers.mk_action_n_arg Test_parsing.diff_pfff_tree_sitter );
+    ( "-dump_contributions",
+      " dump on stdout the commit contributions in JSON",
+      Arg_helpers.mk_action_0_arg Core_actions.dump_contributions );
     (* Misc stuff *)
     ( "-expr_at_range",
       " <l:c-l:c> <file>",
@@ -681,9 +684,9 @@ let main_no_exn_handler (sys_argv : string array) : unit =
 
   let config = mk_config () in
 
-  if config.debug then Report.mode := MDebug
-  else if config.report_time then Report.mode := MTime
-  else Report.mode := MNo_info;
+  if config.debug then Core_result.mode := MDebug
+  else if config.report_time then Core_result.mode := MTime
+  else Core_result.mode := MNo_info;
 
   Logging_helpers.setup ~debug:config.debug
     ~log_config_file:config.log_config_file ~log_to_file:config.log_to_file;

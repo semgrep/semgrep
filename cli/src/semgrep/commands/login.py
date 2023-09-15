@@ -73,6 +73,12 @@ def login() -> NoReturn:
     for _ in range(MAX_RETRIES):
         r = state.app_session.post(
             f"{state.env.semgrep_url}/api/agent/tokens/requests",
+            headers={
+                "User-Agent": str(state.app_session.user_agent),
+                "X-Semgrep-Client-Id": str(
+                    state.settings.get("anonymous_user_id") or ""
+                ),
+            },
             json={"token_request_key": str(session_id)},
         )
         if r.status_code == 200:
