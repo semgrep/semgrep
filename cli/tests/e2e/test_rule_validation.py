@@ -33,6 +33,7 @@ def test_validation_of_invalid_rules(run_semgrep_in_tmp: RunSemgrep, snapshot, r
     )
 
 
+@pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "rule",
     [
