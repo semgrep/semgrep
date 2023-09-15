@@ -36,12 +36,21 @@ def determine_semgrep_pro_path() -> Path:
 
     if SEMGREP_PRO_PATH:
         semgrep_pro_path = Path(SEMGREP_PRO_PATH) / "semgrep-core-proprietary"
-        if os.access(semgrep_pro_path.parent, os.W_OK):
+        # Try creating the path set by SEMGREP_PRO_PATH
+        try:
             semgrep_pro_path.parent.mkdir(parents=True, exist_ok=True)
+        except PermissionError:
+            logger.info(
+                "Invalid path, could not create directory at designated SEMGREP_PRO_PATH."
+            )
+            sys.exit(FATAL_EXIT_CODE)
+
+        # Make sure SEMGREP_PRO_PATH is writeable
+        if os.access(semgrep_pro_path.parent, os.W_OK):
             return semgrep_pro_path
         else:
             logger.info(
-                "Invalid path, please set a valid path with proper permissions for SEMGREP_PRO_PATH"
+                "Invalid path, designated SEMGREP_PRO_PATH is not writeable."
             )
             sys.exit(FATAL_EXIT_CODE)
 
