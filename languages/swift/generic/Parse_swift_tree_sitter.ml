@@ -2448,18 +2448,21 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : G.expr =
       let v1 = (* "\\" *) token env v1 in
       let v2 =
         match v2 with
-        | Some x -> (
-            match x with
-            | `Simple_user_type x ->
-                let id, targs = map_simple_user_type env x in
-                let name = H2.name_of_id id in
-                let name = H2.add_type_args_opt_to_name name targs in
-                G.TyN name |> G.t
-            | `Array_type x -> map_array_type env x
-            | `Dict_type x -> map_dictionary_type env x)
-        | None -> todo env ()
+        | Some x ->
+            G.T
+              (match x with
+              | `Simple_user_type x ->
+                  let id, targs = map_simple_user_type env x in
+                  let name = H2.name_of_id id in
+                  let name = H2.add_type_args_opt_to_name name targs in
+                  G.TyN name |> G.t
+              | `Array_type x -> map_array_type env x
+              | `Dict_type x -> map_dictionary_type env x)
+        | None -> G.T (G.OtherType (("Implicit", v1), []) |> G.t)
       in
-      let v3 =
+      let _v3 =
+        (* NOTE: Currently, \X.y is parsed as DotAccess, resulting in v3 always
+           being empty. *)
         Common.map
           (fun (v1, v2) ->
             let _v1 = (* "." *) token env v1 in
@@ -2467,13 +2470,13 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : G.expr =
             v2)
           v3
       in
-      todo env (v1, v2, v3)
+      G.OtherExpr (("keyPath", v1), [ v2 ]) |> G.e
   | `Key_path_str_exp (v1, v2, v3, v4) ->
       let v1 = (* "#keyPath" *) token env v1 in
       let v2 = (* "(" *) token env v2 in
       let v3 = map_expression env v3 in
       let v4 = (* ")" *) token env v4 in
-      G.Call (G.OtherExpr (("KeyPath", v1), []) |> G.e, (v2, [ G.Arg v3 ], v4))
+      G.Call (G.OtherExpr (("#keyPath", v1), []) |> G.e, (v2, [ G.Arg v3 ], v4))
       |> G.e
   | `Three_dot_op tok ->
       let tok = (* three_dot_operator_custom *) token env tok in
