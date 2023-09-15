@@ -44,6 +44,7 @@ type conf = {
   time_flag : bool;
   (* Engine selection *)
   engine_type : Engine_type.t;
+  run_secrets : bool;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;
   (* Display options *)
@@ -129,6 +130,7 @@ let default : conf =
       };
     time_flag = false;
     engine_type = OSS;
+    run_secrets = false;
     output_format = Output_format.Text;
     output = None;
     dataflow_traces = false;
@@ -469,6 +471,14 @@ let o_junit_xml : bool Term.t =
   Arg.value (Arg.flag info)
 
 (* ------------------------------------------------------------------ *)
+(* Run Secrets Post Processors                                  *)
+(* ------------------------------------------------------------------ *)
+
+let o_secrets : bool Term.t =
+  let info = Arg.info [ "secrets" ] ~doc:{|Run with Semgrep Secrets.|} in
+  Arg.value (Arg.flag info)
+
+(* ------------------------------------------------------------------ *)
 (* Engine type (mutually exclusive) *)
 (* ------------------------------------------------------------------ *)
 
@@ -740,9 +750,10 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       junit_xml lang max_chars_per_line max_lines_per_finding max_memory_mb
       max_target_bytes metrics num_jobs nosem optimizations oss output pattern
       pro project_root pro_intrafile pro_lang registry_caching replacement
-      respect_git_ignore rewrite_rule_ids sarif scan_unknown_extensions severity
-      show_supported_languages strict target_roots test test_ignore_todo text
-      time_flag timeout timeout_threshold validate version version_check vim =
+      respect_git_ignore rewrite_rule_ids sarif scan_unknown_extensions secrets
+      severity show_supported_languages strict target_roots test
+      test_ignore_todo text time_flag timeout timeout_threshold validate version
+      version_check vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Logs_helpers.setup_logging ~force_color
@@ -774,7 +785,11 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     in
     let engine_type =
       match (oss, pro_lang, pro_intrafile, pro) with
+      | false, false, false, false when secrets ->
+          Engine_type.(PRO Language_only)
       | false, false, false, false -> default.engine_type
+      | true, false, false, false when secrets ->
+          Error.abort "Mutually exclusive options --oss/--secrets"
       | true, false, false, false -> OSS
       | false, true, false, false -> PRO Engine_type.Language_only
       | false, false, true, false -> PRO Engine_type.Intrafile
@@ -785,6 +800,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
             "Mutually exclusive options \
              --oss/--pro-languages/--pro-intrafile/--pro"
     in
+    (* TODO Should double check all other times this should run. *)
+    let run_secrets = secrets in
     let rules_source =
       match (config, (pattern, lang, replacement)) with
       (* ugly: when using --dump-ast, we can pass a pattern or a target,
@@ -1021,6 +1038,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       output_format;
       output;
       engine_type;
+      run_secrets;
       rewrite_rule_ids;
       strict;
       time_flag;
@@ -1047,10 +1065,10 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     $ o_oss $ o_output $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile
     $ o_pro_languages $ o_registry_caching $ o_replacement
     $ o_respect_git_ignore $ o_rewrite_rule_ids $ o_sarif
-    $ o_scan_unknown_extensions $ o_severity $ o_show_supported_languages
-    $ o_strict $ o_target_roots $ o_test $ o_test_ignore_todo $ o_text $ o_time
-    $ o_timeout $ o_timeout_threshold $ o_validate $ o_version $ o_version_check
-    $ o_vim)
+    $ o_scan_unknown_extensions $ o_secrets $ o_severity
+    $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
+    $ o_test_ignore_todo $ o_text $ o_time $ o_timeout $ o_timeout_threshold
+    $ o_validate $ o_version $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
 
