@@ -19,7 +19,7 @@ open AST_generic
 module E = Core_error
 module J = JSON
 module MV = Metavariable
-module RP = Report
+module RP = Core_result
 module PM = Pattern_match
 open Pattern_match
 module SJ = Semgrep_output_v1_j (* JSON conversions *)
@@ -105,7 +105,7 @@ let convert_validation_state = function
   | Validation_error -> `VALIDATION_ERROR
   | No_validator -> `NO_VALIDATOR
 
-let convert_rule ((id, ek) : Report.rule_id_and_engine_kind) =
+let convert_rule ((id, ek) : Core_result.rule_id_and_engine_kind) =
   ((id :> string), convert_engine_kind ek)
 
 let metavar_string_of_any any =

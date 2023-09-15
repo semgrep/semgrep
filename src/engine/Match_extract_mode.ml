@@ -48,8 +48,8 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * although this is a bit less ergonomic for the caller.
  *)
 type match_result_location_adjuster =
-  Report.partial_profiling Report.match_result ->
-  Report.partial_profiling Report.match_result
+  Core_result.partial_profiling Core_result.match_result ->
+  Core_result.partial_profiling Core_result.match_result
 
 (*****************************************************************************)
 (* Helpers *)
@@ -265,7 +265,7 @@ let map_bindings map_loc bindings =
   Common.map map_binding bindings
 
 let map_res map_loc (tmpfile : Fpath.t) (file : Fpath.t)
-    (mr : Report.partial_profiling Report.match_result) =
+    (mr : Core_result.partial_profiling Core_result.match_result) =
   let matches =
     Common.map
       (fun (m : Pattern_match.t) ->
@@ -298,12 +298,13 @@ let map_res map_loc (tmpfile : Fpath.t) (file : Fpath.t)
               })
             skipped_targets
         in
-        Report.Debug
-          { skipped_targets; profiling = { profiling with Report.file } }
-    | Time { profiling } -> Time { profiling = { profiling with Report.file } }
+        Core_result.Debug
+          { skipped_targets; profiling = { profiling with Core_result.file } }
+    | Time { profiling } ->
+        Time { profiling = { profiling with Core_result.file } }
     | No_info -> No_info
   in
-  { Report.matches; errors; extra; explanations = [] }
+  { Core_result.matches; errors; extra; explanations = [] }
 
 (*****************************************************************************)
 (* Main logic *)

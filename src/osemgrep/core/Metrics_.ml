@@ -317,9 +317,9 @@ let add_rules_hashes_and_rules_profiling ?profiling:_TODO rules =
   in
   g.payload.performance.ruleStats <- Some ruleStats_value
 
-let add_max_memory_bytes (profiling_data : Report.final_profiling option) =
+let add_max_memory_bytes (profiling_data : Core_result.final_profiling option) =
   Option.iter
-    (fun { Report.max_memory_bytes; _ } ->
+    (fun { Core_result.max_memory_bytes; _ } ->
       g.payload.performance.maxMemoryBytes <- Some max_memory_bytes)
     profiling_data
 
@@ -333,14 +333,14 @@ let add_rules_hashes_and_findings_count (filtered_matches : (Rule.t * int) list)
   g.payload.value.ruleHashesWithFindings <- Some ruleHashesWithFindings_value
 
 let add_targets_stats (targets : Fpath.t Set_.t)
-    (prof_opt : Report.final_profiling option) =
+    (prof_opt : Core_result.final_profiling option) =
   let targets = Set_.elements targets in
-  let (hprof : (Fpath.t, Report.file_profiling) Hashtbl.t) =
+  let (hprof : (Fpath.t, Core_result.file_profiling) Hashtbl.t) =
     match prof_opt with
     | None -> Hashtbl.create 0
     | Some prof ->
         prof.file_times
-        |> Common.map (fun ({ Report.file; _ } as file_prof) ->
+        |> Common.map (fun ({ Core_result.file; _ } as file_prof) ->
                (file, file_prof))
         |> Common.hash_of_list
   in
@@ -353,11 +353,11 @@ let add_targets_stats (targets : Fpath.t Set_.t)
                  ( Some fprof.run_time,
                    Some
                      (fprof.rule_times
-                     |> Common.map (fun rt -> rt.Report.parse_time)
+                     |> Common.map (fun rt -> rt.Core_result.parse_time)
                      |> Common2.sum_float),
                    Some
                      (fprof.rule_times
-                     |> Common.map (fun rt -> rt.Report.match_time)
+                     |> Common.map (fun rt -> rt.Core_result.match_time)
                      |> Common2.sum_float) )
              | None -> (None, None, None)
            in

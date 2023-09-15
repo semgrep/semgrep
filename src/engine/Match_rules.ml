@@ -15,7 +15,7 @@
 open Common
 open File.Operators
 module R = Rule
-module RP = Report
+module RP = Core_result
 module Resp = Semgrep_output_v1_t
 module E = Core_error
 module Out = Semgrep_output_v1_t

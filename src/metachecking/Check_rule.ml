@@ -19,7 +19,7 @@ open Rule
 module R = Rule
 module E = Core_error
 module P = Pattern_match
-module RP = Report
+module RP = Core_result
 module SJ = Semgrep_output_v1_j
 module Set = Set_
 module Out = Semgrep_output_v1_t

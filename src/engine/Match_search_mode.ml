@@ -20,7 +20,7 @@ module MR = Mini_rule
 module PM = Pattern_match
 module G = AST_generic
 module MV = Metavariable
-module RP = Report
+module RP = Core_result
 module RM = Range_with_metavars
 module E = Core_error
 module ME = Matching_explanation
@@ -222,7 +222,7 @@ let debug_semgrep config mini_rules file lang ast =
 let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
     (xtarget : Xtarget.t)
     (patterns : (Pattern.t Lazy.t * bool * Xpattern.pattern_id * string) list) :
-    RP.times RP.match_result =
+    Core_result.times Core_result.match_result =
   let { Xtarget.file; xlang; lazy_ast_and_errors; lazy_content = _ } =
     xtarget
   in

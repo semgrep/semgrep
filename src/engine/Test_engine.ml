@@ -17,7 +17,7 @@ open File.Operators
 module FT = File_type
 module R = Rule
 module E = Core_error
-module RP = Report
+module RP = Core_result
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -165,7 +165,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                }
              in
              E.g_errors := [];
-             Report.mode := MTime;
+             Core_result.mode := MTime;
              let rules, extract_rules =
                Common.partition_either
                  (fun r ->

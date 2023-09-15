@@ -11,7 +11,7 @@ val match_to_match :
 val core_output_of_matches_and_errors :
   render_fix option ->
   int (* number of files processed, for the stats.okfiles *) ->
-  Report.final_result ->
+  Core_result.final_result ->
   Semgrep_output_v1_t.core_output
 
 (* for abstract_content and subpatterns matching-explanations
