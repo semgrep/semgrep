@@ -35,16 +35,20 @@ def determine_semgrep_pro_path() -> Path:
     SEMGREP_PRO_PATH = os.getenv("SEMGREP_PRO_PATH")
 
     if SEMGREP_PRO_PATH:
-        path = Path(SEMGREP_PRO_PATH) / "semgrep-core-proprietary"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        return path
+        semgrep_pro_path = Path(SEMGREP_PRO_PATH) / "semgrep-core-proprietary"
+        if os.access(semgrep_pro_path.parent, os.W_OK):
+            semgrep_pro_path.parent.mkdir(parents=True, exist_ok=True)
+            return semgrep_pro_path
+        else:
+            logger.info("Invalid path, please set a valid path with proper permissions for SEMGREP_PRO_PATH")
+            sys.exit(FATAL_EXIT_CODE)
 
     core_path = SemgrepCore.path()
     if core_path is None:
         logger.info(
             "Could not find `semgrep-core` executable so not sure where to install DeepSemgrep"
         )
-        logger.info("There is something wrong with your semgrep installtation")
+        logger.info("There is something wrong with your semgrep installation")
         sys.exit(FATAL_EXIT_CODE)
 
     semgrep_pro_path = Path(core_path).parent / "semgrep-core-proprietary"
