@@ -6,13 +6,18 @@ module Cmd = Cmdliner.Cmd
 (* Prelude *)
 (*****************************************************************************)
 (*
-   'semgrep login/logout' command-line arguments processing.
+   'semgrep login' command-line arguments processing.
 *)
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type conf = { common : CLI_common.conf } [@@deriving show]
+type conf = {
+  common : CLI_common.conf;
+  (* Initialize the auth exchange with a temporary shared secret *)
+  init : string;
+}
+[@@deriving show]
 
 (*****************************************************************************)
 (* Login subcommand *)
@@ -36,28 +41,22 @@ let login_cmdline_info : Cmd.info =
   Cmd.info "semgrep login" ~doc:login_doc ~man:login_man
 
 (*****************************************************************************)
-(* Logout subcommand *)
+(* Flags *)
 (*****************************************************************************)
 
-let logout_doc = "Remove locally stored credentials to semgrep.dev"
-
-let logout_man : Cmdliner.Manpage.block list =
-  [
-    `S Cmdliner.Manpage.s_description;
-    `P "Remove locally stored credentials to semgrep.dev";
-  ]
-  @ CLI_common.help_page_bottom
-
-let logout_cmdline_info : Cmd.info =
-  Cmd.info "semgrep logout" ~doc:logout_doc ~man:logout_man
+let o_temporary_secret : string Term.t =
+  let doc =
+    "Initialize login with a temporary secret from the onboarding flow"
+  in
+  Arg.(value & opt string "" & info [ "init"; "setup" ] ~docv:"secret" ~doc)
 
 (*****************************************************************************)
 (* Turn argv into a conf *)
 (*****************************************************************************)
 
 let term =
-  let combine common = { common } in
-  Term.(const combine $ CLI_common.o_common)
+  let combine common init = { common; init } in
+  Term.(const combine $ CLI_common.o_common $ o_temporary_secret)
 
 let parse_argv (cmd_info : Cmd.info) (argv : string array) : conf =
   let cmd : conf Cmd.t = Cmd.v cmd_info term in

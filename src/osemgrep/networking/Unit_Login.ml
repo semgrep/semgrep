@@ -25,9 +25,8 @@ open Testutil
 let ok_token = "ok_token"
 let bad_token = "bad_token"
 
-let login_session =
-  ( Uuidm.of_string "00000000-0000-0000-0000-000000000000" |> Option.get,
-    snd (Semgrep_login.make_login_url ()) )
+let secret =
+  Uuidm.of_string "00000000-0000-0000-0000-000000000000" |> Option.get
 
 let fake_settings =
   "has_shown_metrics_notification: true\n\
@@ -118,7 +117,7 @@ let save_token_tests () =
 
 let fetch_token_tests () =
   let fetch_basic () =
-    let token = Semgrep_login.fetch_token login_session in
+    let token = Semgrep_login.fetch_token secret in
     match token with
     | Ok (token, username) ->
         Alcotest.(check string) "token" ok_token token;
@@ -134,8 +133,7 @@ let fetch_token_tests () =
       | _ -> retry_count := !retry_count + 1
     in
     let token =
-      Semgrep_login.fetch_token ~min_wait_ms:0 ~next_wait_ms:0 ~wait_hook
-        login_session
+      Semgrep_login.fetch_token ~min_wait_ms:0 ~next_wait_ms:0 ~wait_hook secret
     in
     match token with
     | Error e ->

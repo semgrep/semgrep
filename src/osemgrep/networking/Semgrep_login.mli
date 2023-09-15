@@ -1,4 +1,6 @@
-type login_session = Uuidm.t * Uri.t
+type shared_secret = Uuidm.t
+
+type login_session = shared_secret * Uri.t
 (** [login_session] is a request token and request url tuple.*)
 
 val support_url : string
@@ -27,10 +29,10 @@ val fetch_token :
   ?next_wait_ms:int ->
   ?max_retries:int ->
   ?wait_hook:(int -> unit) ->
-  login_session ->
+  shared_secret ->
   (string * string, string) result
-(** [fetch_token ?min_wait_ms ?next_wait_ms ?max_retries wait_hook login_session] will
-  * fetch the token using the request token and url the login session. It will retry up to [max_retries]
+(** [fetch_token ?min_wait_ms ?next_wait_ms ?max_retries wait_hook shared_secret] will
+  * fetch the access token using the shared secret. It will retry up to [max_retries]
   * times, waiting [min_wait_ms] ms between each retry, and increasing the
   * wait time by [next_wait_ms] ms each time. If it fails, it will return an
   * error message. These will give users ~2 minutes to login

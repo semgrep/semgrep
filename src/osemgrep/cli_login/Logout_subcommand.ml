@@ -3,8 +3,6 @@
 (*****************************************************************************)
 (*
    Parse a semgrep-logout command, execute it and exit.
-
-   Translated from login.py
 *)
 
 (*****************************************************************************)
@@ -13,7 +11,7 @@
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run (conf : Login_CLI.conf) : Exit_code.t =
+let run (conf : Logout_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
   let settings = Semgrep_settings.load () in
   match settings.Semgrep_settings.api_token with
@@ -36,5 +34,5 @@ let run (conf : Login_CLI.conf) : Exit_code.t =
 (*****************************************************************************)
 
 let main (argv : string array) : Exit_code.t =
-  let conf = Login_CLI.parse_argv Login_CLI.logout_cmdline_info argv in
+  let conf = Logout_CLI.parse_argv Logout_CLI.logout_cmdline_info argv in
   run conf
