@@ -60,7 +60,7 @@ type state = {
    * or not after executing a finally clause in exception handling.
    *)
   may_return : bool ref;
-  (* Destination node that a return node should go to. *)
+  (* Destination node that a throw node should go to. *)
   throw_destination : F.nodei;
   (* True when a throw may occur in any of the nodes being visited.
    * Initialized as false, and once set to true, remains true forever.
