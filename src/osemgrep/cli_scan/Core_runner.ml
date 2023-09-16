@@ -261,7 +261,7 @@ let invoke_semgrep_core
   let config = prepare_config_for_semgrep_core config lang_jobs in
 
   (* !!!!Finally! this is where we branch to semgrep-core!!! *)
-  let exn, res, files = engine config in
+  let exn, res = engine config in
 
   (* Reinject rule errors *)
   let res =
@@ -272,7 +272,7 @@ let invoke_semgrep_core
     }
   in
 
-  let scanned = Set_.of_list files in
+  let scanned = Set_.of_list res.scanned in
 
   (* TODO(dinosaure): currently, we don't collect metrics when we invoke
      semgrep-core but we should. However, if we implement a way to collect

@@ -34,9 +34,11 @@ type t = {
   matches : Pattern_match.t list;
   errors : Core_error.t list;
   skipped_rules : Rule.invalid_rule_error list;
+  (* may contain also skipped_target information *)
   extra : Core_profiling.t Core_profiling.debug_info;
   explanations : Matching_explanation.t list;
   rules_by_engine : (Rule_ID.t * Pattern_match.engine_kind) list;
+  scanned : Fpath.t list;
 }
 [@@deriving show]
 
@@ -83,6 +85,7 @@ let empty_final_result : t =
     extra = No_info;
     explanations = [];
     rules_by_engine = [];
+    scanned = [];
   }
 
 (* Create a match result *)
@@ -243,14 +246,13 @@ let collate_rule_results (file : Fpath.t)
 let make_final_result
     (results : Core_profiling.file_profiling match_result list)
     (rules_with_engine : (Rule.t * Pattern_match.engine_kind) list)
+    (skipped_rules : Rule.invalid_rule_error list) (scanned : Fpath.t list)
     ~rules_parse_time =
+  (* contenating information from the match_result list *)
   let matches = results |> List.concat_map (fun x -> x.matches) in
+  let explanations = results |> List.concat_map (fun x -> x.explanations) in
   let errors =
     results |> List.concat_map (fun x -> x.errors |> E.ErrorSet.elements)
-  in
-  let explanations = results |> List.concat_map (fun x -> x.explanations) in
-  let final_rules =
-    Common.map (fun (r, ek) -> (fst r.Rule.id, ek)) rules_with_engine
   in
 
   (* Create extra *)
@@ -298,8 +300,9 @@ let make_final_result
     matches;
     errors;
     extra;
-    (* TODO? when this is adjusted? *)
-    skipped_rules = [];
+    skipped_rules;
     explanations;
-    rules_by_engine = final_rules;
+    rules_by_engine =
+      rules_with_engine |> Common.map (fun (r, ek) -> (fst r.Rule.id, ek));
+    scanned;
   }

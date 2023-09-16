@@ -1,7 +1,7 @@
 (*****************************************************************************
  * # Notes
  *
- * ## semgrep CLI (a.k.a. pysemgrep) vs semgrep core
+ * ## pysemgrep vs semgrep core
  *
  * Officially, `semgrep-core` is never run on its own. External users run
  * `semgrep`, which invokes `semgrep-core` with the appropriate rules and targets.
@@ -91,6 +91,11 @@
  * `Common.map`, which is tail-recursive, instead of `List.map`.
  *****************************************************************************)
 
+(* The type of the semgrep core scan. We define it here so that
+   semgrep and semgrep-proprietary use the same definition *)
+type core_scan_func =
+  Core_scan_config.t -> (* Exn raised *) Exception.t option * Core_result.t
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -112,9 +117,7 @@ val semgrep_with_rules_and_formatted_output : Core_scan_config.t -> unit
 *)
 
 val output_semgrep_results :
-  Exception.t option * Core_result.t * Fpath.t list ->
-  Core_scan_config.t ->
-  unit
+  Exception.t option * Core_result.t -> Core_scan_config.t -> unit
 (** [output_semgrep_results] takes the results of a semgrep run and
     format the results on stdout either in a JSON or Textual format
     (depending on the value in config.output_format)
@@ -123,25 +126,22 @@ val output_semgrep_results :
 *)
 
 val semgrep_with_raw_results_and_exn_handler :
-  Core_scan_config.t -> Exception.t option * Core_result.t * Fpath.t list
+  Core_scan_config.t -> Exception.t option * Core_result.t
 (** [semgrep_with_raw_results_and_exn_handler config] runs the semgrep-core
     engine with a starting list of targets and returns
-    (success, result, targets).
-    The targets are all the files that were considered valid targets for the
-    semgrep scan. This excludes files that were filtered out on purpose
-    due to being in the wrong language, too big, etc.
-    It includes targets that couldn't be scanned, for instance due to
-    a parsing error.
+    (success, result).
 
     This run the core engine in Match_rules.check on every files, in
     parallel, with some memory limits, and aggregate the results.
+
+    This has the type core_scan_func defined above.
 *)
 
 val semgrep_with_rules :
   ?match_hook:(string -> Pattern_match.t -> unit) ->
   Core_scan_config.t ->
   (Rule.t list * Rule.invalid_rule_error list) * float ->
-  Core_result.t * Fpath.t list
+  Core_result.t
 
 (*****************************************************************************)
 (* Utilities functions used in tests or semgrep-core variants *)

@@ -219,7 +219,7 @@ let semgrep_check config metachecks rules =
       roots = rules;
     }
   in
-  let _success, res, _targets =
+  let _success, res =
     Core_scan.semgrep_with_raw_results_and_exn_handler config
   in
   res.matches |> Common.map match_to_semgrep_error

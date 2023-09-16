@@ -37,6 +37,15 @@ let debug_extract_mode = ref false
  *)
 
 (*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+(* The type of the semgrep core scan. We define it here so that
+   semgrep and semgrep-proprietary use the same definition *)
+type core_scan_func =
+  Core_scan_config.t -> (* Exn raised *) Exception.t option * Core_result.t
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
@@ -343,7 +352,7 @@ let errors_of_invalid_rule_errors (invalid_rules : Rule.invalid_rule_error list)
     =
   Common.map E.error_of_invalid_rule_error invalid_rules
 
-let sanity_check_invalid_patterns (res : Core_result.t) files =
+let sanity_check_invalid_patterns (res : Core_result.t) =
   match
     res.errors
     |> List.find_opt (fun (err : Core_error.t) ->
@@ -351,10 +360,10 @@ let sanity_check_invalid_patterns (res : Core_result.t) files =
            | Out.PatternParseError _ -> true
            | _else_ -> false)
   with
-  | None -> (None, res, files)
+  | None -> (None, res)
   | Some err ->
       let e = Exception.catch (Failure "Pattern parse error") in
-      (Some e, { Core_result.empty_final_result with errors = [ err ] }, [])
+      (Some e, { Core_result.empty_final_result with errors = [ err ] })
 
 (*****************************************************************************)
 (* Parsing (non-cached) *)
@@ -842,10 +851,16 @@ let semgrep_with_rules ?match_hook config
            | Some f -> f matches
            | None -> matches)
   in
+  let scanned =
+    (* we do not use all_targets here, because we don't count
+     * the extracted targets
+     *)
+    targets |> Common.map (fun x -> Fpath.v x.In.path)
+  in
   let res =
     RP.make_final_result file_results
       (Common.map (fun r -> (r, Pattern_match.OSS)) rules)
-      ~rules_parse_time
+      invalid_rules scanned ~rules_parse_time
   in
   logger#info "found %d matches, %d errors" (List.length res.matches)
     (List.length res.errors);
@@ -860,7 +875,13 @@ let semgrep_with_rules ?match_hook config
    * Common2.write_value matches "/tmp/debug_matches";
    *)
 
-  (* Concatenate all the skipped targets *)
+  (* concatenate all errors *)
+  let errors = rule_errors @ new_errors @ res.errors in
+
+  (* Concatenate all the skipped targets
+   * TODO: maybe we should move skipped_target out of Debug and always
+   * do it?
+   *)
   let extra =
     match res.extra with
     | Core_profiling.Debug { skipped_targets; profiling } ->
@@ -868,29 +889,18 @@ let semgrep_with_rules ?match_hook config
         logger#info "there were %d skipped targets"
           (List.length skipped_targets);
         Core_profiling.Debug { skipped_targets; profiling }
-    | Core_profiling.Time profiling -> Core_profiling.Time profiling
-    | Core_profiling.No_info -> Core_profiling.No_info
+    | (Core_profiling.Time _ | Core_profiling.No_info) as x -> x
   in
-  let errors = rule_errors @ new_errors @ res.errors in
-  ( {
-      RP.matches;
-      errors;
-      skipped_rules = invalid_rules;
-      extra;
-      explanations = res.explanations;
-      rules_by_engine =
-        Common.map (fun x -> (fst x.R.id, Pattern_match.OSS)) rules;
-    },
-    (* TODO not all_targets here, because ?? *)
-    targets |> Common.map (fun x -> Fpath.v x.In.path) )
+
+  { res with matches; errors; extra }
 
 let semgrep_with_raw_results_and_exn_handler config =
   try
     let timed_rules =
       Common.with_time (fun () -> rules_from_rule_source config)
     in
-    let res, files = semgrep_with_rules config timed_rules in
-    sanity_check_invalid_patterns res files
+    let res = semgrep_with_rules config timed_rules in
+    sanity_check_invalid_patterns res
   with
   | exn when not !Flag_semgrep.fail_fast ->
       let e = Exception.catch exn in
@@ -898,9 +908,9 @@ let semgrep_with_raw_results_and_exn_handler config =
       let res =
         { RP.empty_final_result with errors = [ E.exn_to_error None "" e ] }
       in
-      (Some e, res, [])
+      (Some e, res)
 
-let output_semgrep_results (exn, res, files) config =
+let output_semgrep_results (exn, (res : Core_result.t)) config =
   (* note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
@@ -909,7 +919,7 @@ let output_semgrep_results (exn, res, files) config =
   | Json _ -> (
       let res =
         Core_json_output.core_output_of_matches_and_errors
-          (Some Autofix.render_fix) (List.length files) res
+          (Some Autofix.render_fix) (List.length res.scanned) res
       in
       (* one-off experiment, delete it at some point (March 2023) *)
       let res =
@@ -939,8 +949,8 @@ let output_semgrep_results (exn, res, files) config =
         res.errors |> List.iter (fun err -> pr (E.string_of_error err)))
 
 let semgrep_with_rules_and_formatted_output config =
-  let exn, res, files = semgrep_with_raw_results_and_exn_handler config in
-  output_semgrep_results (exn, res, files) config
+  let exn, res = semgrep_with_raw_results_and_exn_handler config in
+  output_semgrep_results (exn, res) config
 
 (*****************************************************************************)
 (* semgrep-core -e/-f *)
@@ -1003,12 +1013,10 @@ let semgrep_with_one_pattern config =
             in
             Rule.rule_of_xpattern xlang xpat)
       in
-      let res, files =
-        semgrep_with_rules config (([ rule ], []), rules_parse_time)
-      in
+      let res = semgrep_with_rules config (([ rule ], []), rules_parse_time) in
       let json =
         Core_json_output.core_output_of_matches_and_errors
-          (Some Autofix.render_fix) (List.length files) res
+          (Some Autofix.render_fix) (List.length res.scanned) res
       in
       let s = Out.string_of_core_output json in
       pr s
