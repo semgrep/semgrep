@@ -29,12 +29,9 @@ type semgrep_core_runner =
   Rule.rules ->
   Rule.invalid_rule_error list ->
   Fpath.t list ->
-  Exception.t option * Core_result.t * Fpath.t Set_.t
+  Core_result.result_and_exn
 
-val create_core_result :
-  Rule.rule list ->
-  Exception.t option * Core_result.t * Fpath.t Set_.t ->
-  result
+val create_core_result : Rule.rule list -> Core_result.result_and_exn -> result
 
 (*
    This calls the semgrep-core command like the Python implementation used

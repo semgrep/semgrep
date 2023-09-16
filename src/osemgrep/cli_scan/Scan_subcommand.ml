@@ -250,15 +250,15 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
    scan. Subsequently, eliminate any previously identified matches
    from the results of the head checkout scan. *)
 let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
-    (profiler : Profiler.t)
-    ((exn : Exception.t option), (r : Core_result.t), (scanned : Fpath.t Set_.t))
+    (profiler : Profiler.t) (result_and_exn : Core_result.result_and_exn)
     (rules : Rule.rules) (commit : string) (status : Git_wrapper.status)
     (core :
       Fpath.t list ->
       ?diff_config:Differential_scan_config.t ->
       Rule.rules ->
       unit ->
-      Exception.t option * Core_result.t * Fpath.t Set_.t) =
+      Core_result.result_and_exn) : Core_result.result_and_exn =
+  let exn, r = result_and_exn in
   if r.matches <> [] then
     let add_renamed paths =
       List.fold_left (fun x (y, _) -> SS.add y x) paths status.renamed
@@ -278,7 +278,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
       |> List.filter (fun x ->
              SS.mem (x.Rule.id |> fst |> Rule_ID.to_string) rules_in_match)
     in
-    let _, baseline_r, _ =
+    let _exn_baseline, baseline_r =
       Profiler.record profiler ~name:"baseline_core_time" (fun () ->
           Git_wrapper.run_with_worktree ~commit (fun () ->
               let paths_in_match =
@@ -309,7 +309,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
                        only by the file displaying matches but also by its
                        dependencies. Hence, merely rescanning files with
                        matches is insufficient. *)
-                    (all_in_baseline, Set_.elements scanned)
+                    (all_in_baseline, r.scanned)
                 | _ -> (paths_in_match, [])
               in
               core baseline_targets
@@ -317,8 +317,8 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
                   (Differential_scan_config.BaseLine baseline_diff_targets)
                 baseline_rules ()))
     in
-    (exn, remove_matches_in_baseline commit baseline_r r status.renamed, scanned)
-  else (exn, r, scanned)
+    (exn, remove_matches_in_baseline commit baseline_r r status.renamed)
+  else (exn, r)
 
 (*****************************************************************************)
 (* Conduct the scan *)

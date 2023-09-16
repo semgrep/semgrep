@@ -59,6 +59,9 @@ type 'a match_result = {
 }
 [@@deriving show]
 
+(* TODO: change in result_or_exn *)
+type result_and_exn = Exception.t option * t
+
 (*****************************************************************************)
 (* Builders *)
 (*****************************************************************************)
