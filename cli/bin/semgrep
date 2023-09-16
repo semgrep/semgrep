@@ -112,7 +112,7 @@ def exec_osemgrep():
             # Set pro binary path to that designated by SEMGREP_PRO_PATH and verify it exists
             path = Path(SEMGREP_PRO_PATH) / "semgrep-core-proprietary"
             if path.is_file():
-                os.environ["PATH"] = os.getenv("PATH") + os.pathsep + os.getenv("SEMGREP_PRO_PATH")
+                os.environ["PATH"] = os.getenv("PATH", "") + os.pathsep + os.getenv("SEMGREP_PRO_PATH", "")
             else:
                 # Reset path due to invalid SEMGREP_PRO_PATH
                 path = None
