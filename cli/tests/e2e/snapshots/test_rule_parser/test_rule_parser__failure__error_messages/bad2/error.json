@@ -3,7 +3,7 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "Additional properties are not allowed ('severit' was unexpected)",
+      "long_msg": "One of these properties is missing: 'severity'",
       "short_msg": "Invalid rule schema",
       "spans": [
         {

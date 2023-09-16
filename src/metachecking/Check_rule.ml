@@ -17,9 +17,9 @@ open File.Operators
 module FT = File_type
 open Rule
 module R = Rule
-module E = Semgrep_error_code
+module E = Core_error
 module P = Pattern_match
-module RP = Report
+module RP = Core_result
 module SJ = Semgrep_output_v1_j
 module Set = Set_
 module Out = Semgrep_output_v1_t
@@ -62,7 +62,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 exception No_metacheck_file of string
 
-type env = { r : Rule.t; errors : E.error list ref }
+type env = { r : Rule.t; errors : Core_error.t list ref }
 
 (*****************************************************************************)
 (* Helpers *)
@@ -209,10 +209,10 @@ let semgrep_check config metachecks rules =
     (* TODO: why not set ~rule_id here?? bug? *)
     E.mk_error None loc s Out.SemgrepMatchFound
   in
-  let config =
+  let (config : Core_scan_config.t) =
     {
       config with
-      Runner_config.lang = Some (Xlang.of_lang Yaml);
+      lang = Some (Xlang.of_lang Yaml);
       rule_source = Some (Rule_file metachecks);
       output_format = Json true;
       (* the targets are actually the rules! metachecking! *)
@@ -220,7 +220,7 @@ let semgrep_check config metachecks rules =
     }
   in
   let _success, res, _targets =
-    Run_semgrep.semgrep_with_raw_results_and_exn_handler config
+    Core_scan.semgrep_with_raw_results_and_exn_handler config
   in
   res.matches |> Common.map match_to_semgrep_error
 

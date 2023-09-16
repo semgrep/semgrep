@@ -36,7 +36,9 @@ module MessageHandler = struct
   (** This is the entry point for scanning, returns /relevant/ matches, and all files scanned*)
   let run_semgrep ?(targets = None) ?(rules = None) server =
     let session = server.session in
-    let rules = Option.value ~default:server.session.cached_rules.rules rules in
+    let rules =
+      Option.value ~default:server.session.cached_session.rules rules
+    in
     let targets = Option.value ~default:(Session.targets session) targets in
     Logs.app (fun m -> m "Running Semgrep with %d rules" (List.length rules));
     let runner_conf = Session.runner_conf session in
@@ -97,7 +99,7 @@ module MessageHandler = struct
   let refresh_rules server =
     let token = create_progress server "Semgrep" "Refreshing Rules" in
     Lwt.async (fun () ->
-        let%lwt () = Session.cache_rules server.session in
+        let%lwt () = Session.cache_session server.session in
         end_progress server token;
         scan_workspace server;
         Lwt.return_unit)
@@ -117,10 +119,21 @@ module MessageHandler = struct
           let content = Some first.text in
           scan_file ~content server uri;
           server
-      | CN.DidSaveTextDocument { textDocument = { uri }; _ }
-      | CN.TextDocumentDidOpen { textDocument = { uri; _ } } ->
-          Logs.app (fun m -> m "Scanning file %s" (Uri.to_string uri));
+      | CN.DidSaveTextDocument { textDocument = { uri }; _ } ->
+          Logs.app (fun m -> m "Scanning file %s on save" (Uri.to_string uri));
           scan_file server uri;
+          server
+      | CN.TextDocumentDidOpen { textDocument = { uri; _ } } ->
+          let path = uri |> Uri.to_path |> Fpath.v in
+          let prev_scan = Session.previous_scan_of_file server.session path in
+          (* We usually scan every file on startup, so let's only rescan an opened
+             file if there weren't previous results *)
+          if Option.is_some prev_scan then
+            Logs.app (fun m ->
+                m "File %s already scanned, not rescanning" (Uri.to_string uri))
+          else (
+            Logs.app (fun m -> m "Scanning file %s on open" (Uri.to_string uri));
+            scan_file server uri);
           server
       | CN.ChangeWorkspaceFolders { event = { added; removed }; _ } ->
           let added = Conv.workspace_folders_to_paths added in
@@ -257,8 +270,8 @@ module MessageHandler = struct
           (None, server)
       | CR.CodeAction { textDocument = { uri }; context; _ } ->
           let file = uri |> Uri.to_path |> Fpath.v in
-          let results = Hashtbl.find_opt server.session.documents file in
-          let matches = Option.value results ~default:[] in
+          let matches_opt = Session.previous_scan_of_file server.session file in
+          let matches = Option.value ~default:[] matches_opt in
           let diagnostics = context.diagnostics in
           let ranges =
             Common.map (fun (d : Diagnostic.t) -> d.range) diagnostics

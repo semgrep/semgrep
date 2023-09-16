@@ -7,9 +7,6 @@ import pytest
 from semgrep.config_resolver import Config
 from semgrep.metrics import Metrics
 from semgrep.metrics import MetricsState
-from semgrep.profiling import ProfilingData
-
-pytestmark = pytest.mark.freeze_time("2017-03-03")
 
 
 @pytest.fixture(autouse=True)
@@ -33,6 +30,7 @@ def metrics(mocker) -> Metrics:
         (["a", "b"], ["b", "a"], False),
     ],
 )
+@pytest.mark.freeze_time("2023-09-01 09:01:00")
 def test_configs_hash(first, second, is_equal) -> None:
     first_metrics = Metrics()
     first_metrics.add_configs(first)
@@ -57,6 +55,7 @@ def test_configs_hash(first, second, is_equal) -> None:
         ([0, 1, 2], [1], False),
     ],
 )
+@pytest.mark.freeze_time("2023-09-01 09:01:00")
 def test_rules_hash(first, second, is_equal) -> None:
     config1 = dedent(
         """
@@ -91,9 +90,9 @@ def test_rules_hash(first, second, is_equal) -> None:
     second_rules = [rules[i] for i in second]
 
     first_metrics = Metrics()
-    first_metrics.add_rules(first_rules, ProfilingData())
+    first_metrics.add_rules(first_rules, None)
     second_metrics = Metrics()
-    second_metrics.add_rules(second_rules, ProfilingData())
+    second_metrics.add_rules(second_rules, None)
 
     # this provides better error messages than `(first_metrics == second_metrics) == is_equal`
     if is_equal:

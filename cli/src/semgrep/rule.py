@@ -12,7 +12,7 @@ from typing import Sequence
 from typing import Set
 from typing import Union
 
-import semgrep.output_from_core as core
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import RuleScanSource
 from semgrep.constants import RuleSeverity
 from semgrep.error import InvalidRuleSchemaError
@@ -31,6 +31,7 @@ from semgrep.semgrep_types import SEARCH_MODE
 class RuleProduct(Enum):
     sast = auto()
     sca = auto()
+    secrets = auto()
 
 
 class Rule:
@@ -136,12 +137,12 @@ class Rule:
         return self._excludes
 
     @property
-    def id(self) -> str:  # TODO: return a core.RuleId
+    def id(self) -> str:  # TODO: return a out.RuleId
         return self._id
 
     @property
-    def id2(self) -> core.RuleId:  # TODO: merge with id
-        return core.RuleId(self._id)
+    def id2(self) -> out.RuleId:  # TODO: merge with id
+        return out.RuleId(self._id)
 
     @property
     def message(self) -> str:
@@ -256,11 +257,15 @@ class Rule:
 
     @property
     def product(self) -> RuleProduct:
-        return (
-            RuleProduct.sca
-            if "r2c-internal-project-depends-on" in self._raw
-            else RuleProduct.sast
-        )
+        if "r2c-internal-project-depends-on" in self._raw:
+            return RuleProduct.sca
+        elif "product" in self.metadata:
+            if self.metadata.get("product") == "secrets":
+                return RuleProduct.secrets
+            else:
+                return RuleProduct.sast
+        else:
+            return RuleProduct.sast
 
     @property
     def scan_source(self) -> RuleScanSource:

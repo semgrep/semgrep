@@ -39,6 +39,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
     {
       "category": "sast",
       "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-bad",
+      "description": "useless comparison",
       "details": {},
       "flags": [],
       "id": "8c695a6a-4ab5-ffff-33d0-103309a310c1",
@@ -68,6 +69,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
     {
       "category": "sast",
       "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-bad",
+      "description": "useless comparison",
       "details": {},
       "flags": [],
       "id": "8abb389b-2f01-d0e5-2d66-3251e1d24ba7",
@@ -97,6 +99,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
     {
       "category": "sast",
       "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-bad",
+      "description": "useless comparison",
       "details": {},
       "flags": [],
       "id": "f6c666e6-921a-4402-8a20-15d0de15cc14",
@@ -126,6 +129,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
     {
       "category": "sast",
       "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-bad",
+      "description": "useless comparison",
       "details": {},
       "flags": [],
       "id": "d4404942-1636-e370-e790-6a6bed5fce54",
@@ -155,6 +159,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
     {
       "category": "sast",
       "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-five",
+      "description": "useless comparison to 5",
       "details": {},
       "flags": [],
       "id": "8646a2df-c020-9136-0696-9dcfe84e53c0",
@@ -184,6 +189,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
     {
       "category": "sast",
       "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-four",
+      "description": "useless comparison to 4",
       "details": {},
       "flags": [],
       "id": "87cd1247-dfc8-4bbd-502c-872035c71a63",
@@ -213,6 +219,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
     {
       "category": "sast",
       "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:taint-test",
+      "description": "unsafe use of danger",
       "details": {},
       "flags": [],
       "id": "05a6d679-3a62-42a4-9ff8-3113ef4a83b3",
@@ -242,6 +249,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
     {
       "category": "sast",
       "cve": "poetry.lock:f53a023eedfa3fbf2925ec7dc76eecdc954ea94b7e47065393dbad519613dc89:supply-chain1",
+      "description": "found a dependency",
       "details": {
         "exposure": {
           "name": "exposure",
@@ -290,7 +298,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
   environment - running in environment git, triggering event is unknown
 
   CONNECTION
-  Reporting start of scan for deployment_name
+  Reporting start of scan for deployment_name (scan_id=<MagicMock name='post()…
   Fetching configuration from Semgrep Cloud Platform
   Enabled products: Semgrep Code, Semgrep Supply Chain
 

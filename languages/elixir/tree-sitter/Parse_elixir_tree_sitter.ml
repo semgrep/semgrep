@@ -362,11 +362,11 @@ and map_atom (env : env) (x : CST.atom) : atom =
   | `Atom_ tok ->
       (* less: should remove the leading ':' from x *)
       let x = (* atom_ *) str env tok in
-      (fk ":", X x)
+      (fk ":", X1 x)
   | `Quoted_atom (v1, v2) ->
       let t = (* quoted_atom_start *) token env v1 in
       let x = map_anon_choice_quoted_i_double_d7d5f65 env v2 in
-      (t, Quoted x)
+      (t, Quoted1 x)
 
 and map_binary_operator (env : env) (x : CST.binary_operator) : expr =
   match x with
@@ -924,11 +924,11 @@ and map_keyword (env : env) (x : CST.keyword) : keyword =
   | `Kw_ tok ->
       (* todo: remove suffix ':' *)
       let x = (* keyword_ *) str env tok in
-      (X x, fk ":")
+      (X1 x, fk ":")
   | `Quoted_kw (v1, v2) ->
       let v1 = map_anon_choice_quoted_i_double_d7d5f65 env v1 in
       let tcolon = (* pattern :\s *) token env v2 in
-      (Quoted v1, tcolon)
+      (Quoted1 v1, tcolon)
 
 and map_keywords (env : env) ((v1, v2) : CST.keywords) : keywords =
   let v1 = map_pair env v1 in
@@ -1013,14 +1013,14 @@ and map_remote_call_with_parentheses (env : env)
 and map_remote_dot (env : env) ((v1, v2, v3) : CST.remote_dot) : remote_dot =
   let e = map_expression env v1 in
   let tdot = (* "." *) token env v2 in
-  let fld : ident_or_operator or_quoted =
+  let fld : ident_or_operator__or_quoted =
     match v3 with
     | `Id x ->
         let id = map_identifier env x in
-        X (Left id)
+        X2 (Left id)
     (* keywords are ok in a remote_dot context, no ambiguity *)
     | `Choice_and x ->
-        X
+        X2
           (Left
              (Id
                 (match x with
@@ -1041,14 +1041,14 @@ and map_remote_dot (env : env) ((v1, v2, v3) : CST.remote_dot) : remote_dot =
                 | `Rescue tok -> (* "rescue" *) str env tok)))
     | `Op_id x ->
         let id = map_operator_identifier env x in
-        X (Right id)
+        X2 (Right id)
     | `Quoted_i_double x ->
         (* TODO: could detect of the map_quoted_i_xxx is a constant string *)
         let x = map_quoted_i_double env x in
-        Quoted x
+        Quoted2 x
     | `Quoted_i_single x ->
         let x = map_quoted_i_single env x in
-        Quoted x
+        Quoted2 x
   in
   (e, tdot, fld)
 

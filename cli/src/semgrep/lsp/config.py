@@ -23,7 +23,7 @@ class LSPConfig:
     # =====================
     @property
     def extension_metrics(self) -> Dict[str, Any]:
-        extension_metrics = self._settings.get("extensionMetrics", {})
+        extension_metrics = self._settings.get("metrics", {})
         if isinstance(extension_metrics, dict):
             return extension_metrics
         elif isinstance(extension_metrics, str):

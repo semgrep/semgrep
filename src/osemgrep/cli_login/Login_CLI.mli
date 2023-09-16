@@ -5,11 +5,7 @@
 (*
    The result of parsing a 'semgrep login/logout' command.
 *)
-type conf = {
-  (* mix of --debug, --quiet, --verbose *)
-  logging_level : Logs.level option;
-}
-[@@deriving show]
+type conf = { common : CLI_common.conf } [@@deriving show]
 
 val login_cmdline_info : Cmdliner.Cmd.info
 val logout_cmdline_info : Cmdliner.Cmd.info

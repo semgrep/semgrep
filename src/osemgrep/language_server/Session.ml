@@ -9,17 +9,20 @@ module Out = Semgrep_output_v1_t
 
 (* We really don't wan't mutable state in the server.
    This is the only exception *)
-type rule_cache = { mutable rules : Rule.t list; lock : Lwt_mutex.t }
+type session_cache = {
+  mutable rules : Rule.t list;
+  mutable skipped_fingerprints : string list;
+  lock : Lwt_mutex.t;
+}
 
 type t = {
   capabilities : ServerCapabilities.t;
   incoming : Lwt_io.input_channel;
   outgoing : Lwt_io.output_channel;
   workspace_folders : Fpath.t list;
-  documents : (Fpath.t, Out.cli_match list) Hashtbl.t;
-  cached_rules : rule_cache;
+  cached_scans : (Fpath.t, Out.cli_match list) Hashtbl.t;
+  cached_session : session_cache;
   user_settings : UserSettings.t;
-  token : string option; (* Mostly for testing *)
 }
 
 (*****************************************************************************)
@@ -27,16 +30,17 @@ type t = {
 (*****************************************************************************)
 
 let create capabilities =
-  let cached_rules = { rules = []; lock = Lwt_mutex.create () } in
+  let cached_session =
+    { rules = []; skipped_fingerprints = []; lock = Lwt_mutex.create () }
+  in
   {
     capabilities;
     incoming = Lwt_io.stdin;
     outgoing = Lwt_io.stdout;
     workspace_folders = [];
-    documents = Hashtbl.create 10;
-    cached_rules;
+    cached_scans = Hashtbl.create 10;
+    cached_session;
     user_settings = UserSettings.default;
-    token = None;
   }
 
 let dirty_files_of_folder folder =
@@ -61,8 +65,11 @@ let decode_rules data =
 (*****************************************************************************)
 
 let auth_token () =
-  let settings = Semgrep_settings.load () in
-  settings.api_token
+  match !Semgrep_envvars.v.app_token with
+  | Some token -> Some token
+  | None ->
+      let settings = Semgrep_settings.load () in
+      settings.api_token
 
 (* This is dynamic so if the targets file is updated we don't have to restart
  * (and reparse rules...).
@@ -99,11 +106,10 @@ let targets session =
   (* Filter targets by if only_git_dirty, if they are a dirty file *)
   targets |> List.filter member_workspaces
 
-let fetch_ci_rules_and_origins session () =
+let fetch_ci_rules_and_origins () =
   let token = auth_token () in
-  match (token, session.token) with
-  | _, Some token
-  | Some token, _ ->
+  match token with
+  | Some token ->
       let%lwt scan_config =
         Scan_helper.fetch_scan_config_async ~token ~sca:false ~dry_run:true
           ~full_scan:true ""
@@ -111,7 +117,9 @@ let fetch_ci_rules_and_origins session () =
       let conf =
         match scan_config with
         | Ok rules -> Some (decode_rules rules)
-        | _ -> None
+        | Error e ->
+            Logs.warn (fun m -> m "Failed to fetch rules from CI: %s" e);
+            None
       in
       Lwt.return conf
   | _ -> Lwt.return None
@@ -119,7 +127,7 @@ let fetch_ci_rules_and_origins session () =
 (* TODO Default to auto *)
 let fetch_rules session =
   let%lwt ci_rules =
-    if session.user_settings.ci then fetch_ci_rules_and_origins session ()
+    if session.user_settings.ci then fetch_ci_rules_and_origins ()
     else Lwt.return_none
   in
   let home = Unix.getenv "HOME" |> Fpath.v in
@@ -132,14 +140,18 @@ let fetch_rules session =
     |> Common.map Fpath.to_string
   in
   let rules_source =
-    if rules_source = [] && ci_rules = None then [ "auto" ] else rules_source
+    if rules_source = [] && ci_rules = None then (
+      Logs.app (fun m -> m "No rules source specified, using auto");
+      [ "auto" ])
+    else rules_source
   in
   let%lwt rules_and_origins =
     Lwt_list.map_p
       (fun source ->
-        let kind = Semgrep_dashdash_config.parse_config_string source in
+        let in_docker = !Semgrep_envvars.v.in_docker in
+        let config = Rules_config.parse_config_string ~in_docker source in
         Rule_fetching.rules_from_dashdash_config_async
-          ~token_opt:(auth_token ()) ~registry_caching:true kind)
+          ~token_opt:(auth_token ()) ~registry_caching:true config)
       rules_source
   in
   let rules_and_origins = List.flatten rules_and_origins in
@@ -148,7 +160,9 @@ let fetch_rules session =
     | Some r ->
         Logs.info (fun m -> m "Got %d rules from CI" (List.length r.rules));
         r :: rules_and_origins
-    | None -> rules_and_origins
+    | None ->
+        Logs.info (fun m -> m "No rules from CI");
+        rules_and_origins
   in
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origins
@@ -167,21 +181,39 @@ let fetch_rules session =
 
   Lwt.return (rules, errors)
 
-let cache_rules session =
+let fetch_skipped_fingerprints () =
+  (* At some point we should allow users to ignore ids locally *)
+  let auth_token = auth_token () in
+  match auth_token with
+  | Some token -> (
+      let%lwt deployment_opt =
+        Semgrep_App.get_scan_config_from_token_async ~token
+      in
+      match deployment_opt with
+      | Some deployment -> Lwt.return deployment.skipped_match_based_ids
+      | None -> Lwt.return [])
+  | None -> Lwt.return []
+
+let cache_session session =
   let%lwt rules, _ = fetch_rules session in
-  Lwt_mutex.with_lock session.cached_rules.lock (fun () ->
-      session.cached_rules.rules <- rules;
+  let%lwt skipped_fingerprints = fetch_skipped_fingerprints () in
+  Lwt_mutex.with_lock session.cached_session.lock (fun () ->
+      session.cached_session.rules <- rules;
+      session.cached_session.skipped_fingerprints <- skipped_fingerprints;
       Lwt.return_unit)
 
 (* Useful for when we need to reset diagnostics, such as when changing what
  * rules we've run *)
 let scanned_files session =
   (* We can get duplicates apparently *)
-  Hashtbl.fold (fun file _ acc -> file :: acc) session.documents []
+  Hashtbl.fold (fun file _ acc -> file :: acc) session.cached_scans []
   |> List.sort_uniq Fpath.compare
 
 let runner_conf session =
   UserSettings.core_runner_conf_of_t session.user_settings
+
+let previous_scan_of_file session file =
+  Hashtbl.find_opt session.cached_scans file
 
 (*****************************************************************************)
 (* State setters *)
@@ -199,8 +231,8 @@ let record_results session results files =
   let results_by_file =
     Common.group_by (fun (r : Out.cli_match) -> Fpath.v r.path) results
   in
-  List.iter (fun f -> Hashtbl.replace session.documents f []) files;
+  List.iter (fun f -> Hashtbl.replace session.cached_scans f []) files;
   List.iter
-    (fun (f, results) -> Hashtbl.add session.documents f results)
+    (fun (f, results) -> Hashtbl.add session.cached_scans f results)
     results_by_file;
   ()

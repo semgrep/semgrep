@@ -42,7 +42,7 @@ from rich.progress import TimeElapsedColumn
 from rich.table import Table
 from ruamel.yaml import YAML
 
-import semgrep.output_from_core as core
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.app import auth
 from semgrep.config_resolver import Config
 from semgrep.console import console
@@ -50,7 +50,6 @@ from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.core_output import core_error_to_semgrep_error
 from semgrep.core_output import core_matches_to_rule_matches
-from semgrep.core_output import parse_core_output
 from semgrep.engine import EngineType
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
@@ -65,6 +64,7 @@ from semgrep.rule_match import OrderedRuleMatchList
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
+from semgrep.state import get_context
 from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
 from semgrep.util import unit_str
@@ -153,7 +153,7 @@ def dedup_errors(errors: List[SemgrepCoreError]) -> List[SemgrepCoreError]:
 
 def uniq_error_id(
     error: SemgrepCoreError,
-) -> Tuple[int, Path, core.Position, core.Position, str]:
+) -> Tuple[int, Path, out.Position, out.Position, str]:
     return (
         error.code,
         Path(error.core.location.path.value),
@@ -505,9 +505,29 @@ class Plan:
 
     # TODO: make this counts_by_lang_label, returning TaskCounts
     def split_by_lang_label(self) -> Dict[str, "TargetMappings"]:
+        return self.split_by_lang_label_for_product()
+
+    # Divides rule mapping up into the rule counts per language
+    # filtering out rules for a specific product. If product = None
+    # then all products are included.
+    def split_by_lang_label_for_product(
+        self, product: Optional[RuleProduct] = None
+    ) -> Dict[str, "TargetMappings"]:
         result: Dict[str, TargetMappings] = collections.defaultdict(TargetMappings)
         for task in self.target_mappings:
-            result[task.language_label].append(task)
+            result[task.language_label].append(
+                task
+                if product is None
+                else Task(
+                    path=task.path,
+                    language=task.language,
+                    rule_nums=tuple(
+                        num
+                        for num in task.rule_nums
+                        if self.rules[num].product == product
+                    ),
+                )
+            )
         return result
 
     @lru_cache(maxsize=1000)  # caching this saves 60+ seconds on mid-sized repos
@@ -560,19 +580,28 @@ class Plan:
     def num_targets(self) -> int:
         return len(self.target_mappings)
 
-    def table_by_language(self) -> Table:
+    def rule_count_for_product(self, product: RuleProduct) -> int:
+        rule_nums: Set[int] = set()
+        for task in self.target_mappings:
+            for rule_num in task.rule_nums:
+                if self.rules[rule_num].product == product:
+                    rule_nums.add(rule_num)
+        return len(rule_nums)
+
+    def table_by_language(self, with_tables_for: Optional[RuleProduct] = None) -> Table:
         table = Table(box=box.SIMPLE_HEAD, show_edge=False)
         table.add_column("Language")
         table.add_column("Rules", justify="right")
         table.add_column("Files", justify="right")
 
         plans_by_language = sorted(
-            self.split_by_lang_label().items(),
+            self.split_by_lang_label_for_product(with_tables_for).items(),
             key=lambda x: (x[1].file_count, x[1].rule_count),
             reverse=True,
         )
         for language, plan in plans_by_language:
-            table.add_row(language, str(plan.rule_count), str(plan.file_count))
+            if plan.rule_count:
+                table.add_row(language, str(plan.rule_count), str(plan.file_count))
 
         return table
 
@@ -607,7 +636,7 @@ class Plan:
 
         return table
 
-    def table_by_origin(self) -> Table:
+    def table_by_origin(self, with_tables_for: Optional[RuleProduct] = None) -> Table:
         table = Table(box=box.SIMPLE_HEAD, show_edge=False)
         table.add_column("Origin")
         table.add_column("Rules", justify="right")
@@ -615,7 +644,7 @@ class Plan:
         origin_counts = collections.Counter(
             get_path(rule.metadata, ("semgrep.dev", "rule", "origin"), default="custom")
             for rule in self.rules
-            if rule.product == RuleProduct.sast
+            if rule.product == with_tables_for
         )
 
         for origin, count in sorted(
@@ -664,24 +693,58 @@ class Plan:
         """
         Pretty print the plan to stdout with the new CLI UX.
         """
-        if self.target_mappings.rule_count == 0:
+        if not self.rule_count_for_product(with_tables_for):
             sep = "\n   "
             message = "No rules to run."
             if with_tables_for == RuleProduct.sca:
-                if auth.get_token() is None:
-                    message = sep.join(
-                        wrap(
-                            "💎 Sign in with `semgrep login` and run `semgrep ci` to find dependency vulnerabilities and advanced cross-file findings.",
-                            width=70,
+                """
+                We need to account for several edges cases:
+                 - `semgrep ci` was invoked but no rules were found (e.g. no lockfile).
+                 - `semgrep scan` was invoked with the supply-chain flag and no rules found.
+                 - `semgrep ci` was invoked without the supply-chain flag or feature enabled.
+                """
+                # 1. Validate that the user is indeed running SCA.
+                ctx = get_context()
+                # we only want to print the message if the user is running `semgrep scan`
+                command_name = ctx.command.name if hasattr(ctx, "command") else "unset"
+                is_scan = command_name == "scan"
+                params = ctx.params if hasattr(ctx, "params") else {}
+                # --supply-chain flag is passed directly for `semgrep ci`
+                # whereas for scan supply-chain is passed via --config
+                is_supply_chain = (
+                    "supply-chain" in list(params.get("config") or ())
+                    if is_scan
+                    else (params.get("supply-chain") or False)
+                )
+                # 2. Check if the user has metrics enabled.
+                metrics = get_state().metrics
+                metrics_enabled = metrics.is_enabled
+                # If the user has metrics enabled, we can suggest they run `semgrep ci` to get more findings.
+                # Otherwise, we should expect the user to be already aware of the other products.
+                # 3. Check if the user has logged in.
+                has_auth = auth.get_token() is not None
+                # Users who have not logged in will not be able to run `semgrep ci`.
+                # For users with metrics enabled who are running scan without auth,
+                # we should suggest they login and run semgrep ci.
+                if is_scan and metrics_enabled:
+                    if not has_auth:
+                        message = sep.join(
+                            wrap(
+                                "💎 Sign in with `semgrep login` and run `semgrep ci` to find dependency vulnerabilities and advanced cross-file findings.",
+                                width=70,
+                            )
                         )
-                    )
-                else:  # logged in but --config supply-chain not passed
-                    message = sep.join(
-                        wrap(
-                            "💎 Run `semgrep ci` to find dependency vulnerabilities and advanced cross-file findings.",
-                            width=70,
+                    elif not is_supply_chain:
+                        message = sep.join(
+                            wrap(
+                                "💎 Run `semgrep ci` to find dependency vulnerabilities and advanced cross-file findings.",
+                                width=70,
+                            )
                         )
-                    )
+                    else:  # supply chain but no rules (e.g. no lockfile)
+                        pass
+                else:  # skip nudge for users who have not enabled metrics or are already running ci
+                    pass
             else:  # sast or another product without rules
                 pass
             console.print(f"\n{message}\n")
@@ -691,8 +754,8 @@ class Plan:
         # default to SAST table if sca is specified
         tables = (
             [
-                self.table_by_language(),
-                self.table_by_origin(),
+                self.table_by_language(with_tables_for),
+                self.table_by_origin(with_tables_for),
             ]
             if with_tables_for != RuleProduct.sca
             else [
@@ -711,24 +774,30 @@ class Plan:
         """
         Print the plan to stdout with the original CLI UX.
         """
-        if self.target_mappings.rule_count == 0:
+        rule_count = self.rule_count_for_product(with_tables_for)
+        if not rule_count:
             console.print("Nothing to scan.")
             return
 
-        if self.target_mappings.rule_count == 1:
+        if rule_count == 1:
             console.print(f"Scanning {unit_str(len(self.target_mappings), 'file')}.")
             return
 
-        if len(self.split_by_lang_label()) == 1:
+        plan_by_lang = self.split_by_lang_label_for_product(with_tables_for)
+        if len(plan_by_lang) == 1:
+            [(language, target_mapping)] = plan_by_lang.items()
             console.print(
-                f"Scanning {unit_str(self.target_mappings.file_count, 'file')} with {unit_str(self.target_mappings.rule_count, f'{list(self.split_by_lang_label())[0]} rule')}."
+                f"Scanning {unit_str(target_mapping.file_count, 'file')} with {unit_str(rule_count, f'{language} rule')}."
             )
             return
 
-        if with_tables_for == RuleProduct.sast:
+        if (
+            with_tables_for == RuleProduct.sast
+            or with_tables_for == RuleProduct.secrets
+        ):
             tables = [
-                self.table_by_language(),
-                self.table_by_origin(),
+                self.table_by_language(with_tables_for),
+                self.table_by_origin(with_tables_for),
             ]
         elif with_tables_for == RuleProduct.sca:
             tables = [
@@ -816,7 +885,7 @@ class CoreRunner:
             )
 
             if "errors" in output_json:
-                parsed_output = parse_core_output(output_json)
+                parsed_output = out.CoreOutput.from_json(output_json)
                 errors = parsed_output.errors
                 if len(errors) < 1:
                     self._fail(
@@ -909,31 +978,6 @@ class CoreRunner:
             f"Error while matching: {reason}\n{details}" f"{PLEASE_FILE_ISSUE_TEXT}"
         )
 
-    def _add_match_times(
-        self,
-        profiling_data: ProfilingData,
-        timing: core.CoreTiming,
-    ) -> None:
-        if timing.rules_parse_time:
-            profiling_data.set_rules_parse_time(timing.rules_parse_time)
-
-        for t in timing.targets:
-            rule_timings = {
-                rt.rule_id: Times(rt.parse_time, rt.match_time) for rt in t.rule_times
-            }
-            profiling_data.set_file_times(Path(t.path.value), rule_timings, t.run_time)
-
-    def _add_max_memory_bytes(
-        self, profiling_data: ProfilingData, max_memory_bytes: int
-    ) -> None:
-        """
-        This represents the maximum amount of memory used by the OCaml side of
-        Semgrep during its execution.
-
-        This is useful for telemetry purposes.
-        """
-        profiling_data.set_max_memory_bytes(max_memory_bytes)
-
     @staticmethod
     def plan_core_run(
         rules: List[Rule],
@@ -1008,7 +1052,7 @@ class CoreRunner:
         max_timeout_files: Set[Path] = set()
         # TODO this is a quick fix, refactor this logic
 
-        profiling_data: ProfilingData = ProfilingData()
+        profiling_data: Optional[ProfilingData] = None
         parsing_data: ParsingData = ParsingData()
 
         # Create an exit stack context manager to properly handle closing
@@ -1139,19 +1183,34 @@ class CoreRunner:
                 runner.stdout,
                 runner.stderr,
             )
-            core_output = parse_core_output(output_json)
+            core_output = out.CoreOutput.from_json(output_json)
+            if core_output.skipped_targets:
+                for skip in core_output.skipped_targets:
+                    if skip.rule_id:
+                        rule_info = f"rule {skip.rule_id}"
+                    else:
+                        rule_info = "all rules"
+                        logger.verbose(
+                            f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
+                        )
 
-            if ("time" in output_json) and core_output.time:
-                self._add_match_times(profiling_data, core_output.time)
-                self._add_max_memory_bytes(
-                    profiling_data, core_output.time.max_memory_bytes
-                )
+            if core_output.time:
+                timing = core_output.time
+                profiling_data = ProfilingData(core_output.time)
+                for t in timing.targets:
+                    rule_timings = {
+                        rt.rule_id: Times(rt.parse_time, rt.match_time)
+                        for rt in t.rule_times
+                    }
+                    profiling_data.set_file_times(
+                        Path(t.path.value), rule_timings, t.run_time
+                    )
 
             # end with tempfile.NamedTemporaryFile(...) ...
             outputs = core_matches_to_rule_matches(rules, core_output)
             parsed_errors = [core_error_to_semgrep_error(e) for e in core_output.errors]
             for err in core_output.errors:
-                if isinstance(err.error_type.value, core.Timeout):
+                if isinstance(err.error_type.value, out.Timeout):
                     assert err.location.path is not None
 
                     file_timeouts[Path(err.location.path.value)] += 1
@@ -1164,11 +1223,11 @@ class CoreRunner:
                 if isinstance(
                     err.error_type.value,
                     (
-                        core.LexicalError,
-                        core.ParseError,
-                        core.PartialParsing,
-                        core.SpecifiedParseError,
-                        core.AstBuilderError,
+                        out.LexicalError,
+                        out.ParseError,
+                        out.PartialParsing,
+                        out.SpecifiedParseError,
+                        out.AstBuilderError,
                     ),
                 ):
                     parsing_data.add_error(err)
@@ -1231,6 +1290,32 @@ Exception raised: `{e}`
             raise e
 
     # end _run_rules_direct_to_semgrep_core
+
+    def invoke_semgrep_dump_contributions(self) -> out.Contributions:
+        start = datetime.now()
+        if self._binary_path is None:  # should never happen, doing this for mypy
+            raise SemgrepError("semgrep engine not found.")
+        cmd = [
+            str(self._binary_path),
+            "-json",
+            "-dump_contributions",
+        ]
+        try:
+            # only scanning combined rules
+            runner = StreamingSemgrepCore(cmd, 1, self._engine_type)
+            returncode = runner.execute()
+
+            # Process output
+            output_json = self._extract_core_output(
+                [], returncode, " ".join(cmd), runner.stdout, runner.stderr
+            )
+            contributions = out.Contributions.from_json(output_json)
+        except SemgrepError:
+            logger.warning("Failed to collect contributions. Continuing with scan...")
+            contributions = out.Contributions([])
+
+        logger.debug(f"semgrep contributions ran in {datetime.now() - start}")
+        return contributions
 
     def invoke_semgrep_core(
         self,
@@ -1303,7 +1388,7 @@ Exception raised: `{e}`
             output_json = self._extract_core_output(
                 metachecks, returncode, " ".join(cmd), runner.stdout, runner.stderr
             )
-            core_output = parse_core_output(output_json)
+            core_output = out.CoreOutput.from_json(output_json)
 
             parsed_errors += [
                 core_error_to_semgrep_error(e) for e in core_output.errors

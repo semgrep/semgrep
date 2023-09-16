@@ -1,0 +1,1 @@
+Show more specific error message if scan cannot complete because user has disabled all rules on semgrep.dev

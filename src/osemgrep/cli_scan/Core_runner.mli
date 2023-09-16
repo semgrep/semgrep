@@ -20,17 +20,18 @@ type result = {
 type semgrep_core_runner =
   ?respect_git_ignore:bool ->
   ?file_match_results_hook:
-    (Fpath.t -> Report.partial_profiling Report.match_result -> unit) option ->
+    (Fpath.t -> Core_result.partial_profiling Core_result.match_result -> unit)
+    option ->
   conf ->
   (* LATER? use Config_resolve.rules_and_origin instead? *)
   Rule.rules ->
   Rule.invalid_rule_error list ->
   Fpath.t list ->
-  Exception.t option * Report.final_result * Fpath.t Set_.t
+  Exception.t option * Core_result.final_result * Fpath.t Set_.t
 
 val create_core_result :
   Rule.rule list ->
-  Exception.t option * Report.final_result * Fpath.t Set_.t ->
+  Exception.t option * Core_result.final_result * Fpath.t Set_.t ->
   result
 
 (*
@@ -41,7 +42,7 @@ val create_core_result :
    integrated into what's currently semgrep-core.
 *)
 val invoke_semgrep_core :
-  ?engine:Runner_config.semgrep_engine -> semgrep_core_runner
+  ?engine:Core_scan_config.semgrep_engine -> semgrep_core_runner
 
 (* Helper used in Semgrep_scan.ml to setup logging *)
-val runner_config_of_conf : conf -> Runner_config.t
+val core_scan_config_of_conf : conf -> Core_scan_config.t

@@ -3,7 +3,7 @@
   "paths": {
     "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": [
-      "/tmp/masked/path"
+      "<MASKED>"
     ]
   },
   "results": [
@@ -25,7 +25,7 @@
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
-      "path": "/tmp/masked/path",
+      "path": "<MASKED>",
       "start": {
         "col": 1,
         "line": 1,

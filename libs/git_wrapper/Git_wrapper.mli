@@ -65,4 +65,15 @@ val commit : Fpath.t -> string -> unit
 val get_project_url : unit -> string option
 (** [get_project_url ()] tries to get the URL of the project from
     [git ls-remote] or from the [.git/config] file. It returns [None] if it
-    found nothing relevant. *)
+    found nothing relevant.
+    TODO: should maybe raise an exn instead if not run from a git repo.
+*)
+
+val get_git_logs : ?since:Common2.float_time option -> unit -> string list
+(** [get_git_logs()] will run 'git log' in the current directory
+    and returns for each log a JSON string that fits the schema
+    defined in semgrep_output_v1.atd contribution type.
+    It returns an empty list if it found nothing relevant.
+    You can use the [since] parameter to restrict the logs to
+    the commits since the specified time.
+ *)

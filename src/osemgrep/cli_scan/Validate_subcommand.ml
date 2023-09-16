@@ -91,10 +91,13 @@ let run (conf : conf) : Exit_code.t =
                  (* TODO: stricter: warn if no origin (meaning URL or registry) *)
                  x.Rule_fetching.origin)
         in
+        let in_docker = !Semgrep_envvars.v.in_docker in
+        let (config : Rules_config.t) =
+          Rules_config.parse_config_string ~in_docker metarules_pack
+        in
         let metarules_and_origin =
           Rule_fetching.rules_from_dashdash_config ~token_opt
-            ~registry_caching:false
-            (Semgrep_dashdash_config.parse_config_string metarules_pack)
+            ~registry_caching:false config
         in
         let metarules, metaerrors =
           Rule_fetching.partition_rules_and_errors metarules_and_origin

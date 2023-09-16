@@ -91,7 +91,8 @@
             "sink(d2)"
           ]
         ]
-      }
+      },
+      "validation_state": "NO_VALIDATOR"
     },
     {
       "check_id": "supply-chain1",
@@ -171,7 +172,8 @@
         "end_line_hash": "767b54a8959ab1bae471d88d9351ab3dc8c417471a5ed2dc874b67e012102baa",
         "code_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488",
         "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
-      }
+      },
+      "validation_state": "NO_VALIDATOR"
     },
     {
       "check_id": "eqeq-four",
@@ -206,7 +208,8 @@
         "end_line_hash": "767b54a8959ab1bae471d88d9351ab3dc8c417471a5ed2dc874b67e012102baa",
         "code_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488",
         "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
-      }
+      },
+      "validation_state": "NO_VALIDATOR"
     },
     {
       "check_id": "eqeq-five",
@@ -242,7 +245,8 @@
       },
       "fixed_lines": [
         "    (x == 2)"
-      ]
+      ],
+      "validation_state": "NO_VALIDATOR"
     },
     {
       "check_id": "eqeq-bad",
@@ -264,7 +268,8 @@
         "end_line_hash": "510108a9aab34209e18dc5b9bba20dee69d9981b536ac1c927db223d8b0cb5bf",
         "code_hash": "bbe58d6d77d6bcf2aba1a2ea780990cc922fab514445048b3bf5b50a7a7c0250",
         "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
-      }
+      },
+      "validation_state": "NO_VALIDATOR"
     },
     {
       "check_id": "eqeq-bad",
@@ -286,7 +291,8 @@
         "end_line_hash": "60f5f1fb9303e4f18ddcada8deb88cb2ac20c7d95cfcd424b65934545481a1a9",
         "code_hash": "97c1aa56d43d22e7ec10a8ca99ceab7e02749262a4be0c51683dd353b3b1a868",
         "pattern_hash": "06b2540894e5b13085b613a69a474505628594986504f246b7a521b99ce10bf2"
-      }
+      },
+      "validation_state": "NO_VALIDATOR"
     },
     {
       "check_id": "eqeq-bad",
@@ -308,7 +314,8 @@
         "end_line_hash": "1ca20045d4e8968c3774538d54b138132fa83b7b18e0137435f3108f40ae163e",
         "code_hash": "8ad0935f9eb4c01f858bd5ed1e9c28aa60f8d49625bc26ecfe2b1ee90c26a241",
         "pattern_hash": "8ad0935f9eb4c01f858bd5ed1e9c28aa60f8d49625bc26ecfe2b1ee90c26a241"
-      }
+      },
+      "validation_state": "NO_VALIDATOR"
     },
     {
       "check_id": "eqeq-bad",
@@ -330,7 +337,8 @@
         "end_line_hash": "bf62385c9376655f85afc789e40f1e16e7cc0f90d87288a13ccb62802be1f601",
         "code_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345",
         "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
-      }
+      },
+      "validation_state": "NO_VALIDATOR"
     },
     {
       "check_id": "eqeq-bad",
@@ -352,7 +360,8 @@
         "end_line_hash": "bf62385c9376655f85afc789e40f1e16e7cc0f90d87288a13ccb62802be1f601",
         "code_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345",
         "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
-      }
+      },
+      "validation_state": "NO_VALIDATOR"
     },
     {
       "check_id": "eqeq-bad",
@@ -374,7 +383,8 @@
         "end_line_hash": "bf62385c9376655f85afc789e40f1e16e7cc0f90d87288a13ccb62802be1f601",
         "code_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345",
         "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
-      }
+      },
+      "validation_state": "NO_VALIDATOR"
     }
   ],
   "ignores": [
@@ -410,7 +420,8 @@
         "end_line_hash": "705071b3cc1398dc0eeaa7e759a7c4d39d33162c54ea7111cdc796790378e4c0",
         "code_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488",
         "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
-      }
+      },
+      "validation_state": "NO_VALIDATOR"
     },
     {
       "check_id": "eqeq-four",
@@ -445,7 +456,8 @@
         "end_line_hash": "705071b3cc1398dc0eeaa7e759a7c4d39d33162c54ea7111cdc796790378e4c0",
         "code_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488",
         "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
-      }
+      },
+      "validation_state": "NO_VALIDATOR"
     },
     {
       "check_id": "eqeq-five",
@@ -481,7 +493,8 @@
       },
       "fixed_lines": [
         "    (y == 2)  # nosemgrep"
-      ]
+      ],
+      "validation_state": "NO_VALIDATOR"
     },
     {
       "check_id": "eqeq-bad",
@@ -503,7 +516,8 @@
         "end_line_hash": "0f1b9301a089bbcbbb0dd563a4a01270919f60a5bfd3d738788a8bbb1f7e0a59",
         "code_hash": "0dbe5dc16d13b428b405ee54035df43ce62eccd8aebeb050e90047f09a24a613",
         "pattern_hash": "0dbe5dc16d13b428b405ee54035df43ce62eccd8aebeb050e90047f09a24a613"
-      }
+      },
+      "validation_state": "NO_VALIDATOR"
     },
     {
       "check_id": "eqeq-bad",
@@ -525,7 +539,8 @@
         "end_line_hash": "c772c5c0ca842b8e194eca4ed7bf1333c1e67bab038e9ac76c788d0e819c51ba",
         "code_hash": "949d78287cab758a6d6f6cf8baf2cafb80399ce489cc94b58765da6c51c1c92f",
         "pattern_hash": "949d78287cab758a6d6f6cf8baf2cafb80399ce489cc94b58765da6c51c1c92f"
-      }
+      },
+      "validation_state": "NO_VALIDATOR"
     },
     {
       "check_id": "eqeq-bad",
@@ -547,7 +562,8 @@
         "end_line_hash": "e89b663d624741879a65668fed6c6dce5c9823fa17962ff69ae19b369b09e77c",
         "code_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345",
         "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
-      }
+      },
+      "validation_state": "NO_VALIDATOR"
     }
   ],
   "token": null,
@@ -566,5 +582,23 @@
     "supply-chain1",
     "supply-chain2",
     "supply-chain3"
+  ],
+  "contributions": [
+    {
+      "commit_hash": "sanitized",
+      "commit_timestamp": "sanitized",
+      "contributor": {
+        "commit_author_name": "Environment Test",
+        "commit_author_email": "test_environment@test.r2c.dev"
+      }
+    },
+    {
+      "commit_hash": "sanitized",
+      "commit_timestamp": "sanitized",
+      "contributor": {
+        "commit_author_name": "Environment Test",
+        "commit_author_email": "test_environment@test.r2c.dev"
+      }
+    }
   ]
 }

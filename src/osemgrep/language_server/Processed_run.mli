@@ -1,4 +1,5 @@
 val of_matches :
+  ?skipped_fingerprints:string list ->
   ?only_git_dirty:bool ->
   Core_runner.result ->
   Semgrep_output_v1_t.cli_match list

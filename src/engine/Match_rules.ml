@@ -15,9 +15,9 @@
 open Common
 open File.Operators
 module R = Rule
-module RP = Report
+module RP = Core_result
 module Resp = Semgrep_output_v1_t
-module E = Semgrep_error_code
+module E = Core_error
 module Out = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -153,7 +153,7 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
         let loc = Tok.first_loc_of_file file in
         let error = E.mk_error (Some rule_id) loc "" Out.Timeout in
         RP.make_match_result []
-          (Report.ErrorSet.singleton error)
+          (Core_error.ErrorSet.singleton error)
           (RP.empty_rule_profiling rule)
 
 (*****************************************************************************)
@@ -211,7 +211,7 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
                | `Steps _ -> raise Multistep_rules_not_available))
   in
   let res_total = res_taint_rules @ res_nontaint_rules in
-  let res = RP.collate_rule_results !!(xtarget.Xtarget.file) res_total in
+  let res = RP.collate_rule_results xtarget.Xtarget.file res_total in
   let extra =
     match res.extra with
     | RP.Debug { skipped_targets; profiling } ->

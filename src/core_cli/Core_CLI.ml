@@ -8,9 +8,9 @@
  *)
 open Common
 open File.Operators
-open Runner_config
+open Core_scan_config
 module Flag = Flag_semgrep
-module E = Semgrep_error_code
+module E = Core_error
 module J = JSON
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -40,13 +40,13 @@ let logger = Logging.get_logger [ __MODULE__ ]
 let env_debug = "SEMGREP_CORE_DEBUG"
 let env_profile = "SEMGREP_CORE_PROFILE"
 let env_extra = "SEMGREP_CORE_EXTRA"
-let log_config_file = ref Runner_config.default.log_config_file
+let log_config_file = ref Core_scan_config.default.log_config_file
 let log_to_file = ref None
 
 (* see also verbose/... flags in Flag_semgrep.ml *)
 (* to test things *)
-let test = ref Runner_config.default.test
-let debug = ref Runner_config.default.debug
+let test = ref Core_scan_config.default.test
+let debug = ref Core_scan_config.default.debug
 
 (* related:
  * - Flag_semgrep.debug_matching
@@ -55,17 +55,17 @@ let debug = ref Runner_config.default.debug
  *)
 
 (* try to continue processing files, even if one has a parse error with -e/f *)
-let error_recovery = ref Runner_config.default.error_recovery
-let profile = ref Runner_config.default.profile
+let error_recovery = ref Core_scan_config.default.error_recovery
+let profile = ref Core_scan_config.default.profile
 
 (* report matching times per file *)
-let report_time = ref Runner_config.default.report_time
+let report_time = ref Core_scan_config.default.report_time
 
 (* used for -json -profile *)
-let profile_start = ref Runner_config.default.profile_start
+let profile_start = ref Core_scan_config.default.profile_start
 
 (* step-by-step matching debugger *)
-let matching_explanations = ref Runner_config.default.matching_explanations
+let matching_explanations = ref Core_scan_config.default.matching_explanations
 
 (* ------------------------------------------------------------------------- *)
 (* main flags *)
@@ -83,8 +83,8 @@ let equivalences_file = ref None
 
 (* TODO: infer from basename argv(0) ? *)
 let lang = ref None
-let output_format = ref Runner_config.default.output_format
-let match_format = ref Runner_config.default.match_format
+let output_format = ref Core_scan_config.default.output_format
+let match_format = ref Core_scan_config.default.match_format
 let mvars = ref ([] : Metavariable.mvar list)
 
 (* ------------------------------------------------------------------------- *)
@@ -92,25 +92,26 @@ let mvars = ref ([] : Metavariable.mvar list)
 (* ------------------------------------------------------------------------- *)
 
 (* timeout in seconds; 0 or less means no timeout *)
-let timeout = ref Runner_config.default.timeout
-let timeout_threshold = ref Runner_config.default.timeout_threshold
-let max_memory_mb = ref Runner_config.default.max_memory_mb (* in MiB *)
+let timeout = ref Core_scan_config.default.timeout
+let timeout_threshold = ref Core_scan_config.default.timeout_threshold
+let max_memory_mb = ref Core_scan_config.default.max_memory_mb (* in MiB *)
 
 (* arbitrary limit *)
-let max_match_per_file = ref Runner_config.default.max_match_per_file
+let max_match_per_file = ref Core_scan_config.default.max_match_per_file
 
 (* -j *)
-let ncores = ref Runner_config.default.ncores
+let ncores = ref Core_scan_config.default.ncores
 
 (* ------------------------------------------------------------------------- *)
 (* optional optimizations *)
 (* ------------------------------------------------------------------------- *)
 (* see Flag_semgrep.ml *)
-let use_parsing_cache = ref Runner_config.default.parsing_cache_dir
+let use_parsing_cache = ref Core_scan_config.default.parsing_cache_dir
 
 (* similar to filter_irrelevant_patterns, but use the whole rule to extract
  * the regexp *)
-let filter_irrelevant_rules = ref Runner_config.default.filter_irrelevant_rules
+let filter_irrelevant_rules =
+  ref Core_scan_config.default.filter_irrelevant_rules
 
 (* ------------------------------------------------------------------------- *)
 (* flags used by the semgrep-python wrapper *)
@@ -172,7 +173,7 @@ let dump_parsing_errors file (res : Parsing_result2.t) =
 
 (* works with -lang *)
 let dump_pattern (file : Fpath.t) =
-  let file = Run_semgrep.replace_named_pipe_by_regular_file file in
+  let file = Core_scan.replace_named_pipe_by_regular_file file in
   let s = File.read_file file in
   (* mostly copy-paste of parse_pattern in runner, but with better error report *)
   let lang = Xlang.lang_of_opt_xlang_exn !lang in
@@ -183,7 +184,7 @@ let dump_pattern (file : Fpath.t) =
       pr s)
 
 let dump_patterns_of_rule (file : Fpath.t) =
-  let file = Run_semgrep.replace_named_pipe_by_regular_file file in
+  let file = Core_scan.replace_named_pipe_by_regular_file file in
   let rules = Parse_rule.parse file in
   let xpats = List.concat_map Rule.xpatterns_of_rule rules in
   List.iter
@@ -198,7 +199,7 @@ let dump_patterns_of_rule (file : Fpath.t) =
     xpats
 
 let dump_ast ?(naming = false) lang file =
-  let file = Run_semgrep.replace_named_pipe_by_regular_file file in
+  let file = Core_scan.replace_named_pipe_by_regular_file file in
   E.try_with_print_exn_and_reraise !!file (fun () ->
       let res =
         if naming then Parse_target.parse_and_resolve_name lang !!file
@@ -211,7 +212,7 @@ let dump_ast ?(naming = false) lang file =
       pr s;
       if Parsing_result2.has_error res then (
         dump_parsing_errors file res;
-        Runner_exit.(exit_semgrep False)))
+        Core_exit_code.(exit_semgrep False)))
 
 (*****************************************************************************)
 (* Experiments *)
@@ -336,29 +337,35 @@ let all_actions () =
     ( "-dump_tree_sitter_cst",
       " <file> dump the CST obtained from a tree-sitter parser",
       Arg_helpers.mk_action_1_conv Fpath.v (fun file ->
-          let file = Run_semgrep.replace_named_pipe_by_regular_file file in
+          let file = Core_scan.replace_named_pipe_by_regular_file file in
           Test_parsing.dump_tree_sitter_cst
             (Xlang.lang_of_opt_xlang_exn !lang)
             !!file) );
     ( "-dump_tree_sitter_pattern_cst",
       " <file>",
       Arg_helpers.mk_action_1_conv Fpath.v (fun file ->
-          let file = Run_semgrep.replace_named_pipe_by_regular_file file in
+          let file = Core_scan.replace_named_pipe_by_regular_file file in
           Parse_pattern2.dump_tree_sitter_pattern_cst
             (Xlang.lang_of_opt_xlang_exn !lang)
             !!file) );
     ( "-dump_pfff_ast",
       " <file> dump the generic AST obtained from a pfff parser",
       Arg_helpers.mk_action_1_conv Fpath.v (fun file ->
-          let file = Run_semgrep.replace_named_pipe_by_regular_file file in
+          let file = Core_scan.replace_named_pipe_by_regular_file file in
           Test_parsing.dump_pfff_ast (Xlang.lang_of_opt_xlang_exn !lang) !!file)
     );
+    ( "-dump_elixir_raw_ast",
+      " <file>",
+      Arg_helpers.mk_action_1_arg Core_actions.dump_elixir_raw_ast );
     ( "-dump_elixir_ast",
       " <file>",
       Arg_helpers.mk_action_1_arg Core_actions.dump_elixir_ast );
     ( "-diff_pfff_tree_sitter",
       " <file>",
       Arg_helpers.mk_action_n_arg Test_parsing.diff_pfff_tree_sitter );
+    ( "-dump_contributions",
+      " dump on stdout the commit contributions in JSON",
+      Arg_helpers.mk_action_0_arg Core_actions.dump_contributions );
     (* Misc stuff *)
     ( "-expr_at_range",
       " <l:c-l:c> <file>",
@@ -585,7 +592,7 @@ let options actions =
         Arg.Unit
           (fun () ->
             pr2 version;
-            Runner_exit.(exit_semgrep Success)),
+            Core_exit_code.(exit_semgrep Success)),
         "  guess what" );
     ]
 
@@ -678,9 +685,9 @@ let main_no_exn_handler (sys_argv : string array) : unit =
 
   let config = mk_config () in
 
-  if config.debug then Report.mode := MDebug
-  else if config.report_time then Report.mode := MTime
-  else Report.mode := MNo_info;
+  if config.debug then Core_result.mode := MDebug
+  else if config.report_time then Core_result.mode := MTime
+  else Core_result.mode := MNo_info;
 
   Logging_helpers.setup ~debug:config.debug
     ~log_config_file:config.log_config_file ~log_to_file:config.log_to_file;
@@ -725,7 +732,7 @@ let main_no_exn_handler (sys_argv : string array) : unit =
              for now just turn it off *)
           (* if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc (); *)
           let config = { config with roots = File.Path.of_strings roots } in
-          Run_semgrep.semgrep_dispatch config)
+          Core_scan.semgrep_dispatch config)
 
 let with_exception_trace f =
   Printexc.record_backtrace true;

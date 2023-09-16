@@ -25,6 +25,9 @@ type conf = {
   json : bool;
 }
 
+(* coupling: if you add a command you probably need to modify [combine]
+ * below and also the doc in [man] further below
+ *)
 and target_kind =
   (* 'semgrep show ???'
    * accessible also as 'semgrep scan --dump-ast -e <pattern>'
@@ -35,7 +38,7 @@ and target_kind =
    * alt: we could accept multiple Files via multiple target_roots *)
   | File of Fpath.t * Lang.t
   (* 'semgrep show dump-config <config_str>' *)
-  | Config of Semgrep_dashdash_config.config_string
+  | Config of Rules_config.config_string
   (* 'semgrep show ???'
    * accessible also as 'semgrep scan --dump-engine-path
    * LATER: get rid of it? *)
@@ -44,6 +47,10 @@ and target_kind =
    * accessible also as 'semgrep scan --dump-command-for-core' (or just '-d')
    * LATER: get rid of it *)
   | CommandForCore
+  (* 'semgrep show supported-languages'
+   * accessible also as `semgrep scan --show-supported-languages
+   *)
+  | SupportedLanguages
 [@@deriving show]
 
 (*************************************************************************)
@@ -81,6 +88,7 @@ let cmdline_term : conf Term.t =
        *)
       match args with
       | [ "dump-config"; config_str ] -> Config config_str
+      | [ "supported-languages" ] -> SupportedLanguages
       | _ ->
           Error.abort
             (spf "show command not supported: %s" (String.concat " " args))
@@ -99,6 +107,9 @@ let man : Cmdliner.Manpage.block list =
     `P "Here are the different subcommands";
     `Pre "semgrep show dump-config <STRING>";
     `P "Dump the internal representation of the result of --config=<STRING>";
+    `Pre "semgrep show supported-languages";
+    (* coupling: Scan_CLI.o_show_supported_languages help *)
+    `P "Print a list of languages that are currently supported by Semgrep.";
   ]
   @ CLI_common.help_page_bottom
 

@@ -97,7 +97,9 @@ jobs:
 
   upload-javascript-artifacts:
     needs: [build-test-js-artifacts]
-    if: github.ref == 'refs/heads/develop' || github.event.pull_request.head.repo.full_name == github.repository
+    # in english: (branch name is "develop") OR (branch name starts with "release-")
+    # we restrict this so that we don't fill up the S3 bucket with tons of semgrep.js builds
+    if: (github.ref == 'refs/heads/develop') || startsWith(github.ref, 'refs/heads/release-')
     runs-on: ubuntu-latest
     permissions:
       id-token: write

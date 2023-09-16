@@ -15,6 +15,14 @@ type t =
   | Null
 [@@deriving show]
 
+let member m j =
+  match j with
+  | Object members ->
+      List.find_map
+        (fun (m', x) -> if String.equal m m' then Some x else None)
+        members
+  | _ -> None
+
 let rec (to_yojson : t -> Y.t) = function
   | Object xs -> `Assoc (xs |> List.map (fun (s, t) -> (s, to_yojson t)))
   | Array xs -> `List (xs |> List.map to_yojson)

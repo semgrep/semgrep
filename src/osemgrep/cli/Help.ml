@@ -42,18 +42,14 @@ Semgrep CLI scans your code for bugs, security and dependency vulnerabilities.
 For more information about Semgrep, visit @{<cyan;ul>https://semgrep.dev@}
 
 @{<ul>Get Started@}:
-  Run @{<cyan>`semgrep login && semgrep ci`@} to find dependency
-  vulnerabilities and advanced cross-file findings. 💎
+  Run @{<cyan>`semgrep login && semgrep ci`@} to enable Pro rules, Semgrep Supply Chain,
+  and secrets scanning. Without logging in, Semgrep CLI will only run the free
+  open-source rules available at @{<cyan;ul>https://semgrep.dev/r@}.
 
 @{<ul>Commands@}:
-  @{<cyan>semgrep ci@}                   The recommended way to run semgrep in CI
-  @{<cyan>semgrep scan@}                 Run semgrep rules on files
-
-@{<ul>Advanced Commands@}:
-  @{<cyan>semgrep install-semgrep-pro@}  Install the Semgrep Pro Engine (recommended)
-  @{<cyan>semgrep login@}                Obtain and save credentials for semgrep.dev
-  @{<cyan>semgrep logout@}               Remove locally stored credentials to
-                               semgrep.dev
+  @{<cyan>semgrep login@}                Enable Pro rules, Supply Chain, and secrets scanning
+  @{<cyan>semgrep ci@}                   Run Semgrep on the latest git diff (for use in CI)
+  @{<cyan>semgrep scan@}                 Run Semgrep rules on local directories or files
 
 @{<ul>Help@}:
   @{<cyan>semgrep COMMAND --help@}       For more information on each command

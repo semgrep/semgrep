@@ -203,7 +203,7 @@ class ScanHandler:
             logger.info(f"Would have sent POST request to create scan")
             return
 
-        logger.debug("Starting scan")
+        logger.debug(f"Starting scan: {json.dumps({'meta': meta}, indent=4)}")
         response = state.app_session.post(
             f"{state.env.semgrep_url}/api/agent/deployments/scans",
             json={"meta": meta},
@@ -263,6 +263,7 @@ class ScanHandler:
         commit_date: str,
         lockfile_dependencies: Dict[str, List[out.FoundDependency]],
         dependency_parser_errors: List[DependencyParserError],
+        contributions: out.Contributions,
         engine_requested: "EngineType",
         progress_bar: "Progress",
     ) -> Tuple[bool, str]:
@@ -270,7 +271,7 @@ class ScanHandler:
         commit_date here for legacy reasons. epoch time of latest commit
         """
         state = get_state()
-        rule_ids = [r.id for r in rules]
+        rule_ids = [out.RuleId(r.id) for r in rules]
         all_matches = [
             match
             for matches_of_rule in matches_by_rule.values()
@@ -314,6 +315,7 @@ class ScanHandler:
             searched_paths=[str(t) for t in sorted(targets)],
             renamed_paths=[str(rt) for rt in sorted(renamed_targets)],
             rule_ids=rule_ids,
+            contributions=contributions,
         )
         if self._dependency_query:
             ci_scan_results.dependencies = out.CiScanDependencies(lockfile_dependencies)
@@ -399,7 +401,8 @@ class ScanHandler:
         except requests.RequestException as exc:
             raise Exception(f"API server returned this error: {response.text}") from exc
 
-        try_until = datetime.now() + timedelta(minutes=10)
+        try_until = datetime.now() + timedelta(minutes=20)
+        slow_down_after = datetime.now() + timedelta(minutes=2)
         complete_task = progress_bar.add_task("Finalizing scan")
         while datetime.now() < try_until:
             logger.debug("Sending /complete")
@@ -428,7 +431,7 @@ class ScanHandler:
                 )
             else:
                 progress_bar.advance(complete_task)
-                sleep(5)
+                sleep(5 if datetime.utcnow() < slow_down_after else 30)
                 continue
 
         raise Exception(

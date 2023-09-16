@@ -8,6 +8,7 @@
    yaml pcre
 
    commons
+   git_wrapper
    paths
    lib_parsing
    process_limits
@@ -24,8 +25,8 @@
 
    semgrep_core
    semgrep_optimizing
-   semgrep_reporting
    semgrep.typing
+   pfff_lang_GENERIC_analyze ; =~ semgrep_analyzing ; Constant_propagation in Parse_target.ml
  )
  (preprocess (pps ppx_profiling ppx_deriving.show))
 )

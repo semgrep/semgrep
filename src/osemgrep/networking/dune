@@ -6,6 +6,9 @@
   (libraries
     lwt
     cohttp-lwt-unix
+    ocolor
+
+    commons
 
     profiling
     networking
@@ -20,6 +23,7 @@
      ppx_deriving.eq
      ppx_hash
      lwt_ppx
+     ppx_deriving_yojson
    )
  )
 )

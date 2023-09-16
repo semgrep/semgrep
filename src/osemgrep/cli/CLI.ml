@@ -28,14 +28,79 @@ open Common
    We don't use Cmdliner to dispatch subcommands because it's too
    complicated and anywant we want full control on main help message.
 
-   Translated from cli.py and commands/wrapper.py
+   Translated from cli.py and commands/wrapper.py and parts of metrics.py
 *)
+
+module Env = Semgrep_envvars
 
 (*****************************************************************************)
 (* Constants *)
 (*****************************************************************************)
 
 let default_subcommand = "scan"
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+(* Placeholder for adaptation of pysemgrep state.terminal.init_for_cli() *)
+(* TOPORT:
+     1. GITHUB_ACTIONS specific output requirements
+     2. Any NO_COLOR / SEMGREP_FORCE_NO_COLOR behavior
+*)
+(* let init_for_cli () : unit =
+   ()
+*)
+
+(*****************************************************************************)
+(* Metrics start and end *)
+(*****************************************************************************)
+
+let metrics_init () : unit =
+  let settings = Semgrep_settings.load () in
+  let api_token = settings.Semgrep_settings.api_token in
+  let anonymous_user_id = settings.Semgrep_settings.anonymous_user_id in
+  Metrics_.init ~anonymous_user_id ~ci:!Env.v.is_ci;
+  api_token
+  |> Option.iter (fun (_token : Auth.token) ->
+         Metrics_.g.payload.environment.isAuthenticated <- true);
+  !Env.v.user_agent_append |> Option.iter Metrics_.add_user_agent_tag;
+  Metrics_.g.payload.environment.integrationName <- !Env.v.integration_name;
+  ()
+
+(* For debugging customer issues, we append the CLI flags for each subcommand,
+   handling the logic in this base CLI entry point pre- subcommand dispatch.
+*)
+let log_cli_feature flag : unit =
+  Metrics_.add_feature "cli-flag"
+    (flag
+    |> Base.String.chop_prefix_if_exists ~prefix:"-"
+    |> Base.String.chop_prefix_if_exists ~prefix:"-")
+
+(* CLI subcmds need to call Metrics_.configure conf.metrics
+   otherwise metrics will not be send as Metrics.g.config default
+   to Off
+   alt: we could implement send_metrics() in Metrics_.ml,
+   but we would need to add a dependency on Http_helpers.
+*)
+let send_metrics () : unit =
+  if Metrics_.is_enabled () then (
+    (* Populate the sent_at timestamp *)
+    Metrics_.prepare_to_send ();
+    let user_agent = Metrics_.string_of_user_agent () in
+    let metrics = Metrics_.string_of_metrics () in
+    let url = !Env.v.metrics_url in
+    let headers =
+      [ ("Content-Type", "application/json"); ("User-Agent", user_agent) ]
+    in
+    Logs.debug (fun m -> m "Metrics: %s" metrics);
+    Logs.debug (fun m -> m "userAgent: '%s'" user_agent);
+    match Http_helpers.post ~body:metrics ~headers url with
+    | Ok body -> Logs.debug (fun m -> m "Metrics Endpoint response: %s" body)
+    | Error (status_code, err) ->
+        Logs.warn (fun m -> m "Metrics Endpoint error: %d %s" status_code err);
+        ())
+  else Logs.debug (fun m -> m "Metrics not enabled, skipping sending")
 
 (*****************************************************************************)
 (* Subcommands dispatch *)
@@ -105,6 +170,12 @@ let dispatch_subcommand argv =
         subcmd_argv0 :: subcmd_args |> Array.of_list
       in
       let experimental = Array.mem "--experimental" argv in
+      (* basic metrics on what was the command *)
+      Metrics_.add_feature "subcommand" subcmd;
+      Metrics_.add_user_agent_tag (spf "command/%s" subcmd);
+      subcmd_argv |> Array.to_list
+      |> exclude (fun x -> not (Base.String.is_prefix ~prefix:"-" x))
+      |> List.iter log_cli_feature;
       (* coupling: with known_subcommands if you add an entry below.
        * coupling: with Help.ml if you add an entry below.
        *)
@@ -150,18 +221,6 @@ let dispatch_subcommand argv =
     - Handles metric sending before exit
  *)
 let safe_run ~debug f : Exit_code.t =
-  (* TOPORT:
-     the maybe_set_git_safe_directories() but would be better
-      to do that in the Dockerfile or set the ownership rights
-      in CI calls.
-     finally:
-      metrics = get_state().metrics
-      metrics.add_exit_code(exit_code)
-      metrics.send()
-
-      error_handler = get_state().error_handler
-      exit_code = error_handler.send(exit_code)
-  *)
   if debug then f ()
   else
     try f () with
@@ -244,28 +303,19 @@ let main argv : Exit_code.t =
    * alt: we could analyze [argv] and do it sooner for all subcommands here.
    *)
   Logs_helpers.enable_logging ();
+  (* TOADAPT: profile_start := Unix.gettimeofday (); *)
   (* pad poor's man profiler *)
   if profile then Profiling.profile := Profiling.ProfAll;
 
-  (* TOADAPT: profile_start := Unix.gettimeofday (); *)
   (* hacks for having a smaller engine.js file *)
   Parsing_init.init ();
   Data_init.init ();
 
-  (* TOPORT:
-      state.terminal.init_for_cli()
-      state.app_session.authenticate()
-      state.app_session.user_agent.tags.add(f"command/{subcommand}")
-      state.metrics.add_feature("subcommand", subcommand)
-      maybe_set_git_safe_directories()
-  *)
-  (*TOADAPT? adapt more of Common.boilerplate? *)
+  metrics_init ();
+  (* TOPORT: maybe_set_git_safe_directories() *)
+  (* TOADAPT? adapt more of Common.boilerplate? *)
   let exit_code = safe_run ~debug (fun () -> dispatch_subcommand argv) in
   Metrics_.add_exit_code exit_code;
-  (* TODO(dinosaure): currently, even if we record the [exit_code], we will
-   * never send the final report **with** the exit code to the server. We
-   * send it before this call. At some point, we should handle correctly
-   * the [exit_code] and properly send the report with it.
-   *)
+  send_metrics ();
   before_exit ~profile ();
   exit_code

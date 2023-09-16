@@ -21,7 +21,7 @@ module H = AST_generic_helpers
 module R = Rule
 module PM = Pattern_match
 module RM = Range_with_metavars
-module RP = Report
+module RP = Core_result
 module T = Taint
 module Lval_env = Taint_lval_env
 module MV = Metavariable
@@ -638,31 +638,54 @@ let pm_of_finding finding =
         let taint_trace = Some (lazy traces) in
         Some { sink_pm with env = merged_env; taint_trace }
 
-let mk_params_env lang options taint_config fdef =
-  let add_to_env env id ii pdefault =
-    let var = AST_to_IL.var_of_id_info id ii in
-    let var_type = Typing.resolved_type_of_id_info lang var.id_info in
-    let source_pms =
-      taint_config.D.is_source (G.Tk (snd id))
-      @
-      match pdefault with
-      | Some e -> taint_config.D.is_source (G.E e)
-      | None -> []
-    in
-    let taints =
-      source_pms
-      |> Common.map (fun (x : _ D.tmatch) -> (x.spec_pm, x.spec))
-      (* These sources come from the parameters to a function,
-         which are not within the normal control flow of a code.
-         We can safely say there's no incoming taints to these sources.
-      *)
-      |> T.taints_of_pms ~incoming:T.Taint_set.empty
-    in
-    let taints =
-      Dataflow_tainting.drop_taints_if_bool_or_number options taints var_type
-    in
-    Lval_env.add env (IL_helpers.lval_of_var var) taints
+let check_var_def lang options taint_config env id ii expr =
+  let name = AST_to_IL.var_of_id_info id ii in
+  let assign =
+    G.Assign (G.N (G.Id (id, ii)) |> G.e, Tok.fake_tok (snd id) "=", expr)
+    |> G.e |> G.exprstmt
   in
+  let xs = AST_to_IL.stmt lang assign in
+  let flow = CFG_build.cfg_of_stmts xs in
+  let end_mapping =
+    let java_props_cache = D.mk_empty_java_props_cache () in
+    Dataflow_tainting.fixpoint ~in_env:env lang options taint_config
+      java_props_cache flow
+  in
+  let out_env = end_mapping.(flow.exit).Dataflow_core.out_env in
+  let lval : IL.lval = { base = Var name; rev_offset = [] } in
+  Lval_env.dumb_find out_env lval
+
+let add_to_env lang options taint_config env id ii opt_expr =
+  let var = AST_to_IL.var_of_id_info id ii in
+  let var_type = Typing.resolved_type_of_id_info lang var.id_info in
+  let id_taints =
+    taint_config.D.is_source (G.Tk (snd id))
+    |> Common.map (fun (x : _ D.tmatch) -> (x.spec_pm, x.spec))
+    (* These sources come from the parameters to a function,
+        which are not within the normal control flow of a code.
+        We can safely say there's no incoming taints to these sources.
+    *)
+    |> T.taints_of_pms ~incoming:T.Taint_set.empty
+  in
+  let expr_taints =
+    match opt_expr with
+    | Some e -> (
+        match check_var_def lang options taint_config env id ii e with
+        | `None
+        | `Clean ->
+            T.Taint_set.empty
+        | `Tainted taints -> taints)
+    | None -> T.Taint_set.empty
+  in
+  let taints = id_taints |> T.Taint_set.union expr_taints in
+  let taints =
+    Dataflow_tainting.drop_taints_if_bool_or_number options taints var_type
+  in
+  Lval_env.add env (IL_helpers.lval_of_var var) taints
+
+let mk_fun_input_env lang options taint_config ?(glob_env = Lval_env.empty) fdef
+    =
+  let add_to_env = add_to_env lang options taint_config in
   let in_env =
     (* For each argument, check if it's a source and, if so, add it to the input
      * environment. *)
@@ -718,12 +741,52 @@ let mk_params_env lang options taint_config fdef =
         | G.ParamReceiver _
         | G.OtherParam (_, _) ->
             env)
-      Lval_env.empty
+      glob_env
       (Tok.unbracket fdef.G.fparams)
   in
   in_env
 
-let check_fundef lang options taint_config opt_ent ctx java_props_cache fdef =
+let is_global (id_info : G.id_info) =
+  let* kind, _sid = !(id_info.id_resolved) in
+  Some (H.name_is_global kind)
+
+let mk_file_env lang options taint_config ast =
+  let add_to_env = add_to_env lang options taint_config in
+  let env = ref Lval_env.empty in
+  let visitor =
+    object (_self : 'self)
+      inherit [_] G.iter_no_id_info as super
+
+      method! visit_definition env (entity, def_kind) =
+        match (entity, def_kind) with
+        | { name = EN (Id (id, id_info)); _ }, VarDef { vinit; _ }
+          when IdFlags.is_final !(id_info.id_flags)
+               && is_global id_info =*= Some true ->
+            env := add_to_env !env id id_info vinit
+        | __else__ -> super#visit_definition env (entity, def_kind)
+
+      method! visit_Assign env lhs tok expr =
+        match lhs with
+        | {
+         e =
+           ( N (Id (id, id_info))
+           | DotAccess
+               ( { e = IdSpecial ((This | Self), _); _ },
+                 _,
+                 FN (Id (id, id_info)) ) );
+         _;
+        }
+          when IdFlags.is_final !(id_info.id_flags)
+               && is_global id_info =*= Some true ->
+            env := add_to_env !env id id_info (Some expr)
+        | __else__ -> super#visit_Assign env lhs tok expr
+    end
+  in
+  visitor#visit_program env ast;
+  !env
+
+let check_fundef lang options taint_config opt_ent ctx ?glob_env
+    java_props_cache fdef =
   let name =
     let* ent = opt_ent in
     let* name = AST_to_IL.name_of_entity ent in
@@ -731,7 +794,7 @@ let check_fundef lang options taint_config opt_ent ctx java_props_cache fdef =
   in
   let _, xs = AST_to_IL.function_definition lang ~ctx fdef in
   let flow = CFG_build.cfg_of_stmts xs in
-  let in_env = mk_params_env lang options taint_config fdef in
+  let in_env = mk_fun_input_env lang options taint_config ?glob_env fdef in
   let mapping =
     Dataflow_tainting.fixpoint ~in_env ?name lang options taint_config
       java_props_cache flow
@@ -784,11 +847,13 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
 
   let java_props_cache = Dataflow_tainting.mk_empty_java_props_cache () in
 
+  let glob_env = mk_file_env lang xconf.config taint_config ast in
+
   (* Check each function definition. *)
   Visit_function_defs.visit
     (fun opt_ent fdef ->
-      check_fundef lang xconf.config taint_config opt_ent !ctx java_props_cache
-        fdef
+      check_fundef lang xconf.config taint_config opt_ent !ctx ~glob_env
+        java_props_cache fdef
       |> ignore)
     ast;
 

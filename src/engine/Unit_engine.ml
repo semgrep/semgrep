@@ -4,7 +4,7 @@ open Testutil
 module R = Rule
 module MR = Mini_rule
 module P = Pattern_match
-module E = Semgrep_error_code
+module E = Core_error
 module Out = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -679,6 +679,13 @@ let lang_tainting_tests () =
            Common2.glob (spf "%s/*.js" !!dir) |> File.Path.of_strings
          in
          let lang = Lang.Js in
+         tainting_tests_for_lang files lang);
+      pack_tests "tainting Ruby"
+        (let dir = taint_tests_path / "ruby" in
+         let files =
+           Common2.glob (spf "%s/*.rb" !!dir) |> File.Path.of_strings
+         in
+         let lang = Lang.Ruby in
          tainting_tests_for_lang files lang);
       pack_tests "tainting Typescript"
         (let dir = taint_tests_path / "ts" in

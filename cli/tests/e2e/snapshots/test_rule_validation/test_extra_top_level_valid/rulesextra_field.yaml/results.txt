@@ -1,0 +1,1 @@
+Configuration is valid - found 0 configuration error(s), and 1 rule(s).
