@@ -42,8 +42,7 @@ let debug_extract_mode = ref false
 
 (* The type of the semgrep core scan. We define it here so that
    semgrep and semgrep-proprietary use the same definition *)
-type core_scan_func =
-  Core_scan_config.t -> (* Exn raised *) Exception.t option * Core_result.t
+type core_scan_func = Core_scan_config.t -> Core_result.result_and_exn
 
 (*****************************************************************************)
 (* Helpers *)
@@ -721,7 +720,7 @@ let extracted_targets_of_config (config : Core_scan_config.t)
  * and potentially also extract rules) and iteratively process those targets.
  *)
 let semgrep_with_rules ?match_hook config
-    ((rules, invalid_rules), rules_parse_time) =
+    ((rules, invalid_rules), rules_parse_time) : Core_result.t =
   let rule_errors = errors_of_invalid_rule_errors invalid_rules in
   let rule_ids = rules |> Common.map (fun r -> fst r.R.id) in
 
@@ -894,7 +893,8 @@ let semgrep_with_rules ?match_hook config
 
   { res with matches; errors; extra }
 
-let semgrep_with_raw_results_and_exn_handler config =
+let semgrep_with_raw_results_and_exn_handler (config : Core_scan_config.t) :
+    Core_result.result_and_exn =
   try
     let timed_rules =
       Common.with_time (fun () -> rules_from_rule_source config)
@@ -910,7 +910,9 @@ let semgrep_with_raw_results_and_exn_handler config =
       in
       (Some e, res)
 
-let output_semgrep_results (exn, (res : Core_result.t)) config =
+let output_semgrep_results (result_and_exn : Core_result.result_and_exn)
+    (config : Core_scan_config.t) : unit =
+  let exn, res = result_and_exn in
   (* note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
@@ -948,7 +950,8 @@ let output_semgrep_results (exn, (res : Core_result.t)) config =
         pr "WARNING: some files were skipped or only partially analyzed:";
         res.errors |> List.iter (fun err -> pr (E.string_of_error err)))
 
-let semgrep_with_rules_and_formatted_output config =
+let semgrep_with_rules_and_formatted_output (config : Core_scan_config.t) : unit
+    =
   let exn, res = semgrep_with_raw_results_and_exn_handler config in
   output_semgrep_results (exn, res) config
 
@@ -991,7 +994,7 @@ let pattern_of_config lang config =
    - Have semgrep_with_patterns return the results and errors.
    - Print the final results (json or text) using dedicated functions.
 *)
-let semgrep_with_one_pattern config =
+let semgrep_with_one_pattern (config : Core_scan_config.t) : unit =
   assert (config.rule_source =*= None);
 
   (* TODO: support generic and regex patterns as well. See code in Deep.
@@ -1063,7 +1066,7 @@ let semgrep_with_one_pattern config =
 (*****************************************************************************)
 (* Semgrep dispatch *)
 (*****************************************************************************)
-let semgrep_dispatch config =
+let semgrep_dispatch (config : Core_scan_config.t) : unit =
   if config.rule_source <> None then
     semgrep_with_rules_and_formatted_output config
   else semgrep_with_one_pattern config

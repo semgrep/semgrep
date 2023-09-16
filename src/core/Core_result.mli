@@ -35,6 +35,9 @@ type t = {
 }
 [@@deriving show]
 
+(* TODO: change in result_or_exn *)
+type result_and_exn = Exception.t option * t
+
 val empty_match_result : Core_profiling.times match_result
 val empty_final_result : t
 

@@ -93,8 +93,7 @@
 
 (* The type of the semgrep core scan. We define it here so that
    semgrep and semgrep-proprietary use the same definition *)
-type core_scan_func =
-  Core_scan_config.t -> (* Exn raised *) Exception.t option * Core_result.t
+type core_scan_func = Core_scan_config.t -> Core_result.result_and_exn
 
 (*****************************************************************************)
 (* Entry point *)
@@ -117,7 +116,7 @@ val semgrep_with_rules_and_formatted_output : Core_scan_config.t -> unit
 *)
 
 val output_semgrep_results :
-  Exception.t option * Core_result.t -> Core_scan_config.t -> unit
+  Core_result.result_and_exn -> Core_scan_config.t -> unit
 (** [output_semgrep_results] takes the results of a semgrep run and
     format the results on stdout either in a JSON or Textual format
     (depending on the value in config.output_format)
@@ -126,7 +125,7 @@ val output_semgrep_results :
 *)
 
 val semgrep_with_raw_results_and_exn_handler :
-  Core_scan_config.t -> Exception.t option * Core_result.t
+  Core_scan_config.t -> Core_result.result_and_exn
 (** [semgrep_with_raw_results_and_exn_handler config] runs the semgrep-core
     engine with a starting list of targets and returns
     (success, result).

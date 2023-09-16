@@ -67,7 +67,7 @@ type semgrep_core_runner =
   Rule.rules ->
   Rule.invalid_rule_error list ->
   Fpath.t list ->
-  Exception.t option * Core_result.t * Fpath.t Set_.t
+  Core_result.result_and_exn
 
 (*************************************************************************)
 (* Helpers *)
@@ -191,7 +191,8 @@ let prepare_config_for_semgrep_core (config : Core_scan_config.t)
 (* LATER: we want to avoid this intermediate data structure but
  * for now that's what pysemgrep used to get so simpler to return it.
  *)
-let create_core_result all_rules (_exns, (res : Core_result.t), scanned) =
+let create_core_result all_rules (_exns, (res : Core_result.t)) =
+  let scanned = Set_.of_list res.scanned in
   let match_results =
     Core_json_output.core_output_of_matches_and_errors (Some Autofix.render_fix)
       (Set_.cardinal scanned) res
@@ -227,7 +228,7 @@ let invoke_semgrep_core
     ?(engine = Core_scan.semgrep_with_raw_results_and_exn_handler)
     ?(respect_git_ignore = true) ?(file_match_results_hook = None) (conf : conf)
     (all_rules : Rule.t list) (invalid_rules : Rule.invalid_rule_error list)
-    (all_targets : Fpath.t list) =
+    (all_targets : Fpath.t list) : Core_result.result_and_exn =
   let rule_errors = Core_scan.errors_of_invalid_rule_errors invalid_rules in
   let config : Core_scan_config.t = core_scan_config_of_conf conf in
   let config = { config with file_match_results_hook } in
@@ -282,5 +283,5 @@ let invoke_semgrep_core
   Metrics_.add_targets_stats scanned
     (Core_profiling.debug_info_to_option res.extra);
 
-  (exn, res, scanned)
+  (exn, res)
   [@@profiling]
