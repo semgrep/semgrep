@@ -61,6 +61,9 @@
  *  be the same as the mode's variant *)
 type debug_mode = MDebug | MTime | MNo_info [@@deriving show]
 
+(* TODO? do we want to always return skipped_target, not only
+ * in debug mode?
+ *)
 type 'a debug_info =
   (* -debug: save all the information that could be useful *)
   | Debug of {
