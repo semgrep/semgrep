@@ -1,0 +1,2 @@
+Ruby: Fixed a bug where patterns like `<id> ... do ... end` would not
+match properly.
