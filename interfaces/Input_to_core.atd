@@ -27,9 +27,6 @@ type target <ocaml attr="deriving show"> = {
      less: would be great to use Lang.t here, but atd does not
      allow (by design) to use types defined in other files. *)
   language: xlang;
-  (* Index in the rule_ids list in targets of the rule_id to
-   * run this target on *)
-  rule_nums: int list;
 }
 
 (* The same path can be present multiple times in targets below, with
@@ -47,10 +44,9 @@ type target <ocaml attr="deriving show"> = {
  * alt: rule_ids above could also be used to analyze at once the same
  * file with both PL and generic/regexp rules.
  *)
+(* TODO: this should become just 'target list' *)
 type targets <ocaml attr="deriving show"> = {
    target_mappings: target list;
-   (* If there is no rule_id, the default we will use is '-' *)
-   rule_ids: string list
 }
 
 
