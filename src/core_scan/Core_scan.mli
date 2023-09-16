@@ -91,52 +91,72 @@
  * `Common.map`, which is tail-recursive, instead of `List.map`.
  *****************************************************************************)
 
-(* The type of the semgrep core scan. We define it here so that
+(* The type of the semgrep "core" scan. We define it here so that
    semgrep and semgrep-proprietary use the same definition *)
 type core_scan_func = Core_scan_config.t -> Core_result.result_and_exn
 
 (*****************************************************************************)
-(* Entry point *)
+(* Semgrep-core *)
 (*****************************************************************************)
+(* LATER: the funcs in this section should disappear once osemgrep is done *)
 
-val semgrep_dispatch : Core_scan_config.t -> unit
-(** Main entry point to the semgrep-core engine. This is called from Main.ml *)
+(* Main entry point to the semgrep-core scan. This is called from
+ * Core_CLI.ml, called itself from Main.ml
+ *)
+val semgrep_core_dispatch : Core_scan_config.t -> unit
 
-(*****************************************************************************)
-(* Engine functions used in tests or semgrep-core variants *)
-(*****************************************************************************)
-
-val semgrep_with_one_pattern : Core_scan_config.t -> unit
+val semgrep_core_with_one_pattern : Core_scan_config.t -> unit
 (** this is the function used when running semgrep-core with -e or -f *)
 
-val semgrep_with_rules_and_formatted_output : Core_scan_config.t -> unit
-(** [semgrep_with_rules_and_formatted_output config] calls
-    [semgrep_with_raw_results_and_exn_handler] and then
-    [output_semgrep_results] on the results
-*)
-
-val output_semgrep_results :
-  Core_result.result_and_exn -> Core_scan_config.t -> unit
-(** [output_semgrep_results] takes the results of a semgrep run and
-    format the results on stdout either in a JSON or Textual format
-    (depending on the value in config.output_format)
-
+val semgrep_core_with_rules_and_formatted_output : Core_scan_config.t -> unit
+(** [semgrep_core_with_rules_and_formatted_output config] calls
+    [scan_with_exn_handler] and then [output_core_results] on the results
     This is the function used when running semgrep-core with -rules.
 *)
 
-val semgrep_with_raw_results_and_exn_handler :
-  Core_scan_config.t -> Core_result.result_and_exn
-(** [semgrep_with_raw_results_and_exn_handler config] runs the semgrep-core
-    engine with a starting list of targets and returns
-    (success, result).
+val output_core_results :
+  Core_result.result_and_exn -> Core_scan_config.t -> unit
+(** [output_core_results] takes the results of a core scan and
+    format the results on stdout either in a JSON or Textual format
+    (depending on the value in config.output_format)
+*)
 
-    This run the core engine in Match_rules.check on every files, in
+(* Old hook to support incremental display of matches for semgrep-core
+ * in text-mode. Deprecated. Use Core_scan_config.file_match_results_hook
+ * instead now with osemgrep.
+ *)
+val print_match :
+  ?str:string ->
+  Core_scan_config.t ->
+  Pattern_match.t ->
+  (Metavariable.mvalue -> Tok.t list) ->
+  unit
+
+(* This function prints a dot, which is consumed by pysemgrep to update
+   the progress bar. See `core_runner.py`
+*)
+val update_cli_progress : Core_scan_config.t -> unit
+
+(*****************************************************************************)
+(* Scan functions used in tests or semgrep-core variants and in osemgrep *)
+(*****************************************************************************)
+
+val scan_with_exn_handler : Core_scan_config.t -> Core_result.result_and_exn
+(** [scan_with_exn_handler config] runs a core scan with a starting list
+    of targets and capture any exception.
+
+    This run the core scan in Match_rules.check on every files, in
     parallel, with some memory limits, and aggregate the results.
 
     This has the type core_scan_func defined above.
+    This is used not only by semgrep-core but also by osemgrep
+    and semgrep-pro.
 *)
 
-val semgrep_with_rules :
+(* As opposed to scan_with_exn_handler(), this function may throw
+ * an exception (for example in case of a fatal error).
+ *)
+val scan :
   ?match_hook:(string -> Pattern_match.t -> unit) ->
   Core_scan_config.t ->
   (Rule.t list * Rule.invalid_rule_error list) * float ->
@@ -158,22 +178,6 @@ val replace_named_pipe_by_regular_file : Fpath.t -> Fpath.t
    Any file coming from the command line should go through this so as to
    allows easy manual testing.
 *)
-
-(* Old hook to support incremental display of matches for semgrep-core
- * in text-mode. Deprecated. Use Core_scan_config.file_match_results_hook instead
- * now with osemgrep.
- *)
-val print_match :
-  ?str:string ->
-  Core_scan_config.t ->
-  Pattern_match.t ->
-  (Metavariable.mvalue -> Tok.t list) ->
-  unit
-
-(* This function prints a dot, which is consumed by pysemgrep to update
-   the progress bar. See `core_runner.py`
-*)
-val update_cli_progress : Core_scan_config.t -> unit
 
 (* TODO: Fpath.t *)
 val exn_to_error : Common.filename -> Exception.t -> Core_error.t

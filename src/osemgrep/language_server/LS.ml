@@ -43,7 +43,7 @@ module MessageHandler = struct
     Logs.app (fun m -> m "Running Semgrep with %d rules" (List.length rules));
     let runner_conf = Session.runner_conf session in
     let run =
-      Core_runner.invoke_semgrep_core ~respect_git_ignore:true
+      Core_runner.invoke_core_scan ~respect_git_ignore:true
         ~file_match_results_hook:None runner_conf rules [] targets
     in
     let res = Core_runner.create_core_result rules run in

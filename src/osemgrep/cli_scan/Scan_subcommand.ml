@@ -37,7 +37,7 @@ let (invoke_semgrep_core_proprietary :
       (Fpath.t list ->
       ?diff_config:Differential_scan_config.t ->
       Engine_type.t ->
-      Core_runner.semgrep_core_runner)
+      Core_runner.core_scan_func_for_osemgrep)
       option
       ref) =
   ref None
@@ -166,8 +166,7 @@ let core (conf : Scan_CLI.conf) file_match_results_hook errors targets
   let invoke_semgrep_core =
     match conf.engine_type with
     | OSS ->
-        Core_runner.invoke_semgrep_core
-          ~engine:Core_scan.semgrep_with_raw_results_and_exn_handler
+        Core_runner.invoke_core_scan ~engine:Core_scan.scan_with_exn_handler
     | PRO _ -> (
         match !invoke_semgrep_core_proprietary with
         | None ->
