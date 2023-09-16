@@ -33,6 +33,7 @@ import os
 import sys
 import importlib.resources
 import shutil
+from pathlib import Path
 #alt: you can also add '-W ignore::DeprecationWarning' after the python3 above,
 # but setuptools and pip adjust this line when installing semgrep so we need
 # to do this instead.
@@ -100,19 +101,38 @@ def exec_pysemgrep():
 # we can always tell users to run pysemgrep instead of semgrep and be sure
 # they'll get the old behavior.
 def exec_osemgrep():
+    path = None
     if "--pro" in sys.argv:
-        try:
-            path = find_semgrep_core_path(core="semgrep-core-proprietary",
-                                      extra_message="\nYou may need to run `semgrep install-semgrep-pro`"    )
-        except CoreNotFound as e:
-            print(str(e), file=sys.stderr)
-            if sys.argv[1] == "ci":
-                # CI users usually want things to just work. In particular, if they
-                # are running `semgrep ci --pro` they don't want to have to add an
-                # extra step to install-semgrep-pro. This wrapper doesn't have a way
-                # to install semgrep-pro, however, so have them run legacy `semgrep`. 
-                print("Since `semgrep ci` was run, defaulting to legacy semgrep", file=sys.stderr)
-                exec_pysemgrep()
+        # The SEMGREP_PRO_PATH env var is set for the non-root Docker image to install
+        # the Pro Engine binary in the semgrep user's $HOME/bin directory where it has
+        # the proper permissions to do so.
+        SEMGREP_PRO_PATH = os.getenv("SEMGREP_PRO_PATH")
+
+        if SEMGREP_PRO_PATH:
+            # Set pro binary path to that designated by SEMGREP_PRO_PATH and verify it exists
+            path = Path(SEMGREP_PRO_PATH) / "semgrep-core-proprietary"
+            if path.is_file():
+                os.environ["PATH"] = os.getenv("PATH") + os.pathsep + os.getenv("SEMGREP_PRO_PATH")
+            else:
+                # Reset path due to invalid SEMGREP_PRO_PATH
+                path = None
+                print("Failed to find semgrep-core-proprietary in designated SEMGREP_PRO_PATH.", file=sys.stderr)
+        # If SEMGREP_PRO_PATH was not set or is invalid, continue looking for pro binary
+        if path is None:
+            try:
+                path = find_semgrep_core_path(core="semgrep-core-proprietary",
+                                        extra_message="\nYou may need to run `semgrep install-semgrep-pro`"    )
+            except CoreNotFound as e:
+                print(str(e), file=sys.stderr)
+                if sys.argv[1] == "ci":
+                    # CI users usually want things to just work. In particular, if they
+                    # are running `semgrep ci --pro` they don't want to have to add an
+                    # extra step to install-semgrep-pro. This wrapper doesn't have a way
+                    # to install semgrep-pro, however, so have them run legacy `semgrep`. 
+                    print("Since `semgrep ci` was run, defaulting to legacy semgrep", file=sys.stderr)
+                    exec_pysemgrep()
+                else:
+                    sys.exit(2)
         # If you call semgrep-core-proprietary as osemgrep-pro, then we get
         # osemgrep-pro behavior, see semgrep-proprietary/src/main/Pro_main.ml
         sys.argv[0] = "osemgrep-pro"

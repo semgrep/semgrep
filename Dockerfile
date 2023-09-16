@@ -247,5 +247,4 @@ LABEL maintainer="support@semgrep.com"
 # `docker run -v "${PWD}:/src" -i returntocorp/semgrep semgrep`
 FROM semgrep-cli AS nonroot
 ENV SEMGREP_PRO_PATH="/home/semgrep/bin"
-ENV PATH="$PATH:$SEMGREP_PRO_PATH"
 USER semgrep
