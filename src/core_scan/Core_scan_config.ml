@@ -76,17 +76,6 @@ type t = {
 }
 [@@deriving show]
 
-(* The type of the semgrep core runner. We define it here so that
-   semgrep and semgrep-proprietary use the same definition *)
-type semgrep_engine =
-  t ->
-  (* Exceptions raised *)
-  Exception.t option
-  * (* Result *)
-    Core_result.t
-  * (* The processed targets *)
-  Fpath.t list
-
 (*
    Default values for all the semgrep-core command-line arguments and options.
 
