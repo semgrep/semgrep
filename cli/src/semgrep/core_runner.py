@@ -1242,7 +1242,7 @@ class CoreRunner:
                     ),
                 ):
                     parsing_data.add_error(err)
-                    errors.extend(parsed_errors)
+            errors.extend(parsed_errors)
 
         output_extra = OutputExtra(
             all_targets,
