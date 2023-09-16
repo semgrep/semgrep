@@ -47,7 +47,9 @@ def determine_semgrep_pro_path() -> Path:
 
         # Make sure SEMGREP_PRO_PATH is writeable
         if os.access(semgrep_pro_path.parent, os.W_OK):
-            os.environ["PATH"] = os.getenv("PATH") + os.pathsep + os.getenv("SEMGREP_PRO_PATH")
+            os.environ["PATH"] = (
+                os.getenv("PATH") + os.pathsep + os.getenv("SEMGREP_PRO_PATH")
+            )
             return semgrep_pro_path
         else:
             logger.info("Invalid path, designated SEMGREP_PRO_PATH is not writeable.")
