@@ -1,8 +1,9 @@
 val diagnostics_of_results :
+  bool ->
   Semgrep_output_v1_t.cli_match list ->
   Fpath.t list ->
   Lsp.Server_notification.t list
-(** [diagnostics_of_results results files] returns a list of LSP diagnostics
+(** [diagnostics_of_results is_intellij results files] returns a list of LSP diagnostics
     for the given matches. A diagnostic is the little squiggly you see under
     an error in your editor.
 
