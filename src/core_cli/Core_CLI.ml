@@ -685,9 +685,9 @@ let main_no_exn_handler (sys_argv : string array) : unit =
 
   let config = mk_config () in
 
-  if config.debug then Core_result.mode := MDebug
-  else if config.report_time then Core_result.mode := MTime
-  else Core_result.mode := MNo_info;
+  if config.debug then Core_profiling.mode := MDebug
+  else if config.report_time then Core_profiling.mode := MTime
+  else Core_profiling.mode := MNo_info;
 
   Logging_helpers.setup ~debug:config.debug
     ~log_config_file:config.log_config_file ~log_to_file:config.log_to_file;

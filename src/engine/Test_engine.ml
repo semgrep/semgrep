@@ -165,7 +165,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                }
              in
              E.g_errors := [];
-             Core_result.mode := MTime;
+             Core_profiling.mode := MTime;
              let rules, extract_rules =
                Common.partition_either
                  (fun r ->
@@ -249,7 +249,11 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                      (spf "exn on %s (exn = %s)" !!file (Common.exn_to_s exn))
              in
              res :: eres
-             |> List.iter (fun (res : RP.partial_profiling RP.match_result) ->
+             |> List.iter
+                  (fun
+                    (res :
+                      Core_profiling.partial_profiling Core_result.match_result)
+                  ->
                     match res.extra with
                     | Debug _
                     | No_info ->
@@ -258,26 +262,30 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                            which we force to be MTime"
                     | Time { profiling } ->
                         profiling.rule_times
-                        |> List.iter (fun rule_time ->
-                               if not (rule_time.RP.match_time >= 0.) then
+                        |> List.iter
+                             (fun (rule_time : Core_profiling.rule_profiling) ->
+                               if not (rule_time.match_time >= 0.) then
                                  (* match_time could be 0.0 if the rule contains no pattern or if the
                                     rules are skipped. Otherwise it's positive. *)
                                  failwith
                                    (spf
                                       "invalid value for match time: %g (rule: \
                                        %s, target: %s)"
-                                      rule_time.RP.match_time !!file !!target);
-                               if not (rule_time.RP.parse_time >= 0.) then
+                                      rule_time.match_time !!file !!target);
+                               if not (rule_time.parse_time >= 0.) then
                                  (* same for parse time *)
                                  failwith
                                    (spf
                                       "invalid value for parse time: %g (rule: \
                                        %s, target: %s)"
-                                      rule_time.RP.parse_time !!file !!target)));
+                                      rule_time.parse_time !!file !!target)));
 
              res :: eres
-             |> List.iter (fun (res : RP.partial_profiling RP.match_result) ->
-                    res.matches |> List.iter Core_json_output.match_to_error);
+             |> List.iter
+                  (fun
+                    (res :
+                      Core_profiling.partial_profiling Core_result.match_result)
+                  -> res.matches |> List.iter Core_json_output.match_to_error);
              (if not (E.ErrorSet.is_empty res.errors) then
               let errors =
                 E.ErrorSet.elements res.errors

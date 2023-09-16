@@ -48,8 +48,8 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * although this is a bit less ergonomic for the caller.
  *)
 type match_result_location_adjuster =
-  Core_result.partial_profiling Core_result.match_result ->
-  Core_result.partial_profiling Core_result.match_result
+  Core_profiling.partial_profiling Core_result.match_result ->
+  Core_profiling.partial_profiling Core_result.match_result
 
 (*****************************************************************************)
 (* Helpers *)
@@ -265,7 +265,7 @@ let map_bindings map_loc bindings =
   Common.map map_binding bindings
 
 let map_res map_loc (tmpfile : Fpath.t) (file : Fpath.t)
-    (mr : Core_result.partial_profiling Core_result.match_result) =
+    (mr : Core_profiling.partial_profiling Core_result.match_result) =
   let matches =
     Common.map
       (fun (m : Pattern_match.t) ->
@@ -288,7 +288,7 @@ let map_res map_loc (tmpfile : Fpath.t) (file : Fpath.t)
   in
   let extra =
     match mr.extra with
-    | Debug { skipped_targets; profiling } ->
+    | Core_profiling.Debug { skipped_targets; profiling } ->
         let skipped_targets =
           Common.map
             (fun (st : Semgrep_output_v1_t.skipped_target) ->
@@ -298,11 +298,11 @@ let map_res map_loc (tmpfile : Fpath.t) (file : Fpath.t)
               })
             skipped_targets
         in
-        Core_result.Debug
-          { skipped_targets; profiling = { profiling with Core_result.file } }
-    | Time { profiling } ->
-        Time { profiling = { profiling with Core_result.file } }
-    | No_info -> No_info
+        Core_profiling.Debug
+          { skipped_targets; profiling = { profiling with file } }
+    | Core_profiling.Time { profiling } ->
+        Core_profiling.Time { profiling = { profiling with file } }
+    | Core_profiling.No_info -> Core_profiling.No_info
   in
   { Core_result.matches; errors; extra; explanations = [] }
 

@@ -343,9 +343,9 @@ let errors_of_invalid_rule_errors (invalid_rules : Rule.invalid_rule_error list)
     =
   Common.map E.error_of_invalid_rule_error invalid_rules
 
-let sanity_check_invalid_patterns (res : RP.final_result) files =
+let sanity_check_invalid_patterns (res : Core_result.t) files =
   match
-    res.RP.errors
+    res.errors
     |> List.find_opt (fun (err : Core_error.t) ->
            match err.typ with
            | Out.PatternParseError _ -> true
@@ -354,7 +354,7 @@ let sanity_check_invalid_patterns (res : RP.final_result) files =
   | None -> (None, res, files)
   | Some err ->
       let e = Exception.catch (Failure "Pattern parse error") in
-      (Some e, { RP.empty_final_result with errors = [ err ] }, [])
+      (Some e, { Core_result.empty_final_result with errors = [ err ] }, [])
 
 (*****************************************************************************)
 (* Parsing (non-cached) *)
@@ -464,8 +464,8 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                               Out.OutOfMemory
                           | _ -> raise Impossible))
                    in
-                   RP.make_match_result [] errors
-                     (RP.empty_partial_profiling file)
+                   Core_result.make_match_result [] errors
+                     (Core_profiling.empty_partial_profiling file)
                (* those were converted in Main_timeout in timeout_function()*)
                | Time_limit.Timeout _ -> assert false
                (* It would be nice to detect 'R.Err (R.InvalidRule _)' here
@@ -492,10 +492,10 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                    let errors =
                      Core_error.ErrorSet.singleton (exn_to_error !!file e)
                    in
-                   RP.make_match_result [] errors
-                     (RP.empty_partial_profiling file))
+                   Core_result.make_match_result [] errors
+                     (Core_profiling.empty_partial_profiling file))
          in
-         RP.add_run_time run_time res)
+         Core_result.add_run_time run_time res)
 
 (*****************************************************************************)
 (* File targeting and rule filtering *)
@@ -823,7 +823,8 @@ let semgrep_with_rules ?match_hook config
              then
                {
                  matches with
-                 RP.matches = Common.map PM.to_proprietary matches.RP.matches;
+                 Core_result.matches =
+                   Common.map PM.to_proprietary matches.matches;
                }
              else matches
            in
@@ -862,13 +863,13 @@ let semgrep_with_rules ?match_hook config
   (* Concatenate all the skipped targets *)
   let extra =
     match res.extra with
-    | RP.Debug { skipped_targets; profiling } ->
+    | Core_profiling.Debug { skipped_targets; profiling } ->
         let skipped_targets = skipped @ new_skipped @ skipped_targets in
         logger#info "there were %d skipped targets"
           (List.length skipped_targets);
-        RP.Debug { skipped_targets; profiling }
-    | RP.Time profiling -> RP.Time profiling
-    | RP.No_info -> RP.No_info
+        Core_profiling.Debug { skipped_targets; profiling }
+    | Core_profiling.Time profiling -> Core_profiling.Time profiling
+    | Core_profiling.No_info -> Core_profiling.No_info
   in
   let errors = rule_errors @ new_errors @ res.errors in
   ( {
