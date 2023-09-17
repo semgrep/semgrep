@@ -1,4 +1,4 @@
-For the `nonroot` Docker build stage, moved `semgrep-core` to 
-`/home/semgrep/bin` and updated `$PATH` env variable with the 
+For the `nonroot` Docker build stage, moved `semgrep-core` to
+`/home/semgrep/bin` and updated `$PATH` env variable with the
 new location. This avoids permissions issues when running and
 installing Pro Engine while using the `nonroot` Docker image.
