@@ -51,10 +51,10 @@ type result = {
   *)
 }
 
-(* Type for the core scan function, which can either be invoked by
-   invoke_core_scan or invoke_semgrep_core_proprietary *)
+(* Type for the scan function, which can either be built by
+   mk_scan_func_for_osemgrep() or set in Scan_subcommand.hook_pro_scan_func *)
 
-type core_scan_func_for_osemgrep =
+type scan_func_for_osemgrep =
   ?respect_git_ignore:bool ->
   ?file_match_results_hook:
     (Fpath.t ->
@@ -225,10 +225,12 @@ let create_core_result all_rules (_exns, (res : Core_result.t)) =
 (*
    Take in rules and targets and return object with findings.
 *)
-let invoke_core_scan ?(engine = Core_scan.scan_with_exn_handler)
-    ?(respect_git_ignore = true) ?(file_match_results_hook = None) (conf : conf)
-    (all_rules : Rule.t list) (invalid_rules : Rule.invalid_rule_error list)
-    (all_targets : Fpath.t list) : Core_result.result_and_exn =
+let mk_scan_func_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
+    scan_func_for_osemgrep =
+ fun ?(respect_git_ignore = true) ?(file_match_results_hook = None)
+     (conf : conf) (all_rules : Rule.t list)
+     (invalid_rules : Rule.invalid_rule_error list) (all_targets : Fpath.t list)
+     : Core_result.result_and_exn ->
   let rule_errors = Core_scan.errors_of_invalid_rule_errors invalid_rules in
   let config : Core_scan_config.t = core_scan_config_of_conf conf in
   let config = { config with file_match_results_hook } in
@@ -261,8 +263,8 @@ let invoke_core_scan ?(engine = Core_scan.scan_with_exn_handler)
     lang_jobs;
   let config = prepare_config_for_core_scan config lang_jobs in
 
-  (* !!!!Finally! this is where we branch to semgrep-core!!! *)
-  let exn, res = engine config in
+  (* !!!!Finally! this is where we branch to semgrep-core core scan fun!!! *)
+  let exn, res = core_scan_func config in
 
   (* Reinject rule errors *)
   let res =
@@ -284,4 +286,4 @@ let invoke_core_scan ?(engine = Core_scan.scan_with_exn_handler)
     (Core_profiling.debug_info_to_option res.extra);
 
   (exn, res)
-  [@@profiling]
+ [@@profiling]

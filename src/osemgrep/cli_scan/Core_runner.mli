@@ -17,8 +17,10 @@ type result = {
   scanned : Fpath.t Set_.t;
 }
 
+val create_core_result : Rule.rule list -> Core_result.result_and_exn -> result
+
 (* similar to Core_scan.core_scan_func *)
-type core_scan_func_for_osemgrep =
+type scan_func_for_osemgrep =
   ?respect_git_ignore:bool ->
   ?file_match_results_hook:
     (Fpath.t ->
@@ -32,16 +34,20 @@ type core_scan_func_for_osemgrep =
   Fpath.t list ->
   Core_result.result_and_exn
 
-val create_core_result : Rule.rule list -> Core_result.result_and_exn -> result
+(* Core_scan_func adapter to be used in osemgrep.
 
-(*
-   This calls a core scan like pysemgrep but without creating a subprocess.
+   This will eventually call a core scan like pysemgrep but without
+   creating a subprocess.
 
-   LATER: This function should go away, eventually, with some parts being
-   integrated into what's currently semgrep-core.
+   The first argument is usually Core_scan.scan_with_exn_handler,
+   but it can also be Run.deep_with_raw_results_and_exn_handler
+   when running in Pro Interfile mode and when called from
+   the Steps_runner in Semgrep Pro.
+
+   LATER: This function should go away.
 *)
-val invoke_core_scan :
-  ?engine:Core_scan.core_scan_func -> core_scan_func_for_osemgrep
+val mk_scan_func_for_osemgrep :
+  Core_scan.core_scan_func -> scan_func_for_osemgrep
 
 (* Helper used in Semgrep_scan.ml to setup logging *)
 val core_scan_config_of_conf : conf -> Core_scan_config.t

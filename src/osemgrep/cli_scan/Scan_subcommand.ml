@@ -30,14 +30,26 @@ module RP = Core_result
 module SS = Set.Make (String)
 
 (*****************************************************************************)
-(* To run the pro engine, including multistep rules *)
+(* To run a Pro scan (Deep scan and multistep scan) *)
 (*****************************************************************************)
 
-let (invoke_semgrep_core_proprietary :
+(* Semgrep Pro hook. Note that this is useful only for osemgrep. Indeed,
+ * for pysemgrep the code path is instead to fork the
+ * semgrep-core-proprietary program, which executes Pro_CLI_main.ml
+ * which then calls Run.ml code which is mostly a copy-paste of Core_scan.ml
+ * with the Pro scan specifities hard-coded (no need for hooks).
+ * We could do the same for osemgrep, but that would require to copy-paste
+ * lots of code, so simpler to use a hook instead.
+ *
+ * Note that Scan_subcommand.ml itself is linked in (o)semgrep-pro,
+ * and executed by osemgrep-pro. When linked from osemgrep-pro, this
+ * hook below will be set.
+ *)
+let (hook_pro_scan_func_for_osemgrep :
       (Fpath.t list ->
       ?diff_config:Differential_scan_config.t ->
       Engine_type.t ->
-      Core_runner.core_scan_func_for_osemgrep)
+      Core_runner.scan_func_for_osemgrep)
       option
       ref) =
   ref None
@@ -159,27 +171,30 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
       | None -> acc)
     map []
 
-(* Select and execute the Semgrep core engine based on the configured
-   engine settings. *)
-let core (conf : Scan_CLI.conf) file_match_results_hook errors targets
+(* Select and execute the scan func based on the configured engine settings.
+ * Yet another mk_scan_func adapter. TODO: can we simplify?
+ *)
+let mk_scan_func (conf : Scan_CLI.conf) file_match_results_hook errors targets
     ?(diff_config = Differential_scan_config.WholeScan) rules () =
-  let invoke_semgrep_core =
+  let scan_func_for_osemgrep : Core_runner.scan_func_for_osemgrep =
     match conf.engine_type with
     | OSS ->
-        Core_runner.invoke_core_scan ~engine:Core_scan.scan_with_exn_handler
+        Core_runner.mk_scan_func_for_osemgrep Core_scan.scan_with_exn_handler
     | PRO _ -> (
-        match !invoke_semgrep_core_proprietary with
+        match !hook_pro_scan_func_for_osemgrep with
         | None ->
-            (* TODO: improve this error message depending on what the instructions should be *)
+            (* TODO: improve this error message depending on what the
+             * instructions should be *)
             failwith
               "You have requested running semgrep with a setting that requires \
                the pro engine, but do not have the pro engine. You may need to \
                acquire a different binary."
-        | Some invoke_semgrep_core_proprietary ->
+        | Some pro_scan_func ->
             let roots = conf.target_roots in
-            invoke_semgrep_core_proprietary roots ~diff_config conf.engine_type)
+            pro_scan_func roots ~diff_config conf.engine_type)
   in
-  invoke_semgrep_core ~respect_git_ignore:conf.targeting_conf.respect_git_ignore
+  scan_func_for_osemgrep
+    ~respect_git_ignore:conf.targeting_conf.respect_git_ignore
     ~file_match_results_hook conf.core_runner_conf rules errors targets
 
 (*****************************************************************************)
@@ -369,12 +384,12 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
             Some (file_match_results_hook conf filtered_rules) )
       | { output_format; _ } -> (output_format, None)
     in
-    let core = core conf file_match_results_hook errors in
+    let scan_func = mk_scan_func conf file_match_results_hook errors in
     let exn_and_matches =
       match conf.targeting_conf.baseline_commit with
       | None ->
           Profiler.record profiler ~name:"core_time"
-            (core targets filtered_rules)
+            (scan_func targets filtered_rules)
       | Some baseline_commit ->
           (* diff scan mode *)
           let commit = Git_wrapper.get_merge_base baseline_commit in
@@ -389,14 +404,14 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
           in
           let head_scan_result =
             Profiler.record profiler ~name:"head_core_time"
-              (core targets
+              (scan_func targets
                  ~diff_config:
                    (Differential_scan_config.Depth
                       (diff_targets, Differential_scan_config.default_depth))
                  filtered_rules)
           in
           scan_baseline_and_remove_duplicates conf profiler head_scan_result
-            filtered_rules commit status core
+            filtered_rules commit status scan_func
     in
     (* step 3': call the engine! *)
     let (res : Core_runner.result) =
