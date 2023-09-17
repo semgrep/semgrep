@@ -51,8 +51,8 @@ type result = {
   *)
 }
 
-(* Type for the scan function, which can either be build by
-   mk_scan_func_for_osemgrep or set in Scan_subcommand.hook_pro_scan_func *)
+(* Type for the scan function, which can either be built by
+   mk_scan_func_for_osemgrep() or set in Scan_subcommand.hook_pro_scan_func *)
 
 type scan_func_for_osemgrep =
   ?respect_git_ignore:bool ->
@@ -227,69 +227,63 @@ let create_core_result all_rules (_exns, (res : Core_result.t)) =
 *)
 let mk_scan_func_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
     scan_func_for_osemgrep =
-  (* this is just to prevent ocamlformat to remove the fun below,
-   * but I want to be explicit that the usecase for this function
-   * is to return a function
-   *)
-  let _ = ignore () in
-  fun ?(respect_git_ignore = true) ?(file_match_results_hook = None)
-      (conf : conf) (all_rules : Rule.t list)
-      (invalid_rules : Rule.invalid_rule_error list)
-      (all_targets : Fpath.t list) : Core_result.result_and_exn ->
-    let rule_errors = Core_scan.errors_of_invalid_rule_errors invalid_rules in
-    let config : Core_scan_config.t = core_scan_config_of_conf conf in
-    let config = { config with file_match_results_hook } in
-    (* TODO: we should not need to use Common.map below, because
-       Run_semgrep.semgrep_with_raw_results_and_exn_handler can accept
-       a list of targets with different languages! We just
-       need to pass the right target object (and not a lang_job)
-       TODO: Martin said the issue was that Run_semgrep.targets_of_config
-       requires the xlang object to contain a single language.
-       TODO: Martin says there's no fundamental reason to split
-       a scanning job by programming language. Several optimizations
-       are possible based on target project structure, number and diversity
-       of rules, presence of rule-specific include/exclude patterns etc.
-       Right now we're constrained by the pysemgrep/semgrep-core interface
-       that requires a split by "language". While this interface is still
-       in use, bypassing it without removing it seems complicated.
-       See https://www.notion.so/r2cdev/Osemgrep-scanning-algorithm-5962232bfd74433ba50f97c86bd1a0f3
-    *)
-    let lang_jobs = split_jobs_by_language all_rules all_targets in
-    Logs.app (fun m ->
-        m "%a"
-          (fun ppf () ->
-            Status_report.pp_status ~num_rules:(List.length all_rules)
-              ~num_targets:(List.length all_targets) ~respect_git_ignore
-              lang_jobs ppf)
-          ());
-    List.iter
-      (fun { Lang_job.xlang; _ } ->
-        Metrics_.add_feature "language" (Xlang.to_string xlang))
-      lang_jobs;
-    let config = prepare_config_for_core_scan config lang_jobs in
+ fun ?(respect_git_ignore = true) ?(file_match_results_hook = None)
+     (conf : conf) (all_rules : Rule.t list)
+     (invalid_rules : Rule.invalid_rule_error list) (all_targets : Fpath.t list)
+     : Core_result.result_and_exn ->
+  let rule_errors = Core_scan.errors_of_invalid_rule_errors invalid_rules in
+  let config : Core_scan_config.t = core_scan_config_of_conf conf in
+  let config = { config with file_match_results_hook } in
+  (* TODO: we should not need to use Common.map below, because
+     Run_semgrep.semgrep_with_raw_results_and_exn_handler can accept
+     a list of targets with different languages! We just
+     need to pass the right target object (and not a lang_job)
+     TODO: Martin said the issue was that Run_semgrep.targets_of_config
+     requires the xlang object to contain a single language.
+     TODO: Martin says there's no fundamental reason to split
+     a scanning job by programming language. Several optimizations
+     are possible based on target project structure, number and diversity
+     of rules, presence of rule-specific include/exclude patterns etc.
+     Right now we're constrained by the pysemgrep/semgrep-core interface
+     that requires a split by "language". While this interface is still
+     in use, bypassing it without removing it seems complicated.
+     See https://www.notion.so/r2cdev/Osemgrep-scanning-algorithm-5962232bfd74433ba50f97c86bd1a0f3
+  *)
+  let lang_jobs = split_jobs_by_language all_rules all_targets in
+  Logs.app (fun m ->
+      m "%a"
+        (fun ppf () ->
+          Status_report.pp_status ~num_rules:(List.length all_rules)
+            ~num_targets:(List.length all_targets) ~respect_git_ignore lang_jobs
+            ppf)
+        ());
+  List.iter
+    (fun { Lang_job.xlang; _ } ->
+      Metrics_.add_feature "language" (Xlang.to_string xlang))
+    lang_jobs;
+  let config = prepare_config_for_core_scan config lang_jobs in
 
-    (* !!!!Finally! this is where we branch to semgrep-core core scan fun!!! *)
-    let exn, res = core_scan_func config in
+  (* !!!!Finally! this is where we branch to semgrep-core core scan fun!!! *)
+  let exn, res = core_scan_func config in
 
-    (* Reinject rule errors *)
-    let res =
-      {
-        res with
-        errors = rule_errors @ res.errors;
-        skipped_rules = invalid_rules @ res.skipped_rules;
-      }
-    in
+  (* Reinject rule errors *)
+  let res =
+    {
+      res with
+      errors = rule_errors @ res.errors;
+      skipped_rules = invalid_rules @ res.skipped_rules;
+    }
+  in
 
-    let scanned = Set_.of_list res.scanned in
+  let scanned = Set_.of_list res.scanned in
 
-    (* TODO(dinosaure): currently, we don't collect metrics when we invoke
-       semgrep-core but we should. However, if we implement a way to collect
-       metrics, we will just need to set [final_result.extra] to
-       [Core_result.Debug]/[Core_result.Time] and this line of code will not change. *)
-    Metrics_.add_max_memory_bytes
-      (Core_profiling.debug_info_to_option res.extra);
-    Metrics_.add_targets_stats scanned
-      (Core_profiling.debug_info_to_option res.extra);
+  (* TODO(dinosaure): currently, we don't collect metrics when we invoke
+     semgrep-core but we should. However, if we implement a way to collect
+     metrics, we will just need to set [final_result.extra] to
+     [Core_result.Debug]/[Core_result.Time] and this line of code will not change. *)
+  Metrics_.add_max_memory_bytes (Core_profiling.debug_info_to_option res.extra);
+  Metrics_.add_targets_stats scanned
+    (Core_profiling.debug_info_to_option res.extra);
 
-    (exn, res)
-  [@@profiling]
+  (exn, res)
+ [@@profiling]

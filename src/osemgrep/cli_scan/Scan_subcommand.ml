@@ -30,19 +30,20 @@ module RP = Core_result
 module SS = Set.Make (String)
 
 (*****************************************************************************)
-(* To run a Pro scan, including multistep rules *)
+(* To run a Pro scan (Deep scan and multistep scan) *)
 (*****************************************************************************)
 
 (* Semgrep Pro hook. Note that this is useful only for osemgrep. Indeed,
  * for pysemgrep the code path is instead to fork the
  * semgrep-core-proprietary program, which executes Pro_CLI_main.ml
- * which then calls Run.ml code which is mostly a copy-paste Core_scan.ml
- * with the Pro_scan specifities hard-coded (no need for hooks).
+ * which then calls Run.ml code which is mostly a copy-paste of Core_scan.ml
+ * with the Pro scan specifities hard-coded (no need for hooks).
  * We could do the same for osemgrep, but that would require to copy-paste
  * lots of code, so simpler to use a hook instead.
  *
  * Note that Scan_subcommand.ml itself is linked in (o)semgrep-pro,
- * and executed by osemgrep-pro.
+ * and executed by osemgrep-pro. When linked from osemgrep-pro, this
+ * hook below will be set.
  *)
 let (hook_pro_scan_func_for_osemgrep :
       (Fpath.t list ->
