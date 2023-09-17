@@ -859,7 +859,7 @@ let scan ?match_hook config ((rules, invalid_rules), rules_parse_time) :
   in
   let res =
     RP.make_final_result file_results
-      (Common.map (fun r -> (r, Pattern_match.OSS)) rules)
+      (Common.map (fun r -> (r, `OSS)) rules)
       invalid_rules scanned ~rules_parse_time
   in
   logger#info "found %d matches, %d errors" (List.length res.matches)

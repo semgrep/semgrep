@@ -37,7 +37,7 @@ type t = {
   (* may contain also skipped_target information *)
   extra : Core_profiling.t Core_profiling.debug_info;
   explanations : Matching_explanation.t list;
-  rules_by_engine : (Rule_ID.t * Pattern_match.engine_kind) list;
+  rules_by_engine : (Rule_ID.t * Engine_kind.t) list;
   scanned : Fpath.t list;
 }
 [@@deriving show]
@@ -248,7 +248,7 @@ let collate_rule_results (file : Fpath.t)
 (* Aggregate a list of target results into one final result *)
 let make_final_result
     (results : Core_profiling.file_profiling match_result list)
-    (rules_with_engine : (Rule.t * Pattern_match.engine_kind) list)
+    (rules_with_engine : (Rule.t * Engine_kind.t) list)
     (skipped_rules : Rule.invalid_rule_error list) (scanned : Fpath.t list)
     ~rules_parse_time =
   (* contenating information from the match_result list *)

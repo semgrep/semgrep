@@ -94,14 +94,6 @@ let range_of_any_opt startp_of_match_range any =
 (* Converters *)
 (*****************************************************************************)
 
-(* TODO: should not be needed if we were using semgrep_output_v1.engine_kind
- * directly in Pattern_match.engine_kind
- *)
-let convert_engine_kind ek =
-  match ek with
-  | OSS -> `OSS
-  | Pro -> `PRO
-
 (* TODO: same, should reuse directly semgrep_output_v1 *)
 let convert_validation_state = function
   | Confirmed_valid -> `CONFIRMED_VALID
@@ -109,8 +101,7 @@ let convert_validation_state = function
   | Validation_error -> `VALIDATION_ERROR
   | No_validator -> `NO_VALIDATOR
 
-let convert_rule ((id, ek) : Rule_ID.t * Pattern_match.engine_kind) =
-  ((id :> string), convert_engine_kind ek)
+let convert_rule ((id, ek) : Rule_ID.t * Engine_kind.t) = ((id :> string), ek)
 
 let metavar_string_of_any any =
   (* TODO: metavar_string_of_any is used in get_propagated_value
@@ -270,7 +261,7 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
         metavars = x.env |> Common.map (metavars startp);
         dataflow_trace;
         rendered_fix;
-        engine_kind = convert_engine_kind x.engine_kind;
+        engine_kind = x.engine_kind;
         validation_state = Some (convert_validation_state x.validation_state);
         extra_extra = None;
       };

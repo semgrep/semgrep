@@ -173,7 +173,7 @@ let match_rules_and_recurse m_env (file, hook, matches) rules matcher k any x =
                           (* This will be overrided later on by the Pro engine, if this is
                              from a Pro run.
                           *)
-                          engine_kind = OSS;
+                          engine_kind = `OSS;
                           validation_state = No_validator;
                         }
                       in
@@ -337,7 +337,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                   range_loc;
                                   tokens;
                                   taint_trace = None;
-                                  engine_kind = OSS;
+                                  engine_kind = `OSS;
                                   validation_state = No_validator;
                                 }
                               in
@@ -396,7 +396,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                     range_loc;
                                     tokens;
                                     taint_trace = None;
-                                    engine_kind = OSS;
+                                    engine_kind = `OSS;
                                     validation_state = No_validator;
                                   }
                                 in
@@ -443,7 +443,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                       range_loc;
                                       tokens;
                                       taint_trace = None;
-                                      engine_kind = OSS;
+                                      engine_kind = `OSS;
                                       validation_state = No_validator;
                                     }
                                   in
@@ -536,7 +536,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                       range_loc;
                                       tokens;
                                       taint_trace = None;
-                                      engine_kind = OSS;
+                                      engine_kind = `OSS;
                                       validation_state = No_validator;
                                     }
                                   in

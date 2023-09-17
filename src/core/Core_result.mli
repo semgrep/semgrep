@@ -21,7 +21,7 @@ type t = {
   (* may contain skipped_target info *)
   extra : Core_profiling.t Core_profiling.debug_info;
   explanations : Matching_explanation.t list;
-  rules_by_engine : (Rule_ID.t * Pattern_match.engine_kind) list;
+  rules_by_engine : (Rule_ID.t * Engine_kind.t) list;
   (* The targets are all the files that were considered valid targets for the
    * semgrep scan. This excludes files that were filtered out on purpose
    * due to being in the wrong language, too big, etc.
@@ -49,7 +49,7 @@ val make_match_result :
  *)
 val make_final_result :
   Core_profiling.file_profiling match_result list ->
-  (Rule.rule * Pattern_match.engine_kind) list ->
+  (Rule.rule * Engine_kind.t) list ->
   Rule.invalid_rule_error list ->
   Fpath.t list ->
   rules_parse_time:float ->
