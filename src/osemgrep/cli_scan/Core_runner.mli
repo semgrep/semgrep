@@ -34,11 +34,15 @@ type scan_func_for_osemgrep =
   Fpath.t list ->
   Core_result.result_and_exn
 
-(*
+(* Core_scan_func adapter to be used in osemgrep.
+
    This will eventually call a core scan like pysemgrep but without
    creating a subprocess.
+
    The first argument is usually Core_scan.scan_with_exn_handler,
-   but it can also be ???
+   but it can also be Run.deep_with_raw_results_and_exn_handler
+   when running in Pro Interfile mode and when called from
+   the Steps_runner in Semgrep Pro.
 
    LATER: This function should go away.
 *)
