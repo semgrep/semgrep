@@ -197,17 +197,14 @@ RUN apk add --no-cache --virtual=.build-deps build-base make g++ &&\
 # Let the user know how their container was built
 COPY Dockerfile /Dockerfile
 
-# Get semgrep-core from step1 and place in the semgrep user HOME directory
-# to avoid permissions issues when installing Pro Engine on nonroot image
-COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe /home/semgrep/bin/semgrep-core
+# Get semgrep-core from step1
+COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe /usr/local/bin/semgrep-core
 
-RUN ln -s semgrep-core /home/semgrep/bin/osemgrep
+RUN ln -s semgrep-core /usr/local/bin/osemgrep
 
-# Set some env variables, including updating PATH with
-# location of semgrep-core binary
+# Set some env variables
 ENV SEMGREP_IN_DOCKER=1 \
-    SEMGREP_USER_AGENT_APPEND="Docker" \
-    PATH="/home/semgrep/bin:$PATH"
+    SEMGREP_USER_AGENT_APPEND="Docker"
 
 # The command we tell people to run for testing semgrep in Docker is
 #   docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep --config=auto
@@ -217,8 +214,7 @@ WORKDIR /src
 # Better to avoid running semgrep as root
 # See https://stackoverflow.com/questions/49193283/why-it-is-unsafe-to-run-applications-as-root-in-docker-container
 RUN adduser -D -u 1000 -h /home/semgrep semgrep \
-    && chown semgrep /src \
-    && chown semgrep:semgrep /home/semgrep/bin
+    && chown semgrep /src
 
 # Disabling defaulting to the user semgrep for now
 # We can set it by default once we fix the circle ci workflows
@@ -243,4 +239,18 @@ LABEL maintainer="support@semgrep.com"
 # on the mounted volume when using instructions for running semgrep with docker:
 # `docker run -v "${PWD}:/src" -i returntocorp/semgrep semgrep`
 FROM semgrep-cli AS nonroot
+
+# Remove previous `osemgrep` symlink
+# Create /home/semgrep/bin directory and move `semgrep-core` there
+# Create new `osemgrep` symlink
+# Make `semgrep` user/group owner of /home/semgrep/bin
+RUN rm /usr/local/bin/osemgrep && \
+    mkdir /home/semgrep/bin && \
+    mv /usr/local/bin/semgrep-core /home/semgrep/bin && \
+    ln -s semgrep-core /home/semgrep/bin/osemgrep && \
+    chown semgrep:semgrep /home/semgrep/bin
+
+# Update PATH with new core binary location
+ENV PATH="$PATH:/home/semgrep/bin"
+
 USER semgrep
