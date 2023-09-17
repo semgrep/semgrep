@@ -120,7 +120,7 @@ let _ =
            }
          in
          let timed_rules = (rules_and_errors, 0.) in
-         let res = Core_scan.semgrep_with_rules config timed_rules in
+         let res = Core_scan.scan config timed_rules in
          let res =
            Core_json_output.core_output_of_matches_and_errors
              (Some Autofix.render_fix) (List.length res.scanned) res
