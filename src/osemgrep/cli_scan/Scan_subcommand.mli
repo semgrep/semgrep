@@ -11,14 +11,12 @@ val main : string array -> Exit_code.t
 val run_conf : Scan_CLI.conf -> Exit_code.t
 val run_scan_conf : Scan_CLI.conf -> Exit_code.t
 
-(* Semgrep Pro hook *)
-(* TODO it might be better to pass this through and avoid the hook,
-   but it was fairly annoying to *)
-val invoke_semgrep_core_proprietary :
+(* Semgrep Pro hook for osemgrep *)
+val hook_pro_scan_func_for_osemgrep :
   (Fpath.t list ->
   ?diff_config:Differential_scan_config.t ->
   Engine_type.t ->
-  Core_runner.core_scan_func_for_osemgrep)
+  Core_runner.scan_func_for_osemgrep)
   option
   ref
 
