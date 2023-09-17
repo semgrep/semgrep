@@ -17,7 +17,8 @@ type result = {
   scanned : Fpath.t Set_.t;
 }
 
-type semgrep_core_runner =
+(* similar to Core_scan.core_scan_func *)
+type core_scan_func_for_osemgrep =
   ?respect_git_ignore:bool ->
   ?file_match_results_hook:
     (Fpath.t ->
@@ -34,14 +35,13 @@ type semgrep_core_runner =
 val create_core_result : Rule.rule list -> Core_result.result_and_exn -> result
 
 (*
-   This calls the semgrep-core command like the Python implementation used
-   to, but without creating a subprocess.
+   This calls a core scan like pysemgrep but without creating a subprocess.
 
    LATER: This function should go away, eventually, with some parts being
    integrated into what's currently semgrep-core.
 *)
-val invoke_semgrep_core :
-  ?engine:Core_scan.core_scan_func -> semgrep_core_runner
+val invoke_core_scan :
+  ?engine:Core_scan.core_scan_func -> core_scan_func_for_osemgrep
 
 (* Helper used in Semgrep_scan.ml to setup logging *)
 val core_scan_config_of_conf : conf -> Core_scan_config.t

@@ -106,7 +106,7 @@ let run (conf : conf) : Exit_code.t =
           Error.abort (spf "error in metachecks! please fix %s" metarules_pack);
 
         let exn_and_matches =
-          Core_runner.invoke_semgrep_core conf.core_runner_conf metarules []
+          Core_runner.invoke_core_scan conf.core_runner_conf metarules []
             targets
         in
         let res = Core_runner.create_core_result metarules exn_and_matches in

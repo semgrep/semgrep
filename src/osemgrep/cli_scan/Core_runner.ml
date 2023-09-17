@@ -8,7 +8,7 @@ module Env = Semgrep_envvars
 (*
    Translated from core_runner.py and core_output.py
 
-   LATER: we should remove this file and call directly Run_semgrep
+   LATER: we should remove this file and call directly Core_scan
    and not go through the intermediate semgrep-core JSON output.
 *)
 
@@ -29,9 +29,8 @@ type conf = {
 [@@deriving show]
 
 (* output *)
-(* LATER: ideally we should just return what Run_semgrep returns,
-   without the need for the intermediate Out.core_match_results.
-   LATER: get rid also of Output_from_core_util.ml
+(* LATER: ideally we should just return Core_result.t
+   without the need for the intermediate Out.core_output.
 *)
 type result = {
   (* ocaml: not in original python implem, but just enough to get
@@ -52,10 +51,10 @@ type result = {
   *)
 }
 
-(* Type for the core runner function, which can either be invoked by
-   invoke_semgrep_core or invoke_semgrep_core_proprietary *)
+(* Type for the core scan function, which can either be invoked by
+   invoke_core_scan or invoke_semgrep_core_proprietary *)
 
-type semgrep_core_runner =
+type core_scan_func_for_osemgrep =
   ?respect_git_ignore:bool ->
   ?file_match_results_hook:
     (Fpath.t ->
@@ -138,7 +137,7 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
         version = Version.version;
       }
 
-let prepare_config_for_semgrep_core (config : Core_scan_config.t)
+let prepare_config_for_core_scan (config : Core_scan_config.t)
     (lang_jobs : Lang_job.t list) =
   let target_mappings_of_lang_job (x : Lang_job.t) prev_rule_count :
       int * Input_to_core_t.target list * Rule.rules =
@@ -156,15 +155,17 @@ let prepare_config_for_semgrep_core (config : Core_scan_config.t)
     in
     (List.length rule_ids, target_mappings, x.rules)
   in
-  (* The targets are mapped to rule_nums rather than rule_ids to improve the memory usage.
-     A list of rule_ids is passed with the targets to map back from num -> id. This means
-     that when creating the targets structure, the rules need to be numbered against the
-     final rule_ids list.
-
-     The rules need to be reversed to number them correctly because of how :: behaves
-
-     TODO after we delete pysemgrep, we can simplify this interface, which will also
-     improve memory usage again *)
+  (* The targets are mapped to rule_nums rather than rule_ids to improve the
+   * memory usage. A list of rule_ids is passed with the targets to map back
+   * from num -> id. This means that when creating the targets structure,
+   * the rules need to be numbered against the final rule_ids list.
+   *
+   * The rules need to be reversed to number them correctly because of
+   * how :: behaves
+   *
+   * TODO after we delete pysemgrep, we can simplify this interface,
+   * which will also improve memory usage again
+   *)
   let _, target_mappings, rules =
     lang_jobs
     |> List.fold_left
@@ -224,8 +225,7 @@ let create_core_result all_rules (_exns, (res : Core_result.t)) =
 (*
    Take in rules and targets and return object with findings.
 *)
-let invoke_semgrep_core
-    ?(engine = Core_scan.semgrep_with_raw_results_and_exn_handler)
+let invoke_core_scan ?(engine = Core_scan.scan_with_exn_handler)
     ?(respect_git_ignore = true) ?(file_match_results_hook = None) (conf : conf)
     (all_rules : Rule.t list) (invalid_rules : Rule.invalid_rule_error list)
     (all_targets : Fpath.t list) : Core_result.result_and_exn =
@@ -259,7 +259,7 @@ let invoke_semgrep_core
     (fun { Lang_job.xlang; _ } ->
       Metrics_.add_feature "language" (Xlang.to_string xlang))
     lang_jobs;
-  let config = prepare_config_for_semgrep_core config lang_jobs in
+  let config = prepare_config_for_core_scan config lang_jobs in
 
   (* !!!!Finally! this is where we branch to semgrep-core!!! *)
   let exn, res = engine config in

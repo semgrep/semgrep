@@ -18,7 +18,7 @@ val invoke_semgrep_core_proprietary :
   (Fpath.t list ->
   ?diff_config:Differential_scan_config.t ->
   Engine_type.t ->
-  Core_runner.semgrep_core_runner)
+  Core_runner.core_scan_func_for_osemgrep)
   option
   ref
 
