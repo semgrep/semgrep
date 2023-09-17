@@ -404,6 +404,7 @@ def mock_autofix(request, mocker):
 # The tests
 ##############################################################################
 
+
 @pytest.mark.parametrize(
     "env",
     [
