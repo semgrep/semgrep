@@ -11,40 +11,33 @@ type core_scan_func = Core_scan_config.t -> Core_result.result_and_exn
  * parallel, with some memory limits, and aggregate the results.
  *
  * This has the type core_scan_func defined above.
+ *
+ * Note that this function will run the pre/post scan hook defined
+ * in Pre_post_core_scan.hook_processor.
  *)
 
 val scan_with_exn_handler : Core_scan_config.t -> Core_result.result_and_exn
 
-(* As opposed to scan_with_exn_handler(), this function may throw
+(* As opposed to [scan_with_exn_handler()], [scan() ...] below may throw
  * an exception (for example in case of a fatal error).
+ *
+ * This is called by scan_with_exn_handler(). This also uses
+ * a few hooks that can be defined in semgrep variants:
+ *  - Match_tainting_mode.hook_setup_hook_function_taint_signature
+ *  - Dataflow_tainting.hook_function_taint_signature
+ *
+ * Functions from matching/ and engine/ called internally uses even
+ * more hooks to enhance the behavior of a "core scan".
+ *
+ * The match_hook parameter is a deprecated way to print matches. If not
+ * provided, it defaults to a function that internally calls
+ * print_match() below.
  *)
 val scan :
   ?match_hook:(string -> Pattern_match.t -> unit) ->
   Core_scan_config.t ->
   (Rule.t list * Rule.invalid_rule_error list) * float ->
   Core_result.t
-
-(*****************************************************************************)
-(* Pre and Post Processors Hook For Semgrep Pro / Extensions        *)
-(*****************************************************************************)
-
-module type Pre_and_post_processor = sig
-  type state
-
-  val pre_process : Rule.t list -> Rule.t list * state
-  val post_process : state -> Core_result.t -> Core_result.t
-end
-
-val hook_pre_and_post_processor : (module Pre_and_post_processor) ref
-
-val call_with_pre_and_post_processor :
-  ((Rule.t list * Rule.invalid_rule_error list) * float -> Core_result.t) ->
-  (Rule.t list * Rule.invalid_rule_error list) * float ->
-  Core_result.t
-
-(*****************************************************************************)
-(* Utilities functions used in tests or semgrep-core variants *)
-(*****************************************************************************)
 
 (* Old hook to support incremental display of matches for semgrep-core
  * in text-mode. Deprecated. Use Core_scan_config.file_match_results_hook
@@ -56,6 +49,10 @@ val print_match :
   Pattern_match.t ->
   (Metavariable.mvalue -> Tok.t list) ->
   unit
+
+(*****************************************************************************)
+(* Utilities functions used in tests or semgrep-core variants *)
+(*****************************************************************************)
 
 (* This function prints a dot, which is consumed by pysemgrep to update
    the progress bar. See `core_runner.py`

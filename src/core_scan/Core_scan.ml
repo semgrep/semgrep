@@ -959,35 +959,8 @@ let scan ?match_hook config ((rules, invalid_rules), rules_parse_time) :
   { res with matches; errors; extra }
 
 (*****************************************************************************)
-(* Pre and Post Processors Hook For Semgrep Pro / Extensions        *)
+(* Entry point *)
 (*****************************************************************************)
-
-module type Pre_and_post_processor = sig
-  type state
-
-  val pre_process : Rule.t list -> Rule.t list * state
-  val post_process : state -> Core_result.t -> Core_result.t
-end
-
-(* The default processor is the identity processor which does nothing. *)
-module No_Op_Processor : Pre_and_post_processor = struct
-  type state = unit
-
-  let pre_process rules = (rules, ())
-  let post_process () results = results
-end
-
-let hook_pre_and_post_processor =
-  ref (module No_Op_Processor : Pre_and_post_processor)
-
-(* Written with semgrep_with_rules abstracted to allow reuse across
-   semgrep and semgrep-pro *)
-let call_with_pre_and_post_processor sg_with_rules
-    ((rules, rule_errors), rules_parse_time) =
-  let module Processor = (val !hook_pre_and_post_processor) in
-  let rules', state = Processor.pre_process rules in
-  let res = sg_with_rules ((rules', rule_errors), rules_parse_time) in
-  Processor.post_process state res
 
 let scan_with_exn_handler (config : Core_scan_config.t) :
     Core_result.result_and_exn =
@@ -999,7 +972,10 @@ let scan_with_exn_handler (config : Core_scan_config.t) :
        for the secrets post processor, but it should now be trivial to
        hook any post processing step that needs to look at rules and
        results. *)
-    let res = call_with_pre_and_post_processor (scan config) timed_rules in
+    let res =
+      Pre_post_core_scan.call_with_pre_and_post_processor (scan config)
+        timed_rules
+    in
     sanity_check_invalid_patterns res
   with
   | exn when not !Flag_semgrep.fail_fast ->
