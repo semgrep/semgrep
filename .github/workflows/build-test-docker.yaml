@@ -84,7 +84,7 @@ jobs:
       - uses: docker/setup-buildx-action@v2
       - id: meta
         name: Set tags and labels
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ${{ inputs.repository-name }}
           flavor: ${{ inputs.docker-flavor }}
