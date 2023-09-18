@@ -1,0 +1,23 @@
+# The goals of this workflow are to check that:
+# - we can build semgrep-core and semgrep
+# - we can build a Docker image as well as Linux and MacOS binaries
+# - all our tests (the one in semgrep-core and the one in semgrep-cli) are passing
+# - we don't have any perf regressions in our benchmarks
+
+name: tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths-ignore:
+      - "**.md"
+  push:
+    branches:
+      - develop
+    paths-ignore:
+      - "**.md"
+
+jobs:
+  build-test-core-x86:
+    uses: ./.github/workflows/build-test-core-x86.yaml
+    secrets: inherit
