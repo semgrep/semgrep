@@ -6,7 +6,6 @@
  (wrapped false)
  (libraries
     str
-    dyp
     ppx_deriving.runtime
 
     ; in libs/

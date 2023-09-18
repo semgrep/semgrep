@@ -394,7 +394,6 @@ For more information see https://semgrep.dev
     (dune (>= 2.7.0 ))
     ; parser generators
     (menhir (= 20211128)) ; Newer versions cause massive build slowdowns
-    grain_dypgen
     ; standard libraries
     stdcompat
     ; We don't use Base directly. If it's being used indirectly
