@@ -21,7 +21,7 @@ set -eu
 eval $(opam env)
 
 #coupling: must be the same than in dev/dev.opam
-required_version=0.21
+required_version=0.23
 
 if version=$(ocamlformat --version); then
   if [[ "$version" =~ ^"$required_version."[0-9]+$ ]]; then
