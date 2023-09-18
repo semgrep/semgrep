@@ -1339,6 +1339,19 @@ and stmt_aux env st =
       @ [ mk_s (Loop (tok, cond, st @ cont_label_s @ next @ ss2)) ]
       @ break_label_s
   | G.For (_, G.ForEllipsis _, _) -> sgrep_construct (G.S st)
+  | G.For
+      ( tok,
+        G.ForIn
+          ( [
+              G.ForInitVar
+                ({ name = G.EN (G.Id (id, ii)); _ }, { vinit = None; _ });
+            ],
+            [ e ] ),
+        stmts ) ->
+      (* e.g. C++: for (int *p : set)
+       * TODO: Should this be encoded as a ForEach already in Parse_cpp_tree_sitter ? *)
+      let pat = G.PatId (id, ii) in
+      for_each env tok (pat, snd id, e) stmts
   | G.For (tok, G.ForIn (xs, e), stmts) ->
       let orig_stmt = st in
       let cont_label_s, break_label_s, st_env =

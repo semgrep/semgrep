@@ -1,0 +1,12 @@
+C++: Translate `for (T var : E)` loops into the Dataflow IL as for-each loops,
+so that Semgrep reports no finding in the following code:
+
+```
+  for (int *p : set) {
+    sink(p); // no finding
+    source(p);
+  }
+```
+
+Since each `p` is (in principle) a different object, even if `source(p)` taints
+the current `p`, that should not affect the next one.
