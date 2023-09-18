@@ -10,4 +10,11 @@ rules:
   pattern-sources:
   - pattern: params
   pattern-sinks:
-  - pattern: File.readlines(...)
+  - patterns:
+    - pattern: File.$X(...)
+  - metavariable-pattern:
+    metavariable: $X
+    patterns:
+    - pattern-either:
+      - pattern: read
+      - pattern: readlines
