@@ -111,7 +111,7 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     logger.info(f"Not on head ref: {metadata.head_branch_hash}; checking that out now.")
     git_check_output(["git", "checkout", metadata.head_branch_hash])
 
-    atexit.register(git_check_output, ["git", "checkout", stashed_rev])
+    atexit.register(git_check_output, ["git", "checkout", stashed_rev], os.getcwd())
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
