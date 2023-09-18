@@ -1,5 +1,6 @@
 (test
  (name test)
+ (action (run %{exe:test.exe})); Ensure we're running the native binary
  (libraries
     commons
     process_limits
