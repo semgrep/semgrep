@@ -66,7 +66,10 @@ module MessageHandler = struct
     Session.record_results server.session results files;
     (* LSP expects empty diagnostics to clear problems *)
     let files = Session.scanned_files server.session in
-    let diagnostics = Diagnostics.diagnostics_of_results results files in
+    let diagnostics =
+      Diagnostics.diagnostics_of_results ~is_intellij:server.session.is_intellij
+        results files
+    in
     end_progress server token;
     batch_notify server diagnostics
 
@@ -96,7 +99,10 @@ module MessageHandler = struct
     in
     let files = [ file ] in
     Session.record_results server.session results files;
-    let diagnostics = Diagnostics.diagnostics_of_results results files in
+    let diagnostics =
+      Diagnostics.diagnostics_of_results ~is_intellij:server.session.is_intellij
+        results files
+    in
     batch_notify server diagnostics
 
   let refresh_rules server =
@@ -155,7 +161,10 @@ module MessageHandler = struct
                 Str.string_after uri (String.length "file://") |> Fpath.v)
               files
           in
-          let diagnostics = Diagnostics.diagnostics_of_results [] files in
+          let diagnostics =
+            Diagnostics.diagnostics_of_results
+              ~is_intellij:server.session.is_intellij [] files
+          in
           batch_notify server diagnostics;
           server
       | CN.Exit ->
@@ -242,6 +251,15 @@ module MessageHandler = struct
             in
             { res with do_hover }
           in
+          let is_intellij =
+            match initializationOptions |> member "metrics" with
+            | `Assoc l when Option.is_some (List.assoc_opt "extensionType" l) ->
+                String.equal
+                  (Option.value ~default:""
+                     (to_string_option (List.assoc "extensionType" l)))
+                  "intellij"
+            | _ -> false
+          in
           let workspace_folders =
             match (workspaceFolders, rootUri) with
             | Some (Some folders), _ -> Conv.workspace_folders_to_paths folders
@@ -262,7 +280,13 @@ module MessageHandler = struct
           in
           let server =
             {
-              session = { server.session with workspace_folders; user_settings };
+              session =
+                {
+                  server.session with
+                  workspace_folders;
+                  user_settings;
+                  is_intellij;
+                };
               state = State.Running;
             }
           in

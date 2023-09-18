@@ -23,6 +23,7 @@ type t = {
   cached_scans : (Fpath.t, Out.cli_match list) Hashtbl.t;
   cached_session : session_cache;
   user_settings : UserSettings.t;
+  is_intellij : bool;
 }
 
 (*****************************************************************************)
@@ -41,6 +42,7 @@ let create capabilities =
     cached_scans = Hashtbl.create 10;
     cached_session;
     user_settings = UserSettings.default;
+    is_intellij = false;
   }
 
 let dirty_files_of_folder folder =
