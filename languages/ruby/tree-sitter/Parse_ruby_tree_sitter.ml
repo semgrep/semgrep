@@ -1742,7 +1742,16 @@ and command_call_with_block (env : env) (x : CST.command_call_with_block) :
       | Pattern -> Call (v1, fb [ Arg (Ellipsis v2) ], Some v3)
       | Program ->
           (* This shouldn't actually happen in a non-pattern case. *)
-          failwith "found semgrep ellipsis in ruby program")
+          failwith "invalid program")
+  | `Arg_DOTDOTDOT_blk (v1, v2, v3) -> (
+      let v1 = arg env v1 in
+      let v2 = (* "..." *) token2 env v2 in
+      let v3 = block env v3 in
+      match env.extra with
+      | Pattern -> Call (v1, fb [ Arg (Ellipsis v2) ], Some v3)
+      | Program ->
+          (* This shouldn't actually happen in a non-pattern case. *)
+          failwith "invalid program")
 
 and anon_choice_var_2a392d7 (env : env) (x : CST.anon_choice_var_2a392d7) : expr
     =
