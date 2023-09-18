@@ -436,7 +436,8 @@ For more information see https://semgrep.dev
     ; misc
     ocamlgraph
     parmap
-    semver
+    ; Lower versions of `semver` are incompatible with OCaml 5.0.
+    (semver (>= 0.2.1))
     uri
     uuidm
     (lsp (= 1.15.1-5.0))
