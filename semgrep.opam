@@ -52,7 +52,7 @@ depends: [
   "lsp" {= "1.15.1-5.0"}
   "uri"
   "cohttp-lwt-unix"
-  "tls-lwt"
+  "lwt_ssl"
   "emile"
   "digestif" {>= "1.0.0"}
   "lwt"

@@ -443,7 +443,7 @@ For more information see https://semgrep.dev
     ; web stuff
     uri
     cohttp-lwt-unix
-    tls-lwt ; needed for TLS support in the cohttp HTTP client (only TLS 1.3 seems to work)
+    lwt_ssl ; needed for TLS support in the cohttp HTTP client
     emile
     (digestif (>= 1.0.0))
     ; concurrency
