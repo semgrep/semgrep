@@ -121,6 +121,24 @@ val output_core_results :
     (depending on the value in config.output_format)
 *)
 
+(*****************************************************************************)
+(* Pre and Post Processors Hook For Semgrep Pro / Extensions        *)
+(*****************************************************************************)
+
+module type Pre_and_post_processor = sig
+  type state
+
+  val pre_process : Rule.t list -> Rule.t list * state
+  val post_process : state -> Core_result.t -> Core_result.t
+end
+
+val hook_pre_and_post_processor : (module Pre_and_post_processor) ref
+
+val call_with_pre_and_post_processor :
+  ((Rule.t list * Rule.invalid_rule_error list) * float -> Core_result.t) ->
+  (Rule.t list * Rule.invalid_rule_error list) * float ->
+  Core_result.t
+
 (* Old hook to support incremental display of matches for semgrep-core
  * in text-mode. Deprecated. Use Core_scan_config.file_match_results_hook
  * instead now with osemgrep.
