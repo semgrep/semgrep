@@ -13,13 +13,13 @@
  * LICENSE for more details.
  *)
 open Common
-open Runner_config
 open File.Operators
+open Core_scan_config
 module PM = Pattern_match
-module E = Semgrep_error_code
+module E = Core_error
 module MR = Mini_rule
 module R = Rule
-module RP = Report
+module RP = Core_result
 module In = Input_to_core_j
 module Out = Semgrep_output_v1_j
 
@@ -29,12 +29,107 @@ let debug_extract_mode = ref false
 (*****************************************************************************)
 (* Purpose *)
 (*****************************************************************************)
-(* Entry points to the semgrep engine. The command-line parsing
- * part is now done in Cli_main.ml. Here the functions are all passed
- * a 'config' (Runner_config.t) structure.
+(* A "Core" scan.
  *
- * See the mli file for some notes on performance.
+ * # Notes
+ *
+ * ## pysemgrep vs semgrep core
+ *
+ * Officially, `semgrep-core` is never run on its own. External users run
+ * `semgrep`, which invokes `semgrep-core` with the appropriate rules and targets.
+ * However, for development purposes it can be convenient to skip the wrapper.
+ * Therefore, we also maintain some code paths that allow `semgrep-core` to take
+ * in rules or patterns and perform its own file targeting. These will not always
+ * return the same results as the equivalent `semgrep` run. To see valid inputs to
+ * `semgrep-core`, see `semgrep-core --help`.
+ *
+ * When invoked by `semgrep`, `semgrep-core` will always be passed `-rules` and
+ * `-targets`. All the code relevant to `semgrep` runs will be found in branches
+ * where the rules file and the targets file are not `""`.
+ *
+ * While the `rules` file is just the collection of rules, the `targets` file
+ * describes the mapping of targets to rules. See `targets` in `Input_to_core.atd`
+ * for a description of its schema. `semgrep-core` follows the target-to-rule
+ * mappings without validation or filtering.
+ *
+ * ## Performance
+ *
+ * The main components of performance can generally be broken down into:
+ *
+ * - rule parse time
+ * - target parse time
+ * - match time
+ *   - pattern match time
+ *   - formula evaluation time
+ *
+ * The `-json_time` output includes timings for the three broad components. In
+ * general (at least at the time this was written), target parsing takes the
+ * longest. Matching does not usually take long, though it can when there are
+ * many general patterns (e.g. `$X`) that require going deep (e.g. multiple `...`
+ * or `<... $X ...>`). Also, getting the range of a large sub-AST can be slow
+ * because it requires collecting all the tokens in that sub-AST. Most of the
+ * rules that take longest are generic rules, however, because they run on
+ * every file.
+ *
+ * ## Memory usage
+ *
+ * Semgrep uses memory liberally. The main components of memory usage can
+ * generally be broken down into:
+ *
+ * - rule parsing
+ * - targets file parsing
+ *   - in addition to saving the targets, we seem to keep around the
+ *     buffer used to parse it
+ * - running each target (this should not accumulate)
+ *   - parsing the target
+ *   - saving the pattern results
+ *   - collecting the output for each target
+ *   - other memory used while matching
+ * - saving the output for each target
+ * - some unknown accumulation that happens while running targets but goes
+ *   away if we run `Gc.full_major` after each target
+ * - creating the final output
+ *
+ * Of these, the memory used by rule parsing and targets file parsing has an
+ * outsized impact on the memory used by multi-process runs because those two
+ * structures are used by every process. (They are only read from, but they
+ * end up getting copied into the process during garbage collection.) In
+ * particular, the targets file is O(num_rules \* num_targets).
+ *
+ * If we need to reduce memory further, some options include:
+ *
+ * - Reduce memory used by rule parsing? (Have not investigated but from my
+ *   personal profiling this seems too high)
+ * - Further streamline the targets file and fix the problem with the buffer
+ * - Investigate the unknown accumulation
+ * - Compress non-necessary output (namely, `-json_time` is passed by default)
+ * - Stream the outputs instead of collecting them and outputting them at the
+ *   end
+ *
+ * For profiling, a useful module is `mem_usage`. See physical memory used in
+ * total and by each object with:
+ *
+ * ```ocaml
+ * let phys_mem () = Mem_usage.prettify_bytes (Mem_usage.((info ()).process_physical_memory))
+ * let obj_size o = Mem_usage.prettify_bytes (Obj.reachable_words (Obj.repr o) * 8)
+ * ```
+ *
+ * Note that `obj_size` may inadvertently prevent an object from being freed.
+ *
+ * Additionally, OCaml provides `Spacetime` for certain compilers. It works best
+ * on Linux machines.
+ *
+ * We also have had stack overflows. OCaml <=4.14.0, we avoided this using
+ * `Common.map`, which is tail-recursive, instead of `List.map`.
  *)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+(* The type of the semgrep core scan. We define it here so that
+   semgrep and semgrep-proprietary use the same definition *)
+type core_scan_func = Core_scan_config.t -> Core_result.result_and_exn
 
 (*****************************************************************************)
 (* Helpers *)
@@ -75,17 +170,6 @@ let replace_named_pipe_by_regular_file path =
           (fun () -> output_string oc data);
         Fpath.v tmp_path
     | _ -> path
-
-let timeout_function file timeout f =
-  let timeout = if timeout <= 0. then None else Some timeout in
-  match
-    Time_limit.set_timeout_opt ~name:"Run_semgrep.timeout_function" timeout f
-  with
-  | Some res -> res
-  | None ->
-      let loc = Tok.first_loc_of_file file in
-      let err = E.mk_error None loc "" Out.Timeout in
-      Common.push err E.g_errors
 
 let update_cli_progress config =
   (* Print when each file is done so the Python progress bar knows *)
@@ -343,35 +427,22 @@ let errors_of_invalid_rule_errors (invalid_rules : Rule.invalid_rule_error list)
     =
   Common.map E.error_of_invalid_rule_error invalid_rules
 
-let sanity_check_invalid_patterns (res : RP.final_result) files =
+let sanity_check_invalid_patterns (res : Core_result.t) =
   match
-    res.RP.errors
-    |> List.find_opt (fun (err : E.error) ->
+    res.errors
+    |> List.find_opt (fun (err : Core_error.t) ->
            match err.typ with
            | Out.PatternParseError _ -> true
            | _else_ -> false)
   with
-  | None -> (None, res, files)
+  | None -> (None, res)
   | Some err ->
       let e = Exception.catch (Failure "Pattern parse error") in
-      (Some e, { RP.empty_final_result with errors = [ err ] }, [])
+      (Some e, { Core_result.empty_final_result with errors = [ err ] })
 
 (*****************************************************************************)
 (* Parsing (non-cached) *)
 (*****************************************************************************)
-
-(* for -e/-f *)
-let parse_pattern lang_pattern str =
-  try Parse_pattern.parse_pattern lang_pattern ~print_errors:false str with
-  | exn ->
-      logger#error "parse_pattern: exn = %s" (Common.exn_to_s exn);
-      Rule.raise_error None
-        (InvalidRule
-           ( InvalidPattern
-               (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
-             Rule_ID.of_string "no-id",
-             Tok.unsafe_fake_tok "no loc" ))
-  [@@profiling]
 
 (* for -rules *)
 let rules_from_rule_source config =
@@ -409,15 +480,15 @@ let parse_equivalences equivalences_file =
 let iter_targets_and_get_matches_and_exn_to_errors config f targets =
   targets
   |> map_targets config.ncores (fun (target : In.target) ->
-         let file = target.path in
-         logger#info "Analyzing %s" file;
+         let file = Fpath.v target.path in
+         logger#info "Analyzing %s" !!file;
          let res, run_time =
            Common.with_time (fun () ->
                try
                  let get_context () =
                    match !Rule.last_matched_rule with
-                   | None -> file
-                   | Some rule_id -> spf "%s on %s" (rule_id :> string) file
+                   | None -> !!file
+                   | Some rule_id -> spf "%s on %s" (rule_id :> string) !!file
                  in
                  Memory_limit.run_with_memory_limit ~get_context
                    ~mem_limit_mb:config.max_memory_mb (fun () ->
@@ -437,7 +508,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                       * not testing -max_memory.
                       *)
                      if config.test then Gc.full_major ();
-                     logger#trace "done with %s" file;
+                     logger#trace "done with %s" !!file;
                      v)
                with
                (* note that Semgrep_error_code.exn_to_error already handles
@@ -451,21 +522,21 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                        logger#info "critical exn while matching ruleid %s"
                          (rule.MR.id :> string);
                        logger#info "full pattern is: %s" rule.MR.pattern_string);
-                   let loc = Tok.first_loc_of_file file in
+                   let loc = Tok.first_loc_of_file !!file in
                    let errors =
-                     RP.ErrorSet.singleton
+                     Core_error.ErrorSet.singleton
                        (E.mk_error !Rule.last_matched_rule loc ""
                           (match exn with
                           | Match_rules.File_timeout ->
-                              logger#info "Timeout on %s" file;
+                              logger#info "Timeout on %s" !!file;
                               Out.Timeout
                           | Out_of_memory ->
-                              logger#info "OutOfMemory on %s" file;
+                              logger#info "OutOfMemory on %s" !!file;
                               Out.OutOfMemory
                           | _ -> raise Impossible))
                    in
-                   RP.make_match_result [] errors
-                     (RP.empty_partial_profiling file)
+                   Core_result.make_match_result [] errors
+                     (Core_profiling.empty_partial_profiling file)
                (* those were converted in Main_timeout in timeout_function()*)
                | Time_limit.Timeout _ -> assert false
                (* It would be nice to detect 'R.Err (R.InvalidRule _)' here
@@ -489,11 +560,13 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                 *)
                | exn when not !Flag_semgrep.fail_fast ->
                    let e = Exception.catch exn in
-                   let errors = RP.ErrorSet.singleton (exn_to_error file e) in
-                   RP.make_match_result [] errors
-                     (RP.empty_partial_profiling file))
+                   let errors =
+                     Core_error.ErrorSet.singleton (exn_to_error !!file e)
+                   in
+                   Core_result.make_match_result [] errors
+                     (Core_profiling.empty_partial_profiling file))
          in
-         RP.add_run_time run_time res)
+         Core_result.add_run_time run_time res)
 
 (*****************************************************************************)
 (* File targeting and rule filtering *)
@@ -517,7 +590,7 @@ let rules_for_xlang (xlang : Xlang.t) (rules : Rule.t list) : Rule.t list =
          | (LRegex | LSpacegrep | LAliengrep | L _), _ -> false)
 
 (* TODO: use Fpath.t for file *)
-let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
+let xtarget_of_file (config : Core_scan_config.t) (xlang : Xlang.t)
     (file : Fpath.t) : Xtarget.t =
   let lazy_ast_and_errors =
     lazy
@@ -554,7 +627,7 @@ let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
  * certain rules for certain targets in the semgrep-cli wrapper
  * by using the include/exclude fields.).
  *)
-let targets_of_config (config : Runner_config.t) :
+let targets_of_config (config : Core_scan_config.t) :
     In.targets * Out.skipped_target list =
   match (config.target_source, config.roots, config.lang) with
   (* We usually let semgrep-python computes the list of targets (and pass it
@@ -582,7 +655,7 @@ let targets_of_config (config : Runner_config.t) :
       let target_mappings =
         files
         |> Common.map (fun file ->
-               { In.path = Fpath.to_string file; language = xlang })
+               { In.path = Fpath.to_string file; analyzer = xlang })
       in
       ({ target_mappings }, skipped)
   | None, _, None -> failwith "you need to specify a language with -lang"
@@ -613,7 +686,7 @@ let targets_of_config (config : Runner_config.t) :
  * to the rules to run against those new extracted targets (which should be
  * the original rules passed via -rules, without the extract-mode rules).
  *)
-let extracted_targets_of_config (config : Runner_config.t)
+let extracted_targets_of_config (config : Core_scan_config.t)
     (all_rules : Rule.t list) :
     In.target list
     * ( Common.filename,
@@ -646,7 +719,7 @@ let extracted_targets_of_config (config : Runner_config.t)
            (* TODO: addt'l filtering required for rule_ids when targets are
               passed explicitly? *)
            let file = t.path in
-           let xlang = t.language in
+           let xlang = t.analyzer in
            let xtarget = xtarget_of_file config xlang (Fpath.v file) in
            let extracted_targets =
              Match_extract_mode.extract_nested_lang ~match_hook
@@ -670,15 +743,16 @@ let extracted_targets_of_config (config : Runner_config.t)
     ([], Hashtbl.create (List.length basic_targets))
 
 (*****************************************************************************)
-(* semgrep-core -rules *)
+(* a "core" scan *)
 (*****************************************************************************)
 
-(* This is the main function used by the semgrep Python wrapper right now.
+(* This is the main function used by pysemgrep right now.
+ * This is also called now from osemgrep.
  * It takes a set of rules and a set of targets (targets derived from config,
  * and potentially also extract rules) and iteratively process those targets.
  *)
-let semgrep_with_rules ?match_hook config
-    ((valid_rules, invalid_rules), rules_parse_time) =
+let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
+    Core_result.t =
   let rule_errors = errors_of_invalid_rule_errors invalid_rules in
 
   (* The basic targets.
@@ -714,16 +788,18 @@ let semgrep_with_rules ?match_hook config
          (fun (target : In.target) ->
            let file = Fpath.v target.path in
            Printf.eprintf "Scan target %s\n" !!file;
-           let xlang = target.language in
+           let xlang = target.analyzer in
            let rules =
              valid_rules
-             (* Don't run the extract and secrets rules
+             (* Don't run the extract rules
                 Note: we can't filter this out earlier because the rule indexes need to be stable *)
              |> List.filter (fun r ->
                     match r.R.mode with
-                    | `Extract _
-                    | `Secrets _ ->
-                        false
+                    | `Extract _ -> false
+                    (* TODO We are running Secrets rules now, but they just
+                       get turned into search rules inside matching.
+                       Unify Secrets and Search rules. *)
+                    | `Secrets _
                     | `Search _
                     | `Taint _
                     | `Steps _ ->
@@ -731,7 +807,7 @@ let semgrep_with_rules ?match_hook config
              |> List.filter (fun r ->
                     (* TODO: some of this is already done in pysemgrep, so maybe
                      * we should guard with a flag that only osemgrep set
-                     * like Runner_config.paths_processing: bool?
+                     * like Core_scan_config.paths_processing: bool?
                      *)
                     match r.R.paths with
                     | None -> true
@@ -778,7 +854,8 @@ let semgrep_with_rules ?match_hook config
              then
                {
                  matches with
-                 RP.matches = Common.map PM.to_proprietary matches.RP.matches;
+                 Core_result.matches =
+                   Common.map PM.to_proprietary matches.matches;
                }
              else matches
            in
@@ -796,10 +873,16 @@ let semgrep_with_rules ?match_hook config
            | Some f -> f matches
            | None -> matches)
   in
+  let scanned =
+    (* we do not use all_targets here, because we don't count
+     * the extracted targets
+     *)
+    targets |> Common.map (fun x -> Fpath.v x.In.path)
+  in
   let res =
     RP.make_final_result file_results
-      (Common.map (fun r -> (r, Pattern_match.OSS)) valid_rules)
-      ~rules_parse_time
+      (Common.map (fun r -> (r, `OSS)) valid_rules)
+      invalid_rules scanned ~rules_parse_time
   in
   logger#info "found %d matches, %d errors" (List.length res.matches)
     (List.length res.errors);
@@ -814,37 +897,43 @@ let semgrep_with_rules ?match_hook config
    * Common2.write_value matches "/tmp/debug_matches";
    *)
 
-  (* Concatenate all the skipped targets *)
+  (* concatenate all errors *)
+  let errors = rule_errors @ new_errors @ res.errors in
+
+  (* Concatenate all the skipped targets
+   * TODO: maybe we should move skipped_target out of Debug and always
+   * do it?
+   *)
   let extra =
     match res.extra with
-    | RP.Debug { skipped_targets; profiling } ->
+    | Core_profiling.Debug { skipped_targets; profiling } ->
         let skipped_targets = skipped @ new_skipped @ skipped_targets in
         logger#info "there were %d skipped targets"
           (List.length skipped_targets);
-        RP.Debug { skipped_targets; profiling }
-    | RP.Time profiling -> RP.Time profiling
-    | RP.No_info -> RP.No_info
+        Core_profiling.Debug { skipped_targets; profiling }
+    | (Core_profiling.Time _ | Core_profiling.No_info) as x -> x
   in
-  let errors = rule_errors @ new_errors @ res.errors in
-  ( {
-      RP.matches;
-      errors;
-      skipped_rules = invalid_rules;
-      extra;
-      explanations = res.explanations;
-      rules_by_engine =
-        Common.map (fun x -> (fst x.R.id, Pattern_match.OSS)) valid_rules;
-    },
-    (* TODO not all_targets here, because ?? *)
-    targets |> Common.map (fun x -> Fpath.v x.In.path) )
+  { res with matches; errors; extra }
 
-let semgrep_with_raw_results_and_exn_handler config =
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
+let scan_with_exn_handler (config : Core_scan_config.t) :
+    Core_result.result_and_exn =
   try
     let timed_rules =
       Common.with_time (fun () -> rules_from_rule_source config)
     in
-    let res, files = semgrep_with_rules config timed_rules in
-    sanity_check_invalid_patterns res files
+    (* The pre and post processors hook here is currently just used
+       for the secrets post processor, but it should now be trivial to
+       hook any post processing step that needs to look at rules and
+       results. *)
+    let res =
+      Pre_post_core_scan.call_with_pre_and_post_processor (scan config)
+        timed_rules
+    in
+    sanity_check_invalid_patterns res
   with
   | exn when not !Flag_semgrep.fail_fast ->
       let e = Exception.catch exn in
@@ -852,162 +941,4 @@ let semgrep_with_raw_results_and_exn_handler config =
       let res =
         { RP.empty_final_result with errors = [ E.exn_to_error None "" e ] }
       in
-      (Some e, res, [])
-
-let output_semgrep_results (exn, res, files) config =
-  (* note: uncomment the following and use semgrep-core -stat_matches
-   * to debug too-many-matches issues.
-   * Common2.write_value matches "/tmp/debug_matches";
-   *)
-  match config.output_format with
-  | Json _ -> (
-      let res =
-        Core_json_output.core_output_of_matches_and_errors
-          (Some Autofix.render_fix) (List.length files) res
-      in
-      (* one-off experiment, delete it at some point (March 2023) *)
-      let res =
-        if !Flag_semgrep.raja then Raja_experiment.adjust_core_output res
-        else res
-      in
-      (*
-        Not pretty-printing the json output (Yojson.Safe.prettify)
-        because it kills performance, adding an extra 50% time on our
-        old calculate_ci_perf.py benchmark.
-        User should use an external tool like jq or ydump (latter comes with
-        yojson) for pretty-printing json.
-      *)
-      let s = Out.string_of_core_output res in
-      logger#info "size of returned JSON string: %d" (String.length s);
-      pr s;
-      match exn with
-      | Some e -> Runner_exit.exit_semgrep (Unknown_exception e)
-      | None -> ())
-  | Text ->
-      if config.matching_explanations then
-        res.explanations
-        |> List.iter (fun explain -> Matching_explanation.print explain);
-      (* the match has already been printed above. We just print errors here *)
-      if not (null res.errors) then (
-        pr "WARNING: some files were skipped or only partially analyzed:";
-        res.errors |> List.iter (fun err -> pr (E.string_of_error err)))
-
-let semgrep_with_rules_and_formatted_output config =
-  let exn, res, files = semgrep_with_raw_results_and_exn_handler config in
-  output_semgrep_results (exn, res, files) config
-
-(*****************************************************************************)
-(* semgrep-core -e/-f *)
-(*****************************************************************************)
-
-let minirule_of_pattern lang pattern_string pattern =
-  {
-    MR.id = Rule_ID.of_string "anon-pattern";
-    pattern_string;
-    pattern;
-    inside = false;
-    message = "";
-    severity = R.Error;
-    languages = [ lang ];
-    fix = None;
-  }
-
-(* less: could be nice to generalize to rule_of_config, but we sometimes
- * need to generate a rule, sometimes a minirule
- *)
-let pattern_of_config lang config =
-  match (config.pattern_file, config.pattern_string) with
-  | None, None -> failwith "I need a pattern; use -f or -e"
-  | Some _s1, Some _s2 ->
-      failwith "I need just one pattern; use -f OR -e (not both)"
-  | Some file, None ->
-      let s = File.read_file file in
-      (parse_pattern lang s, s)
-  (* this is for Emma, who often confuses -e with -f :) *)
-  | None, Some s when s =~ ".*\\.sgrep$" ->
-      failwith "you probably want -f with a .sgrep file, not -e"
-  | None, Some s -> (parse_pattern lang s, s)
-
-(* simpler code path compared to semgrep_with_rules *)
-(* FIXME: don't use a different processing logic depending on the output
-   format:
-   - Pass a hook to semgrep_with_patterns for printing matches incrementally.
-   - Have semgrep_with_patterns return the results and errors.
-   - Print the final results (json or text) using dedicated functions.
-*)
-let semgrep_with_one_pattern config =
-  assert (config.rule_source =*= None);
-
-  (* TODO: support generic and regex patterns as well. See code in Deep.
-   * Just use Parse_rule.parse_xpattern xlang (str, fk)
-   *)
-  let lang = Xlang.lang_of_opt_xlang_exn config.lang in
-  let pattern, pattern_string = pattern_of_config lang config in
-
-  match config.output_format with
-  | Json _ ->
-      let rule, rules_parse_time =
-        Common.with_time (fun () ->
-            let fk = Tok.unsafe_fake_tok "" in
-            let xlang = Xlang.L (lang, []) in
-            let xpat =
-              Xpattern.mk_xpat
-                (Xpattern.Sem (lazy pattern, lang))
-                (pattern_string, fk)
-            in
-            Rule.rule_of_xpattern xlang xpat)
-      in
-      let res, files =
-        semgrep_with_rules config (([ rule ], []), rules_parse_time)
-      in
-      let json =
-        Core_json_output.core_output_of_matches_and_errors
-          (Some Autofix.render_fix) (List.length files) res
-      in
-      let s = Out.string_of_core_output json in
-      pr s
-  | Text ->
-      let minirule, _rules_parse_time =
-        Common.with_time (fun () ->
-            [ minirule_of_pattern lang pattern_string pattern ])
-      in
-      (* simpler code path than in semgrep_with_rules *)
-      let target_info, _skipped = targets_of_config config in
-      let files =
-        target_info.target_mappings |> Common.map (fun t -> t.In.path)
-      in
-      (* sanity check *)
-      if config.filter_irrelevant_rules then
-        logger#warning "-fast does not work with -f/-e, or you need also -json";
-      files
-      |> List.iter (fun file ->
-             logger#info "processing: %s" file;
-             let process file =
-               timeout_function file config.timeout (fun () ->
-                   let ast =
-                     Parse_target.parse_and_resolve_name_warn_if_partial lang
-                       file
-                   in
-                   Match_patterns.check
-                     ~hook:(fun match_ ->
-                       print_match config match_ Metavariable.ii_of_mval)
-                     ( Rule_options.default_config,
-                       parse_equivalences config.equivalences_file )
-                     minirule (file, lang, ast)
-                   |> ignore)
-             in
-
-             if not config.error_recovery then
-               E.try_with_print_exn_and_reraise file (fun () -> process file)
-             else E.try_with_exn_to_error file (fun () -> process file));
-
-      let n = List.length !E.g_errors in
-      if n > 0 then pr2 (spf "error count: %d" n)
-
-(*****************************************************************************)
-(* Semgrep dispatch *)
-(*****************************************************************************)
-let semgrep_dispatch config =
-  if config.rule_source <> None then
-    semgrep_with_rules_and_formatted_output config
-  else semgrep_with_one_pattern config
+      (Some e, res)

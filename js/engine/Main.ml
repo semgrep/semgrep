@@ -110,20 +110,20 @@ let _ =
            Input_to_core_t.
              { target_mappings; rule_ids = (rule_ids :> string list) }
          in
-         let config : Runner_config.t =
+         let config : Core_scan_config.t =
            {
-             Runner_config.default with
+             Core_scan_config.default with
              rule_source = Some (Rule_file (Fpath.v (Js.to_string rule_file)));
              output_format = Json false;
-             target_source = Some (Runner_config.Targets targets);
+             target_source = Some (Core_scan_config.Targets targets);
              matching_explanations = true;
            }
          in
          let timed_rules = (rules_and_errors, 0.) in
-         let res, files = Run_semgrep.semgrep_with_rules config timed_rules in
+         let res = Core_scan.scan config timed_rules in
          let res =
            Core_json_output.core_output_of_matches_and_errors
-             (Some Autofix.render_fix) (List.length files) res
+             (Some Autofix.render_fix) (List.length res.scanned) res
          in
          Semgrep_output_v1_j.string_of_core_output res
     end)

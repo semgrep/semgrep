@@ -94,7 +94,7 @@ val add_rules_hashes_and_rules_profiling :
   ?profiling:Semgrep_output_v1_t.core_timing -> Rule.rules -> unit
 
 val add_rules_hashes_and_findings_count : (Rule.t * int) list -> unit
-val add_targets_stats : Fpath.t Set_.t -> Report.final_profiling option -> unit
+val add_targets_stats : Fpath.t Set_.t -> Core_profiling.t option -> unit
 val add_engine_kind : Semgrep_output_v1_t.engine_kind -> unit
 val add_exit_code : Exit_code.t -> unit
 
@@ -103,7 +103,7 @@ val add_feature : category:string -> name:string -> unit
 
 (* profiling data (TODO: should merge the 2 types and 2 calls) *)
 val add_profiling : Profiler.t -> unit
-val add_max_memory_bytes : Report.final_profiling option -> unit
+val add_max_memory_bytes : Core_profiling.t option -> unit
 
 (* useful for us to improve semgrep *)
 val add_errors : Semgrep_output_v1_t.cli_error list -> unit

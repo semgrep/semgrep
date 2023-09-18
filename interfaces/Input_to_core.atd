@@ -22,11 +22,10 @@ type xlang <ocaml attr="deriving show"> = string wrap <ocaml module="Xlang">
 
 type target <ocaml attr="deriving show"> = {
   path: string (* source file *);
-  (* Must be a valid "language" as defined in Xlang.mli.
+  (* Must be a valid target analyzer as defined in Xlang.mli.
      examples: "ocaml", "python", but also "spacegrep" or "regexp".
-     less: would be great to use Lang.t here, but atd does not
-     allow (by design) to use types defined in other files. *)
-  language: xlang;
+  *)
+  analyzer: xlang;
 }
 
 (* The same path can be present multiple times in targets below, with

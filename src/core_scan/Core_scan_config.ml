@@ -63,7 +63,10 @@ type t = {
    * in Run_semgrep, so the hook should not rely on shared memory!
    *)
   file_match_results_hook :
-    (Fpath.t -> Report.partial_profiling Report.match_result -> unit) option;
+    (Fpath.t ->
+    Core_profiling.partial_profiling Core_result.match_result ->
+    unit)
+    option;
   (* Flag used by pysemgrep *)
   target_source : target_source option;
   (* Common.ml action for the -dump_xxx *)
@@ -72,17 +75,6 @@ type t = {
   version : string;
 }
 [@@deriving show]
-
-(* The type of the semgrep core runner. We define it here so that
-   semgrep and semgrep-proprietary use the same definition *)
-type semgrep_engine =
-  t ->
-  (* Exceptions raised *)
-  Exception.t option
-  * (* Result *)
-    Report.final_result
-  * (* The processed targets *)
-  Fpath.t list
 
 (*
    Default values for all the semgrep-core command-line arguments and options.

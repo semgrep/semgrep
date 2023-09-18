@@ -453,7 +453,10 @@ class StreamingSemgrepCore:
 @frozen
 class Task:
     path: str = field(converter=str)
-    language: Language  # Xlang; see Xlang.mli
+    analyzer: Language  # Xlang; see Xlang.mli
+    # semgrep-core no longer uses the rule_nums field.
+    # We're keeping it for now because it's needed to compute
+    # rule_count.
     # a rule_num is the rule's index in the rule ID list
     rule_nums: Tuple[int, ...]
 
@@ -461,8 +464,8 @@ class Task:
     def language_label(self) -> str:
         return (
             "<multilang>"
-            if not self.language.definition.is_target_language
-            else self.language.definition.id
+            if not self.analyzer.definition.is_target_language
+            else self.analyzer.definition.id
         )
 
 
@@ -520,7 +523,7 @@ class Plan:
                 if product is None
                 else Task(
                     path=task.path,
-                    language=task.language,
+                    analyzer=task.analyzer,
                     rule_nums=tuple(
                         num
                         for num in task.rule_nums
@@ -837,6 +840,7 @@ class CoreRunner:
         self,
         jobs: Optional[int],
         engine_type: EngineType,
+        run_secrets: bool,
         timeout: int,
         max_memory: int,
         timeout_threshold: int,
@@ -847,6 +851,7 @@ class CoreRunner:
         self._binary_path = engine_type.get_binary_path()
         self._jobs = jobs or engine_type.default_jobs
         self._engine_type = engine_type
+        self._run_secrets = engine_type
         self._timeout = timeout
         self._max_memory = max_memory
         self._timeout_threshold = timeout_threshold
@@ -1025,7 +1030,7 @@ class CoreRunner:
             [
                 Task(
                     path=target,
-                    language=language,
+                    analyzer=language,
                     # tuple conversion makes rule_nums hashable, so usable as cache key
                     rule_nums=tuple(target_info[target, language]),
                 )
@@ -1041,6 +1046,7 @@ class CoreRunner:
         target_manager: TargetManager,
         dump_command_for_core: bool,
         engine: EngineType,
+        run_secrets: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         state = get_state()
         logger.debug(f"Passing whole rules directly to semgrep_core")
@@ -1122,6 +1128,14 @@ class CoreRunner:
 
             if self._optimizations != "none":
                 cmd.append("-fast")
+
+            if run_secrets:
+                cmd += ["-secrets"]
+                if not engine.is_pro:
+                    # This should be impossible, but the types don't rule it out so...
+                    raise SemgrepError(
+                        "Secrets post processors tried to run without the pro-engine."
+                    )
 
             # TODO: use exact same command-line arguments so just
             # need to replace the SemgrepCore.path() part.
@@ -1253,6 +1267,7 @@ class CoreRunner:
         target_manager: TargetManager,
         dump_command_for_core: bool,
         engine: EngineType,
+        run_secrets: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Sometimes we may run into synchronicity issues with the latest DeepSemgrep binary.
@@ -1264,7 +1279,11 @@ class CoreRunner:
         """
         try:
             return self._run_rules_direct_to_semgrep_core_helper(
-                rules, target_manager, dump_command_for_core, engine
+                rules,
+                target_manager,
+                dump_command_for_core,
+                engine,
+                run_secrets,
             )
         except SemgrepError as e:
             # Handle Semgrep errors normally
@@ -1323,6 +1342,7 @@ Exception raised: `{e}`
         rules: List[Rule],
         dump_command_for_core: bool,
         engine: EngineType,
+        run_secrets: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Takes in rules and targets and retuns object with findings
@@ -1334,7 +1354,11 @@ Exception raised: `{e}`
             errors,
             output_extra,
         ) = self._run_rules_direct_to_semgrep_core(
-            rules, target_manager, dump_command_for_core, engine
+            rules,
+            target_manager,
+            dump_command_for_core,
+            engine,
+            run_secrets,
         )
 
         logger.debug(

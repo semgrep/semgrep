@@ -113,6 +113,8 @@ def exec_osemgrep():
                 # to install semgrep-pro, however, so have them run legacy `semgrep`. 
                 print("Since `semgrep ci` was run, defaulting to legacy semgrep", file=sys.stderr)
                 exec_pysemgrep()
+            else:
+                sys.exit(2)
         # If you call semgrep-core-proprietary as osemgrep-pro, then we get
         # osemgrep-pro behavior, see semgrep-proprietary/src/main/Pro_main.ml
         sys.argv[0] = "osemgrep-pro"

@@ -129,7 +129,7 @@ def _build_time_json(
             _build_time_target_json(rules, target, num_bytes, profiling_data)
             for target, num_bytes in zip(targets, target_bytes)
         ],
-        total_bytes=sum(n for n in target_bytes),
+        total_bytes=profiling_data.profile.total_bytes,
         rules_parse_time=profiling_data.profile.rules_parse_time,
         max_memory_bytes=profiling_data.profile.max_memory_bytes,
     )

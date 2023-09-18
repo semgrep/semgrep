@@ -1278,6 +1278,39 @@ and lambda (env : env) ((v1, v2, v3) : CST.lambda) =
   (* should have a third option for lambdas *)
   CodeBlock ((v1, b, v1), v2, [ v3 ])
 
+and hash (env : env) (v1, v2, v3) =
+  let v1 = token2 env v1 in
+  let v2 =
+    match v2 with
+    | Some (v1, v2, v3) ->
+        let v1 =
+          match v1 with
+          | `Pair x -> pair_for_hash env x
+          | `Hash_splat_arg x -> hash_splat_argument env x
+        in
+        let v2 =
+          Common.map
+            (fun (v1, v2) ->
+              let _v1 = token2 env v1 in
+              let v2 =
+                match v2 with
+                | `Pair x -> pair_for_hash env x
+                | `Hash_splat_arg x -> hash_splat_argument env x
+              in
+              v2)
+            v2
+        in
+        let _v3 =
+          match v3 with
+          | Some _tok -> ()
+          | None -> ()
+        in
+        v1 :: v2
+    | None -> []
+  in
+  let v3 = token2 env v3 in
+  (v1, v2, v3)
+
 and primary (env : env) (x : CST.primary) : AST.expr =
   match x with
   | `Semg_ellips tok
@@ -1312,37 +1345,8 @@ and primary (env : env) (x : CST.primary) : AST.expr =
       (* ?? *)
       | `Str_array (v1, v2, v3, v4, v5) -> string_array env (v1, v2, v3, v4, v5)
       | `Symb_array (v1, v2, v3, v4, v5) -> symbol_array env (v1, v2, v3, v4, v5)
-      | `Hash (v1, v2, v3) ->
-          let v1 = token2 env v1 in
-          let v2 =
-            match v2 with
-            | Some (v1, v2, v3) ->
-                let v1 =
-                  match v1 with
-                  | `Pair x -> pair_for_hash env x
-                  | `Hash_splat_arg x -> hash_splat_argument env x
-                in
-                let v2 =
-                  Common.map
-                    (fun (v1, v2) ->
-                      let _v1 = token2 env v1 in
-                      let v2 =
-                        match v2 with
-                        | `Pair x -> pair_for_hash env x
-                        | `Hash_splat_arg x -> hash_splat_argument env x
-                      in
-                      v2)
-                    v2
-                in
-                let _v3 =
-                  match v3 with
-                  | Some _tok -> ()
-                  | None -> ()
-                in
-                v1 :: v2
-            | None -> []
-          in
-          let v3 = token2 env v3 in
+      | `Hash x ->
+          let v1, v2, v3 = hash env x in
           Hash (true, (v1, v2, v3))
       | `Subs (v1, v2, v3) -> subshell env (v1, v2, v3)
       | `Lit x -> literal env x
@@ -2135,13 +2139,45 @@ and range (env : env) (x : CST.range) : AST.expr =
      which looks exactly like a range expression.
      So when parsing a pattern, let's prefer the command call version,
      which is more likely to come up.
+
+     Additionally, they might write something like
+     foo ... { }
+     or
+     foo ... do ... end
+     which is additionally parsed like a Range.
+     We need to parse this into a command call with block, like it should be.
   *)
   match x with
-  | `Arg_choice_DOTDOT_arg (v1, v2, v3) ->
-      let v1 = arg env v1 in
+  | `Arg_choice_DOTDOT_arg (v1, v2, v3) -> (
+      let e1 = arg env v1 in
       let v2 = anon_choice_DOTDOT_ed078ec env v2 in
-      let v3 = arg env v3 in
-      Binop (v1, v2, v3)
+      match (env.extra, v2, v3) with
+      (* coupling: See command_call_with_block *)
+      (* e1 ... { <stuff> } *)
+      | Pattern, (Op_DOT3, ellipsis_tok), `Prim (`Choice_paren_stmts (`Hash x))
+        ->
+          let v1, v2, v3 = hash env x in
+          Call
+            ( e1,
+              fb [ Arg (Ellipsis ellipsis_tok) ],
+              Some (CodeBlock ((v1, true, v3), None, v2)) )
+      (* e1 ... do ... end *)
+      | ( Pattern,
+          (Op_DOT3, ellipsis_tok),
+          `Range (`Arg_choice_DOTDOT_arg (a1, `DOTDOTDOT tk, a2)) ) -> (
+          let e2 = arg env a1 in
+          let e3 = arg env a2 in
+          match (e2, e3) with
+          | Id (("do", tdo), _), Id (("end", tend), _) ->
+              Call
+                ( e1,
+                  fb [ Arg (Ellipsis ellipsis_tok) ],
+                  Some
+                    (CodeBlock
+                       ((tdo, false, tend), None, [ Ellipsis (token2 env tk) ]))
+                )
+          | _ -> Binop (e1, v2, Binop (e2, (Op_DOT3, token2 env tk), e3)))
+      | _ -> Binop (e1, v2, arg env v3))
   | `Choice_DOTDOT_arg (v1, v2) ->
       let v1 = anon_choice_DOTDOT_ed078ec env v1 in
       let v2 = arg env v2 in

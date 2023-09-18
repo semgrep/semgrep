@@ -1,10 +1,12 @@
 val diagnostics_of_results :
+  is_intellij:bool ->
   Semgrep_output_v1_t.cli_match list ->
   Fpath.t list ->
   Lsp.Server_notification.t list
-(** [diagnostics_of_results results files] returns a list of LSP diagnostics
+(** [diagnostics_of_results is_intellij results files] returns a list of LSP diagnostics
     for the given matches. A diagnostic is the little squiggly you see under
-    an error in your editor.
+    an error in your editor. [is_intellij] is true if the client is IntelliJ, and will
+    cause us to insert shortlinks directly into the diagnostic message.
 
     See:
     https://microsoft.github.io/language-server-protocol/specifications/specification-current/#textDocument_publishDiagnostics
