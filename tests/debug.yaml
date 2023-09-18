@@ -1,0 +1,13 @@
+rules:
+- id: avoid-tainted-file-access
+  message: >-
+    Using user input when accessing files is potentially dangerous. A malicious actor could use this to
+    modify or access files
+    they have no right to.
+  languages: [ruby]
+  severity: WARNING
+  mode: taint
+  pattern-sources:
+  - pattern: params
+  pattern-sinks:
+  - pattern: File.readlines(...)

@@ -10,10 +10,10 @@ open Printf
    at runtime. Having a constant flag 'on' set to 'false' ensures
    that 'if on then ...;' expressions will be removed at compile time.
 *)
-let on = false
+let on = true
 
 (* max_depth: Print the nodes just deep enough to see something useful. *)
-let max_depth = 3
+let max_depth = 30
 
 let print_pair name vof a b =
   printf "----- m_%s -----\n%s pattern:\n%s\n~~~~~\n%s target:\n%s\n\n" name
