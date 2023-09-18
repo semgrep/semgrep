@@ -257,7 +257,8 @@ install-deps: install-deps-for-semgrep-core
 # Here is why we need those external packages to compile semgrep-core:
 # - pcre-dev: for ocaml-pcre now used in semgrep-core
 # - gmp-dev: for osemgrep and its use of cohttp
-ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev
+# - openssl-dev: for LSP, use of cohttp
+ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev openssl-dev
 
 # This target is used in our Dockerfile and a few GHA workflows.
 # There are pros and cons of having those commands here instead
@@ -307,7 +308,8 @@ install-deps-ALPINE-for-pysemgrep:
 # - pkg-config?
 # - coreutils?
 # - gettext?
-BREW_DEPS=pcre gmp pkg-config coreutils gettext
+# - openssl: for LSP, use of cohttp
+BREW_DEPS=pcre gmp pkg-config coreutils gettext openssl
 
 # see also scripts/osx-setup-for-release.sh that adjust those
 # external packages to force static-linking
