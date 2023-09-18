@@ -26,7 +26,6 @@ from typing import Set
 from typing import Tuple
 from typing import Union
 
-from boltons.iterutils import get_path
 from boltons.iterutils import partition
 from rich.padding import Padding
 
@@ -148,17 +147,6 @@ def print_summary_line(
         new_cli_ux
     ):  # Always print the count of Supply Chain rules in new CLI UX (even if 0)
         summary_line += f", {unit_str(sca_rule_count, 'Supply Chain rule')}"
-
-    pro_rule_count = sum(
-        1
-        for rule in sast_plan.rules
-        if get_path(rule.metadata, ("semgrep.dev", "rule", "origin"), default=None)
-        == "pro_rules"
-    )
-    if pro_rule_count:
-        summary_line += f", {unit_str(pro_rule_count, 'Pro rule')}"
-    elif new_cli_ux:  # Always print the count of Pro rules in new CLI UX (even if 0)
-        summary_line += f", {unit_str(pro_rule_count, 'Pro rule')}"
 
     console.print(summary_line + ":")
 

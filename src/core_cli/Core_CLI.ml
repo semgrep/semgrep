@@ -685,9 +685,9 @@ let main_no_exn_handler (sys_argv : string array) : unit =
 
   let config = mk_config () in
 
-  if config.debug then Core_result.mode := MDebug
-  else if config.report_time then Core_result.mode := MTime
-  else Core_result.mode := MNo_info;
+  if config.debug then Core_profiling.mode := MDebug
+  else if config.report_time then Core_profiling.mode := MTime
+  else Core_profiling.mode := MNo_info;
 
   Logging_helpers.setup ~debug:config.debug
     ~log_config_file:config.log_config_file ~log_to_file:config.log_to_file;
@@ -732,7 +732,7 @@ let main_no_exn_handler (sys_argv : string array) : unit =
              for now just turn it off *)
           (* if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc (); *)
           let config = { config with roots = File.Path.of_strings roots } in
-          Core_scan.semgrep_dispatch config)
+          Core_scan.semgrep_core_dispatch config)
 
 let with_exception_trace f =
   Printexc.record_backtrace true;

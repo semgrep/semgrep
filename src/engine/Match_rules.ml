@@ -164,7 +164,7 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
         let error = E.mk_error (Some rule_id) loc "" Out.Timeout in
         RP.make_match_result []
           (Core_error.ErrorSet.singleton error)
-          (RP.empty_rule_profiling rule)
+          (Core_profiling.empty_rule_profiling rule)
 
 (*****************************************************************************)
 (* Entry point *)
@@ -224,12 +224,13 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
   let res = RP.collate_rule_results xtarget.Xtarget.file res_total in
   let extra =
     match res.extra with
-    | RP.Debug { skipped_targets; profiling } ->
+    | Core_profiling.Debug { skipped_targets; profiling } ->
         let skipped =
           Common.map (skipped_target_of_rule xtarget) skipped_rules
         in
-        RP.Debug { skipped_targets = skipped @ skipped_targets; profiling }
-    | Time profiling -> Time profiling
-    | No_info -> No_info
+        Core_profiling.Debug
+          { skipped_targets = skipped @ skipped_targets; profiling }
+    | Core_profiling.Time profiling -> Core_profiling.Time profiling
+    | Core_profiling.No_info -> Core_profiling.No_info
   in
   { res with extra }

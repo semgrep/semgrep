@@ -105,11 +105,13 @@ let run (conf : conf) : Exit_code.t =
         if metaerrors <> [] then
           Error.abort (spf "error in metachecks! please fix %s" metarules_pack);
 
-        let exn_and_matches =
-          Core_runner.invoke_semgrep_core conf.core_runner_conf metarules []
-            targets
+        let scan_func =
+          Core_runner.mk_scan_func_for_osemgrep Core_scan.scan_with_exn_handler
         in
-        let res = Core_runner.create_core_result metarules exn_and_matches in
+        let result_and_exn =
+          scan_func conf.core_runner_conf metarules [] targets
+        in
+        let res = Core_runner.create_core_result metarules result_and_exn in
 
         (* TODO? sanity check errors below too? *)
         let { Out.results; errors = _; _ } =

@@ -4,8 +4,8 @@
  *)
 
 type match_result_location_adjuster =
-  Core_result.partial_profiling Core_result.match_result ->
-  Core_result.partial_profiling Core_result.match_result
+  Core_profiling.partial_profiling Core_result.match_result ->
+  Core_profiling.partial_profiling Core_result.match_result
 
 (*
    Generates a list of targets corresponding to extract mode rule matches in

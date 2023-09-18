@@ -12,13 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
-(* Commentary *)
-(* This contains all networking/rpc related functionality of the language server *)
-
-(*****************************************************************************)
-(* Prelude *)
-(*****************************************************************************)
 open Jsonrpc
 open Lsp
 open Types
@@ -28,6 +21,13 @@ module CN = Client_notification
 module CR = Client_request
 module Conv = Convert_utils
 module Out = Semgrep_output_v1_t
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* This module contains all networking/rpc related functionality of the
+ * language server.
+ *)
 
 module MessageHandler = struct
   (* Relevant here means any matches we actually care about showing the user.
@@ -42,9 +42,12 @@ module MessageHandler = struct
     let targets = Option.value ~default:(Session.targets session) targets in
     Logs.app (fun m -> m "Running Semgrep with %d rules" (List.length rules));
     let runner_conf = Session.runner_conf session in
+    let scan_func =
+      Core_runner.mk_scan_func_for_osemgrep Core_scan.scan_with_exn_handler
+    in
     let run =
-      Core_runner.invoke_semgrep_core ~respect_git_ignore:true
-        ~file_match_results_hook:None runner_conf rules [] targets
+      scan_func ~respect_git_ignore:true ~file_match_results_hook:None
+        runner_conf rules [] targets
     in
     let res = Core_runner.create_core_result rules run in
     let scanned = res.scanned |> Set_.elements in
