@@ -13,7 +13,9 @@ depends: [
   # - https://github.com/returntocorp/ocaml-layer/blob/master/common-config.sh
   # - scripts/lint-ocaml
   # - .github/workflows/lint.yml and its pre-commit-ocaml job
-  "ocamlformat" {= "0.21.0" }  # used by the pre-commit hook
+  "ocamlformat" {= "0.26.0" }  # used by the pre-commit hook
   "ppx_deriving_cmdliner" # used by hello_script.ml
   "feather" # used by hello_script.ml
+  "ocaml-lsp-server" {= "1.16.2"} # used by the VSCode extension
+  "ocamlearlybird" {= "1.2.1"} # used by the VSCode extension
 ]

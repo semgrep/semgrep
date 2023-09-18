@@ -23,7 +23,7 @@
 
     osemgrep_language_server
   )
- (modes native) ; bytecode here for debugging
+ (modes native byte) ; bytecode here for debugging
  (preprocess
    (pps
       ppx_deriving.show
