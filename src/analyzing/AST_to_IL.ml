@@ -112,6 +112,7 @@ let fixme_stmt kind gany =
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+
 let fresh_var ?(str = "_tmp") _env tok =
   let tok =
     (* We don't want "fake" auxiliary variables to have non-fake tokens, otherwise
@@ -1195,12 +1196,53 @@ and mk_switch_break_label env tok =
 
 and stmt_aux env st =
   match st.G.s with
-  | G.ExprStmt (eorig, tok) ->
+  | G.ExprStmt (eorig, tok) -> (
       (* optimize? pass context to expr when no need for return value? *)
       let ss, e = expr_with_pre_stmts ~void:true env eorig in
       mk_aux_var env tok e |> ignore;
       let ss' = pop_stmts env in
-      ss @ ss'
+      match ss @ ss' with
+      | [] ->
+          (* This case may happen when we have a function like
+           *
+           *   function some_function(some_var) {
+           *     some_var
+           *   }
+           *
+           * the `some_var` will not show up in the CFG. Neither expr_with_pre_stmts
+           * nor mk_aux_var will cause nodes to be created.
+           *
+           * This is typically OK, because it doesn't make sense to write
+           * `some_var` for side-effects.
+           *
+           * The issue is that for some languages
+           * when `some_var` is the last evaluated expression in the function,
+           * `some_var` is also implictly returned from the function. In this case
+           * `some_var` actually means `return some_var`, so there should be a return
+           * node in the CFG.
+           *
+           * TODO: Update the comments below when the updated implicit return support
+           * is implemented.
+           *
+           * Right now, this missing node is not an issue because we already
+           * have a hack for implicit return statements. However, it only works for
+           * simple cases. We plan to make it more general by building the CFG, mark
+           * "returning" nodes, then build an updated CFG that converts the marked
+           * nodes as Return nodes.
+           *
+           * Here, create a fake "no-op" assignment
+           *   tmp = some_var
+           * that will later on be converted to
+           *   return some_var
+           * if some_var is actually a returning expression.
+           * If some_var isn't a returning expression, we have created an unneeded node
+           * but it doesn't affect correctness.
+           *)
+          let var = fresh_var env tok in
+          let lval = lval_of_base (Var var) in
+          let fake_i = mk_i (Assign (lval, e)) NoOrig in
+          [ mk_s (Instr fake_i) ]
+      | ss'' -> ss'')
   | G.DefStmt
       ( { name = EN obj; _ },
         G.VarDef
