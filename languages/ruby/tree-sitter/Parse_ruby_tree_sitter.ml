@@ -612,6 +612,12 @@ and body_statement_ (env : env) (x : CST.body_statement_) : body_exn =
 and body_statement (env : env) (x : CST.body_statement) : AST.body_exn =
   body_statement_ env x
 
+and body_statement_to_exprs (env : env) (x : CST.body_statement) : expr list =
+  match body_statement_ env x with
+  | { rescue_exprs = []; else_expr = None; ensure_expr = None; body_exprs } ->
+      body_exprs
+  | other -> [ S (ExnBlock other) ]
+
 and identifier_suffix (env : env) (x : CST.identifier_suffix) =
   match x with
   | `Tok_pat_3fee85b_pat_f7bc484_pat_38b534e x -> str env x
@@ -1716,16 +1722,36 @@ and chained_command_call (env : env) ((v1, v2, v3) : CST.chained_command_call) :
 and command_call_with_block (env : env) (x : CST.command_call_with_block) :
     AST.expr =
   match x with
-  | `Choice_call__cmd_arg_list_blk (v1, v2, v3) ->
-      let v1 = anon_choice_call__23b9492 env v1 in
-      let v2 = command_argument_list env v2 in
-      let v3 = block env v3 in
-      Call (v1, fb v2, Some v3)
-  | `Choice_call__cmd_arg_list_do_blk (v1, v2, v3) ->
-      let v1 = anon_choice_call__23b9492 env v1 in
-      let v2 = command_argument_list env v2 in
+  | `Choice_choice_call__cmd_arg_list_blk x -> (
+      match x with
+      | `Choice_call__cmd_arg_list_blk (v1, v2, v3) ->
+          let v1 = anon_choice_call__23b9492 env v1 in
+          let v2 = command_argument_list env v2 in
+          let v3 = block env v3 in
+          Call (v1, fb v2, Some v3)
+      | `Choice_call__cmd_arg_list_do_blk (v1, v2, v3) ->
+          let v1 = anon_choice_call__23b9492 env v1 in
+          let v2 = command_argument_list env v2 in
+          let v3 = do_block env v3 in
+          Call (v1, fb v2, Some v3))
+  | `Arg_DOTDOTDOT_do_blk (v1, v2, v3) -> (
+      let v1 = arg env v1 in
+      let v2 = (* "..." *) token2 env v2 in
       let v3 = do_block env v3 in
-      Call (v1, fb v2, Some v3)
+      match env.extra with
+      | Pattern -> Call (v1, fb [ Arg (Ellipsis v2) ], Some v3)
+      | Program ->
+          (* This shouldn't actually happen in a non-pattern case. *)
+          failwith "invalid program")
+  | `Arg_DOTDOTDOT_blk (v1, v2, v3) -> (
+      let v1 = arg env v1 in
+      let v2 = (* "..." *) token2 env v2 in
+      let v3 = block env v3 in
+      match env.extra with
+      | Pattern -> Call (v1, fb [ Arg (Ellipsis v2) ], Some v3)
+      | Program ->
+          (* This shouldn't actually happen in a non-pattern case. *)
+          failwith "invalid program")
 
 and anon_choice_var_2a392d7 (env : env) (x : CST.anon_choice_var_2a392d7) : expr
     =
@@ -1910,14 +1936,17 @@ and do_block (env : env) ((v1, v2, v3, v4, v5) : CST.do_block) : AST.expr =
         Some v1
     | None -> None
   in
-  let exn_block =
+  (* We do this _to_exprs thing instead of calling just body_statements because
+     we don't want to wrap the contents of this block in yet another block.
+     This will cause us to get Block(Block ...) after Generic translation.
+  *)
+  let exprs =
     match v4 with
-    | None -> empty_body_exn
-    | Some v4 -> body_statement env v4
+    | None -> []
+    | Some v4 -> body_statement_to_exprs env v4
   in
-  let xs = [ S (ExnBlock exn_block) ] in
   let tend = (* "tend" *) token2 env v5 in
-  CodeBlock ((tdo, false, tend), params_opt, xs)
+  CodeBlock ((tdo, false, tend), params_opt, exprs)
 
 and block (env : env) ((v1, v2, v3, v4) : CST.block) =
   let lb = token2 env v1 in
@@ -2139,45 +2168,12 @@ and range (env : env) (x : CST.range) : AST.expr =
      which looks exactly like a range expression.
      So when parsing a pattern, let's prefer the command call version,
      which is more likely to come up.
-
-     Additionally, they might write something like
-     foo ... { }
-     or
-     foo ... do ... end
-     which is additionally parsed like a Range.
-     We need to parse this into a command call with block, like it should be.
   *)
   match x with
-  | `Arg_choice_DOTDOT_arg (v1, v2, v3) -> (
-      let e1 = arg env v1 in
+  | `Arg_choice_DOTDOT_arg (v1, v2, v3) ->
+      let v1 = arg env v1 in
       let v2 = anon_choice_DOTDOT_ed078ec env v2 in
-      match (env.extra, v2, v3) with
-      (* coupling: See command_call_with_block *)
-      (* e1 ... { <stuff> } *)
-      | Pattern, (Op_DOT3, ellipsis_tok), `Prim (`Choice_paren_stmts (`Hash x))
-        ->
-          let v1, v2, v3 = hash env x in
-          Call
-            ( e1,
-              fb [ Arg (Ellipsis ellipsis_tok) ],
-              Some (CodeBlock ((v1, true, v3), None, v2)) )
-      (* e1 ... do ... end *)
-      | ( Pattern,
-          (Op_DOT3, ellipsis_tok),
-          `Range (`Arg_choice_DOTDOT_arg (a1, `DOTDOTDOT tk, a2)) ) -> (
-          let e2 = arg env a1 in
-          let e3 = arg env a2 in
-          match (e2, e3) with
-          | Id (("do", tdo), _), Id (("end", tend), _) ->
-              Call
-                ( e1,
-                  fb [ Arg (Ellipsis ellipsis_tok) ],
-                  Some
-                    (CodeBlock
-                       ((tdo, false, tend), None, [ Ellipsis (token2 env tk) ]))
-                )
-          | _ -> Binop (e1, v2, Binop (e2, (Op_DOT3, token2 env tk), e3)))
-      | _ -> Binop (e1, v2, arg env v3))
+      Binop (v1, v2, arg env v3)
   | `Choice_DOTDOT_arg (v1, v2) ->
       let v1 = anon_choice_DOTDOT_ed078ec env v1 in
       let v2 = arg env v2 in
