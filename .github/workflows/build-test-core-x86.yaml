@@ -43,4 +43,5 @@ jobs:
           path: ocaml-build-artifacts.tgz
           name: ocaml-build-artifacts-release
       - name: Test semgrep-core
-        run: opam exec -- _build/default/src/main/Main.exe -lang ruby -dump_named_ast tests/semgrep-rules/ruby/rails/security/audit/avoid-tainted-file-access.rb
+        run: |
+          opam exec -- _build/default/src/main/Main.exe -lang ruby -rules tests/semgrep-rules/ruby/rails/security/audit/avoid-tainted-file-access.yaml tests/semgrep-rules/ruby/rails/security/audit/avoid-tainted-file-access.rb
