@@ -85,7 +85,7 @@ jobs:
           HOME: /root
         run: |
           # coupling: must be the same than in dev/dev.opam
-          opam install -y ocamlformat.0.26.0
+          opam install -y ocamlformat.0.23.0
           # Without this 'git config' command below, we would get this error in CI:
           #   fatal: detected dubious ownership in repository at '/__w/semgrep/semgrep'
           #   To add an exception for this directory, call:
