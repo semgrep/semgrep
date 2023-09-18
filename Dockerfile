@@ -202,7 +202,7 @@ COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe
 
 RUN ln -s semgrep-core /usr/local/bin/osemgrep
 
-# Set some env variables
+# ???
 ENV SEMGREP_IN_DOCKER=1 \
     SEMGREP_USER_AGENT_APPEND="Docker"
 
@@ -240,10 +240,9 @@ LABEL maintainer="support@semgrep.com"
 # `docker run -v "${PWD}:/src" -i returntocorp/semgrep semgrep`
 FROM semgrep-cli AS nonroot
 
-# Remove previous `osemgrep` symlink
-# Create /home/semgrep/bin directory and move `semgrep-core` there
-# Create new `osemgrep` symlink
-# Make `semgrep` user/group owner of /home/semgrep/bin
+# We need to move the core binary out of the protected /usr/local/bin dir so
+# the non-root user can run `semgrep install-semgrep-pro` and use Pro Engine
+# Alt: we could also do this work directly in the root docker image.
 RUN rm /usr/local/bin/osemgrep && \
     mkdir /home/semgrep/bin && \
     mv /usr/local/bin/semgrep-core /home/semgrep/bin && \
