@@ -81,7 +81,7 @@ jobs:
     steps:
       - if: ${{ matrix.architecture != 'amd64' }}
         uses: docker/setup-qemu-action@v2
-      - uses: docker/setup-buildx-action@v2
+      - uses: docker/setup-buildx-action@v3
       - id: meta
         name: Set tags and labels
         uses: docker/metadata-action@v4
