@@ -732,7 +732,7 @@ let main_no_exn_handler (sys_argv : string array) : unit =
              for now just turn it off *)
           (* if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc (); *)
           let config = { config with roots = File.Path.of_strings roots } in
-          Core_scan.semgrep_core_dispatch config)
+          Core_command.semgrep_core_dispatch config)
 
 let with_exception_trace f =
   Printexc.record_backtrace true;
