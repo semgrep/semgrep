@@ -1,5 +1,5 @@
 val diagnostics_of_results :
-  bool ->
+  is_intellij:bool ->
   Semgrep_output_v1_t.cli_match list ->
   Fpath.t list ->
   Lsp.Server_notification.t list

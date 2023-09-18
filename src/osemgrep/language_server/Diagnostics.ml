@@ -23,6 +23,7 @@ let diagnostic_of_match is_intellij (m : Out.cli_match) =
   in
   let message =
     match shortlink with
+    (* IntelliJ doesn't display code descriptions:/ so we must insert them here *)
     | Some s when is_intellij ->
         message ^ Printf.sprintf "\nSemgrep(<a href=\"%s\">%s</a>)" s m.check_id
     | _ -> message
@@ -65,5 +66,5 @@ let diagnostics_of_file is_intellij matches file =
   in
   Server_notification.PublishDiagnostics params
 
-let diagnostics_of_results is_intellij results files =
+let diagnostics_of_results ~is_intellij results files =
   Common.map (diagnostics_of_file is_intellij results) files

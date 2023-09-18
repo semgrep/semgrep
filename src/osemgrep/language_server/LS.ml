@@ -64,8 +64,8 @@ module MessageHandler = struct
     (* LSP expects empty diagnostics to clear problems *)
     let files = Session.scanned_files server.session in
     let diagnostics =
-      Diagnostics.diagnostics_of_results server.session.is_intellij results
-        files
+      Diagnostics.diagnostics_of_results ~is_intellij:server.session.is_intellij
+        results files
     in
     end_progress server token;
     batch_notify server diagnostics
@@ -97,8 +97,8 @@ module MessageHandler = struct
     let files = [ file ] in
     Session.record_results server.session results files;
     let diagnostics =
-      Diagnostics.diagnostics_of_results server.session.is_intellij results
-        files
+      Diagnostics.diagnostics_of_results ~is_intellij:server.session.is_intellij
+        results files
     in
     batch_notify server diagnostics
 
@@ -159,8 +159,8 @@ module MessageHandler = struct
               files
           in
           let diagnostics =
-            Diagnostics.diagnostics_of_results server.session.is_intellij []
-              files
+            Diagnostics.diagnostics_of_results
+              ~is_intellij:server.session.is_intellij [] files
           in
           batch_notify server diagnostics;
           server
