@@ -7,8 +7,6 @@
  (name pfff_lang_GENERIC_analyze)
  (wrapped false)
  (libraries
-   dyp
-
    commons
    ast_generic
    semgrep.core ; Lang

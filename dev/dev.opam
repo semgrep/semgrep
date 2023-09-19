@@ -16,6 +16,7 @@ depends: [
   "ocamlformat" {= "0.23.0" }  # used by the pre-commit hook
   "ppx_deriving_cmdliner" # used by hello_script.ml
   "feather" # used by hello_script.ml
-  "ocaml-lsp-server" {= "1.16.2"} # used by the VSCode extension
-  "ocamlearlybird" {= "1.2.1"} # used by the VSCode extension
+  #TODO: those 2 packages generate conflict when running 'make dev-setup'
+  #"ocaml-lsp-server" {= "1.16.2"} # used by the VSCode extension
+  #"ocamlearlybird" {= "1.2.1"} # used by the VSCode extension
 ]
