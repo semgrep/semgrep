@@ -54,15 +54,25 @@ let parse_pattern lang_pattern str =
              Tok.unsafe_fake_tok "no loc" ))
   [@@profiling]
 
-let output_core_results (result_and_exn : Core_result.result_and_exn)
+let output_core_results (result_or_exn : Core_result.result_or_exn)
     (config : Core_scan_config.t) : unit =
-  let exn, res = result_and_exn in
   (* note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
    *)
   match config.output_format with
   | Json _ -> (
+      let res =
+        match result_or_exn with
+        | Ok r -> r
+        | Error (exn, core_error_opt) ->
+            let err =
+              match core_error_opt with
+              | Some err -> err
+              | None -> E.exn_to_error None "" exn
+            in
+            Core_result.mk_final_result_with_just_errors [ err ]
+      in
       let res =
         Core_json_output.core_output_of_matches_and_errors
           (Some Autofix.render_fix) (List.length res.scanned) res
@@ -82,17 +92,20 @@ let output_core_results (result_and_exn : Core_result.result_and_exn)
       let s = Out.string_of_core_output res in
       logger#info "size of returned JSON string: %d" (String.length s);
       pr s;
-      match exn with
-      | Some e -> Core_exit_code.exit_semgrep (Unknown_exception e)
-      | None -> ())
-  | Text ->
-      if config.matching_explanations then
-        res.explanations
-        |> List.iter (fun explain -> Matching_explanation.print explain);
-      (* the match has already been printed above. We just print errors here *)
-      if not (null res.errors) then (
-        pr "WARNING: some files were skipped or only partially analyzed:";
-        res.errors |> List.iter (fun err -> pr (E.string_of_error err)))
+      match result_or_exn with
+      | Error (e, _) -> Core_exit_code.exit_semgrep (Unknown_exception e)
+      | Ok _ -> ())
+  | Text -> (
+      match result_or_exn with
+      | Ok res ->
+          if config.matching_explanations then
+            res.explanations
+            |> List.iter (fun explain -> Matching_explanation.print explain);
+          (* the match has already been printed above. We just print errors here *)
+          if not (null res.errors) then (
+            pr "WARNING: some files were skipped or only partially analyzed:";
+            res.errors |> List.iter (fun err -> pr (E.string_of_error err)))
+      | Error (exn, _) -> Exception.reraise exn)
 
 (*****************************************************************************)
 (* semgrep-core -rules *)

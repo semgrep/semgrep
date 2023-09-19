@@ -1,6 +1,6 @@
 (* The type of the semgrep "core" scan. We define it here so that
    semgrep and semgrep-proprietary use the same definition *)
-type core_scan_func = Core_scan_config.t -> Core_result.result_and_exn
+type core_scan_func = Core_scan_config.t -> Core_result.result_or_exn
 
 (* Entry point. This is used in Core_command.ml for semgrep-core,
  * in tests, in semgrep-pro, and finally in osemgrep.
@@ -16,7 +16,7 @@ type core_scan_func = Core_scan_config.t -> Core_result.result_and_exn
  * in Pre_post_core_scan.hook_processor.
  *)
 
-val scan_with_exn_handler : Core_scan_config.t -> Core_result.result_and_exn
+val scan_with_exn_handler : Core_scan_config.t -> Core_result.result_or_exn
 
 (* As opposed to [scan_with_exn_handler()], [scan() ...] below may throw
  * an exception (for example in case of a fatal error).

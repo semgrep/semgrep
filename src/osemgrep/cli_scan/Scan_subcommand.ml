@@ -13,6 +13,9 @@
  * LICENSE for more details.
  *)
 open Common
+module Env = Semgrep_envvars
+module Out = Semgrep_output_v1_t
+module SS = Set.Make (String)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -23,11 +26,6 @@ open Common
    Translated mainly from scan.py, with parts translated also
    from semgrep_main.py and core_runner.py.
 *)
-
-module Env = Semgrep_envvars
-module Out = Semgrep_output_v1_t
-module RP = Core_result
-module SS = Set.Make (String)
 
 (*****************************************************************************)
 (* To run a Pro scan (Deep scan and multistep scan) *)
@@ -229,7 +227,7 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
   Git_wrapper.run_with_worktree ~commit (fun () ->
       List.iter
         (fun m -> m |> extract_sig None |> fun x -> Hashtbl.add sigs x true)
-        baseline.RP.matches);
+        baseline.matches);
   let removed = ref 0 in
   let matches =
     Common.map_filter
@@ -240,7 +238,7 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
           incr removed;
           None)
         else Some m)
-      (head.RP.matches
+      (head.matches
        (* Sort the matches in ascending order according to their byte positions.
           This ensures that duplicated matches are not removed arbitrarily;
           rather, priority is given to removing matches positioned closer to the
@@ -264,75 +262,81 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
    scan. Subsequently, eliminate any previously identified matches
    from the results of the head checkout scan. *)
 let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
-    (profiler : Profiler.t) (result_and_exn : Core_result.result_and_exn)
+    (profiler : Profiler.t) (result_or_exn : Core_result.result_or_exn)
     (rules : Rule.rules) (commit : string) (status : Git_wrapper.status)
     (core :
       Fpath.t list ->
       ?diff_config:Differential_scan_config.t ->
       Rule.rules ->
       unit ->
-      Core_result.result_and_exn) : Core_result.result_and_exn =
-  let exn, r = result_and_exn in
-  if r.matches <> [] then
-    let add_renamed paths =
-      List.fold_left (fun x (y, _) -> SS.add y x) paths status.renamed
-    in
-    let remove_added paths =
-      List.fold_left (Fun.flip SS.remove) paths status.added
-    in
-    let rules_in_match =
-      r.matches
-      |> Common.map (fun m -> m.Pattern_match.rule_id.id |> Rule_ID.to_string)
-      |> SS.of_list
-    in
-    (* only use the rules that have been identified within the existing
-       matches. *)
-    let baseline_rules =
-      rules
-      |> List.filter (fun x ->
-             SS.mem (x.Rule.id |> fst |> Rule_ID.to_string) rules_in_match)
-    in
-    let _exn_baseline, baseline_r =
-      Profiler.record profiler ~name:"baseline_core_time" (fun () ->
-          Git_wrapper.run_with_worktree ~commit (fun () ->
-              let paths_in_match =
-                r.matches
-                |> Common.map (fun m -> m.Pattern_match.file)
-                |> SS.of_list |> add_renamed |> remove_added |> SS.to_seq
-                |> Seq.filter_map (fun x ->
-                       if
-                         Sys.file_exists x
-                         &&
-                         match (Unix.lstat x).st_kind with
-                         | S_LNK -> false
-                         | _ -> true
-                       then Some (Fpath.v x)
-                       else None)
-                |> List.of_seq
-              in
-              let baseline_targets, baseline_diff_targets =
-                match conf.engine_type with
-                | PRO Interfile ->
-                    let all_in_baseline, _ =
-                      Find_targets.get_targets conf.targeting_conf
-                        conf.target_roots
-                    in
-                    (* Performing a scan on the same set of files for the
-                       baseline that were previously scanned for the head.
-                       In Interfile mode, the matches are influenced not
-                       only by the file displaying matches but also by its
-                       dependencies. Hence, merely rescanning files with
-                       matches is insufficient. *)
-                    (all_in_baseline, r.scanned)
-                | _ -> (paths_in_match, [])
-              in
-              core baseline_targets
-                ~diff_config:
-                  (Differential_scan_config.BaseLine baseline_diff_targets)
-                baseline_rules ()))
-    in
-    (exn, remove_matches_in_baseline commit baseline_r r status.renamed)
-  else (exn, r)
+      Core_result.result_or_exn) : Core_result.result_or_exn =
+  match result_or_exn with
+  | Error _ as err -> err
+  | Ok r ->
+      if r.matches <> [] then
+        let add_renamed paths =
+          List.fold_left (fun x (y, _) -> SS.add y x) paths status.renamed
+        in
+        let remove_added paths =
+          List.fold_left (Fun.flip SS.remove) paths status.added
+        in
+        let rules_in_match =
+          r.matches
+          |> Common.map (fun m ->
+                 m.Pattern_match.rule_id.id |> Rule_ID.to_string)
+          |> SS.of_list
+        in
+        (* only use the rules that have been identified within the existing
+           matches. *)
+        let baseline_rules =
+          rules
+          |> List.filter (fun x ->
+                 SS.mem (x.Rule.id |> fst |> Rule_ID.to_string) rules_in_match)
+        in
+        let baseline_result =
+          Profiler.record profiler ~name:"baseline_core_time" (fun () ->
+              Git_wrapper.run_with_worktree ~commit (fun () ->
+                  let paths_in_match =
+                    r.matches
+                    |> Common.map (fun m -> m.Pattern_match.file)
+                    |> SS.of_list |> add_renamed |> remove_added |> SS.to_seq
+                    |> Seq.filter_map (fun x ->
+                           if
+                             Sys.file_exists x
+                             &&
+                             match (Unix.lstat x).st_kind with
+                             | S_LNK -> false
+                             | _ -> true
+                           then Some (Fpath.v x)
+                           else None)
+                    |> List.of_seq
+                  in
+                  let baseline_targets, baseline_diff_targets =
+                    match conf.engine_type with
+                    | PRO Interfile ->
+                        let all_in_baseline, _ =
+                          Find_targets.get_targets conf.targeting_conf
+                            conf.target_roots
+                        in
+                        (* Performing a scan on the same set of files for the
+                           baseline that were previously scanned for the head.
+                           In Interfile mode, the matches are influenced not
+                           only by the file displaying matches but also by its
+                           dependencies. Hence, merely rescanning files with
+                           matches is insufficient. *)
+                        (all_in_baseline, r.scanned)
+                    | _ -> (paths_in_match, [])
+                  in
+                  core baseline_targets
+                    ~diff_config:
+                      (Differential_scan_config.BaseLine baseline_diff_targets)
+                    baseline_rules ()))
+        in
+        match baseline_result with
+        | Error _exn -> baseline_result
+        | Ok baseline_r ->
+            Ok (remove_matches_in_baseline commit baseline_r r status.renamed)
+      else Ok r
 
 (*****************************************************************************)
 (* Conduct the scan *)
