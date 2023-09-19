@@ -1056,18 +1056,6 @@ and map_condition_clause env (v1, v2) : G.condition =
       let inits = map_condition_initializer env init in
       OtherCond (("OtherCond", G.fake "OtherCond"), inits @ [ G.E subject ])
 
-(* TODO: should use better CondXxx once they are available in AST_generic *)
-(* and map_condition_clause env x : G.condition =
-
-   | CondDecl (v1, v2) ->
-       let defs = map_vars_decl env v1 and v2 = map_expr env v2 in
-       OtherCond
-         ( ("CondWithDecls", G.fake ""),
-           (defs |> Common.map (fun def -> G.Def def)) @ [ G.E v2 ] )
-   | CondStmt (v1, v2) ->
-       let eopt, sc = map_expr_stmt env v1 and v2 = map_expr env v2 in
-       let st = G.ExprStmt (expr_option sc eopt, sc) |> G.s in
-       OtherCond (("CondWithStmt", G.fake ""), [ G.S st; G.E v2 ]) *)
 and map_for_header env = function
   | ForEllipsis v1 -> G.ForEllipsis v1
   | ForClassic (v1, v2, v3) ->

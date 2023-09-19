@@ -20,7 +20,7 @@ operator()(const int N, const T* X, T* Y, CPUContext* /* context */) const {
 
 template <>
 template <>
-bool ReluFunctor<CPUContext>::operator()<float>(
+bool ReluFunctor<CPUContext>::operator()(
     const int N,
     const float* X,
     float* Y,

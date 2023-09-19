@@ -3316,17 +3316,6 @@ and map_return_statement (env : env) (x : CST.return_statement) : stmt =
       let v3 = token env v3 (* ";" *) in
       Jump (Return (v1, Some (ArgInits v2)), v3)
 
-(* and map_scoped_identifier (env : env) ((v1, v2, v3) : CST.scoped_identifier) :
-     name =
-   let v1 =
-     match v1 with
-     | Some x -> Some (map_anon_choice_type_id_ec78ce4 env x)
-     | None -> None
-   in
-   let v2 = token env v2 (* "::" *) in
-   let v3 = map_anon_choice_type_id_efddc5b env v3 in
-   name_scoped v1 v2 v3 *)
-
 and map_scope_resolution (env : env) ((v1, v2) : CST.scope_resolution) name =
   let v2 = (* "::" *) token env v2 in
   match v1 with
@@ -3921,9 +3910,6 @@ and map_type_specifier (env : env) (x : CST.type_specifier) : type_ =
   | `Temp_type x ->
       let x = map_template_type env x in
       (nQ, TypeName x)
-      (* | `Auto tok ->
-          let x = token env tok (* "auto" *) in
-          (nQ, TAuto x) *)
   | `Plac_type_spec (v1, v2) ->
       let _v1_TODO =
         match v1 with
