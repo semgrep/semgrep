@@ -45,5 +45,7 @@ jobs:
       - name: Test semgrep-core
         run: |
           opam exec -- _build/default/src/main/Main.exe -lang ruby -rules tests/debug.yaml tests/debug.rb
-          opam exec -- _build/default/src/main/Main.exe -lang ruby -rules tests/debug.yaml tests/semgrep-rules/ruby/rails/security/audit/debug.rb
-          opam exec -- _build/default/src/main/Main.exe -lang ruby -rules tests/semgrep-rules/ruby/rails/security/audit/debug.yaml tests/debug.rb
+          echo 11111111111111111111111111111111111111111111
+          opam exec -- _build/default/src/main/Main.exe -lang ruby -rules tests/debug.yaml tests/semgrep-rules/ruby/rails/security/audit/avoid-tainted-file-access.rb
+          echo 11111111111111111111111111111111111111111111
+          opam exec -- _build/default/src/main/Main.exe -lang ruby -rules tests/semgrep-rules/ruby/rails/security/audit/avoid-tainted-file-access.yaml tests/debug.rb
