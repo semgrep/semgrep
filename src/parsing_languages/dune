@@ -34,6 +34,7 @@
    parser_elixir.tree_sitter parser_elixir.ast_generic
    parser_ruby.tree_sitter parser_ruby.ast_generic
    ; directly to generic AST
+   parser_dart.ast_generic
    parser_cairo.ast_generic
    parser_lisp.tree_sitter
    parser_solidity.ast_generic

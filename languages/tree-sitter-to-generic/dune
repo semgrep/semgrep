@@ -10,7 +10,6 @@
    semgrep_core; just for Range
 
    lib_parsing_tree_sitter
-   tree-sitter-lang.dart
    tree-sitter-lang.hack
    tree-sitter-lang.html
    tree-sitter-lang.vue
