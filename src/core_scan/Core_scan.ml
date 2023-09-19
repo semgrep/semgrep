@@ -572,10 +572,18 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
 (* File targeting and rule filtering *)
 (*****************************************************************************)
 
-let rules_for_xlang (xlang : Xlang.t) (rules : Rule.t list) : Rule.t list =
+(*
+   This function takes an analyzer that was provided with a target file
+   and filters rules that primarily use this analyzer.
+
+   Martin: I believe this comes from pysemgrep splitting targets into
+   "languages". We're trying to get rid of this because it adds unnecessary
+   complexity.
+*)
+let rules_for_target ~(analyzer : Xlang.t) (rules : Rule.t list) : Rule.t list =
   rules
-  |> List.filter (fun r ->
-         match (xlang, r.R.languages.target_analyzer) with
+  |> List.filter (fun (r : Rule.t) ->
+         match (analyzer, r.languages.target_analyzer) with
          | LRegex, LRegex
          | LSpacegrep, LSpacegrep
          | LAliengrep, LAliengrep ->
@@ -588,6 +596,9 @@ let rules_for_xlang (xlang : Xlang.t) (rules : Rule.t list) : Rule.t list =
              L (y, ys) ) ->
              List.mem x (y :: ys)
          | (LRegex | LSpacegrep | LAliengrep | L _), _ -> false)
+
+(* TODO: remove once it's removed from semgrep-pro *)
+let rules_for_xlang analyzer rules = rules_for_target ~analyzer rules
 
 (* TODO: use Fpath.t for file *)
 let xtarget_of_file (config : Core_scan_config.t) (xlang : Xlang.t)
@@ -719,8 +730,7 @@ let extracted_targets_of_config (config : Core_scan_config.t)
            (* TODO: addt'l filtering required for rule_ids when targets are
               passed explicitly? *)
            let file = t.path in
-           let xlang = t.analyzer in
-           let xtarget = xtarget_of_file config xlang (Fpath.v file) in
+           let xtarget = xtarget_of_file config t.analyzer (Fpath.v file) in
            let extracted_targets =
              Match_extract_mode.extract_nested_lang ~match_hook
                ~timeout:config.timeout
@@ -781,16 +791,18 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
   (* Let's go! *)
   logger#info "processing %d files, skipping %d files" (List.length all_targets)
     (List.length skipped);
-  Printf.eprintf "Yo\n";
   let file_results =
     all_targets
     |> iter_targets_and_get_matches_and_exn_to_errors config
          (fun (target : In.target) ->
            let file = Fpath.v target.path in
-           Printf.eprintf "Scan target %s\n" !!file;
-           let xlang = target.analyzer in
+           let analyzer = target.analyzer in
            let rules =
              valid_rules
+             |> List.filter (fun (r : Rule.t) ->
+                    (* Don't run a Python rule on a JavaScript target *)
+                    Xlang.is_compatible ~require:analyzer
+                      ~provide:r.languages.target_analyzer)
              (* Don't run the extract rules
                 Note: we can't filter this out earlier because the rule indexes need to be stable *)
              |> List.filter (fun r ->
@@ -805,17 +817,12 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
                     | `Steps _ ->
                         true)
              |> List.filter (fun r ->
-                    (* TODO: some of this is already done in pysemgrep, so maybe
-                     * we should guard with a flag that only osemgrep set
-                     * like Core_scan_config.paths_processing: bool?
-                     *)
+                    (* Honor per-rule include/exclude *)
                     match r.R.paths with
                     | None -> true
-                    | Some paths ->
-                        Printf.eprintf "Calling filter_paths on %s\n" !!file;
-                        Filter_target.filter_paths paths file)
+                    | Some paths -> Filter_target.filter_paths paths file)
            in
-           let xtarget = xtarget_of_file config xlang file in
+           let xtarget = xtarget_of_file config analyzer file in
            let default_match_hook str match_ =
              if config.output_format =*= Text then
                print_match ~str config match_ Metavariable.ii_of_mval
