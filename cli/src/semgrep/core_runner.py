@@ -843,6 +843,7 @@ class CoreRunner:
         timeout_threshold: int,
         interfile_timeout: int,
         optimizations: str,
+        allow_untrusted_postprocessors: bool,
         core_opts_str: Optional[str],
     ):
         self._binary_path = engine_type.get_binary_path()
@@ -854,6 +855,7 @@ class CoreRunner:
         self._timeout_threshold = timeout_threshold
         self._interfile_timeout = interfile_timeout
         self._optimizations = optimizations
+        self._allow_untrusted_postprocessors = allow_untrusted_postprocessors
         self._core_opts = shlex.split(core_opts_str) if core_opts_str else []
 
     def _extract_core_output(
@@ -1133,6 +1135,9 @@ class CoreRunner:
                     raise SemgrepError(
                         "Secrets post processors tried to run without the pro-engine."
                     )
+
+            if self._allow_untrusted_postprocessors:
+                cmd.append("-allow-untrusted-postprocessors")
 
             # TODO: use exact same command-line arguments so just
             # need to replace the SemgrepCore.path() part.

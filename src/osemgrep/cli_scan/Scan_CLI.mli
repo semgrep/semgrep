@@ -26,6 +26,7 @@ type conf = {
   (* Indicates the user requested Semgrep Secrets postprocessors to
      validate secret findings. *)
   run_secrets : bool;
+  allow_untrusted_postprocessors : bool;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;
   (* Display options *)
