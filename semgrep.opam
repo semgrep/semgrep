@@ -17,7 +17,6 @@ depends: [
   "ocaml" {>= "4.13.0"}
   "dune" {>= "3.7" & >= "2.7.0"}
   "menhir" {= "20211128"}
-  "stdcompat"
   "base" {>= "v0.15.1"}
   "fpath"
   "bos"
