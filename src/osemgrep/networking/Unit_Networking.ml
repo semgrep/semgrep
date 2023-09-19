@@ -96,9 +96,6 @@ let post_and_check_multi_lwt ?(parallel = false)
 (* Code *)
 (*****************************************************************************)
 
-(* For urls: google, github *)
-(* Fails locally w/tls,tls-lwt installed *)
-(* TLS failure: authentication failure: invalid certificate chain *)
 let html_tests () =
   let urls =
     [ "https://www.google.com/"; "https://semgrep.dev/"; "https://github.com/" ]
@@ -119,9 +116,6 @@ let html_tests () =
       ("GET asynchronously (parallel)", get_async_parallel);
     ]
 
-(* For urls: api.github.com  *)
-(* Fails locally w/ tls,tls-lwt with the following error *)
-(* TLS failure: authentication failure: invalid certificate chain *)
 let json_tests () =
   let urls =
     [
@@ -165,8 +159,6 @@ let post_tests () =
       ("POST asynchronously (parallel)", post_async_parallel);
     ]
 
-(* Confirmed all fails locally w/out tls,ssl,tls-lwt,ssl_lwt installed *)
-(* Confirmed all works locally with ssl_lwt,ssl installed *)
 let tests =
   pack_suites "OSemgrep Networking"
     [ html_tests (); json_tests (); post_tests () ]
