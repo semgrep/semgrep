@@ -25,6 +25,7 @@ from typing import Tuple
 
 from attr import asdict
 from attr import define
+from attr import evolve
 from attr import field
 from attr import frozen
 from boltons.iterutils import get_path
@@ -59,6 +60,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
 from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
+from semgrep.target_mode import TargetModeConfig
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -902,7 +904,10 @@ class CoreRunner:
             for language in rule.languages:
                 targets = list(
                     target_manager.get_files_for_rule(
-                        language, rule.includes, rule.excludes, rule.id
+                        language,
+                        rule.includes,
+                        rule.excludes,
+                        rule.id,
                     )
                 )
 
@@ -933,6 +938,7 @@ class CoreRunner:
         time_flag: bool,
         engine: EngineType,
         run_secrets: bool,
+        target_mode_config: TargetModeConfig,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         state = get_state()
         logger.debug(f"Passing whole rules directly to semgrep_core")
@@ -964,21 +970,74 @@ class CoreRunner:
             if dump_command_for_core
             else tempfile.NamedTemporaryFile("w+")
         )
+        if target_mode_config.is_pro_diff_scan:
+            diff_target_file = exit_stack.enter_context(
+                (state.env.user_data_folder / "semgrep_diff_targets.txt").open("w+")
+                if dump_command_for_core
+                else tempfile.NamedTemporaryFile("w+")
+            )
 
         with exit_stack:
-            plan = self.plan_core_run(rules, target_manager, all_targets)
-            plan.record_metrics()
+            cmd = [
+                str(self._binary_path),
+                "-json",
+            ]
 
-            parsing_data.add_targets(plan)
-            target_file_contents = json.dumps(plan.to_json())
-            target_file.write(target_file_contents)
-            target_file.flush()
-
+            # adding rules option
             rule_file_contents = json.dumps(
                 {"rules": [rule._raw for rule in rules]}, indent=2, sort_keys=True
             )
             rule_file.write(rule_file_contents)
             rule_file.flush()
+            cmd.extend(["-rules", rule_file.name])
+
+            # adding multi-core option
+            cmd.extend(["-j", str(self._jobs)])
+
+            # adding targets option
+            if target_mode_config.is_pro_diff_scan:
+                diff_targets = target_mode_config.get_diff_targets()
+                diff_target_file_contents = "\n".join(
+                    [str(path) for path in diff_targets]
+                )
+                diff_target_file.write(diff_target_file_contents)
+                diff_target_file.flush()
+                cmd.extend(["-diff_targets", diff_target_file.name])
+                cmd.extend(["-diff_depth", str(target_mode_config.get_diff_depth())])
+
+                # For the pro diff scan, it's necessary to consider all input files as
+                # "targets" and the files that have changed between the head and baseline
+                # commits as "diff targets". To compile a comprehensive list of all input files
+                # for `plan`, the `baseline_handler` is disabled within the `target_manager`
+                # when executing `plan_core_run`.
+                plan = self.plan_core_run(
+                    rules, evolve(target_manager, baseline_handler=None), all_targets
+                )
+
+            else:
+                plan = self.plan_core_run(rules, target_manager, all_targets)
+
+            plan.record_metrics()
+            parsing_data.add_targets(plan)
+            target_file_contents = json.dumps(plan.to_json())
+            target_file.write(target_file_contents)
+            target_file.flush()
+            cmd.extend(["-targets", target_file.name])
+
+            # adding limits
+            cmd.extend(
+                [
+                    "-timeout",
+                    str(self._timeout),
+                    "-timeout_threshold",
+                    str(self._timeout_threshold),
+                    "-max_memory",
+                    str(self._max_memory),
+                ]
+            )
+
+            if time_flag:
+                cmd.append("-json_time")
 
             # Create a map to feed to semgrep-core as an alternative to
             # having it actually read the files.
@@ -986,27 +1045,6 @@ class CoreRunner:
                 target_file.name: target_file_contents.encode("UTF-8"),
                 rule_file.name: rule_file_contents.encode("UTF-8"),
             }
-
-            # Run semgrep
-            cmd = [
-                str(self._binary_path),
-                "-json",
-                "-rules",
-                rule_file.name,
-                "-j",
-                str(self._jobs),
-                "-targets",
-                target_file.name,
-                "-timeout",
-                str(self._timeout),
-                "-timeout_threshold",
-                str(self._timeout_threshold),
-                "-max_memory",
-                str(self._max_memory),
-            ]
-
-            if time_flag:
-                cmd.append("-json_time")
 
             if self._optimizations != "none":
                 cmd.append("-fast")
@@ -1140,6 +1178,7 @@ class CoreRunner:
         time_flag: bool,
         engine: EngineType,
         run_secrets: bool,
+        target_mode_config: TargetModeConfig,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Sometimes we may run into synchronicity issues with the latest DeepSemgrep binary.
@@ -1157,6 +1196,7 @@ class CoreRunner:
                 time_flag,
                 engine,
                 run_secrets,
+                target_mode_config,
             )
         except SemgrepError as e:
             # Handle Semgrep errors normally
@@ -1191,6 +1231,7 @@ Exception raised: `{e}`
         time_flag: bool,
         engine: EngineType,
         run_secrets: bool,
+        target_mode_config: TargetModeConfig,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Takes in rules and targets and retuns object with findings
@@ -1208,6 +1249,7 @@ Exception raised: `{e}`
             time_flag,
             engine,
             run_secrets,
+            target_mode_config,
         )
 
         logger.debug(
