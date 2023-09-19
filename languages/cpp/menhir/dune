@@ -3,7 +3,6 @@
  (name parser_cpp_menhir)
  (wrapped false)
  (libraries
-   dyp; TODO should not need anymore, just for Dyp.syntax_error dead code
    commons
    lib_parsing
    parser_cpp.ast
@@ -13,11 +12,3 @@
 (ocamllex lexer_cpp)
 (menhir (modules parser_cpp)
         (flags --unused-tokens --explain --fixed-exception))
-
-;old: dyp-based parser
-; tree-sitter-cpp is probably better
-;(rule
-; (targets parser_cpp2.ml)
-; (deps (:input-file parser_cpp2.dyp))
-; (action (chdir %{project_root} (run %{bin:dypgen} --no-mli --pv-obj --noemit-token-type  %{input-file})))
-;)
