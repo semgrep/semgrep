@@ -44,27 +44,4 @@ jobs:
           name: ocaml-build-artifacts-release
       - name: Test semgrep-core
         run: |
-          echo 000000
-          opam exec -- _build/default/src/main/Main.exe -lang ruby -rules tests/debug.yaml tests/debug.rb
-          echo 111111
-          opam exec -- _build/default/src/main/Main.exe -lang ruby -rules tests/debug.yaml tests/debug-2.rb
-          echo 222222
-          opam exec -- _build/default/src/main/Main.exe -lang ruby -rules tests/debug.yaml tests/debug-3.rb
-          echo 333333
-          opam exec -- _build/default/src/main/Main.exe -lang ruby -rules tests/debug.yaml tests/debug-4.rb
-          echo 444444
-          opam exec -- _build/default/src/main/Main.exe -lang ruby -rules tests/debug.yaml tests/debug-5.rb
-          echo 555555
-          opam exec -- _build/default/src/main/Main.exe -lang ruby -rules tests/debug.yaml tests/debug-6.rb
-          echo aaaaaa
-          opam exec -- _build/default/src/main/Main.exe -lang ruby -rules tests/semgrep-rules/ruby/rails/security/audit/avoid-tainted-file-access.rb tests/debug.rb
-          echo bbbbbb
-          opam exec -- _build/default/src/main/Main.exe -lang ruby -rules tests/semgrep-rules/ruby/rails/security/audit/avoid-tainted-file-access.rb tests/debug-2.rb
-          echo cccccc
-          opam exec -- _build/default/src/main/Main.exe -lang ruby -rules tests/semgrep-rules/ruby/rails/security/audit/avoid-tainted-file-access.rb tests/debug-3.rb
-          echo dddddd
-          opam exec -- _build/default/src/main/Main.exe -lang ruby -rules tests/semgrep-rules/ruby/rails/security/audit/avoid-tainted-file-access.rb tests/debug-4.rb
-          echo eeeeee
-          opam exec -- _build/default/src/main/Main.exe -lang ruby -rules tests/semgrep-rules/ruby/rails/security/audit/avoid-tainted-file-access.rb tests/debug-5.rb
-          echo ffffff
-          opam exec -- _build/default/src/main/Main.exe -lang ruby -rules tests/semgrep-rules/ruby/rails/security/audit/avoid-tainted-file-access.rb tests/debug-6.rb
+          opam exec -- _build/default/src/main/Main.exe -lang ruby -rules tests/semgrep-rules/ruby/rails/security/audit/avoid-tainted-file-access.yaml tests/semgrep-rules/ruby/rails/security/audit/avoid-tainted-file-access.rb
