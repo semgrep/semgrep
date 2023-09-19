@@ -59,8 +59,11 @@ type 'a match_result = {
 }
 [@@deriving show]
 
-(* TODO: change in result_or_exn *)
-type result_and_exn = Exception.t option * t
+(* ugly: the Core_error.t is used in Core_scan.sanity_check_invalid_patterns
+ * to remember some Out.PatternParseError that now happens later since
+ * we're parsing lazily the patterns in a rule.
+ *)
+type result_or_exn = (t, Exception.t * Core_error.t option) result
 
 (*****************************************************************************)
 (* Builders *)
@@ -80,10 +83,11 @@ let empty_match_result : Core_profiling.times match_result =
     explanations = [];
   }
 
-let empty_final_result : t =
+let mk_final_result_with_just_errors (errors : Core_error.t list) : t =
   {
+    errors;
+    (* default values *)
     matches = [];
-    errors = [];
     skipped_rules = [];
     extra = No_info;
     explanations = [];
