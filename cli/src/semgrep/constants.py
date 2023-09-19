@@ -14,6 +14,7 @@ DEFAULT_SEMGREP_APP_CONFIG_URL = "api/agent/deployments/scans/config"
 DEFAULT_TIMEOUT = 30  # seconds
 DEFAULT_PRO_TIMEOUT_CI = 10800  # seconds
 DEFAULT_MAX_MEMORY_PRO_CI = 5000  # MiB
+DEFAULT_DIFF_DEPTH = -1
 
 SETTINGS_FILENAME = "settings.yml"
 

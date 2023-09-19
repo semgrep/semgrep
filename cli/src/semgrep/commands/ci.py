@@ -184,6 +184,7 @@ def ci(
     core_opts: Optional[str],
     config: Optional[Tuple[str, ...]],
     debug: bool,
+    diff_depth: int,
     dump_command_for_core: bool,
     dry_run: bool,
     enable_nosem: bool,
@@ -383,6 +384,7 @@ def ci(
         scan_handler=scan_handler,
         git_meta=metadata,
         run_secrets=run_secrets,
+        enable_pro_diff_scan=diff_depth >= 0,
     )
 
     # set default settings for selected engine type
@@ -468,6 +470,7 @@ def ci(
             optimizations=optimizations,
             baseline_commit=metadata.merge_base_ref,
             baseline_commit_is_mergebase=True,
+            diff_depth=diff_depth,
             dump_contributions=True,
         )
     except SemgrepError as e:

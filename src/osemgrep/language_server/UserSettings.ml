@@ -68,6 +68,7 @@ let find_targets_conf_of_t settings =
       max_target_bytes = settings.max_target_bytes;
       respect_git_ignore = true;
       baseline_commit = None;
+      diff_depth = 0;
       scan_unknown_extensions = true;
       project_root = None;
     }
