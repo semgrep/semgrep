@@ -60,8 +60,14 @@ type state = {
    * or not after executing a finally clause in exception handling.
    *)
   may_return : bool ref;
-  (* Destination node that a throw node should go to. *)
-  throw_destination : F.nodei;
+  (* Destination node that a throw node should go to.
+   * Alt: we could make this non-optional and always add an arc to the
+   * exit node when an exception is thrown outside a try statement,
+   * but this may cause too many arcs in the CFG because all function
+   * calls would then have this arc. This can causes performance issues
+   * and there is no significant benefit of having these extra arcs.
+   *)
+  throw_destination : F.nodei option;
   (* True when a throw may occur in any of the nodes being visited.
    * Initialized as false, and once set to true, remains true forever.
    * This field helps us determine whether we should propagate the throw
@@ -92,6 +98,12 @@ let add_arc (starti, nodei) g = g#add_arc ((starti, nodei), F.Direct)
 let add_arc_from_opt (starti_opt, nodei) g =
   starti_opt
   |> Option.iter (fun starti -> g#add_arc ((starti, nodei), F.Direct))
+
+let add_arc_opt_to_opt (starti_opt, nodei_opt) g =
+  starti_opt
+  |> Option.iter (fun starti ->
+         nodei_opt
+         |> Option.iter (fun nodei -> g#add_arc ((starti, nodei), F.Direct)))
 
 let key_of_label ((str, _tok), sid) : label_key = (str, sid)
 
@@ -175,7 +187,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
                * this should reduce false positives (since it's a must-analysis).
                * Ideally we should have a preceeding analysis that infers which calls
                * may (or may not) raise exceptions. *)
-            state.g |> add_arc_from_opt (Some newi, state.throw_destination);
+            state.g |> add_arc_opt_to_opt (Some newi, state.throw_destination);
             state.may_throw := true;
             match build_cfg_for_lambdas_in state newi new_ with
             | Some lasti -> lasti
@@ -279,7 +291,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
 
       (* Inside try may go to catches. *)
       let try_state =
-        { state with throw_destination = catchesi; return_destination }
+        { state with throw_destination = Some catchesi; return_destination }
       in
       let finaltry = cfg_stmt_list try_state (Some newi) try_st in
 
@@ -308,7 +320,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       let throw_destination =
         match finally_st with
         | [] -> state.throw_destination
-        | _ -> newfakefinally
+        | _ -> Some newfakefinally
       in
       let else_state = { state with throw_destination; return_destination } in
       let finalelse = cfg_stmt_list else_state (Some elsei) else_st in
@@ -348,7 +360,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
        * should already be propagated from the logic above.
        *)
       if !(state.may_throw) then
-        state.g |> add_arc_from_opt (finalfinally, state.throw_destination);
+        state.g |> add_arc_opt_to_opt (finalfinally, state.throw_destination);
       if !(state.may_return) then
         state.g |> add_arc_from_opt (finalfinally, state.return_destination);
 
@@ -361,7 +373,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
   | Throw (tok, e) ->
       let newi = state.g#add_node { F.n = F.NThrow (tok, e) } in
       state.g |> add_arc_from_opt (previ, newi);
-      state.g |> add_arc_from_opt (previ, state.throw_destination);
+      state.g |> add_arc_opt_to_opt (previ, state.throw_destination);
       state.may_throw := true;
       CfgFirstLast (newi, None)
   | MiscStmt x ->
@@ -384,7 +396,7 @@ and cfg_lambda state previ joini fdef =
   state.g |> add_arc (previ, newi);
   let finallambda =
     cfg_stmt_list
-      { state with throw_destination = joini; return_destination = joini }
+      { state with throw_destination = None; return_destination = joini }
       (Some newi) fdef.fbody
   in
   state.g |> add_arc_from_opt (finallambda, joini)
@@ -497,7 +509,7 @@ let (cfg_of_stmts : stmt list -> F.cfg) =
       labels = Hashtbl.create 10;
       gotos = ref [];
       return_destination = exiti;
-      throw_destination = exiti;
+      throw_destination = None;
       may_throw = ref false;
       may_return = ref false;
       lambdas = Hashtbl.create 10;

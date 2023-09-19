@@ -15,7 +15,7 @@ def throw_in_catch_exits(input):
     raise RuntimeError()
 
   #ok: unreachable, because throw inside the catch clause exits
-  sink = clean
+  sink(clean)
 
 def throw_in_else_exits(input):
   clean = None
@@ -24,12 +24,12 @@ def throw_in_else_exits(input):
   except Exception as e:
     clean = input
     #ok: unreachable, because exception was not thrown
-    sink = clean
+    sink(clean)
   else:
     raise RuntimeError()
 
   #ok: unreachable, because throw inside the else clause exits
-  sink = clean
+  sink(clean)
 
 def throw_in_finally_exits(input):
   clean = None
@@ -39,14 +39,14 @@ def throw_in_finally_exits(input):
     raise RuntimeError()
 
   #ok: unreachable, because throw inside the finally clause exits
-  sink = clean
+  sink(clean)
 
 def return_exits(input):
   clean = None
   return
 
   # ok:
-  sink = clean
+  sink(clean)
 
 def return_in_catch_exits(input):
   clean = None
@@ -56,7 +56,7 @@ def return_in_catch_exits(input):
     return
 
   #ok: unreachable, because return inside the catch clause exits
-  sink = clean
+  sink(clean)
 
 def return_in_else_exits(input):
   clean = None
@@ -65,12 +65,12 @@ def return_in_else_exits(input):
   except Exception as e:
     clean = input
     #ok: unreachable, because exception was not thrown
-    sink = clean
+    sink(clean)
   else:
     return
 
   #ok: unreachable, because return inside the else clause exits
-  sink = clean
+  sink(clean)
 
 def throw_in_finally_exits(input):
   clean = None
@@ -80,7 +80,7 @@ def throw_in_finally_exits(input):
     return
 
   #ok: unreachable, because return inside the finally clause exits
-  sink = clean
+  sink(clean)
 
 def throw_must_not_go_through_else(input):
   clean = None
@@ -95,9 +95,9 @@ def throw_must_not_go_through_else(input):
     clean = input
 
   #ok:
-  sink = clean
+  sink(clean)
   #ruleid: python-exception
-  sink = dirty
+  sink(dirty)
 
 def no_throw_goes_through_else(input):
   clean = None
@@ -111,9 +111,9 @@ def no_throw_goes_through_else(input):
     dirty = input
 
   #ok:
-  sink = clean
+  sink(clean)
   #ruleid: python-exception
-  sink = dirty
+  sink(dirty)
 
 def may_throw_goes_through_catch_and_else(input):
   dirty1 = None
@@ -128,9 +128,9 @@ def may_throw_goes_through_catch_and_else(input):
     dirty2 = input
 
   #ruleid: python-exception
-  sink = dirty1
+  sink(dirty1)
   #ruleid: python-exception
-  sink = dirty2
+  sink(dirty2)
 
 def exception_or_not_goes_through_finally(input):
   clean1 = None
@@ -142,13 +142,13 @@ def exception_or_not_goes_through_finally(input):
   else:
     clean2 = input
   finally:
-    clean1 = sanitize
-    clean2 = sanitize
+    clean1 = sanitize(clean1)
+    clean2 = sanitize(clean2)
 
   #ok:
-  sink = clean1
+  sink(clean1)
   #ok:
-  sink = clean2
+  sink(clean2)
 
 def exception_or_not_goes_through_finally(input):
   clean1 = None
@@ -160,13 +160,13 @@ def exception_or_not_goes_through_finally(input):
   else:
     clean2 = input
   finally:
-    clean1 = sanitize
-    clean2 = sanitize
+    clean1 = sanitize(clean1)
+    clean2 = sanitize(clean2)
 
   #ok:
-  sink = clean1
+  sink(clean1)
   #ok:
-  sink = dirty2
+  sink(dirty2)
 
 def return_goes_through_finally_and_propagates(input):
   clean1 = None
@@ -181,11 +181,11 @@ def return_goes_through_finally_and_propagates(input):
     except Exception as e:
       clean1 = input
       #ok: unreachable because the try clause returns
-      sink = clean1
+      sink(clean1)
     else:
       clean2 = input
       #ok: unreachable because the try clause returns
-      sink = clean2
+      sink(clean2)
     finally:
       # Finally clauses are always reachable when present
       dirty1 = input
@@ -201,9 +201,9 @@ def return_goes_through_finally_and_propagates(input):
     dirty2 = input
 
   #ruleid: python-exception
-  sink = dirty1
+  sink(dirty1)
   #ruleid: python-exception
-  sink = dirty2
+  sink(dirty2)
 
 def throw_may_go_through_catch_and_propagates(input):
   clean1 = None
@@ -218,11 +218,11 @@ def throw_may_go_through_catch_and_propagates(input):
     except Exception as e:
       clean1 = input
       #ruleid: python-exception
-      sink = clean1
+      sink(clean1)
     else:
       clean2 = input
       #ok: unreachable because the try clause returns
-      sink = clean2
+      sink(clean2)
     finally:
       # Finally clauses are always reachable when present.
       dirty1 = input
@@ -235,8 +235,8 @@ def throw_may_go_through_catch_and_propagates(input):
     dirty3 = input
 
     #ruleid: python-exception
-    sink = dirty1
+    sink(dirty1)
     #ruleid: python-exception
-    sink = dirty2
+    sink(dirty2)
     #ruleid: python-exception
-    sink = dirty3
+    sink(dirty3)

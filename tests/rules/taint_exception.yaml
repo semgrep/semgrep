@@ -4,9 +4,9 @@ rules:
   pattern-sources:
     - pattern: input
   pattern-sanitizers:
-    - pattern: $X = sanitize
+    - pattern: sanitize(...)
   pattern-sinks:
-    - pattern: sink = $X
+    - pattern: sink(...)
   message: Match found
   languages:
     - python

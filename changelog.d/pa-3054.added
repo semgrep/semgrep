@@ -1,0 +1,32 @@
+Try-catch-else-finally is now supported in taint analysis.
+
+This kind of statement is supported in languages including Python, Ruby, and Julia.
+
+Python example:
+
+```py
+def f(tainted_input):
+  try:
+    a = 0
+    b = 0
+    c = tainted_input
+    d = tainted_input
+  except RuntimeError:
+    a = tainted_input
+    c = sanitize(c)
+  else:
+    b = tainted_input
+  finally:
+    d = sanitize(d)
+
+  # a is not tainted because exception wasn't thrown
+  sink(a)
+  # b is tainted through the else clause
+  sink(b)
+  # c is tainted at the beginning, but it was not sanitized
+  # because an exception was not thrown
+  sink(c)
+  # d is tainted at the beginning, but it was sanitized
+  # because the finally clause is always executed
+  sink(d)
+```
