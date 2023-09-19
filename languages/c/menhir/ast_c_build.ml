@@ -176,7 +176,8 @@ and declaration env x =
   | ExternList (_, _, _)
   | ExternDecl (_, _, _)
   | TemplateDecl _
-  | TemplateInstanciation _ ->
+  | TemplateInstanciation _
+  | Concept _ ->
       debug (Toplevel (X (D x)));
       raise CplusplusConstruct
   | DeclTodo _ ->
@@ -219,9 +220,10 @@ and function_type env x =
    ft_specs = _TODO;
    ft_const = const;
    ft_throw = throw;
+   ft_requires = requires;
   } ->
-      (match (const, throw) with
-      | None, [] -> ()
+      (match (const, throw, requires) with
+      | None, [], None -> ()
       | _ -> raise CplusplusConstruct);
 
       (full_type env ret, List.map (parameter env) (params |> unparen))
@@ -465,7 +467,8 @@ and stmt env st =
   | Try (_, _, _)
   | If (_, _, (_, _, _), _, _)
   | While (_, (_, _, _), _)
-  | Switch (_, (_, _, _), _) ->
+  | Switch (_, (_, _, _), _)
+  | CoStmt _ ->
       debug (Stmt st);
       raise CplusplusConstruct
   | StmtTodo _
@@ -604,7 +607,10 @@ and expr env e =
   | ParamPackExpansion _
   | FoldExpr _
   | RequiresExpr _
-  | Lambda _ ->
+  | RequiresClause _
+  | Lambda _
+  | UserDefined _
+  | CoAwait _ ->
       debug (Expr e);
       raise CplusplusConstruct
   | StatementExpr _

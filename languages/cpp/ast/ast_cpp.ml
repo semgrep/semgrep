@@ -119,6 +119,7 @@ and template_argument = (type_, expr) Common.either
 and qualifier =
   | QClassname of ident (* a_class_name or a_namespace_name *)
   | QTemplateId of ident * template_arguments
+  | QTemplateTokId of (* template *) tok * ident * template_arguments
 
 (* special cases *)
 and a_class_name = name (* only IdIdent or IdTemplateId *)
@@ -225,6 +226,7 @@ and expr =
    *)
   | N of name
   | C of constant
+  | UserDefined of constant * ident
   | IdSpecial of special wrap
   (* I used to have FunCallSimple but not that useful, and we want scope info
    * for FunCallSimple too because can have fn(...) where fn is actually
@@ -276,7 +278,12 @@ and expr =
   (* forunparser: *)
   | ParenExpr of expr paren
   | FoldExpr of fold_expr paren
+  (* These are different things. See:
+     https://en.cppreference.com/w/cpp/language/constraints#Requires_clauses
+  *)
   | RequiresExpr of tok * parameter list paren * requirement list paren
+  | RequiresClause of expr
+  | CoAwait of tok * expr
   (* sgrep-ext: *)
   | Ellipsis of tok
   | DeepEllipsis of expr bracket
@@ -367,6 +374,7 @@ and operator =
   | UnaryTildeOp
   | UnaryNotOp
   | CommaOp
+  | DQuoteOp (* "" *)
 
 (* less: migrate to AST_generic_.op? *)
 and binaryOp = Arith of arithOp | Logical of logicalOp
@@ -453,10 +461,14 @@ and stmt =
   | Default of tok * tok (* : *) * case_body
   (* c++ext: *)
   | Try of tok * compound * handler list
+  (* co_return and co_yield *)
+  | CoStmt of co_operator wrap * expr option
   (* old: c++ext: gccext: there was a DeclStmt and NestedFunc before, but they
    * are now handled by stmt_or_decl *)
   | StmtTodo of todo_category * stmt list
 
+(* c++ext: *)
+and co_operator = Co_return | Co_yield
 and expr_stmt = expr option * sc
 
 and condition_initializer =
@@ -475,7 +487,12 @@ and condition_clause = condition_initializer option * condition_subject
 and for_header =
   | ForClassic of a_expr_or_vars * expr option * expr option
   (* c++0x? TODO: var_decl can be DStructrured_binding with vinit = None  *)
-  | ForRange of var_decl (* vinit = None *) * tok (*':'*) * initialiser
+  | ForRange of
+      (* since c++20 *)
+      condition_initializer option
+      * var_decl (* vinit = None *)
+      * tok (*':'*)
+      * initialiser
   (* sgrep-ext: *)
   | ForEllipsis of tok (* ... *)
 
@@ -557,7 +574,8 @@ and decl =
   | DeclList of vars_decl
   | Func of func_definition
   (* c++ext: *)
-  | TemplateDecl of tok * template_parameters * decl
+  | TemplateDecl of
+      tok * template_parameters * (* requires *) expr option * decl
   | TemplateInstanciation of tok (* 'template' *) * var_decl (*vinit=None*) * sc
   (* c++ext: using namespace *)
   | UsingDecl of using
@@ -565,7 +583,7 @@ and decl =
   | NamespaceAlias of
       tok (*'namespace'*) * ident * tok (*=*) * a_namespace_name * sc
   (* the list can be empty *)
-  | Namespace of tok * ident option * declarations
+  | Namespace of tok * ident list * declarations
   (* the list can be empty *)
   | ExternDecl of tok * string wrap (* usually "C" *) * decl
   | ExternList of tok * string wrap * declarations
@@ -573,6 +591,8 @@ and decl =
   | Asm of tok * tok option (*volatile*) * asmbody paren * sc
   (* c++0x?: tsonly: at toplevel or in class *)
   | StaticAssert of tok * argument list paren (* last args are strings *)
+  (* since c++20 *)
+  | Concept of tok (*'concept'*) * ident * tok (*'='*) * expr * sc
   (* gccext: allow redundant ';' *)
   | EmptyDef of sc
   | NotParsedCorrectly of tok list
@@ -683,6 +703,7 @@ and functionType = {
   (* c++ext: *)
   ft_const : tok option; (* only for methods, TODO put in attribute? *)
   ft_throw : exn_spec list;
+  ft_requires : expr option;
 }
 
 and parameter =

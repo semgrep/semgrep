@@ -210,6 +210,10 @@ and map_qualifier env = function
   | QTemplateId (v1, v2) ->
       let v1 = map_ident env v1 and v2 = map_template_arguments env v2 in
       (v1, Some v2)
+  | QTemplateTokId (_v1, v2, v3) ->
+      (* THINK: Is this different than without the `template`? *)
+      let v2 = map_ident env v2 and v3 = map_template_arguments env v3 in
+      (v2, Some v3)
 
 and map_a_class_name env v = map_name env v
 and map_a_ident_name env v = map_name env v
@@ -372,6 +376,11 @@ and map_expr env x : G.expr =
   | C v1 ->
       let v1 = map_constant env v1 in
       G.L v1 |> G.e
+  | UserDefined (v1, v2) ->
+      let v1 = map_constant env v1 in
+      OtherExpr
+        (("UserDefined", G.fake "UseDefined"), [ G.E (G.L v1 |> G.e); G.I v2 ])
+      |> G.e
   | IdSpecial v1 ->
       let v1 = map_wrap env (map_special env) v1 in
       G.IdSpecial v1 |> G.e
@@ -549,6 +558,13 @@ and map_expr env x : G.expr =
       G.OtherExpr
         (("RequiresExpr", G.fake "RequiresExpr"), (G.Tk v1 :: params) @ reqs)
       |> G.e
+  | RequiresClause v1 ->
+      let expr = map_expr env v1 in
+      G.OtherExpr (("RequiresClause", G.fake "RequiresClause"), [ G.E expr ])
+      |> G.e
+  | CoAwait (v1, v2) ->
+      let expr = map_expr env v2 in
+      G.OtherExpr (("co_await", v1), [ G.E expr ]) |> G.e
   | ParenExpr v1 ->
       let _l, v1, _r = map_paren env (map_expr env) v1 in
       v1
@@ -717,6 +733,7 @@ and map_operator (env : env) = function
   | CoAwaitOp -> ()
   | UnaryNotOp -> ()
   | CommaOp -> ()
+  | DQuoteOp -> ()
 
 and map_requirement (env : env) = function
   | ExprReq (expropt, _sc) -> (
@@ -800,6 +817,18 @@ and map_stmt env x : G.stmt =
       and v3 = map_stmt env v3 in
       let anys = [ G.I v1; G.Args v2 ] in
       G.OtherStmtWithStmt (G.OSWS_Iterator, anys, v3) |> G.s
+  | CoStmt ((op, op_tk), eopt) ->
+      let op_str =
+        match op with
+        | Co_yield -> "co_yield"
+        | Co_return -> "co_return"
+      in
+      let anys =
+        match eopt with
+        | None -> []
+        | Some e -> [ G.E (map_expr env e) ]
+      in
+      G.OtherStmt (OS_Todo, G.I (op_str, op_tk) :: anys) |> G.s
   | Jump (v1, v2) ->
       let v1 = map_jump env v1 and v2 = map_sc env v2 in
       v1 v2
@@ -1046,12 +1075,16 @@ and map_for_header env = function
       and v2 = map_of_option (map_expr env) v2
       and v3 = map_of_option (map_expr env) v3 in
       G.ForClassic (v1, v2, v3)
-  | ForRange (v1, v2, v3) ->
-      let ent, vardef = map_var_decl env v1
-      and _v2 = map_tok env v2
-      and v3 = map_initialiser env v3 in
+  | ForRange (v1, v2, v3, v4) ->
+      (* TODO: We cannot accommodate this in the Generic AST at the present. *)
+      let _initialiser_TODO =
+        map_of_option (map_condition_initializer env) v1
+      in
+      let ent, vardef = map_var_decl env v2
+      and _v2 = map_tok env v3
+      and v4 = map_initialiser env v4 in
       (* less: or ForEach? *)
-      G.ForIn ([ G.ForInitVar (ent, vardef) ], [ v3 ])
+      G.ForIn ([ G.ForInitVar (ent, vardef) ], [ v4 ])
 
 and map_a_expr_or_vars env v =
   match v with
@@ -1168,11 +1201,13 @@ and map_decl env x : G.stmt list =
   | Func v1 ->
       let v1 = map_func_definition env v1 in
       [ G.DefStmt v1 |> G.s ]
-  | TemplateDecl (v1, v2, v3) ->
+  | TemplateDecl (v1, v2, v3, v4) ->
       let _v1 = map_tok env v1
       and v2 = map_template_parameters env v2
-      and v3 = map_decl env v3 in
-      v3
+      (* TODO *)
+      and _v3 = map_of_option (map_expr env) v3
+      and v4 = map_decl env v4 in
+      v4
       |> Common.map
            (map_def_in_stmt (fun (ent, def) -> ({ ent with tparams = v2 }, def)))
   | TemplateInstanciation (v1, v2, v3) ->
@@ -1200,9 +1235,9 @@ and map_decl env x : G.stmt list =
                 ({ ent with attrs = extern :: ent.attrs }, def)))
   | Namespace (v1, v2, v3) ->
       let v1 = map_tok env v1
-      and v2 = map_of_option (map_ident env) v2
+      and v2 = map_of_list (map_ident env) v2
       and _l, v3, r = map_declarations env v3 in
-      let dir1 = G.Package (v1, Option.to_list v2) |> G.d in
+      let dir1 = G.Package (v1, v2) |> G.d in
       let dir2 = G.PackageEnd r |> G.d in
       [ G.DirectiveStmt dir1 |> G.s ] @ v3 @ [ G.DirectiveStmt dir2 |> G.s ]
   | StaticAssert (v1, v2) ->
@@ -1215,6 +1250,14 @@ and map_decl env x : G.stmt list =
   | NotParsedCorrectly v1 ->
       let v1 = map_of_list (map_tok env) v1 in
       [ G.OtherStmt (G.OS_Todo, v1 |> Common.map (fun tk -> G.Tk tk)) |> G.s ]
+  | Concept (tconcept, id, _tequals, expr, _sc) ->
+      let id = map_ident env id in
+      let expr = map_expr env expr in
+      [
+        G.DefStmt
+          (G.basic_entity id, OtherDef (("concept", tconcept), [ G.E expr ]))
+        |> G.s;
+      ]
   | DeclTodo v1 ->
       let v1 = map_todo_category env v1 in
       [ G.OtherStmt (G.OS_Todo, [ G.TodoK v1 ]) |> G.s ]
@@ -1388,10 +1431,12 @@ and map_functionType env x : G.parameters * G.type_ =
    ft_specs = v_ft_specs;
    ft_const = v_ft_const;
    ft_throw = v_ft_throw;
+   ft_requires = v_ft_requires;
   } ->
       let _v_ft_throwTODO = map_of_list (map_exn_spec env) v_ft_throw in
       let _v_ft_constTODO = map_of_option (map_tok env) v_ft_const in
       let _v_ft_specsTODO = map_of_list (map_specifier env) v_ft_specs in
+      let _v_ft_requiresTODO = map_of_option (map_expr env) v_ft_requires in
       let params =
         map_paren env (map_of_list (map_parameter env)) v_ft_params
       in

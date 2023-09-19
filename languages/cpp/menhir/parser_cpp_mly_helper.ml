@@ -305,6 +305,7 @@ let fixFunc ((name, ty, _stoTODO), cp) : func_definition =
           ft_specs = [];
           ft_const = None;
           ft_throw = [];
+          ft_requires = None;
         }
   in
   ( ent,
@@ -346,6 +347,7 @@ let mk_constructor specs id (lp, params, rp) _cmem_initializer_opt_TODO cp =
       (* TODO *)
       ft_const = None;
       ft_throw = [];
+      ft_requires = None;
     }
   in
   let name = name_of_id id in
@@ -360,6 +362,7 @@ let mk_destructor specs tilde id (lp, _voidopt, rp) exnopt cp =
       ft_specs = [];
       ft_const = None;
       ft_throw = Option.to_list exnopt;
+      ft_requires = None;
     }
   in
   let name = (None, noQscope, IdDestructor (tilde, id)) in

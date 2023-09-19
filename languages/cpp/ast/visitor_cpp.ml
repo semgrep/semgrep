@@ -124,6 +124,11 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | QTemplateId (v1, v2) ->
         let v1 = v_wrap v_string v1 and v2 = v_template_arguments v2 in
         ()
+    | QTemplateTokId (v1, v2, v3) ->
+        let v1 = v_tok v1
+        and v2 = v_wrap v_string v2
+        and v3 = v_template_arguments v3 in
+        ()
   and v_fullType (v1, v2) =
     let v1 = v_typeQualifiers v1 and v2 = v_typeC v2 in
     ()
@@ -241,6 +246,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | C v1 ->
         let v1 = v_constant v1 in
         ()
+    | UserDefined (v1, v2) ->
+        let v1 = v_constant v1 and v2 = v_ident v2 in
+        ()
     | Ellipsis v1 ->
         let v1 = v_tok v1 in
         ()
@@ -349,6 +357,12 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v1 = v_tok v1
         and v2 = v_paren (v_list v_parameter) v2
         and v3 = v_paren (v_list v_requirement) v3 in
+        ()
+    | RequiresClause v1 ->
+        let v1 = v_expr v1 in
+        ()
+    | CoAwait (v1, v2) ->
+        let v1 = v_tok v1 and v2 = v_expr v2 in
         ()
     | DeepEllipsis v1 ->
         let v1 = v_bracket v_expr v1 in
@@ -487,6 +501,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | CoAwaitOp -> ()
     | UnaryNotOp -> ()
     | CommaOp -> ()
+    | DQuoteOp -> ()
   and v_cast_operator = function
     | Static_cast -> ()
     | Dynamic_cast -> ()
@@ -602,6 +617,13 @@ let (mk_visitor : visitor_in -> visitor_out) =
         and v2 = v_paren (v_list v_argument) v2
         and v3 = v_statement v3 in
         ()
+    | CoStmt (v1, v2) ->
+        let v1 = v_wrap v_co_operator v1 and v2 = v_option v_expr v2 in
+        ()
+  and v_co_operator = function
+    | Co_return
+    | Co_yield ->
+        ()
   and v_compound v =
     let k v = v_brace (v_list (v_sequencable v_stmt_or_decl)) v in
     vin.kcompound (k, all_functions) v
@@ -612,8 +634,11 @@ let (mk_visitor : visitor_in -> visitor_out) =
         and v2 = v_option v_expr v2
         and v3 = v_option v_expr v3 in
         ()
-    | ForRange (v1, v2, v3) ->
-        let v1 = v_var_decl v1 and v2 = v_tok v2 and v3 = v_initialiser v3 in
+    | ForRange (v1, v2, v3, v4) ->
+        let v1 = v_option v_condition_initializer v1
+        and v2 = v_var_decl v2
+        and v3 = v_tok v3
+        and v4 = v_initialiser v4 in
         ()
   and v_a_expr_or_vars v = OCaml.v_either v_expr_stmt v_vars_decl v
   and v_vars_decl (v1, v2) =
@@ -860,12 +885,14 @@ let (mk_visitor : visitor_in -> visitor_out) =
         ft_specs = v_ft_dots;
         ft_const = v_ft_const;
         ft_throw = v_ft_throw;
+        ft_requires = v_ft_requires;
       } =
     let arg = v_fullType v_ft_ret in
     let arg = v_paren (v_list v_parameter) v_ft_params in
     let arg = v_list v_specifier v_ft_dots in
     let arg = v_option v_tok v_ft_const in
     let arg = v_list v_exn_spec v_ft_throw in
+    let arg = v_option v_expr v_ft_requires in
     ()
   and v_parameter x =
     let k x =
@@ -1045,10 +1072,11 @@ let (mk_visitor : visitor_in -> visitor_out) =
       | Func v1 ->
           let v1 = v_func_definition v1 in
           ()
-      | TemplateDecl (v1, v2, v3) ->
+      | TemplateDecl (v1, v2, v3, v4) ->
           let v1 = v_tok v1
           and v2 = v_template_parameters v2
-          and v3 = v_declaration v3 in
+          and c3 = v_option v_expr v3
+          and v4 = v_declaration v4 in
           ()
       | ExternDecl (v1, v2, v3) ->
           let v1 = v_tok v1
@@ -1062,7 +1090,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
           ()
       | Namespace (v1, v2, v3) ->
           let v1 = v_tok v1
-          and v2 = v_option (v_wrap v_string) v2
+          and v2 = v_list (v_wrap v_string) v2
           and v3 = v_declarations v3 in
           ()
       | EmptyDef v1 ->
@@ -1091,6 +1119,13 @@ let (mk_visitor : visitor_in -> visitor_out) =
           ()
       | StaticAssert (v1, v2) ->
           let v1 = v_tok v1 and v2 = v_paren (v_list v_argument) v2 in
+          ()
+      | Concept (v1, v2, v3, v4, v5) ->
+          let v1 = v_tok v1
+          and v2 = v_ident v2
+          and v3 = v_tok v3
+          and v4 = v_expr v4
+          and v5 = v_sc v5 in
           ()
       | NotParsedCorrectly v1 ->
           let v1 = v_list v_tok v1 in
