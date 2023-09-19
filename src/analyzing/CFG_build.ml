@@ -175,7 +175,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
                * this should reduce false positives (since it's a must-analysis).
                * Ideally we should have a preceeding analysis that infers which calls
                * may (or may not) raise exceptions. *)
-            (* state.g |> add_arc_from_opt (Some newi, state.throw_destination); *)
+            state.g |> add_arc_from_opt (Some newi, state.throw_destination);
             state.may_throw := true;
             match build_cfg_for_lambdas_in state newi new_ with
             | Some lasti -> lasti
