@@ -45,7 +45,7 @@ type conf = {
   (* Engine selection *)
   engine_type : Engine_type.t;
   run_secrets : bool;
-  allow_untrusted_postprocessors: bool;
+  allow_untrusted_postprocessors : bool;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;
   (* Display options *)
@@ -481,7 +481,11 @@ let o_secrets : bool Term.t =
   Arg.value (Arg.flag info)
 
 let o_allow_untrusted_postprocessors : bool Term.t =
-  let info = Arg.info [ "allow-untrusted-postprocessors" ] ~doc:{|Run postprocessors from untrusted sources.|} in
+  let info =
+    Arg.info
+      [ "allow-untrusted-postprocessors" ]
+      ~doc:{|Run postprocessors from untrusted sources.|}
+  in
   Arg.value (Arg.flag info)
 
 (* ------------------------------------------------------------------ *)
@@ -750,16 +754,16 @@ let o_registry_caching : bool Term.t =
 let cmdline_term ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
-  let combine allow_untrusted_postprocessors ast_caching autofix baseline_commit common config dataflow_traces
-      dryrun dump_ast dump_command_for_core dump_engine_path emacs error exclude
-      exclude_rule_ids force_color gitlab_sast gitlab_secrets include_ json
-      junit_xml lang max_chars_per_line max_lines_per_finding max_memory_mb
-      max_target_bytes metrics num_jobs nosem optimizations oss output pattern
-      pro project_root pro_intrafile pro_lang registry_caching replacement
-      respect_git_ignore rewrite_rule_ids sarif scan_unknown_extensions secrets
-      severity show_supported_languages strict target_roots test
-      test_ignore_todo text time_flag timeout timeout_threshold validate version
-      version_check vim =
+  let combine allow_untrusted_postprocessors ast_caching autofix baseline_commit
+      common config dataflow_traces dryrun dump_ast dump_command_for_core
+      dump_engine_path emacs error exclude exclude_rule_ids force_color
+      gitlab_sast gitlab_secrets include_ json junit_xml lang max_chars_per_line
+      max_lines_per_finding max_memory_mb max_target_bytes metrics num_jobs
+      nosem optimizations oss output pattern pro project_root pro_intrafile
+      pro_lang registry_caching replacement respect_git_ignore rewrite_rule_ids
+      sarif scan_unknown_extensions secrets severity show_supported_languages
+      strict target_roots test test_ignore_todo text time_flag timeout
+      timeout_threshold validate version version_check vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Logs_helpers.setup_logging ~force_color
@@ -1062,12 +1066,12 @@ let cmdline_term ~allow_empty_config : conf Term.t =
   Term.(
     (* !the o_xxx must be in alphabetic orders to match the parameters of
      * combine above! *)
-    const combine $ o_allow_untrusted_postprocessors $ o_ast_caching $ o_autofix $ o_baseline_commit
-    $ CLI_common.o_common $ o_config $ o_dataflow_traces $ o_dryrun $ o_dump_ast
-    $ o_dump_command_for_core $ o_dump_engine_path $ o_emacs $ o_error
-    $ o_exclude $ o_exclude_rule_ids $ o_force_color $ o_gitlab_sast
-    $ o_gitlab_secrets $ o_include $ o_json $ o_junit_xml $ o_lang
-    $ o_max_chars_per_line $ o_max_lines_per_finding $ o_max_memory_mb
+    const combine $ o_allow_untrusted_postprocessors $ o_ast_caching $ o_autofix
+    $ o_baseline_commit $ CLI_common.o_common $ o_config $ o_dataflow_traces
+    $ o_dryrun $ o_dump_ast $ o_dump_command_for_core $ o_dump_engine_path
+    $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids $ o_force_color
+    $ o_gitlab_sast $ o_gitlab_secrets $ o_include $ o_json $ o_junit_xml
+    $ o_lang $ o_max_chars_per_line $ o_max_lines_per_finding $ o_max_memory_mb
     $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_nosem $ o_optimizations
     $ o_oss $ o_output $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile
     $ o_pro_languages $ o_registry_caching $ o_replacement
