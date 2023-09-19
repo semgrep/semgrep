@@ -106,7 +106,10 @@ jobs:
   build-test-docker-nonroot:
     uses: ./.github/workflows/build-test-docker.yaml
     secrets: inherit
-    needs: [inputs]
+    # We want to run build-test-docker-nonroot *after*
+    # build-test-docker so that it reuses the warmed-up
+    # docker cache.
+    needs: [inputs, build-test-docker]
     with:
       docker-flavor: |
         latest=auto

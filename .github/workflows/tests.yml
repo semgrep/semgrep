@@ -331,6 +331,10 @@ jobs:
       dry-run: false
 
   build-test-docker-nonroot:
+    # We want to run build-test-docker-nonroot *after*
+    # build-test-docker so that it reuses the warmed-up
+    # docker cache.
+    needs: [build-test-docker]
     uses: ./.github/workflows/build-test-docker.yaml
     secrets: inherit
     with:
