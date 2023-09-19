@@ -305,7 +305,10 @@ def parse_config_files(
                 config_id = (
                     REGISTRY_CONFIG_ID
                     if is_url(config_path)
-                    and remote_rule_netloc.endswith(".semgrep.dev")
+                    and (
+                        remote_rule_netloc.endswith(".semgrep.dev")
+                        or remote_rule_netloc == "semgrep.dev"
+                    )
                     else NON_REGISTRY_REMOTE_CONFIG_ID
                 )
                 filename = f"{config_path[:20]}..."
