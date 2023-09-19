@@ -4,7 +4,6 @@
  (wrapped false)
  (libraries
    fpath
-   stdcompat
    sexplib
 
    commons
