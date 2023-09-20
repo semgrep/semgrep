@@ -587,7 +587,7 @@ let regexp_prefilter_of_taint_rule (_rule_id, rule_tok) taint_spec =
   in
   regexp_prefilter_of_formula f
 
-let hmemo = Hashtbl.create 101
+let hmemo = ref (Hashtbl.create 101)
 
 let regexp_prefilter_of_rule (r : R.rule) =
   let rule_id, _t = r.R.id in
@@ -598,7 +598,7 @@ let regexp_prefilter_of_rule (r : R.rule) =
    * which was triggering a FakeInfoStr exn
    *)
   let key = rule_id in
-  Common.memoized hmemo key (fun () ->
+  Common.memoized !hmemo key (fun () ->
       try
         match r.mode with
         | `Search f
