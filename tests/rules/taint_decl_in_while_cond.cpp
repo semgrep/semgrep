@@ -12,7 +12,6 @@ void test1() {
 void test2() {
     void *data = get_data();
 
-    // BUG: Declaration in `while` loop does not sanitize
     while(auto ret = maybe_realloc_data(&data)) {
         // ok: source-sink-while
         sink(data);
@@ -25,7 +24,6 @@ void test3() {
 
     auto ret;
 
-    // Assignment in `while` loop /does/ sanitize
     while(ret = maybe_realloc_data(&data)) {
         // ok: source-sink-while
         sink(data);
