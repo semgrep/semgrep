@@ -29,6 +29,7 @@ export const EngineFactory = async (wasmUri) => {
     lookupLang,
     writeFile,
     deleteFile,
+    test,
   } = require("../../../_build/default/js/engine/Main.bc");
   setLibYamlWasmModule(wasm);
 
@@ -73,5 +74,6 @@ export const EngineFactory = async (wasmUri) => {
     execute,
     writeFile,
     deleteFile,
+    test,
   };
 };

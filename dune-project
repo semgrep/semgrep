@@ -405,6 +405,7 @@ For more information see https://semgrep.dev
     bos
     ; unit testing
     alcotest
+    alcotest-js
     ; text and terminal formating
     fmt
     ocolor

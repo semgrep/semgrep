@@ -130,11 +130,11 @@ build-pfff:
 build-parse-cairo:
 	dune build _build/install/default/bin/parse-cairo
 
-# Build the js_of_ocaml portion of the semgrep javascript packages
-# TODO: you actually can't 'cd js; make'; You first need this step
 .PHONY: build-semgrep-jsoo
 build-semgrep-jsoo:
 	dune build js --profile=release
+	. libs/ocaml-tree-sitter-core/tree-sitter-config.sh
+	$(MAKE) -C js build
 
 # Remove from the project tree everything that's not under source control
 # and was not created by 'make setup'.
@@ -210,6 +210,14 @@ core-test-e2e:
 	SEMGREP_CORE=$(PWD)/bin/semgrep-core \
 	$(MAKE) -C interfaces/semgrep_interfaces test
 	python3 tests/semgrep-core-e2e/test_target_file.py
+
+test-jsoo:
+	$(MAKE) build-semgrep-jsoo
+	$(MAKE) -C js test
+
+test-jsoo-engine:
+	$(MAKE) build-semgrep-jsoo
+	$(MAKE) -C js/engine test
 
 ###############################################################################
 # External dependencies installation targets

@@ -7,7 +7,9 @@
   libyaml_stubs_js
   yaml_ctypes_overrides
   semgrep.running
+  semgrep.parsing_languages
   tree-sitter.run
+  alcotest
   ; semgrep.parsing_languages ; skipped to go from 16MB to 7MB
   )
  (js_of_ocaml

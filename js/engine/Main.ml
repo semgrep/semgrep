@@ -27,6 +27,13 @@ let _ =
        method getMountpoints = get_jsoo_mount_point ()
        method setLibYamlWasmModule = Libyaml_stubs_js.set_libyaml_wasm_module
 
+       method test language =
+         Alcotest.run "semgrep-js"
+           (Testutil.to_alcotest (Unit_parsing.tests ()))
+           ~and_exit:false
+           ~argv:[| ""; "--verbose"; "-e"; Js.to_string language |]
+       (*Unit_parsing.tests ()*)
+
        method setParsePattern (func : jbool -> jstring -> jstring -> 'a) =
          Parse_pattern.parse_pattern_ref :=
            fun print_error lang pattern ->
