@@ -225,7 +225,7 @@ class Metrics:
 
         self.payload.performance.numRules = len(rules)
         if profiling_data:
-            profile: out.CoreTiming = profiling_data.profile
+            profile: out.Profile = profiling_data.profile
             # aggregate rule stats across files
             _rule_match_times: Dict[out.RuleId, float] = defaultdict(float)
             _rule_bytes_scanned: Dict[out.RuleId, int] = defaultdict(int)
