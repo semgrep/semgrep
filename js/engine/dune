@@ -2,20 +2,13 @@
  (names Main)
  (libraries
   js_of_ocaml
-  integers_stubs_js
-  libpcre_stubs_js
-  libyaml_stubs_js
-  yaml_ctypes_overrides
   semgrep.running
-  semgrep.parsing_languages
+  semgrep.semgrep_js_shared
   tree-sitter.run
-  alcotest
   ; semgrep.parsing_languages ; skipped to go from 16MB to 7MB
   )
  (js_of_ocaml
   (javascript_files
-   core.js ; misc libraries
-   octs.js ; ocaml-tree-sitter plumbing
    )
   ; --no-inline was suggested here:
   ; https://discuss.ocaml.org/t/js-of-ocaml-output-performs-considerably-worse-when-built-with-profile-release-flag/8862/14

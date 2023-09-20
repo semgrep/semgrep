@@ -219,6 +219,10 @@ test-jsoo-engine:
 	$(MAKE) build-semgrep-jsoo
 	$(MAKE) -C js/engine test
 
+test-jsoo-test:
+	$(MAKE) build-semgrep-jsoo
+	$(MAKE) -C js/tests test
+
 ###############################################################################
 # External dependencies installation targets
 ###############################################################################

@@ -16,22 +16,21 @@ export const EngineFactory = async (wasmUri) => {
     wasmUri = `${getDirname()}/${WASM_FILENAME}`;
   }
   const wasm = await SemgrepEngineWasm({
-    locateFile: (uri) => (uri === WASM_FILENAME ? wasmUri : uri),
+    locateFile: (uri) => (uri === WASM_FILENAME ? wasmUri : uri)
   });
   // libpcre regrettably must be global because semgrep eagerly compiles regexes
   globalThis.LibPcreModule = wasm;
   const {
+    init,
     getMountpoints,
-    setLibYamlWasmModule,
     setParsePattern,
     setJustParseWithLang,
     execute,
     lookupLang,
     writeFile,
     deleteFile,
-    test,
   } = require("../../../_build/default/js/engine/Main.bc");
-  setLibYamlWasmModule(wasm);
+  init(wasm);
 
   const languages = new Map();
 
@@ -74,6 +73,5 @@ export const EngineFactory = async (wasmUri) => {
     execute,
     writeFile,
     deleteFile,
-    test,
   };
 };

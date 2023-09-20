@@ -70,6 +70,7 @@ function octs_node_end_point(vNode) {
 //Provides: octs_node_is_missing
 //Requires: wasm
 function octs_node_is_missing(vNode) {
+  console.log(vNode);
   return wasm._ts_node_is_missing(vNode.node_ptr) != 0;
 }
 
@@ -110,16 +111,4 @@ function octs_node_type(vNode) {
   return caml_string_of_jsstring(
     wasm.AsciiToString(wasm._ts_node_type(node_ptr))
   );
-}
-
-//Provides: semgrep_get_jsoo_mount_point
-//Requires: jsoo_mount_point
-function semgrep_get_jsoo_mount_point() {
-  return jsoo_mount_point;
-}
-
-//Provides: set_jsoo_mount_point
-//Requires: jsoo_mount_point
-function set_jsoo_mount_point(value) {
-  jsoo_mount_point = value;
 }

@@ -20,6 +20,5 @@ export interface Engine {
   isMissingLanguages: () => boolean;
   getMissingLanguages: () => string[];
   clearMissingLanguages: () => void;
-  test: (language: string) => void;
 }
 export declare const EngineFactory: (wasmUri?: string) => Promise<Engine>;

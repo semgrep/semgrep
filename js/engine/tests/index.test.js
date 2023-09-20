@@ -30,12 +30,6 @@ describe("engine", () => {
     engine.clearMissingLanguages();
     expect(engine.isMissingLanguages()).toBe(false);
   });
-  test("Unit Parsing", async () => {
-    const engine = await enginePromise;
-    const java = require("../../languages/java/dist/index.cjs");
-    engine.addParser(await java.ParserFactory());
-    engine.test("Java");
-  });
 });
 
 describe("yaml parser", () => {
