@@ -41,6 +41,7 @@ from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
+from semgrep.core_runner import get_contributions
 from semgrep.core_runner import Plan
 from semgrep.engine import EngineType
 from semgrep.error import FilesNotFoundError
@@ -544,7 +545,7 @@ def run_scan(
     )
 
     if dump_contributions:
-        contributions = core_runner.invoke_semgrep_dump_contributions()
+        contributions = get_contributions(engine_type)
     else:
         contributions = out.Contributions([])
 
