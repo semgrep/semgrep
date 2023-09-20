@@ -532,6 +532,8 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
 (* Metavariable condition evaluation *)
 (*****************************************************************************)
 
+let hook_pro_entropy_analysis: (string -> bool) option ref = ref None
+
 let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
     (cond : R.metavar_cond) : (RM.t * MV.bindings list) list =
   xs
@@ -634,6 +636,14 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
                else Eval_generic.bindings_to_env_just_strings config bindings
              in
              Eval_generic.eval_bool env e |> map_bool r
+         | R.CondAnalysis (mvar, CondEntropyV2) -> begin
+             match !hook_pro_entropy_analysis with
+             | None -> error
+             | Some f ->
+               f mvar
+               |>   Entropy.has_high_score
+               |> map_bool r
+         end
          | R.CondAnalysis (mvar, CondEntropy) ->
              let bindings = r.mvars in
              Metavariable_analysis.analyze_string_metavar env bindings mvar
