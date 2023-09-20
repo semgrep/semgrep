@@ -26,10 +26,10 @@
   "performance": {
     "fileStats": [
       {
-        "matchTime": 0.0,
-        "numTimesScanned": 0,
-        "parseTime": 0.0,
-        "runTime": 0.0,
+        "matchTime": 0.00886988639831543,
+        "numTimesScanned": 1,
+        "parseTime": 0.021296024322509766,
+        "runTime": 0.034609079360961914,
         "size": 6
       }
     ],
@@ -48,8 +48,8 @@
         "ruleHash": "0c9be123b69d289f1b0fa65faefade9c76479bae63006869f3ecacd8ffe8b0a8"
       },
       {
-        "bytesScanned": 0,
-        "matchTime": 0.0,
+        "bytesScanned": 6,
+        "matchTime": 0.00886988639831543,
         "ruleHash": "5c6d327ecdc0f6028e2d9a7e79c0ca03887a91189fbfd871286edad46e5d2516"
       },
       {
