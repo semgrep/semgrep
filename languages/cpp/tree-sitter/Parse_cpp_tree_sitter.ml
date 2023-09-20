@@ -163,6 +163,24 @@ let map_fold_operator (env : env) (x : CST.fold_operator) =
   | `DASHGTSTAR tok ->
       let t = (* "->*" *) token env tok in
       (PtrOpOp PtrStarOp, t)
+  | `Or tok ->
+      let t = (* "or" *) token env tok in
+      (BinaryOp (Logical OrLog), t)
+  | `And tok ->
+      let t = (* "and" *) token env tok in
+      (BinaryOp (Logical AndLog), t)
+  | `Bitor tok ->
+      let t = (* "bitor" *) token env tok in
+      (BinaryOp (Arith Or), t)
+  | `Xor tok ->
+      let t = (* "xor" *) token env tok in
+      (BinaryOp (Arith Xor), t)
+  | `Bitand tok ->
+      let t = (* "bitand" *) token env tok in
+      (BinaryOp (Arith Or), t)
+  | `Not_eq tok ->
+      let t = (* "!=" *) token env tok in
+      (BinaryOp (Logical NotEq), t)
 
 (* like Parse_c_tree_sitter.number_literal and H.parse_number_literal
  * but for ast_cpp.ml, not AST_generic.ml
@@ -323,11 +341,14 @@ let map_type_qualifier (env : env) (x : CST.type_qualifier) :
   | `Choice_const x -> (
       match x with
       | `Const tok -> (Const, token env tok) (* "const" *)
+      | `Cons tok -> (Constexpr, (* "constexpr" *) token env tok)
       | `Vola tok -> (Volatile, token env tok) (* "volatile" *)
       | `Rest tok -> (Restrict, token env tok) (* "restrict" *)
-      | `X__Atomic tok -> (Atomic, token env tok) (* "_Atomic" *))
+      | `X___rest__ tok -> (Restrict, (* "__restrict__" *) token env tok)
+      | `X__Atomic tok -> (Atomic, token env tok) (* "_Atomic" *)
+      | `Nore tok -> (NoReturn, (* "noreturn" *) token env tok)
+      | `X__Nore tok -> (NoReturn, (* "_Noreturn" *) token env tok))
   | `Muta tok -> (Mutable, token env tok) (* "mutable" *)
-  | `Cons_5014e42 tok -> (Constexpr, (* "constexpr" *) token env tok)
   | `Cons_36fe86c tok -> (Constinit, (* "constinit" *) token env tok)
   | `Cons_a25342f tok -> (Consteval, (* "consteval" *) token env tok)
 

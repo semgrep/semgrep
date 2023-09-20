@@ -79,6 +79,8 @@ let type_qualifier (env : env) (x : CST.type_qualifier) =
   | `Vola tok -> token env tok (* "volatile" *)
   | `Rest tok -> token env tok (* "restrict" *)
   | `X__Atomic tok -> token env tok
+  | `Nore tok -> (NoReturn, (* "noreturn" *) token env tok)
+  | `X__Nore tok -> (NoReturn, (* "_Noreturn" *) token env tok)
 
 (* "_Atomic" *)
 

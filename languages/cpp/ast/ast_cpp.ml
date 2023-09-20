@@ -871,6 +871,7 @@ and type_qualifier =
   | Constexpr
   | Constinit
   | Consteval
+  | NoReturn
 
 and storage =
   (* only in C, in C++ auto is for TAuto *)
