@@ -30,7 +30,6 @@ from semgrep import __VERSION__
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
 from semgrep.profile_manager import ProfileManager
-from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
 from semgrep.semgrep_interfaces.semgrep_metrics import Datetime
 from semgrep.semgrep_interfaces.semgrep_metrics import Environment
@@ -214,9 +213,7 @@ class Metrics:
         self.payload.environment.configNamesHash = met.Sha256(m.hexdigest())
 
     @suppress_errors
-    def add_rules(
-        self, rules: Sequence[Rule], profiling_data: Optional[ProfilingData]
-    ) -> None:
+    def add_rules(self, rules: Sequence[Rule], profile: Optional[out.Profile]) -> None:
         rules = sorted(rules, key=lambda r: r.full_hash)
         m = hashlib.sha256()
         for rule in rules:
@@ -224,8 +221,7 @@ class Metrics:
         self.payload.environment.rulesHash = met.Sha256(m.hexdigest())
 
         self.payload.performance.numRules = len(rules)
-        if profiling_data:
-            profile: out.Profile = profiling_data.profile
+        if profile:
             # aggregate rule stats across files
             _rule_match_times: Dict[out.RuleId, float] = defaultdict(float)
             _rule_bytes_scanned: Dict[out.RuleId, int] = defaultdict(int)
@@ -245,11 +241,9 @@ class Metrics:
             ]
 
     @suppress_errors
-    def add_max_memory_bytes(self, profiling_data: Optional[ProfilingData]) -> None:
+    def add_max_memory_bytes(self, profiling_data: Optional[out.Profile]) -> None:
         if profiling_data:
-            self.payload.performance.maxMemoryBytes = (
-                profiling_data.profile.max_memory_bytes
-            )
+            self.payload.performance.maxMemoryBytes = profiling_data.max_memory_bytes
 
     @suppress_errors
     def add_findings(self, findings: FilteredMatches) -> None:
@@ -260,11 +254,8 @@ class Metrics:
         self.payload.value.numIgnored = sum(len(v) for v in findings.removed.values())
 
     @suppress_errors
-    def add_targets(
-        self, targets: Set[Path], profiling_data: Optional[ProfilingData]
-    ) -> None:
-        if profiling_data:
-            profile = profiling_data.profile
+    def add_targets(self, targets: Set[Path], profile: Optional[out.Profile]) -> None:
+        if profile:
             self.payload.performance.fileStats = [
                 FileStats(
                     size=target_times.num_bytes,
