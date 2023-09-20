@@ -21,7 +21,8 @@ let wrap_type_expr lang str =
   | Lang.Go -> Some (spf "var x %s" str)
   | Lang.Kotlin -> Some (spf "x as %s" str)
   | Lang.Scala -> Some (spf "x.asInstanceOf[%s]" str)
-  | Lang.Php -> Some (spf "(%s) $x" str)
+  (* for php, casting expression only allows primitive types so we use func def instead. *)
+  | Lang.Php -> Some (spf "function foo(%s $x) {}" str)
   | Lang.Ts -> Some (spf "x as %s" str)
   | Lang.Csharp -> Some (spf "x as %s" str)
   | Lang.Rust -> Some (spf "x as %s" str)
@@ -37,7 +38,17 @@ let unwrap_type_expr lang expr =
       Some t
   | Lang.Kotlin, G.E { e = G.Cast (t, _, _); _ } -> Some t
   | Lang.Scala, G.E { e = OtherExpr (_, _ :: T t :: _); _ } -> Some t
-  | Lang.Php, G.E { e = G.Cast (t, _, _); _ } -> Some t
+  | ( Lang.Php,
+      G.S
+        {
+          s =
+            G.DefStmt
+              ( _,
+                FuncDef { fparams = _, Param { ptype = Some t; _ } :: [], _; _ }
+              );
+          _;
+        } ) ->
+      Some t
   | Lang.Ts, G.E { e = G.Cast (t, _, _); _ } -> Some t
   | Lang.Csharp, G.E { e = G.Cast (t, _, _); _ } -> Some t
   | Lang.Rust, G.E { e = G.Cast (t, _, _); _ } -> Some t
