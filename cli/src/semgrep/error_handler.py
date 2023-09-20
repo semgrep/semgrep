@@ -71,6 +71,10 @@ class ErrorHandler:
 
         import traceback
 
+        logger.error(
+            "There were errors during analysis but Semgrep will succeed because there were no blocking findings, use --no-suppress-errors if you want Semgrep to fail when there are errors."
+        )
+
         logger.debug(
             f"Sending to fail-open endpoint {url} since fail-open is configured to {self.suppress_errors}"
         )
