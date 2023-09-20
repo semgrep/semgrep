@@ -57,7 +57,6 @@ from semgrep.error import with_color
 from semgrep.output_extra import OutputExtra
 from semgrep.parsing_data import ParsingData
 from semgrep.profiling import ProfilingData
-from semgrep.profiling import Times
 from semgrep.rule import Rule
 from semgrep.rule import RuleProduct
 from semgrep.rule_match import OrderedRuleMatchList
@@ -1211,16 +1210,7 @@ class CoreRunner:
                         )
 
             if core_output.time:
-                timing = core_output.time
                 profiling_data = ProfilingData(core_output.time)
-                for t in timing.targets:
-                    rule_timings = {
-                        rt.rule_id: Times(rt.parse_time, rt.match_time)
-                        for rt in t.rule_times
-                    }
-                    profiling_data.set_file_times(
-                        Path(t.path.value), rule_timings, t.run_time
-                    )
 
             # end with tempfile.NamedTemporaryFile(...) ...
             outputs = core_matches_to_rule_matches(rules, core_output)
