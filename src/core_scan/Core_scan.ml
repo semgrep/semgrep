@@ -968,6 +968,15 @@ let scan_with_exn_handler (config : Core_scan_config.t) :
     let timed_rules =
       Common.with_time (fun () -> rules_from_rule_source config)
     in
+    (* Configure HTTP mocking based on network file provided by environment
+       variable. An environment variable is used to (1) avoid needing to thread
+       a command line flag throughout and (2) for ease of testing, given there
+       isn't a reason to use this option in a production environment *)
+    Sys.getenv_opt "SEMGREP_MOCK_NETWORK"
+    |> Option.map (fun network_file ->
+           Http_helpers.client_ref :=
+             fst @@ Http_mock_client.client_from_file network_file)
+    |> ignore;
     (* The pre and post processors hook here is currently just used
        for the secrets post processor, but it should now be trivial to
        hook any post processing step that needs to look at rules and
