@@ -93,6 +93,15 @@ def suppress_errors(func: Callable[..., None]) -> Callable[..., None]:
     return wrapper
 
 
+# to be mocked to a constant function in test_metrics.py
+def mock_float(x: float) -> float:
+    return x
+
+
+def mock_int(x: int) -> int:
+    return x
+
+
 @define
 class Metrics:
     """
@@ -229,8 +238,8 @@ class Metrics:
             self.payload.performance.ruleStats = [
                 RuleStats(
                     ruleHash=rule.full_hash,
-                    matchTime=_rule_match_times[rule.id2],
-                    bytesScanned=_rule_bytes_scanned[rule.id2],
+                    matchTime=mock_float(_rule_match_times[rule.id2]),
+                    bytesScanned=mock_int(_rule_bytes_scanned[rule.id2]),
                 )
                 for rule in rules
             ]
@@ -259,13 +268,17 @@ class Metrics:
             self.payload.performance.fileStats = [
                 FileStats(
                     size=target_times.num_bytes,
-                    numTimesScanned=len(
-                        [x for x in target_times.match_times if x > 0.0]
+                    numTimesScanned=mock_int(
+                        len([x for x in target_times.match_times if x > 0.0])
                     ),
                     # TODO: we just have a single parse_time in target_times.parse_times
-                    parseTime=max(time for time in target_times.parse_times),
-                    matchTime=sum(time for time in target_times.match_times),
-                    runTime=target_times.run_time,
+                    parseTime=mock_float(
+                        max(time for time in target_times.parse_times)
+                    ),
+                    matchTime=mock_float(
+                        sum(time for time in target_times.match_times)
+                    ),
+                    runTime=mock_float(target_times.run_time),
                 )
                 for target_times in profile.targets
             ]
