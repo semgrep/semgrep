@@ -315,8 +315,7 @@ let rec explanation_to_explanation (exp : Matching_explanation.t) :
     loc = Output_utils.location_of_token_location tloc;
   }
 
-let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.core_timing
-    =
+let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
   let rule_ids : Rule_ID.t list =
     profiling_data.rules |> Common.map (fun (rule : Rule.t) -> fst rule.id)
   in
@@ -372,6 +371,8 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.core_timing
       |> Common.map (fun { Core_profiling.file = target; _ } ->
              File.filesize target)
       |> Common2.sum_int;
+    (* those are filled later in pysemgrep from the Profiler class *)
+    profiling_times = [];
   }
 
 (*****************************************************************************)

@@ -91,7 +91,7 @@ val add_project_url_hash : string -> unit
 val add_configs_hash : Rules_config.config_string list -> unit
 
 val add_rules_hashes_and_rules_profiling :
-  ?profiling:Semgrep_output_v1_t.core_timing -> Rule.rules -> unit
+  ?profiling:Semgrep_output_v1_t.profile -> Rule.rules -> unit
 
 val add_rules_hashes_and_findings_count : (Rule.t * int) list -> unit
 val add_targets_stats : Fpath.t Set_.t -> Core_profiling.t option -> unit

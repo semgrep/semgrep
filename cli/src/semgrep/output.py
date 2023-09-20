@@ -42,7 +42,6 @@ from semgrep.formatter.sarif import SarifFormatter
 from semgrep.formatter.text import TextFormatter
 from semgrep.formatter.vim import VimFormatter
 from semgrep.profile_manager import ProfileManager
-from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
@@ -86,25 +85,25 @@ def get_path_str(target: Path) -> str:
 def _build_time_json(
     rules: List[Rule],
     targets: Set[Path],
-    profiling_data: ProfilingData,
+    profile: out.Profile,
     profiler: Optional[ProfileManager],
 ) -> out.Profile:
     # TODO: we used to start from the targets and rules passed as a parameter
-    # and then grab the information in profiling_data.profile, but
-    # now we just reuse profiling_data without any processing.
+    # and then grab the information in profile, but
+    # now we just reuse profile without any processing.
     # Can things differ between the targets/rules in pysemgrep and the
-    # one actually used in semgrep-core and returned in profiling_data.profile?
+    # one actually used in semgrep-core and returned in profile?
 
     return out.Profile(
         # this is an addon to profiling_data.profile
         profiling_times=profiler.dump_stats() if profiler else {},
         # TODO: maybe just start from profiling_data.profile and just adjust its
         # profiling_times field
-        rules=profiling_data.profile.rules,
-        targets=profiling_data.profile.targets,
-        total_bytes=profiling_data.profile.total_bytes,
-        rules_parse_time=profiling_data.profile.rules_parse_time,
-        max_memory_bytes=profiling_data.profile.max_memory_bytes,
+        rules=profile.rules,
+        targets=profile.targets,
+        total_bytes=profile.total_bytes,
+        rules_parse_time=profile.rules_parse_time,
+        max_memory_bytes=profile.max_memory_bytes,
     )
 
 
@@ -153,7 +152,7 @@ class OutputHandler:
         self.has_output = False
         self.is_ci_invocation = False
         self.filtered_rules: List[Rule] = []
-        self.profiling_data: Optional[ProfilingData] = None
+        self.profiling_data: Optional[out.Profile] = None
         self.severities: Collection[RuleSeverity] = DEFAULT_SHOWN_SEVERITIES
         self.explanations: Optional[List[out.MatchingExplanation]] = None
         self.rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = None
@@ -274,7 +273,7 @@ class OutputHandler:
         filtered_rules: List[Rule],
         ignore_log: Optional[FileTargetingLog] = None,
         profiler: Optional[ProfileManager] = None,
-        profiling_data: Optional[ProfilingData] = None,  # (rule, target) -> duration
+        profiling_data: Optional[out.Profile] = None,  # (rule, target) -> duration
         explanations: Optional[List[out.MatchingExplanation]] = None,
         rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = None,
         severities: Optional[Collection[RuleSeverity]] = None,
