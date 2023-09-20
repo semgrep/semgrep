@@ -3,12 +3,14 @@ import hashlib
 import json
 import os
 import uuid
+from collections import defaultdict
 from datetime import datetime
 from enum import auto
 from enum import Enum
 from pathlib import Path
 from typing import Any
 from typing import Callable
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Sequence
@@ -23,6 +25,7 @@ from attr import Factory
 from typing_extensions import LiteralString
 
 import semgrep.semgrep_interfaces.semgrep_metrics as met
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
@@ -213,11 +216,21 @@ class Metrics:
 
         self.payload.performance.numRules = len(rules)
         if profiling_data:
+            profile: out.CoreTiming = profiling_data.profile
+            # aggregate rule stats across files
+            _rule_match_times: Dict[out.RuleId, float] = defaultdict(float)
+            _rule_bytes_scanned: Dict[out.RuleId, int] = defaultdict(int)
+            for i, rule_id in enumerate(profile.rules):
+                for target_times in profile.targets:
+                    if target_times.match_times[i] > 0.0:
+                        _rule_match_times[rule_id] += target_times.match_times[i]
+                        _rule_bytes_scanned[rule_id] += target_times.num_bytes
+
             self.payload.performance.ruleStats = [
                 RuleStats(
                     ruleHash=rule.full_hash,
-                    matchTime=profiling_data.get_rule_match_time(rule),
-                    bytesScanned=profiling_data.get_rule_bytes_scanned(rule),
+                    matchTime=_rule_match_times[rule.id2],
+                    bytesScanned=_rule_bytes_scanned[rule.id2],
                 )
                 for rule in rules
             ]
@@ -242,17 +255,21 @@ class Metrics:
         self, targets: Set[Path], profiling_data: Optional[ProfilingData]
     ) -> None:
         if profiling_data:
+            profile = profiling_data.profile
             self.payload.performance.fileStats = [
                 FileStats(
-                    size=target.stat().st_size,
-                    numTimesScanned=profiling_data.get_file_num_times_scanned(target),
-                    parseTime=profiling_data.get_file_parse_time(target),
-                    matchTime=profiling_data.get_file_match_time(target),
-                    runTime=profiling_data.get_file_run_time(target),
+                    size=target_times.num_bytes,
+                    numTimesScanned=len(
+                        [x for x in target_times.match_times if x > 0.0]
+                    ),
+                    # TODO: we just have a single parse_time in target_times.parse_times
+                    parseTime=max(time for time in target_times.parse_times),
+                    matchTime=sum(time for time in target_times.match_times),
+                    runTime=target_times.run_time,
                 )
-                for target in targets
+                for target_times in profile.targets
             ]
-
+        # TODO: fit the data in profile?
         total_bytes_scanned = sum(t.stat().st_size for t in targets)
         self.payload.performance.totalBytesScanned = total_bytes_scanned
         self.payload.performance.numTargets = len(targets)
