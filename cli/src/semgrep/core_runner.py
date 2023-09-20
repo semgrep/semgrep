@@ -453,7 +453,10 @@ class StreamingSemgrepCore:
 @frozen
 class Task:
     path: str = field(converter=str)
-    language: Language  # Xlang; see Xlang.mli
+    analyzer: Language  # Xlang; see Xlang.mli
+    # semgrep-core no longer uses the rule_nums field.
+    # We're keeping it for now because it's needed to compute
+    # rule_count.
     # a rule_num is the rule's index in the rule ID list
     rule_nums: Tuple[int, ...]
 
@@ -461,8 +464,8 @@ class Task:
     def language_label(self) -> str:
         return (
             "<multilang>"
-            if not self.language.definition.is_target_language
-            else self.language.definition.id
+            if not self.analyzer.definition.is_target_language
+            else self.analyzer.definition.id
         )
 
 
@@ -520,7 +523,7 @@ class Plan:
                 if product is None
                 else Task(
                     path=task.path,
-                    language=task.language,
+                    analyzer=task.analyzer,
                     rule_nums=tuple(
                         num
                         for num in task.rule_nums
@@ -573,7 +576,7 @@ class Plan:
     def to_json(self) -> Dict[str, Any]:
         return {
             "target_mappings": [asdict(task) for task in self.target_mappings],
-            "rule_ids": [rule.id for rule in self.rules],
+            "rule_ids": [rule.id for rule in self.rules],  # TODO: REMOVE
         }
 
     @property
@@ -1029,7 +1032,7 @@ class CoreRunner:
             [
                 Task(
                     path=target,
-                    language=language,
+                    analyzer=language,
                     # tuple conversion makes rule_nums hashable, so usable as cache key
                     rule_nums=tuple(target_info[target, language]),
                 )

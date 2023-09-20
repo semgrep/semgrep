@@ -80,10 +80,6 @@ val exn_to_error : Common.filename -> Exception.t -> Core_error.t
   See also JSON_report.json_of_exn for non-target related exn handling.
 *)
 
-val mk_rule_table :
-  Rule.t list -> string list (* rule IDs *) -> (int, Rule.t) Hashtbl.t
-(** Helper to create the table of rules to run for each file **)
-
 val extracted_targets_of_config :
   Core_scan_config.t ->
   Rule.t list ->
@@ -103,7 +99,6 @@ val rules_from_rule_source :
 
 val targets_of_config :
   Core_scan_config.t ->
-  Rule_ID.t list ->
   Input_to_core_t.targets * Semgrep_output_v1_t.skipped_target list
 (**
   Compute the set of targets, either by reading what was passed
@@ -118,9 +113,21 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
   * Core_error.t list
   * Semgrep_output_v1_j.skipped_target list
 
-(* TODO: This is used by semgrep-pro and not by semgrep. What is it?
-   TODO: Explain what it does if xlang contains multiple langs. *)
+(*
+   TODO: Explain what it does if xlang contains multiple langs.
+   TODO: Figure out why only semgrep-pro uses this function.
+
+   The comments for 'type languages' in 'Rule.ml' explain the distinction
+   between target selector and target analyzer.
+ *)
+val rules_for_target : analyzer:Xlang.t -> Rule.t list -> Rule.t list
+  [@@ocaml.deprecated
+    "semgrep-pro devs: this function is deprecated until it is documented in \
+     semgrep and its existence is justified, because semgrep doesn't use it."]
+
 val rules_for_xlang : Xlang.t -> Rule.t list -> Rule.t list
+  [@@ocaml.deprecated "alias for 'rules_for_target'"]
+
 val xtarget_of_file : Core_scan_config.t -> Xlang.t -> Fpath.t -> Xtarget.t
 
 (*

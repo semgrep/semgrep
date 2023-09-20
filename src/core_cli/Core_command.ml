@@ -190,10 +190,7 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
             [ minirule_of_pattern lang pattern_string pattern ])
       in
       (* simpler code path than in scan() *)
-      let target_info, _skipped =
-        Core_scan.targets_of_config config
-          (Common.map (fun (r : Mini_rule.rule) -> r.id) minirule)
-      in
+      let target_info, _skipped = Core_scan.targets_of_config config in
       let files =
         target_info.target_mappings
         |> Common.map (fun (t : Input_to_core_t.target) -> t.path)
