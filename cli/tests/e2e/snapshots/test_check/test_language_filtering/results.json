@@ -1,0 +1,64 @@
+{
+  "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/language-filtering/call-f.js",
+      "targets/language-filtering/call-f.py"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.example-python",
+      "end": {
+        "col": 4,
+        "line": 1,
+        "offset": 3
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "f()",
+        "message": "It's a Python finding.\n",
+        "metadata": {},
+        "metavars": {},
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/language-filtering/call-f.py",
+      "start": {
+        "col": 1,
+        "line": 1,
+        "offset": 0
+      }
+    },
+    {
+      "check_id": "rules.example-javascript",
+      "end": {
+        "col": 4,
+        "line": 1,
+        "offset": 3
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "f()",
+        "message": "It's a JavaScript finding.\n",
+        "metadata": {},
+        "metavars": {},
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/language-filtering/call-f.js",
+      "start": {
+        "col": 1,
+        "line": 1,
+        "offset": 0
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}
