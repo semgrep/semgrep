@@ -17,6 +17,6 @@ jobs:
           curl --location \
           --request POST \
           --header "Accept: application/vnd.github+json" \
-          --header "Authorization: Bearer ${{ secrets.DISPATCH_SECRET }}" \
+          --header "Authorization: Bearer ${{ secrets.DOCS_DISPATCH_SECRET }}" \
           https://api.github.com/repos/returntocorp/semgrep-docs/dispatches \
           --data '{"event_type":"new_release"}'
