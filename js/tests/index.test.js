@@ -63,6 +63,7 @@ const run = async () => {
         return parsers.get(lang).parseTarget(lang, str);
       } catch (e) {
         console.log(e);
+        throw e;
       }
     };
     const parsePattern = (_, lang, pattern) => {
@@ -70,12 +71,13 @@ const run = async () => {
         return parsers.get(lang).parsePattern(true, lang, pattern);
       } catch (e) {
         console.log(e);
+        throw e;
       }
     };
     setJustParseWithLang(parseLang);
     setParsePattern(parsePattern);
 
-    run("Java");
+    run("");
   } catch (e) {
     console.log(e);
   }

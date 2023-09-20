@@ -16,7 +16,7 @@ export const EngineFactory = async (wasmUri) => {
     wasmUri = `${getDirname()}/${WASM_FILENAME}`;
   }
   const wasm = await SemgrepEngineWasm({
-    locateFile: (uri) => (uri === WASM_FILENAME ? wasmUri : uri)
+    locateFile: (uri) => (uri === WASM_FILENAME ? wasmUri : uri),
   });
   // libpcre regrettably must be global because semgrep eagerly compiles regexes
   globalThis.LibPcreModule = wasm;
