@@ -317,7 +317,8 @@ let rec explanation_to_explanation (exp : Matching_explanation.t) :
 
 let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.core_timing
     =
-  let json_time_of_rule_times rule_times =
+  let json_time_of_rule_times (rule_times : Core_profiling.rule_profiling list)
+      : Out.rule_times list =
     rule_times
     |> Common.map (fun { Core_profiling.rule_id; parse_time; match_time } ->
            { Out.rule_id = (rule_id :> string); parse_time; match_time })
@@ -330,6 +331,7 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.core_timing
              {
                Out.path = !!target;
                rule_times = json_time_of_rule_times rule_times;
+               num_bytes = File.filesize target;
                run_time;
              });
     rules =
