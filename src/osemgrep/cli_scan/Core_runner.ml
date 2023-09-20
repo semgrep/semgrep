@@ -158,7 +158,7 @@ let prepare_config_for_core_scan (config : Core_scan_config.t)
   in
   let target_mappings = List.concat target_mappings in
   let rules = rules |> List.rev |> List.concat in
-  let targets : Input_to_core_t.targets = { target_mappings } in
+  let targets : Input_to_core_t.targets = target_mappings in
   {
     config with
     target_source = Some (Targets targets);

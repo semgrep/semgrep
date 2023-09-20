@@ -179,8 +179,7 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
       (* simpler code path than in scan() *)
       let target_info, _skipped = Core_scan.targets_of_config config in
       let files =
-        target_info.target_mappings
-        |> Common.map (fun (t : Input_to_core_t.target) -> t.path)
+        target_info |> Common.map (fun (t : Input_to_core_t.target) -> t.path)
       in
       (* sanity check *)
       if config.filter_irrelevant_rules then

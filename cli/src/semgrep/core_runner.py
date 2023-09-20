@@ -25,7 +25,6 @@ from typing import Sequence
 from typing import Set
 from typing import Tuple
 
-from attr import asdict
 from attr import define
 from attr import field
 from attr import frozen
@@ -455,8 +454,8 @@ class Task:
     path: str = field(converter=str)
     analyzer: Language  # Xlang; see Xlang.mli
     # semgrep-core no longer uses the rule_nums field.
-    # We're keeping it for now because it's needed to compute
-    # rule_count.
+    # We're keeping it for now because it's needed by
+    # 'split_by_lang_label_for_product'.
     # a rule_num is the rule's index in the rule ID list
     rule_nums: Tuple[int, ...]
 
@@ -467,6 +466,12 @@ class Task:
             if not self.analyzer.definition.is_target_language
             else self.analyzer.definition.id
         )
+
+    def to_json(self) -> Any:
+        return {
+            "path": self.path,
+            "analyzer": self.analyzer,
+        }
 
 
 class TargetMappings(List[Task]):
@@ -524,11 +529,7 @@ class Plan:
                 else Task(
                     path=task.path,
                     analyzer=task.analyzer,
-                    rule_nums=tuple(
-                        num
-                        for num in task.rule_nums
-                        if self.rules[num].product == product
-                    ),
+                    rule_nums=(),
                 )
             )
         return result
@@ -573,11 +574,8 @@ class Plan:
 
         return result
 
-    def to_json(self) -> Dict[str, Any]:
-        return {
-            "target_mappings": [asdict(task) for task in self.target_mappings],
-            "rule_ids": [rule.id for rule in self.rules],  # TODO: REMOVE
-        }
+    def to_json(self) -> List[Any]:
+        return [task.to_json() for task in self.target_mappings]
 
     @property
     def num_targets(self) -> int:

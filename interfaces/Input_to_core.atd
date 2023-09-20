@@ -43,11 +43,7 @@ type target <ocaml attr="deriving show"> = {
  * alt: rule_ids above could also be used to analyze at once the same
  * file with both PL and generic/regexp rules.
  *)
-(* TODO: this should become just 'target list' *)
-type targets <ocaml attr="deriving show"> = {
-   target_mappings: target list;
-}
-
+type targets <ocaml attr="deriving show"> = target list
 
 (*****************************************************************************)
 (* Synthesizing from diffs (see locate_patched_functions in Synthesizing.mli) *)

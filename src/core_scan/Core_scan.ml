@@ -668,7 +668,7 @@ let targets_of_config (config : Core_scan_config.t) :
         |> Common.map (fun file ->
                { In.path = Fpath.to_string file; analyzer = xlang })
       in
-      ({ target_mappings }, skipped)
+      (target_mappings, skipped)
   | None, _, None -> failwith "you need to specify a language with -lang"
   (* main code path for semgrep python, with targets specified by -target *)
   | Some target_source, roots, lang_opt ->
@@ -715,8 +715,7 @@ let extracted_targets_of_config (config : Core_scan_config.t)
             None)
       all_rules
   in
-  let basic_targets_info, _skipped = targets_of_config config in
-  let basic_targets = basic_targets_info.target_mappings in
+  let basic_targets, _skipped = targets_of_config config in
   logger#info "extracting nested content from %d files"
     (List.length basic_targets);
   let match_hook str match_ =
@@ -776,7 +775,7 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
        but the rule is invalid. *)
     match valid_rules with
     | [] -> []
-    | _some_rules -> targets_info.target_mappings
+    | _some_rules -> targets_info
   in
 
   (* The "extracted" targets we generate on the fly by calling
