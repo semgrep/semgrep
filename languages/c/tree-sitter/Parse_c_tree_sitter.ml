@@ -664,6 +664,7 @@ and attribute_specifier (env : env) ((v1, v2, v3, v4) : CST.attribute_specifier)
   let _v4 = token env v4 (* ")" *) in
   ()
 
+(* TODO: treat attributes properly *)
 and attribute (env : env) ((v1, v2, v3) : CST.attribute) =
   let _v1 =
     match v1 with

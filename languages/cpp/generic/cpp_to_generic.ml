@@ -550,6 +550,9 @@ and map_expr env x : G.expr =
       in
       H.set_e_range v1 v3 e;
       e
+  (* Requires expressions and requires clauses are different things. See:
+     https://en.cppreference.com/w/cpp/language/constraints#Requires_clauses
+  *)
   | RequiresExpr (v1, (_l1, v2, _r1), (_l2, v3, _r2)) ->
       let params =
         v2 |> Common.map (map_parameter env) |> Common.map (fun x -> G.Pa x)

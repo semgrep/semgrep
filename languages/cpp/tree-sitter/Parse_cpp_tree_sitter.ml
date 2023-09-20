@@ -3316,6 +3316,13 @@ and map_return_statement (env : env) (x : CST.return_statement) : stmt =
       let v3 = token env v3 (* ";" *) in
       Jump (Return (v1, Some (ArgInits v2)), v3)
 
+(* This entire scope resolution parsing logic is pretty darn annoying.
+   The basic gist is that a name consists of a possible starting dcolon,
+   some stuff in the middle, and a base at the far right.
+   The actual scope resolution type does not contain the RHS that it is
+   applied to, however, so we need to pass in the name that it modifies
+   directly.
+*)
 and map_scope_resolution (env : env) ((v1, v2) : CST.scope_resolution) name =
   let v2 = (* "::" *) token env v2 in
   match v1 with
@@ -3342,10 +3349,12 @@ and map_qualified_field_identifier (env : env)
   in
   v1 v2
 
+(* This is the main workhorse dealing with the recursive nature of qualified
+   identifiers.
+*)
 and map_qualified_identifier (env : env) ((v1, v2) : CST.qualified_identifier) :
     name =
   let v1 = map_scope_resolution env v1 in
-  (* THINK: v1? *)
   let v2 =
     match v2 with
     | `Depe_id x -> map_dependent_identifier env x
