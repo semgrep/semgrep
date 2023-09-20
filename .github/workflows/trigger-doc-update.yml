@@ -14,9 +14,9 @@ jobs:
     steps:
       - name: Trigger doc update workflow
         run: |
-            curl --location \
-            --request POST \
-            --header "Accept: application/vnd.github+json" \
-            --header "Authorization: Bearer ${{ secrets.DISPATCH_SECRET }}" \
-            https://api.github.com/repos/returntocorp/semgrep-docs/dispatches \
-            --data '{"event_type":"new_release"}'
+          curl --location \
+          --request POST \
+          --header "Accept: application/vnd.github+json" \
+          --header "Authorization: Bearer ${{ secrets.DISPATCH_SECRET }}" \
+          https://api.github.com/repos/returntocorp/semgrep-docs/dispatches \
+          --data '{"event_type":"new_release"}'
