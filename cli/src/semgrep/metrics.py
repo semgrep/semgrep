@@ -213,11 +213,16 @@ class Metrics:
 
         self.payload.performance.numRules = len(rules)
         if profiling_data:
+            # TODO? like in output.py and _build_time_json, we used
+            # to start from the rules passed in parameter and then
+            # grab information about the rule in profiling_data.
+            # Can things differ between the targets/rules in pysemgrep and the
+            # one actually used in semgrep-core and returned in profiling_data.profile?
             self.payload.performance.ruleStats = [
                 RuleStats(
                     ruleHash=rule.full_hash,
-                    matchTime=profiling_data.get_rule_match_time(rule),
-                    bytesScanned=profiling_data.get_rule_bytes_scanned(rule),
+                    matchTime=0.0,  # TODO
+                    bytesScanned=0,  # TODO
                 )
                 for rule in rules
             ]
@@ -242,17 +247,18 @@ class Metrics:
         self, targets: Set[Path], profiling_data: Optional[ProfilingData]
     ) -> None:
         if profiling_data:
+            profile = profiling_data.profile
             self.payload.performance.fileStats = [
                 FileStats(
-                    size=target.stat().st_size,
-                    numTimesScanned=profiling_data.get_file_num_times_scanned(target),
-                    parseTime=profiling_data.get_file_parse_time(target),
-                    matchTime=profiling_data.get_file_match_time(target),
-                    runTime=profiling_data.get_file_run_time(target),
+                    size=target_times.num_bytes,
+                    numTimesScanned=0,  # TODO
+                    parseTime=0.0,  # TODO
+                    matchTime=0.0,  # TODO
+                    runTime=target_times.run_time,
                 )
-                for target in targets
+                for target_times in profile.targets
             ]
-
+        # TODO: fit the data in profile?
         total_bytes_scanned = sum(t.stat().st_size for t in targets)
         self.payload.performance.totalBytesScanned = total_bytes_scanned
         self.payload.performance.numTargets = len(targets)
