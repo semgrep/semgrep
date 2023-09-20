@@ -28,6 +28,9 @@ on:
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+permissions:
+  pull-requests: write
+
 jobs:
   add-checklist-comment:
     runs-on: ubuntu-latest
