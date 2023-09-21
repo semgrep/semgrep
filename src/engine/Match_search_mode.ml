@@ -621,7 +621,8 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
              )
          | R.CondAnalysis (mvar, CondEntropyV2) -> (
              match !hook_pro_entropy_analysis with
-             | None -> failwith "Core entropy plugin not installed"
+             (* TODO - nice UX handling of this - tell the user that they ran a rule in OSS w/o Pro hook and so their rule didn't do anything *)
+             | None -> None
              | Some f ->
                  let bindings = r.mvars in
                  Metavariable_analysis.analyze_string_metavar env bindings mvar
