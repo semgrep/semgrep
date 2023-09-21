@@ -622,7 +622,11 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
          | R.CondAnalysis (mvar, CondEntropyV2) -> (
              match !hook_pro_entropy_analysis with
              (* TODO - nice UX handling of this - tell the user that they ran a rule in OSS w/o Pro hook and so their rule didn't do anything *)
-             | None -> logger#error "EntropyV2 rule encountered without loading proprietary plugin"; None
+             | None ->
+                 logger#error
+                   "EntropyV2 rule encountered without loading proprietary \
+                    plugin";
+                 None
              | Some f ->
                  let bindings = r.mvars in
                  Metavariable_analysis.analyze_string_metavar env bindings mvar
