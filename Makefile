@@ -394,6 +394,13 @@ update_semgrep_rules:
 utop:
 	dune utop
 
+# This is for tools/hello_script.ml so it can leverage the semgrep libs
+# (e.g., commons) by installing them in ~/.opam/.../
+.PHONY: install-semgrep-libs
+install-semgrep-libs: semgrep.opam
+	dune build
+	dune install
+
 .PHONY: dump
 dump:
 	./_build/default/tests/test.bc -dump_ast tests/lint/stupid.py
