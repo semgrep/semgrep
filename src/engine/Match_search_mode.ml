@@ -640,8 +640,8 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
              match !hook_pro_entropy_analysis with
              | None -> error
              | Some f ->
-               f mvar
-               |>   Entropy.has_high_score
+               let bindings = r.mvars in 
+                Metavariable_analysis.analyze_string_metavar env bindings mvar f
                |> map_bool r
          end
          | R.CondAnalysis (mvar, CondEntropy) ->
