@@ -114,7 +114,7 @@ and metavar_cond =
   | CondAnalysis of MV.mvar * metavar_analysis_kind
   | CondNestedFormula of MV.mvar * Xlang.t option * formula
 
-and metavar_analysis_kind = CondEntropy | CondReDoS
+and metavar_analysis_kind = CondEntropy | CondReDoS | CondEntropyV2
 
 (* Represents all of the metavariables that are being focused by a single
    `focus-metavariable`. *)
