@@ -477,12 +477,25 @@ let parse_equivalences equivalences_file =
 (* Iteration helpers *)
 (*****************************************************************************)
 
-let iter_targets_and_get_matches_and_exn_to_errors config f targets =
+(*
+   handle_target returns (results, was_scanned) where was_scanned indicates
+   whether at least one rule applied to the target since the target could
+   be excluded by all the rules via per-rule include/exclude patterns.
+   (sorry about the complexity; baking this flag into match_result type
+   would lead to even worse complexity)
+
+   Returns a list of match results and a separate list of scanned targets.
+*)
+let iter_targets_and_get_matches_and_exn_to_errors config
+    (handle_target :
+      In.target -> Core_profiling.partial_profiling RP.match_result * bool)
+    targets : Core_profiling.file_profiling RP.match_result list * Fpath.t list
+    =
   targets
   |> map_targets config.ncores (fun (target : In.target) ->
          let file = Fpath.v target.path in
          logger#info "Analyzing %s" !!file;
-         let res, run_time =
+         let (res, was_scanned), run_time =
            Common.with_time (fun () ->
                try
                  let get_context () =
@@ -499,7 +512,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                       *
                       * old: timeout_function file config.timeout ...
                       *)
-                     f target |> fun v ->
+                     handle_target target |> fun v ->
                      (* This is just to test -max_memory, to give a chance
                       * to Gc.create_alarm to run even if the program does
                       * not even need to run the Gc. However, this has a
@@ -535,8 +548,10 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                               Out.OutOfMemory
                           | _ -> raise Impossible))
                    in
-                   Core_result.make_match_result [] errors
-                     (Core_profiling.empty_partial_profiling file)
+                   let was_scanned = false in
+                   ( Core_result.make_match_result [] errors
+                       (Core_profiling.empty_partial_profiling file),
+                     was_scanned )
                (* those were converted in Main_timeout in timeout_function()*)
                | Time_limit.Timeout _ -> assert false
                (* It would be nice to detect 'R.Err (R.InvalidRule _)' here
@@ -563,10 +578,16 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                    let errors =
                      Core_error.ErrorSet.singleton (exn_to_error !!file e)
                    in
-                   Core_result.make_match_result [] errors
-                     (Core_profiling.empty_partial_profiling file))
+                   let was_scanned = false in
+                   ( Core_result.make_match_result [] errors
+                       (Core_profiling.empty_partial_profiling file),
+                     was_scanned ))
          in
-         Core_result.add_run_time run_time res)
+         let scanned_path = if was_scanned then Some file else None in
+         (Core_result.add_run_time run_time res, scanned_path))
+  |> List.split
+  |> fun (results, opt_paths) ->
+  (results, Common.map_filter (fun o -> o) opt_paths)
 
 (*****************************************************************************)
 (* File targeting and rule filtering *)
@@ -790,13 +811,14 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
   (* Let's go! *)
   logger#info "processing %d files, skipping %d files" (List.length all_targets)
     (List.length skipped);
-  let file_results =
+  let file_results, scanned_targets =
     all_targets
     |> iter_targets_and_get_matches_and_exn_to_errors config
          (fun (target : In.target) ->
+           (* runs in another process *)
            let file = Fpath.v target.path in
            let analyzer = target.analyzer in
-           let rules =
+           let applicable_rules =
              valid_rules
              |> List.filter (fun (r : Rule.t) ->
                     (* Don't run a Python rule on a JavaScript target *)
@@ -821,6 +843,11 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
                     | None -> true
                     | Some paths -> Filter_target.filter_paths paths file)
            in
+           let was_scanned =
+             match applicable_rules with
+             | [] -> false
+             | _ -> true
+           in
            let xtarget = xtarget_of_file config analyzer file in
            let default_match_hook str match_ =
              if config.output_format =*= Text then
@@ -841,7 +868,8 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
            let matches =
              let matches =
                Match_rules.check ~match_hook ~timeout:config.timeout
-                 ~timeout_threshold:config.timeout_threshold xconf rules xtarget
+                 ~timeout_threshold:config.timeout_threshold xconf
+                 applicable_rules xtarget
              in
              (* If our target is a proprietary language, or we've been using the proprietary
               * engine, then label all the resulting matches with the Pro engine kind.
@@ -875,15 +903,28 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
            update_cli_progress config;
 
            (* adjust the match location for extracted targets *)
-           match Hashtbl.find_opt extract_result_map !!file with
-           | Some f -> f matches
-           | None -> matches)
+           let matches =
+             match Hashtbl.find_opt extract_result_map !!file with
+             | Some f -> f matches
+             | None -> matches
+           in
+           (matches, was_scanned))
+  in
+  let scanned_target_table =
+    (* provide fast access to paths that were scanned by at least one rule;
+       includes extracted targets *)
+    scanned_targets
+    |> Common.map (fun path -> (!!path, ()))
+    |> Common.hash_of_list
   in
   let scanned =
     (* we do not use all_targets here, because we don't count
      * the extracted targets
      *)
-    targets |> Common.map (fun x -> Fpath.v x.In.path)
+    targets
+    |> List.filter (fun (x : In.target) ->
+           Hashtbl.mem scanned_target_table x.path)
+    |> Common.map (fun x -> Fpath.v x.In.path)
   in
   let res =
     RP.make_final_result file_results
