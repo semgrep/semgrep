@@ -531,7 +531,7 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
 (* Metavariable condition evaluation *)
 (*****************************************************************************)
 
-let hook_pro_entropy_analysis: (string -> bool) option ref = ref None
+let hook_pro_entropy_analysis : (string -> bool) option ref = ref None
 
 let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
     (cond : R.metavar_cond) : (RM.t * MV.bindings list) list =
@@ -619,14 +619,14 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
               *)
              | Some capture_bindings -> Some (r, capture_bindings @ new_bindings)
              )
-         | R.CondAnalysis (mvar, CondEntropyV2) -> begin
-              match !hook_pro_entropy_analysis with
-              | None -> failwith "Core entropy plugin not installed"
-              | Some f ->
-                let bindings = r.mvars in 
-                 Metavariable_analysis.analyze_string_metavar env bindings mvar f
-                |> map_bool r
-          end
+         | R.CondAnalysis (mvar, CondEntropyV2) -> (
+             match !hook_pro_entropy_analysis with
+             | None -> failwith "Core entropy plugin not installed"
+             | Some f ->
+                 let bindings = r.mvars in
+                 Metavariable_analysis.analyze_string_metavar env bindings mvar
+                   f
+                 |> map_bool r)
          | R.CondAnalysis (mvar, CondEntropy) ->
              let bindings = r.mvars in
              Metavariable_analysis.analyze_string_metavar env bindings mvar
