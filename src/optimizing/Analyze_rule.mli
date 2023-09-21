@@ -25,7 +25,10 @@ type prefilter = Semgrep_prefilter_t.formula * (string -> bool)
  *
  * Note that this function use Common.memoized on the rule id
  *)
-val regexp_prefilter_of_rule : Rule.t -> prefilter option
+val regexp_prefilter_of_rule :
+  hmemo:(Rule_ID.t, prefilter option) Hashtbl.t option ->
+  Rule.t ->
+  prefilter option
 
 (* internal, do not use directly, not memoized *)
 val regexp_prefilter_of_formula : Rule.formula -> prefilter option

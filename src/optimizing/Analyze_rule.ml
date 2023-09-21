@@ -587,9 +587,7 @@ let regexp_prefilter_of_taint_rule (_rule_id, rule_tok) taint_spec =
   in
   regexp_prefilter_of_formula f
 
-let hmemo = Hashtbl.create 101
-
-let regexp_prefilter_of_rule (r : R.rule) =
+let regexp_prefilter_of_rule ~hmemo (r : R.rule) =
   let rule_id, _t = r.R.id in
   (* rule_id is supposed to be unique so it should work as a key for hmemo.
    * bugfix:
@@ -598,22 +596,26 @@ let regexp_prefilter_of_rule (r : R.rule) =
    * which was triggering a FakeInfoStr exn
    *)
   let key = rule_id in
-  Common.memoized hmemo key (fun () ->
-      try
-        match r.mode with
-        | `Search f
-        | `Extract { formula = f; _ } ->
-            regexp_prefilter_of_formula f
-        | `Taint spec -> regexp_prefilter_of_taint_rule r.R.id spec
-        | `Secrets _ (* TODO *)
-        | `Steps _ ->
-            (* TODO *) None
-      with
-      (* TODO: see tests/rules/tainted-filename.yaml,
-                   tests/rules/kotlin_slow_import.yaml *)
-      | CNF_exploded ->
-          logger#error "CNF size exploded on rule id %s" (rule_id :> string);
-          None
-      | Stack_overflow ->
-          logger#error "Stack overflow on rule id %s" (rule_id :> string);
-          None)
+  let regex_prefilter_fun () =
+    try
+      match r.mode with
+      | `Search f
+      | `Extract { formula = f; _ } ->
+          regexp_prefilter_of_formula f
+      | `Taint spec -> regexp_prefilter_of_taint_rule r.R.id spec
+      | `Secrets _ (* TODO *)
+      | `Steps _ ->
+          (* TODO *) None
+    with
+    (* TODO: see tests/rules/tainted-filename.yaml,
+                 tests/rules/kotlin_slow_import.yaml *)
+    | CNF_exploded ->
+        logger#error "CNF size exploded on rule id %s" (rule_id :> string);
+        None
+    | Stack_overflow ->
+        logger#error "Stack overflow on rule id %s" (rule_id :> string);
+        None
+  in
+  match hmemo with
+  | None -> regex_prefilter_fun ()
+  | Some hmemo -> Common.memoized hmemo key regex_prefilter_fun
