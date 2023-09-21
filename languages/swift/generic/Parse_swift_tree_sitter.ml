@@ -2236,7 +2236,7 @@ and map_tuple_pattern_item (env : env) (x : CST.tuple_pattern_item) : G.pattern
       let v1 = map_bound_identifier env v1 in
       let v2 = (* ":" *) token env v2 in
       let v3 = map_switch_pattern env v3 in
-      todo env (v1, v2, v3)
+      G.OtherPat (("LabeledLet", v2), [ G.Lbli (LId v1); P v3 ])
   | `Bind_pat_with_expr x -> map_switch_pattern env x
 
 (* TODO? return a G.pattern instead which is a PatTuple? *)
@@ -2723,7 +2723,7 @@ and map_switch_entry (env : env) ((v1, v2, v3, v4, v5) : CST.switch_entry) =
   let _TODO = Option.map (* "fallthrough" *) (token env) v5 in
   G.CasesAndBody ([ case ], stmt |> G.s)
 
-and map_switch_pattern (env : env) (x : CST.switch_pattern) =
+and map_switch_pattern (env : env) (x : CST.switch_pattern) : G.pattern =
   map_binding_pattern_with_expr env x
 
 and map_switch_statement (env : env)
