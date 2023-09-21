@@ -158,10 +158,11 @@ and expr =
   | Unary of expr * Ast_cpp.unaryOp wrap
   | Binary of expr * Ast_cpp.binaryOp wrap * expr
   (* todo: tok *)
-  | CondExpr of expr * expr * expr
+  | CondExpr of expr * expr option * expr
   (* should be a statement ... *)
   | Sequence of expr * expr
   | SizeOf of tok * (expr, type_) Common.either
+  | OffsetOf of tok * (type_ * name) bracket
   (* should appear only in a variable initializer, or after GccConstructor *)
   | ArrayInit of (expr option * expr) list bracket
   | RecordInit of (name * expr) list bracket

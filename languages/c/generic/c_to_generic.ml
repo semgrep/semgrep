@@ -235,9 +235,24 @@ and expr e =
       let v1 = expr v1 and v2 = binaryOp v2 and v3 = expr v3 in
       G.Call (G.IdSpecial (G.Op v2, tok) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
       |> G.e
-  | CondExpr (v1, v2, v3) ->
-      let v1 = expr v1 and v2 = expr v2 and v3 = expr v3 in
-      G.Conditional (v1, v2, v3) |> G.e
+  | CondExpr (v1, v2, v3) -> (
+      (* This is a GCC extension that allows x ? : y to be equivalent to
+         x ? x : y.
+         This is actually kind of problematic because if we naively copy
+         `x`, we could reach exponentially sized trees for certain pathological
+         inputs.
+         So we'll just do an OtherExpr for now.
+      *)
+      let v1 = expr v1
+      and v2 = option expr v2
+      and v3 = expr v3 in
+      match v2 with
+      | Some v2 -> G.Conditional (v1, v2, v3) |> G.e
+      | None ->
+          G.OtherExpr
+            ( ("ConditionalNoMiddle", G.fake "ConditionalNoMiddle"),
+              [ G.E v1; G.E v3 ] )
+          |> G.e)
   | Sequence (v1, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
       G.Seq [ v1; v2 ] |> G.e
@@ -248,6 +263,16 @@ and expr e =
           match v1 with
           | Left e -> fb [ G.Arg e ]
           | Right t -> fb [ G.ArgType t ] )
+      |> G.e
+  | OffsetOf (t, (l, (ty, id), r)) ->
+      let ty = type_ ty in
+      let id = name id in
+      let f_expr = G.N (G.Id (("offsetof", t), G.empty_id_info ())) |> G.e in
+      G.Call
+        ( f_expr,
+          ( l,
+            [ G.ArgType ty; G.Arg (N (Id (id, G.empty_id_info ())) |> G.e) ],
+            r ) )
       |> G.e
   | ArrayInit v1 ->
       let v1 =
