@@ -973,8 +973,8 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
       let kind =
         match analyzer with
         | "entropy" -> R.CondEntropy
-        | "redos" -> R.CondReDoS
         | "entropy_v2" -> R.CondEntropyV2
+        | "redos" -> R.CondReDoS
         | other -> error_at_key env.id key ("Unsupported analyzer: " ^ other)
       in
       MetavarAnalysis (metavar, kind)
