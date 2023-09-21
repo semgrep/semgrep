@@ -462,6 +462,38 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
       }
 
 (*
+   Order by:
+     rule name, file path, start line, start column, end line, end column
+
+   This uses the same ordering as in pysemgrep. It will be easier to change
+   once we no longer have pysemgrep. In pysemgrep, sorting is done in
+   two places because findings are grouped by rule until the very end:
+   - 'rule: sorted(matches)' in core_output.py (sort by file/location)
+   - 'self.rule_matches = sorted(...)' in output.py (sort by rule ID)
+*)
+let compare_cli_matches (a : Out.cli_match) (b : Out.cli_match) =
+  let c = String.compare a.check_id b.check_id in
+  if c <> 0 then c
+  else
+    let c = String.compare a.path b.path in
+    if c <> 0 then c
+    else
+      let a_start = a.start in
+      let b_start = b.start in
+      let c = Int.compare a_start.line b_start.line in
+      if c <> 0 then c
+      else
+        let c = Int.compare a_start.col b_start.col in
+        if c <> 0 then c
+        else
+          let a_end = a.end_ in
+          let b_end = b.end_ in
+          let c = Int.compare a_end.line b_end.line in
+          if c <> 0 then c else Int.compare a_end.col b_end.col
+
+let sort_cli_matches xs = List.sort compare_cli_matches xs
+
+(*
  # Sort results so as to guarantee the same results across different
  # runs. Results may arrive in a different order due to parallelism
  # (-j option).
@@ -477,6 +509,7 @@ let dedup_and_sort (xs : Out.cli_match list) : Out.cli_match list =
            let key = x in
            Hashtbl.replace seen key true;
            true)
+  |> sort_cli_matches
 
 (* This is the same algorithm for indexing as in pysemgrep. We shouldn't need to update this *)
 (* match based ids have an index appended at the end which indicates what

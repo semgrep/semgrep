@@ -554,7 +554,8 @@ def print_text_output(
     last_file = None
     last_rule_id = None
     last_message = None
-    sorted_rule_matches = sorted(rule_matches, key=lambda r: (r.path, r.rule_id))
+    # Findings come in pre-sorted.
+    sorted_rule_matches: List[RuleMatch] = list(rule_matches)
     for rule_index, rule_match in enumerate(sorted_rule_matches):
         current_file = rule_match.path
         message = rule_match.message
