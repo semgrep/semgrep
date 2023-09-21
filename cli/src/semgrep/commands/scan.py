@@ -540,13 +540,6 @@ _scan_options: List[Callable] = [
         flag_value=EngineType.OSS,
         help="Run using only OSS features, even if the Semgrep Pro toggle is on.",
     ),
-    optgroup.option(
-        "--secrets",
-        "run_secrets_flag",
-        is_flag=True,
-        hidden=True,
-        help="Enable support for secret validation. Requires Semgrep Secrets, contact support@semgrep.com for more informationon this.",
-    ),
     optgroup.option("--dump-command-for-core", "-d", is_flag=True, hidden=True),
     optgroup.option("--allow-untrusted-postprocessors", is_flag=True, hidden=True),
 ]
@@ -658,6 +651,12 @@ def scan_options(func: Callable) -> Callable:
     hidden=True
     # help="contact support@semgrep.com for more information on this"
 )
+@click.option(
+    "--beta-testing-secrets-enabled",
+    "run_secrets_flag",
+    is_flag=True,
+    hidden=True,
+)
 @scan_options
 @handle_command_errors
 def scan(
@@ -724,7 +723,7 @@ def scan(
     # Handled error outside engine type for more actionable advice.
     if run_secrets_flag and requested_engine is EngineType.OSS:
         abort(
-            "The flags --secrets and --oss are incompatible. Semgrep Secrets is a proprietary extension."
+            "The flags --beta-testing-secrets-enabled and --oss are incompatible. Semgrep Secrets is a proprietary extension."
         )
 
     engine_type = EngineType.decide_engine_type(
