@@ -3,6 +3,7 @@ open File.Operators
 module PS = Parsing_stat
 module Flag = Flag_parsing
 module Flag_cpp = Flag_parsing_cpp
+module FT = File_type
 
 (*****************************************************************************)
 (* Subsystem testing *)
@@ -15,10 +16,22 @@ let test_tokens_cpp file =
   toks |> List.iter (fun x -> pr2_gen x);
   ()
 
+(* used to be in Lib_parsing_cpp.ml *)
+let find_source_files_of_dir_or_files xs =
+  File.files_of_dirs_or_files_no_vcs_nofilter xs
+  |> List.filter (fun filename ->
+         match File_type.file_type_of_file filename with
+         | FT.PL (FT.C ("l" | "y")) -> false
+         | FT.PL (FT.C _ | FT.Cplusplus _) ->
+             (* todo: fix syncweb so don't need this! *)
+             not (FT.is_syncweb_obj_file filename)
+         | _ -> false)
+  |> Common.sort
+
 let test_parse_cpp ?lang xs =
   let xs = File.Path.of_strings xs in
   let fullxs, _skipped_paths =
-    Lib_parsing_cpp.find_source_files_of_dir_or_files xs
+    find_source_files_of_dir_or_files xs
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
   Parse_cpp.init_defs !Flag_cpp.macros_h;
@@ -125,7 +138,7 @@ let test_dump_cpp_view file =
 let test_parse_cpp_fuzzy xs =
   let xs = File.Path.of_strings xs in
   let fullxs, _skipped_paths =
-    Lib_parsing_cpp.find_source_files_of_dir_or_files xs
+    find_source_files_of_dir_or_files xs
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
   fullxs

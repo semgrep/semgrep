@@ -1147,7 +1147,8 @@ parameter_type_list:
 parameter_decl:
  | decl_spec_seq declarator
      { let (t_ret, p_specs) = type_and_specs_from_decl $1 in
-       let (name, ftyp) = fixNameForParam $2 in
+       let ii = Tok.unsafe_fake_tok "" in
+       let (name, ftyp) = fixNameForParam ii $2 in
        P (make_param (ftyp t_ret) ~p_name:(Some name) ~p_specs) }
  | decl_spec_seq abstract_declarator
      { let (t_ret, p_specs) = type_and_specs_from_decl $1 in
@@ -1160,7 +1161,7 @@ parameter_decl:
 (*c++ext: default parameter value, copy paste *)
  | decl_spec_seq declarator "=" assign_expr
      { let (t_ret, p_specs) = type_and_specs_from_decl $1 in
-       let (name, ftyp) = fixNameForParam $2 in
+       let (name, ftyp) = fixNameForParam $3 $2 in
        P (make_param (ftyp t_ret) ~p_name:(Some name) ~p_specs ~p_val:(Some ($3, $4))) }
  | decl_spec_seq abstract_declarator "=" assign_expr
      { let (t_ret, p_specs) = type_and_specs_from_decl $1 in
@@ -1432,7 +1433,7 @@ member_declarator:
 
  (* normally just ident, but ambiguity so solve by inspetcing declarator *)
  | declarator ":" const_expr
-     { let (name, _partialt) = fixNameForParam $1 in
+     { let (name, _partialt) = fixNameForParam $2 $1 in
        (fun t_ret _stoTODO ->
          (BitField (Some name, $2, t_ret, $3)))
      }
@@ -1759,7 +1760,8 @@ unnamed_namespace_definition: Tnamespace "{" optl(declaration_cpp+) "}"
 function_definition:
  | decl_spec_seq declarator function_body
      { let (t_ret, sto) = type_and_storage_for_funcdef_from_decl $1 in
-       let x = (fst $2, fixOldCDecl ((snd $2) t_ret), sto) in
+       let ii = Tok.unsafe_fake_tok "" in
+       let x = (fst $2, fixOldCDecl ii ((snd $2) t_ret), sto) in
        fixFunc (x, $3)
      }
  (* c++0x: TODO 2 more s/r conflicts and regressions! *)
