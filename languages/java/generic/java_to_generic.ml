@@ -259,8 +259,8 @@ and expr e =
       let v1 = bracket expr v1 in
       G.DeepEllipsis v1
   | NameId v1 -> G.N (name v1)
-  | NameOrClassType _v1 ->
-      let ii = Lib_parsing_java.info_of_any (AExpr e) in
+  | NameOrClassType v1 ->
+      let ii = Ast_java.tok_of_name_or_class_type v1 in
       error ii "NameOrClassType should only appear in (ignored) annotations"
   | Literal v1 ->
       let v1 = literal v1 in
