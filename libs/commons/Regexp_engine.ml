@@ -66,6 +66,9 @@ let matching_exact_word s =
   let re = "\b" ^ Pcre.quote s ^ "\b" in
   (re, SPcre.regexp re)
 
+let pcre_compile_with_flags ~flags pat = (pat, SPcre.regexp ~flags pat)
+  [@@profiling]
+
 (*
    MULTILINE = ^ and $ match at the beginning and end of lines rather than
                just at the beginning and end of input.

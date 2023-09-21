@@ -1,0 +1,34 @@
+#
+# Top dart projects from GitHub, sorted by stars.
+# Created by /Users/brandonspark/semgrep/libs/ocaml-tree-sitter-core/scripts/most-starred-for-language.
+#
+https://github.com/flutter/flutter
+https://github.com/Solido/awesome-flutter
+https://github.com/AppFlowy-IO/AppFlowy
+https://github.com/alibaba/flutter-go
+https://github.com/iampawan/FlutterExampleApps
+https://github.com/mitesh77/Best-Flutter-UI-Templates
+https://github.com/flutter/plugins
+https://github.com/flutter/samples
+https://github.com/CarGuo/gsy_github_app_flutter
+https://github.com/localsend/localsend
+https://github.com/cfug/dio
+https://github.com/ReVanced/revanced-manager
+https://github.com/felangel/bloc
+https://github.com/dart-lang/sdk
+https://github.com/jonataslaw/getx
+https://github.com/brianegan/flutter_architecture_samples
+https://github.com/kaina404/FlutterDouBan
+https://github.com/flame-engine/flame
+https://github.com/firebase/flutterfire
+https://github.com/alibaba/fish-redux
+https://github.com/simplezhli/flutter_deer
+https://github.com/OpenFlutter/Flutter-Notebook
+https://github.com/GopeedLab/gopeed
+https://github.com/Sangwan5688/BlackHole
+https://github.com/alibaba/flutter_boost
+https://github.com/toly1994328/FlutterUnit
+https://github.com/nisrulz/flutter-examples
+https://github.com/2d-inc/HistoryOfEverything
+https://github.com/vandadnp/flutter-tips-and-tricks
+https://github.com/iampawan/Flutter-UI-Kit

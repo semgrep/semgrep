@@ -5,8 +5,9 @@
 https://github.com/tensorflow/tensorflow
 https://github.com/electron/electron
 https://github.com/microsoft/terminal
-https://github.com/apple/swift
-https://github.com/opencv/opencv
+# brandon: These two induce a SIGSEGV on my machine.
+#https://github.com/apple/swift
+#https://github.com/opencv/opencv
 https://github.com/bitcoin/bitcoin
 https://github.com/pytorch/pytorch
 https://github.com/tesseract-ocr/tesseract

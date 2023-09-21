@@ -16,6 +16,7 @@ from typing import Sequence
 from typing import Tuple
 from urllib.parse import urlencode
 from urllib.parse import urlparse
+from urllib.parse import urlsplit
 
 import requests
 import ruamel.yaml
@@ -38,6 +39,7 @@ from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
 from semgrep.rule import Rule
 from semgrep.rule import rule_without_metadata
+from semgrep.rule import RuleProduct
 from semgrep.rule_lang import EmptySpan
 from semgrep.rule_lang import EmptyYamlException
 from semgrep.rule_lang import parse_config_preserve_spans
@@ -69,6 +71,9 @@ DEFAULT_CONFIG = {
         },
     ],
 }
+
+REGISTRY_CONFIG_ID = "remote-registry"
+NON_REGISTRY_REMOTE_CONFIG_ID = "remote-url"
 
 
 class ConfigFile(NamedTuple):
@@ -288,13 +293,33 @@ def parse_config_files(
     ):
         try:
             if not config_id:  # registry rules don't have config ids
-                config_id = "remote-url"
+                # Note: we must disambiguate registry sourced remote rules from
+                # non-registry sourced ones for security purposes. Namely, we
+                # want to avoid running postprocessors from untrusted remote
+                # sources (unless a local flag disabiling the relevant check is
+                # used).
+                try:
+                    remote_rule_netloc = urlsplit(config_path).netloc
+                except ValueError:
+                    remote_rule_netloc = "invalid-url"
+                config_id = (
+                    REGISTRY_CONFIG_ID
+                    if is_url(config_path)
+                    and (
+                        remote_rule_netloc.endswith(".semgrep.dev")
+                        or remote_rule_netloc == "semgrep.dev"
+                    )
+                    else NON_REGISTRY_REMOTE_CONFIG_ID
+                )
                 filename = f"{config_path[:20]}..."
             else:
                 filename = config_path
             config.update(parse_config_string(config_id, contents, filename))
         except InvalidRuleSchemaError as e:
-            if config_id == "remote-url":
+            if (
+                config_id == REGISTRY_CONFIG_ID
+                or config_id == NON_REGISTRY_REMOTE_CONFIG_ID
+            ):
                 notice = f"\nRules downloaded from {config_path} failed to parse.\nThis is likely because rules have been added that use functionality introduced in later versions of semgrep.\nPlease upgrade to latest version of semgrep (see https://semgrep.dev/docs/upgrading/) and try again.\n"
                 notice_color = with_color(Colors.red, notice, bold=True)
                 logger.error(notice_color)
@@ -494,6 +519,19 @@ class Config:
                 except InvalidRuleSchemaError as ex:
                     errors.append(ex)
                 else:
+                    if (
+                        rule.product == RuleProduct.secrets
+                        and config_id != REGISTRY_CONFIG_ID
+                    ):
+                        # SECURITY: Set metadata from non-registry secrets
+                        # rules so that postprocessors are not run. The default
+                        # requirement is that the rule be served from the pro
+                        # origin. Without this, local rules could use
+                        # postprocessors which may exfiltrate data from source
+                        # code.
+                        rule.metadata.get("semgrep.dev", {}).get("rule", {})[
+                            "origin"
+                        ] = "local"
                     valid_rules.append(rule)
 
             if valid_rules:
@@ -501,9 +539,7 @@ class Config:
         return valid, errors
 
 
-def validate_single_rule(
-    config_id: str, rule_yaml: YamlTree[YamlMap]
-) -> Optional[Rule]:
+def validate_single_rule(config_id: str, rule_yaml: YamlTree[YamlMap]) -> Rule:
     """
     Validate that a rule dictionary contains all necessary keys
     and can be correctly parsed.

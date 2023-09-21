@@ -13,7 +13,6 @@
  (wrapped false)
  (libraries
    ; standard libraries
-   stdcompat
    str
    uri
    semver

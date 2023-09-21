@@ -16,11 +16,6 @@ val any_of_string : Flag_parsing_cpp.language -> string -> Ast_cpp.any
 val parse_fuzzy :
   Fpath.t -> Ast_fuzzy.trees * (Lib_ast_fuzzy.token_kind * Tok.t) list
 
-(* now in old_glr/
-   val parse_with_dypgen:
-   Fpath.t -> Ast_cpp.program
-*)
-
 (* usually correspond to what is inside your macros.h *)
 val _defs : (string, Pp_token.define_body) Hashtbl.t
 val init_defs : Fpath.t -> unit

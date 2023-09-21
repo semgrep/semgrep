@@ -17,14 +17,22 @@ open Xpattern_matcher
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
-let regexp_matcher big_str file regexp =
+let regexp_matcher ?(base_offset = 0) big_str file regexp =
   let re_src = Regexp_engine.pcre_pattern regexp in
   let re = Regexp_engine.pcre_regexp regexp in
   let subs = SPcre.exec_all_noerr ~rex:re big_str in
   subs |> Array.to_list
   |> Common.map (fun sub ->
+         (* Below, we add `base_offset` to any instance of `bytepos`, because
+            the `bytepos` we obtain is only within the range of the string
+            being searched, which may itself be offset from a larger file.
+
+            By maintaining this base offset, we can accurately recreate the
+            original line/col, at minimum cost.
+         *)
          let matched_str = Pcre.get_substring sub 0 in
          let bytepos, _ = Pcre.get_substring_ofs sub 0 in
+         let bytepos = bytepos + base_offset in
          let str = matched_str in
          let line, column = line_col_of_charpos file bytepos in
          let pos = Pos.make ~file ~line ~column bytepos in
@@ -67,6 +75,7 @@ let regexp_matcher big_str file regexp =
            |> Common.map_filter (fun name ->
                   try
                     let bytepos, _ = Pcre.get_named_substring_ofs re name sub in
+                    let bytepos = bytepos + base_offset in
                     let str = Pcre.get_named_substring re name sub in
                     let line, column = line_col_of_charpos file bytepos in
                     let pos = Pos.make ~file ~line ~column bytepos in

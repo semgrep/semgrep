@@ -1,0 +1,11 @@
+rules:
+  - id: if_var_decl_init_maybe_null
+    message: Semgrep found a match
+    languages:
+      - cpp
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - pattern: source(...)
+    pattern-sinks:
+      - pattern: sink(...)

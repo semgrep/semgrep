@@ -315,25 +315,52 @@ let rec explanation_to_explanation (exp : Matching_explanation.t) :
     loc = Output_utils.location_of_token_location tloc;
   }
 
-let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.core_timing
-    =
-  let json_time_of_rule_times rule_times =
-    rule_times
-    |> Common.map (fun { Core_profiling.rule_id; parse_time; match_time } ->
-           { Out.rule_id = (rule_id :> string); parse_time; match_time })
+let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
+  let rule_ids : Rule_ID.t list =
+    profiling_data.rules |> Common.map (fun (rule : Rule.t) -> fst rule.id)
   in
   {
     Out.targets =
       profiling_data.file_times
       |> Common.map
            (fun { Core_profiling.file = target; rule_times; run_time } ->
+             let (rule_id_to_rule_prof
+                   : (Rule_ID.t, Core_profiling.rule_profiling) Hashtbl.t) =
+               rule_times
+               |> Common.map (fun (rp : Core_profiling.rule_profiling) ->
+                      (rp.rule_id, rp))
+               |> Common.hash_of_list
+             in
              {
                Out.path = !!target;
-               rule_times = json_time_of_rule_times rule_times;
+               match_times =
+                 rule_ids
+                 |> Common.map (fun rule_id ->
+                        try
+                          let rprof : Core_profiling.rule_profiling =
+                            Hashtbl.find rule_id_to_rule_prof rule_id
+                          in
+                          rprof.match_time
+                        with
+                        | Not_found -> 0.);
+               (* TODO: we could probably just aggregate in a single
+                * float instead of returning those list of parse_time
+                * which don't really make sense; we just parse once a file.
+                *)
+               parse_times =
+                 rule_ids
+                 |> Common.map (fun rule_id ->
+                        try
+                          let rprof : Core_profiling.rule_profiling =
+                            Hashtbl.find rule_id_to_rule_prof rule_id
+                          in
+                          rprof.parse_time
+                        with
+                        | Not_found -> 0.);
+               num_bytes = File.filesize target;
                run_time;
              });
-    rules =
-      Common.map (fun rule -> (fst rule.Rule.id :> string)) profiling_data.rules;
+    rules = rule_ids |> Common.map (fun (x : Rule_ID.t) -> (x :> string));
     rules_parse_time = profiling_data.rules_parse_time;
     max_memory_bytes = Some profiling_data.max_memory_bytes;
     (* TODO: does it cover all targets or just the relevant target we actually
@@ -344,6 +371,8 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.core_timing
       |> Common.map (fun { Core_profiling.file = target; _ } ->
              File.filesize target)
       |> Common2.sum_int;
+    (* those are filled later in pysemgrep from the Profiler class *)
+    profiling_times = [];
   }
 
 (*****************************************************************************)

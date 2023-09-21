@@ -140,13 +140,12 @@ jobs:
       - name: test dynamically linked libraries are in /usr/lib/
         shell: bash {0}
         run: |
-          otool -L $(semgrep --dump-engine-path) > otool.txt
+          otool -L $(semgrep --dump-engine-path) | tee otool.txt
           if [ $? -ne 0 ]; then
             echo "Failed to list dynamically linked libraries.";
-            cat otool.txt;
             exit 1;
           fi
-          NON_USR_LIB_DYNAMIC_LIBRARIES=$(cat otool.txt | tail -n +2 | grep -v "^\s*/usr/lib/")
+          NON_USR_LIB_DYNAMIC_LIBRARIES=$(tail -n +2 otool.txt | grep -v "^\s*/usr/lib/")
           if [ $? -eq 0 ]; then
             echo "Error: semgrep-core has been dynamically linked against libraries outside /usr/lib:"
             echo $NON_USR_LIB_DYNAMIC_LIBRARIES

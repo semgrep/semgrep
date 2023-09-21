@@ -21,7 +21,7 @@ TODO:
 namespace caffe {
 
 template <typename Dtype>
-HDF5DataLayer<Dtype>::~HDF5DataLayer<Dtype>() { }
+HDF5DataLayer<Dtype>::~HDF5DataLayer() { }
 
 // Load data and label from HDF5 filename into the class property blobs.
 template <typename Dtype>

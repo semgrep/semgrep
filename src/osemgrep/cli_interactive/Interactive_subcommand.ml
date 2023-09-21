@@ -661,7 +661,7 @@ let split_line (t1 : Tok.location) (t2 : Tok.location) (row, line) =
     let lb = if row = t1.pos.line then Some t1.pos.column else None in
     let rb = if row = end_line then Some end_col else None in
     let l_rev, m_rev, r_rev, _ =
-      Stdcompat.String.fold_left
+      String.fold_left
         (fun (l, m, r, i) c ->
           match placement_wrt_bound (lb, rb) i with
           | Common.Left3 _ -> (c :: l, m, r, i + 1)

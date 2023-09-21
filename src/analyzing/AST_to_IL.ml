@@ -1105,6 +1105,16 @@ and cond_with_pre_stmts env ?void cond =
   with_pre_stmts env (fun env ->
       match cond with
       | G.Cond e -> expr env ?void e
+      | G.OtherCond
+          ( todok,
+            [
+              (Def (ent, VarDef { G.vinit = Some e; vtype = _typTODO }) as def);
+            ] ) ->
+          (* e.g. C/C++: `if (const char *tainted_or_null = source("PATH"))` *)
+          let e' = expr env e in
+          let lv = lval_of_ent env ent in
+          add_instr env (mk_i (Assign (lv, e')) (Related def));
+          mk_e (Fetch lv) (Related (G.TodoK todok))
       | G.OtherCond (categ, xs) ->
           let e = G.OtherExpr (categ, xs) |> G.e in
           log_fixme ToDo (G.E e);
@@ -1285,6 +1295,13 @@ and stmt_aux env st =
       let ss, e' = expr_with_pre_stmts env e in
       let lv = lval_of_ent env ent in
       ss @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.S st)))) ]
+  | G.DefStmt
+      ( ent,
+        G.VarDef
+          {
+            G.vinit = None;
+            vtype = Some { t = G.TyArray ((_, Some e, _), _); _ };
+          } ) ->
       (* Expressions inside types still need to be dflow'd!
        *   ex: In C we need to be able to const prop:
        *       int e = 3;
@@ -1293,13 +1310,6 @@ and stmt_aux env st =
        *     _tmp = e
        *     DECL arr
        *)
-  | G.DefStmt
-      ( ent,
-        G.VarDef
-          {
-            G.vinit = None;
-            vtype = Some { t = G.TyArray ((_, Some e, _), _); _ };
-          } ) ->
       let ss, e' = expr_with_pre_stmts env e in
       let lv = lval_of_ent env ent in
       let inst = mk_i (Assign (lv, e')) (SameAs e) in
