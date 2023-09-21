@@ -28,6 +28,13 @@ on:
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+# This permission is needed to comment on a PR. Some GitHub bots
+# such as dependabot only have read permission by default.
+#
+# See:
+# https://docs.github.com/en/code-security/dependabot/working-with-dependabot/automating-dependabot-with-github-actions#changing-github_token-permissions
+#
+# Without this permission, this workflow will fail in those cases.
 permissions:
   pull-requests: write
 
