@@ -152,6 +152,7 @@ type t = {
 }
 [@@deriving show]
 
+(* used in pro engine e.g. when merging secret mode results *)
 let merge a b : t =
   {
     rules = a.rules @ b.rules;
