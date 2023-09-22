@@ -700,6 +700,7 @@ class Plan:
             Colors.cyan, "https://semgrep.dev/products/cloud-platform/", underline=True
         )
         login_command = with_color(Colors.cyan, "semgrep login")
+        is_logged_in = auth.get_token() is not None
         all_enabled = True  # assume all enabled until we find a disabled product
 
         sections = [
@@ -712,7 +713,7 @@ class Plan:
             ),
             (
                 "Semgrep Code (SAST)",
-                auth.get_token() is not None,
+                is_logged_in and get_state().is_code(),
                 [
                     "Find and fix vulnerabilities in the code you write with advanced scanning and expert security rules.",
                 ],
@@ -734,7 +735,7 @@ class Plan:
             for feature in features:
                 console.print(f"  {with_feature_status(enabled=enabled)} {feature}")
 
-        if not all_enabled:
+        if not is_logged_in:
             message = "\n".join(
                 wrap(
                     f"💎 Get started with all Semgrep products via {login_command}",
@@ -743,6 +744,13 @@ class Plan:
                 + [f"✨ Learn more at {learn_more_url}"]
             )
             console.print(f"\n{message}\n")
+        elif not all_enabled:
+            # TODO: Handle cases where SAST / SCA are not enabled (GROW-53)
+            # We should suggest a resolution such as enabling supply chain in SCP settings, and
+            # run then `semgrep ci`. However, there are some additional edge cases to consider
+            # such as feature availability / required plan upgrades, and thus we will punt showing
+            # a resolution for now.
+            console.print(" ")  # space intentional for progress bar padding
         else:
             console.print(" ")  # space intentional for progress bar padding
 

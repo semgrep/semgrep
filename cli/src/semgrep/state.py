@@ -43,8 +43,6 @@ class SemgrepState:
         new_cli_ux = get_state().env.with_new_cli_ux
         if not new_cli_ux:
             return DesignTreatment.LEGACY
-        # If the user passes in a config (that is not 'auto'),
-        # we assume they are a power user who needs rule information
         config = get_config()
         # NOTE: We only support simple and detailed UX treatments for `semgrep scan` invocations
         if SemgrepState.is_scan_invocation():
@@ -86,7 +84,7 @@ class SemgrepState:
     @staticmethod
     def is_supply_chain() -> bool:
         """
-        Returns True iff the current CLI invocation is a supply chain invocation.
+        Returns True iff the current CLI invocation is a supply chain (SCA) invocation.
         """
         ctx = get_context()
         command_name = ctx.command.name if hasattr(ctx, "command") else "unset"
@@ -103,6 +101,25 @@ class SemgrepState:
             or False  # NOTE: supply_chain no supply-chain for `ci`
         )
         return _is_supply_chain
+
+    @staticmethod
+    def is_code() -> bool:
+        """
+        Returns True iff the current CLI invocation includes a code (SAST) invocation.
+        """
+        ctx = get_context()
+        command_name = ctx.command.name if hasattr(ctx, "command") else "unset"
+        is_scan = command_name == "scan"
+        params = ctx.params if hasattr(ctx, "params") else {}
+        config = get_config()
+        # NOTE: For `semgrep scan`, code is passed via --config
+        # whereas for `semgrep ci`, code is passed via --code
+        _is_code = (
+            bool(set(config) - {"supply-chain"})
+            if is_scan
+            else params.get("code") or False
+        )
+        return _is_code
 
 
 def get_context() -> click.Context:
