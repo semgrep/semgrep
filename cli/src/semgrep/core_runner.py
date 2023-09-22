@@ -62,7 +62,6 @@ from semgrep.rule_match import OrderedRuleMatchList
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
-from semgrep.state import get_context
 from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
 from semgrep.util import unit_str
@@ -688,21 +687,62 @@ class Plan:
         for language in self.split_by_lang_label():
             metrics.add_feature("language", language)
 
-    def sprint(self) -> None:
+    def sprint(self, *, with_tables_for: RuleProduct) -> None:
         """
         (Simple) print the statuses of enabled products to stdout when the user
         is given the product-focused CLI UX treatment.
         """
-        learn_more_url = "https://semgrep.dev/products/cloud-platform/"
-        console.print(f"\nTODO...\n")
-        console.print(f"{with_feature_status(enabled=True)} Feature 1")
-        message = "\n".join(
-            wrap(
-                f"💎 Sign in with `semgrep login` to use all Semgrep products. Learn more at {learn_more_url}",
-                width=70,
-            )
+        # NOTE: Only print the product-focused UX for the default sast product.
+        if with_tables_for != RuleProduct.sast:
+            return
+
+        learn_more_url = with_color(
+            Colors.cyan, "https://semgrep.dev/products/cloud-platform/", underline=True
         )
-        console.print(f"\n{message}\n")
+        login_command = with_color(Colors.cyan, "semgrep login")
+        all_enabled = True  # assume all enabled until we find a disabled product
+
+        sections = [
+            (
+                "Semgrep OSS",
+                True,
+                [
+                    "Basic security coverage for first-party code vulnerabilities",
+                ],
+            ),
+            (
+                "Semgrep Code (SAST)",
+                auth.get_token() is not None,
+                [
+                    "Find and fix vulnerabilities in the code you write with advanced scanning and expert security rules.",
+                ],
+            ),
+            (
+                "Semgrep Supply Chain (SCA)",
+                get_state().is_supply_chain(),
+                [
+                    "Find and fix the reachable vulnerabilities in your OSS dependencies.",
+                ],
+            ),
+        ]
+
+        for name, enabled, features in sections:
+            all_enabled = all_enabled and enabled
+            console.print(
+                f"\n{with_feature_status(enabled=enabled)} {with_color(Colors.foreground, name, bold=True)}"
+            )
+            for feature in features:
+                console.print(f"  {with_feature_status(enabled=enabled)} {feature}")
+
+        if not all_enabled:
+            message = "\n".join(
+                wrap(
+                    f"💎 Get started with all Semgrep products via {login_command}",
+                    width=80,
+                )
+                + [f"✨ Learn more at {learn_more_url}"]
+            )
+            console.print(f"\n{message}\n")
 
     def pprint(self, *, with_tables_for: RuleProduct) -> None:
         """
@@ -718,19 +758,9 @@ class Plan:
                  - `semgrep scan` was invoked with the supply-chain flag and no rules found.
                  - `semgrep ci` was invoked without the supply-chain flag or feature enabled.
                 """
-                # 1. Validate that the user is indeed running SCA.
-                ctx = get_context()
-                # we only want to print the message if the user is running `semgrep scan`
-                command_name = ctx.command.name if hasattr(ctx, "command") else "unset"
-                is_scan = command_name == "scan"
-                params = ctx.params if hasattr(ctx, "params") else {}
-                # --supply-chain flag is passed directly for `semgrep ci`
-                # whereas for scan supply-chain is passed via --config
-                is_supply_chain = (
-                    "supply-chain" in list(params.get("config") or ())
-                    if is_scan
-                    else (params.get("supply-chain") or False)
-                )
+                # 1. Validate that the user is indeed running SCA (and not from semgrep scan).
+                is_scan = get_state().is_scan_invocation()
+                is_supply_chain = get_state().is_supply_chain()
                 # 2. Check if the user has metrics enabled.
                 metrics = get_state().metrics
                 metrics_enabled = metrics.is_enabled
@@ -835,7 +865,7 @@ class Plan:
         if get_state().is_detailed_cli_ux():
             self.pprint(with_tables_for=with_tables_for)
         elif get_state().is_simple_cli_ux():
-            self.sprint()
+            self.sprint(with_tables_for=with_tables_for)
         elif get_state().is_legacy_cli_ux():
             self.oprint(with_tables_for=with_tables_for)
         else:  # We should never reach this case, but if we do print a warning and fallback to legacy behavior.

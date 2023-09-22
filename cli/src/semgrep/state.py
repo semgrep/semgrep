@@ -46,8 +46,11 @@ class SemgrepState:
         # If the user passes in a config (that is not 'auto'),
         # we assume they are a power user who needs rule information
         config = get_config()
-        has_config = bool(config) and config != ["auto"]
-        return DesignTreatment.DETAILED if has_config else DesignTreatment.SIMPLE
+        # NOTE: We only support simple and detailed UX treatments for `semgrep scan` invocations
+        if SemgrepState.is_scan_invocation():
+            has_config = bool(config) and config != ["auto"]
+            return DesignTreatment.DETAILED if has_config else DesignTreatment.SIMPLE
+        return DesignTreatment.DETAILED
 
     @staticmethod
     def is_legacy_cli_ux() -> bool:
@@ -69,6 +72,36 @@ class SemgrepState:
         Returns True iff the current CLI invocation should be given the detailed UX treatment.
         """
         return get_state().get_cli_ux_flavor() == DesignTreatment.DETAILED
+
+    @staticmethod
+    def is_scan_invocation() -> bool:
+        """
+        Returns True iff the current CLI invocation is a scan invocation via `semgrep scan`.
+        """
+        ctx = get_context()
+        command_name = ctx.command.name if hasattr(ctx, "command") else "unset"
+        return command_name == "scan"
+
+    @staticmethod
+    def is_supply_chain() -> bool:
+        """
+        Returns True iff the current CLI invocation is a supply chain invocation.
+        """
+        ctx = get_context()
+        command_name = ctx.command.name if hasattr(ctx, "command") else "unset"
+        is_scan = command_name == "scan"
+        params = ctx.params if hasattr(ctx, "params") else {}
+        # NOTE: For `semgrep scan`, supply-chain is passed via --config
+        #   e.g. `semgrep scan --config supply-chain`
+        # whereas for `semgrep ci`, supply-chain is passed via --supply-chain
+        #   e.g. `semgrep ci --supply-chain`
+        _is_supply_chain = (
+            "supply-chain" in get_config()
+            if is_scan
+            else params.get("supply_chain")
+            or False  # NOTE: supply_chain no supply-chain for `ci`
+        )
+        return _is_supply_chain
 
 
 def get_context() -> click.Context:
