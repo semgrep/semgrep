@@ -39,8 +39,7 @@ SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_FORCE_COLOR="true" SEMGREP_USER_AGENT_A
 
   Language   Rules   Files          Origin   Rules
  ──────────────────────────        ────────────────
-  python         3      11          Custom       4
-  js             1       3
+                                    Custom       4
 
 
 
@@ -87,8 +86,7 @@ Ran 4 rules on 14 files: 2 findings.
 
   Language   Rules   Files          Origin   Rules
  ──────────────────────────        ────────────────
-  python         3      11          Custom       4
-  js             1       3
+                                    Custom       4
 
 
 
