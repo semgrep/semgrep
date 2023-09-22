@@ -171,6 +171,12 @@ let replace_named_pipe_by_regular_file path =
         Fpath.v tmp_path
     | _ -> path
 
+let add_additional_targets config n =
+  (* Print additional target count so the Python progress bar knows *)
+  match config.output_format with
+  | Json true -> pr @@ string_of_int n
+  | _ -> ()
+
 let update_cli_progress config =
   (* Print when each file is done so the Python progress bar knows *)
   match config.output_format with
@@ -761,10 +767,8 @@ let extracted_targets_of_config (config : Core_scan_config.t)
                extractors xtarget
            in
            (* Print number of extra targets so Python knows *)
-           (match config.output_format with
-           | Json true when extracted_targets <> [] ->
-               pr (string_of_int (List.length extracted_targets))
-           | _ -> ());
+           if Common.null extracted_targets then
+             add_additional_targets config (List.length extracted_targets);
            extracted_targets)
   in
   List.fold_right
@@ -973,7 +977,7 @@ let scan_with_exn_handler (config : Core_scan_config.t) :
        hook any post processing step that needs to look at rules and
        results. *)
     let res =
-      Pre_post_core_scan.call_with_pre_and_post_processor (scan config)
+      Pre_post_core_scan.call_with_pre_and_post_processor Fun.id scan config
         timed_rules
     in
     sanity_check_invalid_patterns res
