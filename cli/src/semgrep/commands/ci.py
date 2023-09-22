@@ -163,7 +163,7 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     "run_secrets_flag",
     is_flag=True,
     hidden=True,
-    help="Enable support for secret validation. Requires Semgrep Secrets, contact support@semgrep.com for more informationon this.",
+    help="Enable support for secret validation. Requires Semgrep Secrets, contact support@semgrep.com for more information this.",
 )
 @click.option(
     "--suppress-errors/--no-suppress-errors",
