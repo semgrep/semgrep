@@ -359,8 +359,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
            let (id, pat), cnt = biggest_offending_rule in
            logger#info
              "most offending rule: id = %s, matches = %d, pattern = %s"
-             (id :> string)
-             cnt pat;
+             (Rule_ID.to_string id) cnt pat;
 
            (* todo: we should maybe use a new error: TooManyMatches of int * string*)
            let loc = Tok.first_loc_of_file file in
@@ -381,14 +380,14 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
                            "found %i matches for rule %s, which exceeds the \
                             maximum of %i matches."
                            n
-                           (rule_id :> string)
+                           (Rule_ID.to_string rule_id)
                            max_match_per_file)
                     in
                     {
                       Semgrep_output_v1_t.path = file;
                       reason = Too_many_matches;
                       details;
-                      rule_id = Some (rule_id :> string);
+                      rule_id = Some (Rule_ID.to_string rule_id);
                     })
            in
            (error, skipped))
@@ -458,7 +457,7 @@ let rules_from_rule_source config =
   match rule_source with
   | Some (Rule_file file) ->
       logger#linfo (lazy (spf "Parsing %s:\n%s" !!file (File.read_file file)));
-      Parse_rule.parse_and_filter_invalid_rules file
+      Parse_rule.parse_and_filter_invalid_rules ~rewrite_rule_ids:None file
   | Some (Rules rules) -> (rules, [])
   | None ->
       (* TODO: ensure that this doesn't happen *)
@@ -488,7 +487,8 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                  let get_context () =
                    match !Rule.last_matched_rule with
                    | None -> !!file
-                   | Some rule_id -> spf "%s on %s" (rule_id :> string) !!file
+                   | Some rule_id ->
+                       spf "%s on %s" (Rule_ID.to_string rule_id) !!file
                  in
                  Memory_limit.run_with_memory_limit ~get_context
                    ~mem_limit_mb:config.max_memory_mb (fun () ->
@@ -520,7 +520,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                    | None -> ()
                    | Some rule ->
                        logger#info "critical exn while matching ruleid %s"
-                         (rule.MR.id :> string);
+                         (Rule_ID.to_string rule.id);
                        logger#info "full pattern is: %s" rule.MR.pattern_string);
                    let loc = Tok.first_loc_of_file !!file in
                    let errors =
@@ -687,7 +687,7 @@ let targets_of_config (config : Core_scan_config.t)
                  rule_nums = Common.mapi (fun i _ -> i) rule_ids;
                })
       in
-      ({ target_mappings; rule_ids = (rule_ids :> string list) }, skipped)
+      ({ target_mappings; rule_ids = Rule_ID.to_string_list rule_ids }, skipped)
   | None, _, None -> failwith "you need to specify a language with -lang"
   (* main code path for semgrep python, with targets specified by -target *)
   | Some target_source, roots, lang_opt ->

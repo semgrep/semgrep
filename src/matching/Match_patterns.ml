@@ -46,14 +46,14 @@ let profile_mini_rules = ref false
  *)
 let (last_matched_rule : Mini_rule.t option ref) = ref None
 
-let set_last_matched_rule rule f =
+let set_last_matched_rule (rule : Mini_rule.t) f =
   last_matched_rule := Some rule;
   (* note that if this raise an exn, last_matched_rule will not be
    * reset to None and that's what we want!
    *)
   let res =
     if !profile_mini_rules then
-      Profiling.profile_code ("rule:" ^ (rule.MR.id :> string)) f
+      Profiling.profile_code ("rule:" ^ Rule_ID.to_string rule.id) f
     else f ()
   in
   last_matched_rule := None;

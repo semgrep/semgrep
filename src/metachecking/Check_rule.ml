@@ -314,7 +314,7 @@ let stat_files fparser xs =
                     incr bad;
                     pr2
                       (spf "PB: no regexp prefilter for rule %s:%s" !!file
-                         (fst r.id :> string))
+                         (Rule_ID.to_string (fst r.id)))
                 | Some (f, _f) ->
                     incr good;
                     let s = Semgrep_prefilter_j.string_of_formula f in
