@@ -1,37 +1,28 @@
-# Workflow to manually revert the semgrep 'canary' docker image
-# to a previous version.
+# Workflow to manually set the returntocorp/semgrep:canary docker image
+# to a specific version (usually to point to a past version in case of rollback)
 #TODO: should factorize with revert-semgrep-latest-docker-image.yml
 
-name: Revert Semgrep Canary Docker Image
+name: Set returntocorp/semgrep:canary
 
 on:
   workflow_dispatch:
     inputs:
       docker_tag:
-        description: "Docker Tag to point 'canary' to, example: 1.40.0"
+        description: "Docker tag to point 'canary' to, example: 1.40.0"
         required: true
 
 jobs:
-  rollback-docker-image:
-    name: Rollback returntocorp/semgrep Docker Image
+  set-docker-image:
+    name: Set the returntocorp/semgrep:canary docker image
     runs-on: ubuntu-22.04
     env:
       DOCKER_IMAGE_REPO: returntocorp/semgrep
     steps:
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
+      - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - id: pull
-        name: Pull Image to Retag as Canary
-        run: |
+      - run: |
           docker pull ${{ env.DOCKER_IMAGE_REPO }}:${{ inputs.docker_tag }}
-      - id: retag
-        name: Re-Tag Docker Image
-        run: |
           docker tag ${{ env.DOCKER_IMAGE_REPO }}:${{ inputs.docker_tag }} ${{ env.DOCKER_IMAGE_REPO }}:canary
-      - id: push
-        name: Push New Latest Tag
-        run: |
           docker push ${{ env.DOCKER_IMAGE_REPO }}:canary
