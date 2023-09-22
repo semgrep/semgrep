@@ -73,7 +73,7 @@ let skipped_target_of_rule (file_and_more : Xtarget.t) (rule : R.rule) :
     rule_id = Some (Rule_ID.to_string rule_id);
   }
 
-let is_relevant_rule_for_xtarget cache r xconf xtarget =
+let is_relevant_rule_for_xtarget ~cache r xconf xtarget =
   let { Xtarget.file; lazy_content; _ } = xtarget in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf r.R.options in
   let is_relevant =
