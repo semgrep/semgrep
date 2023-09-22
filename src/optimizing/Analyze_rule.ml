@@ -525,6 +525,9 @@ let run_cnf_step2 cnf big_str =
  *)
 type prefilter = Semgrep_prefilter_t.formula * (string -> bool)
 
+(* see mli *)
+type prefilter_cache = (Rule_ID.t, prefilter option) Hashtbl.t
+
 let prefilter_formula_of_prefilter (pre : prefilter) :
     Semgrep_prefilter_t.formula =
   let x, _f = pre in
@@ -587,7 +590,7 @@ let regexp_prefilter_of_taint_rule (_rule_id, rule_tok) taint_spec =
   in
   regexp_prefilter_of_formula f
 
-let regexp_prefilter_of_rule ~hmemo (r : R.rule) =
+let regexp_prefilter_of_rule ~cache (r : R.rule) =
   let rule_id, _t = r.R.id in
   (* rule_id is supposed to be unique so it should work as a key for hmemo.
    * bugfix:
@@ -616,11 +619,6 @@ let regexp_prefilter_of_rule ~hmemo (r : R.rule) =
         logger#error "Stack overflow on rule id %s" (rule_id :> string);
         None
   in
-  (* Previously, we created hmemo at the toplevel of this file. This caused
-     problems with tests that ended up reusing that table which were very
-     confusing to debug. To prevent that from happening again, the table is
-     now passed to this function. For convenience you can also choose not to
-     memoize. *)
-  match hmemo with
+  match cache with
   | None -> regex_prefilter_fun ()
-  | Some hmemo -> Common.memoized hmemo key regex_prefilter_fun
+  | Some cache -> Common.memoized cache key regex_prefilter_fun

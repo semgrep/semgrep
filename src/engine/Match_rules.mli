@@ -18,7 +18,7 @@ val check :
 
 (* for osemgrep interactive *)
 val is_relevant_rule_for_xtarget :
-  (Rule_ID.t, Analyze_rule.prefilter option) Hashtbl.t option ->
+  Analyze_rule.prefilter_cache option ->
   Rule.t ->
   Match_env.xconfig ->
   Xtarget.t ->

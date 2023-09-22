@@ -7,6 +7,14 @@
  *)
 type prefilter = Semgrep_prefilter_t.formula * (string -> bool)
 
+(* Computing the `regex_prefilter_of_rule` can be pretty heavy in
+   Previously, we created hmemo at the toplevel of this file. This caused
+      problems with tests that ended up reusing that table which were very
+      confusing to debug. To prevent that from happening again, the table is
+      now passed to this function. For convenience you can also choose not to
+       memoize. *)
+type prefilter_cache = (Rule_ID.t, prefilter option) Hashtbl.t
+
 (* This function analyzes a rule and returns optionaly a prefilter.
  *
  * The return prefilter relies on a formula of
@@ -26,9 +34,7 @@ type prefilter = Semgrep_prefilter_t.formula * (string -> bool)
  * Note that this function use Common.memoized on the rule id
  *)
 val regexp_prefilter_of_rule :
-  hmemo:(Rule_ID.t, prefilter option) Hashtbl.t option ->
-  Rule.t ->
-  prefilter option
+  cache:prefilter_cache option -> Rule.t -> prefilter option
 
 (* internal, do not use directly, not memoized *)
 val regexp_prefilter_of_formula : Rule.formula -> prefilter option

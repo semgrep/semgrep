@@ -302,14 +302,14 @@ let stat_files fparser xs =
   in
   let good = ref 0 in
   let bad = ref 0 in
-  let hmemo = Some (Hashtbl.create 101) in
+  let cache = Some (Hashtbl.create 101) in
   fullxs
   |> List.iter (fun file ->
          logger#info "processing %s" !!file;
          let rs = fparser file in
          rs
          |> List.iter (fun r ->
-                let res = Analyze_rule.regexp_prefilter_of_rule ~hmemo r in
+                let res = Analyze_rule.regexp_prefilter_of_rule ~cache r in
                 match res with
                 | None ->
                     incr bad;

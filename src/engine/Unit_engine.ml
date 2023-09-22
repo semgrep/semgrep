@@ -470,11 +470,11 @@ let eval_regression_tests () =
 (*****************************************************************************)
 
 let test_irrelevant_rule rule_file target_file =
-  let hmemo = Some (Hashtbl.create 101) in
+  let cache = Some (Hashtbl.create 101) in
   let rules = Parse_rule.parse rule_file in
   rules
   |> List.iter (fun rule ->
-         match Analyze_rule.regexp_prefilter_of_rule ~hmemo rule with
+         match Analyze_rule.regexp_prefilter_of_rule ~cache rule with
          | None ->
              Alcotest.fail
                (spf "Rule %s: no regex prefilter formula"
