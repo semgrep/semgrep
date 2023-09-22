@@ -166,8 +166,9 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> i
     Return total number of rules semgrep think is applicable to this repo
     e.g. it skips rules when there are no files with a relevant extension since no findings will be found
     """
-    detailed_ux = get_state().is_detailed_cli_ux()
     simple_ux = get_state().is_simple_cli_ux()
+    detailed_ux = get_state().is_detailed_cli_ux()
+    legacy_ux = get_state().is_legacy_cli_ux()
 
     if simple_ux:
         logo = with_color(Colors.green, "○○○")
@@ -203,32 +204,41 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> i
 
     print_scan_plan_header(target_manager, sast_plan, sca_plan)
 
-    if detailed_ux:
-        console.print(Title("Code Rules", order=2))
+    has_sca_rules = len(sca_plan.rules) > 0
+    has_secret_rules = sast_plan.rule_count_for_product(RuleProduct.secrets) > 0
+
+    if (
+        simple_ux
+    ):  # Print the feature summary table instead of all tables with new simple CLI UX
         sast_plan.print(with_tables_for=RuleProduct.sast)
-        # TODO: after launch this should no longer be conditional.
-        if sast_plan.rule_count_for_product(RuleProduct.secrets):
-            console.print(Title("Secrets Rules", order=2))
-            sast_plan.print(with_tables_for=RuleProduct.secrets)
-        console.print(Title("Supply Chain Rules", order=2))
-        sca_plan.print(with_tables_for=RuleProduct.sca)
-        console.print(Title("Progress", order=2))
-        console.print(" ")  # space intentional for progress bar
         return len(sast_plan.rules) + len(sca_plan.rules)
 
-    if not sca_plan.rules:
+    if not has_sca_rules and not has_secret_rules and legacy_ux:
         # just print these tables without the section headers
         sast_plan.print(with_tables_for=RuleProduct.sast)
         return len(sast_plan.rules)
 
-    console.print(Padding(Title("Code Rules", order=2), (1, 0, 0, 0)))
+    if legacy_ux:
+        console.print(Padding(Title("Code Rules", order=2), (1, 0, 0, 0)))
+    else:
+        console.print(Title("Code Rules", order=2))
+
     sast_plan.print(with_tables_for=RuleProduct.sast)
+
     # TODO: after launch this should no longer be conditional.
-    if sast_plan.rule_count_for_product(RuleProduct.secrets):
+    if has_secret_rules:
         console.print(Title("Secrets Rules", order=2))
         sast_plan.print(with_tables_for=RuleProduct.secrets)
-    console.print(Title("Supply Chain Rules", order=2))
-    sca_plan.print(with_tables_for=RuleProduct.sca)
+
+    if not has_sca_rules and legacy_ux:
+        pass  # Skip showing an empty supply chain rules section for legacy ux
+    else:  # Show the table for supply chain rules otherwise
+        console.print(Title("Supply Chain Rules", order=2))
+        sca_plan.print(with_tables_for=RuleProduct.sca)
+
+    if detailed_ux:
+        console.print(Title("Progress", order=2))
+        console.print(" ")  # space intentional for progress bar padding
 
     return len(sast_plan.rules) + len(sca_plan.rules)
 

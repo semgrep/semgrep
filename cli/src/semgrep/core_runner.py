@@ -743,6 +743,8 @@ class Plan:
                 + [f"✨ Learn more at {learn_more_url}"]
             )
             console.print(f"\n{message}\n")
+        else:
+            console.print(" ")  # space intentional for progress bar padding
 
     def pprint(self, *, with_tables_for: RuleProduct) -> None:
         """

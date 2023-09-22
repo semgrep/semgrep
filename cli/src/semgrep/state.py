@@ -48,7 +48,8 @@ class SemgrepState:
         config = get_config()
         # NOTE: We only support simple and detailed UX treatments for `semgrep scan` invocations
         if SemgrepState.is_scan_invocation():
-            has_config = bool(config) and config != ["auto"]
+            # NOTE: Ignore the default 'auto' config and product flags such as 'supply-chain'
+            has_config = bool(set(config) - {"auto", "supply-chain"})
             return DesignTreatment.DETAILED if has_config else DesignTreatment.SIMPLE
         return DesignTreatment.DETAILED
 
