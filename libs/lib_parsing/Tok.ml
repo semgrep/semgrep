@@ -235,7 +235,7 @@ let content_of_tok ii =
 *)
 let end_pos_of_loc loc =
   let line, col =
-    Stdcompat.String.fold_left
+    String.fold_left
       (fun (line, col) c ->
         match c with
         | '\n' -> (line + 1, 0)

@@ -79,7 +79,7 @@ type extract_range = {
 }
 
 let count_lines_and_trailing =
-  Stdcompat.String.fold_left
+  String.fold_left
     (fun (n, c) b ->
       match b with
       | '\n' -> (n + 1, 0)
@@ -272,9 +272,7 @@ let map_res map_loc (tmpfile : Fpath.t) (file : Fpath.t)
           file = !!file;
           range_loc = Common2.pair map_loc m.range_loc;
           taint_trace =
-            Option.map
-              (Stdcompat.Lazy.map_val (map_taint_trace map_loc))
-              m.taint_trace;
+            Option.map (Lazy.map_val (map_taint_trace map_loc)) m.taint_trace;
           env = map_bindings map_loc m.env;
         })
       mr.matches

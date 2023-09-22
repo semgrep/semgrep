@@ -17,7 +17,7 @@ type result = {
   scanned : Fpath.t Set_.t;
 }
 
-val create_core_result : Rule.rule list -> Core_result.result_and_exn -> result
+val create_core_result : Rule.rule list -> Core_result.result_or_exn -> result
 
 (* similar to Core_scan.core_scan_func *)
 type scan_func_for_osemgrep =
@@ -32,7 +32,7 @@ type scan_func_for_osemgrep =
   Rule.rules ->
   Rule.invalid_rule_error list ->
   Fpath.t list ->
-  Core_result.result_and_exn
+  Core_result.result_or_exn
 
 (* Core_scan_func adapter to be used in osemgrep.
 

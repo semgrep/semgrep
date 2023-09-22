@@ -66,7 +66,7 @@ type scan_func_for_osemgrep =
   Rule.rules ->
   Rule.invalid_rule_error list ->
   Fpath.t list ->
-  Core_result.result_and_exn
+  Core_result.result_or_exn
 
 (*************************************************************************)
 (* Helpers *)
@@ -169,13 +169,24 @@ let prepare_config_for_core_scan (config : Core_scan_config.t)
 (* LATER: we want to avoid this intermediate data structure but
  * for now that's what pysemgrep used to get so simpler to return it.
  *)
-let create_core_result all_rules (_exns, (res : Core_result.t)) =
+let create_core_result (all_rules : Rule.rule list)
+    (result_or_exn : Core_result.result_or_exn) =
+  (* similar to Core_command.output_core_results code *)
+  let res =
+    match result_or_exn with
+    | Ok r -> r
+    | Error (exn, _core_error_opt) ->
+        (* TODO: use _core_error_opt instead? reraise the exn instead?
+         * TOADAPT? Runner_exit.exit_semgrep (Unknown_exception e) instead.
+         *)
+        let err = Core_error.exn_to_error None "" exn in
+        Core_result.mk_final_result_with_just_errors [ err ]
+  in
   let scanned = Set_.of_list res.scanned in
   let match_results =
     Core_json_output.core_output_of_matches_and_errors (Some Autofix.render_fix)
       (Set_.cardinal scanned) res
   in
-
   (* TOPORT? or move in semgrep-core so get info ASAP
      if match_results.skipped_targets:
          for skip in match_results.skipped_targets:
@@ -186,12 +197,6 @@ let create_core_result all_rules (_exns, (res : Core_result.t)) =
              logger.verbose(
                  f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
              )
-  *)
-
-  (* TOADAPT:
-      match exn with
-      | Some e -> Runner_exit.exit_semgrep (Unknown_exception e)
-      | None -> ())
   *)
   { core = match_results; hrules = Rule.hrules_of_rules all_rules; scanned }
 
@@ -207,7 +212,7 @@ let mk_scan_func_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
  fun ?(respect_git_ignore = true) ?(file_match_results_hook = None)
      (conf : conf) (all_rules : Rule.t list)
      (invalid_rules : Rule.invalid_rule_error list) (all_targets : Fpath.t list)
-     : Core_result.result_and_exn ->
+     : Core_result.result_or_exn ->
   let rule_errors = Core_scan.errors_of_invalid_rule_errors invalid_rules in
   let config : Core_scan_config.t = core_scan_config_of_conf conf in
   let config = { config with file_match_results_hook } in
@@ -241,26 +246,28 @@ let mk_scan_func_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
   let config = prepare_config_for_core_scan config lang_jobs in
 
   (* !!!!Finally! this is where we branch to semgrep-core core scan fun!!! *)
-  let exn, res = core_scan_func config in
+  let result_or_exn = core_scan_func config in
+  match result_or_exn with
+  | Error _ -> result_or_exn
+  | Ok res ->
+      (* Reinject rule errors *)
+      let res =
+        {
+          res with
+          errors = rule_errors @ res.errors;
+          skipped_rules = invalid_rules @ res.skipped_rules;
+        }
+      in
 
-  (* Reinject rule errors *)
-  let res =
-    {
-      res with
-      errors = rule_errors @ res.errors;
-      skipped_rules = invalid_rules @ res.skipped_rules;
-    }
-  in
+      let scanned = Set_.of_list res.scanned in
 
-  let scanned = Set_.of_list res.scanned in
-
-  (* TODO(dinosaure): currently, we don't collect metrics when we invoke
-     semgrep-core but we should. However, if we implement a way to collect
-     metrics, we will just need to set [final_result.extra] to
-     [Core_result.Debug]/[Core_result.Time] and this line of code will not change. *)
-  Metrics_.add_max_memory_bytes (Core_profiling.debug_info_to_option res.extra);
-  Metrics_.add_targets_stats scanned
-    (Core_profiling.debug_info_to_option res.extra);
-
-  (exn, res)
+      (* TODO(dinosaure): currently, we don't collect metrics when we invoke
+         semgrep-core but we should. However, if we implement a way to collect
+         metrics, we will just need to set [final_result.extra] to
+         [Core_result.Debug]/[Core_result.Time] and this line of code will not change. *)
+      Metrics_.add_max_memory_bytes
+        (Core_profiling.debug_info_to_option res.extra);
+      Metrics_.add_targets_stats scanned
+        (Core_profiling.debug_info_to_option res.extra);
+      Ok res
  [@@profiling]

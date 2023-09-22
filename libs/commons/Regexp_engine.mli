@@ -19,6 +19,9 @@ val matching_exact_string : string -> t
 (* add the \b around the quoted string *)
 val matching_exact_word : string -> t
 
+(* Compile a regexp in PCRE syntax with the given flags. *)
+val pcre_compile_with_flags : flags:Pcre.cflag list -> string -> t
+
 (* Compile a regexp in PCRE syntax. *)
 val pcre_compile : string -> t
 

@@ -20,7 +20,6 @@ from tests.semgrep_runner import SemgrepRunner
 
 from semgrep.cli import cli
 from semgrep.config_resolver import ConfigFile
-from semgrep.profiling import ProfilingData
 
 
 # Test data to avoid making web calls in test code
@@ -188,11 +187,10 @@ def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch, pro_flag):
     os.environ["TZ"] = "Asia/Tokyo"
     time.tzset()
 
-    # make the rule, file timings, and memory usage deterministic
-    mocker.patch.object(ProfilingData, "set_file_times")
-
     # make the event ID deterministic
     mocker.patch("uuid.uuid4", return_value=uuid.UUID("0" * 32))
+    mocker.patch("semgrep.metrics.mock_float", return_value=0.0)
+    mocker.patch("semgrep.metrics.mock_int", return_value=0)
 
     mock_post = mocker.patch("requests.post")
 

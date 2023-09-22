@@ -1,0 +1,12 @@
+(library
+ (public_name parser_dart.ast_generic)
+ (name parser_dart_ast_generic)
+ (wrapped false)
+ (libraries
+   commons
+   lib_parsing lib_parsing_tree_sitter
+   tree-sitter-lang.dart
+   ast_generic
+ )
+ (preprocess (pps ppx_deriving.show))
+)

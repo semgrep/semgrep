@@ -200,8 +200,8 @@ let check r =
   | `Taint _ -> (* TODO *) []
   | `Steps _ -> (* TODO *) []
 
-let semgrep_check config metachecks rules =
-  let match_to_semgrep_error m =
+let semgrep_check config metachecks rules : Core_error.t list =
+  let match_to_semgrep_error (m : Pattern_match.t) : Core_error.t =
     let loc, _ = m.P.range_loc in
     (* TODO use the end location in errors *)
     let s = m.rule_id.message in
@@ -219,8 +219,10 @@ let semgrep_check config metachecks rules =
       roots = rules;
     }
   in
-  let _success, res = Core_scan.scan_with_exn_handler config in
-  res.matches |> Common.map match_to_semgrep_error
+  let res = Core_scan.scan_with_exn_handler config in
+  match res with
+  | Ok result -> result.matches |> Common.map match_to_semgrep_error
+  | Error (exn, _) -> Exception.reraise exn
 
 (* TODO *)
 
@@ -264,6 +266,7 @@ let run_checks config fparser metachecks xs =
       in
       semgrep_found_errs @ ocaml_found_errs
 
+(* for semgrep-core -check_rules *)
 let check_files mk_config fparser input =
   let config = mk_config () in
   let errors =
@@ -279,7 +282,9 @@ let check_files mk_config fparser input =
   match config.output_format with
   | Text -> List.iter (fun err -> pr2 (E.string_of_error err)) errors
   | Json _ ->
-      let res = { RP.empty_final_result with errors } in
+      let (res : Core_result.t) =
+        Core_result.mk_final_result_with_just_errors errors
+      in
       (* for the stats.okfiles, but we don't care? *)
       let nfiles = 0 in
       let json =

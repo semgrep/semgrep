@@ -3,8 +3,6 @@
  (name semgrep_analyzing_tests)
  (wrapped false)
  (libraries
-   dyp
-
    commons
    pfff-lang_GENERIC-naming
    semgrep.il

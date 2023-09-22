@@ -455,8 +455,9 @@ def test_nested_pattern_either_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+# TODO: This can be marked osempass once we port cli_unique_key deduplication
+# https://github.com/returntocorp/semgrep/pull/8510
 @pytest.mark.kinda_slow
-@pytest.mark.osempass
 def test_metavariable_regex_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/metavariable-regex.yaml").stdout, "results.json"
@@ -727,8 +728,9 @@ def test_multiple_configs_different_origins(run_semgrep_in_tmp: RunSemgrep, snap
     )
 
 
+# TODO: This can be marked osempass once we port cli_unique_key deduplication
+# https://github.com/returntocorp/semgrep/pull/8510
 @pytest.mark.kinda_slow
-@pytest.mark.osempass
 def test_metavariable_propagation_regex(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(

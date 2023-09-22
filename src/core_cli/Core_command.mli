@@ -15,7 +15,7 @@ val semgrep_core_with_rules_and_formatted_output : Core_scan_config.t -> unit
 *)
 
 val output_core_results :
-  Core_result.result_and_exn -> Core_scan_config.t -> unit
+  Core_result.result_or_exn -> Core_scan_config.t -> unit
 (** [output_core_results] takes the results of a core scan and
     format the results on stdout either in a JSON or Textual format
     (depending on the value in config.output_format)

@@ -119,6 +119,7 @@ and template_argument = (type_, expr) Common.either
 and qualifier =
   | QClassname of ident (* a_class_name or a_namespace_name *)
   | QTemplateId of ident * template_arguments
+  | QTemplateTokId of (* template *) tok * ident * template_arguments
 
 (* special cases *)
 and a_class_name = name (* only IdIdent or IdTemplateId *)
@@ -225,6 +226,7 @@ and expr =
    *)
   | N of name
   | C of constant
+  | UserDefined of constant * ident
   | IdSpecial of special wrap
   (* I used to have FunCallSimple but not that useful, and we want scope info
    * for FunCallSimple too because can have fn(...) where fn is actually
@@ -240,7 +242,7 @@ and expr =
   (* contains GetRef and Deref!! less: lift up? *)
   | Unary of unaryOp wrap * expr
   | Binary of expr * binaryOp wrap * expr
-  | ArrayAccess of expr * expr bracket
+  | ArrayAccess of expr * initialiser bracket
   (* name is usually just an ident_or_op. In rare cases it can be
    * a template_method name. *)
   | DotAccess of expr * dotOp wrap * name
@@ -275,6 +277,13 @@ and expr =
   | ParamPackExpansion of expr * tok (* '...' *)
   (* forunparser: *)
   | ParenExpr of expr paren
+  | FoldExpr of fold_expr paren
+  (* These are different things. See:
+     https://en.cppreference.com/w/cpp/language/constraints#Requires_clauses
+  *)
+  | RequiresExpr of tok * parameter list paren * requirement list paren
+  | RequiresClause of expr
+  | CoAwait of tok * expr
   (* sgrep-ext: *)
   | Ellipsis of tok
   | DeepEllipsis of expr bracket
@@ -340,6 +349,16 @@ and dotOp =
   (* . *)
   | Arrow (* -> *)
 
+and fold_expr =
+  | LeftFold of (* ... *) tok * operator wrap * expr
+  | RightFold of expr * operator wrap * (* ... *) tok
+  | BinaryFold of expr * (operator wrap * (* ... *) tok * operator wrap) * expr
+
+and requirement =
+  | ExprReq of expr option * sc
+  | TypeNameReq of (* typename *) tok * name
+  | CompoundReq of expr paren * (* noexcept *) tok option * type_ option * sc
+
 (* ------------------------------------------------------------------------- *)
 (* Overloaded operators *)
 (* ------------------------------------------------------------------------- *)
@@ -350,9 +369,12 @@ and operator =
   | PtrOpOp of ptrOp
   | AccessOp of accessop
   | AllocOp of allocOp
+  | DotStarOp (* .* *)
+  | CoAwaitOp
   | UnaryTildeOp
   | UnaryNotOp
   | CommaOp
+  | DQuoteOp (* "" *)
 
 (* less: migrate to AST_generic_.op? *)
 and binaryOp = Arith of arithOp | Logical of logicalOp
@@ -369,7 +391,17 @@ and arithOp =
   | Or
   | Xor
 
-and logicalOp = Inf | Sup | InfEq | SupEq | Eq | NotEq | AndLog | OrLog
+and logicalOp =
+  | Inf
+  | Sup
+  | InfEq
+  | SupEq
+  | Eq
+  | NotEq
+  | (* <=> *) Spaceship
+  | AndLog
+  | OrLog
+
 and assignOp = SimpleAssign of tok | OpAssign of arithOp wrap
 
 (* less: migrate to AST_generic_.incr_decr? *)
@@ -405,6 +437,7 @@ and stmt =
   | If of
       tok
       * tok (* 'constexpr' *) option
+      (* The `decl` below is the "initializer" of the if. *)
       * condition_clause paren
       * stmt
       * (tok * stmt) option
@@ -428,24 +461,38 @@ and stmt =
   | Default of tok * tok (* : *) * case_body
   (* c++ext: *)
   | Try of tok * compound * handler list
+  (* co_return and co_yield *)
+  | CoStmt of co_operator wrap * expr option
   (* old: c++ext: gccext: there was a DeclStmt and NestedFunc before, but they
    * are now handled by stmt_or_decl *)
   | StmtTodo of todo_category * stmt list
 
+(* c++ext: *)
+and co_operator = Co_return | Co_yield
 and expr_stmt = expr option * sc
 
-and condition_clause =
+and condition_initializer =
+  | InitVarsDecl of vars_decl
+  | InitExprStmt of expr_stmt
+  | InitUsing of using
+
+and condition_subject =
   | CondClassic of expr
   (* c++ext: *)
-  | CondDecl of vars_decl * expr
-  | CondStmt of expr_stmt * expr
   (* TODO? can have also StructuredBinding? switch to onedecl? *)
   | CondOneDecl of var_decl (* vinit always Some *)
+
+and condition_clause = condition_initializer option * condition_subject
 
 and for_header =
   | ForClassic of a_expr_or_vars * expr option * expr option
   (* c++0x? TODO: var_decl can be DStructrured_binding with vinit = None  *)
-  | ForRange of var_decl (* vinit = None *) * tok (*':'*) * initialiser
+  | ForRange of
+      (* since c++20 *)
+      condition_initializer option
+      * var_decl (* vinit = None *)
+      * tok (*':'*)
+      * initialiser
   (* sgrep-ext: *)
   | ForEllipsis of tok (* ... *)
 
@@ -527,7 +574,8 @@ and decl =
   | DeclList of vars_decl
   | Func of func_definition
   (* c++ext: *)
-  | TemplateDecl of tok * template_parameters * decl
+  | TemplateDecl of
+      tok * template_parameters * (* requires *) expr option * decl
   | TemplateInstanciation of tok (* 'template' *) * var_decl (*vinit=None*) * sc
   (* c++ext: using namespace *)
   | UsingDecl of using
@@ -535,7 +583,7 @@ and decl =
   | NamespaceAlias of
       tok (*'namespace'*) * ident * tok (*=*) * a_namespace_name * sc
   (* the list can be empty *)
-  | Namespace of tok * ident option * declarations
+  | Namespace of tok * ident list * declarations
   (* the list can be empty *)
   | ExternDecl of tok * string wrap (* usually "C" *) * decl
   | ExternList of tok * string wrap * declarations
@@ -543,6 +591,8 @@ and decl =
   | Asm of tok * tok option (*volatile*) * asmbody paren * sc
   (* c++0x?: tsonly: at toplevel or in class *)
   | StaticAssert of tok * argument list paren (* last args are strings *)
+  (* since c++20 *)
+  | Concept of tok (*'concept'*) * ident * tok (*'='*) * expr * sc
   (* gccext: allow redundant ';' *)
   | EmptyDef of sc
   | NotParsedCorrectly of tok list
@@ -653,6 +703,7 @@ and functionType = {
   (* c++ext: *)
   ft_const : tok option; (* only for methods, TODO put in attribute? *)
   ft_throw : exn_spec list;
+  ft_requires : expr option;
 }
 
 and parameter =
@@ -692,6 +743,10 @@ and function_body =
   | FBDefault of tok (* '=' *) * tok (* 'default' *) * sc
   (* c++11: deleted functions *)
   | FBDelete of tok (* '=' *) * tok (* 'delete' *) * sc
+  (* c++11: function try block
+     https://en.cppreference.com/w/cpp/language/function-try-block
+  *)
+  | FBTry of tok * compound * handler list
 
 and lambda_definition = lambda_capture list bracket * function_definition
 
@@ -814,6 +869,8 @@ and type_qualifier =
   (* c++ext? *)
   | Mutable
   | Constexpr
+  | Constinit
+  | Consteval
 
 and storage =
   (* only in C, in C++ auto is for TAuto *)
@@ -823,6 +880,8 @@ and storage =
   | Extern
   (* c++0x? *)
   | StoInline
+  (* since C++11 *)
+  | ThreadLocal
 (* Friend ???? Mutable? *)
 
 (* only in declarator (not in abstract declarator) *)

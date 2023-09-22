@@ -129,7 +129,7 @@ let debug_extract_mode = ref false
 
 (* The type of the semgrep core scan. We define it here so that
    semgrep and semgrep-proprietary use the same definition *)
-type core_scan_func = Core_scan_config.t -> Core_result.result_and_exn
+type core_scan_func = Core_scan_config.t -> Core_result.result_or_exn
 
 (*****************************************************************************)
 (* Helpers *)
@@ -427,18 +427,18 @@ let errors_of_invalid_rule_errors (invalid_rules : Rule.invalid_rule_error list)
     =
   Common.map E.error_of_invalid_rule_error invalid_rules
 
-let sanity_check_invalid_patterns (res : Core_result.t) =
+let sanity_check_invalid_patterns (res : Core_result.t) :
+    Core_result.result_or_exn =
   match
     res.errors
-    |> List.find_opt (fun (err : Core_error.t) ->
-           match err.typ with
-           | Out.PatternParseError _ -> true
-           | _else_ -> false)
+    |> List.find_opt (function
+         | { Core_error.typ = Out.PatternParseError _; _ } -> true
+         | _else_ -> false)
   with
-  | None -> (None, res)
+  | None -> Ok res
   | Some err ->
       let e = Exception.catch (Failure "Pattern parse error") in
-      (Some e, { Core_result.empty_final_result with errors = [ err ] })
+      Error (e, Some err)
 
 (*****************************************************************************)
 (* Parsing (non-cached) *)
@@ -967,7 +967,7 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
 (*****************************************************************************)
 
 let scan_with_exn_handler (config : Core_scan_config.t) :
-    Core_result.result_and_exn =
+    Core_result.result_or_exn =
   try
     let timed_rules =
       Common.with_time (fun () -> rules_from_rule_source config)
@@ -985,7 +985,4 @@ let scan_with_exn_handler (config : Core_scan_config.t) :
   | exn when not !Flag_semgrep.fail_fast ->
       let e = Exception.catch exn in
       logger#info "Uncaught exception: %s" (Exception.to_string e);
-      let res =
-        { RP.empty_final_result with errors = [ E.exn_to_error None "" e ] }
-      in
-      (Some e, res)
+      Error (e, None)

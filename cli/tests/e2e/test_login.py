@@ -119,4 +119,4 @@ def test_login(tmp_path, mocker):
     )
     assert result.exit_code == 7
     assert mocked_config.called
-    assert "remote-url_0 was not a mapping" in result.output
+    assert "remote-registry_0 was not a mapping" in result.output

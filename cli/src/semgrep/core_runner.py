@@ -55,8 +55,6 @@ from semgrep.error import SemgrepError
 from semgrep.error import with_color
 from semgrep.output_extra import OutputExtra
 from semgrep.parsing_data import ParsingData
-from semgrep.profiling import ProfilingData
-from semgrep.profiling import Times
 from semgrep.rule import Rule
 from semgrep.rule import RuleProduct
 from semgrep.rule_match import OrderedRuleMatchList
@@ -844,6 +842,7 @@ class CoreRunner:
         timeout_threshold: int,
         interfile_timeout: int,
         optimizations: str,
+        allow_untrusted_postprocessors: bool,
         core_opts_str: Optional[str],
     ):
         self._binary_path = engine_type.get_binary_path()
@@ -855,6 +854,7 @@ class CoreRunner:
         self._timeout_threshold = timeout_threshold
         self._interfile_timeout = interfile_timeout
         self._optimizations = optimizations
+        self._allow_untrusted_postprocessors = allow_untrusted_postprocessors
         self._core_opts = shlex.split(core_opts_str) if core_opts_str else []
 
     def _extract_core_output(
@@ -1056,7 +1056,7 @@ class CoreRunner:
         max_timeout_files: Set[Path] = set()
         # TODO this is a quick fix, refactor this logic
 
-        profiling_data: Optional[ProfilingData] = None
+        profiling_data: Optional[out.Profile] = None
         parsing_data: ParsingData = ParsingData()
 
         # Create an exit stack context manager to properly handle closing
@@ -1135,6 +1135,9 @@ class CoreRunner:
                         "Secrets post processors tried to run without the pro-engine."
                     )
 
+            if self._allow_untrusted_postprocessors:
+                cmd.append("-allow-untrusted-postprocessors")
+
             # TODO: use exact same command-line arguments so just
             # need to replace the SemgrepCore.path() part.
             if engine.is_pro:
@@ -1207,16 +1210,7 @@ class CoreRunner:
                         )
 
             if core_output.time:
-                timing = core_output.time
-                profiling_data = ProfilingData(core_output.time)
-                for t in timing.targets:
-                    rule_timings = {
-                        rt.rule_id: Times(rt.parse_time, rt.match_time)
-                        for rt in t.rule_times
-                    }
-                    profiling_data.set_file_times(
-                        Path(t.path.value), rule_timings, t.run_time
-                    )
+                profiling_data = core_output.time
 
             # end with tempfile.NamedTemporaryFile(...) ...
             outputs = core_matches_to_rule_matches(rules, core_output)
