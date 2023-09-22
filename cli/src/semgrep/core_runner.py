@@ -699,7 +699,7 @@ class Plan:
         learn_more_url = with_color(
             Colors.cyan, "https://semgrep.dev/products/cloud-platform/", underline=True
         )
-        login_command = with_color(Colors.cyan, "semgrep login")
+        login_command = with_color(Colors.gray, "`semgrep login`")
         is_logged_in = auth.get_token() is not None
         all_enabled = True  # assume all enabled until we find a disabled product
 
@@ -708,7 +708,7 @@ class Plan:
                 "Semgrep OSS",
                 True,
                 [
-                    "Basic security coverage for first-party code vulnerabilities",
+                    "Basic security coverage for first-party code vulnerabilities.",
                 ],
             ),
             (
@@ -738,10 +738,10 @@ class Plan:
         if not is_logged_in:
             message = "\n".join(
                 wrap(
-                    f"💎 Get started with all Semgrep products via {login_command}",
+                    f"💎 Get started with all Semgrep products via {login_command}.",
                     width=80,
                 )
-                + [f"✨ Learn more at {learn_more_url}"]
+                + [f"✨ Learn more at {learn_more_url}."]
             )
             console.print(f"\n{message}\n")
         elif not all_enabled:
@@ -782,17 +782,19 @@ class Plan:
                 # For users with metrics enabled who are running scan without auth,
                 # we should suggest they login and run semgrep ci.
                 if is_scan and metrics_enabled:
+                    login_command = with_color(Colors.gray, "`semgrep login`")
+                    ci_command = with_color(Colors.gray, "`semgrep ci`")
                     if not has_auth:
                         message = sep.join(
                             wrap(
-                                "💎 Sign in with `semgrep login` and run `semgrep ci` to find dependency vulnerabilities and advanced cross-file findings.",
+                                f"💎 Sign in with {login_command} and run {ci_command} to find dependency vulnerabilities and advanced cross-file findings.",
                                 width=70,
                             )
                         )
                     elif not is_supply_chain:
                         message = sep.join(
                             wrap(
-                                "💎 Run `semgrep ci` to find dependency vulnerabilities and advanced cross-file findings.",
+                                f"💎 Run {ci_command} to find dependency vulnerabilities and advanced cross-file findings.",
                                 width=70,
                             )
                         )
