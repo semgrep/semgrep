@@ -50,6 +50,8 @@
  * LATER: remove some intermediate types.
  *)
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Debug/Profile choice *)
 (*****************************************************************************)
@@ -80,6 +82,23 @@ let debug_info_to_option = function
   | Debug { profiling; _ } -> Some profiling
   | Time { profiling } -> Some profiling
   | No_info -> None
+
+let merge_debug_info merge_profiling a b =
+  match (a, b) with
+  | Debug a_extra, Debug b_extra ->
+      Debug
+        {
+          skipped_targets = a_extra.skipped_targets @ b_extra.skipped_targets;
+          profiling = merge_profiling a_extra.profiling b_extra.profiling;
+        }
+  | Time a_extra, Time b_extra ->
+      Time { profiling = merge_profiling a_extra.profiling b_extra.profiling }
+  | No_info, No_info -> No_info
+  | Debug _, _
+  | Time _, _
+  | No_info, _ ->
+      logger#error "Impossible: Mode mismatch";
+      No_info
 
 let mode = ref MNo_info
 
@@ -132,6 +151,14 @@ type t = {
   max_memory_bytes : int;
 }
 [@@deriving show]
+
+let merge a b : t =
+  {
+    rules = a.rules @ b.rules;
+    rules_parse_time = a.rules_parse_time +. b.rules_parse_time;
+    file_times = a.file_times @ b.file_times;
+    max_memory_bytes = Int.max a.max_memory_bytes b.max_memory_bytes;
+  }
 
 (*****************************************************************************)
 (* Create empty versions of profiling objects *)
