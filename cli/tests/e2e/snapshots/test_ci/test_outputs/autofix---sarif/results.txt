@@ -418,6 +418,35 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         },
         {
           "fingerprints": {
+            "matchBasedId/v1": "e160d5d9982bc004e18272a890af8fc2539063a06782d2f509b2c2d9b7e58c5b095443b568847f7c9ab25f68f9b5c7a1dea764e514d0480bab7b12dca08f4a57_0"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "foo.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 13,
+                  "endLine": 27,
+                  "snippet": {
+                    "text": "    sink(d2)"
+                  },
+                  "startColumn": 5,
+                  "startLine": 27
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "unsafe use of danger"
+          },
+          "properties": {},
+          "ruleId": "taint-test"
+        },
+        {
+          "fingerprints": {
             "matchBasedId/v1": "2c4ff12fcdf80ef1c00dd0f566ae102d792c7ba68e560d70f111aae3b3216c0b1b943e74d2ce29c0361f1fbc37bd4e9aafd32c3435a36c61b8bd3963efe0d7a1_0"
           },
           "locations": [
@@ -446,35 +475,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
             "exposure": "reachable"
           },
           "ruleId": "supply-chain1"
-        },
-        {
-          "fingerprints": {
-            "matchBasedId/v1": "e160d5d9982bc004e18272a890af8fc2539063a06782d2f509b2c2d9b7e58c5b095443b568847f7c9ab25f68f9b5c7a1dea764e514d0480bab7b12dca08f4a57_0"
-          },
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "foo.py",
-                  "uriBaseId": "%SRCROOT%"
-                },
-                "region": {
-                  "endColumn": 13,
-                  "endLine": 27,
-                  "snippet": {
-                    "text": "    sink(d2)"
-                  },
-                  "startColumn": 5,
-                  "startLine": 27
-                }
-              }
-            }
-          ],
-          "message": {
-            "text": "unsafe use of danger"
-          },
-          "properties": {},
-          "ruleId": "taint-test"
         }
       ],
       "tool": {

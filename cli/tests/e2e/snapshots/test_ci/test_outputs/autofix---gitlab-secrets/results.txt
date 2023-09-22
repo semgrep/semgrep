@@ -264,6 +264,43 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "date": "<MASKED>Z",
         "sha": "0000000"
       },
+      "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:taint-test",
+      "description": "unsafe use of danger",
+      "details": {},
+      "flags": [],
+      "id": "05a6d679-3a62-42a4-9ff8-3113ef4a83b3",
+      "identifiers": [
+        {
+          "name": "Semgrep - taint-test",
+          "type": "semgrep_type",
+          "url": "https://semgrep.dev/r/taint-test",
+          "value": "taint-test"
+        }
+      ],
+      "location": {
+        "end_line": 27,
+        "file": "foo.py",
+        "start_line": 27
+      },
+      "message": "unsafe use of danger",
+      "raw_source_code_extract": [
+        "    sink(d2)\n"
+      ],
+      "scanner": {
+        "id": "semgrep",
+        "name": "Semgrep",
+        "vendor": {
+          "name": "Semgrep"
+        }
+      },
+      "severity": "Medium"
+    },
+    {
+      "category": "secret_detection",
+      "commit": {
+        "date": "<MASKED>Z",
+        "sha": "0000000"
+      },
       "cve": "poetry.lock:f53a023eedfa3fbf2925ec7dc76eecdc954ea94b7e47065393dbad519613dc89:supply-chain1",
       "description": "found a dependency",
       "details": {
@@ -301,43 +338,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         }
       },
       "severity": "High"
-    },
-    {
-      "category": "secret_detection",
-      "commit": {
-        "date": "<MASKED>Z",
-        "sha": "0000000"
-      },
-      "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:taint-test",
-      "description": "unsafe use of danger",
-      "details": {},
-      "flags": [],
-      "id": "05a6d679-3a62-42a4-9ff8-3113ef4a83b3",
-      "identifiers": [
-        {
-          "name": "Semgrep - taint-test",
-          "type": "semgrep_type",
-          "url": "https://semgrep.dev/r/taint-test",
-          "value": "taint-test"
-        }
-      ],
-      "location": {
-        "end_line": 27,
-        "file": "foo.py",
-        "start_line": 27
-      },
-      "message": "unsafe use of danger",
-      "raw_source_code_extract": [
-        "    sink(d2)\n"
-      ],
-      "scanner": {
-        "id": "semgrep",
-        "name": "Semgrep",
-        "vendor": {
-          "name": "Semgrep"
-        }
-      },
-      "severity": "Medium"
     }
   ]
 }
