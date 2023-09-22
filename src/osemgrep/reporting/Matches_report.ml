@@ -28,19 +28,6 @@ let group_titles = function
   | `Blocking -> "Blocking Code Finding"
   | `Merged -> "Code Finding"
 
-let sort_matches (matches : Out.cli_match list) =
-  matches
-  |> List.sort (fun (m1 : Out.cli_match) (m2 : Out.cli_match) ->
-         match String.compare m2.path m1.path with
-         | 0 -> (
-             match String.compare m2.check_id m1.check_id with
-             | 0 -> (
-                 match Int.compare m2.start.line m1.start.line with
-                 | 0 -> Int.compare m2.start.col m1.start.col
-                 | x -> x)
-             | x -> x)
-         | x -> x)
-
 let is_blocking (json : Yojson.Basic.t) =
   match Yojson.Basic.Util.member "dev.semgrep.actions" json with
   | `List stuff ->
@@ -296,7 +283,7 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
 let pp_cli_output ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
     (cli_output : Out.cli_output) =
   let groups =
-    cli_output.results |> sort_matches
+    cli_output.results |> Cli_json_output.sort_cli_matches
     |> Common.group_by (fun (m : Out.cli_match) ->
            (* TODO: python (text.py):
               if match.product == RuleProduct.sast:

@@ -7,6 +7,6 @@
 [94m[22m[24m6 | [0m    languages: [python]
 [94m[22m[24m7 | [0m    severit: ERROR
 
-[31m[22m[24mAdditional properties are not allowed ('severit' was unexpected)[0m
+[31m[22m[24mOne of these properties is missing: 'severity'[0m
 
 [31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m Ran with --strict and got 1 error while loading configs

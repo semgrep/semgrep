@@ -81,7 +81,7 @@ jobs:
             jq -s '.[0].manifests+=.[1].manifests|.[0]' ${MERGED_IMAGE_PATH}/index.json index.json > ${MERGED_IMAGE_PATH}/index.tmp
             mv ${MERGED_IMAGE_PATH}/index.tmp ${MERGED_IMAGE_PATH}/index.json
           done
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v3
         if: ${{ ! inputs.dry-run }}
         with:
           username: ${{ secrets.DOCKER_USERNAME }}

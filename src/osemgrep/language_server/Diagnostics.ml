@@ -3,9 +3,14 @@ open Types
 module Conv = Convert_utils
 module Out = Semgrep_output_v1_t
 
-let diagnostic_of_match (m : Out.cli_match) =
+let diagnostic_of_match is_intellij (m : Out.cli_match) =
   let severity = Conv.severity_of_string m.extra.severity in
   let message = m.extra.message in
+  let message =
+    if String.equal message "" then
+      Printf.sprintf "Semgrep found: %s" m.check_id
+    else message
+  in
   let code = `String m.check_id in
   let shortlink =
     let metadata = (m.extra.metadata :> Yojson.Safe.t) in
@@ -15,6 +20,13 @@ let diagnostic_of_match (m : Out.cli_match) =
         |> Yojson.Safe.Util.member "shortlink"
         |> Yojson.Safe.Util.to_string_option
     | _ -> None
+  in
+  let message =
+    match shortlink with
+    (* IntelliJ doesn't display code descriptions:/ so we must insert them here *)
+    | Some s when is_intellij ->
+        message ^ Printf.sprintf "\nSemgrep(<a href=\"%s\">%s</a>)" s m.check_id
+    | _ -> message
   in
   let codeDescription =
     Option.bind shortlink (fun s ->
@@ -29,11 +41,11 @@ let diagnostic_of_match (m : Out.cli_match) =
   | None -> diagnostic ()
   | Some codeDescription -> diagnostic ~codeDescription ()
 
-let diagnostics_of_file matches file =
+let diagnostics_of_file is_intellij matches file =
   let matches =
     List.filter (fun (m : Out.cli_match) -> Fpath.v m.path = file) matches
   in
-  let diagnostics = Common.map diagnostic_of_match matches in
+  let diagnostics = Common.map (diagnostic_of_match is_intellij) matches in
   let ranges_overlap (a : Diagnostic.t) (b : Diagnostic.t) =
     if a.range.start.line = b.range.start.line then
       a.range.start.character <= b.range.start.character
@@ -54,5 +66,5 @@ let diagnostics_of_file matches file =
   in
   Server_notification.PublishDiagnostics params
 
-let diagnostics_of_results results files =
-  Common.map (diagnostics_of_file results) files
+let diagnostics_of_results ~is_intellij results files =
+  Common.map (diagnostics_of_file is_intellij results) files

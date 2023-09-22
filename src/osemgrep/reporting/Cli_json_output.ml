@@ -323,6 +323,61 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
 (*****************************************************************************)
 (* LATER: we should get rid of those intermediate Out.core_xxx *)
 
+(* This is a cursed function that calculates everything but the index part
+ * of the match_based_id. It's cursed because we need hashes to be exactly
+ * the same, but the algorithm used on the python side to generate
+ * the final string thats hashed has some python specific quirks.
+ *
+ * The way match based ID is calculated on the python side
+ * is as follows:
+ * (see https://github.com/returntocorp/semgrep/blob/2d34ce584d16c4e954349690a5f12fae877a94d6/cli/src/semgrep/rule.py#L289-L334)
+ * 1. Sort all top level keys (i.e pattern, patterns etc.) alphabetically
+ * 2. For each key: DFS the tree and find all pattern values (i.e. the rhs of pattern: <THING>)
+ * 3. Sort all pattern values alphabetically and concatenate them with a space
+ * 4. Concatenate all the sorted pattern values with a space
+ * 5. Hash the tuple `(sorted_pattern_values, path, rule_id)` w/ blake2b
+ * 6. Append the index of the match in the list of matches for the rule (see [index_match_based_ids])
+ *
+ * Austin: I wrote the initial match based ID, and this one below is a port of it.
+ * Looking back it seems like I ended up writing a roundabout version of the below algorithm
+ * which is how this function works
+ * 1. Same as before
+ * 2. for each rule: get all xpatterns, then sort them, and concatenate them with a space
+ * 3. Sort all of step 2 results alphabetically and concatenate them with a space
+ * 4. Same as step 5 and 6
+ *
+ * Assumptions:
+ * Somewhere it seems that all keys are already sorted alphabetically when the rule is parsed.
+ * I have not seen this code. I simply have faith that it is true and this will not change.
+ *
+ * I'm also hoping that [interpolate_metavariables] works similar to what we do on the python side
+ *
+ * I have not tested this code beyond checking a bunch of examples manually.
+ *
+ * There's some weird thing we do w/ join mode. I am hoping that this doesn't matter irl
+ *)
+let match_based_id_partial rule rule_id metavars path =
+  let xpats = Rule.xpatterns_of_rule rule in
+  let xpat_strs =
+    xpats |> Common.map (fun (xpat : Xpattern.t) -> fst xpat.pstr)
+  in
+  let sorted_xpat_strs = List.sort String.compare xpat_strs in
+  let xpat_str = String.concat " " sorted_xpat_strs in
+  let metavars = Option.value ~default:[] metavars in
+  let xpat_str_interp =
+    interpolate_metavars xpat_str metavars path |> String.escaped
+  in
+  (* Python doesn't escape the double quote character, but ocaml does :/ so we need this monstrosity *)
+  let py_esc_reg = Str.regexp "\\\\\\\"" in
+  let xpat_str_interp = Str.global_replace py_esc_reg "\"" xpat_str_interp in
+  (* We have been hashing w/ this PosixPath thing in python so we must recreate it here  *)
+  (* We also have been hashing a tuple formatted as below *)
+  let string =
+    spf "('%s', PosixPath('%s'), '%s')" xpat_str_interp path rule_id
+  in
+  let hash = Digestif.BLAKE2B.digest_string string |> Digestif.BLAKE2B.to_hex in
+  hash
+
 let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
     Out.cli_match =
   match m with
@@ -348,12 +403,16 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
         try Hashtbl.find hrules (Rule_ID.of_string rule_id) with
         | Not_found -> raise Impossible
       in
+      let rule_message = rule.message in
       let message =
         match message with
-        (* message where the metavars have been interpolated *)
-        | Some s -> interpolate_metavars s metavars path
-        | None -> ""
+        | Some s when not String.(equal empty s) -> s
+        | Some _
+        | None ->
+            rule_message
       in
+      (* message where the metavars have been interpolated *)
+      let message = interpolate_metavars message metavars path in
       let fix = render_fix hrules m in
       let check_id = rule_id in
       let metavars = Some metavars in
@@ -390,9 +449,7 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
             fix_regex = None;
             (* TODO: extra fields *)
             is_ignored = Some false;
-            (* LATER *)
-            (* TODO: rule_match.match_based_id *)
-            fingerprint = "0x42";
+            fingerprint = match_based_id_partial rule rule_id metavars path;
             sca_info = None;
             fixed_lines = None;
             dataflow_trace = None;
@@ -403,6 +460,34 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
             extra_extra;
           };
       }
+
+(*
+   Order by:
+     file path, start line, start column, end line, end column, rule name
+
+   This uses the same ordering as in pysemgrep.
+*)
+let compare_cli_matches (a : Out.cli_match) (b : Out.cli_match) =
+  let c = String.compare a.path b.path in
+  if c <> 0 then c
+  else
+    let a_start = a.start in
+    let b_start = b.start in
+    let c = Int.compare a_start.line b_start.line in
+    if c <> 0 then c
+    else
+      let c = Int.compare a_start.col b_start.col in
+      if c <> 0 then c
+      else
+        let a_end = a.end_ in
+        let b_end = b.end_ in
+        let c = Int.compare a_end.line b_end.line in
+        if c <> 0 then c
+        else
+          let c = Int.compare a_end.col b_end.col in
+          if c <> 0 then c else String.compare a.check_id b.check_id
+
+let sort_cli_matches xs = List.sort compare_cli_matches xs
 
 (*
  # Sort results so as to guarantee the same results across different
@@ -420,6 +505,54 @@ let dedup_and_sort (xs : Out.cli_match list) : Out.cli_match list =
            let key = x in
            Hashtbl.replace seen key true;
            true)
+  |> sort_cli_matches
+
+(* This is the same algorithm for indexing as in pysemgrep. We shouldn't need to update this *)
+(* match based ids have an index appended at the end which indicates what
+ * # finding of that exact id it is in a file. This is used to dedup findings
+ * on the app side.
+ * Example:
+ * foo.py
+bad_function() # bad_function is a finding
+bad_function() # 2nd call
+ * The above findings will have the exact same match based id, but the index
+ * will be different. So the first will be <match_based_id>_0 and the second
+ * will be <match_based_id>_1.
+ *)
+let index_match_based_ids (matches : Out.cli_match list) : Out.cli_match list =
+  matches
+  (* preserve order *)
+  |> Common.mapi (fun i x -> (i, x))
+  (* Group by rule and path *)
+  |> Common.group_by (fun (_, (x : Out.cli_match)) -> (x.path, x.check_id))
+  (* Sort by start line *)
+  |> Common.map (fun (path_and_rule_id, matches) ->
+         ( path_and_rule_id,
+           List.sort
+             (fun (_, (a : Out.cli_match)) (_, (b : Out.cli_match)) ->
+               compare a.start.offset b.start.offset)
+             matches ))
+  (* Index per file *)
+  |> Common.map (fun (path_and_rule_id, matches) ->
+         let matches =
+           Common.mapi
+             (fun i (i', (x : Out.cli_match)) ->
+               ( i',
+                 {
+                   x with
+                   extra =
+                     {
+                       x.extra with
+                       fingerprint = spf "%s_%d" x.extra.fingerprint i;
+                     };
+                 } ))
+             matches
+         in
+         (path_and_rule_id, matches))
+  (* Flatten *)
+  |> List.concat_map snd
+  |> List.sort (fun (a, _) (b, _) -> a - b)
+  |> Common.map snd
 
 (*****************************************************************************)
 (* Skipped target *)

@@ -17,9 +17,9 @@ open File.Operators
 module FT = File_type
 open Rule
 module R = Rule
-module E = Semgrep_error_code
+module E = Core_error
 module P = Pattern_match
-module RP = Report
+module RP = Core_result
 module SJ = Semgrep_output_v1_j
 module Set = Set_
 module Out = Semgrep_output_v1_t
@@ -62,7 +62,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 exception No_metacheck_file of string
 
-type env = { r : Rule.t; errors : E.error list ref }
+type env = { r : Rule.t; errors : Core_error.t list ref }
 
 (*****************************************************************************)
 (* Helpers *)
@@ -200,8 +200,8 @@ let check r =
   | `Taint _ -> (* TODO *) []
   | `Steps _ -> (* TODO *) []
 
-let semgrep_check config metachecks rules =
-  let match_to_semgrep_error m =
+let semgrep_check config metachecks rules : Core_error.t list =
+  let match_to_semgrep_error (m : Pattern_match.t) : Core_error.t =
     let loc, _ = m.P.range_loc in
     (* TODO use the end location in errors *)
     let s = m.rule_id.message in
@@ -209,20 +209,20 @@ let semgrep_check config metachecks rules =
     (* TODO: why not set ~rule_id here?? bug? *)
     E.mk_error None loc s Out.SemgrepMatchFound
   in
-  let config =
+  let (config : Core_scan_config.t) =
     {
       config with
-      Runner_config.lang = Some (Xlang.of_lang Yaml);
+      lang = Some (Xlang.of_lang Yaml);
       rule_source = Some (Rule_file metachecks);
       output_format = Json true;
       (* the targets are actually the rules! metachecking! *)
       roots = rules;
     }
   in
-  let _success, res, _targets =
-    Run_semgrep.semgrep_with_raw_results_and_exn_handler config
-  in
-  res.matches |> Common.map match_to_semgrep_error
+  let res = Core_scan.scan_with_exn_handler config in
+  match res with
+  | Ok result -> result.matches |> Common.map match_to_semgrep_error
+  | Error (exn, _) -> Exception.reraise exn
 
 (* TODO *)
 
@@ -266,6 +266,7 @@ let run_checks config fparser metachecks xs =
       in
       semgrep_found_errs @ ocaml_found_errs
 
+(* for semgrep-core -check_rules *)
 let check_files mk_config fparser input =
   let config = mk_config () in
   let errors =
@@ -281,7 +282,9 @@ let check_files mk_config fparser input =
   match config.output_format with
   | Text -> List.iter (fun err -> pr2 (E.string_of_error err)) errors
   | Json _ ->
-      let res = { RP.empty_final_result with errors } in
+      let (res : Core_result.t) =
+        Core_result.mk_final_result_with_just_errors errors
+      in
       (* for the stats.okfiles, but we don't care? *)
       let nfiles = 0 in
       let json =

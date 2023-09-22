@@ -1,7 +1,7 @@
 open Common
 open File.Operators
 module J = JSON
-module E = Semgrep_error_code
+module E = Core_error
 
 (*****************************************************************************)
 (* Prelude *)
@@ -92,7 +92,7 @@ let dump_il file =
   Visit_function_defs.visit report_func_def_with_name ast
 
 let dump_v1_json file =
-  let file = Run_semgrep.replace_named_pipe_by_regular_file file in
+  let file = Core_scan.replace_named_pipe_by_regular_file file in
   match Lang.langs_of_filename file with
   | lang :: _ ->
       E.try_with_print_exn_and_reraise !!file (fun () ->
@@ -142,12 +142,12 @@ let dump_ext_of_lang () =
        (String.concat "\n" lang_to_exts))
 
 let dump_equivalences file =
-  let file = Run_semgrep.replace_named_pipe_by_regular_file file in
+  let file = Core_scan.replace_named_pipe_by_regular_file file in
   let xs = Parse_equivalences.parse file in
   pr2_gen xs
 
 let dump_rule file =
-  let file = Run_semgrep.replace_named_pipe_by_regular_file file in
+  let file = Core_scan.replace_named_pipe_by_regular_file file in
   let rules = Parse_rule.parse ~rewrite_rule_ids:None file in
   rules |> List.iter (fun r -> pr (Rule.show r))
 
@@ -169,6 +169,10 @@ let prefilter_of_rules file =
   let s = Semgrep_prefilter_j.string_of_prefilters xs in
   pr s
 
+(* This is called from 'pysemgrep ci' to get contributors from
+ * 'git log'. This must print the JSON on stdout as it is
+ * processed by core_runner.py
+ *)
 let dump_contributions () =
-  let contributions = Parse_contribution.get_contributions () in
-  pr (Semgrep_output_v1_j.string_of_contributions contributions)
+  Parse_contribution.get_contributions ()
+  |> Semgrep_output_v1_j.string_of_contributions |> pr

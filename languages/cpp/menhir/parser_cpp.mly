@@ -563,7 +563,7 @@ unary_op:
 postfix_expr:
  | primary_expr               { $1 }
 
- | postfix_expr "[" expr "]"              { ArrayAccess ($1, ($2, $3,$4)) }
+ | postfix_expr "[" expr "]"              { ArrayAccess ($1, ($2, InitExpr $3,$4)) }
  | postfix_expr "(" optl(listc(argument)) ")" { mk_funcall $1 ($2, $3, $4) }
 
  (*c++ext: ident is now a id_expression *)
@@ -614,7 +614,7 @@ primary_expr:
     { let (l, xs, r) = $1 in
       let ft_ret = nQ, TAuto l in
       let f_type = { ft_ret; ft_params = (l, [], r);
-                     ft_specs = []; ft_const = None; ft_throw = [] }
+                     ft_specs = []; ft_const = None; ft_throw = []; ft_requires = None}
       in
       let fdef = { f_type; f_body = FBDef $2; f_specs = []}
       in
@@ -869,7 +869,7 @@ iteration:
      { For ($1, ($2, ForClassic ($3, fst $4, $5), $6), $7) }
  (* c++ext: *)
  | Tfor "(" for_range_decl ":" for_range_init ")" statement
-     { For ($1, ($2, ForRange ($3, $4, $5), $6), $7) }
+     { For ($1, ($2, ForRange (None, $3, $4, $5), $6), $7) }
  (* sgrep-ext: *)
  | Tfor "(" "..." ")" statement
      { For ($1, ($2, ForEllipsis $3, $4), $5) }
@@ -904,14 +904,14 @@ statement_or_decl_cpp:
 
 %inline
 condition:
- | expr { CondClassic $1 }
+ | expr { None, CondClassic $1 }
  (* c++ext: *)
  | decl_spec_seq declaratori "=" initializer_clause
      { let (t_ret, _sto, mods) = type_and_storage_from_decl $1 in
        let (name, ftyp) = $2 in
        let ent = { name; specs = mods |> List.map (fun x -> M x) } in
        let var = { v_type = ftyp t_ret; v_init = Some (EqInit ($3, $4)) } in
-       CondOneDecl (ent, var) }
+       None, CondOneDecl (ent, var) }
 
 
 for_init_stmt:
@@ -1081,13 +1081,13 @@ direct_d:
      { (fst $1, fun x-> (snd $1)
          (nQ, (TFunction {
            ft_ret= x; ft_params = ($2, [], $3);
-           ft_specs = []; ft_const = $4; ft_throw = Option.to_list $5; })))
+           ft_specs = []; ft_const = $4; ft_throw = Option.to_list $5; ft_requires = None; })))
      }
  | direct_d "(" parameter_type_list ")" const_opt exn_spec?
      { (fst $1, fun x-> (snd $1)
           (nQ,(TFunction {
             ft_ret = x; ft_params = ($2,$3,$4);
-            ft_specs = []; ft_const = $5; ft_throw = Option.to_list $6; })))
+            ft_specs = []; ft_const = $5; ft_throw = Option.to_list $6; ft_requires = None;})))
      }
 
 (*----------------------------*)
@@ -1120,19 +1120,19 @@ direct_abstract_declarator:
  | "(" ")"
      { fun x -> (nQ, (TFunction {
        ft_ret = x; ft_params = ($1,[],$2);
-       ft_specs = []; ft_const = None; ft_throw = [];})) }
+       ft_specs = []; ft_const = None; ft_throw = []; ft_requires = None })) }
  | "(" parameter_type_list ")"
      { fun x -> (nQ, (TFunction {
          ft_ret = x; ft_params = ($1,$2,$3);
-         ft_specs = []; ft_const = None; ft_throw = []; })) }
+         ft_specs = []; ft_const = None; ft_throw = []; ft_requires = None })) }
  | direct_abstract_declarator "(" ")" const_opt exn_spec?
      { fun x -> $1 (nQ, (TFunction {
          ft_ret = x; ft_params = ($2,[],$3);
-         ft_specs = []; ft_const = $4; ft_throw = Option.to_list $5; })) }
+         ft_specs = []; ft_const = $4; ft_throw = Option.to_list $5; ft_requires = None; })) }
  | direct_abstract_declarator "(" parameter_type_list ")" const_opt exn_spec?
      { fun x -> $1 (nQ, (TFunction {
          ft_ret = x; ft_params = ($2,$3,$4);
-         ft_specs = []; ft_const = $5; ft_throw = Option.to_list $6; })) }
+         ft_specs = []; ft_const = $5; ft_throw = Option.to_list $6; ft_requires = None })) }
 
 (*-----------------------------------------------------------------------*)
 (* Parameters (use decl_spec_seq not type_spec just for 'register') *)
@@ -1147,7 +1147,8 @@ parameter_type_list:
 parameter_decl:
  | decl_spec_seq declarator
      { let (t_ret, p_specs) = type_and_specs_from_decl $1 in
-       let (name, ftyp) = fixNameForParam $2 in
+       let ii = Tok.unsafe_fake_tok "" in
+       let (name, ftyp) = fixNameForParam ii $2 in
        P (make_param (ftyp t_ret) ~p_name:(Some name) ~p_specs) }
  | decl_spec_seq abstract_declarator
      { let (t_ret, p_specs) = type_and_specs_from_decl $1 in
@@ -1160,7 +1161,7 @@ parameter_decl:
 (*c++ext: default parameter value, copy paste *)
  | decl_spec_seq declarator "=" assign_expr
      { let (t_ret, p_specs) = type_and_specs_from_decl $1 in
-       let (name, ftyp) = fixNameForParam $2 in
+       let (name, ftyp) = fixNameForParam $3 $2 in
        P (make_param (ftyp t_ret) ~p_name:(Some name) ~p_specs ~p_val:(Some ($3, $4))) }
  | decl_spec_seq abstract_declarator "=" assign_expr
      { let (t_ret, p_specs) = type_and_specs_from_decl $1 in
@@ -1432,7 +1433,7 @@ member_declarator:
 
  (* normally just ident, but ambiguity so solve by inspetcing declarator *)
  | declarator ":" const_expr
-     { let (name, _partialt) = fixNameForParam $1 in
+     { let (name, _partialt) = fixNameForParam $2 $1 in
        (fun t_ret _stoTODO ->
          (BitField (Some name, $2, t_ret, $3)))
      }
@@ -1719,7 +1720,7 @@ declaration_cpp:
 
 template_declaration:
   Ttemplate TInf_Template optl(listc(template_parameter)) TSup_Template declaration
-   { TemplateDecl ($1, ($2, $3, $4), $5) }
+   { TemplateDecl ($1, ($2, $3, $4), None, $5) }
 
 (*todo: '| type_parameter'
    * ambiguity with parameter_decl cos a type can also be 'class X'
@@ -1747,10 +1748,10 @@ namespace_definition:
  *)
 named_namespace_definition:
  | Tnamespace TIdent "{" optl(declaration_cpp+) "}"
-     { Namespace ($1, Some $2, ($3, $4, $5)) }
+     { Namespace ($1, [$2], ($3, $4, $5)) }
 
 unnamed_namespace_definition: Tnamespace "{" optl(declaration_cpp+) "}"
-     { Namespace ($1, None, ($2, $3, $4)) }
+     { Namespace ($1, [], ($2, $3, $4)) }
 
 (*************************************************************************)
 (* Function definition *)
@@ -1759,7 +1760,8 @@ unnamed_namespace_definition: Tnamespace "{" optl(declaration_cpp+) "}"
 function_definition:
  | decl_spec_seq declarator function_body
      { let (t_ret, sto) = type_and_storage_for_funcdef_from_decl $1 in
-       let x = (fst $2, fixOldCDecl ((snd $2) t_ret), sto) in
+       let ii = Tok.unsafe_fake_tok "" in
+       let x = (fst $2, fixOldCDecl ii ((snd $2) t_ret), sto) in
        fixFunc (x, $3)
      }
  (* c++0x: TODO 2 more s/r conflicts and regressions! *)

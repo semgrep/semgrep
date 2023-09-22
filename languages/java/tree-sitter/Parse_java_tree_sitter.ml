@@ -1079,7 +1079,7 @@ and resource (env : env) (x : CST.resource) =
       Right x
   | `Field_access x -> Right (field_access env x)
 
-and annotation (env : env) (x : CST.annotation) : tok * annotation =
+and annotation (env : env) (x : CST.annotation) : Tok.t * annotation =
   match x with
   | `Marker_anno (v1, v2) ->
       let v1 = token env v1 (* "@" *) in

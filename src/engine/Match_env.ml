@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open File.Operators
-module E = Semgrep_error_code
+module E = Core_error
 module Out = Semgrep_output_v1_t
 module PM = Pattern_match
 
@@ -60,7 +60,7 @@ type env = {
   rule : Rule.t;
   (* problems found during evaluation, one day these may be caught earlier by
    * the meta-checker *)
-  errors : Report.ErrorSet.t ref;
+  errors : Core_error.ErrorSet.t ref;
 }
 
 (*****************************************************************************)
@@ -78,7 +78,7 @@ let error env msg =
   let err =
     E.mk_error (Some (fst env.rule.Rule.id)) loc msg Out.MatchingError
   in
-  env.errors := Report.ErrorSet.add err !(env.errors)
+  env.errors := Core_error.ErrorSet.add err !(env.errors)
 
 (* this will be adjusted later in range_to_pattern_match_adjusted *)
 let fake_rule_id (id, str) =

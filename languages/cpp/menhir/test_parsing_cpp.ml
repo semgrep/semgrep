@@ -3,6 +3,7 @@ open File.Operators
 module PS = Parsing_stat
 module Flag = Flag_parsing
 module Flag_cpp = Flag_parsing_cpp
+module FT = File_type
 
 (*****************************************************************************)
 (* Subsystem testing *)
@@ -15,10 +16,22 @@ let test_tokens_cpp file =
   toks |> List.iter (fun x -> pr2_gen x);
   ()
 
+(* used to be in Lib_parsing_cpp.ml *)
+let find_source_files_of_dir_or_files xs =
+  File.files_of_dirs_or_files_no_vcs_nofilter xs
+  |> List.filter (fun filename ->
+         match File_type.file_type_of_file filename with
+         | FT.PL (FT.C ("l" | "y")) -> false
+         | FT.PL (FT.C _ | FT.Cplusplus _) ->
+             (* todo: fix syncweb so don't need this! *)
+             not (FT.is_syncweb_obj_file filename)
+         | _ -> false)
+  |> Common.sort
+
 let test_parse_cpp ?lang xs =
   let xs = File.Path.of_strings xs in
   let fullxs, _skipped_paths =
-    Lib_parsing_cpp.find_source_files_of_dir_or_files xs
+    find_source_files_of_dir_or_files xs
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
   Parse_cpp.init_defs !Flag_cpp.macros_h;
@@ -125,7 +138,7 @@ let test_dump_cpp_view file =
 let test_parse_cpp_fuzzy xs =
   let xs = File.Path.of_strings xs in
   let fullxs, _skipped_paths =
-    Lib_parsing_cpp.find_source_files_of_dir_or_files xs
+    find_source_files_of_dir_or_files xs
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
   fullxs
@@ -140,37 +153,6 @@ let test_parse_cpp_fuzzy xs =
                  | exn ->
                      pr2
                        (spf "PB with: %s, exn = %s" !!file (Common.exn_to_s exn)))))
-
-(*
-let test_dump_cpp_fuzzy file =
-  let fuzzy, _toks = Parse_cpp.parse_fuzzy file in
-  let v = Meta_ast_fuzzy.vof_trees fuzzy in
-  let s = OCaml.string_of_v v in
-  pr2 s
- *)
-(*
-let test_parse_cpp_dyp xs =
-  let fullxs = Lib_parsing_cpp.find_source_files_of_dir_or_files xs
-               |> Skip_code.filter_files_if_skip_list ~root:xs
-  in
-  fullxs |> Console.progress (fun k -> List.iter (fun file ->
-    k ();
-    Common.save_excursion Flag_parsing_cpp.strict_lexer true (fun () ->
-      try (
-        let _cst = Parse_cpp.parse_with_dypgen file in
-        ()
-      )
-      with exn ->
-        pr2 (spf "PB with: %s, exn = %s" file (Common.exn_to_s exn));
-        ()
-    )
-  ))
-
-let test_dump_cpp_dyp file =
-  let ast = Parse_cpp.parse_with_dypgen file in
-  let s = Cst_cpp.show_program ast in
-  pr s
-*)
 
 (*****************************************************************************)
 (* Main entry for Arg *)
@@ -188,10 +170,6 @@ let actions () =
     ( "-parse_cpp_cplusplus",
       "   <file or dir>",
       Arg_helpers.mk_action_n_arg (test_parse_cpp ~lang:Flag_cpp.Cplusplus) );
-    (*
-  "-parse_cpp_dyp", "   <file or dir>",
-  Arg_helpers.mk_action_n_arg (test_parse_cpp_dyp);
-*)
     ("-dump_cpp", "   <file>", Arg_helpers.mk_action_1_arg test_dump_cpp);
     ( "-dump_cpp_full",
       "   <file>",
@@ -199,10 +177,6 @@ let actions () =
     ( "-dump_cpp_view",
       "   <file>",
       Arg_helpers.mk_action_1_arg test_dump_cpp_view );
-    (*
-  "-dump_cpp_dyp", "   <file>",
-  Common.mk_action_1_arg test_dump_cpp_dyp;
-*)
     ( "-parse_cpp_fuzzy",
       "   <files or dirs>",
       Arg_helpers.mk_action_n_arg test_parse_cpp_fuzzy )

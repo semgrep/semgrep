@@ -9,7 +9,11 @@ module Out = Semgrep_output_v1_t
 
 (* We really don't wan't mutable state in the server.
    This is the only exception *)
-type rule_cache = { mutable rules : Rule.t list; lock : Lwt_mutex.t }
+type session_cache = {
+  mutable rules : Rule.t list;
+  mutable skipped_fingerprints : string list;
+  lock : Lwt_mutex.t;
+}
 
 type t = {
   capabilities : ServerCapabilities.t;
@@ -17,9 +21,9 @@ type t = {
   outgoing : Lwt_io.output_channel;
   workspace_folders : Fpath.t list;
   cached_scans : (Fpath.t, Out.cli_match list) Hashtbl.t;
-  cached_rules : rule_cache;
+  cached_session : session_cache;
   user_settings : UserSettings.t;
-  token : string option; (* Mostly for testing *)
+  is_intellij : bool;
 }
 
 (*****************************************************************************)
@@ -27,16 +31,18 @@ type t = {
 (*****************************************************************************)
 
 let create capabilities =
-  let cached_rules = { rules = []; lock = Lwt_mutex.create () } in
+  let cached_session =
+    { rules = []; skipped_fingerprints = []; lock = Lwt_mutex.create () }
+  in
   {
     capabilities;
     incoming = Lwt_io.stdin;
     outgoing = Lwt_io.stdout;
     workspace_folders = [];
     cached_scans = Hashtbl.create 10;
-    cached_rules;
+    cached_session;
     user_settings = UserSettings.default;
-    token = None;
+    is_intellij = false;
   }
 
 let dirty_files_of_folder folder =
@@ -62,8 +68,11 @@ let decode_rules data =
 (*****************************************************************************)
 
 let auth_token () =
-  let settings = Semgrep_settings.load () in
-  settings.api_token
+  match !Semgrep_envvars.v.app_token with
+  | Some token -> Some token
+  | None ->
+      let settings = Semgrep_settings.load () in
+      settings.api_token
 
 (* This is dynamic so if the targets file is updated we don't have to restart
  * (and reparse rules...).
@@ -100,11 +109,10 @@ let targets session =
   (* Filter targets by if only_git_dirty, if they are a dirty file *)
   targets |> List.filter member_workspaces
 
-let fetch_ci_rules_and_origins session () =
+let fetch_ci_rules_and_origins () =
   let token = auth_token () in
-  match (token, session.token) with
-  | _, Some token
-  | Some token, _ ->
+  match token with
+  | Some token ->
       let%lwt scan_config =
         Scan_helper.fetch_scan_config_async ~token ~sca:false ~dry_run:true
           ~full_scan:true ""
@@ -112,7 +120,9 @@ let fetch_ci_rules_and_origins session () =
       let conf =
         match scan_config with
         | Ok rules -> Some (decode_rules rules)
-        | _ -> None
+        | Error e ->
+            Logs.warn (fun m -> m "Failed to fetch rules from CI: %s" e);
+            None
       in
       Lwt.return conf
   | _ -> Lwt.return None
@@ -120,7 +130,7 @@ let fetch_ci_rules_and_origins session () =
 (* TODO Default to auto *)
 let fetch_rules session =
   let%lwt ci_rules =
-    if session.user_settings.ci then fetch_ci_rules_and_origins session ()
+    if session.user_settings.ci then fetch_ci_rules_and_origins ()
     else Lwt.return_none
   in
   let home = Unix.getenv "HOME" |> Fpath.v in
@@ -133,7 +143,10 @@ let fetch_rules session =
     |> Common.map Fpath.to_string
   in
   let rules_source =
-    if rules_source = [] && ci_rules = None then [ "auto" ] else rules_source
+    if rules_source = [] && ci_rules = None then (
+      Logs.app (fun m -> m "No rules source specified, using auto");
+      [ "auto" ])
+    else rules_source
   in
   let%lwt rules_and_origins =
     Lwt_list.map_p
@@ -151,7 +164,9 @@ let fetch_rules session =
     | Some r ->
         Logs.info (fun m -> m "Got %d rules from CI" (List.length r.rules));
         r :: rules_and_origins
-    | None -> rules_and_origins
+    | None ->
+        Logs.info (fun m -> m "No rules from CI");
+        rules_and_origins
   in
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origins
@@ -170,10 +185,25 @@ let fetch_rules session =
 
   Lwt.return (rules, errors)
 
-let cache_rules session =
+let fetch_skipped_fingerprints () =
+  (* At some point we should allow users to ignore ids locally *)
+  let auth_token = auth_token () in
+  match auth_token with
+  | Some token -> (
+      let%lwt deployment_opt =
+        Semgrep_App.get_scan_config_from_token_async ~token
+      in
+      match deployment_opt with
+      | Some deployment -> Lwt.return deployment.skipped_match_based_ids
+      | None -> Lwt.return [])
+  | None -> Lwt.return []
+
+let cache_session session =
   let%lwt rules, _ = fetch_rules session in
-  Lwt_mutex.with_lock session.cached_rules.lock (fun () ->
-      session.cached_rules.rules <- rules;
+  let%lwt skipped_fingerprints = fetch_skipped_fingerprints () in
+  Lwt_mutex.with_lock session.cached_session.lock (fun () ->
+      session.cached_session.rules <- rules;
+      session.cached_session.skipped_fingerprints <- skipped_fingerprints;
       Lwt.return_unit)
 
 (* Useful for when we need to reset diagnostics, such as when changing what

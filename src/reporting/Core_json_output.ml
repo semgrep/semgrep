@@ -13,12 +13,13 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 module StrSet = Common2.StringSet
 open AST_generic
-module E = Semgrep_error_code
+module E = Core_error
 module J = JSON
 module MV = Metavariable
-module RP = Report
+module RP = Core_result
 module PM = Pattern_match
 open Pattern_match
 module SJ = Semgrep_output_v1_j (* JSON conversions *)
@@ -93,19 +94,15 @@ let range_of_any_opt startp_of_match_range any =
 (* Converters *)
 (*****************************************************************************)
 
-let convert_engine_kind ek =
-  match ek with
-  | OSS -> `OSS
-  | Pro -> `PRO
-
+(* TODO: same, should reuse directly semgrep_output_v1 *)
 let convert_validation_state = function
   | Confirmed_valid -> `CONFIRMED_VALID
   | Confirmed_invalid -> `CONFIRMED_INVALID
   | Validation_error -> `VALIDATION_ERROR
   | No_validator -> `NO_VALIDATOR
 
-let convert_rule ((id, ek) : Report.rule_id_and_engine_kind) =
-  (Rule_ID.to_string id, convert_engine_kind ek)
+let convert_rule ((id, ek) : Rule_ID.t * Engine_kind.t) =
+  (Rule_ID.to_string id, ek)
 
 let metavar_string_of_any any =
   (* TODO: metavar_string_of_any is used in get_propagated_value
@@ -265,14 +262,14 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
         metavars = x.env |> Common.map (metavars startp);
         dataflow_trace;
         rendered_fix;
-        engine_kind = convert_engine_kind x.engine_kind;
+        engine_kind = x.engine_kind;
         validation_state = Some (convert_validation_state x.validation_state);
         extra_extra = None;
       };
   }
 
 let match_to_match render_fix (x : Pattern_match.t) :
-    (Out.core_match, Semgrep_error_code.error) Common.either =
+    (Out.core_match, Core_error.t) Common.either =
   try
     Left (unsafe_match_to_match render_fix x)
     (* raised by min_max_ii_by_pos in range_of_any when the AST of the
@@ -319,36 +316,71 @@ let rec explanation_to_explanation (exp : Matching_explanation.t) :
     loc = Output_utils.location_of_token_location tloc;
   }
 
-let profiling_to_profiling (profiling_data : RP.final_profiling) :
-    Out.core_timing =
-  let json_time_of_rule_times rule_times =
-    rule_times
-    |> Common.map (fun { RP.rule_id; parse_time; match_time } ->
-           { Out.rule_id = Rule_ID.to_string rule_id; parse_time; match_time })
+let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
+  let rule_ids : Rule_ID.t list =
+    profiling_data.rules |> Common.map (fun (rule : Rule.t) -> fst rule.id)
   in
   {
     Out.targets =
-      profiling_data.RP.file_times
-      |> Common.map (fun { RP.file = target; rule_times; run_time } ->
+      profiling_data.file_times
+      |> Common.map
+           (fun { Core_profiling.file = target; rule_times; run_time } ->
+             let (rule_id_to_rule_prof
+                   : (Rule_ID.t, Core_profiling.rule_profiling) Hashtbl.t) =
+               rule_times
+               |> Common.map (fun (rp : Core_profiling.rule_profiling) ->
+                      (rp.rule_id, rp))
+               |> Common.hash_of_list
+             in
              {
-               Out.path = target;
-               rule_times = json_time_of_rule_times rule_times;
+               Out.path = !!target;
+               match_times =
+                 rule_ids
+                 |> Common.map (fun rule_id ->
+                        try
+                          let rprof : Core_profiling.rule_profiling =
+                            Hashtbl.find rule_id_to_rule_prof rule_id
+                          in
+                          rprof.match_time
+                        with
+                        | Not_found -> 0.);
+               (* TODO: we could probably just aggregate in a single
+                * float instead of returning those list of parse_time
+                * which don't really make sense; we just parse once a file.
+                *)
+               parse_times =
+                 rule_ids
+                 |> Common.map (fun rule_id ->
+                        try
+                          let rprof : Core_profiling.rule_profiling =
+                            Hashtbl.find rule_id_to_rule_prof rule_id
+                          in
+                          rprof.parse_time
+                        with
+                        | Not_found -> 0.);
+               num_bytes = File.filesize target;
                run_time;
              });
-    rules =
-      Common.map
-        (fun rule -> Rule_ID.to_string (fst rule.Rule.id))
-        profiling_data.RP.rules;
+    rules = rule_ids |> Common.map Rule_ID.to_string;
     rules_parse_time = profiling_data.rules_parse_time;
     max_memory_bytes = Some profiling_data.max_memory_bytes;
+    (* TODO: does it cover all targets or just the relevant target we actually
+     * parsed for matching?
+     *)
+    total_bytes =
+      profiling_data.file_times
+      |> Common.map (fun { Core_profiling.file = target; _ } ->
+             File.filesize target)
+      |> Common2.sum_int;
+    (* those are filled later in pysemgrep from the Profiler class *)
+    profiling_times = [];
   }
 
 (*****************************************************************************)
 (* Final semgrep-core output *)
 (*****************************************************************************)
 
-let core_output_of_matches_and_errors render_fix nfiles (res : RP.final_result)
-    =
+let core_output_of_matches_and_errors render_fix nfiles (res : Core_result.t) =
   let matches, new_errs =
     Common.partition_either (match_to_match render_fix) res.RP.matches
   in
@@ -363,10 +395,10 @@ let core_output_of_matches_and_errors render_fix nfiles (res : RP.final_result)
   let count_ok = nfiles - count_errors in
   let skipped_targets, profiling =
     match res.extra with
-    | RP.Debug { skipped_targets; profiling } ->
+    | Core_profiling.Debug { skipped_targets; profiling } ->
         (Some skipped_targets, Some profiling)
-    | RP.Time { profiling } -> (None, Some profiling)
-    | RP.No_info -> (None, None)
+    | Core_profiling.Time { profiling } -> (None, Some profiling)
+    | Core_profiling.No_info -> (None, None)
   in
   {
     Out.results = matches;

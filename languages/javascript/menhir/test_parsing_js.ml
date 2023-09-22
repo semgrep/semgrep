@@ -3,6 +3,7 @@ open File.Operators
 module Flag = Flag_parsing
 module J = JSON
 module PS = Parsing_stat
+module FT = File_type
 
 (*****************************************************************************)
 (* Subsystem testing *)
@@ -77,11 +78,14 @@ let test_parse_common xs fullxs ext =
 let test_parse_js xs =
   let xs = File.Path.of_strings xs in
   let fullxs =
-    Lib_parsing_js.find_source_files_of_dir_or_files ~include_scripts:false xs
+    File.files_of_dirs_or_files_no_vcs_nofilter xs
+    |> List.filter (fun filename ->
+           match FT.file_type_of_file filename with
+           | FT.PL (FT.Web FT.Js) -> true
+           | _else_ -> false)
+    |> Common.sort
   in
   test_parse_common xs fullxs "js"
-
-module FT = File_type
 
 let test_parse_ts xs =
   let xs = File.Path.of_strings xs in
@@ -110,76 +114,6 @@ let test_dump_ts file =
       pr s)
 
 (*****************************************************************************)
-(* JSON output *)
-(*****************************************************************************)
-
-let info_to_json_range info =
-  let loc = Tok.unsafe_loc_of_tok info in
-  ( J.Object
-      [ ("line", J.Int loc.Tok.pos.line); ("col", J.Int loc.Tok.pos.column) ],
-    J.Object
-      [
-        ("line", J.Int loc.Tok.pos.line);
-        ("col", J.Int (loc.Tok.pos.column + String.length loc.Tok.str));
-      ] )
-
-let parse_js_r2c xs =
-  let xs = File.Path.of_strings xs in
-  let fullxs =
-    Lib_parsing_js.find_source_files_of_dir_or_files ~include_scripts:false xs
-  in
-  let json =
-    J.Array
-      (fullxs
-      |> Common.map_filter (fun file ->
-             let nblines = File.cat file |> List.length in
-             try
-               let _res =
-                 Common.save_excursion Flag.error_recovery false (fun () ->
-                     Common.save_excursion Flag.exn_when_lexical_error true
-                       (fun () ->
-                         Common.save_excursion Flag.show_parsing_error true
-                           (fun () -> Parse_js.parse !!file)))
-               in
-               (* only return a finding if there was a parse error so we can
-                * sort by the number of parse errors in the triage tool
-                *)
-               None
-             with
-             | ( Parsing_error.Syntax_error info
-               | Parsing_error.Lexical_error (_, info) ) as exn ->
-                 let startp, endp = info_to_json_range info in
-                 let message =
-                   match exn with
-                   | Parsing_error.Syntax_error _ -> "syntax error"
-                   | Parsing_error.Lexical_error (s, _) -> "lexical error: " ^ s
-                   | _ -> raise Impossible
-                 in
-                 Some
-                   (J.Object
-                      [
-                        ("check_id", J.String "pfff-parse_js_r2c");
-                        ("path", J.String !!file);
-                        ("start", startp);
-                        ("end", endp);
-                        ( "extra",
-                          J.Object
-                            [
-                              ("size", J.Int nblines);
-                              ("message", J.String message)
-                              (*
-         "correct", J.Int stat.PI.correct;
-         "bad", J.Int stat.PI.bad;
-         "timeout", J.Bool stat.PI.have_timeout;
-*);
-                            ] );
-                      ])))
-  in
-  let json = J.Object [ ("results", json) ] in
-  let s = J.string_of_json json in
-  pr s
-
-(*****************************************************************************)
 (* Main entry for Arg *)
 (*****************************************************************************)
 
@@ -190,13 +124,4 @@ let actions () =
     ("-parse_ts", "   <file or dir>", Arg_helpers.mk_action_n_arg test_parse_ts);
     ("-dump_js", "   <file>", Arg_helpers.mk_action_1_arg test_dump_js);
     ("-dump_ts", "   <file>", Arg_helpers.mk_action_1_arg test_dump_ts);
-    ( "-parse_js_r2c",
-      "   <file or dir>",
-      Arg_helpers.mk_action_n_arg parse_js_r2c )
-    (* old:
-       "-json_js", "   <file> export the AST of file into JSON",
-       Arg_helpers.mk_action_1_arg test_json_js;
-       "-parse_esprima_json", " <file> ",
-       Arg_helpers.mk_action_1_arg test_esprima;
-    *);
   ]

@@ -11,12 +11,19 @@
  *
  *)
 open Common
-open Ast_java
 open File.Operators
 module PS = Parsing_stat
-module V = Visitor_java
 module Flag = Flag_parsing
 module Ast = Ast_java
+module FT = File_type
+
+let find_source_files_of_dir_or_files xs =
+  File.files_of_dirs_or_files_no_vcs_nofilter xs
+  |> List.filter (fun filename ->
+         match File_type.file_type_of_file filename with
+         | FT.PL FT.Java -> true
+         | _ -> false)
+  |> Common.sort
 
 (*****************************************************************************)
 (* Subsystem testing *)
@@ -26,7 +33,7 @@ let test_parse xs =
   let xs = xs |> File.Path.of_strings |> List.map File.fullpath in
 
   let fullxs, _skipped_paths =
-    Lib_parsing_java.find_source_files_of_dir_or_files xs
+    find_source_files_of_dir_or_files xs
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
 
@@ -81,54 +88,6 @@ let test_dump file =
   in
   pr s
 
-let test_visitor file =
-  let visitor =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kexpr =
-          (fun (k, _) e ->
-            match e with
-            | Ast_java.Literal (Ast_java.Int (s, _)) ->
-                pr2_gen ("int:", s);
-                k e
-            | Ast_java.Dot (e, _, (_s, _)) ->
-                pr2 "dot: s";
-                k e
-            | _ -> k e);
-      }
-  in
-
-  let ast = Parse_java.parse_program file in
-  visitor (AProgram ast);
-  ()
-
-let test_visitor_print file =
-  let ast = Parse_java.parse_program file in
-
-  (* prints out tokens as they are visited *)
-  let hooks =
-    {
-      Visitor_java.default_visitor with
-      Visitor_java.kinfo =
-        (fun (_k, _) info ->
-          let s = Tok.content_of_tok info in
-          pr2 s);
-      Visitor_java.kexpr =
-        (fun (k, _) e ->
-          match e with
-          | Ast_java.Literal (Ast_java.Int (s, _)) ->
-              pr2_gen ("int:", s);
-              k e
-          | Ast_java.Dot (e, _, (_s, _)) ->
-              pr2 "dot: s";
-              k e
-          | _ -> k e);
-    }
-  in
-  let visitor = Visitor_java.mk_visitor hooks in
-  visitor (Ast.AProgram ast)
-
 (*****************************************************************************)
 (* Main entry for Arg *)
 (*****************************************************************************)
@@ -138,8 +97,4 @@ let actions () =
     ("-tokens_java", "   <file>", Arg_helpers.mk_action_1_arg test_lexer);
     ("-parse_java", "   <file or dir>", Arg_helpers.mk_action_n_arg test_parse);
     ("-dump_java", "   <file>", Arg_helpers.mk_action_1_arg test_dump);
-    ("-visitor_java", "   <file>", Arg_helpers.mk_action_1_arg test_visitor);
-    ( "-visitor_java_print",
-      "   <file>",
-      Arg_helpers.mk_action_1_arg test_visitor_print );
   ]

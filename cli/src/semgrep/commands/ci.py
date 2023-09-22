@@ -30,6 +30,7 @@ from semgrep.constants import OutputFormat
 from semgrep.engine import EngineType
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
+from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.meta import generate_meta_from_environment
@@ -110,7 +111,7 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     logger.info(f"Not on head ref: {metadata.head_branch_hash}; checking that out now.")
     git_check_output(["git", "checkout", metadata.head_branch_hash])
 
-    atexit.register(git_check_output, ["git", "checkout", stashed_rev])
+    atexit.register(git_check_output, ["git", "checkout", stashed_rev], os.getcwd())
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
@@ -155,6 +156,7 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     is_flag=True,
     hidden=True,
 )
+@click.option("--code", is_flag=True, hidden=True)
 @click.option("--beta-testing-secrets", is_flag=True, hidden=True)
 @click.option(
     "--suppress-errors/--no-suppress-errors",
@@ -174,7 +176,10 @@ def ci(
     audit_on: Sequence[str],
     autofix: bool,
     baseline_commit: Optional[str],
+    # TODO: Remove after October 2023. Left for a error message
+    # redirect to `--secrets` aka run_secrets_flag.
     beta_testing_secrets: bool,
+    code: bool,
     core_opts: Optional[str],
     config: Optional[Tuple[str, ...]],
     debug: bool,
@@ -201,6 +206,8 @@ def ci(
     requested_engine: EngineType,
     quiet: bool,
     rewrite_rule_ids: bool,
+    run_secrets_flag: bool,
+    allow_untrusted_postprocessors: bool,
     supply_chain: bool,
     scan_unknown_extensions: bool,
     time_flag: bool,
@@ -260,17 +267,8 @@ def ci(
         raise RuntimeError("The token and/or config are misconfigured")
 
     if beta_testing_secrets:
-        # TODO: I think this should eventually be PRO_INTRAFILE, but
-        # the secrets code currently hooks into the interfile search.
-        if requested_engine is EngineType.PRO_INTERFILE:
-            logger.info("No need to specify `--beta-testing-secrets` and `--pro`")
-        elif requested_engine is None:
-            requested_engine = EngineType.PRO_INTERFILE
-        else:
-            logger.info(
-                "Cannot use the `--beta-testing-secrets` flag with engine types besides `--pro`"
-            )
-            sys.exit(FATAL_EXIT_CODE)
+        logger.info("Please use --secrets instead of --beta-testing-secrets")
+        sys.exit(FATAL_EXIT_CODE)
 
     output_settings = OutputSettings(
         output_format=output_format,
@@ -309,7 +307,8 @@ def ci(
             console.print(Title("Connection", order=2))
             metadata_dict = metadata.to_dict()
             metadata_dict["is_sca_scan"] = supply_chain
-            metadata_dict["is_secrets_scan"] = beta_testing_secrets
+            metadata_dict["is_code_scan"] = code
+            metadata_dict["is_secrets_scan"] = run_secrets_flag
             proj_config = ProjectConfig.load_all()
             metadata_dict = {**metadata_dict, **proj_config.to_dict()}
             with Progress(
@@ -347,6 +346,15 @@ def ci(
                 )
                 progress_bar.update(products_task, completed=100)
 
+            if (
+                scan_handler.rules == '{"rules":[]}'
+                and scan_handler.enabled_products == ["sast"]
+            ):
+                console.print(
+                    f"No rules configured. Visit {state.env.semgrep_url}/orgs/-/policies to configure rules to scan your code.\n"
+                )
+                sys.exit(MISSING_CONFIG_EXIT_CODE)
+
             config = (scan_handler.rules,)
 
     except Exception as e:
@@ -356,10 +364,22 @@ def ci(
         logger.info(f"Could not start scan {e}")
         sys.exit(FATAL_EXIT_CODE)
 
+    # Handled error outside engine type for more actionable advice.
+    if run_secrets_flag and requested_engine is EngineType.OSS:
+        logger.info(
+            "The --secrets and --oss flags are incompatible. Semgrep Secrets is a proprietary extension of Open Source Semgrep."
+        )
+        sys.exit(FATAL_EXIT_CODE)
+
+    run_secrets = run_secrets_flag or bool(
+        scan_handler and "secrets" in scan_handler.enabled_products
+    )
+
     engine_type = EngineType.decide_engine_type(
         requested_engine=requested_engine,
         scan_handler=scan_handler,
         git_meta=metadata,
+        run_secrets=run_secrets,
     )
 
     # set default settings for selected engine type
@@ -374,6 +394,8 @@ def ci(
 
     if engine_type.is_pro:
         console.print(Padding(Title("Engine", order=2), (1, 0, 0, 0)))
+        if run_secrets:
+            console.print("Semgrep Secrets requires Semgrep Pro Engine")
         if engine_type.check_if_installed():
             console.print(
                 f"Using Semgrep Pro Version: [bold]{engine_type.get_pro_version()}[/bold]",
@@ -384,10 +406,6 @@ def ci(
                 markup=True,
             )
         else:
-            if beta_testing_secrets:
-                console.print(
-                    "Secrets currently requires the pro-engine, installing now."
-                )
             run_install_semgrep_pro()
 
     try:
@@ -419,6 +437,7 @@ def ci(
         ) = semgrep.run_scan.run_scan(
             core_opts_str=core_opts,
             engine_type=engine_type,
+            run_secrets=run_secrets,
             output_handler=output_handler,
             target=[os.curdir],  # semgrep ci only scans cwd
             pattern=None,
@@ -442,6 +461,7 @@ def ci(
             interfile_timeout=interfile_timeout,
             timeout_threshold=timeout_threshold,
             skip_unknown_extensions=(not scan_unknown_extensions),
+            allow_untrusted_postprocessors=allow_untrusted_postprocessors,
             optimizations=optimizations,
             baseline_commit=metadata.merge_base_ref,
             baseline_commit_is_mergebase=True,

@@ -26,10 +26,10 @@ from typing import Set
 from typing import Tuple
 from typing import Union
 
-from boltons.iterutils import get_path
 from boltons.iterutils import partition
 from rich.padding import Padding
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parse_lockfile import parse_lockfile_path
 from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
@@ -62,7 +62,6 @@ from semgrep.rule import Rule
 from semgrep.rule import RuleProduct
 from semgrep.rule_match import RuleMatchMap
 from semgrep.rule_match import RuleMatchSet
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Contributions
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
@@ -148,17 +147,6 @@ def print_summary_line(
         new_cli_ux
     ):  # Always print the count of Supply Chain rules in new CLI UX (even if 0)
         summary_line += f", {unit_str(sca_rule_count, 'Supply Chain rule')}"
-
-    pro_rule_count = sum(
-        1
-        for rule in sast_plan.rules
-        if get_path(rule.metadata, ("semgrep.dev", "rule", "origin"), default=None)
-        == "pro_rules"
-    )
-    if pro_rule_count:
-        summary_line += f", {unit_str(pro_rule_count, 'Pro rule')}"
-    elif new_cli_ux:  # Always print the count of Pro rules in new CLI UX (even if 0)
-        summary_line += f", {unit_str(pro_rule_count, 'Pro rule')}"
 
     console.print(summary_line + ":")
 
@@ -265,6 +253,7 @@ def run_rules(
     output_handler: OutputHandler,
     dump_command_for_core: bool,
     engine_type: EngineType,
+    run_secrets: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -289,7 +278,11 @@ def run_rules(
         semgrep_errors,
         output_extra,
     ) = core_runner.invoke_semgrep_core(
-        target_manager, rest_of_the_rules, dump_command_for_core, engine_type
+        target_manager,
+        rest_of_the_rules,
+        dump_command_for_core,
+        engine_type,
+        run_secrets,
     )
 
     if join_rules:
@@ -384,6 +377,7 @@ def run_scan(
     core_opts_str: Optional[str] = None,
     dump_command_for_core: bool = False,
     engine_type: EngineType = EngineType.OSS,
+    run_secrets: bool = False,
     output_handler: OutputHandler,
     target: Sequence[str],
     pattern: Optional[str],
@@ -406,6 +400,7 @@ def run_scan(
     max_target_bytes: int = 0,
     timeout_threshold: int = 0,
     skip_unknown_extensions: bool = False,
+    allow_untrusted_postprocessors: bool = False,
     severity: Optional[Sequence[str]] = None,
     optimizations: str = "none",
     baseline_commit: Optional[str] = None,
@@ -423,7 +418,7 @@ def run_scan(
     Dict[str, List[FoundDependency]],
     List[DependencyParserError],
     int,
-    Contributions,
+    out.Contributions,
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
 
@@ -538,18 +533,20 @@ def run_scan(
     core_runner = CoreRunner(
         jobs=jobs,
         engine_type=engine_type,
+        run_secrets=run_secrets,
         timeout=timeout,
         max_memory=max_memory,
         interfile_timeout=interfile_timeout,
         timeout_threshold=timeout_threshold,
         optimizations=optimizations,
+        allow_untrusted_postprocessors=allow_untrusted_postprocessors,
         core_opts_str=core_opts_str,
     )
 
     if dump_contributions:
         contributions = core_runner.invoke_semgrep_dump_contributions()
     else:
-        contributions = Contributions([])
+        contributions = out.Contributions([])
 
     experimental_rules, unexperimental_rules = partition(
         filtered_rules, lambda rule: rule.severity == RuleSeverity.EXPERIMENT
@@ -578,6 +575,7 @@ def run_scan(
         output_handler,
         dump_command_for_core,
         engine_type,
+        run_secrets,
     )
     profiler.save("core_time", core_start_time)
     output_handler.handle_semgrep_errors(semgrep_errors)
@@ -648,6 +646,7 @@ def run_scan(
                         output_handler,
                         dump_command_for_core,
                         engine_type,
+                        run_secrets,
                     )
                     rule_matches_by_rule = remove_matches_in_baseline(
                         rule_matches_by_rule,

@@ -1,1 +1,0 @@
-The CFG now supports case statements in Ruby, which does not fall through.

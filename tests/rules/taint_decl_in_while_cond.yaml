@@ -1,0 +1,21 @@
+rules:
+  - id: source-sink-while
+    languages:
+      - cpp
+    message: source-sink
+    mode: taint
+    pattern-sinks:
+      - pattern: |
+          sink(...)
+    pattern-sources:
+      - by-side-effect: true
+        patterns:
+          - pattern: source($X)
+          - focus-metavariable: $X
+    pattern-sanitizers:
+      - by-side-effect: true
+        patterns:
+          - pattern: |
+              $FUNC(..., &$VAR, ...)
+          - focus-metavariable: $VAR
+    severity: WARNING

@@ -56,13 +56,10 @@ from semgrep.error import SemgrepError
 from semgrep.error import with_color
 from semgrep.output_extra import OutputExtra
 from semgrep.parsing_data import ParsingData
-from semgrep.profiling import ProfilingData
-from semgrep.profiling import Times
 from semgrep.rule import Rule
 from semgrep.rule import RuleProduct
 from semgrep.rule_match import OrderedRuleMatchList
 from semgrep.rule_match import RuleMatchMap
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Contributions
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
 from semgrep.state import get_context
@@ -838,21 +835,25 @@ class CoreRunner:
         self,
         jobs: Optional[int],
         engine_type: EngineType,
+        run_secrets: bool,
         timeout: int,
         max_memory: int,
         timeout_threshold: int,
         interfile_timeout: int,
         optimizations: str,
+        allow_untrusted_postprocessors: bool,
         core_opts_str: Optional[str],
     ):
         self._binary_path = engine_type.get_binary_path()
         self._jobs = jobs or engine_type.default_jobs
         self._engine_type = engine_type
+        self._run_secrets = engine_type
         self._timeout = timeout
         self._max_memory = max_memory
         self._timeout_threshold = timeout_threshold
         self._interfile_timeout = interfile_timeout
         self._optimizations = optimizations
+        self._allow_untrusted_postprocessors = allow_untrusted_postprocessors
         self._core_opts = shlex.split(core_opts_str) if core_opts_str else []
 
     def _extract_core_output(
@@ -1042,6 +1043,7 @@ class CoreRunner:
         target_manager: TargetManager,
         dump_command_for_core: bool,
         engine: EngineType,
+        run_secrets: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         state = get_state()
         logger.debug(f"Passing whole rules directly to semgrep_core")
@@ -1053,7 +1055,7 @@ class CoreRunner:
         max_timeout_files: Set[Path] = set()
         # TODO this is a quick fix, refactor this logic
 
-        profiling_data: Optional[ProfilingData] = None
+        profiling_data: Optional[out.Profile] = None
         parsing_data: ParsingData = ParsingData()
 
         # Create an exit stack context manager to properly handle closing
@@ -1123,6 +1125,17 @@ class CoreRunner:
 
             if self._optimizations != "none":
                 cmd.append("-fast")
+
+            if run_secrets:
+                cmd += ["-secrets"]
+                if not engine.is_pro:
+                    # This should be impossible, but the types don't rule it out so...
+                    raise SemgrepError(
+                        "Secrets post processors tried to run without the pro-engine."
+                    )
+
+            if self._allow_untrusted_postprocessors:
+                cmd.append("-allow-untrusted-postprocessors")
 
             # TODO: use exact same command-line arguments so just
             # need to replace the SemgrepCore.path() part.
@@ -1196,16 +1209,7 @@ class CoreRunner:
                         )
 
             if core_output.time:
-                timing = core_output.time
-                profiling_data = ProfilingData(core_output.time)
-                for t in timing.targets:
-                    rule_timings = {
-                        rt.rule_id: Times(rt.parse_time, rt.match_time)
-                        for rt in t.rule_times
-                    }
-                    profiling_data.set_file_times(
-                        Path(t.path.value), rule_timings, t.run_time
-                    )
+                profiling_data = core_output.time
 
             # end with tempfile.NamedTemporaryFile(...) ...
             outputs = core_matches_to_rule_matches(rules, core_output)
@@ -1254,6 +1258,7 @@ class CoreRunner:
         target_manager: TargetManager,
         dump_command_for_core: bool,
         engine: EngineType,
+        run_secrets: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Sometimes we may run into synchronicity issues with the latest DeepSemgrep binary.
@@ -1265,7 +1270,11 @@ class CoreRunner:
         """
         try:
             return self._run_rules_direct_to_semgrep_core_helper(
-                rules, target_manager, dump_command_for_core, engine
+                rules,
+                target_manager,
+                dump_command_for_core,
+                engine,
+                run_secrets,
             )
         except SemgrepError as e:
             # Handle Semgrep errors normally
@@ -1292,7 +1301,7 @@ Exception raised: `{e}`
 
     # end _run_rules_direct_to_semgrep_core
 
-    def invoke_semgrep_dump_contributions(self) -> Contributions:
+    def invoke_semgrep_dump_contributions(self) -> out.Contributions:
         start = datetime.now()
         if self._binary_path is None:  # should never happen, doing this for mypy
             raise SemgrepError("semgrep engine not found.")
@@ -1301,15 +1310,20 @@ Exception raised: `{e}`
             "-json",
             "-dump_contributions",
         ]
-        # only scanning combined rules
-        runner = StreamingSemgrepCore(cmd, 1, self._engine_type)
-        returncode = runner.execute()
+        try:
+            # only scanning combined rules
+            runner = StreamingSemgrepCore(cmd, 1, self._engine_type)
+            returncode = runner.execute()
 
-        # Process output
-        output_json = self._extract_core_output(
-            [], returncode, " ".join(cmd), runner.stdout, runner.stderr
-        )
-        contributions = Contributions.from_json(output_json)
+            # Process output
+            output_json = self._extract_core_output(
+                [], returncode, " ".join(cmd), runner.stdout, runner.stderr
+            )
+            contributions = out.Contributions.from_json(output_json)
+        except SemgrepError:
+            logger.warning("Failed to collect contributions. Continuing with scan...")
+            contributions = out.Contributions([])
+
         logger.debug(f"semgrep contributions ran in {datetime.now() - start}")
         return contributions
 
@@ -1319,6 +1333,7 @@ Exception raised: `{e}`
         rules: List[Rule],
         dump_command_for_core: bool,
         engine: EngineType,
+        run_secrets: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Takes in rules and targets and retuns object with findings
@@ -1330,7 +1345,11 @@ Exception raised: `{e}`
             errors,
             output_extra,
         ) = self._run_rules_direct_to_semgrep_core(
-            rules, target_manager, dump_command_for_core, engine
+            rules,
+            target_manager,
+            dump_command_for_core,
+            engine,
+            run_secrets,
         )
 
         logger.debug(

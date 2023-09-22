@@ -6,6 +6,138 @@
 
 <!-- insertion point -->
 
+## [1.41.0](https://github.com/returntocorp/semgrep/releases/tag/v1.41.0) - 2023-09-19
+
+### Changed
+
+- Rule validation no longer fails if a rule contains additional unknown fields. This makes it so older versions of semgrep do not fail rules that contain extra functionality. min-version field should be used to identify rules that should not be run (i.e. the additional functionality is necessary in running the rule) (gh-8712)
+- Limit collection of the contributions from git log to the last 30 days of commits. (scp-965)
+
+### Fixed
+
+- Ruby: Fixed a bug where patterns like `<id> ... do ... end` would not
+  match properly. (gh-8714)
+- Show more specific error message if scan cannot complete because user has disabled all rules on semgrep.dev (gh-8716)
+- For the `nonroot` Docker build stage, moved `semgrep-core` to
+  `/home/semgrep/bin` and updated `$PATH` env variable with the
+  new location. This avoids permissions issues when running and
+  installing Pro Engine while using the `nonroot` Docker image. (pa-3026)
+- Implemented key path expression parsing in Swift. The following example should
+  now be correctly matched by the \$X.isActive pattern:
+
+  ```
+  employee.filter(\.isActive)
+  ```
+
+  Note that when the implicit type is used, the metavariable $X will bind to the
+  backslash character instead of the type name. (pa-3070)
+
+- C++: Translate `for (T var : E)` loops into the Dataflow IL as for-each loops,
+  so that Semgrep reports no finding in the following code:
+
+  ```
+    for (int *p : set) {
+      sink(p); // no finding
+      source(p);
+    }
+  ```
+
+  Since each `p` is (in principle) a different object, even if `source(p)` taints
+  the current `p`, that should not affect the next one. (pa-3090)
+
+- Ruby: Fixed patterns which involve command calls with blocks and Semgrep ellipses,
+  when there are newlines around.
+
+  For instance, the pattern
+
+  ```
+  $METHOD ... do
+    ...
+  end
+  ```
+
+  will now parse properly. (pa-3100)
+
+- Fixes how semgrep identifies the transitivity of dependencies in node v9 (lockfile version 3) and above.
+  Specifically, dependencies that should have been identified as "direct" were being miscategorized as "transitive",
+  which should no longer be the case. (sc-1057)
+
+## [1.40.0](https://github.com/returntocorp/semgrep/releases/tag/v1.40.0) - 2023-09-14
+
+### Added
+
+- Dot files (e.g., .vscode) are now displayed in the skip report when
+  using --verbose and --develop. (dotfiles)
+- Add textual output for secrets findings and scan summary on command line interface. (gh-8666)
+- Skip rules with an informational message if they can't run due to an
+  unavailable plugin such as those provided by the Pro version of Semgrep.
+  The intended use is for a public rule registry to provide all kinds of rules
+  including some that require particular plugins. (gh-8668)
+- Allow Semgrep CI users to specify Code product using `--code` command-line option. This works the same as `--supply-chain` now and fleshes out the product suite. (gh-8679)
+- Semgrep Language Server will now not show findings that have been ignored in Semgrep Code (lang-server)
+- taint-mode: Semgrep will now track taint via globals or class attributes that are
+  _effectively_ `final` (as in Java), e.g.:
+
+  ```java
+  class Test {
+    private String x = source();
+
+    void test() {
+      sink(x); // finding here !
+    }
+  }
+  ```
+
+  Semgrep will recognize that `x` must be tainted because it is a private class
+  attribute that is initialized to `source()`, and it is not re-defined anywhere
+  else. This will also work if `x` is initialized in _the_ constructor (if there
+  is only one constructor), or in a `static` block. (pa-1636)
+
+- const-prop: Semgrep can now identify as constants private class attributes
+  that are assigned just once in a class constructor, e.g.:
+  https://semgrep.dev/playground/s/R1re. (pa-3006)
+- Added `-dump_contributions` flag to semgrep-core and include contributions when posting findings to Scan API. (scp-313)
+- There is a new 'semgrep show' command to display information about
+  semgrep, for example 'semgrep show supported-languages'. The goal is to
+  cleanup 'semgrep scan' which is currently abused to not scan but
+  also display semgrep information (e.g., 'semgrep scan --show-supported-languages).
+  See 'semgrep show --help' for more information. (show)
+
+### Changed
+
+- Further improvements to timeouts and logging for `semgrep ci` (gh-8656)
+
+### Fixed
+
+- Semgrep LS will no longer duplicate some findings (lang-server)
+- Output: GitLab SAST output has now been updated to accommodate the new SAST schema
+  as of GitLab 16.x, which means that findings in GitLab will now properly display
+  descriptions of the findings. (pa-3014)
+- Julia: Ellipses can now properly match when used in conjunction
+  with single statements, when matching 0 statements.
+
+  For instance, the pattern
+
+  ...
+  foo()
+
+  can now properly match a target of
+
+  foo() (pa-3049)
+
+- Matching: Numeric capture group metavariables of the form $1, $2, etc that are
+  introduced by unnamed capture groups, now no longer will cause matches to fail
+  if they do not unify. They are still referenceable, however.
+
+  This is so that capture group metavariables (which are introduced rather implicitly)
+  do not cause rules to "invisibly" fail to match. (pa-3050)
+
+- The CFG now supports case statements in Ruby, which does not fall through. (pa-3055)
+- Constant propagation now handles implicit number-to-string conversions in Java
+  and JS/TS. A Java expression such as `"foo" + 123` will now match the string
+  pattern "foo123". (pro-169)
+- Add exception handling for dump_contributions core command in pysemgrep (scp-313)
+
 ## [1.39.0](https://github.com/returntocorp/semgrep/releases/tag/v1.39.0) - 2023-09-07
 
 ### Added

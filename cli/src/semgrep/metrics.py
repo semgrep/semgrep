@@ -3,14 +3,15 @@ import hashlib
 import json
 import os
 import uuid
+from collections import defaultdict
 from datetime import datetime
 from enum import auto
 from enum import Enum
 from pathlib import Path
 from typing import Any
 from typing import Callable
+from typing import Dict
 from typing import List
-from typing import NewType
 from typing import Optional
 from typing import Sequence
 from typing import Set
@@ -23,11 +24,12 @@ from attr import define
 from attr import Factory
 from typing_extensions import LiteralString
 
+import semgrep.semgrep_interfaces.semgrep_metrics as met
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
 from semgrep.profile_manager import ProfileManager
-from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
 from semgrep.semgrep_interfaces.semgrep_metrics import Datetime
 from semgrep.semgrep_interfaces.semgrep_metrics import Environment
@@ -39,8 +41,6 @@ from semgrep.semgrep_interfaces.semgrep_metrics import ParseStat
 from semgrep.semgrep_interfaces.semgrep_metrics import Payload
 from semgrep.semgrep_interfaces.semgrep_metrics import Performance
 from semgrep.semgrep_interfaces.semgrep_metrics import RuleStats
-from semgrep.semgrep_interfaces.semgrep_metrics import Sha256hash
-from semgrep.semgrep_interfaces.semgrep_metrics import Uuid
 from semgrep.types import FilteredMatches
 from semgrep.verbose_logging import getLogger
 
@@ -64,9 +64,6 @@ class MetricsState(Enum):
     ON = auto()
     OFF = auto()
     AUTO = auto()
-
-
-Sha256Hash = NewType("Sha256Hash", str)
 
 
 class MetricsJsonEncoder(json.JSONEncoder):
@@ -95,6 +92,15 @@ def suppress_errors(func: Callable[..., None]) -> Callable[..., None]:
     return wrapper
 
 
+# to be mocked to a constant function in test_metrics.py
+def mock_float(x: float) -> float:
+    return x
+
+
+def mock_int(x: int) -> int:
+    return x
+
+
 @define
 class Metrics:
     """
@@ -113,7 +119,7 @@ class Metrics:
         lambda: Payload(
             environment=Environment(
                 version=__VERSION__,
-                configNamesHash=Sha256hash(""),
+                configNamesHash=met.Sha256(""),
                 projectHash=None,
                 ci=None,
             ),
@@ -122,7 +128,7 @@ class Metrics:
             extension=Extension(),
             value=Misc(features=[]),
             started_at=Datetime(datetime.now().astimezone().isoformat()),
-            event_id=Uuid(str(uuid.uuid4())),
+            event_id=met.Uuid(str(uuid.uuid4())),
             anonymous_user_id="",
             parse_rate=[],
             sent_at=Datetime(""),
@@ -194,7 +200,7 @@ class Metrics:
             sanitized_url = project_url
 
         m = hashlib.sha256(sanitized_url.encode())
-        self.payload.environment.projectHash = Sha256hash(m.hexdigest())
+        self.payload.environment.projectHash = met.Sha256(m.hexdigest())
 
     @suppress_errors
     def add_configs(self, configs: Sequence[str]) -> None:
@@ -204,35 +210,40 @@ class Metrics:
         m = hashlib.sha256()
         for c in configs:
             m.update(c.encode())
-        self.payload.environment.configNamesHash = Sha256hash(m.hexdigest())
+        self.payload.environment.configNamesHash = met.Sha256(m.hexdigest())
 
     @suppress_errors
-    def add_rules(
-        self, rules: Sequence[Rule], profiling_data: Optional[ProfilingData]
-    ) -> None:
+    def add_rules(self, rules: Sequence[Rule], profile: Optional[out.Profile]) -> None:
         rules = sorted(rules, key=lambda r: r.full_hash)
         m = hashlib.sha256()
         for rule in rules:
             m.update(rule.full_hash.encode())
-        self.payload.environment.rulesHash = Sha256hash(m.hexdigest())
+        self.payload.environment.rulesHash = met.Sha256(m.hexdigest())
 
         self.payload.performance.numRules = len(rules)
-        if profiling_data:
+        if profile:
+            # aggregate rule stats across files
+            _rule_match_times: Dict[out.RuleId, float] = defaultdict(float)
+            _rule_bytes_scanned: Dict[out.RuleId, int] = defaultdict(int)
+            for i, rule_id in enumerate(profile.rules):
+                for target_times in profile.targets:
+                    if target_times.match_times[i] > 0.0:
+                        _rule_match_times[rule_id] += target_times.match_times[i]
+                        _rule_bytes_scanned[rule_id] += target_times.num_bytes
+
             self.payload.performance.ruleStats = [
                 RuleStats(
                     ruleHash=rule.full_hash,
-                    matchTime=profiling_data.get_rule_match_time(rule),
-                    bytesScanned=profiling_data.get_rule_bytes_scanned(rule),
+                    matchTime=mock_float(_rule_match_times[rule.id2]),
+                    bytesScanned=mock_int(_rule_bytes_scanned[rule.id2]),
                 )
                 for rule in rules
             ]
 
     @suppress_errors
-    def add_max_memory_bytes(self, profiling_data: Optional[ProfilingData]) -> None:
+    def add_max_memory_bytes(self, profiling_data: Optional[out.Profile]) -> None:
         if profiling_data:
-            self.payload.performance.maxMemoryBytes = (
-                profiling_data.profile.max_memory_bytes
-            )
+            self.payload.performance.maxMemoryBytes = profiling_data.max_memory_bytes
 
     @suppress_errors
     def add_findings(self, findings: FilteredMatches) -> None:
@@ -243,21 +254,26 @@ class Metrics:
         self.payload.value.numIgnored = sum(len(v) for v in findings.removed.values())
 
     @suppress_errors
-    def add_targets(
-        self, targets: Set[Path], profiling_data: Optional[ProfilingData]
-    ) -> None:
-        if profiling_data:
+    def add_targets(self, targets: Set[Path], profile: Optional[out.Profile]) -> None:
+        if profile:
             self.payload.performance.fileStats = [
                 FileStats(
-                    size=target.stat().st_size,
-                    numTimesScanned=profiling_data.get_file_num_times_scanned(target),
-                    parseTime=profiling_data.get_file_parse_time(target),
-                    matchTime=profiling_data.get_file_match_time(target),
-                    runTime=profiling_data.get_file_run_time(target),
+                    size=target_times.num_bytes,
+                    numTimesScanned=mock_int(
+                        len([x for x in target_times.match_times if x > 0.0])
+                    ),
+                    # TODO: we just have a single parse_time in target_times.parse_times
+                    parseTime=mock_float(
+                        max(time for time in target_times.parse_times)
+                    ),
+                    matchTime=mock_float(
+                        sum(time for time in target_times.match_times)
+                    ),
+                    runTime=mock_float(target_times.run_time),
                 )
-                for target in targets
+                for target_times in profile.targets
             ]
-
+        # TODO: fit the data in profile?
         total_bytes_scanned = sum(t.stat().st_size for t in targets)
         self.payload.performance.totalBytesScanned = total_bytes_scanned
         self.payload.performance.numTargets = len(targets)

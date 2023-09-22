@@ -68,7 +68,7 @@ the other programming languages supported by atdgen."
   (authors "Yoann Padioleau <pad@semgrep.com>")
   (license "LGPL-2.1-only")
   (depends
-    (ocaml (>= 4.12.0))
+    (ocaml (>= 4.13.0))
     (dune (>= 3.2.0))
     (commons (>= 1.8.0))
     (lib_parsing (>= 1.5.5))
@@ -92,7 +92,7 @@ a few other projects developed at r2c.
   (license "LGPL-2.1-only")
 
   (depends
-    (ocaml (>= "4.12.0"))
+    (ocaml (>= "4.13.0"))
     (dune (>= "3.2.0" ))
     (ANSITerminal (>= "0.8.4"))
     (alcotest (>= "1.5.0"))
@@ -153,7 +153,7 @@ parsers, especially ocamlyacc/menhir based parsers.
   (license "LGPL-2.1-only")
 
   (depends
-    (ocaml (>= "4.12.0"))
+    (ocaml (>= "4.13.0"))
     (dune (>= "3.2.0" ))
     (commons (>= "1.5.5"))
     (profiling (>= "1.5.5"))
@@ -171,10 +171,6 @@ parsers, especially ocamlyacc/menhir based parsers.
   (description "XXX")
 )
 (package (name ojsonnet)
-  (synopsis "XXX")
-  (description "XXX")
-)
-(package (name osemgrep_targeting)
   (synopsis "XXX")
   (description "XXX")
 )
@@ -199,6 +195,10 @@ parsers, especially ocamlyacc/menhir based parsers.
   (description "XXX")
 )
 (package (name parser_csharp)
+  (synopsis "XXX")
+  (description "XXX")
+)
+(package (name parser_dart)
   (synopsis "XXX")
   (description "XXX")
 )
@@ -334,7 +334,7 @@ time and memory used by Semgrep.
   (license "LGPL-2.1-only")
 
   (depends
-    (ocaml (>= "4.12.0"))
+    (ocaml (>= "4.13.0"))
     (dune (>= "3.2.0" ))
     (commons (>= "1.5.5"))
   )
@@ -355,7 +355,7 @@ functions.
   (license "LGPL-2.1-only")
 
   (depends
-    (ocaml (>= "4.12.0"))
+    (ocaml (>= "4.13.0"))
     (dune (>= "3.2.0" ))
     (commons (>= "1.5.5"))
     (process_limits (>= "1.5.5"))
@@ -390,11 +390,10 @@ For more information see https://semgrep.dev
 ;TODO: restore  "bisect_ppx" {>= "2.5.0"} once can use ppxlib 0.22.0
   (depends
     ; core deps
-    (ocaml (>= 4.12.0))
+    (ocaml (>= 4.13.0))
     (dune (>= 2.7.0 ))
     ; parser generators
     (menhir (= 20211128)) ; Newer versions cause massive build slowdowns
-    grain_dypgen
     ; standard libraries
     stdcompat
     ; We don't use Base directly. If it's being used indirectly

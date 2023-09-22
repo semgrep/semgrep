@@ -16,6 +16,3 @@ val pp_text_outputs :
   Format.formatter ->
   Semgrep_output_v1_t.cli_match list ->
   unit
-
-val sort_matches :
-  Semgrep_output_v1_t.cli_match list -> Semgrep_output_v1_t.cli_match list

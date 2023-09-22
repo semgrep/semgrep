@@ -12,7 +12,7 @@ module Cmd = Cmdliner.Cmd
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type conf = { logging_level : Logs.level option } [@@deriving show]
+type conf = { common : CLI_common.conf } [@@deriving show]
 
 (*****************************************************************************)
 (* Login subcommand *)
@@ -56,8 +56,8 @@ let logout_cmdline_info : Cmd.info =
 (*****************************************************************************)
 
 let term =
-  let combine logging_level = { logging_level } in
-  Term.(const combine $ CLI_common.o_logging)
+  let combine common = { common } in
+  Term.(const combine $ CLI_common.o_common)
 
 let parse_argv (cmd_info : Cmd.info) (argv : string array) : conf =
   let cmd : conf Cmd.t = Cmd.v cmd_info term in

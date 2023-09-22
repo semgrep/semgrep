@@ -34,7 +34,7 @@ def determine_semgrep_pro_path() -> Path:
         logger.info(
             "Could not find `semgrep-core` executable so not sure where to install DeepSemgrep"
         )
-        logger.info("There is something wrong with your semgrep installtation")
+        logger.info("There is something wrong with your semgrep installation")
         sys.exit(FATAL_EXIT_CODE)
 
     semgrep_pro_path = Path(core_path).parent / "semgrep-core-proprietary"
@@ -146,7 +146,7 @@ def run_install_semgrep_pro() -> None:
     if semgrep_pro_path.exists():
         semgrep_pro_path.unlink()
     semgrep_pro_path_tmp.rename(semgrep_pro_path)
-    logger.info(f"Successfully installed Semgrep Pro Engine (version {version})!")
+    logger.info(f"\nSuccessfully installed Semgrep Pro Engine (version {version})!")
 
 
 @click.command()

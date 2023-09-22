@@ -84,6 +84,11 @@ let basic_response ?(status = 200) ?(headers = Header.init ()) body =
   let response = Response.make ~status ~headers ~flush:true () in
   { response; body }
 
+let body_of_file ?(trim = false) path =
+  let content = Common.read_file path in
+  let content = if trim then String.trim content else content in
+  Cohttp_lwt.Body.of_string content
+
 let check_body expected_body actual_body =
   let%lwt actual_body_content = Cohttp_lwt.Body.to_string actual_body in
   let%lwt expected_body_content = Cohttp_lwt.Body.to_string expected_body in

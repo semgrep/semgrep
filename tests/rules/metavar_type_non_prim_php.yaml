@@ -1,0 +1,11 @@
+rules:
+  - id: test
+    patterns:
+      - pattern: $X->exec(...)
+      - metavariable-type:
+          metavariable: $X
+          type: BAR
+    message: foo bar
+    languages:
+      - php
+    severity: ERROR

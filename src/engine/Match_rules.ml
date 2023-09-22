@@ -15,9 +15,9 @@
 open Common
 open File.Operators
 module R = Rule
-module RP = Report
+module RP = Core_result
 module Resp = Semgrep_output_v1_t
-module E = Semgrep_error_code
+module E = Core_error
 module Out = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -36,7 +36,6 @@ exception File_timeout
 
 (* TODO make this one of the Semgrep_error_code exceptions *)
 exception Multistep_rules_not_available
-exception Postprocessor_rules_not_available
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -106,9 +105,20 @@ let group_rules xconf rules xtarget =
            | _ when not relevant_rule -> Right3 r
            | `Taint _ as mode -> Left3 { r with mode }
            | (`Extract _ | `Search _) as mode -> Middle3 { r with mode }
-           | `Secrets _ ->
-               pr2 (Rule.show_rule r);
-               raise Postprocessor_rules_not_available
+           (* We are planning on removing `Secret mode and adding generic
+              post processors to rules which only get run when run with secrets
+              validation enabled. Until such time, run secrets rules that haven't
+              been turned to search rule by the pro-engine as search rules, and
+              just discard the validators. *)
+           | `Secrets { secrets = [ formula ]; _ } ->
+               logger#info
+                 "Running secret rule as search rule without validation.";
+               Middle3 { r with mode = `Search formula }
+           (* Silently skip malformed secrets rules for now. *)
+           | `Secrets _ as mode ->
+               logger#error
+                 "Skipping malformed secrets rule without validation.";
+               Right3 { r with mode }
            | `Steps _ ->
                pr2 (Rule.show_rule r);
                raise Multistep_rules_not_available)
@@ -155,8 +165,8 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
         let loc = Tok.first_loc_of_file file in
         let error = E.mk_error (Some rule_id) loc "" Out.Timeout in
         RP.make_match_result []
-          (Report.ErrorSet.singleton error)
-          (RP.empty_rule_profiling rule)
+          (Core_error.ErrorSet.singleton error)
+          (Core_profiling.empty_rule_profiling rule)
 
 (*****************************************************************************)
 (* Entry point *)
@@ -213,15 +223,16 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
                | `Steps _ -> raise Multistep_rules_not_available))
   in
   let res_total = res_taint_rules @ res_nontaint_rules in
-  let res = RP.collate_rule_results !!(xtarget.Xtarget.file) res_total in
+  let res = RP.collate_rule_results xtarget.Xtarget.file res_total in
   let extra =
     match res.extra with
-    | RP.Debug { skipped_targets; profiling } ->
+    | Core_profiling.Debug { skipped_targets; profiling } ->
         let skipped =
           Common.map (skipped_target_of_rule xtarget) skipped_rules
         in
-        RP.Debug { skipped_targets = skipped @ skipped_targets; profiling }
-    | Time profiling -> Time profiling
-    | No_info -> No_info
+        Core_profiling.Debug
+          { skipped_targets = skipped @ skipped_targets; profiling }
+    | Core_profiling.Time profiling -> Core_profiling.Time profiling
+    | Core_profiling.No_info -> Core_profiling.No_info
   in
   { res with extra }

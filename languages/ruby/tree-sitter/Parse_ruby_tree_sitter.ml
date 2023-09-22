@@ -612,6 +612,12 @@ and body_statement_ (env : env) (x : CST.body_statement_) : body_exn =
 and body_statement (env : env) (x : CST.body_statement) : AST.body_exn =
   body_statement_ env x
 
+and body_statement_to_exprs (env : env) (x : CST.body_statement) : expr list =
+  match body_statement_ env x with
+  | { rescue_exprs = []; else_expr = None; ensure_expr = None; body_exprs } ->
+      body_exprs
+  | other -> [ S (ExnBlock other) ]
+
 and identifier_suffix (env : env) (x : CST.identifier_suffix) =
   match x with
   | `Tok_pat_3fee85b_pat_f7bc484_pat_38b534e x -> str env x
@@ -1278,6 +1284,39 @@ and lambda (env : env) ((v1, v2, v3) : CST.lambda) =
   (* should have a third option for lambdas *)
   CodeBlock ((v1, b, v1), v2, [ v3 ])
 
+and hash (env : env) (v1, v2, v3) =
+  let v1 = token2 env v1 in
+  let v2 =
+    match v2 with
+    | Some (v1, v2, v3) ->
+        let v1 =
+          match v1 with
+          | `Pair x -> pair_for_hash env x
+          | `Hash_splat_arg x -> hash_splat_argument env x
+        in
+        let v2 =
+          Common.map
+            (fun (v1, v2) ->
+              let _v1 = token2 env v1 in
+              let v2 =
+                match v2 with
+                | `Pair x -> pair_for_hash env x
+                | `Hash_splat_arg x -> hash_splat_argument env x
+              in
+              v2)
+            v2
+        in
+        let _v3 =
+          match v3 with
+          | Some _tok -> ()
+          | None -> ()
+        in
+        v1 :: v2
+    | None -> []
+  in
+  let v3 = token2 env v3 in
+  (v1, v2, v3)
+
 and primary (env : env) (x : CST.primary) : AST.expr =
   match x with
   | `Semg_ellips tok
@@ -1312,37 +1351,8 @@ and primary (env : env) (x : CST.primary) : AST.expr =
       (* ?? *)
       | `Str_array (v1, v2, v3, v4, v5) -> string_array env (v1, v2, v3, v4, v5)
       | `Symb_array (v1, v2, v3, v4, v5) -> symbol_array env (v1, v2, v3, v4, v5)
-      | `Hash (v1, v2, v3) ->
-          let v1 = token2 env v1 in
-          let v2 =
-            match v2 with
-            | Some (v1, v2, v3) ->
-                let v1 =
-                  match v1 with
-                  | `Pair x -> pair_for_hash env x
-                  | `Hash_splat_arg x -> hash_splat_argument env x
-                in
-                let v2 =
-                  Common.map
-                    (fun (v1, v2) ->
-                      let _v1 = token2 env v1 in
-                      let v2 =
-                        match v2 with
-                        | `Pair x -> pair_for_hash env x
-                        | `Hash_splat_arg x -> hash_splat_argument env x
-                      in
-                      v2)
-                    v2
-                in
-                let _v3 =
-                  match v3 with
-                  | Some _tok -> ()
-                  | None -> ()
-                in
-                v1 :: v2
-            | None -> []
-          in
-          let v3 = token2 env v3 in
+      | `Hash x ->
+          let v1, v2, v3 = hash env x in
           Hash (true, (v1, v2, v3))
       | `Subs (v1, v2, v3) -> subshell env (v1, v2, v3)
       | `Lit x -> literal env x
@@ -1712,16 +1722,36 @@ and chained_command_call (env : env) ((v1, v2, v3) : CST.chained_command_call) :
 and command_call_with_block (env : env) (x : CST.command_call_with_block) :
     AST.expr =
   match x with
-  | `Choice_call__cmd_arg_list_blk (v1, v2, v3) ->
-      let v1 = anon_choice_call__23b9492 env v1 in
-      let v2 = command_argument_list env v2 in
-      let v3 = block env v3 in
-      Call (v1, fb v2, Some v3)
-  | `Choice_call__cmd_arg_list_do_blk (v1, v2, v3) ->
-      let v1 = anon_choice_call__23b9492 env v1 in
-      let v2 = command_argument_list env v2 in
+  | `Choice_choice_call__cmd_arg_list_blk x -> (
+      match x with
+      | `Choice_call__cmd_arg_list_blk (v1, v2, v3) ->
+          let v1 = anon_choice_call__23b9492 env v1 in
+          let v2 = command_argument_list env v2 in
+          let v3 = block env v3 in
+          Call (v1, fb v2, Some v3)
+      | `Choice_call__cmd_arg_list_do_blk (v1, v2, v3) ->
+          let v1 = anon_choice_call__23b9492 env v1 in
+          let v2 = command_argument_list env v2 in
+          let v3 = do_block env v3 in
+          Call (v1, fb v2, Some v3))
+  | `Arg_DOTDOTDOT_do_blk (v1, v2, v3) -> (
+      let v1 = arg env v1 in
+      let v2 = (* "..." *) token2 env v2 in
       let v3 = do_block env v3 in
-      Call (v1, fb v2, Some v3)
+      match env.extra with
+      | Pattern -> Call (v1, fb [ Arg (Ellipsis v2) ], Some v3)
+      | Program ->
+          (* This shouldn't actually happen in a non-pattern case. *)
+          failwith "invalid program")
+  | `Arg_DOTDOTDOT_blk (v1, v2, v3) -> (
+      let v1 = arg env v1 in
+      let v2 = (* "..." *) token2 env v2 in
+      let v3 = block env v3 in
+      match env.extra with
+      | Pattern -> Call (v1, fb [ Arg (Ellipsis v2) ], Some v3)
+      | Program ->
+          (* This shouldn't actually happen in a non-pattern case. *)
+          failwith "invalid program")
 
 and anon_choice_var_2a392d7 (env : env) (x : CST.anon_choice_var_2a392d7) : expr
     =
@@ -1906,14 +1936,17 @@ and do_block (env : env) ((v1, v2, v3, v4, v5) : CST.do_block) : AST.expr =
         Some v1
     | None -> None
   in
-  let exn_block =
+  (* We do this _to_exprs thing instead of calling just body_statements because
+     we don't want to wrap the contents of this block in yet another block.
+     This will cause us to get Block(Block ...) after Generic translation.
+  *)
+  let exprs =
     match v4 with
-    | None -> empty_body_exn
-    | Some v4 -> body_statement env v4
+    | None -> []
+    | Some v4 -> body_statement_to_exprs env v4
   in
-  let xs = [ S (ExnBlock exn_block) ] in
   let tend = (* "tend" *) token2 env v5 in
-  CodeBlock ((tdo, false, tend), params_opt, xs)
+  CodeBlock ((tdo, false, tend), params_opt, exprs)
 
 and block (env : env) ((v1, v2, v3, v4) : CST.block) =
   let lb = token2 env v1 in
@@ -2140,8 +2173,7 @@ and range (env : env) (x : CST.range) : AST.expr =
   | `Arg_choice_DOTDOT_arg (v1, v2, v3) ->
       let v1 = arg env v1 in
       let v2 = anon_choice_DOTDOT_ed078ec env v2 in
-      let v3 = arg env v3 in
-      Binop (v1, v2, v3)
+      Binop (v1, v2, arg env v3)
   | `Choice_DOTDOT_arg (v1, v2) ->
       let v1 = anon_choice_DOTDOT_ed078ec env v1 in
       let v2 = arg env v2 in

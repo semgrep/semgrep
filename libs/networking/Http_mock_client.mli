@@ -55,6 +55,12 @@ val basic_response :
   * Example: [basic_response "{ \"api_code\": 304, \"info\": \"example\" }"].
   *)
 
+val body_of_file : ?trim:bool -> string -> Cohttp_lwt.Body.t
+(** [body_of_file trim path_to_body] will return a body which is the exact bytes
+  * of the file [path_to_body], unless [trim] is true, in which case the bytes
+  * will be trimmed of leading and trailing whitespace.
+  *)
+
 val check_body : Cohttp_lwt.Body.t -> Cohttp_lwt.Body.t -> unit Lwt.t
 (** [check_body expected_body actual_body] will check a request/response has the
   * exact same bytes as the file [path_to_body]. Uses Alcotest to assert the

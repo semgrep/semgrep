@@ -271,7 +271,7 @@ class ScanHandler:
         commit_date here for legacy reasons. epoch time of latest commit
         """
         state = get_state()
-        rule_ids = [r.id for r in rules]
+        rule_ids = [out.RuleId(r.id) for r in rules]
         all_matches = [
             match
             for matches_of_rule in matches_by_rule.values()

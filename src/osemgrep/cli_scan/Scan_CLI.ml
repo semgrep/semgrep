@@ -44,6 +44,8 @@ type conf = {
   time_flag : bool;
   (* Engine selection *)
   engine_type : Engine_type.t;
+  run_secrets : bool;
+  allow_untrusted_postprocessors : bool;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;
   (* Display options *)
@@ -129,6 +131,8 @@ let default : conf =
       };
     time_flag = false;
     engine_type = OSS;
+    run_secrets = false;
+    allow_untrusted_postprocessors = false;
     output_format = Output_format.Text;
     output = None;
     dataflow_traces = false;
@@ -136,6 +140,7 @@ let default : conf =
     max_chars_per_line = 160;
     max_lines_per_finding = 10;
     rewrite_rule_ids = true;
+    (* will send metrics only if the user uses the registry or the app *)
     metrics = Metrics_.Auto;
     (* like maturity, should maybe be set to false when we release osemgrep *)
     registry_caching = false;
@@ -468,6 +473,22 @@ let o_junit_xml : bool Term.t =
   Arg.value (Arg.flag info)
 
 (* ------------------------------------------------------------------ *)
+(* Run Secrets Post Processors                                  *)
+(* ------------------------------------------------------------------ *)
+
+let o_secrets : bool Term.t =
+  let info = Arg.info [ "secrets" ] ~doc:{|Run with Semgrep Secrets.|} in
+  Arg.value (Arg.flag info)
+
+let o_allow_untrusted_postprocessors : bool Term.t =
+  let info =
+    Arg.info
+      [ "allow-untrusted-postprocessors" ]
+      ~doc:{|Run postprocessors from untrusted sources.|}
+  in
+  Arg.value (Arg.flag info)
+
+(* ------------------------------------------------------------------ *)
 (* Engine type (mutually exclusive) *)
 (* ------------------------------------------------------------------ *)
 
@@ -733,15 +754,16 @@ let o_registry_caching : bool Term.t =
 let cmdline_term ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
-  let combine ast_caching autofix baseline_commit common config dataflow_traces
-      dryrun dump_ast dump_command_for_core dump_engine_path emacs error exclude
-      exclude_rule_ids force_color gitlab_sast gitlab_secrets include_ json
-      junit_xml lang max_chars_per_line max_lines_per_finding max_memory_mb
-      max_target_bytes metrics num_jobs nosem optimizations oss output pattern
-      pro project_root pro_intrafile pro_lang registry_caching replacement
-      respect_git_ignore rewrite_rule_ids sarif scan_unknown_extensions severity
-      show_supported_languages strict target_roots test test_ignore_todo text
-      time_flag timeout timeout_threshold validate version version_check vim =
+  let combine allow_untrusted_postprocessors ast_caching autofix baseline_commit
+      common config dataflow_traces dryrun dump_ast dump_command_for_core
+      dump_engine_path emacs error exclude exclude_rule_ids force_color
+      gitlab_sast gitlab_secrets include_ json junit_xml lang max_chars_per_line
+      max_lines_per_finding max_memory_mb max_target_bytes metrics num_jobs
+      nosem optimizations oss output pattern pro project_root pro_intrafile
+      pro_lang registry_caching replacement respect_git_ignore rewrite_rule_ids
+      sarif scan_unknown_extensions secrets severity show_supported_languages
+      strict target_roots test test_ignore_todo text time_flag timeout
+      timeout_threshold validate version version_check vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Logs_helpers.setup_logging ~force_color
@@ -773,7 +795,11 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     in
     let engine_type =
       match (oss, pro_lang, pro_intrafile, pro) with
+      | false, false, false, false when secrets ->
+          Engine_type.(PRO Language_only)
       | false, false, false, false -> default.engine_type
+      | true, false, false, false when secrets ->
+          Error.abort "Mutually exclusive options --oss/--secrets"
       | true, false, false, false -> OSS
       | false, true, false, false -> PRO Engine_type.Language_only
       | false, false, true, false -> PRO Engine_type.Intrafile
@@ -784,6 +810,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
             "Mutually exclusive options \
              --oss/--pro-languages/--pro-intrafile/--pro"
     in
+    (* TODO Should double check all other times this should run. *)
+    let run_secrets = secrets in
     let rules_source =
       match (config, (pattern, lang, replacement)) with
       (* ugly: when using --dump-ast, we can pass a pattern or a target,
@@ -1020,6 +1048,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       output_format;
       output;
       engine_type;
+      run_secrets;
+      allow_untrusted_postprocessors;
       rewrite_rule_ids;
       strict;
       time_flag;
@@ -1036,20 +1066,20 @@ let cmdline_term ~allow_empty_config : conf Term.t =
   Term.(
     (* !the o_xxx must be in alphabetic orders to match the parameters of
      * combine above! *)
-    const combine $ o_ast_caching $ o_autofix $ o_baseline_commit
-    $ CLI_common.o_common $ o_config $ o_dataflow_traces $ o_dryrun $ o_dump_ast
-    $ o_dump_command_for_core $ o_dump_engine_path $ o_emacs $ o_error
-    $ o_exclude $ o_exclude_rule_ids $ o_force_color $ o_gitlab_sast
-    $ o_gitlab_secrets $ o_include $ o_json $ o_junit_xml $ o_lang
-    $ o_max_chars_per_line $ o_max_lines_per_finding $ o_max_memory_mb
+    const combine $ o_allow_untrusted_postprocessors $ o_ast_caching $ o_autofix
+    $ o_baseline_commit $ CLI_common.o_common $ o_config $ o_dataflow_traces
+    $ o_dryrun $ o_dump_ast $ o_dump_command_for_core $ o_dump_engine_path
+    $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids $ o_force_color
+    $ o_gitlab_sast $ o_gitlab_secrets $ o_include $ o_json $ o_junit_xml
+    $ o_lang $ o_max_chars_per_line $ o_max_lines_per_finding $ o_max_memory_mb
     $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_nosem $ o_optimizations
     $ o_oss $ o_output $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile
     $ o_pro_languages $ o_registry_caching $ o_replacement
     $ o_respect_git_ignore $ o_rewrite_rule_ids $ o_sarif
-    $ o_scan_unknown_extensions $ o_severity $ o_show_supported_languages
-    $ o_strict $ o_target_roots $ o_test $ o_test_ignore_todo $ o_text $ o_time
-    $ o_timeout $ o_timeout_threshold $ o_validate $ o_version $ o_version_check
-    $ o_vim)
+    $ o_scan_unknown_extensions $ o_secrets $ o_severity
+    $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
+    $ o_test_ignore_todo $ o_text $ o_time $ o_timeout $ o_timeout_threshold
+    $ o_validate $ o_version $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
 

@@ -15,7 +15,6 @@
     commons
 
     semgrep_core
-    semgrep_reporting ; atd spec of semgrep_output
   )
  (inline_tests)
  (preprocess

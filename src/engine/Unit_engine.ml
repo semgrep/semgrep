@@ -4,7 +4,7 @@ open Testutil
 module R = Rule
 module MR = Mini_rule
 module P = Pattern_match
-module E = Semgrep_error_code
+module E = Core_error
 module Out = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]

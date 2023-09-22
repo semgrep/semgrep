@@ -88,7 +88,14 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 # coupling: if you modify the FROM below, you probably need to modify also
 # a few .github/workflows/ files. grep for returntocorp/ocaml there.
 
-FROM returntocorp/ocaml:alpine-2023-06-16 as semgrep-core-container
+# This base image should be updated regularly to maximize the caching
+# of opam packages. We don't use a rolling ':latest' tag to ensure
+# reproducible builds and fix problems more easily.
+#
+# Visit https://hub.docker.com/r/returntocorp/ocaml/tags to see the latest
+# images available.
+#
+FROM returntocorp/ocaml:alpine-2023-09-13 as semgrep-core-container
 
 WORKDIR /src/semgrep
 COPY --from=semgrep-core-files /src/semgrep .
@@ -239,4 +246,17 @@ LABEL maintainer="support@semgrep.com"
 # on the mounted volume when using instructions for running semgrep with docker:
 # `docker run -v "${PWD}:/src" -i returntocorp/semgrep semgrep`
 FROM semgrep-cli AS nonroot
+
+# We need to move the core binary out of the protected /usr/local/bin dir so
+# the non-root user can run `semgrep install-semgrep-pro` and use Pro Engine
+# Alt: we could also do this work directly in the root docker image.
+RUN rm /usr/local/bin/osemgrep && \
+    mkdir /home/semgrep/bin && \
+    mv /usr/local/bin/semgrep-core /home/semgrep/bin && \
+    ln -s semgrep-core /home/semgrep/bin/osemgrep && \
+    chown semgrep:semgrep /home/semgrep/bin
+
+# Update PATH with new core binary location
+ENV PATH="$PATH:/home/semgrep/bin"
+
 USER semgrep
