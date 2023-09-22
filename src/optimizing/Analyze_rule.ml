@@ -616,6 +616,11 @@ let regexp_prefilter_of_rule ~hmemo (r : R.rule) =
         logger#error "Stack overflow on rule id %s" (rule_id :> string);
         None
   in
+  (* Previously, we created hmemo at the toplevel of this file. This caused
+     problems with tests that ended up reusing that table which were very
+     confusing to debug. To prevent that from happening again, the table is
+     now passed to this function. For convenience you can also choose not to
+     memoize. *)
   match hmemo with
   | None -> regex_prefilter_fun ()
   | Some hmemo -> Common.memoized hmemo key regex_prefilter_fun

@@ -37,4 +37,3 @@ val regexp_prefilter_of_formula : Rule.formula -> prefilter option
  * also prune certain rules/files.
  *)
 val prefilter_formula_of_prefilter : prefilter -> Semgrep_prefilter_t.formula
-val hmemo : (Rule_ID.t, prefilter option) Hashtbl.t
