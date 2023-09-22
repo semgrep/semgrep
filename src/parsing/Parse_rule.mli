@@ -1,15 +1,33 @@
+(*
+   Rule parsing
+*)
+
+(*
+   For rules that come from a local file, this is the path to the file
+   containing the rule. It's used to create a dotted rule identifier
+   such as 'stuff.rules.foo' for a rule declared as 'foo' in the file
+   'stuff/rules.yml'.
+*)
+type origin = Local_file of Fpath.t | Other_origin [@@deriving show]
+
 (* Parse a rule file, either in YAML or JSON (or even Jsonnet) format
- * depending on the filename extension.
- *
- * The parser accepts invalid rules, skips them, and returns them in
- * the list of errors.
- * This will not raise Rule.Err (Rule.InvalidRule ...) exceptions.
- *
- * However, this function may raise the other (Rule.Err ...) exns
- * (e.g., Rule.InvalidYaml).
- *)
+   depending on the filename extension.
+
+   The parser accepts invalid rules, skips them, and returns them in
+   the list of errors.
+   This will not raise Rule.Err (Rule.InvalidRule ...) exceptions.
+
+   However, this function may raise the other (Rule.Err ...) exns
+   (e.g., Rule.InvalidYaml).
+
+   rewrite_rule_ids, if not None, provides what's needed to parse the rule
+   ID 'foo' as 'path.to.foo'. This is the default behavior for 'semgrep scan'.
+   See the command-line option --rewrite-rule-ids.
+*)
 val parse_and_filter_invalid_rules :
-  Fpath.t -> Rule.rules * Rule.invalid_rule_error list
+  rewrite_rule_ids:origin option ->
+  Fpath.t ->
+  Rule.rules * Rule.invalid_rule_error list
 
 (* ex: foo.yaml, foo.yml, but not foo.test.yaml.
  *
@@ -38,7 +56,7 @@ val parse_xpattern : Xlang.t -> string Rule.wrap -> Xpattern.t
  * This function may raise (Rule.Err ....) or Assert_failure (when
  * there are invalid rules).
  *)
-val parse : Fpath.t -> Rule.rules
+val parse : rewrite_rule_ids:origin option -> Fpath.t -> Rule.rules
 
 (* Internals, used by osemgrep to setup a ojsonnet import hook.
  * The filename parameter is just used in case of missing 'rules:'
@@ -46,6 +64,7 @@ val parse : Fpath.t -> Rule.rules
  *)
 val parse_generic_ast :
   ?error_recovery:bool ->
+  rewrite_rule_ids:origin option ->
   Fpath.t ->
   AST_generic.program ->
   Rule.rules * Rule.invalid_rule_error list

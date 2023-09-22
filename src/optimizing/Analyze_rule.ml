@@ -613,10 +613,11 @@ let regexp_prefilter_of_rule ~cache (r : R.rule) =
     (* TODO: see tests/rules/tainted-filename.yaml,
                  tests/rules/kotlin_slow_import.yaml *)
     | CNF_exploded ->
-        logger#error "CNF size exploded on rule id %s" (rule_id :> string);
+        logger#error "CNF size exploded on rule id %s"
+          (Rule_ID.to_string rule_id);
         None
     | Stack_overflow ->
-        logger#error "Stack overflow on rule id %s" (rule_id :> string);
+        logger#error "Stack overflow on rule id %s" (Rule_ID.to_string rule_id);
         None
   in
   match cache with

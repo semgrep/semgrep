@@ -44,7 +44,7 @@ type t = {
 (* less: could also display short info on metavar values *)
 let match_to_charpos_range (pm : Pattern_match.t) : string =
   let min_loc, max_loc = pm.range_loc in
-  let startp, endp = Output_utils.position_range min_loc max_loc in
+  let startp, endp = Semgrep_output_utils.position_range min_loc max_loc in
   spf "%d-%d" startp.Out.offset endp.Out.offset
 
 (* alt: use Format module *)

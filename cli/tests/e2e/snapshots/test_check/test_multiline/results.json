@@ -8,58 +8,6 @@
   },
   "results": [
     {
-      "check_id": "rules.assign-multiline-comment",
-      "end": {
-        "col": 4,
-        "line": 14,
-        "offset": 248
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "x = \"\"\"\n    abc\n    def\n\"\"\"",
-        "message": "found an assignment of a multiline comment",
-        "metadata": {},
-        "metavars": {
-          "$MULTILINE": {
-            "abstract_content": "\n    abc\n    def\n",
-            "end": {
-              "col": 1,
-              "line": 14,
-              "offset": 245
-            },
-            "start": {
-              "col": 8,
-              "line": 11,
-              "offset": 228
-            }
-          },
-          "$X": {
-            "abstract_content": "x",
-            "end": {
-              "col": 2,
-              "line": 11,
-              "offset": 222
-            },
-            "start": {
-              "col": 1,
-              "line": 11,
-              "offset": 221
-            }
-          }
-        },
-        "severity": "WARNING",
-        "validation_state": "NO_VALIDATOR"
-      },
-      "path": "targets/multiline/stupid.py",
-      "start": {
-        "col": 1,
-        "line": 11,
-        "offset": 221
-      }
-    },
-    {
       "check_id": "rules.eqeq-is-bad",
       "end": {
         "col": 6,
@@ -111,6 +59,58 @@
         "col": 12,
         "line": 6,
         "offset": 105
+      }
+    },
+    {
+      "check_id": "rules.assign-multiline-comment",
+      "end": {
+        "col": 4,
+        "line": 14,
+        "offset": 248
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "x = \"\"\"\n    abc\n    def\n\"\"\"",
+        "message": "found an assignment of a multiline comment",
+        "metadata": {},
+        "metavars": {
+          "$MULTILINE": {
+            "abstract_content": "\n    abc\n    def\n",
+            "end": {
+              "col": 1,
+              "line": 14,
+              "offset": 245
+            },
+            "start": {
+              "col": 8,
+              "line": 11,
+              "offset": 228
+            }
+          },
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 2,
+              "line": 11,
+              "offset": 222
+            },
+            "start": {
+              "col": 1,
+              "line": 11,
+              "offset": 221
+            }
+          }
+        },
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/multiline/stupid.py",
+      "start": {
+        "col": 1,
+        "line": 11,
+        "offset": 221
       }
     }
   ],

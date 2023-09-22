@@ -176,7 +176,8 @@ and declaration env x =
   | ExternList (_, _, _)
   | ExternDecl (_, _, _)
   | TemplateDecl _
-  | TemplateInstanciation _ ->
+  | TemplateInstanciation _
+  | Concept _ ->
       debug (Toplevel (X (D x)));
       raise CplusplusConstruct
   | DeclTodo _ ->
@@ -207,7 +208,8 @@ and function_body env x =
   | FBDecl sc -> (sc, [], sc)
   | FBDelete _
   | FBDefault _
-  | FBZero _ ->
+  | FBZero _
+  | FBTry _ ->
       raise CplusplusConstruct
 
 and function_type env x =
@@ -218,9 +220,10 @@ and function_type env x =
    ft_specs = _TODO;
    ft_const = const;
    ft_throw = throw;
+   ft_requires = requires;
   } ->
-      (match (const, throw) with
-      | None, [] -> ()
+      (match (const, throw, requires) with
+      | None, [], None -> ()
       | _ -> raise CplusplusConstruct);
 
       (full_type env ret, List.map (parameter env) (params |> unparen))
@@ -346,7 +349,9 @@ and storage_in_specs _env xs =
       | Auto
       | Register ->
           A.DefaultStorage
-      | StoInline -> raise CplusplusConstruct)
+      | StoInline
+      | ThreadLocal ->
+          raise CplusplusConstruct)
   | []
   | _ ->
       A.DefaultStorage
@@ -414,13 +419,14 @@ and expr_or_vars env x =
 and stmt env st =
   match st with
   | Compound x -> A.Block (compound env x)
-  | If (t, _, (_, CondClassic e, _), st1, Some (_, st2)) ->
+  | If (t, _, (_, (_, CondClassic e), _), st1, Some (_, st2)) ->
       A.If (t, expr env e, stmt env st1, Some (stmt env st2))
-  | If (t, _, (_, CondClassic e, _), st1, None) ->
+  | If (t, _, (_, (_, CondClassic e), _), st1, None) ->
       A.If (t, expr env e, stmt env st1, None)
-  | Switch (tok, (_, CondClassic e, _), st) ->
+  | Switch (tok, (_, (_, CondClassic e), _), st) ->
       A.Switch (tok, expr env e, cases env st)
-  | While (t, (_, CondClassic e, _), st) -> A.While (t, expr env e, stmt env st)
+  | While (t, (_, (_, CondClassic e), _), st) ->
+      A.While (t, expr env e, stmt env st)
   | DoWhile (t, st, _, (_, e, _), _) -> A.DoWhile (t, stmt env st, expr env e)
   | For (t, (_, ForClassic (est1, est2, est3), _), st) ->
       A.For
@@ -461,7 +467,8 @@ and stmt env st =
   | Try (_, _, _)
   | If (_, _, (_, _, _), _, _)
   | While (_, (_, _, _), _)
-  | Switch (_, (_, _, _), _) ->
+  | Switch (_, (_, _, _), _)
+  | CoStmt _ ->
       debug (Stmt st);
       raise CplusplusConstruct
   | StmtTodo _
@@ -564,7 +571,7 @@ and expr env e =
   | DotAccess (e, (Arrow, t), n) -> A.RecordPtAccess (expr env e, t, name env n)
   | Cast ((_, ft, _), e) -> A.Cast (full_type env ft, expr env e)
   | ArrayAccess (e1, e2) ->
-      A.ArrayAccess (expr env e1, bracket_keep (expr env) e2)
+      A.ArrayAccess (expr env e1, bracket_keep (initialiser env) e2)
   | Binary (e1, op, e2) -> A.Binary (expr env e1, op, expr env e2)
   | Unary (op, e) -> A.Unary (expr env e, op)
   | Prefix (op, e) -> A.Infix (expr env e, op)
@@ -598,7 +605,12 @@ and expr env e =
   | DotStarAccess (_, _, _)
   | TypeId (_, _)
   | ParamPackExpansion _
-  | Lambda _ ->
+  | FoldExpr _
+  | RequiresExpr _
+  | RequiresClause _
+  | Lambda _
+  | UserDefined _
+  | CoAwait _ ->
       debug (Expr e);
       raise CplusplusConstruct
   | StatementExpr _

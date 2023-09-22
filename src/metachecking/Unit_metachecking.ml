@@ -39,7 +39,7 @@ let metachecker_checks_tests () =
               fun () ->
                 E.g_errors := [];
                 E.try_with_exn_to_error !!file (fun () ->
-                    let rules = Parse_rule.parse file in
+                    let rules = Parse_rule.parse ~rewrite_rule_ids:None file in
                     rules
                     |> List.iter (fun rule ->
                            let errs = Check_rule.check rule in

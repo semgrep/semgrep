@@ -34,6 +34,23 @@ let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 (* Helpers  *)
 (*****************************************************************************)
 
+(* TODO: switch to 'deriving visitor' *)
+module V = Visitor_js
+
+let extract_info_visitor recursor =
+  let globals = ref [] in
+  let hooks =
+    {
+      V.default_visitor with
+      V.kinfo = (fun (_k, _) i -> Common.push i globals);
+    }
+  in
+  let vout = V.mk_visitor hooks in
+  recursor vout;
+  List.rev !globals
+
+let ii_of_any any = extract_info_visitor (fun visitor -> visitor any)
+
 (* Now that we parse individual items separately, and that we do not
  * rely on EOF as a final marker, we need to take care when
  * running the parser on the next item. Indeed, certain
@@ -61,7 +78,7 @@ let put_back_lookahead_token_if_needed tr item_opt =
   match item_opt with
   | None -> ()
   | Some item ->
-      let iis = Lib_parsing_js.ii_of_any (Ast.Program [ item ]) in
+      let iis = ii_of_any (Ast.Program [ item ]) in
       let current = tr.Parsing_helpers.current in
       let info = TH.info_of_tok current in
       (* bugfix: without test on is_origintok, the parser timeout

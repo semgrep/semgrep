@@ -52,6 +52,7 @@ let use_ojsonnet = true
 (* Types *)
 (*****************************************************************************)
 
+type origin = Local_file of Fpath.t | Other_origin [@@deriving show]
 type key = string R.wrap
 
 type env = {
@@ -189,6 +190,50 @@ let read_string_wrap e =
       Some (value, t)
   | G.N (Id ((value, t), _)) -> Some (value, t)
   | _ -> None
+
+(*****************************************************************************)
+(* Rewrite rule ids *)
+(*****************************************************************************)
+
+let prefix_for_fpath_opt (fpath : Fpath.t) : string option =
+  assert (Fpath.is_file_path fpath);
+  let* rel_path =
+    if Fpath.is_rel fpath then Some fpath
+      (* python: paths had no commen prefix; not possible to relativize *)
+    else Fpath.rem_prefix (Fpath.v (Sys.getcwd ())) fpath
+  in
+  (* LATER: we should use Fpath.normalize first, but pysemgrep
+   * doesn't as shown by tests/e2e/test_check.py::test_basic_rule__relative
+   * so we reproduce the same behavior, leading sometimes to some
+   * weird rule id like "rules....rules.test" when passing
+   * rules/../rules/test.yaml to --config.
+   * TODO? pass legacy flag and improve the behavior when not legacy?
+   *)
+  match List.rev (Fpath.segs rel_path) with
+  | [] -> raise Impossible
+  | [ _file ] -> None
+  | _file :: dirs ->
+      let prefix =
+        dirs |> List.rev |> Common.map (fun s -> s ^ ".") |> String.concat ""
+      in
+      Some prefix
+
+(*
+   Check the validity of the rule ID and prepend the path to rule file if
+   the rewrite_rule_ids option is set.
+*)
+let parse_rule_id ~rewrite_rule_ids rule_id_str =
+  let opt_prefix =
+    match rewrite_rule_ids with
+    | Some (Local_file fpath) -> prefix_for_fpath_opt fpath
+    | Some Other_origin
+    | None ->
+        None
+  in
+  (match opt_prefix with
+  | None -> rule_id_str
+  | Some prefix -> Rule_ID.sanitize_string prefix ^ rule_id_str)
+  |> Rule_ID.of_string
 
 (*****************************************************************************)
 (* Dict helper methods *)
@@ -726,7 +771,7 @@ let parse_xpattern_expr env e =
     | Some (s, t) -> (s, t)
     | None ->
         error_at_expr env.id e
-          ("Expected a string value for " ^ (env.id :> string))
+          ("Expected a string value for " ^ Rule_ID.to_string env.id)
   in
 
   (* emma: This is for later, but note that start and end_ are currently the
@@ -973,6 +1018,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
       let kind =
         match analyzer with
         | "entropy" -> R.CondEntropy
+        | "entropy_v2" -> R.CondEntropyV2
         | "redos" -> R.CondReDoS
         | other -> error_at_key env.id key ("Unsupported analyzer: " ^ other)
       in
@@ -1001,7 +1047,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
       let env', opt_xlang =
         match take_opt mv_type_dict env parse_string "language" with
         | Some s ->
-            let xlang = Xlang.of_string ~rule_id:(env.id :> string) s in
+            let xlang = Xlang.of_string ~rule_id:(Rule_ID.to_string env.id) s in
             let env' =
               {
                 id = env.id;
@@ -1023,7 +1069,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
       let env', opt_xlang =
         match take_opt mv_pattern_dict env parse_string "language" with
         | Some s ->
-            let xlang = Xlang.of_string ~rule_id:(env.id :> string) s in
+            let xlang = Xlang.of_string ~rule_id:(Rule_ID.to_string env.id) s in
             let env' =
               {
                 id = env.id;
@@ -1206,7 +1252,7 @@ and produce_constraint env dict tok indicator =
       let env', opt_xlang =
         match take_opt dict env parse_string "language" with
         | Some s ->
-            let xlang = Xlang.of_string ~rule_id:(env.id :> string) s in
+            let xlang = Xlang.of_string ~rule_id:(Rule_ID.to_string env.id) s in
             let env' =
               {
                 env with
@@ -1778,12 +1824,13 @@ let check_version_compatibility rule_id ~min_version ~max_version =
       if not (Version_info.compare Version_info.version maxi <= 0) then
         incompatible_version ?max_version:(Some maxi) rule_id tok
 
-let parse_one_rule (t : G.tok) (i : int) (rule : G.expr) : Rule.t =
+let parse_one_rule ~rewrite_rule_ids (t : G.tok) (i : int) (rule : G.expr) :
+    Rule.t =
   let rd = yaml_to_dict_no_env ("rules", t) rule in
   (* We need a rule ID early to produce useful error messages. *)
   let ((rule_id, _) as id) =
     let rule_id_str, tok = take_no_env rd parse_string_wrap_no_env "id" in
-    (Rule_ID.of_string rule_id_str, tok)
+    (parse_rule_id ~rewrite_rule_ids rule_id_str, tok)
   in
   (* We need to check for version compatibility before attempting to interpret
      the rule. *)
@@ -1841,8 +1888,9 @@ let parse_one_rule (t : G.tok) (i : int) (rule : G.expr) : Rule.t =
     options = options_opt;
   }
 
-let parse_generic_ast ?(error_recovery = false) (file : Fpath.t)
-    (ast : AST_generic.program) : Rule.rules * Rule.invalid_rule_error list =
+let parse_generic_ast ?(error_recovery = false) ~rewrite_rule_ids
+    (file : Fpath.t) (ast : AST_generic.program) :
+    Rule.rules * Rule.invalid_rule_error list =
   let t, rules =
     match ast with
     | [ { G.s = G.ExprStmt (e, _); _ } ] -> (
@@ -1887,15 +1935,14 @@ let parse_generic_ast ?(error_recovery = false) (file : Fpath.t)
     rules
     |> Common.mapi (fun i rule ->
            if error_recovery then (
-             try Left (parse_one_rule t i rule) with
+             try Left (parse_one_rule ~rewrite_rule_ids t i rule) with
              | Rule.Error { kind = InvalidRule ((kind, ruleid, _) as err); _ }
                ->
                  let s = Rule.string_of_invalid_rule_error_kind kind in
                  logger#warning "skipping rule %s, error = %s"
-                   (ruleid :> string)
-                   s;
+                   (Rule_ID.to_string ruleid) s;
                  Right err)
-           else Left (parse_one_rule t i rule))
+           else Left (parse_one_rule ~rewrite_rule_ids t i rule))
   in
   Common.partition_either (fun x -> x) xs
 
@@ -1912,7 +1959,7 @@ let parse_yaml_rule_file file =
   | Parsing_error.Other_error (s, t) ->
       Rule.raise_error None (InvalidYaml (s, t))
 
-let parse_file ?error_recovery file =
+let parse_file ?error_recovery ~rewrite_rule_ids file =
   let ast =
     match FT.file_type_of_file file with
     | FT.Config FT.Json ->
@@ -1966,13 +2013,14 @@ let parse_file ?error_recovery file =
         logger#info "trying to parse %s as YAML" !!file;
         parse_yaml_rule_file ~is_target:true !!file
   in
-  parse_generic_ast ?error_recovery file ast
+  parse_generic_ast ?error_recovery ~rewrite_rule_ids file ast
 
 (*****************************************************************************)
 (* Main Entry point *)
 (*****************************************************************************)
 
-let parse_and_filter_invalid_rules file = parse_file ~error_recovery:true file
+let parse_and_filter_invalid_rules ~rewrite_rule_ids file =
+  parse_file ~error_recovery:true ~rewrite_rule_ids file
   [@@profiling]
 
 let parse_xpattern xlang (str, tok) =
@@ -1992,8 +2040,8 @@ let parse_xpattern xlang (str, tok) =
 (* Useful for tests *)
 (*****************************************************************************)
 
-let parse file =
-  let xs, skipped = parse_file ~error_recovery:false file in
+let parse ~rewrite_rule_ids file =
+  let xs, skipped = parse_file ~error_recovery:false ~rewrite_rule_ids file in
   assert (skipped =*= []);
   xs
 

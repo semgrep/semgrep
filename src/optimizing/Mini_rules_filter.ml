@@ -58,6 +58,6 @@ let filter_mini_rules_relevant_to_file_using_regexp rules lang file =
          in
 
          if not match_ then
-           logger#info "filtering rule %s" (rule.R.id :> string);
+           logger#info "filtering rule %s" (Rule_ID.to_string rule.id);
          match_)
   [@@profiling "Mini_rules_filter.filter"]

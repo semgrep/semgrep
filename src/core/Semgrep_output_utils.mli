@@ -32,5 +32,9 @@ val tokens_to_single_loc : Tok.t list -> Semgrep_output_v1_t.location option
    Sort results in the most natural way possible, typically preferring
    match location first.
 *)
-val sort_match_results :
-  Semgrep_output_v1_t.core_output -> Semgrep_output_v1_t.core_output
+val sort_core_matches :
+  Semgrep_output_v1_t.core_match list -> Semgrep_output_v1_t.core_match list
+
+(* Sort matches in an order suitable for displaying results. *)
+val sort_cli_matches :
+  Semgrep_output_v1_t.cli_match list -> Semgrep_output_v1_t.cli_match list

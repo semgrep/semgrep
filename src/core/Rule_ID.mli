@@ -3,7 +3,7 @@
    and error messages. The coercion operator can be used as an alternative
    to 'to_string x': '(x :> string)' to obtain a plain string.
 *)
-type t = private string [@@deriving show, eq]
+type t [@@deriving show, eq]
 
 exception Malformed_rule_ID of string
 

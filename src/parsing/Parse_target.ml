@@ -45,7 +45,9 @@ let errors_from_skipped_tokens xs =
   | x :: _ ->
       let e = exn_of_loc x in
       let err = E.exn_to_error None x.Tok.pos.file e in
-      let locs = xs |> Common.map Output_utils.location_of_token_location in
+      let locs =
+        xs |> Common.map Semgrep_output_utils.location_of_token_location
+      in
       Core_error.ErrorSet.singleton { err with typ = Out.PartialParsing locs }
 
 let undefined_just_parse_with_lang _lang _file =

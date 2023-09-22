@@ -8,7 +8,6 @@
  (name semgrep_targeting)
  (wrapped false)
  (libraries
-   stdcompat
    commons
 
    fpath

@@ -65,7 +65,7 @@ let interpolate_metavars (text : string) (metavars : metavars) (file : filename)
          let (v : Out.metavar_value) = mval in
          let content =
            lazy
-             (Output_utils.content_of_file_at_range (v.start, v.end_)
+             (Semgrep_output_utils.content_of_file_at_range (v.start, v.end_)
                 (Fpath.v file))
          in
          text
@@ -428,7 +428,7 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
       (* TODO? at this point why not using content_of_file_at_range since
        * we concatenate the lines after? *)
       let lines =
-        Output_utils.lines_of_file_at_range (start, end_) (Fpath.v path)
+        Semgrep_output_utils.lines_of_file_at_range (start, end_) (Fpath.v path)
         |> String.concat "\n"
       in
       {
@@ -477,6 +477,7 @@ let dedup_and_sort (xs : Out.cli_match list) : Out.cli_match list =
            let key = x in
            Hashtbl.replace seen key true;
            true)
+  |> Semgrep_output_utils.sort_cli_matches
 
 (* This is the same algorithm for indexing as in pysemgrep. We shouldn't need to update this *)
 (* match based ids have an index appended at the end which indicates what
