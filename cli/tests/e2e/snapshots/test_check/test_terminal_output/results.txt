@@ -45,8 +45,7 @@ More information: https://semgrep.dev/docs/metrics
 
   Language   Rules   Files          Origin   Rules
  ──────────────────────────        ────────────────
-  python         3      11          Custom       4
-  js             1       3
+                                    Custom       4
 
 
 
@@ -99,8 +98,7 @@ More information: https://semgrep.dev/docs/metrics
 
   Language   Rules   Files          Origin   Rules
  ──────────────────────────        ────────────────
-  python         3      11          Custom       4
-  js             1       3
+                                    Custom       4
 
 
 
