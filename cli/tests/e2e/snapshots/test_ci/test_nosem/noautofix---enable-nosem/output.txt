@@ -25,14 +25,17 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
             ⋮┆----------------------------------------
            11┆ y == y
             ⋮┆----------------------------------------
-           23┆ b == b # Triage ignored by syntactic_id
-            ⋮┆----------------------------------------
-           24┆ a == a # Triage ignored by match_based_id
-            ⋮┆----------------------------------------
        eqeq-four
           useless comparison to 4
 
            19┆ baz == 4
+            ⋮┆----------------------------------------
+       eqeq-bad
+          useless comparison
+
+           23┆ b == b # Triage ignored by syntactic_id
+            ⋮┆----------------------------------------
+           24┆ a == a # Triage ignored by match_based_id
             ⋮┆----------------------------------------
        taint-test
           unsafe use of danger
