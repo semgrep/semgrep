@@ -15,6 +15,9 @@ val debug_info_to_option : 'a debug_info -> 'a option
 (** [debug_info_to_option debug] returns [Some profiling] if we collected
     metrics. Otherwise, it returns [None]. *)
 
+val merge_debug_info :
+  ('a -> 'a -> 'a) -> 'a debug_info -> 'a debug_info -> 'a debug_info
+
 (* Global to set the debug mode. Should be set
    exactly once after the arguments are read *)
 
@@ -51,6 +54,7 @@ type t = {
 }
 [@@deriving show]
 
+val merge : t -> t -> t
 val empty_extra : 'a -> 'a debug_info
 val empty_partial_profiling : Fpath.t -> partial_profiling
 val empty_rule_profiling : Rule.t -> rule_profiling
