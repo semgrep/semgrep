@@ -525,6 +525,9 @@ let run_cnf_step2 cnf big_str =
  *)
 type prefilter = Semgrep_prefilter_t.formula * (string -> bool)
 
+(* see mli *)
+type prefilter_cache = (Rule_ID.t, prefilter option) Hashtbl.t
+
 let prefilter_formula_of_prefilter (pre : prefilter) :
     Semgrep_prefilter_t.formula =
   let x, _f = pre in
@@ -587,9 +590,7 @@ let regexp_prefilter_of_taint_rule (_rule_id, rule_tok) taint_spec =
   in
   regexp_prefilter_of_formula f
 
-let hmemo = Hashtbl.create 101
-
-let regexp_prefilter_of_rule (r : R.rule) =
+let regexp_prefilter_of_rule ~cache (r : R.rule) =
   let rule_id, _t = r.R.id in
   (* rule_id is supposed to be unique so it should work as a key for hmemo.
    * bugfix:
@@ -598,24 +599,27 @@ let regexp_prefilter_of_rule (r : R.rule) =
    * which was triggering a FakeInfoStr exn
    *)
   let key = rule_id in
-  Common.memoized hmemo key (fun () ->
-      try
-        match r.mode with
-        | `Search f
-        | `Extract { formula = f; _ } ->
-            regexp_prefilter_of_formula f
-        | `Taint spec -> regexp_prefilter_of_taint_rule r.R.id spec
-        | `Secrets _ (* TODO *)
-        | `Steps _ ->
-            (* TODO *) None
-      with
-      (* TODO: see tests/rules/tainted-filename.yaml,
-                   tests/rules/kotlin_slow_import.yaml *)
-      | CNF_exploded ->
-          logger#error "CNF size exploded on rule id %s"
-            (Rule_ID.to_string rule_id);
-          None
-      | Stack_overflow ->
-          logger#error "Stack overflow on rule id %s"
-            (Rule_ID.to_string rule_id);
-          None)
+  let regex_prefilter_fun () =
+    try
+      match r.mode with
+      | `Search f
+      | `Extract { formula = f; _ } ->
+          regexp_prefilter_of_formula f
+      | `Taint spec -> regexp_prefilter_of_taint_rule r.R.id spec
+      | `Secrets _ (* TODO *)
+      | `Steps _ ->
+          (* TODO *) None
+    with
+    (* TODO: see tests/rules/tainted-filename.yaml,
+                 tests/rules/kotlin_slow_import.yaml *)
+    | CNF_exploded ->
+        logger#error "CNF size exploded on rule id %s"
+          (Rule_ID.to_string rule_id);
+        None
+    | Stack_overflow ->
+        logger#error "Stack overflow on rule id %s" (Rule_ID.to_string rule_id);
+        None
+  in
+  match cache with
+  | None -> regex_prefilter_fun ()
+  | Some cache -> Common.memoized cache key regex_prefilter_fun
