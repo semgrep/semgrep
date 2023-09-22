@@ -37,6 +37,7 @@ from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
 from semgrep.console import console
 from semgrep.console import Title
+from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
@@ -69,6 +70,7 @@ from semgrep.target_manager import ECOSYSTEM_TO_LOCKFILES
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
 from semgrep.util import unit_str
+from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
 
@@ -167,7 +169,16 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> i
     detailed_ux = get_state().is_detailed_cli_ux()
     simple_ux = get_state().is_simple_cli_ux()
 
-    if not simple_ux:
+    if simple_ux:
+        logo = with_color(Colors.green, "○○○")
+        console.print(
+            f"""
+┌──── {logo} ────┐
+│ Semgrep CLI │
+└─────────────┘
+"""
+        )
+    else:
         console.print(Title("Scan Status"))
 
     sast_plan = CoreRunner.plan_core_run(

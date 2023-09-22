@@ -693,6 +693,7 @@ class Plan:
         is given the product-focused CLI UX treatment.
         """
         learn_more_url = "https://semgrep.dev/products/cloud-platform/"
+        console.print(f"\nTODO...\n")
         message = "\n".join(
             wrap(
                 f"💎 Sign in with `semgrep login` to use all Semgrep products. Learn more at {learn_more_url}",
