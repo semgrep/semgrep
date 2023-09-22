@@ -463,33 +463,29 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
 
 (*
    Order by:
-     rule name, file path, start line, start column, end line, end column
+     file path, start line, start column, end line, end column, rule name
 
-   This uses the same ordering as in pysemgrep. It will be easier to change
-   once we no longer have pysemgrep. In pysemgrep, sorting is done in
-   two places because findings are grouped by rule until the very end:
-   - 'rule: sorted(matches)' in core_output.py (sort by file/location)
-   - 'self.rule_matches = sorted(...)' in output.py (sort by rule ID)
+   This uses the same ordering as in pysemgrep.
 *)
 let compare_cli_matches (a : Out.cli_match) (b : Out.cli_match) =
-  let c = String.compare a.check_id b.check_id in
+  let c = String.compare a.path b.path in
   if c <> 0 then c
   else
-    let c = String.compare a.path b.path in
+    let a_start = a.start in
+    let b_start = b.start in
+    let c = Int.compare a_start.line b_start.line in
     if c <> 0 then c
     else
-      let a_start = a.start in
-      let b_start = b.start in
-      let c = Int.compare a_start.line b_start.line in
+      let c = Int.compare a_start.col b_start.col in
       if c <> 0 then c
       else
-        let c = Int.compare a_start.col b_start.col in
+        let a_end = a.end_ in
+        let b_end = b.end_ in
+        let c = Int.compare a_end.line b_end.line in
         if c <> 0 then c
         else
-          let a_end = a.end_ in
-          let b_end = b.end_ in
-          let c = Int.compare a_end.line b_end.line in
-          if c <> 0 then c else Int.compare a_end.col b_end.col
+          let c = Int.compare a_end.col b_end.col in
+          if c <> 0 then c else String.compare a.check_id b.check_id
 
 let sort_cli_matches xs = List.sort compare_cli_matches xs
 
