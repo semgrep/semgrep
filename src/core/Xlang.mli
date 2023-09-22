@@ -15,7 +15,11 @@ type t =
   (* For "real" semgrep.
      The first language is used to parse the pattern and targets.
      The other languages are extra target languages that can use the
-     same pattern. *)
+     same pattern.
+
+     TODO: enforce the ordering of the list for the derived equality function
+     to be correct (could be done by making the type private)
+  *)
   | L of Lang.t * Lang.t list
   (* for pattern-regex (referred as 'regex' or 'none' in languages:) *)
   | LRegex
@@ -36,6 +40,24 @@ val to_langs : t -> Lang.t list
 
 (* raises an exception with error message *)
 val lang_of_opt_xlang_exn : t option -> Lang.t
+
+(*
+   Determine whether a single analyzer exist in an set of
+   analyzers. If the first analyzer is more than one language, it's
+   an error and the result is always false (it could be an exception but
+   this is safer).
+
+   This is normally used for determining if a target that's
+   expected to be analyzable with one analyzer can be analyzed with
+   the rule's listed analyzers ("languages").
+
+   Examples:
+   - 'LRegex' is not compatible with 'L (JavaScript, [])'
+   - 'LRegex' is compatible only with 'LRegex'
+   - 'L (JavaScript, [])' is compatible with 'L (TypeScript, [JavaScript])'
+   - '~require:(L (TypeScript, [JavaScript]))' does not make sense.
+*)
+val is_compatible : require:t -> provide:t -> bool
 
 (*
    Convert an object that represent a pattern's multiple languages into

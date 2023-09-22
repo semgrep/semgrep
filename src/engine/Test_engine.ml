@@ -211,7 +211,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                  extract_targets
                  |> Common.map (fun t ->
                         let file = t.Input_to_core_t.path in
-                        let xlang = t.Input_to_core_t.language in
+                        let xlang = t.Input_to_core_t.analyzer in
                         let lazy_ast_and_errors =
                           lazy
                             (match xlang with
