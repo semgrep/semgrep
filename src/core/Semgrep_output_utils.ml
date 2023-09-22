@@ -111,8 +111,8 @@ let tokens_to_single_loc (toks : Tok.t list) : location option =
 (* Compare (=~ deriving ord) *)
 (*****************************************************************************)
 
-(* TODO? would be good to automatically derive those, but Iago got
- * bitten in the past and prefer explicit code
+(* alt: it could be good to automatically derive those, but Iago got
+ * bitten in the past and prefer explicit code.
  *)
 let compare_position (a : position) b = Int.compare a.offset b.offset
 
@@ -176,7 +176,7 @@ let sort_metavars (metavars : (string * metavar_value) list) =
 let sort_extra (extra : core_match_extra) =
   { extra with metavars = sort_metavars extra.metavars }
 
-let sort_match_list (matches : core_match list) : core_match list =
+let sort_core_matches (matches : core_match list) : core_match list =
   let matches =
     matches
     |> Common.map (fun (x : core_match) ->
@@ -184,5 +184,30 @@ let sort_match_list (matches : core_match list) : core_match list =
   in
   List.stable_sort compare_match matches
 
-let sort_match_results (res : core_output) : core_output =
-  { res with results = sort_match_list res.results }
+(*
+   Order by:
+     file path, start line, start column, end line, end column, rule name
+
+   This uses the same ordering as in pysemgrep.
+*)
+let compare_cli_matches (a : cli_match) (b : cli_match) =
+  let c = String.compare a.path b.path in
+  if c <> 0 then c
+  else
+    let a_start = a.start in
+    let b_start = b.start in
+    let c = Int.compare a_start.line b_start.line in
+    if c <> 0 then c
+    else
+      let c = Int.compare a_start.col b_start.col in
+      if c <> 0 then c
+      else
+        let a_end = a.end_ in
+        let b_end = b.end_ in
+        let c = Int.compare a_end.line b_end.line in
+        if c <> 0 then c
+        else
+          let c = Int.compare a_end.col b_end.col in
+          if c <> 0 then c else String.compare a.check_id b.check_id
+
+let sort_cli_matches xs = List.sort compare_cli_matches xs
