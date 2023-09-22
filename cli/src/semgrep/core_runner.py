@@ -66,6 +66,7 @@ from semgrep.state import get_context
 from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
 from semgrep.util import unit_str
+from semgrep.util import with_feature_status
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -694,6 +695,7 @@ class Plan:
         """
         learn_more_url = "https://semgrep.dev/products/cloud-platform/"
         console.print(f"\nTODO...\n")
+        console.print(f"{with_feature_status(enabled=True)} Feature 1")
         message = "\n".join(
             wrap(
                 f"💎 Sign in with `semgrep login` to use all Semgrep products. Learn more at {learn_more_url}",
