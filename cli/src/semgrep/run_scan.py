@@ -122,13 +122,16 @@ def print_scan_plan_header(
     the number of rules to be run based on the current configuration.
     """
     file_count = len(target_manager.get_all_files())
-    new_cli_ux = get_state().env.with_new_cli_ux
+    legacy_cli_ux = get_state().is_legacy_cli_ux()
+    simple_ux = get_state().is_simple_cli_ux()
 
     summary_line = f"Scanning {unit_str(file_count, 'file')}"
     if target_manager.respect_git_ignore:
-        summary_line += f" {'(only git-tracked)' if new_cli_ux else 'tracked by git'}"
+        summary_line += (
+            f" {'tracked by git' if legacy_cli_ux else '(only git-tracked)'}"
+        )
 
-    if new_cli_ux:  # We skip printing the rule count with new CLI UX
+    if simple_ux:  # We skip printing the rule count with new simple CLI UX
         console.print(f"{summary_line} with:")
         return
 
@@ -139,21 +142,16 @@ def print_scan_plan_header(
     sast_rule_count = len(sast_plan.rules)
     is_secret_rule = lambda r: r.product == RuleProduct.secrets
     secrets_rule_count = len(list(filter(is_secret_rule, sast_plan.rules)))
+
     # TODO code_rule_count currently double counts pro_rules.
     code_rule_count = sast_rule_count - secrets_rule_count
     summary_line += f" with {unit_str(code_rule_count, 'Code rule')}"
 
-    # TODO After the secrets release we should also include a check
-    # for new_cli_ux as done below.
     if secrets_rule_count:
         summary_line += f", {unit_str(secrets_rule_count, 'Secrets rule')}"
 
     sca_rule_count = len(sca_plan.rules)
     if sca_rule_count:
-        summary_line += f", {unit_str(sca_rule_count, 'Supply Chain rule')}"
-    elif (
-        new_cli_ux
-    ):  # Always print the count of Supply Chain rules in new CLI UX (even if 0)
         summary_line += f", {unit_str(sca_rule_count, 'Supply Chain rule')}"
 
     console.print(summary_line + ":")
@@ -166,8 +164,11 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> i
     Return total number of rules semgrep think is applicable to this repo
     e.g. it skips rules when there are no files with a relevant extension since no findings will be found
     """
-    new_cli_ux = get_state().env.with_new_cli_ux
-    console.print(Title("Scan Status"))
+    detailed_ux = get_state().is_detailed_cli_ux()
+    simple_ux = get_state().is_simple_cli_ux()
+
+    if not simple_ux:
+        console.print(Title("Scan Status"))
 
     sast_plan = CoreRunner.plan_core_run(
         [
@@ -191,7 +192,7 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> i
 
     print_scan_plan_header(target_manager, sast_plan, sca_plan)
 
-    if new_cli_ux:
+    if detailed_ux:
         console.print(Title("Code Rules", order=2))
         sast_plan.print(with_tables_for=RuleProduct.sast)
         # TODO: after launch this should no longer be conditional.

@@ -1,3 +1,7 @@
+from enum import auto
+from enum import Enum
+from typing import List
+
 import click
 from attrs import Factory
 from attrs import frozen
@@ -8,6 +12,12 @@ from semgrep.error_handler import ErrorHandler
 from semgrep.metrics import Metrics
 from semgrep.settings import Settings
 from semgrep.terminal import Terminal
+
+
+class DesignTreatment(Enum):
+    LEGACY = auto()  # default
+    SIMPLE = auto()  # simple output for product-focused users
+    DETAILED = auto()  # detailed output for power users
 
 
 @frozen
@@ -25,6 +35,41 @@ class SemgrepState:
     settings: Settings = Factory(Settings)
     terminal: Terminal = Factory(Terminal)
 
+    @staticmethod
+    def get_cli_ux_flavor() -> DesignTreatment:
+        """
+        Returns the CLI UX flavor to use for the current CLI invocation.
+        """
+        new_cli_ux = get_state().env.with_new_cli_ux
+        if not new_cli_ux:
+            return DesignTreatment.LEGACY
+        # If the user passes in a config (that is not 'auto'),
+        # we assume they are a power user who needs rule information
+        config = get_config()
+        has_config = bool(config) and config != ["auto"]
+        return DesignTreatment.DETAILED if has_config else DesignTreatment.SIMPLE
+
+    @staticmethod
+    def is_legacy_cli_ux() -> bool:
+        """
+        Returns True iff the current CLI invocation should be given the legacy UX treatment.
+        """
+        return get_state().get_cli_ux_flavor() == DesignTreatment.LEGACY
+
+    @staticmethod
+    def is_simple_cli_ux() -> bool:
+        """
+        Returns True iff the current CLI invocation should be given the simple UX treatment.
+        """
+        return get_state().get_cli_ux_flavor() == DesignTreatment.SIMPLE
+
+    @staticmethod
+    def is_detailed_cli_ux() -> bool:
+        """
+        Returns True iff the current CLI invocation should be given the detailed UX treatment.
+        """
+        return get_state().get_cli_ux_flavor() == DesignTreatment.DETAILED
+
 
 def get_context() -> click.Context:
     """
@@ -38,6 +83,16 @@ def get_context() -> click.Context:
         ctx = click.Context(command=cli).scope().__enter__()
 
     return ctx
+
+
+def get_config() -> List[str]:
+    """
+    Get the config passed via command line arguments (click)
+    that is in turn passed to semgrep-core and friends.
+    """
+    ctx = get_context()
+    params = ctx.params if hasattr(ctx, "params") else {}
+    return list(params.get("config") or ())
 
 
 def get_state() -> SemgrepState:

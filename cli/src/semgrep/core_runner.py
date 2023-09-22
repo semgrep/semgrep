@@ -687,6 +687,20 @@ class Plan:
         for language in self.split_by_lang_label():
             metrics.add_feature("language", language)
 
+    def sprint(self) -> None:
+        """
+        (Simple) print the statuses of enabled products to stdout when the user
+        is given the product-focused CLI UX treatment.
+        """
+        learn_more_url = "https://semgrep.dev/products/cloud-platform/"
+        message = "\n".join(
+            wrap(
+                f"💎 Sign in with `semgrep login` to use all Semgrep products. Learn more at {learn_more_url}",
+                width=70,
+            )
+        )
+        console.print(f"\n{message}\n")
+
     def pprint(self, *, with_tables_for: RuleProduct) -> None:
         """
         Pretty print the plan to stdout with the new CLI UX.
@@ -815,9 +829,14 @@ class Plan:
         """
         Dispatch the correct print method based on the CLI UX.
         """
-        if get_state().env.with_new_cli_ux:
+        if get_state().is_detailed_cli_ux():
             self.pprint(with_tables_for=with_tables_for)
-        else:
+        elif get_state().is_simple_cli_ux():
+            self.sprint()
+        elif get_state().is_legacy_cli_ux():
+            self.oprint(with_tables_for=with_tables_for)
+        else:  # We should never reach this case, but if we do print a warning and fallback to legacy behavior.
+            console.print("WARN: Unknown CLI UX treatment.")
             self.oprint(with_tables_for=with_tables_for)
 
     def __str__(self) -> str:
