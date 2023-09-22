@@ -229,7 +229,7 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
       msg
     in
     let print =
-      cur.check_id <> (Constants.rule_id_for_dash_e :> string)
+      cur.check_id <> Rule_ID.to_string Constants.rule_id_for_dash_e
       &&
       match last_message with
       | None -> true
@@ -283,7 +283,7 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
 let pp_cli_output ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
     (cli_output : Out.cli_output) =
   let groups =
-    cli_output.results |> Cli_json_output.sort_cli_matches
+    cli_output.results |> Semgrep_output_utils.sort_cli_matches
     |> Common.group_by (fun (m : Out.cli_match) ->
            (* TODO: python (text.py):
               if match.product == RuleProduct.sast:

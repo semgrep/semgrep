@@ -112,7 +112,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
     |> Common.map (fun file ->
            let test () =
              logger#info "processing rule file %s" !!file;
-             let rules = Parse_rule.parse file in
+             let rules = Parse_rule.parse ~rewrite_rule_ids:None file in
              (* just a sanity check *)
              (* rules |> List.iter Check_rule.check; *)
              let xlang =

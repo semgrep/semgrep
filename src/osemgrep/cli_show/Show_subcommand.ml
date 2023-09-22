@@ -83,11 +83,12 @@ let run (conf : Show_CLI.conf) : Exit_code.t =
       let token_opt = settings.api_token in
       let in_docker = !Semgrep_envvars.v.in_docker in
       let config = Rules_config.parse_config_string ~in_docker config_str in
-      let rules_and_origins =
-        Rule_fetching.rules_from_dashdash_config ~token_opt
-          ~registry_caching:false config
+      let rules_and_errors =
+        Rule_fetching.rules_from_dashdash_config
+          ~rewrite_rule_ids:true (* command-line default *)
+          ~token_opt ~registry_caching:false config
       in
-      rules_and_origins
+      rules_and_errors
       |> List.iter (fun x -> Common.pr (Rule_fetching.show_rules_and_origin x));
       Exit_code.ok
   | EnginePath _pro -> failwith "TODO: dump-engine-path not implemented yet"

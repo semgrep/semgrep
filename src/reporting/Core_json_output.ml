@@ -24,6 +24,7 @@ module PM = Pattern_match
 open Pattern_match
 module SJ = Semgrep_output_v1_j (* JSON conversions *)
 module Out = Semgrep_output_v1_t (* atdgen definitions *)
+module OutUtils = Semgrep_output_utils
 
 (*****************************************************************************)
 (* Types *)
@@ -87,7 +88,7 @@ let range_of_any_opt startp_of_match_range any =
   | Lbli _
   | Anys _ ->
       let* min_loc, max_loc = AST_generic_helpers.range_of_any_opt any in
-      let startp, endp = Output_utils.position_range min_loc max_loc in
+      let startp, endp = OutUtils.position_range min_loc max_loc in
       Some (startp, endp)
 
 (*****************************************************************************)
@@ -101,7 +102,8 @@ let convert_validation_state = function
   | Validation_error -> `VALIDATION_ERROR
   | No_validator -> `NO_VALIDATOR
 
-let convert_rule ((id, ek) : Rule_ID.t * Engine_kind.t) = ((id :> string), ek)
+let convert_rule ((id, ek) : Rule_ID.t * Engine_kind.t) =
+  (Rule_ID.to_string id, ek)
 
 let metavar_string_of_any any =
   (* TODO: metavar_string_of_any is used in get_propagated_value
@@ -171,10 +173,10 @@ let metavars startp_of_match_range (s, mval) =
  * pysemgrep).
  *)
 let content_of_loc (loc : Out.location) : string =
-  Output_utils.content_of_file_at_range (loc.start, loc.end_) (Fpath.v loc.path)
+  OutUtils.content_of_file_at_range (loc.start, loc.end_) (Fpath.v loc.path)
 
 let token_to_intermediate_var token : Out.match_intermediate_var option =
-  let* location = Output_utils.tokens_to_single_loc [ token ] in
+  let* location = OutUtils.tokens_to_single_loc [ token ] in
   Some
     ({ Out.location; content = content_of_loc location }
       : Out.match_intermediate_var)
@@ -186,10 +188,10 @@ let rec taint_call_trace (trace : PM.taint_call_trace) :
     Out.match_call_trace option =
   match trace with
   | Toks toks ->
-      let* loc = Output_utils.tokens_to_single_loc toks in
+      let* loc = OutUtils.tokens_to_single_loc toks in
       Some (Out.CliLoc (loc, content_of_loc loc))
   | Call { call_trace; intermediate_vars; call_toks } ->
-      let* loc = Output_utils.tokens_to_single_loc call_toks in
+      let* loc = OutUtils.tokens_to_single_loc call_toks in
       let intermediate_vars = tokens_to_intermediate_vars intermediate_vars in
       let* call_trace = taint_call_trace call_trace in
       Some
@@ -223,7 +225,7 @@ let taint_trace_to_dataflow_trace (traces : PM.taint_trace_item list) :
 let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
     =
   let min_loc, max_loc = x.range_loc in
-  let startp, endp = Output_utils.position_range min_loc max_loc in
+  let startp, endp = OutUtils.position_range min_loc max_loc in
   let dataflow_trace =
     Option.map
       (function
@@ -249,7 +251,7 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
     else x.file
   in
   {
-    Out.check_id = (x.rule_id.id :> string);
+    Out.check_id = Rule_ID.to_string x.rule_id.id;
     (* inherited location *)
     path = file;
     start = startp;
@@ -289,7 +291,7 @@ let match_to_match render_fix (x : Pattern_match.t) :
  *)
 let error_to_error err =
   let file = err.E.loc.pos.file in
-  let startp, endp = Output_utils.position_range err.E.loc err.E.loc in
+  let startp, endp = OutUtils.position_range err.E.loc err.E.loc in
   let rule_id = Option.map Rule_ID.to_string err.E.rule_id in
   let error_type = err.E.typ in
   let severity = E.severity_of_error err.E.typ in
@@ -312,7 +314,7 @@ let rec explanation_to_explanation (exp : Matching_explanation.t) :
     Out.op;
     children = children |> Common.map explanation_to_explanation;
     matches = matches |> Common.map (unsafe_match_to_match None);
-    loc = Output_utils.location_of_token_location tloc;
+    loc = OutUtils.location_of_token_location tloc;
   }
 
 let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
@@ -360,7 +362,7 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
                num_bytes = File.filesize target;
                run_time;
              });
-    rules = rule_ids |> Common.map (fun (x : Rule_ID.t) -> (x :> string));
+    rules = rule_ids |> Common.map Rule_ID.to_string;
     rules_parse_time = profiling_data.rules_parse_time;
     max_memory_bytes = Some profiling_data.max_memory_bytes;
     (* TODO: does it cover all targets or just the relevant target we actually
@@ -400,7 +402,7 @@ let core_output_of_matches_and_errors render_fix nfiles (res : Core_result.t) =
     | Core_profiling.No_info -> (None, None)
   in
   {
-    Out.results = matches;
+    Out.results = matches |> OutUtils.sort_core_matches;
     errors = errs |> Common.map error_to_error;
     skipped_targets;
     skipped_rules =
@@ -408,9 +410,9 @@ let core_output_of_matches_and_errors render_fix nfiles (res : Core_result.t) =
       |> Common.map (fun ((kind, rule_id, tk) : Rule.invalid_rule_error) ->
              let loc = Tok.unsafe_loc_of_tok tk in
              {
-               Out.rule_id = (rule_id :> string);
+               Out.rule_id = Rule_ID.to_string rule_id;
                details = Rule.string_of_invalid_rule_error_kind kind;
-               position = Output_utils.position_of_token_location loc;
+               position = OutUtils.position_of_token_location loc;
              });
     stats = { okfiles = count_ok; errorfiles = count_errors };
     time = profiling |> Option.map profiling_to_profiling;
@@ -420,7 +422,6 @@ let core_output_of_matches_and_errors render_fix nfiles (res : Core_result.t) =
     rules_by_engine = Common.map convert_rule res.rules_by_engine;
     engine_requested = `OSS;
   }
-  |> Output_utils.sort_match_results
   [@@profiling]
 
 (*****************************************************************************)

@@ -470,21 +470,22 @@ let eval_regression_tests () =
 (*****************************************************************************)
 
 let test_irrelevant_rule rule_file target_file =
-  let rules = Parse_rule.parse rule_file in
+  let cache = Some (Hashtbl.create 101) in
+  let rules = Parse_rule.parse ~rewrite_rule_ids:None rule_file in
   rules
   |> List.iter (fun rule ->
-         match Analyze_rule.regexp_prefilter_of_rule rule with
+         match Analyze_rule.regexp_prefilter_of_rule ~cache rule with
          | None ->
              Alcotest.fail
                (spf "Rule %s: no regex prefilter formula"
-                  (fst rule.id :> string))
+                  (Rule_ID.to_string (fst rule.id)))
          | Some (f, func) ->
              let content = File.read_file target_file in
              let s = Semgrep_prefilter_j.string_of_formula f in
              if func content then
                Alcotest.fail
                  (spf "Rule %s considered relevant by regex prefilter: %s"
-                    (fst rule.id :> string)
+                    (Rule_ID.to_string (fst rule.id))
                     s))
 
 let test_irrelevant_rule_file target_file =
@@ -557,7 +558,7 @@ let extract_tests () =
 
 let tainting_test lang rules_file file =
   let rules =
-    try Parse_rule.parse rules_file with
+    try Parse_rule.parse ~rewrite_rule_ids:None rules_file with
     | exn ->
         failwith
           (spf "fail to parse tainting rules %s (exn = %s)" !!rules_file
