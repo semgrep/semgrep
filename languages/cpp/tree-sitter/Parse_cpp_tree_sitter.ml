@@ -19,6 +19,8 @@ module HPfff = Parser_cpp_mly_helper
 open Ast_cpp
 module R = Tree_sitter_run.Raw_tree
 
+[@@@warning "-26-27-32"]
+
 let logger = Logging.get_logger [ __MODULE__ ]
 
 (*****************************************************************************)
@@ -391,12 +393,6 @@ let map_type_qualifier (env : env) (x : CST.type_qualifier) :
   | `Cons_a25342f tok -> (Consteval, (* "consteval" *) token env tok)
 
 (* "constexpr" *)
-
-let map_explicit_function_specifier (env : env)
-    (x : CST.explicit_function_specifier) =
-  match x with
-  | `Expl tok -> Virtual (token env tok)
-  | `Expl_LPAR_exp_RPAR (v1, v2, v3, v4) -> failwith "TODO"
 
 (* "virtual" *)
 

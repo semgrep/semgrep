@@ -284,6 +284,20 @@ and expr e =
           G.empty_id_info (),
           fb ([ v2 ] |> Common.map G.arg) )
       |> G.e
+  | Generic (tk, (_l, (e, assocs), _r)) ->
+      let e = expr e in
+      let cond =
+        G.Cond (Call (IdSpecial (Typeof, tk) |> G.e, fb [ G.Arg e ]) |> G.e)
+      in
+      let cases =
+        Common.map
+          (fun (ty, e) ->
+            G.CasesAndBody
+              ( [ G.Case (G.fake "", G.PatType (type_ ty)) ],
+                G.ExprStmt (expr e, G.sc) |> G.s ))
+          assocs
+      in
+      StmtExpr (G.Switch (tk, Some cond, cases) |> G.s) |> G.e
   | TypedMetavar (v1, v2) ->
       let v1 = name v1 in
       let v2 = type_ v2 in
@@ -302,10 +316,12 @@ and argument v =
   | ArgType v ->
       let v = type_ v in
       G.ArgType v
+  | ArgBlock (l, stmts, r) ->
+      Arg (StmtExpr (Block (l, list stmt stmts, r) |> G.s) |> G.e)
 
 and const_expr v = expr v
 
-let rec stmt st =
+and stmt st =
   (match st with
   | DefStmt x -> definition x
   | DirStmt x -> directive x
@@ -362,10 +378,77 @@ let rec stmt st =
   | Vars v1 ->
       let v1 = list var_decl v1 in
       (G.stmt1 (v1 |> Common.map (fun v -> G.s (G.DefStmt v)))).G.s
-  | Asm v1 ->
-      let v1 = list expr v1 in
-      G.OtherStmt (G.OS_Asm, v1 |> Common.map (fun e -> G.E e)))
+  | AsmStmt
+      ( asm_tk,
+        (_l, { a_template; a_outputs; a_inputs; a_clobbers; a_gotos }, _r),
+        sc ) ->
+      let a_template = [ G.E (expr a_template) ] in
+      let a_outputs = List.concat_map name_asm_operand a_outputs in
+      let a_inputs = List.concat_map expr_asm_operand a_inputs in
+      let a_clobbers = Common.map (fun x -> G.I (name x)) a_clobbers in
+      let a_gotos = Common.map (fun x -> G.I (name x)) a_gotos in
+      G.OtherStmt
+        ( G.OS_Asm,
+          [ G.Tk asm_tk ] @ a_template @ a_outputs @ a_inputs @ a_clobbers
+          @ a_gotos @ [ G.Tk sc ] )
+  | PreprocStmt { p_condition; p_stmts; p_elifs; p_else; p_endif = _ } -> (
+      let _tk, cond =
+        match p_condition with
+        | PreprocIfdef (tk, n) ->
+            (tk, G.OtherCond (("ifdef", G.fake "ifdef"), [ G.I (name n) ]))
+        | PreprocIf (tk, e) ->
+            (tk, OtherCond (("if", G.fake "if"), [ G.E (expr e) ]))
+      in
+      let elifs =
+        Common.map
+          (fun (e, stmts) -> (G.Cond (expr e), list stmt stmts))
+          p_elifs
+      in
+      let p_else =
+        match p_else with
+        | None -> None
+        | Some stmts -> Some (G.Block (fb (list stmt stmts)))
+      in
+      match
+        List.fold_right
+          (fun (cond, stmts) acc ->
+            match acc with
+            | None ->
+                Some
+                  (G.If (failwith "TODO", cond, Block (fb stmts) |> G.s, None))
+            | Some old_s ->
+                Some
+                  (G.If
+                     ( failwith "TODO",
+                       cond,
+                       Block (fb stmts) |> G.s,
+                       Some (old_s |> G.s) )))
+          ((cond, Common.map stmt p_stmts) :: elifs)
+          p_else
+      with
+      | None -> failwith "impossible"
+      | Some stmt -> stmt))
   |> G.s
+
+and expr_asm_operand (v1, v2, v3) =
+  let v1 =
+    match option (bracket name) v1 with
+    | None -> []
+    | Some (_, n, _) -> [ G.I n ]
+  in
+  let v2 = name v2 in
+  let _, v3, _ = bracket expr v3 in
+  v1 @ [ G.I v2 ] @ [ G.E v3 ]
+
+and name_asm_operand (v1, v2, v3) =
+  let v1 =
+    match option (bracket name) v1 with
+    | None -> []
+    | Some (_, n, _) -> [ G.I n ]
+  in
+  let v2 = name v2 in
+  let _, v3, _ = bracket name v3 in
+  v1 @ [ G.I v2 ] @ [ G.I v3 ]
 
 and expr_or_vars v1 =
   match v1 with
@@ -436,17 +519,17 @@ and field_def { fld_name; fld_type } =
   let v2 = type_ fld_type in
   (opt_to_ident v1, v2)
 
-and enum_def { e_name = v1; e_consts = v2 } =
+and enum_def { e_name = v1; e_type = _v2_TODO; e_consts = v3 } =
   let v1 = name v1
-  and v2 =
+  and v3 =
     list
       (fun (v1, v2) ->
         let v1 = name v1 and v2 = option const_expr v2 in
         (v1, v2))
-      v2
+      v3
   in
   let entity = G.basic_entity v1 in
-  let ors = v2 |> Common.map (fun (n, eopt) -> G.OrEnum (n, eopt)) in
+  let ors = v3 |> Common.map (fun (n, eopt) -> G.OrEnum (n, eopt)) in
   (entity, G.TypeDef { G.tbody = G.OrType ors })
 
 and type_def { t_name = v1; t_type = v2 } =
@@ -464,9 +547,15 @@ and define_body = function
       [ G.S v1 ]
 
 and directive = function
-  | Include (t, v1) ->
+  | Include (t, IncludePath v1) ->
       let v1 = wrap string v1 in
       G.DirectiveStmt (G.ImportAll (t, G.FileName v1, fake t "") |> G.d)
+  | Include (t, IncludeCall v1) ->
+      let _v1 = expr v1 in
+      G.DirectiveStmt
+        (G.ImportAll
+           (t, G.FileName ("PREPROC_EXPR", fake t "PREPROC_EXPR"), fake t "")
+        |> G.d)
   | Define (_t, v1, v2) ->
       let v1 = name v1 and v2 = define_body v2 in
       let ent = G.basic_entity v1 in

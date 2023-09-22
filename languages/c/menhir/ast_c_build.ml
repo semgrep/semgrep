@@ -382,7 +382,7 @@ and cpp_directive env x =
             debug (Cpp x);
             raise Todo
       in
-      A.Include (tok, (s, tok))
+      A.Include (tok, IncludePath (s, tok))
   | Undef _ ->
       debug (Cpp x);
       raise Todo
@@ -736,7 +736,7 @@ and full_type env x =
                  | None -> None
                  | Some (_tok, e) -> Some (expr env e) ))
       in
-      let def = { A.e_name = name; e_consts = xs' } in
+      let def = { A.e_name = name; e_type = failwith "TODO"; e_consts = xs' } in
       env.enum_defs_toadd <- def :: env.enum_defs_toadd;
       A.TEnumName name
   | TypeOf (_, _) ->

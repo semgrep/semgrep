@@ -79,6 +79,7 @@ open Common2.Infix
 
 type tok = Tok.t [@@deriving show]
 type 'a wrap = 'a * tok [@@deriving show]
+type sc = tok [@@deriving show]
 
 (* round(), square[], curly{}, angle<> brackets *)
 type 'a bracket = tok * 'a * tok [@@deriving show]
@@ -172,12 +173,19 @@ and expr =
    * This is actually not used because we skip ifdef directives anyway.
    *)
   | Defined of tok * name
+  (* since c11+ *)
+  (* https://en.cppreference.com/w/c/language/generic *)
+  | Generic of tok * (expr * (type_ * expr) list) bracket
   (* sgrep-ext: *)
   | Ellipses of tok
   | DeepEllipsis of expr bracket
   | TypedMetavar of name * type_
 
-and argument = Arg of expr | ArgType of type_
+and argument =
+  | Arg of expr
+  | ArgType of type_
+  (* This should only appear in macro calls. *)
+  | ArgBlock of stmt list bracket
 
 (* really should just contain constants and Id that are #define *)
 and const_expr = expr [@@deriving show { with_path = false }]
@@ -186,7 +194,7 @@ and special = SizeOf | OffsetOf
 (*****************************************************************************)
 (* Statement *)
 (*****************************************************************************)
-type stmt =
+and stmt =
   | ExprSt of expr * tok
   | Block of stmt list bracket
   (* todo: tok * stmt option *)
@@ -202,11 +210,11 @@ type stmt =
   | Goto of tok * name
   (* todo? remove and use DefStmt VarDef? *)
   | Vars of var_decl list
-  (* todo: it's actually a special kind of format, not just an expr *)
-  | Asm of expr list
   (* tree-sitter-c: used to be restricted to the toplevel *)
   | DefStmt of definition
   | DirStmt of directive
+  | AsmStmt of tok * assembler bracket * sc
+  | PreprocStmt of preproc
   (* this should never appear! this should be only inside Switch *)
   | CaseStmt of case
 
@@ -232,6 +240,37 @@ and var_decl = {
 (* can have ArrayInit and RecordInit here in addition to other expr *)
 and initialiser = expr
 and storage = Extern | Static | DefaultStorage
+
+(*****************************************************************************)
+(* Preprocessor *)
+(*********g*******************************************************************)
+and preproc = {
+  p_condition : preproc_condition;
+  p_stmts : stmt list;
+  p_elifs : (expr * stmt list) list;
+  p_else : stmt list option;
+  p_endif : tok;
+}
+
+and preproc_condition = PreprocIfdef of tok * name | PreprocIf of tok * expr
+
+(*****************************************************************************)
+(* Assembler *)
+(*****************************************************************************)
+(* GCC has "extended asm" syntax, which allows you to interface with the
+   assembler.
+   https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html
+*)
+and assembler = {
+  (* Should only be a literal string or ConcatString *)
+  a_template : expr;
+  a_outputs : name asm_operand list;
+  a_inputs : expr asm_operand list;
+  a_clobbers : name list;
+  a_gotos : name list;
+}
+
+and 'a asm_operand = name bracket option * name * 'a bracket
 
 (*****************************************************************************)
 (* Definitions *)
@@ -284,6 +323,8 @@ and field_def = {
 and enum_def = {
   (*e_tok: tok;*)
   e_name : name;
+  (* The name of the underlying type which denotes the size of the enum. *)
+  e_type : name option;
   e_consts : (name * const_expr option) list;
 }
 
@@ -294,11 +335,13 @@ and type_def = { (*t_tok: tok;*)
 (* Cpp *)
 (*****************************************************************************)
 and directive =
-  | Include of tok * string wrap (* path *)
+  | Include of tok * include_arg (* path *)
   | Define of tok * name * define_body option
   (* less:  handle also '...' paramater *)
   | Macro of tok * name * name list * define_body option
   | OtherDirective of string wrap * string wrap option
+
+and include_arg = IncludePath of string wrap | IncludeCall of expr
 
 and define_body =
   | CppExpr of expr (* actually const_expr when in Define context *)
