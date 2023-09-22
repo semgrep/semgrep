@@ -118,7 +118,7 @@ let dispatch_output_format (output_format : Output_format.t)
                     * contains a string, not a string list.
                     *)
                    match
-                     Output_utils.lines_of_file_at_range (start, end_)
+                     Semgrep_output_utils.lines_of_file_at_range (start, end_)
                        (Fpath.v path)
                    with
                    | [] -> ""

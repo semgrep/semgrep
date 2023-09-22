@@ -65,7 +65,7 @@ let interpolate_metavars (text : string) (metavars : metavars) (file : filename)
          let (v : Out.metavar_value) = mval in
          let content =
            lazy
-             (Output_utils.content_of_file_at_range (v.start, v.end_)
+             (Semgrep_output_utils.content_of_file_at_range (v.start, v.end_)
                 (Fpath.v file))
          in
          text
@@ -428,7 +428,7 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
       (* TODO? at this point why not using content_of_file_at_range since
        * we concatenate the lines after? *)
       let lines =
-        Output_utils.lines_of_file_at_range (start, end_) (Fpath.v path)
+        Semgrep_output_utils.lines_of_file_at_range (start, end_) (Fpath.v path)
         |> String.concat "\n"
       in
       {
@@ -462,34 +462,6 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
       }
 
 (*
-   Order by:
-     file path, start line, start column, end line, end column, rule name
-
-   This uses the same ordering as in pysemgrep.
-*)
-let compare_cli_matches (a : Out.cli_match) (b : Out.cli_match) =
-  let c = String.compare a.path b.path in
-  if c <> 0 then c
-  else
-    let a_start = a.start in
-    let b_start = b.start in
-    let c = Int.compare a_start.line b_start.line in
-    if c <> 0 then c
-    else
-      let c = Int.compare a_start.col b_start.col in
-      if c <> 0 then c
-      else
-        let a_end = a.end_ in
-        let b_end = b.end_ in
-        let c = Int.compare a_end.line b_end.line in
-        if c <> 0 then c
-        else
-          let c = Int.compare a_end.col b_end.col in
-          if c <> 0 then c else String.compare a.check_id b.check_id
-
-let sort_cli_matches xs = List.sort compare_cli_matches xs
-
-(*
  # Sort results so as to guarantee the same results across different
  # runs. Results may arrive in a different order due to parallelism
  # (-j option).
@@ -505,7 +477,7 @@ let dedup_and_sort (xs : Out.cli_match list) : Out.cli_match list =
            let key = x in
            Hashtbl.replace seen key true;
            true)
-  |> sort_cli_matches
+  |> Semgrep_output_utils.sort_cli_matches
 
 (* This is the same algorithm for indexing as in pysemgrep. We shouldn't need to update this *)
 (* match based ids have an index appended at the end which indicates what
