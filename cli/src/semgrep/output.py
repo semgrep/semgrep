@@ -284,11 +284,16 @@ class OutputHandler:
         state = get_state()
         self.has_output = True
         self.rules = self.rules.union(rule_matches_by_rule.keys())
-        self.rule_matches = [
-            match
-            for matches_of_one_rule in rule_matches_by_rule.values()
-            for match in matches_of_one_rule
-        ]
+        # Sort findings by rule name. We rely on the list of findings
+        # being already sorted for each rule.
+        self.rule_matches = sorted(
+            (
+                match
+                for matches_of_one_rule in rule_matches_by_rule.values()
+                for match in matches_of_one_rule
+            ),
+            key=lambda x: x.rule_id,
+        )
         self.profiler = profiler
         self.all_targets = all_targets
         self.filtered_rules = filtered_rules

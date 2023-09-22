@@ -7,6 +7,10 @@ val cli_output_of_core_results :
   Fpath.t Set_.t ->
   Semgrep_output_v1_j.cli_output
 
+(* Sort matches in an order suitable for displaying results. *)
+val sort_cli_matches :
+  Semgrep_output_v1_t.cli_match list -> Semgrep_output_v1_t.cli_match list
+
 (* internals used in Scan_subcommant.ml *)
 val exit_code_of_error_type : Semgrep_output_v1_t.core_error_kind -> Exit_code.t
 
