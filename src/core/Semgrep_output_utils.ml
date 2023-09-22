@@ -188,7 +188,7 @@ let sort_core_matches (matches : core_match list) : core_match list =
    Order by:
      file path, start line, start column, end line, end column, rule name
 
-   This uses the same ordering as in pysemgrep.
+   This uses the same ordering as in pysemgrep in RuleMatch.get_ordering_key()
 *)
 let compare_cli_matches (a : cli_match) (b : cli_match) =
   let c = String.compare a.path b.path in
