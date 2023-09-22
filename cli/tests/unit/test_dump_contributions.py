@@ -1,6 +1,5 @@
 import json
 import subprocess
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -36,8 +35,8 @@ def mock_subprocess_run(mocker):
 
 @pytest.mark.quick
 @pytest.mark.no_semgrep_cli
-def test_dump_contributions_nominal(mock_state, mock_subprocess_run):
-    proc_result = MagicMock()
+def test_dump_contributions_nominal(mocker, mock_state, mock_subprocess_run):
+    proc_result = mocker.MagicMock()
     proc_result.stdout.return_value = json.dumps([CONTRIBUTION])
     mock_subprocess_run.return_value = proc_result
 
