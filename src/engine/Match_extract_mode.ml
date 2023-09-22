@@ -166,11 +166,9 @@ let mk_extract_target extract_rule_ids dst_lang contents ~all_rules =
   let suffix = Xlang.informative_suffix dst_lang in
   let f = Common.new_temp_file "extracted" suffix in
   Common2.write_file ~file:f contents;
-  {
-    In.path = f;
-    language = dst_lang;
-    rule_nums = rules_for_extracted_lang ~all_rules extract_rule_ids dst_lang;
-  }
+  (* TODO: figure out what to do with this: *)
+  ignore (rules_for_extracted_lang ~all_rules extract_rule_ids dst_lang);
+  { In.path = f; analyzer = dst_lang }
 
 (* Unquote string *)
 (* TODO: This is not yet implemented *)
