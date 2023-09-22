@@ -114,15 +114,23 @@ def get_file_ignore() -> FileIgnore:
     return file_ignore
 
 
-def print_summary_line(
+def print_scan_plan_header(
     target_manager: TargetManager, sast_plan: Plan, sca_plan: Plan
 ) -> None:
+    """
+    Prints the number of files intended to be scanned and (optionally)
+    the number of rules to be run based on the current configuration.
+    """
     file_count = len(target_manager.get_all_files())
     new_cli_ux = get_state().env.with_new_cli_ux
 
     summary_line = f"Scanning {unit_str(file_count, 'file')}"
     if target_manager.respect_git_ignore:
-        summary_line += " tracked by git"
+        summary_line += f" {'(only git-tracked)' if new_cli_ux else 'tracked by git'}"
+
+    if new_cli_ux:  # We skip printing the rule count with new CLI UX
+        console.print(f"{summary_line} with:")
+        return
 
     # The sast_plan contains secrets rules too.  You might be tempted
     # to use rule_count_by_product but the summary line doesn't
@@ -181,7 +189,7 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> i
         target_manager,
     )
 
-    print_summary_line(target_manager, sast_plan, sca_plan)
+    print_scan_plan_header(target_manager, sast_plan, sca_plan)
 
     if new_cli_ux:
         console.print(Title("Code Rules", order=2))
