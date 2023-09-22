@@ -8,31 +8,6 @@
   },
   "results": [
     {
-      "check_id": "rules.extract_rules.test123",
-      "end": {
-        "col": 24,
-        "line": 39,
-        "offset": 843
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "      \"outputs\": [],",
-        "message": "left `test123` in the code",
-        "metadata": {},
-        "metavars": {},
-        "severity": "ERROR",
-        "validation_state": "NO_VALIDATOR"
-      },
-      "path": "targets/extract/python_jupyter_paths_include.ipynb",
-      "start": {
-        "col": 17,
-        "line": 39,
-        "offset": 836
-      }
-    },
-    {
       "check_id": "rules.extract_rules.check-for-data",
       "end": {
         "col": 39,
@@ -55,6 +30,31 @@
         "col": 1,
         "line": 27,
         "offset": 518
+      }
+    },
+    {
+      "check_id": "rules.extract_rules.test123",
+      "end": {
+        "col": 24,
+        "line": 39,
+        "offset": 843
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "      \"outputs\": [],",
+        "message": "left `test123` in the code",
+        "metadata": {},
+        "metavars": {},
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/extract/python_jupyter_paths_include.ipynb",
+      "start": {
+        "col": 17,
+        "line": 39,
+        "offset": 836
       }
     }
   ],
