@@ -124,12 +124,6 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     |> Common.map (Cli_json_output.cli_match_of_core_match hrules)
     |> Cli_json_output.dedup_and_sort
   in
-  (* TODO? needed? given the call to dedup_and_sort above? I just imitate
-   * what we do in the regular code path
-   *)
-  let cli_matches = Matches_report.sort_matches cli_matches in
-  (* TODO? not sure why the order in sort_matches is wrong *)
-  let cli_matches = List.rev cli_matches in
   let cli_matches =
     cli_matches
     |> Common.exclude (fun m ->
@@ -138,12 +132,14 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
   in
   if cli_matches <> [] then (
     Unix.lockf Unix.stdout Unix.F_LOCK 0;
-    (* coupling: similar to Output.dispatch_output_format for Text *)
-    Matches_report.pp_text_outputs ~max_chars_per_line:conf.max_chars_per_line
-      ~max_lines_per_finding:conf.max_lines_per_finding
-      ~color_output:conf.force_color Format.std_formatter cli_matches;
-    (* TODO? use finalize? *)
-    Unix.lockf Unix.stdout Unix.F_ULOCK 0)
+    Fun.protect
+      (fun () ->
+        (* coupling: similar to Output.dispatch_output_format for Text *)
+        Matches_report.pp_text_outputs
+          ~max_chars_per_line:conf.max_chars_per_line
+          ~max_lines_per_finding:conf.max_lines_per_finding
+          ~color_output:conf.force_color Format.std_formatter cli_matches)
+      ~finally:(fun () -> Unix.lockf Unix.stdout Unix.F_ULOCK 0))
 
 (*************************************************************************)
 (* Helpers *)
