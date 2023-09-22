@@ -32,12 +32,6 @@ open Ast_c
 let id x = x
 let option = Option.map
 let list = Common.map
-
-let either f g x =
-  match x with
-  | Left x -> Left (f x)
-  | Right x -> Right (g x)
-
 let string = id
 let fake tok s = Tok.fake_tok tok s
 let unsafe_fake s = Tok.unsafe_fake_tok s
@@ -194,6 +188,9 @@ and expr e =
   | Id v1 ->
       let v1 = name v1 in
       G.N (G.Id (v1, G.empty_id_info ())) |> G.e
+  | IdSpecial x ->
+      let v1 = special_wrap x in
+      v1
   | Ellipses v1 ->
       let v1 = info v1 in
       G.Ellipsis v1 |> G.e
@@ -256,24 +253,6 @@ and expr e =
   | Sequence (v1, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
       G.Seq [ v1; v2 ] |> G.e
-  | SizeOf (t, v1) ->
-      let v1 = either expr type_ v1 in
-      G.Call
-        ( G.IdSpecial (G.Sizeof, t) |> G.e,
-          match v1 with
-          | Left e -> fb [ G.Arg e ]
-          | Right t -> fb [ G.ArgType t ] )
-      |> G.e
-  | OffsetOf (t, (l, (ty, id), r)) ->
-      let ty = type_ ty in
-      let id = name id in
-      let f_expr = G.N (G.Id (("offsetof", t), G.empty_id_info ())) |> G.e in
-      G.Call
-        ( f_expr,
-          ( l,
-            [ G.ArgType ty; G.Arg (N (Id (id, G.empty_id_info ())) |> G.e) ],
-            r ) )
-      |> G.e
   | ArrayInit v1 ->
       let v1 =
         bracket
@@ -310,11 +289,19 @@ and expr e =
       let v2 = type_ v2 in
       G.TypedMetavar (v1, fake (snd v1) " ", v2) |> G.e
 
+and special_wrap (spec, tk) =
+  match spec with
+  | SizeOf -> G.IdSpecial (G.Sizeof, tk) |> G.e
+  | OffsetOf -> G.N (Id (("offsetof", tk), G.empty_id_info ())) |> G.e
+
 and argument v =
   match v with
   | Arg v ->
       let v = expr v in
       G.Arg v
+  | ArgType v ->
+      let v = type_ v in
+      G.ArgType v
 
 and const_expr v = expr v
 

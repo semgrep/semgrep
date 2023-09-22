@@ -20,6 +20,8 @@ open Ast_c
 module G = AST_generic
 module H = Parse_tree_sitter_helpers
 
+[@@@warning "-26"]
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -51,6 +53,7 @@ let gensym_enum cnt = spf "__anon_enum_%d" cnt
 type env = extra H.env
 
 let _fake = G.fake
+let fb = Tok.unsafe_fake_bracket
 let token = H.token
 let str = H.str
 
@@ -67,29 +70,14 @@ let str = H.str
 let imm_tok_pat_509ec78 (env : env) (tok : CST.imm_tok_pat_509ec78) =
   (* pattern \r?\n *) token env tok
 
-let primitive_type (env : env) (tok : CST.primitive_type) =
-  (* primitive_type *) token env tok
-
-let escape_sequence (env : env) (tok : CST.escape_sequence) =
-  (* escape_sequence *) token env tok
-
 let pat_ca8830e (env : env) (tok : CST.pat_ca8830e) =
   (* pattern #[ 	]*include *) token env tok
-
-let pat_c3ea183 (env : env) (tok : CST.pat_c3ea183) =
-  (* pattern #[ 	]*define *) token env tok
-
-let pat_3df6e71 (env : env) (tok : CST.pat_3df6e71) =
-  (* pattern #[ 	]*if *) token env tok
 
 let pat_0307ca2 (env : env) (tok : CST.pat_0307ca2) =
   (* pattern #[ 	]*elifdef *) token env tok
 
 let pat_a6d4183 (env : env) (tok : CST.pat_a6d4183) =
   (* pattern #[ 	]*elifndef *) token env tok
-
-let pat_c46d1b2 (env : env) (tok : CST.pat_c46d1b2) =
-  (* pattern #[ 	]*endif *) token env tok
 
 let anon_choice_signed_a0bfc19 (env : env) (x : CST.anon_choice_signed_a0bfc19)
     =
@@ -294,20 +282,6 @@ let preproc_defined (env : env) (x : CST.preproc_defined) : tok * name =
       let v1 = token env v1 (* "defined" *) in
       let v2 = identifier env v2 (* pattern [a-zA-Z_]\w* *) in
       (v1, v2)
-
-let preproc_def (env : env) ((v1, v2, v3, v4) : CST.preproc_def) =
-  let v1 = pat_c3ea183 env v1 in
-  let v2 =
-    (* pattern (\p{XID_Start}|_|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})(\p{XID_Continue}|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})* *)
-    token env v2
-  in
-  let v3 =
-    match v3 with
-    | Some tok -> Some ((* preproc_arg *) token env tok)
-    | None -> None
-  in
-  let v4 = imm_tok_pat_509ec78 env v4 in
-  failwith "TODO"
 
 let anon_choice_type_id_d3c4b5f (env : env)
     (x : CST.anon_choice_type_id_d3c4b5f) =
@@ -1223,14 +1197,14 @@ and expression_not_binary (env : env) (x : CST.expression_not_binary) =
       let v1 = token env v1 (* "sizeof" *) in
       let v2 =
         match v2 with
-        | `Exp x -> Left (expression env x)
+        | `Exp x -> fb [ Arg (expression env x) ]
         | `LPAR_type_desc_RPAR (v1, v2, v3) ->
-            let _v1 = token env v1 (* "(" *) in
+            let v1 = token env v1 (* "(" *) in
             let v2 = type_descriptor env v2 in
-            let _v3 = token env v3 (* ")" *) in
-            Right v2
+            let v3 = token env v3 (* ")" *) in
+            (v1, [ ArgType v2 ], v3)
       in
-      SizeOf (v1, v2)
+      Call (IdSpecial (SizeOf, v1), v2)
   | `Offs_exp (v1, v2, v3, v4, v5, v6) ->
       let v1 = (* "offsetof" *) token env v1 in
       let v2 = (* "(" *) token env v2 in
@@ -1241,7 +1215,7 @@ and expression_not_binary (env : env) (x : CST.expression_not_binary) =
         str env v5
       in
       let v6 = (* ")" *) token env v6 in
-      OffsetOf (v1, (v2, (v3, v5), v6))
+      Call (IdSpecial (OffsetOf, v1), (v2, [ ArgType v3; Arg (Id v5) ], v6))
   | `Gene_exp (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
       let v1 = (* "_Generic" *) token env v1 in
       let v2 = (* "(" *) token env v2 in

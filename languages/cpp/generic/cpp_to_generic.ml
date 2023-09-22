@@ -101,10 +101,6 @@ let any_of_either_type_expr = function
   | Left t -> G.T t
   | Right e -> G.E e
 
-let arg_of_either_expr_type = function
-  | Left e -> G.Arg e
-  | Right t -> G.ArgType t
-
 let map_def_in_stmt f st =
   match st.G.s with
   | DefStmt (ent, def) ->
@@ -367,6 +363,7 @@ and map_qualifier_wrap _env (qu, t) : G.attribute =
   | Constexpr -> G.unhandled_keywordattr ("ConstExpr", t)
   | Constinit -> G.unhandled_keywordattr ("ConstInit", t)
   | Consteval -> G.unhandled_keywordattr ("ConstEval", t)
+  | NoReturn -> G.unhandled_keywordattr ("noreturn", t)
 
 and map_expr env x : G.expr =
   match x with
@@ -382,8 +379,8 @@ and map_expr env x : G.expr =
         (("UserDefined", G.fake "UseDefined"), [ G.E (G.L v1 |> G.e); G.I v2 ])
       |> G.e
   | IdSpecial v1 ->
-      let v1 = map_wrap env (map_special env) v1 in
-      G.IdSpecial v1 |> G.e
+      let v1 = map_special_wrap env v1 in
+      v1
   | Call (v1, v2) ->
       let v1 = map_expr env v1
       and v2 = map_paren env (map_of_list (map_argument env)) v2 in
@@ -447,14 +444,6 @@ and map_expr env x : G.expr =
       | Arrow ->
           let v1 = G.DeRef (tdot, v1) |> G.e in
           G.DotAccess (v1, tdot, G.FDynamic e) |> G.e)
-  | SizeOf (v1, v2) ->
-      let v1 = map_tok env v1
-      and v2 =
-        map_either env (map_expr env) (map_paren_skip env (map_type_ env)) v2
-      in
-      let arg = arg_of_either_expr_type v2 in
-      let special = G.IdSpecial (G.Sizeof, v1) |> G.e in
-      G.Call (special, Tok.unsafe_fake_bracket [ arg ]) |> G.e
   | Cast (v1, v2) ->
       let l, t, _r = map_paren env (map_type_ env) v1
       and v2 = map_expr env v2 in
@@ -585,9 +574,14 @@ and map_expr env x : G.expr =
       and v2 = map_of_list (map_expr env) v2 in
       G.OtherExpr (v1, v2 |> Common.map (fun e -> G.E e)) |> G.e
 
-and map_special _env = function
-  | This -> G.This
-  | Defined -> G.Defined
+and map_special_wrap _env (spec, tk) =
+  (match spec with
+  | This -> IdSpecial (G.This, tk)
+  | Defined -> IdSpecial (G.Defined, tk)
+  | SizeOf -> IdSpecial (G.Sizeof, tk)
+  | AlignOf -> N (Id (("alignof", tk), G.empty_id_info ()))
+  | OffsetOf -> N (Id (("offsetof", tk), G.empty_id_info ())))
+  |> G.e
 
 and map_argument env x : G.argument =
   match x with
@@ -1226,9 +1220,14 @@ and map_decl env x : G.stmt list =
                 ({ ent with attrs = extern :: ent.attrs }, def)))
   | Namespace (v1, v2, v3) ->
       let v1 = map_tok env v1
-      and v2 = map_of_list (map_ident env) v2
+      and v2 = map_of_option (map_name env) v2
       and _l, v3, r = map_declarations env v3 in
-      let dir1 = G.Package (v1, v2) |> G.d in
+      let dotted =
+        match v2 with
+        | None -> []
+        | Some x -> H.dotted_ident_of_name x
+      in
+      let dir1 = G.Package (v1, dotted) |> G.d in
       let dir2 = G.PackageEnd r |> G.d in
       [ G.DirectiveStmt dir1 |> G.s ] @ v3 @ [ G.DirectiveStmt dir2 |> G.s ]
   | StaticAssert (v1, v2) ->

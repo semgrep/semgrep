@@ -590,8 +590,6 @@ and expr env e =
           expr env e3 )
   | Call (e, (t1, args, t2)) ->
       A.Call (expr env e, (t1, Common.map_filter (argument env) args, t2))
-  | SizeOf (tok, Left e) -> A.SizeOf (tok, Left (expr env e))
-  | SizeOf (tok, Right (_, ft, _)) -> A.SizeOf (tok, Right (full_type env ft))
   | GccConstructor ((_, ft, _), xs) ->
       A.GccConstructor (full_type env ft, initialiser env (InitList xs))
   | ConstructedObject (_, _) ->

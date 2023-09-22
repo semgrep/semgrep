@@ -139,6 +139,7 @@ and expr =
    * variable, or a function name.
    *)
   | Id of name
+  | IdSpecial of special wrap
   | Call of expr * argument list bracket
   (* should be a statement ... but see Datalog_c.instr *)
   | Assign of Ast_cpp.assignOp * expr * expr
@@ -161,8 +162,6 @@ and expr =
   | CondExpr of expr * expr option * expr
   (* should be a statement ... *)
   | Sequence of expr * expr
-  | SizeOf of tok * (expr, type_) Common.either
-  | OffsetOf of tok * (type_ * name) bracket
   (* should appear only in a variable initializer, or after GccConstructor *)
   | ArrayInit of (expr option * expr) list bracket
   | RecordInit of (name * expr) list bracket
@@ -178,10 +177,11 @@ and expr =
   | DeepEllipsis of expr bracket
   | TypedMetavar of name * type_
 
-and argument = Arg of expr
+and argument = Arg of expr | ArgType of type_
 
 (* really should just contain constants and Id that are #define *)
 and const_expr = expr [@@deriving show { with_path = false }]
+and special = SizeOf | OffsetOf
 
 (*****************************************************************************)
 (* Statement *)

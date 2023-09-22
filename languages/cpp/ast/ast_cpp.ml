@@ -249,7 +249,6 @@ and expr =
   (* pfffonly, but we should add it to ts too.
    * c++ext: note that second paramater is an expr, not a name *)
   | DotStarAccess of expr * dotOp wrap (* with suffix '*' *) * expr
-  | SizeOf of tok * (expr, type_ paren) Common.either
     (* TODO: SizeOfDots of tok * tok * ident paren ??? *)
   | Cast of type_ paren * expr
   (* gccext: *)
@@ -295,6 +294,9 @@ and special =
   | This
   (* cppext: tsonly, always in a Call, with Id as single arg *)
   | Defined
+  | AlignOf
+  | SizeOf
+  | OffsetOf
 
 (* cppext: normally should just have type argument = expr *)
 and argument =
@@ -582,8 +584,8 @@ and decl =
   (* pfff-only: but should be added to ts too *)
   | NamespaceAlias of
       tok (*'namespace'*) * ident * tok (*=*) * a_namespace_name * sc
-  (* the list can be empty *)
-  | Namespace of tok * ident list * declarations
+  (* the namespace can be unnamed *)
+  | Namespace of tok * name option * declarations
   (* the list can be empty *)
   | ExternDecl of tok * string wrap (* usually "C" *) * decl
   | ExternList of tok * string wrap * declarations

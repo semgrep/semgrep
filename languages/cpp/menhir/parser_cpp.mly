@@ -540,10 +540,10 @@ unary_expr:
  | TInc unary_expr         { Prefix ((Inc, $1), $2) }
  | TDec unary_expr         { Prefix ((Dec, $1), $2) }
  | unary_op cast_expr      { Unary ($1, $2) }
- | Tsizeof unary_expr      { SizeOf ($1, Left $2) }
- | Tsizeof "(" type_id ")" { SizeOf ($1, Right ($2, $3, $4)) }
+ | Tsizeof unary_expr      { Call (IdSpecial (SizeOf, $1), Tok.unsafe_fake_bracket [Arg $2]) }
+ | Tsizeof "(" type_id ")" { Call (IdSpecial (SizeOf, $1), ($2, [ArgType $3], $4)) }
  (* sgrep-ext: *)
- | Tsizeof "(" "..." ")"   { SizeOf ($1, Left (Ellipsis $3)) }
+ | Tsizeof "(" "..." ")"   { Call (IdSpecial (SizeOf, $1), ($2, [Arg (Ellipsis $3)], $4)) }
  (*c++ext: *)
  | new_expr      { $1 }
  | delete_expr   { $1 }
@@ -1748,10 +1748,10 @@ namespace_definition:
  *)
 named_namespace_definition:
  | Tnamespace TIdent "{" optl(declaration_cpp+) "}"
-     { Namespace ($1, [$2], ($3, $4, $5)) }
+     { Namespace ($1, Some (None, [], IdIdent $2), ($3, $4, $5)) }
 
 unnamed_namespace_definition: Tnamespace "{" optl(declaration_cpp+) "}"
-     { Namespace ($1, [], ($2, $3, $4)) }
+     { Namespace ($1, None, ($2, $3, $4)) }
 
 (*************************************************************************)
 (* Function definition *)
