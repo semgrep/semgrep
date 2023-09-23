@@ -482,13 +482,17 @@ class OutputHandler:
             self.rule_matches,
             self.semgrep_structured_errors,
             out.CliOutputExtra(
+                # TODO: almost like self.extra.core.paths, but not there yet
                 paths=cli_paths,
+                # TODO: almost like self.extra.core.time, but not there yet
                 time=cli_timing,
+                # TODO: would like t ouse self.extra.core.explanations byt regressions
                 explanations=explanations,
                 rules_by_engine=self.extra.core.rules_by_engine if self.extra else None,
                 # this flattens the information into just distinguishing "pro" and "not-pro"
                 engine_requested=self.engine_type.to_engine_kind(),
-                skipped_rules=[],  # TODO
+                # TODO, should just be self.extra.core.skipped_rules
+                skipped_rules=[],
             ),
             extra,
             self.severities,
