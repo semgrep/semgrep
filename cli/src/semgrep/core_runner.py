@@ -527,7 +527,11 @@ class Plan:
                 else Task(
                     path=task.path,
                     analyzer=task.analyzer,
-                    rule_nums=(),
+                    rule_nums=tuple(
+                        num
+                        for num in task.rule_nums
+                        if self.rules[num].product == product
+                    ),
                 )
             )
         return result
