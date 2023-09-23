@@ -8,6 +8,31 @@
   },
   "results": [
     {
+      "check_id": "rules.extract_rules.check-for-data",
+      "end": {
+        "col": 55,
+        "line": 26,
+        "offset": 532
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "      \"outputs\": [],",
+        "message": "check for data",
+        "metadata": {},
+        "metavars": {},
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/extract/python_jupyter_paths_exclude.ipynb",
+      "start": {
+        "col": 17,
+        "line": 26,
+        "offset": 494
+      }
+    },
+    {
       "check_id": "rules.extract_rules.forbid-pickle",
       "end": {
         "col": 25,
