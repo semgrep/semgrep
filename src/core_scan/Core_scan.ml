@@ -917,9 +917,10 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
   let scanned_target_table =
     (* provide fast access to paths that were scanned by at least one rule;
        includes extracted targets *)
-    scanned_targets
-    |> Common.map (fun path -> (!!path, ()))
-    |> Common.hash_of_list
+    (* TODO: create a new function: Common.hash_of_list ~get_key list ? *)
+    let tbl = Hashtbl.create (List.length scanned_targets) in
+    List.iter (fun x -> Hashtbl.replace tbl !!x ()) scanned_targets;
+    tbl
   in
   let scanned =
     (* we do not use all_targets here, because we don't count
