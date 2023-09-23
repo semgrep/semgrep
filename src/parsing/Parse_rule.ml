@@ -52,7 +52,6 @@ let use_ojsonnet = true
 (* Types *)
 (*****************************************************************************)
 
-type origin = Local_file of Fpath.t | Other_origin [@@deriving show]
 type key = string R.wrap
 
 type env = {
@@ -190,50 +189,6 @@ let read_string_wrap e =
       Some (value, t)
   | G.N (Id ((value, t), _)) -> Some (value, t)
   | _ -> None
-
-(*****************************************************************************)
-(* Rewrite rule ids *)
-(*****************************************************************************)
-
-let prefix_for_fpath_opt (fpath : Fpath.t) : string option =
-  assert (Fpath.is_file_path fpath);
-  let* rel_path =
-    if Fpath.is_rel fpath then Some fpath
-      (* python: paths had no commen prefix; not possible to relativize *)
-    else Fpath.rem_prefix (Fpath.v (Sys.getcwd ())) fpath
-  in
-  (* LATER: we should use Fpath.normalize first, but pysemgrep
-   * doesn't as shown by tests/e2e/test_check.py::test_basic_rule__relative
-   * so we reproduce the same behavior, leading sometimes to some
-   * weird rule id like "rules....rules.test" when passing
-   * rules/../rules/test.yaml to --config.
-   * TODO? pass legacy flag and improve the behavior when not legacy?
-   *)
-  match List.rev (Fpath.segs rel_path) with
-  | [] -> raise Impossible
-  | [ _file ] -> None
-  | _file :: dirs ->
-      let prefix =
-        dirs |> List.rev |> Common.map (fun s -> s ^ ".") |> String.concat ""
-      in
-      Some prefix
-
-(*
-   Check the validity of the rule ID and prepend the path to rule file if
-   the rewrite_rule_ids option is set.
-*)
-let parse_rule_id ~rewrite_rule_ids rule_id_str =
-  let opt_prefix =
-    match rewrite_rule_ids with
-    | Some (Local_file fpath) -> prefix_for_fpath_opt fpath
-    | Some Other_origin
-    | None ->
-        None
-  in
-  (match opt_prefix with
-  | None -> rule_id_str
-  | Some prefix -> Rule_ID.sanitize_string prefix ^ rule_id_str)
-  |> Rule_ID.of_string
 
 (*****************************************************************************)
 (* Dict helper methods *)
@@ -1828,10 +1783,14 @@ let parse_one_rule ~rewrite_rule_ids (t : G.tok) (i : int) (rule : G.expr) :
     Rule.t =
   let rd = yaml_to_dict_no_env ("rules", t) rule in
   (* We need a rule ID early to produce useful error messages. *)
-  let ((rule_id, _) as id) =
-    let rule_id_str, tok = take_no_env rd parse_string_wrap_no_env "id" in
-    (parse_rule_id ~rewrite_rule_ids rule_id_str, tok)
+  let rule_id_str, tok = take_no_env rd parse_string_wrap_no_env "id" in
+  let rule_id = Rule_ID.of_string rule_id_str in
+  let rule_id : Rule_ID.t =
+    match rewrite_rule_ids with
+    | None -> rule_id
+    | Some f -> f rule_id
   in
+  let id = (rule_id, tok) in
   (* We need to check for version compatibility before attempting to interpret
      the rule. *)
   let min_version = take_opt_no_env rd parse_version "min-version" in
@@ -1888,7 +1847,7 @@ let parse_one_rule ~rewrite_rule_ids (t : G.tok) (i : int) (rule : G.expr) :
     options = options_opt;
   }
 
-let parse_generic_ast ?(error_recovery = false) ~rewrite_rule_ids
+let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
     (file : Fpath.t) (ast : AST_generic.program) :
     Rule.rules * Rule.invalid_rule_error list =
   let t, rules =
@@ -1959,7 +1918,7 @@ let parse_yaml_rule_file file =
   | Parsing_error.Other_error (s, t) ->
       Rule.raise_error None (InvalidYaml (s, t))
 
-let parse_file ?error_recovery ~rewrite_rule_ids file =
+let parse_file ?error_recovery ?(rewrite_rule_ids = None) file =
   let ast =
     match FT.file_type_of_file file with
     | FT.Config FT.Json ->
@@ -2019,8 +1978,8 @@ let parse_file ?error_recovery ~rewrite_rule_ids file =
 (* Main Entry point *)
 (*****************************************************************************)
 
-let parse_and_filter_invalid_rules ~rewrite_rule_ids file =
-  parse_file ~error_recovery:true ~rewrite_rule_ids file
+let parse_and_filter_invalid_rules ?rewrite_rule_ids file =
+  parse_file ~error_recovery:true ?rewrite_rule_ids file
   [@@profiling]
 
 let parse_xpattern xlang (str, tok) =
@@ -2040,8 +1999,8 @@ let parse_xpattern xlang (str, tok) =
 (* Useful for tests *)
 (*****************************************************************************)
 
-let parse ~rewrite_rule_ids file =
-  let xs, skipped = parse_file ~error_recovery:false ~rewrite_rule_ids file in
+let parse file =
+  let xs, skipped = parse_file ~error_recovery:false file in
   assert (skipped =*= []);
   xs
 

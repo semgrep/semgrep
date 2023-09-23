@@ -1,7 +1,6 @@
 (*
-   A rule ID is a string. This creates a dedicated type to clarify interfaces
-   and error messages. The coercion operator can be used as an alternative
-   to 'to_string x': '(x :> string)' to obtain a plain string.
+   A rule ID is essentially a string. This creates a dedicated type to
+   clarify interfaces and error messages.
 *)
 type t [@@deriving show, eq]
 
