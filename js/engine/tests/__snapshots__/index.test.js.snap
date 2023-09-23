@@ -84,6 +84,7 @@ exports[`yaml parser parses a pattern with pattern-regex 1`] = `
     "errorfiles": 0,
     "okfiles": 1,
   },
+  "version": "1.41.0",
 }
 `;
 
@@ -199,5 +200,6 @@ exports[`yaml parser parses a simple pattern 1`] = `
     "errorfiles": 0,
     "okfiles": 1,
   },
+  "version": "1.41.0",
 }
 `;
