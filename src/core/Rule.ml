@@ -791,14 +791,16 @@ let xpatterns_of_rule rule =
 let languages_of_lang (lang : Lang.t) : languages =
   { target_selector = Some [ lang ]; target_analyzer = L (lang, []) }
 
-let languages_of_xlang (xlang : Xlang.t) : languages =
+let target_selector_of_xlang (xlang : Xlang.t) : Lang.t list option =
   match xlang with
   | LRegex
   | LAliengrep
   | LSpacegrep ->
-      { target_selector = None; target_analyzer = xlang }
-  | L (lang, other_langs) ->
-      { target_selector = Some (lang :: other_langs); target_analyzer = xlang }
+      None
+  | L (lang, other_langs) -> Some (lang :: other_langs)
+
+let languages_of_xlang (xlang : Xlang.t) : languages =
+  { target_selector = target_selector_of_xlang xlang; target_analyzer = xlang }
 
 (* return list of "positive" x list of Not *)
 let split_and (xs : formula list) : formula list * (tok * formula) list =
