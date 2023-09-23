@@ -37,7 +37,7 @@ def mock_subprocess_run(mocker):
 @pytest.mark.no_semgrep_cli
 def test_dump_contributions_nominal(mocker, mock_state, mock_subprocess_run):
     proc_result = mocker.MagicMock()
-    proc_result.stdout.return_value = json.dumps([CONTRIBUTION])
+    proc_result.stdout = json.dumps([CONTRIBUTION])
     mock_subprocess_run.return_value = proc_result
 
     contributions = get_contributions(EngineType.OSS)
