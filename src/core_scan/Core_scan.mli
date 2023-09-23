@@ -54,6 +54,11 @@ val print_match :
 (* Utilities functions used in tests or semgrep-core variants *)
 (*****************************************************************************)
 
+(* This function prints the number of additional targets, which is consumed by
+   pysemgrep to update the progress bar. See `core_runner.py`
+*)
+val add_additional_targets : Core_scan_config.t -> int -> unit
+
 (* This function prints a dot, which is consumed by pysemgrep to update
    the progress bar. See `core_runner.py`
 *)

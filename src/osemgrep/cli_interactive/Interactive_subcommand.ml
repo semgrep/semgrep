@@ -541,7 +541,8 @@ let buffer_matches_of_xtarget state (fake_rule : Rule.search_rule) xconf xtarget
     =
   let hook _s (_m : Pattern_match.t) = () in
   if
-    Match_rules.is_relevant_rule_for_xtarget
+    (* Since it's just a single rule, we don't need to cache it *)
+    Match_rules.is_relevant_rule_for_xtarget ~cache:None
       (fake_rule :> Rule.rule)
       xconf xtarget
   then

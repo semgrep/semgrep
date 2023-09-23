@@ -85,6 +85,36 @@ INPUT_BUFFER_LIMIT: int = 1024 * 1024 * 1024
 LARGE_READ_SIZE: int = 1024 * 1024 * 512
 
 
+def get_contributions(engine_type: EngineType) -> out.Contributions:
+    binary_path = engine_type.get_binary_path()
+    start = datetime.now()
+    if binary_path is None:  # should never happen, doing this for mypy
+        raise SemgrepError("semgrep engine not found.")
+    cmd = [
+        str(binary_path),
+        "-json",
+        "-dump_contributions",
+    ]
+    env = get_state().env
+
+    try:
+        # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
+        raw_output = subprocess.run(
+            cmd,
+            timeout=env.git_command_timeout,
+            capture_output=True,
+            encoding="utf-8",
+            check=True,
+        ).stdout
+        contributions = out.Contributions.from_json_string(raw_output)
+    except subprocess.CalledProcessError:
+        logger.warning("Failed to collect contributions. Continuing with scan...")
+        contributions = out.Contributions([])
+
+    logger.debug(f"semgrep contributions ran in {datetime.now() - start}")
+    return contributions
+
+
 def setrlimits_preexec_fn() -> None:
     """
     Sets stack limit of current running process to the maximum possible
@@ -1300,32 +1330,6 @@ Exception raised: `{e}`
             raise e
 
     # end _run_rules_direct_to_semgrep_core
-
-    def invoke_semgrep_dump_contributions(self) -> out.Contributions:
-        start = datetime.now()
-        if self._binary_path is None:  # should never happen, doing this for mypy
-            raise SemgrepError("semgrep engine not found.")
-        cmd = [
-            str(self._binary_path),
-            "-json",
-            "-dump_contributions",
-        ]
-        try:
-            # only scanning combined rules
-            runner = StreamingSemgrepCore(cmd, 1, self._engine_type)
-            returncode = runner.execute()
-
-            # Process output
-            output_json = self._extract_core_output(
-                [], returncode, " ".join(cmd), runner.stdout, runner.stderr
-            )
-            contributions = out.Contributions.from_json(output_json)
-        except SemgrepError:
-            logger.warning("Failed to collect contributions. Continuing with scan...")
-            contributions = out.Contributions([])
-
-        logger.debug(f"semgrep contributions ran in {datetime.now() - start}")
-        return contributions
 
     def invoke_semgrep_core(
         self,
