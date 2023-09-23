@@ -158,7 +158,6 @@ class OutputHandler:
         self.extra: Optional[OutputExtra] = None
         self.severities: Collection[RuleSeverity] = DEFAULT_SHOWN_SEVERITIES
         self.explanations: Optional[List[out.MatchingExplanation]] = None
-        self.rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = None
         self.engine_type: EngineType = EngineType.OSS
 
         self.final_error: Optional[Exception] = None
@@ -280,7 +279,6 @@ class OutputHandler:
         profiler: Optional[ProfileManager] = None,
         extra: Optional[OutputExtra] = None,
         explanations: Optional[List[out.MatchingExplanation]] = None,
-        rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = None,
         severities: Optional[Collection[RuleSeverity]] = None,
         print_summary: bool = False,
         is_ci_invocation: bool = False,
@@ -311,8 +309,6 @@ class OutputHandler:
             self.extra = extra
         if explanations:
             self.explanations = explanations
-        if rules_by_engine:
-            self.rules_by_engine = rules_by_engine
         if severities:
             self.severities = severities
 
@@ -423,7 +419,6 @@ class OutputHandler:
         cli_timing: Optional[out.Profile] = None
 
         explanations: Optional[List[out.MatchingExplanation]] = self.explanations
-        rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = self.rules_by_engine
 
         # Extra, extra! This just in! 🗞️
         # The extra dict is for blatantly skipping type checking and function signatures.
@@ -474,6 +469,13 @@ class OutputHandler:
         # as opposed to below, we need to distinguish the various kinds of pro engine
         extra["engine_requested"] = self.engine_type
 
+        # TODO: I thought we could guard this code with 'if self.extra:', and raise
+        # a SemgrepError otherwise, but it seems that when semgrep got an error
+        # (for example in tests/e2e/test_ci.py::test_bad_config),
+        # then this code still get called and self.extra is not set but we still want
+        # to output things. This is why I have those ugly 'if self.extra' below
+        # that possibly return None.
+
         # the rules are used only by the SARIF formatter
         return self.formatter.output(
             self.rules,
@@ -483,7 +485,7 @@ class OutputHandler:
                 paths=cli_paths,
                 time=cli_timing,
                 explanations=explanations,
-                rules_by_engine=rules_by_engine,
+                rules_by_engine=self.extra.core.rules_by_engine if self.extra else None,
                 # this flattens the information into just distinguishing "pro" and "not-pro"
                 engine_requested=self.engine_type.to_engine_kind(),
                 skipped_rules=[],  # TODO

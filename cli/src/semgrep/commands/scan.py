@@ -929,7 +929,6 @@ def scan(
                 filtered_rules=filtered_rules,
                 extra=output_extra,
                 explanations=output_extra.core.explanations,
-                rules_by_engine=output_extra.core.rules_by_engine,
                 severities=shown_severities,
                 print_summary=True,
                 engine_type=engine_type,

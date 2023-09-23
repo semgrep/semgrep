@@ -550,7 +550,6 @@ def ci(
         extra=output_extra,
         severities=shown_severities,
         is_ci_invocation=True,
-        rules_by_engine=output_extra.core.rules_by_engine,
         engine_type=engine_type,
     )
 
