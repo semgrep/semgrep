@@ -748,9 +748,9 @@ def run_scan_and_return_json(
         m for ms in filtered_matches_by_rule.values() for m in ms
     ]
     output_handler.profiler = profiler
-    output_handler.profiling_data = output_extra.core.time
     output_handler.severities = shown_severities
     output_handler.explanations = output_extra.core.explanations
     output_handler.rules_by_engine = output_extra.core.rules_by_engine
+    output_handler.extra = output_extra
 
     return json.loads(output_handler._build_output())  # type: ignore

@@ -41,6 +41,7 @@ from semgrep.formatter.junit_xml import JunitXmlFormatter
 from semgrep.formatter.sarif import SarifFormatter
 from semgrep.formatter.text import TextFormatter
 from semgrep.formatter.vim import VimFormatter
+from semgrep.output_extra import OutputExtra
 from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
@@ -128,13 +129,15 @@ class OutputHandler:
     Handle all output in a central location. Rather than calling `print_stderr` directly,
     you should call `handle_*` as appropriate.
 
-    In normal usage, it should be constructed via the contextmanager, `managed_output`. It ensures that everything
-    is handled properly if exceptions are thrown.
+    In normal usage, it should be constructed via the contextmanager, `managed_output`.
+    It ensures that everything is handled properly if exceptions are thrown.
 
-    If you need to stop execution immediately (think carefully if you really want this!), throw an exception.
+    If you need to stop execution immediately (think carefully if you really want this!),
+    throw an exception.
     If this is normal behavior, the exception _must_ inherit from `SemgrepError`.
 
-    If you want execution to continue, _report_ the exception via the appropriate `handle_*` method.
+    If you want execution to continue, _report_ the exception via the appropriate
+    `handle_*` method.
     """
 
     def __init__(
@@ -152,7 +155,7 @@ class OutputHandler:
         self.has_output = False
         self.is_ci_invocation = False
         self.filtered_rules: List[Rule] = []
-        self.profiling_data: Optional[out.Profile] = None
+        self.extra: Optional[OutputExtra] = None
         self.severities: Collection[RuleSeverity] = DEFAULT_SHOWN_SEVERITIES
         self.explanations: Optional[List[out.MatchingExplanation]] = None
         self.rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = None
@@ -265,6 +268,8 @@ class OutputHandler:
 
         return reduce(update_failed_to_analyze, semgrep_core_errors, {})
 
+    # TODO: why run_scan.scan() calls output() to set the fields why
+    # run_scan.run_scan_and_return_json() modify directly the fields instead?
     def output(
         self,
         rule_matches_by_rule: RuleMatchMap,
@@ -273,7 +278,7 @@ class OutputHandler:
         filtered_rules: List[Rule],
         ignore_log: Optional[FileTargetingLog] = None,
         profiler: Optional[ProfileManager] = None,
-        profiling_data: Optional[out.Profile] = None,  # (rule, target) -> duration
+        extra: Optional[OutputExtra] = None,
         explanations: Optional[List[out.MatchingExplanation]] = None,
         rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = None,
         severities: Optional[Collection[RuleSeverity]] = None,
@@ -302,8 +307,8 @@ class OutputHandler:
             # create a fake log to track the errors
             self.ignore_log = FileTargetingLog(TargetManager(["."]))
 
-        if profiling_data:
-            self.profiling_data = profiling_data
+        if extra:
+            self.extra = extra
         if explanations:
             self.explanations = explanations
         if rules_by_engine:
@@ -425,11 +430,11 @@ class OutputHandler:
         # - The text formatter uses it to store settings
         # You should use CliOutputExtra for better type checking
         extra: Dict[str, Any] = {}
-        if self.settings.output_time and self.profiling_data:
+        if self.settings.output_time and self.extra and self.extra.core.time:
             cli_timing = _build_time_json(
                 self.filtered_rules,
                 self.all_targets,
-                self.profiling_data,
+                self.extra.core.time,
                 self.profiler,
             )
         if self.settings.verbose_errors:

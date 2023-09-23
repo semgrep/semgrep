@@ -927,7 +927,7 @@ def scan(
                 ignore_log=ignore_log,
                 profiler=profiler,
                 filtered_rules=filtered_rules,
-                profiling_data=output_extra.core.time,
+                extra=output_extra,
                 explanations=output_extra.core.explanations,
                 rules_by_engine=output_extra.core.rules_by_engine,
                 severities=shown_severities,
