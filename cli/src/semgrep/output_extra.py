@@ -18,4 +18,4 @@ class OutputExtra:
     profiling_data: Optional[out.Profile]
     parsing_data: ParsingData
     explanations: Optional[List[out.MatchingExplanation]]
-    rules_by_engine: List[out.RuleIdAndEngineKind]
+    rules_by_engine: Optional[List[out.RuleIdAndEngineKind]]

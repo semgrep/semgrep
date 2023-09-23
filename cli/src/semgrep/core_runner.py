@@ -1228,8 +1228,8 @@ class CoreRunner:
                 runner.stderr,
             )
             core_output = out.CoreOutput.from_json(output_json)
-            if core_output.skipped_targets:
-                for skip in core_output.skipped_targets:
+            if core_output.paths.skipped:
+                for skip in core_output.paths.skipped:
                     if skip.rule_id:
                         rule_info = f"rule {skip.rule_id}"
                     else:
