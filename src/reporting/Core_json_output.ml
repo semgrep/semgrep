@@ -429,6 +429,7 @@ let core_output_of_matches_and_errors render_fix nfiles (res : Core_result.t) =
     rules_by_engine = Some (Common.map convert_rule res.rules_by_engine);
     engine_requested = Some `OSS;
     stats = { okfiles = count_ok; errorfiles = count_errors };
+    version = Some Version.version;
   }
   [@@profiling]
 

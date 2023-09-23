@@ -538,6 +538,7 @@ let cli_output_of_core_results ~logging_level (core : Out.core_output)
     (hrules : Rule.hrules) (scanned : Fpath.t Set_.t) : Out.cli_output =
   match core with
   | {
+   version;
    results = matches;
    errors;
    paths =
@@ -603,7 +604,7 @@ let cli_output_of_core_results ~logging_level (core : Out.core_output)
         []
       in
       {
-        version = Some Version.version;
+        version;
         (* Skipping the python intermediate RuleMatchMap for now.
          * TODO: handle the rule_match.cli_unique_key to dedup matches
          *)
