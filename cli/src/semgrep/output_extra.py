@@ -1,6 +1,4 @@
 from pathlib import Path
-from typing import List
-from typing import Optional
 from typing import Set
 
 from attrs import frozen
@@ -14,8 +12,6 @@ from semgrep.parsing_data import ParsingData
 # in the future.
 @frozen
 class OutputExtra:
+    core: out.CoreOutput
     all_targets: Set[Path]
-    profiling_data: Optional[out.Profile]
     parsing_data: ParsingData
-    explanations: Optional[List[out.MatchingExplanation]]
-    rules_by_engine: Optional[List[out.RuleIdAndEngineKind]]

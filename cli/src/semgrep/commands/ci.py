@@ -547,10 +547,10 @@ def ci(
         ignore_log=ignore_log,
         profiler=profiler,
         filtered_rules=[*blocking_rules, *nonblocking_rules],
-        profiling_data=output_extra.profiling_data,
+        profiling_data=output_extra.core.time,
         severities=shown_severities,
         is_ci_invocation=True,
-        rules_by_engine=output_extra.rules_by_engine,
+        rules_by_engine=output_extra.core.rules_by_engine,
         engine_type=engine_type,
     )
 
