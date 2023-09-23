@@ -48,6 +48,9 @@ exports[`yaml parser parses a pattern with pattern-regex 1`] = `
       ],
     },
   ],
+  "paths": {
+    "scanned": [],
+  },
   "results": [
     {
       "check_id": "test",
@@ -146,6 +149,9 @@ exports[`yaml parser parses a simple pattern 1`] = `
       ],
     },
   ],
+  "paths": {
+    "scanned": [],
+  },
   "results": [
     {
       "check_id": "test",
