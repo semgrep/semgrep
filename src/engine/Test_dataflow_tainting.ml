@@ -52,7 +52,7 @@ let test_dfg_tainting rules_file file =
   let file = Fpath.v file in
   let lang = Lang.lang_of_filename_exn file in
   let rules =
-    try Parse_rule.parse ~rewrite_rule_ids:None rules_file with
+    try Parse_rule.parse rules_file with
     | exn ->
         failwith
           (spf "fail to parse tainting rules %s (exn = %s)" !!rules_file

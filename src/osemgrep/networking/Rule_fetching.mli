@@ -1,8 +1,27 @@
 type rules_and_origin = {
   rules : Rule.rules;
   errors : Rule.invalid_rule_error list;
-  origin : Parse_rule.origin;
+  origin : origin;
 }
+
+and origin =
+  (* For rules that come from a local file, this is the path to the file
+   * containing the rule. It's used to create a dotted rule identifier
+   * such as 'stuff.rules.foo' for a rule declared as 'foo' in the file
+   * 'stuff/rules.yml' (see the ~rewrite_rule_ids parameters below).
+   *
+   * This path may seem redundant with the third argument of
+   * load_rules_from_file() below, but sometimes this argument corresponds to
+   * a temporary file generated from content fetched from the network
+   * (e.g., rules coming from the registry locally stored in /tmp/) in which
+   * case we do not want to add this prefix, hence the use of Other_origin in
+   * that case, even if we're still parsing a local (temporary) file.
+   *)
+  | Local_file of Fpath.t
+  (* usually for rules coming from the registry where no rewrite_rule_ids
+   * is needed (they already come with an adjusted rule_id)
+   *)
+  | Other_origin
 [@@deriving show]
 
 val partition_rules_and_errors :
@@ -42,10 +61,7 @@ val rules_from_dashdash_config :
 
 (* low-level API *)
 val load_rules_from_file :
-  rewrite_rule_ids:Parse_rule.origin option ->
-  registry_caching:bool ->
-  Fpath.t ->
-  rules_and_origin
+  origin:origin -> registry_caching:bool -> Fpath.t -> rules_and_origin
 
 val load_rules_from_url :
   ?token_opt:Auth.token option -> ?ext:string -> Uri.t -> rules_and_origin

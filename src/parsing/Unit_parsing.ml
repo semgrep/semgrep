@@ -135,9 +135,7 @@ let parsing_rules_tests () =
      in
      tests |> File.Path.of_strings
      |> Common.map (fun file ->
-            ( Fpath.basename file,
-              fun () -> Parse_rule.parse ~rewrite_rule_ids:None file |> ignore
-            )))
+            (Fpath.basename file, fun () -> Parse_rule.parse file |> ignore)))
 
 (*****************************************************************************)
 (* Tests *)

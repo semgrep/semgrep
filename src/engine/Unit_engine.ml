@@ -470,7 +470,7 @@ let eval_regression_tests () =
 (*****************************************************************************)
 
 let test_irrelevant_rule rule_file target_file =
-  let rules = Parse_rule.parse ~rewrite_rule_ids:None rule_file in
+  let rules = Parse_rule.parse rule_file in
   rules
   |> List.iter (fun rule ->
          match Analyze_rule.regexp_prefilter_of_rule rule with
@@ -557,7 +557,7 @@ let extract_tests () =
 
 let tainting_test lang rules_file file =
   let rules =
-    try Parse_rule.parse ~rewrite_rule_ids:None rules_file with
+    try Parse_rule.parse rules_file with
     | exn ->
         failwith
           (spf "fail to parse tainting rules %s (exn = %s)" !!rules_file

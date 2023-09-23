@@ -185,7 +185,7 @@ let dump_pattern (file : Fpath.t) =
 
 let dump_patterns_of_rule (file : Fpath.t) =
   let file = Core_scan.replace_named_pipe_by_regular_file file in
-  let rules = Parse_rule.parse ~rewrite_rule_ids:None file in
+  let rules = Parse_rule.parse file in
   let xpats = List.concat_map Rule.xpatterns_of_rule rules in
   List.iter
     (fun { Xpattern.pat; _ } ->
@@ -403,17 +403,15 @@ let all_actions () =
     ( "-check_rules",
       " <metachecks file> <files or dirs>",
       Arg_helpers.mk_action_n_conv Fpath.v
-        (Check_rule.check_files mk_config
-           (Parse_rule.parse ~rewrite_rule_ids:None)) );
+        (Check_rule.check_files mk_config Parse_rule.parse) );
     ( "-translate_rules",
       " <files or dirs>",
       Arg_helpers.mk_action_n_conv Fpath.v
-        (Translate_rule.translate_files
-           (Parse_rule.parse ~rewrite_rule_ids:None)) );
+        (Translate_rule.translate_files Parse_rule.parse) );
     ( "-stat_rules",
       " <files or dirs>",
       Arg_helpers.mk_action_n_conv Fpath.v
-        (Check_rule.stat_files (Parse_rule.parse ~rewrite_rule_ids:None)) );
+        (Check_rule.stat_files Parse_rule.parse) );
     ( "-test_rules",
       " <files or dirs>",
       Arg_helpers.mk_action_n_arg Test_engine.test_rules );
