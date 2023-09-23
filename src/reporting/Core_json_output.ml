@@ -404,7 +404,15 @@ let core_output_of_matches_and_errors render_fix nfiles (res : Core_result.t) =
   {
     Out.results = matches |> OutUtils.sort_core_matches;
     errors = errs |> Common.map error_to_error;
-    skipped_targets;
+    paths =
+      {
+        skipped = skipped_targets;
+        (* TODO: those are set later in Cli_json_output.ml,
+         * but should we compute scanned here instead?
+         *)
+        scanned = [];
+        _comment = None;
+      };
     skipped_rules =
       res.RP.skipped_rules
       |> Common.map (fun ((kind, rule_id, tk) : Rule.invalid_rule_error) ->
@@ -414,13 +422,13 @@ let core_output_of_matches_and_errors render_fix nfiles (res : Core_result.t) =
                details = Rule.string_of_invalid_rule_error_kind kind;
                position = OutUtils.position_of_token_location loc;
              });
-    stats = { okfiles = count_ok; errorfiles = count_errors };
     time = profiling |> Option.map profiling_to_profiling;
     explanations =
       ( res.RP.explanations |> Common.map explanation_to_explanation |> fun x ->
         Some x );
-    rules_by_engine = Common.map convert_rule res.rules_by_engine;
-    engine_requested = `OSS;
+    rules_by_engine = Some (Common.map convert_rule res.rules_by_engine);
+    engine_requested = Some `OSS;
+    stats = { okfiles = count_ok; errorfiles = count_errors };
   }
   [@@profiling]
 

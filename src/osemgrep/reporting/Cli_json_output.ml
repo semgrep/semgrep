@@ -527,27 +527,6 @@ let index_match_based_ids (matches : Out.cli_match list) : Out.cli_match list =
   |> Common.map snd
 
 (*****************************************************************************)
-(* Skipped target *)
-(*****************************************************************************)
-
-(* Skipping the python intermediate FileTargetingLog for now.
- * We used to have a cli_skipped_target and core_skipped_target type,
- * but now they are merged so this function is the identity.
- * In theory we could remove the details: and rule_id: from it
- * because they used to not be included in the final JSON output
- * (but the info was used in the text output to display skipping information).
- *)
-let cli_skipped_targets ~(skipped_targets : Out.skipped_target list option) :
-    Out.skipped_target list option =
-  (* Still? skipped targets are coming from the FileIgnoreLog which is
-   * populated from many places in the code.
-   * Still? see _make_failed_to_analyze() in output.py,
-   * core_failure_lines_by_file in target_manager.py
-   * Still? need to sort
-   *)
-  skipped_targets
-
-(*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
@@ -561,7 +540,13 @@ let cli_output_of_core_results ~logging_level (core : Out.core_output)
   | {
    results = matches;
    errors;
-   skipped_targets;
+   paths =
+     {
+       skipped;
+       (* TODO? should be [] and None given Core_json_output.ml code *)
+       scanned = _;
+       _comment = _;
+     };
    skipped_rules;
    (* LATER *)
    explanations = _;
@@ -584,7 +569,20 @@ let cli_output_of_core_results ~logging_level (core : Out.core_output)
       let (paths : Out.scanned_and_skipped) =
         match logging_level with
         | Some (Logs.Info | Logs.Debug) ->
-            let skipped = cli_skipped_targets ~skipped_targets in
+            (* Skipping the python intermediate FileTargetingLog for now.
+             * We used to have a cli_skipped_target and core_skipped_target type,
+             * but now they are merged so this function is the identity.
+             * In theory we could remove the details: and rule_id: from it
+             * because they used to not be included in the final JSON output
+             * (but the info was used in the text output to display skipping
+             * information).
+             *
+             * Still? skipped targets are coming from the FileIgnoreLog which is
+             * populated from many places in the code.
+             * Still? see _make_failed_to_analyze() in output.py,
+             * core_failure_lines_by_file in target_manager.py
+             * Still? need to sort
+             *)
             { scanned; _comment = None; skipped }
         | _else_ ->
             {

@@ -58,12 +58,12 @@ let mock_run_results (files : string list) : Core_runner.result =
     {
       results = matches;
       errors = [];
-      skipped_targets = None;
+      paths = { skipped = None; scanned = []; _comment = None };
       skipped_rules = [];
       explanations = None;
       time = None;
-      rules_by_engine = [];
-      engine_requested = `OSS;
+      rules_by_engine = None;
+      engine_requested = Some `OSS;
       stats = { okfiles = List.length files; errorfiles = 0 };
     }
   in
