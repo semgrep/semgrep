@@ -1,11 +1,10 @@
 import json
+import subprocess
 
 import pytest
 
-from semgrep.core_runner import CoreRunner
-from semgrep.core_runner import StreamingSemgrepCore
+from semgrep.core_runner import get_contributions
 from semgrep.engine import EngineType
-from semgrep.error import SemgrepError
 
 COMMIT_HASH = "abcd123"
 COMMIT_TIMESTAMP = "2023-09-13T00:00:00"
@@ -23,56 +22,32 @@ CONTRIBUTION = {
 
 
 @pytest.fixture()
-def streaming_semgrep_core(mocker):
-    mocked = mocker.patch.object(StreamingSemgrepCore, "execute")
-    yield mocked
+def mock_state(mocker):
+    mocked = mocker.patch("semgrep.core_runner.get_state")
+    yield mocked.return_value
 
 
 @pytest.fixture()
-def core_runner_output(mocker, streaming_semgrep_core):
-    mocked = mocker.patch.object(CoreRunner, "_extract_core_output")
+def mock_subprocess_run(mocker):
+    mocked = mocker.patch("semgrep.core_runner.subprocess.run")
     yield mocked
 
 
 @pytest.mark.quick
 @pytest.mark.no_semgrep_cli
-def test_dump_contributions_nominal(core_runner_output):
-    core_runner_output.return_value = [CONTRIBUTION]
+def test_dump_contributions_nominal(mocker, mock_state, mock_subprocess_run):
+    proc_result = mocker.MagicMock()
+    proc_result.stdout = json.dumps([CONTRIBUTION])
+    mock_subprocess_run.return_value = proc_result
 
-    core_runner = CoreRunner(
-        jobs=1,
-        engine_type=EngineType.OSS,
-        run_secrets=False,
-        timeout=1,
-        max_memory=0,
-        interfile_timeout=0,
-        timeout_threshold=0,
-        optimizations="none",
-        allow_untrusted_postprocessors=False,
-        core_opts_str=None,
-    )
-
-    contributions = core_runner.invoke_semgrep_dump_contributions()
+    contributions = get_contributions(EngineType.OSS)
     assert contributions.to_json_string() == json.dumps([CONTRIBUTION])
 
 
 @pytest.mark.quick
 @pytest.mark.no_semgrep_cli
-def test_dump_contributions_failed(core_runner_output):
-    core_runner_output.side_effect = SemgrepError()
+def test_dump_contributions_failed(mock_state, mock_subprocess_run):
+    mock_subprocess_run.side_effect = subprocess.CalledProcessError(1, "/bin/semgrep")
 
-    core_runner = CoreRunner(
-        jobs=1,
-        engine_type=EngineType.OSS,
-        run_secrets=False,
-        timeout=1,
-        max_memory=0,
-        interfile_timeout=0,
-        timeout_threshold=0,
-        optimizations="none",
-        allow_untrusted_postprocessors=False,
-        core_opts_str=None,
-    )
-
-    contributions = core_runner.invoke_semgrep_dump_contributions()
+    contributions = get_contributions(EngineType.OSS)
     assert contributions.value == []
