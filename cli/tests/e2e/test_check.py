@@ -841,6 +841,36 @@ def multi_focus_metavariable(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+# Ensure that a rule restricted to a specific language [js] will not run
+# on a target file in another language.
+# The JavaScript rule should match only the JavaScript file and the Python
+# rule should match only the Python file.
+@pytest.mark.kinda_slow
+@pytest.mark.osempass
+def test_language_filtering(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/language-filtering.yaml",
+            target_name="language-filtering",
+        ).stdout,
+        "results.json",
+    )
+
+
+# A simple test to check that per-rule include/exclude filtering is
+# taking place in semgrep-core and osemgrep.
+@pytest.mark.kinda_slow
+@pytest.mark.osempass
+def test_per_rule_include(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/per-rule-include.yaml",
+            target_name="per-rule-include",
+        ).stdout,
+        "results.json",
+    )
+
+
 # Check that pysemgrep and osemgrep sort the results identically.
 # We don't really need it as a product feature but it's important to
 # compare the output of osemgrep with the output of pysemgrep.
