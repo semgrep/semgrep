@@ -6,14 +6,12 @@ on:
   workflow_dispatch:
     inputs:
       upload-artifacts:
-        required: true
         type: boolean
         default: false
         description: Whether or not to upload JS artifacts to S3
   workflow_call:
     inputs:
       upload-artifacts:
-        required: true
         type: boolean
         default: false
         description: Whether or not to upload JS artifacts to S3
