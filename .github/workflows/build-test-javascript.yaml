@@ -4,7 +4,19 @@ name: build-test-javascript
 
 on:
   workflow_dispatch:
+    inputs:
+      upload-artifacts:
+        required: true
+        type: boolean
+        default: false
+        description: Whether or not to upload JS artifacts to S3
   workflow_call:
+    inputs:
+      upload-artifacts:
+        required: true
+        type: boolean
+        default: false
+        description: Whether or not to upload JS artifacts to S3
 
 jobs:
   build-semgrep-js-ocaml:
@@ -97,9 +109,7 @@ jobs:
 
   upload-javascript-artifacts:
     needs: [build-test-js-artifacts]
-    # in english: (branch name is "develop") OR (branch name starts with "release-")
-    # we restrict this so that we don't fill up the S3 bucket with tons of semgrep.js builds
-    if: ${{ (github.ref == 'refs/heads/develop') || startsWith(github.ref, 'refs/heads/release-') }}
+    if: ${{ inputs.upload-artifacts }}
     runs-on: ubuntu-latest
     permissions:
       id-token: write
