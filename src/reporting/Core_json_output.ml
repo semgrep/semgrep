@@ -14,7 +14,6 @@
  *)
 open Common
 open File.Operators
-module StrSet = Common2.StringSet
 open AST_generic
 module E = Core_error
 module J = JSON
@@ -22,8 +21,7 @@ module MV = Metavariable
 module RP = Core_result
 module PM = Pattern_match
 open Pattern_match
-module SJ = Semgrep_output_v1_j (* JSON conversions *)
-module Out = Semgrep_output_v1_t (* atdgen definitions *)
+module Out = Semgrep_output_v1_j
 module OutUtils = Semgrep_output_utils
 
 (*****************************************************************************)
@@ -155,7 +153,7 @@ let metavars startp_of_match_range (s, mval) =
       raise
         (Tok.NoTokenLocation
            (spf "NoTokenLocation with metavar %s, close location = %s" s
-              (SJ.string_of_position startp_of_match_range)))
+              (Out.string_of_position startp_of_match_range)))
   | Some (startp, endp) ->
       ( s,
         {
@@ -289,14 +287,14 @@ let match_to_match render_fix (x : Pattern_match.t) :
 (* less: Semgrep_error_code should be defined fully Output_from_core.atd
  * so we would not need those conversions
  *)
-let error_to_error err =
-  let file = err.E.loc.pos.file in
-  let startp, endp = OutUtils.position_range err.E.loc err.E.loc in
-  let rule_id = Option.map Rule_ID.to_string err.E.rule_id in
-  let error_type = err.E.typ in
-  let severity = E.severity_of_error err.E.typ in
-  let message = err.E.msg in
-  let details = err.E.details in
+let error_to_error (err : Core_error.t) =
+  let file = err.loc.pos.file in
+  let startp, endp = OutUtils.position_range err.loc err.loc in
+  let rule_id = Option.map Rule_ID.to_string err.rule_id in
+  let error_type = err.typ in
+  let severity = E.severity_of_error err.typ in
+  let message = err.msg in
+  let details = err.details in
   {
     Out.error_type;
     rule_id;
@@ -377,23 +375,37 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
     profiling_times = [];
   }
 
+(* TODO: We used to return some stats, should we generalize
+   that and return what is currently in parsing_data.py instead?
+   nfiles below was probably redundant anyway and could be
+   set to List.length res.scanned
+
+   old code:
+    module StrSet = Common2.StringSet
+    let core_output_of_matches_and_errors render_fix nfiles res =
+      ...
+     let files_with_errors =
+       errs
+       |> List.fold_left
+            (fun acc err -> StrSet.add err.E.loc.pos.file acc)
+            StrSet.empty
+     in
+       let count_errors = StrSet.cardinal files_with_errors in
+       let count_ok = nfiles - count_errors in
+
+       stats = { okfiles = count_ok; errorfiles = count_errors };
+*)
+
 (*****************************************************************************)
 (* Final semgrep-core output *)
 (*****************************************************************************)
 
-let core_output_of_matches_and_errors render_fix nfiles (res : Core_result.t) =
+let core_output_of_matches_and_errors render_fix (res : Core_result.t) :
+    Out.core_output =
   let matches, new_errs =
     Common.partition_either (match_to_match render_fix) res.RP.matches
   in
   let errs = !E.g_errors @ new_errs @ res.RP.errors in
-  let files_with_errors =
-    errs
-    |> List.fold_left
-         (fun acc err -> StrSet.add err.E.loc.pos.file acc)
-         StrSet.empty
-  in
-  let count_errors = StrSet.cardinal files_with_errors in
-  let count_ok = nfiles - count_errors in
   let skipped_targets, profiling =
     match res.extra with
     | Core_profiling.Debug { skipped_targets; profiling } ->
@@ -428,7 +440,6 @@ let core_output_of_matches_and_errors render_fix nfiles (res : Core_result.t) =
         Some x );
     rules_by_engine = Some (Common.map convert_rule res.rules_by_engine);
     engine_requested = Some `OSS;
-    stats = { okfiles = count_ok; errorfiles = count_errors };
     version = Some Version.version;
   }
   [@@profiling]
