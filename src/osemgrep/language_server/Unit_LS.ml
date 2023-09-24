@@ -61,7 +61,7 @@ let mock_run_results (files : string list) : Core_runner.result =
       errors = [];
       stats = { okfiles = List.length files; errorfiles = 0 };
       (* extra *)
-      paths = { skipped = None; scanned = []; _comment = None };
+      paths = { skipped = None; scanned = [] };
       skipped_rules = [];
       explanations = None;
       time = None;
