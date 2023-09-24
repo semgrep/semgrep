@@ -32,7 +32,9 @@ const getParsers = async () => {
   const addParser = async (parserName) => {
     const parser = require(`../languages/${parserName}/dist/index.cjs`);
     const parserInstance = await parser.ParserFactory();
-    parsers.set(parserName, parserInstance);
+    parserInstance
+      .getLangs()
+      .forEach((lang) => parsers.set(lang, parserInstance));
   };
   for (const parserName of languages) {
     await addParser(parserName);
