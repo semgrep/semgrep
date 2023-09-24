@@ -670,9 +670,9 @@ def run_scan(
 
     # Metrics send part 2: send results
     if metrics.is_enabled:
-        metrics.add_rules(filtered_rules, output_extra.profiling_data)
-        metrics.add_max_memory_bytes(output_extra.profiling_data)
-        metrics.add_targets(output_extra.all_targets, output_extra.profiling_data)
+        metrics.add_rules(filtered_rules, output_extra.core.time)
+        metrics.add_max_memory_bytes(output_extra.core.time)
+        metrics.add_targets(output_extra.all_targets, output_extra.core.time)
         metrics.add_findings(filtered_matches_by_rule)
         metrics.add_errors(semgrep_errors)
         metrics.add_profiling(profiler)
@@ -748,9 +748,8 @@ def run_scan_and_return_json(
         m for ms in filtered_matches_by_rule.values() for m in ms
     ]
     output_handler.profiler = profiler
-    output_handler.profiling_data = output_extra.profiling_data
     output_handler.severities = shown_severities
-    output_handler.explanations = output_extra.explanations
-    output_handler.rules_by_engine = output_extra.rules_by_engine
+    output_handler.explanations = output_extra.core.explanations
+    output_handler.extra = output_extra
 
     return json.loads(output_handler._build_output())  # type: ignore

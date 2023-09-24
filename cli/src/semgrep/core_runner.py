@@ -1238,9 +1238,6 @@ class CoreRunner:
                             f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
                         )
 
-            if core_output.time:
-                profiling_data = core_output.time
-
             # end with tempfile.NamedTemporaryFile(...) ...
             outputs = core_matches_to_rule_matches(rules, core_output)
             parsed_errors = [core_error_to_semgrep_error(e) for e in core_output.errors]
@@ -1269,11 +1266,9 @@ class CoreRunner:
             errors.extend(parsed_errors)
 
         output_extra = OutputExtra(
+            core_output,
             all_targets,
-            profiling_data,
             parsing_data,
-            core_output.explanations,
-            core_output.rules_by_engine,
         )
 
         return (
