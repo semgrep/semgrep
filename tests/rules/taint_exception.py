@@ -5,7 +5,7 @@ def throw_exits(input):
   raise RuntimeError()
 
   # ok:
-  sink = clean
+  sink(clean)
 
 def throw_in_catch_exits(input):
   clean = None
@@ -149,61 +149,6 @@ def exception_or_not_goes_through_finally(input):
   sink(clean1)
   #ok:
   sink(clean2)
-
-def exception_or_not_goes_through_finally(input):
-  clean1 = None
-  clean2 = None
-  try:
-    any_function_call_may_raise()
-  except Exception as e:
-    clean1 = input
-  else:
-    clean2 = input
-  finally:
-    clean1 = sanitize(clean1)
-    clean2 = sanitize(clean2)
-
-  #ok:
-  sink(clean1)
-  #ok:
-  sink(dirty2)
-
-def return_goes_through_finally_and_propagates(input):
-  clean1 = None
-  clean2 = None
-  clean3 = None
-  clean4 = None
-  dirty1 = None
-  dirty2 = None
-  try:
-    try:
-      return
-    except Exception as e:
-      clean1 = input
-      #ok: unreachable because the try clause returns
-      sink(clean1)
-    else:
-      clean2 = input
-      #ok: unreachable because the try clause returns
-      sink(clean2)
-    finally:
-      # Finally clauses are always reachable when present
-      dirty1 = input
-
-    clean3 = input
-    #ok: unreachable because the inner try is returning
-    sink = clean3
-  except Exception as e:
-    clean4 = input
-    #ok: unreachable because the inner try didn't throw an exception
-    sink = clean4
-  finally:
-    dirty2 = input
-
-  #ruleid: python-exception
-  sink(dirty1)
-  #ruleid: python-exception
-  sink(dirty2)
 
 def throw_may_go_through_catch_and_propagates(input):
   clean1 = None

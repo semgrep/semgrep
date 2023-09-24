@@ -1,5 +1,11 @@
 Try-catch-else-finally is now supported in taint analysis.
 
+This change also includes some updates to our analysis. Previously we assumed that
+any statement inside the try clause may throw an exception, but now only
+function calls are assumed to possibly throw exceptions.
+
+Throw statements always throw an exception as it was before.
+
 This kind of statement is supported in languages including Python, Ruby, and Julia.
 
 Python example:
@@ -19,7 +25,7 @@ def f(tainted_input):
   finally:
     d = sanitize(d)
 
-  # a is not tainted because exception wasn't thrown
+  # a is not tainted because exception wasn't assumed to be thrown
   sink(a)
   # b is tainted through the else clause
   sink(b)
