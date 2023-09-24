@@ -413,7 +413,6 @@ class OutputHandler:
         # CliOutputExtra members
         cli_paths = out.ScannedAndSkipped(
             scanned=[out.Fpath(str(path)) for path in sorted(self.all_targets)],
-            _comment=None,
             skipped=None,
         )
         cli_timing: Optional[out.Profile] = None
@@ -448,10 +447,6 @@ class OutputHandler:
                 ],
             )
             extra["verbose_errors"] = True
-        else:
-            cli_paths = dataclasses.replace(
-                cli_paths, _comment="<add --verbose for a list of skipped paths>"
-            )
         if self.settings.output_format == OutputFormat.TEXT:
             extra["color_output"] = (
                 self.settings.output_destination is None and sys.stdout.isatty(),

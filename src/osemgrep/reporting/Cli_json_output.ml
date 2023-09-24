@@ -546,7 +546,6 @@ let cli_output_of_core_results ~logging_level (core : Out.core_output)
        skipped;
        (* TODO? should be [] and None given Core_json_output.ml code *)
        scanned = _;
-       _comment = _;
      };
    skipped_rules;
    (* LATER *)
@@ -584,13 +583,8 @@ let cli_output_of_core_results ~logging_level (core : Out.core_output)
              * core_failure_lines_by_file in target_manager.py
              * Still? need to sort
              *)
-            { scanned; _comment = None; skipped }
-        | _else_ ->
-            {
-              scanned;
-              _comment = Some "<add --verbose for a list of skipped paths>";
-              skipped = None;
-            }
+            { scanned; skipped }
+        | _else_ -> { scanned; skipped = None }
       in
       let skipped_rules =
         (* TODO: return skipped_rules with --develop
