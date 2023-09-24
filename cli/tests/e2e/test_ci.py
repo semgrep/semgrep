@@ -68,7 +68,9 @@ FROZEN_ISOTIMESTAMP = "1970-01-01T00:00:00"
 _cli_src = (Path(__file__).parent.parent.parent / "src").resolve()
 USED_GITHUB_VARS = set(
     subprocess.run(
-        f"git grep -hPo 'GITHUB_[\\w_]*' {_cli_src}", shell=True, capture_output=True
+        f"git grep --recurse-submodules -hPo 'GITHUB_[\\w_]*' {_cli_src}",
+        shell=True,
+        capture_output=True,
     )
     .stdout.decode()
     .strip()
@@ -76,6 +78,7 @@ USED_GITHUB_VARS = set(
 ) - {
     "GITHUB_TOKEN",  # not used in the cli, just passed to the backend
     "GITHUB_EVENT_PATH",  # TODO: mock this for more than just PR events
+    "GITHUB_xxx",  # not used, just an example in comments
 }
 
 assert "GITHUB_ACTIONS" in USED_GITHUB_VARS  # ensure the parsing did something
