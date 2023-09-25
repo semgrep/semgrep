@@ -93,7 +93,17 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
   Scanning 1 file with 4 python rules.
 
   SUPPLY CHAIN RULES
-  Scanning 1 file.
+
+  Ecosystem   Rules   Files   Lockfiles
+ ───────────────────────────────────────────────────────
+  Pypi            1       1   poetry.lock, Pipfile.lock
+  Npm             2       0   yarn.lock
+
+  Analysis       Rules
+ ──────────────────────
+  Basic              2
+  Reachability       1
+
   Failed to parse [bold]Pipfile.lock[/bold] at [bold]2:1[/bold] - expected one
   of ['"', '-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?', '[', 'false',
   'null', 'true', '{']
