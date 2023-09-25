@@ -280,7 +280,7 @@ def print_sca_table(sca_plan: Plan, rule_count: int) -> None:
     """
     Pretty print the sca plan to stdout with the legacy CLI UX.
     """
-    if rule_count <= 1:
+    if rule_count <= 1 or not sca_plan.target_mappings:
         print_degenerate_table(sca_plan, rule_count=rule_count)
         return
 
@@ -395,9 +395,13 @@ def print_scan_status(
     print_scan_plan_header(target_manager, sast_plan, sca_plan, cli_ux)
 
     sast_rule_count = len(sast_plan.rules)
-
     sca_rule_count = len(sca_plan.rules)
     has_sca_rules = sca_rule_count > 0
+
+    # NOTE: There's some funky behavior with handling the rule counts
+    # in which some functions require rule counts calculated in different ways.
+    alt_sast_rule_count = sast_plan.rule_count_for_product(RuleProduct.sast)
+    alt_sca_rule_count = sca_plan.rule_count_for_product(RuleProduct.sca)
 
     secrets_rule_count = sast_plan.rule_count_for_product(RuleProduct.secrets)
     has_secret_rules = secrets_rule_count > 0
@@ -415,7 +419,7 @@ def print_scan_status(
         print_sast_table(
             sast_plan=sast_plan,
             product=RuleProduct.sast,
-            rule_count=sast_rule_count,
+            rule_count=alt_sast_rule_count,
         )
         return sast_rule_count
 
@@ -425,7 +429,7 @@ def print_scan_status(
         console.print(Title("Code Rules", order=2))
 
     print_sast_table(
-        sast_plan=sast_plan, product=RuleProduct.sast, rule_count=len(sast_plan.rules)
+        sast_plan=sast_plan, product=RuleProduct.sast, rule_count=alt_sast_rule_count
     )
 
     # TODO: after launch this should no longer be conditional.
@@ -442,11 +446,11 @@ def print_scan_status(
     elif legacy_ux:
         # Show the basic table for supply chain
         console.print(Title("Supply Chain Rules", order=2))
-        print_sca_table(sca_plan=sca_plan, rule_count=sca_rule_count)
+        print_sca_table(sca_plan=sca_plan, rule_count=alt_sca_rule_count)
     else:
         # Show the table with a supply chain nudge or supply chain
         console.print(Title("Supply Chain Rules", order=2))
-        print_detailed_sca_table(sca_plan=sca_plan, rule_count=sca_rule_count)
+        print_detailed_sca_table(sca_plan=sca_plan, rule_count=alt_sca_rule_count)
 
     if detailed_ux:
         console.print(Title("Progress", order=2))
