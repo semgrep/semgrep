@@ -7,7 +7,6 @@ from dataclasses import field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
-from typing import cast
 from typing import Dict
 from typing import Optional
 
@@ -206,9 +205,6 @@ class GitMeta:
             scan_environment=self.environment,
             is_full_scan=self.is_full_scan,
         )
-
-    def to_dict(self) -> Dict[str, Any]:
-        return cast(Dict[str, Any], self.to_project_metadata().to_json())
 
 
 @dataclass
