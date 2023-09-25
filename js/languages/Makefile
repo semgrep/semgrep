@@ -1,5 +1,5 @@
 
-SUPPORTED_LANGS := bash c cairo cpp csharp dart dockerfile elixir go html java json jsonnet julia kotlin lisp lua ocaml php promql protobuf python r ruby rust scala solidity swift terraform typescript
+SUPPORTED_LANGS := bash c cairo cpp csharp dart dockerfile elixir go hack html java json jsonnet julia kotlin lisp lua ocaml php promql protobuf python r ruby rust scala solidity swift terraform typescript vue
 
 .PHONY: default
 default: build
