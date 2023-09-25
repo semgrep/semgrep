@@ -2,7 +2,7 @@ const { ParserFactory } = require("../dist/index.cjs");
 
 const parserPromise = ParserFactory();
 
-const LANG = "rust";
+const LANG = "julia";
 const EXPECTED_LANGS = [LANG];
 
 test("getLangs", async () => {
@@ -18,6 +18,6 @@ test("it parses a pattern", async () => {
 
 test("it parses a file", async () => {
   const parser = await parserPromise;
-  const target = parser.parseTarget(LANG, "tests/test.rs");
+  const target = parser.parseTarget(LANG, "tests/test.jl");
   expect(typeof target).toEqual("object");
 });
