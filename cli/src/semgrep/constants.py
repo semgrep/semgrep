@@ -126,6 +126,7 @@ class Colors(Enum):
     white = 7
     black = 256
     cyan = "cyan"  # for filenames
+    gray = "bright_black"  # for commands
     green = "green"  # for autofix
     yellow = "yellow"  # TODO: benchmark timing output?
     red = "red"  # for errors
