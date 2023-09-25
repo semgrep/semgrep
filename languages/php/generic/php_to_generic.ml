@@ -147,7 +147,7 @@ let rec stmt_aux = function
   | Goto (t, id) -> [ G.Goto (t, ident id, G.sc) |> G.s ]
   | Try (t, v1, v2, v3) ->
       let v1 = stmt v1 and v2 = list catch v2 and v3 = finally v3 in
-      [ G.Try (t, v1, v2, v3) |> G.s ]
+      [ G.Try (t, v1, v2, None, v3) |> G.s ]
   | ClassDef v1 ->
       let ent, def = class_def v1 in
       [ G.DefStmt (ent, G.ClassDef def) |> G.s ]

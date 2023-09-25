@@ -707,7 +707,7 @@ and v_stmt = function
         | None -> []
         | Some xs -> xs
       in
-      G.Try (v1, v2, catches, v4) |> G.s
+      G.Try (v1, v2, catches, None, v4) |> G.s
   | Throw (v1, v2) ->
       let v1 = v_tok v1 and v2 = v_expr v2 in
       G.Throw (v1, v2, G.sc) |> G.s
