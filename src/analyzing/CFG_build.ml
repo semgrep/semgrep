@@ -324,8 +324,6 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
 
       (* Also propagate any throws that may have happened inside this
        * try-catch-else-finally statement at the end of the finally clause.
-       * If there's no finally clause, the arcs should already be created
-       * from the code above that sets proper throw_destinations before visiting.
        *)
       let may_throw =
         try_may_throw || else_may_throw || catch_may_throw || finally_may_throw
