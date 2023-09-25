@@ -253,6 +253,7 @@ def run_rules(
     core_runner: CoreRunner,
     output_handler: OutputHandler,
     dump_command_for_core: bool,
+    time_flag: bool,
     engine_type: EngineType,
     run_secrets: bool = False,
 ) -> Tuple[
@@ -282,6 +283,7 @@ def run_rules(
         target_manager,
         rest_of_the_rules,
         dump_command_for_core,
+        time_flag,
         engine_type,
         run_secrets,
     )
@@ -377,6 +379,7 @@ def run_scan(
     *,
     core_opts_str: Optional[str] = None,
     dump_command_for_core: bool = False,
+    time_flag: bool = False,
     engine_type: EngineType = EngineType.OSS,
     run_secrets: bool = False,
     output_handler: OutputHandler,
@@ -575,6 +578,7 @@ def run_scan(
         core_runner,
         output_handler,
         dump_command_for_core,
+        time_flag,
         engine_type,
         run_secrets,
     )
@@ -646,6 +650,7 @@ def run_scan(
                         core_runner,
                         output_handler,
                         dump_command_for_core,
+                        time_flag,
                         engine_type,
                         run_secrets,
                     )
