@@ -656,6 +656,7 @@ def scan_options(func: Callable) -> Callable:
     "run_secrets_flag",
     is_flag=True,
     hidden=True,
+    help="Contact support@semgrep.com for more informationon this.",
 )
 @scan_options
 @handle_command_errors
