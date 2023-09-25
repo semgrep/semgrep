@@ -825,9 +825,9 @@ def test_full_run(
         gitlab_base_sha = (
             base_commit if env.get("CI_MERGE_REQUEST_TARGET_BRANCH_NAME") else None
         )
-
-        assert meta_json["base_sha"] == gitlab_base_sha
-        meta_json["base_sha"] = "sanitized"
+        if gitlab_base_sha != None:
+            assert meta_json["base_sha"] == gitlab_base_sha
+            meta_json["base_sha"] = "sanitized"
 
     snapshot.assert_match(json.dumps(scan_create_json, indent=2), "meta.json")
 

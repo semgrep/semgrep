@@ -1,4 +1,3 @@
-import dataclasses
 import json
 import os
 import subprocess
@@ -589,17 +588,16 @@ class GithubMeta(GitMeta):
         return super().branch
 
     def to_project_metadata(self) -> out.ProjectMetadata:
-        return dataclasses.replace(
-            super().to_project_metadata(),
-            commit_author_username=self.glom_event(T["sender"]["login"]),
-            commit_author_image_url=self.glom_event(T["sender"]["avatar_url"]),
-            pull_request_author_username=self.glom_event(
-                T["pull_request"]["user"]["login"]
-            ),
-            pull_request_author_image_url=self.glom_event(
-                T["pull_request"]["user"]["avatar_url"]
-            ),
+        res = super().to_project_metadata()
+        res.commit_author_username = self.glom_event(T["sender"]["login"])
+        res.commit_author_image_url = self.glom_event(T["sender"]["avatar_url"])
+        res.pull_request_author_username = self.glom_event(
+            T["pull_request"]["user"]["login"]
         )
+        res.pull_request_author_image_url = self.glom_event(
+            T["pull_request"]["user"]["avatar_url"]
+        )
+        return res
 
 
 @dataclass
@@ -716,13 +714,12 @@ class GitlabMeta(GitMeta):
             return pr_title
         return None
 
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            **super().to_dict(),
-            "branch": self.commit_ref,
-            "base_sha": self.merge_base_ref,
-            "start_sha": self.start_sha,
-        }
+    def to_project_metadata(self) -> out.ProjectMetadata:
+        res = super().to_project_metadata()
+        res.branch = self.commit_ref
+        res.base_sha = self.merge_base_ref
+        res.start_sha = self.start_sha
+        return res
 
 
 @dataclass
@@ -1052,13 +1049,12 @@ class BuildkiteMeta(GitMeta):
         pr_id = os.getenv("BUILDKITE_PULL_REQUEST")
         return None if pr_id == "false" else pr_id
 
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            **super().to_dict(),
-            "commit_author_email": os.getenv("BUILDKITE_BUILD_AUTHOR_EMAIL"),
-            "commit_author_name": os.getenv("BUILDKITE_BUILD_AUTHOR"),
-            "commit_title": os.getenv("BUILDKITE_MESSAGE"),
-        }
+    def to_project_metadata(self) -> out.ProjectMetadata:
+        res = super().to_project_metadata()
+        res.commit_author_email = os.getenv("BUILDKITE_BUILD_AUTHOR_EMAIL")
+        res.commit_author_name = os.getenv("BUILDKITE_BUILD_AUTHOR")
+        res.commit_title = os.getenv("BUILDKITE_MESSAGE")
+        return res
 
 
 @dataclass
@@ -1116,8 +1112,10 @@ class TravisMeta(GitMeta):
 
         return os.getenv("TRAVIS_PULL_REQUEST")
 
-    def to_dict(self) -> Dict[str, Any]:
-        return {**super().to_dict(), "commit_title": os.getenv("TRAVIS_COMMIT_MESSAGE")}
+    def to_project_metadata(self) -> out.ProjectMetadata:
+        res = super().to_project_metadata()
+        res.commit_title = os.getenv("TRAVIS_COMMIT_MESSAGE")
+        return res
 
 
 def generate_meta_from_environment(baseline_ref: Optional[str]) -> GitMeta:
