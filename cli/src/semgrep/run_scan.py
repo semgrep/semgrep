@@ -388,7 +388,9 @@ def print_scan_status(
 
     print_scan_plan_header(target_manager, sast_plan, sca_plan, cli_ux)
 
+    sca_rule_count = sast_plan.rule_count_for_product(RuleProduct.sca)
     has_sca_rules = len(sca_plan.rules) > 0
+
     secrets_rule_count = sast_plan.rule_count_for_product(RuleProduct.secrets)
     has_secret_rules = secrets_rule_count > 0
 
@@ -398,7 +400,7 @@ def print_scan_status(
             sast_enabled=get_state().is_code(),
             sca_enabled=get_state().is_supply_chain(),
         )
-        return len(sast_plan.rules) + len(sca_plan.rules)
+        return len(sast_plan.rules) + sca_rule_count
 
     if not has_sca_rules and not has_secret_rules and legacy_ux:
         # just print these tables without the section headers
@@ -431,17 +433,17 @@ def print_scan_status(
         pass  # Skip showing an empty supply chain rules section for legacy ux
     elif legacy_ux:
         # Show the basic table for supply chain
-        print_sca_table(sca_plan=sca_plan, rule_count=len(sca_plan.rules))
+        print_sca_table(sca_plan=sca_plan, rule_count=sca_rule_count)
     else:
         # Show the table with a supply chain nudge or supply chain
         console.print(Title("Supply Chain Rules", order=2))
-        print_detailed_sca_table(sca_plan=sca_plan, rule_count=len(sca_plan.rules))
+        print_detailed_sca_table(sca_plan=sca_plan, rule_count=sca_rule_count)
 
     if detailed_ux:
         console.print(Title("Progress", order=2))
         console.print(" ")  # space intentional for progress bar padding
 
-    return len(sast_plan.rules) + len(sca_plan.rules)
+    return len(sast_plan.rules) + sca_rule_count
 
 
 def remove_matches_in_baseline(
