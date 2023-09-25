@@ -46,6 +46,7 @@ from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
+from semgrep.core_runner import get_contributions
 from semgrep.core_runner import Plan
 from semgrep.engine import EngineType
 from semgrep.error import FilesNotFoundError
@@ -775,7 +776,7 @@ def run_scan(
     )
 
     if dump_contributions:
-        contributions = core_runner.invoke_semgrep_dump_contributions()
+        contributions = get_contributions(engine_type)
     else:
         contributions = out.Contributions([])
 
@@ -900,9 +901,9 @@ def run_scan(
 
     # Metrics send part 2: send results
     if metrics.is_enabled:
-        metrics.add_rules(filtered_rules, output_extra.profiling_data)
-        metrics.add_max_memory_bytes(output_extra.profiling_data)
-        metrics.add_targets(output_extra.all_targets, output_extra.profiling_data)
+        metrics.add_rules(filtered_rules, output_extra.core.time)
+        metrics.add_max_memory_bytes(output_extra.core.time)
+        metrics.add_targets(output_extra.all_targets, output_extra.core.time)
         metrics.add_findings(filtered_matches_by_rule)
         metrics.add_errors(semgrep_errors)
         metrics.add_profiling(profiler)
@@ -978,9 +979,8 @@ def run_scan_and_return_json(
         m for ms in filtered_matches_by_rule.values() for m in ms
     ]
     output_handler.profiler = profiler
-    output_handler.profiling_data = output_extra.profiling_data
     output_handler.severities = shown_severities
-    output_handler.explanations = output_extra.explanations
-    output_handler.rules_by_engine = output_extra.rules_by_engine
+    output_handler.explanations = output_extra.core.explanations
+    output_handler.extra = output_extra
 
     return json.loads(output_handler._build_output())  # type: ignore

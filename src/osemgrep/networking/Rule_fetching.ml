@@ -32,16 +32,60 @@ module XP = Xpattern
  * a pair, which would remove the need for partition_rules_and_errors.
  *)
 type rules_and_origin = {
-  origin : origin;
   rules : Rule.rules;
   errors : Rule.invalid_rule_error list;
+  origin : origin; (* used by Validate_subcommand *)
 }
 
-(* TODO? more complex origin? Remote of Uri.t | Local of filename | Inline?
- *  or just put the Semgrep_dashdash_config.config_kind it comes from?
- * This type is used only for rules_rewrite_rule_ids().
+(* TODO? more complex origin? Remote of Uri.t | Embedded of Fpath.t ?
+ * or just put the Semgrep_dashdash_config.config_kind it comes from?
+ * This type is used only for rewrite_rule_ids.
  *)
-and origin = Fpath.t option (* None for remote config *) [@@deriving show]
+and origin = Local_file of Fpath.t | Other_origin [@@deriving show]
+
+(*****************************************************************************)
+(* Rewrite rule ids *)
+(*****************************************************************************)
+
+let prefix_for_fpath_opt (fpath : Fpath.t) : string option =
+  assert (Fpath.is_file_path fpath);
+  let* rel_path =
+    if Fpath.is_rel fpath then Some fpath
+      (* python: paths had no commen prefix; not possible to relativize *)
+    else Fpath.rem_prefix (Fpath.v (Sys.getcwd ())) fpath
+  in
+  (* LATER: we should use Fpath.normalize first, but pysemgrep
+   * doesn't as shown by tests/e2e/test_check.py::test_basic_rule__relative
+   * so we reproduce the same behavior, leading sometimes to some
+   * weird rule id like "rules....rules.test" when passing
+   * rules/../rules/test.yaml to --config.
+   * TODO? pass legacy flag and improve the behavior when not legacy?
+   *)
+  match List.rev (Fpath.segs rel_path) with
+  | [] -> raise Impossible
+  | [ _file ] -> None
+  | _file :: dirs ->
+      let prefix =
+        dirs |> List.rev |> Common.map (fun s -> s ^ ".") |> String.concat ""
+      in
+      Some prefix
+
+let mk_rewrite_rule_ids (origin : origin) : Rule_ID.t -> Rule_ID.t =
+ fun (rule_id : Rule_ID.t) ->
+  (*
+   Check the validity of the rule ID and prepend the path to rule file if
+   the rewrite_rule_ids option is set.
+*)
+  let opt_prefix =
+    match origin with
+    | Local_file fpath -> prefix_for_fpath_opt fpath
+    | Other_origin -> None
+  in
+  match opt_prefix with
+  | None -> rule_id
+  | Some prefix ->
+      Rule_ID.sanitize_string prefix ^ Rule_ID.to_string rule_id
+      |> Rule_ID.of_string
 
 (*****************************************************************************)
 (* Helpers *)
@@ -78,57 +122,6 @@ let fetch_content_from_url_async ?(token_opt = None) (url : Uri.t) :
 
 let fetch_content_from_url ?(token_opt = None) (url : Uri.t) : string =
   Lwt_main.run (fetch_content_from_url_async ~token_opt url)
-
-(*****************************************************************************)
-(* Rewrite rule ids *)
-(*****************************************************************************)
-
-let prefix_for_fpath_opt (fpath : Fpath.t) : string option =
-  assert (Fpath.is_file_path fpath);
-  let* rel_path =
-    if Fpath.is_rel fpath then Some fpath
-      (* python: paths had no commen prefix; not possible to relativize *)
-    else Fpath.rem_prefix (Fpath.v (Sys.getcwd ())) fpath
-  in
-  (* LATER: we should use Fpath.normalize first, but pysemgrep
-   * doesn't as shown by tests/e2e/test_check.py::test_basic_rule__relative
-   * so we reproduce the same behavior, leading sometimes to some
-   * weird rule id like "rules....rules.test" when passing
-   * rules/../rules/test.yaml to --config.
-   * TODO? pass legacy flag and improve the behavior when not legacy?
-   *)
-  match List.rev (Fpath.segs rel_path) with
-  | [] -> raise Impossible
-  | [ _file ] -> None
-  | _file :: dirs ->
-      let prefix =
-        dirs |> List.rev |> Common.map (fun s -> s ^ ".") |> String.concat ""
-      in
-      Some prefix
-
-let add_prefix prefix (rule_id : Rule_ID.t) =
-  Rule_ID.of_string (Rule_ID.sanitize_string prefix ^ (rule_id :> string))
-
-let rules_rewrite_rule_ids ~rewrite_rule_ids (x : rules_and_origin) :
-    rules_and_origin =
-  let { rules; errors; origin } = x in
-  match origin with
-  | Some fpath when rewrite_rule_ids -> (
-      match prefix_for_fpath_opt fpath with
-      | None -> x
-      | Some prefix ->
-          {
-            origin;
-            rules =
-              rules
-              |> Common.map (function { Rule.id = rule_id, tk; _ } as r ->
-                     { r with id = (add_prefix prefix rule_id, tk) });
-            errors =
-              errors
-              |> Common.map (fun (kind, rule_id, tk) ->
-                     (kind, add_prefix prefix rule_id, tk));
-          })
-  | _else_ -> x
 
 (*****************************************************************************)
 (* Registry caching *)
@@ -260,8 +253,9 @@ let import_callback ~registry_caching base str =
  * We also pass a ~registry_caching so our registry-aware jsonnet is also
  * registry-cache aware.
  *)
-let parse_rule ~registry_caching (file : Fpath.t) :
+let parse_rule ~origin ~registry_caching (file : Fpath.t) :
     Rule.rules * Rule.invalid_rule_error list =
+  let rewrite_rule_ids = Some (mk_rewrite_rule_ids origin) in
   match FT.file_type_of_file file with
   | FT.Config FT.Jsonnet ->
       Logs.warn (fun m ->
@@ -278,8 +272,9 @@ let parse_rule ~registry_caching (file : Fpath.t) :
       let value_ = Eval_jsonnet.eval_program core in
       let gen = Manifest_jsonnet_to_AST_generic.manifest_value value_ in
       (* TODO: put to true at some point *)
-      Parse_rule.parse_generic_ast ~error_recovery:false file gen
-  | _else_ -> Parse_rule.parse_and_filter_invalid_rules file
+      Parse_rule.parse_generic_ast ~rewrite_rule_ids ~error_recovery:false file
+        gen
+  | _ -> Parse_rule.parse_and_filter_invalid_rules ~rewrite_rule_ids file
 
 (*****************************************************************************)
 (* Loading rules *)
@@ -294,12 +289,13 @@ let parse_rule ~registry_caching (file : Fpath.t) :
  * We pass a ~registry_caching parameter here because the rule file can
  * be a jsonnet file importing rules from the registry.
  *)
-let load_rules_from_file ~registry_caching (file : Fpath.t) : rules_and_origin =
+let load_rules_from_file ~origin ~registry_caching (file : Fpath.t) :
+    rules_and_origin =
   Logs.debug (fun m -> m "loading local config from %s" !!file);
   if Sys.file_exists !!file then (
-    let rules, errors = parse_rule ~registry_caching file in
+    let rules, errors = parse_rule ~origin ~registry_caching file in
     Logs.debug (fun m -> m "Done loading local config from %s" !!file);
-    { origin = Some file; rules; errors })
+    { rules; errors; origin = Local_file file })
   else
     (* This should never happen because Semgrep_dashdash_config only builds
      * a File case if the file actually exists.
@@ -326,18 +322,23 @@ let load_rules_from_url_async ?token_opt ?(ext = "yaml") url :
   let rules =
     Common2.with_tmp_file ~str:content ~ext (fun file ->
         let file = Fpath.v file in
-        let res = load_rules_from_file ~registry_caching:false file in
-        { res with origin = None })
+        load_rules_from_file ~origin:Other_origin ~registry_caching:false file)
   in
   Lwt.return rules
 
 let load_rules_from_url ?token_opt ?(ext = "yaml") url : rules_and_origin =
   Lwt_main.run (load_rules_from_url_async ?token_opt ~ext url)
 
-let rules_from_dashdash_config_async ~token_opt ~registry_caching kind :
-    rules_and_origin list Lwt.t =
+let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
+    ~registry_caching kind : rules_and_origin list Lwt.t =
   match kind with
-  | C.File file -> Lwt.return [ load_rules_from_file ~registry_caching file ]
+  | C.File file ->
+      Lwt.return
+        [
+          load_rules_from_file
+            ~origin:(if rewrite_rule_ids then Local_file file else Other_origin)
+            ~registry_caching file;
+        ]
   | C.Dir dir ->
       List_files.list dir
       (* TOPORT:
@@ -357,7 +358,11 @@ let rules_from_dashdash_config_async ~token_opt ~registry_caching kind :
          )
       *)
       |> List.filter Parse_rule.is_valid_rule_filename
-      |> Common.map (load_rules_from_file ~registry_caching)
+      |> Common.map (fun file ->
+             load_rules_from_file
+               ~origin:
+                 (if rewrite_rule_ids then Local_file file else Other_origin)
+               ~registry_caching file)
       |> Lwt.return
   | C.URL url ->
       let%lwt rules = load_rules_from_url_async url in
@@ -375,8 +380,7 @@ let rules_from_dashdash_config_async ~token_opt ~registry_caching kind :
       let rules =
         Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
             let file = Fpath.v file in
-            let res = load_rules_from_file ~registry_caching file in
-            [ { res with origin = None } ])
+            [ load_rules_from_file ~origin:Other_origin ~registry_caching file ])
       in
       Lwt.return rules
   | C.A Policy ->
@@ -399,8 +403,8 @@ let rules_from_dashdash_config_async ~token_opt ~registry_caching kind :
       Metrics_.g.is_using_app <- true;
       failwith "TODO: SupplyChain not handled yet"
 
-let rules_from_dashdash_config ~token_opt ~registry_caching kind :
-    rules_and_origin list =
+let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt ~registry_caching
+    kind : rules_and_origin list =
   match kind with
   | C.R rkind when registry_caching ->
       (* TODO: should not need that, we're duplicating work
@@ -412,11 +416,14 @@ let rules_from_dashdash_config ~token_opt ~registry_caching kind :
       (* TODO: this also assumes every registry URL is for yaml *)
       Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
           let file = Fpath.v file in
-          let res = load_rules_from_file ~registry_caching file in
-          [ { res with origin = None } ])
+          let res =
+            load_rules_from_file ~origin:Other_origin ~registry_caching file
+          in
+          [ res ])
   | _ ->
       Lwt_main.run
-        (rules_from_dashdash_config_async ~token_opt ~registry_caching kind)
+        (rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
+           ~registry_caching kind)
 
 (*****************************************************************************)
 (* Entry point *)
@@ -431,15 +438,15 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
       |> List.concat_map (fun str ->
              let in_docker = !Semgrep_envvars.v.in_docker in
              let config = Rules_config.parse_config_string ~in_docker str in
-             rules_from_dashdash_config ~token_opt ~registry_caching config)
-      |> Common.map (rules_rewrite_rule_ids ~rewrite_rule_ids)
+             rules_from_dashdash_config ~rewrite_rule_ids ~token_opt
+               ~registry_caching config)
   (* better: '-e foo -l regex' was not handled in pysemgrep
    *  (got a weird 'invalid pattern clause' error)
    * better: '-e foo -l generic' was not handled in semgrep-core
    *)
   | Pattern (pat, xlang_opt, fix) -> (
       let fk = Tok.unsafe_fake_tok "" in
-      let rules_and_origins_for_xlang xlang =
+      let rules_and_origin_for_xlang xlang =
         let xpat = Parse_rule.parse_xpattern xlang (pat, fk) in
         (* force the parsing of the pattern to get the parse error if any *)
         (match xpat.XP.pat with
@@ -450,14 +457,14 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
             ());
         let rule = Rule.rule_of_xpattern xlang xpat in
         let rule = { rule with id = (Constants.rule_id_for_dash_e, fk); fix } in
-        { origin = None; rules = [ rule ]; errors = [] }
+        { rules = [ rule ]; errors = []; origin = Other_origin }
       in
 
       match xlang_opt with
       | Some xlang ->
           (* TODO? capture also parse errors here? and transform the pattern
            * parse error in invalid_rule_error to return in rules_and_origin? *)
-          [ rules_and_origins_for_xlang xlang ]
+          [ rules_and_origin_for_xlang xlang ]
       (* osemgrep-only: better: can use -e without -l! we try all languages *)
       | None ->
           (* We need uniq_by because Lang.assoc contain multiple times the
@@ -479,7 +486,7 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
           |> Common.map_filter (fun l ->
                  try
                    let xlang = Xlang.of_lang l in
-                   let r = rules_and_origins_for_xlang xlang in
+                   let r = rules_and_origin_for_xlang xlang in
                    Logs.debug (fun m ->
                        m "language %s valid for the pattern" (Lang.show l));
                    Some r

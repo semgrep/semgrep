@@ -152,17 +152,18 @@ let dump_rule file =
   rules |> List.iter (fun r -> pr (Rule.show r))
 
 let prefilter_of_rules file =
+  let cache = Some (Hashtbl.create 101) in
   let rules = Parse_rule.parse file in
   let xs =
     rules
     |> Common.map (fun r ->
-           let pre_opt = Analyze_rule.regexp_prefilter_of_rule r in
+           let pre_opt = Analyze_rule.regexp_prefilter_of_rule ~cache r in
            let pre_atd_opt =
              Option.map Analyze_rule.prefilter_formula_of_prefilter pre_opt
            in
            let id = r.Rule.id |> fst in
            {
-             Semgrep_prefilter_t.rule_id = (id :> string);
+             Semgrep_prefilter_t.rule_id = Rule_ID.to_string id;
              filter = pre_atd_opt;
            })
   in

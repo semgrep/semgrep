@@ -1,15 +1,25 @@
+(*
+   Rule parsing
+*)
+
 (* Parse a rule file, either in YAML or JSON (or even Jsonnet) format
- * depending on the filename extension.
- *
- * The parser accepts invalid rules, skips them, and returns them in
- * the list of errors.
- * This will not raise Rule.Err (Rule.InvalidRule ...) exceptions.
- *
- * However, this function may raise the other (Rule.Err ...) exns
- * (e.g., Rule.InvalidYaml).
- *)
+   depending on the filename extension.
+
+   The parser accepts invalid rules, skips them, and returns them in
+   the list of errors.
+   This will not raise Rule.Err (Rule.InvalidRule ...) exceptions.
+
+   However, this function may raise the other (Rule.Err ...) exns
+   (e.g., Rule.InvalidYaml).
+
+   rewrite_rule_ids, if not None, provides what's needed to parse the rule
+   ID 'foo' as 'path.to.foo'. This is the default behavior for 'semgrep scan'.
+   See the command-line option --rewrite-rule-ids.
+*)
 val parse_and_filter_invalid_rules :
-  Fpath.t -> Rule.rules * Rule.invalid_rule_error list
+  ?rewrite_rule_ids:(Rule_ID.t -> Rule_ID.t) option ->
+  Fpath.t ->
+  Rule.rules * Rule.invalid_rule_error list
 
 (* ex: foo.yaml, foo.yml, but not foo.test.yaml.
  *
@@ -46,6 +56,7 @@ val parse : Fpath.t -> Rule.rules
  *)
 val parse_generic_ast :
   ?error_recovery:bool ->
+  ?rewrite_rule_ids:(Rule_ID.t -> Rule_ID.t) option ->
   Fpath.t ->
   AST_generic.program ->
   Rule.rules * Rule.invalid_rule_error list

@@ -21,8 +21,10 @@ jobs:
   semgrep:
     name: semgrep ci
     runs-on: ubuntu-20.04
+    # We're dogfooding the canary here!
+    # see https://www.notion.so/semgrep/returntocorp-semgrep-canary-docker-canary
     container:
-      image: returntocorp/semgrep
+      image: returntocorp/semgrep:canary
     env:
       SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
     if: (github.actor != 'dependabot[bot]')

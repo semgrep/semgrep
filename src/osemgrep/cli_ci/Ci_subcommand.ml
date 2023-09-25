@@ -31,10 +31,8 @@ let at_url_maybe ppf () =
 let decode_rules data =
   Common2.with_tmp_file ~str:data ~ext:"json" (fun file ->
       let file = Fpath.v file in
-      let res =
-        Rule_fetching.load_rules_from_file ~registry_caching:false file
-      in
-      { res with origin = None })
+      Rule_fetching.load_rules_from_file ~origin:Other_origin
+        ~registry_caching:false file)
 
 let fetch_scan_config ~token ~dry_run ~sca ~full_scan ~repository scan_id =
   Logs.app (fun m ->

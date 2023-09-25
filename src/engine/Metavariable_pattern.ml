@@ -283,7 +283,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                                   (spf
                                      "rule %s: metavariable-pattern: failed to \
                                       fully parse the content of %s"
-                                     (fst env.rule.Rule.id :> string)
+                                     (Rule_ID.to_string (fst env.rule.Rule.id))
                                      mvar);
                               Ok (lazy (ast, skipped_tokens))
                             with
@@ -304,7 +304,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                             (Common.spf
                                "rule %s: metavariable-pattern failed when \
                                 parsing %s's content as %s: %s"
-                               (fst env.rule.Rule.id :> string)
+                               (Rule_ID.to_string (fst env.rule.Rule.id))
                                mvar (Xlang.to_string xlang) msg);
                           []
                       | Ok lazy_ast_and_errors ->

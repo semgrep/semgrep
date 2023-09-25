@@ -5,10 +5,11 @@ module type Processor = sig
   type state
 
   (* pre process the set of rules (example: ??) *)
-  val pre_process : Rule.t list -> Rule.t list * state
+  val pre_process : Core_scan_config.t -> Rule.t list -> Rule.t list * state
 
   (* post process the result (example: ??) *)
-  val post_process : state -> Core_result.t -> Core_result.t
+  val post_process :
+    Core_scan_config.t -> state -> Core_result.t -> Core_result.t
 end
 
 (* The default processor is the identity processor which does nothing. *)
@@ -18,7 +19,8 @@ module No_Op_Processor : Processor
 val hook_processor : (module Processor) ref
 
 (* quite similar to Core_scan.core_scan_func *)
-type core_scan_func_with_rules =
+type 'a core_scan_func_with_rules =
+  'a ->
   (Rule.t list * Rule.invalid_rule_error list) * float (* rule parse time *) ->
   Core_result.t
 
@@ -27,4 +29,6 @@ type core_scan_func_with_rules =
  * hook_processor
  *)
 val call_with_pre_and_post_processor :
-  core_scan_func_with_rules -> core_scan_func_with_rules
+  ('a -> Core_scan_config.t) ->
+  'a core_scan_func_with_rules ->
+  'a core_scan_func_with_rules
