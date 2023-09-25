@@ -441,8 +441,14 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
   CODE RULES
   Nothing to scan.
 
-  SUPPLY CHAIN RULES
-  Scanning 1 file with 6 python rules.
+  Ecosystem   Rules   Files   Lockfiles
+ ──────────────────────────────────────────────────────────────────────────
+  Pypi            6       1   targets/dependency_aware/awscli/Pipfile.lock
+
+  Analysis   Rules
+ ──────────────────
+  Unknown        6
+
 
 
 ┌──────────────┐

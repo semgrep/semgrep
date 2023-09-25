@@ -81,8 +81,14 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
   CODE RULES
   Nothing to scan.
 
-  SUPPLY CHAIN RULES
-  Scanning 1 file with 2 js rules.
+  Ecosystem   Rules   Files   Lockfiles
+ ──────────────────────────────────────────────────────────────────────────
+  Npm             2       1   targets/dependency_aware/pnpm/pnpm-lock.yaml
+
+  Analysis   Rules
+ ──────────────────
+  Unknown        2
+
 
 
 ┌──────────────┐

@@ -86,8 +86,14 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
   CODE RULES
   Nothing to scan.
 
-  SUPPLY CHAIN RULES
-  Nothing to scan.
+  Ecosystem   Rules   Files   Lockfiles
+ ───────────────────────────────────────────────────────────────────────────────
+  Npm             1       0   targets/dependency_aware/yarn-v1-without-version…
+
+  Analysis   Rules
+ ──────────────────
+  Basic          1
+
 
 
 ┌──────────────┐

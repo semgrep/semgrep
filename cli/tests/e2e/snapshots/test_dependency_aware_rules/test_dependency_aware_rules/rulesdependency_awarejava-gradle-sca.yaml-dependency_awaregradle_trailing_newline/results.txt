@@ -81,8 +81,14 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
   CODE RULES
   Nothing to scan.
 
-  SUPPLY CHAIN RULES
-  Scanning 1 file.
+  Ecosystem   Rules   Files   Lockfiles
+ ───────────────────────────────────────────────────────────────────────────────
+  Maven           1       1   targets/dependency_aware/gradle_trailing_newline…
+
+  Analysis   Rules
+ ──────────────────
+  Unknown        1
+
 
 
 ┌──────────────┐

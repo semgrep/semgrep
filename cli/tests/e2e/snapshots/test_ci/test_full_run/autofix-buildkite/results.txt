@@ -93,8 +93,11 @@ BUILDKITE="true" BUILDKITE_REPO="git@github.com/project_name/project_name.git" B
   CODE RULES
   Scanning 1 file with 4 python rules.
 
-  SUPPLY CHAIN RULES
-  Scanning 1 file.
+  Ecosystem   Rules   Files   Lockfiles            Analysis       Rules
+ ─────────────────────────────────────────        ──────────────────────
+  Pypi            1       1   poetry.lock          Basic              2
+  Npm             2       0   yarn.lock            Reachability       1
+
 
 
 ┌──────────────┐

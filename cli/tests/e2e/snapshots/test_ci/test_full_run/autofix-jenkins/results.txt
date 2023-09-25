@@ -92,8 +92,11 @@ JENKINS_URL="some_url" GIT_URL="https://github.com/org/repo.git/" GIT_BRANCH="so
   CODE RULES
   Scanning 1 file with 4 python rules.
 
-  SUPPLY CHAIN RULES
-  Scanning 1 file.
+  Ecosystem   Rules   Files   Lockfiles            Analysis       Rules
+ ─────────────────────────────────────────        ──────────────────────
+  Pypi            1       1   poetry.lock          Basic              2
+  Npm             2       0   yarn.lock            Reachability       1
+
 
 
 ┌──────────────┐
