@@ -1,7 +1,7 @@
 TREESITTER_SRCDIR := ../../../libs/ocaml-tree-sitter-core/downloads/tree-sitter/lib/src
 
 ifndef NO_WASM
-TREE_SITTER_SOURCES := $(shell find ../../../languages/$(SEMGREP_LANG)/tree-sitter -name 'scanner.c' -o -name 'scanner.cc' -o -name 'parser.c')
+TREE_SITTER_SOURCES ?= $(shell find ../../../languages/$(SEMGREP_LANG)/tree-sitter -name 'scanner.c' -o -name 'scanner.cc' -o -name 'parser.c')
 endif
 
 ESBUILD_DEFAULTS = \
