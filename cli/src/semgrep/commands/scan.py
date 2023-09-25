@@ -776,8 +776,6 @@ def scan(
     if not interfile_timeout:
         interfile_timeout = 0  # unlimited
 
-    output_time = time_flag
-
     # Note this must be after the call to `terminal.configure` so that verbosity is respected
     possibly_notify_user()
 
@@ -793,7 +791,7 @@ def scan(
         strict=strict,
         verbose_errors=verbose,
         timeout_threshold=timeout_threshold,
-        output_time=output_time,
+        output_time=time_flag,
         output_per_finding_max_lines_limit=max_lines_per_finding,
         output_per_line_max_chars_limit=max_chars_per_line,
         dataflow_traces=dataflow_traces,
@@ -887,6 +885,7 @@ def scan(
                 ) = semgrep.run_scan.run_scan(
                     core_opts_str=core_opts,
                     dump_command_for_core=dump_command_for_core,
+                    time_flag=time_flag,
                     engine_type=engine_type,
                     run_secrets=run_secrets_flag,
                     output_handler=output_handler,
