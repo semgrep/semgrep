@@ -92,9 +92,7 @@ BUILD_BUILDID="some_id" SEMGREP_REPO_NAME="a/repo/name" SEMGREP_REPO_URL="https:
 
   CODE RULES
   Scanning 1 file with 4 python rules.
-
-  SUPPLY CHAIN RULES
-  Scanning 1 file.
+  Nothing to scan.
 
 
 ┌──────────────┐
@@ -104,7 +102,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 8 findings (6 blocking) from 7 rules.
+  Found 8 findings (6 blocking) from 4 rules.
   Uploading scan results
   Finalizing scan           View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings

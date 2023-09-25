@@ -131,9 +131,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 
   CODE RULES
   Nothing to scan.
-
-  SUPPLY CHAIN RULES
-  Scanning 3 files.
+  Nothing to scan.
 
 
 ┌──────────────┐

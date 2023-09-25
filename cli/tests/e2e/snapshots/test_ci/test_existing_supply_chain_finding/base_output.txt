@@ -47,9 +47,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 
   CODE RULES
   Nothing to scan.
-
-  SUPPLY CHAIN RULES
-  Scanning 1 file.
+  Nothing to scan.
 
 
 ┌──────────────┐
@@ -59,7 +57,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 1 finding (1 blocking) from 1 rule.
+  Found 1 finding (1 blocking) from 0 rules.
   Uploading scan results
   Finalizing scan           View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings
