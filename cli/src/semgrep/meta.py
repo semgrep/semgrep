@@ -7,6 +7,7 @@ from dataclasses import field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from typing import cast
 from typing import Dict
 from typing import Optional
 
@@ -16,6 +17,7 @@ from glom import glom
 from glom import T
 from glom.core import TType
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
 from semgrep.external.git_url_parser import Parser
 from semgrep.state import get_state
@@ -176,34 +178,37 @@ class GitMeta:
     def is_full_scan(self) -> bool:
         return self.merge_base_ref is None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_project_metadata(self) -> out.ProjectMetadata:
         commit_title = git_check_output(["git", "show", "-s", "--format=%B"])
         commit_author_email = git_check_output(["git", "show", "-s", "--format=%ae"])
         commit_author_name = git_check_output(["git", "show", "-s", "--format=%an"])
 
-        return {
-            "semgrep_version": __VERSION__,
+        return out.ProjectMetadata(
+            semgrep_version=out.Version(__VERSION__),
             # REQUIRED for semgrep-app backend
-            "repository": self.repo_name,
+            repository=self.repo_name,
             # OPTIONAL for semgrep-app backend
-            "repo_url": self.repo_url,
-            "branch": self.branch,
-            "ci_job_url": self.ci_job_url,
-            "commit": self.commit_sha,
-            "commit_author_email": commit_author_email,
-            "commit_author_name": commit_author_name,
-            "commit_author_username": None,
-            "commit_author_image_url": None,
-            "commit_title": commit_title,
-            "commit_timestamp": self.commit_timestamp,
-            "on": self.event_name,
-            "pull_request_author_username": None,
-            "pull_request_author_image_url": None,
-            "pull_request_id": self.pr_id,
-            "pull_request_title": self.pr_title,
-            "scan_environment": self.environment,
-            "is_full_scan": self.is_full_scan,
-        }
+            repo_url=self.repo_url,
+            branch=self.branch,
+            ci_job_url=self.ci_job_url,
+            commit=self.commit_sha,
+            commit_author_email=commit_author_email,
+            commit_author_name=commit_author_name,
+            commit_author_username=None,
+            commit_author_image_url=None,
+            commit_title=commit_title,
+            commit_timestamp=self.commit_timestamp,
+            on=self.event_name,
+            pull_request_author_username=None,
+            pull_request_author_image_url=None,
+            pull_request_id=self.pr_id,
+            pull_request_title=self.pr_title,
+            scan_environment=self.environment,
+            is_full_scan=self.is_full_scan,
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return cast(Dict[str, Any], self.to_project_metadata().to_json())
 
 
 @dataclass
