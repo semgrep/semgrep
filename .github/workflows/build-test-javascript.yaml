@@ -4,7 +4,17 @@ name: build-test-javascript
 
 on:
   workflow_dispatch:
+    inputs:
+      upload-artifacts:
+        type: boolean
+        default: false
+        description: Whether or not to upload JS artifacts to S3
   workflow_call:
+    inputs:
+      upload-artifacts:
+        type: boolean
+        default: false
+        description: Whether or not to upload JS artifacts to S3
 
 jobs:
   build-semgrep-js-ocaml:
@@ -97,9 +107,7 @@ jobs:
 
   upload-javascript-artifacts:
     needs: [build-test-js-artifacts]
-    # in english: (branch name is "develop") OR (branch name starts with "release-")
-    # we restrict this so that we don't fill up the S3 bucket with tons of semgrep.js builds
-    if: (github.ref == 'refs/heads/develop') || startsWith(github.ref, 'refs/heads/release-')
+    if: ${{ inputs.upload-artifacts }}
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -122,4 +130,14 @@ jobs:
           tar xvzf semgrep-js-artifacts.tar.gz
           branch_name=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
           urlencoded_branch_name=$(printf %s $branch_name | jq -sRr @uri)
-          aws s3 sync /tmp/semgrep/js/ "s3://semgrep-app-static-assets/static/turbo/${urlencoded_branch_name}/"
+
+          cache_control_arg=""
+          if [[ "${branch_name}" =~ "^release-[0-9.]+$" ]]; then
+            # Set the cache-control header if this bundle is a release:
+            # - public: The response can be stored in a shared cache
+            # - max-age=31536000: Cache for up to 1 year
+            # - immutable: The response will not be updated while fresh
+            cache_control_arg="--cache-control public,max-age=31536000,immutable"
+          fi
+
+          aws s3 cp --recursive "${cache_control_arg}" /tmp/semgrep/js/ "s3://semgrep-app-static-assets/static/turbo/${urlencoded_branch_name}/"
