@@ -1114,7 +1114,7 @@ class CoreRunner:
                 str(self._timeout_threshold),
                 "-max_memory",
                 str(self._max_memory),
-                "-json_time",
+                # "-json_time",
             ]
 
             if self._core_opts:
