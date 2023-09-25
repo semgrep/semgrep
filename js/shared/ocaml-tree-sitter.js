@@ -70,11 +70,7 @@ function octs_node_end_point(vNode) {
 //Provides: octs_node_is_missing
 //Requires: wasm
 function octs_node_is_missing(vNode) {
-  try {
-    return wasm._ts_node_is_missing(vNode.node_ptr) != 0;
-  } catch (e) {
-    return false;
-  }
+  return wasm._ts_node_is_missing(vNode.node_ptr) != 0;
 }
 
 //Provides: octs_node_is_named
