@@ -52,27 +52,6 @@ class SemgrepState:
         return DesignTreatment.DETAILED
 
     @staticmethod
-    def is_legacy_cli_ux() -> bool:
-        """
-        Returns True iff the current CLI invocation should be given the legacy UX treatment.
-        """
-        return get_state().get_cli_ux_flavor() == DesignTreatment.LEGACY
-
-    @staticmethod
-    def is_simple_cli_ux() -> bool:
-        """
-        Returns True iff the current CLI invocation should be given the simple UX treatment.
-        """
-        return get_state().get_cli_ux_flavor() == DesignTreatment.SIMPLE
-
-    @staticmethod
-    def is_detailed_cli_ux() -> bool:
-        """
-        Returns True iff the current CLI invocation should be given the detailed UX treatment.
-        """
-        return get_state().get_cli_ux_flavor() == DesignTreatment.DETAILED
-
-    @staticmethod
     def is_scan_invocation() -> bool:
         """
         Returns True iff the current CLI invocation is a scan invocation via `semgrep scan`.

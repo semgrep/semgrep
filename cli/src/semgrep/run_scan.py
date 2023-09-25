@@ -16,6 +16,7 @@ from os import environ
 from pathlib import Path
 from sys import getrecursionlimit
 from sys import setrecursionlimit
+from textwrap import wrap
 from typing import Any
 from typing import Collection
 from typing import Dict
@@ -27,12 +28,15 @@ from typing import Tuple
 from typing import Union
 
 from boltons.iterutils import partition
+from rich.columns import Columns
 from rich.padding import Padding
+from rich.table import Table
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parse_lockfile import parse_lockfile_path
 from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
+from semgrep.app import auth
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
 from semgrep.console import console
@@ -65,12 +69,14 @@ from semgrep.rule_match import RuleMatchMap
 from semgrep.rule_match import RuleMatchSet
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_types import JOIN_MODE
+from semgrep.state import DesignTreatment
 from semgrep.state import get_state
 from semgrep.target_manager import ECOSYSTEM_TO_LOCKFILES
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
 from semgrep.util import unit_str
 from semgrep.util import with_color
+from semgrep.util import with_feature_status
 from semgrep.verbose_logging import getLogger
 
 
@@ -116,16 +122,83 @@ def get_file_ignore() -> FileIgnore:
     return file_ignore
 
 
+def print_product_status(sast_enabled: bool = True, sca_enabled: bool = False) -> None:
+    """
+    (Simple) print the statuses of enabled products to stdout when the user
+    is given the product-focused CLI UX treatment.
+    """
+    learn_more_url = with_color(
+        Colors.cyan, "https://semgrep.dev/products/cloud-platform/", underline=True
+    )
+    login_command = with_color(Colors.gray, "`semgrep login`")
+    is_logged_in = auth.get_token() is not None
+    all_enabled = True  # assume all enabled until we find a disabled product
+
+    sections = [
+        (
+            "Semgrep OSS",
+            True,
+            [
+                "Basic security coverage for first-party code vulnerabilities.",
+            ],
+        ),
+        (
+            "Semgrep Code (SAST)",
+            is_logged_in and sast_enabled,
+            [
+                "Find and fix vulnerabilities in the code you write with advanced scanning and expert security rules.",
+            ],
+        ),
+        (
+            "Semgrep Supply Chain (SCA)",
+            sca_enabled,
+            [
+                "Find and fix the reachable vulnerabilities in your OSS dependencies.",
+            ],
+        ),
+    ]
+
+    for name, enabled, features in sections:
+        all_enabled = all_enabled and enabled
+        console.print(
+            f"\n{with_feature_status(enabled=enabled)} {with_color(Colors.foreground, name, bold=True)}"
+        )
+        for feature in features:
+            console.print(f"  {with_feature_status(enabled=enabled)} {feature}")
+
+    if not is_logged_in:
+        message = "\n".join(
+            wrap(
+                f"💎 Get started with all Semgrep products via {login_command}.",
+                width=80,
+            )
+            + [f"✨ Learn more at {learn_more_url}."]
+        )
+        console.print(f"\n{message}\n")
+    elif not all_enabled:
+        # TODO: Handle cases where SAST / SCA are not enabled (GROW-53)
+        # We should suggest a resolution such as enabling supply chain in SCP settings, and
+        # run then `semgrep ci`. However, there are some additional edge cases to consider
+        # such as feature availability / required plan upgrades, and thus we will punt showing
+        # a resolution for now.
+        console.print(" ")  # space intentional for progress bar padding
+    else:
+        console.print(" ")  # space intentional for progress bar padding
+
+
 def print_scan_plan_header(
-    target_manager: TargetManager, sast_plan: Plan, sca_plan: Plan
+    target_manager: TargetManager,
+    sast_plan: Plan,
+    sca_plan: Plan,
+    cli_ux: DesignTreatment = DesignTreatment.LEGACY,
 ) -> None:
     """
     Prints the number of files intended to be scanned and (optionally)
     the number of rules to be run based on the current configuration.
     """
     file_count = len(target_manager.get_all_files())
-    legacy_cli_ux = get_state().is_legacy_cli_ux()
-    simple_ux = get_state().is_simple_cli_ux()
+    legacy_cli_ux = cli_ux == DesignTreatment.LEGACY
+    simple_ux = cli_ux == DesignTreatment.SIMPLE
 
     summary_line = f"Scanning {unit_str(file_count, 'file')}"
     if target_manager.respect_git_ignore:
@@ -159,16 +232,126 @@ def print_scan_plan_header(
     console.print(summary_line + ":")
 
 
-def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> int:
+def print_tables(tables: List[Table]) -> None:
+    columns = Columns(tables, padding=(1, 8))
+
+    # rich tables are 2 spaces indented by default
+    # deindent only by 1 to align the content, instead of the invisible table border
+    console.print(Padding(columns, (1, 0)), deindent=1)
+
+
+def print_sast_table(sast_plan: Plan, *, product: RuleProduct, rule_count: int) -> None:
+    """
+    Pretty print the SAST / secrets plan to stdout.
+    """
+    if not rule_count:
+        console.print("Nothing to scan.")
+        return
+
+    if rule_count == 1:
+        console.print(f"Scanning {unit_str(len(sast_plan.target_mappings), 'file')}.")
+        return
+
+    plan_by_lang = sast_plan.split_by_lang_label_for_product(product)
+
+    if len(plan_by_lang) == 1:
+        [(language, target_mapping)] = plan_by_lang.items()
+        console.print(
+            f"Scanning {unit_str(target_mapping.file_count, 'file')} with {unit_str(rule_count, f'{language} rule')}."
+        )
+        return
+
+    print_tables(
+        [
+            sast_plan.table_by_language(with_tables_for=product),
+            sast_plan.table_by_origin(with_tables_for=product),
+        ]
+    )
+
+
+def print_sca_table(sca_plan: Plan, rule_count: int) -> None:
+    """
+    Pretty print the sca plan to stdout with the legacy CLI UX.
+    """
+    if not rule_count:
+        console.print("Nothing to scan.")
+        return
+
+    print_tables(
+        [
+            sca_plan.table_by_ecosystem(),
+            sca_plan.table_by_sca_analysis(),
+        ]
+    )
+
+
+def print_detailed_sca_table(sca_plan: Plan, rule_count: int) -> None:
+    """
+    Pretty print the plan to stdout with the detailed CLI UX.
+    """
+    if rule_count:
+        print_sca_table(sca_plan, rule_count)
+        return
+
+    sep = "\n   "
+    message = "No rules to run."
+    """
+    We need to account for several edges cases:
+        - `semgrep ci` was invoked but no rules were found (e.g. no lockfile).
+        - `semgrep scan` was invoked with the supply-chain flag and no rules found.
+        - `semgrep ci` was invoked without the supply-chain flag or feature enabled.
+    """
+    # 1. Validate that the user is indeed running SCA (and not from semgrep scan).
+    is_scan = get_state().is_scan_invocation()
+    is_supply_chain = get_state().is_supply_chain()
+    # 2. Check if the user has metrics enabled.
+    metrics = get_state().metrics
+    metrics_enabled = metrics.is_enabled
+    # If the user has metrics enabled, we can suggest they run `semgrep ci` to get more findings.
+    # Otherwise, we should expect the user to be already aware of the other products.
+    # 3. Check if the user has logged in.
+    has_auth = auth.get_token() is not None
+    # Users who have not logged in will not be able to run `semgrep ci`.
+    # For users with metrics enabled who are running scan without auth,
+    # we should suggest they login and run semgrep ci.
+    if is_scan and metrics_enabled:
+        login_command = with_color(Colors.gray, "`semgrep login`")
+        ci_command = with_color(Colors.gray, "`semgrep ci`")
+        if not has_auth:
+            message = sep.join(
+                wrap(
+                    f"💎 Sign in with {login_command} and run {ci_command} to find dependency vulnerabilities and advanced cross-file findings.",
+                    width=70,
+                )
+            )
+        elif not is_supply_chain:
+            message = sep.join(
+                wrap(
+                    f"💎 Run {ci_command} to find dependency vulnerabilities and advanced cross-file findings.",
+                    width=70,
+                )
+            )
+        else:  # supply chain but no rules (e.g. no lockfile)
+            pass
+    else:  # skip nudge for users who have not enabled metrics or are already running ci
+        pass
+    console.print(f"\n{message}\n")
+
+
+def print_scan_status(
+    rules: Sequence[Rule],
+    target_manager: TargetManager,
+    cli_ux: DesignTreatment = DesignTreatment.LEGACY,
+) -> int:
     """
     Print a section like:
 
     Return total number of rules semgrep think is applicable to this repo
     e.g. it skips rules when there are no files with a relevant extension since no findings will be found
     """
-    simple_ux = get_state().is_simple_cli_ux()
-    detailed_ux = get_state().is_detailed_cli_ux()
-    legacy_ux = get_state().is_legacy_cli_ux()
+    legacy_ux = cli_ux == DesignTreatment.LEGACY
+    simple_ux = cli_ux == DesignTreatment.SIMPLE
+    detailed_ux = cli_ux == DesignTreatment.DETAILED
 
     if simple_ux:
         logo = with_color(Colors.green, "○○○")
@@ -202,20 +385,27 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> i
         target_manager,
     )
 
-    print_scan_plan_header(target_manager, sast_plan, sca_plan)
+    print_scan_plan_header(target_manager, sast_plan, sca_plan, cli_ux)
 
     has_sca_rules = len(sca_plan.rules) > 0
-    has_secret_rules = sast_plan.rule_count_for_product(RuleProduct.secrets) > 0
+    secrets_rule_count = sast_plan.rule_count_for_product(RuleProduct.secrets)
+    has_secret_rules = secrets_rule_count > 0
 
-    if (
-        simple_ux
-    ):  # Print the feature summary table instead of all tables with new simple CLI UX
-        sast_plan.print(with_tables_for=RuleProduct.sast)
+    if simple_ux:
+        # Print the feature summary table instead of all tables with new simple CLI UX
+        print_product_status(
+            sast_enabled=get_state().is_code(),
+            sca_enabled=get_state().is_supply_chain(),
+        )
         return len(sast_plan.rules) + len(sca_plan.rules)
 
     if not has_sca_rules and not has_secret_rules and legacy_ux:
         # just print these tables without the section headers
-        sast_plan.print(with_tables_for=RuleProduct.sast)
+        print_sast_table(
+            sast_plan=sast_plan,
+            product=RuleProduct.sast,
+            rule_count=len(sast_plan.rules),
+        )
         return len(sast_plan.rules)
 
     if legacy_ux:
@@ -223,18 +413,28 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> i
     else:
         console.print(Title("Code Rules", order=2))
 
-    sast_plan.print(with_tables_for=RuleProduct.sast)
+    print_sast_table(
+        sast_plan=sast_plan, product=RuleProduct.sast, rule_count=len(sast_plan.rules)
+    )
 
     # TODO: after launch this should no longer be conditional.
     if has_secret_rules:
         console.print(Title("Secrets Rules", order=2))
-        sast_plan.print(with_tables_for=RuleProduct.secrets)
+        print_sast_table(
+            sast_plan=sast_plan,
+            product=RuleProduct.secrets,
+            rule_count=secrets_rule_count,
+        )
 
     if not has_sca_rules and legacy_ux:
         pass  # Skip showing an empty supply chain rules section for legacy ux
-    else:  # Show the table for supply chain rules otherwise
+    elif legacy_ux:
+        # Show the basic table for supply chain
+        print_sca_table(sca_plan=sca_plan, rule_count=len(sca_plan.rules))
+    else:
+        # Show the table with a supply chain nudge or supply chain
         console.print(Title("Supply Chain Rules", order=2))
-        sca_plan.print(with_tables_for=RuleProduct.sca)
+        print_detailed_sca_table(sca_plan=sca_plan, rule_count=len(sca_plan.rules))
 
     if detailed_ux:
         console.print(Title("Progress", order=2))
@@ -292,7 +492,8 @@ def run_rules(
     List[DependencyParserError],
     int,
 ]:
-    num_executed_rules = print_scan_status(filtered_rules, target_manager)
+    cli_ux = get_state().get_cli_ux_flavor()
+    num_executed_rules = print_scan_status(filtered_rules, target_manager, cli_ux)
 
     join_rules, rest_of_the_rules = partition(
         filtered_rules, lambda rule: rule.mode == JOIN_MODE
