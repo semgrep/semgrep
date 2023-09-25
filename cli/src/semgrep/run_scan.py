@@ -241,16 +241,22 @@ def print_tables(tables: List[Table]) -> None:
     console.print(Padding(columns, (1, 0)), deindent=1)
 
 
+def print_degenerate_table(plan: Plan, *, rule_count: int) -> None:
+    """
+    Print a table with no rows and a simple message instead.
+    """
+    if not rule_count or not plan.target_mappings:
+        console.print("Nothing to scan.")
+    else:  # e.g. 1 rule, 4 files
+        console.print(f"Scanning {unit_str(len(plan.target_mappings), 'file')}.")
+
+
 def print_sast_table(sast_plan: Plan, *, product: RuleProduct, rule_count: int) -> None:
     """
     Pretty print the SAST / secrets plan to stdout.
     """
-    if not rule_count:
-        console.print("Nothing to scan.")
-        return
-
-    if rule_count == 1:
-        console.print(f"Scanning {unit_str(len(sast_plan.target_mappings), 'file')}.")
+    if rule_count <= 1 or not sast_plan.target_mappings:
+        print_degenerate_table(sast_plan, rule_count=rule_count)
         return
 
     plan_by_lang = sast_plan.split_by_lang_label_for_product(product)
@@ -274,8 +280,8 @@ def print_sca_table(sca_plan: Plan, rule_count: int) -> None:
     """
     Pretty print the sca plan to stdout with the legacy CLI UX.
     """
-    if not rule_count:
-        console.print("Nothing to scan.")
+    if rule_count <= 1:
+        print_degenerate_table(sca_plan, rule_count=rule_count)
         return
 
     print_tables(
@@ -388,8 +394,10 @@ def print_scan_status(
 
     print_scan_plan_header(target_manager, sast_plan, sca_plan, cli_ux)
 
-    sca_rule_count = sast_plan.rule_count_for_product(RuleProduct.sca)
-    has_sca_rules = len(sca_plan.rules) > 0
+    sast_rule_count = len(sast_plan.rules)
+
+    sca_rule_count = len(sca_plan.rules)
+    has_sca_rules = sca_rule_count > 0
 
     secrets_rule_count = sast_plan.rule_count_for_product(RuleProduct.secrets)
     has_secret_rules = secrets_rule_count > 0
@@ -400,16 +408,16 @@ def print_scan_status(
             sast_enabled=get_state().is_code(),
             sca_enabled=get_state().is_supply_chain(),
         )
-        return len(sast_plan.rules) + sca_rule_count
+        return sast_rule_count + sca_rule_count
 
     if not has_sca_rules and not has_secret_rules and legacy_ux:
         # just print these tables without the section headers
         print_sast_table(
             sast_plan=sast_plan,
             product=RuleProduct.sast,
-            rule_count=len(sast_plan.rules),
+            rule_count=sast_rule_count,
         )
-        return len(sast_plan.rules)
+        return sast_rule_count
 
     if legacy_ux:
         console.print(Padding(Title("Code Rules", order=2), (1, 0, 0, 0)))
@@ -433,6 +441,7 @@ def print_scan_status(
         pass  # Skip showing an empty supply chain rules section for legacy ux
     elif legacy_ux:
         # Show the basic table for supply chain
+        console.print(Title("Supply Chain Rules", order=2))
         print_sca_table(sca_plan=sca_plan, rule_count=sca_rule_count)
     else:
         # Show the table with a supply chain nudge or supply chain
@@ -443,7 +452,7 @@ def print_scan_status(
         console.print(Title("Progress", order=2))
         console.print(" ")  # space intentional for progress bar padding
 
-    return len(sast_plan.rules) + sca_rule_count
+    return sast_rule_count + sca_rule_count
 
 
 def remove_matches_in_baseline(
