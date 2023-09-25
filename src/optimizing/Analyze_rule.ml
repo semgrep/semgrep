@@ -16,7 +16,8 @@ open Common
 module R = Rule
 module XP = Xpattern
 module MV = Metavariable
-module J = JSON
+
+(* module J = JSON *)
 module SP = Semgrep_prefilter_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -244,7 +245,7 @@ let rec (cnf : Rule.formula -> cnf_step0) =
 type step1 =
   | StringsAndMvars of string list * MV.mvar list
   | Regexp of Xpattern.regexp_string
-  | MvarRegexp of MV.mvar * Xpattern.regexp_string * bool
+    (* | MvarRegexp of MV.mvar * Xpattern.regexp_string * bool *)
 [@@deriving show]
 
 type cnf_step1 = step1 cnf [@@deriving show]
@@ -315,8 +316,9 @@ and metavarcond_step1 x =
   match x with
   | R.CondEval _ -> None
   | R.CondNestedFormula _ -> None
-  | R.CondRegexp (mvar, re, const_prop) ->
-      Some (MvarRegexp (mvar, re, const_prop))
+  (* | R.CondRegexp (mvar, re, const_prop) -> *)
+  | R.CondRegexp _ -> None
+  (* Some (MvarRegexp (mvar, re, const_prop)) *)
   (* TODO? maybe we should extract the strings from the type constraint *)
   | R.CondType _ -> None
   | R.CondAnalysis _ -> None
@@ -358,9 +360,10 @@ let and_step1bis_filter_general (And xs) =
                                     |> List.for_all (function
                                          | StringsAndMvars (_, mvars) ->
                                              List.mem mvar mvars
-                                         | Regexp _ -> false
-                                         | MvarRegexp (mvar2, _, _) ->
-                                             mvar2 = mvar)))
+                                         | Regexp _ ->
+                                             false
+                                             (* | MvarRegexp (mvar2, _, _) ->
+                                                 mvar2 = mvar *))))
                   | __else__ -> false)
            in
            if null xs' then None else Some (Or xs'))
@@ -381,19 +384,20 @@ let or_step2 (Or xs) =
     Common.map (function
       | StringsAndMvars ([], _) -> raise GeneralPattern
       | StringsAndMvars (xs, _) -> Idents xs
-      | Regexp re_str -> Regexp2_search (Regexp_engine.pcre_compile re_str)
-      | MvarRegexp (_mvar, re_str, _const_prop) ->
-          (* The original regexp is meant to apply on a substring.
-             We rewrite them to remove end-of-string anchors if possible. *)
-          let re =
-            match
-              Regexp_engine.remove_end_of_string_assertions
-                (Regexp_engine.pcre_compile re_str)
-            with
-            | None -> raise GeneralPattern
-            | Some re -> re
-          in
-          Regexp2_search re)
+      | Regexp re_str ->
+          Regexp2_search (Regexp_engine.pcre_compile re_str)
+          (* | MvarRegexp (_mvar, re_str, _const_prop) ->
+              (* The original regexp is meant to apply on a substring.
+                 We rewrite them to remove end-of-string anchors if possible. *)
+              let re =
+                match
+                  Regexp_engine.remove_end_of_string_assertions
+                    (Regexp_engine.pcre_compile re_str)
+                with
+                | None -> raise GeneralPattern
+                | Some re -> re
+              in
+              Regexp2_search re *))
   in
   (* Remove or cases where any of the possibilities is a general pattern *)
   (* We need to do this because later, in the final regex generation,
