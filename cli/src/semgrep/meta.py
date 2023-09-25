@@ -1,3 +1,4 @@
+import dataclasses
 import json
 import os
 import subprocess
@@ -587,18 +588,18 @@ class GithubMeta(GitMeta):
             return github_ref
         return super().branch
 
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            **super().to_dict(),
-            "commit_author_username": self.glom_event(T["sender"]["login"]),
-            "commit_author_image_url": self.glom_event(T["sender"]["avatar_url"]),
-            "pull_request_author_username": self.glom_event(
+    def to_project_metadata(self) -> out.ProjectMetadata:
+        return dataclasses.replace(
+            super().to_project_metadata(),
+            commit_author_username=self.glom_event(T["sender"]["login"]),
+            commit_author_image_url=self.glom_event(T["sender"]["avatar_url"]),
+            pull_request_author_username=self.glom_event(
                 T["pull_request"]["user"]["login"]
             ),
-            "pull_request_author_image_url": self.glom_event(
+            pull_request_author_image_url=self.glom_event(
                 T["pull_request"]["user"]["avatar_url"]
             ),
-        }
+        )
 
 
 @dataclass
