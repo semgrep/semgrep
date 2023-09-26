@@ -19,7 +19,7 @@ COMMON_TS_EXPORTED_FUNCTIONS = _malloc,_free,_ts_parser_new,_ts_parser_set_langu
 
 EMCC_DEFAULTS = \
    -sALLOW_MEMORY_GROWTH=1 \
-   -sEXPORTED_RUNTIME_METHODS=UTF8ToString,AsciiToString,stringToAscii,stringToUTF8,getValue,setValue \
+   -sEXPORTED_RUNTIME_METHODS=UTF8ToString,lengthBytesUTF8,AsciiToString,stringToAscii,stringToUTF8,getValue,setValue \
    -sMODULARIZE
 
 SEMGREP_TS_LANG ?= $(SEMGREP_LANG)

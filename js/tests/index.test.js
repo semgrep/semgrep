@@ -3,16 +3,19 @@ const TestWasm = require("./dist/test");
 const languages = [
   "bash",
   "c",
+  "cairo",
   "cpp",
   "csharp",
   "dart",
   "dockerfile",
   "elixir",
   "go",
+  "hack",
   "html",
   "java",
   "json",
   "jsonnet",
+  "julia",
   "kotlin",
   "lisp",
   "lua",
@@ -29,6 +32,7 @@ const languages = [
   "swift",
   "terraform",
   "typescript",
+  "vue",
 ];
 const getParsers = async () => {
   const parsers = new Map();
