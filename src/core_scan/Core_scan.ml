@@ -179,6 +179,10 @@ let add_additional_targets config n =
   | Json true -> pr @@ string_of_int n
   | _ -> ()
 
+(* TODO: suspicious: this runs in a child process. Please explain how it's
+   safe to write a dot on stdout in a child process and why it's mixed with
+   JSON output.
+*)
 let update_cli_progress config =
   (* Print when each file is done so the Python progress bar knows *)
   match config.output_format with
@@ -833,7 +837,11 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
                     Xlang.is_compatible ~require:analyzer
                       ~provide:r.languages.target_analyzer)
              (* Don't run the extract rules
-                Note: we can't filter this out earlier because the rule indexes need to be stable *)
+                Note: we can't filter this out earlier because the rule
+                indexes need to be stable.
+                TODO: The above may no longer apply since we got rid of
+                the numeric indices mapping to rule IDs/names. Do something?
+             *)
              |> List.filter (fun r ->
                     match r.R.mode with
                     | `Extract _ -> false
@@ -856,6 +864,8 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
              | [] -> Not_scanned
              | _ -> Scanned
            in
+           (* TODO: can we skip all of this if there are no applicable
+              rules? In particular, can we skip update_cli_progress? *)
            let xtarget = xtarget_of_file config analyzer file in
            let default_match_hook str match_ =
              if config.output_format =*= Text then
