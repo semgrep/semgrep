@@ -1,0 +1,23 @@
+Semgrep can now derive facts about constants from equality tests.
+
+For example, pattern `foobar(&nullptr)` will not match here:
+```cpp
+int* ptr = nullptr;
+
+do_something(ptr);
+
+if (ptr == nullptr) {
+    return;
+}
+
+foobar(&ptr); // OK
+```
+
+But it will match here:
+```cpp
+if (ptr != nullptr) {
+    return;
+}
+
+foobar(&ptr); // finding
+```

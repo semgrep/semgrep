@@ -205,8 +205,8 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       let newi = state.g#add_node { F.n = F.NCond (tok, e) } in
       state.g |> add_arc_from_opt (previ, newi);
 
-      let newfakethen = state.g#add_node { F.n = F.TrueNode } in
-      let newfakeelse = state.g#add_node { F.n = F.FalseNode } in
+      let newfakethen = state.g#add_node { F.n = F.TrueNode e } in
+      let newfakeelse = state.g#add_node { F.n = F.FalseNode e } in
       state.g |> add_arc (newi, newfakethen);
       state.g |> add_arc (newi, newfakeelse);
 
@@ -233,8 +233,8 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       let newi = state.g#add_node { F.n = NCond (tok, e) } in
       state.g |> add_arc_from_opt (previ, newi);
 
-      let newfakethen = state.g#add_node { F.n = F.TrueNode } in
-      let newfakeelse = state.g#add_node { F.n = F.FalseNode } in
+      let newfakethen = state.g#add_node { F.n = F.TrueNode e } in
+      let newfakeelse = state.g#add_node { F.n = F.FalseNode e } in
       state.g |> add_arc (newi, newfakethen);
       state.g |> add_arc (newi, newfakeelse);
 

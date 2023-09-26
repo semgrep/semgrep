@@ -364,8 +364,8 @@ let top_level_sinks_in_nodes config flow =
              orig_is_sink config exp.eorig |> List.to_seq
          | Enter
          | Exit
-         | TrueNode
-         | FalseNode
+         | TrueNode _
+         | FalseNode _
          | Join
          | NGoto _
          | NLambda _
@@ -1870,8 +1870,8 @@ let transfer :
     | NGoto _
     | Enter
     | Exit
-    | TrueNode
-    | FalseNode
+    | TrueNode _
+    | FalseNode _
     | Join
     | NOther _
     | NTodo _ ->
