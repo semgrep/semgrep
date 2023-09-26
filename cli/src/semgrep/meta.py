@@ -16,6 +16,7 @@ from glom import glom
 from glom import T
 from glom.core import TType
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
 from semgrep.external.git_url_parser import Parser
 from semgrep.state import get_state
@@ -176,34 +177,34 @@ class GitMeta:
     def is_full_scan(self) -> bool:
         return self.merge_base_ref is None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_project_metadata(self) -> out.ProjectMetadata:
         commit_title = git_check_output(["git", "show", "-s", "--format=%B"])
         commit_author_email = git_check_output(["git", "show", "-s", "--format=%ae"])
         commit_author_name = git_check_output(["git", "show", "-s", "--format=%an"])
 
-        return {
-            "semgrep_version": __VERSION__,
+        return out.ProjectMetadata(
+            semgrep_version=out.Version(__VERSION__),
             # REQUIRED for semgrep-app backend
-            "repository": self.repo_name,
+            repository=self.repo_name,
             # OPTIONAL for semgrep-app backend
-            "repo_url": self.repo_url,
-            "branch": self.branch,
-            "ci_job_url": self.ci_job_url,
-            "commit": self.commit_sha,
-            "commit_author_email": commit_author_email,
-            "commit_author_name": commit_author_name,
-            "commit_author_username": None,
-            "commit_author_image_url": None,
-            "commit_title": commit_title,
-            "commit_timestamp": self.commit_timestamp,
-            "on": self.event_name,
-            "pull_request_author_username": None,
-            "pull_request_author_image_url": None,
-            "pull_request_id": self.pr_id,
-            "pull_request_title": self.pr_title,
-            "scan_environment": self.environment,
-            "is_full_scan": self.is_full_scan,
-        }
+            repo_url=self.repo_url,
+            branch=self.branch,
+            ci_job_url=self.ci_job_url,
+            commit=self.commit_sha,
+            commit_author_email=commit_author_email,
+            commit_author_name=commit_author_name,
+            commit_author_username=None,
+            commit_author_image_url=None,
+            commit_title=commit_title,
+            commit_timestamp=self.commit_timestamp,
+            on=self.event_name,
+            pull_request_author_username=None,
+            pull_request_author_image_url=None,
+            pull_request_id=self.pr_id,
+            pull_request_title=self.pr_title,
+            scan_environment=self.environment,
+            is_full_scan=self.is_full_scan,
+        )
 
 
 @dataclass
@@ -582,18 +583,17 @@ class GithubMeta(GitMeta):
             return github_ref
         return super().branch
 
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            **super().to_dict(),
-            "commit_author_username": self.glom_event(T["sender"]["login"]),
-            "commit_author_image_url": self.glom_event(T["sender"]["avatar_url"]),
-            "pull_request_author_username": self.glom_event(
-                T["pull_request"]["user"]["login"]
-            ),
-            "pull_request_author_image_url": self.glom_event(
-                T["pull_request"]["user"]["avatar_url"]
-            ),
-        }
+    def to_project_metadata(self) -> out.ProjectMetadata:
+        res = super().to_project_metadata()
+        res.commit_author_username = self.glom_event(T["sender"]["login"])
+        res.commit_author_image_url = self.glom_event(T["sender"]["avatar_url"])
+        res.pull_request_author_username = self.glom_event(
+            T["pull_request"]["user"]["login"]
+        )
+        res.pull_request_author_image_url = self.glom_event(
+            T["pull_request"]["user"]["avatar_url"]
+        )
+        return res
 
 
 @dataclass
@@ -710,13 +710,12 @@ class GitlabMeta(GitMeta):
             return pr_title
         return None
 
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            **super().to_dict(),
-            "branch": self.commit_ref,
-            "base_sha": self.merge_base_ref,
-            "start_sha": self.start_sha,
-        }
+    def to_project_metadata(self) -> out.ProjectMetadata:
+        res = super().to_project_metadata()
+        res.branch = self.commit_ref
+        res.base_sha = self.merge_base_ref
+        res.start_sha = self.start_sha
+        return res
 
 
 @dataclass
@@ -1046,13 +1045,12 @@ class BuildkiteMeta(GitMeta):
         pr_id = os.getenv("BUILDKITE_PULL_REQUEST")
         return None if pr_id == "false" else pr_id
 
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            **super().to_dict(),
-            "commit_author_email": os.getenv("BUILDKITE_BUILD_AUTHOR_EMAIL"),
-            "commit_author_name": os.getenv("BUILDKITE_BUILD_AUTHOR"),
-            "commit_title": os.getenv("BUILDKITE_MESSAGE"),
-        }
+    def to_project_metadata(self) -> out.ProjectMetadata:
+        res = super().to_project_metadata()
+        res.commit_author_email = os.getenv("BUILDKITE_BUILD_AUTHOR_EMAIL")
+        res.commit_author_name = os.getenv("BUILDKITE_BUILD_AUTHOR")
+        res.commit_title = os.getenv("BUILDKITE_MESSAGE")
+        return res
 
 
 @dataclass
@@ -1110,8 +1108,10 @@ class TravisMeta(GitMeta):
 
         return os.getenv("TRAVIS_PULL_REQUEST")
 
-    def to_dict(self) -> Dict[str, Any]:
-        return {**super().to_dict(), "commit_title": os.getenv("TRAVIS_COMMIT_MESSAGE")}
+    def to_project_metadata(self) -> out.ProjectMetadata:
+        res = super().to_project_metadata()
+        res.commit_title = os.getenv("TRAVIS_COMMIT_MESSAGE")
+        return res
 
 
 def generate_meta_from_environment(baseline_ref: Optional[str]) -> GitMeta:

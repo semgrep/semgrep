@@ -11,7 +11,6 @@
     "commit_author_username": null,
     "commit_author_image_url": null,
     "commit_title": "Some other commit/ message",
-    "commit_timestamp": "1970-01-01T00:00:00",
     "on": "unknown",
     "pull_request_author_username": null,
     "pull_request_author_image_url": null,
@@ -19,6 +18,7 @@
     "pull_request_title": null,
     "scan_environment": "git",
     "is_full_scan": true,
+    "commit_timestamp": "1970-01-01T00:00:00",
     "is_sca_scan": false,
     "is_code_scan": false,
     "is_secrets_scan": false
