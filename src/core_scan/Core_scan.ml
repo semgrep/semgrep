@@ -758,7 +758,8 @@ let extracted_targets_of_config (config : Core_scan_config.t)
 (* a "core" scan *)
 (*****************************************************************************)
 
-let select_applicable_rules ~analyzer ~path rules =
+(* This is used by semgrep-proprietary. *)
+let select_applicable_rules_for_analyzer ~analyzer rules =
   rules
   |> List.filter (fun (r : Rule.t) ->
          (* Don't run a Python rule on a JavaScript target *)
@@ -781,6 +782,10 @@ let select_applicable_rules ~analyzer ~path rules =
          | `Taint _
          | `Steps _ ->
              true)
+
+(* This is also used by semgrep-proprietary. *)
+let select_applicable_rules_for_target ~analyzer ~path rules =
+  select_applicable_rules_for_analyzer ~analyzer rules
   |> List.filter (fun r ->
          (* Honor per-rule include/exclude *)
          match r.R.paths with
@@ -830,7 +835,7 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
            let file = Fpath.v target.path in
            let analyzer = target.analyzer in
            let applicable_rules =
-             select_applicable_rules ~analyzer ~path:file valid_rules
+             select_applicable_rules_for_target ~analyzer ~path:file valid_rules
            in
            let was_scanned =
              match applicable_rules with
