@@ -623,6 +623,7 @@ and expr env e =
         Common.map (fun (t, e) -> (full_type env t, expr env e)) args
       in
       A.Generic (tk, (l, (expr env e, args), r))
+  | IdSpecial (SizeOf, tk) -> A.IdSpecial (SizeOf, tk)
   | ConstructedObject (_, _) ->
       logger#error "BUG PARSING LOCAL DECL PROBABLY";
       debug (Expr e);
