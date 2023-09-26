@@ -2037,7 +2037,7 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
             in
             (v1, v2)
       in
-      [ Try (try_tok, stmt, catches, finally) |> G.s ]
+      [ Try (try_tok, stmt, catches, None, finally) |> G.s ]
   | `Brk_stmt (v1, v2, v3) ->
       let v1 = (* break_builtin *) token env v1 in
       let v2 =

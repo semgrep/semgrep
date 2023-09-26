@@ -60,7 +60,7 @@ let mock_run_results (files : string list) : Core_runner.result =
       results = matches;
       errors = [];
       (* extra *)
-      paths = { skipped = None; scanned = []; _comment = None };
+      paths = { skipped = None; scanned = [] };
       skipped_rules = [];
       explanations = None;
       time = None;

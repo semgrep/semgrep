@@ -1,0 +1,13 @@
+rules:
+- id: python-exception
+  mode: taint
+  pattern-sources:
+    - pattern: input
+  pattern-sanitizers:
+    - pattern: sanitize(...)
+  pattern-sinks:
+    - pattern: sink(...)
+  message: Match found
+  languages:
+    - python
+  severity: ERROR

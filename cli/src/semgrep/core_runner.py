@@ -10,7 +10,6 @@ import tempfile
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
-from textwrap import wrap
 from typing import Any
 from typing import Callable
 from typing import cast
@@ -31,8 +30,6 @@ from attr import field
 from attr import frozen
 from boltons.iterutils import get_path
 from rich import box
-from rich.columns import Columns
-from rich.padding import Padding
 from rich.progress import BarColumn
 from rich.progress import Progress
 from rich.progress import TaskID
@@ -62,10 +59,8 @@ from semgrep.rule_match import OrderedRuleMatchList
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
-from semgrep.state import get_context
 from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
-from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -716,139 +711,6 @@ class Plan:
 
         for language in self.split_by_lang_label():
             metrics.add_feature("language", language)
-
-    def pprint(self, *, with_tables_for: RuleProduct) -> None:
-        """
-        Pretty print the plan to stdout with the new CLI UX.
-        """
-        if not self.rule_count_for_product(with_tables_for):
-            sep = "\n   "
-            message = "No rules to run."
-            if with_tables_for == RuleProduct.sca:
-                """
-                We need to account for several edges cases:
-                 - `semgrep ci` was invoked but no rules were found (e.g. no lockfile).
-                 - `semgrep scan` was invoked with the supply-chain flag and no rules found.
-                 - `semgrep ci` was invoked without the supply-chain flag or feature enabled.
-                """
-                # 1. Validate that the user is indeed running SCA.
-                ctx = get_context()
-                # we only want to print the message if the user is running `semgrep scan`
-                command_name = ctx.command.name if hasattr(ctx, "command") else "unset"
-                is_scan = command_name == "scan"
-                params = ctx.params if hasattr(ctx, "params") else {}
-                # --supply-chain flag is passed directly for `semgrep ci`
-                # whereas for scan supply-chain is passed via --config
-                is_supply_chain = (
-                    "supply-chain" in list(params.get("config") or ())
-                    if is_scan
-                    else (params.get("supply-chain") or False)
-                )
-                # 2. Check if the user has metrics enabled.
-                metrics = get_state().metrics
-                metrics_enabled = metrics.is_enabled
-                # If the user has metrics enabled, we can suggest they run `semgrep ci` to get more findings.
-                # Otherwise, we should expect the user to be already aware of the other products.
-                # 3. Check if the user has logged in.
-                has_auth = auth.get_token() is not None
-                # Users who have not logged in will not be able to run `semgrep ci`.
-                # For users with metrics enabled who are running scan without auth,
-                # we should suggest they login and run semgrep ci.
-                if is_scan and metrics_enabled:
-                    if not has_auth:
-                        message = sep.join(
-                            wrap(
-                                "💎 Sign in with `semgrep login` and run `semgrep ci` to find dependency vulnerabilities and advanced cross-file findings.",
-                                width=70,
-                            )
-                        )
-                    elif not is_supply_chain:
-                        message = sep.join(
-                            wrap(
-                                "💎 Run `semgrep ci` to find dependency vulnerabilities and advanced cross-file findings.",
-                                width=70,
-                            )
-                        )
-                    else:  # supply chain but no rules (e.g. no lockfile)
-                        pass
-                else:  # skip nudge for users who have not enabled metrics or are already running ci
-                    pass
-            else:  # sast or another product without rules
-                pass
-            console.print(f"\n{message}\n")
-            return
-
-        # NOTE: we already returned early if the rule_count was 0
-        # default to SAST table if sca is specified
-        tables = (
-            [
-                self.table_by_language(with_tables_for),
-                self.table_by_origin(with_tables_for),
-            ]
-            if with_tables_for != RuleProduct.sca
-            else [
-                self.table_by_ecosystem(),
-                self.table_by_sca_analysis(),
-            ]
-        )
-
-        columns = Columns(tables, padding=(1, 8))
-
-        # rich tables are 2 spaces indented by default
-        # deindent only by 1 to align the content, instead of the invisible table border
-        console.print(Padding(columns, (1, 0)), deindent=1)
-
-    def oprint(self, *, with_tables_for: RuleProduct) -> None:
-        """
-        Print the plan to stdout with the original CLI UX.
-        """
-        rule_count = self.rule_count_for_product(with_tables_for)
-        if not rule_count:
-            console.print("Nothing to scan.")
-            return
-
-        if rule_count == 1:
-            console.print(f"Scanning {unit_str(len(self.target_mappings), 'file')}.")
-            return
-
-        plan_by_lang = self.split_by_lang_label_for_product(with_tables_for)
-        if len(plan_by_lang) == 1:
-            [(language, target_mapping)] = plan_by_lang.items()
-            console.print(
-                f"Scanning {unit_str(target_mapping.file_count, 'file')} with {unit_str(rule_count, f'{language} rule')}."
-            )
-            return
-
-        if (
-            with_tables_for == RuleProduct.sast
-            or with_tables_for == RuleProduct.secrets
-        ):
-            tables = [
-                self.table_by_language(with_tables_for),
-                self.table_by_origin(with_tables_for),
-            ]
-        elif with_tables_for == RuleProduct.sca:
-            tables = [
-                self.table_by_ecosystem(),
-                self.table_by_sca_analysis(),
-            ]
-        else:
-            tables = []
-
-        columns = Columns(tables, padding=(1, 8))
-
-        # rich tables are 2 spaces indented by default
-        # deindent only by 1 to align the content, instead of the invisible table border
-        console.print(Padding(columns, (1, 0)), deindent=1)
-
-    def print(self, *, with_tables_for: RuleProduct) -> None:
-        """
-        Dispatch the correct print method based on the CLI UX.
-        """
-        if get_state().env.with_new_cli_ux:
-            self.pprint(with_tables_for=with_tables_for)
-        else:
-            self.oprint(with_tables_for=with_tables_for)
 
     def __str__(self) -> str:
         return f"<Plan of {len(self.target_mappings)} tasks for {list(self.split_by_lang_label())}>"

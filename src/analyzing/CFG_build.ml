@@ -54,8 +54,14 @@ type state = {
   (* Gotos pending to be resolved, a list of Goto nodes and the label
    * to which they are jumping. *)
   gotos : (nodei * label_key) list ref;
-  (* If we are inside a Try, this is the start of the handlers. *)
-  try_catches_opt : F.nodei option;
+  (* Destination node that a throw node should go to.
+   * Alt: we could make this non-optional and always add an arc to the
+   * exit node when an exception is thrown outside a try statement,
+   * but this may cause too many arcs in the CFG because all function
+   * calls would then have this arc. This can causes performance issues
+   * and there is no significant benefit of having these extra arcs.
+   *)
+  throw_destination : F.nodei option;
   (* Lambdas are always assigned to a variable in IL, this table records the
    * name-to-lambda mapping. Whenever a lambda is fetched, we look it up here
    * and we generate the lambda's CFG right at the use site.
@@ -145,12 +151,16 @@ let lval_is_lambda state l =
 type cfg_stmt_result =
   (* A label for a label statement. *)
   | CfgLabel of label
-  (* The fist (entry) and last (exit) node of the created CFG.
+  (* The tuple includes
+   * 1) the first (entry),
+   * 2) the last (exit) node of the created CFG, and
+   * 3) an indicator whether there may be a Throw nested in the stmt.
+   *
    * Last node is optional; it is None when the execution will not
    * continue (return), or when it may continue with a different
    * statement than the subsequent one (goto).
    *)
-  | CfgFirstLast of F.nodei * F.nodei option
+  | CfgFirstLast of F.nodei * F.nodei option * bool
 
 let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
  fun state previ stmt ->
@@ -159,7 +169,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       let new_ = F.NInstr x in
       let newi = state.g#add_node { F.n = new_ } in
       state.g |> add_arc_from_opt (previ, newi);
-      let lasti =
+      let lasti, throws =
         match x.i with
         | Call _ -> (
             (* If we are inside a try-catch, we consider the possibility of this call
@@ -169,10 +179,10 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
                * this should reduce false positives (since it's a must-analysis).
                * Ideally we should have a preceeding analysis that infers which calls
                * may (or may not) raise exceptions. *)
-            state.g |> add_arc_opt_to_opt (Some newi, state.try_catches_opt);
+            state.g |> add_arc_opt_to_opt (Some newi, state.throw_destination);
             match build_cfg_for_lambdas_in state newi new_ with
-            | Some lasti -> lasti
-            | None -> newi)
+            | Some lasti -> (lasti, true)
+            | None -> (newi, true))
         | AssignAnon ({ base = Var name; rev_offset = [] }, Lambda fdef) ->
             (* Just in case the lambda CFG needs be inserted here later on (if the
              * lambda is never dereferenced) then we have to insert a JOIN node here,
@@ -181,10 +191,10 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
             state.g |> add_arc (newi, lasti);
             Hashtbl.add state.lambdas name fdef;
             Hashtbl.add state.unused_lambdas name (newi, lasti);
-            lasti
-        | __else__ -> newi
+            (lasti, false)
+        | __else__ -> (newi, false)
       in
-      CfgFirstLast (newi, Some lasti)
+      CfgFirstLast (newi, Some lasti, throws)
   | If (tok, e, st1, st2) -> (
       (* previ -> newi --->  newfakethen -> ... -> finalthen --> lasti -> <rest>
        *                |                                     |
@@ -200,21 +210,21 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       state.g |> add_arc (newi, newfakethen);
       state.g |> add_arc (newi, newfakeelse);
 
-      let finalthen = cfg_stmt_list state (Some newfakethen) st1 in
-      let finalelse = cfg_stmt_list state (Some newfakeelse) st2 in
-
+      let finalthen, then_throws = cfg_stmt_list state (Some newfakethen) st1 in
+      let finalelse, else_throws = cfg_stmt_list state (Some newfakeelse) st2 in
+      let throws = then_throws || else_throws in
       match (finalthen, finalelse) with
       | None, None ->
           (* probably a return in both branches *)
-          CfgFirstLast (newi, None)
+          CfgFirstLast (newi, None, throws)
       | Some nodei, None
       | None, Some nodei ->
-          CfgFirstLast (newi, Some nodei)
+          CfgFirstLast (newi, Some nodei, throws)
       | Some n1, Some n2 ->
           let lasti = state.g#add_node { F.n = F.Join } in
           state.g |> add_arc (n1, lasti);
           state.g |> add_arc (n2, lasti);
-          CfgFirstLast (newi, Some lasti))
+          CfgFirstLast (newi, Some lasti, throws))
   | Loop (tok, e, st) ->
       (* previ -> newi ---> newfakethen -> ... -> finalthen -
        *             |---|-----------------------------------|
@@ -228,58 +238,113 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       state.g |> add_arc (newi, newfakethen);
       state.g |> add_arc (newi, newfakeelse);
 
-      let finalthen = cfg_stmt_list state (Some newfakethen) st in
+      let finalthen, throws = cfg_stmt_list state (Some newfakethen) st in
       state.g |> add_arc_from_opt (finalthen, newi);
-      CfgFirstLast (newi, Some newfakeelse)
+      CfgFirstLast (newi, Some newfakeelse, throws)
   | Label label -> CfgLabel label
   | Goto (tok, label) ->
       let newi = state.g#add_node { F.n = F.NGoto (tok, label) } in
       state.g |> add_arc_from_opt (previ, newi);
       add_pending_goto state newi label;
-      CfgFirstLast (newi, None)
+      CfgFirstLast (newi, None, false)
   | Return (tok, e) ->
       let newi = state.g#add_node { F.n = F.NReturn (tok, e) } in
       state.g |> add_arc_from_opt (previ, newi);
       state.g |> add_arc (newi, state.exiti);
-      CfgFirstLast (newi, None)
-  | Try (try_st, catches, finally_st) ->
+      CfgFirstLast (newi, None, false)
+  | Try (try_st, catches, else_st, finally_st) ->
       (* previ ->
        * newi ->
        * try -> catchesi --> catch1 -|
        *                 |->  ...   -|
        *                 |-> catchN -|
-       *                 |-----------|-> newfakefinally -> finally
-       *
+       *                 |-----------|
+       *     -> elsei    --> else    |-> newfakefinally -> finally
        *)
       let newi = state.g#add_node { F.n = NOther (Noop "try") } in
-      state.g |> add_arc_from_opt (previ, newi);
       let catchesi = state.g#add_node { F.n = NOther (Noop "catch") } in
-      let state' = { state with try_catches_opt = Some catchesi } in
-      let finaltry = cfg_stmt_list state' (Some newi) try_st in
-      state.g |> add_arc_from_opt (finaltry, catchesi);
+      let elsei = state.g#add_node { F.n = NOther (Noop "else") } in
       let newfakefinally = state.g#add_node { F.n = NOther (Noop "finally") } in
+
+      (* From prev to try. *)
+      state.g |> add_arc_from_opt (previ, newi);
+
+      (* Inside try may go to catches. *)
+      let try_state = { state with throw_destination = Some catchesi } in
+      let finaltry, try_may_throw =
+        cfg_stmt_list try_state (Some newi) try_st
+      in
+
+      (* We do not directly connect the end of try with catchesi but whenever we
+       * encounter a Call or a Throw inside a Try, we add an arc.
+       * But if there is a path that can reach the end of try, we add an arc
+       * to elsei. *)
+      state.g |> add_arc_from_opt (finaltry, elsei);
+
+      (* In the else clause, if an exception is thrown, go to the finally
+       * clause, or if there is no finally clause, propagate the exception.
+       *)
+      let has_finally =
+        match finally_st with
+        | [] -> false
+        | _some_list_ -> true
+      in
+      let throw_destination =
+        if has_finally then Some newfakefinally else state.throw_destination
+      in
+      let else_state = { state with throw_destination } in
+      let finalelse, else_may_throw =
+        cfg_stmt_list else_state (Some elsei) else_st
+      in
+
+      state.g |> add_arc_from_opt (finalelse, newfakefinally);
+
+      (* From catches to finally in case of uncaught exceptions. *)
       state.g |> add_arc (catchesi, newfakefinally);
-      catches
-      |> List.iter (fun (_, catch_st) ->
-             let finalcatch = cfg_stmt_list state (Some catchesi) catch_st in
-             state.g |> add_arc_from_opt (finalcatch, newfakefinally));
-      let finalfinally = cfg_stmt_list state (Some newfakefinally) finally_st in
-      (* If we're inside another Try then we assume that we could propagate up
-       * some unhandled exception. Otherwise we assume that we handled everything.
-       * THINK: Alternatively, we could add an arc to the exit node. *)
-      state.g |> add_arc_opt_to_opt (finalfinally, state.try_catches_opt);
-      CfgFirstLast (newi, finalfinally)
+
+      (* Same reasoning as the else clause above for the catch clauses. *)
+      let catch_state = { state with throw_destination } in
+      let catch_may_throw =
+        catches
+        |> List.fold_left
+             (fun may_throw (_, catch_st) ->
+               let finalcatch, throws =
+                 cfg_stmt_list catch_state (Some catchesi) catch_st
+               in
+               state.g |> add_arc_from_opt (finalcatch, newfakefinally);
+               may_throw || throws)
+             false
+      in
+
+      (* Inside the finally clause, exceptions get propagated. *)
+      let finally_state = state in
+      let finalfinally, finally_may_throw =
+        cfg_stmt_list finally_state (Some newfakefinally) finally_st
+      in
+
+      (* Also propagate any throws that may have happened inside this
+       * try-catch-else-finally statement at the end of the finally clause.
+       *)
+      let may_throw =
+        try_may_throw || else_may_throw || catch_may_throw || finally_may_throw
+      in
+      if may_throw then
+        state.g |> add_arc_opt_to_opt (finalfinally, state.throw_destination);
+
+      (* For now, just always assume dataflow may continue after the try-catch-else-finally
+       * clause. It's possible that short-circuit the dataflow, but it may be tricky
+       * to get it right.
+       *)
+      CfgFirstLast (newi, finalfinally, may_throw)
   | Throw (tok, e) ->
       let newi = state.g#add_node { F.n = F.NThrow (tok, e) } in
       state.g |> add_arc_from_opt (previ, newi);
-      (match state.try_catches_opt with
-      | None -> state.g |> add_arc (newi, state.exiti)
-      | Some catchesi -> state.g |> add_arc (newi, catchesi));
-      CfgFirstLast (newi, None)
+      state.g |> add_arc_opt_to_opt (previ, state.throw_destination);
+      CfgFirstLast (newi, None, true)
   | MiscStmt x ->
       let newi = state.g#add_node { F.n = F.NOther x } in
       state.g |> add_arc_from_opt (previ, newi);
-      CfgFirstLast (newi, Some newi)
+      CfgFirstLast (newi, Some newi, false)
   | FixmeStmt _ -> cfg_todo state previ stmt
 
 and cfg_lambda state previ joini fdef =
@@ -294,8 +359,8 @@ and cfg_lambda state previ joini fdef =
   *)
   let newi = state.g#add_node { F.n = NLambda fdef.fparams } in
   state.g |> add_arc (previ, newi);
-  let finallambda =
-    cfg_stmt_list { state with exiti = joini } (Some newi) fdef.fbody
+  let finallambda, _ignore_throws_in_lambda_ =
+    cfg_stmt_list { state with throw_destination = None } (Some newi) fdef.fbody
   in
   state.g |> add_arc_from_opt (finallambda, joini)
 
@@ -336,22 +401,22 @@ and build_cfg_for_lambdas_in state previ n =
 and cfg_todo state previ stmt =
   let newi = state.g#add_node { F.n = F.NTodo stmt } in
   state.g |> add_arc_from_opt (previ, newi);
-  CfgFirstLast (newi, Some newi)
+  CfgFirstLast (newi, Some newi, false)
 
 and cfg_stmt_list state previ xs =
-  let lasti_opt, labels =
+  let lasti_opt, labels, may_throw =
     xs
     |> List.fold_left
-         (fun (previ, labels) stmt ->
+         (fun (previ, labels, may_throw) stmt ->
            (* We don't create special nodes for labels in the CFG; instead,
             * we assign them to the entry nodes of the labeled statements.
             *)
            match cfg_stmt state previ stmt with
-           | CfgFirstLast (firsti, lasti) ->
+           | CfgFirstLast (firsti, lasti, throws) ->
                label_node state labels firsti;
-               (lasti, [])
-           | CfgLabel label -> (previ, label :: labels))
-         (previ, [])
+               (lasti, [], may_throw || throws)
+           | CfgLabel label -> (previ, label :: labels, may_throw))
+         (previ, [], false)
   in
   match labels with
   | l :: ls ->
@@ -372,8 +437,8 @@ and cfg_stmt_list state previ xs =
       let dummyi = state.g#add_node { n = NOther (Noop "return") } in
       label_node state (l :: ls) dummyi;
       state.g |> add_arc_from_opt (lasti_opt, dummyi);
-      Some dummyi
-  | [] -> lasti_opt
+      (Some dummyi, may_throw)
+  | [] -> (lasti_opt, may_throw)
 
 let build_cfg_of_unused_lambdas state =
   (* For those lambdas that are not dereferenced, we insert their CFG
@@ -407,12 +472,12 @@ let (cfg_of_stmts : stmt list -> F.cfg) =
       exiti;
       labels = Hashtbl.create 10;
       gotos = ref [];
-      try_catches_opt = None;
+      throw_destination = None;
       lambdas = Hashtbl.create 10;
       unused_lambdas = Hashtbl.create 10;
     }
   in
-  let last_node_opt = cfg_stmt_list state (Some newi) xs in
+  let last_node_opt, _ignore_may_throw_ = cfg_stmt_list state (Some newi) xs in
   (* Must wait until all nodes have been labeled before resolving gotos. *)
   resolve_gotos state;
   build_cfg_of_unused_lambdas state;

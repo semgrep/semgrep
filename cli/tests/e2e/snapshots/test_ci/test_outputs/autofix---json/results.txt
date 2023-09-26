@@ -10,7 +10,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 {
   "errors": [],
   "paths": {
-    "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": [
       "foo.py",
       "poetry.lock",
