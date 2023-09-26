@@ -550,7 +550,6 @@ let cli_output_of_core_results ~logging_level (core : Out.core_output)
    skipped_rules;
    (* LATER *)
    explanations = _;
-   stats = _;
    time = _;
    rules_by_engine = _;
    engine_requested = _;

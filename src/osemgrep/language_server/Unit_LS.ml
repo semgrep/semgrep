@@ -59,7 +59,6 @@ let mock_run_results (files : string list) : Core_runner.result =
       version = None;
       results = matches;
       errors = [];
-      stats = { okfiles = List.length files; errorfiles = 0 };
       (* extra *)
       paths = { skipped = None; scanned = [] };
       skipped_rules = [];
