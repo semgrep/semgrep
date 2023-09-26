@@ -607,34 +607,6 @@ let iter_targets_and_get_matches_and_exn_to_errors config
 (* File targeting and rule filtering *)
 (*****************************************************************************)
 
-(*
-   This function takes an analyzer that was provided with a target file
-   and filters rules that primarily use this analyzer.
-
-   Martin: I believe this comes from pysemgrep splitting targets into
-   "languages". We're trying to get rid of this because it adds unnecessary
-   complexity.
-*)
-let rules_for_target ~(analyzer : Xlang.t) (rules : Rule.t list) : Rule.t list =
-  rules
-  |> List.filter (fun (r : Rule.t) ->
-         match (analyzer, r.languages.target_analyzer) with
-         | LRegex, LRegex
-         | LSpacegrep, LSpacegrep
-         | LAliengrep, LAliengrep ->
-             true
-         | ( L
-               ( x,
-                 _empty
-                 (* FIXME: why should '_empty' be empty? Use [] and 'assert' *)
-               ),
-             L (y, ys) ) ->
-             List.mem x (y :: ys)
-         | (LRegex | LSpacegrep | LAliengrep | L _), _ -> false)
-
-(* TODO: remove once it's removed from semgrep-pro *)
-let rules_for_xlang analyzer rules = rules_for_target ~analyzer rules
-
 (* TODO: use Fpath.t for file *)
 let xtarget_of_file (config : Core_scan_config.t) (xlang : Xlang.t)
     (file : Fpath.t) : Xtarget.t =
@@ -786,6 +758,35 @@ let extracted_targets_of_config (config : Core_scan_config.t)
 (* a "core" scan *)
 (*****************************************************************************)
 
+let select_applicable_rules ~analyzer ~path rules =
+  rules
+  |> List.filter (fun (r : Rule.t) ->
+         (* Don't run a Python rule on a JavaScript target *)
+         Xlang.is_compatible ~require:analyzer
+           ~provide:r.languages.target_analyzer)
+  (* Don't run the extract rules
+     Note: we can't filter this out earlier because the rule
+     indexes need to be stable.
+     TODO: The above may no longer apply since we got rid of
+     the numeric indices mapping to rule IDs/names. Do something?
+  *)
+  |> List.filter (fun r ->
+         match r.R.mode with
+         | `Extract _ -> false
+         (* TODO We are running Secrets rules now, but they just
+            get turned into search rules inside matching.
+            Unify Secrets and Search rules. *)
+         | `Secrets _
+         | `Search _
+         | `Taint _
+         | `Steps _ ->
+             true)
+  |> List.filter (fun r ->
+         (* Honor per-rule include/exclude *)
+         match r.R.paths with
+         | None -> true
+         | Some paths -> Filter_target.filter_paths paths path)
+
 (* This is the main function used by pysemgrep right now.
  * This is also called now from osemgrep.
  * It takes a set of rules and a set of targets (targets derived from config,
@@ -829,33 +830,7 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
            let file = Fpath.v target.path in
            let analyzer = target.analyzer in
            let applicable_rules =
-             valid_rules
-             |> List.filter (fun (r : Rule.t) ->
-                    (* Don't run a Python rule on a JavaScript target *)
-                    Xlang.is_compatible ~require:analyzer
-                      ~provide:r.languages.target_analyzer)
-             (* Don't run the extract rules
-                Note: we can't filter this out earlier because the rule
-                indexes need to be stable.
-                TODO: The above may no longer apply since we got rid of
-                the numeric indices mapping to rule IDs/names. Do something?
-             *)
-             |> List.filter (fun r ->
-                    match r.R.mode with
-                    | `Extract _ -> false
-                    (* TODO We are running Secrets rules now, but they just
-                       get turned into search rules inside matching.
-                       Unify Secrets and Search rules. *)
-                    | `Secrets _
-                    | `Search _
-                    | `Taint _
-                    | `Steps _ ->
-                        true)
-             |> List.filter (fun r ->
-                    (* Honor per-rule include/exclude *)
-                    match r.R.paths with
-                    | None -> true
-                    | Some paths -> Filter_target.filter_paths paths file)
+             select_applicable_rules ~analyzer ~path:file valid_rules
            in
            let was_scanned =
              match applicable_rules with

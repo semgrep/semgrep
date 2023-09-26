@@ -118,20 +118,13 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
   * Core_error.t list
   * Semgrep_output_v1_j.skipped_target list
 
-(*
-   TODO: Explain what it does if xlang contains multiple langs.
-   TODO: Figure out why only semgrep-pro uses this function.
-
-   The comments for 'type languages' in 'Rule.ml' explain the distinction
-   between target selector and target analyzer.
- *)
-val rules_for_target : analyzer:Xlang.t -> Rule.t list -> Rule.t list
-  [@@ocaml.deprecated
-    "semgrep-pro devs: this function is deprecated until it is documented in \
-     semgrep and its existence is justified, because semgrep doesn't use it."]
-
-val rules_for_xlang : Xlang.t -> Rule.t list -> Rule.t list
-  [@@ocaml.deprecated "alias for 'rules_for_target'"]
+(* This is also used by semgrep-proprietary. It filters the rules that
+   apply to a given target file for a given analyzer.
+   It takes into account the analyzer (specified by 'languages' field)
+   and the per-rule include/exclude patterns; possibly more in the future.
+*)
+val select_applicable_rules :
+  analyzer:Xlang.t -> path:Fpath.t -> Rule.t list -> Rule.t list
 
 val xtarget_of_file : Core_scan_config.t -> Xlang.t -> Fpath.t -> Xtarget.t
 
