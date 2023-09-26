@@ -177,6 +177,7 @@ let rec expr e =
           ( t,
             G.exprstmt e1,
             [ (t, CatchPattern (PatUnderscore t), G.exprstmt e2) ],
+            None,
             None )
         |> G.s
       in
@@ -863,27 +864,15 @@ and body_exn x =
    rescue_exprs = catches;
    ensure_expr = finally_opt;
    else_expr = elseopt;
-  } -> (
+  } ->
       let body = list_stmt1 xs in
       let catches = list rescue_clause catches in
-      let finally_opt =
-        match finally_opt with
-        | None -> None
-        | Some (t, sts) ->
-            let st = list_stmt1 sts in
-            Some (t, st)
-      in
-      match elseopt with
-      | None ->
-          let try_ =
-            G.Try (unsafe_fake "try", body, catches, finally_opt) |> G.s
-          in
-          G.Block (fb [ try_ ]) |> G.s
-      | Some (t, sts) ->
-          let st = list_stmt1 sts in
-          let try_ = G.Try (fake t "try", body, catches, finally_opt) |> G.s in
-          let st = G.Block (fb [ try_; st ]) |> G.s in
-          G.OtherStmtWithStmt (G.OSWS_Else_in_try, [], st) |> G.s)
+      let finally_opt = option finally_clause finally_opt in
+      let elseopt = option else_clause elseopt in
+      G.Try (unsafe_fake "try", body, catches, elseopt, finally_opt) |> G.s
+
+and else_clause (t, sts) = (t, list_stmt1 sts)
+and finally_clause (t, sts) = (t, list_stmt1 sts)
 
 and rescue_clause (t, exns, exnvaropt, sts) : G.catch =
   let st = list_stmt1 sts in

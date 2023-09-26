@@ -2089,7 +2089,7 @@ and map_statement (env : env) (x : CST.statement) : stmt =
       let call = Call (lambda, fb [ Arg e ]) |> G.e in
       let try_stmt = G.exprstmt call in
       let catches = Common.map (map_catch_clause env) v5 in
-      Try (ttry, try_stmt, catches, None) |> G.s
+      Try (ttry, try_stmt, catches, None, None) |> G.s
   | `Ret_stmt (v1, v2, v3) ->
       let tret = (* "return" *) token env v1 in
       let eopt =

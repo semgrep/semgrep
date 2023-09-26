@@ -167,7 +167,7 @@ and stmt e : G.stmt =
         |> Common.map (fun (pat, e) ->
                (fake "catch", G.CatchPattern pat, G.exprstmt e))
       in
-      G.Try (t, v1, catches, None) |> G.s
+      G.Try (t, v1, catches, None, None) |> G.s
   | While (t, v1, v2) ->
       let v1 = expr v1 and v2 = stmt v2 in
       G.While (t, G.Cond v1, v2) |> G.s

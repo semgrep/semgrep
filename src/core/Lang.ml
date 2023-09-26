@@ -139,6 +139,7 @@ let langs_of_filename filename =
   | FT.Config FT.Yaml -> [ Yaml ]
   | FT.Config FT.Terraform -> [ Terraform ]
   | FT.PL FT.Ruby -> [ Ruby ]
+  | FT.PL FT.Julia -> [ Julia ]
   | FT.PL FT.Csharp -> [ Csharp ]
   | FT.PL (FT.Web (FT.Php _)) -> [ Php ]
   | FT.PL (FT.Web FT.Hack) -> [ Hack ]
