@@ -974,7 +974,7 @@ let parse_command ({ xlang; _ } as state : state) =
   | "exit" -> Exit
   | "any" -> Any
   | "all" -> All
-  | _ when Stdcompat.String.starts_with ~prefix:"not " s ->
+  | _ when String.starts_with ~prefix:"not " s ->
       let s = Str.string_after s 4 in
       (* TODO: error handle *)
       let lang = Xlang.to_lang_exn xlang in
