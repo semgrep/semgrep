@@ -4,7 +4,6 @@ from itertools import chain
 from pathlib import Path
 from typing import Any
 from typing import Callable
-from typing import cast
 from typing import List
 from typing import Optional
 from typing import Sequence
@@ -12,7 +11,6 @@ from typing import Set
 from typing import Tuple
 
 import click
-from click.shell_completion import CompletionItem
 from click_option_group import MutuallyExclusiveOptionGroup
 from click_option_group import optgroup
 
@@ -21,7 +19,6 @@ import semgrep.run_scan
 import semgrep.test
 from semgrep import __VERSION__
 from semgrep import bytesize
-from semgrep.app.registry import list_current_public_rulesets
 from semgrep.app.version import get_no_findings_msg
 from semgrep.commands.install import determine_semgrep_pro_path
 from semgrep.commands.wrapper import handle_command_errors
@@ -33,7 +30,6 @@ from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.constants import OutputFormat
-from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
 from semgrep.engine import EngineType
 from semgrep.error import SemgrepError
@@ -45,7 +41,6 @@ from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_core import SemgrepCore
-from semgrep.semgrep_types import LANGUAGE
 from semgrep.state import get_state
 from semgrep.target_manager import write_pipes_to_disk
 from semgrep.util import abort
@@ -54,73 +49,7 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-
 ScanReturn = Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]
-
-
-def __validate_lang(option: str, lang: Optional[str]) -> str:
-    if lang is None:
-        abort(f"{option} and -l/--lang must both be specified")
-    return cast(str, lang)
-
-
-def __get_severity_options(
-    context: click.Context, _param: str, incomplete: str
-) -> List[Any]:
-    return [
-        CompletionItem(e.value) for e in RuleSeverity if e.value.startswith(incomplete)
-    ]
-
-
-def __get_language_options(
-    context: click.Context, _param: str, incomplete: str
-) -> List[Any]:
-    return [
-        CompletionItem(e)
-        for e in LANGUAGE.all_language_keys
-        if e.startswith(incomplete)
-    ]
-
-
-def __get_size_options(
-    context: click.Context, _param: str, incomplete: str
-) -> List[Any]:
-    if incomplete.isnumeric():
-        sizes = [f"{incomplete}{u}" for u in bytesize.UNITS.keys()]
-        return [CompletionItem(s) for s in sizes if s.startswith(incomplete)]
-    else:
-        return []
-
-
-def __get_file_options(
-    context: click.Context, _param: str, incomplete: str
-) -> List[Any]:
-    return [CompletionItem(f, type="file") for f in os.listdir(".")]
-
-
-def __get_config_options(
-    context: click.Context, _param: str, incomplete: str
-) -> List[Any]:
-    if incomplete[:2] == "p/":
-        # Get list of rulesets
-        rulesets = list_current_public_rulesets()
-        rulesets = list(
-            filter(lambda r: "hidden" not in r or not r["hidden"], rulesets)
-        )
-        rulesets_names = list(map(lambda r: f"p/{r['name']}", rulesets))
-
-        return [CompletionItem(r) for r in rulesets_names if r.startswith(incomplete)]
-    else:
-        files = filter(
-            lambda f: f.endswith(".yaml") or f.endswith(".yml"), os.listdir(".")
-        )
-        return [CompletionItem(f) for f in list(files) if f.startswith(incomplete)]
-
-
-def __get_optimization_options(
-    context: click.Context, _param: str, incomplete: str
-) -> List[Any]:
-    return [CompletionItem("all"), CompletionItem("none")]
 
 
 class MetricsStateType(click.ParamType):
@@ -128,13 +57,6 @@ class MetricsStateType(click.ParamType):
 
     def get_metavar(self, _param: click.Parameter) -> str:
         return "[auto|on|off]"
-
-    def shell_complete(
-        self, context: click.Context, _param: click.Parameter, incomplete: str
-    ) -> List[Any]:
-        return [
-            CompletionItem(e) for e in ["auto", "on", "off"] if e.startswith(incomplete)
-        ]
 
     def convert(
         self,
@@ -229,7 +151,6 @@ _scan_options: List[Callable] = [
             as well as a/b/tests/c/foo.py. Can add multiple times. If present, any --include directives
             are ignored.
         """,
-        shell_complete=__get_file_options,
     ),
     optgroup.option(
         "--exclude-rule",
@@ -238,7 +159,6 @@ _scan_options: List[Callable] = [
         help="""
             Skip any rule with the given id. Can add multiple times.
         """,
-        shell_complete=__get_file_options,
     ),
     optgroup.option(
         "--include",
@@ -258,7 +178,6 @@ _scan_options: List[Callable] = [
             Glob-style patterns follow the syntax supported by python,
             which is documented at https://docs.python.org/3/library/glob.html
         """,
-        shell_complete=__get_file_options,
     ),
     optgroup.option(
         "--max-target-bytes",
@@ -269,7 +188,6 @@ _scan_options: List[Callable] = [
             program larger than this will be ignored. A zero or negative value disables
             this filter. Defaults to {DEFAULT_MAX_TARGET_SIZE} bytes.
         """,
-        shell_complete=__get_size_options,
     ),
     optgroup.option(
         "--use-git-ignore/--no-git-ignore",
@@ -328,7 +246,6 @@ _scan_options: List[Callable] = [
         default="all",
         type=click.Choice(["all", "none"]),
         help="Turn on/off optimizations. Default = 'all'. Use 'none' to turn all optimizations off.",
-        shell_complete=__get_optimization_options,
     ),
     optgroup.option(
         "--timeout",
@@ -408,7 +325,6 @@ _scan_options: List[Callable] = [
         "-o",
         "--output",
         help="Save search results to a file or post to URL. Default is to print to stdout.",
-        shell_complete=__get_file_options,
     ),
     optgroup.option(
         "--rewrite-rule-ids/--no-rewrite-rule-ids",
@@ -585,7 +501,6 @@ def scan_options(func: Callable) -> Callable:
         \n\n
         See https://semgrep.dev/docs/writing-rules/rule-syntax for information on configuration file format.
     """,
-    shell_complete=__get_config_options,
     envvar="SEMGREP_RULES",
 )
 @optgroup.option(
@@ -597,7 +512,6 @@ def scan_options(func: Callable) -> Callable:
     "--lang",
     "-l",
     help="Parse pattern and all files in specified language. Must be used with -e/--pattern.",
-    shell_complete=__get_language_options,
 )
 @click.option(
     "--dryrun/--no-dryrun",
@@ -618,7 +532,6 @@ def scan_options(func: Callable) -> Callable:
         default all applicable rules are run. Can add multiple times. Each should
         be one of INFO, WARNING, or ERROR.
     """,
-    shell_complete=__get_severity_options,
 )
 @optgroup.group("Alternate modes", help="No search is performed in these modes")
 @optgroup.option(
@@ -927,9 +840,8 @@ def scan(
                 ignore_log=ignore_log,
                 profiler=profiler,
                 filtered_rules=filtered_rules,
-                profiling_data=output_extra.profiling_data,
-                explanations=output_extra.explanations,
-                rules_by_engine=output_extra.rules_by_engine,
+                extra=output_extra,
+                explanations=output_extra.core.explanations,
                 severities=shown_severities,
                 print_summary=True,
                 engine_type=engine_type,

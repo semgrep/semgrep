@@ -148,12 +148,12 @@ let dump_equivalences file =
 
 let dump_rule file =
   let file = Core_scan.replace_named_pipe_by_regular_file file in
-  let rules = Parse_rule.parse ~rewrite_rule_ids:None file in
+  let rules = Parse_rule.parse file in
   rules |> List.iter (fun r -> pr (Rule.show r))
 
 let prefilter_of_rules file =
   let cache = Some (Hashtbl.create 101) in
-  let rules = Parse_rule.parse ~rewrite_rule_ids:None file in
+  let rules = Parse_rule.parse file in
   let xs =
     rules
     |> Common.map (fun r ->

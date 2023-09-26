@@ -2,14 +2,6 @@
    Rule parsing
 *)
 
-(*
-   For rules that come from a local file, this is the path to the file
-   containing the rule. It's used to create a dotted rule identifier
-   such as 'stuff.rules.foo' for a rule declared as 'foo' in the file
-   'stuff/rules.yml'.
-*)
-type origin = Local_file of Fpath.t | Other_origin [@@deriving show]
-
 (* Parse a rule file, either in YAML or JSON (or even Jsonnet) format
    depending on the filename extension.
 
@@ -25,7 +17,7 @@ type origin = Local_file of Fpath.t | Other_origin [@@deriving show]
    See the command-line option --rewrite-rule-ids.
 *)
 val parse_and_filter_invalid_rules :
-  rewrite_rule_ids:origin option ->
+  ?rewrite_rule_ids:(Rule_ID.t -> Rule_ID.t) option ->
   Fpath.t ->
   Rule.rules * Rule.invalid_rule_error list
 
@@ -56,7 +48,7 @@ val parse_xpattern : Xlang.t -> string Rule.wrap -> Xpattern.t
  * This function may raise (Rule.Err ....) or Assert_failure (when
  * there are invalid rules).
  *)
-val parse : rewrite_rule_ids:origin option -> Fpath.t -> Rule.rules
+val parse : Fpath.t -> Rule.rules
 
 (* Internals, used by osemgrep to setup a ojsonnet import hook.
  * The filename parameter is just used in case of missing 'rules:'
@@ -64,7 +56,7 @@ val parse : rewrite_rule_ids:origin option -> Fpath.t -> Rule.rules
  *)
 val parse_generic_ast :
   ?error_recovery:bool ->
-  rewrite_rule_ids:origin option ->
+  ?rewrite_rule_ids:(Rule_ID.t -> Rule_ID.t) option ->
   Fpath.t ->
   AST_generic.program ->
   Rule.rules * Rule.invalid_rule_error list

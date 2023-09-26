@@ -34,9 +34,58 @@ module XP = Xpattern
 type rules_and_origin = {
   rules : Rule.rules;
   errors : Rule.invalid_rule_error list;
-  origin : Parse_rule.origin; (* used by Validate_subcommand *)
+  origin : origin; (* used by Validate_subcommand *)
 }
-[@@deriving show]
+
+(* TODO? more complex origin? Remote of Uri.t | Embedded of Fpath.t ?
+ * or just put the Semgrep_dashdash_config.config_kind it comes from?
+ * This type is used only for rewrite_rule_ids.
+ *)
+and origin = Local_file of Fpath.t | Other_origin [@@deriving show]
+
+(*****************************************************************************)
+(* Rewrite rule ids *)
+(*****************************************************************************)
+
+let prefix_for_fpath_opt (fpath : Fpath.t) : string option =
+  assert (Fpath.is_file_path fpath);
+  let* rel_path =
+    if Fpath.is_rel fpath then Some fpath
+      (* python: paths had no commen prefix; not possible to relativize *)
+    else Fpath.rem_prefix (Fpath.v (Sys.getcwd ())) fpath
+  in
+  (* LATER: we should use Fpath.normalize first, but pysemgrep
+   * doesn't as shown by tests/e2e/test_check.py::test_basic_rule__relative
+   * so we reproduce the same behavior, leading sometimes to some
+   * weird rule id like "rules....rules.test" when passing
+   * rules/../rules/test.yaml to --config.
+   * TODO? pass legacy flag and improve the behavior when not legacy?
+   *)
+  match List.rev (Fpath.segs rel_path) with
+  | [] -> raise Impossible
+  | [ _file ] -> None
+  | _file :: dirs ->
+      let prefix =
+        dirs |> List.rev |> Common.map (fun s -> s ^ ".") |> String.concat ""
+      in
+      Some prefix
+
+let mk_rewrite_rule_ids (origin : origin) : Rule_ID.t -> Rule_ID.t =
+ fun (rule_id : Rule_ID.t) ->
+  (*
+   Check the validity of the rule ID and prepend the path to rule file if
+   the rewrite_rule_ids option is set.
+*)
+  let opt_prefix =
+    match origin with
+    | Local_file fpath -> prefix_for_fpath_opt fpath
+    | Other_origin -> None
+  in
+  match opt_prefix with
+  | None -> rule_id
+  | Some prefix ->
+      Rule_ID.sanitize_string prefix ^ Rule_ID.to_string rule_id
+      |> Rule_ID.of_string
 
 (*****************************************************************************)
 (* Helpers *)
@@ -204,8 +253,9 @@ let import_callback ~registry_caching base str =
  * We also pass a ~registry_caching so our registry-aware jsonnet is also
  * registry-cache aware.
  *)
-let parse_rule ~rewrite_rule_ids ~registry_caching (file : Fpath.t) :
+let parse_rule ~origin ~registry_caching (file : Fpath.t) :
     Rule.rules * Rule.invalid_rule_error list =
+  let rewrite_rule_ids = Some (mk_rewrite_rule_ids origin) in
   match FT.file_type_of_file file with
   | FT.Config FT.Jsonnet ->
       Logs.warn (fun m ->
@@ -239,11 +289,11 @@ let parse_rule ~rewrite_rule_ids ~registry_caching (file : Fpath.t) :
  * We pass a ~registry_caching parameter here because the rule file can
  * be a jsonnet file importing rules from the registry.
  *)
-let load_rules_from_file ~rewrite_rule_ids ~registry_caching (file : Fpath.t) :
+let load_rules_from_file ~origin ~registry_caching (file : Fpath.t) :
     rules_and_origin =
   Logs.debug (fun m -> m "loading local config from %s" !!file);
   if Sys.file_exists !!file then (
-    let rules, errors = parse_rule ~rewrite_rule_ids ~registry_caching file in
+    let rules, errors = parse_rule ~origin ~registry_caching file in
     Logs.debug (fun m -> m "Done loading local config from %s" !!file);
     { rules; errors; origin = Local_file file })
   else
@@ -272,8 +322,7 @@ let load_rules_from_url_async ?token_opt ?(ext = "yaml") url :
   let rules =
     Common2.with_tmp_file ~str:content ~ext (fun file ->
         let file = Fpath.v file in
-        load_rules_from_file ~rewrite_rule_ids:(Some Other_origin)
-          ~registry_caching:false file)
+        load_rules_from_file ~origin:Other_origin ~registry_caching:false file)
   in
   Lwt.return rules
 
@@ -287,8 +336,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
       Lwt.return
         [
           load_rules_from_file
-            ~rewrite_rule_ids:
-              (if rewrite_rule_ids then Some (Local_file file) else None)
+            ~origin:(if rewrite_rule_ids then Local_file file else Other_origin)
             ~registry_caching file;
         ]
   | C.Dir dir ->
@@ -312,8 +360,8 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
       |> List.filter Parse_rule.is_valid_rule_filename
       |> Common.map (fun file ->
              load_rules_from_file
-               ~rewrite_rule_ids:
-                 (if rewrite_rule_ids then Some (Local_file file) else None)
+               ~origin:
+                 (if rewrite_rule_ids then Local_file file else Other_origin)
                ~registry_caching file)
       |> Lwt.return
   | C.URL url ->
@@ -332,10 +380,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
       let rules =
         Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
             let file = Fpath.v file in
-            [
-              load_rules_from_file ~rewrite_rule_ids:(Some Other_origin)
-                ~registry_caching file;
-            ])
+            [ load_rules_from_file ~origin:Other_origin ~registry_caching file ])
       in
       Lwt.return rules
   | C.A Policy ->
@@ -372,7 +417,7 @@ let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt ~registry_caching
       Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
           let file = Fpath.v file in
           let res =
-            load_rules_from_file ~rewrite_rule_ids:None ~registry_caching file
+            load_rules_from_file ~origin:Other_origin ~registry_caching file
           in
           [ res ])
   | _ ->

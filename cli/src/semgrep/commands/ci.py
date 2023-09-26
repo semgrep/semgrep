@@ -18,6 +18,7 @@ from rich.progress import TextColumn
 from rich.table import Table
 
 import semgrep.run_scan
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.app import auth
 from semgrep.app.scans import ScanHandler
 from semgrep.commands.install import run_install_semgrep_pro
@@ -305,10 +306,12 @@ def ci(
         # so that metadata of current commit is correct
         if scan_handler:
             console.print(Title("Connection", order=2))
-            metadata_dict = metadata.to_dict()
-            metadata_dict["is_sca_scan"] = supply_chain
-            metadata_dict["is_code_scan"] = code
-            metadata_dict["is_secrets_scan"] = run_secrets_flag
+            meta: out.ProjectMetadata = metadata.to_project_metadata()
+            meta.is_sca_scan = supply_chain
+            meta.is_code_scan = code
+            meta.is_secrets_scan = run_secrets_flag
+            metadata_dict = meta.to_json()
+            # TODO: move ProjectConfig to ATD too
             proj_config = ProjectConfig.load_all()
             metadata_dict = {**metadata_dict, **proj_config.to_dict()}
             with Progress(
@@ -547,10 +550,9 @@ def ci(
         ignore_log=ignore_log,
         profiler=profiler,
         filtered_rules=[*blocking_rules, *nonblocking_rules],
-        profiling_data=output_extra.profiling_data,
+        extra=output_extra,
         severities=shown_severities,
         is_ci_invocation=True,
-        rules_by_engine=output_extra.rules_by_engine,
         engine_type=engine_type,
     )
 

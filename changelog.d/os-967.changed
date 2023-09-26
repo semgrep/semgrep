@@ -1,0 +1,1 @@
+Use subprocess.run to get contributions instead of StreamingSemgrepCore so crashes don't affect the actual scan.

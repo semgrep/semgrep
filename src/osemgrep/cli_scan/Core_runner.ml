@@ -185,7 +185,7 @@ let create_core_result (all_rules : Rule.rule list)
   let scanned = Set_.of_list res.scanned in
   let match_results =
     Core_json_output.core_output_of_matches_and_errors (Some Autofix.render_fix)
-      (Set_.cardinal scanned) res
+      res
   in
   (* TOPORT? or move in semgrep-core so get info ASAP
      if match_results.skipped_targets:

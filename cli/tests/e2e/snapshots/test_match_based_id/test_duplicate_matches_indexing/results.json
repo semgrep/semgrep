@@ -1,7 +1,6 @@
 {
   "errors": [],
   "paths": {
-    "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": [
       "targets/match_based_id/duplicates/duplicate1.py",
       "targets/match_based_id/duplicates/duplicate2.py"

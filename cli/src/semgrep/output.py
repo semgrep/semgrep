@@ -41,6 +41,7 @@ from semgrep.formatter.junit_xml import JunitXmlFormatter
 from semgrep.formatter.sarif import SarifFormatter
 from semgrep.formatter.text import TextFormatter
 from semgrep.formatter.vim import VimFormatter
+from semgrep.output_extra import OutputExtra
 from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
@@ -128,13 +129,15 @@ class OutputHandler:
     Handle all output in a central location. Rather than calling `print_stderr` directly,
     you should call `handle_*` as appropriate.
 
-    In normal usage, it should be constructed via the contextmanager, `managed_output`. It ensures that everything
-    is handled properly if exceptions are thrown.
+    In normal usage, it should be constructed via the contextmanager, `managed_output`.
+    It ensures that everything is handled properly if exceptions are thrown.
 
-    If you need to stop execution immediately (think carefully if you really want this!), throw an exception.
+    If you need to stop execution immediately (think carefully if you really want this!),
+    throw an exception.
     If this is normal behavior, the exception _must_ inherit from `SemgrepError`.
 
-    If you want execution to continue, _report_ the exception via the appropriate `handle_*` method.
+    If you want execution to continue, _report_ the exception via the appropriate
+    `handle_*` method.
     """
 
     def __init__(
@@ -152,10 +155,9 @@ class OutputHandler:
         self.has_output = False
         self.is_ci_invocation = False
         self.filtered_rules: List[Rule] = []
-        self.profiling_data: Optional[out.Profile] = None
+        self.extra: Optional[OutputExtra] = None
         self.severities: Collection[RuleSeverity] = DEFAULT_SHOWN_SEVERITIES
         self.explanations: Optional[List[out.MatchingExplanation]] = None
-        self.rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = None
         self.engine_type: EngineType = EngineType.OSS
 
         self.final_error: Optional[Exception] = None
@@ -265,6 +267,8 @@ class OutputHandler:
 
         return reduce(update_failed_to_analyze, semgrep_core_errors, {})
 
+    # TODO: why run_scan.scan() calls output() to set the fields why
+    # run_scan.run_scan_and_return_json() modify directly the fields instead?
     def output(
         self,
         rule_matches_by_rule: RuleMatchMap,
@@ -273,9 +277,8 @@ class OutputHandler:
         filtered_rules: List[Rule],
         ignore_log: Optional[FileTargetingLog] = None,
         profiler: Optional[ProfileManager] = None,
-        profiling_data: Optional[out.Profile] = None,  # (rule, target) -> duration
+        extra: Optional[OutputExtra] = None,
         explanations: Optional[List[out.MatchingExplanation]] = None,
-        rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = None,
         severities: Optional[Collection[RuleSeverity]] = None,
         print_summary: bool = False,
         is_ci_invocation: bool = False,
@@ -302,12 +305,10 @@ class OutputHandler:
             # create a fake log to track the errors
             self.ignore_log = FileTargetingLog(TargetManager(["."]))
 
-        if profiling_data:
-            self.profiling_data = profiling_data
+        if extra:
+            self.extra = extra
         if explanations:
             self.explanations = explanations
-        if rules_by_engine:
-            self.rules_by_engine = rules_by_engine
         if severities:
             self.severities = severities
 
@@ -412,24 +413,22 @@ class OutputHandler:
         # CliOutputExtra members
         cli_paths = out.ScannedAndSkipped(
             scanned=[out.Fpath(str(path)) for path in sorted(self.all_targets)],
-            _comment=None,
             skipped=None,
         )
         cli_timing: Optional[out.Profile] = None
 
         explanations: Optional[List[out.MatchingExplanation]] = self.explanations
-        rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = self.rules_by_engine
 
         # Extra, extra! This just in! 🗞️
         # The extra dict is for blatantly skipping type checking and function signatures.
         # - The text formatter uses it to store settings
         # You should use CliOutputExtra for better type checking
         extra: Dict[str, Any] = {}
-        if self.settings.output_time and self.profiling_data:
+        if self.settings.output_time and self.extra and self.extra.core.time:
             cli_timing = _build_time_json(
                 self.filtered_rules,
                 self.all_targets,
-                self.profiling_data,
+                self.extra.core.time,
                 self.profiler,
             )
         if self.settings.verbose_errors:
@@ -448,10 +447,6 @@ class OutputHandler:
                 ],
             )
             extra["verbose_errors"] = True
-        else:
-            cli_paths = dataclasses.replace(
-                cli_paths, _comment="<add --verbose for a list of skipped paths>"
-            )
         if self.settings.output_format == OutputFormat.TEXT:
             extra["color_output"] = (
                 self.settings.output_destination is None and sys.stdout.isatty(),
@@ -469,19 +464,30 @@ class OutputHandler:
         # as opposed to below, we need to distinguish the various kinds of pro engine
         extra["engine_requested"] = self.engine_type
 
+        # TODO: I thought we could guard this code with 'if self.extra:', and raise
+        # a SemgrepError otherwise, but it seems that when semgrep got an error
+        # (for example in tests/e2e/test_ci.py::test_bad_config),
+        # then this code still get called and self.extra is not set but we still want
+        # to output things. This is why I have those ugly 'if self.extra' below
+        # that possibly return None.
+
         # the rules are used only by the SARIF formatter
         return self.formatter.output(
             self.rules,
             self.rule_matches,
             self.semgrep_structured_errors,
             out.CliOutputExtra(
+                # TODO: almost like self.extra.core.paths, but not there yet
                 paths=cli_paths,
+                # TODO: almost like self.extra.core.time, but not there yet
                 time=cli_timing,
+                # TODO: would like t ouse self.extra.core.explanations byt regressions
                 explanations=explanations,
-                rules_by_engine=rules_by_engine,
+                rules_by_engine=self.extra.core.rules_by_engine if self.extra else None,
                 # this flattens the information into just distinguishing "pro" and "not-pro"
                 engine_requested=self.engine_type.to_engine_kind(),
-                skipped_rules=[],  # TODO
+                # TODO, should just be self.extra.core.skipped_rules
+                skipped_rules=[],
             ),
             extra,
             self.severities,
