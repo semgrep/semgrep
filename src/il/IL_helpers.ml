@@ -124,8 +124,9 @@ let lvar_of_instr_opt x =
 let rlvals_of_node = function
   | Enter
   | Exit
-  | TrueNode
-  | FalseNode
+  (* must ignore exp in True and False *)
+  | TrueNode _
+  | FalseNode _
   | NGoto _
   | Join ->
       []

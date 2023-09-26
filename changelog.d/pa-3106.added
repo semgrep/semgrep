@@ -1,0 +1,33 @@
+Metavariable-type rule support for C, C++
+
+Users now can use metavariable-type rules in both C and C++. For instance, the
+provided code snippet:
+```
+#include <fstream>
+
+using namespace std;
+
+void test_001() {
+    ifstream in;
+    // ruleid: match-simple-metavar-type
+    in.get(str, 2);
+
+    mystream my;
+    // ok: type mismatch
+    my.get(str, 2);
+}
+```
+can be matched by the following rule:
+```
+rules:
+  - id: match-simple-metavar-type
+    patterns:
+      - pattern: $X.get($SRC, ...)
+      - metavariable-type:
+          metavariable: $X
+          type: ifstream
+    message: Semgrep found a match
+    languages:
+      - cpp
+    severity: WARNING
+```

@@ -533,6 +533,58 @@ let update_env_with env var sval =
   | G.NotCst -> VarMap.remove (str_of_name var) env
   | __else__ -> VarMap.add (str_of_name var) sval env
 
+let transfer_of_equality (assume : bool) (var : IL.name) (lit : G.literal)
+    (inp : G.svalue Var_env.t) : G.svalue Var_env.t =
+  (* If we assume `var == lit` then we can infer `var = lit`. *)
+  if assume then update_env_with inp var (Lit lit)
+  else
+    (* If we believed `var == lit` but now we have to assume `var != lit`, then
+     * our believe was wrong, fix it. *)
+    let key = str_of_name var in
+    match VarMap.find_opt key inp with
+    | Some (Lit lit') when eq_literal lit lit' -> VarMap.remove key inp
+    | None
+    | Some _ ->
+        inp
+
+let rec transfer_of_assume (assume : bool) (cond : IL.exp_kind)
+    (inp : G.svalue Var_env.t) : G.svalue Var_env.t =
+  match cond with
+  | Operator
+      ( (Eq, _),
+        ( [
+            Unnamed { e = Fetch { base = Var var; rev_offset = [] }; _ };
+            Unnamed { e = Literal lit; _ };
+          ]
+        | [
+            Unnamed { e = Literal lit; _ };
+            Unnamed { e = Fetch { base = Var var; rev_offset = [] }; _ };
+          ] ) ) ->
+      (* x == lit *)
+      transfer_of_equality assume var lit inp
+  | Operator ((NotEq, tok), ([ _; _ ] as args)) ->
+      (* E1 != E2 *)
+      transfer_of_assume (not assume) (Operator ((Eq, tok), args)) inp
+  | Operator
+      ( (Not, _),
+        [ Unnamed { e = Fetch { base = Var var; rev_offset = [] }; _ } ] ) -> (
+      (* `if (!ptr) { ... }` when `ptr` has pointer type *)
+      match !(var.id_info.id_type) with
+      | Some { t = TyPointer _; _ } ->
+          let tok = snd var.ident in
+          let lit = G.Null tok in
+          transfer_of_equality assume var lit inp
+      | Some _
+      | None ->
+          inp)
+  | Fetch { base = Var var; rev_offset = [] } ->
+      (* if (E) { ... } *)
+      let tok = snd var.ident in
+      transfer_of_assume (not assume)
+        (Operator ((Not, tok), [ Unnamed { e = cond; eorig = NoOrig } ]))
+        inp
+  | __else__ -> inp
+
 let transfer :
     lang:Lang.t ->
     enter_env:G.svalue Var_env.t ->
@@ -549,8 +601,6 @@ let transfer :
     match node.F.n with
     | Enter
     | Exit
-    | TrueNode
-    | FalseNode
     | Join
     | NCond _
     | NGoto _
@@ -560,6 +610,8 @@ let transfer :
     | NOther _
     | NTodo _ ->
         inp'
+    | TrueNode cond -> transfer_of_assume true cond.e inp'
+    | FalseNode cond -> transfer_of_assume false cond.e inp'
     | NInstr instr -> (
         (* TODO: For now we only handle the simplest cases. *)
         match instr.i with

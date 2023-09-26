@@ -1947,7 +1947,7 @@ and statement (env : env) (x : CST.statement) =
       let v2 = block env v2 in
       let v3 = Common.map (catch_clause env) v3 in
       let v4 = Option.map (finally_clause env) v4 in
-      Try (v1, v2, v3, v4) |> G.s
+      Try (v1, v2, v3, None, v4) |> G.s
   | `Unsafe_stmt (v1, v2) ->
       let tunsafe = token env v1 (* "unsafe" *) in
       let v2 = block env v2 in

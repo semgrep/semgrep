@@ -395,7 +395,7 @@ and stmt x =
       let v1 = stmt v1
       and v2 = option catch_block v2
       and v3 = option tok_and_stmt v3 in
-      G.Try (t, v1, Option.to_list v2, v3) |> G.s
+      G.Try (t, v1, Option.to_list v2, None, v3) |> G.s
   | With (_v1, v2, v3) ->
       let e = expr v2 in
       let v3 = stmt v3 in

@@ -1,0 +1,11 @@
+rules:
+  - id: match-simple-metavar-type
+    patterns:
+      - pattern: fgets($X, ...);
+      - metavariable-type:
+          metavariable: $X
+          type: char[100]
+    message: Semgrep found a match
+    languages:
+      - c
+    severity: WARNING
