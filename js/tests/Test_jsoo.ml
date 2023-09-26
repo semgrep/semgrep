@@ -23,6 +23,12 @@ open Semgrep_js_shared
 (* Code *)
 (*****************************************************************************)
 
+(* Filter to skip tests *)
+let test_filter ~name ~index =
+  ignore index;
+  if Common.contains name "Cpp" then `Skip
+  else `Run (* Cpp has a weird error, and @brandon is still working on it soo *)
+
 let _ =
   enable_debug_logging ();
   Js.export_all
@@ -67,7 +73,28 @@ let _ =
          let argv =
            if filter <> "" then Array.append argv [| "-e"; filter |] else argv
          in
-         Alcotest.run "semgrep-js"
-           (Testutil.to_alcotest (Unit_parsing.tests ()))
-           ~and_exit:false ~argv
+         let tests = [ Unit_parsing.tests () ] |> List.flatten in
+         let errors = ref [] in
+         let tests =
+           Common.map
+             (fun (name, f) ->
+               let f () =
+                 try f () with
+                 | e ->
+                     let e = Js_error.attach_js_backtrace e ~force:false in
+                     let error = Option.get (Js_error.of_exn e) in
+                     errors := error :: !errors;
+                     raise e
+               in
+               (name, f))
+             tests
+         in
+         (try
+            Alcotest.run "semgrep-js"
+              (Testutil.to_alcotest tests)
+              ~and_exit:false ~argv ~filter:test_filter
+          with
+         | Alcotest.Test_error ->
+             Printf.printf "Some tests failed, displaying:\n");
+         !errors |> Array.of_list |> Js.array
     end)

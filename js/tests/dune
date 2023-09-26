@@ -1,3 +1,6 @@
+ (env
+ (js_of_ocaml (flags -no-inline -debug-info)))
+
 (executable
  (name test_jsoo)
  (libraries
@@ -9,6 +12,5 @@
    alcotest
  )
  (modes js)
-
  (preprocess
   (pps js_of_ocaml-ppx)))

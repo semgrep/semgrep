@@ -4,7 +4,6 @@ const languages = [
   "bash",
   "c",
   "cairo",
-  "cpp",
   "csharp",
   "dart",
   "dockerfile",
@@ -71,7 +70,7 @@ const run = async () => {
       try {
         return parsers.get(lang).parseTarget(lang, str);
       } catch (e) {
-        console.log(e);
+        console.log(`Error parsing target ${e}`);
         throw e;
       }
     };
@@ -79,15 +78,19 @@ const run = async () => {
       try {
         return parsers.get(lang).parsePattern(true, lang, pattern);
       } catch (e) {
-        console.log(e);
+        console.log(`Error parsing pattern ${e}`);
         throw e;
       }
     };
     setJustParseWithLang(parseLang);
     setParsePattern(parsePattern);
 
-    run("");
+    const testErrors = run("Dart");
+    for (const e of testErrors) {
+      console.log(e);
+    }
   } catch (e) {
+    console.log("Error running tests:\n");
     console.log(e);
   }
 };

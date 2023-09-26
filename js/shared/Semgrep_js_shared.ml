@@ -23,28 +23,14 @@ external get_jsoo_mountpoint : unit -> 'any list = "get_jsoo_mountpoint"
 external set_parser_wasm_module : 'any -> unit = "set_parser_wasm_module"
 
 (*****************************************************************************)
-(* Entrypoints *)
+(* Helpers *)
 (*****************************************************************************)
 
-let make_js_module (langs : Lang.t list) parse_target parse_pattern =
-  let lang_names =
-    Array.of_list
-      (Common.map (fun x -> Js.string (Lang.to_lowercase_alnum x)) langs)
-  in
-  Js.export "createParser" (fun wasm_module ->
-      set_parser_wasm_module wasm_module;
-      object%js
-        method getLangs = Js.array lang_names
-        method setMountpoints = set_jsoo_mountpoint
-
-        method parseTarget lang file =
-          parse_target (Lang.of_string (Js.to_string lang)) (Js.to_string file)
-
-        method parsePattern print_errors lang str =
-          parse_pattern (Js.to_bool print_errors)
-            (Lang.of_string (Js.to_string lang))
-            (Js.to_string str)
-      end)
+let wrap_with_js_error f =
+  try f () with
+  | e ->
+      let e = Js_error.attach_js_backtrace e ~force:false in
+      Js_error.raise_ (Option.get (Js_error.of_exn e))
 
 let init_jsoo yaml_wasm_module =
   Common.jsoo := true;
@@ -62,3 +48,39 @@ let enable_debug_logging () =
   Logging_helpers.setup ~debug:true
     ~log_config_file:(Fpath.v "log_config.json")
     ~log_to_file:None
+(*****************************************************************************)
+(* Entrypoints *)
+(*****************************************************************************)
+
+let make_js_module (langs : Lang.t list) parse_target parse_pattern =
+  let lang_names =
+    Array.of_list
+      (Common.map (fun x -> Js.string (Lang.to_lowercase_alnum x)) langs)
+  in
+  Js.export "createParser" (fun wasm_module ->
+      set_parser_wasm_module wasm_module;
+      object%js
+        method getLangs =
+          let getLangs () = Js.array lang_names in
+          wrap_with_js_error getLangs
+
+        method setMountpoints mountpoints =
+          let setMountpoints () = set_jsoo_mountpoint mountpoints in
+          wrap_with_js_error setMountpoints
+
+        method parseTarget lang file =
+          let parse_target () =
+            parse_target
+              (Lang.of_string (Js.to_string lang))
+              (Js.to_string file)
+          in
+          wrap_with_js_error parse_target
+
+        method parsePattern print_errors lang str =
+          let parse_pattern () =
+            parse_pattern (Js.to_bool print_errors)
+              (Lang.of_string (Js.to_string lang))
+              (Js.to_string str)
+          in
+          wrap_with_js_error parse_pattern
+      end)

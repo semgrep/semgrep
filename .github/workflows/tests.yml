@@ -93,6 +93,26 @@ jobs:
         working-directory: cli
         run: |
           make osempass
+  #TODO: merge with the previous job (which should be merged in build-test-core-x86.yaml)
+  test-semgrep-js:
+    name: test semgrep js
+    runs-on: ubuntu-22.04
+    container: returntocorp/ocaml:alpine-2023-06-16
+    env:
+      HOME: /root
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+          persist-credentials: false
+      - name: Build semgrep-core
+        run: |
+          eval $(opam env)
+          make install-deps-ALPINE-for-semgrep-core
+          make install-deps-for-semgrep-core
+      - name: Run semgrep js e2e tests
+        run: |
+          make test-jsoo-e2e
 
   test-cli:
     name: test semgrep-cli

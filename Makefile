@@ -136,6 +136,11 @@ build-semgrep-jsoo:
 	. libs/ocaml-tree-sitter-core/tree-sitter-config.sh
 	$(MAKE) -C js build
 
+.PHONY: build-semgrep-jsoo-debug
+build-semgrep-jsoo-debug:
+	dune build js --profile=dev
+	. libs/ocaml-tree-sitter-core/tree-sitter-config.sh
+	$(MAKE) -C js build
 # Remove from the project tree everything that's not under source control
 # and was not created by 'make setup'.
 .PHONY: clean
@@ -211,16 +216,16 @@ core-test-e2e:
 	$(MAKE) -C interfaces/semgrep_interfaces test
 	python3 tests/semgrep-core-e2e/test_target_file.py
 
-test-jsoo:
-	$(MAKE) build-semgrep-jsoo
+.PHONY: test-jsoo-e2e
+test-jsoo-e2e: build-semgrep-jsoo-debug
 	$(MAKE) -C js test
 
-test-jsoo-engine:
-	$(MAKE) build-semgrep-jsoo
+.PHONY: test-jsoo-engine
+test-jsoo-engine: build-semgrep-jsoo-debug
 	$(MAKE) -C js/engine test
 
-test-jsoo-test:
-	$(MAKE) build-semgrep-jsoo
+.PHONY: test-jsoo-test
+test-jsoo-test: build-semgrep-jsoo-debug
 	$(MAKE) -C js/tests test
 
 ###############################################################################
