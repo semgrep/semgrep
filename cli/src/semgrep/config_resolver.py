@@ -23,6 +23,7 @@ import ruamel.yaml
 from rich import progress
 from ruamel.yaml import YAMLError
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
 from semgrep.app import auth
 from semgrep.console import console
@@ -39,7 +40,6 @@ from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
 from semgrep.rule import Rule
 from semgrep.rule import rule_without_metadata
-from semgrep.rule import RuleProduct
 from semgrep.rule_lang import EmptySpan
 from semgrep.rule_lang import EmptyYamlException
 from semgrep.rule_lang import parse_config_preserve_spans
@@ -520,7 +520,7 @@ class Config:
                     errors.append(ex)
                 else:
                     if (
-                        rule.product == RuleProduct.secrets
+                        isinstance(rule.product.value, out.Secrets)
                         and config_id != REGISTRY_CONFIG_ID
                     ):
                         # SECURITY: Set metadata from non-registry secrets
