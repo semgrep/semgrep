@@ -22,8 +22,11 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       - run: |
-          if [[ "${{ inputs.confirmeed }}" == "true" ]]; then
-             docker pull returntocorp/semgrep:canary
-             docker tag  returntocorp/semgrep:canary returntocorp/semgrep:latest
-             docker push returntocorp/semgrep:latest
+          canary_digest=$(docker buildx imagetools inspect --raw returntocorp/semgrep:canary | jq -r .config.digest)
+          latest_digest=$(docker buildx imagetools inspect --raw returntocorp/semgrep:latest | jq -r .config.digest)
+          if [[ "${{ inputs.confirmed }}" == "true" ]]; then
+            echo "Promoting returntocorp/semgrep:canary (${canary_digest}) to returntocorp/semgrep:latest (was ${latest_digest})"
+            docker buildx imagetools create -t returntocorp/semgrep:latest returntocorp/semgrep:canary
+          else
+            echo "Would have promoted returntocorp/semgrep:canary (${canary_digest}) to returntocorp/semgrep:latest (was ${latest_digest})"
           fi
