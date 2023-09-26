@@ -26,7 +26,6 @@ from semgrep.constants import RuleScanSource
 from semgrep.constants import RuleSeverity
 from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
 from semgrep.rule import Rule
-from semgrep.rule import RuleProduct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
@@ -124,14 +123,15 @@ class RuleMatch:
     def end(self) -> out.Position:
         return self.match.end
 
+    # TODO: diff with rule.py product() method?
     @property
-    def product(self) -> RuleProduct:
+    def product(self) -> out.Product:
         if "product" in self.metadata and self.metadata["product"] == "secrets":
-            return RuleProduct.secrets
+            return out.Product(out.Secrets())
         elif "sca_info" in self.extra:
-            return RuleProduct.sca
+            return out.Product(out.SCA())
         else:
-            return RuleProduct.sast
+            return out.Product(out.SAST())
 
     @property
     def validation_state(self) -> Optional[out.ValidationState]:
@@ -139,7 +139,7 @@ class RuleMatch:
 
     @property
     def title(self) -> str:
-        if self.product == RuleProduct.sca:
+        if isinstance(self.product.value, out.SCA):
             cve_id = self.metadata.get("sca-vuln-database-identifier")
             sca_info = self.extra.get("sca_info")
             package_name = (

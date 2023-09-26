@@ -65,7 +65,6 @@ from semgrep.output_extra import OutputExtra
 from semgrep.profile_manager import ProfileManager
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
-from semgrep.rule import RuleProduct
 from semgrep.rule_match import RuleMatchMap
 from semgrep.rule_match import RuleMatchSet
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
@@ -216,7 +215,7 @@ def print_scan_plan_header(
     # historically take into account the effects of not scanning
     # files, which rule_count_by_product includes.
     sast_rule_count = len(sast_plan.rules)
-    is_secret_rule = lambda r: r.product == RuleProduct.secrets
+    is_secret_rule = lambda r: isinstance(r.product.value, out.Secrets)
     secrets_rule_count = len(list(filter(is_secret_rule, sast_plan.rules)))
 
     # TODO code_rule_count currently double counts pro_rules.
@@ -251,7 +250,7 @@ def print_degenerate_table(plan: Plan, *, rule_count: int) -> None:
         console.print(f"Scanning {unit_str(len(plan.target_mappings), 'file')}.")
 
 
-def print_sast_table(sast_plan: Plan, *, product: RuleProduct, rule_count: int) -> None:
+def print_sast_table(sast_plan: Plan, *, product: out.Product, rule_count: int) -> None:
     """
     Pretty print the SAST / secrets plan to stdout.
     """
@@ -378,8 +377,8 @@ def print_scan_status(
             for rule in rules
             if (
                 (
-                    rule.product == RuleProduct.sast
-                    or rule.product == RuleProduct.secrets
+                    isinstance(rule.product.value, out.SAST)
+                    or isinstance(rule.product.value, out.Secrets)
                 )
                 and (not rule.from_transient_scan)
             )
@@ -388,7 +387,7 @@ def print_scan_status(
     )
 
     sca_plan = CoreRunner.plan_core_run(
-        [rule for rule in rules if rule.product == RuleProduct.sca],
+        [rule for rule in rules if isinstance(rule.product.value, out.SCA)],
         target_manager,
     )
 
@@ -400,10 +399,10 @@ def print_scan_status(
 
     # NOTE: There's some funky behavior with handling the rule counts
     # in which some functions require rule counts calculated in different ways.
-    alt_sast_rule_count = sast_plan.rule_count_for_product(RuleProduct.sast)
-    alt_sca_rule_count = sca_plan.rule_count_for_product(RuleProduct.sca)
+    alt_sast_rule_count = sast_plan.rule_count_for_product(out.Product(out.SAST()))
+    alt_sca_rule_count = sca_plan.rule_count_for_product(out.Product(out.SCA()))
 
-    secrets_rule_count = sast_plan.rule_count_for_product(RuleProduct.secrets)
+    secrets_rule_count = sast_plan.rule_count_for_product(out.Product(out.Secrets()))
     has_secret_rules = secrets_rule_count > 0
 
     if simple_ux:
@@ -418,7 +417,7 @@ def print_scan_status(
         # just print these tables without the section headers
         print_sast_table(
             sast_plan=sast_plan,
-            product=RuleProduct.sast,
+            product=out.Product(out.SAST()),
             rule_count=alt_sast_rule_count,
         )
         return sast_rule_count
@@ -429,7 +428,9 @@ def print_scan_status(
         console.print(Title("Code Rules", order=2))
 
     print_sast_table(
-        sast_plan=sast_plan, product=RuleProduct.sast, rule_count=alt_sast_rule_count
+        sast_plan=sast_plan,
+        product=out.Product(out.SAST()),
+        rule_count=alt_sast_rule_count,
     )
 
     # TODO: after launch this should no longer be conditional.
@@ -437,7 +438,7 @@ def print_scan_status(
         console.print(Title("Secrets Rules", order=2))
         print_sast_table(
             sast_plan=sast_plan,
-            product=RuleProduct.secrets,
+            product=out.Product(out.Secrets()),
             rule_count=secrets_rule_count,
         )
 

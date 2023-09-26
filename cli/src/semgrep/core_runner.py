@@ -54,7 +54,6 @@ from semgrep.error import with_color
 from semgrep.output_extra import OutputExtra
 from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
-from semgrep.rule import RuleProduct
 from semgrep.rule_match import OrderedRuleMatchList
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
@@ -534,7 +533,7 @@ class Plan:
     # filtering out rules for a specific product. If product = None
     # then all products are included.
     def split_by_lang_label_for_product(
-        self, product: Optional[RuleProduct] = None
+        self, product: Optional[out.Product] = None
     ) -> Dict[str, "TargetMappings"]:
         result: Dict[str, TargetMappings] = collections.defaultdict(TargetMappings)
         for task in self.target_mappings:
@@ -603,7 +602,7 @@ class Plan:
     def num_targets(self) -> int:
         return len(self.target_mappings)
 
-    def rule_count_for_product(self, product: RuleProduct) -> int:
+    def rule_count_for_product(self, product: out.Product) -> int:
         rule_nums: Set[int] = set()
         for task in self.target_mappings:
             for rule_num in task.rule_nums:
@@ -611,7 +610,7 @@ class Plan:
                     rule_nums.add(rule_num)
         return len(rule_nums)
 
-    def table_by_language(self, with_tables_for: Optional[RuleProduct] = None) -> Table:
+    def table_by_language(self, with_tables_for: Optional[out.Product] = None) -> Table:
         table = Table(box=box.SIMPLE_HEAD, show_edge=False)
         table.add_column("Language")
         table.add_column("Rules", justify="right")
@@ -659,7 +658,7 @@ class Plan:
 
         return table
 
-    def table_by_origin(self, with_tables_for: Optional[RuleProduct] = None) -> Table:
+    def table_by_origin(self, with_tables_for: Optional[out.Product] = None) -> Table:
         table = Table(box=box.SIMPLE_HEAD, show_edge=False)
         table.add_column("Origin")
         table.add_column("Rules", justify="right")
@@ -694,7 +693,7 @@ class Plan:
         sca_analysis_counts = collections.Counter(
             SCA_ANALYSIS_NAMES.get(rule.metadata.get("sca-kind", ""), "Unknown")
             for rule in self.rules
-            if rule.product == RuleProduct.sca
+            if isinstance(rule.product.value, out.SCA)
         )
 
         for sca_analysis, count in sorted(
@@ -898,7 +897,7 @@ class CoreRunner:
             rule
             for rule in rules
             # filter out SCA rules with no relevant lockfiles
-            if rule.product != RuleProduct.sca
+            if not (isinstance(rule.product.value, out.SCA))
             or any(lockfiles[ecosystem] for ecosystem in rule.ecosystems)
         ]
 
