@@ -533,12 +533,13 @@ let update_env_with env var sval =
   | G.NotCst -> VarMap.remove (str_of_name var) env
   | __else__ -> VarMap.add (str_of_name var) sval env
 
-let transfer_of_equality assume var lit inp =
-  (* If we assume `x == lit` then we can infer `x = lit`. *)
+let transfer_of_equality (assume : bool) (var : IL.name) (lit : G.literal)
+    (inp : G.svalue Var_env.t) : G.svalue Var_env.t =
+  (* If we assume `var == lit` then we can infer `var = lit`. *)
   if assume then update_env_with inp var (Lit lit)
   else
-    (* If we believed `x == lit` but now we assume `x != lit`, then our believe
-     * was wrong. *)
+    (* If we believed `var == lit` but now we have to assume `var != lit`, then
+     * our believe was wrong, fix it. *)
     let key = str_of_name var in
     match VarMap.find_opt key inp with
     | Some (Lit lit') when eq_literal lit lit' -> VarMap.remove key inp
@@ -546,7 +547,8 @@ let transfer_of_equality assume var lit inp =
     | Some _ ->
         inp
 
-let rec transfer_of_assume assume cond inp =
+let rec transfer_of_assume (assume : bool) (cond : IL.exp_kind)
+    (inp : G.svalue Var_env.t) : G.svalue Var_env.t =
   match cond with
   | Operator
       ( (Eq, _),

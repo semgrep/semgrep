@@ -377,8 +377,8 @@ type node = {
 and node_kind =
   | Enter
   | Exit
-  (* 'TrueNode' and 'FalseNode' follow 'NCond', and the 'exp_kind' is the same
-   * condition as in 'NCond' ... *)
+  (* 'TrueNode' and 'FalseNode' follow 'NCond', and the 'exp' is the same
+   * condition as in 'NCond'. *)
   | TrueNode of exp (* same as in Cond *)
   | FalseNode of exp (* same as in Cond *)
   | Join (* after Cond *)

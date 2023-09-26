@@ -15,7 +15,7 @@ foobar(&ptr); // OK
 
 But it will match here:
 ```cpp
-if (ptr != null ptr) {
+if (ptr != nullptr) {
     return;
 }
 

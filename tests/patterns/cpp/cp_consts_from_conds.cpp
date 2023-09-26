@@ -24,7 +24,7 @@ void test2()
         return;
     }
 
-    // since (int_ptr != nullptr) we know that int_ptr cannot be nullptr anymore.
+    // since (int_ptr != nullptr) we know that int_ptr cannot be nullptr anymore
     // OK:
     do_something(&int_ptr);
 }
@@ -37,7 +37,7 @@ void test3(int *int_ptr)
         return;
     }
 
-    // since (int_ptr != nullptr) we know that int_ptr cannot be nullptr anymore.
+    // since (int_ptr != nullptr) we know that int_ptr cannot be nullptr anymore
     // OK:
     do_something(&int_ptr);
 }
@@ -45,7 +45,7 @@ void test3(int *int_ptr)
 void test4(int *int_ptr)
 {
     if (int_ptr != nullptr) {
-        // since (int_ptr != nullptr) we know that int_ptr cannot be nullptr anymore.
+        // since (int_ptr != nullptr) we know that int_ptr cannot be nullptr
         // OK:
         do_something(&int_ptr);
         return;
