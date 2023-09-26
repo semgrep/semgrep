@@ -2,7 +2,6 @@
  (public_name commons)
  (wrapped false)
  (libraries
-   stdcompat
    str
    unix
    fpath

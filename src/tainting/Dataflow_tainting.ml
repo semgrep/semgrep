@@ -333,7 +333,7 @@ let top_level_sinks_in_nodes config flow =
    * (with `focus-metavariable: $SINK`), and code like `sink([ok1 if tainted else ok2])`.
    * For that, we would need to visit subexpressions. *)
   flow.CFG.reachable |> CFG.NodeiSet.to_seq
-  |> Stdcompat.Seq.concat_map (fun ni ->
+  |> Seq.concat_map (fun ni ->
          let origs_of_args args =
            Seq.map (fun a -> (IL_helpers.exp_of_arg a).eorig) (List.to_seq args)
          in
@@ -356,8 +356,7 @@ let top_level_sinks_in_nodes config flow =
                      Seq.empty)
              in
              top_expr_origs
-             |> Stdcompat.Seq.concat_map (fun o ->
-                    orig_is_sink config o |> List.to_seq)
+             |> Seq.concat_map (fun o -> orig_is_sink config o |> List.to_seq)
          | NCond (_, exp)
          | NReturn (_, exp)
          | NThrow (_, exp) ->
@@ -1057,9 +1056,9 @@ and propagate_taint_via_java_getters_and_setters_without_definition env e args
         { lval with rev_offset = [ { o = Dot prop_name; oorig = NoOrig } ] }
       in
       match args with
-      | [] when Stdcompat.String.(starts_with ~prefix:"get" method_str) ->
+      | [] when String.(starts_with ~prefix:"get" method_str) ->
           check_tainted_lval env (mk_prop_lval ())
-      | [ _ ] when Stdcompat.String.starts_with ~prefix:"set" method_str ->
+      | [ _ ] when String.starts_with ~prefix:"set" method_str ->
           if not (Taints.is_empty all_args_taints) then
             ( Taints.empty,
               Lval_env.add env.lval_env (mk_prop_lval ()) all_args_taints )
