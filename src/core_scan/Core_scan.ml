@@ -127,6 +127,8 @@ let debug_extract_mode = ref false
 (* Types *)
 (*****************************************************************************)
 
+type was_scanned = Scanned | Not_scanned
+
 (* The type of the semgrep core scan. We define it here so that
    semgrep and semgrep-proprietary use the same definition *)
 type core_scan_func = Core_scan_config.t -> Core_result.result_or_exn
@@ -493,9 +495,9 @@ let parse_equivalences equivalences_file =
 *)
 let iter_targets_and_get_matches_and_exn_to_errors config
     (handle_target :
-      In.target -> Core_profiling.partial_profiling RP.match_result * bool)
-    targets : Core_profiling.file_profiling RP.match_result list * Fpath.t list
-    =
+      In.target ->
+      Core_profiling.partial_profiling RP.match_result * was_scanned) targets :
+    Core_profiling.file_profiling RP.match_result list * Fpath.t list =
   targets
   |> map_targets config.ncores (fun (target : In.target) ->
          let file = Fpath.v target.path in
@@ -554,10 +556,9 @@ let iter_targets_and_get_matches_and_exn_to_errors config
                               Out.OutOfMemory
                           | _ -> raise Impossible))
                    in
-                   let was_scanned = false in
                    ( Core_result.make_match_result [] errors
                        (Core_profiling.empty_partial_profiling file),
-                     was_scanned )
+                     Not_scanned )
                (* those were converted in Main_timeout in timeout_function()*)
                | Time_limit.Timeout _ -> assert false
                (* It would be nice to detect 'R.Err (R.InvalidRule _)' here
@@ -584,12 +585,15 @@ let iter_targets_and_get_matches_and_exn_to_errors config
                    let errors =
                      Core_error.ErrorSet.singleton (exn_to_error !!file e)
                    in
-                   let was_scanned = false in
                    ( Core_result.make_match_result [] errors
                        (Core_profiling.empty_partial_profiling file),
-                     was_scanned ))
+                     Not_scanned ))
          in
-         let scanned_path = if was_scanned then Some file else None in
+         let scanned_path =
+           match was_scanned with
+           | Scanned -> Some file
+           | Not_scanned -> None
+         in
          (Core_result.add_run_time run_time res, scanned_path))
   |> List.split
   |> fun (results, opt_paths) ->
@@ -849,8 +853,8 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
            in
            let was_scanned =
              match applicable_rules with
-             | [] -> false
-             | _ -> true
+             | [] -> Not_scanned
+             | _ -> Scanned
            in
            let xtarget = xtarget_of_file config analyzer file in
            let default_match_hook str match_ =
