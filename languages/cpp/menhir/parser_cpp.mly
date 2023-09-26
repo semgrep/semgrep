@@ -459,8 +459,8 @@ expr:
  * 'cast_expr', otherwise (int * ) xxx = &yy; is not allowed *)
 assign_expr:
  | cond_expr                     { $1 }
- | cast_expr TAssign assign_expr { Assign ($1,OpAssign $2,$3)}
- | cast_expr "="     assign_expr { Assign ($1,SimpleAssign $2,$3)}
+ | cast_expr TAssign assign_expr { Assign ($1,OpAssign $2, Left $3)}
+ | cast_expr "="     assign_expr { Assign ($1,SimpleAssign $2,Left $3)}
  (* c++ext: in treesitter it's a stmt, but in the spec it is an expr *)
  | Tthrow assign_expr?        { Throw ($1, $2) }
 
@@ -616,7 +616,7 @@ primary_expr:
       let f_type = { ft_ret; ft_params = (l, [], r);
                      ft_specs = []; ft_const = None; ft_throw = []; ft_requires = None}
       in
-      let fdef = { f_type; f_body = FBDef $2; f_specs = []}
+      let fdef = { f_type; f_body = FBDef (Normal $2); f_specs = []}
       in
       Lambda ((l, xs, r), fdef)
     }
@@ -641,24 +641,27 @@ literal:
 (* c++ext: *)
 (*----------------------------*)
 
+primary_cplusplus_id:
+  | primary_cplusplus_id_inner { N ($1) }
+
 (* can't factorize with following rule :(
  * | "::"? optl(nested_name_specifier) TIdent
  *)
-primary_cplusplus_id:
+primary_cplusplus_id_inner:
  | id_expression
      { let name = (None, fst $1, snd $1) in
-       N (name) }
+       name }
  (* grammar_c++: is in qualified_id inside id_expression instead? *)
  | "::" TIdent
      { let name = Some $1, noQscope, IdIdent $2 in
-       N (name) }
+       name }
  | "::" operator_function_id
      { let qop = $2 in
        let name = (Some $1, noQscope, qop) in
-       N (name) }
+       name }
  | "::" qualified_id
      { let name = (Some $1, fst $2, snd $2) in
-       N (name) }
+       name }
 
 (*could use TInf here *)
 cast_operator_expr:
@@ -745,7 +748,7 @@ capture:
  | "&" ident { Unary ((GetRef, $1), expr_of_id $2) }
  | Tthis     { IdSpecial (This, $1) }
  (* grammar_c++: not in latest *)
- | ident "=" assign_expr { Assign (expr_of_id $1, SimpleAssign $2, $3) }
+ | ident "=" assign_expr { Assign (expr_of_id $1, SimpleAssign $2, Left $3) }
 
 (*----------------------------*)
 (* gccext: *)
@@ -1780,7 +1783,7 @@ function_definition:
      }
 *)
 function_body:
- | compound { FBDef $1 }
+ | compound { FBDef (Normal $1) }
 
 (*-----------------------------------------------------------------------*)
 (* c++ext: constructor special case *)
@@ -1791,23 +1794,23 @@ function_body:
  *)
 ctor_dtor:
  | nested_name_specifier TIdent_Constructor "(" parameter_type_list? ")"
-     ctor_mem_initializer_list_opt
+     ctor_mem_initializer_list
      compound
-     { (Func ((mk_constructor [] $2 ($3, $4, $5) $6 (FBDef $7)))) (*TODO$1*) }
+     { (Func ((mk_constructor [] $2 ($3, $4, $5) (FBDef (Constr ($6, $7)))))) (*TODO$1*) }
   (* new_type_id, could also introduce a Tdestructorname or forbidy the
       TypedefIdent2 transfo by putting a guard in the lalr(k) rule by
       checking if have a ~ before
    *)
  | nested_name_specifier TTilde ident "(" Tvoid? ")" exn_spec? compound
-     { (Func ((mk_destructor [] $2 $3 ($4, $5, $6) $7 (FBDef $8)))) }
+    { (Func ((mk_destructor [] $2 $3 ($4, $5, $6) $7 (FBDef (Normal $8))))) }
 
 (* TODO: remove once we don't skip qualifiers *)
  | Tinline? TIdent_Constructor "(" parameter_type_list? ")"
-     ctor_mem_initializer_list_opt
+     ctor_mem_initializer_list
      compound
      { DeclTodo ("DeclCtor", $3) }
  | TTilde ident "(" Tvoid? ")" exn_spec? compound
-     { (Func ((mk_destructor [] $1 $2 ($3, $4, $5) $6 (FBDef $7)))) }
+     { (Func ((mk_destructor [] $1 $2 ($3, $4, $5) $6 (FBDef (Normal $7))))) }
 
 
 
@@ -1817,18 +1820,18 @@ ctor_dtor:
 *)
 ctor_dtor_member:
  | ctor_spec TIdent_Constructor "(" parameter_type_list? ")"
-     ctor_mem_initializer_list_opt
+     ctor_mem_initializer_list
      compound
-     { F (Func ((mk_constructor $1 $2 ($3, $4, $5) $6 (FBDef $7)))) }
+     { F (Func ((mk_constructor $1 $2 ($3, $4, $5) (FBDef (Constr ($6, $7)))))) }
  | ctor_spec TIdent_Constructor "(" parameter_type_list? ")" ";"
-     { F (Func (mk_constructor $1 $2 ($3, $4, $5) None (FBDecl $6))) }
+     { F (Func (mk_constructor $1 $2 ($3, $4, $5) (FBDecl $6))) }
  | ctor_spec TIdent_Constructor "(" parameter_type_list? ")" "=" Tdelete ";"
-     { F (Func (mk_constructor $1 $2 ($3, $4, $5) None (FBDelete ($6, $7, $8)))) }
+     { F (Func (mk_constructor $1 $2 ($3, $4, $5) (FBDelete ($6, $7, $8)))) }
  | ctor_spec TIdent_Constructor "(" parameter_type_list? ")" "=" Tdefault ";"
-     { F (Func (mk_constructor $1 $2 ($3, $4, $5) None (FBDefault ($6, $7, $8)))) }
+     { F (Func (mk_constructor $1 $2 ($3, $4, $5) (FBDefault ($6, $7, $8)))) }
 
  | dtor_spec TTilde ident "(" Tvoid? ")" exn_spec? compound
-     { F (Func ((mk_destructor $1 $2 $3 ($4, $5, $6) $7 (FBDef $8)))) }
+     { F (Func ((mk_destructor $1 $2 $3 ($4, $5, $6) $7 (FBDef (Normal $8))))) }
  | dtor_spec TTilde ident "(" Tvoid? ")" exn_spec? ";"
      { F (Func (mk_destructor $1 $2 $3 ($4, $5, $6) $7 (FBDecl $8))) }
  | dtor_spec TTilde ident "(" Tvoid? ")" exn_spec? "=" Tdelete ";"
@@ -1847,17 +1850,17 @@ dtor_spec:
  | Tinline  { [M (Inline $1)] }
  | (*empty*) { [] }
 
-ctor_mem_initializer_list_opt:
- | ":" listc(mem_initializer) { Some ($1, $2) }
- | (* empty *) { None }
+ctor_mem_initializer_list:
+ | ":" listc(mem_initializer) { $2 }
+ | (* empty *) { [] }
 
 mem_initializer:
- | mem_initializer_id "(" optl(listc(argument)) ")" { () (* TODOAST*) }
+ | mem_initializer_id "(" optl(listc(argument)) ")" { $1, Args ($2, $3, $4) }
 
 (* factorize with declarator_id ? specialisation *)
 mem_initializer_id:
 (* specialisation | TIdent { () } *)
- | primary_cplusplus_id { $1 }
+ | primary_cplusplus_id_inner { $1 }
 
 (*************************************************************************)
 (* Cpp directives *)
