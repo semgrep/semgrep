@@ -768,9 +768,7 @@ let extracted_targets_of_config (config : Core_scan_config.t)
            let extracted_targets =
              Match_extract_mode.extract_nested_lang ~match_hook
                ~timeout:config.timeout
-               ~timeout_threshold:config.timeout_threshold
-               ~all_rules:(all_rules :> Rule.t list)
-               extractors xtarget
+               ~timeout_threshold:config.timeout_threshold extractors xtarget
            in
            (* Print number of extra targets so Python knows *)
            if Common.null extracted_targets then

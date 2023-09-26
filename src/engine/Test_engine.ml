@@ -177,8 +177,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
              let extracted_ranges =
                Match_extract_mode.extract_nested_lang
                  ~match_hook:(fun _ _ -> ())
-                 ~timeout:0. ~timeout_threshold:0 ~all_rules:rules extract_rules
-                 xtarget
+                 ~timeout:0. ~timeout_threshold:0 extract_rules xtarget
              in
              let extract_targets, extract_result_map =
                (List.fold_right (fun (t, fn) (ts, fn_tbl) ->
