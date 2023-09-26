@@ -411,7 +411,6 @@ let core_output_of_matches_and_errors render_fix nfiles (res : Core_result.t) =
          * but should we compute scanned here instead?
          *)
         scanned = [];
-        _comment = None;
       };
     skipped_rules =
       res.RP.skipped_rules
