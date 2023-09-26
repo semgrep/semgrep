@@ -159,7 +159,7 @@ let rec stmt env st =
   | Label (_, _)
   | Goto (_, _, _)
   | Throw (_, _, _)
-  | Try (_, _, _, _)
+  | Try (_, _, _, _, _)
   | WithUsingResource (_, _, _)
   | Assert (_, _, _)
   | DirectiveStmt _

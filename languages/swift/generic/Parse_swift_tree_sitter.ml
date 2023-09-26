@@ -1350,7 +1350,7 @@ and map_do_statement (env : env) ((v1, v2, v3) : CST.do_statement) =
   (* TODO? A do statement is not quite the same as a `try`... but it's close
      enough?
   *)
-  G.Try (do_tok, v2, v3, None) |> G.s
+  G.Try (do_tok, v2, v3, None, None) |> G.s
 
 and map_else_options (env : env) (x : CST.else_options) =
   match x with

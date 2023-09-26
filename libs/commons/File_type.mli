@@ -26,6 +26,7 @@ and pl_type =
   | Csharp
   | ObjectiveC of string
   | Swift
+  | Julia
   | Perl
   | Python
   | Ruby

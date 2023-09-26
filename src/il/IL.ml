@@ -338,6 +338,7 @@ and stmt_kind =
   | Try of
       stmt list
       * (name * stmt list) list (* catches *)
+      * stmt list (* else *)
       * stmt list (* finally *)
   | Throw of tok * exp (* less: enforce lval here? *)
   | MiscStmt of other_stmt

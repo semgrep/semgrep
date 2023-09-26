@@ -1,8 +1,10 @@
 open Js_of_ocaml
 
-(* js_of_ocaml gives each executable its own pseudo-filesystem, which means we must
-   expose the engine's mount points in order for reads to work properly in browser environments
-   (see companion setter in semgrep.semgrep_js_shared.ml) *)
+(* js_of_ocaml gives each executable its own pseudo-filesystem, which means
+   we must expose the engine's mount points in order for reads to work
+   properly in browser environments
+   (see companion setter in semgrep.semgrep_js_shared.ml)
+*)
 external get_jsoo_mount_point : unit -> 'any list = "get_jsoo_mount_point"
 
 type jbool = bool Js.t
@@ -123,7 +125,7 @@ let _ =
          let res = Core_scan.scan config timed_rules in
          let res =
            Core_json_output.core_output_of_matches_and_errors
-             (Some Autofix.render_fix) (List.length res.scanned) res
+             (Some Autofix.render_fix) res
          in
          Semgrep_output_v1_j.string_of_core_output res
     end)
