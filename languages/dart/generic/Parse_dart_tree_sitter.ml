@@ -1965,7 +1965,11 @@ and map_simple_formal_parameter (env : env) (x : CST.simple_formal_parameter) :
       let v2 = (* pattern [a-zA-Z_$][\w$]* *) str env v2 in
       Param (param_of_id ~pattrs:v1 v2)
 
-and map_statement_as_stmt env x = Block (fb (map_statement env x)) |> G.s
+and map_statement_as_stmt env x =
+  match map_statement env x with
+  (* No point in re-packing a Block. *)
+  | [ ({ s = Block _; _ } as other) ] -> other
+  | other -> Block (fb other) |> G.s
 
 and map_statement (env : env) (x : CST.statement) : stmt list =
   match x with
