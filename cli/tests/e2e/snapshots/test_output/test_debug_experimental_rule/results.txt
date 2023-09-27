@@ -11,6 +11,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of stdout - plain
 
 === stderr - plain
+Getting API token from settings file
 semgrep version <MASKED>
 Failed to get project url from 'git ls-remote': Command failed with exit code: 128
 -----
