@@ -16,6 +16,7 @@ module CST = Tree_sitter_swift.CST
 module H = Parse_tree_sitter_helpers
 module G = AST_generic
 module H2 = AST_generic_helpers
+module R = Raw_tree
 
 (*****************************************************************************)
 (* Prelude *)
@@ -34,7 +35,14 @@ type env = context H.env
 let token = H.token
 let str = H.str
 let fb = Tok.unsafe_fake_bracket
-let todo (_env : env) _ = failwith "not implemented"
+
+(* Raw_tree.Token requires a string. Ideally we would call `str env tok` on the
+ * CST tok and get what we need, but sometimes this is inconvenient and we
+ * already have a `Tok.t`. So, call `content_of_tok_opt` to get the string
+ * contents and construct the raw tree. *)
+let raw_of_tok tok =
+  let str = Tok.content_of_tok_opt tok |> Option.value ~default:"" in
+  R.Token (str, tok)
 
 (* Semicolons are associated in the CST with the following statement rather
  * than the previous statement. The grammar is slightly more brief this way,
@@ -141,12 +149,12 @@ let map_comparison_operator (env : env) (x : CST.comparison_operator) =
 
 let map_assignment_and_operator (env : env) (x : CST.assignment_and_operator) =
   match x with
-  | `PLUSEQ tok -> (Some G.Plus, (* "+=" *) token env tok)
-  | `DASHEQ tok -> (Some G.Minus, (* "-=" *) token env tok)
-  | `STAREQ tok -> (Some G.Mult, (* "*=" *) token env tok)
-  | `SLASHEQ tok -> (Some G.Div, (* "/=" *) token env tok)
-  | `PERCEQ tok -> (Some G.Mod, (* "%=" *) token env tok)
-  | `EQ tok -> (None, (* "=" *) token env tok)
+  | `PLUSEQ tok -> (Some G.Plus, (* "+=" *) str env tok)
+  | `DASHEQ tok -> (Some G.Minus, (* "-=" *) str env tok)
+  | `STAREQ tok -> (Some G.Mult, (* "*=" *) str env tok)
+  | `SLASHEQ tok -> (Some G.Div, (* "/=" *) str env tok)
+  | `PERCEQ tok -> (Some G.Mod, (* "%=" *) str env tok)
+  | `EQ tok -> (None, (* "=" *) str env tok)
 
 let map_ownership_modifier (env : env) (x : CST.ownership_modifier) =
   (* These have to do with garbage collection and probably do not matter. *)
@@ -504,8 +512,9 @@ let map_referenceable_operator (env : env) (x : CST.referenceable_operator) =
       let op, (s, tok) = map_equality_operator env x in
       ((s, tok), G.IdSpecial (G.Op op, tok))
   | `Assign_and_op x ->
-      let _op, _tok = map_assignment_and_operator env x in
-      todo env x
+      let _op, (s, tok) = map_assignment_and_operator env x in
+      (* TODO What is the correct translation here? Desugaring? *)
+      ((s, tok), G.RawExpr (R.Token (s, tok)))
   (* TODO There is no good reason for these to be postfix, but this is
    * not determinable right now. Fix later.
    *)
@@ -1414,7 +1423,7 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
       | `Prim_exp x -> map_primary_expression env x
       | `Assign (v1, v2, v3) -> (
           let v1 = map_directly_assignable_expression env v1 in
-          let op, optok = map_assignment_and_operator env v2 in
+          let op, (_opstr, optok) = map_assignment_and_operator env v2 in
           let v3 = map_expression env v3 in
           match op with
           | None -> G.Assign (v1, optok, v3) |> G.e
@@ -1736,12 +1745,18 @@ and map_arguments (env : env) ((v1, v2) : CST.interpolation_contents) :
   v1 @ v2
 
 and map_key_path_component (env : env) (x : CST.key_path_component) =
+  (* NOTE: According to a note at the callsite, this doesn't end up getting
+   * called in practice. At some point. *)
   match x with
   | `Simple_id_rep_key_path_postfs (v1, v2) ->
-      let v1 = map_simple_identifier env v1 in
-      let v2 = Common.map (map_key_path_postfixes env) v2 in
-      todo env (v1, v2)
-  | `Rep1_key_path_postfs xs -> Common.map (map_key_path_postfixes env) xs
+      let _v1 = map_simple_identifier env v1 in
+      let _v2 = Common.map (map_key_path_postfixes env) v2 in
+      (* TODO *)
+      ()
+  | `Rep1_key_path_postfs xs ->
+      let _xs = Common.map (map_key_path_postfixes env) xs in
+      (* TODO *)
+      ()
 
 and map_key_path_postfixes (env : env) (x : CST.key_path_postfixes) =
   match x with
@@ -1750,9 +1765,10 @@ and map_key_path_postfixes (env : env) (x : CST.key_path_postfixes) =
   | `Self tok -> (* "self" *) token env tok
   | `LBRACK_opt_value_arg_rep_COMMA_value_arg_RBRACK (v1, v2, v3) ->
       let lb = (* "[" *) token env v1 in
-      let args = Option.map (map_arguments env) v2 |> Common.optlist_to_list in
-      let rb = (* "]" *) token env v3 in
-      todo env (lb, args, rb)
+      let _args = Option.map (map_arguments env) v2 |> Common.optlist_to_list in
+      let _rb = (* "]" *) token env v3 in
+      (* TODO *)
+      lb
 
 and map_labeled_statement (env : env) ((v1, v2) : CST.labeled_statement) =
   let v1 =
@@ -2038,13 +2054,15 @@ and map_modifierless_class_declaration (env : env) (attrs : G.attribute list)
       let v1 = (* "extension" *) token env v1 in
       let name =
         match v2 with
-        | `User_type x -> name_of_user_type env x
-        | _else_TODO -> todo env v2
+        | `User_type x -> G.EN (name_of_user_type env x)
+        | _else_ ->
+            let t = map_unannotated_type env v2 in
+            G.OtherEntity (("NonUserType", v1), [ G.T t ])
       in
       let tparams =
         Option.map (map_type_parameters env) v3 |> Common.optlist_to_list
       in
-      let entity = { G.name = EN name; attrs; tparams } in
+      let entity = { G.name; attrs; tparams } in
       (* Extensions basically allow you to reopen an existing class. They don't
        * really fit in perfectly to the existing class kinds that we have in the
        * generic AST, but an ordinary class is probably the closest.
@@ -2466,6 +2484,8 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : G.expr =
         Common.map
           (fun (v1, v2) ->
             let _v1 = (* "." *) token env v1 in
+            (* NOTE: map_key_path_component just returns () since according to
+             * the note above, it's apparently not called anyway. *)
             let v2 = map_key_path_component env v2 in
             v2)
           v3
@@ -2636,16 +2656,26 @@ and map_string_literal (env : env) (x : CST.string_literal) : G.expr =
       let v1 =
         Common.map
           (fun (v1, v2, v3) ->
-            let v1 = (* raw_str_part *) token env v1 in
-            let v2 = map_raw_str_interpolation env v2 in
+            let v1 = (* raw_str_part *) str env v1 in
+            let l, v2, r = map_raw_str_interpolation env v2 in
             let v3 =
-              Option.map (* raw_str_continuing_indicator *) (token env) v3
+              Option.map
+                (* raw_str_continuing_indicator *) (fun v3 ->
+                  R.Token (str env v3))
+                v3
             in
-            todo env (v1, v2, v3))
+            (* TODO Find a real translation *)
+            R.Tuple
+              [
+                R.Token v1;
+                R.Tuple [ raw_of_tok l; R.Any (G.E v2); raw_of_tok r ];
+                R.Option v3;
+              ])
           v1
       in
-      let v2 = (* raw_str_end_part *) token env v2 in
-      todo env (v1, v2)
+      let v2 = (* raw_str_end_part *) str env v2 in
+      (* TODO Find a real translation *)
+      G.RawExpr (R.Tuple [ R.List v1; R.Token v2 ]) |> G.e
 
 and map_subscript_declaration (env : env)
     ((v1, v2, v3, v4, v5, v6, v7) : CST.subscript_declaration) =

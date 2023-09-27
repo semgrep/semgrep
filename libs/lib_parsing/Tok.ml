@@ -227,6 +227,14 @@ let content_of_tok ii =
   | Ab ->
       raise (NoTokenLocation "content_of_tok: Expanded or Ab")
 
+let content_of_tok_opt ii =
+  match ii with
+  | OriginTok x -> Some x.str
+  | FakeTok (s, _) -> Some s
+  | ExpandedTok _
+  | Ab ->
+      None
+
 (* Token locations are supposed to denote the beginning of a token.
    Suppose we are interested in instead having line, column, and bytepos of
    the end of a token instead.
