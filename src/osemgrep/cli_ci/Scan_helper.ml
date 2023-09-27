@@ -1,3 +1,6 @@
+(* translated from scans.py *)
+module Out = Semgrep_output_v1_j
+
 (* TODO: specify as ATD the reply of api/agent/deployments/scans *)
 let extract_scan_id data =
   try
@@ -21,7 +24,8 @@ let extract_scan_id data =
   | e ->
       Error ("Couldn't parse json, error: " ^ Printexc.to_string e ^ ": " ^ data)
 
-let start_scan ~dry_run ~token url meta =
+let start_scan ~dry_run ~token (url : Uri.t) (prj : Project_metadata.t) :
+    (string, string) result =
   if dry_run then (
     Logs.app (fun m -> m "Would have sent POST request to create scan");
     Ok "")
@@ -34,7 +38,8 @@ let start_scan ~dry_run ~token url meta =
       ]
     in
     let scan_endpoint = Uri.with_path url "api/agent/deployments/scans" in
-    let body = JSON.(string_of_json (Object [ ("meta", meta) ])) in
+    let meta : Out.meta = { meta = prj } in
+    let body = Out.string_of_meta meta in
     match Http_helpers.post ~body ~headers scan_endpoint with
     | Ok body -> extract_scan_id body
     | Error (status, msg) ->
