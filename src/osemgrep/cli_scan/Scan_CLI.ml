@@ -126,7 +126,6 @@ let default : conf =
       {
         profile = false;
         logging_level = Some Logs.Warning;
-        (* or set to Experimental by default when we release osemgrep? *)
         maturity = Maturity.Default;
       };
     time_flag = false;
@@ -142,7 +141,7 @@ let default : conf =
     rewrite_rule_ids = true;
     (* will send metrics only if the user uses the registry or the app *)
     metrics = Metrics_.Auto;
-    (* like maturity, should maybe be set to false when we release osemgrep *)
+    (* like ast_caching, better to default to false for now *)
     registry_caching = false;
     version_check = true;
     (* ugly: should be separate subcommands *)
@@ -776,13 +775,19 @@ let o_project_root : string option Term.t =
 let o_ast_caching : bool Term.t =
   H.negatable_flag [ "ast-caching" ] ~neg_options:[ "no-ast-caching" ]
     ~default:default.core_runner_conf.ast_caching
-    ~doc:{|Store in ~/.semgrep/cache/asts/ the parsed ASTs to speedup things.|}
+    ~doc:
+      {|Store in ~/.semgrep/cache/asts/ the parsed ASTs to speedup things.
+Requires --experimental.
+|}
 
 (* TODO: add also an --offline flag? what about metrics? *)
 let o_registry_caching : bool Term.t =
   H.negatable_flag [ "registry-caching" ] ~neg_options:[ "no-registry-caching" ]
     ~default:default.registry_caching
-    ~doc:{|Cache for 24 hours in ~/.semgrep/cache rules from the registry.|}
+    ~doc:
+      {|Cache for 24 hours in ~/.semgrep/cache rules from the registry.
+Requires --experimental.
+|}
 
 (*****************************************************************************)
 (* Turn argv into a conf *)
@@ -897,26 +902,6 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       | xs, (None, None, None) -> Rules_source.Configs xs
       | _ :: _, (Some _, _, _) ->
           Error.abort "Mutually exclusive options --config/--pattern"
-    in
-    (* to remove at some point *)
-    let registry_caching, ast_caching =
-      match common.maturity with
-      | Maturity.Develop -> (registry_caching, ast_caching)
-      (* ugly: TODO some of our e2e tests rely on --debug but
-       * our Logs message are still different with pysemgrep. Moreover,
-       * we now by default parse the CLI args also with osemgrep,
-       * but we don't to print anything in the parse-the-CLI-args part
-       * so that our e2e tests still pass, hence this special case here.
-       * Once we remove the sanity check in pysemgrep, we can just rely
-       * on osemgrep to do it and adjust the e2e snapshots.
-       *)
-      | Maturity.Default
-      | Maturity.Legacy ->
-          (false, false)
-      | Maturity.Experimental ->
-          Logs.debug (fun m ->
-              m "disabling registry and AST caching unless --develop");
-          (false, false)
     in
     let core_runner_conf =
       {

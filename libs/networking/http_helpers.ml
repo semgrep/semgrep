@@ -1,11 +1,19 @@
 open Cohttp
 
-(* Below we separate the methods out by async (returns Lwt promise),
-   and sync (runs async method in lwt runtime)
-*)
-(* This way we can use the async methods in the language server,
-   and other places too
-*)
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* A few helpers to perform http GET and POST requests.
+ *
+ * Below we separate the methods out by async (returns Lwt promise),
+ * and sync (runs async method in lwt runtime)
+ * This way we can use the async methods in the language server,
+ * and other places too.
+ *
+ * Note that using [@@profiling] with xxx_async function is useless
+ * as the actual computation is done in the caller doing the
+ * Lwy_main.run
+ *)
 
 (*****************************************************************************)
 (* Client *)
@@ -36,7 +44,6 @@ let get_async ?(headers = []) url =
       let err = "HTTP GET unexpected response: " ^ code_str ^ ":\n" ^ body in
       Logs.debug (fun m -> m "%s" err);
       Lwt.return (Error err)
-  [@@profiling]
 
 let post_async ~body ?(headers = [ ("content-type", "application/json") ])
     ?(chunked = false) url =
@@ -59,7 +66,6 @@ let post_async ~body ?(headers = [ ("content-type", "application/json") ])
       let err = "HTTP POST unexpected response: " ^ code_str ^ ":\n" ^ body in
       Logs.debug (fun m -> m "%s" err);
       Lwt.return (Error (code, err))
-  [@@profiling]
 
 (*****************************************************************************)
 (* Sync *)
