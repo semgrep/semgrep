@@ -248,6 +248,7 @@ def test_debug_experimental_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
                 re.compile(r"-targets (.*) -timeout"),
                 re.compile(r"-rules (.*).json"),
                 re.compile(r".*Main.Autofix.*"),
+                re.compile(r"-j ([0-9]+)"),
             ]
         ),
         "results.txt",
