@@ -229,19 +229,18 @@ https://docs.python.org/3/library/glob.html
   Arg.value (Arg.opt_all Arg.string [] info)
 
 let o_max_target_bytes : int Term.t =
+  let default = default.targeting_conf.max_target_bytes in
   let info =
     Arg.info [ "max-target-bytes" ]
       ~doc:
-        ({|Maximum size for a file to be scanned by Semgrep, e.g
+        (spf
+           {|Maximum size for a file to be scanned by Semgrep, e.g
 '1.5MB'. Any input program larger than this will be ignored. A zero or
-negative value disables this filter. Defaults to |}
-        ^ string_of_int default.targeting_conf.max_target_bytes
-        ^ {| bytes.
-|})
+negative value disables this filter. Defaults to %d bytes|}
+           default)
   in
-  Arg.value
-    (Arg.opt Cmdliner_helpers.number_of_bytes_converter
-       default.targeting_conf.max_target_bytes info)
+
+  Arg.value (Arg.opt Cmdliner_helpers.number_of_bytes_converter default info)
 
 let o_respect_git_ignore : bool Term.t =
   H.negatable_flag [ "use-git-ignore" ] ~neg_options:[ "no-git-ignore" ]
@@ -257,14 +256,18 @@ in a git repository.
 |}
 
 let o_scan_unknown_extensions : bool Term.t =
+  let default = default.targeting_conf.scan_unknown_extensions in
   H.negatable_flag
     [ "scan-unknown-extensions" ]
     ~neg_options:[ "skip-unknown-extensions" ]
-    ~default:default.targeting_conf.scan_unknown_extensions
+    ~default
     ~doc:
-      {|If true, explicit files will be scanned using the language specified
+      (spf
+         {|If true, explicit files will be scanned using the language specified
 in --lang. If --skip-unknown-extensions, these files will not be scanned.
+Defaults to %b.
 |}
+         default)
 
 (* alt: could be put in the Display options with nosem *)
 let o_baseline_commit : string option Term.t =
@@ -290,12 +293,14 @@ let o_num_jobs : int Term.t =
     Arg.info [ "j"; "jobs" ]
       ~doc:
         {|Number of subprocesses to use to run checks in
-parallel. Defaults to the number of cores detected on the system.
+parallel. Defaults to the number of cores detected on the system
+(1 if using --pro).
 |}
   in
   Arg.value (Arg.opt Arg.int default.core_runner_conf.num_jobs info)
 
 let o_max_memory_mb : int Term.t =
+  let default = default.core_runner_conf.max_memory_mb in
   let info =
     Arg.info [ "max-memory" ]
       ~doc:
@@ -304,7 +309,7 @@ If set to 0 will not have memory limit. Defaults to 0. For CI scans
 that use the Pro Engine, it defaults to 5000 MiB.
 |}
   in
-  Arg.value (Arg.opt Arg.int default.core_runner_conf.max_memory_mb info)
+  Arg.value (Arg.opt Arg.int default info)
 
 let o_optimizations : bool Term.t =
   let parse = function
@@ -327,26 +332,43 @@ Use 'none' to turn all optimizations off.
   Arg.value (Arg.opt converter default.core_runner_conf.optimizations info)
 
 let o_timeout : float Term.t =
+  let default = default.core_runner_conf.timeout in
   let info =
-    Arg.info
-      [ "timeout" ] (* TOPORT: use default value in doc. switch to int? *)
+    Arg.info [ "timeout" ]
       ~doc:
-        {|Maximum time to spend running a rule on a single file in
-seconds. If set to 0 will not have time limit. Defaults to 30 s.
+        (spf
+           {|Maximum time to spend running a rule on a single file in
+seconds. If set to 0 will not have time limit. Defaults to %.1f s.
 |}
+           default)
   in
   (*TOPORT: envvar="SEMGREP_TIMEOUT" *)
-  Arg.value (Arg.opt Arg.float default.core_runner_conf.timeout info)
+  Arg.value (Arg.opt Arg.float default info)
 
 let o_timeout_threshold : int Term.t =
+  let default = default.core_runner_conf.timeout_threshold in
   let info =
     Arg.info [ "timeout-threshold" ]
       ~doc:
-        {|Maximum number of rules that can time out on a file before
-the file is skipped. If set to 0 will not have limit. Defaults to 3.
+        (spf
+           {|Maximum number of rules that can time out on a file before
+the file is skipped. If set to 0 will not have limit. Defaults to %d.
 |}
+           default)
   in
-  Arg.value (Arg.opt Arg.int default.core_runner_conf.timeout_threshold info)
+  Arg.value (Arg.opt Arg.int default info)
+
+(* TODO: currently just used in pysemgrep and semgrep-core-proprietary *)
+let o_timeout_interfile : int Term.t =
+  let default = 0 in
+  let info =
+    Arg.info [ "interfile-timeout" ]
+      ~doc:
+        {|Maximum time to spend on interfile analysis. If set to 0 will not
+have time limit. Defaults to 0 s for all CLI scans. For CI scans, it defaults
+to 3 hours.|}
+  in
+  Arg.value (Arg.opt Arg.int default info)
 
 (* ------------------------------------------------------------------ *)
 (* Display options *)
@@ -379,8 +401,8 @@ let o_max_lines_per_finding : int Term.t =
     Arg.info
       [ "max-lines-per-finding" ]
       ~doc:
-        {|Maximum number of lines of code that will be shown for each match before
-trimming (set to 0 for unlimited).|}
+        {|Maximum number of lines of code that will be shown for each match
+before trimming (set to 0 for unlimited).|}
   in
   Arg.value (Arg.opt Arg.int default.max_lines_per_finding info)
 
@@ -477,7 +499,12 @@ let o_junit_xml : bool Term.t =
 (* ------------------------------------------------------------------ *)
 
 let o_secrets : bool Term.t =
-  let info = Arg.info [ "secrets" ] ~doc:{|Run with Semgrep Secrets.|} in
+  let info =
+    Arg.info [ "secrets" ]
+      ~doc:
+        {|Enable support for secret validation. Requires Semgrep Secrets,
+contact support@semgrep.com for more informationon this.|}
+  in
   Arg.value (Arg.flag info)
 
 let o_allow_untrusted_postprocessors : bool Term.t =
@@ -493,28 +520,38 @@ let o_allow_untrusted_postprocessors : bool Term.t =
 (* ------------------------------------------------------------------ *)
 
 let o_oss : bool Term.t =
-  let info = Arg.info [ "oss" ] ~doc:{|Run with the OSS engine.|} in
+  let info =
+    Arg.info [ "oss-only" ]
+      ~doc:
+        {|Run using only OSS features, even if the Semgrep Pro toggle is on.|}
+  in
   Arg.value (Arg.flag info)
+
+let blurb =
+  "Requires Semgrep Pro Engine, contact support@semgrep.com for more \
+   information on this."
 
 let o_pro_languages : bool Term.t =
   let info =
     Arg.info [ "pro-languages" ]
-      ~doc:
-        {|Run a language only supported by the pro engine without extra analysis features.|}
+      ~doc:("Enable Pro languages (currently just Apex). " ^ blurb)
   in
   Arg.value (Arg.flag info)
 
 let o_pro_intrafile : bool Term.t =
   let info =
     Arg.info [ "pro-intrafile" ]
-      ~doc:{|Run with intrafile cross-function analysis.|}
+      ~doc:
+        ("Intra-file inter-procedural taint analysis. Implies --pro-languages. "
+       ^ blurb)
   in
   Arg.value (Arg.flag info)
 
 let o_pro : bool Term.t =
   let info =
     Arg.info [ "pro" ]
-      ~doc:{|Run with all pro engine features including cross-file analysis.|}
+      ~doc:
+        ("Inter-file analysis and Pro languages (currently just Apex). " ^ blurb)
   in
   Arg.value (Arg.flag info)
 
@@ -584,9 +621,9 @@ let o_dryrun : bool Term.t =
   H.negatable_flag [ "dryrun" ] ~neg_options:[ "no-dryrun" ]
     ~default:default.dryrun
     ~doc:
-      {|If --dryrun, does not write autofixes to a file. This will print the changes
-to the console. This lets you see the changes before you commit to them. Only
-works with the --autofix flag. Otherwise does nothing.
+      {|If --dryrun, does not write autofixes to a file. This will print the
+changes to the console. This lets you see the changes before you commit to
+them. Only works with the --autofix flag. Otherwise does nothing.
 |}
 
 let o_severity : Severity.t list Term.t =
@@ -763,7 +800,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       pro_lang registry_caching replacement respect_git_ignore rewrite_rule_ids
       sarif scan_unknown_extensions secrets severity show_supported_languages
       strict target_roots test test_ignore_todo text time_flag timeout
-      timeout_threshold validate version version_check vim =
+      _timeout_interfileTODO timeout_threshold validate version version_check
+      vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Logs_helpers.setup_logging ~force_color
@@ -1078,8 +1116,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     $ o_respect_git_ignore $ o_rewrite_rule_ids $ o_sarif
     $ o_scan_unknown_extensions $ o_secrets $ o_severity
     $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
-    $ o_test_ignore_todo $ o_text $ o_time $ o_timeout $ o_timeout_threshold
-    $ o_validate $ o_version $ o_version_check $ o_vim)
+    $ o_test_ignore_todo $ o_text $ o_time $ o_timeout $ o_timeout_interfile
+    $ o_timeout_threshold $ o_validate $ o_version $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
 
