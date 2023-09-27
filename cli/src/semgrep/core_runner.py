@@ -933,6 +933,7 @@ class CoreRunner:
         rules: List[Rule],
         target_manager: TargetManager,
         dump_command_for_core: bool,
+        time_flag: bool,
         engine: EngineType,
         run_secrets: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
@@ -1005,8 +1006,10 @@ class CoreRunner:
                 str(self._timeout_threshold),
                 "-max_memory",
                 str(self._max_memory),
-                "-json_time",
             ]
+
+            if time_flag:
+                cmd.append("-json_time")
 
             if self._core_opts:
                 logger.info(
@@ -1143,6 +1146,7 @@ class CoreRunner:
         rules: List[Rule],
         target_manager: TargetManager,
         dump_command_for_core: bool,
+        time_flag: bool,
         engine: EngineType,
         run_secrets: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
@@ -1159,6 +1163,7 @@ class CoreRunner:
                 rules,
                 target_manager,
                 dump_command_for_core,
+                time_flag,
                 engine,
                 run_secrets,
             )
@@ -1192,6 +1197,7 @@ Exception raised: `{e}`
         target_manager: TargetManager,
         rules: List[Rule],
         dump_command_for_core: bool,
+        time_flag: bool,
         engine: EngineType,
         run_secrets: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
@@ -1208,6 +1214,7 @@ Exception raised: `{e}`
             rules,
             target_manager,
             dump_command_for_core,
+            time_flag,
             engine,
             run_secrets,
         )
