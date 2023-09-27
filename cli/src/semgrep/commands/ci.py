@@ -22,7 +22,6 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.app import auth
 from semgrep.app.scans import ScanHandler
 from semgrep.commands.install import run_install_semgrep_pro
-from semgrep.commands.scan import CONTEXT_SETTINGS
 from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.console import console
@@ -115,7 +114,7 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     atexit.register(git_check_output, ["git", "checkout", stashed_rev], os.getcwd())
 
 
-@click.command(context_settings=CONTEXT_SETTINGS)
+@click.command()
 @click.pass_context
 @scan_options
 @click.option(

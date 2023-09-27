@@ -50,8 +50,6 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-ScanReturn = Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]
-
 
 class MetricsStateType(click.ParamType):
     name = "metrics_state"
@@ -80,10 +78,6 @@ class MetricsStateType(click.ParamType):
 
 
 METRICS_STATE_TYPE = MetricsStateType()
-
-
-# Slightly increase the help width from default 80 characters, to improve readability
-CONTEXT_SETTINGS = {"max_content_width": 90}
 
 _scan_options: List[Callable] = [
     click.help_option("--help", "-h"),
@@ -338,7 +332,7 @@ def scan_options(func: Callable) -> Callable:
     return func
 
 
-@click.command(context_settings=CONTEXT_SETTINGS)
+@click.command()
 @click.argument("targets", nargs=-1, type=click.Path(allow_dash=True))
 @click.option(
     "--replacement",
@@ -447,7 +441,7 @@ def scan(
     validate: bool,
     verbose: bool,
     version: bool,
-) -> ScanReturn:
+) -> Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]:
 
     if version:
         print(__VERSION__)
@@ -562,7 +556,9 @@ def scan(
         targets = write_pipes_to_disk(targets, Path(pipes_dir))
 
         output_handler = OutputHandler(output_settings)
-        return_data: ScanReturn = None
+        return_data: Optional[
+            Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]
+        ] = None
 
         if validate:
             if not (pattern or lang or config):
