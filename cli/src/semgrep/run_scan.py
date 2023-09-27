@@ -624,7 +624,6 @@ def run_rules(
 # old: this used to be called semgrep.semgrep_main.main
 def run_scan(
     *,
-    core_opts_str: Optional[str] = None,
     dump_command_for_core: bool = False,
     time_flag: bool = False,
     engine_type: EngineType = EngineType.OSS,
@@ -791,7 +790,6 @@ def run_scan(
         timeout_threshold=timeout_threshold,
         optimizations=optimizations,
         allow_untrusted_postprocessors=allow_untrusted_postprocessors,
-        core_opts_str=core_opts_str,
     )
 
     if dump_contributions:

@@ -181,7 +181,6 @@ def ci(
     # redirect to `--secrets` aka run_secrets_flag.
     beta_testing_secrets: bool,
     code: bool,
-    core_opts: Optional[str],
     config: Optional[Tuple[str, ...]],
     debug: bool,
     dump_command_for_core: bool,
@@ -438,7 +437,6 @@ def ci(
             num_executed_rules,
             contributions,
         ) = semgrep.run_scan.run_scan(
-            core_opts_str=core_opts,
             engine_type=engine_type,
             run_secrets=run_secrets,
             output_handler=output_handler,

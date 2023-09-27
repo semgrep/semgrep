@@ -276,12 +276,6 @@ _scan_options: List[Callable] = [
             to 3 hours.
         """,
     ),
-    optgroup.option(
-        "--core-opts",
-        hidden=True,
-        type=str,
-        help="Flags to pass semgrep-core when executing",
-    ),
     optgroup.group("Display options"),
     optgroup.option(
         "--enable-nosem/--disable-nosem",
@@ -578,7 +572,6 @@ def scan(
     autofix: bool,
     baseline_commit: Optional[str],
     config: Optional[Tuple[str, ...]],
-    core_opts: Optional[str],
     debug: bool,
     dump_engine_path: bool,
     requested_engine: Optional[EngineType],
@@ -764,7 +757,6 @@ def scan(
                             interfile_timeout=interfile_timeout,
                             optimizations=optimizations,
                             allow_untrusted_postprocessors=allow_untrusted_postprocessors,
-                            core_opts_str=core_opts,
                         ).validate_configs(config)
                     except SemgrepError as e:
                         metacheck_errors = [e]
@@ -796,7 +788,6 @@ def scan(
                     _num_executed_rules,
                     _,
                 ) = semgrep.run_scan.run_scan(
-                    core_opts_str=core_opts,
                     dump_command_for_core=dump_command_for_core,
                     time_flag=time_flag,
                     engine_type=engine_type,
