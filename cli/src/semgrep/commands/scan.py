@@ -1,3 +1,4 @@
+# THIS FILE IS DEPRECATED! DO NOT MODIFY FLAGS HERE! INSTEAD MODIFY Scan_CLI.ml
 import os
 import tempfile
 from itertools import chain
@@ -85,37 +86,23 @@ METRICS_STATE_TYPE = MetricsStateType()
 CONTEXT_SETTINGS = {"max_content_width": 90}
 
 _scan_options: List[Callable] = [
-    click.help_option("--help", "-h", help=("Show this message and exit.")),
+    click.help_option("--help", "-h", help=("")),
     click.option(
         "-a",
         "--autofix/--no-autofix",
         is_flag=True,
-        help="""
-            Apply autofix patches. WARNING: data loss can occur with this
-            flag. Make sure your files are stored in a version control system.
-            Note that this mode is experimental and not guaranteed to function properly.
-        """,
+        help="",
     ),
     click.option(
         "--baseline-commit",
-        help="""
-            Only show results that are not found in this commit hash. Aborts run if not currently
-            in a git directory, there are unstaged changes, or given baseline hash doesn't exist
-        """,
+        help="",
         envvar=["SEMGREP_BASELINE_COMMIT", "SEMGREP_BASELINE_REF"],
     ),
     click.option(
         "--metrics",
         "metrics",
         type=METRICS_STATE_TYPE,
-        help="""
-            Configures how usage metrics are sent to the Semgrep server.
-            If 'auto', metrics are sent whenever the --config value pulls from the Semgrep server.
-            If 'on', metrics are always sent.
-            If 'off', metrics are disabled altogether and not sent.
-            If absent, the SEMGREP_SEND_METRICS environment variable value will be used.
-            If no environment variable, defaults to 'auto'.
-        """,
+        help="",
         envvar="SEMGREP_SEND_METRICS",
     ),
     click.option(
@@ -136,81 +123,42 @@ _scan_options: List[Callable] = [
     ),
     optgroup.group(
         "Path options",
-        help="""
-            By default, Semgrep scans all git-tracked files with extensions matching rules' languages.
-            These options alter which files Semgrep scans.
-        """,
     ),
     optgroup.option(
         "--exclude",
         multiple=True,
         default=[],
-        help="""
-            Skip any file or directory that matches this pattern; --exclude='*.py' will ignore
-            the following: foo.py, src/foo.py, foo.py/bar.sh. --exclude='tests' will ignore tests/foo.py
-            as well as a/b/tests/c/foo.py. Can add multiple times. If present, any --include directives
-            are ignored.
-        """,
+        help="",
     ),
     optgroup.option(
         "--exclude-rule",
         multiple=True,
         default=[],
-        help="""
-            Skip any rule with the given id. Can add multiple times.
-        """,
+        help="",
     ),
     optgroup.option(
         "--include",
         multiple=True,
         default=[],
-        help="""
-            Filter files or directories by path. The argument is a
-            glob-style pattern such as 'foo.*' that must match the path.
-            This is an extra filter in addition to other applicable filters.
-            For example, specifying the language with '-l javascript' might
-            preselect files 'src/foo.jsx' and 'lib/bar.js'. Specifying one of
-            '--include=src', '--include=*.jsx', or '--include=src/foo.*'
-            will restrict the selection to the single file 'src/foo.jsx'.
-            A choice of multiple '--include' patterns can be specified.
-            For example, '--include=foo.* --include=bar.*' will select
-            both 'src/foo.jsx' and 'lib/bar.js'.
-            Glob-style patterns follow the syntax supported by python,
-            which is documented at https://docs.python.org/3/library/glob.html
-        """,
+        help="",
     ),
     optgroup.option(
         "--max-target-bytes",
         type=bytesize.ByteSizeType(),
         default=DEFAULT_MAX_TARGET_SIZE,
-        help=f"""
-            Maximum size for a file to be scanned by Semgrep, e.g '1.5MB'. Any input
-            program larger than this will be ignored. A zero or negative value disables
-            this filter. Defaults to {DEFAULT_MAX_TARGET_SIZE} bytes.
-        """,
+        help=f"",
     ),
     optgroup.option(
         "--use-git-ignore/--no-git-ignore",
         is_flag=True,
         default=True,
-        help="""
-            Skip files ignored by git. Scanning starts from the root folder specified on
-            the Semgrep command line. Normally, if the scanning root is within a git
-            repository, only the tracked files and the new files would be scanned. Git
-            submodules and git-ignored files would normally be skipped. --no-git-ignore
-            will disable git-aware filtering. Setting this flag does nothing if the
-            scanning root is not in a git repository.
-        """,
+        help="",
     ),
     optgroup.option(
         "--scan-unknown-extensions/--skip-unknown-extensions",
         is_flag=True,
         default=False,
-        help="""
-            If true, explicit files will be scanned using the language specified in
-            --lang. If --skip-unknown-extensions, these files will not be scanned.
-            Defaults to false.
-        """,
+        help="",
     ),
     optgroup.group("Performance and memory options"),
     optgroup.option(
@@ -218,62 +166,43 @@ _scan_options: List[Callable] = [
         is_flag=True,
         default=True,
         envvar="SEMGREP_ENABLE_VERSION_CHECK",
-        help="""
-            Checks Semgrep servers to see if the latest version is run; disabling this
-            may reduce exit time after returning results.
-        """,
+        help="",
     ),
     optgroup.option(
         "-j",
         "--jobs",
         type=int,
-        help="""
-            Number of subprocesses to use to run checks in parallel. Defaults to the
-            number of cores on the system (1 if using --pro).
-        """,
+        help="",
     ),
     optgroup.option(
         "--max-memory",
         type=int,
-        help="""
-            Maximum system memory to use running a rule on a single file in MiB.
-            If set to 0 will not have memory limit. Defaults to 0. For CI scans
-            that use the Pro Engine, it defaults to 5000 MiB.
-        """,
+        help="",
     ),
     optgroup.option(
         "--optimizations",
         default="all",
         type=click.Choice(["all", "none"]),
-        help="Turn on/off optimizations. Default = 'all'. Use 'none' to turn all optimizations off.",
+        help="",
     ),
     optgroup.option(
         "--timeout",
         type=int,
         default=DEFAULT_TIMEOUT,
-        help=f"""
-            Maximum time to spend running a rule on a single file in seconds. If set to 0
-            will not have time limit. Defaults to {DEFAULT_TIMEOUT} s.
-        """,
+        help=f"",
         envvar="SEMGREP_TIMEOUT",
     ),
     optgroup.option(
         "--timeout-threshold",
         type=int,
         default=3,
-        help="""
-            Maximum number of rules that can timeout on a file before the file is
-            skipped. If set to 0 will not have limit. Defaults to 3.
-        """,
+        help="",
     ),
     # TODO: Move to Semgrep Pro Engine group ?
     optgroup.option(
         "--interfile-timeout",
         type=int,
         help=f"""
-            Maximum time to spend on interfile analysis. If set to 0 will not have
-            time limit. Defaults to 0 s for all CLI scans. For CI scans, it defaults
-            to 3 hours.
         """,
     ),
     optgroup.group("Display options"),
@@ -281,88 +210,70 @@ _scan_options: List[Callable] = [
         "--enable-nosem/--disable-nosem",
         is_flag=True,
         default=True,
-        help="""
-            --enable-nosem enables 'nosem'. Findings will not be reported on lines
-            containing a 'nosem' comment at the end. Enabled by default.
-        """,
+        help="",
     ),
     optgroup.option(
         "--force-color/--no-force-color",
         is_flag=True,
-        help="""
-            Always include ANSI color in the output, even if not writing to a TTY;
-            defaults to using the TTY status
-        """,
+        help="",
     ),
     optgroup.option(
         MAX_CHARS_FLAG_NAME,
         type=int,
         default=DEFAULT_MAX_CHARS_PER_LINE,
-        help="Maximum number of characters to show per line.",
+        help="",
     ),
     optgroup.option(
         MAX_LINES_FLAG_NAME,
         type=int,
         default=DEFAULT_MAX_LINES_PER_FINDING,
-        help="""
-            Maximum number of lines of code that will be shown for each match before
-            trimming (set to 0 for unlimited).
-        """,
+        help="",
     ),
     optgroup.option(
         "--dataflow-traces",
         default=None,
         is_flag=True,
-        help="Explain how non-local values reach the location of a finding (only affects text and SARIF output).",
+        help="",
     ),
     optgroup.option(
         "-o",
         "--output",
-        help="Save search results to a file or post to URL. Default is to print to stdout.",
+        help="",
     ),
     optgroup.option(
         "--rewrite-rule-ids/--no-rewrite-rule-ids",
         is_flag=True,
         default=True,
-        help="""
-            Rewrite rule ids when they appear in nested sub-directories (Rule 'foo' in
-            test/rules.yaml will be renamed 'test.foo').
-        """,
+        help="",
     ),
     optgroup.option(
         "--time/--no-time",
         "time_flag",
         is_flag=True,
         default=False,
-        help="""
-            Include a timing summary with the results. If output format is json, provides
-            times for each pair (rule, target).
-        """,
+        help="",
     ),
     optgroup.group("Verbosity options", cls=MutuallyExclusiveOptionGroup),
     optgroup.option(
         "-q",
         "--quiet",
         is_flag=True,
-        help=("Only output findings."),
+        help="",
     ),
     optgroup.option(
         "-v",
         "--verbose",
         is_flag=True,
-        help=(
-            "Show more details about what rules are running, which files failed to parse, etc."
-        ),
+        help="",
     ),
     optgroup.option(
         "--debug",
         is_flag=True,
-        help="All of --verbose, but with additional debugging information.",
+        help="",
     ),
     optgroup.group(
         "Output formats",
         cls=MutuallyExclusiveOptionGroup,
-        help="Uses ASCII output if no format specified.",
     ),
     optgroup.option(
         "--text",
@@ -370,56 +281,56 @@ _scan_options: List[Callable] = [
         type=OutputFormat,
         flag_value=OutputFormat.TEXT,
         default=True,
-        help="Output results in Emacs single-line format.",
+        help="",
     ),
     optgroup.option(
         "--emacs",
         "output_format",
         type=OutputFormat,
         flag_value=OutputFormat.EMACS,
-        help="Output results in Emacs single-line format.",
+        help="",
     ),
     optgroup.option(
         "--json",
         "output_format",
         type=OutputFormat,
         flag_value=OutputFormat.JSON,
-        help="Output results in Semgrep's JSON format.",
+        help="",
     ),
     optgroup.option(
         "--gitlab-sast",
         "output_format",
         type=OutputFormat,
         flag_value=OutputFormat.GITLAB_SAST,
-        help="Output results in GitLab SAST format.",
+        help="",
     ),
     optgroup.option(
         "--gitlab-secrets",
         "output_format",
         type=OutputFormat,
         flag_value=OutputFormat.GITLAB_SECRETS,
-        help="Output results in GitLab Secrets format.",
+        help="",
     ),
     optgroup.option(
         "--junit-xml",
         "output_format",
         type=OutputFormat,
         flag_value=OutputFormat.JUNIT_XML,
-        help="Output results in JUnit XML format.",
+        help="",
     ),
     optgroup.option(
         "--sarif",
         "output_format",
         type=OutputFormat,
         flag_value=OutputFormat.SARIF,
-        help="Output results in SARIF format.",
+        help="",
     ),
     optgroup.option(
         "--vim",
         "output_format",
         type=OutputFormat,
         flag_value=OutputFormat.VIM,
-        help="Output results in vim single-line format.",
+        help="",
     ),
     optgroup.group("Semgrep Pro Engine options"),
     optgroup.option(
@@ -427,35 +338,35 @@ _scan_options: List[Callable] = [
         "requested_engine",
         type=EngineType,
         flag_value=EngineType.PRO_INTERFILE,
-        help="Inter-file analysis and Pro languages (currently just Apex). Requires Semgrep Pro Engine, contact support@semgrep.com for more information on this.",
+        help="",
     ),
     optgroup.option(
         "--pro-intrafile",
         "requested_engine",
         type=EngineType,
         flag_value=EngineType.PRO_INTRAFILE,
-        help="Intra-file inter-procedural taint analysis. Implies --pro-languages. Requires Semgrep Pro Engine, contact support@semgrep.com for more information on this.",
+        help="",
     ),
     optgroup.option(
         "--pro-languages",
         "requested_engine",
         type=EngineType,
         flag_value=EngineType.PRO_LANG,
-        help="Enable Pro languages (currently just Apex). Requires Semgrep Pro Engine, contact support@semgrep.com for more information on this.",
+        help="",
     ),
     optgroup.option(
         "--oss-only",
         "requested_engine",
         type=EngineType,
         flag_value=EngineType.OSS,
-        help="Run using only OSS features, even if the Semgrep Pro toggle is on.",
+        help="",
     ),
     optgroup.option(
         "--secrets",
         "run_secrets_flag",
         is_flag=True,
         hidden=True,
-        help="Enable support for secret validation. Requires Semgrep Secrets, contact support@semgrep.com for more informationon this.",
+        help="",
     ),
     optgroup.option("--dump-command-for-core", "-d", is_flag=True, hidden=True),
     optgroup.option("--allow-untrusted-postprocessors", is_flag=True, hidden=True),
@@ -472,10 +383,7 @@ def scan_options(func: Callable) -> Callable:
 @click.argument("targets", nargs=-1, type=click.Path(allow_dash=True))
 @click.option(
     "--replacement",
-    help="""
-        An autofix expression that will be applied to any matches found with --pattern.
-        Only valid with a command-line specified pattern.
-    """,
+    help="",
 )
 @optgroup.group("Configuration options", cls=MutuallyExclusiveOptionGroup)
 @optgroup.option(
@@ -483,88 +391,62 @@ def scan_options(func: Callable) -> Callable:
     "-c",
     "-f",
     multiple=True,
-    help="""
-        YAML configuration file, directory of YAML files ending in
-        .yml|.yaml, URL of a configuration file, or Semgrep registry entry name.
-        \n\n
-        Use --config auto to automatically obtain rules tailored to this project; your project URL will be used to log in
-         to the Semgrep registry.
-        \n\n
-        To run multiple rule files simultaneously, use --config before every YAML, URL, or Semgrep registry entry name.
-         For example `semgrep --config p/python --config myrules/myrule.yaml`
-        \n\n
-        See https://semgrep.dev/docs/writing-rules/rule-syntax for information on configuration file format.
-    """,
+    help="",
     envvar="SEMGREP_RULES",
 )
 @optgroup.option(
     "--pattern",
     "-e",
-    help="Code search pattern. See https://semgrep.dev/docs/writing-rules/pattern-syntax for information on pattern features.",
+    help="",
 )
 @click.option(
     "--lang",
     "-l",
-    help="Parse pattern and all files in specified language. Must be used with -e/--pattern.",
+    help="",
 )
 @click.option(
     "--dryrun/--no-dryrun",
     is_flag=True,
     default=False,
-    help="""
-        If --dryrun, does not write autofixes to a file. This will print the changes
-        to the console. This lets you see the changes before you commit to them. Only
-        works with the --autofix flag. Otherwise does nothing.
-    """,
+    help="",
 )
 @click.option(
     "--severity",
     multiple=True,
     type=click.Choice(["INFO", "WARNING", "ERROR"]),
-    help="""
-        Report findings only from rules matching the supplied severity level. By
-        default all applicable rules are run. Can add multiple times. Each should
-        be one of INFO, WARNING, or ERROR.
-    """,
+    help="",
 )
-@optgroup.group("Alternate modes", help="No search is performed in these modes")
+@optgroup.group("Alternate modes")
 @optgroup.option(
     "--validate",
     is_flag=True,
     default=False,
-    help="Validate configuration file(s). This will check YAML files for errors and run 'p/semgrep-rule-lints' on the YAML files. No search is performed.",
+    help="",
 )
-@optgroup.option(
-    "--version", is_flag=True, default=False, help="Show the version and exit."
-)
+@optgroup.option("--version", is_flag=True, default=False, help="")
 @optgroup.group("Test and debug options")
 @optgroup.option("--test", is_flag=True, default=False, help="Run test suite.")
 @optgroup.option(
     "--test-ignore-todo/--no-test-ignore-todo",
     is_flag=True,
     default=False,
-    help="If --test-ignore-todo, ignores rules marked as '#todoruleid:' in test files.",
+    help="",
 )
 @click.option(
     "--error/--no-error",
     "error_on_findings",
     is_flag=True,
-    help="Exit 1 if there are findings. Useful for CI and scripts.",
+    help="",
 )
 @click.option(
     "--strict/--no-strict",
     is_flag=True,
     default=False,
-    help="Return a nonzero exit code when WARN level errors are encountered. Fails early if invalid configuration files are present. Defaults to --no-strict.",
+    help="",
 )
 # These flags are deprecated or experimental - users should not
 # rely on their existence, or their output being stable
-@click.option(
-    "--dump-engine-path",
-    is_flag=True,
-    hidden=True
-    # help="contact support@semgrep.com for more information on this"
-)
+@click.option("--dump-engine-path", is_flag=True, hidden=True)
 @scan_options
 @handle_command_errors
 def scan(
@@ -617,7 +499,6 @@ def scan(
     verbose: bool,
     version: bool,
 ) -> ScanReturn:
-    """ """
 
     if version:
         print(__VERSION__)
