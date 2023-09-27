@@ -3,7 +3,6 @@ import collections
 import contextlib
 import json
 import resource
-import shlex
 import subprocess
 import sys
 import tempfile
@@ -733,7 +732,6 @@ class CoreRunner:
         interfile_timeout: int,
         optimizations: str,
         allow_untrusted_postprocessors: bool,
-        core_opts_str: Optional[str],
     ):
         self._binary_path = engine_type.get_binary_path()
         self._jobs = jobs or engine_type.default_jobs
@@ -745,7 +743,6 @@ class CoreRunner:
         self._interfile_timeout = interfile_timeout
         self._optimizations = optimizations
         self._allow_untrusted_postprocessors = allow_untrusted_postprocessors
-        self._core_opts = shlex.split(core_opts_str) if core_opts_str else []
 
     def _extract_core_output(
         self,
@@ -1010,12 +1007,6 @@ class CoreRunner:
 
             if time_flag:
                 cmd.append("-json_time")
-
-            if self._core_opts:
-                logger.info(
-                    f"Running with user defined core options: {self._core_opts}"
-                )
-                cmd.extend(self._core_opts)
 
             if self._optimizations != "none":
                 cmd.append("-fast")
