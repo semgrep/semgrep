@@ -589,6 +589,9 @@ let partition_rules (rules : rules) :
   in
   part_rules [] [] [] [] [] rules
 
+(* for informational messages *)
+let show_id rule = rule.id |> fst |> Rule_ID.to_string
+
 (*****************************************************************************)
 (* Error Management *)
 (*****************************************************************************)
