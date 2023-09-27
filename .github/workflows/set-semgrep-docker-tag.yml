@@ -1,8 +1,17 @@
-# Workflow to manually set the returntocorp/semgrep:canary docker image
-# to a specific version (usually to point to a past version in case of rollback)
-#TODO: should factorize with revert-semgrep-latest-docker-image.yml
+# Workflow to manually point a returntocorp/semgrep docker image tag
+# to a specific digest (usually to point to a past version in case of rollback)
 
-name: Set semgrep docker tag
+# To make a comparison to git:
+# - docker image == git repository
+#   example: returntocorp/semgrep
+#
+# - docker tag == git ref
+#   example: :latest
+#
+# - docker digest == git commit
+#   example: sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4
+
+name: Set returntocorp/semgrep docker tag
 
 on:
   workflow_dispatch:
@@ -12,17 +21,19 @@ on:
         type: choice
         required: true
         options:
-          - returntocorp/semgrep-dev
+          - returntocorp/semgrep-test # testing image, we will eventually remove the option and hardcode to returntocorp/semgrep
           - returntocorp/semgrep
       docker_tag:
-        description: "Semgrep docker image tag to update"
+        description: "Docker tag to update"
         type: choice
         required: true
         options:
           - canary
+          - canary-nonroot
           - latest
+          - latest-nonroot
       image_ref:
-        description: "Docker ref to point to, example: 1.40.0"
+        description: "Docker tag or digest to point to, example: 1.40.0 or sha256:xxx"
         type: string
         required: true
       confirmed:
@@ -53,6 +64,10 @@ jobs:
 
           if [[ -z "${new_digest}" ]]; then
             echo "Error: ${source_image} did not resolve to a manifest list"
+            echo "If this is urgent, you can manually run these commands to point to an arch-specific image:"
+            echo "docker pull ${source_image}"
+            echo "docker tag ${source_image} ${target_image}"
+            echo "docker push ${target_image}"
             exit 1
           fi
 
