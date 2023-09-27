@@ -86,23 +86,20 @@ METRICS_STATE_TYPE = MetricsStateType()
 CONTEXT_SETTINGS = {"max_content_width": 90}
 
 _scan_options: List[Callable] = [
-    click.help_option("--help", "-h", help=("")),
+    click.help_option("--help", "-h"),
     click.option(
         "-a",
         "--autofix/--no-autofix",
         is_flag=True,
-        help="",
     ),
     click.option(
         "--baseline-commit",
-        help="",
         envvar=["SEMGREP_BASELINE_COMMIT", "SEMGREP_BASELINE_REF"],
     ),
     click.option(
         "--metrics",
         "metrics",
         type=METRICS_STATE_TYPE,
-        help="",
         envvar="SEMGREP_SEND_METRICS",
     ),
     click.option(
@@ -128,37 +125,31 @@ _scan_options: List[Callable] = [
         "--exclude",
         multiple=True,
         default=[],
-        help="",
     ),
     optgroup.option(
         "--exclude-rule",
         multiple=True,
         default=[],
-        help="",
     ),
     optgroup.option(
         "--include",
         multiple=True,
         default=[],
-        help="",
     ),
     optgroup.option(
         "--max-target-bytes",
         type=bytesize.ByteSizeType(),
         default=DEFAULT_MAX_TARGET_SIZE,
-        help=f"",
     ),
     optgroup.option(
         "--use-git-ignore/--no-git-ignore",
         is_flag=True,
         default=True,
-        help="",
     ),
     optgroup.option(
         "--scan-unknown-extensions/--skip-unknown-extensions",
         is_flag=True,
         default=False,
-        help="",
     ),
     optgroup.group("Performance and memory options"),
     optgroup.option(
@@ -166,110 +157,91 @@ _scan_options: List[Callable] = [
         is_flag=True,
         default=True,
         envvar="SEMGREP_ENABLE_VERSION_CHECK",
-        help="",
     ),
     optgroup.option(
         "-j",
         "--jobs",
         type=int,
-        help="",
     ),
     optgroup.option(
         "--max-memory",
         type=int,
-        help="",
     ),
     optgroup.option(
         "--optimizations",
         default="all",
         type=click.Choice(["all", "none"]),
-        help="",
     ),
     optgroup.option(
         "--timeout",
         type=int,
         default=DEFAULT_TIMEOUT,
-        help=f"",
         envvar="SEMGREP_TIMEOUT",
     ),
     optgroup.option(
         "--timeout-threshold",
         type=int,
         default=3,
-        help="",
     ),
     # TODO: Move to Semgrep Pro Engine group ?
     optgroup.option(
         "--interfile-timeout",
         type=int,
-        help=f"""
-        """,
     ),
     optgroup.group("Display options"),
     optgroup.option(
         "--enable-nosem/--disable-nosem",
         is_flag=True,
         default=True,
-        help="",
     ),
     optgroup.option(
         "--force-color/--no-force-color",
         is_flag=True,
-        help="",
     ),
     optgroup.option(
         MAX_CHARS_FLAG_NAME,
         type=int,
         default=DEFAULT_MAX_CHARS_PER_LINE,
-        help="",
     ),
     optgroup.option(
         MAX_LINES_FLAG_NAME,
         type=int,
         default=DEFAULT_MAX_LINES_PER_FINDING,
-        help="",
     ),
     optgroup.option(
         "--dataflow-traces",
         default=None,
         is_flag=True,
-        help="",
     ),
     optgroup.option(
         "-o",
         "--output",
-        help="",
     ),
     optgroup.option(
         "--rewrite-rule-ids/--no-rewrite-rule-ids",
         is_flag=True,
         default=True,
-        help="",
     ),
     optgroup.option(
         "--time/--no-time",
         "time_flag",
         is_flag=True,
         default=False,
-        help="",
     ),
     optgroup.group("Verbosity options", cls=MutuallyExclusiveOptionGroup),
     optgroup.option(
         "-q",
         "--quiet",
         is_flag=True,
-        help="",
     ),
     optgroup.option(
         "-v",
         "--verbose",
         is_flag=True,
-        help="",
     ),
     optgroup.option(
         "--debug",
         is_flag=True,
-        help="",
     ),
     optgroup.group(
         "Output formats",
@@ -281,56 +253,48 @@ _scan_options: List[Callable] = [
         type=OutputFormat,
         flag_value=OutputFormat.TEXT,
         default=True,
-        help="",
     ),
     optgroup.option(
         "--emacs",
         "output_format",
         type=OutputFormat,
         flag_value=OutputFormat.EMACS,
-        help="",
     ),
     optgroup.option(
         "--json",
         "output_format",
         type=OutputFormat,
         flag_value=OutputFormat.JSON,
-        help="",
     ),
     optgroup.option(
         "--gitlab-sast",
         "output_format",
         type=OutputFormat,
         flag_value=OutputFormat.GITLAB_SAST,
-        help="",
     ),
     optgroup.option(
         "--gitlab-secrets",
         "output_format",
         type=OutputFormat,
         flag_value=OutputFormat.GITLAB_SECRETS,
-        help="",
     ),
     optgroup.option(
         "--junit-xml",
         "output_format",
         type=OutputFormat,
         flag_value=OutputFormat.JUNIT_XML,
-        help="",
     ),
     optgroup.option(
         "--sarif",
         "output_format",
         type=OutputFormat,
         flag_value=OutputFormat.SARIF,
-        help="",
     ),
     optgroup.option(
         "--vim",
         "output_format",
         type=OutputFormat,
         flag_value=OutputFormat.VIM,
-        help="",
     ),
     optgroup.group("Semgrep Pro Engine options"),
     optgroup.option(
@@ -338,35 +302,30 @@ _scan_options: List[Callable] = [
         "requested_engine",
         type=EngineType,
         flag_value=EngineType.PRO_INTERFILE,
-        help="",
     ),
     optgroup.option(
         "--pro-intrafile",
         "requested_engine",
         type=EngineType,
         flag_value=EngineType.PRO_INTRAFILE,
-        help="",
     ),
     optgroup.option(
         "--pro-languages",
         "requested_engine",
         type=EngineType,
         flag_value=EngineType.PRO_LANG,
-        help="",
     ),
     optgroup.option(
         "--oss-only",
         "requested_engine",
         type=EngineType,
         flag_value=EngineType.OSS,
-        help="",
     ),
     optgroup.option(
         "--secrets",
         "run_secrets_flag",
         is_flag=True,
         hidden=True,
-        help="",
     ),
     optgroup.option("--dump-command-for-core", "-d", is_flag=True, hidden=True),
     optgroup.option("--allow-untrusted-postprocessors", is_flag=True, hidden=True),
@@ -383,7 +342,6 @@ def scan_options(func: Callable) -> Callable:
 @click.argument("targets", nargs=-1, type=click.Path(allow_dash=True))
 @click.option(
     "--replacement",
-    help="",
 )
 @optgroup.group("Configuration options", cls=MutuallyExclusiveOptionGroup)
 @optgroup.option(
@@ -391,58 +349,49 @@ def scan_options(func: Callable) -> Callable:
     "-c",
     "-f",
     multiple=True,
-    help="",
     envvar="SEMGREP_RULES",
 )
 @optgroup.option(
     "--pattern",
     "-e",
-    help="",
 )
 @click.option(
     "--lang",
     "-l",
-    help="",
 )
 @click.option(
     "--dryrun/--no-dryrun",
     is_flag=True,
     default=False,
-    help="",
 )
 @click.option(
     "--severity",
     multiple=True,
     type=click.Choice(["INFO", "WARNING", "ERROR"]),
-    help="",
 )
 @optgroup.group("Alternate modes")
 @optgroup.option(
     "--validate",
     is_flag=True,
     default=False,
-    help="",
 )
-@optgroup.option("--version", is_flag=True, default=False, help="")
+@optgroup.option("--version", is_flag=True, default=False)
 @optgroup.group("Test and debug options")
-@optgroup.option("--test", is_flag=True, default=False, help="Run test suite.")
+@optgroup.option("--test", is_flag=True, default=False)
 @optgroup.option(
     "--test-ignore-todo/--no-test-ignore-todo",
     is_flag=True,
     default=False,
-    help="",
 )
 @click.option(
     "--error/--no-error",
     "error_on_findings",
     is_flag=True,
-    help="",
 )
 @click.option(
     "--strict/--no-strict",
     is_flag=True,
     default=False,
-    help="",
 )
 # These flags are deprecated or experimental - users should not
 # rely on their existence, or their output being stable
