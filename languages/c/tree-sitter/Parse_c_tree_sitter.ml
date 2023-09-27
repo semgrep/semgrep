@@ -101,6 +101,7 @@ let type_qualifier (env : env) (x : CST.type_qualifier) =
   | `Vola tok -> token env tok (* "volatile" *)
   | `Rest tok -> token env tok (* "restrict" *)
   | `X___rest__ tok -> (* "__restrict__" *) token env tok
+  | `X___exte__ tok -> (* "__extension__" *) token env tok
   | `X__Atomic tok -> token env tok
   | `Nore tok -> (* "noreturn" *) token env tok
   | `X__Nore tok -> (* "_Noreturn" *) token env tok
@@ -119,6 +120,11 @@ let storage_class_specifier (env : env) (x : CST.storage_class_specifier) =
   | `Regi tok -> token env tok (* "register" *)
   | `Inline tok -> token env tok
   | `Thread_local tok -> (* "thread_local" *) token env tok
+  (* the difference between these two is just which implementation you are using *)
+  | `X___inline tok -> token env tok
+  | `X___inline__ tok -> token env tok
+  | `X___forc tok -> token env tok
+  | `X___thread tok -> token env tok
 
 (* "inline" *)
 
@@ -296,19 +302,27 @@ let ms_declspec_modifier (env : env)
   let _v4 = token env v4 (* ")" *) in
   ()
 
-let concatenated_string (env : env) ((v1, v2) : CST.concatenated_string) =
-  let v1 = string_literal env v1 in
-  let v2 =
+let concatenated_string (env : env) ((v1, v2, v3) : CST.concatenated_string) =
+  (* Here for macros which resolves to literal strings. *)
+  let v1 =
+    match v1 with
+    | `Id tok ->
+        (* pattern (\p{XID_Start}|_|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})(\p{XID_Continue}|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})* *)
+        (str env tok, false)
+    | `Str_lit x -> (string_literal env x, true)
+  in
+  let v2 = (string_literal env v2, true) in
+  let v3 =
     List.map
       (fun x ->
         match x with
-        | `Str_lit x -> string_literal env x
+        | `Str_lit x -> (string_literal env x, true)
         | `Id tok ->
             (* pattern (\p{XID_Start}|_|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})(\p{XID_Continue}|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})* *)
-            str env tok)
-      v2
+            (str env tok, false))
+      v3
   in
-  ConcatString (v1 :: v2)
+  ConcatString (v1 :: v2 :: v3)
 
 let gnu_asm_clobber_list (env : env) ((v1, v2) : CST.gnu_asm_clobber_list) =
   let _v1 = (* ":" *) token env v1 in
@@ -719,9 +733,17 @@ and gnu_asm_input_operand_list (env : env)
   in
   v2
 
-and anon_choice_exp_f079e30 (env : env) (x : CST.anon_choice_exp_f079e30) =
+and map_anon_choice_opt___exte___exp_2bc8eaa (env : env)
+    (x : CST.anon_choice_opt___exte___exp_2bc8eaa) =
   match x with
-  | `Exp x -> Arg (expression env x)
+  | `Opt___exte___exp (v1, v2) ->
+      let _v1_TODO =
+        match v1 with
+        | Some tok -> Some ((* "__extension__" *) token env tok)
+        | None -> None
+      in
+      let v2 = expression env v2 in
+      Arg v2
   | `Comp_stmt x ->
       let x = compound_statement env x in
       ArgBlock x
@@ -833,12 +855,12 @@ and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) :
   let v2 =
     match v2 with
     | Some (v1, v2) ->
-        let v1 = anon_choice_exp_f079e30 env v1 in
+        let v1 = map_anon_choice_opt___exte___exp_2bc8eaa env v1 in
         let v2 =
           Common.map
             (fun (v1, v2) ->
               let _v1 = token env v1 (* "," *) in
-              let v2 = anon_choice_exp_f079e30 env v2 in
+              let v2 = map_anon_choice_opt___exte___exp_2bc8eaa env v2 in
               v2)
             v2
         in

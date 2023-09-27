@@ -388,7 +388,8 @@ let map_type_qualifier (env : env) (x : CST.type_qualifier) :
       | `X___rest__ tok -> (Restrict, (* "__restrict__" *) token env tok)
       | `X__Atomic tok -> (Atomic, token env tok) (* "_Atomic" *)
       | `Nore tok -> (NoReturn, (* "noreturn" *) token env tok)
-      | `X__Nore tok -> (NoReturn, (* "_Noreturn" *) token env tok))
+      | `X__Nore tok -> (NoReturn, (* "_Noreturn" *) token env tok)
+      | `X___exte__ tok -> (Extension, (* "__extension__" *) token env tok))
   | `Muta tok -> (Mutable, token env tok) (* "mutable" *)
   | `Cons_36fe86c tok -> (Constinit, (* "constinit" *) token env tok)
   | `Cons_a25342f tok -> (Consteval, (* "consteval" *) token env tok)
@@ -405,6 +406,11 @@ let map_storage_class_specifier (env : env) (x : CST.storage_class_specifier) :
   | `Regi tok -> (Register, token env tok) (* "register" *)
   | `Inline tok -> (StoInline, token env tok)
   | `Thread_local tok -> (ThreadLocal, token env tok)
+  (* the difference between these two is just which implementation you are using *)
+  | `X___inline tok -> (StoInline, (* "__inline" *) token env tok)
+  | `X___inline__ tok -> (StoInline, (* "__inline__" *) token env tok)
+  | `X___forc tok -> (StoInline, (* "__forceinline" *) token env tok)
+  | `X___thread tok -> (ThreadLocal, (* "__thread" *) token env tok)
 (* "thread_local" *)
 
 (* "inline" *)
@@ -1140,12 +1146,27 @@ let map_operator_name (env : env) ((v1, v2) : CST.operator_name) =
   in
   (v1, v2)
 
-let map_concatenated_string (env : env) ((v1, v2) : CST.concatenated_string) =
-  let v1 = map_anon_choice_raw_str_lit_28125b5 env v1 in
-  let v2 = Common.map (map_anon_choice_raw_str_lit_28125b5 env) v2 in
-  match v2 with
-  | [] -> String v1
-  | _ -> MultiString (v1 :: v2)
+and map_concatenated_string (env : env) ((v1, v2, v3) : CST.concatenated_string)
+    =
+  let v1 =
+    match v1 with
+    | `Id tok ->
+        (* pattern (\p{XID_Start}|_|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})(\p{XID_Continue}|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})* *)
+        StrIdent (str env tok)
+    | `Str_lit x -> StrLit (map_string_literal env x)
+  in
+  let v2 = StrLit (map_string_literal env v2) in
+  let v3 =
+    List.map
+      (fun x ->
+        match x with
+        | `Str_lit x -> StrLit (map_string_literal env x)
+        | `Id tok ->
+            (* pattern (\p{XID_Start}|_|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})(\p{XID_Continue}|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})* *)
+            StrIdent (str env tok))
+      v3
+  in
+  v1 :: v2 :: v3
 
 let map_gnu_asm_output_operand (env : env)
     ((v1, v2, v3, v4, v5) : CST.gnu_asm_output_operand) =

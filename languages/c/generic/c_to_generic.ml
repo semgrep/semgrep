@@ -179,8 +179,11 @@ and expr e =
   | ConcatString xs ->
       G.Call
         ( G.IdSpecial (G.ConcatString G.SequenceConcat, unsafe_fake " ") |> G.e,
-          fb (xs |> Common.map (fun x -> G.Arg (G.L (G.String (fb x)) |> G.e)))
-        )
+          fb
+            (xs
+            |> Common.map (fun (x, is_literal) ->
+                   if is_literal then G.Arg (G.L (G.String (fb x)) |> G.e)
+                   else G.Arg (G.N (Id (x, G.empty_id_info ())) |> G.e))) )
       |> G.e
   | Defined (t, id) ->
       let e = G.N (G.Id (id, G.empty_id_info ())) |> G.e in

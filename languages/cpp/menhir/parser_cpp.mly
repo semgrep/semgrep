@@ -629,7 +629,7 @@ literal:
  | TChar   { C (Char   ($1)) }
  | TString { C (String ($1)) }
  (* gccext: cppext: *)
- | string_elem string_elem+ { C (MultiString ($1 :: $2)) }
+ | string_elem string_elem+ { C (MultiString (Common.map (fun x -> StrLit x) ($1 :: $2))) }
  (*c++ext: *)
  | Ttrue   { C (Bool (true, $1)) }
  | Tfalse  { C (Bool (false, $1)) }

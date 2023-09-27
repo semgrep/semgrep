@@ -336,12 +336,14 @@ and constant =
   | Char of string wrap (* normally it is equivalent to Int *)
   (* the wrap can contain the L/u/U/u8 prefix *)
   | String of string wrap (* TODO: bracket *)
-  | MultiString of string wrap list
+  | MultiString of string_component list
   (* can contain MacroString *)
   (* TODO: bracket *)
   (* c++ext: *)
   | Bool of bool wrap
   | Nullptr of tok
+
+and string_component = StrIdent of string wrap | StrLit of string wrap
 
 (* c++ext: *)
 and cast_operator = Static_cast | Dynamic_cast | Const_cast | Reinterpret_cast
@@ -910,6 +912,8 @@ and type_qualifier =
   | Constinit
   | Consteval
   | NoReturn
+  (* https://stackoverflow.com/questions/5323478/how-to-use-extension-and-typeof-in-a-minified-example-in-c *)
+  | Extension
 
 and storage =
   (* only in C, in C++ auto is for TAuto *)

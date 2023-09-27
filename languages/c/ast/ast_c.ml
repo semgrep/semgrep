@@ -135,7 +135,12 @@ and expr =
   (* c-ext:? *)
   | Null of tok
   | Bool of bool wrap
-  | ConcatString of string wrap list (* TODO: bracket *)
+  (* Concatenations may contain identifiers, which are macros that are strings.
+     We include a bool with each string wrap to denote whether it is a raw string
+     literal. If it's false, then it's actually an identifier.
+  *)
+  | ConcatString of
+      (string wrap * bool (* is literal *)) list (* TODO: bracket *)
   (* can be a cpp or enum constant (e.g. FOO), or a local/global/parameter
    * variable, or a function name.
    *)

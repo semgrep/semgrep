@@ -656,7 +656,7 @@ and map_constant env x : G.literal =
       let v1 = map_wrap env map_of_string v1 in
       G.String (fb v1)
   | MultiString v1 ->
-      let v1 = map_of_list (map_wrap env map_of_string) v1 in
+      let v1 = map_of_list map_string_component v1 in
       let s = v1 |> Common.map fst |> String.concat "" in
       let t =
         match v1 |> Common.map snd with
@@ -670,6 +670,10 @@ and map_constant env x : G.literal =
   | Nullptr v1 ->
       let v1 = map_tok env v1 in
       G.Null v1
+
+and map_string_component = function
+  | StrIdent id -> G.N (Id (id, G.empty_id_info ())) |> G.e
+  | StrLit s -> G.L (String (fb s)) |> G.e
 
 and map_unaryOp _env = function
   | UnPlus -> Left G.Plus
