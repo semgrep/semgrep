@@ -27,6 +27,7 @@ from typing import Set
 from typing import Tuple
 from typing import Union
 
+from attrs import evolve
 from boltons.iterutils import partition
 from rich.columns import Columns
 from rich.padding import Padding
@@ -42,6 +43,7 @@ from semgrep.config_resolver import get_config
 from semgrep.console import console
 from semgrep.console import Title
 from semgrep.constants import Colors
+from semgrep.constants import DEFAULT_DIFF_DEPTH
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
@@ -74,6 +76,7 @@ from semgrep.state import get_state
 from semgrep.target_manager import ECOSYSTEM_TO_LOCKFILES
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
+from semgrep.target_mode import TargetModeConfig
 from semgrep.util import unit_str
 from semgrep.util import with_color
 from semgrep.util import with_feature_status
@@ -190,6 +193,7 @@ def print_scan_plan_header(
     target_manager: TargetManager,
     sast_plan: Plan,
     sca_plan: Plan,
+    target_mode_config: TargetModeConfig,
     cli_ux: DesignTreatment = DesignTreatment.LEGACY,
 ) -> None:
     """
@@ -200,7 +204,16 @@ def print_scan_plan_header(
     legacy_cli_ux = cli_ux == DesignTreatment.LEGACY
     simple_ux = cli_ux == DesignTreatment.SIMPLE
 
-    summary_line = f"Scanning {unit_str(file_count, 'file')}"
+    if target_mode_config.is_pro_diff_scan:
+        total_file_count = len(
+            evolve(target_manager, baseline_handler=None).get_all_files()
+        )
+        diff_file_count = len(target_mode_config.get_diff_targets())
+        summary_line = f"Pro Differential Scanning {diff_file_count}/{unit_str(total_file_count, 'file')}"
+    else:
+        file_count = len(target_manager.get_all_files())
+        summary_line = f"Scanning {unit_str(file_count, 'file')}"
+
     if target_manager.respect_git_ignore:
         summary_line += (
             f" {'tracked by git' if legacy_cli_ux else '(only git-tracked)'}"
@@ -348,6 +361,7 @@ def print_detailed_sca_table(
 def print_scan_status(
     rules: Sequence[Rule],
     target_manager: TargetManager,
+    target_mode_config: TargetModeConfig,
     *,
     cli_ux: DesignTreatment = DesignTreatment.LEGACY,
     with_code_rules: bool = True,
@@ -387,7 +401,11 @@ def print_scan_status(
                 and (not rule.from_transient_scan)
             )
         ],
-        target_manager,
+        target_manager
+        if not target_mode_config.is_pro_diff_scan
+        else evolve(
+            target_manager, target_strings=target_mode_config.get_diff_targets()
+        ),
     )
 
     sca_plan = CoreRunner.plan_core_run(
@@ -395,7 +413,9 @@ def print_scan_status(
         target_manager,
     )
 
-    print_scan_plan_header(target_manager, sast_plan, sca_plan, cli_ux)
+    print_scan_plan_header(
+        target_manager, sast_plan, sca_plan, target_mode_config, cli_ux
+    )
 
     sast_rule_count = len(sast_plan.rules)
     sca_rule_count = len(sca_plan.rules)
@@ -512,6 +532,7 @@ def run_rules(
     run_secrets: bool = False,
     with_code_rules: bool = True,
     with_supply_chain: bool = False,
+    target_mode_config: Optional[TargetModeConfig] = None,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -520,10 +541,14 @@ def run_rules(
     List[DependencyParserError],
     int,
 ]:
+    if not target_mode_config:
+        target_mode_config = TargetModeConfig.whole_scan()
+
     cli_ux = get_state().get_cli_ux_flavor()
     num_executed_rules = print_scan_status(
         filtered_rules,
         target_manager,
+        target_mode_config,
         cli_ux=cli_ux,
         with_code_rules=with_code_rules,
         with_supply_chain=with_supply_chain,
@@ -549,6 +574,7 @@ def run_rules(
         time_flag,
         engine_type,
         run_secrets,
+        target_mode_config,
     )
 
     if join_rules:
@@ -640,6 +666,7 @@ def run_rules(
 # old: this used to be called semgrep.semgrep_main.main
 def run_scan(
     *,
+    diff_depth: int = DEFAULT_DIFF_DEPTH,
     dump_command_for_core: bool = False,
     time_flag: bool = False,
     engine_type: EngineType = EngineType.OSS,
@@ -803,6 +830,18 @@ def run_scan(
     except FilesNotFoundError as e:
         raise SemgrepError(e)
 
+    target_mode_config = TargetModeConfig.whole_scan()
+    if baseline_handler is not None:
+        if engine_type.is_interfile:
+            target_mode_config = TargetModeConfig.pro_diff_scan(
+                # `target_manager.get_all_files()` will only return changed files
+                # (diff targets) when baseline_handler is set
+                target_manager.get_all_files(),
+                diff_depth,
+            )
+        else:
+            target_mode_config = TargetModeConfig.diff_scan()
+
     core_start_time = time.time()
     core_runner = CoreRunner(
         jobs=jobs,
@@ -850,8 +889,9 @@ def run_scan(
         time_flag,
         engine_type,
         run_secrets,
-        with_code_rules,
-        with_supply_chain,
+        with_code_rules=with_code_rules,
+        with_supply_chain=with_supply_chain,
+        target_mode_config=target_mode_config,
     )
     profiler.save("core_time", core_start_time)
     output_handler.handle_semgrep_errors(semgrep_errors)
@@ -888,16 +928,29 @@ def run_scan(
             logger.info("")
             try:
                 with baseline_handler.baseline_context():
+                    baseline_target_strings = target
+                    baseline_target_mode_config = target_mode_config
+                    if target_mode_config.is_pro_diff_scan:
+                        baseline_target_mode_config = TargetModeConfig.pro_diff_scan(
+                            frozenset(
+                                t
+                                for t in target_mode_config.get_diff_targets()
+                                if t.exists() and not t.is_symlink()
+                            ),
+                            target_mode_config.get_diff_depth(),
+                        )
+                    else:
+                        baseline_target_strings = [
+                            str(t)
+                            for t in baseline_targets
+                            if t.exists() and not t.is_symlink()
+                        ]
                     baseline_target_manager = TargetManager(
                         includes=include,
                         excludes=exclude,
                         max_target_bytes=max_target_bytes,
                         # only target the paths that had a match, ignoring symlinks and non-existent files
-                        target_strings=[
-                            str(t)
-                            for t in baseline_targets
-                            if t.exists() and not t.is_symlink()
-                        ],
+                        target_strings=baseline_target_strings,
                         respect_git_ignore=respect_git_ignore,
                         allow_unknown_extensions=not skip_unknown_extensions,
                         file_ignore=get_file_ignore(),
@@ -924,6 +977,9 @@ def run_scan(
                         time_flag,
                         engine_type,
                         run_secrets,
+                        with_code_rules=with_code_rules,
+                        with_supply_chain=with_supply_chain,
+                        target_mode_config=baseline_target_mode_config,
                     )
                     rule_matches_by_rule = remove_matches_in_baseline(
                         rule_matches_by_rule,

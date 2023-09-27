@@ -55,6 +55,7 @@ type conf = {
   respect_git_ignore : bool;
   (* TODO? use, and better parsing of the string? a Git.version type? *)
   baseline_commit : string option;
+  diff_depth : int;
   (* TODO: use *)
   scan_unknown_extensions : bool;
   (* osemgrep-only: option (see Git_project.ml and the force_root parameter) *)
