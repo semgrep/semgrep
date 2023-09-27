@@ -511,7 +511,8 @@ let o_junit_xml : bool Term.t =
 
 let o_secrets : bool Term.t =
   let info =
-    Arg.info [ "secrets" ]
+    Arg.info
+      [ "beta-testing-secrets-enabled" ]
       ~doc:
         {|Enable support for secret validation. Requires Semgrep Secrets,
 contact support@semgrep.com for more informationon this.|}
@@ -854,7 +855,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
           Engine_type.(PRO Language_only)
       | false, false, false, false -> default.engine_type
       | true, false, false, false when secrets ->
-          Error.abort "Mutually exclusive options --oss/--secrets"
+          Error.abort
+            "Mutually exclusive options --oss/--beta-testing-secrets-enabled"
       | true, false, false, false -> OSS
       | false, true, false, false -> PRO Engine_type.Language_only
       | false, false, true, false -> PRO Engine_type.Intrafile

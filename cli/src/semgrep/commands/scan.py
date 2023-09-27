@@ -317,12 +317,6 @@ _scan_options: List[Callable] = [
         flag_value=EngineType.OSS,
     ),
     optgroup.option(
-        "--secrets",
-        "run_secrets_flag",
-        is_flag=True,
-        hidden=True,
-    ),
-    optgroup.option(
         "--diff-depth",
         type=int,
         default=DEFAULT_DIFF_DEPTH,
@@ -401,6 +395,13 @@ def scan_options(func: Callable) -> Callable:
 # These flags are deprecated or experimental - users should not
 # rely on their existence, or their output being stable
 @click.option("--dump-engine-path", is_flag=True, hidden=True)
+@click.option(
+    "--beta-testing-secrets-enabled",
+    "run_secrets_flag",
+    is_flag=True,
+    hidden=True,
+    help="Contact support@semgrep.com for more informationon this.",
+)
 @scan_options
 @handle_command_errors
 def scan(
@@ -466,7 +467,7 @@ def scan(
     # Handled error outside engine type for more actionable advice.
     if run_secrets_flag and requested_engine is EngineType.OSS:
         abort(
-            "The flags --secrets and --oss are incompatible. Semgrep Secrets is a proprietary extension."
+            "The flags --beta-testing-secrets-enabled and --oss are incompatible. Semgrep Secrets is a proprietary extension."
         )
 
     engine_type = EngineType.decide_engine_type(
