@@ -20,6 +20,7 @@ import semgrep.run_scan
 import semgrep.test
 from semgrep import __VERSION__
 from semgrep import bytesize
+from semgrep.app.auth import get_token
 from semgrep.app.version import get_no_findings_msg
 from semgrep.commands.install import determine_semgrep_pro_path
 from semgrep.commands.wrapper import handle_command_errors
@@ -599,6 +600,9 @@ def scan(
                     output_handler.output({}, all_targets=set(), filtered_rules=[])
                     raise SemgrepError("Please fix the above errors and try again.")
         else:
+            # Check if we have an auth token to see if we apply the "supply-chain" flag
+            is_logged_in = get_token() is not None
+            configs = config or (["auto", "supply-chain"] if is_logged_in else ["auto"])
             try:
                 (
                     filtered_matches_by_rule,
@@ -622,7 +626,7 @@ def scan(
                     target=targets,
                     pattern=pattern,
                     lang=lang,
-                    configs=(config or ["auto"]),
+                    configs=configs,
                     no_rewrite_rule_ids=(not rewrite_rule_ids),
                     jobs=jobs,
                     include=include,
