@@ -24,6 +24,7 @@ from semgrep.app.version import get_no_findings_msg
 from semgrep.commands.install import determine_semgrep_pro_path
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.constants import Colors
+from semgrep.constants import DEFAULT_DIFF_DEPTH
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
@@ -321,6 +322,16 @@ _scan_options: List[Callable] = [
         is_flag=True,
         hidden=True,
     ),
+    optgroup.option(
+        "--diff-depth",
+        type=int,
+        default=DEFAULT_DIFF_DEPTH,
+        help="""
+            The depth of the Pro (interfile) differential scan, the number of steps
+            (both in the caller and callee sides) from the targets in the call graph
+            tracked by the deep preprocessor. Only applied in differential scan mode.
+        """,
+    ),
     optgroup.option("--dump-command-for-core", "-d", is_flag=True, hidden=True),
     optgroup.option("--allow-untrusted-postprocessors", is_flag=True, hidden=True),
 ]
@@ -398,6 +409,7 @@ def scan(
     baseline_commit: Optional[str],
     config: Optional[Tuple[str, ...]],
     debug: bool,
+    diff_depth: int,
     dump_engine_path: bool,
     requested_engine: Optional[EngineType],
     run_secrets_flag: bool,
@@ -460,6 +472,7 @@ def scan(
     engine_type = EngineType.decide_engine_type(
         requested_engine=requested_engine,
         run_secrets=run_secrets_flag,
+        enable_pro_diff_scan=diff_depth >= 0,
     )
 
     # this is useful for our CI job to find where semgrep-core (or semgrep-core-proprietary)
@@ -614,6 +627,7 @@ def scan(
                     _num_executed_rules,
                     _,
                 ) = semgrep.run_scan.run_scan(
+                    diff_depth=diff_depth,
                     dump_command_for_core=dump_command_for_core,
                     time_flag=time_flag,
                     engine_type=engine_type,
