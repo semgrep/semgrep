@@ -563,7 +563,7 @@ unary_op:
 postfix_expr:
  | primary_expr               { $1 }
 
- | postfix_expr "[" expr "]"              { ArrayAccess ($1, ($2, InitExpr $3,$4)) }
+ | postfix_expr "[" expr "]"              { ArrayAccess ($1, ($2, [InitExpr $3],$4)) }
  | postfix_expr "(" optl(listc(argument)) ")" { mk_funcall $1 ($2, $3, $4) }
 
  (*c++ext: ident is now a id_expression *)

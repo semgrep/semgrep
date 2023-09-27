@@ -181,9 +181,11 @@ and expr e =
         ( G.IdSpecial (G.ConcatString G.SequenceConcat, unsafe_fake " ") |> G.e,
           fb
             (xs
-            |> Common.map (fun (x, is_literal) ->
-                   if is_literal then G.Arg (G.L (G.String (fb x)) |> G.e)
-                   else G.Arg (G.N (Id (x, G.empty_id_info ())) |> G.e))) )
+            |> Common.map (fun x ->
+                   match x with
+                   | StrLit x -> G.Arg (G.L (G.String (fb x)) |> G.e)
+                   | StrIdent id ->
+                       G.Arg (G.N (Id (id, G.empty_id_info ())) |> G.e))) )
       |> G.e
   | Defined (t, id) ->
       let e = G.N (G.Id (id, G.empty_id_info ())) |> G.e in
@@ -310,6 +312,7 @@ and special_wrap (spec, tk) =
   match spec with
   | SizeOf -> G.IdSpecial (G.Sizeof, tk) |> G.e
   | OffsetOf -> G.N (Id (("offsetof", tk), G.empty_id_info ())) |> G.e
+  | AlignOf -> N (Id (("alignof", tk), G.empty_id_info ())) |> G.e
 
 and argument v =
   match v with

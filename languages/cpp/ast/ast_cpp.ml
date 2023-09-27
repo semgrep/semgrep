@@ -251,7 +251,10 @@ and expr =
   (* contains GetRef and Deref!! less: lift up? *)
   | Unary of unaryOp wrap * expr
   | Binary of expr * binaryOp wrap * expr
-  | ArrayAccess of expr * initialiser bracket
+  (* since c++23, subscript can take in multiple arguments *)
+  (* https://medium.com/@simontoth/daily-bit-e-of-c-c-23-multi-dimensional-subscript-operator-3883054b1157 *)
+  (* cannot be empty *)
+  | ArrayAccess of expr * initialiser list bracket
   (* name is usually just an ident_or_op. In rare cases it can be
    * a template_method name. *)
   | DotAccess of expr * dotOp wrap * name
@@ -315,6 +318,8 @@ and argument =
   | Arg of expr
   (* cppext: *)
   | ArgType of type_
+  (* for macro arguments *)
+  | ArgBlock of compound
   (* cppext: for really unparsable stuff ... we just bailout *)
   | ArgAction of action_macro
   (* c++0x? *)
