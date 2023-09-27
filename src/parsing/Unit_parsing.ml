@@ -81,6 +81,7 @@ let lang_parsing_tests () =
       pack_parsing_tests_for_lang Lang.Go "go" ".go";
       pack_parsing_tests_for_lang Lang.Ruby "ruby" ".rb";
       pack_parsing_tests_for_lang Lang.Js "js" ".js";
+      pack_parsing_tests_for_lang Lang.C "c" ".c";
       pack_parsing_tests_for_lang Lang.Cpp "cpp" ".cpp";
       (* a few parsing tests where we expect some partials
        * See cpp/parsing_partial/

@@ -1520,7 +1520,7 @@ and pointer_expression (env : env) ((v1, v2) : CST.pointer_expression) : expr =
   Unary (v2, v1)
 
 and preproc_elifdef (env : env) ((v1, v2, v3, v4) : CST.preproc_elifdef) =
-  let _v1 = anon_choice_pat_0307ca2_dbf6a9d env v1 in
+  let v1 = anon_choice_pat_0307ca2_dbf6a9d env v1 in
   let v2 =
     (* pattern (\p{XID_Start}|_|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})(\p{XID_Continue}|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})* *)
     Id (str env v2)
@@ -1531,7 +1531,7 @@ and preproc_elifdef (env : env) ((v1, v2, v3, v4) : CST.preproc_elifdef) =
     | Some x -> anon_choice_prep_else_8b52b0f env x
     | None -> ([], None)
   in
-  ((v2, v3) :: elifs, el)
+  ((v1, v2, v3) :: elifs, el)
 
 and preproc_if (env : env) ((v1, v2, v3, v4, v5, v6) : CST.preproc_if) =
   let v1 = token env v1 (* pattern #[ 	]*if *) in
@@ -1871,14 +1871,14 @@ and declaration (env : env) ((v1, v2, v3, v4) : CST.declaration) : var_decl list
 
 and anon_choice_prep_else_8b52b0f (env : env)
     (x : CST.anon_choice_prep_else_8b52b0f) :
-    (expr * stmt list) list * stmt list option =
+    (tok * expr * stmt list) list * stmt list option =
   match x with
   | `Prep_else (v1, v2) ->
       let _v1 = token env v1 (* pattern #[ 	]*else *) in
       let v2 = List.concat_map (block_item env) v2 in
       ([], Some v2)
   | `Prep_elif (v1, v2, v3, v4, v5) ->
-      let _v1 = token env v1 (* pattern #[ 	]*elif *) in
+      let v1 = token env v1 (* pattern #[ 	]*elif *) in
       let v2 = preproc_expression env v2 in
       let _v3 = token env v3 (* "\n" *) in
       let v4 = List.concat_map (block_item env) v4 in
@@ -1886,7 +1886,7 @@ and anon_choice_prep_else_8b52b0f (env : env)
         match v5 with
         | Some x ->
             let elifs, el = anon_choice_prep_else_8b52b0f env x in
-            ((v2, v4) :: elifs, el)
+            ((v1, v2, v4) :: elifs, el)
         | None -> ([], None)
       in
       v5

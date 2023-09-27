@@ -249,7 +249,7 @@ and storage = Extern | Static | DefaultStorage
 and preproc = {
   p_condition : preproc_condition;
   p_stmts : stmt list;
-  p_elifs : (expr * stmt list) list;
+  p_elifs : (tok (*'elifdef' or 'elifndef'*) * expr * stmt list) list;
   p_else : stmt list option;
   p_endif : tok;
 }

@@ -392,7 +392,28 @@ and stmt st =
           [ G.Tk asm_tk ] @ a_template @ a_outputs @ a_inputs @ a_clobbers
           @ a_gotos @ [ G.Tk sc ] )
   | PreprocStmt { p_condition; p_stmts; p_elifs; p_else; p_endif = _ } -> (
-      let _tk, cond =
+      (* We take every
+         #ifdef <x>
+            <stuff>
+         #elifdef <y>
+            <stuff2>
+         #endif
+         and translate it to a series of conditionals, like
+
+         if (<x>) {
+           <stuff>
+         } else {
+           if (<y>) {
+             <stuff2>
+           }
+         }
+
+         where each conditional is an OtherCond.
+
+         We may desire to treat this differently in the future, as this is
+         not the same as how C++ represents macros.
+      *)
+      let top_tk, cond =
         match p_condition with
         | PreprocIfdef (tk, n) ->
             (tk, G.OtherCond (("ifdef", G.fake "ifdef"), [ G.I (name n) ]))
@@ -401,7 +422,7 @@ and stmt st =
       in
       let elifs =
         Common.map
-          (fun (e, stmts) -> (G.Cond (expr e), list stmt stmts))
+          (fun (tk, e, stmts) -> (tk, G.Cond (expr e), list stmt stmts))
           p_elifs
       in
       let p_else =
@@ -411,19 +432,13 @@ and stmt st =
       in
       match
         List.fold_right
-          (fun (cond, stmts) acc ->
+          (fun (tk, cond, stmts) acc ->
             match acc with
-            | None ->
-                Some
-                  (G.If (failwith "TODO", cond, Block (fb stmts) |> G.s, None))
+            | None -> Some (G.If (tk, cond, Block (fb stmts) |> G.s, None))
             | Some old_s ->
                 Some
-                  (G.If
-                     ( failwith "TODO",
-                       cond,
-                       Block (fb stmts) |> G.s,
-                       Some (old_s |> G.s) )))
-          ((cond, Common.map stmt p_stmts) :: elifs)
+                  (G.If (tk, cond, Block (fb stmts) |> G.s, Some (old_s |> G.s))))
+          ((top_tk, cond, Common.map stmt p_stmts) :: elifs)
           p_else
       with
       | None -> failwith "impossible"
