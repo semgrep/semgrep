@@ -1063,7 +1063,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
   | _ -> error_at_key env.id key ("wrong parse_extra field: " ^ fst key)
 
 (*****************************************************************************)
-(* Parser for new  formula *)
+(* Parser for new formula *)
 (*****************************************************************************)
 
 let formula_keys =
@@ -1651,6 +1651,82 @@ let parse_steps env key (value : G.expr) : R.step list =
 (*****************************************************************************)
 (* Parsers for secrets mode *)
 (*****************************************************************************)
+
+let parse_validity env key x : Pattern_match.validation_state =
+  match x.G.e with
+  | G.L (String (_, ("valid", _), _)) -> Confirmed_valid
+  | G.L (String (_, ("invalid", _), _)) -> Confirmed_invalid
+  | _x -> error_at_key env.id key (spf "parse_validity for %s" (fst key))
+
+let parse_http_request env key value : Rule.request =
+  let req = yaml_to_dict env key value in
+  let url = take req env parse_string "url" in
+  let meth = take req env method_ "method" in
+  let headers : Rule.header list =
+    take req env yaml_to_dict "headers" |> fun { h; _ } ->
+    Hashtbl.fold
+      (fun name value lst ->
+        { Rule.name; value = parse_string env (fst value) (snd value) } :: lst)
+      h []
+  in
+  let body = take_opt req env parse_string "body" in
+  let auth = take_opt req env parse_auth "auth" in
+  { url; meth; headers; body; auth }
+
+let parse_http_matcher_clause key env value : Rule.http_match_clause =
+  let clause = yaml_to_dict env key value in
+  let status_code = take_opt clause env parse_int "status-code" in
+  let headers =
+    take_opt clause env
+      (fun env key ->
+        parse_list env key (fun env x : Rule.header ->
+            let hd = yaml_to_dict env key x in
+            let name = take hd env parse_string "name" in
+            let value = take hd env parse_string "value" in
+            { name; value }))
+      "headers"
+  in
+  let content =
+    take_opt clause env (fun env -> generic_to_json env.id) "content"
+  in
+  match (status_code, headers, content) with
+  | None, None, None -> failwith "ffff"
+  | _ -> { status_code; headers = Option.value ~default:[] headers; content }
+
+let parse_http_matcher key env value : Rule.http_matcher =
+  let matcher = yaml_to_dict env key value in
+  let match_conditions =
+    take matcher env
+      (fun env key -> parse_list env key (parse_http_matcher_clause key))
+      "match"
+  in
+  let result = take matcher env yaml_to_dict "result" in
+  let validity = take result env parse_validity "validity" in
+  let output_modification = () in
+  { match_conditions; validity; output_modification }
+
+let parse_http_response env key value : Rule.http_matcher list =
+  parse_list env key (parse_http_matcher key) value
+
+let parse_http_validator env key value : Rule.validator =
+  let validator_dict = yaml_to_dict env key value in
+  let request = take validator_dict env parse_http_request "request" in
+  let response = take validator_dict env parse_http_response "response" in
+  HTTP { request; response }
+
+let parse_validator key env value =
+  let rd = yaml_to_dict env key value in
+  let http = take_opt rd env parse_http_validator "http" in
+  match http with
+  | Some validator -> validator
+  | None ->
+      error_at_key env.id key
+        ("No reconigzed validator (e.g., 'http') at " ^ fst key)
+
+let parse_validators env key value =
+  parse_list env key (parse_validator key) value
+
+(* NOTE: For old secrets / postprocessors syntax. *)
 let parse_secrets_fields env rule_dict : R.secrets =
   let secrets : R.formula list =
     take rule_dict env
@@ -1829,6 +1905,7 @@ let parse_one_rule ~rewrite_rule_ids (t : G.tok) (i : int) (rule : G.expr) :
   let fix_regex_opt = take_opt rd env parse_fix_regex "fix-regex" in
   let paths_opt = take_opt rd env parse_paths "paths" in
   let equivs_opt = take_opt rd env parse_equivalences "equivalences" in
+  let validators_opt = take_opt rd env parse_validators "validators" in
   report_unparsed_fields rd;
   {
     R.id;
@@ -1845,6 +1922,7 @@ let parse_one_rule ~rewrite_rule_ids (t : G.tok) (i : int) (rule : G.expr) :
     paths = paths_opt;
     equivalences = equivs_opt;
     options = options_opt;
+    validators = validators_opt;
   }
 
 let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
