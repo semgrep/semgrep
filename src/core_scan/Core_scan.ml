@@ -784,6 +784,10 @@ let select_applicable_rules_for_analyzer ~analyzer rules =
              true)
 
 (* This is also used by semgrep-proprietary. *)
+(* TODO: reduce memory allocation by using only one call to List.filter?
+   or something even better to reduce the time spent on each target in
+   case we have a high number of rules and a high fraction of irrelevant
+   rules? *)
 let select_applicable_rules_for_target ~analyzer ~path rules =
   select_applicable_rules_for_analyzer ~analyzer rules
   |> List.filter (fun r ->
