@@ -1,0 +1,2 @@
+fixed the regression in --registry-caching and add better error message
+to tell the user he needs also --experimental.
