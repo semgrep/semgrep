@@ -78,8 +78,7 @@ type conf = {
  *)
 let default : conf =
   {
-    (* alt: Configs [ "auto" ]? *)
-    rules_source = Configs [];
+    rules_source = Configs [ "auto" ];
     target_roots = [ Fpath.v "." ];
     (* alt: could move in a Target_manager.default *)
     targeting_conf =
@@ -826,17 +825,14 @@ let cmdline_term ~allow_empty_config : conf Term.t =
           Rules_source.Configs []
       (* TOPORT: handle get_project_url() if empty Configs? *)
       | [], (None, _, _) ->
-          (* alt: default.rules_source *)
           (* TOPORT: raise with Exit_code.missing_config *)
           (* TOPORT? use instead
              "No config given and {DEFAULT_CONFIG_FILE} was not found. Try running with --help to debug or if you want to download a default config, try running with --config r2c" *)
           if allow_empty_config then Rules_source.Configs []
           else (
             Migration.abort_if_use_of_legacy_dot_semgrep_yml ();
-            Error.abort
-              "No config given. Run with `--config auto` or see \
-               https://semgrep.dev/docs/running-rules/ for instructions on \
-               running with a specific config")
+            (* config is set to auto if not otherwise specified and when we're not trying another inferred subcommand *)
+            default.rules_source)
       | [], (Some pat, Some str, fix) ->
           (* may raise a Failure (will be caught in CLI.safe_run) *)
           let xlang = Xlang.of_string str in
@@ -1012,7 +1008,11 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     in
 
     (* more sanity checks *)
-    if List.mem "auto" config && metrics =*= Metrics_.Off then
+    if
+      (List.mem "auto" config
+      || rules_source =*= Rules_source.Configs [ "auto" ])
+      && metrics =*= Metrics_.Off
+    then
       Error.abort
         "Cannot create auto config when metrics are off. Please allow metrics \
          or run with a specific config.";

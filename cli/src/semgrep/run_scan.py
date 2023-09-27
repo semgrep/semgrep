@@ -629,7 +629,9 @@ def run_scan(
     target: Sequence[str],
     pattern: Optional[str],
     lang: Optional[str],
-    configs: Sequence[str],
+    configs: Sequence[
+        str
+    ],  # NOTE: Since the `ci` command reuses this function, we intentionally do not set a default at this level.
     no_rewrite_rule_ids: bool = False,
     jobs: Optional[int] = None,
     include: Optional[Sequence[str]] = None,
@@ -743,6 +745,8 @@ def run_scan(
                 f"invalid configuration file found ({len(config_errors)} configs were invalid)",
                 code=MISSING_CONFIG_EXIT_CODE,
             )
+        # NOTE: We should default to config auto if no config was passed in an earlier step,
+        #       but if we reach this step without a config, we emit the error below.
         if len(configs_obj.valid) == 0:
             raise SemgrepError(
                 """No config given. Run with `--config auto` or see https://semgrep.dev/docs/running-rules/ for instructions on running with a specific config

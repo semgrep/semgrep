@@ -806,7 +806,7 @@ def scan(
                     target=targets,
                     pattern=pattern,
                     lang=lang,
-                    configs=(config or []),
+                    configs=(config or ["auto"]),
                     no_rewrite_rule_ids=(not rewrite_rule_ids),
                     jobs=jobs,
                     include=include,

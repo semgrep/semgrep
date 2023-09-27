@@ -838,9 +838,4 @@ def get_config(
     else:
         config, errors = Config.from_config_list(config_strs, project_url)
 
-    if not config:
-        raise SemgrepError(
-            f"No config given. Try running with --help to debug or if you want to download a default config, try running with --config r2c"
-        )
-
     return config, errors
