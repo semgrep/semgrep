@@ -128,7 +128,7 @@ and qualifier =
      decltype(e)::<rest>
      I can't really find documentation on it.
   *)
-  | QDecltype of tok * expr bracket
+  | QDecltype of tok (* 'decltype' *) * expr bracket
 
 (* special cases *)
 and a_class_name = name (* only IdIdent or IdTemplateId *)
@@ -294,7 +294,7 @@ and expr =
   | CoAwait of tok * expr
   (* since c11+ *)
   (* https://en.cppreference.com/w/c/language/generic *)
-  | Generic of tok * (expr * (type_ * expr) list) bracket
+  | Generic of tok (* 'generic' *) * (expr * (type_ * expr) list) bracket
   (* sgrep-ext: *)
   | Ellipsis of tok
   | DeepEllipsis of expr bracket
@@ -773,7 +773,7 @@ and function_body =
   | FBDecl of sc
   (* c++ext: only for methods *)
   | FBZero of tok (* '=' *) * tok (* '0' *) * sc
-    (* c++11: defaulted functions *)
+  (* c++11: defaulted functions *)
   | FBDefault of tok (* '=' *) * tok (* 'default' *) * sc
   (* c++11: deleted functions *)
   | FBDelete of tok (* '=' *) * tok (* 'delete' *) * sc

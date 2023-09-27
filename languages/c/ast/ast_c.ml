@@ -175,7 +175,7 @@ and expr =
   | Defined of tok * name
   (* since c11+ *)
   (* https://en.cppreference.com/w/c/language/generic *)
-  | Generic of tok * (expr * (type_ * expr) list) bracket
+  | Generic of tok (* 'generic' *) * (expr * (type_ * expr) list) bracket
   (* sgrep-ext: *)
   | Ellipses of tok
   | DeepEllipsis of expr bracket
@@ -184,7 +184,9 @@ and expr =
 and argument =
   | Arg of expr
   | ArgType of type_
-  (* This should only appear in macro calls. *)
+  (* This should only appear in macro calls.
+     https://github.com/tree-sitter/tree-sitter-c/blob/a2b7bac3b313efbaa683d9a276ff63cdc544d960/grammar.js#L1073
+  *)
   | ArgBlock of stmt list bracket
 
 (* really should just contain constants and Id that are #define *)
