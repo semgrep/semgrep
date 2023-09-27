@@ -347,17 +347,16 @@ class Config:
         self,
         valid_configs: Mapping[str, Sequence[Rule]],
         *,
-        with_supply_chain: bool = False,
         with_code_rules: bool = False,
+        with_supply_chain: bool = False,
     ) -> None:
         """
         Handles parsing and validating of config files
         and exposes ability to get all rules in parsed config files
         """
         self.valid = valid_configs
-        self.with_supply_chain = with_supply_chain
         self.with_code_rules = with_code_rules
-        #   bool(set(config) - {"supply-chain"})
+        self.with_supply_chain = with_supply_chain
 
     @classmethod
     def from_pattern_lang(
@@ -428,8 +427,8 @@ class Config:
         return (
             cls(
                 valid,
-                with_supply_chain=with_supply_chain,
                 with_code_rules=with_code_rules,
+                with_supply_chain=with_supply_chain,
             ),
             errors,
         )
