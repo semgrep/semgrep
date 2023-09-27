@@ -21,8 +21,6 @@ module R = Tree_sitter_run.Raw_tree
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
-[@@@warning "-27-26-36"]
-
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -48,7 +46,6 @@ let token = H.token
 let fake = Tok.unsafe_fake_tok
 let fb = Tok.fake_bracket
 let str = H.str
-let todo _env _x = failwith "TODO"
 
 (* for declarators *)
 let id x = x
@@ -1160,7 +1157,7 @@ and map_concatenated_string (env : env) ((v1, v2, v3) : CST.concatenated_string)
       | `Raw_str_lit x -> map_raw_string_literal env x)
   in
   let v3 = List.map (map_anon_choice_name_id_dd8d494 env) v3 in
-  v1 :: v2 :: v3
+  MultiString (v1 :: v2 :: v3)
 
 let map_gnu_asm_output_operand (env : env)
     ((v1, v2, v3, v4, v5) : CST.gnu_asm_output_operand) =
@@ -1213,7 +1210,7 @@ let map_user_defined_literal (env : env) ((v1, v2) : CST.user_defined_literal) =
     | `Char_lit x -> map_char_literal env x
     | `Str_lit x -> String (map_string_literal env x)
     | `Raw_str_lit tok -> String (map_raw_string_literal env tok)
-    | `Conc_str x -> map_concatenated_string env x |> todo env
+    | `Conc_str x -> map_concatenated_string env x
   in
   let v2 = (* pattern [a-zA-Z_]\w* *) str env v2 in
   UserDefined (v1, v2)
@@ -1539,19 +1536,25 @@ and map_anon_choice_decl_opt_gnu_asm_exp_2c80446 (env : env)
   match x with
   | `Decl_opt_gnu_asm_exp (v1, v2) ->
       let v1 = map_declarator env v1 in
-      let v2 =
+      let _v2 =
         match v2 with
         | Some x -> Some (map_gnu_asm_statement env x)
         | None -> None
       in
-      failwith "TODO"
-  | `Init_decl x -> map_init_declarator env x
+      fun t specs ->
+        let v_specs = specs in
+        make_onedecl ~v_name:v1.dn ~v_type:(v1.dt t) ~v_init:None ~v_specs
+  | `Init_decl x ->
+      let x, init = map_init_declarator env x in
+      fun t specs ->
+        let v_specs = specs in
+        make_onedecl ~v_name:x.dn ~v_type:(x.dt t) ~v_init:(Some init) ~v_specs
 
 and map_anon_choice_opt___exte___exp_16c9151 (env : env)
     (x : CST.anon_choice_opt___exte___exp_16c9151) : argument =
   match x with
   | `Opt___exte___exp (v1, v2) ->
-      let v1 =
+      let _v1 =
         match v1 with
         | Some tok -> Some ((* "__extension__" *) token env tok)
         | None -> None
@@ -2548,11 +2551,11 @@ and map_constructor_try_statement (env : env)
   FBTry (v1, Constr (v2, v3), v4)
 
 and map_declaration (env : env) ((v1, v2, v3) : CST.declaration) : vars_decl =
-  let v1 = map_declaration_specifiers env v1 in
+  let t, specs = map_declaration_specifiers env v1 in
   let v2 = map_declaration_declarator env v2 in
-  let v3 = (* ";" *) token env v3 in
-  failwith "TODO"
-
+  let v3 = token env v3 (* ";" *) in
+  let xs = v2 |> Common.map (fun f -> f t specs) in
+  (xs, v3)
 (*
   (* for map_declaration *)
   and map_anon_choice_decl_f8b0ff3 (env : env) (x : CST.anon_choice_decl_f8b0ff3)
@@ -2796,7 +2799,7 @@ and map_expression_bis (env : env) x : expr =
       | `Null x ->
           let x = map_null env x in
           C (Nullptr x)
-      | `Conc_str x -> map_concatenated_string env x |> todo env
+      | `Conc_str x -> C (map_concatenated_string env x)
       | `Char_lit x ->
           let x = map_char_literal env x in
           C x
@@ -3208,7 +3211,7 @@ and map_friend_declaration (env : env) ((v1, v2) : CST.friend_declaration) =
 
 and map_function_attributes_end (env : env)
     ((v1, v2) : CST.function_attributes_end) : specifier list =
-  let v1 =
+  let _v1 =
     match v1 with
     | Some x -> Some (map_gnu_asm_statement env x)
     | None -> None
@@ -3375,7 +3378,7 @@ and map_gnu_asm_statement (env : env)
   let a_template =
     match v4 with
     | `Str_lit x -> N (name_of_id (map_string_literal env x))
-    | `Conc_str x -> C (map_concatenated_string env x |> todo env)
+    | `Conc_str x -> C (map_concatenated_string env x)
   in
   let a_outputs, a_inputs, a_clobbers, a_gotos =
     match v5 with
@@ -4198,7 +4201,7 @@ and map_static_assert_declaration (env : env)
               String x
           | `Conc_str x ->
               let x = map_concatenated_string env x in
-              x |> todo env
+              x
         in
         [ Arg (C v2) ]
     | None -> []
@@ -4675,7 +4678,7 @@ and map_type_definition (env : env)
   let v2 = token env v2 (* "typedef" *) in
   let v3 = map_type_definition_type env v3 in
   let v4 = map_type_definition_declarators env v4 in
-  let v5 = List.map (map_attribute_specifier env) v5 in
+  let _v5 = List.map (map_attribute_specifier env) v5 in
   let v6 = token env v6 (* ";" *) in
   let xs =
     v4
