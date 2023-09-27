@@ -291,7 +291,9 @@ def print_sca_table(sca_plan: Plan, rule_count: int) -> None:
     )
 
 
-def print_detailed_sca_table(sca_plan: Plan, rule_count: int) -> None:
+def print_detailed_sca_table(
+    sca_plan: Plan, rule_count: int, with_supply_chain: bool = False
+) -> None:
     """
     Pretty print the plan to stdout with the detailed CLI UX.
     """
@@ -309,7 +311,6 @@ def print_detailed_sca_table(sca_plan: Plan, rule_count: int) -> None:
     """
     # 1. Validate that the user is indeed running SCA (and not from semgrep scan).
     is_scan = get_state().is_scan_invocation()
-    is_supply_chain = get_state().is_supply_chain()
     # 2. Check if the user has metrics enabled.
     metrics = get_state().metrics
     metrics_enabled = metrics.is_enabled
@@ -330,7 +331,7 @@ def print_detailed_sca_table(sca_plan: Plan, rule_count: int) -> None:
                     width=70,
                 )
             )
-        elif not is_supply_chain:
+        elif not with_supply_chain:
             message = sep.join(
                 wrap(
                     f"💎 Run {ci_command} to find dependency vulnerabilities and advanced cross-file findings.",
@@ -347,7 +348,10 @@ def print_detailed_sca_table(sca_plan: Plan, rule_count: int) -> None:
 def print_scan_status(
     rules: Sequence[Rule],
     target_manager: TargetManager,
+    *,
     cli_ux: DesignTreatment = DesignTreatment.LEGACY,
+    with_code_rules: bool = True,
+    with_supply_chain: bool = False,
 ) -> int:
     """
     Print a section like:
@@ -408,8 +412,8 @@ def print_scan_status(
     if simple_ux:
         # Print the feature summary table instead of all tables with new simple CLI UX
         print_product_status(
-            sast_enabled=get_state().is_code(),
-            sca_enabled=get_state().is_supply_chain(),
+            sast_enabled=with_code_rules,
+            sca_enabled=with_supply_chain,
         )
         return sast_rule_count + sca_rule_count
 
@@ -451,7 +455,11 @@ def print_scan_status(
     else:
         # Show the table with a supply chain nudge or supply chain
         console.print(Title("Supply Chain Rules", order=2))
-        print_detailed_sca_table(sca_plan=sca_plan, rule_count=alt_sca_rule_count)
+        print_detailed_sca_table(
+            sca_plan=sca_plan,
+            rule_count=alt_sca_rule_count,
+            with_supply_chain=with_supply_chain,
+        )
 
     if detailed_ux:
         console.print(Title("Progress", order=2))
@@ -502,6 +510,8 @@ def run_rules(
     time_flag: bool,
     engine_type: EngineType,
     run_secrets: bool = False,
+    with_code_rules: bool = True,
+    with_supply_chain: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -511,7 +521,13 @@ def run_rules(
     int,
 ]:
     cli_ux = get_state().get_cli_ux_flavor()
-    num_executed_rules = print_scan_status(filtered_rules, target_manager, cli_ux)
+    num_executed_rules = print_scan_status(
+        filtered_rules,
+        target_manager,
+        cli_ux=cli_ux,
+        with_code_rules=with_code_rules,
+        with_supply_chain=with_supply_chain,
+    )
 
     join_rules, rest_of_the_rules = partition(
         filtered_rules, lambda rule: rule.mode == JOIN_MODE
@@ -705,6 +721,10 @@ def run_scan(
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
     profiler.save("config_time", rule_start_time)
 
+    # We determine if SAST / SCA is enabled based on the config str
+    with_code_rules = configs_obj.with_code_rules
+    with_supply_chain = configs_obj.with_supply_chain
+
     # Metrics send part 1: add environment information
     # Must happen after configs are resolved because it is determined
     # then whether metrics are sent or not
@@ -830,6 +850,8 @@ def run_scan(
         time_flag,
         engine_type,
         run_secrets,
+        with_code_rules,
+        with_supply_chain,
     )
     profiler.save("core_time", core_start_time)
     output_handler.handle_semgrep_errors(semgrep_errors)

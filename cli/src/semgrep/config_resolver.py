@@ -329,35 +329,34 @@ def parse_config_files(
     return config
 
 
-class ConfigPath:
-    def __init__(self, config_str: str, project_url: Optional[str] = None) -> None:
-        self._config_str = config_str
-        self._project_url = project_url
+def resolve_config(
+    config_str: str, project_url: Optional[str] = None
+) -> Dict[str, YamlTree]:
+    """resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
+    start_t = time.time()
+    config_loader = ConfigLoader(config_str, project_url)
+    config = parse_config_files(config_loader.load_config())
 
-    def resolve_config(self) -> Dict[str, YamlTree]:
-        """resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
-        start_t = time.time()
-
-        config = parse_config_files(
-            ConfigLoader(self._config_str, self._project_url).load_config()
-        )
-
-        if config:
-            logger.debug(f"loaded {len(config)} configs in {time.time() - start_t}")
-        return config
-
-    def __str__(self) -> str:
-        # TODO return the resolved config_path
-        return self._config_str
+    if config:
+        logger.debug(f"loaded {len(config)} configs in {time.time() - start_t}")
+    return config
 
 
 class Config:
-    def __init__(self, valid_configs: Mapping[str, Sequence[Rule]]) -> None:
+    def __init__(
+        self,
+        valid_configs: Mapping[str, Sequence[Rule]],
+        *,
+        with_code_rules: bool = False,
+        with_supply_chain: bool = False,
+    ) -> None:
         """
         Handles parsing and validating of config files
         and exposes ability to get all rules in parsed config files
         """
         self.valid = valid_configs
+        self.with_code_rules = with_code_rules
+        self.with_supply_chain = with_supply_chain
 
     @classmethod
     def from_pattern_lang(
@@ -396,14 +395,19 @@ class Config:
         """
         config_dict: Dict[str, YamlTree] = {}
         errors: List[SemgrepError] = []
+        with_supply_chain = False
+        with_code_rules = False
 
         for i, config in enumerate(configs):
             try:
                 # Patch config_id to fix https://github.com/returntocorp/semgrep/issues/1912
-                resolved_config = ConfigPath(config, project_url).resolve_config()
+                resolved_config = resolve_config(config, project_url)
                 if not resolved_config:
                     logger.verbose(f"Could not resolve config for {config}. Skipping.")
                     continue
+
+                with_code_rules = with_code_rules or not is_supply_chain(config)
+                with_supply_chain = with_supply_chain or is_supply_chain(config)
 
                 for (
                     resolved_config_key,
@@ -420,7 +424,14 @@ class Config:
 
         valid, parse_errors = cls._validate(config_dict)
         errors.extend(parse_errors)
-        return cls(valid), errors
+        return (
+            cls(
+                valid,
+                with_code_rules=with_code_rules,
+                with_supply_chain=with_supply_chain,
+            ),
+            errors,
+        )
 
     def get_rules(self, no_rewrite_rule_ids: bool) -> List[Rule]:
         """
