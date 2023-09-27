@@ -783,8 +783,8 @@ and function_body =
   | FBTry of tok * function_definition_body * handler list
 
 and function_definition_body =
-  | Constr of (name * obj_init) list * compound
   | Normal of compound
+  | Constr of (name * obj_init) list * compound
 
 and lambda_definition = lambda_capture list bracket * function_definition
 

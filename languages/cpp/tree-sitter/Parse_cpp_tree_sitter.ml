@@ -46,7 +46,6 @@ let token = H.token
 let fake = Tok.unsafe_fake_tok
 let fb = Tok.fake_bracket
 let str = H.str
-let todo _env _x = failwith "TODO"
 
 (* for declarators *)
 let id x = x
@@ -334,10 +333,10 @@ let map_gnu_asm_qualifier (env : env) (x : CST.gnu_asm_qualifier) =
 let map_anon_choice_signed_a0bfc19 (env : env)
     (x : CST.anon_choice_signed_a0bfc19) =
   match x with
-  | `Signed tok -> (* "signed" *) token env tok
-  | `Unsi tok -> (* "unsigned" *) token env tok
-  | `Long tok -> (* "long" *) token env tok
-  | `Short tok -> (* "short" *) token env tok
+  | `Signed tok -> (* "signed" *) str env tok
+  | `Unsi tok -> (* "unsigned" *) str env tok
+  | `Long tok -> (* "long" *) str env tok
+  | `Short tok -> (* "short" *) str env tok
 
 let map_ms_call_modifier (env : env) (x : CST.ms_call_modifier) =
   match x with
@@ -2161,60 +2160,7 @@ and map_catch_clause (env : env) ((v1, v2, v3) : CST.catch_clause) : handler =
     | xs -> ParamTodo (("MultiParamExn", v1), xs)
   in
   (v1, (l, ExnDecl param, r), v3)
-(*
-       let _v2 =
-        match v2 with
-        | Some x -> [ map_ms_declspec_modifier env x ]
-        | None -> []
-      in
-      let _v3_TODO =
-        match v3 with
-        | Some x -> Some (map_attribute_declaration env x)
-        | None -> None
-      in
-      let v4 = map_anon_choice_class_name_d6703e6 env v4 in
-*)
 
-(*
- (* after a struct/union/class keyword *)
-(* and map_anon_choice_class_name_d6703e6 (env : env)
-    (x : CST.anon_choice_class_name_d6703e6) : class_key wrap -> type_ =
-  match x with
-  | `Class_name x ->
-      let x = map_class_name env x in
-      fun ckey -> (nQ, ClassName (ckey, x))
-  | `Opt_class_name_opt_virt_spec_opt_base_class_clause_field_decl_list
-      (v1, v2, v3, v4) ->
-      let v1 =
-        match v1 with
-        | Some x -> Some (map_class_name env x)
-        | None -> None
-      in
-      let v2 =
-        match v2 with
-        | Some x -> Some (map_virtual_specifier env x)
-        | None -> None
-      in
-      let v3 =
-        match v3 with
-        | Some x -> map_base_class_clause env x
-        | None -> []
-      in
-      let v4 = map_field_declaration_list env v4 in
-      fun ckey ->
-        let cdef =
-          ( v1,
-            {
-              c_kind = ckey;
-              c_inherit =
-                v3 |> Common.map (fun clause -> { clause with i_virtual = v2 });
-              c_members = v4;
-            } )
-        in
-        (nQ, ClassDef cdef) *)
-
-
-*)
 and map_class_declaration (env : env)
     ((v1, v2, v3, v4, v5) : CST.class_declaration) cwrap =
   (* We need to add specifiers in more locations. Currently it does not
@@ -3889,6 +3835,53 @@ and map_preproc_elifdef (env : env) ((v1, v2, v3, v4) : CST.preproc_elifdef) =
   in
   (CppIfdef dir1 :: v3) @ v4
 
+(* The problem here is that we use the same "preproc_elifdef" type for both
+   preproc blocks in fields and outside of fields.
+   In our representation, however, preprocs in fields and out of them have
+   different representations, namely `stmt_or_decl sequencable`s vs
+   `class_member sequencable`s.
+   By the fact that this is reused for both, we lose either way by picking
+   one of the types, since it will cause a type error in the other.
+   `class_member` includes a `F of decl` field, so we can fit some portion of
+   `stmt_or_decl`s into it, but can't contain `stmt`s. According to our types,
+   however, it shouldn't really make sense for `stmt`s to appear as a
+   `class_member`, either.
+   So we will just filter for only the `decl`s which we think should be able to
+   appear as a valid field. *)
+
+(* "stmt_or_decl" to "class_member" *)
+and sd_to_cm_opt x =
+  match x with
+  | X (D decl) -> Some (X (F decl))
+  | X (S _stmt) -> None
+  (* Have to write all this boilerplate out to re-pack into the
+      class_member sequencable type. Very sad.
+  *)
+  | CppDirective x -> Some (CppDirective x)
+  | CppIfdef x -> Some (CppIfdef x)
+  | MacroDecl (a, b, c, d) -> Some (MacroDecl (a, b, c, d))
+  | MacroVar (x, y) -> Some (MacroVar (x, y))
+
+and map_preproc_elifdef_in_field (env : env)
+    ((v1, v2, v3, v4) : CST.preproc_elifdef) =
+  let v1 = map_anon_choice_pat_0307ca2_dbf6a9d env v1 in
+  let _v2 =
+    (* pattern \$?(\p{XID_Start}|_|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})(\p{XID_Continue}|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})* *)
+    token env v2
+  in
+  let dir1 = v1 in
+  let v3 =
+    List.concat_map (map_block_item env) v3 |> List.filter_map sd_to_cm_opt
+  in
+
+  let v4 =
+    match v4 with
+    | Some x ->
+        map_anon_choice_prep_else_8b52b0f env x |> List.filter_map sd_to_cm_opt
+    | None -> []
+  in
+  (CppIfdef dir1 :: v3) @ v4
+
 and map_preproc_ifdef (env : env) ((v1, v2, v3, v4, v5) : CST.preproc_ifdef) :
     toplevel list =
   let v1 = map_anon_choice_pat_25b90ba_4a37f8c env v1 in
@@ -3923,7 +3916,7 @@ and map_preproc_ifdef_in_field_declaration_list (env : env)
         (* TODO: Type error here, because of the difference btween class-member
            sequencables and stmt_or_decl sequencables.
         *)
-        | `Prep_elif x -> map_preproc_elifdef env x |> todo env)
+        | `Prep_elif x -> map_preproc_elifdef_in_field env x)
     | None -> []
   in
   let v5 = token env v5 (* pattern #[ 	]*endif *) in
@@ -4511,11 +4504,17 @@ and map_type_declarator (env : env) (x : CST.type_declarator) : declarator =
 
      I don't even really know what this is supposed to mean. Is it
      even allowed to shadow a primitive type in a typedef!!!
+
+     Let's just say that the name of the type is this previously-existent
+     type. Stuff like `typedef unsigned int unsigned` actually compiles with GCC.
   *)
-  | `Choice_signed x -> map_anon_choice_signed_a0bfc19 env x |> todo env
+  | `Choice_signed x ->
+      let x = map_anon_choice_signed_a0bfc19 env x in
+      { dn = DN (name_of_id x); dt = id }
   | `Prim_type tok ->
       (* primitive_type *)
-      str env tok |> todo env
+      let x = str env tok in
+      { dn = DN (name_of_id x); dt = id }
 
 (* pattern [a-zA-Z_]\w* *)
 and map_type_definition (env : env)
