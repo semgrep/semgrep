@@ -604,15 +604,15 @@ for_stmt:
 
 try_stmt:
   | TRY ":" suite excepthandler+
-      { TryExcept ($1, $3, $4, []) }
+      { TryExcept ($1, $3, $4, None, None) }
   | TRY ":" suite excepthandler+ ELSE ":" suite
-      { TryExcept ($1, $3, $4, $7) }
+      { TryExcept ($1, $3, $4, Some ($5, $7), None) }
   | TRY ":" suite excepthandler+ ELSE ":" suite FINALLY ":" suite
-      { TryFinally ($1, [TryExcept ($1, $3, $4, $7)], $8, $10) }
+      { TryExcept ($1, $3, $4, Some ($5, $7), Some ($8, $10)) }
   | TRY ":" suite excepthandler+ FINALLY ":" suite
-      { TryFinally ($1, [TryExcept ($1, $3, $4, [])], $5, $7) }
+      { TryExcept ($1, $3, $4, None, Some ($5, $7)) }
   | TRY ":" suite FINALLY ":" suite
-      { TryFinally ($1, $3, $4, $6) }
+      { TryExcept ($1, $3, [], None, Some ($4, $6)) }
 
 excepthandler:
   | EXCEPT              ":" suite { ExceptHandler ($1, None, None, $3) }

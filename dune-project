@@ -157,7 +157,6 @@ parsers, especially ocamlyacc/menhir based parsers.
     (dune (>= "3.2.0" ))
     (commons (>= "1.5.5"))
     (profiling (>= "1.5.5"))
-    (stdcompat (>= "19"))
     (fpath (>= "0.7.3"))
   )
 )
@@ -395,7 +394,6 @@ For more information see https://semgrep.dev
     ; parser generators
     (menhir (= 20211128)) ; Newer versions cause massive build slowdowns
     ; standard libraries
-    stdcompat
     ; We don't use Base directly. If it's being used indirectly
     ; (is it, though?), we need a version that doesn't register
     ; rogue exception printers.

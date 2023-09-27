@@ -1,88 +1,21 @@
 (*****************************************************************************)
-(* Types and constants *)
+(* Prelude *)
+(*****************************************************************************)
+(* Collect information about the project from the environment.
+ *
+ * This module is a translation of [meta.py] renamed to [Project_metadata.ml]
+ * and split in other modules (e.g., [Git_metadata.ml], [Github_metadata.ml]).
+ *)
+
+(*****************************************************************************)
+(* Types *)
 (*****************************************************************************)
 
-type 'e t = {
-  repository : string;
-  repo_url : Uri.t option;
-  branch : string option;
-  ci_job_url : Uri.t option;
-  commit : Digestif.SHA1.t option;
-  commit_author_email : Emile.mailbox option;
-  commit_author_name : string option;
-  commit_author_username : string option;
-  commit_author_image_url : Uri.t option;
-  commit_title : string option;
-  on : string option;
-  pull_request_author_username : string option;
-  pull_request_author_image_url : Uri.t option;
-  pull_request_id : string option;
-  pull_request_title : string option;
-  scan_environment : string option;
-  is_full_scan : bool;
-  extension : 'e;
-}
-
-(* TODO: use atd to serialize (and the same in the Semgrep App) *)
-let to_dict t =
-  let open JSON in
-  let or_null = Option.value ~default:Null in
-  Object
-    [
-      ("semgrep_version", String Version.version);
-      (* REQUIRED for semgrep-app backend *)
-      ("repository", String t.repository);
-      (* OPTIONAL for semgrep-app backend *)
-      ( "repo_url",
-        or_null (Option.map (fun url -> String (Uri.to_string url)) t.repo_url)
-      );
-      ("branch", or_null (Option.map (fun branch -> String branch) t.branch));
-      ( "ci_job_url",
-        or_null
-          (Option.map (fun url -> String (Uri.to_string url)) t.ci_job_url) );
-      ( "commit",
-        or_null
-          (Option.map (fun sha -> String (Digestif.SHA1.to_hex sha)) t.commit)
-      );
-      ( "commit_author_email",
-        or_null
-          (Option.map
-             (fun email -> String (Emile.to_string email))
-             t.commit_author_email) );
-      ( "commit_author_name",
-        or_null (Option.map (fun name -> String name) t.commit_author_name) );
-      ( "commit_author_username",
-        or_null (Option.map (fun name -> String name) t.commit_author_username)
-      );
-      ( "commit_author_image_url",
-        or_null
-          (Option.map
-             (fun url -> String (Uri.to_string url))
-             t.commit_author_image_url) );
-      ( "commit_title",
-        or_null (Option.map (fun name -> String name) t.commit_title) );
-      ("on", or_null (Option.map (fun name -> String name) t.on));
-      ( "pull_request_author_username",
-        or_null
-          (Option.map (fun name -> String name) t.pull_request_author_username)
-      );
-      ( "pull_request_author_image_url",
-        or_null
-          (Option.map
-             (fun url -> String (Uri.to_string url))
-             t.pull_request_author_image_url) );
-      ( "pull_request_id",
-        or_null (Option.map (fun pr_id -> String pr_id) t.pull_request_id) );
-      ( "pull_request_title",
-        or_null (Option.map (fun title -> String title) t.pull_request_title) );
-      ( "scan_environment",
-        or_null (Option.map (fun env -> String env) t.scan_environment) );
-      ("is_full_scan", Bool t.is_full_scan);
-    ]
+(* the type is now defined in ATD so it can be reused with our backend *)
+type t = Semgrep_output_v1_t.project_metadata
 
 module type S = sig
   type env
-  type extension
 
   (** Accessors. *)
 
@@ -99,8 +32,8 @@ module type S = sig
   (** Cmdliner helpers. *)
 
   val env : env Cmdliner.Term.t
-  val make : env -> extension t
-  val term : extension t Cmdliner.Term.t
+  val make : env -> t
+  val term : t Cmdliner.Term.t
 end
 
 (*****************************************************************************)

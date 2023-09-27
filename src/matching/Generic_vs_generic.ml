@@ -2551,11 +2551,12 @@ and m_stmt a b =
       let* () = m_tok a0 b0 in
       let* () = m_expr a1 b1 in
       m_tok asc bsc
-  | G.Try (a0, a1, a2, a3), B.Try (b0, b1, b2, b3) ->
+  | G.Try (a0, a1, a2, a3, a4), B.Try (b0, b1, b2, b3, b4) ->
       let* () = m_tok a0 b0 in
       let* () = m_stmt a1 b1 in
       let* () = (m_list m_catch) a2 b2 in
-      (m_option m_finally) a3 b3
+      let* () = (m_option m_try_else) a3 b3 in
+      (m_option m_finally) a4 b4
   | G.Assert (a0, aargs, asc), B.Assert (b0, bargs, bsc) ->
       let* () = m_tok a0 b0 in
       let* () = m_arguments aargs bargs in
@@ -2696,6 +2697,10 @@ and m_catch_exn a b =
   | G.OtherCatch _, _
   | G.CatchParam _, _ ->
       fail ()
+
+and m_try_else a b =
+  match (a, b) with
+  | (at, a), (bt, b) -> m_tok at bt >>= fun () -> m_stmt a b
 
 and m_finally a b =
   match (a, b) with
@@ -2970,7 +2975,7 @@ and m_function_definition a b =
 
 and m_function_body a b =
   match (a, b) with
-  | G.FBStmt a1, B.FBStmt b1 -> m_stmt a1 b1
+  | G.FBStmt a1, B.FBStmt b1 -> m_block a1 b1
   (* TODO: equivalence: do magic conversion to FStmt? *)
   | G.FBExpr a1, B.FBExpr b1 -> m_expr a1 b1
   | G.FBDecl a1, B.FBDecl b1 -> m_tok a1 b1

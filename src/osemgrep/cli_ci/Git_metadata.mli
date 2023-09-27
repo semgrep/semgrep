@@ -11,4 +11,4 @@ type env = {
   _SEMGREP_BRANCH : string option;
 }
 
-include Project_metadata.S with type extension = unit and type env := env
+include Project_metadata.S with type env := env

@@ -857,12 +857,13 @@ and vof_stmt st =
       let v1 = vof_expr v1 in
       let sc = vof_tok sc in
       OCaml.VSum ("Throw", [ t; v1; sc ])
-  | Try (t, v1, v2, v3) ->
+  | Try (t, v1, v2, v3, v4) ->
       let t = vof_tok t in
       let v1 = vof_stmt v1
       and v2 = OCaml.vof_list vof_catch v2
-      and v3 = OCaml.vof_option vof_finally v3 in
-      OCaml.VSum ("Try", [ t; v1; v2; v3 ])
+      and v3 = OCaml.vof_option vof_try_else v3
+      and v4 = OCaml.vof_option vof_finally v4 in
+      OCaml.VSum ("Try", [ t; v1; v2; v3; v4 ])
   | WithUsingResource (t, v1, v2) ->
       let t = vof_tok t in
       let v1 = OCaml.vof_list vof_stmt v1 in
@@ -953,6 +954,7 @@ and vof_catch_exn = function
       let v1 = vof_parameter_classic v1 in
       OCaml.VSum ("CatchParam", [ v1 ])
 
+and vof_try_else v = vof_tok_and_stmt v
 and vof_finally v = vof_tok_and_stmt v
 
 and vof_tok_and_stmt (t, v) =

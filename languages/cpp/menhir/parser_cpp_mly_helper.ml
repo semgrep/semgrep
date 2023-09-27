@@ -333,7 +333,7 @@ let fixFieldOrMethodDecl (xs, semicolon) : class_member =
 let mk_e e = e
 let mk_funcall e1 args = Call (e1, args)
 
-let mk_constructor specs id (lp, params, rp) _cmem_initializer_opt_TODO cp =
+let mk_constructor specs id (lp, params, rp) cp =
   let params = Common.optlist_to_list params in
   let ftyp =
     {

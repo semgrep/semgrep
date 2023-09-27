@@ -33,6 +33,7 @@ class EngineType(Enum):
         scan_handler: Optional[ScanHandler] = None,
         git_meta: Optional[GitMeta] = None,
         run_secrets: bool = False,
+        enable_pro_diff_scan: bool = False,
     ) -> "EngineType":
         """Select which Semgrep engine type to use if none is explicitly requested.
 
@@ -50,7 +51,11 @@ class EngineType(Enum):
             if scan_handler.deepsemgrep and requested_engine is None:
                 requested_engine = cls.PRO_INTERFILE
 
-            if requested_engine == cls.PRO_INTERFILE and not git_meta.is_full_scan:
+            if (
+                requested_engine == cls.PRO_INTERFILE
+                and not git_meta.is_full_scan
+                and not enable_pro_diff_scan
+            ):
                 requested_engine = cls.PRO_INTRAFILE
 
         return requested_engine or cls.OSS

@@ -338,6 +338,7 @@ and stmt_kind =
   | Try of
       stmt list
       * (name * stmt list) list (* catches *)
+      * stmt list (* else *)
       * stmt list (* finally *)
   | Throw of tok * exp (* less: enforce lval here? *)
   | MiscStmt of other_stmt
@@ -377,8 +378,10 @@ type node = {
 and node_kind =
   | Enter
   | Exit
-  | TrueNode
-  | FalseNode (* for Cond *)
+  (* 'TrueNode' and 'FalseNode' follow 'NCond', and the 'exp' is the same
+   * condition as in 'NCond'. *)
+  | TrueNode of exp (* same as in Cond *)
+  | FalseNode of exp (* same as in Cond *)
   | Join (* after Cond *)
   | NInstr of instr
   | NCond of tok * exp

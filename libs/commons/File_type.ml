@@ -59,6 +59,7 @@ and pl_type =
   | ObjectiveC of string
   | Swift
   (* advanced script *)
+  | Julia
   | Perl
   | Python
   | Ruby
@@ -196,6 +197,7 @@ let file_type_of_file file =
   | "py"
   | "pyi" ->
       PL Python
+  | "jl" -> PL Julia
   | "rb" -> PL Ruby
   | "logic" -> PL (Prolog "logic") (* datalog of logicblox *)
   | "dtl" -> PL (Prolog "dtl") (* bddbddb *)

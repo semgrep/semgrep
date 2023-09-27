@@ -43,7 +43,7 @@ Experimental Rules:
   Scanning 1 file.
 Passing whole rules directly to semgrep_core
 Running Semgrep engine with command:
-/<MASKED>/semgrep-core -json -rules <MASKED>-json_time -fast --debug
+/<MASKED>/semgrep-core -json -rules <MASKED>.json -j <MASKED> -targets <MASKED> -timeout_threshold 3 -max_memory 0 -fast --debug
 --- semgrep-core stderr ---
 <semgrep-core stderr not captured, should be printed above>
 --- end semgrep-core stderr ---
