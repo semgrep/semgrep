@@ -120,7 +120,7 @@ jobs:
           ./emsdk install latest
       - name: Run semgrep js e2e tests
         run: |
-          export PATH=$PATH:/root/emsdk/upstream/emscripten
+          export PATH=$PATH:/root/emsdk/upstream/emscripten:/root/emsdk/upstream/bin
           eval $(opam env)
           make test-jsoo
 
