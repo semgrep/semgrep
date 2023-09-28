@@ -80,7 +80,7 @@ exports[`yaml parser parses a pattern with pattern-regex 1`] = `
     ],
   ],
   "skipped_rules": [],
-  "version": "1.41.0",
+  "version": "<MASKED>",
 }
 `;
 
@@ -192,6 +192,6 @@ exports[`yaml parser parses a simple pattern 1`] = `
     ],
   ],
   "skipped_rules": [],
-  "version": "1.41.0",
+  "version": "<MASKED>",
 }
 `;
