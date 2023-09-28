@@ -112,7 +112,7 @@ jobs:
           make install-deps-for-semgrep-core
       - name: Run semgrep js e2e tests
         run: |
-          make -j 5 test-jsoo-e2e
+          make test-jsoo
 
   test-cli:
     name: test semgrep-cli

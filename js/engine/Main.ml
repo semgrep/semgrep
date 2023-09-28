@@ -7,7 +7,7 @@ let _ =
        (*
           The following methods are used internally by js/engine/src/index.js.
         *)
-       method isetLibYamlWasmModulenit = init_jsoo
+       method init = init_jsoo
        method getMountpoints = get_jsoo_mountpoint ()
 
        method setParsePattern (func : jbool -> jstring -> jstring -> 'a) =
