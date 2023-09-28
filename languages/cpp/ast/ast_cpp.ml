@@ -302,6 +302,7 @@ and expr =
   | Ellipsis of tok
   | DeepEllipsis of expr bracket
   | TypedMetavar of ident * type_
+  | DotAccessEllipsis of expr * tok (* '...' *)
   | ExprTodo of todo_category * expr list
 
 and special =

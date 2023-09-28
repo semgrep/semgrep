@@ -655,6 +655,7 @@ and expr env e =
   | ParenExpr (_, e, _) -> expr env e
   (* sgrep-ext: *)
   | TypedMetavar (id, t) -> A.TypedMetavar (id, full_type env t)
+  | DotAccessEllipsis (e, t) -> A.DotAccessEllipsis (expr env e, t)
 
 and constant _env x =
   match x with
