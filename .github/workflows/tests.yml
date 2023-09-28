@@ -160,7 +160,7 @@ jobs:
           (cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)
       - uses: actions/download-artifact@v3
         with:
-          name: semgrep-js-ocaml-build-test-${{ github.sha }}
+          name: semgrep-js-ocaml-test-${{ github.sha }}
           path: _build/default/js
       - uses: actions/setup-node@v3
         with:

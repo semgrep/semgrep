@@ -43,7 +43,6 @@ VERSION ?= 0.0.1
 default: build
 
 .PHONY: build
-build:
 build: dist/index.cjs dist/index.mjs dist/index.d.ts
 
 .PHONY: test
