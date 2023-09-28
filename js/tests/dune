@@ -1,4 +1,4 @@
- (env
+(env
  (js_of_ocaml (flags -no-inline -debug-info)))
 
 (executable

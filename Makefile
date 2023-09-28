@@ -216,7 +216,7 @@ core-test-e2e:
 	$(MAKE) -C interfaces/semgrep_interfaces test
 	python3 tests/semgrep-core-e2e/test_target_file.py
 
-.PHONY: test-jsoo-e2e
+.PHONY: test-jsoo
 test-jsoo: build-semgrep-jsoo-debug
 	$(MAKE) -C js test
 

@@ -7,17 +7,6 @@
   tree-sitter.run
   ; semgrep.parsing_languages ; skipped to go from 16MB to 7MB
   )
- (js_of_ocaml
-  (javascript_files
-   )
-  ; --no-inline was suggested here:
-  ; https://discuss.ocaml.org/t/js-of-ocaml-output-performs-considerably-worse-when-built-with-profile-release-flag/8862/14
-  ; but this does not appear to have an effect for us
-  ;(flags (:standard --no-inline))
-  ; Useful flags to see what is linked in the final JS file
-  ; (you can also look at the biggest files under _build/default/.js/)
-  ; (link_flags (:standard --debug link))
-  )
  (modes js)
  (preprocess
   (pps js_of_ocaml-ppx)))

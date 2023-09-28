@@ -30,7 +30,6 @@ let test_filter ~name ~index =
   else `Run (* Cpp has a weird error, and @brandon is still working on it soo *)
 
 let _ =
-  enable_debug_logging ();
   Js.export_all
     (object%js
        method init = init_jsoo

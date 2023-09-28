@@ -44,10 +44,6 @@ let init_jsoo yaml_wasm_module =
   Yaml_ctypes_overrides.apply ();
   Libyaml_stubs_js.set_libyaml_wasm_module yaml_wasm_module
 
-let enable_debug_logging () =
-  Logging_helpers.setup ~debug:true
-    ~log_config_file:(Fpath.v "log_config.json")
-    ~log_to_file:None
 (*****************************************************************************)
 (* Entrypoints *)
 (*****************************************************************************)
