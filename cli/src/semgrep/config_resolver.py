@@ -72,6 +72,7 @@ DEFAULT_CONFIG = {
     ],
 }
 
+CLOUD_PLATFORM_CONFIG_ID = "semgrep-app-rules"
 REGISTRY_CONFIG_ID = "remote-registry"
 NON_REGISTRY_REMOTE_CONFIG_ID = "remote-url"
 
@@ -152,6 +153,7 @@ class ConfigLoader:
         it may be a path to a folders of configs, each of
         which produces a file
         """
+        print(f"AAAA LOADING CONF: {self}")
         if self._origin == ConfigType.REGISTRY:
             return [self._download_config()]
         else:
@@ -373,7 +375,7 @@ class Config:
         errors: List[SemgrepError] = []
 
         try:
-            resolved_config_key = "semgrep-app-rules"
+            resolved_config_key = CLOUD_PLATFORM_CONFIG_ID
             config_dict.update(
                 parse_config_string(resolved_config_key, config, filename=None)
             )
@@ -494,6 +496,7 @@ class Config:
         """
         Take configs and separate into valid and list of errors parsing the invalid ones
         """
+        logger.debug(f"VALIDATING: {config_dict}")
         errors: List[SemgrepError] = []
         valid: Dict[str, Any] = {}
         for config_id, config_yaml_tree in config_dict.items():
@@ -522,6 +525,7 @@ class Config:
                     if (
                         isinstance(rule.product.value, out.Secrets)
                         and config_id != REGISTRY_CONFIG_ID
+                        and config_id != CLOUD_PLATFORM_CONFIG_ID
                     ):
                         # SECURITY: Set metadata from non-registry secrets
                         # rules so that postprocessors are not run. The default
