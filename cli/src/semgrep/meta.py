@@ -359,6 +359,7 @@ class GithubMeta(GitMeta):
         """
         Ref name of the branch pull request is merging into
         """
+        logger.debug(f"GETTING BASE BRANCH REF")
         return self.glom_event(T["pull_request"]["base"]["ref"])  # type:ignore
 
     @cachedproperty
@@ -369,6 +370,7 @@ class GithubMeta(GitMeta):
         Assumes we are in PR context
         """
         base_branch_name = self._base_branch_ref
+        logger.debug(f"SUCCESSFULLY RETRIEVED BASE BRANCH REF {base_branch_name}")
         commit = self._get_latest_commit_hash_in_branch(base_branch_name)
         logger.debug(f"base branch ({base_branch_name}) has latest commit {commit}")
         return commit
@@ -379,7 +381,9 @@ class GithubMeta(GitMeta):
         is not the merge base. We must fetch and get the merge-base ourselves
         """
         # Should only be called if head_branch_hash is defined
+        logger.debug(f"GETTING HEAD BRANCH HASH")
         assert self.head_branch_hash is not None
+        logger.debug(f"GETTING BASE BRANCH HASH")
         assert self.base_branch_hash is not None
         env = get_state().env
 
