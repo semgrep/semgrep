@@ -166,7 +166,7 @@ jobs:
           node-version: "18"
       - name: Run semgrep js e2e tests
         run: |
-          make -C js test
+          make -C js -j $(nproc) test
 
   test-cli:
     name: test semgrep-cli

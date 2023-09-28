@@ -16,7 +16,6 @@ package: $(SUPPORTED_LANGS:%=package-%)
 
 .PHONY: build-%
 build-%:
-	. ../../libs/ocaml-tree-sitter-core/tree-sitter-config.sh
 	cd $*; $(MAKE) build
 
 .PHONY: test-%

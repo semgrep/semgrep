@@ -13,7 +13,8 @@ test:
 	cd libpcre; $(MAKE) test
 	cd libyaml; $(MAKE) test
 	cd engine; $(MAKE) test
-	cd languages; $(MAKE) -j 5 test # These are easily parallelizable
+	cd languages; $(MAKE) -j $(nproc) test # These are easily parallelizable
+	cd tests; $(MAKE)
 
 .PHONY: e2e
 e2e: engine languages

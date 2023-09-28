@@ -86,9 +86,9 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: "18"
-      - name: Build and test JS artifacts
+      - name: Build JS artifacts
         run: |
-          make -C js -j $(nproc) test
+          make -C js -j $(nproc) build
 
           tar cvzf semgrep-js-artifacts.tar.gz \
             js/engine/dist/index.cjs \

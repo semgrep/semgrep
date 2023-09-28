@@ -37,10 +37,13 @@ SEMGREP_TS_LANG ?= $(SEMGREP_LANG)
 TS_EXPORTED_FUNCTIONS ?= _tree_sitter_$(SEMGREP_TS_LANG)
 VERSION ?= 0.0.1
 
+-include ../../../libs/ocaml-tree-sitter-core/tree-sitter-config.mk
+
 .PHONY: default
 default: build
 
 .PHONY: build
+build:
 build: dist/index.cjs dist/index.mjs dist/index.d.ts
 
 .PHONY: test
