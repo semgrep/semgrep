@@ -153,7 +153,6 @@ class ConfigLoader:
         it may be a path to a folders of configs, each of
         which produces a file
         """
-        print(f"AAAA LOADING CONF: {self}")
         if self._origin == ConfigType.REGISTRY:
             return [self._download_config()]
         else:
@@ -496,7 +495,6 @@ class Config:
         """
         Take configs and separate into valid and list of errors parsing the invalid ones
         """
-        logger.debug(f"VALIDATING: {config_dict}")
         errors: List[SemgrepError] = []
         valid: Dict[str, Any] = {}
         for config_id, config_yaml_tree in config_dict.items():
