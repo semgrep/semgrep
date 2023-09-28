@@ -118,12 +118,6 @@ jobs:
         with:
           path: .
           key: semgrep-with-submodules-and-tree-sitter-${{ github.sha }}
-      - name: Build semgrep
-        run: |
-          eval $(opam env)
-          make install-deps-ALPINE-for-semgrep-core
-          make install-deps-for-semgrep-core
-          make build-semgrep-jsoo
       - uses: actions/upload-artifact@v3
         with:
           name: semgrep-js-ocaml-build-${{ github.sha }}
