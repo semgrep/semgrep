@@ -118,6 +118,12 @@ jobs:
         with:
           path: .
           key: semgrep-with-submodules-and-tree-sitter-${{ github.sha }}
+      - name: Build semgrep
+        run: |
+          eval $(opam env)
+          make install-deps-ALPINE-for-semgrep-core
+          make install-deps-for-semgrep-core
+          make build-semgrep-jsoo-debug
       - uses: actions/upload-artifact@v3
         with:
           name: semgrep-js-ocaml-build-${{ github.sha }}
@@ -138,11 +144,6 @@ jobs:
         with:
           submodules: true
           persist-credentials: false
-      - name: Build semgrep-core
-        run: |
-          eval $(opam env)
-          make install-deps-ALPINE-for-semgrep-core
-          make install-deps-for-semgrep-core
       - name: Restore git checkout cache
         id: restore-git
         uses: actions/cache/restore@v3
