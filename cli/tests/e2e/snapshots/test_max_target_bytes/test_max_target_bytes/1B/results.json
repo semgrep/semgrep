@@ -1,9 +1,2 @@
-{
-  "errors": [],
-  "paths": {
-    "scanned": []
-  },
-  "results": [],
-  "skipped_rules": [],
-  "version": "0.42"
-}
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7fb9c3985990>
+{"errors": [], "paths": {"scanned": []}, "results": [], "skipped_rules": [], "version": "<MASKED>"}

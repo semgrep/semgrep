@@ -7,63 +7,9 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of exit code
 
 === stdout - plain
-{
-  "errors": [],
-  "paths": {
-    "scanned": [
-      "targets/dependency_aware/manifest_parse_error/poetry.lock"
-    ]
-  },
-  "results": [
-    {
-      "check_id": "rules.dependency_aware.python-poetry-sca",
-      "end": {
-        "col": 0,
-        "line": 99,
-        "offset": 0
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "[[package]]\nname = \"faker\"",
-        "message": "oh no",
-        "metadata": {},
-        "metavars": {},
-        "sca_info": {
-          "dependency_match": {
-            "dependency_pattern": {
-              "ecosystem": "pypi",
-              "package": "faker",
-              "semver_range": "<= 13.11.1"
-            },
-            "found_dependency": {
-              "allowed_hashes": {},
-              "ecosystem": "pypi",
-              "line_number": 98,
-              "package": "faker",
-              "transitivity": "unknown",
-              "version": "1.0.0"
-            },
-            "lockfile": "targets/dependency_aware/manifest_parse_error/poetry.lock"
-          },
-          "reachability_rule": true,
-          "reachable": false,
-          "sca_finding_schema": 20220913
-        },
-        "severity": "WARNING"
-      },
-      "path": "targets/dependency_aware/manifest_parse_error/poetry.lock",
-      "start": {
-        "col": 0,
-        "line": 98,
-        "offset": 0
-      }
-    }
-  ],
-  "skipped_rules": [],
-  "version": "0.42"
-}
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7f8ac1189ab0>
+{"errors": [], "paths": {"scanned": ["targets/dependency_aware/manifest_parse_error/poetry.lock"]}, "results": [{"check_id": "rules.dependency_aware.python-poetry-sca", "end": {"col": 0, "line": 99, "offset": 0}, "extra": {"engine_kind": "OSS", "fingerprint": "ad80f5ee73edeca2a714382396a3c51fe7d095d8a8583dae79415e7cf9975971367f5ce0dc8fabb6a2091e2fcaef0d774dbfa0ae0cd492c0cea35a2a0d27e24b_0", "is_ignored": false, "lines": "[[package]]\nname = \"faker\"", "message": "oh no", "metadata": {}, "metavars": {}, "sca_info": {"dependency_match": {"dependency_pattern": {"ecosystem": "pypi", "package": "faker", "semver_range": "<= 13.11.1"}, "found_dependency": {"allowed_hashes": {}, "ecosystem": "pypi", "line_number": 98, "package": "faker", "transitivity": "unknown", "version": "1.0.0"}, "lockfile": "targets/dependency_aware/manifest_parse_error/poetry.lock"}, "reachability_rule": true, "reachable": false, "sca_finding_schema": 20220913}, "severity": "WARNING"}, "path": "targets/dependency_aware/manifest_parse_error/poetry.lock", "start": {"col": 0, "line": 98, "offset": 0}}], "skipped_rules": [], "version": "<MASKED>"}
+
 === end of stdout - plain
 
 === stderr - plain

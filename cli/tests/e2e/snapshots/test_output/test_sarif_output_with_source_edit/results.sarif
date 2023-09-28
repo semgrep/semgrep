@@ -1,3 +1,4 @@
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7f37f8131a80>
 {
   "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
   "runs": [
@@ -77,6 +78,30 @@
                 "level": "error"
               },
               "fullDescription": {
+                "text": "useless comparison"
+              },
+              "help": {
+                "text": "some help text"
+              },
+              "id": "rules.javascript-basic-eqeq-bad",
+              "name": "rules.javascript-basic-eqeq-bad",
+              "properties": {
+                "precision": "very-high",
+                "tags": [
+                  "cwe te",
+                  "security",
+                  "sometag"
+                ]
+              },
+              "shortDescription": {
+                "text": "some short description"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
                 "text": "possibly useless comparison but in eq function"
               },
               "help": {
@@ -84,6 +109,29 @@
               },
               "id": "rules.assert-eqeq-is-ok",
               "name": "rules.assert-eqeq-is-ok",
+              "properties": {
+                "precision": "very-high",
+                "tags": [
+                  "security",
+                  "sometag"
+                ]
+              },
+              "shortDescription": {
+                "text": "some short description"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "this function is only available on Python 3.7+"
+              },
+              "help": {
+                "text": "some help text"
+              },
+              "id": "rules.python37-compatability-os-module",
+              "name": "rules.python37-compatability-os-module",
               "properties": {
                 "precision": "very-high",
                 "tags": [
@@ -117,56 +165,9 @@
               "shortDescription": {
                 "text": "some short description"
               }
-            },
-            {
-              "defaultConfiguration": {
-                "level": "error"
-              },
-              "fullDescription": {
-                "text": "useless comparison"
-              },
-              "help": {
-                "text": "some help text"
-              },
-              "id": "rules.javascript-basic-eqeq-bad",
-              "name": "rules.javascript-basic-eqeq-bad",
-              "properties": {
-                "precision": "very-high",
-                "tags": [
-                  "cwe te",
-                  "security",
-                  "sometag"
-                ]
-              },
-              "shortDescription": {
-                "text": "some short description"
-              }
-            },
-            {
-              "defaultConfiguration": {
-                "level": "error"
-              },
-              "fullDescription": {
-                "text": "this function is only available on Python 3.7+"
-              },
-              "help": {
-                "text": "some help text"
-              },
-              "id": "rules.python37-compatability-os-module",
-              "name": "rules.python37-compatability-os-module",
-              "properties": {
-                "precision": "very-high",
-                "tags": [
-                  "security",
-                  "sometag"
-                ]
-              },
-              "shortDescription": {
-                "text": "some short description"
-              }
             }
           ],
-          "semanticVersion": "placeholder"
+          "semanticVersion": "<MASKED>"
         }
       }
     }

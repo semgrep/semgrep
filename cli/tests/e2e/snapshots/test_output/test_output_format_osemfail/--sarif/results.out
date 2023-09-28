@@ -1,3 +1,4 @@
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7f0b04d25a50>
 {
   "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
   "runs": [
@@ -48,16 +49,16 @@
                 "level": "error"
               },
               "fullDescription": {
-                "text": "possibly useless comparison but in eq function"
+                "text": "this function is only available on Python 3.7+"
               },
-              "id": "rules.assert-eqeq-is-ok",
-              "name": "rules.assert-eqeq-is-ok",
+              "id": "rules.python37-compatability-os-module",
+              "name": "rules.python37-compatability-os-module",
               "properties": {
                 "precision": "very-high",
                 "tags": []
               },
               "shortDescription": {
-                "text": "Semgrep Finding: rules.assert-eqeq-is-ok"
+                "text": "Semgrep Finding: rules.python37-compatability-os-module"
               }
             },
             {
@@ -82,6 +83,23 @@
                 "level": "error"
               },
               "fullDescription": {
+                "text": "possibly useless comparison but in eq function"
+              },
+              "id": "rules.assert-eqeq-is-ok",
+              "name": "rules.assert-eqeq-is-ok",
+              "properties": {
+                "precision": "very-high",
+                "tags": []
+              },
+              "shortDescription": {
+                "text": "Semgrep Finding: rules.assert-eqeq-is-ok"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
                 "text": "useless comparison"
               },
               "id": "rules.javascript-basic-eqeq-bad",
@@ -93,26 +111,9 @@
               "shortDescription": {
                 "text": "Semgrep Finding: rules.javascript-basic-eqeq-bad"
               }
-            },
-            {
-              "defaultConfiguration": {
-                "level": "error"
-              },
-              "fullDescription": {
-                "text": "this function is only available on Python 3.7+"
-              },
-              "id": "rules.python37-compatability-os-module",
-              "name": "rules.python37-compatability-os-module",
-              "properties": {
-                "precision": "very-high",
-                "tags": []
-              },
-              "shortDescription": {
-                "text": "Semgrep Finding: rules.python37-compatability-os-module"
-              }
             }
           ],
-          "semanticVersion": "placeholder"
+          "semanticVersion": "<MASKED>"
         }
       }
     }

@@ -7,65 +7,9 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of exit code
 
 === stdout - plain
-{
-  "errors": [],
-  "paths": {
-    "scanned": [
-      "targets/dependency_aware/requirements3/foo.py",
-      "targets/dependency_aware/requirements3/requirements3.txt"
-    ]
-  },
-  "results": [
-    {
-      "check_id": "rules.dependency_aware.python-requirements-sca",
-      "end": {
-        "col": 6,
-        "line": 1,
-        "offset": 5
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "bad()",
-        "message": "oh no",
-        "metadata": {},
-        "metavars": {},
-        "sca_info": {
-          "dependency_match": {
-            "dependency_pattern": {
-              "ecosystem": "pypi",
-              "package": "pandas",
-              "semver_range": "<= 1.4.2"
-            },
-            "found_dependency": {
-              "allowed_hashes": {},
-              "ecosystem": "pypi",
-              "line_number": 37,
-              "package": "pandas",
-              "transitivity": "direct",
-              "version": "1.4.2"
-            },
-            "lockfile": "targets/dependency_aware/requirements3/requirements3.txt"
-          },
-          "reachability_rule": true,
-          "reachable": true,
-          "sca_finding_schema": 20220913
-        },
-        "severity": "WARNING",
-        "validation_state": "NO_VALIDATOR"
-      },
-      "path": "targets/dependency_aware/requirements3/foo.py",
-      "start": {
-        "col": 1,
-        "line": 1,
-        "offset": 0
-      }
-    }
-  ],
-  "skipped_rules": [],
-  "version": "0.42"
-}
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7fceac429ab0>
+{"errors": [], "paths": {"scanned": ["targets/dependency_aware/requirements3/foo.py", "targets/dependency_aware/requirements3/requirements3.txt"]}, "results": [{"check_id": "rules.dependency_aware.python-requirements-sca", "end": {"col": 6, "line": 1, "offset": 5}, "extra": {"engine_kind": "OSS", "fingerprint": "8deda2fdfe63e723ca0ec07f4269de48b4388c16f0fc250d58cf13122922dc797dade937eba5f837feddacc08dbd5a7c33f353d38c6253334549f53e254b810d_0", "is_ignored": false, "lines": "bad()", "message": "oh no", "metadata": {}, "metavars": {}, "sca_info": {"dependency_match": {"dependency_pattern": {"ecosystem": "pypi", "package": "pandas", "semver_range": "<= 1.4.2"}, "found_dependency": {"allowed_hashes": {}, "ecosystem": "pypi", "line_number": 37, "package": "pandas", "transitivity": "direct", "version": "1.4.2"}, "lockfile": "targets/dependency_aware/requirements3/requirements3.txt"}, "reachability_rule": true, "reachable": true, "sca_finding_schema": 20220913}, "severity": "WARNING", "validation_state": "NO_VALIDATOR"}, "path": "targets/dependency_aware/requirements3/foo.py", "start": {"col": 1, "line": 1, "offset": 0}}], "skipped_rules": [], "version": "<MASKED>"}
+
 === end of stdout - plain
 
 === stderr - plain

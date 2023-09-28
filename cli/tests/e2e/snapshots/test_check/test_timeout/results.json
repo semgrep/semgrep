@@ -1,20 +1,2 @@
-{
-  "errors": [
-    {
-      "code": 2,
-      "level": "warn",
-      "message": "Timeout when running rules.forcetimeout on targets/equivalence/open_redirect.py:\n ",
-      "path": "targets/equivalence/open_redirect.py",
-      "rule_id": "rules.forcetimeout",
-      "type": "Timeout"
-    }
-  ],
-  "paths": {
-    "scanned": [
-      "targets/equivalence/open_redirect.py"
-    ]
-  },
-  "results": [],
-  "skipped_rules": [],
-  "version": "0.42"
-}
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7fefd3641a50>
+{"errors": [{"code": 2, "level": "warn", "message": "Timeout when running rules.forcetimeout on targets/equivalence/open_redirect.py:\n ", "path": "targets/equivalence/open_redirect.py", "rule_id": "rules.forcetimeout", "type": "Timeout"}], "paths": {"scanned": ["targets/equivalence/open_redirect.py"]}, "results": [], "skipped_rules": [], "version": "<MASKED>"}

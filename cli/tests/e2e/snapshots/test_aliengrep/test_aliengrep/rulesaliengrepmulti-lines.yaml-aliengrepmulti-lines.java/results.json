@@ -1,11 +1,2 @@
-{
-  "errors": [],
-  "paths": {
-    "scanned": [
-      "targets/aliengrep/multi-lines.java"
-    ]
-  },
-  "results": [],
-  "skipped_rules": [],
-  "version": "0.42"
-}
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7f3053139a80>
+{"errors": [], "paths": {"scanned": ["targets/aliengrep/multi-lines.java"]}, "results": [], "skipped_rules": [], "version": "<MASKED>"}

@@ -4,6 +4,7 @@ Using configs only from local files (like --config=xyz.yml) does not enable metr
 
 More information: https://semgrep.dev/docs/metrics
 
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7ff932bcc130>
 
 Rules downloaded from https://semgrep.dev/p/ci failed to parse.
 This is likely because rules have been added that use functionality introduced in later versions of semgrep.

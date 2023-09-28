@@ -1,1 +1,2 @@
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7f5495a41b40>
 targets/basic/stupid.py:3:12:E:rules.eqeq-is-bad:useless comparison operation `a + b == a + b` or `a + b != a + b`

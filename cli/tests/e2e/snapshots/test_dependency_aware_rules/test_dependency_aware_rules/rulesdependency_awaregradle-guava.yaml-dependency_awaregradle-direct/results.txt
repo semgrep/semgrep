@@ -7,63 +7,9 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of exit code
 
 === stdout - plain
-{
-  "errors": [],
-  "paths": {
-    "scanned": [
-      "targets/dependency_aware/gradle-direct/gradle.lockfile"
-    ]
-  },
-  "results": [
-    {
-      "check_id": "rules.dependency_aware.java-gradle-sca",
-      "end": {
-        "col": 0,
-        "line": 8,
-        "offset": 0
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "com.google.guava:guava:30.1-jre=compileClasspath,implementationDependenciesMetadata,runtimeClasspath,testCompileClasspath,testImplementationDependenciesMetadata,testRuntimeClasspath\ncom.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava=compileClasspath,implementationDependenciesMetadata,runtimeClasspath,testCompileClasspath,testImplementationDependenciesMetadata,testRuntimeClasspath",
-        "message": "oh no",
-        "metadata": {},
-        "metavars": {},
-        "sca_info": {
-          "dependency_match": {
-            "dependency_pattern": {
-              "ecosystem": "maven",
-              "package": "com.google.guava:guava",
-              "semver_range": "<= 40.0"
-            },
-            "found_dependency": {
-              "allowed_hashes": {},
-              "ecosystem": "maven",
-              "line_number": 7,
-              "package": "com.google.guava:guava",
-              "transitivity": "direct",
-              "version": "30.1-jre"
-            },
-            "lockfile": "targets/dependency_aware/gradle-direct/gradle.lockfile"
-          },
-          "reachability_rule": true,
-          "reachable": false,
-          "sca_finding_schema": 20220913
-        },
-        "severity": "WARNING"
-      },
-      "path": "targets/dependency_aware/gradle-direct/gradle.lockfile",
-      "start": {
-        "col": 0,
-        "line": 7,
-        "offset": 0
-      }
-    }
-  ],
-  "skipped_rules": [],
-  "version": "0.42"
-}
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7f50e8e29a50>
+{"errors": [], "paths": {"scanned": ["targets/dependency_aware/gradle-direct/gradle.lockfile"]}, "results": [{"check_id": "rules.dependency_aware.java-gradle-sca", "end": {"col": 0, "line": 8, "offset": 0}, "extra": {"engine_kind": "OSS", "fingerprint": "ff36ced8641e4584f6ed31a4e7a709feb6ec265cebe001577d98401d7f52214806742b55472b31b3eb67c211a9765ae0cab825b5008e0a210974481dfa479304_0", "is_ignored": false, "lines": "com.google.guava:guava:30.1-jre=compileClasspath,implementationDependenciesMetadata,runtimeClasspath,testCompileClasspath,testImplementationDependenciesMetadata,testRuntimeClasspath\ncom.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava=compileClasspath,implementationDependenciesMetadata,runtimeClasspath,testCompileClasspath,testImplementationDependenciesMetadata,testRuntimeClasspath", "message": "oh no", "metadata": {}, "metavars": {}, "sca_info": {"dependency_match": {"dependency_pattern": {"ecosystem": "maven", "package": "com.google.guava:guava", "semver_range": "<= 40.0"}, "found_dependency": {"allowed_hashes": {}, "ecosystem": "maven", "line_number": 7, "package": "com.google.guava:guava", "transitivity": "direct", "version": "30.1-jre"}, "lockfile": "targets/dependency_aware/gradle-direct/gradle.lockfile"}, "reachability_rule": true, "reachable": false, "sca_finding_schema": 20220913}, "severity": "WARNING"}, "path": "targets/dependency_aware/gradle-direct/gradle.lockfile", "start": {"col": 0, "line": 7, "offset": 0}}], "skipped_rules": [], "version": "<MASKED>"}
+
 === end of stdout - plain
 
 === stderr - plain

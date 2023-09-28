@@ -7,73 +7,9 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of exit code
 
 === stdout - plain
-{
-  "errors": [],
-  "paths": {
-    "scanned": [
-      "targets/dependency_aware/yarn_multi_hash/yarn.lock"
-    ]
-  },
-  "results": [
-    {
-      "check_id": "rules.dependency_aware.no-pattern",
-      "end": {
-        "col": 0,
-        "line": 14,
-        "offset": 0
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "bad-yarn-lib@0.0.9:\n  version \"0.0.9\"",
-        "message": "that's a bad lib",
-        "metadata": {
-          "sca-kind": "legacy"
-        },
-        "metavars": {},
-        "sca_info": {
-          "dependency_match": {
-            "dependency_pattern": {
-              "ecosystem": "npm",
-              "package": "bad-yarn-lib",
-              "semver_range": "<= 99.99.99"
-            },
-            "found_dependency": {
-              "allowed_hashes": {
-                "sha1": [
-                  "dd4e81ddd5277ff846b80b52bb40c49edf7a7b20"
-                ],
-                "sha512": [
-                  "b96edfa1d0faa725b61593599e9fd9de1bd629e116d58f11d7ed429c4ac4f1c5c55f39796e504ea15078d42bcc7abe8fe90d12e455c3c1c1e015dd568f453dce"
-                ]
-              },
-              "ecosystem": "npm",
-              "line_number": 13,
-              "package": "bad-yarn-lib",
-              "resolved_url": "https://registry.yarnpkg.com/lodash/-/lodash-4.17.18.tgz",
-              "transitivity": "unknown",
-              "version": "0.0.9"
-            },
-            "lockfile": "targets/dependency_aware/yarn_multi_hash/yarn.lock"
-          },
-          "reachability_rule": false,
-          "reachable": false,
-          "sca_finding_schema": 20220913
-        },
-        "severity": "WARNING"
-      },
-      "path": "targets/dependency_aware/yarn_multi_hash/yarn.lock",
-      "start": {
-        "col": 0,
-        "line": 13,
-        "offset": 0
-      }
-    }
-  ],
-  "skipped_rules": [],
-  "version": "0.42"
-}
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7f8d85e29ae0>
+{"errors": [], "paths": {"scanned": ["targets/dependency_aware/yarn_multi_hash/yarn.lock"]}, "results": [{"check_id": "rules.dependency_aware.no-pattern", "end": {"col": 0, "line": 14, "offset": 0}, "extra": {"engine_kind": "OSS", "fingerprint": "b36cee55a42085c150fefb57838490b505aef2fc5a595e40a4d6b4c17cf8c36375be840688563e19a53fae49e7a9fa21684f0527aac03d7755321c167bbd8e15_0", "is_ignored": false, "lines": "bad-yarn-lib@0.0.9:\n  version \"0.0.9\"", "message": "that's a bad lib", "metadata": {"sca-kind": "legacy"}, "metavars": {}, "sca_info": {"dependency_match": {"dependency_pattern": {"ecosystem": "npm", "package": "bad-yarn-lib", "semver_range": "<= 99.99.99"}, "found_dependency": {"allowed_hashes": {"sha1": ["dd4e81ddd5277ff846b80b52bb40c49edf7a7b20"], "sha512": ["b96edfa1d0faa725b61593599e9fd9de1bd629e116d58f11d7ed429c4ac4f1c5c55f39796e504ea15078d42bcc7abe8fe90d12e455c3c1c1e015dd568f453dce"]}, "ecosystem": "npm", "line_number": 13, "package": "bad-yarn-lib", "resolved_url": "https://registry.yarnpkg.com/lodash/-/lodash-4.17.18.tgz", "transitivity": "unknown", "version": "0.0.9"}, "lockfile": "targets/dependency_aware/yarn_multi_hash/yarn.lock"}, "reachability_rule": false, "reachable": false, "sca_finding_schema": 20220913}, "severity": "WARNING"}, "path": "targets/dependency_aware/yarn_multi_hash/yarn.lock", "start": {"col": 0, "line": 13, "offset": 0}}], "skipped_rules": [], "version": "<MASKED>"}
+
 === end of stdout - plain
 
 === stderr - plain

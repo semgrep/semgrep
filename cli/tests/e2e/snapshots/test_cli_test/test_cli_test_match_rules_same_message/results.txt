@@ -1,3 +1,4 @@
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7f7436435ab0>
 
 
 ┌─────────────────┐

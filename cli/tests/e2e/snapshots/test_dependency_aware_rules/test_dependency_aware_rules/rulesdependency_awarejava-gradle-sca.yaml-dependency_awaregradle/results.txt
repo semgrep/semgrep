@@ -7,65 +7,9 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of exit code
 
 === stdout - plain
-{
-  "errors": [],
-  "paths": {
-    "scanned": [
-      "targets/dependency_aware/gradle/gradle.lockfile",
-      "targets/dependency_aware/gradle/sca-gradle.java"
-    ]
-  },
-  "results": [
-    {
-      "check_id": "rules.dependency_aware.java-gradle-sca",
-      "end": {
-        "col": 21,
-        "line": 3,
-        "offset": 54
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "        return bad();",
-        "message": "oh no",
-        "metadata": {},
-        "metavars": {},
-        "sca_info": {
-          "dependency_match": {
-            "dependency_pattern": {
-              "ecosystem": "maven",
-              "package": "org.webjars.npm:swagger-ui-dist",
-              "semver_range": "<= 3.35.2"
-            },
-            "found_dependency": {
-              "allowed_hashes": {},
-              "ecosystem": "maven",
-              "line_number": 317,
-              "package": "org.webjars.npm:swagger-ui-dist",
-              "transitivity": "transitive",
-              "version": "3.35.2"
-            },
-            "lockfile": "targets/dependency_aware/gradle/gradle.lockfile"
-          },
-          "reachability_rule": true,
-          "reachable": true,
-          "sca_finding_schema": 20220913
-        },
-        "severity": "WARNING",
-        "validation_state": "NO_VALIDATOR"
-      },
-      "path": "targets/dependency_aware/gradle/sca-gradle.java",
-      "start": {
-        "col": 16,
-        "line": 3,
-        "offset": 49
-      }
-    }
-  ],
-  "skipped_rules": [],
-  "version": "0.42"
-}
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7fb7ed125ae0>
+{"errors": [], "paths": {"scanned": ["targets/dependency_aware/gradle/gradle.lockfile", "targets/dependency_aware/gradle/sca-gradle.java"]}, "results": [{"check_id": "rules.dependency_aware.java-gradle-sca", "end": {"col": 21, "line": 3, "offset": 54}, "extra": {"engine_kind": "OSS", "fingerprint": "fb37301199de446d37504950b022ee8f468b1ebb9620feb425f9434966d9537655d6575823e946c2ab5d458038b8b62d03048384e100a8d274ac82dc2931f480_0", "is_ignored": false, "lines": "        return bad();", "message": "oh no", "metadata": {}, "metavars": {}, "sca_info": {"dependency_match": {"dependency_pattern": {"ecosystem": "maven", "package": "org.webjars.npm:swagger-ui-dist", "semver_range": "<= 3.35.2"}, "found_dependency": {"allowed_hashes": {}, "ecosystem": "maven", "line_number": 317, "package": "org.webjars.npm:swagger-ui-dist", "transitivity": "transitive", "version": "3.35.2"}, "lockfile": "targets/dependency_aware/gradle/gradle.lockfile"}, "reachability_rule": true, "reachable": true, "sca_finding_schema": 20220913}, "severity": "WARNING", "validation_state": "NO_VALIDATOR"}, "path": "targets/dependency_aware/gradle/sca-gradle.java", "start": {"col": 16, "line": 3, "offset": 49}}], "skipped_rules": [], "version": "<MASKED>"}
+
 === end of stdout - plain
 
 === stderr - plain

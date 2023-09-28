@@ -7,6 +7,7 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
 === end of exit code
 
 === stdout - plain
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7ff932ce0e50>
 
 
 ┌───────────────────────────┐

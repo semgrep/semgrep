@@ -1,50 +1,6 @@
-{
-  "errors": [],
-  "paths": {
-    "scanned": []
-  },
-  "results": [
-    {
-      "check_id": "rules.join_rules.user-input-escaped-with-safe",
-      "end": {
-        "col": 38,
-        "line": 19,
-        "offset": 447
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "<h1>Search results for \"{{ query|safe }}\"</h1>",
-        "message": "The variable '$VAR' is most likely an XSS. It originates as user input and is unsafely rendered with the '| safe' filter.",
-        "metadata": {
-          "hi": "hi"
-        },
-        "metavars": {
-          "$VAR": {
-            "abstract_content": "query",
-            "end": {
-              "col": 33,
-              "line": 19,
-              "offset": 442
-            },
-            "start": {
-              "col": 28,
-              "line": 19,
-              "offset": 437
-            }
-          }
-        },
-        "severity": "ERROR"
-      },
-      "path": "targets/join_rules/user-input-escaped-with-safe/search.html",
-      "start": {
-        "col": 28,
-        "line": 19,
-        "offset": 437
-      }
-    }
-  ],
-  "skipped_rules": [],
-  "version": "0.42"
-}
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7fb3ff835ab0>
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7fb3fe3e50c0>
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7fb3fe3bbdf0>
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7fb3fe3eb940>
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7fb4009f83d0>
+{"errors": [], "paths": {"scanned": []}, "results": [{"check_id": "rules.join_rules.user-input-escaped-with-safe", "end": {"col": 38, "line": 19, "offset": 447}, "extra": {"engine_kind": "OSS", "fingerprint": "76efda401b3c36d1d3005bc739597a602c6778aebafb41fa18ad535ea2b862eae42541a4415f817144922a55c800adce543e2593ee28cd7069c7631f79c5fb2e_0", "is_ignored": false, "lines": "<h1>Search results for \"{{ query|safe }}\"</h1>", "message": "The variable '$VAR' is most likely an XSS. It originates as user input and is unsafely rendered with the '| safe' filter.", "metadata": {"hi": "hi"}, "metavars": {"$VAR": {"abstract_content": "query", "end": {"col": 33, "line": 19, "offset": 442}, "start": {"col": 28, "line": 19, "offset": 437}}}, "severity": "ERROR"}, "path": "targets/join_rules/user-input-escaped-with-safe/search.html", "start": {"col": 28, "line": 19, "offset": 437}}], "skipped_rules": [], "version": "<MASKED>"}

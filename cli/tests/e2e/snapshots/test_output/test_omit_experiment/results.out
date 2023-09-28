@@ -1,11 +1,2 @@
-{
-  "errors": [],
-  "paths": {
-    "scanned": [
-      "targets/experiment/experiment.py"
-    ]
-  },
-  "results": [],
-  "skipped_rules": [],
-  "version": "0.42"
-}
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7f56a7491b10>
+{"errors": [], "paths": {"scanned": ["targets/experiment/experiment.py"]}, "results": [], "skipped_rules": [], "version": "<MASKED>"}

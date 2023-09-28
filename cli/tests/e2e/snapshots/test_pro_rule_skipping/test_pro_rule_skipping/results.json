@@ -1,20 +1,2 @@
-{
-  "errors": [
-    {
-      "code": 0,
-      "level": "info",
-      "message": "Missing plugin for rule rules.dummy-apex-rule:\n Missing Semgrep extension needed for parsing Apex target. Try adding `--pro` to your command.",
-      "path": "<MASKED>",
-      "rule_id": "rules.dummy-apex-rule",
-      "type": "Missing plugin"
-    }
-  ],
-  "paths": {
-    "scanned": [
-      "targets/pro-rule-skipping/x.cls"
-    ]
-  },
-  "results": [],
-  "skipped_rules": [],
-  "version": "0.42"
-}
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7fc868a35a50>
+{"errors": [{"code": 0, "level": "info", "message": "Missing plugin for rule rules.dummy-apex-rule:\n Missing Semgrep extension needed for parsing Apex target. Try adding `--pro` to your command.", "path": "<MASKED>", "rule_id": "rules.dummy-apex-rule", "type": "Missing plugin"}], "paths": {"scanned": ["targets/pro-rule-skipping/x.cls"]}, "results": [], "skipped_rules": [], "version": "<MASKED>"}

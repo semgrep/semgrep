@@ -7,68 +7,9 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of exit code
 
 === stdout - plain
-{
-  "errors": [],
-  "paths": {
-    "scanned": [
-      "targets/dependency_aware/rust/Cargo.lock",
-      "targets/dependency_aware/rust/sca.rs"
-    ]
-  },
-  "results": [
-    {
-      "check_id": "rules.dependency_aware.rust-sca",
-      "end": {
-        "col": 14,
-        "line": 1,
-        "offset": 13
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "let x = bad();",
-        "message": "oh no",
-        "metadata": {},
-        "metavars": {},
-        "sca_info": {
-          "dependency_match": {
-            "dependency_pattern": {
-              "ecosystem": "cargo",
-              "package": "adler",
-              "semver_range": "<= 1.0.3"
-            },
-            "found_dependency": {
-              "allowed_hashes": {
-                "sha256": [
-                  "f26201604c87b1e01bd3d98f8d5d9a8fcbb815e8cedb41ffccbeb4bf593a35fe"
-                ]
-              },
-              "ecosystem": "cargo",
-              "package": "adler",
-              "transitivity": "unknown",
-              "version": "1.0.2"
-            },
-            "lockfile": "targets/dependency_aware/rust/Cargo.lock"
-          },
-          "reachability_rule": true,
-          "reachable": true,
-          "sca_finding_schema": 20220913
-        },
-        "severity": "WARNING",
-        "validation_state": "NO_VALIDATOR"
-      },
-      "path": "targets/dependency_aware/rust/sca.rs",
-      "start": {
-        "col": 9,
-        "line": 1,
-        "offset": 8
-      }
-    }
-  ],
-  "skipped_rules": [],
-  "version": "0.42"
-}
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7fdc30d29ae0>
+{"errors": [], "paths": {"scanned": ["targets/dependency_aware/rust/Cargo.lock", "targets/dependency_aware/rust/sca.rs"]}, "results": [{"check_id": "rules.dependency_aware.rust-sca", "end": {"col": 14, "line": 1, "offset": 13}, "extra": {"engine_kind": "OSS", "fingerprint": "e21e76d7b6991543007f948277d96b7484d746dd1d50019dc878f9f9eda428bad061edd57e2116f42820e81a5d7c062cefe1c66782e05e67366aed586ccc7e6b_0", "is_ignored": false, "lines": "let x = bad();", "message": "oh no", "metadata": {}, "metavars": {}, "sca_info": {"dependency_match": {"dependency_pattern": {"ecosystem": "cargo", "package": "adler", "semver_range": "<= 1.0.3"}, "found_dependency": {"allowed_hashes": {"sha256": ["f26201604c87b1e01bd3d98f8d5d9a8fcbb815e8cedb41ffccbeb4bf593a35fe"]}, "ecosystem": "cargo", "package": "adler", "transitivity": "unknown", "version": "1.0.2"}, "lockfile": "targets/dependency_aware/rust/Cargo.lock"}, "reachability_rule": true, "reachable": true, "sca_finding_schema": 20220913}, "severity": "WARNING", "validation_state": "NO_VALIDATOR"}, "path": "targets/dependency_aware/rust/sca.rs", "start": {"col": 9, "line": 1, "offset": 8}}], "skipped_rules": [], "version": "<MASKED>"}
+
 === end of stdout - plain
 
 === stderr - plain

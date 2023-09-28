@@ -7,69 +7,9 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of exit code
 
 === stdout - plain
-{
-  "errors": [],
-  "paths": {
-    "scanned": [
-      "targets/dependency_aware/transitive_and_direct/transitive_not_reachable_if_direct/bad.js",
-      "targets/dependency_aware/transitive_and_direct/transitive_not_reachable_if_direct/package-lock.json"
-    ]
-  },
-  "results": [
-    {
-      "check_id": "rules.dependency_aware.transitive_and_direct",
-      "end": {
-        "col": 0,
-        "line": 41,
-        "offset": 0
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "                \"@types/jquery\": {\n                    \"version\": \"3.3.1\",",
-        "message": "oh no",
-        "metadata": {},
-        "metavars": {},
-        "sca_info": {
-          "dependency_match": {
-            "dependency_pattern": {
-              "ecosystem": "npm",
-              "package": "@types/jquery",
-              "semver_range": "<= 3.3.1"
-            },
-            "found_dependency": {
-              "allowed_hashes": {
-                "sha512": [
-                  "6b8243708849847627a160a41b7c53d826715d9780f7625e444112a2b8340cc43766c8ee285e3c87b5cae25e469761916bf22d191a4a313d29c8af3cc9182a5d"
-                ]
-              },
-              "ecosystem": "npm",
-              "line_number": 40,
-              "package": "@types/jquery",
-              "resolved_url": "https://registry.npmjs.org/@types/jquery/-/jquery-3.3.22.tgz",
-              "transitivity": "transitive",
-              "version": "3.3.1"
-            },
-            "lockfile": "targets/dependency_aware/transitive_and_direct/transitive_not_reachable_if_direct/package-lock.json"
-          },
-          "reachability_rule": true,
-          "reachable": false,
-          "sca_finding_schema": 20220913
-        },
-        "severity": "WARNING"
-      },
-      "path": "targets/dependency_aware/transitive_and_direct/transitive_not_reachable_if_direct/package-lock.json",
-      "start": {
-        "col": 0,
-        "line": 40,
-        "offset": 0
-      }
-    }
-  ],
-  "skipped_rules": [],
-  "version": "0.42"
-}
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7f6e26b39a80>
+{"errors": [], "paths": {"scanned": ["targets/dependency_aware/transitive_and_direct/transitive_not_reachable_if_direct/bad.js", "targets/dependency_aware/transitive_and_direct/transitive_not_reachable_if_direct/package-lock.json"]}, "results": [{"check_id": "rules.dependency_aware.transitive_and_direct", "end": {"col": 0, "line": 41, "offset": 0}, "extra": {"engine_kind": "OSS", "fingerprint": "260c6d81b11ea761c5bbfdeec2004905cfee67cb79b4bc3b4206174bed5a76e9d7e0f9cf888970460db7760e83a75abbaca124d99485c6c171b473143d9b38ea_0", "is_ignored": false, "lines": "                \"@types/jquery\": {\n                    \"version\": \"3.3.1\",", "message": "oh no", "metadata": {}, "metavars": {}, "sca_info": {"dependency_match": {"dependency_pattern": {"ecosystem": "npm", "package": "@types/jquery", "semver_range": "<= 3.3.1"}, "found_dependency": {"allowed_hashes": {"sha512": ["6b8243708849847627a160a41b7c53d826715d9780f7625e444112a2b8340cc43766c8ee285e3c87b5cae25e469761916bf22d191a4a313d29c8af3cc9182a5d"]}, "ecosystem": "npm", "line_number": 40, "package": "@types/jquery", "resolved_url": "https://registry.npmjs.org/@types/jquery/-/jquery-3.3.22.tgz", "transitivity": "transitive", "version": "3.3.1"}, "lockfile": "targets/dependency_aware/transitive_and_direct/transitive_not_reachable_if_direct/package-lock.json"}, "reachability_rule": true, "reachable": false, "sca_finding_schema": 20220913}, "severity": "WARNING"}, "path": "targets/dependency_aware/transitive_and_direct/transitive_not_reachable_if_direct/package-lock.json", "start": {"col": 0, "line": 40, "offset": 0}}], "skipped_rules": [], "version": "<MASKED>"}
+
 === end of stdout - plain
 
 === stderr - plain

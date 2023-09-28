@@ -1,3 +1,4 @@
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7eff445a9390>
 1/1: ✓ All tests passed
 0/1: 1 fix tests did not pass:
 --------------------------------------------------------------------------------

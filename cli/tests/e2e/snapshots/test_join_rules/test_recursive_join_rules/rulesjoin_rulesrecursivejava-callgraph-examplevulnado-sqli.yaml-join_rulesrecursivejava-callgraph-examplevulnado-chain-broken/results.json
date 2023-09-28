@@ -1,9 +1,6 @@
-{
-  "errors": [],
-  "paths": {
-    "scanned": []
-  },
-  "results": [],
-  "skipped_rules": [],
-  "version": "0.42"
-}
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7f6f6c189a80>
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7f6f6acdc970>
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7f6f6ab62440>
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7f6f6acb3790>
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7f6f6ab768f0>
+{"errors": [], "paths": {"scanned": []}, "results": [], "skipped_rules": [], "version": "<MASKED>"}

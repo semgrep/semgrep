@@ -1,3 +1,4 @@
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7f554f785a20>
 {
   "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
   "runs": [
@@ -70,16 +71,16 @@
                 "level": "error"
               },
               "fullDescription": {
-                "text": "useless comparison operation `$X == $X` or `$X != $X`"
+                "text": "this function is only available on Python 3.7+"
               },
-              "id": "rules.eqeq-is-bad",
-              "name": "rules.eqeq-is-bad",
+              "id": "rules.python37-compatability-os-module",
+              "name": "rules.python37-compatability-os-module",
               "properties": {
                 "precision": "very-high",
                 "tags": []
               },
               "shortDescription": {
-                "text": "Semgrep Finding: rules.eqeq-is-bad"
+                "text": "Semgrep Finding: rules.python37-compatability-os-module"
               }
             },
             {
@@ -104,20 +105,20 @@
                 "level": "error"
               },
               "fullDescription": {
-                "text": "this function is only available on Python 3.7+"
+                "text": "useless comparison operation `$X == $X` or `$X != $X`"
               },
-              "id": "rules.python37-compatability-os-module",
-              "name": "rules.python37-compatability-os-module",
+              "id": "rules.eqeq-is-bad",
+              "name": "rules.eqeq-is-bad",
               "properties": {
                 "precision": "very-high",
                 "tags": []
               },
               "shortDescription": {
-                "text": "Semgrep Finding: rules.python37-compatability-os-module"
+                "text": "Semgrep Finding: rules.eqeq-is-bad"
               }
             }
           ],
-          "semanticVersion": "placeholder"
+          "semanticVersion": "<MASKED>"
         }
       }
     }

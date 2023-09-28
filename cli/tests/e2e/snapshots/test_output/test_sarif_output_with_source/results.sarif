@@ -1,3 +1,4 @@
+AAAA LOADING CONF: <semgrep.config_resolver.ConfigLoader object at 0x7f6252331a20>
 {
   "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
   "runs": [
@@ -77,21 +78,21 @@
                 "level": "error"
               },
               "fullDescription": {
-                "text": "possibly useless comparison but in eq function"
+                "text": "useless comparison"
               },
               "help": {
-                "markdown": "possibly useless comparison but in eq function\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/foo/bar/assert)\n",
-                "text": "possibly useless comparison but in eq function"
+                "markdown": "useless comparison\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/foo/bar/js)\n - [https://google.com](https://google.com)\n",
+                "text": "useless comparison"
               },
-              "helpUri": "https://semgrep.dev/foo/bar/assert",
-              "id": "rules.assert-eqeq-is-ok",
-              "name": "rules.assert-eqeq-is-ok",
+              "helpUri": "https://semgrep.dev/foo/bar/js",
+              "id": "rules.javascript-basic-eqeq-bad",
+              "name": "rules.javascript-basic-eqeq-bad",
               "properties": {
                 "precision": "very-high",
                 "tags": []
               },
               "shortDescription": {
-                "text": "Semgrep Finding: rules.assert-eqeq-is-ok"
+                "text": "Semgrep Finding: rules.javascript-basic-eqeq-bad"
               }
             },
             {
@@ -121,28 +122,6 @@
                 "level": "error"
               },
               "fullDescription": {
-                "text": "useless comparison"
-              },
-              "help": {
-                "markdown": "useless comparison\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/foo/bar/js)\n - [https://google.com](https://google.com)\n",
-                "text": "useless comparison"
-              },
-              "helpUri": "https://semgrep.dev/foo/bar/js",
-              "id": "rules.javascript-basic-eqeq-bad",
-              "name": "rules.javascript-basic-eqeq-bad",
-              "properties": {
-                "precision": "very-high",
-                "tags": []
-              },
-              "shortDescription": {
-                "text": "Semgrep Finding: rules.javascript-basic-eqeq-bad"
-              }
-            },
-            {
-              "defaultConfiguration": {
-                "level": "error"
-              },
-              "fullDescription": {
                 "text": "this function is only available on Python 3.7+"
               },
               "help": {
@@ -159,9 +138,31 @@
               "shortDescription": {
                 "text": "Semgrep Finding: rules.python37-compatability-os-module"
               }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "possibly useless comparison but in eq function"
+              },
+              "help": {
+                "markdown": "possibly useless comparison but in eq function\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/foo/bar/assert)\n",
+                "text": "possibly useless comparison but in eq function"
+              },
+              "helpUri": "https://semgrep.dev/foo/bar/assert",
+              "id": "rules.assert-eqeq-is-ok",
+              "name": "rules.assert-eqeq-is-ok",
+              "properties": {
+                "precision": "very-high",
+                "tags": []
+              },
+              "shortDescription": {
+                "text": "Semgrep Finding: rules.assert-eqeq-is-ok"
+              }
             }
           ],
-          "semanticVersion": "placeholder"
+          "semanticVersion": "<MASKED>"
         }
       }
     }
