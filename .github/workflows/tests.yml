@@ -94,7 +94,8 @@ jobs:
         run: |
           make osempass
 
-  build-semgrep-js-ocaml:
+  build-semgrep-js-ocaml-test:
+    name: build semgrep js ocaml for tests
     runs-on: ubuntu-latest-16-core
     container: returntocorp/ocaml:alpine-2023-06-16
     # We need this hack because GHA tampers with the HOME in container
@@ -126,7 +127,7 @@ jobs:
           make build-semgrep-jsoo-debug
       - uses: actions/upload-artifact@v3
         with:
-          name: semgrep-js-ocaml-build-${{ github.sha }}
+          name: semgrep-js-ocaml-test-${{ github.sha }}
           retention-days: 1
           path: |
             _build/default/js/engine/*.bc.js
@@ -134,7 +135,7 @@ jobs:
 
   test-semgrep-js:
     name: test semgrep js
-    needs: [build-semgrep-js-ocaml]
+    needs: [build-semgrep-js-ocaml-test]
     runs-on: ubuntu-22.04
     container: emscripten/emsdk:3.1.46
     env:
@@ -159,14 +160,14 @@ jobs:
           (cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)
       - uses: actions/download-artifact@v3
         with:
-          name: semgrep-js-ocaml-build-${{ github.sha }}
+          name: semgrep-js-ocaml-build-test-${{ github.sha }}
           path: _build/default/js
       - uses: actions/setup-node@v3
         with:
           node-version: "18"
       - name: Run semgrep js e2e tests
         run: |
-          make -C js -j $(nproc) test
+          make -j $(nproc) test-jsoo
 
   test-cli:
     name: test semgrep-cli
