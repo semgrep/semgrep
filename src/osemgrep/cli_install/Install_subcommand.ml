@@ -82,16 +82,40 @@ let mkdir_if_needed path : unit =
  * the SEMGREP_APP_TOKEN secret in github, and more.
  *)
 
+let brew_exists () : bool =
+  (* NOTE: We use brew to install the gh CLI *)
+  let cmd = Bos.Cmd.(v "command" % "-v" % "brew") in
+  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
+  | Ok _ -> true
+  | _ -> false
+
+let prompt_install_brew () : unit =
+  (* NOTE: We could install brew via their recommended installation instructions,
+      but noting that this would entail running brew's install script as downloaded
+      from the internet, the user may prefer to install brew manually.
+  *)
+  Logs.app (fun m ->
+      m
+        "Please first install the brew package manager or the Github CLI \
+         manually");
+  Logs.app (fun m ->
+      m "To use brew as the installation method, please visit %s"
+        "https://docs.brew.sh/Installation");
+  Logs.app (fun m ->
+      m "Instructions for installing the Github CLI manually can be found at %s"
+        "https://github.com/cli/cli#installation");
+  Error.abort "Please first install the Github CLI"
+
 let install_gh_cli () : unit =
-  (* NOTE: This only supports mac users and we would need to direct users to
+  (* NOTE: This should support both mac and linux users, but we may need to direct users to
      their own platform-specific instructions at https://github.com/cli/cli#installation
   *)
-  let cmd = Bos.Cmd.(v "brew" % "install" % "github") in
+  let cmd = Bos.Cmd.(v "brew" % "install" % "gh") in
   match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
-  | Ok _ -> Logs.app (fun m -> m "Github cli installed successfully")
+  | Ok _ -> Logs.app (fun m -> m "Github CLI installed successfully")
   | _ ->
       Logs.err (fun m ->
-          m "%s Github cli failed to install" (Logs_helpers.err_tag ()));
+          m "%s Github CLI failed to install" (Logs_helpers.err_tag ()));
       (* TODO? we could instead just remove the last step of 'install-ci'
        * and let the user commit the workflow by himself?
        *)
@@ -115,8 +139,12 @@ let install_gh_cli_if_needed () : unit =
   if gh_cli_exists () then
     Logs.info (fun m -> m "Github CLI already installed, skipping installation")
   else (
-    Logs.info (fun m -> m "Github CLI not installed, installing now");
-    install_gh_cli ())
+    Logs.app (fun m -> m "Github CLI not installed, installing now");
+    (* NOTE: we should trust the package manager to install successfully or error out
+       without needing to verify that the command exists after installation. In practice,
+       this may not be the case, so we should revisit this in the future.
+    *)
+    if brew_exists () then install_gh_cli () else prompt_install_brew ())
 
 let gh_authed () : bool =
   let cmd = Bos.Cmd.(v "gh" % "auth" % "status") in
