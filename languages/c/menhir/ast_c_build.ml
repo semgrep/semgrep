@@ -591,8 +591,11 @@ and expr env e =
       A.RecordPtAccess (A.Unary (expr env e, (GetRef, t)), t, name env n)
   | DotAccess (e, (Arrow, t), n) -> A.RecordPtAccess (expr env e, t, name env n)
   | Cast ((_, ft, _), e) -> A.Cast (full_type env ft, expr env e)
-  | ArrayAccess (e1, e2) ->
-      A.ArrayAccess (expr env e1, bracket_keep (initialiser env) e2)
+  | ArrayAccess (e1, (l, e2, r)) -> (
+      match e2 with
+      | [] -> failwith "impossible: empty array access"
+      | [ x ] -> A.ArrayAccess (expr env e1, (l, initialiser env x, r))
+      | _xs -> raise CplusplusConstruct)
   | Binary (e1, op, e2) -> A.Binary (expr env e1, op, expr env e2)
   | Unary (op, e) -> A.Unary (expr env e, op)
   | Prefix (op, e) -> A.Infix (expr env e, op)
@@ -661,14 +664,18 @@ and constant _env x =
   | String (s, ii) -> A.String (s, ii)
   | Nullptr ii -> A.Null ii
   | Bool x -> A.Bool x
-  | MultiString iis ->
-      A.String ("TODO", iis |> Common.hd_exn "empty multistring" |> snd)
+  | MultiString scs -> A.ConcatString (scs |> Common.map string_component)
+
+and string_component = function
+  | StrLit id -> A.StrLit id
+  | StrIdent id -> A.StrIdent id
 
 and argument env x =
   match x with
   | Arg e -> Some (A.Arg (expr env e))
   (* TODO! can't just skip it ... *)
-  | ArgType _
+  | ArgType x -> Some (A.ArgType (full_type env x))
+  | ArgBlock x -> Some (A.ArgBlock (compound env x))
   | ArgAction _ ->
       logger#error "type argument, maybe wrong typedef inference!";
       debug (Argument x);
