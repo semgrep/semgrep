@@ -2556,37 +2556,6 @@ and map_declaration (env : env) ((v1, v2, v3) : CST.declaration) : vars_decl =
   let v3 = token env v3 (* ";" *) in
   let xs = v2 |> Common.map (fun f -> f t specs) in
   (xs, v3)
-(*
-  (* for map_declaration *)
-  and map_anon_choice_decl_f8b0ff3 (env : env) (x : CST.anon_choice_decl_f8b0ff3)
-      =
-    match x with
-    | `Decl x ->
-        let x = map_declarator env x in
-        fun t specs ->
-          let v_specs = specs in
-          make_onedecl ~v_name:x.dn ~v_type:(x.dt t) ~v_init:None ~v_specs
-    | `Init_decl x ->
-        let x, init = map_init_declarator env x in
-        fun t specs ->
-          let v_specs = specs in
-          make_onedecl ~v_name:x.dn ~v_type:(x.dt t) ~v_init:(Some init) ~v_specs
-
-
-  let t, specs = map_declaration_specifiers env v1 in
-  let v2 = map_anon_choice_decl_f8b0ff3 env v2 in
-  let v3 =
-    Common.map
-      (fun (v1, v2) ->
-        let _v1 = token env v1 (* "," *) in
-        let v2 = map_anon_choice_decl_f8b0ff3 env v2 in
-        v2)
-      v3
-  in
-  let v4 = token env v4 (* ";" *) in
-  let xs = v2 :: v3 |> Common.map (fun f -> f t specs) in
-  (xs, v4)
-  *)
 
 and map_declaration_declarator (env : env)
     ((v1, v2) : CST.declaration_declarator) =

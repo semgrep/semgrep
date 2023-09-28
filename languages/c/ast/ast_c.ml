@@ -135,10 +135,6 @@ and expr =
   (* c-ext:? *)
   | Null of tok
   | Bool of bool wrap
-  (* Concatenations may contain identifiers, which are macros that are strings.
-     We include a bool with each string wrap to denote whether it is a raw string
-     literal. If it's false, then it's actually an identifier.
-  *)
   | ConcatString of string_component list (* TODO: bracket *)
   (* can be a cpp or enum constant (e.g. FOO), or a local/global/parameter
    * variable, or a function name.
@@ -196,6 +192,9 @@ and argument =
 (* really should just contain constants and Id that are #define *)
 and const_expr = expr [@@deriving show { with_path = false }]
 and special = SizeOf | OffsetOf | AlignOf
+
+(* Concatenations may contain identifiers, which are macros that are strings.
+*)
 and string_component = StrLit of string wrap | StrIdent of string wrap
 
 (*****************************************************************************)

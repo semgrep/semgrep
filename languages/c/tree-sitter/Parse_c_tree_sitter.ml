@@ -1571,10 +1571,8 @@ and old_style_function_definition (env : env)
        We use this to instantiate the parameters to the function in
        `old_style_function_declarator` below.
     *)
-    let args =
-      List.concat_map (declaration env) v4 |> Common.map (arg_of_var_decl env)
-    in
-    args
+    List.concat_map (declaration env) v4
+    |> Common.map (arg_of_var_decl env)
     |> Common.map (fun ((s, _), ty) -> (s, ty))
     |> List.to_seq |> Hashtbl.of_seq
   in

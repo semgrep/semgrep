@@ -177,16 +177,8 @@ and expr e =
       G.L (G.Char v1) |> G.e
   | Null v1 -> G.L (G.Null v1) |> G.e
   | ConcatString xs ->
-      G.Call
-        ( G.IdSpecial (G.ConcatString G.SequenceConcat, unsafe_fake " ") |> G.e,
-          fb
-            (xs
-            |> Common.map (fun x ->
-                   match x with
-                   | StrLit x -> G.Arg (G.L (G.String (fb x)) |> G.e)
-                   | StrIdent id ->
-                       G.Arg (G.N (Id (id, G.empty_id_info ())) |> G.e))) )
-      |> G.e
+      let xs = list string_component xs in
+      G.interpolated (fb xs)
   | Defined (t, id) ->
       let e = G.N (G.Id (id, G.empty_id_info ())) |> G.e in
       G.Call (G.IdSpecial (G.Defined, t) |> G.e, fb [ G.Arg e ]) |> G.e
@@ -313,6 +305,10 @@ and special_wrap (spec, tk) =
   | SizeOf -> G.IdSpecial (G.Sizeof, tk) |> G.e
   | OffsetOf -> G.N (Id (("offsetof", tk), G.empty_id_info ())) |> G.e
   | AlignOf -> N (Id (("alignof", tk), G.empty_id_info ())) |> G.e
+
+and string_component = function
+  | StrIdent id -> Common.Middle3 (G.N (Id (id, G.empty_id_info ())) |> G.e)
+  | StrLit s -> Common.Left3 s
 
 and argument v =
   match v with
