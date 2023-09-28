@@ -113,6 +113,7 @@ jobs:
       - name: Run semgrep js e2e tests
         run: |
           eval $(opam env)
+          apk add emscripten make --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing
           make test-jsoo
 
   test-cli:
