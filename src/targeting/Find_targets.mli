@@ -18,6 +18,8 @@ type conf = {
   (* TODO: not used for now *)
   baseline_commit : string option;
   (* TODO: not used for now *)
+  diff_depth : int;
+  (* TODO: not used for now *)
   scan_unknown_extensions : bool;
   (* osemgrep-only: option (see Git_project.ml and the force_root parameter) *)
   project_root : Fpath.t option;

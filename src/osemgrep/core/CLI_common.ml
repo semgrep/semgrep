@@ -28,11 +28,15 @@ type conf = {
 
 (* alt: we could use Logs_cli.level(), but by defining our own flags
  * we can give better ~doc:. We lose the --verbosity=Level though.
+ * TODO: maybe "findings" below is to cli_scan specific
  *)
 let o_quiet : bool Term.t =
   let info = Arg.info [ "q"; "quiet" ] ~doc:{|Only output findings.|} in
   Arg.value (Arg.flag info)
 
+(* TODO: same, maybe we should take the doc as a paramter so each
+ * cli_xxx command can give a different help
+ *)
 let o_verbose : bool Term.t =
   let info =
     Arg.info [ "v"; "verbose" ]

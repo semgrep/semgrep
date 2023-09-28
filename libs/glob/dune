@@ -3,7 +3,6 @@
 (library
   (public_name glob)
   (libraries
-    stdcompat
     commons
     profiling
   )

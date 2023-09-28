@@ -1,2 +1,2 @@
-include Project_metadata.S with type extension = unit
+include Project_metadata.S
 (** Gather metadata from GitHub Actions. *)

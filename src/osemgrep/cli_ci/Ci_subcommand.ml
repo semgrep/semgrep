@@ -62,7 +62,7 @@ let fetch_scan_config ~token ~dry_run ~sca ~full_scan ~repository scan_id =
 
 (* from meta.py *)
 let generate_meta_from_environment (_baseline_ref : Digestif.SHA1.t option) :
-    unit Project_metadata.t =
+    Project_metadata.t =
   (* https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables *)
   let r =
     let argv = [| "empty" |] and info_ = Cmdliner.Cmd.info "" in
@@ -400,10 +400,9 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
             "  environment - running in environment %a, triggering event is \
              %a@."
             Fmt.(styled `Bold string)
-            (Option.value ~default:"unknown"
-               metadata.Project_metadata.scan_environment)
+            metadata.scan_environment
             Fmt.(styled `Bold string)
-            (Option.value ~default:"unknown" metadata.Project_metadata.on));
+            metadata.on);
       (* TODO: fix_head_if_github_action(metadata) *)
       (* Either a scan_id and the rules for the project, or None and the rules
          specified on command-line. If something fails, an exit code is
@@ -413,8 +412,9 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
                 Exit_code.t )
               result) =
         match depl with
-        (* TODO: document why we support running the ci command without a token / deployment.
-         *  Without this no token / no deployment case, we could unify the two code branches
+        (* TODO: document why we support running the ci command without a
+         * token / deployment. Without this no token / no deployment case,
+         * we could unify the two code branches
          *  below and work to start simplifying this massive function.
          *)
         | None ->
@@ -431,13 +431,14 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
                 m "  Reporting start of scan for %a"
                   Fmt.(styled `Bold string)
                   deployment_config.deployment_name);
-            let metadata_dict = Project_metadata.to_dict metadata in
-            (* TODO: metadata_dict["is_sca_scan"] = supply_chain *)
-            (* TODO: proj_config = ProjectConfig.load_all()
-               metadata_dict = {**metadata_dict, **proj_config.to_dict()} *)
+            (* TODO:
+                metadata_dict["is_sca_scan"] = supply_chain
+                proj_config = ProjectConfig.load_all()
+                metadata_dict = {**metadata_dict, **proj_config.to_dict()}
+            *)
             match
               Scan_helper.start_scan ~dry_run:conf.dryrun ~token
-                !Semgrep_envvars.v.semgrep_url metadata_dict
+                !Semgrep_envvars.v.semgrep_url metadata
             with
             | Error msg ->
                 Logs.err (fun m -> m "Could not start scan %s" msg);
@@ -614,8 +615,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
                           m
                             "  Audit mode is on for %s, so exiting with code 0 \
                              even if matches found"
-                            (Option.value ~default:"unknown"
-                               metadata.Project_metadata.on));
+                            metadata.on);
                       Exit_code.ok)
                     else (
                       Logs.app (fun m ->

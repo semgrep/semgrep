@@ -3,14 +3,12 @@ import collections
 import contextlib
 import json
 import resource
-import shlex
 import subprocess
 import sys
 import tempfile
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
-from textwrap import wrap
 from typing import Any
 from typing import Callable
 from typing import cast
@@ -27,12 +25,11 @@ from typing import Tuple
 
 from attr import asdict
 from attr import define
+from attr import evolve
 from attr import field
 from attr import frozen
 from boltons.iterutils import get_path
 from rich import box
-from rich.columns import Columns
-from rich.padding import Padding
 from rich.progress import BarColumn
 from rich.progress import Progress
 from rich.progress import TaskID
@@ -57,15 +54,13 @@ from semgrep.error import with_color
 from semgrep.output_extra import OutputExtra
 from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
-from semgrep.rule import RuleProduct
 from semgrep.rule_match import OrderedRuleMatchList
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
-from semgrep.state import get_context
 from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
-from semgrep.util import unit_str
+from semgrep.target_mode import TargetModeConfig
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -539,7 +534,7 @@ class Plan:
     # filtering out rules for a specific product. If product = None
     # then all products are included.
     def split_by_lang_label_for_product(
-        self, product: Optional[RuleProduct] = None
+        self, product: Optional[out.Product] = None
     ) -> Dict[str, "TargetMappings"]:
         result: Dict[str, TargetMappings] = collections.defaultdict(TargetMappings)
         for task in self.target_mappings:
@@ -608,7 +603,7 @@ class Plan:
     def num_targets(self) -> int:
         return len(self.target_mappings)
 
-    def rule_count_for_product(self, product: RuleProduct) -> int:
+    def rule_count_for_product(self, product: out.Product) -> int:
         rule_nums: Set[int] = set()
         for task in self.target_mappings:
             for rule_num in task.rule_nums:
@@ -616,7 +611,7 @@ class Plan:
                     rule_nums.add(rule_num)
         return len(rule_nums)
 
-    def table_by_language(self, with_tables_for: Optional[RuleProduct] = None) -> Table:
+    def table_by_language(self, with_tables_for: Optional[out.Product] = None) -> Table:
         table = Table(box=box.SIMPLE_HEAD, show_edge=False)
         table.add_column("Language")
         table.add_column("Rules", justify="right")
@@ -664,7 +659,7 @@ class Plan:
 
         return table
 
-    def table_by_origin(self, with_tables_for: Optional[RuleProduct] = None) -> Table:
+    def table_by_origin(self, with_tables_for: Optional[out.Product] = None) -> Table:
         table = Table(box=box.SIMPLE_HEAD, show_edge=False)
         table.add_column("Origin")
         table.add_column("Rules", justify="right")
@@ -699,7 +694,7 @@ class Plan:
         sca_analysis_counts = collections.Counter(
             SCA_ANALYSIS_NAMES.get(rule.metadata.get("sca-kind", ""), "Unknown")
             for rule in self.rules
-            if rule.product == RuleProduct.sca
+            if isinstance(rule.product.value, out.SCA)
         )
 
         for sca_analysis, count in sorted(
@@ -716,139 +711,6 @@ class Plan:
 
         for language in self.split_by_lang_label():
             metrics.add_feature("language", language)
-
-    def pprint(self, *, with_tables_for: RuleProduct) -> None:
-        """
-        Pretty print the plan to stdout with the new CLI UX.
-        """
-        if not self.rule_count_for_product(with_tables_for):
-            sep = "\n   "
-            message = "No rules to run."
-            if with_tables_for == RuleProduct.sca:
-                """
-                We need to account for several edges cases:
-                 - `semgrep ci` was invoked but no rules were found (e.g. no lockfile).
-                 - `semgrep scan` was invoked with the supply-chain flag and no rules found.
-                 - `semgrep ci` was invoked without the supply-chain flag or feature enabled.
-                """
-                # 1. Validate that the user is indeed running SCA.
-                ctx = get_context()
-                # we only want to print the message if the user is running `semgrep scan`
-                command_name = ctx.command.name if hasattr(ctx, "command") else "unset"
-                is_scan = command_name == "scan"
-                params = ctx.params if hasattr(ctx, "params") else {}
-                # --supply-chain flag is passed directly for `semgrep ci`
-                # whereas for scan supply-chain is passed via --config
-                is_supply_chain = (
-                    "supply-chain" in list(params.get("config") or ())
-                    if is_scan
-                    else (params.get("supply-chain") or False)
-                )
-                # 2. Check if the user has metrics enabled.
-                metrics = get_state().metrics
-                metrics_enabled = metrics.is_enabled
-                # If the user has metrics enabled, we can suggest they run `semgrep ci` to get more findings.
-                # Otherwise, we should expect the user to be already aware of the other products.
-                # 3. Check if the user has logged in.
-                has_auth = auth.get_token() is not None
-                # Users who have not logged in will not be able to run `semgrep ci`.
-                # For users with metrics enabled who are running scan without auth,
-                # we should suggest they login and run semgrep ci.
-                if is_scan and metrics_enabled:
-                    if not has_auth:
-                        message = sep.join(
-                            wrap(
-                                "💎 Sign in with `semgrep login` and run `semgrep ci` to find dependency vulnerabilities and advanced cross-file findings.",
-                                width=70,
-                            )
-                        )
-                    elif not is_supply_chain:
-                        message = sep.join(
-                            wrap(
-                                "💎 Run `semgrep ci` to find dependency vulnerabilities and advanced cross-file findings.",
-                                width=70,
-                            )
-                        )
-                    else:  # supply chain but no rules (e.g. no lockfile)
-                        pass
-                else:  # skip nudge for users who have not enabled metrics or are already running ci
-                    pass
-            else:  # sast or another product without rules
-                pass
-            console.print(f"\n{message}\n")
-            return
-
-        # NOTE: we already returned early if the rule_count was 0
-        # default to SAST table if sca is specified
-        tables = (
-            [
-                self.table_by_language(with_tables_for),
-                self.table_by_origin(with_tables_for),
-            ]
-            if with_tables_for != RuleProduct.sca
-            else [
-                self.table_by_ecosystem(),
-                self.table_by_sca_analysis(),
-            ]
-        )
-
-        columns = Columns(tables, padding=(1, 8))
-
-        # rich tables are 2 spaces indented by default
-        # deindent only by 1 to align the content, instead of the invisible table border
-        console.print(Padding(columns, (1, 0)), deindent=1)
-
-    def oprint(self, *, with_tables_for: RuleProduct) -> None:
-        """
-        Print the plan to stdout with the original CLI UX.
-        """
-        rule_count = self.rule_count_for_product(with_tables_for)
-        if not rule_count:
-            console.print("Nothing to scan.")
-            return
-
-        if rule_count == 1:
-            console.print(f"Scanning {unit_str(len(self.target_mappings), 'file')}.")
-            return
-
-        plan_by_lang = self.split_by_lang_label_for_product(with_tables_for)
-        if len(plan_by_lang) == 1:
-            [(language, target_mapping)] = plan_by_lang.items()
-            console.print(
-                f"Scanning {unit_str(target_mapping.file_count, 'file')} with {unit_str(rule_count, f'{language} rule')}."
-            )
-            return
-
-        if (
-            with_tables_for == RuleProduct.sast
-            or with_tables_for == RuleProduct.secrets
-        ):
-            tables = [
-                self.table_by_language(with_tables_for),
-                self.table_by_origin(with_tables_for),
-            ]
-        elif with_tables_for == RuleProduct.sca:
-            tables = [
-                self.table_by_ecosystem(),
-                self.table_by_sca_analysis(),
-            ]
-        else:
-            tables = []
-
-        columns = Columns(tables, padding=(1, 8))
-
-        # rich tables are 2 spaces indented by default
-        # deindent only by 1 to align the content, instead of the invisible table border
-        console.print(Padding(columns, (1, 0)), deindent=1)
-
-    def print(self, *, with_tables_for: RuleProduct) -> None:
-        """
-        Dispatch the correct print method based on the CLI UX.
-        """
-        if get_state().env.with_new_cli_ux:
-            self.pprint(with_tables_for=with_tables_for)
-        else:
-            self.oprint(with_tables_for=with_tables_for)
 
     def __str__(self) -> str:
         return f"<Plan of {len(self.target_mappings)} tasks for {list(self.split_by_lang_label())}>"
@@ -872,7 +734,6 @@ class CoreRunner:
         interfile_timeout: int,
         optimizations: str,
         allow_untrusted_postprocessors: bool,
-        core_opts_str: Optional[str],
     ):
         self._binary_path = engine_type.get_binary_path()
         self._jobs = jobs or engine_type.default_jobs
@@ -884,7 +745,6 @@ class CoreRunner:
         self._interfile_timeout = interfile_timeout
         self._optimizations = optimizations
         self._allow_untrusted_postprocessors = allow_untrusted_postprocessors
-        self._core_opts = shlex.split(core_opts_str) if core_opts_str else []
 
     def _extract_core_output(
         self,
@@ -1036,7 +896,7 @@ class CoreRunner:
             rule
             for rule in rules
             # filter out SCA rules with no relevant lockfiles
-            if rule.product != RuleProduct.sca
+            if not (isinstance(rule.product.value, out.SCA))
             or any(lockfiles[ecosystem] for ecosystem in rule.ecosystems)
         ]
 
@@ -1044,7 +904,10 @@ class CoreRunner:
             for language in rule.languages:
                 targets = list(
                     target_manager.get_files_for_rule(
-                        language, rule.includes, rule.excludes, rule.id
+                        language,
+                        rule.includes,
+                        rule.excludes,
+                        rule.id,
                     )
                 )
 
@@ -1072,8 +935,10 @@ class CoreRunner:
         rules: List[Rule],
         target_manager: TargetManager,
         dump_command_for_core: bool,
+        time_flag: bool,
         engine: EngineType,
         run_secrets: bool,
+        target_mode_config: TargetModeConfig,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         state = get_state()
         logger.debug(f"Passing whole rules directly to semgrep_core")
@@ -1105,21 +970,74 @@ class CoreRunner:
             if dump_command_for_core
             else tempfile.NamedTemporaryFile("w+")
         )
+        if target_mode_config.is_pro_diff_scan:
+            diff_target_file = exit_stack.enter_context(
+                (state.env.user_data_folder / "semgrep_diff_targets.txt").open("w+")
+                if dump_command_for_core
+                else tempfile.NamedTemporaryFile("w+")
+            )
 
         with exit_stack:
-            plan = self.plan_core_run(rules, target_manager, all_targets)
-            plan.record_metrics()
+            cmd = [
+                str(self._binary_path),
+                "-json",
+            ]
 
-            parsing_data.add_targets(plan)
-            target_file_contents = json.dumps(plan.to_json())
-            target_file.write(target_file_contents)
-            target_file.flush()
-
+            # adding rules option
             rule_file_contents = json.dumps(
                 {"rules": [rule._raw for rule in rules]}, indent=2, sort_keys=True
             )
             rule_file.write(rule_file_contents)
             rule_file.flush()
+            cmd.extend(["-rules", rule_file.name])
+
+            # adding multi-core option
+            cmd.extend(["-j", str(self._jobs)])
+
+            # adding targets option
+            if target_mode_config.is_pro_diff_scan:
+                diff_targets = target_mode_config.get_diff_targets()
+                diff_target_file_contents = "\n".join(
+                    [str(path) for path in diff_targets]
+                )
+                diff_target_file.write(diff_target_file_contents)
+                diff_target_file.flush()
+                cmd.extend(["-diff_targets", diff_target_file.name])
+                cmd.extend(["-diff_depth", str(target_mode_config.get_diff_depth())])
+
+                # For the pro diff scan, it's necessary to consider all input files as
+                # "targets" and the files that have changed between the head and baseline
+                # commits as "diff targets". To compile a comprehensive list of all input files
+                # for `plan`, the `baseline_handler` is disabled within the `target_manager`
+                # when executing `plan_core_run`.
+                plan = self.plan_core_run(
+                    rules, evolve(target_manager, baseline_handler=None), all_targets
+                )
+
+            else:
+                plan = self.plan_core_run(rules, target_manager, all_targets)
+
+            plan.record_metrics()
+            parsing_data.add_targets(plan)
+            target_file_contents = json.dumps(plan.to_json())
+            target_file.write(target_file_contents)
+            target_file.flush()
+            cmd.extend(["-targets", target_file.name])
+
+            # adding limits
+            cmd.extend(
+                [
+                    "-timeout",
+                    str(self._timeout),
+                    "-timeout_threshold",
+                    str(self._timeout_threshold),
+                    "-max_memory",
+                    str(self._max_memory),
+                ]
+            )
+
+            if time_flag:
+                cmd.append("-json_time")
 
             # Create a map to feed to semgrep-core as an alternative to
             # having it actually read the files.
@@ -1127,31 +1045,6 @@ class CoreRunner:
                 target_file.name: target_file_contents.encode("UTF-8"),
                 rule_file.name: rule_file_contents.encode("UTF-8"),
             }
-
-            # Run semgrep
-            cmd = [
-                str(self._binary_path),
-                "-json",
-                "-rules",
-                rule_file.name,
-                "-j",
-                str(self._jobs),
-                "-targets",
-                target_file.name,
-                "-timeout",
-                str(self._timeout),
-                "-timeout_threshold",
-                str(self._timeout_threshold),
-                "-max_memory",
-                str(self._max_memory),
-                "-json_time",
-            ]
-
-            if self._core_opts:
-                logger.info(
-                    f"Running with user defined core options: {self._core_opts}"
-                )
-                cmd.extend(self._core_opts)
 
             if self._optimizations != "none":
                 cmd.append("-fast")
@@ -1282,8 +1175,10 @@ class CoreRunner:
         rules: List[Rule],
         target_manager: TargetManager,
         dump_command_for_core: bool,
+        time_flag: bool,
         engine: EngineType,
         run_secrets: bool,
+        target_mode_config: TargetModeConfig,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Sometimes we may run into synchronicity issues with the latest DeepSemgrep binary.
@@ -1298,8 +1193,10 @@ class CoreRunner:
                 rules,
                 target_manager,
                 dump_command_for_core,
+                time_flag,
                 engine,
                 run_secrets,
+                target_mode_config,
             )
         except SemgrepError as e:
             # Handle Semgrep errors normally
@@ -1331,8 +1228,10 @@ Exception raised: `{e}`
         target_manager: TargetManager,
         rules: List[Rule],
         dump_command_for_core: bool,
+        time_flag: bool,
         engine: EngineType,
         run_secrets: bool,
+        target_mode_config: TargetModeConfig,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Takes in rules and targets and retuns object with findings
@@ -1347,8 +1246,10 @@ Exception raised: `{e}`
             rules,
             target_manager,
             dump_command_for_core,
+            time_flag,
             engine,
             run_secrets,
+            target_mode_config,
         )
 
         logger.debug(
