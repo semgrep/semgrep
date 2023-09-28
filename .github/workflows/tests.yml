@@ -140,10 +140,6 @@ jobs:
     env:
       HOME: /root
     steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-          persist-credentials: false
       - name: Restore git checkout cache
         id: restore-git
         uses: actions/cache/restore@v3
@@ -161,6 +157,10 @@ jobs:
         if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
         run: |
           (cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)
+      - uses: actions/download-artifact@v3
+        with:
+          name: semgrep-js-ocaml-build-${{ github.sha }}
+          path: _build/default/js
       - uses: actions/setup-node@v3
         with:
           node-version: "18"
