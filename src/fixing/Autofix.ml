@@ -126,7 +126,7 @@ let validate_fix lang target_contents edit =
  * *)
 let render_fix pm =
   let* fix_pattern = pm.Pattern_match.rule_id.fix in
-  let* lang = List.nth_opt pm.Pattern_match.rule_id.languages 0 in
+  let* lang = List.nth_opt pm.Pattern_match.rule_id.langs 0 in
   let metavars = pm.Pattern_match.env in
   let start, end_ =
     let start, end_ = pm.Pattern_match.range_loc in

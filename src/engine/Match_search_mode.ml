@@ -172,7 +172,7 @@ let (mini_rule_of_pattern :
      *)
     message = "";
     severity = R.Error;
-    languages =
+    langs =
       (match xlang with
       | L (x, xs) -> x :: xs
       | LRegex
