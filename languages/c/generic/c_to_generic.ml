@@ -299,6 +299,7 @@ and expr e =
       let v1 = name v1 in
       let v2 = type_ v2 in
       G.TypedMetavar (v1, fake (snd v1) " ", v2) |> G.e
+  | DotAccessEllipsis (e, tk) -> G.DotAccessEllipsis (expr e, tk) |> G.e
 
 and special_wrap (spec, tk) =
   match spec with

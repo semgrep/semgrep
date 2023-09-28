@@ -200,6 +200,15 @@ let parse_primitive_type _env (s, t) =
   (* size_t, ssize_t, intptr_t, int8_t, int16_t, ... *)
   | _ -> (nQ, TypeName (name_of_id (s, t)))
 
+let map_field_identifier_without_ellipsis (env : env) (x : CST.field_identifier)
+    =
+  match x with
+  | `Id tok ->
+      (* pattern \$?(\p{XID_Start}|_|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})(\p{XID_Continue}|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})* *)
+      str env tok
+  | `Semg_ellips _tok ->
+      failwith "ellipsis not supported in field identifier position here"
+
 (* name builder helpers *)
 
 let id_of_dname_for_parameter env dname =
@@ -650,7 +659,7 @@ let map_goto_statement (env : env) ((v1, v2, v3) : CST.goto_statement) =
 let map_field_designator (env : env) ((v1, v2) : CST.field_designator) :
     designator =
   let v1 = token env v1 (* "." *) in
-  let v2 = str env v2 (* pattern [a-zA-Z_]\w* *) in
+  let v2 = map_field_identifier_without_ellipsis env v2 in
   DesignatorField (v1, v2)
 
 let map_gnu_asm_clobber_list (env : env) ((v1, v2) : CST.gnu_asm_clobber_list) =
@@ -2083,68 +2092,72 @@ and map_bitfield_clause (env : env) ((v1, v2) : CST.bitfield_clause) =
 
 and map_block_item (env : env) (x : CST.block_item) =
   match x with
-  | `Func_defi x ->
-      let x = map_function_definition env x in
-      [ X (D (Func x)) ]
-  | `Link_spec x ->
-      let x = map_linkage_specification env x in
-      [ X (D x) ]
-  | `Decl x ->
-      let x = map_declaration env x in
-      [ X (D (DeclList x)) ]
-  | `Choice_case_stmt x ->
-      let x = map_statement env x in
-      [ X (S x) ]
-  | `Attr_stmt x -> [ X (S (map_attributed_statement env x)) ]
-  | `Type_defi x ->
-      let x = map_type_definition env x in
-      [ X (D (DeclList x)) ]
-  | `Empty_decl x ->
-      let x = map_empty_declaration env x in
-      [ X (D x) ]
-  | `Prep_if x ->
-      let x = map_preproc_if env x in
-      x
-  | `Prep_ifdef x ->
-      let x = map_preproc_ifdef env x in
-      x
-  | `Prep_incl x ->
-      let x = map_preproc_include env x in
-      [ CppDirective x ]
-  | `Prep_def x ->
-      let x = map_preproc_def env x in
-      [ CppDirective x ]
-  | `Prep_func_def x ->
-      let x = map_preproc_function_def env x in
-      [ CppDirective x ]
-  | `Prep_call x ->
-      let x = map_preproc_call env x in
-      [ CppDirective x ]
-  | `Name_defi x -> [ X (D (map_namespace_definition env x)) ]
-  | `Conc_defi x -> [ X (D (map_concept_definition env x)) ]
-  | `Name_alias_defi x -> map_namespace_alias_definition env x
-  | `Using_decl x ->
-      let x = map_using_declaration env x in
-      [ X (D (UsingDecl x)) ]
-  | `Alias_decl x ->
-      let x = map_alias_declaration env x in
-      [ X (D (UsingDecl x)) ]
-  | `Static_assert_decl x ->
-      let x = map_static_assert_declaration env x in
-      [ X (D x) ]
-  | `Temp_decl x ->
-      let x = map_template_declaration env x in
-      [ X (D x) ]
-  | `Temp_inst x -> map_template_instantiation env x
-  | `Cons_or_dest_defi x ->
-      let x = map_constructor_or_destructor_definition env x in
-      [ X (D (Func x)) ]
-  | `Op_cast_defi x ->
-      let x = map_operator_cast_definition env x in
-      [ X (D (Func x)) ]
-  | `Op_cast_decl x ->
-      let x = map_operator_cast_declaration env x in
-      [ X (D (DeclList x)) ]
+  | `Semg_ellips tok ->
+      [ X (S (ExprStmt (Some (Ellipsis (token env tok)), fake ""))) ]
+  | `Choice_func_defi x -> (
+      match x with
+      | `Func_defi x ->
+          let x = map_function_definition env x in
+          [ X (D (Func x)) ]
+      | `Link_spec x ->
+          let x = map_linkage_specification env x in
+          [ X (D x) ]
+      | `Decl x ->
+          let x = map_declaration env x in
+          [ X (D (DeclList x)) ]
+      | `Choice_case_stmt x ->
+          let x = map_statement env x in
+          [ X (S x) ]
+      | `Attr_stmt x -> [ X (S (map_attributed_statement env x)) ]
+      | `Type_defi x ->
+          let x = map_type_definition env x in
+          [ X (D (DeclList x)) ]
+      | `Empty_decl x ->
+          let x = map_empty_declaration env x in
+          [ X (D x) ]
+      | `Prep_if x ->
+          let x = map_preproc_if env x in
+          x
+      | `Prep_ifdef x ->
+          let x = map_preproc_ifdef env x in
+          x
+      | `Prep_incl x ->
+          let x = map_preproc_include env x in
+          [ CppDirective x ]
+      | `Prep_def x ->
+          let x = map_preproc_def env x in
+          [ CppDirective x ]
+      | `Prep_func_def x ->
+          let x = map_preproc_function_def env x in
+          [ CppDirective x ]
+      | `Prep_call x ->
+          let x = map_preproc_call env x in
+          [ CppDirective x ]
+      | `Name_defi x -> [ X (D (map_namespace_definition env x)) ]
+      | `Conc_defi x -> [ X (D (map_concept_definition env x)) ]
+      | `Name_alias_defi x -> map_namespace_alias_definition env x
+      | `Using_decl x ->
+          let x = map_using_declaration env x in
+          [ X (D (UsingDecl x)) ]
+      | `Alias_decl x ->
+          let x = map_alias_declaration env x in
+          [ X (D (UsingDecl x)) ]
+      | `Static_assert_decl x ->
+          let x = map_static_assert_declaration env x in
+          [ X (D x) ]
+      | `Temp_decl x ->
+          let x = map_template_declaration env x in
+          [ X (D x) ]
+      | `Temp_inst x -> map_template_instantiation env x
+      | `Cons_or_dest_defi x ->
+          let x = map_constructor_or_destructor_definition env x in
+          [ X (D (Func x)) ]
+      | `Op_cast_defi x ->
+          let x = map_operator_cast_definition env x in
+          [ X (D (Func x)) ]
+      | `Op_cast_decl x ->
+          let x = map_operator_cast_declaration env x in
+          [ X (D (DeclList x)) ])
 
 and map_call_expression (env : env) (x : CST.call_expression) : expr =
   match x with
@@ -2732,6 +2745,9 @@ and map_expression (env : env) (x : CST.expression) : expr =
       let e = map_expression env v2 in
       let r = token env v3 in
       DeepEllipsis (l, e, r)
+  | `Semg_named_ellips tok ->
+      let id = (* pattern \$\.\.\.[A-Z_][A-Z_0-9]* *) str env tok in
+      N (name_of_id id)
 
 and map_expression_bis (env : env) x : expr =
   match x with
@@ -3013,8 +3029,8 @@ and map_field_declarator (env : env) (x : CST.field_declarator) : declarator =
       | `Func_field_decl x -> map_function_field_declarator env x
       | `Array_field_decl x -> map_array_field_declarator env x
       | `Paren_field_decl x -> map_parenthesized_field_declarator env x
-      | `Id tok ->
-          let x = str env tok (* pattern [a-zA-Z_]\w* *) in
+      | `Choice_id x ->
+          let x = map_field_identifier_without_ellipsis env x in
           { dn = DN (name_of_id x); dt = id })
   | `Ref_field_decl (v1, v2) ->
       let v1 = map_ref_qualifier env v1 in
@@ -3036,27 +3052,28 @@ and map_field_expression (env : env) ((v1, v2, v3) : CST.field_expression) :
     | `DASHGT tok -> (false, (Arrow, token env tok))
     | `DOTSTAR tok -> (true, (Dot, (* ".*" *) token env tok))
   in
-  let v3 =
-    match v3 with
-    | `Id tok ->
-        (* pattern \$?(\p{XID_Start}|_|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})(\p{XID_Continue}|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})* *)
-        name_of_id (str env tok)
-    | `Dest_name x ->
-        let x = map_destructor_name env x in
-        (None, [], x)
-    | `Temp_meth x ->
-        let x = map_template_method env x in
-        x
-    | `Depe_field_id x -> map_dependent_field_identifier env x
+  let promote name =
+    if is_star then DotStarAccess (v1, v2, N name) else DotAccess (v1, v2, name)
   in
-  if is_star then DotStarAccess (v1, v2, N v3) else DotAccess (v1, v2, v3)
+  match v3 with
+  | `Choice_id (`Semg_ellips tok) -> DotAccessEllipsis (v1, token env tok)
+  | `Choice_id (`Id tok) ->
+      (* pattern \$?(\p{XID_Start}|_|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})(\p{XID_Continue}|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})* *)
+      name_of_id (str env tok) |> promote
+  | `Dest_name x ->
+      let x = map_destructor_name env x in
+      (None, [], x) |> promote
+  | `Temp_meth x ->
+      let x = map_template_method env x in
+      x |> promote
+  | `Depe_field_id x -> map_dependent_field_identifier env x |> promote
 
 and map_field_initializer (env : env) ((v1, v2, v3) : CST.field_initializer) =
   let v1 =
     match v1 with
-    | `Id tok ->
-        (* pattern \$?(\p{XID_Start}|_|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})(\p{XID_Continue}|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})* *)
-        name_of_id (str env tok)
+    | `Choice_id x ->
+        let x = map_field_identifier_without_ellipsis env x in
+        name_of_id x
     | `Temp_meth x -> map_template_method env x
     | `Qual_field_id x -> map_qualified_field_identifier env x
   in
@@ -3681,10 +3698,7 @@ and map_offsetof_expression (env : env)
   let v2 = (* "(" *) token env v2 in
   let v3 = map_type_descriptor env v3 in
   let _v4 = (* "," *) token env v4 in
-  let v5 =
-    (* pattern (\p{XID_Start}|_|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})(\p{XID_Continue}|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})* *)
-    str env v5
-  in
+  let v5 = map_field_identifier_without_ellipsis env v5 in
   let v6 = (* ")" *) token env v6 in
   Call
     (IdSpecial (OffsetOf, v1), (v2, [ ArgType v3; Arg (N (name_of_id v5)) ], v6))
@@ -3798,10 +3812,26 @@ and map_parenthesized_declarator (env : env)
   let v3 = token env v3 (* ")" *) in
   { v2 with dt = (fun x -> (nQ, ParenType (v1, v2.dt x, v3))) }
 
+and map_semgrep_typed_metavar (env : env) ((v1, v2) : CST.semgrep_typed_metavar)
+    =
+  let v1 = map_type_descriptor env v1 in
+  let v2 = (* pattern \$[A-Z_][A-Z_0-9]* *) str env v2 in
+  TypedMetavar (v2, v1)
+
 and map_parenthesized_expression (env : env)
     ((v1, v2, v3) : CST.parenthesized_expression) : expr paren =
   let v1 = token env v1 (* "(" *) in
-  let v2 = map_anon_choice_exp_55b4dba env v2 in
+  let v2 =
+    match v2 with
+    | `Exp x -> map_expression env x
+    | `Comma_exp (v1, v2, v3) ->
+        let v1 = map_expression env v1 in
+        let v2 = token env v2 (* "," *) in
+        let v3 = map_anon_choice_exp_55b4dba env v3 in
+        Sequence (v1, v2, v3)
+    | `Semg_typed_meta x -> map_semgrep_typed_metavar env x
+  in
+
   let v3 = token env v3 (* ")" *) in
   (v1, v2, v3)
 
@@ -4060,9 +4090,10 @@ and map_qualified_field_identifier (env : env)
     | `Depe_field_id x -> map_dependent_field_identifier env x
     | `Qual_field_id x -> map_qualified_field_identifier env x
     | `Temp_meth x -> map_template_method env x
-    | `Id tok ->
+    | `Choice_id x ->
         (* pattern \$?(\p{XID_Start}|_|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})(\p{XID_Continue}|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})* *)
-        name_of_id (str env tok)
+        let id = map_field_identifier_without_ellipsis env x in
+        name_of_id id
   in
   v1 v2
 
@@ -4315,7 +4346,7 @@ and map_template_instantiation (env : env)
 and map_template_method (env : env) ((v1, v2) : CST.template_method) : name =
   let v1 =
     match v1 with
-    | `Id tok -> str env tok
+    | `Choice_id x -> map_field_identifier_without_ellipsis env x
     | `Op_name x ->
         let _tk, (_op, op_tk) = map_operator_name env x in
         (Tok.content_of_tok op_tk, op_tk)
@@ -4410,29 +4441,32 @@ and map_top_level_expression_statement (env : env)
 
 and map_top_level_statement (env : env) (x : CST.top_level_statement) =
   match x with
-  | `Choice_case_stmt x -> (
+  | `Semg_ellips tok -> ExprStmt (Some (Ellipsis (token env tok)), fake "")
+  | `Choice_choice_case_stmt x -> (
       match x with
-      | `Case_stmt x -> map_case_statement env x
-      | `Attr_stmt x -> map_attributed_statement env x
-      | `Labe_stmt x -> map_labeled_statement env x
-      | `Comp_stmt x ->
-          let l, xs, r = map_compound_statement env x in
-          Compound (l, xs, r)
-      | `Top_level_exp_stmt x -> map_top_level_expression_statement env x
-      | `If_stmt x -> map_if_statement env x
-      | `Switch_stmt x -> map_switch_statement env x
-      | `Do_stmt x -> map_do_statement env x
-      | `While_stmt x -> map_while_statement env x
-      | `For_stmt x -> map_for_statement env x
-      | `Ret_stmt x -> map_return_statement env x
-      | `Brk_stmt x -> map_break_statement env x
-      | `Cont_stmt x -> map_continue_statement env x
-      | `Goto_stmt x -> map_goto_statement env x)
-  | `Co_ret_stmt x -> map_co_return_statement env x
-  | `Co_yield_stmt x -> map_co_yield_statement env x
-  | `For_range_loop x -> map_for_range_loop env x
-  | `Try_stmt x -> map_try_statement env x
-  | `Throw_stmt x -> map_throw_statement env x
+      | `Choice_case_stmt x -> (
+          match x with
+          | `Case_stmt x -> map_case_statement env x
+          | `Attr_stmt x -> map_attributed_statement env x
+          | `Labe_stmt x -> map_labeled_statement env x
+          | `Comp_stmt x ->
+              let l, xs, r = map_compound_statement env x in
+              Compound (l, xs, r)
+          | `Top_level_exp_stmt x -> map_top_level_expression_statement env x
+          | `If_stmt x -> map_if_statement env x
+          | `Switch_stmt x -> map_switch_statement env x
+          | `Do_stmt x -> map_do_statement env x
+          | `While_stmt x -> map_while_statement env x
+          | `For_stmt x -> map_for_statement env x
+          | `Ret_stmt x -> map_return_statement env x
+          | `Brk_stmt x -> map_break_statement env x
+          | `Cont_stmt x -> map_continue_statement env x
+          | `Goto_stmt x -> map_goto_statement env x)
+      | `Co_ret_stmt x -> map_co_return_statement env x
+      | `Co_yield_stmt x -> map_co_yield_statement env x
+      | `For_range_loop x -> map_for_range_loop env x
+      | `Try_stmt x -> map_try_statement env x
+      | `Throw_stmt x -> map_throw_statement env x)
 
 and map_top_level_item (env : env) (x : CST.top_level_item) : toplevel list =
   match x with
@@ -4445,7 +4479,7 @@ and map_top_level_item (env : env) (x : CST.top_level_item) : toplevel list =
   | `Decl x ->
       let x = map_declaration env x in
       [ X (D (DeclList x)) ]
-  | `Choice_choice_case_stmt x ->
+  | `Choice_choice_choice_case_stmt x ->
       let x = map_top_level_statement env x in
       [ X (S x) ]
   | `Attr_stmt x -> [ X (S (map_attributed_statement env x)) ]
@@ -4504,8 +4538,12 @@ and map_trailing_return_type (env : env) ((v1, v2) : CST.trailing_return_type) =
   let v2 = map_type_descriptor env v2 in
   v2
 
-and map_translation_unit (env : env) (xs : CST.translation_unit) : program =
-  List.concat_map (map_top_level_item env) xs
+and map_program_or_expr (env : env) (x : CST.translation_unit) :
+    (program, expr) Common.either =
+  match x with
+  | `Rep_choice_func_defi xs ->
+      Left (List.concat_map (map_top_level_item env) xs)
+  | `Semg_exp (_v1, v2) -> Right (map_expression env v2)
 
 (* For instance, something like **x can also be interpreted as simply the
    twice-deref of x.
@@ -4863,15 +4901,26 @@ let parse file =
     (fun () -> Tree_sitter_cpp.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-      map_translation_unit env cst)
+      match map_program_or_expr env cst with
+      | Left prog -> prog
+      | Right _ -> failwith "not a program")
+
+let parse_expression_or_source_file str =
+  let res = Tree_sitter_cpp.Parse.string str in
+  match res.errors with
+  | [] -> res
+  | _ ->
+      let expr_str = "__SEMGREP_EXPRESSION " ^ str in
+      Tree_sitter_cpp.Parse.string expr_str
 
 let parse_pattern str =
   H.wrap_parser
-    (fun () -> Tree_sitter_cpp.Parse.string str)
+    (fun () -> parse_expression_or_source_file str)
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
-      let xs = map_translation_unit env cst in
-      match xs with
-      | [ s ] -> Toplevel s
-      | xs -> Toplevels xs)
+      let x = map_program_or_expr env cst in
+      match x with
+      | Left [ s ] -> Toplevel s
+      | Left xs -> Toplevels xs
+      | Right e -> Expr e)

@@ -610,6 +610,7 @@ and map_expr env x : G.expr =
   | TypedMetavar (v1, v2) ->
       let v1 = map_ident env v1 and v2 = map_type_ env v2 in
       G.TypedMetavar (v1, G.fake ":", v2) |> G.e
+  | DotAccessEllipsis (e, tk) -> G.DotAccessEllipsis (map_expr env e, tk) |> G.e
   | ExprTodo (v1, v2) ->
       let v1 = map_todo_category env v1
       and v2 = map_of_list (map_expr env) v2 in

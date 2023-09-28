@@ -180,6 +180,7 @@ and expr =
   | Ellipses of tok
   | DeepEllipsis of expr bracket
   | TypedMetavar of name * type_
+  | DotAccessEllipsis of expr * tok
 
 and argument =
   | Arg of expr
