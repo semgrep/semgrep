@@ -501,6 +501,8 @@ type 'mode rule_info = {
    * For example, we can select Bash files using the predefined
    * rules that inspect the file extension (.sh) or the shebang line (#!)
    * but analyze them using a regexp instead of a regular Semgrep pattern.
+   *
+   * see also https://www.notion.so/semgrep/What-s-a-language-3f4e75546edd4a0389fa29a24eedb6c0
    *)
   languages : languages;
   (* OPTIONAL fields *)
