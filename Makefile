@@ -361,7 +361,12 @@ setup: semgrep.opam
 .PHONY: dev-setup
 dev-setup:
 	$(MAKE) setup
-	opam install -y --deps-only ./dev
+	# This is partly redundant with `make setup`, called above. We include `./`
+	# and `./libs/ocaml-tree-sitter-core` so that if the dependencies specified in
+	# `./dev` conflict with any of the other dependencies, we get a conflict
+	# message here rather than having this command silently install the versions
+	# that `./dev` requires, potentially breaking the build.
+	opam install -y --deps-only ./dev ./ ./libs/ocaml-tree-sitter-core
 
 # Update and rebuild everything within the project.
 .PHONY: rebuild
