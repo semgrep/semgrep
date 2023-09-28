@@ -1,8 +1,10 @@
-(* from scans.py *)
-
 val start_scan :
-  dry_run:bool -> token:string -> Uri.t -> JSON.t -> (string, string) result
-(** [start_scan ~dry_run ~token url meta] informs the Semgrep App that a scan
+  dry_run:bool ->
+  token:string ->
+  Uri.t ->
+  Project_metadata.t ->
+  (string, string) result
+(** [start_scan ~dry_run ~token url prj] informs the Semgrep App that a scan
     is about to be started, and returns the scan id from the server. If
     [dry_run] is [true], the empty string will be returned ([Ok ""]). *)
 

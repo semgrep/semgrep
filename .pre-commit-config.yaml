@@ -222,6 +222,9 @@ repos:
             # (or in CI with all the files in the repo) but we don't
             # want an OCaml rule to be applied on a script.
             "--skip-unknown-extensions",
+            # this can save 3sec sometimes (a bit sad, would be good to dodgood
+            # also our metrics, but the slowdown is annoying)
+            "--metrics=off",
           ]
   # Dogfooding .pre-commit-hooks.yml and setup.py
   # Use a fixed version of p/python and p/bandit to not get new findings
