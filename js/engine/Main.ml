@@ -107,7 +107,7 @@ let _ =
            let res = Core_scan.scan config timed_rules in
            let res =
              Core_json_output.core_output_of_matches_and_errors
-               (Some Autofix.render_fix) (List.length res.scanned) res
+               (Some Autofix.render_fix) res
            in
            Semgrep_output_v1_j.string_of_core_output res
          in
