@@ -373,6 +373,7 @@ let rec take_safe n xs =
   | _, [] -> []
   | n, x :: xs -> x :: take_safe (n - 1) xs
 
+(* Partition elements by key. Preserve the original order. *)
 let group_by f xs =
   (* use Hashtbl.find_all property *)
   let h = Hashtbl.create 101 in
@@ -385,7 +386,9 @@ let group_by f xs =
          let k = f x in
          Hashtbl.replace hkeys k true;
          Hashtbl.add h k x);
-  Hashtbl.fold (fun k _ acc -> (k, Hashtbl.find_all h k) :: acc) hkeys []
+  Hashtbl.fold
+    (fun k _ acc -> (k, Hashtbl.find_all h k |> List.rev) :: acc)
+    hkeys []
 
 let group_by_multi fkeys xs =
   (* use Hashtbl.find_all property *)

@@ -46,14 +46,14 @@ let profile_mini_rules = ref false
  *)
 let (last_matched_rule : Mini_rule.t option ref) = ref None
 
-let set_last_matched_rule rule f =
+let set_last_matched_rule (rule : Mini_rule.t) f =
   last_matched_rule := Some rule;
   (* note that if this raise an exn, last_matched_rule will not be
    * reset to None and that's what we want!
    *)
   let res =
     if !profile_mini_rules then
-      Profiling.profile_code ("rule:" ^ (rule.MR.id :> string)) f
+      Profiling.profile_code ("rule:" ^ Rule_ID.to_string rule.id) f
     else f ()
   in
   last_matched_rule := None;
@@ -173,7 +173,7 @@ let match_rules_and_recurse m_env (file, hook, matches) rules matcher k any x =
                           (* This will be overrided later on by the Pro engine, if this is
                              from a Pro run.
                           *)
-                          engine_kind = OSS;
+                          engine_kind = `OSS;
                           validation_state = No_validator;
                         }
                       in
@@ -337,7 +337,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                   range_loc;
                                   tokens;
                                   taint_trace = None;
-                                  engine_kind = OSS;
+                                  engine_kind = `OSS;
                                   validation_state = No_validator;
                                 }
                               in
@@ -396,7 +396,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                     range_loc;
                                     tokens;
                                     taint_trace = None;
-                                    engine_kind = OSS;
+                                    engine_kind = `OSS;
                                     validation_state = No_validator;
                                   }
                                 in
@@ -443,7 +443,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                       range_loc;
                                       tokens;
                                       taint_trace = None;
-                                      engine_kind = OSS;
+                                      engine_kind = `OSS;
                                       validation_state = No_validator;
                                     }
                                   in
@@ -536,7 +536,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                       range_loc;
                                       tokens;
                                       taint_trace = None;
-                                      engine_kind = OSS;
+                                      engine_kind = `OSS;
                                       validation_state = No_validator;
                                     }
                                   in

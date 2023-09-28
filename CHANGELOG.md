@@ -6,6 +6,62 @@
 
 <!-- insertion point -->
 
+## [1.41.0](https://github.com/returntocorp/semgrep/releases/tag/v1.41.0) - 2023-09-19
+
+### Changed
+
+- Rule validation no longer fails if a rule contains additional unknown fields. This makes it so older versions of semgrep do not fail rules that contain extra functionality. min-version field should be used to identify rules that should not be run (i.e. the additional functionality is necessary in running the rule) (gh-8712)
+- Limit collection of the contributions from git log to the last 30 days of commits. (scp-965)
+
+### Fixed
+
+- Ruby: Fixed a bug where patterns like `<id> ... do ... end` would not
+  match properly. (gh-8714)
+- Show more specific error message if scan cannot complete because user has disabled all rules on semgrep.dev (gh-8716)
+- For the `nonroot` Docker build stage, moved `semgrep-core` to
+  `/home/semgrep/bin` and updated `$PATH` env variable with the
+  new location. This avoids permissions issues when running and
+  installing Pro Engine while using the `nonroot` Docker image. (pa-3026)
+- Implemented key path expression parsing in Swift. The following example should
+  now be correctly matched by the \$X.isActive pattern:
+
+  ```
+  employee.filter(\.isActive)
+  ```
+
+  Note that when the implicit type is used, the metavariable $X will bind to the
+  backslash character instead of the type name. (pa-3070)
+
+- C++: Translate `for (T var : E)` loops into the Dataflow IL as for-each loops,
+  so that Semgrep reports no finding in the following code:
+
+  ```
+    for (int *p : set) {
+      sink(p); // no finding
+      source(p);
+    }
+  ```
+
+  Since each `p` is (in principle) a different object, even if `source(p)` taints
+  the current `p`, that should not affect the next one. (pa-3090)
+
+- Ruby: Fixed patterns which involve command calls with blocks and Semgrep ellipses,
+  when there are newlines around.
+
+  For instance, the pattern
+
+  ```
+  $METHOD ... do
+    ...
+  end
+  ```
+
+  will now parse properly. (pa-3100)
+
+- Fixes how semgrep identifies the transitivity of dependencies in node v9 (lockfile version 3) and above.
+  Specifically, dependencies that should have been identified as "direct" were being miscategorized as "transitive",
+  which should no longer be the case. (sc-1057)
+
 ## [1.40.0](https://github.com/returntocorp/semgrep/releases/tag/v1.40.0) - 2023-09-14
 
 ### Added

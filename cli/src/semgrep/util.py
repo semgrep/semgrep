@@ -268,3 +268,15 @@ def get_lines(
         result = list(itertools.islice(fd, start_line, end_line))
 
     return result
+
+
+def with_feature_status(*, enabled: bool = False) -> str:
+    """
+    Returns the status of a feature with an icon indicator
+      - enabled:   a green checkmark (✔)
+      - otherwise: a red (x)
+    """
+    # NOTE: we could use something simple like `click.secho("✔", fg="green", nl=False)`
+    # but we have a custom flag for forcing color off (i.e. `force_color_off`)
+    # that we need to respect.
+    return with_color(Colors.green, "✔") if enabled else with_color(Colors.red, "✘")

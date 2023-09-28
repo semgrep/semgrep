@@ -200,8 +200,8 @@ let check r =
   | `Taint _ -> (* TODO *) []
   | `Steps _ -> (* TODO *) []
 
-let semgrep_check config metachecks rules =
-  let match_to_semgrep_error m =
+let semgrep_check config metachecks rules : Core_error.t list =
+  let match_to_semgrep_error (m : Pattern_match.t) : Core_error.t =
     let loc, _ = m.P.range_loc in
     (* TODO use the end location in errors *)
     let s = m.rule_id.message in
@@ -219,10 +219,10 @@ let semgrep_check config metachecks rules =
       roots = rules;
     }
   in
-  let _success, res, _targets =
-    Core_scan.semgrep_with_raw_results_and_exn_handler config
-  in
-  res.matches |> Common.map match_to_semgrep_error
+  let res = Core_scan.scan_with_exn_handler config in
+  match res with
+  | Ok result -> result.matches |> Common.map match_to_semgrep_error
+  | Error (exn, _) -> Exception.reraise exn
 
 (* TODO *)
 
@@ -266,6 +266,7 @@ let run_checks config fparser metachecks xs =
       in
       semgrep_found_errs @ ocaml_found_errs
 
+(* for semgrep-core -check_rules *)
 let check_files mk_config fparser input =
   let config = mk_config () in
   let errors =
@@ -281,12 +282,10 @@ let check_files mk_config fparser input =
   match config.output_format with
   | Text -> List.iter (fun err -> pr2 (E.string_of_error err)) errors
   | Json _ ->
-      let res = { RP.empty_final_result with errors } in
-      (* for the stats.okfiles, but we don't care? *)
-      let nfiles = 0 in
-      let json =
-        Core_json_output.core_output_of_matches_and_errors None nfiles res
+      let (res : Core_result.t) =
+        Core_result.mk_final_result_with_just_errors errors
       in
+      let json = Core_json_output.core_output_of_matches_and_errors None res in
       pr (SJ.string_of_core_output json)
 
 let stat_files fparser xs =
@@ -299,19 +298,20 @@ let stat_files fparser xs =
   in
   let good = ref 0 in
   let bad = ref 0 in
+  let cache = Some (Hashtbl.create 101) in
   fullxs
   |> List.iter (fun file ->
          logger#info "processing %s" !!file;
          let rs = fparser file in
          rs
          |> List.iter (fun r ->
-                let res = Analyze_rule.regexp_prefilter_of_rule r in
+                let res = Analyze_rule.regexp_prefilter_of_rule ~cache r in
                 match res with
                 | None ->
                     incr bad;
                     pr2
                       (spf "PB: no regexp prefilter for rule %s:%s" !!file
-                         (fst r.id :> string))
+                         (Rule_ID.to_string (fst r.id)))
                 | Some (f, _f) ->
                     incr good;
                     let s = Semgrep_prefilter_j.string_of_formula f in

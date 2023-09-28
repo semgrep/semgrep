@@ -49,7 +49,7 @@ let find_first_match_with_whole_line path ?split:(chr = '\n') =
   let len = in_channel_length ic in
   let res = Bytes.create len in
   really_input ic res 0 len;
-  let lines = Stdcompat.Bytes.split_on_char chr res in
+  let lines = Bytes.split_on_char chr res in
   let lines = Common.map Bytes.unsafe_to_string lines in
   List.find_opt
     (fun str -> Option.is_some (String_utils.contains term str))

@@ -1,0 +1,14 @@
+rules:
+- id: sort-findings-2
+  pattern: "f()"
+  message: "found something (2)"
+  languages: [python]
+  severity: ERROR
+- id: sort-findings-1
+  pattern: |
+    f()
+    ...
+    f()
+  message: "found something (1)"
+  languages: [python]
+  severity: ERROR

@@ -455,8 +455,9 @@ def test_nested_pattern_either_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+# TODO: This can be marked osempass once we port cli_unique_key deduplication
+# https://github.com/returntocorp/semgrep/pull/8510
 @pytest.mark.kinda_slow
-@pytest.mark.osempass
 def test_metavariable_regex_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/metavariable-regex.yaml").stdout, "results.json"
@@ -727,8 +728,9 @@ def test_multiple_configs_different_origins(run_semgrep_in_tmp: RunSemgrep, snap
     )
 
 
+# TODO: This can be marked osempass once we port cli_unique_key deduplication
+# https://github.com/returntocorp/semgrep/pull/8510
 @pytest.mark.kinda_slow
-@pytest.mark.osempass
 def test_metavariable_propagation_regex(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
@@ -835,5 +837,37 @@ def multi_focus_metavariable(run_semgrep_in_tmp: RunSemgrep, snapshot):
             strict=False,
             output_format=OutputFormat.TEXT,
         ).stderr,
+        "output.txt",
+    )
+
+
+# Check that pysemgrep and osemgrep sort the results identically.
+# We don't really need it as a product feature but it's important to
+# compare the output of osemgrep with the output of pysemgrep.
+@pytest.mark.quick
+@pytest.mark.osempass
+def test_sort_json_findings(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/sort-findings.yaml",
+            target_name="sort-findings",
+            strict=False,
+        ).stdout,
+        "results.json",
+    )
+
+
+# Check that pysemgrep and osemgrep sort the results as intended
+# when presenting them in text format.
+@pytest.mark.quick
+@pytest.mark.osempass
+def test_sort_text_findings(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/sort-findings.yaml",
+            target_name="sort-findings",
+            strict=False,
+            output_format=OutputFormat.TEXT,
+        ).stdout,
         "output.txt",
     )

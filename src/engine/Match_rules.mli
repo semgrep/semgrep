@@ -14,8 +14,12 @@ val check :
   Match_env.xconfig ->
   Rule.rules ->
   Xtarget.t ->
-  Core_result.partial_profiling Core_result.match_result
+  Core_profiling.partial_profiling Core_result.match_result
 
 (* for osemgrep interactive *)
 val is_relevant_rule_for_xtarget :
-  Rule.t -> Match_env.xconfig -> Xtarget.t -> bool
+  cache:Analyze_rule.prefilter_cache option ->
+  Rule.t ->
+  Match_env.xconfig ->
+  Xtarget.t ->
+  bool

@@ -1,5 +1,6 @@
 (test
  (name test)
+ (action (run %{exe:test.exe})); Ensure we're running the native binary
  (libraries
     commons
     process_limits
@@ -23,7 +24,7 @@
 
     osemgrep_language_server
   )
- (modes native) ; bytecode here for debugging
+ (modes native byte) ; bytecode here for debugging
  (preprocess
    (pps
       ppx_deriving.show

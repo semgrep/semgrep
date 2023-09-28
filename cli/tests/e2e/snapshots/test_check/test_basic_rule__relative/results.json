@@ -1,7 +1,6 @@
 {
   "errors": [],
   "paths": {
-    "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": [
       "targets/basic/inside.py",
       "targets/basic/metavariable-comparison-bad-content.py",
@@ -20,47 +19,6 @@
     ]
   },
   "results": [
-    {
-      "check_id": "rules....rules.eqeq-is-bad",
-      "end": {
-        "col": 26,
-        "line": 3,
-        "offset": 69
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "    return a + b == a + b",
-        "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`",
-        "metadata": {
-          "shortlink": "https://sg.run/xyz1"
-        },
-        "metavars": {
-          "$X": {
-            "abstract_content": "a+b",
-            "end": {
-              "col": 17,
-              "line": 3,
-              "offset": 60
-            },
-            "start": {
-              "col": 12,
-              "line": 3,
-              "offset": 55
-            }
-          }
-        },
-        "severity": "ERROR",
-        "validation_state": "NO_VALIDATOR"
-      },
-      "path": "targets/basic/stupid.py",
-      "start": {
-        "col": 12,
-        "line": 3,
-        "offset": 55
-      }
-    },
     {
       "check_id": "rules....rules.javascript-basic-eqeq-bad",
       "end": {
@@ -111,6 +69,47 @@
         "col": 13,
         "line": 3,
         "offset": 61
+      }
+    },
+    {
+      "check_id": "rules....rules.eqeq-is-bad",
+      "end": {
+        "col": 26,
+        "line": 3,
+        "offset": 69
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "    return a + b == a + b",
+        "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`",
+        "metadata": {
+          "shortlink": "https://sg.run/xyz1"
+        },
+        "metavars": {
+          "$X": {
+            "abstract_content": "a+b",
+            "end": {
+              "col": 17,
+              "line": 3,
+              "offset": 60
+            },
+            "start": {
+              "col": 12,
+              "line": 3,
+              "offset": 55
+            }
+          }
+        },
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/basic/stupid.py",
+      "start": {
+        "col": 12,
+        "line": 3,
+        "offset": 55
       }
     }
   ],

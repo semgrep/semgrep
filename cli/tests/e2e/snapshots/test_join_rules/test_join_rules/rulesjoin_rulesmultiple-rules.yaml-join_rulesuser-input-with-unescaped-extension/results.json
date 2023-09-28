@@ -1,37 +1,11 @@
 {
   "errors": [],
   "paths": {
-    "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": [
       "targets/join_rules/user-input-with-unescaped-extension/views.py"
     ]
   },
   "results": [
-    {
-      "check_id": "rules.join_rules.print",
-      "end": {
-        "col": 12,
-        "line": 46,
-        "offset": 1372
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "print(\"Hi\")",
-        "message": "Found print",
-        "metadata": {},
-        "metavars": {},
-        "severity": "INFO",
-        "validation_state": "NO_VALIDATOR"
-      },
-      "path": "targets/join_rules/user-input-with-unescaped-extension/views.py",
-      "start": {
-        "col": 1,
-        "line": 46,
-        "offset": 1361
-      }
-    },
     {
       "check_id": "rules.join_rules.user-input-with-unescaped-extension",
       "end": {
@@ -68,6 +42,31 @@
         "col": 36,
         "line": 9,
         "offset": 140
+      }
+    },
+    {
+      "check_id": "rules.join_rules.print",
+      "end": {
+        "col": 12,
+        "line": 46,
+        "offset": 1372
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "print(\"Hi\")",
+        "message": "Found print",
+        "metadata": {},
+        "metavars": {},
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/join_rules/user-input-with-unescaped-extension/views.py",
+      "start": {
+        "col": 1,
+        "line": 46,
+        "offset": 1361
       }
     }
   ],

@@ -1802,7 +1802,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
             let finally = finally_block env x in
             ([], Some finally)
       in
-      let try_stmt = Try (v1, v2, catch, finally) |> G.s in
+      let try_stmt = Try (v1, v2, catch, None, finally) |> G.s in
       stmt_to_expr try_stmt
   | `Jump_exp x ->
       let v1 = jump_expression env x in

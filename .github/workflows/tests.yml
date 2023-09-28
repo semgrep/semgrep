@@ -331,6 +331,10 @@ jobs:
       dry-run: false
 
   build-test-docker-nonroot:
+    # We want to run build-test-docker-nonroot *after*
+    # build-test-docker so that it reuses the warmed-up
+    # docker cache.
+    needs: [build-test-docker]
     uses: ./.github/workflows/build-test-docker.yaml
     secrets: inherit
     with:
@@ -394,3 +398,10 @@ jobs:
   build-test-javascript:
     uses: ./.github/workflows/build-test-javascript.yaml
     secrets: inherit
+    with:
+      # we limit artifact uploads to avoid filling the S3 bucket with tons of semgrep.js builds.
+      # we will upload if one of these are true:
+      # - the branch name is "develop" (so that we can test the bleeding edge)
+      # - the branch name starts with "release-" (TODO: move this to release.yml instead)
+      # - the PR is not a fork and has a "publish-js" label
+      upload-artifacts: ${{ (github.ref == 'refs/heads/develop') || startsWith(github.ref, 'refs/heads/release-') || (!github.event.pull_request.head.repo.fork && contains(github.event.pull_request.labels.*.name, 'publish-js')) }}

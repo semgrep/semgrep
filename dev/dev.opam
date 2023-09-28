@@ -14,6 +14,7 @@ depends: [
   # - scripts/lint-ocaml
   # - .github/workflows/lint.yml and its pre-commit-ocaml job
   "ocamlformat" {= "0.23.0" }  # used by the pre-commit hook
-  "ppx_deriving_cmdliner" # used by hello_script.ml
   "feather" # used by hello_script.ml
+  "ocaml-lsp-server" {= "1.15.1-4.14"} # used by the VSCode extension
+  "earlybird" {= "1.2.1"} # used by the VSCode extension
 ]

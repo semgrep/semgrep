@@ -23,6 +23,7 @@ type t = {
   cached_scans : (Fpath.t, Out.cli_match list) Hashtbl.t;
   cached_session : session_cache;
   user_settings : UserSettings.t;
+  is_intellij : bool;
 }
 
 (*****************************************************************************)
@@ -41,6 +42,7 @@ let create capabilities =
     cached_scans = Hashtbl.create 10;
     cached_session;
     user_settings = UserSettings.default;
+    is_intellij = false;
   }
 
 let dirty_files_of_folder folder =
@@ -54,11 +56,12 @@ let decode_rules data =
   Common2.with_tmp_file ~str:data ~ext:"json" (fun file ->
       let file = Fpath.v file in
       let res =
-        Rule_fetching.load_rules_from_file ~registry_caching:true file
+        Rule_fetching.load_rules_from_file ~origin:Other_origin
+          ~registry_caching:true file
       in
       Logs.info (fun m -> m "Loaded %d rules from CI" (List.length res.rules));
       Logs.info (fun m -> m "Got %d errors from CI" (List.length res.errors));
-      { res with origin = None })
+      res)
 
 (*****************************************************************************)
 (* State getters *)
@@ -151,6 +154,7 @@ let fetch_rules session =
         let in_docker = !Semgrep_envvars.v.in_docker in
         let config = Rules_config.parse_config_string ~in_docker source in
         Rule_fetching.rules_from_dashdash_config_async
+          ~rewrite_rule_ids:true (* default *)
           ~token_opt:(auth_token ()) ~registry_caching:true config)
       rules_source
   in

@@ -5,29 +5,31 @@
 ; This file used to be in reporting/ because it was concerned mostly with JSON
 ; reporting of a scan result, but it now contains core data definitions
 ; (e.g., engine_kind, core_error_kind, skip_reason, matching_operation) reused
-; in the OCaml core code.
+; in the OCaml core code, which is why it was moved here.
 
 (library
  (public_name semgrep.core)
  (name semgrep_core)
  (wrapped false)
  (libraries
-   semver
-   stdcompat
+   ; standard libraries
    str
    uri
+   semver
    yaml
    atdgen-runtime
    sexplib
 
+   ; in libs/
    commons
    glob
    lib_parsing ; Parse_info.ml
    ast_generic
-   parser_javascript.ast ; TODO remove this, ugly dependency to Ast_js.default_entity in Pattern.ml
-   ;note: we should not depend on pfff-lang_GENERIC-analyze in core
-   ;note: we should also not depend on any other semgrep libs
-   ; (except the 1 below)
+
+   ; TODO ugly dependency to Ast_js.default_entity in Pattern.ml
+   parser_javascript.ast
+   ; We should not depend on pfff-lang_GENERIC-analyze in core.
+   ; We should also not depend on any other semgrep libs (except the 1 below).
    semgrep_configuring
 
    spacegrep ; Rule.ml references Spacegrep.Pattern_AST.t
@@ -46,7 +48,7 @@
  )
 )
 
-; '-j-defaults' is for matching the behavior of atdpy so that we can get the
+; '-j-defaults' below is for matching the behavior of atdpy so that we can get the
 ; same JSON output from pysemgrep and osemgrep. This is useful only for
 ; passing end-to-end tests where osemgrep is expected to produce the same
 ; output as pysemgrep. This allows us to use '~field: ... list' which is more

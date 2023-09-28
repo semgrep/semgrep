@@ -1,104 +1,88 @@
-(* Options for what extra debugging information to output*)
+(* Final match result for all the files and all the rules *)
 
-type debug_mode = MDebug | MTime | MNo_info [@@deriving show]
-
-type 'a debug_info =
-  | Debug of {
-      skipped_targets : Semgrep_output_v1_t.skipped_target list;
-      profiling : 'a;
-    }
-  | Time of { profiling : 'a }
-  | No_info
-[@@deriving show]
-
-val debug_info_to_option : 'a debug_info -> 'a option
-(** [debug_info_to_option debug] returns [Some profiling] if we collected
-    metrics. Otherwise, it returns [None]. *)
-
-(* Global to set the debug mode. Should be set
-   exactly once after the arguments are read *)
-
-val mode : debug_mode ref
-
-(* Save time information as we run each rule *)
-
-type times = { parse_time : float; match_time : float }
-
-type rule_profiling = {
-  rule_id : Rule_ID.t;
-  parse_time : float;
-  match_time : float;
+type t = {
+  matches : Pattern_match.t list;
+  errors : Core_error.t list;
+  (* extra information useful to also give to the user (in JSON or
+   * in textual reports) or for tools (e.g., the playground).
+   *)
+  skipped_rules : Rule.invalid_rule_error list;
+  (* may contain skipped_target info *)
+  extra : Core_profiling.t Core_profiling.debug_info;
+  explanations : Matching_explanation.t list;
+  rules_by_engine : (Rule_ID.t * Engine_kind.t) list;
+  (* The targets are all the files that were considered valid targets for the
+   * semgrep scan. This excludes files that were filtered out on purpose
+   * due to being in the wrong language, too big, etc.
+   * It includes targets that couldn't be scanned, for instance due to
+   * a parsing error.
+   * TODO: are we actually doing that? this was a comment
+   * for semgrep_with_raw_results_and_exn_handler (now scan_with_exn_handler)
+   * but I'm not sure we're doing it.
+   *)
+  scanned : Fpath.t list;
 }
 [@@deriving show]
 
-(* Save time information as we run each file *)
+type result_or_exn = (t, Exception.t * Core_error.t option) result
 
-type partial_profiling = { file : Fpath.t; rule_times : rule_profiling list }
-[@@deriving show]
-
-type file_profiling = {
-  file : Fpath.t;
-  rule_times : rule_profiling list;
-  run_time : float;
-}
-[@@deriving show]
-
-type rule_id_and_engine_kind = Rule_ID.t * Pattern_match.engine_kind
-[@@deriving show]
-
-(* Substitute in the profiling type we have *)
+(* Intermediate match result.
+ * The 'a below can be substituted with different profiling types
+ * in Core_profiling.ml.
+ * This usually represents the match results for one target file
+ * (possibly matches coming from more than one rule).
+ *)
 
 type 'a match_result = {
   matches : Pattern_match.t list;
   errors : Core_error.ErrorSet.t;
-  extra : 'a debug_info;
+  extra : 'a Core_profiling.debug_info;
   explanations : Matching_explanation.t list;
 }
 [@@deriving show]
 
-(* Result object for the entire rule *)
+(* take the match results for each file, all the rules, all the targets,
+ * and build the final result
+ *)
+val make_final_result :
+  Core_profiling.file_profiling match_result list ->
+  (Rule.rule * Engine_kind.t) list ->
+  Rule.invalid_rule_error list ->
+  Fpath.t list ->
+  rules_parse_time:float ->
+  t
 
-type final_profiling = {
-  rules : Rule.rule list;
-  rules_parse_time : float;
-  file_times : file_profiling list;
-  max_memory_bytes : int;
-}
-[@@deriving show]
-
-type final_result = {
-  matches : Pattern_match.t list;
-  errors : Core_error.t list;
-  skipped_rules : Rule.invalid_rule_error list;
-  extra : final_profiling debug_info;
-  explanations : Matching_explanation.t list;
-  rules_by_engine : rule_id_and_engine_kind list;
-}
-[@@deriving show]
-
-val empty_extra : 'a -> 'a debug_info
-val empty_partial_profiling : Fpath.t -> partial_profiling
-val empty_rule_profiling : Rule.t -> rule_profiling
-val empty_semgrep_result : times match_result
-val empty_final_result : final_result
+(* This is useful when an exn was raised during a scan but we
+ * still need to print a core_result on stdout in JSON. In that
+ * case we usually transform the exn into a Core_error that gets
+ * added in the errors field.
+ * This is also used for semgrep-core metachecker (-check_rules)
+ *)
+val mk_final_result_with_just_errors : Core_error.t list -> t
+val empty_match_result : Core_profiling.times match_result
 
 val make_match_result :
   Pattern_match.t list -> Core_error.ErrorSet.t -> 'a -> 'a match_result
 
+(* match results profiling adjustment helpers *)
 val modify_match_result_profiling :
   'a match_result -> ('a -> 'b) -> 'b match_result
 
 val add_run_time :
-  float -> partial_profiling match_result -> file_profiling match_result
+  float ->
+  Core_profiling.partial_profiling match_result ->
+  Core_profiling.file_profiling match_result
 
-val add_rule : Rule.rule -> times match_result -> rule_profiling match_result
-val collate_pattern_results : times match_result list -> times match_result
+val add_rule :
+  Rule.rule ->
+  Core_profiling.times match_result ->
+  Core_profiling.rule_profiling match_result
 
-val make_final_result :
-  file_profiling match_result list ->
-  (Rule.rule * Pattern_match.engine_kind) list ->
-  rules_parse_time:float ->
-  final_result
+(* aggregate results *)
+val collate_pattern_results :
+  Core_profiling.times match_result list -> Core_profiling.times match_result
 
 val collate_rule_results :
-  Fpath.t -> rule_profiling match_result list -> partial_profiling match_result
+  Fpath.t ->
+  Core_profiling.rule_profiling match_result list ->
+  Core_profiling.partial_profiling match_result

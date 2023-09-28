@@ -1,7 +1,5 @@
 import hashlib
 import json
-from enum import auto
-from enum import Enum
 from typing import Any
 from typing import AnyStr
 from typing import cast
@@ -26,12 +24,6 @@ from semgrep.semgrep_types import JOIN_MODE
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import SEARCH_MODE
-
-
-class RuleProduct(Enum):
-    sast = auto()
-    sca = auto()
-    secrets = auto()
 
 
 class Rule:
@@ -256,16 +248,16 @@ class Rule:
         return any(key in RuleValidation.PATTERN_KEYS for key in self._raw)
 
     @property
-    def product(self) -> RuleProduct:
+    def product(self) -> out.Product:
         if "r2c-internal-project-depends-on" in self._raw:
-            return RuleProduct.sca
+            return out.Product(out.SCA())
         elif "product" in self.metadata:
             if self.metadata.get("product") == "secrets":
-                return RuleProduct.secrets
+                return out.Product(out.Secrets())
             else:
-                return RuleProduct.sast
+                return out.Product(out.SAST())
         else:
-            return RuleProduct.sast
+            return out.Product(out.SAST())
 
     @property
     def scan_source(self) -> RuleScanSource:

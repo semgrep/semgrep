@@ -9,10 +9,7 @@ val match_to_match :
   (Semgrep_output_v1_t.core_match, Core_error.t) Common.either
 
 val core_output_of_matches_and_errors :
-  render_fix option ->
-  int (* number of files processed, for the stats.okfiles *) ->
-  Core_result.final_result ->
-  Semgrep_output_v1_t.core_output
+  render_fix option -> Core_result.t -> Semgrep_output_v1_t.core_output
 
 (* for abstract_content and subpatterns matching-explanations
  * TODO: should not use! the result may miss some commas

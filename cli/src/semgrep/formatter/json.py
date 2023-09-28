@@ -64,12 +64,15 @@ class JsonFormatter(BaseFormatter):
         extra: Mapping[str, Any],
         is_ci_invocation: bool,
     ) -> str:
+        # Sort according to RuleMatch.get_ordering_key
+        sorted_findings = sorted(rule_matches)
         # Note that extra is not used here! Every part of the JSON output should
         # be specified in semgrep_output_v1.atd and be part of CliOutputExtra
         output = out.CliOutput(
             version=out.Version(__VERSION__),
             results=[
-                self._rule_match_to_CliMatch(rule_match) for rule_match in rule_matches
+                self._rule_match_to_CliMatch(rule_match)
+                for rule_match in sorted_findings
             ],
             errors=[error.to_CliError() for error in semgrep_structured_errors],
             paths=cli_output_extra.paths,

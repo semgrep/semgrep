@@ -56,15 +56,16 @@ let mock_run_results (files : string list) : Core_runner.result =
   let matches = Common.map match_of_file files in
   let (core : Out.core_output) =
     {
+      version = None;
       results = matches;
       errors = [];
-      skipped_targets = None;
+      (* extra *)
+      paths = { skipped = None; scanned = [] };
       skipped_rules = [];
       explanations = None;
       time = None;
-      rules_by_engine = [];
-      engine_requested = `OSS;
-      stats = { okfiles = List.length files; errorfiles = 0 };
+      rules_by_engine = None;
+      engine_requested = Some `OSS;
     }
   in
   Core_runner.{ core; hrules; scanned }

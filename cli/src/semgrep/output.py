@@ -41,8 +41,8 @@ from semgrep.formatter.junit_xml import JunitXmlFormatter
 from semgrep.formatter.sarif import SarifFormatter
 from semgrep.formatter.text import TextFormatter
 from semgrep.formatter.vim import VimFormatter
+from semgrep.output_extra import OutputExtra
 from semgrep.profile_manager import ProfileManager
-from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
@@ -83,55 +83,28 @@ def get_path_str(target: Path) -> str:
     return path_str
 
 
-def _build_time_target_json(
-    rules: List[Rule],
-    target: Path,
-    num_bytes: int,
-    profiling_data: ProfilingData,
-) -> out.CliTargetTimes:
-    path_str = get_path_str(target)
-    timings = [profiling_data.get_run_times(rule, target) for rule in rules]
-
-    return out.CliTargetTimes(
-        path=out.Fpath(path_str),
-        num_bytes=num_bytes,
-        parse_times=[timing.parse_time for timing in timings],
-        match_times=[timing.match_time for timing in timings],
-        run_time=profiling_data.get_file_run_time(target) or 0.0,
-    )
-
-
-# coupling: if you change the JSON schema below, you probably need to
-# also modify perf/run-benchmarks. Run locally
-#    $ ./run-benchmarks --dummy --upload
-# to double check everything still works
 def _build_time_json(
     rules: List[Rule],
     targets: Set[Path],
-    profiling_data: ProfilingData,
+    profile: out.Profile,
     profiler: Optional[ProfileManager],
 ) -> out.Profile:
-    """Convert match times to a json-ready format.
+    # TODO: we used to start from the targets and rules passed as a parameter
+    # and then grab the information in profile, but
+    # now we just reuse profile without any processing.
+    # Can things differ between the targets/rules in pysemgrep and the
+    # one actually used in semgrep-core and returned in profile?
 
-    Match times are obtained for each pair (rule, target) by running
-    semgrep-core. They exclude parsing time. One of the applications is
-    to estimate the performance of a rule, assuming the cost of parsing
-    the target file will become negligible once we run many rules on the
-    same AST.
-    """
-    target_bytes = [Path(str(target)).resolve().stat().st_size for target in targets]
     return out.Profile(
-        # this list of all rules ids is given here so they don't have to be
-        # repeated for each target in the 'targets' field, saving space.
-        rules=[out.RuleId(rule.id) for rule in rules],
+        # this is an addon to profiling_data.profile
         profiling_times=profiler.dump_stats() if profiler else {},
-        targets=[
-            _build_time_target_json(rules, target, num_bytes, profiling_data)
-            for target, num_bytes in zip(targets, target_bytes)
-        ],
-        total_bytes=profiling_data.profile.total_bytes,
-        rules_parse_time=profiling_data.profile.rules_parse_time,
-        max_memory_bytes=profiling_data.profile.max_memory_bytes,
+        # TODO: maybe just start from profiling_data.profile and just adjust its
+        # profiling_times field
+        rules=profile.rules,
+        targets=profile.targets,
+        total_bytes=profile.total_bytes,
+        rules_parse_time=profile.rules_parse_time,
+        max_memory_bytes=profile.max_memory_bytes,
     )
 
 
@@ -156,13 +129,15 @@ class OutputHandler:
     Handle all output in a central location. Rather than calling `print_stderr` directly,
     you should call `handle_*` as appropriate.
 
-    In normal usage, it should be constructed via the contextmanager, `managed_output`. It ensures that everything
-    is handled properly if exceptions are thrown.
+    In normal usage, it should be constructed via the contextmanager, `managed_output`.
+    It ensures that everything is handled properly if exceptions are thrown.
 
-    If you need to stop execution immediately (think carefully if you really want this!), throw an exception.
+    If you need to stop execution immediately (think carefully if you really want this!),
+    throw an exception.
     If this is normal behavior, the exception _must_ inherit from `SemgrepError`.
 
-    If you want execution to continue, _report_ the exception via the appropriate `handle_*` method.
+    If you want execution to continue, _report_ the exception via the appropriate
+    `handle_*` method.
     """
 
     def __init__(
@@ -180,10 +155,9 @@ class OutputHandler:
         self.has_output = False
         self.is_ci_invocation = False
         self.filtered_rules: List[Rule] = []
-        self.profiling_data: Optional[ProfilingData] = None
+        self.extra: Optional[OutputExtra] = None
         self.severities: Collection[RuleSeverity] = DEFAULT_SHOWN_SEVERITIES
         self.explanations: Optional[List[out.MatchingExplanation]] = None
-        self.rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = None
         self.engine_type: EngineType = EngineType.OSS
 
         self.final_error: Optional[Exception] = None
@@ -293,6 +267,8 @@ class OutputHandler:
 
         return reduce(update_failed_to_analyze, semgrep_core_errors, {})
 
+    # TODO: why run_scan.scan() calls output() to set the fields why
+    # run_scan.run_scan_and_return_json() modify directly the fields instead?
     def output(
         self,
         rule_matches_by_rule: RuleMatchMap,
@@ -301,9 +277,8 @@ class OutputHandler:
         filtered_rules: List[Rule],
         ignore_log: Optional[FileTargetingLog] = None,
         profiler: Optional[ProfileManager] = None,
-        profiling_data: Optional[ProfilingData] = None,  # (rule, target) -> duration
+        extra: Optional[OutputExtra] = None,
         explanations: Optional[List[out.MatchingExplanation]] = None,
-        rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = None,
         severities: Optional[Collection[RuleSeverity]] = None,
         print_summary: bool = False,
         is_ci_invocation: bool = False,
@@ -330,12 +305,10 @@ class OutputHandler:
             # create a fake log to track the errors
             self.ignore_log = FileTargetingLog(TargetManager(["."]))
 
-        if profiling_data:
-            self.profiling_data = profiling_data
+        if extra:
+            self.extra = extra
         if explanations:
             self.explanations = explanations
-        if rules_by_engine:
-            self.rules_by_engine = rules_by_engine
         if severities:
             self.severities = severities
 
@@ -440,24 +413,22 @@ class OutputHandler:
         # CliOutputExtra members
         cli_paths = out.ScannedAndSkipped(
             scanned=[out.Fpath(str(path)) for path in sorted(self.all_targets)],
-            _comment=None,
             skipped=None,
         )
         cli_timing: Optional[out.Profile] = None
 
         explanations: Optional[List[out.MatchingExplanation]] = self.explanations
-        rules_by_engine: Optional[List[out.RuleIdAndEngineKind]] = self.rules_by_engine
 
         # Extra, extra! This just in! 🗞️
         # The extra dict is for blatantly skipping type checking and function signatures.
         # - The text formatter uses it to store settings
         # You should use CliOutputExtra for better type checking
         extra: Dict[str, Any] = {}
-        if self.settings.output_time and self.profiling_data:
+        if self.settings.output_time and self.extra and self.extra.core.time:
             cli_timing = _build_time_json(
                 self.filtered_rules,
                 self.all_targets,
-                self.profiling_data,
+                self.extra.core.time,
                 self.profiler,
             )
         if self.settings.verbose_errors:
@@ -476,10 +447,6 @@ class OutputHandler:
                 ],
             )
             extra["verbose_errors"] = True
-        else:
-            cli_paths = dataclasses.replace(
-                cli_paths, _comment="<add --verbose for a list of skipped paths>"
-            )
         if self.settings.output_format == OutputFormat.TEXT:
             extra["color_output"] = (
                 self.settings.output_destination is None and sys.stdout.isatty(),
@@ -497,19 +464,30 @@ class OutputHandler:
         # as opposed to below, we need to distinguish the various kinds of pro engine
         extra["engine_requested"] = self.engine_type
 
+        # TODO: I thought we could guard this code with 'if self.extra:', and raise
+        # a SemgrepError otherwise, but it seems that when semgrep got an error
+        # (for example in tests/e2e/test_ci.py::test_bad_config),
+        # then this code still get called and self.extra is not set but we still want
+        # to output things. This is why I have those ugly 'if self.extra' below
+        # that possibly return None.
+
         # the rules are used only by the SARIF formatter
         return self.formatter.output(
             self.rules,
             self.rule_matches,
             self.semgrep_structured_errors,
             out.CliOutputExtra(
+                # TODO: almost like self.extra.core.paths, but not there yet
                 paths=cli_paths,
+                # TODO: almost like self.extra.core.time, but not there yet
                 time=cli_timing,
+                # TODO: would like t ouse self.extra.core.explanations byt regressions
                 explanations=explanations,
-                rules_by_engine=rules_by_engine,
+                rules_by_engine=self.extra.core.rules_by_engine if self.extra else None,
                 # this flattens the information into just distinguishing "pro" and "not-pro"
                 engine_requested=self.engine_type.to_engine_kind(),
-                skipped_rules=[],  # TODO
+                # TODO, should just be self.extra.core.skipped_rules
+                skipped_rules=[],
             ),
             extra,
             self.severities,

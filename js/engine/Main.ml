@@ -1,8 +1,10 @@
 open Js_of_ocaml
 
-(* js_of_ocaml gives each executable its own pseudo-filesystem, which means we must
-   expose the engine's mount points in order for reads to work properly in browser environments
-   (see companion setter in semgrep.semgrep_js_shared.ml) *)
+(* js_of_ocaml gives each executable its own pseudo-filesystem, which means
+   we must expose the engine's mount points in order for reads to work
+   properly in browser environments
+   (see companion setter in semgrep.semgrep_js_shared.ml)
+*)
 external get_jsoo_mount_point : unit -> 'any list = "get_jsoo_mount_point"
 
 type jbool = bool Js.t
@@ -86,7 +88,7 @@ let _ =
        method execute language rule_file _root source_files : string =
          let xlang = Xlang.of_string (Js.to_string language) in
          let rules_and_errors =
-           Parse_rule.parse_and_filter_invalid_rules
+           Parse_rule.parse_and_filter_invalid_rules ~rewrite_rule_ids:None
              (Fpath.v (Js.to_string rule_file))
          in
          let source_files =
@@ -108,7 +110,7 @@ let _ =
          in
          let targets =
            Input_to_core_t.
-             { target_mappings; rule_ids = (rule_ids :> string list) }
+             { target_mappings; rule_ids = Rule_ID.to_string_list rule_ids }
          in
          let config : Core_scan_config.t =
            {
@@ -120,10 +122,10 @@ let _ =
            }
          in
          let timed_rules = (rules_and_errors, 0.) in
-         let res, files = Core_scan.semgrep_with_rules config timed_rules in
+         let res = Core_scan.scan config timed_rules in
          let res =
            Core_json_output.core_output_of_matches_and_errors
-             (Some Autofix.render_fix) (List.length files) res
+             (Some Autofix.render_fix) res
          in
          Semgrep_output_v1_j.string_of_core_output res
     end)

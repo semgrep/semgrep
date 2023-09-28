@@ -1,7 +1,6 @@
 {
   "errors": [],
   "paths": {
-    "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": [
       "targets/extract/js_html_concat.html"
     ]
@@ -55,56 +54,6 @@
         "col": 33,
         "line": 8,
         "offset": 253
-      }
-    },
-    {
-      "check_id": "rules.extract_rules.get-elem-id",
-      "end": {
-        "col": 68,
-        "line": 22,
-        "offset": 667
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "            function myFunction() { document.getElementById(\"demo\").innerHTML = \"Paragraph changed.\"; }",
-        "message": "Found match",
-        "metadata": {},
-        "metavars": {},
-        "severity": "ERROR",
-        "validation_state": "NO_VALIDATOR"
-      },
-      "path": "targets/extract/js_html_concat.html",
-      "start": {
-        "col": 37,
-        "line": 22,
-        "offset": 636
-      }
-    },
-    {
-      "check_id": "rules.extract_rules.get-elem-id",
-      "end": {
-        "col": 68,
-        "line": 24,
-        "offset": 806
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "            function myFunction() { document.getElementById(\"demo\").innerHTML = \"Paragraph changed.\"; }",
-        "message": "Found match",
-        "metadata": {},
-        "metavars": {},
-        "severity": "ERROR",
-        "validation_state": "NO_VALIDATOR"
-      },
-      "path": "targets/extract/js_html_concat.html",
-      "start": {
-        "col": 37,
-        "line": 24,
-        "offset": 775
       }
     },
     {
@@ -215,6 +164,56 @@
         "col": 9,
         "line": 10,
         "offset": 364
+      }
+    },
+    {
+      "check_id": "rules.extract_rules.get-elem-id",
+      "end": {
+        "col": 68,
+        "line": 22,
+        "offset": 667
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "            function myFunction() { document.getElementById(\"demo\").innerHTML = \"Paragraph changed.\"; }",
+        "message": "Found match",
+        "metadata": {},
+        "metavars": {},
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/extract/js_html_concat.html",
+      "start": {
+        "col": 37,
+        "line": 22,
+        "offset": 636
+      }
+    },
+    {
+      "check_id": "rules.extract_rules.get-elem-id",
+      "end": {
+        "col": 68,
+        "line": 24,
+        "offset": 806
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "            function myFunction() { document.getElementById(\"demo\").innerHTML = \"Paragraph changed.\"; }",
+        "message": "Found match",
+        "metadata": {},
+        "metavars": {},
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/extract/js_html_concat.html",
+      "start": {
+        "col": 37,
+        "line": 24,
+        "offset": 775
       }
     },
     {

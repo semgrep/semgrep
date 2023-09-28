@@ -64,6 +64,7 @@ and translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
             `String
               (match analysis with
               | CondEntropy -> "entropy"
+              | CondEntropyV2 -> "entropy_v2"
               | CondReDoS -> "redos") );
         ]
   | CondNestedFormula (mv, lang, f) ->

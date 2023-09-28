@@ -11,7 +11,7 @@ let cli =
   let pp ppf (filename, _) = Fmt.string ppf filename in
   Cmdliner.Arg.conv ~docv:"<JSON file>" (parser, pp)
 
-let default = (Stdcompat.String.empty, `Null)
+let default = (String.empty, `Null)
 
 type elt = K of string | N of int
 type path = elt list

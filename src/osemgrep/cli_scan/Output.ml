@@ -102,8 +102,8 @@ let dispatch_output_format (output_format : Output_format.t)
              } ->
                  let severity = String.lowercase_ascii severity in
                  let severity_and_ruleid =
-                   if check_id = (Constants.rule_id_for_dash_e :> string) then
-                     severity
+                   if check_id = Rule_ID.to_string Constants.rule_id_for_dash_e
+                   then severity
                    else
                      let xs =
                        check_id |> Str.split (Str.regexp_string ".") |> List.rev
@@ -118,7 +118,7 @@ let dispatch_output_format (output_format : Output_format.t)
                     * contains a string, not a string list.
                     *)
                    match
-                     Output_utils.lines_of_file_at_range (start, end_)
+                     Semgrep_output_utils.lines_of_file_at_range (start, end_)
                        (Fpath.v path)
                    with
                    | [] -> ""

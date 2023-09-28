@@ -27,16 +27,21 @@ let string_of_lval { base; rev_offset } =
     "." ^ String.concat "." (List.rev_map string_of_offset rev_offset)
   else ""
 
-let string_of_exp e =
-  match e.e with
+let rec string_of_exp_kind e =
+  match e with
   | Fetch l -> string_of_lval l
   | Literal _ -> "<LIT>"
-  | Operator _ -> "<OP>"
+  | Operator ((op, _), [ Unnamed e1; Unnamed e2 ]) ->
+      Common.spf "(%s `%s` %s)" (string_of_exp e1) (G.show_operator op)
+        (string_of_exp e2)
+  | Operator ((op, _), _) -> Common.spf "<OP %s ...>" (G.show_operator op)
   | FixmeExp _ -> "<FIXME-EXP>"
   | Composite (_, _)
   | Record _
   | Cast (_, _) ->
       "<EXP>"
+
+and string_of_exp e = string_of_exp_kind e.e
 
 let string_of_argument arg =
   match arg with
@@ -52,8 +57,8 @@ let short_string_of_node_kind nkind =
   match nkind with
   | Enter -> "<enter>"
   | Exit -> "<exit>"
-  | TrueNode -> "<TRUE path>"
-  | FalseNode -> "<FALSE path>"
+  | TrueNode e -> Common.spf "<TRUE %s>" (string_of_exp e)
+  | FalseNode e -> Common.spf "<FALSE %s>" (string_of_exp e)
   | Join -> "<join>"
   | NCond _ -> "cond(...)"
   | NGoto (_, l) -> "goto " ^ str_of_label l

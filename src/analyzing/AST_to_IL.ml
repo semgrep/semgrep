@@ -112,6 +112,7 @@ let fixme_stmt kind gany =
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+
 let fresh_var ?(str = "_tmp") _env tok =
   let tok =
     (* We don't want "fake" auxiliary variables to have non-fake tokens, otherwise
@@ -362,6 +363,33 @@ and pattern_assign_statements env ?(eorig = NoOrig) exp pat =
     [ mk_s (Instr (mk_i (Assign (lval, exp)) eorig)) ] @ ss
   with
   | Fixme (kind, any_generic) -> fixme_stmt kind any_generic
+
+(*****************************************************************************)
+(* Exceptions *)
+(*****************************************************************************)
+and try_catch_else_finally env ~try_st ~catches ~opt_else ~opt_finally =
+  let try_stmt = stmt env try_st in
+  let catches_stmt_rev =
+    List.fold_left
+      (fun acc (ctok, exn, catch_st) ->
+        (* TODO: Handle exn properly. *)
+        let name = fresh_var env ctok in
+        let todo_pattern = fixme_stmt ToDo (G.Ce exn) in
+        let catch_stmt = stmt env catch_st in
+        (name, todo_pattern @ catch_stmt) :: acc)
+      [] catches
+  in
+  let else_stmt =
+    match opt_else with
+    | None -> []
+    | Some (_tok, else_st) -> stmt env else_st
+  in
+  let finally_stmt =
+    match opt_finally with
+    | None -> []
+    | Some (_tok, finally_st) -> stmt env finally_st
+  in
+  [ mk_s (Try (try_stmt, List.rev catches_stmt_rev, else_stmt, finally_stmt)) ]
 
 (*****************************************************************************)
 (* Assign *)
@@ -1104,6 +1132,16 @@ and cond_with_pre_stmts env ?void cond =
   with_pre_stmts env (fun env ->
       match cond with
       | G.Cond e -> expr env ?void e
+      | G.OtherCond
+          ( todok,
+            [
+              (Def (ent, VarDef { G.vinit = Some e; vtype = _typTODO }) as def);
+            ] ) ->
+          (* e.g. C/C++: `if (const char *tainted_or_null = source("PATH"))` *)
+          let e' = expr env e in
+          let lv = lval_of_ent env ent in
+          add_instr env (mk_i (Assign (lv, e')) (Related def));
+          mk_e (Fetch lv) (Related (G.TodoK todok))
       | G.OtherCond (categ, xs) ->
           let e = G.OtherExpr (categ, xs) |> G.e in
           log_fixme ToDo (G.E e);
@@ -1195,12 +1233,53 @@ and mk_switch_break_label env tok =
 
 and stmt_aux env st =
   match st.G.s with
-  | G.ExprStmt (eorig, tok) ->
+  | G.ExprStmt (eorig, tok) -> (
       (* optimize? pass context to expr when no need for return value? *)
       let ss, e = expr_with_pre_stmts ~void:true env eorig in
       mk_aux_var env tok e |> ignore;
       let ss' = pop_stmts env in
-      ss @ ss'
+      match ss @ ss' with
+      | [] ->
+          (* This case may happen when we have a function like
+           *
+           *   function some_function(some_var) {
+           *     some_var
+           *   }
+           *
+           * the `some_var` will not show up in the CFG. Neither expr_with_pre_stmts
+           * nor mk_aux_var will cause nodes to be created.
+           *
+           * This is typically OK, because it doesn't make sense to write
+           * `some_var` for side-effects.
+           *
+           * The issue is that for some languages
+           * when `some_var` is the last evaluated expression in the function,
+           * `some_var` is also implictly returned from the function. In this case
+           * `some_var` actually means `return some_var`, so there should be a return
+           * node in the CFG.
+           *
+           * TODO: Update the comments below when the updated implicit return support
+           * is implemented.
+           *
+           * Right now, this missing node is not an issue because we already
+           * have a hack for implicit return statements. However, it only works for
+           * simple cases. We plan to make it more general by building the CFG, mark
+           * "returning" nodes, then build an updated CFG that converts the marked
+           * nodes as Return nodes.
+           *
+           * Here, create a fake "no-op" assignment
+           *   tmp = some_var
+           * that will later on be converted to
+           *   return some_var
+           * if some_var is actually a returning expression.
+           * If some_var isn't a returning expression, we have created an unneeded node
+           * but it doesn't affect correctness.
+           *)
+          let var = fresh_var env tok in
+          let lval = lval_of_base (Var var) in
+          let fake_i = mk_i (Assign (lval, e)) NoOrig in
+          [ mk_s (Instr fake_i) ]
+      | ss'' -> ss'')
   | G.DefStmt
       ( { name = EN obj; _ },
         G.VarDef
@@ -1243,6 +1322,13 @@ and stmt_aux env st =
       let ss, e' = expr_with_pre_stmts env e in
       let lv = lval_of_ent env ent in
       ss @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.S st)))) ]
+  | G.DefStmt
+      ( ent,
+        G.VarDef
+          {
+            G.vinit = None;
+            vtype = Some { t = G.TyArray ((_, Some e, _), _); _ };
+          } ) ->
       (* Expressions inside types still need to be dflow'd!
        *   ex: In C we need to be able to const prop:
        *       int e = 3;
@@ -1251,13 +1337,6 @@ and stmt_aux env st =
        *     _tmp = e
        *     DECL arr
        *)
-  | G.DefStmt
-      ( ent,
-        G.VarDef
-          {
-            G.vinit = None;
-            vtype = Some { t = G.TyArray ((_, Some e, _), _); _ };
-          } ) ->
       let ss, e' = expr_with_pre_stmts env e in
       let lv = lval_of_ent env ent in
       let inst = mk_i (Assign (lv, e')) (SameAs e) in
@@ -1339,6 +1418,19 @@ and stmt_aux env st =
       @ [ mk_s (Loop (tok, cond, st @ cont_label_s @ next @ ss2)) ]
       @ break_label_s
   | G.For (_, G.ForEllipsis _, _) -> sgrep_construct (G.S st)
+  | G.For
+      ( tok,
+        G.ForIn
+          ( [
+              G.ForInitVar
+                ({ name = G.EN (G.Id (id, ii)); _ }, { vinit = None; _ });
+            ],
+            [ e ] ),
+        stmts ) ->
+      (* e.g. C++: for (int *p : set)
+       * TODO: Should this be encoded as a ForEach already in Parse_cpp_tree_sitter ? *)
+      let pat = G.PatId (id, ii) in
+      for_each env tok (pat, snd id, e) stmts
   | G.For (tok, G.ForIn (xs, e), stmts) ->
       let orig_stmt = st in
       let cont_label_s, break_label_s, st_env =
@@ -1417,24 +1509,8 @@ and stmt_aux env st =
       (* Python's `raise E1 from E2` *)
       let todo_stmt = fixme_stmt ToDo (G.E from) in
       todo_stmt @ stmt_aux env throw_stmt
-  | G.Try (_tok, try_st, catches, opt_finally) ->
-      let try_stmt = stmt env try_st in
-      let catches_stmt_rev =
-        List.fold_left
-          (fun acc (ctok, exn, catch_st) ->
-            (* TODO: Handle exn properly. *)
-            let name = fresh_var env ctok in
-            let todo_pattern = fixme_stmt ToDo (G.Ce exn) in
-            let catch_stmt = stmt env catch_st in
-            (name, todo_pattern @ catch_stmt) :: acc)
-          [] catches
-      in
-      let finally_stmt =
-        match opt_finally with
-        | None -> []
-        | Some (_tok, finally_st) -> stmt env finally_st
-      in
-      [ mk_s (Try (try_stmt, List.rev catches_stmt_rev, finally_stmt)) ]
+  | G.Try (_tok, try_st, catches, opt_else, opt_finally) ->
+      try_catch_else_finally env ~try_st ~catches ~opt_else ~opt_finally
   | G.WithUsingResource (_, stmt1, stmt2) ->
       let stmt1 = List.concat_map (stmt env) stmt1 in
       let stmt2 = stmt env stmt2 in
@@ -1701,11 +1777,12 @@ and python_with_stmt env manager opt_pat body =
     ss_def_pat @ stmt env body
   in
   let try_catches = [] in
+  let try_else = [] in
   let try_finally =
     let ss_exit, _ = call_mgr_method "__exit___" in
     ss_exit
   in
-  pre_try_stmts @ [ mk_s (Try (try_body, try_catches, try_finally)) ]
+  pre_try_stmts @ [ mk_s (Try (try_body, try_catches, try_else, try_finally)) ]
 
 (*****************************************************************************)
 (* Defs *)

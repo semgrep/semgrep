@@ -6,7 +6,7 @@
 # of the 'semgrep-python' wrapping.
 #
 
-# The docker base image below in the FROM currently uses OCaml 4.12.0
+# The docker base image below in the FROM currently uses OCaml 4.14.0
 # See https://github.com/returntocorp/ocaml-layer/blob/master/configs/alpine.sh
 #
 # coupling: if you modify the OCaml version there, you probably also need

@@ -1,7 +1,6 @@
 {
   "errors": [],
   "paths": {
-    "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": [
       "targets/metavariable_propagation/metavariable-regex-const-prop.dockerfile"
     ]
@@ -32,6 +31,32 @@
           ]
         },
         "metavars": {
+          "$1": {
+            "abstract_content": "usr/src/app",
+            "end": {
+              "col": 12,
+              "line": 1,
+              "offset": 11
+            },
+            "start": {
+              "col": 1,
+              "line": 1,
+              "offset": 0
+            }
+          },
+          "$2": {
+            "abstract_content": "/app",
+            "end": {
+              "col": 12,
+              "line": 1,
+              "offset": 11
+            },
+            "start": {
+              "col": 8,
+              "line": 1,
+              "offset": 7
+            }
+          },
           "$DIR": {
             "abstract_content": "usr/src/app",
             "end": {
@@ -81,6 +106,19 @@
           ]
         },
         "metavars": {
+          "$1": {
+            "abstract_content": "bar",
+            "end": {
+              "col": 4,
+              "line": 1,
+              "offset": 3
+            },
+            "start": {
+              "col": 1,
+              "line": 1,
+              "offset": 0
+            }
+          },
           "$DIR": {
             "abstract_content": "$$dirpath}",
             "end": {
