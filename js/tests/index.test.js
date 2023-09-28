@@ -4,6 +4,7 @@ const languages = [
   "bash",
   "c",
   "cairo",
+  "cpp",
   "csharp",
   "dart",
   "dockerfile",
@@ -85,7 +86,7 @@ const run = async () => {
     setJustParseWithLang(parseLang);
     setParsePattern(parsePattern);
 
-    const testErrors = run("Dart");
+    const testErrors = run("");
     for (const e of testErrors) {
       console.log(e);
     }

@@ -8,6 +8,7 @@ default: build
 build: $(SUPPORTED_LANGS:%=build-%)
 
 .PHONY: test
+test: SEMGREP_JS_TEST_BUILD=1
 test: $(SUPPORTED_LANGS:%=test-%)
 
 .PHONY: package
@@ -15,6 +16,7 @@ package: $(SUPPORTED_LANGS:%=package-%)
 
 .PHONY: build-%
 build-%:
+	. ../../libs/ocaml-tree-sitter-core/tree-sitter-config.sh
 	cd $*; $(MAKE) build
 
 .PHONY: test-%

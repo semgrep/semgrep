@@ -17,10 +17,21 @@ ESBUILD_DEFAULTS = \
 
 COMMON_TS_EXPORTED_FUNCTIONS = _malloc,_free,_ts_parser_new,_ts_parser_set_language,_ts_parser_parse_string,_ts_tree_root_node,_ts_node_type,_ts_node_start_point,_ts_node_end_point,_ts_node_is_missing,_ts_node_is_named,_ts_node_child_count,_ts_node_child,_ts_tree_delete
 
+
 EMCC_DEFAULTS = \
    -sALLOW_MEMORY_GROWTH=1 \
    -sEXPORTED_RUNTIME_METHODS=UTF8ToString,lengthBytesUTF8,AsciiToString,stringToAscii,stringToUTF8,getValue,setValue \
    -sMODULARIZE
+
+
+ifdef SEMGREP_JS_TEST_BUILD
+ifdef EMCC_TEST_OPTIMIZATION
+EMCC_OPTIMIZATION = \
+    $(EMCC_TEST_OPTIMIZATION) \
+    -mllvm -wasm-disable-fix-irreducible-control-flow-pass
+endif
+endif
+EMCC_OPTIMIZATION ?= -O3
 
 SEMGREP_TS_LANG ?= $(SEMGREP_LANG)
 TS_EXPORTED_FUNCTIONS ?= _tree_sitter_$(SEMGREP_TS_LANG)
@@ -52,7 +63,7 @@ ifndef NO_WASM
 dist/semgrep-parser.js dist/semgrep-parser.wasm: $(TREESITTER_SRCDIR)/lib.c $(TREE_SITTER_SOURCES) $(EXTRA_TREE_SITTER_SOURCES)
 	mkdir -p dist
 	emcc \
-		-O3 \
+        $(EMCC_OPTIMIZATION) \
 		-I$(TREESITTER_SRCDIR) \
 		-I${TREESITTER_INCDIR} \
 		$^ \

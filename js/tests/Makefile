@@ -15,6 +15,7 @@ test: dist/test.js dist/test.wasm
 	node index.test.js
 
 dist/test.js dist/test.wasm: ../libyaml/dist/libyaml.o ../libpcre/dist/libpcre.a
+	SEMGREP_JS_TEST_BUILD=1 make -C .. languages
 	mkdir -p dist
 	emcc \
 		-O3 \

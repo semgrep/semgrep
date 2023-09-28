@@ -93,7 +93,7 @@ jobs:
         working-directory: cli
         run: |
           make osempass
-  #TODO: merge with the previous job (which should be merged in build-test-core-x86.yaml)
+
   test-semgrep-js:
     name: test semgrep js
     runs-on: ubuntu-22.04
@@ -112,7 +112,7 @@ jobs:
           make install-deps-for-semgrep-core
       - name: Run semgrep js e2e tests
         run: |
-          make test-jsoo-e2e
+          make -j 5 test-jsoo-e2e
 
   test-cli:
     name: test semgrep-cli
