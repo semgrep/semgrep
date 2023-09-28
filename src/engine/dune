@@ -24,6 +24,7 @@
    semgrep_parsing
    ; TODO: we should get rid of this dependency
    semgrep_targeting ; for Input_to_core.atd
+   semgrep_reporting; for Test_engine.ml, we should split in tests/ separate dir
  )
  (preprocess (pps ppx_deriving.show ppx_profiling))
 )

@@ -70,8 +70,12 @@ let tests () =
       Unit_engine.tests ();
       Unit_jsonnet_subst.tests ();
       Unit_metachecking.tests ();
+      (* OSemgrep tests *)
       Unit_LS.tests;
       Unit_Login.tests;
+      Unit_Fetching.tests;
+      Unit_Networking.tests;
+      (* End OSemgrep tests *)
       Aliengrep.Unit_tests.tests;
       (* Inline tests *)
       Testutil.get_registered_tests ();

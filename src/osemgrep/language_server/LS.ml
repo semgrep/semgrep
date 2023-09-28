@@ -12,13 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
-(* Commentary *)
-(* This contains all networking/rpc related functionality of the language server *)
-
-(*****************************************************************************)
-(* Prelude *)
-(*****************************************************************************)
 open Jsonrpc
 open Lsp
 open Types
@@ -28,6 +21,13 @@ module CN = Client_notification
 module CR = Client_request
 module Conv = Convert_utils
 module Out = Semgrep_output_v1_t
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* This module contains all networking/rpc related functionality of the
+ * language server.
+ *)
 
 module MessageHandler = struct
   (* Relevant here means any matches we actually care about showing the user.
@@ -42,9 +42,12 @@ module MessageHandler = struct
     let targets = Option.value ~default:(Session.targets session) targets in
     Logs.app (fun m -> m "Running Semgrep with %d rules" (List.length rules));
     let runner_conf = Session.runner_conf session in
+    let scan_func =
+      Core_runner.mk_scan_func_for_osemgrep Core_scan.scan_with_exn_handler
+    in
     let run =
-      Core_runner.invoke_semgrep_core ~respect_git_ignore:true
-        ~file_match_results_hook:None runner_conf rules [] targets
+      scan_func ~respect_git_ignore:true ~file_match_results_hook:None
+        runner_conf rules [] targets
     in
     let res = Core_runner.create_core_result rules run in
     let scanned = res.scanned |> Set_.elements in
@@ -63,7 +66,10 @@ module MessageHandler = struct
     Session.record_results server.session results files;
     (* LSP expects empty diagnostics to clear problems *)
     let files = Session.scanned_files server.session in
-    let diagnostics = Diagnostics.diagnostics_of_results results files in
+    let diagnostics =
+      Diagnostics.diagnostics_of_results ~is_intellij:server.session.is_intellij
+        results files
+    in
     end_progress server token;
     batch_notify server diagnostics
 
@@ -93,7 +99,10 @@ module MessageHandler = struct
     in
     let files = [ file ] in
     Session.record_results server.session results files;
-    let diagnostics = Diagnostics.diagnostics_of_results results files in
+    let diagnostics =
+      Diagnostics.diagnostics_of_results ~is_intellij:server.session.is_intellij
+        results files
+    in
     batch_notify server diagnostics
 
   let refresh_rules server =
@@ -152,7 +161,10 @@ module MessageHandler = struct
                 Str.string_after uri (String.length "file://") |> Fpath.v)
               files
           in
-          let diagnostics = Diagnostics.diagnostics_of_results [] files in
+          let diagnostics =
+            Diagnostics.diagnostics_of_results
+              ~is_intellij:server.session.is_intellij [] files
+          in
           batch_notify server diagnostics;
           server
       | CN.Exit ->
@@ -239,6 +251,15 @@ module MessageHandler = struct
             in
             { res with do_hover }
           in
+          let is_intellij =
+            match initializationOptions |> member "metrics" with
+            | `Assoc l when Option.is_some (List.assoc_opt "extensionType" l) ->
+                String.equal
+                  (Option.value ~default:""
+                     (to_string_option (List.assoc "extensionType" l)))
+                  "intellij"
+            | _ -> false
+          in
           let workspace_folders =
             match (workspaceFolders, rootUri) with
             | Some (Some folders), _ -> Conv.workspace_folders_to_paths folders
@@ -259,7 +280,13 @@ module MessageHandler = struct
           in
           let server =
             {
-              session = { server.session with workspace_folders; user_settings };
+              session =
+                {
+                  server.session with
+                  workspace_folders;
+                  user_settings;
+                  is_intellij;
+                };
               state = State.Running;
             }
           in

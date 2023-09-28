@@ -1,1 +1,0 @@
-Rule validation no longer fails if a rule contains additional unknown fields. This makes it so older versions of semgrep do not fail rules that contain extra functionality. min-version field should be used to identify rules that should not be run (i.e. the additional functionality is necessary in running the rule)

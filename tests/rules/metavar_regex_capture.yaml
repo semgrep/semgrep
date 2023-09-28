@@ -1,0 +1,28 @@
+rules:
+- id: metavar-regex-capture
+  pattern-either:
+      - patterns:
+          - patterns:
+              - pattern: |
+                  foo($BAR)
+              - metavariable-regex:
+                  metavariable: $BAR
+                  regex: "(?<X>.*)a(?<Y>.*)"
+              - focus-metavariable: $X
+          - metavariable-regex:
+              metavariable: $X
+              regex: "b"
+      - patterns:
+          - patterns:
+              - pattern: |
+                  baz($BAR)
+              - metavariable-regex:
+                  metavariable: $BAR
+                  regex: "(?<X>.*)a(?<Y>.*)"
+              - focus-metavariable: $Y
+          - metavariable-regex:
+              metavariable: $Y
+              regex: "r"
+  message: xxx
+  severity: WARNING
+  languages: [python]

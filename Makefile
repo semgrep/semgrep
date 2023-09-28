@@ -68,8 +68,11 @@
 # It should be fast since it's called often during development.
 .PHONY: build
 build:
+	# OCaml compilation
 	$(MAKE) core
 	$(MAKE) copy-core-for-cli
+	$(MAKE) build-semgrep-jsoo
+	# Python setup
 	cd cli && pipenv install --dev
 	$(MAKE) -C cli build
 
@@ -393,6 +396,13 @@ update_semgrep_rules:
 .PHONY: utop
 utop:
 	dune utop
+
+# This is for tools/hello_script.ml so it can leverage the semgrep libs
+# (e.g., commons) by installing them in ~/.opam/.../
+.PHONY: install-semgrep-libs
+install-semgrep-libs: semgrep.opam
+	dune build
+	dune install
 
 .PHONY: dump
 dump:

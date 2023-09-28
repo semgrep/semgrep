@@ -39,7 +39,7 @@ rules:
         - Matching_explanation.ml
         - Unit_*.ml
         - Test_*.ml
-        - runner/*.ml
+        - core_scan/*.ml
         - experiments/*
         - Check_*.ml
         - libs/*

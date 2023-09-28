@@ -259,8 +259,8 @@ and expr e =
       let v1 = bracket expr v1 in
       G.DeepEllipsis v1
   | NameId v1 -> G.N (name v1)
-  | NameOrClassType _v1 ->
-      let ii = Lib_parsing_java.info_of_any (AExpr e) in
+  | NameOrClassType v1 ->
+      let ii = Ast_java.tok_of_name_or_class_type v1 in
       error ii "NameOrClassType should only appear in (ignored) annotations"
   | Literal v1 ->
       let v1 = literal v1 in
@@ -488,7 +488,7 @@ and stmt_aux st =
       [ G.OtherStmtWithStmt (G.OSWS_Block ("Sync", v0), [ G.E v1 ], v2) |> G.s ]
   | Try (t, v0, v1, v2, v3) -> (
       let v1 = stmt v1 and v2 = catches v2 and v3 = option tok_and_stmt v3 in
-      let try_stmt = G.Try (t, v1, v2, v3) |> G.s in
+      let try_stmt = G.Try (t, v1, v2, None, v3) |> G.s in
       match v0 with
       | None -> [ try_stmt ]
       | Some r -> [ G.WithUsingResource (t, resources r, try_stmt) |> G.s ])

@@ -12,12 +12,12 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: docker/setup-qemu-action@v2
+      - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v2
       - uses: depot/setup-action@v1
       - name: Build and test python wheel
         id: build-semgrep-wheel
-        uses: depot/build-push-action@v1.8.0
+        uses: depot/build-push-action@v1.9.0
         with:
           project: fhmxj6w9z8
           platforms: linux/arm64

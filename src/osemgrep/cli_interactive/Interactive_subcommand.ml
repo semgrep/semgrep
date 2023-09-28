@@ -541,11 +541,12 @@ let buffer_matches_of_xtarget state (fake_rule : Rule.search_rule) xconf xtarget
     =
   let hook _s (_m : Pattern_match.t) = () in
   if
-    Match_rules.is_relevant_rule_for_xtarget
+    (* Since it's just a single rule, we don't need to cache it *)
+    Match_rules.is_relevant_rule_for_xtarget ~cache:None
       (fake_rule :> Rule.rule)
       xconf xtarget
   then
-    let ({ Report.matches; _ } : _ Report.match_result) =
+    let ({ Core_result.matches; _ } : _ Core_result.match_result) =
       (* Calling the engine! *)
       Match_search_mode.check_rule fake_rule hook xconf xtarget
     in
@@ -661,7 +662,7 @@ let split_line (t1 : Tok.location) (t2 : Tok.location) (row, line) =
     let lb = if row = t1.pos.line then Some t1.pos.column else None in
     let rb = if row = end_line then Some end_col else None in
     let l_rev, m_rev, r_rev, _ =
-      Stdcompat.String.fold_left
+      String.fold_left
         (fun (l, m, r, i) c ->
           match placement_wrt_bound (lb, rb) i with
           | Common.Left3 _ -> (c :: l, m, r, i + 1)
@@ -973,7 +974,7 @@ let parse_command ({ xlang; _ } as state : state) =
   | "exit" -> Exit
   | "any" -> Any
   | "all" -> All
-  | _ when Stdcompat.String.starts_with ~prefix:"not " s ->
+  | _ when String.starts_with ~prefix:"not " s ->
       let s = Str.string_after s 4 in
       (* TODO: error handle *)
       let lang = Xlang.to_lang_exn xlang in
@@ -1242,12 +1243,12 @@ let run (conf : Interactive_CLI.conf) : Exit_code.t =
   let targets =
     targets |> List.filter (Filter_target.filter_target_for_xlang xlang)
   in
-  let config = Core_runner.runner_config_of_conf conf.core_runner_conf in
+  let config = Core_runner.core_scan_config_of_conf conf.core_runner_conf in
   let config = { config with roots = conf.target_roots; lang = Some xlang } in
   let xtargets =
     targets
     |> Common.map (fun file ->
-           let xtarget = Run_semgrep.xtarget_of_file config xlang file in
+           let xtarget = Core_scan.xtarget_of_file config xlang file in
            Lock_protected.protect xtarget)
   in
   interactive_loop ~turbo:conf.turbo xlang xtargets;

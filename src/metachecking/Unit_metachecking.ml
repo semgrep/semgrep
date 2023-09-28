@@ -1,7 +1,7 @@
 open Common
 open File.Operators
 open Testutil
-module E = Semgrep_error_code
+module E = Core_error
 
 (*****************************************************************************)
 (* Purpose *)

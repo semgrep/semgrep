@@ -114,7 +114,7 @@ and metavar_cond =
   | CondAnalysis of MV.mvar * metavar_analysis_kind
   | CondNestedFormula of MV.mvar * Xlang.t option * formula
 
-and metavar_analysis_kind = CondEntropy | CondReDoS
+and metavar_analysis_kind = CondEntropy | CondEntropyV2 | CondReDoS
 
 (* Represents all of the metavariables that are being focused by a single
    `focus-metavariable`. *)
@@ -371,23 +371,15 @@ type secrets = {
 (* Languages definition *)
 (*****************************************************************************)
 
-(*
-   For historical reasons, the 'languages' field in the Semgrep rule
-   (YAML file) is a list of strings. There was no distinction between
-   target selection and target analysis. This led to oddities for
-   analyzers that aren't specific to a programming language.
-
-   We can now start to decouple file filtering from their analysis.
-   For example, we can select Bash files using the predefined
-   rules that inspect the file extension or the shebang line
-   but analyze them using a regexp instead of a regular Semgrep pattern.
-
-   This is the beginning of fixing this giant mess.
-
-   to be continued...
-*)
+(* See the toplevel comment in Target_selector.ml for more information
+ * on the selector vs analyzer terminology used below.
+ *
+ * TODO: instead of always deriving those fields automatically from
+ * the 'languages:' field of the rule in Parse_rule.ml, we should add
+ * support for an optional new 'target-selectors:' field in the rule syntax.
+ *)
 type languages = {
-  (* How to select target files e.g. "files that look like C files".
+  (* How to *select* target files e.g. "files that look like C files".
      If unspecified, the selector selects all the files that are not
      ignored by generic mechanisms such as semgrepignore.
      In a Semgrep rule where a string is expected, the standard way
@@ -401,18 +393,9 @@ type languages = {
      ... selects all the files that can be parsed and analyzed
      as TypeScript ( *.js, *.ts, *.tsx) since TypeScript is an extension of
      JavaScript.
-
-     TODO: instead of always deriving this field automatically from
-     the 'languages' field of the rule, add support for an optional
-     'target-selectors' field that supports a variety of predefined
-     target selectors (e.g. "minified-javascript-files",
-     "javascript-executable-scripts", "makefile", ...). This would reduce
-     the maintenance burden for custom target selectors and allow mixing
-     them other target analyzers. For example, we could select all the
-     Bash scripts but analyze them with spacegrep.
   *)
-  target_selector : Lang.t list option;
-  (* How to analyze target files. The accompanying patterns are specified
+  target_selector : Target_selector.t option;
+  (* How to *analyze* target files. The accompanying patterns are specified
      elsewhere in the rule.
      Examples:
      - "pattern for the C parser using the generic AST" (regular programming
@@ -443,8 +426,10 @@ type languages = {
 type glob = string (* original string *) * Glob.Pattern.t (* parsed glob *)
 [@@deriving show]
 
-(* TODO? should we provide a pattern-path: Xpattern to combine
+(* TODO? should we provide a pattern-filename: Xpattern to combine
  * with other Xpattern instead of adhoc paths: extra field in the rule?
+ * TODO? should we remove this field and opt for a more powerful and general
+ * Target_selector.t type?
  *)
 type paths = {
   (* If not empty, list of file path patterns (globs) that
@@ -502,16 +487,40 @@ type 'mode rule_info = {
   message : string;
   (* Currently a dummy value for extract mode rules *)
   severity : severity;
-  (* This is the list of languages in which the root pattern makes sense. *)
+  (* This is the list of languages in which the root pattern makes sense.
+   *
+   * The two fields in the 'languages' type above used to be a single
+   * 'languages: Xlang.t' field.
+   * Indeed, for historical reasons, the 'languages:' field in the
+   * YAML file is a list of strings. There is no distinction between
+   * target *selection* and target *analysis*. This led to oddities for
+   * analyzers that aren't specific to a programming language
+   * (e.g., "spacegrep", "regexp").
+   *
+   * We can now start to decouple file selection from their analysis.
+   * For example, we can select Bash files using the predefined
+   * rules that inspect the file extension (.sh) or the shebang line (#!)
+   * but analyze them using a regexp instead of a regular Semgrep pattern.
+   *
+   * see also https://www.notion.so/semgrep/What-s-a-language-3f4e75546edd4a0389fa29a24eedb6c0
+   *)
   languages : languages;
   (* OPTIONAL fields *)
   options : Rule_options.t option;
-  (* deprecated? todo: parse them *)
+  (* deprecated? or should we resurrect the feature?
+   * TODO: if we resurrect the feature, we should parse the string
+   *)
   equivalences : string list option;
   fix : string option;
   fix_regexp : (Xpattern.regexp_string * int option * string) option;
+  (* TODO: we should get rid of this and instead provide a more general
+   * Xpattern.Filename feature that integrates well with the xpatterns.
+   *)
   paths : paths option;
-  (* ex: [("owasp", "A1: Injection")] but can be anything *)
+  (* ex: [("owasp", "A1: Injection")] but can be anything.
+   * Metadata was (ab)used for the ("interfile", "true") setting, but this
+   * is now done via Rule_options instead.
+   *)
   metadata : JSON.t option;
 }
 
@@ -691,7 +700,7 @@ let string_of_invalid_rule_error_kind = function
 
 let string_of_invalid_rule_error ((kind, rule_id, pos) : invalid_rule_error) =
   spf "invalid rule %s, %s: %s"
-    (rule_id :> string)
+    (Rule_ID.to_string rule_id)
     (Tok.stringpos_of_tok pos)
     (string_of_invalid_rule_error_kind kind)
 

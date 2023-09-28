@@ -1395,6 +1395,12 @@ and map_field_expression (env : env) ((v1, v2, v3) : CST.field_expression) =
   in
   DotAccess (v1, v2, field) |> G.e
 
+and map_try_else_clause (env : env) ((v1, v2, v3) : CST.else_clause) =
+  let v1 = (* "else" *) token env v1 in
+  let _v2 = map_terminator_opt env v2 in
+  let v3 = map_source_file env v3 in
+  (v1, Block (fb v3) |> G.s)
+
 and map_finally_clause (env : env) ((v1, v2, v3) : CST.finally_clause) =
   let v1 = (* "finally" *) token env v1 in
   let _v2 = map_terminator_opt env v2 in
@@ -2071,33 +2077,17 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
           | `Catch_clause_opt_else_clause_opt_fina_clause
               (clause, elsee, finally) ->
               let v4 = [ map_catch_clause env clause ] in
-              let _v2 =
-                match elsee with
-                | Some _x ->
-                    (* map_else_clause env x *)
-                    (* TODO: We can't actually accommodate this within the Generic AST.
-                       "else" is something kind of weird where it's something you enter
-                       if you do not enter the "catch", but it's not the same as a
-                        "finally", which always runs in either case.
-                       https://docs.julialang.org/en/v1/manual/control-flow/#else-Clauses
-                    *)
-                    None
-                | None -> None
-              in
-              let v5 =
-                match finally with
-                | Some x -> Some (map_finally_clause env x)
-                | None -> None
-              in
-              [ Try (v1, v3, v4, v5) |> G.s ]
+              let v5 = Option.map (map_try_else_clause env) elsee in
+              let v6 = Option.map (map_finally_clause env) finally in
+              [ Try (v1, v3, v4, v5, v6) |> G.s ]
           | `Fina_clause_opt_catch_clause (finally, catch) ->
               let v4 =
                 match catch with
                 | Some x -> [ map_catch_clause env x ]
                 | None -> []
               in
-              let v5 = map_finally_clause env finally in
-              [ Try (v1, v3, v4, Some v5) |> G.s ])
+              let v5 = Some (map_finally_clause env finally) in
+              [ Try (v1, v3, v4, None, v5) |> G.s ])
       | `For_stmt (v1, v2, v3, v4, v5, v6) ->
           let v1 = (* "for" *) token env v1 in
           let header =

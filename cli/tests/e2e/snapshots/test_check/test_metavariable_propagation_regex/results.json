@@ -1,7 +1,6 @@
 {
   "errors": [],
   "paths": {
-    "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": [
       "targets/metavariable_propagation/metavariable-regex-propagation.py"
     ]
@@ -22,6 +21,19 @@
         "message": "Semgrep found a match foo\n",
         "metadata": {},
         "metavars": {
+          "$1": {
+            "abstract_content": "foo",
+            "end": {
+              "col": 4,
+              "line": 1,
+              "offset": 3
+            },
+            "start": {
+              "col": 1,
+              "line": 1,
+              "offset": 0
+            }
+          },
           "$FUNC": {
             "abstract_content": "foo",
             "end": {
@@ -61,6 +73,19 @@
         "message": "Semgrep found a match bar\n",
         "metadata": {},
         "metavars": {
+          "$1": {
+            "abstract_content": "bar",
+            "end": {
+              "col": 4,
+              "line": 1,
+              "offset": 3
+            },
+            "start": {
+              "col": 1,
+              "line": 1,
+              "offset": 0
+            }
+          },
           "$FUNC": {
             "abstract_content": "bar",
             "end": {

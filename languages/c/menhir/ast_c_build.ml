@@ -176,7 +176,9 @@ and declaration env x =
   | ExternList (_, _, _)
   | ExternDecl (_, _, _)
   | TemplateDecl _
-  | TemplateInstanciation _ ->
+  | TemplateInstanciation _
+  | Concept _
+  | Friend _ ->
       debug (Toplevel (X (D x)));
       raise CplusplusConstruct
   | DeclTodo _ ->
@@ -203,12 +205,18 @@ and func_def env ({ name = f_name; specs = _specsTODO }, def) =
 
 and function_body env x =
   match x with
-  | FBDef x -> compound env x
+  | FBDef x -> function_body_definition env x
   | FBDecl sc -> (sc, [], sc)
   | FBDelete _
   | FBDefault _
-  | FBZero _ ->
+  | FBZero _
+  | FBTry _ ->
       raise CplusplusConstruct
+
+and function_body_definition env x =
+  match x with
+  | Normal x -> compound env x
+  | Constr _ -> raise CplusplusConstruct
 
 and function_type env x =
   match x with
@@ -218,9 +226,10 @@ and function_type env x =
    ft_specs = _TODO;
    ft_const = const;
    ft_throw = throw;
+   ft_requires = requires;
   } ->
-      (match (const, throw) with
-      | None, [] -> ()
+      (match (const, throw, requires) with
+      | None, [], None -> ()
       | _ -> raise CplusplusConstruct);
 
       (full_type env ret, List.map (parameter env) (params |> unparen))
@@ -346,7 +355,9 @@ and storage_in_specs _env xs =
       | Auto
       | Register ->
           A.DefaultStorage
-      | StoInline -> raise CplusplusConstruct)
+      | StoInline
+      | ThreadLocal ->
+          raise CplusplusConstruct)
   | []
   | _ ->
       A.DefaultStorage
@@ -377,7 +388,7 @@ and cpp_directive env x =
             debug (Cpp x);
             raise Todo
       in
-      A.Include (tok, (s, tok))
+      A.Include (tok, IncludePath (s, tok))
   | Undef _ ->
       debug (Cpp x);
       raise Todo
@@ -391,7 +402,8 @@ and cpp_def_val for_debug env x =
   | DefinePrintWrapper (_, (_, e, _), id) ->
       Some
         (A.CppExpr
-           (A.CondExpr (expr env e, A.Id (name env id), A.Id (name env id))))
+           (A.CondExpr
+              (expr env e, Some (A.Id (name env id)), A.Id (name env id))))
   | DefineInit init -> Some (A.CppExpr (initialiser env init))
   | DefineEmpty -> None
   | DefineFunction _
@@ -414,13 +426,14 @@ and expr_or_vars env x =
 and stmt env st =
   match st with
   | Compound x -> A.Block (compound env x)
-  | If (t, _, (_, CondClassic e, _), st1, Some (_, st2)) ->
+  | If (t, _, (_, (_, CondClassic e), _), st1, Some (_, st2)) ->
       A.If (t, expr env e, stmt env st1, Some (stmt env st2))
-  | If (t, _, (_, CondClassic e, _), st1, None) ->
+  | If (t, _, (_, (_, CondClassic e), _), st1, None) ->
       A.If (t, expr env e, stmt env st1, None)
-  | Switch (tok, (_, CondClassic e, _), st) ->
+  | Switch (tok, (_, (_, CondClassic e), _), st) ->
       A.Switch (tok, expr env e, cases env st)
-  | While (t, (_, CondClassic e, _), st) -> A.While (t, expr env e, stmt env st)
+  | While (t, (_, (_, CondClassic e), _), st) ->
+      A.While (t, expr env e, stmt env st)
   | DoWhile (t, st, _, (_, e, _), _) -> A.DoWhile (t, stmt env st, expr env e)
   | For (t, (_, ForClassic (est1, est2, est3), _), st) ->
       A.For
@@ -430,6 +443,17 @@ and stmt env st =
               Common2.fmap (expr env) est2,
               Common2.fmap (expr env) est3 ),
           stmt env st )
+  | AsmStmt
+      ( asm_tk,
+        (l, { a_template; a_outputs; a_inputs; a_clobbers; a_gotos }, r),
+        sc ) ->
+      let a_template = expr env a_template in
+      let a_outputs = Common.map (ident_asm_operand env) a_outputs in
+      let a_inputs = Common.map (expr_asm_operand env) a_inputs in
+      A.AsmStmt
+        ( asm_tk,
+          (l, A.{ a_template; a_outputs; a_inputs; a_clobbers; a_gotos }, r),
+          sc )
   | For (_, (_, ForRange _, _), _) -> raise CplusplusConstruct
   | For (_, (_, ForEllipsis _, _), _) ->
       debug (Stmt st);
@@ -461,13 +485,17 @@ and stmt env st =
   | Try (_, _, _)
   | If (_, _, (_, _, _), _, _)
   | While (_, (_, _, _), _)
-  | Switch (_, (_, _, _), _) ->
+  | Switch (_, (_, _, _), _)
+  | CoStmt _ ->
       debug (Stmt st);
       raise CplusplusConstruct
   | StmtTodo _
   | MacroStmt _ ->
       debug (Stmt st);
       raise Todo
+
+and ident_asm_operand _env (v1, v2, v3) = (v1, v2, v3)
+and expr_asm_operand env (v1, v2, v3) = (v1, v2, bracket_keep (expr env) v3)
 
 and compound env (t1, xs, t2) =
   (t1, statements_sequencable env xs |> List.flatten, t2)
@@ -563,29 +591,42 @@ and expr env e =
       A.RecordPtAccess (A.Unary (expr env e, (GetRef, t)), t, name env n)
   | DotAccess (e, (Arrow, t), n) -> A.RecordPtAccess (expr env e, t, name env n)
   | Cast ((_, ft, _), e) -> A.Cast (full_type env ft, expr env e)
-  | ArrayAccess (e1, e2) ->
-      A.ArrayAccess (expr env e1, bracket_keep (expr env) e2)
+  | ArrayAccess (e1, (l, e2, r)) -> (
+      match e2 with
+      | [] -> failwith "impossible: empty array access"
+      | [ x ] -> A.ArrayAccess (expr env e1, (l, initialiser env x, r))
+      | _xs -> raise CplusplusConstruct)
   | Binary (e1, op, e2) -> A.Binary (expr env e1, op, expr env e2)
   | Unary (op, e) -> A.Unary (expr env e, op)
   | Prefix (op, e) -> A.Infix (expr env e, op)
   | Postfix (e, op) -> A.Postfix (expr env e, op)
-  | Assign (e1, op, e2) -> A.Assign (op, expr env e1, expr env e2)
+  | Assign (e1, op, e2) ->
+      let x =
+        match e2 with
+        | Left x -> expr env x
+        | Right x -> initialiser env x
+      in
+      A.Assign (op, expr env e1, x)
   | Sequence (e1, _, e2) -> A.Sequence (expr env e1, expr env e2)
   | CondExpr (e1, _, e2opt, _, e3) ->
       A.CondExpr
         ( expr env e1,
           (match e2opt with
-          | Some e2 -> expr env e2
+          | Some e2 -> Some (expr env e2)
           | None ->
               debug (Expr e);
               raise Todo),
           expr env e3 )
   | Call (e, (t1, args, t2)) ->
       A.Call (expr env e, (t1, Common.map_filter (argument env) args, t2))
-  | SizeOf (tok, Left e) -> A.SizeOf (tok, Left (expr env e))
-  | SizeOf (tok, Right (_, ft, _)) -> A.SizeOf (tok, Right (full_type env ft))
   | GccConstructor ((_, ft, _), xs) ->
       A.GccConstructor (full_type env ft, initialiser env (InitList xs))
+  | Generic (tk, (l, (e, args), r)) ->
+      let args =
+        Common.map (fun (t, e) -> (full_type env t, expr env e)) args
+      in
+      A.Generic (tk, (l, (expr env e, args), r))
+  | IdSpecial (SizeOf, tk) -> A.IdSpecial (SizeOf, tk)
   | ConstructedObject (_, _) ->
       logger#error "BUG PARSING LOCAL DECL PROBABLY";
       debug (Expr e);
@@ -598,7 +639,12 @@ and expr env e =
   | DotStarAccess (_, _, _)
   | TypeId (_, _)
   | ParamPackExpansion _
-  | Lambda _ ->
+  | FoldExpr _
+  | RequiresExpr _
+  | RequiresClause _
+  | Lambda _
+  | UserDefined _
+  | CoAwait _ ->
       debug (Expr e);
       raise CplusplusConstruct
   | StatementExpr _
@@ -609,6 +655,7 @@ and expr env e =
   | ParenExpr (_, e, _) -> expr env e
   (* sgrep-ext: *)
   | TypedMetavar (id, t) -> A.TypedMetavar (id, full_type env t)
+  | DotAccessEllipsis (e, t) -> A.DotAccessEllipsis (expr env e, t)
 
 and constant _env x =
   match x with
@@ -618,14 +665,18 @@ and constant _env x =
   | String (s, ii) -> A.String (s, ii)
   | Nullptr ii -> A.Null ii
   | Bool x -> A.Bool x
-  | MultiString iis ->
-      A.String ("TODO", iis |> Common.hd_exn "empty multistring" |> snd)
+  | MultiString scs -> A.ConcatString (scs |> Common.map string_component)
+
+and string_component = function
+  | StrLit id -> A.StrLit id
+  | StrIdent id -> A.StrIdent id
 
 and argument env x =
   match x with
   | Arg e -> Some (A.Arg (expr env e))
   (* TODO! can't just skip it ... *)
-  | ArgType _
+  | ArgType x -> Some (A.ArgType (full_type env x))
+  | ArgBlock x -> Some (A.ArgBlock (compound env x))
   | ArgAction _ ->
       logger#error "type argument, maybe wrong typedef inference!";
       debug (Argument x);
@@ -725,7 +776,7 @@ and full_type env x =
                  | None -> None
                  | Some (_tok, e) -> Some (expr env e) ))
       in
-      let def = { A.e_name = name; e_consts = xs' } in
+      let def = { A.e_name = name; e_type = failwith "TODO"; e_consts = xs' } in
       env.enum_defs_toadd <- def :: env.enum_defs_toadd;
       A.TEnumName name
   | TypeOf (_, _) ->
@@ -746,8 +797,7 @@ and class_member env x =
   match x with
   | F (DeclList (xs, _)) -> xs |> List.map (fieldkind env)
   | QualifiedIdInClass (_, _)
-  | Access (_, _)
-  | Friend _ ->
+  | Access (_, _) ->
       debug (ClassMember x);
       raise CplusplusConstruct
   | F (EmptyDef _) -> []

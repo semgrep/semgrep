@@ -358,8 +358,8 @@ type stmt =
       tok
       * stmt list (* body *)
       * excepthandler list (* handlers *)
-      * stmt list (* orelse *)
-  | TryFinally of tok * stmt list (* body *) * tok * stmt list (* finalbody *)
+      * (tok * stmt list) option (* orelse *)
+      * (tok * stmt list) option (* finally *)
   (* TODO: tree-sitter-python say expr list *)
   | Assert of tok * expr (* test *) * expr option (* msg *)
   (* 'Global' is needed because Python does not have a VarDef and abuse Assign

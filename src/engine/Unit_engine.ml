@@ -4,7 +4,7 @@ open Testutil
 module R = Rule
 module MR = Mini_rule
 module P = Pattern_match
-module E = Semgrep_error_code
+module E = Core_error
 module Out = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -420,6 +420,7 @@ let lang_regression_tests ~polyglot_pattern_path =
         (Lang.Jsonnet, "jsonnet", ".jsonnet");
         (Lang.Clojure, "clojure", ".clj");
         (Lang.Xml, "xml", ".xml");
+        (Lang.Dart, "dart", ".dart");
       ]
   in
   let irregular_tests =
@@ -470,21 +471,22 @@ let eval_regression_tests () =
 (*****************************************************************************)
 
 let test_irrelevant_rule rule_file target_file =
+  let cache = Some (Hashtbl.create 101) in
   let rules = Parse_rule.parse rule_file in
   rules
   |> List.iter (fun rule ->
-         match Analyze_rule.regexp_prefilter_of_rule rule with
+         match Analyze_rule.regexp_prefilter_of_rule ~cache rule with
          | None ->
              Alcotest.fail
                (spf "Rule %s: no regex prefilter formula"
-                  (fst rule.id :> string))
+                  (Rule_ID.to_string (fst rule.id)))
          | Some (f, func) ->
              let content = File.read_file target_file in
              let s = Semgrep_prefilter_j.string_of_formula f in
              if func content then
                Alcotest.fail
                  (spf "Rule %s considered relevant by regex prefilter: %s"
-                    (fst rule.id :> string)
+                    (Rule_ID.to_string (fst rule.id))
                     s))
 
 let test_irrelevant_rule_file target_file =

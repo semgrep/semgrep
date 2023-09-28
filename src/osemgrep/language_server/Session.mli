@@ -22,6 +22,7 @@ type t = {
   cached_scans : (Fpath.t, Semgrep_output_v1_t.cli_match list) Hashtbl.t;
   cached_session : session_cache;
   user_settings : UserSettings.t;
+  is_intellij : bool;
 }
 
 val create : ServerCapabilities.t -> t

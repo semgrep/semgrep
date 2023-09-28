@@ -768,28 +768,12 @@ and stmt_aux env x =
           let args = expr env args in
           [ G.OtherStmt (G.OS_ThrowArgsLocation, [ G.E args; G.S st ]) |> G.s ]
       | None, _ -> [ st ])
-  | TryExcept (t, v1, v2, v3) -> (
+  | TryExcept (t, v1, v2, v3, v4) ->
       let v1 = list_stmt1 env v1
       and v2 = list (excepthandler env) v2
-      and orelse = list_stmt env v3 in
-      match orelse with
-      | [] -> [ G.Try (t, v1, v2, None) |> G.s ]
-      | _ ->
-          [
-            G.Block
-              (fb
-                 [
-                   G.Try (t, v1, v2, None) |> G.s;
-                   G.OtherStmt
-                     (G.OS_TryOrElse, orelse |> Common.map (fun x -> G.S x))
-                   |> G.s;
-                 ])
-            |> G.s;
-          ])
-  | TryFinally (t, v1, t2, v2) ->
-      let v1 = list_stmt1 env v1 and v2 = list_stmt1 env v2 in
-      (* could lift down the Try in v1 *)
-      [ G.Try (t, v1, [], Some (t2, v2)) |> G.s ]
+      and orelse = option (try_else env) v3
+      and finally = option (try_finally env) v4 in
+      [ G.Try (t, v1, v2, orelse, finally) |> G.s ]
   | Assert (t, v1, v2) ->
       let v1 = expr env v1 and v2 = option (expr env) v2 in
       let es = v1 :: Option.to_list v2 in
@@ -887,6 +871,9 @@ and excepthandler env = function
             G.CatchParam (G.param_of_type (H.expr_to_type e) ~pname:(Some n))
       in
       (t, exn, v3)
+
+and try_else env (t, v1) = (t, list_stmt1 env v1)
+and try_finally env (t, v1) = (t, list_stmt1 env v1)
 
 and decorator env (t, v1) =
   (* We'll try to first translate it as a G.NamedAttr; if we could not

@@ -3,7 +3,7 @@
 ##############################################################################
 # Testing 'semgrep ci' "end-to-end".
 #
-# TODO: actually most of the tests in this file rely on use_click_runner=True
+# TODO: most of the tests in this file rely on use_click_runner=True
 # because of some mocking and monkeypatching. Thus, this is this not
 # a real e2e test because cli/bin/semgrep is not invoked.
 # Try to use environment variables instead of Python monkey patching
@@ -62,6 +62,37 @@ BAD_CONFIG = dedent(
 ).lstrip()
 FROZEN_ISOTIMESTAMP = "1970-01-01T00:00:00"
 
+
+# To ensure our tests are as accurate as possible, lets try to autodetect what GITHUB_ vars
+# the app code uses, so the tests can enforce the env is mocked appropriately.
+_cli_src = (Path(__file__).parent.parent.parent / "src").resolve()
+USED_GITHUB_VARS = set(
+    subprocess.run(
+        f"git grep --recurse-submodules -hPo 'GITHUB_[\\w_]*' {_cli_src}",
+        shell=True,
+        capture_output=True,
+    )
+    .stdout.decode()
+    .strip()
+    .split("\n")
+) - {
+    "GITHUB_TOKEN",  # not used in the cli, just passed to the backend
+    "GITHUB_EVENT_PATH",  # TODO: mock this for more than just PR events
+    "GITHUB_xxx",  # not used, just an example in comments
+}
+
+assert "GITHUB_ACTIONS" in USED_GITHUB_VARS  # ensure the parsing did something
+
+# And then mock the baseline github env that is shared for all event types.
+DEFAULT_GITHUB_VARS = {
+    "GITHUB_ACTIONS": "true",
+    "GITHUB_ACTOR": "some_test_username",
+    "GITHUB_API_URL": "https://api.github.com",
+    "GITHUB_REPOSITORY": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
+    "GITHUB_RUN_ID": "35",
+    "GITHUB_SERVER_URL": "https://github.com",
+    "GITHUB_WORKSPACE": "/home/runner/work/actions-test/actions-test",
+}
 
 ##############################################################################
 # Fixtures
@@ -195,7 +226,7 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
         check=True,
         capture_output=True,
     )
-    subprocess.run(["git", "pull", "origin"])
+    subprocess.run(["git", "fetch", "origin"])
     subprocess.run(["git", "checkout", f"{MAIN_BRANCH_NAME}"])
     subprocess.run(["git", "checkout", f"{BRANCH_NAME}"])
     subprocess.run(
@@ -386,46 +417,52 @@ def mock_autofix(request, mocker):
         },
         {  # Github full scan
             "CI": "true",
-            "GITHUB_ACTIONS": "true",
+            **DEFAULT_GITHUB_VARS,
             "GITHUB_EVENT_NAME": "push",
-            "GITHUB_REPOSITORY": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
-            # Sent in metadata but no functionality change
-            "GITHUB_RUN_ID": "35",
-            "GITHUB_ACTOR": "some_test_username",
-            "GITHUB_REF": BRANCH_NAME,
-            "GITHUB_SERVER_URL": "https://github.com",
+            "GITHUB_REF": f"refs/heads/{BRANCH_NAME}",
+            "GITHUB_BASE_REF": "",
+            "GITHUB_HEAD_REF": "",
         },
         {  # Github full scan with SEMGREP env vars set
             "CI": "true",
-            "GITHUB_ACTIONS": "true",
+            **DEFAULT_GITHUB_VARS,
             "GITHUB_EVENT_NAME": "push",
+            "GITHUB_REF": f"refs/heads/{BRANCH_NAME}",
+            "GITHUB_BASE_REF": "",
+            "GITHUB_HEAD_REF": "",
             "SEMGREP_REPO_NAME": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
             "SEMGREP_JOB_URL": "customjoburl.com",
-            "GITHUB_ACTOR": "some_test_username",
             "SEMGREP_PR_ID": "312",  # should make the event_name `pull_request`
             "SEMGREP_PR_TITLE": "PR_TITLE",
             "SEMGREP_BRANCH": BRANCH_NAME,
         },
         {  # github but different server url - full scan
             "CI": "true",
-            "GITHUB_ACTIONS": "true",
+            **DEFAULT_GITHUB_VARS,
             "GITHUB_EVENT_NAME": "push",
-            "GITHUB_REPOSITORY": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
-            # Sent in metadata but no functionality change
-            "GITHUB_RUN_ID": "35",
-            "GITHUB_ACTOR": "some_test_username",
-            "GITHUB_REF": BRANCH_NAME,
+            "GITHUB_REF": f"refs/heads/{BRANCH_NAME}",
+            "GITHUB_BASE_REF": "",
+            "GITHUB_HEAD_REF": "",
             "GITHUB_SERVER_URL": "https://some.enterprise.url.com",
         },
         {  # Github PR
             "CI": "true",
-            "GITHUB_ACTIONS": "true",
+            **DEFAULT_GITHUB_VARS,
             "GITHUB_EVENT_NAME": "pull_request",
-            "GITHUB_REPOSITORY": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
             # Sent in metadata but no functionality change
-            "GITHUB_RUN_ID": "35",
-            "GITHUB_ACTOR": "some_test_username",
-            "GITHUB_REF": BRANCH_NAME,
+            "GITHUB_REF": "refs/pull/123/merge",
+            "GITHUB_BASE_REF": MAIN_BRANCH_NAME,
+            "GITHUB_HEAD_REF": BRANCH_NAME,
+        },
+        {  # Github PR with additional project metadata
+            "CI": "true",
+            **DEFAULT_GITHUB_VARS,
+            "GITHUB_EVENT_NAME": "pull_request",
+            # Sent in metadata but no functionality change
+            "GITHUB_REF": "refs/pull/123/merge",
+            "GITHUB_BASE_REF": MAIN_BRANCH_NAME,
+            "GITHUB_HEAD_REF": BRANCH_NAME,
+            "SEMGREP_PROJECT_CONFIG": "tags:\n- tag1\n- tag_key:tag_val\n",
         },
         {  # Gitlab PR
             "CI": "true",
@@ -640,17 +677,6 @@ def mock_autofix(request, mocker):
             "SEMGREP_PR_ID": "35",
             "SEMGREP_BRANCH": BRANCH_NAME,
         },
-        {  # Github PR with additional project metadata
-            "CI": "true",
-            "GITHUB_ACTIONS": "true",
-            "GITHUB_EVENT_NAME": "pull_request",
-            "GITHUB_REPOSITORY": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
-            # Sent in metadata but no functionality change
-            "GITHUB_RUN_ID": "35",
-            "GITHUB_ACTOR": "some_test_username",
-            "GITHUB_REF": BRANCH_NAME,
-            "SEMGREP_PROJECT_CONFIG": "tags:\n- tag1\n- tag_key:tag_val\n",
-        },
     ],
     ids=[
         "local",
@@ -658,6 +684,7 @@ def mock_autofix(request, mocker):
         "github-push-special-env-vars",
         "github-enterprise",
         "github-pr",
+        "github-pr-semgrepconfig",
         "gitlab",
         "gitlab-special-env-vars",
         "gitlab-push",
@@ -676,7 +703,6 @@ def mock_autofix(request, mocker):
         "travis-overwrite-autodetected-variables",
         "self-hosted",
         "unparsable_url",
-        "github-pr-semgrepconfig",
     ],
 )
 @pytest.mark.skipif(
@@ -728,6 +754,11 @@ def test_full_run(
             event_path = tmp_path / "event_path.json"
             event_path.write_text(json.dumps(event))
             env["GITHUB_EVENT_PATH"] = str(event_path)
+
+        assert USED_GITHUB_VARS <= set(
+            env.keys()
+        ), f"not all github vars are set, missing: {USED_GITHUB_VARS - set(env.keys())}"
+
     if env.get("CIRCLECI"):
         env["CIRCLE_SHA1"] = head_commit
     if env.get("JENKINS_URL"):
@@ -794,9 +825,9 @@ def test_full_run(
         gitlab_base_sha = (
             base_commit if env.get("CI_MERGE_REQUEST_TARGET_BRANCH_NAME") else None
         )
-
-        assert meta_json["base_sha"] == gitlab_base_sha
-        meta_json["base_sha"] = "sanitized"
+        if gitlab_base_sha != None:
+            assert meta_json["base_sha"] == gitlab_base_sha
+            meta_json["base_sha"] = "sanitized"
 
     snapshot.assert_match(json.dumps(scan_create_json, indent=2), "meta.json")
 
@@ -1358,7 +1389,7 @@ def test_fail_auth(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
         strict=False,
         assert_exit_code=13,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
-        use_click_runner=True,  # TODO: probably because rely on some mocking
+        use_click_runner=True,
     )
 
     mocker.patch("semgrep.app.auth.get_deployment_from_token", side_effect=Exception)
@@ -1368,7 +1399,7 @@ def test_fail_auth(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
         strict=False,
         assert_exit_code=2,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
-        use_click_runner=True,  # TODO: probably because rely on some mocking
+        use_click_runner=True,
     )
 
 
@@ -1386,7 +1417,7 @@ def test_fail_auth_error_handler(
         strict=False,
         assert_exit_code=0,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
-        use_click_runner=True,  # TODO: probably because rely on some mocking
+        use_click_runner=True,
     )
 
     mock_send.assert_called_once_with(mocker.ANY, 2)
@@ -1405,7 +1436,7 @@ def test_fail_start_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_comm
         strict=False,
         assert_exit_code=2,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
-        use_click_runner=True,  # TODO: probably because rely on some mocking
+        use_click_runner=True,
     )
 
 
@@ -1423,7 +1454,7 @@ def test_fail_start_scan_error_handler(
         strict=False,
         assert_exit_code=0,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
-        use_click_runner=True,  # TODO: probably because rely on some mocking
+        use_click_runner=True,
     )
 
     mock_send.assert_called_once_with(mocker.ANY, 2)
@@ -1450,7 +1481,7 @@ def test_bad_config(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
         strict=False,
         assert_exit_code=7,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
-        use_click_runner=True,  # TODO: probably because rely on some mocking
+        use_click_runner=True,
     )
     assert "Invalid rule schema" in result.stderr
 
@@ -1479,7 +1510,7 @@ def test_bad_config_error_handler(
         strict=False,
         assert_exit_code=0,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
-        use_click_runner=True,  # TODO: probably because rely on some mocking
+        use_click_runner=True,
     )
     assert "Invalid rule schema" in result.stderr
     mock_send.assert_called_once_with(mocker.ANY, 7)
@@ -1499,7 +1530,7 @@ def test_fail_scan_findings(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_c
         strict=False,
         assert_exit_code=1,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
-        use_click_runner=True,  # TODO: probably because rely on some mocking
+        use_click_runner=True,
     )
     mock_send.assert_called_once_with(mocker.ANY, 1)
     mock_request_post.assert_not_called()
@@ -1518,7 +1549,7 @@ def test_fail_finish_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_com
         strict=False,
         assert_exit_code=2,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
-        use_click_runner=True,  # TODO: probably because rely on some mocking
+        use_click_runner=True,
     )
 
 
@@ -1535,7 +1566,7 @@ def test_backend_exit_code(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_co
         strict=False,
         assert_exit_code=1,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
-        use_click_runner=True,  # TODO: probably because rely on some mocking
+        use_click_runner=True,
     )
 
 
@@ -1553,7 +1584,7 @@ def test_fail_finish_scan_error_handler(
         strict=False,
         assert_exit_code=0,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
-        use_click_runner=True,  # TODO: probably because rely on some mocking
+        use_click_runner=True,
     )
     mock_send.assert_called_once_with(mocker.ANY, 2)
 
@@ -1564,14 +1595,14 @@ def test_git_failure(run_semgrep: RunSemgrep, git_tmp_path_with_commit, mocker):
     """
     Test failure from using git has exit code > 1
     """
-    mocker.patch.object(GitMeta, "to_dict", side_effect=Exception)
+    mocker.patch.object(GitMeta, "to_project_metadata", side_effect=Exception)
     run_semgrep(
         options=["ci", "--no-suppress-errors"],
         target_name=None,
         strict=False,
         assert_exit_code=2,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
-        use_click_runner=True,  # TODO: probably because rely on some mocking
+        use_click_runner=True,
     )
 
 
@@ -1581,7 +1612,7 @@ def test_git_failure_error_handler(
     """
     Test failure from using git --suppres-errors returns exit code 0
     """
-    mocker.patch.object(GitMeta, "to_dict", side_effect=Exception)
+    mocker.patch.object(GitMeta, "to_project_metadata", side_effect=Exception)
     mock_send = mocker.spy(ErrorHandler, "send")
     run_semgrep(
         options=["ci"],
@@ -1589,7 +1620,7 @@ def test_git_failure_error_handler(
         strict=False,
         assert_exit_code=0,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
-        use_click_runner=True,  # TODO: probably because rely on some mocking
+        use_click_runner=True,
     )
     mock_send.assert_called_once_with(mocker.ANY, 2)
 
@@ -1642,7 +1673,7 @@ def test_query_dependency(
         strict=False,
         assert_exit_code=None,
         env={"SEMGREP_APP_TOKEN": "fake_key"},
-        use_click_runner=True,  # TODO: probably because rely on some mocking
+        use_click_runner=True,
     )
     snapshot.assert_match(
         result.as_snapshot(
@@ -1682,7 +1713,7 @@ def test_metrics_enabled(run_semgrep: RunSemgrep, mocker):
         assert_exit_code=1,
         force_metrics_off=False,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
-        use_click_runner=True,  # TODO: probably because rely on some mocking
+        use_click_runner=True,
     )
     mock_send.assert_called_once()
 
@@ -1730,7 +1761,7 @@ def test_existing_supply_chain_finding(
         strict=False,
         assert_exit_code=None,
         env={"SEMGREP_APP_TOKEN": "fake_key"},
-        use_click_runner=True,  # TODO: probably because rely on some mocking
+        use_click_runner=True,
     )
     snapshot.assert_match(
         result.as_snapshot(
@@ -1845,7 +1876,7 @@ def test_enabled_products(
         strict=False,
         assert_exit_code=None,
         env={"SEMGREP_APP_TOKEN": "fake_key"},
-        use_click_runner=True,  # TODO: probably because rely on some mocking
+        use_click_runner=True,
     )
 
     if not enabled_products:

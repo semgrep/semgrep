@@ -1,12 +1,12 @@
 ; This library packages the command line parser for use by either the
 ; semgrep-core or semgrep-core-proprietary executables.
+; LATER: ultimately once osemgrep is done we should get rid of this library
 (library
  (public_name semgrep.core_cli)
  (name semgrep_core_cli)
  (wrapped false)
  (libraries
     str
-    dyp
     ppx_deriving.runtime
 
     ; in libs/

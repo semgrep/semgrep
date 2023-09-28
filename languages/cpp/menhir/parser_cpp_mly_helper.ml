@@ -200,12 +200,10 @@ let type_and_specs_from_decl decl =
   | Sto (_, ii) ->
       error "storage class specified for parameter of function" ii
 
-let fixNameForParam (name, ftyp) =
+let fixNameForParam ii (name, ftyp) =
   match name with
   | None, [], IdIdent id -> (id, ftyp)
-  | _ ->
-      let ii = Lib_parsing_cpp.info_of_any (Name name) in
-      error "parameter have qualifier" ii
+  | _ -> error "parameter have qualifier" ii
 
 let type_and_storage_for_funcdef_from_decl decl =
   let returnType, storage, _inline = type_and_storage_from_decl decl in
@@ -225,8 +223,7 @@ let type_and_storage_for_funcdef_from_decl decl =
  * with VF a typedef of func cos here we dont see the name of the
  * argument (in the typedef)
  *)
-let (fixOldCDecl : type_ -> type_) =
- fun ty ->
+let fixOldCDecl ii (ty : type_) : type_ =
   match snd ty with
   | TFunction { ft_params = params; _ } -> (
       (* stdC: If the prototype declaration declares a parameter for a
@@ -268,7 +265,6 @@ let (fixOldCDecl : type_ -> type_) =
    *)
   | _ ->
       (* gcc says parse error but I dont see why *)
-      let ii = Lib_parsing_cpp.info_of_any (Type ty) in
       error "seems this is not a function" ii
 
 (* TODO: this is ugly ... use record! *)
@@ -305,6 +301,7 @@ let fixFunc ((name, ty, _stoTODO), cp) : func_definition =
           ft_specs = [];
           ft_const = None;
           ft_throw = [];
+          ft_requires = None;
         }
   in
   ( ent,
@@ -336,7 +333,7 @@ let fixFieldOrMethodDecl (xs, semicolon) : class_member =
 let mk_e e = e
 let mk_funcall e1 args = Call (e1, args)
 
-let mk_constructor specs id (lp, params, rp) _cmem_initializer_opt_TODO cp =
+let mk_constructor specs id (lp, params, rp) cp =
   let params = Common.optlist_to_list params in
   let ftyp =
     {
@@ -346,6 +343,7 @@ let mk_constructor specs id (lp, params, rp) _cmem_initializer_opt_TODO cp =
       (* TODO *)
       ft_const = None;
       ft_throw = [];
+      ft_requires = None;
     }
   in
   let name = name_of_id id in
@@ -360,6 +358,7 @@ let mk_destructor specs tilde id (lp, _voidopt, rp) exnopt cp =
       ft_specs = [];
       ft_const = None;
       ft_throw = Option.to_list exnopt;
+      ft_requires = None;
     }
   in
   let name = (None, noQscope, IdDestructor (tilde, id)) in

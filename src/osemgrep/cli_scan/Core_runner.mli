@@ -17,31 +17,37 @@ type result = {
   scanned : Fpath.t Set_.t;
 }
 
-type semgrep_core_runner =
+val create_core_result : Rule.rule list -> Core_result.result_or_exn -> result
+
+(* similar to Core_scan.core_scan_func *)
+type scan_func_for_osemgrep =
   ?respect_git_ignore:bool ->
   ?file_match_results_hook:
-    (Fpath.t -> Report.partial_profiling Report.match_result -> unit) option ->
+    (Fpath.t ->
+    Core_profiling.partial_profiling Core_result.match_result ->
+    unit)
+    option ->
   conf ->
   (* LATER? use Config_resolve.rules_and_origin instead? *)
   Rule.rules ->
   Rule.invalid_rule_error list ->
   Fpath.t list ->
-  Exception.t option * Report.final_result * Fpath.t Set_.t
+  Core_result.result_or_exn
 
-val create_core_result :
-  Rule.rule list ->
-  Exception.t option * Report.final_result * Fpath.t Set_.t ->
-  result
+(* Core_scan_func adapter to be used in osemgrep.
 
-(*
-   This calls the semgrep-core command like the Python implementation used
-   to, but without creating a subprocess.
+   This will eventually call a core scan like pysemgrep but without
+   creating a subprocess.
 
-   LATER: This function should go away, eventually, with some parts being
-   integrated into what's currently semgrep-core.
+   The first argument is usually Core_scan.scan_with_exn_handler,
+   but it can also be Run.deep_with_raw_results_and_exn_handler
+   when running in Pro Interfile mode and when called from
+   the Steps_runner in Semgrep Pro.
+
+   LATER: This function should go away.
 *)
-val invoke_semgrep_core :
-  ?engine:Runner_config.semgrep_engine -> semgrep_core_runner
+val mk_scan_func_for_osemgrep :
+  Core_scan.core_scan_func -> scan_func_for_osemgrep
 
 (* Helper used in Semgrep_scan.ml to setup logging *)
-val runner_config_of_conf : conf -> Runner_config.t
+val core_scan_config_of_conf : conf -> Core_scan_config.t

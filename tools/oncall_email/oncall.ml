@@ -57,15 +57,10 @@ let ( >> ) o fld =
       o
   | _ -> failwith (spf "could not find %s" fld)
 
-let jstring j =
-  match j with
-  | J.String s -> s
-  | _ -> error j "not a string"
+let jstring j = match j with J.String s -> s | _ -> error j "not a string"
 
 let array f j =
-  match j with
-  | J.Array xs -> xs |> List.map f
-  | _ -> error j "not an array"
+  match j with J.Array xs -> xs |> List.map f | _ -> error j "not an array"
 
 (*****************************************************************************)
 (* Helpers *)
@@ -74,9 +69,7 @@ let filter_some xs = xs |> Common.map_filter (fun x -> x)
 let find_issue_opt x xs = xs |> List.find_opt (fun y -> y.url = x.url)
 
 let has_issue x xs =
-  match find_issue_opt x xs with
-  | None -> false
-  | Some _ -> true
+  match find_issue_opt x xs with None -> false | Some _ -> true
 
 (*****************************************************************************)
 (* Parsing columns, cards, issues *)

@@ -105,8 +105,6 @@ let append (a : t) (b : t) : t =
 let of_path_segments (segments : string list) : t =
   Common.map
     (fun s ->
-      let chars =
-        Stdcompat.String.fold_right (fun c acc -> Char c :: acc) s []
-      in
+      let chars = String.fold_right (fun c acc -> Char c :: acc) s [] in
       Segment chars)
     segments

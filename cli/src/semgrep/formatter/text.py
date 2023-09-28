@@ -30,7 +30,6 @@ from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
 from semgrep.rule import Rule
-from semgrep.rule import RuleProduct
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
@@ -56,16 +55,16 @@ else:
 FINDINGS_INDENT_DEPTH = 10
 
 
-GROUP_TITLES: Dict[Tuple[RuleProduct, str], str] = {
-    (RuleProduct.sca, "unreachable"): "Unreachable Supply Chain Finding",
-    (RuleProduct.sca, "undetermined"): "Undetermined Supply Chain Finding",
-    (RuleProduct.sca, "reachable"): "Reachable Supply Chain Finding",
-    (RuleProduct.sast, "nonblocking"): "Non-blocking Code Finding",
-    (RuleProduct.sast, "blocking"): "Blocking Code Finding",
-    (RuleProduct.sast, "merged"): "Code Finding",
-    (RuleProduct.secrets, "valid"): "Valid Secrets Finding",
-    (RuleProduct.secrets, "invalid"): "Invalid Secrets Finding",
-    (RuleProduct.secrets, "unvalidated"): "Unvalidated Secrets Finding",
+GROUP_TITLES: Dict[Tuple[out.Product, str], str] = {
+    (out.Product(out.SCA()), "unreachable"): "Unreachable Supply Chain Finding",
+    (out.Product(out.SCA()), "undetermined"): "Undetermined Supply Chain Finding",
+    (out.Product(out.SCA()), "reachable"): "Reachable Supply Chain Finding",
+    (out.Product(out.SAST()), "nonblocking"): "Non-blocking Code Finding",
+    (out.Product(out.SAST()), "blocking"): "Blocking Code Finding",
+    (out.Product(out.SAST()), "merged"): "Code Finding",
+    (out.Product(out.Secrets()), "valid"): "Valid Secrets Finding",
+    (out.Product(out.Secrets()), "invalid"): "Invalid Secrets Finding",
+    (out.Product(out.Secrets()), "unvalidated"): "Unvalidated Secrets Finding",
 }
 
 
@@ -554,7 +553,8 @@ def print_text_output(
     last_file = None
     last_rule_id = None
     last_message = None
-    sorted_rule_matches = sorted(rule_matches, key=lambda r: (r.path, r.rule_id))
+    # Sort the findings according to RuleMatch.get_ordering_key()
+    sorted_rule_matches = sorted(rule_matches)
     for rule_index, rule_match in enumerate(sorted_rule_matches):
         current_file = rule_match.path
         message = rule_match.message
@@ -709,22 +709,22 @@ class TextFormatter(BaseFormatter):
     ) -> str:
         # all output in this function is captured and returned as a string
         with force_quiet_off(console), console.capture() as captured_output:
-            grouped_matches: Dict[Tuple[RuleProduct, str], List[RuleMatch]] = {
+            grouped_matches: Dict[Tuple[out.Product, str], List[RuleMatch]] = {
                 # ordered most important to least important
-                (RuleProduct.sast, "blocking"): [],
-                (RuleProduct.sca, "reachable"): [],
-                (RuleProduct.secrets, "valid"): [],
-                (RuleProduct.sca, "undetermined"): [],
-                (RuleProduct.secrets, "unvalidated"): [],
-                (RuleProduct.sca, "unreachable"): [],
-                (RuleProduct.sast, "nonblocking"): [],
-                (RuleProduct.secrets, "invalid"): [],
+                (out.Product(out.SAST()), "blocking"): [],
+                (out.Product(out.SCA()), "reachable"): [],
+                (out.Product(out.Secrets()), "valid"): [],
+                (out.Product(out.SCA()), "undetermined"): [],
+                (out.Product(out.Secrets()), "unvalidated"): [],
+                (out.Product(out.SCA()), "unreachable"): [],
+                (out.Product(out.SAST()), "nonblocking"): [],
+                (out.Product(out.Secrets()), "invalid"): [],
             }
 
             for match in rule_matches:
-                if match.product == RuleProduct.sast:
+                if isinstance(match.product.value, out.SAST):
                     subgroup = "blocking" if match.is_blocking else "nonblocking"
-                elif match.product == RuleProduct.secrets:
+                elif isinstance(match.product.value, out.Secrets):
                     state = match.validation_state
                     if state is None:
                         subgroup = "unvalidated"
@@ -742,7 +742,7 @@ class TextFormatter(BaseFormatter):
 
             first_party_blocking_rules = {
                 match.match.check_id.value
-                for match in grouped_matches[RuleProduct.sast, "blocking"]
+                for match in grouped_matches[out.Product(out.SAST()), "blocking"]
             }
 
             # When ephemeral rules are run with the -e or --pattern flag in the command-line, the rule_id is set to -.
@@ -750,9 +750,9 @@ class TextFormatter(BaseFormatter):
             first_party_blocking_rules.discard("-")
 
             if not is_ci_invocation:
-                grouped_matches[(RuleProduct.sast, "merged")] = [
-                    *grouped_matches.pop((RuleProduct.sast, "nonblocking")),
-                    *grouped_matches.pop((RuleProduct.sast, "blocking")),
+                grouped_matches[(out.Product(out.SAST()), "merged")] = [
+                    *grouped_matches.pop((out.Product(out.SAST()), "nonblocking")),
+                    *grouped_matches.pop((out.Product(out.SAST()), "blocking")),
                 ]
 
             for group, matches in grouped_matches.items():

@@ -1,0 +1,61 @@
+# Context:
+#
+# Initially, the commit message for a merged github PR uses the
+# "squash and merge" setting, but oftentimes people write short and
+# uninformational commit messages, such as "more work", etc.
+#
+# We switched to another github setting that uses the PR title and
+# description for the commit message of a merged PR.
+#
+# At the same time, we would like to have a PR checklist to help
+# developers write better PRs.
+#
+# This checklist could be automatically added to all PR descriptions
+# with .github/pull_request_template.md, but this adds noise to
+# every commit message and requires manual work to remove before
+# merging.
+#
+# We decided to create a workflow to add the checklist as a comment
+# on the PR instead, so developers will have a checklist, and
+# the PR descriptions won't be cluttered.
+
+name: PR-checklist
+
+on:
+  pull_request:
+    types: [opened, edited]
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+# This permission is needed to comment on a PR. Some GitHub bots
+# such as dependabot only have read permission by default.
+#
+# See:
+# https://docs.github.com/en/code-security/dependabot/working-with-dependabot/automating-dependabot-with-github-actions#changing-github_token-permissions
+#
+# Without this permission, this workflow will fail in those cases.
+permissions:
+  pull-requests: write
+
+jobs:
+  add-checklist-comment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: pr-checklist
+          only_create: true
+          message: |
+            PR checklist:
+
+            - [ ] Purpose of the code is [evident to future readers](https://semgrep.dev/docs/contributing/contributing-code/#explaining-code)
+            - [ ] Tests included or PR comment includes a reproducible test plan
+            - [ ] Documentation is up-to-date
+            - [ ] A changelog entry was [added to changelog.d](https://semgrep.dev/docs/contributing/contributing-code/#adding-a-changelog-entry) for any user-facing change
+            - [ ] Change has no security implications (otherwise, ping security team)
+
+            If you're unsure about any of this, please see:
+
+            - [Contribution guidelines](https://semgrep.dev/docs/contributing/contributing-code)!
+            - [One of the more specific guides located here](https://semgrep.dev/docs/contributing/contributing/)

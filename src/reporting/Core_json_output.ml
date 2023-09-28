@@ -13,16 +13,16 @@
  * LICENSE for more details.
  *)
 open Common
-module StrSet = Common2.StringSet
+open File.Operators
 open AST_generic
-module E = Semgrep_error_code
+module E = Core_error
 module J = JSON
 module MV = Metavariable
-module RP = Report
+module RP = Core_result
 module PM = Pattern_match
 open Pattern_match
-module SJ = Semgrep_output_v1_j (* JSON conversions *)
-module Out = Semgrep_output_v1_t (* atdgen definitions *)
+module Out = Semgrep_output_v1_j
+module OutUtils = Semgrep_output_utils
 
 (*****************************************************************************)
 (* Types *)
@@ -86,26 +86,22 @@ let range_of_any_opt startp_of_match_range any =
   | Lbli _
   | Anys _ ->
       let* min_loc, max_loc = AST_generic_helpers.range_of_any_opt any in
-      let startp, endp = Output_utils.position_range min_loc max_loc in
+      let startp, endp = OutUtils.position_range min_loc max_loc in
       Some (startp, endp)
 
 (*****************************************************************************)
 (* Converters *)
 (*****************************************************************************)
 
-let convert_engine_kind ek =
-  match ek with
-  | OSS -> `OSS
-  | Pro -> `PRO
-
+(* TODO: same, should reuse directly semgrep_output_v1 *)
 let convert_validation_state = function
   | Confirmed_valid -> `CONFIRMED_VALID
   | Confirmed_invalid -> `CONFIRMED_INVALID
   | Validation_error -> `VALIDATION_ERROR
   | No_validator -> `NO_VALIDATOR
 
-let convert_rule ((id, ek) : Report.rule_id_and_engine_kind) =
-  ((id :> string), convert_engine_kind ek)
+let convert_rule ((id, ek) : Rule_ID.t * Engine_kind.t) =
+  (Rule_ID.to_string id, ek)
 
 let metavar_string_of_any any =
   (* TODO: metavar_string_of_any is used in get_propagated_value
@@ -157,7 +153,7 @@ let metavars startp_of_match_range (s, mval) =
       raise
         (Tok.NoTokenLocation
            (spf "NoTokenLocation with metavar %s, close location = %s" s
-              (SJ.string_of_position startp_of_match_range)))
+              (Out.string_of_position startp_of_match_range)))
   | Some (startp, endp) ->
       ( s,
         {
@@ -175,10 +171,10 @@ let metavars startp_of_match_range (s, mval) =
  * pysemgrep).
  *)
 let content_of_loc (loc : Out.location) : string =
-  Output_utils.content_of_file_at_range (loc.start, loc.end_) (Fpath.v loc.path)
+  OutUtils.content_of_file_at_range (loc.start, loc.end_) (Fpath.v loc.path)
 
 let token_to_intermediate_var token : Out.match_intermediate_var option =
-  let* location = Output_utils.tokens_to_single_loc [ token ] in
+  let* location = OutUtils.tokens_to_single_loc [ token ] in
   Some
     ({ Out.location; content = content_of_loc location }
       : Out.match_intermediate_var)
@@ -190,10 +186,10 @@ let rec taint_call_trace (trace : PM.taint_call_trace) :
     Out.match_call_trace option =
   match trace with
   | Toks toks ->
-      let* loc = Output_utils.tokens_to_single_loc toks in
+      let* loc = OutUtils.tokens_to_single_loc toks in
       Some (Out.CliLoc (loc, content_of_loc loc))
   | Call { call_trace; intermediate_vars; call_toks } ->
-      let* loc = Output_utils.tokens_to_single_loc call_toks in
+      let* loc = OutUtils.tokens_to_single_loc call_toks in
       let intermediate_vars = tokens_to_intermediate_vars intermediate_vars in
       let* call_trace = taint_call_trace call_trace in
       Some
@@ -227,7 +223,7 @@ let taint_trace_to_dataflow_trace (traces : PM.taint_trace_item list) :
 let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
     =
   let min_loc, max_loc = x.range_loc in
-  let startp, endp = Output_utils.position_range min_loc max_loc in
+  let startp, endp = OutUtils.position_range min_loc max_loc in
   let dataflow_trace =
     Option.map
       (function
@@ -253,7 +249,7 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
     else x.file
   in
   {
-    Out.check_id = (x.rule_id.id :> string);
+    Out.check_id = Rule_ID.to_string x.rule_id.id;
     (* inherited location *)
     path = file;
     start = startp;
@@ -265,14 +261,14 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
         metavars = x.env |> Common.map (metavars startp);
         dataflow_trace;
         rendered_fix;
-        engine_kind = convert_engine_kind x.engine_kind;
+        engine_kind = x.engine_kind;
         validation_state = Some (convert_validation_state x.validation_state);
         extra_extra = None;
       };
   }
 
 let match_to_match render_fix (x : Pattern_match.t) :
-    (Out.core_match, Semgrep_error_code.error) Common.either =
+    (Out.core_match, Core_error.t) Common.either =
   try
     Left (unsafe_match_to_match render_fix x)
     (* raised by min_max_ii_by_pos in range_of_any when the AST of the
@@ -291,14 +287,14 @@ let match_to_match render_fix (x : Pattern_match.t) :
 (* less: Semgrep_error_code should be defined fully Output_from_core.atd
  * so we would not need those conversions
  *)
-let error_to_error err =
-  let file = err.E.loc.pos.file in
-  let startp, endp = Output_utils.position_range err.E.loc err.E.loc in
-  let rule_id = Option.map Rule_ID.to_string err.E.rule_id in
-  let error_type = err.E.typ in
-  let severity = E.severity_of_error err.E.typ in
-  let message = err.E.msg in
-  let details = err.E.details in
+let error_to_error (err : Core_error.t) =
+  let file = err.loc.pos.file in
+  let startp, endp = OutUtils.position_range err.loc err.loc in
+  let rule_id = Option.map Rule_ID.to_string err.rule_id in
+  let error_type = err.typ in
+  let severity = E.severity_of_error err.typ in
+  let message = err.msg in
+  let details = err.details in
   {
     Out.error_type;
     rule_id;
@@ -316,80 +312,135 @@ let rec explanation_to_explanation (exp : Matching_explanation.t) :
     Out.op;
     children = children |> Common.map explanation_to_explanation;
     matches = matches |> Common.map (unsafe_match_to_match None);
-    loc = Output_utils.location_of_token_location tloc;
+    loc = OutUtils.location_of_token_location tloc;
   }
 
-let profiling_to_profiling (profiling_data : RP.final_profiling) :
-    Out.core_timing =
-  let json_time_of_rule_times rule_times =
-    rule_times
-    |> Common.map (fun { RP.rule_id; parse_time; match_time } ->
-           { Out.rule_id = (rule_id :> string); parse_time; match_time })
+let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
+  let rule_ids : Rule_ID.t list =
+    profiling_data.rules |> Common.map (fun (rule : Rule.t) -> fst rule.id)
   in
   {
     Out.targets =
-      profiling_data.RP.file_times
-      |> Common.map (fun { RP.file = target; rule_times; run_time } ->
+      profiling_data.file_times
+      |> Common.map
+           (fun { Core_profiling.file = target; rule_times; run_time } ->
+             let (rule_id_to_rule_prof
+                   : (Rule_ID.t, Core_profiling.rule_profiling) Hashtbl.t) =
+               rule_times
+               |> Common.map (fun (rp : Core_profiling.rule_profiling) ->
+                      (rp.rule_id, rp))
+               |> Common.hash_of_list
+             in
              {
-               Out.path = target;
-               rule_times = json_time_of_rule_times rule_times;
+               Out.path = !!target;
+               match_times =
+                 rule_ids
+                 |> Common.map (fun rule_id ->
+                        try
+                          let rprof : Core_profiling.rule_profiling =
+                            Hashtbl.find rule_id_to_rule_prof rule_id
+                          in
+                          rprof.match_time
+                        with
+                        | Not_found -> 0.);
+               (* TODO: we could probably just aggregate in a single
+                * float instead of returning those list of parse_time
+                * which don't really make sense; we just parse once a file.
+                *)
+               parse_times =
+                 rule_ids
+                 |> Common.map (fun rule_id ->
+                        try
+                          let rprof : Core_profiling.rule_profiling =
+                            Hashtbl.find rule_id_to_rule_prof rule_id
+                          in
+                          rprof.parse_time
+                        with
+                        | Not_found -> 0.);
+               num_bytes = File.filesize target;
                run_time;
              });
-    rules =
-      Common.map
-        (fun rule -> (fst rule.Rule.id :> string))
-        profiling_data.RP.rules;
+    rules = rule_ids |> Common.map Rule_ID.to_string;
     rules_parse_time = profiling_data.rules_parse_time;
     max_memory_bytes = Some profiling_data.max_memory_bytes;
+    (* TODO: does it cover all targets or just the relevant target we actually
+     * parsed for matching?
+     *)
+    total_bytes =
+      profiling_data.file_times
+      |> Common.map (fun { Core_profiling.file = target; _ } ->
+             File.filesize target)
+      |> Common2.sum_int;
+    (* those are filled later in pysemgrep from the Profiler class *)
+    profiling_times = [];
   }
+
+(* TODO: We used to return some stats, should we generalize
+   that and return what is currently in parsing_data.py instead?
+   nfiles below was probably redundant anyway and could be
+   set to List.length res.scanned
+
+   old code:
+    module StrSet = Common2.StringSet
+    let core_output_of_matches_and_errors render_fix nfiles res =
+      ...
+     let files_with_errors =
+       errs
+       |> List.fold_left
+            (fun acc err -> StrSet.add err.E.loc.pos.file acc)
+            StrSet.empty
+     in
+       let count_errors = StrSet.cardinal files_with_errors in
+       let count_ok = nfiles - count_errors in
+
+       stats = { okfiles = count_ok; errorfiles = count_errors };
+*)
 
 (*****************************************************************************)
 (* Final semgrep-core output *)
 (*****************************************************************************)
 
-let core_output_of_matches_and_errors render_fix nfiles (res : RP.final_result)
-    =
+let core_output_of_matches_and_errors render_fix (res : Core_result.t) :
+    Out.core_output =
   let matches, new_errs =
     Common.partition_either (match_to_match render_fix) res.RP.matches
   in
   let errs = !E.g_errors @ new_errs @ res.RP.errors in
-  let files_with_errors =
-    errs
-    |> List.fold_left
-         (fun acc err -> StrSet.add err.E.loc.pos.file acc)
-         StrSet.empty
-  in
-  let count_errors = StrSet.cardinal files_with_errors in
-  let count_ok = nfiles - count_errors in
   let skipped_targets, profiling =
     match res.extra with
-    | RP.Debug { skipped_targets; profiling } ->
+    | Core_profiling.Debug { skipped_targets; profiling } ->
         (Some skipped_targets, Some profiling)
-    | RP.Time { profiling } -> (None, Some profiling)
-    | RP.No_info -> (None, None)
+    | Core_profiling.Time { profiling } -> (None, Some profiling)
+    | Core_profiling.No_info -> (None, None)
   in
   {
-    Out.results = matches;
+    Out.results = matches |> OutUtils.sort_core_matches;
     errors = errs |> Common.map error_to_error;
-    skipped_targets;
+    paths =
+      {
+        skipped = skipped_targets;
+        (* TODO: those are set later in Cli_json_output.ml,
+         * but should we compute scanned here instead?
+         *)
+        scanned = [];
+      };
     skipped_rules =
       res.RP.skipped_rules
       |> Common.map (fun ((kind, rule_id, tk) : Rule.invalid_rule_error) ->
              let loc = Tok.unsafe_loc_of_tok tk in
              {
-               Out.rule_id = (rule_id :> string);
+               Out.rule_id = Rule_ID.to_string rule_id;
                details = Rule.string_of_invalid_rule_error_kind kind;
-               position = Output_utils.position_of_token_location loc;
+               position = OutUtils.position_of_token_location loc;
              });
-    stats = { okfiles = count_ok; errorfiles = count_errors };
     time = profiling |> Option.map profiling_to_profiling;
     explanations =
       ( res.RP.explanations |> Common.map explanation_to_explanation |> fun x ->
         Some x );
-    rules_by_engine = Common.map convert_rule res.rules_by_engine;
-    engine_requested = `OSS;
+    rules_by_engine = Some (Common.map convert_rule res.rules_by_engine);
+    engine_requested = Some `OSS;
+    version = Some Version.version;
   }
-  |> Output_utils.sort_match_results
   [@@profiling]
 
 (*****************************************************************************)

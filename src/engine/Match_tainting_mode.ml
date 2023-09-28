@@ -21,7 +21,7 @@ module H = AST_generic_helpers
 module R = Rule
 module PM = Pattern_match
 module RM = Range_with_metavars
-module RP = Report
+module RP = Core_result
 module T = Taint
 module Lval_env = Taint_lval_env
 module MV = Metavariable
@@ -108,7 +108,7 @@ let convert_rule_id (id, _tok) =
   {
     PM.id;
     message = "";
-    pattern_string = (id :> string);
+    pattern_string = Rule_ID.to_string id;
     fix = None;
     languages = [];
   }
@@ -893,7 +893,7 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
            v
            |> List.iter (fun (m : Pattern_match.t) ->
                   let str =
-                    Common.spf "with rule %s" (m.rule_id.id :> string)
+                    Common.spf "with rule %s" (Rule_ID.to_string m.rule_id.id)
                   in
                   match_hook str m))
     |> Common.map (fun m ->
@@ -902,7 +902,7 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
   let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
   let report =
     RP.make_match_result matches errors
-      { RP.rule_id = fst rule.Rule.id; parse_time; match_time }
+      { Core_profiling.rule_id = fst rule.Rule.id; parse_time; match_time }
   in
   let explanations =
     if xconf.matching_explanations then
@@ -922,10 +922,11 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
 let check_rules ~match_hook
     ~(per_rule_boilerplate_fn :
        R.rule ->
-       (unit -> RP.rule_profiling RP.match_result) ->
-       RP.rule_profiling RP.match_result) (rules : R.taint_rule list)
-    (xconf : Match_env.xconfig) (xtarget : Xtarget.t) :
-    RP.rule_profiling RP.match_result list =
+       (unit -> Core_profiling.rule_profiling Core_result.match_result) ->
+       Core_profiling.rule_profiling Core_result.match_result)
+    (rules : R.taint_rule list) (xconf : Match_env.xconfig)
+    (xtarget : Xtarget.t) :
+    Core_profiling.rule_profiling Core_result.match_result list =
   (* We create a "formula cache" here, before dealing with individual rules, to
      permit sharing of matches for sources, sanitizers, propagators, and sinks
      between rules.
