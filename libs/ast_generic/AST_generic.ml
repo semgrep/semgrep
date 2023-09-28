@@ -1290,9 +1290,6 @@ and for_header =
   | ForEach of for_each
   (* Scala *)
   | MultiForEach of multi_for_each list
-  (* Lua. todo: merge with ForEach? *)
-  (* pattern 'in' expr *)
-  | ForIn of for_var_or_expr list (* init *) * expr list
   (* sgrep: *)
   | ForEllipsis of (* ... *) tok
 

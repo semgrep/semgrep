@@ -512,7 +512,7 @@ and for_header =
   | ForRange of
       (* since c++20 *)
       condition_initializer option
-      * var_decl (* vinit = None *)
+      * (type_ * entity)
       * tok (*':'*)
       * initialiser
   (* sgrep-ext: *)

@@ -1132,16 +1132,23 @@ and map_for_header env = function
       and v2 = map_of_option (map_expr env) v2
       and v3 = map_of_option (map_expr env) v3 in
       G.ForClassic (v1, v2, v3)
-  | ForRange (v1, v2, v3, v4) ->
+  | ForRange (v1, (ty, ent), v3, v4) ->
       (* TODO: We cannot accommodate this in the Generic AST at the present. *)
       let _initialiser_TODO =
         map_of_option (map_condition_initializer env) v1
       in
-      let ent, vardef = map_var_decl env v2
-      and _v2 = map_tok env v3
+      let ent = map_entity env ent
+      and ty = map_type_ env ty
+      and v2 = map_tok env v3
       and v4 = map_initialiser env v4 in
+      (* TODO: use the other stuff in the entity? *)
+      let pat =
+        match ent.name with
+        | EN (Id (id, idinfo)) -> G.PatId (id, idinfo) |> G.p
+        | _ -> G.OtherPat (("PatEnt", G.fake "PatEnt"), [ G.En ent ]) |> G.p
+      in
       (* less: or ForEach? *)
-      G.ForIn ([ G.ForInitVar (ent, vardef) ], [ v4 ])
+      G.ForEach (G.PatTyped (pat, ty) |> G.p, v2, v4)
 
 and map_a_expr_or_vars env v =
   match v with

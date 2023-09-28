@@ -77,7 +77,6 @@ let subexprs_of_stmt_kind = function
       |> Common.map_filter (function
            | Arg e -> Some e
            | _ -> None)
-  | For (_, ForIn (_, es), _) -> es
   | OtherStmt (_op, xs) -> subexprs_of_any_list xs
   | OtherStmtWithStmt (_, xs, _) -> subexprs_of_any_list xs
   (* 0 *)
