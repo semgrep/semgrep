@@ -1,7 +1,6 @@
 
 // Yes, I copied this from w3schools from searching up "C++ classes",
 // as the first result.
-// TODO?
 class MyClass {
   public:
     int myNum;
