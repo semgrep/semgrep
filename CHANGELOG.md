@@ -6,6 +6,181 @@
 
 <!-- insertion point -->
 
+## [1.42.0](https://github.com/returntocorp/semgrep/releases/tag/v1.42.0) - 2023-09-28
+
+### Added
+
+- Rule-writing: Capture group metavariables used in regexes in a
+  `metavariable-regex` can now introduce their bindings into the
+  scope of the pattern, similarly to `metavariable-pattern`.
+
+  For instance, in the pattern:
+  patterns:
+
+  - pattern: |
+    foo($BAR)
+  - metavariable-regex:
+    metavariable: $BAR
+    regex: "(?<X>.\*)end"
+  - focus-metavariable: $X
+
+  the rule will match the contents of what is inside of the
+  `foo` to the regex that binds anything before an "end" to
+  the metavariable `$X`. This metavariable can then be focused
+  at a later time, or processed somewhere above this pattern. (pa-3011)
+
+- Try-catch-else-finally is now supported in taint analysis.
+
+  This change also includes some updates to our analysis. Previously we assumed that
+  any statement inside the try clause may throw an exception, but now only
+  function calls are assumed to possibly throw exceptions.
+
+  Throw statements always throw an exception as it was before.
+
+  This kind of statement is supported in languages including Python, Ruby, and Julia.
+
+  Python example:
+
+  ````py
+  def f(tainted_input):
+    try:
+      a = 0
+      b = 0
+      c = tainted_input
+      d = tainted_input
+    except RuntimeError:
+      a = tainted_input
+      c = sanitize(c)
+    else:
+      b = tainted_input
+    finally:
+      d = sanitize(d)
+
+    # a is not tainted because exception wasn't assumed to be thrown
+    sink(a)
+    # b is tainted through the else clause
+    sink(b)
+    # c is tainted at the beginning, but it was not sanitized
+    # because an exception was not thrown
+    sink(c)
+    # d is tainted at the beginning, but it was sanitized
+    # because the finally clause is always executed
+    sink(d)
+  ``` (pa-3054)
+  ````
+
+- Semgrep can now derive facts about constants from equality tests.
+
+  For example, pattern `foobar(&nullptr)` will not match here:
+
+  ```cpp
+  int* ptr = nullptr;
+
+  do_something(ptr);
+
+  if (ptr == nullptr) {
+      return;
+  }
+
+  foobar(&ptr); // OK
+  ```
+
+  But it will match here:
+
+  ````cpp
+  if (ptr != nullptr) {
+      return;
+  }
+
+  foobar(&ptr); // finding
+  ``` (pa-3091)
+  ````
+
+- Metavariable-type rule support for C, C++
+
+  Users now can use metavariable-type rules in both C and C++. For instance, the
+  provided code snippet:
+
+  ```
+  #include <fstream>
+
+  using namespace std;
+
+  void test_001() {
+      ifstream in;
+      // ruleid: match-simple-metavar-type
+      in.get(str, 2);
+
+      mystream my;
+      // ok: type mismatch
+      my.get(str, 2);
+  }
+  ```
+
+  can be matched by the following rule:
+
+  ````
+  rules:
+    - id: match-simple-metavar-type
+      patterns:
+        - pattern: $X.get($SRC, ...)
+        - metavariable-type:
+            metavariable: $X
+            type: ifstream
+      message: Semgrep found a match
+      languages:
+        - cpp
+      severity: WARNING
+  ``` (pa-3106)
+  ````
+
+- C/C++: If conditions such as `if (int x = f())` are now correctly translated
+  into the Dataflow IL, so Semgrep can report a finding in the example below:
+
+  ````c
+  if (const char *tainted_or_null = source("PATH"))
+  {
+      // ruleid:
+      sink(tainted_or_null);
+  }
+  ``` (pa-3107)
+  ````
+
+### Changed
+
+- The \_comment field in the JSON output of semgrep scan has been removed. (\_comment)
+- Use config=auto by default for the scan command when other options are not specified (grow-50)
+- Use subprocess.run to get contributions instead of StreamingSemgrepCore so crashes don't affect the actual scan. (os-967)
+
+### Fixed
+
+- The CLI autocompletion code has been removed. It was not currently working
+  and nobody reported it, which probably means nobody was using it. (autocomplete)
+- The --core-opts flag has been removed. (core_opts)
+- fix: metavariable-type now correctly matches non-primitive types in php (gh-8781)
+- fixed the regression in --registry-caching and add better error message
+  to tell the user he needs also --experimental. (gh-8828)
+- Support labeled let bindings within Swift case statements
+
+  Correctly parsing labeled let bindings within Swift case statements.
+  For instance, the code snippet:
+
+  ```
+  switch self {
+    case .bar(_, _, x: let y):
+      return y
+  }
+  ```
+
+  now successfully matches the pattern:
+
+  ````
+  switch self {case .$X(..., $Y: $Z): ...}
+  ``` (pa-3120)
+  ````
+
+- Add parsing support for various rare Swift constructs (swift-parsing)
+
 ## [1.41.0](https://github.com/returntocorp/semgrep/releases/tag/v1.41.0) - 2023-09-19
 
 ### Changed
