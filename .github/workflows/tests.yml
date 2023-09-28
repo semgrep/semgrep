@@ -110,10 +110,17 @@ jobs:
           eval $(opam env)
           make install-deps-ALPINE-for-semgrep-core
           make install-deps-for-semgrep-core
+      - name: Install emsdk
+        run: |
+          eval $(opam env)
+          curl -# -L -o ~/emsdk-main.tar.gz https://github.com/emscripten-core/emsdk/archive/main.tar.gz
+          tar -C ~ -xf ~/emsdk-main.tar.gz
+          mv ~/emsdk-main ~/emsdk
+          cd ~/emsdk
+          ./emsdk install latest
       - name: Run semgrep js e2e tests
         run: |
           eval $(opam env)
-          apk add emscripten make --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing
           make test-jsoo
 
   test-cli:

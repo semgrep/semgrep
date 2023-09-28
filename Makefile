@@ -133,8 +133,6 @@ build-parse-cairo:
 .PHONY: build-semgrep-jsoo
 build-semgrep-jsoo:
 	dune build js --profile=release
-	. libs/ocaml-tree-sitter-core/tree-sitter-config.sh
-	$(MAKE) -C js build
 
 # Build Semgrep JS w/debug symbols, no mangling and source maps
 .PHONY: build-semgrep-jsoo-debug
