@@ -112,6 +112,7 @@ jobs:
           make install-deps-for-semgrep-core
       - name: Run semgrep js e2e tests
         run: |
+          eval $(opam env)
           make test-jsoo
 
   test-cli:
