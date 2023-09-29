@@ -1,0 +1,33 @@
+Added support in Ruby, Julia, and rust to match implicit return statement inside functions.
+
+For example:
+
+```julia
+return 0
+```
+
+can now match 0 in
+
+```julia
+function f()
+  0
+end
+```
+
+This matching can be disabled with the rule option `implicit_return`.
+
+For example:
+
+```yaml
+rules:
+  - id: test_implicit_return
+    pattern: return $X
+    options:
+      implicit_return: false
+    languages:
+      - julia
+      - rust
+      - ruby
+    message: Semgrep found a match
+    severity: WARNING
+```
