@@ -1049,10 +1049,11 @@ and stmt_expr env ?e_gen st =
   in
   match st.G.s with
   | G.ExprStmt (eorig, tok) ->
-      (if eorig.is_implicit_return then
-       let ss, e = expr_with_pre_stmts ~void:true env eorig in
-       ss @ [ mk_s (Return (tok, e)) ] |> add_stmts env);
-      expr env eorig
+      if eorig.is_implicit_return then (
+        let ss, e = expr_with_pre_stmts ~void:true env eorig in
+        ss @ [ mk_s (Return (tok, e)) ] |> add_stmts env;
+        e)
+      else expr env eorig
   | G.If (tok, cond, st1, opt_st2) ->
       (* if cond then e1 else e2
        * -->

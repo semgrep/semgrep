@@ -28,6 +28,7 @@ type 'a visitor_env = {
   vardef_assign : bool;
   flddef_assign : bool;
   attr_expr : bool;
+  implicit_return : bool;
   extra : 'a;
 }
 
@@ -226,6 +227,23 @@ class ['self] matching_visitor =
       self#v_partial ~recurse:false env (PartialSwitchCase x);
       super#visit_case_and_body env x
 
+    (* Make an artificial statement visit if an expression is an implicit return
+     * but only if the configuration is enabled.
+     *)
+    method v_expr_as_return_stmt env e =
+      if env.implicit_return && e.is_implicit_return then
+        let ret = Return (fake "return", Some e, sc) |> s in
+        self#visit_stmt env ret
+      else ()
+
+    method! visit_FBExpr env v1 =
+      self#v_expr_as_return_stmt env v1;
+      self#visit_expr env v1
+
+    method! visit_ExprStmt env v1 _sc =
+      self#v_expr_as_return_stmt env v1;
+      self#visit_expr env v1
+
     method! visit_stmt env x =
       (match x.s with
       | If (t, Cond v1, _v2, _v3) ->
@@ -313,5 +331,5 @@ class ['self] matching_visitor =
 
 (* To keep the type simple, `extra` must be explicitly specified *)
 let mk_env ?(vardef_assign = false) ?(flddef_assign = false)
-    ?(attr_expr = false) extra =
-  { vardef_assign; flddef_assign; attr_expr; extra }
+    ?(attr_expr = false) ?(implicit_return = false) extra =
+  { vardef_assign; flddef_assign; attr_expr; implicit_return; extra }
