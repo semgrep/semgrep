@@ -576,7 +576,11 @@ def ci(
             SpinnerColumn(spinner_name="simpleDotsScrolling"),
             console=console,
         ) as progress_bar:
-            app_block_override, reason = scan_handler.report_findings(
+            (
+                completed_successfully,
+                app_block_override,
+                reason,
+            ) = scan_handler.report_findings(
                 filtered_matches_by_rule,
                 semgrep_errors,
                 filtered_rules,
@@ -593,7 +597,13 @@ def ci(
                 progress_bar,
             )
 
-        logger.info("  View results in Semgrep Cloud Platform:")
+        if completed_successfully:
+            logger.info("  View results in Semgrep Cloud Platform:")
+        else:
+            logger.info(
+                "  Semgrep Cloud Platform is still processing the results of the scan, they will be available soon:"
+            )
+
         logger.info(
             f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/findings"
         )
