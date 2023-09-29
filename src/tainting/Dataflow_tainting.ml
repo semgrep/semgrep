@@ -81,6 +81,7 @@ type a_propagator = {
 type config = {
   filepath : Common.filename;
   rule_id : Rule_ID.t;
+  track_control : bool;
   is_source : G.any -> R.taint_source tmatch list;
   is_propagator : AST_generic.any -> a_propagator tmatch list;
   is_sink : G.any -> R.taint_sink tmatch list;

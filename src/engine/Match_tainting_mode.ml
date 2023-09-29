@@ -541,6 +541,9 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
   ( {
       Dataflow_tainting.filepath = !!file;
       rule_id = fst rule.R.id;
+      track_control =
+        snd spec.sources
+        |> List.exists (fun (src : R.taint_source) -> src.source_control);
       is_source = (fun x -> any_is_in_sources_matches rule x sources_ranges);
       is_propagator =
         (fun x -> any_is_in_propagators_matches rule x propagators_ranges);
