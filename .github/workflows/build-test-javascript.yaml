@@ -130,13 +130,18 @@ jobs:
           branch_name=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
           urlencoded_branch_name=$(printf %s $branch_name | jq -sRr @uri)
 
-          cache_control_arg=""
+          cache_control=""
           if [[ "${branch_name}" =~ "^release-[0-9.]+$" ]]; then
-            # Set the cache-control header if this bundle is a release:
+            # If this is a release:
             # - public: The response can be stored in a shared cache
             # - max-age=31536000: Cache for up to 1 year
             # - immutable: The response will not be updated while fresh
-            cache_control_arg="--cache-control public,max-age=31536000,immutable"
+            cache_control="public,max-age=31536000,immutable"
+          else
+            # Otherwise:
+            # - public: This response can be stored in a shared cache
+            # - max-age=300: Cache for up to 5 mins
+            cache_control="public,max-age=300"
           fi
 
-          aws s3 cp --recursive "${cache_control_arg}" /tmp/semgrep/js/ "s3://semgrep-app-static-assets/static/turbo/${urlencoded_branch_name}/"
+          aws s3 cp --recursive --cache-control "${cache_control}" /tmp/semgrep/js/ "s3://semgrep-app-static-assets/static/turbo/${urlencoded_branch_name}/"
