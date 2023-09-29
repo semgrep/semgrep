@@ -358,9 +358,6 @@ class ScanHandler:
             ),
         )
 
-        if self._dependency_query:
-            complete.dependencies = out.CiScanDependencies(lockfile_dependencies)
-
         if self.dry_run:
             logger.info(
                 f"Would have sent findings and ignores blob: {json.dumps(findings_and_ignores, indent=4)}"
