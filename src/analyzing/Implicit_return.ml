@@ -19,7 +19,7 @@ open AST_generic
 (*****************************************************************************)
 (* Implicit return support.
  *
- * For languages that support implicit return, The analysis marks expressions
+ * For languages that support implicit return, this analysis marks expressions
  * that are executed before exiting the function as returning nodes.
  *
  * These nodes will be later used to allow matching to match
