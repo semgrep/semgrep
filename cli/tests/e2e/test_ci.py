@@ -25,6 +25,7 @@ from tests.e2e.test_baseline import _git_merge
 from tests.fixtures import RunSemgrep
 
 from semgrep import __VERSION__
+from semgrep.app.scans import ScanCompleteResult
 from semgrep.app.scans import ScanHandler
 from semgrep.app.session import AppSession
 from semgrep.config_resolver import ConfigFile
@@ -1562,7 +1563,9 @@ def test_backend_exit_code(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_co
     Test backend sending non-zero exit code on complete causes exit 1
     """
     mocker.patch.object(
-        ScanHandler, "report_findings", return_value=(1, "some reason to fail")
+        ScanHandler,
+        "report_findings",
+        return_value=ScanCompleteResult(True, True, "some reason to fail"),
     )
     run_semgrep(
         options=["ci", "--no-suppress-errors"],
