@@ -238,11 +238,11 @@ class ['self] matching_visitor =
 
     method! visit_FBExpr env v1 =
       self#v_expr_as_return_stmt env v1;
-      self#visit_expr env v1
+      super#visit_FBExpr env v1
 
-    method! visit_ExprStmt env v1 _sc =
+    method! visit_ExprStmt env v1 sc =
       self#v_expr_as_return_stmt env v1;
-      self#visit_expr env v1
+      super#visit_ExprStmt env v1 sc
 
     method! visit_stmt env x =
       (match x.s with
