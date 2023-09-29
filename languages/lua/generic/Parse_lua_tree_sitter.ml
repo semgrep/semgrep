@@ -501,21 +501,39 @@ and map_function_call_statement (env : env) (x : CST.function_call_statement) :
 and map_in_loop_expression (env : env)
     ((v1, v2, v3, v4, v5) : CST.in_loop_expression) =
   let v1 = identifier env v1 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
-  let var : G.variable_definition = { vinit = None; vtype = None } in
-  let for_init_var = G.ForInitVar (G.basic_entity v1, var) in
   let v2 =
     Common.map
       (fun (v1, v2) ->
         let _v1 = token env v1 (* "," *) in
         let v2 = identifier env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
-        let var : G.variable_definition = { vinit = None; vtype = None } in
-        G.ForInitVar (G.basic_entity v2, var))
+        v2)
       v2
   in
+  let pat =
+    match v2 with
+    | [] -> G.PatId (v1, G.empty_id_info ()) |> G.p
+    | _ ->
+        let pats =
+          Common.map (fun id -> G.PatId (id, G.empty_id_info ())) (v1 :: v2)
+        in
+        G.PatTuple (fb (pats |> G.p))
+  in
   (* TODO *)
-  let _v3 = token env v3 (* "in" *) in
+  let v3 = token env v3 (* "in" *) in
+  (* Lua has really weird semantics for if there are multiple things in a
+     generic for.
+     https://www.lua.org/pil/7.2.html
+     Basically, the list of expressions just needs to be unpackable into
+     three things (which is automatically done for simple iterators).
+     These are the folding function, the accumulator, and initial value.
+     It's not really something that would be easy to represent in the
+     Generic AST. For most purposes, this is usually just a single iterator,
+     and the translation in the case where it actually is multiple things
+     would be quite complicated.
+     Let's just not deal with it for now.
+  *)
   let v4 = map_expression env v4 in
-  let v5 =
+  let _v5_TODO =
     Common.map
       (fun (v1, v2) ->
         let _v1 = token env v1 (* "," *) in
@@ -523,7 +541,7 @@ and map_in_loop_expression (env : env)
         v2)
       v5
   in
-  G.ForIn (for_init_var :: v2, v4 :: v5)
+  G.ForEach (pat, v3, v4)
 
 and map_loop_expression (env : env)
     ((v1, v2, v3, v4, v5, v6) : CST.loop_expression) =

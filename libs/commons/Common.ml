@@ -738,6 +738,14 @@ let i_to_s = string_of_int
 let s_to_i = int_of_string
 let null_string s = s = ""
 
+let contains s1 s2 =
+  let re = Str.regexp_string s2 in
+  try
+    ignore (Str.search_forward re s1 0);
+    true
+  with
+  | Not_found -> false
+
 (*****************************************************************************)
 (* Filenames *)
 (*****************************************************************************)

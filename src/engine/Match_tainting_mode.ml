@@ -110,7 +110,7 @@ let convert_rule_id (id, _tok) =
     message = "";
     pattern_string = Rule_ID.to_string id;
     fix = None;
-    languages = [];
+    langs = [];
   }
 
 let option_bind_list opt f =
@@ -449,7 +449,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
   let xtarget =
     {
       Xtarget.file;
-      xlang = rule.languages.target_analyzer;
+      xlang = rule.target_analyzer;
       lazy_content = lazy (File.read_file file);
       lazy_ast_and_errors;
     }

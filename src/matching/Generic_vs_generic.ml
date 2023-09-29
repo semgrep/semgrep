@@ -2631,17 +2631,9 @@ and m_for_header a b =
           | G.FEllipsis _ -> true
           | _ -> false)
         a1 b1
-  | G.ForIn (a1, a2), B.ForIn (b1, b2) ->
-      (m_list m_for_var_or_expr) a1 b1 >>= fun () ->
-      m_list_with_dots m_expr
-        (function
-          | { e = G.Ellipsis _; _ } -> true
-          | _ -> false)
-        ~less_is_ok:false a2 b2
   | G.ForClassic _, _
   | G.ForEach _, _
-  | G.MultiForEach _, _
-  | G.ForIn _, _ ->
+  | G.MultiForEach _, _ ->
       fail ()
 
 and m_for_each (a1, at, a2) (b1, bt, b2) =
