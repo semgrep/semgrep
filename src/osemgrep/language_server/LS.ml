@@ -25,6 +25,7 @@ module Out = Semgrep_output_v1_t
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
+(* TODO: Explain what Semgrep LS is here *)
 
 (*****************************************************************************)
 (* Semgrep helpers *)
@@ -305,6 +306,11 @@ end
 
 module LanguageServer = RPCServer.Make (MessageHandler)
 
+(*****************************************************************************)
+(* Entry point*)
+(*****************************************************************************)
+
+(* LET'S GOOOOOO *)
 let start () =
   Logs.app (fun m -> m "Starting Semgrep Language Server");
   let server = LanguageServer.create () in
