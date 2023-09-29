@@ -16,6 +16,7 @@ from typing import Set
 from typing import Tuple
 from typing import TYPE_CHECKING
 from urllib.parse import urlencode
+from uuid import uuid4
 
 import click
 import requests
@@ -23,15 +24,16 @@ from boltons.iterutils import partition
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyParserError
+from semgrep import __VERSION__
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
 from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
+from semgrep.project import ProjectConfig
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
-
 
 if TYPE_CHECKING:
     from semgrep.engine import EngineType
@@ -45,6 +47,12 @@ class ScanHandler:
         self._deployment_id: Optional[int] = None
         self._deployment_name: str = deployment_name
 
+        self.local_id = str(uuid4())
+        self.scan_metadata = out.ScanMetadata(
+            cli_version=out.Version(__VERSION__),
+            unique_id=self.local_id,
+            requested_products=[],
+        )
         self.scan_id = None
         self.ignore_patterns: List[str] = []
         self._policy_names: List[str] = []
@@ -192,7 +200,9 @@ class ScanHandler:
                 pass
             logger.debug(f"Got configuration {json.dumps(config, indent=4)}")
 
-    def start_scan(self, meta: Dict[str, Any]) -> None:
+    def start_scan(
+        self, project_metadata: out.ProjectMetadata, project_config: ProjectConfig
+    ) -> None:
         """
         Get scan id and file ignores
 
@@ -203,10 +213,16 @@ class ScanHandler:
             logger.info(f"Would have sent POST request to create scan")
             return
 
-        logger.debug(f"Starting scan: {json.dumps({'meta': meta}, indent=4)}")
+        request = out.CreateScanRequest(
+            meta={**project_metadata.to_json(), **project_config.to_dict()},
+            scan_metadata=self.scan_metadata,
+            project_metadata=project_metadata,
+            project_config=project_config.to_dict(),
+        ).to_json()
+        logger.debug(f"Starting scan: {json.dumps(request, indent=4)}")
         response = state.app_session.post(
             f"{state.env.semgrep_url}/api/agent/deployments/scans",
-            json={"meta": meta},
+            json=request,
         )
 
         if response.status_code == 404:
