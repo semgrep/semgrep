@@ -2218,7 +2218,36 @@ let string_ (lquote, xs, rquote) : string wrap bracket =
  * instead of abusing special?
  *)
 let interpolated (lquote, xs, rquote) =
-  match xs with
+  (* Certain languages allow string components to be not just interpolated
+     expression and string literals, but make a distinction between
+     string literals and escape sequences.
+     There's no reason why both of these can't be combined into a single
+     string component, however.
+  *)
+  let xs_with_fused_literals =
+    List.fold_right
+      (fun x acc ->
+        match (x, acc) with
+        | Common.Left3 (s, t), Common.Left3 (s', t') :: acc ->
+            Left3 (s ^ s', Tok.combine_toks t [ t' ]) :: acc
+        | _ -> x :: acc)
+      xs []
+  in
+  match xs_with_fused_literals with
+  | [] ->
+      (* For the empty interpolated string, we would like to produce an empty
+         literal string.
+         For that, we need a token, however, and we preferably would like one
+         with real location data. We will just produce a length-0 token with
+         the position of the right quote, since we know the string is empty.
+      *)
+      let begin_pos =
+        match Tok.loc_of_tok rquote with
+        | Ok loc -> loc.pos
+        | Error _ -> Pos.fake_pos
+      in
+      let empty_tok = Tok.OriginTok { str = ""; pos = begin_pos } in
+      L (String (lquote, ("", empty_tok), rquote)) |> e
   | [ Common.Left3 (str, tstr) ] ->
       L (String (lquote, (str, tstr), rquote)) |> e
   | __else__ ->
