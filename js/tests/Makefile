@@ -11,7 +11,7 @@ default: test
 clean:
 	rm -rf dist
 
-test: dist/test.js dist/test.wasm
+test: dist/test.js
 	node index.test.js
 
 
@@ -20,11 +20,13 @@ test: dist/test.js dist/test.wasm
 
 ../libpcre/dist/libpcre.a:
 	$(MAKE) -C ../libpcre dist/libpcre.a
+
 languages:
 	SEMGREP_JS_TEST_BUILD=1 $(MAKE) -C .. languages
 
 dist/test.js dist/test.wasm: ../libyaml/dist/libyaml.o ../libpcre/dist/libpcre.a languages
 	mkdir -p dist
+	echo $(word 1,$@)
 	emcc \
 		-O3 \
 		$(wordlist 1,2, $^) \
