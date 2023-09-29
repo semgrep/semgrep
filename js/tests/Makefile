@@ -27,7 +27,7 @@ dist/test.js dist/test.wasm: ../libyaml/dist/libyaml.o ../libpcre/dist/libpcre.a
 	mkdir -p dist
 	emcc \
 		-O3 \
-		$^ \
+		$(wordlist 1,2, $^) \
 		$(EMCC_DEFAULTS) \
 		-sEXPORTED_FUNCTIONS=_malloc,_free,$(YAML_EXPORTED_METHODS),$(PCRE_EXPORTED_METHODS) \
 		-o $(word 1,$@)

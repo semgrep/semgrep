@@ -23,6 +23,8 @@ open Semgrep_js_shared
 (* Code *)
 (*****************************************************************************)
 
+(* These tests are skipped as they are currently incredibly slow *)
+(* Once LLVM merges a PR we will re-enable these *)
 let filtered = [ "Cpp"; "C++"; "Julia"; "Ruby" ]
 
 (* Filter to skip tests *)
