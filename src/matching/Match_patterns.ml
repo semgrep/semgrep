@@ -138,7 +138,7 @@ let (rule_id_of_mini_rule : Mini_rule.t -> Pattern_match.rule_id) =
     message = mr.message;
     pattern_string = mr.pattern_string;
     fix = mr.fix;
-    languages = mr.languages;
+    langs = mr.langs;
   }
 
 let match_rules_and_recurse m_env (file, hook, matches) rules matcher k any x =
