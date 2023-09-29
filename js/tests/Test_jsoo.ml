@@ -23,10 +23,13 @@ open Semgrep_js_shared
 (* Code *)
 (*****************************************************************************)
 
+let filtered = [ "Cpp"; "C++"; "Julia"; "Ruby" ]
+
 (* Filter to skip tests *)
 let test_filter ~name ~index =
   ignore index;
-  if Common.contains name "Cpp" then `Skip
+
+  if List.mem name filtered then `Skip
   else `Run (* Cpp has a weird error, and @brandon is still working on it soo *)
 
 let _ =

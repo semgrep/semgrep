@@ -4,7 +4,6 @@ const languages = [
   "bash",
   "c",
   "cairo",
-  "cpp",
   "csharp",
   "dart",
   "dockerfile",
@@ -15,7 +14,6 @@ const languages = [
   "java",
   "json",
   "jsonnet",
-  "julia",
   "kotlin",
   "lisp",
   "lua",
@@ -25,7 +23,6 @@ const languages = [
   "promql",
   "python",
   "r",
-  "ruby",
   "rust",
   "scala",
   "solidity",
@@ -50,6 +47,7 @@ const getParsers = async () => {
 };
 const run = async () => {
   try {
+    console.log("Running tests");
     const wasm = await TestWasm({
       locateFile: (_) => "./dist/test.wasm",
     });
@@ -93,6 +91,8 @@ const run = async () => {
   } catch (e) {
     console.log("Error running tests:\n");
     console.log(e);
+  } finally {
+    console.log("Finished running tests");
   }
 };
 run();

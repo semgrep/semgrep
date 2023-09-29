@@ -24,9 +24,7 @@ function lazy_instantiate_parser(func) {
 //Requires: caml_jsstring_of_string, wasm
 function octs_parser_parse_string(vParser, vSource) {
   const { parser_ptr } = vParser;
-  var source_str = Buffer.from(caml_jsstring_of_string(vSource)).toString(
-    "utf-8"
-  );
+  var source_str = caml_jsstring_of_string(vSource);
   var source_len = wasm.lengthBytesUTF8(source_str);
   var source_code_ptr = wasm._malloc(source_len + 1);
   wasm.stringToUTF8(source_str, source_code_ptr, source_len + 1);
