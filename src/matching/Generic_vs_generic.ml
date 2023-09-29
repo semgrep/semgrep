@@ -1076,8 +1076,8 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   | G.Ref (a0, a1), B.Ref (b0, b1) -> m_tok a0 b0 >>= fun () -> m_expr a1 b1
   | G.DeRef (a0, a1), B.DeRef (b0, b1) -> m_tok a0 b0 >>= fun () -> m_expr a1 b1
   (* implicit return *)
-  | G.StmtExpr { s = G.Return (_, Some a, _); _ }, _ -> m_implicit_return a b
   | G.StmtExpr a1, B.StmtExpr b1 -> m_stmt a1 b1
+  | G.StmtExpr { s = G.Return (_, Some a, _); _ }, _ -> m_implicit_return a b
   | G.OtherExpr (a1, a2), B.OtherExpr (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.RawExpr a, B.RawExpr b -> m_raw_tree a b
