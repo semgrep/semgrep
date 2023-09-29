@@ -3,7 +3,7 @@
     {
       "code": 2,
       "level": "error",
-      "message": "Pattern parse error in rule rules.broken-rule:\n Invalid pattern for Java:\n--- pattern ---\n@$HTTP_METHOD\npublic $RET $FUNC(..., @Auth $REQ, ...) { ... }\n\n--- end pattern ---\nPattern error: Stdlib.Parsing.Parse_error\n",
+      "message": "Pattern parse error in rule rules.broken-rule:\n Invalid pattern for Java:\n--- pattern ---\n@$HTTP_METHOD\npublic $RET $FUNC(..., @Auth $REQ, ...) { ... }\n\n--- end pattern ---\nPattern error: Invalid_argument: index out of bounds\n",
       "rule_id": "rules.broken-rule",
       "spans": [
         {
