@@ -17,7 +17,7 @@ jobs:
     # already created, and a big set of packages already installed. Thus,
     # the 'make install-deps-ALPINE-for-semgrep-core' below is very fast and
     # almost a noop.
-    container: returntocorp/ocaml:alpine5.0-2023-07-07
+    container: returntocorp/ocaml:alpine5.0-2023-09-29
     # We need this hack because GHA tampers with the HOME in container
     # and this does not play well with 'opam' installed in /root
     env:

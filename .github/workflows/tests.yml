@@ -22,7 +22,7 @@ jobs:
   test-core:
     name: test semgrep-core
     runs-on: ubuntu-22.04
-    container: returntocorp/ocaml:alpine5.0-2023-07-07
+    container: returntocorp/ocaml:alpine5.0-2023-09-29
     env:
       HOME: /root
     steps:
@@ -67,7 +67,7 @@ jobs:
   test-osemgrep:
     name: test osemgrep
     runs-on: ubuntu-22.04
-    container: returntocorp/ocaml:alpine5.0-2023-07-07
+    container: returntocorp/ocaml:alpine5.0-2023-09-29
     env:
       HOME: /root
     steps:

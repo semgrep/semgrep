@@ -16,7 +16,7 @@
 # - https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb
 # Note that many .github/workflows/ use returntocorp/ocaml:alpine, which should
 # be the latest, but may differ from this one.
-FROM returntocorp/ocaml:alpine5.0-2023-07-07 as build-semgrep-core
+FROM returntocorp/ocaml:alpine5.0-2023-09-29 as build-semgrep-core
 
 USER root
 # for ocaml-pcre now used in semgrep-core
