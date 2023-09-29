@@ -39,7 +39,7 @@ let lang_supports_implicit_return (lang : Lang.t) =
   | Rust
   | Julia ->
       true
-  | _ -> false
+  | _else_ -> false
 
 let rec mark_first_instr_ancestor (cfg : IL.cfg) i =
   let node = cfg.graph#nodes#find i in
@@ -54,7 +54,7 @@ let rec mark_first_instr_ancestor (cfg : IL.cfg) i =
       match instr with
       | { i = Assign (_, { eorig = SameAs e; _ }); _ } ->
           e.is_implicit_return <- true
-      | __else__ -> ())
+      | _else_ -> ())
   | _else_ -> ()
 
 (*****************************************************************************)

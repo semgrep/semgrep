@@ -144,6 +144,17 @@ class ['self] matching_visitor =
             (PartialDef (ent, ClassDef partial_def))
       | _ -> ()
 
+    method v_expr_as_return_stmt env e =
+      (* An implicit return is an expression whose value is being returned
+       * from a function but without the return keyword. This is not explicit
+       * in Generic so we cannot match statement patterns against these
+       * expressions. This equivalence enables that.
+       *)
+      if env.implicit_return && e.is_implicit_return then
+        let ret = Return (fake "return", Some e, sc) |> s in
+        self#visit_stmt env ret
+      else ()
+
     (**************************************************************************)
     (* Overrides:
      *
@@ -227,23 +238,6 @@ class ['self] matching_visitor =
       self#v_partial ~recurse:false env (PartialSwitchCase x);
       super#visit_case_and_body env x
 
-    (* Make an artificial statement visit if an expression is an implicit return
-     * but only if the configuration is enabled.
-     *)
-    method v_expr_as_return_stmt env e =
-      if env.implicit_return && e.is_implicit_return then
-        let ret = Return (fake "return", Some e, sc) |> s in
-        self#visit_stmt env ret
-      else ()
-
-    method! visit_FBExpr env v1 =
-      self#v_expr_as_return_stmt env v1;
-      super#visit_FBExpr env v1
-
-    method! visit_ExprStmt env v1 sc =
-      self#v_expr_as_return_stmt env v1;
-      super#visit_ExprStmt env v1 sc
-
     method! visit_stmt env x =
       (match x.s with
       | If (t, Cond v1, _v2, _v3) ->
@@ -252,6 +246,7 @@ class ['self] matching_visitor =
           self#v_partial ~recurse:false env (PartialMatch (v0, v1))
       | Try (t, v1, _v2, _v3, _v4) ->
           self#v_partial ~recurse:false env (PartialTry (t, v1))
+      | ExprStmt (v1, _) -> self#v_expr_as_return_stmt env v1
       | _else -> ());
       (* todo? visit the s_id too? *)
       super#visit_stmt_kind env x.s
@@ -276,6 +271,12 @@ class ['self] matching_visitor =
     method! visit_function_definition env x =
       self#v_partial ~recurse:false env (PartialLambdaOrFuncDef x);
       super#visit_function_definition env x
+
+    method! visit_function_body env x =
+      (match x with
+      | FBExpr v1 -> self#v_expr_as_return_stmt env v1
+      | _else_ -> ());
+      super#visit_function_body env x
 
     method! visit_field env x =
       match x with
