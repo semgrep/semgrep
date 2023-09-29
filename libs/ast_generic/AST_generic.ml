@@ -2238,6 +2238,12 @@ let interpolated (lquote, xs, rquote) =
   in
   match xs_with_fused_literals with
   | [] ->
+      (* For the empty interpolated string, we would like to produce an empty
+         literal string.
+         For that, we need a token, however, and we preferably would like one
+         with real location data. We will just produce a length-0 token with
+         the position of the right quote, since we know the string is empty.
+      *)
       let begin_pos =
         match Tok.loc_of_tok rquote with
         | Ok loc -> loc.pos
