@@ -385,7 +385,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
   let scan_metadata : Out.scan_metadata =
     {
       cli_version = Version.version;
-      unique_id = Uuidm.v `V4;
+      unique_id = Uuidm.v `V4 |> Uuidm.to_string;
       (* TODO: should look at conf.secrets, conf.sca, conf.code, etc. *)
       requested_products = [];
     }
