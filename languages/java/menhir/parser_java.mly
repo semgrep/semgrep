@@ -550,7 +550,7 @@ literal:
  | TInt    { Literal (Int ($1)) }
  | TFloat  { Literal (Float ($1)) }
  | TChar   { Literal (Char ($1)) }
- | TString { Literal (String ($1)) }
+ | TString { Literal (String (Tok.unsafe_fake_bracket [StrLit $1])) }
  | NULL    { Literal (Null $1) }
 
 class_literal:
@@ -728,7 +728,7 @@ relational_expression:
  | relational_expression GT shift_expression  { Infix ($1, (Gt,$2), $3) }
  | relational_expression LE shift_expression  { Infix ($1, (LtE,$2), $3) }
  | relational_expression GE shift_expression  { Infix ($1, (GtE,$2), $3) }
- | relational_expression INSTANCEOF reference_type  { InstanceOf ($1, $3) }
+ | relational_expression INSTANCEOF reference_type  { InstanceOf ($1, Left $3) }
 
 equality_expression:
  | relational_expression  { $1 }
@@ -952,7 +952,7 @@ switch_block_statement_group: switch_label+ block_statement+
   {$1, $2}
 
 switch_label:
- | CASE constant_expression ":"        { Case ($1, $2) }
+ | CASE constant_expression ":"        { CaseExprs ($1, [$2], None) }
  | DEFAULT_COLON ":"                   { Default $1 }
 
 
