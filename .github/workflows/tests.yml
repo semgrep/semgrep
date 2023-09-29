@@ -87,6 +87,7 @@ jobs:
           make copy-core-for-cli
       - name: Install Python dependencies
         run: |
+          make install-deps-ALPINE-for-pysemgrep
           (cd cli; pipenv install --dev)
       - name: Run pytest for osemgrep known passing tests
         working-directory: cli
