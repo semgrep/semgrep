@@ -1418,39 +1418,6 @@ and stmt_aux env st =
       @ [ mk_s (Loop (tok, cond, st @ cont_label_s @ next @ ss2)) ]
       @ break_label_s
   | G.For (_, G.ForEllipsis _, _) -> sgrep_construct (G.S st)
-  | G.For
-      ( tok,
-        G.ForIn
-          ( [
-              G.ForInitVar
-                ({ name = G.EN (G.Id (id, ii)); _ }, { vinit = None; _ });
-            ],
-            [ e ] ),
-        stmts ) ->
-      (* e.g. C++: for (int *p : set)
-       * TODO: Should this be encoded as a ForEach already in Parse_cpp_tree_sitter ? *)
-      let pat = G.PatId (id, ii) in
-      for_each env tok (pat, snd id, e) stmts
-  | G.For (tok, G.ForIn (xs, e), stmts) ->
-      let orig_stmt = st in
-      let cont_label_s, break_label_s, st_env =
-        mk_break_continue_labels env tok
-      in
-      let ss1 = for_var_or_expr_list env xs in
-      let stmts = stmt st_env stmts in
-      let ss2, cond =
-        match e with
-        | first :: _TODO ->
-            (* TODO list *)
-            expr_with_pre_stmts env first
-        | [] ->
-            (* TODO: empty list of elements to iterate over
-               bash: for x do ... done *)
-            ([], fixme_exp ToDo (G.S orig_stmt) (related_tok tok))
-      in
-      ss1 @ ss2
-      @ [ mk_s (Loop (tok, cond, stmts @ cont_label_s @ ss2)) ]
-      @ break_label_s
   (* TODO: repeat env work of controlflow_build.ml *)
   | G.Continue (tok, lbl_ident, _) -> (
       match lbl_ident with

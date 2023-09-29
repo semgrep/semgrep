@@ -926,7 +926,7 @@ for_range_decl: type_spec_seq2 declarator
   { let (t_ret, _sto, mods) = type_and_storage_from_decl $1 in
     let (name, ftyp) = $2 in
     let ent = { name; specs = mods |> List.map (fun x -> M x) } in
-    ent, { v_type = ftyp t_ret; v_init = None } }
+    ftyp t_ret, ent }
 
 for_range_init: expr { InitExpr $1 }
 
