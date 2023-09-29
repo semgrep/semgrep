@@ -23,21 +23,19 @@ module Conv = Convert_utils
 module Out = Semgrep_output_v1_t
 
 (*****************************************************************************)
-(* Entry point *)
+(* Server *)
 (*****************************************************************************)
 
-let on_request server
+let initialize_server server
     ({ rootUri; workspaceFolders; initializationOptions; _ } :
       InitializeParams.t) =
-  (* There's rootPath, rootUri, and workspaceFolders. First two are
-      deprecated, so let's split the diffrence and support last two *)
   let initializationOptions =
     match initializationOptions with
     | Some json -> json
     | None -> `Assoc []
   in
-  let scan_options = initializationOptions |> member "scan" in
   let user_settings =
+    let scan_options = initializationOptions |> member "scan" in
     let do_hover =
       initializationOptions |> member "doHover" |> to_bool_option
       |> Option.value ~default:false
@@ -48,15 +46,6 @@ let on_request server
     in
     { res with do_hover }
   in
-  let is_intellij =
-    match initializationOptions |> member "metrics" with
-    | `Assoc l when Option.is_some (List.assoc_opt "extensionType" l) ->
-        String.equal
-          (Option.value ~default:""
-             (to_string_option (List.assoc "extensionType" l)))
-          "intellij"
-    | _ -> false
-  in
   let workspace_folders =
     match (workspaceFolders, rootUri) with
     | Some (Some folders), _ -> Conv.workspace_folders_to_paths folders
@@ -66,6 +55,28 @@ let on_request server
         Logs.warn (fun m -> m "No workspace folders or rootUri provided");
         []
   in
+  let is_intellij =
+    match initializationOptions |> member "metrics" with
+    | `Assoc l when Option.is_some (List.assoc_opt "extensionType" l) ->
+        String.equal
+          (Option.value ~default:""
+             (to_string_option (List.assoc "extensionType" l)))
+          "intellij"
+    | _ -> false
+  in
+  {
+    session =
+      { server.session with workspace_folders; user_settings; is_intellij };
+    state = State.Running;
+  }
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
+let on_request server (params : InitializeParams.t) =
+  (* There's rootPath, rootUri, and workspaceFolders. First two are
+      deprecated, so let's split the diffrence and support last two *)
   let init =
     InitializeResult.
       {
@@ -73,12 +84,6 @@ let on_request server
         serverInfo = Some { name = "Semgrep"; version = Some Version.version };
       }
   in
-  let server =
-    {
-      session =
-        { server.session with workspace_folders; user_settings; is_intellij };
-      state = State.Running;
-    }
-  in
+  let server = initialize_server server params in
   (* TODO we should create a progress symbol before calling initialize server! *)
   (init, server)

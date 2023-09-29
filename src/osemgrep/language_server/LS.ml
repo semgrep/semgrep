@@ -153,9 +153,9 @@ let on_notification notification server =
           scan_file server uri);
         server
     | CN.ChangeWorkspaceFolders { event = { added; removed }; _ } ->
-        let added = Conv.workspace_folders_to_paths added in
-        let removed = Conv.workspace_folders_to_paths removed in
         let session =
+          let added = Conv.workspace_folders_to_paths added in
+          let removed = Conv.workspace_folders_to_paths removed in
           Session.update_workspace_folders server.session ~added ~removed
         in
         let server = { server with session } in
@@ -163,13 +163,13 @@ let on_notification notification server =
         server
     | CN.DidDeleteFiles { files; _ } ->
         (* This is lame, for whatever reason they chose to type uri as string here, not Uri.t *)
-        let files =
-          Common.map
-            (fun { FileDelete.uri } ->
-              Str.string_after uri (String.length "file://") |> Fpath.v)
-            files
-        in
         let diagnostics =
+          let files =
+            Common.map
+              (fun { FileDelete.uri } ->
+                Str.string_after uri (String.length "file://") |> Fpath.v)
+              files
+          in
           Diagnostics.diagnostics_of_results
             ~is_intellij:server.session.is_intellij [] files
         in
@@ -185,20 +185,23 @@ let on_notification notification server =
         server
     | CN.UnknownNotification
         { method_ = "semgrep/scanWorkspace"; params = Some json } ->
-        let json = Structured.yojson_of_t json in
         let full =
-          json |> member "full" |> to_bool_option |> Option.value ~default:false
+          Structured.yojson_of_t json
+          |> member "full" |> to_bool_option
+          |> Option.value ~default:false
         in
         Logs.app (fun m -> m "Scanning workspace, full: %b" full);
-        let session =
-          {
-            server.session with
-            user_settings =
-              { server.session.user_settings with only_git_dirty = not full };
-          }
+        let scan_server =
+          let session =
+            {
+              server.session with
+              user_settings =
+                { server.session.user_settings with only_git_dirty = not full };
+            }
+          in
+          { server with session }
         in
-        let _server = { server with session } in
-        scan_workspace _server;
+        scan_workspace scan_server;
         Logs.app (fun m -> m "Scanning workspace complete");
         server
     | _ ->
@@ -214,24 +217,26 @@ let on_notification notification server =
 (* Requests *)
 (*****************************************************************************)
 
+(* Specifically for custom requests for searching. *)
+let search_handler server params =
+  let server =
+    let session = server.session in
+    let session =
+      {
+        session with
+        user_settings = { session.user_settings with only_git_dirty = false };
+      }
+    in
+    { server with session }
+  in
+  let runner rules = run_semgrep server ~rules:(Some rules) |> fst in
+  Search.on_request runner params
+
+(* Dispatch to the various custom request handlers. *)
 let handle_custom_request server (meth : string)
     (params : Jsonrpc.Structured.t option) : Yojson.Safe.t option * t =
-  let search_handler params =
-    let server =
-      let session = server.session in
-      let session =
-        {
-          session with
-          user_settings = { session.user_settings with only_git_dirty = false };
-        }
-      in
-      { server with session }
-    in
-    let runner rules = run_semgrep server ~rules:(Some rules) |> fst in
-    Search.on_request runner params
-  in
   match
-    [ (Search.meth, search_handler); (ShowAst.meth, ShowAst.on_request) ]
+    [ (Search.meth, search_handler server); (ShowAst.meth, ShowAst.on_request) ]
     |> List.assoc_opt meth
   with
   | None ->

@@ -103,10 +103,10 @@ let code_actions_of_cli_matches (matches : Out.cli_match list)
 let on_request server
     ({ textDocument = { uri }; context; _ } : CodeActionParams.t) =
   let file = uri |> Uri.to_path |> Fpath.v in
-  let ranges =
-    Common.map (fun (d : Diagnostic.t) -> d.range) context.diagnostics
-  in
   let matches =
+    let ranges =
+      Common.map (fun (d : Diagnostic.t) -> d.range) context.diagnostics
+    in
     Session.previous_scan_of_file server.session file
     |> Option.value ~default:[]
     |> Common2.filter (fun (m : Semgrep_output_v1_t.cli_match) ->
