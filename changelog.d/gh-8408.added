@@ -1,4 +1,4 @@
-Added support in Ruby, Julia, and rust to match implicit return statement inside functions.
+Added support in Ruby, Julia, and Rust to match implicit return statement inside functions.
 
 For example:
 
