@@ -14,7 +14,7 @@ test:
 	cd libyaml; $(MAKE) test
 	cd engine; $(MAKE) test
 	cd languages; $(MAKE) -j $(nproc) test # These are easily parallelizable
-	#cd tests; $(MAKE)
+	#cd tests; $(MAKE) # This is really slow for some reason :(
 
 .PHONY: e2e
 e2e: engine languages
