@@ -30,11 +30,12 @@ module Out = Semgrep_output_v1_t
  *)
 
 module MessageHandler = struct
-  (* Relevant here means any matches we actually care about showing the user.
-     This means like some matches, such as those that appear in committed
-     files/lines, will be filtered out*)
-  (** This is the entry point for scanning, returns /relevant/ matches, and all files scanned*)
-  let run_semgrep ?(targets = None) ?(rules = None) server =
+  (** This is the entry point for scanning, returns /relevant/ matches, and all files scanned.
+    * If [targets] is None, then we scan all files in the workspace. If [rules] is None, then we
+    * scan all rules in the session. If [git_ref] is None, then we only filter out matches in
+    * committed files/lines. If it is set, we will filter out matches found in lines that are unchanged
+    * since [git_ref] *)
+  let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None) server =
     let session = server.session in
     let rules =
       Option.value ~default:server.session.cached_session.rules rules
@@ -53,7 +54,7 @@ module MessageHandler = struct
     let scanned = res.scanned |> Set_.elements in
     Logs.app (fun m -> m "Scanned %d files" (List.length scanned));
     let only_git_dirty = session.user_settings.only_git_dirty in
-    let matches = Processed_run.of_matches ~only_git_dirty res in
+    let matches = Processed_run.of_matches ~git_ref ~only_git_dirty res in
     Logs.app (fun m -> m "Found %d matches" (List.length matches));
     (matches, scanned)
 
@@ -78,20 +79,29 @@ module MessageHandler = struct
   let scan_file ?(content = None) server uri =
     let file_path = Uri.to_path uri in
     let file = Fpath.v file_path in
-    let targets =
+    let targets, git_ref =
       match content with
-      | None -> [ file ]
+      | None -> ([ file ], None)
       | Some content ->
           let name = Fpath.basename file in
           let ext = Fpath.get_ext file in
           let tmp_file = Common.new_temp_file name ext in
           Common.write_file tmp_file content;
-          [ Fpath.v tmp_file ]
+          ([ Fpath.v tmp_file ], Some Fpath.(to_string file))
     in
     let session_targets = Session.targets server.session in
     let targets = if List.mem file session_targets then targets else [] in
     let targets = Some targets in
-    let results, _ = run_semgrep ~targets server in
+    let results, _ = run_semgrep ~git_ref ~targets server in
+    let results =
+      match content with
+      | Some _ ->
+          let existing_results, _ =
+            run_semgrep ~targets:(Some [ file ]) server
+          in
+          results @ existing_results
+      | None -> results
+    in
     let results =
       Common.map
         (fun (m : Out.cli_match) -> { m with path = file_path })

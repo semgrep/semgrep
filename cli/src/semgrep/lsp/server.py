@@ -20,6 +20,7 @@ from semgrep.types import JsonObject
 
 log = logging.getLogger(__name__)
 
+
 # This is essentially a "middleware" between the client and the core LS. Since
 # core/osemgrep does't have login functionality, we need to do that stuff
 # here.
@@ -35,6 +36,7 @@ class SemgrepCoreLSServer:
     def start_ls(self) -> None:
         args = ["osemgrep", "lsp", "--experimental"]
         executable = str(self.config.engine_type.get_binary_path())
+        log.info(f"Starting Semgrep Language Server at path {executable}")
         self.core_process = subprocess.Popen(
             args,
             executable=executable,
