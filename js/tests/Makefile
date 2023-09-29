@@ -20,9 +20,10 @@ test: dist/test.js dist/test.wasm
 
 ../libpcre/dist/libpcre.a:
 	$(MAKE) -C ../libpcre dist/libpcre.a
+languages:
+	SEMGREP_JS_TEST_BUILD=1 $(MAKE) -C .. languages
 
-dist/test.js dist/test.wasm: ../libyaml/dist/libyaml.o ../libpcre/dist/libpcre.a
-	SEMGREP_JS_TEST_BUILD=1 make -C .. languages libpcre libyaml
+dist/test.js dist/test.wasm: ../libyaml/dist/libyaml.o ../libpcre/dist/libpcre.a languages
 	mkdir -p dist
 	emcc \
 		-O3 \
