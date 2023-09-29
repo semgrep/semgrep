@@ -213,11 +213,13 @@ class ScanHandler:
             logger.info(f"Would have sent POST request to create scan")
             return
 
-        request = out.CreateScanRequest(
-            meta={**project_metadata.to_json(), **project_config.to_dict()},
+        request = out.ScanRequest(
+            meta=out.RawJson(
+                {**project_metadata.to_json(), **project_config.to_dict()}
+            ),
             scan_metadata=self.scan_metadata,
             project_metadata=project_metadata,
-            project_config=project_config.to_dict(),
+            project_config=out.ProjectConfig(out.RawJson(project_config.to_dict())),
         ).to_json()
         logger.debug(f"Starting scan: {json.dumps(request, indent=4)}")
         response = state.app_session.post(
