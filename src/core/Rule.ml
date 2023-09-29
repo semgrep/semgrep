@@ -368,71 +368,6 @@ type secrets = {
 [@@deriving show]
 
 (*****************************************************************************)
-(* Languages definition *)
-(*****************************************************************************)
-
-(*
-   For historical reasons, the 'languages' field in the Semgrep rule
-   (YAML file) is a list of strings. There was no distinction between
-   target selection and target analysis. This led to oddities for
-   analyzers that aren't specific to a programming language.
-
-   We can now start to decouple file filtering from their analysis.
-   For example, we can select Bash files using the predefined
-   rules that inspect the file extension or the shebang line
-   but analyze them using a regexp instead of a regular Semgrep pattern.
-
-   This is the beginning of fixing this giant mess.
-
-   to be continued...
-*)
-type languages = {
-  (* How to select target files e.g. "files that look like C files".
-     If unspecified, the selector selects all the files that are not
-     ignored by generic mechanisms such as semgrepignore.
-     In a Semgrep rule where a string is expected, the standard way
-     is to use "generic" but "regex" and "none" have the same effect.
-     They all translate into 'None'.
-
-     Example:
-
-       target_selector = Some [Javascript; Typescript];
-
-     ... selects all the files that can be parsed and analyzed
-     as TypeScript ( *.js, *.ts, *.tsx) since TypeScript is an extension of
-     JavaScript.
-
-     TODO: instead of always deriving this field automatically from
-     the 'languages' field of the rule, add support for an optional
-     'target-selectors' field that supports a variety of predefined
-     target selectors (e.g. "minified-javascript-files",
-     "javascript-executable-scripts", "makefile", ...). This would reduce
-     the maintenance burden for custom target selectors and allow mixing
-     them other target analyzers. For example, we could select all the
-     Bash scripts but analyze them with spacegrep.
-  *)
-  target_selector : Lang.t list option;
-  (* How to analyze target files. The accompanying patterns are specified
-     elsewhere in the rule.
-     Examples:
-     - "pattern for the C parser using the generic AST" (regular programming
-       language using a classic Semgrep pattern)
-     - "pattern for Fortran77 or for Fortran90" (two possible parsers)
-     - "spacegrep pattern"
-     - "high-entropy detection" (doesn't use a pattern)
-     - "extract JavaScript snippets from a PDF file" (doesn't use a pattern)
-     This information may have to be extracted from another part of the
-     YAML rule.
-
-     Example:
-
-       target_analyzer = L (Typescript, []);
-  *)
-  target_analyzer : Xlang.t;
-}
-[@@deriving show]
-
-(*****************************************************************************)
 (* Paths *)
 (*****************************************************************************)
 
@@ -443,8 +378,10 @@ type languages = {
 type glob = string (* original string *) * Glob.Pattern.t (* parsed glob *)
 [@@deriving show]
 
-(* TODO? should we provide a pattern-path: Xpattern to combine
+(* TODO? should we provide a pattern-filename: Xpattern to combine
  * with other Xpattern instead of adhoc paths: extra field in the rule?
+ * TODO? should we remove this field and opt for a more powerful and general
+ * Target_selector.t type?
  *)
 type paths = {
   (* If not empty, list of file path patterns (globs) that
@@ -479,7 +416,8 @@ type steps_mode = [ `Steps of step list ] [@@deriving show]
 (*****************************************************************************)
 and step = {
   step_mode : mode_for_step;
-  step_languages : languages;
+  step_selector : Target_selector.t option;
+  step_analyzer : Xlang.t;
   step_paths : paths option;
 }
 
@@ -502,16 +440,75 @@ type 'mode rule_info = {
   message : string;
   (* Currently a dummy value for extract mode rules *)
   severity : severity;
-  (* This is the list of languages in which the root pattern makes sense. *)
-  languages : languages;
+  (* Note: The two fields target_seletor and target_analyzer below used to
+   * be a single 'languages: Xlang.t' field.
+   * Indeed, for historical reasons, the 'languages:' field in the
+   * YAML file is a list of strings. There is no distinction between
+   * target *selection* and target *analysis*. This led to oddities for
+   * analyzers that aren't specific to a programming language
+   * (e.g., "spacegrep", "regexp").
+   *
+   * We can now start to decouple file selection from their analysis.
+   * For example, we can select Bash files using the predefined
+   * rules that inspect the file extension (.sh) or the shebang line (#!)
+   * but analyze them using a regexp instead of a regular Semgrep pattern.
+   *
+   * see also https://www.notion.so/semgrep/What-s-a-language-3f4e75546edd4a0389fa29a24eedb6c0
+   *
+   * TODO: instead of always deriving those two fields automatically from
+   * the 'languages:' field of the rule in Parse_rule.ml, we should add
+   * support for an optional new 'target-selectors:' field in the rule syntax.
+   *
+   * target_selector: How to *select* target files e.g. "files that look
+   * like C files". If None, the selector selects all the files that are not
+   * ignored by generic mechanisms such as semgrepignore.
+   * In a Semgrep rule where a string is expected, the standard way
+   * is to use "generic" but "regex" and "none" have the same effect.
+   * They all translate into 'None'.
+   *
+   * Example:
+   *
+   *   target_selector = Some [Javascript; Typescript];
+   *
+   * ... selects all the files that can be parsed and analyzed
+   * as TypeScript ( *.js, *.ts, *.tsx) since TypeScript is an extension of
+   * JavaScript.
+   *)
+  target_selector : Target_selector.t option;
+  (* target_analyzer: How to *analyze* target files. The accompanying
+   * patterns are specified elsewhere in the rule.
+   *
+   * Examples:
+   * - "pattern for the C parser using the generic AST" (regular programming
+   *   language using a classic Semgrep pattern)
+   * - "pattern for Fortran77 or for Fortran90" (two possible parsers)
+   * - "spacegrep pattern"
+   * - "high-entropy detection" (doesn't use a pattern)
+   * - "extract JavaScript snippets from a PDF file" (doesn't use a pattern)
+   * This information may have to be extracted from another part of the
+   * YAML rule.
+   *
+   * Example:
+   *
+   *   target_analyzer = L (Typescript, []);
+   *)
+  target_analyzer : Xlang.t;
   (* OPTIONAL fields *)
   options : Rule_options.t option;
-  (* deprecated? todo: parse them *)
+  (* deprecated? or should we resurrect the feature?
+   * TODO: if we resurrect the feature, we should parse the string
+   *)
   equivalences : string list option;
   fix : string option;
   fix_regexp : (Xpattern.regexp_string * int option * string) option;
+  (* TODO: we should get rid of this and instead provide a more general
+   * Xpattern.Filename feature that integrates well with the xpatterns.
+   *)
   paths : paths option;
-  (* ex: [("owasp", "A1: Injection")] but can be anything *)
+  (* ex: [("owasp", "A1: Injection")] but can be anything.
+   * Metadata was (ab)used for the ("interfile", "true") setting, but this
+   * is now done via Rule_options instead.
+   *)
   metadata : JSON.t option;
 }
 
@@ -788,17 +785,14 @@ let xpatterns_of_rule rule =
 (* Converters *)
 (*****************************************************************************)
 
-let languages_of_lang (lang : Lang.t) : languages =
-  { target_selector = Some [ lang ]; target_analyzer = L (lang, []) }
-
-let languages_of_xlang (xlang : Xlang.t) : languages =
+let selector_and_analyzer_of_xlang (xlang : Xlang.t) :
+    Target_selector.t option * Xlang.t =
   match xlang with
   | LRegex
   | LAliengrep
   | LSpacegrep ->
-      { target_selector = None; target_analyzer = xlang }
-  | L (lang, other_langs) ->
-      { target_selector = Some (lang :: other_langs); target_analyzer = xlang }
+      (None, xlang)
+  | L (lang, other_langs) -> (Some (lang :: other_langs), xlang)
 
 (* return list of "positive" x list of Not *)
 let split_and (xs : formula list) : formula list * (tok * formula) list =
@@ -819,6 +813,7 @@ let split_and (xs : formula list) : formula list * (tok * formula) list =
  *)
 let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
   let fk = Tok.unsafe_fake_tok "" in
+  let target_selector, target_analyzer = selector_and_analyzer_of_xlang xlang in
   {
     id = (Rule_ID.of_string "-e", fk);
     mode = `Search (P xpat);
@@ -827,7 +822,8 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
     (* alt: could put xpat.pstr for the message *)
     message = "";
     severity = Error;
-    languages = languages_of_xlang xlang;
+    target_selector;
+    target_analyzer;
     options = None;
     equivalences = None;
     fix = None;

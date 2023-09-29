@@ -81,7 +81,7 @@ let group_rules_by_target_language rules : (Xlang.t * Rule.t list) list =
   let tbl = Hashtbl.create 100 in
   rules
   |> List.iter (fun (rule : Rule.t) ->
-         let pattern_lang = rule.languages.target_analyzer in
+         let pattern_lang = rule.target_analyzer in
          let target_langs = Xlang.flatten pattern_lang in
          target_langs
          |> List.iter (fun lang ->

@@ -18,9 +18,15 @@ function unix_environment() {
   return [];
 }
 
-//Provides: get_jsoo_mount_point
+//Provides: set_jsoo_mountpoint
 //Requires: jsoo_mount_point
-function get_jsoo_mount_point() {
+function set_jsoo_mountpoint(value) {
+  jsoo_mount_point = value;
+}
+
+//Provides: get_jsoo_mountpoint
+//Requires: jsoo_mount_point
+function get_jsoo_mountpoint() {
   return jsoo_mount_point;
 }
 

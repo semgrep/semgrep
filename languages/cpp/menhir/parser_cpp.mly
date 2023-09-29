@@ -563,7 +563,7 @@ unary_op:
 postfix_expr:
  | primary_expr               { $1 }
 
- | postfix_expr "[" expr "]"              { ArrayAccess ($1, ($2, InitExpr $3,$4)) }
+ | postfix_expr "[" expr "]"              { ArrayAccess ($1, ($2, [InitExpr $3],$4)) }
  | postfix_expr "(" optl(listc(argument)) ")" { mk_funcall $1 ($2, $3, $4) }
 
  (*c++ext: ident is now a id_expression *)
@@ -629,7 +629,7 @@ literal:
  | TChar   { C (Char   ($1)) }
  | TString { C (String ($1)) }
  (* gccext: cppext: *)
- | string_elem string_elem+ { C (MultiString ($1 :: $2)) }
+ | string_elem string_elem+ { C (MultiString (Common.map (fun x -> StrLit x) ($1 :: $2))) }
  (*c++ext: *)
  | Ttrue   { C (Bool (true, $1)) }
  | Tfalse  { C (Bool (false, $1)) }
@@ -926,7 +926,7 @@ for_range_decl: type_spec_seq2 declarator
   { let (t_ret, _sto, mods) = type_and_storage_from_decl $1 in
     let (name, ftyp) = $2 in
     let ent = { name; specs = mods |> List.map (fun x -> M x) } in
-    ent, { v_type = ftyp t_ret; v_init = None } }
+    ftyp t_ret, ent }
 
 for_range_init: expr { InitExpr $1 }
 

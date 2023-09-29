@@ -490,7 +490,7 @@ let translate_formula iformula =
   | None -> failwith "should not happen"
   | Some iformula -> iformula
 
-let mk_fake_rule lang formula =
+let mk_fake_rule xlang formula =
   {
     Rule.id = (Rule_ID.of_string "-i", fk);
     mode = `Search formula;
@@ -499,7 +499,8 @@ let mk_fake_rule lang formula =
     (* alt: could put xpat.pstr for the message *)
     message = "";
     severity = Error;
-    languages = lang;
+    target_analyzer = xlang;
+    target_selector = None;
     options = None;
     equivalences = None;
     fix = None;
@@ -592,9 +593,7 @@ let buffer_matches_of_new_iformula (new_iform : iformula_zipper) (state : state)
   *)
   reset_file_zipper state;
   let rule_formula = translate_formula new_iform in
-  let fake_rule =
-    mk_fake_rule (Rule.languages_of_xlang state.xlang) rule_formula
-  in
+  let fake_rule = mk_fake_rule state.xlang rule_formula in
   let xconf =
     {
       Match_env.config = Rule_options.default_config;

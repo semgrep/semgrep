@@ -383,19 +383,17 @@ and map_qualifier_wrap _env (qu, t) : G.attribute =
   | Constinit -> G.unhandled_keywordattr ("ConstInit", t)
   | Consteval -> G.unhandled_keywordattr ("ConstEval", t)
   | NoReturn -> G.unhandled_keywordattr ("noreturn", t)
+  | Extension -> G.unhandled_keywordattr ("extension", t)
 
 and map_expr env x : G.expr =
   match x with
   | N v1 ->
       let v1 = map_name env v1 in
       G.N v1 |> G.e
-  | C v1 ->
-      let v1 = map_constant env v1 in
-      G.L v1 |> G.e
+  | C v1 -> map_constant env v1
   | UserDefined (v1, v2) ->
       let v1 = map_constant env v1 in
-      OtherExpr
-        (("UserDefined", G.fake "UseDefined"), [ G.E (G.L v1 |> G.e); G.I v2 ])
+      OtherExpr (("UserDefined", G.fake "UseDefined"), [ G.E v1; G.I v2 ])
       |> G.e
   | IdSpecial v1 ->
       let v1 = map_special_wrap env v1 in
@@ -446,8 +444,14 @@ and map_expr env x : G.expr =
       G.opcall v2 [ v1; v3 ]
   | ArrayAccess (v1, v2) ->
       let v1 = map_expr env v1
-      and v2 = map_bracket env (map_initialiser env) v2 in
-      G.ArrayAccess (v1, v2) |> G.e
+      and l, v2, r = map_bracket env (map_of_list (map_initialiser env)) v2 in
+      let v2 =
+        match v2 with
+        | [] -> failwith "should not be empty by precondition"
+        | [ x ] -> x
+        | xs -> Container (List, fb xs) |> G.e
+      in
+      G.ArrayAccess (v1, (l, v2, r)) |> G.e
   | DotAccess (v1, v2, v3) -> (
       let v1 = map_expr env v1
       and either, tdot = map_wrap env (map_dotOp env) v2
@@ -606,6 +610,7 @@ and map_expr env x : G.expr =
   | TypedMetavar (v1, v2) ->
       let v1 = map_ident env v1 and v2 = map_type_ env v2 in
       G.TypedMetavar (v1, G.fake ":", v2) |> G.e
+  | DotAccessEllipsis (e, tk) -> G.DotAccessEllipsis (map_expr env e, tk) |> G.e
   | ExprTodo (v1, v2) ->
       let v1 = map_todo_category env v1
       and v2 = map_of_list (map_expr env) v2 in
@@ -634,6 +639,7 @@ and map_argument env x : G.argument =
   | ArgInits v1 ->
       let l, xs, r = map_brace env (map_of_list (map_initialiser env)) v1 in
       G.Arg (G.Container (G.Dict, (l, xs, r)) |> G.e)
+  | ArgBlock x -> Arg (StmtExpr (Block (map_compound env x) |> G.s) |> G.e)
 
 and map_action_macro env x : G.any list =
   match x with
@@ -641,35 +647,33 @@ and map_action_macro env x : G.any list =
       let v1 = map_of_list (map_tok env) v1 in
       v1 |> Common.map (fun t -> G.Tk t)
 
-and map_constant env x : G.literal =
+and map_constant env x : G.expr =
   match x with
   | Int v1 ->
       let v1 = map_wrap env (map_of_option map_of_int) v1 in
-      G.Int v1
+      G.L (G.Int v1) |> G.e
   | Float v1 ->
       let v1 = map_wrap env (map_of_option map_of_float) v1 in
-      G.Float v1
+      G.L (G.Float v1) |> G.e
   | Char v1 ->
       let v1 = map_wrap env map_of_string v1 in
-      G.Char v1
+      G.L (G.Char v1) |> G.e
   | String v1 ->
       let v1 = map_wrap env map_of_string v1 in
-      G.String (fb v1)
+      G.L (G.String (fb v1)) |> G.e
   | MultiString v1 ->
-      let v1 = map_of_list (map_wrap env map_of_string) v1 in
-      let s = v1 |> Common.map fst |> String.concat "" in
-      let t =
-        match v1 |> Common.map snd with
-        | [] -> raise Impossible
-        | x :: xs -> Tok.combine_toks x xs
-      in
-      G.String (fb (s, t))
+      let v1 = map_of_list map_string_component v1 in
+      G.interpolated (fb v1)
   | Bool v1 ->
       let v1 = map_wrap env map_of_bool v1 in
-      G.Bool v1
+      G.L (G.Bool v1) |> G.e
   | Nullptr v1 ->
       let v1 = map_tok env v1 in
-      G.Null v1
+      G.L (G.Null v1) |> G.e
+
+and map_string_component = function
+  | StrIdent id -> Common.Middle3 (G.N (Id (id, G.empty_id_info ())) |> G.e)
+  | StrLit s -> Common.Left3 s
 
 and map_unaryOp _env = function
   | UnPlus -> Left G.Plus
@@ -1129,16 +1133,23 @@ and map_for_header env = function
       and v2 = map_of_option (map_expr env) v2
       and v3 = map_of_option (map_expr env) v3 in
       G.ForClassic (v1, v2, v3)
-  | ForRange (v1, v2, v3, v4) ->
+  | ForRange (v1, (ty, ent), v3, v4) ->
       (* TODO: We cannot accommodate this in the Generic AST at the present. *)
       let _initialiser_TODO =
         map_of_option (map_condition_initializer env) v1
       in
-      let ent, vardef = map_var_decl env v2
-      and _v2 = map_tok env v3
+      let ent = map_entity env ent
+      and ty = map_type_ env ty
+      and v2 = map_tok env v3
       and v4 = map_initialiser env v4 in
+      (* TODO: use the other stuff in the entity? *)
+      let pat =
+        match ent.name with
+        | EN (Id (id, idinfo)) -> G.PatId (id, idinfo) |> G.p
+        | _ -> G.OtherPat (("PatEnt", G.fake "PatEnt"), [ G.En ent ]) |> G.p
+      in
       (* less: or ForEach? *)
-      G.ForIn ([ G.ForInitVar (ent, vardef) ], [ v4 ])
+      G.ForEach (G.PatTyped (pat, ty) |> G.p, v2, v4)
 
 and map_a_expr_or_vars env v =
   match v with
@@ -2071,7 +2082,7 @@ let map_any env x : G.any =
       G.Flds (distribute_access v1)
   | Constant v1 ->
       let v1 = map_constant env v1 in
-      G.E (G.L v1 |> G.e)
+      G.E v1
   | Argument v1 ->
       let v1 = map_argument env v1 in
       G.Ar v1

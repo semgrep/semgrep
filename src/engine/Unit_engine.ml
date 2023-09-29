@@ -288,7 +288,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =
       inside = false;
       message = "";
       severity = R.Error;
-      languages = [ lang ];
+      langs = [ lang ];
       pattern_string = "test: no need for pattern string";
       fix = fix_pattern;
     }
@@ -530,13 +530,14 @@ let filter_irrelevant_rules_tests () =
 let get_extract_source_lang file rules =
   let _, _, erules, _, _ = R.partition_rules rules in
   let erule_langs =
-    erules |> Common.map (fun r -> r.R.languages) |> List.sort_uniq compare
+    erules
+    |> Common.map (fun r -> r.R.target_analyzer)
+    |> List.sort_uniq compare
   in
   match erule_langs with
   | [] -> failwith (spf "no language for extract rule found in %s" !!file)
-  | [ x ] -> x.target_analyzer
-  | x :: _ ->
-      let xlang = x.target_analyzer in
+  | [ x ] -> x
+  | xlang :: _ ->
       pr2
         (spf
            "too many languages from extract rules found in %s, picking the \
@@ -574,7 +575,7 @@ let tainting_test lang rules_file file =
   let rules =
     rules
     |> List.filter (fun r ->
-           match r.Rule.languages.target_analyzer with
+           match r.Rule.target_analyzer with
            | Xlang.L (x, xs) -> List.mem lang (x :: xs)
            | _ -> false)
   in

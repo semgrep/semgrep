@@ -135,7 +135,7 @@ and expr =
   (* c-ext:? *)
   | Null of tok
   | Bool of bool wrap
-  | ConcatString of string wrap list (* TODO: bracket *)
+  | ConcatString of string_component list (* TODO: bracket *)
   (* can be a cpp or enum constant (e.g. FOO), or a local/global/parameter
    * variable, or a function name.
    *)
@@ -180,6 +180,7 @@ and expr =
   | Ellipses of tok
   | DeepEllipsis of expr bracket
   | TypedMetavar of name * type_
+  | DotAccessEllipsis of expr * tok
 
 and argument =
   | Arg of expr
@@ -191,7 +192,11 @@ and argument =
 
 (* really should just contain constants and Id that are #define *)
 and const_expr = expr [@@deriving show { with_path = false }]
-and special = SizeOf | OffsetOf
+and special = SizeOf | OffsetOf | AlignOf
+
+(* Concatenations may contain identifiers, which are macros that are strings.
+*)
+and string_component = StrLit of string wrap | StrIdent of string wrap
 
 (*****************************************************************************)
 (* Statement *)

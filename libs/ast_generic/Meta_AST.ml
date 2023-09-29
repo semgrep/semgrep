@@ -979,10 +979,6 @@ and vof_for_header = function
   | ForEllipsis t ->
       let t = vof_tok t in
       OCaml.VSum ("ForEllipsis", [ t ])
-  | ForIn (v1, v2) ->
-      let v1 = OCaml.vof_list vof_for_var_or_expr v1
-      and v2 = OCaml.vof_list vof_expr v2 in
-      OCaml.VSum ("ForIn", [ v1; v2 ])
 
 and vof_for_each (v1, t, v2) =
   let t = vof_tok t in

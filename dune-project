@@ -403,6 +403,7 @@ For more information see https://semgrep.dev
     bos
     ; unit testing
     alcotest
+    alcotest-js
     ; text and terminal formating
     fmt
     ocolor
@@ -448,9 +449,9 @@ For more information see https://semgrep.dev
     lwt
     lwt_ppx
     ; jsoo
-    (js_of_ocaml (= 5.1.1))
-    (js_of_ocaml-compiler (= 5.1.1))
-    (js_of_ocaml-ppx (= 5.1.1))
+    (js_of_ocaml (= 5.4.0))
+    (js_of_ocaml-compiler (= 5.4.0))
+    (js_of_ocaml-ppx (= 5.4.0))
     ctypes_stubs_js
     integers_stubs_js
   )

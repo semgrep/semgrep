@@ -112,6 +112,7 @@ val finalize : (unit -> 'a) -> (unit -> unit) -> 'a
 val i_to_s : int -> string
 val s_to_i : string -> int
 val null_string : string -> bool
+val contains : string -> string -> bool
 
 (* Shortcut for Printf.sprintf *)
 val spf : ('a, unit, string) format -> 'a
