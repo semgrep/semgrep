@@ -70,6 +70,9 @@ jobs:
     container: returntocorp/ocaml:alpine5.0-2023-09-29
     env:
       HOME: /root
+    strategy:
+      matrix:
+        python: ["3.7", "3.8", "3.9", "3.10", "3.11"]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -81,6 +84,11 @@ jobs:
           make install-deps-ALPINE-for-semgrep-core
           make install-deps-for-semgrep-core
           make core
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pipenv
+      - run: pip install pipenv==2022.6.7
       - name: Install osemgrep
         run: |
           eval $(opam env)
