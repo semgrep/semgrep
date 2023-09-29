@@ -2,11 +2,11 @@
 // not this because it has no part of it thats not the interpolation
 val x = "$X"
 
-// ERROR: match 
+// ERROR: match
 val x = "but $X is good"
 
 // ERROR: match
 val x = "anything"
 
-// not this cause its empty 
+// ERROR: can match the empty literal string too
 val x = ""
