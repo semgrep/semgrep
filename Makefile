@@ -301,7 +301,7 @@ VIRTENV='virtualenv==20.21.0'
 # https://stackoverflow.com/questions/63515454/why-does-pip3-install-pipenv-give-error-error-cannot-uninstall-distlib
 install-deps-ALPINE-for-pysemgrep:
 	apk add --no-cache $(ALPINE_APK_DEPS_PYSEMGREP)
-	pip install --no-cache-dir --ignore-installed virtualenv-clone==0.5.7
+	pip uninstall -y virtualenv
 	pip install --no-cache-dir --ignore-installed distlib $(PIPENV) $(VIRTENV)
 
 # -------------------------------------------------
