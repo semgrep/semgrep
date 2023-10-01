@@ -1,6 +1,17 @@
 (* translated from scans.py *)
 module Out = Semgrep_output_v1_j
 
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+(* TODO: declared this in semgrep_output_v1.atd? *)
+type scan_id = string
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
 (* TODO: specify as ATD the reply of api/agent/deployments/scans *)
 let extract_scan_id data =
   try
@@ -84,7 +95,7 @@ let extract_rule_config data =
   with
   | e -> Error ("Failed to decode config: " ^ Printexc.to_string e ^ ": " ^ data)
 
-let fetch_scan_config_async ~token ~sca ~dry_run ~full_scan repository =
+let fetch_scan_config_async ~dry_run ~token ~sca ~full_scan repository =
   let url = Semgrep_App.scan_config_uri ~sca ~dry_run ~full_scan repository in
   let%lwt content =
     let headers =
@@ -112,7 +123,7 @@ let fetch_scan_config_async ~token ~sca ~dry_run ~full_scan repository =
   in
   Lwt.return conf
 
-let fetch_scan_config ~token ~sca ~dry_run ~full_scan repository =
+let fetch_scan_config ~dry_run ~token ~sca ~full_scan repository =
   (* TODO (see below): once we have the CLI logic in place to ignore findings that are from old rule versions
      if self.dry_run:
        app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
@@ -215,7 +226,7 @@ let extract_block_override data =
         (Fmt.str "Failed to decode server reply as json %s: %s"
            (Printexc.to_string e) data)
 
-let report_findings ~token ~scan_id ~dry_run ~findings_and_ignores ~complete =
+let report_findings ~dry_run ~token ~scan_id ~findings_and_ignores ~complete =
   if dry_run then (
     Logs.app (fun m ->
         m "Would have sent findings and ignores blob: %s"
