@@ -434,7 +434,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
      specified on command-line. If something fails, an exit code is
      returned. *)
   let scan_id, rules_and_origin =
-    match depl with
+    match depl_opt with
     (* TODO: document why we support running the ci command without a
      * token / deployment. Without this no token / no deployment case,
      * we could unify the two code branches
@@ -520,7 +520,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
     in
     match res with
     | Error e ->
-        (match (depl, scan_id) with
+        (match (depl_opt, scan_id) with
         | Some (token, _), Some scan_id ->
             ignore
               (Scan_helper.report_failure ~dry_run:conf.dryrun ~token ~scan_id
@@ -577,7 +577,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
                  (List.length blocking_rules + List.length non_blocking_rules)
                  "rule"));
         let app_block_override, reason =
-          match (depl, scan_id) with
+          match (depl_opt, scan_id) with
           | Some (token, deployment_config), Some scan_id ->
               Logs.app (fun m -> m "  Uploading findings.");
               let findings_and_ignores, complete =
@@ -642,7 +642,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
         else exit_code
   with
   | Error.Semgrep_error (_, ex) as e ->
-      (match (depl, scan_id) with
+      (match (depl_opt, scan_id) with
       | Some (token, _), Some scan_id ->
           let r = Option.value ~default:Exit_code.fatal ex in
           ignore
