@@ -17,6 +17,10 @@ module Out = Semgrep_output_v1_t
 (* Helpers *)
 (*****************************************************************************)
 
+(*****************************************************************************)
+(* Scan config *)
+(*****************************************************************************)
+
 (* eventually output the origin (if the semgrep_url is not semgrep.dev) *)
 let at_url_maybe ppf () : unit =
   if
@@ -62,6 +66,36 @@ let fetch_scan_config ~token ~dry_run ~sca ~full_scan ~repository scan_id =
             Exception.reraise e
       in
       [ rules_and_origins ]
+
+let deployment_config_opt api_token rules_source =
+  match (api_token, rules_source) with
+  | None, Rules_source.Configs [] ->
+      Logs.app (fun m ->
+          m "run `semgrep login` before using `semgrep ci` or set `--config`");
+      Error.exit Exit_code.invalid_api_key
+  | Some _, Rules_source.Configs (_ :: _) ->
+      Logs.app (fun m ->
+          m
+            "Cannot run `semgrep ci` with --config while logged in. The \
+             `semgrep ci` command will upload findings to semgrep-app and \
+             those findings must come from rules configured there. Drop the \
+             `--config` to use rules configured on semgrep.dev or log out.");
+      Error.exit Exit_code.fatal
+  (* TODO: document why we support running the ci command without a token *)
+  | None, _ -> None
+  | Some token, _ -> (
+      match Semgrep_App.get_scan_config_from_token ~token with
+      | None ->
+          Logs.app (fun m ->
+              m
+                "API token not valid. Try to run `semgrep logout` and `semgrep \
+                 login` again.");
+          Error.exit Exit_code.invalid_api_key
+      | Some deployment_config -> Some (token, deployment_config))
+
+(*****************************************************************************)
+(* Project metadata *)
+(*****************************************************************************)
 
 (* from meta.py *)
 let generate_meta_from_environment (_baseline_ref : Digestif.SHA1.t option) :
@@ -112,6 +146,10 @@ let generate_meta_from_environment (_baseline_ref : Digestif.SHA1.t option) :
   | Ok `Help ->
       invalid_arg "unexpected version or help"
   | Error _e -> invalid_arg "couldn't decode environment"
+
+(*****************************************************************************)
+(* Partition rules *)
+(*****************************************************************************)
 
 let is_blocking (json : JSON.t) =
   match json with
@@ -169,6 +207,10 @@ let partition_findings ~keep_ignored (results : Out.cli_match list) =
     try List.assoc `Non_blocking groups with
     | Not_found -> [] )
 
+(*****************************************************************************)
+(* Conversions *)
+(*****************************************************************************)
+
 (* from rule_match.py *)
 let severity_to_int = function
   | "EXPERIMENT" -> `Int 4
@@ -209,6 +251,10 @@ let finding_of_cli_match _commit_date index (m : Out.cli_match) : Out.finding =
       }
   in
   r
+
+(*****************************************************************************)
+(* Reporting *)
+(*****************************************************************************)
 
 (* from scans.py *)
 let prepare_for_report ~blocking_findings findings errors rules ~targets
@@ -349,32 +395,6 @@ let prepare_for_report ~blocking_findings findings errors rules ~targets
 (* Main logic *)
 (*****************************************************************************)
 
-let deployment_config api_token rules_source =
-  match (api_token, rules_source) with
-  | None, Rules_source.Configs [] ->
-      Logs.app (fun m ->
-          m "run `semgrep login` before using `semgrep ci` or set `--config`");
-      Error.exit Exit_code.invalid_api_key
-  | Some _, Rules_source.Configs (_ :: _) ->
-      Logs.app (fun m ->
-          m
-            "Cannot run `semgrep ci` with --config while logged in. The \
-             `semgrep ci` command will upload findings to semgrep-app and \
-             those findings must come from rules configured there. Drop the \
-             `--config` to use rules configured on semgrep.dev or log out.");
-      Error.exit Exit_code.fatal
-  (* TODO: document why we support running the ci command without a token *)
-  | None, _ -> None
-  | Some token, _ -> (
-      match Semgrep_App.get_scan_config_from_token ~token with
-      | None ->
-          Logs.app (fun m ->
-              m
-                "API token not valid. Try to run `semgrep logout` and `semgrep \
-                 login` again.");
-          Error.exit Exit_code.invalid_api_key
-      | Some deployment_config -> Some (token, deployment_config))
-
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
 let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
@@ -383,7 +403,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
   (* TODO? we probably want to set the metrics to On by default in CI ctx? *)
   Metrics_.configure conf.metrics;
   let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
-  let depl = deployment_config settings.api_token conf.rules_source in
+  let depl_opt = deployment_config_opt settings.api_token conf.rules_source in
   (* TODO: pass baseline commit! *)
   let prj_meta = generate_meta_from_environment None in
   let scan_metadata : Out.scan_metadata =
