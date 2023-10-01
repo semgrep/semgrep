@@ -24,8 +24,9 @@ let extract_scan_id data =
   | e ->
       Error ("Couldn't parse json, error: " ^ Printexc.to_string e ^ ": " ^ data)
 
-let start_scan ~dry_run ~token (url : Uri.t) (prj : Project_metadata.t) :
-    (string, string) result =
+(* TODO: pass project_config *)
+let start_scan ~dry_run ~token (url : Uri.t) (prj_meta : Project_metadata.t)
+    (scan_meta : Out.scan_metadata) : (string, string) result =
   if dry_run then (
     Logs.app (fun m -> m "Would have sent POST request to create scan");
     Ok "")
@@ -38,8 +39,22 @@ let start_scan ~dry_run ~token (url : Uri.t) (prj : Project_metadata.t) :
       ]
     in
     let scan_endpoint = Uri.with_path url "api/agent/deployments/scans" in
-    let meta : Out.meta = { meta = prj } in
-    let body = Out.string_of_meta meta in
+    (* deprecated from 1.43 *)
+    (* TODO: should concatenate with raw_json project_config *)
+    let meta =
+      (* ugly: would be good for ATDgen to generate also a json_of_xxx *)
+      prj_meta |> Out.string_of_project_metadata |> Yojson.Basic.from_string
+    in
+    let request : Out.scan_request =
+      {
+        meta;
+        scan_metadata = Some scan_meta;
+        project_metadata = Some prj_meta;
+        (* TODO *)
+        project_config = None;
+      }
+    in
+    let body = Out.string_of_scan_request request in
     match Http_helpers.post ~body ~headers scan_endpoint with
     | Ok body -> extract_scan_id body
     | Error (status, msg) ->

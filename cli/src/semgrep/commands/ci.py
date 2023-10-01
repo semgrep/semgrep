@@ -312,14 +312,30 @@ def ci(
         # so that metadata of current commit is correct
         if scan_handler:
             console.print(Title("Connection", order=2))
-            meta: out.ProjectMetadata = metadata.to_project_metadata()
-            meta.is_sca_scan = supply_chain
-            meta.is_code_scan = code
-            meta.is_secrets_scan = run_secrets_flag
-            metadata_dict = meta.to_json()
+
+            # Build project_metadata
+            project_meta: out.ProjectMetadata = metadata.to_project_metadata()
+            project_meta.is_sca_scan = supply_chain
+            project_meta.is_code_scan = code
+            project_meta.is_secrets_scan = run_secrets_flag
+
             # TODO: move ProjectConfig to ATD too
-            proj_config = ProjectConfig.load_all()
-            metadata_dict = {**metadata_dict, **proj_config.to_dict()}
+            project_config = ProjectConfig.load_all()
+
+            # Build scan_metadata
+            if code:
+                scan_handler.scan_metadata.requested_products.append(
+                    out.Product(out.SAST())
+                )
+            if supply_chain:
+                scan_handler.scan_metadata.requested_products.append(
+                    out.Product(out.SCA())
+                )
+            if run_secrets_flag:
+                scan_handler.scan_metadata.requested_products.append(
+                    out.Product(out.Secrets())
+                )
+
             with Progress(
                 TextColumn("  {task.description}"),
                 SpinnerColumn(spinner_name="simpleDotsScrolling"),
@@ -333,7 +349,7 @@ def ci(
 
                 start_scan_desc = f"Reporting start of scan for [bold]{scan_handler.deployment_name}[/bold]"
                 start_scan_task = progress_bar.add_task(start_scan_desc)
-                scan_handler.start_scan(metadata_dict)
+                scan_handler.start_scan(project_meta, project_config)
                 if scan_handler.scan_id:
                     start_scan_desc += f" (scan_id={scan_handler.scan_id})"
                 progress_bar.update(
@@ -343,7 +359,7 @@ def ci(
                 connection_task = progress_bar.add_task(
                     f"Fetching configuration from Semgrep Cloud Platform{at_url_maybe}"
                 )
-                scan_handler.fetch_and_init_scan_config(metadata_dict)
+                scan_handler.fetch_and_init_scan_config(project_meta.to_json())
                 progress_bar.update(connection_task, completed=100)
 
                 product_names = [

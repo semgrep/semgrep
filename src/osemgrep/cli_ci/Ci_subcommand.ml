@@ -381,7 +381,15 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
         | Some deployment_config -> Ok (Some (token, deployment_config)))
   in
   (* TODO: pass baseline commit! *)
-  let metadata = generate_meta_from_environment None in
+  let prj_meta = generate_meta_from_environment None in
+  let scan_metadata : Out.scan_metadata =
+    {
+      cli_version = Version.version;
+      unique_id = Uuidm.v `V4 |> Uuidm.to_string;
+      (* TODO: should look at conf.secrets, conf.sca, conf.code, etc. *)
+      requested_products = [];
+    }
+  in
   let contributions = Parse_contribution.get_contributions () in
   match deployment with
   | Error e -> e
@@ -400,9 +408,9 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
             "  environment - running in environment %a, triggering event is \
              %a@."
             Fmt.(styled `Bold string)
-            metadata.scan_environment
+            prj_meta.scan_environment
             Fmt.(styled `Bold string)
-            metadata.on);
+            prj_meta.on);
       (* TODO: fix_head_if_github_action(metadata) *)
       (* Either a scan_id and the rules for the project, or None and the rules
          specified on command-line. If something fails, an exit code is
@@ -438,7 +446,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
             *)
             match
               Scan_helper.start_scan ~dry_run:conf.dryrun ~token
-                !Semgrep_envvars.v.semgrep_url metadata
+                !Semgrep_envvars.v.semgrep_url prj_meta scan_metadata
             with
             | Error msg ->
                 Logs.err (fun m -> m "Could not start scan %s" msg);
@@ -448,8 +456,8 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
                 Result.map
                   (fun r -> (Some scan_id, r))
                   (fetch_scan_config ~token ~dry_run:conf.dryrun ~sca:false
-                     ~full_scan:metadata.is_full_scan
-                     ~repository:metadata.repository scan_id))
+                     ~full_scan:prj_meta.is_full_scan
+                     ~repository:prj_meta.repository scan_id))
       in
 
       match r with
@@ -615,7 +623,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
                           m
                             "  Audit mode is on for %s, so exiting with code 0 \
                              even if matches found"
-                            metadata.on);
+                            prj_meta.on);
                       Exit_code.ok)
                     else (
                       Logs.app (fun m ->

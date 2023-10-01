@@ -3,6 +3,7 @@ val start_scan :
   token:string ->
   Uri.t ->
   Project_metadata.t ->
+  Semgrep_output_v1_t.scan_metadata ->
   (string, string) result
 (** [start_scan ~dry_run ~token url prj] informs the Semgrep App that a scan
     is about to be started, and returns the scan id from the server. If
