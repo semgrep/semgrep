@@ -93,7 +93,7 @@ jobs:
     needs: [inputs]
     with:
       docker-flavor: |
-        # don't add a "latest" tag (we'll promote "canary-nonroot" to "latest-nonroot" after testing)
+        # don't add a "latest" tag (we'll promote "canary" to "latest" after testing)
         latest=false
       docker-tags: |
         # tag image with "canary"
@@ -116,16 +116,10 @@ jobs:
     # docker cache.
     needs: [inputs, build-test-docker]
     with:
-      # latest=false == don't set the latest tag
-      #
-      # We first push to canary-nonroot and then promote to latest-nonroot
-      # once we confirm that the release doesn't have any
-      # obvious bugs or issues
-      #
       docker-flavor: |
         # suffix all tags with "-nonroot"
         suffix=-nonroot
-        # don't add a "latest" tag (we'll promote "canary" to "latest" after testing)
+        # don't add a "latest-nonroot" tag (we'll promote "canary-nonroot" to "latest-nonroot" after testing)
         latest=false
       docker-tags: |
         # tag image with "canary-nonroot"
