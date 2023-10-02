@@ -11,8 +11,6 @@
    ast_generic
    semgrep.core ; for Lang
    parser_javascript.ast ; ugly for Ast_js.default_entity
-   semgrep.il
-   pfff-lang_GENERIC-analyze
  )
  (preprocess
     (pps
