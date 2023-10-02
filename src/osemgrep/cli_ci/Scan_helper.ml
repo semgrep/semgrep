@@ -137,33 +137,6 @@ let fetch_scan_config ~dry_run ~token ~sca ~full_scan repository =
   Lwt_main.run
     (fetch_scan_config_async ~token ~sca ~dry_run ~full_scan repository)
 
-let report_failure ~dry_run ~token ~scan_id exit_code =
-  if dry_run then (
-    Logs.app (fun m ->
-        m "Would have reported failure to semgrep.dev: %u" exit_code);
-    Ok ())
-  else
-    let uri =
-      Uri.with_path !Semgrep_envvars.v.semgrep_url
-        ("/api/agent/scans/" ^ scan_id ^ "/error")
-    in
-    let headers =
-      [
-        ("content-type", "application/json");
-        ("authorization", "Bearer " ^ token);
-      ]
-    in
-    let body =
-      JSON.(
-        string_of_json
-          (Object [ ("exit_code", Int exit_code); ("stderr", String "") ]))
-    in
-    match Http_helpers.post ~body ~headers uri with
-    | Ok _ -> Ok ()
-    | Error (code, msg) ->
-        Error
-          ("API server returned " ^ string_of_int code ^ ", this error: " ^ msg)
-
 (* TODO the server reply when POST to
    "/api/agent/scans/<scan_id>/findings_and_ignores" should be specified ATD *)
 let extract_errors data =

@@ -42,12 +42,3 @@ val report_findings :
   (app_block_override, string) result
 (** [report_findings ~dry_run ~token ~scan_id ~findings_and_ignores ~complete]
     reports the findings to Semgrep App. *)
-
-val report_failure :
-  dry_run:bool ->
-  token:string ->
-  scan_id:scan_id ->
-  int ->
-  (unit, string) result
-(** [report_failure ~dry_run ~token ~scan_id exit_code] reports the failure
-    for [scan_id] to Semgrep App. *)
