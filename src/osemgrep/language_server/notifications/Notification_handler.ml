@@ -87,10 +87,18 @@ let on_notification notification (server : RPC_server.t) =
         Logs.app (fun m -> m "Server exiting");
         { server with state = RPC_server.State.Stopped }
     | CN.UnknownNotification { method_ = "semgrep/refreshRules"; _ }
-    | CN.UnknownNotification { method_ = "semgrep/loginFinish"; _ }
-    | CN.UnknownNotification { method_ = "semgrep/logout"; _ } ->
+    | CN.UnknownNotification { method_ = "semgrep/loginFinish"; _ } ->
         Scan_helpers.refresh_rules server;
         server
+    | CN.UnknownNotification { method_ = "semgrep/logout"; _ } ->
+        if
+          Semgrep_settings.save
+            { (Semgrep_settings.load ()) with api_token = None }
+        then server
+        else (
+          RPC_server.notify_show_message server ~kind:MessageType.Error
+            "Failed to log out";
+          server)
     | CN.UnknownNotification
         { method_ = "semgrep/scanWorkspace"; params = Some json } ->
         let full =

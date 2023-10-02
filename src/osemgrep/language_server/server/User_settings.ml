@@ -36,6 +36,7 @@ type t = {
   only_git_dirty : bool; [@key "onlyGitDirty"] [@default true]
   ci : bool; [@default true]
   do_hover : bool; [@default false]
+  auth_token : string option; [@default None]
 }
 [@@deriving yojson]
 
@@ -52,6 +53,7 @@ let default =
     only_git_dirty = true;
     ci = true (* Secret setting for testing purposes *);
     do_hover = false;
+    auth_token = None;
   }
 
 let t_of_yojson json = of_yojson json

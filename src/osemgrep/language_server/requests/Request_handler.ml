@@ -50,13 +50,18 @@ let handle_custom_request server (meth : string)
     (params : Jsonrpc.Structured.t option) : Yojson.Safe.t option * RPC_server.t
     =
   match
-    [ (Search.meth, search_handler server); (ShowAst.meth, ShowAst.on_request) ]
+    [
+      (Search.meth, search_handler);
+      (ShowAst.meth, ShowAst.on_request);
+      (Login.meth, Login.on_request);
+      (LoginStatus.meth, LoginStatus.on_request);
+    ]
     |> List.assoc_opt meth
   with
   | None ->
       Logs.warn (fun m -> m "Unhandled custom request %s" meth);
       (None, server)
-  | Some handler -> (handler params, server)
+  | Some handler -> (handler server params, server)
 
 let on_request (type r) (request : r CR.t) server =
   let process_result (r, server) =

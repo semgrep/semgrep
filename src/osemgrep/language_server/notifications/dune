@@ -4,5 +4,11 @@
  (wrapped false)
  (libraries
    semgrep.language_server.scan_helpers
+   osemgrep_language_server_server
+ )
+  (preprocess
+   (pps
+     ppx_deriving_yojson
+   )
  )
 )

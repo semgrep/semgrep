@@ -16,6 +16,8 @@ type t = { session : Session.t; state : State.t }
 val batch_notify : t -> Lsp.Server_notification.t list -> unit
 (** [batch_notify t notifs] sends a batch of notifications to the client. *)
 
+val notify_show_message : t -> kind:Lsp.Types.MessageType.t -> string -> unit
+
 val create_progress : t -> string -> string -> Lsp.Types.ProgressToken.t
 (** [create_progress t title message] creates a progress token. *)
 

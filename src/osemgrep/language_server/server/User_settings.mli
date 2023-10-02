@@ -10,6 +10,7 @@ type t = {
   only_git_dirty : bool;
   ci : bool;
   do_hover : bool;
+  auth_token : string option; [@default None]
 }
 
 val default : t
