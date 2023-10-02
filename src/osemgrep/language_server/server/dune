@@ -1,0 +1,23 @@
+(library
+ (public_name semgrep.language_server.server)
+ (name osemgrep_language_server_server)
+ (wrapped false)
+ (libraries
+   lsp
+   lwt
+   lwt.unix
+
+   semgrep_core_cli
+   osemgrep_core
+   osemgrep_configuring
+   osemgrep_cli_scan
+   osemgrep_cli_ci
+   osemgrep_networking
+ )
+ (preprocess
+  (pps
+    lwt_ppx
+    profiling.ppx
+  )
+ )
+)

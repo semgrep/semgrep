@@ -11,16 +11,24 @@ default: test
 clean:
 	rm -rf dist
 
-test: dist/test.js dist/test.wasm
+test: dist/test.js
 	node index.test.js
 
-dist/test.js dist/test.wasm: ../libyaml/dist/libyaml.o ../libpcre/dist/libpcre.a
-	#SEMGREP_JS_TEST_BUILD=1 make -C .. languages # Enable this once https://github.com/llvm/llvm-project/pull/67715 is released (or if you've built clang yourself)
-	make -C .. languages
+
+../libyaml/dist/libyaml.o:
+	$(MAKE) -C ../libyaml dist/libyaml.o
+
+../libpcre/dist/libpcre.a:
+	$(MAKE) -C ../libpcre dist/libpcre.a
+
+languages:
+	SEMGREP_JS_TEST_BUILD=1 $(MAKE) -C .. languages
+
+dist/test.js dist/test.wasm: ../libyaml/dist/libyaml.o ../libpcre/dist/libpcre.a languages
 	mkdir -p dist
 	emcc \
 		-O3 \
-		$^ \
+		$(wordlist 1,2, $^) \
 		$(EMCC_DEFAULTS) \
 		-sEXPORTED_FUNCTIONS=_malloc,_free,$(YAML_EXPORTED_METHODS),$(PCRE_EXPORTED_METHODS) \
 		-o $(word 1,$@)

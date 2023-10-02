@@ -1,0 +1,8 @@
+(library
+ (public_name semgrep.language_server.notifications)
+ (name osemgrep_language_server_notifications)
+ (wrapped false)
+ (libraries
+   semgrep.language_server.scan_helpers
+ )
+)

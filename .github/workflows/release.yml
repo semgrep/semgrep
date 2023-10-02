@@ -93,9 +93,14 @@ jobs:
     needs: [inputs]
     with:
       docker-flavor: |
-        latest=auto
+        # don't add a "latest" tag (we'll promote "canary-nonroot" to "latest-nonroot" after testing)
+        latest=false
       docker-tags: |
+        # tag image with "canary"
+        type=raw,value=canary
+        # tag image with full version (ex. "1.2.3")
         type=semver,pattern={{version}}
+        # tag image with major.minor (ex. "1.2")
         type=semver,pattern={{major}}.{{minor}}
       repository-name: ${{ github.repository }}
       artifact-name: image-release
@@ -111,11 +116,23 @@ jobs:
     # docker cache.
     needs: [inputs, build-test-docker]
     with:
+      # latest=false == don't set the latest tag
+      #
+      # We first push to canary-nonroot and then promote to latest-nonroot
+      # once we confirm that the release doesn't have any
+      # obvious bugs or issues
+      #
       docker-flavor: |
-        latest=auto
-        suffix=-nonroot,onlatest=true
+        # suffix all tags with "-nonroot"
+        suffix=-nonroot
+        # don't add a "latest" tag (we'll promote "canary" to "latest" after testing)
+        latest=false
       docker-tags: |
+        # tag image with "canary-nonroot"
+        type=raw,value=canary
+        # tag image with full version (ex. "1.2.3-nonroot")
         type=semver,pattern={{version}}
+        # tag image with major.minor version (ex. "1.2-nonroot")
         type=semver,pattern={{major}}.{{minor}}
       repository-name: ${{ github.repository }}
       artifact-name: image-release-nonroot

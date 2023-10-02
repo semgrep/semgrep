@@ -114,7 +114,7 @@ let get_event_name env = env._GITHUB_EVENT_NAME
 (* Split out shallow fetch so we can mock it away in tests. *)
 let _shallow_fetch_branch branch_name =
   let _ =
-    Project_metadata.git_check_output
+    Git_wrapper.git_check_output
       Bos.Cmd.(
         v "git" % "fetch" % "origin" % "--depth=1" % "--force"
         % "--update-head-ok"
@@ -128,7 +128,7 @@ let _shallow_fetch_branch branch_name =
    name to the commit. It just does the fetch. *)
 let _shallow_fetch_commit commit_hash =
   let _ =
-    Project_metadata.git_check_output
+    Git_wrapper.git_check_output
       Bos.Cmd.(
         v "git" % "fetch" % "origin" % "--depth=1" % "--force"
         % "--update-head-ok"
@@ -141,8 +141,7 @@ let _shallow_fetch_commit commit_hash =
    Does a git fetch of given branch with depth = 1. *)
 let _get_latest_commit_hash_in_branch branch_name =
   _shallow_fetch_branch branch_name;
-  Project_metadata.git_check_output
-    Bos.Cmd.(v "git" % "rev-parse" % branch_name)
+  Git_wrapper.git_check_output Bos.Cmd.(v "git" % "rev-parse" % branch_name)
   |> Digestif.SHA1.of_hex_opt |> Option.get
 
 (* Ref name of the branch pull request if from. *)
@@ -168,7 +167,7 @@ let get_head_branch_hash env =
           m "head branch %s has latest commit %a, fetching that commit now."
             head_branch_name Digestif.SHA1.pp commit);
       let _ =
-        Project_metadata.git_check_output
+        Git_wrapper.git_check_output
           Bos.Cmd.(
             v "git" % "fetch" % "origin" % "--force" % "--depth=1"
             % Digestif.SHA1.to_hex commit)
@@ -247,14 +246,14 @@ let rec _find_branchoff_point ?(attempt_count = 0) env =
     (* XXX(dinosaure): we safely can use [Option.get]. This information is
        required to [get_base_branch_ref]. *)
     let _ =
-      Project_metadata.git_check_output
+      Git_wrapper.git_check_output
         Bos.Cmd.(
           v "git" % "fetch" % "origin" % "--force" % "--update-head-ok"
           % "--depth" % string_of_int fetch_depth
           % Fmt.str "%s:%s" base_branch_name base_branch_name)
     in
     let _ =
-      Project_metadata.git_check_output
+      Git_wrapper.git_check_output
         Bos.Cmd.(
           v "git" % "fetch" % "origin" % "--force" % "--update-head-ok"
           % "--depth" % string_of_int fetch_depth
