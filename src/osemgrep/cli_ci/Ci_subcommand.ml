@@ -48,6 +48,7 @@ let exit_code_of_blocking_findings ~audit_mode ~on ~app_block_override
 (*****************************************************************************)
 (* Scan config *)
 (*****************************************************************************)
+(* token -> deployment_scan_config -> scan_id -> rules *)
 
 let deployment_config_opt (api_token : Auth.token option) (empty_config : bool)
     : (Auth.token * Semgrep_App.deployment_scan_config) option =
@@ -128,7 +129,7 @@ let fetch_scan_config ~token ~dry_run ~sca ~full_scan ~repository
  *)
 let scan_id_and_rules_from_deployment (settings : Semgrep_settings.t)
     (conf : Ci_CLI.conf) (prj_meta : Out.project_metadata)
-    (depl_opt : (string * Semgrep_App.deployment_scan_config) option) :
+    (depl_opt : (Auth.token * Semgrep_App.deployment_scan_config) option) :
     Scan_helper.scan_id option * Rule_fetching.rules_and_origin list =
   match depl_opt with
   (* TODO: document why we support running the ci command without a
@@ -178,7 +179,9 @@ let scan_id_and_rules_from_deployment (settings : Semgrep_settings.t)
 (* Project metadata *)
 (*****************************************************************************)
 
-(* from meta.py *)
+(* from meta.py
+ * TODO: do not use cmdliner for this; just use Sys.getenv
+ *)
 let generate_meta_from_environment (_baseline_ref : Digestif.SHA1.t option) :
     Project_metadata.t =
   (* https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables *)
@@ -248,28 +251,25 @@ let is_blocking (json : JSON.t) =
 (* partition rules *)
 let partition_rules (filtered_rules : Rule.t list) =
   let cai_rules, rest =
-    List.partition
-      (fun r ->
-        Common2.string_match_substring
-          (Str.regexp "r2c-internal-cai")
-          (Rule_ID.to_string (fst r.Rule.id)))
-      filtered_rules
+    filtered_rules
+    |> List.partition (fun r ->
+           Common2.string_match_substring
+             (Str.regexp "r2c-internal-cai")
+             (Rule_ID.to_string (fst r.Rule.id)))
   in
   let blocking_rules, non_blocking_rules =
-    List.partition
-      (fun r ->
-        Option.value ~default:false (Option.map is_blocking r.Rule.metadata))
-      rest
+    rest
+    |> List.partition (fun r ->
+           Option.value ~default:false (Option.map is_blocking r.Rule.metadata))
   in
   (cai_rules, blocking_rules, non_blocking_rules)
 
 let partition_findings ~keep_ignored (results : Out.cli_match list) =
   let groups =
-    List.filter
-      (fun (m : Out.cli_match) ->
-        Option.value ~default:false m.Out.extra.Out.is_ignored
-        && not keep_ignored)
-      results
+    results
+    |> List.filter (fun (m : Out.cli_match) ->
+           Option.value ~default:false m.Out.extra.Out.is_ignored
+           && not keep_ignored)
     |> Common.group_by (fun (m : Out.cli_match) ->
            if
              Common2.string_match_substring
@@ -397,15 +397,14 @@ let findings_and_complete ~blocking_findings findings errors rules ~targets
       | _ -> invalid_arg "unknown severity"
     in
     let sort_severity a b = Int.compare (to_int a) (to_int b) in
-    List.sort
-      (fun m1 m2 ->
-        sort_severity m1.Out.extra.Out.severity m2.Out.extra.Out.severity)
-      all_matches
+    all_matches
+    |> List.sort (fun m1 m2 ->
+           sort_severity m1.Out.extra.Out.severity m2.Out.extra.Out.severity)
   in
   let new_ignored, new_matches =
-    List.partition
-      (fun m -> Option.value ~default:false m.Out.extra.Out.is_ignored)
-      all_matches
+    all_matches
+    |> List.partition (fun m ->
+           Option.value ~default:false m.Out.extra.Out.is_ignored)
   in
   let findings = Common.mapi (finding_of_cli_match commit_date) new_matches
   and ignores = Common.mapi (finding_of_cli_match commit_date) new_ignored in
@@ -508,7 +507,6 @@ let findings_and_complete ~blocking_findings findings errors rules ~targets
   in
   (findings_and_ignores, complete)
 
-(* return app_block_override * reason (TODO: define type) *)
 let upload_findings ~dry_run
     (depl_opt : (string * Semgrep_App.deployment_scan_config) option)
     (scan_id_opt : Scan_helper.scan_id option) blocking_findings filtered_rules
@@ -539,11 +537,10 @@ let upload_findings ~dry_run
           m "    https://semgrep.dev/orgs/%s/findings"
             deployment_config.deployment_name);
       if
-        List.exists
-          (fun r ->
-            String.equal "r2c-internal-project-depends-on"
-              (Rule_ID.to_string (fst r.Rule.id)))
-          filtered_rules
+        filtered_rules
+        |> List.exists (fun r ->
+               String.equal "r2c-internal-project-depends-on"
+                 (Rule_ID.to_string (fst r.Rule.id)))
       then
         Logs.app (fun m ->
             m "    https://semgrep.dev/orgs/%s/supply-chain"
@@ -558,14 +555,14 @@ let upload_findings ~dry_run
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
 let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
-  (* step1: *)
+  (* step1: initialization *)
   CLI_common.setup_logging ~force_color:conf.force_color
     ~level:conf.common.logging_level;
   (* TODO? we probably want to set the metrics to On by default in CI ctx? *)
   Metrics_.configure conf.metrics;
   let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
 
-  (* step2: *)
+  (* step2: token -> deployment_scan_config -> scan_id -> rules *)
   let depl_opt =
     deployment_config_opt settings.api_token (conf.rules_source =*= Configs [])
   in
@@ -573,8 +570,6 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
   let prj_meta = generate_meta_from_environment None in
   Logs.app (fun m -> m "%a" Fmt_helpers.pp_heading "Debugging Info");
   report_scan_environment prj_meta;
-
-  (* step3: *)
   (* TODO: fix_head_if_github_action(metadata) *)
   let scan_id_opt, rules_and_origin =
     scan_id_and_rules_from_deployment settings conf prj_meta depl_opt
@@ -610,7 +605,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
      exclude = ( *exclude, *yield_exclude_paths(excludes_from_app))
   *)
 
-  (* step4: *)
+  (* step3: run the scan *)
   try
     (* TODO: call with:
        target = os.curdir
@@ -641,6 +636,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
         Logs.err (fun m -> m "Encountered error when running rules");
         e
     | Ok (filtered_rules, _res, cli_output) ->
+        (* step4: upload the findings *)
         let _cai_rules, blocking_rules, non_blocking_rules =
           partition_rules filtered_rules
         in
