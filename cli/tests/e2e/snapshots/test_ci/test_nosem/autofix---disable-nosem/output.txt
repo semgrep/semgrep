@@ -3,7 +3,7 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
 === end of command
 
 === exit code
-1
+2
 === end of exit code
 
 === stdout - plain
@@ -119,5 +119,12 @@ Some files were skipped or only partially analyzed.
 CI scan completed successfully.
   Found 15 findings (12 blocking) from 7 rules.
   Has findings for blocking rules so exiting with code 1
+local variable 'complete_result' referenced before assignment
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/ci.py", line 640, in ci
+    if complete_result.app_block_override and not audit_mode:
+UnboundLocalError: local variable 'complete_result' referenced before assignment
 
 === end of stderr - plain

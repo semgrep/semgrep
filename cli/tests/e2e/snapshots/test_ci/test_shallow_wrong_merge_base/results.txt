@@ -62,7 +62,7 @@ CI scan completed successfully.
     https://semgrep.dev/orgs/org_name/findings
     https://semgrep.dev/orgs/org_name/supply-chain
   No blocking findings so exiting with code 0
-  semgrep.dev is suggesting a non-zero exit code <MASKED>
+  semgrep.dev is suggesting a non-zero exit code ()
 
 === end of stdout - plain
 

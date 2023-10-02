@@ -385,6 +385,6 @@ CI scan completed successfully.
     https://semgrep.dev/orgs/org_name/findings
     https://semgrep.dev/orgs/org_name/supply-chain
   Has findings for blocking rules so exiting with code 1
-  semgrep.dev is suggesting a non-zero exit code <MASKED>
+  semgrep.dev is suggesting a non-zero exit code ()
 
 === end of stderr - plain
