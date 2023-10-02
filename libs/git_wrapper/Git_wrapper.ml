@@ -298,27 +298,43 @@ let is_git_repo cwd =
   | Ok _ -> false
   | Error (`Msg e) -> raise (Error e)
 
-let dirty_lines_of_file file =
-  (* In the future we can make the HEAD part a parameter, and allow users to scan against other branches *)
+let dirty_lines_of_file ?(git_ref = "HEAD") file =
+  let cwd = Fpath.parent file in
+  let cmd =
+    (* --error-unmatch Returns a non 0 exit code if a file is not tracked by git. This way further on in this function we don't try running git diff on untracked files, as this isn't allowed. *)
+    Bos.Cmd.(v "git" % "-C" % !!cwd % "ls-files" % "--error-unmatch" % !!file)
+  in
+  let status = Bos.OS.Cmd.run_status ~quiet:true cmd in
+  match (status, git_ref = "HEAD") with
+  | _, false
+  | Ok (`Exited 0), _ ->
+      let cmd =
+        Bos.Cmd.(v "git" % "-C" % !!cwd % "diff" % "-U0" % git_ref % !!file)
+      in
+      let out = Bos.OS.Cmd.run_out cmd in
+      let lines_r = Bos.OS.Cmd.out_string ~trim:true out in
+      let lines =
+        match lines_r with
+        | Ok (lines, (_, `Exited 1))
+        (* 1 happens if git doesn't exit cleanly aka file is not in the repo *)
+        | Ok (lines, (_, `Exited 0)) ->
+            Logs.app (fun m -> m "GIT DIFF lines: %s" lines);
+            Some lines
+        | _ -> None
+      in
+      Option.bind lines (fun l -> Some (range_of_git_diff l))
+  | Ok _, _ -> None
+  | Error (`Msg e), _ -> raise (Error e)
+
+let is_tracked_by_git file =
   let cwd = Fpath.parent file in
   let cmd =
     Bos.Cmd.(v "git" % "-C" % !!cwd % "ls-files" % "--error-unmatch" % !!file)
   in
   let status = Bos.OS.Cmd.run_status ~quiet:true cmd in
   match status with
-  | Ok (`Exited 0) ->
-      let cmd =
-        Bos.Cmd.(v "git" % "-C" % !!cwd % "diff" % "-U0" % "HEAD" % !!file)
-      in
-      let out = Bos.OS.Cmd.run_out cmd in
-      let lines_r = Bos.OS.Cmd.out_string ~trim:true out in
-      let lines =
-        match lines_r with
-        | Ok (lines, (_, `Exited 0)) -> Some lines
-        | _ -> None
-      in
-      Option.bind lines (fun l -> Some (range_of_git_diff l))
-  | Ok _ -> None
+  | Ok (`Exited 0) -> true
+  | Ok _ -> false
   | Error (`Msg e) -> raise (Error e)
 
 let dirty_files cwd =
