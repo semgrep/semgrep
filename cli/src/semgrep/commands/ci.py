@@ -584,7 +584,6 @@ def ci(
         f"  Found {unit_str(num_blocking_findings + num_nonblocking_findings, 'finding')} ({num_blocking_findings} blocking) from {unit_str(num_executed_rules, 'rule')}."
     )
 
-    reason = ""
     if scan_handler:
         with Progress(
             TextColumn("  {task.description}"),
@@ -638,7 +637,9 @@ def ci(
         exit_code = 0
 
     if complete_result.app_block_override and not audit_mode:
-        logger.info(f"  semgrep.dev is suggesting a non-zero exit code ({reason})")
+        logger.info(
+            f"  semgrep.dev is suggesting a non-zero exit code ({complete_result.app_block_reason})"
+        )
         exit_code = 1
 
     if enable_version_check:
