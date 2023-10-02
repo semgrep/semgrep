@@ -3,6 +3,7 @@ import json
 import os
 from collections import Counter
 from copy import deepcopy
+from dataclasses import dataclass
 from datetime import datetime
 from datetime import timedelta
 from pathlib import Path
@@ -13,7 +14,6 @@ from typing import FrozenSet
 from typing import List
 from typing import Optional
 from typing import Set
-from typing import Tuple
 from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 
@@ -38,6 +38,13 @@ if TYPE_CHECKING:
     from rich.progress import Progress
 
 logger = getLogger(__name__)
+
+
+@dataclass
+class ScanCompleteResult:
+    success: bool
+    app_block_override: bool
+    app_block_reason: str
 
 
 class ScanHandler:
@@ -266,7 +273,7 @@ class ScanHandler:
         contributions: out.Contributions,
         engine_requested: "EngineType",
         progress_bar: "Progress",
-    ) -> Tuple[bool, bool, str]:
+    ) -> ScanCompleteResult:
         """
         commit_date here for legacy reasons. epoch time of latest commit
 
@@ -370,7 +377,7 @@ class ScanHandler:
             logger.info(
                 f"Would have sent complete blob: {json.dumps(complete.to_json(), indent=4)}"
             )
-            return (True, False, "")
+            return ScanCompleteResult(True, False, "")
         else:
             logger.debug(
                 f"Sending findings and ignores blob: {json.dumps(findings_and_ignores, indent=4)}"
@@ -432,9 +439,9 @@ class ScanHandler:
 
             if success or complete.final_attempt:
                 progress_bar.update(complete_task, completed=100)
-                return (
+                return ScanCompleteResult(
                     success,
-                    ret.get("app_block_override", False),
+                    bool(ret.get("app_block_override", False)),
                     ret.get("app_block_reason", ""),
                 )
 

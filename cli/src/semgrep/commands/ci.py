@@ -568,7 +568,6 @@ def ci(
         f"  Found {unit_str(num_blocking_findings + num_nonblocking_findings, 'finding')} ({num_blocking_findings} blocking) from {unit_str(num_executed_rules, 'rule')}."
     )
 
-    app_block_override = False
     reason = ""
     if scan_handler:
         with Progress(
@@ -576,11 +575,7 @@ def ci(
             SpinnerColumn(spinner_name="simpleDotsScrolling"),
             console=console,
         ) as progress_bar:
-            (
-                completed_successfully,
-                app_block_override,
-                reason,
-            ) = scan_handler.report_findings(
+            complete_result = scan_handler.report_findings(
                 filtered_matches_by_rule,
                 semgrep_errors,
                 filtered_rules,
@@ -597,7 +592,7 @@ def ci(
                 progress_bar,
             )
 
-        if completed_successfully:
+        if complete_result.success:
             logger.info("  View results in Semgrep Cloud Platform:")
         else:
             logger.info(
@@ -626,7 +621,7 @@ def ci(
         logger.info("  No blocking findings so exiting with code 0")
         exit_code = 0
 
-    if app_block_override and not audit_mode:
+    if complete_result.app_block_override and not audit_mode:
         logger.info(f"  semgrep.dev is suggesting a non-zero exit code ({reason})")
         exit_code = 1
 
