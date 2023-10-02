@@ -1,0 +1,17 @@
+(library
+ (public_name semgrep.language_server.scan_helpers)
+ (name osemgrep_language_server_scan_helpers)
+ (wrapped false)
+ (libraries
+
+   semgrep.language_server.server
+   semgrep.language_server.util
+
+ )
+ (preprocess
+  (pps
+    lwt_ppx
+    profiling.ppx
+  )
+ )
+)
