@@ -383,12 +383,15 @@ jobs:
     secrets: inherit
     with:
       docker-flavor: |
-        latest=auto
+        # test
+        latest=auto  # big test
       docker-tags: |
+        # test
         type=semver,pattern={{version}}
+        # test
         type=semver,pattern={{major}}.{{minor}}
         type=ref,event=pr
-        type=ref,event=branch
+        type=ref,event=branch  # testy test
         type=sha,event=branch
         type=edge
       artifact-name: image-test
