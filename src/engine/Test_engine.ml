@@ -43,14 +43,12 @@ let logger = Logging.get_logger [ __MODULE__ ]
 
 let (xlangs_of_rules : Rule.t list -> Xlang.t list) =
  fun rs ->
-  rs
-  |> Common.map (fun r -> r.R.languages.target_analyzer)
-  |> List.sort_uniq compare
+  rs |> Common.map (fun r -> r.R.target_analyzer) |> List.sort_uniq compare
 
-let first_xlang_of_rules rs =
+let first_xlang_of_rules (rs : Rule.t list) : Xlang.t =
   match rs with
   | [] -> failwith "no rules"
-  | { R.languages = x; _ } :: _ -> x.target_analyzer
+  | { R.target_analyzer = x; _ } :: _ -> x
 
 let single_xlang_from_rules file rules =
   let xlangs = xlangs_of_rules rules in

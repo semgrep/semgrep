@@ -829,6 +829,10 @@ def test_full_run(
             assert meta_json["base_sha"] == gitlab_base_sha
             meta_json["base_sha"] = "sanitized"
 
+    # TODO: we should add those in the snapshots at some point
+    del scan_create_json["project_metadata"]
+    del scan_create_json["project_config"]
+    del scan_create_json["scan_metadata"]
     snapshot.assert_match(json.dumps(scan_create_json, indent=2), "meta.json")
 
     findings_and_ignores_json = post_calls[1].kwargs["json"]

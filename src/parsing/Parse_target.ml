@@ -126,7 +126,10 @@ let parse_and_resolve_name_warn_if_partial lang file =
 
 let parse_and_resolve_name_fail_if_partial lang file =
   let { ast; skipped_tokens; _ } = parse_and_resolve_name lang file in
-  if skipped_tokens <> [] then failwith (spf "fail to fully parse %s" file);
+  if skipped_tokens <> [] then
+    failwith
+      (spf "fail to fully parse %s\n missing tokens:\n%s" file
+         (String.concat "\n" (Common.map Tok.show_location skipped_tokens)));
   ast
 
 (*****************************************************************************)

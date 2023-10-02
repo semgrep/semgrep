@@ -27,4 +27,3 @@ end
 
 val get_url_from_sstp_url : string option -> Uri.t option
 val get_repo_name_from_repo_url : string option -> string option
-val git_check_output : Bos.Cmd.t -> string

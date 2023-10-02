@@ -11,6 +11,12 @@ type status = {
 }
 [@@deriving show]
 
+(* very general helper to run a git command and return its output
+ * if everthing went fine or log the error (using Logs) and
+ * raise an Error otherwise
+ *)
+val git_check_output : Bos.Cmd.t -> string
+
 (* precondition: cwd must be a directory
    This returns a list of paths relative to cwd.
 *)

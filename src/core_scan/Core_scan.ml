@@ -581,7 +581,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
 let rules_for_xlang (xlang : Xlang.t) (rules : Rule.t list) : Rule.t list =
   rules
   |> List.filter (fun r ->
-         match (xlang, r.R.languages.target_analyzer) with
+         match (xlang, r.R.target_analyzer) with
          | LRegex, LRegex
          | LSpacegrep, LSpacegrep
          | LAliengrep, LAliengrep ->

@@ -24,14 +24,17 @@ function lazy_instantiate_parser(func) {
 //Requires: caml_jsstring_of_string, wasm
 function octs_parser_parse_string(vParser, vSource) {
   const { parser_ptr } = vParser;
-  var source = caml_jsstring_of_string(vSource);
-  var source_code_ptr = wasm._malloc(source.length + 1); // TODO: do we need to worry about utf-8?
-  wasm.stringToAscii(source, source_code_ptr);
+  var source_str = Buffer.from(caml_jsstring_of_string(vSource)).toString(
+    "utf-8"
+  );
+  var source_len = wasm.lengthBytesUTF8(source_str);
+  var source_code_ptr = wasm._malloc(source_len + 1);
+  wasm.stringToUTF8(source_str, source_code_ptr, source_len + 1);
   var tree_ptr = wasm._ts_parser_parse_string(
     parser_ptr,
     0,
     source_code_ptr,
-    source.length
+    source_len
   );
   return { tree_ptr };
 }
@@ -110,16 +113,4 @@ function octs_node_type(vNode) {
   return caml_string_of_jsstring(
     wasm.AsciiToString(wasm._ts_node_type(node_ptr))
   );
-}
-
-//Provides: semgrep_get_jsoo_mount_point
-//Requires: jsoo_mount_point
-function semgrep_get_jsoo_mount_point() {
-  return jsoo_mount_point;
-}
-
-//Provides: set_jsoo_mount_point
-//Requires: jsoo_mount_point
-function set_jsoo_mount_point(value) {
-  jsoo_mount_point = value;
 }

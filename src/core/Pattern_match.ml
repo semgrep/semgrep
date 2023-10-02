@@ -125,7 +125,7 @@ type t = {
  *
  * We could derive information in the other fields from the id, but that
  * would require to pass around the list of rules to get back the
- * information. Instead by embedding the information in the pattern match,
+ * information. Instead, by embedding the information in the pattern match,
  * some functions are simpler (we use the same trick with Parse_info.t
  * where for example we embed the filename in it, not just a position).
  * alt: reuse Mini_rule.t
@@ -144,7 +144,8 @@ and rule_id = {
    * mini_rule? *)
   message : string;
   fix : string option;
-  languages : Lang.t list;
+  (* ?? why we need that? *)
+  langs : Lang.t list;
   (* used for debugging (could be removed at some point) *)
   pattern_string : string;
 }
