@@ -13,7 +13,7 @@ type t =
   | Float of float
   | Bool of bool
   | Null
-[@@deriving show]
+[@@deriving show, eq]
 
 let member m j =
   match j with

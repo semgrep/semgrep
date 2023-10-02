@@ -62,7 +62,7 @@ let ranges_matched lang file pattern : Range.t list =
       pattern;
       inside = false;
       message = "";
-      severity = R.Error;
+      severity = Pattern_match.Error;
       langs = [ lang ];
       pattern_string = "test: no need for pattern string";
       fix = None;

@@ -114,7 +114,7 @@ let core_location_to_error_span (loc : Out.location) : Out.error_span =
   }
 
 (* LATER: move to Severity.ml, and use Severity.rule_severity instead? *)
-let string_of_severity (severity : Rule.severity) : string =
+let string_of_severity (severity : Pattern_match.severity) : string =
   match severity with
   | Error -> "ERROR"
   | Warning -> "WARNING"

@@ -11,7 +11,7 @@ type t =
   | Float of float
   | Bool of bool
   | Null
-[@@deriving show]
+[@@deriving show, eq]
 
 val member : string -> t -> t option
 (** [`member s j`] gives `Some v` where `v` is the value associated with the

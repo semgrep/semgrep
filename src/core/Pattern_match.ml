@@ -77,6 +77,13 @@ type taint_trace_item = {
 
 type taint_trace = taint_trace_item list [@@deriving show, eq]
 
+(* This type indicates the severity of a finding. Typically this is
+   accociated with the rule itself, but can be overriden, e.g., in the case
+   of secrets validators. *)
+(* TODO? just reuse Error_code.severity *)
+type severity = Error | Warning | Info | Inventory | Experiment
+[@@deriving show, eq]
+
 (* This type is used by postprocessors to report back the validity
    of a finding. No_validator is currently also used when no
    validation has yet occurred, which if that becomes confusing we
@@ -119,6 +126,19 @@ type t = {
   engine_kind : Engine_kind.t; [@equal fun _a _b -> true]
   (* Indicates whether a postprocessor ran and validated this result. *)
   validation_state : validation_state;
+  (* Indicates if the rule default severity should be modified to a different
+     severity. Currently this is just used by secrets validators in order to
+     modify severity based on information from the validation step. (E.g.,
+     validity, scope information) *)
+  severity_override : severity option;
+  (* Indicates if the rule default metadata should be modified. Currently this
+     is just used by secrets validators in order to
+     modify metadata based on information from the validation step. (E.g.,
+     validity, scope information)
+     NOTE: The whole metadata blob is _not_ changed; rather, fields present in
+     the override is applied on top of the default and only changes the fields
+     present in the override. *)
+  metadata_override : JSON.t option;
 }
 
 (* This is currently a record, but really only the rule id should matter.

@@ -371,15 +371,17 @@ type http_match_clause = {
   status_code : int option;
   (* Optional. Empty list if not set *)
   headers : header list;
-  content : JSON.t option; (* TODO(cooper): use contents for matching body *)
+  content : (formula * Xlang.t) option;
 }
 [@@deriving show]
 
 type http_matcher = {
   match_conditions : http_match_clause list;
   validity : Pattern_match.validation_state;
-  output_modification : unit;
-      (* TODO(cooper): get from rule and structure somewhat *)
+  (* Fields to potentially modify *)
+  severity : Pattern_match.severity option;
+  metadata : JSON.t option;
+  message : string option;
 }
 [@@deriving show]
 
@@ -458,7 +460,7 @@ type 'mode rule_info = {
   (* Currently a dummy value for extract mode rules *)
   message : string;
   (* Currently a dummy value for extract mode rules *)
-  severity : severity;
+  severity : Pattern_match.severity;
   (* Note: The two fields target_seletor and target_analyzer below used to
    * be a single 'languages: Xlang.t' field.
    * Indeed, for historical reasons, the 'languages:' field in the
@@ -532,9 +534,6 @@ type 'mode rule_info = {
   (* TODO(cooper): would be nice to have nonempty but common2 version not nice to work with; no pp for one *)
   validators : validator list option;
 }
-
-(* TODO? just reuse Error_code.severity *)
-and severity = Error | Warning | Info | Inventory | Experiment
 [@@deriving show]
 
 (* Step mode includes rules that use search_mode and taint_mode *)
