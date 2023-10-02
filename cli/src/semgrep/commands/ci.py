@@ -20,6 +20,7 @@ from rich.table import Table
 import semgrep.run_scan
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.app import auth
+from semgrep.app.scans import ScanCompleteResult
 from semgrep.app.scans import ScanHandler
 from semgrep.commands.install import run_install_semgrep_pro
 from semgrep.commands.scan import scan_options
@@ -584,6 +585,7 @@ def ci(
         f"  Found {unit_str(num_blocking_findings + num_nonblocking_findings, 'finding')} ({num_blocking_findings} blocking) from {unit_str(num_executed_rules, 'rule')}."
     )
 
+    complete_result: ScanCompleteResult | None = None
     if scan_handler:
         with Progress(
             TextColumn("  {task.description}"),
@@ -636,7 +638,7 @@ def ci(
         logger.info("  No blocking findings so exiting with code 0")
         exit_code = 0
 
-    if complete_result.app_block_override and not audit_mode:
+    if complete_result and complete_result.app_block_override and not audit_mode:
         logger.info(
             f"  semgrep.dev is suggesting a non-zero exit code ({complete_result.app_block_reason})"
         )
