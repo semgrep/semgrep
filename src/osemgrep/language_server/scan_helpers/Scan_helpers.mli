@@ -7,7 +7,8 @@ val run_semgrep :
 (** [run_semgrep server] runs semgrep on the given server. If [targets] is
   * provided, it will be used as the targets for semgrep. If [rules] is
   * provided, it will be used as the rules for semgrep. Otherwise, the rules
-  * will be read from the config file.
+  * will be read from the config file. If [git_ref] is provided, it will be
+  * used as the git ref for what matches are filtered out based on git diff.
   *)
 
 val scan_workspace : RPC_server.t -> unit
