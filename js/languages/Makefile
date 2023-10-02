@@ -8,7 +8,6 @@ default: build
 build: $(SUPPORTED_LANGS:%=build-%)
 
 .PHONY: test
-#test: SEMGREP_JS_TEST_BUILD=1 # Enable this once https://github.com/llvm/llvm-project/pull/67715 is released (or if you've built clang yourself)
 test: $(SUPPORTED_LANGS:%=test-%)
 
 .PHONY: package
@@ -20,7 +19,7 @@ build-%:
 
 .PHONY: test-%
 test-%:
-	cd $*; $(MAKE) test
+	cd $*; SEMGREP_JS_TEST_BUILD=1 $(MAKE) test
 
 .PHONY: package-%
 package-%:

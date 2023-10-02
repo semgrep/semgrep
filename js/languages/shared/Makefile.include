@@ -29,6 +29,7 @@ ifdef EMCC_TEST_OPTIMIZATION
 EMCC_OPTIMIZATION = \
     $(EMCC_TEST_OPTIMIZATION) \
     -mllvm -wasm-disable-fix-irreducible-control-flow-pass
+TEST_EXPECTS_FAST_CLANG = 1
 endif
 endif
 EMCC_OPTIMIZATION ?= -O3
@@ -42,12 +43,27 @@ VERSION ?= 0.0.1
 .PHONY: default
 default: build
 
+# We should get rid of this when https://github.com/llvm/llvm-project/pull/67715 is released (or if you've built clang yourself)
+ifdef TEST_EXPECTS_FAST_CLANG # Skip testing these targets when testing with EMCC_TEST_OPTIMIZATION
+
+.PHONY: test
+test:
+	echo "Skipping tests"
+
 .PHONY: build
-build: dist/index.cjs dist/index.mjs dist/index.d.ts
+build:
+	echo "Skipping build"
+else
 
 .PHONY: test
 test: build
 	npm test
+
+.PHONY: build
+build: dist/index.cjs dist/index.mjs dist/index.d.ts
+
+
+endif
 
 .PHONY: package
 package: build
