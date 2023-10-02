@@ -16,7 +16,7 @@
 open Lsp
 open Types
 open Yojson.Safe.Util
-open RPCServer
+open RPC_server
 module CN = Client_notification
 module CR = Client_request
 module Conv = Convert_utils
@@ -41,7 +41,7 @@ let initialize_server server
       |> Option.value ~default:false
     in
     let res =
-      scan_options |> UserSettings.t_of_yojson
+      scan_options |> User_settings.t_of_yojson
       |> Result.value ~default:server.session.user_settings
     in
     { res with do_hover }

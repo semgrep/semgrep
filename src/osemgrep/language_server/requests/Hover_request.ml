@@ -15,7 +15,7 @@
 
 open Lsp
 open Types
-open RPCServer
+open RPC_server
 module CN = Client_notification
 module CR = Client_request
 module Conv = Convert_utils

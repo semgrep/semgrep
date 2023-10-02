@@ -22,7 +22,7 @@ type t = {
   workspace_folders : Fpath.t list;
   cached_scans : (Fpath.t, Out.cli_match list) Hashtbl.t;
   cached_session : session_cache;
-  user_settings : UserSettings.t;
+  user_settings : User_settings.t;
   is_intellij : bool;
 }
 
@@ -41,7 +41,7 @@ let create capabilities =
     workspace_folders = [];
     cached_scans = Hashtbl.create 10;
     cached_session;
-    user_settings = UserSettings.default;
+    user_settings = User_settings.default;
     is_intellij = false;
   }
 
@@ -98,7 +98,7 @@ let targets session =
   in
   let workspace_targets f =
     let targets_conf =
-      UserSettings.find_targets_conf_of_t session.user_settings
+      User_settings.find_targets_conf_of_t session.user_settings
     in
     Find_targets.get_targets { targets_conf with project_root = Some f } [ f ]
     |> fst
@@ -214,7 +214,7 @@ let scanned_files session =
   |> List.sort_uniq Fpath.compare
 
 let runner_conf session =
-  UserSettings.core_runner_conf_of_t session.user_settings
+  User_settings.core_runner_conf_of_t session.user_settings
 
 let previous_scan_of_file session file =
   Hashtbl.find_opt session.cached_scans file

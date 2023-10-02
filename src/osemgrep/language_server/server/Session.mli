@@ -21,7 +21,7 @@ type t = {
   workspace_folders : Fpath.t list;
   cached_scans : (Fpath.t, Semgrep_output_v1_t.cli_match list) Hashtbl.t;
   cached_session : session_cache;
-  user_settings : UserSettings.t;
+  user_settings : User_settings.t;
   is_intellij : bool;
 }
 
