@@ -7,6 +7,7 @@ module Out = Semgrep_output_v1_j
 
 (* TODO: declared this in semgrep_output_v1.atd? *)
 type scan_id = string
+type app_block_override = string (* reason *) option
 
 (*****************************************************************************)
 (* Helpers *)
@@ -136,33 +137,6 @@ let fetch_scan_config ~dry_run ~token ~sca ~full_scan repository =
   Lwt_main.run
     (fetch_scan_config_async ~token ~sca ~dry_run ~full_scan repository)
 
-let report_failure ~dry_run ~token ~scan_id exit_code =
-  if dry_run then (
-    Logs.app (fun m ->
-        m "Would have reported failure to semgrep.dev: %u" exit_code);
-    Ok ())
-  else
-    let uri =
-      Uri.with_path !Semgrep_envvars.v.semgrep_url
-        ("/api/agent/scans/" ^ scan_id ^ "/error")
-    in
-    let headers =
-      [
-        ("content-type", "application/json");
-        ("authorization", "Bearer " ^ token);
-      ]
-    in
-    let body =
-      JSON.(
-        string_of_json
-          (Object [ ("exit_code", Int exit_code); ("stderr", String "") ]))
-    in
-    match Http_helpers.post ~body ~headers uri with
-    | Ok _ -> Ok ()
-    | Error (code, msg) ->
-        Error
-          ("API server returned " ^ string_of_int code ^ ", this error: " ^ msg)
-
 (* TODO the server reply when POST to
    "/api/agent/scans/<scan_id>/findings_and_ignores" should be specified ATD *)
 let extract_errors data =
@@ -201,8 +175,9 @@ let extract_errors data =
             (Printexc.to_string e) data)
 
 (* TODO the server reply when POST to
-   "/api/agent/scans/<scan_id>/complete" should be specified in ATD *)
-let extract_block_override data =
+   "/api/agent/scans/<scan_id>/complete" should be specified in ATD
+*)
+let extract_block_override data : (app_block_override, string) result =
   try
     match JSON.json_of_string data with
     | JSON.Object xs ->
@@ -215,7 +190,9 @@ let extract_block_override data =
           | Some (String s) -> s
           | _else -> ""
         in
-        Ok (app_block_override, app_block_reason)
+        if app_block_override then Ok (Some app_block_reason)
+          (* TODO? can we have a app_block_reason set when override is false? *)
+        else Ok None
     | json ->
         Error
           (Fmt.str "Failed to understand the server reply: %s"
@@ -226,14 +203,15 @@ let extract_block_override data =
         (Fmt.str "Failed to decode server reply as json %s: %s"
            (Printexc.to_string e) data)
 
-let report_findings ~dry_run ~token ~scan_id ~findings_and_ignores ~complete =
+let report_findings ~dry_run ~token ~scan_id ~findings_and_ignores ~complete :
+    (app_block_override, string) result =
   if dry_run then (
     Logs.app (fun m ->
         m "Would have sent findings and ignores blob: %s"
           (JSON.string_of_json findings_and_ignores));
     Logs.app (fun m ->
         m "Would have sent complete blob: %s" (JSON.string_of_json complete));
-    Ok (false, ""))
+    Ok None)
   else (
     Logs.debug (fun m ->
         m "Sending findings and ignores blob: %s"
