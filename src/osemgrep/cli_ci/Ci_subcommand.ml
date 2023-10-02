@@ -394,12 +394,12 @@ let report_scan_completed ~blocking_findings ~blocking_rules
 (* Uploading findings *)
 (*****************************************************************************)
 
-(* from scans.py
- * TODO: just pass the whole cli_output instead of all those params
- *)
-let findings_and_complete ~blocking_findings findings errors rules ~targets
-    ~(ignored_targets : Out.skipped_target list option) ~commit_date
-    ~engine_requested =
+(* from scans.py *)
+let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
+    (cli_output : Out.cli_output) (rules : Rule.rule list) =
+  let targets = cli_output.paths.scanned in
+  let skipped = cli_output.paths.skipped in
+
   let rule_ids =
     Common.map (fun r -> Rule_ID.to_string (fst r.Rule.id)) rules
   in
@@ -409,7 +409,7 @@ let findings_and_complete ~blocking_findings findings errors rules ~targets
       current sort by relevant_since results in findings within a given scan
       appear in an intuitive order.  this requires reversed ordering here.
      *)
-  let all_matches = List.rev findings in
+  let all_matches = List.rev cli_output.results in
   let all_matches =
     let to_int = function
       | "EXPERIMENT" -> 0
@@ -469,7 +469,7 @@ let findings_and_complete ~blocking_findings findings errors rules ~targets
     Logs.app (fun m -> m "Some experimental rules were run during execution.");
 
   let ignored_ext_freqs =
-    Option.value ~default:[] ignored_targets
+    Option.value ~default:[] skipped
     |> Common.group_by (fun (skipped_target : Out.skipped_target) ->
            Fpath.get_ext (Fpath.v skipped_target.Out.path))
     |> List.filter (fun (ext, _) -> not (String.equal ext ""))
@@ -486,11 +486,11 @@ let findings_and_complete ~blocking_findings findings errors rules ~targets
       Common.map
         (fun e ->
           JSON.json_of_string (Semgrep_output_v1_j.string_of_cli_error e))
-        errors
+        cli_output.errors
     in
     JSON.Object
       [
-        ("exit_code", if blocking_findings then JSON.Int 1 else JSON.Int 0);
+        ("exit_code", if has_blocking_findings then JSON.Int 1 else JSON.Int 0);
         ("dependency_parser_errors", JSON.Array []);
         (* [e.to_json() for e in dependency_parser_errors], *)
         ( "stats",
@@ -539,11 +539,8 @@ let upload_findings ~dry_run
       Logs.app (fun m -> m "  Uploading findings.");
       let findings_and_ignores, complete =
         findings_and_complete
-          ~blocking_findings:(not (Common.null blocking_findings))
-          cli_output.Out.results cli_output.Out.errors filtered_rules
-          ~targets:cli_output.Out.paths.Out.scanned
-          ~ignored_targets:cli_output.Out.paths.skipped ~commit_date:""
-          ~engine_requested:`OSS
+          ~has_blocking_findings:(not (Common.null blocking_findings))
+          ~commit_date:"" ~engine_requested:`OSS cli_output filtered_rules
       in
       let override =
         match
