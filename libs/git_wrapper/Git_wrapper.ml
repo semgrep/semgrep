@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2023 r2c
+ * Copyright (C) 2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -116,8 +116,28 @@ let range_of_git_diff lines =
   | Error _ -> [||]
 
 (*****************************************************************************)
-(* Use Common.cmd_to_list *)
+(* Entry points *)
 (*****************************************************************************)
+
+let git_check_output (cmd : Bos.Cmd.t) : string =
+  let out = Bos.OS.Cmd.run_out cmd in
+  match Bos.OS.Cmd.out_string ~trim:true out with
+  | Ok (str, (_, `Exited 0)) -> str
+  | Ok _
+  | Error (`Msg _) ->
+      let fmt : _ format4 =
+        {|Command failed.
+-----
+Failed to run %a. Possible reasons:
+- the git binary is not available
+- the current working directory is not a git repository
+- the current working directory is not marked as safe
+  (fix with `git config --global --add safe.directory $(pwd)`)
+
+Try running the command yourself to debug the issue.|}
+      in
+      Logs.warn (fun m -> m fmt Bos.Cmd.pp cmd);
+      raise (Error "Error when we run a git command")
 
 let files_from_git_ls ~cwd =
   let cmd = Bos.Cmd.(v "git" % "-C" % !!cwd % "ls-files") in

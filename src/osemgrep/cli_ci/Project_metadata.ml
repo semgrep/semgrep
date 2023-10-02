@@ -68,23 +68,3 @@ let get_repo_name_from_repo_url value =
   match Uri.path uri |> String.split_on_char '/' with
   | [ ""; owner; name ] -> String.concat "/" [ owner; name ] |> Option.some
   | __else__ -> None
-
-let git_check_output cmd =
-  let out = Bos.OS.Cmd.run_out cmd in
-  match Bos.OS.Cmd.out_string ~trim:true out with
-  | Ok (str, (_, `Exited 0)) -> str
-  | Ok _
-  | Error (`Msg _) ->
-      let fmt : _ format4 =
-        {|Command failed.
------
-Failed to run %a. Possible reasons:
-- the git binary is not available
-- the current working directory is not a git repository
-- the current working directory is not marked as safe
-  (fix with `git config --global --add safe.directory $(pwd)`)
-
-Try running the command yourself to debug the issue.|}
-      in
-      Logs.warn (fun m -> m fmt Bos.Cmd.pp cmd);
-      failwith "Error when we run a git command"
