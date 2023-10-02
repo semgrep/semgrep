@@ -30,15 +30,14 @@ val fetch_scan_config :
   string ->
   (string, string) result
 (** [fetch_scan_config ~token ~sca ~dry_run ~full_scan repo] returns the rules
-    for the provided configuration. *)
+    (as a RAW string containing JSON data) for the provided configuration. *)
 
 val report_findings :
   dry_run:bool ->
   token:string ->
   scan_id:scan_id ->
-  (* TODO: use proper types from semgrep_output_v1.atd *)
-  findings_and_ignores:JSON.t ->
-  complete:JSON.t ->
+  results:Semgrep_output_v1_t.ci_scan_results ->
+  complete:Semgrep_output_v1_t.ci_scan_complete ->
   (app_block_override, string) result
-(** [report_findings ~dry_run ~token ~scan_id ~findings_and_ignores ~complete]
+(** [report_findings ~dry_run ~token ~scan_id ~results ~complete]
     reports the findings to Semgrep App. *)

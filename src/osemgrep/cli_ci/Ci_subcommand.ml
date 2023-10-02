@@ -396,12 +396,13 @@ let report_scan_completed ~blocking_findings ~blocking_rules
 
 (* from scans.py *)
 let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
-    (cli_output : Out.cli_output) (rules : Rule.rule list) =
+    (cli_output : Out.cli_output) (rules : Rule.rule list) :
+    Out.ci_scan_results * Out.ci_scan_complete =
   let targets = cli_output.paths.scanned in
   let skipped = cli_output.paths.skipped in
 
   let rule_ids =
-    Common.map (fun r -> Rule_ID.to_string (fst r.Rule.id)) rules
+    rules |> Common.map (fun r -> Rule_ID.to_string (fst r.Rule.id))
   in
   let contributions = Parse_contribution.get_contributions () in
   (*
@@ -429,8 +430,8 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
     |> List.partition (fun m ->
            Option.value ~default:false m.Out.extra.Out.is_ignored)
   in
-  let findings = Common.mapi (finding_of_cli_match commit_date) new_matches
-  and ignores = Common.mapi (finding_of_cli_match commit_date) new_ignored in
+  let findings = Common.mapi (finding_of_cli_match commit_date) new_matches in
+  let ignores = Common.mapi (finding_of_cli_match commit_date) new_ignored in
   let ci_token =
     match Sys.getenv_opt "GITHUB_TOKEN" with
     (* GitHub (cloud) *)
@@ -441,30 +442,25 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
         | Some _ as t -> t
         | None -> Sys.getenv_opt "BITBUCKET_TOKEN" (* Bitbucket Cloud *))
   in
-  let ci_scan_results =
-    Out.
-      {
-        (* send a backup token in case the app is not available *)
-        findings;
-        ignores;
-        token = ci_token;
-        searched_paths = List.sort String.compare targets;
-        (* TODO: get renamed_paths, depends on baseline_commit *)
-        renamed_paths = [];
-        rule_ids;
-        contributions = Some contributions;
-        (* TODO: Figure out correct value for this. *)
-        dependencies = None;
-      }
-  in
-  let findings_and_ignores =
-    JSON.json_of_string
-    @@ Semgrep_output_v1_j.string_of_ci_scan_results ci_scan_results
+  (* POST to /api/agent/scans/<scan_id>/results *)
+  let results : Out.ci_scan_results =
+    {
+      (* send a backup token in case the app is not available *)
+      token = ci_token;
+      findings;
+      ignores;
+      searched_paths = List.sort String.compare targets;
+      (* TODO: get renamed_paths, depends on baseline_commit *)
+      renamed_paths = [];
+      rule_ids;
+      contributions = Some contributions;
+      (* TODO: Figure out correct value for this. *)
+      dependencies = None;
+    }
   in
   if
-    List.exists
-      (fun m -> String.equal m.Out.extra.severity "EXPERIMENT")
-      new_ignored
+    new_ignored
+    |> List.exists (fun m -> String.equal m.Out.extra.severity "EXPERIMENT")
   then
     Logs.app (fun m -> m "Some experimental rules were run during execution.");
 
@@ -474,61 +470,55 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
            Fpath.get_ext (Fpath.v skipped_target.Out.path))
     |> List.filter (fun (ext, _) -> not (String.equal ext ""))
     (* don't count files with no extension *)
-    |> Common.map (fun (ext, xs) -> (ext, JSON.Int (List.length xs)))
+    |> Common.map (fun (ext, xs) -> (ext, List.length xs))
   in
 
-  (* dependency_counts = {k: len(v) for k, v in lockfile_dependencies.items()} *)
-
-  (* TODO: add this data structure to the semgrep_output_v1.atd spec
-     POST to /api/agent/scans/<scan_id>/complete *)
-  let complete =
-    let errors =
-      Common.map
-        (fun e ->
-          JSON.json_of_string (Semgrep_output_v1_j.string_of_cli_error e))
-        cli_output.errors
-    in
-    JSON.Object
-      [
-        ("exit_code", if has_blocking_findings then JSON.Int 1 else JSON.Int 0);
-        ("dependency_parser_errors", JSON.Array []);
-        (* [e.to_json() for e in dependency_parser_errors], *)
-        ( "stats",
-          JSON.Object
-            [
-              ("findings", JSON.Int (List.length new_matches));
-              ("errors", JSON.Array errors);
-              ("total_time", JSON.Float 0.0);
-              (* total_time *)
-              ("unsupported_exts", JSON.Object ignored_ext_freqs);
-              ("lockfile_scan_info", JSON.Object []);
-              (* dependency_counts *)
-              ("parse_rate", JSON.Object [])
-              (*
-  lang: {
-    "targets_parsed": data.num_targets - data.targets_with_errors,
-                      "num_targets": data.num_targets,
-                      "bytes_parsed": data.num_bytes - data.error_bytes,
-                      "num_bytes": data.num_bytes,
-  }
-      for (lang, data) in parse_rate.get_errors_by_lang().items() *);
-            ] );
-        ( "engine_requested",
-          JSON.String
-            (Semgrep_output_v1_j.string_of_engine_kind engine_requested) );
-        ("dependencies", JSON.Object [])
-        (*
-             if self._dependency_query:
-                 lockfile_dependencies_json = {}
-                 for path, dependencies in lockfile_dependencies.items():
-                     lockfile_dependencies_json[path] = [
-                         dependency.to_json() for dependency in dependencies
-                     ]
-                 complete["dependencies"] = lockfile_dependencies_json
-     *);
-      ]
+  (* POST to /api/agent/scans/<scan_id>/complete *)
+  let complete : Out.ci_scan_complete =
+    {
+      (* TODO: 'and not match.is_ignored for match in all_matches' *)
+      exit_code = (if has_blocking_findings then 1 else 0);
+      (* TODO [e.to_json() for e in dependency_parser_errors], *)
+      dependency_parser_errors = Some [];
+      stats =
+        {
+          (* TODO: 'if not match.from_transient_scan' *)
+          findings = List.length new_matches;
+          errors = cli_output.errors;
+          (* TODO: *)
+          total_time = 0.0;
+          unsupported_exts = ignored_ext_freqs;
+          (* TODO dependency_counts =
+           * {k:len(v) for k,v in lockfile_dependencies.items()} *)
+          lockfile_scan_info = [];
+          (* TODO: lang: {
+              "targets_parsed": data.num_targets - data.targets_with_errors,
+              "num_targets": data.num_targets,
+              "bytes_parsed": data.num_bytes - data.error_bytes,
+              "num_bytes": data.num_bytes,
+              }
+             for (lang, data) in parse_rate.get_errors_by_lang().items()
+          *)
+          parse_rate = [];
+          engine_requested =
+            Some (Semgrep_output_v1_j.string_of_engine_kind engine_requested);
+        };
+      (* TODO:
+           if self._dependency_query:
+               lockfile_dependencies_json = {}
+               for path, dependencies in lockfile_dependencies.items():
+                   lockfile_dependencies_json[path] = [
+                       dependency.to_json() for dependency in dependencies
+                   ]
+               complete["dependencies"] = lockfile_dependencies_json
+      *)
+      dependencies = Some [];
+      (* ??? *)
+      task_id = None;
+      final_attempt = None;
+    }
   in
-  (findings_and_ignores, complete)
+  (results, complete)
 
 let upload_findings ~dry_run
     (depl_opt : (string * Semgrep_App.deployment_scan_config) option)
@@ -537,15 +527,15 @@ let upload_findings ~dry_run
   match (depl_opt, scan_id_opt) with
   | Some (token, deployment_config), Some scan_id ->
       Logs.app (fun m -> m "  Uploading findings.");
-      let findings_and_ignores, complete =
+      let results, complete =
         findings_and_complete
           ~has_blocking_findings:(not (Common.null blocking_findings))
           ~commit_date:"" ~engine_requested:`OSS cli_output filtered_rules
       in
       let override =
         match
-          Scan_helper.report_findings ~token ~scan_id ~dry_run
-            ~findings_and_ignores ~complete
+          Scan_helper.report_findings ~token ~scan_id ~dry_run ~results
+            ~complete
         with
         | Ok a -> a
         | Error msg ->
