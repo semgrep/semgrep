@@ -350,7 +350,7 @@ class ScanHandler:
 
         dependency_counts = {k: len(v) for k, v in lockfile_dependencies.items()}
 
-        complete = out.CiScanCompleteResponse(
+        complete = out.CiScanComplete(
             exit_code=1
             if any(match.is_blocking and not match.is_ignored for match in all_matches)
             else 0,

@@ -5,7 +5,7 @@ module Out = Semgrep_output_v1_j
 (* Types *)
 (*****************************************************************************)
 
-(* TODO: declared this in semgrep_output_v1.atd? *)
+(* LATER: declared this in semgrep_output_v1.atd instead? *)
 type scan_id = string
 type app_block_override = string (* reason *) option
 
@@ -203,21 +203,18 @@ let extract_block_override data : (app_block_override, string) result =
         (Fmt.str "Failed to decode server reply as json %s: %s"
            (Printexc.to_string e) data)
 
-let report_findings ~dry_run ~token ~scan_id ~findings_and_ignores ~complete :
+let report_findings ~dry_run ~token ~scan_id ~results ~complete :
     (app_block_override, string) result =
+  let results = Out.string_of_ci_scan_results results in
+  let complete = Out.string_of_ci_scan_complete complete in
   if dry_run then (
     Logs.app (fun m ->
-        m "Would have sent findings and ignores blob: %s"
-          (JSON.string_of_json findings_and_ignores));
-    Logs.app (fun m ->
-        m "Would have sent complete blob: %s" (JSON.string_of_json complete));
+        m "Would have sent findings and ignores blob: %s" results);
+    Logs.app (fun m -> m "Would have sent complete blob: %s" complete);
     Ok None)
   else (
-    Logs.debug (fun m ->
-        m "Sending findings and ignores blob: %s"
-          (JSON.string_of_json findings_and_ignores));
-    Logs.debug (fun m ->
-        m "Sending complete blob: %s" (JSON.string_of_json complete));
+    Logs.debug (fun m -> m "Sending findings and ignores blob: %s" results);
+    Logs.debug (fun m -> m "Sending complete blob: %s" complete);
 
     let url =
       Uri.with_path !Semgrep_envvars.v.semgrep_url
@@ -229,7 +226,7 @@ let report_findings ~dry_run ~token ~scan_id ~findings_and_ignores ~complete :
         ("authorization", "Bearer " ^ token);
       ]
     in
-    let body = JSON.string_of_json findings_and_ignores in
+    let body = results in
     (match Http_helpers.post ~body ~headers url with
     | Ok body -> extract_errors body
     | Error (code, msg) ->
@@ -239,7 +236,7 @@ let report_findings ~dry_run ~token ~scan_id ~findings_and_ignores ~complete :
       Uri.with_path !Semgrep_envvars.v.semgrep_url
         ("/api/agent/scans/" ^ scan_id ^ "/complete")
     in
-    let body = JSON.string_of_json complete in
+    let body = complete in
     match Http_helpers.post ~body ~headers url with
     | Ok body -> extract_block_override body
     | Error (code, msg) ->
