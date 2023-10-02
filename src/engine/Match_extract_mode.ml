@@ -142,7 +142,7 @@ let rules_for_extracted_lang ~(all_rules : Rule.t list) extract_rule_ids =
           all_rules
           |> Common.mapi (fun i r -> (i, r))
           |> List.filter (fun (_i, r) ->
-                 let r_lang = r.Rule.languages.target_analyzer in
+                 let r_lang = r.Rule.target_analyzer in
                  match (xlang, r_lang) with
                  | Xlang.L (l, _), Xlang.L (rl, rls) ->
                      List.exists (fun x -> Lang.equal l x) (rl :: rls)

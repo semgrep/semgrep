@@ -3128,8 +3128,7 @@ and map_for_range_loop_body (env : env)
   let v5 = map_anon_choice_exp_3078596 env v5 in
   let n = name_of_dname_for_var env v3.dn in
   let ent = { name = n; specs } in
-  let var = { v_type = v3.dt t; v_init = None } in
-  ForRange (v1, (ent, var), v4, v5)
+  ForRange (v1, (v3.dt t, ent), v4, v5)
 
 and map_for_statement (env : env) ((v1, v2, v3, v4, v5) : CST.for_statement) =
   let v1 = token env v1 (* "for" *) in

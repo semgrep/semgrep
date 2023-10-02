@@ -457,9 +457,6 @@ and for_stmt env (for_tok, hdr, s) =
     | ForEach (pat, tok, e) -> for_each (pat, tok, e)
     | MultiForEach fors -> String.concat ";" (Common.map multi_for_each fors)
     | ForEllipsis tok -> token ~d:"..." tok
-    | ForIn (init, exprs) ->
-        F.sprintf "%s %s %s" (show_init_list init) "in"
-          (String.concat "," (Common.map (fun e -> expr env e) exprs))
   in
   let body_str = stmt { env with level = env.level + 1 } s in
   for_format (token ~d:"for" for_tok) hdr_str body_str
