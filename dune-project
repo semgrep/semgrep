@@ -392,7 +392,7 @@ For more information see https://semgrep.dev
     (ocaml (>= 5.0.0))
     (dune (>= 2.7.0 ))
     ; parser generators
-    (menhir (= 20220210)) ; Newer versions cause massive build slowdowns
+    (menhir (= 20220210))
     ; standard libraries
     ; We don't use Base directly. If it's being used indirectly
     ; (is it, though?), we need a version that doesn't register
