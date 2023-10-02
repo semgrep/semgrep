@@ -128,7 +128,7 @@ jobs:
         latest=false
         suffix=-nonroot
       docker-tags: |
-        type=raw,value=canary-nonroot
+        type=raw,value=canary
         type=semver,pattern={{version}}
         type=semver,pattern={{major}}.{{minor}}
       repository-name: ${{ github.repository }}
