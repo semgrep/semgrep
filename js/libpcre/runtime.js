@@ -166,7 +166,7 @@ function pcre_config_stackrecurse_stub() {
 function pcre_alloc_string(v_opt, js_string) {
   var ptr;
   if (v_opt & PCRE_CONFIG_UTF8) {
-    const length = new TextEncoder().encode(js_string).length;
+    const length = libpcre.lengthBytesUTF8(js_string);
     ptr = libpcre._malloc(length + 1);
     libpcre.stringToUTF8(js_string, ptr);
   } else {
@@ -333,7 +333,7 @@ function pcre_exec_stub_bc(
   var ret;
   var is_dfa = !!v_workspace;
   var pos = v_pos;
-  var len = new TextEncoder().encode(v_subj).length;
+  var len = libpcre.lengthBytesUTF8(v_subj);
   var subj_start = v_subj_start;
 
   var v_subj_ptr = pcre_alloc_string(v_opt, v_subj);

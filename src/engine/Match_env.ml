@@ -87,7 +87,7 @@ let fake_rule_id (id, str) =
     pattern_string = str;
     message = "";
     fix = None;
-    languages = [];
+    langs = [];
   }
 
 let adjust_xconfig_with_rule_options xconf options =

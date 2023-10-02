@@ -57,8 +57,8 @@ type key = string R.wrap
 type env = {
   (* id of the current rule (needed by some exns) *)
   id : Rule_ID.t;
-  (* languages of the current rule (needed by parse_pattern) *)
-  languages : Rule.languages;
+  (* analyzer of the current rule (needed by parse_pattern) *)
+  target_analyzer : Xlang.t;
   (* whether we are underneath a `metavariable-pattern` *)
   in_metavariable_pattern : bool;
   (* emma: save the path within the yaml file for each pattern
@@ -137,7 +137,7 @@ let try_and_raise_invalid_pattern_if_error (env : env) (s, t) f =
         | Parsing_plugin.Missing_plugin msg -> MissingPlugin msg
         | exn ->
             InvalidPattern
-              (s, env.languages.target_analyzer, Common.exn_to_s exn, env.path)
+              (s, env.target_analyzer, Common.exn_to_s exn, env.path)
       in
       Rule.raise_error (Some env.id) (InvalidRule (error_kind, env.id, t))
 
@@ -420,28 +420,26 @@ let parse_language ~id ((s, t) as _lang) : Lang.t =
    Xlang.of_string which allows "spacegrep" and "aliengrep" so
    this might lead to inconsistencies as here we allow just "generic".
 *)
-let parse_languages ~id (options : Rule_options_t.t) langs : Rule.languages =
-  let opt_target_selector, (target_analyzer : Xlang.t) =
-    match langs with
-    | [ (("none" | "regex"), _t) ] -> (None, LRegex)
-    | [ ("generic", _t) ] -> (
-        (* The generic mode now uses one of two possible engines.
-           For now, we keep the name "generic" for both and use an option
-           to choose one engine or the other. *)
-        match options.generic_engine with
-        | `Spacegrep -> (None, LSpacegrep)
-        | `Aliengrep -> (None, LAliengrep))
-    | xs -> (
-        let rule_id, _ = id in
-        let langs = xs |> Common.map (parse_language ~id:rule_id) in
-        match langs with
-        | [] ->
-            Rule.raise_error (Some rule_id)
-              (InvalidRule
-                 (InvalidOther "we need at least one language", fst id, snd id))
-        | x :: xs -> (Some langs, L (x, xs)))
-  in
-  { target_selector = opt_target_selector; target_analyzer }
+let parse_languages ~id (options : Rule_options_t.t) langs :
+    Target_selector.t option * Xlang.t =
+  match langs with
+  | [ (("none" | "regex"), _t) ] -> (None, LRegex)
+  | [ ("generic", _t) ] -> (
+      (* The generic mode now uses one of two possible engines.
+         For now, we keep the name "generic" for both and use an option
+         to choose one engine or the other. *)
+      match options.generic_engine with
+      | `Spacegrep -> (None, LSpacegrep)
+      | `Aliengrep -> (None, LAliengrep))
+  | xs -> (
+      let rule_id, _ = id in
+      let langs = xs |> Common.map (parse_language ~id:rule_id) in
+      match langs with
+      | [] ->
+          Rule.raise_error (Some rule_id)
+            (InvalidRule
+               (InvalidOther "we need at least one language", fst id, snd id))
+      | x :: xs -> (Some langs, L (x, xs)))
 
 let parse_severity ~id (s, t) : Rule.severity =
   match s with
@@ -476,7 +474,7 @@ let parse_python_expression env key s =
 let parse_metavar_cond env key s = parse_python_expression env key s
 
 let rec parse_type env key (str, tok) =
-  match env.languages.target_analyzer with
+  match env.target_analyzer with
   | Xlang.L (lang, _) ->
       let str = wrap_type_expr env key lang str in
       try_and_raise_invalid_pattern_if_error env (str, tok) (fun () ->
@@ -670,7 +668,7 @@ let parse_options rule_id (key : key) value =
 
 (* less: could move in a separate Parse_xpattern.ml *)
 let parse_rule_xpattern env (str, tok) =
-  match env.languages.target_analyzer with
+  match env.target_analyzer with
   | Xlang.L (lang, _) ->
       (* opti: parsing Semgrep patterns lazily improves speed significantly.
        * Parsing p/default goes from 13s to just 0.2s, mostly because
@@ -1006,7 +1004,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
             let env' =
               {
                 id = env.id;
-                languages = Rule.languages_of_xlang xlang;
+                target_analyzer = xlang;
                 in_metavariable_pattern = env.in_metavariable_pattern;
                 path = "metavariable-type" :: "metavariable" :: env.path;
                 options_key = None;
@@ -1028,7 +1026,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
             let env' =
               {
                 id = env.id;
-                languages = Rule.languages_of_xlang xlang;
+                target_analyzer = xlang;
                 in_metavariable_pattern = env.in_metavariable_pattern;
                 path = "metavariable-pattern" :: "metavariable" :: env.path;
                 options_key = None;
@@ -1126,10 +1124,7 @@ and parse_formula env (value : G.expr) : R.formula =
             Rule.raise_error (Some env.id)
               (InvalidRule
                  ( InvalidPattern
-                     ( s,
-                       env.languages.target_analyzer,
-                       Common.exn_to_s exn,
-                       env.path ),
+                     (s, env.target_analyzer, Common.exn_to_s exn, env.path),
                    env.id,
                    t )))
   (* If that doesn't work, it should be a key-value pairing.
@@ -1211,7 +1206,7 @@ and produce_constraint env dict tok indicator =
             let env' =
               {
                 env with
-                languages = Rule.languages_of_xlang xlang;
+                target_analyzer = xlang;
                 path = "metavariable-pattern" :: "metavariable" :: env.path;
               }
             in
@@ -1617,8 +1612,10 @@ let parse_step_fields env key (value : G.expr) : R.step =
   let id =
     (Rule_ID.of_string (* TODO: is this really a rule ID? *) step_id_str, tok)
   in
-  let step_languages = parse_languages ~id rule_options languages in
-  let env = { env with languages = step_languages } in
+  let step_selector, step_analyzer =
+    parse_languages ~id rule_options languages
+  in
+  let env = { env with target_analyzer = step_analyzer } in
   let step_paths = take_opt rd env parse_paths "paths" in
   let mode_opt = take_opt rd env parse_string_wrap "mode" in
   let has_taint_key = Option.is_some (Hashtbl.find_opt rd.h "taint") in
@@ -1640,7 +1637,7 @@ let parse_step_fields env key (value : G.expr) : R.step =
              "Unexpected value for mode, should be 'search' or 'taint', not %s"
              (fst key))
   in
-  { step_languages; step_paths; step_mode }
+  { step_selector; step_analyzer; step_paths; step_mode }
 
 let parse_steps env key (value : G.expr) : R.step list =
   let parse_step step = parse_step_fields env key step in
@@ -1880,11 +1877,13 @@ let parse_one_rule ~rewrite_rule_ids (t : G.tok) (i : int) (rule : G.expr) :
     | Some (options, options_key) -> (Some options, options_key)
   in
   let options = Option.value options_opt ~default:Rule_options.default_config in
-  let languages = parse_languages ~id options languages in
+  let target_selector, target_analyzer =
+    parse_languages ~id options languages
+  in
   let env =
     {
       id = rule_id;
-      languages;
+      target_analyzer;
       in_metavariable_pattern = false;
       path = [ string_of_int i; "rules" ];
       options_key;
@@ -1912,7 +1911,8 @@ let parse_one_rule ~rewrite_rule_ids (t : G.tok) (i : int) (rule : G.expr) :
     min_version = Option.map fst min_version;
     max_version = Option.map fst max_version;
     message;
-    languages;
+    target_selector;
+    target_analyzer;
     severity = parse_severity ~id:env.id severity;
     mode;
     (* optional fields *)
@@ -2064,7 +2064,7 @@ let parse_xpattern xlang (str, tok) =
   let env =
     {
       id = Rule_ID.of_string "anon-pattern";
-      languages = Rule.languages_of_xlang xlang;
+      target_analyzer = xlang;
       in_metavariable_pattern = false;
       path = [];
       options_key = None;

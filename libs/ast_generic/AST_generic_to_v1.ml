@@ -909,10 +909,6 @@ and map_for_header = function
       let v1 = map_of_list map_multi_for_each v1 in
       `MultiForEach v1
   | ForEllipsis t -> raise (SemgrepConstruct t)
-  | ForIn (v1, v2) ->
-      let v1 = map_of_list map_for_var_or_expr v1
-      and v2 = map_of_list map_expr v2 in
-      `ForIn (v1, v2)
 
 and map_for_each (v1, t, v2) =
   let t = map_tok t in

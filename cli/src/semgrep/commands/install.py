@@ -54,7 +54,7 @@ def run_install_semgrep_pro() -> None:
         logger.info(f"Overwriting Semgrep Pro Engine already installed!")
 
     if state.app_session.token is None:
-        logger.info("run `semgrep login` before using `semgrep install`")
+        logger.info("run `semgrep login` before running `semgrep install-semgrep-pro`")
         sys.exit(INVALID_API_KEY_EXIT_CODE)
 
     if sys.platform.startswith("darwin"):

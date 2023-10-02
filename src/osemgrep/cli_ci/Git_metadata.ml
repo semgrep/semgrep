@@ -108,7 +108,7 @@ let get_repo_name env =
   | Some repo_name -> repo_name
   | None ->
       let str =
-        Project_metadata.git_check_output
+        Git_wrapper.git_check_output
           Bos.Cmd.(v "git" % "rev-parse" % "--show-toplevel")
       in
       Fpath.basename (Fpath.v str)
@@ -167,16 +167,16 @@ let get_branch env =
 
 let make (env : env) : Project_metadata.t =
   let commit_title =
-    Project_metadata.git_check_output
+    Git_wrapper.git_check_output
       Bos.Cmd.(v "git" % "show" % "-s" % "--format=%B")
   in
   let commit_author_email =
-    Project_metadata.git_check_output
+    Git_wrapper.git_check_output
       Bos.Cmd.(v "git" % "show" % "-s" % "--format=%ae")
     |> Emile.of_string |> Result.get_ok
   in
   let commit_author_name =
-    Project_metadata.git_check_output
+    Git_wrapper.git_check_output
       Bos.Cmd.(v "git" % "show" % "-s" % "--format=%an")
   in
   let on =
