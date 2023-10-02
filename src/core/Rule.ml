@@ -367,6 +367,25 @@ type secrets = {
 }
 [@@deriving show]
 
+type http_match_clause = {
+  status_code : int option;
+  (* Optional. Empty list if not set *)
+  headers : header list;
+  content : JSON.t option; (* TODO(cooper): use contents for matching body *)
+}
+[@@deriving show]
+
+type http_matcher = {
+  match_conditions : http_match_clause list;
+  validity : Pattern_match.validation_state;
+  output_modification : unit;
+      (* TODO(cooper): get from rule and structure somewhat *)
+}
+[@@deriving show]
+
+type validator = HTTP of { request : request; response : http_matcher list }
+[@@deriving show]
+
 (*****************************************************************************)
 (* Paths *)
 (*****************************************************************************)
@@ -510,6 +529,8 @@ type 'mode rule_info = {
    * is now done via Rule_options instead.
    *)
   metadata : JSON.t option;
+  (* TODO(cooper): would be nice to have nonempty but common2 version not nice to work with; no pp for one *)
+  validators : validator list option;
 }
 
 (* TODO? just reuse Error_code.severity *)
@@ -830,6 +851,7 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
     fix_regexp = None;
     paths = None;
     metadata = None;
+    validators = None;
   }
 
 (* TODO(dinosaure): Currently, on the Python side, we remove the metadatas and

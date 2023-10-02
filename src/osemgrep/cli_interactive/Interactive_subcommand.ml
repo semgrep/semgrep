@@ -507,6 +507,7 @@ let mk_fake_rule xlang formula =
     fix_regexp = None;
     paths = None;
     metadata = None;
+    validators = None;
   }
 
 let atomic_map_file_zipper f state =
