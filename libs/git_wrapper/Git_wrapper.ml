@@ -301,6 +301,7 @@ let is_git_repo cwd =
 let dirty_lines_of_file ?(git_ref = "HEAD") file =
   let cwd = Fpath.parent file in
   let cmd =
+    (* --error-unmatch Returns a non 0 exit code if a file is not tracked by git. This way further on in this function we don't try running git diff on untracked files, as this isn't allowed. *)
     Bos.Cmd.(v "git" % "-C" % !!cwd % "ls-files" % "--error-unmatch" % !!file)
   in
   let status = Bos.OS.Cmd.run_status ~quiet:true cmd in
