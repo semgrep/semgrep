@@ -491,6 +491,9 @@ let translate_formula iformula =
   | Some iformula -> iformula
 
 let mk_fake_rule xlang formula =
+  let target_selector, target_analyzer =
+    Rule.selector_and_analyzer_of_xlang xlang
+  in
   {
     Rule.id = (Rule_ID.of_string "-i", fk);
     mode = `Search formula;
@@ -499,14 +502,15 @@ let mk_fake_rule xlang formula =
     (* alt: could put xpat.pstr for the message *)
     message = "";
     severity = Error;
-    target_analyzer = xlang;
-    target_selector = None;
+    target_selector;
+    target_analyzer;
     options = None;
     equivalences = None;
     fix = None;
     fix_regexp = None;
     paths = None;
     metadata = None;
+    validators = None;
   }
 
 let atomic_map_file_zipper f state =

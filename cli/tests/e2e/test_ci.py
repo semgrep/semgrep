@@ -1691,21 +1691,18 @@ def test_query_dependency(
     )
 
     post_calls = AppSession.post.call_args_list
+
+    results_json = post_calls[1].kwargs["json"]
+    snapshot.assert_match(
+        json.dumps(results_json["dependencies"], indent=2), "dependencies.json"
+    )
+
     complete_json = post_calls[2].kwargs["json"]
     complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
     # TODO: flaky tests (on Linux at least)
     # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests for more info
     complete_json["stats"]["lockfile_scan_info"] = {}
     snapshot.assert_match(json.dumps(complete_json, indent=2), "complete.json")
-    complete_dependency_json = complete_json["dependencies"]
-    results_json = post_calls[1].kwargs["json"]
-    results_dependency_json = results_json["dependencies"]
-    snapshot.assert_match(
-        json.dumps(complete_dependency_json, indent=2), "dependencies.json"
-    )
-    snapshot.assert_match(
-        json.dumps(results_dependency_json, indent=2), "dependencies.json"
-    )
 
 
 def test_metrics_enabled(run_semgrep: RunSemgrep, mocker):

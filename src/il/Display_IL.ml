@@ -1,9 +1,5 @@
 open IL
 
-(* coupling: Dataflow_xyz.str_of_name *)
-let string_of_name name =
-  Common.spf "%s:%s" (fst name.ident) (AST_generic.SId.show name.sid)
-
 let string_of_type (ty : IL.type_) =
   match ty.type_.t with
   | TyN (Id (id, _)) -> fst id
@@ -11,13 +7,13 @@ let string_of_type (ty : IL.type_) =
 
 let string_of_base base =
   match base with
-  | Var x -> string_of_name x
+  | Var x -> str_of_name x
   | VarSpecial _ -> "<VarSpecial>"
   | Mem _ -> "<Mem>"
 
 let string_of_offset offset =
   match offset.o with
-  | Dot a -> str_of_name a
+  | Dot a -> ident_str_of_name a
   | Index _ -> "[...]"
 
 let string_of_lval { base; rev_offset } =
@@ -65,7 +61,7 @@ let short_string_of_node_kind nkind =
   | NReturn _ -> "return ...;"
   | NThrow _ -> "throw ...;"
   | NLambda params ->
-      let params_strs = Common.map string_of_name params in
+      let params_strs = Common.map str_of_name params in
       "LAMBDA " ^ String.concat ", " params_strs
   | NOther (Noop str) -> Common.spf "<noop: %s>" str
   | NOther _ -> "<other>"

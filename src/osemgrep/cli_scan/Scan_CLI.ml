@@ -107,7 +107,7 @@ let default : conf =
          * not overload on large machines
          *)
         Core_runner.num_jobs = min 16 (Parmap_helpers.get_cpu_count ());
-        timeout = 30.0 (* seconds *);
+        timeout = 2.0 (* seconds *);
         timeout_threshold = 3;
         max_memory_mb = 0;
         optimizations = true;
