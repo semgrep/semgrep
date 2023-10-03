@@ -1,0 +1,7 @@
+We have reduced the default timeout (per-rule and per-file) to 2s (down from 30s).
+Typically, running a rule on a file should take a fraction of a second. When a rule
+takes more than a couple of seconds is often because the rule is not optimally
+written, or because the file is unusually large (a minified file or machine-
+generated code), so waiting 30s for it does not tend to bring any value. Plus, by
+cutting it earlier, we may prevent a potential OOM crash when running the rule is
+very memory intensive.
