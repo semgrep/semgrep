@@ -37,7 +37,8 @@ val regexp_prefilter_of_rule :
   cache:prefilter_cache option -> Rule.t -> prefilter option
 
 (* internal, do not use directly, not memoized *)
-val regexp_prefilter_of_formula : Rule.formula -> prefilter option
+val regexp_prefilter_of_formula :
+  xlang:Xlang.t -> Rule.formula -> prefilter option
 
 (* For external tools like Semgrep query console to be able to
  * also prune certain rules/files.

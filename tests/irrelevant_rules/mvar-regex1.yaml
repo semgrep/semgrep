@@ -1,0 +1,17 @@
+rules:
+  - id: test
+    options:
+      generic_engine: aliengrep
+      generic_multiline: false
+      generic_caseless: true
+    patterns:
+      - pattern: $ITEM
+      - metavariable-regex:
+          metavariable: $ITEM
+          regex: foobar
+    languages:
+      - generic
+    message: Test
+    severity: ERROR
+
+
