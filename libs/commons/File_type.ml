@@ -77,6 +77,7 @@ and pl_type =
   | Web of webpl_type
   | IDL of idl_type
   | MiscPL of string
+  | Elixir
 
 and config_type =
   | Makefile
@@ -374,6 +375,7 @@ let file_type_of_file file =
   | "r"
   | "R" ->
       PL R
+  | "ex" -> PL Elixir
   | _ when File.is_executable file -> Binary e
   | _ when b = "Makefile" || b = "mkfile" || b = "Imakefile" -> Config Makefile
   | _ when b = "Dockerfile" -> Config Dockerfile

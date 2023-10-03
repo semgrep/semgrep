@@ -151,6 +151,7 @@ let langs_of_filename filename =
   | FT.PL FT.Scala -> [ Scala ]
   | FT.PL FT.Swift -> [ Swift ]
   | FT.PL (FT.Web FT.Html) -> [ Html ]
+  | FT.PL FT.Elixir -> [ Elixir ]
   | _ -> []
 
 let lang_of_filename_exn filename =
