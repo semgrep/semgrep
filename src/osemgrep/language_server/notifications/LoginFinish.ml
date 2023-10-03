@@ -61,38 +61,37 @@ let of_jsonrpc_params params : t option =
 (* Entry point *)
 (*****************************************************************************)
 
-let on_notification server params : RPC_server.t option =
+let on_notification server params : unit =
+  (* Emulating a poor man's writer's monad *)
   let ( let^ ) x f =
     match x with
     | Error s ->
         RPC_server.notify_show_message server ~kind:MessageType.Error
-          ("semgrep/loginFinish failed: " ^ s);
-        None
+          ("Failed to complete login process: " ^ s);
+        Lwt.return ()
     | Ok y -> f y
   in
   match params with
-  | None ->
-      logger#error "semgrep/loginFinish got no params but expected some";
-      None
+  | None -> logger#error "semgrep/loginFinish got no params but expected some"
   | Some _ ->
-      let^ { url; sessionId } =
-        of_jsonrpc_params params |> Option.to_result ~none:"got invalid params"
-      in
-      let url = Uuidm.of_string url |> Option.get in
-      let sessionId = sessionId |> Uri.of_string in
-      let^ token, _ = Semgrep_login.fetch_token (url, sessionId) in
-      let^ _deployment =
-        Semgrep_App.get_deployment_from_token token
-        |> Option.to_result ~none:"failed to get deployment"
-      in
-      let notifs =
-        Lsp.Server_notification.ShowMessage
-          {
-            ShowMessageParams.message = "Successfully logged in to Semgrep Code";
-            type_ = MessageType.Info;
-          }
-      in
-      RPC_server.batch_notify server [ notifs ];
-      let^ () = Semgrep_login.save_token token in
-      (* TODO: state.app_session.authenticate() *)
-      Some server
+      (* All of this is side-effecting, so we can run it asynchronously, and
+         return to the main event loop.
+      *)
+      Lwt.async (fun () ->
+          let^ { url; sessionId } =
+            of_jsonrpc_params params
+            |> Option.to_result ~none:"got invalid parameterss"
+          in
+          let sessionId = Uuidm.of_string sessionId |> Option.get in
+          let url = url |> Uri.of_string in
+          let%lwt result = Semgrep_login.fetch_token_async (sessionId, url) in
+          let^ token, _ = result in
+          let^ _deployment =
+            Semgrep_App.get_deployment_from_token token
+            |> Option.to_result ~none:"failed to get deployment"
+          in
+          RPC_server.notify_show_message server ~kind:MessageType.Info
+            "Successfully logged into Semgrep Code";
+          let^ () = Semgrep_login.save_token token in
+          Lwt.return ())
+(* TODO: state.app_session.authenticate() *)

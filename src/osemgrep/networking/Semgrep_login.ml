@@ -54,8 +54,8 @@ let is_logged_in () =
   let settings = Semgrep_settings.load () in
   Option.is_some settings.api_token
 
-let fetch_token ?(min_wait_ms = 2000) ?(next_wait_ms = 1000) ?(max_retries = 12)
-    ?(wait_hook = fun _delay_ms -> ()) login_session =
+let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
+    ?(max_retries = 12) ?(wait_hook = fun _delay_ms -> ()) login_session =
   let apply_backoff current_wait_ms =
     Float.to_int (Float.ceil (Float.of_int current_wait_ms *. 1.3))
   in
@@ -88,9 +88,10 @@ let fetch_token ?(min_wait_ms = 2000) ?(next_wait_ms = 1000) ?(max_retries = 12)
              support at @{<cyan;ul>%s@}"
             (Logs_helpers.err_tag ()) support_url
         in
-        Error msg
+        Lwt.return (Error msg)
     | n -> (
-        match Http_helpers.post ~body ~headers url with
+        let%lwt resp = Http_helpers.post_async ~body ~headers url in
+        match resp with
         | Ok body -> (
             try
               let json = Yojson.Basic.from_string body in
@@ -101,14 +102,15 @@ let fetch_token ?(min_wait_ms = 2000) ?(next_wait_ms = 1000) ?(max_retries = 12)
                   let ident = json |> member "user_name" |> to_string in
                   Result.bind (save_token ~ident:(Some ident) token) (fun () ->
                       Ok (token, ident))
+                  |> Lwt.return
               | `Null
               | _ ->
                   let message = Printf.sprintf "Failed to get token: %s" body in
-                  Error message
+                  Error message |> Lwt.return
             with
             | Yojson.Json_error msg ->
                 let message = Printf.sprintf "Failed to parse json: %s" msg in
-                Error message)
+                Error message |> Lwt.return)
         | Error (status_code, err) -> (
             match status_code with
             | 404 ->
@@ -126,6 +128,12 @@ let fetch_token ?(min_wait_ms = 2000) ?(next_wait_ms = 1000) ?(max_retries = 12)
                     support_url
                 in
                 Logs.info (fun m -> m "HTTP error: %s" err);
-                Error msg))
+                Error msg |> Lwt.return))
   in
   fetch_token' next_wait_ms max_retries
+
+let fetch_token ?(min_wait_ms = 2000) ?(next_wait_ms = 1000) ?(max_retries = 12)
+    ?(wait_hook = fun _delay_ms -> ()) login_session =
+  Lwt_main.run
+    (fetch_token_async ~min_wait_ms ~next_wait_ms ~max_retries ~wait_hook
+       login_session)

@@ -30,6 +30,19 @@ module Conv = Convert_utils
 (* Code *)
 (*****************************************************************************)
 
+(* Dispatch to the various custom request handlers. *)
+let handle_custom_notification server (meth : string)
+    (params : Jsonrpc.Structured.t option) : RPC_server.t =
+  match
+    [ (LoginFinish.meth, LoginFinish.on_notification) ] |> List.assoc_opt meth
+  with
+  | None ->
+      Logs.warn (fun m -> m "Unhandled custom notification %s" meth);
+      server
+  | Some handler ->
+      handler server params;
+      server
+
 let on_notification notification (server : RPC_server.t) =
   let server =
     match notification with
@@ -86,15 +99,17 @@ let on_notification notification (server : RPC_server.t) =
     | CN.Exit ->
         Logs.app (fun m -> m "Server exiting");
         { server with state = RPC_server.State.Stopped }
-    | CN.UnknownNotification { method_ = "semgrep/refreshRules"; _ }
-    | CN.UnknownNotification { method_ = "semgrep/loginFinish"; _ } ->
+    | CN.UnknownNotification { method_ = "semgrep/refreshRules"; _ } ->
         Scan_helpers.refresh_rules server;
         server
     | CN.UnknownNotification { method_ = "semgrep/logout"; _ } ->
         if
           Semgrep_settings.save
             { (Semgrep_settings.load ()) with api_token = None }
-        then server
+        then (
+          RPC_server.notify_show_message server ~kind:MessageType.Info
+            "Logged out of Semgrep Code";
+          server)
         else (
           RPC_server.notify_show_message server ~kind:MessageType.Error
             "Failed to log out";
@@ -120,6 +135,8 @@ let on_notification notification (server : RPC_server.t) =
         Scan_helpers.scan_workspace scan_server;
         Logs.app (fun m -> m "Scanning workspace complete");
         server
+    | CN.UnknownNotification { method_; params } ->
+        handle_custom_notification server method_ params
     | _ ->
         Logs.warn (fun m ->
             m "Unhandled notification %s"

@@ -190,8 +190,7 @@ let dispatch_subcommand argv =
         | "login" when experimental -> Login_subcommand.main subcmd_argv
         | "logout" when experimental -> Logout_subcommand.main subcmd_argv
         | "publish" when experimental -> missing_subcommand ()
-        (* TODO: next target for not requiring the 'when experimental' guard!*)
-        | "lsp" when experimental -> Lsp_subcommand.main subcmd_argv
+        | "lsp" -> Lsp_subcommand.main subcmd_argv
         (* partial support, still use Pysemgrep.Fallback in it *)
         | "scan" -> Scan_subcommand.main subcmd_argv
         (* osemgrep-only: and by default! no need experimental! *)

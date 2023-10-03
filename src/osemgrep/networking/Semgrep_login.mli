@@ -36,3 +36,18 @@ val fetch_token :
   * error message. These will give users ~2 minutes to login
   * [wait_hook] is a function that will be called before each retry
   *)
+
+val fetch_token_async :
+  ?min_wait_ms:int ->
+  ?next_wait_ms:int ->
+  ?max_retries:int ->
+  ?wait_hook:(int -> unit) ->
+  login_session ->
+  (string * string, string) result Lwt.t
+(** [fetch_token_async ?min_wait_ms ?next_wait_ms ?max_retries wait_hook login_session] will
+  * fetch the token using the request token and url the login session. It will retry up to [max_retries]
+  * times, waiting [min_wait_ms] ms between each retry, and increasing the
+  * wait time by [next_wait_ms] ms each time, returning a promise if successful. If it
+  * fails, it will return an error message. These will give users ~2 minutes to login
+  * [wait_hook] is a function that will be called before each retry
+  *)

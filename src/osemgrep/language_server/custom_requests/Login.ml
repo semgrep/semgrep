@@ -3,7 +3,6 @@ module SN = Lsp.Server_notification
 module Conv = Convert_utils
 module Out = Semgrep_output_v1_t
 
-let logger = Logging.get_logger [ __MODULE__ ]
 let meth = "semgrep/login"
 
 let on_request (server : RPC_server.t) params : Yojson.Safe.t option =
@@ -28,5 +27,5 @@ let on_request (server : RPC_server.t) params : Yojson.Safe.t option =
               ("sessionId", `String (Uuidm.to_string id));
             ])
   | Some _ ->
-      logger#error "semgrep/login got params but expected none";
+      Logs.warn (fun m -> m "semgrep/login got params but expected none");
       None
