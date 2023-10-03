@@ -69,7 +69,7 @@
   ``` (pa-3054)
   ````
 
-- Semgrep can now derive facts about constants from equality tests.
+- Pro: Semgrep can now derive facts about constants from equality tests.
 
   For example, pattern `foobar(&nullptr)` will not match here:
 

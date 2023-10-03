@@ -790,7 +790,7 @@ let check_fundef lang options taint_config opt_ent ctx ?glob_env
   let name =
     let* ent = opt_ent in
     let* name = AST_to_IL.name_of_entity ent in
-    Some (D.str_of_name name)
+    Some (IL.str_of_name name)
   in
   let _, xs = AST_to_IL.function_definition lang ~ctx fdef in
   let flow = CFG_build.cfg_of_stmts xs in
