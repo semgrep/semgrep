@@ -17,6 +17,9 @@ val batch_notify : t -> Lsp.Server_notification.t list -> unit
 (** [batch_notify t notifs] sends a batch of notifications to the client. *)
 
 val notify_show_message : t -> kind:Lsp.Types.MessageType.t -> string -> unit
+(** [notify_show_message] server ~kind s sends the string [s] as a message with
+    type [kind] as a window to the extension
+  *)
 
 val create_progress : t -> string -> string -> Lsp.Types.ProgressToken.t
 (** [create_progress t title message] creates a progress token. *)

@@ -2,7 +2,6 @@ open Lsp.Types
 module Conv = Convert_utils
 module Out = Semgrep_output_v1_t
 
-let logger = Logging.get_logger [ __MODULE__ ]
 let meth = "semgrep/loginFinish"
 let wait_before_retry_in_ms = 6 * 1000
 let max_retries = 30
@@ -38,7 +37,9 @@ let on_notification server params : unit =
     | Ok y -> f y
   in
   match params with
-  | None -> logger#error "semgrep/loginFinish got no params but expected some"
+  | None ->
+      Logs.warn (fun m ->
+          m "semgrep/loginFinish got no params but expected some")
   | Some _ ->
       (* All of this is side-effecting, so we can run it asynchronously, and
          return to the main event loop.
