@@ -20,6 +20,7 @@ from rich.table import Table
 import semgrep.run_scan
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.app import auth
+from semgrep.app.scans import ScanCompleteResult
 from semgrep.app.scans import ScanHandler
 from semgrep.commands.install import run_install_semgrep_pro
 from semgrep.commands.scan import scan_options
@@ -584,15 +585,14 @@ def ci(
         f"  Found {unit_str(num_blocking_findings + num_nonblocking_findings, 'finding')} ({num_blocking_findings} blocking) from {unit_str(num_executed_rules, 'rule')}."
     )
 
-    app_block_override = False
-    reason = ""
+    complete_result: ScanCompleteResult | None = None
     if scan_handler:
         with Progress(
             TextColumn("  {task.description}"),
             SpinnerColumn(spinner_name="simpleDotsScrolling"),
             console=console,
         ) as progress_bar:
-            app_block_override, reason = scan_handler.report_findings(
+            complete_result = scan_handler.report_findings(
                 filtered_matches_by_rule,
                 semgrep_errors,
                 filtered_rules,
@@ -609,7 +609,13 @@ def ci(
                 progress_bar,
             )
 
-        logger.info("  View results in Semgrep Cloud Platform:")
+        if complete_result.success:
+            logger.info("  View results in Semgrep Cloud Platform:")
+        else:
+            logger.info(
+                "  Semgrep Cloud Platform is still processing the results of the scan, they will be available soon:"
+            )
+
         logger.info(
             f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/findings"
         )
@@ -632,8 +638,10 @@ def ci(
         logger.info("  No blocking findings so exiting with code 0")
         exit_code = 0
 
-    if app_block_override and not audit_mode:
-        logger.info(f"  semgrep.dev is suggesting a non-zero exit code ({reason})")
+    if complete_result and complete_result.app_block_override and not audit_mode:
+        logger.info(
+            f"  semgrep.dev is suggesting a non-zero exit code ({complete_result.app_block_reason})"
+        )
         exit_code = 1
 
     if enable_version_check:
