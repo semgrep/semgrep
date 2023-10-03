@@ -264,7 +264,7 @@ let get_os =
   let os =
     lazy
       (let ic = Unix.open_process_in "uname" in
-       Fun.protect
+       Common.protect
          (fun () ->
            let uname = input_line ic in
            match uname with

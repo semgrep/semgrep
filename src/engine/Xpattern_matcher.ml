@@ -107,7 +107,7 @@ let line_col_of_charpos file charpos =
  * https://github.com/returntocorp/semgrep/issues/5277 *)
 let with_tmp_file ~str ~ext f =
   Common2.with_tmp_file ~str ~ext (fun file ->
-      Fun.protect
+      Common.protect
         ~finally:(fun () -> Hashtbl.remove hmemo file)
         (fun () -> f file))
 

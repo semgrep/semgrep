@@ -18,7 +18,7 @@ let get_heap_size_in_bytes () =
 *)
 let with_debug_alarm f =
   let alarm = Gc.create_alarm (fun () -> printf "Running GC alarm.\n%!") in
-  Fun.protect f ~finally:(fun () -> Gc.delete_alarm alarm)
+  Common.protect f ~finally:(fun () -> Gc.delete_alarm alarm)
 
 (*
    Grow the stack until some limit expressed in bytes.

@@ -115,7 +115,7 @@ let run_with_memory_limit ?get_context
       stack_already_warned := true)
   in
   let alarm = Gc.create_alarm limit_memory in
-  try Fun.protect f ~finally:(fun () -> Gc.delete_alarm alarm) with
+  try Common.protect f ~finally:(fun () -> Gc.delete_alarm alarm) with
   | Out_of_memory as exn ->
       (*
          Is it bad to collect a full stack backtrace when we're out of memory?

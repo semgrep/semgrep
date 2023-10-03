@@ -167,7 +167,7 @@ let replace_named_pipe_by_regular_file path =
         let remove () = if Sys.file_exists tmp_path then Sys.remove tmp_path in
         (* Try to remove temporary file when program exits. *)
         at_exit remove;
-        Fun.protect
+        Common.protect
           ~finally:(fun () -> close_out_noerr oc)
           (fun () -> output_string oc data);
         Fpath.v tmp_path
@@ -587,6 +587,9 @@ let iter_targets_and_get_matches_and_exn_to_errors config
                        (Core_profiling.empty_partial_profiling file),
                      Scanned )
                (* those were converted in Main_timeout in timeout_function()*)
+               (* FIXME:
+                  Actually, I managed to get this assert to trigger by running
+                  semgrep -c p/default-v2 on elasticsearch with -timeout 0.01 ! *)
                | Time_limit.Timeout _ -> assert false
                (* It would be nice to detect 'R.Err (R.InvalidRule _)' here
                 * for errors while parsing patterns. This exn used to be raised earlier
