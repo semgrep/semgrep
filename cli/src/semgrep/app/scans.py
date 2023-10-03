@@ -2,7 +2,6 @@
 import json
 import os
 from collections import Counter
-from copy import deepcopy
 from datetime import datetime
 from datetime import timedelta
 from pathlib import Path
@@ -136,7 +135,7 @@ class ScanHandler:
         """
         return self._enabled_products
 
-    def _get_scan_config_from_app(self, url: str) -> Dict[str, Any]:
+    def _get_scan_config_from_app(self, url: str) -> out.ScanConfig:
         state = get_state()
         response = state.app_session.get(url)
         try:
@@ -153,7 +152,7 @@ class ScanHandler:
                 f"API server at {state.env.semgrep_url} returned type '{type(body)}'. Expected a dictionary."
             )
 
-        return body
+        return out.ScanConfig.from_json(body)
 
     def fetch_and_init_scan_config(self, meta: Dict[str, Any]) -> None:
         """
@@ -178,24 +177,27 @@ class ScanHandler:
                 f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/config"
             )
 
-        body = self._get_scan_config_from_app(app_get_config_url)
+        conf: out.ScanConfig = self._get_scan_config_from_app(app_get_config_url)
 
-        self._deployment_id = body["deployment_id"]
-        self._deployment_name = body["deployment_name"]
-        self._policy_names = body["policy_names"]
-        self._rules = body["rule_config"]
-        self._autofix = body.get("autofix") or False
-        self._deepsemgrep = body.get("deepsemgrep") or False
-        self._dependency_query = body.get("dependency_query") or False
-        self._skipped_syntactic_ids = body.get("triage_ignored_syntactic_ids") or []
-        self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids") or []
-        self._enabled_products = body.get("enabled_products") or []
-        self.ignore_patterns = body.get("ignored_files") or []
+        self._deployment_id = conf.deployment_id
+        self._deployment_name = conf.deployment_name
+        self._policy_names = conf.policy_names
+        self._rules = conf.rule_config
+        self._autofix = conf.autofix
+        self._deepsemgrep = conf.deepsemgrep
+        self._dependency_query = conf.dependency_query
+        self._skipped_syntactic_ids = conf.triage_ignored_syntactic_ids
+        self._skipped_match_based_ids = conf.triage_ignored_match_based_ids
+        self.ignore_patterns = conf.ignored_files
+        if conf.enabled_products:
+            self._enabled_products = [x.to_json() for x in conf.enabled_products]
+        else:
+            self._enabled_products = []
 
         if state.terminal.is_debug:
-            config = deepcopy(body)
+            config = conf.to_json()
             try:
-                config["rule_config"] = json.loads(config["rule_config"])
+                config["rule_config"] = json.loads(conf.rule_config)
             except Exception:
                 pass
             logger.debug(f"Got configuration {json.dumps(config, indent=4)}")
