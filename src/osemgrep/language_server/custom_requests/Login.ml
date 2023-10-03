@@ -9,14 +9,8 @@ let on_request (server : RPC_server.t) params : Yojson.Safe.t option =
   match params with
   | None ->
       if Semgrep_login.is_logged_in () then (
-        let notifs =
-          SN.ShowMessage
-            {
-              ShowMessageParams.message = "Already logged in to Semgrep Code";
-              type_ = MessageType.Info;
-            }
-        in
-        RPC_server.batch_notify server [ notifs ];
+        RPC_server.notify_show_message server ~kind:MessageType.Info
+          "Already logged in to Semgrep Code";
         None)
       else
         let id, uri = Semgrep_login.make_login_url () in
