@@ -465,4 +465,3 @@ class ScanHandler:
 
             progress_bar.advance(complete_task)
             sleep(5 if datetime.utcnow() < slow_down_after else 30)
-            continue
