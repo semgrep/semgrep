@@ -971,6 +971,7 @@ let id x = x
 let const x _y = x
 let do_nothing () = ()
 let rec applyn n f o = if n = 0 then o else applyn (n - 1) f (f o)
+let on g f x y = g (f x) (f y)
 
 let forever f =
   while true do

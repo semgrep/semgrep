@@ -220,6 +220,14 @@ let taint_trace_to_dataflow_trace (traces : PM.taint_trace_item list) :
     taint_sink = taint_call_trace sink_call_trace;
   }
 
+let string_of_severity (severity : Pattern_match.severity) : string =
+  match severity with
+  | Error -> "ERROR"
+  | Warning -> "WARNING"
+  | Info -> "INFO"
+  | Experiment -> "EXPERIMENT"
+  | Inventory -> "INVENTORY"
+
 let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
     =
   let min_loc, max_loc = x.range_loc in
@@ -258,6 +266,8 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
     extra =
       {
         message = Some x.rule_id.message;
+        severity = Option.map string_of_severity x.severity_override;
+        metadata = Option.map JSON.to_yojson x.metadata_override;
         metavars = x.env |> Common.map (metavars startp);
         dataflow_trace;
         rendered_fix;

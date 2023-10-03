@@ -19,6 +19,7 @@ from typing import Tuple
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 import semgrep.util as util
+from semgrep.constants import RuleSeverity
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import Level
 from semgrep.error import OK_EXIT_CODE
@@ -153,7 +154,14 @@ def core_matches_to_rule_matches(
     def convert_to_rule_match(match: out.CoreMatch) -> RuleMatch:
         rule = rule_table[match.check_id.value]
         matched_values, propagated_values = read_metavariables(match)
-        message = interpolate(rule.message, matched_values, propagated_values)
+
+        message = match.extra.message if match.extra.message else rule.message
+        message = interpolate(message, matched_values, propagated_values)
+
+        metadata = rule.metadata
+        if match.extra.metadata:
+            metadata.update(match.extra.metadata.value)
+
         if match.extra.rendered_fix is not None:
             fix = match.extra.rendered_fix
             logger.debug(f"Using AST-based autofix rendered in semgrep-core: `{fix}`")
@@ -188,8 +196,10 @@ def core_matches_to_rule_matches(
             match=match,
             extra=match.extra.to_json(),
             message=message,
-            metadata=rule.metadata,
-            severity=rule.severity,
+            metadata=metadata,
+            severity=RuleSeverity(match.extra.severity)
+            if match.extra.severity
+            else rule.severity,
             fix=fix,
             fix_regex=fix_regex,
         )

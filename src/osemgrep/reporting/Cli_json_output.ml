@@ -389,6 +389,8 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
    extra =
      {
        message;
+       severity;
+       metadata;
        metavars;
        engine_kind;
        extra_extra;
@@ -419,11 +421,15 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
       (* LATER: this should be a variant in semgrep_output_v1.atd
        * and merged with Constants.rule_severity
        *)
-      let severity = string_of_severity rule.severity in
+      let severity = severity ||| string_of_severity rule.severity in
       let metadata =
         match rule.metadata with
         | None -> `Assoc []
-        | Some json -> JSON.to_yojson json
+        | Some json -> (
+            JSON.to_yojson json |> fun rule_metadata ->
+            match metadata with
+            | Some metadata -> JSON.update rule_metadata metadata
+            | None -> rule_metadata)
       in
       (* TODO? at this point why not using content_of_file_at_range since
        * we concatenate the lines after? *)
