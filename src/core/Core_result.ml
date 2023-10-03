@@ -30,20 +30,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Types *)
 (*****************************************************************************)
 
-type t = {
-  matches : Pattern_match.t list;
-  errors : Core_error.t list;
-  skipped_rules : Rule.invalid_rule_error list;
-  (* may contain also skipped_target information *)
-  extra : Core_profiling.t Core_profiling.debug_info;
-  explanations : Matching_explanation.t list;
-  rules_by_engine : (Rule_ID.t * Engine_kind.t) list;
-  scanned : Fpath.t list;
-}
-[@@deriving show]
-
 (* For each file, substitute in the profiling type we have *)
-
 type 'a match_result = {
   matches : Pattern_match.t list;
   errors : E.ErrorSet.t;
@@ -56,6 +43,18 @@ type 'a match_result = {
           fprintf fmt "}"]
   extra : 'a Core_profiling.debug_info;
   explanations : Matching_explanation.t list;
+}
+[@@deriving show]
+
+type t = {
+  matches : Pattern_match.t list;
+  errors : Core_error.t list;
+  skipped_rules : Rule.invalid_rule_error list;
+  (* may contain also skipped_target information *)
+  extra : Core_profiling.t Core_profiling.debug_info;
+  explanations : Matching_explanation.t list;
+  rules_by_engine : (Rule_ID.t * Engine_kind.t) list;
+  scanned : Fpath.t list;
 }
 [@@deriving show]
 
@@ -109,7 +108,7 @@ let make_match_result matches errors profiling =
 (* Augment reported information with profiling info *)
 (*****************************************************************************)
 
-let modify_match_result_profiling result f =
+let modify_match_result_profiling (result : _ match_result) f : _ match_result =
   let extra =
     (* should match mode *)
     match result.extra with
@@ -136,10 +135,12 @@ let add_rule : Rule.rule -> times match_result -> rule_profiling match_result =
 (*****************************************************************************)
 
 (* Helper to aggregate the shared parts of results *)
-let collate_results init_extra unzip_extra base_case_extra final_extra results =
+let collate_results init_extra unzip_extra base_case_extra final_extra results :
+    _ match_result =
   let unzip_results l =
     let rec unzip all_matches all_errors (all_skipped_targets, all_profiling)
-        all_explanations = function
+        all_explanations (l : _ match_result list) =
+      match l with
       | { matches; errors; extra; explanations } :: l ->
           unzip (matches :: all_matches) (errors :: all_errors)
             (unzip_extra extra all_skipped_targets all_profiling)
@@ -256,21 +257,27 @@ let make_final_result
     (skipped_rules : Rule.invalid_rule_error list) (scanned : Fpath.t list)
     ~rules_parse_time =
   (* contenating information from the match_result list *)
-  let matches = results |> List.concat_map (fun x -> x.matches) in
-  let explanations = results |> List.concat_map (fun x -> x.explanations) in
+  let matches =
+    results |> List.concat_map (fun (x : _ match_result) -> x.matches)
+  in
+  let explanations =
+    results |> List.concat_map (fun (x : _ match_result) -> x.explanations)
+  in
   let errors =
-    results |> List.concat_map (fun x -> x.errors |> E.ErrorSet.elements)
+    results
+    |> List.concat_map (fun (x : _ match_result) ->
+           x.errors |> E.ErrorSet.elements)
   in
 
   (* Create extra *)
-  let get_skipped_targets result =
+  let get_skipped_targets (result : _ match_result) =
     (* TODO? shouldn't we always compute the skipped_target? *)
     match result.extra with
     | Debug { skipped_targets; profiling = _profiling } -> skipped_targets
     | Time _profiling -> []
     | No_info -> []
   in
-  let get_profiling result =
+  let get_profiling (result : _ match_result) =
     match result.extra with
     | Debug { skipped_targets = _skipped_targets; profiling } -> profiling
     | Time { profiling } -> profiling
