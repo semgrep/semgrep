@@ -6,6 +6,27 @@
 
 <!-- insertion point -->
 
+## [1.43.0](https://github.com/returntocorp/semgrep/releases/tag/v1.43.0) - 2023-10-03
+
+### Added
+
+- Dart: Full Semgrep support for Dart has been added, whereas previously
+  most Semgrep constructs (and Semgrep itself) would not work correctly. (pa-2968)
+
+### Changed
+
+- We have reduced the default timeout (per-rule and per-file) to 2s (down from 30s).
+  Typically, running a rule on a file should take a fraction of a second. When a rule
+  takes more than a couple of seconds is often because the rule is not optimally
+  written, or because the file is unusually large (a minified file or machine-
+  generated code), so waiting 30s for it does not tend to bring any value. Plus, by
+  cutting it earlier, we may prevent a potential OOM crash when running the rule is
+  very memory intensive. (pa-3155)
+
+### Fixed
+
+- The language server will no longer surface committed findings when a user types but does not save (pdx-ls-git)
+
 ## [1.42.0](https://github.com/returntocorp/semgrep/releases/tag/v1.42.0) - 2023-09-29
 
 ### Added
