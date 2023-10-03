@@ -37,25 +37,33 @@ let make_login_url () =
           ("gha", if !Semgrep_envvars.v.in_gh_action then "True" else "False");
         ]) )
 
-let save_token ?(ident = None) token =
+let save_token_async ?(ident = None) token =
   Option.iter
     (fun v -> Logs.debug (fun m -> m "saving token for user %s" v))
     ident;
   let settings = Semgrep_settings.load () in
-  match Semgrep_App.get_deployment_from_token token with
-  | None -> Error "Login token is not valid. Please try again."
-  | Some _deployment_config
-    when Semgrep_settings.save
-           Semgrep_settings.{ settings with api_token = Some token } ->
-      Ok ()
-  | _ -> Error "Failed to save token. Please try again."
+  Semgrep_App.get_deployment_from_token_async token
+  |> Lwt.map (function
+       | None -> Error "Login token is not valid. Please try again."
+       | Some _deployment_config
+         when Semgrep_settings.save
+                Semgrep_settings.{ settings with api_token = Some token } ->
+           Ok ()
+       | _ -> Error "Failed to save token. Please try again.")
+
+let save_token ?(ident = None) token =
+  Lwt_main.run (save_token_async ~ident token)
 
 let is_logged_in () =
   let settings = Semgrep_settings.load () in
   Option.is_some settings.api_token
 
+let default_wait_hook delay_ms =
+  (* Note: sleep is measured in seconds *)
+  Unix.sleepf (Float.of_int delay_ms /. Float.of_int (1000 * 100))
+
 let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
-    ?(max_retries = 12) ?(wait_hook = fun _delay_ms -> ()) login_session =
+    ?(max_retries = 12) ?(wait_hook = default_wait_hook) login_session =
   let apply_backoff current_wait_ms =
     Float.to_int (Float.ceil (Float.of_int current_wait_ms *. 1.3))
   in
@@ -100,9 +108,8 @@ let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
               | `String token ->
                   (* NOTE: We should probably use user_id over user_name for uniqueness constraints *)
                   let ident = json |> member "user_name" |> to_string in
-                  Result.bind (save_token ~ident:(Some ident) token) (fun () ->
-                      Ok (token, ident))
-                  |> Lwt.return
+                  let%lwt result = save_token_async ~ident:(Some ident) token in
+                  Result.bind result (fun () -> Ok (token, ident)) |> Lwt.return
               | `Null
               | _ ->
                   let message = Printf.sprintf "Failed to get token: %s" body in

@@ -10,6 +10,9 @@ val make_login_url : unit -> login_session
   * environment (gha, cli etc.)
   *)
 
+val save_token_async :
+  ?ident:string option -> string -> (unit, string) result Lwt.t
+
 val save_token : ?ident:string option -> string -> (unit, string) result
 (** [save_token ?ident token] will save the token to the user's settings file.
   * If it fails, it will return an error message.
