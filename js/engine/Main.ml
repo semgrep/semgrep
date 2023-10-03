@@ -76,23 +76,10 @@ let _ =
            let source_files =
              Js.to_array source_files |> Array.to_list |> List.map Js.to_string
            in
-           let rule_ids =
-             rules_and_errors |> fst |> List.map (fun r -> fst r.Rule.id)
-           in
-           let target_mappings =
-             List.map
-               (fun f ->
-                 Input_to_core_t.
-                   {
-                     path = f;
-                     language = xlang;
-                     rule_nums = Common.mapi (fun i _ -> i) rule_ids;
-                   })
-               source_files
-           in
            let targets =
-             Input_to_core_t.
-               { target_mappings; rule_ids = Rule_ID.to_string_list rule_ids }
+             List.map
+               (fun f -> Input_to_core_t.{ path = f; analyzer = xlang })
+               source_files
            in
            let config : Core_scan_config.t =
              {
