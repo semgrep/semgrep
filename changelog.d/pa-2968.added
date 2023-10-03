@@ -1,2 +1,0 @@
-Dart: Full Semgrep support for Dart has been added, whereas previously
-most Semgrep constructs (and Semgrep itself) would not work correctly.
