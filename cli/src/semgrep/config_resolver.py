@@ -72,6 +72,7 @@ DEFAULT_CONFIG = {
     ],
 }
 
+CLOUD_PLATFORM_CONFIG_ID = "semgrep-app-rules"
 REGISTRY_CONFIG_ID = "remote-registry"
 NON_REGISTRY_REMOTE_CONFIG_ID = "remote-url"
 
@@ -373,7 +374,7 @@ class Config:
         errors: List[SemgrepError] = []
 
         try:
-            resolved_config_key = "semgrep-app-rules"
+            resolved_config_key = CLOUD_PLATFORM_CONFIG_ID
             config_dict.update(
                 parse_config_string(resolved_config_key, config, filename=None)
             )
@@ -522,6 +523,7 @@ class Config:
                     if (
                         isinstance(rule.product.value, out.Secrets)
                         and config_id != REGISTRY_CONFIG_ID
+                        and config_id != CLOUD_PLATFORM_CONFIG_ID
                     ):
                         # SECURITY: Set metadata from non-registry secrets
                         # rules so that postprocessors are not run. The default
@@ -837,10 +839,5 @@ def get_config(
         )
     else:
         config, errors = Config.from_config_list(config_strs, project_url)
-
-    if not config:
-        raise SemgrepError(
-            f"No config given. Try running with --help to debug or if you want to download a default config, try running with --config r2c"
-        )
 
     return config, errors

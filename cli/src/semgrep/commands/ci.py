@@ -22,7 +22,6 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.app import auth
 from semgrep.app.scans import ScanHandler
 from semgrep.commands.install import run_install_semgrep_pro
-from semgrep.commands.scan import CONTEXT_SETTINGS
 from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.console import console
@@ -115,7 +114,7 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     atexit.register(git_check_output, ["git", "checkout", stashed_rev], os.getcwd())
 
 
-@click.command(context_settings=CONTEXT_SETTINGS)
+@click.command()
 @click.pass_context
 @scan_options
 @click.option(
@@ -160,6 +159,13 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
 @click.option("--code", is_flag=True, hidden=True)
 @click.option("--beta-testing-secrets", is_flag=True, hidden=True)
 @click.option(
+    "--secrets",
+    "run_secrets_flag",
+    is_flag=True,
+    hidden=True,
+    help="Enable support for secret validation. Requires Semgrep Secrets, contact support@semgrep.com for more information this.",
+)
+@click.option(
     "--suppress-errors/--no-suppress-errors",
     "suppress_errors",
     default=True,
@@ -181,9 +187,9 @@ def ci(
     # redirect to `--secrets` aka run_secrets_flag.
     beta_testing_secrets: bool,
     code: bool,
-    core_opts: Optional[str],
     config: Optional[Tuple[str, ...]],
     debug: bool,
+    diff_depth: int,
     dump_command_for_core: bool,
     dry_run: bool,
     enable_nosem: bool,
@@ -306,14 +312,30 @@ def ci(
         # so that metadata of current commit is correct
         if scan_handler:
             console.print(Title("Connection", order=2))
-            meta: out.ProjectMetadata = metadata.to_project_metadata()
-            meta.is_sca_scan = supply_chain
-            meta.is_code_scan = code
-            meta.is_secrets_scan = run_secrets_flag
-            metadata_dict = meta.to_json()
+
+            # Build project_metadata
+            project_meta: out.ProjectMetadata = metadata.to_project_metadata()
+            project_meta.is_sca_scan = supply_chain
+            project_meta.is_code_scan = code
+            project_meta.is_secrets_scan = run_secrets_flag
+
             # TODO: move ProjectConfig to ATD too
-            proj_config = ProjectConfig.load_all()
-            metadata_dict = {**metadata_dict, **proj_config.to_dict()}
+            project_config = ProjectConfig.load_all()
+
+            # Build scan_metadata
+            if code:
+                scan_handler.scan_metadata.requested_products.append(
+                    out.Product(out.SAST())
+                )
+            if supply_chain:
+                scan_handler.scan_metadata.requested_products.append(
+                    out.Product(out.SCA())
+                )
+            if run_secrets_flag:
+                scan_handler.scan_metadata.requested_products.append(
+                    out.Product(out.Secrets())
+                )
+
             with Progress(
                 TextColumn("  {task.description}"),
                 SpinnerColumn(spinner_name="simpleDotsScrolling"),
@@ -327,7 +349,7 @@ def ci(
 
                 start_scan_desc = f"Reporting start of scan for [bold]{scan_handler.deployment_name}[/bold]"
                 start_scan_task = progress_bar.add_task(start_scan_desc)
-                scan_handler.start_scan(metadata_dict)
+                scan_handler.start_scan(project_meta, project_config)
                 if scan_handler.scan_id:
                     start_scan_desc += f" (scan_id={scan_handler.scan_id})"
                 progress_bar.update(
@@ -337,7 +359,7 @@ def ci(
                 connection_task = progress_bar.add_task(
                     f"Fetching configuration from Semgrep Cloud Platform{at_url_maybe}"
                 )
-                scan_handler.fetch_and_init_scan_config(metadata_dict)
+                scan_handler.fetch_and_init_scan_config(project_meta.to_json())
                 progress_bar.update(connection_task, completed=100)
 
                 product_names = [
@@ -383,6 +405,7 @@ def ci(
         scan_handler=scan_handler,
         git_meta=metadata,
         run_secrets=run_secrets,
+        enable_pro_diff_scan=diff_depth >= 0,
     )
 
     # set default settings for selected engine type
@@ -438,7 +461,6 @@ def ci(
             num_executed_rules,
             contributions,
         ) = semgrep.run_scan.run_scan(
-            core_opts_str=core_opts,
             engine_type=engine_type,
             run_secrets=run_secrets,
             output_handler=output_handler,
@@ -468,6 +490,7 @@ def ci(
             optimizations=optimizations,
             baseline_commit=metadata.merge_base_ref,
             baseline_commit_is_mergebase=True,
+            diff_depth=diff_depth,
             dump_contributions=True,
         )
     except SemgrepError as e:

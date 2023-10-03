@@ -32,12 +32,6 @@ open Ast_c
 let id x = x
 let option = Option.map
 let list = Common.map
-
-let either f g x =
-  match x with
-  | Left x -> Left (f x)
-  | Right x -> Right (g x)
-
 let string = id
 let fake tok s = Tok.fake_tok tok s
 let unsafe_fake s = Tok.unsafe_fake_tok s
@@ -183,17 +177,17 @@ and expr e =
       G.L (G.Char v1) |> G.e
   | Null v1 -> G.L (G.Null v1) |> G.e
   | ConcatString xs ->
-      G.Call
-        ( G.IdSpecial (G.ConcatString G.SequenceConcat, unsafe_fake " ") |> G.e,
-          fb (xs |> Common.map (fun x -> G.Arg (G.L (G.String (fb x)) |> G.e)))
-        )
-      |> G.e
+      let xs = list string_component xs in
+      G.interpolated (fb xs)
   | Defined (t, id) ->
       let e = G.N (G.Id (id, G.empty_id_info ())) |> G.e in
       G.Call (G.IdSpecial (G.Defined, t) |> G.e, fb [ G.Arg e ]) |> G.e
   | Id v1 ->
       let v1 = name v1 in
       G.N (G.Id (v1, G.empty_id_info ())) |> G.e
+  | IdSpecial x ->
+      let v1 = special_wrap x in
+      v1
   | Ellipses v1 ->
       let v1 = info v1 in
       G.Ellipsis v1 |> G.e
@@ -235,20 +229,27 @@ and expr e =
       let v1 = expr v1 and v2 = binaryOp v2 and v3 = expr v3 in
       G.Call (G.IdSpecial (G.Op v2, tok) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
       |> G.e
-  | CondExpr (v1, v2, v3) ->
-      let v1 = expr v1 and v2 = expr v2 and v3 = expr v3 in
-      G.Conditional (v1, v2, v3) |> G.e
+  | CondExpr (v1, v2, v3) -> (
+      (* This is a GCC extension that allows x ? : y to be equivalent to
+         x ? x : y.
+         This is actually kind of problematic because if we naively copy
+         `x`, we could reach exponentially sized trees for certain pathological
+         inputs.
+         So we'll just do an OtherExpr for now.
+      *)
+      let v1 = expr v1
+      and v2 = option expr v2
+      and v3 = expr v3 in
+      match v2 with
+      | Some v2 -> G.Conditional (v1, v2, v3) |> G.e
+      | None ->
+          G.OtherExpr
+            ( ("ConditionalNoMiddle", G.fake "ConditionalNoMiddle"),
+              [ G.E v1; G.E v3 ] )
+          |> G.e)
   | Sequence (v1, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
       G.Seq [ v1; v2 ] |> G.e
-  | SizeOf (t, v1) ->
-      let v1 = either expr type_ v1 in
-      G.Call
-        ( G.IdSpecial (G.Sizeof, t) |> G.e,
-          match v1 with
-          | Left e -> fb [ G.Arg e ]
-          | Right t -> fb [ G.ArgType t ] )
-      |> G.e
   | ArrayInit v1 ->
       let v1 =
         bracket
@@ -280,20 +281,50 @@ and expr e =
           G.empty_id_info (),
           fb ([ v2 ] |> Common.map G.arg) )
       |> G.e
+  | Generic (tk, (_l, (e, assocs), _r)) ->
+      let e = expr e in
+      let cond =
+        G.Cond (Call (IdSpecial (Typeof, tk) |> G.e, fb [ G.Arg e ]) |> G.e)
+      in
+      let cases =
+        Common.map
+          (fun (ty, e) ->
+            G.CasesAndBody
+              ( [ G.Case (G.fake "", G.PatType (type_ ty)) ],
+                G.ExprStmt (expr e, G.sc) |> G.s ))
+          assocs
+      in
+      StmtExpr (G.Switch (tk, Some cond, cases) |> G.s) |> G.e
   | TypedMetavar (v1, v2) ->
       let v1 = name v1 in
       let v2 = type_ v2 in
       G.TypedMetavar (v1, fake (snd v1) " ", v2) |> G.e
+  | DotAccessEllipsis (e, tk) -> G.DotAccessEllipsis (expr e, tk) |> G.e
+
+and special_wrap (spec, tk) =
+  match spec with
+  | SizeOf -> G.IdSpecial (G.Sizeof, tk) |> G.e
+  | OffsetOf -> G.N (Id (("offsetof", tk), G.empty_id_info ())) |> G.e
+  | AlignOf -> N (Id (("alignof", tk), G.empty_id_info ())) |> G.e
+
+and string_component = function
+  | StrIdent id -> Common.Middle3 (G.N (Id (id, G.empty_id_info ())) |> G.e)
+  | StrLit s -> Common.Left3 s
 
 and argument v =
   match v with
   | Arg v ->
       let v = expr v in
       G.Arg v
+  | ArgType v ->
+      let v = type_ v in
+      G.ArgType v
+  | ArgBlock (l, stmts, r) ->
+      Arg (StmtExpr (Block (l, list stmt stmts, r) |> G.s) |> G.e)
 
 and const_expr v = expr v
 
-let rec stmt st =
+and stmt st =
   (match st with
   | DefStmt x -> definition x
   | DirStmt x -> directive x
@@ -350,10 +381,92 @@ let rec stmt st =
   | Vars v1 ->
       let v1 = list var_decl v1 in
       (G.stmt1 (v1 |> Common.map (fun v -> G.s (G.DefStmt v)))).G.s
-  | Asm v1 ->
-      let v1 = list expr v1 in
-      G.OtherStmt (G.OS_Asm, v1 |> Common.map (fun e -> G.E e)))
+  | AsmStmt
+      ( asm_tk,
+        (_l, { a_template; a_outputs; a_inputs; a_clobbers; a_gotos }, _r),
+        sc ) ->
+      let a_template = [ G.E (expr a_template) ] in
+      let a_outputs = List.concat_map name_asm_operand a_outputs in
+      let a_inputs = List.concat_map expr_asm_operand a_inputs in
+      let a_clobbers = Common.map (fun x -> G.I (name x)) a_clobbers in
+      let a_gotos = Common.map (fun x -> G.I (name x)) a_gotos in
+      G.OtherStmt
+        ( G.OS_Asm,
+          [ G.Tk asm_tk ] @ a_template @ a_outputs @ a_inputs @ a_clobbers
+          @ a_gotos @ [ G.Tk sc ] )
+  | PreprocStmt { p_condition; p_stmts; p_elifs; p_else; p_endif = _ } -> (
+      (* We take every
+         #ifdef <x>
+            <stuff>
+         #elifdef <y>
+            <stuff2>
+         #endif
+         and translate it to a series of conditionals, like
+
+         if (<x>) {
+           <stuff>
+         } else {
+           if (<y>) {
+             <stuff2>
+           }
+         }
+
+         where each conditional is an OtherCond.
+
+         We may desire to treat this differently in the future, as this is
+         not the same as how C++ represents macros.
+      *)
+      let top_tk, cond =
+        match p_condition with
+        | PreprocIfdef (tk, n) ->
+            (tk, G.OtherCond (("ifdef", G.fake "ifdef"), [ G.I (name n) ]))
+        | PreprocIf (tk, e) ->
+            (tk, OtherCond (("if", G.fake "if"), [ G.E (expr e) ]))
+      in
+      let elifs =
+        Common.map
+          (fun (tk, e, stmts) -> (tk, G.Cond (expr e), list stmt stmts))
+          p_elifs
+      in
+      let p_else =
+        match p_else with
+        | None -> None
+        | Some stmts -> Some (G.Block (fb (list stmt stmts)))
+      in
+      match
+        List.fold_right
+          (fun (tk, cond, stmts) acc ->
+            match acc with
+            | None -> Some (G.If (tk, cond, Block (fb stmts) |> G.s, None))
+            | Some old_s ->
+                Some
+                  (G.If (tk, cond, Block (fb stmts) |> G.s, Some (old_s |> G.s))))
+          ((top_tk, cond, Common.map stmt p_stmts) :: elifs)
+          p_else
+      with
+      | None -> failwith "impossible"
+      | Some stmt -> stmt))
   |> G.s
+
+and expr_asm_operand (v1, v2, v3) =
+  let v1 =
+    match option (bracket name) v1 with
+    | None -> []
+    | Some (_, n, _) -> [ G.I n ]
+  in
+  let v2 = name v2 in
+  let _, v3, _ = bracket expr v3 in
+  v1 @ [ G.I v2 ] @ [ G.E v3 ]
+
+and name_asm_operand (v1, v2, v3) =
+  let v1 =
+    match option (bracket name) v1 with
+    | None -> []
+    | Some (_, n, _) -> [ G.I n ]
+  in
+  let v2 = name v2 in
+  let _, v3, _ = bracket name v3 in
+  v1 @ [ G.I v2 ] @ [ G.I v3 ]
 
 and expr_or_vars v1 =
   match v1 with
@@ -424,17 +537,17 @@ and field_def { fld_name; fld_type } =
   let v2 = type_ fld_type in
   (opt_to_ident v1, v2)
 
-and enum_def { e_name = v1; e_consts = v2 } =
+and enum_def { e_name = v1; e_type = _v2_TODO; e_consts = v3 } =
   let v1 = name v1
-  and v2 =
+  and v3 =
     list
       (fun (v1, v2) ->
         let v1 = name v1 and v2 = option const_expr v2 in
         (v1, v2))
-      v2
+      v3
   in
   let entity = G.basic_entity v1 in
-  let ors = v2 |> Common.map (fun (n, eopt) -> G.OrEnum (n, eopt)) in
+  let ors = v3 |> Common.map (fun (n, eopt) -> G.OrEnum (n, eopt)) in
   (entity, G.TypeDef { G.tbody = G.OrType ors })
 
 and type_def { t_name = v1; t_type = v2 } =
@@ -452,9 +565,15 @@ and define_body = function
       [ G.S v1 ]
 
 and directive = function
-  | Include (t, v1) ->
+  | Include (t, IncludePath v1) ->
       let v1 = wrap string v1 in
       G.DirectiveStmt (G.ImportAll (t, G.FileName v1, fake t "") |> G.d)
+  | Include (t, IncludeCall v1) ->
+      let _v1 = expr v1 in
+      G.DirectiveStmt
+        (G.ImportAll
+           (t, G.FileName ("PREPROC_EXPR", fake t "PREPROC_EXPR"), fake t "")
+        |> G.d)
   | Define (_t, v1, v2) ->
       let v1 = name v1 and v2 = define_body v2 in
       let ent = G.basic_entity v1 in

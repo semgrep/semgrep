@@ -44,6 +44,7 @@ describe("yaml parser", () => {
         .replaceAll(targetPath, "test.yaml")
         .replaceAll("PRO", "OSS")
     );
+    result["version"] = "<MASKED>";
     expect(result).toMatchSnapshot();
   });
   test("parses a pattern with pattern-regex", async () => {
@@ -58,7 +59,7 @@ describe("yaml parser", () => {
         .replaceAll(targetPath, "test.yaml")
         .replaceAll("PRO", "OSS")
     );
-
+    result["version"] = "<MASKED>";
     expect(result).toMatchSnapshot();
   });
 });

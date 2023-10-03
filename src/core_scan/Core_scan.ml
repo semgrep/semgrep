@@ -763,8 +763,7 @@ let select_applicable_rules_for_analyzer ~analyzer rules =
   rules
   |> List.filter (fun (r : Rule.t) ->
          (* Don't run a Python rule on a JavaScript target *)
-         Xlang.is_compatible ~require:analyzer
-           ~provide:r.languages.target_analyzer)
+         Xlang.is_compatible ~require:analyzer ~provide:r.target_analyzer)
   (* Don't run the extract rules
      Note: we can't filter this out earlier because the rule
      indexes need to be stable.

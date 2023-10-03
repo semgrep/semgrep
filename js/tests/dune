@@ -1,0 +1,16 @@
+(env
+ (js_of_ocaml (flags -no-inline -debug-info)))
+
+(executable
+ (name test_jsoo)
+ (libraries
+   js_of_ocaml
+   semgrep.semgrep_js_shared
+    integers_stubs_js
+    libpcre_stubs_js
+    libyaml_stubs_js
+   alcotest
+ )
+ (modes js)
+ (preprocess
+  (pps js_of_ocaml-ppx)))

@@ -1,8 +1,14 @@
+module Arg = Cmdliner.Arg
+module Term = Cmdliner.Term
+module Cmd = Cmdliner.Cmd
+
 (*****************************************************************************)
-(* Types and constants *)
+(* Prelude *)
 (*****************************************************************************)
 
-type extension = unit
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
 
 type env = {
   _SEMGREP_REPO_NAME : string option;
@@ -14,8 +20,16 @@ type env = {
   _SEMGREP_BRANCH : string option;
 }
 
-let env =
-  let open Cmdliner in
+(*****************************************************************************)
+(* Cmdliner *)
+(*****************************************************************************)
+
+(* TODO? why using cmdliner to parse environment variables?
+ * not simpler to just access them? We do not support
+ * those --semgrep-repo-name CLI flags, so not much sense to use
+ * Cmdliner then.
+ *)
+let env : env Term.t =
   let _semgrep_repo_name =
     let doc = "The name of the Git repository." in
     let env = Cmd.Env.info "SEMGREP_REPO_NAME" in
@@ -77,6 +91,13 @@ let env =
     const run $ _semgrep_repo_name $ _semgrep_repo_url $ _semgrep_commit
     $ _semgrep_job_url $ _semgrep_pr_id $ _semgrep_pr_title $ _semgrep_branch)
 
+(*****************************************************************************)
+(* Implement signature in Project_metadata.S *)
+(*****************************************************************************)
+
+(* TODO: this is not even used ... rewrite the code to maybe use
+ * classes instead of modules, to better mimic meta.py
+ *)
 let get_event_name env =
   match env._SEMGREP_PR_ID with
   | Some _ -> Some "pull_request"
@@ -87,7 +108,7 @@ let get_repo_name env =
   | Some repo_name -> repo_name
   | None ->
       let str =
-        Project_metadata.git_check_output
+        Git_wrapper.git_check_output
           Bos.Cmd.(v "git" % "rev-parse" % "--show-toplevel")
       in
       Fpath.basename (Fpath.v str)
@@ -140,30 +161,35 @@ let get_branch env =
       | Error (`Msg _) ->
           None)
 
-let make env =
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
+let make (env : env) : Project_metadata.t =
   let commit_title =
-    Project_metadata.git_check_output
+    Git_wrapper.git_check_output
       Bos.Cmd.(v "git" % "show" % "-s" % "--format=%B")
   in
   let commit_author_email =
-    Project_metadata.git_check_output
+    Git_wrapper.git_check_output
       Bos.Cmd.(v "git" % "show" % "-s" % "--format=%ae")
     |> Emile.of_string |> Result.get_ok
   in
   let commit_author_name =
-    Project_metadata.git_check_output
+    Git_wrapper.git_check_output
       Bos.Cmd.(v "git" % "show" % "-s" % "--format=%an")
   in
   let on =
-    if Option.is_some env._SEMGREP_PR_ID then Some "pull_request" else None
+    if Option.is_some env._SEMGREP_PR_ID then "pull_request" else "unknown"
   in
   {
-    Project_metadata.repository = get_repo_name env;
-    repo_url = get_repo_url env;
+    semgrep_version = Version.version;
+    repository = get_repo_name env;
+    repo_url = get_repo_url env |> Option.map Uri.to_string;
     branch = get_branch env;
-    ci_job_url = get_ci_job_url env;
-    commit = get_commit_sha env;
-    commit_author_email = Some commit_author_email;
+    ci_job_url = get_ci_job_url env |> Option.map Uri.to_string;
+    commit = get_commit_sha env |> Option.map Digestif.SHA1.to_raw_string;
+    commit_author_email = Some (Emile.to_string commit_author_email);
     commit_author_name = Some commit_author_name;
     commit_author_username = None;
     commit_author_image_url = None;
@@ -173,9 +199,17 @@ let make env =
     pull_request_author_image_url = None;
     pull_request_id = env._SEMGREP_PR_ID;
     pull_request_title = env._SEMGREP_PR_TITLE;
-    scan_environment = Some "git";
+    scan_environment = "git";
     is_full_scan = true;
-    extension = ();
+    (* TODO, not ported? *)
+    commit_timestamp = None;
+    (* TODO ugly: gitlab stuff, should maybe split semgrep_output_v1.metadata
+     * and use inherit *)
+    base_sha = None;
+    start_sha = None;
+    is_sca_scan = None;
+    is_code_scan = None;
+    is_secrets_scan = None;
   }
 
 let term = Cmdliner.Term.(const make $ env)

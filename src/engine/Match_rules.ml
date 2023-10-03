@@ -133,7 +133,7 @@ let group_rules xconf rules xtarget =
   *)
   let relevant_taint_rules_groups =
     relevant_taint_rules
-    |> Common.map (fun r -> (r.R.languages, r))
+    |> Common.map (fun r -> (r.R.target_analyzer, r))
     |> Common.group_assoc_bykey_eff |> Common.map snd
   in
   (relevant_taint_rules_groups, relevant_nontaint_rules, skipped_rules)

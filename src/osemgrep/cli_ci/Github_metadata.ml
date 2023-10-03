@@ -2,8 +2,6 @@
 (* Types and constants *)
 (*****************************************************************************)
 
-type extension = unit
-
 type env = {
   git : Git_metadata.env;
   _GITHUB_EVENT_JSON : Yojson.Basic.t;
@@ -22,7 +20,11 @@ let _MAX_FETCH_ATTEMPT_COUNT = 10
 (* A limit of how many fetch we should do until we find the common commit
    between two branches. *)
 
-let scan_environment = Some "github-actions"
+let scan_environment = "github-actions"
+
+(*****************************************************************************)
+(* Implement signature in Project_metadata.S *)
+(*****************************************************************************)
 
 let get_repo_name env =
   let err = "Could not get repo_name when running in GitHub Action" in
@@ -105,10 +107,14 @@ let get_ci_job_url env =
 
 let get_event_name env = env._GITHUB_EVENT_NAME
 
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
 (* Split out shallow fetch so we can mock it away in tests. *)
 let _shallow_fetch_branch branch_name =
   let _ =
-    Project_metadata.git_check_output
+    Git_wrapper.git_check_output
       Bos.Cmd.(
         v "git" % "fetch" % "origin" % "--depth=1" % "--force"
         % "--update-head-ok"
@@ -122,7 +128,7 @@ let _shallow_fetch_branch branch_name =
    name to the commit. It just does the fetch. *)
 let _shallow_fetch_commit commit_hash =
   let _ =
-    Project_metadata.git_check_output
+    Git_wrapper.git_check_output
       Bos.Cmd.(
         v "git" % "fetch" % "origin" % "--depth=1" % "--force"
         % "--update-head-ok"
@@ -135,8 +141,7 @@ let _shallow_fetch_commit commit_hash =
    Does a git fetch of given branch with depth = 1. *)
 let _get_latest_commit_hash_in_branch branch_name =
   _shallow_fetch_branch branch_name;
-  Project_metadata.git_check_output
-    Bos.Cmd.(v "git" % "rev-parse" % branch_name)
+  Git_wrapper.git_check_output Bos.Cmd.(v "git" % "rev-parse" % branch_name)
   |> Digestif.SHA1.of_hex_opt |> Option.get
 
 (* Ref name of the branch pull request if from. *)
@@ -162,7 +167,7 @@ let get_head_branch_hash env =
           m "head branch %s has latest commit %a, fetching that commit now."
             head_branch_name Digestif.SHA1.pp commit);
       let _ =
-        Project_metadata.git_check_output
+        Git_wrapper.git_check_output
           Bos.Cmd.(
             v "git" % "fetch" % "origin" % "--force" % "--depth=1"
             % Digestif.SHA1.to_hex commit)
@@ -241,14 +246,14 @@ let rec _find_branchoff_point ?(attempt_count = 0) env =
     (* XXX(dinosaure): we safely can use [Option.get]. This information is
        required to [get_base_branch_ref]. *)
     let _ =
-      Project_metadata.git_check_output
+      Git_wrapper.git_check_output
         Bos.Cmd.(
           v "git" % "fetch" % "origin" % "--force" % "--update-head-ok"
           % "--depth" % string_of_int fetch_depth
           % Fmt.str "%s:%s" base_branch_name base_branch_name)
     in
     let _ =
-      Project_metadata.git_check_output
+      Git_wrapper.git_check_output
         Bos.Cmd.(
           v "git" % "fetch" % "origin" % "--force" % "--update-head-ok"
           % "--depth" % string_of_int fetch_depth
@@ -366,6 +371,10 @@ let env =
     $ _github_repository $ _github_server_url $ _github_api_url $ _github_run_id
     $ _github_event_name $ _github_ref $ _github_head_ref $ gh_token)
 
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
 let make env =
   let _SEMGREP_REPO_NAME = Some (get_repo_name env) in
   let _SEMGREP_REPO_URL = get_repo_url env in
@@ -377,7 +386,9 @@ let make env =
     Glom.(
       get_and_coerce_opt string env._GITHUB_EVENT_JSON
         [ k "sender"; k "avatar_url" ])
-    |> Option.map Uri.of_string
+    (* TODO but require better type in semgrep_output_v1.project_metadata
+     * |> Option.map Uri.of_string
+     *)
   in
   let pull_request_author_username =
     Glom.(
@@ -388,7 +399,7 @@ let make env =
     Glom.(
       get_and_coerce_opt string env._GITHUB_EVENT_JSON
         [ k "pull_request"; k "user"; k "avatar_url" ])
-    |> Option.map Uri.of_string
+    (* TODO |> Option.map Uri.of_string *)
   in
   let value =
     (* XXX(dinosaure): like [**super.to_dict()] *)
