@@ -35,6 +35,10 @@ open AST_generic
  *  - the Semgrep.ml engine to skip entire files!
  *)
 
+module MvarSet = Common2.StringSet
+
+type mvars = MvarSet.t
+
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
@@ -142,7 +146,7 @@ let extract_specific_strings ?lang any =
  *      where we expect constant-folding to be a problem, e.g. "$MVAR" or
  *      $FUNC(..., $MVAR, ...). *)
 let extract_mvars_in_id_position ?lang:_ any =
-  let mvars = ref Metavariable.MvarSet.empty in
+  let mvars = ref MvarSet.empty in
   let visitor =
     object (_self : 'self)
       inherit [_] AST_generic.iter_no_id_info as super
@@ -153,14 +157,14 @@ let extract_mvars_in_id_position ?lang:_ any =
         | { d = ImportAs (_, FileName (str, _), _); _ }
         | { d = ImportAll (_, FileName (str, _), _); _ }
           when Metavariable.is_metavar_name str ->
-            mvars := Metavariable.MvarSet.add str !mvars;
+            mvars := MvarSet.add str !mvars;
             super#visit_directive env x
         | _ -> super#visit_directive env x
 
       method! visit_type_kind env x =
         match x with
         | TyN (Id ((str, _tok), _ii)) when Metavariable.is_metavar_name str ->
-            mvars := Metavariable.MvarSet.add str !mvars
+            mvars := MvarSet.add str !mvars
         | _ -> super#visit_type_kind env x
 
       method! visit_expr env x =
@@ -169,7 +173,7 @@ let extract_mvars_in_id_position ?lang:_ any =
         | New (_, { t = TyN (Id ((str, _tok), _ii)); _ }, _, _)
         | DotAccess (_, _, FN (Id ((str, _tok), _ii)))
           when Metavariable.is_metavar_name str ->
-            mvars := Metavariable.MvarSet.add str !mvars
+            mvars := MvarSet.add str !mvars
         | _ -> super#visit_expr env x
     end
   in

@@ -17,6 +17,7 @@ module R = Rule
 module XP = Xpattern
 module MV = Metavariable
 module SP = Semgrep_prefilter_t
+module MvarSet = Common2.StringSet
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -255,14 +256,14 @@ type is_id_mvar = Metavariable.mvar -> bool
  * in one pattern, and the same $MVAR in a non-identifier position in another one.
  * In those cases we may still end up skipping files that we should not skip. *)
 let id_mvars_of_formula f =
-  let id_mvars = ref Metavariable.MvarSet.empty in
+  let id_mvars = ref MvarSet.empty in
   f
   |> R.visit_new_formula (fun xp ~inside:_ ->
          match xp with
          | { pat = XP.Sem ((lazy pat), lang); _ } ->
              id_mvars :=
                Analyze_pattern.extract_mvars_in_id_position ~lang pat
-               |> Metavariable.MvarSet.union !id_mvars
+               |> MvarSet.union !id_mvars
          | __else__ -> ());
   !id_mvars
 
@@ -575,7 +576,7 @@ let regexp_prefilter_of_formula ~xlang f : prefilter option =
         Fun.const true
     | L _ ->
         let id_mvars = id_mvars_of_formula f in
-        fun mvar -> Metavariable.MvarSet.mem mvar id_mvars
+        fun mvar -> MvarSet.mem mvar id_mvars
   in
   try
     let* final = compute_final_cnf ~is_id_mvar f in

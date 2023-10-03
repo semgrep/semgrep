@@ -34,12 +34,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *)
 type mvar = string [@@deriving show, eq, hash]
 
-module MvarSet = Set.Make (struct
-  type t = mvar
-
-  let compare = String.compare
-end)
-
 (* 'mvalue' below used to be just an alias to AST_generic.any, but it is more
  * precise to have a type just for the metavariable values; we do not
  * need all the AST_generic.any cases (however this forces us to

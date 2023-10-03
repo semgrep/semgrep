@@ -1,8 +1,6 @@
 (* metavariable name (e.g., "$FOO") *)
 type mvar = string [@@deriving show, eq, hash]
 
-module MvarSet : Set.S with type elt = mvar
-
 (* metavariable content *)
 type mvalue =
   | Id of AST_generic.ident * AST_generic.id_info option

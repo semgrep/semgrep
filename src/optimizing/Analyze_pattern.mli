@@ -1,3 +1,7 @@
+module MvarSet = Common2.StringSet
+
+type mvars = MvarSet.t
+
 val extract_specific_strings : ?lang:Lang.t -> Pattern.t -> string list
 
 (*
@@ -11,5 +15,4 @@ val extract_strings_and_mvars :
    encounter a `metavariable-regex` operator on any of those metavariables,
    we can use the corresponding `regex` for pre-filtering.
 *)
-val extract_mvars_in_id_position :
-  ?lang:Lang.t -> Pattern.t -> Metavariable.MvarSet.t
+val extract_mvars_in_id_position : ?lang:Lang.t -> Pattern.t -> mvars
