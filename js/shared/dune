@@ -6,15 +6,15 @@
    js_of_ocaml
    semgrep.parsing
    libyaml_stubs_js
-  integers_stubs_js
-  libpcre_stubs_js
+   integers_stubs_js
+   libpcre_stubs_js
    yaml_ctypes_overrides
  )
  (js_of_ocaml
   (javascript_files
     ocaml-tree-sitter.js
-   core.js ; misc libraries
-   octs.js ; ocaml-tree-sitter plumbing
+    core.js ; misc libraries
+    octs.js ; ocaml-tree-sitter plumbing
  ))
  (preprocess
   (pps js_of_ocaml-ppx)))

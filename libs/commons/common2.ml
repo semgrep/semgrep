@@ -3049,7 +3049,6 @@ let dir_contents dir =
   let rec loop result = function
     | f :: fs when Sys.is_directory f ->
         Sys.readdir f |> Array.to_list
-        |> List.filter Sys.file_exists
         |> List.map (Filename.concat f)
         |> List.append fs |> loop result
     | f :: fs -> loop (f :: result) fs
@@ -3058,8 +3057,11 @@ let dir_contents dir =
   loop [] [ dir ]
 
 let glob pattern =
-  let regex = pattern |> Re.Glob.glob |> Re.compile in
-  let files = dir_contents "." in
+  let dir_regex = Str.regexp "^[^\\*]*" in
+  Str.search_forward dir_regex pattern 0 |> ignore;
+  let dir = Str.matched_string pattern in
+  let regex = pattern |> Re.Glob.glob ~anchored:true |> Re.compile in
+  let files = dir_contents dir in
   files |> List.filter (fun s -> Re.execp regex s)
 
 let dirs_of_dir dir =

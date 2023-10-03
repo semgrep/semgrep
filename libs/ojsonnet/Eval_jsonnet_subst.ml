@@ -11,7 +11,7 @@ type cmp = Inf | Eq | Sup
 (*Creates std so that we can add it to the environment when we switch back to
   * environment model for handling standard library functions
 *)
-let pre_std = Std_jsonnet.get_std_jsonnet ()
+let pre_std = lazy (Std_jsonnet.get_std_jsonnet ())
 
 (* This is an arbitrary path, used as a placeholder, since we aren't desugaring from a file *)
 let path =
@@ -19,7 +19,7 @@ let path =
   | Ok p -> p
   | Error _ -> failwith ""
 
-let std = Desugar_jsonnet.desugar_program path pre_std
+let std = lazy (Desugar_jsonnet.desugar_program path Lazy.(force pre_std))
 let fk = Tok.unsafe_fake_tok ""
 let fake_self = IdSpecial (Self, Tok.unsafe_fake_tok "self")
 let fake_super = IdSpecial (Super, Tok.unsafe_fake_tok "super")
@@ -604,7 +604,9 @@ and eval_call e0 (largs, args, _rargs) =
     | ArrayAccess
         (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, [ _ ], _))), _)) ->
         (* set locals so that "std" shows up in the environment when evaluating *)
-        let local_wrap = Local (fk, [ B (("std", fk), fk, std) ], fk, e0) in
+        let local_wrap =
+          Local (fk, [ B (("std", fk), fk, Lazy.force std) ], fk, e0)
+        in
         Eval_jsonnet.eval_program local_wrap
     | _ -> eval_expr e0
   in

@@ -1,9 +1,4 @@
-//Provides: octs_create_parser_jsonnet
-function octs_create_parser_jsonnet() {
-  return null;
-}
-
-//Provides: octs_create_parser_typescript
+// Provides: octs_create_parser_typescript
 function octs_create_parser_typescript() {
   return null;
 }
