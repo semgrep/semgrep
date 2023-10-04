@@ -26,11 +26,21 @@ external set_parser_wasm_module : 'any -> unit = "set_parser_wasm_module"
 (* Helpers *)
 (*****************************************************************************)
 
-let wrap_with_js_error f =
+let wrap_with_js_error ?(hook = None) f =
   try f () with
   | e ->
-      let e = Js_error.attach_js_backtrace e ~force:false in
-      Js_error.raise_ (Option.get (Js_error.of_exn e))
+      let ee = Exception.catch e in
+      (match hook with
+      | Some hook -> hook ()
+      | None -> ());
+      Firebug.console##error (Js.string (Printexc.to_string e));
+      Format.eprintf "\n%s\n%!" (Printexc.to_string e);
+      (match e with
+      | Js_error.Exn e ->
+          let e = Js_error.to_error e in
+          Firebug.console##error e##.stack
+      | _ -> Printexc.print_backtrace stderr);
+      Exception.reraise ee
 
 let init_jsoo yaml_wasm_module =
   Common.jsoo := true;

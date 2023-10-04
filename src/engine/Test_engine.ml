@@ -94,7 +94,8 @@ let find_target_of_yaml_file file =
 (* Entry point *)
 (*****************************************************************************)
 
-let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
+let make_tests ?(unit_testing = false) ?(get_xlang = None)
+    ?(prepend_lang = false) xs =
   let fullxs, _skipped_paths =
     xs |> File.files_of_dirs_or_files_no_vcs_nofilter
     |> List.filter Parse_rule.is_valid_rule_filename
@@ -304,7 +305,24 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                  total_mismatch := !total_mismatch + num_errors;
                  if unit_testing then Alcotest.fail msg
            in
-           (!!file, test))
+           let name =
+             match prepend_lang with
+             | true ->
+                 let langs =
+                   !!file |> find_target_of_yaml_file |> Fpath.v
+                   |> Lang.langs_of_filename
+                   |> Common.map Lang.to_capitalized_alnum
+                 in
+                 let langs =
+                   match langs with
+                   | [] -> [ "Generic" ]
+                   | _ -> langs
+                 in
+                 let lang = langs |> String.concat " " in
+                 spf "%s %s" lang !!file
+             | false -> !!file
+           in
+           (name, test))
   in
   let print_summary () =
     if not unit_testing then

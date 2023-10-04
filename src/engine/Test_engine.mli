@@ -5,6 +5,7 @@
 val make_tests :
   ?unit_testing:bool ->
   ?get_xlang:(Fpath.t -> Rule.rules -> Xlang.t) option ->
+  ?prepend_lang:bool ->
   Fpath.t list ->
   (string * (unit -> unit)) list * (unit -> unit)
 

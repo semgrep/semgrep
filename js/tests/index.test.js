@@ -88,10 +88,7 @@ const run = async () => {
     setJustParseWithLang(parseLang);
     setParsePattern(parsePattern);
 
-    const testErrors = run("");
-    for (const e of testErrors) {
-      console.log(e);
-    }
+    run("");
   } catch (e) {
     console.log("Error running tests:\n");
     console.log(e);

@@ -30,7 +30,13 @@ let filtered = [ "Cpp"; "C++"; "Julia"; "Ruby" ]
 (* Filter to skip tests *)
 let test_filter ~name ~index =
   ignore index;
-  if List.filter (fun n -> Common.contains name n) filtered <> [] then `Skip
+  if
+    List.filter
+      (fun n ->
+        Common.contains (String.lowercase_ascii name) (String.lowercase_ascii n))
+      filtered
+    <> []
+  then `Skip
   else `Run (* Cpp has a weird error, and @brandon is still working on it soo *)
 
 let _ =
@@ -50,31 +56,22 @@ let _ =
          let tests =
            [ Unit_parsing.tests (); Unit_engine.tests () ] |> List.flatten
          in
-         let errors = ref [] in
          let tests =
            Common.map
              (fun (name, f) ->
                let f () =
-                 try f () with
-                 | e ->
-                     let e = Js_error.attach_js_backtrace e ~force:false in
-                     let error = Option.get (Js_error.of_exn e) in
-                     errors := error :: !errors;
-                     raise e
+                 wrap_with_js_error
+                   ~hook:
+                     (Some (fun () -> Firebug.console##log (Js.string name)))
+                   f
                in
                (name, f))
              tests
          in
-         (try
-            Alcotest.run "semgrep-js"
-              (Testutil.to_alcotest tests)
-              ~and_exit:false ~argv ~filter:test_filter
-          with
-         | Alcotest.Test_error ->
-             Printf.printf "Some tests failed, displaying:\n"
-         | e ->
-             let e = Js_error.attach_js_backtrace e ~force:false in
-             let error = Option.get (Js_error.of_exn e) in
-             errors := error :: !errors);
-         !errors |> List.rev |> Array.of_list |> Js.array
+         let run () =
+           Alcotest.run "semgrep-js"
+             (Testutil.to_alcotest tests)
+             ~and_exit:false ~argv ~filter:test_filter
+         in
+         wrap_with_js_error run
     end)
