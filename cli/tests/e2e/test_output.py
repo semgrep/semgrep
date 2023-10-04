@@ -523,6 +523,10 @@ def test_cli_test_secret_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 # TODO! @pytest.mark.osempass
+# This is currently not passing because the loc field in the explanation
+# differs between pysemgrep and osemgrep because it's a location in the rule
+# (not in the target), and pysemgrep passes a preprocessed rule file to
+# semgrep-core hence the mistmatch.
 @pytest.mark.quick
 def test_output_matching_explanations(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp(

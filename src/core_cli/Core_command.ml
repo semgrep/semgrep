@@ -100,7 +100,7 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
       | Ok res ->
           if config.matching_explanations then
             res.explanations
-            |> List.iter (fun explain -> Matching_explanation.print explain);
+            |> Option.iter (List.iter Matching_explanation.print);
           (* the match has already been printed above. We just print errors here *)
           if not (null res.errors) then (
             pr "WARNING: some files were skipped or only partially analyzed:";
