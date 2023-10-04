@@ -2419,3 +2419,10 @@ let parse file =
         { H.file; conv = H.line_col_to_pos file; extra = default_extra_env }
       in
       translation_unit env cst)
+
+let parse_pattern str =
+  let result = Parse_cpp_tree_sitter.parse_pattern str in
+  match result with
+  | { program = Some any; _ } ->
+      { result with program = Some (Ast_c_build.any any) }
+  | { program = None; _ } -> { result with program = None }
