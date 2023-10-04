@@ -171,7 +171,7 @@ let (mini_rule_of_pattern :
      * we just care about the matching result.
      *)
     message = "";
-    severity = PM.Error;
+    severity = Error;
     langs =
       (match xlang with
       | L (x, xs) -> x :: xs

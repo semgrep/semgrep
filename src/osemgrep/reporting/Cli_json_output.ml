@@ -123,7 +123,7 @@ let string_of_severity (severity : Pattern_match.severity) : string =
   | Inventory -> "INVENTORY"
 
 (* LATER: move also to Severity.ml and reuse types there *)
-let level_of_severity (severity : Out.core_severity) : Severity.t =
+let level_of_severity (severity : Out.severity) : Severity.t =
   match severity with
   | Error -> `Error
   | Warning -> `Warning
@@ -421,7 +421,7 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
       (* LATER: this should be a variant in semgrep_output_v1.atd
        * and merged with Constants.rule_severity
        *)
-      let severity = severity ||| string_of_severity rule.severity in
+      let severity = severity ||| rule.severity in
       let metadata =
         match rule.metadata with
         | None -> `Assoc []

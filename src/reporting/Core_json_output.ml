@@ -266,7 +266,7 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
     extra =
       {
         message = Some x.rule_id.message;
-        severity = Option.map string_of_severity x.severity_override;
+        severity = x.severity_override;
         metadata = Option.map JSON.to_yojson x.metadata_override;
         metavars = x.env |> Common.map (metavars startp);
         dataflow_trace;

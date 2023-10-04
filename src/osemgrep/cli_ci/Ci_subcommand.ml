@@ -316,10 +316,11 @@ let partition_findings ~keep_ignored (results : Out.cli_match list) =
 (*****************************************************************************)
 
 (* from rule_match.py *)
-let severity_to_int = function
-  | "EXPERIMENT" -> `Int 4
-  | "WARNING" -> `Int 1
-  | "ERROR" -> `Int 2
+let severity_to_int (severity : Out.severity) =
+  match severity with
+  | Experiment -> `Int 4
+  | Warning -> `Int 1
+  | Error -> `Int 2
   | _ -> `Int 0
 
 let finding_of_cli_match _commit_date index (m : Out.cli_match) : Out.finding =
@@ -332,8 +333,8 @@ let finding_of_cli_match _commit_date index (m : Out.cli_match) : Out.finding =
         column = m.start.col;
         end_line = m.end_.line;
         end_column = m.end_.col;
-        message = m.Out.extra.Out.message;
-        severity = severity_to_int m.Out.extra.Out.severity;
+        message = m.extra.message;
+        severity = severity_to_int m.extra.severity;
         index;
         commit_date = "";
         (* TODO datetime.fromtimestamp(int(commit_date)).isoformat() *)
@@ -343,7 +344,7 @@ let finding_of_cli_match _commit_date index (m : Out.cli_match) : Out.finding =
         (* TODO: see rule_match.py *)
         hashes = None;
         (* TODO should compute start_line_hash / end_line_hash / code_hash / pattern_hash *)
-        metadata = m.Out.extra.Out.metadata;
+        metadata = m.extra.metadata;
         is_blocking = is_blocking (JSON.from_yojson m.Out.extra.Out.metadata);
         fixed_lines =
           None

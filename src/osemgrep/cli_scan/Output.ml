@@ -81,7 +81,7 @@ let dispatch_output_format (output_format : Output_format.t)
                      spf "%d" start.line;
                      spf "%d" start.col;
                      (* TOPORT? restrict to just I|E|W ? *)
-                     spf "%c" severity.[0];
+                     spf "%c" ([%show: Out.severity] severity).[0];
                      check_id;
                      message;
                    ]
@@ -100,7 +100,7 @@ let dispatch_output_format (output_format : Output_format.t)
               extra = { message; severity; _ };
               _;
              } ->
-                 let severity = String.lowercase_ascii severity in
+                 let severity = [%show: Out.severity] severity in
                  let severity_and_ruleid =
                    if check_id = Rule_ID.to_string Constants.rule_id_for_dash_e
                    then severity
