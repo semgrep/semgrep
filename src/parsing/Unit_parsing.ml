@@ -54,6 +54,8 @@ let lang_parsing_tests () =
     pack_tests slang
       (let dir = tests_path_parsing / dir in
        let files = Common2.glob (spf "%s/*%s" !!dir ext) in
+       if files =*= [] then
+         failwith (spf "Empty set of parsing tests for %s" slang);
        parsing_tests_for_lang files lang)
   in
   pack_suites "lang parsing testing"
