@@ -77,9 +77,9 @@ let report_failure ~dry_run ~token ~scan_id (exit_code : Exit_code.t) : unit =
 (*****************************************************************************)
 (* token -> deployment_config -> scan_id -> scan_config -> rules *)
 
+(* if something fails, we Error.exit *)
 let deployment_config_opt (api_token : Auth.token option) (empty_config : bool)
     : (Auth.token * Semgrep_App.deployment_config) option =
-  Logs.debug (fun m -> m "deployment_config_opt");
   match (api_token, empty_config) with
   | None, true ->
       Logs.app (fun m ->
@@ -126,82 +126,66 @@ let decode_json_rules (data : string) : Rule_fetching.rules_and_origin =
       Rule_fetching.load_rules_from_file ~origin:Other_origin
         ~registry_caching:false file)
 
-let fetch_scan_config ~token ~dry_run ~sca ~full_scan ~repository
-    (scan_id : Semgrep_App.scan_id) : Out.scan_config =
+(* Either a scan_id and the rules for the project, or None and the rules
+ * specified on command-line. If something fails, we Error.exit.
+ *)
+let scan_id_and_rules_from_deployment ~dry_run (prj_meta : Out.project_metadata)
+    (token : Auth.token) (deployment_config : Semgrep_App.deployment_config) :
+    Semgrep_App.scan_id * Rule_fetching.rules_and_origin list =
+  Logs.app (fun m -> m "  %a" Fmt.(styled `Underline string) "CONNECTION");
   Logs.app (fun m ->
-      m "  Fetching configuration from Semgrep Cloud Platform%a" at_url_maybe ());
+      m "  Reporting start of scan for %a"
+        Fmt.(styled `Bold string)
+        deployment_config.name);
+  let scan_metadata : Out.scan_metadata =
+    {
+      cli_version = Version.version;
+      unique_id = Uuidm.v `V4 |> Uuidm.to_string;
+      (* TODO: should look at conf.secrets, conf.sca, conf.code, etc. *)
+      requested_products = [];
+    }
+  in
+  (* TODO:
+      metadata_dict["is_sca_scan"] = supply_chain
+      proj_config = ProjectConfig.load_all()
+      metadata_dict = {**metadata_dict, **proj_config.to_dict()}
+  *)
   match
-    Semgrep_App.fetch_scan_config ~token ~sca ~dry_run ~full_scan ~repository
+    Semgrep_App.start_scan ~dry_run ~token !Semgrep_envvars.v.semgrep_url
+      prj_meta scan_metadata
   with
   | Error msg ->
-      Logs.err (fun m -> m "Failed to download configuration: %s" msg);
-      let r = Exit_code.fatal in
-      report_failure ~dry_run ~token ~scan_id r;
-      Error.exit r
-  | Ok config -> config
-
-(* Either a scan_id and the rules for the project, or None and the rules
- * specified on command-line. If something fails, an exit code is returned.
- *)
-let scan_id_and_rules_from_deployment (settings : Semgrep_settings.t)
-    (conf : Ci_CLI.conf) (prj_meta : Out.project_metadata)
-    (depl_opt : (Auth.token * Semgrep_App.deployment_config) option) :
-    Semgrep_App.scan_id option * Rule_fetching.rules_and_origin list =
-  match depl_opt with
-  (* TODO: document why we support running the ci command without a
-   * token / deployment. Without this no token / no deployment case,
-   * we could unify the two code branches in the caller
-   * and work to start simplifying the code.
-   *)
-  | None ->
-      ( None,
-        Rule_fetching.rules_from_rules_source ~token_opt:settings.api_token
-          ~rewrite_rule_ids:conf.rewrite_rule_ids
-          ~registry_caching:conf.registry_caching conf.rules_source )
-  | Some (token, deployment_config) -> (
-      Logs.app (fun m -> m "  %a" Fmt.(styled `Underline string) "CONNECTION");
-      Logs.app (fun m ->
-          m "  Reporting start of scan for %a"
-            Fmt.(styled `Bold string)
-            deployment_config.name);
-      let scan_metadata : Out.scan_metadata =
-        {
-          cli_version = Version.version;
-          unique_id = Uuidm.v `V4 |> Uuidm.to_string;
-          (* TODO: should look at conf.secrets, conf.sca, conf.code, etc. *)
-          requested_products = [];
-        }
+      Logs.err (fun m -> m "Could not start scan %s" msg);
+      Error.exit Exit_code.fatal
+  | Ok scan_id ->
+      (* TODO: should be concatenated with the "Reporting start ..." *)
+      Logs.app (fun m -> m " (scan_id=%s)" scan_id);
+      (* TODO: set sca to metadata.is_sca_scan / supply_chain *)
+      let scan_config : Out.scan_config =
+        Logs.app (fun m ->
+            m "  Fetching configuration from Semgrep Cloud Platform%a"
+              at_url_maybe ());
+        match
+          (* TODO: should pass and use scan_id *)
+          Semgrep_App.fetch_scan_config ~token ~sca:false ~dry_run
+            ~full_scan:prj_meta.is_full_scan ~repository:prj_meta.repository
+        with
+        | Error msg ->
+            Logs.err (fun m -> m "Failed to download configuration: %s" msg);
+            let r = Exit_code.fatal in
+            report_failure ~dry_run ~token ~scan_id r;
+            Error.exit r
+        | Ok config -> config
       in
-      (* TODO:
-          metadata_dict["is_sca_scan"] = supply_chain
-          proj_config = ProjectConfig.load_all()
-          metadata_dict = {**metadata_dict, **proj_config.to_dict()}
-      *)
-      match
-        Semgrep_App.start_scan ~dry_run:conf.dryrun ~token
-          !Semgrep_envvars.v.semgrep_url prj_meta scan_metadata
-      with
-      | Error msg ->
-          Logs.err (fun m -> m "Could not start scan %s" msg);
-          Error.exit Exit_code.fatal
-      | Ok scan_id ->
-          (* TODO: should be concatenated with the "Reporting start ..." *)
-          Logs.app (fun m -> m " (scan_id=%s)" scan_id);
-          (* TODO: set sca to metadata.is_sca_scan / supply_chain *)
-          let scan_config : Out.scan_config =
-            fetch_scan_config ~token ~dry_run:conf.dryrun ~sca:false
-              ~full_scan:prj_meta.is_full_scan ~repository:prj_meta.repository
-              scan_id
-          in
-          let rules_and_origins =
-            try decode_json_rules scan_config.rule_config with
-            | Error.Semgrep_error (_, opt_ex) as e ->
-                let ex = Option.value ~default:Exit_code.fatal opt_ex in
-                report_failure ~dry_run:conf.dryrun ~token ~scan_id ex;
-                let e = Exception.catch e in
-                Exception.reraise e
-          in
-          (Some scan_id, [ rules_and_origins ]))
+      let rules_and_origins =
+        try decode_json_rules scan_config.rule_config with
+        | Error.Semgrep_error (_, opt_ex) as e ->
+            let ex = Option.value ~default:Exit_code.fatal opt_ex in
+            report_failure ~dry_run ~token ~scan_id ex;
+            let e = Exception.catch e in
+            Exception.reraise e
+      in
+      (scan_id, [ rules_and_origins ])
 
 (*****************************************************************************)
 (* Project metadata *)
@@ -576,8 +560,9 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
   Metrics_.configure conf.metrics;
   let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
   Logs.debug (fun m -> m "conf = %s" (Ci_CLI.show_conf conf));
+  let dry_run = conf.dryrun in
 
-  (* step2: token -> deployment_scan_config -> scan_id -> rules *)
+  (* step2: token -> deployment_config -> scan_id -> scan_config -> rules *)
   let depl_opt =
     deployment_config_opt settings.api_token (conf.rules_source =*= Configs [])
   in
@@ -587,7 +572,20 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
   report_scan_environment prj_meta;
   (* TODO: fix_head_if_github_action(metadata) *)
   let scan_id_opt, rules_and_origin =
-    scan_id_and_rules_from_deployment settings conf prj_meta depl_opt
+    match depl_opt with
+    (* TODO: document why we support running the ci command without a
+     * token / deployment. We could simplify the code.
+     *)
+    | None ->
+        ( None,
+          Rule_fetching.rules_from_rules_source ~token_opt:settings.api_token
+            ~rewrite_rule_ids:conf.rewrite_rule_ids
+            ~registry_caching:conf.registry_caching conf.rules_source )
+    | Some (token, depl) ->
+        let scan_id, rules =
+          scan_id_and_rules_from_deployment ~dry_run prj_meta token depl
+        in
+        (Some scan_id, rules)
   in
 
   (* TODO:
@@ -644,7 +642,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
     | Error e ->
         (match (depl_opt, scan_id_opt) with
         | Some (token, _), Some scan_id ->
-            report_failure ~dry_run:conf.dryrun ~token ~scan_id e
+            report_failure ~dry_run ~token ~scan_id e
         | _else -> ());
         Logs.err (fun m -> m "Encountered error when running rules");
         e
@@ -689,8 +687,8 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
         report_scan_completed ~blocking_findings ~blocking_rules
           ~non_blocking_findings ~non_blocking_rules;
         let app_block_override =
-          upload_findings ~dry_run:conf.dryrun depl_opt scan_id_opt
-            blocking_findings filtered_rules cli_output
+          upload_findings ~dry_run depl_opt scan_id_opt blocking_findings
+            filtered_rules cli_output
         in
         let audit_mode = false in
         (* TODO: audit_mode = metadata.event_name in audit_on *)
@@ -701,7 +699,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
       (match (depl_opt, scan_id_opt) with
       | Some (token, _), Some scan_id ->
           let r = Option.value ~default:Exit_code.fatal ex in
-          report_failure ~dry_run:conf.dryrun ~token ~scan_id r
+          report_failure ~dry_run ~token ~scan_id r
       | _else -> ());
       Logs.err (fun m ->
           m "Encountered error when running rules: %s" (Printexc.to_string e));

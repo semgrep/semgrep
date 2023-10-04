@@ -35,16 +35,8 @@ type app_block_override = string (* reason *) option
 (* retrieves the deployment config from the provided token. *)
 val get_deployment_from_token : token:Auth.token -> deployment_config option
 
-(* retrieves the deployment name from the provided token asynchronously *)
-val get_deployment_from_token_async :
-  token:Auth.token -> deployment_config option Lwt.t
-
 (* retrieves the scan config from the provided token. *)
 val get_scan_config_from_token : token:Auth.token -> scan_config option
-
-(* retrieves the scan config from the provided token asynchronously *)
-val get_scan_config_from_token_async :
-  token:Auth.token -> scan_config option Lwt.t
 
 (* internally rely on api_token in ~/.settings and SEMGREP_REPO_NAME *)
 val url_for_policy : token:Auth.token -> Uri.t
@@ -65,6 +57,7 @@ val start_scan :
     is about to be started, and returns the scan id from the server. If
     [dry_run] is [true], the empty string will be returned ([Ok ""]). *)
 
+(* TODO: diff with get_scan_config_from_token? *)
 val fetch_scan_config :
   dry_run:bool ->
   token:string ->
@@ -87,6 +80,13 @@ val upload_findings :
     reports the findings to Semgrep App. *)
 
 (* lwt-friendly versions for the language-server *)
+
+val get_deployment_from_token_async :
+  token:Auth.token -> deployment_config option Lwt.t
+
+val get_scan_config_from_token_async :
+  token:Auth.token -> scan_config option Lwt.t
+
 val fetch_scan_config_async :
   dry_run:bool ->
   token:Auth.token ->
