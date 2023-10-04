@@ -4,7 +4,7 @@ module Out = Semgrep_output_v1_j
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Gather Semgrep app related code.
+(* Gather Semgrep App (backend) related code.
  *
  * TODO? split some code in Auth.ml?
  *
@@ -12,7 +12,7 @@ module Out = Semgrep_output_v1_j
  *)
 
 (*****************************************************************************)
-(* Constants *)
+(* Routes *)
 (*****************************************************************************)
 
 let semgrep_app_deployment_route = "api/agent/deployments/current"
@@ -23,31 +23,15 @@ let semgrep_app_scan_config_route = "api/agent/deployments/scans/config"
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-(* TODO? specify this with atd and have both app + osemgrep use it *)
-(* Pulled from cli/src/semgrep/app/scans.py *)
-(* coupling: response from semgrep app (e.g. deployment_id as int vs string ) *)
-type scan_config = {
-  deployment_id : int;
-  deployment_name : string;
-  policy_names : string list;
-  rule_config_raw : string; [@key "rule_config"]
-  autofix : bool; [@default false]
-  deepsemgrep : bool; [@default false]
-  dependency_query : bool; [@default false]
-  (* Assuming skipped syntactic IDs has the equivalent effect as match_based *)
-  skipped_match_based_ids : string list;
-      [@key "triage_ignored_match_based_ids"] [@default []]
-  enabled_products : string list; [@default []]
-  ignore_files : string list; [@default []]
-}
-[@@deriving yojson]
 
 (* TODO? specify this with atd and have both app + osemgrep use it *)
 (* coupling: response from semgrep app (e.g. id as int vs string ) *)
 type deployment_config = {
   id : int;
+  (* the important piece, the deployment name *)
   name : string;
   display_name : string; [@default ""]
+  (* ??? *)
   slug : string; [@default ""]
   source_type : string; [@default ""]
   has_autofix : bool; [@default false]
@@ -65,11 +49,12 @@ type scan_id = string
 type app_block_override = string (* reason *) option
 
 (*****************************************************************************)
-(* Extractors (should use ATD) *)
+(* Extractors *)
 (*****************************************************************************)
+(* TODO: we should use ATD to specify the backend response format instead *)
 
 (* TODO: specify as ATD the reply of api/agent/deployments/scans *)
-let extract_scan_id data =
+let extract_scan_id (data : string) : (scan_id, string) result =
   try
     let json = JSON.json_of_string data in
     match json with
@@ -93,7 +78,7 @@ let extract_scan_id data =
 
 (* TODO the server reply when POST to
    "/api/agent/scans/<scan_id>/findings_and_ignores" should be specified ATD *)
-let extract_errors data =
+let extract_errors (data : string) =
   try
     match JSON.json_of_string data with
     | JSON.Object xs -> (
@@ -131,7 +116,8 @@ let extract_errors data =
 (* TODO the server reply when POST to
    "/api/agent/scans/<scan_id>/complete" should be specified in ATD
 *)
-let extract_block_override data : (app_block_override, string) result =
+let extract_block_override (data : string) : (app_block_override, string) result
+    =
   try
     match JSON.json_of_string data with
     | JSON.Object xs ->
@@ -212,16 +198,10 @@ let get_scan_config_from_token_async ~token =
         Logs.debug (fun m -> m "error while retrieving scan config: %s" msg);
         None
     | Ok body -> (
-        try
-          let yojson = Yojson.Safe.from_string body in
-          let config = scan_config_of_yojson yojson in
-          match config with
-          | Ok config -> Some config
-          | Error msg -> raise (Yojson.Json_error msg)
-        with
+        try Some (Out.scan_config_of_string body) with
         | Yojson.Json_error msg ->
             Logs.debug (fun m ->
-                m "failed to parse body as json %s: %s" msg body);
+                m "failed to parse body as scan_config %s: %s" msg body);
             None)
   in
   Lwt.return scan_config_opt
