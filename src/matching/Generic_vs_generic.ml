@@ -1478,13 +1478,17 @@ and m_compatible_type lang typed_mvar t e =
       m_type_ t
         (G.TyPointer (t1, G.TyN (G.Id (("char", tok), id_info)) |> G.t) |> G.t)
       >>= fun () -> envf typed_mvar (MV.E e)
-  (* for matching ids *)
-  (* this is covered by the basic type propagation done in Naming_AST.ml *)
-  | _ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob))) ->
-      (* NOTE: Name values must be represented with MV.Id! *)
-      m_type_option_with_hook idb (Some t) !tb >>= fun () ->
-      envf typed_mvar (MV.Id (idb, Some id_infob))
   | _ta, _eb -> (
+      (match (t.G.t, e.G.e) with
+      (* for matching ids *)
+      (* this is covered by the basic type propagation done in Naming_AST.ml *)
+      (* TODO Remove this case in favor of the newer type inference below. *)
+      | _ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob))) ->
+          (* NOTE: Name values must be represented with MV.Id! *)
+          m_type_option_with_hook idb (Some t) !tb >>= fun () ->
+          envf typed_mvar (MV.Id (idb, Some id_infob))
+      | _else_ -> fail ())
+      >||>
       let with_bound_metavar =
         match e.G.e with
         | B.N (B.Id (id, info)) ->
