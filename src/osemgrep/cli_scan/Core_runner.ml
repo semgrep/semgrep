@@ -18,11 +18,19 @@ module Env = Semgrep_envvars
 
 (* input *)
 type conf = {
+  (* opti and limits *)
   num_jobs : int;
   optimizations : bool;
   max_memory_mb : int;
   timeout : float;
   timeout_threshold : int;
+  (* output flags *)
+  time_flag : bool;
+  matching_explanations : bool;
+  (* TODO: actually seems like semgrep-core always return them,
+   * even if it was not requested by the CLI
+   *)
+  dataflow_traces : bool;
   (* osemgrep-only: *)
   ast_caching : bool;
 }
@@ -112,9 +120,11 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
    max_memory_mb;
    optimizations;
    ast_caching;
-  }
-  (* TODO: time_flag = _;
-  *) ->
+   matching_explanations;
+   (* TODO *)
+   time_flag = _;
+   dataflow_traces = _;
+  } ->
       (* We default to Json because we do not want the current text
        * displayed in semgrep-core, and we don't want either the
        * current semgrep-core incremental matches text output.
@@ -134,6 +144,7 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
         max_memory_mb;
         filter_irrelevant_rules;
         parsing_cache_dir;
+        matching_explanations;
         version = Version.version;
       }
 

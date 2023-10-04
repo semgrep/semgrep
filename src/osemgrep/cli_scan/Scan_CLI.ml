@@ -41,7 +41,6 @@ type conf = {
   error_on_findings : bool;
   strict : bool;
   rewrite_rule_ids : bool;
-  time_flag : bool;
   (* Engine selection *)
   engine_type : Engine_type.t;
   run_secrets : bool;
@@ -55,7 +54,6 @@ type conf = {
   output : string option;
   (* maybe should define an Output_option.t, or add a record to
    * Output_format.Text *)
-  dataflow_traces : bool;
   force_color : bool;
   max_chars_per_line : int;
   max_lines_per_finding : int;
@@ -111,6 +109,9 @@ let default : conf =
         timeout_threshold = 3;
         max_memory_mb = 0;
         optimizations = true;
+        dataflow_traces = false;
+        matching_explanations = false;
+        time_flag = false;
         (* better to set to false for now; annoying to add --ast-caching to
          * each command, but while we're still developing osemgrep it is
          * better to eliminate some source of complexity by default.
@@ -128,13 +129,11 @@ let default : conf =
         logging_level = Some Logs.Warning;
         maturity = Maturity.Default;
       };
-    time_flag = false;
     engine_type = OSS;
     run_secrets = false;
     allow_untrusted_postprocessors = false;
     output_format = Output_format.Text;
     output = None;
-    dataflow_traces = false;
     force_color = false;
     max_chars_per_line = 160;
     max_lines_per_finding = 10;
@@ -425,6 +424,12 @@ let o_dataflow_traces : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
+let o_matching_explanations : bool Term.t =
+  let info =
+    Arg.info [ "matching-explanations" ] ~doc:{|Explain how a match is found.|}
+  in
+  Arg.value (Arg.flag info)
+
 let o_rewrite_rule_ids : bool Term.t =
   H.negatable_flag [ "rewrite-rule-ids" ] ~neg_options:[ "no-rewrite-rule-ids" ]
     ~default:default.rewrite_rule_ids
@@ -435,7 +440,7 @@ let o_rewrite_rule_ids : bool Term.t =
 
 let o_time : bool Term.t =
   H.negatable_flag [ "time" ] ~neg_options:[ "no-time" ]
-    ~default:default.time_flag
+    ~default:default.core_runner_conf.time_flag
     ~doc:
       {|Include a timing summary with the results. If output format is json,
  provides times for each pair (rule, target).
@@ -813,13 +818,14 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       common config dataflow_traces diff_depth dryrun dump_ast
       dump_command_for_core dump_engine_path emacs error exclude
       exclude_rule_ids force_color gitlab_sast gitlab_secrets include_ json
-      junit_xml lang max_chars_per_line max_lines_per_finding max_memory_mb
-      max_target_bytes metrics num_jobs nosem optimizations oss output pattern
-      pro project_root pro_intrafile pro_lang registry_caching replacement
-      respect_git_ignore rewrite_rule_ids sarif scan_unknown_extensions secrets
-      severity show_supported_languages strict target_roots test
-      test_ignore_todo text time_flag timeout _timeout_interfileTODO
-      timeout_threshold validate version version_check vim =
+      junit_xml lang matching_explanations max_chars_per_line
+      max_lines_per_finding max_memory_mb max_target_bytes metrics num_jobs
+      nosem optimizations oss output pattern pro project_root pro_intrafile
+      pro_lang registry_caching replacement respect_git_ignore rewrite_rule_ids
+      sarif scan_unknown_extensions secrets severity show_supported_languages
+      strict target_roots test test_ignore_todo text time_flag timeout
+      _timeout_interfileTODO timeout_threshold validate version version_check
+      vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Logs_helpers.setup_logging ~force_color
@@ -922,6 +928,9 @@ let cmdline_term ~allow_empty_config : conf Term.t =
         timeout_threshold;
         max_memory_mb;
         ast_caching;
+        dataflow_traces;
+        time_flag;
+        matching_explanations;
       }
     in
     let include_ =
@@ -1077,7 +1086,6 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       autofix;
       dryrun;
       error_on_findings = error;
-      dataflow_traces;
       force_color;
       max_chars_per_line;
       max_lines_per_finding;
@@ -1091,7 +1099,6 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       allow_untrusted_postprocessors;
       rewrite_rule_ids;
       strict;
-      time_flag;
       common;
       (* ugly: *)
       version;
@@ -1110,15 +1117,16 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     $ o_diff_depth $ o_dryrun $ o_dump_ast $ o_dump_command_for_core
     $ o_dump_engine_path $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids
     $ o_force_color $ o_gitlab_sast $ o_gitlab_secrets $ o_include $ o_json
-    $ o_junit_xml $ o_lang $ o_max_chars_per_line $ o_max_lines_per_finding
-    $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_nosem
-    $ o_optimizations $ o_oss $ o_output $ o_pattern $ o_pro $ o_project_root
-    $ o_pro_intrafile $ o_pro_languages $ o_registry_caching $ o_replacement
-    $ o_respect_git_ignore $ o_rewrite_rule_ids $ o_sarif
-    $ o_scan_unknown_extensions $ o_secrets $ o_severity
-    $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
-    $ o_test_ignore_todo $ o_text $ o_time $ o_timeout $ o_timeout_interfile
-    $ o_timeout_threshold $ o_validate $ o_version $ o_version_check $ o_vim)
+    $ o_junit_xml $ o_lang $ o_matching_explanations $ o_max_chars_per_line
+    $ o_max_lines_per_finding $ o_max_memory_mb $ o_max_target_bytes $ o_metrics
+    $ o_num_jobs $ o_nosem $ o_optimizations $ o_oss $ o_output $ o_pattern
+    $ o_pro $ o_project_root $ o_pro_intrafile $ o_pro_languages
+    $ o_registry_caching $ o_replacement $ o_respect_git_ignore
+    $ o_rewrite_rule_ids $ o_sarif $ o_scan_unknown_extensions $ o_secrets
+    $ o_severity $ o_show_supported_languages $ o_strict $ o_target_roots
+    $ o_test $ o_test_ignore_todo $ o_text $ o_time $ o_timeout
+    $ o_timeout_interfile $ o_timeout_threshold $ o_validate $ o_version
+    $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
 

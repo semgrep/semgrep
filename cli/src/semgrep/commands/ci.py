@@ -201,6 +201,7 @@ def ci(
     force_color: bool,
     include: Optional[Tuple[str, ...]],
     jobs: int,
+    matching_explanations: bool,
     max_chars_per_line: int,
     max_lines_per_finding: int,
     max_memory: Optional[int],
@@ -448,6 +449,8 @@ def ci(
                 "No products are enabled for this organization. Please enable a product in the Settings > Deployment tab of Semgrep Cloud Platform or reach out to support@semgrep.com for assistance."
             )
 
+        # TODO? we're not passing time_flag below (or matching_explanations),
+        # is it indended?
         (
             filtered_matches_by_rule,
             semgrep_errors,

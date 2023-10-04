@@ -223,6 +223,11 @@ _scan_options: List[Callable] = [
         is_flag=True,
         default=False,
     ),
+    optgroup.option(
+        "--matching-explanations",
+        is_flag=True,
+        default=False,
+    ),
     optgroup.group("Verbosity options", cls=MutuallyExclusiveOptionGroup),
     optgroup.option(
         "-q",
@@ -425,6 +430,7 @@ def scan(
     include: Optional[Tuple[str, ...]],
     jobs: Optional[int],
     lang: Optional[str],
+    matching_explanations: bool,
     max_chars_per_line: int,
     max_lines_per_finding: int,
     max_memory: Optional[int],
@@ -631,6 +637,7 @@ def scan(
                     diff_depth=diff_depth,
                     dump_command_for_core=dump_command_for_core,
                     time_flag=time_flag,
+                    matching_explanations=matching_explanations,
                     engine_type=engine_type,
                     run_secrets=run_secrets_flag,
                     output_handler=output_handler,
