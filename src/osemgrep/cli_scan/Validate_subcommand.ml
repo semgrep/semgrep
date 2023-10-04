@@ -116,7 +116,6 @@ let run (conf : conf) : Exit_code.t =
           scan_func conf.core_runner_conf metarules [] targets
         in
         let res = Core_runner.create_core_result metarules result_and_exn in
-
         (* TODO? sanity check errors below too? *)
         let { Out.results; errors = _; _ } =
           Cli_json_output.cli_output_of_core_results
