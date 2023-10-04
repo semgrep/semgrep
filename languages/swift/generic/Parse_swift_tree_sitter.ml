@@ -112,7 +112,7 @@ let map_function_modifier (env : env) (x : CST.function_modifier) =
       (* "prefix" *)
       G.unhandled_keywordattr (str env tok)
 
-let map_binding_pattern_kind (env : env) (x : CST.binding_pattern_kind) :
+let map_binding_pattern_kind (env : env) (x : CST.value_binding_pattern) :
     G.ident list =
   match x with
   | `Var tok -> (* "var" *) [ str env tok ]
@@ -123,7 +123,7 @@ let map_possibly_async_binding_pattern_kind (env : env)
   let async = (* async_modifier *) Option.map (str env) v1 |> Option.to_list in
   async @ map_binding_pattern_kind env v2
 
-let map_binding_pattern_kind_to_attr (env : env) (x : CST.binding_pattern_kind)
+let map_binding_pattern_kind_to_attr (env : env) (x : CST.value_binding_pattern)
     : G.attribute list =
   match x with
   | `Var tok -> (* "var" *) [ G.attr G.Mutable (token env tok) ]
@@ -215,7 +215,7 @@ let map_multiplicative_operator (env : env) (x : CST.multiplicative_operator) :
     G.operator * G.ident =
   match x with
   | `STAR tok -> (G.Mult, (* "*" *) str env tok)
-  | `SLASH tok -> (G.Div, (* "/" *) str env tok)
+  | `Tok_prec_n4_slash tok -> (G.Div, (* "/" *) str env tok)
   | `PERC tok -> (G.Mod, (* "%" *) str env tok)
 
 let map_inheritance_modifier (env : env) (x : CST.inheritance_modifier) =
@@ -331,6 +331,7 @@ let map_locally_permitted_modifier (env : env)
   match x with
   | `Owne_modi x -> map_ownership_modifier env x
   | `Inhe_modi x -> map_inheritance_modifier env x
+  | `Prop_beha_modi tok -> (* "lazy" *) G.attr G.Lazy (token env tok)
 
 let map_custom_operator (env : env) (x : CST.custom_operator) =
   match x with
@@ -400,7 +401,6 @@ let map_non_local_scope_modifier (env : env) (x : CST.non_local_scope_modifier)
   | `Muta_modi x -> map_mutation_modifier env x
   | `Prop_modi x -> map_property_modifier env x
   | `Param_modi x -> map_parameter_modifier env x
-  | `Prop_beha_modi tok -> (* "lazy" *) G.attr G.Lazy (token env tok)
 
 let map_parameter_modifiers (env : env) (xs : CST.parameter_modifiers) :
     G.attribute list =
@@ -417,6 +417,7 @@ let map_simple_identifier (env : env) (x : CST.simple_identifier) : G.ident =
   | `Pat_c332828 tok -> (* pattern \$[0-9]+ *) str env tok
   | `Tok_dollar_pat_88eeeaa tok -> (* tok_dollar_pat_9d0cc04 *) str env tok
   | `Actor tok -> (* "actor" *) str env tok
+  | `Lazy tok -> (* "lazy" *) str env tok
 
 let map_bound_identifier (env : env) (x : CST.bound_identifier) =
   map_simple_identifier env x
@@ -1018,6 +1019,7 @@ and map_basic_literal (env : env) (x : CST.basic_literal) : G.expr =
       G.L (G.Float (float_of_string_opt s, t)) |> G.e
   | `Bool_lit x -> G.L (map_boolean_literal env x) |> G.e
   | `Str_lit x -> map_string_literal env x
+  | `Regex_lit x -> map_regex_literal env x
   | `Nil tok -> G.L (G.Null ((* "nil" *) token env tok)) |> G.e
 
 and map_binary_expression (env : env) (x : CST.binary_expression) =
@@ -2677,6 +2679,23 @@ and map_string_literal (env : env) (x : CST.string_literal) : G.expr =
       (* TODO Find a real translation *)
       G.RawExpr (R.Tuple [ R.List v1; R.Token v2 ]) |> G.e
 
+and map_regex_literal (env : env) (x : CST.regex_literal) =
+  match x with
+  | `Exte_regex_lit tok ->
+      let tok = (* pattern #\/((\/[^#])|[^\n])+\/# *) token env tok in
+      (* TODO *)
+      G.OtherExpr (("ExtendedRegex", tok), [ G.Tk tok ]) |> G.e
+  | `Mult_regex_lit (v1, v2) ->
+      let v1 = token env v1 in
+      let v2 = token env v2 in
+      (* TODO *)
+      G.OtherExpr (("MultilineRegex", v1), [ G.Tk v1; G.Tk v2 ]) |> G.e
+  | `Onel_regex_lit tok ->
+      let content, tok = (* oneline_regex_literal *) str env tok in
+      (* TODO The content includes the '/' chars on either side of the regex.
+       * Update the grammar so that those are exposed separately. *)
+      G.L (G.Regexp (Tok.unsafe_fake_bracket (content, tok), None)) |> G.e
+
 and map_subscript_declaration (env : env)
     ((v1, v2, v3, v4, v5, v6, v7) : CST.subscript_declaration) =
   let v2 = (* "subscript" *) token env v2 in
@@ -3146,35 +3165,36 @@ and map_value_argument (env : env) ((v1, v2) : CST.value_argument) :
   in
   let v2 =
     match v2 with
-    | `Rep1_simple_id_COLON xs ->
+    | `Rep1_value_arg_label_COLON xs ->
         (* This isn't exactly a function *call*. Simply providing the labels for
          * the arguments creates a new function that can be called without later
          * providing labels for the actual arguments, but it does not call the
          * function in question. *)
         Common.map
           (fun (id, colon) ->
-            let id = map_simple_identifier env id in
+            let id = map_value_argument_label env id in
             let _colon = (* ":" *) token env colon in
             G.OtherArg (id, [ G.I id ]))
           xs
-    | `Opt_choice_simple_id_COLON_exp (label, expr) -> (
+    | `Opt_value_arg_label_COLON_exp (label, expr) -> (
         let expr = map_expression env expr in
         match label with
         | Some (name, colon) ->
-            let name =
-              match name with
-              | `Simple_id x -> map_simple_identifier env x
-              | `Async tok ->
-                  (* TODO It might be worth handling this specially, since it's
-                   * special-cased in the grammar. *)
-                  (* "async" *)
-                  str env tok
-            in
+            let name = map_value_argument_label env name in
             let _colon = (* ":" *) token env colon in
             [ G.ArgKwd (name, expr) ]
         | None -> [ G.Arg expr ])
   in
   v2
+
+and map_value_argument_label (env : env) (x : CST.value_argument_label) =
+  match x with
+  | `Simple_id x -> map_simple_identifier env x
+  | `Async tok ->
+      (* TODO It might be worth handling this specially, since it's
+       * special-cased in the grammar. *)
+      (* "async" *)
+      str env tok
 
 and map_value_arguments (env : env) (v1 : CST.value_arguments) : G.arguments =
   match v1 with
