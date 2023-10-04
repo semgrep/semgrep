@@ -609,8 +609,8 @@ let cli_output_of_core_results ~logging_level (core : Out.core_output)
         paths;
         skipped_rules;
         (* LATER *)
-        time = None;
         explanations = None;
+        time = None;
         rules_by_engine = None;
         engine_requested = None;
       }

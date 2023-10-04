@@ -1,0 +1,202 @@
+{
+  "errors": [],
+  "explanations": [
+    {
+      "children": [
+        {
+          "children": [],
+          "loc": {
+            "end": {
+              "col": 32,
+              "line": 13,
+              "offset": 222
+            },
+            "path": "<MASKED>",
+            "start": {
+              "col": 22,
+              "line": 13,
+              "offset": 212
+            }
+          },
+          "matches": [
+            {
+              "check_id": "rules.eqeq-bad",
+              "end": {
+                "col": 19,
+                "line": 3,
+                "offset": 67
+              },
+              "extra": {
+                "engine_kind": "OSS",
+                "message": "useless comparison",
+                "metavars": {
+                  "$X": {
+                    "abstract_content": "x",
+                    "end": {
+                      "col": 14,
+                      "line": 3,
+                      "offset": 62
+                    },
+                    "propagated_value": {
+                      "svalue_abstract_content": "window.prompt()",
+                      "svalue_end": {
+                        "col": 24,
+                        "line": 1,
+                        "offset": 23
+                      },
+                      "svalue_start": {
+                        "col": 9,
+                        "line": 1,
+                        "offset": 8
+                      }
+                    },
+                    "start": {
+                      "col": 13,
+                      "line": 3,
+                      "offset": 61
+                    }
+                  }
+                },
+                "validation_state": "NO_VALIDATOR"
+              },
+              "path": "targets/basic/stupid.js",
+              "start": {
+                "col": 13,
+                "line": 3,
+                "offset": 61
+              }
+            }
+          ],
+          "op": [
+            "XPat",
+            "$X == $X"
+          ]
+        }
+      ],
+      "loc": {
+        "end": {
+          "col": 17,
+          "line": 11,
+          "offset": 177
+        },
+        "path": "<MASKED>",
+        "start": {
+          "col": 7,
+          "line": 11,
+          "offset": 167
+        }
+      },
+      "matches": [
+        {
+          "check_id": "rules.eqeq-bad",
+          "end": {
+            "col": 19,
+            "line": 3,
+            "offset": 67
+          },
+          "extra": {
+            "engine_kind": "OSS",
+            "message": "useless comparison",
+            "metavars": {
+              "$X": {
+                "abstract_content": "x",
+                "end": {
+                  "col": 14,
+                  "line": 3,
+                  "offset": 62
+                },
+                "propagated_value": {
+                  "svalue_abstract_content": "window.prompt()",
+                  "svalue_end": {
+                    "col": 24,
+                    "line": 1,
+                    "offset": 23
+                  },
+                  "svalue_start": {
+                    "col": 9,
+                    "line": 1,
+                    "offset": 8
+                  }
+                },
+                "start": {
+                  "col": 13,
+                  "line": 3,
+                  "offset": 61
+                }
+              }
+            },
+            "validation_state": "NO_VALIDATOR"
+          },
+          "path": "targets/basic/stupid.js",
+          "start": {
+            "col": 13,
+            "line": 3,
+            "offset": 61
+          }
+        }
+      ],
+      "op": "And"
+    }
+  ],
+  "paths": {
+    "scanned": [
+      "targets/basic/stupid.js"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.eqeq-bad",
+      "end": {
+        "col": 19,
+        "line": 3,
+        "offset": 67
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "console.log(x == x)",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 62
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "window.prompt()",
+              "svalue_end": {
+                "col": 24,
+                "line": 1,
+                "offset": 23
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 61
+            }
+          }
+        },
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/basic/stupid.js",
+      "start": {
+        "col": 13,
+        "line": 3,
+        "offset": 61
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}

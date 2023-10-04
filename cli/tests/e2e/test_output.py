@@ -520,3 +520,15 @@ def test_cli_test_secret_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
         results,
         "results.txt",
     )
+
+
+# TODO! @pytest.mark.osempass
+@pytest.mark.quick
+def test_output_matching_explanations(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    stdout, _ = run_semgrep_in_tmp(
+        "rules/eqeq-basic.yaml",
+        target_name="basic/stupid.js",
+        options=["--matching-explanations"],
+        output_format=OutputFormat.JSON,  # Not the real output format; just disables JSON parsing
+    )
+    snapshot.assert_match(stdout, "report.json")

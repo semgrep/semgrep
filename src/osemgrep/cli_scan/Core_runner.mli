@@ -1,10 +1,15 @@
 (* input *)
 type conf = {
+  (* opti and limits *)
   num_jobs : int;
   optimizations : bool;
   max_memory_mb : int;
   timeout : float;
   timeout_threshold : int;
+  (* output flags *)
+  time_flag : bool;
+  matching_explanations : bool;
+  dataflow_traces : bool;
   (* osemgrep-only: *)
   ast_caching : bool;
 }
