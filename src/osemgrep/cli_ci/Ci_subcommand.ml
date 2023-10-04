@@ -189,20 +189,19 @@ let scan_id_and_rules_from_deployment (settings : Semgrep_settings.t)
           Logs.app (fun m -> m " (scan_id=%s)" scan_id);
           (* TODO: set sca to metadata.is_sca_scan / supply_chain *)
           let scan_config : Out.scan_config =
-              fetch_scan_config ~token ~dry_run:conf.dryrun ~sca:false
-                ~full_scan:prj_meta.is_full_scan ~repository:prj_meta.repository
-                scan_id
+            fetch_scan_config ~token ~dry_run:conf.dryrun ~sca:false
+              ~full_scan:prj_meta.is_full_scan ~repository:prj_meta.repository
+              scan_id
           in
           let rules_and_origins =
-              try decode_json_rules scan_config.rule_config with
-              | Error.Semgrep_error (_, opt_ex) as e ->
-                  let ex = Option.value ~default:Exit_code.fatal opt_ex in
-                  report_failure ~dry_run:conf.dryrun ~token ~scan_id ex;
-                  let e = Exception.catch e in
-                  Exception.reraise e
-            in
-            ( Some scan_id, [ rules_and_origins ]))
-
+            try decode_json_rules scan_config.rule_config with
+            | Error.Semgrep_error (_, opt_ex) as e ->
+                let ex = Option.value ~default:Exit_code.fatal opt_ex in
+                report_failure ~dry_run:conf.dryrun ~token ~scan_id ex;
+                let e = Exception.catch e in
+                Exception.reraise e
+          in
+          (Some scan_id, [ rules_and_origins ]))
 
 (*****************************************************************************)
 (* Project metadata *)
@@ -550,8 +549,7 @@ let upload_findings ~dry_run
       in
       Logs.app (fun m -> m "  View results in Semgrep Cloud Platform:");
       Logs.app (fun m ->
-          m "    https://semgrep.dev/orgs/%s/findings"
-            deployment_config.name);
+          m "    https://semgrep.dev/orgs/%s/findings" deployment_config.name);
       if
         filtered_rules
         |> List.exists (fun r ->

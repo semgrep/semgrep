@@ -37,13 +37,11 @@ val get_deployment_from_token_async :
   token:Auth.token -> deployment_config option Lwt.t
 
 (* retrieves the scan config from the provided token. *)
-val get_scan_config_from_token :
-  token:Auth.token -> scan_config option
+val get_scan_config_from_token : token:Auth.token -> scan_config option
 
 (* retrieves the scan config from the provided token asynchronously *)
 val get_scan_config_from_token_async :
   token:Auth.token -> scan_config option Lwt.t
-
 
 (* internally rely on api_token in ~/.settings and SEMGREP_REPO_NAME *)
 val url_for_policy : token:Auth.token -> Uri.t

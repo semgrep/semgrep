@@ -112,7 +112,7 @@ let start_scan ~dry_run ~token (url : Uri.t) (prj_meta : Project_metadata.t)
   if dry_run then (
     Logs.app (fun m -> m "Would have sent POST request to create scan");
     Ok "")
-  else (
+  else
     let headers =
       [
         ("Content-Type", "application/json");
@@ -142,7 +142,7 @@ let start_scan ~dry_run ~token (url : Uri.t) (prj_meta : Project_metadata.t)
     in
     let body = Out.string_of_scan_request request in
     let pretty_body =
-        body |> Yojson.Basic.from_string |> Yojson.Basic.pretty_to_string
+      body |> Yojson.Basic.from_string |> Yojson.Basic.pretty_to_string
     in
     Logs.debug (fun m -> m "Starting scan: %s" pretty_body);
     match Http_helpers.post ~body ~headers scan_endpoint with
@@ -159,14 +159,14 @@ Please make sure they have been set correctly.
           Fmt.str "%sAPI server at %a returned this error: %s" pre_msg Uri.pp
             url msg
         in
-        Error msg)
+        Error msg
 
 (*****************************************************************************)
 (* Step2 : fetch scan config *)
 (*****************************************************************************)
 
-let fetch_scan_config_async ~dry_run ~token ~sca ~full_scan ~repository : (Out.scan_config, string) result Lwt.t =
-
+let fetch_scan_config_async ~dry_run ~token ~sca ~full_scan ~repository :
+    (Out.scan_config, string) result Lwt.t =
   (* TODO? seems like there are 2 ways to get a config, with the scan_params
    * or with a scan_id.
    * python:
@@ -199,15 +199,13 @@ let fetch_scan_config_async ~dry_run ~token ~sca ~full_scan ~repository : (Out.s
   let conf =
     match content with
     | Error _ as e -> e
-    | Ok content ->
-        Ok (Out.scan_config_of_string content)
+    | Ok content -> Ok (Out.scan_config_of_string content)
   in
   Lwt.return conf
 
 let fetch_scan_config ~dry_run ~token ~sca ~full_scan ~repository =
   Lwt_main.run
     (fetch_scan_config_async ~token ~sca ~dry_run ~full_scan ~repository)
-
 
 (*****************************************************************************)
 (* Step3 : upload findings *)
