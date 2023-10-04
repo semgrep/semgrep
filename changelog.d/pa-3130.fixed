@@ -1,0 +1,11 @@
+Sequential tainting is now supported in Elixir.
+
+```elixir
+def f() do
+  x = "tainted"
+  y = x
+
+  # This now matches.
+  sink(y)
+end
+```

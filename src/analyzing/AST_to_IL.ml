@@ -326,6 +326,7 @@ and pattern env pat =
   | G.PatId (id, id_info) ->
       let lval = lval_of_id_info env id id_info in
       (lval, [])
+  | G.PatList (tok1, pats, tok2)
   | G.PatTuple (tok1, pats, tok2) ->
       (* P1, ..., Pn *)
       let tmp = fresh_var env tok2 in
