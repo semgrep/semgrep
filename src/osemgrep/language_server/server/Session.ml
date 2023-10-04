@@ -113,13 +113,13 @@ let fetch_ci_rules_and_origins () =
   let token = auth_token () in
   match token with
   | Some token ->
-      let%lwt scan_config =
+      let%lwt res =
         Scan_helper.fetch_scan_config_async ~token ~sca:false ~dry_run:true
-          ~full_scan:true ""
+          ~full_scan:true ~repository:""
       in
       let conf =
-        match scan_config with
-        | Ok rules -> Some (decode_rules rules)
+        match res with
+        | Ok scan_config -> Some (decode_rules scan_config.rule_config)
         | Error e ->
             Logs.warn (fun m -> m "Failed to fetch rules from CI: %s" e);
             None

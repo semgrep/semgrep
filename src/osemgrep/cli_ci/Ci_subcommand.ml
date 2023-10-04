@@ -75,10 +75,11 @@ let report_failure ~dry_run ~token ~scan_id (exit_code : Exit_code.t) : unit =
 (*****************************************************************************)
 (* Scan config *)
 (*****************************************************************************)
-(* token -> deployment_scan_config -> scan_id -> rules *)
+(* token -> deployment_config -> scan_id -> scan_config -> rules *)
 
 let deployment_config_opt (api_token : Auth.token option) (empty_config : bool)
-    : (Auth.token * Semgrep_App.deployment_scan_config) option =
+    : (Auth.token * Semgrep_App.deployment_config) option =
+  Logs.debug (fun m -> m "deployment_config_opt");
   match (api_token, empty_config) with
   | None, true ->
       Logs.app (fun m ->
@@ -95,7 +96,7 @@ let deployment_config_opt (api_token : Auth.token option) (empty_config : bool)
   (* TODO: document why we support running the ci command without a token *)
   | None, _ -> None
   | Some token, _ -> (
-      match Semgrep_App.get_scan_config_from_token ~token with
+      match Semgrep_App.get_deployment_from_token ~token with
       | None ->
           Logs.app (fun m ->
               m
@@ -117,6 +118,7 @@ let at_url_maybe ppf () : unit =
 
 (* [data] contains the rules in JSON format. That's how the registry send
  * them because it's faster than using YAML.
+ * TODO: factorize with Session.decode_rules()
  *)
 let decode_json_rules (data : string) : Rule_fetching.rules_and_origin =
   Common2.with_tmp_file ~str:data ~ext:"json" (fun file ->
@@ -125,34 +127,25 @@ let decode_json_rules (data : string) : Rule_fetching.rules_and_origin =
         ~registry_caching:false file)
 
 let fetch_scan_config ~token ~dry_run ~sca ~full_scan ~repository
-    (scan_id : Scan_helper.scan_id) : Rule_fetching.rules_and_origin list =
+    (scan_id : Scan_helper.scan_id) : Out.scan_config =
   Logs.app (fun m ->
       m "  Fetching configuration from Semgrep Cloud Platform%a" at_url_maybe ());
   match
-    Scan_helper.fetch_scan_config ~token ~sca ~dry_run ~full_scan repository
+    Scan_helper.fetch_scan_config ~token ~sca ~dry_run ~full_scan ~repository
   with
   | Error msg ->
       Logs.err (fun m -> m "Failed to download configuration: %s" msg);
       let r = Exit_code.fatal in
       report_failure ~dry_run ~token ~scan_id r;
       Error.exit r
-  | Ok rules ->
-      let rules_and_origins =
-        try decode_json_rules rules with
-        | Error.Semgrep_error (_, opt_ex) as e ->
-            let ex = Option.value ~default:Exit_code.fatal opt_ex in
-            report_failure ~dry_run ~token ~scan_id ex;
-            let e = Exception.catch e in
-            Exception.reraise e
-      in
-      [ rules_and_origins ]
+  | Ok config -> config
 
 (* Either a scan_id and the rules for the project, or None and the rules
  * specified on command-line. If something fails, an exit code is returned.
  *)
 let scan_id_and_rules_from_deployment (settings : Semgrep_settings.t)
     (conf : Ci_CLI.conf) (prj_meta : Out.project_metadata)
-    (depl_opt : (Auth.token * Semgrep_App.deployment_scan_config) option) :
+    (depl_opt : (Auth.token * Semgrep_App.deployment_config) option) :
     Scan_helper.scan_id option * Rule_fetching.rules_and_origin list =
   match depl_opt with
   (* TODO: document why we support running the ci command without a
@@ -170,7 +163,7 @@ let scan_id_and_rules_from_deployment (settings : Semgrep_settings.t)
       Logs.app (fun m ->
           m "  Reporting start of scan for %a"
             Fmt.(styled `Bold string)
-            deployment_config.deployment_name);
+            deployment_config.name);
       let scan_metadata : Out.scan_metadata =
         {
           cli_version = Version.version;
@@ -192,11 +185,23 @@ let scan_id_and_rules_from_deployment (settings : Semgrep_settings.t)
           Logs.err (fun m -> m "Could not start scan %s" msg);
           Error.exit Exit_code.fatal
       | Ok scan_id ->
+          (* TODO: should be concatenated with the "Reporting start ..." *)
+          Logs.app (fun m -> m " (scan_id=%s)" scan_id);
           (* TODO: set sca to metadata.is_sca_scan / supply_chain *)
-          ( Some scan_id,
+          let scan_config : Out.scan_config =
             fetch_scan_config ~token ~dry_run:conf.dryrun ~sca:false
               ~full_scan:prj_meta.is_full_scan ~repository:prj_meta.repository
-              scan_id ))
+              scan_id
+          in
+          let rules_and_origins =
+            try decode_json_rules scan_config.rule_config with
+            | Error.Semgrep_error (_, opt_ex) as e ->
+                let ex = Option.value ~default:Exit_code.fatal opt_ex in
+                report_failure ~dry_run:conf.dryrun ~token ~scan_id ex;
+                let e = Exception.catch e in
+                Exception.reraise e
+          in
+          (Some scan_id, [ rules_and_origins ]))
 
 (*****************************************************************************)
 (* Project metadata *)
@@ -521,7 +526,7 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   (results, complete)
 
 let upload_findings ~dry_run
-    (depl_opt : (string * Semgrep_App.deployment_scan_config) option)
+    (depl_opt : (string * Semgrep_App.deployment_config) option)
     (scan_id_opt : Scan_helper.scan_id option) blocking_findings filtered_rules
     (cli_output : Out.cli_output) : Scan_helper.app_block_override =
   match (depl_opt, scan_id_opt) with
@@ -534,7 +539,7 @@ let upload_findings ~dry_run
       in
       let override =
         match
-          Scan_helper.report_findings ~token ~scan_id ~dry_run ~results
+          Scan_helper.upload_findings ~token ~scan_id ~dry_run ~results
             ~complete
         with
         | Ok a -> a
@@ -544,8 +549,7 @@ let upload_findings ~dry_run
       in
       Logs.app (fun m -> m "  View results in Semgrep Cloud Platform:");
       Logs.app (fun m ->
-          m "    https://semgrep.dev/orgs/%s/findings"
-            deployment_config.deployment_name);
+          m "    https://semgrep.dev/orgs/%s/findings" deployment_config.name);
       if
         filtered_rules
         |> List.exists (fun r ->
@@ -554,7 +558,7 @@ let upload_findings ~dry_run
       then
         Logs.app (fun m ->
             m "    https://semgrep.dev/orgs/%s/supply-chain"
-              deployment_config.deployment_name);
+              deployment_config.name);
       override
   | _ -> None
 
@@ -571,6 +575,7 @@ let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
   (* TODO? we probably want to set the metrics to On by default in CI ctx? *)
   Metrics_.configure conf.metrics;
   let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
+  Logs.debug (fun m -> m "conf = %s" (Ci_CLI.show_conf conf));
 
   (* step2: token -> deployment_scan_config -> scan_id -> rules *)
   let depl_opt =

@@ -6,14 +6,18 @@ open Common
 (* Gather Semgrep app related code.
  *
  * TODO? split some code in Auth.ml?
+ *
+ * Partially translated from auth.py and scans.py.
  *)
 
 (*****************************************************************************)
 (* Constants *)
 (*****************************************************************************)
 
-let semgrep_app_scan_config_route = "api/agent/deployments/scans/config"
 let semgrep_app_deployment_route = "api/agent/deployments/current"
+
+(* TODO: diff with api/agent/scans/<scan_id>/config? *)
+let semgrep_app_scan_config_route = "api/agent/deployments/scans/config"
 
 (*****************************************************************************)
 (* Types *)
@@ -21,7 +25,7 @@ let semgrep_app_deployment_route = "api/agent/deployments/current"
 (* TODO? specify this with atd and have both app + osemgrep use it *)
 (* Pulled from cli/src/semgrep/app/scans.py *)
 (* coupling: response from semgrep app (e.g. deployment_id as int vs string ) *)
-type deployment_scan_config = {
+type scan_config = {
   deployment_id : int;
   deployment_name : string;
   policy_names : string list;
@@ -60,7 +64,7 @@ type deployment_config = {
 (*****************************************************************************)
 
 (* Returns the deployment config if the token is valid, otherwise None *)
-let get_deployment_from_token_async ~token =
+let get_deployment_from_token_async ~token : deployment_config option Lwt.t =
   let%lwt response =
     Http_helpers.get_async
       ~headers:[ ("authorization", "Bearer " ^ token) ]
@@ -104,7 +108,7 @@ let get_scan_config_from_token_async ~token =
     | Ok body -> (
         try
           let yojson = Yojson.Safe.from_string body in
-          let config = deployment_scan_config_of_yojson yojson in
+          let config = scan_config_of_yojson yojson in
           match config with
           | Ok config -> Some config
           | Error msg -> raise (Yojson.Json_error msg)
