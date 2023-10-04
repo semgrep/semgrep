@@ -2421,6 +2421,9 @@ let parse file =
       translation_unit env cst)
 
 let parse_pattern str =
+  (* Note that we're using cpp tree-sitter here. Technically, cpp
+     tree-sitter also covers C syntax, and we have implemented a more
+     mature Semgrep syntax extension within cpp tree-sitter. *)
   let result = Parse_cpp_tree_sitter.parse_pattern str in
   match result with
   | { program = Some any; _ } ->
