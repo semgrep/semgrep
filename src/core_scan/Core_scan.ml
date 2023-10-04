@@ -562,7 +562,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config
                    in
                    ( Core_result.make_match_result [] errors
                        (Core_profiling.empty_partial_profiling file),
-                     Not_scanned )
+                     Scanned )
                (* those were converted in Main_timeout in timeout_function()*)
                | Time_limit.Timeout _ -> assert false
                (* It would be nice to detect 'R.Err (R.InvalidRule _)' here
@@ -591,7 +591,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config
                    in
                    ( Core_result.make_match_result [] errors
                        (Core_profiling.empty_partial_profiling file),
-                     Not_scanned ))
+                     Scanned ))
          in
          let scanned_path =
            match was_scanned with
