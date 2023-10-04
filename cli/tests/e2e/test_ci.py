@@ -24,6 +24,7 @@ from tests.e2e.test_baseline import _git_commit
 from tests.e2e.test_baseline import _git_merge
 from tests.fixtures import RunSemgrep
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
 from semgrep.app.scans import ScanCompleteResult
 from semgrep.app.scans import ScanHandler
@@ -368,13 +369,13 @@ def automocks(mocker):
     mocker.patch.object(
         ScanHandler,
         "_get_scan_config_from_app",
-        return_value={
-            "deployment_id": DEPLOYMENT_ID,
-            "deployment_name": "org_name",
-            "ignored_files": [],
-            "policy_names": ["audit", "comment", "block"],
-            "rule_config": file_content,
-        },
+        return_value=out.ScanConfig(
+            deployment_id=DEPLOYMENT_ID,
+            deployment_name="org_name",
+            ignored_files=[],
+            policy_names=["audit", "comment", "block"],
+            rule_config=file_content,
+        ),
     )
     mocker.patch.object(
         ScanHandler,
@@ -1472,13 +1473,13 @@ def test_bad_config(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     mocker.patch.object(
         ScanHandler,
         "_get_scan_config_from_app",
-        return_value={
-            "deployment_id": DEPLOYMENT_ID,
-            "deployment_name": "org_name",
-            "ignored_files": [],
-            "policy_names": ["audit", "comment", "block"],
-            "rule_config": BAD_CONFIG,
-        },
+        return_value=out.ScanConfig(
+            deployment_id=DEPLOYMENT_ID,
+            deployment_name="org_name",
+            ignored_files=[],
+            policy_names=["audit", "comment", "block"],
+            rule_config=BAD_CONFIG,
+        ),
     )
     result = run_semgrep(
         options=["ci", "--no-suppress-errors"],
@@ -1500,13 +1501,13 @@ def test_bad_config_error_handler(
     mocker.patch.object(
         ScanHandler,
         "_get_scan_config_from_app",
-        return_value={
-            "deployment_id": DEPLOYMENT_ID,
-            "deployment_name": "org_name",
-            "ignored_files": [],
-            "policy_names": ["audit", "comment", "block"],
-            "rule_config": BAD_CONFIG,
-        },
+        return_value=out.ScanConfig(
+            deployment_id=DEPLOYMENT_ID,
+            deployment_name="org_name",
+            ignored_files=[],
+            policy_names=["audit", "comment", "block"],
+            rule_config=BAD_CONFIG,
+        ),
     )
     mock_send = mocker.spy(ErrorHandler, "send")
     result = run_semgrep(
@@ -1664,14 +1665,14 @@ def test_query_dependency(
     mocker.patch.object(
         ScanHandler,
         "_get_scan_config_from_app",
-        return_value={
-            "deployment_id": DEPLOYMENT_ID,
-            "deployment_name": "org_name",
-            "ignored_files": [],
-            "policy_names": ["audit", "comment", "block"],
-            "rule_config": file_content,
-            "dependency_query": True,
-        },
+        return_value=out.ScanConfig(
+            deployment_id=DEPLOYMENT_ID,
+            deployment_name="org_name",
+            ignored_files=[],
+            policy_names=["audit", "comment", "block"],
+            rule_config=file_content,
+            dependency_query=True,
+        ),
     )
 
     result = run_semgrep(
@@ -1750,13 +1751,13 @@ def test_existing_supply_chain_finding(
     mocker.patch.object(
         ScanHandler,
         "_get_scan_config_from_app",
-        return_value={
-            "deployment_id": DEPLOYMENT_ID,
-            "deployment_name": "org_name",
-            "ignored_files": [],
-            "policy_names": ["audit", "comment", "block"],
-            "rule_config": file_content,
-        },
+        return_value=out.ScanConfig(
+            deployment_id=DEPLOYMENT_ID,
+            deployment_name="org_name",
+            ignored_files=[],
+            policy_names=["audit", "comment", "block"],
+            rule_config=file_content,
+        ),
     )
 
     result = run_semgrep(
