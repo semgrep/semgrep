@@ -1,0 +1,17 @@
+Added support for matching template type arguments using metavariables in C++.
+Users can now successfully match code snippets like:
+```
+#include <memory>
+using namespace std;
+
+void foo() {
+    int *i = 0;
+
+    // ruleid: match-with-template
+    shared_ptr<int> p;
+}
+```
+with the pattern:
+```
+shared_ptr<$TY> $LOCAL_VAR;
+```

@@ -41,6 +41,13 @@ end)
 type constness = Constant | NotConstant [@@deriving show]
 
 (*****************************************************************************)
+(* Hooks *)
+(*****************************************************************************)
+
+let hook_constness_of_function = ref None
+let hook_transfer_of_assume = ref None
+
+(*****************************************************************************)
 (* Error management *)
 (*****************************************************************************)
 
@@ -52,14 +59,11 @@ let warning _tok s =
 (* Helpers *)
 (*****************************************************************************)
 
-let str_of_name name = spf "%s:%s" (fst name.ident) (G.SId.show name.sid)
 let fb = Tok.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Constness *)
 (*****************************************************************************)
-
-let hook_constness_of_function = ref None
 
 let result_of_function_call_is_constant lang f args =
   match (lang, f, args) with
@@ -304,7 +308,7 @@ let rec eval (env : G.svalue Var_env.t) exp : G.svalue =
 and eval_lval env lval =
   match lval with
   | { base = Var x; rev_offset = [] } -> (
-      let opt_c = VarMap.find_opt (str_of_name x) env in
+      let opt_c = VarMap.find_opt (IL.str_of_name x) env in
       match (!(x.id_info.id_svalue), opt_c) with
       | None, None -> G.NotCst
       | Some c, None
@@ -530,60 +534,15 @@ let update_env_with env var sval =
    * remove variables from the environment when they become non-constant!
    * This improves perf by a lot when proccessing large graphs. *)
   match sval with
-  | G.NotCst -> VarMap.remove (str_of_name var) env
-  | __else__ -> VarMap.add (str_of_name var) sval env
+  | G.NotCst -> VarMap.remove (IL.str_of_name var) env
+  | __else__ -> VarMap.add (IL.str_of_name var) sval env
 
-let transfer_of_equality (assume : bool) (var : IL.name) (lit : G.literal)
+(* Semgrep Pro *)
+let transfer_of_assume (assume : bool) (cond : IL.exp_kind)
     (inp : G.svalue Var_env.t) : G.svalue Var_env.t =
-  (* If we assume `var == lit` then we can infer `var = lit`. *)
-  if assume then update_env_with inp var (Lit lit)
-  else
-    (* If we believed `var == lit` but now we have to assume `var != lit`, then
-     * our believe was wrong, fix it. *)
-    let key = str_of_name var in
-    match VarMap.find_opt key inp with
-    | Some (Lit lit') when eq_literal lit lit' -> VarMap.remove key inp
-    | None
-    | Some _ ->
-        inp
-
-let rec transfer_of_assume (assume : bool) (cond : IL.exp_kind)
-    (inp : G.svalue Var_env.t) : G.svalue Var_env.t =
-  match cond with
-  | Operator
-      ( (Eq, _),
-        ( [
-            Unnamed { e = Fetch { base = Var var; rev_offset = [] }; _ };
-            Unnamed { e = Literal lit; _ };
-          ]
-        | [
-            Unnamed { e = Literal lit; _ };
-            Unnamed { e = Fetch { base = Var var; rev_offset = [] }; _ };
-          ] ) ) ->
-      (* x == lit *)
-      transfer_of_equality assume var lit inp
-  | Operator ((NotEq, tok), ([ _; _ ] as args)) ->
-      (* E1 != E2 *)
-      transfer_of_assume (not assume) (Operator ((Eq, tok), args)) inp
-  | Operator
-      ( (Not, _),
-        [ Unnamed { e = Fetch { base = Var var; rev_offset = [] }; _ } ] ) -> (
-      (* `if (!ptr) { ... }` when `ptr` has pointer type *)
-      match !(var.id_info.id_type) with
-      | Some { t = TyPointer _; _ } ->
-          let tok = snd var.ident in
-          let lit = G.Null tok in
-          transfer_of_equality assume var lit inp
-      | Some _
-      | None ->
-          inp)
-  | Fetch { base = Var var; rev_offset = [] } ->
-      (* if (E) { ... } *)
-      let tok = snd var.ident in
-      transfer_of_assume (not assume)
-        (Operator ((Not, tok), [ Unnamed { e = cond; eorig = NoOrig } ]))
-        inp
-  | __else__ -> inp
+  match !hook_transfer_of_assume with
+  | None -> inp
+  | Some hook -> hook assume cond inp
 
 let transfer :
     lang:Lang.t ->
@@ -624,7 +583,7 @@ let transfer :
               Common.map (fun arg -> eval inp' (IL_helpers.exp_of_arg arg)) args
             in
             if result_of_function_call_is_constant lang func args_val then
-              VarMap.add (str_of_name var) (G.Cst G.Cstr) inp'
+              VarMap.add (IL.str_of_name var) (G.Cst G.Cstr) inp'
             else
               (* symbolic propagation *)
               (* Call to an arbitrary function, we are intraprocedural so we cannot
@@ -663,14 +622,14 @@ let transfer :
              * assume that it may be updating `var`; e.g. in Ruby strings are
              * mutable so given `x.concat(y)` we will assume that the value of
              * `x` has been changed. *)
-            VarMap.remove (str_of_name var) inp'
+            VarMap.remove (IL.str_of_name var) inp'
         | ___else___ -> (
             (* In any other case, assume non-constant.
              * This covers e.g. `x.f = E`, `x[E1] = E2`, `*x = E`, etc. *)
             let lvar_opt = LV.lvar_of_instr_opt instr in
             match lvar_opt with
             | None -> inp'
-            | Some lvar -> VarMap.remove (str_of_name lvar) inp'))
+            | Some lvar -> VarMap.remove (IL.str_of_name lvar) inp'))
   in
 
   { D.in_env = inp'; out_env = out' }
@@ -699,7 +658,9 @@ let update_svalue (flow : F.cfg) mapping =
          LV.rlvals_of_node node.n
          |> List.iter (function
               | { base = Var var; _ } -> (
-                  match VarMap.find_opt (str_of_name var) ni_info.D.in_env with
+                  match
+                    VarMap.find_opt (IL.str_of_name var) ni_info.D.in_env
+                  with
                   | None -> ()
                   | Some c -> set_svalue_ref var.id_info c)
               | ___else___ -> ())

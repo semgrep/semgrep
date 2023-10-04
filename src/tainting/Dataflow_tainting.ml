@@ -277,7 +277,6 @@ let union_map_taints_and_vars env f xs =
   in
   (taints, lval_env)
 
-let str_of_name name = spf "%s:%s" (fst name.ident) (G.SId.show name.sid)
 let orig_is_source config orig = config.is_source (any_of_orig orig)
 let orig_is_sanitized config orig = config.is_sanitizer (any_of_orig orig)
 let orig_is_sink config orig = config.is_sink (any_of_orig orig)

@@ -2060,6 +2060,9 @@ and m_type_arguments a b =
 
 and m_type_argument a b =
   match (a, b) with
+  | B.TAExpr { e = N (Id ((str, tok), _)); _ }, G.TA b1
+    when MV.is_metavar_name str ->
+      envf (str, tok) (MV.T b1)
   | G.TA a1, B.TA b1 -> m_type_ a1 b1
   | G.TAWildcard (a1, a2), B.TAWildcard (b1, b2) ->
       let* () = m_tok a1 b1 in
