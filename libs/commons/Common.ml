@@ -1211,33 +1211,32 @@ let main_boilerplate f =
             erase_temp_files ()))
 (* let _ = if not !Sys.interactive then (main ()) *)
 
-let follow_symlinks = ref false
-let arg_symlink () = if !follow_symlinks then " -L " else ""
+(** [dir_contents] returns the paths of all regular files that are
+ * contained in [dir]. Each file is a path starting with [dir].
+  *)
+let dir_contents dir =
+  let rec loop result = function
+    | f :: fs when Sys.is_directory f ->
+        Sys.readdir f |> Array.to_list
+        |> map (Filename.concat f)
+        |> List.append fs |> loop result
+    | f :: fs -> loop (f :: result) fs
+    | [] -> result
+  in
+  loop [] [ dir ]
 
-let grep_dash_v_str =
-  "| grep -v /.hg/ |grep -v /CVS/ | grep -v /.git/ |grep -v /_darcs/"
-  ^ "| grep -v /.svn/ | grep -v .git_annot | grep -v .marshall"
+let follow_symlinks = ref false
+
+let vcs_re =
+  "(^((\\.hg)|(CVS)|(\\.git)|(_darcs)|(\\.svn))$)|(.*\\.git_annot$)|(.*\\.marshall$)"
+  |> Re.Posix.re |> Re.compile
 
 let files_of_dir_or_files_no_vcs_nofilter xs =
   xs
   |> map (fun x ->
          if Sys.is_directory x then
-           (* todo: should escape x *)
-           let cmd =
-             spf "find %s '%s' -type f %s"
-               (* -noleaf *) (arg_symlink ())
-               x grep_dash_v_str
-           in
-           let xs, status = cmd_to_list_and_status cmd in
-           match status with
-           | Unix.WEXITED 0 -> xs
-           (* bugfix: 'find -type f' does not like empty directories, but it's ok *)
-           | Unix.WEXITED 1 when Array.length (Sys.readdir x) =|= 0 -> []
-           | _ ->
-               raise
-                 (CmdError
-                    ( status,
-                      spf "CMD = %s, RESULT = %s" cmd (String.concat "\n" xs) ))
+           let files = dir_contents x in
+           List.filter (fun x -> not (Re.execp vcs_re x)) files
          else [ x ])
   |> flatten
 

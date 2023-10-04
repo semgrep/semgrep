@@ -1,14 +1,15 @@
 (env
- (js_of_ocaml (flags -no-inline -debug-info)))
+ (js_of_ocaml (flags -no-inline -debug-info --disable shortvar --disable share)))
 
 (executable
  (name test_jsoo)
  (libraries
    js_of_ocaml
    semgrep.semgrep_js_shared
-    integers_stubs_js
-    libpcre_stubs_js
-    libyaml_stubs_js
+   semgrep.engine
+   integers_stubs_js
+   libpcre_stubs_js
+   libyaml_stubs_js
    alcotest
  )
  (modes js)

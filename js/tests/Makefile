@@ -9,4 +9,4 @@ languages:
 	SEMGREP_JS_TEST_BUILD=1 $(MAKE) -C .. languages
 
 test: dist/semgrep-engine.js languages
-	node index.test.js
+	node --stack-size=100000 index.test.js

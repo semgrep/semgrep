@@ -43,11 +43,11 @@ let _ =
        method setJsonnetParser = setJsonnetParser
 
        method run filter =
-         let argv = [| ""; "--verbose" |] in
+         let argv = [| "" |] in
          let argv =
            if filter <> "" then Array.append argv [| "-e"; filter |] else argv
          in
-         let tests = [ Unit_parsing.tests () ] |> List.flatten in
+         let tests = [ Unit_engine.tests () ] |> List.flatten in
          let errors = ref [] in
          let tests =
            Common.map
@@ -69,6 +69,10 @@ let _ =
               ~and_exit:false ~argv ~filter:test_filter
           with
          | Alcotest.Test_error ->
-             Printf.printf "Some tests failed, displaying:\n");
-         !errors |> Array.of_list |> Js.array
+             Printf.printf "Some tests failed, displaying:\n"
+         | e ->
+             let e = Js_error.attach_js_backtrace e ~force:false in
+             let error = Option.get (Js_error.of_exn e) in
+             errors := error :: !errors);
+         !errors |> List.rev |> Array.of_list |> Js.array
     end)
