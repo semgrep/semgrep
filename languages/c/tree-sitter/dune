@@ -6,6 +6,7 @@
    commons
    lib_parsing lib_parsing_tree_sitter
    parser_c.ast
+   parser_cpp.tree_sitter
    tree-sitter-lang.c
    ast_generic; TODO: just for fake, should move fake in lib_parsing
  )

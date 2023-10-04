@@ -2419,3 +2419,13 @@ let parse file =
         { H.file; conv = H.line_col_to_pos file; extra = default_extra_env }
       in
       translation_unit env cst)
+
+let parse_pattern str =
+  (* Note that we're using cpp tree-sitter here. Technically, cpp
+     tree-sitter also covers C syntax, and we have implemented a more
+     mature Semgrep syntax extension within cpp tree-sitter. *)
+  let result = Parse_cpp_tree_sitter.parse_pattern str in
+  match result with
+  | { program = Some any; _ } ->
+      { result with program = Some (Ast_c_build.any any) }
+  | { program = None; _ } -> { result with program = None }
