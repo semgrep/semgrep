@@ -7,6 +7,7 @@
 *)
 
 type conf = Scan_CLI.conf
+[@@deriving show]
 
 (*
    Usage: parse_argv [| "semgrep-ci"; <args> |]

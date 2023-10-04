@@ -15,6 +15,7 @@ module Cmd = Cmdliner.Cmd
 
 (* 'semgrep ci' shares most of its flags with 'semgrep scan' *)
 type conf = Scan_CLI.conf
+[@@deriving show]
 
 (*************************************************************************)
 (* Command-line parsing: turn argv into conf *)
