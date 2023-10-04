@@ -75,7 +75,7 @@ let report_failure ~dry_run ~token ~scan_id (exit_code : Exit_code.t) : unit =
 (*****************************************************************************)
 (* Scan config *)
 (*****************************************************************************)
-(* token -> deployment_config -> scan_id -> rules *)
+(* token -> deployment_config -> scan_id -> scan_config -> rules *)
 
 let deployment_config_opt (api_token : Auth.token option) (empty_config : bool)
     : (Auth.token * Semgrep_App.deployment_config) option =

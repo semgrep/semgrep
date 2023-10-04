@@ -15,7 +15,7 @@ open Common
 (*****************************************************************************)
 
 let semgrep_app_deployment_route = "api/agent/deployments/current"
-(* TODO: diff with api/scans/config? *)
+(* TODO: diff with api/agent/scans/<scan_id>/config? *)
 let semgrep_app_scan_config_route = "api/agent/deployments/scans/config"
 
 (*****************************************************************************)
