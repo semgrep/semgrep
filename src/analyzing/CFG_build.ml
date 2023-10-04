@@ -16,6 +16,7 @@
 open Common
 open IL
 module F = IL (* to be even more similar to controlflow_build.ml *)
+module G = AST_generic
 
 (*****************************************************************************)
 (* Prelude *)
@@ -486,3 +487,31 @@ let (cfg_of_stmts : stmt list -> F.cfg) =
    *)
   g |> add_arc_from_opt (last_node_opt, exiti);
   CFG.make g enteri exiti
+
+let cfgs_in_program (lang : Lang.t) (ast : G.program) :
+    (IL.name list * IL.cfg) list =
+  match lang with
+  | Lang.Dockerfile ->
+      (* Dockerfile has no functions. The whole file is just a single scope *)
+      let xs =
+        AST_to_IL.stmt lang (G.Block (Tok.unsafe_fake_bracket ast) |> G.s)
+      in
+      let flow = cfg_of_stmts xs in
+      [ ([], flow) ]
+  | _ ->
+      let cfgs = ref [] in
+      ast
+      |> Visit_function_defs.visit (fun _ent fdef ->
+             let inputs, xs = AST_to_IL.function_definition lang fdef in
+             let flow = cfg_of_stmts xs in
+             cfgs := (inputs, flow) :: !cfgs);
+
+      (* We consider the top-level function the interior of a degenerate function,
+         and simply run constant propagation on that.
+
+         Since we don't traverse into each function body recursively, we shouldn't
+         duplicate any work.
+      *)
+      let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
+      let flow = cfg_of_stmts xs in
+      ([], flow) :: !cfgs

@@ -2,4 +2,4 @@
  * as "returning nodes", so later on these expressions can be matched with
  * return statements.
  *)
-val mark_implicit_return_nodes : Lang.t -> AST_generic.program -> unit
+val mark_implicit_return_nodes : IL.cfg -> unit

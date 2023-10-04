@@ -33,14 +33,6 @@ open AST_generic
 (* Helpers *)
 (*****************************************************************************)
 
-let lang_supports_implicit_return (lang : Lang.t) =
-  match lang with
-  | Ruby
-  | Rust
-  | Julia ->
-      true
-  | _else_ -> false
-
 let rec mark_first_instr_ancestor (cfg : IL.cfg) i =
   let node = cfg.graph#nodes#find i in
   match node.n with
@@ -61,13 +53,8 @@ let rec mark_first_instr_ancestor (cfg : IL.cfg) i =
 (* Entry point *)
 (*****************************************************************************)
 
-let mark_implicit_return_nodes lang prog =
-  if lang_supports_implicit_return lang then
-    prog
-    |> Visit_function_defs.visit (fun _ent fdef ->
-           let _params, body = AST_to_IL.function_definition lang fdef in
-           let cfg = CFG_build.cfg_of_stmts body in
-           (* Traverse backward from exit and mark the expression in the
-            * first instruction node along each path.
-            *)
-           mark_first_instr_ancestor cfg cfg.exit)
+let mark_implicit_return_nodes (cfg : IL.cfg) =
+  (* Traverse backward from exit and mark the expression in the
+   * first instruction node along each path.
+   *)
+  mark_first_instr_ancestor cfg cfg.exit
