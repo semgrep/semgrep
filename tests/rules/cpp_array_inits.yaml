@@ -1,0 +1,14 @@
+rules:
+  - id: cpp-array-initialization
+    message: Semgrep found a match
+    languages:
+      - cpp
+    severity: WARNING
+    pattern-either:
+      - pattern: |
+          $TY $BUF[$SIZE];
+      - pattern: |
+          $TY $BUF[$SIZE] = "...";
+      - pattern: |
+          $TY $BUF[$SIZE] = {...};
+
