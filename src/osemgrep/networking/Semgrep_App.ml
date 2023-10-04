@@ -12,15 +12,6 @@ module Out = Semgrep_output_v1_j
  *)
 
 (*****************************************************************************)
-(* Routes *)
-(*****************************************************************************)
-
-let semgrep_app_deployment_route = "api/agent/deployments/current"
-
-(* TODO: diff with api/agent/scans/<scan_id>/config? *)
-let semgrep_app_scan_config_route = "api/agent/deployments/scans/config"
-
-(*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
@@ -47,6 +38,18 @@ type deployment_config = {
 (* LATER: declared this in semgrep_output_v1.atd instead? *)
 type scan_id = string
 type app_block_override = string (* reason *) option
+
+(*****************************************************************************)
+(* Routes *)
+(*****************************************************************************)
+
+let deployment_route = "/api/agent/deployments/current"
+let start_scan_route = "/api/agent/deployments/scans"
+
+(* TODO: diff with api/agent/scans/<scan_id>/config? *)
+let scan_config_route = "/api/agent/deployments/scans/config"
+let results_route scan_id = "/api/agent/scans/" ^ scan_id ^ "/results"
+let complete_route scan_id = "/api/agent/scans/" ^ scan_id ^ "/complete"
 
 (*****************************************************************************)
 (* Extractors *)
@@ -152,7 +155,7 @@ let get_deployment_from_token_async ~token : deployment_config option Lwt.t =
   let%lwt response =
     Http_helpers.get_async
       ~headers:[ ("authorization", "Bearer " ^ token) ]
-      (Uri.with_path !Semgrep_envvars.v.semgrep_url semgrep_app_deployment_route)
+      (Uri.with_path !Semgrep_envvars.v.semgrep_url deployment_route)
   in
   let deployment_opt =
     match response with
@@ -189,8 +192,7 @@ let get_scan_config_from_token_async ~token =
   let%lwt response =
     Http_helpers.get_async
       ~headers:[ ("authorization", "Bearer " ^ token) ]
-      (Uri.with_path !Semgrep_envvars.v.semgrep_url
-         semgrep_app_scan_config_route)
+      (Uri.with_path !Semgrep_envvars.v.semgrep_url scan_config_route)
   in
   let scan_config_opt =
     match response with
@@ -214,7 +216,7 @@ let scan_config_uri ?(sca = false) ?(dry_run = true) ?(full_scan = true)
   let json_bool_to_string b = JSON.(string_of_json (Bool b)) in
   Uri.(
     add_query_params'
-      (with_path !Semgrep_envvars.v.semgrep_url semgrep_app_scan_config_route)
+      (with_path !Semgrep_envvars.v.semgrep_url scan_config_route)
       [
         ("sca", json_bool_to_string sca);
         ("dry_run", json_bool_to_string dry_run);
@@ -247,7 +249,7 @@ let url_for_policy ~token =
 (*****************************************************************************)
 
 (* TODO: pass project_config *)
-let start_scan ~dry_run ~token (url : Uri.t) (prj_meta : Project_metadata.t)
+let start_scan ~dry_run ~token (prj_meta : Project_metadata.t)
     (scan_meta : Out.scan_metadata) : (scan_id, string) result =
   if dry_run then (
     Logs.app (fun m -> m "Would have sent POST request to create scan");
@@ -264,7 +266,9 @@ let start_scan ~dry_run ~token (url : Uri.t) (prj_meta : Project_metadata.t)
         ("Authorization", "Bearer " ^ token);
       ]
     in
-    let scan_endpoint = Uri.with_path url "/api/agent/deployments/scans" in
+    let scan_endpoint =
+      Uri.with_path !Semgrep_envvars.v.semgrep_url start_scan_route
+    in
     (* deprecated from 1.43 *)
     (* TODO: should concatenate with raw_json project_config *)
     let meta =
@@ -297,7 +301,7 @@ Please make sure they have been set correctly.
         in
         let msg =
           Fmt.str "%sAPI server at %a returned this error: %s" pre_msg Uri.pp
-            url msg
+            scan_endpoint msg
         in
         Error msg
 
@@ -366,8 +370,7 @@ let upload_findings ~dry_run ~token ~scan_id ~results ~complete :
     Logs.debug (fun m -> m "Sending complete blob: %s" complete);
 
     let url =
-      Uri.with_path !Semgrep_envvars.v.semgrep_url
-        ("/api/agent/scans/" ^ scan_id ^ "/results")
+      Uri.with_path !Semgrep_envvars.v.semgrep_url (results_route scan_id)
     in
     let headers =
       [
@@ -383,8 +386,7 @@ let upload_findings ~dry_run ~token ~scan_id ~results ~complete :
         Logs.warn (fun m -> m "API server returned %u, this error: %s" code msg));
     (* mark as complete *)
     let url =
-      Uri.with_path !Semgrep_envvars.v.semgrep_url
-        ("/api/agent/scans/" ^ scan_id ^ "/complete")
+      Uri.with_path !Semgrep_envvars.v.semgrep_url (complete_route scan_id)
     in
     let body = complete in
     match Http_helpers.post ~body ~headers url with

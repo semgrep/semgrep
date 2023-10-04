@@ -150,10 +150,7 @@ let scan_id_and_rules_from_deployment ~dry_run (prj_meta : Out.project_metadata)
       proj_config = ProjectConfig.load_all()
       metadata_dict = {**metadata_dict, **proj_config.to_dict()}
   *)
-  match
-    Semgrep_App.start_scan ~dry_run ~token !Semgrep_envvars.v.semgrep_url
-      prj_meta scan_metadata
-  with
+  match Semgrep_App.start_scan ~dry_run ~token prj_meta scan_metadata with
   | Error msg ->
       Logs.err (fun m -> m "Could not start scan %s" msg);
       Error.exit Exit_code.fatal

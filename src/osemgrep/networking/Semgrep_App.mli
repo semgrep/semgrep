@@ -36,7 +36,6 @@ val scan_config_uri :
 val start_scan :
   dry_run:bool ->
   token:Auth.token ->
-  Uri.t ->
   Project_metadata.t ->
   Semgrep_output_v1_t.scan_metadata ->
   (scan_id, string) result
