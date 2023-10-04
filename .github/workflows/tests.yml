@@ -22,7 +22,7 @@ jobs:
   test-core:
     name: test semgrep-core
     runs-on: ubuntu-22.04
-    container: returntocorp/ocaml:alpine-2023-06-16
+    container: returntocorp/ocaml:alpine5.0-2023-09-29
     env:
       HOME: /root
     steps:
@@ -67,7 +67,7 @@ jobs:
   test-osemgrep:
     name: test osemgrep
     runs-on: ubuntu-22.04
-    container: returntocorp/ocaml:alpine-2023-06-16
+    container: returntocorp/ocaml:alpine5.0-2023-09-29
     env:
       HOME: /root
     steps:
@@ -97,7 +97,7 @@ jobs:
   build-semgrep-js-ocaml-test:
     name: build semgrep js ocaml for tests
     runs-on: ubuntu-latest-16-core
-    container: returntocorp/ocaml:alpine-2023-06-16
+    container: returntocorp/ocaml:alpine5.0-2023-09-29
     # We need this hack because GHA tampers with the HOME in container
     # and this does not play well with 'opam' installed in /root
     env:

@@ -121,6 +121,9 @@ let debug_extract_mode = ref false
  *
  * We also have had stack overflows. OCaml <=4.14.0, we avoided this using
  * `Common.map`, which is tail-recursive, instead of `List.map`.
+ *
+ * TODO: `List.map` becomes tail recursive in OCaml 5.1 due to TRMC. We can safely
+ * switch over to it then.
  *)
 
 (*****************************************************************************)

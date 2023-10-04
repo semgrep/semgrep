@@ -78,7 +78,7 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 # update: we actually started to use depot.dev to speedup multi-arch (arm)
 # docker image, so maybe we could use it to get rid of ocaml-layer
 #
-# Note that the Docker base image below currently uses OCaml 4.14.0
+# Note that the Docker base image below currently uses OCaml 5.0
 # coupling: if you modify the OCaml version there, you probably also need
 # to modify:
 # - scripts/{osx-setup-for-release,setup-m1-builder}.sh
@@ -95,7 +95,7 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 # Visit https://hub.docker.com/r/returntocorp/ocaml/tags to see the latest
 # images available.
 #
-FROM returntocorp/ocaml:alpine-2023-09-13 as semgrep-core-container
+FROM returntocorp/ocaml:alpine5.0-2023-09-29 as semgrep-core-container
 
 WORKDIR /src/semgrep
 COPY --from=semgrep-core-files /src/semgrep .
