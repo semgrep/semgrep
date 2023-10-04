@@ -127,11 +127,11 @@ let decode_json_rules (data : string) : Rule_fetching.rules_and_origin =
         ~registry_caching:false file)
 
 let fetch_scan_config ~token ~dry_run ~sca ~full_scan ~repository
-    (scan_id : Scan_helper.scan_id) : Out.scan_config =
+    (scan_id : Semgrep_App.scan_id) : Out.scan_config =
   Logs.app (fun m ->
       m "  Fetching configuration from Semgrep Cloud Platform%a" at_url_maybe ());
   match
-    Scan_helper.fetch_scan_config ~token ~sca ~dry_run ~full_scan ~repository
+    Semgrep_App.fetch_scan_config ~token ~sca ~dry_run ~full_scan ~repository
   with
   | Error msg ->
       Logs.err (fun m -> m "Failed to download configuration: %s" msg);
@@ -146,7 +146,7 @@ let fetch_scan_config ~token ~dry_run ~sca ~full_scan ~repository
 let scan_id_and_rules_from_deployment (settings : Semgrep_settings.t)
     (conf : Ci_CLI.conf) (prj_meta : Out.project_metadata)
     (depl_opt : (Auth.token * Semgrep_App.deployment_config) option) :
-    Scan_helper.scan_id option * Rule_fetching.rules_and_origin list =
+    Semgrep_App.scan_id option * Rule_fetching.rules_and_origin list =
   match depl_opt with
   (* TODO: document why we support running the ci command without a
    * token / deployment. Without this no token / no deployment case,
@@ -178,7 +178,7 @@ let scan_id_and_rules_from_deployment (settings : Semgrep_settings.t)
           metadata_dict = {**metadata_dict, **proj_config.to_dict()}
       *)
       match
-        Scan_helper.start_scan ~dry_run:conf.dryrun ~token
+        Semgrep_App.start_scan ~dry_run:conf.dryrun ~token
           !Semgrep_envvars.v.semgrep_url prj_meta scan_metadata
       with
       | Error msg ->
@@ -527,8 +527,8 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
 
 let upload_findings ~dry_run
     (depl_opt : (string * Semgrep_App.deployment_config) option)
-    (scan_id_opt : Scan_helper.scan_id option) blocking_findings filtered_rules
-    (cli_output : Out.cli_output) : Scan_helper.app_block_override =
+    (scan_id_opt : Semgrep_App.scan_id option) blocking_findings filtered_rules
+    (cli_output : Out.cli_output) : Semgrep_App.app_block_override =
   match (depl_opt, scan_id_opt) with
   | Some (token, deployment_config), Some scan_id ->
       Logs.app (fun m -> m "  Uploading findings.");
@@ -539,7 +539,7 @@ let upload_findings ~dry_run
       in
       let override =
         match
-          Scan_helper.upload_findings ~token ~scan_id ~dry_run ~results
+          Semgrep_App.upload_findings ~token ~scan_id ~dry_run ~results
             ~complete
         with
         | Ok a -> a

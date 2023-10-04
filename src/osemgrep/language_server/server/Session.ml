@@ -114,7 +114,7 @@ let fetch_ci_rules_and_origins () =
   match token with
   | Some token ->
       let%lwt res =
-        Scan_helper.fetch_scan_config_async ~token ~sca:false ~dry_run:true
+        Semgrep_App.fetch_scan_config_async ~token ~sca:false ~dry_run:true
           ~full_scan:true ~repository:""
       in
       let conf =
