@@ -109,8 +109,9 @@ and metavar_cond =
   | CondType of
       MV.mvar
       * Xlang.t option (* when the type expression is in different lang *)
-      * string (* raw input string saved for regenerating rule yaml *)
-      * AST_generic.type_ (* LATER: could parse lazily, like the patterns *)
+      * string list (* raw input string saved for regenerating rule yaml *)
+      * AST_generic.type_ list
+    (* LATER: could parse lazily, like the patterns *)
   | CondAnalysis of MV.mvar * metavar_analysis_kind
   | CondNestedFormula of MV.mvar * Xlang.t option * formula
 
