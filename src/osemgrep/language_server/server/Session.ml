@@ -114,7 +114,7 @@ let fetch_ci_rules_and_origins () =
   match token with
   | Some token ->
       let%lwt res =
-        Scan_helper.fetch_scan_config_async ~token ~sca:false ~dry_run:true
+        Semgrep_App.fetch_scan_config_async ~token ~sca:false ~dry_run:true
           ~full_scan:true ~repository:""
       in
       let conf =
@@ -194,7 +194,7 @@ let fetch_skipped_fingerprints () =
         Semgrep_App.get_scan_config_from_token_async ~token
       in
       match deployment_opt with
-      | Some deployment -> Lwt.return deployment.skipped_match_based_ids
+      | Some deployment -> Lwt.return deployment.triage_ignored_match_based_ids
       | None -> Lwt.return [])
   | None -> Lwt.return []
 
