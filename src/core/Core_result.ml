@@ -1,3 +1,7 @@
+open Common
+module E = Core_error
+open Core_profiling
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -21,8 +25,6 @@
  *  -> Semgrep_output_v1.findings
  * LATER: it would be good to remove some intermediate types.
  *)
-module E = Core_error
-open Core_profiling
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -52,7 +54,7 @@ type t = {
   skipped_rules : Rule.invalid_rule_error list;
   (* may contain also skipped_target information *)
   extra : Core_profiling.t Core_profiling.debug_info;
-  explanations : Matching_explanation.t list;
+  explanations : Matching_explanation.t list option;
   rules_by_engine : (Rule_ID.t * Engine_kind.t) list;
   scanned : Fpath.t list;
 }
@@ -89,7 +91,7 @@ let mk_final_result_with_just_errors (errors : Core_error.t list) : t =
     matches = [];
     skipped_rules = [];
     extra = No_info;
-    explanations = [];
+    explanations = None;
     rules_by_engine = [];
     scanned = [];
   }
@@ -315,7 +317,7 @@ let make_final_result
     errors;
     extra;
     skipped_rules;
-    explanations;
+    explanations = (if explanations =*= [] then None else Some explanations);
     rules_by_engine =
       rules_with_engine |> Common.map (fun (r, ek) -> (fst r.Rule.id, ek));
     scanned;

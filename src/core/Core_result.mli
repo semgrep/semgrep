@@ -17,7 +17,7 @@ type t = {
   skipped_rules : Rule.invalid_rule_error list;
   (* may contain skipped_target info *)
   extra : Core_profiling.t Core_profiling.debug_info;
-  explanations : Matching_explanation.t list;
+  explanations : Matching_explanation.t list option;
   rules_by_engine : (Rule_ID.t * Engine_kind.t) list;
   (* The targets are all the files that were considered valid targets for the
    * semgrep scan. This excludes files that were filtered out on purpose

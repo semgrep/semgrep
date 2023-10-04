@@ -403,9 +403,9 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
 let core_output_of_matches_and_errors render_fix (res : Core_result.t) :
     Out.core_output =
   let matches, new_errs =
-    Common.partition_either (match_to_match render_fix) res.RP.matches
+    Common.partition_either (match_to_match render_fix) res.matches
   in
-  let errs = !E.g_errors @ new_errs @ res.RP.errors in
+  let errs = !E.g_errors @ new_errs @ res.errors in
   let skipped_targets, profiling =
     match res.extra with
     | Core_profiling.Debug { skipped_targets; profiling } ->
@@ -425,7 +425,7 @@ let core_output_of_matches_and_errors render_fix (res : Core_result.t) :
         scanned = [];
       };
     skipped_rules =
-      res.RP.skipped_rules
+      res.skipped_rules
       |> Common.map (fun ((kind, rule_id, tk) : Rule.invalid_rule_error) ->
              let loc = Tok.unsafe_loc_of_tok tk in
              {
@@ -435,8 +435,7 @@ let core_output_of_matches_and_errors render_fix (res : Core_result.t) :
              });
     time = profiling |> Option.map profiling_to_profiling;
     explanations =
-      ( res.RP.explanations |> Common.map explanation_to_explanation |> fun x ->
-        Some x );
+      res.explanations |> Option.map (Common.map explanation_to_explanation);
     rules_by_engine = Some (Common.map convert_rule res.rules_by_engine);
     engine_requested = Some `OSS;
     version = Some Version.version;
