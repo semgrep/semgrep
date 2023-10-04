@@ -941,6 +941,7 @@ class CoreRunner:
         target_manager: TargetManager,
         dump_command_for_core: bool,
         time_flag: bool,
+        matching_explanations: bool,
         engine: EngineType,
         run_secrets: bool,
         target_mode_config: TargetModeConfig,
@@ -1040,7 +1041,8 @@ class CoreRunner:
                     str(self._max_memory),
                 ]
             )
-
+            if matching_explanations:
+                cmd.append("-matching_explanations")
             if time_flag:
                 cmd.append("-json_time")
 
@@ -1181,6 +1183,7 @@ class CoreRunner:
         target_manager: TargetManager,
         dump_command_for_core: bool,
         time_flag: bool,
+        matching_explanations: bool,
         engine: EngineType,
         run_secrets: bool,
         target_mode_config: TargetModeConfig,
@@ -1199,6 +1202,7 @@ class CoreRunner:
                 target_manager,
                 dump_command_for_core,
                 time_flag,
+                matching_explanations,
                 engine,
                 run_secrets,
                 target_mode_config,
@@ -1234,6 +1238,7 @@ Exception raised: `{e}`
         rules: List[Rule],
         dump_command_for_core: bool,
         time_flag: bool,
+        matching_explanations: bool,
         engine: EngineType,
         run_secrets: bool,
         target_mode_config: TargetModeConfig,
@@ -1252,6 +1257,7 @@ Exception raised: `{e}`
             target_manager,
             dump_command_for_core,
             time_flag,
+            matching_explanations,
             engine,
             run_secrets,
             target_mode_config,
