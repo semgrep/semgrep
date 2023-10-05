@@ -389,10 +389,10 @@ For more information see https://semgrep.dev
 ;TODO: restore  "bisect_ppx" {>= "2.5.0"} once can use ppxlib 0.22.0
   (depends
     ; core deps
-    (ocaml (>= 5.0.0))
+    (ocaml (>= 5.1.0))
     (dune (>= 2.7.0 ))
     ; parser generators
-    (menhir (= 20220210))
+    (menhir (= 20230608))
     ; standard libraries
     ; We don't use Base directly. If it's being used indirectly
     ; (is it, though?), we need a version that doesn't register
