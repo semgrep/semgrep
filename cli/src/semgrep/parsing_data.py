@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from semgrep.core_runner import Plan
+    from semgrep.core_targets_plan import Plan
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.semgrep_types import Language
