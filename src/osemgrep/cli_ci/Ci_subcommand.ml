@@ -447,8 +447,7 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   in
   if
     new_ignored
-    |> List.exists (fun (m : Out.cli_match) ->
-           [%eq: Out.severity] m.extra.severity Experiment)
+    |> List.exists (fun (m : Out.cli_match) -> m.extra.severity =*= Experiment)
   then
     Logs.app (fun m -> m "Some experimental rules were run during execution.");
 
