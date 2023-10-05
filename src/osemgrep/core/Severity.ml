@@ -5,8 +5,7 @@
  *
  * TODO: there are (too) many places where we define severity:
  *  - rule_schema_v1.yaml
- *  - Pattern_match.severity in semgrep-core
- *  - core_severity in semgrep_output_v1.atd
+ *  - severity in semgrep_output_v1.atd
  *  - DONE level in Error.ml
  * We should remove some of those.
  *
@@ -49,7 +48,7 @@ let converter =
     [ ("INFO", `Info); ("WARNING", `Warning); ("ERROR", `Error) ]
 
 (* for CLI --severity filtering *)
-let of_rule_severity_opt (x : Pattern_match.severity) : t option =
+let of_rule_severity_opt (x : Rule.severity) : t option =
   match x with
   | Error -> Some `Error
   | Warning -> Some `Warning
