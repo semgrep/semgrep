@@ -36,11 +36,16 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 
 type pattern_info = {
+  (* the entire source string of the pattern *)
   source : string;
+  (* We keep this conv here as a lazy conv, so that we don't induce extraneous
+     overhead by always computing this `conv` hash table.
+     We only do if there is a need, i.e. we need to parse some Rust macros.
+     See `map_macro_invocation` below for more.
+  *)
   conv : (int * int, int) Hashtbl.t Lazy.t;
 }
 
-(* Pattern s, where s is the entire string literal of the pattern being parsed *)
 type mode = Pattern of pattern_info | Target
 type env = mode H.env
 
@@ -2242,8 +2247,14 @@ and map_macro_invocation (env : env) ((v1, v2, v3) : CST.macro_invocation) :
          then use the original env.conv to restore the correct bytepos as well.
       *)
       let fix_loc (loc : Tok.location) =
+        (* We need to localize our location to its position within the pattern string it
+           appears in.
+        *)
         let loc = Tok.adjust_loc_wrt_base l_loc loc in
         let prefix_length = String.length semgrep_prefix in
+        (* Then, we fix the range by accounting for the fake prefix we inserted,
+           as well as fixing the wrong bytepos.
+        *)
         let pos =
           let column =
             if loc.pos.line =*= l_loc.pos.line then
