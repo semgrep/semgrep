@@ -546,6 +546,7 @@ def test_regex_with_any_language_multiple_rule_none_alias(
     )
 
 
+@pytest.mark.osempass
 @pytest.mark.slow
 def test_timeout(run_semgrep_in_tmp: RunSemgrep, snapshot):
     # Check that semgrep-core timeouts are properly handled
@@ -726,6 +727,7 @@ def test_multiple_configs_file(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+@pytest.mark.osempass
 @pytest.mark.slow
 def test_multiple_configs_different_origins(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(

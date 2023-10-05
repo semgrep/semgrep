@@ -8,6 +8,7 @@ from tests.fixtures import RunSemgrep
 from semgrep.constants import OutputFormat
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_duplicate_matches_indexing(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _errors = run_semgrep_in_tmp(
