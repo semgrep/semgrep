@@ -146,7 +146,7 @@ def remove_matches_in_baseline(
     return kept_matches_by_rule
 
 
-# This run semgrep-core but also handles SCA and join rules
+# This runs semgrep-core (and also handles SCA and join rules)
 def run_rules(
     filtered_rules: List[Rule],
     target_manager: TargetManager,
@@ -156,6 +156,7 @@ def run_rules(
     time_flag: bool,
     matching_explanations: bool,
     engine_type: EngineType,
+    # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
     run_secrets: bool = False,
     target_mode_config: Optional[TargetModeConfig] = None,
     *,

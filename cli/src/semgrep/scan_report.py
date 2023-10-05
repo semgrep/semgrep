@@ -31,7 +31,7 @@ from semgrep.util import with_feature_status
 # Helpers
 ##############################################################################
 
-
+# TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
 def _print_product_status(sast_enabled: bool = True, sca_enabled: bool = False) -> None:
     """
     (Simple) print the statuses of enabled products to stdout when the user
@@ -278,6 +278,7 @@ def print_scan_status(
     target_mode_config: TargetModeConfig,
     *,
     cli_ux: DesignTreatment = DesignTreatment.LEGACY,
+    # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
     with_code_rules: bool = True,
     with_supply_chain: bool = False,
 ) -> int:

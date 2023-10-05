@@ -348,6 +348,7 @@ class Config:
         self,
         valid_configs: Mapping[str, Sequence[Rule]],
         *,
+        # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
         with_code_rules: bool = False,
         with_supply_chain: bool = False,
     ) -> None:
