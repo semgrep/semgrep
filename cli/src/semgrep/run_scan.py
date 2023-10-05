@@ -158,6 +158,9 @@ def run_rules(
     engine_type: EngineType,
     run_secrets: bool = False,
     target_mode_config: Optional[TargetModeConfig] = None,
+    *,
+    with_code_rules: bool = True,
+    with_supply_chain: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -171,7 +174,12 @@ def run_rules(
 
     cli_ux = get_state().get_cli_ux_flavor()
     num_executed_rules = scan_report.print_scan_status(
-        filtered_rules, target_manager, target_mode_config, cli_ux
+        filtered_rules,
+        target_manager,
+        target_mode_config,
+        cli_ux=cli_ux,
+        with_code_rules=with_code_rules,
+        with_supply_chain=with_supply_chain,
     )
 
     join_rules, rest_of_the_rules = partition(
@@ -370,6 +378,10 @@ def run_scan(
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
     profiler.save("config_time", rule_start_time)
 
+    # We determine if SAST / SCA is enabled based on the config str
+    with_code_rules = configs_obj.with_code_rules
+    with_supply_chain = configs_obj.with_supply_chain
+
     # Metrics send part 1: add environment information
     # Must happen after configs are resolved because it is determined
     # then whether metrics are sent or not
@@ -509,6 +521,8 @@ def run_scan(
         engine_type,
         run_secrets,
         target_mode_config,
+        with_code_rules=with_code_rules,
+        with_supply_chain=with_supply_chain,
     )
     profiler.save("core_time", core_start_time)
     output_handler.handle_semgrep_errors(semgrep_errors)
