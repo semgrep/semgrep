@@ -91,8 +91,6 @@ type validation_state =
   | No_validator
 [@@deriving show, eq]
 
-type severity = Semgrep_output_v1_t.severity [@@deriving show, eq]
-
 type t = {
   (* rule (or mini rule) responsible for the pattern match found *)
   rule_id : rule_id; [@equal fun a b -> a.id = b.id]
@@ -125,7 +123,7 @@ type t = {
      severity. Currently this is just used by secrets validators in order to
      modify severity based on information from the validation step. (E.g.,
      validity, scope information) *)
-  severity_override : severity option;
+  severity_override : Semgrep_output_v1_t.severity option;
   (* Indicates if the rule default metadata should be modified. Currently this
      is just used by secrets validators in order to
      modify metadata based on information from the validation step. (E.g.,

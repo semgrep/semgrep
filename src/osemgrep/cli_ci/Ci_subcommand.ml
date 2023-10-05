@@ -307,7 +307,18 @@ let severity_to_int (severity : Out.severity) =
   | Experiment -> `Int 4
   | Warning -> `Int 1
   | Error -> `Int 2
-  | _ -> `Int 0
+  | Inventory
+  | Info ->
+      `Int 0
+
+(* this is used for sorting matches for findings *)
+let ord_of_severity (severity : Out.severity) : int =
+  match severity with
+  | Experiment -> 0
+  | Inventory -> 1
+  | Info -> 2
+  | Warning -> 3
+  | Error -> 4
 
 let finding_of_cli_match _commit_date index (m : Out.cli_match) : Out.finding =
   let (r : Out.finding) =
@@ -399,15 +410,9 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
      *)
   let all_matches = List.rev cli_output.results in
   let all_matches =
-    let to_int severity =
-      match (severity : Out.severity) with
-      | Experiment -> 0
-      | Inventory -> 1
-      | Info -> 2
-      | Warning -> 3
-      | Error -> 4
+    let sort_severity a b =
+      Int.compare (ord_of_severity a) (ord_of_severity b)
     in
-    let sort_severity a b = Int.compare (to_int a) (to_int b) in
     all_matches
     |> List.sort (fun (m1 : Out.cli_match) (m2 : Out.cli_match) ->
            sort_severity m1.extra.severity m2.extra.severity)

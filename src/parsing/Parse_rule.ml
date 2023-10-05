@@ -441,7 +441,7 @@ let parse_languages ~id (options : Rule_options_t.t) langs :
                (InvalidOther "we need at least one language", fst id, snd id))
       | x :: xs -> (Some langs, L (x, xs)))
 
-let parse_severity ~id (s, t) : Pattern_match.severity =
+let parse_severity ~id (s, t) : Rule.severity =
   match s with
   | "ERROR" -> Error
   | "WARNING" -> Warning
