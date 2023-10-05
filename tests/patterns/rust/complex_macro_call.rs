@@ -1,1 +1,5 @@
-matches!(foo, Foo::A(_))
+// ERROR: match
+matches!(foo, Foo::A(_));
+
+// ERROR: match
+foo;
