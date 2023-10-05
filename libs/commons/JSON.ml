@@ -76,9 +76,5 @@ let rec update source updates =
   | `Assoc xs, `Assoc ys ->
       let xs = List.sort (Common2.on String.compare fst) xs in
       let ys = List.sort (Common2.on String.compare fst) ys in
-      `Assoc
-        (merge
-           (Common2.on String.compare fst)
-           (fun (s, x) (_, y) -> (s, update x y))
-           xs ys)
+      `Assoc (merge (Common2.on String.compare fst) (fun _ x -> x) xs ys)
   | _ -> updates
