@@ -1,6 +1,5 @@
 """
-Parsers for pnpm-lock.yaml files
-Based on https://github.com/pnpm/spec/blob/master/lockfile/5.2.md
+Parsers for pubspec.lock files
 """
 from pathlib import Path
 from typing import List
