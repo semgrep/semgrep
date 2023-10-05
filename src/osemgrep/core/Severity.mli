@@ -4,7 +4,7 @@ type t = [ `Error | `Warning | `Info ] [@@deriving show]
 val to_string : t -> string
 
 (* LATER: get rid off at some point *)
-val of_rule_severity_opt : Rule.severity -> t option
+val of_rule_severity_opt : Pattern_match.severity -> t option
 
 (* for CLI --severity xxx parsing *)
 val converter : t Cmdliner.Arg.conv

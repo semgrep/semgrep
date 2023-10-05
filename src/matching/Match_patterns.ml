@@ -175,6 +175,8 @@ let match_rules_and_recurse m_env (file, hook, matches) rules matcher k any x =
                           *)
                           engine_kind = `OSS;
                           validation_state = No_validator;
+                          severity_override = None;
+                          metadata_override = None;
                         }
                       in
                       Common.push pm matches;
@@ -339,6 +341,8 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                   taint_trace = None;
                                   engine_kind = `OSS;
                                   validation_state = No_validator;
+                                  severity_override = None;
+                                  metadata_override = None;
                                 }
                               in
                               Common.push pm matches;
@@ -398,6 +402,8 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                     taint_trace = None;
                                     engine_kind = `OSS;
                                     validation_state = No_validator;
+                                    severity_override = None;
+                                    metadata_override = None;
                                   }
                                 in
                                 Common.push pm matches;
@@ -445,6 +451,8 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                       taint_trace = None;
                                       engine_kind = `OSS;
                                       validation_state = No_validator;
+                                      severity_override = None;
+                                      metadata_override = None;
                                     }
                                   in
                                   Common.push pm matches;
@@ -538,6 +546,8 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                       taint_trace = None;
                                       engine_kind = `OSS;
                                       validation_state = No_validator;
+                                      severity_override = None;
+                                      metadata_override = None;
                                     }
                                   in
                                   Common.push pm matches;
