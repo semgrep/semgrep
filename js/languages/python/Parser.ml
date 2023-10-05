@@ -1,12 +1,24 @@
+open Pfff_or_tree_sitter
+
 let lang_to_python_parsing_mode = function
   | Lang.Python -> Parse_python.Python
   | Lang.Python2 -> Parse_python.Python2
   | Lang.Python3 -> Parse_python.Python3
   | s -> failwith (Printf.sprintf "not a python language:%s" (Lang.to_string s))
 
-let parse_pattern _ lang str =
-  let parsing_mode = lang_to_python_parsing_mode lang in
-  let any = Parse_python.any_of_string ~parsing_mode str in
+let parse_pattern print_errors lang str =
+  let any =
+    str
+    |> run_pattern ~print_errors
+         (* coupling: semgrep/js/languages/python/Parser.ml *)
+         [
+           PfffPat
+             (let parsing_mode = lang_to_python_parsing_mode lang in
+              Parse_python.any_of_string ~parsing_mode);
+           TreeSitterPat Parse_python_tree_sitter.parse_pattern;
+         ]
+  in
+
   Python_to_generic.any any
 
 let parse_target lang file =
