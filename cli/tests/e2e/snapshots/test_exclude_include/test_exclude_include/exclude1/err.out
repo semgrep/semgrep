@@ -5,14 +5,34 @@
 └─────────────┘
   Scanning 5 files tracked by git with 4 Code rules:
   Scanning 2 files.
-
-
-┌──────────────┐
-│ Scan Summary │
-└──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-  Scan skipped: 2 files matching --exclude patterns
-  For a full list of skipped files, run semgrep with the --verbose flag.
-
-Ran 4 rules on 2 files: 2 findings.
+'str' object has no attribute 'to_json'
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/scan.py", line 675, in scan
+    output_handler.output(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/output.py", line 343, in output
+    output = self._build_output()
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/output.py", line 475, in _build_output
+    return self.formatter.output(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/formatter/base.py", line 29, in output
+    return self.format(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/formatter/json.py", line 84, in format
+    return json.dumps(output.to_json(), sort_keys=True, default=to_json)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/semgrep_output_v1.py", line 4257, in to_json
+    res['results'] = _atd_write_list((lambda x: x.to_json()))(self.results)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/semgrep_output_v1.py", line 193, in write_list
+    return [write_elt(elt) for elt in elts]
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/semgrep_output_v1.py", line 193, in <listcomp>
+    return [write_elt(elt) for elt in elts]
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/semgrep_output_v1.py", line 4257, in <lambda>
+    res['results'] = _atd_write_list((lambda x: x.to_json()))(self.results)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/semgrep_output_v1.py", line 4150, in to_json
+    res['extra'] = (lambda x: x.to_json())(self.extra)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/semgrep_output_v1.py", line 4150, in <lambda>
+    res['extra'] = (lambda x: x.to_json())(self.extra)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/semgrep_output_v1.py", line 4090, in to_json
+    res['severity'] = (lambda x: x.to_json())(self.severity)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/semgrep_output_v1.py", line 4090, in <lambda>
+    res['severity'] = (lambda x: x.to_json())(self.severity)
+AttributeError: 'str' object has no attribute 'to_json'

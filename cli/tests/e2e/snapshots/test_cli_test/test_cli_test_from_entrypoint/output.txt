@@ -1,2 +1,5 @@
-2/2: ✓ All tests passed 
+No unit tests found. See https://semgrep.dev/docs/writing-rules/testing-rules
 No tests for fixes found.
+--------------------------------------------------------------------------------
+The following config files produced errors:
+	rules/cli_test/multiple_annotations/multiple-annotations.yaml: 'str' object has no attribute 'to_json'

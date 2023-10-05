@@ -1,4 +1,4 @@
-1/1: ✓ All tests passed
+No unit tests found. See https://semgrep.dev/docs/writing-rules/testing-rules
 0/1: 1 fix tests did not pass:
 --------------------------------------------------------------------------------
 	✖ targets/fixtest/test3.fixed.py <> autofix applied to targets/fixtest/test3.py
@@ -14,3 +14,6 @@
 
 
 
+--------------------------------------------------------------------------------
+The following config files produced errors:
+	rules/fixtest/test3.yaml: 'str' object has no attribute 'to_json'
