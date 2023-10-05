@@ -381,7 +381,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
                env = range.mvars;
                taint_trace = None;
                engine_kind = `OSS;
-               validation_state = PM.No_validator;
+               validation_state = `No_validator;
                severity_override = None;
                metadata_override = None;
              })
