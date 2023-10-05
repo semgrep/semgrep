@@ -34,6 +34,7 @@ def test_api(unique_home_dir, capsys, run_semgrep_in_tmp: RunSemgrep):
     assert captured.err == ""
 
 
+@pytest.mark.osempass
 @pytest.mark.slow
 @pytest.mark.no_semgrep_cli
 def test_api_via_cli(unique_home_dir, run_semgrep_in_tmp: RunSemgrep):

@@ -382,6 +382,7 @@ def check_startup(server, responses, folders, files):
 
 
 # Test anything that is part of the normal LSP specs, and basic usage
+@pytest.mark.osempass
 @pytest.mark.slow()
 def test_ls_specs(
     run_semgrep_ls,  # nosemgrep: typehint-run-semgrep
@@ -442,6 +443,7 @@ def test_ls_specs(
 
 
 # Test any extensions to the LSP specs, basically anything custom to semgrep
+@pytest.mark.osempass
 @pytest.mark.slow
 def test_ls_ext(
     run_semgrep_ls,  # nosemgrep: typehint-run-semgrep
@@ -551,6 +553,7 @@ def test_ls_multi(run_semgrep_ls, mock_workspaces):  # nosemgrep: typehint-run-s
     send_exit(server)
 
 
+@pytest.mark.osempass
 @pytest.mark.slow()
 def test_ls_no_folders(run_semgrep_ls):  # nosemgrep: typehint-run-semgrep
     server, responses = run_semgrep_ls

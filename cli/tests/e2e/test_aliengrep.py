@@ -14,6 +14,7 @@ from tests.fixtures import RunSemgrep
         ("rules/aliengrep/httpresponse.yaml", "aliengrep/httpresponse.txt"),
         ("rules/aliengrep/dockerfile.yaml", "aliengrep/dockerfile"),
         ("rules/aliengrep/multi-lines.yaml", "aliengrep/multi-lines.java"),
+        ("rules/aliengrep/terraform.yaml", "aliengrep/terraform.tf"),
         # Aliengrep-specific tests
         ("rules/aliengrep/begin-end.yaml", "aliengrep/begin-end.log"),
         ("rules/aliengrep/long-match.yaml", "aliengrep/long-match.txt"),
@@ -24,17 +25,6 @@ def test_aliengrep(run_semgrep_in_tmp: RunSemgrep, snapshot, rule, target):
         run_semgrep_in_tmp(rule, target_name=target).stdout,
         "results.json",
     )
-
-
-@pytest.mark.kinda_slow
-@pytest.mark.parametrize(
-    "rule,target",
-    [
-        ("rules/aliengrep/terraform.yaml", "aliengrep/terraform.tf"),
-    ],
-)
-def test_aliengrep_osemfail(run_semgrep_in_tmp: RunSemgrep, snapshot, rule, target):
-    test_aliengrep(run_semgrep_in_tmp, snapshot, rule, target)
 
 
 @pytest.mark.kinda_slow
