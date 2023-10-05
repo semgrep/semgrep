@@ -47,9 +47,12 @@ let rec range_to_string (range : (Tok.location * Tok.location) option) =
 and translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
   match cond with
   | CondEval e -> `O [ ("comparison", `String (range_to_string e.e_range)) ]
-  | CondType (mv, lang, str, _) ->
+  | CondType (mv, lang, strs, _) ->
       `O
-        ([ ("metavariable", `String mv); ("type", `String str) ]
+        ([
+           ("metavariable", `String mv);
+           ("types", `A (Common.map (fun s -> `String s) strs));
+         ]
         @
         match lang with
         | None -> []

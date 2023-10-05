@@ -22,14 +22,10 @@ type xlang <ocaml attr="deriving show"> = string wrap <ocaml module="Xlang">
 
 type target <ocaml attr="deriving show"> = {
   path: string (* source file *);
-  (* Must be a valid "language" as defined in Xlang.mli.
+  (* Must be a valid target analyzer as defined in Xlang.mli.
      examples: "ocaml", "python", but also "spacegrep" or "regexp".
-     less: would be great to use Lang.t here, but atd does not
-     allow (by design) to use types defined in other files. *)
-  language: xlang;
-  (* Index in the rule_ids list in targets of the rule_id to
-   * run this target on *)
-  rule_nums: int list;
+  *)
+  analyzer: xlang;
 }
 
 (* The same path can be present multiple times in targets below, with
@@ -47,12 +43,7 @@ type target <ocaml attr="deriving show"> = {
  * alt: rule_ids above could also be used to analyze at once the same
  * file with both PL and generic/regexp rules.
  *)
-type targets <ocaml attr="deriving show"> = {
-   target_mappings: target list;
-   (* If there is no rule_id, the default we will use is '-' *)
-   rule_ids: string list
-}
-
+type targets <ocaml attr="deriving show"> = target list
 
 (*****************************************************************************)
 (* Synthesizing from diffs (see locate_patched_functions in Synthesizing.mli) *)

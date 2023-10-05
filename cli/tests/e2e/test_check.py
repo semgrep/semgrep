@@ -595,7 +595,13 @@ def test_max_memory(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(stderr, "error.txt")
 
 
+# It seems that OCaml 5.0 does not use the system stack https://github.com/ocaml-multicore/docs/blob/main/ocaml_5_design.md#stack-layout
+# note that it says it manages its own runtime stack, which are managed in fibers
+# fiber stacks are allocated w/ mallloc + free aka its in the heap.
+# So I thionk this test is no longer valid as of OCaml 5.0. The exception is C calls
+# but ocaml handles the runtime stack switching to system stack for them so we should be good
 @pytest.mark.slow
+@pytest.mark.skip(reason="OCaml 5.0 does not use system stack")
 def test_stack_size(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
     Verify that semgrep raises the soft stack limit if possible
@@ -838,6 +844,36 @@ def multi_focus_metavariable(run_semgrep_in_tmp: RunSemgrep, snapshot):
             output_format=OutputFormat.TEXT,
         ).stderr,
         "output.txt",
+    )
+
+
+# Ensure that a rule restricted to a specific language [js] will not run
+# on a target file in another language.
+# The JavaScript rule should match only the JavaScript file and the Python
+# rule should match only the Python file.
+@pytest.mark.kinda_slow
+@pytest.mark.osempass
+def test_language_filtering(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/language-filtering.yaml",
+            target_name="language-filtering",
+        ).stdout,
+        "results.json",
+    )
+
+
+# A simple test to check that per-rule include/exclude filtering is
+# taking place in semgrep-core and osemgrep.
+@pytest.mark.kinda_slow
+@pytest.mark.osempass
+def test_per_rule_include(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/per-rule-include.yaml",
+            target_name="per-rule-include",
+        ).stdout,
+        "results.json",
     )
 
 

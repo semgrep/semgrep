@@ -83,4 +83,7 @@ let core_runner_conf_of_t settings =
       timeout = float_of_int settings.timeout;
       timeout_threshold = settings.timeout_threshold;
       ast_caching = true;
+      dataflow_traces = false;
+      matching_explanations = false;
+      time_flag = false;
     }

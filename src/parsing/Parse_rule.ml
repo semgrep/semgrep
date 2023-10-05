@@ -753,7 +753,7 @@ let parse_xpattern_expr env e =
 (* extra conditions, usually on metavariable content *)
 type extra =
   | MetavarRegexp of MV.mvar * Xpattern.regexp_string * bool
-  | MetavarType of MV.mvar * Xlang.t option * string * G.type_
+  | MetavarType of MV.mvar * Xlang.t option * string list * G.type_ list
   | MetavarPattern of MV.mvar * Xlang.t option * Rule.formula
   | MetavarComparison of metavariable_comparison
   | MetavarAnalysis of MV.mvar * Rule.metavar_analysis_kind
@@ -996,7 +996,19 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
   | "metavariable-type" ->
       let mv_type_dict = yaml_to_dict env key value in
       let metavar = take mv_type_dict env parse_string "metavariable" in
-      let type_str = take mv_type_dict env parse_string_wrap "type" in
+      let type_strs =
+        take_opt mv_type_dict env parse_string_wrap "type" |> Option.to_list
+      in
+      let type_strs =
+        type_strs
+        @ (take_opt mv_type_dict env
+             (parse_string_wrap_list (fun x -> x))
+             "types"
+          |> Option.to_list |> List.flatten)
+      in
+      if type_strs =*= [] then
+        error env.id mv_type_dict.first_tok
+          "Missing required field: type or types";
       let env', opt_xlang =
         match take_opt mv_type_dict env parse_string "language" with
         | Some s ->
@@ -1014,8 +1026,8 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
             (env', Some xlang)
         | ___else___ -> (env, None)
       in
-      let t = parse_type env' key type_str in
-      MetavarType (metavar, opt_xlang, fst type_str, t)
+      let ts = type_strs |> Common.map (parse_type env' key) in
+      MetavarType (metavar, opt_xlang, type_strs |> Common.map fst, ts)
   | "metavariable-pattern" ->
       let mv_pattern_dict = yaml_to_dict env key value in
       let metavar = take mv_pattern_dict env parse_string "metavariable" in
@@ -1226,17 +1238,27 @@ and produce_constraint env dict tok indicator =
             )
         | None -> []
       in
+      let type_strs =
+        take_opt dict env parse_string_wrap "type" |> Option.to_list
+      in
+      let type_strs =
+        type_strs
+        @ (take_opt dict env (parse_string_wrap_list (fun x -> x)) "types"
+          |> Option.to_list |> List.flatten)
+      in
       let typ =
-        match take_opt dict env parse_string_wrap "type" with
-        | Some ts ->
+        match type_strs with
+        | ts :: _ ->
             [
               Left
                 ( snd ts,
                   R.CondType
-                    (metavar, opt_xlang, fst ts, parse_type env (metavar, t) ts)
-                );
+                    ( metavar,
+                      opt_xlang,
+                      type_strs |> Common.map fst,
+                      type_strs |> Common.map (parse_type env (metavar, t)) ) );
             ]
-        | None -> []
+        | _ -> []
       in
       List.flatten [ pat; typ ]
 

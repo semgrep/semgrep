@@ -71,7 +71,7 @@ let rec merge cmp cmb xs ys =
       else if c <= 0 then x :: merge cmp cmb xs (y :: ys)
       else y :: merge cmp cmb (x :: xs) ys
 
-let rec update source updates =
+let update source updates =
   match (source, updates) with
   | `Assoc xs, `Assoc ys ->
       let xs = List.sort (Common2.on String.compare fst) xs in

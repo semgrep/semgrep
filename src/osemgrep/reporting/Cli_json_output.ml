@@ -546,8 +546,8 @@ let cli_output_of_core_results ~logging_level (core : Out.core_output)
        scanned = _;
      };
    skipped_rules;
+   explanations;
    (* LATER *)
-   explanations = _;
    time = _;
    rules_by_engine = _;
    engine_requested = _;
@@ -606,9 +606,9 @@ let cli_output_of_core_results ~logging_level (core : Out.core_output)
         errors = errors |> Common.map cli_error_of_core_error;
         paths;
         skipped_rules;
+        explanations;
         (* LATER *)
         time = None;
-        explanations = None;
         rules_by_engine = None;
         engine_requested = None;
       }

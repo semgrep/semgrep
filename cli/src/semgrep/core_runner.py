@@ -23,7 +23,6 @@ from typing import Sequence
 from typing import Set
 from typing import Tuple
 
-from attr import asdict
 from attr import define
 from attr import evolve
 from attr import field
@@ -476,7 +475,10 @@ class StreamingSemgrepCore:
 @frozen
 class Task:
     path: str = field(converter=str)
-    language: Language  # Xlang; see Xlang.mli
+    analyzer: Language  # Xlang; see Xlang.mli
+    # semgrep-core no longer uses the rule_nums field.
+    # We're keeping it for now because it's needed by
+    # 'split_by_lang_label_for_product'.
     # a rule_num is the rule's index in the rule ID list
     rule_nums: Tuple[int, ...]
 
@@ -484,9 +486,15 @@ class Task:
     def language_label(self) -> str:
         return (
             "<multilang>"
-            if not self.language.definition.is_target_language
-            else self.language.definition.id
+            if not self.analyzer.definition.is_target_language
+            else self.analyzer.definition.id
         )
+
+    def to_json(self) -> Any:
+        return {
+            "path": self.path,
+            "analyzer": self.analyzer,
+        }
 
 
 class TargetMappings(List[Task]):
@@ -543,7 +551,7 @@ class Plan:
                 if product is None
                 else Task(
                     path=task.path,
-                    language=task.language,
+                    analyzer=task.analyzer,
                     rule_nums=tuple(
                         num
                         for num in task.rule_nums
@@ -593,11 +601,8 @@ class Plan:
 
         return result
 
-    def to_json(self) -> Dict[str, Any]:
-        return {
-            "target_mappings": [asdict(task) for task in self.target_mappings],
-            "rule_ids": [rule.id for rule in self.rules],
-        }
+    def to_json(self) -> List[Any]:
+        return [task.to_json() for task in self.target_mappings]
 
     @property
     def num_targets(self) -> int:
@@ -920,7 +925,7 @@ class CoreRunner:
             [
                 Task(
                     path=target,
-                    language=language,
+                    analyzer=language,
                     # tuple conversion makes rule_nums hashable, so usable as cache key
                     rule_nums=tuple(target_info[target, language]),
                 )
@@ -936,6 +941,7 @@ class CoreRunner:
         target_manager: TargetManager,
         dump_command_for_core: bool,
         time_flag: bool,
+        matching_explanations: bool,
         engine: EngineType,
         run_secrets: bool,
         target_mode_config: TargetModeConfig,
@@ -1035,7 +1041,8 @@ class CoreRunner:
                     str(self._max_memory),
                 ]
             )
-
+            if matching_explanations:
+                cmd.append("-matching_explanations")
             if time_flag:
                 cmd.append("-json_time")
 
@@ -1176,6 +1183,7 @@ class CoreRunner:
         target_manager: TargetManager,
         dump_command_for_core: bool,
         time_flag: bool,
+        matching_explanations: bool,
         engine: EngineType,
         run_secrets: bool,
         target_mode_config: TargetModeConfig,
@@ -1194,6 +1202,7 @@ class CoreRunner:
                 target_manager,
                 dump_command_for_core,
                 time_flag,
+                matching_explanations,
                 engine,
                 run_secrets,
                 target_mode_config,
@@ -1229,6 +1238,7 @@ Exception raised: `{e}`
         rules: List[Rule],
         dump_command_for_core: bool,
         time_flag: bool,
+        matching_explanations: bool,
         engine: EngineType,
         run_secrets: bool,
         target_mode_config: TargetModeConfig,
@@ -1247,6 +1257,7 @@ Exception raised: `{e}`
             target_manager,
             dump_command_for_core,
             time_flag,
+            matching_explanations,
             engine,
             run_secrets,
             target_mode_config,

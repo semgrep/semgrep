@@ -6,7 +6,7 @@
    The result of parsing a 'semgrep ci' command.
 *)
 
-type conf = Scan_CLI.conf
+type conf = Scan_CLI.conf [@@deriving show]
 
 (*
    Usage: parse_argv [| "semgrep-ci"; <args> |]

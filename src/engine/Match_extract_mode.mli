@@ -18,7 +18,6 @@ val extract_nested_lang :
   match_hook:(string -> Pattern_match.t -> unit) ->
   timeout:float ->
   timeout_threshold:int ->
-  all_rules:Rule.t list ->
   Rule.extract_rule list ->
   Xtarget.t ->
   (Input_to_core_t.target * match_result_location_adjuster) list

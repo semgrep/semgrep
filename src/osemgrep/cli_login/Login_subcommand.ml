@@ -100,6 +100,7 @@ Plus, you can manage your rules and code findings with Semgrep Cloud Platform.
 |}
             in
             Logs.app (fun m -> m "%s" preamble);
+            (* TODO: use xdg-open on Linux *)
             let cmd = Bos.Cmd.(v "open" % Uri.to_string url) in
             let () =
               let res = Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string in
@@ -115,7 +116,14 @@ Plus, you can manage your rules and code findings with Semgrep Cloud Platform.
                       (Uri.to_string url)
                   in
                   Logs.app (fun m -> m "%s" msg)
-              | __else__ -> ()
+              | Error _s ->
+                  let msg =
+                    Ocolor_format.asprintf
+                      "Please open this link in your browser:\n\n\
+                       @{<cyan;ul>%s@}\n"
+                      (Uri.to_string url)
+                  in
+                  Logs.app (fun m -> m "%s" msg)
             in
             Unix.sleepf 0.1;
             (* wait 100ms for the browser to open and then start showing the spinner *)
