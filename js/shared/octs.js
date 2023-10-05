@@ -1,4 +1,4 @@
-// Provides: octs_create_parser_typescript
+//Provides: octs_create_parser_typescript
 function octs_create_parser_typescript() {
   return null;
 }
