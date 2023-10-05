@@ -50,6 +50,7 @@ class OutputFormat(Enum):
 
 
 # Ensure consistency with 'severity' in 'rule_schema_v1.yaml'
+# TODO: get rid of, reuse semgrep_output_v1.severity type
 class RuleSeverity(Enum):
     INFO = "INFO"
     WARNING = "WARNING"
