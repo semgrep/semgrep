@@ -292,10 +292,9 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
         let baseline_result =
           Profiler.record profiler ~name:"baseline_core_time" (fun () ->
               Git_wrapper.run_with_worktree ~commit (fun () ->
-                  let paths_in_match =
-                    r.matches
-                    |> Common.map (fun m -> m.Pattern_match.file)
-                    |> SS.of_list |> add_renamed |> remove_added |> SS.to_seq
+                  let prepare_targets paths =
+                    paths |> SS.of_list |> add_renamed |> remove_added
+                    |> SS.to_seq
                     |> Seq.filter_map (fun x ->
                            if
                              Sys.file_exists x
@@ -306,6 +305,14 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
                            then Some (Fpath.v x)
                            else None)
                     |> List.of_seq
+                  in
+                  let paths_in_match =
+                    r.matches
+                    |> Common.map (fun m -> m.Pattern_match.file)
+                    |> prepare_targets
+                  in
+                  let paths_in_scanned =
+                    r.scanned |> Common.map Fpath.to_string |> prepare_targets
                   in
                   let baseline_targets, baseline_diff_targets =
                     match conf.engine_type with
@@ -320,7 +327,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
                            only by the file displaying matches but also by its
                            dependencies. Hence, merely rescanning files with
                            matches is insufficient. *)
-                        (all_in_baseline, r.scanned)
+                        (all_in_baseline, paths_in_scanned)
                     | _ -> (paths_in_match, [])
                   in
                   core baseline_targets
