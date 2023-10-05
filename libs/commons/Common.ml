@@ -1211,6 +1211,20 @@ let main_boilerplate f =
             erase_temp_files ()))
 (* let _ = if not !Sys.interactive then (main ()) *)
 
+(** [dir_contents] returns the paths of all regular files that are
+ * contained in [dir]. Each file is a path starting with [dir].
+  *)
+let dir_contents dir =
+  let rec loop result = function
+    | f :: fs when Sys.is_directory f ->
+        Sys.readdir f |> Array.to_list
+        |> map (Filename.concat f)
+        |> List.append fs |> loop result
+    | f :: fs -> loop (f :: result) fs
+    | [] -> result
+  in
+  loop [] [ dir ]
+
 let follow_symlinks = ref false
 let arg_symlink () = if !follow_symlinks then " -L " else ""
 

@@ -168,6 +168,9 @@ val fullpath : filename -> filename
 val filename_without_leading_path : string -> filename -> filename
 val readable : root:string -> filename -> filename
 
+val dir_contents : filename -> filename list
+(** [dir_contents dir] will return a recursive list of all files in a directory *)
+
 (* use the command 'find' internally and tries to skip files in
  * version control system (vcs) (e.g., .git, _darcs, etc.).
  * Deprecated?
