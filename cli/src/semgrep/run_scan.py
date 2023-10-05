@@ -49,7 +49,7 @@ from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
 from semgrep.core_runner import get_contributions
-from semgrep.core_runner import Plan
+from semgrep.core_targets_plan import Plan
 from semgrep.engine import EngineType
 from semgrep.error import FilesNotFoundError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
