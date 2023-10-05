@@ -3043,6 +3043,12 @@ let unixname () =
   let entry = Unix.getpwuid uid in
   entry.Unix.pw_name
 
+(* This regex matches the directory part a glob pattern
+   used below. This way we are only trying to match
+   files contained in the dir specified by the pattern or subdirs,
+   instead of caluclating the contents of the entire
+   working directory. I.e. tests/**/*.extension would
+   result in tests/ *)
 let dir_regex = Str.regexp "^[^\\*]*"
 
 let glob pattern =

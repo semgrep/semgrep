@@ -996,7 +996,14 @@ val readdir_to_file_list : string -> filename list
 val readdir_to_link_list : string -> string list
 val readdir_to_dir_size_list : string -> (string * int) list
 val unixname : unit -> string
+
 val glob : string -> filename list
+(** [glob pattern] takes in a pattern containing a wildcard
+  * i.e. ["dir/**/*.extension"] will match any file in the dir directory
+  * or subdirectories ending in .extension. This function is equivalent
+  * to "ls pattern" in the shell.
+  *)
+
 val files_of_dir_or_files : string (* ext *) -> string list -> filename list
 
 val files_of_dir_or_files_no_vcs :
