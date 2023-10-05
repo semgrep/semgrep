@@ -64,7 +64,7 @@ jobs:
       # This name is used in the cache key. If we update to a newer version of
       # ocaml, we'll want to change the OPAM_SWITCH_NAME as well to avoid issues
       # with caching.
-      OPAM_SWITCH_NAME: "5.0.0"
+      OPAM_SWITCH_NAME: "5.1.0"
     steps:
       - uses: actions/checkout@v3
         with:

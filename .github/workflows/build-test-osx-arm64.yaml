@@ -32,7 +32,7 @@ jobs:
         "ghcr.io/cirruslabs/macos-monterey-xcode:latest",
       ]
     env:
-      OPAM_SWITCH_NAME: "5.0.0"
+      OPAM_SWITCH_NAME: "5.1.0"
     steps:
       - name: Setup runner directory
         run: |
