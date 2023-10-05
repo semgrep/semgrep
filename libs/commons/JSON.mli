@@ -11,7 +11,7 @@ type t =
   | Float of float
   | Bool of bool
   | Null
-[@@deriving show]
+[@@deriving show, eq]
 
 val member : string -> t -> t option
 (** [`member s j`] gives `Some v` where `v` is the value associated with the
@@ -26,3 +26,15 @@ val json_of_string : string -> t
 val string_of_json :
   ?compact:bool -> ?recursive:bool -> ?allow_nan:bool -> t -> string
 (** NOTE: compact, recursive, allow_nan all currently unused *)
+
+val update : Y.t -> Y.t -> Y.t
+(** [update old new] makes a new JSON value by, in the case of an object [old]
+    and [new], recursively [update]-ing fields from [old] with fields of the
+    same name in [new], or, in other cases, using [new] directly.
+
+    For example,
+      - [update (`Int i) (`Bool b)] is [`Bool b]
+      - [update (`Assoc ["a", `Int i; "c", `String s])
+                (`Assoc ["a", `Bool b; "b", `Int k])] is
+        [`Assoc ["a", `Bool b; "b", `Int k; "c", `String s]]
+    *)

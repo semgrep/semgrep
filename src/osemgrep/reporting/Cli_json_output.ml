@@ -113,21 +113,13 @@ let core_location_to_error_span (loc : Out.location) : Out.error_span =
     context_end = None;
   }
 
-(* LATER: move to Severity.ml, and use Severity.rule_severity instead? *)
-let string_of_severity (severity : Rule.severity) : string =
-  match severity with
-  | Error -> "ERROR"
-  | Warning -> "WARNING"
-  | Info -> "INFO"
-  | Experiment -> "EXPERIMENT"
-  | Inventory -> "INVENTORY"
-
 (* LATER: move also to Severity.ml and reuse types there *)
-let level_of_severity (severity : Out.core_severity) : Severity.t =
+let level_of_severity (severity : Out.severity) : Severity.t =
   match severity with
   | Error -> `Error
   | Warning -> `Warning
   | Info -> `Info
+  | _ -> failwith "TODO(pad): Update for Severity.ml given ATD update"
 
 let error_type_string (error_type : Out.core_error_kind) : string =
   match error_type with
@@ -389,6 +381,8 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
    extra =
      {
        message;
+       severity;
+       metadata;
        metavars;
        engine_kind;
        extra_extra;
@@ -419,11 +413,15 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
       (* LATER: this should be a variant in semgrep_output_v1.atd
        * and merged with Constants.rule_severity
        *)
-      let severity = string_of_severity rule.severity in
+      let severity = severity ||| rule.severity in
       let metadata =
         match rule.metadata with
         | None -> `Assoc []
-        | Some json -> JSON.to_yojson json
+        | Some json -> (
+            JSON.to_yojson json |> fun rule_metadata ->
+            match metadata with
+            | Some metadata -> JSON.update rule_metadata metadata
+            | None -> rule_metadata)
       in
       (* TODO? at this point why not using content_of_file_at_range since
        * we concatenate the lines after? *)

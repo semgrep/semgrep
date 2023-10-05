@@ -37,7 +37,7 @@ type rule = {
   inside : bool;
   (* originates from pattern-inside or pattern-not-inside *)
   message : string;
-  severity : Rule.severity;
+  severity : Pattern_match.severity;
   langs : Lang.t list;
   (* at least one element *)
   (* Useful for debugging, to report bad rules. We could rule.id to

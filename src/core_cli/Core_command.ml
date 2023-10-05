@@ -127,7 +127,7 @@ let minirule_of_pattern lang pattern_string pattern =
     pattern;
     inside = false;
     message = "";
-    severity = Rule.Error;
+    severity = Error;
     langs = [ lang ];
     fix = None;
   }

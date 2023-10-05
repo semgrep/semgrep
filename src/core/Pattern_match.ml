@@ -91,6 +91,8 @@ type validation_state =
   | No_validator
 [@@deriving show, eq]
 
+type severity = Semgrep_output_v1_t.severity [@@deriving show, eq]
+
 type t = {
   (* rule (or mini rule) responsible for the pattern match found *)
   rule_id : rule_id; [@equal fun a b -> a.id = b.id]
@@ -119,6 +121,19 @@ type t = {
   engine_kind : Engine_kind.t; [@equal fun _a _b -> true]
   (* Indicates whether a postprocessor ran and validated this result. *)
   validation_state : validation_state;
+  (* Indicates if the rule default severity should be modified to a different
+     severity. Currently this is just used by secrets validators in order to
+     modify severity based on information from the validation step. (E.g.,
+     validity, scope information) *)
+  severity_override : severity option;
+  (* Indicates if the rule default metadata should be modified. Currently this
+     is just used by secrets validators in order to
+     modify metadata based on information from the validation step. (E.g.,
+     validity, scope information)
+     NOTE: The whole metadata blob is _not_ changed; rather, fields present in
+     the override is applied on top of the default and only changes the fields
+     present in the override. *)
+  metadata_override : JSON.t option;
 }
 
 (* This is currently a record, but really only the rule id should matter.

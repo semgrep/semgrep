@@ -171,7 +171,7 @@ let (mini_rule_of_pattern :
      * we just care about the matching result.
      *)
     message = "";
-    severity = R.Error;
+    severity = Error;
     langs =
       (match xlang with
       | L (x, xs) -> x :: xs
@@ -375,13 +375,15 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
       |> Common.map (fun (focus_mvar, mval, range_loc) ->
              {
                PM.rule_id = fake_rule_id (-1, focus_mvar);
-               PM.file = !!(env.xtarget.file);
-               PM.range_loc;
-               PM.tokens = lazy (MV.ii_of_mval mval);
-               PM.env = range.mvars;
-               PM.taint_trace = None;
-               PM.engine_kind = `OSS;
-               PM.validation_state = PM.No_validator;
+               file = !!(env.xtarget.file);
+               range_loc;
+               tokens = lazy (MV.ii_of_mval mval);
+               env = range.mvars;
+               taint_trace = None;
+               engine_kind = `OSS;
+               validation_state = PM.No_validator;
+               severity_override = None;
+               metadata_override = None;
              })
     in
     let focused_ranges =

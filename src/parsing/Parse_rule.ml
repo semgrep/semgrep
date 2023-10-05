@@ -441,7 +441,7 @@ let parse_languages ~id (options : Rule_options_t.t) langs :
                (InvalidOther "we need at least one language", fst id, snd id))
       | x :: xs -> (Some langs, L (x, xs)))
 
-let parse_severity ~id (s, t) : Rule.severity =
+let parse_severity ~id (s, t) : Pattern_match.severity =
   match s with
   | "ERROR" -> Error
   | "WARNING" -> Warning
@@ -1705,12 +1705,22 @@ let parse_http_matcher_clause key env value : Rule.http_match_clause =
             { name; value }))
       "headers"
   in
-  let content =
-    take_opt clause env (fun env -> generic_to_json env.id) "content"
-  in
+  let content = take_opt clause env yaml_to_dict "content" in
   match (status_code, headers, content) with
   | None, None, None -> failwith "ffff"
-  | _ -> { status_code; headers = Option.value ~default:[] headers; content }
+  | _ ->
+      {
+        status_code;
+        headers = Option.value ~default:[] headers;
+        content =
+          Option.map
+            (fun content ->
+              ( parse_pair_old env (find_formula_old env content),
+                Option.map (Xlang.of_string ~rule_id:(Rule_ID.to_string env.id))
+                @@ take_opt content env parse_string "language"
+                |> Option.value ~default:Xlang.LAliengrep ))
+            content;
+      }
 
 let parse_http_matcher key env value : Rule.http_matcher =
   let matcher = yaml_to_dict env key value in
@@ -1721,8 +1731,13 @@ let parse_http_matcher key env value : Rule.http_matcher =
   in
   let result = take matcher env yaml_to_dict "result" in
   let validity = take result env parse_validity "validity" in
-  let output_modification = () in
-  { match_conditions; validity; output_modification }
+  let message = take_opt result env parse_string "message" in
+  let severity =
+    take_opt result env parse_string_wrap "severity"
+    |> Option.map @@ parse_severity ~id:env.id
+  in
+  let metadata = take_opt_no_env result (generic_to_json env.id) "metadata" in
+  { match_conditions; validity; message; severity; metadata }
 
 let parse_http_response env key value : Rule.http_matcher list =
   parse_list env key (parse_http_matcher key) value

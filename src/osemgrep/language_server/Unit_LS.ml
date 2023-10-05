@@ -39,6 +39,8 @@ let mock_run_results (files : string list) : Core_runner.result =
         engine_kind = `OSS;
         validation_state = Some `NO_VALIDATOR;
         extra_extra = None;
+        severity = None;
+        metadata = None;
       }
     in
     let (m : Out.core_match) =

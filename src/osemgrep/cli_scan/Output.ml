@@ -19,6 +19,18 @@ module Out = Semgrep_output_v1_j
 *)
 
 (*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let string_of_severity (severity : Out.severity) : string =
+  (* this contains the enclosing "" *)
+  let s = Out.string_of_severity severity in
+  (* let's remove the enclosing "" *)
+  match JSON.json_of_string s with
+  | JSON.String s -> s
+  | _else_ -> failwith (spf "wrong format for severity: %s" s)
+
+(*****************************************************************************)
 (* Autofix *)
 (*****************************************************************************)
 (* TODO? It is a bit weird to have code modification done in a module called
@@ -81,7 +93,7 @@ let dispatch_output_format (output_format : Output_format.t)
                      spf "%d" start.line;
                      spf "%d" start.col;
                      (* TOPORT? restrict to just I|E|W ? *)
-                     spf "%c" severity.[0];
+                     spf "%c" (string_of_severity severity).[0];
                      check_id;
                      message;
                    ]
@@ -100,7 +112,9 @@ let dispatch_output_format (output_format : Output_format.t)
               extra = { message; severity; _ };
               _;
              } ->
-                 let severity = String.lowercase_ascii severity in
+                 let severity =
+                   String.lowercase_ascii (string_of_severity severity)
+                 in
                  let severity_and_ruleid =
                    if check_id = Rule_ID.to_string Constants.rule_id_for_dash_e
                    then severity

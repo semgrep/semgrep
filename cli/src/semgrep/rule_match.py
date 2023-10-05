@@ -53,6 +53,8 @@ class RuleMatch:
 
     # fields from the rule
     message: str = field(repr=False)
+    # TODO: reuse semgrep_output_v1.severity instead, or even get rid of
+    # the field and just reuse the one in match
     severity: RuleSeverity
     metadata: Dict[str, Any] = field(repr=False, factory=dict)
 

@@ -344,6 +344,7 @@ val do_nothing : unit -> unit
 val const : 'a -> 'b -> 'a
 val forever : (unit -> unit) -> unit
 val applyn : int -> ('a -> 'a) -> 'a -> 'a
+val on : ('b -> 'b -> 'c) -> ('a -> 'b) -> 'a -> 'a -> 'c
 
 class ['a] shared_variable_hook :
   'a
