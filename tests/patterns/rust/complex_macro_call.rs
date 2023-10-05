@@ -1,0 +1,1 @@
+matches!(foo, Foo::A(_))
