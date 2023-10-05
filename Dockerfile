@@ -95,7 +95,7 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 # Visit https://hub.docker.com/r/returntocorp/ocaml/tags to see the latest
 # images available.
 #
-FROM returntocorp/ocaml:alpine5.0-2023-09-29 as semgrep-core-container
+FROM returntocorp/ocaml:alpine5.1-2023-10-05 as semgrep-core-container
 
 WORKDIR /src/semgrep
 COPY --from=semgrep-core-files /src/semgrep .
