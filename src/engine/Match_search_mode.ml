@@ -554,7 +554,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
              with
              | [] -> None
              | bindings -> Some (r, bindings @ new_bindings))
-         | R.CondType (mvar, opt_lang, _, t) -> (
+         | R.CondType (mvar, opt_lang, _, ts) -> (
              let mvalue_to_expr m =
                match Metavariable.mvalue_to_any m with
                | G.E e -> Some e
@@ -579,9 +579,14 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
                      ast
                  in
                  let matches =
-                   GG.m_compatible_type lang
-                     (mvar, Tok.unsafe_fake_tok "")
-                     t e env
+                   (* We check whether any of the types listed in the
+                      `type` field match. These types are treated as
+                      connected by "or" logical operators. *)
+                   ts
+                   |> List.concat_map (fun t ->
+                          GG.m_compatible_type lang
+                            (mvar, Tok.unsafe_fake_tok "")
+                            t e env)
                  in
 
                  (* the type can also contain metavariables, but we probably
