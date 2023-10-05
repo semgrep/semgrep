@@ -6,4 +6,10 @@
    semgrep.language_server.requests
    semgrep.language_server.notifications
  )
+ (preprocess
+  (pps
+    lwt_ppx
+    profiling.ppx
+  )
+ )
 )
