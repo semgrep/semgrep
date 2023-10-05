@@ -113,21 +113,13 @@ let core_location_to_error_span (loc : Out.location) : Out.error_span =
     context_end = None;
   }
 
-(* LATER: move to Severity.ml, and use Severity.rule_severity instead? *)
-let string_of_severity (severity : Pattern_match.severity) : string =
-  match severity with
-  | Error -> "ERROR"
-  | Warning -> "WARNING"
-  | Info -> "INFO"
-  | Experiment -> "EXPERIMENT"
-  | Inventory -> "INVENTORY"
-
 (* LATER: move also to Severity.ml and reuse types there *)
 let level_of_severity (severity : Out.severity) : Severity.t =
   match severity with
   | Error -> `Error
   | Warning -> `Warning
   | Info -> `Info
+  | _ -> failwith "TODO(pad): Update for Severity.ml given ATD update"
 
 let error_type_string (error_type : Out.core_error_kind) : string =
   match error_type with

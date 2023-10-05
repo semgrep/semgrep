@@ -220,14 +220,6 @@ let taint_trace_to_dataflow_trace (traces : PM.taint_trace_item list) :
     taint_sink = taint_call_trace sink_call_trace;
   }
 
-let string_of_severity (severity : Pattern_match.severity) : string =
-  match severity with
-  | Error -> "ERROR"
-  | Warning -> "WARNING"
-  | Info -> "INFO"
-  | Experiment -> "EXPERIMENT"
-  | Inventory -> "INVENTORY"
-
 let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
     =
   let min_loc, max_loc = x.range_loc in

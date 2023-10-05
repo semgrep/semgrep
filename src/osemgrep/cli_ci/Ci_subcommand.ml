@@ -413,18 +413,18 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
      *)
   let all_matches = List.rev cli_output.results in
   let all_matches =
-    let to_int = function
-      | "EXPERIMENT" -> 0
-      | "INVENTORY" -> 1
-      | "INFO" -> 2
-      | "WARNING" -> 3
-      | "ERROR" -> 4
-      | _ -> invalid_arg "unknown severity"
+    let to_int severity =
+      match (severity : Out.severity) with
+      | Experiment -> 0
+      | Inventory -> 1
+      | Info -> 2
+      | Warning -> 3
+      | Error -> 4
     in
     let sort_severity a b = Int.compare (to_int a) (to_int b) in
     all_matches
-    |> List.sort (fun m1 m2 ->
-           sort_severity m1.Out.extra.Out.severity m2.Out.extra.Out.severity)
+    |> List.sort (fun (m1 : Out.cli_match) (m2 : Out.cli_match) ->
+           sort_severity m1.extra.severity m2.extra.severity)
   in
   let new_ignored, new_matches =
     all_matches
@@ -461,7 +461,8 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   in
   if
     new_ignored
-    |> List.exists (fun m -> String.equal m.Out.extra.severity "EXPERIMENT")
+    |> List.exists (fun (m : Out.cli_match) ->
+           [%eq: Out.severity] m.extra.severity Experiment)
   then
     Logs.app (fun m -> m "Some experimental rules were run during execution.");
 
