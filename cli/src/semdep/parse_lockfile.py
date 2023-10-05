@@ -20,6 +20,7 @@ from semdep.parsers.pipfile import parse_pipfile
 from semdep.parsers.pnpm import parse_pnpm
 from semdep.parsers.poetry import parse_poetry
 from semdep.parsers.pom_tree import parse_pom_tree
+from semdep.parsers.pubspec_lock import parse_pubspec_lock
 from semdep.parsers.requirements import parse_requirements
 from semdep.parsers.util import DependencyParserError
 from semdep.parsers.yarn import parse_yarn
@@ -85,6 +86,7 @@ NEW_LOCKFILE_PARSERS: Dict[
     "pnpm-lock.yaml": parse_pnpm,  # JavaScript
     "composer.lock": parse_composer_lock,  # PHP,
     "packages.lock.json": parse_packages_lock_c_sharp,  # C#
+    "pubspec.lock": parse_pubspec_lock,  # Dart / Flutter
 }
 
 LOCKFILE_TO_MANIFEST: Dict[str, Optional[str]] = {
@@ -102,6 +104,7 @@ LOCKFILE_TO_MANIFEST: Dict[str, Optional[str]] = {
     "gradle.lockfile": "build.gradle",
     "pnpm-lock.yaml": None,
     "packages.lock.json": None,
+    "pubspec.lock": "pubspec.yaml",
 }
 
 
