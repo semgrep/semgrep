@@ -12,7 +12,10 @@ let convert_severity (severity : Out.severity) : DiagnosticSeverity.t =
   match severity with
   | Error -> Error
   | Warning -> Warning
-  | _ -> Information
+  | Experiment
+  | Info
+  | Inventory ->
+      Information
 
 let workspace_folders_to_paths =
   Common.map (fun ({ uri; _ } : WorkspaceFolder.t) ->

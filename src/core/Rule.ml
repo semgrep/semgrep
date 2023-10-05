@@ -122,6 +122,15 @@ and metavar_analysis_kind = CondEntropy | CondEntropyV2 | CondReDoS
 and focus_mv_list = tok * MV.mvar list [@@deriving show, eq, hash]
 
 (*****************************************************************************)
+(* Semgrep_output aliases *)
+(*****************************************************************************)
+
+(* this is now defined in semgrep_output_v1.atd *)
+type severity = Semgrep_output_v1_t.severity [@@deriving show, eq]
+
+(* TODO: put validation_state alias also here *)
+
+(*****************************************************************************)
 (* Taint-specific types *)
 (*****************************************************************************)
 
@@ -380,7 +389,7 @@ type http_matcher = {
   match_conditions : http_match_clause list;
   validity : Pattern_match.validation_state;
   (* Fields to potentially modify *)
-  severity : Pattern_match.severity option;
+  severity : severity option;
   metadata : JSON.t option;
   message : string option;
 }
@@ -461,7 +470,7 @@ type 'mode rule_info = {
   (* Currently a dummy value for extract mode rules *)
   message : string;
   (* Currently a dummy value for extract mode rules *)
-  severity : Pattern_match.severity;
+  severity : severity;
   (* Note: The two fields target_seletor and target_analyzer below used to
    * be a single 'languages: Xlang.t' field.
    * Indeed, for historical reasons, the 'languages:' field in the

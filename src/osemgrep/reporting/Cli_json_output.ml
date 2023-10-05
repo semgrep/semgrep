@@ -118,8 +118,10 @@ let level_of_severity (severity : Out.severity) : Severity.t =
   match severity with
   | Error -> `Error
   | Warning -> `Warning
-  | Info -> `Info
-  | _ -> failwith "TODO(pad): Update for Severity.ml given ATD update"
+  | Info
+  | Experiment
+  | Inventory ->
+      `Info
 
 let error_type_string (error_type : Out.core_error_kind) : string =
   match error_type with
