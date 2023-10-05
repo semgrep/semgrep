@@ -1,0 +1,91 @@
+=== command
+SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep --strict --config rules/dependency_aware/dart-parity.yaml --json targets/dependency_aware/dart
+=== end of command
+
+=== exit code
+0
+=== end of exit code
+
+=== stdout - plain
+{
+  "errors": [],
+  "paths": {
+    "scanned": [
+      "targets/dependency_aware/dart/pubspec.lock"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.dependency_aware.dart-parity",
+      "end": {
+        "col": 0,
+        "line": 13,
+        "offset": 0
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "  async:\n    dependency: transitive",
+        "message": "oh no",
+        "metadata": {},
+        "metavars": {},
+        "sca_info": {
+          "dependency_match": {
+            "dependency_pattern": {
+              "ecosystem": "pub",
+              "package": "async",
+              "semver_range": "== 2.11.0"
+            },
+            "found_dependency": {
+              "allowed_hashes": {},
+              "ecosystem": "pub",
+              "line_number": 12,
+              "package": "async",
+              "transitivity": "transitive",
+              "version": "2.11.0"
+            },
+            "lockfile": "targets/dependency_aware/dart/pubspec.lock"
+          },
+          "reachability_rule": false,
+          "reachable": false,
+          "sca_finding_schema": 20220913
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/dependency_aware/dart/pubspec.lock",
+      "start": {
+        "col": 0,
+        "line": 12,
+        "offset": 0
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}
+=== end of stdout - plain
+
+=== stderr - plain
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 2 files tracked by git with 0 Code rules, 1 Supply Chain rule:
+
+
+  CODE RULES
+  Nothing to scan.
+
+  SUPPLY CHAIN RULES
+  Nothing to scan.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+
+Ran 1 rule on 1 file: 1 finding.
+
+=== end of stderr - plain
