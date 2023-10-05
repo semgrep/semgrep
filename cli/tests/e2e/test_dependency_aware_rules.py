@@ -169,6 +169,10 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/nuget",
         ),
         ("rules/dependency_aware/gradle-guava.yaml", "dependency_aware/gradle-direct"),
+        (
+            "rules/dependency_aware/dart-parity.yaml",
+            "dependency_aware/dart",
+        ),
     ],
 )
 def test_dependency_aware_rules(
