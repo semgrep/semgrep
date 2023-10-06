@@ -8,6 +8,28 @@ module Out = Semgrep_output_v1_j
    Parse a semgrep-ci command, execute it and exit.
 
    Translated from ci.py (and partially from scans.py)
+
+   If 'semgrep ci' returns some networking errors, you may need to inspect
+   the backend logs as the error message returned by the backend to the CLI
+   might be short and may not contain the necessary information to debug.
+   Even using --debug might not be enough.
+   You can inspect the backend logs in Datadog and cloudwatch (and Metabase).
+   However, it's probably better first to connect to the 'dev2' backend
+   rather than 'prod' to have a lot less to search through.
+   You can filter out by `env: dev2` in Datadog. To connect to dev2,
+   you'll need to run semgrep ci like this:
+
+     SEMGREP_APP_URL=https://dev2.semgrep.dev SEMGREP_APP_TOKEN=... semgrep ci
+
+   Note that you'll first need to
+
+      SEMGREP_APP_URL=https://dev2.semgrep.dev semgrep login
+
+   as you'll need a separate app token for dev2. You can find the
+   actual token value in your ~/.semgrep/settings.yml file
+
+   Tip: you can store those environment variables in a dev2.sh env file
+   that you can source instead.
 *)
 
 (*****************************************************************************)

@@ -21,6 +21,14 @@ module H = Cmdliner_helpers
  * them to the minimum; if you want flexibility, use semgrep scan,
  * otherwise semgrep ci should be minimalist and take no
  * args at all in most cases.
+ * We probably still want though conf_runner flags like:
+ *  - --max-memory, -j, --timeout (even though iago want to remove it)
+ *  - the pro-engine flags --pro, --oss-only, etc (even though again
+ *    we're going towards remove --pro for more precise --interfile,
+ *    --secrets, etc)
+ *  - --include, --exclude
+ *  - maybe also --output? (even though I don't understand why people
+ *    just don't simply use shell redirection)
  *)
 type conf = {
   (* TODO? is this still used? *)
