@@ -344,6 +344,8 @@ def print_scan_status(
     secrets_rule_count = sast_plan.rule_count_for_product(out.Product(out.Secrets()))
     has_secret_rules = secrets_rule_count > 0
 
+    # NOTE: Currently, on the `scan` command without a --config argument provided
+    # is eligible for the simple UX.
     if simple_ux:
         # Print the feature summary table instead of all tables with new simple CLI UX
         _print_product_status(
@@ -353,7 +355,7 @@ def print_scan_status(
         return sast_rule_count + sca_rule_count
 
     if not has_sca_rules and not has_secret_rules and legacy_ux:
-        # just print these tables without the section headers
+        # Print these SAST table without section headers
         _print_sast_table(
             sast_plan=sast_plan,
             product=out.Product(out.SAST()),
@@ -393,6 +395,8 @@ def print_scan_status(
         _print_detailed_sca_table(
             sca_plan=sca_plan,
             rule_count=alt_sca_rule_count,
+            # NOTE: `with_supply_chain` is only used for nudging `scan` command invocations
+            # without supply-chain to upgrade their usage to the `ci` command
             with_supply_chain=with_supply_chain,
         )
 
