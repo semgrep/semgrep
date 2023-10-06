@@ -277,7 +277,7 @@ let match_to_match render_fix (x : Pattern_match.t) :
       in
       let err = E.mk_error (Some x.rule_id.id) loc s Out.MatchingError in
       Right err
-  [@@profiling]
+[@@profiling]
 
 (* less: Semgrep_error_code should be defined fully Output_from_core.atd
  * so we would not need those conversions
@@ -435,7 +435,7 @@ let core_output_of_matches_and_errors render_fix (res : Core_result.t) :
     engine_requested = Some `OSS;
     version = Some Version.version;
   }
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Error management *)

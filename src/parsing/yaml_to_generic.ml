@@ -231,50 +231,50 @@ let scalar (_tag, pos, value, style) env : G.expr * E.pos =
     let token = mk_tok ~style pos value env in
     let expr =
       (if quoted then G.L (G.String (fb (value, token)))
-      else
-        match value with
-        | "__sgrep_ellipses__" -> G.Ellipsis (Tok.fake_tok token "...")
-        (* TODO: emma: I will put "" back to Null and have either a warning or
-         * an error when we try to parse a string and get Null in another PR.
-         *)
-        | "null"
-        | "NULL"
-        | "Null"
-        | "~" ->
-            G.L (G.Null token)
-        | "y"
-        | "Y"
-        | "yes"
-        | "Yes"
-        | "YES"
-        | "true"
-        | "True"
-        | "TRUE"
-        | "on"
-        | "On"
-        | "ON" ->
-            G.L (G.Bool (true, token))
-        | "n"
-        | "N"
-        | "no"
-        | "No"
-        | "NO"
-        | "false"
-        | "False"
-        | "FALSE"
-        | "off"
-        | "Off"
-        | "OFF" ->
-            G.L (G.Bool (false, token))
-        | "-.inf" -> G.L (G.Float (Some neg_infinity, token))
-        | ".inf" -> G.L (G.Float (Some neg_infinity, token))
-        | ".nan"
-        | ".NaN"
-        | ".NAN" ->
-            G.L (G.Float (Some nan, token))
-        | _ -> (
-            try G.L (G.Float (Some (float_of_string value), token)) with
-            | _ -> G.L (G.String (fb (value, token)))))
+       else
+         match value with
+         | "__sgrep_ellipses__" -> G.Ellipsis (Tok.fake_tok token "...")
+         (* TODO: emma: I will put "" back to Null and have either a warning or
+          * an error when we try to parse a string and get Null in another PR.
+          *)
+         | "null"
+         | "NULL"
+         | "Null"
+         | "~" ->
+             G.L (G.Null token)
+         | "y"
+         | "Y"
+         | "yes"
+         | "Yes"
+         | "YES"
+         | "true"
+         | "True"
+         | "TRUE"
+         | "on"
+         | "On"
+         | "ON" ->
+             G.L (G.Bool (true, token))
+         | "n"
+         | "N"
+         | "no"
+         | "No"
+         | "NO"
+         | "false"
+         | "False"
+         | "FALSE"
+         | "off"
+         | "Off"
+         | "OFF" ->
+             G.L (G.Bool (false, token))
+         | "-.inf" -> G.L (G.Float (Some neg_infinity, token))
+         | ".inf" -> G.L (G.Float (Some neg_infinity, token))
+         | ".nan"
+         | ".NaN"
+         | ".NAN" ->
+             G.L (G.Float (Some nan, token))
+         | _ -> (
+             try G.L (G.Float (Some (float_of_string value), token)) with
+             | _ -> G.L (G.String (fb (value, token)))))
       |> G.e
     in
     (expr, pos)

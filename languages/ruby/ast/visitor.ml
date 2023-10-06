@@ -28,7 +28,6 @@ let visit meth orig recurse =
   | ChangeTo changed -> changed
   | ChangeDoChildrenPost (res1, f) -> f (recurse res1)
 
-class type ['a] std_visitor =
-  object
-    method visit : 'a visit_method
-  end
+class type ['a] std_visitor = object
+  method visit : 'a visit_method
+end

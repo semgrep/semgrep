@@ -62,66 +62,63 @@ let combine = B.combine
 (* Types *)
 (*****************************************************************************)
 
-class type printer_t =
-  object
-    method print_any : G.any -> (Immutable_buffer.t, string) result
+class type printer_t = object
+  method print_any : G.any -> (Immutable_buffer.t, string) result
 
-    (* Prints an expression, inserting parentheses around it if needed. *)
-    method print_expr : G.expr -> (Immutable_buffer.t, string) result
-    method print_expr_kind : G.expr_kind -> (Immutable_buffer.t, string) result
-    method print_argument : G.argument -> (Immutable_buffer.t, string) result
-    method print_arguments : G.arguments -> (Immutable_buffer.t, string) result
+  (* Prints an expression, inserting parentheses around it if needed. *)
+  method print_expr : G.expr -> (Immutable_buffer.t, string) result
+  method print_expr_kind : G.expr_kind -> (Immutable_buffer.t, string) result
+  method print_argument : G.argument -> (Immutable_buffer.t, string) result
+  method print_arguments : G.arguments -> (Immutable_buffer.t, string) result
 
-    method print_unbracketed_arguments :
-      G.argument list -> (Immutable_buffer.t, string) result
+  method print_unbracketed_arguments :
+    G.argument list -> (Immutable_buffer.t, string) result
 
-    method print_dot_access :
-      G.expr -> G.tok -> G.field_name -> (Immutable_buffer.t, string) result
+  method print_dot_access :
+    G.expr -> G.tok -> G.field_name -> (Immutable_buffer.t, string) result
 
-    method print_field_name :
-      G.field_name -> (Immutable_buffer.t, string) result
+  method print_field_name : G.field_name -> (Immutable_buffer.t, string) result
+  method print_name : G.name -> (Immutable_buffer.t, string) result
+  method print_ident : G.ident -> (Immutable_buffer.t, string) result
 
-    method print_name : G.name -> (Immutable_buffer.t, string) result
-    method print_ident : G.ident -> (Immutable_buffer.t, string) result
+  method print_call :
+    G.expr -> G.arguments -> (Immutable_buffer.t, string) result
 
-    method print_call :
-      G.expr -> G.arguments -> (Immutable_buffer.t, string) result
+  (* Takes `expr` rather than `operator` to facilitate hybrid_print. The
+   * hybrid_print primary printer takes an `AST_generic.any`, and there is no
+   * `any` variant for `operator`.
+   *
+   * We could refactor to support this but unless we run into other similar
+   * issues, it doesn't seem worth the additional boilerplate. This doesn't
+   * make implementing a printer any more difficult, since `print_expr` should
+   * handle `IdSpecial (Op ...)` anyway. *)
+  method print_opcall :
+    G.expr -> G.arguments -> (Immutable_buffer.t, string) result
 
-    (* Takes `expr` rather than `operator` to facilitate hybrid_print. The
-     * hybrid_print primary printer takes an `AST_generic.any`, and there is no
-     * `any` variant for `operator`.
-     *
-     * We could refactor to support this but unless we run into other similar
-     * issues, it doesn't seem worth the additional boilerplate. This doesn't
-     * make implementing a printer any more difficult, since `print_expr` should
-     * handle `IdSpecial (Op ...)` anyway. *)
-    method print_opcall :
-      G.expr -> G.arguments -> (Immutable_buffer.t, string) result
+  method print_ordinary_call :
+    G.expr -> G.arguments -> (Immutable_buffer.t, string) result
 
-    method print_ordinary_call :
-      G.expr -> G.arguments -> (Immutable_buffer.t, string) result
+  (* TODO Add more nodes as needed. *)
 
-    (* TODO Add more nodes as needed. *)
+  (* Clients should not (and cannot) call the methods below, but subclasses of
+   * base_printer should consider overriding them to control printing
+   * behavior. *)
 
-    (* Clients should not (and cannot) call the methods below, but subclasses of
-     * base_printer should consider overriding them to control printing
-     * behavior. *)
+  (* Determines whether the node in question needs to be surrounded by
+   * parentheses. For example, `2 + 3 * 5` has a different meaning than
+   * `(2 + 3) * 5`.
+   *
+   * TODO Include some context as a paremeter, which will be needed when we
+   * want to insert parentheses only where absolutely necessary. *)
+  method private needs_parens : G.any -> bool
 
-    (* Determines whether the node in question needs to be surrounded by
-     * parentheses. For example, `2 + 3 * 5` has a different meaning than
-     * `(2 + 3) * 5`.
-     *
-     * TODO Include some context as a paremeter, which will be needed when we
-     * want to insert parentheses only where absolutely necessary. *)
-    method private needs_parens : G.any -> bool
-
-    (* Subclasses should normally override print_expr_without_parens rather than
-     * print_expr, unless they want to modify the parentheses-insertion behavior in
-     * a way that is not possible by overriding needs_parens. Clients should not
-     * call this directly. *)
-    method private print_expr_without_parens :
-      G.expr -> (Immutable_buffer.t, string) result
-  end
+  (* Subclasses should normally override print_expr_without_parens rather than
+   * print_expr, unless they want to modify the parentheses-insertion behavior in
+   * a way that is not possible by overriding needs_parens. Clients should not
+   * call this directly. *)
+  method private print_expr_without_parens :
+    G.expr -> (Immutable_buffer.t, string) result
+end
 
 (*****************************************************************************)
 (* Helpers *)

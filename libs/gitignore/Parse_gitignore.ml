@@ -102,4 +102,4 @@ let from_string ~anchor ~name ~kind str =
 let from_file ~anchor ~kind path =
   Fpath.to_string path |> Common.read_file
   |> from_string ~anchor ~name:(Fpath.to_string path) ~kind
-  [@@profiling]
+[@@profiling]

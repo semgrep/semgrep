@@ -26,13 +26,11 @@ val verbose_level : int ref
 (*s: common.mli misc/test *)
 val generic_print : 'a -> string -> string
 
-class ['a] olist :
-  'a list
-  -> object
-       val xs : 'a list
-       method fold : ('b -> 'a -> 'b) -> 'b -> 'b
-       method view : 'a list
-     end
+class ['a] olist : 'a list -> object
+  val xs : 'a list
+  method fold : ('b -> 'a -> 'b) -> 'b -> 'b
+  method view : 'a list
+end
 
 val typing_sux_test : unit -> unit
 (*e: common.mli misc/test *)
@@ -346,16 +344,14 @@ val forever : (unit -> unit) -> unit
 val applyn : int -> ('a -> 'a) -> 'a -> 'a
 val on : ('b -> 'b -> 'c) -> ('a -> 'b) -> 'a -> 'a -> 'c
 
-class ['a] shared_variable_hook :
-  'a
-  -> object
-       val mutable data : 'a
-       val mutable registered : (unit -> unit) list
-       method get : 'a
-       method modify : ('a -> 'a) -> unit
-       method register : (unit -> unit) -> unit
-       method set : 'a -> unit
-     end
+class ['a] shared_variable_hook : 'a -> object
+  val mutable data : 'a
+  val mutable registered : (unit -> unit) list
+  method get : 'a
+  method modify : ('a -> 'a) -> unit
+  method register : (unit -> unit) -> unit
+  method set : 'a -> unit
+end
 
 val fixpoint : ('a -> 'a) -> 'a -> 'a
 

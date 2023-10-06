@@ -207,7 +207,7 @@ let dispatch_subcommand argv =
             else raise Pysemgrep.Fallback
       with
       | Pysemgrep.Fallback -> Pysemgrep.pysemgrep argv)
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Error management *)

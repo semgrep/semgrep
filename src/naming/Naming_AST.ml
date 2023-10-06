@@ -964,4 +964,4 @@ let resolve lang prog =
   in
   visitor#visit_program () prog;
   ()
-  [@@profiling]
+[@@profiling]

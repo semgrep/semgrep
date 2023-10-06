@@ -2095,7 +2095,7 @@ let parse_file ?error_recovery ?(rewrite_rule_ids = None) file =
 
 let parse_and_filter_invalid_rules ?rewrite_rule_ids file =
   parse_file ~error_recovery:true ?rewrite_rule_ids file
-  [@@profiling]
+[@@profiling]
 
 let parse_xpattern xlang (str, tok) =
   let env =

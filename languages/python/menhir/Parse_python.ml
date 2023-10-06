@@ -87,7 +87,7 @@ let tokens parsing_mode input_source =
   in
   Parsing_helpers.tokenize_all_and_adjust_pos input_source token
     TH.visitor_info_of_tok TH.is_eof
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -158,7 +158,7 @@ let rec parse ?(parsing_mode = Python) filename =
           Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
         stat.PS.error_line_count <- stat.PS.total_line_count;
         { Parsing_result.ast = []; tokens = toks; stat }
-  [@@profiling]
+[@@profiling]
 
 let parse_program ?parsing_mode file =
   let res = parse ?parsing_mode file in

@@ -470,7 +470,7 @@ let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
         !!file;
       Xpattern_match_regexp.matches_of_regexs regexps lazy_content !!file;
     ]
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Maching explanations helpers *)
@@ -912,7 +912,7 @@ and matches_of_formula xconf rule xtarget formula opt_context :
     }
   in
   (res', final_ranges)
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Main entry point *)
