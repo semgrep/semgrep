@@ -1671,10 +1671,10 @@ let parse_steps env key (value : G.expr) : R.step list =
 (* Parsers for secrets mode *)
 (*****************************************************************************)
 
-let parse_validity env key x : Pattern_match.validation_state =
+let parse_validity env key x : Rule.validation_state =
   match x.G.e with
-  | G.L (String (_, ("valid", _), _)) -> Confirmed_valid
-  | G.L (String (_, ("invalid", _), _)) -> Confirmed_invalid
+  | G.L (String (_, ("valid", _), _)) -> `Confirmed_valid
+  | G.L (String (_, ("invalid", _), _)) -> `Confirmed_invalid
   | _x -> error_at_key env.id key (spf "parse_validity for %s" (fst key))
 
 let parse_http_request env key value : Rule.request =

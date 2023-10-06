@@ -729,9 +729,9 @@ class TextFormatter(BaseFormatter):
                     if state is None:
                         subgroup = "unvalidated"
                     else:
-                        if isinstance(state.value, out.CONFIRMEDVALID):
+                        if isinstance(state.value, out.ConfirmedValid):
                             subgroup = "valid"
-                        elif isinstance(state.value, out.CONFIRMEDINVALID):
+                        elif isinstance(state.value, out.ConfirmedInvalid):
                             subgroup = "invalid"
                         else:
                             subgroup = "unvalidated"
