@@ -136,6 +136,13 @@ let batch_notify server notifications =
   Logs.app (fun m -> m "Sending notifications");
   Lwt.async (fun () -> Lwt_list.iter_s (notify server) notifications)
 
+let notify_show_message server ~kind s =
+  let notif =
+    Server_notification.ShowMessage
+      { ShowMessageParams.message = s; type_ = kind }
+  in
+  batch_notify server [ notif ]
+
 (** Show a little progress circle while doing thing. Returns a token needed to end progress*)
 let create_progress server title message =
   let id = Uuidm.v `V4 |> Uuidm.to_string in
