@@ -8,13 +8,13 @@ let range_of_cli_match (m : Out.cli_match) =
       (Position.create ~line:(m.start.line - 1) ~character:(m.start.col - 1))
     ~end_:(Position.create ~line:(m.end_.line - 1) ~character:(m.end_.col - 1))
 
-let convert_severity (severity : Out.severity) : DiagnosticSeverity.t =
+let convert_severity (severity : Out.rule_severity) : DiagnosticSeverity.t =
   match severity with
-  | Error -> Error
-  | Warning -> Warning
-  | Experiment
-  | Info
-  | Inventory ->
+  | `Error -> Error
+  | `Warning -> Warning
+  | `Experiment
+  | `Info
+  | `Inventory ->
       Information
 
 let workspace_folders_to_paths =

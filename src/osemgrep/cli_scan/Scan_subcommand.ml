@@ -91,7 +91,7 @@ let exit_code_of_errors ~strict (errors : Out.core_error list) : Exit_code.t =
       (* alt: raise a Semgrep_error that would be catched by CLI_Common
        * wrapper instead of returning an exit code directly? *)
       match () with
-      | _ when x.severity =*= Out.Error ->
+      | _ when x.severity =*= `Error ->
           Cli_json_output.exit_code_of_error_type x.error_type
       | _ when strict -> Cli_json_output.exit_code_of_error_type x.error_type
       | _else_ -> Exit_code.ok)

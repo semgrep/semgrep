@@ -443,11 +443,11 @@ let parse_languages ~id (options : Rule_options_t.t) langs :
 
 let parse_severity ~id (s, t) : Rule.severity =
   match s with
-  | "ERROR" -> Error
-  | "WARNING" -> Warning
-  | "INFO" -> Info
-  | "INVENTORY" -> Inventory
-  | "EXPERIMENT" -> Experiment
+  | "ERROR" -> `Error
+  | "WARNING" -> `Warning
+  | "INFO" -> `Info
+  | "INVENTORY" -> `Inventory
+  | "EXPERIMENT" -> `Experiment
   | s ->
       Rule.raise_error (Some id)
         (InvalidRule

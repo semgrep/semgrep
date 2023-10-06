@@ -45,10 +45,12 @@ def _core_location_to_error_span(location: out.Location) -> out.ErrorSpan:
 def core_error_to_semgrep_error(err: out.CoreError) -> SemgrepCoreError:
     # Hackily convert the level string to Semgrep expectations
     level_str = err.severity.kind
-    if level_str.upper() == "WARNING":
+    if level_str.upper() == "WARNING_":
         level_str = "WARN"
     if level_str.upper() == "ERROR_":
         level_str = "ERROR"
+    if level_str.upper() == "INFO_":
+        level_str = "INFO"
     level = Level[level_str.upper()]
 
     spans: Optional[List[out.ErrorSpan]] = None

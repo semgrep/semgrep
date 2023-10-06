@@ -22,9 +22,9 @@ module Out = Semgrep_output_v1_j
 (* Helpers *)
 (*****************************************************************************)
 
-let string_of_severity (severity : Out.severity) : string =
+let string_of_severity (severity : Out.rule_severity) : string =
   (* this contains the enclosing "" *)
-  let s = Out.string_of_severity severity in
+  let s = Out.string_of_rule_severity severity in
   (* let's remove the enclosing "" *)
   match JSON.json_of_string s with
   | JSON.String s -> s
