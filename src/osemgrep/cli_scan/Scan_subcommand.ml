@@ -573,6 +573,9 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
 let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
+  (* coupling: if you modify the pysemgrep fallback code below, you
+   * probably also need to modify it in Ci_subcommand.ml
+   *)
   (match conf.common.maturity with
   (* those are osemgrep-only option not available in pysemgrep,
    * so better print a good error message for it.

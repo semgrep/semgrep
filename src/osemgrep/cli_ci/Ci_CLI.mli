@@ -6,7 +6,15 @@
    The result of parsing a 'semgrep ci' command.
 *)
 
-type conf = Scan_CLI.conf [@@deriving show]
+type conf = {
+  audit_on : string list;
+  dry_run : bool;
+  suppress_errors : bool;
+  (* --code/--sca/--secrets/ *)
+  products : Semgrep_output_v1_t.product list;
+  scan_conf : Scan_CLI.conf;
+}
+[@@deriving show]
 
 (*
    Usage: parse_argv [| "semgrep-ci"; <args> |]
