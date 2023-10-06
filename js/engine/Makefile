@@ -1,5 +1,4 @@
 
-include Makefile.include
 
 ESBUILD_DEFAULTS = \
 	--bundle \
@@ -9,6 +8,8 @@ ESBUILD_DEFAULTS = \
 
 .PHONY: default
 default: build
+
+include Makefile.include
 
 .PHONY: build
 build: dist/index.cjs dist/index.mjs dist/index.d.ts

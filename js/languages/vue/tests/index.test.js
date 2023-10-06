@@ -1,5 +1,4 @@
 const SemgrepEngine = require("../../../engine/dist/semgrep-engine");
-
 const parserPromise = async () => {
   const wasm = await SemgrepEngine({
     locateFile: (_) => "../../engine/dist/semgrep-engine.wasm",
