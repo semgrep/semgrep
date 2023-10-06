@@ -555,14 +555,29 @@ let upload_findings ~dry_run
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
+let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
+  let conf = ci_conf.scan_conf in
+  (match conf.common.maturity with
+  (* coupling: copy-pasted from Scan_subcommand.ml *)
+  | Maturity.Default
+    when conf.registry_caching || conf.core_runner_conf.ast_caching ->
+      Error.abort "--registry_caching or --ast_caching require --experimental"
+  | Maturity.Default -> (
+      (* TODO: handle more confs, or fallback to pysemgrep further down *)
+      match conf with
+      | _else_ -> raise Pysemgrep.Fallback)
+  | Maturity.Legacy -> raise Pysemgrep.Fallback
+  | Maturity.Experimental
+  | Maturity.Develop ->
+      ());
+
   (* step1: initialization *)
   CLI_common.setup_logging ~force_color:conf.force_color
     ~level:conf.common.logging_level;
   (* TODO? we probably want to set the metrics to On by default in CI ctx? *)
   Metrics_.configure conf.metrics;
   let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
-  Logs.debug (fun m -> m "conf = %s" (Ci_CLI.show_conf conf));
+  Logs.debug (fun m -> m "conf = %s" (Ci_CLI.show_conf ci_conf));
   let dry_run = conf.dryrun in
 
   (* step2: token -> deployment_config -> scan_id -> scan_config -> rules *)

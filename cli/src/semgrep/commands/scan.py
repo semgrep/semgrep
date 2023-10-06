@@ -325,11 +325,6 @@ _scan_options: List[Callable] = [
         "--diff-depth",
         type=int,
         default=DEFAULT_DIFF_DEPTH,
-        help="""
-            The depth of the Pro (interfile) differential scan, the number of steps
-            (both in the caller and callee sides) from the targets in the call graph
-            tracked by the deep preprocessor. Only applied in differential scan mode.
-        """,
     ),
     optgroup.option("--dump-command-for-core", "-d", is_flag=True, hidden=True),
     optgroup.option("--allow-untrusted-postprocessors", is_flag=True, hidden=True),
