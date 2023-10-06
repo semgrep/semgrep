@@ -247,27 +247,27 @@ let print_match ?str config match_ ii_of_any =
   in
   let toks = tokens_matched_code |> List.filter Tok.is_origintok in
   (if mvars =*= [] then
-   Core_text_output.print_match ?str ~format:match_format toks
-  else
-    (* similar to the code of Lib_matcher.print_match, maybe could
-     * factorize code a bit.
-     *)
-    let mini, _maxi = Tok_range.min_max_toks_by_pos toks in
-    let file, line = (Tok.file_of_tok mini, Tok.line_of_tok mini) in
+     Core_text_output.print_match ?str ~format:match_format toks
+   else
+     (* similar to the code of Lib_matcher.print_match, maybe could
+      * factorize code a bit.
+      *)
+     let mini, _maxi = Tok_range.min_max_toks_by_pos toks in
+     let file, line = (Tok.file_of_tok mini, Tok.line_of_tok mini) in
 
-    let strings_metavars =
-      mvars
-      |> Common.map (fun x ->
-             match Common2.assoc_opt x env with
-             | Some any ->
-                 any |> ii_of_any
-                 |> List.filter Tok.is_origintok
-                 |> Common.map Tok.content_of_tok
-                 |> Core_text_output.join_with_space_if_needed
-             | None -> failwith (spf "the metavariable '%s' was not bound" x))
-    in
-    pr (spf "%s:%d: %s" file line (Common.join ":" strings_metavars));
-    ());
+     let strings_metavars =
+       mvars
+       |> Common.map (fun x ->
+              match Common2.assoc_opt x env with
+              | Some any ->
+                  any |> ii_of_any
+                  |> List.filter Tok.is_origintok
+                  |> Common.map Tok.content_of_tok
+                  |> Core_text_output.join_with_space_if_needed
+              | None -> failwith (spf "the metavariable '%s' was not bound" x))
+     in
+     pr (spf "%s:%d: %s" file line (Common.join ":" strings_metavars));
+     ());
   Option.iter (print_taint_trace ~format:match_format) taint_trace
 
 (*****************************************************************************)
@@ -409,7 +409,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
     |> List.split
   in
   (new_matches, new_errors, List.flatten new_skipped)
-  [@@profiling "Run_semgrep.filter_too_many_matches"]
+[@@profiling "Run_semgrep.filter_too_many_matches"]
 
 (*****************************************************************************)
 (* Error management *)
@@ -485,7 +485,7 @@ let parse_equivalences equivalences_file =
   match equivalences_file with
   | None -> []
   | Some file -> Parse_equivalences.parse file
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Iteration helpers *)

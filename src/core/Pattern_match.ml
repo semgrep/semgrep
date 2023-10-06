@@ -161,7 +161,7 @@ let uniq pms =
          | Some _ -> ()
          | None -> Hashtbl.add tbl r pm);
   tbl |> Hashtbl.to_seq_values |> List.of_seq
-  [@@profiling]
+[@@profiling]
 
 let range pm =
   let start_loc, end_loc = pm.range_loc in
@@ -191,7 +191,7 @@ let no_submatches pms =
                  let ys' = List.filter (fun y -> not (submatch y pm)) ys in
                  Hashtbl.replace tbl k (pm :: ys')));
   tbl |> Hashtbl.to_seq_values |> Seq.flat_map List.to_seq |> List.of_seq
-  [@@profiling]
+[@@profiling]
 
 let to_proprietary pm = { pm with engine_kind = `PRO }
 

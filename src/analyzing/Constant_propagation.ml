@@ -799,7 +799,7 @@ let propagate_basic lang prog =
   in
   visitor#visit_program (env, Iter_with_context.initial_context) prog;
   ()
-  [@@profiling]
+[@@profiling]
 
 let propagate_dataflow_one_function lang inputs flow =
   (* Exposed to help DeepSemgrep *)

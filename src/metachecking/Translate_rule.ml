@@ -221,15 +221,15 @@ and translate_formula f : [> `O of (string * Yaml.value) list ] =
         (("all", `A (Common.map translate_formula conjuncts :> Yaml.value list))
         ::
         (if focus =*= [] && conditions =*= [] then []
-        else
-          [
-            ( "where",
-              `A
-                (Common.map
-                   (fun (_, cond) -> translate_metavar_cond cond)
-                   conditions
-                @ List.concat_map mk_focus_obj focus) );
-          ]))
+         else
+           [
+             ( "where",
+               `A
+                 (Common.map
+                    (fun (_, cond) -> translate_metavar_cond cond)
+                    conditions
+                 @ List.concat_map mk_focus_obj focus) );
+           ]))
   | Or (_, fs) ->
       `O [ ("any", `A (Common.map translate_formula fs :> Yaml.value list)) ]
   | Not (_, f) -> `O [ ("not", (translate_formula f :> Yaml.value)) ]

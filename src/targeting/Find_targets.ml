@@ -311,4 +311,4 @@ let get_targets conf scanning_roots =
   |> List.split
   |> fun (paths_list, skipped_paths_list) ->
   (List.flatten paths_list, List.flatten skipped_paths_list)
-  [@@profiling]
+[@@profiling]

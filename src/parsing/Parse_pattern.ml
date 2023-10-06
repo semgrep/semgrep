@@ -80,4 +80,4 @@ let parse_pattern ?(print_errors = false) lang str =
   let any = normalize_any lang any in
   Check_pattern.check lang any;
   any
-  [@@profiling]
+[@@profiling]

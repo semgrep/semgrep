@@ -366,7 +366,7 @@ let and_step1bis_filter_general (And xs) =
            if null xs' then None else Some (Or xs'))
   in
   And (filtered @ rest)
-  [@@profiling]
+[@@profiling]
 
 type step2 =
   | Idents of string list
@@ -427,7 +427,7 @@ let prefilter_formula_of_cnf_step2 (And xs) : Semgrep_prefilter_t.formula =
   | [] -> raise EmptyAnd
   | [ x ] -> x
   | xs -> `And xs
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Final Step: just regexps? *)
@@ -514,7 +514,7 @@ let run_cnf_step2 cnf big_str =
                      rule is relevant, hence ~on_error:true! *)
                   Regexp_engine.unanchored_match ~on_error:true re big_str)
        | Regexp2_search re -> Regexp_engine.unanchored_match re big_str)
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Entry points *)
@@ -547,7 +547,7 @@ let compute_final_cnf f =
   let cnf = and_step2 cnf in
   logger#ldebug (lazy (spf "cnf2 = %s" (show_cnf_step2 cnf)));
   Some cnf
-  [@@profiling]
+[@@profiling]
 
 let regexp_prefilter_of_formula f : prefilter option =
   try

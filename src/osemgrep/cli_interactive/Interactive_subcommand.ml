@@ -1226,7 +1226,7 @@ let interactive_loop ~turbo xlang xtargets =
       (* fake if to shutdown warning 21 of ocamlc "nonreturn-statement" *)
       if true then render_and_loop state.term state)
     (fun () -> Term.release t)
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Main logic *)

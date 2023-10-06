@@ -105,4 +105,4 @@ let post ~body ?(headers = [ ("content-type", "application/json") ])
          Logs.debug (fun m ->
              m "send to '%s' failed: %s" (Uri.to_string url) err);
          Lwt.return (Error (0, err))))
-  [@@profiling]
+[@@profiling]

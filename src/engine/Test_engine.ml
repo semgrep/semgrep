@@ -284,11 +284,11 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                       Core_profiling.partial_profiling Core_result.match_result)
                   -> res.matches |> List.iter Core_json_output.match_to_error);
              (if not (E.ErrorSet.is_empty res.errors) then
-              let errors =
-                E.ErrorSet.elements res.errors
-                |> Common.map Core_error.show |> String.concat "-----\n"
-              in
-              failwith (spf "parsing error(s) on %s:\n%s" !!file errors));
+                let errors =
+                  E.ErrorSet.elements res.errors
+                  |> Common.map Core_error.show |> String.concat "-----\n"
+                in
+                failwith (spf "parsing error(s) on %s:\n%s" !!file errors));
              let actual_errors = !E.g_errors in
              actual_errors
              |> List.iter (fun e ->

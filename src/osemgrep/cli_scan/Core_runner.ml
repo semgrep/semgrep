@@ -281,4 +281,4 @@ let mk_scan_func_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
       Metrics_.add_targets_stats scanned
         (Core_profiling.debug_info_to_option res.extra);
       Ok res
- [@@profiling]
+[@@profiling]

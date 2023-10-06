@@ -208,4 +208,4 @@ let output_result (conf : Scan_CLI.conf) (profiler : Profiler.t)
   if conf.autofix then apply_fixes_and_warn conf cli_output;
   dispatch_output_format conf.output_format conf cli_output;
   cli_output
-  [@@profiling]
+[@@profiling]
