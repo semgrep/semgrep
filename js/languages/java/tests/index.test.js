@@ -5,31 +5,9 @@ const parserPromise = async () => {
     locateFile: (_) => "../../tests/dist/semgrep-engine.wasm",
   });
   globalThis.LibPcreModule = wasm;
-  const SemgrepEngine = require("../../../tests/dist/semgrep-engine");
+  const { ParserFactory } = require("../dist/index.cjs");
 
-  const parserPromise = async () => {
-    const wasm = await SemgrepEngine({
-      locateFile: (_) => "../../tests/dist/semgrep-engine.wasm",
-    });
-    globalThis.LibPcreModule = wasm;
-    const { ParserFactory } = require("../dist/index.cjs");
-
-    const parserPromise = ParserFactory();
-    return parserPromise;
-  };
-
-  const SemgrepEngine = require("../../../tests/dist/semgrep-engine");
-
-  const parserPromise = async () => {
-    const wasm = await SemgrepEngine({
-      locateFile: (_) => "../../tests/dist/semgrep-engine.wasm",
-    });
-    globalThis.LibPcreModule = wasm;
-    const { ParserFactory } = require("../dist/index.cjs");
-
-    const parserPromise = ParserFactory();
-    return parserPromise;
-  };
+  const parserPromise = ParserFactory();
   return parserPromise;
 };
 

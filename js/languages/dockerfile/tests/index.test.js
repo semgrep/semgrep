@@ -3,11 +3,11 @@ const LibPcreModule = require("../../../libpcre/dist/libpcre");
 // we have to jump through these hoops because semgrep eagerly uses pcre
 const parserPromise = (async () => {
   globalThis.LibPcreModule = await LibPcreModule();
-  const SemgrepEngine = require("../../../tests/dist/semgrep-engine");
+  const SemgrepEngine = require("../../../engine/dist/semgrep-engine");
 
   const parserPromise = async () => {
     const wasm = await SemgrepEngine({
-      locateFile: (_) => "../../tests/dist/semgrep-engine.wasm",
+      locateFile: (_) => "../../engine/dist/semgrep-engine.wasm",
     });
     globalThis.LibPcreModule = wasm;
     const { ParserFactory } = require("../dist/index.cjs");
@@ -15,11 +15,11 @@ const parserPromise = (async () => {
     const parserPromise = ParserFactory();
     return parserPromise;
   };
-  const SemgrepEngine = require("../../../tests/dist/semgrep-engine");
+  const SemgrepEngine = require("../../../engine/dist/semgrep-engine");
 
   const parserPromise = async () => {
     const wasm = await SemgrepEngine({
-      locateFile: (_) => "../../tests/dist/semgrep-engine.wasm",
+      locateFile: (_) => "../../engine/dist/semgrep-engine.wasm",
     });
     globalThis.LibPcreModule = wasm;
     const { ParserFactory } = require("../dist/index.cjs");
