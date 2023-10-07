@@ -28,7 +28,6 @@ from semgrep.config_resolver import resolve_config
 from semgrep.constants import RuleSeverity
 from semgrep.error import ERROR_MAP
 from semgrep.error import FATAL_EXIT_CODE
-from semgrep.error import Level
 from semgrep.error import SemgrepError
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
@@ -47,7 +46,7 @@ yaml = YAML()
 
 
 class InvalidConditionError(SemgrepError):
-    level = Level.ERROR
+    level = out.ErrorSeverity(out.Error_())
     code = FATAL_EXIT_CODE
 
 

@@ -21,7 +21,6 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 import semgrep.util as util
 from semgrep.constants import RuleSeverity
 from semgrep.error import FATAL_EXIT_CODE
-from semgrep.error import Level
 from semgrep.error import OK_EXIT_CODE
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
@@ -43,16 +42,7 @@ def _core_location_to_error_span(location: out.Location) -> out.ErrorSpan:
 
 
 def core_error_to_semgrep_error(err: out.CoreError) -> SemgrepCoreError:
-    # Hackily convert the level string to Semgrep expectations
-    level_str = err.severity.kind
-    if level_str.upper() == "WARNING_":
-        level_str = "WARN"
-    if level_str.upper() == "ERROR_":
-        level_str = "ERROR"
-    if level_str.upper() == "INFO_":
-        level_str = "INFO"
-    level = Level[level_str.upper()]
-
+    level = err.severity
     spans: Optional[List[out.ErrorSpan]] = None
     if isinstance(err.error_type.value, out.PatternParseError):
         yaml_path = err.error_type.value.value[::-1]
@@ -80,7 +70,7 @@ def core_error_to_semgrep_error(err: out.CoreError) -> SemgrepCoreError:
 
     # TODO benchmarking code relies on error code value right now
     # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
-    if level == Level.INFO:
+    if isinstance(level.value, out.Info_):
         code = OK_EXIT_CODE
     elif (
         isinstance(err.error_type.value, out.ParseError)
