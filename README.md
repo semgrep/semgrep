@@ -108,7 +108,12 @@ $ python3 -m pip install semgrep
 $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep
 ```
 
-2.  Run `semgrep login` to get the login URL for the Semgrep Cloud Platform. Open the login URL in the browser and login.
+2.  Run `semgrep login` to create your account and login to Semgrep. 
+
+Logging into Semgrep gets you access to: 
+- Semgrep Supply Chain: A depenency scanner that detects reachable vulnerabilities in third party libraries
+- Semgrep Code's Pro rules: 600+ high confidence rules written by Semgrep's security research team
+- Semgrep Code's cross-file analysis engine: An advanced code analysis engine, designed to detect complex vulnerabilities, and reduce false positives
 
 3.  Go to your app's root directory and run `semgrep ci`. This will scan your project to check for vulnerabilities in your source code and its dependencies.
 
