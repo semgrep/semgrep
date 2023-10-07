@@ -113,13 +113,6 @@ let core_location_to_error_span (loc : Out.location) : Out.error_span =
     context_end = None;
   }
 
-(* LATER: move also to Severity.ml and reuse types there *)
-let level_of_severity (severity : Out.error_severity) : Severity.t =
-  match severity with
-  | `Error -> `Error
-  | `Warning -> `Warning
-  | `Info -> `Info
-
 let error_type_string (error_type : Out.core_error_kind) : string =
   match error_type with
   (* # convert to the same string of core.ParseError for now *)
@@ -236,7 +229,6 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
    rule_id;
    (* LATER *) details = _;
   } ->
-      let level = level_of_severity severity in
       let exit_code = exit_code_of_error_type error_type in
       let rule_id =
         match error_type with
@@ -295,8 +287,7 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
          * better to change the ATD spec and use a variant for cli_error.code
          *)
         code = Exit_code.to_int exit_code;
-        (* LATER: should use a variant too *)
-        level = Severity.to_string level;
+        level = severity;
         (* LATER: type_ should be a proper variant instead of a string *)
         type_ = error_type_string error_type;
         rule_id;

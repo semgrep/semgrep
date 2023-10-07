@@ -141,9 +141,7 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
               let cli_error : Out.cli_error =
                 {
                   Out.code = 2;
-                  level =
-                    "warn"
-                    (* XXX(dinosaure): use [Severity.string_of_basic_severity]? *);
+                  level = `Warning;
                   type_ = "SemgrepError" (* TODO(dinosaure): correct? *);
                   rule_id = None;
                   message = Some msg;

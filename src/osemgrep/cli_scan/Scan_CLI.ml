@@ -643,7 +643,8 @@ changes to the console. This lets you see the changes before you commit to
 them. Only works with the --autofix flag. Otherwise does nothing.
 |}
 
-let o_severity : Severity.t list Term.t =
+(* In theory we should also accept EXPERIMENT and INVENTORY *)
+let o_severity : Rule.severity list Term.t =
   let info =
     Arg.info [ "severity" ]
       ~doc:
@@ -652,7 +653,11 @@ level. By default all applicable rules are run. Can add multiple times.
 Each should be one of INFO, WARNING, or ERROR.
 |}
   in
-  Arg.value (Arg.opt_all Severity.converter [] info)
+  Arg.value
+    (Arg.opt_all
+       (Cmdliner.Arg.enum
+          [ ("INFO", `Info); ("WARNING", `Warning); ("ERROR", `Error) ])
+       [] info)
 
 let o_exclude_rule_ids : string list Term.t =
   let info =
