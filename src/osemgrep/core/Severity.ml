@@ -5,7 +5,7 @@
  *
  * TODO: there are (too) many places where we define severity:
  *  - rule_schema_v1.yaml
- *  - severity in semgrep_output_v1.atd
+ *  - error_severity and rule_severity in semgrep_output_v1.atd
  *  - DONE level in Error.ml
  * We should remove some of those.
  *
@@ -18,6 +18,7 @@
 
 (* valid for rules and for findings, but also for semgrep errors
    found in rules, and in semgrep --severity
+   TODO: remove, use semgrep_output_v1.error_severity instead
 *)
 type t = [ `Error | `Warning | `Info ] [@@deriving show]
 
@@ -42,6 +43,9 @@ let to_string (x : t) =
         raise ValueError(f"invalid rule severity value: {value}")
 *)
 
+(* TODO: for this we should actually allow rule_severity, not just
+ * error_severity
+ *)
 (* for CLI --severity input *)
 let converter =
   Cmdliner.Arg.enum
@@ -50,9 +54,9 @@ let converter =
 (* for CLI --severity filtering *)
 let of_rule_severity_opt (x : Rule.severity) : t option =
   match x with
-  | Error -> Some `Error
-  | Warning -> Some `Warning
-  | Info -> Some `Info
-  | Inventory
-  | Experiment ->
+  | `Error -> Some `Error
+  | `Warning -> Some `Warning
+  | `Info -> Some `Info
+  | `Inventory
+  | `Experiment ->
       None

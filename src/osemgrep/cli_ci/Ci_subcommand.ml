@@ -324,23 +324,23 @@ let partition_findings ~keep_ignored (results : Out.cli_match list) =
 (*****************************************************************************)
 
 (* from rule_match.py *)
-let severity_to_int (severity : Out.severity) =
+let severity_to_int (severity : Rule.severity) =
   match severity with
-  | Experiment -> `Int 4
-  | Warning -> `Int 1
-  | Error -> `Int 2
-  | Inventory
-  | Info ->
+  | `Experiment -> `Int 4
+  | `Warning -> `Int 1
+  | `Error -> `Int 2
+  | `Inventory
+  | `Info ->
       `Int 0
 
 (* this is used for sorting matches for findings *)
-let ord_of_severity (severity : Out.severity) : int =
+let ord_of_severity (severity : Rule.severity) : int =
   match severity with
-  | Experiment -> 0
-  | Inventory -> 1
-  | Info -> 2
-  | Warning -> 3
-  | Error -> 4
+  | `Experiment -> 0
+  | `Inventory -> 1
+  | `Info -> 2
+  | `Warning -> 3
+  | `Error -> 4
 
 let finding_of_cli_match _commit_date index (m : Out.cli_match) : Out.finding =
   let (r : Out.finding) =
@@ -474,7 +474,7 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   in
   if
     new_ignored
-    |> List.exists (fun (m : Out.cli_match) -> m.extra.severity =*= Experiment)
+    |> List.exists (fun (m : Out.cli_match) -> m.extra.severity =*= `Experiment)
   then
     Logs.app (fun m -> m "Some experimental rules were run during execution.");
 

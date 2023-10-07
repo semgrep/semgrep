@@ -114,14 +114,11 @@ let core_location_to_error_span (loc : Out.location) : Out.error_span =
   }
 
 (* LATER: move also to Severity.ml and reuse types there *)
-let level_of_severity (severity : Out.severity) : Severity.t =
+let level_of_severity (severity : Out.error_severity) : Severity.t =
   match severity with
-  | Error -> `Error
-  | Warning -> `Warning
-  | Info
-  | Experiment
-  | Inventory ->
-      `Info
+  | `Error -> `Error
+  | `Warning -> `Warning
+  | `Info -> `Info
 
 let error_type_string (error_type : Out.core_error_kind) : string =
   match error_type with
