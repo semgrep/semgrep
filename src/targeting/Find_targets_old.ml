@@ -68,7 +68,7 @@ let global_filter ~opt_lang ~sort_by_decr_size paths =
       skipped
   in
   (sorted_paths, sorted_skipped)
-  [@@profiling]
+[@@profiling]
 
 (*************************************************************************)
 (* Grouping (old) *)
@@ -168,7 +168,7 @@ let files_from_git_ls ~cwd:scan_root =
   tracked_output
   |> Common.map (fun x -> if !!scan_root = "." then x else scan_root // x)
   |> List.filter is_valid_file
-  [@@profiling]
+[@@profiling]
 
 (* python: mostly Target.files() method in target_manager.py *)
 let list_regular_files (conf : conf) (scan_root : Fpath.t) : Fpath.t list =
@@ -210,7 +210,7 @@ let list_regular_files (conf : conf) (scan_root : Fpath.t) : Fpath.t list =
   | S_BLK
   | S_SOCK ->
       []
-  [@@profiling]
+[@@profiling]
 
 (*************************************************************************)
 (* Entry point (old) *)
@@ -325,7 +325,7 @@ let get_targets conf scanning_roots =
   List.split
   |> fun (paths_list, skipped_paths_list) ->
   (List.flatten paths_list, List.flatten skipped_paths_list)
-  [@@profiling]
+[@@profiling]
 
 (*************************************************************************)
 (* Legacy *)

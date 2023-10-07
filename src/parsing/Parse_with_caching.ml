@@ -187,4 +187,4 @@ let parse_and_resolve_name ?(parsing_cache_dir = None) version lang
         match either with
         | Left x -> x
         | Right exn -> Exception.reraise exn)
-  [@@profiling]
+[@@profiling]

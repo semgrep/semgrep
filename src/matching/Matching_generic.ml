@@ -456,7 +456,7 @@ let all_elem_and_rest_of_list xs =
         loop acc' prev_xs' next_xs
   in
   loop [] [] xs
-  [@@profiling]
+[@@profiling]
 
 let rec all_splits = function
   | [] -> [ ([], []) ]

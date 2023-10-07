@@ -128,7 +128,7 @@ let intersect_ranges config debug_matches xs ys =
     logger#info "intersect_range:\n\t%s\nvs\n\t%s" (show_ranges xs)
       (show_ranges ys);
   left_included_merge xs ys @ left_included_merge ys xs
-  [@@profiling]
+[@@profiling]
 
 let difference_ranges config pos neg =
   let surviving_pos =
@@ -151,4 +151,4 @@ let difference_ranges config pos neg =
              ))
   in
   surviving_pos
-  [@@profiling]
+[@@profiling]

@@ -63,7 +63,7 @@ let dump_il_all file =
   Naming_AST.resolve lang ast;
   let xs = AST_to_IL.stmt lang (AST_generic.stmt1 ast) in
   List.iter (fun stmt -> pr2 (IL.show_stmt stmt)) xs
-  [@@action]
+[@@action]
 
 let dump_il file =
   let module G = AST_generic in

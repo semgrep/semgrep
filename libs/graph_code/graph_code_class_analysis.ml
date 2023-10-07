@@ -188,4 +188,4 @@ let dispatched_methods g dag node =
   else failwith (spf "could not find class %s" c);
 
   !res
-  [@@profiling]
+[@@profiling]

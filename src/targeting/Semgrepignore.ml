@@ -91,4 +91,4 @@ let select t (git_path : Ppath.t) =
   | Ignored -> (Gitignore.Ignored, sel_events)
   | Not_ignored ->
       Gitignore_filter.select t.gitignore_filter sel_events git_path
-  [@@profiling]
+[@@profiling]

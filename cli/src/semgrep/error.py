@@ -42,6 +42,7 @@ INVALID_API_KEY_EXIT_CODE = 13
 SCAN_FAIL_EXIT_CODE = 14
 
 
+# TODO: reuse Out.ErrorSeverity
 class Level(Enum):
     ERROR = 4  # Always an error
     WARN = 3  # Only an error if "strict" is set

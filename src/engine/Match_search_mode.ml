@@ -171,7 +171,7 @@ let (mini_rule_of_pattern :
      * we just care about the matching result.
      *)
     message = "";
-    severity = Error;
+    severity = `Error;
     langs =
       (match xlang with
       | L (x, xs) -> x :: xs
@@ -381,7 +381,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
                env = range.mvars;
                taint_trace = None;
                engine_kind = `OSS;
-               validation_state = PM.No_validator;
+               validation_state = `No_validator;
                severity_override = None;
                metadata_override = None;
              })
@@ -470,7 +470,7 @@ let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
         !!file;
       Xpattern_match_regexp.matches_of_regexs regexps lazy_content !!file;
     ]
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Maching explanations helpers *)
@@ -912,7 +912,7 @@ and matches_of_formula xconf rule xtarget formula opt_context :
     }
   in
   (res', final_ranges)
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Main entry point *)

@@ -77,20 +77,6 @@ type taint_trace_item = {
 
 type taint_trace = taint_trace_item list [@@deriving show, eq]
 
-(* This type is used by postprocessors to report back the validity
-   of a finding. No_validator is currently also used when no
-   validation has yet occurred, which if that becomes confusing we
-   could adjust that, by adding another state. This corresponds to
-   a identically named type in semgrep_interfaces output types.
-   TODO: reuse semgrep_output_v1 validation_state type directly
-*)
-type validation_state =
-  | Confirmed_valid
-  | Confirmed_invalid
-  | Validation_error
-  | No_validator
-[@@deriving show, eq]
-
 type t = {
   (* rule (or mini rule) responsible for the pattern match found *)
   rule_id : rule_id; [@equal fun a b -> a.id = b.id]
@@ -118,12 +104,12 @@ type t = {
    *)
   engine_kind : Engine_kind.t; [@equal fun _a _b -> true]
   (* Indicates whether a postprocessor ran and validated this result. *)
-  validation_state : validation_state;
+  validation_state : Rule.validation_state;
   (* Indicates if the rule default severity should be modified to a different
      severity. Currently this is just used by secrets validators in order to
      modify severity based on information from the validation step. (E.g.,
      validity, scope information) *)
-  severity_override : Semgrep_output_v1_t.severity option;
+  severity_override : Rule.severity option;
   (* Indicates if the rule default metadata should be modified. Currently this
      is just used by secrets validators in order to
      modify metadata based on information from the validation step. (E.g.,
@@ -175,7 +161,7 @@ let uniq pms =
          | Some _ -> ()
          | None -> Hashtbl.add tbl r pm);
   tbl |> Hashtbl.to_seq_values |> List.of_seq
-  [@@profiling]
+[@@profiling]
 
 let range pm =
   let start_loc, end_loc = pm.range_loc in
@@ -205,7 +191,7 @@ let no_submatches pms =
                  let ys' = List.filter (fun y -> not (submatch y pm)) ys in
                  Hashtbl.replace tbl k (pm :: ys')));
   tbl |> Hashtbl.to_seq_values |> Seq.flat_map List.to_seq |> List.of_seq
-  [@@profiling]
+[@@profiling]
 
 let to_proprietary pm = { pm with engine_kind = `PRO }
 

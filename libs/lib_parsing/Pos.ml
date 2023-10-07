@@ -172,7 +172,7 @@ let full_charpos_to_pos_large (file : Common.filename) : bytepos_to_linecol_fun
   full_charpos_to_pos_aux ();
   close_in chan;
   fun i -> (arr1.{i}, arr2.{i})
-  [@@profiling]
+[@@profiling]
 
 (* This is mostly a copy-paste of full_charpos_to_pos_large,
    but using a string for a target instead of a file. *)
@@ -219,4 +219,4 @@ let full_charpos_to_pos_str (s : string) : bytepos_to_linecol_fun =
   in
   full_charpos_to_pos_aux ();
   fun i -> (arr1.{i}, arr2.{i})
-  [@@profiling]
+[@@profiling]

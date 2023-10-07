@@ -501,7 +501,7 @@ let mk_fake_rule xlang formula =
     max_version = None;
     (* alt: could put xpat.pstr for the message *)
     message = "";
-    severity = Error;
+    severity = `Error;
     target_selector;
     target_analyzer;
     options = None;
@@ -1226,7 +1226,7 @@ let interactive_loop ~turbo xlang xtargets =
       (* fake if to shutdown warning 21 of ocamlc "nonreturn-statement" *)
       if true then render_and_loop state.term state)
     (fun () -> Term.release t)
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Main logic *)

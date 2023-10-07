@@ -95,7 +95,7 @@ let just_parse_with_lang lang file =
         [ TreeSitter (Parse_typescript_tree_sitter.parse ?dialect:None) ]
         Js_to_generic.program
   | _else_ -> !just_parse_with_lang_ref lang file
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Entry point *)
@@ -115,7 +115,7 @@ let parse_and_resolve_name lang file =
   Constant_propagation.propagate_dataflow lang ast;
   logger#info "Parse_target.parse_and_resolve_name done";
   res
-  [@@profiling]
+[@@profiling]
 
 (* used in test files *)
 let parse_and_resolve_name_warn_if_partial lang file =

@@ -93,13 +93,6 @@ let range_of_any_opt startp_of_match_range any =
 (* Converters *)
 (*****************************************************************************)
 
-(* TODO: same, should reuse directly semgrep_output_v1 *)
-let convert_validation_state = function
-  | Confirmed_valid -> `CONFIRMED_VALID
-  | Confirmed_invalid -> `CONFIRMED_INVALID
-  | Validation_error -> `VALIDATION_ERROR
-  | No_validator -> `NO_VALIDATOR
-
 let convert_rule ((id, ek) : Rule_ID.t * Engine_kind.t) =
   (Rule_ID.to_string id, ek)
 
@@ -264,7 +257,7 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
         dataflow_trace;
         rendered_fix;
         engine_kind = x.engine_kind;
-        validation_state = Some (convert_validation_state x.validation_state);
+        validation_state = Some x.validation_state;
         extra_extra = None;
       };
   }
@@ -284,7 +277,7 @@ let match_to_match render_fix (x : Pattern_match.t) :
       in
       let err = E.mk_error (Some x.rule_id.id) loc s Out.MatchingError in
       Right err
-  [@@profiling]
+[@@profiling]
 
 (* less: Semgrep_error_code should be defined fully Output_from_core.atd
  * so we would not need those conversions
@@ -442,7 +435,7 @@ let core_output_of_matches_and_errors render_fix (res : Core_result.t) :
     engine_requested = Some `OSS;
     version = Some Version.version;
   }
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Error management *)

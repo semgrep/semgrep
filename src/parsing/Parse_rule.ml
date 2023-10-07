@@ -443,11 +443,11 @@ let parse_languages ~id (options : Rule_options_t.t) langs :
 
 let parse_severity ~id (s, t) : Rule.severity =
   match s with
-  | "ERROR" -> Error
-  | "WARNING" -> Warning
-  | "INFO" -> Info
-  | "INVENTORY" -> Inventory
-  | "EXPERIMENT" -> Experiment
+  | "ERROR" -> `Error
+  | "WARNING" -> `Warning
+  | "INFO" -> `Info
+  | "INVENTORY" -> `Inventory
+  | "EXPERIMENT" -> `Experiment
   | s ->
       Rule.raise_error (Some id)
         (InvalidRule
@@ -1671,10 +1671,10 @@ let parse_steps env key (value : G.expr) : R.step list =
 (* Parsers for secrets mode *)
 (*****************************************************************************)
 
-let parse_validity env key x : Pattern_match.validation_state =
+let parse_validity env key x : Rule.validation_state =
   match x.G.e with
-  | G.L (String (_, ("valid", _), _)) -> Confirmed_valid
-  | G.L (String (_, ("invalid", _), _)) -> Confirmed_invalid
+  | G.L (String (_, ("valid", _), _)) -> `Confirmed_valid
+  | G.L (String (_, ("invalid", _), _)) -> `Confirmed_invalid
   | _x -> error_at_key env.id key (spf "parse_validity for %s" (fst key))
 
 let parse_http_request env key value : Rule.request =
@@ -2095,7 +2095,7 @@ let parse_file ?error_recovery ?(rewrite_rule_ids = None) file =
 
 let parse_and_filter_invalid_rules ?rewrite_rule_ids file =
   parse_file ~error_recovery:true ?rewrite_rule_ids file
-  [@@profiling]
+[@@profiling]
 
 let parse_xpattern xlang (str, tok) =
   let env =

@@ -154,7 +154,7 @@ and eval_expr (env : V.env) (v : expr) : V.value_ =
   | Call
       ( (ArrayAccess
            (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, [ meth ], _))), _))
-        as e0),
+         as e0),
         (l, args, r) ) ->
       eval_std_method env e0 meth (l, args, r)
   | Local (_tlocal, binds, _tsemi, e) ->
@@ -678,7 +678,7 @@ and tostring (v : V.value_) : string =
 (*Same as eval_expr but with profiling *)
 and eval_program_with_env (env : V.env) (e : Core_jsonnet.program) : V.value_ =
   eval_expr env e
-  [@@profiling]
+[@@profiling]
 
 and eval_program (e : Core_jsonnet.program) : V.value_ =
   eval_program_with_env V.empty_env e

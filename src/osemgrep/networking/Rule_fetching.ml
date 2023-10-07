@@ -246,7 +246,7 @@ let import_callback ~registry_caching base str =
              Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
                  (* LATER: adjust locations so refer to registry URL *)
                  parse_yaml_for_jsonnet file))
-  [@@profiling]
+[@@profiling]
 
 (* similar to Parse_rule.parse_file but with special import callbacks
  * for a registry-aware jsonnet.
@@ -494,4 +494,4 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
                  | R.Error _
                  | Failure _ ->
                      None))
-  [@@profiling]
+[@@profiling]

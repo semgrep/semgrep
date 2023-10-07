@@ -63,6 +63,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Composer
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Nuget
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Pub
 
 logger = getLogger(__name__)
 
@@ -90,6 +91,7 @@ ECOSYSTEM_TO_LOCKFILES = {
     Ecosystem(Maven()): ["maven_dep_tree.txt", "gradle.lockfile"],
     Ecosystem(Composer()): ["composer.lock"],
     Ecosystem(Nuget()): ["packages.lock.json"],
+    Ecosystem(Pub()): ["pubspec.lock"],
 }
 
 
@@ -786,6 +788,7 @@ class TargetManager:
             Ecosystem(Maven()),
             Ecosystem(Composer()),
             Ecosystem(Nuget()),
+            Ecosystem(Pub()),
         }
 
         return {

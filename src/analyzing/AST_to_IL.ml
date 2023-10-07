@@ -537,7 +537,7 @@ and expr_aux env ?(void = false) e_gen =
       )
   | G.Call
       ( ({ e = G.IdSpecial ((G.This | G.Super | G.Self | G.Parent), tok); _ } as
-        e),
+         e),
         args ) ->
       call_generic env ~void tok e args
   | G.Call

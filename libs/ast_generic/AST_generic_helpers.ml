@@ -477,7 +477,7 @@ let ii_of_any any =
   let globals = ref [] in
   v#visit_any globals any;
   List.rev !globals
-  [@@profiling]
+[@@profiling]
 
 let info_of_any any =
   match ii_of_any any with
@@ -568,7 +568,7 @@ let set_e_range_with_anys anys e =
 
 let range_of_tokens tokens =
   List.filter Tok.is_origintok tokens |> Tok_range.min_max_toks_by_pos
-  [@@profiling]
+[@@profiling]
 
 let range_of_any_opt any =
   (* Even if the ranges are cached, calling `extract_ranges` to get them
@@ -585,7 +585,7 @@ let range_of_any_opt any =
       | Error _ -> None)
   | G.Anys [] -> None
   | _ -> extract_ranges any
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Nearest Any node of a position *)

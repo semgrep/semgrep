@@ -532,10 +532,10 @@ let rec find_macro_lineparen xs =
         | _ -> false
       in
       (if condition then
-       (* just to avoid the end-of-stream pb of ocamlyacc  *)
-       let tcpar = Common2.list_last info_parens in
-       change_tok tcpar (TCPar_EOL (TH.info_of_tok tcpar.t))
-       (*macro.t <- TMacroTop (s, TH.info_of_tok macro.t);*));
+         (* just to avoid the end-of-stream pb of ocamlyacc  *)
+         let tcpar = Common2.list_last info_parens in
+         change_tok tcpar (TCPar_EOL (TH.info_of_tok tcpar.t))
+         (*macro.t <- TMacroTop (s, TH.info_of_tok macro.t);*));
       find_macro_lineparen xs
   (* macro with parameters
    * ex: DEBUG()
@@ -587,7 +587,7 @@ let rec find_macro_lineparen xs =
    *)
   | Line
       ([ PToken ({ t = TIdent (_s, _ii); col = col1; where = ctx } as macro) ]
-      as _line1)
+       as _line1)
     :: (Line (PToken ({ col = col2 } as other) :: _restline2) as line2)
     :: xs ->
       (* when s ==~ regexp_macro *)

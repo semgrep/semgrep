@@ -122,4 +122,4 @@ let apply equivs lang any =
   in
   let env = Matching_generic.environment_of_any lang config any in
   visitor#visit_any env any
-  [@@profiling]
+[@@profiling]

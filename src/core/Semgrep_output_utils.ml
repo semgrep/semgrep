@@ -44,7 +44,7 @@ let lines_of_file_at_range (range : position * position) (file : Fpath.t) :
     string list =
   let start, end_ = range in
   File.lines_of_file (start.line, end_.line) file
-  [@@profiling]
+[@@profiling]
 
 (* Returns the text between the positions; start inclusive, end exclusive.
  * TODO: same than above, ideally would take a Parse_info range
@@ -57,7 +57,7 @@ let content_of_file_at_range (range : position * position) (file : Fpath.t) :
   let start, end_ = range in
   let str = File.read_file file in
   String.sub str start.offset (end_.offset - start.offset)
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Tok.t to Out.location *)

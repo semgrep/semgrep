@@ -26,13 +26,11 @@ val verbose_level : int ref
 (*s: common.mli misc/test *)
 val generic_print : 'a -> string -> string
 
-class ['a] olist :
-  'a list
-  -> object
-       val xs : 'a list
-       method fold : ('b -> 'a -> 'b) -> 'b -> 'b
-       method view : 'a list
-     end
+class ['a] olist : 'a list -> object
+  val xs : 'a list
+  method fold : ('b -> 'a -> 'b) -> 'b -> 'b
+  method view : 'a list
+end
 
 val typing_sux_test : unit -> unit
 (*e: common.mli misc/test *)
@@ -346,16 +344,14 @@ val forever : (unit -> unit) -> unit
 val applyn : int -> ('a -> 'a) -> 'a -> 'a
 val on : ('b -> 'b -> 'c) -> ('a -> 'b) -> 'a -> 'a -> 'c
 
-class ['a] shared_variable_hook :
-  'a
-  -> object
-       val mutable data : 'a
-       val mutable registered : (unit -> unit) list
-       method get : 'a
-       method modify : ('a -> 'a) -> unit
-       method register : (unit -> unit) -> unit
-       method set : 'a -> unit
-     end
+class ['a] shared_variable_hook : 'a -> object
+  val mutable data : 'a
+  val mutable registered : (unit -> unit) list
+  method get : 'a
+  method modify : ('a -> 'a) -> unit
+  method register : (unit -> unit) -> unit
+  method set : 'a -> unit
+end
 
 val fixpoint : ('a -> 'a) -> 'a -> 'a
 
@@ -996,7 +992,14 @@ val readdir_to_file_list : string -> filename list
 val readdir_to_link_list : string -> string list
 val readdir_to_dir_size_list : string -> (string * int) list
 val unixname : unit -> string
+
 val glob : string -> filename list
+(** [glob pattern] takes in a pattern containing a wildcard
+  * i.e. ["dir/**/*.extension"] will match any file in the dir directory
+  * or subdirectories ending in .extension. This function is equivalent
+  * to "ls pattern" in the shell.
+  *)
+
 val files_of_dir_or_files : string (* ext *) -> string list -> filename list
 
 val files_of_dir_or_files_no_vcs :

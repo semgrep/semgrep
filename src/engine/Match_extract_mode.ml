@@ -366,8 +366,8 @@ let extract_and_concat erule_table xtarget matches =
                               line;
                               column =
                                 (if line =|= 1 then
-                                 loc.pos.column - consumed_loc.start_col
-                                else loc.pos.column);
+                                   loc.pos.column - consumed_loc.start_col
+                                 else loc.pos.column);
                             };
                         } ))
               ( { start_pos = 0; end_pos = 0; start_line = 0; start_col = 0 },

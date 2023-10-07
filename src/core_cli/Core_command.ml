@@ -52,7 +52,7 @@ let parse_pattern lang_pattern str =
                (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
              Rule_ID.of_string "no-id",
              Tok.unsafe_fake_tok "no loc" ))
-  [@@profiling]
+[@@profiling]
 
 let output_core_results (result_or_exn : Core_result.result_or_exn)
     (config : Core_scan_config.t) : unit =
@@ -127,7 +127,7 @@ let minirule_of_pattern lang pattern_string pattern =
     pattern;
     inside = false;
     message = "";
-    severity = Error;
+    severity = `Error;
     langs = [ lang ];
     fix = None;
   }
