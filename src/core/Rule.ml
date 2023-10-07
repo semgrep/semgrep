@@ -126,7 +126,7 @@ and focus_mv_list = tok * MV.mvar list [@@deriving show, eq, hash]
 (*****************************************************************************)
 
 (* this is now defined in semgrep_output_v1.atd *)
-type severity = Semgrep_output_v1_t.rule_severity [@@deriving show, eq]
+type severity = Semgrep_output_v1_t.match_severity [@@deriving show, eq]
 
 type validation_state = Semgrep_output_v1_t.validation_state
 [@@deriving show, eq]

@@ -324,7 +324,7 @@ let partition_findings ~keep_ignored (results : Out.cli_match list) =
 (*****************************************************************************)
 
 (* from rule_match.py *)
-let severity_to_int (severity : Out.rule_severity) =
+let severity_to_int (severity : Rule.severity) =
   match severity with
   | `Experiment -> `Int 4
   | `Warning -> `Int 1
@@ -334,7 +334,7 @@ let severity_to_int (severity : Out.rule_severity) =
       `Int 0
 
 (* this is used for sorting matches for findings *)
-let ord_of_severity (severity : Out.rule_severity) : int =
+let ord_of_severity (severity : Rule.severity) : int =
   match severity with
   | `Experiment -> 0
   | `Inventory -> 1
