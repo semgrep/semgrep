@@ -329,7 +329,8 @@ install-deps-ALPINE-for-pysemgrep:
 # - pkg-config: for conf-pkg-config, which is needed by ocaml-pcre
 # - coreutils: GNU coreutils, needed by build process
 # - gettext?
-BREW_DEPS=pcre gmp pkg-config coreutils gettext
+# - zstd: used by ???
+BREW_DEPS=pcre gmp pkg-config coreutils gettext zstd
 
 # see also scripts/osx-setup-for-release.sh that adjust those
 # external packages to force static-linking
