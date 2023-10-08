@@ -16,11 +16,13 @@ bug-reports: "https://github.com/returntocorp/semgrep/issues"
 depends: [
   "ocaml" {>= "5.1.0"}
   "dune" {>= "3.7" & >= "2.7.0"}
+  "conf-zstd" {>= "1.3.8"}
   "menhir" {= "20230608"}
   "base" {>= "v0.15.1"}
   "fpath"
   "bos"
   "alcotest"
+  "alcotest-js"
   "fmt"
   "ocolor"
   "ANSITerminal"

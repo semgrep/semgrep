@@ -391,6 +391,7 @@ For more information see https://semgrep.dev
     ; core deps
     (ocaml (>= 5.1.0))
     (dune (>= 2.7.0 ))
+    (conf-zstd (>= 1.3.8))  ; needed for ocaml 5.1
     ; parser generators
     (menhir (= 20230608))
     ; standard libraries
