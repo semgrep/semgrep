@@ -149,6 +149,28 @@ class ['self] matching_visitor =
        * from a function but without the return keyword. This is not explicit
        * in Generic so we cannot match statement patterns against these
        * expressions. This equivalence enables that.
+       *
+       * We need an equivalence here, and we also need support in Generic_vs_generic
+       * in order to handle 2 different cases.
+       *
+       * The equivalence here will result in comparing
+       *   return $X
+       * against
+       *   return expr
+       * in Generic_vs_generic.
+       *
+       * On the other hand, in Generic_vs_generic, we would like to match
+       *   return $X
+       * against
+       *   expr_stmt
+       * which can happen when return $X and expr_stmt is nested within
+       * some context.
+       *
+       * Alt: we could add more special cases in Generic_vs_generic to handle
+       * things like FBExpr (which is not visited when matching the pattern
+       ' `return`, because FBExpr is an expression, not a statement), but the
+       * equivalence feels more natural here, and it allows us to keep
+       * the cases in Generic_vs_generic not too complicated.
        *)
       if env.implicit_return && e.is_implicit_return then
         let ret = Return (fake "return", Some e, sc) |> s in

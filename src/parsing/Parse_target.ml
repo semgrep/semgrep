@@ -97,14 +97,6 @@ let just_parse_with_lang lang file =
   | _else_ -> !just_parse_with_lang_ref lang file
 [@@profiling]
 
-let lang_supports_implicit_return (lang : Lang.t) =
-  match lang with
-  | Ruby
-  | Rust
-  | Julia ->
-      true
-  | _else_ -> false
-
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -120,21 +112,20 @@ let parse_and_resolve_name lang file =
   Naming_AST.resolve lang ast;
   Typing.check_program lang ast;
 
-  let cfgs = CFG_build.cfgs_in_program lang ast in
-
   (* Flow-insensitive constant propagation. *)
   Constant_propagation.propagate_basic lang ast;
 
+  let cfgs, top_level_cfg = CFG_build.cfgs_in_program lang ast in
+
   (* Flow-sensitive constant propagation. *)
-  cfgs
-  |> List.iter (fun (inputs, flow) ->
-         Constant_propagation.propagate_dataflow_one_function lang inputs flow);
+  Constant_propagation.propagate_dataflow_program lang (top_level_cfg :: cfgs);
 
   (* Implicit return analysis. *)
-  if lang_supports_implicit_return lang then
-    cfgs
-    |> List.iter (fun (_, flow) ->
-           Implicit_return.mark_implicit_return_nodes flow);
+  if Implicit_return.lang_supports_implicit_return lang then
+    (* The top-level function isn't an actual function, so we will not
+     * be including its CFG in the analysis.
+     *)
+    Implicit_return.mark_implicit_return_nodes cfgs;
 
   logger#info "Parse_target.parse_and_resolve_name done";
   res

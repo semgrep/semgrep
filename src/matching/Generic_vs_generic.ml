@@ -2271,6 +2271,9 @@ and m_attributes a b = m_list_in_any_order ~less_is_ok:true m_attribute a b
 (*****************************************************************************)
 (* Implicit return *)
 (*****************************************************************************)
+(* For matching `return a` with `b` when `b` is the last executed expression
+ * in a function. Here, `a` must come from a return statement.
+ *)
 and m_implicit_return (a : G.expr) (b : B.expr) tin =
   if tin.config.implicit_return && b.is_implicit_return then m_expr_root a b tin
   else fail () tin

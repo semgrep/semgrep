@@ -78,6 +78,8 @@ type state = {
   unused_lambdas : (name, nodei * nodei) Hashtbl.t;
 }
 
+type fun_cfg = { fparams : name list; fcfg : cfg }
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -358,10 +360,12 @@ and cfg_lambda state previ joini fdef =
      *
      * alt: We could inline lambdas perhaps?
   *)
-  let newi = state.g#add_node { F.n = NLambda fdef.fparams } in
+  let newi = state.g#add_node { F.n = NLambda fdef.IL.fparams } in
   state.g |> add_arc (previ, newi);
   let finallambda, _ignore_throws_in_lambda_ =
-    cfg_stmt_list { state with throw_destination = None } (Some newi) fdef.fbody
+    cfg_stmt_list
+      { state with throw_destination = None }
+      (Some newi) fdef.IL.fbody
   in
   state.g |> add_arc_from_opt (finallambda, joini)
 
@@ -488,23 +492,22 @@ let (cfg_of_stmts : stmt list -> F.cfg) =
   g |> add_arc_from_opt (last_node_opt, exiti);
   CFG.make g enteri exiti
 
-let cfgs_in_program (lang : Lang.t) (ast : G.program) :
-    (IL.name list * IL.cfg) list =
+let cfgs_in_program (lang : Lang.t) (ast : G.program) : fun_cfg list * fun_cfg =
   match lang with
   | Lang.Dockerfile ->
       (* Dockerfile has no functions. The whole file is just a single scope *)
       let xs =
         AST_to_IL.stmt lang (G.Block (Tok.unsafe_fake_bracket ast) |> G.s)
       in
-      let flow = cfg_of_stmts xs in
-      [ ([], flow) ]
+      let fcfg = cfg_of_stmts xs in
+      ([], { fparams = []; fcfg })
   | _ ->
       let cfgs = ref [] in
       ast
       |> Visit_function_defs.visit (fun _ent fdef ->
-             let inputs, xs = AST_to_IL.function_definition lang fdef in
-             let flow = cfg_of_stmts xs in
-             cfgs := (inputs, flow) :: !cfgs);
+             let fparams, xs = AST_to_IL.function_definition lang fdef in
+             let fcfg = cfg_of_stmts xs in
+             cfgs := { fparams; fcfg } :: !cfgs);
 
       (* We consider the top-level function the interior of a degenerate function,
          and simply run constant propagation on that.
@@ -513,5 +516,5 @@ let cfgs_in_program (lang : Lang.t) (ast : G.program) :
          duplicate any work.
       *)
       let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
-      let flow = cfg_of_stmts xs in
-      ([], flow) :: !cfgs
+      let fcfg = cfg_of_stmts xs in
+      (!cfgs, { fparams = []; fcfg })

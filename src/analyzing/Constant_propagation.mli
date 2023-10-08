@@ -23,3 +23,6 @@ val propagate_dataflow_one_function :
   unit
 
 val propagate_dataflow : Lang.t -> AST_generic.program -> unit
+
+(* Perform constant propagation on the given CFGs of the whole program. *)
+val propagate_dataflow_program : Lang.t -> CFG_build.fun_cfg list -> unit

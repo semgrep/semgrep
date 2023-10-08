@@ -49,12 +49,26 @@ let rec mark_first_instr_ancestor (cfg : IL.cfg) i =
       | _else_ -> ())
   | _else_ -> ()
 
-(*****************************************************************************)
-(* Entry point *)
-(*****************************************************************************)
-
-let mark_implicit_return_nodes (cfg : IL.cfg) =
+let mark_implicit_return_nodes_one_function (cfg : IL.cfg) =
   (* Traverse backward from exit and mark the expression in the
    * first instruction node along each path.
    *)
   mark_first_instr_ancestor cfg cfg.exit
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
+let lang_supports_implicit_return (lang : Lang.t) =
+  match lang with
+  | Ruby
+  | Rust
+  | Julia ->
+      true
+  | _else_ -> false
+
+let mark_implicit_return_nodes (fun_cfgs : CFG_build.fun_cfg list) =
+  fun_cfgs
+  |> List.iter (fun fun_cfg ->
+         match (fun_cfg : CFG_build.fun_cfg) with
+         | { fparams = _; fcfg } -> mark_implicit_return_nodes_one_function fcfg)
