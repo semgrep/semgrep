@@ -69,7 +69,7 @@ the other programming languages supported by atdgen."
   (license "LGPL-2.1-only")
   (depends
     (ocaml (>= 4.13.0))
-    (dune (>= 3.2.0))
+    (dune (and (>= 3.2.0) (<= 3.10.0)))
     (commons (>= 1.8.0))
     (lib_parsing (>= 1.5.5))
     (profiling (>= 1.5.5))
@@ -93,7 +93,7 @@ a few other projects developed at r2c.
 
   (depends
     (ocaml (>= "4.13.0"))
-    (dune (>= "3.2.0" ))
+    (dune (and (>= "3.2.0") (<= "3.10.0")))
     (ANSITerminal (>= "0.8.4"))
     (alcotest (>= "1.5.0"))
     (cmdliner (>= "1.1.1" ))
@@ -154,7 +154,7 @@ parsers, especially ocamlyacc/menhir based parsers.
 
   (depends
     (ocaml (>= "4.13.0"))
-    (dune (>= "3.2.0" ))
+    (dune (and (>= "3.2.0") (<= "3.10.0")))
     (commons (>= "1.5.5"))
     (profiling (>= "1.5.5"))
     (fpath (>= "0.7.3"))
@@ -334,7 +334,7 @@ time and memory used by Semgrep.
 
   (depends
     (ocaml (>= "4.13.0"))
-    (dune (>= "3.2.0" ))
+    (dune (and (>= "3.2.0") (<= "3.10.0")))
     (commons (>= "1.5.5"))
   )
 )
@@ -355,7 +355,7 @@ functions.
 
   (depends
     (ocaml (>= "4.13.0"))
-    (dune (>= "3.2.0" ))
+    (dune (and (>= "3.2.0") (<= "3.10.0")))
     (commons (>= "1.5.5"))
     (process_limits (>= "1.5.5"))
   )
@@ -390,7 +390,7 @@ For more information see https://semgrep.dev
   (depends
     ; core deps
     (ocaml (>= 5.1.0))
-    (dune (>= 2.7.0 ))
+    (dune (and (>= 2.7.0) (<= 3.10.0)))
     ; parser generators
     (menhir (= 20230608))
     ; standard libraries
@@ -473,7 +473,7 @@ Uses indentation and standard braces to determine a crude parse tree
     atdgen
     ANSITerminal
     cmdliner
-    (dune (>= 2.1))
+    (dune (and (>= 2.1) (<= 3.10.0)))
   )
 )
 
