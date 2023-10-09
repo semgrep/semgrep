@@ -315,7 +315,7 @@ function handle_exec_error(loc, ret) {
 }
 
 //Provides: pcre_exec_stub_bc
-//Requires: handle_exec_error, libpcre, pcre_alloc_string, caml_invalid_argument, auto_malloc
+//Requires: handle_exec_error, libpcre, pcre_alloc_string, caml_invalid_argument, auto_malloc, caml_jsstring_of_string
 function pcre_exec_stub_bc(
   v_opt,
   v_rex,
@@ -329,6 +329,7 @@ function pcre_exec_stub_bc(
   var ret;
   var is_dfa = !!v_workspace;
   var pos = v_pos;
+  var v_subj = caml_jsstring_of_string(v_subj);
   var len = libpcre.lengthBytesUTF8(v_subj);
   var subj_start = v_subj_start;
 
