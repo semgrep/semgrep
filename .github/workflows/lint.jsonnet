@@ -1,13 +1,17 @@
 // The main goal of this workflow is to run pre-commit on every pull requests.
-// Dogfood: note that we run Semgrep inside pre-commit, so this is also dogfooding
+// Note that we run Semgrep inside pre-commit, so this is also dogfooding
 // and testing how semgrep interact with pre-commit.
 // We also run some Github Actions (GHA) lint checks.
 
 local actions = import "libs/actions.libsonnet";
 
+// ----------------------------------------------------------------------------
+// The jobs
+// ----------------------------------------------------------------------------
+
 // Running pre-commit in CI. See semgrep/.pre-commit-config.yaml for
 // our pre-commit configuration.
-local pre_commit = {
+local pre_commit_job = {
   'runs-on': 'ubuntu-latest',
   steps: [
     {
@@ -56,7 +60,7 @@ local pre_commit = {
 // The intention is a test that runs semgrep-pre-commit.
 // (TODO: actually it looks like we also run Semgrep Bandit/Python in normal pre-commit)
 // TODO? should we split this out to a different config?
-local pre_commit_manual = {
+local pre_commit_manual_job = {
   'runs-on': 'ubuntu-latest',
   steps: [
     {
@@ -75,7 +79,7 @@ local pre_commit_manual = {
 };
 
 // Running the ocamlformat part of pre-commit, which requires a special container
-local pre_commit_ocaml =
+local pre_commit_ocaml_job =
   {
     // Even if there's a 'container:' below, we still need a 'runs-on:', to say which VM will
     // run the Docker container. See https://github.com/orgs/community/discussions/25534
@@ -124,7 +128,7 @@ local pre_commit_ocaml =
   };
 
 // TODO: we should port those GHA checks to semgrep and add them in semgrep-rules
-local action_lint = {
+local action_lint_job = {
   'runs-on': 'ubuntu-latest',
   steps: [
     actions.checkout(),
@@ -143,9 +147,11 @@ local action_lint = {
   ],
 };
 
+// ----------------------------------------------------------------------------
+// The Workflow
+// ----------------------------------------------------------------------------
 
 {
-  name: 'lint',
   on: {
     workflow_dispatch: null,
     pull_request: null,
@@ -156,9 +162,9 @@ local action_lint = {
     },
   },
   jobs: {
-    'pre-commit': pre_commit,
-    'pre-commit-manual': pre_commit_manual,
-    'pre-commit-ocaml': pre_commit_ocaml,
-    'github-actions': action_lint,
+    'pre-commit': pre_commit_job,
+    'pre-commit-manual': pre_commit_manual_job,
+    'pre-commit-ocaml': pre_commit_ocaml_job,
+    'github-actions': action_lint_job,
   },
 }
