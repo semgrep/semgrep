@@ -39,5 +39,6 @@ module Make (MessageHandler : sig
   val capabilities : Lsp.Types.ServerCapabilities.t
 end) : sig
   val start : t -> unit
+  val start_async : t -> unit Lwt.t
   val create : unit -> t
 end

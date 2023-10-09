@@ -215,6 +215,7 @@ struct
             Lwt.pause ())
 
   let start server = Lwt_main.run (rpc_loop server ())
+  let start_async server = rpc_loop server ()
 
   (* See: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification *)
 
