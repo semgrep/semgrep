@@ -1,8 +1,8 @@
 // This workflow dogfoods 'semgrep ci' (with Code, Supply Chain, Secrets).
 
-local secrets = {
-  SEMGREP_APP_TOKEN: '${{ secrets.SEMGREP_APP_TOKEN }}',
-};
+local gha = import 'gha.libsonnet';
+local actions = import "actions.libsonnet";
+local semgrep = import 'semgrep.libsonnet';
 
 local job = {
   name: 'semgrep ci',
@@ -12,17 +12,14 @@ local job = {
     // see https://www.notion.so/semgrep/returntocorp-semgrep-canary-docker-canary
     image: 'returntocorp/semgrep:canary',
   },
-  env: secrets,
-  'if': "(github.actor != 'dependabot[bot]')",
+  env: semgrep.secrets,
   steps: [
-    {
-      uses: 'actions/checkout@v3',
-    },
+    actions.checkout(),
     {
       run: 'semgrep ci',
     },
   ],
-};
+} + gha.dependabot_guard;
 
 {
   name: 'semgrep',

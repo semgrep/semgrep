@@ -11,13 +11,13 @@ name: semgrep
     - cron: 50 15 * * *
 jobs:
   semgrep:
+    if: (github.actor != 'dependabot[bot]')
     name: semgrep ci
     runs-on: ubuntu-20.04
     container:
       image: returntocorp/semgrep:canary
     env:
       SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
-    if: (github.actor != 'dependabot[bot]')
     steps:
       - uses: actions/checkout@v3
       - run: semgrep ci
