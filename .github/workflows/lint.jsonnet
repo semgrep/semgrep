@@ -152,6 +152,7 @@ local action_lint_job = {
 // ----------------------------------------------------------------------------
 
 {
+  name: 'lint',
   on: {
     workflow_dispatch: null,
     pull_request: null,

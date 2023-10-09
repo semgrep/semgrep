@@ -1,0 +1,211 @@
+// This workflow builds and tests the semgrep-core binary for macOS X86
+// and generates the osx-wheel for pypi.
+
+// This workflow uses the actions/cache@v3 GHA extension to cache
+// the ~/.opam directory, which is different from what we do for our other
+// architecture's build processes.
+// This workflow runs on GHA-hosted runners and without caching it would run
+// very slowly (like 35min instead of 10min with caching). The Linux build process
+// uses a special container (returntocorp/ocaml:alpine-xxx) to bring in the
+// required dependencies, which makes opam switch create unnecessary and opam
+// install almost a noop. The M1 build runs on fast self-hosted runners where
+// caching does not seem to be necessary.
+// TODO? If this experiment goes well, we might want to use this ~/.opam caching
+// technique also for M1 for consistency, and maybe even get rid of our
+// returntocorp/ocaml:alpine-xxx container to simplify things.
+//
+// To update to a new version of OCaml, we can modify the `OPAM_SWITCH_NAME` var
+// below, which will update the cache key, and lead to a cache miss on the new builds.
+// TODO? we might want to use opam.lock as a key so any update to our dependencies
+// would automatically trigger a cache miss and generate a fresh ~/.opam.
+//
+// alt:
+//  - use a self-hosted runner where we can save the content of ~/.opam between
+//    runs and do whatever we want. The problem is that the build is then
+//    not "hermetic", and we ran in many issues such as the disk of the self-hosted
+//    runner being full, or some stuff being left from other CI runs
+//    (such as a semgrep install) entering in conflicts with some of our build steps.
+//    This also requires some devops work to create and maintain those pools of
+//    self-hosted runners.
+//  - use a GHA-hosted runner which is nice because we don't have to do
+//    anything, and the build are guaranteed to be hermetic. The only problem originally
+//    was that it was slower, and for unknown reasons ocamlc was not working well
+//    on those macos-12 GHA runners, but caching the ~/.opam with actions/cache@v3
+//    seems to solve the speed issue (and maybe ocamlc works now well under macos-12).
+//  - use a technique similar to what we do for Linux with our special container, but
+//    can this be done for macos?
+//
+// See also https://www.notion.so/semgrep/Caching-the-Opam-Environment-5d7e594203884d289acdac53713fb39f for more information.
+//
+// coupling: if you modify this file, modify also build-test-osx-arm64.yaml
+
+// ----------------------------------------------------------------------------
+// The jobs
+// ----------------------------------------------------------------------------
+local build_core_osx_job = {
+  name: 'Build the OSX binaries',
+  'runs-on': 'macos-12',
+  env: {
+    // This name is used in the cache key. If we update to a newer version of
+    // ocaml, we'll want to change the OPAM_SWITCH_NAME as well to avoid issues
+    // with caching.
+    OPAM_SWITCH_NAME: '5.0.0',
+  },
+  steps: [
+    {
+      uses: 'actions/checkout@v3',
+      with: {
+        submodules: true,
+      },
+    },
+    // Note that this actions does cache read and cache write.
+    // See https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows for more information on GHA caching.
+    // Note that this works and speedup things because of the way OPAM works
+    // and osx-setup-for-release.sh is written. Indeed, this script checks
+    // if the opam switch is already created, and if a package is already
+    // installed (in ~/.opam), then opam install on this package will do nothing.
+    // If we use new packages in semgrep.opam, then we currently would still
+    // hit the cache unfortunately, but we would spend time only for installing
+    // those new packages (ideally we would want to regenerate the cache by
+    // using an opam.pock in the cache key).
+    {
+      name: 'Cache Opam',
+      uses: 'actions/cache@v3',
+      'if': '${{ inputs.use-cache }}',
+      env: {
+        SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2,
+      },
+      with: {
+        path: '~/.opam',
+        //TODO: we should add the md5sum of opam.lock as part of the key
+        key: '${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps-${{ github.run_id }}',
+        'restore-keys': '${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps\n',
+      },
+    },
+    {
+      name: 'Install dependencies',
+      run: './scripts/osx-setup-for-release.sh "${{ env.OPAM_SWITCH_NAME }}"\n',
+    },
+    {
+      name: 'Compile semgrep',
+      run: |||
+        opam exec -- make core
+        mkdir -p artifacts
+        cp ./bin/semgrep-core artifacts
+        zip -r artifacts.zip artifacts
+      |||,
+    },
+    {
+      uses: 'actions/upload-artifact@v3',
+      with: {
+        path: 'artifacts.zip',
+        name: 'semgrep-osx-${{ github.sha }}',
+      },
+    },
+  ],
+};
+
+local build_wheels_osx_job = {
+  'runs-on': 'macos-12',
+  needs: [
+    'build-core-osx',
+  ],
+  steps: [
+    {
+      uses: 'actions/checkout@v3',
+      with: {
+        submodules: true,
+      },
+    },
+    {
+      uses: 'actions/download-artifact@v3',
+      with: {
+        name: 'semgrep-osx-${{ github.sha }}',
+      },
+    },
+    {
+      run: 'unzip artifacts.zip\ncp artifacts/semgrep-core cli/src/semgrep/bin\n./scripts/build-wheels.sh --plat-name macosx_10_14_x86_64\n',
+    },
+    {
+      uses: 'actions/upload-artifact@v3',
+      with: {
+        path: 'cli/dist.zip',
+        name: 'osx-x86-wheel',
+      },
+    },
+  ],
+};
+
+local test_wheels_osx_x86_job = {
+  'runs-on': 'macos-12',
+  needs: [
+    'build-wheels-osx',
+  ],
+  steps: [
+    {
+      uses: 'actions/download-artifact@v1',
+      with: {
+        name: 'osx-x86-wheel',
+      },
+    },
+    {
+      run: 'unzip ./osx-x86-wheel/dist.zip',
+    },
+    {
+      name: 'install package',
+      run: 'pip3 install dist/*.whl',
+    },
+    {
+      run: 'semgrep --version',
+    },
+    {
+      name: 'e2e semgrep-core test',
+      run: "echo '1 == 1' | semgrep --debug -l python -e '$X == $X' -",
+    },
+    {
+      name: 'test dynamically linked libraries are in /usr/lib/',
+      shell: 'bash {0}',
+      run: |||
+        otool -L $(semgrep --dump-engine-path) | tee otool.txt
+        if [ $? -ne 0 ]; then
+          echo "Failed to list dynamically linked libraries.";
+          exit 1;
+        fi
+        NON_USR_LIB_DYNAMIC_LIBRARIES=$(tail -n +2 otool.txt | grep -v "^\s*/usr/lib/")
+        if [ $? -eq 0 ]; then
+          echo "Error: semgrep-core has been dynamically linked against libraries outside /usr/lib:"
+          echo $NON_USR_LIB_DYNAMIC_LIBRARIES
+          exit 1;
+        fi;
+      |||,
+    },
+  ],
+};
+
+// ----------------------------------------------------------------------------
+// The Workflow
+// ----------------------------------------------------------------------------
+
+local use_cache_inputs = {
+  inputs: {
+    'use-cache': {
+      description: 'Use Opam Cache - uncheck the box to disable use of the opam cache, meaning a long-running but completely from-scratch build.',
+      required: true,
+      type: 'boolean',
+      default: true,
+    },
+  },
+};
+
+{
+  name: 'build-test-osx-x86',
+  on: {
+    workflow_dispatch: use_cache_inputs,
+    workflow_call: use_cache_inputs,
+  },
+  jobs: {
+    'build-core-osx': build_core_osx_job,
+    'build-wheels-osx': build_wheels_osx_job,
+    'test-wheels-osx-x86': test_wheels_osx_x86_job,
+  },
+}

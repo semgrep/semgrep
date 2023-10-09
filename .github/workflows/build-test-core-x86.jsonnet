@@ -7,7 +7,7 @@ local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
 // ----------------------------------------------------------------------------
-// The jobs
+// The job
 // ----------------------------------------------------------------------------
 
 local build_test_core_job =
@@ -56,6 +56,9 @@ local build_test_core_job =
 {
   on: {
     workflow_dispatch: null,
+    // This is called from tests.yml and release.yml
+    // TODO: just make this job a function so no need
+    // to use this ugly GHA inherit/workflow_call thing
     workflow_call: null,
   },
   jobs: {

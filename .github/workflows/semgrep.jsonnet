@@ -32,6 +32,8 @@ local semgrep_ci_job = {
 // ----------------------------------------------------------------------------
 
 {
+  // without this name:, the workflow would look as ".github/workflows/lint.yml ..."
+  name: 'semgrep',
   on: {
     // This workflow runs on 'pull_request_target' so that PRs from forks are able
     // to run an action that uses the SEMGREP_APP_TOKEN secret.
