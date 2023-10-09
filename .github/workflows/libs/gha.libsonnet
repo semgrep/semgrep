@@ -4,6 +4,12 @@
 
 
 {
+  // Why this is not the default? GHA ...
+  speedy_checkout_step: {
+    name: 'Make checkout speedy',
+    run: 'git config --global fetch.parallel 50',
+  },
+  // stay away dependabot, bad dog.
   dependabot_guard: {
     'if': "(github.actor != 'dependabot[bot]')",
   },

@@ -16,7 +16,7 @@ name: build-test-osx-x86
         description:
           Use Opam Cache - uncheck the box to disable use of the opam cache,
           meaning a long-running but completely from-scratch build.
-        required: true
+        required: false
         type: boolean
         default: true
 jobs:
@@ -64,8 +64,8 @@ jobs:
         with:
           name: semgrep-osx-${{ github.sha }}
       - run:
-          unzip artifacts.zip\ncp artifacts/semgrep-core cli/src/semgrep/bin\n./scripts/build-wheels.sh
-          --plat-name macosx_10_14_x86_64\n
+          "\n        unzip artifacts.zip\n        cp artifacts/semgrep-core cli/src/semgrep/bin\n
+          \       ./scripts/build-wheels.sh --plat-name macosx_10_14_x86_64\n      "
       - uses: actions/upload-artifact@v3
         with:
           path: cli/dist.zip

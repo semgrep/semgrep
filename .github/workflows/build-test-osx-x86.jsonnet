@@ -1,6 +1,14 @@
 // This workflow builds and tests the semgrep-core binary for macOS X86
 // and generates the osx-wheel for pypi.
 
+// coupling: if you modify this file, modify also build-test-osx-arm64.yaml
+
+local actions = import 'libs/actions.libsonnet';
+
+// ----------------------------------------------------------------------------
+// Notes on caching (TODO: move in semgrep.libsonnet at some point)
+// ----------------------------------------------------------------------------
+
 // This workflow uses the actions/cache@v3 GHA extension to cache
 // the ~/.opam directory, which is different from what we do for our other
 // architecture's build processes.
@@ -36,8 +44,32 @@
 //    can this be done for macos?
 //
 // See also https://www.notion.so/semgrep/Caching-the-Opam-Environment-5d7e594203884d289acdac53713fb39f for more information.
-//
-// coupling: if you modify this file, modify also build-test-osx-arm64.yaml
+
+
+// Note that this actions does cache read and cache write.
+// See https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows for more information on GHA caching.
+// Note that this works and speedup things because of the way OPAM works
+// and osx-setup-for-release.sh is written. Indeed, this script checks
+// if the opam switch is already created, and if a package is already
+// installed (in ~/.opam), then opam install on this package will do nothing.
+// If we use new packages in semgrep.opam, then we currently would still
+// hit the cache unfortunately, but we would spend time only for installing
+// those new packages (ideally we would want to regenerate the cache by
+// using an opam.pock in the cache key).
+local cache_opam_step = {
+  name: 'Cache Opam',
+  uses: 'actions/cache@v3',
+  'if': '${{ inputs.use-cache }}',
+  env: {
+    SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2,
+  },
+  with: {
+    path: '~/.opam',
+    //TODO: we should add the md5sum of opam.lock as part of the key
+    key: '${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps-${{ github.run_id }}',
+    'restore-keys': '${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps\n',
+  },
+};
 
 // ----------------------------------------------------------------------------
 // The jobs
@@ -52,36 +84,8 @@ local build_core_osx_job = {
     OPAM_SWITCH_NAME: '5.0.0',
   },
   steps: [
-    {
-      uses: 'actions/checkout@v3',
-      with: {
-        submodules: true,
-      },
-    },
-    // Note that this actions does cache read and cache write.
-    // See https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows for more information on GHA caching.
-    // Note that this works and speedup things because of the way OPAM works
-    // and osx-setup-for-release.sh is written. Indeed, this script checks
-    // if the opam switch is already created, and if a package is already
-    // installed (in ~/.opam), then opam install on this package will do nothing.
-    // If we use new packages in semgrep.opam, then we currently would still
-    // hit the cache unfortunately, but we would spend time only for installing
-    // those new packages (ideally we would want to regenerate the cache by
-    // using an opam.pock in the cache key).
-    {
-      name: 'Cache Opam',
-      uses: 'actions/cache@v3',
-      'if': '${{ inputs.use-cache }}',
-      env: {
-        SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2,
-      },
-      with: {
-        path: '~/.opam',
-        //TODO: we should add the md5sum of opam.lock as part of the key
-        key: '${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps-${{ github.run_id }}',
-        'restore-keys': '${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps\n',
-      },
-    },
+    actions.checkout_with_submodules(),
+    cache_opam_step,
     {
       name: 'Install dependencies',
       run: './scripts/osx-setup-for-release.sh "${{ env.OPAM_SWITCH_NAME }}"\n',
@@ -111,12 +115,7 @@ local build_wheels_osx_job = {
     'build-core-osx',
   ],
   steps: [
-    {
-      uses: 'actions/checkout@v3',
-      with: {
-        submodules: true,
-      },
-    },
+    actions.checkout_with_submodules(),
     {
       uses: 'actions/download-artifact@v3',
       with: {
@@ -124,7 +123,11 @@ local build_wheels_osx_job = {
       },
     },
     {
-      run: 'unzip artifacts.zip\ncp artifacts/semgrep-core cli/src/semgrep/bin\n./scripts/build-wheels.sh --plat-name macosx_10_14_x86_64\n',
+      run: |||
+        unzip artifacts.zip
+        cp artifacts/semgrep-core cli/src/semgrep/bin
+        ./scripts/build-wheels.sh --plat-name macosx_10_14_x86_64
+      |||,
     },
     {
       uses: 'actions/upload-artifact@v3',
@@ -186,11 +189,11 @@ local test_wheels_osx_x86_job = {
 // The Workflow
 // ----------------------------------------------------------------------------
 
-local use_cache_inputs = {
+local use_cache_inputs(required) = {
   inputs: {
     'use-cache': {
       description: 'Use Opam Cache - uncheck the box to disable use of the opam cache, meaning a long-running but completely from-scratch build.',
-      required: true,
+      required: required,
       type: 'boolean',
       default: true,
     },
@@ -200,8 +203,8 @@ local use_cache_inputs = {
 {
   name: 'build-test-osx-x86',
   on: {
-    workflow_dispatch: use_cache_inputs,
-    workflow_call: use_cache_inputs,
+    workflow_dispatch: use_cache_inputs(required=true),
+    workflow_call: use_cache_inputs(required=false),
   },
   jobs: {
     'build-core-osx': build_core_osx_job,

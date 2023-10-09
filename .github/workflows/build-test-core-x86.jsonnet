@@ -4,6 +4,7 @@
 // build-test-manylinux-x86.yaml
 
 local actions = import 'libs/actions.libsonnet';
+local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
 // ----------------------------------------------------------------------------
@@ -18,10 +19,7 @@ local build_test_core_job =
   semgrep.ocaml_alpine_container
   {
     steps: [
-      {
-        name: 'Make checkout speedy',
-        run: 'git config --global fetch.parallel 50',
-      },
+      gha.speedy_checkout_step,
       actions.checkout_with_submodules(),
       {
         name: 'Build semgrep-core',
