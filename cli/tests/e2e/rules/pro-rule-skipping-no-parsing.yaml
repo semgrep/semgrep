@@ -1,0 +1,23 @@
+#
+# Rules that should be skipped due to a missing plugin.
+# These rules do not invoke the Apex parser, causing the "missing
+# plugin" parser error to be raised from another spot than with our
+# other test rule.
+#
+rules:
+  # This rule could be skipped silently because the string 'x' is not
+  # found in the target file, as an optimization.
+  - id: dummy-apex-rule-no-parsing-string-pattern
+    patterns:
+      - pattern-regex: x
+    message: "found x"
+    languages: [apex]
+    severity: ERROR
+  # This rule shouldn't be optimized away because the pattern is more
+  # complicated (and always matches).
+  - id: dummy-apex-rule-no-parsing-complex-pattern
+    patterns:
+      - pattern-regex: "x?"
+    message: "found x"
+    languages: [apex]
+    severity: ERROR

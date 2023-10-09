@@ -404,7 +404,15 @@ let parse_focus_mvs env (key : key) (x : G.expr) =
 let parse_language ~id ((s, t) as _lang) : Lang.t =
   match Lang.of_string_opt s with
   | None -> Rule.raise_error (Some id) (InvalidRule (InvalidLanguage s, id, t))
-  | Some l -> l
+  | Some lang -> (
+      (* Raise a rule error if a plugin (e.g. Apex) is missing. *)
+      (* TODO: find a better place to check for this?
+         Note that we don't want to delay this until target parsing time
+         which is lazy and may not take place due to optimizations. *)
+      match Parsing_plugin.check_if_missing lang with
+      | Ok () -> lang
+      | Error msg ->
+          Rule.raise_error (Some id) (InvalidRule (MissingPlugin msg, id, t)))
 
 (*
    This list specifies target selection and possible pattern parsers.
