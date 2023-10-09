@@ -6,44 +6,56 @@
 // the latest develop docker image of semgrep can check semgrep-rules, so
 // we should rarely get regressions when updating the semgrep-rules submodule.
 
+// -------------------------------------------------------------------------------------
+// Helpers
+// -------------------------------------------------------------------------------------
+
+// We use the semgrep-ci bot as the auth. The custom (internally-developed) docker image
+// below is used to get a JWT, which is then used by git to fetch the code.
+// Using the built-in secrets.GITHUB_TOKEN won't allow for downstream jobs to fire.
+// See https://docs.github.com/en/enterprise-cloud@latest/actions/using-workflows/triggering-a-workflow#triggering-a-workflow-from-a-workflow for more information
+// TODO: where is stored/configured/built this semgrep-ci github App?
+// TODO: where is configured this docker://public.ecr.aws/... image? How is it built?
+// TODO: if a token is rotated, do we need to update this docker link?
+local get_jwt() = {
+  name: 'Get JWT for semgrep-ci GitHub App',
+  id: 'jwt',
+  uses: 'docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest',
+  env: {
+    // This is the shortest expiration setting. It ensures that if an attacker got
+    // a hold of these credentials after the job runs, they're expired.
+    // TODO: how an attacker can access this credential?
+    EXPIRATION: 600,  // in seconds
+    ISSUER: '${{ secrets.SEMGREP_CI_APP_ID }}',
+    PRIVATE_KEY: '${{ secrets.SEMGREP_CI_APP_KEY }}',
+  }
+};
+
+// We are using the standard github-recommended method for short-live authentification
+// See https://docs.github.com/en/developers/apps/building-github-apps/authenticating-with-github-apps#authenticating-as-a-github-app
+local get_token() = {
+  name: 'Get token for semgrep-ci GitHub App',
+  id: 'token',
+  run: |||
+    TOKEN="$(curl -X POST \
+    -H "Authorization: Bearer ${{ steps.jwt.outputs.jwt }}" \
+    -H "Accept: application/vnd.github.v3+json" \
+    "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
+    jq -r .token)"
+    echo "::add-mask::$TOKEN"
+    echo "token=$TOKEN" >> $GITHUB_OUTPUT
+  |||,
+};
+
+// -------------------------------------------------------------------------------------
+// Main job
+// -------------------------------------------------------------------------------------
+
 local job = {
   'runs-on': 'ubuntu-latest',
   steps: [
-    // We use the semgrep-ci bot as the auth. The custom (internally-developed) docker image
-    // below is used to get a JWT, which is then used by git to fetch the code.
-    // Using the built-in secrets.GITHUB_TOKEN won't allow for downstream jobs to fire.
-    // See https://docs.github.com/en/enterprise-cloud@latest/actions/using-workflows/triggering-a-workflow#triggering-a-workflow-from-a-workflow for more information
-    // TODO: where is stored/configured/built this semgrep-ci github App?
-    // TODO: where is configured this docker://public.ecr.aws/... image? How is it built?
-    // TODO: if a token is rotated, do we need to update this docker link?
-    {
-      name: 'Get JWT for semgrep-ci GitHub App',
-      id: 'jwt',
-      uses: 'docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest',
-      env: {
-        // This is the shortest expiration setting. It ensures that if an attacker got
-        // a hold of these credentials after the job runs, they're expired.
-        // TODO: how an attacker can access this credential?
-        EXPIRATION: 600,  // in seconds
-        ISSUER: '${{ secrets.SEMGREP_CI_APP_ID }}',
-        PRIVATE_KEY: '${{ secrets.SEMGREP_CI_APP_KEY }}',
-      },
-    },
-    {
-      name: 'Get token for semgrep-ci GitHub App',
-      id: 'token',
-      // We are using the standard github-recommended method for short-live authentification
-      // See https://docs.github.com/en/developers/apps/building-github-apps/authenticating-with-github-apps#authenticating-as-a-github-app
-      run: |||
-        TOKEN="$(curl -X POST \
-        -H "Authorization: Bearer ${{ steps.jwt.outputs.jwt }}" \
-        -H "Accept: application/vnd.github.v3+json" \
-        "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
-        jq -r .token)"
-        echo "::add-mask::$TOKEN"
-        echo "token=$TOKEN" >> $GITHUB_OUTPUT
-      |||,
-    },
+    get_jwt(),
+    get_token(),
     // Recursively checkout all submodules
     // ensure that we're on the default branch (develop)
     // Use the token provided by the JWT token getter above
@@ -126,6 +138,10 @@ local job = {
     },
   ],
 };
+
+// -------------------------------------------------------------------------------------
+// Workflow
+// -------------------------------------------------------------------------------------
 
 {
   name: 'Update Semgrep Rules',

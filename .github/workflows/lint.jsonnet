@@ -1,10 +1,12 @@
 // The main goal of this workflow is to run pre-commit on every pull requests.
-// It also runs some Github Actions (GHA) lint checks
+// Dogfood: note that we run Semgrep inside pre-commit, so this is also dogfooding
+// and testing how semgrep interact with pre-commit.
+// We also run some Github Actions (GHA) lint checks.
+
+local actions = import "libs/actions.libsonnet";
 
 // Running pre-commit in CI. See semgrep/.pre-commit-config.yaml for
 // our pre-commit configuration.
-// Dogfood: note that we run Semgrep inside pre-commit, so this is also dogfooding
-// and testing how semgrep interact with pre-commit.
 local pre_commit = {
   'runs-on': 'ubuntu-latest',
   steps: [
@@ -77,7 +79,7 @@ local pre_commit_ocaml =
   {
     // Even if there's a 'container:' below, we still need a 'runs-on:', to say which VM will
     // run the Docker container. See https://github.com/orgs/community/discussions/25534
-    // This is not necessary in Circle CI which has sane defaults.
+    // (this is not necessary in Circle CI which has sane defaults).
     'runs-on': 'ubuntu-latest',
     // This custom image provides 'ocamlformat' with a specific version needed to check
     // OCaml code (must be the same than the one in dev/dev.opam)
@@ -125,9 +127,7 @@ local pre_commit_ocaml =
 local action_lint = {
   'runs-on': 'ubuntu-latest',
   steps: [
-    {
-      uses: 'actions/checkout@v3',
-    },
+    actions.checkout(),
     {
       uses: 'actions/setup-go@v4',
       with: {
