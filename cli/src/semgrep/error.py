@@ -2,7 +2,6 @@ import dataclasses
 import inspect
 import sys
 from dataclasses import dataclass
-from enum import Enum
 from pathlib import Path
 from typing import Any
 from typing import cast
@@ -41,11 +40,7 @@ INVALID_LANGUAGE_EXIT_CODE = 8
 INVALID_API_KEY_EXIT_CODE = 13
 SCAN_FAIL_EXIT_CODE = 14
 
-
-class Level(Enum):
-    ERROR = 4  # Always an error
-    WARN = 3  # Only an error if "strict" is set
-    INFO = 2  # Nothing may be wrong
+default_level = out.ErrorSeverity(out.Error_())
 
 
 class SemgrepError(Exception):
@@ -59,7 +54,10 @@ class SemgrepError(Exception):
     """
 
     def __init__(
-        self, *args: object, code: int = FATAL_EXIT_CODE, level: Level = Level.ERROR
+        self,
+        *args: object,
+        code: int = FATAL_EXIT_CODE,
+        level: out.ErrorSeverity = default_level,
     ) -> None:
         self.code = code
         self.level = level
@@ -68,7 +66,7 @@ class SemgrepError(Exception):
 
     def to_CliError(self) -> out.CliError:
         err = out.CliError(
-            code=self.code, type_=self.__class__.__name__, level=self.level.name.lower()
+            code=self.code, type_=self.__class__.__name__, level=self.level
         )
         return self.adjust_CliError(err)
 
@@ -85,7 +83,10 @@ class SemgrepError(Exception):
         level_tag = (
             with_color(Colors.red, "[", bgcolor=Colors.red)
             + with_color(
-                Colors.forced_white, self.level.name, bgcolor=Colors.red, bold=True
+                Colors.forced_white,
+                cast(str, self.level.to_json()).upper(),
+                bgcolor=Colors.red,
+                bold=True,
             )
             + with_color(Colors.red, "]", bgcolor=Colors.red)
         )
@@ -100,7 +101,7 @@ class SemgrepError(Exception):
 @dataclass(frozen=True)
 class SemgrepCoreError(SemgrepError):
     code: int
-    level: Level
+    level: out.ErrorSeverity
     # TODO: spans are used only for PatternParseError
     spans: Optional[List[out.ErrorSpan]]
     core: out.CoreError
@@ -229,7 +230,7 @@ class SemgrepInternalError(Exception):
 
 @attr.s(auto_attribs=True, frozen=True)
 class FilesNotFoundError(SemgrepError):
-    level = Level.ERROR
+    level = out.ErrorSeverity(out.Error_())
     code = FATAL_EXIT_CODE
     paths: Sequence[Path]
 
@@ -306,7 +307,7 @@ class ErrorWithSpan(SemgrepError):
             base,
             short_msg=self.short_msg,
             long_msg=self.long_msg,
-            level=self.level.name.lower(),
+            level=self.level,
             spans=[s.to_ErrorSpan() for s in self.spans],
         )
         # otherwise, we end up with `help: null` in JSON
@@ -371,7 +372,7 @@ class ErrorWithSpan(SemgrepError):
         """
         Format this exception into a pretty string with context and color
         """
-        header = f"{with_color(Colors.red, 'semgrep ' + self.level.name.lower())}: {self.short_msg}"
+        header = f"{with_color(Colors.red, 'semgrep ' + self.level.to_json())}: {self.short_msg}"
         snippets = []
         for span in self.spans:
             if span.file != "semgrep temp file":
@@ -423,13 +424,13 @@ class ErrorWithSpan(SemgrepError):
 @attr.s(frozen=True, eq=True)
 class InvalidRuleSchemaError(ErrorWithSpan):
     code = RULE_PARSE_FAILURE_EXIT_CODE
-    level = Level.ERROR
+    level = out.ErrorSeverity(out.Error_())
 
 
 @attr.s(frozen=True, eq=True)
 class UnknownLanguageError(ErrorWithSpan):
     code = INVALID_LANGUAGE_EXIT_CODE
-    level = Level.ERROR
+    level = out.ErrorSeverity(out.Error_())
 
 
 # cf. https://stackoverflow.com/questions/1796180/how-can-i-get-a-list-of-all-classes-within-current-module-in-python/1796247#1796247

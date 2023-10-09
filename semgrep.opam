@@ -20,7 +20,9 @@ depends: [
   "base" {>= "v0.15.1"}
   "fpath"
   "bos"
+  "fileutils"
   "alcotest"
+  "alcotest-js"
   "fmt"
   "ocolor"
   "ANSITerminal"
@@ -55,9 +57,9 @@ depends: [
   "digestif" {>= "1.0.0"}
   "lwt"
   "lwt_ppx"
-  "js_of_ocaml" {= "5.1.1"}
-  "js_of_ocaml-compiler" {= "5.1.1"}
-  "js_of_ocaml-ppx" {= "5.1.1"}
+  "js_of_ocaml" {= "5.4.0"}
+  "js_of_ocaml-compiler" {= "5.4.0"}
+  "js_of_ocaml-ppx" {= "5.4.0"}
   "ctypes_stubs_js"
   "integers_stubs_js"
   "odoc" {with-doc}

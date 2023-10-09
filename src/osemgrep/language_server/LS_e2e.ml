@@ -24,6 +24,7 @@ module Out = Semgrep_output_v1_t
 module In = Input_to_core_t
 module SR = Server_request
 module CR = Client_request
+module CN = Client_notification
 module LanguageServer = LS.LanguageServer
 open Jsonrpc
 
@@ -39,12 +40,16 @@ type info = {
 
 (* The picture looks like this:
 
-                  in_begin               in_end
-       client         --------(in)-------->        server
-  (response loop)     <-------(out)--------      (rpc loop)
-                  out_end                out_begin
+                   in_begin               in_end
+        client         --------(in)-------->        server
+   (response loop)     <-------(out)--------      (rpc loop)
+                   out_end                out_begin
 
- *)
+   We have the channels associated with the "in" pipe, which
+   has to do with data coming "in" to the server.
+   We also have the channels associated with the "out" pipe,
+   which deals with data flowing "out" of the server.
+*)
 let create_info () =
   let in_end, in_begin = Unix.pipe () in
   let out_end, out_begin = Unix.pipe () in
@@ -60,17 +65,27 @@ let create_info () =
   let server =
     {
       server with
-      session =
-        { server.session with incoming = in_end; outgoing = out_begin };
+      session = { server.session with incoming = in_end; outgoing = out_begin };
     }
   in
   { server; in_begin; out_end }
 
 (*****************************************************************************)
+(* Mocking and testing functions *)
+(*****************************************************************************)
+
+(*****************************************************************************)
 (* Constants *)
 (*****************************************************************************)
 
-let default_content = {|
+(* Lots of `parent`s here because we're located in _build/default/src/tests *)
+let rule_path =
+  Fpath.(
+    (v (Sys.getcwd ()) |> parent |> parent |> parent |> parent)
+    / "cli" / "tests" / "e2e" / "targets" / "ls" / "rules.yaml")
+
+let default_content =
+  {|
 x = 0
 if x == 5: # auto rule
     print("hello")
@@ -78,173 +93,784 @@ if x == 4: # CI rule
     print("hello")
 |}
 
+let login_url_regex =
+  Regexp_engine.pcre_compile "https://semgrep.dev/login\\?cli-token=.*"
+
+let prog_regex = Regexp_engine.pcre_compile "Pr([\\s\\S]*)"
+
+(* Not setting this means that really nasty errors happen when an exception
+   is raised inside of an Lwt.async, when running the Alcotests.
+   As in, the tests will just exit with no error message at all.
+*)
+let () =
+  Lwt.async_exception_hook :=
+    fun exn ->
+      let err = Printexc.to_string exn in
+      Alcotest.fail err
+
 (*****************************************************************************)
 (* Core primitives *)
 (*****************************************************************************)
 
 let send (info : info) packet : unit Lwt.t =
   match info.server.state with
-  | RPC_server.State.Stopped ->
-      Alcotest.failf "Cannot send, server stopped"
+  | RPC_server.State.Stopped -> Alcotest.failf "Cannot send, server stopped"
   | _ ->
       let%lwt () = Lwt.pause () in
       let%lwt () = RPC_server.Io.write info.in_begin packet in
       Lwt.return ()
 
-let receive (info : info) : Json.t Lwt.t =
+let receive (info : info) : Packet.t Lwt.t =
   match info.server.state with
-  | RPC_server.State.Stopped ->
-      Alcotest.failf "Cannot receive, server stopped"
-  | _ ->
+  | RPC_server.State.Stopped -> Alcotest.failf "Cannot receive, server stopped"
+  | _ -> (
       let%lwt () = Lwt.pause () in
       let%lwt server_msg = RPC_server.Io.read info.out_end in
       match server_msg with
-      (* Per the `respond` function in RPC_server, we always
-         inject into Response with an Ok variant for the result.
-       *)
-      | Some (Response {id = _; result = Ok json}) ->
-        Lwt.return json
-      | _ ->
-        Alcotest.failf "Received no response, client disconnected"
+      | Some packet -> Lwt.return packet
+      | _ -> Alcotest.failf "Received no response, client disconnected")
 
-(** Everything this server supports from the LSP *)
-let default_capabilities = ClientCapabilities.create ()
+(*****************************************************************************)
+(* Specific send/receive functions *)
+(*****************************************************************************)
 
-let of_request request =
+let send_request info request : unit Lwt.t =
   let id = Uuidm.v `V4 |> Uuidm.to_string in
-  let packet =
-    Packet.Request (CR.to_jsonrpc_request request (`String id))
-  in
-  packet
+  let packet = Packet.Request (CR.to_jsonrpc_request request (`String id)) in
+  send info packet
 
-let of_notification notif =
+let send_custom_request ~meth ?params info =
+  send_request info (CR.UnknownRequest { meth; params })
+
+let send_notification info (notification : Client_notification.t) : unit Lwt.t =
   let packet =
-    Packet.Notification (Client_notification.to_jsonrpc notif)
+    Packet.Notification (Client_notification.to_jsonrpc notification)
   in
-  packet
+  send info packet
+
+let send_custom_notification ~meth ?params info =
+  send_notification info (CN.UnknownNotification { method_ = meth; params })
+
+let receive_response (info : info) : Response.t Lwt.t =
+  let%lwt packet = receive info in
+  Logs.err (fun m -> m "Consuming response");
+  match packet with
+  | Packet.Response resp -> Lwt.return resp
+  | _ ->
+      Alcotest.failf "expected valid response, got %s"
+        (Packet.yojson_of_t packet |> Yojson.Safe.to_string)
+
+let receive_response_result f (info : info) : _ Lwt.t =
+  let%lwt resp = receive_response info in
+  Lwt.return (resp.result |> Result.get_ok |> f)
+
+let receive_notification (info : info) : Notification.t Lwt.t =
+  let%lwt packet = receive info in
+  Logs.err (fun m -> m "Consuming notification");
+  match packet with
+  | Packet.Notification notif -> Lwt.return notif
+  | _ ->
+      Alcotest.failf "expected notification, got %s"
+        (Packet.yojson_of_t packet |> Yojson.Safe.to_string)
+
+let receive_notification_params (f : Yojson.Safe.t -> _) (info : info) : _ Lwt.t
+    =
+  let%lwt notif = receive_notification info in
+  Lwt.return (f (notif.params |> Option.get |> Structured.yojson_of_t))
+
+let receive_request (info : info) : Request.t Lwt.t =
+  let%lwt packet = receive info in
+  Logs.err (fun m -> m "Consuming request");
+  match packet with
+  | Packet.Request req -> Lwt.return req
+  | _ ->
+      Alcotest.failf "expected request, got %s"
+        (Packet.yojson_of_t packet |> Yojson.Safe.to_string)
+
+(*****************************************************************************)
+(* Mocking and testing functions *)
+(*****************************************************************************)
+
+let checked_command s =
+  if Sys.command s <> 0 then
+    Alcotest.failf "command %s exited with non-zero code" s
+
+let git_tmp_path () =
+  Testutil_files.with_tempdir ~persist:true (fun dir ->
+      let dir = Fpath.to_string dir in
+      let () = Sys.chdir dir in
+      checked_command (String.concat " " [ "git"; "init" ]);
+      checked_command
+        (String.concat " "
+           [ "git"; "config"; "user.email"; "baselinetest@semgrep.com" ]);
+      checked_command
+        (String.concat " " [ "git"; "config"; "user.name"; "Baseline Test" ]);
+      checked_command (String.concat " " [ "git"; "checkout"; "-B"; "main" ]);
+      dir)
+
+let open_and_write ?(mode = []) file =
+  let oc = open_out_gen (Open_creat :: mode) 0o777 (Fpath.to_string file) in
+  output_string oc default_content;
+  close_out oc
 
 let assert_contains (json : Json.t) str =
-  let json_str = (Yojson.Safe.to_string json) in
-  if Common.contains json_str str then
-    ()
-  else
-    Alcotest.failf "Expected string `%s` in response %s" str json_str
+  let json_str = Yojson.Safe.to_string json in
+  if Common.contains json_str str then ()
+  else Alcotest.failf "Expected string `%s` in response %s" str json_str
 
-let mock_files () =
-  let git_tmp_path = failwith "TODO" in
+let mock_files () : _ * Fpath.t list =
+  let git_tmp_path = Fpath.v (git_tmp_path ()) in
+
+  Logs.err (fun m -> m "git temp dir is %s" (Fpath.to_string git_tmp_path));
+
   let open Fpath in
-  let checked_command s =
-    if Sys.command s <> 0 then
-      failwith (Common.spf "command %s exited with non-zero code" s)
-  in
-  let open_and_write file =
-    let oc = open_out (to_string file) in
-    output_string oc default_content
-  in
-
   let root = git_tmp_path in
   (* should have preexisting matches that are committed *)
   let modified_file = git_tmp_path / "modified.py" in
   (* should have preexisting matches that are not committed *)
   let existing_file = git_tmp_path / "existing.py" in
 
-  open_and_write modified_file;
-  open_and_write existing_file;
+  open_and_write ~mode:[ Open_wronly ] modified_file;
+  open_and_write ~mode:[ Open_wronly ] existing_file;
 
-  checked_command (String.concat " " ["git"; "remote"; "add"; "origin"; "/tmp/origin"]);
-  checked_command (String.concat " " ["git"; "add"; "modified.py"]);
-  checked_command (String.concat " " ["git"; "add"; "existing.py"]);
-  checked_command (String.concat " " ["git"; "commit"; "-m"; "initial commit"]);
+  (* checked_command (String.concat " " ["git"; "remote"; "add"; "origin"; "/tmp/origin"]);
+  *)
+  checked_command (String.concat " " [ "git"; "add"; "modified.py" ]);
+  checked_command (String.concat " " [ "git"; "add"; "existing.py" ]);
+  checked_command
+    (String.concat " " [ "git"; "commit"; "-m"; "\"initial commit\"" ]);
 
-  open_and_write modified_file;
+  open_and_write ~mode:[ Open_append ] modified_file;
 
   let new_file = root / "new.py" in
-  open_and_write new_file;
+  (* created after commit *)
+  open_and_write ~mode:[ Open_wronly ] new_file;
 
-  (* THINK: sort?*)
-  git_tmp_path, [existing_file; modified_file; new_file]
+  let files =
+    [ existing_file; modified_file; new_file ]
+    |> List.sort (fun x y ->
+           String.compare (Fpath.to_string x) (Fpath.to_string y))
+  in
+
+  (git_tmp_path, files)
 
 let mock_workspaces () =
-  let _mock_files = mock_files () in
-  Common2.with_tmp_dir (fun tmp_path ->
-    (* Copy mock files to a second workspace
-       This is gross IK but oh well
-    *)
-    let _workspace2_root = tmp_path ^ "1" in
-    ()
-  )
+  let ((workspace1_root, workspace1_files) as workspace1) = mock_files () in
+  let workspace1_root = Fpath.to_string workspace1_root in
 
+  (* Copy mock files to a second workspace
+      This is gross IK but oh well
+  *)
+  (* we needed to make this longer, or the ordering assumptions later become tricky *)
+  (* In Python, the tmp_path generated is _always_ `test_ls_multi0`.
+     We want `workspace2_root` to be lexicographically after `workspace1_root`, however,
+     The easy way would be to simply append to the end of the string. For instance,
+     workspace1_root = "abc"
+     workspace2_root = "abc0"
+
+     However, there is a later part of this test which checks whether something is
+     from `workspace1_root`... by checking if `workspace1_root` is contained within
+     it.
+
+     Clearly, this will pass that check and thus cause undesired behavior. So we need
+     a `workspace2_root` that is lexicographically later, without containing
+     `workspace1_root`.
+
+     We can achieve that by simply taking workspace1_root, slicing a bit off the end,
+     and then putting "z" at the end. This works because the folder should only generate
+     folder names which use the letters a-e.
+  *)
+  let workspace2_root =
+    String.sub workspace1_root 0 (String.length workspace1_root - 1) ^ "z"
+  in
+  FileUtil.cp ~recurse:true [ workspace1_root ] workspace2_root;
+
+  let workspace2_files =
+    Common.map
+      (fun file -> Fpath.(v workspace2_root / filename file))
+      workspace1_files
+    |> List.sort (fun x y ->
+           String.compare (Fpath.to_string x) (Fpath.to_string y))
+  in
+
+  (workspace1, (Fpath.v workspace2_root, workspace2_files))
 
 (*****************************************************************************)
-(* Basic helpers *)
+(* Sending functions *)
 (*****************************************************************************)
 
-let send_exit info =
-  let packet = of_request CR.Shutdown in
-  RPC_server.Io.write info.in_begin packet
+let send_exit info = send_notification info Client_notification.Exit
 
-let send_initialize info =
-  let id = Uuidm.v `V4 |> Uuidm.to_string in
+let send_initialize info ?(only_git_dirty = true) workspaceFolders =
   let request =
-    CR.Initialize (InitializeParams.create ~capabilities:default_capabilities ())
-  in
-  let packet =
-    Packet.Request (CR.to_jsonrpc_request request (`String id))
-  in
-  RPC_server.Io.write info.in_begin packet
-
-let send_custom_request ~meth ?(params = None) info =
-  let packet =
-    let id = Uuidm.v `V4 |> Uuidm.to_string in
-    let request =
-      CR.UnknownRequest { meth; params }
+    let rootUri =
+      match workspaceFolders with
+      | [] -> None
+      | f :: _ -> Some (Uri.of_path (Fpath.to_string f))
     in
-    Packet.Request (CR.to_jsonrpc_request request (`String id))
+    let workspaceFolders =
+      Some
+        (workspaceFolders
+        |> Common.map (fun f ->
+               let f = Fpath.to_string f in
+               { WorkspaceFolder.uri = Uri.of_path f; name = f }))
+    in
+    let initializationOptions =
+      `Assoc
+        [
+          ( "scan",
+            `Assoc
+              [
+                ( "configuration",
+                  `List [ `String (rule_path |> Fpath.to_string) ] );
+                ("exclude", `List []);
+                ("include", `List []);
+                ("jobs", `Int 5);
+                ("maxMemory", `Int 0);
+                ("maxTargetBytes", `Int 0);
+                ("onlyGitDirty", `Bool only_git_dirty);
+                ("ci", `Bool false);
+              ] );
+          ("trace", `Assoc [ ("server", `String "verbose") ]);
+          ( "metrics",
+            `Assoc [ ("enabled", `Bool true); ("isNewAppInstall", `Bool true) ]
+          );
+          ("doHover", `Bool true);
+        ]
+    in
+    CR.Initialize
+      (InitializeParams.create ~processId:1234
+         ~clientInfo:
+           (InitializeParams.create_clientInfo ~name:"Visual Studio Code"
+              ~version:"1.68.1" ())
+         ~locale:"en-us" ~rootPath:(Some "") (* THINK? *)
+         ?rootUri (* THINK? *)
+         ~workspaceFolders ~initializationOptions
+         ~capabilities:(ClientCapabilities.create ())
+         ())
   in
-  send info packet
+  send_request info request
 
-let with_session (f : info -> unit Lwt.t) : unit =
-  let info = create_info () in
-  (* shut down the server when f exits *)
-  let finalized_f =
-    Lwt.finalize (fun () -> f info)
-    (fun () ->
-        send_exit info
-    )
+let send_initialized info =
+  let notif = CN.Initialized in
+  send_notification info notif
+
+let send_did_open info (path : Fpath.t) =
+  let path = Fpath.to_string path in
+  let text = File.read_file (Fpath.v path) in
+  let textDocument =
+    TextDocumentItem.create ~languageId:"python" ~version:1
+      ~uri:(Uri.of_path path) ~text
   in
-  Lwt_main.run (
-    (* Here, we wait for both the test job and the server to terminate.
-       This is OK to do, because we have finalized the `f` function to
-       terminate the server upon its own termination.
-     *)
-    Lwt.both
-     (LanguageServer.start_async info.server)
-     finalized_f
-  ) |> ignore;
-  ()
+  let notif =
+    CN.TextDocumentDidOpen (DidOpenTextDocumentParams.create ~textDocument)
+  in
+  send_notification info notif
+
+let send_did_save info (path : Fpath.t) =
+  let textDocument =
+    TextDocumentIdentifier.create ~uri:(Uri.of_path (Fpath.to_string path))
+  in
+  let notif =
+    CN.DidSaveTextDocument (DidSaveTextDocumentParams.create ~textDocument ())
+  in
+  send_notification info notif
+
+let send_did_add info (path : Fpath.t) =
+  let path = Fpath.to_string path in
+  let files = [ FileCreate.create ~uri:("file://" ^ path) ] in
+  let notif = CN.DidCreateFiles (CreateFilesParams.create ~files) in
+  send_notification info notif
+
+let send_did_delete info (path : Fpath.t) =
+  let path = Fpath.to_string path in
+  let files = [ FileDelete.create ~uri:("file://" ^ path) ] in
+  let notif = CN.DidDeleteFiles (DeleteFilesParams.create ~files) in
+  send_notification info notif
+
+(* Info comes last because otherwise the optional arguments are unerasable... shame. *)
+let send_did_change_folder ?(added = []) ?(removed = []) info =
+  let added =
+    added |> Common.map Fpath.to_string
+    |> Common.map (fun file ->
+           WorkspaceFolder.create ~name:file ~uri:(Uri.of_path file))
+  in
+  let removed =
+    removed |> Common.map Fpath.to_string
+    |> Common.map (fun file ->
+           WorkspaceFolder.create ~name:file ~uri:(Uri.of_path file))
+  in
+  let notif =
+    CN.ChangeWorkspaceFolders
+      (DidChangeWorkspaceFoldersParams.create
+         ~event:(WorkspaceFoldersChangeEvent.create ~added ~removed))
+  in
+  send_notification info notif
+
+let send_code_action ~(path : Fpath.t) ~diagnostics ~line_start ~char_start
+    ~line_end ~char_end info =
+  let textDocument =
+    TextDocumentIdentifier.create ~uri:(Uri.of_path (Fpath.to_string path))
+  in
+  let context = CodeActionContext.create ~diagnostics () in
+  let range =
+    Range.create
+      ~start:(Position.create ~character:char_start ~line:line_start)
+      ~end_:(Position.create ~character:char_end ~line:line_end)
+  in
+  let req =
+    CR.CodeAction (CodeActionParams.create ~context ~range ~textDocument ())
+  in
+  send_request info req
+
+let send_hover info (path : Fpath.t) ~character ~line =
+  let textDocument =
+    TextDocumentIdentifier.create ~uri:(Uri.of_path (Fpath.to_string path))
+  in
+  let position = Position.create ~character ~line in
+  let req =
+    CR.TextDocumentHover (HoverParams.create ~position ~textDocument ())
+  in
+  send_request info req
+
+let _send_semgrep_login info = send_custom_request info ~meth:"semgrep/login"
+
+let _send_semgrep_login_finish info =
+  let params = `Assoc [ ("url", `String ""); ("sessionId", `String "") ] in
+  send_custom_notification info ~meth:"semgrep/loginFinish" ~params
+
+let _send_semgrep_logout info =
+  send_custom_notification info ~meth:"semgrep/logout"
+
+let send_semgrep_scan_workspace ?(full = false) info =
+  send_custom_notification info ~meth:"semgrep/scanWorkspace"
+    ~params:(`Assoc [ ("full", `Bool full) ])
+
+let _send_semgrep_refresh_rules info =
+  send_custom_notification info ~meth:"semgrep/refreshRules"
+
+let send_semgrep_search info ?language pattern =
+  let params =
+    match language with
+    | None -> `Assoc [ ("pattern", `String pattern) ]
+    | Some lang ->
+        `Assoc [ ("pattern", `String pattern); ("language", `String lang) ]
+  in
+  send_custom_request info ~meth:"semgrep/search" ~params
+
+let send_semgrep_show_ast info ?(named = false) (path : Fpath.t) =
+  let uri = Uri.of_path (Fpath.to_string path) |> Uri.yojson_of_t in
+  let params = `Assoc [ ("uri", uri); ("named", `Bool named) ] in
+  send_custom_request info ~meth:"semgrep/showAst" ~params
+
+(*****************************************************************************)
+(* Checking functions *)
+(*****************************************************************************)
+
+let check_diagnostics (notif : Notification.t) (file : Fpath.t) expected_ids =
+  let open Yojson.Safe.Util in
+  let resp = Notification.yojson_of_t notif in
+  let uri = resp |> member "params" |> member "uri" |> to_string in
+  Alcotest.(check string)
+    "method is publishDiagnostics"
+    (resp |> member "method" |> to_string)
+    "textDocument/publishDiagnostics";
+  Alcotest.(check string)
+    "uri is same as file"
+    (resp |> member "params" |> member "uri" |> to_string)
+    (Common.spf "file://%s" (Fpath.to_string file));
+  let ids =
+    resp |> member "params" |> member "diagnostics" |> to_list
+    |> Common.map (fun d -> member "code" d)
+  in
+  Alcotest.(check string)
+    "diagnostics are cohesive"
+    (Yojson.Safe.to_string (`List ids))
+    (Yojson.Safe.to_string (`List expected_ids));
+  Lwt.return ()
+
+let assert_notif (notif : Notification.t) ?message ?kind meth =
+  let open Yojson.Safe.Util in
+  Alcotest.(check string) "methods should be same" notif.method_ meth;
+  (match message with
+  | None -> ()
+  | Some message ->
+      assert (
+        notif.params |> Option.get |> Structured.yojson_of_t |> member "value"
+        |> member "message" |> to_string = message));
+  (match kind with
+  | None -> ()
+  | Some kind ->
+      assert (
+        notif.params |> Option.get |> Structured.yojson_of_t |> member "value"
+        |> member "kind" |> to_string = kind));
+  Lwt.return ()
+
+let assert_request (req : Request.t) ?message ?kind meth =
+  let open Yojson.Safe.Util in
+  assert (req.method_ = meth);
+  (match message with
+  | None -> ()
+  | Some message ->
+      assert (
+        req.params |> Option.get |> Structured.yojson_of_t |> member "value"
+        |> member "message" |> to_string = message));
+  (match kind with
+  | None -> ()
+  | Some kind ->
+      assert (
+        req.params |> Option.get |> Structured.yojson_of_t |> member "value"
+        |> member "kind" |> to_string = kind));
+  Lwt.return ()
+
+let _assert_message (notif : Notification.t) message =
+  let open Yojson.Safe.Util in
+  Alcotest.(check string)
+    "methods should be same" notif.method_ "window/showMessage";
+  assert (
+    notif.params |> Option.get |> Structured.yojson_of_t |> member "message"
+    |> to_string = message);
+  Lwt.return ()
+
+let assert_progress info message =
+  let%lwt req = receive_request info in
+  let%lwt () = assert_request req "window/workDoneProgress/create" in
+
+  let%lwt notif = receive_notification info in
+  let%lwt () = assert_notif notif "$/progress" ~message in
+
+  let%lwt notif = receive_notification info in
+  let%lwt () = assert_notif notif "$/progress" ~kind:"end" in
+  Lwt.return ()
+
+let check_startup info folders (files : Fpath.t list) =
+  (* initialize *)
+  let%lwt () = send_initialize info folders in
+
+  let%lwt resp = receive_response info in
+  assert_contains (Response.yojson_of_t resp) "capabilities";
+
+  let%lwt () = send_initialized info in
+  (* commented out means we do not loop, we exit randomly *)
+  (* if true then failwith "after initialized";
+  *)
+  let%lwt () = assert_progress info "Refreshing Rules" in
+
+  let%lwt () = assert_progress info "Scanning Workspace" in
+
+  let scanned_files =
+    List.filter
+      (fun f -> not (Common.contains (Fpath.to_string f) "existing"))
+      files
+  in
+
+  let%lwt scan_notifications =
+    Lwt_list.map_s (fun _ -> receive_notification info) scanned_files
+  in
+
+  let scan_notifications =
+    List.sort
+      (fun (x : Notification.t) (y : Notification.t) ->
+        let open Yojson.Safe.Util in
+        String.compare
+          (x.params |> Option.get |> Structured.yojson_of_t |> member "uri"
+         |> to_string)
+          (y.params |> Option.get |> Structured.yojson_of_t |> member "uri"
+         |> to_string))
+      scan_notifications
+  in
+
+  let expected_ids = [ `String "eqeq-five" ] in
+
+  let%lwt _ =
+    scanned_files
+    |> Common.mapi (fun i file ->
+           let notification = List.nth scan_notifications i in
+           check_diagnostics notification file expected_ids)
+    |> Lwt_list.map_s Fun.id
+  in
+
+  Lwt.return ()
 
 (*****************************************************************************)
 (* Tests *)
 (*****************************************************************************)
 
-let login_tests () =
-  let response_test () =
-    with_session (fun info ->
-      let%lwt () = send_initialize info in
-      let%lwt msg = receive info in
-      assert_contains msg "capabilities";
-
-      let%lwt () = send_custom_request ~meth:"semgrep/login" info in
-      let%lwt _msg = receive info in
-      (* Common.(pr2 (spf "got msg %s" ([%show: Yojson.Safe.t] msg)));
-      *)
-      Lwt.return ()
-    )
+let with_session (f : info -> unit Lwt.t) : unit =
+  let info = create_info () in
+  (* shut down the server when f exits *)
+  let finalized_f =
+    Lwt.finalize (fun () -> f info) (fun () -> send_exit info)
   in
-  pack_tests "Response test" [ ("Response test again", response_test) ]
+  Lwt.async (fun () -> LanguageServer.start_async info.server);
+  Lwt_main.run finalized_f |> ignore;
+  ()
+
+let test_ls_specs () =
+  let root, files = mock_files () in
+  with_session (fun info ->
+      let%lwt () = check_startup info [ root ] files in
+      let%lwt () =
+        files
+        |> Lwt_list.iter_s (fun file ->
+               (* didOpen *)
+               let%lwt () = send_did_save info file in
+
+               (* add content *)
+               let%lwt params =
+                 receive_notification_params
+                   PublishDiagnosticsParams.t_of_yojson info
+               in
+               let old_ids =
+                 Common.map (fun d -> d.Diagnostic.code) params.diagnostics
+               in
+               open_and_write ~mode:[ Open_append ] file;
+
+               (* didSave *)
+               let%lwt () = send_did_save info file in
+               let%lwt params =
+                 receive_notification_params
+                   PublishDiagnosticsParams.t_of_yojson info
+               in
+               let new_ids =
+                 Common.map (fun d -> d.Diagnostic.code) params.diagnostics
+               in
+               assert (List.length new_ids = List.length old_ids + 1);
+
+               let diagnostic = Common2.list_last params.diagnostics in
+               (* get range of last diagnostic *)
+               let line_start = diagnostic.range.start.line in
+               let char_start = diagnostic.range.start.character in
+               let line_end = diagnostic.range.end_.line in
+               let char_end = diagnostic.range.end_.character in
+
+               (* get code actions *)
+               let%lwt () =
+                 send_code_action info ~path:file ~diagnostics:[ diagnostic ]
+                   ~line_start ~char_start ~line_end ~char_end
+               in
+               let%lwt res =
+                 receive_response_result CodeActionResult.t_of_yojson info
+               in
+               assert (List.length (Option.get res) = 1);
+               (match res |> Option.get |> List.hd with
+               | `CodeAction { kind; _ } ->
+                   assert (
+                     CodeActionKind.yojson_of_t (Option.get kind)
+                     = `String "quickfix")
+               | _ -> Alcotest.fail "expected code action kind");
+
+               Lwt.return ())
+      in
+
+      (* test did add *)
+      let added = Fpath.(root / "added.py") in
+      FileUtil.cp [ List.hd files |> Fpath.to_string ] (added |> Fpath.to_string);
+
+      let%lwt () = send_did_add info added in
+      let%lwt () = send_did_open info added in
+
+      let%lwt notif = receive_notification info in
+      let%lwt () =
+        check_diagnostics notif added
+          [ `String "eqeq-five"; `String "eqeq-five" ]
+      in
+
+      let%lwt () = send_did_delete info added in
+
+      let%lwt notif = receive_notification info in
+      let%lwt () = check_diagnostics notif added [] in
+
+      send_exit info);
+  ()
+
+let test_ls_ext () =
+  let root, files = mock_files () in
+  with_session (fun info ->
+      Testutil_files.with_chdir root (fun () ->
+          let%lwt () = check_startup info [ root ] files in
+
+          (* scan workspace *)
+          let%lwt () = send_semgrep_scan_workspace info in
+          let%lwt () = assert_progress info "Scanning Workspace" in
+
+          let scanned_files =
+            List.filter
+              (fun f -> not (Common.contains (Fpath.to_string f) "existing"))
+              files
+          in
+          let%lwt num_ids =
+            Lwt_list.map_s
+              (fun _ ->
+                (* THINK? *)
+                let open Yojson.Safe.Util in
+                let%lwt notif = receive_notification info in
+                Lwt.return
+                  (List.length
+                     (notif.params |> Option.get |> Structured.yojson_of_t
+                    |> member "diagnostics" |> to_list)))
+              scanned_files
+          in
+
+          (* scan workspace full *)
+          let%lwt () = send_semgrep_scan_workspace ~full:true info in
+
+          (*
+      only once we port
+      let%lwt notif = receive_notification info in
+      let%lwt () = assert_message notif
+        "Scanning all files regardless of git status. These diagnostics will persist until a file is edited. To default to always scanning regardless of git status, please disable 'Only Git Dirty' in settings"
+      in
+      *)
+          let%lwt () = assert_progress info "Scanning Workspace" in
+
+          let%lwt () =
+            files
+            |> Lwt_list.iteri_s (fun i _ ->
+                   let open Yojson.Safe.Util in
+                   let%lwt notif = receive_notification info in
+                   let uri =
+                     notif.params |> Option.get |> Structured.yojson_of_t
+                     |> member "uri"
+                   in
+                   if Common.contains (Yojson.Safe.to_string uri) "modified"
+                   then
+                     assert (
+                       List.length
+                         (notif.params |> Option.get |> Structured.yojson_of_t
+                        |> member "diagnostics" |> to_list)
+                       > List.nth num_ids i);
+                   Lwt.return_unit)
+          in
+
+          (* Check did open does not rescan if diagnostics exist *)
+          let%lwt () =
+            files
+            |> Lwt_list.iteri_s (fun i _ ->
+                   let file = List.nth files i in
+                   let%lwt () =
+                     (* ??? is this an accurate translation *)
+                     if String.length (Fpath.to_string file) > 0 then
+                       send_did_open info file
+                     else Lwt.return_unit
+                   in
+                   Lwt.return_unit)
+          in
+
+          let%lwt () = send_semgrep_search info "print(...)" in
+          let%lwt resp = receive_response info in
+          assert (
+            Yojson.Safe.Util.(
+              resp.result |> Result.get_ok |> member "locations" |> to_list
+              |> List.length = 3));
+
+          (* hover is on by default *)
+          let%lwt () =
+            files
+            |> Lwt_list.iter_s (fun file ->
+                   let%lwt () = send_hover info file ~character:1 ~line:0 in
+                   let%lwt resp = receive_response info in
+                   assert (resp.result |> Result.get_ok <> `Null);
+                   Yojson.Safe.Util.(
+                     resp.result |> Result.get_ok |> member "contents" |> ignore);
+                   Lwt.return_unit)
+          in
+
+          (* showAst *)
+          let%lwt () =
+            files
+            |> Lwt_list.iter_s (fun file ->
+                   let%lwt () = send_semgrep_show_ast info file in
+                   let%lwt resp = receive_response info in
+                   let resp =
+                     resp.result |> Result.get_ok |> Yojson.Safe.Util.to_string
+                   in
+                   assert (Regexp_engine.unanchored_match prog_regex resp);
+                   Lwt.return_unit)
+          in
+
+          send_exit info))
+
+let test_ls_multi () =
+  let (workspace1_root, workspace1_files), (workspace2_root, workspace2_files) =
+    mock_workspaces ()
+  in
+  with_session (fun info ->
+      let workspace_folders = [ workspace1_root; workspace2_root ] in
+      let files = workspace1_files @ workspace2_files in
+      let scanned_files =
+        List.filter
+          (fun f -> not (Common.contains (Fpath.to_string f) "existing"))
+          files
+      in
+
+      let%lwt () = check_startup info workspace_folders files in
+
+      let%lwt () = send_did_change_folder info ~removed:[ workspace1_root ] in
+
+      let%lwt () = assert_progress info "Scanning Workspace" in
+
+      let%lwt () =
+        scanned_files
+        |> Lwt_list.iter_s (fun file ->
+               let%lwt notif = receive_notification info in
+               (* If it's a workspace we removed, then we expect no diagnostics *)
+               if
+                 Common.contains (Fpath.to_string file)
+                   (Fpath.to_string workspace1_root)
+               then (
+                 Alcotest.(check int)
+                   "check number of diagnostics is good"
+                   Yojson.Safe.Util.(
+                     List.length
+                       (notif.params |> Option.get |> Structured.yojson_of_t
+                      |> member "diagnostics" |> to_list))
+                   0;
+                 Lwt.return_unit)
+               else check_diagnostics notif file [ `String "eqeq-five" ])
+      in
+
+      let%lwt () = send_did_change_folder info ~added:[ workspace1_root ] in
+
+      let%lwt () = assert_progress info "Scanning Workspace" in
+
+      let%lwt () =
+        scanned_files
+        |> Lwt_list.iter_s (fun file ->
+               let%lwt notif = receive_notification info in
+               check_diagnostics notif file [ `String "eqeq-five" ])
+      in
+      send_exit info)
+
+let test_login () =
+  let root, files = mock_files () in
+  with_session (fun info ->
+      Testutil_files.with_chdir root (fun () ->
+          let%lwt () = check_startup info [ root ] files in
+          let%lwt () = send_initialize info [] in
+          let%lwt resp = receive_response info in
+          assert_contains (Response.yojson_of_t resp) "capabilities";
+
+          let%lwt () = send_custom_request ~meth:"semgrep/login" info in
+          let%lwt msg = receive_response info in
+
+          let url =
+            Yojson.Safe.Util.(
+              msg.result |> Result.get_ok |> member "url" |> to_string)
+          in
+
+          assert (Regexp_engine.unanchored_match login_url_regex url);
+          Lwt.return ()))
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let tests = pack_suites "Language Server (e2e)" [ login_tests () ]
+let tests =
+  pack_tests "Language Server (e2e)"
+    [
+      ("Test LS", test_ls_specs);
+      ("Test LS exts", test_ls_ext);
+      ("Test LS multi-workspaces", test_ls_multi);
+      ("Test Login", test_login);
+    ]

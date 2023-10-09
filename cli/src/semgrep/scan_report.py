@@ -31,7 +31,7 @@ from semgrep.util import with_feature_status
 # Helpers
 ##############################################################################
 
-
+# TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
 def _print_product_status(sast_enabled: bool = True, sca_enabled: bool = False) -> None:
     """
     (Simple) print the statuses of enabled products to stdout when the user
@@ -213,7 +213,9 @@ def _print_sca_table(sca_plan: Plan, rule_count: int) -> None:
     )
 
 
-def _print_detailed_sca_table(sca_plan: Plan, rule_count: int) -> None:
+def _print_detailed_sca_table(
+    sca_plan: Plan, rule_count: int, with_supply_chain: bool = False
+) -> None:
     """
     Pretty print the plan to stdout with the detailed CLI UX.
     """
@@ -231,7 +233,6 @@ def _print_detailed_sca_table(sca_plan: Plan, rule_count: int) -> None:
     """
     # 1. Validate that the user is indeed running SCA (and not from semgrep scan).
     is_scan = get_state().is_scan_invocation()
-    is_supply_chain = get_state().is_supply_chain()
     # 2. Check if the user has metrics enabled.
     metrics = get_state().metrics
     metrics_enabled = metrics.is_enabled
@@ -252,7 +253,7 @@ def _print_detailed_sca_table(sca_plan: Plan, rule_count: int) -> None:
                     width=70,
                 )
             )
-        elif not is_supply_chain:
+        elif not with_supply_chain:
             message = sep.join(
                 wrap(
                     f"💎 Run {ci_command} to find dependency vulnerabilities and advanced cross-file findings.",
@@ -275,7 +276,11 @@ def print_scan_status(
     rules: Sequence[Rule],
     target_manager: TargetManager,
     target_mode_config: TargetModeConfig,
+    *,
     cli_ux: DesignTreatment = DesignTreatment.LEGACY,
+    # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
+    with_code_rules: bool = True,
+    with_supply_chain: bool = False,
 ) -> int:
     """
     Print a section like:
@@ -339,16 +344,18 @@ def print_scan_status(
     secrets_rule_count = sast_plan.rule_count_for_product(out.Product(out.Secrets()))
     has_secret_rules = secrets_rule_count > 0
 
+    # NOTE: Currently, on the `scan` command without a --config argument provided
+    # is eligible for the simple UX.
     if simple_ux:
         # Print the feature summary table instead of all tables with new simple CLI UX
         _print_product_status(
-            sast_enabled=get_state().is_code(),
-            sca_enabled=get_state().is_supply_chain(),
+            sast_enabled=with_code_rules,
+            sca_enabled=with_supply_chain,
         )
         return sast_rule_count + sca_rule_count
 
     if not has_sca_rules and not has_secret_rules and legacy_ux:
-        # just print these tables without the section headers
+        # Print these SAST table without section headers
         _print_sast_table(
             sast_plan=sast_plan,
             product=out.Product(out.SAST()),
@@ -385,7 +392,13 @@ def print_scan_status(
     else:
         # Show the table with a supply chain nudge or supply chain
         console.print(Title("Supply Chain Rules", order=2))
-        _print_detailed_sca_table(sca_plan=sca_plan, rule_count=alt_sca_rule_count)
+        _print_detailed_sca_table(
+            sca_plan=sca_plan,
+            rule_count=alt_sca_rule_count,
+            # NOTE: `with_supply_chain` is only used for nudging `scan` command invocations
+            # without supply-chain to upgrade their usage to the `ci` command
+            with_supply_chain=with_supply_chain,
+        )
 
     if detailed_ux:
         console.print(Title("Progress", order=2))

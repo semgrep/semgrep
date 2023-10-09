@@ -121,6 +121,10 @@ build-docker:
 build-otarzan:
 	dune build _build/install/default/bin/otarzan
 
+.PHONY: build-ojsonnet
+build-ojsonnet:
+	dune build _build/install/default/bin/ojsonnet
+
 .PHONY: build-pfff
 build-pfff:
 	dune build _build/install/default/bin/pfff

@@ -29,7 +29,6 @@ from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
 from semgrep.engine import EngineType
 from semgrep.error import FINDINGS_EXIT_CODE
-from semgrep.error import Level
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
@@ -225,7 +224,8 @@ class OutputHandler:
             self.semgrep_structured_errors.append(error)
             self.error_set.add(error)
             if self.settings.output_format == OutputFormat.TEXT and (
-                error.level != Level.WARN or self.settings.verbose_errors
+                not (isinstance(error.level.value, out.Warning_))
+                or self.settings.verbose_errors
             ):
                 logger.error(error.format_for_terminal())
 
@@ -233,7 +233,7 @@ class OutputHandler:
         if ex is None:
             return
         if isinstance(ex, SemgrepError):
-            if ex.level == Level.ERROR and not (
+            if isinstance(ex.level.value, out.Error_) and not (
                 isinstance(ex, SemgrepCoreError)
                 and ex.is_special_interfile_analysis_error
             ):

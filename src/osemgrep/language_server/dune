@@ -5,6 +5,7 @@
  (libraries
    semgrep.language_server.requests
    semgrep.language_server.notifications
+   fileutils
  )
  (preprocess
   (pps

@@ -126,7 +126,7 @@ and focus_mv_list = tok * MV.mvar list [@@deriving show, eq, hash]
 (*****************************************************************************)
 
 (* this is now defined in semgrep_output_v1.atd *)
-type severity = Semgrep_output_v1_t.severity [@@deriving show, eq]
+type severity = Semgrep_output_v1_t.match_severity [@@deriving show, eq]
 
 type validation_state = Semgrep_output_v1_t.validation_state
 [@@deriving show, eq]
@@ -855,7 +855,7 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
     max_version = None;
     (* alt: could put xpat.pstr for the message *)
     message = "";
-    severity = Error;
+    severity = `Error;
     target_selector;
     target_analyzer;
     options = None;
