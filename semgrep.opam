@@ -14,9 +14,9 @@ license: "LGPL-2.1"
 homepage: "https://semgrep.dev"
 bug-reports: "https://github.com/returntocorp/semgrep/issues"
 depends: [
-  "ocaml" {>= "5.0.0"}
+  "ocaml" {>= "4.13.0"}
   "dune" {>= "3.7" & >= "2.7.0"}
-  "menhir" {= "20220210"}
+  "menhir" {= "20211128"}
   "base" {>= "v0.15.1"}
   "fpath"
   "bos"
@@ -44,7 +44,7 @@ depends: [
   "pcre"
   "ocamlgraph"
   "parmap"
-  "semver" {>= "0.2.1"}
+  "semver"
   "uri"
   "uuidm"
   "lsp" {= "1.15.1-5.0"}

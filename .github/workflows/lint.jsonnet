@@ -88,7 +88,7 @@ local pre_commit_ocaml_job =
     // This custom image provides 'ocamlformat' with a specific version needed to check
     // OCaml code (must be the same than the one in dev/dev.opam)
     // See https://github.com/returntocorp/ocaml-layer/blob/master/configs/ubuntu.sh
-    container: 'returntocorp/ocaml:ubuntu5.0-2023-09-29',
+    container: 'returntocorp/ocaml:ubuntu-2023-06-16',
     // HOME in the container is tampered by GHA and modified from /root to /home/github
     // which then confuses opam below which can not find its ~/.opam (which is at /root/.opam)
     // hence the ugly use of 'env: HOME ...' below.
