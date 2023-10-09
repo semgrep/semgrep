@@ -448,9 +448,10 @@ val memoized : ?use_cache:bool -> ('a, 'b) Hashtbl.t -> 'a -> (unit -> 'b) -> 'b
 val protect : finally:(unit -> unit) -> (unit -> 'a) -> 'a
 (** Same as 'Fun.protect' but we block SIGALRM while executing `finally()`, this
  * prevents that a timeout set via 'Time_limit' accidentally raises 'Timeout'
- * in the middle of 'finally's code, which would crash Semgrep. After 'finally'
- * completes, we restore SIGALRM and, if the timeout alarm triggered while it was
- * being blocked, 'Timeout' will still be raised.
+ * in the middle of 'finally's code, which is considered a programming error and
+ * it will raise 'Finally_raised'. After 'finally' completes, we restore SIGALRM
+ * and, if the timeout alarm triggered while it was being blocked, 'Timeout' will
+ * still be raised.
  *
  * It is safe to nest a 'protect' inside the 'finally' of another 'protect. *)
 

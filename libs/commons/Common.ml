@@ -103,6 +103,9 @@ let before_return f v =
 (* Composition/Control *)
 (*****************************************************************************)
 
+(* alt: We could simply handle the 'Timeout' exception, record in a 'ref' that
+ * it was raised, and re-raise it after 'finally' completes. Problem is that
+ * the 'finally' block may have been interrupted. *)
 let protect ~finally work =
   let prev_blocked = ref None in
   let finally () =
@@ -116,7 +119,10 @@ let protect ~finally work =
   (* nosemgrep: no-fun-protect *)
   let x = Fun.protect ~finally work in
   (* If 'prev_blocked' is 'None' then nothing was blocked... if it's 'Some _' then
-   * we are not on Windows so future calls should not raise any exception. *)
+   * we are not on Windows so calling 'Unix.sigprocmask' should not raise any
+   * exception.
+   * NOTE: If SIGALRM was raised while it was blocked, it will not be lost,
+   *       it will trigger soon after we unblock it. *)
   !prev_blocked
   |> Option.iter (fun prev_blocked ->
          Unix.sigprocmask Unix.SIG_SETMASK prev_blocked |> ignore);
