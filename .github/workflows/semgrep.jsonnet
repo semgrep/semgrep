@@ -1,4 +1,26 @@
-# This workflow dogfoods Semgrep Code and Supply Chain.
+# This workflow dogfoods 'semgrep ci' (with Code, Supply Chain, Secrets).
+
+local job = {
+  name: 'semgrep ci',
+  'runs-on': 'ubuntu-20.04',
+  container: {
+    # We're dogfooding the canary here!
+    # see https://www.notion.so/semgrep/returntocorp-semgrep-canary-docker-canary
+    image: 'returntocorp/semgrep:canary',
+  },
+  env: {
+    SEMGREP_APP_TOKEN: '${{ secrets.SEMGREP_APP_TOKEN }}',
+  },
+  'if': "(github.actor != 'dependabot[bot]')",
+  steps: [
+    {
+      uses: 'actions/checkout@v3',
+    },
+    {
+      run: 'semgrep ci',
+    },
+  ],
+};
 
 {
   name: 'semgrep',
@@ -12,6 +34,7 @@
       branches: [
         'develop',
       ],
+      # ???
       paths: [
         '.github/workflows/semgrep.yml',
       ],
@@ -24,26 +47,6 @@
     ],
   },
   jobs: {
-    semgrep: {
-      name: 'semgrep ci',
-      'runs-on': 'ubuntu-20.04',
-      container: {
-        # We're dogfooding the canary here!
-        # see https://www.notion.so/semgrep/returntocorp-semgrep-canary-docker-canary
-        image: 'returntocorp/semgrep:canary',
-      },
-      env: {
-        SEMGREP_APP_TOKEN: '${{ secrets.SEMGREP_APP_TOKEN }}',
-      },
-      'if': "(github.actor != 'dependabot[bot]')",
-      steps: [
-        {
-          uses: 'actions/checkout@v3',
-        },
-        {
-          run: 'semgrep ci',
-        },
-      ],
-    },
+    semgrep: job,
   },
 }

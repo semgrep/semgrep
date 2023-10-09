@@ -7,7 +7,7 @@
 # you need to 'make build-ojsonnet' to get this binary
 JSONNET=../../bin/ojsonnet
 
-OBJS = semgrep.yml lint.yml
+OBJS = semgrep.yml lint.yml update-semgrep-rules.yml
 
 all: $(OBJS)
 

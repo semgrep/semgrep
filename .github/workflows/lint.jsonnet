@@ -1,6 +1,6 @@
 # The main goal of this workflow is to run pre-commit on every pull requests.
 # It also runs some Github Actions (GHA) lint checks
-# TODO: we should port those GHA checks to semgrep and add then in semgrep-rules
+# TODO: we should port those GHA checks to semgrep and add them in semgrep-rules
 
 {
   name: 'lint',
