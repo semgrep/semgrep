@@ -1,13 +1,17 @@
 // This workflow dogfoods 'semgrep ci' with Code, Supply Chain, Secrets
 // and the Semgrep WebApp.
 // We're also dogfooding the returntocorp.semgrep:canary docker image!
-// See https://www.notion.so/semgrep/returntocorp-semgrep-canary-docker-canary
+// (see https://www.notion.so/semgrep/returntocorp-semgrep-canary-docker-canary).
 
+local actions = import 'libs/actions.libsonnet';
 local gha = import 'libs/gha.libsonnet';
-local actions = import "libs/actions.libsonnet";
 local semgrep = import 'libs/semgrep.libsonnet';
 
-local job = {
+// ----------------------------------------------------------------------------
+// The Job
+// ----------------------------------------------------------------------------
+
+local semgrep_ci_job = {
   'runs-on': 'ubuntu-20.04',
   container: {
     // We're dogfooding the canary here!
@@ -22,6 +26,10 @@ local job = {
     },
   ],
 } + gha.dependabot_guard;
+
+// ----------------------------------------------------------------------------
+// The Workflow
+// ----------------------------------------------------------------------------
 
 {
   on: {
@@ -47,6 +55,6 @@ local job = {
     ],
   },
   jobs: {
-    'semgrep-ci': job,
+    'semgrep-ci': semgrep_ci_job,
   },
 }
