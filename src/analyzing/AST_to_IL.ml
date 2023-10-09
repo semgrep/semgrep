@@ -1204,10 +1204,10 @@ and type_ env (ty : G.type_) : type_ =
  * use 'expr_with_pre_stmts' or other '*_pre_stmts*' functions. Just so that
  * we don't forget about 'env.stmts'! *)
 
-(* TODO: What other languages have no fallthrough? *)
 and no_switch_fallthrough : Lang.t -> bool = function
   | Go
-  | Ruby ->
+  | Ruby
+  | Rust ->
       true
   | _ -> false
 
@@ -1259,20 +1259,15 @@ and stmt_aux env st =
            * `some_var` actually means `return some_var`, so there should be a return
            * node in the CFG.
            *
-           * TODO: Update the comments below when the updated implicit return support
-           * is implemented.
-           *
-           * Right now, this missing node is not an issue because we already
-           * have a hack for implicit return statements. However, it only works for
-           * simple cases. We plan to make it more general by building the CFG, mark
-           * "returning" nodes, then build an updated CFG that converts the marked
-           * nodes as Return nodes.
-           *
-           * Here, create a fake "no-op" assignment
+           * We'd like to always create an IL node here as a fake "no-op" assignment
            *   tmp = some_var
-           * that will later on be converted to
+           * because we'd like to mark some_var's eorig as an implicit return node
+           * so we can match
            *   return some_var
-           * if some_var is actually a returning expression.
+           * with
+           *   some_var
+           * when some_var is marked as an implicit return node.
+           *
            * If some_var isn't a returning expression, we have created an unneeded node
            * but it doesn't affect correctness.
            *)
@@ -1642,28 +1637,8 @@ and stmt env st =
   | Fixme (kind, any_generic) -> fixme_stmt kind any_generic
 
 and function_body env fbody =
-  let implicit_return_hack body_stmt =
-    match body_stmt with
-    | G.Block (_, ss, _) when env.lang =*= Lang.Ruby || env.lang =*= Lang.Rust
-      -> (
-        match List.rev ss with
-        | { s = G.ExprStmt (e, tok); _ } :: rev_ss' ->
-            Some (List.rev rev_ss', (e, tok))
-        | _else -> None)
-    | _else -> None
-  in
   let body_stmt = H.funcbody_to_stmt fbody in
-  match implicit_return_hack body_stmt.s with
-  | Some (gstmts, (ge, tok)) ->
-      (* HACK: This is meant to handle some common cases of implicit return in
-       * Ruby, but we should be more general and infer a return value for
-       * every statement, then insert a `Return` node with the return value of
-       * the function body (if needed). *)
-      let ss = List.concat_map (stmt env) gstmts in
-      let e_ss, e = expr_with_pre_stmts env ge in
-      let e_s = mk_s (Return (tok, e)) in
-      ss @ e_ss @ [ e_s ]
-  | None -> stmt env body_stmt
+  stmt env body_stmt
 
 (*
  *     with MANAGER as PAT:

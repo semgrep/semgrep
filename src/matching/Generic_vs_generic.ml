@@ -1076,6 +1076,8 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   | G.Ref (a0, a1), B.Ref (b0, b1) -> m_tok a0 b0 >>= fun () -> m_expr a1 b1
   | G.DeRef (a0, a1), B.DeRef (b0, b1) -> m_tok a0 b0 >>= fun () -> m_expr a1 b1
   | G.StmtExpr a1, B.StmtExpr b1 -> m_stmt a1 b1
+  (* implicit return *)
+  | G.StmtExpr { s = G.Return (_, Some a, _); _ }, _ -> m_implicit_return a b
   | G.OtherExpr (a1, a2), B.OtherExpr (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.RawExpr a, B.RawExpr b -> m_raw_tree a b
@@ -2267,6 +2269,16 @@ and m_attribute a b =
 and m_attributes a b = m_list_in_any_order ~less_is_ok:true m_attribute a b
 
 (*****************************************************************************)
+(* Implicit return *)
+(*****************************************************************************)
+(* For matching `return a` with `b` when `b` is the last executed expression
+ * in a function. Here, `a` must come from a return statement.
+ *)
+and m_implicit_return (a : G.expr) (b : B.expr) tin =
+  if tin.config.implicit_return && b.is_implicit_return then m_expr_root a b tin
+  else fail () tin
+
+(*****************************************************************************)
 (* Statement list *)
 (*****************************************************************************)
 (* possibly go deeper when someone wants that a pattern like
@@ -2517,6 +2529,8 @@ and m_stmt a b =
         ~else_:(fail ())
   (* equivalence: *)
   | G.ExprStmt (a1, _), B.Return (_, Some b1, _) -> m_expr_deep a1 b1
+  (* implicit return *)
+  | G.Return (_, Some a1, _), B.ExprStmt (b1, _) -> m_implicit_return a1 b1
   (* boilerplate *)
   | G.If (a0, a1, a2, a3), B.If (b0, b1, b2, b3) ->
       m_tok a0 b0 >>= fun () ->
