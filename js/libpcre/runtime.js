@@ -173,8 +173,9 @@ function pcre_alloc_string(js_string) {
 }
 
 //Provides: pcre_compile_stub_bc
-//Requires: PCRE_INFO_SIZE, NULL, libpcre, pcre_alloc_string, auto_malloc
+//Requires: PCRE_INFO_SIZE, NULL, libpcre, pcre_alloc_string, auto_malloc, caml_jsstring_of_string
 function pcre_compile_stub_bc(v_opt, v_tables, v_pat) {
+  var v_pat = caml_jsstring_of_string(v_pat);
   const regexp_ptr = auto_malloc([4, 4], ([error_ptr_ptr, error_ofs_ptr]) => {
     if (v_tables != 0) {
       throw new Error("v_tables not supported");
