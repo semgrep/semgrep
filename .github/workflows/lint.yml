@@ -41,9 +41,9 @@ jobs:
         env:
           HOME: /root
         run:
-          "\n          opam install -y ocamlformat.0.26.1\n          git config --global
-          --add safe.directory \"$GITHUB_WORKSPACE\"\n          opam exec -- pre-commit
-          run --verbose --all lint-ocaml\n"
+          "\n            opam install -y ocamlformat.0.26.1\n            git config
+          --global --add safe.directory \"$GITHUB_WORKSPACE\"\n            opam exec
+          -- pre-commit run --verbose --all lint-ocaml\n          "
   github-actions:
     runs-on: ubuntu-latest
     steps:
