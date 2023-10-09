@@ -143,7 +143,7 @@ jobs:
     secrets: inherit
 
   build-test-core-x86:
-    uses: ./.github/workflows/build-test-core-x86.yaml
+    uses: ./.github/workflows/build-test-core-x86.yml
     secrets: inherit
 
   build-test-manylinux-x86:

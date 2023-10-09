@@ -18,7 +18,7 @@ on:
       - "**.md"
 
 jobs:
-  #TODO: do we need this job now that we have build-test-core-x86.yaml?
+  #TODO: do we need this job now that we have build-test-core-x86.yml?
   test-core:
     name: test semgrep-core
     runs-on: ubuntu-22.04
@@ -63,7 +63,7 @@ jobs:
           #
           opam exec -- make report-perf-matching
 
-  #TODO: merge with the previous job (which should be merged in build-test-core-x86.yaml)
+  #TODO: merge with the previous job (which should be merged in build-test-core-x86.yml)
   test-osemgrep:
     name: test osemgrep
     runs-on: ubuntu-22.04
@@ -449,7 +449,7 @@ jobs:
       repository-name: ${{ github.repository }}
 
   build-test-core-x86:
-    uses: ./.github/workflows/build-test-core-x86.yaml
+    uses: ./.github/workflows/build-test-core-x86.yml
     secrets: inherit
 
   build-test-manylinux-x86:
