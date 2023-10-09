@@ -9,6 +9,18 @@ local actions = import 'libs/actions.libsonnet';
 // Notes on caching (TODO: move in semgrep.libsonnet at some point)
 // ----------------------------------------------------------------------------
 
+# to be used with workflow_dispatch and workflow_call in the workflow
+local use_cache_inputs(required) = {
+  inputs: {
+    'use-cache': {
+      description: 'Use Opam Cache - uncheck the box to disable use of the opam cache, meaning a long-running but completely from-scratch build.',
+      required: required,
+      type: 'boolean',
+      default: true,
+    },
+  },
+};
+
 // This workflow uses the actions/cache@v3 GHA extension to cache
 // the ~/.opam directory, which is different from what we do for our other
 // architecture's build processes.
@@ -77,6 +89,7 @@ local cache_opam_step = {
 local build_core_osx_job = {
   name: 'Build the OSX binaries',
   'runs-on': 'macos-12',
+  #TODO: could pass it via an argument to cache_opam_step instead of env?
   env: {
     // This name is used in the cache key. If we update to a newer version of
     // ocaml, we'll want to change the OPAM_SWITCH_NAME as well to avoid issues
@@ -188,17 +201,6 @@ local test_wheels_osx_x86_job = {
 // ----------------------------------------------------------------------------
 // The Workflow
 // ----------------------------------------------------------------------------
-
-local use_cache_inputs(required) = {
-  inputs: {
-    'use-cache': {
-      description: 'Use Opam Cache - uncheck the box to disable use of the opam cache, meaning a long-running but completely from-scratch build.',
-      required: required,
-      type: 'boolean',
-      default: true,
-    },
-  },
-};
 
 {
   name: 'build-test-osx-x86',
