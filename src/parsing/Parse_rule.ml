@@ -133,11 +133,7 @@ let try_and_raise_invalid_pattern_if_error (env : env) (s, t) f =
   (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
   | exn ->
       let error_kind : R.invalid_rule_error_kind =
-        match exn with
-        | Parsing_plugin.Missing_plugin msg -> MissingPlugin msg
-        | exn ->
-            InvalidPattern
-              (s, env.target_analyzer, Common.exn_to_s exn, env.path)
+        InvalidPattern (s, env.target_analyzer, Common.exn_to_s exn, env.path)
       in
       Rule.raise_error (Some env.id) (InvalidRule (error_kind, env.id, t))
 
