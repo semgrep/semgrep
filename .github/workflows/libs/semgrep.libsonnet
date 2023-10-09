@@ -1,4 +1,4 @@
-// Factorize Semgrep-specific settings
+// Factorize Semgrep-specific settings.
 
 {
   secrets: {

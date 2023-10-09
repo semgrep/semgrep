@@ -8,7 +8,6 @@ local actions = import "libs/actions.libsonnet";
 local semgrep = import 'libs/semgrep.libsonnet';
 
 local job = {
-  name: 'semgrep ci',
   'runs-on': 'ubuntu-20.04',
   container: {
     // We're dogfooding the canary here!
@@ -25,7 +24,6 @@ local job = {
 } + gha.dependabot_guard;
 
 {
-  name: 'semgrep',
   on: {
     // This workflow runs on 'pull_request_target' so that PRs from forks are able
     // to run an action that uses the SEMGREP_APP_TOKEN secret.
@@ -49,6 +47,6 @@ local job = {
     ],
   },
   jobs: {
-    semgrep: job,
+    'semgrep-ci': job,
   },
 }
