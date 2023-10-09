@@ -119,6 +119,10 @@ local pre_commit_ocaml_job =
         // to debug errors in pre-commit, use instead:
         // opam exec -- pre-commit run --verbose --all lint-ocaml || cat /root/.cache/pre-commit/pre-commit.log
         run: |||
+          # When installing ocamlformat.0.26.1 OPAM will try to rebuild some packages
+          # and for that it requires 'autoconf'.
+          apt-get install -y autoconf
+          opam update --yes # so that OPAM knows about ocamlformat.0.26.1
           opam install -y ocamlformat.0.26.1
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           opam exec -- pre-commit run --verbose --all lint-ocaml

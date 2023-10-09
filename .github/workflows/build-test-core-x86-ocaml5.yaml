@@ -1,3 +1,5 @@
+# coupling: This is a copy of build-test-core-x86.yaml but for OCaml 5.
+
 # This workflow builds and test semgrep-core. It also generates an
 # ocaml-build-artifacts-ocaml5.tgz file.
 
