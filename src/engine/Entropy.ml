@@ -45,23 +45,31 @@ let english_trigrams_ref = ref [||]
 *)
 let load_trigrams () =
   let ar = !english_trigrams_ref in
+  Printf.printf "length = %d\n" (Array.length ar);
   (* Load trigram frequencies *)
   let trigram_entropies = Hashtbl.create (Array.length ar) in
-  let trigram_total_count = ref 0 in
+  (* we explicitly use int64 here to avoid overflow *)
+  (* on 32 bit systems (like Js_of_ocaml), trigram_total_count *)
+  (* overflows :( *)
+  let trigram_total_count = ref 0L in
   Array.iter
     (fun (trigram, count) ->
       assert (count >= 1);
       assert (String.length trigram = 3);
-      trigram_total_count := !trigram_total_count + count)
+      trigram_total_count := Int64.add !trigram_total_count (Int64.of_int count))
     ar;
   let trigram_total_count = !trigram_total_count in
   Array.iter
     (fun (trigram, count) ->
-      let trigram_entropy = log2 (float trigram_total_count /. float count) in
+      let trigram_entropy =
+        log2 (Int64.to_float trigram_total_count /. float count)
+      in
+      (* Ensure is not nan *)
+      assert (not Float.(is_nan trigram_entropy));
       Hashtbl.add trigram_entropies trigram trigram_entropy)
     ar;
   (* Load character frequencies *)
-  let char_total_count = 3 * trigram_total_count in
+  let char_total_count = Int64.mul 3L trigram_total_count in
   let char_counts = Array.make 256 0 in
   Array.iter
     (fun (trigram, count) ->
@@ -75,8 +83,13 @@ let load_trigrams () =
         let char_count = char_counts.(i) in
         if char_count = 0 (* digit, punctuation, emoji byte, etc. *) then
           unknown_char_entropy
-        else log2 (float char_total_count /. float char_count))
+        else log2 (Int64.to_float char_total_count /. float char_count))
   in
+  Printf.printf "trigram_entropies = %s\n"
+    (Hashtbl.to_seq trigram_entropies
+    |> List.of_seq
+    |> Common.map (fun (a, b) -> Printf.sprintf "%s %f" a b)
+    |> String.concat "\n");
   (trigram_entropies, char_entropies)
 
 let data_tables = lazy (load_trigrams ())

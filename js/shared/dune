@@ -4,11 +4,13 @@
  (wrapped false)
  (libraries
    js_of_ocaml
-   semgrep.parsing
    libyaml_stubs_js
    integers_stubs_js
    libpcre_stubs_js
    yaml_ctypes_overrides
+
+   semgrep.parsing
+   semgrep.data
  )
  (js_of_ocaml
   (javascript_files

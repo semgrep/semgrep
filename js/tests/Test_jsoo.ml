@@ -54,7 +54,8 @@ let _ =
            if filter <> "" then Array.append argv [| "-e"; filter |] else argv
          in
          let tests =
-           [ Unit_parsing.tests (); Unit_engine.tests () ] |> List.flatten
+           [ Unit_parsing.tests (); Unit_engine.tests (); Unit_entropy.tests ]
+           |> List.flatten
          in
          let tests =
            Common.map
