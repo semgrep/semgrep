@@ -101,7 +101,7 @@ local build_core_osx_job = {
     cache_opam_step,
     {
       name: 'Install dependencies',
-      run: './scripts/osx-setup-for-release.sh "${{ env.OPAM_SWITCH_NAME }}"\n',
+      run: './scripts/osx-setup-for-release.sh "${{ env.OPAM_SWITCH_NAME }}"',
     },
     {
       name: 'Compile semgrep',
