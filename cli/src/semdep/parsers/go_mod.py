@@ -2,6 +2,7 @@
 Parser for go.mod files
 Based on https://go.dev/ref/mod#go-mod-file
 """
+import re
 from pathlib import Path
 from typing import Dict
 from typing import List
@@ -38,10 +39,9 @@ comment = regex(r" *//([^\n]*)", flags=0, group=1)
 
 def multi_spec(spec: "Parser[A]") -> "Parser[List[Tuple[A,Optional[str]]]]":
     return (
-        regex(r"[ \t]*\(\n")
+        regex(r"[ \t]*\(\n[ \t]*")
         >> (
-            (regex(r"[ \t]*") >> pair(spec, comment.optional(None)))
-            << string("\n").at_least(1)
+            pair(spec, comment.optional(None)) << regex(r"\s+", flags=re.MULTILINE)
         ).many()
         << string(")")
     ) | (regex(r"[ \t]*") >> pair(spec, comment.optional()).map(lambda x: [x]))
