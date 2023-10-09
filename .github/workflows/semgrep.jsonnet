@@ -1,8 +1,8 @@
 // This workflow dogfoods 'semgrep ci' (with Code, Supply Chain, Secrets).
 
-local gha = import 'gha.libsonnet';
-local actions = import "actions.libsonnet";
-local semgrep = import 'semgrep.libsonnet';
+local gha = import 'libs/gha.libsonnet';
+local actions = import "libs/actions.libsonnet";
+local semgrep = import 'libs/semgrep.libsonnet';
 
 local job = {
   name: 'semgrep ci',
