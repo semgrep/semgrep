@@ -14,6 +14,7 @@ local core_x86 = import 'build-test-core-x86.jsonnet';
 // Helpers
 // ----------------------------------------------------------------------------
 
+// Bence's automatic snapshot update PR
 local snapshot_update_pr_steps = [
   // because of the fail-fast setting, we expect only the fastest failing
   // job to get to the steps below
@@ -166,6 +167,38 @@ local test_osemgrep_job =
     ],
   };
 
+// Factorize a few steps for the test_xxx jobs below
+
+// alt: could just use submodule:true, not sure it's worth the opti
+local fetch_submodules_step = {
+  name: 'Fetch semgrep-cli submodules',
+  run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces',
+};
+local pipenv_install_step = {
+  run: 'pip install pipenv==2022.6.7',
+};
+
+local download_x86_artifacts = {
+  uses: 'actions/download-artifact@v3',
+  with: {
+    name: core_x86.export.artifact_name,
+  },
+};
+local install_x86_artifacts = {
+  name: 'Install artifacts',
+  run: |||
+    tar xf ocaml-build-artifacts.tgz
+    sudo cp ocaml-build-artifacts/bin/* /usr/bin
+  |||,
+};
+
+local install_python_deps = {
+  name: 'Install Python dependencies',
+  'working-directory': 'cli',
+  run: 'pipenv install --dev',
+};
+
+// Run pytest with many python versions
 local test_cli_job = {
   name: 'test semgrep-cli',
   'runs-on': 'ubuntu-22.04',
@@ -189,11 +222,7 @@ local test_cli_job = {
   },
   steps: [
     actions.checkout(),
-    // alt: could just use submodule:true, not sure it's worth the opti
-    {
-      name: 'Fetch semgrep-cli submodules',
-      run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces',
-    },
+    fetch_submodules_step,
     {
       uses: 'actions/setup-python@v4',
       with: {
@@ -201,30 +230,14 @@ local test_cli_job = {
         cache: 'pipenv',
       },
     },
-    {
-      run: 'pip install pipenv==2022.6.7',
-    },
-    {
-      uses: 'actions/download-artifact@v3',
-      with: {
-        name: core_x86.export.artifact_name,
-      },
-    },
-    {
-      name: 'Install artifacts',
-      run: |||
-        tar xf ocaml-build-artifacts.tgz
-        sudo cp ocaml-build-artifacts/bin/* /usr/bin
-      |||,
-    },
-    {
-      name: 'Install Python dependencies',
-      'working-directory': 'cli',
-      run: 'pipenv install --dev',
-    },
+    pipenv_install_step,
+    download_x86_artifacts,
+    install_x86_artifacts,
+    install_python_deps,
     {
       name: 'Run pytest',
       'working-directory': 'cli',
+      // the --snapshot-update below works with the snapshot_update_pr_steps
       run: |||
         # tests should simulate CI environment iff they need one
         unset CI
@@ -260,6 +273,7 @@ local test_qa_job = {
   },
   steps: [
     actions.checkout(),
+    // Is it indented that we also fetch tests/semgrep-rules?
     {
       name: 'Fetch semgrep-cli submodules',
       run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces tests/semgrep-rules',
@@ -271,23 +285,10 @@ local test_qa_job = {
         cache: 'pipenv',
       },
     },
-    {
-      run: 'pip install pipenv==2022.6.7',
-    },
-    {
-      name: 'Download artifacts',
-      uses: 'actions/download-artifact@v3',
-      with: {
-        name: core_x86.export.artifact_name,
-      },
-    },
-    {
-      name: 'Install artifacts',
-      run: |||
-        tar xf ocaml-build-artifacts.tgz
-        sudo cp ocaml-build-artifacts/bin/* /usr/bin
-      |||,
-    },
+    pipenv_install_step,
+    download_x86_artifacts,
+    install_x86_artifacts,
+    // TODO: mostly like install_python_deps with PATH adjustment
     {
       name: 'Install semgrep',
       'working-directory': 'cli',
@@ -331,10 +332,7 @@ local benchmarks_lite_job = {
   ],
   steps: [
     actions.checkout(),
-    {
-      name: 'Fetch semgrep-cli submodules',
-      run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces',
-    },
+    fetch_submodules_step,
     {
       uses: 'actions/setup-python@v4',
       with: {
@@ -342,28 +340,10 @@ local benchmarks_lite_job = {
         cache: 'pipenv',
       },
     },
-    {
-      run: 'pip install pipenv==2022.6.7',
-    },
-    {
-      name: 'Download artifacts',
-      uses: 'actions/download-artifact@v3',
-      with: {
-        name: core_x86.export.artifact_name,
-      },
-    },
-    {
-      name: 'Install artifacts',
-      run: |||
-        tar xf ocaml-build-artifacts.tgz
-        sudo cp ocaml-build-artifacts/bin/* /usr/bin
-      |||,
-    },
-    {
-      name: 'Install cli dependencies',
-      'working-directory': 'cli',
-      run: 'pipenv install --dev',
-    },
+    pipenv_install_step,
+    download_x86_artifacts,
+    install_x86_artifacts,
+    install_python_deps,
     {
       name: 'Test dummy benchmarks on latest',
       'working-directory': 'cli',
@@ -384,10 +364,7 @@ local benchmarks_full_job = {
   ],
   steps: [
     actions.checkout(),
-    {
-      name: 'Fetch semgrep-cli submodules',
-      run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces',
-    },
+    fetch_submodules_step,
     {
       uses: 'actions/setup-python@v4',
       with: {
@@ -395,28 +372,10 @@ local benchmarks_full_job = {
         cache: 'pipenv',
       },
     },
-    {
-      run: 'pip install pipenv==2022.6.7',
-    },
-    {
-      name: 'Download artifacts',
-      uses: 'actions/download-artifact@v3',
-      with: {
-        name: core_x86.export.artifact_name,
-      },
-    },
-    {
-      name: 'Install artifacts',
-      run: |||
-        tar xf ocaml-build-artifacts.tgz
-        sudo cp ocaml-build-artifacts/bin/* /usr/bin
-      |||,
-    },
-    {
-      name: 'Install cli dependencies',
-      'working-directory': 'cli',
-      run: 'pipenv install --dev',
-    },
+    pipenv_install_step,
+    download_x86_artifacts,
+    install_x86_artifacts,
+    install_python_deps,
     {
       name: 'Run perf benchmark',
       run: 'scripts/run-benchmarks.sh ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number }}',
