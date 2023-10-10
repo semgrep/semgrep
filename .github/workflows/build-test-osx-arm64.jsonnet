@@ -2,46 +2,54 @@
 // and generates the arm64-wheel for pypi.
 // coupling: if you modify this file, modify also build-test-osx-x86.jsonnet
 
-local actions = import "libs/actions.libsonnet";
-local semgrep = import "libs/semgrep.libsonnet";
-local osx_x86 = import "build-test-osx-x86.jsonnet";
+local osx_x86 = import 'build-test-osx-x86.jsonnet';
+local actions = import 'libs/actions.libsonnet';
+local semgrep = import 'libs/semgrep.libsonnet';
+
+// ----------------------------------------------------------------------------
+// Helpers
+// ----------------------------------------------------------------------------
+local runs_on = [
+  'self-hosted',
+  'macOS',
+  'ARM64',
+  'ghcr.io/cirruslabs/macos-monterey-xcode:latest',
+];
+
+local setup_runner_step = {
+  name: 'Setup runner directory',
+  run: |||
+    sudo mkdir /Users/runner
+    sudo chown admin:staff /Users/runner
+    sudo chmod 750 /Users/runner
+  |||,
+};
+
+// could be moved to actions.libsonnet
+local setup_python_step = {
+  uses: 'actions/setup-python@v4',
+  with: {
+    'python-version': '3.11',
+  },
+};
 
 // ----------------------------------------------------------------------------
 // The jobs
 // ----------------------------------------------------------------------------
 
-// alt: could factorize with build-test-osx-x86.jsonnet by making
-// the xxx_job functions.
+// alt: we could factorize more with build-test-osx-x86.jsonnet by making
+// the xxx_job functions, but let's copy paste a bit for now.
 local artifact_name = 'semgrep-osx-arm64-${{ github.sha }}';
 local wheel_name = 'osx-arm64-wheel';
-local runs_on = [
-    'self-hosted',
-    'macOS',
-    'ARM64',
-    'ghcr.io/cirruslabs/macos-monterey-xcode:latest',
-  ];
 
 local build_core_job = {
-  name: 'Build the OSX arm64 binaries',
   'runs-on': runs_on,
   env: {
     OPAM_SWITCH_NAME: semgrep.opam_switch,
   },
   steps: [
-    {
-      name: 'Setup runner directory',
-      run: |||
-         sudo mkdir /Users/runner
-         sudo chown admin:staff /Users/runner
-         sudo chmod 750 /Users/runner
-      |||,
-    },
-    {
-      uses: 'actions/setup-python@v4',
-      with: {
-        'python-version': '3.11',
-      },
-    },
+    setup_runner_step,
+    setup_python_step,
     actions.checkout_with_submodules(),
     osx_x86.export.cache.cache_opam_step,
     {
@@ -51,11 +59,11 @@ local build_core_job = {
     {
       name: 'Compile semgrep',
       run: |||
-         opam exec -- make core
-         mkdir -p artifacts
-         cp ./bin/semgrep-core artifacts
-         zip -r artifacts.zip artifacts
-       |||,
+        opam exec -- make core
+        mkdir -p artifacts
+        cp ./bin/semgrep-core artifacts
+        zip -r artifacts.zip artifacts
+      |||,
     },
     {
       uses: 'actions/upload-artifact@v3',
@@ -73,20 +81,8 @@ local build_wheels_job = {
     'build-core',
   ],
   steps: [
-    {
-      name: 'Setup runner directory',
-      run: |||
-        sudo mkdir /Users/runner
-        sudo chmod 750 /Users/runner
-        sudo chown -R admin:staff /Users/runner
-      |||,
-    },
-    {
-      uses: 'actions/setup-python@v4',
-      with: {
-        'python-version': '3.11',
-      },
-    },
+    setup_runner_step,
+    setup_python_step,
     actions.checkout_with_submodules(),
     {
       uses: 'actions/download-artifact@v3',
@@ -94,12 +90,13 @@ local build_wheels_job = {
         name: artifact_name,
       },
     },
+    // the --plat-name is macosx_11_0_arm64 here!
     {
       run: |||
-         unzip artifacts.zip
-         cp artifacts/semgrep-core cli/src/semgrep/bin
-         ./scripts/build-wheels.sh --plat-name macosx_11_0_arm64
-       |||,
+        unzip artifacts.zip
+        cp artifacts/semgrep-core cli/src/semgrep/bin
+        ./scripts/build-wheels.sh --plat-name macosx_11_0_arm64
+      |||,
     },
     {
       uses: 'actions/upload-artifact@v3',
@@ -117,24 +114,12 @@ local test_wheels_job = {
     'build-wheels',
   ],
   steps: [
-    {
-      name: 'Setup runner directory',
-      run: |||
-        sudo mkdir /Users/runner
-        sudo chmod 750 /Users/runner
-        sudo chown -R admin:staff /Users/runner
-       |||,
-    },
+    setup_runner_step,
+    setup_python_step,
     {
       uses: 'actions/download-artifact@v1',
       with: {
         name: wheel_name,
-      },
-    },
-    {
-      uses: 'actions/setup-python@v4',
-      with: {
-        'python-version': '3.11',
       },
     },
     {
@@ -144,31 +129,7 @@ local test_wheels_job = {
       name: 'install package',
       run: 'pip3 install dist/*.whl',
     },
-    {
-      run: 'semgrep --version',
-    },
-    {
-      name: 'e2e semgrep-core test',
-      run: "echo '1 == 1' | semgrep -l python -e '$X == $X' -",
-    },
-    {
-      name: 'test dynamically linked libraries are in /usr/lib/',
-      shell: 'bash {0}',
-      run: |||
-         otool -L $(semgrep --dump-engine-path) | tee otool.txt
-         if [ $? -ne 0 ]; then
-            echo "Failed to list dynamically linked libraries.";
-            exit 1;
-         fi
-         NON_USR_LIB_DYNAMIC_LIBRARIES=$(tail -n +2 otool.txt | grep -v "^\\s*/usr/lib/")
-         if [ $? -eq 0 ]; then
-            echo "Error: semgrep-core has been dynamically linked against libraries outside /usr/lib:"
-            echo $NON_USR_LIB_DYNAMIC_LIBRARIES
-            exit 1;
-         fi;
-      |||,
-    },
-  ],
+  ] + osx_x86.export.test_semgrep_steps,
 };
 
 // ----------------------------------------------------------------------------

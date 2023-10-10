@@ -21,7 +21,6 @@ name: build-test-osx-arm64
         default: true
 jobs:
   build-core:
-    name: Build the OSX arm64 binaries
     runs-on:
       - self-hosted
       - macOS
@@ -32,8 +31,8 @@ jobs:
     steps:
       - name: Setup runner directory
         run:
-          "\n         sudo mkdir /Users/runner\n         sudo chown admin:staff /Users/runner\n
-          \        sudo chmod 750 /Users/runner\n      "
+          "\n    sudo mkdir /Users/runner\n    sudo chown admin:staff /Users/runner\n
+          \   sudo chmod 750 /Users/runner\n  "
       - uses: actions/setup-python@v4
         with:
           python-version: "3.11"
@@ -57,8 +56,8 @@ jobs:
         run: ./scripts/osx-setup-for-release.sh "${{ env.OPAM_SWITCH_NAME }}"\n
       - name: Compile semgrep
         run:
-          "\n         opam exec -- make core\n         mkdir -p artifacts\n         cp
-          ./bin/semgrep-core artifacts\n         zip -r artifacts.zip artifacts\n       "
+          "\n        opam exec -- make core\n        mkdir -p artifacts\n        cp
+          ./bin/semgrep-core artifacts\n        zip -r artifacts.zip artifacts\n      "
       - uses: actions/upload-artifact@v3
         with:
           path: artifacts.zip
@@ -74,8 +73,8 @@ jobs:
     steps:
       - name: Setup runner directory
         run:
-          "\n        sudo mkdir /Users/runner\n        sudo chmod 750 /Users/runner\n
-          \       sudo chown -R admin:staff /Users/runner\n      "
+          "\n    sudo mkdir /Users/runner\n    sudo chown admin:staff /Users/runner\n
+          \   sudo chmod 750 /Users/runner\n  "
       - uses: actions/setup-python@v4
         with:
           python-version: "3.11"
@@ -86,8 +85,8 @@ jobs:
         with:
           name: semgrep-osx-arm64-${{ github.sha }}
       - run:
-          "\n         unzip artifacts.zip\n         cp artifacts/semgrep-core cli/src/semgrep/bin\n
-          \        ./scripts/build-wheels.sh --plat-name macosx_11_0_arm64\n       "
+          "\n        unzip artifacts.zip\n        cp artifacts/semgrep-core cli/src/semgrep/bin\n
+          \       ./scripts/build-wheels.sh --plat-name macosx_11_0_arm64\n      "
       - uses: actions/upload-artifact@v3
         with:
           path: cli/dist.zip
@@ -103,14 +102,14 @@ jobs:
     steps:
       - name: Setup runner directory
         run:
-          "\n        sudo mkdir /Users/runner\n        sudo chmod 750 /Users/runner\n
-          \       sudo chown -R admin:staff /Users/runner\n       "
-      - uses: actions/download-artifact@v1
-        with:
-          name: osx-arm64-wheel
+          "\n    sudo mkdir /Users/runner\n    sudo chown admin:staff /Users/runner\n
+          \   sudo chmod 750 /Users/runner\n  "
       - uses: actions/setup-python@v4
         with:
           python-version: "3.11"
+      - uses: actions/download-artifact@v1
+        with:
+          name: osx-arm64-wheel
       - run: unzip ./osx-arm64-wheel/dist.zip
       - name: install package
         run: pip3 install dist/*.whl
@@ -120,10 +119,10 @@ jobs:
       - name: test dynamically linked libraries are in /usr/lib/
         shell: bash {0}
         run:
-          "\n         otool -L $(semgrep --dump-engine-path) | tee otool.txt\n         if
-          [ $? -ne 0 ]; then\n            echo \"Failed to list dynamically linked libraries.\";\n
-          \           exit 1;\n         fi\n         NON_USR_LIB_DYNAMIC_LIBRARIES=$(tail
-          -n +2 otool.txt | grep -v \"^\\\\s*/usr/lib/\")\n         if [ $? -eq 0 ];
-          then\n            echo \"Error: semgrep-core has been dynamically linked against
-          libraries outside /usr/lib:\"\n            echo $NON_USR_LIB_DYNAMIC_LIBRARIES\n
-          \           exit 1;\n         fi;\n      "
+          "\n      otool -L $(semgrep --dump-engine-path) | tee otool.txt\n      if
+          [ $? -ne 0 ]; then\n         echo \"Failed to list dynamically linked libraries.\";\n
+          \        exit 1;\n      fi\n      NON_USR_LIB_DYNAMIC_LIBRARIES=$(tail -n
+          +2 otool.txt | grep -v \"^\\\\s*/usr/lib/\")\n      if [ $? -eq 0 ]; then\n
+          \        echo \"Error: semgrep-core has been dynamically linked against libraries
+          outside /usr/lib:\"\n         echo $NON_USR_LIB_DYNAMIC_LIBRARIES\n         exit
+          1;\n      fi;\n    "

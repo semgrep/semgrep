@@ -7,20 +7,39 @@ local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
 // ----------------------------------------------------------------------------
-// Notes on caching (TODO: move in semgrep.libsonnet at some point)
+// Helpers (also reused in build-test-osx-arm64.jsonnet
 // ----------------------------------------------------------------------------
 
-# to be used with workflow_dispatch and workflow_call in the workflow
-local use_cache_inputs(required) = {
-  inputs: {
-    'use-cache': {
-      description: 'Use Opam Cache - uncheck the box to disable use of the opam cache, meaning a long-running but completely from-scratch build.',
-      required: required,
-      type: 'boolean',
-      default: true,
-    },
+local test_semgrep_steps = [
+  {
+    run: 'semgrep --version',
   },
-};
+  {
+    name: 'e2e semgrep-core test',
+    run: "echo '1 == 1' | semgrep -l python -e '$X == $X' -",
+  },
+  {
+    name: 'test dynamically linked libraries are in /usr/lib/',
+    shell: 'bash {0}',
+    run: |||
+      otool -L $(semgrep --dump-engine-path) | tee otool.txt
+      if [ $? -ne 0 ]; then
+         echo "Failed to list dynamically linked libraries.";
+         exit 1;
+      fi
+      NON_USR_LIB_DYNAMIC_LIBRARIES=$(tail -n +2 otool.txt | grep -v "^\\s*/usr/lib/")
+      if [ $? -eq 0 ]; then
+         echo "Error: semgrep-core has been dynamically linked against libraries outside /usr/lib:"
+         echo $NON_USR_LIB_DYNAMIC_LIBRARIES
+         exit 1;
+      fi;
+    |||,
+  },
+];
+
+// ----------------------------------------------------------------------------
+// OPAM caching (TODO: move in semgrep.libsonnet at some point)
+// ----------------------------------------------------------------------------
 
 // This workflow uses the actions/cache@v3 GHA extension to cache
 // the ~/.opam directory, which is different from what we do for our other
@@ -61,6 +80,17 @@ local use_cache_inputs(required) = {
 //
 // See also https://www.notion.so/semgrep/Caching-the-Opam-Environment-5d7e594203884d289acdac53713fb39f for more information.
 
+// to be used with workflow_dispatch and workflow_call in the workflow
+local use_cache_inputs(required) = {
+  inputs: {
+    'use-cache': {
+      description: 'Use Opam Cache - uncheck the box to disable use of the opam cache, meaning a long-running but completely from-scratch build.',
+      required: required,
+      type: 'boolean',
+      default: true,
+    },
+  },
+};
 
 // Note that this actions does cache read and cache write.
 // See https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows for more information on GHA caching.
@@ -102,9 +132,8 @@ local wheel_name = 'osx-x86-wheel';
 local runs_on = 'macos-12';
 
 local build_core_job = {
-  name: 'Build the OSX binaries',
   'runs-on': runs_on,
-  #TODO: could pass it via an argument to cache_opam_step instead of env?
+  //TODO: could pass it via an argument to cache_opam_step instead of env?
   env: {
     // This name is used in the cache key. If we update to a newer version of
     // ocaml, we'll want to change the OPAM_SWITCH_NAME as well to avoid issues
@@ -186,31 +215,7 @@ local test_wheels_job = {
       name: 'install package',
       run: 'pip3 install dist/*.whl',
     },
-    {
-      run: 'semgrep --version',
-    },
-    {
-      name: 'e2e semgrep-core test',
-      run: "echo '1 == 1' | semgrep --debug -l python -e '$X == $X' -",
-    },
-    {
-      name: 'test dynamically linked libraries are in /usr/lib/',
-      shell: 'bash {0}',
-      run: |||
-        otool -L $(semgrep --dump-engine-path) | tee otool.txt
-        if [ $? -ne 0 ]; then
-          echo "Failed to list dynamically linked libraries.";
-          exit 1;
-        fi
-        NON_USR_LIB_DYNAMIC_LIBRARIES=$(tail -n +2 otool.txt | grep -v "^\s*/usr/lib/")
-        if [ $? -eq 0 ]; then
-          echo "Error: semgrep-core has been dynamically linked against libraries outside /usr/lib:"
-          echo $NON_USR_LIB_DYNAMIC_LIBRARIES
-          exit 1;
-        fi;
-      |||,
-    },
-  ],
+  ] + test_semgrep_steps,
 };
 
 // ----------------------------------------------------------------------------
@@ -233,6 +238,7 @@ local test_wheels_job = {
     cache: {
       use_cache_inputs: use_cache_inputs,
       cache_opam_step: cache_opam_step,
-    }
+    },
+    test_semgrep_steps: test_semgrep_steps,
   },
 }
