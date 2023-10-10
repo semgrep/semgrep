@@ -1,9 +1,9 @@
-# This workflow builds and test semgrep-core. It also generates an
-# ocaml-build-artifacts.tgz file which is used in many other jobs such
-# as test-cli in tests.yml or build-wheels-manylinux in
-# build-test-manylinux-x86.yaml
+# coupling: This is a copy of build-test-core-x86.yaml but for OCaml 5.
 
-name: build-test-core-x86
+# This workflow builds and test semgrep-core. It also generates an
+# ocaml-build-artifacts-ocaml5.tgz file.
+
+name: build-test-core-x86-ocaml5
 
 on:
   workflow_dispatch:
@@ -11,13 +11,13 @@ on:
 
 jobs:
   build-test-core-x86:
-    name: Build Test Semgrep Core
+    name: Build Test Semgrep Core with OCaml 5
     runs-on: ubuntu-latest
-    # This container has opam already installed, as well as an opam switch 4.14.0
+    # This container has opam already installed, as well as an opam switch 5.0.0
     # already created, and a big set of packages already installed. Thus,
     # the 'make install-deps-ALPINE-for-semgrep-core' below is very fast and
     # almost a noop.
-    container: returntocorp/ocaml:alpine-2023-06-16
+    container: returntocorp/ocaml:alpine5.0-2023-09-29
     # We need this hack because GHA tampers with the HOME in container
     # and this does not play well with 'opam' installed in /root
     env:
@@ -34,12 +34,12 @@ jobs:
           make install-deps-ALPINE-for-semgrep-core
           make install-deps-for-semgrep-core
           make core
-          mkdir -p ocaml-build-artifacts/bin
-          cp bin/semgrep-core ocaml-build-artifacts/bin/
-          tar czf ocaml-build-artifacts.tgz ocaml-build-artifacts
+          mkdir -p ocaml-build-artifacts-ocaml5/bin
+          cp bin/semgrep-core ocaml-build-artifacts-ocaml5/bin/
+          tar czf ocaml-build-artifacts-ocaml5.tgz ocaml-build-artifacts-ocaml5
       - uses: actions/upload-artifact@v3
         with:
-          path: ocaml-build-artifacts.tgz
-          name: ocaml-build-artifacts-release
+          path: ocaml-build-artifacts-ocaml5.tgz
+          name: ocaml-build-artifacts-ocaml5-release
       - name: Test semgrep-core
         run: opam exec -- make core-test

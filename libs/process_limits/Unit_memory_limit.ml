@@ -23,27 +23,22 @@ let with_debug_alarm f =
 (*
    Grow the stack until some limit expressed in bytes.
 *)
-let grow_stack _goal_bytes =
-  let rec aux i =
+let grow_stack goal_bytes =
+  let rec aux () =
     let stack_size = get_stack_size_in_bytes () in
-    (* Magic number amount of times to run this. We can't count on
-       (Gc.quick_stat).stack_size in OCaml 5.0, because experimental results
-       seem to indicate it's no longer being updated. We just pick a
-       number of times to inflate the stack, and hope it's good enough.
-    *)
-    if i > 5000 then
+    if stack_size < goal_bytes then
       (* Allocate enough to trigger GC alarms regularly, before making
          the recursive call. *)
       let data = List.init 100 (fun _ -> ()) in
       (* Prevent tail-call optimization *)
-      data :: aux (i + 1)
+      data :: aux ()
     else (
       (* Trigger the hook that will run the GC alarm. This is cheating. *)
       Gc.full_major ();
       printf "grow_stack: stack reached %i bytes\n%!" stack_size;
       [])
   in
-  with_debug_alarm (fun () -> aux 0 |> ignore)
+  with_debug_alarm (fun () -> aux () |> ignore)
 
 let grow_heap goal_bytes =
   let rec aux acc =

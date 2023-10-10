@@ -595,13 +595,7 @@ def test_max_memory(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(stderr, "error.txt")
 
 
-# It seems that OCaml 5.0 does not use the system stack https://github.com/ocaml-multicore/docs/blob/main/ocaml_5_design.md#stack-layout
-# note that it says it manages its own runtime stack, which are managed in fibers
-# fiber stacks are allocated w/ mallloc + free aka its in the heap.
-# So I thionk this test is no longer valid as of OCaml 5.0. The exception is C calls
-# but ocaml handles the runtime stack switching to system stack for them so we should be good
 @pytest.mark.slow
-@pytest.mark.skip(reason="OCaml 5.0 does not use system stack")
 def test_stack_size(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
     Verify that semgrep raises the soft stack limit if possible
