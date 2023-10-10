@@ -47,7 +47,7 @@ let default =
     jobs = 1;
     max_memory = 0;
     max_target_bytes = 1000000;
-    timeout = 30;
+    timeout = 2;
     timeout_threshold = 3;
     only_git_dirty = true;
     ci = true (* Secret setting for testing purposes *);
@@ -83,4 +83,7 @@ let core_runner_conf_of_t settings =
       timeout = float_of_int settings.timeout;
       timeout_threshold = settings.timeout_threshold;
       ast_caching = true;
+      dataflow_traces = false;
+      matching_explanations = false;
+      time_flag = false;
     }

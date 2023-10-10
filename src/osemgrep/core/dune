@@ -11,6 +11,7 @@
     cmdliner
     uri
     uuidm
+    lwt ; for Project_metadata.ml
 
     commons
 

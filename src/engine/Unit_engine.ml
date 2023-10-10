@@ -287,7 +287,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =
       pattern;
       inside = false;
       message = "";
-      severity = R.Error;
+      severity = `Error;
       langs = [ lang ];
       pattern_string = "test: no need for pattern string";
       fix = fix_pattern;

@@ -52,7 +52,7 @@ let parse_pattern lang_pattern str =
                (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
              Rule_ID.of_string "no-id",
              Tok.unsafe_fake_tok "no loc" ))
-  [@@profiling]
+[@@profiling]
 
 let output_core_results (result_or_exn : Core_result.result_or_exn)
     (config : Core_scan_config.t) : unit =
@@ -100,7 +100,7 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
       | Ok res ->
           if config.matching_explanations then
             res.explanations
-            |> List.iter (fun explain -> Matching_explanation.print explain);
+            |> Option.iter (List.iter Matching_explanation.print);
           (* the match has already been printed above. We just print errors here *)
           if not (null res.errors) then (
             pr "WARNING: some files were skipped or only partially analyzed:";
@@ -127,7 +127,7 @@ let minirule_of_pattern lang pattern_string pattern =
     pattern;
     inside = false;
     message = "";
-    severity = Rule.Error;
+    severity = `Error;
     langs = [ lang ];
     fix = None;
   }
@@ -190,13 +190,9 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
             [ minirule_of_pattern lang pattern_string pattern ])
       in
       (* simpler code path than in scan() *)
-      let target_info, _skipped =
-        Core_scan.targets_of_config config
-          (Common.map (fun (r : Mini_rule.rule) -> r.id) minirule)
-      in
+      let target_info, _skipped = Core_scan.targets_of_config config in
       let files =
-        target_info.target_mappings
-        |> Common.map (fun (t : Input_to_core_t.target) -> t.path)
+        target_info |> Common.map (fun (t : Input_to_core_t.target) -> t.path)
       in
       (* sanity check *)
       if config.filter_irrelevant_rules then

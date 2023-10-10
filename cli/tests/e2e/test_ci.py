@@ -24,7 +24,9 @@ from tests.e2e.test_baseline import _git_commit
 from tests.e2e.test_baseline import _git_merge
 from tests.fixtures import RunSemgrep
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
+from semgrep.app.scans import ScanCompleteResult
 from semgrep.app.scans import ScanHandler
 from semgrep.app.session import AppSession
 from semgrep.config_resolver import ConfigFile
@@ -367,13 +369,13 @@ def automocks(mocker):
     mocker.patch.object(
         ScanHandler,
         "_get_scan_config_from_app",
-        return_value={
-            "deployment_id": DEPLOYMENT_ID,
-            "deployment_name": "org_name",
-            "ignored_files": [],
-            "policy_names": ["audit", "comment", "block"],
-            "rule_config": file_content,
-        },
+        return_value=out.ScanConfig(
+            deployment_id=DEPLOYMENT_ID,
+            deployment_name="org_name",
+            ignored_files=[],
+            policy_names=["audit", "comment", "block"],
+            rule_config=file_content,
+        ),
     )
     mocker.patch.object(
         ScanHandler,
@@ -1471,13 +1473,13 @@ def test_bad_config(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     mocker.patch.object(
         ScanHandler,
         "_get_scan_config_from_app",
-        return_value={
-            "deployment_id": DEPLOYMENT_ID,
-            "deployment_name": "org_name",
-            "ignored_files": [],
-            "policy_names": ["audit", "comment", "block"],
-            "rule_config": BAD_CONFIG,
-        },
+        return_value=out.ScanConfig(
+            deployment_id=DEPLOYMENT_ID,
+            deployment_name="org_name",
+            ignored_files=[],
+            policy_names=["audit", "comment", "block"],
+            rule_config=BAD_CONFIG,
+        ),
     )
     result = run_semgrep(
         options=["ci", "--no-suppress-errors"],
@@ -1499,13 +1501,13 @@ def test_bad_config_error_handler(
     mocker.patch.object(
         ScanHandler,
         "_get_scan_config_from_app",
-        return_value={
-            "deployment_id": DEPLOYMENT_ID,
-            "deployment_name": "org_name",
-            "ignored_files": [],
-            "policy_names": ["audit", "comment", "block"],
-            "rule_config": BAD_CONFIG,
-        },
+        return_value=out.ScanConfig(
+            deployment_id=DEPLOYMENT_ID,
+            deployment_name="org_name",
+            ignored_files=[],
+            policy_names=["audit", "comment", "block"],
+            rule_config=BAD_CONFIG,
+        ),
     )
     mock_send = mocker.spy(ErrorHandler, "send")
     result = run_semgrep(
@@ -1562,7 +1564,9 @@ def test_backend_exit_code(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_co
     Test backend sending non-zero exit code on complete causes exit 1
     """
     mocker.patch.object(
-        ScanHandler, "report_findings", return_value=(1, "some reason to fail")
+        ScanHandler,
+        "report_findings",
+        return_value=ScanCompleteResult(True, True, "some reason to fail"),
     )
     run_semgrep(
         options=["ci", "--no-suppress-errors"],
@@ -1661,14 +1665,14 @@ def test_query_dependency(
     mocker.patch.object(
         ScanHandler,
         "_get_scan_config_from_app",
-        return_value={
-            "deployment_id": DEPLOYMENT_ID,
-            "deployment_name": "org_name",
-            "ignored_files": [],
-            "policy_names": ["audit", "comment", "block"],
-            "rule_config": file_content,
-            "dependency_query": True,
-        },
+        return_value=out.ScanConfig(
+            deployment_id=DEPLOYMENT_ID,
+            deployment_name="org_name",
+            ignored_files=[],
+            policy_names=["audit", "comment", "block"],
+            rule_config=file_content,
+            dependency_query=True,
+        ),
     )
 
     result = run_semgrep(
@@ -1691,21 +1695,18 @@ def test_query_dependency(
     )
 
     post_calls = AppSession.post.call_args_list
+
+    results_json = post_calls[1].kwargs["json"]
+    snapshot.assert_match(
+        json.dumps(results_json["dependencies"], indent=2), "dependencies.json"
+    )
+
     complete_json = post_calls[2].kwargs["json"]
     complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
     # TODO: flaky tests (on Linux at least)
     # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests for more info
     complete_json["stats"]["lockfile_scan_info"] = {}
     snapshot.assert_match(json.dumps(complete_json, indent=2), "complete.json")
-    complete_dependency_json = complete_json["dependencies"]
-    results_json = post_calls[1].kwargs["json"]
-    results_dependency_json = results_json["dependencies"]
-    snapshot.assert_match(
-        json.dumps(complete_dependency_json, indent=2), "dependencies.json"
-    )
-    snapshot.assert_match(
-        json.dumps(results_dependency_json, indent=2), "dependencies.json"
-    )
 
 
 def test_metrics_enabled(run_semgrep: RunSemgrep, mocker):
@@ -1750,13 +1751,13 @@ def test_existing_supply_chain_finding(
     mocker.patch.object(
         ScanHandler,
         "_get_scan_config_from_app",
-        return_value={
-            "deployment_id": DEPLOYMENT_ID,
-            "deployment_name": "org_name",
-            "ignored_files": [],
-            "policy_names": ["audit", "comment", "block"],
-            "rule_config": file_content,
-        },
+        return_value=out.ScanConfig(
+            deployment_id=DEPLOYMENT_ID,
+            deployment_name="org_name",
+            ignored_files=[],
+            policy_names=["audit", "comment", "block"],
+            rule_config=file_content,
+        ),
     )
 
     result = run_semgrep(

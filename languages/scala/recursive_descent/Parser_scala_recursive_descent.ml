@@ -499,47 +499,47 @@ let nextToken in_ =
    *)
   (* newline: *)
   (if
-   afterLineEnd in_ && TH.inLastOfStat lastToken && TH.inFirstOfStat in_.token
-   && (match in_.sepRegions with
-      | []
-      | RBRACE _ :: _
-      (* See "note: sepFor" below. *)
-      | Kfor _ :: _
-      | DEDENT _ :: _ ->
-          true
-      | _ -> false)
-   && (* STILL?: not applyBracePatch *)
-   true
-  then
-   match () with
-   (* STILL?: | _ when pastBlankLine in_ -> insertNL ~newlines:true in_ *)
-   (* STILL?: | _ when TH.isLeadingInfixOperator *)
-   (* CHECK: scala3: "Line starts with an operator that in future" *)
-   | _ -> insertNL in_
-  else
-    (* Determine if this next token should emit an INDENT or DEDENT *)
-    (* According to the Dotty compiler, emitting a NEWLINE is exclusive with
-       emitting an INDENT or DEDENT.
-       https://github.com/lampepfl/dotty/blob/865aa639c98e0a8771366b3ebc9580cc8b61bfeb/compiler/src/dotty/tools/dotc/parsing/Scanners.scala#L596
-    *)
-    let indent_status = getIndentStatus in_ in
-    match indent_status with
-    | Some (Indent (line, width)) ->
-        (* Set our indented flag to true.
-            This bool will give us the option to enter an indentation
-            region, we might not necessarily have to.
-        *)
-        in_.is_indented <- Some (line, width)
-    | Some (Dedent (line, width)) ->
-        (* Push a DEDENT token onto our token stream.
-            This is so we can consume it in `statSeq`
+     afterLineEnd in_ && TH.inLastOfStat lastToken && TH.inFirstOfStat in_.token
+     && (match in_.sepRegions with
+        | []
+        | RBRACE _ :: _
+        (* See "note: sepFor" below. *)
+        | Kfor _ :: _
+        | DEDENT _ :: _ ->
+            true
+        | _ -> false)
+     && (* STILL?: not applyBracePatch *)
+     true
+   then
+     match () with
+     (* STILL?: | _ when pastBlankLine in_ -> insertNL ~newlines:true in_ *)
+     (* STILL?: | _ when TH.isLeadingInfixOperator *)
+     (* CHECK: scala3: "Line starts with an operator that in future" *)
+     | _ -> insertNL in_
+   else
+     (* Determine if this next token should emit an INDENT or DEDENT *)
+     (* According to the Dotty compiler, emitting a NEWLINE is exclusive with
+        emitting an INDENT or DEDENT.
+        https://github.com/lampepfl/dotty/blob/865aa639c98e0a8771366b3ebc9580cc8b61bfeb/compiler/src/dotty/tools/dotc/parsing/Scanners.scala#L596
+     *)
+     let indent_status = getIndentStatus in_ in
+     match indent_status with
+     | Some (Indent (line, width)) ->
+         (* Set our indented flag to true.
+             This bool will give us the option to enter an indentation
+             region, we might not necessarily have to.
+         *)
+         in_.is_indented <- Some (line, width)
+     | Some (Dedent (line, width)) ->
+         (* Push a DEDENT token onto our token stream.
+             This is so we can consume it in `statSeq`
 
-            This results in significantly simpler code, in the case
-            of nested DEDENTs (due to the ending of multiple indent regions)
-        *)
-        in_.rest <- in_.token :: in_.rest;
-        in_.token <- DEDENT (line, width)
-    | None -> ());
+             This results in significantly simpler code, in the case
+             of nested DEDENTs (due to the ending of multiple indent regions)
+         *)
+         in_.rest <- in_.token :: in_.rest;
+         in_.token <- DEDENT (line, width)
+     | None -> ());
   postProcessToken in_;
   ()
 

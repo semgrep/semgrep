@@ -1,0 +1,12 @@
+Allowing multiple type fields in metavariable-type rule syntax
+
+Users have the flexibility to utilize multiple type fields to match the type of
+metavariables. For instance:
+
+metavariable-type:
+  metavariable: $X
+  types:
+    - typeA
+    - typeB
+
+This approach is also supported in rule 2.0.

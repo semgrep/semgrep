@@ -170,12 +170,12 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
            let end_color =
              max start_color
                (if line_number >= m.end_.line then
-                min
-                  (if m.start.line = m.end_.line then
-                   start_color + (m.end_.col - m.start.col)
-                  else col m.end_.col - ellipsis_len true)
-                  (String.length line - ellipsis_len true)
-               else String.length line)
+                  min
+                    (if m.start.line = m.end_.line then
+                       start_color + (m.end_.col - m.start.col)
+                     else col m.end_.col - ellipsis_len true)
+                    (String.length line - ellipsis_len true)
+                else String.length line)
            in
            let a, b, c = cut line start_color end_color in
            (* The 24m is "no underline", and for python compatibility *)
@@ -218,14 +218,15 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
             else (true, None)
       in
       (if print then
-       (* python compatibility: the 22m and 24m are "normal color or intensity", and "underline off" *)
-       let esc =
-         if Fmt.style_renderer ppf = `Ansi_tty then Fmt.any "\027[22m\027[24m  "
-         else Fmt.any "  "
-       in
-       Fmt.pf ppf "  %a@."
-         Fmt.(styled (`Fg `Cyan) (esc ++ string ++ any " "))
-         cur.path);
+         (* python compatibility: the 22m and 24m are "normal color or intensity", and "underline off" *)
+         let esc =
+           if Fmt.style_renderer ppf = `Ansi_tty then
+             Fmt.any "\027[22m\027[24m  "
+           else Fmt.any "  "
+         in
+         Fmt.pf ppf "  %a@."
+           Fmt.(styled (`Fg `Cyan) (esc ++ string ++ any " "))
+           cur.path);
       msg
     in
     let print =

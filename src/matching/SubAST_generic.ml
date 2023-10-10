@@ -180,7 +180,7 @@ let subexprs_of_expr with_symbolic_propagation e =
   | LetPattern _ ->
       []
   | DisjExpr _ -> raise Common.Impossible
-  [@@profiling]
+[@@profiling]
 
 (* Need this wrapper because [@@profiling] has the side-effect of removing labels. *)
 let subexprs_of_expr ?(symbolic_propagation = false) e =
@@ -264,7 +264,7 @@ let subexprs_of_expr_implicit with_symbolic_propagation e =
   | DotAccessEllipsis _
   | DisjExpr _ ->
       raise Common.Impossible
-  [@@profiling]
+[@@profiling]
 
 (* Need this wrapper because [@@profiling] has the side-effect of removing labels. *)
 let subexprs_of_expr_implicit ?(symbolic_propagation = false) e =
@@ -352,7 +352,7 @@ let lambdas_in_expr e =
     end
   in
   do_visit_with_ref visitor (E e)
-  [@@profiling]
+[@@profiling]
 
 (* opti: using memoization speed things up a bit too
  * (but again, this is still slow when called many many times).
@@ -365,7 +365,7 @@ let hmemo = Hashtbl.create 101
 
 let lambdas_in_expr_memo a =
   Common.memoized hmemo a (fun () -> lambdas_in_expr a)
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Really substmts_of_stmts *)
@@ -388,12 +388,12 @@ let flatten_substmts_of_stmts xs =
      * matching naively in m_stmts_deep.
      *)
     (if !go_really_deeper_stmt then
-     let es = subexprs_of_stmt x in
-     (* getting deeply nested lambdas stmts *)
-     let lambdas = es |> List.concat_map lambdas_in_expr_memo in
-     lambdas
-     |> Common.map (fun def -> H.funcbody_to_stmt def.fbody)
-     |> List.iter aux);
+       let es = subexprs_of_stmt x in
+       (* getting deeply nested lambdas stmts *)
+       let lambdas = es |> List.concat_map lambdas_in_expr_memo in
+       lambdas
+       |> Common.map (fun def -> H.funcbody_to_stmt def.fbody)
+       |> List.iter aux);
 
     let xs = substmts_of_stmt x in
     match xs with
@@ -411,4 +411,4 @@ let flatten_substmts_of_stmts xs =
            This is used as part of the caching optimization. *)
         Some (List.rev !res, last)
   else None
-  [@@profiling]
+[@@profiling]

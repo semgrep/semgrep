@@ -171,7 +171,7 @@ let (mini_rule_of_pattern :
      * we just care about the matching result.
      *)
     message = "";
-    severity = R.Error;
+    severity = `Error;
     langs =
       (match xlang with
       | L (x, xs) -> x :: xs
@@ -375,13 +375,15 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
       |> Common.map (fun (focus_mvar, mval, range_loc) ->
              {
                PM.rule_id = fake_rule_id (-1, focus_mvar);
-               PM.file = !!(env.xtarget.file);
-               PM.range_loc;
-               PM.tokens = lazy (MV.ii_of_mval mval);
-               PM.env = range.mvars;
-               PM.taint_trace = None;
-               PM.engine_kind = `OSS;
-               PM.validation_state = PM.No_validator;
+               file = !!(env.xtarget.file);
+               range_loc;
+               tokens = lazy (MV.ii_of_mval mval);
+               env = range.mvars;
+               taint_trace = None;
+               engine_kind = `OSS;
+               validation_state = `No_validator;
+               severity_override = None;
+               metadata_override = None;
              })
     in
     let focused_ranges =
@@ -468,7 +470,7 @@ let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
         !!file;
       Xpattern_match_regexp.matches_of_regexs regexps lazy_content !!file;
     ]
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Maching explanations helpers *)
@@ -554,7 +556,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
              with
              | [] -> None
              | bindings -> Some (r, bindings @ new_bindings))
-         | R.CondType (mvar, opt_lang, _, t) -> (
+         | R.CondType (mvar, opt_lang, _, ts) -> (
              let mvalue_to_expr m =
                match Metavariable.mvalue_to_any m with
                | G.E e -> Some e
@@ -579,9 +581,14 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
                      ast
                  in
                  let matches =
-                   GG.m_compatible_type lang
-                     (mvar, Tok.unsafe_fake_tok "")
-                     t e env
+                   (* We check whether any of the types listed in the
+                      `type` field match. These types are treated as
+                      connected by "or" logical operators. *)
+                   ts
+                   |> List.concat_map (fun t ->
+                          GG.m_compatible_type lang
+                            (mvar, Tok.unsafe_fake_tok "")
+                            t e env)
                  in
 
                  (* the type can also contain metavariables, but we probably
@@ -905,7 +912,7 @@ and matches_of_formula xconf rule xtarget formula opt_context :
     }
   in
   (res', final_ranges)
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Main entry point *)

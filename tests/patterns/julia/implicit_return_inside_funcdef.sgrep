@@ -1,0 +1,4 @@
+function $FUN(...)
+  ...
+  return $X
+end

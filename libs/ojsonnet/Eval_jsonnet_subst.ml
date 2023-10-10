@@ -356,7 +356,7 @@ let rec eval_expr expr =
   | Call
       ( (ArrayAccess
            (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, [ meth ], _))), _))
-        as e0),
+         as e0),
         (l, args, r) ) ->
       eval_std_method e0 meth (l, args, r)
   | Local (_tlocal, binds, _tsemi, e) ->

@@ -27,6 +27,7 @@ let client_ref = ref (module Cohttp_lwt_unix.Client : Cohttp_lwt.S.Client)
 (*****************************************************************************)
 
 let get_async ?(headers = []) url =
+  Logs.debug (fun m -> m "GET on %s" (Uri.to_string url));
   let module Client = (val !client_ref) in
   let headers = Header.of_list headers in
   let%lwt response, body = Client.get ~headers url in
@@ -47,6 +48,7 @@ let get_async ?(headers = []) url =
 
 let post_async ~body ?(headers = [ ("content-type", "application/json") ])
     ?(chunked = false) url =
+  Logs.debug (fun m -> m "POST on %s" (Uri.to_string url));
   let module Client = (val !client_ref) in
   let headers = Header.of_list headers in
   let%lwt response, body =
@@ -103,4 +105,4 @@ let post ~body ?(headers = [ ("content-type", "application/json") ])
          Logs.debug (fun m ->
              m "send to '%s' failed: %s" (Uri.to_string url) err);
          Lwt.return (Error (0, err))))
-  [@@profiling]
+[@@profiling]

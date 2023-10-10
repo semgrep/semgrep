@@ -176,8 +176,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None)
              let extracted_ranges =
                Match_extract_mode.extract_nested_lang
                  ~match_hook:(fun _ _ -> ())
-                 ~timeout:0. ~timeout_threshold:0 ~all_rules:rules extract_rules
-                 xtarget
+                 ~timeout:0. ~timeout_threshold:0 extract_rules xtarget
              in
              let extract_targets, extract_result_map =
                (List.fold_right (fun (t, fn) (ts, fn_tbl) ->
@@ -210,7 +209,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None)
                  extract_targets
                  |> Common.map (fun t ->
                         let file = t.Input_to_core_t.path in
-                        let xlang = t.Input_to_core_t.language in
+                        let xlang = t.Input_to_core_t.analyzer in
                         let lazy_ast_and_errors =
                           lazy
                             (match xlang with
@@ -286,11 +285,11 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None)
                       Core_profiling.partial_profiling Core_result.match_result)
                   -> res.matches |> List.iter Core_json_output.match_to_error);
              (if not (E.ErrorSet.is_empty res.errors) then
-              let errors =
-                E.ErrorSet.elements res.errors
-                |> Common.map Core_error.show |> String.concat "-----\n"
-              in
-              failwith (spf "parsing error(s) on %s:\n%s" !!file errors));
+                let errors =
+                  E.ErrorSet.elements res.errors
+                  |> Common.map Core_error.show |> String.concat "-----\n"
+                in
+                failwith (spf "parsing error(s) on %s:\n%s" !!file errors));
              let actual_errors = !E.g_errors in
              actual_errors
              |> List.iter (fun e ->

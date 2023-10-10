@@ -18,11 +18,19 @@ module Env = Semgrep_envvars
 
 (* input *)
 type conf = {
+  (* opti and limits *)
   num_jobs : int;
   optimizations : bool;
   max_memory_mb : int;
   timeout : float;
   timeout_threshold : int;
+  (* output flags *)
+  time_flag : bool;
+  matching_explanations : bool;
+  (* TODO: actually seems like semgrep-core always return them,
+   * even if it was not requested by the CLI
+   *)
+  dataflow_traces : bool;
   (* osemgrep-only: *)
   ast_caching : bool;
 }
@@ -112,9 +120,11 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
    max_memory_mb;
    optimizations;
    ast_caching;
-  }
-  (* TODO: time_flag = _;
-  *) ->
+   matching_explanations;
+   (* TODO *)
+   time_flag = _;
+   dataflow_traces = _;
+  } ->
       (* We default to Json because we do not want the current text
        * displayed in semgrep-core, and we don't want either the
        * current semgrep-core incremental matches text output.
@@ -134,54 +144,32 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
         max_memory_mb;
         filter_irrelevant_rules;
         parsing_cache_dir;
+        matching_explanations;
         version = Version.version;
       }
 
 let prepare_config_for_core_scan (config : Core_scan_config.t)
     (lang_jobs : Lang_job.t list) =
-  let target_mappings_of_lang_job (x : Lang_job.t) prev_rule_count :
-      int * Input_to_core_t.target list * Rule.rules =
-    let rule_ids =
-      x.rules
-      |> Common.map (fun (x : Rule.t) ->
-             let id, _tok = x.id in
-             Rule_ID.to_string id)
-    in
-    let rule_nums = rule_ids |> Common.mapi (fun i _ -> i + prev_rule_count) in
+  let target_mappings_of_lang_job (x : Lang_job.t) :
+      Input_to_core_t.target list * Rule.rules =
     let target_mappings =
       x.targets
       |> Common.map (fun (path : Fpath.t) : Input_to_core_t.target ->
-             { path = !!path; language = x.xlang; rule_nums })
+             { path = !!path; analyzer = x.xlang })
     in
-    (List.length rule_ids, target_mappings, x.rules)
+    (target_mappings, x.rules)
   in
-  (* The targets are mapped to rule_nums rather than rule_ids to improve the
-   * memory usage. A list of rule_ids is passed with the targets to map back
-   * from num -> id. This means that when creating the targets structure,
-   * the rules need to be numbered against the final rule_ids list.
-   *
-   * The rules need to be reversed to number them correctly because of
-   * how :: behaves
-   *
-   * TODO after we delete pysemgrep, we can simplify this interface,
-   * which will also improve memory usage again
-   *)
-  let _, target_mappings, rules =
+  let target_mappings, rules =
     lang_jobs
     |> List.fold_left
-         (fun (n, acc_mappings, acc_rules) lang_job ->
-           let num_rules, mappings, rules =
-             target_mappings_of_lang_job lang_job n
-           in
-           (n + num_rules, mappings :: acc_mappings, List.rev rules :: acc_rules))
-         (0, [], [])
+         (fun (acc_mappings, acc_rules) lang_job ->
+           let mappings, rules = target_mappings_of_lang_job lang_job in
+           (mappings :: acc_mappings, List.rev rules :: acc_rules))
+         ([], [])
   in
   let target_mappings = List.concat target_mappings in
   let rules = rules |> List.rev |> List.concat in
-  let rule_ids =
-    Common.map (fun r -> fst r.Rule.id |> Rule_ID.to_string) rules
-  in
-  let targets : Input_to_core_t.targets = { target_mappings; rule_ids } in
+  let targets : Input_to_core_t.targets = target_mappings in
   {
     config with
     target_source = Some (Targets targets);
@@ -293,4 +281,4 @@ let mk_scan_func_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
       Metrics_.add_targets_stats scanned
         (Core_profiling.debug_info_to_option res.extra);
       Ok res
- [@@profiling]
+[@@profiling]

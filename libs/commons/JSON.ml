@@ -13,7 +13,7 @@ type t =
   | Float of float
   | Bool of bool
   | Null
-[@@deriving show]
+[@@deriving show, eq]
 
 let member m j =
   match j with
@@ -57,3 +57,24 @@ let string_of_json ?compact ?recursive ?allow_nan json =
   ignore (compact, recursive, allow_nan);
   let y = to_yojson json in
   Y.to_string ~std:true y
+
+(* Essentially List.merge, but with a function for how to combine elements
+   which compare equal. *)
+let rec merge cmp cmb xs ys =
+  match (xs, ys) with
+  | [], l
+  | l, [] ->
+      l
+  | x :: xs, y :: ys ->
+      let c = cmp x y in
+      if c = 0 then cmb x y :: merge cmp cmb xs ys
+      else if c <= 0 then x :: merge cmp cmb xs (y :: ys)
+      else y :: merge cmp cmb (x :: xs) ys
+
+let update source updates =
+  match (source, updates) with
+  | `Assoc xs, `Assoc ys ->
+      let xs = List.sort (Common2.on String.compare fst) xs in
+      let ys = List.sort (Common2.on String.compare fst) ys in
+      `Assoc (merge (Common2.on String.compare fst) (fun _ x -> x) xs ys)
+  | _ -> updates

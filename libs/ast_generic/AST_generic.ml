@@ -626,6 +626,8 @@ and expr = {
   (* used to quickly get the range of an expression *)
   mutable e_range : (Tok.location * Tok.location) option;
       [@equal fun _a _b -> true] [@hash.ignore]
+  (* whether this expression is implicitly a return value in a function *)
+  mutable is_implicit_return : bool; [@hash.ignore]
 }
 
 and expr_kind =
@@ -1360,7 +1362,7 @@ and other_stmt_operator =
 (* Pattern *)
 (*****************************************************************************)
 (* This is quite similar to expr. A few constructs in expr have
-* equivalent here prefixed with Pat (e.g., PaLiteral, PatId). We could
+ * equivalent here prefixed with Pat (e.g., PaLiteral, PatId). We could
  * maybe factorize with expr, and this may help semgrep, but I think it's
  * cleaner to have a separate type because the scoping rules for a pattern and
  * an expr are quite different and not any expr is allowed here.
@@ -2134,7 +2136,8 @@ let sc = Tok.unsafe_fake_tok ""
 let s skind = { s = skind; s_range = None }
 
 (* expressions *)
-let e ekind = { e = ekind; e_id = 0; e_range = None }
+let e ekind =
+  { e = ekind; e_id = 0; e_range = None; is_implicit_return = false }
 
 (* directives *)
 let d dkind = { d = dkind; d_attrs = [] }

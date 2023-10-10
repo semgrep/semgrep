@@ -47,9 +47,12 @@ let rec range_to_string (range : (Tok.location * Tok.location) option) =
 and translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
   match cond with
   | CondEval e -> `O [ ("comparison", `String (range_to_string e.e_range)) ]
-  | CondType (mv, lang, str, _) ->
+  | CondType (mv, lang, strs, _) ->
       `O
-        ([ ("metavariable", `String mv); ("type", `String str) ]
+        ([
+           ("metavariable", `String mv);
+           ("types", `A (Common.map (fun s -> `String s) strs));
+         ]
         @
         match lang with
         | None -> []
@@ -218,15 +221,15 @@ and translate_formula f : [> `O of (string * Yaml.value) list ] =
         (("all", `A (Common.map translate_formula conjuncts :> Yaml.value list))
         ::
         (if focus =*= [] && conditions =*= [] then []
-        else
-          [
-            ( "where",
-              `A
-                (Common.map
-                   (fun (_, cond) -> translate_metavar_cond cond)
-                   conditions
-                @ List.concat_map mk_focus_obj focus) );
-          ]))
+         else
+           [
+             ( "where",
+               `A
+                 (Common.map
+                    (fun (_, cond) -> translate_metavar_cond cond)
+                    conditions
+                 @ List.concat_map mk_focus_obj focus) );
+           ]))
   | Or (_, fs) ->
       `O [ ("any", `A (Common.map translate_formula fs :> Yaml.value list)) ]
   | Not (_, f) -> `O [ ("not", (translate_formula f :> Yaml.value)) ]

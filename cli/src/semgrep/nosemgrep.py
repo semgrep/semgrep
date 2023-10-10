@@ -20,10 +20,10 @@ from typing import Tuple
 from attrs import evolve
 from boltons.iterutils import partition
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import COMMA_SEPARATED_LIST_RE
 from semgrep.constants import NOSEM_INLINE_RE
 from semgrep.constants import NOSEM_PREVIOUS_LINE_RE
-from semgrep.error import Level
 from semgrep.error import SemgrepError
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
@@ -126,7 +126,9 @@ def _rule_match_nosem(
         else:
             message = f"found 'nosem' comment with id '{pattern_id}', but no corresponding rule trying '{rule_match.rule_id}'"
             if strict:
-                errors.append(SemgrepError(message, level=Level.WARN))
+                errors.append(
+                    SemgrepError(message, level=out.ErrorSeverity(out.Warning_()))
+                )
             else:
                 logger.verbose(message)
 

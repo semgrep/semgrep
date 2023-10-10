@@ -223,6 +223,11 @@ _scan_options: List[Callable] = [
         is_flag=True,
         default=False,
     ),
+    optgroup.option(
+        "--matching-explanations",
+        is_flag=True,
+        default=False,
+    ),
     optgroup.group("Verbosity options", cls=MutuallyExclusiveOptionGroup),
     optgroup.option(
         "-q",
@@ -320,11 +325,6 @@ _scan_options: List[Callable] = [
         "--diff-depth",
         type=int,
         default=DEFAULT_DIFF_DEPTH,
-        help="""
-            The depth of the Pro (interfile) differential scan, the number of steps
-            (both in the caller and callee sides) from the targets in the call graph
-            tracked by the deep preprocessor. Only applied in differential scan mode.
-        """,
     ),
     optgroup.option("--dump-command-for-core", "-d", is_flag=True, hidden=True),
     optgroup.option("--allow-untrusted-postprocessors", is_flag=True, hidden=True),
@@ -425,6 +425,7 @@ def scan(
     include: Optional[Tuple[str, ...]],
     jobs: Optional[int],
     lang: Optional[str],
+    matching_explanations: bool,
     max_chars_per_line: int,
     max_lines_per_finding: int,
     max_memory: Optional[int],
@@ -631,6 +632,7 @@ def scan(
                     diff_depth=diff_depth,
                     dump_command_for_core=dump_command_for_core,
                     time_flag=time_flag,
+                    matching_explanations=matching_explanations,
                     engine_type=engine_type,
                     run_secrets=run_secrets_flag,
                     output_handler=output_handler,

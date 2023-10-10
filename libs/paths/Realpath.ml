@@ -96,7 +96,7 @@ let realpath path =
     | _ -> abs_path
   in
   resolve (lazy (Unix.getcwd () |> Fpath.v)) path
-  [@@profiling]
+[@@profiling]
 
 let realpath_str s =
   match Fpath.of_string s with

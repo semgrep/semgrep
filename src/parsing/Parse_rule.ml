@@ -443,11 +443,11 @@ let parse_languages ~id (options : Rule_options_t.t) langs :
 
 let parse_severity ~id (s, t) : Rule.severity =
   match s with
-  | "ERROR" -> Error
-  | "WARNING" -> Warning
-  | "INFO" -> Info
-  | "INVENTORY" -> Inventory
-  | "EXPERIMENT" -> Experiment
+  | "ERROR" -> `Error
+  | "WARNING" -> `Warning
+  | "INFO" -> `Info
+  | "INVENTORY" -> `Inventory
+  | "EXPERIMENT" -> `Experiment
   | s ->
       Rule.raise_error (Some id)
         (InvalidRule
@@ -753,7 +753,7 @@ let parse_xpattern_expr env e =
 (* extra conditions, usually on metavariable content *)
 type extra =
   | MetavarRegexp of MV.mvar * Xpattern.regexp_string * bool
-  | MetavarType of MV.mvar * Xlang.t option * string * G.type_
+  | MetavarType of MV.mvar * Xlang.t option * string list * G.type_ list
   | MetavarPattern of MV.mvar * Xlang.t option * Rule.formula
   | MetavarComparison of metavariable_comparison
   | MetavarAnalysis of MV.mvar * Rule.metavar_analysis_kind
@@ -996,7 +996,19 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
   | "metavariable-type" ->
       let mv_type_dict = yaml_to_dict env key value in
       let metavar = take mv_type_dict env parse_string "metavariable" in
-      let type_str = take mv_type_dict env parse_string_wrap "type" in
+      let type_strs =
+        take_opt mv_type_dict env parse_string_wrap "type" |> Option.to_list
+      in
+      let type_strs =
+        type_strs
+        @ (take_opt mv_type_dict env
+             (parse_string_wrap_list (fun x -> x))
+             "types"
+          |> Option.to_list |> List.flatten)
+      in
+      if type_strs =*= [] then
+        error env.id mv_type_dict.first_tok
+          "Missing required field: type or types";
       let env', opt_xlang =
         match take_opt mv_type_dict env parse_string "language" with
         | Some s ->
@@ -1014,8 +1026,8 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
             (env', Some xlang)
         | ___else___ -> (env, None)
       in
-      let t = parse_type env' key type_str in
-      MetavarType (metavar, opt_xlang, fst type_str, t)
+      let ts = type_strs |> Common.map (parse_type env' key) in
+      MetavarType (metavar, opt_xlang, type_strs |> Common.map fst, ts)
   | "metavariable-pattern" ->
       let mv_pattern_dict = yaml_to_dict env key value in
       let metavar = take mv_pattern_dict env parse_string "metavariable" in
@@ -1061,7 +1073,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
   | _ -> error_at_key env.id key ("wrong parse_extra field: " ^ fst key)
 
 (*****************************************************************************)
-(* Parser for new  formula *)
+(* Parser for new formula *)
 (*****************************************************************************)
 
 let formula_keys =
@@ -1226,17 +1238,27 @@ and produce_constraint env dict tok indicator =
             )
         | None -> []
       in
+      let type_strs =
+        take_opt dict env parse_string_wrap "type" |> Option.to_list
+      in
+      let type_strs =
+        type_strs
+        @ (take_opt dict env (parse_string_wrap_list (fun x -> x)) "types"
+          |> Option.to_list |> List.flatten)
+      in
       let typ =
-        match take_opt dict env parse_string_wrap "type" with
-        | Some ts ->
+        match type_strs with
+        | ts :: _ ->
             [
               Left
                 ( snd ts,
                   R.CondType
-                    (metavar, opt_xlang, fst ts, parse_type env (metavar, t) ts)
-                );
+                    ( metavar,
+                      opt_xlang,
+                      type_strs |> Common.map fst,
+                      type_strs |> Common.map (parse_type env (metavar, t)) ) );
             ]
-        | None -> []
+        | _ -> []
       in
       List.flatten [ pat; typ ]
 
@@ -1648,6 +1670,97 @@ let parse_steps env key (value : G.expr) : R.step list =
 (*****************************************************************************)
 (* Parsers for secrets mode *)
 (*****************************************************************************)
+
+let parse_validity env key x : Rule.validation_state =
+  match x.G.e with
+  | G.L (String (_, ("valid", _), _)) -> `Confirmed_valid
+  | G.L (String (_, ("invalid", _), _)) -> `Confirmed_invalid
+  | _x -> error_at_key env.id key (spf "parse_validity for %s" (fst key))
+
+let parse_http_request env key value : Rule.request =
+  let req = yaml_to_dict env key value in
+  let url = take req env parse_string "url" in
+  let meth = take req env method_ "method" in
+  let headers : Rule.header list =
+    take req env yaml_to_dict "headers" |> fun { h; _ } ->
+    Hashtbl.fold
+      (fun name value lst ->
+        { Rule.name; value = parse_string env (fst value) (snd value) } :: lst)
+      h []
+  in
+  let body = take_opt req env parse_string "body" in
+  let auth = take_opt req env parse_auth "auth" in
+  { url; meth; headers; body; auth }
+
+let parse_http_matcher_clause key env value : Rule.http_match_clause =
+  let clause = yaml_to_dict env key value in
+  let status_code = take_opt clause env parse_int "status-code" in
+  let headers =
+    take_opt clause env
+      (fun env key ->
+        parse_list env key (fun env x : Rule.header ->
+            let hd = yaml_to_dict env key x in
+            let name = take hd env parse_string "name" in
+            let value = take hd env parse_string "value" in
+            { name; value }))
+      "headers"
+  in
+  let content = take_opt clause env yaml_to_dict "content" in
+  match (status_code, headers, content) with
+  | None, None, None -> failwith "ffff"
+  | _ ->
+      {
+        status_code;
+        headers = Option.value ~default:[] headers;
+        content =
+          Option.map
+            (fun content ->
+              ( parse_pair_old env (find_formula_old env content),
+                Option.map (Xlang.of_string ~rule_id:(Rule_ID.to_string env.id))
+                @@ take_opt content env parse_string "language"
+                |> Option.value ~default:Xlang.LAliengrep ))
+            content;
+      }
+
+let parse_http_matcher key env value : Rule.http_matcher =
+  let matcher = yaml_to_dict env key value in
+  let match_conditions =
+    take matcher env
+      (fun env key -> parse_list env key (parse_http_matcher_clause key))
+      "match"
+  in
+  let result = take matcher env yaml_to_dict "result" in
+  let validity = take result env parse_validity "validity" in
+  let message = take_opt result env parse_string "message" in
+  let severity =
+    take_opt result env parse_string_wrap "severity"
+    |> Option.map @@ parse_severity ~id:env.id
+  in
+  let metadata = take_opt_no_env result (generic_to_json env.id) "metadata" in
+  { match_conditions; validity; message; severity; metadata }
+
+let parse_http_response env key value : Rule.http_matcher list =
+  parse_list env key (parse_http_matcher key) value
+
+let parse_http_validator env key value : Rule.validator =
+  let validator_dict = yaml_to_dict env key value in
+  let request = take validator_dict env parse_http_request "request" in
+  let response = take validator_dict env parse_http_response "response" in
+  HTTP { request; response }
+
+let parse_validator key env value =
+  let rd = yaml_to_dict env key value in
+  let http = take_opt rd env parse_http_validator "http" in
+  match http with
+  | Some validator -> validator
+  | None ->
+      error_at_key env.id key
+        ("No reconigzed validator (e.g., 'http') at " ^ fst key)
+
+let parse_validators env key value =
+  parse_list env key (parse_validator key) value
+
+(* NOTE: For old secrets / postprocessors syntax. *)
 let parse_secrets_fields env rule_dict : R.secrets =
   let secrets : R.formula list =
     take rule_dict env
@@ -1828,6 +1941,7 @@ let parse_one_rule ~rewrite_rule_ids (t : G.tok) (i : int) (rule : G.expr) :
   let fix_regex_opt = take_opt rd env parse_fix_regex "fix-regex" in
   let paths_opt = take_opt rd env parse_paths "paths" in
   let equivs_opt = take_opt rd env parse_equivalences "equivalences" in
+  let validators_opt = take_opt rd env parse_validators "validators" in
   report_unparsed_fields rd;
   {
     R.id;
@@ -1845,6 +1959,7 @@ let parse_one_rule ~rewrite_rule_ids (t : G.tok) (i : int) (rule : G.expr) :
     paths = paths_opt;
     equivalences = equivs_opt;
     options = options_opt;
+    validators = validators_opt;
   }
 
 let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
@@ -1980,7 +2095,7 @@ let parse_file ?error_recovery ?(rewrite_rule_ids = None) file =
 
 let parse_and_filter_invalid_rules ?rewrite_rule_ids file =
   parse_file ~error_recovery:true ?rewrite_rule_ids file
-  [@@profiling]
+[@@profiling]
 
 let parse_xpattern xlang (str, tok) =
   let env =

@@ -91,7 +91,7 @@ let exit_code_of_errors ~strict (errors : Out.core_error list) : Exit_code.t =
       (* alt: raise a Semgrep_error that would be catched by CLI_Common
        * wrapper instead of returning an exit code directly? *)
       match () with
-      | _ when x.severity =*= Out.Error ->
+      | _ when x.severity =*= `Error ->
           Cli_json_output.exit_code_of_error_type x.error_type
       | _ when strict -> Cli_json_output.exit_code_of_error_type x.error_type
       | _else_ -> Exit_code.ok)
@@ -292,10 +292,9 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
         let baseline_result =
           Profiler.record profiler ~name:"baseline_core_time" (fun () ->
               Git_wrapper.run_with_worktree ~commit (fun () ->
-                  let paths_in_match =
-                    r.matches
-                    |> Common.map (fun m -> m.Pattern_match.file)
-                    |> SS.of_list |> add_renamed |> remove_added |> SS.to_seq
+                  let prepare_targets paths =
+                    paths |> SS.of_list |> add_renamed |> remove_added
+                    |> SS.to_seq
                     |> Seq.filter_map (fun x ->
                            if
                              Sys.file_exists x
@@ -306,6 +305,14 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
                            then Some (Fpath.v x)
                            else None)
                     |> List.of_seq
+                  in
+                  let paths_in_match =
+                    r.matches
+                    |> Common.map (fun m -> m.Pattern_match.file)
+                    |> prepare_targets
+                  in
+                  let paths_in_scanned =
+                    r.scanned |> Common.map Fpath.to_string |> prepare_targets
                   in
                   let baseline_targets, baseline_diff_targets =
                     match conf.engine_type with
@@ -320,7 +327,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
                            only by the file displaying matches but also by its
                            dependencies. Hence, merely rescanning files with
                            matches is insufficient. *)
-                        (all_in_baseline, r.scanned)
+                        (all_in_baseline, paths_in_scanned)
                     | _ -> (paths_in_match, [])
                   in
                   core baseline_targets
@@ -566,6 +573,9 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
 let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
+  (* coupling: if you modify the pysemgrep fallback code below, you
+   * probably also need to modify it in Ci_subcommand.ml
+   *)
   (match conf.common.maturity with
   (* those are osemgrep-only option not available in pysemgrep,
    * so better print a good error message for it.

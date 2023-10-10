@@ -160,3 +160,7 @@ module Make (Ord : OrderedType) : S with type elt = Ord.t
 (** Functor building an implementation of the set structure
    given a totally ordered type. *)
 *)
+
+(* Pretty-print a set as e.g. {1, 2, 3} *)
+val pp :
+  (Format.formatter -> 'elt -> unit) -> Format.formatter -> 'elt t -> unit

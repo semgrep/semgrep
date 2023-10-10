@@ -5,9 +5,9 @@ public class boxing_equivalences_boolean {
     java.lang.Boolean b3 = true;
     // MATCH:
     System.out.println(b1);
-    // TODO:
+    // MATCH:
     System.out.println(b2);
-    // TODO:
+    // MATCH:
     System.out.println(b3);
     // MATCH:
     System.out.println(true);

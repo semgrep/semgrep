@@ -28,6 +28,7 @@ type 'a visitor_env = {
   vardef_assign : bool;
   flddef_assign : bool;
   attr_expr : bool;
+  implicit_return : bool;
   extra : 'a;
 }
 
@@ -143,6 +144,39 @@ class ['self] matching_visitor =
             (PartialDef (ent, ClassDef partial_def))
       | _ -> ()
 
+    method v_expr_as_return_stmt env e =
+      (* An implicit return is an expression whose value is being returned
+       * from a function but without the return keyword. This is not explicit
+       * in Generic so we cannot match statement patterns against these
+       * expressions. This equivalence enables that.
+       *
+       * We need an equivalence here, and we also need support in Generic_vs_generic
+       * in order to handle 2 different cases.
+       *
+       * The equivalence here will result in comparing
+       *   return $X
+       * against
+       *   return expr
+       * in Generic_vs_generic.
+       *
+       * On the other hand, in Generic_vs_generic, we would like to match
+       *   return $X
+       * against
+       *   expr_stmt
+       * which can happen when return $X and expr_stmt is nested within
+       * some context.
+       *
+       * Alt: we could add more special cases in Generic_vs_generic to handle
+       * things like FBExpr (which is not visited when matching the pattern
+       ' `return`, because FBExpr is an expression, not a statement), but the
+       * equivalence feels more natural here, and it allows us to keep
+       * the cases in Generic_vs_generic not too complicated.
+       *)
+      if env.implicit_return && e.is_implicit_return then
+        let ret = Return (fake "return", Some e, sc) |> s in
+        self#visit_stmt env ret
+      else ()
+
     (**************************************************************************)
     (* Overrides:
      *
@@ -234,6 +268,7 @@ class ['self] matching_visitor =
           self#v_partial ~recurse:false env (PartialMatch (v0, v1))
       | Try (t, v1, _v2, _v3, _v4) ->
           self#v_partial ~recurse:false env (PartialTry (t, v1))
+      | ExprStmt (v1, _) -> self#v_expr_as_return_stmt env v1
       | _else -> ());
       (* todo? visit the s_id too? *)
       super#visit_stmt_kind env x.s
@@ -258,6 +293,12 @@ class ['self] matching_visitor =
     method! visit_function_definition env x =
       self#v_partial ~recurse:false env (PartialLambdaOrFuncDef x);
       super#visit_function_definition env x
+
+    method! visit_function_body env x =
+      (match x with
+      | FBExpr v1 -> self#v_expr_as_return_stmt env v1
+      | _else_ -> ());
+      super#visit_function_body env x
 
     method! visit_field env x =
       match x with
@@ -313,5 +354,5 @@ class ['self] matching_visitor =
 
 (* To keep the type simple, `extra` must be explicitly specified *)
 let mk_env ?(vardef_assign = false) ?(flddef_assign = false)
-    ?(attr_expr = false) extra =
-  { vardef_assign; flddef_assign; attr_expr; extra }
+    ?(attr_expr = false) ?(implicit_return = false) extra =
+  { vardef_assign; flddef_assign; attr_expr; implicit_return; extra }

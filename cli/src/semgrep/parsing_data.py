@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from semgrep.core_runner import Plan
+    from semgrep.core_targets_plan import Plan
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.semgrep_types import Language
@@ -31,11 +31,11 @@ class ParsingData:
         parsing statistics
         """
         for task in plan.target_mappings:
-            if not task.language.definition.is_target_language:
+            if not task.analyzer.definition.is_target_language:
                 continue
-            self._file_info[task.path] = (task.language, True)
+            self._file_info[task.path] = (task.analyzer, True)
             entry = self._parse_errors_by_lang.get(
-                task.language, LanguageParseData(0, 0, 0, 0)
+                task.analyzer, LanguageParseData(0, 0, 0, 0)
             )
             try:
                 entry.num_bytes += os.path.getsize(task.path)
@@ -43,7 +43,7 @@ class ParsingData:
             except OSError:
                 # Don't count the target if the path doesn't exist
                 pass
-            self._parse_errors_by_lang[task.language] = entry
+            self._parse_errors_by_lang[task.analyzer] = entry
 
     def add_error(self, err: out.CoreError) -> None:
         """

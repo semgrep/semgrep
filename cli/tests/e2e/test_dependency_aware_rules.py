@@ -40,6 +40,7 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/yarn",
         ),
         ("rules/dependency_aware/go-sca.yaml", "dependency_aware/go"),
+        ("rules/dependency_aware/go-sca.yaml", "dependency_aware/go_multi_newline"),
         ("rules/dependency_aware/ruby-sca.yaml", "dependency_aware/ruby"),
         (
             "rules/dependency_aware/ruby-sca.yaml",
@@ -169,6 +170,10 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/nuget",
         ),
         ("rules/dependency_aware/gradle-guava.yaml", "dependency_aware/gradle-direct"),
+        (
+            "rules/dependency_aware/dart-parity.yaml",
+            "dependency_aware/dart",
+        ),
     ],
 )
 def test_dependency_aware_rules(

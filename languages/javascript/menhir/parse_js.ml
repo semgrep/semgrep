@@ -191,7 +191,7 @@ let tokens input_source =
   in
   Parsing_helpers.tokenize_all_and_adjust_pos input_source token
     TH.visitor_info_of_tok TH.is_eof
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -267,12 +267,12 @@ let parse2 opt_timeout filename =
     | Right err_tok ->
         let max_line = Common.cat filename |> List.length in
         (if !Flag.show_parsing_error then
-         let filelines = Common2.cat_array filename in
-         let cur = tr.Parsing_helpers.current in
-         let line_error = TH.line_of_tok cur in
-         Parsing_helpers.print_bad line_error
-           (line_start, min max_line (line_error + 10))
-           filelines);
+           let filelines = Common2.cat_array filename in
+           let cur = tr.Parsing_helpers.current in
+           let line_error = TH.line_of_tok cur in
+           Parsing_helpers.print_bad line_error
+             (line_start, min max_line (line_error + 10))
+             filelines);
         if !Flag.error_recovery then (
           (* todo? try to recover? call 'aux tr'? but then can be really slow*)
           (* TODO: count a bad line twice? use Hashtbl.length tech instead *)

@@ -85,7 +85,9 @@ let (matches_of_matcher :
                               taint_trace = None;
                               tokens = lazy [ info_of_token_location loc1 ];
                               engine_kind = `OSS;
-                              validation_state = No_validator;
+                              validation_state = `No_validator;
+                              severity_override = None;
+                              metadata_override = None;
                             })))
         in
         RP.make_match_result res Core_error.ErrorSet.empty

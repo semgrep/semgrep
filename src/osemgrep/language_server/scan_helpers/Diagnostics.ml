@@ -4,7 +4,7 @@ module Conv = Convert_utils
 module Out = Semgrep_output_v1_t
 
 let diagnostic_of_match is_intellij (m : Out.cli_match) =
-  let severity = Conv.severity_of_string m.extra.severity in
+  let severity = Conv.convert_severity m.extra.severity in
   let message = m.extra.message in
   let message =
     if String.equal message "" then

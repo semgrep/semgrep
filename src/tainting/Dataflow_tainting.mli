@@ -97,7 +97,6 @@ type java_props_cache
   * to their corresponding property, we cache the results here. *)
 
 val mk_empty_java_props_cache : unit -> java_props_cache
-val str_of_name : IL.name -> var
 
 val hook_function_taint_signature :
   (config ->

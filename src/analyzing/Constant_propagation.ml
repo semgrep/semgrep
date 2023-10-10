@@ -799,7 +799,7 @@ let propagate_basic lang prog =
   in
   visitor#visit_program (env, Iter_with_context.initial_context) prog;
   ()
-  [@@profiling]
+[@@profiling]
 
 let propagate_dataflow_one_function lang inputs flow =
   (* Exposed to help DeepSemgrep *)
@@ -832,3 +832,10 @@ let propagate_dataflow lang ast =
       let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
       let flow = CFG_build.cfg_of_stmts xs in
       propagate_dataflow_one_function lang [] flow
+
+let propagate_dataflow_program lang fun_cfgs =
+  fun_cfgs
+  |> List.iter (fun fun_cfg ->
+         match (fun_cfg : CFG_build.fun_cfg) with
+         | { fparams; fcfg } ->
+             propagate_dataflow_one_function lang fparams fcfg)

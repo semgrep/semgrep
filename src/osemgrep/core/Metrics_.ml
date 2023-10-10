@@ -394,3 +394,8 @@ let add_exit_code code =
 let add_feature ~category ~name =
   let str = Format.asprintf "%s/%s" category name in
   g.payload.value.features <- str :: g.payload.value.features
+
+(*****************************************************************************)
+(* Init and Send *)
+(*****************************************************************************)
+(* The code is now in CLI.ml *)

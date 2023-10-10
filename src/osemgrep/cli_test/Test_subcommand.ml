@@ -4,6 +4,9 @@
 (* There is currently no 'semgrep test' subcommand. Tests are run via
  * 'semgrep scan --test ...' but internally it's quite similar to
  * a subcommand.
+ *
+ * For more info on how to use Semgrep rule testing infrastructure, see
+ * https://semgrep.dev/docs/writing-rules/testing-rules/.
  *)
 
 (*****************************************************************************)

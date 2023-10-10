@@ -1,0 +1,26 @@
+# Name of this GitHub Actions workflow.
+name: Trigger Doc Update
+
+# Only trigger when the release workflow has succeeded
+on:
+  workflow_run:
+    workflows: ["release"]
+    types: [completed]
+
+jobs:
+  trigger-doc-update:
+    name: Trigger Doc Update
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate a token
+        id: generate_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app_id: ${{ secrets.SEMGREP_DOCS_RELEASE_APP_ID }}
+          private_key: ${{ secrets.SEMGREP_DOCS_RELEASE_PRIVATE_KEY }}
+          repositories: "semgrep-docs"
+      - name: Trigger doc update workflow
+        env:
+          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
+        run: |
+          gh api repos/returntocorp/semgrep-docs/dispatches -f event_type=new_release --verbose

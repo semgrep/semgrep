@@ -1,5 +1,13 @@
 (* Final match result for all the files and all the rules *)
 
+type 'a match_result = {
+  matches : Pattern_match.t list;
+  errors : Core_error.ErrorSet.t;
+  extra : 'a Core_profiling.debug_info;
+  explanations : Matching_explanation.t list;
+}
+[@@deriving show]
+
 type t = {
   matches : Pattern_match.t list;
   errors : Core_error.t list;
@@ -9,7 +17,7 @@ type t = {
   skipped_rules : Rule.invalid_rule_error list;
   (* may contain skipped_target info *)
   extra : Core_profiling.t Core_profiling.debug_info;
-  explanations : Matching_explanation.t list;
+  explanations : Matching_explanation.t list option;
   rules_by_engine : (Rule_ID.t * Engine_kind.t) list;
   (* The targets are all the files that were considered valid targets for the
    * semgrep scan. This excludes files that were filtered out on purpose
@@ -32,14 +40,6 @@ type result_or_exn = (t, Exception.t * Core_error.t option) result
  * This usually represents the match results for one target file
  * (possibly matches coming from more than one rule).
  *)
-
-type 'a match_result = {
-  matches : Pattern_match.t list;
-  errors : Core_error.ErrorSet.t;
-  extra : 'a Core_profiling.debug_info;
-  explanations : Matching_explanation.t list;
-}
-[@@deriving show]
 
 (* take the match results for each file, all the rules, all the targets,
  * and build the final result

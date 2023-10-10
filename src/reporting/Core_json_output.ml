@@ -93,13 +93,6 @@ let range_of_any_opt startp_of_match_range any =
 (* Converters *)
 (*****************************************************************************)
 
-(* TODO: same, should reuse directly semgrep_output_v1 *)
-let convert_validation_state = function
-  | Confirmed_valid -> `CONFIRMED_VALID
-  | Confirmed_invalid -> `CONFIRMED_INVALID
-  | Validation_error -> `VALIDATION_ERROR
-  | No_validator -> `NO_VALIDATOR
-
 let convert_rule ((id, ek) : Rule_ID.t * Engine_kind.t) =
   (Rule_ID.to_string id, ek)
 
@@ -258,11 +251,13 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
     extra =
       {
         message = Some x.rule_id.message;
+        severity = x.severity_override;
+        metadata = Option.map JSON.to_yojson x.metadata_override;
         metavars = x.env |> Common.map (metavars startp);
         dataflow_trace;
         rendered_fix;
         engine_kind = x.engine_kind;
-        validation_state = Some (convert_validation_state x.validation_state);
+        validation_state = Some x.validation_state;
         extra_extra = None;
       };
   }
@@ -282,7 +277,7 @@ let match_to_match render_fix (x : Pattern_match.t) :
       in
       let err = E.mk_error (Some x.rule_id.id) loc s Out.MatchingError in
       Right err
-  [@@profiling]
+[@@profiling]
 
 (* less: Semgrep_error_code should be defined fully Output_from_core.atd
  * so we would not need those conversions
@@ -403,9 +398,9 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
 let core_output_of_matches_and_errors render_fix (res : Core_result.t) :
     Out.core_output =
   let matches, new_errs =
-    Common.partition_either (match_to_match render_fix) res.RP.matches
+    Common.partition_either (match_to_match render_fix) res.matches
   in
-  let errs = !E.g_errors @ new_errs @ res.RP.errors in
+  let errs = !E.g_errors @ new_errs @ res.errors in
   let skipped_targets, profiling =
     match res.extra with
     | Core_profiling.Debug { skipped_targets; profiling } ->
@@ -425,7 +420,7 @@ let core_output_of_matches_and_errors render_fix (res : Core_result.t) :
         scanned = [];
       };
     skipped_rules =
-      res.RP.skipped_rules
+      res.skipped_rules
       |> Common.map (fun ((kind, rule_id, tk) : Rule.invalid_rule_error) ->
              let loc = Tok.unsafe_loc_of_tok tk in
              {
@@ -435,13 +430,12 @@ let core_output_of_matches_and_errors render_fix (res : Core_result.t) :
              });
     time = profiling |> Option.map profiling_to_profiling;
     explanations =
-      ( res.RP.explanations |> Common.map explanation_to_explanation |> fun x ->
-        Some x );
+      res.explanations |> Option.map (Common.map explanation_to_explanation);
     rules_by_engine = Some (Common.map convert_rule res.rules_by_engine);
     engine_requested = Some `OSS;
     version = Some Version.version;
   }
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Error management *)

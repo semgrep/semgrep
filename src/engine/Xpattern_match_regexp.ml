@@ -97,4 +97,4 @@ let matches_of_regexs regexps lazy_content file =
       matcher = regexp_matcher;
     }
     file
-  [@@profiling]
+[@@profiling]

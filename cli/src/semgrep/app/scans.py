@@ -2,7 +2,7 @@
 import json
 import os
 from collections import Counter
-from copy import deepcopy
+from dataclasses import dataclass
 from datetime import datetime
 from datetime import timedelta
 from pathlib import Path
@@ -13,7 +13,6 @@ from typing import FrozenSet
 from typing import List
 from typing import Optional
 from typing import Set
-from typing import Tuple
 from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -40,6 +39,13 @@ if TYPE_CHECKING:
     from rich.progress import Progress
 
 logger = getLogger(__name__)
+
+
+@dataclass
+class ScanCompleteResult:
+    success: bool
+    app_block_override: bool
+    app_block_reason: str
 
 
 class ScanHandler:
@@ -136,7 +142,7 @@ class ScanHandler:
         """
         return self._enabled_products
 
-    def _get_scan_config_from_app(self, url: str) -> Dict[str, Any]:
+    def _get_scan_config_from_app(self, url: str) -> out.ScanConfig:
         state = get_state()
         response = state.app_session.get(url)
         try:
@@ -153,7 +159,7 @@ class ScanHandler:
                 f"API server at {state.env.semgrep_url} returned type '{type(body)}'. Expected a dictionary."
             )
 
-        return body
+        return out.ScanConfig.from_json(body)
 
     def fetch_and_init_scan_config(self, meta: Dict[str, Any]) -> None:
         """
@@ -178,24 +184,27 @@ class ScanHandler:
                 f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/config"
             )
 
-        body = self._get_scan_config_from_app(app_get_config_url)
+        conf: out.ScanConfig = self._get_scan_config_from_app(app_get_config_url)
 
-        self._deployment_id = body["deployment_id"]
-        self._deployment_name = body["deployment_name"]
-        self._policy_names = body["policy_names"]
-        self._rules = body["rule_config"]
-        self._autofix = body.get("autofix") or False
-        self._deepsemgrep = body.get("deepsemgrep") or False
-        self._dependency_query = body.get("dependency_query") or False
-        self._skipped_syntactic_ids = body.get("triage_ignored_syntactic_ids") or []
-        self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids") or []
-        self._enabled_products = body.get("enabled_products") or []
-        self.ignore_patterns = body.get("ignored_files") or []
+        self._deployment_id = conf.deployment_id
+        self._deployment_name = conf.deployment_name
+        self._policy_names = conf.policy_names
+        self._rules = conf.rule_config
+        self._autofix = conf.autofix
+        self._deepsemgrep = conf.deepsemgrep
+        self._dependency_query = conf.dependency_query
+        self._skipped_syntactic_ids = conf.triage_ignored_syntactic_ids
+        self._skipped_match_based_ids = conf.triage_ignored_match_based_ids
+        self.ignore_patterns = conf.ignored_files
+        if conf.enabled_products:
+            self._enabled_products = [x.to_json() for x in conf.enabled_products]
+        else:
+            self._enabled_products = []
 
         if state.terminal.is_debug:
-            config = deepcopy(body)
+            config = conf.to_json()
             try:
-                config["rule_config"] = json.loads(config["rule_config"])
+                config["rule_config"] = json.loads(conf.rule_config)
             except Exception:
                 pass
             logger.debug(f"Got configuration {json.dumps(config, indent=4)}")
@@ -284,9 +293,11 @@ class ScanHandler:
         contributions: out.Contributions,
         engine_requested: "EngineType",
         progress_bar: "Progress",
-    ) -> Tuple[bool, str]:
+    ) -> ScanCompleteResult:
         """
         commit_date here for legacy reasons. epoch time of latest commit
+
+        Returns (success, block_scan, block_reason)
         """
         state = get_state()
         rule_ids = [out.RuleId(r.id) for r in rules]
@@ -376,9 +387,6 @@ class ScanHandler:
             ),
         )
 
-        if self._dependency_query:
-            complete.dependencies = out.CiScanDependencies(lockfile_dependencies)
-
         if self.dry_run:
             logger.info(
                 f"Would have sent findings and ignores blob: {json.dumps(findings_and_ignores, indent=4)}"
@@ -386,13 +394,10 @@ class ScanHandler:
             logger.info(
                 f"Would have sent complete blob: {json.dumps(complete.to_json(), indent=4)}"
             )
-            return (False, "")
+            return ScanCompleteResult(True, False, "")
         else:
             logger.debug(
                 f"Sending findings and ignores blob: {json.dumps(findings_and_ignores, indent=4)}"
-            )
-            logger.debug(
-                f"Sending complete blob: {json.dumps(complete.to_json(), indent=4)}"
             )
 
         results_task = progress_bar.add_task("Uploading scan results")
@@ -419,11 +424,18 @@ class ScanHandler:
         except requests.RequestException as exc:
             raise Exception(f"API server returned this error: {response.text}") from exc
 
-        try_until = datetime.now() + timedelta(minutes=20)
-        slow_down_after = datetime.now() + timedelta(minutes=2)
         complete_task = progress_bar.add_task("Finalizing scan")
-        while datetime.now() < try_until:
-            logger.debug("Sending /complete")
+        try_until = datetime.utcnow() + timedelta(minutes=20)
+        slow_down_after = datetime.utcnow() + timedelta(minutes=2)
+
+        while True:
+            logger.debug(
+                f"Sending /complete {json.dumps(complete.to_json(), indent=4)}"
+            )
+
+            if datetime.utcnow() > try_until:
+                # let the backend know we won't be trying again
+                complete.final_attempt = True
 
             # mark as complete
             response = state.app_session.post(
@@ -440,18 +452,15 @@ class ScanHandler:
                 )
 
             ret = response.json()
+            success = ret.get("success", False)
 
-            if ret.get("success", False):
+            if success or complete.final_attempt:
                 progress_bar.update(complete_task, completed=100)
-                return (
-                    ret.get("app_block_override", False),
+                return ScanCompleteResult(
+                    success,
+                    bool(ret.get("app_block_override", False)),
                     ret.get("app_block_reason", ""),
                 )
-            else:
-                progress_bar.advance(complete_task)
-                sleep(5 if datetime.utcnow() < slow_down_after else 30)
-                continue
 
-        raise Exception(
-            f"API server at {state.env.semgrep_url} never completed processing the scan results."
-        )
+            progress_bar.advance(complete_task)
+            sleep(5 if datetime.utcnow() < slow_down_after else 30)

@@ -5,5 +5,6 @@
  (libraries
    osemgrep_cli_scan
    semgrep.language_server.util
+   osemgrep_language_server_server
  )
 )

@@ -109,8 +109,9 @@ and metavar_cond =
   | CondType of
       MV.mvar
       * Xlang.t option (* when the type expression is in different lang *)
-      * string (* raw input string saved for regenerating rule yaml *)
-      * AST_generic.type_ (* LATER: could parse lazily, like the patterns *)
+      * string list (* raw input string saved for regenerating rule yaml *)
+      * AST_generic.type_ list
+    (* LATER: could parse lazily, like the patterns *)
   | CondAnalysis of MV.mvar * metavar_analysis_kind
   | CondNestedFormula of MV.mvar * Xlang.t option * formula
 
@@ -119,6 +120,16 @@ and metavar_analysis_kind = CondEntropy | CondEntropyV2 | CondReDoS
 (* Represents all of the metavariables that are being focused by a single
    `focus-metavariable`. *)
 and focus_mv_list = tok * MV.mvar list [@@deriving show, eq, hash]
+
+(*****************************************************************************)
+(* Semgrep_output aliases *)
+(*****************************************************************************)
+
+(* this is now defined in semgrep_output_v1.atd *)
+type severity = Semgrep_output_v1_t.match_severity [@@deriving show, eq]
+
+type validation_state = Semgrep_output_v1_t.validation_state
+[@@deriving show, eq]
 
 (*****************************************************************************)
 (* Taint-specific types *)
@@ -367,6 +378,27 @@ type secrets = {
 }
 [@@deriving show]
 
+type http_match_clause = {
+  status_code : int option;
+  (* Optional. Empty list if not set *)
+  headers : header list;
+  content : (formula * Xlang.t) option;
+}
+[@@deriving show]
+
+type http_matcher = {
+  match_conditions : http_match_clause list;
+  validity : validation_state;
+  (* Fields to potentially modify *)
+  severity : severity option;
+  metadata : JSON.t option;
+  message : string option;
+}
+[@@deriving show]
+
+type validator = HTTP of { request : request; response : http_matcher list }
+[@@deriving show]
+
 (*****************************************************************************)
 (* Paths *)
 (*****************************************************************************)
@@ -510,10 +542,9 @@ type 'mode rule_info = {
    * is now done via Rule_options instead.
    *)
   metadata : JSON.t option;
+  (* TODO(cooper): would be nice to have nonempty but common2 version not nice to work with; no pp for one *)
+  validators : validator list option;
 }
-
-(* TODO? just reuse Error_code.severity *)
-and severity = Error | Warning | Info | Inventory | Experiment
 [@@deriving show]
 
 (* Step mode includes rules that use search_mode and taint_mode *)
@@ -585,6 +616,9 @@ let partition_rules (rules : rules) :
               l)
   in
   part_rules [] [] [] [] [] rules
+
+(* for informational messages *)
+let show_id rule = rule.id |> fst |> Rule_ID.to_string
 
 (*****************************************************************************)
 (* Error Management *)
@@ -821,7 +855,7 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
     max_version = None;
     (* alt: could put xpat.pstr for the message *)
     message = "";
-    severity = Error;
+    severity = `Error;
     target_selector;
     target_analyzer;
     options = None;
@@ -830,6 +864,7 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
     fix_regexp = None;
     paths = None;
     metadata = None;
+    validators = None;
   }
 
 (* TODO(dinosaure): Currently, on the Python side, we remove the metadatas and

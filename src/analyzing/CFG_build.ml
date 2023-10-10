@@ -16,6 +16,7 @@
 open Common
 open IL
 module F = IL (* to be even more similar to controlflow_build.ml *)
+module G = AST_generic
 
 (*****************************************************************************)
 (* Prelude *)
@@ -76,6 +77,8 @@ type state = {
   (* If a lambda is never used, we just insert its CFG at declaration site. *)
   unused_lambdas : (name, nodei * nodei) Hashtbl.t;
 }
+
+type fun_cfg = { fparams : name list; fcfg : cfg }
 
 (*****************************************************************************)
 (* Helpers *)
@@ -357,10 +360,12 @@ and cfg_lambda state previ joini fdef =
      *
      * alt: We could inline lambdas perhaps?
   *)
-  let newi = state.g#add_node { F.n = NLambda fdef.fparams } in
+  let newi = state.g#add_node { F.n = NLambda fdef.IL.fparams } in
   state.g |> add_arc (previ, newi);
   let finallambda, _ignore_throws_in_lambda_ =
-    cfg_stmt_list { state with throw_destination = None } (Some newi) fdef.fbody
+    cfg_stmt_list
+      { state with throw_destination = None }
+      (Some newi) fdef.IL.fbody
   in
   state.g |> add_arc_from_opt (finallambda, joini)
 
@@ -486,3 +491,30 @@ let (cfg_of_stmts : stmt list -> F.cfg) =
    *)
   g |> add_arc_from_opt (last_node_opt, exiti);
   CFG.make g enteri exiti
+
+let cfgs_in_program (lang : Lang.t) (ast : G.program) : fun_cfg list * fun_cfg =
+  match lang with
+  | Lang.Dockerfile ->
+      (* Dockerfile has no functions. The whole file is just a single scope *)
+      let xs =
+        AST_to_IL.stmt lang (G.Block (Tok.unsafe_fake_bracket ast) |> G.s)
+      in
+      let fcfg = cfg_of_stmts xs in
+      ([], { fparams = []; fcfg })
+  | _ ->
+      let cfgs = ref [] in
+      ast
+      |> Visit_function_defs.visit (fun _ent fdef ->
+             let fparams, xs = AST_to_IL.function_definition lang fdef in
+             let fcfg = cfg_of_stmts xs in
+             cfgs := { fparams; fcfg } :: !cfgs);
+
+      (* We consider the top-level function the interior of a degenerate function,
+         and simply run constant propagation on that.
+
+         Since we don't traverse into each function body recursively, we shouldn't
+         duplicate any work.
+      *)
+      let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
+      let fcfg = cfg_of_stmts xs in
+      (!cfgs, { fparams = []; fcfg })

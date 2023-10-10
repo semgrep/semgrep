@@ -1076,6 +1076,8 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   | G.Ref (a0, a1), B.Ref (b0, b1) -> m_tok a0 b0 >>= fun () -> m_expr a1 b1
   | G.DeRef (a0, a1), B.DeRef (b0, b1) -> m_tok a0 b0 >>= fun () -> m_expr a1 b1
   | G.StmtExpr a1, B.StmtExpr b1 -> m_stmt a1 b1
+  (* implicit return *)
+  | G.StmtExpr { s = G.Return (_, Some a, _); _ }, _ -> m_implicit_return a b
   | G.OtherExpr (a1, a2), B.OtherExpr (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.RawExpr a, B.RawExpr b -> m_raw_tree a b
@@ -1478,13 +1480,17 @@ and m_compatible_type lang typed_mvar t e =
       m_type_ t
         (G.TyPointer (t1, G.TyN (G.Id (("char", tok), id_info)) |> G.t) |> G.t)
       >>= fun () -> envf typed_mvar (MV.E e)
-  (* for matching ids *)
-  (* this is covered by the basic type propagation done in Naming_AST.ml *)
-  | _ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob))) ->
-      (* NOTE: Name values must be represented with MV.Id! *)
-      m_type_option_with_hook idb (Some t) !tb >>= fun () ->
-      envf typed_mvar (MV.Id (idb, Some id_infob))
   | _ta, _eb -> (
+      (match (t.G.t, e.G.e) with
+      (* for matching ids *)
+      (* this is covered by the basic type propagation done in Naming_AST.ml *)
+      (* TODO Remove this case in favor of the newer type inference below. *)
+      | _ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob))) ->
+          (* NOTE: Name values must be represented with MV.Id! *)
+          m_type_option_with_hook idb (Some t) !tb >>= fun () ->
+          envf typed_mvar (MV.Id (idb, Some id_infob))
+      | _else_ -> fail ())
+      >||>
       let with_bound_metavar =
         match e.G.e with
         | B.N (B.Id (id, info)) ->
@@ -2060,6 +2066,9 @@ and m_type_arguments a b =
 
 and m_type_argument a b =
   match (a, b) with
+  | B.TAExpr { e = N (Id ((str, tok), _)); _ }, G.TA b1
+    when MV.is_metavar_name str ->
+      envf (str, tok) (MV.T b1)
   | G.TA a1, B.TA b1 -> m_type_ a1 b1
   | G.TAWildcard (a1, a2), B.TAWildcard (b1, b2) ->
       let* () = m_tok a1 b1 in
@@ -2260,6 +2269,16 @@ and m_attribute a b =
 and m_attributes a b = m_list_in_any_order ~less_is_ok:true m_attribute a b
 
 (*****************************************************************************)
+(* Implicit return *)
+(*****************************************************************************)
+(* For matching `return a` with `b` when `b` is the last executed expression
+ * in a function. Here, `a` must come from a return statement.
+ *)
+and m_implicit_return (a : G.expr) (b : B.expr) tin =
+  if tin.config.implicit_return && b.is_implicit_return then m_expr_root a b tin
+  else fail () tin
+
+(*****************************************************************************)
 (* Statement list *)
 (*****************************************************************************)
 (* possibly go deeper when someone wants that a pattern like
@@ -2341,7 +2360,7 @@ and m_stmts_deep ~inside ~less_is_ok (xsa : G.stmt list) (xsb : G.stmt list) =
              ~else_:(fail ())
   (* dots: metavars: $...BODY *)
   | ( ({ s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _idinfo)); _ }, _); _ } :: _
-      as xsa),
+       as xsa),
       xsb )
     when MV.is_metavar_ellipsis s ->
       (* less: for metavariable ellipsis, does it make sense to go deep? *)
@@ -2510,6 +2529,8 @@ and m_stmt a b =
         ~else_:(fail ())
   (* equivalence: *)
   | G.ExprStmt (a1, _), B.Return (_, Some b1, _) -> m_expr_deep a1 b1
+  (* implicit return *)
+  | G.Return (_, Some a1, _), B.ExprStmt (b1, _) -> m_implicit_return a1 b1
   (* boilerplate *)
   | G.If (a0, a1, a2, a3), B.If (b0, b1, b2, b3) ->
       m_tok a0 b0 >>= fun () ->

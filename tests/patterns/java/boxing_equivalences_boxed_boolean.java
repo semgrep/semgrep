@@ -3,11 +3,11 @@ public class boxing_equivalences_boxed_boolean {
     boolean b1 = true;
     Boolean b2 = false;
     java.lang.Boolean b3 = true;
-    // TODO:
+    // MATCH:
     System.out.println(b1);
     // MATCH:
     System.out.println(b2);
-    // TODO:
+    // MATCH:
     System.out.println(b3);
     // MATCH:
     System.out.println(true);

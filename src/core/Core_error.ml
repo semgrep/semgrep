@@ -235,28 +235,28 @@ let string_of_error err =
     (Out.string_of_core_error_kind err.typ)
     err.msg details
 
-let severity_of_error typ =
-  match (typ : Out.core_error_kind) with
-  | SemgrepMatchFound -> Out.Error
-  | MatchingError -> Warning
-  | TooManyMatches -> Warning
-  | LexicalError -> Warning
-  | ParseError -> Warning
-  | PartialParsing _ -> Warning
-  | SpecifiedParseError -> Warning
-  | AstBuilderError -> Error
-  | RuleParseError -> Error
-  | PatternParseError _ -> Error
-  | InvalidYaml -> Warning
-  | FatalError -> Error
-  | Timeout -> Warning
-  | OutOfMemory -> Warning
-  | TimeoutDuringInterfile -> Error
-  | OutOfMemoryDuringInterfile -> Error
+let severity_of_error (typ : Out.core_error_kind) : Out.error_severity =
+  match typ with
+  | SemgrepMatchFound -> `Error
+  | MatchingError -> `Warning
+  | TooManyMatches -> `Warning
+  | LexicalError -> `Warning
+  | ParseError -> `Warning
+  | PartialParsing _ -> `Warning
+  | SpecifiedParseError -> `Warning
+  | AstBuilderError -> `Error
+  | RuleParseError -> `Error
+  | PatternParseError _ -> `Error
+  | InvalidYaml -> `Warning
+  | FatalError -> `Error
+  | Timeout -> `Warning
+  | OutOfMemory -> `Warning
+  | TimeoutDuringInterfile -> `Error
+  | OutOfMemoryDuringInterfile -> `Error
   | IncompatibleRule _
   | MissingPlugin ->
       (* Running into an incompatible rule may be normal, with nothing to fix *)
-      Info
+      `Info
 
 (*****************************************************************************)
 (* Try with error *)

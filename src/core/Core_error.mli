@@ -61,7 +61,7 @@ val try_with_print_exn_and_reraise : Common.filename -> (unit -> unit) -> unit
 val string_of_error : t -> string
 
 val severity_of_error :
-  Semgrep_output_v1_t.core_error_kind -> Semgrep_output_v1_t.core_severity
+  Semgrep_output_v1_t.core_error_kind -> Semgrep_output_v1_t.error_severity
 
 (*****************************************************************************)
 (* Helpers for unit testing *)

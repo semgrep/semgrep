@@ -113,13 +113,13 @@ let fetch_ci_rules_and_origins () =
   let token = auth_token () in
   match token with
   | Some token ->
-      let%lwt scan_config =
-        Scan_helper.fetch_scan_config_async ~token ~sca:false ~dry_run:true
-          ~full_scan:true ""
+      let%lwt res =
+        Semgrep_App.fetch_scan_config_async ~token ~sca:false ~dry_run:true
+          ~full_scan:true ~repository:""
       in
       let conf =
-        match scan_config with
-        | Ok rules -> Some (decode_rules rules)
+        match res with
+        | Ok scan_config -> Some (decode_rules scan_config.rule_config)
         | Error e ->
             Logs.warn (fun m -> m "Failed to fetch rules from CI: %s" e);
             None
@@ -194,7 +194,7 @@ let fetch_skipped_fingerprints () =
         Semgrep_App.get_scan_config_from_token_async ~token
       in
       match deployment_opt with
-      | Some deployment -> Lwt.return deployment.skipped_match_based_ids
+      | Some deployment -> Lwt.return deployment.triage_ignored_match_based_ids
       | None -> Lwt.return [])
   | None -> Lwt.return []
 

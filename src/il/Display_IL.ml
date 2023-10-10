@@ -1,9 +1,5 @@
 open IL
 
-(* coupling: Dataflow_xyz.str_of_name *)
-let string_of_name name =
-  Common.spf "%s:%s" (fst name.ident) (AST_generic.SId.show name.sid)
-
 let string_of_type (ty : IL.type_) =
   match ty.type_.t with
   | TyN (Id (id, _)) -> fst id
@@ -11,13 +7,13 @@ let string_of_type (ty : IL.type_) =
 
 let string_of_base base =
   match base with
-  | Var x -> string_of_name x
+  | Var x -> str_of_name x
   | VarSpecial _ -> "<VarSpecial>"
   | Mem _ -> "<Mem>"
 
 let string_of_offset offset =
   match offset.o with
-  | Dot a -> str_of_name a
+  | Dot a -> ident_str_of_name a
   | Index _ -> "[...]"
 
 let string_of_lval { base; rev_offset } =
@@ -27,10 +23,27 @@ let string_of_lval { base; rev_offset } =
     "." ^ String.concat "." (List.rev_map string_of_offset rev_offset)
   else ""
 
+let string_of_literal (lit : AST_generic.literal) =
+  match lit with
+  | Bool (b, _) -> string_of_bool b
+  | Int (Some i, _) -> string_of_int i
+  | Int _ -> "<INT-LIT>"
+  | Float (Some f, _) -> string_of_float f
+  | Float _ -> "<FLOAT-LIT>"
+  | Char (s, _) -> s
+  | String (_, (s, _), _) -> s
+  | Regexp _ -> "<REGEXP-LIT>"
+  | Atom _ -> "<ATOM>"
+  | Unit _ -> "<UNIT>"
+  | Null _ -> "<NULL>"
+  | Undefined _ -> "<UNDEFINEDL>"
+  | Imag _ -> "<IMAG>"
+  | Ratio _ -> "<RATIO>"
+
 let rec string_of_exp_kind e =
   match e with
   | Fetch l -> string_of_lval l
-  | Literal _ -> "<LIT>"
+  | Literal lit -> string_of_literal lit
   | Operator ((op, _), [ Unnamed e1; Unnamed e2 ]) ->
       Common.spf "(%s `%s` %s)" (string_of_exp e1) (G.show_operator op)
         (string_of_exp e2)
@@ -62,10 +75,10 @@ let short_string_of_node_kind nkind =
   | Join -> "<join>"
   | NCond _ -> "cond(...)"
   | NGoto (_, l) -> "goto " ^ str_of_label l
-  | NReturn _ -> "return ...;"
+  | NReturn (_, e) -> Common.spf "return %s" (string_of_exp e)
   | NThrow _ -> "throw ...;"
   | NLambda params ->
-      let params_strs = Common.map string_of_name params in
+      let params_strs = Common.map str_of_name params in
       "LAMBDA " ^ String.concat ", " params_strs
   | NOther (Noop str) -> Common.spf "<noop: %s>" str
   | NOther _ -> "<other>"
@@ -79,7 +92,8 @@ let short_string_of_node_kind nkind =
             | None -> ""
             | Some lval -> string_of_lval lval ^ " = "
           in
-          lval_str ^ string_of_exp exp ^ "(" ^ string_of_arguments args ^ ")"
+          "CALL " ^ lval_str ^ string_of_exp exp ^ "("
+          ^ string_of_arguments args ^ ")"
       | New (lval, ty, _cons, args) ->
           Common.spf "%s = new %s(%s)" (string_of_lval lval) (string_of_type ty)
             (string_of_arguments args)

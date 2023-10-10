@@ -37,7 +37,7 @@ let tokens input_source =
   let token = Lexer_java.token in
   Parsing_helpers.tokenize_all_and_adjust_pos input_source token
     TH.visitor_info_of_tok TH.is_eof
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -94,7 +94,7 @@ let parse filename =
         Parsing_helpers.print_bad line_error (checkpoint, checkpoint2) filelines;
       stat.PS.error_line_count <- stat.PS.total_line_count;
       { Parsing_result.ast = []; tokens = toks; stat }
-  [@@profiling]
+[@@profiling]
 
 let parse_program file =
   let res = parse file in
