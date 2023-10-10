@@ -144,7 +144,7 @@ let fetch_rules session =
   in
   let rules_source =
     if rules_source = [] && ci_rules = None then (
-      Logs.app (fun m -> m "No rules source specified, using auto");
+      Logs.debug (fun m -> m "No rules source specified, using auto");
       [ "auto" ])
     else rules_source
   in

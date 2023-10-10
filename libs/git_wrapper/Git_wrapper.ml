@@ -318,7 +318,6 @@ let dirty_lines_of_file ?(git_ref = "HEAD") file =
         | Ok (lines, (_, `Exited 1))
         (* 1 happens if git doesn't exit cleanly aka file is not in the repo *)
         | Ok (lines, (_, `Exited 0)) ->
-            Logs.app (fun m -> m "GIT DIFF lines: %s" lines);
             Some lines
         | _ -> None
       in
