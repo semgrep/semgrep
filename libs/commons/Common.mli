@@ -167,7 +167,6 @@ val fullpath : filename -> filename
 (* Deprecated: use the Ppath module instead! *)
 val filename_without_leading_path : string -> filename -> filename
 val readable : root:string -> filename -> filename
-val dir_contents : filename -> filename list
 
 val dir_contents : filename -> filename list
 (** [dir_contents dir] will return a recursive list of all files in a directory *)
