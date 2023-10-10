@@ -88,7 +88,7 @@ local pre_commit_ocaml_job =
     // This custom image provides 'ocamlformat' with a specific version needed to check
     // OCaml code (must be the same than the one in dev/dev.opam)
     // See https://github.com/returntocorp/ocaml-layer/blob/master/configs/ubuntu.sh
-    container: 'returntocorp/ocaml:ubuntu5.0-2023-09-29',
+    container: 'returntocorp/ocaml:ubuntu-2023-06-16',
     steps: [
       checkout_step,
       // HOME in the container is tampered by GHA and modified from /root to /home/github
@@ -101,7 +101,8 @@ local pre_commit_ocaml_job =
           HOME: '/root',
         },
         // coupling: the version below must be the same than in dev/dev.opam
-        // Without this 'git config' command below, we would get this error in CI:
+	//
+        // Without the 'git config' command below, we would get this error in CI:
         //   fatal: detected dubious ownership in repository at '/__w/semgrep/semgrep'
         //   To add an exception for this directory, call:
         //         git config --global --add safe.directory /__w/semgrep/semgrep
@@ -111,9 +112,17 @@ local pre_commit_ocaml_job =
         // does not fail.
         // TODO: Not sure why we need to do that here but have no issue in the
         // other pre-commit jobs. Maybe because pre-commit/action@v3.0.0 does extra stuff?
+	//
         // to debug errors in pre-commit, use instead:
-        // opam exec -- pre-commit run --verbose --all lint-ocaml || cat /root/.cache/pre-commit/pre-commit.log
+	// opam exec -- pre-commit run --verbose --all lint-ocaml || cat /root/.cache/pre-commit/pre-commit.log
+	//
+	// TODO: get rid of apt-get autconf and opam update which is slow
+	// but need a more recent container: above
         run: |||
+          # When installing ocamlformat.0.26.1 OPAM will try to rebuild some packages
+          # and for that it requires 'autoconf'.
+          apt-get install -y autoconf
+          opam update --yes # so that OPAM knows about ocamlformat.0.26.1
           opam install -y ocamlformat.0.26.1
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           opam exec -- pre-commit run --verbose --all lint-ocaml

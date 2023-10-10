@@ -24,7 +24,7 @@ jobs:
     name: Build the OSX binaries
     runs-on: macos-12
     env:
-      OPAM_SWITCH_NAME: 5.0.0
+      OPAM_SWITCH_NAME: 4.14.0
     steps:
       - uses: actions/checkout@v3
         with:

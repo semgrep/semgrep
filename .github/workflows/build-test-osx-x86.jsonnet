@@ -4,6 +4,7 @@
 // coupling: if you modify this file, modify also build-test-osx-arm64.jsonnet
 
 local actions = import 'libs/actions.libsonnet';
+local semgrep = import 'libs/semgrep.libsonnet';
 
 // ----------------------------------------------------------------------------
 // Notes on caching (TODO: move in semgrep.libsonnet at some point)
@@ -24,18 +25,21 @@ local use_cache_inputs(required) = {
 // This workflow uses the actions/cache@v3 GHA extension to cache
 // the ~/.opam directory, which is different from what we do for our other
 // architecture's build processes.
+//
 // This workflow runs on GHA-hosted runners and without caching it would run
 // very slowly (like 35min instead of 10min with caching). The Linux build process
 // uses a special container (returntocorp/ocaml:alpine-xxx) to bring in the
 // required dependencies, which makes opam switch create unnecessary and opam
 // install almost a noop. The M1 build runs on fast self-hosted runners where
 // caching does not seem to be necessary.
+//
 // TODO? If this experiment goes well, we might want to use this ~/.opam caching
 // technique also for M1 for consistency, and maybe even get rid of our
 // returntocorp/ocaml:alpine-xxx container to simplify things.
 //
 // To update to a new version of OCaml, we can modify the `OPAM_SWITCH_NAME` var
 // below, which will update the cache key, and lead to a cache miss on the new builds.
+//
 // TODO? we might want to use opam.lock as a key so any update to our dependencies
 // would automatically trigger a cache miss and generate a fresh ~/.opam.
 //
@@ -60,6 +64,7 @@ local use_cache_inputs(required) = {
 
 // Note that this actions does cache read and cache write.
 // See https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows for more information on GHA caching.
+//
 // Note that this works and speedup things because of the way OPAM works
 // and osx-setup-for-release.sh is written. Indeed, this script checks
 // if the opam switch is already created, and if a package is already
@@ -68,9 +73,12 @@ local use_cache_inputs(required) = {
 // hit the cache unfortunately, but we would spend time only for installing
 // those new packages (ideally we would want to regenerate the cache by
 // using an opam.pock in the cache key).
+//
+// PRE: the env.OPAM_SWITCH_NAME must be set in the caller
 local cache_opam_step = {
   name: 'Cache Opam',
   uses: 'actions/cache@v3',
+  // see use_cache_inputs() above
   'if': '${{ inputs.use-cache }}',
   env: {
     SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2,
@@ -86,6 +94,10 @@ local cache_opam_step = {
 // ----------------------------------------------------------------------------
 // The jobs
 // ----------------------------------------------------------------------------
+
+local artifact_name = 'semgrep-osx-${{ github.sha }}';
+local wheel_name = 'osx-x86-wheel';
+
 local build_core_osx_job = {
   name: 'Build the OSX binaries',
   'runs-on': 'macos-12',
@@ -94,7 +106,7 @@ local build_core_osx_job = {
     // This name is used in the cache key. If we update to a newer version of
     // ocaml, we'll want to change the OPAM_SWITCH_NAME as well to avoid issues
     // with caching.
-    OPAM_SWITCH_NAME: '5.0.0',
+    OPAM_SWITCH_NAME: semgrep.opam_switch,
   },
   steps: [
     actions.checkout_with_submodules(),
@@ -116,7 +128,7 @@ local build_core_osx_job = {
       uses: 'actions/upload-artifact@v3',
       with: {
         path: 'artifacts.zip',
-        name: 'semgrep-osx-${{ github.sha }}',
+        name: artifact_name,
       },
     },
   ],
@@ -132,7 +144,7 @@ local build_wheels_osx_job = {
     {
       uses: 'actions/download-artifact@v3',
       with: {
-        name: 'semgrep-osx-${{ github.sha }}',
+        name: artifact_name,
       },
     },
     {
@@ -146,7 +158,7 @@ local build_wheels_osx_job = {
       uses: 'actions/upload-artifact@v3',
       with: {
         path: 'cli/dist.zip',
-        name: 'osx-x86-wheel',
+        name: wheel_name,
       },
     },
   ],
@@ -161,7 +173,7 @@ local test_wheels_osx_x86_job = {
     {
       uses: 'actions/download-artifact@v1',
       with: {
-        name: 'osx-x86-wheel',
+        name: wheel_name,
       },
     },
     {

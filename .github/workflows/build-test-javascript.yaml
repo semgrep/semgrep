@@ -19,7 +19,7 @@ on:
 jobs:
   build-semgrep-js-ocaml:
     runs-on: ubuntu-latest-16-core
-    container: returntocorp/ocaml:alpine5.0-2023-09-29
+    container: returntocorp/ocaml:alpine-2023-06-16
     # We need this hack because GHA tampers with the HOME in container
     # and this does not play well with 'opam' installed in /root
     env:

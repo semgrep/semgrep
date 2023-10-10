@@ -12,7 +12,7 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // ----------------------------------------------------------------------------
 
 local build_test_core_job =
-  // This container has opam already installed, as well as an opam switch 5.0.0
+  // This container has opam already installed, as well as an opam switch
   // already created, and a big set of packages already installed. Thus,
   // the 'make install-deps-ALPINE-for-semgrep-core' below is very fast and
   // almost a noop.

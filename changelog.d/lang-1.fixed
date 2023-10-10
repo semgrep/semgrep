@@ -1,0 +1,1 @@
+Semgrep can now parse optional assignments in Swift (e.g. `a.b? = 1`).

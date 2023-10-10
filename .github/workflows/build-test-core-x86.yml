@@ -23,6 +23,6 @@ jobs:
       - name: Test semgrep-core
         run: opam exec -- make core-test
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine5.0-2023-09-29
+    container: returntocorp/ocaml:alpine-2023-06-16
     env:
       HOME: /root

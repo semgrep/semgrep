@@ -1340,20 +1340,6 @@ and map_direct_or_indirect_binding (env : env)
   in
   pat |> add_pat_type
 
-and map_directly_assignable_expression (env : env)
-    (x : CST.directly_assignable_expression) =
-  match x with
-  | `Simple_id x ->
-      let id = map_simple_identifier env x in
-      G.N (H2.name_of_id id) |> G.e
-  | `Navi_exp x -> map_navigation_expression env x
-  | `Call_exp x -> map_call_expression env x
-  | `Tuple_exp x -> map_tuple_expression env x
-  | `Self_exp tok -> map_self_expression env tok
-  | `Post_exp (e, op) ->
-      let e = map_expression env e in
-      map_postfix_unary_operator env op e
-
 and map_do_statement (env : env) ((v1, v2, v3) : CST.do_statement) =
   let do_tok = (* "do" *) token env v1 in
   let v2 = map_function_body env v2 in
@@ -1424,7 +1410,7 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
       | `Tern_exp x -> map_ternary_expression env x
       | `Prim_exp x -> map_primary_expression env x
       | `Assign (v1, v2, v3) -> (
-          let v1 = map_directly_assignable_expression env v1 in
+          let v1 = map_expression env v1 in
           let op, (_opstr, optok) = map_assignment_and_operator env v2 in
           let v3 = map_expression env v3 in
           match op with
