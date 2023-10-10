@@ -14,7 +14,16 @@ local artifact_name = 'ocaml-build-artifacts-release';
 // The job
 // ----------------------------------------------------------------------------
 
-local job(container=semgrep.ocaml_alpine_container, artifact=artifact_name) =
+local job(container=semgrep.ocaml_alpine_container, artifact=artifact_name, run_test=true) =
+
+  local test_steps =
+    if run_test
+    then [{
+      name: 'Test semgrep-core',
+      run: 'opam exec -- make core-test',
+    }]
+    else [];
+
   // This container has opam already installed, as well as an opam switch
   // already created, and a big set of packages already installed. Thus,
   // the 'make install-deps-ALPINE-for-semgrep-core' below is very fast and
@@ -43,11 +52,7 @@ local job(container=semgrep.ocaml_alpine_container, artifact=artifact_name) =
           name: artifact,
         },
       },
-      {
-        name: 'Test semgrep-core',
-        run: 'opam exec -- make core-test',
-      },
-    ],
+    ] + test_steps,
   };
 
 // ----------------------------------------------------------------------------
@@ -67,7 +72,7 @@ local job(container=semgrep.ocaml_alpine_container, artifact=artifact_name) =
     job: job(),
   },
   // to be reused by other workflows
-  export::{
+  export:: {
     artifact_name: artifact_name,
     // used by build-test-core-x86-ocaml5.jsonnet
     job: job,

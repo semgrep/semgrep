@@ -24,8 +24,6 @@ jobs:
         with:
           path: ocaml-build-artifacts.tgz
           name: ocaml-build-artifacts-ocaml5-release
-      - name: Test semgrep-core
-        run: opam exec -- make core-test
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:alpine5.0-2023-09-29
     env:
