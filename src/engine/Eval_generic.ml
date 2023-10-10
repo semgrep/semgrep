@@ -41,7 +41,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* This is the (partially parsed/evaluated) content of a metavariable *)
 type value =
   | Bool of bool
-  | Int of int
+  | Int of int64
   | Float of float
   | String of string (* string without the enclosing '"' *)
   | List of value list
@@ -74,7 +74,7 @@ exception NotInEnv of Metavariable.mvar
 (* JSON Parsing *)
 (*****************************************************************************)
 let metavar_of_json s = function
-  | J.Int i -> Int i
+  | J.Int i -> Int (Int64.of_int i)
   | J.Bool b -> Bool b
   | J.String s -> String s
   | J.Float f -> Float f
@@ -131,7 +131,7 @@ let print_result xopt =
       match v with
       | Bool b -> pr (string_of_bool b)
       (* allow to abuse int to encode boolean ... ugly C tradition *)
-      | Int 0 -> pr (string_of_bool false)
+      | Int 0L -> pr (string_of_bool false)
       | Int _ -> pr (string_of_bool true)
       | _ -> pr "NONE")
 [@@action]
@@ -206,14 +206,15 @@ let string_duration_to_milliseconds s code =
           loop ("", v + (d * 365 * 24 * 60 * 60 * 1000)) (i + 1)
       | _ -> raise (NotHandled code)
   in
-  if s = "" then raise (NotHandled code) else Int (loop ("", 0) 0)
+  if s = "" then raise (NotHandled code)
+  else Int (Int64.of_int (loop ("", 0) 0))
 
 let value_of_lit ~code x =
   match x with
   | G.Bool (b, _t) -> Bool b
   | G.String (_, (s, _t), _) -> String s
   (* big integers or floats can't be evaluated (Int (None, ...)) *)
-  | G.Int (Some i, _t) -> Int i
+  | G.Int (Some i, _t) -> Int (Int64.of_int i)
   | G.Float (Some f, _t) -> Float f
   | _ -> raise (NotHandled code)
 
@@ -276,7 +277,7 @@ let rec eval env code =
       | String s -> (
           match int_of_string_opt s with
           | None -> raise (NotHandled code)
-          | Some i -> Int i)
+          | Some i -> Int (Int64.of_int i))
       | __else__ -> raise (NotHandled code))
   | G.Call ({ e = G.IdSpecial (G.Op op, _t); _ }, (_, args, _)) ->
       let values =
@@ -345,58 +346,58 @@ and eval_op op values code =
   | G.Or, [ Bool b1; Bool b2 ] -> Bool (b1 || b2)
   | G.Gt, [ Int i1; Int i2 ] -> Bool (i1 > i2)
   | G.Gt, [ Float i1; Float i2 ] -> Bool (i1 > i2)
-  | G.Gt, [ Int i1; Float i2 ] -> Bool (float_of_int i1 > i2)
-  | G.Gt, [ Float i1; Int i2 ] -> Bool (i1 > float_of_int i2)
+  | G.Gt, [ Int i1; Float i2 ] -> Bool (Int64.to_float i1 > i2)
+  | G.Gt, [ Float i1; Int i2 ] -> Bool (i1 > Int64.to_float i2)
   | G.GtE, [ Int i1; Int i2 ] -> Bool (i1 >= i2)
   | G.GtE, [ Float i1; Float i2 ] -> Bool (i1 >= i2)
-  | G.GtE, [ Int i1; Float i2 ] -> Bool (float_of_int i1 >= i2)
-  | G.GtE, [ Float i1; Int i2 ] -> Bool (i1 >= float_of_int i2)
+  | G.GtE, [ Int i1; Float i2 ] -> Bool (Int64.to_float i1 >= i2)
+  | G.GtE, [ Float i1; Int i2 ] -> Bool (i1 >= Int64.to_float i2)
   | G.Lt, [ Int i1; Int i2 ] -> Bool (i1 < i2)
   | G.Lt, [ Float i1; Float i2 ] -> Bool (i1 < i2)
-  | G.Lt, [ Int i1; Float i2 ] -> Bool (float_of_int i1 < i2)
-  | G.Lt, [ Float i1; Int i2 ] -> Bool (i1 < float_of_int i2)
+  | G.Lt, [ Int i1; Float i2 ] -> Bool (Int64.to_float i1 < i2)
+  | G.Lt, [ Float i1; Int i2 ] -> Bool (i1 < Int64.to_float i2)
   | G.LtE, [ Int i1; Int i2 ] -> Bool (i1 <= i2)
   | G.LtE, [ Float i1; Float i2 ] -> Bool (i1 <= i2)
-  | G.LtE, [ Int i1; Float i2 ] -> Bool (float_of_int i1 <= i2)
-  | G.LtE, [ Float i1; Int i2 ] -> Bool (i1 <= float_of_int i2)
-  | G.Div, [ Int i1; Int i2 ] -> Int (i1 / i2)
+  | G.LtE, [ Int i1; Float i2 ] -> Bool (Int64.to_float i1 <= i2)
+  | G.LtE, [ Float i1; Int i2 ] -> Bool (i1 <= Int64.to_float i2)
+  | G.Div, [ Int i1; Int i2 ] -> Int (Int64.div i1 i2)
   | G.Div, [ Float i1; Float i2 ] -> Float (i1 /. i2)
-  | G.Div, [ Int i1; Float i2 ] -> Float (float_of_int i1 /. i2)
-  | G.Div, [ Float i1; Int i2 ] -> Float (i1 /. float_of_int i2)
-  | G.Minus, [ Int i1 ] -> Int (-i1)
+  | G.Div, [ Int i1; Float i2 ] -> Float (Int64.to_float i1 /. i2)
+  | G.Div, [ Float i1; Int i2 ] -> Float (i1 /. Int64.to_float i2)
+  | G.Minus, [ Int i1 ] -> Int (Int64.neg i1)
   | G.Minus, [ Float i1 ] -> Float (-.i1)
-  | G.Minus, [ Int i1; Int i2 ] -> Int (i1 - i2)
+  | G.Minus, [ Int i1; Int i2 ] -> Int (Int64.sub i1 i2)
   | G.Minus, [ Float i1; Float i2 ] -> Float (i1 -. i2)
-  | G.Minus, [ Int i1; Float i2 ] -> Float (float_of_int i1 -. i2)
-  | G.Minus, [ Float i1; Int i2 ] -> Float (i1 -. float_of_int i2)
-  | G.Mod, [ Int i1; Int i2 ] -> Int (i1 mod i2)
+  | G.Minus, [ Int i1; Float i2 ] -> Float (Int64.to_float i1 -. i2)
+  | G.Minus, [ Float i1; Int i2 ] -> Float (i1 -. Int64.to_float i2)
+  | G.Mod, [ Int i1; Int i2 ] -> Int (Int64.rem i1 i2)
   | G.Mod, [ Float i1; Float i2 ] -> Float (Float.rem i1 i2)
-  | G.Mod, [ Int i1; Float i2 ] -> Float (Float.rem (float_of_int i1) i2)
-  | G.Mod, [ Float i1; Int i2 ] -> Float (Float.rem i1 (float_of_int i2))
-  | G.Mult, [ Int i1; Int i2 ] -> Int (i1 * i2)
+  | G.Mod, [ Int i1; Float i2 ] -> Float (Float.rem (Int64.to_float i1) i2)
+  | G.Mod, [ Float i1; Int i2 ] -> Float (Float.rem i1 (Int64.to_float i2))
+  | G.Mult, [ Int i1; Int i2 ] -> Int (Int64.mul i1 i2)
   | G.Mult, [ Float i1; Float i2 ] -> Float (i1 *. i2)
-  | G.Mult, [ Int i1; Float i2 ] -> Float (float_of_int i1 *. i2)
-  | G.Mult, [ Float i1; Int i2 ] -> Float (i1 *. float_of_int i2)
+  | G.Mult, [ Int i1; Float i2 ] -> Float (Int64.to_float i1 *. i2)
+  | G.Mult, [ Float i1; Int i2 ] -> Float (i1 *. Int64.to_float i2)
   | G.Plus, [ Int i1 ] -> Int i1
   | G.Plus, [ Float i1 ] -> Float i1
-  | G.Plus, [ Int i1; Int i2 ] -> Int (i1 + i2)
+  | G.Plus, [ Int i1; Int i2 ] -> Int (Int64.add i1 i2)
   | G.Plus, [ Float i1; Float i2 ] -> Float (i1 +. i2)
-  | G.Plus, [ Int i1; Float i2 ] -> Float (float_of_int i1 +. i2)
-  | G.Plus, [ Float i1; Int i2 ] -> Float (i1 +. float_of_int i2)
-  | G.Pow, [ Int i1; Int i2 ] -> Int (Common2.power i1 i2)
-  | G.Pow, [ Float i1; Int i2 ] -> Float (i1 ** float_of_int i2)
-  | G.Pow, [ Int i1; Float i2 ] -> Float (float_of_int i1 ** i2)
+  | G.Plus, [ Int i1; Float i2 ] -> Float (Int64.to_float i1 +. i2)
+  | G.Plus, [ Float i1; Int i2 ] -> Float (i1 +. Int64.to_float i2)
+  | G.Pow, [ Int i1; Int i2 ] -> Int (Common2.power64 i1 (Int64.to_int i2))
+  | G.Pow, [ Float i1; Int i2 ] -> Float (i1 ** Int64.to_float i2)
+  | G.Pow, [ Int i1; Float i2 ] -> Float (Int64.to_float i1 ** i2)
   | G.Pow, [ Float i1; Float i2 ] -> Float (i1 ** i2)
-  | G.BitNot, [ Int i1 ] -> Int (Int.lognot i1)
-  | G.BitAnd, [ Int i1; Int i2 ] -> Int (Int.logand i1 i2)
-  | G.BitOr, [ Int i1; Int i2 ] -> Int (Int.logor i1 i2)
-  | G.BitXor, [ Int i1; Int i2 ] -> Int (Int.logxor i1 i2)
-  | G.Eq, [ Int v1; Float v2 ] -> Bool (float_of_int v1 =*= v2)
-  | G.Eq, [ Float v1; Int v2 ] -> Bool (v1 =*= float_of_int v2)
+  | G.BitNot, [ Int i1 ] -> Int (Int64.lognot i1)
+  | G.BitAnd, [ Int i1; Int i2 ] -> Int (Int64.logand i1 i2)
+  | G.BitOr, [ Int i1; Int i2 ] -> Int (Int64.logor i1 i2)
+  | G.BitXor, [ Int i1; Int i2 ] -> Int (Int64.logxor i1 i2)
+  | G.Eq, [ Int v1; Float v2 ] -> Bool (Int64.to_float v1 =*= v2)
+  | G.Eq, [ Float v1; Int v2 ] -> Bool (v1 =*= Int64.to_float v2)
   (* TODO? dangerous use of polymorphic =*= ? *)
   | G.Eq, [ v1; v2 ] -> Bool (v1 =*= v2)
-  | G.NotEq, [ Int v1; Float v2 ] -> Bool (float_of_int v1 <> v2)
-  | G.NotEq, [ Float v1; Int v2 ] -> Bool (v1 <> float_of_int v2)
+  | G.NotEq, [ Int v1; Float v2 ] -> Bool (Int64.to_float v1 <> v2)
+  | G.NotEq, [ Float v1; Int v2 ] -> Bool (v1 <> Int64.to_float v2)
   (* TODO? dangerous use of polymorphic <> ? *)
   | G.NotEq, [ v1; v2 ] -> Bool (v1 <> v2)
   | G.In, [ v1; v2 ] -> (
@@ -421,7 +422,7 @@ and eval_str _env ~code v =
   let str =
     match v with
     | Bool b -> string_of_bool b
-    | Int i -> string_of_int i
+    | Int i -> Int64.to_string i
     | Float f -> string_of_float f
     | String s -> s
     | AST s -> s

@@ -1316,6 +1316,7 @@ let clampf = function
 
 let square x = x *. x
 let rec power x n = if n =|= 0 then 1 else x * power x (n - 1)
+let rec power64 x n = if n =|= 0 then 1L else Int64.mul x (power64 x (n - 1))
 let between i min max = i > min && i < max
 let (between_strict : int -> int -> int -> bool) = fun a b c -> a < b && b < c
 let borne ~min ~max x = if x > max then max else if x < min then min else x
