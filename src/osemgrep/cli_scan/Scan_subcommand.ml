@@ -357,7 +357,9 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
       (fun r1 r2 -> Rule_ID.equal (fst r1.Rule.id) (fst r2.Rule.id))
       rules
   in
-  if Common.null rules then Error Exit_code.missing_config
+  (* Fail if no config was specified. It's fine if all the rules were
+     skipped for some reason. *)
+  if Common.null rules_and_origins then Error Exit_code.missing_config
   else
     (* step 1: last touch on rules *)
     let filtered_rules =
