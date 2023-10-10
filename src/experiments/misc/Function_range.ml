@@ -25,7 +25,7 @@ let ranges (prog : AST_generic.program) : ranges =
         match def with
         | { name = EN (Id ((s, _), _idinfo)); _ }, FuncDef _ ->
             let ii = AST_generic_helpers.ii_of_any (Def def) in
-            let range = AST_generic_helpers.range_of_tokens ii in
+            let range = AST_generic_helpers.range_of_tokens_unsafe ii in
             Common.push { name = s; range } env
         | _else_ -> ()
     end
