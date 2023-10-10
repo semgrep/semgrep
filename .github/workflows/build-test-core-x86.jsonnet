@@ -55,6 +55,7 @@ local job(container=semgrep.ocaml_alpine_container, artifact=artifact_name) =
 // ----------------------------------------------------------------------------
 
 {
+  name: 'build-test-core-x86',
   on: {
     workflow_dispatch: null,
     // This is called from tests.yml and release.yml
