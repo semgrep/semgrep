@@ -471,7 +471,7 @@ jobs:
     secrets: inherit
 
   build-test-javascript:
-    uses: ./.github/workflows/build-test-javascript.yaml
+    uses: ./.github/workflows/build-test-javascript.yml
     secrets: inherit
     with:
       # we limit artifact uploads to avoid filling the S3 bucket with tons of semgrep.js builds.
