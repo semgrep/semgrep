@@ -40,6 +40,7 @@ local job(container=semgrep.ocaml_alpine_container, artifact=artifact_name, run_
           make install-deps-ALPINE-for-semgrep-core
           make install-deps-for-semgrep-core
           make core
+
           mkdir -p ocaml-build-artifacts/bin
           cp bin/semgrep-core ocaml-build-artifacts/bin/
           tar czf ocaml-build-artifacts.tgz ocaml-build-artifacts

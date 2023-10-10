@@ -1,229 +1,170 @@
 // The goals of this workflow are to check that:
 // - we can build semgrep-core and semgrep
 // - we can build a Docker image as well as Linux and MacOS binaries
-// - all our tests (the one in semgrep-core and the one in semgrep-cli) are passing
+// - all our tests (the one in semgrep-core and the one in semgrep-cli) are
+//   passing
 // - we don't have any perf regressions in our benchmarks
+
+local actions = import 'libs/actions.libsonnet';
+local semgrep = import 'libs/semgrep.libsonnet';
+
+local core_x86 = import 'build-test-core-x86.jsonnet';
+
+// ----------------------------------------------------------------------------
+// Helpers
+// ----------------------------------------------------------------------------
+
+local snapshot_update_pr_steps = [
+  // because of the fail-fast setting, we expect only the fastest failing
+  // job to get to the steps below
+  {
+    name: 'Prepare repo for snapshot commit',
+    'if': 'failure()',
+    run: |||
+      # the commit step that follows will fail to fetch the pfff submodule
+      # (perhaps because of the github token's permissions)
+      # so we disable recursive fetching
+      git config fetch.recurseSubmodules false
+    |||,
+  },
+  {
+    name: 'Configure git creds for push',
+    id: 'configure-creds',
+    'if': "failure() && github.event_name == 'pull_request' && (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))",
+    run: |||
+      echo "machine github.com" >> ~/.netrc
+      echo "login ${{ github.repository }}" >> ~/.netrc
+      echo "password ${{ secrets.GITHUB_TOKEN }}" >> ~/.netrc
+    |||,
+  },
+  {
+    name: 'Commit snapshot updates',
+    id: 'snapshot-commit',
+    'if': "failure() && github.event_name == 'pull_request' && (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))",
+    uses: 'EndBug/add-and-commit@v9',
+    with: {
+      add: 'cli/tests/e2e/snapshots',
+      default_author: 'github_actions',
+      message: 'Update pytest snapshots',
+      new_branch: 'snapshot-updates-${{ github.run_id }}-${{ github.run_attempt }}',
+    },
+  },
+  {
+    name: 'Remove Credentials',
+    id: 'remove-creds',
+    'if': "failure() && github.event_name == 'pull_request' && (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))",
+    run: 'rm ~/.netrc',
+  },
+  {
+    name: 'Comment about any snapshot updates',
+    'if': "failure() && steps.snapshot-commit.outputs.pushed == 'true'",
+    run: |||
+      echo ":camera_flash: The pytest shapshots changed in your PR." >> /tmp/message.txt
+      echo "Please carefully review these changes and make sure they are intended:" >> /tmp/message.txt
+      echo >> /tmp/message.txt
+      echo "1. Review the changes at https://github.com/returntocorp/semgrep/commit/${{ steps.snapshot-commit.outputs.commit_long_sha }}" >> /tmp/message.txt
+      echo "2. Accept the new snapshots with" >> /tmp/message.txt
+      echo >> /tmp/message.txt
+      echo "       git fetch origin && git cherry-pick ${{ steps.snapshot-commit.outputs.commit_sha }} && git push" >> /tmp/message.txt
+
+      gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/message.txt
+    |||,
+    env: {
+      GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
+    },
+  },
+];
 
 // ----------------------------------------------------------------------------
 // The jobs
 // ----------------------------------------------------------------------------
 
-// TODO: do we need this job now that we have build-test-core-x86.jsonnet?
-local test_core_job = {
-  name: 'test semgrep-core',
-  'runs-on': 'ubuntu-22.04',
-  container: 'returntocorp/ocaml:alpine-2023-06-16',
-  env: {
-    HOME: '/root',
-  },
-  steps: [
-    {
-      uses: 'actions/checkout@v3',
-      with: {
-        submodules: true,
-        'persist-credentials': false,
-      },
-    },
-    {
-      name: 'Build semgrep-core',
-      run: |||
-        eval $(opam env)
-        make install-deps-ALPINE-for-semgrep-core
-        make install-deps-for-semgrep-core
-        make core
-      |||,
-    },
-    {
-      name: 'Test semgrep-core',
-      run: |||
-        eval $(opam env)
-        START=`date +%s`
-        make core-test
-        make core-test-e2e
-        END=`date +%s`
-        TEST_RUN_TIME=$((END-START))
-        curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"
-      |||,
-    },
-    {
-      name: 'Report Number of Tests Stats',
-      'if': "github.ref == 'refs/heads/develop'",
-      run: './scripts/report_test_metrics.sh',
-    },
-    // TODO: move this to a stable host for more reliable results.
-    //
-    // It's not clear how to push the stats only when "on the main
-    // branch". The GitHub Actions documentation is unhelpful. So we
-    // keep things simple and publish the results every time.
-    {
-      name: 'Publish match performance',
-      // This runs a short test suite to track the match performance
-      // of semgrep-core over time. The results are pushed to the
-      // dashboard at https://dashboard.semgrep.dev/
-      run: 'opam exec -- make report-perf-matching',
-    },
-  ],
-};
-
-// TODO: merge with the previous job (which should be merged in build-test-core-x86.jsonnet)
-local test_osemgrep_job = {
-  name: 'test osemgrep',
-  'runs-on': 'ubuntu-22.04',
-  container: 'returntocorp/ocaml:alpine-2023-06-16',
-  env: {
-    HOME: '/root',
-  },
-  steps: [
-    {
-      uses: 'actions/checkout@v3',
-      with: {
-        submodules: true,
-        'persist-credentials': false,
-      },
-    },
-    {
-      name: 'Build semgrep-core',
-      run: |||
-        eval $(opam env)
-        make install-deps-ALPINE-for-semgrep-core
-        make install-deps-for-semgrep-core
-        make core
-      |||,
-    },
-    {
-      name: 'Install osemgrep',
-      run: |||
-        eval $(opam env)
-        make copy-core-for-cli
-      |||,
-    },
-    {
-      name: 'Install Python dependencies',
-      run: |||
-        make install-deps-ALPINE-for-pysemgrep
-        (cd cli; pipenv install --dev)
-      |||,
-    },
-    {
-      name: 'Run pytest for osemgrep known passing tests',
-      'working-directory': 'cli',
-      run: 'make osempass',
-    },
-  ],
-};
-
-// TODO: diff with build-test-javascript.jsonnet??
-local build_semgrep_js_job = {
-  name: 'build semgrep js ocaml for tests',
-  'runs-on': 'ubuntu-latest-16-core',
-  container: 'returntocorp/ocaml:alpine-2023-06-16',
-  env: {
-    HOME: '/root',
-  },
-  steps: [
-    {
-      name: 'Make checkout speedy',
-      run: 'git config --global fetch.parallel 50',
-    },
-    {
-      uses: 'actions/checkout@v3',
-      with: {
-        submodules: true,
-      },
-    },
-    // TODO: we should just call 'make install-deps-for-semgrep-core'
-    {
-      name: 'Set up tree-sitter',
-      run: '(cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)',
-    },
-    {
-      name: 'Cache git checkout',
-      id: 'cache-git',
-      uses: 'actions/cache/save@v3',
-      with: {
-        path: '.',
-        key: 'semgrep-with-submodules-and-tree-sitter-${{ github.sha }}',
-      },
-    },
-    {
-      name: 'Build semgrep',
-      run: |||
-        eval $(opam env)
-        make install-deps-ALPINE-for-semgrep-core
-        make install-deps-for-semgrep-core
-        make build-semgrep-jsoo-debug
-      |||,
-    },
-    {
-      uses: 'actions/upload-artifact@v3',
-      with: {
-        name: 'semgrep-js-ocaml-test-${{ github.sha }}',
-        'retention-days': 1,
-        path: |||
-          _build/default/js/engine/*.bc.js
-          _build/default/js/languages/*/*.bc.js
+// This is mostly the same that in build-test-core-x86.jsonnet
+// but without the artifacts creation and with more tests.
+// alt: we could factorize buy copy-paste is ok.
+local test_semgrep_core_job =
+  semgrep.ocaml_alpine_container
+  {
+    steps: [
+      actions.checkout_with_submodules(),
+      {
+        name: 'Build semgrep-core',
+        run: |||
+          eval $(opam env)
+          make install-deps-ALPINE-for-semgrep-core
+          make install-deps-for-semgrep-core
+          make core
         |||,
       },
-    },
-  ],
-};
+      {
+        name: 'Test semgrep-core (and time it)',
+        run: |||
+          eval $(opam env)
+          START=`date +%s`
 
-local test_semgrep_js_job = {
-  name: 'test semgrep js',
-  needs: [
-    'build-semgrep-js-ocaml-test',
-  ],
-  'runs-on': 'ubuntu-22.04',
-  container: 'emscripten/emsdk:3.1.46',
-  env: {
-    HOME: '/root',
-  },
-  steps: [
-    {
-      name: 'Restore git checkout cache',
-      id: 'restore-git',
-      uses: 'actions/cache/restore@v3',
-      with: {
-        path: '.',
-        key: 'semgrep-with-submodules-and-tree-sitter-${{ github.sha }}',
+          make core-test
+          make core-test-e2e
+
+          END=`date +%s`
+          TEST_RUN_TIME=$((END-START))
+          curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"
+        |||,
       },
-    },
-    {
-      name: 'Make checkout speedy',
-      'if': "${{ steps.restore-git.outputs.cache-hit != 'true' }}",
-      run: 'git config --global fetch.parallel 50',
-    },
-    {
-      uses: 'actions/checkout@v3',
-      'if': "${{ steps.restore-git.outputs.cache-hit != 'true' }}",
-      with: {
-        submodules: true,
+      {
+        name: 'Report Number of Tests Stats',
+        'if': "github.ref == 'refs/heads/develop'",
+        run: './scripts/report_test_metrics.sh',
       },
-    },
-    {
-      name: 'Set up tree-sitter',
-      'if': "${{ steps.restore-git.outputs.cache-hit != 'true' }}",
-      run: '(cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)',
-    },
-    {
-      uses: 'actions/download-artifact@v3',
-      with: {
-        name: 'semgrep-js-ocaml-test-${{ github.sha }}',
-        path: '_build/default/js',
+      // TODO: move this to a stable host for more reliable results.
+      // It's not clear how to push the stats only when "on the main
+      // branch". The GitHub Actions documentation is unhelpful. So we
+      // keep things simple and publish the results every time.
+      {
+        name: 'Publish match performance',
+        // This runs a short test suite to track the match performance
+        // of semgrep-core over time. The results are pushed to the
+        // dashboard at https://dashboard.semgrep.dev/
+        run: 'opam exec -- make report-perf-matching',
       },
-    },
-    {
-      uses: 'actions/setup-node@v3',
-      with: {
-        'node-version': '18',
+    ],
+  };
+
+// alt: could factorize with previous job
+local test_osemgrep_job =
+  semgrep.ocaml_alpine_container
+  {
+    steps: [
+      actions.checkout_with_submodules(),
+      {
+        name: 'Build semgrep-core',
+        run: |||
+          eval $(opam env)
+          make install-deps-ALPINE-for-semgrep-core
+          make install-deps-for-semgrep-core
+          make core
+        |||,
       },
-    },
-    {
-      name: 'Run semgrep js e2e tests',
-      run: 'make -C js test',
-    },
-  ],
-};
+      {
+        name: 'Install osemgrep',
+        run: |||
+          eval $(opam env)
+          make copy-core-for-cli
+        |||,
+      },
+      {
+        name: 'Install Python dependencies',
+        run: |||
+          make install-deps-ALPINE-for-pysemgrep
+          (cd cli; pipenv install --dev)
+        |||,
+      },
+      {
+        name: 'Run pytest for osemgrep known passing tests',
+        'working-directory': 'cli',
+        run: 'make osempass',
+      },
+    ],
+  };
 
 local test_cli_job = {
   name: 'test semgrep-cli',
@@ -247,13 +188,8 @@ local test_cli_job = {
     },
   },
   steps: [
-    {
-      uses: 'actions/checkout@v3',
-      with: {
-        'persist-credentials': false,
-      },
-    },
-    // TODO? just use submodule:true above instead of this?
+    actions.checkout(),
+    // alt: could just use submodule:true, not sure it's worth the opti
     {
       name: 'Fetch semgrep-cli submodules',
       run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces',
@@ -269,10 +205,9 @@ local test_cli_job = {
       run: 'pip install pipenv==2022.6.7',
     },
     {
-      name: 'Download artifacts',
       uses: 'actions/download-artifact@v3',
       with: {
-        name: 'ocaml-build-artifacts-release',
+        name: core_x86.export.artifact_name,
       },
     },
     {
@@ -298,75 +233,13 @@ local test_cli_job = {
         pipenv run pytest -n auto -vv --snapshot-update --allow-snapshot-deletion
       |||,
     },
-    // because of the fail-fast setting, we expect only the fastest failing job to get
-    // to the steps below
-    {
-      name: 'Prepare repo for snapshot commit',
-      'if': 'failure()',
-      run: |||
-        # the commit step that follows will fail to fetch the pfff submodule
-        # (perhaps because of the github token's permissions)
-        # so we disable recursive fetching
-        git config fetch.recurseSubmodules false
-      |||,
-    },
-    {
-      name: 'Configure git creds for push',
-      id: 'configure-creds',
-      'if': "failure() && github.event_name == 'pull_request' && (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))",
-      run: |||
-        echo "machine github.com" >> ~/.netrc
-        echo "login ${{ github.repository }}" >> ~/.netrc
-        echo "password ${{ secrets.GITHUB_TOKEN }}" >> ~/.netrc
-      |||,
-    },
-    {
-      name: 'Commit snapshot updates',
-      id: 'snapshot-commit',
-      'if': "failure() && github.event_name == 'pull_request' && (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))",
-      uses: 'EndBug/add-and-commit@v9',
-      with: {
-        add: 'cli/tests/e2e/snapshots',
-        default_author: 'github_actions',
-        message: 'Update pytest snapshots',
-        new_branch: 'snapshot-updates-${{ github.run_id }}-${{ github.run_attempt }}',
-      },
-    },
-    {
-      name: 'Remove Credentials',
-      id: 'remove-creds',
-      'if': "failure() && github.event_name == 'pull_request' && (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))",
-      run: 'rm ~/.netrc',
-    },
-    {
-      name: 'Comment about any snapshot updates',
-      'if': "failure() && steps.snapshot-commit.outputs.pushed == 'true'",
-      run: |||
-        echo ":camera_flash: The pytest shapshots changed in your PR." >> /tmp/message.txt
-        echo "Please carefully review these changes and make sure they are intended:" >> /tmp/message.txt
-        echo >> /tmp/message.txt
-        echo "1. Review the changes at https://github.com/returntocorp/semgrep/commit/${{ steps.snapshot-commit.outputs.commit_long_sha }}" >> /tmp/message.txt
-        echo "2. Accept the new snapshots with" >> /tmp/message.txt
-        echo >> /tmp/message.txt
-        echo "       git fetch origin && git cherry-pick ${{ steps.snapshot-commit.outputs.commit_sha }} && git push" >> /tmp/message.txt
-
-        gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/message.txt
-      |||,
-      env: {
-        GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
-      },
-    },
-  ],
+  ] + snapshot_update_pr_steps,
 };
 
 // These tests aren't run by default by pytest.
 // To reproduce errors locally, use:
 //   $ cd cli/tests
 //   $ make qa
-//
-// TODO: if you know this, please explain what the code below is meant
-//       to achieve and how to make sure it works.
-//
 
 local test_qa_job = {
   name: 'quality assurance on semgrep',
@@ -386,12 +259,7 @@ local test_qa_job = {
     },
   },
   steps: [
-    {
-      uses: 'actions/checkout@v3',
-      with: {
-        'persist-credentials': false,
-      },
-    },
+    actions.checkout(),
     {
       name: 'Fetch semgrep-cli submodules',
       run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces tests/semgrep-rules',
@@ -410,7 +278,7 @@ local test_qa_job = {
       name: 'Download artifacts',
       uses: 'actions/download-artifact@v3',
       with: {
-        name: 'ocaml-build-artifacts-release',
+        name: core_x86.export.artifact_name,
       },
     },
     {
@@ -439,7 +307,7 @@ local test_qa_job = {
       run: |||
         mkdir -p ~/.cache/qa-public-repos
         touch ~/.cache/qa-public-repos/ok
-       |||,
+      |||,
     },
     {
       name: 'Test semgrep',
@@ -462,12 +330,7 @@ local benchmarks_lite_job = {
     'build-test-core-x86',
   ],
   steps: [
-    {
-      uses: 'actions/checkout@v3',
-      with: {
-        'persist-credentials': false,
-      },
-    },
+    actions.checkout(),
     {
       name: 'Fetch semgrep-cli submodules',
       run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces',
@@ -486,7 +349,7 @@ local benchmarks_lite_job = {
       name: 'Download artifacts',
       uses: 'actions/download-artifact@v3',
       with: {
-        name: 'ocaml-build-artifacts-release',
+        name: core_x86.export.artifact_name,
       },
     },
     {
@@ -520,12 +383,7 @@ local benchmarks_full_job = {
     'build-test-core-x86',
   ],
   steps: [
-    {
-      uses: 'actions/checkout@v3',
-      with: {
-        'persist-credentials': false,
-      },
-    },
+    actions.checkout(),
     {
       name: 'Fetch semgrep-cli submodules',
       run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces',
@@ -544,7 +402,7 @@ local benchmarks_full_job = {
       name: 'Download artifacts',
       uses: 'actions/download-artifact@v3',
       with: {
-        name: 'ocaml-build-artifacts-release',
+        name: core_x86.export.artifact_name,
       },
     },
     {
@@ -576,7 +434,9 @@ local build_test_docker_job = {
   uses: './.github/workflows/build-test-docker.yaml',
   secrets: 'inherit',
   with: {
-    'docker-flavor': 'latest=auto',
+    'docker-flavor': |||
+      latest=auto
+    |||,
     'docker-tags': |||
       type=semver,pattern={{version}}
       type=semver,pattern={{major}}.{{minor}}
@@ -666,7 +526,6 @@ local test_semgrep_pro_job = {
   },
 };
 
-
 // ----------------------------------------------------------------------------
 // The Workflow
 // ----------------------------------------------------------------------------
@@ -690,22 +549,22 @@ local test_semgrep_pro_job = {
     },
   },
   jobs: {
-    'test-core': test_core_job,
+    'test-semgrep-core': test_semgrep_core_job,
     'test-osemgrep': test_osemgrep_job,
-    'build-semgrep-js-ocaml-test': build_semgrep_js_job,
-    'test-semgrep-js': test_semgrep_js_job,
-    // requires build-test-core-x86 job
+    // Pysemgrep tests, requires build-test-core-x86 job
     'test-cli': test_cli_job,
     'test-qa': test_qa_job,
     'benchmarks-lite': benchmarks_lite_job,
     'benchmarks-full': benchmarks_full_job,
+    // Docker stuff
     'build-test-docker': build_test_docker_job,
     // requires build-test-docker
     'push-docker': push_docker_job,
     'build-test-docker-nonroot': build_test_docker_nonroot_job,
     'push-docker-nonroot': push_docker_nonroot_job,
+    // Semgrep-pro mismatch check
     'test-semgrep-pro': test_semgrep_pro_job,
-    // the inherit jobs also included from releases.yml
+    // The inherit jobs also included from releases.yml
     'build-test-core-x86': {
       uses: './.github/workflows/build-test-core-x86.yml',
       secrets: 'inherit',
