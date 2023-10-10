@@ -20,7 +20,7 @@ name: build-test-osx-x86
         type: boolean
         default: true
 jobs:
-  build-core-osx:
+  build-core:
     name: Build the OSX binaries
     runs-on: macos-12
     env:
@@ -52,10 +52,10 @@ jobs:
         with:
           path: artifacts.zip
           name: semgrep-osx-${{ github.sha }}
-  build-wheels-osx:
+  build-wheels:
     runs-on: macos-12
     needs:
-      - build-core-osx
+      - build-core
     steps:
       - uses: actions/checkout@v3
         with:
@@ -70,10 +70,10 @@ jobs:
         with:
           path: cli/dist.zip
           name: osx-x86-wheel
-  test-wheels-osx-x86:
+  test-wheels:
     runs-on: macos-12
     needs:
-      - build-wheels-osx
+      - build-wheels
     steps:
       - uses: actions/download-artifact@v1
         with:

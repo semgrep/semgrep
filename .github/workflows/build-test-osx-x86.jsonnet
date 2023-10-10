@@ -87,6 +87,8 @@ local cache_opam_step = {
     path: '~/.opam',
     //TODO: we should add the md5sum of opam.lock as part of the key
     key: '${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps-${{ github.run_id }}',
+    //TODO: what is restore-keys needed for? Why we don't suffix it with
+    // the github.run_id?
     'restore-keys': '${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps\n',
   },
 };
@@ -97,10 +99,11 @@ local cache_opam_step = {
 
 local artifact_name = 'semgrep-osx-${{ github.sha }}';
 local wheel_name = 'osx-x86-wheel';
+local runs_on = 'macos-12';
 
-local build_core_osx_job = {
+local build_core_job = {
   name: 'Build the OSX binaries',
-  'runs-on': 'macos-12',
+  'runs-on': runs_on,
   #TODO: could pass it via an argument to cache_opam_step instead of env?
   env: {
     // This name is used in the cache key. If we update to a newer version of
@@ -134,10 +137,10 @@ local build_core_osx_job = {
   ],
 };
 
-local build_wheels_osx_job = {
-  'runs-on': 'macos-12',
+local build_wheels_job = {
+  'runs-on': runs_on,
   needs: [
-    'build-core-osx',
+    'build-core',
   ],
   steps: [
     actions.checkout_with_submodules(),
@@ -164,10 +167,10 @@ local build_wheels_osx_job = {
   ],
 };
 
-local test_wheels_osx_x86_job = {
-  'runs-on': 'macos-12',
+local test_wheels_job = {
+  'runs-on': runs_on,
   needs: [
-    'build-wheels-osx',
+    'build-wheels',
   ],
   steps: [
     {
@@ -221,8 +224,15 @@ local test_wheels_osx_x86_job = {
     workflow_call: use_cache_inputs(required=false),
   },
   jobs: {
-    'build-core-osx': build_core_osx_job,
-    'build-wheels-osx': build_wheels_osx_job,
-    'test-wheels-osx-x86': test_wheels_osx_x86_job,
+    'build-core': build_core_job,
+    'build-wheels': build_wheels_job,
+    'test-wheels': test_wheels_job,
+  },
+  // to be used by other workflows (build-test-osx-arm64.jsonnet)
+  export:: {
+    cache: {
+      use_cache_inputs: use_cache_inputs,
+      cache_opam_step: cache_opam_step,
+    }
   },
 }

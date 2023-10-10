@@ -139,7 +139,7 @@ jobs:
     secrets: inherit
 
   build-test-osx-arm64:
-    uses: ./.github/workflows/build-test-osx-arm64.yaml
+    uses: ./.github/workflows/build-test-osx-arm64.yml
     secrets: inherit
 
   build-test-core-x86:
