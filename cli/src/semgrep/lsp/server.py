@@ -91,7 +91,7 @@ class SemgrepCoreLSServer:
 
 
 def run_server() -> None:
-    log.info("Starting Semgrep language server?")
+    log.info("Starting Semgrep language server.")
     server = SemgrepCoreLSServer()
     try:
         server.start()
