@@ -2,6 +2,7 @@
 
 {
   // TODO: default to submodules=true, and a flexible with={}?
+  // What about 'persist-credentials': false? needed?
   checkout: function() {
     uses: 'actions/checkout@v3',
   },

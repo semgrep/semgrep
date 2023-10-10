@@ -7,6 +7,8 @@
 // ----------------------------------------------------------------------------
 // The jobs
 // ----------------------------------------------------------------------------
+
+// TODO: do we need this job now that we have build-test-core-x86.jsonnet?
 local test_core_job = {
   name: 'test semgrep-core',
   'runs-on': 'ubuntu-22.04',
@@ -24,24 +26,46 @@ local test_core_job = {
     },
     {
       name: 'Build semgrep-core',
-      run: 'eval $(opam env)\nmake install-deps-ALPINE-for-semgrep-core\nmake install-deps-for-semgrep-core\nmake core\n',
+      run: |||
+        eval $(opam env)
+        make install-deps-ALPINE-for-semgrep-core
+        make install-deps-for-semgrep-core
+        make core
+      |||,
     },
     {
       name: 'Test semgrep-core',
-      run: 'eval $(opam env)\nSTART=`date +%s`\nmake core-test\nmake core-test-e2e\nEND=`date +%s`\nTEST_RUN_TIME=$((END-START))\ncurl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"\n',
+      run: |||
+        eval $(opam env)
+        START=`date +%s`
+        make core-test
+        make core-test-e2e
+        END=`date +%s`
+        TEST_RUN_TIME=$((END-START))
+        curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"
+      |||,
     },
     {
       name: 'Report Number of Tests Stats',
       'if': "github.ref == 'refs/heads/develop'",
       run: './scripts/report_test_metrics.sh',
     },
+    // TODO: move this to a stable host for more reliable results.
+    //
+    // It's not clear how to push the stats only when "on the main
+    // branch". The GitHub Actions documentation is unhelpful. So we
+    // keep things simple and publish the results every time.
     {
       name: 'Publish match performance',
-      run: '# This runs a short test suite to track the match performance\n# of semgrep-core over time. The results are pushed to the\n# dashboard at https://dashboard.semgrep.dev/\n#\nopam exec -- make report-perf-matching\n',
+      // This runs a short test suite to track the match performance
+      // of semgrep-core over time. The results are pushed to the
+      // dashboard at https://dashboard.semgrep.dev/
+      run: 'opam exec -- make report-perf-matching',
     },
   ],
 };
 
+// TODO: merge with the previous job (which should be merged in build-test-core-x86.jsonnet)
 local test_osemgrep_job = {
   name: 'test osemgrep',
   'runs-on': 'ubuntu-22.04',
@@ -59,24 +83,36 @@ local test_osemgrep_job = {
     },
     {
       name: 'Build semgrep-core',
-      run: 'eval $(opam env)\nmake install-deps-ALPINE-for-semgrep-core\nmake install-deps-for-semgrep-core\nmake core\n',
+      run: |||
+        eval $(opam env)
+        make install-deps-ALPINE-for-semgrep-core
+        make install-deps-for-semgrep-core
+        make core
+      |||,
     },
     {
       name: 'Install osemgrep',
-      run: 'eval $(opam env)\nmake copy-core-for-cli\n',
+      run: |||
+        eval $(opam env)
+        make copy-core-for-cli
+      |||,
     },
     {
       name: 'Install Python dependencies',
-      run: 'make install-deps-ALPINE-for-pysemgrep\n(cd cli; pipenv install --dev)\n',
+      run: |||
+        make install-deps-ALPINE-for-pysemgrep
+        (cd cli; pipenv install --dev)
+      |||,
     },
     {
       name: 'Run pytest for osemgrep known passing tests',
       'working-directory': 'cli',
-      run: 'make osempass\n',
+      run: 'make osempass',
     },
   ],
 };
 
+// TODO: diff with build-test-javascript.jsonnet??
 local build_semgrep_js_job = {
   name: 'build semgrep js ocaml for tests',
   'runs-on': 'ubuntu-latest-16-core',
@@ -95,9 +131,10 @@ local build_semgrep_js_job = {
         submodules: true,
       },
     },
+    // TODO: we should just call 'make install-deps-for-semgrep-core'
     {
       name: 'Set up tree-sitter',
-      run: '(cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)\n',
+      run: '(cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)',
     },
     {
       name: 'Cache git checkout',
@@ -110,18 +147,27 @@ local build_semgrep_js_job = {
     },
     {
       name: 'Build semgrep',
-      run: 'eval $(opam env)\nmake install-deps-ALPINE-for-semgrep-core\nmake install-deps-for-semgrep-core\nmake build-semgrep-jsoo-debug\n',
+      run: |||
+        eval $(opam env)
+        make install-deps-ALPINE-for-semgrep-core
+        make install-deps-for-semgrep-core
+        make build-semgrep-jsoo-debug
+      |||,
     },
     {
       uses: 'actions/upload-artifact@v3',
       with: {
         name: 'semgrep-js-ocaml-test-${{ github.sha }}',
         'retention-days': 1,
-        path: '_build/default/js/engine/*.bc.js\n_build/default/js/languages/*/*.bc.js\n',
+        path: |||
+          _build/default/js/engine/*.bc.js
+          _build/default/js/languages/*/*.bc.js
+        |||,
       },
     },
   ],
 };
+
 local test_semgrep_js_job = {
   name: 'test semgrep js',
   needs: [
@@ -157,7 +203,7 @@ local test_semgrep_js_job = {
     {
       name: 'Set up tree-sitter',
       'if': "${{ steps.restore-git.outputs.cache-hit != 'true' }}",
-      run: '(cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)\n',
+      run: '(cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)',
     },
     {
       uses: 'actions/download-artifact@v3',
@@ -174,10 +220,11 @@ local test_semgrep_js_job = {
     },
     {
       name: 'Run semgrep js e2e tests',
-      run: 'make -C js test\n',
+      run: 'make -C js test',
     },
   ],
 };
+
 local test_cli_job = {
   name: 'test semgrep-cli',
   'runs-on': 'ubuntu-22.04',
@@ -206,6 +253,7 @@ local test_cli_job = {
         'persist-credentials': false,
       },
     },
+    // TODO? just use submodule:true above instead of this?
     {
       name: 'Fetch semgrep-cli submodules',
       run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces',
@@ -229,7 +277,10 @@ local test_cli_job = {
     },
     {
       name: 'Install artifacts',
-      run: 'tar xf ocaml-build-artifacts.tgz\nsudo cp ocaml-build-artifacts/bin/* /usr/bin\n',
+      run: |||
+        tar xf ocaml-build-artifacts.tgz
+        sudo cp ocaml-build-artifacts/bin/* /usr/bin
+      |||,
     },
     {
       name: 'Install Python dependencies',
@@ -239,18 +290,35 @@ local test_cli_job = {
     {
       name: 'Run pytest',
       'working-directory': 'cli',
-      run: '# tests should simulate CI environment iff they need one\nunset CI\nunset "${!GITHUB_@}"\n\npipenv run pytest -n auto -vv --snapshot-update --allow-snapshot-deletion\n',
+      run: |||
+        # tests should simulate CI environment iff they need one
+        unset CI
+        unset "${!GITHUB_@}"
+
+        pipenv run pytest -n auto -vv --snapshot-update --allow-snapshot-deletion
+      |||,
     },
+    // because of the fail-fast setting, we expect only the fastest failing job to get
+    // to the steps below
     {
       name: 'Prepare repo for snapshot commit',
       'if': 'failure()',
-      run: "# the commit step that follows will fail to fetch the pfff submodule\n# (perhaps because of the github token's permissions)\n# so we disable recursive fetching\ngit config fetch.recurseSubmodules false\n",
+      run: |||
+        # the commit step that follows will fail to fetch the pfff submodule
+        # (perhaps because of the github token's permissions)
+        # so we disable recursive fetching
+        git config fetch.recurseSubmodules false
+      |||,
     },
     {
       name: 'Configure git creds for push',
       id: 'configure-creds',
       'if': "failure() && github.event_name == 'pull_request' && (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))",
-      run: 'echo "machine github.com" >> ~/.netrc\necho "login ${{ github.repository }}" >> ~/.netrc\necho "password ${{ secrets.GITHUB_TOKEN }}" >> ~/.netrc\n',
+      run: |||
+        echo "machine github.com" >> ~/.netrc
+        echo "login ${{ github.repository }}" >> ~/.netrc
+        echo "password ${{ secrets.GITHUB_TOKEN }}" >> ~/.netrc
+      |||,
     },
     {
       name: 'Commit snapshot updates',
@@ -273,13 +341,33 @@ local test_cli_job = {
     {
       name: 'Comment about any snapshot updates',
       'if': "failure() && steps.snapshot-commit.outputs.pushed == 'true'",
-      run: 'echo ":camera_flash: The pytest shapshots changed in your PR." >> /tmp/message.txt\necho "Please carefully review these changes and make sure they are intended:" >> /tmp/message.txt\necho >> /tmp/message.txt\necho "1. Review the changes at https://github.com/returntocorp/semgrep/commit/${{ steps.snapshot-commit.outputs.commit_long_sha }}" >> /tmp/message.txt\necho "2. Accept the new snapshots with" >> /tmp/message.txt\necho >> /tmp/message.txt\necho "       git fetch origin && git cherry-pick ${{ steps.snapshot-commit.outputs.commit_sha }} && git push" >> /tmp/message.txt\n\ngh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/message.txt\n',
+      run: |||
+        echo ":camera_flash: The pytest shapshots changed in your PR." >> /tmp/message.txt
+        echo "Please carefully review these changes and make sure they are intended:" >> /tmp/message.txt
+        echo >> /tmp/message.txt
+        echo "1. Review the changes at https://github.com/returntocorp/semgrep/commit/${{ steps.snapshot-commit.outputs.commit_long_sha }}" >> /tmp/message.txt
+        echo "2. Accept the new snapshots with" >> /tmp/message.txt
+        echo >> /tmp/message.txt
+        echo "       git fetch origin && git cherry-pick ${{ steps.snapshot-commit.outputs.commit_sha }} && git push" >> /tmp/message.txt
+
+        gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/message.txt
+      |||,
       env: {
         GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
       },
     },
   ],
 };
+
+// These tests aren't run by default by pytest.
+// To reproduce errors locally, use:
+//   $ cd cli/tests
+//   $ make qa
+//
+// TODO: if you know this, please explain what the code below is meant
+//       to achieve and how to make sure it works.
+//
+
 local test_qa_job = {
   name: 'quality assurance on semgrep',
   'runs-on': 'ubuntu-22.04',
@@ -327,12 +415,18 @@ local test_qa_job = {
     },
     {
       name: 'Install artifacts',
-      run: 'tar xf ocaml-build-artifacts.tgz\nsudo cp ocaml-build-artifacts/bin/* /usr/bin\n',
+      run: |||
+        tar xf ocaml-build-artifacts.tgz
+        sudo cp ocaml-build-artifacts/bin/* /usr/bin
+      |||,
     },
     {
       name: 'Install semgrep',
       'working-directory': 'cli',
-      run: 'export PATH=/github/home/.local/bin:$PATH\npipenv install --dev\n',
+      run: |||
+        export PATH=/github/home/.local/bin:$PATH
+        pipenv install --dev
+      |||,
     },
     {
       uses: 'actions/cache@v3',
@@ -342,18 +436,26 @@ local test_qa_job = {
       },
     },
     {
-      run: 'mkdir -p ~/.cache/qa-public-repos\ntouch ~/.cache/qa-public-repos/ok\n',
+      run: |||
+        mkdir -p ~/.cache/qa-public-repos
+        touch ~/.cache/qa-public-repos/ok
+       |||,
     },
     {
       name: 'Test semgrep',
       'working-directory': 'cli',
-      run: 'export PATH=/github/home/.local/bin:$PATH\npipenv run pytest -n auto -vv --tb=short --splits 4 --group ${{ matrix.split }} tests/qa\n',
+      run: |||
+        export PATH=/github/home/.local/bin:$PATH
+        pipenv run pytest -n auto -vv --tb=short --splits 4 --group ${{ matrix.split }} tests/qa
+      |||,
       env: {
         QA_TESTS_CACHE_PATH: '~/.cache/qa-public-repos',
       },
     },
   ],
 };
+
+// Run abbreviated version of benchmarks to check that they work
 local benchmarks_lite_job = {
   'runs-on': 'ubuntu-22.04',
   needs: [
@@ -389,7 +491,10 @@ local benchmarks_lite_job = {
     },
     {
       name: 'Install artifacts',
-      run: 'tar xf ocaml-build-artifacts.tgz\nsudo cp ocaml-build-artifacts/bin/* /usr/bin\n',
+      run: |||
+        tar xf ocaml-build-artifacts.tgz
+        sudo cp ocaml-build-artifacts/bin/* /usr/bin
+      |||,
     },
     {
       name: 'Install cli dependencies',
@@ -399,11 +504,16 @@ local benchmarks_lite_job = {
     {
       name: 'Test dummy benchmarks on latest',
       'working-directory': 'cli',
-      run: 'pipenv run semgrep --version\npipenv run semgrep-core -version\npipenv run python3 ../perf/run-benchmarks --dummy\n',
+      run: |||
+        pipenv run semgrep --version
+        pipenv run semgrep-core -version
+        pipenv run python3 ../perf/run-benchmarks --dummy
+      |||,
     },
   ],
 };
 
+// Run each benchmark twice to decrease effect of natural variance
 local benchmarks_full_job = {
   'runs-on': 'ubuntu-22.04',
   needs: [
@@ -439,7 +549,10 @@ local benchmarks_full_job = {
     },
     {
       name: 'Install artifacts',
-      run: 'tar xf ocaml-build-artifacts.tgz\nsudo cp ocaml-build-artifacts/bin/* /usr/bin\n',
+      run: |||
+        tar xf ocaml-build-artifacts.tgz
+        sudo cp ocaml-build-artifacts/bin/* /usr/bin
+      |||,
     },
     {
       name: 'Install cli dependencies',
@@ -457,12 +570,21 @@ local benchmarks_full_job = {
     },
   ],
 };
+
+
 local build_test_docker_job = {
   uses: './.github/workflows/build-test-docker.yaml',
   secrets: 'inherit',
   with: {
-    'docker-flavor': 'latest=auto\n',
-    'docker-tags': 'type=semver,pattern={{version}}\ntype=semver,pattern={{major}}.{{minor}}\ntype=ref,event=pr\ntype=ref,event=branch\ntype=sha,event=branch\ntype=edge\n',
+    'docker-flavor': 'latest=auto',
+    'docker-tags': |||
+      type=semver,pattern={{version}}
+      type=semver,pattern={{major}}.{{minor}}
+      type=ref,event=pr
+      type=ref,event=branch
+      type=sha,event=branch
+      type=edge
+    |||,
     'artifact-name': 'image-test',
     'repository-name': '${{ github.repository }}',
     file: 'Dockerfile',
@@ -486,14 +608,28 @@ local push_docker_job = {
 };
 
 local build_test_docker_nonroot_job = {
+  // We want to run build-test-docker-nonroot *after*
+  // build-test-docker so that it reuses the warmed-up
+  // docker cache.
+
   needs: [
     'build-test-docker',
   ],
   uses: './.github/workflows/build-test-docker.yaml',
   secrets: 'inherit',
   with: {
-    'docker-flavor': 'latest=auto\nsuffix=-nonroot,onlatest=true\n',
-    'docker-tags': 'type=semver,pattern={{version}}\ntype=semver,pattern={{major}}.{{minor}}\ntype=ref,event=pr\ntype=ref,event=branch\ntype=sha,event=branch\ntype=edge\n',
+    'docker-flavor': |||
+      latest=auto
+      suffix=-nonroot,onlatest=true
+    |||,
+    'docker-tags': |||
+      type=semver,pattern={{version}}
+      type=semver,pattern={{major}}.{{minor}}
+      type=ref,event=pr
+      type=ref,event=branch
+      type=sha,event=branch
+      type=edge
+    |||,
     'artifact-name': 'image-test-nonroot',
     'repository-name': '${{ github.repository }}',
     file: 'Dockerfile',
@@ -558,15 +694,18 @@ local test_semgrep_pro_job = {
     'test-osemgrep': test_osemgrep_job,
     'build-semgrep-js-ocaml-test': build_semgrep_js_job,
     'test-semgrep-js': test_semgrep_js_job,
+    // requires build-test-core-x86 job
     'test-cli': test_cli_job,
     'test-qa': test_qa_job,
     'benchmarks-lite': benchmarks_lite_job,
     'benchmarks-full': benchmarks_full_job,
     'build-test-docker': build_test_docker_job,
+    // requires build-test-docker
     'push-docker': push_docker_job,
     'build-test-docker-nonroot': build_test_docker_nonroot_job,
     'push-docker-nonroot': push_docker_nonroot_job,
     'test-semgrep-pro': test_semgrep_pro_job,
+    // the inherit jobs also included from releases.yml
     'build-test-core-x86': {
       uses: './.github/workflows/build-test-core-x86.yml',
       secrets: 'inherit',
@@ -596,6 +735,11 @@ local test_semgrep_pro_job = {
     'build-test-javascript': {
       uses: './.github/workflows/build-test-javascript.yml',
       secrets: 'inherit',
+      // we limit artifact uploads to avoid filling the S3 bucket with tons of semgrep.js builds.
+      // we will upload if one of these are true:
+      // - the branch name is "develop" (so that we can test the bleeding edge)
+      // - the branch name starts with "release-" (TODO: move this to release.yml instead)
+      // - the PR is not a fork and has a "publish-js" label
       with: {
         'upload-artifacts': "${{ (github.ref == 'refs/heads/develop') || startsWith(github.ref, 'refs/heads/release-') || (!github.event.pull_request.head.repo.fork && contains(github.event.pull_request.labels.*.name, 'publish-js')) }}",
       },
