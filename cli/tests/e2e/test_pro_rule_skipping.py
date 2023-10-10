@@ -3,8 +3,9 @@ from tests.fixtures import RunSemgrep
 
 
 # osemgrep returns the target correctly as not scanned but pysemgrep
-# marks it as scanned. This should be fixed in pysemgrep.
+# marks it as scanned.
 # TODO: exclude pysemfail tests or fix the problem in pysemgrep (output.py)
+# See comment in Scan_subcommand.ml.
 # @pytest.mark.osempass
 # @pytest.mark.pysemfail
 @pytest.mark.kinda_slow
