@@ -4,9 +4,56 @@ local actions = import 'libs/actions.libsonnet';
 local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
+local artifact_name = 'semgrep-js-artifacts-${{ github.sha }}';
+
+// ----------------------------------------------------------------------------
+// Helpers (Cache)
+// ----------------------------------------------------------------------------
+
+// to be used by the workflow
+local upload_artifacts_input = {
+  inputs: {
+    'upload-artifacts': {
+      type: 'boolean',
+      default: false,
+      description: 'Whether or not to upload JS artifacts to S3',
+    },
+  },
+};
+
+// TODO? move in semgrep.libsonnet? or actions.libsonnet?
+
+local cache_key = 'semgrep-with-submodules-and-tree-sitter-${{ github.sha }}';
+
+local save_in_cache = {
+  name: 'Cache git checkout',
+  id: 'cache-git',
+  uses: 'actions/cache/save@v3',
+  with: {
+    path: '.',
+    key: cache_key,
+  },
+};
+
+local restore_from_cache = {
+  name: 'Restore git checkout cache',
+  id: 'restore-git',
+  uses: 'actions/cache/restore@v3',
+  with: {
+    path: '.',
+    key: cache_key,
+  },
+};
+
+local guard_cache_hit = {
+  'if': "${{ steps.restore-git.outputs.cache-hit != 'true' }}",
+};
+
 // ----------------------------------------------------------------------------
 // The jobs
 // ----------------------------------------------------------------------------
+
+local build_artifact_name = 'semgrep-js-ocaml-build-${{ github.sha }}';
 
 local build_job =
   semgrep.ocaml_alpine_container
@@ -20,16 +67,8 @@ local build_job =
         name: 'Set up tree-sitter',
         run: '(cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)',
       },
-      // saving the checkout for build-test-js-artifacts below to save time
-      {
-        name: 'Cache git checkout',
-        id: 'cache-git',
-        uses: 'actions/cache/save@v3',
-        with: {
-          path: '.',
-          key: 'semgrep-with-submodules-and-tree-sitter-${{ github.sha }}',
-        },
-      },
+      // saving the checkout for test_job below to save time
+      save_in_cache,
       {
         name: 'Build semgrep',
         run: |||
@@ -42,12 +81,12 @@ local build_job =
       {
         uses: 'actions/upload-artifact@v3',
         with: {
-          name: 'semgrep-js-ocaml-build-${{ github.sha }}',
           'retention-days': 1,
           path: |||
             _build/default/js/engine/*.bc.js
             _build/default/js/languages/*/*.bc.js
           |||,
+          name: build_artifact_name,
         },
       },
     ],
@@ -63,36 +102,17 @@ local test_job = {
     HOME: '/root',
   },
   steps: [
-    {
-      name: 'Restore git checkout cache',
-      id: 'restore-git',
-      uses: 'actions/cache/restore@v3',
-      with: {
-        path: '.',
-        key: 'semgrep-with-submodules-and-tree-sitter-${{ github.sha }}',
-      },
-    },
-    {
-      name: 'Make checkout speedy',
-      'if': "${{ steps.restore-git.outputs.cache-hit != 'true' }}",
-      run: 'git config --global fetch.parallel 50',
-    },
-    {
-      uses: 'actions/checkout@v3',
-      'if': "${{ steps.restore-git.outputs.cache-hit != 'true' }}",
-      with: {
-        submodules: true,
-      },
-    },
+    restore_from_cache,
+    gha.speedy_checkout_step + guard_cache_hit,
+    actions.checkout_with_submodules() + guard_cache_hit,
     {
       name: 'Set up tree-sitter',
-      'if': "${{ steps.restore-git.outputs.cache-hit != 'true' }}",
       run: '(cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)',
-    },
+    } + guard_cache_hit,
     {
       uses: 'actions/download-artifact@v3',
       with: {
-        name: 'semgrep-js-ocaml-build-${{ github.sha }}',
+        name: build_artifact_name,
         path: '_build/default/js',
       },
     },
@@ -122,7 +142,7 @@ local test_job = {
       with: {
         path: 'semgrep-js-artifacts.tar.gz',
         'retention-days': 2,
-        name: 'semgrep-js-artifacts-${{ github.sha }}',
+        name: artifact_name,
       },
     },
   ],
@@ -134,6 +154,7 @@ local upload_job = {
   ],
   'if': '${{ inputs.upload-artifacts }}',
   'runs-on': 'ubuntu-latest',
+  // ??
   permissions: {
     'id-token': 'write',
     contents: 'write',
@@ -143,6 +164,7 @@ local upload_job = {
       name: 'Configure AWS credentials',
       uses: 'aws-actions/configure-aws-credentials@v4',
       with: {
+        // ???
         'role-to-assume': 'arn:aws:iam::338683922796:role/semgrep-oss-js-artifacts-deploy-role',
         'role-duration-seconds': 900,
         'role-session-name': 'semgrep-s3-access',
@@ -152,7 +174,7 @@ local upload_job = {
     {
       uses: 'actions/download-artifact@v3',
       with: {
-        name: 'semgrep-js-artifacts-${{ github.sha }}',
+        name: artifact_name,
         path: '/tmp/semgrep',
       },
     },
@@ -191,24 +213,8 @@ local upload_job = {
 {
   name: 'build-test-javascript',
   on: {
-    workflow_dispatch: {
-      inputs: {
-        'upload-artifacts': {
-          type: 'boolean',
-          default: false,
-          description: 'Whether or not to upload JS artifacts to S3',
-        },
-      },
-    },
-    workflow_call: {
-      inputs: {
-        'upload-artifacts': {
-          type: 'boolean',
-          default: false,
-          description: 'Whether or not to upload JS artifacts to S3',
-        },
-      },
-    },
+    workflow_dispatch: upload_artifacts_input,
+    workflow_call: upload_artifacts_input,
   },
   jobs: {
     build: build_job,

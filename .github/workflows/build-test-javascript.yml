@@ -37,11 +37,11 @@ jobs:
           \       "
       - uses: actions/upload-artifact@v3
         with:
-          name: semgrep-js-ocaml-build-${{ github.sha }}
           retention-days: 1
           path:
             "\n            _build/default/js/engine/*.bc.js\n            _build/default/js/languages/*/*.bc.js\n
             \         "
+          name: semgrep-js-ocaml-build-${{ github.sha }}
     container: returntocorp/ocaml:alpine-2023-06-16
     env:
       HOME: /root
@@ -59,15 +59,15 @@ jobs:
         with:
           path: .
           key: semgrep-with-submodules-and-tree-sitter-${{ github.sha }}
-      - name: Make checkout speedy
-        if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
+      - if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
+        name: Make checkout speedy
         run: git config --global fetch.parallel 50
-      - uses: actions/checkout@v3
-        if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
+      - if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
+        uses: actions/checkout@v3
         with:
           submodules: true
-      - name: Set up tree-sitter
-        if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
+      - if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
+        name: Set up tree-sitter
         run: (cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)
       - uses: actions/download-artifact@v3
         with:
