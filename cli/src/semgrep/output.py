@@ -412,6 +412,9 @@ class OutputHandler:
     def _build_output(self) -> str:
         # CliOutputExtra members
         cli_paths = out.ScannedAndSkipped(
+            # This is incorrect when some rules are skipped by semgrep-core
+            # e.g. proprietary rules.
+            # TODO: Use what semgrep-core returns for 'scanned' and 'skipped'.
             scanned=[out.Fpath(str(path)) for path in sorted(self.all_targets)],
             skipped=None,
         )

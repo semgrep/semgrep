@@ -2,7 +2,11 @@ import pytest
 from tests.fixtures import RunSemgrep
 
 
-@pytest.mark.osempass
+# osemgrep returns the target correctly as not scanned but pysemgrep
+# marks it as scanned. This should be fixed in pysemgrep.
+# TODO: exclude pysemfail tests or fix the problem in pysemgrep (output.py)
+# @pytest.mark.osempass
+# @pytest.mark.pysemfail
 @pytest.mark.kinda_slow
 def test_pro_rule_skipping(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
@@ -13,7 +17,9 @@ def test_pro_rule_skipping(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-@pytest.mark.osempass
+# see comment above regarding pysemfail
+# @pytest.mark.osempass
+# @pytest.mark.pysemfail
 @pytest.mark.kinda_slow
 def test_pro_rule_skipping_no_parsing(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
