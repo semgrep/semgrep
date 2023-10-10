@@ -1,7 +1,7 @@
 // This workflow builds and tests the semgrep-core binary for macOS X86
 // and generates the osx-wheel for pypi.
 
-// coupling: if you modify this file, modify also build-test-osx-arm64.yaml
+// coupling: if you modify this file, modify also build-test-osx-arm64.jsonnet
 
 local actions = import 'libs/actions.libsonnet';
 

@@ -1,6 +1,6 @@
-// This workflow dogfoods 'semgrep ci' with Code, Supply Chain, Secrets
-// and the Semgrep WebApp.
-// We're also dogfooding the returntocorp.semgrep:canary docker image!
+// This workflow dogfoods 'semgrep ci', which includes running rules
+// for Code, Supply Chain, and Secrets set in the Semgrep WebApp.
+// We're also dogfooding the returntocorp/semgrep:canary docker image!
 // (see https://www.notion.so/semgrep/returntocorp-semgrep-canary-docker-canary).
 
 local actions = import 'libs/actions.libsonnet';
