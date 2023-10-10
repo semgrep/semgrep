@@ -144,10 +144,10 @@ local test_job = {
         'retention-days': 2,
         name: artifact_name,
       },
+    },
     {
       name: 'Run semgrep js e2e tests',
       run: 'make -C js test',
-    },
     },
   ],
 };
