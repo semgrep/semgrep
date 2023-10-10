@@ -11,8 +11,6 @@
 
   ocaml_alpine_container: {
     'runs-on': 'ubuntu-latest',
-    //TODO: when switching to ocaml 5
-    //container: 'returntocorp/ocaml:alpine5.0-2023-09-29',
     container: 'returntocorp/ocaml:alpine-2023-06-16',
     // We need this hack because GHA tampers with the HOME in container
     // and this does not play well with 'opam' installed in /root
@@ -20,4 +18,13 @@
       HOME: '/root',
     },
   },
+
+  ocaml5_alpine_container: {
+    'runs-on': 'ubuntu-latest',
+    container: 'returntocorp/ocaml:alpine5.0-2023-09-29',
+    env: {
+      HOME: '/root',
+    },
+  },
+
 }

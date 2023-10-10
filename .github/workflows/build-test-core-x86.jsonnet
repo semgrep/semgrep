@@ -7,16 +7,19 @@ local actions = import 'libs/actions.libsonnet';
 local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
+// exported for other workflows
+local artifact_name = 'ocaml-build-artifacts-release';
+
 // ----------------------------------------------------------------------------
 // The job
 // ----------------------------------------------------------------------------
 
-local build_test_core_job =
+local job(container=semgrep.ocaml_alpine_container, artifact=artifact_name) =
   // This container has opam already installed, as well as an opam switch
   // already created, and a big set of packages already installed. Thus,
   // the 'make install-deps-ALPINE-for-semgrep-core' below is very fast and
   // almost a noop.
-  semgrep.ocaml_alpine_container
+  container
   {
     steps: [
       gha.speedy_checkout_step,
@@ -37,7 +40,7 @@ local build_test_core_job =
         uses: 'actions/upload-artifact@v3',
         with: {
           path: 'ocaml-build-artifacts.tgz',
-          name: 'ocaml-build-artifacts-release',
+          name: artifact,
         },
       },
       {
@@ -60,6 +63,12 @@ local build_test_core_job =
     workflow_call: null,
   },
   jobs: {
-    'build-test-core-x86': build_test_core_job,
+    'build-test-core-x86': job(),
+  },
+  // to be reused by other workflows
+  export::{
+    artifact_name: artifact_name,
+    // used by build-test-core-x86-ocaml5.jsonnet
+    job: job,
   },
 }

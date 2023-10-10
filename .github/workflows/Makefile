@@ -9,7 +9,7 @@ JSONNET=../../bin/ojsonnet
 
 OBJS = \
   semgrep.yml lint.yml update-semgrep-rules.yml \
-  build-test-core-x86.yml \
+  build-test-core-x86.yml build-test-core-x86-ocaml5.yml \
   build-test-osx-x86.yml
 
 all: $(OBJS)

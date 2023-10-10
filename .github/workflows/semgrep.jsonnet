@@ -32,7 +32,7 @@ local semgrep_ci_job = {
 // ----------------------------------------------------------------------------
 
 {
-  // without this name:, the workflow would look as ".github/workflows/lint.yml ..."
+  // without this name:, the workflow would look as ".github/workflows/semgrep.yml ..."
   name: 'semgrep',
   on: {
     // This workflow runs on 'pull_request_target' so that PRs from forks are able
