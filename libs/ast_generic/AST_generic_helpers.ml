@@ -570,6 +570,12 @@ let range_of_tokens tokens =
   List.filter Tok.is_origintok tokens |> Tok_range.min_max_toks_by_pos
 [@@profiling]
 
+let range_of_tokens_opt tokens =
+  match List.filter Tok.is_origintok tokens with
+  | [] -> None
+  | tokens -> Some (Tok_range.min_max_toks_by_pos tokens)
+[@@profiling]
+
 let range_of_any_opt any =
   (* Even if the ranges are cached, calling `extract_ranges` to get them
    * is extremely expensive (due to `mk_visitor`). Testing taint-mode
