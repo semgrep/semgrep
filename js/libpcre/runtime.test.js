@@ -13,6 +13,8 @@ globalThis.caml_invalid_argument = () => {
   throw new Error(InvalidArgumentError);
 };
 
+globalThis.caml_jsstring_of_string = (value) => value;
+
 describe("pcre-ocaml stubs", () => {
   const libpcrePromise = LibPcreFactory();
   globalThis.exposePcreStubsForTesting = true;
