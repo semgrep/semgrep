@@ -25,7 +25,8 @@ local setup_runner_step = {
   |||,
 };
 
-// could be moved to actions.libsonnet
+// Our self-hosted runner do not come with python pre-installed
+// TODO? could be moved to actions.libsonnet
 local setup_python_step = {
   uses: 'actions/setup-python@v4',
   with: {
@@ -52,9 +53,10 @@ local build_core_job = {
     setup_python_step,
     actions.checkout_with_submodules(),
     osx_x86.export.cache.cache_opam_step,
+    // exactly the same than in build-test-oxs-x86.jsonnet
     {
       name: 'Install dependencies',
-      run: './scripts/osx-setup-for-release.sh "${{ env.OPAM_SWITCH_NAME }}"\n',
+      run: './scripts/osx-setup-for-release.sh "${{ env.OPAM_SWITCH_NAME }}"',
     },
     {
       name: 'Compile semgrep',

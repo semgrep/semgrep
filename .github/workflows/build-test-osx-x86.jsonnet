@@ -7,9 +7,14 @@ local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
 // ----------------------------------------------------------------------------
-// Helpers (also reused in build-test-osx-arm64.jsonnet
+// Helpers
 // ----------------------------------------------------------------------------
 
+// this already comes with python installed so no need to
+// have a setup_python_step like in build-test-osx-arm64.jsonnet
+local runs_on = 'macos-12';
+
+// This is reused in build-test-osx-arm64.jsonnet
 local test_semgrep_steps = [
   {
     run: 'semgrep --version',
@@ -129,7 +134,6 @@ local cache_opam_step = {
 
 local artifact_name = 'semgrep-osx-${{ github.sha }}';
 local wheel_name = 'osx-x86-wheel';
-local runs_on = 'macos-12';
 
 local build_core_job = {
   'runs-on': runs_on,

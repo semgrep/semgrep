@@ -53,7 +53,7 @@ jobs:
             ${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME
             }}-opam-deps\n
       - name: Install dependencies
-        run: ./scripts/osx-setup-for-release.sh "${{ env.OPAM_SWITCH_NAME }}"\n
+        run: ./scripts/osx-setup-for-release.sh "${{ env.OPAM_SWITCH_NAME }}"
       - name: Compile semgrep
         run:
           "\n        opam exec -- make core\n        mkdir -p artifacts\n        cp
