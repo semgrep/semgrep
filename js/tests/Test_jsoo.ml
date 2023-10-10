@@ -23,21 +23,32 @@ open Semgrep_js_shared
 (* Code *)
 (*****************************************************************************)
 
-(* These tests are skipped as they are currently incredibly slow *)
-(* Once LLVM merges a PR we will re-enable these *)
-let filtered = [ "Cpp"; "C++"; "Julia"; "Ruby" ]
+let filtered =
+  [
+    (* TODO: investigate C++ test issues *)
+    ("Cpp", []);
+    ("C++", []);
+    (* TODO: re-enable once we fix Julia build slowness *)
+    ("Julia", []);
+    (* TODO: re-enable once we fix Ruby build slowness *)
+    ("Ruby", []);
+    (* TODO: re-enable this when we fix the jsoo int overflow bug *)
+    ("Go", [ 24 ]);
+  ]
 
 (* Filter to skip tests *)
 let test_filter ~name ~index =
-  ignore index;
   if
     List.filter
-      (fun n ->
-        Common.contains (String.lowercase_ascii name) (String.lowercase_ascii n))
+      (fun (language, indexes) ->
+        Common.contains
+          (String.lowercase_ascii name)
+          (String.lowercase_ascii language)
+        && (indexes == [] || List.exists (fun n2 -> n2 == index) indexes))
       filtered
     <> []
   then `Skip
-  else `Run (* Cpp has a weird error, and @brandon is still working on it soo *)
+  else `Run
 
 let _ =
   Js.export_all
