@@ -56,6 +56,7 @@ let default =
 
 let t_of_yojson json = of_yojson json
 let yojson_of_t settings = to_yojson settings
+let pp fmt settings = Yojson.Safe.pretty_print fmt (yojson_of_t settings)
 
 let find_targets_conf_of_t settings =
   let include_ =

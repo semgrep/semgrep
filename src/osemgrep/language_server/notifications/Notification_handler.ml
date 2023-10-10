@@ -122,6 +122,12 @@ let on_notification notification (server : RPC_server.t) =
           |> member "full" |> to_bool_option
           |> Option.value ~default:false
         in
+        if server.session.metrics.isNewAppInstall && full then
+          RPC_server.notify_show_message ~kind:MessageType.Info server
+            "Scanning all files regardless of git status. These diagnostics \
+             will persist until a file is edited. To default to always \
+             scanning regardless of git status, please disable 'Only Git \
+             Dirty' in settings";
         Logs.debug (fun m -> m "Scanning workspace, full: %b" full);
         let scan_server =
           let session =

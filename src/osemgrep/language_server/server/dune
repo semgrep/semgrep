@@ -18,6 +18,7 @@
   (pps
     lwt_ppx
     profiling.ppx
+    ppx_deriving.show
   )
  )
 )

@@ -22,8 +22,12 @@ type t = {
   cached_scans : (Fpath.t, Semgrep_output_v1_t.cli_match list) Hashtbl.t;
   cached_session : session_cache;
   user_settings : User_settings.t;
+  metrics : LS_metrics.t;
   is_intellij : bool;
 }
+
+val show : t -> string
+(** [show t] returns a string representation of the session *)
 
 val create : ServerCapabilities.t -> t
 (** [create capabilities] creates a [Session.t] given server capabilities *)

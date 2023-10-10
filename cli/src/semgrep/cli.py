@@ -6,7 +6,6 @@ from semgrep.commands.ci import ci
 from semgrep.commands.install import install_semgrep_pro
 from semgrep.commands.login import login
 from semgrep.commands.login import logout
-from semgrep.commands.lsp import lsp
 from semgrep.commands.publish import publish
 from semgrep.commands.scan import scan
 from semgrep.default_group import DefaultGroup
@@ -69,4 +68,3 @@ cli.add_command(logout)
 cli.add_command(publish)
 cli.add_command(scan)
 cli.add_command(install_semgrep_pro)
-cli.add_command(lsp)
