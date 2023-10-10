@@ -63,7 +63,7 @@ local job(container=semgrep.ocaml_alpine_container, artifact=artifact_name) =
     workflow_call: null,
   },
   jobs: {
-    'build-test-core-x86': job(),
+    job: job(),
   },
   // to be reused by other workflows
   export::{

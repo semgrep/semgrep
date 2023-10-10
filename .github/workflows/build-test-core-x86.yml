@@ -3,7 +3,7 @@
   workflow_dispatch:
   workflow_call:
 jobs:
-  build-test-core-x86:
+  job:
     steps:
       - name: Make checkout speedy
         run: git config --global fetch.parallel 50

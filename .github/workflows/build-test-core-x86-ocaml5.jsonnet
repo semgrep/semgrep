@@ -31,6 +31,6 @@ local job = core_x86.export.job(
     },
   },
   jobs: {
-    'job': job,
+    job: job,
   },
 }
