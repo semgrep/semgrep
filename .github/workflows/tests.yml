@@ -6,10 +6,10 @@ name: tests
     paths-ignore:
       - "**.md"
   push:
-    branches:
-      - develop
     paths-ignore:
       - "**.md"
+    branches:
+      - develop
 jobs:
   test-semgrep-core:
     steps:
@@ -262,9 +262,11 @@ jobs:
     with:
       docker-flavor: "\n      latest=auto\n    "
       docker-tags:
-        "\n      type=semver,pattern={{version}}\n      type=semver,pattern={{major}}.{{minor}}\n
-        \     type=ref,event=pr\n      type=ref,event=branch\n      type=sha,event=branch\n
-        \     type=edge\n    "
+        "\n  # tag image with full version (ex. \"1.2.3\")\n  type=semver,pattern={{version}}\n
+        \ # tag image with major.minor (ex. \"1.2\")\n  type=semver,pattern={{major}}.{{minor}}\n
+        \ # tag image with pr (ex. \"pr-42\", great for bisecting)\n  type=ref,event=pr\n
+        \ # ??? deleted those? useful?\n  type=ref,event=branch\n  type=sha,event=branch\n
+        \ # ???\n  type=edge\n"
       artifact-name: image-test
       repository-name: ${{ github.repository }}
       file: Dockerfile
@@ -290,9 +292,11 @@ jobs:
     with:
       docker-flavor: "\n      latest=auto\n      suffix=-nonroot,onlatest=true\n    "
       docker-tags:
-        "\n      type=semver,pattern={{version}}\n      type=semver,pattern={{major}}.{{minor}}\n
-        \     type=ref,event=pr\n      type=ref,event=branch\n      type=sha,event=branch\n
-        \     type=edge\n    "
+        "\n  # tag image with full version (ex. \"1.2.3\")\n  type=semver,pattern={{version}}\n
+        \ # tag image with major.minor (ex. \"1.2\")\n  type=semver,pattern={{major}}.{{minor}}\n
+        \ # tag image with pr (ex. \"pr-42\", great for bisecting)\n  type=ref,event=pr\n
+        \ # ??? deleted those? useful?\n  type=ref,event=branch\n  type=sha,event=branch\n
+        \ # ???\n  type=edge\n"
       artifact-name: image-test-nonroot
       repository-name: ${{ github.repository }}
       file: Dockerfile
