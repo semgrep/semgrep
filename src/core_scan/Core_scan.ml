@@ -822,6 +822,8 @@ let select_applicable_rules_for_target ~analyzer ~path rules =
  * This is also called now from osemgrep.
  * It takes a set of rules and a set of targets (targets derived from config,
  * and potentially also extract rules) and iteratively process those targets.
+ * coupling: If you modify this function, you probably need also to modify
+ * Deep_scan.scan() in semgrep-pro which is mostly a copy-paste of this file.
  *)
 let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
     Core_result.t =
