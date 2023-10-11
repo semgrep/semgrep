@@ -34,6 +34,9 @@ let initialize_server server
     | Some json -> json
     | None -> `Assoc []
   in
+  Logs.debug (fun m ->
+      m "Initializing server with initializationOptions:\n%s"
+        (Yojson.Safe.pretty_to_string initializationOptions));
   let user_settings =
     let scan_options = initializationOptions |> member "scan" in
     let do_hover =
@@ -66,11 +69,27 @@ let initialize_server server
   in
   Lwt_preemptive.init 1 user_settings.jobs (fun msg ->
       Logs.debug (fun m -> m "ls threads: %s" msg));
-  {
-    session =
-      { server.session with workspace_folders; user_settings; is_intellij };
-    state = State.Running;
-  }
+  let metrics =
+    let metrics = initializationOptions |> member "metrics" in
+    metrics |> LS_metrics.t_of_yojson
+    |> Result.value ~default:LS_metrics.default
+  in
+  let server =
+    {
+      session =
+        {
+          server.session with
+          workspace_folders;
+          user_settings;
+          is_intellij;
+          metrics;
+        };
+      state = State.Running;
+    }
+  in
+  Logs.debug (fun m ->
+      m "Initialized server with session:\n%s" (Session.show server.session));
+  server
 
 (*****************************************************************************)
 (* Entry point *)

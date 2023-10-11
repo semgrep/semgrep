@@ -26,7 +26,7 @@ class JunitXmlFormatter(BaseFormatter):
         test_case.add_failure_info(
             message=rule_match.message,
             output="".join(rule_match.lines),
-            failure_type=rule_match.severity.value,
+            failure_type=rule_match.severity.to_json(),
         )
         return test_case
 

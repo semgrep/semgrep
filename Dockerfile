@@ -241,6 +241,10 @@ RUN printf "[safe]\n	directory = /src"  > ~semgrep/.gitconfig && \
 CMD ["semgrep", "--help"]
 LABEL maintainer="support@semgrep.com"
 
+###############################################################################
+# Step 4 (optional) nonroot variant
+###############################################################################
+
 # Additional build stage that sets a non-root user.
 # Can't make this the default in semgrep-cli stage because of permissions errors
 # on the mounted volume when using instructions for running semgrep with docker:

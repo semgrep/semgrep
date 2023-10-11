@@ -566,11 +566,11 @@ let set_e_range_with_anys anys e =
       logger#debug "set_e_range_with_anys failed: no locations found";
       ()
 
-let range_of_tokens tokens =
+let range_of_tokens_unsafe tokens =
   List.filter Tok.is_origintok tokens |> Tok_range.min_max_toks_by_pos
 [@@profiling]
 
-let range_of_tokens_opt tokens =
+let range_of_tokens tokens =
   match List.filter Tok.is_origintok tokens with
   | [] -> None
   | tokens -> Some (Tok_range.min_max_toks_by_pos tokens)

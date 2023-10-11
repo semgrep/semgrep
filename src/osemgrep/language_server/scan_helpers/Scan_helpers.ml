@@ -36,7 +36,7 @@ let wrap_with_detach f = Lwt.async (fun () -> Lwt_preemptive.detach f ())
 let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
     ({ session; _ } : RPC_server.t) =
   let rules = Option.value ~default:session.cached_session.rules rules in
-  Logs.app (fun m -> m "Running Semgrep with %d rules" (List.length rules));
+  Logs.debug (fun m -> m "Running Semgrep with %d rules" (List.length rules));
   (* !!!Dispatch to the Semgrep engine!!! *)
   let res =
     let targets = Option.value ~default:(Session.targets session) targets in
@@ -50,12 +50,12 @@ let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
   in
   (* Collect results. *)
   let scanned = res.scanned |> Set_.elements in
-  Logs.app (fun m -> m "Scanned %d files" (List.length scanned));
+  Logs.debug (fun m -> m "Scanned %d files" (List.length scanned));
   let matches =
     let only_git_dirty = session.user_settings.only_git_dirty in
     Processed_run.of_matches ~git_ref ~only_git_dirty res
   in
-  Logs.app (fun m -> m "Found %d matches" (List.length matches));
+  Logs.debug (fun m -> m "Found %d matches" (List.length matches));
   (matches, scanned)
 
 (** Scan all folders in the workspace *)

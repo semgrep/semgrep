@@ -39,7 +39,6 @@ from semgrep.config_resolver import get_config
 from semgrep.constants import DEFAULT_DIFF_DEPTH
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
-from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
 from semgrep.core_runner import get_contributions
 from semgrep.engine import EngineType
@@ -340,7 +339,7 @@ def run_scan(
     List[Rule],
     ProfileManager,
     OutputExtra,
-    Collection[RuleSeverity],
+    Collection[out.MatchSeverity],
     Dict[str, List[FoundDependency]],
     List[DependencyParserError],
     int,
@@ -397,7 +396,7 @@ def run_scan(
         shown_severities = DEFAULT_SHOWN_SEVERITIES
         filtered_rules = all_rules
     else:
-        shown_severities = {RuleSeverity(s) for s in severity}
+        shown_severities = {out.MatchSeverity.from_json(s) for s in severity}
         filtered_rules = [rule for rule in all_rules if rule.severity.value in severity]
     filtered_rules = filter_exclude_rule(filtered_rules, exclude_rule)
 
@@ -492,7 +491,7 @@ def run_scan(
         contributions = out.Contributions([])
 
     experimental_rules, unexperimental_rules = partition(
-        filtered_rules, lambda rule: rule.severity == RuleSeverity.EXPERIMENT
+        filtered_rules, lambda rule: (isinstance(rule.severity.value, out.Experiment))
     )
 
     logger.verbose("Rules:")

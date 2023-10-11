@@ -8,7 +8,6 @@ from typing import Mapping
 from typing import Sequence
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
-from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
 from semgrep.rule import Rule
@@ -16,12 +15,12 @@ from semgrep.rule_match import RuleMatch
 from semgrep.state import get_state
 
 
-def _to_gitlab_severity(semgrep_severity: RuleSeverity) -> str:
+def _to_gitlab_severity(semgrep_severity: out.MatchSeverity) -> str:
     # Todo: Semgrep states currently don't map super well to Gitlab schema.
-    conversion_table: Dict[RuleSeverity, str] = {
-        RuleSeverity.INFO: "Info",
-        RuleSeverity.WARNING: "Medium",
-        RuleSeverity.ERROR: "High",
+    conversion_table: Dict[out.MatchSeverity, str] = {
+        out.MatchSeverity(out.Info()): "Info",
+        out.MatchSeverity(out.Warning()): "Medium",
+        out.MatchSeverity(out.Error()): "High",
     }
     return conversion_table.get(semgrep_severity, "Unknown")
 
@@ -170,8 +169,7 @@ class GitlabSastFormatter(BaseFormatter):
             "vulnerabilities": [
                 self._format_rule_match(rule_match)
                 for rule_match in rule_matches
-                if rule_match.severity
-                not in [RuleSeverity.INVENTORY, RuleSeverity.EXPERIMENT]
+                if rule_match.severity.value not in [out.Inventory(), out.Experiment()]
             ],
         }
 

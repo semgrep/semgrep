@@ -6,6 +6,73 @@
 
 <!-- insertion point -->
 
+## [1.44.0](https://github.com/returntocorp/semgrep/releases/tag/v1.44.0) - 2023-10-11
+
+### Added
+
+- A new --matching-explanations CLI flag has been added, to get matching
+  explanations. This was internally used by the Semgrep Playground to
+  help debug rules, but is now available also directly from the CLI. (explanations)
+- Using C++ tree-sitter as a failsafe pattern parser for C (gh-8905)
+- Allowing multiple type fields in metavariable-type rule syntax
+
+  Users have the flexibility to utilize multiple type fields to match the type of
+  metavariables. For instance:
+
+  metavariable-type:
+  metavariable: $X
+  types: - typeA - typeB
+
+  This approach is also supported in rule 2.0. (gh-8913)
+
+- Support for parsing pubspec (Dart/Flutter) lockfiles (gh-8925)
+- Added support for matching template type arguments using metavariables in C++.
+  Users can now successfully match code snippets like:
+
+  ```
+  #include <memory>
+  using namespace std;
+
+  void foo() {
+      int *i = 0;
+
+      // ruleid: match-with-template
+      shared_ptr<int> p;
+  }
+  ```
+
+  with the pattern:
+
+  ````
+  shared_ptr<$TY> $LOCAL_VAR;
+  ``` (pa-3102)
+  ````
+
+### Fixed
+
+- Avoid fatal "missing plugin" exceptions when scanning some Apex rules
+  for which no Apex pattern is used by the rule such as a `pattern-regex:`
+  and nothing else. (gh-8945)
+- Semgrep can now parse optional assignments in Swift (e.g. `a.b? = 1`). (lang-1)
+- Sequential tainting is now supported in Elixir.
+
+  ````elixir
+  def f() do
+    x = "tainted"
+    y = x
+
+    # This now matches.
+    sink(y)
+  end
+  ``` (pa-3130)
+  ````
+
+- Target files that disappeared before the scan or that have special byte
+  characters in their filename do not cause the whole scan to crash anymore.
+  The file is skipped instead. (pa-3144)
+- go.mod parsing now correctly allows arbitrary newlines and whitespace between dependencies (sc-1076)
+- fix: Improve typed metavariable matching against expressions consisting of names only. (type-inference)
+
 ## [1.43.0](https://github.com/returntocorp/semgrep/releases/tag/v1.43.0) - 2023-10-03
 
 ### Added

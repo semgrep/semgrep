@@ -82,7 +82,7 @@ let get_metavar_regex_capture_bindings env ~file r (mvar, re_str) =
              * source location associated with the mevariable, we'll just fail
              * to match here. *)
             let* start, _ =
-              mval |> MV.ii_of_mval |> AST_generic_helpers.range_of_tokens_opt
+              mval |> MV.ii_of_mval |> AST_generic_helpers.range_of_tokens
             in
             Some (Tok.unsafe_loc_of_tok start)
           in
