@@ -60,7 +60,7 @@ let group_skipped (skipped : Out.skipped_target list) : skipped_targets_grouped
         | Minified
         | Binary
         | Dotfile
-        | Inexistent_file
+        | Nonexistent_file
         | Irrelevant_rule
         | Too_many_matches ->
             `Other)

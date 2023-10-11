@@ -218,7 +218,7 @@ let filter_existing_targets (targets : In.target list) :
            Right
              {
                Semgrep_output_v1_t.path = file;
-               reason = Inexistent_file;
+               reason = Nonexistent_file;
                details = Some "File does not exist";
                rule_id = None;
              })
@@ -702,13 +702,7 @@ let targets_of_config (config : Core_scan_config.t) :
   | None, _, None -> failwith "you need to specify a language with -lang"
   (* main code path for semgrep python, with targets specified by -target *)
   | Some target_source, roots, lang_opt ->
-      let targets =
-        match target_source with
-        | Targets x -> x
-        | Target_file target_file ->
-            File.read_file target_file |> In.targets_of_string
-      in
-      let skipped = [] in
+      (* sanity checking *)
       (* in deep mode we actually have a single root dir passed *)
       if roots <> [] then
         logger#error "if you use -targets, you should not specify files";
@@ -717,7 +711,13 @@ let targets_of_config (config : Core_scan_config.t) :
        *)
       if lang_opt <> None && config.rule_source <> None then
         failwith "if you use -targets and -rules, you should not specify a lang";
-      (targets, skipped)
+      let targets =
+        match target_source with
+        | Targets x -> x
+        | Target_file target_file ->
+            File.read_file target_file |> In.targets_of_string
+      in
+      filter_existing_targets targets
 
 (*****************************************************************************)
 (* Extract-mode helpers *)
@@ -842,8 +842,6 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
     | [] -> []
     | _some_rules -> targets_info
   in
-  let targets, new_skipped = filter_existing_targets targets in
-  let skipped = new_skipped @ skipped in
 
   (* The "extracted" targets we generate on the fly by calling
    * our extractors (extract mode rules) on the relevant basic targets.
