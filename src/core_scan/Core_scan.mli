@@ -142,4 +142,9 @@ val xtarget_of_file : Core_scan_config.t -> Xlang.t -> Fpath.t -> Xtarget.t
 val sort_targets_by_decreasing_size :
   Input_to_core_t.target list -> Input_to_core_t.target list
 
+(* filter targets that actually exist (according to Sys.file_exists) *)
+val filter_existing_targets :
+  Input_to_core_t.target list ->
+  Input_to_core_t.target list * Semgrep_output_v1_t.skipped_target list
+
 val parse_equivalences : Fpath.t option -> Equivalence.equivalences
