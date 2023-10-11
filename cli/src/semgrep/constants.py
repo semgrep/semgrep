@@ -1,7 +1,6 @@
 import re
 from enum import auto
 from enum import Enum
-from typing import Type
 
 RULES_KEY = "rules"
 ID_KEY = "id"
@@ -47,25 +46,6 @@ class OutputFormat(Enum):
 
     def is_json(self) -> bool:
         return self in [OutputFormat.JSON, OutputFormat.SARIF]
-
-
-# Ensure consistency with 'severity' in 'rule_schema_v1.yaml'
-# TODO: get rid of, reuse semgrep_output_v1.severity type
-class RuleSeverity(Enum):
-    INFO = "INFO"
-    WARNING = "WARNING"
-    ERROR = "ERROR"
-    INVENTORY = "INVENTORY"
-    EXPERIMENT = "EXPERIMENT"
-
-    @classmethod
-    def _missing_(cls: Type[Enum], value: object) -> Enum:
-        if not isinstance(value, str):
-            raise TypeError(f"invalid rule severity type: {type(value)}")
-        for member in cls:
-            if member.value.lower() == value:
-                return member
-        raise ValueError(f"invalid rule severity value: {value}")
 
 
 class RuleScanSource(Enum):

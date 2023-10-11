@@ -25,7 +25,6 @@ import semgrep.run_scan
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.config_resolver import Config
 from semgrep.config_resolver import resolve_config
-from semgrep.constants import RuleSeverity
 from semgrep.error import ERROR_MAP
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import SemgrepError
@@ -382,8 +381,8 @@ def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> Rule
             "message", match.get("extra", {}).get("message", "[empty]")
         ),
         metadata=join_rule.get("metadata", match.get("extra", {}).get("metadata", {})),
-        severity=RuleSeverity(
-            join_rule.get("severity", match.get("severity", RuleSeverity.INFO.value))
+        severity=out.MatchSeverity.from_json(
+            join_rule.get("severity", match.get("severity", "INFO"))
         ),
         match=out.CoreMatch(
             check_id=out.RuleId(join_rule.get("id", match.get("check_id", "[empty]"))),

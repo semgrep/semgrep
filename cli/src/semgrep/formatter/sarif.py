@@ -8,7 +8,6 @@ from typing import Sequence
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
-from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
 from semgrep.rule import Rule
@@ -325,11 +324,11 @@ class SarifFormatter(BaseFormatter):
         See https://github.com/oasis-tcs/sarif-spec/blob/a6473580/Schemata/sarif-schema-2.1.0.json#L1566
         """
         mapping = {
-            RuleSeverity.INFO: "note",
-            RuleSeverity.WARNING: "warning",
-            RuleSeverity.ERROR: "error",
+            out.Info(): "note",
+            out.Warning(): "warning",
+            out.Error(): "error",
         }
-        return mapping[rule.severity]
+        return mapping[rule.severity.value]
 
     @staticmethod
     def _rule_to_sarif_tags(rule: Rule) -> Sequence[str]:
