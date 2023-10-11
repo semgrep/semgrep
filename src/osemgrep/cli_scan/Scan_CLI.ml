@@ -426,7 +426,12 @@ let o_dataflow_traces : bool Term.t =
 
 let o_matching_explanations : bool Term.t =
   let info =
-    Arg.info [ "matching-explanations" ] ~doc:{|Explain how a match is found.|}
+    Arg.info
+      [ "matching-explanations" ]
+      ~doc:
+        {|Add debugging information in the JSON output to trace how
+different parts of a rule are matched (a.k.a., "Inspect Rule"
+in the Semgrep playground)|}
   in
   Arg.value (Arg.flag info)
 

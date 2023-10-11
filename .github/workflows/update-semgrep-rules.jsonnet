@@ -137,12 +137,12 @@ local job = {
   ],
 };
 
-
 // ----------------------------------------------------------------------------
 // Workflow
 // ----------------------------------------------------------------------------
 
 {
+  name: 'update-semgrep-rules',
   on: {
     // Allow for manual triggering in https://github.com/returntocorp/semgrep/actions
     // See https://docs.github.com/en/actions/managing-workflow-runs/manually-running-a-workflow
@@ -177,6 +177,6 @@ local job = {
   },
   //TODO: how to handle failures if the cron fails? Who gets the error notification?
   jobs: {
-    'update-semgrep-rules-submodule': job,
+    'job': job,
   },
 }
