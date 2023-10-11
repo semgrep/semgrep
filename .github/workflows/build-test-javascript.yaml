@@ -89,7 +89,11 @@ jobs:
       - name: Build JS artifacts
         run: |
           make -C js -j $(nproc) build
-
+      - name: Test JS artifacts
+        run: |
+          make -C js -j $(nproc) test
+      - name: Package JS artifacts
+        run: |
           tar cvzf semgrep-js-artifacts.tar.gz \
             js/engine/dist/index.cjs \
             js/engine/dist/index.mjs \
