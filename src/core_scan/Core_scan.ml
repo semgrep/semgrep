@@ -200,6 +200,29 @@ let sort_targets_by_decreasing_size (targets : In.target list) : In.target list
   |> List.sort (fun (_, (a : int)) (_, b) -> compare b a)
   |> Common.map fst
 
+(* In some context, a target passed in might have disappeared, or have been
+ * encoded in the wrong way in the Inputs_to_core.atd (for example
+ * in the case of filenames with special unicode bytes in it), in which case
+ * Common2.filesize above would fail and crash the whole scan as the
+ * raised exn is outside the iter_targets_and_get_matches_and_exn_to_errors
+ * big try. This is why it's better to filter those problematic targets
+ * early on.
+ *)
+let filter_existing_targets (targets : In.target list) :
+    In.target list * Out.skipped_target list =
+  targets
+  |> Common.partition_either (fun (target : In.target) ->
+         let file = target.In.path in
+         if Sys.file_exists file then Left target
+         else
+           Right
+             {
+               Semgrep_output_v1_t.path = file;
+               reason = Inexistent_file;
+               details = Some "File does not exist";
+               rule_id = None;
+             })
+
 (*****************************************************************************)
 (* Printing matches *)
 (*****************************************************************************)
@@ -817,6 +840,8 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
     | [] -> []
     | _some_rules -> targets_info
   in
+  let targets, new_skipped = filter_existing_targets targets in
+  let skipped = new_skipped @ skipped in
 
   (* The "extracted" targets we generate on the fly by calling
    * our extractors (extract mode rules) on the relevant basic targets.
