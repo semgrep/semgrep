@@ -51,6 +51,7 @@ jobs:
 
             - [ ] Purpose of the code is [evident to future readers](https://semgrep.dev/docs/contributing/contributing-code/#explaining-code)
             - [ ] Tests included or PR comment includes a reproducible test plan
+            - [ ] Change was tested with Pro (point Pro's semgrep dependency to this branch and run `make test`, no need to open a Pro PR if it works)
             - [ ] Documentation is up-to-date
             - [ ] A changelog entry was [added to changelog.d](https://semgrep.dev/docs/contributing/contributing-code/#adding-a-changelog-entry) for any user-facing change
             - [ ] Change has no security implications (otherwise, ping security team)
