@@ -1,3 +1,0 @@
-A new --matching-explanations CLI flag has been added, to get matching
-explanations. This was internally used by the Semgrep Playground to
-help debug rules, but is now available also directly from the CLI.

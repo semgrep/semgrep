@@ -1,3 +1,0 @@
-Target files that disappeared before the scan or that have special byte
-characters in their filename do not cause the whole scan to crash anymore.
-The file is skipped instead.
