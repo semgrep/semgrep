@@ -64,6 +64,8 @@ let initialize_server server
           "intellij"
     | _ -> false
   in
+  Lwt_preemptive.init 1 user_settings.jobs (fun msg ->
+      Logs.debug (fun m -> m "ls threads: %s" msg));
   {
     session =
       { server.session with workspace_folders; user_settings; is_intellij };
