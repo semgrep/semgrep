@@ -1,32 +1,9 @@
-const SemgrepEngine = require("../../../engine/dist/semgrep-engine");
-
-const parserPromise = async () => {
-  const wasm = await SemgrepEngine({
-    locateFile: (_) => "../../engine/dist/semgrep-engine.wasm",
-  });
-  globalThis.LibPcreModule = wasm;
-  const { ParserFactory } = require("../dist/index.cjs");
-
-  const parserPromise = ParserFactory();
-  return parserPromise;
-};
+const { createParser, testParser } = require("../../shared/parser");
 
 const LANG = "terraform";
-const EXPECTED_LANGS = [LANG];
 
-test("getLangs", async () => {
-  const parser = await parserPromise();
-  expect(parser.getLangs()).toEqual(EXPECTED_LANGS);
-});
+describe(`${LANG} parser`, () => {
+  const parserPromise = createParser(`${__dirname}/../dist/index.cjs`);
 
-test("it parses a pattern", async () => {
-  const parser = await parserPromise();
-  const pattern = parser.parsePattern(false, LANG, "value = $X");
-  expect(typeof pattern).toEqual("object");
-});
-
-test("it parses a file", async () => {
-  const parser = await parserPromise();
-  const target = parser.parseTarget(LANG, "tests/test.tf");
-  expect(typeof target).toEqual("object");
+  testParser(LANG, parserPromise);
 });
