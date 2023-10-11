@@ -1,3 +1,0 @@
-Avoid fatal "missing plugin" exceptions when scanning some Apex rules
-for which no Apex pattern is used by the rule such as a `pattern-regex:`
-and nothing else.
