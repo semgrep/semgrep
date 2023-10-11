@@ -389,17 +389,25 @@ local benchmarks_full_job = {
 
 // You can see those tags in use here:
 // https://hub.docker.com/r/returntocorp/semgrep/tags
+//
+// # tag image with full version (ex. "1.2.3")
+// type=semver,pattern={{version}}
+// # tag image with major.minor (ex. "1.2")
+// type=semver,pattern={{major}}.{{minor}}
+// # tag image with pr (ex. "pr-42", great for bisecting)
+// type=ref,event=pr
+// # ??? deleted those? useful?
+// type=ref,event=branch
+// type=sha,event=branch
+// # ???
+// type=edge
+
 local docker_tags = |||
-  # tag image with full version (ex. "1.2.3")
   type=semver,pattern={{version}}
-  # tag image with major.minor (ex. "1.2")
   type=semver,pattern={{major}}.{{minor}}
-  # tag image with pr (ex. "pr-42", great for bisecting)
   type=ref,event=pr
-  # ??? deleted those? useful?
   type=ref,event=branch
   type=sha,event=branch
-  # ???
   type=edge
 |||;
 
