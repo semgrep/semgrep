@@ -11,7 +11,7 @@ from typing import Optional
 from typing import Sequence
 from typing import Tuple
 
-import attr  # TODO: update to next-gen API with @define; difficult cause these subclass of Exception
+import attr
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import Colors
@@ -52,6 +52,10 @@ class SemgrepError(Exception):
 
     For pretty-printing, exceptions should override `__str__`.
     """
+
+    # In theory we should define those fields here:
+    # code: int
+    # level: out.ErrorSeverity
 
     def __init__(
         self,
@@ -218,14 +222,6 @@ class SemgrepCoreError(SemgrepError):
                 self.core.details,
             )
         )
-
-
-class SemgrepInternalError(Exception):
-    """
-    Parent class of internal semgrep exceptions that should be handled internally and converted into `SemgrepError`s
-
-    Classes that inherit from SemgrepInternalError should begin with `_`
-    """
 
 
 @attr.s(auto_attribs=True, frozen=True)
