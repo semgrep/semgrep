@@ -1,0 +1,35 @@
+Taint analysis: track `ptr->field` l-values in C++
+
+In C++, we now track tainted field access via pointer dereference. For
+instance, consider the following code snippet:
+```
+void test_intra_001() {
+  TestObject *obj = new TestObject();
+
+  obj->a = taint_source();
+  obj->b = SAFE_STR;
+
+  // ok: cpp-tainted-field-ptr
+  sink(obj->b, __LINE__);
+  // ruleid: cpp-tainted-field-ptr
+  sink(obj->a, __LINE__);
+}
+```
+
+This can be matched by the rule:
+```
+rules:
+  - id: cpp-tainted-field-ptr
+    languages:
+      - cpp
+    message: testing flows though C++ ptrs
+    severity: INFO
+    mode: taint
+    pattern-sources:
+      - pattern: taint_source()
+    pattern-sinks:
+      - patterns:
+          - pattern: sink($X, ...)
+          - focus-metavariable:
+              - $X
+```

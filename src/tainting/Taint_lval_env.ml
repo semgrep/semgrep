@@ -78,7 +78,12 @@ let normalize_lval lval =
   let { IL.base; rev_offset } = lval in
   let* base, rev_offset =
     match base with
+    (* explicit dereference of `ptr` e.g. `ptr->x` *)
+    | Mem { e = Fetch { base = Var x; rev_offset = [] }; _ } ->
+        Some (IL.Var x, rev_offset)
     | Var _ -> Some (base, rev_offset)
+    (* explicit dereference of `this` e.g. `this->x` *)
+    | Mem { e = Fetch { base = VarSpecial (This, _); rev_offset = [] }; _ }
     | VarSpecial _ -> (
         match List.rev rev_offset with
         (* this.x o_1 ... o_N becomes x o_1 ... o_N *)
