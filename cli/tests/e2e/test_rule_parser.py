@@ -43,7 +43,8 @@ def test_nonexisting_file(run_semgrep_in_tmp: RunSemgrep, snapshot):
     run_semgrep_in_tmp("rules/does_not_exist.yaml", assert_exit_code=7)
 
 
-@pytest.mark.osempass
+# TODO: see comment in Scan_subcommand.ml.
+# @pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_rule_parser__empty(run_semgrep_in_tmp: RunSemgrep, snapshot):
     run_semgrep_in_tmp(f"rules/syntax/empty.yaml", assert_exit_code=7)

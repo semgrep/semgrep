@@ -1,1 +1,0 @@
-go.mod parsing now correctly allows arbitrary newlines and whitespace between dependencies

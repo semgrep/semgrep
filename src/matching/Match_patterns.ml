@@ -581,9 +581,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
       let vardef_assign = config.Options.vardef_assign in
       let flddef_assign = config.Options.flddef_assign in
       let attr_expr = config.Options.attr_expr in
-      let implicit_return = config.Options.implicit_return in
-      Matching_visitor.mk_env ~vardef_assign ~flddef_assign ~attr_expr
-        ~implicit_return ()
+      Matching_visitor.mk_env ~vardef_assign ~flddef_assign ~attr_expr ()
     in
     (* later: opti: dont analyze certain ASTs if they do not contain
      * certain constants that interect with the pattern?

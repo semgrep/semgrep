@@ -124,6 +124,7 @@ build-otarzan:
 .PHONY: build-ojsonnet
 build-ojsonnet:
 	dune build _build/install/default/bin/ojsonnet
+	test -e bin || ln -s _build/install/default/bin .
 
 .PHONY: build-pfff
 build-pfff:

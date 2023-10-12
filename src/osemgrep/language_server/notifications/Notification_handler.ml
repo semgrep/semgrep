@@ -48,17 +48,18 @@ let on_notification notification (server : RPC_server.t) =
     match notification with
     | _ when server.state = RPC_server.State.Uninitialized -> server
     | CN.Initialized ->
-        Logs.app (fun m -> m "Server initialized");
+        Logs.debug (fun m -> m "Server initialized");
         Scan_helpers.refresh_rules server;
         server
     | CN.TextDocumentDidChange
         { textDocument = { uri; _ }; contentChanges = first :: _ } ->
-        Logs.app (fun m -> m "Scanning file %s on change " (Uri.to_string uri));
+        Logs.debug (fun m ->
+            m "Scanning file %s on change " (Uri.to_string uri));
         let content = Some first.text in
         Scan_helpers.scan_file ~content server uri;
         server
     | CN.DidSaveTextDocument { textDocument = { uri }; _ } ->
-        Logs.app (fun m -> m "Scanning file %s on save" (Uri.to_string uri));
+        Logs.debug (fun m -> m "Scanning file %s on save" (Uri.to_string uri));
         Scan_helpers.scan_file server uri;
         server
     | CN.TextDocumentDidOpen { textDocument = { uri; _ } } ->
@@ -67,10 +68,10 @@ let on_notification notification (server : RPC_server.t) =
         (* We usually scan every file on startup, so let's only rescan an opened
             file if there weren't previous results *)
         if Option.is_some prev_scan then
-          Logs.app (fun m ->
+          Logs.debug (fun m ->
               m "File %s already scanned, not rescanning" (Uri.to_string uri))
         else (
-          Logs.app (fun m -> m "Scanning file %s on open" (Uri.to_string uri));
+          Logs.debug (fun m -> m "Scanning file %s on open" (Uri.to_string uri));
           Scan_helpers.scan_file server uri);
         server
     | CN.ChangeWorkspaceFolders { event = { added; removed }; _ } ->
@@ -97,7 +98,7 @@ let on_notification notification (server : RPC_server.t) =
         RPC_server.batch_notify server diagnostics;
         server
     | CN.Exit ->
-        Logs.app (fun m -> m "Server exiting");
+        Logs.debug (fun m -> m "Server exiting");
         { server with state = RPC_server.State.Stopped }
     | CN.UnknownNotification { method_ = "semgrep/refreshRules"; _ } ->
         Scan_helpers.refresh_rules server;
@@ -121,7 +122,13 @@ let on_notification notification (server : RPC_server.t) =
           |> member "full" |> to_bool_option
           |> Option.value ~default:false
         in
-        Logs.app (fun m -> m "Scanning workspace, full: %b" full);
+        if server.session.metrics.isNewAppInstall && full then
+          RPC_server.notify_show_message ~kind:MessageType.Info server
+            "Scanning all files regardless of git status. These diagnostics \
+             will persist until a file is edited. To default to always \
+             scanning regardless of git status, please disable 'Only Git \
+             Dirty' in settings";
+        Logs.debug (fun m -> m "Scanning workspace, full: %b" full);
         let scan_server =
           let session =
             {
@@ -133,7 +140,7 @@ let on_notification notification (server : RPC_server.t) =
           { server with session }
         in
         Scan_helpers.scan_workspace scan_server;
-        Logs.app (fun m -> m "Scanning workspace complete");
+        Logs.debug (fun m -> m "Scanning workspace complete");
         server
     | CN.UnknownNotification { method_; params } ->
         handle_custom_notification server method_ params

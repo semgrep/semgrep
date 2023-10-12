@@ -626,8 +626,6 @@ and expr = {
   (* used to quickly get the range of an expression *)
   mutable e_range : (Tok.location * Tok.location) option;
       [@equal fun _a _b -> true] [@hash.ignore]
-  (* whether this expression is implicitly a return value in a function *)
-  mutable is_implicit_return : bool; [@hash.ignore]
 }
 
 and expr_kind =
@@ -2136,8 +2134,7 @@ let sc = Tok.unsafe_fake_tok ""
 let s skind = { s = skind; s_range = None }
 
 (* expressions *)
-let e ekind =
-  { e = ekind; e_id = 0; e_range = None; is_implicit_return = false }
+let e ekind = { e = ekind; e_id = 0; e_range = None }
 
 (* directives *)
 let d dkind = { d = dkind; d_attrs = [] }

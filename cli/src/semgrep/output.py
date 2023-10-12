@@ -26,7 +26,6 @@ from semgrep.console import console
 from semgrep.console import Title
 from semgrep.constants import Colors
 from semgrep.constants import OutputFormat
-from semgrep.constants import RuleSeverity
 from semgrep.engine import EngineType
 from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import SemgrepCoreError
@@ -68,8 +67,12 @@ FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
     OutputFormat.VIM: VimFormatter,
 }
 
-DEFAULT_SHOWN_SEVERITIES: Collection[RuleSeverity] = frozenset(
-    {RuleSeverity.INFO, RuleSeverity.WARNING, RuleSeverity.ERROR}
+DEFAULT_SHOWN_SEVERITIES: Collection[out.MatchSeverity] = frozenset(
+    {
+        out.MatchSeverity(out.Info()),
+        out.MatchSeverity(out.Warning()),
+        out.MatchSeverity(out.Error()),
+    }
 )
 
 
@@ -155,7 +158,7 @@ class OutputHandler:
         self.is_ci_invocation = False
         self.filtered_rules: List[Rule] = []
         self.extra: Optional[OutputExtra] = None
-        self.severities: Collection[RuleSeverity] = DEFAULT_SHOWN_SEVERITIES
+        self.severities: Collection[out.MatchSeverity] = DEFAULT_SHOWN_SEVERITIES
         self.explanations: Optional[List[out.MatchingExplanation]] = None
         self.engine_type: EngineType = EngineType.OSS
 
@@ -279,7 +282,7 @@ class OutputHandler:
         profiler: Optional[ProfileManager] = None,
         extra: Optional[OutputExtra] = None,
         explanations: Optional[List[out.MatchingExplanation]] = None,
-        severities: Optional[Collection[RuleSeverity]] = None,
+        severities: Optional[Collection[out.MatchSeverity]] = None,
         print_summary: bool = False,
         is_ci_invocation: bool = False,
         engine_type: EngineType = EngineType.OSS,
@@ -358,7 +361,10 @@ class OutputHandler:
             fingerprint_matches, regular_matches = partition(
                 self.rule_matches,
                 lambda m: m.severity
-                in [RuleSeverity.INVENTORY, RuleSeverity.EXPERIMENT],
+                in [
+                    out.MatchSeverity(out.Inventory()),
+                    out.MatchSeverity(out.Experiment()),
+                ],
             )
             num_findings = len(regular_matches)
             num_targets = len(self.all_targets)
@@ -412,6 +418,9 @@ class OutputHandler:
     def _build_output(self) -> str:
         # CliOutputExtra members
         cli_paths = out.ScannedAndSkipped(
+            # This is incorrect when some rules are skipped by semgrep-core
+            # e.g. proprietary rules.
+            # TODO: Use what semgrep-core returns for 'scanned' and 'skipped'.
             scanned=[out.Fpath(str(path)) for path in sorted(self.all_targets)],
             skipped=None,
         )

@@ -96,22 +96,8 @@ let parse_and_resolve_name lang file =
   AST_generic.SId.unsafe_reset_counter ();
   Naming_AST.resolve lang ast;
   Typing.check_program lang ast;
-
-  (* Flow-insensitive constant propagation. *)
   Constant_propagation.propagate_basic lang ast;
-
-  let cfgs, top_level_cfg = CFG_build.cfgs_in_program lang ast in
-
-  (* Flow-sensitive constant propagation. *)
-  Constant_propagation.propagate_dataflow_program lang (top_level_cfg :: cfgs);
-
-  (* Implicit return analysis. *)
-  if Implicit_return.lang_supports_implicit_return lang then
-    (* The top-level function isn't an actual function, so we will not
-     * be including its CFG in the analysis.
-     *)
-    Implicit_return.mark_implicit_return_nodes cfgs;
-
+  Constant_propagation.propagate_dataflow lang ast;
   logger#info "Parse_target.parse_and_resolve_name done";
   res
 [@@profiling]

@@ -19,7 +19,6 @@ from typing import Tuple
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 import semgrep.util as util
-from semgrep.constants import RuleSeverity
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import OK_EXIT_CODE
 from semgrep.error import SemgrepCoreError
@@ -189,9 +188,7 @@ def core_matches_to_rule_matches(
             extra=match.extra.to_json(),
             message=message,
             metadata=metadata,
-            severity=RuleSeverity(match.extra.severity)
-            if match.extra.severity
-            else rule.severity,
+            severity=match.extra.severity if match.extra.severity else rule.severity,
             fix=fix,
             fix_regex=fix_regex,
         )

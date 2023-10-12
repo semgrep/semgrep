@@ -133,11 +133,7 @@ let try_and_raise_invalid_pattern_if_error (env : env) (s, t) f =
   (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
   | exn ->
       let error_kind : R.invalid_rule_error_kind =
-        match exn with
-        | Parsing_plugin.Missing_plugin msg -> MissingPlugin msg
-        | exn ->
-            InvalidPattern
-              (s, env.target_analyzer, Common.exn_to_s exn, env.path)
+        InvalidPattern (s, env.target_analyzer, Common.exn_to_s exn, env.path)
       in
       Rule.raise_error (Some env.id) (InvalidRule (error_kind, env.id, t))
 
@@ -404,7 +400,15 @@ let parse_focus_mvs env (key : key) (x : G.expr) =
 let parse_language ~id ((s, t) as _lang) : Lang.t =
   match Lang.of_string_opt s with
   | None -> Rule.raise_error (Some id) (InvalidRule (InvalidLanguage s, id, t))
-  | Some l -> l
+  | Some lang -> (
+      (* Raise a rule error if a plugin (e.g. Apex) is missing. *)
+      (* TODO: find a better place to check for this?
+         Note that we don't want to delay this until target parsing time
+         which is lazy and may not take place due to optimizations. *)
+      match Parsing_plugin.check_if_missing lang with
+      | Ok () -> lang
+      | Error msg ->
+          Rule.raise_error (Some id) (InvalidRule (MissingPlugin msg, id, t)))
 
 (*
    This list specifies target selection and possible pattern parsers.
