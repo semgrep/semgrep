@@ -59,7 +59,7 @@ let setParsePattern (func : jbool -> jstring -> jstring -> 'a) =
   Parse_pattern.parse_pattern_ref :=
     fun print_error lang pattern ->
       match lang with
-      (* The Yaml and JSON parsers are embedded in the engine because it's a
+      (* The YAML parser is embedded in the engine because it's a
          core component needed to parse rules *)
       | Lang.Yaml -> Yaml_to_generic.any pattern
       | _ ->
@@ -71,7 +71,7 @@ let setJustParseWithLang (func : jstring -> jstring -> Parsing_result2.t) =
   Parse_target.just_parse_with_lang_ref :=
     fun lang filename ->
       match lang with
-      (* The Yaml and JSON parsers are embedded in the engine because it's a
+      (* The YAML parser is embedded in the engine because it's a
          core component needed to parse rules *)
       | Lang.Yaml ->
           {
