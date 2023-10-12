@@ -135,6 +135,12 @@ local test_job = {
       |||
     },
     {
+      name: 'Run JS e2e tests',
+      run: |||
+        make -C js/tests
+      |||
+    },
+    {
       name: 'Package JS artifacts',
       run:|||
         tar cvzf semgrep-js-artifacts.tar.gz \
@@ -154,11 +160,7 @@ local test_job = {
         'retention-days': 2,
         name: artifact_name,
       },
-    },
-    {
-      name: 'Run semgrep js e2e tests',
-      run: 'make -C js test',
-    },
+    }
   ],
 };
 

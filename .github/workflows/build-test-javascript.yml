@@ -80,6 +80,8 @@ jobs:
         run: "\n        make -C js -j $(nproc) build\n      "
       - name: Test JS artifacts
         run: "\n        make -C js -j $(nproc) test\n      "
+      - name: Run JS e2e tests
+        run: "\n        make -C js/tests\n      "
       - name: Package JS artifacts
         run:
           "\n        tar cvzf semgrep-js-artifacts.tar.gz \\\n          js/engine/dist/index.cjs
@@ -92,8 +94,6 @@ jobs:
           path: semgrep-js-artifacts.tar.gz
           retention-days: 2
           name: semgrep-js-artifacts-${{ github.sha }}
-      - name: Run semgrep js e2e tests
-        run: make -C js test
   upload:
     needs:
       - test
