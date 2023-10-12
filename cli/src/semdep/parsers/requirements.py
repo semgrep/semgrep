@@ -87,15 +87,6 @@ requirements = (
 )
 
 
-# We preprocess the file to remove comments
-# It's much easier to just strip them out than to weave them into parsing
-
-
-# first remove comments
-# https://github.com/pypa/pip/blob/e69e265cb7b60fb2dacbbb2ab8fa3baaf24bfe4d/src/pip/_internal/req/req_file.py#LL45
-COMMENT_REGEX = r"(^|\s+)#.*$"
-
-
 def get_manifest_deps(
     parsed: Optional[List[Tuple[int, Tuple[str, List[Tuple[str, str]]]]]]
 ) -> Optional[Set[str]]:
@@ -110,13 +101,13 @@ def parse_requirements(
             lockfile_path,
             requirements,
             ScaParserName(Requirements()),
-            preprocessors.CommentRemover(),
+            preprocessors.CombinedPreprocessor(),
         ),
         DependencyFileToParse(
             manifest_path,
             requirements,
             ScaParserName(Requirements()),
-            preprocessors.CommentRemover(),
+            preprocessors.CombinedPreprocessor(),
         )
         if manifest_path
         else None,

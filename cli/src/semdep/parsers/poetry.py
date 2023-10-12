@@ -159,13 +159,13 @@ def parse_poetry(
             lockfile_path,
             poetry,
             ScaParserName(PoetryLock()),
-            preprocessors.CommentRemover(),
+            preprocessors.CombinedPreprocessor(),
         ),
         DependencyFileToParse(
             manifest_path,
             manifest,
             ScaParserName(PyprojectToml()),
-            preprocessors.CommentRemover(),
+            preprocessors.CombinedPreprocessor(),
         )
         if manifest_path
         else None,

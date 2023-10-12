@@ -56,7 +56,7 @@ def parse_pipfile(
             manifest_path,
             manifest,
             ScaParserName(Pipfile()),
-            preprocessors.CommentRemover(),
+            preprocessors.CombinedPreprocessor(),
         )
         if manifest_path
         else None,
