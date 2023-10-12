@@ -67,6 +67,10 @@ let initialize_server server
           "intellij"
     | _ -> false
   in
+  (* We're using preemptive threads here as when semgrep scans run, they don't utilize Lwt at all,
+      and so block the Lwt scheduler, meaning it cannot properly respond to requests until
+      a scan is finished. With preemptive threads, the threads are guaranteed to run concurrently.
+     This means we can process IO while a scan is running. *)
   Lwt_preemptive.init 1 user_settings.jobs (fun msg ->
       Logs.debug (fun m -> m "ls threads: %s" msg));
   let metrics =

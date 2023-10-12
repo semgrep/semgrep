@@ -27,6 +27,8 @@ module Out = Semgrep_output_v1_t
 (* Semgrep helpers *)
 (*****************************************************************************)
 
+(** [wrap_with_detach f] runs f in a separate, preemptive thread, in order to
+    not block the Lwt event loop *)
 let wrap_with_detach f = Lwt.async (fun () -> Lwt_preemptive.detach f ())
 (* Relevant here means any matches we actually care about showing the user.
     This means like some matches, such as those that appear in committed
@@ -75,6 +77,7 @@ let scan_workspace server =
     end_progress server token;
     batch_notify server diagnostics
   in
+  (* Scanning is blocking, so run in separate preemptive thread *)
   wrap_with_detach f
 
 (** Scan a single file. Passing [content] will write it to a temp file,
@@ -119,6 +122,7 @@ let scan_file ?(content = None) server uri =
     in
     batch_notify server diagnostics
   in
+  (* Scanning is blocking, so run in separate preemptive thread *)
   wrap_with_detach f
 
 let refresh_rules server =
