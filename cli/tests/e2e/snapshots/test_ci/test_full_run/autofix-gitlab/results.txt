@@ -70,7 +70,7 @@ CI="true" GITLAB_CI="true" CI_PROJECT_PATH="project_name/project_name" CI_PIPELI
   CONNECTION
   Reporting start of scan for deployment_name (scan_id=<MagicMock name='post()…
   Fetching configuration from Semgrep Cloud Platform
-  Enabled products: Semgrep Code, Semgrep Supply Chain
+  Enabled products: Code, Supply Chain
 
 ┌─────────────┐
 │ Scan Status │

@@ -59,9 +59,9 @@ DEFAULT_EXCLUDE_PATTERNS = ["test/", "tests/", "*_test.go"]
 
 # Conversion of product codes to product names
 PRODUCT_NAMES_MAP = {
-    "sast": "Semgrep Code",
-    "sca": "Semgrep Supply Chain",
-    "secrets": "Semgrep Secrets",
+    "sast": "Code",
+    "sca": "Supply Chain",
+    "secrets": "Secrets",
 }
 
 
