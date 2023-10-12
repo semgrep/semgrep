@@ -45,7 +45,6 @@ let english_trigrams_ref = ref [||]
 *)
 let load_trigrams () =
   let ar = !english_trigrams_ref in
-  Printf.printf "length = %d\n" (Array.length ar);
   (* Load trigram frequencies *)
   let trigram_entropies = Hashtbl.create (Array.length ar) in
   (* we explicitly use int64 here to avoid overflow *)
@@ -85,11 +84,6 @@ let load_trigrams () =
           unknown_char_entropy
         else log2 (Int64.to_float char_total_count /. float char_count))
   in
-  Printf.printf "trigram_entropies = %s\n"
-    (Hashtbl.to_seq trigram_entropies
-    |> List.of_seq
-    |> Common.map (fun (a, b) -> Printf.sprintf "%s %f" a b)
-    |> String.concat "\n");
   (trigram_entropies, char_entropies)
 
 let data_tables = lazy (load_trigrams ())
