@@ -30,6 +30,9 @@ module Out = Semgrep_output_v1_j
 
    Tip: you can store those environment variables in a dev2.sh env file
    that you can source instead.
+
+   See https://www.notion.so/semgrep/Architecture-Overview-CI-Scans-afe6193a6cc84abd96cff5f2d91cecaa
+   for an excellent overview of how 'semgrep ci' works with the backend.
 *)
 
 (*****************************************************************************)
