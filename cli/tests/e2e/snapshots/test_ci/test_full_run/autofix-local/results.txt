@@ -81,7 +81,7 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_REPO_URL="git@github.com:example
   CONNECTION
   Reporting start of scan for deployment_name (scan_id=<MagicMock name='post()…
   Fetching configuration from Semgrep Cloud Platform
-  Enabled products: Semgrep Code, Semgrep Supply Chain
+  Enabled products: Code, Supply Chain
 
 ┌─────────────┐
 │ Scan Status │
