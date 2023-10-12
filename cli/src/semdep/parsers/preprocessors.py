@@ -17,7 +17,7 @@ class CommentRemover:
 
 
 class CombinedPreprocessor:
-    def __init__(self):
+    def __init__(self) -> None:
         self.comment_remover = CommentRemover()
 
     def __call__(self, target: str) -> str:
