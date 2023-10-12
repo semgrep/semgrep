@@ -66,7 +66,7 @@ export const EngineFactory = async (wasmUri) => {
         languages.set(lang, parser);
         missingLanguages.delete(lang);
       });
-      if (parser.getlangs().includes("jsonnet")) {
+      if (parser.getLangs().includes("jsonnet")) {
         setJsonnetParser((file) => parser.parseTargetTsOnly(file));
       }
     },
