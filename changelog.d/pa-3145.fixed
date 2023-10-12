@@ -1,0 +1,2 @@
+semgrep ci does not crash anymore when ran from git repositories coming from
+Azure projects with whitespaces in the name.
