@@ -139,7 +139,6 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
 @click.option(
     "--supply-chain",
     is_flag=True,
-    hidden=True,
 )
 @click.option("--code", is_flag=True, hidden=True)
 @click.option("--beta-testing-secrets", is_flag=True, hidden=True)
