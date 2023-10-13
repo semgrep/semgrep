@@ -65,7 +65,7 @@ dep = package.bind(
         >> whitespace.optional()
         >> version_specifier.sep_by(string(",") >> whitespace.optional()).bind(
             lambda version_specifiers: upto("\n").optional()
-            >> success((package, [x for x in version_specifiers if x]))
+            >> success((package.lower(), [x for x in version_specifiers if x])) 
         )
     )
 )
@@ -85,15 +85,6 @@ requirements = (
     .sep_by(string("\n").at_least(1))
     .map(lambda xs: [(l, x) for (l, x) in xs if x])
 )
-
-
-# We preprocess the file to remove comments
-# It's much easier to just strip them out than to weave them into parsing
-
-
-# first remove comments
-# https://github.com/pypa/pip/blob/e69e265cb7b60fb2dacbbb2ab8fa3baaf24bfe4d/src/pip/_internal/req/req_file.py#LL45
-COMMENT_REGEX = r"(^|\s+)#.*$"
 
 
 def get_manifest_deps(

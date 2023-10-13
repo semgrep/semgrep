@@ -94,7 +94,7 @@ key_value_list = key_value.sep_by(new_lines)
 # category = "main"
 # optional = false
 # python-versions = ">=3.6"
-poetry_dep = mark_line(string("[[package]]\n") >> key_value_list.map(lambda x: dict(x)))
+poetry_dep = mark_line(string("[[package]]\n") >> key_value_list.map(lambda x: {k.lower(): v.lower() for k, v in dict(x).items()}))
 
 # Poetry Source which we ignore
 # Example:
