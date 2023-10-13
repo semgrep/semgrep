@@ -65,7 +65,7 @@ dep = package.bind(
         >> whitespace.optional()
         >> version_specifier.sep_by(string(",") >> whitespace.optional()).bind(
             lambda version_specifiers: upto("\n").optional()
-            >> success((package, [x for x in version_specifiers if x]))
+            >> success((package.lower(), [x for x in version_specifiers if x])) 
         )
     )
 )
@@ -101,13 +101,13 @@ def parse_requirements(
             lockfile_path,
             requirements,
             ScaParserName(Requirements()),
-            preprocessors.CombinedPreprocessor(),
+            preprocessors.CommentRemover(),
         ),
         DependencyFileToParse(
             manifest_path,
             requirements,
             ScaParserName(Requirements()),
-            preprocessors.CombinedPreprocessor(),
+            preprocessors.CommentRemover(),
         )
         if manifest_path
         else None,

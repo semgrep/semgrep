@@ -56,7 +56,7 @@ def parse_pipfile(
             manifest_path,
             manifest,
             ScaParserName(Pipfile()),
-            preprocessors.CombinedPreprocessor(),
+            preprocessors.CommentRemover(),
         )
         if manifest_path
         else None,
@@ -65,7 +65,7 @@ def parse_pipfile(
     if not parsed_lockfile:
         return [], errors
 
-    deps = parsed_lockfile.as_dict()["default"].as_dict()
+    deps = {k.lower(): v for k, v in parsed_lockfile.as_dict()["default"].as_dict().items()}
 
     # According to PEP 426: pypi distributions are case insensitive and consider hyphens and underscores to be equivalent
     sanitized_manifest_deps = (

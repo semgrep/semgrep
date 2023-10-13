@@ -14,12 +14,3 @@ class CommentRemover:
 
     def __call__(self, target: str) -> str:
         return self.pattern.sub(r"\1\2", target)
-
-
-class CombinedPreprocessor:
-    def __init__(self):
-        self.comment_remover = CommentRemover()
-
-    def __call__(self, target: str) -> str:
-        lowercase_content = target.lower()
-        return self.comment_remover(lowercase_content)
