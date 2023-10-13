@@ -31,6 +31,7 @@
 import collections
 import re
 from typing import List
+from typing import cast
 
 Parsed = collections.namedtuple('Parsed', [
     'pathname',
@@ -124,8 +125,8 @@ class Parser(str):
             msg = "Invalid URL '{}'".format(self._url)
             raise ParserError(msg)
 
-        if d.get('owner', '').endswith('/_git'):  # Azure DevOps Git URLs
-            d['owner'] = d['owner'][:-len('/_git')]
+        if cast(str, d.get('owner', '')).endswith('/_git'):  # Azure DevOps Git URLs
+            d['owner'] = cast(str, d['owner'])[:-len('/_git')]
 
         return Parsed(**d)
 
