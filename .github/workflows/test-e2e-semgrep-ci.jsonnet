@@ -268,7 +268,7 @@ local notify_failure_job = {
 // ----------------------------------------------------------------------------
 
 {
-  name: 'e2e-semgrep-ci',
+  name: 'test-e2e-semgrep-ci',
   on: {
     workflow_dispatch: docker_tag_input,
     schedule: [
