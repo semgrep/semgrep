@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Set variables
         id: get-inputs
-        run: echo "docker_tag=${{ inputs.docker_tag || \'develop\' }}" >> $GITHUB_OUTPUT
+        run: echo "docker_tag=${{ inputs.docker_tag || develop }}" >> $GITHUB_OUTPUT
       - name: Debug
         run: echo "${{ steps.get-inputs.outputs.docker_tag }}"
   semgrep-ci:
