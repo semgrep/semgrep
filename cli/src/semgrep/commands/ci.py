@@ -184,7 +184,6 @@ def ci(
     max_memory: Optional[int],
     max_target_bytes: int,
     metrics: Optional[MetricsState],
-    metrics_legacy: Optional[MetricsState],
     optimizations: str,
     dataflow_traces: Optional[bool],
     output: Optional[str],
@@ -212,7 +211,7 @@ def ci(
         output_format=output_format,
     )
 
-    state.metrics.configure(metrics, metrics_legacy)
+    state.metrics.configure(metrics)
     state.error_handler.configure(suppress_errors)
     scan_handler = None
 
