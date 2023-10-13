@@ -24,11 +24,14 @@
 #
 # 2023-06-02 patched by Martin Jambon to avoid potential ReDoS attacks
 # 2023-06-05 patched further by Martin Jambon to avoid potential ReDoS attacks
+# 2023-10-12 patched by Zach Zeleznick to handle Azure URLs like
+#   https://foobar.visualstudio.com/Data%20Classification/_git/Data%20Classification
 #
 
 import collections
 import re
 from typing import List
+from typing import cast
 
 Parsed = collections.namedtuple('Parsed', [
     'pathname',
@@ -48,8 +51,8 @@ POSSIBLE_REGEXES = (
                r'(?P<resource>[a-z0-9_.-]*)'
                r'[:/]*'
                r'(?P<port>(?<=:)[\d]+){0,1}'
-               r'(?P<pathname>\/((?P<owner>[\w\-\/]+)\/)?'
-               r'((?P<name>[\w\-\.]+?)(\.git|\/)?)?)$'),
+               r'(?P<pathname>\/((?P<owner>[\w\-%\/]+)\/)?'
+               r'((?P<name>[\w\-%\.]+?)(\.git|\/)?)?)$'),
     re.compile(r'(git\+)?'
                r'((?P<protocol>\w+)://)'
                r'((?P<user>\w+)@)?'
@@ -121,6 +124,9 @@ class Parser(str):
         else:
             msg = "Invalid URL '{}'".format(self._url)
             raise ParserError(msg)
+
+        if cast(str, d.get('owner', '')).endswith('/_git'):  # Azure DevOps Git URLs
+            d['owner'] = cast(str, d['owner'])[:-len('/_git')]
 
         return Parsed(**d)
 
