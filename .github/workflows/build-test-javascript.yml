@@ -38,9 +38,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           retention-days: 1
-          path:
-            "\n            _build/default/js/engine/*.bc.js\n            _build/default/js/languages/*/*.bc.js\n
-            \         "
+          path: "\n            _build/default/js/**/*.bc.js\n          "
           name: semgrep-js-ocaml-build-${{ github.sha }}
     container: returntocorp/ocaml:alpine-2023-06-16
     env:

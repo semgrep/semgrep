@@ -83,8 +83,7 @@ local build_job =
         with: {
           'retention-days': 1,
           path: |||
-            _build/default/js/engine/*.bc.js
-            _build/default/js/languages/*/*.bc.js
+            _build/default/js/**/*.bc.js
           |||,
           name: build_artifact_name,
         },
