@@ -27,11 +27,12 @@ let of_jsonrpc_params params : (Uri.t * Uuidm.t) option =
 
 let on_notification server params : unit =
   (* Emulating a poor man's writer's monad, mixed with some LWT goodness. *)
+  ignore server;
   let ( let^ ) (x : (_, string) Result.t Lwt.t) f : unit Lwt.t =
     let%lwt result = x in
     match result with
     | Error s ->
-        RPC_server.notify_show_message server ~kind:MessageType.Error
+        RPC_server.notify_show_message ~kind:MessageType.Error
           ("Failed to complete login process: " ^ s);
         Lwt.return ()
     | Ok y -> f y
@@ -61,7 +62,7 @@ let on_notification server params : unit =
           (* TODO: state.app_session.authenticate()
              basically, just add the token to the metrics once that exists
           *)
-          RPC_server.notify_show_message server ~kind:MessageType.Info
+          RPC_server.notify_show_message ~kind:MessageType.Info
             "Successfully logged into Semgrep Code";
           let^ () = Semgrep_login.save_token_async token in
           Lwt.return ())

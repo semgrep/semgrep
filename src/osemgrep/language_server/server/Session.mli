@@ -16,8 +16,6 @@ type session_cache = {
 
 type t = {
   capabilities : ServerCapabilities.t;
-  incoming : Lwt_io.input_channel;
-  outgoing : Lwt_io.output_channel;
   workspace_folders : Fpath.t list;
   cached_scans : (Fpath.t, Semgrep_output_v1_t.cli_match list) Hashtbl.t;
   cached_session : session_cache;

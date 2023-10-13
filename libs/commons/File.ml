@@ -59,9 +59,7 @@ let find_first_match_with_whole_line path ?split term =
   find_first_match_with_whole_line path ?split term
   |> Result.to_option |> Option.join
 
-let filemtime file =
-  if !Common.jsoo then failwith "JSOO: File.filemtime"
-  else (Unix.stat !!file).Unix.st_mtime
+let filemtime file = (Unix.stat !!file).Unix.st_mtime
 
 (* TODO? slow, and maybe we should cache it to avoid rereading
  * each time the same file for each match.

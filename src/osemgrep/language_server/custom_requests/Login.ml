@@ -6,10 +6,11 @@ module Out = Semgrep_output_v1_t
 let meth = "semgrep/login"
 
 let on_request (server : RPC_server.t) params : Yojson.Safe.t option =
+  ignore server;
   match params with
   | None ->
       if Semgrep_login.is_logged_in () then (
-        RPC_server.notify_show_message server ~kind:MessageType.Info
+        RPC_server.notify_show_message ~kind:MessageType.Info
           "Already logged in to Semgrep Code";
         None)
       else

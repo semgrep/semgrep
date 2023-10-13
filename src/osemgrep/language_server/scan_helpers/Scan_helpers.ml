@@ -52,9 +52,23 @@ let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
       rules [] targets
     |> Core_runner.create_core_result rules
   in
+  let errors =
+    res.core.errors
+    |> Common.map (fun (e : Semgrep_output_v1_t.core_error) -> e.message)
+    |> String.concat "\n"
+  in
+  let skipped =
+    res.core.skipped_rules
+    |> Common.map (fun (r : Semgrep_output_v1_t.skipped_rule) -> r.rule_id)
+    |> String.concat "\n"
+  in
+  Logs.debug (fun m -> m "Semgrep errors: %s" errors);
+  Logs.debug (fun m -> m "Semgrep skipped rules: %s" skipped);
   (* Collect results. *)
   let scanned = res.scanned |> Set_.elements in
   Logs.debug (fun m -> m "Scanned %d files" (List.length scanned));
+  Logs.debug (fun m ->
+      m "Found %d matches before processing" (List.length res.core.results));
   let matches =
     let only_git_dirty = session.user_settings.only_git_dirty in
     Processed_run.of_matches ~git_ref ~only_git_dirty res
@@ -64,9 +78,7 @@ let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
 
 (** Scan all folders in the workspace *)
 let scan_workspace server =
-  let token =
-    create_progress server "Semgrep Scan in Progress" "Scanning Workspace"
-  in
+  let token = create_progress "Semgrep Scan in Progress" "Scanning Workspace" in
   let results, files = run_semgrep server in
   Session.record_results server.session results files;
   (* LSP expects empty diagnostics to clear problems *)
@@ -75,8 +87,8 @@ let scan_workspace server =
     Diagnostics.diagnostics_of_results ~is_intellij:server.session.is_intellij
       results files
   in
-  end_progress server token;
-  batch_notify server diagnostics
+  end_progress token;
+  batch_notify diagnostics
 
 (** Scan a single file. Passing [content] will write it to a temp file,
    and scan that temp file, then return results as if [uri] was scanned *)
@@ -113,12 +125,12 @@ let scan_file ?(content = None) server uri =
     Diagnostics.diagnostics_of_results ~is_intellij:server.session.is_intellij
       results files
   in
-  batch_notify server diagnostics
+  batch_notify diagnostics
 
 let refresh_rules server =
-  let token = create_progress server "Semgrep" "Refreshing Rules" in
+  let token = create_progress "Semgrep" "Refreshing Rules" in
   Lwt.async (fun () ->
       let%lwt () = Session.cache_session server.session in
-      end_progress server token;
+      end_progress token;
       scan_workspace server;
       Lwt.return_unit)
