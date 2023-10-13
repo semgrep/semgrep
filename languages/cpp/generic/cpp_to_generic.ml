@@ -38,9 +38,15 @@ let recover_when_partial_error = ref true
 (* Helpers *)
 (*****************************************************************************)
 
-type env = { mutable defs_toadd : G.definition list }
+type scope = InFunction | InClass | TopLevel
 
-let empty_env () = { defs_toadd = [] }
+type env = {
+  mutable defs_toadd : G.definition list;
+  mutable in_scope : scope;
+  mutable parsing_pref : Rule_options_t.cpp_parsing_opt option;
+}
+
+let empty_env () = { defs_toadd = []; in_scope = TopLevel; parsing_pref = None }
 let error t s = raise (Parsing_error.Other_error (s, t))
 
 (* See Parse_cpp_tree_sitter.error_unless_partial error *)
@@ -1407,10 +1413,91 @@ and map_onedecl env x : G.definition list =
       [ (ent, def) ]
 
 and map_var_decl env (ent, { v_init = v_v_init; v_type = v_v_type }) =
-  let ent = map_entity env ent in
-  let v_v_type = map_type_ env v_v_type in
-  let v_v_init = map_of_option (map_init env) v_v_init in
-  (ent, { G.vtype = Some v_v_type; vinit = v_v_init })
+  let convert_var_decl () =
+    let ent = map_entity env ent in
+    let v_v_type = map_type_ env v_v_type in
+    let v_v_init = map_of_option (map_init env) v_v_init in
+    (ent, { G.vtype = Some v_v_type; vinit = v_v_init })
+  in
+  let fun_def_as_var_def_with_ctor () =
+    match (v_v_init, v_v_type) with
+    | None, ([], TFunction { ft_ret = t; ft_params = p1, params, p2; _ }) ->
+        let param_to_arg_opt = function
+          | P
+              {
+                p_name = None;
+                p_type = [], TypeName name;
+                p_specs = [];
+                p_val = None;
+              } ->
+              Some (Arg (N name))
+          | ParamEllipsis t -> Some (Arg (Ellipsis t))
+          | _ -> None
+        in
+        let ent = map_entity env ent in
+        let v_v_type = map_type_ env t in
+        let args = params |> List.filter_map param_to_arg_opt in
+        if List.length params <> List.length args then None
+        else
+          let v_v_init = map_init env (ObjInit (Args (p1, args, p2))) in
+          Some (ent, { G.vtype = Some v_v_type; vinit = Some v_v_init })
+    | _ -> None
+  in
+  let var_def_with_ctor_as_fun_def () =
+    match (v_v_init, v_v_type) with
+    | Some (ObjInit (Args (p1, args, p2))), t ->
+        let arg_to_param_opt = function
+          | Arg (N name) ->
+              Some
+                (P
+                   {
+                     p_name = None;
+                     p_type = ([], TypeName name);
+                     p_specs = [];
+                     p_val = None;
+                   })
+          | Arg (Ellipsis t) -> Some (ParamEllipsis t)
+          | _ -> None
+        in
+        let ent = map_entity env ent in
+        let params = args |> List.filter_map arg_to_param_opt in
+        if List.length params <> List.length args then None
+        else
+          let v_v_type =
+            map_type_ env
+              ( [],
+                TFunction
+                  {
+                    ft_ret = t;
+                    ft_params = (p1, params, p2);
+                    ft_specs = [];
+                    ft_const = None;
+                    ft_throw = [];
+                    ft_requires = None;
+                  } )
+          in
+          Some (ent, { G.vtype = Some v_v_type; vinit = None })
+    | _ -> None
+  in
+  let result =
+    match (env.parsing_pref, env.in_scope) with
+    (* In C++, there's a syntactic ambiguity when you come across the
+       syntax `[type] [variable] ([args]);`. This structure could be
+       interpreted either as initializing a variable or defining a
+       function, depending on the enclosing context. To eliminate this
+       uncertainty, we convert such syntax to object initialization when
+       it's found in a function body. Otherwise, we leave it as the
+       parser interprets it. In cases where the context is unclear (for
+       example, parsing a pattern), and to ensure it's recognized as
+       variable initialization, you can use double parentheses. This
+       makes it unequivocally a variable initialization and prevents it
+       from being misinterpreted as defining a function. *)
+    | Some `AsFunDef, _ -> var_def_with_ctor_as_fun_def ()
+    | Some `AsVarDefWithCtor, _ -> fun_def_as_var_def_with_ctor ()
+    | None, InFunction -> fun_def_as_var_def_with_ctor ()
+    | _ -> Some (convert_var_decl ())
+  in
+  Option.value result ~default:(convert_var_decl ())
 
 and map_init env x : G.expr =
   match x with
@@ -1485,6 +1572,7 @@ and map_designator env = function
       Right3 v1
 
 and map_func_definition env (v1, v2) : G.definition =
+  let env = { env with in_scope = InFunction } in
   let v1 = map_entity env v1 and v2 = map_function_definition env v2 in
   (v1, FuncDef v2)
 
@@ -1655,6 +1743,7 @@ and map_enum_elem env { e_name = v_e_name; e_val = v_e_val } =
   G.OrEnum (v_e_name, v_e_val)
 
 and map_class_definition env (v1, v2) : G.name option * G.class_definition =
+  let env = { env with in_scope = InClass } in
   let v1 = map_of_option (map_a_class_name env) v1
   and v2 = map_class_definition_bis env v2 in
   (v1, v2)
@@ -2103,8 +2192,9 @@ let map_any env x : G.any =
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let any x =
+let any parsing_opt x =
   let env = empty_env () in
+  let env = { env with parsing_pref = parsing_opt } in
   map_any env x
 
 let program cst =

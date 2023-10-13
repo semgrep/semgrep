@@ -25,7 +25,7 @@ open Pfff_or_tree_sitter
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let parse_pattern print_errors lang str =
+let parse_pattern print_errors options lang str =
   (* coupling: update the files semgrep/js/languages/<lang>/Parser.ml
      when updating this function.
      TODO: Share the logic of which parser to try for each language to
@@ -90,7 +90,9 @@ let parse_pattern print_errors lang str =
                TreeSitterPat Parse_cpp_tree_sitter.parse_pattern;
              ]
       in
-      Cpp_to_generic.any any
+      Cpp_to_generic.any
+        (Option.map (fun x -> x.Rule_options_t.cpp_parsing_pref) options)
+        any
   | Lang.Java ->
       let any =
         str

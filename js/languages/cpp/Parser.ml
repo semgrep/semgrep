@@ -13,7 +13,7 @@ let parse_pattern print_errors _ str =
            TreeSitterPat Parse_cpp_tree_sitter.parse_pattern;
          ]
   in
-  Cpp_to_generic.any any
+  Cpp_to_generic.any None any
 
 let _ =
   Common.jsoo := true;
