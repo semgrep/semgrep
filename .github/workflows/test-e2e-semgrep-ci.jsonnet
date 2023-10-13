@@ -37,7 +37,10 @@ local get_inputs_job = {
       name: 'Set variables',
       id: 'get-inputs',
       //TODO? why do we need that given we set a default value above?
-      run: 'echo "docker_tag=${{ inputs.docker_tag || develop }}" >> $GITHUB_OUTPUT',
+      env: {
+	DOCKER_TAG: 'develop'
+      },
+      run: 'echo "docker_tag=${{ inputs.docker_tag || env.DOCKER_TAG }}" >> $GITHUB_OUTPUT',
     },
     {
       name: 'Debug',
