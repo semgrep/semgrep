@@ -92,8 +92,10 @@ const run = async () => {
   } catch (e) {
     console.log("Error running tests:\n");
     console.log(e);
+    process.exit(1);
   } finally {
     console.log("Finished running tests");
   }
 };
+
 run();
