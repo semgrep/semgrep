@@ -7,7 +7,7 @@ local semgrep = import 'libs/semgrep.libsonnet';
 local artifact_name = 'semgrep-js-artifacts-${{ github.sha }}';
 
 // ----------------------------------------------------------------------------
-// Helpers (Cache)
+// Input
 // ----------------------------------------------------------------------------
 
 // to be used by the workflow
@@ -20,6 +20,10 @@ local upload_artifacts_input = {
     },
   },
 };
+
+// ----------------------------------------------------------------------------
+// Helpers (Cache)
+// ----------------------------------------------------------------------------
 
 // TODO? move in semgrep.libsonnet? or actions.libsonnet?
 
