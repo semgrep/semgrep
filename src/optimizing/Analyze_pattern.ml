@@ -89,6 +89,12 @@ let extract_strings_and_mvars ?lang any =
          * We do now semantic equivance on integers between values so
          * 1000 is now equivalent to 1_000 so we can't "regexpize" it.
          *)
+        | L (String (_, (_str, _tok), _)) ->
+            (* Previously we used all string literals for pre-filtering, but this does
+             * not play well with constant propagation. If we are looking for pattern
+             * `"foobar"` a file may not contain `"foobar"` as-is, but it may contain
+             * e.g. `"foo" + "bar"`. *)
+            super#visit_expr env x
         | Call
             ( { e = IdSpecial (Require, _); _ },
               (_, [ Arg { e = L (String (_, (str, _tok), _)); _ } ], _) ) ->
@@ -97,11 +103,6 @@ let extract_strings_and_mvars ?lang any =
         | IdSpecial (Eval, t) ->
             if Tok.is_origintok t then
               Common.push (Tok.content_of_tok t) strings
-        | New (t, _, _, _) when lang = Some Lang.Java ->
-            (* We expect the 'new' keyword to be present.  *)
-            if Tok.is_origintok t then
-              Common.push (Tok.content_of_tok t) strings;
-            super#visit_expr env x
         | TypedMetavar (_, _, type_) -> (
             match type_ with
             | { t = TyN (IdQualified _ as name); _ } ->
