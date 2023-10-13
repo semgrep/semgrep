@@ -181,7 +181,7 @@ let get_deployment_from_token_async ~token : deployment_config option Lwt.t =
 
 (* from auth.py *)
 let get_deployment_from_token ~token =
-  Lwt_main.run (get_deployment_from_token_async ~token)
+  Lwt_main_.run (get_deployment_from_token_async ~token)
 
 (*****************************************************************************)
 (* Scan config version 1 *)
@@ -209,7 +209,7 @@ let get_scan_config_from_token_async ~token =
   Lwt.return scan_config_opt
 
 let get_scan_config_from_token ~token =
-  Lwt_main.run (get_scan_config_from_token_async ~token)
+  Lwt_main_.run (get_scan_config_from_token_async ~token)
 
 let scan_config_uri ?(sca = false) ?(dry_run = true) ?(full_scan = true)
     repo_name =
@@ -348,7 +348,7 @@ let fetch_scan_config_async ~dry_run ~token ~sca ~full_scan ~repository :
   Lwt.return conf
 
 let fetch_scan_config ~dry_run ~token ~sca ~full_scan ~repository =
-  Lwt_main.run
+  Lwt_main_.run
     (fetch_scan_config_async ~token ~sca ~dry_run ~full_scan ~repository)
 
 (*****************************************************************************)

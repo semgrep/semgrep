@@ -20,7 +20,7 @@ open Cohttp
 (*****************************************************************************)
 
 (* Create a client reference so we can swap it out with a testing version *)
-let client_ref = ref (module Cohttp_lwt_unix.Client : Cohttp_lwt.S.Client)
+let client_ref = ref (module Cohttp_lwt_jsoo.Client : Cohttp_lwt.S.Client)
 
 (*****************************************************************************)
 (* Async *)
@@ -74,7 +74,7 @@ let post_async ~body ?(headers = [ ("content-type", "application/json") ])
 (*****************************************************************************)
 
 (* TODO: extend to allow to curl with JSON as answer *)
-let get ?headers url = Lwt_main.run (get_async ?headers url) [@@profiling]
+let get ?headers url = Lwt_main_.run (get_async ?headers url) [@@profiling]
 
 let post ~body ?(headers = [ ("content-type", "application/json") ])
     ?(chunked = false) url =
@@ -96,7 +96,7 @@ let post ~body ?(headers = [ ("content-type", "application/json") ])
      AWS does not support specifying a minimum TLS version of v1.3, and we will need
      to figure out a better solution for ensuring reliable metrics delivery.
   *)
-  Lwt_main.run
+  Lwt_main_.run
     ((Lwt.catch (fun () -> post_async ~body ~headers ~chunked url)) (fun exn ->
          let err = Printexc.to_string exn in
          (* NOTE: the caller will have the responsibility to handle and log the error

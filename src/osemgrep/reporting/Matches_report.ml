@@ -17,7 +17,7 @@ let findings_indent_depth = String.make 12 ' '
 
 let text_width =
   let max_text_width = 120 in
-  let w = Option.value ~default:max_text_width (Terminal_size.get_columns ()) in
+  let w = Option.value ~default:max_text_width None in
   if w <= 110 then w - 5 else w - (w - 100)
 
 let group_titles = function

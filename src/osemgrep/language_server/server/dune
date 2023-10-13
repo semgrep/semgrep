@@ -5,8 +5,7 @@
  (libraries
    lsp
    lwt
-   lwt.unix
-
+   js_of_ocaml-lwt
    semgrep_core_cli
    osemgrep_core
    osemgrep_configuring

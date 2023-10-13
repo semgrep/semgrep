@@ -74,17 +74,8 @@ let set_timeout ~name max_duration f =
            name max_duration running_name running_val));
   let info (* private *) = { name; max_duration } in
   let raise_timeout () = raise (Timeout info) in
-  let clear_timer () =
-    current_timer := None;
-    Unix.setitimer Unix.ITIMER_REAL { Unix.it_value = 0.; it_interval = 0. }
-    |> ignore
-  in
-  let set_timer () =
-    current_timer := Some info;
-    Unix.setitimer Unix.ITIMER_REAL
-      { Unix.it_value = max_duration; it_interval = 0. }
-    |> ignore
-  in
+  let clear_timer () = current_timer := None in
+  let set_timer () = current_timer := Some info in
   try
     Sys.set_signal Sys.sigalrm (Sys.Signal_handle (fun _ -> raise_timeout ()));
     set_timer ();

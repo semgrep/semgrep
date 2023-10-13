@@ -21,8 +21,6 @@ type t = {
       [@printer
         fun fmt c ->
           Yojson.Safe.pretty_print fmt (ServerCapabilities.yojson_of_t c)]
-  incoming : Lwt_io.input_channel; [@opaque]
-  outgoing : Lwt_io.output_channel; [@opaque]
   workspace_folders : Fpath.t list;
   cached_scans : (Fpath.t, Out.cli_match list) Hashtbl.t; [@opaque]
   cached_session : session_cache;
@@ -42,8 +40,6 @@ let create capabilities =
   in
   {
     capabilities;
-    incoming = Lwt_io.stdin;
-    outgoing = Lwt_io.stdout;
     workspace_folders = [];
     cached_scans = Hashtbl.create 10;
     cached_session;
@@ -86,23 +82,7 @@ let auth_token () =
  * Once osemgrep is ready, we can just use its target manager directly here
  *)
 let targets session =
-  let dirty_files =
-    Common.map (fun f -> (f, dirty_files_of_folder f)) session.workspace_folders
-  in
-  let member_folder_dirty_files file folder =
-    let dirty_files = List.assoc folder dirty_files in
-    match dirty_files with
-    | None -> true
-    | Some files -> List.mem file files
-  in
-  let member_workspace_folder file folder =
-    Fpath.is_prefix folder file
-    && ((not session.user_settings.only_git_dirty)
-       || member_folder_dirty_files file folder)
-  in
-  let member_workspaces t =
-    List.exists (fun f -> member_workspace_folder t f) session.workspace_folders
-  in
+  ignore dirty_files_of_folder;
   let workspace_targets f =
     let targets_conf =
       User_settings.find_targets_conf_of_t session.user_settings
@@ -114,7 +94,7 @@ let targets session =
     session.workspace_folders |> List.concat_map workspace_targets
   in
   (* Filter targets by if only_git_dirty, if they are a dirty file *)
-  targets |> List.filter member_workspaces
+  targets
 
 let fetch_ci_rules_and_origins () =
   let token = auth_token () in

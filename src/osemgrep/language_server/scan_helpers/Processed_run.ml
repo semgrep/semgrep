@@ -58,6 +58,8 @@ let of_matches ?(skipped_fingerprints = []) ?(only_git_dirty = true)
     ?(git_ref = None) (result : Core_runner.result) =
   let result = Output.preprocess_result scan_conf result in
   (* Match the rules with the matches so we can get fixes/rule-ids/messages *)
+  Logs.debug (fun m ->
+      m "Postprocessing results of %d matches" (List.length result.results));
   let matches =
     result.results
     |> List.filter (fun (m : Out.cli_match) ->

@@ -121,7 +121,7 @@ let fetch_content_from_url_async ?(token_opt = None) (url : Uri.t) :
   content
 
 let fetch_content_from_url ?(token_opt = None) (url : Uri.t) : string =
-  Lwt_main.run (fetch_content_from_url_async ~token_opt url)
+  Lwt_main_.run (fetch_content_from_url_async ~token_opt url)
 
 (*****************************************************************************)
 (* Registry caching *)
@@ -327,7 +327,7 @@ let load_rules_from_url_async ?token_opt ?(ext = "yaml") url :
   Lwt.return rules
 
 let load_rules_from_url ?token_opt ?(ext = "yaml") url : rules_and_origin =
-  Lwt_main.run (load_rules_from_url_async ?token_opt ~ext url)
+  Lwt_main_.run (load_rules_from_url_async ?token_opt ~ext url)
 
 let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
     ~registry_caching kind : rules_and_origin list Lwt.t =
@@ -421,7 +421,7 @@ let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt ~registry_caching
           in
           [ res ])
   | _ ->
-      Lwt_main.run
+      Lwt_main_.run
         (rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
            ~registry_caching kind)
 

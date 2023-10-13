@@ -7,7 +7,7 @@
   (libraries
     cmdliner
     commons
-
+    lwt.unix
     osemgrep_core
     osemgrep_configuring
     osemgrep_language_server
@@ -18,6 +18,7 @@
      ppx_deriving.show
      ppx_deriving.eq
      ppx_hash
+     lwt_ppx
    )
  )
 )

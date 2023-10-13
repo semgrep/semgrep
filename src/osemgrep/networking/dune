@@ -5,7 +5,6 @@
   (wrapped false)
   (libraries
     lwt
-    cohttp-lwt-unix
     ocolor
 
     commons

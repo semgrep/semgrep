@@ -1,0 +1,19 @@
+(env
+ (js_of_ocaml (flags -no-inline -debug-info)))
+
+(executables
+ (names Main)
+ (libraries
+  js_of_ocaml
+  js_of_ocaml-lwt
+  logs.browser
+  semgrep.language_server
+  semgrep.semgrep_js_shared
+  )
+ (modes js)
+ (js_of_ocaml
+  (javascript_files
+   unix.js
+ ))
+ (preprocess
+  (pps lwt_ppx js_of_ocaml-ppx)))

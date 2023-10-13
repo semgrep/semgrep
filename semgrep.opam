@@ -49,7 +49,6 @@ depends: [
   "uuidm"
   "lsp" {= "1.15.1-5.0"}
   "uri"
-  "cohttp-lwt-unix"
   "tls-lwt"
   "emile"
   "digestif" {>= "1.0.0"}

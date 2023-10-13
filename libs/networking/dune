@@ -5,8 +5,8 @@
     lwt
     uri
     cohttp
-    cohttp-lwt-unix
-
+    cohttp-lwt
+    cohttp-lwt-jsoo
     profiling
   )
   (preprocess
