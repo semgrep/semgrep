@@ -1,5 +1,6 @@
 open Common
 module Out = Semgrep_output_v1_j
+module Http_helpers = Http_helpers.Make (Lwt_wrapper)
 
 (*****************************************************************************)
 (* Prelude *)

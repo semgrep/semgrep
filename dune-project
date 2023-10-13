@@ -138,6 +138,10 @@ a few other projects developed at r2c.
   (description "XXX")
 )
 
+(package (name lwt_wrapper)
+  (synopsis "XXX")
+  (description "XXX")
+)
 (package
   (name lib_parsing)
   (version 1.14.0)
@@ -441,6 +445,7 @@ For more information see https://semgrep.dev
     ; web stuff
     uri
     cohttp-lwt-unix
+    cohttp-lwt-jsoo
     tls-lwt ; needed for TLS support in the cohttp HTTP client (only TLS 1.3 seems to work)
     emile
     (digestif (>= 1.0.0))

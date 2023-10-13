@@ -1,15 +1,11 @@
-; This library should contain all the entry points to access the internet.
 (library
-  (public_name semgrep.osemgrep_networking)
-  (name osemgrep_networking)
+  (public_name semgrep.osemgrep_networking.tests)
+  (name osemgrep_networking_tests)
   (wrapped false)
   (libraries
-    lwt
     networking.http_mock_client
-    networking.http_helpers
     lwt_wrapper
-    ocolor
-
+    cohttp-lwt-unix
     commons
 
     profiling

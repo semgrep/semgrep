@@ -6,6 +6,9 @@
     process_limits
     lib_parsing
     aliengrep
+    lwt_wrapper.unix
+    networking.unix
+    cohttp-lwt-unix
 
     commons.tests
     semgrep.analyzing.tests ; Unit_dataflow

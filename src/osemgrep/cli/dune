@@ -10,6 +10,7 @@
     cmdliner
     ocolor
     commons
+    cohttp-lwt-unix
 
     ; Internal libraries
     osemgrep_cli_scan

@@ -23,6 +23,7 @@ module Response = Cohttp_lwt.Response
 module Body = Cohttp_lwt.Body
 module Header = Cohttp.Header
 
+let () = Http_helpers.client_ref := Some (module Cohttp_lwt_unix.Client)
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -138,7 +139,7 @@ let with_testing_client make_fn test_fn () =
       let make_response = make_fn
     end))
   in
-  Http_helpers.client_ref := new_client;
+  Http_helpers.client_ref := Some new_client;
   test_fn ();
   Http_helpers.client_ref := prev_client
 

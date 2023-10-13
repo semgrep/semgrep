@@ -3,6 +3,8 @@
  (libraries
     semgrep_core_cli
     osemgrep_cli
+    lwt_wrapper.unix
+    networking.unix
  )
  (preprocess (pps ppx_profiling))
  ; for ocamldebug

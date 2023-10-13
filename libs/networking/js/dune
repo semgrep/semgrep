@@ -1,0 +1,16 @@
+(library
+ (public_name networking.js)
+ (name networking_http_mock_client_js)
+ (libraries
+   commons
+   cohttp-lwt-jsoo
+   networking.http_helpers
+   lwt_wrapper.js
+ )
+  (preprocess
+    (pps
+      lwt_ppx
+     )
+   )
+ (implements networking.http_mock_client)
+)

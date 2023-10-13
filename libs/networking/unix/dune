@@ -1,0 +1,16 @@
+(library
+ (public_name networking.unix)
+ (name networking_http_mock_client_unix)
+ (libraries
+   commons
+   cohttp-lwt-unix
+   networking.http_helpers
+   lwt_wrapper.unix
+ )
+  (preprocess
+    (pps
+      lwt_ppx
+     )
+   )
+ (implements networking.http_mock_client)
+)
