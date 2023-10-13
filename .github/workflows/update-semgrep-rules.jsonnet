@@ -1,56 +1,13 @@
-// Cron to automatically update the semgrep/tests/semgrep-rules
+// Cron to make a PR to update the semgrep/tests/semgrep-rules
 // submodule to its latest version. This will allow to detect ASAP (or at
 // least not too late) when semgrep-core can't check all the rules and tests
 // in semgrep-rules (which are updated frequently).
+//
 // Note that semgrep-rules CI itself is testing whether
 // the latest develop docker image of semgrep can check semgrep-rules, so
 // we should rarely get regressions when updating the semgrep-rules submodule.
 
-// ----------------------------------------------------------------------------
-// Helpers
-// ----------------------------------------------------------------------------
-
-// We use the semgrep-ci bot as the auth. The custom (internally-developed) docker image
-// below is used to get a JWT, which is then used by git to fetch the code.
-// Using the built-in secrets.GITHUB_TOKEN won't allow for downstream jobs to fire.
-// See https://docs.github.com/en/enterprise-cloud@latest/actions/using-workflows/triggering-a-workflow#triggering-a-workflow-from-a-workflow for more information
-// TODO: where is stored/configured/built this semgrep-ci github App?
-// TODO: where is configured this docker://public.ecr.aws/... image? How is it built?
-// TODO: if a token is rotated, do we need to update this docker link?
-local auth = {
-  get_jwt_step: {
-    name: 'Get JWT for semgrep-ci GitHub App',
-    id: 'jwt',
-    uses: 'docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest',
-    env: {
-      // This is the shortest expiration setting. It ensures that if an attacker got
-      // a hold of these credentials after the job runs, they're expired.
-      // TODO: how an attacker can access this credential?
-      EXPIRATION: 600,  // in seconds
-      ISSUER: '${{ secrets.SEMGREP_CI_APP_ID }}',
-      PRIVATE_KEY: '${{ secrets.SEMGREP_CI_APP_KEY }}',
-    },
-  },
-  // We are using the standard github-recommended method for short-live authentification
-  // See https://docs.github.com/en/developers/apps/building-github-apps/authenticating-with-github-apps#authenticating-as-a-github-app
-  get_token_step: {
-    name: 'Get token for semgrep-ci GitHub App',
-    id: 'token',
-    run: |||
-      TOKEN="$(curl -X POST \
-      -H "Authorization: Bearer ${{ steps.jwt.outputs.jwt }}" \
-      -H "Accept: application/vnd.github.v3+json" \
-      "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
-      jq -r .token)"
-      echo "::add-mask::$TOKEN"
-      echo "token=$TOKEN" >> $GITHUB_OUTPUT
-    |||,
-  },
-  // token computed in get_token_step
-  github_token: {
-    GITHUB_TOKEN: '${{ steps.token.outputs.token }}',
-  },
-};
+local semgrep = import "libs/semgrep.libsonnet";
 
 // ----------------------------------------------------------------------------
 // Main job
@@ -59,8 +16,15 @@ local auth = {
 local job = {
   'runs-on': 'ubuntu-latest',
   steps: [
-    auth.get_jwt_step,
-    auth.get_token_step,
+    // The 2 steps below allow then later to trigger a PR (using 'gh')
+    // from a workflow by (ab)using our Semgrep-CI Github App.
+    // The PR will come from "Semgrep-CI bot".
+    //
+    // This is quite complicated and CircleCI is far simpler
+    // for those kinds of things (see semgrep-pro/.circleci/config.yml
+    // for an example of such cron simply using circleci/github-cli orb
+    semgrep.github_bot.get_jwt_step,
+    semgrep.github_bot.get_token_step,
     // Recursively checkout all submodules
     // ensure that we're on the default branch (develop)
     // Use the token provided by the JWT token getter above
@@ -74,13 +38,13 @@ local job = {
         // Because this would require some form of configuring URLs or auth using
         // the token, and so 'ref:' and 'token:' below handles that for us instead.
         ref: '${{ github.event.repository.default_branch }}',
-        token: auth.github_token.GITHUB_TOKEN,
+        token: semgrep.github_bot.github_token.GITHUB_TOKEN,
       },
     },
     {
       name: 'Update semgrep-rules (the main purpose of this workflow)',
       run: 'make update_semgrep_rules',
-      env: auth.github_token,
+      env: semgrep.github_bot.github_token,
     },
     //alternative way to do it:
     //working-directory: ./tests/semgrep-rules
@@ -97,7 +61,7 @@ local job = {
       name: 'Creating the branch and commiting to it',
       env: {
         BRANCHNAME: 'update-semgrep-rules-${{ github.run_id }}-${{ github.run_attempt }}',
-      } + auth.github_token,
+      } + semgrep.github_bot.github_token,
       run: |||
         git checkout -b $BRANCHNAME
         git config user.name "GitHub Actions Bot"
@@ -128,8 +92,8 @@ local job = {
       name: 'Create the Pull request with gh',
       // Use the token generated from the semgrep-ci Github App - this ensures
       // that PR checks will run on the PR opened by this workflow!
-      //TODO: this does not work :(  --reviewer r2c/pa
-      env: auth.github_token,
+      //TODO: the '--reviewer r2c/pa' does not seem to work
+      env: semgrep.github_bot.github_token,
       run: |||
         gh pr create --title 'Cron - update semgrep-rules' --body 'Please confirm correctness of the changes here and ensure all tests pass. This PR was autogenerated by .github/workflows/update-semgrep-rules.yml' --base develop
       |||,
