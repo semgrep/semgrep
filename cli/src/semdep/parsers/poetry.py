@@ -189,7 +189,7 @@ def parse_poetry(
             continue
         output.append(
             FoundDependency(
-                package=dep["name"],
+                package=dep["name"].lower(),
                 version=dep["version"],
                 ecosystem=Ecosystem(Pypi()),
                 allowed_hashes={},
