@@ -125,8 +125,8 @@ class Parser(str):
             msg = "Invalid URL '{}'".format(self._url)
             raise ParserError(msg)
 
-        if cast(str, d.get('owner', '')).endswith('/_git'):  # Azure DevOps Git URLs
-            d['owner'] = cast(str, d['owner'])[:-len('/_git')]
+        if d['owner'] is not None and cast(str, d['owner']).endswith('/_git'):  # Azure DevOps Git URLs
+            d['owner'] = d['owner'][:-len('/_git')]
 
         return Parsed(**d)
 
