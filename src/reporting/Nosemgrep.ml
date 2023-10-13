@@ -128,10 +128,15 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
       let ids = Common.map List.hd (* nosemgrep: list-hd *) ids in
       (* [String.split_on_char] can **not** return an empty list. *)
       (* check if the id specified by the user is the [rule_match]'s [rule_id]. *)
+      let rule_id_last =
+        rule_match.Out.check_id |> String.split_on_char '.' |> Common2.list_last
+      in
       List.fold_left
         (fun (result, errors) id ->
           let errors =
-            if strict && id <> rule_match.Out.check_id then
+            (* If the rule-id is 'foo.bar.my-rule' we accept both 'foo.bar.my-rule' and 'my-rule'. *)
+            if strict && id <> rule_match.Out.check_id && id <> rule_id_last
+            then
               let msg =
                 Format.asprintf
                   "found 'nosem' comment with id '%s', but no corresponding \
