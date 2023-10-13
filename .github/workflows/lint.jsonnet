@@ -6,17 +6,6 @@
 local actions = import "libs/actions.libsonnet";
 
 // ----------------------------------------------------------------------------
-// Helpers
-// ----------------------------------------------------------------------------
-local checkout_step = {
-  uses: 'actions/checkout@v3',
-  // TODO: why we do that extra thing here and not the other workflow?
-  with: {
-    'persist-credentials': false,
-  },
-};
-
-// ----------------------------------------------------------------------------
 // The jobs
 // ----------------------------------------------------------------------------
 
@@ -25,7 +14,7 @@ local checkout_step = {
 local pre_commit_job = {
   'runs-on': 'ubuntu-latest',
   steps: [
-    checkout_step,
+    actions.checkout(),
     // We grab those submodules below because they are the one needed by 'mypy',
     // which runs as part of pre-commit to check our Python code.
     // alt: we could also use 'submodules: recursive' instead, but that would be slower
@@ -68,7 +57,7 @@ local pre_commit_job = {
 local pre_commit_manual_job = {
   'runs-on': 'ubuntu-latest',
   steps: [
-    checkout_step,
+    actions.checkout(),
     {
       uses: 'pre-commit/action@v3.0.0',
       with: {
@@ -79,7 +68,7 @@ local pre_commit_manual_job = {
 };
 
 // Running the ocamlformat part of pre-commit, which requires a special container
-local pre_commit_ocaml_job =
+local pre_commit_ocaml_job(submodules=false) =
   {
     // Even if there's a 'container:' below, we still need a 'runs-on:', to say which VM will
     // run the Docker container. See https://github.com/orgs/community/discussions/25534
@@ -90,7 +79,7 @@ local pre_commit_ocaml_job =
     // See https://github.com/returntocorp/ocaml-layer/blob/master/configs/ubuntu.sh
     container: 'returntocorp/ocaml:ubuntu-2023-10-05',
     steps: [
-      checkout_step,
+      if submodules then actions.checkout_with_submodules() else actions.checkout(),
       // HOME in the container is tampered by GHA and modified from /root to /home/github
       // which then confuses opam below which can not find its ~/.opam (which is at /root/.opam)
       // hence the ugly use of 'env: HOME ...' below.
@@ -169,7 +158,11 @@ local action_lint_job = {
   jobs: {
     'pre-commit': pre_commit_job,
     'pre-commit-manual': pre_commit_manual_job,
-    'pre-commit-ocaml': pre_commit_ocaml_job,
+    'pre-commit-ocaml': pre_commit_ocaml_job(),
     'github-actions': action_lint_job,
   },
+  export::{
+    // reused in semgrep-pro
+    'pre-commit-ocaml': pre_commit_ocaml_job,
+  }
 }

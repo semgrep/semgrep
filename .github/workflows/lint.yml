@@ -11,8 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        with:
-          persist-credentials: false
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v4
@@ -25,8 +23,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        with:
-          persist-credentials: false
       - uses: pre-commit/action@v3.0.0
         with:
           extra_args: --hook-stage manual
@@ -35,8 +31,6 @@ jobs:
     container: returntocorp/ocaml:ubuntu-2023-10-05
     steps:
       - uses: actions/checkout@v3
-        with:
-          persist-credentials: false
       - name: Check OCaml code with ocamlformat
         env:
           HOME: /root
