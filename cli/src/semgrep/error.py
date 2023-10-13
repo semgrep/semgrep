@@ -56,6 +56,7 @@ class SemgrepError(Exception):
     # In theory we should define those fields here:
     # code: int
     # level: out.ErrorSeverity
+    # type_: out.CoreErrorKind
 
     def __init__(
         self,
@@ -65,12 +66,14 @@ class SemgrepError(Exception):
     ) -> None:
         self.code = code
         self.level = level
-
         super().__init__(*args)
+
+    def type_(self) -> out.ErrorType:
+        return out.ErrorType(out.SemgrepError())
 
     def to_CliError(self) -> out.CliError:
         err = out.CliError(
-            code=self.code, type_=self.__class__.__name__, level=self.level
+            code=self.code, type_=str(self.type_().to_json()), level=self.level
         )
         return self.adjust_CliError(err)
 
@@ -99,7 +102,7 @@ class SemgrepError(Exception):
 
     # TODO: @classmethod?
     def semgrep_error_type(self) -> str:
-        return type(self).__name__
+        return str(self.type_().to_json())
 
 
 @dataclass(frozen=True)
@@ -126,6 +129,9 @@ class SemgrepCoreError(SemgrepError):
         # and have some <json name="..."> annotations to generate the right string
         else:
             return str(type_.to_json())
+
+    def type_(self) -> out.ErrorType:
+        return self.core.error_type
 
     def adjust_CliError(self, base: out.CliError) -> out.CliError:
         base = dataclasses.replace(
@@ -165,8 +171,9 @@ class SemgrepCoreError(SemgrepError):
         """
         return isinstance(self.core.error_type.value, out.Timeout)
 
+    # TODO: remove this SemgrepCoreError prefix
     def semgrep_error_type(self) -> str:
-        return f"{type(self).__name__}: {self._error_type_string()}"
+        return f"SemgrepCoreError: {self._error_type_string()}"
 
     @property
     def _error_message(self) -> str:
@@ -422,11 +429,17 @@ class InvalidRuleSchemaError(ErrorWithSpan):
     code = RULE_PARSE_FAILURE_EXIT_CODE
     level = out.ErrorSeverity(out.Error_())
 
+    def type_(self) -> out.ErrorType:
+        return out.ErrorType(out.InvalidRuleSchemaError())
+
 
 @attr.s(frozen=True, eq=True)
 class UnknownLanguageError(ErrorWithSpan):
     code = INVALID_LANGUAGE_EXIT_CODE
     level = out.ErrorSeverity(out.Error_())
+
+    def type_(self) -> out.ErrorType:
+        return out.ErrorType(out.UnknownLanguageError())
 
 
 # cf. https://stackoverflow.com/questions/1796180/how-can-i-get-a-list-of-all-classes-within-current-module-in-python/1796247#1796247
