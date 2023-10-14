@@ -814,14 +814,18 @@ let propagate_dataflow lang ast =
       let xs =
         AST_to_IL.stmt lang (G.Block (Tok.unsafe_fake_bracket ast) |> G.s)
       in
+      (* No implicit return analysis needed for top-level scope,
+       * because it doesn't make sense to have returns outside functions,
+       * so no need to create a fake function and use CFG_build.cfg_of_fdef here.
+       *)
       let flow = CFG_build.cfg_of_stmts xs in
       propagate_dataflow_one_function lang [] flow
   | _ ->
       ast
       |> Visit_function_defs.visit (fun _ent fdef ->
-             let inputs, xs = AST_to_IL.function_definition lang fdef in
-             let flow = CFG_build.cfg_of_stmts xs in
-             propagate_dataflow_one_function lang inputs flow);
+             match CFG_build.cfg_of_fdef lang fdef with
+             | { fparams; fcfg } ->
+                 propagate_dataflow_one_function lang fparams fcfg);
 
       (* We consider the top-level function the interior of a degenerate function,
          and simply run constant propagation on that.
@@ -830,12 +834,9 @@ let propagate_dataflow lang ast =
          duplicate any work.
       *)
       let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
+      (* No implicit return analysis needed for top-level scope,
+       * because it doesn't make sense to have returns outside functions,
+       * so no need to create a fake function and use CFG_build.cfg_of_fdef here.
+       *)
       let flow = CFG_build.cfg_of_stmts xs in
       propagate_dataflow_one_function lang [] flow
-
-let propagate_dataflow_program lang fun_cfgs =
-  fun_cfgs
-  |> List.iter (fun fun_cfg ->
-         match (fun_cfg : CFG_build.fun_cfg) with
-         | { fparams; fcfg } ->
-             propagate_dataflow_one_function lang fparams fcfg)

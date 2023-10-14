@@ -36,24 +36,25 @@ open AST_generic
 let rec mark_first_instr_ancestor (cfg : IL.cfg) i =
   let node = cfg.graph#nodes#find i in
   match node.n with
+  (* If control reaches a catch node, it's an exception. It can't be a return,
+   * so stop visiting here.
+   *)
+  | NOther (Noop "catch") -> ()
+  (* Visit ancestor for exit, noop, goto, and join nodes. *)
   | Exit
   | NOther (Noop _)
   | NGoto _
   | Join ->
       CFG.predecessors cfg i
       |> List.iter (fun (pred_i, _) -> mark_first_instr_ancestor cfg pred_i)
+  (* Certain instruction nodes may be implicitly returned. *)
   | NInstr instr -> (
       match instr with
-      | { i = Assign (_, { eorig = SameAs e; _ }); _ } ->
+      | { i = Assign (_, { eorig = SameAs e; _ }); _ }
+      | { i = Call _; iorig = SameAs e } ->
           e.is_implicit_return <- true
       | _else_ -> ())
   | _else_ -> ()
-
-let mark_implicit_return_nodes_one_function (cfg : IL.cfg) =
-  (* Traverse backward from exit and mark the expression in the
-   * first instruction node along each path.
-   *)
-  mark_first_instr_ancestor cfg cfg.exit
 
 (*****************************************************************************)
 (* Entry point *)
@@ -61,14 +62,15 @@ let mark_implicit_return_nodes_one_function (cfg : IL.cfg) =
 
 let lang_supports_implicit_return (lang : Lang.t) =
   match lang with
+  | Elixir
   | Ruby
   | Rust
   | Julia ->
       true
   | _else_ -> false
 
-let mark_implicit_return_nodes (fun_cfgs : CFG_build.fun_cfg list) =
-  fun_cfgs
-  |> List.iter (fun fun_cfg ->
-         match (fun_cfg : CFG_build.fun_cfg) with
-         | { fparams = _; fcfg } -> mark_implicit_return_nodes_one_function fcfg)
+let mark_implicit_return_nodes (cfg : IL.cfg) =
+  (* Traverse backward from exit and mark the expression in the
+   * first instruction node along each path.
+   *)
+  mark_first_instr_ancestor cfg cfg.exit

@@ -79,7 +79,7 @@ type state = {
   unused_lambdas : (name, unit) Hashtbl.t;
 }
 
-type fun_cfg = { fparams : name list; fcfg : cfg }
+type fdef_cfg = { fparams : name list; fcfg : cfg }
 
 (*****************************************************************************)
 (* Helpers *)
@@ -352,7 +352,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       CfgFirstLast (newi, Some newi, false)
   | FixmeStmt _ -> cfg_todo state previ stmt
 
-and cfg_lambda state previ joini fdef =
+and cfg_lambda state previ joini (fdef : IL.function_definition) =
   (* Lambdas are treated as statement blocks, the CFG does NOT capture the actual
      * flow of data that goes into the lambda through its parameters, and back
      * into the surrounding definition through its `return' statement. We won't
@@ -513,29 +513,19 @@ let (cfg_of_stmts : stmt list -> F.cfg) =
   g |> add_arc_from_opt (last_node_opt, exiti);
   CFG.make g enteri exiti
 
-let cfgs_in_program (lang : Lang.t) (ast : G.program) : fun_cfg list * fun_cfg =
-  match lang with
-  | Lang.Dockerfile ->
-      (* Dockerfile has no functions. The whole file is just a single scope *)
-      let xs =
-        AST_to_IL.stmt lang (G.Block (Tok.unsafe_fake_bracket ast) |> G.s)
-      in
-      let fcfg = cfg_of_stmts xs in
-      ([], { fparams = []; fcfg })
-  | _ ->
-      let cfgs = ref [] in
-      ast
-      |> Visit_function_defs.visit (fun _ent fdef ->
-             let fparams, xs = AST_to_IL.function_definition lang fdef in
-             let fcfg = cfg_of_stmts xs in
-             cfgs := { fparams; fcfg } :: !cfgs);
+let cfg_of_fdef lang fdef =
+  if Implicit_return.lang_supports_implicit_return lang then (
+    (* We need to build the CFG here first because the analysis
+     * visits the CFG to determine returning nodes.
+     *)
+    let _fparams, fstmts = AST_to_IL.function_definition lang fdef in
+    Implicit_return.mark_implicit_return_nodes (cfg_of_stmts fstmts);
 
-      (* We consider the top-level function the interior of a degenerate function,
-         and simply run constant propagation on that.
-
-         Since we don't traverse into each function body recursively, we shouldn't
-         duplicate any work.
-      *)
-      let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
-      let fcfg = cfg_of_stmts xs in
-      (!cfgs, { fparams = []; fcfg })
+    (* Rebuild CFG after marking the return nodes, so that all
+     * implicit returns become explicit.
+     *)
+    let fparams, fstmts = AST_to_IL.function_definition lang fdef in
+    { fparams; fcfg = cfg_of_stmts fstmts })
+  else
+    let fparams, fstmts = AST_to_IL.function_definition lang fdef in
+    { fparams; fcfg = cfg_of_stmts fstmts }

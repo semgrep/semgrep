@@ -547,7 +547,7 @@ and expr_aux env ?(void = false) e_gen =
       ( ({ e = G.IdSpecial ((G.This | G.Super | G.Self | G.Parent), tok); _ } as
          e),
         args ) ->
-      call_generic env ~void tok e args
+      call_generic env ~void tok eorig e args
   | G.Call
       ({ e = G.IdSpecial (G.IncrDecr (incdec, _prepostIGNORE), tok); _ }, args)
     -> (
@@ -654,7 +654,7 @@ and expr_aux env ?(void = false) e_gen =
           add_call env tok eorig ~void (fun res -> Call (res, fixme, args)))
   | G.Call (e, args) ->
       let tok = G.fake "call" in
-      call_generic env ~void tok e args
+      call_generic env ~void tok eorig e args
   | G.L lit -> mk_e (Literal lit) eorig
   | G.DotAccess ({ e = N (Id (("var", _), _)); _ }, _, FN (Id ((s, t), id_info)))
     when is_hcl env.lang ->
@@ -873,8 +873,7 @@ and expr_lazy_op env op tok arg0 args eorig =
   in
   mk_e (Operator ((op, tok), arg0' :: args')) eorig
 
-and call_generic env ?(void = false) tok e args =
-  let eorig = SameAs (G.Call (e, args) |> G.e) in
+and call_generic env ?(void = false) tok eorig e args =
   let e = expr env e in
   (* In theory, instrs in args could have side effect on the value in 'e',
    * but we will agglomerate all those instrs in the environment and
@@ -1056,7 +1055,12 @@ and stmt_expr env ?e_gen st =
     | Some e_gen -> todo (G.E e_gen)
   in
   match st.G.s with
-  | G.ExprStmt (eorig, _) -> expr env eorig
+  | G.ExprStmt (eorig, tok) ->
+      let e = expr env eorig in
+      if eorig.is_implicit_return then (
+        mk_s (Return (tok, e)) |> add_stmt env;
+        expr_opt env None)
+      else e
   | G.If (tok, cond, st1, opt_st2) ->
       (* if cond then e1 else e2
        * -->
@@ -1141,10 +1145,10 @@ and stmt_expr_with_pre_stmts env st =
   with_pre_stmts env (fun env -> stmt_expr env st)
 
 (* alt: could use H.cond_to_expr and reuse expr_with_pre_stmts *)
-and cond_with_pre_stmts env ?void cond =
+and cond_with_pre_stmts env cond =
   with_pre_stmts env (fun env ->
       match cond with
-      | G.Cond e -> expr env ?void e
+      | G.Cond e -> expr env e
       | G.OtherCond
           ( todok,
             [
@@ -1158,7 +1162,7 @@ and cond_with_pre_stmts env ?void cond =
       | G.OtherCond (categ, xs) ->
           let e = G.OtherExpr (categ, xs) |> G.e in
           log_fixme ToDo (G.E e);
-          expr env ?void e)
+          expr env e)
 
 and arg_with_pre_stmts env arg =
   with_pre_stmts env (fun env -> argument env arg)
@@ -1244,50 +1248,82 @@ and mk_switch_break_label env tok =
   in
   (break_label, [ mk_s (Label break_label) ], switch_env)
 
+and implicit_return env eorig tok =
+  (* We always expect a value from an expression that is implicitly
+   * returned, so void is set to false here.
+   *)
+  let ss, e = expr_with_pre_stmts ~void:false env eorig in
+  let ret = mk_s (Return (tok, e)) in
+  ss @ [ ret ]
+
+and expr_stmt env (eorig : G.expr) tok : IL.stmt list =
+  (* optimize? pass context to expr when no need for return value? *)
+  let ss, e = expr_with_pre_stmts ~void:true env eorig in
+
+  (* ExprStmts don't care about results of an expression, so it is rightly
+   * setting void to true above. However, this means that function calls will
+   * return unit, and if we call mk_aux_var below, we will have something like
+   *   call f()
+   *   tmp = unit
+   * which interferes with implicit return analysis, because the  analysis walks
+   * backwards from the exit node to mark the first instr node it sees on each
+   * path.
+   *
+   * If we have
+   *   call f()
+   *   tmp = unit
+   * then `unit` will be marked as a returnning expression when we actually
+   * want to mark `f()`, so we must avoid creating `tmp = unit` following
+   * a function call that doesn't expect results.
+   *)
+  (match eorig with
+  | { e = G.Call _; _ } -> ()
+  | _else_ -> mk_aux_var env tok e |> ignore);
+
+  let ss' = pop_stmts env in
+  match ss @ ss' with
+  | [] ->
+      (* This case may happen when we have a function like
+       *
+       *   function some_function(some_var) {
+       *     some_var
+       *   }
+       *
+       * the `some_var` will not show up in the CFG. Neither expr_with_pre_stmts
+       * nor mk_aux_var will cause nodes to be created.
+       *
+       * This is typically OK, because it doesn't make sense to write
+       * `some_var` for side-effects.
+       *
+       * The issue is that for some languages
+       * when `some_var` is the last evaluated expression in the function,
+       * `some_var` is also implictly returned from the function. In this case
+       * `some_var` actually means `return some_var`, so there should be a return
+       * node in the CFG.
+       *
+       * We'd like to always create an IL node here as a fake "no-op" assignment
+       *   tmp = some_var
+       * because we'd like to mark some_var's eorig as an implicit return node
+       * so later we can convert
+       *   some_var
+       * to
+       *   return some_var
+       * when some_var is marked as an implicit return node.
+       *
+       * If some_var isn't a returning expression, we have created an unneeded node
+       * but it doesn't affect correctness.
+       *)
+      let var = fresh_var env tok in
+      let lval = lval_of_base (Var var) in
+      let fake_i = mk_i (Assign (lval, e)) NoOrig in
+      [ mk_s (Instr fake_i) ]
+  | ss'' -> ss''
+
 and stmt_aux env st =
   match st.G.s with
-  | G.ExprStmt (eorig, tok) -> (
-      (* optimize? pass context to expr when no need for return value? *)
-      let ss, e = expr_with_pre_stmts ~void:true env eorig in
-      mk_aux_var env tok e |> ignore;
-      let ss' = pop_stmts env in
-      match ss @ ss' with
-      | [] ->
-          (* This case may happen when we have a function like
-           *
-           *   function some_function(some_var) {
-           *     some_var
-           *   }
-           *
-           * the `some_var` will not show up in the CFG. Neither expr_with_pre_stmts
-           * nor mk_aux_var will cause nodes to be created.
-           *
-           * This is typically OK, because it doesn't make sense to write
-           * `some_var` for side-effects.
-           *
-           * The issue is that for some languages
-           * when `some_var` is the last evaluated expression in the function,
-           * `some_var` is also implictly returned from the function. In this case
-           * `some_var` actually means `return some_var`, so there should be a return
-           * node in the CFG.
-           *
-           * We'd like to always create an IL node here as a fake "no-op" assignment
-           *   tmp = some_var
-           * because we'd like to mark some_var's eorig as an implicit return node
-           * so we can match
-           *   return some_var
-           * with
-           *   some_var
-           * when some_var is marked as an implicit return node.
-           *
-           * If some_var isn't a returning expression, we have created an unneeded node
-           * but it doesn't affect correctness.
-           *)
-          let var = fresh_var env tok in
-          let lval = lval_of_base (Var var) in
-          let fake_i = mk_i (Assign (lval, e)) NoOrig in
-          [ mk_s (Instr fake_i) ]
-      | ss'' -> ss'')
+  | G.ExprStmt (eorig, tok) ->
+      if eorig.is_implicit_return then implicit_return env eorig tok
+      else expr_stmt env eorig tok
   | G.DefStmt
       ( { name = EN obj; _ },
         G.VarDef
