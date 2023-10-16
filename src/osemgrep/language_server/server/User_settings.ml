@@ -83,7 +83,8 @@ let core_runner_conf_of_t settings =
       max_memory_mb = settings.max_memory;
       timeout = float_of_int settings.timeout;
       timeout_threshold = settings.timeout_threshold;
-      ast_caching = true;
+      ast_caching = false;
+      (* TODO: This is breaks things in LSP.js *)
       dataflow_traces = false;
       matching_explanations = false;
       time_flag = false;

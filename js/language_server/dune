@@ -13,5 +13,9 @@
   networking.js
   )
  (modes js)
+ (js_of_ocaml
+  (javascript_files
+   unix.js
+ ))
  (preprocess
   (pps lwt_ppx js_of_ocaml-ppx)))

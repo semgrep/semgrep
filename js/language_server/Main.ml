@@ -30,28 +30,18 @@ module Io = RPC_server.MakeLSIO (struct
   type input = unit
   type output = unit
 
-  let read_line _ =
-    Firebug.console##log (Js.string "read_line");
-    let%lwt line = !read_line_ref () in
-    Firebug.console##log
-      (Js.string ("read_line " ^ Option.value ~default:"" line));
-    Lwt.return line
-
+  let read_line _ = !read_line_ref ()
   let stdin = ()
   let stdout = ()
   let flush _ = Lwt.return ()
   let atomic f oc = f oc
 
   let write _ str =
-    Firebug.console##log (Js.string ("write " ^ str));
+    (* nosem *)
+    print_string str;
     Lwt.return ()
 
-  let read_exactly _ n =
-    Firebug.console##log (Js.string "read_exactly");
-    let%lwt line = !read_exactly_ref n in
-    Firebug.console##log
-      (Js.string ("read_exactly " ^ Option.value ~default:"" line));
-    Lwt.return line
+  let read_exactly _ n = !read_exactly_ref n
 end)
 
 (*****************************************************************************)
@@ -69,14 +59,36 @@ let promise_of_lwt lwt =
          with
          | e ->
              let msg = Printexc.to_string e in
-             Firebug.console##log (Js.string msg);
+             Firebug.console##error (Js.string msg);
              Js.Unsafe.fun_call reject
                [| Js.Unsafe.inject (new%js Js.error_constr (Js.string msg)) |]))
+
+(* Stolen from Logs' logs_browser.ml *)
+let ppf, flush =
+  let b = Buffer.create 255 in
+  let flush () =
+    let s = Buffer.contents b in
+    Buffer.clear b;
+    s
+  in
+  (Format.formatter_of_buffer b, flush)
+
+let console_report _src _level ~over k msgf =
+  let k _ =
+    Firebug.console##error (Js.string (flush ()));
+    over ();
+    k ()
+  in
+  msgf @@ fun ?header ?tags fmt ->
+  ignore tags;
+  match header with
+  | None -> Format.kfprintf k ppf ("@[" ^^ fmt ^^ "@]@.")
+  | Some h -> Format.kfprintf k ppf ("[%s] @[" ^^ fmt ^^ "@]@.") h
 
 let _ =
   RPC_server.io_ref := (module Io);
   Logs.set_level (Some Logs.Debug);
-  Logs.set_reporter (Logs_browser.console_reporter ());
+  Logs.set_reporter { Logs.report = console_report };
   Js.export_all
     (object%js
        method init = init_jsoo

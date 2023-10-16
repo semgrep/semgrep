@@ -6,9 +6,11 @@
    js_of_ocaml
    semgrep.parsing
    libyaml_stubs_js
-  integers_stubs_js
-  libpcre_stubs_js
+   integers_stubs_js
+   libpcre_stubs_js
    yaml_ctypes_overrides
+   networking.http_helpers
+   cohttp-lwt-jsoo
  )
  (js_of_ocaml
   (javascript_files
