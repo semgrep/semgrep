@@ -468,7 +468,7 @@ let set_svalue_ref id_info c' =
     match !(id_info.id_svalue) with
     | None -> id_info.id_svalue := Some c'
     | Some c -> id_info.id_svalue := Some (refine c c')
-  else logger#error "Cycle check failed for %s := ..." (G.show_id_info id_info)
+  else logger#info "Cycle check failed for %s := ..." (G.show_id_info id_info)
 (* (G.show_svalue c') *)
 
 (*****************************************************************************)

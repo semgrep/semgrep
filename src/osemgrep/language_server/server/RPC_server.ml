@@ -122,7 +122,7 @@ let request server request =
 (** Send a notification to the client *)
 let notify server notification =
   let notification = SN.to_jsonrpc notification in
-  Logs.app (fun m ->
+  Logs.debug (fun m ->
       m "Sending notification %s"
         (Notification.yojson_of_t notification |> Yojson.Safe.pretty_to_string));
   let packet = Packet.Notification notification in
@@ -133,7 +133,7 @@ let notify server notification =
 
 (** Send a bunch of notifications to the client *)
 let batch_notify server notifications =
-  Logs.app (fun m -> m "Sending notifications");
+  Logs.debug (fun m -> m "Sending notifications");
   Lwt.async (fun () -> Lwt_list.iter_s (notify server) notifications)
 
 let notify_show_message server ~kind s =
@@ -200,7 +200,7 @@ struct
   let rec rpc_loop server () =
     match server.state with
     | State.Stopped ->
-        Logs.app (fun m -> m "Server stopped");
+        Logs.debug (fun m -> m "Server stopped");
         Lwt.pause ()
     | _ -> (
         let%lwt () = Lwt.pause () in
@@ -211,7 +211,7 @@ struct
             let%lwt () = Lwt.pause () in
             rpc_loop server ()
         | None ->
-            Logs.app (fun m -> m "Client disconnected");
+            Logs.debug (fun m -> m "Client disconnected");
             Lwt.pause ())
 
   let start server = Lwt_main.run (rpc_loop server ())

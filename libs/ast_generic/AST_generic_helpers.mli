@@ -135,7 +135,8 @@ val info_of_any : AST_generic.any -> Tok.t
 
 (* may raise NoTokenLocation *)
 val first_info_of_any : AST_generic.any -> Tok.t
-val range_of_tokens : Tok.t list -> Tok_range.t
+val range_of_tokens_unsafe : Tok.t list -> Tok_range.t
+val range_of_tokens : Tok.t list -> Tok_range.t option
 val range_of_any_opt : AST_generic.any -> (Tok.location * Tok.location) option
 
 val nearest_any_of_pos :

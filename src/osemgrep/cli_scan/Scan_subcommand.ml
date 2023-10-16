@@ -357,6 +357,27 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
       (fun r1 r2 -> Rule_ID.equal (fst r1.Rule.id) (fst r2.Rule.id))
       rules
   in
+  (* desired/legacy semgrep behavior: fail if no valid rule was found
+
+     Problem in case of all Apex rules being skipped by semgrep-core:
+     - actual pysemgrep behavior:
+       * doesn't count these rules as skipped, resulting in a successful exit
+       * reports Apex targets as scanned that weren't scanned
+     - osemgrep behavior:
+       * reports skipped rules and skipped/scanned targets correctly
+     How to fix this:
+     - pysemgrep should read the 'scanned' field reporting the targets that
+       were really scanned by semgrep-core instead of the current
+       implementation that assumes semgrep-core will scan all the targets it
+       receives.
+     Should we fix this?
+     - it's necessary to get the same output with pysemgrep and osemgrep
+     - it's a bit of an effort on the Python side for something that's
+       not very important
+     Suggestion:
+     - tolerate different output between pysemgrep and osemgrep
+       for tests that we would mark as such.
+  *)
   if Common.null rules then Error Exit_code.missing_config
   else
     (* step 1: last touch on rules *)

@@ -15,8 +15,6 @@ depends: [
   # - .github/workflows/lint.yml and its pre-commit-ocaml job
   "ocamlformat" {= "0.26.1" }  # used by the pre-commit hook
   "feather" # used by hello_script.ml
-  # This is not the version of `ocaml-lsp-server` used by the VSCode extension,
-  # but Austin said it's OK to update.
-  "ocaml-lsp-server" {= "1.15.1-5.0"}
+  "ocaml-lsp-server" {= "1.15.1-4.14"} # used by the VSCode extension
   "earlybird" {= "1.2.1"} # used by the VSCode extension
 ]

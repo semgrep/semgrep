@@ -25,7 +25,6 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
-from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
 from semgrep.project import ProjectConfig
@@ -311,11 +310,11 @@ class ScanHandler:
         # appear in an intuitive order.  this requires reversed ordering here.
         all_matches.reverse()
         sort_order = {  # used only to order rules by severity
-            "EXPERIMENT": 0,
-            "INVENTORY": 1,
-            "INFO": 2,
-            "WARNING": 3,
-            "ERROR": 4,
+            out.Experiment(): 0,
+            out.Inventory(): 1,
+            out.Info(): 2,
+            out.Warning(): 3,
+            out.Error(): 4,
         }
         # NB: sorted guarantees stable sort, so within a given severity level
         # issues remain sorted as before
@@ -351,7 +350,9 @@ class ScanHandler:
 
         findings_and_ignores = ci_scan_results.to_json()
 
-        if any(match.severity == RuleSeverity.EXPERIMENT for match in new_ignored):
+        if any(
+            isinstance(match.severity.value, out.Experiment) for match in new_ignored
+        ):
             logger.info("Some experimental rules were run during execution.")
 
         ignored_ext_freqs = Counter(

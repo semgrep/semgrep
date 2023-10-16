@@ -8,7 +8,6 @@ from typing import Sequence
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
-from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
 from semgrep.rule import Rule
@@ -325,11 +324,11 @@ class SarifFormatter(BaseFormatter):
         See https://github.com/oasis-tcs/sarif-spec/blob/a6473580/Schemata/sarif-schema-2.1.0.json#L1566
         """
         mapping = {
-            RuleSeverity.INFO: "note",
-            RuleSeverity.WARNING: "warning",
-            RuleSeverity.ERROR: "error",
+            out.Info(): "note",
+            out.Warning(): "warning",
+            out.Error(): "error",
         }
-        return mapping[rule.severity]
+        return mapping[rule.severity.value]
 
     @staticmethod
     def _rule_to_sarif_tags(rule: Rule) -> Sequence[str]:
@@ -367,9 +366,8 @@ class SarifFormatter(BaseFormatter):
 
     @staticmethod
     def _semgrep_error_to_sarif_notification(error: SemgrepError) -> Mapping[str, Any]:
-        # TODO: replace error_to_dict with typed error.to_CliError
-        error_dict = error.to_dict()
-        descriptor = error_dict["type"]
+        cli_error = error.to_CliError()
+        descriptor = cli_error.type_
 
         error_to_sarif_level = {
             out.Error_(): "error",
@@ -377,11 +375,11 @@ class SarifFormatter(BaseFormatter):
         }
         level = error_to_sarif_level[error.level.value]
 
-        message = error_dict.get("message")
+        message = cli_error.message
         if message is None:
-            message = error_dict.get("long_msg")
+            message = cli_error.long_msg
         if message is None:
-            message = error_dict.get("short_msg", "")
+            message = cli_error.short_msg or ""
 
         return {
             "descriptor": {"id": descriptor},

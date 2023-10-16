@@ -3,15 +3,13 @@ import inspect
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 from typing import cast
-from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
 
-import attr  # TODO: update to next-gen API with @define; difficult cause these subclass of Exception
+import attr
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import Colors
@@ -53,6 +51,11 @@ class SemgrepError(Exception):
     For pretty-printing, exceptions should override `__str__`.
     """
 
+    # In theory we should define those fields here:
+    # code: int
+    # level: out.ErrorSeverity
+    # type_: out.CoreErrorKind
+
     def __init__(
         self,
         *args: object,
@@ -61,12 +64,15 @@ class SemgrepError(Exception):
     ) -> None:
         self.code = code
         self.level = level
-
         super().__init__(*args)
+
+    # to be overriden in children
+    def type_(self) -> out.ErrorType:
+        return out.ErrorType(out.SemgrepError())
 
     def to_CliError(self) -> out.CliError:
         err = out.CliError(
-            code=self.code, type_=self.__class__.__name__, level=self.level
+            code=self.code, type_=str(self.type_().to_json()), level=self.level
         )
         return self.adjust_CliError(err)
 
@@ -75,9 +81,6 @@ class SemgrepError(Exception):
         Default implementation. Subclasses should override to provide custom information.
         """
         return dataclasses.replace(base, message=str(self))
-
-    def to_dict(self) -> Dict[str, Any]:
-        return cast(Dict[str, Any], self.to_CliError().to_json())
 
     def format_for_terminal(self) -> str:
         level_tag = (
@@ -93,9 +96,9 @@ class SemgrepError(Exception):
 
         return f"{level_tag} {self}"
 
-    # TODO: @classmethod?
+    # stored in our metrics payload.errors.errors
     def semgrep_error_type(self) -> str:
-        return type(self).__name__
+        return str(self.type_().to_json())
 
 
 @dataclass(frozen=True)
@@ -122,6 +125,12 @@ class SemgrepCoreError(SemgrepError):
         # and have some <json name="..."> annotations to generate the right string
         else:
             return str(type_.to_json())
+
+    def semgrep_error_type(self) -> str:
+        return self._error_type_string()
+
+    def type_(self) -> out.ErrorType:
+        return self.core.error_type
 
     def adjust_CliError(self, base: out.CliError) -> out.CliError:
         base = dataclasses.replace(
@@ -160,9 +169,6 @@ class SemgrepCoreError(SemgrepError):
         Return if this error is a match timeout
         """
         return isinstance(self.core.error_type.value, out.Timeout)
-
-    def semgrep_error_type(self) -> str:
-        return f"{type(self).__name__}: {self._error_type_string()}"
 
     @property
     def _error_message(self) -> str:
@@ -218,14 +224,6 @@ class SemgrepCoreError(SemgrepError):
                 self.core.details,
             )
         )
-
-
-class SemgrepInternalError(Exception):
-    """
-    Parent class of internal semgrep exceptions that should be handled internally and converted into `SemgrepError`s
-
-    Classes that inherit from SemgrepInternalError should begin with `_`
-    """
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -426,14 +424,21 @@ class InvalidRuleSchemaError(ErrorWithSpan):
     code = RULE_PARSE_FAILURE_EXIT_CODE
     level = out.ErrorSeverity(out.Error_())
 
+    def type_(self) -> out.ErrorType:
+        return out.ErrorType(out.InvalidRuleSchemaError())
+
 
 @attr.s(frozen=True, eq=True)
 class UnknownLanguageError(ErrorWithSpan):
     code = INVALID_LANGUAGE_EXIT_CODE
     level = out.ErrorSeverity(out.Error_())
 
+    def type_(self) -> out.ErrorType:
+        return out.ErrorType(out.UnknownLanguageError())
+
 
 # cf. https://stackoverflow.com/questions/1796180/how-can-i-get-a-list-of-all-classes-within-current-module-in-python/1796247#1796247
+# This is used only in join_rules.py
 ERROR_MAP = {
     classname: classdef
     for classname, classdef in inspect.getmembers(

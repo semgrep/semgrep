@@ -1,0 +1,1 @@
+* The Semgrep Language server will no longer freeze while scanning long files

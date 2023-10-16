@@ -79,7 +79,7 @@ let on_request (type r) (request : r CR.t) server =
   | CR.UnknownRequest { meth; params } ->
       handle_custom_request server meth params
   | CR.Shutdown ->
-      Logs.app (fun m -> m "Shutting down server");
+      Logs.debug (fun m -> m "Shutting down server");
       (None, { server with state = RPC_server.State.Stopped })
   | CR.DebugEcho params -> process_result (params, server)
   | _ ->

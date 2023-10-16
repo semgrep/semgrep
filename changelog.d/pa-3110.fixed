@@ -1,0 +1,4 @@
+Pre-filtering is now less aggressive and tries not to skip files that could be
+matched by a rule due to constant-propagation. Previously, a rule searching for
+the string `"foobar"` would skip a file that did not contain exactly `"foobar"`,
+but that contained e.g. `"foo" + "bar"`.

@@ -250,7 +250,9 @@ let file_type_of_file file =
       PL (Web Html)
   | "xml" -> PL (Web Xml)
   | "json" -> Config Json
-  | "jsonnet" -> Config Jsonnet
+  | "jsonnet"
+  | "libsonnet" ->
+      Config Jsonnet
   | "yml"
   | "yaml" ->
       Config Yaml

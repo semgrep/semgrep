@@ -97,22 +97,6 @@ _scan_options: List[Callable] = [
         type=METRICS_STATE_TYPE,
         envvar="SEMGREP_SEND_METRICS",
     ),
-    click.option(
-        "--disable-metrics",
-        "metrics_legacy",
-        is_flag=True,
-        type=METRICS_STATE_TYPE,
-        flag_value="off",
-        hidden=True,
-    ),
-    click.option(
-        "--enable-metrics",
-        "metrics_legacy",
-        is_flag=True,
-        type=METRICS_STATE_TYPE,
-        flag_value="on",
-        hidden=True,
-    ),
     optgroup.group(
         "Path options",
     ),
@@ -431,7 +415,6 @@ def scan(
     max_memory: Optional[int],
     max_target_bytes: int,
     metrics: Optional[MetricsState],
-    metrics_legacy: Optional[MetricsState],
     optimizations: str,
     dataflow_traces: bool,
     output: Optional[str],
@@ -490,7 +473,7 @@ def scan(
         dataflow_traces = engine_type.has_dataflow_traces
 
     state = get_state()
-    state.metrics.configure(metrics, metrics_legacy)
+    state.metrics.configure(metrics)
     state.terminal.configure(
         verbose=verbose,
         debug=debug,

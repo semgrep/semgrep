@@ -32,8 +32,12 @@ DEFAULT_CAPABILITIES = {
         },
         "trace": {"server": "verbose"},
         "metrics": {
-            "enabled": True,
+            "machineId": "0000000000000000000000000000000000000000000000000000000000000000",
             "isNewAppInstall": True,
+            "sessionId": "00000000-0000-0000-0000-0000000000000000000000000",
+            "extensionVersion": "0.0.0",
+            "extensionType": "test",
+            "enabled": True,
         },
         "doHover": True,
     },
@@ -55,6 +59,8 @@ PROG_REGEX = re.compile(r"Pr([\s\S]*)")
 def run_semgrep_ls(mocker):
     server = SemgrepCoreLSServer()
     server.std_writer = mocker.Mock()
+    server.start_ls()
+    print("Waiting for Semgrep LS to start")
 
     def response_iterator():
         counter = 0
@@ -128,7 +134,6 @@ def send_msg(server, method, params=None, notif=False):
 
 
 def send_exit(server):
-
     send_msg(server, "exit", notif=True)
 
 
@@ -306,7 +311,6 @@ def send_semgrep_search(server, pattern, language=None):
 
 
 def send_hover(server, path, position, line):
-
     params = {
         "textDocument": {"uri": f"file://{path}"},
         "position": {"character": position, "line": line},
@@ -375,7 +379,7 @@ def check_startup(server, responses, folders, files):
 
     scan_responses = sorted(scan_responses, key=lambda x: x["params"]["uri"])  # type: ignore
 
-    expected_ids = ["eqeq-five"]
+    expected_ids = ["tests.e2e.targets.ls.eqeq-five"]
     for i, file in enumerate(scanned_files):
         response = scan_responses[i]
         check_diagnostics(response, file, expected_ids)
@@ -387,7 +391,6 @@ def test_ls_specs(
     run_semgrep_ls,  # nosemgrep: typehint-run-semgrep
     mock_files,
 ):
-
     root, files = mock_files
 
     server, responses = run_semgrep_ls
@@ -431,7 +434,11 @@ def test_ls_specs(
     send_did_open(server, added)
 
     response = next(responses)
-    check_diagnostics(response, added, ["eqeq-five", "eqeq-five"])
+    check_diagnostics(
+        response,
+        added,
+        ["tests.e2e.targets.ls.eqeq-five", "tests.e2e.targets.ls.eqeq-five"],
+    )
 
     send_did_delete(server, added)
 
@@ -539,14 +546,14 @@ def test_ls_multi(run_semgrep_ls, mock_workspaces):  # nosemgrep: typehint-run-s
         if str(workspace1[0]) in file:
             assert len(response["params"]["diagnostics"]) == 0
         else:
-            check_diagnostics(response, file, ["eqeq-five"])
+            check_diagnostics(response, file, ["tests.e2e.targets.ls.eqeq-five"])
 
     send_did_change_folder(server, added=[workspace1[0]])
 
     assert_progress(responses, "Scanning Workspace")
 
     for file in scanned_files:
-        check_diagnostics(next(responses), file, ["eqeq-five"])
+        check_diagnostics(next(responses), file, ["tests.e2e.targets.ls.eqeq-five"])
 
     send_exit(server)
 

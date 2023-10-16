@@ -7,7 +7,6 @@ from typing import Mapping
 from typing import Sequence
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
-from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
@@ -21,7 +20,7 @@ class BaseFormatter(abc.ABC):
         semgrep_structured_errors: Sequence[SemgrepError],
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
-        shown_severities: Collection[RuleSeverity],
+        shown_severities: Collection[out.MatchSeverity],
         is_ci_invocation: bool,
     ) -> str:
         filtered_rules = (r for r in rules if r.severity in shown_severities)

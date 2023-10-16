@@ -93,8 +93,7 @@ let log_error subj err =
     if len < 200 then subj
     else sprintf "%s ... (%i bytes)" (Str.first_chars subj 200) len
   in
-  logger#error "PCRE error: %s on input %S" (string_of_error err)
-    string_fragment
+  logger#info "PCRE error: %s on input %S" (string_of_error err) string_fragment
 
 let pmatch_noerr ?iflags ?flags ?rex ?pos ?callout ?(on_error = false) subj =
   match pmatch ?iflags ?flags ?rex ?pos ?callout subj with

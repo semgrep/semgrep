@@ -141,27 +141,17 @@ class Metrics:
     def configure(
         self,
         metrics_state: Optional[MetricsState],
-        legacy_state: Optional[MetricsState],
     ) -> None:
         """
         Configures whether to always, never, or automatically send metrics (based on whether config
         is pulled from the server).
 
         :param metrics_state: The value of the --metrics option
-        :param legacy_state: Value of the --enable-metrics/--disable-metrics option
         :raises click.BadParameter: if both --metrics and --enable-metrics/--disable-metrics are passed
         and their values are different
         """
 
-        if (
-            metrics_state is not None
-            and legacy_state is not None
-            and metrics_state != legacy_state
-        ):
-            raise click.BadParameter(
-                "--enable-metrics/--disable-metrics can not be used with either --metrics or SEMGREP_SEND_METRICS"
-            )
-        self.metrics_state = metrics_state or legacy_state or MetricsState.AUTO
+        self.metrics_state = metrics_state or MetricsState.AUTO
 
     @suppress_errors
     def add_engine_type(self, engineType: "EngineType") -> None:

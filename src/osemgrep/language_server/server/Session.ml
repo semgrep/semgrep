@@ -12,19 +12,25 @@ module Out = Semgrep_output_v1_t
 type session_cache = {
   mutable rules : Rule.t list;
   mutable skipped_fingerprints : string list;
-  lock : Lwt_mutex.t;
+  lock : Lwt_mutex.t; [@opaque]
 }
+[@@deriving show]
 
 type t = {
   capabilities : ServerCapabilities.t;
-  incoming : Lwt_io.input_channel;
-  outgoing : Lwt_io.output_channel;
+      [@printer
+        fun fmt c ->
+          Yojson.Safe.pretty_print fmt (ServerCapabilities.yojson_of_t c)]
+  incoming : Lwt_io.input_channel; [@opaque]
+  outgoing : Lwt_io.output_channel; [@opaque]
   workspace_folders : Fpath.t list;
-  cached_scans : (Fpath.t, Out.cli_match list) Hashtbl.t;
+  cached_scans : (Fpath.t, Out.cli_match list) Hashtbl.t; [@opaque]
   cached_session : session_cache;
   user_settings : User_settings.t;
+  metrics : LS_metrics.t;
   is_intellij : bool;
 }
+[@@deriving show]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -42,6 +48,7 @@ let create capabilities =
     cached_scans = Hashtbl.create 10;
     cached_session;
     user_settings = User_settings.default;
+    metrics = LS_metrics.default;
     is_intellij = false;
   }
 
@@ -144,7 +151,7 @@ let fetch_rules session =
   in
   let rules_source =
     if rules_source = [] && ci_rules = None then (
-      Logs.app (fun m -> m "No rules source specified, using auto");
+      Logs.debug (fun m -> m "No rules source specified, using auto");
       [ "auto" ])
     else rules_source
   in

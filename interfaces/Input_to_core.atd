@@ -1,6 +1,5 @@
 (*
-   Type definitions for semgrep-core's JSON input, coming from the
-   python wrapper, 'semgrep'.
+   Type definitions for semgrep-core's JSON input, coming from pysemgrep.
 
    There are other very important form of inputs which are not specified here:
     - The rule syntax and schema (see rule_schema_v1.yaml; only the
@@ -32,16 +31,10 @@ type target <ocaml attr="deriving show"> = {
  * different languages each time, so a Python file can be both analyzed
  * with Python rules, but also with generic/regexp rules.
  *
- * To avoid repeating the rule_ids, targets contains a list of all the
- * rule_ids and each target references the index of the rule_id
- *
  * alt: we could have a list of languages instead in target above, but
  * because of the way semgrep-core is designed (with its file_and_more type),
  * you could have at most one PL language, and then possibly
  * "generic" and "regexp".
- *
- * alt: rule_ids above could also be used to analyze at once the same
- * file with both PL and generic/regexp rules.
  *)
 type targets <ocaml attr="deriving show"> = target list
 

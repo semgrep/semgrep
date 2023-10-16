@@ -118,7 +118,11 @@ def _rule_match_nosem(
     errors = []
     result = False
     for pattern_id in pattern_ids:
-        if rule_match.rule_id == pattern_id:
+        if (
+            # If the rule-id is 'foo.bar.my-rule' we accept both 'foo.bar.my-rule' and 'my-rule'.
+            rule_match.rule_id == pattern_id
+            or rule_match.rule_id.rsplit(".", 1)[-1] == pattern_id
+        ):
             logger.verbose(
                 f"found 'nosem' comment with id '{pattern_id}', skipping rule '{rule_match.rule_id}' on line {rule_match.start.line}"
             )

@@ -113,7 +113,8 @@ let core_location_to_error_span (loc : Out.location) : Out.error_span =
     context_end = None;
   }
 
-let error_type_string (error_type : Out.core_error_kind) : string =
+(* TODO: just call to_json_string! *)
+let error_type_string (error_type : Out.error_type) : string =
   match error_type with
   (* # convert to the same string of core.ParseError for now *)
   | PartialParsing _ -> "Syntax error"
@@ -139,10 +140,13 @@ let error_type_string (error_type : Out.core_error_kind) : string =
   | OutOfMemoryDuringInterfile -> "OOM during interfile analysis"
   | IncompatibleRule _ -> "Incompatible rule"
   | MissingPlugin -> "Missing plugin"
+  | SemgrepError -> "SemgrepError"
+  | InvalidRuleSchemaError -> "InvalidRuleSchemaError"
+  | UnknownLanguageError -> "UnknownLanguageError"
 
 (* Generate error message exposed to user *)
 let error_message ~rule_id ~(location : Out.location)
-    ~(error_type : Out.core_error_kind) ~core_message : string =
+    ~(error_type : Out.error_type) ~core_message : string =
   let path = location.path in
   let error_context =
     match (rule_id, error_type) with
@@ -161,7 +165,7 @@ let error_message ~rule_id ~(location : Out.location)
   in
   spf "%s %s:\n %s" (error_type_string error_type) error_context core_message
 
-let error_spans ~(error_type : Out.core_error_kind) ~(location : Out.location) =
+let error_spans ~(error_type : Out.error_type) ~(location : Out.location) =
   match error_type with
   | PatternParseError _yaml_pathTODO ->
       (* TOPORT
@@ -191,7 +195,7 @@ let error_spans ~(error_type : Out.core_error_kind) ~(location : Out.location) =
 (* # TODO benchmarking code relies on error code value right now
    * # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
 *)
-let exit_code_of_error_type (error_type : Out.core_error_kind) : Exit_code.t =
+let exit_code_of_error_type (error_type : Out.error_type) : Exit_code.t =
   match error_type with
   | ParseError
   | LexicalError
@@ -209,8 +213,11 @@ let exit_code_of_error_type (error_type : Out.core_error_kind) : Exit_code.t =
   | Timeout
   | OutOfMemory
   | TimeoutDuringInterfile
-  | OutOfMemoryDuringInterfile ->
+  | OutOfMemoryDuringInterfile
+  | SemgrepError ->
       Exit_code.fatal
+  | InvalidRuleSchemaError -> Exit_code.invalid_pattern
+  | UnknownLanguageError -> Exit_code.invalid_language
   | IncompatibleRule _
   | MissingPlugin ->
       Exit_code.ok
@@ -235,13 +242,16 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
         (* # Rule id not important for parse errors *)
         | ParseError
         | LexicalError
-        | PartialParsing _ ->
+        | PartialParsing _
+        | SemgrepError
+        | InvalidRuleSchemaError ->
             None
         | SpecifiedParseError
         | AstBuilderError
         | RuleParseError
         | PatternParseError _
         | InvalidYaml
+        | UnknownLanguageError
         | MatchingError
         | SemgrepMatchFound
         | TooManyMatches
@@ -266,6 +276,8 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
         | SpecifiedParseError
         | AstBuilderError
         | InvalidYaml
+        | InvalidRuleSchemaError
+        | UnknownLanguageError
         | MatchingError
         | SemgrepMatchFound
         | TooManyMatches
@@ -274,6 +286,7 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
         | OutOfMemory
         | TimeoutDuringInterfile
         | OutOfMemoryDuringInterfile
+        | SemgrepError
         | IncompatibleRule _
         | MissingPlugin ->
             Some location.path

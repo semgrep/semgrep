@@ -12,7 +12,6 @@ from typing import Union
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import RuleScanSource
-from semgrep.constants import RuleSeverity
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.rule_lang import EmptySpan
 from semgrep.rule_lang import RuleValidation
@@ -152,10 +151,10 @@ class Rule:
         return "block" in self.metadata.get("dev.semgrep.actions", ["block"])
 
     @property
-    def severity(self) -> RuleSeverity:
+    def severity(self) -> out.MatchSeverity:
         # TODO: add additional severity for extract rules, or how should this
         # be handled?
-        return RuleSeverity(self._raw.get("severity", RuleSeverity.INFO))
+        return out.MatchSeverity.from_json(self._raw.get("severity", "INFO"))
 
     @property
     def mode(self) -> str:

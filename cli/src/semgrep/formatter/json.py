@@ -24,7 +24,7 @@ class JsonFormatter(BaseFormatter):
         extra = out.CliMatchExtra(
             message=rule_match.message,
             metadata=out.RawJson(rule_match.metadata),
-            severity=out.MatchSeverity.from_json(rule_match.severity.value),
+            severity=rule_match.severity,
             fingerprint=rule_match.match_based_id,
             # 'lines' already contains '\n' at the end of each line
             lines="".join(rule_match.lines).rstrip(),

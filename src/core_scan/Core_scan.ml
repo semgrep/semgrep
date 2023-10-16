@@ -121,9 +121,6 @@ let debug_extract_mode = ref false
  *
  * We also have had stack overflows. OCaml <=4.14.0, we avoided this using
  * `Common.map`, which is tail-recursive, instead of `List.map`.
- *
- * TODO: `List.map` becomes tail recursive in OCaml 5.1 due to TRMC. We can safely
- * switch over to it then.
  *)
 
 (*****************************************************************************)
@@ -202,6 +199,29 @@ let sort_targets_by_decreasing_size (targets : In.target list) : In.target list
   |> Common.map (fun target -> (target, Common2.filesize target.In.path))
   |> List.sort (fun (_, (a : int)) (_, b) -> compare b a)
   |> Common.map fst
+
+(* In some context, a target passed in might have disappeared, or have been
+ * encoded in the wrong way in the Inputs_to_core.atd (for example
+ * in the case of filenames with special unicode bytes in it), in which case
+ * Common2.filesize above would fail and crash the whole scan as the
+ * raised exn is outside the iter_targets_and_get_matches_and_exn_to_errors
+ * big try. This is why it's better to filter those problematic targets
+ * early on.
+ *)
+let filter_existing_targets (targets : In.target list) :
+    In.target list * Out.skipped_target list =
+  targets
+  |> Common.partition_either (fun (target : In.target) ->
+         let file = target.In.path in
+         if Sys.file_exists file then Left target
+         else
+           Right
+             {
+               Semgrep_output_v1_t.path = file;
+               reason = Nonexistent_file;
+               details = Some "File does not exist";
+               rule_id = None;
+             })
 
 (*****************************************************************************)
 (* Printing matches *)
@@ -682,13 +702,7 @@ let targets_of_config (config : Core_scan_config.t) :
   | None, _, None -> failwith "you need to specify a language with -lang"
   (* main code path for semgrep python, with targets specified by -target *)
   | Some target_source, roots, lang_opt ->
-      let targets =
-        match target_source with
-        | Targets x -> x
-        | Target_file target_file ->
-            File.read_file target_file |> In.targets_of_string
-      in
-      let skipped = [] in
+      (* sanity checking *)
       (* in deep mode we actually have a single root dir passed *)
       if roots <> [] then
         logger#error "if you use -targets, you should not specify files";
@@ -697,7 +711,13 @@ let targets_of_config (config : Core_scan_config.t) :
        *)
       if lang_opt <> None && config.rule_source <> None then
         failwith "if you use -targets and -rules, you should not specify a lang";
-      (targets, skipped)
+      let targets =
+        match target_source with
+        | Targets x -> x
+        | Target_file target_file ->
+            File.read_file target_file |> In.targets_of_string
+      in
+      filter_existing_targets targets
 
 (*****************************************************************************)
 (* Extract-mode helpers *)
@@ -802,6 +822,8 @@ let select_applicable_rules_for_target ~analyzer ~path rules =
  * This is also called now from osemgrep.
  * It takes a set of rules and a set of targets (targets derived from config,
  * and potentially also extract rules) and iteratively process those targets.
+ * coupling: If you modify this function, you probably need also to modify
+ * Deep_scan.scan() in semgrep-pro which is mostly a copy-paste of this file.
  *)
 let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
     Core_result.t =

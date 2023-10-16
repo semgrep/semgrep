@@ -14,12 +14,7 @@ local actions = import "libs/actions.libsonnet";
 local pre_commit_job = {
   'runs-on': 'ubuntu-latest',
   steps: [
-    {
-      uses: 'actions/checkout@v3',
-      with: {
-        'persist-credentials': false,
-      },
-    },
+    actions.checkout(),
     // We grab those submodules below because they are the one needed by 'mypy',
     // which runs as part of pre-commit to check our Python code.
     // alt: we could also use 'submodules: recursive' instead, but that would be slower
@@ -51,8 +46,7 @@ local pre_commit_job = {
   ],
 };
 
-// This is mostly a copy-paste of the pre-commit job above. The only difference
-// is the 'extra_args:' directive, which runs semgrep/.pre-commit-config.yaml#L150,
+// The 'extra_args:' directive runs semgrep/.pre-commit-config.yaml#L150,
 // which runs Semgrep Bandit and Semgrep Python, which we don't run on normal pre-commit
 // since they would slow down pre-commit on local development.
 // An alternative would be to add the last step of this job in the pre-commit job above,
@@ -63,12 +57,7 @@ local pre_commit_job = {
 local pre_commit_manual_job = {
   'runs-on': 'ubuntu-latest',
   steps: [
-    {
-      uses: 'actions/checkout@v3',
-      with: {
-        'persist-credentials': false,
-      },
-    },
+    actions.checkout(),
     {
       uses: 'pre-commit/action@v3.0.0',
       with: {
@@ -79,7 +68,7 @@ local pre_commit_manual_job = {
 };
 
 // Running the ocamlformat part of pre-commit, which requires a special container
-local pre_commit_ocaml_job =
+local pre_commit_ocaml_job(submodules=false) =
   {
     // Even if there's a 'container:' below, we still need a 'runs-on:', to say which VM will
     // run the Docker container. See https://github.com/orgs/community/discussions/25534
@@ -88,25 +77,21 @@ local pre_commit_ocaml_job =
     // This custom image provides 'ocamlformat' with a specific version needed to check
     // OCaml code (must be the same than the one in dev/dev.opam)
     // See https://github.com/returntocorp/ocaml-layer/blob/master/configs/ubuntu.sh
-    container: 'returntocorp/ocaml:ubuntu5.0-2023-09-29',
-    // HOME in the container is tampered by GHA and modified from /root to /home/github
-    // which then confuses opam below which can not find its ~/.opam (which is at /root/.opam)
-    // hence the ugly use of 'env: HOME ...' below.
-    // An alternative would be to run commands with 'sudo' or prefixed with 'HOME=root ...'
+    container: 'returntocorp/ocaml:ubuntu-2023-10-05',
     steps: [
-      {
-        uses: 'actions/checkout@v3',
-        with: {
-          'persist-credentials': false,
-        },
-      },
+      if submodules then actions.checkout_with_submodules() else actions.checkout(),
+      // HOME in the container is tampered by GHA and modified from /root to /home/github
+      // which then confuses opam below which can not find its ~/.opam (which is at /root/.opam)
+      // hence the ugly use of 'env: HOME ...' below.
+      // An alternative would be to run commands with 'sudo' or prefixed with 'HOME=root ...'
       {
         name: 'Check OCaml code with ocamlformat',
         env: {
           HOME: '/root',
         },
         // coupling: the version below must be the same than in dev/dev.opam
-        // Without this 'git config' command below, we would get this error in CI:
+	//
+        // Without the 'git config' command below, we would get this error in CI:
         //   fatal: detected dubious ownership in repository at '/__w/semgrep/semgrep'
         //   To add an exception for this directory, call:
         //         git config --global --add safe.directory /__w/semgrep/semgrep
@@ -116,9 +101,16 @@ local pre_commit_ocaml_job =
         // does not fail.
         // TODO: Not sure why we need to do that here but have no issue in the
         // other pre-commit jobs. Maybe because pre-commit/action@v3.0.0 does extra stuff?
+	//
         // to debug errors in pre-commit, use instead:
-        // opam exec -- pre-commit run --verbose --all lint-ocaml || cat /root/.cache/pre-commit/pre-commit.log
+	// opam exec -- pre-commit run --verbose --all lint-ocaml || cat /root/.cache/pre-commit/pre-commit.log
+	//
+	// TODO: get rid of apt-get autconf and opam update which is slow
+	// but need a more recent container: above
         run: |||
+          # When installing ocamlformat.0.26.1 OPAM will try to rebuild some packages
+          # and for that it requires 'autoconf'.
+          apt-get install -y autoconf
           opam install -y ocamlformat.0.26.1
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           opam exec -- pre-commit run --verbose --all lint-ocaml
@@ -152,7 +144,9 @@ local action_lint_job = {
 // ----------------------------------------------------------------------------
 
 {
+  name: 'lint',
   on: {
+    // can be run manually from the github Actions dashboard
     workflow_dispatch: null,
     pull_request: null,
     push: {
@@ -164,7 +158,11 @@ local action_lint_job = {
   jobs: {
     'pre-commit': pre_commit_job,
     'pre-commit-manual': pre_commit_manual_job,
-    'pre-commit-ocaml': pre_commit_ocaml_job,
+    'pre-commit-ocaml': pre_commit_ocaml_job(),
     'github-actions': action_lint_job,
   },
+  export::{
+    // reused in semgrep-pro
+    'pre-commit-ocaml': pre_commit_ocaml_job,
+  }
 }

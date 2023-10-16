@@ -34,7 +34,6 @@ from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
 from semgrep.constants import ID_KEY
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RULES_KEY
-from semgrep.constants import RuleSeverity
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
@@ -67,7 +66,7 @@ DEFAULT_CONFIG = {
             "pattern": "$X == $X",
             "message": "$X == $X is a useless equality check",
             "languages": ["python"],
-            "severity": RuleSeverity.ERROR.value,
+            "severity": out.Error().to_json(),
         },
     ],
 }
@@ -581,7 +580,7 @@ def manual_config(
         "pattern": pattern_tree,
         "message": pattern,
         "languages": [lang],
-        "severity": RuleSeverity.ERROR.value,
+        "severity": out.Error().to_json(),
     }
 
     if replacement:

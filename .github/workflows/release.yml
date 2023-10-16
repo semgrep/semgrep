@@ -135,25 +135,25 @@ jobs:
       enable-tests: false
 
   build-test-osx-x86:
-    uses: ./.github/workflows/build-test-osx-x86.yaml
+    uses: ./.github/workflows/build-test-osx-x86.yml
     secrets: inherit
 
   build-test-osx-arm64:
-    uses: ./.github/workflows/build-test-osx-arm64.yaml
+    uses: ./.github/workflows/build-test-osx-arm64.yml
     secrets: inherit
 
   build-test-core-x86:
-    uses: ./.github/workflows/build-test-core-x86.yaml
+    uses: ./.github/workflows/build-test-core-x86.yml
     secrets: inherit
 
   build-test-manylinux-x86:
     needs: [build-test-core-x86]
-    uses: ./.github/workflows/build-test-manylinux-x86.yaml
+    uses: ./.github/workflows/build-test-manylinux-x86.yml
     secrets: inherit
 
   build-test-manylinux-aarch64:
     needs: [build-test-docker]
-    uses: ./.github/workflows/build-test-manylinux-aarch64.yaml
+    uses: ./.github/workflows/build-test-manylinux-aarch64.yml
     secrets: inherit
 
   wait-for-build-test:

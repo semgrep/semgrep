@@ -167,7 +167,7 @@ let unknown_metavar_in_comparison env f =
 (* call Check_pattern subchecker *)
 let check_pattern (lang : Xlang.t) f =
   visit_new_formula
-    (fun { pat; pstr = _pat_str; pid = _ } _ ->
+    (fun { pat; pstr = _pat_str; pid = _ } ~inside:_ ->
       match (pat, lang) with
       | Sem ((lazy semgrep_pat), _lang), L (lang, _rest) ->
           Check_pattern.check lang semgrep_pat

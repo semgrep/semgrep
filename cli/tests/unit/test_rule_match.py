@@ -6,7 +6,6 @@ import pytest
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.config_resolver import parse_config_string
-from semgrep.constants import RuleSeverity
 from semgrep.dependency_aware_rule import SCA_FINDING_SCHEMA
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
@@ -43,7 +42,7 @@ def test_rule_match_attributes(mocker):
     mocker.patch.object(Path, "open", mocker.mock_open(read_data=file_content))
     match = RuleMatch(
         message="message",
-        severity=RuleSeverity.ERROR,
+        severity=out.MatchSeverity(out.Error()),
         match=out.CoreMatch(
             check_id=out.RuleId("long.rule.id"),
             path=out.Fpath("relative/path/to/foo.py"),
@@ -79,7 +78,7 @@ def test_rule_match_sorting(mocker):
     mocker.patch.object(Path, "open", mocker.mock_open(read_data=file_content))
     line3 = RuleMatch(
         message="message",
-        severity=RuleSeverity.ERROR,
+        severity=out.MatchSeverity(out.Error()),
         match=out.CoreMatch(
             check_id=out.RuleId("rule_id"),
             path=out.Fpath("foo.py"),
@@ -92,7 +91,7 @@ def test_rule_match_sorting(mocker):
     )
     line4 = RuleMatch(
         message="message",
-        severity=RuleSeverity.ERROR,
+        severity=out.MatchSeverity(out.Error()),
         match=out.CoreMatch(
             check_id=out.RuleId("rule_id"),
             path=out.Fpath("foo.py"),
@@ -122,7 +121,7 @@ def test_rule_match_hashing(mocker):
     mocker.patch.object(Path, "open", mocker.mock_open(read_data=file_content))
     match = RuleMatch(
         message="message",
-        severity=RuleSeverity.ERROR,
+        severity=out.MatchSeverity(out.Error()),
         match=out.CoreMatch(
             check_id=out.RuleId("rule_id"),
             path=out.Fpath("foo.py"),
@@ -150,7 +149,7 @@ def test_rule_match_is_nosemgrep_agnostic(mocker):
     mocker.patch.object(Path, "open", mocker.mock_open(read_data=file_content))
     match_1 = RuleMatch(
         message="message",
-        severity=RuleSeverity.ERROR,
+        severity=out.MatchSeverity(out.Error()),
         match=out.CoreMatch(
             check_id=out.RuleId("rule_id"),
             path=out.Fpath("foo.py"),
@@ -173,7 +172,7 @@ def test_rule_match_is_nosemgrep_agnostic(mocker):
     mocker.patch.object(Path, "open", mocker.mock_open(read_data=file_content))
     match_2 = RuleMatch(
         message="message",
-        severity=RuleSeverity.ERROR,
+        severity=out.MatchSeverity(out.Error()),
         match=out.CoreMatch(
             check_id=out.RuleId("rule_id"),
             path=out.Fpath("foo.py"),
@@ -197,7 +196,7 @@ def test_rule_match_is_nosemgrep_agnostic(mocker):
     mocker.patch.object(Path, "open", mocker.mock_open(read_data=file_content))
     match_3 = RuleMatch(
         message="message",
-        severity=RuleSeverity.ERROR,
+        severity=out.MatchSeverity(out.Error()),
         match=out.CoreMatch(
             check_id=out.RuleId("rule_id"),
             path=out.Fpath("foo.py"),
@@ -232,7 +231,7 @@ def test_rule_match_set_indexes(mocker):
     mocker.patch.object(Path, "open", mocker.mock_open(read_data=file_content))
     line3 = RuleMatch(
         message="message",
-        severity=RuleSeverity.ERROR,
+        severity=out.MatchSeverity(out.Error()),
         match=out.CoreMatch(
             check_id=out.RuleId("rule_id"),
             path=out.Fpath("foo.py"),
@@ -245,7 +244,7 @@ def test_rule_match_set_indexes(mocker):
     )
     line4 = RuleMatch(
         message="message",
-        severity=RuleSeverity.ERROR,
+        severity=out.MatchSeverity(out.Error()),
         match=out.CoreMatch(
             check_id=out.RuleId("rule_id"),
             path=out.Fpath("foo.py"),
@@ -258,7 +257,7 @@ def test_rule_match_set_indexes(mocker):
     )
     line5 = RuleMatch(
         message="message",
-        severity=RuleSeverity.ERROR,
+        severity=out.MatchSeverity(out.Error()),
         match=out.CoreMatch(
             check_id=out.RuleId("rule_id"),
             path=out.Fpath("foo.py"),
@@ -271,7 +270,7 @@ def test_rule_match_set_indexes(mocker):
     )
     line6 = RuleMatch(
         message="message",
-        severity=RuleSeverity.ERROR,
+        severity=out.MatchSeverity(out.Error()),
         match=out.CoreMatch(
             check_id=out.RuleId("rule_id"),
             path=out.Fpath("foo.py"),
@@ -285,7 +284,7 @@ def test_rule_match_set_indexes(mocker):
 
     line7 = RuleMatch(
         message="message",
-        severity=RuleSeverity.ERROR,
+        severity=out.MatchSeverity(out.Error()),
         match=out.CoreMatch(
             check_id=out.RuleId("rule_id_wrong_one"),
             path=out.Fpath("foo.py"),
@@ -339,7 +338,7 @@ def test_rule_match_to_app_finding(snapshot, mocker):
     )
     match = RuleMatch(
         message="message",
-        severity=RuleSeverity.ERROR,
+        severity=out.MatchSeverity(out.Error()),
         match=out.CoreMatch(
             check_id=out.RuleId("rule.id"),
             path=out.Fpath("foo.py"),
@@ -391,7 +390,7 @@ def create_sca_rule_match(sca_kind, reachable_in_code, transitivity):
     return RuleMatch(
         message="message",
         metadata={"sca-kind": sca_kind, "dev.semgrep.actions": ["block"]},
-        severity=RuleSeverity.ERROR,
+        severity=out.MatchSeverity(out.Error()),
         match=out.CoreMatch(
             check_id=out.RuleId("rule.id"),
             path=out.Fpath("foo.py"),

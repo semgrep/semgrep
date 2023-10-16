@@ -25,7 +25,7 @@ opam update
 brew uninstall --force semgrep
 brew uninstall --force tree-sitter
 
-SWITCH_NAME="${1:-5.0.0}"
+SWITCH_NAME="${1:-4.14.0}"
 
 #coupling: this should be the same version than in our Dockerfile
 if opam switch "${SWITCH_NAME}" ; then
