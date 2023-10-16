@@ -147,21 +147,12 @@ FROM python:3.11.4-alpine AS semgrep-cli
 
 WORKDIR /semgrep
 
-#???
-ENV PIP_DISABLE_PIP_VERSION_CHECK=true \
-    PIP_NO_CACHE_DIR=true \
-    PYTHONIOENCODING=utf8 \
-    PYTHONUNBUFFERED=1
-
 # Update to the latest packages for the base image.
 # This allows to get CVE fixes ASAP, without waiting for new builds of the base image.
 # See docker-library/python#761 for an example of such an issue in the past
 # where the time between the CVE was discovered and the package update was X days, but
 # the new base image was updated only after Y days.
-RUN apk update &&\
-    apk upgrade
-
-
+RUN apk upgrade --no-cache && \
 # Here is why we need the apk packages below:
 # - libstdc++: for the Python jsonnet binding now used in pysemgrep
 #   note: do not put libstdc++6, you'll get 'missing library' or 'unresolved
@@ -175,7 +166,7 @@ RUN apk update &&\
 #   alt: we used to have an alternate semgrep-dev.Dockerfile container to use
 #   for our benchmarks, but it complicates things and the addition of those
 #   packages do not add much to the size of the docker image (<1%).
-RUN apk add --no-cache --virtual=.run-deps\
+    apk add --no-cache --virtual=.run-deps\
     libstdc++\
     git git-lfs openssh\
     bash curl jq
@@ -183,6 +174,12 @@ RUN apk add --no-cache --virtual=.run-deps\
 # We just need the Python code in cli/.
 # The semgrep-core stuff would be copied from the other container
 COPY cli ./
+
+#???
+ENV PIP_DISABLE_PIP_VERSION_CHECK=true \
+    PIP_NO_CACHE_DIR=true \
+    PYTHONIOENCODING=utf8 \
+    PYTHONUNBUFFERED=1
 
 # Let's now simply use 'pip' to install semgrep.
 # Note the difference between .run-deps and .build-deps below.
@@ -209,7 +206,9 @@ COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe
 
 RUN ln -s semgrep-core /usr/local/bin/osemgrep
 
-# ???
+# There are a few places in the CLI where we do different things
+# depending on whether we are run from a Docker container.
+# See also Semgrep_envvars.ml and Metrics_.mli.
 ENV SEMGREP_IN_DOCKER=1 \
     SEMGREP_USER_AGENT_APPEND="Docker"
 
@@ -220,6 +219,7 @@ WORKDIR /src
 
 # Better to avoid running semgrep as root
 # See https://stackoverflow.com/questions/49193283/why-it-is-unsafe-to-run-applications-as-root-in-docker-container
+# Note though that the actual USER directive is done in Step 4.
 RUN adduser -D -u 1000 -h /home/semgrep semgrep \
     && chown semgrep /src
 
@@ -246,8 +246,9 @@ LABEL maintainer="support@semgrep.com"
 ###############################################################################
 
 # Additional build stage that sets a non-root user.
-# Can't make this the default in semgrep-cli stage because of permissions errors
-# on the mounted volume when using instructions for running semgrep with docker:
+# We can't make this the default in the semgrep-cli stage above because of
+# permissions errors on the mounted volume when using instructions for running
+# semgrep with docker:
 # `docker run -v "${PWD}:/src" -i returntocorp/semgrep semgrep`
 FROM semgrep-cli AS nonroot
 
