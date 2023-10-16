@@ -128,7 +128,7 @@ let send (info : info) packet : unit Lwt.t =
   | _ ->
       let%lwt () = Lwt.pause () in
       let%lwt () = RPC_server.Io.write info.in_begin packet in
-      Lwt.return ()
+      Lwt.return_unit
 
 let receive (info : info) : Packet.t Lwt.t =
   match info.server.state with
@@ -489,7 +489,7 @@ let check_diagnostics (notif : Notification.t) (file : Fpath.t) expected_ids =
     "diagnostics are cohesive"
     (YS.to_string (`List ids))
     (YS.to_string (`List expected_ids));
-  Lwt.return ()
+  Lwt.return_unit
 
 let assert_notif (notif : Notification.t) ?message ?kind meth =
   Alcotest.(check string) "methods should be same" notif.method_ meth;
@@ -507,7 +507,7 @@ let assert_notif (notif : Notification.t) ?message ?kind meth =
         YS.Util.(
           notif.params |> Option.get |> Structured.yojson_of_t |> member "value"
           |> member "kind" |> to_string = kind)));
-  Lwt.return ()
+  Lwt.return_unit
 
 let assert_request (req : Request.t) ?message ?kind meth =
   let open YS.Util in
@@ -524,7 +524,7 @@ let assert_request (req : Request.t) ?message ?kind meth =
       assert (
         req.params |> Option.get |> Structured.yojson_of_t |> member "value"
         |> member "kind" |> to_string = kind));
-  Lwt.return ()
+  Lwt.return_unit
 
 let _assert_message (notif : Notification.t) message =
   Alcotest.(check string)
@@ -533,7 +533,7 @@ let _assert_message (notif : Notification.t) message =
     YS.Util.(
       notif.params |> Option.get |> Structured.yojson_of_t |> member "message"
       |> to_string = message));
-  Lwt.return ()
+  Lwt.return_unit
 
 let assert_progress info message =
   let%lwt req = receive_request info in
@@ -544,7 +544,7 @@ let assert_progress info message =
 
   let%lwt notif = receive_notification info in
   let%lwt () = assert_notif notif "$/progress" ~kind:"end" in
-  Lwt.return ()
+  Lwt.return_unit
 
 let check_startup info folders (files : Fpath.t list) =
   (* initialize *)
@@ -590,7 +590,7 @@ let check_startup info folders (files : Fpath.t list) =
     |> Lwt_list.map_s Fun.id
   in
 
-  Lwt.return ()
+  Lwt.return_unit
 
 (*****************************************************************************)
 (* Tests *)
@@ -660,7 +660,7 @@ let test_ls_specs () =
                      = `String "quickfix")
                | _ -> Alcotest.fail "expected code action kind");
 
-               Lwt.return ())
+               Lwt.return_unit)
       in
 
       (* test did add *)
@@ -859,7 +859,7 @@ let test_login () =
           in
 
           assert (Regexp_engine.unanchored_match login_url_regex url);
-          Lwt.return ()))
+          Lwt.return_unit))
 
 (*****************************************************************************)
 (* Entry point *)
