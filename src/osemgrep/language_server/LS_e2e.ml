@@ -113,7 +113,7 @@ let checked_command s =
   if Sys.command s <> 0 then
     Alcotest.failf "command %s exited with non-zero code" s
 
-let open_and_write ?(mode = []) file =
+let open_and_write_default_content ?(mode = []) file =
   let oc = open_out_gen (Open_creat :: mode) 0o777 (Fpath.to_string file) in
   output_string oc default_content;
   close_out oc
@@ -233,8 +233,8 @@ let mock_files () : _ * Fpath.t list =
   (* should have preexisting matches that are not committed *)
   let existing_file = git_tmp_path / "existing.py" in
 
-  open_and_write ~mode:[ Open_wronly ] modified_file;
-  open_and_write ~mode:[ Open_wronly ] existing_file;
+  open_and_write_default_content ~mode:[ Open_wronly ] modified_file;
+  open_and_write_default_content ~mode:[ Open_wronly ] existing_file;
 
   (* checked_command (String.concat " " ["git"; "remote"; "add"; "origin"; "/tmp/origin"]);
   *)
@@ -243,11 +243,11 @@ let mock_files () : _ * Fpath.t list =
   checked_command
     (String.concat " " [ "git"; "commit"; "-m"; "\"initial commit\"" ]);
 
-  open_and_write ~mode:[ Open_append ] modified_file;
+  open_and_write_default_content ~mode:[ Open_append ] modified_file;
 
   let new_file = root / "new.py" in
   (* created after commit *)
-  open_and_write ~mode:[ Open_wronly ] new_file;
+  open_and_write_default_content ~mode:[ Open_wronly ] new_file;
 
   let files =
     [ existing_file; modified_file; new_file ]
@@ -624,7 +624,7 @@ let test_ls_specs () =
                let old_ids =
                  Common.map (fun d -> d.Diagnostic.code) params.diagnostics
                in
-               open_and_write ~mode:[ Open_append ] file;
+               open_and_write_default_content ~mode:[ Open_append ] file;
 
                (* didSave *)
                let%lwt () = send_did_save info file in
