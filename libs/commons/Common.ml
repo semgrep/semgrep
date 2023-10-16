@@ -72,14 +72,14 @@ let ( = ) = String.equal
 (* Debugging/logging *)
 (*****************************************************************************)
 
-let pr ?(newline = true) s =
+let pr s =
   print_string s;
-  if newline then print_string "\n";
+  print_string "\n";
   flush stdout
 
-let pr2 ?(newline = true) s =
+let pr2 s =
   prerr_string s;
-  if newline then prerr_string "\n";
+  prerr_string "\n";
   flush stderr
 
 let _already_printed = Hashtbl.create 101
