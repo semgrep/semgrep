@@ -810,13 +810,19 @@ let select_applicable_rules_for_analyzer ~analyzer rules =
    or something even better to reduce the time spent on each target in
    case we have a high number of rules and a high fraction of irrelevant
    rules? *)
-let select_applicable_rules_for_target ~analyzer ~path rules =
+let select_applicable_rules_for_target ~analyzer ~path ~respect_rule_paths rules
+    =
   select_applicable_rules_for_analyzer ~analyzer rules
   |> List.filter (fun r ->
-         (* Honor per-rule include/exclude *)
+         (* Honor per-rule include/exclude.
+          * Note that this also done in pysemgrep, but we need to do it
+          * again here for osemgrep which use a different file targeting
+          * strategy.
+          *)
          match r.R.paths with
-         | None -> true
-         | Some paths -> Filter_target.filter_paths paths path)
+         | Some paths when respect_rule_paths ->
+             Filter_target.filter_paths paths path
+         | _else -> true)
 
 (* This is the main function used by pysemgrep right now.
  * This is also called now from osemgrep.
@@ -863,7 +869,8 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
            let file = Fpath.v target.path in
            let analyzer = target.analyzer in
            let applicable_rules =
-             select_applicable_rules_for_target ~analyzer ~path:file valid_rules
+             select_applicable_rules_for_target ~analyzer ~path:file
+               ~respect_rule_paths:config.respect_rule_paths valid_rules
            in
            let was_scanned =
              match applicable_rules with
