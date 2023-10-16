@@ -366,9 +366,8 @@ class SarifFormatter(BaseFormatter):
 
     @staticmethod
     def _semgrep_error_to_sarif_notification(error: SemgrepError) -> Mapping[str, Any]:
-        # TODO: replace error_to_dict with typed error.to_CliError
-        error_dict = error.to_dict()
-        descriptor = error_dict["type"]
+        cli_error = error.to_CliError()
+        descriptor = cli_error.type_
 
         error_to_sarif_level = {
             out.Error_(): "error",
@@ -376,11 +375,11 @@ class SarifFormatter(BaseFormatter):
         }
         level = error_to_sarif_level[error.level.value]
 
-        message = error_dict.get("message")
+        message = cli_error.message
         if message is None:
-            message = error_dict.get("long_msg")
+            message = cli_error.long_msg
         if message is None:
-            message = error_dict.get("short_msg", "")
+            message = cli_error.short_msg or ""
 
         return {
             "descriptor": {"id": descriptor},

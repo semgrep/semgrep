@@ -3,9 +3,7 @@ import inspect
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 from typing import cast
-from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Sequence
@@ -68,6 +66,7 @@ class SemgrepError(Exception):
         self.level = level
         super().__init__(*args)
 
+    # to be overriden in children
     def type_(self) -> out.ErrorType:
         return out.ErrorType(out.SemgrepError())
 
@@ -83,9 +82,6 @@ class SemgrepError(Exception):
         """
         return dataclasses.replace(base, message=str(self))
 
-    def to_dict(self) -> Dict[str, Any]:
-        return cast(Dict[str, Any], self.to_CliError().to_json())
-
     def format_for_terminal(self) -> str:
         level_tag = (
             with_color(Colors.red, "[", bgcolor=Colors.red)
@@ -100,7 +96,7 @@ class SemgrepError(Exception):
 
         return f"{level_tag} {self}"
 
-    # TODO: @classmethod?
+    # stored in our metrics payload.errors.errors
     def semgrep_error_type(self) -> str:
         return str(self.type_().to_json())
 
@@ -129,6 +125,9 @@ class SemgrepCoreError(SemgrepError):
         # and have some <json name="..."> annotations to generate the right string
         else:
             return str(type_.to_json())
+
+    def semgrep_error_type(self) -> str:
+        return self._error_type_string()
 
     def type_(self) -> out.ErrorType:
         return self.core.error_type
@@ -170,10 +169,6 @@ class SemgrepCoreError(SemgrepError):
         Return if this error is a match timeout
         """
         return isinstance(self.core.error_type.value, out.Timeout)
-
-    # TODO: remove this SemgrepCoreError prefix
-    def semgrep_error_type(self) -> str:
-        return f"SemgrepCoreError: {self._error_type_string()}"
 
     @property
     def _error_message(self) -> str:
@@ -443,6 +438,7 @@ class UnknownLanguageError(ErrorWithSpan):
 
 
 # cf. https://stackoverflow.com/questions/1796180/how-can-i-get-a-list-of-all-classes-within-current-module-in-python/1796247#1796247
+# This is used only in join_rules.py
 ERROR_MAP = {
     classname: classdef
     for classname, classdef in inspect.getmembers(
