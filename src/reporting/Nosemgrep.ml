@@ -1,4 +1,4 @@
-open Common
+(* open Common *)
 module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
@@ -128,15 +128,18 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
       let ids = Common.map List.hd (* nosemgrep: list-hd *) ids in
       (* [String.split_on_char] can **not** return an empty list. *)
       (* check if the id specified by the user is the [rule_match]'s [rule_id]. *)
-      let rule_id_last =
-        rule_match.Out.check_id |> String.split_on_char '.' |> Common2.list_last
+      let nosem_matches id =
+        (* TODO: `check_id` and `'id` should both be `Rule_ID.t`s. *)
+        Rule_ID.ends_with
+          (Rule_ID.of_string rule_match.Out.check_id)
+          ~suffix:(Rule_ID.of_string id)
       in
       List.fold_left
         (fun (result, errors) id ->
           let errors =
-            (* If the rule-id is 'foo.bar.my-rule' we accept both 'foo.bar.my-rule' and 'my-rule'. *)
-            if strict && id <> rule_match.Out.check_id && id <> rule_id_last
-            then
+            (* If the rule-id is 'foo.bar.my-rule' we accept 'foo.bar.my-rule' as well as
+             * any suffix of it such as 'my-rule' or 'bar.my-rule'. *)
+            if strict && not (nosem_matches id) then
               let msg =
                 Format.asprintf
                   "found 'nosem' comment with id '%s', but no corresponding \
@@ -160,7 +163,7 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
               cli_error :: errors
             else errors
           in
-          (id = rule_match.Out.check_id || result, errors))
+          (nosem_matches id || result, errors))
         (false, []) ids
 
 (*****************************************************************************)
