@@ -6,7 +6,14 @@
       "message": "Incompatible rule rules.need-to-upgrade1:\n This rule requires upgrading Semgrep from version <MASKED> to at least 1000.0.0",
       "path": "<MASKED>",
       "rule_id": "rules.need-to-upgrade1",
-      "type": "Incompatible rule"
+      "type": [
+        "IncompatibleRule",
+        {
+          "min_version": "1000.0.0",
+          "rule_id": "rules.need-to-upgrade1",
+          "this_version": "<MASKED>"
+        }
+      ]
     },
     {
       "code": 0,
@@ -14,7 +21,14 @@
       "message": "Incompatible rule rules.need-to-upgrade2:\n This rule requires upgrading Semgrep from version <MASKED> to at least 1.1000.0",
       "path": "<MASKED>",
       "rule_id": "rules.need-to-upgrade2",
-      "type": "Incompatible rule"
+      "type": [
+        "IncompatibleRule",
+        {
+          "min_version": "1.1000.0",
+          "rule_id": "rules.need-to-upgrade2",
+          "this_version": "<MASKED>"
+        }
+      ]
     },
     {
       "code": 0,
@@ -22,7 +36,14 @@
       "message": "Incompatible rule rules.retired-feature1:\n This rule is no longer supported by Semgrep. The last compatible version was 0.0.0. This version of Semgrep is <MASKED>",
       "path": "<MASKED>",
       "rule_id": "rules.retired-feature1",
-      "type": "Incompatible rule"
+      "type": [
+        "IncompatibleRule",
+        {
+          "max_version": "0.0.0",
+          "rule_id": "rules.retired-feature1",
+          "this_version": "<MASKED>"
+        }
+      ]
     },
     {
       "code": 0,
@@ -30,7 +51,14 @@
       "message": "Incompatible rule rules.retired-feature2:\n This rule is no longer supported by Semgrep. The last compatible version was 0.0.1000. This version of Semgrep is <MASKED>",
       "path": "<MASKED>",
       "rule_id": "rules.retired-feature2",
-      "type": "Incompatible rule"
+      "type": [
+        "IncompatibleRule",
+        {
+          "max_version": "0.0.1000",
+          "rule_id": "rules.retired-feature2",
+          "this_version": "<MASKED>"
+        }
+      ]
     },
     {
       "code": 0,
@@ -38,7 +66,14 @@
       "message": "Incompatible rule rules.retired-feature3:\n This rule is no longer supported by Semgrep. The last compatible version was 0.1000.0. This version of Semgrep is <MASKED>",
       "path": "<MASKED>",
       "rule_id": "rules.retired-feature3",
-      "type": "Incompatible rule"
+      "type": [
+        "IncompatibleRule",
+        {
+          "max_version": "0.1000.0",
+          "rule_id": "rules.retired-feature3",
+          "this_version": "<MASKED>"
+        }
+      ]
     },
     {
       "code": 0,
@@ -46,7 +81,14 @@
       "message": "Incompatible rule rules.past-version-range:\n This rule is no longer supported by Semgrep. The last compatible version was 0.8.3. This version of Semgrep is <MASKED>",
       "path": "<MASKED>",
       "rule_id": "rules.past-version-range",
-      "type": "Incompatible rule"
+      "type": [
+        "IncompatibleRule",
+        {
+          "max_version": "0.8.3",
+          "rule_id": "rules.past-version-range",
+          "this_version": "<MASKED>"
+        }
+      ]
     },
     {
       "code": 0,
@@ -54,7 +96,14 @@
       "message": "Incompatible rule rules.future-version-range:\n This rule requires upgrading Semgrep from version <MASKED> to at least 49.1.7",
       "path": "<MASKED>",
       "rule_id": "rules.future-version-range",
-      "type": "Incompatible rule"
+      "type": [
+        "IncompatibleRule",
+        {
+          "min_version": "49.1.7",
+          "rule_id": "rules.future-version-range",
+          "this_version": "<MASKED>"
+        }
+      ]
     },
     {
       "code": 0,
@@ -62,7 +111,14 @@
       "message": "Incompatible rule rules.empty-version-range:\n This rule requires upgrading Semgrep from version <MASKED> to at least 2.0.0",
       "path": "<MASKED>",
       "rule_id": "rules.empty-version-range",
-      "type": "Incompatible rule"
+      "type": [
+        "IncompatibleRule",
+        {
+          "min_version": "2.0.0",
+          "rule_id": "rules.empty-version-range",
+          "this_version": "<MASKED>"
+        }
+      ]
     }
   ],
   "paths": {

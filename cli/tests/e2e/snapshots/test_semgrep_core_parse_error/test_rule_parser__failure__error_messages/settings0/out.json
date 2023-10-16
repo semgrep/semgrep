@@ -37,7 +37,16 @@
           }
         }
       ],
-      "type": "Pattern parse error"
+      "type": [
+        "Pattern parse error",
+        [
+          "pattern-not",
+          "1",
+          "patterns",
+          "0",
+          "rules"
+        ]
+      ]
     }
   ],
   "paths": {
