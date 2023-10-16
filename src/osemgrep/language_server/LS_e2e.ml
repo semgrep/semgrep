@@ -220,8 +220,8 @@ let git_tmp_path () =
 
 let assert_contains (json : Json.t) str =
   let json_str = YS.to_string json in
-  if Common.contains json_str str then ()
-  else Alcotest.failf "Expected string `%s` in response %s" str json_str
+  if not (Common.contains json_str str) then
+    Alcotest.failf "Expected string `%s` in response %s" str json_str
 
 let mock_files () : _ * Fpath.t list =
   let git_tmp_path = Fpath.v (git_tmp_path ()) in
@@ -284,7 +284,7 @@ let mock_workspaces () =
      folder names which use the letters a-e.
   *)
   let workspace2_root =
-    String.sub workspace1_root 0 (String.length workspace1_root - 1) ^ "z"
+    Str.first_chars workspace1_root (String.length workspace1_root - 1) ^ "z"
   in
   FileUtil.cp ~recurse:true [ workspace1_root ] workspace2_root;
 
@@ -653,8 +653,8 @@ let test_ls_specs () =
                  receive_response_result CodeActionResult.t_of_yojson info
                in
                assert (List.length (Option.get res) = 1);
-               (match res |> Option.get |> List.hd with
-               | `CodeAction { kind; _ } ->
+               (match res with
+               | Some (`CodeAction { kind; _ } :: _) ->
                    assert (
                      CodeActionKind.yojson_of_t (Option.get kind)
                      = `String "quickfix")
@@ -665,6 +665,7 @@ let test_ls_specs () =
 
       (* test did add *)
       let added = Fpath.(root / "added.py") in
+      (* nosem *)
       FileUtil.cp [ List.hd files |> Fpath.to_string ] (added |> Fpath.to_string);
 
       let%lwt () = send_did_add info added in
