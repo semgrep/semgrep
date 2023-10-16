@@ -4,11 +4,11 @@ name: semgrep
   pull_request_target: {}
   push:
     branches:
-      - develop
+    - develop
     paths:
-      - .github/workflows/semgrep.yml
+    - .github/workflows/semgrep.yml
   schedule:
-    - cron: 50 15 * * *
+  - cron: 50 15 * * *
 jobs:
   semgrep-ci:
     if: (github.actor != 'dependabot[bot]')
@@ -19,5 +19,5 @@ jobs:
       SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
       E2E_APP_TOKEN: ${{ secrets.SEMGREP_E2E_APP_TOKEN }}
     steps:
-      - uses: actions/checkout@v3
-      - run: semgrep ci
+    - uses: actions/checkout@v3
+    - run: semgrep ci
