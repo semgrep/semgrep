@@ -46,11 +46,11 @@ val ( =*= ) : 'a -> 'a -> bool
 
 (* Same as print_endline: print the string and a newline, then flush stdout.
  * Just shorter. *)
-val pr : string -> unit
+val pr : ?newline:bool -> string -> unit
 
 (* Print a string and a newline to stderr, then flush stderr. The '2'
  * is used to refect that it prints on stderr (file descriptor '2' in Unix). *)
-val pr2 : string -> unit
+val pr2 : ?newline:bool -> string -> unit
 
 (* Print on stderr any data structure (using Dumper.dump) *)
 val pr2_gen : 'a -> unit

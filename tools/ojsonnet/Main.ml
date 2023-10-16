@@ -80,12 +80,12 @@ let run (conf : conf) =
   match conf.format with
   | JSON ->
       let str = JSON.string_of_json json in
-      pr str
+      pr ~newline:false str
   | YAML ->
       let y = JSON.to_yojson json in
       let v = yojson_to_yaml_value y in
       let str = Yaml.to_string_exn v in
-      pr str
+      pr ~newline:false str
 
 (*****************************************************************************)
 (* Cmdliner boilerplate *)
