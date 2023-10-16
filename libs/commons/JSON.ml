@@ -2,7 +2,9 @@ module Y = Yojson.Basic
 
 (* compatibility mode with json-wheel *)
 
-(* a JSON object as a string *)
+(* a JSON value as a string, e.g., "\"Foobar\"", "true", "[1,2]".
+ * TODO: use a JsonStr of string instead of an alias for stricter typeing?
+ *)
 type str = string
 
 type t =
@@ -78,3 +80,19 @@ let update source updates =
       let ys = List.sort (Common2.on String.compare fst) ys in
       `Assoc (merge (Common2.on String.compare fst) (fun _ x -> x) xs ys)
   | _ -> updates
+
+(* When a json is not a [String ...]  *)
+exception NotAJString of t
+
+(* ATDgen does not support the ability to get the string
+ * of a type; you can get the json string (that is what will
+ * be ultimately saved in a .json file), but not the
+ * string so we need this hacky function to return the string.
+ *
+ * alt: could use regexp to remove the quotes
+ *)
+let remove_enclosing_quotes_of_jstring (str : str) : string =
+  match json_of_string str with
+  (* this will have the effect of removing the quote *)
+  | String s -> s
+  | x -> raise (NotAJString x)

@@ -117,13 +117,34 @@ let string_of_error_type (error_type : Out.error_type) : string =
   match error_type with
   (* # convert to the same string of core.ParseError for now *)
   | PartialParsing _ -> "Syntax error"
-  | PatternParseError _ -> "Pattern parse error"
   (* other constructors with arguments *)
+  | PatternParseError _ -> "Pattern parse error"
   | IncompatibleRule _ -> "Incompatible rule"
   (* All the other cases don't have arguments in Semgrep_output_v1.atd
    * and have some <json name="..."> annotations to generate the right string
+   * so we can mostly just call Out.string_of_error_type (and remove the
+   * quotes)
    *)
-  | _else_ -> Out.string_of_error_type error_type
+  | LexicalError
+  | RuleParseError
+  | SemgrepError
+  | InvalidRuleSchemaError
+  | UnknownLanguageError
+  | MissingPlugin
+  | ParseError
+  | SpecifiedParseError
+  | AstBuilderError
+  | InvalidYaml
+  | MatchingError
+  | SemgrepMatchFound
+  | TooManyMatches
+  | FatalError
+  | Timeout
+  | OutOfMemory
+  | TimeoutDuringInterfile
+  | OutOfMemoryDuringInterfile ->
+      Out.string_of_error_type error_type
+      |> JSON.remove_enclosing_quotes_of_jstring
 
 (* Generate error message exposed to user *)
 let error_message ~rule_id ~(location : Out.location)

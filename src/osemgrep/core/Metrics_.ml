@@ -377,7 +377,9 @@ let add_targets_stats (targets : Fpath.t Set_.t)
     Some (targets |> Common.map File.filesize |> Common2.sum_int);
   g.payload.performance.numTargets <- Some (List.length targets)
 
-(* TODO? enough? *)
+(* TODO? type_ is enough? or want also to log the path? but too
+ * privacy sensitive maybe?
+ *)
 let string_of_error (err : Out.cli_error) : string =
   Out.string_of_error_type err.type_
 
