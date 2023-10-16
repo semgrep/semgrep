@@ -25,6 +25,7 @@ module In = Input_to_core_t
 module SR = Server_request
 module CR = Client_request
 module CN = Client_notification
+module YS = Yojson.Safe
 module LanguageServer = LS.LanguageServer
 open Jsonrpc
 
@@ -71,10 +72,6 @@ let create_info () =
   { server; in_begin; out_end }
 
 (*****************************************************************************)
-(* Mocking and testing functions *)
-(*****************************************************************************)
-
-(*****************************************************************************)
 (* Constants *)
 (*****************************************************************************)
 
@@ -107,6 +104,19 @@ let () =
     fun exn ->
       let err = Printexc.to_string exn in
       Alcotest.fail err
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let checked_command s =
+  if Sys.command s <> 0 then
+    Alcotest.failf "command %s exited with non-zero code" s
+
+let open_and_write ?(mode = []) file =
+  let oc = open_out_gen (Open_creat :: mode) 0o777 (Fpath.to_string file) in
+  output_string oc default_content;
+  close_out oc
 
 (*****************************************************************************)
 (* Core primitives *)
@@ -153,47 +163,47 @@ let send_custom_notification ~meth ?params info =
 
 let receive_response (info : info) : Response.t Lwt.t =
   let%lwt packet = receive info in
-  Logs.err (fun m -> m "Consuming response");
   match packet with
   | Packet.Response resp -> Lwt.return resp
   | _ ->
       Alcotest.failf "expected valid response, got %s"
-        (Packet.yojson_of_t packet |> Yojson.Safe.to_string)
+        (Packet.yojson_of_t packet |> YS.to_string)
 
-let receive_response_result f (info : info) : _ Lwt.t =
+(* This function simply preprocesses the result inside of the response with
+   a specific function before returning, instead of leaving it to be
+   unpacked later.
+*)
+let receive_response_result (f : Json.t -> 'a) (info : info) : 'a Lwt.t =
   let%lwt resp = receive_response info in
   Lwt.return (resp.result |> Result.get_ok |> f)
 
 let receive_notification (info : info) : Notification.t Lwt.t =
   let%lwt packet = receive info in
-  Logs.err (fun m -> m "Consuming notification");
   match packet with
   | Packet.Notification notif -> Lwt.return notif
   | _ ->
       Alcotest.failf "expected notification, got %s"
-        (Packet.yojson_of_t packet |> Yojson.Safe.to_string)
+        (Packet.yojson_of_t packet |> YS.to_string)
 
-let receive_notification_params (f : Yojson.Safe.t -> _) (info : info) : _ Lwt.t
-    =
+(* This function simply preprocesses the parameters of the notification
+   with a specific function before returning, instead of leaving it to be
+   unpacked later.
+*)
+let receive_notification_params (f : YS.t -> 'a) (info : info) : 'a Lwt.t =
   let%lwt notif = receive_notification info in
   Lwt.return (f (notif.params |> Option.get |> Structured.yojson_of_t))
 
 let receive_request (info : info) : Request.t Lwt.t =
   let%lwt packet = receive info in
-  Logs.err (fun m -> m "Consuming request");
   match packet with
   | Packet.Request req -> Lwt.return req
   | _ ->
       Alcotest.failf "expected request, got %s"
-        (Packet.yojson_of_t packet |> Yojson.Safe.to_string)
+        (Packet.yojson_of_t packet |> YS.to_string)
 
 (*****************************************************************************)
 (* Mocking and testing functions *)
 (*****************************************************************************)
-
-let checked_command s =
-  if Sys.command s <> 0 then
-    Alcotest.failf "command %s exited with non-zero code" s
 
 let git_tmp_path () =
   Testutil_files.with_tempdir ~persist:true (fun dir ->
@@ -208,20 +218,13 @@ let git_tmp_path () =
       checked_command (String.concat " " [ "git"; "checkout"; "-B"; "main" ]);
       dir)
 
-let open_and_write ?(mode = []) file =
-  let oc = open_out_gen (Open_creat :: mode) 0o777 (Fpath.to_string file) in
-  output_string oc default_content;
-  close_out oc
-
 let assert_contains (json : Json.t) str =
-  let json_str = Yojson.Safe.to_string json in
+  let json_str = YS.to_string json in
   if Common.contains json_str str then ()
   else Alcotest.failf "Expected string `%s` in response %s" str json_str
 
 let mock_files () : _ * Fpath.t list =
   let git_tmp_path = Fpath.v (git_tmp_path ()) in
-
-  Logs.err (fun m -> m "git temp dir is %s" (Fpath.to_string git_tmp_path));
 
   let open Fpath in
   let root = git_tmp_path in
@@ -468,9 +471,8 @@ let send_semgrep_show_ast info ?(named = false) (path : Fpath.t) =
 (*****************************************************************************)
 
 let check_diagnostics (notif : Notification.t) (file : Fpath.t) expected_ids =
-  let open Yojson.Safe.Util in
+  let open YS.Util in
   let resp = Notification.yojson_of_t notif in
-  let uri = resp |> member "params" |> member "uri" |> to_string in
   Alcotest.(check string)
     "method is publishDiagnostics"
     (resp |> member "method" |> to_string)
@@ -485,29 +487,30 @@ let check_diagnostics (notif : Notification.t) (file : Fpath.t) expected_ids =
   in
   Alcotest.(check string)
     "diagnostics are cohesive"
-    (Yojson.Safe.to_string (`List ids))
-    (Yojson.Safe.to_string (`List expected_ids));
+    (YS.to_string (`List ids))
+    (YS.to_string (`List expected_ids));
   Lwt.return ()
 
 let assert_notif (notif : Notification.t) ?message ?kind meth =
-  let open Yojson.Safe.Util in
   Alcotest.(check string) "methods should be same" notif.method_ meth;
   (match message with
   | None -> ()
   | Some message ->
       assert (
-        notif.params |> Option.get |> Structured.yojson_of_t |> member "value"
-        |> member "message" |> to_string = message));
+        YS.Util.(
+          notif.params |> Option.get |> Structured.yojson_of_t |> member "value"
+          |> member "message" |> to_string = message)));
   (match kind with
   | None -> ()
   | Some kind ->
       assert (
-        notif.params |> Option.get |> Structured.yojson_of_t |> member "value"
-        |> member "kind" |> to_string = kind));
+        YS.Util.(
+          notif.params |> Option.get |> Structured.yojson_of_t |> member "value"
+          |> member "kind" |> to_string = kind)));
   Lwt.return ()
 
 let assert_request (req : Request.t) ?message ?kind meth =
-  let open Yojson.Safe.Util in
+  let open YS.Util in
   assert (req.method_ = meth);
   (match message with
   | None -> ()
@@ -524,12 +527,12 @@ let assert_request (req : Request.t) ?message ?kind meth =
   Lwt.return ()
 
 let _assert_message (notif : Notification.t) message =
-  let open Yojson.Safe.Util in
   Alcotest.(check string)
     "methods should be same" notif.method_ "window/showMessage";
   assert (
-    notif.params |> Option.get |> Structured.yojson_of_t |> member "message"
-    |> to_string = message);
+    YS.Util.(
+      notif.params |> Option.get |> Structured.yojson_of_t |> member "message"
+      |> to_string = message));
   Lwt.return ()
 
 let assert_progress info message =
@@ -551,9 +554,6 @@ let check_startup info folders (files : Fpath.t list) =
   assert_contains (Response.yojson_of_t resp) "capabilities";
 
   let%lwt () = send_initialized info in
-  (* commented out means we do not loop, we exit randomly *)
-  (* if true then failwith "after initialized";
-  *)
   let%lwt () = assert_progress info "Refreshing Rules" in
 
   let%lwt () = assert_progress info "Scanning Workspace" in
@@ -571,7 +571,7 @@ let check_startup info folders (files : Fpath.t list) =
   let scan_notifications =
     List.sort
       (fun (x : Notification.t) (y : Notification.t) ->
-        let open Yojson.Safe.Util in
+        let open YS.Util in
         String.compare
           (x.params |> Option.get |> Structured.yojson_of_t |> member "uri"
          |> to_string)
@@ -702,13 +702,12 @@ let test_ls_ext () =
           let%lwt num_ids =
             Lwt_list.map_s
               (fun _ ->
-                (* THINK? *)
-                let open Yojson.Safe.Util in
                 let%lwt notif = receive_notification info in
                 Lwt.return
-                  (List.length
-                     (notif.params |> Option.get |> Structured.yojson_of_t
-                    |> member "diagnostics" |> to_list)))
+                  YS.Util.(
+                    List.length
+                      (notif.params |> Option.get |> Structured.yojson_of_t
+                     |> member "diagnostics" |> to_list)))
               scanned_files
           in
 
@@ -716,7 +715,7 @@ let test_ls_ext () =
           let%lwt () = send_semgrep_scan_workspace ~full:true info in
 
           (*
-      only once we port
+      only once we port middleware message
       let%lwt notif = receive_notification info in
       let%lwt () = assert_message notif
         "Scanning all files regardless of git status. These diagnostics will persist until a file is edited. To default to always scanning regardless of git status, please disable 'Only Git Dirty' in settings"
@@ -726,21 +725,21 @@ let test_ls_ext () =
 
           let%lwt () =
             files
-            |> Lwt_list.iteri_s (fun i _ ->
-                   let open Yojson.Safe.Util in
-                   let%lwt notif = receive_notification info in
-                   let uri =
-                     notif.params |> Option.get |> Structured.yojson_of_t
-                     |> member "uri"
-                   in
-                   if Common.contains (Yojson.Safe.to_string uri) "modified"
-                   then
-                     assert (
-                       List.length
-                         (notif.params |> Option.get |> Structured.yojson_of_t
-                        |> member "diagnostics" |> to_list)
-                       > List.nth num_ids i);
-                   Lwt.return_unit)
+            |> Lwt_list.iteri_s
+                 YS.Util.(
+                   fun i _ ->
+                     let%lwt notif = receive_notification info in
+                     let uri =
+                       notif.params |> Option.get |> Structured.yojson_of_t
+                       |> member "uri"
+                     in
+                     if Common.contains (YS.to_string uri) "modified" then
+                       assert (
+                         List.length
+                           (notif.params |> Option.get |> Structured.yojson_of_t
+                          |> member "diagnostics" |> to_list)
+                         > List.nth num_ids i);
+                     Lwt.return_unit)
           in
 
           (* Check did open does not rescan if diagnostics exist *)
@@ -760,7 +759,7 @@ let test_ls_ext () =
           let%lwt () = send_semgrep_search info "print(...)" in
           let%lwt resp = receive_response info in
           assert (
-            Yojson.Safe.Util.(
+            YS.Util.(
               resp.result |> Result.get_ok |> member "locations" |> to_list
               |> List.length = 3));
 
@@ -771,7 +770,8 @@ let test_ls_ext () =
                    let%lwt () = send_hover info file ~character:1 ~line:0 in
                    let%lwt resp = receive_response info in
                    assert (resp.result |> Result.get_ok <> `Null);
-                   Yojson.Safe.Util.(
+                   (* just checking that "contents" exists *)
+                   YS.Util.(
                      resp.result |> Result.get_ok |> member "contents" |> ignore);
                    Lwt.return_unit)
           in
@@ -783,7 +783,7 @@ let test_ls_ext () =
                    let%lwt () = send_semgrep_show_ast info file in
                    let%lwt resp = receive_response info in
                    let resp =
-                     resp.result |> Result.get_ok |> Yojson.Safe.Util.to_string
+                     resp.result |> Result.get_ok |> YS.Util.to_string
                    in
                    assert (Regexp_engine.unanchored_match prog_regex resp);
                    Lwt.return_unit)
@@ -821,7 +821,7 @@ let test_ls_multi () =
                then (
                  Alcotest.(check int)
                    "check number of diagnostics is good"
-                   Yojson.Safe.Util.(
+                   YS.Util.(
                      List.length
                        (notif.params |> Option.get |> Structured.yojson_of_t
                       |> member "diagnostics" |> to_list))
@@ -855,8 +855,7 @@ let test_login () =
           let%lwt msg = receive_response info in
 
           let url =
-            Yojson.Safe.Util.(
-              msg.result |> Result.get_ok |> member "url" |> to_string)
+            YS.Util.(msg.result |> Result.get_ok |> member "url" |> to_string)
           in
 
           assert (Regexp_engine.unanchored_match login_url_regex url);
