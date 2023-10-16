@@ -270,7 +270,9 @@ class Metrics:
 
     @suppress_errors
     def add_errors(self, errors: List[SemgrepError]) -> None:
-        self.payload.errors.errors = [e.semgrep_error_type() for e in errors]
+        self.payload.errors.errors = [
+            met.Error(e.type_().to_json_string()) for e in errors
+        ]
 
     @suppress_errors
     def add_profiling(self, profiler: ProfileManager) -> None:
