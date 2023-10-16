@@ -26,6 +26,13 @@ from semgrep.constants import YML_TEST_SUFFIXES
 
 T = TypeVar("T")
 
+# The character which is used to mask out findings content which we don't want
+# to appear in logs. For instance, secrets findings and metavariable content
+# from a findings match is masked using this.
+MASK_CHAR = "*"
+# The amount in [0, 1] to show of matches which are subject to masking. If this
+# is 0.2, then 20% of the match (rounded down) is shown.
+MASK_SHOW_PCT = 0.2
 
 MAX_TEXT_WIDTH = 120
 

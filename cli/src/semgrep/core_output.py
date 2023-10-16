@@ -101,9 +101,27 @@ def core_matches_to_rule_matches(
     rule_table = {rule.id: rule for rule in rules}
 
     def interpolate(
-        text: str, metavariables: Dict[str, str], propagated_values: Dict[str, str]
+        text: str,
+        metavariables: Dict[str, str],
+        propagated_values: Dict[str, str],
+        mask_metavariables: bool,
     ) -> str:
         """Interpolates a string with the metavariables contained in it, returning a new string"""
+        if mask_metavariables:
+            for metavariable in metavariables.keys():
+                metavariable_content = metavariables[metavariable]
+                show_until = int(len(metavariable_content) * util.MASK_SHOW_PCT)
+                masked_content = metavariable_content[:show_until] + util.MASK_CHAR * (
+                    len(metavariable_content) - show_until
+                )
+                metavariables[metavariable] = masked_content
+
+                metavariable_value = propagated_values[metavariable]
+                show_until = int(len(metavariable_content) * util.MASK_SHOW_PCT)
+                masked_value = metavariable_value[:show_until] + util.MASK_CHAR * (
+                    len(metavariable_content) - show_until
+                )
+                propagated_values[metavariable] = masked_value
 
         # Sort by metavariable length to avoid name collisions (eg. $X2 must be handled before $X)
         for metavariable in sorted(metavariables.keys(), key=len, reverse=True):
@@ -147,7 +165,15 @@ def core_matches_to_rule_matches(
         matched_values, propagated_values = read_metavariables(match)
 
         message = match.extra.message if match.extra.message else rule.message
-        message = interpolate(message, matched_values, propagated_values)
+        logger.debug(
+            f"{isinstance(rule.product.value, out.Secrets)}, {rule.product.value}"
+        )
+        message = interpolate(
+            message,
+            matched_values,
+            propagated_values,
+            isinstance(rule.product.value, out.Secrets),
+        )
 
         metadata = rule.metadata
         if match.extra.metadata:
@@ -157,7 +183,12 @@ def core_matches_to_rule_matches(
             fix = match.extra.rendered_fix
             logger.debug(f"Using AST-based autofix rendered in semgrep-core: `{fix}`")
         elif rule.fix is not None:
-            fix = interpolate(rule.fix, matched_values, propagated_values)
+            fix = interpolate(
+                rule.fix,
+                matched_values,
+                propagated_values,
+                isinstance(rule.product.value, out.Secrets),
+            )
             logger.debug(f"Using text-based autofix rendered in cli: `{fix}`")
         else:
             fix = None
