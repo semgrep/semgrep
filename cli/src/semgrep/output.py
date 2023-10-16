@@ -5,7 +5,6 @@ from collections import defaultdict
 from functools import reduce
 from pathlib import Path
 from typing import Any
-from typing import cast
 from typing import Collection
 from typing import Dict
 from typing import FrozenSet
@@ -331,9 +330,9 @@ class OutputHandler:
             # errors, they didn't affect the whether files were analyzed, but were a different
             # kind of error (for example, baseline commit not found)
             semgrep_core_errors = [
-                cast(SemgrepCoreError, err)
+                err
                 for err in self.semgrep_structured_errors
-                if SemgrepError.semgrep_error_type(err) == "SemgrepCoreError"
+                if isinstance(err, SemgrepCoreError)
             ]
 
             failed_to_analyze_lines_by_path = self._make_failed_to_analyze(

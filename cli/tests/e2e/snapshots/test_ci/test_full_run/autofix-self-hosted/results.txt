@@ -81,7 +81,7 @@ CI="true" SEMGREP_REPO_NAME="org_name/project_name/project_name" SEMGREP_REPO_UR
   CONNECTION
   Reporting start of scan for deployment_name (scan_id=<MagicMock name='post()…
   Fetching configuration from Semgrep Cloud Platform
-  Enabled products: Semgrep Code, Semgrep Supply Chain
+  Enabled products: Code, Supply Chain
 
 ┌─────────────┐
 │ Scan Status │

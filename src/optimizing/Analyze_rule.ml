@@ -16,8 +16,8 @@ open Common
 module R = Rule
 module XP = Xpattern
 module MV = Metavariable
-module J = JSON
 module SP = Semgrep_prefilter_t
+module MvarSet = Common2.StringSet
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -248,6 +248,24 @@ type step1 =
 [@@deriving show]
 
 type cnf_step1 = step1 cnf [@@deriving show]
+type is_id_mvar = Metavariable.mvar -> bool
+
+(* Here we overapproximate and just look for _ONE_ occurrence of an $MVAR in an
+ * "identifier position" (c.f., 'Analyze_pattern.extract_mvars_in_id_position').
+ * But, in a `pattern-either` we could have an $MVAR in an identifier position
+ * in one pattern, and the same $MVAR in a non-identifier position in another one.
+ * In those cases we may still end up skipping files that we should not skip. *)
+let id_mvars_of_formula f =
+  let id_mvars = ref MvarSet.empty in
+  f
+  |> R.visit_new_formula (fun xp ~inside:_ ->
+         match xp with
+         | { pat = XP.Sem ((lazy pat), lang); _ } ->
+             id_mvars :=
+               Analyze_pattern.extract_mvars_in_id_position ~lang pat
+               |> MvarSet.union !id_mvars
+         | __else__ -> ());
+  !id_mvars
 
 (* simple for now, don't do any conversion *)
 
@@ -278,25 +296,25 @@ and leaf_step1 f =
       metavarcond_step1 x
 *)
 
-let rec (and_step1 : cnf_step0 -> cnf_step1) =
- fun cnf ->
+let rec (and_step1 : is_id_mvar:is_id_mvar -> cnf_step0 -> cnf_step1) =
+ fun ~is_id_mvar cnf ->
   match cnf with
-  | And xs -> And (xs |> Common.map_filter or_step1)
+  | And xs -> And (xs |> Common.map_filter (or_step1 ~is_id_mvar))
 
-and or_step1 cnf =
+and or_step1 ~is_id_mvar cnf =
   match cnf with
   | Or xs ->
       (* old: We had `Common.map_filter` here before, but that gives the wrong
        * semantics. See NOTE "AND vs OR and map_filter". *)
-      let* ys = option_map leaf_step1 xs in
+      let* ys = option_map (leaf_step1 ~is_id_mvar) xs in
       if null ys then None else Some (Or ys)
 
-and leaf_step1 f =
+and leaf_step1 ~is_id_mvar f =
   match f with
   (* old: we can't filter now; too late, see comment above on step0 *)
   (*  | Not _ -> None *)
   | LPat pat -> xpat_step1 pat
-  | LCond x -> metavarcond_step1 x
+  | LCond x -> metavarcond_step1 ~is_id_mvar x
 
 and xpat_step1 pat =
   match pat.XP.pat with
@@ -311,12 +329,12 @@ and xpat_step1 pat =
   | XP.Spacegrep _ -> None
   | XP.Aliengrep _ -> None
 
-and metavarcond_step1 x =
+and metavarcond_step1 ~is_id_mvar x =
   match x with
   | R.CondEval _ -> None
   | R.CondNestedFormula _ -> None
   | R.CondRegexp (mvar, re, const_prop) ->
-      Some (MvarRegexp (mvar, re, const_prop))
+      if is_id_mvar mvar then Some (MvarRegexp (mvar, re, const_prop)) else None
   (* TODO? maybe we should extract the strings from the type constraint *)
   | R.CondType _ -> None
   | R.CondAnalysis _ -> None
@@ -384,7 +402,7 @@ let or_step2 (Or xs) =
       | Regexp re_str -> Regexp2_search (Regexp_engine.pcre_compile re_str)
       | MvarRegexp (_mvar, re_str, _const_prop) ->
           (* The original regexp is meant to apply on a substring.
-             We rewrite them to remove end-of-string anchors if possible. *)
+              We rewrite them to remove end-of-string anchors if possible. *)
           let re =
             match
               Regexp_engine.remove_end_of_string_assertions
@@ -540,12 +558,12 @@ let prefilter_formula_of_prefilter (pre : prefilter) :
   let x, _f = pre in
   x
 
-let compute_final_cnf f =
+let compute_final_cnf ~(is_id_mvar : is_id_mvar) f =
   let* f = remove_not_final f in
   let cnf = cnf f in
   logger#ldebug (lazy (spf "cnf0 = %s" (show_cnf_step0 cnf)));
   (* let cnf = and_step1 f in *)
-  let cnf = and_step1 cnf in
+  let cnf : cnf_step1 = and_step1 ~is_id_mvar cnf in
   logger#ldebug (lazy (spf "cnf1 = %s" (show_cnf_step1 cnf)));
   (* TODO: regression on vertx-sqli.yaml
      let cnf = and_step1bis_filter_general cnf in
@@ -556,9 +574,19 @@ let compute_final_cnf f =
   Some cnf
 [@@profiling]
 
-let regexp_prefilter_of_formula f : prefilter option =
+let regexp_prefilter_of_formula ~xlang f : prefilter option =
+  let is_id_mvar =
+    match (xlang : Xlang.t) with
+    | LRegex
+    | LSpacegrep
+    | LAliengrep ->
+        Fun.const true
+    | L _ ->
+        let id_mvars = id_mvars_of_formula f in
+        fun mvar -> MvarSet.mem mvar id_mvars
+  in
   try
-    let* final = compute_final_cnf f in
+    let* final = compute_final_cnf ~is_id_mvar f in
     Some
       ( prefilter_formula_of_cnf_step2 final,
         fun big_str ->
@@ -573,7 +601,7 @@ let regexp_prefilter_of_formula f : prefilter option =
   with
   | GeneralPattern -> None
 
-let regexp_prefilter_of_taint_rule (_rule_id, rule_tok) taint_spec =
+let regexp_prefilter_of_taint_rule ~xlang (_rule_id, rule_tok) taint_spec =
   (* We must be able to match some source _and_ some sink. *)
   let sources =
     taint_spec.R.sources |> snd
@@ -595,7 +623,7 @@ let regexp_prefilter_of_taint_rule (_rule_id, rule_tok) taint_spec =
           focus = [];
         } )
   in
-  regexp_prefilter_of_formula f
+  regexp_prefilter_of_formula ~xlang f
 
 let regexp_prefilter_of_rule ~cache (r : R.rule) =
   let rule_id, _t = r.R.id in
@@ -611,8 +639,9 @@ let regexp_prefilter_of_rule ~cache (r : R.rule) =
       match r.mode with
       | `Search f
       | `Extract { formula = f; _ } ->
-          regexp_prefilter_of_formula f
-      | `Taint spec -> regexp_prefilter_of_taint_rule r.R.id spec
+          regexp_prefilter_of_formula ~xlang:r.target_analyzer f
+      | `Taint spec ->
+          regexp_prefilter_of_taint_rule ~xlang:r.target_analyzer r.R.id spec
       | `Secrets _ (* TODO *)
       | `Steps _ ->
           (* TODO *) None

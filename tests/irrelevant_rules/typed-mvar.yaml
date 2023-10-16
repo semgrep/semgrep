@@ -1,0 +1,32 @@
+rules:
+  - id: test
+    message: Test
+    severity: WARNING
+    languages:
+      - java
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern: >
+                      new okhttp3.Request.$BUILDERFUNC(). ...
+                      .addHeader("Authorization", $AUTH)
+              - pattern: >
+                  (okhttp3.Request $REQ). ... .addHeader("Authorization",
+                  $AUTH)
+      - patterns:
+          - pattern-inside: |
+              import okhttp3.*;
+          - pattern-either:
+              - patterns:
+                  - pattern: >
+                      new Request.$BUILDERFUNC(). ...
+                      .addHeader("Authorization", $AUTH)
+              - pattern: |
+                  (Request $REQ). ... .addHeader("Authorization", $AUTH)
+      - patterns:
+          - pattern-inside: |
+              import okhttp3.Request.*;
+          - patterns:
+              - pattern: |
+                  new $BUILDERFUNC(). ... .addHeader("Authorization", $AUTH)

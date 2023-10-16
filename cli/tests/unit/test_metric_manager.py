@@ -117,7 +117,7 @@ def test_send(metrics, mocker) -> None:
     with pytest.raises(NetworkBlockedInTests):
         _ = requests.get("https://semgrep.dev", timeout=2)
 
-    metrics.configure(MetricsState.ON, None)
+    metrics.configure(MetricsState.ON)
     metrics.send()
 
 

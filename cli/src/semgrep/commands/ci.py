@@ -59,9 +59,9 @@ DEFAULT_EXCLUDE_PATTERNS = ["test/", "tests/", "*_test.go"]
 
 # Conversion of product codes to product names
 PRODUCT_NAMES_MAP = {
-    "sast": "Semgrep Code",
-    "sca": "Semgrep Supply Chain",
-    "secrets": "Semgrep Secrets",
+    "sast": "Code",
+    "sca": "Supply Chain",
+    "secrets": "Secrets",
 }
 
 
@@ -139,7 +139,6 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
 @click.option(
     "--supply-chain",
     is_flag=True,
-    hidden=True,
 )
 @click.option("--code", is_flag=True, hidden=True)
 @click.option("--beta-testing-secrets", is_flag=True, hidden=True)
@@ -185,7 +184,6 @@ def ci(
     max_memory: Optional[int],
     max_target_bytes: int,
     metrics: Optional[MetricsState],
-    metrics_legacy: Optional[MetricsState],
     optimizations: str,
     dataflow_traces: Optional[bool],
     output: Optional[str],
@@ -213,7 +211,7 @@ def ci(
         output_format=output_format,
     )
 
-    state.metrics.configure(metrics, metrics_legacy)
+    state.metrics.configure(metrics)
     state.error_handler.configure(suppress_errors)
     scan_handler = None
 
