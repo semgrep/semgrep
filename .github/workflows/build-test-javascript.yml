@@ -17,111 +17,107 @@ jobs:
   build:
     runs-on: ubuntu-latest-16-core
     steps:
-      - name: Make checkout speedy
-        run: git config --global fetch.parallel 50
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-      - name: Set up tree-sitter
-        run: (cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)
-      - name: Cache git checkout
-        id: cache-git
-        uses: actions/cache/save@v3
-        with:
-          path: .
-          key: semgrep-with-submodules-and-tree-sitter-${{ github.sha }}
-      - name: Build semgrep
-        run:
-          "\n          eval $(opam env)\n          make install-deps-ALPINE-for-semgrep-core\n
-          \         make install-deps-for-semgrep-core\n          make build-semgrep-jsoo\n
-          \       "
-      - uses: actions/upload-artifact@v3
-        with:
-          retention-days: 1
-          path:
-            "\n            _build/default/js/engine/*.bc.js\n            _build/default/js/languages/*/*.bc.js\n
-            \         "
-          name: semgrep-js-ocaml-build-${{ github.sha }}
+    - name: Make checkout speedy
+      run: git config --global fetch.parallel 50
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+    - name: Set up tree-sitter
+      run: (cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)
+    - name: Cache git checkout
+      id: cache-git
+      uses: actions/cache/save@v3
+      with:
+        path: .
+        key: semgrep-with-submodules-and-tree-sitter-${{ github.sha }}
+    - name: Build semgrep
+      run: "\n          eval $(opam env)\n          make install-deps-ALPINE-for-semgrep-core\n
+        \         make install-deps-for-semgrep-core\n          make build-semgrep-jsoo\n
+        \       "
+    - uses: actions/upload-artifact@v3
+      with:
+        retention-days: 1
+        path: "\n            _build/default/js/engine/*.bc.js\n            _build/default/js/languages/*/*.bc.js\n
+          \         "
+        name: semgrep-js-ocaml-build-${{ github.sha }}
     container: returntocorp/ocaml:alpine-2023-06-16
     env:
       HOME: /root
   test:
     needs:
-      - build
+    - build
     runs-on: ubuntu-latest-16-core
     container: emscripten/emsdk:3.1.46
     env:
       HOME: /root
     steps:
-      - name: Restore git checkout cache
-        id: restore-git
-        uses: actions/cache/restore@v3
-        with:
-          path: .
-          key: semgrep-with-submodules-and-tree-sitter-${{ github.sha }}
-      - if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
-        name: Make checkout speedy
-        run: git config --global fetch.parallel 50
-      - if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
-        uses: actions/checkout@v3
-        with:
-          submodules: true
-      - if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
-        name: Set up tree-sitter
-        run: (cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)
-      - uses: actions/download-artifact@v3
-        with:
-          name: semgrep-js-ocaml-build-${{ github.sha }}
-          path: _build/default/js
-      - uses: actions/setup-node@v3
-        with:
-          node-version: "18"
-      - name: Build JS artifacts
-        run:
-          "\n        make -C js -j $(nproc) build\n\n        tar cvzf semgrep-js-artifacts.tar.gz
-          \\\n          js/engine/dist/index.cjs \\\n          js/engine/dist/index.mjs
-          \\\n          js/engine/dist/semgrep-engine.wasm \\\n          js/languages/*/dist/index.cjs
-          \\\n          js/languages/*/dist/index.mjs \\\n          js/languages/*/dist/semgrep-parser.wasm\n
-          \     "
-      - name: Upload JS artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          path: semgrep-js-artifacts.tar.gz
-          retention-days: 2
-          name: semgrep-js-artifacts-${{ github.sha }}
-      - name: Run semgrep js e2e tests
-        run: make -C js test
+    - name: Restore git checkout cache
+      id: restore-git
+      uses: actions/cache/restore@v3
+      with:
+        path: .
+        key: semgrep-with-submodules-and-tree-sitter-${{ github.sha }}
+    - if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
+      name: Make checkout speedy
+      run: git config --global fetch.parallel 50
+    - if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
+      uses: actions/checkout@v3
+      with:
+        submodules: true
+    - if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
+      name: Set up tree-sitter
+      run: (cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)
+    - uses: actions/download-artifact@v3
+      with:
+        name: semgrep-js-ocaml-build-${{ github.sha }}
+        path: _build/default/js
+    - uses: actions/setup-node@v3
+      with:
+        node-version: "18"
+    - name: Build JS artifacts
+      run: "\n        make -C js -j $(nproc) build\n\n        tar cvzf semgrep-js-artifacts.tar.gz
+        \\\n          js/engine/dist/index.cjs \\\n          js/engine/dist/index.mjs
+        \\\n          js/engine/dist/semgrep-engine.wasm \\\n          js/languages/*/dist/index.cjs
+        \\\n          js/languages/*/dist/index.mjs \\\n          js/languages/*/dist/semgrep-parser.wasm\n
+        \     "
+    - name: Upload JS artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        path: semgrep-js-artifacts.tar.gz
+        retention-days: 2
+        name: semgrep-js-artifacts-${{ github.sha }}
+    - name: Run semgrep js e2e tests
+      run: make -C js test
   upload:
     needs:
-      - test
+    - test
     if: ${{ inputs.upload-artifacts }}
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: write
     steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::338683922796:role/semgrep-oss-js-artifacts-deploy-role
-          role-duration-seconds: 900
-          role-session-name: semgrep-s3-access
-          aws-region: us-west-2
-      - uses: actions/download-artifact@v3
-        with:
-          name: semgrep-js-artifacts-${{ github.sha }}
-          path: /tmp/semgrep
-      - name: Upload to S3
-        run:
-          "\n        cd /tmp/semgrep\n        tar xvzf semgrep-js-artifacts.tar.gz\n
-          \       branch_name=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}\n        urlencoded_branch_name=$(printf
-          %s $branch_name | jq -sRr @uri)\n\n        cache_control=\"\"\n        if
-          [[ \"${branch_name}\" =~ \"^release-[0-9.]+$\" ]]; then\n          # If this
-          is a release:\n          # - public: The response can be stored in a shared
-          cache\n          # - max-age=31536000: Cache for up to 1 year\n          #
-          - immutable: The response will not be updated while fresh\n          cache_control=\"public,max-age=31536000,immutable\"\n
-          \       else\n          # Otherwise:\n          # - public: This response
-          can be stored in a shared cache\n          # - max-age=300: Cache for up to
-          5 mins\n          cache_control=\"public,max-age=300\"\n        fi\n\n        aws
-          s3 cp --recursive --cache-control \"${cache_control}\" /tmp/semgrep/js/ \"s3://semgrep-app-static-assets/static/turbo/${urlencoded_branch_name}/\"\n
-          \     "
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::338683922796:role/semgrep-oss-js-artifacts-deploy-role
+        role-duration-seconds: 900
+        role-session-name: semgrep-s3-access
+        aws-region: us-west-2
+    - uses: actions/download-artifact@v3
+      with:
+        name: semgrep-js-artifacts-${{ github.sha }}
+        path: /tmp/semgrep
+    - name: Upload to S3
+      run: "\n        cd /tmp/semgrep\n        tar xvzf semgrep-js-artifacts.tar.gz\n
+        \       branch_name=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}\n        urlencoded_branch_name=$(printf
+        %s $branch_name | jq -sRr @uri)\n\n        cache_control=\"\"\n        if
+        [[ \"${branch_name}\" =~ \"^release-[0-9.]+$\" ]]; then\n          # If this
+        is a release:\n          # - public: The response can be stored in a shared
+        cache\n          # - max-age=31536000: Cache for up to 1 year\n          #
+        - immutable: The response will not be updated while fresh\n          cache_control=\"public,max-age=31536000,immutable\"\n
+        \       else\n          # Otherwise:\n          # - public: This response
+        can be stored in a shared cache\n          # - max-age=300: Cache for up to
+        5 mins\n          cache_control=\"public,max-age=300\"\n        fi\n\n        aws
+        s3 cp --recursive --cache-control \"${cache_control}\" /tmp/semgrep/js/ \"s3://semgrep-app-static-assets/static/turbo/${urlencoded_branch_name}/\"\n
+        \     "

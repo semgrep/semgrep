@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open Common
 module Arg = Cmdliner.Arg
 module Cmd = Cmdliner.Cmd
 module Term = Cmdliner.Term
@@ -80,12 +79,14 @@ let run (conf : conf) =
   match conf.format with
   | JSON ->
       let str = JSON.string_of_json json in
-      pr str
+      print_string str;
+      flush stdout
   | YAML ->
       let y = JSON.to_yojson json in
       let v = yojson_to_yaml_value y in
       let str = Yaml.to_string_exn v in
-      pr str
+      print_string str;
+      flush stdout
 
 (*****************************************************************************)
 (* Cmdliner boilerplate *)
