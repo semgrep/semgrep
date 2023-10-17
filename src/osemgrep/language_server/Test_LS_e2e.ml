@@ -28,7 +28,9 @@ module LanguageServer = LS.LanguageServer
 (* Prelude *)
 (*****************************************************************************)
 
-(* This file is just a port of `test_ls.py` to OCaml. *)
+(* This file is just a port of what was previously `test_ls.py`, to OCaml.
+   It should cover all the same tests that existed there.
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -878,6 +880,12 @@ let test_login () =
           assert (Regexp_engine.unanchored_match login_url_regex url);
           Lwt.return_unit))
 
+let test_ls_no_folders () =
+  with_session (fun info ->
+      let%lwt () = check_startup info [] [] in
+
+      send_exit info)
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -889,4 +897,5 @@ let tests =
       ("Test LS exts", test_ls_ext);
       ("Test LS multi-workspaces", test_ls_multi);
       ("Test Login", test_login);
+      ("Test LS with no folders", test_ls_no_folders);
     ]
