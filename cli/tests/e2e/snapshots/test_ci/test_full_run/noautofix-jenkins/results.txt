@@ -10,7 +10,7 @@ JENKINS_URL="some_url" GIT_URL="https://github.com/org/repo.git/" GIT_BRANCH="so
 
 
 ┌──────────────────────────┐
-│ 6 Blocking Code Findings │
+│ 7 Blocking Code Findings │
 └──────────────────────────┘
 
     foo.py
@@ -29,6 +29,11 @@ JENKINS_URL="some_url" GIT_URL="https://github.com/org/repo.git/" GIT_BRANCH="so
           useless comparison to 4
 
            19┆ baz == 4
+            ⋮┆----------------------------------------
+       eqeq-bad
+          useless comparison
+
+           24┆ a == a # Triage ignored by match_based_id
             ⋮┆----------------------------------------
        taint-test
           unsafe use of danger
@@ -103,7 +108,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 8 findings (6 blocking) from 7 rules.
+  Found 9 findings (7 blocking) from 7 rules.
   Uploading scan results
   Finalizing scan           View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings

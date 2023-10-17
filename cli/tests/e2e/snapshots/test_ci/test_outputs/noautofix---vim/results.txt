@@ -11,6 +11,7 @@ foo.py:4:5:E:eqeq-bad:useless comparison
 foo.py:5:5:E:eqeq-bad:useless comparison
 foo.py:7:5:E:eqeq-bad:useless comparison
 foo.py:11:5:E:eqeq-bad:useless comparison
+foo.py:24:5:E:eqeq-bad:useless comparison
 foo.py:15:5:E:eqeq-five:useless comparison to 5
 foo.py:19:5:E:eqeq-four:useless comparison to 4
 foo.py:27:5:W:taint-test:unsafe use of danger
@@ -54,7 +55,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 8 findings (6 blocking) from 7 rules.
+  Found 9 findings (7 blocking) from 7 rules.
   Uploading scan results
   Finalizing scan           View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings

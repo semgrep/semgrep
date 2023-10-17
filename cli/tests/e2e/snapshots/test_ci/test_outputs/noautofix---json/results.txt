@@ -277,6 +277,45 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       }
     },
     {
+      "check_id": "eqeq-bad",
+      "end": {
+        "col": 11,
+        "line": 24,
+        "offset": 300
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "    a == a # Triage ignored by match_based_id",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "a",
+            "end": {
+              "col": 6,
+              "line": 24,
+              "offset": 295
+            },
+            "start": {
+              "col": 5,
+              "line": 24,
+              "offset": 294
+            }
+          }
+        },
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "foo.py",
+      "start": {
+        "col": 5,
+        "line": 24,
+        "offset": 294
+      }
+    },
+    {
       "check_id": "taint-test",
       "end": {
         "col": 13,
@@ -489,7 +528,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 8 findings (6 blocking) from 7 rules.
+  Found 9 findings (7 blocking) from 7 rules.
   Uploading scan results
   Finalizing scan           View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings

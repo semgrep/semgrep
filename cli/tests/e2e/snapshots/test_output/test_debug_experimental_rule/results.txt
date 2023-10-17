@@ -47,6 +47,8 @@ Running Semgrep engine with command:
 --- semgrep-core stderr ---
 <semgrep-core stderr not captured, should be printed above>
 --- end semgrep-core stderr ---
+False, SAST()
+False, SAST()
 semgrep ran in <MASKED> on 1 files
 findings summary: 2 experiment
 

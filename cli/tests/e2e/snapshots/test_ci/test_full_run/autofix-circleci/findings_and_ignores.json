@@ -11,7 +11,7 @@
       "severity": 1,
       "index": 0,
       "commit_date": "sanitized",
-      "syntactic_id": "05a6d6793a6242a49ff83113ef4a83b3",
+      "syntactic_id": "56ef3f8e8b49885ac9cbad50dfd033c53a569bcc42d2442c0088170cb40688d571d127394cd8d6798a0d4754f4299419d67836e5a5508d32c54c2ccdafb61256/v2",
       "metadata": {
         "dev.semgrep.actions": [
           "block"
@@ -105,7 +105,7 @@
       "severity": 2,
       "index": 0,
       "commit_date": "sanitized",
-      "syntactic_id": "6090c1bab6c8853da43c7119a6eb2ad0",
+      "syntactic_id": "1acc3325102a7715d4fa263d1a780f5962ffd52e43fd0b0dfdcef862b7789cdb44944e32248469bb5c7f6a92a6748a8a19cdbe734a2be12f4c15f14eb07f10de/v2",
       "metadata": {
         "dev.semgrep.actions": [],
         "sca-kind": "upgrade-only"
@@ -151,7 +151,7 @@
       "severity": 2,
       "index": 1,
       "commit_date": "sanitized",
-      "syntactic_id": "87cd1247dfc84bbd502c872035c71a63",
+      "syntactic_id": "f4267fac6bbf9a1acfc449bba9b11df790f1fe6cd61635b62b5a9c923e5d627b9d5e640084046a9b8b5dc117e3a753bc960ead7a35dfe5f3f92654ae4f16ae3d/v2",
       "metadata": {
         "dev.semgrep.actions": [],
         "semgrep.dev": {
@@ -186,7 +186,7 @@
       "severity": 2,
       "index": 1,
       "commit_date": "sanitized",
-      "syntactic_id": "87cd1247dfc84bbd502c872035c71a63",
+      "syntactic_id": "f4267fac6bbf9a1acfc449bba9b11df790f1fe6cd61635b62b5a9c923e5d627b9d5e640084046a9b8b5dc117e3a753bc960ead7a35dfe5f3f92654ae4f16ae3d/v2",
       "metadata": {
         "dev.semgrep.actions": [
           "block"
@@ -222,7 +222,7 @@
       "severity": 2,
       "index": 0,
       "commit_date": "sanitized",
-      "syntactic_id": "8646a2dfc020913606969dcfe84e53c0",
+      "syntactic_id": "3c63ea5cc8285ab051d9429515c696e1fb8ffda3d33cc12ffc7ff08ac609a7e66fc5b01fd69fdabd8ba826d282943fec112ace2530f256704b6d96c6da4e415b/v2",
       "metadata": {
         "dev.semgrep.actions": [],
         "semgrep.dev": {
@@ -259,7 +259,7 @@
       "severity": 2,
       "index": 0,
       "commit_date": "sanitized",
-      "syntactic_id": "f3b21c38bc22a1f1f870d49fc3a40244",
+      "syntactic_id": "961379c7962ad141d05dff3febc44f1ccd701ba52e3986f1b7fcb9a6bfdef23750703df162cb4d08e03911391f05302632856486850660ec91019ff6ad3f03a6/v2",
       "metadata": {},
       "is_blocking": true,
       "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_4",
@@ -282,7 +282,7 @@
       "severity": 2,
       "index": 0,
       "commit_date": "sanitized",
-      "syntactic_id": "a557d3b401636ba873e590c81b693a8f",
+      "syntactic_id": "6c8c173df6c8597820f99c871af58a45bfc339da1b0cb6b525738c8efabd5df1410d8984829428ee577bc061179e9ef4be540c1dc5ebe25fe2b6565d44bd0d97/v2",
       "metadata": {},
       "is_blocking": true,
       "match_based_id": "e536489e68267e16e71dd76a61e27815fd86a7e2417d96f8e0c43af48540a41d41e6acad52f7ccda83b5c6168dd5559cd49169617e3aac1b7ea091d8a20ebf12_0",
@@ -305,7 +305,7 @@
       "severity": 2,
       "index": 0,
       "commit_date": "sanitized",
-      "syntactic_id": "d44049421636e370e7906a6bed5fce54",
+      "syntactic_id": "cc80ad98d92b1634723dc84868bfa0128a128a3926736810a992f62e0441d747acb2d275695b5331dc58855e8bd0f9e454ff8a0a97dd6b8507ca248ef79adc6e/v2",
       "metadata": {},
       "is_blocking": true,
       "match_based_id": "5efd0945774f190445f7cf2b0b85568a845cc46dddc11e029205b882436dccf78e12a752408c13dfe97b572f8bc795099ca0bddb89b3040afcaf6a6d8c17b570_0",
@@ -328,7 +328,7 @@
       "severity": 2,
       "index": 3,
       "commit_date": "sanitized",
-      "syntactic_id": "f6c666e6921a44028a2015d0de15cc14",
+      "syntactic_id": "a5a90fcaff29ef981da391495c5e9df587e64226b7bb190ca2876c1389e8eb0ef7ee5024b7b465c743257bff3b963adfb751e304e0b17d637d329ff41658bea5/v2",
       "metadata": {},
       "is_blocking": true,
       "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_3",
@@ -351,7 +351,7 @@
       "severity": 2,
       "index": 1,
       "commit_date": "sanitized",
-      "syntactic_id": "8abb389b2f01d0e52d663251e1d24ba7",
+      "syntactic_id": "b3f525d8884bdc5acb1774b1da501e56e4f7cebef064edb2c25366110fca41f945ce70ef1fa8846d1f81adc16fdb250a6ca73fa67f795a1980447dd46b017aa6/v2",
       "metadata": {},
       "is_blocking": true,
       "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_1",
@@ -374,7 +374,7 @@
       "severity": 2,
       "index": 0,
       "commit_date": "sanitized",
-      "syntactic_id": "8c695a6a4ab5ffff33d0103309a310c1",
+      "syntactic_id": "89df8255f9c82e5bf471139721b4463c343c34e32b05ee4a0b61778dacd954c4096c3aec1bf770213a08e8f950e2981985e798322288b153b632a784f9692821/v2",
       "metadata": {},
       "is_blocking": true,
       "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_0",
@@ -399,7 +399,7 @@
       "severity": 2,
       "index": 0,
       "commit_date": "sanitized",
-      "syntactic_id": "0c6353c9e29a6595b15fe4f554cd4134",
+      "syntactic_id": "9419547d351a213bc104b174389947b74b241531ac93d377350d0517a614756b64a3e919a141228e53e922e1f68dc4cc3e40dd8733c112b5d2d78fc8c2305131/v2",
       "metadata": {
         "dev.semgrep.actions": [],
         "semgrep.dev": {
@@ -434,7 +434,7 @@
       "severity": 2,
       "index": 0,
       "commit_date": "sanitized",
-      "syntactic_id": "0c6353c9e29a6595b15fe4f554cd4134",
+      "syntactic_id": "9419547d351a213bc104b174389947b74b241531ac93d377350d0517a614756b64a3e919a141228e53e922e1f68dc4cc3e40dd8733c112b5d2d78fc8c2305131/v2",
       "metadata": {
         "dev.semgrep.actions": [
           "block"
@@ -470,7 +470,7 @@
       "severity": 2,
       "index": 0,
       "commit_date": "sanitized",
-      "syntactic_id": "6ed37cfa23475cee444f54947efb9da4",
+      "syntactic_id": "147794f369ac1f605fb77d69c50732b5f71853fdfa51dd16681cd080e15cb1273f194c735e8f2fc32f3ee9e56b5ced9a67bf422d1633b0277733d3bc08e594ec/v2",
       "metadata": {
         "dev.semgrep.actions": [],
         "semgrep.dev": {
@@ -507,7 +507,7 @@
       "severity": 2,
       "index": 0,
       "commit_date": "sanitized",
-      "syntactic_id": "0db994486d207a88b9e7bc0475d8a14a",
+      "syntactic_id": "f71df770532d060c98b76740e5765eebc98fbb2ba7c08b84714ad752789580fd9b9beb3ed9069059dc000aebd0ef511d1ade9a3ce30322fcc5ad81db2e595fc2/v2",
       "metadata": {},
       "is_blocking": true,
       "match_based_id": "f33d61e2c4592fb3a295213cb9d829c7d314041cef354f9b4199bf18526d72df596c0ef4c8e56289511e1ea8e2183752f403fd922f382d090846c456744367d2_0",
@@ -530,7 +530,7 @@
       "severity": 2,
       "index": 0,
       "commit_date": "sanitized",
-      "syntactic_id": "bf0f44ff9d49cd5ca3771b3ee6d2fcfc",
+      "syntactic_id": "7540b55d527b0d3c962591e6d0c4c7d2dc4afb066baa822e8a68e1e772a0822cb0a23f39716c4fbe3638e4a4483556ca75c3ecae6aaca6613514ad2bddf4b4b5/v2",
       "metadata": {},
       "is_blocking": true,
       "match_based_id": "83fb2cbc6be00fffc142621a1b10702bdd228f97c42ca16ba5f902ec393231e1424bed8472cec7c9213190cb1f576e5a495b3aba5cef09ac2791715d3bf9e983_0",
@@ -553,7 +553,7 @@
       "severity": 2,
       "index": 2,
       "commit_date": "sanitized",
-      "syntactic_id": "c2d65932166aec2a4a96ff0e8deebd97",
+      "syntactic_id": "ec4dc326f37b73df20126f093b8c694c3b39511f1d7add896a7365e709eea2d33a64e15f20cff1b8fe74b041107d1ed7f12b267364633d90c3bc1eb04dcd7003/v2",
       "metadata": {},
       "is_blocking": true,
       "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_2",

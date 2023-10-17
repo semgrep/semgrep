@@ -238,6 +238,35 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         },
         {
           "fingerprints": {
+            "matchBasedId/v1": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_4"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "foo.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 11,
+                  "endLine": 24,
+                  "snippet": {
+                    "text": "    a == a # Triage ignored by match_based_id"
+                  },
+                  "startColumn": 5,
+                  "startLine": 24
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "useless comparison"
+          },
+          "properties": {},
+          "ruleId": "eqeq-bad"
+        },
+        {
+          "fingerprints": {
             "matchBasedId/v1": "186b96f64aca90b7f5a9c75f2e44538885d0e727ed3161ef7b6d46c40b3d078acfc8859b290e118cb8ca42f5b41e61afe73b0f416f47a2f16abce67b1be307d3_0"
           },
           "locations": [
@@ -558,7 +587,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 13 findings (10 blocking) from 7 rules.
+  Found 14 findings (11 blocking) from 7 rules.
   Uploading scan results
   Finalizing scan           View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings
