@@ -35,8 +35,6 @@ export const LSFactory = async (wasmUri) => {
   const {
     init,
     start,
-    setReadLine,
-    setReadExactly,
     getMountpoints,
     setJustParseWithLang,
     setParsePattern,
@@ -66,9 +64,5 @@ export const LSFactory = async (wasmUri) => {
   setJustParseWithLang(parseLang);
   setParsePattern(parsePattern);
 
-  return {
-    start,
-    setReadLine,
-    setReadExactly,
-  };
+  start();
 };

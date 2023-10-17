@@ -23,17 +23,14 @@
 open Js_of_ocaml
 open Semgrep_js_shared
 
-let read_line_ref = ref (fun () -> Lwt.return None)
-let read_exactly_ref = ref (fun _ -> Lwt.return None)
-
 module Io = RPC_server.MakeLSIO (struct
-  type input = unit
-  type output = unit
+  type input = in_channel
+  type output = out_channel
 
-  let read_line _ = !read_line_ref ()
-  let stdin = ()
-  let stdout = ()
-  let flush _ = Lwt.return ()
+  let read_line ic = input_line ic |> Lwt.return_some
+  let stdin = stdin
+  let stdout = stdout
+  let flush () = flush stdout |> Lwt.return
   let atomic f oc = f oc
 
   let write _ str =
@@ -41,7 +38,13 @@ module Io = RPC_server.MakeLSIO (struct
     print_string str;
     Lwt.return ()
 
-  let read_exactly _ n = !read_exactly_ref n
+  let read_exactly ic n =
+    let rec read_exactly acc = function
+      | 0 -> String.of_seq (acc |> List.rev |> List.to_seq)
+      | n -> read_exactly (input_char ic :: acc) (n - 1)
+    in
+    let exact = read_exactly [] n in
+    Lwt.return (Some exact)
 end)
 
 (*****************************************************************************)
@@ -96,10 +99,4 @@ let _ =
        method getMountpoints = get_jsoo_mountpoint ()
        method setParsePattern = setParsePattern
        method setJustParseWithLang = setJustParseWithLang
-
-       method setReadLine f =
-         read_line_ref := fun () -> f () |> Js.to_string |> Lwt.return_some
-
-       method setReadExactly f =
-         read_exactly_ref := fun n -> f n |> Js.to_string |> Lwt.return_some
     end)

@@ -28,10 +28,10 @@
   "license": "LGPL-2.1",
   "devDependencies": {
     "esbuild": "^0.17.16",
-    "jest": "^29.5.0"
+    "jest": "^29.5.0",
+    "json-rpc-2.0": "^1.6.0"
   },
   "dependencies": {
-    "cross-dirname": "^0.1.0",
-    "xmlhttprequest": "^1.8.0"
+    "cross-dirname": "^0.1.0"
   }
 }

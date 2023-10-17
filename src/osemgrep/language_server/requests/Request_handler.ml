@@ -80,7 +80,7 @@ let on_request (type r) (request : r CR.t) server =
       handle_custom_request server meth params
   | CR.Shutdown ->
       Logs.debug (fun m -> m "Shutting down server");
-      (None, { server with state = RPC_server.State.Stopped })
+      (None, server)
   | CR.DebugEcho params -> process_result (params, server)
   | _ ->
       Logs.warn (fun m ->
