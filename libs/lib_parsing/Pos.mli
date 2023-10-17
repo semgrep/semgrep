@@ -38,7 +38,8 @@ val string_of_pos : t -> string
    Return (line, column) from a byte position.
 
    If the byte position is out of range, the functions of this type return
-   the first position or the last position in the file.
+   the nearest valid position which is either the first or the last position
+   in the range.
    Empty files admit at least one valid byte position.
 *)
 type bytepos_to_linecol_fun = int -> int * int
