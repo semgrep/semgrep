@@ -12,6 +12,8 @@ module Out = Semgrep_output_v1_t
 (*****************************************************************************)
 
 let ellipsis_string = " ... "
+let mask_char = '*'
+let mask_show_pct = 0.2
 let base_indent = String.make 10 ' '
 let findings_indent_depth = String.make 12 ' '
 
@@ -178,6 +180,7 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
                 else String.length line)
            in
            let a, b, c = cut line start_color end_color in
+           (* TODO(secrets): Apply masking to b *)
            (* The 24m is "no underline", and for python compatibility *)
            let esc =
              if Fmt.style_renderer ppf = `Ansi_tty then Fmt.any "\027[24m"
