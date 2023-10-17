@@ -773,10 +773,16 @@ let full_rule_semgrep_rules_regression_tests () =
                     || s =~ ".*/fingerprints/fingerprints.yaml"
                     || s
                        =~ ".*/terraform/aws/security/aws-fsx-lustre-files-ystem.yaml"
-                    (* TODO: Tests for tests/semgrep-rules/php/wordpress-plugins/security/audit/ are in
-                     * a subfolder due to `paths:` constraints in the rule, perhaps Semgrep should ignore
-                     * these constraints when in test mode. Note that `semgrep --test` simply ignores
-                     * these files, but our test runner fails if it cannot find an example target file. *)
+                    || s =~ ".*/generic/ci/audit/changed-semgrepignore.*"
+                    (* TODO: Tests for php/wordpress-plugins/security/audit/
+                     * are in a subfolder due to `paths:` constraints in the
+                     * rule. This has been fixed in #8993 so we should use back
+                     * the regular test naming scheme for those tests.
+                     *
+                     * Note that `semgrep --test` simply ignores these files,
+                     * but Test_engine.ml fails if it cannot find an example
+                     * target file.
+                     *)
                     || s
                        =~ ".*/php/wordpress-plugins/security/audit/wp-ajax-no-auth-and-auth-hooks-audit.yaml"
                     || s
@@ -801,8 +807,6 @@ let full_rule_semgrep_rules_regression_tests () =
                        =~ ".*/php/wordpress-plugins/security/audit/wp-sql-injection-audit.yaml"
                     (* TODO: parse error, weird *)
                     || s =~ ".*/unicode/security/bidi.yml"
-                    (* TODO many mismatches *)
-                    || s =~ ".*/generic/ci/audit/changed-semgrepignore.*"
                     || s
                        =~ ".*/python/django/maintainability/duplicate-path-assignment.yaml"
                     (* ?? *)
