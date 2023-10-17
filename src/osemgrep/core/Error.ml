@@ -1,3 +1,5 @@
+module Out = Semgrep_output_v1_j
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -66,6 +68,13 @@ exception Exit of Exit_code.t
 *)
 
 (*****************************************************************************)
+(* Shortcuts *)
+(*****************************************************************************)
+
+let abort msg = raise (Semgrep_error (msg, None))
+let exit code = raise (Exit code)
+
+(*****************************************************************************)
 (* string of/registering exns *)
 (*****************************************************************************)
 
@@ -91,5 +100,44 @@ let () =
 (* Misc *)
 (*****************************************************************************)
 
-let abort msg = raise (Semgrep_error (msg, None))
-let exit code = raise (Exit code)
+(* This is used for the CLI text output and also for the metrics
+ * payload.errors.error.
+ * This used to be stored also in the cli_error.type_ field, but
+ * we now store directly the error_type (which should have the
+ * same string representation for most cases as before except
+ * for the constructors with arguments.
+ *)
+let rec string_of_error_type (error_type : Out.error_type) : string =
+  match error_type with
+  (* # convert to the same string of core.ParseError for now *)
+  | PartialParsing _ -> string_of_error_type ParseError
+  (* other constructors with arguments *)
+  | PatternParseError _ -> string_of_error_type PatternParseError0
+  | IncompatibleRule _ -> string_of_error_type IncompatibleRule0
+  (* All the other cases don't have arguments in Semgrep_output_v1.atd
+   * and have some <json name="..."> annotations to generate the right string
+   * so we can mostly just call Out.string_of_error_type (and remove the
+   * quotes)
+   *)
+  | PatternParseError0
+  | IncompatibleRule0
+  | LexicalError
+  | RuleParseError
+  | SemgrepError
+  | InvalidRuleSchemaError
+  | UnknownLanguageError
+  | MissingPlugin
+  | ParseError
+  | SpecifiedParseError
+  | AstBuilderError
+  | InvalidYaml
+  | MatchingError
+  | SemgrepMatchFound
+  | TooManyMatches
+  | FatalError
+  | Timeout
+  | OutOfMemory
+  | TimeoutDuringInterfile
+  | OutOfMemoryDuringInterfile ->
+      Out.string_of_error_type error_type
+      |> JSON.remove_enclosing_quotes_of_jstring

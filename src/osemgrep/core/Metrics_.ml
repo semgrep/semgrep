@@ -381,7 +381,7 @@ let add_targets_stats (targets : Fpath.t Set_.t)
  * privacy sensitive maybe?
  *)
 let string_of_error (err : Out.cli_error) : string =
-  Out.string_of_error_type err.type_
+  Error.string_of_error_type err.type_
 
 let add_errors errors =
   g.payload.errors.errors <-

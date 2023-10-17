@@ -38,7 +38,7 @@
         }
       ],
       "type": [
-        "Pattern parse error",
+        "PatternParseError",
         [
           "pattern",
           "0",

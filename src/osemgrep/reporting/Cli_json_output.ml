@@ -113,39 +113,6 @@ let core_location_to_error_span (loc : Out.location) : Out.error_span =
     context_end = None;
   }
 
-let string_of_error_type (error_type : Out.error_type) : string =
-  match error_type with
-  (* # convert to the same string of core.ParseError for now *)
-  | PartialParsing _ -> "Syntax error"
-  (* other constructors with arguments *)
-  | PatternParseError _ -> "Pattern parse error"
-  | IncompatibleRule _ -> "Incompatible rule"
-  (* All the other cases don't have arguments in Semgrep_output_v1.atd
-   * and have some <json name="..."> annotations to generate the right string
-   * so we can mostly just call Out.string_of_error_type (and remove the
-   * quotes)
-   *)
-  | LexicalError
-  | RuleParseError
-  | SemgrepError
-  | InvalidRuleSchemaError
-  | UnknownLanguageError
-  | MissingPlugin
-  | ParseError
-  | SpecifiedParseError
-  | AstBuilderError
-  | InvalidYaml
-  | MatchingError
-  | SemgrepMatchFound
-  | TooManyMatches
-  | FatalError
-  | Timeout
-  | OutOfMemory
-  | TimeoutDuringInterfile
-  | OutOfMemoryDuringInterfile ->
-      Out.string_of_error_type error_type
-      |> JSON.remove_enclosing_quotes_of_jstring
-
 (* Generate error message exposed to user *)
 let error_message ~rule_id ~(location : Out.location)
     ~(error_type : Out.error_type) ~core_message : string =
@@ -165,7 +132,9 @@ let error_message ~rule_id ~(location : Out.location)
     | Some id, MissingPlugin -> spf "for rule %s" id
     | _ -> spf "at line %s:%d" path location.start.line
   in
-  spf "%s %s:\n %s" (string_of_error_type error_type) error_context core_message
+  spf "%s %s:\n %s"
+    (Error.string_of_error_type error_type)
+    error_context core_message
 
 let error_spans ~(error_type : Out.error_type) ~(location : Out.location) =
   match error_type with
@@ -207,6 +176,7 @@ let exit_code_of_error_type (error_type : Out.error_type) : Exit_code.t =
   | AstBuilderError
   | RuleParseError
   | PatternParseError _
+  | PatternParseError0
   | InvalidYaml
   | MatchingError
   | SemgrepMatchFound
@@ -221,6 +191,7 @@ let exit_code_of_error_type (error_type : Out.error_type) : Exit_code.t =
   | InvalidRuleSchemaError -> Exit_code.invalid_pattern
   | UnknownLanguageError -> Exit_code.invalid_language
   | IncompatibleRule _
+  | IncompatibleRule0
   | MissingPlugin ->
       Exit_code.ok
 
@@ -252,6 +223,7 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
         | AstBuilderError
         | RuleParseError
         | PatternParseError _
+        | PatternParseError0
         | InvalidYaml
         | UnknownLanguageError
         | MatchingError
@@ -263,6 +235,7 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
         | TimeoutDuringInterfile
         | OutOfMemoryDuringInterfile
         | IncompatibleRule _
+        | IncompatibleRule0
         | MissingPlugin ->
             rule_id
       in
@@ -270,7 +243,8 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
         (* # For rule errors path is a temp file so will just be confusing *)
         match error_type with
         | RuleParseError
-        | PatternParseError _ ->
+        | PatternParseError _
+        | PatternParseError0 ->
             None
         | ParseError
         | LexicalError
@@ -290,6 +264,7 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
         | OutOfMemoryDuringInterfile
         | SemgrepError
         | IncompatibleRule _
+        | IncompatibleRule0
         | MissingPlugin ->
             Some location.path
       in

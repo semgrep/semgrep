@@ -86,8 +86,10 @@ let mk_error opt_rule_id loc msg err =
     | TimeoutDuringInterfile
     | OutOfMemoryDuringInterfile
     | PatternParseError _
+    | PatternParseError0
     | PartialParsing _
     | IncompatibleRule _
+    | IncompatibleRule0
     | SemgrepError
     | InvalidRuleSchemaError
     | UnknownLanguageError
@@ -249,7 +251,9 @@ let severity_of_error (typ : Out.error_type) : Out.error_severity =
   | SpecifiedParseError -> `Warning
   | AstBuilderError -> `Error
   | RuleParseError -> `Error
-  | PatternParseError _ -> `Error
+  | PatternParseError _
+  | PatternParseError0 ->
+      `Error
   | InvalidYaml -> `Warning
   | FatalError -> `Error
   | Timeout -> `Warning
@@ -259,10 +263,11 @@ let severity_of_error (typ : Out.error_type) : Out.error_severity =
   | SemgrepError -> `Error
   | InvalidRuleSchemaError -> `Error
   | UnknownLanguageError -> `Error
+  (* Running into an incompatible rule may be normal, with nothing to fix *)
   | IncompatibleRule _
-  | MissingPlugin ->
-      (* Running into an incompatible rule may be normal, with nothing to fix *)
+  | IncompatibleRule0 ->
       `Info
+  | MissingPlugin -> `Info
 
 (*****************************************************************************)
 (* Try with error *)
