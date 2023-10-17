@@ -40,7 +40,7 @@ jobs:
         path: "\n            _build/default/js/engine/*.bc.js\n            _build/default/js/languages/*/*.bc.js\n
           \         "
         name: semgrep-js-ocaml-build-${{ github.sha }}
-    container: returntocorp/ocaml:alpine-2023-10-12
+    container: returntocorp/ocaml:alpine-2023-10-17
     env:
       HOME: /root
   test:
