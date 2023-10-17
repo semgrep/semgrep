@@ -305,21 +305,20 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None)
                  if unit_testing then Alcotest.fail msg
            in
            let name =
-             match prepend_lang with
-             | true ->
-                 let langs =
-                   !!file |> find_target_of_yaml_file |> Fpath.v
-                   |> Lang.langs_of_filename
-                   |> Common.map Lang.to_capitalized_alnum
-                 in
-                 let langs =
-                   match langs with
-                   | [] -> [ "Generic" ]
-                   | _ -> langs
-                 in
-                 let lang = langs |> String.concat " " in
-                 spf "%s %s" lang !!file
-             | false -> !!file
+             if prepend_lang then
+               let langs =
+                 !!file |> find_target_of_yaml_file |> Fpath.v
+                 |> Lang.langs_of_filename
+                 |> Common.map Lang.to_capitalized_alnum
+               in
+               let langs =
+                 match langs with
+                 | [] -> [ "Generic" ]
+                 | _ -> langs
+               in
+               let lang = langs |> String.concat " " in
+               spf "%s %s" lang !!file
+             else !!file
            in
            (name, test))
   in

@@ -77,7 +77,7 @@ let just_parse_with_lang lang file =
   | Lang.Js
     when Stdlib.( == ) !just_parse_with_lang_ref undefined_just_parse_with_lang
     ->
-      (* no TreeSitter here, this would add 400K in engine.js *)
+      (* skip tree-sitter for parsing JS if just_parse_with_lang hasn't been initialized yet *)
       run file [ Pfff (throw_tokens Parse_js.parse) ] Js_to_generic.program
   | _else_ -> !just_parse_with_lang_ref lang file
 [@@profiling]

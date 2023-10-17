@@ -1,5 +1,4 @@
 open Js_of_ocaml
-open Semgrep_js_shared
 
 let _ =
   Js.export_all
@@ -7,11 +6,11 @@ let _ =
        (*
           The following methods are used internally by js/engine/src/index.js.
         *)
-       method init = init_jsoo
-       method getMountpoints = get_jsoo_mountpoint ()
-       method setParsePattern = setParsePattern
-       method setJustParseWithLang = setJustParseWithLang
-       method setJsonnetParser = setJsonnetParser
+       method init = Semgrep_js_shared.init_jsoo
+       method getMountpoints = Semgrep_js_shared.get_jsoo_mountpoint ()
+       method setParsePattern = Semgrep_js_shared.setParsePattern
+       method setJustParseWithLang = Semgrep_js_shared.setJustParseWithLang
+       method setJsonnetParser = Semgrep_js_shared.setJsonnetParser
 
        (*
           The following methods are part of the engine's public API.
@@ -69,5 +68,5 @@ let _ =
            in
            Semgrep_output_v1_j.string_of_core_output res
          in
-         wrap_with_js_error execute
+         Semgrep_js_shared.wrap_with_js_error execute
     end)

@@ -5,7 +5,7 @@ let parse_pattern print_errors _ str =
   in
   Jsonnet_to_generic.any pattern
 
-let _parse_target_ts_only file = Parse_jsonnet_tree_sitter.parse (Fpath.v file)
+let parse_target_ts_only file = Parse_jsonnet_tree_sitter.parse (Fpath.v file)
 
 let parse_target _ file =
   Pfff_or_tree_sitter.run file
@@ -16,4 +16,4 @@ let _ =
   Common.jsoo := true;
   Tree_sitter_run.Util_file.jsoo := true;
   Semgrep_js_shared.make_js_module [ Lang.Jsonnet ] parse_target parse_pattern
-    ~_parse_target_ts_only:(Some _parse_target_ts_only)
+    ~parse_target_ts_only:(Some parse_target_ts_only)

@@ -135,11 +135,6 @@ local test_job = {
       name: 'Test JS artifacts',
       run: |||
         make -C js -j $(nproc) test
-      |||
-    },
-    {
-      name: 'Run JS e2e tests',
-      run: |||
         make -C js/tests
       |||
     },

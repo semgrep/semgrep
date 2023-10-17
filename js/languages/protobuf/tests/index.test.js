@@ -11,7 +11,8 @@ describe(`${LANG} parser`, () => {
 
   testGetLangs([LANG], parserPromise);
 
-  // TODO: figure out why no protobuf patterns work
+  // TODO: we need to finish the protobuf parser
+  // see https://github.com/returntocorp/semgrep/issues/8088
 
   testParseTarget(LANG, parserPromise);
 });

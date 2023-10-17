@@ -92,7 +92,7 @@ let setJsonnetParser
 (* Entrypoints *)
 (*****************************************************************************)
 
-let make_js_module ?(_parse_target_ts_only = None) (langs : Lang.t list)
+let make_js_module ?(parse_target_ts_only = None) (langs : Lang.t list)
     parse_target parse_pattern =
   let lang_names =
     Array.of_list
@@ -127,7 +127,7 @@ let make_js_module ?(_parse_target_ts_only = None) (langs : Lang.t list)
 
         method parseTargetTsOnly file =
           let parse_target_ts_only () =
-            match _parse_target_ts_only with
+            match parse_target_ts_only with
             | Some parse_target_ts_only ->
                 parse_target_ts_only (Js.to_string file)
             | None ->

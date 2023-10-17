@@ -17,13 +17,16 @@
 (* Prelude *)
 (*****************************************************************************)
 open Js_of_ocaml
-open Semgrep_js_shared
 
 (*****************************************************************************)
 (* Code *)
 (*****************************************************************************)
 
-let filtered =
+(* skipped_tests is a list of test names and and optional indicies to skip *)
+(* for example: *)
+(* ("foo", []) will skip all tests with "foo" in the name *)
+(* ("foo", [1; 3]) will skip test with "fool" in the name AND whose index are 1 or 3 *)
+let skipped_tests =
   [
     (* TODO: investigate C++ test issues *)
     ("Cpp", []);
@@ -47,7 +50,7 @@ let test_filter ~name ~index =
           (String.lowercase_ascii name)
           (String.lowercase_ascii language)
         && (indexes == [] || List.exists (fun n2 -> n2 == index) indexes))
-      filtered
+      skipped_tests
     <> []
   then `Skip
   else `Run
@@ -55,11 +58,11 @@ let test_filter ~name ~index =
 let _ =
   Js.export_all
     (object%js
-       method init = init_jsoo
-       method getMountpoints = get_jsoo_mountpoint ()
-       method setParsePattern = setParsePattern
-       method setJustParseWithLang = setJustParseWithLang
-       method setJsonnetParser = setJsonnetParser
+       method init = Semgrep_js_shared.init_jsoo
+       method getMountpoints = Semgrep_js_shared.get_jsoo_mountpoint ()
+       method setParsePattern = Semgrep_js_shared.setParsePattern
+       method setJustParseWithLang = Semgrep_js_shared.setJustParseWithLang
+       method setJsonnetParser = Semgrep_js_shared.setJsonnetParser
 
        method run filter =
          let argv = [| "" |] in
@@ -74,7 +77,7 @@ let _ =
            Common.map
              (fun (name, f) ->
                let f () =
-                 wrap_with_js_error
+                 Semgrep_js_shared.wrap_with_js_error
                    ~hook:
                      (Some (fun () -> Firebug.console##log (Js.string name)))
                    f
@@ -87,5 +90,5 @@ let _ =
              (Testutil.to_alcotest tests)
              ~and_exit:false ~argv ~filter:test_filter
          in
-         wrap_with_js_error run
+         Semgrep_js_shared.wrap_with_js_error run
     end)

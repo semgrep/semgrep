@@ -45,7 +45,7 @@ const getParsers = async () => {
   }
   return parsers;
 };
-const run = async () => {
+const entrypoint = async () => {
   try {
     console.log("Running tests");
     const wasm = await SemgrepEngine({
@@ -89,6 +89,7 @@ const run = async () => {
     setParsePattern(parsePattern);
 
     run("");
+    process.exit(0);
   } catch (e) {
     console.log("Error running tests:\n");
     console.log(e);
@@ -98,4 +99,4 @@ const run = async () => {
   }
 };
 
-run();
+entrypoint();
