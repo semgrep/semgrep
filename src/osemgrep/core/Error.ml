@@ -8,8 +8,7 @@ module Out = Semgrep_output_v1_j
 
    Translated from error.py
 
-   LATER: we should merge with Semgrep_core_error.ml, as well
-   as the errors defined in semgrep_output_v1.atd (especially core_error).
+   LATER: we should merge with Core_error.ml
 
    coupling: See the CLI.safe_run function which should catch all the exns
    defined in this module and return an appropriate exit code.
@@ -26,8 +25,6 @@ exception Semgrep_error of string * Exit_code.t option
 exception Exit of Exit_code.t
 
 (* TOPORT?
-   exception Semgrep_core_error of Semgrep_output_v1_t.core_error
-
    (*
       python: class ErrorWithSpan(SemgrepError)
 
@@ -101,15 +98,16 @@ let () =
 (*****************************************************************************)
 
 (* This is used for the CLI text output and also for the metrics
- * payload.errors.error.
- * This used to be stored also in the cli_error.type_ field, but
- * we now store directly the error_type (which should have the
+ * payload.errors.errors.
+ * The resulting string used to be stored also in the cli_error.type_ field,
+ * but we now store directly the error_type (which should have the
  * same string representation for most cases as before except
- * for the constructors with arguments.
+ * for the constructors with arguments).
+ * python: error_type_string() in error.py
  *)
 let rec string_of_error_type (error_type : Out.error_type) : string =
   match error_type with
-  (* # convert to the same string of core.ParseError for now *)
+  (* python: convert to the same string of core.ParseError for now *)
   | PartialParsing _ -> string_of_error_type ParseError
   (* other constructors with arguments *)
   | PatternParseError _ -> string_of_error_type PatternParseError0

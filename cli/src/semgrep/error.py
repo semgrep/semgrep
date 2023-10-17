@@ -96,6 +96,22 @@ class SemgrepError(Exception):
         return f"{level_tag} {self}"
 
 
+# used in text output and currently stored in our metrics payload.errors.errors
+def error_type_string(type_: out.ErrorType) -> str:
+    # convert to the same string of out.ParseError for now
+    if isinstance(type_.value, out.PartialParsing):
+        return error_type_string(out.ErrorType(out.ParseError()))
+    # constructors with arguments
+    if isinstance(type_.value, out.PatternParseError):
+        return error_type_string(out.ErrorType(out.PatternParseError0()))
+    if isinstance(type_.value, out.IncompatibleRule_):
+        return error_type_string(out.ErrorType(out.IncompatibleRule0()))
+    # All the other cases don't have arguments in Semgrep_output_v1.atd
+    # and have some <json name="..."> annotations to generate the right string
+    else:
+        return str(type_.to_json())
+
+
 @dataclass(frozen=True)
 class SemgrepCoreError(SemgrepError):
     code: int
@@ -143,22 +159,6 @@ class SemgrepCoreError(SemgrepError):
         """
         return isinstance(self.core.error_type.value, out.Timeout)
 
-    # used in text output
-    def _error_type_string(self) -> str:
-        type_ = self.core.error_type
-        # convert to the same string of out.ParseError for now
-        if isinstance(type_.value, out.PartialParsing):
-            return "Syntax error"
-        # constructors with arguments
-        if isinstance(type_.value, out.PatternParseError):
-            return "Pattern parse error"
-        if isinstance(type_.value, out.IncompatibleRule_):
-            return "Incompatible rule"
-        # All the other cases don't have arguments in Semgrep_output_v1.atd
-        # and have some <json name="..."> annotations to generate the right string
-        else:
-            return str(type_.to_json())
-
     @property
     def _error_message(self) -> str:
         """
@@ -181,7 +181,7 @@ class SemgrepCoreError(SemgrepError):
         else:
             error_context = f"at line {self.core.location.path.value}:{self.core.location.start.line}"
 
-        return f"{self._error_type_string()} {error_context}:\n {self.core.message}"
+        return f"{error_type_string(self.core.error_type)} {error_context}:\n {self.core.message}"
 
     @property
     def _stack_trace(self) -> str:
