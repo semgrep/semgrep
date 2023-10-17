@@ -13,13 +13,9 @@
  * LICENSE for more details.
  *)
 
-(*****************************************************************************)
-(* Prelude *)
-(*****************************************************************************)
-
-open Testutil
 open Lsp
 open Types
+open Jsonrpc
 module Out = Semgrep_output_v1_t
 module In = Input_to_core_t
 module SR = Server_request
@@ -27,7 +23,12 @@ module CR = Client_request
 module CN = Client_notification
 module YS = Yojson.Safe
 module LanguageServer = LS.LanguageServer
-open Jsonrpc
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+
+(* This file is just a port of `test_ls.py` to OCaml. *)
 
 (*****************************************************************************)
 (* Types *)
@@ -317,7 +318,7 @@ let send_initialize info ?(only_git_dirty = true) workspaceFolders =
         (workspaceFolders
         |> Common.map (fun f ->
                let f = Fpath.to_string f in
-               { WorkspaceFolder.uri = Uri.of_path f; name = f }))
+               { Types.WorkspaceFolder.uri = Uri.of_path f; name = f }))
     in
     let initializationOptions =
       `Assoc
@@ -882,7 +883,7 @@ let test_login () =
 (*****************************************************************************)
 
 let tests =
-  pack_tests "Language Server (e2e)"
+  Testutil.pack_tests "Language Server (e2e)"
     [
       ("Test LS", test_ls_specs);
       ("Test LS exts", test_ls_ext);

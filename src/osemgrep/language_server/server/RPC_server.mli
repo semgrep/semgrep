@@ -1,8 +1,3 @@
-module Io : sig
-  val read : Lwt_io.input_channel -> Jsonrpc.Packet.t option Lwt.t
-  val write : Lwt_io.output_channel -> Jsonrpc.Packet.t -> unit Lwt.t
-end
-
 (** All Language Servers have a lifecycle according to the specs as follows:
     Uninitialzed -> must ignore all requests until the initialize request is received.
     Running -> normal state until shutdown is called
@@ -41,4 +36,10 @@ end) : sig
   val start : t -> unit
   val start_async : t -> unit Lwt.t
   val create : unit -> t
+end
+
+(* exposed just for testing purposes *)
+module Io : sig
+  val read : Lwt_io.input_channel -> Jsonrpc.Packet.t option Lwt.t
+  val write : Lwt_io.output_channel -> Jsonrpc.Packet.t -> unit Lwt.t
 end

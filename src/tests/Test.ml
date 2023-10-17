@@ -75,7 +75,7 @@ let tests () =
       Unit_Login.tests;
       Unit_Fetching.tests;
       Unit_Networking.tests;
-      LS_e2e.tests;
+      Test_LS_e2e.tests;
       (* End OSemgrep tests *)
       Aliengrep.Unit_tests.tests;
       (* Inline tests *)
