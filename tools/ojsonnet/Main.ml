@@ -93,6 +93,7 @@ let run (conf : conf) =
 (*****************************************************************************)
 
 let main () =
+  Parse_jsonnet.jsonnet_parser_ref := Parse_jsonnet_tree_sitter.parse;
   let info = Cmd.info Sys.argv.(0) in
   let term = Term.(const run $ term) in
   let cmd = Cmd.v info term in

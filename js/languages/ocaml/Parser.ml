@@ -4,7 +4,10 @@ let parse_pattern _ _ str =
 
 let parse_target _ file =
   Pfff_or_tree_sitter.run file
-    [ TreeSitter Parse_ocaml_tree_sitter.parse ]
+    [
+      Pfff (Pfff_or_tree_sitter.throw_tokens Parse_ml.parse);
+      TreeSitter Parse_ocaml_tree_sitter.parse;
+    ]
     Ml_to_generic.program
 
 let _ =
