@@ -1,0 +1,8 @@
+(library
+ (public_name lwt_platform)
+ (wrapped false)
+  (libraries
+    lwt
+  )
+ (virtual_modules lwt_platform)
+)

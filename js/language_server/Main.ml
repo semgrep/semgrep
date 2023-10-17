@@ -92,6 +92,7 @@ let _ =
   RPC_server.io_ref := (module Io);
   Logs.set_level (Some Logs.Debug);
   Logs.set_reporter { Logs.report = console_report };
+  Http_helpers.client_ref := Some (module Cohttp_lwt_jsoo.Client);
   Js.export_all
     (object%js
        method init = init_jsoo

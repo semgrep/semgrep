@@ -1,0 +1,8 @@
+(library
+ (public_name lwt_platform.js)
+ (name lwt_platform_js)
+  (libraries
+    lwt
+  )
+ (implements lwt_platform)
+)

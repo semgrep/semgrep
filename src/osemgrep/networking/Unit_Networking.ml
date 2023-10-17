@@ -17,7 +17,7 @@
 (* Prelude *)
 (*****************************************************************************)
 open Testutil
-module Http_helpers = Http_helpers.Make (Lwt_wrapper)
+module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -75,7 +75,7 @@ let get_and_check_multi_lwt ?(parallel = false) urls (f : string -> unit) =
       m "GET asynchronously (%s)"
         (if parallel then "parallel" else "sequential"));
   let iter_fn = if parallel then Lwt_list.iter_p else Lwt_list.iter_s in
-  Lwt_wrapper.run
+  Lwt_platform.run
     (urls
     |> iter_fn (fun url ->
            let%lwt resp = get_and_check_lwt url in
@@ -87,7 +87,7 @@ let post_and_check_multi_lwt ?(parallel = false)
       m "POST asynchronously (%s)"
         (if parallel then "parallel" else "sequential"));
   let iter_fn = if parallel then Lwt_list.iter_p else Lwt_list.iter_s in
-  Lwt_wrapper.run
+  Lwt_platform.run
     (url_body_pairs
     |> iter_fn (fun (url, body) ->
            let%lwt resp = post_and_check_lwt url body in

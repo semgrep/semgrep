@@ -25,7 +25,7 @@ open Cohttp
 (*****************************************************************************)
 let client_ref : (module Cohttp_lwt.S.Client) option ref = ref None
 
-module Make (Lwt_wrapper : sig
+module Make (Lwt_platform : sig
   val run : 'a Lwt.t -> 'a
 end) =
 struct
@@ -85,7 +85,7 @@ struct
   (*****************************************************************************)
 
   (* TODO: extend to allow to curl with JSON as answer *)
-  let get ?headers url = Lwt_wrapper.run (get_async ?headers url) [@@profiling]
+  let get ?headers url = Lwt_platform.run (get_async ?headers url) [@@profiling]
 
   let post ~body ?(headers = [ ("content-type", "application/json") ])
       ?(chunked = false) url =
@@ -107,7 +107,7 @@ struct
        AWS does not support specifying a minimum TLS version of v1.3, and we will need
        to figure out a better solution for ensuring reliable metrics delivery.
     *)
-    Lwt_wrapper.run
+    Lwt_platform.run
       (Lwt.catch
          (fun () -> post_async ~body ~headers ~chunked url)
          (fun exn ->

@@ -20,6 +20,8 @@
     osemgrep_cli_scan
     notty
     notty.unix
+
+    lwt_platform.unix
   )
  (preprocess
    (pps

@@ -1,8 +1,0 @@
-(library
- (public_name lwt_wrapper)
- (wrapped false)
-  (libraries
-    lwt
-  )
- (virtual_modules lwt_wrapper)
-)

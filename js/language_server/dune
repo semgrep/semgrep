@@ -9,8 +9,7 @@
   logs.browser
   semgrep.language_server
   semgrep.semgrep_js_shared
-  lwt_wrapper.js
-  networking.js
+  lwt_platform.js
   )
  (modes js)
  (js_of_ocaml

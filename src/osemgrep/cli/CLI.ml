@@ -32,7 +32,7 @@
 
 open Common
 module Http_helpers_ = Http_helpers
-module Http_helpers = Http_helpers.Make (Lwt_wrapper)
+module Http_helpers = Http_helpers.Make (Lwt_platform)
 module Env = Semgrep_envvars
 
 (*****************************************************************************)

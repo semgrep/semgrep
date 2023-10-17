@@ -3,7 +3,12 @@
  (name networking_http_mock_client)
   (wrapped false)
   (libraries
+   commons
     cohttp-lwt
+    networking.http_helpers
   )
-
- (virtual_modules http_mock_client))
+  (preprocess
+    (pps
+      lwt_ppx
+     )
+   ))

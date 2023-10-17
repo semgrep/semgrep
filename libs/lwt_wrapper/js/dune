@@ -1,8 +1,0 @@
-(library
- (public_name lwt_wrapper.js)
- (name lwt_wrapper_js)
-  (libraries
-    lwt
-  )
- (implements lwt_wrapper)
-)

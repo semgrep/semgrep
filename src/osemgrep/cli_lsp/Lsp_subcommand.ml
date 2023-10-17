@@ -47,7 +47,7 @@ let run (conf : Lsp_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
   RPC_server.io_ref := (module Io);
   Logs.debug (fun m -> m "Starting semgrep-lsp");
-  Lwt_wrapper.run (LS.start ());
+  Lwt_platform.run (LS.start ());
   Exit_code.ok
 
 (*****************************************************************************)

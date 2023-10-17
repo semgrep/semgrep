@@ -256,7 +256,7 @@ let ci_tests () =
   in
   let test_cache_session () =
     let session = mock_session () in
-    Lwt_wrapper.run (Session.cache_session session);
+    Lwt_platform.run (Session.cache_session session);
     let rules = session.cached_session.rules in
     Alcotest.(check int) "rules" 1 (List.length rules);
     let skipped_fingerprints = session.cached_session.skipped_fingerprints in

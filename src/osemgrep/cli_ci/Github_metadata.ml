@@ -1,4 +1,4 @@
-module Http_helpers = Http_helpers.Make (Lwt_wrapper)
+module Http_helpers = Http_helpers.Make (Lwt_platform)
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)

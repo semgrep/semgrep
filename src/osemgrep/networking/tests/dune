@@ -4,7 +4,7 @@
   (wrapped false)
   (libraries
     networking.http_mock_client
-    lwt_wrapper
+    lwt_platform
     cohttp-lwt-unix
     commons
 

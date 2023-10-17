@@ -138,7 +138,7 @@ a few other projects developed at r2c.
   (description "XXX")
 )
 
-(package (name lwt_wrapper)
+(package (name lwt_platform)
   (synopsis "XXX")
   (description "XXX")
 )

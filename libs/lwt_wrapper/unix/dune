@@ -1,8 +1,0 @@
-(library
- (public_name lwt_wrapper.unix)
- (name lwt_wrapper_unix)
-  (libraries
-    lwt.unix
-  )
- (implements lwt_wrapper)
-)

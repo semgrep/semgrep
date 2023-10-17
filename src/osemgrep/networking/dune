@@ -7,7 +7,7 @@
     lwt
     networking.http_mock_client
     networking.http_helpers
-    lwt_wrapper
+    lwt_platform
     ocolor
 
     commons
