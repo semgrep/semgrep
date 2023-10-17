@@ -1,3 +1,7 @@
+(* This allows us to dyamically set the Jsonnet parser, which is necessary
+ * in order for semgrep.js to work because Semgrep creates the Jsonnet parser
+ * on startup.
+ *)
 val jsonnet_parser_ref :
   (Fpath.t -> AST_jsonnet.expr Tree_sitter_run.Parsing_result.t) ref
 

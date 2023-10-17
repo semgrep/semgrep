@@ -1,4 +1,6 @@
 (env
+; we disable shortvar (Shorten variable names) and share (Share string and number constants)
+; to make debugging the generated code easier
  (js_of_ocaml (flags -no-inline -debug-info --disable shortvar --disable share)))
 
 (executable

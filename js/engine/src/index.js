@@ -66,6 +66,11 @@ export const EngineFactory = async (wasmUri) => {
         languages.set(lang, parser);
         missingLanguages.delete(lang);
       });
+      // The Semgrep core engine eagerly uses the Jsonnet parser
+      // because we support it as a format to write rules in.
+      // Unlike other languages, there is no pure-OCaml (e.g. Pfff)
+      // option that we can use instead, so we need to explicitly
+      // pass a reference of the Jsonnet parser to the engine.
       if (parser.getLangs().includes("jsonnet")) {
         setJsonnetParser((file) => parser.parseTargetTsOnly(file));
       }
