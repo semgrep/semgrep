@@ -39,11 +39,12 @@ let recover_when_partial_error = ref true
 (*****************************************************************************)
 
 type scope = InFunction | InClass | TopLevel
+type cpp_parsing_option = [ `AsFunDef | `AsVarDefWithCtor ]
 
 type env = {
   mutable defs_toadd : G.definition list;
   mutable in_scope : scope;
-  mutable parsing_pref : Rule_options_t.cpp_parsing_opt option;
+  mutable parsing_pref : cpp_parsing_option option;
 }
 
 let empty_env () = { defs_toadd = []; in_scope = TopLevel; parsing_pref = None }
@@ -2192,7 +2193,7 @@ let map_any env x : G.any =
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let any parsing_opt x =
+let any ?(parsing_opt = None) x =
   let env = empty_env () in
   let env = { env with parsing_pref = parsing_opt } in
   map_any env x

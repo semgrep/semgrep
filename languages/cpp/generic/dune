@@ -8,7 +8,6 @@
    parser_cpp.ast
    tree-sitter-lang.cpp
    ast_generic
-   semgrep.configuring
  )
  (preprocess (pps ppx_deriving.show))
 )
