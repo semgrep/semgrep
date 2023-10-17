@@ -319,6 +319,7 @@ def run_scan(
     dryrun: bool = False,
     disable_nosem: bool = False,
     no_git_ignore: bool = False,
+    respect_rule_paths: bool = True,
     timeout: int = DEFAULT_TIMEOUT,
     max_memory: int = 0,
     interfile_timeout: int = 0,
@@ -453,6 +454,7 @@ def run_scan(
             max_target_bytes=max_target_bytes,
             target_strings=target,
             respect_git_ignore=respect_git_ignore,
+            respect_rule_paths=respect_rule_paths,
             baseline_handler=baseline_handler,
             allow_unknown_extensions=not skip_unknown_extensions,
             file_ignore=get_file_ignore(),
@@ -483,6 +485,7 @@ def run_scan(
         timeout_threshold=timeout_threshold,
         optimizations=optimizations,
         allow_untrusted_postprocessors=allow_untrusted_postprocessors,
+        respect_rule_paths=respect_rule_paths,
     )
 
     if dump_contributions:

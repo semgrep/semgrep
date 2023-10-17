@@ -773,36 +773,9 @@ let full_rule_semgrep_rules_regression_tests () =
                     || s =~ ".*/fingerprints/fingerprints.yaml"
                     || s
                        =~ ".*/terraform/aws/security/aws-fsx-lustre-files-ystem.yaml"
-                    (* TODO: Tests for tests/semgrep-rules/php/wordpress-plugins/security/audit/ are in
-                     * a subfolder due to `paths:` constraints in the rule, perhaps Semgrep should ignore
-                     * these constraints when in test mode. Note that `semgrep --test` simply ignores
-                     * these files, but our test runner fails if it cannot find an example target file. *)
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-ajax-no-auth-and-auth-hooks-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-authorisation-checks-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-code-execution-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-command-execution-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-csrf-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-file-download-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-file-inclusion-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-file-manipulation-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-open-redirect-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-php-object-injection-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-sql-injection-audit.yaml"
+                    || s =~ ".*/generic/ci/audit/changed-semgrepignore.*"
                     (* TODO: parse error, weird *)
                     || s =~ ".*/unicode/security/bidi.yml"
-                    (* TODO many mismatches *)
-                    || s =~ ".*/generic/ci/audit/changed-semgrepignore.*"
                     || s
                        =~ ".*/python/django/maintainability/duplicate-path-assignment.yaml"
                     (* ?? *)
