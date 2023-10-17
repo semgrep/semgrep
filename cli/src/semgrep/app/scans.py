@@ -1,4 +1,5 @@
 # Handle communication of findings / errors to semgrep.app
+import hashlib
 import json
 import os
 from collections import Counter
@@ -38,6 +39,14 @@ if TYPE_CHECKING:
     from rich.progress import Progress
 
 logger = getLogger(__name__)
+
+
+def update_syntatic_id(x: str) -> str:
+    if x.endswith("/v2"):
+        return x
+    else:
+        # Doesn't end with version no.; need to re-hash to convert v1 to v2.
+        return f"{hashlib.blake2b(str.encode(x, 'ascii')).hexdigest()}/v2"
 
 
 @dataclass
@@ -192,7 +201,9 @@ class ScanHandler:
         self._autofix = conf.autofix
         self._deepsemgrep = conf.deepsemgrep
         self._dependency_query = conf.dependency_query
-        self._skipped_syntactic_ids = conf.triage_ignored_syntactic_ids
+        self._skipped_syntactic_ids = list(
+            map(lambda x: update_syntatic_id(x), conf.triage_ignored_syntactic_ids)
+        )
         self._skipped_match_based_ids = conf.triage_ignored_match_based_ids
         self.ignore_patterns = conf.ignored_files
         if conf.enabled_products:

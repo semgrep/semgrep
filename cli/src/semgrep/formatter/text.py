@@ -34,6 +34,8 @@ from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.util import format_bytes
 from semgrep.util import get_lines
+from semgrep.util import MASK_CHAR
+from semgrep.util import MASK_SHOW_PCT
 from semgrep.util import truncate
 from semgrep.util import unit_str
 from semgrep.util import with_color
@@ -67,29 +69,36 @@ GROUP_TITLES: Dict[Tuple[out.Product, str], str] = {
 }
 
 
-def color_line(
+def format_finding_line(
     line: str,
     line_number: int,
     start_line: int,
     start_col: int,
     end_line: int,
     end_col: int,
+    color: bool,
+    mask: bool,
 ) -> str:
     """
     Assumes column start and end numbers are 1-indexed
     """
-    start_color = 0 if line_number > start_line else start_col
+    start = 0 if line_number > start_line else start_col
     # adjust for 1-indexed column number
-    start_color = max(start_color - 1, 0)
+    start = max(start - 1, 0)
     # put the end color at the end of the line if this isn't the last line in the output
-    end_color = end_col if line_number >= end_line else len(line) + 1 + 1
+    end = end_col if line_number >= end_line else len(line) + 1 + 1
     # adjust for 1-indexed column number
-    end_color = max(end_color - 1, 0)
-    line = (
-        line[:start_color]
-        + with_color(Colors.foreground, line[start_color:end_color], bold=True)
-        + line[end_color:]
-    )
+    end = max(end - 1, 0)
+    if mask:
+        show_until = int(MASK_SHOW_PCT * (end - start)) + start
+        mid = line[start:show_until] + (MASK_CHAR * (end - show_until))
+    else:
+        mid = line[start:end]
+
+    if color:
+        mid = with_color(Colors.foreground, mid, bold=True)
+
+    line = line[:start] + mid + line[end:]
     return line
 
 
@@ -101,6 +110,7 @@ def format_lines(
     end_col: int,
     lines: List[str],
     color_output: bool,
+    mask_match: bool,
     per_finding_max_lines_limit: Optional[int],
     per_line_max_chars_limit: Optional[int],
     show_separator: bool,
@@ -129,18 +139,17 @@ def format_lines(
         line = line.rstrip()
         line_number = ""
         if start_line:
-            if color_output:
-                line = color_line(
-                    line,
-                    start_line + i,
-                    start_line,
-                    start_col,
-                    end_line,
-                    end_col,
-                )
-                line_number = f"{start_line + i}"
-            else:
-                line_number = f"{start_line + i}"
+            line = format_finding_line(
+                line,
+                start_line + i,
+                start_line,
+                start_col,
+                end_line,
+                end_col,
+                color=color_output,
+                mask=mask_match,
+            )
+            line_number = f"{start_line + i}"
 
             if per_line_max_chars_limit and len(line) > per_line_max_chars_limit:
                 stripped = True
@@ -205,6 +214,7 @@ def finding_to_line(
             end_col,
             lines,
             color_output,
+            isinstance(rule_match.product.value, out.Secrets),
             per_finding_max_lines_limit,
             per_line_max_chars_limit,
             show_separator,
@@ -231,6 +241,7 @@ def match_to_lines(
         location.end.col,
         lines,
         color_output,
+        False,
         per_finding_max_lines_limit,
         per_line_max_chars_limit,
         False,
@@ -288,6 +299,7 @@ def call_trace_to_lines(
                     loc.end.col,
                     lines,
                     color_output,
+                    False,
                     per_finding_max_lines_limit,
                     per_line_max_chars_limit,
                     False,
@@ -353,6 +365,7 @@ def dataflow_trace_to_lines(
                     loc.end.col,
                     lines,
                     color_output,
+                    False,
                     per_finding_max_lines_limit,
                     per_line_max_chars_limit,
                     False,
