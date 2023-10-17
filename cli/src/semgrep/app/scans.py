@@ -340,8 +340,8 @@ class ScanHandler:
             token=token,
             findings=findings,
             ignores=ignores,
-            searched_paths=[str(t) for t in sorted(targets)],
-            renamed_paths=[str(rt) for rt in sorted(renamed_targets)],
+            searched_paths=[out.Fpath(str(t)) for t in sorted(targets)],
+            renamed_paths=[out.Fpath(str(rt)) for rt in sorted(renamed_targets)],
             rule_ids=rule_ids,
             contributions=contributions,
         )
