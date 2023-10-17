@@ -237,6 +237,7 @@ let mock_files () : _ * Fpath.t list =
   open_and_write_default_content ~mode:[ Open_wronly ] existing_file;
 
   checked_command
+    (* nosem *)
     (String.concat " " [ "git"; "remote"; "add"; "origin"; "/tmp/origin" ]);
   checked_command (String.concat " " [ "git"; "add"; "modified.py" ]);
   checked_command (String.concat " " [ "git"; "add"; "existing.py" ]);
@@ -624,6 +625,14 @@ let test_ls_specs () =
                let old_ids =
                  Common.map (fun d -> d.Diagnostic.code) params.diagnostics
                in
+
+               (* This sleep is to ensure that the subsequent write to
+                  `modified.py` results in changing the modification time of
+                  the file. Otherwise, we might actually load from the cached
+                  AST for the file, and not incorporate the new change.
+               *)
+               Unix.sleep 1;
+
                open_and_write_default_content ~mode:[ Open_append ] file;
 
                (* didSave *)
@@ -636,8 +645,9 @@ let test_ls_specs () =
                let new_ids =
                  Common.map (fun d -> d.Diagnostic.code) params.diagnostics
                in
+
                Alcotest.(check int)
-                 "should have one more finding" (List.length new_ids)
+                 "new finding from modified file" (List.length new_ids)
                  (List.length old_ids + 1);
 
                let diagnostic = Common2.list_last params.diagnostics in
