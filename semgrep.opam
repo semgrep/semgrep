@@ -20,6 +20,7 @@ depends: [
   "base" {>= "v0.15.1"}
   "fpath"
   "bos"
+  "fileutils"
   "alcotest"
   "alcotest-js"
   "fmt"

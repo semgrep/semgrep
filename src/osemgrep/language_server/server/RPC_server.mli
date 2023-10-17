@@ -34,5 +34,12 @@ module Make (MessageHandler : sig
   val capabilities : Lsp.Types.ServerCapabilities.t
 end) : sig
   val start : t -> unit
+  val start_async : t -> unit Lwt.t
   val create : unit -> t
+end
+
+(* exposed just for testing purposes *)
+module Io : sig
+  val read : Lwt_io.input_channel -> Jsonrpc.Packet.t option Lwt.t
+  val write : Lwt_io.output_channel -> Jsonrpc.Packet.t -> unit Lwt.t
 end

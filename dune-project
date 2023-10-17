@@ -401,6 +401,7 @@ For more information see https://semgrep.dev
     (base (>= v0.15.1))
     fpath
     bos
+    fileutils
     ; unit testing
     alcotest
     alcotest-js
