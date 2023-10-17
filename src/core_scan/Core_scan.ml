@@ -852,6 +852,8 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
 
   let all_targets = targets @ new_extracted_targets in
 
+  let rule_filter_cache = Hashtbl.create (List.length valid_rules) in
+
   (* Let's go! *)
   logger#info "processing %d files, skipping %d files" (List.length all_targets)
     (List.length skipped);
@@ -887,6 +889,7 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
                nested_formula = false;
                matching_explanations = config.matching_explanations;
                filter_irrelevant_rules = config.filter_irrelevant_rules;
+               rule_filter_cache;
              }
            in
            let matches =
