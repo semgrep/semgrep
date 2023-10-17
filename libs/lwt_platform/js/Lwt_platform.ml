@@ -14,7 +14,8 @@
  *)
 
 (* Commentary *)
-(*  *)
+(* This Lwt_main.run dropin assumes that some other process ran the promise *)
+(* For example in Js_of_ocaml, Javascript's event loop will do this *)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -26,5 +27,6 @@
 let run t =
   match Lwt.state t with
   | Lwt.Return x -> x
+  (* nosem *)
   | Lwt.Fail e -> raise e
   | Lwt.Sleep -> failwith "Lwt_main.run: thread didn't return"

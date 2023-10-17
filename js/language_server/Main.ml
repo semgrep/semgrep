@@ -14,7 +14,9 @@
  *)
 
 (* Commentary *)
-(*  *)
+(* This is strongly coupled to [src/osemgrep/language_server] *)
+(* This file serves as an interface for the above, that is easily *)
+(* consumable by the javascript/node. *)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -23,6 +25,7 @@
 open Js_of_ocaml
 open Semgrep_js_shared
 
+(* JS specific IO for the RPC server *)
 module Io = RPC_server.MakeLSIO (struct
   type input = in_channel
   type output = out_channel
@@ -51,13 +54,12 @@ end)
 (* Code *)
 (*****************************************************************************)
 let _Promise = Js.Unsafe.global##._Promise
-let ( let+ ) = Lwt.( >|= )
 
 let promise_of_lwt lwt =
   new%js _Promise
     (Js.wrap_callback (fun resolve reject ->
          try%lwt
-           let+ res = lwt () in
+           let%lwt res = lwt () in
            Js.Unsafe.fun_call resolve [| Js.Unsafe.inject res |]
          with
          | e ->
@@ -92,7 +94,6 @@ let _ =
   RPC_server.io_ref := (module Io);
   Logs.set_level (Some Logs.Debug);
   Logs.set_reporter { Logs.report = console_report };
-  Http_helpers.client_ref := Some (module Cohttp_lwt_jsoo.Client);
   Js.export_all
     (object%js
        method init = init_jsoo

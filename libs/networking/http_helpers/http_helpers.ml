@@ -25,12 +25,20 @@ open Cohttp
 (*****************************************************************************)
 let client_ref : (module Cohttp_lwt.S.Client) option ref = ref None
 
+(* We use a functor here so that we can pass in what we use for the Lwt runtime. *)
+(* This is platform dependent (JS vs Unix), so we can't just choose one *)
+(* We could use a ref like above, but this doesn't need to be decided at runtime, only *)
+(* at build, so I don't want to open the door to being able to change it at runtime *)
+(* for no reason *)
 module Make (Lwt_platform : sig
   val run : 'a Lwt.t -> 'a
 end) =
 struct
   let get_async ?(headers = []) url =
     Logs.debug (fun m -> m "GET on %s" (Uri.to_string url));
+    (* This checks to make sure a client has been set *)
+    (* Instead of defaulting to a client, as that can cause *)
+    (* Hard to debug build and runtime issues *)
     let module Client =
       (val match !client_ref with
            | Some client -> client
@@ -56,6 +64,7 @@ struct
   let post_async ~body ?(headers = [ ("content-type", "application/json") ])
       ?(chunked = false) url =
     Logs.debug (fun m -> m "POST on %s" (Uri.to_string url));
+    (* See comment above *)
     let module Client =
       (val match !client_ref with
            | Some client -> client

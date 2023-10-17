@@ -1,10 +1,25 @@
 module type LSIO = sig
+  (** This is a signature for the IO module to be used by the language server's
+    RPC server. This is abstracted away so we can use different IO for
+    different implementations (JS vs Unix), and in the future different
+    different communication methods (stdout vs sockets)
+  *)
+
   val read : unit -> Jsonrpc.Packet.t option Lwt.t
+  (** [read ()] returns a promise that will read the next JSONRPC packet*)
+
   val write : Jsonrpc.Packet.t -> unit Lwt.t
+  (** [write p] writes the JSONRPC packet [p] to the output channel *)
+
   val flush : unit -> unit Lwt.t
+  (** [flush ()] flushes the output channel *)
 end
 
 module MakeLSIO (I : sig
+  (** This module makes an [LSIO] module to be used by the RPC server for IO.
+    This handles a bunch of functor stuff required by the LSP library
+  *)
+
   type input
   type output
 
@@ -18,6 +33,9 @@ module MakeLSIO (I : sig
 end) : LSIO
 
 val io_ref : (module LSIO) ref
+(** [io_ref] is what the RPCServer will use for IO. This is a ref mostly for testing
+    purposes.
+  *)
 
 (** All Language Servers have a lifecycle according to the specs as follows:
     Uninitialzed -> must ignore all requests until the initialize request is received.
