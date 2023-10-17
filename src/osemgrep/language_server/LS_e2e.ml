@@ -236,8 +236,8 @@ let mock_files () : _ * Fpath.t list =
   open_and_write_default_content ~mode:[ Open_wronly ] modified_file;
   open_and_write_default_content ~mode:[ Open_wronly ] existing_file;
 
-  (* checked_command (String.concat " " ["git"; "remote"; "add"; "origin"; "/tmp/origin"]);
-  *)
+  checked_command
+    (String.concat " " [ "git"; "remote"; "add"; "origin"; "/tmp/origin" ]);
   checked_command (String.concat " " [ "git"; "add"; "modified.py" ]);
   checked_command (String.concat " " [ "git"; "add"; "existing.py" ]);
   checked_command
@@ -526,7 +526,7 @@ let assert_request (req : Request.t) ?message ?kind meth =
         |> member "kind" |> to_string = kind));
   Lwt.return_unit
 
-let _assert_message (notif : Notification.t) message =
+let assert_message (notif : Notification.t) message =
   Alcotest.(check string)
     "methods should be same" notif.method_ "window/showMessage";
   assert (
@@ -628,6 +628,7 @@ let test_ls_specs () =
 
                (* didSave *)
                let%lwt () = send_did_save info file in
+
                let%lwt params =
                  receive_notification_params
                    PublishDiagnosticsParams.t_of_yojson info
@@ -635,7 +636,9 @@ let test_ls_specs () =
                let new_ids =
                  Common.map (fun d -> d.Diagnostic.code) params.diagnostics
                in
-               assert (List.length new_ids = List.length old_ids + 1);
+               Alcotest.(check int)
+                 "should have one more finding" (List.length new_ids)
+                 (List.length old_ids + 1);
 
                let diagnostic = Common2.list_last params.diagnostics in
                (* get range of last diagnostic *)
@@ -715,13 +718,15 @@ let test_ls_ext () =
           (* scan workspace full *)
           let%lwt () = send_semgrep_scan_workspace ~full:true info in
 
-          (*
-      only once we port middleware message
-      let%lwt notif = receive_notification info in
-      let%lwt () = assert_message notif
-        "Scanning all files regardless of git status. These diagnostics will persist until a file is edited. To default to always scanning regardless of git status, please disable 'Only Git Dirty' in settings"
-      in
-      *)
+          let%lwt notif = receive_notification info in
+          let%lwt () =
+            assert_message notif
+              "Scanning all files regardless of git status. These diagnostics \
+               will persist until a file is edited. To default to always \
+               scanning regardless of git status, please disable 'Only Git \
+               Dirty' in settings"
+          in
+
           let%lwt () = assert_progress info "Scanning Workspace" in
 
           let%lwt () =
