@@ -1,0 +1,2 @@
+Previously, to ignore a finding from rule 'foo.bar.my-rule' we only accepted
+`nosemgrep: foo.bar.my-rule`, now we also accept `nosemgrep: my-rule`.

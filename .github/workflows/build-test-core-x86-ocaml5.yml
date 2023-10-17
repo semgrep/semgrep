@@ -5,26 +5,25 @@ name: build-test-core-x86-ocaml5
   pull_request:
   push:
     branches:
-      - develop
+    - develop
 jobs:
   job:
     steps:
-      - name: Make checkout speedy
-        run: git config --global fetch.parallel 50
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-      - name: Build semgrep-core
-        run:
-          "\n          eval $(opam env)\n          make install-deps-ALPINE-for-semgrep-core\n
-          \         make install-deps-for-semgrep-core\n          make core\n          mkdir
-          -p ocaml-build-artifacts/bin\n          cp bin/semgrep-core ocaml-build-artifacts/bin/\n
-          \         tar czf ocaml-build-artifacts.tgz ocaml-build-artifacts\n        "
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ocaml-build-artifacts.tgz
-          name: ocaml-build-artifacts-ocaml5-release
+    - name: Make checkout speedy
+      run: git config --global fetch.parallel 50
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+    - name: Build semgrep-core
+      run: "\n          eval $(opam env)\n          make install-deps-ALPINE-for-semgrep-core\n
+        \         make install-deps-for-semgrep-core\n          make core\n\n          mkdir
+        -p ocaml-build-artifacts/bin\n          cp bin/semgrep-core ocaml-build-artifacts/bin/\n
+        \         tar czf ocaml-build-artifacts.tgz ocaml-build-artifacts\n        "
+    - uses: actions/upload-artifact@v3
+      with:
+        path: ocaml-build-artifacts.tgz
+        name: ocaml-build-artifacts-ocaml5-release
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine5.0-2023-09-29
+    container: returntocorp/ocaml:alpine5.0-2023-10-05
     env:
       HOME: /root

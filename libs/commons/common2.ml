@@ -4317,7 +4317,7 @@ let rec intersect x y =
 module StringSetOrig = Set.Make (struct
   type t = string
 
-  let compare = compare
+  let compare = String.compare
 end)
 
 module StringSet = struct
