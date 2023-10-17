@@ -12,8 +12,6 @@ module Out = Semgrep_output_v1_t
 (*****************************************************************************)
 
 let ellipsis_string = " ... "
-let mask_char = '*'
-let mask_show_pct = 0.2
 let base_indent = String.make 10 ' '
 let findings_indent_depth = String.make 12 ' '
 
