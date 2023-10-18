@@ -306,15 +306,9 @@ class RuleMatch:
         # Upon reviewing an old decision,
         # there's no good reason for us to use MurmurHash3 here,
         # but we need to keep consistent hashes so we cannot change this easily
-        #
-        # NOTE: Since Murmur3 is insecure, we hash this again with BLAKE2.
-        # It would be better to simply not use Murmur3 at all, but we've done
-        # it this way so that we can update existing IDs. Eventually it would
-        # be best to replace this if we can come up with a better way to track
-        # findings without regarding "differences" we would like to mod out.
         hash_int = hash128(str(self.ci_unique_key))
         hash_bytes = int.to_bytes(hash_int, byteorder="big", length=16, signed=False)
-        return f"{hashlib.blake2b(str.encode(str(binascii.hexlify(hash_bytes), 'ascii'))).hexdigest()}/v2"
+        return str(binascii.hexlify(hash_bytes), "ascii")
 
     @match_based_key.default
     def get_match_based_key(self) -> Tuple:
