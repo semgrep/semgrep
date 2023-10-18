@@ -18,6 +18,7 @@ let findings_indent_depth = String.make 12 ' '
 let text_width =
   let max_text_width = 120 in
   let w = Option.value ~default:max_text_width (Terminal_size.get_columns ()) in
+  (* TODO: what is this w - (w - 100) ? What if w <= 5? *)
   if w <= 110 then w - 5 else w - (w - 100)
 
 let group_titles = function
@@ -31,11 +32,10 @@ let group_titles = function
 let is_blocking (json : Yojson.Basic.t) =
   match Yojson.Basic.Util.member "dev.semgrep.actions" json with
   | `List stuff ->
-      List.exists
-        (function
-          | `String s -> String.equal s "block"
-          | _else -> false)
-        stuff
+      stuff
+      |> List.exists (function
+           | `String s -> String.equal s "block"
+           | _else -> false)
   | _else -> false
 
 let ws_prefix s =
@@ -86,11 +86,19 @@ let dedent_lines (lines : string list) =
     longest_prefix )
 
 let wrap ~indent ~width s =
+  Logs.debug (fun m -> m "wrap indent=%d width=%d s=%s" indent width s);
   let pre = String.make indent ' ' in
-  let rec go indent width pre s acc =
+  let rec go pre s acc =
     let real_width = width - indent in
-    if String.length s <= real_width then List.rev ((pre, s) :: acc)
+    (* In some context (e.g., pre-commit in CI), the number of columns of
+     * your terminal can be small in which case real_width above can become
+     * negative, in which case we should stop, otherwise
+     * String.rindex_from() below will raise an Invalid_arg exn.
+     *)
+    if String.length s <= real_width || real_width <= 0 then
+      List.rev ((pre, s) :: acc)
     else
+      (* here we know String.length s > real_width > 0 *)
       let cut =
         let prev_ws =
           try String.rindex_from s real_width ' ' with
@@ -105,9 +113,9 @@ let wrap ~indent ~width s =
       let e, s =
         (Str.first_chars s cut, String.(trim (sub s cut (length s - cut))))
       in
-      go indent width pre s ((pre, e) :: acc)
+      go pre s ((pre, e) :: acc)
   in
-  go indent width pre s []
+  go pre s []
 
 let cut s idx1 idx2 =
   Logs.debug (fun m -> m "cut %d (idx1 %d idx2 %d)" (String.length s) idx1 idx2);
