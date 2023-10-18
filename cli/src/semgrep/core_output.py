@@ -165,9 +165,6 @@ def core_matches_to_rule_matches(
         matched_values, propagated_values = read_metavariables(match)
 
         message = match.extra.message if match.extra.message else rule.message
-        logger.debug(
-            f"{isinstance(rule.product.value, out.Secrets)}, {rule.product.value}"
-        )
         message = interpolate(
             message,
             matched_values,
