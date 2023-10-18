@@ -287,7 +287,7 @@ let wrap_with_error_message lang path bool_res :
   | false ->
       Error
         {
-          path = !!path;
+          path;
           reason = Wrong_language;
           details =
             Some

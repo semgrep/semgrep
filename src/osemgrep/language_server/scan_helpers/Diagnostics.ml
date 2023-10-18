@@ -43,7 +43,7 @@ let diagnostic_of_match is_intellij (m : Out.cli_match) =
 
 let diagnostics_of_file is_intellij matches file =
   let matches =
-    List.filter (fun (m : Out.cli_match) -> Fpath.v m.path = file) matches
+    List.filter (fun (m : Out.cli_match) -> m.path = file) matches
   in
   let diagnostics = Common.map (diagnostic_of_match is_intellij) matches in
   let ranges_overlap (a : Diagnostic.t) (b : Diagnostic.t) =

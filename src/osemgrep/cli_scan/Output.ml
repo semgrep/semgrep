@@ -1,4 +1,5 @@
 open Common
+open File.Operators
 module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
@@ -43,7 +44,7 @@ let apply_fixes (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
   let edits : Textedit.t list =
     Common.map_filter
       (fun (result : Out.cli_match) ->
-        let path = result.Out.path in
+        let path = !!(result.Out.path) in
         let* fix = result.Out.extra.fix in
         let start = result.Out.start.offset in
         let end_ = result.Out.end_.offset in
@@ -89,7 +90,7 @@ let dispatch_output_format (output_format : Output_format.t)
              | { check_id; path; start; extra = { message; severity; _ }; _ } ->
                  let parts =
                    [
-                     path;
+                     !!path;
                      spf "%d" start.line;
                      spf "%d" start.col;
                      (* TOPORT? restrict to just I|E|W ? *)
@@ -133,14 +134,14 @@ let dispatch_output_format (output_format : Output_format.t)
                     *)
                    match
                      Semgrep_output_utils.lines_of_file_at_range (start, end_)
-                       (Fpath.v path)
+                       path
                    with
                    | [] -> ""
                    | x :: _ -> x (* TOPORT rstrip? *)
                  in
                  let parts =
                    [
-                     path;
+                     !!path;
                      spf "%d" start.line;
                      spf "%d" start.col;
                      (* TOPORT? restrict to just I|E|W ? *)

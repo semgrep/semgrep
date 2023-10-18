@@ -67,7 +67,7 @@ let skipped_target_of_rule (file_and_more : Xtarget.t) (rule : R.rule) :
          (Rule_ID.to_string rule_id))
   in
   {
-    path = !!(file_and_more.file);
+    path = file_and_more.file;
     reason = Irrelevant_rule;
     details;
     rule_id = Some (Rule_ID.to_string rule_id);

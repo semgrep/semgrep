@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
 open AST_generic
 module E = Core_error
 module J = JSON
@@ -164,7 +163,7 @@ let metavars startp_of_match_range (s, mval) =
  * pysemgrep).
  *)
 let content_of_loc (loc : Out.location) : string =
-  OutUtils.content_of_file_at_range (loc.start, loc.end_) (Fpath.v loc.path)
+  OutUtils.content_of_file_at_range (loc.start, loc.end_) loc.path
 
 let token_to_intermediate_var token : Out.match_intermediate_var option =
   let* location = OutUtils.tokens_to_single_loc [ token ] in
@@ -244,7 +243,7 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
   {
     Out.check_id = Rule_ID.to_string x.rule_id.id;
     (* inherited location *)
-    path = file;
+    path = Fpath.v file;
     start = startp;
     end_ = endp;
     (* end inherited location *)
@@ -294,7 +293,7 @@ let error_to_error (err : Core_error.t) =
     Out.error_type;
     rule_id;
     severity;
-    location = { path = file; start = startp; end_ = endp };
+    location = { path = Fpath.v file; start = startp; end_ = endp };
     message;
     details;
   }
@@ -327,7 +326,7 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
                |> Common.hash_of_list
              in
              {
-               Out.path = !!target;
+               Out.path = target;
                match_times =
                  rule_ids
                  |> Common.map (fun rule_id ->

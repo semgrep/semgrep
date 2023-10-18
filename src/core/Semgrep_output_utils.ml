@@ -85,7 +85,7 @@ let position_range min_loc max_loc =
 
 let location_of_token_location loc =
   let start, end_ = position_range loc loc in
-  { path = loc.Tok.pos.file; start; end_ }
+  { path = Fpath.v loc.Tok.pos.file; start; end_ }
 
 (* None if pi has no location information. Fake tokens should have been
  * filtered out earlier, but in case one slipped through we handle this case.
@@ -117,7 +117,7 @@ let tokens_to_single_loc (toks : Tok.t list) : location option =
 let compare_position (a : position) b = Int.compare a.offset b.offset
 
 let compare_location (a : location) (b : location) =
-  let c = String.compare a.path b.path in
+  let c = Fpath.compare a.path b.path in
   if c <> 0 then c
   else
     let c = compare_position a.start b.start in
@@ -191,7 +191,7 @@ let sort_core_matches (matches : core_match list) : core_match list =
    This uses the same ordering as in pysemgrep in RuleMatch.get_ordering_key()
 *)
 let compare_cli_matches (a : cli_match) (b : cli_match) =
-  let c = String.compare a.path b.path in
+  let c = Fpath.compare a.path b.path in
   if c <> 0 then c
   else
     let a_start = a.start in
