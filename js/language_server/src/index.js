@@ -1,7 +1,3 @@
-const { XMLHttpRequest } = require("../src/XMLHttpRequest.js");
-
-global.XMLHttpRequest = XMLHttpRequest;
-
 const SemgrepEngineWasm = require("../dist/semgrep-engine");
 
 import { getDirname } from "cross-dirname";

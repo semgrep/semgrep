@@ -8,8 +8,6 @@
    integers_stubs_js
    libpcre_stubs_js
    yaml_ctypes_overrides
-   networking.http_helpers
-   cohttp-lwt-jsoo
    semgrep.parsing
    semgrep.data
  )

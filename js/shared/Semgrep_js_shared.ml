@@ -52,7 +52,6 @@ let init_jsoo yaml_wasm_module =
      old: Parsing_init.init ();
   *)
   Yaml_ctypes_overrides.apply ();
-  Http_helpers.client_ref := Some (module Cohttp_lwt_jsoo.Client);
   Data_init.init ();
   Libyaml_stubs_js.set_libyaml_wasm_module yaml_wasm_module
 

@@ -10,11 +10,15 @@
   semgrep.language_server
   semgrep.semgrep_js_shared
   lwt_platform.js
+
+   networking.http_helpers
+   cohttp-lwt-jsoo
   )
  (modes js)
  (js_of_ocaml
   (javascript_files
    unix.js
+   XMLHttpRequest.js
  ))
  (preprocess
   (pps lwt_ppx js_of_ocaml-ppx)))

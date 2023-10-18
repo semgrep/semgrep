@@ -1,3 +1,7 @@
+// This is a modified version of XMLHttpRequest.js for
+// Semgrep LSP.js. This removes the default user agent
+// and modifies how the module is exported, so it can
+// be included in the Jsoo built file
 /**
  * Wrapper for built-in http.js to emulate the browser XMLHttpRequest object.
  *
@@ -15,7 +19,7 @@ var Url = require("url");
 var spawn = require("child_process").spawn;
 var fs = require("fs");
 
-exports.XMLHttpRequest = function () {
+XMLHttpRequest = function () {
   "use strict";
 
   /**
