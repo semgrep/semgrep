@@ -49,7 +49,7 @@ let test_filter ~name ~index =
         Common.contains
           (String.lowercase_ascii name)
           (String.lowercase_ascii language)
-        && (indexes == [] || List.exists (fun n2 -> n2 == index) indexes))
+        && (indexes = [] || List.exists (fun n2 -> n2 = index) indexes))
       skipped_tests
     <> []
   then `Skip

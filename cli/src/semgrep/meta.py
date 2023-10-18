@@ -26,6 +26,13 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
+def uri_opt(uri: Optional[str]) -> Optional[out.Uri]:
+    if uri is None:
+        return None
+    else:
+        return out.Uri(uri)
+
+
 def get_url_from_sstp_url(sstp_url: Optional[str]) -> Optional[str]:
     """Gets regular url from sstp url.
     We use repo urls on semgrep-app to link to files, so we need to make sure they are
@@ -187,9 +194,9 @@ class GitMeta:
             # REQUIRED for semgrep-app backend
             repository=self.repo_name,
             # OPTIONAL for semgrep-app backend
-            repo_url=self.repo_url,
+            repo_url=uri_opt(self.repo_url),
             branch=self.branch,
-            ci_job_url=self.ci_job_url,
+            ci_job_url=uri_opt(self.ci_job_url),
             commit=self.commit_sha,
             commit_author_email=commit_author_email,
             commit_author_name=commit_author_name,
@@ -586,12 +593,14 @@ class GithubMeta(GitMeta):
     def to_project_metadata(self) -> out.ProjectMetadata:
         res = super().to_project_metadata()
         res.commit_author_username = self.glom_event(T["sender"]["login"])
-        res.commit_author_image_url = self.glom_event(T["sender"]["avatar_url"])
+        res.commit_author_image_url = uri_opt(
+            self.glom_event(T["sender"]["avatar_url"])
+        )
         res.pull_request_author_username = self.glom_event(
             T["pull_request"]["user"]["login"]
         )
-        res.pull_request_author_image_url = self.glom_event(
-            T["pull_request"]["user"]["avatar_url"]
+        res.pull_request_author_image_url = uri_opt(
+            self.glom_event(T["pull_request"]["user"]["avatar_url"])
         )
         return res
 
