@@ -113,6 +113,7 @@ let main () =
     else changed
   in
   if parent false then print_endline ("changed directory to " ^ Sys.getcwd ());
+  Http_helpers.client_ref := Some (module Cohttp_lwt_unix.Client);
   Parsing_init.init ();
   Data_init.init ();
   Core_CLI.register_exception_printers ();

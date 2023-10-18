@@ -5,7 +5,6 @@
  (libraries
    lsp
    lwt
-   lwt.unix
 
    semgrep_core_cli
    osemgrep_core

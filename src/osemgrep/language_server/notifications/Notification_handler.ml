@@ -95,7 +95,7 @@ let on_notification notification (server : RPC_server.t) =
           Diagnostics.diagnostics_of_results
             ~is_intellij:server.session.is_intellij [] files
         in
-        RPC_server.batch_notify server diagnostics;
+        RPC_server.batch_notify diagnostics;
         server
     | CN.Exit ->
         Logs.debug (fun m -> m "Server exiting");
@@ -108,11 +108,11 @@ let on_notification notification (server : RPC_server.t) =
           Semgrep_settings.save
             { (Semgrep_settings.load ()) with api_token = None }
         then (
-          RPC_server.notify_show_message server ~kind:MessageType.Info
+          RPC_server.notify_show_message ~kind:MessageType.Info
             "Logged out of Semgrep Code";
           server)
         else (
-          RPC_server.notify_show_message server ~kind:MessageType.Error
+          RPC_server.notify_show_message ~kind:MessageType.Error
             "Failed to log out";
           server)
     | CN.UnknownNotification
@@ -123,7 +123,7 @@ let on_notification notification (server : RPC_server.t) =
           |> Option.value ~default:false
         in
         if server.session.metrics.isNewAppInstall && full then
-          RPC_server.notify_show_message ~kind:MessageType.Info server
+          RPC_server.notify_show_message ~kind:MessageType.Info
             "Scanning all files regardless of git status. These diagnostics \
              will persist until a file is edited. To default to always \
              scanning regardless of git status, please disable 'Only Git \

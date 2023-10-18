@@ -13,6 +13,17 @@ function numcores() {
   return 1; // javascript, baby!
 }
 
+//Provides: ocaml_terminal_size_get
+function ocaml_terminal_size_get() {
+  return [80, 120];
+}
+
+//Provides: unix_open
+//Requires: caml_sys_open
+function unix_open(path, flags, perm) {
+  return caml_sys_open(path, flags, perm);
+}
+
 //Provides: unix_environment const
 function unix_environment() {
   return [];

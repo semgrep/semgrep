@@ -16,8 +16,6 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-
-module Net = Cohttp_lwt_unix.Net
 module Request = Cohttp_lwt.Request
 module Response = Cohttp_lwt.Response
 module Body = Cohttp_lwt.Body
@@ -36,10 +34,25 @@ end
 
 module Make (M : S) : Cohttp_lwt.S.Client = struct
   open M
-  include Cohttp_lwt_unix.Client
 
-  let call ?(ctx = Net.default_ctx) ?headers ?(body = `Empty) ?chunked meth uri
-      =
+  type ctx = unit
+
+  let callv ?ctx _ _ =
+    ignore ctx;
+    failwith "Not implemented"
+
+  let head ?ctx ?headers _ =
+    ignore ctx;
+    ignore headers;
+    failwith "Not implemented"
+
+  let post_form ?ctx ?headers ~params _ =
+    ignore ctx;
+    ignore headers;
+    ignore params;
+    failwith "Not implemented"
+
+  let call ?ctx ?headers ?(body = `Empty) ?chunked meth uri =
     ignore ctx;
     let headers =
       match headers with
@@ -138,7 +151,7 @@ let with_testing_client make_fn test_fn () =
       let make_response = make_fn
     end))
   in
-  Http_helpers.client_ref := new_client;
+  Http_helpers.client_ref := Some new_client;
   test_fn ();
   Http_helpers.client_ref := prev_client
 

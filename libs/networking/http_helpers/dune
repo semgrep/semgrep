@@ -1,0 +1,20 @@
+(library
+ (public_name networking.http_helpers)
+ (name networking_http_helpers)
+ (wrapped false)
+  (libraries
+    lwt
+    uri
+    cohttp-lwt
+    profiling
+  )
+  (preprocess
+    (pps
+      profiling.ppx
+      ppx_deriving.show
+      ppx_deriving.eq
+      ppx_hash
+      lwt_ppx
+     )
+   )
+)

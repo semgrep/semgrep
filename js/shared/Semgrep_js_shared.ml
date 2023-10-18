@@ -55,11 +55,16 @@ let init_jsoo yaml_wasm_module =
   Data_init.init ();
   Libyaml_stubs_js.set_libyaml_wasm_module yaml_wasm_module
 
+let setJsonnetParser
+    (func : jstring -> AST_jsonnet.expr Tree_sitter_run.Parsing_result.t) =
+  Parse_jsonnet.jsonnet_parser_ref :=
+    fun file -> func (Js.string Fpath.(to_string file))
+
 let setParsePattern (func : jbool -> jstring -> jstring -> 'a) =
   Parse_pattern.parse_pattern_ref :=
     fun print_error _options lang pattern ->
       match lang with
-      (* The YAML parser is embedded in the engine because it's a
+      (* The Yaml and JSON parsers are embedded in the engine because it's a
          core component needed to parse rules *)
       | Lang.Yaml -> Yaml_to_generic.any pattern
       | _ ->
@@ -71,7 +76,7 @@ let setJustParseWithLang (func : jstring -> jstring -> Parsing_result2.t) =
   Parse_target.just_parse_with_lang_ref :=
     fun lang filename ->
       match lang with
-      (* The YAML parser is embedded in the engine because it's a
+      (* The Yaml and JSON parsers are embedded in the engine because it's a
          core component needed to parse rules *)
       | Lang.Yaml ->
           {
@@ -84,10 +89,6 @@ let setJustParseWithLang (func : jstring -> jstring -> Parsing_result2.t) =
       | _ ->
           func (Js.string (Lang.to_lowercase_alnum lang)) (Js.string filename)
 
-let setJsonnetParser
-    (func : jstring -> AST_jsonnet.expr Tree_sitter_run.Parsing_result.t) =
-  Parse_jsonnet.jsonnet_parser_ref :=
-    fun file -> func (Js.string Fpath.(to_string file))
 (*****************************************************************************)
 (* Entrypoints *)
 (*****************************************************************************)

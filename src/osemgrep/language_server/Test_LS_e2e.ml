@@ -36,12 +36,6 @@ module LanguageServer = LS.LanguageServer
 (* Types *)
 (*****************************************************************************)
 
-type info = {
-  server : RPC_server.t;
-  in_begin : Lwt_io.output_channel;
-  out_end : Lwt_io.input_channel;
-}
-
 (* The picture looks like this:
 
                    in_begin               in_end
@@ -54,25 +48,41 @@ type info = {
    We also have the channels associated with the "out" pipe,
    which deals with data flowing "out" of the server.
 *)
+
+type push_function = Jsonrpc.Packet.t option -> unit
+
+let write_func : push_function ref = ref (fun _ -> ())
+
+let read_stream : Jsonrpc.Packet.t Lwt_stream.t ref =
+  ref (fst (Lwt_stream.create ()))
+
+module Io : RPC_server.LSIO = struct
+  let write packet =
+    !write_func (Some packet);
+    Lwt.return_unit
+
+  let read () = Lwt_stream.get !read_stream
+  let flush () = Lwt.return_unit
+end
+
+type info = {
+  server : RPC_server.t;
+  in_stream : Jsonrpc.Packet.t Lwt_stream.t * push_function;
+  out_stream : Jsonrpc.Packet.t Lwt_stream.t * push_function;
+}
+
 let create_info () =
-  let in_end, in_begin = Unix.pipe () in
-  let out_end, out_begin = Unix.pipe () in
-  let in_end, in_begin =
-    ( Lwt_io.of_unix_fd ~mode:Lwt_io.Input in_end,
-      Lwt_io.of_unix_fd ~mode:Lwt_io.Output in_begin )
-  in
-  let out_end, out_begin =
-    ( Lwt_io.of_unix_fd ~mode:Lwt_io.Input out_end,
-      Lwt_io.of_unix_fd ~mode:Lwt_io.Output out_begin )
-  in
+  RPC_server.io_ref := (module Io);
+  let in_stream, in_push_func = Lwt_stream.create () in
+  let out_stream, out_push_func = Lwt_stream.create () in
   let server = LanguageServer.create () in
-  let server =
-    {
-      server with
-      session = { server.session with incoming = in_end; outgoing = out_begin };
-    }
-  in
-  { server; in_begin; out_end }
+  write_func := out_push_func;
+  read_stream := in_stream;
+  {
+    server;
+    in_stream = (in_stream, in_push_func);
+    out_stream = (out_stream, out_push_func);
+  }
 
 (*****************************************************************************)
 (* Constants *)
@@ -130,7 +140,7 @@ let send (info : info) packet : unit Lwt.t =
   | RPC_server.State.Stopped -> Alcotest.failf "Cannot send, server stopped"
   | _ ->
       let%lwt () = Lwt.pause () in
-      let%lwt () = RPC_server.Io.write info.in_begin packet in
+      let () = (snd info.in_stream) (Some packet) in
       Lwt.return_unit
 
 let receive (info : info) : Packet.t Lwt.t =
@@ -138,7 +148,7 @@ let receive (info : info) : Packet.t Lwt.t =
   | RPC_server.State.Stopped -> Alcotest.failf "Cannot receive, server stopped"
   | _ -> (
       let%lwt () = Lwt.pause () in
-      let%lwt server_msg = RPC_server.Io.read info.out_end in
+      let%lwt server_msg = Lwt_stream.get (fst info.out_stream) in
       match server_msg with
       | Some packet -> Lwt.return packet
       | _ -> Alcotest.failf "Received no response, client disconnected")
@@ -606,8 +616,8 @@ let with_session (f : info -> unit Lwt.t) : unit =
   let finalized_f =
     Lwt.finalize (fun () -> f info) (fun () -> send_exit info)
   in
-  Lwt.async (fun () -> LanguageServer.start_async info.server);
-  Lwt_main.run finalized_f |> ignore;
+  Lwt.async (fun () -> LanguageServer.start info.server);
+  Lwt_platform.run finalized_f |> ignore;
   ()
 
 let test_ls_specs () =

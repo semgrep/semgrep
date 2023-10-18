@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open Common
 
 (*****************************************************************************)
 (* Prelude *)
@@ -31,6 +30,9 @@ open Common
    Translated from cli.py and commands/wrapper.py and parts of metrics.py
 *)
 
+open Common
+module Http_helpers_ = Http_helpers
+module Http_helpers = Http_helpers.Make (Lwt_platform)
 module Env = Semgrep_envvars
 
 (*****************************************************************************)
@@ -309,6 +311,7 @@ let main argv : Exit_code.t =
   (* hacks for having a smaller engine.js file *)
   Parsing_init.init ();
   Data_init.init ();
+  Http_helpers_.client_ref := Some (module Cohttp_lwt_unix.Client);
 
   metrics_init ();
   (* TOPORT: maybe_set_git_safe_directories() *)

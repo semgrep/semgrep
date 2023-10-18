@@ -5,7 +5,9 @@
   (wrapped false)
   (libraries
     lwt
-    cohttp-lwt-unix
+    networking.http_mock_client
+    networking.http_helpers
+    lwt_platform
     ocolor
 
     commons
