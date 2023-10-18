@@ -55,7 +55,7 @@ class ScanHandler:
         self.local_id = str(uuid4())
         self.scan_metadata = out.ScanMetadata(
             cli_version=out.Version(__VERSION__),
-            unique_id=self.local_id,
+            unique_id=out.Uuid(self.local_id),
             requested_products=[],
         )
         self.scan_id = None

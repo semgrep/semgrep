@@ -166,7 +166,7 @@ let scan_id_and_rules_from_deployment ~dry_run (prj_meta : Out.project_metadata)
   let scan_metadata : Out.scan_metadata =
     {
       cli_version = Version.version;
-      unique_id = Uuidm.v `V4 |> Uuidm.to_string;
+      unique_id = Uuidm.v `V4;
       (* TODO: should look at conf.secrets, conf.sca, conf.code, etc. *)
       requested_products = [];
     }

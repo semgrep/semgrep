@@ -15,6 +15,7 @@
    ; standard libraries
    str
    uri
+   uuidm
    semver
    yaml
    atdgen-runtime

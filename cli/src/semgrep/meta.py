@@ -33,6 +33,13 @@ def uri_opt(uri: Optional[str]) -> Optional[out.Uri]:
         return out.Uri(uri)
 
 
+def sha1_opt(x: Optional[str]) -> Optional[out.Sha1]:
+    if x is None:
+        return None
+    else:
+        return out.Sha1(x)
+
+
 def get_url_from_sstp_url(sstp_url: Optional[str]) -> Optional[str]:
     """Gets regular url from sstp url.
     We use repo urls on semgrep-app to link to files, so we need to make sure they are
@@ -197,7 +204,7 @@ class GitMeta:
             repo_url=uri_opt(self.repo_url),
             branch=self.branch,
             ci_job_url=uri_opt(self.ci_job_url),
-            commit=self.commit_sha,
+            commit=sha1_opt(self.commit_sha),
             commit_author_email=commit_author_email,
             commit_author_name=commit_author_name,
             commit_author_username=None,
@@ -722,8 +729,8 @@ class GitlabMeta(GitMeta):
     def to_project_metadata(self) -> out.ProjectMetadata:
         res = super().to_project_metadata()
         res.branch = self.commit_ref
-        res.base_sha = self.merge_base_ref
-        res.start_sha = self.start_sha
+        res.base_sha = sha1_opt(self.merge_base_ref)
+        res.start_sha = sha1_opt(self.start_sha)
         return res
 
 
