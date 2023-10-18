@@ -23,7 +23,7 @@ describe("engine", () => {
       "python",
       `${__dirname}/test-rule-python.json`,
       `${__dirname}`,
-      [`dirname}/../../languages/python/tests/test.py`]
+      [`${__dirname}/test.py`]
     );
     expect(engine.isMissingLanguages()).toBe(true);
     expect(engine.getMissingLanguages()).toEqual(["python"]);

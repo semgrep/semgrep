@@ -4,17 +4,18 @@
  (wrapped false)
  (libraries
    js_of_ocaml
-   semgrep.parsing
    libyaml_stubs_js
-  integers_stubs_js
-  libpcre_stubs_js
+   integers_stubs_js
+   libpcre_stubs_js
    yaml_ctypes_overrides
+
+   semgrep.parsing
+   semgrep.data
  )
  (js_of_ocaml
   (javascript_files
     ocaml-tree-sitter.js
-   core.js ; misc libraries
-   octs.js ; ocaml-tree-sitter plumbing
+    core.js ; misc libraries
  ))
  (preprocess
   (pps js_of_ocaml-ppx)))

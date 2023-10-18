@@ -114,6 +114,22 @@ let complete_position filename table (x : t) =
     column = snd (table x.bytepos);
   }
 
+(*
+   line_arr maps byte position to line.
+   col_arr maps byte position to column.
+*)
+let safe_linecol_of_arrays line_arr col_arr : bytepos_to_linecol_fun =
+  let len1 = Bigarray.Array1.dim line_arr in
+  let len2 = Bigarray.Array1.dim col_arr in
+  (* len1 and len2 should be equal but we're playing it safe *)
+  let len = min len1 len2 in
+  match len with
+  | 0 -> fun _i -> (1, 0)
+  | _ ->
+      fun i ->
+        let i = max 0 (min i (len - 1)) in
+        (line_arr.{i}, col_arr.{i})
+
 let full_charpos_to_pos_large (file : Common.filename) : bytepos_to_linecol_fun
     =
   let chan = open_in_bin file in
@@ -171,7 +187,7 @@ let full_charpos_to_pos_large (file : Common.filename) : bytepos_to_linecol_fun
   in
   full_charpos_to_pos_aux ();
   close_in chan;
-  fun i -> (arr1.{i}, arr2.{i})
+  safe_linecol_of_arrays arr1 arr2
 [@@profiling]
 
 (* This is mostly a copy-paste of full_charpos_to_pos_large,
@@ -218,5 +234,5 @@ let full_charpos_to_pos_str (s : string) : bytepos_to_linecol_fun =
       str_lines
   in
   full_charpos_to_pos_aux ();
-  fun i -> (arr1.{i}, arr2.{i})
+  safe_linecol_of_arrays arr1 arr2
 [@@profiling]

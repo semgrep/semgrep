@@ -124,7 +124,11 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
    and the per-rule include/exclude patterns; possibly more in the future.
 *)
 val select_applicable_rules_for_target :
-  analyzer:Xlang.t -> path:Fpath.t -> Rule.t list -> Rule.t list
+  analyzer:Xlang.t ->
+  path:Fpath.t ->
+  respect_rule_paths:bool ->
+  Rule.t list ->
+  Rule.t list
 
 (* This is used only by semgrep-proprietary.
    Compare to select_applicable_rules_for_target which additionally can

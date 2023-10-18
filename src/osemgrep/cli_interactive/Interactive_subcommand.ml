@@ -546,8 +546,7 @@ let buffer_matches_of_xtarget state (fake_rule : Rule.search_rule) xconf xtarget
     =
   let hook _s (_m : Pattern_match.t) = () in
   if
-    (* Since it's just a single rule, we don't need to cache it *)
-    Match_rules.is_relevant_rule_for_xtarget ~cache:None
+    Match_rules.is_relevant_rule_for_xtarget
       (fake_rule :> Rule.rule)
       xconf xtarget
   then
@@ -606,6 +605,7 @@ let buffer_matches_of_new_iformula (new_iform : iformula_zipper) (state : state)
       matching_explanations = false;
       (* set to true for the -fast optimization! *)
       filter_irrelevant_rules = true;
+      rule_filter_cache = Hashtbl.create 10;
     }
   in
   if !(state.should_continue_iterating_targets) then

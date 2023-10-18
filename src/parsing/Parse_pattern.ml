@@ -73,10 +73,11 @@ let rec normalize_any (lang : Lang.t) (any : G.any) : G.any =
 (* same "trick" than in Parse_target.ml to generate a smaller JS
  * file for the whole engine *)
 let parse_pattern_ref =
-  ref (fun _print_error _lang _str -> failwith "parse_pattern_ref unset")
+  ref (fun _print_error _rule_options _lang _str ->
+      failwith "parse_pattern_ref unset")
 
-let parse_pattern ?(print_errors = false) lang str =
-  let any = !parse_pattern_ref print_errors lang str in
+let parse_pattern ?(print_errors = false) ?(rule_options = None) lang str =
+  let any = !parse_pattern_ref print_errors rule_options lang str in
   let any = normalize_any lang any in
   Check_pattern.check lang any;
   any

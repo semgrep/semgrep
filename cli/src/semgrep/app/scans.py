@@ -55,7 +55,7 @@ class ScanHandler:
         self.local_id = str(uuid4())
         self.scan_metadata = out.ScanMetadata(
             cli_version=out.Version(__VERSION__),
-            unique_id=self.local_id,
+            unique_id=out.Uuid(self.local_id),
             requested_products=[],
         )
         self.scan_id = None
@@ -340,8 +340,8 @@ class ScanHandler:
             token=token,
             findings=findings,
             ignores=ignores,
-            searched_paths=[str(t) for t in sorted(targets)],
-            renamed_paths=[str(rt) for rt in sorted(renamed_targets)],
+            searched_paths=[out.Fpath(str(t)) for t in sorted(targets)],
+            renamed_paths=[out.Fpath(str(rt)) for rt in sorted(renamed_targets)],
             rule_ids=rule_ids,
             contributions=contributions,
         )

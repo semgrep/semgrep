@@ -1,4 +1,5 @@
 open Common
+open File.Operators
 module Out = Semgrep_output_v1_t
 
 (*****************************************************************************)
@@ -160,7 +161,7 @@ let run (conf : conf) : Exit_code.t =
   metacheck_errors
   |> List.iter (fun (x : Out.cli_match) ->
          Logs.err (fun m ->
-             m "Semgrep match found at line %s:%d\n%s" x.path x.start.line
+             m "Semgrep match found at line %s:%d\n%s" !!(x.path) x.start.line
                x.extra.message));
   match num_errors with
   | 0 -> Exit_code.ok

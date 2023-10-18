@@ -110,9 +110,7 @@ let scan_file ?(content = None) server uri =
       | None -> results
     in
     let results =
-      Common.map
-        (fun (m : Out.cli_match) -> { m with path = file_path })
-        results
+      Common.map (fun (m : Out.cli_match) -> { m with path = file }) results
     in
     let files = [ file ] in
     Session.record_results server.session results files;

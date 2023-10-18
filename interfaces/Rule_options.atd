@@ -91,6 +91,8 @@ type t = {
 
   ~generic_engine <ocaml default="`Spacegrep">: generic_engine;
 
+  ~cpp_parsing_pref <ocaml default="`AsVarDefWithCtor">: cpp_parsing_opt;
+
   (* Enable/disable multiline mode in aliengrep. This option is only
      relevant to the 'aliengrep' generic engine.
 
@@ -157,6 +159,11 @@ type t = {
    *   - require_to_import (but need pass config to Js_to_generic)
    *)
 }
+
+type cpp_parsing_opt = [
+  | AsFunDef <json name="as_fundef">
+  | AsVarDefWithCtor <json name="as_vardef_with_ctor">
+]
 
 type generic_engine = [
   | Aliengrep <json name="aliengrep">

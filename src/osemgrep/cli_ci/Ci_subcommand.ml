@@ -166,7 +166,7 @@ let scan_id_and_rules_from_deployment ~dry_run (prj_meta : Out.project_metadata)
   let scan_metadata : Out.scan_metadata =
     {
       cli_version = Version.version;
-      unique_id = Uuidm.v `V4 |> Uuidm.to_string;
+      unique_id = Uuidm.v `V4;
       (* TODO: should look at conf.secrets, conf.sca, conf.code, etc. *)
       requested_products = [];
     }
@@ -467,7 +467,7 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
       token = ci_token;
       findings;
       ignores;
-      searched_paths = List.sort String.compare targets;
+      searched_paths = List.sort Fpath.compare targets;
       (* TODO: get renamed_paths, depends on baseline_commit *)
       renamed_paths = [];
       rule_ids;
@@ -485,7 +485,7 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   let ignored_ext_freqs =
     Option.value ~default:[] skipped
     |> Common.group_by (fun (skipped_target : Out.skipped_target) ->
-           Fpath.get_ext (Fpath.v skipped_target.Out.path))
+           Fpath.get_ext skipped_target.Out.path)
     |> List.filter (fun (ext, _) -> not (String.equal ext ""))
     (* don't count files with no extension *)
     |> Common.map (fun (ext, xs) -> (ext, List.length xs))

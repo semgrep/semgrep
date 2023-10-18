@@ -1,0 +1,3 @@
+The `--test` will now process test target files even if they do not match
+the `paths:` directive of a rule. This is especially useful for rules
+using the `include:` which is now disabled in a test context.

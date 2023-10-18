@@ -223,10 +223,7 @@ let map_res map_loc (tmpfile : Fpath.t) (file : Fpath.t)
         let skipped_targets =
           Common.map
             (fun (st : Semgrep_output_v1_t.skipped_target) ->
-              {
-                st with
-                path = (if st.path = !!tmpfile then !!file else st.path);
-              })
+              { st with path = (if st.path =*= tmpfile then file else st.path) })
             skipped_targets
         in
         Core_profiling.Debug

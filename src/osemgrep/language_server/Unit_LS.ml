@@ -49,7 +49,7 @@ let mock_run_results (files : string list) : Core_runner.result =
         (* inherited location *)
         start = { line = 1; col = 1; offset = 1 };
         end_ = { line = 1; col = 1; offset = 1 };
-        path = file;
+        path = Fpath.v file;
         extra;
       }
     in
@@ -172,7 +172,7 @@ let processed_run () =
     let results = mock_run_results files in
     let matches = Processed_run.of_matches ~only_git_dirty results in
     let final_files =
-      matches |> Common.map (fun (m : Out.cli_match) -> m.path)
+      matches |> Common.map (fun (m : Out.cli_match) -> !!(m.path))
     in
     let final_files = Common.sort final_files in
     let expected = Common.sort expected in

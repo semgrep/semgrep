@@ -24,6 +24,6 @@ jobs:
         path: ocaml-build-artifacts.tgz
         name: ocaml-build-artifacts-ocaml5-release
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine5.0-2023-10-05
+    container: returntocorp/ocaml:alpine5.1-2023-10-17
     env:
       HOME: /root

@@ -939,39 +939,6 @@ let write_file ~file s =
 
 (* could be in control section too *)
 
-(*
-Update 2023-01-20: OCaml >= 4.13 provides a Unix.realpath which works
-on all platforms.
-
-Using an external C functions complicates the linking process of
-programs using commons/. Thus, I replaced realpath() with an OCaml-only
-similar functions fullpath().
-
-external c_realpath: string -> string option = "caml_realpath"
-
-let realpath2 path =
-  match c_realpath path with
-  | Some s -> s
-  | None -> failwith (spf "problem with realpath on %s" path)
-
-let realpath2 path =
-  let stat = Unix.stat path in
-  let dir, suffix =
-    match stat.Unix.st_kind with
-    | Unix.S_DIR -> path, ""
-    | _ -> Filename.dirname path, Filename.basename path
-  in
-
-  let oldpwd = Sys.getcwd () in
-  Sys.chdir dir;
-  let realpath_dir = Sys.getcwd () in
-  Sys.chdir oldpwd;
-  Filename.concat realpath_dir suffix
-
-let realpath path =
-  profile_code "Common.realpath" (fun () -> realpath2 path)
-*)
-
 let fullpath file =
   if not (Sys.file_exists file) then
     failwith (spf "fullpath: file (or directory) %s does not exist" file);
@@ -1226,32 +1193,17 @@ let dir_contents dir =
   loop [] [ dir ]
 
 let follow_symlinks = ref false
-let arg_symlink () = if !follow_symlinks then " -L " else ""
 
-let grep_dash_v_str =
-  "| grep -v /.hg/ |grep -v /CVS/ | grep -v /.git/ |grep -v /_darcs/"
-  ^ "| grep -v /.svn/ | grep -v .git_annot | grep -v .marshall"
+let vcs_re =
+  "(^((\\.hg)|(CVS)|(\\.git)|(_darcs)|(\\.svn))$)|(.*\\.git_annot$)|(.*\\.marshall$)"
+  |> Re.Posix.re |> Re.compile
 
 let files_of_dir_or_files_no_vcs_nofilter xs =
   xs
   |> map (fun x ->
          if Sys.is_directory x then
-           (* todo: should escape x *)
-           let cmd =
-             spf "find %s '%s' -type f %s"
-               (* -noleaf *) (arg_symlink ())
-               x grep_dash_v_str
-           in
-           let xs, status = cmd_to_list_and_status cmd in
-           match status with
-           | Unix.WEXITED 0 -> xs
-           (* bugfix: 'find -type f' does not like empty directories, but it's ok *)
-           | Unix.WEXITED 1 when Array.length (Sys.readdir x) =|= 0 -> []
-           | _ ->
-               raise
-                 (CmdError
-                    ( status,
-                      spf "CMD = %s, RESULT = %s" cmd (String.concat "\n" xs) ))
+           let files = dir_contents x in
+           List.filter (fun x -> not (Re.execp vcs_re x)) files
          else [ x ])
   |> flatten
 

@@ -30,7 +30,7 @@ jobs:
     - name: Publish match performance
       run: opam exec -- make report-perf-matching
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine-2023-10-12
+    container: returntocorp/ocaml:alpine-2023-10-17
     env:
       HOME: /root
   test-osemgrep:
@@ -50,7 +50,7 @@ jobs:
       working-directory: cli
       run: make osempass
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine-2023-10-12
+    container: returntocorp/ocaml:alpine-2023-10-17
     env:
       HOME: /root
   test-cli:
