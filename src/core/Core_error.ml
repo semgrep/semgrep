@@ -111,7 +111,7 @@ let error_of_invalid_rule_error ((kind, rule_id, pos) : R.invalid_rule_error) :
     | IncompatibleRule (this_version, (min_version, max_version)) ->
         Out.IncompatibleRule
           {
-            rule_id = Rule_ID.to_string rule_id;
+            rule_id;
             this_version = Version_info.to_string this_version;
             min_version = Option.map Version_info.to_string min_version;
             max_version = Option.map Version_info.to_string max_version;

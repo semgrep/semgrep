@@ -45,7 +45,7 @@ let mock_run_results (files : string list) : Core_runner.result =
     in
     let (m : Out.core_match) =
       {
-        check_id = "print";
+        check_id = Rule_ID.of_string "print";
         (* inherited location *)
         start = { line = 1; col = 1; offset = 1 };
         end_ = { line = 1; col = 1; offset = 1 };

@@ -87,7 +87,7 @@ let render_fix (hrules : Rule.hrules) (x : Out.core_match) : string option =
   match x with
   | { check_id = rule_id; path; extra = { metavars; rendered_fix; _ }; _ } -> (
       let rule =
-        try Hashtbl.find hrules (Rule_ID.of_string rule_id) with
+        try Hashtbl.find hrules rule_id with
         | Not_found -> raise Impossible
       in
       (* TOPORT: debug logging which indicates the source of the fix *)
@@ -149,8 +149,9 @@ let error_type_string (error_type : Out.error_type) : string =
 let error_message ~rule_id ~(location : Out.location)
     ~(error_type : Out.error_type) ~core_message : string =
   let path = location.path in
+  let rule_id_str_opt = Option.map Rule_ID.to_string rule_id in
   let error_context =
-    match (rule_id, error_type) with
+    match (rule_id_str_opt, error_type) with
     (* For rule errors, the path is a temporary JSON file containing
        the broken rule(s). *)
     | Some id, (RuleParseError | PatternParseError _) -> spf "in rule %s" id
@@ -352,7 +353,8 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
  *
  * There's some weird thing we do w/ join mode. I am hoping that this doesn't matter irl
  *)
-let match_based_id_partial rule rule_id metavars path =
+let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
+    string =
   let xpats = Rule.xpatterns_of_rule rule in
   let xpat_strs =
     xpats |> Common.map (fun (xpat : Xpattern.t) -> fst xpat.pstr)
@@ -369,7 +371,8 @@ let match_based_id_partial rule rule_id metavars path =
   (* We have been hashing w/ this PosixPath thing in python so we must recreate it here  *)
   (* We also have been hashing a tuple formatted as below *)
   let string =
-    spf "('%s', PosixPath('%s'), '%s')" xpat_str_interp path rule_id
+    spf "('%s', PosixPath('%s'), '%s')" xpat_str_interp path
+      (Rule_ID.to_string rule_id)
   in
   let hash = Digestif.BLAKE2B.digest_string string |> Digestif.BLAKE2B.to_hex in
   hash
@@ -398,7 +401,7 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
      };
   } ->
       let rule =
-        try Hashtbl.find hrules (Rule_ID.of_string rule_id) with
+        try Hashtbl.find hrules rule_id with
         | Not_found -> raise Impossible
       in
       let rule_message = rule.message in

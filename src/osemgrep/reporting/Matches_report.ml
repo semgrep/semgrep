@@ -239,7 +239,7 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
       msg
     in
     let print =
-      cur.check_id <> Rule_ID.to_string Constants.rule_id_for_dash_e
+      cur.check_id <> Constants.rule_id_for_dash_e
       &&
       match last_message with
       | None -> true
@@ -254,7 +254,7 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
       List.iter
         (fun (sp, l) ->
           Fmt.pf ppf "%s%a@." sp Fmt.(styled `Bold (esc ++ string)) l)
-        (wrap ~indent:7 ~width:text_width cur.check_id);
+        (wrap ~indent:7 ~width:text_width (Rule_ID.to_string cur.check_id));
       List.iter
         (fun (sp, l) -> Fmt.pf ppf "%s%s@." sp l)
         (wrap ~indent:10 ~width:text_width cur.extra.message);

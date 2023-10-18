@@ -309,7 +309,7 @@ let partition_findings ~keep_ignored (results : Out.cli_match list) =
            if
              Common2.string_match_substring
                (Str.regexp "r2c-internal-cai")
-               m.Out.check_id
+               (Rule_ID.to_string m.Out.check_id)
            then `Cai
            else if is_blocking (JSON.from_yojson m.Out.extra.Out.metadata) then
              (* and "sca_info" not in match.extra *)
@@ -425,9 +425,7 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   let targets = cli_output.paths.scanned in
   let skipped = cli_output.paths.skipped in
 
-  let rule_ids =
-    rules |> Common.map (fun r -> Rule_ID.to_string (fst r.Rule.id))
-  in
+  let rule_ids = rules |> Common.map (fun r -> fst r.Rule.id) in
   let contributions = Parse_contribution.get_contributions () in
   (*
       we want date stamps assigned by the app to be assigned such that the

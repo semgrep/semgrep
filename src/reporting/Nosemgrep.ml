@@ -129,9 +129,7 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
       (* check if the id specified by the user is the [rule_match]'s [rule_id]. *)
       let nosem_matches id =
         (* TODO: `check_id` and `'id` should both be `Rule_ID.t`s. *)
-        Rule_ID.ends_with
-          (Rule_ID.of_string rule_match.Out.check_id)
-          ~suffix:(Rule_ID.of_string id)
+        Rule_ID.ends_with rule_match.Out.check_id ~suffix:(Rule_ID.of_string id)
       in
       List.fold_left
         (fun (result, errors) id ->
@@ -143,7 +141,8 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
                 Format.asprintf
                   "found 'nosem' comment with id '%s', but no corresponding \
                    rule trying '%s'"
-                  id rule_match.Out.check_id
+                  id
+                  (Rule_ID.to_string rule_match.Out.check_id)
               in
               let cli_error : Out.cli_error =
                 {

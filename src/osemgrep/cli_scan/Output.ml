@@ -95,7 +95,7 @@ let dispatch_output_format (output_format : Output_format.t)
                      spf "%d" start.col;
                      (* TOPORT? restrict to just I|E|W ? *)
                      spf "%c" (string_of_severity severity).[0];
-                     check_id;
+                     Rule_ID.to_string check_id;
                      message;
                    ]
                  in
@@ -117,15 +117,11 @@ let dispatch_output_format (output_format : Output_format.t)
                    String.lowercase_ascii (string_of_severity severity)
                  in
                  let severity_and_ruleid =
-                   if check_id = Rule_ID.to_string Constants.rule_id_for_dash_e
-                   then severity
+                   if check_id =*= Constants.rule_id_for_dash_e then severity
                    else
-                     let xs =
-                       check_id |> Str.split (Str.regexp_string ".") |> List.rev
-                     in
-                     match xs with
-                     | [] -> severity
-                     | x :: _ -> spf "%s(%s)" severity x
+                     match Rule_ID.last_elt_opt check_id with
+                     | None -> severity
+                     | Some x -> spf "%s(%s)" severity x
                  in
                  let line =
                    (* ugly: redoing the work done in cli_match_of_core_match.
