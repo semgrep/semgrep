@@ -939,39 +939,6 @@ let write_file ~file s =
 
 (* could be in control section too *)
 
-(*
-Update 2023-01-20: OCaml >= 4.13 provides a Unix.realpath which works
-on all platforms.
-
-Using an external C functions complicates the linking process of
-programs using commons/. Thus, I replaced realpath() with an OCaml-only
-similar functions fullpath().
-
-external c_realpath: string -> string option = "caml_realpath"
-
-let realpath2 path =
-  match c_realpath path with
-  | Some s -> s
-  | None -> failwith (spf "problem with realpath on %s" path)
-
-let realpath2 path =
-  let stat = Unix.stat path in
-  let dir, suffix =
-    match stat.Unix.st_kind with
-    | Unix.S_DIR -> path, ""
-    | _ -> Filename.dirname path, Filename.basename path
-  in
-
-  let oldpwd = Sys.getcwd () in
-  Sys.chdir dir;
-  let realpath_dir = Sys.getcwd () in
-  Sys.chdir oldpwd;
-  Filename.concat realpath_dir suffix
-
-let realpath path =
-  profile_code "Common.realpath" (fun () -> realpath2 path)
-*)
-
 let fullpath file =
   if not (Sys.file_exists file) then
     failwith (spf "fullpath: file (or directory) %s does not exist" file);
