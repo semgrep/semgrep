@@ -45,8 +45,8 @@ type t = Rpath of string [@@deriving show, eq]
 (* Main functions *)
 (*****************************************************************************)
 
-let of_fpath p = Rpath (Realpath.realpath p |> Fpath.to_string)
-let of_string s = Rpath (Realpath.realpath_str s)
+let of_fpath p = Rpath (Fpath.to_string p |> Unix.realpath)
+let of_string s = Rpath (Unix.realpath s)
 let to_fpath (Rpath s) = Fpath.v s
 let to_string (Rpath s) = s
 let canonical s = to_string (of_string s)
