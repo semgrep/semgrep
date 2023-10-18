@@ -3,7 +3,19 @@
    sense for semgrep.
 
    The "S" in "SPcre" stands for Semgrep.
+
+   If you need a function from Pcre that is not being exposed by this module,
+   please add it.
 *)
+
+(*
+   The type holding the source pattern and a compiled regexp.
+
+   Note that the default 'equal' function is based only on the source
+   patterns and doesn't take into account compilation options.
+*)
+type t = private { pattern : string; regexp : Pcre.regexp }
+[@@deriving show, eq]
 
 (*
   val show : Pcre.error -> string
@@ -36,7 +48,7 @@ val regexp :
   ?flags:Pcre.cflag list ->
   ?chtables:Pcre.chtables ->
   string ->
-  Pcre.regexp
+  t
 
 (*
    Same as Pcre.pmatch but makes errors explicit.
@@ -46,7 +58,7 @@ val regexp :
 val pmatch :
   ?iflags:Pcre.irflag ->
   ?flags:Pcre.rflag list ->
-  ?rex:Pcre.regexp ->
+  rex:t ->
   ?pos:int ->
   ?callout:Pcre.callout ->
   string ->
@@ -56,7 +68,7 @@ val pmatch :
 val pmatch_noerr :
   ?iflags:Pcre.irflag ->
   ?flags:Pcre.rflag list ->
-  ?rex:Pcre.regexp ->
+  rex:t ->
   ?pos:int ->
   ?callout:Pcre.callout ->
   ?on_error:bool ->
@@ -70,7 +82,7 @@ val pmatch_noerr :
 val exec :
   ?iflags:Pcre.irflag ->
   ?flags:Pcre.rflag list ->
-  ?rex:Pcre.regexp ->
+  rex:t ->
   ?pos:int ->
   ?callout:Pcre.callout ->
   string ->
@@ -80,7 +92,7 @@ val exec :
 val exec_noerr :
   ?iflags:Pcre.irflag ->
   ?flags:Pcre.rflag list ->
-  ?rex:Pcre.regexp ->
+  rex:t ->
   ?pos:int ->
   ?callout:Pcre.callout ->
   string ->
@@ -93,7 +105,7 @@ val exec_noerr :
 val exec_all :
   ?iflags:Pcre.irflag ->
   ?flags:Pcre.rflag list ->
-  ?rex:Pcre.regexp ->
+  rex:t ->
   ?pos:int ->
   ?callout:Pcre.callout ->
   string ->
@@ -104,7 +116,7 @@ val exec_all :
 val exec_to_strings :
   ?iflags:Pcre.irflag ->
   ?flags:Pcre.rflag list ->
-  ?rex:Pcre.regexp ->
+  rex:t ->
   ?pos:int ->
   ?callout:Pcre.callout ->
   string ->
@@ -114,7 +126,7 @@ val exec_to_strings :
 val exec_all_noerr :
   ?iflags:Pcre.irflag ->
   ?flags:Pcre.rflag list ->
-  ?rex:Pcre.regexp ->
+  rex:t ->
   ?pos:int ->
   ?callout:Pcre.callout ->
   string ->
@@ -124,7 +136,7 @@ val exec_all_noerr :
 val split :
   ?iflags:Pcre.irflag ->
   ?flags:Pcre.rflag list ->
-  ?rex:Pcre.regexp ->
+  rex:t ->
   ?pos:int ->
   ?max:int ->
   ?callout:Pcre.callout ->
@@ -135,7 +147,7 @@ val split :
 val full_split :
   ?iflags:Pcre.irflag ->
   ?flags:Pcre.rflag list ->
-  ?rex:Pcre.regexp ->
+  rex:t ->
   ?pos:int ->
   ?max:int ->
   ?callout:Pcre.callout ->
@@ -146,7 +158,7 @@ val full_split :
 val split_noerr :
   ?iflags:Pcre.irflag ->
   ?flags:Pcre.rflag list ->
-  ?rex:Pcre.regexp ->
+  rex:t ->
   ?pos:int ->
   ?max:int ->
   ?callout:Pcre.callout ->
@@ -162,3 +174,32 @@ val split_noerr :
    See issue https://github.com/mmottl/pcre-ocaml/issues/24
 *)
 val register_exception_printer : unit -> unit
+
+val substitute :
+  ?iflags:Pcre.irflag ->
+  ?flags:Pcre.rflag list ->
+  rex:t ->
+  ?pos:int ->
+  ?callout:Pcre.callout ->
+  subst:(string -> string) ->
+  string ->
+  string
+
+val extract_all :
+  ?iflags:Pcre.irflag ->
+  ?flags:Pcre.rflag list ->
+  rex:t ->
+  ?pos:int ->
+  ?full_match:bool ->
+  ?callout:Pcre.callout ->
+  string ->
+  string array array
+
+(*
+   Exception-less version of Pcre.get_named_substring.
+
+   Ok None: variable name is valid but unbound
+   Error msg: no such variable in the original pattern
+*)
+val get_named_substring :
+  t -> string -> Pcre.substrings -> (string option, string) Result.t

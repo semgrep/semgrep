@@ -66,4 +66,4 @@ let quote =
     | '\t' -> {|\t|}
     | c (* other whitespace or '#' *) -> sprintf {|\x%02X|} (Char.code c)
   in
-  fun str -> Pcre.quote str |> Pcre.substitute ~rex ~subst
+  fun str -> Pcre.quote str |> SPcre.substitute ~rex ~subst
