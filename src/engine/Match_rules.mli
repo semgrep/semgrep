@@ -18,8 +18,4 @@ val check :
 
 (* for osemgrep interactive *)
 val is_relevant_rule_for_xtarget :
-  cache:Analyze_rule.prefilter_cache option ->
-  Rule.t ->
-  Match_env.xconfig ->
-  Xtarget.t ->
-  bool
+  Rule.t -> Match_env.xconfig -> Xtarget.t -> bool

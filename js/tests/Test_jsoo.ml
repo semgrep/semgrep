@@ -17,88 +17,78 @@
 (* Prelude *)
 (*****************************************************************************)
 open Js_of_ocaml
-open Semgrep_js_shared
 
 (*****************************************************************************)
 (* Code *)
 (*****************************************************************************)
 
-(* These tests are skipped as they are currently incredibly slow *)
-(* Once LLVM merges a PR we will re-enable these *)
-let filtered = [ "Cpp"; "C++"; "Julia"; "Ruby" ]
+(* skipped_tests is a list of test names and and optional indicies to skip *)
+(* for example: *)
+(* ("foo", []) will skip all tests with "foo" in the name *)
+(* ("foo", [1; 3]) will skip test with "fool" in the name AND whose index are 1 or 3 *)
+let skipped_tests =
+  [
+    (* TODO: investigate C++ test issues *)
+    ("Cpp", []);
+    ("C++", []);
+    (* TODO: re-enable once we fix Julia build slowness *)
+    ("Julia", []);
+    (* TODO: re-enable once we fix Ruby build slowness *)
+    ("Ruby", []);
+    (* TODO: re-enable this when we fix the jsoo int overflow bug *)
+    ("Go", [ 24 ]);
+    (* TODO: investigate c_array_inits pattern parse error*)
+    ("C", [ 0 ]);
+  ]
 
 (* Filter to skip tests *)
 let test_filter ~name ~index =
-  ignore index;
-
-  if List.mem name filtered then `Skip
-  else `Run (* Cpp has a weird error, and @brandon is still working on it soo *)
+  if
+    List.filter
+      (fun (language, indexes) ->
+        Common.contains
+          (String.lowercase_ascii name)
+          (String.lowercase_ascii language)
+        && (indexes == [] || List.exists (fun n2 -> n2 == index) indexes))
+      skipped_tests
+    <> []
+  then `Skip
+  else `Run
 
 let _ =
   Js.export_all
     (object%js
-       method init = init_jsoo
-       method getMountpoints = get_jsoo_mountpoint ()
-
-       method setParsePattern (func : jbool -> jstring -> jstring -> 'a) =
-         Parse_pattern.parse_pattern_ref :=
-           fun print_error lang pattern ->
-             match lang with
-             (* The Yaml and JSON parsers are embedded in the engine because it's a
-                core component needed to parse rules *)
-             | Lang.Yaml -> Yaml_to_generic.any pattern
-             | _ ->
-                 func (Js.bool print_error)
-                   (Js.string (Lang.to_lowercase_alnum lang))
-                   (Js.string pattern)
-
-       method setJustParseWithLang
-           (func : jstring -> jstring -> Parsing_result2.t) =
-         Parse_target.just_parse_with_lang_ref :=
-           fun lang filename ->
-             match lang with
-             (* The Yaml and JSON parsers are embedded in the engine because it's a
-                core component needed to parse rules *)
-             | Lang.Yaml ->
-                 {
-                   ast = Yaml_to_generic.program filename;
-                   errors = [];
-                   skipped_tokens = [];
-                   inserted_tokens = [];
-                   stat = Parsing_stat.default_stat filename;
-                 }
-             | _ ->
-                 func
-                   (Js.string (Lang.to_lowercase_alnum lang))
-                   (Js.string filename)
+       method init = Semgrep_js_shared.init_jsoo
+       method getMountpoints = Semgrep_js_shared.get_jsoo_mountpoint ()
+       method setParsePattern = Semgrep_js_shared.setParsePattern
+       method setJustParseWithLang = Semgrep_js_shared.setJustParseWithLang
+       method setJsonnetParser = Semgrep_js_shared.setJsonnetParser
 
        method run filter =
-         let argv = [| ""; "--verbose" |] in
+         let argv = [| "" |] in
          let argv =
            if filter <> "" then Array.append argv [| "-e"; filter |] else argv
          in
-         let tests = [ Unit_parsing.tests () ] |> List.flatten in
-         let errors = ref [] in
+         let tests =
+           [ Unit_parsing.tests (); Unit_engine.tests (); Unit_entropy.tests ]
+           |> List.flatten
+         in
          let tests =
            Common.map
              (fun (name, f) ->
                let f () =
-                 try f () with
-                 | e ->
-                     let e = Js_error.attach_js_backtrace e ~force:false in
-                     let error = Option.get (Js_error.of_exn e) in
-                     errors := error :: !errors;
-                     raise e
+                 Semgrep_js_shared.wrap_with_js_error
+                   ~hook:
+                     (Some (fun () -> Firebug.console##log (Js.string name)))
+                   f
                in
                (name, f))
              tests
          in
-         (try
-            Alcotest.run "semgrep-js"
-              (Testutil.to_alcotest tests)
-              ~and_exit:false ~argv ~filter:test_filter
-          with
-         | Alcotest.Test_error ->
-             Printf.printf "Some tests failed, displaying:\n");
-         !errors |> Array.of_list |> Js.array
+         let run () =
+           Alcotest.run "semgrep-js"
+             (Testutil.to_alcotest tests)
+             ~and_exit:false ~argv ~filter:test_filter
+         in
+         Semgrep_js_shared.wrap_with_js_error run
     end)

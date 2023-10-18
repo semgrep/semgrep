@@ -162,30 +162,27 @@ function pcre_config_stackrecurse_stub() {
 }
 
 //Provides: pcre_alloc_string
-//Requires: libpcre, PCRE_CONFIG_UTF8
-function pcre_alloc_string(v_opt, js_string) {
+//Requires: libpcre
+function pcre_alloc_string(js_string) {
   var ptr;
-  if (v_opt & PCRE_CONFIG_UTF8) {
-    const length = libpcre.lengthBytesUTF8(js_string);
-    ptr = libpcre._malloc(length + 1);
-    libpcre.stringToUTF8(js_string, ptr);
-  } else {
-    ptr = libpcre._malloc(js_string.length + 1);
-    libpcre.stringToAscii(js_string, ptr);
-  }
+  const array = libpcre.intArrayFromString(js_string);
+  const length = array.length;
+  ptr = libpcre._malloc(length + 1);
+  libpcre.writeArrayToMemory(array, ptr);
   return ptr;
 }
 
 //Provides: pcre_compile_stub_bc
-//Requires: PCRE_INFO_SIZE, NULL, libpcre, pcre_alloc_string, auto_malloc
+//Requires: PCRE_INFO_SIZE, NULL, libpcre, pcre_alloc_string, auto_malloc, caml_jsstring_of_string
 function pcre_compile_stub_bc(v_opt, v_tables, v_pat) {
+  var v_pat = caml_jsstring_of_string(v_pat);
   const regexp_ptr = auto_malloc([4, 4], ([error_ptr_ptr, error_ofs_ptr]) => {
     if (v_tables != 0) {
       throw new Error("v_tables not supported");
     }
 
     const ptr = libpcre._pcre_compile(
-      pcre_alloc_string(v_opt, v_pat),
+      pcre_alloc_string(v_pat),
       v_opt,
       error_ptr_ptr,
       error_ofs_ptr,
@@ -319,7 +316,7 @@ function handle_exec_error(loc, ret) {
 }
 
 //Provides: pcre_exec_stub_bc
-//Requires: handle_exec_error, libpcre, pcre_alloc_string, caml_invalid_argument, auto_malloc
+//Requires: handle_exec_error, libpcre, pcre_alloc_string, caml_invalid_argument, auto_malloc, caml_jsstring_of_string
 function pcre_exec_stub_bc(
   v_opt,
   v_rex,
@@ -333,10 +330,11 @@ function pcre_exec_stub_bc(
   var ret;
   var is_dfa = !!v_workspace;
   var pos = v_pos;
+  var v_subj = caml_jsstring_of_string(v_subj);
   var len = libpcre.lengthBytesUTF8(v_subj);
   var subj_start = v_subj_start;
 
-  var v_subj_ptr = pcre_alloc_string(v_opt, v_subj);
+  var v_subj_ptr = pcre_alloc_string(v_subj);
 
   var ovec_len = v_ovec.length - 1;
 
@@ -439,7 +437,7 @@ function pcre_names_stub(v_rex) {
 //Requires: caml_invalid_argument, PCRE_INFO_SIZE, NULL, libpcre, pcre_alloc_string, PCRE_CONFIG_UTF8, PCRE_ERROR_NOSUBSTRING, auto_malloc
 function pcre_get_stringnumber_stub_bc(v_rex, v_name) {
   const { regexp_ptr } = v_rex;
-  const string_ptr = pcre_alloc_string(PCRE_CONFIG_UTF8, v_name);
+  const string_ptr = pcre_alloc_string(v_name);
   try {
     const ret = libpcre._pcre_get_stringnumber(regexp_ptr, string_ptr);
 

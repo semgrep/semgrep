@@ -74,7 +74,7 @@ local github_bot = {
 
   ocaml_alpine_container: {
     'runs-on': 'ubuntu-latest',
-    container: 'returntocorp/ocaml:alpine-2023-10-12',
+    container: 'returntocorp/ocaml:alpine-2023-10-17',
     // We need this hack because GHA tampers with the HOME in container
     // and this does not play well with 'opam' installed in /root
     env: {
@@ -84,7 +84,7 @@ local github_bot = {
 
   ocaml5_alpine_container: {
     'runs-on': 'ubuntu-latest',
-    container: 'returntocorp/ocaml:alpine5.0-2023-10-05',
+    container: 'returntocorp/ocaml:alpine5.1-2023-10-17',
     env: {
       HOME: '/root',
     },

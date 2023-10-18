@@ -1,0 +1,2 @@
+Avoid catastrophic `Invalid_argument: index out of bounds` errors
+when reporting the location of findings (#9011)

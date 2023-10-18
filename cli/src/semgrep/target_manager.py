@@ -529,6 +529,7 @@ class TargetManager:
     excludes: Sequence[str] = Factory(list)
     max_target_bytes: int = -1
     respect_git_ignore: bool = False
+    respect_rule_paths: bool = True
     baseline_handler: Optional[BaselineHandler] = None
     allow_unknown_extensions: bool = False
     file_ignore: Optional[FileIgnore] = None
@@ -767,11 +768,12 @@ class TargetManager:
         """
         paths = self.get_files_for_language(lang)
 
-        paths = self.filter_includes(rule_includes, candidates=paths.kept)
-        self.ignore_log.rule_includes[rule_id].update(paths.removed)
+        if self.respect_rule_paths:
+            paths = self.filter_includes(rule_includes, candidates=paths.kept)
+            self.ignore_log.rule_includes[rule_id].update(paths.removed)
 
-        paths = self.filter_excludes(rule_excludes, candidates=paths.kept)
-        self.ignore_log.rule_excludes[rule_id].update(paths.removed)
+            paths = self.filter_excludes(rule_excludes, candidates=paths.kept)
+            self.ignore_log.rule_excludes[rule_id].update(paths.removed)
 
         return paths.kept
 

@@ -392,7 +392,7 @@ For more information see https://semgrep.dev
     (ocaml (>= 4.13.0))
     (dune (>= 2.7.0 ))
     ; parser generators
-    (menhir (= 20220210))
+    (menhir (= 20230608))
     ; standard libraries
     ; We don't use Base directly. If it's being used indirectly
     ; (is it, though?), we need a version that doesn't register
@@ -401,6 +401,7 @@ For more information see https://semgrep.dev
     (base (>= v0.15.1))
     fpath
     bos
+    fileutils
     ; unit testing
     alcotest
     alcotest-js

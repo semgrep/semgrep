@@ -37,10 +37,9 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         retention-days: 1
-        path: "\n            _build/default/js/engine/*.bc.js\n            _build/default/js/languages/*/*.bc.js\n
-          \         "
+        path: "\n            _build/default/js/**/*.bc.js\n          "
         name: semgrep-js-ocaml-build-${{ github.sha }}
-    container: returntocorp/ocaml:alpine-2023-10-12
+    container: returntocorp/ocaml:alpine-2023-10-17
     env:
       HOME: /root
   test:
@@ -75,19 +74,22 @@ jobs:
       with:
         node-version: "18"
     - name: Build JS artifacts
-      run: "\n        make -C js -j $(nproc) build\n\n        tar cvzf semgrep-js-artifacts.tar.gz
-        \\\n          js/engine/dist/index.cjs \\\n          js/engine/dist/index.mjs
-        \\\n          js/engine/dist/semgrep-engine.wasm \\\n          js/languages/*/dist/index.cjs
-        \\\n          js/languages/*/dist/index.mjs \\\n          js/languages/*/dist/semgrep-parser.wasm\n
-        \     "
+      run: "\n        make -C js -j $(nproc) build\n      "
+    - name: Test JS artifacts
+      run: "\n        make -C js -j $(nproc) test\n      "
+    - name: Run JS e2e tests
+      run: "\n        make -C js/tests\n      "
+    - name: Package JS artifacts
+      run: "\n        tar cvzf semgrep-js-artifacts.tar.gz \\\n          js/engine/dist/index.cjs
+        \\\n          js/engine/dist/index.mjs \\\n          js/engine/dist/semgrep-engine.wasm
+        \\\n          js/languages/*/dist/index.cjs \\\n          js/languages/*/dist/index.mjs
+        \\\n          js/languages/*/dist/semgrep-parser.wasm\n      "
     - name: Upload JS artifacts
       uses: actions/upload-artifact@v3
       with:
         path: semgrep-js-artifacts.tar.gz
         retention-days: 2
         name: semgrep-js-artifacts-${{ github.sha }}
-    - name: Run semgrep js e2e tests
-      run: make -C js test
   upload:
     needs:
     - test
