@@ -457,6 +457,7 @@ For more information see https://semgrep.dev
     (js_of_ocaml (= 5.4.0))
     (js_of_ocaml-compiler (= 5.4.0))
     (js_of_ocaml-ppx (= 5.4.0))
+    (js_of_ocaml-lwt (= 5.4.0))
     ctypes_stubs_js
     integers_stubs_js
   )
