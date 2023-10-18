@@ -593,12 +593,14 @@ class GithubMeta(GitMeta):
     def to_project_metadata(self) -> out.ProjectMetadata:
         res = super().to_project_metadata()
         res.commit_author_username = self.glom_event(T["sender"]["login"])
-        res.commit_author_image_url = self.glom_event(T["sender"]["avatar_url"])
+        res.commit_author_image_url = uri_opt(
+            self.glom_event(T["sender"]["avatar_url"])
+        )
         res.pull_request_author_username = self.glom_event(
             T["pull_request"]["user"]["login"]
         )
-        res.pull_request_author_image_url = self.glom_event(
-            T["pull_request"]["user"]["avatar_url"]
+        res.pull_request_author_image_url = uri_opt(
+            self.glom_event(T["pull_request"]["user"]["avatar_url"])
         )
         return res
 
