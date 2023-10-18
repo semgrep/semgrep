@@ -57,7 +57,7 @@ let init_jsoo yaml_wasm_module =
 
 let setParsePattern (func : jbool -> jstring -> jstring -> 'a) =
   Parse_pattern.parse_pattern_ref :=
-    fun print_error lang pattern ->
+    fun print_error _options lang pattern ->
       match lang with
       (* The YAML parser is embedded in the engine because it's a
          core component needed to parse rules *)
