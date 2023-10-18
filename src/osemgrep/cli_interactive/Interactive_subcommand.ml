@@ -604,8 +604,7 @@ let buffer_matches_of_new_iformula (new_iform : iformula_zipper) (state : state)
       nested_formula = false;
       matching_explanations = false;
       (* set to true for the -fast optimization! *)
-      filter_irrelevant_rules = true;
-      rule_filter_cache = Hashtbl.create 10;
+      filter_irrelevant_rules = Filter (Hashtbl.create 10);
     }
   in
   if !(state.should_continue_iterating_targets) then

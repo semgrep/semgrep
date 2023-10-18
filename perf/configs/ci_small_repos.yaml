@@ -105,3 +105,10 @@ runs:
     rule_configs:
       - r2c-rules/docker.yml
     opts: []
+  - name: kotlinPrefilterTest # testing rules that cause blowup with the prefilter
+    repos:
+      - url: https://github.com/square/leakcanary
+        commit_hash: bf5086da26952e3627f18865bb232963e4d019c5
+    rule_configs:
+      - r2c-rules/slow-prefilter.yml
+    opts: []
