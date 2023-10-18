@@ -240,7 +240,7 @@ let update_workspace_folders ?(added = []) ?(removed = []) session =
 
 let record_results session results files =
   let results_by_file =
-    Common.group_by (fun (r : Out.cli_match) -> Fpath.v r.path) results
+    Common.group_by (fun (r : Out.cli_match) -> r.path) results
   in
   List.iter (fun f -> Hashtbl.replace session.cached_scans f []) files;
   List.iter

@@ -1,4 +1,5 @@
 module Out = Semgrep_output_v1_t
+open File.Operators
 
 (*****************************************************************************)
 (* Prelude *)
@@ -234,7 +235,7 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
          in
          Fmt.pf ppf "  %a@."
            Fmt.(styled (`Fg `Cyan) (esc ++ string ++ any " "))
-           cur.path);
+           !!(cur.path));
       msg
     in
     let print =

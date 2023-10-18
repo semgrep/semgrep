@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 module Env = Semgrep_envvars
 module Out = Semgrep_output_v1_t
 module SS = Set.Make (String)
@@ -395,7 +396,8 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     Logs.info (fun m ->
         skipped
         |> List.iter (fun (x : Semgrep_output_v1_t.skipped_target) ->
-               m "Ignoring %s due to %s (%s)" x.Semgrep_output_v1_t.path
+               m "Ignoring %s due to %s (%s)"
+                 !!(x.Semgrep_output_v1_t.path)
                  (Semgrep_output_v1_t.show_skip_reason
                     x.Semgrep_output_v1_t.reason)
                  (x.Semgrep_output_v1_t.details ||| "")));

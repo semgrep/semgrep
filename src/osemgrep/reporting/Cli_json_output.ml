@@ -1,4 +1,5 @@
 open Common
+open File.Operators
 module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
@@ -92,7 +93,7 @@ let render_fix (hrules : Rule.hrules) (x : Out.core_match) : string option =
       (* TOPORT: debug logging which indicates the source of the fix *)
       match (rendered_fix, rule.fix) with
       | Some fix, _ -> Some fix
-      | None, Some fix -> Some (interpolate_metavars fix metavars path)
+      | None, Some fix -> Some (interpolate_metavars fix metavars !!path)
       | None, None -> None)
 
 (*****************************************************************************)
@@ -158,10 +159,10 @@ let error_message ~rule_id ~(location : Out.location)
         | InvalidYaml | MatchingError | SemgrepMatchFound | TooManyMatches
         | FatalError | Timeout | OutOfMemory | TimeoutDuringInterfile
         | OutOfMemoryDuringInterfile ) ) ->
-        spf "when running %s on %s" id path
+        spf "when running %s on %s" id !!path
     | Some id, IncompatibleRule _ -> id
     | Some id, MissingPlugin -> spf "for rule %s" id
-    | _ -> spf "at line %s:%d" path location.start.line
+    | _ -> spf "at line %s:%d" !!path location.start.line
   in
   spf "%s %s:\n %s" (error_type_string error_type) error_context core_message
 
@@ -409,7 +410,7 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
             rule_message
       in
       (* message where the metavars have been interpolated *)
-      let message = interpolate_metavars message metavars path in
+      let message = interpolate_metavars message metavars !!path in
       let fix = render_fix hrules m in
       let check_id = rule_id in
       let metavars = Some metavars in
@@ -429,7 +430,7 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
       (* TODO? at this point why not using content_of_file_at_range since
        * we concatenate the lines after? *)
       let lines =
-        Semgrep_output_utils.lines_of_file_at_range (start, end_) (Fpath.v path)
+        Semgrep_output_utils.lines_of_file_at_range (start, end_) path
         |> String.concat "\n"
       in
       {
@@ -450,7 +451,7 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
             fix_regex = None;
             (* TODO: extra fields *)
             is_ignored = Some false;
-            fingerprint = match_based_id_partial rule rule_id metavars path;
+            fingerprint = match_based_id_partial rule rule_id metavars !!path;
             sca_info = None;
             fixed_lines = None;
             dataflow_trace = None;
@@ -565,7 +566,7 @@ let cli_output_of_core_results ~logging_level (core : Out.core_output)
        * elements in OCaml compare order (=~ lexicographic for strings)
        * python: scanned=[str(path) for path in sorted(self.all_targets)]
        *)
-      let scanned = scanned |> Set_.elements |> File.Path.to_strings in
+      let scanned = scanned |> Set_.elements in
       let (paths : Out.scanned_and_skipped) =
         match logging_level with
         | Some (Logs.Info | Logs.Debug) ->

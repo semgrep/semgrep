@@ -16,7 +16,7 @@ module Fpath = struct
   type t = Fpath.t [@@deriving show]
 
   let unwrap = Fpath.to_string
-  let wrap = Fpath.of_string
+  let wrap = Fpath.v
 end
 
 module Uuidm = struct

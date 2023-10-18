@@ -217,7 +217,7 @@ let filter_existing_targets (targets : In.target list) :
          else
            Right
              {
-               Semgrep_output_v1_t.path = file;
+               Semgrep_output_v1_t.path = Fpath.v file;
                reason = Nonexistent_file;
                details = Some "File does not exist";
                rule_id = None;
@@ -419,7 +419,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
                            max_match_per_file)
                     in
                     {
-                      Semgrep_output_v1_t.path = file;
+                      Semgrep_output_v1_t.path = Fpath.v file;
                       reason = Too_many_matches;
                       details;
                       rule_id = Some (Rule_ID.to_string rule_id);
