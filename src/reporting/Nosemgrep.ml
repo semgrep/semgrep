@@ -128,7 +128,7 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
       (* [String.split_on_char] can **not** return an empty list. *)
       (* check if the id specified by the user is the [rule_match]'s [rule_id]. *)
       let nosem_matches id =
-        (* TODO: `check_id` and `'id` should both be `Rule_ID.t`s. *)
+        (* TODO: id should be a Rule_ID.t too *)
         Rule_ID.ends_with rule_match.Out.check_id ~suffix:(Rule_ID.of_string id)
       in
       List.fold_left
