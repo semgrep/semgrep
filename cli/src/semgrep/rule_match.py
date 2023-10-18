@@ -314,7 +314,7 @@ class RuleMatch:
         # findings without regarding "differences" we would like to mod out.
         hash_int = hash128(str(self.ci_unique_key))
         hash_bytes = int.to_bytes(hash_int, byteorder="big", length=16, signed=False)
-        return f"{hashlib.blake2b(str.encode(str(binascii.hexlify(hash_bytes), 'ascii'))).hexdigest()}/v2"
+        return str(binascii.hexlify(hash_bytes), "ascii")
 
     @match_based_key.default
     def get_match_based_key(self) -> Tuple:
