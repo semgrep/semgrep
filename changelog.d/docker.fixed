@@ -1,0 +1,2 @@
+Reduction of the docker image size by using --no-cache when apk upgrading.
+Thanks to Peter Dave Hello for the contribution.
