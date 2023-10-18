@@ -13,6 +13,8 @@ globalThis.caml_invalid_argument = () => {
   throw new Error(InvalidArgumentError);
 };
 
+globalThis.caml_jsstring_of_string = (value) => value;
+
 describe("pcre-ocaml stubs", () => {
   const libpcrePromise = LibPcreFactory();
   globalThis.exposePcreStubsForTesting = true;
@@ -28,6 +30,20 @@ describe("pcre-ocaml stubs", () => {
     await libpcrePromise;
     const stubs = require("../libpcre");
     expect(stubs.pcre_config_utf8_stub()).toBe(1);
+  });
+
+  test("utf-8 is parsed", async () => {
+    await libpcrePromise;
+    const stubs = require("../libpcre");
+    let s = "E2 80 AA";
+
+    let bytes = [...s.matchAll(/[^ ]{1,2}/g)].map((a) => parseInt(a[0], 16));
+
+    stubs.pcre_compile_stub_bc(
+      0x0800,
+      0,
+      `(${Buffer.from(bytes).toString("utf-8")})+`
+    );
   });
 
   test("correctly fails to compile an invalid regex", async () => {

@@ -1,23 +1,34 @@
 This directory contains Github actions (GHA) "workflows" to automate certain
 tasks (e.g., running our testsuite on each PR, automate the release).
-Basically help to build, test, and deploy Semgrep.
+Basically those workflows help to build, test, and deploy Semgrep.
 See https://docs.github.com/en/actions/learn-github-actions/understanding-github-actions
 for more information on GHA or our Notion page on "Github actions".
 
 Most of those workflows have the 'workflow_dispatch:' directive so you can
 also trigger them manually here: https://github.com/returntocorp/semgrep/actions
 
+Note that many workflows are now written using Jsonnet
+(see https://jsonnet.org/learning/tutorial.html for a great intro to Jsonnet)
+instead of YAML. This allows to factorize lots of boilerplate by simply
+defining Jsonnet functions or even simple constants. For the same
+reason we've switched to Jsonnet for writing Semgrep rules instead of YAML,
+we're switching to Jsonnet also for our GHA workflows.
+
+!!DO NOT MODIFY THE .yml FILE THAT ARE GENERATED FROM a .jsonnet FILE!!
+(the .yml file should contain a comment at the top warning against it).
+Instead, modify the .jsonnet and simply run 'make' in this directory.
+
 Here is a short description of the workflows in this directory:
 
-- lint.yml: running mostly pre-commit checks for our pull requests (PRs).
+- lint.jsonnet: running mostly pre-commit checks for our pull requests (PRs).
   It runs the same checks that we run with pre-commit locally (configured
   in semgrep/.pre-commit-config.yaml), but enforced here in CI in case
   the developer forgot to setup pre-commit.
 
-- tests.yml: building Semgrep and running our Semgrep testsuite for our PRs.
+- tests.jsonnet: building Semgrep and running our Semgrep testsuite for our PRs.
   It also runs benchmarks, test our MacOS, Linux, and Docker build, and more.
 
-- semgrep.yml: dogfood Semgrep by using our Semgrep Github action
+- semgrep.jsonnet: dogfood Semgrep by using our Semgrep Github action
   and submitting findings to Semgrep App for bugs in the semgrep repo itself.
 
 - start-release.yml: workflow to manually trigger a new Semgrep release.
@@ -46,7 +57,7 @@ Here is a short description of the workflows in this directory:
   This is why we have the find-old-brew-prs.yml and homebrew-core-head.yml
   workflows.
 
-- update-semgrep-rules.yml: cron to update semgrep/tests/semgrep-rules
+- update-semgrep-rules.jsonnet: cron to update semgrep/tests/semgrep-rules
   submodule to its latest version
 
 - revert-semgrep-docker-image.yml: interactive workflow

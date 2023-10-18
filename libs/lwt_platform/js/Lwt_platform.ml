@@ -30,3 +30,7 @@ let run t =
   (* nosem *)
   | Lwt.Fail e -> raise e
   | Lwt.Sleep -> failwith "Lwt_main.run: thread didn't return"
+
+(* TODO: preemptive threads w/node workers *)
+let detach f x = f x |> Lwt.return
+let init_preemptive _ _ _ = ()

@@ -21,3 +21,5 @@
 (* Code *)
 (*****************************************************************************)
 let run = Lwt_main.run
+let detach = Lwt_preemptive.detach
+let init_preemptive = Lwt_preemptive.init

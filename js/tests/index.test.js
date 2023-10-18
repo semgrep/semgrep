@@ -1,4 +1,4 @@
-const TestWasm = require("./dist/test");
+const SemgrepEngine = require("./dist/semgrep-engine");
 
 const languages = [
   "bash",
@@ -45,11 +45,11 @@ const getParsers = async () => {
   }
   return parsers;
 };
-const run = async () => {
+const entrypoint = async () => {
   try {
     console.log("Running tests");
-    const wasm = await TestWasm({
-      locateFile: (_) => "./dist/test.wasm",
+    const wasm = await SemgrepEngine({
+      locateFile: (_) => "./dist/semgrep-engine.wasm",
     });
     globalThis.LibPcreModule = wasm;
     const {
@@ -57,6 +57,7 @@ const run = async () => {
       getMountpoints,
       setParsePattern,
       setJustParseWithLang,
+      setJsonnetParser,
       run,
     } = require("../../_build/default/js/tests/test_jsoo.bc");
     init(wasm);
@@ -64,6 +65,9 @@ const run = async () => {
     const parsers = await getParsers();
     for (const parser of parsers.values()) {
       parser.setMountpoints(mountpoints);
+      if (parser.getLangs().includes("jsonnet")) {
+        setJsonnetParser((file) => parser.parseTargetTsOnly(file));
+      }
     }
     const parseLang = (lang, str) => {
       try {
@@ -84,15 +88,15 @@ const run = async () => {
     setJustParseWithLang(parseLang);
     setParsePattern(parsePattern);
 
-    const testErrors = run("");
-    for (const e of testErrors) {
-      console.log(e);
-    }
+    run("");
+    process.exit(0);
   } catch (e) {
     console.log("Error running tests:\n");
     console.log(e);
+    process.exit(1);
   } finally {
     console.log("Finished running tests");
   }
 };
-run();
+
+entrypoint();

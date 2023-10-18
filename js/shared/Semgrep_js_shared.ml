@@ -26,11 +26,21 @@ external set_parser_wasm_module : 'any -> unit = "set_parser_wasm_module"
 (* Helpers *)
 (*****************************************************************************)
 
-let wrap_with_js_error f =
+let wrap_with_js_error ?(hook = None) f =
   try f () with
   | e ->
-      let e = Js_error.attach_js_backtrace e ~force:false in
-      Js_error.raise_ (Option.get (Js_error.of_exn e))
+      let ee = Exception.catch e in
+      (match hook with
+      | Some hook -> hook ()
+      | None -> ());
+      Firebug.console##error (Js.string (Printexc.to_string e));
+      Format.eprintf "\n%s\n%!" (Printexc.to_string e);
+      (match e with
+      | Js_error.Exn e ->
+          let e = Js_error.to_error e in
+          Firebug.console##error e##.stack
+      | _ -> Printexc.print_backtrace stderr);
+      Exception.reraise ee
 
 let init_jsoo yaml_wasm_module =
   Common.jsoo := true;
@@ -43,11 +53,14 @@ let init_jsoo yaml_wasm_module =
   *)
   Yaml_ctypes_overrides.apply ();
   Http_helpers.client_ref := Some (module Cohttp_lwt_jsoo.Client);
+  Data_init.init ();
   Libyaml_stubs_js.set_libyaml_wasm_module yaml_wasm_module
 
-(*****************************************************************************)
-(* Entrypoints *)
-(*****************************************************************************)
+let setJsonnetParser
+    (func : jstring -> AST_jsonnet.expr Tree_sitter_run.Parsing_result.t) =
+  Parse_jsonnet.jsonnet_parser_ref :=
+    fun file -> func (Js.string Fpath.(to_string file))
+
 let setParsePattern (func : jbool -> jstring -> jstring -> 'a) =
   Parse_pattern.parse_pattern_ref :=
     fun print_error lang pattern ->
@@ -77,7 +90,12 @@ let setJustParseWithLang (func : jstring -> jstring -> Parsing_result2.t) =
       | _ ->
           func (Js.string (Lang.to_lowercase_alnum lang)) (Js.string filename)
 
-let make_js_module (langs : Lang.t list) parse_target parse_pattern =
+(*****************************************************************************)
+(* Entrypoints *)
+(*****************************************************************************)
+
+let make_js_module ?(parse_target_ts_only = None) (langs : Lang.t list)
+    parse_target parse_pattern =
   let lang_names =
     Array.of_list
       (Common.map (fun x -> Js.string (Lang.to_lowercase_alnum x)) langs)
@@ -108,4 +126,14 @@ let make_js_module (langs : Lang.t list) parse_target parse_pattern =
               (Js.to_string str)
           in
           wrap_with_js_error parse_pattern
+
+        method parseTargetTsOnly file =
+          let parse_target_ts_only () =
+            match parse_target_ts_only with
+            | Some parse_target_ts_only ->
+                parse_target_ts_only (Js.to_string file)
+            | None ->
+                failwith "parseTargetTsOnly is not supported for this language"
+          in
+          wrap_with_js_error parse_target_ts_only
       end)

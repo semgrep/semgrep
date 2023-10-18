@@ -4,265 +4,242 @@ name: tests
   workflow_dispatch:
   pull_request:
     paths-ignore:
-      - "**.md"
+    - '**.md'
   push:
     paths-ignore:
-      - "**.md"
+    - '**.md'
     branches:
-      - develop
+    - develop
 jobs:
   test-semgrep-core:
     steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-      - name: Build semgrep-core
-        run:
-          "\n          eval $(opam env)\n          make install-deps-ALPINE-for-semgrep-core\n
-          \         make install-deps-for-semgrep-core\n          make core\n        "
-      - name: Test semgrep-core (and time it)
-        run:
-          "\n          eval $(opam env)\n          START=`date +%s`\n\n          make
-          core-test\n          make core-test-e2e\n\n          END=`date +%s`\n          TEST_RUN_TIME=$((END-START))\n
-          \         curl --fail -L -X POST \"https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num\"
-          -d \"$TEST_RUN_TIME\"\n        "
-      - name: Report Number of Tests Stats
-        if: github.ref == 'refs/heads/develop'
-        run: ./scripts/report_test_metrics.sh
-      - name: Publish match performance
-        run: opam exec -- make report-perf-matching
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+    - name: Build semgrep-core
+      run: "\n          eval $(opam env)\n          make install-deps-ALPINE-for-semgrep-core\n
+        \         make install-deps-for-semgrep-core\n          make core\n        "
+    - name: Test semgrep-core (and time it)
+      run: "\n          eval $(opam env)\n          START=`date +%s`\n\n          make
+        core-test\n          make core-test-e2e\n\n          END=`date +%s`\n          TEST_RUN_TIME=$((END-START))\n
+        \         curl --fail -L -X POST \"https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num\"
+        -d \"$TEST_RUN_TIME\"\n        "
+    - name: Report Number of Tests Stats
+      if: github.ref == 'refs/heads/develop'
+      run: ./scripts/report_test_metrics.sh
+    - name: Publish match performance
+      run: opam exec -- make report-perf-matching
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine-2023-06-16
+    container: returntocorp/ocaml:alpine-2023-10-17
     env:
       HOME: /root
   test-osemgrep:
     steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-      - name: Build semgrep-core
-        run:
-          "\n          eval $(opam env)\n          make install-deps-ALPINE-for-semgrep-core\n
-          \         make install-deps-for-semgrep-core\n          make core\n        "
-      - name: Install osemgrep
-        run: "\n          eval $(opam env)\n          make copy-core-for-cli\n        "
-      - name: Install Python dependencies
-        run:
-          "\n          make install-deps-ALPINE-for-pysemgrep\n          (cd cli;
-          pipenv install --dev)\n        "
-      - name: Run pytest for osemgrep known passing tests
-        working-directory: cli
-        run: make osempass
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+    - name: Build semgrep-core
+      run: "\n          eval $(opam env)\n          make install-deps-ALPINE-for-semgrep-core\n
+        \         make install-deps-for-semgrep-core\n          make core\n        "
+    - name: Install osemgrep
+      run: "\n          eval $(opam env)\n          make copy-core-for-cli\n        "
+    - name: Install Python dependencies
+      run: "\n          make install-deps-ALPINE-for-pysemgrep\n          (cd cli;
+        pipenv install --dev)\n        "
+    - name: Run pytest for osemgrep known passing tests
+      working-directory: cli
+      run: make osempass
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine-2023-06-16
+    container: returntocorp/ocaml:alpine-2023-10-17
     env:
       HOME: /root
   test-cli:
     name: test semgrep-cli
     runs-on: ubuntu-22.04
     needs:
-      - build-test-core-x86
+    - build-test-core-x86
     permissions:
       contents: write
       pull-requests: write
     strategy:
       matrix:
         python:
-          - "3.7"
-          - "3.8"
-          - "3.9"
-          - "3.10"
-          - "3.11"
+        - "3.7"
+        - "3.8"
+        - "3.9"
+        - "3.10"
+        - "3.11"
     steps:
-      - uses: actions/checkout@v3
-      - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python }}
-          cache: pipenv
-      - run: pip install pipenv==2022.6.7
-      - uses: actions/download-artifact@v3
-        with:
-          name: ocaml-build-artifacts-release
-      - name: Install artifacts
-        run:
-          "\n    tar xf ocaml-build-artifacts.tgz\n    sudo cp ocaml-build-artifacts/bin/*
-          /usr/bin\n  "
-      - name: Install Python dependencies
-        working-directory: cli
-        run: pipenv install --dev
-      - name: Run pytest
-        working-directory: cli
-        run:
-          "\n        # tests should simulate CI environment iff they need one\n        unset
-          CI\n        unset \"${!GITHUB_@}\"\n\n        pipenv run pytest -n auto -vv
-          --snapshot-update --allow-snapshot-deletion\n      "
-      - name: Prepare repo for snapshot commit
-        if: failure()
-        run:
-          "\n      # the commit step that follows will fail to fetch the pfff submodule\n
-          \     # (perhaps because of the github token's permissions)\n      # so we
-          disable recursive fetching\n      git config fetch.recurseSubmodules false\n
-          \   "
-      - name: Configure git creds for push
-        id: configure-creds
-        if:
-          failure() && github.event_name == 'pull_request' && (github.actor != 'dependabot[bot]'
-          && !(github.event.pull_request.head.repo.full_name != github.repository))
-        run:
-          "\n      echo \"machine github.com\" >> ~/.netrc\n      echo \"login ${{
-          github.repository }}\" >> ~/.netrc\n      echo \"password ${{ secrets.GITHUB_TOKEN
-          }}\" >> ~/.netrc\n    "
-      - name: Commit snapshot updates
-        id: snapshot-commit
-        if:
-          failure() && github.event_name == 'pull_request' && (github.actor != 'dependabot[bot]'
-          && !(github.event.pull_request.head.repo.full_name != github.repository))
-        uses: EndBug/add-and-commit@v9
-        with:
-          add: cli/tests/e2e/snapshots
-          default_author: github_actions
-          message: Update pytest snapshots
-          new_branch: snapshot-updates-${{ github.run_id }}-${{ github.run_attempt }}
-      - name: Remove Credentials
-        id: remove-creds
-        if:
-          failure() && github.event_name == 'pull_request' && (github.actor != 'dependabot[bot]'
-          && !(github.event.pull_request.head.repo.full_name != github.repository))
-        run: rm ~/.netrc
-      - name: Comment about any snapshot updates
-        if: failure() && steps.snapshot-commit.outputs.pushed == 'true'
-        run:
-          "\n      echo \":camera_flash: The pytest shapshots changed in your PR.\"
-          >> /tmp/message.txt\n      echo \"Please carefully review these changes and
-          make sure they are intended:\" >> /tmp/message.txt\n      echo >> /tmp/message.txt\n
-          \     echo \"1. Review the changes at https://github.com/returntocorp/semgrep/commit/${{
-          steps.snapshot-commit.outputs.commit_long_sha }}\" >> /tmp/message.txt\n      echo
-          \"2. Accept the new snapshots with\" >> /tmp/message.txt\n      echo >> /tmp/message.txt\n
-          \     echo \"       git fetch origin && git cherry-pick ${{ steps.snapshot-commit.outputs.commit_sha
-          }} && git push\" >> /tmp/message.txt\n\n      gh pr comment ${{ github.event.pull_request.number
-          }} --body-file /tmp/message.txt\n    "
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - uses: actions/checkout@v3
+    - name: Fetch semgrep-cli submodules
+      run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
+    - uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python }}
+        cache: pipenv
+    - run: pip install pipenv==2022.6.7
+    - uses: actions/download-artifact@v3
+      with:
+        name: ocaml-build-artifacts-release
+    - name: Install artifacts
+      run: "\n    tar xf ocaml-build-artifacts.tgz\n    sudo cp ocaml-build-artifacts/bin/*
+        /usr/bin\n  "
+    - name: Install Python dependencies
+      working-directory: cli
+      run: pipenv install --dev
+    - name: Run pytest
+      working-directory: cli
+      run: "\n        # tests should simulate CI environment iff they need one\n        unset
+        CI\n        unset \"${!GITHUB_@}\"\n\n        pipenv run pytest -n auto -vv
+        --snapshot-update --allow-snapshot-deletion\n      "
+    - name: Prepare repo for snapshot commit
+      if: failure()
+      run: "\n      # the commit step that follows will fail to fetch the pfff submodule\n
+        \     # (perhaps because of the github token's permissions)\n      # so we
+        disable recursive fetching\n      git config fetch.recurseSubmodules false\n
+        \   "
+    - name: Configure git creds for push
+      id: configure-creds
+      if: failure() && github.event_name == 'pull_request' && (github.actor != 'dependabot[bot]'
+        && !(github.event.pull_request.head.repo.full_name != github.repository))
+      run: "\n      echo \"machine github.com\" >> ~/.netrc\n      echo \"login ${{
+        github.repository }}\" >> ~/.netrc\n      echo \"password ${{ secrets.GITHUB_TOKEN
+        }}\" >> ~/.netrc\n    "
+    - name: Commit snapshot updates
+      id: snapshot-commit
+      if: failure() && github.event_name == 'pull_request' && (github.actor != 'dependabot[bot]'
+        && !(github.event.pull_request.head.repo.full_name != github.repository))
+      uses: EndBug/add-and-commit@v9
+      with:
+        add: cli/tests/e2e/snapshots
+        default_author: github_actions
+        message: Update pytest snapshots
+        new_branch: snapshot-updates-${{ github.run_id }}-${{ github.run_attempt }}
+    - name: Remove Credentials
+      id: remove-creds
+      if: failure() && github.event_name == 'pull_request' && (github.actor != 'dependabot[bot]'
+        && !(github.event.pull_request.head.repo.full_name != github.repository))
+      run: rm ~/.netrc
+    - name: Comment about any snapshot updates
+      if: failure() && steps.snapshot-commit.outputs.pushed == 'true'
+      run: "\n      echo \":camera_flash: The pytest shapshots changed in your PR.\"
+        >> /tmp/message.txt\n      echo \"Please carefully review these changes and
+        make sure they are intended:\" >> /tmp/message.txt\n      echo >> /tmp/message.txt\n
+        \     echo \"1. Review the changes at https://github.com/returntocorp/semgrep/commit/${{
+        steps.snapshot-commit.outputs.commit_long_sha }}\" >> /tmp/message.txt\n      echo
+        \"2. Accept the new snapshots with\" >> /tmp/message.txt\n      echo >> /tmp/message.txt\n
+        \     echo \"       git fetch origin && git cherry-pick ${{ steps.snapshot-commit.outputs.commit_sha
+        }} && git push\" >> /tmp/message.txt\n\n      gh pr comment ${{ github.event.pull_request.number
+        }} --body-file /tmp/message.txt\n    "
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   test-qa:
     name: quality assurance on semgrep
     runs-on: ubuntu-22.04
     needs:
-      - build-test-core-x86
+    - build-test-core-x86
     strategy:
       fail-fast: false
       matrix:
         split:
-          - 1
-          - 2
-          - 3
-          - 4
+        - 1
+        - 2
+        - 3
+        - 4
     steps:
-      - uses: actions/checkout@v3
-      - name: Fetch semgrep-cli submodules
-        run:
-          git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
-          tests/semgrep-rules
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-          cache: pipenv
-      - run: pip install pipenv==2022.6.7
-      - uses: actions/download-artifact@v3
-        with:
-          name: ocaml-build-artifacts-release
-      - name: Install artifacts
-        run:
-          "\n    tar xf ocaml-build-artifacts.tgz\n    sudo cp ocaml-build-artifacts/bin/*
-          /usr/bin\n  "
-      - name: Install semgrep
-        working-directory: cli
-        run:
-          "\n        export PATH=/github/home/.local/bin:$PATH\n        pipenv install
-          --dev\n      "
-      - uses: actions/cache@v3
-        with:
-          path: ~/.cache/qa-public-repos
-          key:
-            qa-public-repos-${{ hashFiles('semgrep/tests/qa/*public_repos*') }}-${{
-            matrix.split }}
-      - run:
-          "\n        mkdir -p ~/.cache/qa-public-repos\n        touch ~/.cache/qa-public-repos/ok\n
-          \     "
-      - name: Test semgrep
-        working-directory: cli
-        run:
-          "\n        export PATH=/github/home/.local/bin:$PATH\n        pipenv run
-          pytest -n auto -vv --tb=short --splits 4 --group ${{ matrix.split }} tests/qa\n
-          \     "
-        env:
-          QA_TESTS_CACHE_PATH: ~/.cache/qa-public-repos
+    - uses: actions/checkout@v3
+    - name: Fetch semgrep-cli submodules
+      run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
+        tests/semgrep-rules
+    - uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+        cache: pipenv
+    - run: pip install pipenv==2022.6.7
+    - uses: actions/download-artifact@v3
+      with:
+        name: ocaml-build-artifacts-release
+    - name: Install artifacts
+      run: "\n    tar xf ocaml-build-artifacts.tgz\n    sudo cp ocaml-build-artifacts/bin/*
+        /usr/bin\n  "
+    - name: Install semgrep
+      working-directory: cli
+      run: "\n        export PATH=/github/home/.local/bin:$PATH\n        pipenv install
+        --dev\n      "
+    - uses: actions/cache@v3
+      with:
+        path: ~/.cache/qa-public-repos
+        key: qa-public-repos-${{ hashFiles('semgrep/tests/qa/*public_repos*') }}-${{
+          matrix.split }}
+    - run: "\n        mkdir -p ~/.cache/qa-public-repos\n        touch ~/.cache/qa-public-repos/ok\n
+        \     "
+    - name: Test semgrep
+      working-directory: cli
+      run: "\n        export PATH=/github/home/.local/bin:$PATH\n        pipenv run
+        pytest -n auto -vv --tb=short --splits 4 --group ${{ matrix.split }} tests/qa\n
+        \     "
+      env:
+        QA_TESTS_CACHE_PATH: ~/.cache/qa-public-repos
   benchmarks-lite:
     runs-on: ubuntu-22.04
     needs:
-      - build-test-core-x86
+    - build-test-core-x86
     steps:
-      - uses: actions/checkout@v3
-      - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.7"
-          cache: pipenv
-      - run: pip install pipenv==2022.6.7
-      - uses: actions/download-artifact@v3
-        with:
-          name: ocaml-build-artifacts-release
-      - name: Install artifacts
-        run:
-          "\n    tar xf ocaml-build-artifacts.tgz\n    sudo cp ocaml-build-artifacts/bin/*
-          /usr/bin\n  "
-      - name: Install Python dependencies
-        working-directory: cli
-        run: pipenv install --dev
-      - name: Test dummy benchmarks on latest
-        working-directory: cli
-        run:
-          "\n        pipenv run semgrep --version\n        pipenv run semgrep-core
-          -version\n        pipenv run python3 ../perf/run-benchmarks --dummy\n      "
+    - uses: actions/checkout@v3
+    - name: Fetch semgrep-cli submodules
+      run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
+    - uses: actions/setup-python@v4
+      with:
+        python-version: "3.7"
+        cache: pipenv
+    - run: pip install pipenv==2022.6.7
+    - uses: actions/download-artifact@v3
+      with:
+        name: ocaml-build-artifacts-release
+    - name: Install artifacts
+      run: "\n    tar xf ocaml-build-artifacts.tgz\n    sudo cp ocaml-build-artifacts/bin/*
+        /usr/bin\n  "
+    - name: Install Python dependencies
+      working-directory: cli
+      run: pipenv install --dev
+    - name: Test dummy benchmarks on latest
+      working-directory: cli
+      run: "\n        pipenv run semgrep --version\n        pipenv run semgrep-core
+        -version\n        pipenv run python3 ../perf/run-benchmarks --dummy\n      "
   benchmarks-full:
     runs-on: ubuntu-22.04
     needs:
-      - build-test-core-x86
+    - build-test-core-x86
     steps:
-      - uses: actions/checkout@v3
-      - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.7"
-          cache: pipenv
-      - run: pip install pipenv==2022.6.7
-      - uses: actions/download-artifact@v3
-        with:
-          name: ocaml-build-artifacts-release
-      - name: Install artifacts
-        run:
-          "\n    tar xf ocaml-build-artifacts.tgz\n    sudo cp ocaml-build-artifacts/bin/*
-          /usr/bin\n  "
-      - name: Install Python dependencies
-        working-directory: cli
-        run: pipenv install --dev
-      - name: Run perf benchmark
-        run:
-          scripts/run-benchmarks.sh ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number
-          }}
-      - name: Run python performance tests
-        working-directory: cli
-        run: pipenv run pytest tests/performance
+    - uses: actions/checkout@v3
+    - name: Fetch semgrep-cli submodules
+      run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
+    - uses: actions/setup-python@v4
+      with:
+        python-version: "3.7"
+        cache: pipenv
+    - run: pip install pipenv==2022.6.7
+    - uses: actions/download-artifact@v3
+      with:
+        name: ocaml-build-artifacts-release
+    - name: Install artifacts
+      run: "\n    tar xf ocaml-build-artifacts.tgz\n    sudo cp ocaml-build-artifacts/bin/*
+        /usr/bin\n  "
+    - name: Install Python dependencies
+      working-directory: cli
+      run: pipenv install --dev
+    - name: Run perf benchmark
+      run: scripts/run-benchmarks.sh ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number
+        }}
+    - name: Run python performance tests
+      working-directory: cli
+      run: pipenv run pytest tests/performance
   build-test-docker:
     uses: ./.github/workflows/build-test-docker.yaml
     secrets: inherit
     with:
       docker-flavor: "\n      latest=auto\n    "
-      docker-tags:
-        "\n  type=semver,pattern={{version}}\n  type=semver,pattern={{major}}.{{minor}}\n
+      docker-tags: "\n  type=semver,pattern={{version}}\n  type=semver,pattern={{major}}.{{minor}}\n
         \ type=ref,event=pr\n  type=ref,event=branch\n  type=sha,event=branch\n  type=edge\n"
       artifact-name: image-test
       repository-name: ${{ github.repository }}
@@ -271,10 +248,9 @@ jobs:
       enable-tests: true
   push-docker:
     needs:
-      - build-test-docker
+    - build-test-docker
     uses: ./.github/workflows/push-docker.yaml
-    if:
-      github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' &&
+    if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' &&
       !(github.event.pull_request.head.repo.full_name != github.repository))
     secrets: inherit
     with:
@@ -283,13 +259,12 @@ jobs:
       dry-run: false
   build-test-docker-nonroot:
     needs:
-      - build-test-docker
+    - build-test-docker
     uses: ./.github/workflows/build-test-docker.yaml
     secrets: inherit
     with:
       docker-flavor: "\n      latest=auto\n      suffix=-nonroot,onlatest=true\n    "
-      docker-tags:
-        "\n  type=semver,pattern={{version}}\n  type=semver,pattern={{major}}.{{minor}}\n
+      docker-tags: "\n  type=semver,pattern={{version}}\n  type=semver,pattern={{major}}.{{minor}}\n
         \ type=ref,event=pr\n  type=ref,event=branch\n  type=sha,event=branch\n  type=edge\n"
       artifact-name: image-test-nonroot
       repository-name: ${{ github.repository }}
@@ -298,10 +273,9 @@ jobs:
       enable-tests: false
   push-docker-nonroot:
     needs:
-      - build-test-docker-nonroot
+    - build-test-docker-nonroot
     uses: ./.github/workflows/push-docker.yaml
-    if:
-      github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' &&
+    if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' &&
       !(github.event.pull_request.head.repo.full_name != github.repository))
     secrets: inherit
     with:
@@ -310,11 +284,10 @@ jobs:
       dry-run: false
   test-semgrep-pro:
     needs:
-      - build-test-docker
-      - push-docker
+    - build-test-docker
+    - push-docker
     uses: ./.github/workflows/test-semgrep-pro.yaml
-    if:
-      github.ref == 'refs/heads/develop' || github.event.pull_request.head.repo.full_name
+    if: github.ref == 'refs/heads/develop' || github.event.pull_request.head.repo.full_name
       == github.repository
     secrets: inherit
     with:
@@ -325,12 +298,12 @@ jobs:
     secrets: inherit
   build-test-manylinux-x86:
     needs:
-      - build-test-core-x86
+    - build-test-core-x86
     uses: ./.github/workflows/build-test-manylinux-x86.yml
     secrets: inherit
   build-test-manylinux-aarch64:
     needs:
-      - build-test-docker
+    - build-test-docker
     uses: ./.github/workflows/build-test-manylinux-aarch64.yml
     secrets: inherit
   build-test-osx-x86:
@@ -343,7 +316,6 @@ jobs:
     uses: ./.github/workflows/build-test-javascript.yml
     secrets: inherit
     with:
-      upload-artifacts:
-        ${{ (github.ref == 'refs/heads/develop') || startsWith(github.ref,
+      upload-artifacts: ${{ (github.ref == 'refs/heads/develop') || startsWith(github.ref,
         'refs/heads/release-') || (!github.event.pull_request.head.repo.fork && contains(github.event.pull_request.labels.*.name,
         'publish-js')) }}

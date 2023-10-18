@@ -36,6 +36,34 @@ function ctypes_string_of_cstring(ptr) {
   return caml_string_of_jsstring(libyaml.UTF8ToString(ptr[2]));
 }
 
+//Provides: caml_float_of_string (const)
+//Requires: caml_failwith, caml_jsbytes_of_string
+function caml_float_of_string(s) {
+  var res;
+  s = caml_jsbytes_of_string(s);
+  // float_of_string natively fails on strings with whitespace
+  // But the Js_of_ocaml does not. This breaks things :(
+  // So we check for whitespace and fail if it exists
+  if (/\s/g.test(s)) caml_failwith("float_of_string");
+  res = +s;
+  if (s.length > 0 && res === res) return res;
+  s = s.replace(/_/g, "");
+  res = +s;
+  if ((s.length > 0 && res === res) || /^[+-]?nan$/i.test(s)) return res;
+  var m = /^ *([+-]?)0x([0-9a-f]+)\.?([0-9a-f]*)(p([+-]?[0-9]+))?/i.exec(s);
+  //          1        2             3           5
+  if (m) {
+    var m3 = m[3].replace(/0+$/, "");
+    var mantissa = parseInt(m[1] + m[2] + m3, 16);
+    var exponent = (m[5] | 0) - 4 * m3.length;
+    res = mantissa * Math.pow(2, exponent);
+    return res;
+  }
+  if (/^\+?inf(inity)?$/i.test(s)) return Infinity;
+  if (/^-inf(inity)?$/i.test(s)) return -Infinity;
+  caml_failwith("float_of_string");
+}
+
 //Provides: ctypes_read
 //Requires: libyaml, UInt32
 function ctypes_read(primType, buffer) {
@@ -219,6 +247,7 @@ function yaml_stub_19_yaml_stream_end_event_initialize(event) {
       set_libyaml_wasm_module,
       ctypes_allocate,
       ctypes_read,
+      caml_float_of_string,
       yaml_stub_1_yaml_get_version_string,
       yaml_stub_2_yaml_get_version,
       yaml_stub_4_yaml_parser_initialize,

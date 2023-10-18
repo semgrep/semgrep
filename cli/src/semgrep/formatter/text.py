@@ -4,7 +4,6 @@ from itertools import groupby
 from pathlib import Path
 from shutil import get_terminal_size
 from typing import Any
-from typing import cast
 from typing import Dict
 from typing import Iterable
 from typing import Iterator
@@ -415,9 +414,7 @@ def print_time_summary(
     # Count errors
 
     semgrep_core_errors = [
-        cast(SemgrepCoreError, err)
-        for err in error_output
-        if SemgrepError.semgrep_error_type(err) == "SemgrepCoreError"
+        err for err in error_output if isinstance(err, SemgrepCoreError)
     ]
     errors = {
         (err.core.location.path.value, err.core.error_type.kind)

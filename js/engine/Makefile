@@ -1,10 +1,4 @@
-EMCC_DEFAULTS = \
-   -sALLOW_MEMORY_GROWTH=1 \
-   -sEXPORTED_RUNTIME_METHODS=UTF8ToString,stringToUTF8,stringToAscii,lengthBytesUTF8,getValue,setValue \
-   -sMODULARIZE
 
-include ../libyaml/Makefile.include
-include ../libpcre/Makefile.include
 
 ESBUILD_DEFAULTS = \
 	--bundle \
@@ -14,6 +8,8 @@ ESBUILD_DEFAULTS = \
 
 .PHONY: default
 default: build
+
+include Makefile.include
 
 .PHONY: build
 build: dist/index.cjs dist/index.mjs dist/index.d.ts
@@ -33,21 +29,6 @@ clean:
 .PHONY: distclean
 distclean:
 	rm -rf dist node_modules
-
-../libyaml/dist/libyaml.o:
-	cd ../libyaml; $(MAKE) dist/libyaml.o
-
-../libpcre/dist/libpcre.a:
-	cd ../libpcre; $(MAKE) dist/libpcre.a
-
-dist/semgrep-engine.js dist/semgrep-engine.wasm: ../libyaml/dist/libyaml.o ../libpcre/dist/libpcre.a
-	mkdir -p dist
-	emcc \
-		-O3 \
-		$^ \
-		$(EMCC_DEFAULTS) \
-		-sEXPORTED_FUNCTIONS=_malloc,_free,$(YAML_EXPORTED_METHODS),$(PCRE_EXPORTED_METHODS) \
-		-o $(word 1,$@)
 
 package-lock.json:
 	npm install

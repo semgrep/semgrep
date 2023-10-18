@@ -28,12 +28,15 @@ external set_parser_wasm_module : 'any -> unit = "set_parser_wasm_module"
 (** [set_parser_wasm_module js_obj] is a javascript function that sets the wasm module
     of the current javascript runtime for parsing *)
 
-val wrap_with_js_error : (unit -> 'a) -> 'a
+val wrap_with_js_error : ?hook:(unit -> unit) option -> (unit -> 'a) -> 'a
 (** [wrap_with_js_error f] wraps a function with a try-catch block
     and throws a javascript error if an exception is raised *)
 
 val init_jsoo : 'a -> unit
 (** [init_jsoo]  initializes various semgrep things for js_of_ocaml *)
+
+val setJsonnetParser :
+  (jstring -> AST_jsonnet.expr Tree_sitter_run.Parsing_result.t) -> unit
 
 val setParsePattern : (jbool -> jstring -> jstring -> AST_generic.any) -> unit
 (** [setParsePattern f] is sets the parse pattern function for semgrep.
@@ -46,9 +49,10 @@ val setJustParseWithLang : (jstring -> jstring -> Parsing_result2.t) -> unit
   *)
 
 val make_js_module :
+  ?parse_target_ts_only:(string -> 'a) option ->
   Language.t list ->
-  (Language.t -> string -> 't8) ->
-  (bool -> Language.t -> string -> 't9) ->
+  (Language.t -> string -> 'b) ->
+  (bool -> Language.t -> string -> 'c) ->
   unit
 (** [make_js_module langs parse parse_pattern] creates a javascript module
     that can be used to parse a given language. It takes a list of languages, a parse function,

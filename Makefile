@@ -296,16 +296,12 @@ ALPINE_APK_DEPS_PYSEMGREP=python3 python3-dev
 # We could update to a more recent version.
 # coupling: if you modify the version, please modify also .github/workflows/*
 PIPENV='pipenv==2022.6.7'
-#TODO: virtualenv 20.22.0 is causing the build to fail with some weird errors:
-# 'AttributeError: module 'virtualenv.create.via_global_ref.builtin.cpython.mac_os' has no attribute 'CPython2macOsArmFramework'
-# so I pinned an older version
-VIRTENV='virtualenv==20.21.0'
 
 # For '--ignore-installed distlib' below see
 # https://stackoverflow.com/questions/63515454/why-does-pip3-install-pipenv-give-error-error-cannot-uninstall-distlib
 install-deps-ALPINE-for-pysemgrep:
 	apk add --no-cache $(ALPINE_APK_DEPS_PYSEMGREP)
-	pip install --no-cache-dir --ignore-installed distlib $(PIPENV) $(VIRTENV)
+	pip install --no-cache-dir --ignore-installed distlib $(PIPENV)
 
 # -------------------------------------------------
 # Ubuntu

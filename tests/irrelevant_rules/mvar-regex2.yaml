@@ -1,0 +1,12 @@
+rules:
+  - id: test
+    message: Test
+    languages:
+      - go
+    severity: WARNING
+    patterns:
+      - pattern: |
+          import "$MATH"
+      - metavariable-regex:
+          metavariable: $MATH
+          regex: ^(math/rand)$

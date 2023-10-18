@@ -40,7 +40,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *)
 type t = {
   rule_id : Rule_ID.t option;
-  typ : Out.core_error_kind;
+  typ : Out.error_type;
   loc : Tok.location;
   msg : string;
   details : string option;
@@ -69,7 +69,7 @@ let please_file_issue_text =
 
 let mk_error opt_rule_id loc msg err =
   let msg =
-    match (err : Out.core_error_kind) with
+    match (err : Out.error_type) with
     | MatchingError
     | AstBuilderError
     | FatalError
@@ -88,6 +88,9 @@ let mk_error opt_rule_id loc msg err =
     | PatternParseError _
     | PartialParsing _
     | IncompatibleRule _
+    | SemgrepError
+    | InvalidRuleSchemaError
+    | UnknownLanguageError
     | MissingPlugin ->
         msg
   in
@@ -232,10 +235,10 @@ let string_of_error err =
   spf "%s:%d:%d: %s: %s%s"
     (source_of_string pos.Tok.pos.file)
     pos.Tok.pos.line pos.Tok.pos.column
-    (Out.string_of_core_error_kind err.typ)
+    (Out.string_of_error_type err.typ)
     err.msg details
 
-let severity_of_error (typ : Out.core_error_kind) : Out.error_severity =
+let severity_of_error (typ : Out.error_type) : Out.error_severity =
   match typ with
   | SemgrepMatchFound -> `Error
   | MatchingError -> `Warning
@@ -253,6 +256,9 @@ let severity_of_error (typ : Out.core_error_kind) : Out.error_severity =
   | OutOfMemory -> `Warning
   | TimeoutDuringInterfile -> `Error
   | OutOfMemoryDuringInterfile -> `Error
+  | SemgrepError -> `Error
+  | InvalidRuleSchemaError -> `Error
+  | UnknownLanguageError -> `Error
   | IncompatibleRule _
   | MissingPlugin ->
       (* Running into an incompatible rule may be normal, with nothing to fix *)

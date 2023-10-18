@@ -7,7 +7,7 @@ local semgrep = import 'libs/semgrep.libsonnet';
 local artifact_name = 'semgrep-js-artifacts-${{ github.sha }}';
 
 // ----------------------------------------------------------------------------
-// Helpers (Cache)
+// Input
 // ----------------------------------------------------------------------------
 
 // to be used by the workflow
@@ -20,6 +20,10 @@ local upload_artifacts_input = {
     },
   },
 };
+
+// ----------------------------------------------------------------------------
+// Helpers (Cache)
+// ----------------------------------------------------------------------------
 
 // TODO? move in semgrep.libsonnet? or actions.libsonnet?
 
@@ -83,8 +87,7 @@ local build_job =
         with: {
           'retention-days': 1,
           path: |||
-            _build/default/js/engine/*.bc.js
-            _build/default/js/languages/*/*.bc.js
+            _build/default/js/**/*.bc.js
           |||,
           name: build_artifact_name,
         },
@@ -126,7 +129,18 @@ local test_job = {
       name: 'Build JS artifacts',
       run: |||
         make -C js -j $(nproc) build
-
+      |||
+    },
+    {
+      name: 'Test JS artifacts',
+      run: |||
+        make -C js -j $(nproc) test
+        make -C js/tests
+      |||
+    },
+    {
+      name: 'Package JS artifacts',
+      run:|||
         tar cvzf semgrep-js-artifacts.tar.gz \
           js/engine/dist/index.cjs \
           js/engine/dist/index.mjs \
@@ -144,11 +158,7 @@ local test_job = {
         'retention-days': 2,
         name: artifact_name,
       },
-    },
-    {
-      name: 'Run semgrep js e2e tests',
-      run: 'make -C js test',
-    },
+    }
   ],
 };
 

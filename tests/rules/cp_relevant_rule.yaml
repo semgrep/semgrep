@@ -1,0 +1,16 @@
+rules:
+  - id: test
+    message: $GITHUB
+    severity: WARNING
+    languages:
+      - javascript
+      - typescript
+    patterns:
+      - pattern: |
+          "$GITHUB"
+      # The rule is relevant even if this regex does not match the source file,
+      # there is a string expression that will match it at runtime and we can see
+      # that via constant-folding!
+      - metavariable-regex:
+          metavariable: $GITHUB
+          regex: \b((ghp|gho|ghu|ghs|ghr|github_pat)_[a-zA-Z0-9_]{36,255})\b
