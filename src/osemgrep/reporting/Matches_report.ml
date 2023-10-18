@@ -90,9 +90,15 @@ let wrap ~indent ~width s =
   let pre = String.make indent ' ' in
   let rec go pre s acc =
     let real_width = width - indent in
-    if String.length s <= real_width then List.rev ((pre, s) :: acc)
+    (* In some context (e.g., pre-commit in CI), the number of columns of
+     * your terminal can be small in which case real_width above can become
+     * negative, in which case we should stop, otherwise
+     * String.rindex_from() below will raise an Invalid_arg exn.
+     *)
+    if String.length s <= real_width || real_width <= 0 then
+      List.rev ((pre, s) :: acc)
     else
-      (* here we know String.length s > real_width *)
+      (* here we know String.length s > real_width > 0 *)
       let cut =
         let prev_ws =
           try String.rindex_from s real_width ' ' with

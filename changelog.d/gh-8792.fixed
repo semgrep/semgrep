@@ -1,0 +1,2 @@
+Do not crash anymore with an Invalid_arg exception when the terminal
+has very few columns (e.g., in some precommit context).
