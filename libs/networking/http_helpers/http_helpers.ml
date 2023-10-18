@@ -30,6 +30,9 @@ let client_ref : (module Cohttp_lwt.S.Client) option ref = ref None
 (* We could use a ref like above, but this doesn't need to be decided at runtime, only *)
 (* at build, so I don't want to open the door to being able to change it at runtime *)
 (* for no reason *)
+(* We also can't just call Lwt_platform directly, as when compiling/linking a package *)
+(* OCaml requires a choice of a virtual module implementation, and it can't defer *)
+(* to the thing that's using the package. *)
 module Make (Lwt_platform : sig
   val run : 'a Lwt.t -> 'a
 end) =

@@ -2,7 +2,7 @@
 ;; Lwt uses unix threads to run its stuff on, which means it doesn't work in Js_of_ocaml
 ;; This library uses Dune's virtual modules. The way this works is that code can use
 ;; this library's interface, lwt_platform, and get type checking and everything without
-;; having to choose a specific implementation. Then, when you compile, we can choose
+;; having to choose a specific implementation. Then, when we link, we can choose
 ;; which implementation to use.
 ;;
 ;; Why do we need this in general? There's a lot of [Lwt_main.run] calls in osemgrep
@@ -14,6 +14,7 @@
 ;; Which means we'd have to pull in the lwt.unix dependency in the shared code, or use functors
 ;; in like 5 or 6 different modules which would be a pain. We also can't use a ref for a similar reason,
 ;; we'd have to pull in the lwt.unix dependency in the shared code, or have a ton of refs everywhere.
+;; Also, top level refs cannot be polymorphic, so we'd have to use a module ref or something similar
 ;;
 ;; This makes it so the DevEx is relatively painless, and we can just use the same code.
 (library
