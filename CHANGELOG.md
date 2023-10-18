@@ -6,6 +6,172 @@
 
 <!-- insertion point -->
 
+## [1.45.0](https://github.com/returntocorp/semgrep/releases/tag/v1.45.0) - 2023-10-18
+
+
+### Changed
+
+
+- Previously, to ignore a finding from rule 'foo.bar.my-rule' we only accepted
+  `nosemgrep: foo.bar.my-rule`, now we also accept `nosemgrep: my-rule`. (pa-3094)
+- [Breaking Change] Improved Matching of C++ Constructors
+
+  In this update, we've enhanced Semgrep's ability to match C++ constructors more
+  accurately. C++ introduces a syntactic ambiguity between function and variable
+  definitions, particularly with constructors. The C++ compiler determines how to
+  interpret an expression based on contextual information, such as whether the
+  immediate parent scope is a function or a class, and whether the identifiers
+  within the parentheses represent variables or types. Due to this complexity,
+  static analyzers face challenges in precisely parsing these expressions without
+  additional information.
+
+  This commit introduces several workarounds to provide a better solution for
+  handling this ambiguity:
+
+  - By default, when parsing a target file, Semgrep will consider an expression
+    like `foo bar(x, y, z);` defined within the body of a function as a variable
+    definition with a constructor. This is because variable initialization is a
+    more common use case within the body of a function.
+
+  - Users can specify rule options that annotate, in patterns where the
+    expression can be interpreted in both ways, which interpretation should take
+    precedence.  For instance, `foo bar(x, y, z);` will be parsed as a function
+    definition when the `as_fundef` option is used and as a variable definition
+    with a constructor when the `as_vardef_with_ctor` option is applied. It's
+    worth noting that an expression like `foo bar(1, y, z);` will be parsed as a
+    variable definition without any additional annotation since `1` cannot be a
+    type.
+
+  Here's an example rule and its corresponding target file to illustrate these
+  changes,
+
+  ```
+  rules:
+    - id: cpp-match-func-def
+      message: Semgrep found a match
+      options:
+        cpp_parsing_pref: as_fundef
+      languages:
+        - cpp
+      severity: WARNING
+      pattern-either:
+        - pattern: foo $X($Y);
+        - pattern: foo $X($Y, $Z);
+
+    - id: cpp-match-ctor
+      message: Semgrep found a match
+      options:
+        cpp_parsing_pref: as_vardef_with_ctor
+      languages:
+        - cpp
+      severity: WARNING
+      patterns:
+        - pattern: foo $X(...);
+        - pattern-not: foo $X(3, ...);
+
+    - id: cpp-match-ctor-3
+      message: Semgrep found a match
+      languages:
+        - cpp
+      severity: WARNING
+      pattern: foo $X(3, ...);
+  ```
+
+  ```
+  class Test {
+
+    // ruleid: cpp-match-func-def
+    foo bar(x);
+    // ruleid: cpp-match-func-def
+    foo bar(x, y);
+
+    void test() {
+      // ruleid: cpp-match-ctor
+      foo bar(1);
+      // ruleid: cpp-match-ctor
+      foo bar(1, 2);
+
+      // ruleid: cpp-match-ctor
+      foo bar(x);
+      // ruleid: cpp-match-ctor
+      foo bar(x, y);
+
+      // ruleid: cpp-match-ctor
+      foo bar(x, 2);
+      // ruleid: cpp-match-ctor
+      foo bar(1, y);
+
+      // ruleid: cpp-match-ctor-3
+      foo bar(3);
+      // ruleid: cpp-match-ctor-3
+      foo bar(3, 4);
+      // ruleid: cpp-match-ctor-3
+      foo bar(3, y);
+    }
+  };
+  ``` (pa-3114)
+
+
+### Fixed
+
+
+- Reduction of the docker image size by using --no-cache when apk upgrading.
+  Thanks to Peter Dave Hello for the contribution. (docker)
+- Fixed a bug with pre-filtering introduced in 1.42.0 that caused significant slowdowns,
+  particularly for Kotlin repos. Kotlin repos running default pro rules may see a 30 minute
+  speedup. (ea-208)
+- Taint analysis: track `ptr->field` l-values in C++
+
+  In C++, we now track tainted field access via pointer dereference. For
+  instance, consider the following code snippet:
+  ```
+  void test_intra_001() {
+    TestObject *obj = new TestObject();
+
+    obj->a = taint_source();
+    obj->b = SAFE_STR;
+
+    // ok: cpp-tainted-field-ptr
+    sink(obj->b, __LINE__);
+    // ruleid: cpp-tainted-field-ptr
+    sink(obj->a, __LINE__);
+  }
+  ```
+
+  This can be matched by the rule:
+  ```
+  rules:
+    - id: cpp-tainted-field-ptr
+      languages:
+        - cpp
+      message: testing flows though C++ ptrs
+      severity: INFO
+      mode: taint
+      pattern-sources:
+        - pattern: taint_source()
+      pattern-sinks:
+        - patterns:
+            - pattern: sink($X, ...)
+            - focus-metavariable:
+                - $X
+  ``` (gh-1058)
+- Do not crash anymore with an Invalid_arg exception when the terminal
+  has very few columns (e.g., in some precommit context). (gh-8792)
+- add `--supply-chain` flag to `semgrep ci --help` documentation (gh-8975)
+- Avoid catastrophic `Invalid_argument: index out of bounds` errors
+  when reporting the location of findings (#9011) (gh-9011)
+- * The Semgrep Language server will no longer freeze while scanning long files (ls-perf)
+- Pre-filtering is now less aggressive and tries not to skip files that could be
+  matched by a rule due to constant-propagation. Previously, a rule searching for
+  the string `"foobar"` would skip a file that did not contain exactly `"foobar"`,
+  but that contained e.g. `"foo" + "bar"`. (pa-3110)
+- semgrep ci does not crash anymore when ran from git repositories coming from
+  Azure projects with whitespaces in the name. (pa-3145)
+- The `--test` will now process test target files even if they do not match
+  the `paths:` directive of a rule. This is especially useful for rules
+  using the `include:` which is now disabled in a test context. (pa-8192)
+
+
 ## [1.44.0](https://github.com/returntocorp/semgrep/releases/tag/v1.44.0) - 2023-10-11
 
 ### Added
