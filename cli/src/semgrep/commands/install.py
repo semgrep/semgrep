@@ -5,6 +5,7 @@ import stat
 import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
 
 import click
 from rich.progress import BarColumn
@@ -21,6 +22,7 @@ from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.state import get_state
+from semgrep.state import SemgrepState
 from semgrep.util import abort
 from semgrep.util import sub_check_output
 from semgrep.verbose_logging import getLogger
@@ -41,42 +43,10 @@ def determine_semgrep_pro_path() -> Path:
     return semgrep_pro_path
 
 
-def run_install_semgrep_pro() -> None:
-    state = get_state()
-    state.terminal.configure(verbose=False, debug=False, quiet=False, force_color=False)
-
-    semgrep_pro_path = determine_semgrep_pro_path()
-
-    # TODO This is a temporary solution to help offline users
-    logger.info(f"Semgrep Pro Engine will be installed in {semgrep_pro_path}")
-
-    if semgrep_pro_path.exists():
-        logger.info(f"Overwriting Semgrep Pro Engine already installed!")
-
-    if state.app_session.token is None:
-        logger.info("run `semgrep login` before running `semgrep install-semgrep-pro`")
-        sys.exit(INVALID_API_KEY_EXIT_CODE)
-
-    if sys.platform.startswith("darwin"):
-        # arm64 is possible. Dunno if other arms are, so let's just check a prefix.
-        if platform.machine().startswith("arm"):
-            platform_kind = "osx-arm64"
-        else:
-            platform_kind = "osx-x86_64"
-    elif sys.platform.startswith("linux"):
-        platform_kind = "manylinux"
-    else:
-        platform_kind = "manylinux"
-        logger.info(
-            "Running on potentially unsupported platform. Installing linux compatible binary"
-        )
-
+def download_semgrep_pro(
+    state: SemgrepState, platform_kind: str, destination: Path
+) -> None:
     url = f"{state.env.semgrep_url}/api/agent/deployments/deepbinary/{platform_kind}?version={__VERSION__}"
-
-    # Download the binary into a temporary location, check it, then install it.
-    # This should prevent bad installations.
-
-    semgrep_pro_path_tmp = semgrep_pro_path.with_suffix(".tmp_download")
 
     with state.app_session.get(url, timeout=180, stream=True) as r:
         if r.status_code == 401:
@@ -98,8 +68,8 @@ def run_install_semgrep_pro() -> None:
         # Make sure no such binary exists. We have had weird situations when the
         # downloaded binary was corrupted, and overwriting it did not fix it, but
         # it was necessary to `rm -f` it.
-        if semgrep_pro_path_tmp.exists():
-            semgrep_pro_path_tmp.unlink()
+        if destination.exists():
+            destination.unlink()
 
         file_size = int(r.headers.get("Content-Length", 0))
 
@@ -110,10 +80,52 @@ def run_install_semgrep_pro() -> None:
             TransferSpeedColumn(),
             TimeRemainingColumn(),
             console=console,
-        ) as progress, semgrep_pro_path_tmp.open("wb") as f, progress.wrap_file(
+        ) as progress, destination.open("wb") as f, progress.wrap_file(
             r.raw, total=file_size, description="Downloading..."
         ) as r_raw:
             shutil.copyfileobj(r_raw, f)
+
+
+def run_install_semgrep_pro(custom_binary: Optional[str] = None) -> None:
+    state = get_state()
+    state.terminal.configure(verbose=False, debug=False, quiet=False, force_color=False)
+
+    semgrep_pro_path = determine_semgrep_pro_path()
+
+    # TODO This is a temporary solution to help offline users
+    logger.info(f"Semgrep Pro Engine will be installed in {semgrep_pro_path}")
+
+    if semgrep_pro_path.exists():
+        logger.info(f"Overwriting Semgrep Pro Engine already installed!")
+
+    if state.app_session.token is None and custom_binary is not None:
+        logger.info("run `semgrep login` before running `semgrep install-semgrep-pro`")
+        sys.exit(INVALID_API_KEY_EXIT_CODE)
+
+    if sys.platform.startswith("darwin"):
+        # arm64 is possible. Dunno if other arms are, so let's just check a prefix.
+        if platform.machine().startswith("arm"):
+            platform_kind = "osx-arm64"
+        else:
+            platform_kind = "osx-x86_64"
+    elif sys.platform.startswith("linux"):
+        platform_kind = "manylinux"
+    else:
+        platform_kind = "manylinux"
+        logger.info(
+            "Running on potentially unsupported platform. Installing linux compatible binary"
+        )
+
+    # Download the binary into a temporary location, check it, then install it.
+    # This should prevent bad installations.
+
+    semgrep_pro_path_tmp = semgrep_pro_path.with_suffix(".tmp_download")
+
+    if custom_binary is None:
+        download_semgrep_pro(state, platform_kind, semgrep_pro_path_tmp)
+    else:
+        custom_binary_path = Path(custom_binary)
+        shutil.copy(custom_binary_path, semgrep_pro_path_tmp)
 
     # THINK: Do we need to give exec permissions to everybody? Can this be a security risk?
     #        The binary should not have setuid or setgid rights, so letting others
@@ -150,8 +162,12 @@ def run_install_semgrep_pro() -> None:
 
 
 @click.command()
+@click.option(
+    "--custom-binary",
+    help="Supply a binary to use as semgrep-core-proprietary, rather than downloading it. You are responsible for ensuring compatibility.",
+)
 @handle_command_errors
-def install_semgrep_pro() -> None:
+def install_semgrep_pro(custom_binary: Optional[str]) -> None:
     """
     Install the Semgrep Pro Engine
 
@@ -161,4 +177,4 @@ def install_semgrep_pro() -> None:
     Must be logged in and have access to Semgrep Pro Engine beta
     Visit https://semgrep.dev/deep-semgrep-beta for more information
     """
-    run_install_semgrep_pro()
+    run_install_semgrep_pro(custom_binary)
