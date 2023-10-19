@@ -51,36 +51,63 @@ module CN = Client_notification
 (*****************************************************************************)
 (* Server IO *)
 (*****************************************************************************)
-module Io =
-  Lsp.Io.Make
-    (struct
-      include Lwt
 
-      module O = struct
-        let ( let* ) x f = Lwt.bind x f
-        let ( let+ ) x f = Lwt.map f x
-      end
+module type LSIO = sig
+  val read : unit -> Jsonrpc.Packet.t option Lwt.t
+  val write : Jsonrpc.Packet.t -> unit Lwt.t
+  val flush : unit -> unit Lwt.t
+end
 
-      let raise exn = Lwt.fail exn
-    end)
-    (struct
-      type input = Lwt_io.input_channel
-      type output = Lwt_io.output_channel
+module MakeLSIO (I : sig
+  type input
+  type output
 
-      let read_line = Lwt_io.read_line_opt
-      let write = Lwt_io.write
+  val stdin : input
+  val stdout : output
+  val read_line : input -> string option Lwt.t
+  val write : output -> string -> unit Lwt.t
+  val read_exactly : input -> int -> string option Lwt.t
+  val flush : unit -> unit Lwt.t
+  val atomic : (output -> 'a Lwt.t) -> output -> 'a Lwt.t
+end) : LSIO = struct
+  open
+    Lsp.Io.Make
+      (struct
+        include Lwt
 
-      let read_exactly inc n =
-        let rec read_exactly acc n =
-          if n = 0 then
-            let result = String.concat "" (List.rev acc) in
-            Lwt.return (Some result)
-          else
-            let%lwt line = Lwt_io.read ~count:n inc in
-            read_exactly (line :: acc) (n - String.length line)
-        in
-        read_exactly [] n
-    end)
+        module O = struct
+          let ( let* ) x f = Lwt.bind x f
+          let ( let+ ) x f = Lwt.map f x
+        end
+
+        let raise exn = Lwt.fail exn
+      end)
+      (I)
+
+  let read () = read I.stdin
+  let write packet = I.atomic (fun oc -> write oc packet) I.stdout
+  let flush = I.flush
+end
+
+let unset_io : (module LSIO) =
+  (module struct
+    let read () =
+      failwith
+        "IO not set. This is a bug in the language server. Please report it \
+         with the command you ran to get this error"
+
+    let write _ =
+      failwith
+        "IO not set. This is a bug in the language server. Please report it \
+         with the command you ran to get this error"
+
+    let flush () =
+      failwith
+        "IO not set. This is a bug in the language server. Please report it \
+         with the command you ran to get this error"
+  end)
+
+let io_ref : (module LSIO) ref = ref unset_io
 
 (*****************************************************************************)
 (* Types *)
@@ -100,69 +127,70 @@ type t = { session : Session.t; state : State.t }
 (* it writes the jsonrpc header then body with seperate calls to write, which *)
 (* means there's a race condition there. The below atomic calls ensures that *)
 (* the ENTIRE packet is written at the same time *)
-let respond server id json =
+let respond id json =
+  let module Io = (val !io_ref : LSIO) in
   match json with
   | Some json ->
+      Logs.debug (fun m ->
+          m "Sending response %s" (json |> Yojson.Safe.pretty_to_string));
       let response = Response.ok id json in
       let packet = Packet.Response response in
-      Lwt_io.atomic (fun oc -> Io.write oc packet) server.session.outgoing
+      let%lwt () = Io.write packet in
+      Io.flush ()
   | None -> Lwt.return ()
 
 (** Send a request to the client *)
-let request server request =
+let request request =
+  let module Io = (val !io_ref : LSIO) in
   let id = Uuidm.v `V4 |> Uuidm.to_string in
   let request = SR.to_jsonrpc_request request (`String id) in
   let packet = Packet.Request request in
-  let () =
-    Lwt.async (fun () ->
-        Lwt_io.atomic (fun oc -> Io.write oc packet) server.session.outgoing)
-  in
+  let () = Lwt.async (fun () -> Io.write packet) in
   id
 
 (** Send a notification to the client *)
-let notify server notification =
+let notify notification =
+  let module Io = (val !io_ref : LSIO) in
   let notification = SN.to_jsonrpc notification in
   Logs.debug (fun m ->
       m "Sending notification %s"
         (Notification.yojson_of_t notification |> Yojson.Safe.pretty_to_string));
   let packet = Packet.Notification notification in
-  let%lwt () =
-    Lwt_io.atomic (fun oc -> Io.write oc packet) server.session.outgoing
-  in
-  Lwt_io.flush_all ()
+  let%lwt () = Io.write packet in
+  Io.flush ()
 
 (** Send a bunch of notifications to the client *)
-let batch_notify server notifications =
+let batch_notify notifications =
   Logs.debug (fun m -> m "Sending notifications");
-  Lwt.async (fun () -> Lwt_list.iter_s (notify server) notifications)
+  Lwt.async (fun () -> Lwt_list.iter_s notify notifications)
 
-let notify_show_message server ~kind s =
+let notify_show_message ~kind s =
   let notif =
     Server_notification.ShowMessage
       { ShowMessageParams.message = s; type_ = kind }
   in
-  batch_notify server [ notif ]
+  batch_notify [ notif ]
 
 (** Show a little progress circle while doing thing. Returns a token needed to end progress*)
-let create_progress server title message =
+let create_progress title message =
   let id = Uuidm.v `V4 |> Uuidm.to_string in
   let token = ProgressToken.t_of_yojson (`String id) in
   let progress =
     SR.WorkDoneProgressCreate (WorkDoneProgressCreateParams.create token)
   in
-  let _ = request server progress in
+  let _ = request progress in
   let start =
     SN.Progress.Begin (WorkDoneProgressBegin.create ~message ~title ())
   in
   let progress = SN.WorkDoneProgress (ProgressParams.create token start) in
-  let () = Lwt.async (fun () -> notify server progress) in
+  let () = Lwt.async (fun () -> notify progress) in
   token
 
 (** end progress circle *)
-let end_progress server token =
+let end_progress token =
   let end_ = SN.Progress.End (WorkDoneProgressEnd.create ()) in
   let progress = SN.WorkDoneProgress (ProgressParams.create token end_) in
-  Lwt.async (fun () -> notify server progress)
+  Lwt.async (fun () -> notify progress)
 
 (*****************************************************************************)
 (* Server *)
@@ -189,7 +217,7 @@ struct
       | Request req when CR.of_jsonrpc req |> Result.is_ok ->
           let (CR.E req_unpacked) = CR.of_jsonrpc req |> Result.get_ok in
           let response, server = on_request req_unpacked server in
-          Lwt.async (fun () -> respond server req.id response);
+          Lwt.async (fun () -> respond req.id response);
           server
       | _ ->
           Logs.warn (fun m -> m "Unhandled message");
@@ -198,23 +226,22 @@ struct
     Lwt.return server
 
   let rec rpc_loop server () =
+    let module Io = (val !io_ref : LSIO) in
     match server.state with
     | State.Stopped ->
         Logs.debug (fun m -> m "Server stopped");
-        Lwt.pause ()
+        Lwt.return ()
     | _ -> (
-        let%lwt () = Lwt.pause () in
-        let%lwt client_msg = Io.read server.session.incoming in
+        let%lwt client_msg = Io.read () in
         match client_msg with
         | Some msg ->
             let%lwt server = handle_client_message msg server in
-            let%lwt () = Lwt.pause () in
             rpc_loop server ()
         | None ->
             Logs.debug (fun m -> m "Client disconnected");
-            Lwt.pause ())
+            Lwt.return ())
 
-  let start server = Lwt_main.run (rpc_loop server ())
+  let start server = rpc_loop server ()
 
   (* See: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification *)
 

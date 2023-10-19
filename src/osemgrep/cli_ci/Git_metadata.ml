@@ -185,10 +185,10 @@ let make (env : env) : Project_metadata.t =
   {
     semgrep_version = Version.version;
     repository = get_repo_name env;
-    repo_url = get_repo_url env |> Option.map Uri.to_string;
+    repo_url = get_repo_url env;
     branch = get_branch env;
-    ci_job_url = get_ci_job_url env |> Option.map Uri.to_string;
-    commit = get_commit_sha env |> Option.map Digestif.SHA1.to_hex;
+    ci_job_url = get_ci_job_url env;
+    commit = get_commit_sha env;
     commit_author_email = Some (Emile.to_string commit_author_email);
     commit_author_name = Some commit_author_name;
     commit_author_username = None;

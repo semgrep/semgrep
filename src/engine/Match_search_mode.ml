@@ -111,7 +111,7 @@ type selector = {
 (*****************************************************************************)
 let xpatterns_in_formula (e : R.formula) : (Xpattern.t * bool) list =
   let res = ref [] in
-  e |> R.visit_new_formula (fun xpat b -> Common.push (xpat, b) res);
+  e |> R.visit_new_formula (fun xpat ~inside:b -> Common.push (xpat, b) res);
   !res
 
 let partition_xpatterns xs =

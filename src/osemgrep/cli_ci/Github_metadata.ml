@@ -1,3 +1,4 @@
+module Http_helpers = Http_helpers.Make (Lwt_platform)
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
@@ -386,9 +387,7 @@ let make env =
     Glom.(
       get_and_coerce_opt string env._GITHUB_EVENT_JSON
         [ k "sender"; k "avatar_url" ])
-    (* TODO but require better type in semgrep_output_v1.project_metadata
-     * |> Option.map Uri.of_string
-     *)
+    |> Option.map Uri.of_string
   in
   let pull_request_author_username =
     Glom.(
@@ -399,7 +398,7 @@ let make env =
     Glom.(
       get_and_coerce_opt string env._GITHUB_EVENT_JSON
         [ k "pull_request"; k "user"; k "avatar_url" ])
-    (* TODO |> Option.map Uri.of_string *)
+    |> Option.map Uri.of_string
   in
   let value =
     (* XXX(dinosaure): like [**super.to_dict()] *)

@@ -152,7 +152,7 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
            if name =~ "^\\." then
              let skip =
                {
-                 Out.path = !!fpath;
+                 Out.path = fpath;
                  reason = Out.Dotfile;
                  details = None;
                  rule_id = None;
@@ -169,7 +169,7 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
                  let reason = get_reason_for_exclusion selection_events in
                  let skip =
                    {
-                     Out.path = !!fpath;
+                     Out.path = fpath;
                      reason;
                      details =
                        Some

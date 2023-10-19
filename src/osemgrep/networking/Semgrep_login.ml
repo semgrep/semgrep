@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (*****************************************************************************)
 (* Types *)
@@ -52,7 +53,7 @@ let save_token_async ?(ident = None) token =
        | _ -> Error "Failed to save token. Please try again.")
 
 let save_token ?(ident = None) token =
-  Lwt_main.run (save_token_async ~ident token)
+  Lwt_platform.run (save_token_async ~ident token)
 
 let is_logged_in () =
   let settings = Semgrep_settings.load () in
@@ -141,6 +142,6 @@ let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
 
 let fetch_token ?(min_wait_ms = 2000) ?(next_wait_ms = 1000) ?(max_retries = 12)
     ?(wait_hook = fun _delay_ms -> ()) login_session =
-  Lwt_main.run
+  Lwt_platform.run
     (fetch_token_async ~min_wait_ms ~next_wait_ms ~max_retries ~wait_hook
        login_session)

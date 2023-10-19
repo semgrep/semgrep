@@ -12,7 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
+open File.Operators
 open Lsp
 open Types
 open RPC_server
@@ -36,7 +36,7 @@ let code_action_of_match (m : Out.cli_match) =
     WorkspaceEdit.create
       ~changes:
         [
-          ( Uri.of_path m.path,
+          ( Uri.of_path !!(m.path),
             [ TextEdit.create ~range:(Conv.range_of_cli_match m) ~newText:fix ]
           );
         ]
@@ -45,7 +45,8 @@ let code_action_of_match (m : Out.cli_match) =
   let action =
     CodeAction.create
       ~title:
-        (Printf.sprintf "Apply fix suggested by Semgrep rule %s" m.check_id)
+        (Printf.sprintf "Apply fix suggested by Semgrep rule %s"
+           (Rule_ID.to_string m.check_id))
       ~kind:CodeActionKind.QuickFix ~edit ()
   in
   `CodeAction action
@@ -53,7 +54,7 @@ let code_action_of_match (m : Out.cli_match) =
 let code_actions_of_file (matches : Out.cli_match list) file =
   let matches =
     List.filter
-      (fun (m : Out.cli_match) -> Fpath.v m.path = file && m.extra.fix <> None)
+      (fun (m : Out.cli_match) -> m.path = file && m.extra.fix <> None)
       matches
   in
   Common.map code_action_of_match matches

@@ -138,6 +138,10 @@ a few other projects developed at r2c.
   (description "XXX")
 )
 
+(package (name lwt_platform)
+  (synopsis "XXX")
+  (description "XXX")
+)
 (package
   (name lib_parsing)
   (version 1.14.0)
@@ -392,7 +396,7 @@ For more information see https://semgrep.dev
     (ocaml (>= 4.13.0))
     (dune (>= 2.7.0 ))
     ; parser generators
-    (menhir (= 20220210))
+    (menhir (= 20230608))
     ; standard libraries
     ; We don't use Base directly. If it's being used indirectly
     ; (is it, though?), we need a version that doesn't register
@@ -401,6 +405,7 @@ For more information see https://semgrep.dev
     (base (>= v0.15.1))
     fpath
     bos
+    fileutils
     ; unit testing
     alcotest
     alcotest-js
@@ -441,6 +446,7 @@ For more information see https://semgrep.dev
     ; web stuff
     uri
     cohttp-lwt-unix
+    cohttp-lwt-jsoo
     tls-lwt ; needed for TLS support in the cohttp HTTP client (only TLS 1.3 seems to work)
     emile
     (digestif (>= 1.0.0))
@@ -451,6 +457,7 @@ For more information see https://semgrep.dev
     (js_of_ocaml (= 5.4.0))
     (js_of_ocaml-compiler (= 5.4.0))
     (js_of_ocaml-ppx (= 5.4.0))
+    (js_of_ocaml-lwt (= 5.4.0))
     ctypes_stubs_js
     integers_stubs_js
   )

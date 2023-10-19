@@ -6,6 +6,7 @@ export interface Parser {
   setMountpoints: (mountpoints: Mountpoint[]) => void;
   parseTarget: (lang: Lang, filename: string) => any;
   parsePattern: (printErrors: boolean, lang: Lang, pattern: string) => any;
+  parseTargetTsOnly: (file: string) => any;
 }
 
 export declare const ParserFactory: (wasmUri?: string) => Promise<Parser>;

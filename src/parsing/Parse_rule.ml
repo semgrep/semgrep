@@ -689,7 +689,8 @@ let parse_rule_xpattern env (str, tok) =
         lazy
           ((* we need to raise the right error *)
            try_and_raise_invalid_pattern_if_error env (str, tok) (fun () ->
-               Parse_pattern.parse_pattern lang ~print_errors:false str))
+               Parse_pattern.parse_pattern lang ~print_errors:false
+                 ~rule_options:env.options str))
       in
       XP.mk_xpat (XP.Sem (lpat, lang)) (str, tok)
   | Xlang.LRegex ->

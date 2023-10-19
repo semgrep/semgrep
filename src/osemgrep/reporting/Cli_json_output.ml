@@ -1,4 +1,5 @@
 open Common
+open File.Operators
 module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
@@ -86,13 +87,13 @@ let render_fix (hrules : Rule.hrules) (x : Out.core_match) : string option =
   match x with
   | { check_id = rule_id; path; extra = { metavars; rendered_fix; _ }; _ } -> (
       let rule =
-        try Hashtbl.find hrules (Rule_ID.of_string rule_id) with
+        try Hashtbl.find hrules rule_id with
         | Not_found -> raise Impossible
       in
       (* TOPORT: debug logging which indicates the source of the fix *)
       match (rendered_fix, rule.fix) with
       | Some fix, _ -> Some fix
-      | None, Some fix -> Some (interpolate_metavars fix metavars path)
+      | None, Some fix -> Some (interpolate_metavars fix metavars !!path)
       | None, None -> None)
 
 (*****************************************************************************)
@@ -117,8 +118,9 @@ let core_location_to_error_span (loc : Out.location) : Out.error_span =
 let error_message ~rule_id ~(location : Out.location)
     ~(error_type : Out.error_type) ~core_message : string =
   let path = location.path in
+  let rule_id_str_opt = Option.map Rule_ID.to_string rule_id in
   let error_context =
-    match (rule_id, error_type) with
+    match (rule_id_str_opt, error_type) with
     (* For rule errors, the path is a temporary JSON file containing
        the broken rule(s). *)
     | Some id, (RuleParseError | PatternParseError _) -> spf "in rule %s" id
@@ -127,10 +129,10 @@ let error_message ~rule_id ~(location : Out.location)
         | InvalidYaml | MatchingError | SemgrepMatchFound | TooManyMatches
         | FatalError | Timeout | OutOfMemory | TimeoutDuringInterfile
         | OutOfMemoryDuringInterfile ) ) ->
-        spf "when running %s on %s" id path
+        spf "when running %s on %s" id !!path
     | Some id, IncompatibleRule _ -> id
     | Some id, MissingPlugin -> spf "for rule %s" id
-    | _ -> spf "at line %s:%d" path location.start.line
+    | _ -> spf "at line %s:%d" !!path location.start.line
   in
   spf "%s %s:\n %s"
     (Error.string_of_error_type error_type)
@@ -327,7 +329,8 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
  *
  * There's some weird thing we do w/ join mode. I am hoping that this doesn't matter irl
  *)
-let match_based_id_partial rule rule_id metavars path =
+let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
+    string =
   let xpats = Rule.xpatterns_of_rule rule in
   let xpat_strs =
     xpats |> Common.map (fun (xpat : Xpattern.t) -> fst xpat.pstr)
@@ -344,7 +347,8 @@ let match_based_id_partial rule rule_id metavars path =
   (* We have been hashing w/ this PosixPath thing in python so we must recreate it here  *)
   (* We also have been hashing a tuple formatted as below *)
   let string =
-    spf "('%s', PosixPath('%s'), '%s')" xpat_str_interp path rule_id
+    spf "('%s', PosixPath('%s'), '%s')" xpat_str_interp path
+      (Rule_ID.to_string rule_id)
   in
   let hash = Digestif.BLAKE2B.digest_string string |> Digestif.BLAKE2B.to_hex in
   hash
@@ -373,7 +377,7 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
      };
   } ->
       let rule =
-        try Hashtbl.find hrules (Rule_ID.of_string rule_id) with
+        try Hashtbl.find hrules rule_id with
         | Not_found -> raise Impossible
       in
       let rule_message = rule.message in
@@ -385,7 +389,7 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
             rule_message
       in
       (* message where the metavars have been interpolated *)
-      let message = interpolate_metavars message metavars path in
+      let message = interpolate_metavars message metavars !!path in
       let fix = render_fix hrules m in
       let check_id = rule_id in
       let metavars = Some metavars in
@@ -405,7 +409,7 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
       (* TODO? at this point why not using content_of_file_at_range since
        * we concatenate the lines after? *)
       let lines =
-        Semgrep_output_utils.lines_of_file_at_range (start, end_) (Fpath.v path)
+        Semgrep_output_utils.lines_of_file_at_range (start, end_) path
         |> String.concat "\n"
       in
       {
@@ -426,7 +430,7 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
             fix_regex = None;
             (* TODO: extra fields *)
             is_ignored = Some false;
-            fingerprint = match_based_id_partial rule rule_id metavars path;
+            fingerprint = match_based_id_partial rule rule_id metavars !!path;
             sca_info = None;
             fixed_lines = None;
             dataflow_trace = None;
@@ -541,7 +545,7 @@ let cli_output_of_core_results ~logging_level (core : Out.core_output)
        * elements in OCaml compare order (=~ lexicographic for strings)
        * python: scanned=[str(path) for path in sorted(self.all_targets)]
        *)
-      let scanned = scanned |> Set_.elements |> File.Path.to_strings in
+      let scanned = scanned |> Set_.elements in
       let (paths : Out.scanned_and_skipped) =
         match logging_level with
         | Some (Logs.Info | Logs.Debug) ->

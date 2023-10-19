@@ -1,5 +1,6 @@
 open Common
 module Out = Semgrep_output_v1_j
+module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -166,7 +167,7 @@ let scan_id_and_rules_from_deployment ~dry_run (prj_meta : Out.project_metadata)
   let scan_metadata : Out.scan_metadata =
     {
       cli_version = Version.version;
-      unique_id = Uuidm.v `V4 |> Uuidm.to_string;
+      unique_id = Uuidm.v `V4;
       (* TODO: should look at conf.secrets, conf.sca, conf.code, etc. *)
       requested_products = [];
     }
@@ -309,7 +310,7 @@ let partition_findings ~keep_ignored (results : Out.cli_match list) =
            if
              Common2.string_match_substring
                (Str.regexp "r2c-internal-cai")
-               m.Out.check_id
+               (Rule_ID.to_string m.Out.check_id)
            then `Cai
            else if is_blocking (JSON.from_yojson m.Out.extra.Out.metadata) then
              (* and "sca_info" not in match.extra *)
@@ -425,9 +426,7 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   let targets = cli_output.paths.scanned in
   let skipped = cli_output.paths.skipped in
 
-  let rule_ids =
-    rules |> Common.map (fun r -> Rule_ID.to_string (fst r.Rule.id))
-  in
+  let rule_ids = rules |> Common.map (fun r -> fst r.Rule.id) in
   let contributions = Parse_contribution.get_contributions () in
   (*
       we want date stamps assigned by the app to be assigned such that the
@@ -467,7 +466,7 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
       token = ci_token;
       findings;
       ignores;
-      searched_paths = List.sort String.compare targets;
+      searched_paths = List.sort Fpath.compare targets;
       (* TODO: get renamed_paths, depends on baseline_commit *)
       renamed_paths = [];
       rule_ids;
@@ -485,7 +484,7 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   let ignored_ext_freqs =
     Option.value ~default:[] skipped
     |> Common.group_by (fun (skipped_target : Out.skipped_target) ->
-           Fpath.get_ext (Fpath.v skipped_target.Out.path))
+           Fpath.get_ext skipped_target.Out.path)
     |> List.filter (fun (ext, _) -> not (String.equal ext ""))
     (* don't count files with no extension *)
     |> Common.map (fun (ext, xs) -> (ext, List.length xs))

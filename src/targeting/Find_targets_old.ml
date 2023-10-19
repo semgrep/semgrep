@@ -64,7 +64,7 @@ let global_filter ~opt_lang ~sort_by_decr_size paths =
   in
   let sorted_skipped =
     List.sort
-      (fun (a : Out.skipped_target) b -> String.compare a.path b.path)
+      (fun (a : Out.skipped_target) b -> Fpath.compare a.path b.path)
       skipped
   in
   (sorted_paths, sorted_skipped)
@@ -280,7 +280,7 @@ let get_targets conf scanning_roots =
                       in
                       let skipped =
                         {
-                          Resp.path = !!path;
+                          Resp.path;
                           reason;
                           details =
                             Some
@@ -308,7 +308,7 @@ let get_targets conf scanning_roots =
                   then
                     Error
                       {
-                        Resp.path = !!path;
+                        Resp.path;
                         reason = Too_big;
                         details =
                           Some
@@ -354,7 +354,7 @@ let files_of_dirs_or_files ?(keep_root_files = true)
   in
   let sorted_skipped =
     List.sort
-      (fun (a : Out.skipped_target) b -> String.compare a.path b.path)
+      (fun (a : Out.skipped_target) b -> Fpath.compare a.path b.path)
       skipped
   in
   (sorted_paths, sorted_skipped)

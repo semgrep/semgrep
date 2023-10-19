@@ -58,5 +58,11 @@ let to_string_list x = x
 let of_string_list x = x
 let compare = String.compare
 
+let last_elt_opt x =
+  let xs = x |> Str.split (Str.regexp_string ".") |> List.rev in
+  match xs with
+  | [] -> None
+  | x :: _ -> Some x
+
 let ends_with r ~suffix:inc_or_exc_rule =
   r = inc_or_exc_rule || String.ends_with ~suffix:("." ^ inc_or_exc_rule) r

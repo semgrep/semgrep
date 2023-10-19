@@ -727,11 +727,23 @@ let full_rule_taint_maturity_tests () =
 
 let full_rule_regression_tests () =
   let path = tests_path / "rules" in
-  pack_tests "full rule"
-    (let tests, _print_summary =
-       Test_engine.make_tests ~unit_testing:true [ path ]
-     in
-     tests)
+  let tests, _print_summary =
+    Test_engine.make_tests ~unit_testing:true ~prepend_lang:true [ path ]
+  in
+  let groups =
+    tests
+    |> Common.map (fun (name, ftest) ->
+           let group =
+             match String.split_on_char ' ' name with
+             | lang :: _ -> lang
+             | _ -> name
+           in
+           (group, (name, ftest)))
+    |> Common.group_assoc_bykey_eff
+  in
+
+  pack_suites "full rule"
+    (groups |> Common.map (fun (group, tests) -> pack_tests group tests))
 
 (* quite similar to full_rule_regression_tests but prefer to pack_tests
  * with "full semgrep rule Java", so one can just run the Java tests
@@ -773,36 +785,9 @@ let full_rule_semgrep_rules_regression_tests () =
                     || s =~ ".*/fingerprints/fingerprints.yaml"
                     || s
                        =~ ".*/terraform/aws/security/aws-fsx-lustre-files-ystem.yaml"
-                    (* TODO: Tests for tests/semgrep-rules/php/wordpress-plugins/security/audit/ are in
-                     * a subfolder due to `paths:` constraints in the rule, perhaps Semgrep should ignore
-                     * these constraints when in test mode. Note that `semgrep --test` simply ignores
-                     * these files, but our test runner fails if it cannot find an example target file. *)
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-ajax-no-auth-and-auth-hooks-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-authorisation-checks-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-code-execution-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-command-execution-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-csrf-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-file-download-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-file-inclusion-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-file-manipulation-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-open-redirect-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-php-object-injection-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-sql-injection-audit.yaml"
+                    || s =~ ".*/generic/ci/audit/changed-semgrepignore.*"
                     (* TODO: parse error, weird *)
                     || s =~ ".*/unicode/security/bidi.yml"
-                    (* TODO many mismatches *)
-                    || s =~ ".*/generic/ci/audit/changed-semgrepignore.*"
                     || s
                        =~ ".*/python/django/maintainability/duplicate-path-assignment.yaml"
                     (* ?? *)

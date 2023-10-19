@@ -1,7 +1,11 @@
 (executables
  (names Parser)
- (libraries tree-sitter-to-generic
-   integers_stubs_js ctypes_stubs_js semgrep.semgrep_js_shared)
+ (libraries
+   parser_typescript.tree_sitter
+   tree-sitter-to-generic
+   integers_stubs_js
+   ctypes_stubs_js
+   semgrep.semgrep_js_shared)
  (modes js)
  (js_of_ocaml
   (javascript_files semgrep.js))
@@ -13,4 +17,4 @@
  (action
   (with-stdout-to
    %{targets}
-   (run ../shared/generate-semgrep-js.sh vue))))
+   (run ../shared/generate-semgrep-js.sh vue typescript tsx))))

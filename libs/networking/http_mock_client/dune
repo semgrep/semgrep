@@ -1,0 +1,14 @@
+(library
+ (public_name networking.http_mock_client)
+ (name networking_http_mock_client)
+  (wrapped false)
+  (libraries
+   commons
+    cohttp-lwt
+    networking.http_helpers
+  )
+  (preprocess
+    (pps
+      lwt_ppx
+     )
+   ))

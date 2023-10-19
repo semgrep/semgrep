@@ -21,8 +21,6 @@ type t = {
       [@printer
         fun fmt c ->
           Yojson.Safe.pretty_print fmt (ServerCapabilities.yojson_of_t c)]
-  incoming : Lwt_io.input_channel; [@opaque]
-  outgoing : Lwt_io.output_channel; [@opaque]
   workspace_folders : Fpath.t list;
   cached_scans : (Fpath.t, Out.cli_match list) Hashtbl.t; [@opaque]
   cached_session : session_cache;
@@ -42,8 +40,6 @@ let create capabilities =
   in
   {
     capabilities;
-    incoming = Lwt_io.stdin;
-    outgoing = Lwt_io.stdout;
     workspace_folders = [];
     cached_scans = Hashtbl.create 10;
     cached_session;
@@ -240,7 +236,7 @@ let update_workspace_folders ?(added = []) ?(removed = []) session =
 
 let record_results session results files =
   let results_by_file =
-    Common.group_by (fun (r : Out.cli_match) -> Fpath.v r.path) results
+    Common.group_by (fun (r : Out.cli_match) -> r.path) results
   in
   List.iter (fun f -> Hashtbl.replace session.cached_scans f []) files;
   List.iter

@@ -127,7 +127,7 @@ repos:
     rev: v2.7.1
     hooks:
       - id: prettier
-        exclude: "^perf/bench/dummy/.+$|^cli/tests/e2e/rules/.+$|^.+/Pipfile.lock$|^.devcontainer/devcontainer.json$"
+        exclude: "^perf/bench/dummy/.+$|^cli/tests/e2e/rules/.+$|^.+/Pipfile.lock$|^.devcontainer/devcontainer.json|^\\.github/workflows/.+\\.yml$"
 
   # ----------------------------------------------------------
   # Extra hooks using additional_dependencies
@@ -179,7 +179,7 @@ repos:
   # Dogfood! running semgrep in pre-commit!
   # ----------------------------------------------------------
   - repo: https://github.com/returntocorp/semgrep
-    rev: v1.39.0
+    rev: v1.44.0
     hooks:
       - id: semgrep
         name: Semgrep Jsonnet

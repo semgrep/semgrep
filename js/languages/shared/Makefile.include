@@ -4,9 +4,9 @@ ifndef NO_WASM
 TREE_SITTER_SOURCES ?= $(shell find ../../../languages/$(SEMGREP_LANG)/tree-sitter -name 'scanner.c' -o -name 'scanner.cc' -o -name 'parser.c')
 endif
 
+
 ESBUILD_DEFAULTS = \
 	--bundle \
-	--minify \
 	--platform=neutral \
 	--log-override:duplicate-case=silent \
 	--external:path \
@@ -14,6 +14,14 @@ ESBUILD_DEFAULTS = \
 	--external:constants \
 	--external:tty \
 	--external:child_process
+
+ifdef SEMGREP_JS_TEST_BUILD
+ESBUILD_DEFAULTS += \
+	--sourcemap
+else
+ESBUILD_DEFAULTS += \
+	--minify
+endif
 
 COMMON_TS_EXPORTED_FUNCTIONS = _malloc,_free,_ts_parser_new,_ts_parser_set_language,_ts_parser_parse_string,_ts_tree_root_node,_ts_node_type,_ts_node_start_point,_ts_node_end_point,_ts_node_is_missing,_ts_node_is_named,_ts_node_child_count,_ts_node_child,_ts_tree_delete
 
@@ -30,6 +38,7 @@ EMCC_OPTIMIZATION = \
     $(EMCC_TEST_OPTIMIZATION) \
     -mllvm -wasm-disable-fix-irreducible-control-flow-pass
 TEST_EXPECTS_FAST_CLANG = 1
+
 endif
 endif
 EMCC_OPTIMIZATION ?= -O3

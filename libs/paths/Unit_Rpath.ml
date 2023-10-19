@@ -10,8 +10,7 @@ let with_file contents f =
       close_out oc;
       f file)
 
-(* TODO: we should use Unix.realpath! but only available in 4.13 *)
-let realpath s = Common.fullpath s
+let realpath s = Unix.realpath s
 
 let test_path_conversion () =
   let check_path path =

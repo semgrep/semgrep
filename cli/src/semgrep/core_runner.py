@@ -481,6 +481,7 @@ class CoreRunner:
         interfile_timeout: int,
         optimizations: str,
         allow_untrusted_postprocessors: bool,
+        respect_rule_paths: bool = True,
     ):
         self._binary_path = engine_type.get_binary_path()
         self._jobs = jobs or engine_type.default_jobs
@@ -492,6 +493,7 @@ class CoreRunner:
         self._interfile_timeout = interfile_timeout
         self._optimizations = optimizations
         self._allow_untrusted_postprocessors = allow_untrusted_postprocessors
+        self._respect_rule_paths = respect_rule_paths
 
     def _extract_core_output(
         self,
@@ -787,6 +789,8 @@ class CoreRunner:
                 cmd.append("-matching_explanations")
             if time_flag:
                 cmd.append("-json_time")
+            if not self._respect_rule_paths:
+                cmd.append("-disable_rule_paths")
 
             # Create a map to feed to semgrep-core as an alternative to
             # having it actually read the files.

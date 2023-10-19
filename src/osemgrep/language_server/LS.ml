@@ -68,5 +68,4 @@ module LanguageServer = RPC_server.Make (MessageHandler)
 let start () =
   Logs.debug (fun m -> m "Starting Semgrep Language Server");
   let server = LanguageServer.create () in
-  LanguageServer.start server;
-  exit 0
+  LanguageServer.start server

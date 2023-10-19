@@ -762,7 +762,7 @@ let visit_new_formula f formula =
   let bref = ref false in
   let rec visit_new_formula f formula =
     match formula with
-    | P p -> f p !bref
+    | P p -> f p ~inside:!bref
     | Inside (_, formula) ->
         Common.save_excursion bref true (fun () -> visit_new_formula f formula)
     | Not (_, x) -> visit_new_formula f x
@@ -811,7 +811,7 @@ let rec formula_of_mode (mode : mode) =
 let xpatterns_of_rule rule =
   let formulae = formula_of_mode rule.mode in
   let xpat_store = ref [] in
-  let visit xpat _ = xpat_store := xpat :: !xpat_store in
+  let visit xpat ~inside:_ = xpat_store := xpat :: !xpat_store in
   List.iter (visit_new_formula visit) formulae;
   !xpat_store
 

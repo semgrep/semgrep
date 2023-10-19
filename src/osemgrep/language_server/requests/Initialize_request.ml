@@ -71,7 +71,7 @@ let initialize_server server
       and so block the Lwt scheduler, meaning it cannot properly respond to requests until
       a scan is finished. With preemptive threads, the threads are guaranteed to run concurrently.
      This means we can process IO while a scan is running. *)
-  Lwt_preemptive.init 1 user_settings.jobs (fun msg ->
+  Lwt_platform.init_preemptive 1 user_settings.jobs (fun msg ->
       Logs.debug (fun m -> m "ls threads: %s" msg));
   let metrics =
     let metrics = initializationOptions |> member "metrics" in

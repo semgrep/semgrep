@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
 open AST_generic
 module E = Core_error
 module J = JSON
@@ -93,9 +92,6 @@ let range_of_any_opt startp_of_match_range any =
 (* Converters *)
 (*****************************************************************************)
 
-let convert_rule ((id, ek) : Rule_ID.t * Engine_kind.t) =
-  (Rule_ID.to_string id, ek)
-
 let metavar_string_of_any any =
   (* TODO: metavar_string_of_any is used in get_propagated_value
       to get the string for propagated values. Not all propagated
@@ -164,7 +160,7 @@ let metavars startp_of_match_range (s, mval) =
  * pysemgrep).
  *)
 let content_of_loc (loc : Out.location) : string =
-  OutUtils.content_of_file_at_range (loc.start, loc.end_) (Fpath.v loc.path)
+  OutUtils.content_of_file_at_range (loc.start, loc.end_) loc.path
 
 let token_to_intermediate_var token : Out.match_intermediate_var option =
   let* location = OutUtils.tokens_to_single_loc [ token ] in
@@ -242,9 +238,9 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
     else x.file
   in
   {
-    Out.check_id = Rule_ID.to_string x.rule_id.id;
+    Out.check_id = x.rule_id.id;
     (* inherited location *)
-    path = file;
+    path = Fpath.v file;
     start = startp;
     end_ = endp;
     (* end inherited location *)
@@ -285,7 +281,7 @@ let match_to_match render_fix (x : Pattern_match.t) :
 let error_to_error (err : Core_error.t) =
   let file = err.loc.pos.file in
   let startp, endp = OutUtils.position_range err.loc err.loc in
-  let rule_id = Option.map Rule_ID.to_string err.rule_id in
+  let rule_id = err.rule_id in
   let error_type = err.typ in
   let severity = E.severity_of_error err.typ in
   let message = err.msg in
@@ -294,7 +290,7 @@ let error_to_error (err : Core_error.t) =
     Out.error_type;
     rule_id;
     severity;
-    location = { path = file; start = startp; end_ = endp };
+    location = { path = Fpath.v file; start = startp; end_ = endp };
     message;
     details;
   }
@@ -327,7 +323,7 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
                |> Common.hash_of_list
              in
              {
-               Out.path = !!target;
+               Out.path = target;
                match_times =
                  rule_ids
                  |> Common.map (fun rule_id ->
@@ -355,7 +351,7 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
                num_bytes = File.filesize target;
                run_time;
              });
-    rules = rule_ids |> Common.map Rule_ID.to_string;
+    rules = rule_ids;
     rules_parse_time = profiling_data.rules_parse_time;
     max_memory_bytes = Some profiling_data.max_memory_bytes;
     (* TODO: does it cover all targets or just the relevant target we actually
@@ -424,14 +420,14 @@ let core_output_of_matches_and_errors render_fix (res : Core_result.t) :
       |> Common.map (fun ((kind, rule_id, tk) : Rule.invalid_rule_error) ->
              let loc = Tok.unsafe_loc_of_tok tk in
              {
-               Out.rule_id = Rule_ID.to_string rule_id;
+               Out.rule_id;
                details = Rule.string_of_invalid_rule_error_kind kind;
                position = OutUtils.position_of_token_location loc;
              });
     time = profiling |> Option.map profiling_to_profiling;
     explanations =
       res.explanations |> Option.map (Common.map explanation_to_explanation);
-    rules_by_engine = Some (Common.map convert_rule res.rules_by_engine);
+    rules_by_engine = Some res.rules_by_engine;
     engine_requested = Some `OSS;
     version = Some Version.version;
   }
