@@ -3,14 +3,17 @@ import subprocess
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
+from textwrap import dedent
 from textwrap import indent
 from typing import Dict
 from typing import Iterator
 from typing import List
 from typing import NamedTuple
+from typing import Optional
+from typing import Sequence
 
 from semgrep.state import get_state
-from semgrep.util import git_check_output
+from semgrep.util import manually_search_file
 from semgrep.verbose_logging import getLogger
 
 
@@ -24,6 +27,65 @@ def zsplit(s: str) -> List[str]:
         return s.split("\0")
     else:
         return []
+
+
+def git_check_output(command: Sequence[str], cwd: Optional[str] = None) -> str:
+    """
+    Helper function to run a GIT command that prints out helpful debugging information
+    """
+    # Avoiding circular imports
+    from semgrep.error import SemgrepError
+    from semgrep.state import get_state
+
+    env = get_state().env
+
+    cwd = cwd if cwd is not None else os.getcwd()
+    try:
+        # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
+        return subprocess.check_output(
+            command,
+            stderr=subprocess.PIPE,
+            encoding="utf-8",
+            timeout=env.git_command_timeout,
+            cwd=cwd,
+        ).strip()
+    except subprocess.CalledProcessError as e:
+        command_str = " ".join(command)
+        raise SemgrepError(
+            dedent(
+                f"""
+                Command failed with exit code: {e.returncode}
+                -----
+                Command failed with output:
+                {e.stderr}
+
+                Failed to run '{command_str}'. Possible reasons:
+
+                - the git binary is not available
+                - the current working directory is not a git repository
+                - the current working directory is not marked as safe
+                    (fix with `git config --global --add safe.directory $(pwd)`)
+
+                Try running the command yourself to debug the issue.
+                """
+            ).strip()
+        )
+
+
+def get_project_url() -> Optional[str]:
+    """
+    Returns the current git project's default remote URL, or None if not a git project / no remote
+    """
+    try:
+        return git_check_output(["git", "ls-remote", "--get-url"])
+    except Exception as e:
+        logger.debug(f"Failed to get project url from 'git ls-remote': {e}")
+        try:
+            # add \n to match urls from git ls-remote (backwards compatability)
+            return manually_search_file(".git/config", ".com", "\n")
+        except Exception as e:
+            logger.debug(f"Failed to get project url from .git/config: {e}")
+            return None
 
 
 def get_git_root_path() -> Path:

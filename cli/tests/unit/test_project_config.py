@@ -5,7 +5,7 @@ import pytest
 import ruamel.yaml
 from tests.conftest import make_semgrepconfig_file
 
-from semgrep.project import ProjectConfig
+from semgrep.app.project_config import ProjectConfig
 
 CONFIG_TAGS = "tags:\n- tag1\n- tag_key:tag_val\n"
 CONFIG_TAGS_MONOREPO_1 = "tags:\n- tag1\n- service:service-1\n"
@@ -62,7 +62,7 @@ def test_projectconfig_load_all_basic(git_tmp_path, mocker):
     make_semgrepconfig_file(git_tmp_path, CONFIG_TAGS)
 
     mocker.patch.object(Path, "cwd", return_value=git_tmp_path)
-    mocker.patch("semgrep.project.get_git_root_path", return_value=git_tmp_path)
+    mocker.patch("semgrep.git.get_git_root_path", return_value=git_tmp_path)
     proj_config = ProjectConfig.load_all()
 
     expected_tags = ["tag1", "tag_key:tag_val"]
@@ -87,7 +87,7 @@ def test_projectconfig_load_all_monorepo(git_tmp_path, mocker):
     make_semgrepconfig_file(service_2_dir, CONFIG_TAGS_MONOREPO_2)
 
     mocker.patch.object(Path, "cwd", return_value=service_1_dir)
-    mocker.patch("semgrep.project.get_git_root_path", return_value=git_tmp_path)
+    mocker.patch("semgrep.git.get_git_root_path", return_value=git_tmp_path)
     proj_config = ProjectConfig.load_all()
 
     expected_tags = ["tag1", "service:service-1"]
@@ -110,5 +110,5 @@ def test_projectconfig_load_from_file_invalid_format(tmp_path):
 def test_projectconfig_todict():
     project_config = ProjectConfig(version="v1", tags=["tag1", "tag2"])
 
-    expected = {"tags": ["tag1", "tag2"]}
-    assert project_config.to_dict() == expected
+    expected = {"version": "v1", "tags": ["tag1", "tag2"]}
+    assert project_config.to_CiConfigFromRepo().to_json() == expected

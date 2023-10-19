@@ -35,11 +35,11 @@ from semgrep.constants import OutputFormat
 from semgrep.core_runner import CoreRunner
 from semgrep.engine import EngineType
 from semgrep.error import SemgrepError
+from semgrep.git import get_project_url
 from semgrep.metrics import MetricsState
 from semgrep.notifications import possibly_notify_user
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
-from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_core import SemgrepCore

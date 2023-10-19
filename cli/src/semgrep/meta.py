@@ -19,8 +19,8 @@ from glom.core import TType
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
 from semgrep.external.git_url_parser import Parser
+from semgrep.git import git_check_output
 from semgrep.state import get_state
-from semgrep.util import git_check_output
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)

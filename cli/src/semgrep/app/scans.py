@@ -24,10 +24,10 @@ from boltons.iterutils import partition
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
+from semgrep.app.project_config import ProjectConfig
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
-from semgrep.project import ProjectConfig
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
@@ -223,11 +223,14 @@ class ScanHandler:
 
         request = out.ScanRequest(
             meta=out.RawJson(
-                {**project_metadata.to_json(), **project_config.to_dict()}
+                {
+                    **project_metadata.to_json(),
+                    **project_config.to_CiConfigFromRepo().to_json(),
+                }
             ),
             scan_metadata=self.scan_metadata,
             project_metadata=project_metadata,
-            project_config=out.ProjectConfig(out.RawJson(project_config.to_dict())),
+            project_config=project_config.to_CiConfigFromRepo(),
         ).to_json()
         logger.debug(f"Starting scan: {json.dumps(request, indent=4)}")
         response = state.app_session.post(

@@ -22,6 +22,7 @@
     "is_sca_scan": false,
     "is_code_scan": false,
     "is_secrets_scan": false,
+    "version": "v1",
     "tags": [
       "tag1",
       "tag_key:tag_val"

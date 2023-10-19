@@ -28,7 +28,7 @@ from semgrep.config_resolver import resolve_config
 from semgrep.error import ERROR_MAP
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import SemgrepError
-from semgrep.project import get_project_url
+from semgrep.git import get_project_url
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.verbose_logging import getLogger
