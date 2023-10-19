@@ -392,6 +392,9 @@ def run_scan(
         metrics.add_integration_name(environ.get("SEMGREP_INTEGRATION_NAME"))
         metrics.add_configs(configs)
         metrics.add_engine_type(engine_type)
+        metrics.add_is_diff_scan(baseline_commit is not None)
+        if engine_type.is_pro:
+            metrics.add_diff_depth(diff_depth)
 
     if not severity:
         shown_severities = DEFAULT_SHOWN_SEVERITIES
