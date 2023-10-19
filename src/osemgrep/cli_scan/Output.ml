@@ -24,12 +24,8 @@ module Out = Semgrep_output_v1_j
 (*****************************************************************************)
 
 let string_of_severity (severity : Out.match_severity) : string =
-  (* this contains the enclosing "" *)
-  let s = Out.string_of_match_severity severity in
-  (* let's remove the enclosing "" *)
-  match JSON.json_of_string s with
-  | JSON.String s -> s
-  | _else_ -> failwith (spf "wrong format for severity: %s" s)
+  Out.string_of_match_severity severity
+  |> JSON.remove_enclosing_quotes_of_jstring
 
 (*****************************************************************************)
 (* Autofix *)

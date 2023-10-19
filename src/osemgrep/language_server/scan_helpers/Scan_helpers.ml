@@ -57,7 +57,8 @@ let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
   in
   let skipped =
     res.core.skipped_rules
-    |> Common.map (fun (r : Semgrep_output_v1_t.skipped_rule) -> r.rule_id)
+    |> Common.map (fun (r : Semgrep_output_v1_t.skipped_rule) ->
+           Rule_ID.to_string r.rule_id)
     |> String.concat "\n"
   in
   Logs.debug (fun m -> m "Semgrep errors: %s" errors);

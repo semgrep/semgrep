@@ -66,16 +66,15 @@ class SemgrepError(Exception):
         self.level = level
         super().__init__(*args)
 
+    def to_CliError(self) -> out.CliError:
+        err = out.CliError(code=self.code, type_=self.type_(), level=self.level)
+        return self.adjust_CliError(err)
+
     # to be overriden in children
     def type_(self) -> out.ErrorType:
         return out.ErrorType(out.SemgrepError())
 
-    def to_CliError(self) -> out.CliError:
-        err = out.CliError(
-            code=self.code, type_=str(self.type_().to_json()), level=self.level
-        )
-        return self.adjust_CliError(err)
-
+    # to be overriden in children
     def adjust_CliError(self, base: out.CliError) -> out.CliError:
         """
         Default implementation. Subclasses should override to provide custom information.
@@ -96,9 +95,21 @@ class SemgrepError(Exception):
 
         return f"{level_tag} {self}"
 
-    # stored in our metrics payload.errors.errors
-    def semgrep_error_type(self) -> str:
-        return str(self.type_().to_json())
+
+# used in text output and currently stored in our metrics payload.errors.errors
+def error_type_string(type_: out.ErrorType) -> str:
+    # convert to the same string of out.ParseError for now
+    if isinstance(type_.value, out.PartialParsing):
+        return error_type_string(out.ErrorType(out.ParseError()))
+    # constructors with arguments
+    if isinstance(type_.value, out.PatternParseError):
+        return error_type_string(out.ErrorType(out.PatternParseError0()))
+    if isinstance(type_.value, out.IncompatibleRule_):
+        return error_type_string(out.ErrorType(out.IncompatibleRule0()))
+    # All the other cases don't have arguments in Semgrep_output_v1.atd
+    # and have some <json name="..."> annotations to generate the right string
+    else:
+        return str(type_.to_json())
 
 
 @dataclass(frozen=True)
@@ -109,33 +120,11 @@ class SemgrepCoreError(SemgrepError):
     spans: Optional[List[out.ErrorSpan]]
     core: out.CoreError
 
-    # TODO: we should return a proper variant instead of converting to a str
-    def _error_type_string(self) -> str:
-        type_ = self.core.error_type
-        # convert to the same string of out.ParseError for now
-        if isinstance(type_.value, out.PartialParsing):
-            return "Syntax error"
-        if isinstance(type_.value, out.PatternParseError):
-            return "Pattern parse error"
-        if isinstance(type_.value, out.IncompatibleRule_):
-            return "Incompatible rule"
-        if isinstance(type_.value, out.MissingPlugin):
-            return "Missing plugin"
-        # All the other cases don't have arguments in Semgrep_output_v1.atd
-        # and have some <json name="..."> annotations to generate the right string
-        else:
-            return str(type_.to_json())
-
-    def semgrep_error_type(self) -> str:
-        return self._error_type_string()
-
     def type_(self) -> out.ErrorType:
         return self.core.error_type
 
     def adjust_CliError(self, base: out.CliError) -> out.CliError:
-        base = dataclasses.replace(
-            base, type_=self._error_type_string(), message=str(self)
-        )
+        base = dataclasses.replace(base, message=str(self))
         if self.core.rule_id:
             base = dataclasses.replace(base, rule_id=self.core.rule_id)
 
@@ -192,7 +181,7 @@ class SemgrepCoreError(SemgrepError):
         else:
             error_context = f"at line {self.core.location.path.value}:{self.core.location.start.line}"
 
-        return f"{self._error_type_string()} {error_context}:\n {self.core.message}"
+        return f"{error_type_string(self.core.error_type)} {error_context}:\n {self.core.message}"
 
     @property
     def _stack_trace(self) -> str:

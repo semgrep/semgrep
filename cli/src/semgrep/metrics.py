@@ -27,6 +27,7 @@ from typing_extensions import LiteralString
 import semgrep.semgrep_interfaces.semgrep_metrics as met
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
+from semgrep.error import error_type_string
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
 from semgrep.profile_manager import ProfileManager
@@ -270,7 +271,9 @@ class Metrics:
 
     @suppress_errors
     def add_errors(self, errors: List[SemgrepError]) -> None:
-        self.payload.errors.errors = [e.semgrep_error_type() for e in errors]
+        self.payload.errors.errors = [
+            met.Error(error_type_string(e.type_())) for e in errors
+        ]
 
     @suppress_errors
     def add_profiling(self, profiler: ProfileManager) -> None:

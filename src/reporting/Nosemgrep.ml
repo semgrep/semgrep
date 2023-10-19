@@ -148,7 +148,7 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
                 {
                   Out.code = 2;
                   level = `Warning;
-                  type_ = "SemgrepError" (* TODO(dinosaure): correct? *);
+                  type_ = SemgrepError;
                   rule_id = None;
                   message = Some msg;
                   path = None;

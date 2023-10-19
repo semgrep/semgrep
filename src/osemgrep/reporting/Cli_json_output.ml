@@ -114,37 +114,6 @@ let core_location_to_error_span (loc : Out.location) : Out.error_span =
     context_end = None;
   }
 
-(* TODO: just call to_json_string! *)
-let error_type_string (error_type : Out.error_type) : string =
-  match error_type with
-  (* # convert to the same string of core.ParseError for now *)
-  | PartialParsing _ -> "Syntax error"
-  | PatternParseError _ -> "Pattern parse error"
-  (* # All the other cases don't have arguments in Semgrep_output_v1.atd
-   * # and have some <json name="..."> annotations to generate the right string
-   * python: str(type_.to_json())
-   * but safer to just enumerate and write the boilerplate in OCaml
-   *)
-  | LexicalError -> "Lexical error"
-  | ParseError -> "Syntax error"
-  | SpecifiedParseError -> "Other syntax error"
-  | AstBuilderError -> "AST builder error"
-  | RuleParseError -> "Rule parse error"
-  | InvalidYaml -> "Invalid YAML"
-  | MatchingError -> "Internal matching error"
-  | SemgrepMatchFound -> "Semgrep match found"
-  | TooManyMatches -> "Too many matches"
-  | FatalError -> "Fatal error"
-  | Timeout -> "Timeout"
-  | OutOfMemory -> "Out of memory"
-  | TimeoutDuringInterfile -> "Timeout during interfile analysis"
-  | OutOfMemoryDuringInterfile -> "OOM during interfile analysis"
-  | IncompatibleRule _ -> "Incompatible rule"
-  | MissingPlugin -> "Missing plugin"
-  | SemgrepError -> "SemgrepError"
-  | InvalidRuleSchemaError -> "InvalidRuleSchemaError"
-  | UnknownLanguageError -> "UnknownLanguageError"
-
 (* Generate error message exposed to user *)
 let error_message ~rule_id ~(location : Out.location)
     ~(error_type : Out.error_type) ~core_message : string =
@@ -165,7 +134,9 @@ let error_message ~rule_id ~(location : Out.location)
     | Some id, MissingPlugin -> spf "for rule %s" id
     | _ -> spf "at line %s:%d" !!path location.start.line
   in
-  spf "%s %s:\n %s" (error_type_string error_type) error_context core_message
+  spf "%s %s:\n %s"
+    (Error.string_of_error_type error_type)
+    error_context core_message
 
 let error_spans ~(error_type : Out.error_type) ~(location : Out.location) =
   match error_type with
@@ -207,6 +178,7 @@ let exit_code_of_error_type (error_type : Out.error_type) : Exit_code.t =
   | AstBuilderError
   | RuleParseError
   | PatternParseError _
+  | PatternParseError0
   | InvalidYaml
   | MatchingError
   | SemgrepMatchFound
@@ -221,6 +193,7 @@ let exit_code_of_error_type (error_type : Out.error_type) : Exit_code.t =
   | InvalidRuleSchemaError -> Exit_code.invalid_pattern
   | UnknownLanguageError -> Exit_code.invalid_language
   | IncompatibleRule _
+  | IncompatibleRule0
   | MissingPlugin ->
       Exit_code.ok
 
@@ -252,6 +225,7 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
         | AstBuilderError
         | RuleParseError
         | PatternParseError _
+        | PatternParseError0
         | InvalidYaml
         | UnknownLanguageError
         | MatchingError
@@ -263,6 +237,7 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
         | TimeoutDuringInterfile
         | OutOfMemoryDuringInterfile
         | IncompatibleRule _
+        | IncompatibleRule0
         | MissingPlugin ->
             rule_id
       in
@@ -270,7 +245,8 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
         (* # For rule errors path is a temp file so will just be confusing *)
         match error_type with
         | RuleParseError
-        | PatternParseError _ ->
+        | PatternParseError _
+        | PatternParseError0 ->
             None
         | ParseError
         | LexicalError
@@ -290,6 +266,7 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
         | OutOfMemoryDuringInterfile
         | SemgrepError
         | IncompatibleRule _
+        | IncompatibleRule0
         | MissingPlugin ->
             Some location.path
       in
@@ -303,8 +280,7 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
          *)
         code = Exit_code.to_int exit_code;
         level = severity;
-        (* LATER: type_ should be a proper variant instead of a string *)
-        type_ = error_type_string error_type;
+        type_ = error_type;
         rule_id;
         path;
         message;

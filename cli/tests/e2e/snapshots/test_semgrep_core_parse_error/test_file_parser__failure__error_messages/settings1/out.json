@@ -20,7 +20,24 @@
           }
         }
       ],
-      "type": "Syntax error"
+      "type": [
+        "PartialParsing",
+        [
+          {
+            "end": {
+              "col": 49,
+              "line": 2,
+              "offset": 59
+            },
+            "path": "targets/bad/invalid_python.py",
+            "start": {
+              "col": 1,
+              "line": 1,
+              "offset": 0
+            }
+          }
+        ]
+      ]
     }
   ],
   "paths": {

@@ -1,5 +1,5 @@
 open Common
-module Out = Semgrep_output_v1_t
+module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
 (* Prelude *)
@@ -377,12 +377,16 @@ let add_targets_stats (targets : Fpath.t Set_.t)
     Some (targets |> Common.map File.filesize |> Common2.sum_int);
   g.payload.performance.numTargets <- Some (List.length targets)
 
+(* TODO? type_ is enough? or want also to log the path? but too
+ * privacy sensitive maybe?
+ *)
+let string_of_error (err : Out.cli_error) : string =
+  Error.string_of_error_type err.type_
+
 let add_errors errors =
   g.payload.errors.errors <-
     Some
-      (errors
-      |> Common.map (fun (err : Out.cli_error) -> (* TODO? enough? *)
-                                                  err.type_))
+      (errors |> Common.map (fun (err : Out.cli_error) -> string_of_error err))
 
 let add_profiling profiler =
   g.payload.performance.profilingTimes <- Some (Profiler.dump profiler)
