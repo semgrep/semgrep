@@ -1,0 +1,2 @@
+Secrets rules (i.e., with metadata product: secrets) now mask, by replacing
+with *s the ending component of the matched content.
