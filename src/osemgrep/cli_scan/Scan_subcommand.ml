@@ -161,9 +161,14 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
   let map = List.fold_left fold Map_.empty res.core.Out.results in
   Map_.fold
     (fun rule_id n acc ->
-      match Rule_ID.of_string_opt rule_id with
-      | Some rule_id -> (Hashtbl.find res.hrules rule_id, n) :: acc
-      | None -> acc)
+      let res =
+        try Hashtbl.find res.hrules rule_id with
+        | Not_found ->
+            failwith
+              (spf "could not find rule_id %s in hash"
+                 (Rule_ID.to_string rule_id))
+      in
+      (res, n) :: acc)
     map []
 
 (* Select and execute the scan func based on the configured engine settings.

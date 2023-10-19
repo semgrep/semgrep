@@ -45,7 +45,8 @@ let code_action_of_match (m : Out.cli_match) =
   let action =
     CodeAction.create
       ~title:
-        (Printf.sprintf "Apply fix suggested by Semgrep rule %s" m.check_id)
+        (Printf.sprintf "Apply fix suggested by Semgrep rule %s"
+           (Rule_ID.to_string m.check_id))
       ~kind:CodeActionKind.QuickFix ~edit ()
   in
   `CodeAction action

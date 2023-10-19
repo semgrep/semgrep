@@ -422,7 +422,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
                       Semgrep_output_v1_t.path = Fpath.v file;
                       reason = Too_many_matches;
                       details;
-                      rule_id = Some (Rule_ID.to_string rule_id);
+                      rule_id = Some rule_id;
                     })
            in
            (error, skipped))

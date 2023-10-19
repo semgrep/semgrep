@@ -70,7 +70,7 @@ let skipped_target_of_rule (file_and_more : Xtarget.t) (rule : R.rule) :
     path = file_and_more.file;
     reason = Irrelevant_rule;
     details;
-    rule_id = Some (Rule_ID.to_string rule_id);
+    rule_id = Some rule_id;
   }
 
 let is_relevant_rule_for_xtarget r xconf xtarget =

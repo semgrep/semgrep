@@ -208,6 +208,6 @@ let compare_cli_matches (a : cli_match) (b : cli_match) =
         if c <> 0 then c
         else
           let c = Int.compare a_end.col b_end.col in
-          if c <> 0 then c else String.compare a.check_id b.check_id
+          if c <> 0 then c else Rule_ID.compare a.check_id b.check_id
 
 let sort_cli_matches xs = List.sort compare_cli_matches xs

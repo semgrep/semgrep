@@ -36,3 +36,10 @@ module Sha1 = struct
   let unwrap = Digestif.SHA1.to_hex
   let wrap = Digestif.SHA1.of_hex
 end
+
+module Ruleid = struct
+  type t = Rule_ID.t [@@deriving show]
+
+  let unwrap = Rule_ID.to_string
+  let wrap = Rule_ID.of_string
+end
