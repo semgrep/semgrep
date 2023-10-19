@@ -20,6 +20,7 @@ from rich.table import Table
 import semgrep.run_scan
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.app import auth
+from semgrep.app.project_config import ProjectConfig
 from semgrep.app.scans import ScanCompleteResult
 from semgrep.app.scans import ScanHandler
 from semgrep.commands.install import run_install_semgrep_pro
@@ -33,6 +34,7 @@ from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
+from semgrep.git import git_check_output
 from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.meta import generate_meta_from_environment
 from semgrep.meta import GithubMeta
@@ -40,12 +42,10 @@ from semgrep.meta import GitMeta
 from semgrep.metrics import MetricsState
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
-from semgrep.project import ProjectConfig
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
-from semgrep.util import git_check_output
 from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 

@@ -9,8 +9,8 @@ from semgrep.commands.login import logout
 from semgrep.commands.publish import publish
 from semgrep.commands.scan import scan
 from semgrep.default_group import DefaultGroup
+from semgrep.git import git_check_output
 from semgrep.state import get_state
-from semgrep.util import git_check_output
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)

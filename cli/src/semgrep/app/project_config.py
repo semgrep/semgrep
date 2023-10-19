@@ -1,5 +1,5 @@
 """
-Utility for identifying the URL of the current git project
+Loading and saving of the .semgrepconfig.yml file.
 """
 import re
 from pathlib import Path
@@ -13,30 +13,13 @@ from attr import asdict
 from attr import define
 from attr import field
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.git import get_git_root_path
-from semgrep.util import git_check_output
-from semgrep.util import manually_search_file
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
 CONFIG_FILE_PATTERN = re.compile(r"^\.semgrepconfig(\.yml|\.yaml)?$")
-
-
-def get_project_url() -> Optional[str]:
-    """
-    Returns the current git project's default remote URL, or None if not a git project / no remote
-    """
-    try:
-        return git_check_output(["git", "ls-remote", "--get-url"])
-    except Exception as e:
-        logger.debug(f"Failed to get project url from 'git ls-remote': {e}")
-        try:
-            # add \n to match urls from git ls-remote (backwards compatability)
-            return manually_search_file(".git/config", ".com", "\n")
-        except Exception as e:
-            logger.debug(f"Failed to get project url from .git/config: {e}")
-            return None
 
 
 @define
@@ -119,11 +102,9 @@ class ProjectConfig:
             all_metadata = {**all_metadata, **project_conf_data}
         return cls(**all_metadata)
 
-    def to_dict(self) -> Dict[str, Any]:
-        data = asdict(self)
-        # Strip out version
-        data.pop("version", None)
-        # Strip out tags if None
-        if data.get("tags") is None:
-            data.pop("tags", None)
-        return data
+    def to_CiConfigFromRepo(self) -> out.CiConfigFromRepo:
+        if self.tags is not None:
+            tags = [out.Tag(x) for x in self.tags]
+        else:
+            tags = None
+        return out.CiConfigFromRepo(version=out.Version(self.version), tags=tags)

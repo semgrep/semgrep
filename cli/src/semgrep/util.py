@@ -6,7 +6,6 @@ import subprocess
 import sys
 from io import TextIOWrapper
 from pathlib import Path
-from textwrap import dedent
 from typing import Any
 from typing import Callable
 from typing import FrozenSet
@@ -186,49 +185,6 @@ def unit_str(count: int, unit: str, pad: bool = False) -> str:
         unit += " "
 
     return f"{count} {unit}"
-
-
-def git_check_output(command: Sequence[str], cwd: Optional[str] = None) -> str:
-    """
-    Helper function to run a GIT command that prints out helpful debugging information
-    """
-    # Avoiding circular imports
-    from semgrep.error import SemgrepError
-    from semgrep.state import get_state
-
-    env = get_state().env
-
-    cwd = cwd if cwd is not None else os.getcwd()
-    try:
-        # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
-        return subprocess.check_output(
-            command,
-            stderr=subprocess.PIPE,
-            encoding="utf-8",
-            timeout=env.git_command_timeout,
-            cwd=cwd,
-        ).strip()
-    except subprocess.CalledProcessError as e:
-        command_str = " ".join(command)
-        raise SemgrepError(
-            dedent(
-                f"""
-                Command failed with exit code: {e.returncode}
-                -----
-                Command failed with output:
-                {e.stderr}
-
-                Failed to run '{command_str}'. Possible reasons:
-
-                - the git binary is not available
-                - the current working directory is not a git repository
-                - the current working directory is not marked as safe
-                    (fix with `git config --global --add safe.directory $(pwd)`)
-
-                Try running the command yourself to debug the issue.
-                """
-            ).strip()
-        )
 
 
 def read_range(fd: TextIOWrapper, start_offset: int, end_offset: int) -> str:
