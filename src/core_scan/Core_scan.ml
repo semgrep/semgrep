@@ -859,8 +859,8 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
   let all_targets = targets @ new_extracted_targets in
   let filter_irrelevant_rules =
     if config.filter_irrelevant_rules then
-      Match_env.Filter (Hashtbl.create (List.length valid_rules))
-    else DoNotFilter
+      Match_env.PrefilterWithCache (Hashtbl.create (List.length valid_rules))
+    else NoPrefiltering
   in
 
   (* Let's go! *)

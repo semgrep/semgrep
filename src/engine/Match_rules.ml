@@ -78,8 +78,8 @@ let is_relevant_rule_for_xtarget r xconf xtarget =
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf r.R.options in
   let is_relevant =
     match xconf.filter_irrelevant_rules with
-    | DoNotFilter -> true
-    | Filter cache -> (
+    | NoPrefiltering -> true
+    | PrefilterWithCache cache -> (
         match Analyze_rule.regexp_prefilter_of_rule ~cache:(Some cache) r with
         | None -> true
         | Some (prefilter_formula, func) ->

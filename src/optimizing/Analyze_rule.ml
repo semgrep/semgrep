@@ -515,14 +515,7 @@ let eval_and p (And xs) =
   |> List.for_all (function Or xs ->
          if null xs then raise EmptyOr;
          xs |> List.exists (fun x -> p x) |> fun v ->
-         (* Dumper.dump fails in js_of_ocaml. It's a printout so let's just
-            ignore it *)
-         (try
-            if not v then
-              logger#trace "this Or failed: %s" (Dumper.dump (Or xs))
-          with
-         | e ->
-             logger#trace "exception while dumping: %s" (Printexc.to_string e));
+         if not v then logger#trace "this Or failed: %s" (Dumper.dump (Or xs));
          v)
 
 let run_cnf_step2 cnf big_str =
@@ -649,10 +642,12 @@ let regexp_prefilter_of_rule ~cache (r : R.rule) =
     (* TODO: see tests/rules/tainted-filename.yaml,
                  tests/rules/kotlin_slow_import.yaml *)
     | CNF_exploded ->
+        pr2 (Rule_ID.to_string rule_id ^ " CNF_exploded");
         logger#error "CNF size exploded on rule id %s"
           (Rule_ID.to_string rule_id);
         None
     | Stack_overflow ->
+        pr2 (Rule_ID.to_string rule_id ^ " Stack_overflow");
         logger#error "Stack overflow on rule id %s" (Rule_ID.to_string rule_id);
         None
   in

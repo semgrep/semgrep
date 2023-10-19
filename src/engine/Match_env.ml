@@ -34,9 +34,9 @@ type pattern_id = Xpattern.pattern_id
 (* !This hash table uses the Hashtbl.find_all property! *)
 type id_to_match_results = (pattern_id, Pattern_match.t) Hashtbl.t
 
-type filter_rules_config =
-  | Filter of Analyze_rule.prefilter_cache
-  | DoNotFilter
+type prefilter_config =
+  | PrefilterWithCache of Analyze_rule.prefilter_cache
+  | NoPrefiltering
 
 (* eXtended config.
  * less: we might want to get rid of equivalences at some point as
@@ -53,7 +53,7 @@ type xconfig = {
    * (there's lots of fields in Runner_config.t).
    *)
   matching_explanations : bool;
-  filter_irrelevant_rules : filter_rules_config;
+  filter_irrelevant_rules : prefilter_config;
 }
 
 type env = {
@@ -108,5 +108,5 @@ let default_xconfig =
      * Anyway it's set to true in Runner_config.default so it will default to
      * true when running as part of the regular code path (not testing code)
      *)
-    filter_irrelevant_rules = DoNotFilter;
+    filter_irrelevant_rules = NoPrefiltering;
   }
