@@ -100,6 +100,7 @@ def parse_pnpm(
                     )
                 )
             else:
+                line: int = key.span.start.line
                 data = parse_package_key(key.value)
                 if data:
                     # re does not have a way for us to refine the type of the match to what we know it is
@@ -107,9 +108,10 @@ def parse_pnpm(
                 else:
                     errors.append(
                         DependencyParserError(
-                            str(lockfile_path),
-                            key.span.start.line,
-                            f"Could not parse package key {key.value}",
+                            path=str(lockfile_path),
+                            parser=ScaParserName(PnpmLock()),
+                            reason=f"Could not parse package key {key.value}",
+                            line=line,
                         )
                     )
 
