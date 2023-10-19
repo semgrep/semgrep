@@ -1,1 +1,1 @@
-Fixed type error in creation of DependencyParserError object in the pnpm.lock parser
+Fixed type error in creation of DependencyParserError object in the pnpm-lock.yaml parser
