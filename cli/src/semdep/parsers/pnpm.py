@@ -92,19 +92,19 @@ def parse_pnpm(
             return [], errors
         all_deps: List[Tuple[int, Tuple[str, str]]] = []
         for key, map in package_map.items():
+            line: int = key.span.start.line
             if map.value and "name" in map.value and "version" in map.value:
                 all_deps.append(
                     (
-                        key.span.start.line,
+                        line,
                         (map.value["name"].value, map.value["version"].value),
                     )
                 )
             else:
-                line: int = key.span.start.line
                 data = parse_package_key(key.value)
                 if data:
                     # re does not have a way for us to refine the type of the match to what we know it is
-                    all_deps.append((key.span.start.line, data))
+                    all_deps.append((line, data))
                 else:
                     errors.append(
                         DependencyParserError(
