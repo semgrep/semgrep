@@ -857,8 +857,11 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
   in
 
   let all_targets = targets @ new_extracted_targets in
-
-  let rule_filter_cache = Hashtbl.create (List.length valid_rules) in
+  let filter_irrelevant_rules =
+    if config.filter_irrelevant_rules then
+      Match_env.PrefilterWithCache (Hashtbl.create (List.length valid_rules))
+    else NoPrefiltering
+  in
 
   (* Let's go! *)
   logger#info "processing %d files, skipping %d files" (List.length all_targets)
@@ -895,8 +898,7 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
                equivs = parse_equivalences config.equivalences_file;
                nested_formula = false;
                matching_explanations = config.matching_explanations;
-               filter_irrelevant_rules = config.filter_irrelevant_rules;
-               rule_filter_cache;
+               filter_irrelevant_rules;
              }
            in
            let matches =

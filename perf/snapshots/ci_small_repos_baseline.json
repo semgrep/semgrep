@@ -578,25 +578,27 @@
         {
           "code": 3,
           "level": "warn",
-          "message": "Syntax error at line /Users/andre/semgrep/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js:1:\n `{% load l10n %}\nOpenLayers.Projection.addTransform(\"EPSG:4326\", \"EPSG:3857\", OpenLayers.Layer.SphericalMercator.projectForward);\n{% block vars %}var {{ module }} = {};\n{{ module }}.map = null; {{ module }}.controls = null; {{ module }}.panel = null; {{ module }}.re = new RegExp(\"^SRID=\\\\d+;(.+)\", \"i\"); {{ module }}.layers = {};\n{{ module }}.modifiable = {{ modifiable|yesno:\"true,false\" }};\n{{ module }}.wkt_f = new OpenLayers.Format.WKT();\n{{ module }}.is_collection = {{ is_collection|yesno:\"true,false\" }};\n{{ module }}.collection_type = '{{ collection_type }}';\n{{ module }}.is_generic = {{ is_generic|yesno:\"true,false\" }};\n{{ module }}.is_linestring = {{ is_linestring|yesno:\"true,false\" }};\n{{ module }}.is_polygon = {{ is_polygon|yesno:\"true,false\" }};\n{{ module }}.is_point = {{ is_point|yesno:\"true,false\" }};\n{% endblock %}\n{{ module }}.get_ewkt = function(feat){\n    return 'SRID={{ srid|unlocalize }};' + {{ module }}.wkt_f.write(feat);\n};\n{{ module }}.read_wkt = function(wkt){\n    // OpenLayers cannot handle EWKT -- we make sure to strip it out.\n    // EWKT is only exposed to OL if there's a validation error in the admin.\n    var match = {{ module }}.re.exec(wkt);\n    if (match){wkt = match[1];}\n    return {{ module }}.wkt_f.read(wkt);\n};\n{{ module }}.write_wkt = function(feat){\n    if ({{ module }}.is_collection){ {{ module }}.num_geom = feat.geometry.components.length;}\n    else { {{ module }}.num_geom = 1;}\n    document.getElementById('{{ id }}').value = {{ module }}.get_ewkt(feat);\n};\n{{ module }}.add_wkt = function(event){\n    // This function will sync the contents of the `vector` layer with the\n    // WKT in the text field.\n    if ({{ module }}.is_collection){\n        var feat = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.{{ geom_type }}());\n        for (var i = 0; i < {{ module }}.layers.vector.features.length; i++){\n            feat.geometry.addComponents([{{ module }}.layers.vector.features[i].geometry]);\n        }\n        {{ module }}.write_wkt(feat);\n    } else {\n        // Make sure to remove any previously added features.\n        if ({{ module }}.layers.vector.features.length > 1){\n            old_feats = [{{ module }}.layers.vector.features[0]];\n            {{ module }}.layers.vector.removeFeatures(old_feats);\n            {{ module }}.layers.vector.destroyFeatures(old_feats);\n        }\n        {{ module }}.write_wkt(event.feature);\n    }\n};\n{{ module }}.modify_wkt = function(event){\n    if ({{ module }}.is_collection){\n        if ({{ module }}.is_point){\n            {{ module }}.add_wkt(event);\n            return;\n        } else {\n            // When modifying the selected components are added to the\n            // vector layer so we only increment to the `num_geom` value.\n            var feat = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.{{ geom_type }}());\n            for (var i = 0; i < {{ module }}.num_geom; i++){\n                feat.geometry.addComponents([{{ module }}.layers.vector.features[i].geometry]);\n            }\n            {{ module }}.write_wkt(feat);\n        }\n    } else {\n        {{ module }}.write_wkt(event.feature);\n    }\n};\n// Function to clear vector features and purge wkt from div\n{{ module }}.deleteFeatures = function(){\n    {{ module }}.layers.vector.removeFeatures({{ module }}.layers.vector.features);\n    {{ module }}.layers.vector.destroyFeatures();\n};\n{{ module }}.clearFeatures = function (){\n    {{ module }}.deleteFeatures();\n    document.getElementById('{{ id }}').value = '';\n    {% localize off %}\n    {{ module }}.map.setCenter(new OpenLayers.LonLat({{ default_lon }}, {{ default_lat }}), {{ default_zoom }});\n    {% endlocalize %}\n};\n// Add Select control\n{{ module }}.addSelectControl = function(){\n    var select = new OpenLayers.Control.SelectFeature({{ module }}.layers.vector, {'toggle' : true, 'clickout' : true});\n    {{ module }}.map.addControl(select);\n    select.activate();\n};\n{{ module }}.enableDrawing = function(){\n    {{ module }}.map.getControlsByClass('OpenLayers.Control.DrawFeature')[0].activate();\n};\n{{ module }}.enableEditing = function(){\n    {{ module }}.map.getControlsByClass('OpenLayers.Control.ModifyFeature')[0].activate();\n};\n// Create an array of controls based on geometry type\n{{ module }}.getControls = function(lyr){\n    {{ module }}.panel = new OpenLayers.Control.Panel({'displayClass': 'olControlEditingToolbar'});\n    {{ module }}.controls = [new OpenLayers.Control.Navigation()];\n    if (!{{ module }}.modifiable && lyr.features.length) return;\n    if ({{ module }}.is_linestring || {{ module }}.is_generic){\n        {{ module }}.controls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Path, {'displayClass': 'olControlDrawFeaturePath'}));\n    }\n    if ({{ module }}.is_polygon || {{ module }}.is_generic){\n        {{ module }}.controls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Polygon, {'displayClass': 'olControlDrawFeaturePolygon'}));\n    }\n    if ({{ module }}.is_point || {{ module }}.is_generic){\n        {{ module }}.controls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Point, {'displayClass': 'olControlDrawFeaturePoint'}));\n    }\n    if ({{ module }}.modifiable){\n        {{ module }}.controls.push(new OpenLayers.Control.ModifyFeature(lyr, {'displayClass': 'olControlModifyFeature'}));\n    }\n};\n{{ module }}.init = function(){\n    {% block map_options %}// The options hash, w/ zoom, resolution, and projection settings.\n    var options = {\n{% autoescape off %}{% for item in map_options.items %}      '{{ item.0 }}' : {{ item.1 }}{% if not forloop.last %},{% endif %}\n{% endfor %}{% endautoescape %}    };{% endblock %}\n    // The admin map for this geometry field.\n    {% block map_creation %}\n    {{ module }}.map = new OpenLayers.Map('{{ id }}_map', options);\n    // Base Layer\n    {{ module }}.layers.base = {% block base_layer %}new OpenLayers.Layer.WMS(\"{{ wms_name }}\", \"{{ wms_url }}\", {layers: '{{ wms_layer }}'{{ wms_options|safe }}});{% endblock %}\n    {{ module }}.map.addLayer({{ module }}.layers.base);\n    {% endblock %}\n    {% block extra_layers %}{% endblock %}\n    {% if is_linestring %}OpenLayers.Feature.Vector.style[\"default\"][\"strokeWidth\"] = 3; // Default too thin for linestrings. {% endif %}\n    {{ module }}.layers.vector = new OpenLayers.Layer.Vector(\" {{ field_name }}\");\n    {{ module }}.map.addLayer({{ module }}.layers.vector);\n    // Read WKT from the text field.\n    var wkt = document.getElementById('{{ id }}').value;\n    if (wkt){\n        // After reading into geometry, immediately write back to\n        // WKT <textarea> as EWKT (so that SRID is included).\n        var admin_geom = {{ module }}.read_wkt(wkt);\n        {{ module }}.write_wkt(admin_geom);\n        if ({{ module }}.is_collection){\n            // If geometry collection, add each component individually so they may be\n            // edited individually.\n            for (var i = 0; i < {{ module }}.num_geom; i++){\n                {{ module }}.layers.vector.addFeatures([new OpenLayers.Feature.Vector(admin_geom.geometry.components[i].clone())]);\n            }\n        } else {\n            {{ module }}.layers.vector.addFeatures([admin_geom]);\n        }\n        // Zooming to the bounds.\n        {{ module }}.map.zoomToExtent(admin_geom.geometry.getBounds());\n        if ({{ module }}.is_point){\n            {{ module }}.map.zoomTo({{ point_zoom }});\n        }\n    } else {\n        {% localize off %}\n        {{ module }}.map.setCenter(new OpenLayers.LonLat({{ default_lon }}, {{ default_lat }}), {{ default_zoom }});\n        {% endlocalize %}\n    }\n    // This allows editing of the geographic fields -- the modified WKT is\n    // written back to the content field (as EWKT, so that the ORM will know\n    // to transform back to original SRID).\n    {{ module }}.layers.vector.events.on({\"featuremodified\" : {{ module }}.modify_wkt});\n    {{ module }}.layers.vector.events.on({\"featureadded\" : {{ module }}.add_wkt});\n    {% block controls %}\n    // Map controls:\n    // Add geometry specific panel of toolbar controls\n    {{ module }}.getControls({{ module }}.layers.vector);\n    {{ module }}.panel.addControls({{ module }}.controls);\n    {{ module }}.map.addControl({{ module }}.panel);\n    {{ module }}.addSelectControl();\n    // Then add optional visual controls\n    {% if mouse_position %}{{ module }}.map.addControl(new OpenLayers.Control.MousePosition());{% endif %}\n    {% if scale_text %}{{ module }}.map.addControl(new OpenLayers.Control.Scale());{% endif %}\n    {% if layerswitcher %}{{ module }}.map.addControl(new OpenLayers.Control.LayerSwitcher());{% endif %}\n    // Then add optional behavior controls\n    {% if not scrollable %}{{ module }}.map.getControlsByClass('OpenLayers.Control.Navigation')[0].disableZoomWheel();{% endif %}\n    {% endblock %}\n    if (wkt){\n        if ({{ module }}.modifiable){\n            {{ module }}.enableEditing();\n        }\n    } else {\n        {{ module }}.enableDrawing();\n    }\n};\n` was unexpected",
-          "path": "/Users/andre/semgrep/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js:1:\n `{% load l10n %}\nOpenLayers.Projection.addTransform(\"EPSG:4326\", \"EPSG:3857\", OpenLayers.Layer.SphericalMercator.projectForward);\n{% block vars %}var {{ module }} = {};\n{{ module }}.map = null; {{ module }}.controls = null; {{ module }}.panel = null; {{ module }}.re = new RegExp(\"^SRID=\\\\d+;(.+)\", \"i\"); {{ module }}.layers = {};\n{{ module }}.modifiable = {{ modifiable|yesno:\"true,false\" }};\n{{ module }}.wkt_f = new OpenLayers.Format.WKT();\n{{ module }}.is_collection = {{ is_collection|yesno:\"true,false\" }};\n{{ module }}.collection_type = '{{ collection_type }}';\n{{ module }}.is_generic = {{ is_generic|yesno:\"true,false\" }};\n{{ module }}.is_linestring = {{ is_linestring|yesno:\"true,false\" }};\n{{ module }}.is_polygon = {{ is_polygon|yesno:\"true,false\" }};\n{{ module }}.is_point = {{ is_point|yesno:\"true,false\" }};\n{% endblock %}\n{{ module }}.get_ewkt = function(feat){\n    return 'SRID={{ srid|unlocalize }};' + {{ module }}.wkt_f.write(feat);\n};\n{{ module }}.read_wkt = function(wkt){\n    // OpenLayers cannot handle EWKT -- we make sure to strip it out.\n    // EWKT is only exposed to OL if there's a validation error in the admin.\n    var match = {{ module }}.re.exec(wkt);\n    if (match){wkt = match[1];}\n    return {{ module }}.wkt_f.read(wkt);\n};\n{{ module }}.write_wkt = function(feat){\n    if ({{ module }}.is_collection){ {{ module }}.num_geom = feat.geometry.components.length;}\n    else { {{ module }}.num_geom = 1;}\n    document.getElementById('{{ id }}').value = {{ module }}.get_ewkt(feat);\n};\n{{ module }}.add_wkt = function(event){\n    // This function will sync the contents of the `vector` layer with the\n    // WKT in the text field.\n    if ({{ module }}.is_collection){\n        var feat = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.{{ geom_type }}());\n        for (var i = 0; i < {{ module }}.layers.vector.features.length; i++){\n            feat.geometry.addComponents([{{ module }}.layers.vector.features[i].geometry]);\n        }\n        {{ module }}.write_wkt(feat);\n    } else {\n        // Make sure to remove any previously added features.\n        if ({{ module }}.layers.vector.features.length > 1){\n            old_feats = [{{ module }}.layers.vector.features[0]];\n            {{ module }}.layers.vector.removeFeatures(old_feats);\n            {{ module }}.layers.vector.destroyFeatures(old_feats);\n        }\n        {{ module }}.write_wkt(event.feature);\n    }\n};\n{{ module }}.modify_wkt = function(event){\n    if ({{ module }}.is_collection){\n        if ({{ module }}.is_point){\n            {{ module }}.add_wkt(event);\n            return;\n        } else {\n            // When modifying the selected components are added to the\n            // vector layer so we only increment to the `num_geom` value.\n            var feat = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.{{ geom_type }}());\n            for (var i = 0; i < {{ module }}.num_geom; i++){\n                feat.geometry.addComponents([{{ module }}.layers.vector.features[i].geometry]);\n            }\n            {{ module }}.write_wkt(feat);\n        }\n    } else {\n        {{ module }}.write_wkt(event.feature);\n    }\n};\n// Function to clear vector features and purge wkt from div\n{{ module }}.deleteFeatures = function(){\n    {{ module }}.layers.vector.removeFeatures({{ module }}.layers.vector.features);\n    {{ module }}.layers.vector.destroyFeatures();\n};\n{{ module }}.clearFeatures = function (){\n    {{ module }}.deleteFeatures();\n    document.getElementById('{{ id }}').value = '';\n    {% localize off %}\n    {{ module }}.map.setCenter(new OpenLayers.LonLat({{ default_lon }}, {{ default_lat }}), {{ default_zoom }});\n    {% endlocalize %}\n};\n// Add Select control\n{{ module }}.addSelectControl = function(){\n    var select = new OpenLayers.Control.SelectFeature({{ module }}.layers.vector, {'toggle' : true, 'clickout' : true});\n    {{ module }}.map.addControl(select);\n    select.activate();\n};\n{{ module }}.enableDrawing = function(){\n    {{ module }}.map.getControlsByClass('OpenLayers.Control.DrawFeature')[0].activate();\n};\n{{ module }}.enableEditing = function(){\n    {{ module }}.map.getControlsByClass('OpenLayers.Control.ModifyFeature')[0].activate();\n};\n// Create an array of controls based on geometry type\n{{ module }}.getControls = function(lyr){\n    {{ module }}.panel = new OpenLayers.Control.Panel({'displayClass': 'olControlEditingToolbar'});\n    {{ module }}.controls = [new OpenLayers.Control.Navigation()];\n    if (!{{ module }}.modifiable && lyr.features.length) return;\n    if ({{ module }}.is_linestring || {{ module }}.is_generic){\n        {{ module }}.controls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Path, {'displayClass': 'olControlDrawFeaturePath'}));\n    }\n    if ({{ module }}.is_polygon || {{ module }}.is_generic){\n        {{ module }}.controls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Polygon, {'displayClass': 'olControlDrawFeaturePolygon'}));\n    }\n    if ({{ module }}.is_point || {{ module }}.is_generic){\n        {{ module }}.controls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Point, {'displayClass': 'olControlDrawFeaturePoint'}));\n    }\n    if ({{ module }}.modifiable){\n        {{ module }}.controls.push(new OpenLayers.Control.ModifyFeature(lyr, {'displayClass': 'olControlModifyFeature'}));\n    }\n};\n{{ module }}.init = function(){\n    {% block map_options %}// The options hash, w/ zoom, resolution, and projection settings.\n    var options = {\n{% autoescape off %}{% for item in map_options.items %}      '{{ item.0 }}' : {{ item.1 }}{% if not forloop.last %},{% endif %}\n{% endfor %}{% endautoescape %}    };{% endblock %}\n    // The admin map for this geometry field.\n    {% block map_creation %}\n    {{ module }}.map = new OpenLayers.Map('{{ id }}_map', options);\n    // Base Layer\n    {{ module }}.layers.base = {% block base_layer %}new OpenLayers.Layer.WMS(\"{{ wms_name }}\", \"{{ wms_url }}\", {layers: '{{ wms_layer }}'{{ wms_options|safe }}});{% endblock %}\n    {{ module }}.map.addLayer({{ module }}.layers.base);\n    {% endblock %}\n    {% block extra_layers %}{% endblock %}\n    {% if is_linestring %}OpenLayers.Feature.Vector.style[\"default\"][\"strokeWidth\"] = 3; // Default too thin for linestrings. {% endif %}\n    {{ module }}.layers.vector = new OpenLayers.Layer.Vector(\" {{ field_name }}\");\n    {{ module }}.map.addLayer({{ module }}.layers.vector);\n    // Read WKT from the text field.\n    var wkt = document.getElementById('{{ id }}').value;\n    if (wkt){\n        // After reading into geometry, immediately write back to\n        // WKT <textarea> as EWKT (so that SRID is included).\n        var admin_geom = {{ module }}.read_wkt(wkt);\n        {{ module }}.write_wkt(admin_geom);\n        if ({{ module }}.is_collection){\n            // If geometry collection, add each component individually so they may be\n            // edited individually.\n            for (var i = 0; i < {{ module }}.num_geom; i++){\n                {{ module }}.layers.vector.addFeatures([new OpenLayers.Feature.Vector(admin_geom.geometry.components[i].clone())]);\n            }\n        } else {\n            {{ module }}.layers.vector.addFeatures([admin_geom]);\n        }\n        // Zooming to the bounds.\n        {{ module }}.map.zoomToExtent(admin_geom.geometry.getBounds());\n        if ({{ module }}.is_point){\n            {{ module }}.map.zoomTo({{ point_zoom }});\n        }\n    } else {\n        {% localize off %}\n        {{ module }}.map.setCenter(new OpenLayers.LonLat({{ default_lon }}, {{ default_lat }}), {{ default_zoom }});\n        {% endlocalize %}\n    }\n    // This allows editing of the geographic fields -- the modified WKT is\n    // written back to the content field (as EWKT, so that the ORM will know\n    // to transform back to original SRID).\n    {{ module }}.layers.vector.events.on({\"featuremodified\" : {{ module }}.modify_wkt});\n    {{ module }}.layers.vector.events.on({\"featureadded\" : {{ module }}.add_wkt});\n    {% block controls %}\n    // Map controls:\n    // Add geometry specific panel of toolbar controls\n    {{ module }}.getControls({{ module }}.layers.vector);\n    {{ module }}.panel.addControls({{ module }}.controls);\n    {{ module }}.map.addControl({{ module }}.panel);\n    {{ module }}.addSelectControl();\n    // Then add optional visual controls\n    {% if mouse_position %}{{ module }}.map.addControl(new OpenLayers.Control.MousePosition());{% endif %}\n    {% if scale_text %}{{ module }}.map.addControl(new OpenLayers.Control.Scale());{% endif %}\n    {% if layerswitcher %}{{ module }}.map.addControl(new OpenLayers.Control.LayerSwitcher());{% endif %}\n    // Then add optional behavior controls\n    {% if not scrollable %}{{ module }}.map.getControlsByClass('OpenLayers.Control.Navigation')[0].disableZoomWheel();{% endif %}\n    {% endblock %}\n    if (wkt){\n        if ({{ module }}.modifiable){\n            {{ module }}.enableEditing();\n        }\n    } else {\n        {{ module }}.enableDrawing();\n    }\n};\n` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js",
           "type": "Syntax error"
         },
         {
           "code": 3,
           "level": "warn",
-          "message": "Syntax error at line /Users/andre/semgrep/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js:1:\n `{% extends \"gis/admin/openlayers.js\" %}\n{% block base_layer %}new OpenLayers.Layer.OSM(\"OpenStreetMap (Mapnik)\");{% endblock %}` was unexpected",
-          "path": "/Users/andre/semgrep/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js:1:\n `{% extends \"gis/admin/openlayers.js\" %}\n{% block base_layer %}new OpenLayers.Layer.OSM(\"OpenStreetMap (Mapnik)\");{% endblock %}` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js",
           "spans": [
             {
               "end": {
                 "col": 88,
-                "line": 2
+                "line": 2,
+                "offset": 127
               },
-              "file": "/Users/andre/semgrep/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js",
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js",
               "start": {
                 "col": 1,
-                "line": 1
+                "line": 1,
+                "offset": 0
               }
             }
           ],
@@ -900,18 +902,20 @@
         {
           "code": 3,
           "level": "warn",
-          "message": "Syntax error at line /Users/andre/semgrep/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts:14:\n `new?:` was unexpected",
-          "path": "/Users/andre/semgrep/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts:14:\n `new?:` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts",
           "spans": [
             {
               "end": {
                 "col": 8,
-                "line": 14
+                "line": 14,
+                "offset": 5
               },
-              "file": "/Users/andre/semgrep/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts",
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts",
               "start": {
                 "col": 3,
-                "line": 14
+                "line": 14,
+                "offset": 0
               }
             }
           ],
@@ -1237,62 +1241,72 @@
         {
           "code": 3,
           "level": "warn",
-          "message": "Syntax error at line /Users/andre/semgrep/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c:49:\n `__MALLOC_HOOK_VOLATILE` was unexpected",
-          "path": "/Users/andre/semgrep/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c:49:\n `__MALLOC_HOOK_VOLATILE` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
           "spans": [
             {
               "end": {
                 "col": 30,
-                "line": 49
+                "line": 49,
+                "offset": 22
               },
-              "file": "/Users/andre/semgrep/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
               "start": {
                 "col": 8,
-                "line": 49
+                "line": 49,
+                "offset": 0
               }
             },
             {
               "end": {
-                "col": 63,
-                "line": 102
-              },
-              "file": "/Users/andre/semgrep/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
-              "start": {
                 "col": 51,
-                "line": 102
+                "line": 102,
+                "offset": 5
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+              "start": {
+                "col": 46,
+                "line": 102,
+                "offset": 0
               }
             },
             {
               "end": {
-                "col": 56,
-                "line": 108
-              },
-              "file": "/Users/andre/semgrep/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
-              "start": {
                 "col": 44,
-                "line": 108
+                "line": 108,
+                "offset": 5
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+              "start": {
+                "col": 39,
+                "line": 108,
+                "offset": 0
               }
             },
             {
               "end": {
-                "col": 43,
-                "line": 219
+                "col": 30,
+                "line": 219,
+                "offset": 10
               },
-              "file": "/Users/andre/semgrep/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
               "start": {
+                "col": 20,
+                "line": 219,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
                 "col": 31,
-                "line": 219
-              }
-            },
-            {
-              "end": {
-                "col": 44,
-                "line": 238
+                "line": 238,
+                "offset": 11
               },
-              "file": "/Users/andre/semgrep/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
               "start": {
-                "col": 32,
-                "line": 238
+                "col": 20,
+                "line": 238,
+                "offset": 0
               }
             }
           ],
@@ -1301,29 +1315,33 @@
         {
           "code": 3,
           "level": "warn",
-          "message": "Syntax error at line /Users/andre/semgrep/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c:62:\n `#ifndef __WINDOWS__` was unexpected",
-          "path": "/Users/andre/semgrep/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c:62:\n `#ifndef __WINDOWS__` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
           "spans": [
             {
               "end": {
                 "col": 20,
-                "line": 62
+                "line": 62,
+                "offset": 19
               },
-              "file": "/Users/andre/semgrep/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
               "start": {
                 "col": 1,
-                "line": 62
+                "line": 62,
+                "offset": 0
               }
             },
             {
               "end": {
                 "col": 7,
-                "line": 64
+                "line": 64,
+                "offset": 6
               },
-              "file": "/Users/andre/semgrep/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
               "start": {
                 "col": 1,
-                "line": 64
+                "line": 64,
+                "offset": 0
               }
             }
           ],
@@ -4760,6 +4778,1280 @@
           }
         }
       ]
+    }
+  },
+  {
+    "name": "semgrep.bench.kotlinPrefilterTest",
+    "findings": {
+      "errors": [
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-hprof/src/main/java/shark/RandomAccessSourceProvider.kt:6:\n `fun interface RandomAccessSourceProvider` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-hprof/src/main/java/shark/RandomAccessSourceProvider.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 41,
+                "line": 6,
+                "offset": 40
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-hprof/src/main/java/shark/RandomAccessSourceProvider.kt",
+              "start": {
+                "col": 1,
+                "line": 6,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/object-watcher/object-watcher/src/main/java/leakcanary/Clock.kt:6:\n `fun interface Clock` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/object-watcher/object-watcher/src/main/java/leakcanary/Clock.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 20,
+                "line": 6,
+                "offset": 19
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/object-watcher/object-watcher/src/main/java/leakcanary/Clock.kt",
+              "start": {
+                "col": 1,
+                "line": 6,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/LeakTracer.kt:3:\n `fun interface LeakTracer` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/LeakTracer.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 25,
+                "line": 3,
+                "offset": 24
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/LeakTracer.kt",
+              "start": {
+                "col": 1,
+                "line": 3,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 24,
+                "line": 8,
+                "offset": 21
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/LeakTracer.kt",
+              "start": {
+                "col": 3,
+                "line": 8,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/object-watcher/object-watcher/src/main/java/leakcanary/ReachabilityWatcher.kt:3:\n `fun interface ReachabilityWatcher` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/object-watcher/object-watcher/src/main/java/leakcanary/ReachabilityWatcher.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 34,
+                "line": 3,
+                "offset": 33
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/object-watcher/object-watcher/src/main/java/leakcanary/ReachabilityWatcher.kt",
+              "start": {
+                "col": 1,
+                "line": 3,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/HeapDumper.kt:5:\n `fun interface HeapDumper` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/HeapDumper.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 25,
+                "line": 5,
+                "offset": 24
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/HeapDumper.kt",
+              "start": {
+                "col": 1,
+                "line": 5,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/MetadataExtractor.kt:6:\n `fun interface MetadataExtractor` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/MetadataExtractor.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 32,
+                "line": 6,
+                "offset": 31
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/MetadataExtractor.kt",
+              "start": {
+                "col": 1,
+                "line": 6,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/samples/leakcanary-android-sample/src/main/java/com/example/leakcanary/LeakingService.kt:11:\n `+= this` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/samples/leakcanary-android-sample/src/main/java/com/example/leakcanary/LeakingService.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 63,
+                "line": 11,
+                "offset": 7
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/samples/leakcanary-android-sample/src/main/java/com/example/leakcanary/LeakingService.kt",
+              "start": {
+                "col": 56,
+                "line": 11,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/ObjectInspector.kt:9:\n `fun interface ObjectInspector` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/ObjectInspector.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 30,
+                "line": 9,
+                "offset": 29
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/ObjectInspector.kt",
+              "start": {
+                "col": 1,
+                "line": 9,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-hprof/src/main/java/shark/OnHprofRecordListener.kt:8:\n `fun interface OnHprofRecordListener` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-hprof/src/main/java/shark/OnHprofRecordListener.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 36,
+                "line": 8,
+                "offset": 35
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-hprof/src/main/java/shark/OnHprofRecordListener.kt",
+              "start": {
+                "col": 1,
+                "line": 8,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-hprof/src/main/java/shark/OnHprofRecordTagListener.kt:10:\n `fun interface OnHprofRecordTagListener` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-hprof/src/main/java/shark/OnHprofRecordTagListener.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 39,
+                "line": 10,
+                "offset": 38
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-hprof/src/main/java/shark/OnHprofRecordTagListener.kt",
+              "start": {
+                "col": 1,
+                "line": 10,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-instrumentation/src/main/java/leakcanary/DetectLeaksAssert.kt:9:\n `fun interface DetectLeaksAssert` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-instrumentation/src/main/java/leakcanary/DetectLeaksAssert.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 32,
+                "line": 9,
+                "offset": 31
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-instrumentation/src/main/java/leakcanary/DetectLeaksAssert.kt",
+              "start": {
+                "col": 1,
+                "line": 9,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/OnAnalysisProgressListener.kt:8:\n `fun interface OnAnalysisProgressListener` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/OnAnalysisProgressListener.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 41,
+                "line": 8,
+                "offset": 40
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/OnAnalysisProgressListener.kt",
+              "start": {
+                "col": 1,
+                "line": 8,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-graph/src/main/java/shark/internal/aosp/ByteArrayTimSort.kt:1:\n `/*\n * Copyright (C) 2008 The Android Open Source Project\n *\n * Licensed under the Apache License, Version 2.0 (the \"License\");\n * you may not use this file except in compliance with the License.\n * You may obtain a copy of the License at\n *\n *      http://www.apache.org/licenses/LICENSE-2.0\n *\n * Unless required by applicable law or agreed to in writing, software\n * distributed under the License is distributed on an \"AS IS\" BASIS,\n * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n * See the License for the specific language governing permissions and\n * limitations under the License.\n */\npackage shark.internal.aosp\n\nimport kotlin.math.min\n\n/*\nThis is TimSort.java from AOSP (Jelly Bean MR2, Apache 2 license), converted to Kotlin and adapted\nto work with byte array chunks. The passed in byte array is virtually divided into entries of a\nfixed number of bytes N. Each entry is compared by a custom comparator.\n\n Copied from https://android.googlesource.com/platform/libcore/+/jb-mr2-release/luni/src/main/java/java/util/TimSort.java\n*/\n\n/**\n * A stable, adaptive, iterative mergesort that requires far fewer than\n * n lg(n) comparisons when running on partially sorted arrays, while\n * offering performance comparable to a traditional mergesort when run\n * on random arrays.  Like all proper mergesorts, this sort is stable and\n * runs O(n log n) time (worst case).  In the worst case, this sort requires\n * temporary storage space for n/2 object references; in the best case,\n * it requires only a small constant amount of space.\n *\n * This implementation was adapted from Tim Peters's list sort for\n * Python, which is described in detail here:\n *\n * http://svn.python.org/projects/python/trunk/Objects/listsort.txt\n *\n * Tim's C code may be found here:\n *\n * http://svn.python.org/projects/python/trunk/Objects/listobject.c\n *\n * The underlying techniques are described in this paper (and may have\n * even earlier origins):\n *\n * \"Optimistic Sorting and Information Theoretic Complexity\"\n * Peter McIlroy\n * SODA (Fourth Annual ACM-SIAM Symposium on Discrete Algorithms),\n * pp 467-474, Austin, Texas, 25-27 January 1993.\n *\n * While the API to this class consists solely of static methods, it is\n * (privately) instantiable; a TimSort instance holds the state of an ongoing\n * sort, assuming the input array is large enough to warrant the full-blown\n * TimSort. Small arrays are sorted in place, using a binary insertion sort.\n */\n@Suppress(\"detekt.complexity\", \"detekt.style\")\ninternal class ByteArrayTimSort\n/**\n * Creates a TimSort instance to maintain the state of an ongoing sort.\n *\n * @param a the array to be sorted\n * @param c the comparator to determine the order of the sort\n */\nprivate constructor(\n  /**\n   * The array being sorted.\n   */\n  private val a: ByteArray,\n  /**\n   * The comparator for this sort.\n   */\n  private val c: ByteArrayComparator,\n\n  private val entrySize: Int\n) {\n  /**\n   * This controls when we get *into* galloping mode.  It is initialized\n   * to MIN_GALLOP.  The mergeLo and mergeHi methods nudge it higher for\n   * random data, and lower for highly structured data.\n   */\n  private var minGallop = MIN_GALLOP\n\n  /**\n   * Temp storage for merges.\n   */\n  private var tmp: ByteArray? = null // Actual runtime type will be Object[], regardless of T\n\n  /**\n   * A stack of pending runs yet to be merged.  Run i starts at\n   * address `base[i]` and extends for `len[i]` elements.  It's always\n   * true (so long as the indices are in bounds) that:\n   *\n   * `runBase[i] + runLen[i] == runBase[i + 1]`\n   *\n   * so we could cut the storage for this, but it's a minor amount,\n   * and keeping all the info explicit simplifies the code.\n   */\n  private var stackSize = 0  // Number of pending runs on stack\n  private val runBase: IntArray\n  private val runLen: IntArray\n\n  init {\n    // Allocate temp storage (which may be increased later if necessary)\n    val len = a.size / entrySize\n    val newArray = ByteArray(\n      entrySize *\n        if (len < 2 * INITIAL_TMP_STORAGE_LENGTH)\n          len.ushr(1)\n        else\n          INITIAL_TMP_STORAGE_LENGTH\n    )\n    tmp = newArray\n    /*\n         * Allocate runs-to-be-merged stack (which cannot be expanded).  The\n         * stack length requirements are described in listsort.txt.  The C\n         * version always uses the same stack length (85), but this was\n         * measured to be too expensive when sorting \"mid-sized\" arrays (e.g.,\n         * 100 elements) in Java.  Therefore, we use smaller (but sufficiently\n         * large) stack lengths for smaller arrays.  The \"magic numbers\" in the\n         * computation below must be changed if MIN_MERGE is decreased.  See\n         * the MIN_MERGE declaration above for more information.\n         */\n    val stackLen = when {\n        len < 120 -> 5\n        len < 1542 -> 10\n        len < 119151 -> 19\n        else -> 40\n    }\n    runBase = IntArray(stackLen)\n    runLen = IntArray(stackLen)\n  }\n\n  /**\n   * Pushes the specified run onto the pending-run stack.\n   *\n   * @param runBase index of the first element in the run\n   * @param runLen  the number of elements in the run\n   */\n  private fun pushRun(\n    runBase: Int,\n    runLen: Int\n  ) {\n    this.runBase[stackSize] = runBase\n    this.runLen[stackSize] = runLen\n    stackSize++\n  }\n\n  /**\n   * Examines the stack of runs waiting to be merged and merges adjacent runs\n   * until the stack invariants are reestablished:\n   *\n   * 1. runLen[i - 3] > runLen[i - 2] + runLen[i - 1]\n   * 2. runLen[i - 2] > runLen[i - 1]\n   *\n   * This method is called each time a new run is pushed onto the stack,\n   * so the invariants are guaranteed to hold for i < stackSize upon\n   * entry to the method.\n   */\n  // Fixed with http://www.envisage-project.eu/proving-android-java-and-python-sorting-algorithm-is-broken-and-how-to-fix-it/\n  private fun mergeCollapse() {\n    while (stackSize > 1) {\n      var n = stackSize - 2\n      if (n >= 1 && runLen[n - 1] <= runLen[n] + runLen[n + 1] || n >= 2 && runLen[n - 2] <= runLen[n] + runLen[n - 1]) {\n        if (runLen[n - 1] < runLen[n + 1])\n          n--\n      } else if (runLen[n] > runLen[n + 1]) {\n        break // Invariant is established\n      }\n      mergeAt(n)\n    }\n  }\n\n  /**\n   * Merges all runs on the stack until only one remains.  This method is\n   * called once, to complete the sort.\n   */\n  private fun mergeForceCollapse() {\n    while (stackSize > 1) {\n      var n = stackSize - 2\n      if (n > 0 && runLen[n - 1] < runLen[n + 1])\n        n--\n      mergeAt(n)\n    }\n  }\n\n  /**\n   * Merges the two runs at stack indices i and i+1.  Run i must be\n   * the penultimate or antepenultimate run on the stack.  In other words,\n   * i must be equal to stackSize-2 or stackSize-3.\n   *\n   * @param i stack index of the first of the two runs to merge\n   */\n  private fun mergeAt(i: Int) {\n    if (DEBUG) assert(stackSize >= 2)\n    if (DEBUG) assert(i >= 0)\n    if (DEBUG) assert(i == stackSize - 2 || i == stackSize - 3)\n    var base1 = runBase[i]\n    var len1 = runLen[i]\n    val base2 = runBase[i + 1]\n    var len2 = runLen[i + 1]\n    if (DEBUG) assert(len1 > 0 && len2 > 0)\n    if (DEBUG) assert(base1 + len1 == base2)\n    /*\n         * Record the length of the combined runs; if i is the 3rd-last\n         * run now, also slide over the last run (which isn't involved\n         * in this merge).  The current run (i+1) goes away in any case.\n         */\n    runLen[i] = len1 + len2\n    if (i == stackSize - 3) {\n      runBase[i + 1] = runBase[i + 2]\n      runLen[i + 1] = runLen[i + 2]\n    }\n    stackSize--\n    /*\n         * Find where the first element of run2 goes in run1. Prior elements\n         * in run1 can be ignored (because they're already in place).\n         */\n    val k = gallopRight(a, base2, a, base1, len1, 0, entrySize, c)\n    if (DEBUG) assert(k >= 0)\n    base1 += k\n    len1 -= k\n    if (len1 == 0)\n      return\n    /*\n         * Find where the last element of run1 goes in run2. Subsequent elements\n         * in run2 can be ignored (because they're already in place).\n         */\n    len2 = gallopLeft(a, base1 + len1 - 1, a, base2, len2, len2 - 1, entrySize, c)\n    if (DEBUG) assert(len2 >= 0)\n    if (len2 == 0)\n      return\n    // Merge remaining runs, using tmp array with min(len1, len2) elements\n    if (len1 <= len2)\n      mergeLo(base1, len1, base2, len2)\n    else\n      mergeHi(base1, len1, base2, len2)\n  }\n\n  /**\n   * Merges two adjacent runs in place, in a stable fashion.  The first\n   * element of the first run must be greater than the first element of the\n   * second run (a[base1] > a[base2]), and the last element of the first run\n   * (a[base1 + len1-1]) must be greater than all elements of the second run.\n   *\n   * For performance, this method should be called only when len1 <= len2;\n   * its twin, mergeHi should be called if len1 >= len2.  (Either method\n   * may be called if len1 == len2.)\n   *\n   * @param base1 index of first element in first run to be merged\n   * @param len1  length of first run to be merged (must be > 0)\n   * @param base2 index of first element in second run to be merged\n   * (must be aBase + aLen)\n   * @param len2  length of second run to be merged (must be > 0)\n   */\n  private fun mergeLo(\n    base1: Int,\n    len1: Int,\n    base2: Int,\n    len2: Int\n  ) {\n    var len1 = len1\n    var len2 = len2\n    if (DEBUG) assert(len1 > 0 && len2 > 0 && base1 + len1 == base2)\n    // Copy first run into temp array\n    val a = this.a // For performance\n    val entrySize = entrySize\n    val tmp = ensureCapacity(len1)\n    System.arraycopy(a, base1 * entrySize, tmp, 0, len1 * entrySize)\n    var cursor1 = 0       // Indexes into tmp array\n    var cursor2 = base2   // Indexes int a\n    var dest = base1      // Indexes int a\n    // Move first element of second run and deal with degenerate cases\n    val destIndex = dest * entrySize\n    val cursor2Index = cursor2 * entrySize\n    for (i in 0 until entrySize) {\n      a[destIndex + i] = a[cursor2Index + i]\n    }\n    dest++\n    cursor2++\n\n    if (--len2 == 0) {\n      System.arraycopy(tmp, cursor1 * entrySize, a, dest * entrySize, len1 * entrySize)\n      return\n    }\n    if (len1 == 1) {\n      System.arraycopy(a, cursor2 * entrySize, a, dest * entrySize, len2 * entrySize)\n      val destLen2Index = (dest + len2) * entrySize\n      val cursor1Index = cursor1 * entrySize\n      for (i in 0 until entrySize) {\n        a[destLen2Index + i] = tmp[cursor1Index + i] // Last elt of run 1 to end of merge\n      }\n      return\n    }\n    val c = this.c  // Use local variable for performance\n    var minGallop = this.minGallop    //  \"    \"       \"     \"      \"\n    outer@ while (true) {\n      var count1 = 0 // Number of times in a row that first run won\n      var count2 = 0 // Number of times in a row that second run won\n      /*\n       * Do the straightforward thing until (if ever) one run starts\n       * winning consistently.\n       */\n      do {\n        if (DEBUG) assert(len1 > 1 && len2 > 0)\n        if (c.compare(entrySize, a, cursor2, tmp, cursor1) < 0) {\n          val destIndex = dest * entrySize\n          val cursor2Index = cursor2 * entrySize\n          for (i in 0 until entrySize) {\n            a[destIndex + i] = a[cursor2Index + i]\n          }\n          dest++\n          cursor2++\n          count2++\n          count1 = 0\n          if (--len2 == 0)\n            break@outer\n        } else {\n          val destIndex = dest * entrySize\n          val cursor1Index = cursor1 * entrySize\n          for (i in 0 until entrySize) {\n            a[destIndex + i] = tmp[cursor1Index + i]\n          }\n          dest++\n          cursor1++\n          count1++\n          count2 = 0\n          if (--len1 == 1)\n            break@outer\n        }\n      } while (count1 or count2 < minGallop)\n      /*\n             * One run is winning so consistently that galloping may be a\n             * huge win. So try that, and continue galloping until (if ever)\n             * neither run appears to be winning consistently anymore.\n             */\n      do {\n        if (DEBUG) assert(len1 > 1 && len2 > 0)\n        count1 = gallopRight(a, cursor2, tmp, cursor1, len1, 0, entrySize, c)\n        if (count1 != 0) {\n          System.arraycopy(tmp, cursor1 * entrySize, a, dest * entrySize, count1 * entrySize)\n          dest += count1\n          cursor1 += count1\n          len1 -= count1\n          if (len1 <= 1)\n          // len1 == 1 || len1 == 0\n            break@outer\n        }\n        var destIndex = dest * entrySize\n        val cursor2Index = cursor2 * entrySize\n        for (i in 0 until entrySize) {\n          a[destIndex + i] = a[cursor2Index + i]\n        }\n        dest++\n        cursor2++\n        if (--len2 == 0)\n          break@outer\n        count2 = gallopLeft(tmp, cursor1, a, cursor2, len2, 0, entrySize, c)\n        if (count2 != 0) {\n          System.arraycopy(a, cursor2 * entrySize, a, dest * entrySize, count2 * entrySize)\n          dest += count2\n          cursor2 += count2\n          len2 -= count2\n          if (len2 == 0)\n            break@outer\n        }\n        destIndex = dest * entrySize\n        val cursor1Index = cursor1 * entrySize\n        for (i in 0 until entrySize) {\n          a[destIndex + i] = tmp[cursor1Index + i]\n        }\n        dest++\n        cursor1++\n        if (--len1 == 1)\n          break@outer\n        minGallop--\n      } while ((count1 >= MIN_GALLOP) or (count2 >= MIN_GALLOP))\n      if (minGallop < 0)\n        minGallop = 0\n      minGallop += 2  // Penalize for leaving gallop mode\n    }  // End of \"outer\" loop\n    this.minGallop = if (minGallop < 1) 1 else minGallop  // Write back to field\n    when (len1) {\n        1 -> {\n          if (DEBUG) assert(len2 > 0)\n          System.arraycopy(a, cursor2 * entrySize, a, dest * entrySize, len2 * entrySize)\n          val destLen2Index = (dest + len2) * entrySize\n          val cursor1Index = cursor1 * entrySize\n          for (i in 0 until entrySize) {\n            a[destLen2Index + i] = tmp[cursor1Index + i] //  Last elt of run 1 to end of merge\n          }\n        }\n        0 -> {\n          throw IllegalArgumentException(\n            \"Comparison method violates its general contract!\"\n          )\n        }\n        else -> {\n          if (DEBUG) assert(len2 == 0)\n          if (DEBUG) assert(len1 > 1)\n          System.arraycopy(tmp, cursor1 * entrySize, a, dest * entrySize, len1 * entrySize)\n        }\n    }\n  }\n\n  /**\n   * Like mergeLo, except that this method should be called only if\n   * len1 >= len2; mergeLo should be called if len1 <= len2.  (Either method\n   * may be called if len1 == len2.)\n   *\n   * @param base1 index of first element in first run to be merged\n   * @param len1  length of first run to be merged (must be > 0)\n   * @param base2 index of first element in second run to be merged\n   * (must be aBase + aLen)\n   * @param len2  length of second run to be merged (must be > 0)\n   */\n  private fun mergeHi(\n    base1: Int,\n    len1: Int,\n    base2: Int,\n    len2: Int\n  ) {\n    var len1 = len1\n    var len2 = len2\n    if (DEBUG) assert(len1 > 0 && len2 > 0 && base1 + len1 == base2)\n    // Copy second run into temp array\n    val a = this.a // For performance\n    val tmp = ensureCapacity(len2)\n    val entrySize = entrySize\n    System.arraycopy(a, base2 * entrySize, tmp, 0, len2 * entrySize)\n    var cursor1 = base1 + len1 - 1  // Indexes into a\n    var cursor2 = len2 - 1          // Indexes into tmp array\n    var dest = base2 + len2 - 1     // Indexes into a\n    // Move last element of first run and deal with degenerate cases\n    var destIndex = dest * entrySize\n    val cursor1Index = cursor1 * entrySize\n    for (i in 0 until entrySize) {\n      a[destIndex + i] = a[cursor1Index + i]\n    }\n    dest--\n    cursor1--\n    if (--len1 == 0) {\n      System.arraycopy(tmp, 0, a, (dest - (len2 - 1)) * entrySize, len2 * entrySize)\n      return\n    }\n    if (len2 == 1) {\n      dest -= len1\n      cursor1 -= len1\n      System.arraycopy(a, (cursor1 + 1) * entrySize, a, (dest + 1) * entrySize, len1 * entrySize)\n      val destIndex = dest * entrySize\n      val cursor2Index = cursor2 * entrySize\n      for (i in 0 until entrySize) {\n        a[destIndex + i] = tmp[cursor2Index + i]\n      }\n      return\n    }\n    val c = this.c  // Use local variable for performance\n    var minGallop = this.minGallop    //  \"    \"       \"     \"      \"\n    outer@ while (true) {\n      var count1 = 0 // Number of times in a row that first run won\n      var count2 = 0 // Number of times in a row that second run won\n      /*\n             * Do the straightforward thing until (if ever) one run\n             * appears to win consistently.\n             */\n      do {\n        if (DEBUG) assert(len1 > 0 && len2 > 1)\n        if (c.compare(entrySize, tmp, cursor2, a, cursor1) < 0) {\n          val destIndex = dest * entrySize\n          val cursor1Index = cursor1 * entrySize\n          for (i in 0 until entrySize) {\n            a[destIndex + i] = a[cursor1Index + i]\n          }\n          dest--\n          cursor1--\n          count1++\n          count2 = 0\n          if (--len1 == 0)\n            break@outer\n        } else {\n          val destIndex = dest * entrySize\n          val cursor2Index = cursor2 * entrySize\n          for (i in 0 until entrySize) {\n            a[destIndex + i] = tmp[cursor2Index + i]\n          }\n          dest--\n          cursor2--\n          count2++\n          count1 = 0\n          if (--len2 == 1)\n            break@outer\n        }\n      } while (count1 or count2 < minGallop)\n      /*\n             * One run is winning so consistently that galloping may be a\n             * huge win. So try that, and continue galloping until (if ever)\n             * neither run appears to be winning consistently anymore.\n             */\n      do {\n        if (DEBUG) assert(len1 > 0 && len2 > 1)\n        count1 = len1 - gallopRight(tmp, cursor2, a, base1, len1, len1 - 1, entrySize, c)\n        if (count1 != 0) {\n          dest -= count1\n          cursor1 -= count1\n          len1 -= count1\n          System.arraycopy(\n            a, (cursor1 + 1) * entrySize, a, (dest + 1) * entrySize, count1 * entrySize\n          )\n          if (len1 == 0)\n            break@outer\n        }\n        destIndex = dest * entrySize\n        val cursor2Index = cursor2 * entrySize\n        for (i in 0 until entrySize) {\n          a[destIndex + i] = tmp[cursor2Index + i]\n        }\n        dest--\n        cursor2--\n        if (--len2 == 1)\n          break@outer\n        count2 = len2 - gallopLeft(a, cursor1, tmp, 0, len2, len2 - 1, entrySize, c)\n        if (count2 != 0) {\n          dest -= count2\n          cursor2 -= count2\n          len2 -= count2\n          System.arraycopy(\n            tmp, (cursor2 + 1) * entrySize, a, (dest + 1) * entrySize, count2 * entrySize\n          )\n          if (len2 <= 1)\n          // len2 == 1 || len2 == 0\n            break@outer\n        }\n        val destIndex = dest * entrySize\n        val cursor1Index = cursor1 * entrySize\n        for (i in 0 until entrySize) {\n          a[destIndex + i] = a[cursor1Index + i]\n        }\n        dest--\n        cursor1--\n        if (--len1 == 0)\n          break@outer\n        minGallop--\n      } while ((count1 >= MIN_GALLOP) or (count2 >= MIN_GALLOP))\n      if (minGallop < 0)\n        minGallop = 0\n      minGallop += 2  // Penalize for leaving gallop mode\n    }  // End of \"outer\" loop\n    this.minGallop = if (minGallop < 1) 1 else minGallop  // Write back to field\n    when (len2) {\n        1 -> {\n          if (DEBUG) assert(len1 > 0)\n          dest -= len1\n          cursor1 -= len1\n          System.arraycopy(a, (cursor1 + 1) * entrySize, a, (dest + 1) * entrySize, len1 * entrySize)\n          val destIndex = dest * entrySize\n          val cursor2Index = cursor2 * entrySize\n          for (i in 0 until entrySize) {\n            a[destIndex + i] = tmp[cursor2Index + i] // Move first elt of run2 to front of merge\n          }\n        }\n        0 -> {\n          throw IllegalArgumentException(\n            \"Comparison method violates its general contract!\"\n          )\n        }\n        else -> {\n          if (DEBUG) assert(len1 == 0)\n          if (DEBUG) assert(len2 > 0)\n          System.arraycopy(tmp, 0, a, (dest - (len2 - 1)) * entrySize, len2 * entrySize)\n        }\n    }\n  }\n\n  /**\n   * Ensures that the external array tmp has at least the specified\n   * number of elements, increasing its size if necessary.  The size\n   * increases exponentially to ensure amortized linear time complexity.\n   *\n   * @param minCapacity the minimum required capacity of the tmp array\n   * @return tmp, whether or not it grew\n   */\n  private fun ensureCapacity(minCapacity: Int): ByteArray {\n    if (tmp!!.size < minCapacity * entrySize) {\n      // Compute smallest power of 2 > minCapacity\n      var newSize = minCapacity\n      newSize = newSize or (newSize shr 1)\n      newSize = newSize or (newSize shr 2)\n      newSize = newSize or (newSize shr 4)\n      newSize = newSize or (newSize shr 8)\n      newSize = newSize or (newSize shr 16)\n      newSize++\n      newSize = if (newSize < 0)\n      // Not bloody likely!\n        minCapacity\n      else\n        min(newSize, (a.size / entrySize).ushr(1))\n      val newArray = ByteArray(newSize * entrySize)\n      tmp = newArray\n    }\n    return tmp!!\n  }\n\n  companion object {\n    /**\n     * This is the minimum sized sequence that will be merged.  Shorter\n     * sequences will be lengthened by calling binarySort.  If the entire\n     * array is less than this length, no merges will be performed.\n     *\n     * This constant should be a power of two.  It was 64 in Tim Peter's C\n     * implementation, but 32 was empirically determined to work better in\n     * this implementation.  In the unlikely event that you set this constant\n     * to be a number that's not a power of two, you'll need to change the\n     * [.minRunLength] computation.\n     *\n     * If you decrease this constant, you must change the stackLen\n     * computation in the TimSort constructor, or you risk an\n     * ArrayOutOfBounds exception.  See listsort.txt for a discussion\n     * of the minimum stack length required as a function of the length\n     * of the array being sorted and the minimum merge sequence length.\n     */\n    private const val MIN_MERGE = 32\n\n    /**\n     * When we get into galloping mode, we stay there until both runs win less\n     * often than MIN_GALLOP consecutive times.\n     */\n    private const val MIN_GALLOP = 7\n\n    /**\n     * Maximum initial size of tmp array, which is used for merging.  The array\n     * can grow to accommodate demand.\n     *\n     * Unlike Tim's original C version, we do not allocate this much storage\n     * when sorting smaller arrays.  This change was required for performance.\n     */\n    private const val INITIAL_TMP_STORAGE_LENGTH = 256\n\n    /**\n     * Asserts have been placed in if-statements for performace. To enable them,\n     * set this field to true and enable them in VM with a command line flag.\n     * If you modify this class, please do test the asserts!\n     */\n    private const val DEBUG = false\n\n    /*\n     * The next two methods (which are package private and static) constitute\n     * the entire API of this class.  Each of these methods obeys the contract\n     * of the public method with the same signature in java.util.Arrays.\n     */\n    fun sort(\n      a: ByteArray,\n      entrySize: Int,\n      c: ByteArrayComparator\n    ) {\n      sort(a, 0, a.size / entrySize, entrySize, c)\n    }\n\n    fun sort(\n      a: ByteArray,\n      lo: Int,\n      hi: Int,\n      entrySize: Int,\n      c: ByteArrayComparator\n    ) {\n      var lo = lo\n      checkStartAndEnd(a.size / entrySize, lo, hi)\n      var nRemaining = hi - lo\n      if (nRemaining < 2)\n        return   // Arrays of size 0 and 1 are always sorted\n      // If array is small, do a \"mini-TimSort\" with no merges\n      if (nRemaining < MIN_MERGE) {\n        val initRunLen = countRunAndMakeAscending(a, lo, hi, entrySize, c)\n        binarySort(a, lo, hi, lo + initRunLen, entrySize, c)\n        return\n      }\n      /**\n       * March over the array once, left to right, finding natural runs,\n       * extending short natural runs to minRun elements, and merging runs\n       * to maintain stack invariant.\n       */\n      val ts = ByteArrayTimSort(a, c, entrySize)\n      val minRun = minRunLength(nRemaining)\n      do {\n        // Identify next run\n        var runLen = countRunAndMakeAscending(a, lo, hi, entrySize, c)\n        // If run is short, extend to min(minRun, nRemaining)\n        if (runLen < minRun) {\n          val force = if (nRemaining <= minRun) nRemaining else minRun\n          binarySort(a, lo, lo + force, lo + runLen, entrySize, c)\n          runLen = force\n        }\n        // Push run onto pending-run stack, and maybe merge\n        ts.pushRun(lo, runLen)\n        ts.mergeCollapse()\n        // Advance to find next run\n        lo += runLen\n        nRemaining -= runLen\n      } while (nRemaining != 0)\n      // Merge all remaining runs to complete sort\n      if (DEBUG) assert(lo == hi)\n      ts.mergeForceCollapse()\n      if (DEBUG) assert(ts.stackSize == 1)\n    }\n\n    private fun checkStartAndEnd(\n      len: Int,\n      start: Int,\n      end: Int\n    ) {\n      if (start < 0 || end > len) {\n        throw ArrayIndexOutOfBoundsException(\n          \"start < 0 || end > len.\"\n            + \" start=\" + start + \", end=\" + end + \", len=\" + len\n        )\n      }\n      if (start > end) {\n        throw IllegalArgumentException(\"start > end: $start > $end\")\n      }\n    }\n\n    /**\n     * Sorts the specified portion of the specified array using a binary\n     * insertion sort.  This is the best method for sorting small numbers\n     * of elements.  It requires O(n log n) compares, but O(n^2) data\n     * movement (worst case).\n     *\n     * If the initial part of the specified range is already sorted,\n     * this method can take advantage of it: the method assumes that the\n     * elements from index `lo`, inclusive, to `start`,\n     * exclusive are already sorted.\n     *\n     * @param a the array in which a range is to be sorted\n     * @param lo the index of the first element in the range to be sorted\n     * @param hi the index after the last element in the range to be sorted\n     * @param start the index of the first element in the range that is\n     * not already known to be sorted (@code lo <= start <= hi}\n     * @param c comparator to used for the sort\n     */\n    private fun binarySort(\n      a: ByteArray,\n      lo: Int,\n      hi: Int,\n      start: Int,\n      entrySize: Int,\n      c: ByteArrayComparator\n    ) {\n      var start = start\n      if (DEBUG) assert(start in lo..hi)\n      if (start == lo)\n        start++\n      val pivot = ByteArray(entrySize)\n      while (start < hi) {\n        val startIndex = start * entrySize\n        for (i in 0 until entrySize) {\n          pivot[i] = a[startIndex + i]\n        }\n        // Set left (and right) to the index where a[start] (pivot) belongs\n        var left = lo\n        var right = start\n        if (DEBUG) assert(left <= right)\n        /*\n             * Invariants:\n             *   pivot >= all in [lo, left).\n             *   pivot <  all in [right, start).\n             */\n        while (left < right) {\n          val mid = (left + right).ushr(1)\n          if (c.compare(entrySize, pivot, 0, a, mid) < 0)\n            right = mid\n          else\n            left = mid + 1\n        }\n        if (DEBUG) assert(left == right)\n        /*\n             * The invariants still hold: pivot >= all in [lo, left) and\n             * pivot < all in [left, start), so pivot belongs at left.  Note\n             * that if there are elements equal to pivot, left points to the\n             * first slot after them -- that's why this sort is stable.\n             * Slide elements over to make room for pivot.\n             */\n        // Switch is just an optimization for arraycopy in default case\n        when (val n = start - left) {  // The number of elements to move\n          2 -> {\n            val leftIndex = left * entrySize\n            val leftPlusOneIndex = (left + 1) * entrySize\n            val leftPlusTwoIndex = (left + 2) * entrySize\n            for (i in 0 until entrySize) {\n              a[leftPlusTwoIndex + i] = a[leftPlusOneIndex + i]\n            }\n            for (i in 0 until entrySize) {\n              a[leftPlusOneIndex + i] = a[leftIndex + i]\n            }\n          }\n          1 -> {\n            val leftIndex = left * entrySize\n            val leftPlusOneIndex = (left + 1) * entrySize\n            for (i in 0 until entrySize) {\n              a[leftPlusOneIndex + i] = a[leftIndex + i]\n            }\n          }\n          else -> {\n            System.arraycopy(a, left * entrySize, a, (left + 1) * entrySize, n * entrySize)\n          }\n        }\n        val leftIndex = left * entrySize\n        for (i in 0 until entrySize) {\n          a[leftIndex + i] = pivot[i]\n        }\n        start++\n      }\n    }\n\n    /**\n     * Returns the length of the run beginning at the specified position in\n     * the specified array and reverses the run if it is descending (ensuring\n     * that the run will always be ascending when the method returns).\n     *\n     * A run is the longest ascending sequence with:\n     *\n     * a[lo] <= a[lo + 1] <= a[lo + 2] <= ...\n     *\n     * or the longest descending sequence with:\n     *\n     * a[lo] >  a[lo + 1] >  a[lo + 2] >  ...\n     *\n     * For its intended use in a stable mergesort, the strictness of the\n     * definition of \"descending\" is needed so that the call can safely\n     * reverse a descending sequence without violating stability.\n     *\n     * @param a the array in which a run is to be counted and possibly reversed\n     * @param lo index of the first element in the run\n     * @param hi index after the last element that may be contained in the run.\n     * It is required that @code{lo < hi}.\n     * @param c the comparator to used for the sort\n     * @return  the length of the run beginning at the specified position in\n     * the specified array\n     */\n    private fun countRunAndMakeAscending(\n      a: ByteArray,\n      lo: Int,\n      hi: Int,\n      entrySize: Int,\n      c: ByteArrayComparator\n    ): Int {\n      if (DEBUG) assert(lo < hi)\n      var runHi = lo + 1\n      if (runHi == hi)\n        return 1\n      // Find end of run, and reverse range if descending\n\n      val comparison = c.compare(entrySize, a, runHi, a, lo)\n      runHi++\n      if (comparison < 0) { // Descending\n        while (runHi < hi && c.compare(entrySize, a, runHi, a, runHi - 1) < 0)\n          runHi++\n        reverseRange(a, lo, runHi, entrySize)\n      } else {                              // Ascending\n        while (runHi < hi && c.compare(entrySize, a, runHi, a, runHi - 1) >= 0)\n          runHi++\n      }\n      return runHi - lo\n    }\n\n    /**\n     * Reverse the specified range of the specified array.\n     *\n     * @param a the array in which a range is to be reversed\n     * @param lo the index of the first element in the range to be reversed\n     * @param hi the index after the last element in the range to be reversed\n     */\n    private fun reverseRange(\n      a: ByteArray,\n      lo: Int,\n      hi: Int,\n      entrySize: Int\n    ) {\n      var lo = lo\n      var hi = hi\n      hi--\n      while (lo < hi) {\n        val loIndex = lo * entrySize\n        val hiIndex = hi * entrySize\n        for (i in 0 until entrySize) {\n          val t = a[loIndex + i]\n          a[loIndex + i] = a[hiIndex + i]\n          a[hiIndex + i] = t\n        }\n        lo++\n        hi--\n      }\n    }\n\n    /**\n     * Returns the minimum acceptable run length for an array of the specified\n     * length. Natural runs shorter than this will be extended with\n     * [.binarySort].\n     *\n     * Roughly speaking, the computation is:\n     *\n     * If n < MIN_MERGE, return n (it's too small to bother with fancy stuff).\n     * Else if n is an exact power of 2, return MIN_MERGE/2.\n     * Else return an int k, MIN_MERGE/2 <= k <= MIN_MERGE, such that n/k\n     * is close to, but strictly less than, an exact power of 2.\n     *\n     * For the rationale, see listsort.txt.\n     *\n     * @param n the length of the array to be sorted\n     * @return the length of the minimum run to be merged\n     */\n    private fun minRunLength(n: Int): Int {\n      var n = n\n      if (DEBUG) assert(n >= 0)\n      var r = 0      // Becomes 1 if any 1 bits are shifted off\n      while (n >= MIN_MERGE) {\n        r = r or (n and 1)\n        n = n shr 1\n      }\n      return n + r\n    }\n\n    /**\n     * Locates the position at which to insert the specified key into the\n     * specified sorted range; if the range contains an element equal to key,\n     * returns the index of the leftmost equal element.\n     *\n     * @param keyIndex the key whose insertion point to search for\n     * @param a the array in which to search\n     * @param base the index of the first element in the range\n     * @param len the length of the range; must be > 0\n     * @param hint the index at which to begin the search, 0 <= hint < n.\n     * The closer hint is to the result, the faster this method will run.\n     * @param c the comparator used to order the range, and to search\n     * @return the int k,  0 <= k <= n such that a[b + k - 1] < key <= a[b + k],\n     * pretending that a[b - 1] is minus infinity and a[b + n] is infinity.\n     * In other words, key belongs at index b + k; or in other words,\n     * the first k elements of a should precede key, and the last n - k\n     * should follow it.\n     */\n    private fun gallopLeft(\n      keyArray: ByteArray,\n      // Index already divided by entrySize\n      keyIndex: Int,\n      a: ByteArray,\n      base: Int,\n      len: Int,\n      hint: Int,\n      entrySize: Int,\n      c: ByteArrayComparator\n    ): Int {\n      if (DEBUG) assert(len > 0 && hint >= 0 && hint < len)\n      var lastOfs = 0\n      var ofs = 1\n      if (c.compare(entrySize, keyArray, keyIndex, a, base + hint) > 0) {\n        // Gallop right until a[base+hint+lastOfs] < key <= a[base+hint+ofs]\n        val maxOfs = len - hint\n        while (ofs < maxOfs && c.compare(entrySize, keyArray, keyIndex, a, base + hint + ofs) > 0) {\n          lastOfs = ofs\n          ofs = ofs * 2 + 1\n          if (ofs <= 0)\n          // int overflow\n            ofs = maxOfs\n        }\n        if (ofs > maxOfs)\n          ofs = maxOfs\n        // Make offsets relative to base\n        lastOfs += hint\n        ofs += hint\n      } else { // key <= a[base + hint]\n        // Gallop left until a[base+hint-ofs] < key <= a[base+hint-lastOfs]\n        val maxOfs = hint + 1\n        while (ofs < maxOfs && c.compare(\n            entrySize, keyArray, keyIndex, a, base + hint - ofs\n          ) <= 0\n        ) {\n          lastOfs = ofs\n          ofs = ofs * 2 + 1\n          if (ofs <= 0)\n          // int overflow\n            ofs = maxOfs\n        }\n        if (ofs > maxOfs)\n          ofs = maxOfs\n        // Make offsets relative to base\n        val tmp = lastOfs\n        lastOfs = hint - ofs\n        ofs = hint - tmp\n      }\n      if (DEBUG) assert(-1 <= lastOfs && lastOfs < ofs && ofs <= len)\n      /*\n         * Now a[base+lastOfs] < key <= a[base+ofs], so key belongs somewhere\n         * to the right of lastOfs but no farther right than ofs.  Do a binary\n         * search, with invariant a[base + lastOfs - 1] < key <= a[base + ofs].\n         */\n      lastOfs++\n      while (lastOfs < ofs) {\n        val m = lastOfs + (ofs - lastOfs).ushr(1)\n        if (c.compare(entrySize, keyArray, keyIndex, a, base + m) > 0)\n          lastOfs = m + 1  // a[base + m] < key\n        else\n          ofs = m          // key <= a[base + m]\n      }\n      if (DEBUG) assert(lastOfs == ofs)    // so a[base + ofs - 1] < key <= a[base + ofs]\n      return ofs\n    }\n\n    /**\n     * Like gallopLeft, except that if the range contains an element equal to\n     * key, gallopRight returns the index after the rightmost equal element.\n     *\n     * @param keyIndex the key whose insertion point to search for\n     * @param a the array in which to search\n     * @param base the index of the first element in the range\n     * @param len the length of the range; must be > 0\n     * @param hint the index at which to begin the search, 0 <= hint < n.\n     * The closer hint is to the result, the faster this method will run.\n     * @param c the comparator used to order the range, and to search\n     * @return the int k,  0 <= k <= n such that a[b + k - 1] <= key < a[b + k]\n     */\n    private fun gallopRight(\n      keyArray: ByteArray,\n      // Index already divided by entrySize\n      keyIndex: Int,\n      a: ByteArray,\n      base: Int,\n      len: Int,\n      hint: Int,\n      entrySize: Int,\n      c: ByteArrayComparator\n    ): Int {\n      if (DEBUG) assert(len > 0 && hint >= 0 && hint < len)\n      var ofs = 1\n      var lastOfs = 0\n      if (c.compare(entrySize, keyArray, keyIndex, a, base + hint) < 0) {\n        // Gallop left until a[b+hint - ofs] <= key < a[b+hint - lastOfs]\n        val maxOfs = hint + 1\n        while (ofs < maxOfs && c.compare(entrySize, keyArray, keyIndex, a, base + hint - ofs) < 0) {\n          lastOfs = ofs\n          ofs = ofs * 2 + 1\n          if (ofs <= 0)\n          // int overflow\n            ofs = maxOfs\n        }\n        if (ofs > maxOfs)\n          ofs = maxOfs\n        // Make offsets relative to b\n        val tmp = lastOfs\n        lastOfs = hint - ofs\n        ofs = hint - tmp\n      } else { // a[b + hint] <= key\n        // Gallop right until a[b+hint + lastOfs] <= key < a[b+hint + ofs]\n        val maxOfs = len - hint\n        while (ofs < maxOfs && c.compare(\n            entrySize, keyArray, keyIndex, a, base + hint + ofs\n          ) >= 0\n        ) {\n          lastOfs = ofs\n          ofs = ofs * 2 + 1\n          if (ofs <= 0)\n          // int overflow\n            ofs = maxOfs\n        }\n        if (ofs > maxOfs)\n          ofs = maxOfs\n        // Make offsets relative to b\n        lastOfs += hint\n        ofs += hint\n      }\n      if (DEBUG) assert(-1 <= lastOfs && lastOfs < ofs && ofs <= len)\n      /*\n         * Now a[b + lastOfs] <= key < a[b + ofs], so key belongs somewhere to\n         * the right of lastOfs but no farther right than ofs.  Do a binary\n         * search, with invariant a[b + lastOfs - 1] <= key < a[b + ofs].\n         */\n      lastOfs++\n      while (lastOfs < ofs) {\n        val m = lastOfs + (ofs - lastOfs).ushr(1)\n        if (c.compare(entrySize, keyArray, keyIndex, a, base + m) < 0)\n          ofs = m          // key < a[b + m]\n        else\n          lastOfs = m + 1  // a[b + m] <= key\n      }\n      if (DEBUG) assert(lastOfs == ofs)    // so a[b + ofs - 1] <= key < a[b + ofs]\n      return ofs\n    }\n  }\n}\n` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-graph/src/main/java/shark/internal/aosp/ByteArrayTimSort.kt",
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/plumber/plumber-android-core/src/main/java/leakcanary/AndroidLeakFixes.kt:41:\n `enum class AndroidLeakFixes {\n\n  /**\n   * MediaSessionLegacyHelper is a static singleton and did not use the application context.\n   * Introduced in android-5.0.1_r1, fixed in Android 5.1.0_r1.\n   * https://github.com/android/platform_frameworks_base/commit/9b5257c9c99c4cb541d8e8e78fb04f008b1a9091\n   *\n   * We fix this leak by invoking MediaSessionLegacyHelper.getHelper() early in the app lifecycle.\n   */\n  MEDIA_SESSION_LEGACY_HELPER {\n    override fun apply(application: Application) {\n      if (SDK_INT != 21) {\n        return\n      }\n      backgroundHandler.post {\n        try {\n          val clazz = Class.forName(\"android.media.session.MediaSessionLegacyHelper\")\n          val getHelperMethod = clazz.getDeclaredMethod(\"getHelper\", Context::class.java)\n          getHelperMethod.invoke(null, application)\n        } catch (ignored: Exception) {\n          SharkLog.d(ignored) { \"Could not fix the $name leak\" }\n        }\n      }\n    }\n  },\n\n  /**\n   * This flushes the TextLine pool when an activity is destroyed, to prevent memory leaks.\n   *\n   * The first memory leak has been fixed in android-5.1.0_r1\n   * https://github.com/android/platform_frameworks_base/commit/893d6fe48d37f71e683f722457bea646994a10bf\n   *\n   * Second memory leak: https://github.com/android/platform_frameworks_base/commit/b3a9bc038d3a218b1dbdf7b5668e3d6c12be5ee4\n   */\n  TEXT_LINE_POOL {\n    override fun apply(application: Application) {\n      // Can't use reflection starting in SDK 28\n      if (SDK_INT >= 28) {\n        return\n      }\n      backgroundHandler.post {\n        try {\n          val textLineClass = Class.forName(\"android.text.TextLine\")\n          val sCachedField = textLineClass.getDeclaredField(\"sCached\")\n          sCachedField.isAccessible = true\n          // One time retrieval to make sure this will work.\n          val sCached = sCachedField.get(null)\n          // Can't happen in current Android source, but hidden APIs can change.\n          if (sCached == null || !sCached.javaClass.isArray) {\n            SharkLog.d { \"Could not fix the $name leak, sCached=$sCached\" }\n            return@post\n          }\n          application.onActivityDestroyed {\n            // Pool of TextLine instances.\n            val sCached = sCachedField.get(null)\n            // TextLine locks on sCached. We take that lock and clear the whole array at once.\n            synchronized(sCached) {\n              val length = Array.getLength(sCached)\n              for (i in 0 until length) {\n                Array.set(sCached, i, null)\n              }\n            }\n          }\n        } catch (ignored: Exception) {\n          SharkLog.d(ignored) { \"Could not fix the $name leak\" }\n          return@post\n        }\n      }\n    }\n  },\n\n  /**\n   * Obtaining the UserManager service ends up calling the hidden UserManager.get() method which\n   * stores the context in a singleton UserManager instance and then stores that instance in a\n   * static field.\n   *\n   * We obtain the user manager from an activity context, so if it hasn't been created yet it will\n   * leak that activity forever.\n   *\n   * This fix makes sure the UserManager is created and holds on to the Application context.\n   *\n   * Issue: https://code.google.com/p/android/issues/detail?id=173789\n   *\n   * Fixed in https://android.googlesource.com/platform/frameworks/base/+/5200e1cb07190a1f6874d72a4561064cad3ee3e0%5E%21/#F0\n   * (Android O)\n   */\n  USER_MANAGER {\n    @SuppressLint(\"NewApi\")\n    override fun apply(application: Application) {\n      if (SDK_INT !in 17..25) {\n        return\n      }\n      try {\n        val getMethod = UserManager::class.java.getDeclaredMethod(\"get\", Context::class.java)\n        getMethod.invoke(null, application)\n      } catch (ignored: Exception) {\n        SharkLog.d(ignored) { \"Could not fix the $name leak\" }\n      }\n    }\n  },\n\n  /**\n   * HandlerThread instances keep local reference to their last handled message after recycling it.\n   * That message is obtained by a dialog which sets on an OnClickListener on it and then never\n   * recycles it, expecting it to be garbage collected but it ends up being held by the\n   * HandlerThread.\n   */\n  FLUSH_HANDLER_THREADS {\n    override fun apply(application: Application) {\n      if (SDK_INT >= 31) {\n        return\n      }\n      val flushedThreadIds = mutableSetOf<Int>()\n      // Don't flush the backgroundHandler's thread, we're rescheduling all the time anyway.\n      flushedThreadIds += (backgroundHandler.looper.thread as HandlerThread).threadId\n      // Wait 2 seconds then look for handler threads every 3 seconds.\n      val flushNewHandlerThread = object : Runnable {\n        override fun run() {\n          val newHandlerThreadsById = findAllHandlerThreads()\n            .mapNotNull { thread ->\n              val threadId = thread.threadId\n              if (threadId == -1 || threadId in flushedThreadIds) {\n                null\n              } else {\n                threadId to thread\n              }\n            }\n          newHandlerThreadsById\n            .forEach { (threadId, handlerThread) ->\n              val looper = handlerThread.looper\n              if (looper == null) {\n                SharkLog.d { \"Handler thread found without a looper: $handlerThread\" }\n                return@forEach\n              }\n              flushedThreadIds += threadId\n              SharkLog.d { \"Setting up flushing for $handlerThread\" }\n              var scheduleFlush = true\n              val flushHandler = Handler(looper)\n              flushHandler.onEachIdle {\n                if (handlerThread.isAlive && scheduleFlush) {\n                  scheduleFlush = false\n                  // When the Handler thread becomes idle, we post a message to force it to move.\n                  // Source: https://developer.squareup.com/blog/a-small-leak-will-sink-a-great-ship/\n                  try {\n                    val posted = flushHandler.postDelayed({\n                      // Right after this postDelayed executes, the idle handler will likely be called\n                      // again (if the queue is otherwise empty), so we'll need to schedule a flush\n                      // again.\n                      scheduleFlush = true\n                    }, 1000)\n                    if (!posted) {\n                      SharkLog.d { \"Failed to post to ${handlerThread.name}\" }\n                    }\n                  } catch (ignored: RuntimeException) {\n                    // If the thread is quitting, posting to it may throw. There is no safe and atomic way\n                    // to check if a thread is quitting first then post it it.\n                    SharkLog.d(ignored) { \"Failed to post to ${handlerThread.name}\" }\n                  }\n                }\n              }\n            }\n          backgroundHandler.postDelayed(this, 3000)\n        }\n      }\n      backgroundHandler.postDelayed(flushNewHandlerThread, 2000)\n    }\n  },\n\n  /**\n   * Until API 28, AccessibilityNodeInfo has a mOriginalText field that was not properly cleared\n   * when instance were put back in the pool.\n   * Leak introduced here: https://android.googlesource.com/platform/frameworks/base/+/193520e3dff5248ddcf8435203bf99d2ba667219%5E%21/core/java/android/view/accessibility/AccessibilityNodeInfo.java\n   *\n   * Fixed here: https://android.googlesource.com/platform/frameworks/base/+/6f8ec1fd8c159b09d617ed6d9132658051443c0c\n   */\n  ACCESSIBILITY_NODE_INFO {\n    override fun apply(application: Application) {\n      if (SDK_INT >= 28) {\n        return\n      }\n\n      val starvePool = object : Runnable {\n        override fun run() {\n          val maxPoolSize = 50\n          for (i in 0 until maxPoolSize) {\n            AccessibilityNodeInfo.obtain()\n          }\n          backgroundHandler.postDelayed(this, 5000)\n        }\n      }\n      backgroundHandler.postDelayed(starvePool, 5000)\n    }\n  },\n\n  /**\n   * ConnectivityManager has a sInstance field that is set when the first ConnectivityManager instance is created.\n   * ConnectivityManager has a mContext field.\n   * When calling activity.getSystemService(Context.CONNECTIVITY_SERVICE) , the first ConnectivityManager instance\n   * is created with the activity context and stored in sInstance.\n   * That activity context then leaks forever.\n   *\n   * This fix makes sure the connectivity manager is created with the application context.\n   *\n   * Tracked here: https://code.google.com/p/android/issues/detail?id=198852\n   * Introduced here: https://github.com/android/platform_frameworks_base/commit/e0bef71662d81caaaa0d7214fb0bef5d39996a69\n   */\n  CONNECTIVITY_MANAGER {\n    override fun apply(application: Application) {\n      if (SDK_INT > 23) {\n        return\n      }\n\n      try {\n        application.getSystemService(Context.CONNECTIVITY_SERVICE)\n      } catch (ignored: Exception) {\n        SharkLog.d(ignored) { \"Could not fix the $name leak\" }\n      }\n    }\n  },\n\n  /**\n   * ClipboardUIManager is a static singleton that leaks an activity context.\n   * This fix makes sure the manager is called with an application context.\n   */\n  SAMSUNG_CLIPBOARD_MANAGER {\n    override fun apply(application: Application) {\n      if (MANUFACTURER != SAMSUNG || SDK_INT !in 19..21) {\n        return\n      }\n\n      try {\n        val managerClass = Class.forName(\"android.sec.clipboard.ClipboardUIManager\")\n        val instanceMethod = managerClass.getDeclaredMethod(\"getInstance\", Context::class.java)\n        instanceMethod.isAccessible = true\n        instanceMethod.invoke(null, application)\n      } catch (ignored: Exception) {\n        SharkLog.d(ignored) { \"Could not fix the $name leak\" }\n      }\n    }\n  },\n\n  /**\n   * A static helper for EditText bubble popups leaks a reference to the latest focused view.\n   *\n   * This fix clears it when the activity is destroyed.\n   */\n  BUBBLE_POPUP {\n    override fun apply(application: Application) {\n      if (MANUFACTURER != LG || SDK_INT !in 19..21) {\n        return\n      }\n\n      backgroundHandler.post {\n        val helperField: Field\n        try {\n          val helperClass = Class.forName(\"android.widget.BubblePopupHelper\")\n          helperField = helperClass.getDeclaredField(\"sHelper\")\n          helperField.isAccessible = true\n        } catch (ignored: Exception) {\n          SharkLog.d(ignored) { \"Could not fix the $name leak\" }\n          return@post\n        }\n\n        application.onActivityDestroyed {\n          try {\n            helperField.set(null, null)\n          } catch (ignored: Exception) {\n            SharkLog.d(ignored) { \"Could not fix the $name leak\" }\n          }\n        }\n      }\n    }\n  },\n\n  /**\n   * mLastHoveredView is a static field in TextView that leaks the last hovered view.\n   *\n   * This fix clears it when the activity is destroyed.\n   */\n  LAST_HOVERED_VIEW {\n    override fun apply(application: Application) {\n      if (MANUFACTURER != SAMSUNG || SDK_INT !in 19..21) {\n        return\n      }\n\n      backgroundHandler.post {\n        val field: Field\n        try {\n          field = TextView::class.java.getDeclaredField(\"mLastHoveredView\")\n          field.isAccessible = true\n        } catch (ignored: Exception) {\n          SharkLog.d(ignored) { \"Could not fix the $name leak\" }\n          return@post\n        }\n\n        application.onActivityDestroyed {\n          try {\n            field.set(null, null)\n          } catch (ignored: Exception) {\n            SharkLog.d(ignored) { \"Could not fix the $name leak\" }\n          }\n        }\n      }\n    }\n  },\n\n  /**\n   * Samsung added a static mContext field to ActivityManager, holding a reference to the activity.\n   *\n   * This fix clears the field when an activity is destroyed if it refers to this specific activity.\n   *\n   * Observed here: https://github.com/square/leakcanary/issues/177\n   */\n  ACTIVITY_MANAGER {\n    override fun apply(application: Application) {\n      if (MANUFACTURER != SAMSUNG || SDK_INT != 22) {\n        return\n      }\n\n      backgroundHandler.post {\n        val contextField: Field\n        try {\n          contextField = application\n            .getSystemService(Context.ACTIVITY_SERVICE)\n            .javaClass\n            .getDeclaredField(\"mContext\")\n          contextField.isAccessible = true\n          if ((contextField.modifiers or Modifier.STATIC) != contextField.modifiers) {\n            SharkLog.d { \"Could not fix the $name leak, contextField=$contextField\" }\n            return@post\n          }\n        } catch (ignored: Exception) {\n          SharkLog.d(ignored) { \"Could not fix the $name leak\" }\n          return@post\n        }\n\n        application.onActivityDestroyed { activity ->\n          try {\n            if (contextField.get(null) == activity) {\n              contextField.set(null, null)\n            }\n          } catch (ignored: Exception) {\n            SharkLog.d(ignored) { \"Could not fix the $name leak\" }\n          }\n        }\n      }\n    }\n  },\n\n  /**\n   * In Android P, ViewLocationHolder has an mRoot field that is not cleared in its clear() method.\n   * Introduced in https://github.com/aosp-mirror/platform_frameworks_base/commit/86b326012813f09d8f1de7d6d26c986a909d\n   *\n   * This leaks triggers very often when accessibility is on. To fix this leak we need to clear\n   * the ViewGroup.ViewLocationHolder.sPool pool. Unfortunately Android P prevents accessing that\n   * field through reflection. So instead, we call [ViewGroup#addChildrenForAccessibility] with\n   * a view group that has 32 children (32 being the pool size), which as result fills in the pool\n   * with 32 dumb views that reference a dummy context instead of an activity context.\n   *\n   * This fix empties the pool on every activity destroy and every AndroidX fragment view destroy.\n   * You can support other cases where views get detached by calling directly\n   * [ViewLocationHolderLeakFix.clearStaticPool].\n   */\n  VIEW_LOCATION_HOLDER {\n    override fun apply(application: Application) {\n      ViewLocationHolderLeakFix.applyFix(application)\n    }\n  },\n\n  /**\n   * Fix for https://code.google.com/p/android/issues/detail?id=171190 .\n   *\n   * When a view that has focus gets detached, we wait for the main thread to be idle and then\n   * check if the InputMethodManager is leaking a view. If yes, we tell it that the decor view got\n   * focus, which is what happens if you press home and come back from recent apps. This replaces\n   * the reference to the detached view with a reference to the decor view.\n   */\n  IMM_FOCUSED_VIEW {\n    // mServedView should not be accessed on API 29+. Make this clear to Lint with the\n    // TargetApi annotation.\n    @TargetApi(23)\n    @SuppressLint(\"PrivateApi\")\n    override fun apply(application: Application) {\n      // Fixed in API 24.\n      if (SDK_INT > 23) {\n        return\n      }\n      val inputMethodManager =\n        application.getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager\n      val mServedViewField: Field\n      val mHField: Field\n      val finishInputLockedMethod: Method\n      val focusInMethod: Method\n      try {\n        mServedViewField =\n          InputMethodManager::class.java.getDeclaredField(\"mServedView\")\n        mServedViewField.isAccessible = true\n        mHField = InputMethodManager::class.java.getDeclaredField(\"mH\")\n        mHField.isAccessible = true\n        finishInputLockedMethod =\n          InputMethodManager::class.java.getDeclaredMethod(\"finishInputLocked\")\n        finishInputLockedMethod.isAccessible = true\n        focusInMethod = InputMethodManager::class.java.getDeclaredMethod(\n          \"focusIn\", View::class.java\n        )\n        focusInMethod.isAccessible = true\n      } catch (ignored: Exception) {\n        SharkLog.d(ignored) { \"Could not fix the $name leak\" }\n        return\n      }\n      application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks\n      by noOpDelegate() {\n        override fun onActivityCreated(\n          activity: Activity,\n          savedInstanceState: Bundle?\n        ) {\n          activity.window.onDecorViewReady {\n            val cleaner = ReferenceCleaner(\n              inputMethodManager,\n              mHField,\n              mServedViewField,\n              finishInputLockedMethod\n            )\n            val rootView = activity.window.decorView.rootView\n            val viewTreeObserver = rootView.viewTreeObserver\n            viewTreeObserver.addOnGlobalFocusChangeListener(cleaner)\n          }\n        }\n      })\n    }\n  },\n\n  /**\n   * When an activity is destroyed, the corresponding ViewRootImpl instance is released and ready to\n   * be garbage collected.\n   * Some time after that, ViewRootImpl#W receives a windowfocusChanged() callback, which it\n   * normally delegates to ViewRootImpl which in turn calls\n   * InputMethodManager#onPreWindowFocus which clears InputMethodManager#mCurRootView.\n   *\n   * Unfortunately, since the ViewRootImpl instance is garbage collectable it may be garbage\n   * collected before that happens.\n   * ViewRootImpl#W has a weak reference on ViewRootImpl, so that weak reference will then return\n   * null and the windowfocusChanged() callback will be ignored, leading to\n   * InputMethodManager#mCurRootView not being cleared.\n   *\n   * Filed here: https://issuetracker.google.com/u/0/issues/116078227\n   * Fixed here: https://android.googlesource.com/platform/frameworks/base/+/dff365ef4dc61239fac70953b631e92972a9f41f%5E%21/#F0\n   * InputMethodManager.mCurRootView is part of the unrestricted grey list on Android 9:\n   * https://android.googlesource.com/platform/frameworks/base/+/pie-release/config/hiddenapi-light-greylist.txt#6057\n   */\n  IMM_CUR_ROOT_VIEW {\n    override fun apply(application: Application) {\n      if (SDK_INT >= 29) {\n        return\n      }\n      val inputMethodManager = try {\n        application.getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager\n      } catch (ignored: Throwable) {\n        // https://github.com/square/leakcanary/issues/2140\n        SharkLog.d(ignored) { \"Could not retrieve InputMethodManager service\" }\n        return\n      }\n      val mCurRootViewField = try {\n        InputMethodManager::class.java.getDeclaredField(\"mCurRootView\").apply {\n          isAccessible = true\n        }\n      } catch (ignored: Throwable) {\n        SharkLog.d(ignored) { \"Could not read InputMethodManager.mCurRootView field\" }\n        return\n      }\n      // Clear InputMethodManager.mCurRootView on activity destroy\n      application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks\n      by noOpDelegate() {\n        override fun onActivityDestroyed(activity: Activity) {\n          try {\n            val rootView = mCurRootViewField[inputMethodManager] as View?\n            val isDestroyedActivity = rootView != null &&\n              activity.window != null &&\n              activity.window.decorView === rootView\n            val rootViewActivityContext = rootView?.context?.activityOrNull\n            val isChildWindowOfDestroyedActivity = rootViewActivityContext === activity\n            if (isDestroyedActivity || isChildWindowOfDestroyedActivity) {\n              mCurRootViewField[inputMethodManager] = null\n            }\n          } catch (ignored: Throwable) {\n            SharkLog.d(ignored) { \"Could not update InputMethodManager.mCurRootView field\" }\n          }\n        }\n      })\n      // Clear InputMethodManager.mCurRootView on window removal (e.g. dialog dismiss)\n      Curtains.onRootViewsChangedListeners += OnRootViewRemovedListener { removedRootView ->\n        val immRootView = mCurRootViewField[inputMethodManager] as View?\n        if (immRootView === removedRootView) {\n          mCurRootViewField[inputMethodManager] = null\n        }\n      }\n    }\n\n    private val Context.activityOrNull: Activity?\n      get() {\n        var context = this\n        while (true) {\n          if (context is Application) {\n            return null\n          }\n          if (context is Activity) {\n            return context\n          }\n          if (context is ContextWrapper) {\n            val baseContext = context.baseContext\n            // Prevent Stack Overflow.\n            if (baseContext === this) {\n              return null\n            }\n            context = baseContext\n          } else {\n            return null\n          }\n        }\n      }\n  },\n\n  /**\n   * Every editable TextView has an Editor instance which has a SpellChecker instance. SpellChecker\n   * is in charge of displaying the little squiggle spans that show typos. SpellChecker starts a\n   * SpellCheckerSession as needed and then closes it when the TextView is detached from the window.\n   * A SpellCheckerSession is in charge of communicating with the spell checker service (which lives\n   * in another process) through TextServicesManager.\n   *\n   * The SpellChecker sends the TextView content to the spell checker service every 400ms, ie every\n   * time the service calls back with a result the SpellChecker schedules another check for 400ms\n   * later.\n   *\n   * When the TextView is detached from the window, the spell checker closes the session. In practice,\n   * SpellCheckerSessionListenerImpl.mHandler is set to null and when the service calls\n   * SpellCheckerSessionListenerImpl.onGetSuggestions or\n   * SpellCheckerSessionListenerImpl.onGetSentenceSuggestions back from another process, there's a\n   * null check for SpellCheckerSessionListenerImpl.mHandler and the callback is dropped.\n   *\n   * Unfortunately, on Android M there's a race condition in how that's done. When the service calls\n   * back into our app process, the IPC call is received on a binder thread. That's when the null\n   * check happens. If the session is not closed at this point (mHandler not null), the callback is\n   * then posted to the main thread. If on the main thread the session is closed after that post but\n   * prior to that post being handled, then the post will still be processed, after the session has\n   * been closed.\n   *\n   * When the post is processed, SpellCheckerSession calls back into SpellChecker which in turns\n   * schedules a new spell check to be ran in 400ms. The check is an anonymous inner class\n   * (SpellChecker$1) stored as SpellChecker.mSpellRunnable and implementing Runnable. It is scheduled\n   * by calling [View.postDelayed]. As we've seen, at this point the session may be closed which means\n   * that the view has been detached. [View.postDelayed] behaves differently when a view is detached:\n   * instead of posting to the single [Handler] used by the view hierarchy, it enqueues the Runnable\n   * into ViewRootImpl.RunQueue, a static queue that holds on to \"actions\" to be executed. As soon as\n   * a view hierarchy is attached, the ViewRootImpl.RunQueue is processed and emptied.\n   *\n   * Unfortunately, that means that as long as no view hierarchy is attached, ie as long as there\n   * are no activities alive, the actions stay in ViewRootImpl.RunQueue. That means SpellChecker$1\n   * ends up being kept in memory. It holds on to SpellChecker which in turns holds on\n   * to the detached TextView and corresponding destroyed activity & view hierarchy.\n   *\n   * We have a fix for this! When the spell check session is closed, we replace\n   * SpellCheckerSession.mSpellCheckerSessionListener (which normally is the SpellChecker) with a\n   * no-op implementation. So even if callbacks are enqueued to the main thread handler, these\n   * callbacks will call the no-op implementation and SpellChecker will not be scheduling a spell\n   * check.\n   *\n   * Sources to corroborate:\n   *\n   * https://android.googlesource.com/platform/frameworks/base/+/marshmallow-release/core/java/android/view/textservice/SpellCheckerSession.java\n   * https://android.googlesource.com/platform/frameworks/base/+/marshmallow-release/core/java/android/view/textservice/TextServicesManager.java\n   * https://android.googlesource.com/platform/frameworks/base/+/marshmallow-release/core/java/android/widget/SpellChecker.java\n   * https://android.googlesource.com/platform/frameworks/base/+/marshmallow-release/core/java/android/view/ViewRootImpl.java\n   */\n  SPELL_CHECKER {\n    @TargetApi(23)\n    @SuppressLint(\"PrivateApi\")\n    override fun apply(application: Application) {\n      if (SDK_INT != 23) {\n        return\n      }\n\n      try {\n        val textServiceClass = TextServicesManager::class.java\n        val getInstanceMethod = textServiceClass.getDeclaredMethod(\"getInstance\")\n\n        val sServiceField = textServiceClass.getDeclaredField(\"sService\")\n        sServiceField.isAccessible = true\n\n        val serviceStubInterface =\n          Class.forName(\"com.android.internal.textservice.ITextServicesManager\")\n\n        val spellCheckSessionClass = Class.forName(\"android.view.textservice.SpellCheckerSession\")\n        val mSpellCheckerSessionListenerField =\n          spellCheckSessionClass.getDeclaredField(\"mSpellCheckerSessionListener\")\n        mSpellCheckerSessionListenerField.isAccessible = true\n\n        val spellCheckerSessionListenerImplClass =\n          Class.forName(\n            \"android.view.textservice.SpellCheckerSession\\$SpellCheckerSessionListenerImpl\"\n          )\n        val listenerImplHandlerField =\n          spellCheckerSessionListenerImplClass.getDeclaredField(\"mHandler\")\n        listenerImplHandlerField.isAccessible = true\n\n        val spellCheckSessionHandlerClass =\n          Class.forName(\"android.view.textservice.SpellCheckerSession\\$1\")\n        val outerInstanceField = spellCheckSessionHandlerClass.getDeclaredField(\"this$0\")\n        outerInstanceField.isAccessible = true\n\n        val listenerInterface =\n          Class.forName(\"android.view.textservice.SpellCheckerSession\\$SpellCheckerSessionListener\")\n        val noOpListener = Proxy.newProxyInstance(\n          listenerInterface.classLoader, arrayOf(listenerInterface)\n        ) { _: Any, _: Method, _: kotlin.Array<Any>? ->\n          SharkLog.d { \"Received call to no-op SpellCheckerSessionListener after session closed\" }\n        }\n\n        // Ensure a TextServicesManager instance is created and TextServicesManager.sService set.\n        getInstanceMethod\n          .invoke(null)\n        val realService = sServiceField[null]!!\n\n        val spellCheckerListenerToSession = mutableMapOf<Any, Any>()\n\n        val proxyService = Proxy.newProxyInstance(\n          serviceStubInterface.classLoader, arrayOf(serviceStubInterface)\n        ) { _: Any, method: Method, args: kotlin.Array<Any>? ->\n          try {\n            if (method.name == \"getSpellCheckerService\") {\n              // getSpellCheckerService is called when the session is opened, which allows us to\n              // capture the corresponding SpellCheckerSession instance via\n              // SpellCheckerSessionListenerImpl.mHandler.this$0\n              val spellCheckerSessionListener = args!![3]\n              val handler = listenerImplHandlerField[spellCheckerSessionListener]!!\n              val spellCheckerSession = outerInstanceField[handler]!!\n              // We add to a map of SpellCheckerSessionListenerImpl to SpellCheckerSession\n              spellCheckerListenerToSession[spellCheckerSessionListener] = spellCheckerSession\n            } else if (method.name == \"finishSpellCheckerService\") {\n              // finishSpellCheckerService is called when the session is open. After the session has been\n              // closed, any pending work posted to SpellCheckerSession.mHandler should be ignored. We do\n              // so by replacing mSpellCheckerSessionListener with a no-op implementation.\n              val spellCheckerSessionListener = args!![0]\n              val spellCheckerSession =\n                spellCheckerListenerToSession.remove(spellCheckerSessionListener)!!\n              // We use the SpellCheckerSessionListenerImpl to find the corresponding SpellCheckerSession\n              // At this point in time the session was just closed to\n              // SpellCheckerSessionListenerImpl.mHandler is null, which is why we had to capture\n              // the SpellCheckerSession during the getSpellCheckerService call.\n              mSpellCheckerSessionListenerField[spellCheckerSession] = noOpListener\n            }\n          } catch (ignored: Exception) {\n            SharkLog.d(ignored) { \"Unable to fix SpellChecker leak\" }\n          }\n          // Standard delegation\n          try {\n            return@newProxyInstance if (args != null) {\n              method.invoke(realService, *args)\n            } else {\n              method.invoke(realService)\n            }\n          } catch (invocationException: InvocationTargetException) {\n            throw invocationException.targetException\n          }\n        }\n        sServiceField[null] = proxyService\n      } catch (ignored: Exception) {\n        SharkLog.d(ignored) { \"Unable to fix SpellChecker leak\" }\n      }\n    }\n  }\n\n  ;\n\n  protected abstract fun apply(application: Application)\n\n  private var applied = false\n\n  companion object {\n\n    private const val SAMSUNG = \"samsung\"\n    private const val LG = \"LGE\"\n\n    fun applyFixes(\n      application: Application,\n      fixes: Set<AndroidLeakFixes> = EnumSet.allOf(AndroidLeakFixes::class.java)\n    ) {\n      checkMainThread()\n      fixes.forEach { fix ->\n        if (!fix.applied) {\n          fix.apply(application)\n          fix.applied = true\n        } else {\n          SharkLog.d { \"${fix.name} leak fix already applied.\" }\n        }\n      }\n    }\n\n    internal val backgroundHandler by lazy {\n      val handlerThread = HandlerThread(\"plumber-android-leaks\")\n      handlerThread.start()\n      Handler(handlerThread.looper)\n    }\n\n    private fun Handler.onEachIdle(onIdle: () -> Unit) {\n      try {\n        // Unfortunately Looper.getQueue() is API 23. Looper.myQueue() is API 1.\n        // So we have to post to the handler thread to be able to obtain the queue for that\n        // thread from within that thread.\n        post {\n          Looper\n            .myQueue()\n            .addIdleHandler {\n              onIdle()\n              true\n            }\n        }\n      } catch (ignored: RuntimeException) {\n        // If the thread is quitting, posting to it will throw. There is no safe and atomic way\n        // to check if a thread is quitting first then post it it.\n      }\n    }\n\n    private fun findAllHandlerThreads(): List<HandlerThread> {\n      // Based on https://stackoverflow.com/a/1323480\n      var rootGroup = Thread.currentThread().threadGroup!!\n      while (rootGroup.parent != null) rootGroup = rootGroup.parent\n      var threads = arrayOfNulls<Thread>(rootGroup.activeCount())\n      while (rootGroup.enumerate(threads, true) == threads.size) {\n        threads = arrayOfNulls(threads.size * 2)\n      }\n      return threads.mapNotNull { if (it is HandlerThread) it else null }\n    }\n\n    internal fun Application.onActivityDestroyed(block: (Activity) -> Unit) {\n      registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks\n      by noOpDelegate() {\n        override fun onActivityDestroyed(activity: Activity) {\n          block(activity)\n        }\n      })\n    }\n\n    private fun Window.onDecorViewReady(callback: () -> Unit) {\n      if (peekDecorView() == null) {\n        onContentChanged {\n          callback()\n          return@onContentChanged false\n        }\n      } else {\n        callback()\n      }\n    }\n\n    private fun Window.onContentChanged(block: () -> Boolean) {\n      val callback = wrapCallback()\n      callback.onContentChangedCallbacks += block\n    }\n\n    private fun Window.wrapCallback(): WindowDelegateCallback {\n      val currentCallback = callback\n      return if (currentCallback is WindowDelegateCallback) {\n        currentCallback\n      } else {\n        val newCallback = WindowDelegateCallback(currentCallback)\n        callback = newCallback\n        newCallback\n      }\n    }\n\n    private class WindowDelegateCallback constructor(\n      private val delegate: Window.Callback\n    ) : FixedWindowCallback(delegate) {\n\n      val onContentChangedCallbacks = mutableListOf<() -> Boolean>()\n\n      override fun onContentChanged() {\n        onContentChangedCallbacks.removeAll { callback ->\n          !callback()\n        }\n        delegate.onContentChanged()\n      }\n    }\n  }\n}` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/plumber/plumber-android-core/src/main/java/leakcanary/AndroidLeakFixes.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 2,
+                "line": 824,
+                "offset": 32068
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/plumber/plumber-android-core/src/main/java/leakcanary/AndroidLeakFixes.kt",
+              "start": {
+                "col": 1,
+                "line": 41,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-cli/src/main/java/shark/InteractiveCommand.kt:391:\n `\\$` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-cli/src/main/java/shark/InteractiveCommand.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 31,
+                "line": 391,
+                "offset": 2
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-cli/src/main/java/shark/InteractiveCommand.kt",
+              "start": {
+                "col": 29,
+                "line": 391,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 29,
+                "line": 395,
+                "offset": 1
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-cli/src/main/java/shark/InteractiveCommand.kt",
+              "start": {
+                "col": 28,
+                "line": 395,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-hprof/src/main/java/shark/StreamingSourceProvider.kt:9:\n `fun interface StreamingSourceProvider` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-hprof/src/main/java/shark/StreamingSourceProvider.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 38,
+                "line": 9,
+                "offset": 37
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-hprof/src/main/java/shark/StreamingSourceProvider.kt",
+              "start": {
+                "col": 1,
+                "line": 9,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/object-watcher/object-watcher/src/main/java/leakcanary/OnObjectRetainedListener.kt:6:\n `fun interface OnObjectRetainedListener` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/object-watcher/object-watcher/src/main/java/leakcanary/OnObjectRetainedListener.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 39,
+                "line": 6,
+                "offset": 38
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/object-watcher/object-watcher/src/main/java/leakcanary/OnObjectRetainedListener.kt",
+              "start": {
+                "col": 1,
+                "line": 6,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-release/src/main/java/leakcanary/HeapAnalysisInterceptor.kt:3:\n `fun interface HeapAnalysisInterceptor` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-release/src/main/java/leakcanary/HeapAnalysisInterceptor.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 38,
+                "line": 3,
+                "offset": 37
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-release/src/main/java/leakcanary/HeapAnalysisInterceptor.kt",
+              "start": {
+                "col": 1,
+                "line": 3,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-instrumentation/src/main/java/leakcanary/HeapAnalysisReporter.kt:8:\n `fun interface HeapAnalysisReporter` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-instrumentation/src/main/java/leakcanary/HeapAnalysisReporter.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 35,
+                "line": 8,
+                "offset": 34
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-instrumentation/src/main/java/leakcanary/HeapAnalysisReporter.kt",
+              "start": {
+                "col": 1,
+                "line": 8,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-graph/src/main/java/shark/internal/aosp/ByteArrayComparator.kt:3:\n `internal fun interface ByteArrayComparator` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-graph/src/main/java/shark/internal/aosp/ByteArrayComparator.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 43,
+                "line": 3,
+                "offset": 42
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-graph/src/main/java/shark/internal/aosp/ByteArrayComparator.kt",
+              "start": {
+                "col": 1,
+                "line": 3,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/LeakingObjectFinder.kt:7:\n `fun interface LeakingObjectFinder` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/LeakingObjectFinder.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 34,
+                "line": 7,
+                "offset": 33
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/LeakingObjectFinder.kt",
+              "start": {
+                "col": 1,
+                "line": 7,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-instrumentation/src/main/java/leakcanary/DetectLeaksInterceptor.kt:8:\n `fun interface DetectLeaksInterceptor` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-instrumentation/src/main/java/leakcanary/DetectLeaksInterceptor.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 37,
+                "line": 8,
+                "offset": 36
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-instrumentation/src/main/java/leakcanary/DetectLeaksInterceptor.kt",
+              "start": {
+                "col": 1,
+                "line": 8,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/ReferenceReader.kt:4:\n `fun interface ReferenceReader<T : HeapObject>` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/ReferenceReader.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 46,
+                "line": 4,
+                "offset": 45
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/ReferenceReader.kt",
+              "start": {
+                "col": 1,
+                "line": 4,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 40,
+                "line": 19,
+                "offset": 37
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/ReferenceReader.kt",
+              "start": {
+                "col": 3,
+                "line": 19,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/ShortestPathFinder.kt:10:\n `fun interface ShortestPathFinder` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/ShortestPathFinder.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 33,
+                "line": 10,
+                "offset": 32
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/ShortestPathFinder.kt",
+              "start": {
+                "col": 1,
+                "line": 10,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 24,
+                "line": 15,
+                "offset": 21
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/ShortestPathFinder.kt",
+              "start": {
+                "col": 3,
+                "line": 15,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/internal/OnRetainInstanceListener.kt:15:\n `internal fun interface OnRetainInstanceListener` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/internal/OnRetainInstanceListener.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 48,
+                "line": 15,
+                "offset": 47
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/internal/OnRetainInstanceListener.kt",
+              "start": {
+                "col": 1,
+                "line": 15,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/object-watcher/object-watcher-android-core/src/main/java/leakcanary/ActivityWatcher.kt:16:\n `=\n    object : Application.ActivityLifecycleCallbacks by noOpDelegate() {\n      override fun onActivityDestroyed(activity: Activity) {\n        reachabilityWatcher.expectWeaklyReachable(\n          activity, \"${activity::class.java.name} received Activity#onDestroy() callback\"\n        )\n      }\n    }\n\n  override fun install() {\n    application.registerActivityLifecycleCallbacks(lifecycleCallbacks)\n  }\n\n  override fun uninstall() {\n    application.unregisterActivityLifecycleCallbacks(lifecycleCallbacks)\n  }` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/object-watcher/object-watcher-android-core/src/main/java/leakcanary/ActivityWatcher.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 4,
+                "line": 31,
+                "offset": 509
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/object-watcher/object-watcher-android-core/src/main/java/leakcanary/ActivityWatcher.kt",
+              "start": {
+                "col": 34,
+                "line": 16,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/FilteringLeakingObjectFinder.kt:8:\n `{\n\n  /**\n   * Filter to be passed to the [FilteringLeakingObjectFinder] constructor.\n   */\n  fun interface LeakingObjectFilter` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/FilteringLeakingObjectFinder.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 36,
+                "line": 13,
+                "offset": 126
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/FilteringLeakingObjectFinder.kt",
+              "start": {
+                "col": 23,
+                "line": 8,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 2,
+                "line": 31,
+                "offset": 1
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/FilteringLeakingObjectFinder.kt",
+              "start": {
+                "col": 1,
+                "line": 31,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-hprof/src/main/java/shark/ThrowingCancelableFileSourceProvider.kt:21:\n `object : Source by realSource {\n      override fun read(\n        sink: Buffer,\n        byteCount: Long\n      ): Long {\n        throwIfCanceled.run()\n        return realSource.read(sink, byteCount)\n      }\n    }` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-hprof/src/main/java/shark/ThrowingCancelableFileSourceProvider.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 6,
+                "line": 29,
+                "offset": 210
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-hprof/src/main/java/shark/ThrowingCancelableFileSourceProvider.kt",
+              "start": {
+                "col": 24,
+                "line": 21,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/internal/tv/TvToast.kt:38:\n `= inflater.inflate(R.layout.leak_canary_heap_dump_toast, null).also {\n        it.findViewById<TextView>(R.id.leak_canary_toast_text).text` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/internal/tv/TvToast.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 68,
+                "line": 39,
+                "offset": 137
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/internal/tv/TvToast.kt",
+              "start": {
+                "col": 12,
+                "line": 38,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 17,
+                "line": 43,
+                "offset": 12
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/internal/tv/TvToast.kt",
+              "start": {
+                "col": 5,
+                "line": 43,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 2,
+                "line": 45,
+                "offset": 1
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/internal/tv/TvToast.kt",
+              "start": {
+                "col": 1,
+                "line": 45,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/internal/navigation/Views.kt:22:\n `=` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/internal/navigation/Views.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 55,
+                "line": 22,
+                "offset": 1
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/internal/navigation/Views.kt",
+              "start": {
+                "col": 54,
+                "line": 22,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 32,
+                "line": 55,
+                "offset": 13
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/internal/navigation/Views.kt",
+              "start": {
+                "col": 19,
+                "line": 55,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/Reference.kt:46:\n `Resolver {\n      fun` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/Reference.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 10,
+                "line": 47,
+                "offset": 20
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/Reference.kt",
+              "start": {
+                "col": 19,
+                "line": 46,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 2,
+                "line": 50,
+                "offset": 1
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/Reference.kt",
+              "start": {
+                "col": 1,
+                "line": 50,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/internal/activity/db/Io.kt:15:\n `OnIo {\n    fun` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/internal/activity/db/Io.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 8,
+                "line": 16,
+                "offset": 14
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/internal/activity/db/Io.kt",
+              "start": {
+                "col": 17,
+                "line": 15,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 2,
+                "line": 63,
+                "offset": 1
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/internal/activity/db/Io.kt",
+              "start": {
+                "col": 1,
+                "line": 63,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/object-watcher/object-watcher/src/main/java/leakcanary/GcTrigger.kt:23:\n `fun interface GcTrigger` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/object-watcher/object-watcher/src/main/java/leakcanary/GcTrigger.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 24,
+                "line": 23,
+                "offset": 23
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/object-watcher/object-watcher/src/main/java/leakcanary/GcTrigger.kt",
+              "start": {
+                "col": 1,
+                "line": 23,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-app/src/main/java/org/leakcanary/ui/theme/Theme.kt:40:\n `@Composable\nfun MyApplicationTheme(\n  darkTheme: Boolean = isSystemInDarkTheme(),\n  // Dynamic color is available on Android 12+\n  dynamicColor: Boolean = true,\n  content: @Composable () -> Unit\n) {\n  val colorScheme = when {\n    dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {\n      val context = LocalContext.current\n      if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)\n    }\n    darkTheme -> DarkColorScheme\n    else -> LightColorScheme\n  }\n  val view = LocalView.current\n  if (!view.isInEditMode) {\n    SideEffect {\n      (view.context as Activity).window.statusBarColor = colorScheme.primary.toArgb()\n      ViewCompat.getWindowInsetsController(view)?.isAppearanceLightStatusBars = darkTheme\n    }\n  }\n\n  MaterialTheme(\n    colorScheme = colorScheme,\n    typography = Typography,\n    content = content\n  )\n}` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-app/src/main/java/org/leakcanary/ui/theme/Theme.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 2,
+                "line": 68,
+                "offset": 869
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-app/src/main/java/org/leakcanary/ui/theme/Theme.kt",
+              "start": {
+                "col": 1,
+                "line": 40,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/plumber/plumber-android-core/src/main/java/leakcanary/ViewLocationHolderLeakFix.kt:43:\n `object : Application.ActivityLifecycleCallbacks\n    by noOpDelegate() {\n\n      override fun onActivityCreated(\n        activity: Activity,\n        savedInstanceState: Bundle?\n      ) {\n        activity.onAndroidXFragmentViewDestroyed {\n          uncheckedClearStaticPool(application)\n        }\n      }\n    }` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/plumber/plumber-android-core/src/main/java/leakcanary/ViewLocationHolderLeakFix.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 6,
+                "line": 54,
+                "offset": 307
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/plumber/plumber-android-core/src/main/java/leakcanary/ViewLocationHolderLeakFix.kt",
+              "start": {
+                "col": 52,
+                "line": 43,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/EventListener.kt:12:\n `fun interface EventListener` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/EventListener.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 28,
+                "line": 12,
+                "offset": 27
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/EventListener.kt",
+              "start": {
+                "col": 1,
+                "line": 12,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/ChainingInstanceReferenceReader.kt:51:\n `{\n      fun create` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/ChainingInstanceReferenceReader.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 17,
+                "line": 52,
+                "offset": 18
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/ChainingInstanceReferenceReader.kt",
+              "start": {
+                "col": 35,
+                "line": 51,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 10,
+                "line": 62,
+                "offset": 24
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/ChainingInstanceReferenceReader.kt",
+              "start": {
+                "col": 19,
+                "line": 61,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 2,
+                "line": 65,
+                "offset": 3
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/ChainingInstanceReferenceReader.kt",
+              "start": {
+                "col": 3,
+                "line": 64,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android/src/androidTest/java/leakcanary/LeakActivityTest.kt:31:\n `as Class<Activity>` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android/src/androidTest/java/leakcanary/LeakActivityTest.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 23,
+                "line": 31,
+                "offset": 18
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android/src/androidTest/java/leakcanary/LeakActivityTest.kt",
+              "start": {
+                "col": 5,
+                "line": 31,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/internal/activity/screen/HeapAnalysisFailureScreen.kt:101:\n `= heapAnalysis` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/internal/activity/screen/HeapAnalysisFailureScreen.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 76,
+                "line": 101,
+                "offset": 14
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/internal/activity/screen/HeapAnalysisFailureScreen.kt",
+              "start": {
+                "col": 62,
+                "line": 101,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/object-watcher/object-watcher-android-core/src/main/java/leakcanary/FragmentAndViewModelWatcher.kt:52:\n `=\n    object : Application.ActivityLifecycleCallbacks by noOpDelegate() {\n      override fun onActivityCreated(\n        activity: Activity,\n        savedInstanceState: Bundle?\n      ) {\n        for (watcher in fragmentDestroyWatchers) {\n          watcher(activity)\n        }\n      }\n    }\n\n  override fun install() {\n    application.registerActivityLifecycleCallbacks(lifecycleCallbacks)\n  }\n\n  override fun uninstall() {\n    application.unregisterActivityLifecycleCallbacks(lifecycleCallbacks)\n  }\n\n  private fun getWatcherIfAvailable(\n    fragmentClassName: String,\n    watcherClassName: String,\n    reachabilityWatcher: ReachabilityWatcher\n  ): ((Activity) -> Unit)? {\n\n    return if (classAvailable(fragmentClassName) &&\n      classAvailable(watcherClassName)\n    ) {\n      val watcherConstructor =\n        Class.forName(watcherClassName).getDeclaredConstructor(ReachabilityWatcher::class.java)\n      @Suppress(\"UNCHECKED_CAST\")\n      watcherConstructor.newInstance(reachabilityWatcher) as (Activity) -> Unit\n    } else {\n      null\n    }\n  }\n\n  private fun classAvailable(className: String): Boolean {\n    return try {\n      Class.forName(className)\n      true\n    } catch (e: Throwable) {\n      // e is typically expected to be a ClassNotFoundException\n      // Unfortunately, prior to version 25.0.2 of the support library the\n      // FragmentManager.FragmentLifecycleCallbacks class was a non static inner class.\n      // Our AndroidSupportFragmentDestroyWatcher class is compiled against the static version of\n      // the FragmentManager.FragmentLifecycleCallbacks class, leading to the\n      // AndroidSupportFragmentDestroyWatcher class being rejected and a NoClassDefFoundError being\n      // thrown here. So we're just covering our butts here and catching everything, and assuming\n      // any throwable means \"can't use this\". See https://github.com/square/leakcanary/issues/1662\n      false\n    }\n  }\n\n  companion object {\n    private const val ANDROIDX_FRAGMENT_CLASS_NAME = \"androidx.fragment.app.Fragment\"\n    private const val ANDROIDX_FRAGMENT_DESTROY_WATCHER_CLASS_NAME =\n      \"leakcanary.internal.AndroidXFragmentDestroyWatcher\"\n\n    // Using a string builder to prevent Jetifier from changing this string to Android X Fragment\n    @Suppress(\"VariableNaming\", \"PropertyName\")\n    private val ANDROID_SUPPORT_FRAGMENT_CLASS_NAME =\n      StringBuilder(\"android.\").append(\"support.v4.app.Fragment\")\n        .toString()\n    private const val ANDROID_SUPPORT_FRAGMENT_DESTROY_WATCHER_CLASS_NAME =\n      \"leakcanary.internal.AndroidSupportFragmentDestroyWatcher\"\n  }` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/object-watcher/object-watcher-android-core/src/main/java/leakcanary/FragmentAndViewModelWatcher.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 4,
+                "line": 119,
+                "offset": 2585
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/object-watcher/object-watcher-android-core/src/main/java/leakcanary/FragmentAndViewModelWatcher.kt",
+              "start": {
+                "col": 34,
+                "line": 52,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-instrumentation/src/androidTest/java/leakcanary/LifecycleTestUtils.kt:40:\n `object : Application.ActivityLifecycleCallbacks by noOpDelegate() {\n      override fun onActivityCreated(\n        activity: Activity,\n        savedInstanceState: Bundle?\n      ) {\n        app.unregisterActivityLifecycleCallbacks(this)\n        triggered()\n      }\n    }` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-instrumentation/src/androidTest/java/leakcanary/LifecycleTestUtils.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 6,
+                "line": 48,
+                "offset": 268
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-instrumentation/src/androidTest/java/leakcanary/LifecycleTestUtils.kt",
+              "start": {
+                "col": 44,
+                "line": 40,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 8,
+                "line": 72,
+                "offset": 405
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-instrumentation/src/androidTest/java/leakcanary/LifecycleTestUtils.kt",
+              "start": {
+                "col": 7,
+                "line": 61,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-app/src/main/java/org/leakcanary/screens/ClientAppAnalysesScreen.kt:159:\n `\"s\"` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-app/src/main/java/org/leakcanary/screens/ClientAppAnalysesScreen.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 51,
+                "line": 159,
+                "offset": 3
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-app/src/main/java/org/leakcanary/screens/ClientAppAnalysesScreen.kt",
+              "start": {
+                "col": 48,
+                "line": 159,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/DominatorTree.kt:112:\n `+=` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/DominatorTree.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 21,
+                "line": 112,
+                "offset": 2
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/DominatorTree.kt",
+              "start": {
+                "col": 19,
+                "line": 112,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 50,
+                "line": 119,
+                "offset": 1
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/DominatorTree.kt",
+              "start": {
+                "col": 49,
+                "line": 119,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/PrioritizingShortestPathFinder.kt:56:\n `Listener {\n      fun` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/PrioritizingShortestPathFinder.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 10,
+                "line": 57,
+                "offset": 20
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/PrioritizingShortestPathFinder.kt",
+              "start": {
+                "col": 19,
+                "line": 56,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 2,
+                "line": 274,
+                "offset": 1
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/PrioritizingShortestPathFinder.kt",
+              "start": {
+                "col": 1,
+                "line": 274,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-graph/src/main/java/shark/internal/hppc/LongLongScatterMap.kt:28:\n `{\n    fun onEntry` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-graph/src/main/java/shark/internal/hppc/LongLongScatterMap.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 16,
+                "line": 29,
+                "offset": 17
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-graph/src/main/java/shark/internal/hppc/LongLongScatterMap.kt",
+              "start": {
+                "col": 33,
+                "line": 28,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 2,
+                "line": 407,
+                "offset": 1
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark-graph/src/main/java/shark/internal/hppc/LongLongScatterMap.kt",
+              "start": {
+                "col": 1,
+                "line": 407,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/internal/InternalLeakCanary.kt:190:\n `object : ActivityLifecycleCallbacks by noOpDelegate() {\n      override fun onActivityResumed(activity: Activity) {\n        resumedActivity = activity\n      }\n\n      override fun onActivityPaused(activity: Activity) {\n        if (resumedActivity === activity) {\n          resumedActivity = null\n        }\n      }\n    }` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/internal/InternalLeakCanary.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 6,
+                "line": 200,
+                "offset": 317
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/leakcanary/leakcanary-android-core/src/main/java/leakcanary/internal/InternalLeakCanary.kt",
+              "start": {
+                "col": 52,
+                "line": 190,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/RealLeakTracerFactory.kt:63:\n `Listener {\n      fun` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/RealLeakTracerFactory.kt",
+          "spans": [
+            {
+              "end": {
+                "col": 10,
+                "line": 64,
+                "offset": 20
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/RealLeakTracerFactory.kt",
+              "start": {
+                "col": 19,
+                "line": 63,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 6,
+                "line": 302,
+                "offset": 1432
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/RealLeakTracerFactory.kt",
+              "start": {
+                "col": 3,
+                "line": 269,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 4,
+                "line": 311,
+                "offset": 1
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/RealLeakTracerFactory.kt",
+              "start": {
+                "col": 3,
+                "line": 311,
+                "offset": 0
+              }
+            },
+            {
+              "end": {
+                "col": 2,
+                "line": 540,
+                "offset": 1
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/kotlinPrefilterTest/input/leakcanary/shark/shark/src/main/java/shark/RealLeakTracerFactory.kt",
+              "start": {
+                "col": 1,
+                "line": 540,
+                "offset": 0
+              }
+            }
+          ],
+          "type": "Syntax error"
+        }
+      ],
+      "results": []
     }
   }
 ]
