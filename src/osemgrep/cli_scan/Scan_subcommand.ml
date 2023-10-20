@@ -427,22 +427,25 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
             (scan_func targets filtered_rules)
       | Some baseline_commit ->
           (* diff scan mode *)
+          Metrics_.add_is_diff_scan true;
           let commit = Git_wrapper.get_merge_base baseline_commit in
           let status = Git_wrapper.status ~cwd:(Fpath.v ".") ~commit in
+          let diff_depth = Differential_scan_config.default_depth in
           let targets, diff_targets =
             let added_or_modified =
               status.added @ status.modified |> Common.map Fpath.v
             in
             match conf.engine_type with
-            | PRO Interfile -> (targets, added_or_modified)
+            | PRO Interfile ->
+                Metrics_.add_diff_depth diff_depth;
+                (targets, added_or_modified)
             | _ -> (added_or_modified, [])
           in
           let head_scan_result =
             Profiler.record profiler ~name:"head_core_time"
               (scan_func targets
                  ~diff_config:
-                   (Differential_scan_config.Depth
-                      (diff_targets, Differential_scan_config.default_depth))
+                   (Differential_scan_config.Depth (diff_targets, diff_depth))
                  filtered_rules)
           in
           scan_baseline_and_remove_duplicates conf profiler head_scan_result

@@ -137,6 +137,7 @@ let default_payload =
         configNamesHash = Digestif.SHA256.digest_string "<noconfigyet>";
         rulesHash = None;
         ci = None;
+        isDiffScan = false;
         isAuthenticated = false;
         integrationName = None;
       };
@@ -154,6 +155,7 @@ let default_payload =
     value =
       {
         features = [];
+        proFeatures = None;
         numFindings = None;
         numIgnored = None;
         ruleHashesWithFindings = None;
@@ -254,6 +256,11 @@ let string_of_metrics () = Semgrep_metrics_j.string_of_payload g.payload
 (*****************************************************************************)
 (* add_xxx wrappers *)
 (*****************************************************************************)
+let add_is_diff_scan (is_diff_scan : bool) =
+  g.payload.environment.isDiffScan <- is_diff_scan
+
+let add_diff_depth (diff_depth : int) =
+  g.payload.value.proFeatures <- Some { diffDepth = Some diff_depth }
 
 let add_engine_kind (kind : Out.engine_kind) =
   (* TODO: use a better type in semgrep_metrics.atd for this field *)
