@@ -18,7 +18,7 @@ def test_debug_performance(run_semgrep_in_tmp: RunSemgrep):
 
     assert (
         time_without_debug > 0.8
-    ), "runtime was suspiciously low, was the rule optimized out?"
+    ), f"runtime was suspiciously low ({time_without_debug:.6f} s), was the rule optimized out?"
 
     start_with_debug = time.time()
     run_semgrep_in_tmp(
