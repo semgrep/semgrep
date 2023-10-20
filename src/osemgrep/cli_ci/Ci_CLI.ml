@@ -72,10 +72,6 @@ let o_beta_testing_secrets : bool Term.t =
   let info = Arg.info [ "beta-testing-secrets" ] in
   Arg.value (Arg.flag info)
 
-let o_no_secrets_validation : bool Term.t =
-  let info = Arg.info [ "no-secrets-validation" ] in
-  Arg.value (Arg.flag info)
-
 let o_secrets : bool Term.t =
   let info =
     Arg.info [ "secrets" ]
@@ -83,6 +79,10 @@ let o_secrets : bool Term.t =
         {|Support for secret validation. Requires Semgrep Secrets,
 contact support@semgrep.com for more information this.|}
   in
+  Arg.value (Arg.flag info)
+
+let o_no_secrets_validation : bool Term.t =
+  let info = Arg.info [ "no-secrets-validation" ] in
   Arg.value (Arg.flag info)
 
 let o_suppress_errors : bool Term.t =
