@@ -1,14 +1,22 @@
+module Arg = Cmdliner.Arg
+module Term = Cmdliner.Term
+module Cmd = Cmdliner.Cmd
 module Http_helpers = Http_helpers.Make (Lwt_platform)
+
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
 
+(* See https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables *)
+
 type env = {
   git : Git_metadata.env;
+  (* actually GITHUB_EVENT_PATH *)
   _GITHUB_EVENT_JSON : Yojson.Basic.t;
   _GITHUB_REPOSITORY : string option;
   _GITHUB_API_URL : Uri.t option;
   _GITHUB_SHA : Digestif.SHA1.t option;
+  (* default to https://github.com if not set *)
   _GITHUB_SERVER_URL : Uri.t;
   _GITHUB_REF : string option;
   _GITHUB_HEAD_REF : string option;
@@ -24,7 +32,96 @@ let _MAX_FETCH_ATTEMPT_COUNT = 10
 let scan_environment = "github-actions"
 
 (*****************************************************************************)
-(* Implement signature in Project_metadata.S *)
+(* Cmdliner *)
+(*****************************************************************************)
+
+let env : env Term.t =
+  let github_event_path =
+    let doc = "The GitHub event path." in
+    let env = Cmd.Env.info "GITHUB_EVENT_PATH" in
+    Arg.(
+      value & opt Glom.cli Glom.default & info [ "github-event-path" ] ~env ~doc)
+  in
+  let github_sha =
+    let doc = "The GitHub commit." in
+    let env = Cmd.Env.info "GITHUB_SHA" in
+    Arg.(
+      value
+      & opt (some Cmdliner_helpers.sha1) None
+      & info [ "github-sha" ] ~env ~doc)
+  in
+  let gh_token =
+    let doc = "The GitHub token." in
+    let env = Cmd.Env.info "GH_TOKEN" in
+    Arg.(value & opt (some string) None & info [ "gh-token" ] ~env ~doc)
+  in
+  let github_repository =
+    let doc = "The GitHub repository." in
+    let env = Cmd.Env.info "GITHUB_REPOSITORY" in
+    Arg.(
+      value & opt (some string) None & info [ "github-repository" ] ~env ~doc)
+  in
+  let github_server_url =
+    let doc = "The GitHub server URL." in
+    let env = Cmd.Env.info "GITHUB_SERVER_URL" in
+    Arg.(
+      value
+      & opt Cmdliner_helpers.uri (Uri.of_string "https://github.com")
+      & info [ "github-server-url" ] ~doc ~env)
+  in
+  let github_api_url =
+    let doc = "The GitHub API URL." in
+    let env = Cmd.Env.info "GITHUB_API_URL" in
+    Arg.(
+      value
+      & opt (some Cmdliner_helpers.uri) None
+      & info [ "github-api-url" ] ~doc ~env)
+  in
+  let github_run_id =
+    let doc = "The GitHub run ID." in
+    let env = Cmd.Env.info "GITHUB_RUN_ID" in
+    Arg.(value & opt (some string) None & info [ "github-run-id" ] ~doc ~env)
+  in
+  let github_event_name =
+    let doc = "The GitHub event name." in
+    let env = Cmd.Env.info "GITHUB_EVENT_NAME" in
+    Arg.(
+      value & opt (some string) None & info [ "github-event-name" ] ~doc ~env)
+  in
+  let github_ref =
+    let doc = "The GitHub ref." in
+    let env = Cmd.Env.info "GITHUB_REF" in
+    Arg.(value & opt (some string) None & info [ "github-ref" ] ~doc ~env)
+  in
+  let github_head_ref =
+    let doc = "The GitHub HEAD ref." in
+    let env = Cmd.Env.info "GITHUB_HEAD_REF" in
+    Arg.(value & opt (some string) None & info [ "github-head-ref" ] ~doc ~env)
+  in
+  let run git (_, _GITHUB_EVENT_JSON) _GITHUB_SHA _GITHUB_REPOSITORY
+      _GITHUB_SERVER_URL _GITHUB_API_URL _GITHUB_RUN_ID _GITHUB_EVENT_NAME
+      _GITHUB_REF _GITHUB_HEAD_REF _GH_TOKEN =
+    {
+      git;
+      _GITHUB_EVENT_JSON;
+      _GITHUB_REPOSITORY;
+      _GITHUB_API_URL;
+      _GITHUB_SHA;
+      _GITHUB_SERVER_URL;
+      _GITHUB_RUN_ID;
+      _GITHUB_EVENT_NAME;
+      _GITHUB_REF;
+      _GITHUB_HEAD_REF;
+      _GH_TOKEN;
+    }
+  in
+  Term.(
+    const run $ Git_metadata.env $ github_event_path $ github_sha
+    $ github_repository $ github_server_url $ github_api_url $ github_run_id
+    $ github_event_name $ github_ref $ github_head_ref $ gh_token)
+
+(*****************************************************************************)
+(* Helpers *)
 (*****************************************************************************)
 
 let get_repo_name env =
@@ -45,7 +142,7 @@ let is_pull_request_event env =
   | Some ("pull_request" | "pull_request_target") -> true
   | _ -> false
 
-let get_commit_sha env =
+let _XXXget_commit_sha env =
   if is_pull_request_event env.git then
     Option.bind
       (Glom.get_and_coerce_opt Glom.string env._GITHUB_EVENT_JSON
@@ -71,7 +168,7 @@ let get_commit_sha env =
    `fix_head_if_github_action`. But fixing the slight data inaccuracy would be
    incompatible with all existing data. So as of May 2022 we have not
    corrected it. *)
-let get_branch env =
+let _XXXget_branch env =
   if Git_metadata.get_event_name env.git = Some "pull_request_target" then
     env._GITHUB_HEAD_REF
   else
@@ -80,7 +177,7 @@ let get_branch env =
     | None, Some branch -> Some branch
     | None, None -> Git_metadata.get_branch env.git
 
-let get_pr_id env =
+let _XXXget_pr_id env =
   match env.git._SEMGREP_PR_ID with
   | Some _ as value -> value
   | None ->
@@ -89,7 +186,7 @@ let get_pr_id env =
           [ k "pull_request"; k "number" ])
       |> Option.map string_of_int
 
-let get_pr_title env =
+let _XXXget_pr_title env =
   match env.git._SEMGREP_PR_TITLE with
   | Some _ as value -> value
   | None ->
@@ -97,7 +194,7 @@ let get_pr_title env =
         get_and_coerce_opt string env._GITHUB_EVENT_JSON
           [ k "pull_request"; k "title" ])
 
-let get_ci_job_url env =
+let _XXXget_ci_job_url env =
   match Git_metadata.get_ci_job_url env.git with
   | Some _ as value -> value
   | None -> (
@@ -106,7 +203,7 @@ let get_ci_job_url env =
           Some (Uri.with_path repo_url (Fmt.str "/actions/runs/%s" value))
       | _ -> None)
 
-let get_event_name env = env._GITHUB_EVENT_NAME
+let _XXXget_event_name env = env._GITHUB_EVENT_NAME
 
 (*****************************************************************************)
 (* Helpers *)
@@ -281,102 +378,16 @@ let rec _find_branchoff_point ?(attempt_count = 0) env =
           Digestif.SHA1.pp head_branch_hash
     | Error (`Msg err) -> failwith err
 
-let get_merge_base_ref env =
+let _XXXget_merge_base_ref env =
   match (is_pull_request_event env.git, get_head_branch_hash env) with
   | true, Some _ -> _find_branchoff_point_from_github_api env
   | _ -> Lwt.return_none
-
-let env =
-  let open Cmdliner in
-  let _github_event_path =
-    let doc = "The GitHub event path." in
-    let env = Cmd.Env.info "GITHUB_EVENT_PATH" in
-    Arg.(
-      value & opt Glom.cli Glom.default & info [ "github-event-path" ] ~env ~doc)
-  in
-  let _github_sha =
-    let doc = "The GitHub commit." in
-    let env = Cmd.Env.info "GITHUB_SHA" in
-    Arg.(
-      value
-      & opt (some Cmdliner_helpers.sha1) None
-      & info [ "github-sha" ] ~env ~doc)
-  in
-  let gh_token =
-    let doc = "The GitHub token." in
-    let env = Cmd.Env.info "GH_TOKEN" in
-    Arg.(value & opt (some string) None & info [ "gh-token" ] ~env ~doc)
-  in
-  let _github_repository =
-    let doc = "The GitHub repository." in
-    let env = Cmd.Env.info "GITHUB_REPOSITORY" in
-    Arg.(
-      value & opt (some string) None & info [ "github-repository" ] ~env ~doc)
-  in
-  let _github_server_url =
-    let doc = "The GitHub server URL." in
-    let env = Cmd.Env.info "GITHUB_SERVER_URL" in
-    Arg.(
-      value
-      & opt Cmdliner_helpers.uri (Uri.of_string "https://github.com")
-      & info [ "github-server-url" ] ~doc ~env)
-  in
-  let _github_api_url =
-    let doc = "The GitHub API URL." in
-    let env = Cmd.Env.info "GITHUB_API_URL" in
-    Arg.(
-      value
-      & opt (some Cmdliner_helpers.uri) None
-      & info [ "github-api-url" ] ~doc ~env)
-  in
-  let _github_run_id =
-    let doc = "The GitHub run ID." in
-    let env = Cmd.Env.info "GITHUB_RUN_ID" in
-    Arg.(value & opt (some string) None & info [ "github-run-id" ] ~doc ~env)
-  in
-  let _github_event_name =
-    let doc = "The GitHub event name." in
-    let env = Cmd.Env.info "GITHUB_EVENT_NAME" in
-    Arg.(
-      value & opt (some string) None & info [ "github-event-name" ] ~doc ~env)
-  in
-  let _github_ref =
-    let doc = "The GitHub ref." in
-    let env = Cmd.Env.info "GITHUB_REF" in
-    Arg.(value & opt (some string) None & info [ "github-ref" ] ~doc ~env)
-  in
-  let _github_head_ref =
-    let doc = "The GitHub HEAD ref." in
-    let env = Cmd.Env.info "GITHUB_HEAD_REF" in
-    Arg.(value & opt (some string) None & info [ "github-head-ref" ] ~doc ~env)
-  in
-  let run git (_, _GITHUB_EVENT_JSON) _GITHUB_SHA _GITHUB_REPOSITORY
-      _GITHUB_SERVER_URL _GITHUB_API_URL _GITHUB_RUN_ID _GITHUB_EVENT_NAME
-      _GITHUB_REF _GITHUB_HEAD_REF _GH_TOKEN =
-    {
-      git;
-      _GITHUB_EVENT_JSON;
-      _GITHUB_REPOSITORY;
-      _GITHUB_API_URL;
-      _GITHUB_SHA;
-      _GITHUB_SERVER_URL;
-      _GITHUB_RUN_ID;
-      _GITHUB_EVENT_NAME;
-      _GITHUB_REF;
-      _GITHUB_HEAD_REF;
-      _GH_TOKEN;
-    }
-  in
-  Term.(
-    const run $ Git_metadata.env $ _github_event_path $ _github_sha
-    $ _github_repository $ _github_server_url $ _github_api_url $ _github_run_id
-    $ _github_event_name $ _github_ref $ _github_head_ref $ gh_token)
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let make env =
+let make (env : env) : Project_metadata.t =
   let _SEMGREP_REPO_NAME = Some (get_repo_name env) in
   let _SEMGREP_REPO_URL = get_repo_url env in
   let commit_author_username =
@@ -412,5 +423,3 @@ let make env =
     pull_request_author_image_url;
     scan_environment;
   }
-
-let term = Cmdliner.Term.(const make $ env)

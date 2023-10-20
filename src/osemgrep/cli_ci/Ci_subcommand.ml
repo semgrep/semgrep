@@ -215,57 +215,60 @@ let scan_id_and_rules_from_deployment ~dry_run (prj_meta : Out.project_metadata)
 (* Project metadata *)
 (*****************************************************************************)
 
-(* from meta.py
- * TODO: do not use cmdliner for this; just use Sys.getenv
- *)
+(* from meta.py *)
 let generate_meta_from_environment (_baseline_ref : Digestif.SHA1.t option) :
     Project_metadata.t =
-  (* https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables *)
-  let r =
+  let extract_env term =
     let argv = [| "empty" |] and info_ = Cmdliner.Cmd.info "" in
-    match Sys.getenv_opt "GITHUB_ACTIONS" with
-    | Some "true" ->
-        (* TODO baseline_ref *)
-        Cmdliner.Cmd.(eval_value ~argv (v info_ Github_metadata.term))
-    | _else ->
-        (* TODO baseline_ref *)
-        Cmdliner.Cmd.(eval_value ~argv (v info_ Git_metadata.term))
-    (* https://docs.gitlab.com/ee/ci/variables/predefined_variables.html *)
-    (* match Sys.getenv_opt "GITLAB_CI" with
-       | Some "true" -> return GitlabMeta(baseline_ref)
-       | _else -> *)
-    (* https://circleci.com/docs/2.0/env-vars/#built-in-environment-variables *)
-    (* match Sys.getenv_opt "CIRCLECI" with
-       | Some "true" -> return CircleCIMeta(baseline_ref)
-       | _else -> *)
-    (* https://e.printstacktrace.blog/jenkins-pipeline-environment-variables-the-definitive-guide/ *)
-    (* match Sys.getenv_opt "JENKINS_URL" with
-        | Some _ -> return JenkinsMeta(baseline_ref)
-        | None -> *)
-    (* https://support.atlassian.com/bitbucket-cloud/docs/variables-and-secrets/ *)
-    (* match Sys.getenv_opt "BITBUCKET_BUILD_NUMBER" with
-       | Some _ -> return BitbucketMeta(baseline_ref)
-       | None -> *)
-    (* https://github.com/DataDog/dd-trace-py/blob/f583fec63c4392a0784b4199b0e20931f9aae9b5/ddtrace/ext/ci.py#L90
-       picked an env var that is only defined by Azure Pipelines *)
-    (* match Sys.getenv_opt "BUILD_BUILDID" with
-       | Some _ -> AzurePipelinesMeta(baseline_ref)
-       | None -> *)
-    (* https://buildkite.com/docs/pipelines/environment-variables#bk-env-vars-buildkite-build-author-email *)
-    (* match Sys.getenv_opt "BUILDKITE" with
-       | Some "true" -> return BuildkiteMeta(baseline_ref)
-       | _else -> *)
-    (* https://docs.travis-ci.com/user/environment-variables/ *)
-    (* match Sys.getenv_opt "TRAVIS" with
-       | Some "true" -> return TravisMeta(baseline_ref)
-       | _else -> return GitMeta(baseline_ref) *)
+    let eval term =
+      match Cmdliner.Cmd.(eval_value ~argv (v info_ term)) with
+      | Ok (`Ok env) -> env
+      | Ok `Version
+      | Ok `Help ->
+          invalid_arg "unexpected version or help"
+      | Error _e -> invalid_arg "couldn't decode environment"
+    in
+    eval term
   in
-  match r with
-  | Ok (`Ok a) -> a
-  | Ok `Version
-  | Ok `Help ->
-      invalid_arg "unexpected version or help"
-  | Error _e -> invalid_arg "couldn't decode environment"
+
+  match Sys.getenv_opt "GITHUB_ACTIONS" with
+  | Some "true" ->
+      let env = extract_env Github_metadata.env in
+      (* TODO baseline_ref *)
+      Github_metadata.make env
+  | _else ->
+      let env = extract_env Git_metadata.env in
+      (* TODO baseline_ref *)
+      Git_metadata.make env
+(* https://docs.gitlab.com/ee/ci/variables/predefined_variables.html *)
+(* match Sys.getenv_opt "GITLAB_CI" with
+   | Some "true" -> return GitlabMeta(baseline_ref)
+   | _else -> *)
+(* https://circleci.com/docs/2.0/env-vars/#built-in-environment-variables *)
+(* match Sys.getenv_opt "CIRCLECI" with
+   | Some "true" -> return CircleCIMeta(baseline_ref)
+   | _else -> *)
+(* https://e.printstacktrace.blog/jenkins-pipeline-environment-variables-the-definitive-guide/ *)
+(* match Sys.getenv_opt "JENKINS_URL" with
+    | Some _ -> return JenkinsMeta(baseline_ref)
+    | None -> *)
+(* https://support.atlassian.com/bitbucket-cloud/docs/variables-and-secrets/ *)
+(* match Sys.getenv_opt "BITBUCKET_BUILD_NUMBER" with
+   | Some _ -> return BitbucketMeta(baseline_ref)
+   | None -> *)
+(* https://github.com/DataDog/dd-trace-py/blob/f583fec63c4392a0784b4199b0e20931f9aae9b5/ddtrace/ext/ci.py#L90
+   picked an env var that is only defined by Azure Pipelines *)
+(* match Sys.getenv_opt "BUILD_BUILDID" with
+   | Some _ -> AzurePipelinesMeta(baseline_ref)
+   | None -> *)
+(* https://buildkite.com/docs/pipelines/environment-variables#bk-env-vars-buildkite-build-author-email *)
+(* match Sys.getenv_opt "BUILDKITE" with
+   | Some "true" -> return BuildkiteMeta(baseline_ref)
+   | _else -> *)
+(* https://docs.travis-ci.com/user/environment-variables/ *)
+(* match Sys.getenv_opt "TRAVIS" with
+   | Some "true" -> return TravisMeta(baseline_ref)
+   | _else -> return GitMeta(baseline_ref) *)
 
 (*****************************************************************************)
 (* Partition rules *)

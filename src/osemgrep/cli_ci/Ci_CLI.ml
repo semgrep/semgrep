@@ -8,7 +8,7 @@ module H = Cmdliner_helpers
 (* Prelude *)
 (*****************************************************************************)
 (*
-   'semgrep ci' subcommand
+   'semgrep ci' command-line parsing.
 
    Translated from ci.py
 *)
@@ -96,9 +96,19 @@ If false, encountered errors are not suppressed and the exit code is non-zero
 (* Turn argv into conf *)
 (*************************************************************************)
 
+(* TODO: at some point osemgrep will support more than just github_metadata
+ * but also gitlab and so on, so we may need to generate the cmdline_term
+ * from all of those? Or maybe imitate Ci_subcommand.generate_meta_from_env
+ * and dynamically choose the appropriate _xxx_metadata.
+ *)
 let cmdline_term : conf Term.t =
+  (* Note that we ignore the _xxx_metadata; The actual environment variables
+   * grabbing is done in Ci_subcommand.generate_meta_from_env, but we pass
+   * it below so we can get a nice man page documenting those environment
+   * variables.
+   *)
   let combine scan_conf audit_on beta_testing_secrets code dry_run secrets
-      supply_chain suppress_errors =
+      supply_chain suppress_errors _github_metadata =
     let products =
       (if beta_testing_secrets || secrets then [ `Secrets ] else [])
       @ (if code then [ `SAST ] else [])
@@ -110,7 +120,7 @@ let cmdline_term : conf Term.t =
     const combine
     $ Scan_CLI.cmdline_term ~allow_empty_config:true
     $ o_audit_on $ o_beta_testing_secrets $ o_code $ o_dry_run $ o_secrets
-    $ o_supply_chain $ o_suppress_errors)
+    $ o_supply_chain $ o_suppress_errors $ Github_metadata.env)
 
 let doc = "the recommended way to run semgrep in CI"
 

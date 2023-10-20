@@ -3,8 +3,12 @@
 (*****************************************************************************)
 (* Collect information about the project from the environment.
  *
- * This module is a translation of [meta.py] renamed to [Project_metadata.ml]
- * and split in other modules (e.g., [Git_metadata.ml], [Github_metadata.ml]).
+ * This module is a translation of meta.py renamed to Project_metadata.ml
+ * and split in other modules (e.g., Git_metadata.ml, Github_metadata.ml).
+ *
+ * This file could be moved in cli_ci/ because it is used only for semgrep ci,
+ * but it is also used in networking/Semgrep_app.ml (which could also
+ * arguably be moved under cli_ci/) so simpler to leave it in core/ for now.
  *)
 
 (*****************************************************************************)
@@ -17,23 +21,20 @@ type t = Semgrep_output_v1_t.project_metadata
 module type S = sig
   type env
 
-  (** Accessors. *)
-
-  val get_event_name : env -> string option
-  val get_repo_name : env -> string
-  val get_repo_url : env -> Uri.t option
-  val get_commit_sha : env -> Digestif.SHA1.t option
-  val get_ci_job_url : env -> Uri.t option
-  val get_pr_id : env -> string option
-  val get_pr_title : env -> string option
-  val get_branch : env -> string option
-  val get_merge_base_ref : env -> Digestif.SHA1.t option Lwt.t
-
-  (** Cmdliner helpers. *)
-
   val env : env Cmdliner.Term.t
   val make : env -> t
-  val term : t Cmdliner.Term.t
+
+  (* old: useful to make part of the type
+     val get_event_name : env -> string option
+     val get_repo_name : env -> string
+     val get_repo_url : env -> Uri.t option
+     val get_commit_sha : env -> Digestif.SHA1.t option
+     val get_ci_job_url : env -> Uri.t option
+     val get_pr_id : env -> string option
+     val get_pr_title : env -> string option
+     val get_branch : env -> string option
+     val get_merge_base_ref : env -> Digestif.SHA1.t option Lwt.t
+  *)
 end
 
 (*****************************************************************************)
