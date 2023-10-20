@@ -157,6 +157,7 @@ def run_rules(
     engine_type: EngineType,
     # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
     run_secrets: bool = False,
+    disable_secrets_validation: bool = False,
     target_mode_config: Optional[TargetModeConfig] = None,
     *,
     with_code_rules: bool = True,
@@ -203,6 +204,7 @@ def run_rules(
         matching_explanations,
         engine_type,
         run_secrets,
+        disable_secrets_validation,
         target_mode_config,
     )
 

@@ -988,6 +988,7 @@ Exception raised: `{e}`
         matching_explanations: bool,
         engine: EngineType,
         run_secrets: bool,
+        disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
@@ -1007,6 +1008,7 @@ Exception raised: `{e}`
             matching_explanations,
             engine,
             run_secrets,
+            disable_secrets_validation,
             target_mode_config,
         )
 

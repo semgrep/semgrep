@@ -150,7 +150,7 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
 )
 @click.option(
     "--no-secrets-validation",
-    "disable_secrets_validation",
+    "disable_secrets_validation_flag",
     is_flag=True,
     hidden=True,
 )
@@ -198,6 +198,7 @@ def ci(
     quiet: bool,
     rewrite_rule_ids: bool,
     run_secrets_flag: bool,
+    disable_secrets_validation_flag: bool,
     allow_untrusted_postprocessors: bool,
     supply_chain: bool,
     scan_unknown_extensions: bool,
@@ -372,6 +373,8 @@ def ci(
     run_secrets = run_secrets_flag or bool(
         scan_handler and "secrets" in scan_handler.enabled_products
     )
+
+    disable_secrets_validation = disable_secrets_validation_flag
 
     engine_type = EngineType.decide_engine_type(
         requested_engine=requested_engine,
