@@ -5,13 +5,19 @@ module Cmd = Cmdliner.Cmd
 module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Extract metadata using environment variables setup by Github,
+ * or default to Git_metadata.ml if unset.
+ *)
+
+(*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
 
 (* See https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables *)
 
 type env = {
-  git : Git_metadata.env;
   (* actually GITHUB_EVENT_PATH *)
   _GITHUB_EVENT_JSON : Yojson.Basic.t;
   _GITHUB_REPOSITORY : string option;
@@ -29,8 +35,6 @@ type env = {
 let _MAX_FETCH_ATTEMPT_COUNT = 10
 (* A limit of how many fetch we should do until we find the common commit
    between two branches. *)
-
-let scan_environment = "github-actions"
 
 (*****************************************************************************)
 (* Cmdliner *)
@@ -99,11 +103,10 @@ let env : env Term.t =
     let env = Cmd.Env.info "GITHUB_HEAD_REF" in
     Arg.(value & opt (some string) None & info [ "github-head-ref" ] ~doc ~env)
   in
-  let run git (_, _GITHUB_EVENT_JSON) _GITHUB_SHA _GITHUB_REPOSITORY
+  let run (_, _GITHUB_EVENT_JSON) _GITHUB_SHA _GITHUB_REPOSITORY
       _GITHUB_SERVER_URL _GITHUB_API_URL _GITHUB_RUN_ID _GITHUB_EVENT_NAME
       _GITHUB_REF _GITHUB_HEAD_REF _GH_TOKEN =
     {
-      git;
       _GITHUB_EVENT_JSON;
       _GITHUB_REPOSITORY;
       _GITHUB_API_URL;
@@ -117,95 +120,9 @@ let env : env Term.t =
     }
   in
   Term.(
-    const run $ Git_metadata.env $ github_event_path $ github_sha
-    $ github_repository $ github_server_url $ github_api_url $ github_run_id
-    $ github_event_name $ github_ref $ github_head_ref $ gh_token)
-
-(*****************************************************************************)
-(* Helpers *)
-(*****************************************************************************)
-
-let get_repo_name env =
-  let err = "Could not get repo_name when running in GitHub Action" in
-  if Option.is_none env.git.Git_metadata._SEMGREP_REPO_NAME then
-    match env._GITHUB_REPOSITORY with
-    | Some repo_name -> repo_name
-    | None -> failwith err
-  else failwith err
-
-let get_repo_url env =
-  match (env.git.Git_metadata._SEMGREP_REPO_URL, get_repo_name env) with
-  | (Some _ as v), _ -> v
-  | None, repo_name -> Some (Uri.with_path env._GITHUB_SERVER_URL repo_name)
-
-let is_pull_request_event env =
-  match Git_metadata.get_event_name env with
-  | Some ("pull_request" | "pull_request_target") -> true
-  | _ -> false
-
-let _XXXget_commit_sha env =
-  if is_pull_request_event env.git then
-    Option.bind
-      (Glom.get_and_coerce_opt Glom.string env._GITHUB_EVENT_JSON
-         Glom.[ k "pull_request"; k "head"; k "sha" ])
-      Digestif.SHA1.of_hex_opt
-  else if Git_metadata.get_event_name env.git =*= Some "push" then
-    env._GITHUB_SHA
-  else env.git._SEMGREP_COMMIT
-
-(* This branch name gets used for tracking issue state over time on the
-   backend. The head ref is in GITHUB_HEAD_REF and the base ref is in
-   GITHUB_REF.
-
-   Event name            GITHUB_HEAD_REF -> GITHUB_REF
-   ---------------------------------------------------
-   pull_request        - johnny-path-1   -> refs/pulls/123/merge
-   pull_request_target - johnny-path-1   -> refs/heads/main
-   push/schedule/etc.  - <unset>         -> refs/heads/main
-
-   This code originally always sent GITHUB_REF. This caused obvious breakage
-   for pull_request_target, so we just fixed the ref we report for that event.
-   But it's more subtly wrong for pull_request events: what we'e scanning
-   there is still the head ref; we force-switch to the head ref in
-   `fix_head_if_github_action`. But fixing the slight data inaccuracy would be
-   incompatible with all existing data. So as of May 2022 we have not
-   corrected it. *)
-let _XXXget_branch env =
-  if Git_metadata.get_event_name env.git =*= Some "pull_request_target" then
-    env._GITHUB_HEAD_REF
-  else
-    match (env.git._SEMGREP_BRANCH, env._GITHUB_REF) with
-    | Some branch, _ -> Some branch
-    | None, Some branch -> Some branch
-    | None, None -> Git_metadata.get_branch env.git
-
-let _XXXget_pr_id env =
-  match env.git._SEMGREP_PR_ID with
-  | Some _ as value -> value
-  | None ->
-      Glom.(
-        get_and_coerce_opt int env._GITHUB_EVENT_JSON
-          [ k "pull_request"; k "number" ])
-      |> Option.map string_of_int
-
-let _XXXget_pr_title env =
-  match env.git._SEMGREP_PR_TITLE with
-  | Some _ as value -> value
-  | None ->
-      Glom.(
-        get_and_coerce_opt string env._GITHUB_EVENT_JSON
-          [ k "pull_request"; k "title" ])
-
-let _XXXget_ci_job_url env =
-  match Git_metadata.get_ci_job_url env.git with
-  | Some _ as value -> value
-  | None -> (
-      match (Git_metadata.get_repo_url env.git, env._GITHUB_RUN_ID) with
-      | Some repo_url, Some value ->
-          Some (Uri.with_path repo_url (Fmt.str "/actions/runs/%s" value))
-      | _ -> None)
-
-let _XXXget_event_name env = env._GITHUB_EVENT_NAME
+    const run $ github_event_path $ github_sha $ github_repository
+    $ github_server_url $ github_api_url $ github_run_id $ github_event_name
+    $ github_ref $ github_head_ref $ gh_token)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -298,10 +215,10 @@ let get_base_branch_hash env =
         "We are not into a PR context (the GitHub pull_request event is \
          missing)"
 
-let find_branchoff_point_from_github_api env =
-  let base_branch_hash = get_base_branch_hash env
-  and head_branch_hash = get_head_branch_hash env
-  and repo_name = get_repo_name env in
+let find_branchoff_point_from_github_api repo_name env :
+    Digestif.SHA1.t option Lwt.t =
+  let base_branch_hash = get_base_branch_hash env in
+  let head_branch_hash = get_head_branch_hash env in
 
   match (env._GH_TOKEN, env._GITHUB_API_URL, head_branch_hash) with
   | Some gh_token, Some api_url, Some head_branch_hash -> (
@@ -327,7 +244,7 @@ let find_branchoff_point_from_github_api env =
       | __else__ -> Lwt.return_none)
   | __else__ -> Lwt.return_none
 
-let rec find_branchoff_point ?(attempt_count = 0) env =
+let rec find_branchoff_point ?(attempt_count = 0) repo_name env =
   let base_branch_hash = get_base_branch_hash env
   and head_branch_hash = Option.get (get_head_branch_hash env) in
 
@@ -341,7 +258,7 @@ let rec find_branchoff_point ?(attempt_count = 0) env =
       Float.to_int (2. ** 31.) - 1
     else fetch_depth
   in
-  if attempt_count =|= 0 then find_branchoff_point_from_github_api env
+  if attempt_count =|= 0 then find_branchoff_point_from_github_api repo_name env
   else
     (* XXX(dinosaure): we safely can use [Option.get]. This information is
        required to [get_base_branch_ref]. *)
@@ -371,7 +288,7 @@ let rec find_branchoff_point ?(attempt_count = 0) env =
     | Ok (merge_base, (_, `Exited 0)) ->
         Lwt.return (Digestif.SHA1.of_hex_opt merge_base)
     | Ok (_, _) when attempt_count < _MAX_FETCH_ATTEMPT_COUNT ->
-        find_branchoff_point ~attempt_count:(succ attempt_count) env
+        find_branchoff_point ~attempt_count:(succ attempt_count) repo_name env
     | Ok (_, _) ->
         Fmt.failwith
           "Could not find branch-off point between the baseline tip %s@%a and \
@@ -382,54 +299,8 @@ let rec find_branchoff_point ?(attempt_count = 0) env =
 [@@warning "-32"]
 (* TODO: why unused? *)
 
-let _XXXget_merge_base_ref env =
-  match (is_pull_request_event env.git, get_head_branch_hash env) with
-  | true, Some _ -> find_branchoff_point_from_github_api env
-  | _ -> Lwt.return_none
-
 (*****************************************************************************)
 (* Entry point *)
-(*****************************************************************************)
-
-let make (env : env) : Project_metadata.t =
-  let _SEMGREP_REPO_NAME = Some (get_repo_name env) in
-  let _SEMGREP_REPO_URL = get_repo_url env in
-  let commit_author_username =
-    Glom.(
-      get_and_coerce_opt string env._GITHUB_EVENT_JSON [ k "sender"; k "login" ])
-  in
-  let commit_author_image_url =
-    Glom.(
-      get_and_coerce_opt string env._GITHUB_EVENT_JSON
-        [ k "sender"; k "avatar_url" ])
-    |> Option.map Uri.of_string
-  in
-  let pull_request_author_username =
-    Glom.(
-      get_and_coerce_opt string env._GITHUB_EVENT_JSON
-        [ k "pull_request"; k "user"; k "login" ])
-  in
-  let pull_request_author_image_url =
-    Glom.(
-      get_and_coerce_opt string env._GITHUB_EVENT_JSON
-        [ k "pull_request"; k "user"; k "avatar_url" ])
-    |> Option.map Uri.of_string
-  in
-  let value =
-    (* XXX(dinosaure): like [**super.to_dict()] *)
-    Git_metadata.make { env.git with _SEMGREP_REPO_NAME; _SEMGREP_REPO_URL }
-  in
-  {
-    value with
-    commit_author_username;
-    commit_author_image_url;
-    pull_request_author_username;
-    pull_request_author_image_url;
-    scan_environment;
-  }
-
-(*****************************************************************************)
-(* Object *)
 (*****************************************************************************)
 
 class meta ~baseline_ref env gha_env =
@@ -482,8 +353,15 @@ class meta ~baseline_ref env gha_env =
       | None, repo_name ->
           Some (Uri.with_path gha_env._GITHUB_SERVER_URL repo_name)
 
+    method private is_pull_request_event =
+      match super#event_name with
+      | "pull_request"
+      | "pull_request_target" ->
+          true
+      | _else_ -> false
+
     method! commit_sha =
-      if is_pull_request_event env then
+      if self#is_pull_request_event then
         Option.bind
           (Glom.get_and_coerce_opt Glom.string gha_env._GITHUB_EVENT_JSON
              Glom.[ k "pull_request"; k "head"; k "sha" ])
@@ -547,4 +425,11 @@ class meta ~baseline_ref env gha_env =
       match gha_env._GITHUB_EVENT_NAME with
       | Some x -> x
       | None -> super#event_name
+
+    (* TODO
+        method! merge_base_ref =
+          match (self#is_pull_request_event, get_head_branch_hash gha_env) with
+          | true, Some _ -> find_branchoff_point_from_github_api self#repo_name gha_env
+          | _ -> Lwt.return_none
+    *)
   end

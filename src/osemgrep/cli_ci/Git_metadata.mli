@@ -1,5 +1,6 @@
-(** Gather metadata only from local filesystem. We expect, at least, a Git
-    repository. *)
+(* Gather metadata from local filesystem (we expect, at least, a Git
+    repository) of from semgrep-specific environment variables
+*)
 
 type env = {
   _SEMGREP_REPO_NAME : string option;
@@ -11,7 +12,13 @@ type env = {
   _SEMGREP_BRANCH : string option;
 }
 
-include Project_metadata.S with type env := env
+(* Extract the environment variable via Cmdliner.
+ * Why using cmdliner? Why not simply access them with Sys.getenv_opt?
+ * The advantage of cmdliner is that we can document those variables
+ * and the env constant below can be combined in Ci_CLI.ml so those
+ * variables can be part of the 'semgrep ci' man page!!
+ *)
+val env : env Cmdliner.Term.t
 
 class meta :
   scan_environment:string ->
@@ -33,9 +40,3 @@ object
   method repo_url : Uri.t option
   method merge_base_ref : Digestif.SHA1.t option
 end
-
-(* used in Github_metadata.ml *)
-val get_event_name : env -> string option
-val get_branch : env -> string option
-val get_ci_job_url : env -> Uri.t option
-val get_repo_url : env -> Uri.t option

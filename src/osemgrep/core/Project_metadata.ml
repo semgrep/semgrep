@@ -18,25 +18,6 @@
 (* the type is now defined in ATD so it can be reused with our backend *)
 type t = Semgrep_output_v1_t.project_metadata
 
-module type S = sig
-  type env
-
-  val env : env Cmdliner.Term.t
-  val make : env -> t
-
-  (* old: useful to make part of the type
-     val get_event_name : env -> string option
-     val get_repo_name : env -> string
-     val get_repo_url : env -> Uri.t option
-     val get_commit_sha : env -> Digestif.SHA1.t option
-     val get_ci_job_url : env -> Uri.t option
-     val get_pr_id : env -> string option
-     val get_pr_title : env -> string option
-     val get_branch : env -> string option
-     val get_merge_base_ref : env -> Digestif.SHA1.t option Lwt.t
-  *)
-end
-
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)

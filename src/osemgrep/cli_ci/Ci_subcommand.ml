@@ -215,7 +215,10 @@ let scan_id_and_rules_from_deployment ~dry_run (prj_meta : Out.project_metadata)
 (* Project metadata *)
 (*****************************************************************************)
 
-(* from meta.py *)
+(* from meta.py
+ * coupling: if you add more cases below, you probably need to modify
+ * Ci_CLI.cmdline_term to pass more env there.
+ *)
 let generate_meta_from_environment (baseline_ref : Digestif.SHA1.t option) :
     Project_metadata.t =
   let extract_env term =
