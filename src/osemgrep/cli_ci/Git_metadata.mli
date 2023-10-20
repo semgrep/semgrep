@@ -12,3 +12,9 @@ type env = {
 }
 
 include Project_metadata.S with type env := env
+
+(* used in Github_metadata.ml *)
+val get_event_name : env -> string option
+val get_branch : env -> string option
+val get_ci_job_url : env -> Uri.t option
+val get_repo_url : env -> Uri.t option

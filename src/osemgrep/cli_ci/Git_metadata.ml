@@ -5,6 +5,11 @@ module Cmd = Cmdliner.Cmd
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
+(* Extract metadata from the git repo, or from SEMGREP_XXX environment
+ * variables if set.
+ *
+ * TODO? rename to Git_and_semgrep_metadata.ml ?
+ *)
 
 (*****************************************************************************)
 (* Types *)
@@ -24,19 +29,17 @@ type env = {
 (* Cmdliner *)
 (*****************************************************************************)
 
-(* TODO? why using cmdliner to parse environment variables?
- * not simpler to just access them? We do not support
- * those --semgrep-repo-name CLI flags, so not much sense to use
- * Cmdliner then.
+(* TODO: right now we have also to use CLI flags like "semgrep-repo-name"
+ * otherwise cmdliner raise an exn about empty info.
  *)
 let env : env Term.t =
-  let _semgrep_repo_name =
+  let semgrep_repo_name =
     let doc = "The name of the Git repository." in
     let env = Cmd.Env.info "SEMGREP_REPO_NAME" in
     Arg.(
       value & opt (some string) None & info [ "semgrep-repo-name" ] ~env ~doc)
   in
-  let _semgrep_repo_url =
+  let semgrep_repo_url =
     let doc = "The URL of the Git repository." in
     let env = Cmd.Env.info "SEMGREP_REPO_URL" in
     Arg.(
@@ -44,7 +47,7 @@ let env : env Term.t =
       & opt (some Cmdliner_helpers.uri) None
       & info [ "semgrep-repo-url" ] ~env ~doc)
   in
-  let _semgrep_commit =
+  let semgrep_commit =
     let doc = "The commit of the Git repository." in
     let env = Cmd.Env.info "SEMGREP_COMMIT" in
     Arg.(
@@ -52,7 +55,7 @@ let env : env Term.t =
       & opt (some Cmdliner_helpers.sha1) None
       & info [ "semgrep-commit" ] ~env ~doc)
   in
-  let _semgrep_job_url =
+  let semgrep_job_url =
     let doc = "The job URL." in
     let env = Cmd.Env.info "SEMGREP_JOB_URL" in
     Arg.(
@@ -60,17 +63,17 @@ let env : env Term.t =
       & opt (some Cmdliner_helpers.uri) None
       & info [ "semgrep-job-url" ] ~env ~doc)
   in
-  let _semgrep_pr_id =
+  let semgrep_pr_id =
     let doc = "The PR/MR ID." in
     let env = Cmd.Env.info "SEMGREP_PR_ID" in
     Arg.(value & opt (some string) None & info [ "semgrep-pr-id" ] ~env ~doc)
   in
-  let _semgrep_pr_title =
+  let semgrep_pr_title =
     let doc = "The PR/MR title." in
     let env = Cmd.Env.info "SEMGREP_PR_TITLE" in
     Arg.(value & opt (some string) None & info [ "semgrep-pr-title" ] ~env ~doc)
   in
-  let _semgrep_branch =
+  let semgrep_branch =
     let doc = "The Git branch." in
     let env = Cmd.Env.info "SEMGREP_BRANCH" in
     Arg.(value & opt (some string) None & info [ "semgrep-branch" ] ~env ~doc)
@@ -88,16 +91,14 @@ let env : env Term.t =
     }
   in
   Term.(
-    const run $ _semgrep_repo_name $ _semgrep_repo_url $ _semgrep_commit
-    $ _semgrep_job_url $ _semgrep_pr_id $ _semgrep_pr_title $ _semgrep_branch)
+    const run $ semgrep_repo_name $ semgrep_repo_url $ semgrep_commit
+    $ semgrep_job_url $ semgrep_pr_id $ semgrep_pr_title $ semgrep_branch)
 
 (*****************************************************************************)
-(* Implement signature in Project_metadata.S *)
+(* Helpers *)
 (*****************************************************************************)
 
-(* TODO: this is not even used ... rewrite the code to maybe use
- * classes instead of modules, to better mimic meta.py
- *)
+(* used in Github_metadata.ml *)
 let get_event_name env =
   match env._SEMGREP_PR_ID with
   | Some _ -> Some "pull_request"
@@ -145,9 +146,6 @@ let get_commit_sha env =
       | Error (`Msg _msg) -> None)
 
 let get_ci_job_url env = env._SEMGREP_JOB_URL
-let get_pr_id env = env._SEMGREP_PR_ID
-let get_pr_title env = env._SEMGREP_PR_TITLE
-let get_merge_base_ref _ = Lwt.return_none
 
 let get_branch env =
   match env._SEMGREP_BRANCH with
@@ -211,5 +209,3 @@ let make (env : env) : Project_metadata.t =
     is_code_scan = None;
     is_secrets_scan = None;
   }
-
-let term = Cmdliner.Term.(const make $ env)
