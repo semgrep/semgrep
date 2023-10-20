@@ -574,7 +574,6 @@ def scan(
                         metacheck_errors = CoreRunner(
                             jobs=jobs,
                             engine_type=engine_type,
-                            run_secrets=run_secrets_flag,
                             timeout=timeout,
                             max_memory=max_memory,
                             timeout_threshold=timeout_threshold,

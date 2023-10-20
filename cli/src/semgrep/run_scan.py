@@ -525,6 +525,7 @@ def run_scan(
         matching_explanations,
         engine_type,
         run_secrets,
+        disable_secrets_validation,
         target_mode_config,
         with_code_rules=with_code_rules,
         with_supply_chain=with_supply_chain,
@@ -614,6 +615,7 @@ def run_scan(
                         matching_explanations,
                         engine_type,
                         run_secrets,
+                        disable_secrets_validation,
                         baseline_target_mode_config,
                     )
                     rule_matches_by_rule = remove_matches_in_baseline(

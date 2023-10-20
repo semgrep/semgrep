@@ -931,7 +931,7 @@ class CoreRunner:
         matching_explanations: bool,
         engine: EngineType,
         run_secrets: bool,
-        disable_secrets_validation:bool,
+        disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
