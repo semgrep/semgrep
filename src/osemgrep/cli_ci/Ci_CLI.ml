@@ -106,7 +106,7 @@ let cmdline_term : conf Term.t =
    * it below so we can get a nice man page documenting those environment
    * variables (Romain's idea).
    *)
-  let combine scan_conf audit_on beta_testing_secrets code dry_run secrets no_secrets_validators
+  let combine scan_conf audit_on beta_testing_secrets code dry_run secrets _no_secrets_validators
       supply_chain suppress_errors _git_meta _github_meta =
     let products =
       (if beta_testing_secrets || secrets then [ `Secrets ] else [])
