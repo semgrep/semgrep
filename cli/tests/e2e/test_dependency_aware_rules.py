@@ -283,13 +283,15 @@ def test_maven_version_comparison(version, specifier, outcome):
         "targets/dependency_aware/osv_parsing/pnpm/tarball/pnpm-lock.yaml",
         "targets/dependency_aware/osv_parsing/pnpm/files/pnpm-lock.yaml",
         "targets/dependency_aware/osv_parsing/pnpm/exotic/pnpm-lock.yaml",
+        "targets/dependency_aware/pnpm-error-key/pnpm-lock.yaml",
     ],
 )
 # These tests are taken from https://github.com/google/osv-scanner/tree/main/pkg/lockfile/fixtures
 # With some minor edits, namely removing the "this isn't even a lockfile" tests
 # And removing some human written comments that would never appear in a real lockfile from some tests
+# They also include random lockfiles we want to make sure we parse predictably
 @pytest.mark.no_semgrep_cli
-def test_osv_parsing(parse_lockfile_path_in_tmp, caplog, target):
+def test_parsing(parse_lockfile_path_in_tmp, caplog, target):
     caplog.set_level(logging.ERROR)
     _, error = parse_lockfile_path_in_tmp(Path(target))
     # These two files have some packages we cannot really make sense of, so we ignore them
@@ -298,6 +300,8 @@ def test_osv_parsing(parse_lockfile_path_in_tmp, caplog, target):
         assert len(error) == 1
     elif target.endswith("exotic/pnpm-lock.yaml"):
         assert len(error) == 5
+    elif target.endswith("pnpm-error-key/pnpm-lock.yaml"):
+        assert len(error) == 1
     else:
         assert len(error) == 0
     assert len(caplog.records) == 0
