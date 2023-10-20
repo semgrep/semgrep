@@ -233,12 +233,13 @@ let generate_meta_from_environment (baseline_ref : Digestif.SHA1.t option) :
 
   match Sys.getenv_opt "GITHUB_ACTIONS" with
   | Some "true" ->
-      let env = extract_env Github_metadata.env in
-      (* TODO baseline_ref *)
-      Github_metadata.make env
+      let env = extract_env Git_metadata.env in
+      let gha_env = extract_env Github_metadata.env in
+      (new Github_metadata.meta baseline_ref env gha_env)#project_metadata
   | _else ->
       let env = extract_env Git_metadata.env in
-      (new Git_metadata.git_meta baseline_ref env)#project_metadata
+      (new Git_metadata.meta ~scan_environment:"git" ~baseline_ref env)
+        #project_metadata
 
 (* https://docs.gitlab.com/ee/ci/variables/predefined_variables.html *)
 (* match Sys.getenv_opt "GITLAB_CI" with
