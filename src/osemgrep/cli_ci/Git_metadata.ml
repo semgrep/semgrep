@@ -1,3 +1,4 @@
+open Common
 module Arg = Cmdliner.Arg
 module Term = Cmdliner.Term
 module Cmd = Cmdliner.Cmd
@@ -209,3 +210,128 @@ let make (env : env) : Project_metadata.t =
     is_code_scan = None;
     is_secrets_scan = None;
   }
+
+(*****************************************************************************)
+(* Object *)
+(*****************************************************************************)
+
+class git_meta ?(scan_environment = "git")
+  ~(baseline_ref : Digestif.SHA1.t option) env =
+  object (self)
+    method project_metadata : Project_metadata.t =
+      let commit_title =
+        Git_wrapper.git_check_output
+          Bos.Cmd.(v "git" % "show" % "-s" % "--format=%B")
+      in
+      let commit_author_email =
+        Git_wrapper.git_check_output
+          Bos.Cmd.(v "git" % "show" % "-s" % "--format=%ae")
+        |> Emile.of_string |> Result.get_ok
+      in
+      let commit_author_name =
+        Git_wrapper.git_check_output
+          Bos.Cmd.(v "git" % "show" % "-s" % "--format=%an")
+      in
+      {
+        semgrep_version = Version.version;
+        (* REQUIRED for semgrep backed *)
+        repository = self#repo_name;
+        (* OPTIONAL for semgrep backed *)
+        repo_url = self#repo_url;
+        branch = self#branch;
+        ci_job_url = self#ci_job_url;
+        commit = self#commit_sha;
+        commit_author_email = Some (Emile.to_string commit_author_email);
+        commit_author_name = Some commit_author_name;
+        commit_author_username = None;
+        commit_author_image_url = None;
+        commit_title = Some commit_title;
+        (* TODO, not ported? *)
+        commit_timestamp = self#commit_timestamp;
+        on = self#event_name;
+        pull_request_author_username = None;
+        pull_request_author_image_url = None;
+        pull_request_id = self#pr_id;
+        pull_request_title = self#pr_title;
+        scan_environment;
+        is_full_scan = self#is_full_scan;
+        (* TODO ugly: gitlab stuff, should maybe split
+         * semgrep_output_v1.metadata and use inherit
+         *)
+        base_sha = None;
+        start_sha = None;
+        is_sca_scan = None;
+        is_code_scan = None;
+        is_secrets_scan = None;
+      }
+
+    (* to be overriden in children *)
+    method repo_name =
+      match env._SEMGREP_REPO_NAME with
+      | Some repo_name -> repo_name
+      | None ->
+          let str =
+            Git_wrapper.git_check_output
+              Bos.Cmd.(v "git" % "rev-parse" % "--show-toplevel")
+          in
+          Fpath.basename (Fpath.v str)
+
+    method repo_url =
+      match env._SEMGREP_REPO_URL with
+      | Some repo_url -> Some repo_url
+      | None -> (
+          let cmd = Bos.Cmd.(v "git" % "remote" % "get-url" % "origin") in
+          let out = Bos.OS.Cmd.run_out cmd in
+          match Bos.OS.Cmd.out_string ~trim:true out with
+          | Ok (str, _status) ->
+              Project_metadata.get_url_from_sstp_url (Some str)
+          | Error (`Msg _err) ->
+              Logs.warn (fun m ->
+                  m
+                    "Unable to infer repo_url. Set SEMGREP_REPO_URL \
+                     environment variable or run in a valid git project with \
+                     remote origin defined.");
+              None)
+
+    method branch =
+      match env._SEMGREP_BRANCH with
+      | Some branch -> Some branch
+      | None -> (
+          let cmd = Bos.Cmd.(v "git" % "rev-parse" % "--abbrev-ref" % "HEAD") in
+          let out = Bos.OS.Cmd.run_out cmd in
+          match Bos.OS.Cmd.out_string ~trim:true out with
+          | Ok (branch, (_, `Exited 0)) -> Some branch
+          | Ok _
+          | Error (`Msg _) ->
+              None)
+
+    method ci_job_url = env._SEMGREP_JOB_URL
+
+    method commit_sha =
+      match env._SEMGREP_COMMIT with
+      | Some sha1 -> Some sha1
+      | None -> (
+          let cmd = Bos.Cmd.(v "git" % "rev-parse" % "HEAD") in
+          let out = Bos.OS.Cmd.run_out cmd in
+          let out =
+            Result.bind (Bos.OS.Cmd.out_string ~trim:true out) @@ function
+            | str, (_, `Exited 0) -> Ok (Digestif.SHA1.of_hex_opt str)
+            | __else__ -> Error (`Msg "Invalid status")
+          in
+          match out with
+          | Ok value -> value
+          | Error (`Msg _msg) -> None)
+
+    method event_name =
+      match self#pr_id with
+      | Some _ -> "pull_request"
+      | None -> "unknown"
+
+    method pr_id = env._SEMGREP_PR_ID
+    method pr_title = env._SEMGREP_PR_TITLE
+    method is_full_scan = self#merge_base_ref =*= None
+
+    (* TODO? get rid of? use directly baseline_ref in is_full_scan? *)
+    method merge_base_ref = baseline_ref
+    method commit_timestamp = failwith "TODO"
+  end

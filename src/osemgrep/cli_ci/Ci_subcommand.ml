@@ -216,7 +216,7 @@ let scan_id_and_rules_from_deployment ~dry_run (prj_meta : Out.project_metadata)
 (*****************************************************************************)
 
 (* from meta.py *)
-let generate_meta_from_environment (_baseline_ref : Digestif.SHA1.t option) :
+let generate_meta_from_environment (baseline_ref : Digestif.SHA1.t option) :
     Project_metadata.t =
   let extract_env term =
     let argv = [| "empty" |] and info_ = Cmdliner.Cmd.info "" in
@@ -238,8 +238,8 @@ let generate_meta_from_environment (_baseline_ref : Digestif.SHA1.t option) :
       Github_metadata.make env
   | _else ->
       let env = extract_env Git_metadata.env in
-      (* TODO baseline_ref *)
-      Git_metadata.make env
+      (new Git_metadata.git_meta baseline_ref env)#project_metadata
+
 (* https://docs.gitlab.com/ee/ci/variables/predefined_variables.html *)
 (* match Sys.getenv_opt "GITLAB_CI" with
    | Some "true" -> return GitlabMeta(baseline_ref)

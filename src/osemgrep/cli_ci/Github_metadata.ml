@@ -210,7 +210,7 @@ let _XXXget_event_name env = env._GITHUB_EVENT_NAME
 (*****************************************************************************)
 
 (* Split out shallow fetch so we can mock it away in tests. *)
-let _shallow_fetch_branch branch_name =
+let shallow_fetch_branch branch_name =
   let _ =
     Git_wrapper.git_check_output
       Bos.Cmd.(
@@ -224,7 +224,7 @@ let _shallow_fetch_branch branch_name =
 
    Different from _shallow_fetch_branch because it does not assign a local
    name to the commit. It just does the fetch. *)
-let _shallow_fetch_commit commit_hash =
+let shallow_fetch_commit commit_hash =
   let _ =
     Git_wrapper.git_check_output
       Bos.Cmd.(
@@ -237,13 +237,13 @@ let _shallow_fetch_commit commit_hash =
 (* Return sha hash of latest commit in a given branch.
 
    Does a git fetch of given branch with depth = 1. *)
-let _get_latest_commit_hash_in_branch branch_name =
-  _shallow_fetch_branch branch_name;
+let get_latest_commit_hash_in_branch branch_name =
+  shallow_fetch_branch branch_name;
   Git_wrapper.git_check_output Bos.Cmd.(v "git" % "rev-parse" % branch_name)
   |> Digestif.SHA1.of_hex_opt |> Option.get
 
 (* Ref name of the branch pull request if from. *)
-let _get_head_branch_ref env =
+let get_head_branch_ref env =
   Glom.(
     get_and_coerce_opt string env._GITHUB_EVENT_JSON
       [ k "pull_request"; k "head"; k "ref" ])
@@ -259,7 +259,7 @@ let get_head_branch_hash env =
         [ k "pull_request"; k "head"; k "sha" ])
   in
   let commit = Option.bind commit Digestif.SHA1.of_hex_opt in
-  match (_get_head_branch_ref env, commit) with
+  match (get_head_branch_ref env, commit) with
   | Some head_branch_name, Some commit ->
       Logs.debug (fun m ->
           m "head branch %s has latest commit %a, fetching that commit now."
@@ -273,7 +273,7 @@ let get_head_branch_hash env =
       Some commit
   | _ -> None
 
-let _get_base_branch_ref env =
+let get_base_branch_ref env =
   Glom.(
     get_and_coerce_opt string env._GITHUB_EVENT_JSON
       [ k "pull_request"; k "base"; k "ref" ])
@@ -283,9 +283,9 @@ let _get_base_branch_ref env =
    Assumes we are in PR context. *)
 let get_base_branch_hash env =
   let commit =
-    Option.map _get_latest_commit_hash_in_branch (_get_base_branch_ref env)
+    Option.map get_latest_commit_hash_in_branch (get_base_branch_ref env)
   in
-  match (_get_base_branch_ref env, commit) with
+  match (get_base_branch_ref env, commit) with
   | Some base_branch_name, Some commit ->
       Logs.debug (fun m ->
           m "base branch (%s) has latest commit %a" base_branch_name
@@ -296,7 +296,7 @@ let get_base_branch_hash env =
         "We are not into a PR context (the GitHub pull_request event is \
          missing)"
 
-let _find_branchoff_point_from_github_api env =
+let find_branchoff_point_from_github_api env =
   let base_branch_hash = get_base_branch_hash env
   and head_branch_hash = get_head_branch_hash env
   and repo_name = get_repo_name env in
@@ -320,17 +320,17 @@ let _find_branchoff_point_from_github_api env =
                   [ k "merge_base_commit"; k "sha" ])
               Digestif.SHA1.of_hex_opt
           in
-          Option.iter _shallow_fetch_commit commit;
+          Option.iter shallow_fetch_commit commit;
           Lwt.return commit
       | __else__ -> Lwt.return_none)
   | __else__ -> Lwt.return_none
 
-let rec _find_branchoff_point ?(attempt_count = 0) env =
+let rec find_branchoff_point ?(attempt_count = 0) env =
   let base_branch_hash = get_base_branch_hash env
   and head_branch_hash = Option.get (get_head_branch_hash env) in
 
-  let base_branch_name = Option.get (_get_base_branch_ref env)
-  and head_branch_name = Option.get (_get_head_branch_ref env) in
+  let base_branch_name = Option.get (get_base_branch_ref env)
+  and head_branch_name = Option.get (get_head_branch_ref env) in
 
   let fetch_depth = 4. ** Float.of_int attempt_count |> Float.to_int in
   let fetch_depth = fetch_depth + !Semgrep_envvars.v.min_fetch_depth in
@@ -339,7 +339,7 @@ let rec _find_branchoff_point ?(attempt_count = 0) env =
       Float.to_int (2. ** 31.) - 1
     else fetch_depth
   in
-  if attempt_count = 0 then _find_branchoff_point_from_github_api env
+  if attempt_count = 0 then find_branchoff_point_from_github_api env
   else
     (* XXX(dinosaure): we safely can use [Option.get]. This information is
        required to [get_base_branch_ref]. *)
@@ -369,7 +369,7 @@ let rec _find_branchoff_point ?(attempt_count = 0) env =
     | Ok (merge_base, (_, `Exited 0)) ->
         Lwt.return (Digestif.SHA1.of_hex_opt merge_base)
     | Ok (_, _) when attempt_count < _MAX_FETCH_ATTEMPT_COUNT ->
-        _find_branchoff_point ~attempt_count:(succ attempt_count) env
+        find_branchoff_point ~attempt_count:(succ attempt_count) env
     | Ok (_, _) ->
         Fmt.failwith
           "Could not find branch-off point between the baseline tip %s@%a and \
@@ -377,10 +377,12 @@ let rec _find_branchoff_point ?(attempt_count = 0) env =
           base_branch_name Digestif.SHA1.pp base_branch_hash head_branch_name
           Digestif.SHA1.pp head_branch_hash
     | Error (`Msg err) -> failwith err
+[@@warning "-32"]
+(* TODO: why unused? *)
 
 let _XXXget_merge_base_ref env =
   match (is_pull_request_event env.git, get_head_branch_hash env) with
-  | true, Some _ -> _find_branchoff_point_from_github_api env
+  | true, Some _ -> find_branchoff_point_from_github_api env
   | _ -> Lwt.return_none
 
 (*****************************************************************************)
@@ -423,3 +425,13 @@ let make (env : env) : Project_metadata.t =
     pull_request_author_image_url;
     scan_environment;
   }
+
+(*****************************************************************************)
+(* Object *)
+(*****************************************************************************)
+
+class _github_meta ~baseline_ref env =
+  object (_self)
+    inherit
+      Git_metadata.git_meta ~scan_environment:"github-actions" ~baseline_ref env as _super
+  end
