@@ -13,8 +13,8 @@ type env = {
 
 include Project_metadata.S with type env := env
 
-class git_meta :
-  ?scan_environment:string ->
+class meta :
+  scan_environment:string ->
   baseline_ref:Digestif.SHA1.t option ->
   env ->
 object

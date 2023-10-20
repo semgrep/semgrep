@@ -1,3 +1,4 @@
+open Common
 module Arg = Cmdliner.Arg
 module Term = Cmdliner.Term
 module Cmd = Cmdliner.Cmd
@@ -148,7 +149,8 @@ let _XXXget_commit_sha env =
       (Glom.get_and_coerce_opt Glom.string env._GITHUB_EVENT_JSON
          Glom.[ k "pull_request"; k "head"; k "sha" ])
       Digestif.SHA1.of_hex_opt
-  else if Git_metadata.get_event_name env.git = Some "push" then env._GITHUB_SHA
+  else if Git_metadata.get_event_name env.git =*= Some "push" then
+    env._GITHUB_SHA
   else env.git._SEMGREP_COMMIT
 
 (* This branch name gets used for tracking issue state over time on the
@@ -169,7 +171,7 @@ let _XXXget_commit_sha env =
    incompatible with all existing data. So as of May 2022 we have not
    corrected it. *)
 let _XXXget_branch env =
-  if Git_metadata.get_event_name env.git = Some "pull_request_target" then
+  if Git_metadata.get_event_name env.git =*= Some "pull_request_target" then
     env._GITHUB_HEAD_REF
   else
     match (env.git._SEMGREP_BRANCH, env._GITHUB_REF) with
@@ -339,7 +341,7 @@ let rec find_branchoff_point ?(attempt_count = 0) env =
       Float.to_int (2. ** 31.) - 1
     else fetch_depth
   in
-  if attempt_count = 0 then find_branchoff_point_from_github_api env
+  if attempt_count =|= 0 then find_branchoff_point_from_github_api env
   else
     (* XXX(dinosaure): we safely can use [Option.get]. This information is
        required to [get_base_branch_ref]. *)
@@ -430,8 +432,119 @@ let make (env : env) : Project_metadata.t =
 (* Object *)
 (*****************************************************************************)
 
-class _github_meta ~baseline_ref env =
-  object (_self)
+class meta ~baseline_ref env gha_env =
+  object (self)
     inherit
-      Git_metadata.git_meta ~scan_environment:"github-actions" ~baseline_ref env as _super
+      Git_metadata.meta ~scan_environment:"github-actions" ~baseline_ref env as super
+
+    method! project_metadata =
+      let commit_author_username =
+        Glom.(
+          get_and_coerce_opt string gha_env._GITHUB_EVENT_JSON
+            [ k "sender"; k "login" ])
+      in
+      let commit_author_image_url =
+        Glom.(
+          get_and_coerce_opt string gha_env._GITHUB_EVENT_JSON
+            [ k "sender"; k "avatar_url" ])
+        |> Option.map Uri.of_string
+      in
+      let pull_request_author_username =
+        Glom.(
+          get_and_coerce_opt string gha_env._GITHUB_EVENT_JSON
+            [ k "pull_request"; k "user"; k "login" ])
+      in
+      let pull_request_author_image_url =
+        Glom.(
+          get_and_coerce_opt string gha_env._GITHUB_EVENT_JSON
+            [ k "pull_request"; k "user"; k "avatar_url" ])
+        |> Option.map Uri.of_string
+      in
+      {
+        (super#project_metadata) with
+        commit_author_username;
+        commit_author_image_url;
+        pull_request_author_username;
+        pull_request_author_image_url;
+      }
+
+    method! repo_name =
+      let err = "Could not get repo_name when running in GitHub Action" in
+      if Option.is_none env._SEMGREP_REPO_NAME then
+        match gha_env._GITHUB_REPOSITORY with
+        | Some repo_name -> repo_name
+        | None -> failwith err
+      else failwith err
+
+    method! repo_url =
+      match (env._SEMGREP_REPO_URL, self#repo_name) with
+      | (Some _ as v), _ -> v
+      | None, repo_name ->
+          Some (Uri.with_path gha_env._GITHUB_SERVER_URL repo_name)
+
+    method! commit_sha =
+      if is_pull_request_event env then
+        Option.bind
+          (Glom.get_and_coerce_opt Glom.string gha_env._GITHUB_EVENT_JSON
+             Glom.[ k "pull_request"; k "head"; k "sha" ])
+          Digestif.SHA1.of_hex_opt
+      else if super#event_name =*= "push" then gha_env._GITHUB_SHA
+      else env._SEMGREP_COMMIT
+
+    (* This branch name gets used for tracking issue state over time on the
+       backend. The head ref is in GITHUB_HEAD_REF and the base ref is in
+       GITHUB_REF.
+
+       Event name            GITHUB_HEAD_REF -> GITHUB_REF
+       ---------------------------------------------------
+       pull_request        - johnny-path-1   -> refs/pulls/123/merge
+       pull_request_target - johnny-path-1   -> refs/heads/main
+       push/schedule/etc.  - <unset>         -> refs/heads/main
+
+       This code originally always sent GITHUB_REF. This caused obvious breakage
+       for pull_request_target, so we just fixed the ref we report for that event.
+       But it's more subtly wrong for pull_request events: what we'e scanning
+       there is still the head ref; we force-switch to the head ref in
+       `fix_head_if_github_action`. But fixing the slight data inaccuracy would be
+       incompatible with all existing data. So as of May 2022 we have not
+       corrected it. *)
+    method! branch =
+      if super#event_name =*= "pull_request_target" then
+        gha_env._GITHUB_HEAD_REF
+      else
+        match (env._SEMGREP_BRANCH, gha_env._GITHUB_REF) with
+        | Some branch, _ -> Some branch
+        | None, Some branch -> Some branch
+        | None, None -> super#branch
+
+    method! pr_id =
+      match env._SEMGREP_PR_ID with
+      | Some _ as value -> value
+      | None ->
+          Glom.(
+            get_and_coerce_opt int gha_env._GITHUB_EVENT_JSON
+              [ k "pull_request"; k "number" ])
+          |> Option.map string_of_int
+
+    method! pr_title =
+      match env._SEMGREP_PR_TITLE with
+      | Some _ as value -> value
+      | None ->
+          Glom.(
+            get_and_coerce_opt string gha_env._GITHUB_EVENT_JSON
+              [ k "pull_request"; k "title" ])
+
+    method! ci_job_url =
+      match super#ci_job_url with
+      | Some _ as value -> value
+      | None -> (
+          match (super#repo_url, gha_env._GITHUB_RUN_ID) with
+          | Some repo_url, Some value ->
+              Some (Uri.with_path repo_url (Fmt.str "/actions/runs/%s" value))
+          | _ -> None)
+
+    method! event_name =
+      match gha_env._GITHUB_EVENT_NAME with
+      | Some x -> x
+      | None -> super#event_name
   end

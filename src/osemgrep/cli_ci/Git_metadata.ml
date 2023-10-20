@@ -215,8 +215,7 @@ let make (env : env) : Project_metadata.t =
 (* Object *)
 (*****************************************************************************)
 
-class git_meta ?(scan_environment = "git")
-  ~(baseline_ref : Digestif.SHA1.t option) env =
+class meta ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
   object (self)
     method project_metadata : Project_metadata.t =
       let commit_title =
