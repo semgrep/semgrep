@@ -1064,21 +1064,22 @@ and stmt_expr env ?e_gen st =
        *       see https://www.cs.umd.edu/~mwh/papers/ril.pdf.
        *)
       let ss, e' = cond_with_pre_stmts env cond in
-      let e1 = stmt_expr env st1 in
-      let e2 =
+      let pre_a1, e1 = stmt_expr_with_pre_stmts env st1 in
+      let pre_a2, e2 =
         match opt_st2 with
-        | Some st2 -> stmt_expr env st2
+        | Some st2 -> stmt_expr_with_pre_stmts env st2
         | None ->
             (* Coming from OCaml-land we would not expect this to happen... but
              * we got some Ruby examples from r2c's SR team where there is an `if`
              * expression without an `else`... anyways, if it happens we translate
              * what we can, and we fill-in the `else` with a "fixme" node. *)
-            fixme_exp ToDo (G.Tk tok) (Related (G.S st))
+            ([], fixme_exp ToDo (G.Tk tok) (Related (G.S st)))
       in
       let fresh = fresh_lval env tok in
       let a1 = mk_s (Instr (mk_i (Assign (fresh, e1)) (related_tok tok))) in
       let a2 = mk_s (Instr (mk_i (Assign (fresh, e2)) (related_tok tok))) in
-      add_stmts env (ss @ [ mk_s (If (tok, e', [ a1 ], [ a2 ])) ]);
+      add_stmts env
+        (ss @ [ mk_s (If (tok, e', pre_a1 @ [ a1 ], pre_a2 @ [ a2 ])) ]);
       let eorig =
         match e_gen with
         | None -> related_exp (G.e (G.StmtExpr st))
@@ -1127,6 +1128,9 @@ and lval_of_ent env ent =
 
 and expr_with_pre_stmts env ?void e =
   with_pre_stmts env (fun env -> expr env ?void e)
+
+and stmt_expr_with_pre_stmts env st =
+  with_pre_stmts env (fun env -> stmt_expr env st)
 
 (* alt: could use H.cond_to_expr and reuse expr_with_pre_stmts *)
 and cond_with_pre_stmts env ?void cond =
