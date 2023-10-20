@@ -301,6 +301,7 @@ def run_scan(
     matching_explanations: bool = False,
     engine_type: EngineType = EngineType.OSS,
     run_secrets: bool = False,
+    disable_secrets_validation: bool = False,
     output_handler: OutputHandler,
     target: Sequence[str],
     pattern: Optional[str],
@@ -478,7 +479,6 @@ def run_scan(
     core_runner = CoreRunner(
         jobs=jobs,
         engine_type=engine_type,
-        run_secrets=run_secrets,
         timeout=timeout,
         max_memory=max_memory,
         interfile_timeout=interfile_timeout,

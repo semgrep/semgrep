@@ -474,7 +474,6 @@ class CoreRunner:
         self,
         jobs: Optional[int],
         engine_type: EngineType,
-        run_secrets: bool,
         timeout: int,
         max_memory: int,
         timeout_threshold: int,
@@ -486,7 +485,6 @@ class CoreRunner:
         self._binary_path = engine_type.get_binary_path()
         self._jobs = jobs or engine_type.default_jobs
         self._engine_type = engine_type
-        self._run_secrets = engine_type
         self._timeout = timeout
         self._max_memory = max_memory
         self._timeout_threshold = timeout_threshold
@@ -688,6 +686,7 @@ class CoreRunner:
         matching_explanations: bool,
         engine: EngineType,
         run_secrets: bool,
+        disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         state = get_state()
@@ -802,7 +801,7 @@ class CoreRunner:
             if self._optimizations != "none":
                 cmd.append("-fast")
 
-            if run_secrets:
+            if run_secrets and not disable_secrets_validation:
                 cmd += ["-secrets"]
                 if not engine.is_pro:
                     # This should be impossible, but the types don't rule it out so...
@@ -932,6 +931,7 @@ class CoreRunner:
         matching_explanations: bool,
         engine: EngineType,
         run_secrets: bool,
+        disable_secrets_validation:bool,
         target_mode_config: TargetModeConfig,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
@@ -951,6 +951,7 @@ class CoreRunner:
                 matching_explanations,
                 engine,
                 run_secrets,
+                disable_secrets_validation,
                 target_mode_config,
             )
         except SemgrepError as e:

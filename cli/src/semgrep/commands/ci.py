@@ -149,6 +149,12 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     hidden=True,
 )
 @click.option(
+    "--no-secrets-validation",
+    "disable_secrets_validation",
+    is_flag=True,
+    hidden=True,
+)
+@click.option(
     "--suppress-errors/--no-suppress-errors",
     "suppress_errors",
     default=True,
@@ -432,6 +438,7 @@ def ci(
         ) = semgrep.run_scan.run_scan(
             engine_type=engine_type,
             run_secrets=run_secrets,
+            disable_secrets_validation=disable_secrets_validation,
             output_handler=output_handler,
             target=[os.curdir],  # semgrep ci only scans cwd
             pattern=None,

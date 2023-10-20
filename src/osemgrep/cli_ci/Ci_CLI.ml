@@ -72,6 +72,10 @@ let o_beta_testing_secrets : bool Term.t =
   let info = Arg.info [ "beta-testing-secrets" ] in
   Arg.value (Arg.flag info)
 
+let o_no_secrets_validation : bool Term.t =
+  let info = Arg.info [ "no_secrets_validation" ] in
+  Arg.value (Arg.flag info)
+
 let o_secrets : bool Term.t =
   let info =
     Arg.info [ "secrets" ]
