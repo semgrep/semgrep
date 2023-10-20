@@ -4,6 +4,7 @@ import pytest
 from tests.fixtures import RunSemgrep
 
 
+@pytest.mark.osempass
 @pytest.mark.slow
 @pytest.mark.flaky(reruns=2)
 def test_debug_performance(run_semgrep_in_tmp: RunSemgrep):
