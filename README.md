@@ -40,10 +40,11 @@
 </br>
 
 Semgrep is an engine for scanning:
-* **Code** for bugs & vulnerabilities using custom or pre-built rules
-* **Supply Chain** dependencies for known vulnerabilities
-* **Secrets** and hard-coded credentials that shouldn't be checked into source code
-Semgrep analyzes code locally on your computer or in your build environment: **by default, code is never uploaded**. [Get started →.](#getting-started-)
+
+- **Code** for bugs & vulnerabilities using custom or pre-built rules
+- **Supply Chain** dependencies for known vulnerabilities
+- **Secrets** and hard-coded credentials that shouldn't be checked into source code
+  Semgrep analyzes code locally on your computer or in your build environment: **by default, code is never uploaded**. [Get started →.](#getting-started-)
 
 <a href="#option-1-getting-started-from-the-cli">
 <img src="https://raw.githubusercontent.com/returntocorp/semgrep/develop/images/semgrep-scan-cli.jpg" alt="Semgrep CLI image"/></a>
@@ -58,25 +59,22 @@ Semgrep Code supports 30+ languages.
 | Beta         | Kotlin · Rust                                                                                                                                                                 |
 | Experimental | Bash · C · C++ · Clojure · Dart · Dockerfile · Elixir · HTML · Julia · Jsonnet · Lisp · Lua · OCaml · R · Scheme · Solidity · Swift · YAML · XML · Generic (ERB, Jinja, etc.) |
 
+Semgrep Supply Chain supports 8 languages across 15 package managers.
 
-Semgrep Supply Chain supports 8 languages across 15 package managers. 
+| Category       | Languages                                                                                                                                                             |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GA             | Go (Go modules, `go mod`) · Javascript/Typescript (npm, Yarn, Yarn 2, Yarn 3, pnpm) · Python (pip, pip-tool, Pipenv, Poetry) · Ruby (RubyGems) · Java (Gradle, Maven) |
+| Beta           | C# (NuGet)                                                                                                                                                            |
+| Lock file-only | Rust (Cargo) · PHP (Composer)                                                                                                                                         |
 
-| Category     | Languages                                                                                                                                                                     |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GA             | Go (Go modules, `go mod`) · Javascript/Typescript (npm, Yarn, Yarn 2, Yarn 3, pnpm) · Python (pip, pip-tool, Pipenv, Poetry) · Ruby (RubyGems) · Java (Gradle, Maven)       |
-| Beta           | C# (NuGet)                                                                                                                                                                  |
-| Lock file-only | Rust (Cargo) · PHP (Composer) |
-
-For more information, visit our [supported languages](https://semgrep.dev/docs/supported-languages/) page. 
+For more information, visit our [supported languages](https://semgrep.dev/docs/supported-languages/) page.
 
 ### Getting started 🚀
 
 1. [From the Semgrep Cloud Platform](#option-1-getting-started-from-the-semgrep-cloud-platform-recommended)
 2. [From the CLI](#option-2-getting-started-from-the-cli)
 
-
 For new users, we recommend starting with the [Semgrep Cloud Platform](#option-1-getting-started-from-the-semgrep-cloud-platform-recommended) because it provides a visual interface, a demo project, result triaging and exploration workflows, and makes setup in CI/CD fast. Scans are still local and code isn't uploaded. Alternatively, you can also start with the CLI and navigate the terminal output to run one-off searches.
-
 
 ### Option 1: Getting started from the Semgrep Cloud Platform (Recommended)
 
@@ -96,7 +94,6 @@ For new users, we recommend starting with the [Semgrep Cloud Platform](#option-1
 
 If there are any issues, <a href="https://go.semgrep.dev/slack" target="_blank">please ask for help in the Semgrep Slack</a>.
 
-
 ### Option 2: Getting started from the CLI
 
 1.  Install Semgrep CLI
@@ -113,15 +110,15 @@ $ docker run -it -v "${PWD}:/src" returntocorp/semgrep semgrep login
 $ docker run -e SEMGREP_APP_TOKEN=<TOKEN> --rm -v "${PWD}:/src" returntocorp/semgrep semgrep ci
 ```
 
-2.  Run `semgrep login` to create your account and login to Semgrep. 
+2.  Run `semgrep login` to create your account and login to Semgrep.
 
-Logging into Semgrep gets you access to: 
+Logging into Semgrep gets you access to:
+
 - [Semgrep Supply Chain](https://semgrep.dev/products/semgrep-supply-chain): A depenency scanner that detects reachable vulnerabilities in third party libraries
 - [Semgrep Code's Pro rules](https://semgrep.dev/products/semgrep-code): 600+ high confidence rules written by Semgrep's security research team
 - [Semgrep Code's Pro engine](https://semgrep.dev/products/pro-engine/): An advanced code analysis engine, designed to detect complex vulnerabilities, and reduce false positives
 
 3.  Go to your app's root directory and run `semgrep ci`. This will scan your project to check for vulnerabilities in your source code and its dependencies.
-
 
 ### Semgrep Ecosystem
 
@@ -132,7 +129,6 @@ The Semgrep ecosystem includes the following products:
 - [Semgrep Secrets)](https://semgrep.dev/blog/2023/introducing-semgrep-secrets/)[NEW!] - Secrets detection that uses semantic analysis, improved entropy analysis, and validation together to accurately detect sensitive credentials in developer workflows. Sign up for our [private beta](https://get.semgrep.dev/secrets-beta-request.html) to request early access to the product.
 - [Semgrep Cloud Platform (SCP)](https://semgrep.dev/login) - Deploy, manage, and monitor Semgrep at scale, with [free and paid tiers](https://semgrep.dev/pricing). Integrates with continuous integration (CI) providers such as GitHub, GitLab, CircleCI, and more.
 - Semgrep OSS Engine - The open-source engine and community-contributed rules at the heart of everything (this project).
-
 
 and:
 
