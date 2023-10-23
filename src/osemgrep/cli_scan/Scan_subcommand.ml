@@ -427,7 +427,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
             (scan_func targets filtered_rules)
       | Some baseline_commit ->
           (* diff scan mode *)
-          Metrics_.add_is_diff_scan true;
+          Metrics_.g.payload.environment.isDiffScan <- true;
           let commit = Git_wrapper.get_merge_base baseline_commit in
           let status = Git_wrapper.status ~cwd:(Fpath.v ".") ~commit in
           let diff_depth = Differential_scan_config.default_depth in
@@ -437,7 +437,8 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
             in
             match conf.engine_type with
             | PRO Interfile ->
-                Metrics_.add_diff_depth diff_depth;
+                Metrics_.g.payload.value.proFeatures <-
+                  Some { diffDepth = Some diff_depth };
                 (targets, added_or_modified)
             | _ -> (added_or_modified, [])
           in

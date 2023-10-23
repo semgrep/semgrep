@@ -256,12 +256,6 @@ let string_of_metrics () = Semgrep_metrics_j.string_of_payload g.payload
 (*****************************************************************************)
 (* add_xxx wrappers *)
 (*****************************************************************************)
-let add_is_diff_scan (is_diff_scan : bool) =
-  g.payload.environment.isDiffScan <- is_diff_scan
-
-let add_diff_depth (diff_depth : int) =
-  g.payload.value.proFeatures <- Some { diffDepth = Some diff_depth }
-
 let add_engine_kind (kind : Out.engine_kind) =
   (* TODO: use a better type in semgrep_metrics.atd for this field *)
   g.payload.value.engineRequested <- Out.show_engine_kind kind
