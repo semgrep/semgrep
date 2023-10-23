@@ -45,6 +45,7 @@ normally done with the following command:
 
 For now, let's pretend everything is fine.
 EOF
+  exit 1
 fi
 
 #to debug: git diff
