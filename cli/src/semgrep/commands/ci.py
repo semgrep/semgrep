@@ -368,8 +368,6 @@ def ci(
         scan_handler and "secrets" in scan_handler.enabled_products
     )
 
-    disable_secrets_validation = disable_secrets_validation_flag
-
     engine_type = EngineType.decide_engine_type(
         requested_engine=requested_engine,
         scan_handler=scan_handler,
@@ -435,7 +433,7 @@ def ci(
         ) = semgrep.run_scan.run_scan(
             engine_type=engine_type,
             run_secrets=run_secrets,
-            disable_secrets_validation=disable_secrets_validation,
+            disable_secrets_validation=disable_secrets_validation_flag,
             output_handler=output_handler,
             target=[os.curdir],  # semgrep ci only scans cwd
             pattern=None,
