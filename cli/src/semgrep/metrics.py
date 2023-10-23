@@ -41,6 +41,7 @@ from semgrep.semgrep_interfaces.semgrep_metrics import Misc
 from semgrep.semgrep_interfaces.semgrep_metrics import ParseStat
 from semgrep.semgrep_interfaces.semgrep_metrics import Payload
 from semgrep.semgrep_interfaces.semgrep_metrics import Performance
+from semgrep.semgrep_interfaces.semgrep_metrics import ProFeatures
 from semgrep.semgrep_interfaces.semgrep_metrics import RuleStats
 from semgrep.types import FilteredMatches
 from semgrep.verbose_logging import getLogger
@@ -123,6 +124,7 @@ class Metrics:
                 configNamesHash=met.Sha256(""),
                 projectHash=None,
                 ci=None,
+                isDiffScan=False,
             ),
             errors=Errors(),
             performance=Performance(maxMemoryBytes=None),
@@ -160,6 +162,16 @@ class Metrics:
         Assumes configs is list of arguments passed to semgrep using --config
         """
         self.payload.value.engineRequested = engineType.name
+
+    @suppress_errors
+    def add_diff_depth(self, diff_depth: int) -> None:
+        if not self.payload.value.proFeatures:
+            self.payload.value.proFeatures = ProFeatures()
+        self.payload.value.proFeatures.diffDepth = diff_depth
+
+    @suppress_errors
+    def add_is_diff_scan(self, is_diff_scan: bool) -> None:
+        self.payload.environment.isDiffScan = is_diff_scan
 
     @property
     def is_using_registry(self) -> bool:
