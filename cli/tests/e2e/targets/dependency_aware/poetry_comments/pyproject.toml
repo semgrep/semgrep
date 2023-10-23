@@ -8,6 +8,7 @@ description = "test"
 authors = ["r2c"]
 
 [tool.poetry.dependencies]
+# comment
 python = "^3.10"
 faker = "^13.11.0"
 
