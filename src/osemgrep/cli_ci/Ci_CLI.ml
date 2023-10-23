@@ -84,8 +84,7 @@ contact support@semgrep.com for more information this.|}
 let o_no_secrets_validation : bool Term.t =
   let info =
     Arg.info [ "no-secrets-validation" ]
-      ~doc:
-        {|Disables secrets validation|}
+      ~doc:{|Disables secrets validation|}
   in
   Arg.value (Arg.flag info)
 
