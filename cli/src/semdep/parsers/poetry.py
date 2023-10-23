@@ -121,11 +121,9 @@ poetry_source_extra = (
 # [package.dependencies.typing_extensions]
 # python = "<3.10"
 # version = ">=4.0"
-poetry_dep_extra = (
-    (string("[") >> upto("]") << string("]\n")).at_least(1)
-    << new_lines.optional()
-    >> key_value_list.map(lambda _: None)
-)
+poetry_dep_extra = (string("[") >> upto("]") << string("]\n")).at_least(
+    1
+) >> key_value_list.map(lambda _: None)
 
 # A whole poetry file
 poetry = (
@@ -148,10 +146,16 @@ manifest_deps = (
     >> key_value.map(lambda x: x[0]).sep_by(new_lines)
 )
 
+manifest_sections_extra = (
+    (string("[") >> upto("]") << string("]\n")).at_least(1)
+    >> new_lines.optional()
+    >> key_value_list.map(lambda _: None)
+)
+
 # A whole pyproject.toml file. We only about parsing the manifest_deps
 manifest = (
     string("\n").many()
-    >> (manifest_deps | poetry_dep_extra | poetry_source_extra)
+    >> (manifest_deps | manifest_sections_extra | poetry_source_extra)
     .sep_by(new_lines)
     .map(lambda xs: {y for x in xs if x for y in x})
     << string("\n").optional()
