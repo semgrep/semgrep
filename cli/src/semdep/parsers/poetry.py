@@ -103,7 +103,11 @@ poetry_dep = mark_line(string("[[package]]\n") >> key_value_list.map(lambda x: d
 # url = "https://artifact.semgrep.com/"
 # secondary = False
 poetry_source_extra = (
-    string("[[") >> upto("]") << string("]]\n") >> key_value_list
+    string("[[")
+    >> upto("]")
+    << string("]]\n")
+    << new_lines.optional()
+    >> key_value_list
 ).map(lambda _: None)
 
 # Extra data from a dependency, which we just treat as standalone data and ignore
@@ -136,14 +140,22 @@ poetry = (
 # [tool.poetry.dependencies]
 # python = "^3.10"
 # faker = "^13.11.0"
-manifest_deps = string("[tool.poetry.dependencies]\n") >> key_value.map(
-    lambda x: x[0]
-).sep_by(new_lines)
+manifest_deps = (
+    string("[tool.poetry.dependencies]\n")
+    << new_lines.optional()
+    >> key_value.map(lambda x: x[0]).sep_by(new_lines)
+)
+
+manifest_sections_extra = (
+    (string("[") >> upto("]") << string("]\n")).at_least(1)
+    >> new_lines.optional()
+    >> key_value_list.map(lambda _: None)
+)
 
 # A whole pyproject.toml file. We only about parsing the manifest_deps
 manifest = (
     string("\n").many()
-    >> (manifest_deps | poetry_dep_extra | poetry_source_extra)
+    >> (manifest_deps | manifest_sections_extra | poetry_source_extra)
     .sep_by(new_lines)
     .map(lambda xs: {y for x in xs if x for y in x})
     << string("\n").optional()
