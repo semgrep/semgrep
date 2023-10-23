@@ -97,7 +97,7 @@ def parse_pipfile(
         version = version.replace("==", "")
         output.append(
             FoundDependency(
-                package=package,
+                package=package.lower(),
                 version=version,
                 ecosystem=Ecosystem(Pypi()),
                 resolved_url=None,
