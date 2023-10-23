@@ -64,8 +64,20 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/gradle_empty=",
         ),
         (
+            "rules/dependency_aware/python-pipfile-sca.yaml",
+            "dependency_aware/pipfile",
+        ),
+        (
+            "rules/dependency_aware/python-pipfile-sca.yaml",
+            "dependency_aware/pipfile_with_uppercase_package_name",
+        ),
+        (
             "rules/dependency_aware/python-poetry-sca.yaml",
             "dependency_aware/poetry",
+        ),
+        (
+            "rules/dependency_aware/python-poetry-sca.yaml",
+            "dependency_aware/poetry_with_uppercase_package_name",
         ),
         (
             "rules/dependency_aware/python-poetry-sca.yaml",
@@ -86,6 +98,10 @@ pytestmark = pytest.mark.kinda_slow
         (
             "rules/dependency_aware/python-requirements-sca.yaml",
             "dependency_aware/requirements",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements_with_uppercase_package_name",
         ),
         (
             "rules/dependency_aware/python-requirements-sca.yaml",
