@@ -76,7 +76,7 @@ let setup_logging ~force_color ~level =
    * logging/output we want in osemgrep, so this is a good opportunity
    * to evaluate a new logging library.
    *)
-  Logs_helpers.setup_logging ~force_color ~level;
+  Logs_helpers.setup_logging ~force_color ~level ();
   (* TOPORT
         # Setup file logging
         # env.user_log_file dir must exist

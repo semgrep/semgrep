@@ -117,7 +117,7 @@ let main () =
   Parsing_init.init ();
   Data_init.init ();
   Core_CLI.register_exception_printers ();
-  Logs_helpers.setup_logging ~force_color:false ~level:(Some Logs.Debug);
+  Logs_helpers.setup_logging ~force_color:false ~level:(Some Logs.Debug) ();
   let alcotest_tests = Testutil.to_alcotest (tests_with_delayed_error ()) in
   Alcotest.run "semgrep-core" alcotest_tests
 

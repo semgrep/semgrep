@@ -839,7 +839,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Logs_helpers.setup_logging ~force_color
-      ~level:common.CLI_common.logging_level;
+      ~level:common.CLI_common.logging_level ();
 
     let target_roots = target_roots |> File.Path.of_strings in
 
