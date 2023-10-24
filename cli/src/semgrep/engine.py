@@ -5,6 +5,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 
+from semgrep import __VERSION__
 from semgrep.app.scans import ScanHandler
 from semgrep.constants import DEFAULT_MAX_MEMORY_PRO_CI
 from semgrep.constants import DEFAULT_PRO_TIMEOUT_CI
@@ -101,7 +102,27 @@ class EngineType(Enum):
         return 0  # unlimited
 
     def get_binary_path(self) -> Optional[Path]:
-        return SemgrepCore.pro_path() if self.is_pro else SemgrepCore.path()
+        if self.is_pro:
+            if self.check_is_correct_pro_version():
+                return SemgrepCore.pro_path()
+            else:
+                return None
+        else:
+            return SemgrepCore.path()
+
+    # Checks the version stamp that is installed alongside the
+    # semgrep-core-proprietary binary to ensure that semgrep-core-proprietary
+    # was installed by the current version of Semgrep.
+    #
+    # See also commands/install.py add_semgrep_pro_version_stamp.
+    def check_is_correct_pro_version(self) -> bool:
+        version_stamp_path = SemgrepCore.pro_version_stamp_path()
+        if version_stamp_path.is_file():
+            with version_stamp_path.open("r") as f:
+                version_at_install = f.readline().strip()
+                return version_at_install == __VERSION__
+        else:
+            return False
 
     def check_if_installed(self) -> bool:
         binary_path = self.get_binary_path()
