@@ -372,6 +372,7 @@ class SarifFormatter(BaseFormatter):
         error_to_sarif_level = {
             out.Error_(): "error",
             out.Warning_(): "warning",
+            out.Info_(): "note",
         }
         level = error_to_sarif_level[error.level.value]
 
