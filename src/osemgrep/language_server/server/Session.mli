@@ -8,6 +8,8 @@ type session_cache = {
   (* Skipped fingerprints need to be fetched from the app, so we only want to do this every so often.
    * These come from the same place ci rules do, so we fetch them at the same time as the above rules
    *)
+  mutable open_documents : Fpath.t list;
+  (* Files open in the session *)
   lock : Lwt_mutex.t;
 }
 (** Cache of rules that will be run, and skipped fingerprints. Protected by mutex as [cache_session] below
@@ -50,6 +52,15 @@ val scanned_files : t -> Fpath.t list
 val previous_scan_of_file :
   t -> Fpath.t -> Semgrep_output_v1_t.cli_match list option
 (** [previous_scan_of_file session path] returns the last results of a scan on a file if it exists *)
+
+val add_open_document : t -> Fpath.t -> unit
+(** [add_open_document t path] adds a file to the list of open documents in the session *)
+
+val remove_open_document : t -> Fpath.t -> unit
+(** [remove_open_document t path] removes a file from the list of open documents in the session *)
+
+val remove_open_documents : t -> Fpath.t list -> unit
+(** [remove_open_documents t path] removes all files from the list of open documents in the session *)
 
 val record_results :
   t -> Semgrep_output_v1_t.cli_match list -> Fpath.t list -> unit

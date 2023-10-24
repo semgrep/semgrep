@@ -506,7 +506,7 @@ let check_diagnostics (notif : Notification.t) (file : Fpath.t) expected_ids =
   Lwt.return_unit
 
 let assert_notif (notif : Notification.t) ?message ?kind meth =
-  Alcotest.(check string) "methods should be same" notif.method_ meth;
+  Alcotest.(check string) "methods should be same" meth notif.method_;
   (match message with
   | None -> ()
   | Some message ->
@@ -567,16 +567,27 @@ let check_startup info folders (files : Fpath.t list) =
   let%lwt resp = receive_response info in
   assert_contains (Response.yojson_of_t resp) "capabilities";
 
-  let%lwt () = send_initialized info in
-  let%lwt () = assert_progress info "Refreshing Rules" in
-
-  let%lwt () = assert_progress info "Scanning Workspace" in
-
   let scanned_files =
     List.filter
       (fun f -> not (Common.contains (Fpath.to_string f) "existing"))
       files
   in
+
+  let%lwt () =
+    Lwt_list.iter_s (fun file -> send_did_open info file) scanned_files
+  in
+  let%lwt () =
+    Lwt_list.iter_s
+      (fun _ ->
+        let%lwt notif = receive_notification info in
+        ignore notif;
+        Lwt.return_unit)
+      scanned_files
+  in
+  let%lwt () = send_initialized info in
+  let%lwt () = assert_progress info "Refreshing Rules" in
+
+  let%lwt () = assert_progress info "Scanning Open Documents" in
 
   let%lwt scan_notifications =
     Lwt_list.map_s (fun _ -> receive_notification info) scanned_files
