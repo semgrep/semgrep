@@ -1,0 +1,1 @@
+Fixed an issue that prevented the use of `semgrep install-semgrep-pro --custom-binary ...` when logged out.
