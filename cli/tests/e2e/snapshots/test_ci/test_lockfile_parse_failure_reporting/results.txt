@@ -99,6 +99,12 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
   'null', 'true', '{']
   2 | invalid
       ^
+CI scan completed successfully.
+  Found 8 findings (6 blocking) from 7 rules.
+  Uploading scan results
+  Finalizing scan           View results in Semgrep Cloud Platform:
+    https://semgrep.dev/orgs/org_name/findings
+    https://semgrep.dev/orgs/org_name/supply-chain
 
 
 ┌──────────────┐
@@ -107,12 +113,6 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
-CI scan completed successfully.
-  Found 8 findings (6 blocking) from 7 rules.
-  Uploading scan results
-  Finalizing scan           View results in Semgrep Cloud Platform:
-    https://semgrep.dev/orgs/org_name/findings
-    https://semgrep.dev/orgs/org_name/supply-chain
   Has findings for blocking rules so exiting with code 1
   semgrep.dev is suggesting a non-zero exit code <MASKED>
 
