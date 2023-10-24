@@ -206,13 +206,13 @@ let rec (cnf : Rule.formula -> cnf_step0) =
       And (ys @ zs |> List.concat_map (function And ors -> ors))
   | R.Or (_, xs) ->
       let is_dangerously_large p q =
-        List.compare_length_with p 1_000_000 > 0
-        || List.compare_length_with q 1_000_000 > 0
+        List.compare_length_with p 10_000 > 0
+        || List.compare_length_with q 10_000 > 0
         ||
         let p_len = List.length p in
         let q_len = List.length q in
         (* Divide rather than multiply to avoid integer overflow *)
-        p_len > Int.div 10_000_000 q_len
+        p_len > Int.div 50_000 q_len
       in
       let ys = Common.map cnf xs in
       List.fold_left
