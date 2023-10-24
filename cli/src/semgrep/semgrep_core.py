@@ -9,6 +9,8 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
+VERSION_STAMP_FILENAME = "pro-installed-by.txt"
+
 
 def compute_executable_path(exec_name: str) -> Optional[str]:
     """
@@ -82,3 +84,7 @@ class SemgrepCore:
             cls._PRO_PATH_ = compute_executable_path("semgrep-core-proprietary")
 
         return Path(cls._PRO_PATH_) if cls._PRO_PATH_ is not None else None
+
+    @classmethod
+    def pro_version_stamp_path(cls) -> Path:
+        return cls.path().parent / VERSION_STAMP_FILENAME
