@@ -97,7 +97,11 @@ let default : conf =
       };
     (* alt: could move in a Rule_filtering.default *)
     rule_filtering_conf =
-      { Rule_filtering.exclude_rule_ids = []; severity = [] };
+      {
+        Rule_filtering.exclude_rule_ids = [];
+        severity = [];
+        exclude_products = [];
+      };
     (* alt: could move in a Core_runner.default *)
     core_runner_conf =
       {
@@ -965,6 +969,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
         Rule_filtering.exclude_rule_ids =
           Common.map Rule_ID.of_string exclude_rule_ids;
         severity;
+        exclude_products = [];
       }
     in
 

@@ -180,7 +180,15 @@ let fetch_rules session =
       rules
   in
   let rule_filtering_conf =
-    Rule_filtering.{ exclude_rule_ids = []; severity = [] }
+    Rule_filtering.
+      {
+        exclude_rule_ids = [];
+        severity = [];
+        exclude_products =
+          [
+            Rule_filtering.SCA; Rule_filtering.Secrets; Rule_filtering.Interfile;
+          ];
+      }
   in
   let rules, errors =
     (Rule_filtering.filter_rules rule_filtering_conf rules, errors)
