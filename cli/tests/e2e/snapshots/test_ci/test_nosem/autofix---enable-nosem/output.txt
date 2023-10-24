@@ -97,6 +97,8 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
 
   SUPPLY CHAIN RULES
   Scanning 1 file.
+CI scan completed successfully.
+  Found 10 findings (8 blocking) from 7 rules.
 
 
 ┌──────────────┐
@@ -105,8 +107,6 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
-CI scan completed successfully.
-  Found 10 findings (8 blocking) from 7 rules.
   Has findings for blocking rules so exiting with code 1
 
 === end of stderr - plain
