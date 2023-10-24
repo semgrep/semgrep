@@ -2,6 +2,7 @@ import json
 from typing import Any
 from typing import Iterable
 from typing import Mapping
+from typing import Optional
 from typing import Sequence
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
@@ -63,6 +64,7 @@ class JsonFormatter(BaseFormatter):
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
         is_ci_invocation: bool,
+        ci_scan_results: Optional[out.CiScanResults],
     ) -> str:
         # Sort according to RuleMatch.get_ordering_key
         sorted_findings = sorted(rule_matches)

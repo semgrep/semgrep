@@ -280,6 +280,13 @@ _scan_options: List[Callable] = [
         type=OutputFormat,
         flag_value=OutputFormat.VIM,
     ),
+    optgroup.option(
+        "--semgrep-internal-ci-scan-results",
+        "output_format",
+        type=OutputFormat,
+        flag_value=OutputFormat.CI_SCAN_RESULTS,
+        hidden=True,
+    ),
     optgroup.group("Semgrep Pro Engine options"),
     optgroup.option(
         "--pro",
@@ -439,7 +446,6 @@ def scan(
     verbose: bool,
     version: bool,
 ) -> Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]:
-
     if version:
         print(__VERSION__)
         if enable_version_check:
