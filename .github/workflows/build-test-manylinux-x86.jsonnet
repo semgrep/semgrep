@@ -16,14 +16,6 @@ local build_wheels_job = {
   container: 'returntocorp/sgrep-build:ubuntu-16.04',
   steps: [
     actions.checkout_with_submodules(),
-    // pad: Why do we have this weird setup python step?
-    {
-      name: 'Setup Python',
-      run: |||
-        rm /usr/bin/python
-        ln `which python3.8` /usr/bin/python3
-      |||,
-    },
     {
       run: 'apt-get update && apt install -y zip musl-tools',
     },
