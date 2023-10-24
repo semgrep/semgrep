@@ -143,5 +143,7 @@ let refresh_rules server =
   Lwt.async (fun () ->
       let%lwt () = Session.cache_session server.session in
       end_progress token;
-      scan_workspace server;
+      (* Clear out previous results to ensure we rescan on open *)
+      let scanned_files = Session.scanned_files server.session in
+      Session.record_results server.session [] scanned_files;
       Lwt.return_unit)
