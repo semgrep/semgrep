@@ -44,7 +44,7 @@ type conf = {
   (* Engine selection *)
   engine_type : Engine_type.t;
   run_secrets : bool;
-  allow_untrusted_postprocessors : bool;
+  allow_untrusted_validators : bool;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;
   (* Display options *)
@@ -131,7 +131,7 @@ let default : conf =
       };
     engine_type = OSS;
     run_secrets = false;
-    allow_untrusted_postprocessors = false;
+    allow_untrusted_validators = false;
     output_format = Output_format.Text;
     output = None;
     force_color = false;
@@ -529,10 +529,10 @@ contact support@semgrep.com for more informationon this.|}
   in
   Arg.value (Arg.flag info)
 
-let o_allow_untrusted_postprocessors : bool Term.t =
+let o_allow_untrusted_validators : bool Term.t =
   let info =
     Arg.info
-      [ "allow-untrusted-postprocessors" ]
+      [ "allow-untrusted-validators" ]
       ~doc:{|Run postprocessors from untrusted sources.|}
   in
   Arg.value (Arg.flag info)
@@ -824,7 +824,7 @@ Requires --experimental.
 let cmdline_term ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
-  let combine allow_untrusted_postprocessors ast_caching autofix baseline_commit
+  let combine allow_untrusted_validators ast_caching autofix baseline_commit
       common config dataflow_traces diff_depth dryrun dump_ast
       dump_command_for_core dump_engine_path emacs error exclude
       exclude_rule_ids force_color gitlab_sast gitlab_secrets include_ json
@@ -1106,7 +1106,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       output;
       engine_type;
       run_secrets;
-      allow_untrusted_postprocessors;
+      allow_untrusted_validators;
       rewrite_rule_ids;
       strict;
       common;
@@ -1122,7 +1122,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
   Term.(
     (* !the o_xxx must be in alphabetic orders to match the parameters of
      * combine above! *)
-    const combine $ o_allow_untrusted_postprocessors $ o_ast_caching $ o_autofix
+    const combine $ o_allow_untrusted_validators $ o_ast_caching $ o_autofix
     $ o_baseline_commit $ CLI_common.o_common $ o_config $ o_dataflow_traces
     $ o_diff_depth $ o_dryrun $ o_dump_ast $ o_dump_command_for_core
     $ o_dump_engine_path $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids
