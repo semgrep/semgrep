@@ -68,8 +68,11 @@ let recognise_and_collect ~rex line =
   SPcre.exec_all ~rex line
   |> Result.map
        (Array.map (fun subst ->
-            try Some (Pcre.get_named_substring rex "ids" subst) with
-            | _ -> None))
+            match SPcre.get_named_substring rex "ids" subst with
+            | Ok opt_s -> opt_s
+            | Error _errmsg ->
+                (* TODO: log something? *)
+                None))
   |> Result.to_option
 
 (*

@@ -4,6 +4,14 @@
 
 open Printf
 
+(* Keep the regexp source around for better error reporting and
+   troubleshooting. *)
+type t = {
+  pattern : string;
+  regexp : Pcre.regexp; [@opaque] [@equal fun _ _ -> true]
+}
+[@@deriving show, eq]
+
 let logger = Logging.get_logger [ __MODULE__ ]
 
 (*
@@ -44,35 +52,44 @@ let regexp ?study ?iflags ?(flags = []) ?chtables pat =
    * spending too much time on regex matching. See perf/input/semgrep_targets.txt
    * and perf/input/semgrep_targets.yaml for an example where Semgrep appeared to
    * hang (but it was just the Pcre engine taking way too much time). *)
-  Pcre.regexp ?study ~limit:1_000_000 (* sets PCRE_EXTRA_MATCH_LIMIT *)
-    ~limit_recursion:1_000_000 (* sets PCRE_EXTRA_MATCH_LIMIT_RECURSION *)
-    ?iflags ~flags ?chtables pat
+  let regexp =
+    Pcre.regexp ?study ~limit:1_000_000 (* sets PCRE_EXTRA_MATCH_LIMIT *)
+      ~limit_recursion:1_000_000 (* sets PCRE_EXTRA_MATCH_LIMIT_RECURSION *)
+      ?iflags ~flags ?chtables pat
+  in
+  { pattern = pat; regexp }
 
-let pmatch ?iflags ?flags ?rex ?pos ?callout subj =
-  try Ok (Pcre.pmatch ?iflags ?flags ?rex ?pos ?callout subj) with
+let pmatch ?iflags ?flags ~rex ?pos ?callout subj =
+  try Ok (Pcre.pmatch ?iflags ?flags ~rex:rex.regexp ?pos ?callout subj) with
   | Pcre.Error err -> Error err
 
-let exec ?iflags ?flags ?rex ?pos ?callout subj =
-  try Ok (Some (Pcre.exec ?iflags ?flags ?rex ?pos ?callout subj)) with
+let exec ?iflags ?flags ~rex ?pos ?callout subj =
+  try
+    Ok (Some (Pcre.exec ?iflags ?flags ~rex:rex.regexp ?pos ?callout subj))
+  with
   | Not_found -> Ok None
   | Pcre.Error err -> Error err
 
-let exec_all ?iflags ?flags ?rex ?pos ?callout subj =
-  try Ok (Pcre.exec_all ?iflags ?flags ?rex ?pos ?callout subj) with
+let exec_all ?iflags ?flags ~rex ?pos ?callout subj =
+  try Ok (Pcre.exec_all ?iflags ?flags ~rex:rex.regexp ?pos ?callout subj) with
   | Not_found -> Ok [||]
   | Pcre.Error err -> Error err
 
-let exec_to_strings ?iflags ?flags ?rex ?pos ?callout subj =
-  match exec_all ?iflags ?flags ?rex ?pos ?callout subj with
+let exec_to_strings ?iflags ?flags ~rex ?pos ?callout subj =
+  match exec_all ?iflags ?flags ~rex ?pos ?callout subj with
   | Ok a -> Ok (Array.map Pcre.get_substrings a)
   | Error _ as e -> e
 
-let split ?iflags ?flags ?rex ?pos ?max ?callout subj =
-  try Ok (Pcre.split ?iflags ?flags ?rex ?pos ?max ?callout subj) with
+let split ?iflags ?flags ~rex ?pos ?max ?callout subj =
+  try
+    Ok (Pcre.split ?iflags ?flags ~rex:rex.regexp ?pos ?max ?callout subj)
+  with
   | Pcre.Error err -> Error err
 
-let full_split ?iflags ?flags ?rex ?pos ?max ?callout subj =
-  try Ok (Pcre.full_split ?iflags ?flags ?rex ?pos ?max ?callout subj) with
+let full_split ?iflags ?flags ~rex ?pos ?max ?callout subj =
+  try
+    Ok (Pcre.full_split ?iflags ?flags ~rex:rex.regexp ?pos ?max ?callout subj)
+  with
   | Pcre.Error err -> Error err
 
 let string_of_error (error : Pcre.error) =
@@ -87,40 +104,41 @@ let string_of_error (error : Pcre.error) =
   | WorkspaceSize -> "WorkspaceSize"
   | InternalError msg -> sprintf "InternalError(%S)" msg
 
-let log_error subj err =
+let log_error rex subj err =
   let string_fragment =
     let len = String.length subj in
     if len < 200 then subj
     else sprintf "%s ... (%i bytes)" (Str.first_chars subj 200) len
   in
-  logger#info "PCRE error: %s on input %S" (string_of_error err) string_fragment
+  logger#info "PCRE error: %s on input %S. Source regexp: %S"
+    (string_of_error err) string_fragment rex.pattern
 
-let pmatch_noerr ?iflags ?flags ?rex ?pos ?callout ?(on_error = false) subj =
-  match pmatch ?iflags ?flags ?rex ?pos ?callout subj with
+let pmatch_noerr ?iflags ?flags ~rex ?pos ?callout ?(on_error = false) subj =
+  match pmatch ?iflags ?flags ~rex ?pos ?callout subj with
   | Ok res -> res
   | Error err ->
-      log_error subj err;
+      log_error rex subj err;
       on_error
 
-let exec_noerr ?iflags ?flags ?rex ?pos ?callout subj =
-  match exec ?iflags ?flags ?rex ?pos ?callout subj with
+let exec_noerr ?iflags ?flags ~rex ?pos ?callout subj =
+  match exec ?iflags ?flags ~rex ?pos ?callout subj with
   | Ok res -> res
   | Error err ->
-      log_error subj err;
+      log_error rex subj err;
       None
 
-let exec_all_noerr ?iflags ?flags ?rex ?pos ?callout subj =
-  match exec_all ?iflags ?flags ?rex ?pos ?callout subj with
+let exec_all_noerr ?iflags ?flags ~rex ?pos ?callout subj =
+  match exec_all ?iflags ?flags ~rex ?pos ?callout subj with
   | Ok res -> res
   | Error err ->
-      log_error subj err;
+      log_error rex subj err;
       [||]
 
-let split_noerr ?iflags ?flags ?rex ?pos ?max ?callout ~on_error subj =
-  match split ?iflags ?flags ?rex ?pos ?max ?callout subj with
+let split_noerr ?iflags ?flags ~rex ?pos ?max ?callout ~on_error subj =
+  match split ?iflags ?flags ~rex ?pos ?max ?callout subj with
   | Ok res -> res
   | Error err ->
-      log_error subj err;
+      log_error rex subj err;
       on_error
 
 let string_of_exn (e : exn) =
@@ -144,3 +162,15 @@ let string_of_exn (e : exn) =
    See Exception.mli for notes on exception printer registration.
 *)
 let register_exception_printer () = Printexc.register_printer string_of_exn
+
+let substitute ?iflags ?flags ~rex ?pos ?callout ~subst subj =
+  Pcre.substitute ?iflags ?flags ~rex:rex.regexp ?pos ?callout ~subst subj
+
+let extract_all ?iflags ?flags ~rex ?pos ?full_match ?callout subj =
+  Pcre.extract_all ?iflags ?flags ~rex:rex.regexp ?pos ?full_match ?callout subj
+
+let get_named_substring rex name substrings =
+  try Ok (Some (Pcre.get_named_substring rex.regexp name substrings)) with
+  | Not_found -> Ok None
+  | Invalid_argument msg ->
+      Error (sprintf "Invalid argument: %s\nSource pattern: %S" msg rex.pattern)

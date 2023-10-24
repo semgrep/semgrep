@@ -50,39 +50,33 @@
 (*****************************************************************************)
 
 (* keep the string around for show *)
-type t = string * Pcre.regexp
+type t = SPcre.t
 
-let pcre_pattern = fst
-let pcre_regexp = snd
-let show (s, _) = s
-let pp fmt (s, _) = Format.fprintf fmt "\"%s\"" s
-let equal (s1, _) (s2, _) = s1 = s2
-
-let matching_exact_string s =
-  let quoted = Pcre.quote s in
-  (quoted, SPcre.regexp quoted)
+let pcre_pattern (x : t) = x.pattern
+let pcre_regexp (x : t) = x.regexp
+let show (x : t) = x.pattern
+let pp fmt (x : t) = Format.fprintf fmt "\"%s\"" x.pattern
+let equal (x1 : t) (x2 : t) = x1.pattern = x2.pattern
+let matching_exact_string s : t = SPcre.regexp (Pcre.quote s)
 
 let matching_exact_word s =
-  let re = "\b" ^ Pcre.quote s ^ "\b" in
-  (re, SPcre.regexp re)
+  let pattern = "\b" ^ Pcre.quote s ^ "\b" in
+  SPcre.regexp pattern
 
-let pcre_compile_with_flags ~flags pat = (pat, SPcre.regexp ~flags pat)
-[@@profiling]
+let pcre_compile_with_flags ~flags pat = SPcre.regexp ~flags pat [@@profiling]
 
 (*
    MULTILINE = ^ and $ match at the beginning and end of lines rather than
                just at the beginning and end of input.
 *)
-let pcre_compile pat = (pat, SPcre.regexp ~flags:[ `MULTILINE ] pat)
-[@@profiling]
+let pcre_compile pat = SPcre.regexp ~flags:[ `MULTILINE ] pat [@@profiling]
 
 let anchored_match ?on_error =
   (* ~iflags are precompiled flags for better performance compared to ~flags *)
   let iflags = Pcre.rflags [ `ANCHORED ] in
-  fun (_, re) str -> SPcre.pmatch_noerr ?on_error ~iflags ~rex:re str
+  fun rex str -> SPcre.pmatch_noerr ?on_error ~iflags ~rex str
 
-let unanchored_match ?on_error (_, re) str =
-  SPcre.pmatch_noerr ?on_error ~rex:re str
+let unanchored_match ?on_error rex str = SPcre.pmatch_noerr ?on_error ~rex str
 
 let may_contain_end_of_string_assertions =
   (* The absence of the following guarantees (to the best of our knowledge)
@@ -161,7 +155,7 @@ let remove_end_of_string_assertions_from_string src : string option =
           | _, '$' -> Str.first_chars src (len - 1) |> finish
           | _ -> src |> finish
 
-let remove_end_of_string_assertions (src_pat, _old) =
-  match remove_end_of_string_assertions_from_string src_pat with
+let remove_end_of_string_assertions (rex : t) =
+  match remove_end_of_string_assertions_from_string rex.pattern with
   | None -> None
   | Some pat -> Some (pcre_compile pat)
