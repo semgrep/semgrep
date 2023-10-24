@@ -389,6 +389,7 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
             rule_message
       in
       (* message where the metavars have been interpolated *)
+      (* TODO(secrets): apply masking logic here *)
       let message = interpolate_metavars message metavars !!path in
       let fix = render_fix hrules m in
       let check_id = rule_id in

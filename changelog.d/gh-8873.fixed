@@ -1,1 +1,0 @@
-Semgrep will now refuse to run incompatible versions of the Pro Engine, rather than crashing with a confusing error message.

@@ -23,6 +23,7 @@ class BaseFormatter(abc.ABC):
         shown_severities: Collection[out.MatchSeverity],
         is_ci_invocation: bool,
     ) -> str:
+
         filtered_rules = (r for r in rules if r.severity in shown_severities)
         filtered_matches = (m for m in rule_matches if m.severity in shown_severities)
         return self.format(

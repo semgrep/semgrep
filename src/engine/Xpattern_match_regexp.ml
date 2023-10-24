@@ -18,9 +18,7 @@ open Xpattern_matcher
 let logger = Logging.get_logger [ __MODULE__ ]
 
 let regexp_matcher ?(base_offset = 0) big_str file regexp =
-  let re_src = Regexp_engine.pcre_pattern regexp in
-  let re = Regexp_engine.pcre_regexp regexp in
-  let subs = SPcre.exec_all_noerr ~rex:re big_str in
+  let subs = SPcre.exec_all_noerr ~rex:regexp big_str in
   subs |> Array.to_list
   |> Common.map (fun sub ->
          (* Below, we add `base_offset` to any instance of `bytepos`, because
@@ -45,7 +43,7 @@ let regexp_matcher ?(base_offset = 0) big_str file regexp =
          let loc2 = { Tok.str; pos } in
 
          (* the names of all capture groups within the regexp *)
-         let names = Pcre.names re |> Array.to_list in
+         let names = Pcre.names regexp.regexp |> Array.to_list in
          (* return regexp bound group $1 $2 etc *)
          let n = Pcre.num_of_subs sub in
          (* TODO: remove when we kill numeric capture groups *)
@@ -67,16 +65,20 @@ let regexp_matcher ?(base_offset = 0) big_str file regexp =
                       with
                       | Not_found ->
                           logger#debug "not found %d substring of %s in %s" n
-                            re_src matched_str;
+                            regexp.pattern matched_str;
                           None)
          in
          let names_env =
            names
            |> Common.map_filter (fun name ->
                   try
-                    let bytepos, _ = Pcre.get_named_substring_ofs re name sub in
+                    (* TODO: make exception-free versions of the missing
+                       functions in SPcre. *)
+                    let bytepos, _ =
+                      Pcre.get_named_substring_ofs regexp.regexp name sub
+                    in
                     let bytepos = bytepos + base_offset in
-                    let str = Pcre.get_named_substring re name sub in
+                    let str = Pcre.get_named_substring regexp.regexp name sub in
                     let line, column = line_col_of_charpos file bytepos in
                     let pos = Pos.make ~file ~line ~column bytepos in
                     let loc = { Tok.str; pos } in
@@ -85,7 +87,7 @@ let regexp_matcher ?(base_offset = 0) big_str file regexp =
                   with
                   | Not_found ->
                       logger#debug "not found %s substring of %s in %s" name
-                        re_src matched_str;
+                        regexp.pattern matched_str;
                       None)
          in
          ((loc1, loc2), names_env @ numbers_env))

@@ -311,13 +311,13 @@ _scan_options: List[Callable] = [
         default=DEFAULT_DIFF_DEPTH,
     ),
     optgroup.option("--dump-command-for-core", "-d", is_flag=True, hidden=True),
-    optgroup.option("--allow-untrusted-postprocessors", is_flag=True, hidden=True),
     optgroup.option(
         "--no-secrets-validation",
         "disable_secrets_validation_flag",
         is_flag=True,
         hidden=True,
     ),
+    optgroup.option("--allow-untrusted-validators", is_flag=True, hidden=True),
 ]
 
 
@@ -430,7 +430,7 @@ def scan(
     quiet: bool,
     replacement: Optional[str],
     rewrite_rule_ids: bool,
-    allow_untrusted_postprocessors: bool,
+    allow_untrusted_validators: bool,
     scan_unknown_extensions: bool,
     severity: Optional[Tuple[str, ...]],
     strict: bool,
@@ -586,7 +586,7 @@ def scan(
                             timeout_threshold=timeout_threshold,
                             interfile_timeout=interfile_timeout,
                             optimizations=optimizations,
-                            allow_untrusted_postprocessors=allow_untrusted_postprocessors,
+                            allow_untrusted_validators=allow_untrusted_validators,
                         ).validate_configs(config)
                     except SemgrepError as e:
                         metacheck_errors = [e]
@@ -647,7 +647,7 @@ def scan(
                     timeout_threshold=timeout_threshold,
                     interfile_timeout=interfile_timeout,
                     skip_unknown_extensions=(not scan_unknown_extensions),
-                    allow_untrusted_postprocessors=allow_untrusted_postprocessors,
+                    allow_untrusted_validators=allow_untrusted_validators,
                     severity=severity,
                     optimizations=optimizations,
                     baseline_commit=baseline_commit,

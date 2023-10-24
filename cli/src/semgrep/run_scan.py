@@ -329,7 +329,7 @@ def run_scan(
     max_target_bytes: int = 0,
     timeout_threshold: int = 0,
     skip_unknown_extensions: bool = False,
-    allow_untrusted_postprocessors: bool = False,
+    allow_untrusted_validators: bool = False,
     severity: Optional[Sequence[str]] = None,
     optimizations: str = "none",
     baseline_commit: Optional[str] = None,
@@ -395,6 +395,9 @@ def run_scan(
         metrics.add_integration_name(environ.get("SEMGREP_INTEGRATION_NAME"))
         metrics.add_configs(configs)
         metrics.add_engine_type(engine_type)
+        metrics.add_is_diff_scan(baseline_commit is not None)
+        if engine_type.is_pro:
+            metrics.add_diff_depth(diff_depth)
 
     if not severity:
         shown_severities = DEFAULT_SHOWN_SEVERITIES
@@ -486,7 +489,7 @@ def run_scan(
         interfile_timeout=interfile_timeout,
         timeout_threshold=timeout_threshold,
         optimizations=optimizations,
-        allow_untrusted_postprocessors=allow_untrusted_postprocessors,
+        allow_untrusted_validators=allow_untrusted_validators,
         respect_rule_paths=respect_rule_paths,
     )
 

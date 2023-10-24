@@ -36,7 +36,7 @@ defmodule Test do
     def test3(c) do
         x = "tainted"
         y = if c do
-                #ruleid: taint-maturity
+                #todoruleid: taint-maturity
                 sink(x)
                 sanitize(x)
             else
