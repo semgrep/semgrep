@@ -127,7 +127,7 @@ class RuleMatch:
     # TODO: diff with rule.py product() method?
     @property
     def product(self) -> out.Product:
-        if "product" in self.metadata and self.metadata["product"] == "secrets":
+        if self.metadata.get("product") == "secrets":
             return out.Product(out.Secrets())
         elif "sca_info" in self.extra:
             return out.Product(out.SCA())
