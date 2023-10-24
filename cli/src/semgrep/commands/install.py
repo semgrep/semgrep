@@ -98,7 +98,7 @@ def run_install_semgrep_pro(custom_binary: Optional[str] = None) -> None:
     if semgrep_pro_path.exists():
         logger.info(f"Overwriting Semgrep Pro Engine already installed!")
 
-    if state.app_session.token is None and custom_binary is not None:
+    if state.app_session.token is None and custom_binary is None:
         logger.info("run `semgrep login` before running `semgrep install-semgrep-pro`")
         sys.exit(INVALID_API_KEY_EXIT_CODE)
 
