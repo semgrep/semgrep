@@ -55,36 +55,15 @@ class CoreNotFound(Exception):
  
     def __str__(self):
         return(self.value)
-
-# Similar to cli/src/semgrep/engine.py check_is_correct_pro_version
-def is_correct_pro_version(core_path):
-    # We want to be careful about what we import here in order to keep this
-    # script lightweight. However, this file just defines a single constant and
-    # it takes well under a millisecond to import this.
-    from semgrep import __VERSION__
-    # Duplicate of cli/src/semgrep/semgrep_core.py pro_version_stamp_path
-    stamp_path = core_path.parent / "pro-installed-by.txt"
-    if stamp_path.is_file():
-        with stamp_path.open('r') as f:
-            version_at_install = f.readline().strip()
-            return version_at_install == __VERSION__
-    else:
-        return False
-
+           
 # similar to cli/src/semgrep/semgrep_core.py compute_executable_path()
-def find_semgrep_core_path(pro=False, extra_message=""):
-    if pro:
-        core = "semgrep-core-proprietary"
-    else:
-        core = "semgrep-core"
+def find_semgrep_core_path(core="semgrep-core", extra_message=""):
     # First, try the packaged binary.
     try:
         # the use of .path causes a DeprecationWarning hence the
         # filterwarnings above
         with importlib.resources.path("semgrep.bin", core) as path:
             if path.is_file():
-                if pro and not is_correct_pro_version(path):
-                    raise CoreNotFound(f"The installed version of {core} is out of date.{extra_message}")
                 return str(path)
     except FileNotFoundError as e:
         pass
@@ -123,7 +102,7 @@ def exec_pysemgrep():
 def exec_osemgrep():
     if "--pro" in sys.argv:
         try:
-            path = find_semgrep_core_path(pro=True,
+            path = find_semgrep_core_path(core="semgrep-core-proprietary",
                                       extra_message="\nYou may need to run `semgrep install-semgrep-pro`"    )
         except CoreNotFound as e:
             print(str(e), file=sys.stderr)

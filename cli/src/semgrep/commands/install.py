@@ -43,18 +43,6 @@ def determine_semgrep_pro_path() -> Path:
     return semgrep_pro_path
 
 
-# This places a stamp alongside the semgrep-core-proprietary binary indicating
-# which version of Semgrep installed it. This allows us to ensure that we are
-# not running an out-of-date binary if Semgrep is later upgraded but the
-# semgrep-core-proprietary binary remains in place.
-#
-# See also engine.py check_is_correct_pro_version
-def add_semgrep_pro_version_stamp() -> None:
-    path = SemgrepCore.pro_version_stamp_path()
-    with path.open("w") as f:
-        f.write(__VERSION__)
-
-
 def download_semgrep_pro(
     state: SemgrepState, platform_kind: str, destination: Path
 ) -> None:
@@ -170,7 +158,6 @@ def run_install_semgrep_pro(custom_binary: Optional[str] = None) -> None:
     if semgrep_pro_path.exists():
         semgrep_pro_path.unlink()
     semgrep_pro_path_tmp.rename(semgrep_pro_path)
-    add_semgrep_pro_version_stamp()
     logger.info(f"\nSuccessfully installed Semgrep Pro Engine (version {version})!")
 
 
