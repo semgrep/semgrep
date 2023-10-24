@@ -529,6 +529,12 @@ contact support@semgrep.com for more informationon this.|}
   in
   Arg.value (Arg.flag info)
 
+let o_no_secrets_validation : bool Term.t =
+  let info =
+    Arg.info [ "no-secrets-validation" ] ~doc:{|Disables secrets validation|}
+  in
+  Arg.value (Arg.flag info)
+
 let o_allow_untrusted_validators : bool Term.t =
   let info =
     Arg.info
@@ -830,12 +836,12 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       exclude_rule_ids force_color gitlab_sast gitlab_secrets include_ json
       junit_xml lang matching_explanations max_chars_per_line
       max_lines_per_finding max_memory_mb max_target_bytes metrics num_jobs
-      nosem optimizations oss output pattern pro project_root pro_intrafile
-      pro_lang registry_caching replacement respect_git_ignore rewrite_rule_ids
-      sarif scan_unknown_extensions secrets severity show_supported_languages
-      strict target_roots test test_ignore_todo text time_flag timeout
-      _timeout_interfileTODO timeout_threshold validate version version_check
-      vim =
+      no_secrets_validation nosem optimizations oss output pattern pro
+      project_root pro_intrafile pro_lang registry_caching replacement
+      respect_git_ignore rewrite_rule_ids sarif scan_unknown_extensions secrets
+      severity show_supported_languages strict target_roots test
+      test_ignore_todo text time_flag timeout _timeout_interfileTODO
+      timeout_threshold validate version version_check vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Logs_helpers.setup_logging ~force_color
@@ -884,7 +890,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
              --oss/--pro-languages/--pro-intrafile/--pro"
     in
     (* TODO Should double check all other times this should run. *)
-    let run_secrets = secrets in
+    let run_secrets = secrets && not no_secrets_validation in
     let rules_source =
       match (config, (pattern, lang, replacement)) with
       (* ugly: when using --dump-ast, we can pass a pattern or a target,
@@ -1129,14 +1135,14 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     $ o_force_color $ o_gitlab_sast $ o_gitlab_secrets $ o_include $ o_json
     $ o_junit_xml $ o_lang $ o_matching_explanations $ o_max_chars_per_line
     $ o_max_lines_per_finding $ o_max_memory_mb $ o_max_target_bytes $ o_metrics
-    $ o_num_jobs $ o_nosem $ o_optimizations $ o_oss $ o_output $ o_pattern
-    $ o_pro $ o_project_root $ o_pro_intrafile $ o_pro_languages
-    $ o_registry_caching $ o_replacement $ o_respect_git_ignore
-    $ o_rewrite_rule_ids $ o_sarif $ o_scan_unknown_extensions $ o_secrets
-    $ o_severity $ o_show_supported_languages $ o_strict $ o_target_roots
-    $ o_test $ o_test_ignore_todo $ o_text $ o_time $ o_timeout
-    $ o_timeout_interfile $ o_timeout_threshold $ o_validate $ o_version
-    $ o_version_check $ o_vim)
+    $ o_num_jobs $ o_no_secrets_validation $ o_nosem $ o_optimizations $ o_oss
+    $ o_output $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile
+    $ o_pro_languages $ o_registry_caching $ o_replacement
+    $ o_respect_git_ignore $ o_rewrite_rule_ids $ o_sarif
+    $ o_scan_unknown_extensions $ o_secrets $ o_severity
+    $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
+    $ o_test_ignore_todo $ o_text $ o_time $ o_timeout $ o_timeout_interfile
+    $ o_timeout_threshold $ o_validate $ o_version $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
 

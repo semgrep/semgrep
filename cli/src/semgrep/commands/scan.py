@@ -311,6 +311,12 @@ _scan_options: List[Callable] = [
         default=DEFAULT_DIFF_DEPTH,
     ),
     optgroup.option("--dump-command-for-core", "-d", is_flag=True, hidden=True),
+    optgroup.option(
+        "--no-secrets-validation",
+        "disable_secrets_validation_flag",
+        is_flag=True,
+        hidden=True,
+    ),
     optgroup.option("--allow-untrusted-validators", is_flag=True, hidden=True),
 ]
 
@@ -398,6 +404,7 @@ def scan(
     dump_engine_path: bool,
     requested_engine: Optional[EngineType],
     run_secrets_flag: bool,
+    disable_secrets_validation_flag: bool,
     dryrun: bool,
     dump_command_for_core: bool,
     enable_nosem: bool,
@@ -574,7 +581,6 @@ def scan(
                         metacheck_errors = CoreRunner(
                             jobs=jobs,
                             engine_type=engine_type,
-                            run_secrets=run_secrets_flag,
                             timeout=timeout,
                             max_memory=max_memory,
                             timeout_threshold=timeout_threshold,
@@ -618,6 +624,7 @@ def scan(
                     matching_explanations=matching_explanations,
                     engine_type=engine_type,
                     run_secrets=run_secrets_flag,
+                    disable_secrets_validation=disable_secrets_validation_flag,
                     output_handler=output_handler,
                     target=targets,
                     pattern=pattern,

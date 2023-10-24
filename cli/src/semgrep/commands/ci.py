@@ -192,6 +192,7 @@ def ci(
     quiet: bool,
     rewrite_rule_ids: bool,
     run_secrets_flag: bool,
+    disable_secrets_validation_flag: bool,
     allow_untrusted_validators: bool,
     supply_chain: bool,
     scan_unknown_extensions: bool,
@@ -432,6 +433,7 @@ def ci(
         ) = semgrep.run_scan.run_scan(
             engine_type=engine_type,
             run_secrets=run_secrets,
+            disable_secrets_validation=disable_secrets_validation_flag,
             output_handler=output_handler,
             target=[os.curdir],  # semgrep ci only scans cwd
             pattern=None,

@@ -157,6 +157,7 @@ def run_rules(
     engine_type: EngineType,
     # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
     run_secrets: bool = False,
+    disable_secrets_validation: bool = False,
     target_mode_config: Optional[TargetModeConfig] = None,
     *,
     with_code_rules: bool = True,
@@ -203,6 +204,7 @@ def run_rules(
         matching_explanations,
         engine_type,
         run_secrets,
+        disable_secrets_validation,
         target_mode_config,
     )
 
@@ -301,6 +303,7 @@ def run_scan(
     matching_explanations: bool = False,
     engine_type: EngineType = EngineType.OSS,
     run_secrets: bool = False,
+    disable_secrets_validation: bool = False,
     output_handler: OutputHandler,
     target: Sequence[str],
     pattern: Optional[str],
@@ -481,7 +484,6 @@ def run_scan(
     core_runner = CoreRunner(
         jobs=jobs,
         engine_type=engine_type,
-        run_secrets=run_secrets,
         timeout=timeout,
         max_memory=max_memory,
         interfile_timeout=interfile_timeout,
@@ -526,6 +528,7 @@ def run_scan(
         matching_explanations,
         engine_type,
         run_secrets,
+        disable_secrets_validation,
         target_mode_config,
         with_code_rules=with_code_rules,
         with_supply_chain=with_supply_chain,
@@ -615,6 +618,7 @@ def run_scan(
                         matching_explanations,
                         engine_type,
                         run_secrets,
+                        disable_secrets_validation,
                         baseline_target_mode_config,
                     )
                     rule_matches_by_rule = remove_matches_in_baseline(
