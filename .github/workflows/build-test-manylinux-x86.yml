@@ -12,7 +12,7 @@ jobs:
       with:
         submodules: true
     - name: Setup Python
-      run: "\n        rm /usr/bin/python\n        ln `which python3.7` /usr/bin/python3\n
+      run: "\n        rm /usr/bin/python\n        ln `which python3.8` /usr/bin/python3\n
         \     "
     - run: apt-get update && apt install -y zip musl-tools
     - uses: actions/download-artifact@v3

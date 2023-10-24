@@ -221,7 +221,6 @@ local test_cli_job = {
   strategy: {
     matrix: {
       python: [
-        '3.7',
         '3.8',
         '3.9',
         '3.10',
@@ -328,7 +327,7 @@ local test_qa_job = {
 local bench_prepare_steps = [
   actions.checkout(),
   fetch_submodules_step,
-  actions.setup_python('3.7'),
+  actions.setup_python('3.8'),
   pipenv_install_step,
   download_x86_artifacts,
   install_x86_artifacts,
