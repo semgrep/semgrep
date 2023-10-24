@@ -1,1 +1,0 @@
-pyproject.toml parser now handles optional newlines right after section headers.
