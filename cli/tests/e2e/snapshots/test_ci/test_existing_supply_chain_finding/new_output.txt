@@ -56,6 +56,12 @@ Creating git worktree from '<MASKED>' to scan baseline.
 
   SUPPLY CHAIN RULES
   Nothing to scan.
+CI scan completed successfully.
+  Found 0 findings (0 blocking) from 1 rule.
+  Uploading scan results
+  Finalizing scan           View results in Semgrep Cloud Platform:
+    https://semgrep.dev/orgs/org_name/findings
+    https://semgrep.dev/orgs/org_name/supply-chain
 
 
 ┌──────────────┐
@@ -64,12 +70,6 @@ Creating git worktree from '<MASKED>' to scan baseline.
 Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
 
-CI scan completed successfully.
-  Found 0 findings (0 blocking) from 1 rule.
-  Uploading scan results
-  Finalizing scan           View results in Semgrep Cloud Platform:
-    https://semgrep.dev/orgs/org_name/findings
-    https://semgrep.dev/orgs/org_name/supply-chain
   No blocking findings so exiting with code 0
   semgrep.dev is suggesting a non-zero exit code <MASKED>
 
