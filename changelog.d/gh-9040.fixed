@@ -1,5 +1,0 @@
-Reduced the limits for the prefilter optimization so that rules that cause
-computing the prefilter to blow up will abort more quickly. This improves
-performance by 2-3 seconds for each of the slowest rules. May cause a
-slowdown if a rule that previously could be filtered out no longer will be,
-but based on testing this is unlikely.

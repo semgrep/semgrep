@@ -6,6 +6,42 @@
 
 <!-- insertion point -->
 
+## [1.46.0](https://github.com/returntocorp/semgrep/releases/tag/v1.46.0) - 2023-10-24
+
+### Added
+
+- `semgrep install-semgrep-pro` now takes an optional `--custom-binary` flag to install the specified `semgrep-core-proprietary` binary rather than downloading it. (custom-pro-binary)
+
+### Fixed
+
+- pyproject.toml parser now handles optional newlines right after section headers. (gh-10879)
+- Updated the parsers for poetry.lock, pipfile.lock, and requirements.txt to ignore case sensitivity from package names.
+  This matches their respective specifications. Test cases were added to account for this change. (gh-8984)
+- Reduced the limits for the prefilter optimization so that rules that cause
+  computing the prefilter to blow up will abort more quickly. This improves
+  performance by 2-3 seconds for each of the slowest rules. May cause a
+  slowdown if a rule that previously could be filtered out no longer will be,
+  but based on testing this is unlikely. (gh-9040)
+- Fixed issue where conditional expressions aren't handled properly in expression based language.
+
+  Rust example:
+
+  Before:
+
+  ````rust
+  fn expr_stmt_if(c) {
+    y = 0;
+    x = if c { y = 1 };
+
+    // Before: this matches when it shouldn't because y is not always 1.
+    // After: this does not match, which is the correct behavior.
+    y == 1;
+  }
+  ``` (pa-3205)
+  ````
+
+- Fixed type error in creation of DependencyParserError object in the pnpm-lock.yaml parser (sc-1115)
+
 ## [1.45.0](https://github.com/returntocorp/semgrep/releases/tag/v1.45.0) - 2023-10-18
 
 ### Changed

@@ -1,2 +1,0 @@
-Updated the parsers for poetry.lock, pipfile.lock, and requirements.txt to ignore case sensitivity from package names.
-This matches their respective specifications. Test cases were added to account for this change.

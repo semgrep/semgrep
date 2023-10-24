@@ -1,1 +1,0 @@
-`semgrep install-semgrep-pro` now takes an optional `--custom-binary` flag to install the specified `semgrep-core-proprietary` binary rather than downloading it.
