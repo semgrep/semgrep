@@ -716,6 +716,7 @@ class TextFormatter(BaseFormatter):
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
         is_ci_invocation: bool,
+        ci_scan_results: Optional[out.CiScanResults]
     ) -> str:
         # all output in this function is captured and returned as a string
         with force_quiet_off(console), console.capture() as captured_output:

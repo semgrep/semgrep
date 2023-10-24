@@ -4,6 +4,7 @@ from typing import Collection
 from typing import FrozenSet
 from typing import Iterable
 from typing import Mapping
+from typing import Optional
 from typing import Sequence
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
@@ -22,6 +23,7 @@ class BaseFormatter(abc.ABC):
         extra: Mapping[str, Any],
         shown_severities: Collection[out.MatchSeverity],
         is_ci_invocation: bool,
+        ci_scan_results: Optional[out.CiScanResults]
     ) -> str:
 
         filtered_rules = (r for r in rules if r.severity in shown_severities)
@@ -33,6 +35,7 @@ class BaseFormatter(abc.ABC):
             cli_output_extra,
             extra,
             is_ci_invocation,
+            ci_scan_results
         )
 
     @abc.abstractmethod
@@ -44,6 +47,7 @@ class BaseFormatter(abc.ABC):
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
         is_ci_invocation: bool,
+        ci_scan_results: Optional[out.CiScanResults]
     ) -> str:
         raise NotImplementedError
 

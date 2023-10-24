@@ -1,6 +1,7 @@
 from typing import Any
 from typing import Iterable
 from typing import Mapping
+from typing import Optional
 from typing import Sequence
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
@@ -38,6 +39,7 @@ class EmacsFormatter(BaseFormatter):
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
         is_ci_invocation: bool,
+        ci_scan_results: Optional[out.CiScanResults]
     ) -> str:
         sorted_matches = sorted(rule_matches, key=lambda r: (r.path, r.rule_id))
         return "\n".join(":".join(self._get_parts(rm)) for rm in sorted_matches)
