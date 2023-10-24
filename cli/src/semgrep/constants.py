@@ -43,9 +43,10 @@ class OutputFormat(Enum):
     SARIF = auto()
     EMACS = auto()
     VIM = auto()
+    CI_SCAN_RESULTS = auto()
 
     def is_json(self) -> bool:
-        return self in [OutputFormat.JSON, OutputFormat.SARIF]
+        return self in [OutputFormat.JSON, OutputFormat.SARIF, OutputFormat.CI_SCAN_RESULTS]
 
 
 class RuleScanSource(Enum):

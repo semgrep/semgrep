@@ -400,6 +400,7 @@ class SarifFormatter(BaseFormatter):
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
         is_ci_invocation: bool,
+        ci_scan_results: Optional[out.CiScanResults]
     ) -> str:
         """
         Format matches in SARIF v2.1.0 formatted JSON.

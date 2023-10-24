@@ -29,6 +29,7 @@ from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
+from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
@@ -70,6 +71,7 @@ class ScanHandler:
         self._scan_params: str = ""
         self._rules: str = ""
         self._enabled_products: List[str] = []
+        self.ci_scan_results: Optional[out.CiScanResults] = None
 
     @property
     def deployment_id(self) -> Optional[int]:
@@ -279,35 +281,18 @@ class ScanHandler:
         except requests.RequestException:
             raise Exception(f"API server returned this error: {response.text}")
 
-    def report_findings(
+    def _build_ci_scan_results(
         self,
-        matches_by_rule: RuleMatchMap,
-        errors: List[SemgrepError],
         rules: List[Rule],
         targets: Set[Path],
         renamed_targets: Set[Path],
-        ignored_targets: FrozenSet[Path],
-        parse_rate: ParsingData,
-        total_time: float,
         commit_date: str,
         lockfile_dependencies: Dict[str, List[out.FoundDependency]],
-        dependency_parser_errors: List[DependencyParserError],
         contributions: out.Contributions,
-        engine_requested: "EngineType",
-        progress_bar: "Progress",
-    ) -> ScanCompleteResult:
-        """
-        commit_date here for legacy reasons. epoch time of latest commit
-
-        Returns (success, block_scan, block_reason)
-        """
-        state = get_state()
+        all_matches: list[RuleMatch],
+        dependency_query: bool
+    ) -> out.CiScanResults:
         rule_ids = [out.RuleId(r.id) for r in rules]
-        all_matches = [
-            match
-            for matches_of_rule in matches_by_rule.values()
-            for match in matches_of_rule
-        ]
         # we want date stamps assigned by the app to be assigned such that the
         # current sort by relevant_since results in findings within a given scan
         # appear in an intuitive order.  this requires reversed ordering here.
@@ -338,7 +323,7 @@ class ScanHandler:
             or os.getenv("BITBUCKET_TOKEN")
         )
 
-        ci_scan_results = out.CiScanResults(
+        self.ci_scan_results = out.CiScanResults(
             # send a backup token in case the app is not available
             token=token,
             findings=findings,
@@ -348,8 +333,52 @@ class ScanHandler:
             rule_ids=rule_ids,
             contributions=contributions,
         )
-        if self._dependency_query:
-            ci_scan_results.dependencies = out.CiScanDependencies(lockfile_dependencies)
+        if dependency_query:
+            self.ci_scan_results.dependencies = out.CiScanDependencies(lockfile_dependencies)
+
+        return self.ci_scan_results
+
+    def report_findings(
+        self,
+        matches_by_rule: RuleMatchMap,
+        errors: List[SemgrepError],
+        rules: List[Rule],
+        targets: Set[Path],
+        renamed_targets: Set[Path],
+        ignored_targets: FrozenSet[Path],
+        parse_rate: ParsingData,
+        total_time: float,
+        commit_date: str,
+        lockfile_dependencies: Dict[str, List[out.FoundDependency]],
+        dependency_parser_errors: List[DependencyParserError],
+        contributions: out.Contributions,
+        engine_requested: "EngineType",
+        progress_bar: "Progress",
+    ) -> ScanCompleteResult:
+        """
+        commit_date here for legacy reasons. epoch time of latest commit
+
+        Returns (success, block_scan, block_reason)
+        """
+        state = get_state()
+        all_matches = [
+            match
+            for matches_of_rule in matches_by_rule.values()
+            for match in matches_of_rule
+        ]
+        new_ignored, new_matches = partition(
+            all_matches, lambda match: bool(match.is_ignored)
+        )
+        ci_scan_results = self._build_ci_scan_results(
+            rules,
+            targets,
+            renamed_targets,
+            commit_date,
+            lockfile_dependencies,
+            contributions,
+            all_matches,
+            self._dependency_query
+        )
 
         findings_and_ignores = ci_scan_results.to_json()
 

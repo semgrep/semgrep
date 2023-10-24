@@ -1,4 +1,5 @@
 from typing import Any
+from typing import Optional
 from typing import cast
 from typing import Iterable
 from typing import Mapping
@@ -38,6 +39,7 @@ class JunitXmlFormatter(BaseFormatter):
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
         is_ci_invocation: bool,
+        ci_scan_results: Optional[out.CiScanResults]
     ) -> str:
         test_cases = [
             self._rule_match_to_test_case(rule_match) for rule_match in rule_matches

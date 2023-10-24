@@ -30,6 +30,7 @@ from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
+from semgrep.formatter.ci_scan_results import CiScanResultsFormatter
 from semgrep.formatter.emacs import EmacsFormatter
 from semgrep.formatter.gitlab_sast import GitlabSastFormatter
 from semgrep.formatter.gitlab_secrets import GitlabSecretsFormatter
@@ -64,6 +65,7 @@ FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
     OutputFormat.SARIF: SarifFormatter,
     OutputFormat.TEXT: TextFormatter,
     OutputFormat.VIM: VimFormatter,
+    OutputFormat.CI_SCAN_RESULTS: CiScanResultsFormatter
 }
 
 DEFAULT_SHOWN_SEVERITIES: Collection[out.MatchSeverity] = frozenset(
@@ -160,6 +162,7 @@ class OutputHandler:
         self.severities: Collection[out.MatchSeverity] = DEFAULT_SHOWN_SEVERITIES
         self.explanations: Optional[List[out.MatchingExplanation]] = None
         self.engine_type: EngineType = EngineType.OSS
+        self.ci_scan_results: Optional[out.CiScanResults] = None
 
         self.final_error: Optional[Exception] = None
         formatter_type = FORMATTERS.get(self.settings.output_format)
@@ -285,6 +288,7 @@ class OutputHandler:
         print_summary: bool = False,
         is_ci_invocation: bool = False,
         engine_type: EngineType = EngineType.OSS,
+        ci_scan_results: Optional[out.CiScanResults] = None
     ) -> None:
         state = get_state()
         self.has_output = True
@@ -299,6 +303,7 @@ class OutputHandler:
         self.filtered_rules = filtered_rules
 
         self.engine_type = engine_type
+        self.ci_scan_results = ci_scan_results
 
         if ignore_log:
             self.ignore_log = ignore_log
@@ -500,4 +505,5 @@ class OutputHandler:
             extra,
             self.severities,
             is_ci_invocation=self.is_ci_invocation,
+            ci_scan_results=self.ci_scan_results
         )
