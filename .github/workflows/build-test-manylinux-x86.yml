@@ -13,10 +13,9 @@ jobs:
         submodules: true
     - run: apt-get update && apt install -y zip musl-tools python3.8
     - run: "\n        add-apt-repository ppa:deadsnakes\n        apt-get update\n
-        \       apt-get install python3.8\n        update-alternatives --install /usr/bin/python3
-        python3 /usr/bin/python3.5 1\n        update-alternatives --install /usr/bin/python3
-        python3 /usr/bin/python3.8 2\n        update-alternatives --config python3\n
-        \     "
+        \       update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6
+        1\n        update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8
+        2\n        update-alternatives --config python3\n      "
     - uses: actions/download-artifact@v3
       with:
         name: ocaml-build-artifacts-release
