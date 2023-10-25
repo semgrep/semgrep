@@ -13,7 +13,7 @@ local wheel_name = 'manylinux-x86-wheel';
 local build_wheels_job = {
   'runs-on': 'ubuntu-latest',
   // pad: What is this sgrep-xxx image?
-  container: 'returntocorp/sgrep-build:ubuntu-16.04',
+  container: 'returntocorp/sgrep-build:ubuntu-18.04',
   steps: [
     actions.checkout_with_submodules(),
     {
@@ -21,6 +21,9 @@ local build_wheels_job = {
     },
     {
       run: |||
+        add-apt-repository ppa:deadsnakes
+        apt-get update
+        apt-get install python3.8
         update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.5 1
         update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 2
         update-alternatives --config python3

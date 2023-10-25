@@ -6,15 +6,17 @@ name: build-test-manylinux-x86
 jobs:
   build-wheels:
     runs-on: ubuntu-latest
-    container: returntocorp/sgrep-build:ubuntu-16.04
+    container: returntocorp/sgrep-build:ubuntu-18.04
     steps:
     - uses: actions/checkout@v3
       with:
         submodules: true
     - run: apt-get update && apt install -y zip musl-tools python3.8
-    - run: "\n        update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.5
-        1\n        update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8
-        2\n        update-alternatives --config python3\n      "
+    - run: "\n        add-apt-repository ppa:deadsnakes\n        apt-get update\n
+        \       apt-get install python3.8\n        update-alternatives --install /usr/bin/python3
+        python3 /usr/bin/python3.5 1\n        update-alternatives --install /usr/bin/python3
+        python3 /usr/bin/python3.8 2\n        update-alternatives --config python3\n
+        \     "
     - uses: actions/download-artifact@v3
       with:
         name: ocaml-build-artifacts-release
