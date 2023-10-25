@@ -16,6 +16,7 @@ local build_wheels_job = {
   container: 'returntocorp/sgrep-build:ubuntu-16.04',
   steps: [
     actions.checkout_with_submodules(),
+    actions.setup_python('3.8'),
     {
       run: 'apt-get update && apt install -y zip musl-tools',
     },
@@ -29,16 +30,8 @@ local build_wheels_job = {
       run: |||
         tar xf ocaml-build-artifacts.tgz
         cp ocaml-build-artifacts/bin/semgrep-core cli/src/semgrep/bin
+        ./scripts/build-wheels.sh
       |||,
-    },
-    {
-        uses: 'actions/setup-python@v4',
-        with: {
-        'python-version': '3.8',
-            // ??? where is this cache created?
-            cache: 'pipenv',
-            run: './scripts/build-wheels.sh'
-        },
     },
     {
       uses: 'actions/upload-artifact@v3',
