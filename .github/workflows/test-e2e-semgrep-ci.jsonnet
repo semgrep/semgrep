@@ -273,13 +273,17 @@ local notify_failure_job = {
   steps: [
     {
       name: 'Notify Failure on Slack',
-      uses: "slackapi/slack-github-action@v1.23.0",
+      uses: "slackapi/slack-github-action@v1.24.0",
       with: {
         'channel-id': "C01NXGX2EHZ", # team-semgrep-core
-	'slack-message': "The `${{ github.workflow }}` workflow has failed! Please take a look: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+	#'slack-message': "The `${{ github.workflow }}` workflow has failed! Please take a look: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+	payload: |||
+	  { "text": "The `${{ github.workflow }}` workflow has failed! Please take a look: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" }
+	|||,
 	},
       env: {
-	SLACK_WEBHOOK_URL: "${{ secrets.NOTIFICATIONS_URL }}",
+	#TODO? use secrets.NOTIFICATIONS_URL? got error in CI then
+	SLACK_WEBHOOK_URL: "${{ secrets.DEPLOY_SLACK_WEBHOOK }}",
 	SLACK_WEBHOOK_TYPE: "INCOMING_WEBHOOK",
       },
     },
