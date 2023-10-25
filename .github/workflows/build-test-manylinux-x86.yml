@@ -12,6 +12,7 @@ jobs:
       with:
         submodules: true
     - run: apt-get update && apt install -y zip musl-tools software-properties-common
+        python3-pip
     - run: "\n        add-apt-repository ppa:deadsnakes/ppa\n        apt install -y
         python3.8\n        update-alternatives --install /usr/bin/python3 python3
         /usr/bin/python3.6 1\n        update-alternatives --install /usr/bin/python3

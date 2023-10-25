@@ -17,7 +17,7 @@ local build_wheels_job = {
   steps: [
     actions.checkout_with_submodules(),
     {
-      run: 'apt-get update && apt install -y zip musl-tools software-properties-common',
+      run: 'apt-get update && apt install -y zip musl-tools software-properties-common python3-pip',
     },
     {
       run: |||
