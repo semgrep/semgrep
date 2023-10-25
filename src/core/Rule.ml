@@ -672,6 +672,24 @@ type error = {
 exception Error of error
 
 (*
+   Determine if an error can be skipped. This is for presumably well-formed
+   rules that aren't compatible with the current version of semgrep
+   and shouldn't cause a failure.
+*)
+let is_skippable_error (kind : invalid_rule_error_kind) =
+  match kind with
+  | InvalidLanguage _
+  | InvalidPattern _
+  | InvalidRegexp _
+  | DeprecatedFeature _
+  | MissingPositiveTermInAnd
+  | InvalidOther _ ->
+      false
+  | IncompatibleRule _
+  | MissingPlugin _ ->
+      true
+
+(*
    You must provide a rule ID for a rule to be reported properly as an invalid
    rule. The argument is not optional because it's important to not forget to
    specify a rule ID whenever possible.

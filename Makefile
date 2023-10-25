@@ -191,12 +191,19 @@ test:
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-test
 core-test:
-	# The test executable has a few options that can be useful in some contexts.
-	dune build ./_build/default/src/tests/test.exe
+	$(MAKE) build-core-test
 	# The following command ensures that we can call 'test.exe --help'
 	# from the directory of the checkout
 	./_build/default/src/tests/test.exe --show-errors --help 2>&1 >/dev/null
 	./scripts/run-core-test
+
+# Please keep this standalone target.
+# We want to rebuild the tests without re-running all of them.
+.PHONY: build-core-test
+build-core-test:
+	# The test executable has a few options that can be useful in some
+	# contexts.
+	dune build ./_build/default/src/tests/test.exe
 
 .PHONY: test-bc
 test-bc:

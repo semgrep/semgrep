@@ -2013,15 +2013,13 @@ let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
   let xs =
     rules
     |> Common.mapi (fun i rule ->
-           if error_recovery then (
-             try Left (parse_one_rule ~rewrite_rule_ids t i rule) with
-             | Rule.Error { kind = InvalidRule ((kind, ruleid, _) as err); _ }
-               ->
-                 let s = Rule.string_of_invalid_rule_error_kind kind in
-                 logger#warning "skipping rule %s, error = %s"
-                   (Rule_ID.to_string ruleid) s;
-                 Right err)
-           else Left (parse_one_rule ~rewrite_rule_ids t i rule))
+           try Left (parse_one_rule ~rewrite_rule_ids t i rule) with
+           | Rule.Error { kind = InvalidRule ((kind, ruleid, _) as err); _ }
+             when error_recovery || R.is_skippable_error kind ->
+               let s = Rule.string_of_invalid_rule_error_kind kind in
+               logger#warning "skipping rule %s, error = %s"
+                 (Rule_ID.to_string ruleid) s;
+               Right err)
   in
   Common.partition_either (fun x -> x) xs
 
