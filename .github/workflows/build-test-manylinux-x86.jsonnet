@@ -17,14 +17,6 @@ local build_wheels_job = {
   steps: [
     actions.checkout_with_submodules(),
     actions.setup_python('3.8'),
-    // pad: Why do we have this weird setup python step?
-    {
-      name: 'Setup Python',
-      run: |||
-        rm /usr/bin/python
-        ln -s `which python3.8` /usr/bin/python3
-      |||,
-    },
     {
       run: 'apt-get update && apt install -y zip musl-tools',
     },

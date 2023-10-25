@@ -15,9 +15,6 @@ jobs:
       with:
         python-version: "3.8"
         cache: pipenv
-    - name: Setup Python
-      run: "\n        rm /usr/bin/python\n        ln -s `which python3.8` /usr/bin/python3\n
-        \     "
     - run: apt-get update && apt install -y zip musl-tools
     - uses: actions/download-artifact@v3
       with:
