@@ -62,8 +62,9 @@ local github_bot = {
 // ----------------------------------------------------------------------------
 
 {
+  // see https://github.com/returntocorp/semgrep/settings/secrets/actions
+  // for a list of available secrets
   secrets: {
-    // this token is stored in the GHA secrets settings
     SEMGREP_APP_TOKEN: '${{ secrets.SEMGREP_APP_TOKEN }}',
     // for e2e-semgrep-ci.jsonnet
     E2E_APP_TOKEN: '${{ secrets.SEMGREP_E2E_APP_TOKEN }}',
@@ -72,6 +73,7 @@ local github_bot = {
   // of it and rely on opam.lock for caching issues
   opam_switch: '4.14.0',
 
+  // This is internally using OCaml 4.14.0
   ocaml_alpine_container: {
     'runs-on': 'ubuntu-latest',
     container: 'returntocorp/ocaml:alpine-2023-10-17',
@@ -82,6 +84,8 @@ local github_bot = {
     },
   },
 
+  // Not used in most workflows, but used in build-test-core-x86-ocaml5.jsonnet
+  // to check whether at least we can compile the code with OCaml 5(.1)
   ocaml5_alpine_container: {
     'runs-on': 'ubuntu-latest',
     container: 'returntocorp/ocaml:alpine5.1-2023-10-17',
