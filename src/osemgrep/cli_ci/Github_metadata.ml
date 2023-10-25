@@ -8,7 +8,7 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 (* Prelude *)
 (*****************************************************************************)
 (* Extract metadata using environment variables setup by Github,
- * or default to Git_metadata.ml if unset.
+ * or default to Git_(and_semgrep_)metadata.ml if unset.
  *)
 
 (*****************************************************************************)
@@ -21,10 +21,13 @@ type env = {
   (* actually GITHUB_EVENT_PATH *)
   _GITHUB_EVENT_JSON : Yojson.Basic.t;
   _GITHUB_REPOSITORY : string option;
+  (* alt: could use 'int option' for both _ID fields *)
+  _GITHUB_REPOSITORY_ID : string option;
+  _GITHUB_REPOSITORY_OWNER_ID : string option;
   _GITHUB_API_URL : Uri.t option;
-  _GITHUB_SHA : Digestif.SHA1.t option;
   (* default to https://github.com if not set *)
   _GITHUB_SERVER_URL : Uri.t;
+  _GITHUB_SHA : Digestif.SHA1.t option;
   _GITHUB_REF : string option;
   _GITHUB_HEAD_REF : string option;
   _GITHUB_RUN_ID : string option;
@@ -103,9 +106,24 @@ let env : env Term.t =
     let env = Cmd.Env.info "GITHUB_HEAD_REF" in
     Arg.(value & opt (some string) None & info [ "github-head-ref" ] ~doc ~env)
   in
+  let github_repository_id =
+    let doc = "The ID of the repository." in
+    let env = Cmd.Env.info "GITHUB_REPOSITORY_ID" in
+    Arg.(
+      value & opt (some string) None & info [ "github-repository-id" ] ~doc ~env)
+  in
+  let github_repository_owner_id =
+    let doc = "The repository owner's account ID." in
+    let env = Cmd.Env.info "GITHUB_REPOSITORY_OWNER_ID" in
+    Arg.(
+      value
+      & opt (some string) None
+      & info [ "github-repository-owner-id" ] ~doc ~env)
+  in
   let run (_, _GITHUB_EVENT_JSON) _GITHUB_SHA _GITHUB_REPOSITORY
       _GITHUB_SERVER_URL _GITHUB_API_URL _GITHUB_RUN_ID _GITHUB_EVENT_NAME
-      _GITHUB_REF _GITHUB_HEAD_REF _GH_TOKEN =
+      _GITHUB_REF _GITHUB_HEAD_REF _GH_TOKEN _GITHUB_REPOSITORY_ID
+      _GITHUB_REPOSITORY_OWNER_ID =
     {
       _GITHUB_EVENT_JSON;
       _GITHUB_REPOSITORY;
@@ -117,12 +135,15 @@ let env : env Term.t =
       _GITHUB_REF;
       _GITHUB_HEAD_REF;
       _GH_TOKEN;
+      _GITHUB_REPOSITORY_ID;
+      _GITHUB_REPOSITORY_OWNER_ID;
     }
   in
   Term.(
     const run $ github_event_path $ github_sha $ github_repository
     $ github_server_url $ github_api_url $ github_run_id $ github_event_name
-    $ github_ref $ github_head_ref $ gh_token)
+    $ github_ref $ github_head_ref $ gh_token $ github_repository_id
+    $ github_repository_owner_id)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -309,34 +330,28 @@ class meta ~baseline_ref env gha_env =
       Git_metadata.meta ~scan_environment:"github-actions" ~baseline_ref env as super
 
     method! project_metadata =
-      let commit_author_username =
-        Glom.(
-          get_and_coerce_opt string gha_env._GITHUB_EVENT_JSON
-            [ k "sender"; k "login" ])
-      in
-      let commit_author_image_url =
-        Glom.(
-          get_and_coerce_opt string gha_env._GITHUB_EVENT_JSON
-            [ k "sender"; k "avatar_url" ])
-        |> Option.map Uri.of_string
-      in
-      let pull_request_author_username =
-        Glom.(
-          get_and_coerce_opt string gha_env._GITHUB_EVENT_JSON
-            [ k "pull_request"; k "user"; k "login" ])
-      in
-      let pull_request_author_image_url =
-        Glom.(
-          get_and_coerce_opt string gha_env._GITHUB_EVENT_JSON
-            [ k "pull_request"; k "user"; k "avatar_url" ])
-        |> Option.map Uri.of_string
-      in
       {
         (super#project_metadata) with
-        commit_author_username;
-        commit_author_image_url;
-        pull_request_author_username;
-        pull_request_author_image_url;
+        commit_author_username =
+          Glom.(
+            get_and_coerce_opt string gha_env._GITHUB_EVENT_JSON
+              [ k "sender"; k "login" ]);
+        commit_author_image_url =
+          Glom.(
+            get_and_coerce_opt string gha_env._GITHUB_EVENT_JSON
+              [ k "sender"; k "avatar_url" ])
+          |> Option.map Uri.of_string;
+        pull_request_author_username =
+          Glom.(
+            get_and_coerce_opt string gha_env._GITHUB_EVENT_JSON
+              [ k "pull_request"; k "user"; k "login" ]);
+        pull_request_author_image_url =
+          Glom.(
+            get_and_coerce_opt string gha_env._GITHUB_EVENT_JSON
+              [ k "pull_request"; k "user"; k "avatar_url" ])
+          |> Option.map Uri.of_string;
+        repo_id = gha_env._GITHUB_REPOSITORY_ID;
+        org_id = gha_env._GITHUB_REPOSITORY_OWNER_ID;
       }
 
     method! repo_name =
@@ -396,7 +411,7 @@ class meta ~baseline_ref env gha_env =
         | None, None -> super#branch
 
     method! pr_id =
-      match env._SEMGREP_PR_ID with
+      match super#pr_id with
       | Some _ as value -> value
       | None ->
           Glom.(
@@ -405,7 +420,7 @@ class meta ~baseline_ref env gha_env =
           |> Option.map string_of_int
 
     method! pr_title =
-      match env._SEMGREP_PR_TITLE with
+      match super#pr_title with
       | Some _ as value -> value
       | None ->
           Glom.(
