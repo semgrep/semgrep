@@ -22,7 +22,7 @@ local build_wheels_job = {
     {
       run: |||
         add-apt-repository ppa:deadsnakes/ppa
-        apt install python3.8
+        apt install -y python3.8
         update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 1
         update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 2
         update-alternatives --config python3
