@@ -1,0 +1,47 @@
+rules:
+  - id: taint-trace
+    message: found an error
+    languages:
+      - cpp
+      - c
+    severity: WARNING
+    mode: taint
+    metadata:
+      interfile: true
+    pattern-sources:
+      - label: USER_CONTROLLED
+        patterns:
+          - pattern: SOURCE()
+      - label: SCALAR
+        requires: USER_CONTROLLED
+        patterns:
+          - pattern-either:
+              - pattern: $LHS + $RHS
+              - pattern: $LHS - $RHS
+              - pattern: $LHS * $RHS
+              - pattern: $LHS << $RHS
+              - pattern: $LHS >> $RHS
+              - pattern: $LHS % $RHS
+              - pattern: min($LHS, $RHS)
+              - pattern: max($LHS, $RHS)
+              - pattern: MIN($LHS, $RHS)
+              - pattern: MAX($LHS, $RHS)
+              - pattern: atoi($RHS)
+              - pattern: atol($RHS)
+              - pattern: atof($RHS)
+              - pattern: atoll($RHS)
+              - patterns:
+                  - pattern: $STRING_TO_SCALAR($RHS, ...)
+                  - metavariable-regex:
+                      metavariable: $STRING_TO_SCALAR
+                      regex: ^(w?c?str?ou?(l|i)l?)$
+                  - focus-metavariable: $RHS
+          - focus-metavariable:
+              - $RHS
+              - $LHS
+    pattern-sinks:
+      - requires: USER_CONTROLLED and SCALAR
+        patterns:
+          - pattern-either:
+              - pattern: SINK(<... $SRC ...>)
+          - focus-metavariable: $SRC

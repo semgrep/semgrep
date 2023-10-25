@@ -373,6 +373,19 @@ def test_sarif_output_with_dataflow_traces(run_semgrep_in_tmp: RunSemgrep, snaps
 
 
 @pytest.mark.kinda_slow
+def test_json_output_with_dataflow_traces(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/taint_trace.yaml",
+            target_name="taint/taint_trace.cpp",
+            output_format=OutputFormat.JSON,
+            options=["--dataflow-traces"],
+        ).stdout,
+        "results.json",
+    )
+
+
+@pytest.mark.kinda_slow
 def test_semgrepignore_ignore_log_report(
     run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot
 ):

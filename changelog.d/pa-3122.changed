@@ -1,0 +1,7 @@
+Improved taint source trace prioritization for clearer identification of the
+initial source location in JSON output
+
+Semgrep now prioritizes taint sources without `requires` condition when
+choosing a representative taint trace from multiple source traces. This helps
+users to more clearly identify the initial taint source when multiple traces
+are involved.
