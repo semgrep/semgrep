@@ -1,0 +1,3 @@
+Rust: Function-like macros (or bracketed macros, like `vec!`) can now be
+parsed properly when taking in any expressions as arguments. Previously,
+it would only work with simple expressions.

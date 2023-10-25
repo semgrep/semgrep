@@ -1,5 +1,5 @@
 rules:
-  - id: test-macro-match 
+  - id: test-macro-match
     languages:
       - rust
     message: "Message to user"
