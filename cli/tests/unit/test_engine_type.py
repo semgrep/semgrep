@@ -74,5 +74,5 @@ def test_decide_engine_type(
             enable_pro_diff_scan=enable_pro_diff,
             supply_chain_only=True,
         )
-        == ET.OSS
+        == ET.PRO_LANG
     )

@@ -63,11 +63,12 @@ class EngineType(Enum):
             ):
                 requested_engine = cls.PRO_INTRAFILE
 
+        # Using PRO_LANG engine since PRO_INTERFILE defaults to -j 1
         if requested_engine != cls.OSS and supply_chain_only:
             logger.info(
-                "Running only supply chain rules so running without Semgrep Pro Engine"
+                "Running only supply chain rules so running without extra interfile analysis"
             )
-            return cls.OSS
+            return cls.PRO_LANG
 
         return requested_engine or cls.OSS
 
