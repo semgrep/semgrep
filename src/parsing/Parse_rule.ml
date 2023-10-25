@@ -2118,8 +2118,9 @@ let parse_xpattern xlang (str, tok) =
 (*****************************************************************************)
 
 let parse file =
-  let xs, skipped = parse_file ~error_recovery:false file in
-  assert (skipped =*= []);
+  let xs, _skipped = parse_file ~error_recovery:false file in
+  (* The skipped rules include Apex rules and other rules that are always
+     skippable. *)
   xs
 
 (*****************************************************************************)
