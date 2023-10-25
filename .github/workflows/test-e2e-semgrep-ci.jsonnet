@@ -116,8 +116,6 @@ local semgrep_ci_fail_open_job = {
   ],
 };
 
-// Note that this job is not in the notify_failure_job.needs.
-// TODO? why not in notify_failure_job.needs?
 local semgrep_ci_fail_open_blocking_findings_job = {
   'runs-on': 'ubuntu-22.04',
   env: {
@@ -264,6 +262,7 @@ local notify_failure_job = {
     'semgrep-ci',
     'semgrep-ci-on-pr',
     'semgrep-ci-fail-open',
+    'semgrep-ci-fail-open-blocking-findings',
     'wait-for-checks',
     'get-inputs',
   ],

@@ -125,6 +125,7 @@ jobs:
     - semgrep-ci
     - semgrep-ci-on-pr
     - semgrep-ci-fail-open
+    - semgrep-ci-fail-open-blocking-findings
     - wait-for-checks
     - get-inputs
     name: Notify of Failure
