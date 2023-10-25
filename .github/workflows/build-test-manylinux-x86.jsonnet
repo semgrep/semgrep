@@ -22,7 +22,7 @@ local build_wheels_job = {
       name: 'Setup Python',
       run: |||
         rm /usr/bin/python
-        ln `which python3.8` /usr/bin/python3
+        ln -s `which python3.8` /usr/bin/python3
       |||,
     },
     {
