@@ -70,14 +70,14 @@ local test_wheels_job = {
     {
       name: 'test package',
       run: |||
-        export PATH=/opt/python/cp37-cp37m/bin:$PATH
+        export PATH=/opt/python/cp38-cp38m/bin:$PATH
         semgrep --version
       |||,
     },
     {
       name: 'e2e semgrep-core test',
       run: |||
-        export PATH=/opt/python/cp37-cp37m/bin:$PATH
+        export PATH=/opt/python/cp38-cp38m/bin:$PATH
         echo '1 == 1' | semgrep -l python -e '$X == $X' -
       |||,
     },
