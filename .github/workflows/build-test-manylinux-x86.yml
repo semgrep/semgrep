@@ -6,7 +6,7 @@ name: build-test-manylinux-x86
 jobs:
   build-wheels:
     runs-on: ubuntu-latest
-    container: returntocorp/sgrep-build:ubuntu-16.04
+    container: returntocorp/sgrep-build:latest
     steps:
     - uses: actions/checkout@v3
       with:

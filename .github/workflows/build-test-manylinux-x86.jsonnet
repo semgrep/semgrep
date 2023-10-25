@@ -13,7 +13,7 @@ local wheel_name = 'manylinux-x86-wheel';
 local build_wheels_job = {
   'runs-on': 'ubuntu-latest',
   // pad: What is this sgrep-xxx image?
-  container: 'returntocorp/sgrep-build:ubuntu-16.04',
+  container: 'returntocorp/sgrep-build:latest',
   steps: [
     actions.checkout_with_submodules(),
     actions.setup_python('3.8'),
