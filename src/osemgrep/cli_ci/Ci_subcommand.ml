@@ -10,11 +10,30 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 
    Translated from ci.py (and partially from scans.py)
 
+   See https://www.notion.so/semgrep/Architecture-Overview-CI-Scans-afe6193a6cc84abd96cff5f2d91cecaa
+   for an excellent overview of how 'semgrep ci' works with the backend.
+   See also https://www.notion.so/semgrep/Scan-reliability-next-steps-Oct-2023-cf3dad02d1ff4e1a98db8acf7f7bbded
+
+   Debugging trick #1:
+   --------------------
    If 'semgrep ci' returns some networking errors, you may need to inspect
    the backend logs as the error message returned by the backend to the CLI
    might be short and may not contain the necessary information to debug.
    Even using --debug might not be enough.
-   You can inspect the backend logs in Datadog and cloudwatch (and Metabase).
+
+   You can use Sentry https://semgrep.sentry.io/issues/?statsPeriod=24h
+   to look at the latest errors.
+
+   As an example, here is a workflow that failed in the past:
+   https://github.com/returntocorp/semgrep/actions/runs/6599573075/job/17928762827
+   Looking at the job log, we can see a problem when connecting to
+   the https://semgrep.dev/api/agent/scans/14253285/complete endpoint.
+   Then in Sentry you can paste this URL and search for errors
+   related to this endpoint.
+
+   Debugging trick #2:
+   --------------------
+   You can also inspect the backend logs in Datadog, cloudwatch, and Metabase.
    However, it's probably better first to connect to the 'dev2' backend
    rather than 'prod' to have a lot less to search through.
    You can filter out by `env: dev2` in Datadog. To connect to dev2,
@@ -31,10 +50,6 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 
    Tip: you can store those environment variables in a dev2.sh env file
    that you can source instead.
-
-   See https://www.notion.so/semgrep/Architecture-Overview-CI-Scans-afe6193a6cc84abd96cff5f2d91cecaa
-   for an excellent overview of how 'semgrep ci' works with the backend.
-   See also https://www.notion.so/semgrep/Scan-reliability-next-steps-Oct-2023-cf3dad02d1ff4e1a98db8acf7f7bbded
 *)
 
 (*****************************************************************************)
