@@ -627,7 +627,7 @@ let pm_of_finding finding =
                  | None -> Right (src, tokens, sink_trace))
         in
         let source_taints =
-          if List.length without_req > 0 then without_req
+          if without_req <> [] then without_req
           else (
             logger#warning
               "Taint source without precondition wasn't found. Displaying the \
