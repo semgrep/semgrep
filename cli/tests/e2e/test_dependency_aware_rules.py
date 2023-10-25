@@ -40,6 +40,7 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/yarn",
         ),
         ("rules/dependency_aware/go-sca.yaml", "dependency_aware/go"),
+        ("rules/dependency_aware/go-sca.yaml", "dependency_aware/go_toolchain"),
         ("rules/dependency_aware/go-sca.yaml", "dependency_aware/go_multi_newline"),
         ("rules/dependency_aware/ruby-sca.yaml", "dependency_aware/ruby"),
         (
