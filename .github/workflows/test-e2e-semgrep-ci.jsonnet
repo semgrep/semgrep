@@ -246,10 +246,10 @@ local wait_for_checks_job = {
 // ----------------------------------------------------------------------------
 // Failure notification
 // ----------------------------------------------------------------------------
-
+// References:
+// https://github.com/slackapi/slack-github-action
 // https://github.com/slackapi/slack-github-action#technique-3-slack-incoming-webhook
 // https://semgrepinc.slack.com/apps/A0F7XDUAZ-incoming-webhooks?tab=more_info
-//          channel-id: "C05TW5S2EFJ" # team-frameworks-and-services
 // alt:
 //           SLACK_BOT_TOKEN: ${{ secrets.R2C_SLACK_TOKEN }}
 //      run: |||
@@ -275,7 +275,7 @@ local notify_failure_job = {
       name: 'Notify Failure on Slack',
       uses: "slackapi/slack-github-action@v1.24.0",
       with: {
-        'channel-id': "C01NXGX2EHZ", # team-semgrep-core
+        'channel-id': semgrep.slack_channels['#team-semgrep-core'],
 	#'slack-message': "The `${{ github.workflow }}` workflow has failed! Please take a look: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
 	payload: |||
 	  { "text": "The `${{ github.workflow }}` workflow has failed! Please take a look: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" }

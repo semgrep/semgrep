@@ -95,4 +95,8 @@ local github_bot = {
   },
 
   github_bot: github_bot,
+  slack_channels: {
+    "#team-semgrep-core": "C01NXGX2EHZ",
+    "#team-frameworks-and-services": "C05TW5S2EFJ",
+  }
 }
