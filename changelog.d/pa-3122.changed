@@ -1,5 +1,5 @@
-Improved taint source trace prioritization for clearer identification of the
-initial source location in JSON output
+For taint rules using labels (experimental) Semgrep now preferably picks a
+source without `requires` for the taint trace
 
 Semgrep now prioritizes taint sources without `requires` condition when
 choosing a representative taint trace from multiple source traces. This helps
