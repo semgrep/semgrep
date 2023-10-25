@@ -6,16 +6,13 @@ name: build-test-manylinux-x86
 jobs:
   build-wheels:
     runs-on: ubuntu-latest
-    container: returntocorp/sgrep-build:latest
+    container: returntocorp/sgrep-build:ubuntu-16.04
     steps:
     - uses: actions/checkout@v3
       with:
         submodules: true
-    - uses: actions/setup-python@v4
-      with:
-        python-version: "3.8"
-        cache: pipenv
-    - run: apt-get update && apt install -y zip musl-tools
+    - run: apt-get update && apt install -y zip musl-tools software-properties-common
+    - run: add-apt-repository ppa:deadsnakes/ppa && apt install python3.8
     - uses: actions/download-artifact@v3
       with:
         name: ocaml-build-artifacts-release

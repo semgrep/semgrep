@@ -13,12 +13,14 @@ local wheel_name = 'manylinux-x86-wheel';
 local build_wheels_job = {
   'runs-on': 'ubuntu-latest',
   // pad: What is this sgrep-xxx image?
-  container: 'returntocorp/sgrep-build:latest',
+  container: 'returntocorp/sgrep-build:ubuntu-16.04',
   steps: [
     actions.checkout_with_submodules(),
-    actions.setup_python('3.8'),
     {
-      run: 'apt-get update && apt install -y zip musl-tools',
+      run: 'apt-get update && apt install -y zip musl-tools software-properties-common',
+    },
+    {
+      run: 'add-apt-repository ppa:deadsnakes/ppa && apt install python3.8',
     },
     {
       uses: 'actions/download-artifact@v3',
