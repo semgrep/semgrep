@@ -277,6 +277,11 @@ function caml_unix_lstat_64(name) {
   return r;
 }
 
+//Provides: unix_realpath
+function unix_realpath(path) {
+  return globalThis.fs.realpathSync(path);
+}
+
 //Provides: unix_write
 //Requires: caml_sys_fds
 function unix_write(fd, buf, ofs, len) {
