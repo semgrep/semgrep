@@ -16,6 +16,14 @@ local build_wheels_job = {
   container: 'returntocorp/sgrep-build:ubuntu-16.04',
   steps: [
     actions.checkout_with_submodules(),
+    // pad: Why do we have this weird setup python step?
+    {
+      name: 'Setup Python',
+      run: |||
+        rm /usr/bin/python
+        ln `which python` /usr/bin/python3
+      |||,
+    },
     {
       run: 'apt-get update && apt install -y zip musl-tools',
     },
@@ -63,7 +71,7 @@ local test_wheels_job = {
     // platform compatibility tag
     {
       name: 'install package',
-      run: '/opt/python/cp37-cp37m/bin/pip install dist/*.whl',
+      run: '/opt/python/cp38-cp38m/bin/pip install dist/*.whl',
     },
     // TODO? could reuse build-test-osx-x86.test_semgrep_steps
     // only diff is PATH adjustments
