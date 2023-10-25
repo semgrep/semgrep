@@ -368,12 +368,14 @@ def ci(
         scan_handler and "secrets" in scan_handler.enabled_products
     )
 
+    supply_chain_only = supply_chain and not code and not run_secrets
     engine_type = EngineType.decide_engine_type(
         requested_engine=requested_engine,
         scan_handler=scan_handler,
         git_meta=metadata,
         run_secrets=run_secrets,
         enable_pro_diff_scan=diff_depth >= 0,
+        supply_chain_only=supply_chain_only,
     )
 
     # set default settings for selected engine type

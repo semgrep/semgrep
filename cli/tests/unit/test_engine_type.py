@@ -65,3 +65,14 @@ def test_decide_engine_type(
         )
         == expected
     )
+
+    assert (
+        ET.decide_engine_type(
+            requested_engine=requested,
+            scan_handler=scan_handler,
+            git_meta=git_meta,
+            enable_pro_diff_scan=enable_pro_diff,
+            supply_chain_only=True,
+        )
+        == ET.OSS
+    )
