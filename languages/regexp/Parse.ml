@@ -13,7 +13,9 @@ let channel conf ic = Lexing.from_channel ic |> from_lexbuf conf
 
 let file ?(conf = Dialect.default_conf) path =
   let ic = open_in_bin !!path in
-  Fun.protect ~finally:(fun () -> close_in_noerr ic) (fun () -> channel conf ic)
+  Common.protect
+    ~finally:(fun () -> close_in_noerr ic)
+    (fun () -> channel conf ic)
 
 let string ?(conf = Dialect.default_conf) s =
   Lexing.from_string s |> from_lexbuf conf

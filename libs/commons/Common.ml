@@ -100,6 +100,18 @@ let before_return f v =
   v
 
 (*****************************************************************************)
+(* Composition/Control *)
+(*****************************************************************************)
+
+let protect ~finally work =
+  (* nosemgrep: no-fun-protect *)
+  try Fun.protect ~finally work with
+  | Fun.Finally_raised exn1 as exn ->
+      (* Just re-raise whatever exception was raised during a 'finally', drop 'Finally_raised'. *)
+      logger#error "protect: %s" (exn |> Exception.catch |> Exception.to_string);
+      Exception.catch_and_reraise exn1
+
+(*****************************************************************************)
 (* Profiling *)
 (*****************************************************************************)
 (* see also profiling/Profiling.ml now *)
@@ -113,13 +125,13 @@ let with_time f =
 
 let pr_time name f =
   let t1 = Unix.gettimeofday () in
-  Fun.protect f ~finally:(fun () ->
+  protect f ~finally:(fun () ->
       let t2 = Unix.gettimeofday () in
       pr (spf "%s: %.6f s" name (t2 -. t1)))
 
 let pr2_time name f =
   let t1 = Unix.gettimeofday () in
-  Fun.protect f ~finally:(fun () ->
+  protect f ~finally:(fun () ->
       let t2 = Unix.gettimeofday () in
       pr2 (spf "%s: %.6f s" name (t2 -. t1)))
 
@@ -468,7 +480,7 @@ let unwind_protect f cleanup =
         cleanup e;
         Exception.reraise e
 
-(* TODO: remove and use Fun.protect instead? but then it will not have the
+(* TODO: remove and use 'protect' instead? but then it will not have the
  * !debugger goodies *)
 let finalize f cleanup =
   (* Does this debugger mode changes the semantic of the program too much?
@@ -481,7 +493,7 @@ let finalize f cleanup =
     let res = f () in
     cleanup ();
     res)
-  else Fun.protect f ~finally:cleanup
+  else protect f ~finally:cleanup
 
 let save_excursion reference newv f =
   let old = !reference in
@@ -930,7 +942,7 @@ let read_file ?(max_len = max_int) path =
           else loop fd
     in
     let fd = Unix.openfile path [ Unix.O_RDONLY ] 0 in
-    Fun.protect ~finally:(fun () -> Unix.close fd) (fun () -> loop fd)
+    protect ~finally:(fun () -> Unix.close fd) (fun () -> loop fd)
 
 let write_file ~file s =
   let chan = open_out_bin file in

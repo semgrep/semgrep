@@ -18,7 +18,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 
 let with_dir_handle path func =
   let dir = Unix.opendir !!path in
-  Fun.protect ~finally:(fun () -> Unix.closedir dir) (fun () -> func dir)
+  Common.protect ~finally:(fun () -> Unix.closedir dir) (fun () -> func dir)
 
 (* Read the names found in a directory, excluding "." and "..". *)
 let read_dir_entries path =

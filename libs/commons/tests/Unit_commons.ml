@@ -102,7 +102,7 @@ let test_readable () =
 
 let with_file contents f =
   let file, oc = Filename.open_temp_file "test_pfff_read_file_" ".dat" in
-  Fun.protect
+  Common.protect
     ~finally:(fun () ->
       close_out_noerr oc;
       Sys.remove file)

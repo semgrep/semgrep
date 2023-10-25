@@ -30,7 +30,7 @@ let record profiler ~name fn =
     let t1 = Unix.gettimeofday () in
     Hashtbl.add profiler name (Recorded (t1 -. t0))
   in
-  Fun.protect ~finally fn
+  Common.protect ~finally fn
 
 let dump profiler =
   Hashtbl.fold

@@ -112,7 +112,7 @@ let profile_code_exclusif category f =
         failwith (spf "profile_code_exclusif: %s but already in %s " category s)
     | None ->
         _is_in_exclusif := Some category;
-        Fun.protect
+        protect
           (fun () -> profile_code category f)
           ~finally:(fun () -> _is_in_exclusif := None)
 

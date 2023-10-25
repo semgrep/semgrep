@@ -125,7 +125,7 @@ let filter ?substring ?pcre tests =
 
 let run what f =
   printf "running %s...\n%!" what;
-  Fun.protect ~finally:(fun () -> printf "done with %s.\n%!" what) f
+  Common.protect ~finally:(fun () -> printf "done with %s.\n%!" what) f
 
 let registered_tests : test list ref = ref []
 

@@ -45,7 +45,7 @@ let to_stdout nodes = to_channel stdout nodes
 
 let to_file file nodes =
   let oc = open_out_bin file in
-  Fun.protect
+  Common.protect
     ~finally:(fun () -> close_out_noerr oc)
     (fun () -> to_channel oc nodes)
 
@@ -90,7 +90,7 @@ module Debug = struct
 
   let to_file file nodes =
     let oc = open_out_bin file in
-    Fun.protect
+    Common.protect
       ~finally:(fun () -> close_out_noerr oc)
       (fun () -> to_channel oc nodes)
 end
