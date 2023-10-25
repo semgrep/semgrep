@@ -3,9 +3,11 @@
 type env = {
   _GITHUB_EVENT_JSON : Yojson.Basic.t;
   _GITHUB_REPOSITORY : string option;
+  _GITHUB_REPOSITORY_ID : string option;
+  _GITHUB_REPOSITORY_OWNER_ID : string option;
   _GITHUB_API_URL : Uri.t option;
-  _GITHUB_SHA : Digestif.SHA1.t option;
   _GITHUB_SERVER_URL : Uri.t;
+  _GITHUB_SHA : Digestif.SHA1.t option;
   _GITHUB_REF : string option;
   _GITHUB_HEAD_REF : string option;
   _GITHUB_RUN_ID : string option;

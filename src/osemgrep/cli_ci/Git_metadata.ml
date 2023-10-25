@@ -138,6 +138,8 @@ class meta ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
         pull_request_title = self#pr_title;
         scan_environment;
         is_full_scan = self#is_full_scan;
+        repo_id = None;
+        org_id = None;
         (* TODO ugly: gitlab stuff, should maybe split
          * semgrep_output_v1.metadata and use inherit
          *)
