@@ -13,16 +13,9 @@ local wheel_name = 'manylinux-x86-wheel';
 local build_wheels_job = {
   'runs-on': 'ubuntu-latest',
   // pad: What is this sgrep-xxx image?
-  container: 'returntocorp/sgrep-build:ubuntu-16.04',
+  container: 'returntocorp/sgrep-build:latest',
   steps: [
     actions.checkout_with_submodules(),
-    // pad: Why do we have this weird setup python step?
-    {
-      name: 'Setup Python',
-      run: |||
-        ln `which python` /usr/bin/python3
-      |||,
-    },
     {
       run: 'apt-get update && apt install -y zip musl-tools',
     },
