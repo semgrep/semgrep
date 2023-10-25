@@ -446,14 +446,19 @@ val memoized : ?use_cache:bool -> ('a, 'b) Hashtbl.t -> 'a -> (unit -> 'b) -> 'b
 (*****************************************************************************)
 
 val protect : finally:(unit -> unit) -> (unit -> 'a) -> 'a
-(** Same as 'Fun.protect' but we block SIGALRM while executing `finally()`, this
- * prevents that a timeout set via 'Time_limit' accidentally raises 'Timeout'
- * in the middle of 'finally's code, which is considered a programming error and
- * it will raise 'Finally_raised'. After 'finally' completes, we restore SIGALRM
- * and, if the timeout alarm triggered while it was being blocked, 'Timeout' will
- * still be raised.
+(** Same as 'Fun.protect' but it will not raise 'Finally_raised', if 'finally' raises
+ * any exception then that same exception is what 'protect' will raise. This can easily
+ * happen in Semgrep due to the asynchronous 'Time_limit.Timeout' exception raised
+ * when there is a timeout. Having to deal with 'Finally_raised' just makes things
+ * more complicated.
  *
- * It is safe to nest a 'protect' inside the 'finally' of another 'protect. *)
+ * alt: We tried using 'Unix.sigprocmask' to temporarily block 'SIGALRM' but somehow,
+ * in rare cases (e.g.run p/default on repos/brotli/js/decode.js) we end up calling
+ * 'Time_limit.set_timeout' while 'SIGALRM' is *blocked*. Unclear why, are we perhaps
+ * calling 'set_timeout' from within a 'finally'? Or is 'Unix.sigprocmask' failing to
+ * restore the signal mask? It works if we block/unblock (rather than block/restore)
+ * but this does not play well with calls to 'protect' nested inside 'finally' blocks.
+ *)
 
 (*****************************************************************************)
 (* Profiling *)
