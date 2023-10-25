@@ -21,7 +21,101 @@ function ocaml_terminal_size_get() {
 //Provides: unix_open
 //Requires: caml_sys_open
 function unix_open(path, flags, perm) {
-  return caml_sys_open(path, flags, perm);
+  console.log("unix_open");
+  console.log(path);
+  console.log(flags);
+  console.log(perm);
+
+  function map_unix_flag_to_stdlib_flag(flag) {
+    switch (flag) {
+      // O_RDONLY
+      case 0:
+        return [0];
+      // O_WRONLY
+      case 1:
+        return [1];
+      // O_RDWR
+      case 2:
+        return [0, 1];
+      //O_NONBLOCK
+      case 3:
+        return [8];
+      //O_APPEND
+      case 4:
+        return [2];
+      //O_CREAT
+      case 5:
+        return [3];
+      //O_TRUNC
+      case 6:
+        return [4];
+      //O_EXCL
+      case 7:
+        return [5];
+      //O_NOCTTY
+      case 8:
+        // TODO
+        return [];
+      //O_DSYNC
+      case 9:
+        // TODO
+        return [];
+      //O_SYNC
+      case 10:
+        // TODO
+        return [];
+      //O_RSYNC
+      case 11:
+        // TODO
+        return [];
+      //O_SHARE_DELETE
+      case 12:
+        // TODO
+        return [];
+      //O_CLOEXEC
+      case 13:
+        // TODO
+        return [];
+      //O_KEEPEXEC
+      case 14:
+        // TODO
+        return [];
+    }
+  }
+
+  function parse_flags(flags) {
+    if (flags == 0) {
+      return [];
+    } else {
+      let elem = flags[1];
+      return [elem].concat(parse_flags(flags[2]));
+    }
+  }
+
+  function unparse_flags(flags) {
+    if (flags.length == 0) {
+      return 0;
+    } else {
+      return [0, flags[0], unparse_flags(flags.slice(1))];
+    }
+  }
+
+  let parsed_flags = parse_flags(flags);
+  let translated_flags_nested = parsed_flags.map((flag) =>
+    map_unix_flag_to_stdlib_flag(flag)
+  );
+  let translated_flags_flattened = translated_flags_nested.reduce((acc, l) =>
+    acc.concat(l)
+  );
+  let new_flags = unparse_flags(translated_flags_flattened);
+
+  console.log(new_flags);
+
+  let new_fd = caml_sys_open(path, new_flags, perm);
+
+  console.log(`fd ${new_fd} opened for path ${path}`);
+
+  return new_fd;
 }
 
 //Provides: unix_environment const

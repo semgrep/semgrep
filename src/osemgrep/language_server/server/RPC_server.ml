@@ -157,6 +157,7 @@ let notify notification =
         (Notification.yojson_of_t notification |> Yojson.Safe.pretty_to_string));
   let packet = Packet.Notification notification in
   let%lwt () = Io.write packet in
+  Logs.debug (fun m -> m "SERVER: Notification sent");
   Io.flush ()
 
 (** Send a bunch of notifications to the client *)
@@ -183,7 +184,9 @@ let create_progress title message =
     SN.Progress.Begin (WorkDoneProgressBegin.create ~message ~title ())
   in
   let progress = SN.WorkDoneProgress (ProgressParams.create token start) in
+  Logs.debug (fun m -> m "SERVER: before notifying to create progress");
   let () = Lwt.async (fun () -> notify progress) in
+  Logs.debug (fun m -> m "SERVER: after notifying to create progress");
   token
 
 (** end progress circle *)
@@ -223,7 +226,7 @@ struct
           Logs.warn (fun m -> m "Unhandled message");
           server
     in
-    Lwt.return server
+    server
 
   let rec rpc_loop server () =
     let module Io = (val !io_ref : LSIO) in
@@ -232,10 +235,14 @@ struct
         Logs.debug (fun m -> m "Server stopped");
         Lwt.return ()
     | _ -> (
+        Logs.debug (fun m -> m "SERVER: Waiting to read");
         let%lwt client_msg = Io.read () in
+        Logs.debug (fun m -> m "SERVER: Read client message");
         match client_msg with
         | Some msg ->
-            let%lwt server = handle_client_message msg server in
+            Logs.debug (fun m -> m "SERVER: Handling client message");
+            let server = handle_client_message msg server in
+            Logs.debug (fun m -> m "SERVER: Done handling client message");
             rpc_loop server ()
         | None ->
             Logs.debug (fun m -> m "Client disconnected");

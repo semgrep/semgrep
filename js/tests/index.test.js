@@ -88,7 +88,7 @@ const entrypoint = async () => {
     setJustParseWithLang(parseLang);
     setParsePattern(parsePattern);
 
-    run("");
+    await run("");
     process.exit(0);
   } catch (e) {
     console.log("Error running tests:\n");

@@ -15,6 +15,7 @@
   (javascript_files
     ocaml-tree-sitter.js
     core.js ; misc libraries
+    unix.js
  ))
  (preprocess
   (pps js_of_ocaml-ppx)))

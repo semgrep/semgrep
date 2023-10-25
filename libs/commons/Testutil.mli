@@ -30,6 +30,7 @@
    hesitate to log a lot during the execution of the test.
 *)
 type test = string * (unit -> unit)
+type lwt_test = string * (unit -> unit Lwt.t)
 
 (* Register a test. The test gets added to the global list of tests.
    This is meant to declare inline tests as follows:
@@ -70,6 +71,7 @@ val get_registered_tests : unit -> test list
 *)
 val pack_tests : string -> test list -> test list
 val pack_suites : string -> test list list -> test list
+val pack_tests_lwt : string -> lwt_test list -> lwt_test list
 
 (*
    Sort tests by path, alphabetically:
@@ -110,7 +112,7 @@ val filter : ?substring:string -> ?pcre:string -> test list -> test list
    Basic usage:
 
      let alcotest_tests = to_alcotest my_quick_tests
-
+'a
    Advanced usage with slow (background) tests:
 
      let alcotest_tests =
@@ -119,6 +121,11 @@ val filter : ?substring:string -> ?pcre:string -> test list -> test list
 *)
 val to_alcotest :
   ?speed_level:Alcotest.speed_level -> test list -> unit Alcotest.test list
+
+val to_alcotest_lwt :
+  ?speed_level:Alcotest.speed_level ->
+  lwt_test list ->
+  unit Alcotest_lwt.test list
 
 (*
    Log a function call. e.g.

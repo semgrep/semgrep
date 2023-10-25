@@ -17,7 +17,6 @@
  (modes js)
  (js_of_ocaml
   (javascript_files
-   unix.js
    XMLHttpRequest.js
  ))
  (preprocess

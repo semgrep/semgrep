@@ -409,6 +409,7 @@ For more information see https://semgrep.dev
     ; unit testing
     alcotest
     alcotest-js
+    alcotest-lwt
     ; text and terminal formating
     fmt
     ocolor

@@ -76,6 +76,7 @@ let create_info () =
   let in_stream, in_push_func = Lwt_stream.create () in
   let out_stream, out_push_func = Lwt_stream.create () in
   let server = LanguageServer.create () in
+  Logs.debug (fun m -> m "Server is: %s" (Session.show server.session));
   write_func := out_push_func;
   read_stream := in_stream;
   {
@@ -88,11 +89,14 @@ let create_info () =
 (* Constants *)
 (*****************************************************************************)
 
+let rec backtrack path =
+  match Fpath.basename path with
+  | "semgrep" ->
+      Fpath.(path / "cli" / "tests" / "e2e" / "targets" / "ls" / "rules.yaml")
+  | _ -> backtrack (Fpath.parent path)
+
 (* Lots of `parent`s here because we're located in _build/default/src/tests *)
-let rule_path =
-  Fpath.(
-    (v (Sys.getcwd ()) |> parent |> parent |> parent |> parent)
-    / "cli" / "tests" / "e2e" / "targets" / "ls" / "rules.yaml")
+let rule_path = backtrack (Fpath.v (Sys.getcwd ()))
 
 let default_content =
   {|
@@ -139,16 +143,19 @@ let send (info : info) packet : unit Lwt.t =
   match info.server.state with
   | RPC_server.State.Stopped -> Alcotest.failf "Cannot send, server stopped"
   | _ ->
-      let%lwt () = Lwt.pause () in
+      Logs.debug (fun m -> m "TEST: before send");
+      (* let%lwt () = Lwt.pause () in *)
       let () = (snd info.in_stream) (Some packet) in
+      Logs.debug (fun m -> m "TEST: after send");
       Lwt.return_unit
 
 let receive (info : info) : Packet.t Lwt.t =
   match info.server.state with
   | RPC_server.State.Stopped -> Alcotest.failf "Cannot receive, server stopped"
   | _ -> (
-      let%lwt () = Lwt.pause () in
+      Logs.debug (fun m -> m "TEST: before receive");
       let%lwt server_msg = Lwt_stream.get (fst info.out_stream) in
+      Logs.debug (fun m -> m "TEST: after receive");
       match server_msg with
       | Some packet -> Lwt.return packet
       | _ -> Alcotest.failf "Received no response, client disconnected")
@@ -220,15 +227,31 @@ let receive_request (info : info) : Request.t Lwt.t =
 
 let git_tmp_path () =
   Testutil_files.with_tempdir ~persist:true (fun dir ->
+      (* This chdir does nothing in the JSCaml code, because the OCaml path is
+         only simulated, in the Javascript environment.
+         Hence, the liberal uses of `-C` everywhere.
+         This might still be wrong, though.
+      *)
+      let () = Sys.chdir (Fpath.to_string dir) in
       let dir = Fpath.to_string dir in
-      let () = Sys.chdir dir in
-      checked_command (String.concat " " [ "git"; "init" ]);
+      print_string "before init\n";
+      checked_command (String.concat " " [ "git"; "-C"; dir; "init" ]);
+      print_string "after init\n";
       checked_command
         (String.concat " "
-           [ "git"; "config"; "user.email"; "baselinetest@semgrep.com" ]);
+           [
+             "git";
+             "-C";
+             dir;
+             "config";
+             "user.email";
+             "baselinetest@semgrep.com";
+           ]);
       checked_command
-        (String.concat " " [ "git"; "config"; "user.name"; "Baseline Test" ]);
-      checked_command (String.concat " " [ "git"; "checkout"; "-B"; "main" ]);
+        (String.concat " "
+           [ "git"; "-C"; dir; "config"; "user.name"; "Baseline Test" ]);
+      checked_command
+        (String.concat " " [ "git"; "-C"; dir; "checkout"; "-B"; "main" ]);
       dir)
 
 let assert_contains (json : Json.t) str =
@@ -251,11 +274,46 @@ let mock_files () : _ * Fpath.t list =
 
   checked_command
     (* nosem *)
-    (String.concat " " [ "git"; "remote"; "add"; "origin"; "/tmp/origin" ]);
-  checked_command (String.concat " " [ "git"; "add"; "modified.py" ]);
-  checked_command (String.concat " " [ "git"; "add"; "existing.py" ]);
+    (String.concat " "
+       [
+         "git";
+         "-C";
+         Fpath.to_string git_tmp_path;
+         "remote";
+         "add";
+         "origin";
+         "/tmp/origin";
+       ]);
   checked_command
-    (String.concat " " [ "git"; "commit"; "-m"; "\"initial commit\"" ]);
+    (String.concat " "
+       [
+         "git";
+         "-C";
+         Fpath.to_string git_tmp_path;
+         "add";
+         Fpath.to_string modified_file;
+       ]);
+  checked_command
+    (String.concat " "
+       [
+         "git";
+         "-C";
+         Fpath.to_string git_tmp_path;
+         "add";
+         Fpath.to_string existing_file;
+       ]);
+  Logs.debug (fun m -> m "TEST: before commit");
+  checked_command
+    (String.concat " "
+       [
+         "git";
+         "-C";
+         Fpath.to_string git_tmp_path;
+         "commit";
+         "-m";
+         "\"initial commit\"";
+       ]);
+  Logs.debug (fun m -> m "TEST: after commit");
 
   open_and_write_default_content ~mode:[ Open_append ] modified_file;
 
@@ -342,7 +400,7 @@ let send_initialize info ?(only_git_dirty = true) workspaceFolders =
                   `List [ `String (rule_path |> Fpath.to_string) ] );
                 ("exclude", `List []);
                 ("include", `List []);
-                ("jobs", `Int 5);
+                ("jobs", `Int 1);
                 ("maxMemory", `Int 0);
                 ("maxTargetBytes", `Int 0);
                 ("onlyGitDirty", `Bool only_git_dirty);
@@ -366,6 +424,7 @@ let send_initialize info ?(only_git_dirty = true) workspaceFolders =
          ~capabilities:(ClientCapabilities.create ())
          ())
   in
+  Logs.debug (fun m -> m "TEST: before send req");
   send_request info request
 
 let send_initialized info =
@@ -561,14 +620,21 @@ let assert_progress info message =
   Lwt.return_unit
 
 let check_startup info folders (files : Fpath.t list) =
+  (* in here *)
+  Logs.debug (fun m -> m "TEST: checking startup start");
   (* initialize *)
   let%lwt () = send_initialize info folders in
+  Logs.debug (fun m -> m "TEST: after initialize");
 
   let%lwt resp = receive_response info in
   assert_contains (Response.yojson_of_t resp) "capabilities";
 
+  Logs.debug (fun m -> m "TEST: before sending initialized");
   let%lwt () = send_initialized info in
+  Logs.debug (fun m -> m "TEST: after sending initialized");
+
   let%lwt () = assert_progress info "Refreshing Rules" in
+  Logs.debug (fun m -> m "TEST: after asserting refreshing rules");
 
   let%lwt () = assert_progress info "Scanning Workspace" in
 
@@ -610,20 +676,40 @@ let check_startup info folders (files : Fpath.t list) =
 (* Tests *)
 (*****************************************************************************)
 
-let with_session (f : info -> unit Lwt.t) : unit =
+let with_session (f : info -> unit Lwt.t) : unit Lwt.t =
+  (Lwt.async_exception_hook :=
+     fun exn ->
+       let err = Printexc.to_string exn in
+       Logs.err (fun m -> m "Got exception: %s" err);
+       Alcotest.fail err);
   let info = create_info () in
   (* shut down the server when f exits *)
-  let finalized_f =
-    Lwt.finalize (fun () -> f info) (fun () -> send_exit info)
-  in
-  Lwt.async (fun () -> LanguageServer.start info.server);
-  Lwt_platform.run finalized_f |> ignore;
-  ()
+  let server_promise = LanguageServer.start info.server in
+  Logs.debug (fun m ->
+      m "TEST: server promise is %s"
+        (match Lwt.state server_promise with
+        | Lwt.Return _ -> "return"
+        | Fail _ -> "fail"
+        | Sleep -> "sleep"));
+  let f_promise = f info in
+  Logs.debug (fun m ->
+      m "TEST: f_promise is %s"
+        (match Lwt.state f_promise with
+        | Lwt.Return _ -> "return"
+        | Fail _ -> "fail"
+        | Sleep -> "sleep"));
+  (* I seem to observe that both promises are coming up Rejected. *)
+  Lwt.join [ f_promise; server_promise ]
 
 let test_ls_specs () =
-  let root, files = mock_files () in
   with_session (fun info ->
+      let root, files = mock_files () in
+      Logs.debug (fun m -> m "TEST: in session");
+      let%lwt () = Lwt.return_unit in
+      (* we get here *)
+      Logs.debug (fun m -> m " . TEST: after unit");
       let%lwt () = check_startup info [ root ] files in
+      Logs.debug (fun m -> m " . TEST: after startup");
       let%lwt () =
         files
         |> Lwt_list.iter_s (fun file ->
@@ -688,14 +774,19 @@ let test_ls_specs () =
 
                Lwt.return_unit)
       in
+      Logs.debug (fun m -> m " . TEST: after files");
 
       (* test did add *)
       let added = Fpath.(root / "added.py") in
       (* nosem *)
       FileUtil.cp [ List.hd files |> Fpath.to_string ] (added |> Fpath.to_string);
 
+      Logs.debug (fun m -> m " . TEST: after cp");
+
       let%lwt () = send_did_add info added in
       let%lwt () = send_did_open info added in
+
+      Logs.debug (fun m -> m " . TEST: after sending add and open");
 
       let%lwt notif = receive_notification info in
       let%lwt () =
@@ -703,13 +794,16 @@ let test_ls_specs () =
           [ `String "eqeq-five"; `String "eqeq-five" ]
       in
 
+      Logs.debug (fun m -> m " . TEST: before delete");
+
       let%lwt () = send_did_delete info added in
 
       let%lwt notif = receive_notification info in
       let%lwt () = check_diagnostics notif added [] in
 
-      send_exit info);
-  ()
+      Logs.debug (fun m -> m " . TEST: made it to end");
+
+      send_exit info)
 
 let test_ls_ext () =
   let root, files = mock_files () in
@@ -888,7 +982,7 @@ let test_login () =
           in
 
           assert (Regexp_engine.unanchored_match login_url_regex url);
-          Lwt.return_unit))
+          send_exit info))
 
 let test_ls_no_folders () =
   with_session (fun info ->
@@ -900,12 +994,20 @@ let test_ls_no_folders () =
 (* Entry point *)
 (*****************************************************************************)
 
+let promise_tests =
+  [
+    ("Test LS", test_ls_specs);
+    ("Test LS exts", test_ls_ext);
+    ("Test LS multi-workspaces", test_ls_multi);
+    ("Test Login", test_login);
+    ("Test LS with no folders", test_ls_no_folders);
+  ]
+
 let tests =
+  let prepare f () = Lwt_platform.run (f ()) in
   Testutil.pack_tests "Language Server (e2e)"
-    [
-      ("Test LS", test_ls_specs);
-      ("Test LS exts", test_ls_ext);
-      ("Test LS multi-workspaces", test_ls_multi);
-      ("Test Login", test_login);
-      ("Test LS with no folders", test_ls_no_folders);
-    ]
+    (promise_tests |> Common.map (fun (s, f) -> (s, prepare f)))
+
+let lwt_tests =
+  Testutil.pack_tests_lwt "Language Server (e2e)"
+    (promise_tests |> Common.map (fun (s, f) -> (s, f)))

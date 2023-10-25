@@ -5,6 +5,7 @@
 open Printf
 
 type test = string * (unit -> unit)
+type lwt_test = string * (unit -> unit Lwt.t)
 
 (*
    We use '>' because '.' is common in files and we don't want to split
@@ -21,11 +22,13 @@ let list_map f l = List.rev_map f l |> List.rev
 let list_flatten ll =
   List.fold_left (fun acc l -> List.rev_append l acc) [] ll |> List.rev
 
-let pack_tests suite_name (tests : test list) : test list =
+let pack_tests suite_name (tests : _ list) : _ list =
   list_map (fun (path, func) -> (suite_name ^ path_sep_str ^ path, func)) tests
 
 let pack_suites suite_name (tests : test list list) : test list =
   tests |> list_flatten |> pack_tests suite_name
+
+let pack_tests_lwt = pack_tests
 
 (*
    Sort by path. For this, we split the paths on '>' and then take advantage
@@ -81,7 +84,7 @@ let group_by_key key_value_list =
 let use_pretty_path_separator path =
   path |> String.split_on_char path_sep |> String.concat pretty_path_sep_str
 
-let to_alcotest ?(speed_level = `Quick) tests : unit Alcotest.test list =
+let to_alcotest ?(speed_level = `Quick) tests : _ list =
   tests
   |> list_map (fun (path, func) ->
          let category, name = split_path path in
@@ -93,6 +96,8 @@ let to_alcotest ?(speed_level = `Quick) tests : unit Alcotest.test list =
          let pretty_category = use_pretty_path_separator category in
          (pretty_category, (name, speed_level, func)))
   |> group_by_key
+
+let to_alcotest_lwt = to_alcotest
 
 let make_pcre_filter pat =
   let re =

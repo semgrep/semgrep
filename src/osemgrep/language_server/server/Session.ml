@@ -116,10 +116,12 @@ let fetch_ci_rules_and_origins () =
   let token = auth_token () in
   match token with
   | Some token ->
+      Logs.debug (fun m -> m "SERVER: before fetching scan config");
       let%lwt res =
         Semgrep_App.fetch_scan_config_async ~token ~sca:false ~dry_run:true
           ~full_scan:true ~repository:""
       in
+      Logs.debug (fun m -> m "SERVER: before fetching scan config");
       let conf =
         match res with
         | Ok scan_config -> Some (decode_rules scan_config.rule_config)
@@ -132,18 +134,26 @@ let fetch_ci_rules_and_origins () =
 
 (* TODO Default to auto *)
 let fetch_rules session =
+  Logs.debug (fun m -> m "SERVER: before fetching ci rules");
   let%lwt ci_rules =
     if session.user_settings.ci then fetch_ci_rules_and_origins ()
     else Lwt.return_none
   in
+  Logs.debug (fun m -> m "SERVER: after fetching ci rules");
   let home = Unix.getenv "HOME" |> Fpath.v in
   let rules_source =
-    session.user_settings.configuration |> Common.map Fpath.v
-    |> Common.map Fpath.normalize
-    |> Common.map (fun f ->
-           let p = Fpath.rem_prefix (Fpath.v "~/") f in
-           Option.bind p (fun f -> Some (home // f)) |> Option.value ~default:f)
-    |> Common.map Fpath.to_string
+    let x = session.user_settings.configuration in
+    let y = x |> Common.map Fpath.v in
+    let z = y |> Common.map Fpath.normalize in
+    let a =
+      z
+      |> Common.map (fun f ->
+             let p = Fpath.rem_prefix (Fpath.v "~/") f in
+             Option.bind p (fun f -> Some (home // f))
+             |> Option.value ~default:f)
+    in
+    let b = a |> Common.map Fpath.to_string in
+    b
   in
   let rules_source =
     if rules_source = [] && ci_rules = None then (
@@ -151,16 +161,21 @@ let fetch_rules session =
       [ "auto" ])
     else rules_source
   in
+  Logs.debug (fun m -> m "SERVER: before mapping rules and origins");
   let%lwt rules_and_origins =
     Lwt_list.map_p
       (fun source ->
+        Logs.debug (fun m -> m "SERVER: in map_p for rules and origins");
         let in_docker = !Semgrep_envvars.v.in_docker in
+        Logs.debug (fun m -> m "SERVER: in map_p after getting in_docker");
         let config = Rules_config.parse_config_string ~in_docker source in
+        Logs.debug (fun m -> m "SERVER: in map_p after parsing config string");
         Rule_fetching.rules_from_dashdash_config_async
           ~rewrite_rule_ids:true (* default *)
           ~token_opt:(auth_token ()) ~registry_caching:true config)
       rules_source
   in
+  Logs.debug (fun m -> m "SERVER: after mapping rules and origins");
   let rules_and_origins = List.flatten rules_and_origins in
   let rules_and_origins =
     match ci_rules with
@@ -202,7 +217,9 @@ let fetch_skipped_fingerprints () =
   | None -> Lwt.return []
 
 let cache_session session =
+  Logs.debug (fun m -> m "SERVER: before fetching rules");
   let%lwt rules, _ = fetch_rules session in
+  Logs.debug (fun m -> m "SERVER: after fetching rules");
   let%lwt skipped_fingerprints = fetch_skipped_fingerprints () in
   Lwt_mutex.with_lock session.cached_session.lock (fun () ->
       session.cached_session.rules <- rules;

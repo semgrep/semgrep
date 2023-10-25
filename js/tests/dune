@@ -13,7 +13,11 @@
    libpcre_stubs_js
    libyaml_stubs_js
    alcotest
+   semgrep.language_server
+  lwt_platform.js
+  alcotest-lwt
+  cohttp-lwt-jsoo
  )
  (modes js)
  (preprocess
-  (pps js_of_ocaml-ppx)))
+  (pps js_of_ocaml-ppx lwt_ppx)))
