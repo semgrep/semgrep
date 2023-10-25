@@ -94,6 +94,8 @@ DEFAULT_GITHUB_VARS = {
     "GITHUB_RUN_ID": "35",
     "GITHUB_SERVER_URL": "https://github.com",
     "GITHUB_WORKSPACE": "/home/runner/work/actions-test/actions-test",
+    "GITHUB_REPOSITORY_ID": "4",
+    "GITHUB_REPOSITORY_OWNER_ID": "2",
 }
 
 ##############################################################################
