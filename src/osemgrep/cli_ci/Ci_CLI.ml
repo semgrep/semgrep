@@ -81,6 +81,12 @@ contact support@semgrep.com for more information this.|}
   in
   Arg.value (Arg.flag info)
 
+let o_internal_ci_scan_results : bool Term.t =
+  let info =
+    Arg.info [ "internal-ci-scan-results" ] ~doc:{|<internal, do not use>|}
+  in
+  Arg.value (Arg.flag info)
+
 let o_suppress_errors : bool Term.t =
   H.negatable_flag_with_env [ "suppress-errors" ]
     ~neg_options:[ "no-suppress-errors" ]
@@ -103,7 +109,8 @@ let cmdline_term : conf Term.t =
    * variables (Romain's idea).
    *)
   let combine scan_conf audit_on beta_testing_secrets code dry_run secrets
-      supply_chain suppress_errors _git_meta _github_meta =
+      supply_chain suppress_errors _internal_ci_scan_results _git_meta
+      _github_meta =
     let products =
       (if beta_testing_secrets || secrets then [ `Secrets ] else [])
       @ (if code then [ `SAST ] else [])
@@ -115,8 +122,8 @@ let cmdline_term : conf Term.t =
     const combine
     $ Scan_CLI.cmdline_term ~allow_empty_config:true
     $ o_audit_on $ o_beta_testing_secrets $ o_code $ o_dry_run $ o_secrets
-    $ o_supply_chain $ o_suppress_errors $ Git_metadata.env
-    $ Github_metadata.env)
+    $ o_internal_ci_scan_results $ o_supply_chain $ o_suppress_errors
+    $ Git_metadata.env $ Github_metadata.env)
 
 let doc = "the recommended way to run semgrep in CI"
 
