@@ -11,7 +11,6 @@ name: test-e2e-semgrep-ci
   - cron: 43 20 * * *
 jobs:
   get-inputs:
-    name: Get Inputs
     runs-on: ubuntu-22.04
     outputs:
       docker_tag: ${{ steps.get-inputs.outputs.docker_tag }}
@@ -64,7 +63,7 @@ jobs:
     - name: Run CI
       id: run-ci
       run: "\n        if semgrep ci --suppress-errors; then\n           exit 2\n        else\n
-        \          exit 0\n        fi\n      "
+        \          exit 3\n        fi\n      "
   semgrep-ci-on-pr:
     uses: ./.github/workflows/open-bump-pr.yml
     secrets: inherit
@@ -128,15 +127,16 @@ jobs:
     - semgrep-ci-fail-open-blocking-findings
     - wait-for-checks
     - get-inputs
-    name: Notify of Failure
     runs-on: ubuntu-20.04
     if: failure()
     steps:
-    - name: Notify Failure
-      run: "\n        curl --request POST \\\n        --url  ${{ secrets.SEMGREP_CI_E2E_NOTIFICATIONS_URL
-        }} \\\n        --header 'content-type: application/json' \\\n        --data
-        '{\n          \"workflow_run_url\": \"https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}
-        for more details!\",\n          \"docker_tag\": \"${{ needs.get-inputs.outputs.docker_tag
-        }}\",\n          \"message\": \"The PR in `returntocorp/e2e` that had the
-        failure was ${{ needs.semgrep-ci-on-pr.outputs.pr-number }}\"\n         }\n
-        \     "
+    - name: Notify Failure on Slack
+      uses: slackapi/slack-github-action@v1.23.0
+      with:
+        channel-id: C01NXGX2EHZ
+        slack-message: 'The `${{ github.workflow }}` workflow has failed! Please take
+          a look: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{
+          github.run_id }}'
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.NOTIFICATIONS_URL }}
+        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

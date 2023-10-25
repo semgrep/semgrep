@@ -29,7 +29,6 @@ local docker_tag_input = {
 // TODO? not sure we need this intermediate job ... we should
 // use directly inputs.docker_tag in the other jobs
 local get_inputs_job = {
-  name: 'Get Inputs',
   'runs-on': 'ubuntu-22.04',
   outputs: {
     docker_tag: '${{ steps.get-inputs.outputs.docker_tag }}',
@@ -162,7 +161,7 @@ local semgrep_ci_fail_open_blocking_findings_job = {
         if semgrep ci --suppress-errors; then
            exit 2
         else
-           exit 0
+           exit 3
         fi
       |||,
     },
@@ -248,14 +247,17 @@ local wait_for_checks_job = {
 // Failure notification
 // ----------------------------------------------------------------------------
 
-#TODO: use instead the more direct:
-#        if: failure()
-#        uses: slackapi/slack-github-action@v1.23.0
-#        with:
-#          channel-id: "C05TW5S2EFJ" # team-frameworks-and-services
-#          slack-message: "The `${{ github.workflow }}` workflow has failed! Please take a look: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-#        env:
-#           SLACK_BOT_TOKEN: ${{ secrets.R2C_SLACK_TOKEN }}
+// https://github.com/slackapi/slack-github-action#technique-3-slack-incoming-webhook
+// https://semgrepinc.slack.com/apps/A0F7XDUAZ-incoming-webhooks?tab=more_info
+//          channel-id: "C05TW5S2EFJ" # team-frameworks-and-services
+// alt:
+//           SLACK_BOT_TOKEN: ${{ secrets.R2C_SLACK_TOKEN }}
+//      run: |||
+//          "workflow_run_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!",
+//          "docker_tag": "${{ needs.get-inputs.outputs.docker_tag }}",
+//          "message": "The PR in `returntocorp/e2e` that had the failure was ${{ needs.semgrep-ci-on-pr.outputs.pr-number }}"
+//         }
+//      |||,
 
 local notify_failure_job = {
   needs: [
@@ -266,22 +268,20 @@ local notify_failure_job = {
     'wait-for-checks',
     'get-inputs',
   ],
-  name: 'Notify of Failure',
   'runs-on': 'ubuntu-20.04',
   'if': 'failure()',
   steps: [
     {
-      name: 'Notify Failure',
-      run: |||
-        curl --request POST \
-        --url  ${{ secrets.SEMGREP_CI_E2E_NOTIFICATIONS_URL }} \
-        --header 'content-type: application/json' \
-        --data '{
-          "workflow_run_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!",
-          "docker_tag": "${{ needs.get-inputs.outputs.docker_tag }}",
-          "message": "The PR in `returntocorp/e2e` that had the failure was ${{ needs.semgrep-ci-on-pr.outputs.pr-number }}"
-         }
-      |||,
+      name: 'Notify Failure on Slack',
+      uses: "slackapi/slack-github-action@v1.23.0",
+      with: {
+        'channel-id': "C01NXGX2EHZ", # team-semgrep-core
+	'slack-message': "The `${{ github.workflow }}` workflow has failed! Please take a look: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+	},
+      env: {
+	SLACK_WEBHOOK_URL: "${{ secrets.NOTIFICATIONS_URL }}",
+	SLACK_WEBHOOK_TYPE: "INCOMING_WEBHOOK",
+      },
     },
   ],
 };
