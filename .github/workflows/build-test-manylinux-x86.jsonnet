@@ -20,7 +20,6 @@ local build_wheels_job = {
     {
       name: 'Setup Python',
       run: |||
-        rm /usr/bin/python
         ln `which python` /usr/bin/python3
       |||,
     },
