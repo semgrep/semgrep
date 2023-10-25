@@ -138,5 +138,5 @@ jobs:
           Please take a look: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{
           github.run_id }}\" }\n\t"
       env:
-        SLACK_WEBHOOK_URL: ${{ secrets.DEPLOY_SLACK_WEBHOOK }}
+        SLACK_WEBHOOK_URL: ${{ secrets.NOTIFICATIONS_URL }}
         SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

@@ -282,8 +282,8 @@ local notify_failure_job = {
 	|||,
 	},
       env: {
-	#TODO? use secrets.NOTIFICATIONS_URL? got error in CI then
-	SLACK_WEBHOOK_URL: "${{ secrets.DEPLOY_SLACK_WEBHOOK }}",
+	# Note that DEPLOY_SLACK_WEBHOOK does not seem to work
+	SLACK_WEBHOOK_URL: "${{ secrets.NOTIFICATIONS_URL }}",
 	SLACK_WEBHOOK_TYPE: "INCOMING_WEBHOOK",
       },
     },
