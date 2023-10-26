@@ -16,6 +16,7 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 
    Debugging trick #1:
    --------------------
+
    If 'semgrep ci' returns some networking errors, you may need to inspect
    the backend logs as the error message returned by the backend to the CLI
    might be short and may not contain the necessary information to debug.
@@ -28,14 +29,29 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
    https://github.com/returntocorp/semgrep/actions/runs/6599573075/job/17928762827
    Looking at the job log, we can see a problem when connecting to
    the https://semgrep.dev/api/agent/scans/14253285/complete endpoint.
-   Then in Sentry you can paste this URL and search for errors
-   related to this endpoint.
+   Then in Sentry you can paste this 'url: <URL>' in the query and search
+   for errors related to this endpoint (you may need to replace the 'https'
+   by 'http' sometimes to find something).
+
 
    Debugging trick #2:
    --------------------
-   You can also inspect the backend logs in Datadog, cloudwatch, and Metabase.
-   However, it's probably better first to connect to the 'dev2' backend
-   rather than 'prod' to have a lot less to search through.
+
+   You can also inspect the backend logs in Datadog. If you know
+   the scan_id of the problematic request, you can search for
+   @scan_id:<id> at https://app.datadoghq.com/logs
+
+   In the example above, the scan_id was 14253285.
+   You will probably need also to setup the period in the upper right
+   (e.g., select last few hours). If there are many matching logs,
+   you can focus on the one with errors (usually tagged with a red
+   rectangle on the left).
+
+   Debugging trick #3:
+   --------------------
+
+   When using Datadog, it might be better first to connect to the 'dev2'
+   backend rather than 'prod' to have a lot less logs to search through.
    You can filter out by `env: dev2` in Datadog. To connect to dev2,
    you'll need to run semgrep ci like this:
 
@@ -50,11 +66,13 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 
    Tip: you can store those environment variables in a dev2.sh env file
    that you can source instead.
-*)
 
-(*****************************************************************************)
-(* Types *)
-(*****************************************************************************)
+   Debugging trick #4?:
+   --------------------
+
+   TODO You can also inspect the backend logs in cloudwatch, and Metabase?
+
+*)
 
 (*****************************************************************************)
 (* Error management *)
