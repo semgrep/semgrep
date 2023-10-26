@@ -62,6 +62,10 @@ let on_notification notification (server : RPC_server.t) =
         Logs.debug (fun m -> m "Scanning file %s on save" (Uri.to_string uri));
         Scan_helpers.scan_file server uri;
         server
+    | CN.TextDocumentDidClose { textDocument = { uri; _ } } ->
+        let path = uri |> Uri.to_path |> Fpath.v in
+        Session.remove_open_document server.session path;
+        server
     | CN.TextDocumentDidOpen { textDocument = { uri; _ } } ->
         let path = uri |> Uri.to_path |> Fpath.v in
         let prev_scan = Session.previous_scan_of_file server.session path in
@@ -73,6 +77,7 @@ let on_notification notification (server : RPC_server.t) =
         else (
           Logs.debug (fun m -> m "Scanning file %s on open" (Uri.to_string uri));
           Scan_helpers.scan_file server uri);
+        Session.add_open_document server.session path;
         server
     | CN.ChangeWorkspaceFolders { event = { added; removed }; _ } ->
         let session =
@@ -85,17 +90,18 @@ let on_notification notification (server : RPC_server.t) =
         server
     | CN.DidDeleteFiles { files; _ } ->
         (* This is lame, for whatever reason they chose to type uri as string here, not Uri.t *)
+        let files =
+          Common.map
+            (fun { FileDelete.uri } ->
+              Str.string_after uri (String.length "file://") |> Fpath.v)
+            files
+        in
         let diagnostics =
-          let files =
-            Common.map
-              (fun { FileDelete.uri } ->
-                Str.string_after uri (String.length "file://") |> Fpath.v)
-              files
-          in
           Diagnostics.diagnostics_of_results
             ~is_intellij:server.session.is_intellij [] files
         in
         RPC_server.batch_notify diagnostics;
+        Session.remove_open_documents server.session files;
         server
     | CN.Exit ->
         Logs.debug (fun m -> m "Server exiting");

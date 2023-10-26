@@ -1,0 +1,2 @@
+* Semgrep Language Server now only scans open files on startup
+* Semgrep Language Server no longer scans with pro engine rules
