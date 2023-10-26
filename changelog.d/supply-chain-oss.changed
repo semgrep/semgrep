@@ -1,0 +1,2 @@
+When running `semgrep ci --supply-chain`, defaults to using OSS engine even if
+PRO engine would otherwise be used (turned on in semgrep.dev, or with `--pro` flag)

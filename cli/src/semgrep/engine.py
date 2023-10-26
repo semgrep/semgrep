@@ -14,6 +14,9 @@ from semgrep.meta import GitMeta
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_interfaces import semgrep_output_v1 as out
 from semgrep.util import sub_check_output
+from semgrep.verbose_logging import getLogger
+
+logger = getLogger(__name__)
 
 
 class EngineType(Enum):
@@ -35,6 +38,7 @@ class EngineType(Enum):
         git_meta: Optional[GitMeta] = None,
         run_secrets: bool = False,
         enable_pro_diff_scan: bool = False,
+        supply_chain_only: bool = False,
     ) -> "EngineType":
         """Select which Semgrep engine type to use if none is explicitly requested.
 
@@ -58,6 +62,17 @@ class EngineType(Enum):
                 and not enable_pro_diff_scan
             ):
                 requested_engine = cls.PRO_INTRAFILE
+
+        # Using PRO_LANG engine since PRO_INTERFILE/PRO_INTRAFILE defaults to -j 1
+        # note if using OSS, then will keep using OSS
+        if (
+            requested_engine in {cls.PRO_INTERFILE, cls.PRO_INTRAFILE}
+            and supply_chain_only
+        ):
+            logger.info(
+                "Running only supply chain rules so running without extra interfile analysis"
+            )
+            return cls.PRO_LANG
 
         return requested_engine or cls.OSS
 
