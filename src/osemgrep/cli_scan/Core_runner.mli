@@ -56,3 +56,6 @@ val mk_scan_func_for_osemgrep :
 
 (* Helper used in Semgrep_scan.ml to setup logging *)
 val core_scan_config_of_conf : conf -> Core_scan_config.t
+
+(* reused in semgrep-server *)
+val split_jobs_by_language : Rule.t list -> Fpath.t list -> Lang_job.t list
