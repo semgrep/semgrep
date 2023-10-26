@@ -604,6 +604,36 @@ let pm_of_finding finding =
                  | Control ->
                      None)
         in
+        let rec find_requires = function
+          | Taint.PM (_, src) -> src.R.source_requires
+          | Taint.Call (_, _, ct) -> find_requires ct
+        in
+        (* We prioritize taint sources without preconditions,
+           selecting their traces first, and then consider sources
+           with preconditions as a secondary choice. When we generate
+           JSON output for the command-line interface, we arbitrarily
+           select the first trace in the list. Consequently, when
+           there are multiple sources, and their traces overlap,
+           leading to the same sink, the final output doesn't always
+           indicate the initial location of the tainted source
+           clearly. By following this approach, users are more likely
+           to identify the very first taint source that doesn't rely
+           on other sources as input. *)
+        let with_req, without_req =
+          source_taints
+          |> Common.partition_either (fun (src, tokens, sink_trace) ->
+                 match find_requires src.T.call_trace with
+                 | Some _ -> Left (src, tokens, sink_trace)
+                 | None -> Right (src, tokens, sink_trace))
+        in
+        let source_taints =
+          if without_req <> [] then without_req
+          else (
+            logger#warning
+              "Taint source without precondition wasn't found. Displaying the \
+               taint trace from the source with precondition.";
+            with_req)
+        in
         (* The old behavior used to be that, for sinks with a `requires`, we would
            generate a finding per every single taint source going in. Later deduplication
            would deal with it.
