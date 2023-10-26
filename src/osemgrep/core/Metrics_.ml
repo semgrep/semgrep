@@ -49,6 +49,9 @@ module Out = Semgrep_output_v1_j
             -> Metabase (SEMGREP CLI - SNOWFLAKE)
         |-> OpenSearch (Name=semgrep-metrics)
 
+    For metabase, you can watch "Metabase for PA engineers" talk by Emma here:
+    https://drive.google.com/file/d/1BJNR578M3KxbuuIU5xNPFkhbYccfo9XH/view
+
     Notes:
       - Raw payload is ingested by our metrics endpoint exposed via our API
         Gateway
