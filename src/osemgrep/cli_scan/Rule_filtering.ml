@@ -15,19 +15,19 @@
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type products = SAST | SCA | Secrets | Interfile [@@deriving show]
+type product = SAST | SCA | Secrets | Interfile [@@deriving show]
 
 type conf = {
   exclude_rule_ids : Rule_ID.t list;
   severity : Rule.severity list;
-  exclude_products : products list;
+  exclude_products : product list;
 }
 [@@deriving show]
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let get_rule_product (rule : Rule.t) =
+let get_rule_product_from_metadata (rule : Rule.t) =
   match rule.metadata with
   | Some json -> (
       let product_field = JSON.member "product" json in
@@ -49,4 +49,4 @@ let filter_rules (conf : conf) (rules : Rule.rules) : Rule.rules =
   rules
   |> Common.exclude (fun r -> List.mem (fst r.Rule.id) conf.exclude_rule_ids)
   |> Common.exclude (fun r ->
-         List.mem (get_rule_product r) conf.exclude_products)
+         List.mem (get_rule_product_from_metadata r) conf.exclude_products)

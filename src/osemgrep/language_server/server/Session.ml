@@ -190,6 +190,7 @@ let fetch_rules session =
       {
         exclude_rule_ids = [];
         severity = [];
+        (* Exclude these as they require the pro engine which we don't support *)
         exclude_products =
           [
             Rule_filtering.SCA; Rule_filtering.Secrets; Rule_filtering.Interfile;
