@@ -379,19 +379,25 @@ let any_is_in_sources_matches rule any matches =
   let ( let* ) = option_bind_list in
   let* r = range_of_any any in
   matches
-  |> Common.map_filter (fun (rwm, ts) ->
+  |> Common.map_filter (fun (rwm, (ts : R.taint_source)) ->
          if Range.( $<=$ ) r rwm.RM.r then
            Some
              (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
               let overlap = overlap_with ~match_range:rwm.RM.r r in
-              { D.spec = ts; spec_pm; range = r; overlap })
+              {
+                Taint_smatch.spec = ts;
+                spec_id = ts.source_id;
+                spec_pm;
+                range = r;
+                overlap;
+              })
          else None)
 
 (* Check whether `any` matches either the `from` or the `to` of any of the
  * `pattern-propagators`. Matches must be exact (overlap > 0.99) to make
  * taint propagation more precise and predictable. *)
 let any_is_in_propagators_matches rule any matches :
-    D.a_propagator D.tmatch list =
+    D.a_propagator Taint_smatch.t list =
   match range_of_any any with
   | None -> []
   | Some r ->
@@ -403,7 +409,13 @@ let any_is_in_propagators_matches rule any matches :
              let is_to = is_exact_match ~match_range:prop.to_ r in
              let mk_match kind =
                let spec : D.a_propagator = { kind; prop = prop.spec; var } in
-               { D.spec; spec_pm; range = r; overlap = 1.0 }
+               {
+                 Taint_smatch.spec;
+                 spec_id = prop.spec.propagator_id;
+                 spec_pm;
+                 range = r;
+                 overlap = 1.0;
+               }
              in
              (if is_from then [ mk_match `From ] else [])
              @ (if is_to then [ mk_match `To ] else [])
@@ -418,19 +430,31 @@ let any_is_in_sanitizers_matches rule any matches =
            Some
              (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
               let overlap = overlap_with ~match_range:rwm.RM.r r in
-              { D.spec; spec_pm; range = r; overlap })
+              {
+                Taint_smatch.spec;
+                spec_id = spec.R.sanitizer_id;
+                spec_pm;
+                range = r;
+                overlap;
+              })
          else None)
 
 let any_is_in_sinks_matches rule any matches =
   let ( let* ) = option_bind_list in
   let* r = range_of_any any in
   matches
-  |> Common.map_filter (fun (rwm, spec) ->
+  |> Common.map_filter (fun (rwm, (spec : R.taint_sink)) ->
          if Range.( $<=$ ) r rwm.RM.r then
            Some
              (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
               let overlap = overlap_with ~match_range:rwm.RM.r r in
-              { D.spec; spec_pm; range = r; overlap })
+              {
+                Taint_smatch.spec;
+                spec_id = spec.sink_id;
+                spec_pm;
+                range = r;
+                overlap;
+              })
          else None)
 
 let lazy_force x = Lazy.force x [@@profiling]
@@ -660,7 +684,7 @@ let add_to_env lang options taint_config env id ii opt_expr =
   let var_type = Typing.resolved_type_of_id_info lang var.id_info in
   let id_taints =
     taint_config.D.is_source (G.Tk (snd id))
-    |> Common.map (fun (x : _ D.tmatch) -> (x.spec_pm, x.spec))
+    |> Common.map (fun (x : _ Taint_smatch.t) -> (x.spec_pm, x.spec))
     (* These sources come from the parameters to a function,
         which are not within the normal control flow of a code.
         We can safely say there's no incoming taints to these sources.
