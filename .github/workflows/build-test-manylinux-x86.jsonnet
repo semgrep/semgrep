@@ -72,21 +72,21 @@ local test_wheels_job = {
     // platform compatibility tag
     {
       name: 'install package',
-      run: '/opt/python/cp38-cp38m/bin/pip install dist/*.whl',
+      run: '/opt/python/cp38-cp38/bin/pip install dist/*.whl',
     },
     // TODO? could reuse build-test-osx-x86.test_semgrep_steps
     // only diff is PATH adjustments
     {
       name: 'test package',
       run: |||
-        export PATH=/opt/python/cp38-cp38m/bin:$PATH
+        export PATH=/opt/python/cp38-cp38/bin:$PATH
         semgrep --version
       |||,
     },
     {
       name: 'e2e semgrep-core test',
       run: |||
-        export PATH=/opt/python/cp38-cp38m/bin:$PATH
+        export PATH=/opt/python/cp38-cp38/bin:$PATH
         echo '1 == 1' | semgrep -l python -e '$X == $X' -
       |||,
     },

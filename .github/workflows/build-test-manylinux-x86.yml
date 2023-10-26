@@ -38,10 +38,10 @@ jobs:
         name: manylinux-x86-wheel
     - run: unzip ./manylinux-x86-wheel/dist.zip
     - name: install package
-      run: /opt/python/cp38-cp38m/bin/pip install dist/*.whl
+      run: /opt/python/cp38-cp38/bin/pip install dist/*.whl
     - name: test package
-      run: "\n        export PATH=/opt/python/cp38-cp38m/bin:$PATH\n        semgrep
+      run: "\n        export PATH=/opt/python/cp38-cp38/bin:$PATH\n        semgrep
         --version\n      "
     - name: e2e semgrep-core test
-      run: "\n        export PATH=/opt/python/cp38-cp38m/bin:$PATH\n        echo '1
+      run: "\n        export PATH=/opt/python/cp38-cp38/bin:$PATH\n        echo '1
         == 1' | semgrep -l python -e '$X == $X' -\n      "
