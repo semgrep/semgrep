@@ -609,6 +609,12 @@ class GithubMeta(GitMeta):
         res.pull_request_author_image_url = uri_opt(
             self.glom_event(T["pull_request"]["user"]["avatar_url"])
         )
+        repo_id = os.getenv("GITHUB_REPOSITORY_ID")
+        org_id = os.getenv("GITHUB_REPOSITORY_OWNER_ID")
+        if repo_id:
+            res.repo_id = repo_id
+        if org_id:
+            res.org_id = org_id
         return res
 
 
