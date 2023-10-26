@@ -33,8 +33,8 @@ if WHEEL_CMD in sys.argv:
             # For more information about python compatibility tags, check out:
             # https://packaging.python.org/en/latest/specifications/platform-compatibility-tags/
 
-            # We support Python 3.7+
-            python = "cp37.cp38.cp39.cp310.cp311.py37.py38.py39.py310.py311"
+            # We support Python 3.8+
+            python = "cp38.cp39.cp310.cp311.py37.py38.py39.py310.py311"
 
             # We don't require a specific Python ABI
             abi = "none"
@@ -118,7 +118,6 @@ install_requires = [
     "jsonschema~=4.6",
     "packaging>=21.0",
     "peewee~=3.14",
-    "python-lsp-jsonrpc~=1.0.0",
     "requests~=2.22",
     "rich>=12.6.0",
     "ruamel.yaml>=0.16.0,<0.18",
@@ -152,7 +151,6 @@ setuptools.setup(
         "License :: OSI Approved :: GNU Lesser General Public License v2 (LGPLv2)",
         "Operating System :: MacOS",
         "Operating System :: POSIX :: Linux",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
@@ -160,6 +158,6 @@ setuptools.setup(
         "Topic :: Security",
         "Topic :: Software Development :: Quality Assurance",
     ],
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     zip_safe=False,
 )

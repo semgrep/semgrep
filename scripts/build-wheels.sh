@@ -8,7 +8,7 @@
 # for pip to package semgrep correctly.
 
 set -e
-pip3 install setuptools wheel
+python3 -m pip install setuptools wheel
 cd cli && python3 setup.py sdist bdist_wheel "$@"
 
 # Zipping for a stable name to upload as an artifact

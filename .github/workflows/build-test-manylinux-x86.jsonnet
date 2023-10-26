@@ -13,19 +13,20 @@ local wheel_name = 'manylinux-x86-wheel';
 local build_wheels_job = {
   'runs-on': 'ubuntu-latest',
   // pad: What is this sgrep-xxx image?
-  container: 'returntocorp/sgrep-build:ubuntu-16.04',
+  container: 'returntocorp/sgrep-build:ubuntu-18.04',
   steps: [
     actions.checkout_with_submodules(),
-    // pad: Why do we have this weird setup python step?
     {
-      name: 'Setup Python',
-      run: |||
-        rm /usr/bin/python
-        ln `which python3.7` /usr/bin/python3
-      |||,
+      run: 'apt-get update && apt install -y zip musl-tools software-properties-common python3-pip',
     },
     {
-      run: 'apt-get update && apt install -y zip musl-tools',
+      run: |||
+        add-apt-repository ppa:deadsnakes/ppa
+        apt install -y python3.8
+        update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 1
+        update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 2
+        update-alternatives --config python3
+      |||
     },
     {
       uses: 'actions/download-artifact@v3',
@@ -71,21 +72,21 @@ local test_wheels_job = {
     // platform compatibility tag
     {
       name: 'install package',
-      run: '/opt/python/cp37-cp37m/bin/pip install dist/*.whl',
+      run: '/opt/python/cp38-cp38/bin/pip install dist/*.whl',
     },
     // TODO? could reuse build-test-osx-x86.test_semgrep_steps
     // only diff is PATH adjustments
     {
       name: 'test package',
       run: |||
-        export PATH=/opt/python/cp37-cp37m/bin:$PATH
+        export PATH=/opt/python/cp38-cp38/bin:$PATH
         semgrep --version
       |||,
     },
     {
       name: 'e2e semgrep-core test',
       run: |||
-        export PATH=/opt/python/cp37-cp37m/bin:$PATH
+        export PATH=/opt/python/cp38-cp38/bin:$PATH
         echo '1 == 1' | semgrep -l python -e '$X == $X' -
       |||,
     },
