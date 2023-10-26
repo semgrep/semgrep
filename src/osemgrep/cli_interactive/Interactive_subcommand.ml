@@ -1250,7 +1250,10 @@ let run (conf : Interactive_CLI.conf) : Exit_code.t =
   let xtargets =
     targets
     |> Common.map (fun file ->
-           let xtarget = Core_scan.xtarget_of_file config xlang file in
+           let xtarget =
+             Core_scan.xtarget_of_file
+               ~parsing_cache_dir:config.parsing_cache_dir xlang file
+           in
            Lock_protected.protect xtarget)
   in
   interactive_loop ~turbo:conf.turbo xlang xtargets;
