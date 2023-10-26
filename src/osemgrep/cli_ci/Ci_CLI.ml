@@ -60,6 +60,12 @@ findings. Instead will print out json objects it would have sent.|}
   in
   Arg.value (Arg.flag info)
 
+let o_internal_ci_scan_results : bool Term.t =
+  let info =
+    Arg.info [ "internal-ci-scan-results" ] ~doc:{|<internal, do not use>|}
+  in
+  Arg.value (Arg.flag info)
+
 let o_supply_chain : bool Term.t =
   let info = Arg.info [ "supply-chain" ] in
   Arg.value (Arg.flag info)
@@ -78,12 +84,6 @@ let o_secrets : bool Term.t =
       ~doc:
         {|Support for secret validation. Requires Semgrep Secrets,
 contact support@semgrep.com for more information this.|}
-  in
-  Arg.value (Arg.flag info)
-
-let o_internal_ci_scan_results : bool Term.t =
-  let info =
-    Arg.info [ "internal-ci-scan-results" ] ~doc:{|<internal, do not use>|}
   in
   Arg.value (Arg.flag info)
 
@@ -108,8 +108,8 @@ let cmdline_term : conf Term.t =
    * it below so we can get a nice man page documenting those environment
    * variables (Romain's idea).
    *)
-  let combine scan_conf audit_on beta_testing_secrets code dry_run secrets
-      supply_chain suppress_errors _internal_ci_scan_results _git_meta
+  let combine scan_conf audit_on beta_testing_secrets code dry_run
+      _internal_ci_scan_results secrets supply_chain suppress_errors _git_meta
       _github_meta =
     let products =
       (if beta_testing_secrets || secrets then [ `Secrets ] else [])
@@ -121,9 +121,9 @@ let cmdline_term : conf Term.t =
   Term.(
     const combine
     $ Scan_CLI.cmdline_term ~allow_empty_config:true
-    $ o_audit_on $ o_beta_testing_secrets $ o_code $ o_dry_run $ o_secrets
-    $ o_internal_ci_scan_results $ o_supply_chain $ o_suppress_errors
-    $ Git_metadata.env $ Github_metadata.env)
+    $ o_audit_on $ o_beta_testing_secrets $ o_code $ o_dry_run
+    $ o_internal_ci_scan_results $ o_secrets $ o_supply_chain
+    $ o_suppress_errors $ Git_metadata.env $ Github_metadata.env)
 
 let doc = "the recommended way to run semgrep in CI"
 
