@@ -66,6 +66,10 @@ GROUP_TITLES: Dict[Tuple[out.Product, str], str] = {
     (out.Product(out.Secrets()), "valid"): "Valid Secrets Finding",
     (out.Product(out.Secrets()), "invalid"): "Invalid Secrets Finding",
     (out.Product(out.Secrets()), "unvalidated"): "Unvalidated Secrets Finding",
+    (
+        out.Product(out.Secrets()),
+        "validation error",
+    ): "Validation Error Secrets Finding",
 }
 
 
@@ -725,7 +729,8 @@ class TextFormatter(BaseFormatter):
                 (out.Product(out.SCA()), "reachable"): [],
                 (out.Product(out.Secrets()), "valid"): [],
                 (out.Product(out.SCA()), "undetermined"): [],
-                (out.Product(out.Secrets()), "unvalidated"): [],
+                (out.Product(out.Secrets()), "validation error"): [],
+                (out.Product(out.Secrets()), "error"): [],
                 (out.Product(out.SCA()), "unreachable"): [],
                 (out.Product(out.SAST()), "nonblocking"): [],
                 (out.Product(out.Secrets()), "invalid"): [],
@@ -743,6 +748,8 @@ class TextFormatter(BaseFormatter):
                             subgroup = "valid"
                         elif isinstance(state.value, out.ConfirmedInvalid):
                             subgroup = "invalid"
+                        elif isinstance(state.value, out.ValidationError):
+                            subgroup = "validation error"
                         else:
                             subgroup = "unvalidated"
                 else:
