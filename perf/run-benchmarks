@@ -62,21 +62,16 @@ class SemgrepResult:
         self.res = dict
         dict2 = copy.deepcopy(dict)
 
-        # We use self.str to compare dicts, so change this
+        # We use self.str to compare dicts, so change the below
         # to abstract away differences
+
+        # The benchmarks are primarily focused on ensuring
+        # the matches don't change. Previously, we masked
+        # the extra fields individually when necessary, but
+        # as they change frequently and often contain info
+        # that varies by run, it's easier to just mask them
         if "extra" in dict2:
-            # TODO: spacegrep.py calls dedent() on lines (not sure why)
-            if "lines" in dict2["extra"]:
-                dict2["extra"]["lines"] = "<masked in benchmarks>"
-            if "metavars" in dict2["extra"]:
-                # TODO: core_runner.py dedup_output() depends on the order
-                # of the elements in the list to remove similar findings
-                # but with different metavars
-                dict2["extra"]["metavars"] = "<masked in benchmarks>"
-                # the paths being different will change the fingerprint
-                dict2["extra"]["fingerprint"] = "<masked in benchmarks>"
-            if "dataflow_trace" in dict2["extra"]:
-                dict2["extra"]["dataflow_trace"] = "<masked in benchmarks>"
+            dict2["extra"] = "<masked in benchmarks>"
 
         if "check_id" in dict2:
             relative_path_start = dict2["check_id"].find(PERF_RULE_PATH)
