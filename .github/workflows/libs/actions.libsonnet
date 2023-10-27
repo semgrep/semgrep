@@ -5,12 +5,12 @@
   // What about 'persist-credentials': false? needed? A few of
   // our workflows was using that, but not consistently
   checkout: function() {
-    uses: 'actions/checkout@v3',
+    uses: 'actions/checkout@v4',
   },
   // the right checkout to call in most cases; slower but correct.
   checkout_with_submodules: function()
     {
-      uses: 'actions/checkout@v3',
+      uses: 'actions/checkout@v4',
       with: {
         submodules: true,
       },
