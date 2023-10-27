@@ -73,7 +73,8 @@ type state = {
    * could not happen.
    *)
   lambdas : (name, IL.function_definition) Hashtbl.t;
-  (* If a lambda is never used, we just insert its CFG at declaration site. *)
+  (* If a lambda is never used, we just insert its CFG at the end of
+     its parent function. *)
   unused_lambdas : (name, nodei * nodei) Hashtbl.t;
 }
 
@@ -180,7 +181,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
                * Ideally we should have a preceeding analysis that infers which calls
                * may (or may not) raise exceptions. *)
             state.g |> add_arc_opt_to_opt (Some newi, state.throw_destination);
-            match build_cfg_for_lambdas_in state newi new_ with
+            match build_cfg_for_lambdas_in state (Some newi) new_ with
             | Some lasti -> (lasti, true)
             | None -> (newi, true))
         | AssignAnon ({ base = Var name; rev_offset = [] }, Lambda fdef) ->
@@ -358,7 +359,7 @@ and cfg_lambda state previ joini fdef =
      * alt: We could inline lambdas perhaps?
   *)
   let newi = state.g#add_node { F.n = NLambda fdef.fparams } in
-  state.g |> add_arc (previ, newi);
+  state.g |> add_arc_from_opt (previ, newi);
   let finallambda, _ignore_throws_in_lambda_ =
     cfg_stmt_list { state with throw_destination = None } (Some newi) fdef.fbody
   in
@@ -391,7 +392,7 @@ and build_cfg_for_lambdas_in state previ n =
      *       \_______________/
      *)
     let lasti = state.g#add_node { F.n = F.Join } in
-    state.g |> add_arc (previ, lasti);
+    state.g |> add_arc_from_opt (previ, lasti);
     lambda_fdefs |> List.iter (fun fdef -> cfg_lambda state previ lasti fdef);
     lambda_names
     |> List.iter (fun name -> Hashtbl.remove state.unused_lambdas name);
@@ -440,16 +441,14 @@ and cfg_stmt_list state previ xs =
       (Some dummyi, may_throw)
   | [] -> (lasti_opt, may_throw)
 
-let build_cfg_of_unused_lambdas state =
-  (* For those lambdas that are not dereferenced, we insert their CFG
-   * at the declaration site. *)
+let build_cfg_of_unused_lambdas state previ nexti =
   state.unused_lambdas
-  |> Hashtbl.iter (fun name (starti, lasti) ->
+  |> Hashtbl.iter (fun name _ ->
          match Hashtbl.find_opt state.lambdas name with
          | None ->
              logger#error "Cannot find the definition of a lambda";
              ()
-         | Some fdef -> cfg_lambda state starti lasti fdef);
+         | Some fdef -> cfg_lambda state previ nexti fdef);
   Hashtbl.clear state.unused_lambdas
 
 (*****************************************************************************)
@@ -480,7 +479,28 @@ let (cfg_of_stmts : stmt list -> F.cfg) =
   let last_node_opt, _ignore_may_throw_ = cfg_stmt_list state (Some newi) xs in
   (* Must wait until all nodes have been labeled before resolving gotos. *)
   resolve_gotos state;
-  build_cfg_of_unused_lambdas state;
+  (* Previously, we used to insert the CFGs of unused lambdas at the
+     declaration site. However, this approach triggered some false
+     positives. For example, consider the following code:
+     ```
+     void incorrect(int *p) {
+       auto f1 = [&p]() {
+         source(p);
+       };
+       auto f2 = [&p]() {
+         sink(p);
+       };
+     }
+     ```
+     In this code, there's no actual control flow between the source
+     and sink, and the lambdas are never even called. But when we
+     inserted their CFGs at the declaration site, it incorrectly
+     indicated a taint finding. To prevent these types of false
+     positives while still scanning the body of unused lambdas, we now
+     insert their CFGs in parallel at the end of their parent
+     function, right after all other statements and just before the
+     end node. *)
+  build_cfg_of_unused_lambdas state last_node_opt exiti;
   (* maybe the body does not contain a single 'return', so by default
    * connect last stmt to the exit node
    *)
