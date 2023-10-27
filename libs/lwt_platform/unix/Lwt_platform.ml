@@ -23,3 +23,4 @@
 let run = Lwt_main.run
 let detach = Lwt_preemptive.detach
 let init_preemptive = Lwt_preemptive.init
+let set_engine () = Lwt_engine.set (new Lwt_engine.libev ())
