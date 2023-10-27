@@ -243,7 +243,7 @@ install-deps-for-semgrep-core: semgrep.opam
 	&& ./configure \
 	&& ./scripts/install-tree-sitter-lib
 	# Install OCaml dependencies (globally) from *.opam files.
-	opam install -y --deps-only ./ ./libs/ocaml-tree-sitter-core
+	LIBRARY_PATH="/opt/homebrew/lib" opam install -y --deps-only ./ ./libs/ocaml-tree-sitter-core
 
 # This will fail if semgrep.opam isn't up-to-date (in git),
 # and dune isn't installed yet. You can always install dune with
@@ -274,7 +274,7 @@ install-deps: install-deps-for-semgrep-core
 # Here is why we need those external packages to compile semgrep-core:
 # - pcre-dev: for ocaml-pcre now used in semgrep-core
 # - gmp-dev: for osemgrep and its use of cohttp
-ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev
+ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev
 
 # This target is used in our Dockerfile and a few GHA workflows.
 # There are pros and cons of having those commands here instead
@@ -320,7 +320,7 @@ install-deps-ALPINE-for-pysemgrep:
 # - pkg-config?
 # - coreutils?
 # - gettext?
-BREW_DEPS=pcre gmp pkg-config coreutils gettext
+BREW_DEPS=pcre gmp pkg-config coreutils gettext libev
 
 # see also scripts/osx-setup-for-release.sh that adjust those
 # external packages to force static-linking
