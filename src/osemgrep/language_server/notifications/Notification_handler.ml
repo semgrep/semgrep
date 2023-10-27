@@ -63,7 +63,6 @@ let on_notification notification (server : RPC_server.t) =
         Scan_helpers.scan_file server uri;
         server
     | CN.TextDocumentDidOpen { textDocument = { uri; _ } } ->
-        Logs.debug (fun m -> m "SERVER: Received TextDocumentDidOpen");
         let path = uri |> Uri.to_path |> Fpath.v in
         let prev_scan = Session.previous_scan_of_file server.session path in
         (* We usually scan every file on startup, so let's only rescan an opened

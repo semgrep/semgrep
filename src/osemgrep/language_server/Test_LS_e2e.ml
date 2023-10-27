@@ -143,19 +143,15 @@ let send (info : info) packet : unit Lwt.t =
   match info.server.state with
   | RPC_server.State.Stopped -> Alcotest.failf "Cannot send, server stopped"
   | _ ->
-      Logs.debug (fun m -> m "TEST: before send");
       (* let%lwt () = Lwt.pause () in *)
       let () = (snd info.in_stream) (Some packet) in
-      Logs.debug (fun m -> m "TEST: after send");
       Lwt.return_unit
 
 let receive (info : info) : Packet.t Lwt.t =
   match info.server.state with
   | RPC_server.State.Stopped -> Alcotest.failf "Cannot receive, server stopped"
   | _ -> (
-      Logs.debug (fun m -> m "TEST: before receive");
       let%lwt server_msg = Lwt_stream.get (fst info.out_stream) in
-      Logs.debug (fun m -> m "TEST: after receive");
       match server_msg with
       | Some packet -> Lwt.return packet
       | _ -> Alcotest.failf "Received no response, client disconnected")
@@ -302,7 +298,6 @@ let mock_files () : _ * Fpath.t list =
          "add";
          Fpath.to_string existing_file;
        ]);
-  Logs.debug (fun m -> m "TEST: before commit");
   checked_command
     (String.concat " "
        [
@@ -313,7 +308,6 @@ let mock_files () : _ * Fpath.t list =
          "-m";
          "\"initial commit\"";
        ]);
-  Logs.debug (fun m -> m "TEST: after commit");
 
   open_and_write_default_content ~mode:[ Open_append ] modified_file;
 
@@ -424,7 +418,6 @@ let send_initialize info ?(only_git_dirty = true) workspaceFolders =
          ~capabilities:(ClientCapabilities.create ())
          ())
   in
-  Logs.debug (fun m -> m "TEST: before send req");
   send_request info request
 
 let send_initialized info =
@@ -621,20 +614,15 @@ let assert_progress info message =
 
 let check_startup info folders (files : Fpath.t list) =
   (* in here *)
-  Logs.debug (fun m -> m "TEST: checking startup start");
   (* initialize *)
   let%lwt () = send_initialize info folders in
-  Logs.debug (fun m -> m "TEST: after initialize");
 
   let%lwt resp = receive_response info in
   assert_contains (Response.yojson_of_t resp) "capabilities";
 
-  Logs.debug (fun m -> m "TEST: before sending initialized");
   let%lwt () = send_initialized info in
-  Logs.debug (fun m -> m "TEST: after sending initialized");
 
   let%lwt () = assert_progress info "Refreshing Rules" in
-  Logs.debug (fun m -> m "TEST: after asserting refreshing rules");
 
   let%lwt () = assert_progress info "Scanning Workspace" in
 
@@ -685,31 +673,16 @@ let with_session (f : info -> unit Lwt.t) : unit Lwt.t =
   let info = create_info () in
   (* shut down the server when f exits *)
   let server_promise = LanguageServer.start info.server in
-  Logs.debug (fun m ->
-      m "TEST: server promise is %s"
-        (match Lwt.state server_promise with
-        | Lwt.Return _ -> "return"
-        | Fail _ -> "fail"
-        | Sleep -> "sleep"));
   let f_promise = f info in
-  Logs.debug (fun m ->
-      m "TEST: f_promise is %s"
-        (match Lwt.state f_promise with
-        | Lwt.Return _ -> "return"
-        | Fail _ -> "fail"
-        | Sleep -> "sleep"));
   (* I seem to observe that both promises are coming up Rejected. *)
   Lwt.join [ f_promise; server_promise ]
 
 let test_ls_specs () =
   with_session (fun info ->
       let root, files = mock_files () in
-      Logs.debug (fun m -> m "TEST: in session");
       let%lwt () = Lwt.return_unit in
       (* we get here *)
-      Logs.debug (fun m -> m " . TEST: after unit");
       let%lwt () = check_startup info [ root ] files in
-      Logs.debug (fun m -> m " . TEST: after startup");
       let%lwt () =
         files
         |> Lwt_list.iter_s (fun file ->
@@ -774,19 +747,14 @@ let test_ls_specs () =
 
                Lwt.return_unit)
       in
-      Logs.debug (fun m -> m " . TEST: after files");
 
       (* test did add *)
       let added = Fpath.(root / "added.py") in
       (* nosem *)
       FileUtil.cp [ List.hd files |> Fpath.to_string ] (added |> Fpath.to_string);
 
-      Logs.debug (fun m -> m " . TEST: after cp");
-
       let%lwt () = send_did_add info added in
       let%lwt () = send_did_open info added in
-
-      Logs.debug (fun m -> m " . TEST: after sending add and open");
 
       let%lwt notif = receive_notification info in
       let%lwt () =
@@ -794,14 +762,10 @@ let test_ls_specs () =
           [ `String "eqeq-five"; `String "eqeq-five" ]
       in
 
-      Logs.debug (fun m -> m " . TEST: before delete");
-
       let%lwt () = send_did_delete info added in
 
       let%lwt notif = receive_notification info in
       let%lwt () = check_diagnostics notif added [] in
-
-      Logs.debug (fun m -> m " . TEST: made it to end");
 
       send_exit info)
 

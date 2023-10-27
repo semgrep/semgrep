@@ -885,10 +885,6 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
            (* TODO: can we skip all of this if there are no applicable
               rules? In particular, can we skip update_cli_progress? *)
            let xtarget = xtarget_of_file config analyzer file in
-           Logs.debug (fun m ->
-               m "Have xtarget %s with cnotents %s"
-                 (Fpath.to_string xtarget.file)
-                 (Lazy.force xtarget.lazy_content));
            let default_match_hook str match_ =
              if config.output_format =*= Text then
                print_match ~str config match_ Metavariable.ii_of_mval
