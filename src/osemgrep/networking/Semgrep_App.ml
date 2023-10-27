@@ -63,7 +63,6 @@ let get_scan_config_from_token ~token =
 (*****************************************************************************)
 (* Extractors *)
 (*****************************************************************************)
-(* TODO: we should use ATD to specify the backend response format instead *)
 
 (* TODO: specify as ATD the reply of api/agent/deployments/scans *)
 let extract_scan_id (data : string) : (scan_id, string) result =
@@ -88,72 +87,35 @@ let extract_scan_id (data : string) : (scan_id, string) result =
   | e ->
       Error ("Couldn't parse json, error: " ^ Printexc.to_string e ^ ": " ^ data)
 
-(* TODO the server reply when POST to
-   "/api/agent/scans/<scan_id>/findings_and_ignores" should be specified ATD *)
-let extract_errors (data : string) =
-  try
-    match JSON.json_of_string data with
-    | JSON.Object xs -> (
-        match List.assoc_opt "errors" xs with
-        | Some (JSON.Array errs) ->
-            List.iter
-              (fun err ->
-                match err with
-                | JSON.Object xs -> (
-                    match List.assoc_opt "message" xs with
-                    | Some (String s) ->
-                        Logs.warn (fun m ->
-                            m "Server returned following warning: %s" s)
-                    | _else ->
-                        Logs.err (fun m ->
-                            m "Couldn't find message in %s"
-                              (JSON.string_of_json err)))
-                | _else ->
-                    Logs.err (fun m ->
-                        m "Couldn't find message in %s"
-                          (JSON.string_of_json err)))
-              errs
-        | _else ->
-            Logs.err (fun m ->
-                m "Couldn't find errors in %s"
-                  (JSON.string_of_json (JSON.Object xs))))
-    | json ->
-        Logs.err (fun m -> m "Not a json object %s" (JSON.string_of_json json))
-  with
-  | e ->
+(* the server reply when POST to "/api/agent/scans/<scan_id>/results"  *)
+let extract_errors (data : string) : string list =
+  match Out.ci_scan_results_response_of_string data with
+  | { errors; task_id = _ } as response ->
+      Logs.debug (fun m ->
+          m "results response = %s" (Out.show_ci_scan_results_response response));
+      errors
+      |> Common.map (fun (x : Out.ci_scan_results_response_error) -> x.message)
+  | exception exn ->
       Logs.err (fun m ->
           m "Failed to decode server reply as json %s: %s"
-            (Printexc.to_string e) data)
+            (Printexc.to_string exn) data);
+      []
 
-(* TODO the server reply when POST to
-   "/api/agent/scans/<scan_id>/complete" should be specified in ATD
-*)
+(* the server reply when POST to "/api/agent/scans/<scan_id>/complete" *)
 let extract_block_override (data : string) : (app_block_override, string) result
     =
-  try
-    match JSON.json_of_string data with
-    | JSON.Object xs ->
-        let app_block_override =
-          match List.assoc_opt "app_block_override" xs with
-          | Some (Bool b) -> b
-          | _else -> false
-        and app_block_reason =
-          match List.assoc_opt "app_block_reason" xs with
-          | Some (String s) -> s
-          | _else -> ""
-        in
-        if app_block_override then Ok (Some app_block_reason)
-          (* TODO? can we have a app_block_reason set when override is false? *)
-        else Ok None
-    | json ->
-        Error
-          (Fmt.str "Failed to understand the server reply: %s"
-             (JSON.string_of_json json))
-  with
-  | e ->
+  match Out.ci_scan_complete_response_of_string data with
+  | { success = _; app_block_override; app_block_reason } as response ->
+      Logs.debug (fun m ->
+          m "complete response = %s"
+            (Out.show_ci_scan_complete_response response));
+      if app_block_override then Ok (Some app_block_reason)
+        (* TODO? can we have a app_block_reason set when override is false? *)
+      else Ok None
+  | exception exn ->
       Error
-        (Fmt.str "Failed to decode server reply as json %s: %s"
-           (Printexc.to_string e) data)
+        (spf "Failed to decode server reply as json %s: %s"
+           (Printexc.to_string exn) data)
 
 (*****************************************************************************)
 (* Step0: deployment config *)
@@ -353,7 +315,11 @@ let upload_findings ~dry_run ~token ~scan_id ~results ~complete :
     in
     let body = results in
     (match Http_helpers.post ~body ~headers url with
-    | Ok body -> extract_errors body
+    | Ok body ->
+        let errors = extract_errors body in
+        errors
+        |> List.iter (fun s ->
+               Logs.warn (fun m -> m "Server returned following warning: %s" s))
     | Error (code, msg) ->
         Logs.warn (fun m -> m "API server returned %u, this error: %s" code msg));
     (* mark as complete *)
