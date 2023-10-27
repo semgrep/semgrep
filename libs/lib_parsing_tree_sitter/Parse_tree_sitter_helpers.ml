@@ -69,9 +69,6 @@ let line_col_to_pos file =
       full_charpos_to_pos_aux ());
   h
 
-let line_col_to_pos_str str =
-  Common2.with_tmp_file ~str ~ext:"tmp" (fun file -> line_col_to_pos file)
-
 let token env (tok : Tree_sitter_run.Token.t) =
   let loc, str = tok in
   let h = env.conv in

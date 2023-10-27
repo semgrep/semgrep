@@ -18,8 +18,6 @@ module H = Parse_tree_sitter_helpers
 module H2 = AST_generic_helpers
 module G = AST_generic
 
-let logger = Logging.get_logger [ __MODULE__ ]
-
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -34,19 +32,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-type pattern_info = {
-  (* the entire source string of the pattern *)
-  source : string;
-  (* We keep this conv here as a lazy conv, so that we don't induce extraneous
-     overhead by always computing this `conv` hash table.
-     We only do if there is a need, i.e. we need to parse some Rust macros.
-     See `map_macro_invocation` below for more.
-  *)
-  conv : (int * int, int) Hashtbl.t Lazy.t;
-}
-
-type mode = Pattern of pattern_info | Target
+type mode = Pattern | Target
 type env = mode H.env
 
 let token = H.token
@@ -66,7 +52,7 @@ let deoptionalize l =
 let in_pattern env =
   match env.H.extra with
   | Target -> false
-  | Pattern _ -> true
+  | Pattern -> true
 
 (*****************************************************************************)
 (* Intermediate AST-like types *)
@@ -259,13 +245,6 @@ and convert_macro_def (macro_def : rust_macro_definition) : G.macro_definition =
   let _, rules, _ = macro_def in
   let body = List.concat_map convert_macro_rule rules in
   { G.macroparams = []; G.macrobody = body }
-
-(*****************************************************************************)
-(* Forward reference *)
-(*****************************************************************************)
-
-let hook_map_source_file =
-  ref (fun _env _x -> failwith "map_source_file hook not set")
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -514,7 +493,7 @@ let map_non_special_token (env : env) (x : CST.non_special_token) : G.any =
   | `Pat_a8c54f1 tok ->
       let s, t = str env tok in
       (* sgrep-ext: todo? better extend grammar.js instead? *)
-      if s = "..." && in_pattern env then G.E (G.Ellipsis t |> G.e)
+      if s = "..." && env.extra =*= Pattern then G.E (G.Ellipsis t |> G.e)
       else G.Tk (token env tok)
       (*tok*)
   | `Meta tok -> G.Tk (token env tok) (* pattern \$[a-zA-Z_]\w* *)
@@ -602,25 +581,6 @@ let rec map_token_tree (env : env) (x : CST.token_tree) :
       let tokens = Common.map (map_tokens env) v2 in
       let rbrace = token env v3 (* "}" *) in
       (lbrace, tokens, rbrace)
-
-and map_token_tree_braces (env : env) (x : CST.token_tree) : Tok.t * Tok.t =
-  (* Supposedly, all three ways of delimiting these macro tokens
-     are equivalent.
-     https://stackoverflow.com/questions/56464251/why-do-we-call-the-vec-macro-using-square-brackets-instead-of-the-parenthesis-it
-  *)
-  match x with
-  | `LPAR_rep_choice_tok_tree_RPAR (v1, _v2, v3) ->
-      let lparen = token env v1 (* "(" *) in
-      let rparen = token env v3 (* ")" *) in
-      (lparen, rparen)
-  | `LBRACK_rep_choice_tok_tree_RBRACK (v1, _v2, v3) ->
-      let lbracket = token env v1 (* "[" *) in
-      let rbracket = token env v3 (* "]" *) in
-      (lbracket, rbracket)
-  | `LCURL_rep_choice_tok_tree_RCURL (v1, _v2, v3) ->
-      let lbrace = token env v1 (* "{" *) in
-      let rbrace = token env v3 (* "}" *) in
-      (lbrace, rbrace)
 
 and map_tokens (env : env) (x : CST.tokens) : rust_macro_item =
   match x with
@@ -2147,161 +2107,17 @@ and map_macro_invocation (env : env) ((v1, v2, v3) : CST.macro_invocation) :
         let s, t = (s ^ "!", Tok.combine_toks i1 [ bang ]) in
         G.IdQualified { qualified_info with name_last = ((s, t), topt) }
   in
-  (* Here's where we're going to do something interesting.
-     Rust macros take the form of "token trees", which basically mean that
-     random assortments of tokens may be located on the inside of parens,
-     brackets, or curly braces. There is no sensible CST. For something
-     like foo!(A::B), the "A::B" is not seen as a singular semantic entity,
-     but a sequence of tokens.
-     This can be inconvenient, especially for macros which behave more like
-     traditional functions. For instance, if we wanted to interpret
-       matches!(foo, Foo::A(_))
-     we would need to go ahead and construct the proper tree out of all of
-     these tokens ourselves, essentially writing a Rust expression parser,
-     which is a big pain.
-
-     Our way out of this is that we don't need to re-write the expression
-     parser. We already have one. The Rust parser has an entry-point to
-     parsing expressions, namely by parsing an expression string prefaced
-     with __SEMGREP_EXPRESSION.
-
-     So we will simply take a macro, like
-       matches!(foo, Foo::A(_))
-     and isolate out the _literal string_ that it is applied to, namely
-      (foo, Foo::A(_))
-     and feed that into the expression parser. This way, we don't need
-     to do any work ourselves -- we just use work which already exists.
-  *)
-  let l, r = map_token_tree_braces env v3 in
-  let span_of_macro_arg =
-    match Tok.loc_of_tok l with
-    | Ok l_loc -> (
-        match Tok.loc_of_tok r with
-        | Ok r_loc -> Some (l_loc, r_loc)
-        | _ -> None)
-    | _ -> None
+  let l, xs, r = map_token_tree env v3 in
+  let anys = macro_items_to_anys xs in
+  let args =
+    match anys with
+    (* look like a regular function call, just use Arg then *)
+    | [ G.E e ] -> [ G.Arg e ]
+    (* coupling: see `macro_items_to_anys` above *)
+    | [ G.Args args ] -> args
+    | xs -> [ G.OtherArg (("ArgMacro", G.fake ""), xs) ]
   in
-  (* This is our escape hatch, if the expression parser doesn't work out,
-     which could happen in multiple scenarios.
-     We're just doing our best to parse the macro's contents as the arguments
-     to a function, or something. We might not succeed.
-  *)
-  let fail () =
-    let _, xs, _ = map_token_tree env v3 in
-    let anys = macro_items_to_anys xs in
-    let args =
-      match anys with
-      (* look like a regular function call, just use Arg then *)
-      | [ G.E e ] -> [ G.Arg e ]
-      (* coupling: see `macro_items_to_anys` above *)
-      | [ G.Args args ] -> args
-      | xs -> [ G.OtherArg (("ArgMacro", G.fake ""), xs) ]
-    in
-    G.Call (G.N name |> G.e, (l, args, r)) |> G.e
-  in
-  let left_delim = Tok.content_of_tok l in
-  match span_of_macro_arg with
-  (* We're going to side-step the curly brace case, here, which is slightly
-     less clear because it doesn't look like a function call or array.
-  *)
-  | Some (l_loc, r_loc) when left_delim = "(" || left_delim = "[" -> (
-      (* We need to fix the locations of the pattern tokens, because unfortunately
-         the pattern `conv` function always returns -1.
-         Without this, we wouldn't know where in the source string to locate the
-         original text of the `any`.
-      *)
-      let fix_pattern_loc (loc : Tok.location) =
-        match env.extra with
-        | Target -> loc
-        | Pattern { conv; _ } ->
-            let bytepos =
-              Hashtbl.find_opt (Lazy.force conv) (loc.pos.line, loc.pos.column)
-              |> Option.value ~default:(-1)
-            in
-            { loc with pos = { loc.pos with bytepos } }
-      in
-      let l_loc, r_loc = (fix_pattern_loc l_loc, fix_pattern_loc r_loc) in
-      let macro_contents =
-        let _, _, end_ = Tok.end_pos_of_loc r_loc in
-        let start = l_loc.pos.bytepos in
-        let length = end_ - start in
-        let source =
-          match env.extra with
-          | Target ->
-              (* no access to Range.range_of_tokens here *)
-              Common.read_file env.file
-          | Pattern { source; _ } -> source
-        in
-        (* ... matches!(A, _) ... *)
-        source |> Common2.list_of_string |> Common.drop start
-        (* (A, _) ... *)
-        |> Common.take length
-        (* (A, _) *)
-        |> Common2.string_of_chars
-      in
-      let semgrep_prefix = "__SEMGREP_EXPRESSION " in
-      (* The problem is that after we put these tokens through the mapper, they will have
-         a line/column derived from their position within the string, and a resulting nonsensical
-         bytepos, because of how env.conv works.
-         Our strategy will be to restore the original line/col within the original file, and
-         then use the original env.conv to restore the correct bytepos as well.
-      *)
-      let fix_loc (loc : Tok.location) =
-        (* We need to localize our location to its position within the pattern string it
-           appears in.
-        *)
-        let loc = Tok.adjust_loc_wrt_base l_loc loc in
-        let prefix_length = String.length semgrep_prefix in
-        (* Then, we fix the range by accounting for the fake prefix we inserted,
-           as well as fixing the wrong bytepos.
-        *)
-        let pos =
-          let column =
-            if loc.pos.line =*= l_loc.pos.line then
-              loc.pos.column - prefix_length
-            else loc.pos.column
-          in
-          let line = loc.pos.line in
-          (* These are indeed the original line and column from the originating file, so
-             we can use env.conv to compute the correct bytepos.
-          *)
-          let bytepos =
-            match Hashtbl.find_opt env.conv (line, column) with
-            | Some bytepos -> bytepos
-            | None -> -1
-          in
-          { Pos.bytepos; line = loc.pos.line; column; file = loc.pos.file }
-        in
-        { loc with pos }
-      in
-      (* Run the mapper! *)
-      let cst =
-        let expr_str = semgrep_prefix ^ macro_contents in
-        Tree_sitter_rust.Parse.string expr_str
-      in
-      match (cst.errors, cst.program) with
-      | _ :: _, _
-      | _, None ->
-          fail ()
-      | [], Some cst -> (
-          (* NOTE: Because env.conv has not been changed, the bytepos of every single one of
-             these tokens is wrong! We fix it in the call to fix_token_locations_any, though.
-          *)
-          match
-            !hook_map_source_file env cst |> H2.fix_token_locations_any fix_loc
-          with
-          (* function-like macro or something like vec![0, 0] *)
-          | G.E { e = Container ((Array | Tuple), (_, exprs, _)); _ } ->
-              G.Call
-                (G.N name |> G.e, (l, exprs |> Common.map (fun x -> G.Arg x), r))
-              |> G.e
-          | G.E e -> G.Call (G.N name |> G.e, (l, [ G.Arg e ], r)) |> G.e
-          | _any ->
-              logger#error
-                "Somehow got a non-expression/non array/tuple from rust macro \
-                 parsing.";
-              fail ()))
-  | _ -> fail ()
+  G.Call (G.N name |> G.e, (l, args, r)) |> G.e
 
 and map_match_arm (env : env) ((v1, v2, v3, v4) : CST.match_arm) :
     G.pattern * G.expr =
@@ -3702,12 +3518,6 @@ let map_source_file (env : env) (x : CST.source_file) : G.any =
       G.Ss stmts
 
 (*****************************************************************************)
-(* Set foward declarations *)
-(*****************************************************************************)
-
-let () = hook_map_source_file := map_source_file
-
-(*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 let parse file =
@@ -3738,11 +3548,5 @@ let parse_pattern str =
     (fun () -> parse_expression_or_source_file str)
     (fun cst ->
       let file = "<pattern>" in
-      let pinfo =
-        {
-          source = str;
-          conv = Lazy.from_fun (fun () -> H.line_col_to_pos_str str);
-        }
-      in
-      let env = { H.file; conv = Hashtbl.create 0; extra = Pattern pinfo } in
+      let env = { H.file; conv = Hashtbl.create 0; extra = Pattern } in
       map_source_file env cst)
