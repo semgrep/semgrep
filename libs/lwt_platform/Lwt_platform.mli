@@ -7,3 +7,9 @@ val detach : ('a -> 'b) -> 'a -> 'b Lwt.t
 
 val init_preemptive : int -> int -> (string -> unit) -> unit
 (** [init_preemptive min max log] initializes the LWT preemptive scheduler. *)
+
+val set_engine : unit -> unit
+(** [set_engine ()] sets the LWT engine to libev if on Unix.
+    This is important as select/poll is not great, and can easily
+    run out of FDs, crashing the LS.
+  *)
