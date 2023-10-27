@@ -1,6 +1,6 @@
 (library
- (public_name semgrep.semgrep_js_shared)
- (name semgrep_js_shared)
+ (public_name semgrep.semgrep_node_js_shared)
+ (name semgrep_node_js_shared)
  (wrapped false)
  (libraries
    js_of_ocaml
@@ -8,13 +8,13 @@
    integers_stubs_js
    libpcre_stubs_js
    yaml_ctypes_overrides
+   semgrep.language_server
    semgrep.parsing
    semgrep.data
  )
  (js_of_ocaml
   (javascript_files
-    ocaml-tree-sitter.js
-    core.js ; misc libraries
+    unix.js
  ))
  (preprocess
-  (pps js_of_ocaml-ppx)))
+  (pps js_of_ocaml-ppx lwt_ppx)))

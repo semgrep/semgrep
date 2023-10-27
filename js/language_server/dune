@@ -9,6 +9,7 @@
   logs.browser
   semgrep.language_server
   semgrep.semgrep_js_shared
+  semgrep.semgrep_node_js_shared
   lwt_platform.js
 
    networking.http_helpers

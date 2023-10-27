@@ -8,6 +8,7 @@
  (libraries
    js_of_ocaml
    semgrep.semgrep_js_shared
+   semgrep.semgrep_node_js_shared
    semgrep.engine
    integers_stubs_js
    libpcre_stubs_js

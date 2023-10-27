@@ -2,6 +2,7 @@ const { spawn, spawnSync } = require("node:child_process");
 const os = require("os");
 const fs = require("fs");
 const stream = require("node:stream");
+const process = require("process");
 
 globalThis.processTable = new Map();
 // mapping parent to children
@@ -11,6 +12,7 @@ globalThis.spawn = spawn;
 globalThis.fs = fs;
 globalThis.os = os;
 globalThis.stream = stream;
+globalThis.process = process;
 // There will be collisions if we ever allocate 20000 or more file descriptors
 // "naturally", that is, through `caml_sys_open`.
 globalThis.fdCount = 20000;
@@ -282,6 +284,12 @@ function unix_realpath(path) {
   return globalThis.fs.realpathSync(path);
 }
 
+//Provides: unix_umask
+function unix_umask(newmask) {
+  let oldmask = globalThis.process.umask(newmask);
+  return oldmask;
+}
+
 //Provides: unix_write
 //Requires: caml_sys_fds
 function unix_write(fd, buf, ofs, len) {
@@ -290,17 +298,43 @@ function unix_write(fd, buf, ofs, len) {
   console.error(ofs);
   console.error(len);
 
+  console.error(`writing ${buf.c}`);
+
   let file = caml_sys_fds[fd];
+
+  // The reason why this gymnastics is needed, instead of just calling file.write
+  // on the buffer buf.c, is because for some reason the call to writeSync is
+  // copying all of the bytes of the buffer, instead of the requested length from
+  // the offset.
+  // I observed previously that, for a 1024 byte buffer, it would copy all 1024
+  // bytes to the target, instead of the requested 178.
+  // So we just construct a new buffer of what we really want, to ensure the call
+  // gets it right.
+  let bufferSlice = buf.c.slice(ofs, ofs + len);
+
+  // The actual length of our buffer, which depends upon whether the index of
+  // ofs + len is greater than the buffer that we are reading from.
+  let bufferSliceLength =
+    ofs + len < bufferSlice.length ? ofs + len : bufferSlice.length;
+
   // The implementation of MlNodeFd.write is such that
   // this always returns 0 if this succeeds.
-  // Let's just assume we wrote the right number of bytes.
-  let bytesWritten = file.write(null, buf.c, ofs, len);
+  // So let's ignore it.
+  // let bytesWritten = file.write(null, bufferSlice, 0, bufferSliceLength);
 
-  return len;
+  let bytesWritten = globalThis.fs.writeSync(
+    file.fd,
+    bufferSlice,
+    0,
+    bufferSliceLength,
+    null
+  );
+
+  return bufferSliceLength;
 }
 
 //Provides: unix_read
-//Requires: caml_sys_fds
+//Requires: caml_sys_fds, caml_convert_bytes_to_array
 function unix_read(fd, buf, ofs, len) {
   // buf is of type `bytes` in OCaml, which in JSCaml is
   // represented by an MlBytes object
@@ -310,15 +344,22 @@ function unix_read(fd, buf, ofs, len) {
   console.error(ofs);
   console.error(len);
 
+  // This will ensure buf.c is an array.
+  if (buf.t != 4) caml_convert_bytes_to_array(buf);
+
   const UNIX_BUFFER_SIZE = 65536;
   let length = len <= UNIX_BUFFER_SIZE ? len : UNIX_BUFFER_SIZE;
+
+  const from_buffer = Buffer.from(buf.c);
 
   // This is a new buffer of the truncated contents of `buf`, up to
   // the UNIX_BUFFER_SIZE.
   // We will read the output we are trying to consume into this buffer,
   // then copy it back to the MlBytes object.
   const buffer = Buffer.alloc(UNIX_BUFFER_SIZE);
-  buffer.write(buf.c, 0, length);
+  // This just writes from_buffer into buffer, even though from_buffer
+  // may be shorter.
+  from_buffer.copy(buffer, 0, 0, from_buffer.length);
 
   if (fd >= 20000) {
     // Via our protocol, this is a unique identifier associated to the
@@ -347,7 +388,8 @@ function unix_read(fd, buf, ofs, len) {
     console.error(`bytesRead are ${bytesRead}`);
 
     // then copy it back to the object. The length should remain the same.
-    buf.c = buffer.toString("utf8", 0, length);
+    // buf.c = buffer.toString("utf8", 0, length);
+    buffer.copy(buf.c, 0);
 
     globalThis.fdTable.delete(fd);
 
@@ -363,10 +405,12 @@ function unix_read(fd, buf, ofs, len) {
 
     let file = caml_sys_fds[fd];
     let bytesRead = file.read(null, buffer, ofs, len);
+    // globalThis.fs.readSync(file.fd, buffer, ofs, len, null);
 
     console.error(`bytesRead from fd ${fd} are ${bytesRead}`);
 
-    buf.c = buffer.toString("utf8", 0, length);
+    // buf.c = buffer.toString("hex", 0, length);
+    buffer.copy(buf.c, 0);
 
     return bytesRead;
   }
