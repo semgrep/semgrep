@@ -199,6 +199,9 @@ core-test:
 
 # Please keep this standalone target.
 # We want to rebuild the tests without re-running all of them.
+# This is for working on one or a few specific test cases.
+# It rebuilds the test executable which can then be called with
+# './test <filter>' where <filter> selects the tests to run.
 .PHONY: build-core-test
 build-core-test:
 	# The test executable has a few options that can be useful in some
@@ -210,13 +213,6 @@ test-bc:
 	# Bytecode version of the test for debugging
 	dune build ./_build/default/src/tests/test.bc
 
-
-# This is for working on one or a few specific test cases.
-# It rebuilds the test executable which can then be called with
-# './test <filter>' where <filter> selects the tests to run.
-.PHONY: build-core-test
-build-core-test:
-	dune build ./_build/default/src/tests/test.exe
 
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-test-e2e
