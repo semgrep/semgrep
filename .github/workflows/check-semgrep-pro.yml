@@ -14,4 +14,5 @@ jobs:
       with:
         submodules: true
     - name: checkout semgrep-pro
-      run: "\n             gh repo clone returntocorp/semgrep-proprietary\n\t  "
+      run: "\n             git clone https://github.com/returntocorp/semgrep-proprietary.git\n\t
+        \ "
