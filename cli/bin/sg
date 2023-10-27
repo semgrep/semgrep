@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+
+# This file serves as an alias for the primary semgrep entry point (cli/bin/semgrep)
+# Users will have the semgrep binary installed as "sg" in addition to "semgrep" to allow
+# for experimentation with custom flags without breaking existing CI/CD pipelines.
+
+from os import execvp
+from pathlib import Path
+import sys
+
+this_file = Path(__file__).resolve()
+semgrep_entry = this_file.parent.joinpath("semgrep")
+execvp(str(semgrep_entry), sys.argv)

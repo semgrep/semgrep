@@ -291,8 +291,9 @@ def print_scan_status(
     legacy_ux = cli_ux == DesignTreatment.LEGACY
     simple_ux = cli_ux == DesignTreatment.SIMPLE
     detailed_ux = cli_ux == DesignTreatment.DETAILED
+    minimal_ux = cli_ux == DesignTreatment.MINIMAL
 
-    if simple_ux:
+    if simple_ux or minimal_ux:
         logo = with_color(Colors.green, "○○○")
         console.print(
             f"""
@@ -303,6 +304,10 @@ def print_scan_status(
         )
     else:
         console.print(Title("Scan Status"))
+
+    if minimal_ux:  # We skip printing the remaining output for pattern invocations
+        console.print(" ")  # space intentional for progress bar padding
+        return 0
 
     sast_plan = CoreRunner.plan_core_run(
         [
