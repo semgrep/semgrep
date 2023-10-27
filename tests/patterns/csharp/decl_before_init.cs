@@ -19,8 +19,8 @@ public class HomeCtrl : Controller
     }
 
     public string Something2(string value) {
-      // MATCH: 
       IFoobar _foobar2 = getFoobar();
+      // MATCH: 
       return _foobar2.Find(value);
     }
 
