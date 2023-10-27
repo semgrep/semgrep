@@ -44,7 +44,6 @@ CI="true" SEMGREP_REPO_NAME="a/repo/name" SEMGREP_REPO_URL="https://random.url.o
        supply-chain1
           found a dependency
 
-            1┆ [[package]]
             2┆ name = "badlib"
 
 

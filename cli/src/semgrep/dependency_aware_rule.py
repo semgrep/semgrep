@@ -100,7 +100,7 @@ def generate_unreachable_sca_findings(
                         path=out.Fpath(str(lockfile_path)),
                         start=out.Position(found_dep.line_number or 0, 0, 0),
                         end=out.Position(
-                            (found_dep.line_number + 1 if found_dep.line_number else 0),
+                            (found_dep.line_number if found_dep.line_number else 0),
                             0,
                             0,
                         ),

@@ -413,7 +413,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "[[package]]\nname = \"badlib\"",
+        "lines": "name = \"badlib\"",
         "message": "found a dependency",
         "metadata": {
           "dev.semgrep.actions": [],
@@ -430,7 +430,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
             "found_dependency": {
               "allowed_hashes": {},
               "ecosystem": "pypi",
-              "line_number": 1,
+              "line_number": 2,
               "package": "badlib",
               "transitivity": "unknown",
               "version": "99.99.99"
@@ -446,7 +446,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       "path": "poetry.lock",
       "start": {
         "col": 0,
-        "line": 1,
+        "line": 2,
         "offset": 0
       }
     }

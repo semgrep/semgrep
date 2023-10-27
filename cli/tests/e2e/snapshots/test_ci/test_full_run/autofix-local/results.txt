@@ -44,7 +44,6 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_REPO_URL="git@github.com:example
        supply-chain1
           found a dependency
 
-            1┆ [[package]]
             2┆ name = "badlib"
 
 

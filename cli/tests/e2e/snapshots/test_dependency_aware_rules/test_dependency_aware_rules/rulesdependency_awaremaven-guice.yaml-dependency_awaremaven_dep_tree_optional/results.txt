@@ -19,7 +19,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "check_id": "rules.dependency_aware.maven-guice",
       "end": {
         "col": 0,
-        "line": 3,
+        "line": 2,
         "offset": 0
       },
       "extra": {

@@ -44,7 +44,6 @@ CI="true" TRAVIS="true" TRAVIS_REPO_SLUG="project_name/project_name" TRAVIS_PULL
        supply-chain1
           found a dependency
 
-            1┆ [[package]]
             2┆ name = "badlib"
 
 
