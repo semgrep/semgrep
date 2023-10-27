@@ -8,6 +8,7 @@ name: check-semgrep-pro
     - develop
 jobs:
   check-compile-semgrep-pro:
+    runs-on: ubuntu-latest
     steps:
     - name: Get JWT for semgrep-ci GitHub App
       id: jwt
@@ -29,9 +30,4 @@ jobs:
     - env:
         GITHUB_TOKEN: ${{ steps.token.outputs.token }}
       name: checkout semgrep-pro
-      run: "\n             git clone https://github.com/returntocorp/semgrep-proprietary.git\t
-        \    \n\t  "
-    runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine-2023-10-17
-    env:
-      HOME: /root
+      run: "\n             gh repo clone returntocorp/semgrep-proprietary\n\t  "
