@@ -69,7 +69,7 @@ GROUP_TITLES: Dict[Tuple[out.Product, str], str] = {
     (
         out.Product(out.Secrets()),
         "validation error",
-    ): "Validation Error Secrets Finding",
+    ): "Secrets Validation Error",
 }
 
 
