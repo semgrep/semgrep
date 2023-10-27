@@ -20,10 +20,19 @@ local check_compile_semgrep_pro_job = {
         },
       },
       actions.checkout_with_submodules(),
+      {
+        name: 'Test',
+        run: |||
+	  pwd
+	  ls
+	  opam switch
+          make install-deps-for-semgrep-core
+          make install-deps
+        |||,
+      },
 
       semgrep.github_bot.get_jwt_step,
       semgrep.github_bot.get_token_step,
-
       {
         env: semgrep.github_bot.github_token,
         name: 'Checkout semgrep-pro',

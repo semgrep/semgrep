@@ -8,7 +8,7 @@ jobs:
     steps:
     - name: Make checkout speedy
       run: git config --global fetch.parallel 50
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: true
     - name: Build semgrep-core

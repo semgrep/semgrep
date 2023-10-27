@@ -23,7 +23,7 @@ jobs:
     env:
       OPAM_SWITCH_NAME: 4.14.0
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: true
     - name: Cache Opam
@@ -51,7 +51,7 @@ jobs:
     needs:
     - build-core
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: true
     - uses: actions/download-artifact@v3

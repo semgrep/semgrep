@@ -19,7 +19,7 @@ jobs:
     steps:
     - name: Make checkout speedy
       run: git config --global fetch.parallel 50
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: true
     - name: Set up tree-sitter
@@ -60,7 +60,7 @@ jobs:
       name: Make checkout speedy
       run: git config --global fetch.parallel 50
     - if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
     - if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}

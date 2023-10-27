@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     container: returntocorp/sgrep-build:ubuntu-18.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: true
     - run: apt-get update && apt install -y zip musl-tools software-properties-common

@@ -31,7 +31,7 @@ jobs:
     container:
       image: returntocorp/semgrep:${{ needs.get-inputs.outputs.docker_tag }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - run: semgrep ci
   semgrep-ci-fail-open:
     runs-on: ubuntu-22.04
@@ -43,7 +43,7 @@ jobs:
     container:
       image: returntocorp/semgrep:${{ needs.get-inputs.outputs.docker_tag }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Remove Git Exe
       run: "\n        which git\n        rm /usr/bin/git\n      "
     - run: semgrep ci --suppress-errors
@@ -56,7 +56,7 @@ jobs:
     container:
       image: returntocorp/semgrep:${{ needs.get-inputs.outputs.docker_tag }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Create code under test
       id: create-code
       run: "\n        cat > ./test.py <<- EOF\n        import click\n        click.echo(click.style(\"foo\"))\n
