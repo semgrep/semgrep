@@ -105,33 +105,6 @@ let exit_code_of_blocking_findings ~audit_mode ~on ~app_block_override
       Exit_code.findings
   | _else_ -> exit_code
 
-(* reports the failure for [scan_id] to Semgrep App *)
-let report_failure ~dry_run ~token ~scan_id (exit_code : Exit_code.t) : unit =
-  let int_code = Exit_code.to_int exit_code in
-  if dry_run then
-    Logs.app (fun m ->
-        m "Would have reported failure to semgrep.dev: %u" int_code)
-  else
-    let uri =
-      Uri.with_path !Semgrep_envvars.v.semgrep_url
-        ("/api/agent/scans/" ^ scan_id ^ "/error")
-    in
-    let headers =
-      [
-        ("content-type", "application/json");
-        ("authorization", "Bearer " ^ token);
-      ]
-    in
-    let body =
-      JSON.(
-        string_of_json
-          (Object [ ("exit_code", Int int_code); ("stderr", String "") ]))
-    in
-    match Http_helpers.post ~body ~headers uri with
-    | Ok _ -> ()
-    | Error (code, msg) ->
-        Logs.err (fun m -> m "API server returned %u, this error: %s" code msg)
-
 (*****************************************************************************)
 (* Scan config *)
 (*****************************************************************************)
@@ -233,7 +206,7 @@ let scan_config_and_rules_from_deployment ~dry_run
         | Error msg ->
             Logs.err (fun m -> m "Failed to download configuration: %s" msg);
             let r = Exit_code.fatal in
-            report_failure ~dry_run ~token ~scan_id r;
+            Semgrep_App.report_failure ~dry_run ~token ~scan_id r;
             Error.exit r
         | Ok config -> config
       in
@@ -242,7 +215,7 @@ let scan_config_and_rules_from_deployment ~dry_run
         try decode_json_rules scan_config.rule_config with
         | Error.Semgrep_error (_, opt_ex) as e ->
             let ex = Option.value ~default:Exit_code.fatal opt_ex in
-            report_failure ~dry_run ~token ~scan_id ex;
+            Semgrep_App.report_failure ~dry_run ~token ~scan_id ex;
             let e = Exception.catch e in
             Exception.reraise e
       in
@@ -768,7 +741,7 @@ let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
     | Error e ->
         (match (depl_opt, scan_config_opt) with
         | Some (token, _), Some (scan_id, _scan_config) ->
-            report_failure ~dry_run ~token ~scan_id e
+            Semgrep_App.report_failure ~dry_run ~token ~scan_id e
         | _else -> ());
         Logs.err (fun m -> m "Encountered error when running rules");
         e
@@ -826,7 +799,7 @@ let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
       (match (depl_opt, scan_config_opt) with
       | Some (token, _), Some (scan_id, _scan_config) ->
           let r = Option.value ~default:Exit_code.fatal ex in
-          report_failure ~dry_run ~token ~scan_id r
+          Semgrep_App.report_failure ~dry_run ~token ~scan_id r
       | _else -> ());
       Logs.err (fun m ->
           m "Encountered error when running rules: %s" (Printexc.to_string e));

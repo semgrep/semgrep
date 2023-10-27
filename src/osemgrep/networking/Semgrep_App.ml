@@ -332,3 +332,34 @@ let upload_findings ~dry_run ~token ~scan_id ~results ~complete :
     | Error (code, msg) ->
         Error
           ("API server returned " ^ string_of_int code ^ ", this error: " ^ msg))
+
+(*****************************************************************************)
+(* Error reporting to the backend *)
+(*****************************************************************************)
+
+(* report a failure for [scan_id] to Semgrep App *)
+let report_failure ~dry_run ~token ~scan_id (exit_code : Exit_code.t) : unit =
+  let int_code = Exit_code.to_int exit_code in
+  if dry_run then
+    Logs.app (fun m ->
+        m "Would have reported failure to semgrep.dev: %u" int_code)
+  else
+    let headers =
+      [
+        ("content-type", "application/json");
+        ("authorization", "Bearer " ^ token);
+      ]
+    in
+    let uri =
+      Uri.with_path !Semgrep_envvars.v.semgrep_url
+        ("/api/agent/scans/" ^ scan_id ^ "/error")
+    in
+    let failure : Out.ci_scan_failure =
+      { exit_code = int_code; (* TODO *)
+                              stderr = "" }
+    in
+    let body = Out.string_of_ci_scan_failure failure in
+    match Http_helpers.post ~body ~headers uri with
+    | Ok _ -> ()
+    | Error (code, msg) ->
+        Logs.err (fun m -> m "API server returned %u, this error: %s" code msg)
