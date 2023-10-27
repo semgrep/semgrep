@@ -52,6 +52,7 @@ let tests () =
       Unit_guess_lang.tests;
       Unit_memory_limit.tests;
       Unit_SPcre.tests;
+      Unit_tok.tests;
       Unit_regexp_engine.tests;
       Unit_Rpath.tests;
       Unit_immutable_buffer.tests;
