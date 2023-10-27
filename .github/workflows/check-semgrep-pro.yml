@@ -10,13 +10,13 @@ jobs:
   check-compile-semgrep-pro:
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: true
     - name: Setup OCaml and opam
       uses: ocaml/setup-ocaml@v2
       with:
         ocaml-compiler: 5.1.x
-    - uses: actions/checkout@v4
-      with:
-        submodules: true
     - name: Test
       run: "\n\t  pwd\n\t  ls\n\t  opam switch\n          make install-deps-for-semgrep-core\n
         \         make install-deps\n        "

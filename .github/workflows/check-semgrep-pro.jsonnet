@@ -12,6 +12,7 @@ local semgrep = import 'libs/semgrep.libsonnet';
 local check_compile_semgrep_pro_job = {
     'runs-on': 'ubuntu-latest',
     steps: [
+      actions.checkout_with_submodules(),
       {
         name: 'Setup OCaml and opam',
         uses: 'ocaml/setup-ocaml@v2',
@@ -19,7 +20,6 @@ local check_compile_semgrep_pro_job = {
           'ocaml-compiler': '5.1.x',
         },
       },
-      actions.checkout_with_submodules(),
       {
         name: 'Test',
         run: |||
