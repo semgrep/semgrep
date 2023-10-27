@@ -13,6 +13,10 @@ jobs:
     - uses: actions/checkout@v3
       with:
         submodules: true
+    - name: Setup OCaml and opam
+      uses: ocaml/setup-ocaml@v2
+      with:
+        ocaml-compiler: 4.14.x
     - name: Get JWT for semgrep-ci GitHub App
       id: jwt
       uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
@@ -33,10 +37,6 @@ jobs:
       run: "\n\t  cd ..\n          gh repo clone returntocorp/semgrep-proprietary\n\t
         \ mv semgrep semgrep-proprietary/\n\t  # GHA post cleanup requires /home/runner/work/semgrep/semgrep
         to still exist\n\t  mv semgrep-proprietary semgrep\n        "
-    - name: Setup OCaml and opam
-      uses: ocaml/setup-ocaml@v2
-      with:
-        ocaml-compiler: 4.14.x
     - name: Install dependencies
       run: "\n          eval $(opam env)\n          make -C semgrep install-deps-for-semgrep-core\n
         \         make install-deps\n        "

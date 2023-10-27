@@ -14,6 +14,14 @@ local check_compile_semgrep_pro_job = {
     steps: [
       actions.checkout_with_submodules(),
 
+      {
+        name: 'Setup OCaml and opam',
+        uses: 'ocaml/setup-ocaml@v2',
+        with: {
+          'ocaml-compiler': '4.14.x',
+        },
+      },
+
       semgrep.github_bot.get_jwt_step,
       semgrep.github_bot.get_token_step,
 
@@ -29,13 +37,6 @@ local check_compile_semgrep_pro_job = {
         |||,
         },
 
-      {
-        name: 'Setup OCaml and opam',
-        uses: 'ocaml/setup-ocaml@v2',
-        with: {
-          'ocaml-compiler': '4.14.x',
-        },
-      },
 
       # old: make -C semgrep install-deps-ALPINE-for-semgrep-core
       # but we're on ubuntu here, not alpine, and it seems like setup-ocaml
