@@ -73,39 +73,11 @@ class ScanHandler:
         self.ci_scan_results: Optional[out.CiScanResults] = None
 
     @property
-    def deployment_id(self) -> Optional[int]:
-        """
-        Separate property for easy of mocking in test
-        """
-        return self._deployment_id
-
-    @property
-    def deployment_name(self) -> str:
-        """
-        Separate property for easy of mocking in test
-        """
-        return self._deployment_name
-
-    @property
-    def policy_names(self) -> List[str]:
-        """
-        Separate property for easy of mocking in test
-        """
-        return self._policy_names
-
-    @property
     def autofix(self) -> bool:
         """
         Separate property for easy of mocking in test
         """
         return self._autofix
-
-    @property
-    def deepsemgrep(self) -> bool:
-        """
-        Separate property for easy of mocking in test
-        """
-        return self._deepsemgrep
 
     @property
     def skipped_syntactic_ids(self) -> List[str]:
@@ -120,20 +92,6 @@ class ScanHandler:
         Separate property for easy of mocking in test
         """
         return self._skipped_match_based_ids
-
-    @property
-    def scan_params(self) -> str:
-        """
-        Separate property for easy of mocking in test
-        """
-        return self._scan_params
-
-    @property
-    def rules(self) -> str:
-        """
-        Separate property for easy of mocking in test
-        """
-        return self._rules
 
     @property
     def enabled_products(self) -> List[str]:

@@ -53,7 +53,7 @@ class EngineType(Enum):
             raise SemgrepError("Semgrep Secrets is not part of the open source engine")
 
         if git_meta and scan_handler:
-            if scan_handler.deepsemgrep and requested_engine is None:
+            if scan_handler._deepsemgrep and requested_engine is None:
                 requested_engine = cls.PRO_INTERFILE
 
             if (

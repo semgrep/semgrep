@@ -323,7 +323,7 @@ def ci(
                     else ""
                 )
 
-                start_scan_desc = f"Reporting start of scan for [bold]{scan_handler.deployment_name}[/bold]"
+                start_scan_desc = f"Reporting start of scan for [bold]{scan_handler._deployment_name}[/bold]"
                 start_scan_task = progress_bar.add_task(start_scan_desc)
                 scan_handler.start_scan(project_meta, project_config)
                 if scan_handler.scan_id:
@@ -348,7 +348,7 @@ def ci(
                 progress_bar.update(products_task, completed=100)
 
             if (
-                scan_handler.rules == '{"rules":[]}'
+                scan_handler._rules == '{"rules":[]}'
                 and scan_handler.enabled_products == ["sast"]
             ):
                 console.print(
@@ -356,7 +356,7 @@ def ci(
                 )
                 sys.exit(MISSING_CONFIG_EXIT_CODE)
 
-            config = (scan_handler.rules,)
+            config = (scan_handler._rules,)
 
     except Exception as e:
         import traceback
@@ -610,11 +610,11 @@ def ci(
             )
 
         logger.info(
-            f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/findings"
+            f"    https://semgrep.dev/orgs/{scan_handler._deployment_name}/findings"
         )
-        if "r2c-internal-project-depends-on" in scan_handler.rules:
+        if "r2c-internal-project-depends-on" in scan_handler._rules:
             logger.info(
-                f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/supply-chain"
+                f"    https://semgrep.dev/orgs/{scan_handler._deployment_name}/supply-chain"
             )
 
     audit_mode = metadata.event_name in audit_on
