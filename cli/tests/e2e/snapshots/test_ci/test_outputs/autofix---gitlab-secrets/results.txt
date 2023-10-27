@@ -311,7 +311,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         }
       },
       "flags": [],
-      "id": "6090c1ba-b6c8-853d-a43c-7119a6eb2ad0",
+      "id": "33cc4a1a-63bd-a197-79c4-f4bd6491df4a",
       "identifiers": [
         {
           "name": "Semgrep - supply-chain1",
@@ -323,11 +323,10 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       "location": {
         "end_line": 2,
         "file": "poetry.lock",
-        "start_line": 1
+        "start_line": 2
       },
       "message": "found a dependency",
       "raw_source_code_extract": [
-        "[[package]]\n",
         "name = \"badlib\"\n"
       ],
       "scanner": {

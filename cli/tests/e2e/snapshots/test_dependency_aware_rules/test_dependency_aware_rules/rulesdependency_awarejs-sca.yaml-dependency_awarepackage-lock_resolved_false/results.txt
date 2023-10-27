@@ -19,14 +19,14 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "check_id": "rules.dependency_aware.js-sca",
       "end": {
         "col": 0,
-        "line": 47,
+        "line": 46,
         "offset": 0
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "        \"@types/jquery\": {\n            \"version\": \"3.3.22\",",
+        "lines": "        \"@types/jquery\": {",
         "message": "oh no",
         "metadata": {},
         "metavars": {},

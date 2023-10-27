@@ -19,14 +19,14 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "check_id": "rules.dependency_aware.detect-CodePagesEncodingProvider",
       "end": {
         "col": 0,
-        "line": 36,
+        "line": 35,
         "offset": 0
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "        \"System.Text.Encoding.CodePages\": {\n          \"type\": \"Direct\",",
+        "lines": "        \"System.Text.Encoding.CodePages\": {",
         "message": "Usage of CodePagesEncodingProvider.Instance detected",
         "metadata": {},
         "metavars": {},
@@ -64,14 +64,14 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "check_id": "rules.dependency_aware.System.Linq.Expressions-2023-08-14",
       "end": {
         "col": 0,
-        "line": 89,
+        "line": 88,
         "offset": 0
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "        \"System.Runtime.CompilerServices.Unsafe\": {\n          \"type\": \"Transitive\",",
+        "lines": "        \"System.Runtime.CompilerServices.Unsafe\": {",
         "message": "let's assume System.Linq.Expressions has a vulnerability",
         "metadata": {},
         "metavars": {},
@@ -109,14 +109,14 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "check_id": "rules.dependency_aware.detect-CodePagesEncodingProvider",
       "end": {
         "col": 0,
-        "line": 134,
+        "line": 133,
         "offset": 0
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "        \"System.Text.Encoding.CodePages\": {\n          \"type\": \"Direct\",",
+        "lines": "        \"System.Text.Encoding.CodePages\": {",
         "message": "Usage of CodePagesEncodingProvider.Instance detected",
         "metadata": {},
         "metavars": {},
@@ -154,14 +154,14 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "check_id": "rules.dependency_aware.System.Linq.Expressions-2023-08-14",
       "end": {
         "col": 0,
-        "line": 187,
+        "line": 186,
         "offset": 0
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "        \"System.Runtime.CompilerServices.Unsafe\": {\n          \"type\": \"Transitive\",",
+        "lines": "        \"System.Runtime.CompilerServices.Unsafe\": {",
         "message": "let's assume System.Linq.Expressions has a vulnerability",
         "metadata": {},
         "metavars": {},
@@ -199,14 +199,14 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "check_id": "rules.dependency_aware.detect-CodePagesEncodingProvider",
       "end": {
         "col": 0,
-        "line": 212,
+        "line": 211,
         "offset": 0
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "        \"System.Text.Encoding.CodePages\": {\n          \"type\": \"Direct\",",
+        "lines": "        \"System.Text.Encoding.CodePages\": {",
         "message": "Usage of CodePagesEncodingProvider.Instance detected",
         "metadata": {},
         "metavars": {},
@@ -244,14 +244,14 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "check_id": "rules.dependency_aware.System.Linq.Expressions-2023-08-14",
       "end": {
         "col": 0,
-        "line": 261,
+        "line": 260,
         "offset": 0
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "        \"System.Runtime.CompilerServices.Unsafe\": {\n          \"type\": \"Transitive\",",
+        "lines": "        \"System.Runtime.CompilerServices.Unsafe\": {",
         "message": "let's assume System.Linq.Expressions has a vulnerability",
         "metadata": {},
         "metavars": {},

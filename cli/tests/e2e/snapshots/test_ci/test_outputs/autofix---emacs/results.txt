@@ -14,7 +14,7 @@ foo.py:11:5:error(eqeq-bad):    y == y:useless comparison
 foo.py:15:5:error(eqeq-five):    x == 5:useless comparison to 5
 foo.py:19:5:error(eqeq-four):    baz == 4:useless comparison to 4
 foo.py:27:5:warning(taint-test):    sink(d2):unsafe use of danger
-poetry.lock:1:0:error(supply-chain1):[[package]]:found a dependency
+poetry.lock:2:0:error(supply-chain1):name = "badlib":found a dependency
 
 === end of stdout - plain
 

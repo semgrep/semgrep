@@ -26,7 +26,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "[[package]]\nname = \"faker\"",
+        "lines": "name = \"faker\"",
         "message": "oh no",
         "metadata": {},
         "metavars": {},
@@ -40,7 +40,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
             "found_dependency": {
               "allowed_hashes": {},
               "ecosystem": "pypi",
-              "line_number": 102,
+              "line_number": 103,
               "package": "faker",
               "transitivity": "unknown",
               "version": "1.0.0"
@@ -56,7 +56,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "path": "targets/dependency_aware/poetry_empty_table/poetry.lock",
       "start": {
         "col": 0,
-        "line": 102,
+        "line": 103,
         "offset": 0
       }
     }

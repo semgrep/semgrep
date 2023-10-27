@@ -92,6 +92,7 @@ def parse_composer_lock(
         # Extract version and package name from dependency fields
         version = fields["version"].as_str()
         package = fields["name"].as_str()
+        line_number = fields["name"].line_number
 
         # Initialize resolved_url and allowed_hashes
         resolved_url = None
@@ -115,7 +116,7 @@ def parse_composer_lock(
                 resolved_url=resolved_url,
                 allowed_hashes=allowed_hashes,
                 transitivity=transitivity(manifest_deps, [package]),
-                line_number=dep.line_number,
+                line_number=line_number,
             )
         )
     # Return the output list containing FoundDependency objects
