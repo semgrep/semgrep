@@ -1,25 +1,9 @@
-type deployment_config = {
-  id : int;
-  name : string;
-  display_name : string; [@default ""]
-  slug : string; [@default ""]
-  source_type : string; [@default ""]
-  has_autofix : bool; [@default false]
-  has_deepsemgrep : bool; [@default false]
-  has_triage_via_comment : bool; [@default false]
-  has_dependency_query : bool; [@default false]
-  default_user_role : string; [@default ""]
-  organization_id : int; [@default 0]
-  scm_name : string; [@default ""]
-}
-[@@deriving yojson]
-(** [type deployment_config] is what the app returns for deployment config. *)
-
 type scan_id = string
 type app_block_override = string (* reason *) option
 
 (* retrieves the deployment config from the provided token. *)
-val get_deployment_from_token : token:Auth.token -> deployment_config option
+val get_deployment_from_token :
+  token:Auth.token -> Semgrep_output_v1_t.deployment_config option
 
 (* retrieves the scan config from the provided token. *)
 val get_scan_config_from_token :
@@ -68,7 +52,7 @@ val upload_findings :
 (* lwt-friendly versions for the language-server *)
 
 val get_deployment_from_token_async :
-  token:Auth.token -> deployment_config option Lwt.t
+  token:Auth.token -> Semgrep_output_v1_t.deployment_config option Lwt.t
 
 val get_scan_config_from_token_async :
   token:Auth.token -> Semgrep_output_v1_t.scan_config option Lwt.t

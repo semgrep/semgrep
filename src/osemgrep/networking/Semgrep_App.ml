@@ -16,26 +16,6 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 (* Types *)
 (*****************************************************************************)
 
-(* TODO? specify this with atd and have both app + osemgrep use it *)
-(* coupling: response from semgrep app (e.g. id as int vs string ) *)
-type deployment_config = {
-  id : int;
-  (* the important piece, the deployment name *)
-  name : string;
-  display_name : string; [@default ""]
-  (* ??? *)
-  slug : string; [@default ""]
-  source_type : string; [@default ""]
-  has_autofix : bool; [@default false]
-  has_deepsemgrep : bool; [@default false]
-  has_triage_via_comment : bool; [@default false]
-  has_dependency_query : bool; [@default false]
-  default_user_role : string; [@default ""]
-  organization_id : int; [@default 0]
-  scm_name : string; [@default ""]
-}
-[@@deriving yojson]
-
 (* LATER: declared this in semgrep_output_v1.atd instead? *)
 type scan_id = string
 type app_block_override = string (* reason *) option
@@ -51,6 +31,34 @@ let start_scan_route = "/api/agent/deployments/scans"
 let scan_config_route = "/api/agent/deployments/scans/config"
 let results_route scan_id = "/api/agent/scans/" ^ scan_id ^ "/results"
 let complete_route scan_id = "/api/agent/scans/" ^ scan_id ^ "/complete"
+
+(*****************************************************************************)
+(* Scan config version 1 (used by LS) *)
+(*****************************************************************************)
+
+(* Returns the scan config if the token is valid, otherwise None *)
+let get_scan_config_from_token_async ~token : Out.scan_config option Lwt.t =
+  let%lwt response =
+    Http_helpers.get_async
+      ~headers:[ ("authorization", "Bearer " ^ token) ]
+      (Uri.with_path !Semgrep_envvars.v.semgrep_url scan_config_route)
+  in
+  let scan_config_opt =
+    match response with
+    | Error msg ->
+        Logs.debug (fun m -> m "error while retrieving scan config: %s" msg);
+        None
+    | Ok body -> (
+        try Some (Out.scan_config_of_string body) with
+        | Yojson.Json_error msg ->
+            Logs.debug (fun m ->
+                m "failed to parse body as scan_config %s: %s" msg body);
+            None)
+  in
+  Lwt.return scan_config_opt
+
+let get_scan_config_from_token ~token =
+  Lwt_platform.run (get_scan_config_from_token_async ~token)
 
 (*****************************************************************************)
 (* Extractors *)
@@ -152,10 +160,11 @@ let extract_block_override (data : string) : (app_block_override, string) result
 (*****************************************************************************)
 
 (* Returns the deployment config if the token is valid, otherwise None *)
-let get_deployment_from_token_async ~token : deployment_config option Lwt.t =
+let get_deployment_from_token_async ~token : Out.deployment_config option Lwt.t
+    =
+  let headers = [ ("authorization", "Bearer " ^ token) ] in
   let%lwt response =
-    Http_helpers.get_async
-      ~headers:[ ("authorization", "Bearer " ^ token) ]
+    Http_helpers.get_async ~headers
       (Uri.with_path !Semgrep_envvars.v.semgrep_url deployment_route)
   in
   let deployment_opt =
@@ -163,87 +172,15 @@ let get_deployment_from_token_async ~token : deployment_config option Lwt.t =
     | Error msg ->
         Logs.debug (fun m -> m "error while retrieving deployment: %s" msg);
         None
-    | Ok body -> (
-        try
-          let yojson = Yojson.Safe.from_string body in
-          let open Yojson.Safe.Util in
-          let config =
-            deployment_config_of_yojson (yojson |> member "deployment")
-          in
-          match config with
-          | Ok config -> Some config
-          | Error msg -> raise (Yojson.Json_error msg)
-        with
-        | Yojson.Json_error msg ->
-            Logs.debug (fun m -> m "failed to parse json %s: %s" msg body);
-            None)
+    | Ok body ->
+        let x = Out.deployment_response_of_string body in
+        Some x.deployment
   in
   Lwt.return deployment_opt
 
 (* from auth.py *)
 let get_deployment_from_token ~token =
   Lwt_platform.run (get_deployment_from_token_async ~token)
-
-(*****************************************************************************)
-(* Scan config version 1 *)
-(*****************************************************************************)
-
-(* Returns the scan config if the token is valid, otherwise None *)
-let get_scan_config_from_token_async ~token =
-  let%lwt response =
-    Http_helpers.get_async
-      ~headers:[ ("authorization", "Bearer " ^ token) ]
-      (Uri.with_path !Semgrep_envvars.v.semgrep_url scan_config_route)
-  in
-  let scan_config_opt =
-    match response with
-    | Error msg ->
-        Logs.debug (fun m -> m "error while retrieving scan config: %s" msg);
-        None
-    | Ok body -> (
-        try Some (Out.scan_config_of_string body) with
-        | Yojson.Json_error msg ->
-            Logs.debug (fun m ->
-                m "failed to parse body as scan_config %s: %s" msg body);
-            None)
-  in
-  Lwt.return scan_config_opt
-
-let get_scan_config_from_token ~token =
-  Lwt_platform.run (get_scan_config_from_token_async ~token)
-
-let scan_config_uri ?(sca = false) ?(dry_run = true) ?(full_scan = true)
-    repo_name =
-  let json_bool_to_string b = JSON.(string_of_json (Bool b)) in
-  Uri.(
-    add_query_params'
-      (with_path !Semgrep_envvars.v.semgrep_url scan_config_route)
-      [
-        ("sca", json_bool_to_string sca);
-        ("dry_run", json_bool_to_string dry_run);
-        ("full_scan", json_bool_to_string full_scan);
-        ("repo_name", repo_name);
-        ("semgrep_version", Version.version);
-      ])
-
-(* Returns a url with scan config encoded via search params based on a magic environment variable *)
-let url_for_policy ~token =
-  let deployment_config = get_deployment_from_token ~token in
-  match deployment_config with
-  | None ->
-      Error.abort
-        (spf "Invalid API Key. Run `semgrep logout` and `semgrep login` again.")
-  | Some _deployment_config -> (
-      (* NOTE: This logic is ported directly from python but seems very brittle
-         as we have helper functions to infer the repo name from the git remote
-         information.
-      *)
-      match Sys.getenv_opt "SEMGREP_REPO_NAME" with
-      | None ->
-          Error.abort
-            (spf
-               "Need to set env var SEMGREP_REPO_NAME to use `--config policy`")
-      | Some repo_name -> scan_config_uri repo_name)
 
 (*****************************************************************************)
 (* Step1 : start scan *)
@@ -307,8 +244,42 @@ Please make sure they have been set correctly.
         Error msg
 
 (*****************************************************************************)
-(* Step2 : fetch scan config version 2 *)
+(* Step2 : fetch scan config (version 2) *)
 (*****************************************************************************)
+
+(* deprecated? *)
+let scan_config_uri ?(sca = false) ?(dry_run = true) ?(full_scan = true)
+    repo_name =
+  let json_bool_to_string b = JSON.(string_of_json (Bool b)) in
+  Uri.(
+    add_query_params'
+      (with_path !Semgrep_envvars.v.semgrep_url scan_config_route)
+      [
+        ("sca", json_bool_to_string sca);
+        ("dry_run", json_bool_to_string dry_run);
+        ("full_scan", json_bool_to_string full_scan);
+        ("repo_name", repo_name);
+        ("semgrep_version", Version.version);
+      ])
+
+(* Returns a url with scan config encoded via search params based on a magic environment variable *)
+let url_for_policy ~token =
+  let deployment_config = get_deployment_from_token ~token in
+  match deployment_config with
+  | None ->
+      Error.abort
+        (spf "Invalid API Key. Run `semgrep logout` and `semgrep login` again.")
+  | Some _deployment_config -> (
+      (* NOTE: This logic is ported directly from python but seems very brittle
+         as we have helper functions to infer the repo name from the git remote
+         information.
+      *)
+      match Sys.getenv_opt "SEMGREP_REPO_NAME" with
+      | None ->
+          Error.abort
+            (spf
+               "Need to set env var SEMGREP_REPO_NAME to use `--config policy`")
+      | Some repo_name -> scan_config_uri repo_name)
 
 let fetch_scan_config_async ~dry_run ~token ~sca ~full_scan ~repository :
     (Out.scan_config, string) result Lwt.t =
