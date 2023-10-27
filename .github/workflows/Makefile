@@ -19,7 +19,8 @@ OBJS = \
   build-test-manylinux-x86.yml build-test-manylinux-aarch64.yml \
   build-test-javascript.yml \
   tests.yml \
-  test-e2e-semgrep-ci.yml nightly.yml
+  test-e2e-semgrep-ci.yml nightly.yml \
+  check-semgrep-pro.yml
 
 all: $(JSONNET) $(OBJS)
 
