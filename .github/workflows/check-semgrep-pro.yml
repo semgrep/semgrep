@@ -9,11 +9,28 @@ name: check-semgrep-pro
 jobs:
   check-compile-semgrep-pro:
     steps:
+    - name: Get JWT for semgrep-ci GitHub App
+      id: jwt
+      uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
+      env:
+        EXPIRATION: 600
+        ISSUER: ${{ secrets.SEMGREP_CI_APP_ID }}
+        PRIVATE_KEY: ${{ secrets.SEMGREP_CI_APP_KEY }}
+    - name: Get token for semgrep-ci GitHub App
+      id: token
+      run: "\n      TOKEN=\"$(curl -X POST \\\n      -H \"Authorization: Bearer ${{
+        steps.jwt.outputs.jwt }}\" \\\n      -H \"Accept: application/vnd.github.v3+json\"
+        \\\n      \"https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID
+        }}/access_tokens\" | \\\n      jq -r .token)\"\n      echo \"::add-mask::$TOKEN\"\n
+        \     echo \"token=$TOKEN\" >> $GITHUB_OUTPUT\n    "
     - uses: actions/checkout@v3
       with:
         submodules: true
-    - name: checkout semgrep-pro
-      run: "git clone https://github.com/returntocorp/semgrep-proprietary.git"
+    - env:
+        GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+      name: checkout semgrep-pro
+      run: "\n             git clone https://github.com/returntocorp/semgrep-proprietary.git\t
+        \    \n\t  "
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:alpine-2023-10-17
     env:

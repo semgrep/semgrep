@@ -12,11 +12,14 @@ local semgrep = import 'libs/semgrep.libsonnet';
 local check_compile_semgrep_pro_job =
   semgrep.ocaml_alpine_container {
     steps: [
+      semgrep.github_bot.get_jwt_step,
+      semgrep.github_bot.get_token_step,
       actions.checkout_with_submodules(),
       {
+        env: semgrep.github_bot.github_token,
         name: 'checkout semgrep-pro',
         run: |||
-	     git clone git@github.com:returntocorp/semgrep-proprietary.git
+             git clone https://github.com/returntocorp/semgrep-proprietary.git
 	  |||,
 	},
     ],
