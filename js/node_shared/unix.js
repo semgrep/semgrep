@@ -1,18 +1,17 @@
-const { spawn, spawnSync } = require("node:child_process");
+const { spawnSync } = require("node:child_process");
 const os = require("os");
 const fs = require("fs");
-const stream = require("node:stream");
 const process = require("process");
 
-globalThis.processTable = new Map();
-// mapping parent to children
-globalThis.childTable = new Map();
 globalThis.spawnSync = spawnSync;
-globalThis.spawn = spawn;
 globalThis.fs = fs;
 globalThis.os = os;
-globalThis.stream = stream;
 globalThis.process = process;
+
+// mapping pid to its own process
+globalThis.pidToProcessTable = new Map();
+// mapping pid of parent to its children
+globalThis.pidToChildrenTable = new Map();
 // There will be collisions if we ever allocate 20000 or more file descriptors
 // "naturally", that is, through `caml_sys_open`.
 globalThis.fdCount = 20000;
@@ -27,19 +26,17 @@ function unix_spawn(executable, args, optenv, usepath, redirect) {
   console.error(usepath);
   console.error(redirect);
 
+  // get rid of the mandatory tag and the first argument, which is the
+  // executable path
   let argv = args.slice(2);
 
   // These redirects are given to `unix_spawn` by Bos via `Unix.create_process_gen`,
   // which gets them from Bos explicitly calling `pipe`.
-  // This is so that the output of each child process is distinct from that of its
-  // parent. We're not creating different pipes for the sake of it, so much as just
-  // separating out their outputs.
+  // Via our convention in unix_pipe, these are not actually "real" file descriptors,
+  // but fresh identifiers we will use to map to the output of the corresponding
+  // child process.
   // As such, let's just use the `pipe` setting for the stdio of this child process.
-  redirect = redirect.slice(1);
-
-  /* The redirection logic is taken care of by the stdio: redirect
-     business down below.
-   */
+  let output_fd = redirect[2];
 
   /* In Javascript, there is no `execvp` and `execv` which
      switch between searching in the PATH or not.
@@ -51,14 +48,8 @@ function unix_spawn(executable, args, optenv, usepath, redirect) {
   if (optenv == 0) {
     const child = globalThis.spawnSync(executable, argv, { stdio: "pipe" });
 
-    console.error(
-      `Have spawned child ${child.pid} with fd ${redirect[1]} for executable ${executable} ${argv}`
-    );
-
-    globalThis.processTable.set(child.pid, child);
-    globalThis.fdTable.set(redirect[1], child.stdout);
-
-    console.error(`Got output ${child.stdout}`);
+    globalThis.pidToProcessTable.set(child.pid, child);
+    globalThis.fdTable.set(output_fd, child.stdout);
 
     return child.pid;
   } else {
@@ -72,23 +63,19 @@ function unix_spawn(executable, args, optenv, usepath, redirect) {
       stdio: "pipe",
     });
 
-    console.error(
-      `Have spawned child ${child.pid} with fd ${redirect[1]} for executable ${executable} ${argv}`
-    );
+    globalThis.pidToProcessTable.set(child.pid, child);
+    globalThis.fdTable.set(output_fd, child.stdout);
 
-    globalThis.processTable.set(child.pid, child);
-    globalThis.fdTable.set(redirect[1], child.stdout);
-
-    console.error(`Got output ${child.stdout}`);
+    let current_pid = globalThis.process.pid;
 
     // associate parent to new child
-    if (globalThis.childTable.has(process.pid)) {
-      globalThis.childTable.set(
-        process.pid,
-        globalThis.childTable.get(process.pid).concat([child])
+    if (globalThis.pidToChildrenTable.has(current_pid)) {
+      globalThis.pidToChildrenTable.set(
+        current_pid,
+        globalThis.pidToChildrenTable.get(current_pid).concat([child])
       );
     } else {
-      globalThis.childTable.set(process.pid, [child]);
+      globalThis.pidToChildrenTable.set(current_pid, [child]);
     }
 
     return child.pid;
@@ -123,7 +110,7 @@ function unix_waitpid(flags, pid_req) {
 
   // any child process
   if (pid_req == -1) {
-    let children = globalThis.childTable.get(process.pid);
+    let children = globalThis.pidToChildrenTable.get(process.pid);
     if (!children) {
       throw new Error(`unix_waitpid: no children process of parent {pid_req}`);
     }
@@ -132,7 +119,7 @@ function unix_waitpid(flags, pid_req) {
     }
     // specific process
   } else if (pid_req > 0) {
-    let child = globalThis.processTable.get(pid_req);
+    let child = globalThis.pidToProcessTable.get(pid_req);
     if (!child) {
       throw new Error(`unix_waitpid: no child at pid {pid_req}`);
     }
@@ -141,7 +128,7 @@ function unix_waitpid(flags, pid_req) {
     // process group nonsense
   } else {
     function getAllDescendants(pid) {
-      let children = globalThis.childTable.get(pid);
+      let children = globalThis.pidToChildrenTable.get(pid);
       if (!children) {
         return [pid];
       }
@@ -166,25 +153,19 @@ function unix_pipe(cloexec, vunit) {
   console.error(cloexec);
   console.error(vunit);
 
+  // The pipe we spawn here will eventually reach unix_spawn.
+  // We don't want to use a real file descriptor, bceause we're trying
+  // to avoid them, in favor of Node's redirection ability, which will open
+  // the corresponding file descriptors for us.
+  // Because this call requires us to decide on what the file descriptor is
+  // ahead of time, though, we will just pass around a simulated FD, which
+  // in conjunction with fdTable, will let us recover the content which is
+  // supposed to be written to that FD.
   let fd = globalThis.fdCount;
 
   globalThis.fdCount++;
 
   return [0, fd, fd];
-
-  // These aren't real file descriptors, but they're integers which map to
-  // our simulated pipe.
-  let fd1 = globalThis.fdCount;
-  let fd2 = globalThis.fdCount + 1;
-
-  let stream = new globalThis.stream.Duplex();
-
-  globalThis.fdTable.set(fd1, stream);
-  globalThis.fdTable.set(fd2, stream);
-
-  globalThis.fdCount = globalThis.fdCount + 2;
-
-  return [0, fd1, fd2];
 }
 
 //Provides: unix_set_close_on_exec
@@ -208,8 +189,6 @@ function unix_chdir(path) {
   console.error("unix_chdir");
   console.error(path);
 
-  var x = require("child_process");
-
   caml_sys_chdir(path);
 
   return;
@@ -229,7 +208,8 @@ function unix_dup(cloexec, fd) {
   console.error(cloexec);
   console.error(fd);
 
-  // This is because when
+  // We just use the same unix_pipe logic to generate a fresh fake
+  // file descriptor.
   return unix_pipe(cloexec, fd);
 }
 
@@ -249,27 +229,33 @@ function unix_fork(vunit) {
   return;
 }
 
-// TODO
 //Provides: unix_setitimer
 function unix_setitimer(it, its) {
   console.error("unix_setitimer");
   console.error(it);
   console.error(its);
 
-  // In our code, this is just ignored, so we can return the same one.
+  // In our code, the result value is just ignored, so we can return the same one.
+  // TODO: Theoretically this is supposed to do some SIGALRM stuff too, but
+  // that is complicated, so let's leave it as a TODO.
   return its;
 }
 
+// TODO
 //Provides: unix_sleep
 function unix_sleep(duration) {
   console.error("unix_sleep");
   console.error(duration);
 
-  // In our code, this is just ignored, so we can return the same one.
+  // You cannot actually sleep synchronously, so let's just leave this
+  // as a TODO.
+
   return;
 }
 
-// TODO: We should not have to do this.
+// TODO: This is fixed as of this PR:
+// https://github.com/ocsigen/js_of_ocaml/pull/1519
+// so when this is released, we will just need to upgrade our jsoo version
 //Provides: caml_unix_lstat_64
 //Requires: caml_unix_lstat, caml_int64_of_int32
 //Alias: unix_lstat_64
@@ -298,8 +284,6 @@ function unix_write(fd, buf, ofs, len) {
   console.error(ofs);
   console.error(len);
 
-  console.error(`writing ${buf.c}`);
-
   let file = caml_sys_fds[fd];
 
   // The reason why this gymnastics is needed, instead of just calling file.write
@@ -320,15 +304,7 @@ function unix_write(fd, buf, ofs, len) {
   // The implementation of MlNodeFd.write is such that
   // this always returns 0 if this succeeds.
   // So let's ignore it.
-  // let bytesWritten = file.write(null, bufferSlice, 0, bufferSliceLength);
-
-  let bytesWritten = globalThis.fs.writeSync(
-    file.fd,
-    bufferSlice,
-    0,
-    bufferSliceLength,
-    null
-  );
+  let bytesWritten = file.write(null, bufferSlice, 0, bufferSliceLength);
 
   return bufferSliceLength;
 }
@@ -340,26 +316,23 @@ function unix_read(fd, buf, ofs, len) {
   // represented by an MlBytes object
   console.error("unix_read");
   console.error(fd);
-  // console.error(buf);
   console.error(ofs);
   console.error(len);
 
   // This will ensure buf.c is an array.
+  // We only need to do this if it's not already an array, though.
   if (buf.t != 4) caml_convert_bytes_to_array(buf);
 
   const UNIX_BUFFER_SIZE = 65536;
   let length = len <= UNIX_BUFFER_SIZE ? len : UNIX_BUFFER_SIZE;
 
-  const from_buffer = Buffer.from(buf.c);
-
-  // This is a new buffer of the truncated contents of `buf`, up to
-  // the UNIX_BUFFER_SIZE.
+  // We do the things we do here because we want a new buffer of the
+  // truncated contents of `buf`, up to the UNIX_BUFFER_SIZE.
   // We will read the output we are trying to consume into this buffer,
   // then copy it back to the MlBytes object.
-  const buffer = Buffer.alloc(UNIX_BUFFER_SIZE);
-  // This just writes from_buffer into buffer, even though from_buffer
-  // may be shorter.
-  from_buffer.copy(buffer, 0, 0, from_buffer.length);
+  const buffer = Buffer.alloc(length);
+  const from_buffer = Buffer.from(buf.c);
+  from_buffer.copy(buffer, 0, 0, length);
 
   if (fd >= 20000) {
     // Via our protocol, this is a unique identifier associated to the
@@ -374,42 +347,21 @@ function unix_read(fd, buf, ofs, len) {
 
     let result = globalThis.fdTable.get(fd);
 
-    console.error(`got result from fd ${fd}`);
+    let resultBuffer = typeof result == "string" ? Buffer.from(result) : result;
 
-    let resultBuffer;
-    if (typeof result == "string") {
-      resultBuffer = Buffer.from(result);
-    } else {
-      resultBuffer = result;
-    }
+    // THINK: Problem if the amount of bytes requested is greater than the buffer?
+    let bytesRead = resultBuffer.copy(buffer, ofs, 0, length);
 
-    let bytesRead = resultBuffer.copy(buffer, ofs, 0);
-
-    console.error(`bytesRead are ${bytesRead}`);
-
-    // then copy it back to the object. The length should remain the same.
-    // buf.c = buffer.toString("utf8", 0, length);
     buffer.copy(buf.c, 0);
 
     globalThis.fdTable.delete(fd);
 
     return bytesRead;
   } else {
-    console.error(`want to readSync from real fd ${fd}`);
-
-    // This may not actually be correct. These fds are spawned via the
-    // caml system, in particular, caml_sys_open. These don't ever call
-    // the actual filesystem primitives, they instead use jsoo's own
-    // code for simulating the file system.
-    // let bytesRead = globalThis.fs.readSync(fd, buffer, ofs, len, null)
-
     let file = caml_sys_fds[fd];
-    let bytesRead = file.read(null, buffer, ofs, len);
-    // globalThis.fs.readSync(file.fd, buffer, ofs, len, null);
+    // THINK: Problem if the amount of bytes requested is greater than the buffer?
+    let bytesRead = file.read(null, buffer, ofs, length);
 
-    console.error(`bytesRead from fd ${fd} are ${bytesRead}`);
-
-    // buf.c = buffer.toString("hex", 0, length);
     buffer.copy(buf.c, 0);
 
     return bytesRead;

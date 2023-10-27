@@ -26,6 +26,14 @@ function unix_open(path, flags, perm) {
   console.log(flags);
   console.log(perm);
 
+  // Why is this needed?
+  // There is a Unix.open_flag type, which is different than
+  // that of the Stdlib.open_flag type.
+  // As such, some flags (such as O_CREAT) appear in a different
+  // index of the variant type than the corresponding Open_creat,
+  // for instance.
+  // So before we can call the system open command, we need to
+  // translate the Unix open flags to stdlib open flags.
   function map_unix_flag_to_stdlib_flag(flag) {
     switch (flag) {
       // O_RDONLY
@@ -109,13 +117,7 @@ function unix_open(path, flags, perm) {
   );
   let new_flags = unparse_flags(translated_flags_flattened);
 
-  console.log(new_flags);
-
-  let new_fd = caml_sys_open(path, new_flags, perm);
-
-  console.log(`fd ${new_fd} opened for path ${path}`);
-
-  return new_fd;
+  return caml_sys_open(path, new_flags, perm);
 }
 
 //Provides: unix_environment const
