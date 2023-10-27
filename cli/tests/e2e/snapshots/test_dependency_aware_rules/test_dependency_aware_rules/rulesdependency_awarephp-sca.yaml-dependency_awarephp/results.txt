@@ -27,7 +27,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "        {\n            \"name\": \"bad/package\",",
+        "lines": "            \"name\": \"bad/package\",",
         "message": "oh no",
         "metadata": {},
         "metavars": {},
@@ -41,7 +41,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
             "found_dependency": {
               "allowed_hashes": {},
               "ecosystem": "composer",
-              "line_number": 9,
+              "line_number": 10,
               "package": "bad/package",
               "resolved_url": "https://api.github.com/repos/google/recaptcha/zipball/614f25a9038be4f3f2da7cbfd778dc5b357d2419",
               "transitivity": "direct",
@@ -58,7 +58,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "path": "targets/dependency_aware/php/composer.lock",
       "start": {
         "col": 0,
-        "line": 9,
+        "line": 10,
         "offset": 0
       }
     }

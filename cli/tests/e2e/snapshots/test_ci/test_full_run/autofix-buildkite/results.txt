@@ -44,7 +44,6 @@ BUILDKITE="true" BUILDKITE_REPO="git@github.com/project_name/project_name.git" B
        supply-chain1
           found a dependency
 
-            1┆ [[package]]
             2┆ name = "badlib"
 
 

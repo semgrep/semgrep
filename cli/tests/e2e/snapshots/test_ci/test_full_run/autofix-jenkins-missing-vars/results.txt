@@ -44,7 +44,6 @@ JENKINS_URL="some_url" SEMGREP_REPO_URL="https://random.url.org/some/path" SEMGR
        supply-chain1
           found a dependency
 
-            1┆ [[package]]
             2┆ name = "badlib"
 
 

@@ -460,10 +460,10 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
                   "endColumn": 0,
                   "endLine": 2,
                   "snippet": {
-                    "text": "[[package]]\nname = \"badlib\""
+                    "text": "name = \"badlib\""
                   },
                   "startColumn": 0,
-                  "startLine": 1
+                  "startLine": 2
                 }
               }
             }

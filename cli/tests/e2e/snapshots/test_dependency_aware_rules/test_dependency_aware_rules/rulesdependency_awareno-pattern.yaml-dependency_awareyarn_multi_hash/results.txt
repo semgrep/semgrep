@@ -19,14 +19,14 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "check_id": "rules.dependency_aware.no-pattern",
       "end": {
         "col": 0,
-        "line": 14,
+        "line": 13,
         "offset": 0
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "bad-yarn-lib@0.0.9:\n  version \"0.0.9\"",
+        "lines": "bad-yarn-lib@0.0.9:",
         "message": "that's a bad lib",
         "metadata": {
           "sca-kind": "legacy"
