@@ -44,7 +44,7 @@ local check_compile_semgrep_pro_job = {
 //        env: semgrep.github_bot.github_token,
         name: 'checkout semgrep-pro',
         run: |||
-             git clone https://github.com/returntocorp/semgrep-proprietary.git
+             git clone git@github.com:returntocorp/semgrep-proprietary.git
 	  |||,
 	},
     ],
