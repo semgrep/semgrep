@@ -139,7 +139,7 @@ let report_failure ~dry_run ~token ~scan_id (exit_code : Exit_code.t) : unit =
 
 (* if something fails, we Error.exit *)
 let deployment_config_opt (api_token : Auth.token option) (empty_config : bool)
-    : (Auth.token * Semgrep_App.deployment_config) option =
+    : (Auth.token * Out.deployment_config) option =
   match (api_token, empty_config) with
   | None, true ->
       Logs.app (fun m ->
@@ -163,7 +163,11 @@ let deployment_config_opt (api_token : Auth.token option) (empty_config : bool)
                 "API token not valid. Try to run `semgrep logout` and `semgrep \
                  login` again.");
           Error.exit Exit_code.invalid_api_key
-      | Some deployment_config -> Some (token, deployment_config))
+      | Some deployment_config ->
+          Logs.debug (fun m ->
+              m "received deployment = %s"
+                (Out.show_deployment_config deployment_config));
+          Some (token, deployment_config))
 
 (* eventually output the origin (if the semgrep_url is not semgrep.dev) *)
 let at_url_maybe ppf () : unit =
@@ -188,7 +192,7 @@ let decode_json_rules (data : string) : Rule_fetching.rules_and_origin =
 
 let scan_config_and_rules_from_deployment ~dry_run
     (prj_meta : Out.project_metadata) (token : Auth.token)
-    (deployment_config : Semgrep_App.deployment_config) :
+    (deployment_config : Out.deployment_config) :
     Semgrep_App.scan_id * Out.scan_config * Rule_fetching.rules_and_origin list
     =
   Logs.app (fun m -> m "  %a" Fmt.(styled `Underline string) "CONNECTION");
@@ -578,7 +582,7 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   (results, complete)
 
 let upload_findings ~dry_run
-    (depl_opt : (string * Semgrep_App.deployment_config) option)
+    (depl_opt : (string * Out.deployment_config) option)
     (scan_id_opt : Semgrep_App.scan_id option) blocking_findings filtered_rules
     (cli_output : Out.cli_output) : Semgrep_App.app_block_override =
   match (depl_opt, scan_id_opt) with

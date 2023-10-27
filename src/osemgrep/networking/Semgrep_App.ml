@@ -16,26 +16,6 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 (* Types *)
 (*****************************************************************************)
 
-(* TODO? specify this with atd and have both app + osemgrep use it *)
-(* coupling: response from semgrep app (e.g. id as int vs string ) *)
-type deployment_config = {
-  id : int;
-  (* the important piece, the deployment name *)
-  name : string;
-  display_name : string; [@default ""]
-  (* ??? *)
-  slug : string; [@default ""]
-  source_type : string; [@default ""]
-  has_autofix : bool; [@default false]
-  has_deepsemgrep : bool; [@default false]
-  has_triage_via_comment : bool; [@default false]
-  has_dependency_query : bool; [@default false]
-  default_user_role : string; [@default ""]
-  organization_id : int; [@default 0]
-  scm_name : string; [@default ""]
-}
-[@@deriving yojson]
-
 (* LATER: declared this in semgrep_output_v1.atd instead? *)
 type scan_id = string
 type app_block_override = string (* reason *) option
@@ -152,10 +132,11 @@ let extract_block_override (data : string) : (app_block_override, string) result
 (*****************************************************************************)
 
 (* Returns the deployment config if the token is valid, otherwise None *)
-let get_deployment_from_token_async ~token : deployment_config option Lwt.t =
+let get_deployment_from_token_async ~token : Out.deployment_config option Lwt.t
+    =
+  let headers = [ ("authorization", "Bearer " ^ token) ] in
   let%lwt response =
-    Http_helpers.get_async
-      ~headers:[ ("authorization", "Bearer " ^ token) ]
+    Http_helpers.get_async ~headers
       (Uri.with_path !Semgrep_envvars.v.semgrep_url deployment_route)
   in
   let deployment_opt =
@@ -163,20 +144,9 @@ let get_deployment_from_token_async ~token : deployment_config option Lwt.t =
     | Error msg ->
         Logs.debug (fun m -> m "error while retrieving deployment: %s" msg);
         None
-    | Ok body -> (
-        try
-          let yojson = Yojson.Safe.from_string body in
-          let open Yojson.Safe.Util in
-          let config =
-            deployment_config_of_yojson (yojson |> member "deployment")
-          in
-          match config with
-          | Ok config -> Some config
-          | Error msg -> raise (Yojson.Json_error msg)
-        with
-        | Yojson.Json_error msg ->
-            Logs.debug (fun m -> m "failed to parse json %s: %s" msg body);
-            None)
+    | Ok body ->
+        let x = Out.deployment_response_of_string body in
+        Some x.deployment
   in
   Lwt.return deployment_opt
 
@@ -189,7 +159,7 @@ let get_deployment_from_token ~token =
 (*****************************************************************************)
 
 (* Returns the scan config if the token is valid, otherwise None *)
-let get_scan_config_from_token_async ~token =
+let get_scan_config_from_token_async ~token : Out.scan_config option Lwt.t =
   let%lwt response =
     Http_helpers.get_async
       ~headers:[ ("authorization", "Bearer " ^ token) ]
