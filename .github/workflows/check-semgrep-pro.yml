@@ -31,5 +31,5 @@ jobs:
         GITHUB_TOKEN: ${{ steps.token.outputs.token }}
       name: checkout semgrep-pro
       run: "\n\t  cd ..\n          gh repo clone returntocorp/semgrep-proprietary\n\t
-        \ mv semgrep semgrep-proprietary\n\t  cd semgrep-proprietary\n\t  ls -al\n
-        \       "
+        \ mv semgrep semgrep-proprietary/\n\t  # GHA post cleanup requires /home/runner/work/semgrep/semgrep
+        to still exist\n\t  mv semgrep-proprietary semgrep\n\t  ls -al\n        "

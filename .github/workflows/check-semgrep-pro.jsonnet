@@ -46,8 +46,9 @@ local check_compile_semgrep_pro_job = {
         run: |||
 	  cd ..
           gh repo clone returntocorp/semgrep-proprietary
-	  mv semgrep semgrep-proprietary
-	  cd semgrep-proprietary
+	  mv semgrep semgrep-proprietary/
+	  # GHA post cleanup requires /home/runner/work/semgrep/semgrep to still exist
+	  mv semgrep-proprietary semgrep
 	  ls -al
         |||,
         },
