@@ -10,6 +10,9 @@ jobs:
   check-compile-semgrep-pro:
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
     - name: Get JWT for semgrep-ci GitHub App
       id: jwt
       uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
@@ -24,11 +27,9 @@ jobs:
         \\\n      \"https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID
         }}/access_tokens\" | \\\n      jq -r .token)\"\n      echo \"::add-mask::$TOKEN\"\n
         \     echo \"token=$TOKEN\" >> $GITHUB_OUTPUT\n    "
-    - uses: actions/checkout@v3
-      with:
-        submodules: true
     - env:
         GITHUB_TOKEN: ${{ steps.token.outputs.token }}
       name: checkout semgrep-pro
-      run: "\n          pwd\n          ls\n          git clone git@github.com:returntocorp/semgrep-proprietary.git\n
+      run: "\n\t  cd ..\n          gh repo clone returntocorp/semgrep-proprietary\n\t
+        \ mv semgrep semgrep-proprietary\n\t  cd semgrep-proprietary\n\t  ls -al\n
         \       "

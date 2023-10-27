@@ -12,9 +12,9 @@ local semgrep = import 'libs/semgrep.libsonnet';
 local check_compile_semgrep_pro_job = {
     'runs-on': 'ubuntu-latest',
     steps: [
+      actions.checkout_with_submodules(),
       semgrep.github_bot.get_jwt_step,
       semgrep.github_bot.get_token_step,
-      actions.checkout_with_submodules(),
 /* TODO
       {
         name: 'Setup OCaml and opam',
@@ -44,9 +44,11 @@ local check_compile_semgrep_pro_job = {
         env: semgrep.github_bot.github_token,
         name: 'checkout semgrep-pro',
         run: |||
-          pwd
-          ls
-          git clone git@github.com:returntocorp/semgrep-proprietary.git
+	  cd ..
+          gh repo clone returntocorp/semgrep-proprietary
+	  mv semgrep semgrep-proprietary
+	  cd semgrep-proprietary
+	  ls -al
         |||,
         },
     ],
