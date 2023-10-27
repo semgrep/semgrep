@@ -12,16 +12,16 @@ local semgrep = import 'libs/semgrep.libsonnet';
 local check_compile_semgrep_pro_job = {
     'runs-on': 'ubuntu-latest',
     steps: [
-//      semgrep.github_bot.get_jwt_step,
-//      semgrep.github_bot.get_token_step,
+      semgrep.github_bot.get_jwt_step,
+      semgrep.github_bot.get_token_step,
       actions.checkout_with_submodules(),
 /* TODO
       {
-	name: 'Setup OCaml and opam',
-	uses: 'ocaml/setup-ocaml@v2',
-	with: {
-	  'ocaml-compiler': '5.1.x',
-	},
+        name: 'Setup OCaml and opam',
+        uses: 'ocaml/setup-ocaml@v2',
+        with: {
+          'ocaml-compiler': '5.1.x',
+        },
       },
       # old: make -C semgrep install-deps-ALPINE-for-semgrep-core
       # but we're on ubuntu here, not alpine, and it seems like setup-ocaml
@@ -41,12 +41,14 @@ local check_compile_semgrep_pro_job = {
       },
 */
       {
-//        env: semgrep.github_bot.github_token,
+        env: semgrep.github_bot.github_token,
         name: 'checkout semgrep-pro',
         run: |||
-             git clone git@github.com:returntocorp/semgrep-proprietary.git
-	  |||,
-	},
+          pwd
+          ls
+          git clone git@github.com:returntocorp/semgrep-proprietary.git
+        |||,
+        },
     ],
   };
 
