@@ -1500,7 +1500,16 @@ and stmt_aux env st =
       python_with_stmt env manager opt_pat body
   (* Java: synchronized (E) S *)
   | G.OtherStmtWithStmt (G.OSWS_Block _, [ G.E objorig ], stmt1) ->
+      (* TODO: Restrict this to a syncrhonized block ? *)
       let ss, _TODO_obj = expr_with_pre_stmts env objorig in
+      ss @ stmt env stmt1
+  (* Rust: unsafe block *)
+  | G.OtherStmtWithStmt (G.OSWS_Block ("Unsafe", tok), [], stmt1) ->
+      let ss, _ =
+        with_pre_stmts env (fun env ->
+            let unit = mk_unit (G.fake "()") NoOrig in
+            mk_aux_var ~str:"__TODO_unsafe_block__" env tok unit)
+      in
       ss @ stmt env stmt1
   | G.OtherStmt _
   | G.OtherStmtWithStmt _ ->
