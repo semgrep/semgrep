@@ -10,13 +10,13 @@ jobs:
   check-compile-semgrep-pro:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: true
     - name: Setup OCaml and opam
       uses: ocaml/setup-ocaml@v2
       with:
-        ocaml-compiler: 4.14.x
+        ocaml-compiler: 5.1.x
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
     - name: Get JWT for semgrep-ci GitHub App
       id: jwt
       uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
