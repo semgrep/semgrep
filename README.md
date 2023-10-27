@@ -127,11 +127,11 @@ The Semgrep ecosystem includes the following products:
 
 - [Semgrep Code](https://semgrep.dev/products/semgrep-code) - Scan your code with Semgrep's proprietary rules (written by our Security Research team) using our cross-file and cross-function analysis. Designed to find OWASP Top 10 vulnerabilities and protect against critical security risks. Semgrep Code is available on both [free and paid tiers](https://semgrep.dev/pricing).
 - [Semgrep Supply Chain (SSC)](https://semgrep.dev/products/semgrep-supply-chain) - A high-signal dependency scanner that detects reachable vulnerabilities in open source third-party libraries and functions across the software development life cycle (SDLC). Semgrep Supply Chain is available on both [free and paid tiers](https://semgrep.dev/pricing).
-- [Semgrep Secrets](https://semgrep.dev/blog/2023/introducing-semgrep-secrets/)[NEW!] - Secrets detection that uses semantic analysis, improved entropy analysis, and validation together to accurately detect sensitive credentials in developer workflows. Sign up for our [private beta](https://get.semgrep.dev/secrets-beta-request.html) to request early access to the product.
+- [Semgrep Secrets [NEW!]](https://semgrep.dev/blog/2023/introducing-semgrep-secrets/) - Secrets detection that uses semantic analysis, improved entropy analysis, and validation together to accurately detect sensitive credentials in developer workflows. [Book a demo](https://get.semgrep.dev/secrets-beta-request.html) to request early access to the product.
 - [Semgrep Cloud Platform (SCP)](https://semgrep.dev/login) - Deploy, manage, and monitor Semgrep at scale, with [free and paid tiers](https://semgrep.dev/pricing). Integrates with continuous integration (CI) providers such as GitHub, GitLab, CircleCI, and more.
 - [Semgrep OSS Engine](https://semgrep.dev/docs/cli-reference/) - The open-source engine and community-contributed rules at the heart of everything (this project).
 
-and:
+To learn more about Semgrep, visit:
 
 - [Semgrep Playground](https://semgrep.dev/editor) - An online interactive tool for writing and sharing rules.
 - [Semgrep Registry](https://semgrep.dev/explore) - 2,000+ community-driven rules covering security, correctness, and dependency vulnerabilities.
