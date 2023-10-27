@@ -1,0 +1,23 @@
+Improved handling of unused lambdas to reduce false positives
+
+Previously, we used to insert the CFGs of unused lambdas at the declaration
+site. However, this approach triggered some false positives. For example,
+consider the following code:
+
+```
+void incorrect(int *p) {
+  auto f1 = [&p]() {
+    source(p);
+  };
+  auto f2 = [&p]() {
+    sink(p);
+  };
+}
+```
+
+In this code, there's no actual control flow between the source and sink, and
+the lambdas are never even called. But when we inserted their CFGs at the
+declaration site, it incorrectly indicated a taint finding. To prevent these
+types of false positives while still scanning the body of unused lambdas, we
+now insert their CFGs in parallel at the end of their parent function, right
+after all other statements and just before the end node.
