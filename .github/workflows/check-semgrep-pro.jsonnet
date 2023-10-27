@@ -12,8 +12,8 @@ local semgrep = import 'libs/semgrep.libsonnet';
 local check_compile_semgrep_pro_job = {
     'runs-on': 'ubuntu-latest',
     steps: [
-      semgrep.github_bot.get_jwt_step,
-      semgrep.github_bot.get_token_step,
+//      semgrep.github_bot.get_jwt_step,
+//      semgrep.github_bot.get_token_step,
       actions.checkout_with_submodules(),
 /* TODO
       {
@@ -41,7 +41,7 @@ local check_compile_semgrep_pro_job = {
       },
 */
       {
-        env: semgrep.github_bot.github_token,
+//        env: semgrep.github_bot.github_token,
         name: 'checkout semgrep-pro',
         run: |||
              gh repo clone returntocorp/semgrep-proprietary
