@@ -41,10 +41,11 @@
 
 Semgrep accelerates your security journey by swiftly scanning code and package dependencies for known issues, software vulnerabilities, and detected secrets with unparalleled efficiency. Semgrep offers:
 
-- **Code** for bugs & vulnerabilities using custom or pre-built rules
-- **Supply Chain** dependencies for known vulnerabilities
-- **Secrets** and hard-coded credentials that shouldn't be checked into source code
-  Semgrep analyzes code locally on your computer or in your build environment: **by default, code is never uploaded**. [Get started →.](#getting-started-)
+- **Code** to find bugs & vulnerabilities using custom or pre-built rules
+- **Supply Chain** to find dependencies with known vulnerabilities
+- **Secrets** to find hard-coded credentials that shouldn't be checked into source code
+
+Semgrep analyzes code locally on your computer or in your build environment: **by default, code is never uploaded**. [Get started →.](#getting-started-)
 
 <a href="#option-1-getting-started-from-the-cli">
 <img src="https://raw.githubusercontent.com/returntocorp/semgrep/develop/images/semgrep-scan-cli.jpg" alt="Semgrep CLI image"/></a>
