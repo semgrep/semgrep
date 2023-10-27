@@ -39,7 +39,7 @@
 </p>
 </br>
 
-Semgrep is an engine for scanning:
+Semgrep accelerates your security journey by swiftly scanning code and package dependencies for known issues, software vulnerabilities, and detected secrets with unparalleled efficiency. Semgrep offers:
 
 - **Code** for bugs & vulnerabilities using custom or pre-built rules
 - **Supply Chain** dependencies for known vulnerabilities
