@@ -31,7 +31,6 @@ object
   method branch : string option
   method ci_job_url : Uri.t option
   method commit_sha : Digestif.SHA1.t option
-  method commit_timestamp : string option
   method event_name : string
   method is_full_scan : bool
   method pr_id : string option
