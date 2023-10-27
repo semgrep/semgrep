@@ -186,12 +186,11 @@ let decode_json_rules (data : string) : Rule_fetching.rules_and_origin =
       Rule_fetching.load_rules_from_file ~origin:Other_origin
         ~registry_caching:false file)
 
-(* Either a scan_id and the rules for the project, or None and the rules
- * specified on command-line. If something fails, we Error.exit.
- *)
-let scan_id_and_rules_from_deployment ~dry_run (prj_meta : Out.project_metadata)
-    (token : Auth.token) (deployment_config : Semgrep_App.deployment_config) :
-    Semgrep_App.scan_id * Rule_fetching.rules_and_origin list =
+let scan_config_and_rules_from_deployment ~dry_run
+    (prj_meta : Out.project_metadata) (token : Auth.token)
+    (deployment_config : Semgrep_App.deployment_config) :
+    Semgrep_App.scan_id * Out.scan_config * Rule_fetching.rules_and_origin list
+    =
   Logs.app (fun m -> m "  %a" Fmt.(styled `Underline string) "CONNECTION");
   Logs.app (fun m ->
       m "  Reporting start of scan for %a"
@@ -234,6 +233,7 @@ let scan_id_and_rules_from_deployment ~dry_run (prj_meta : Out.project_metadata)
             Error.exit r
         | Ok config -> config
       in
+
       let rules_and_origins =
         try decode_json_rules scan_config.rule_config with
         | Error.Semgrep_error (_, opt_ex) as e ->
@@ -242,7 +242,7 @@ let scan_id_and_rules_from_deployment ~dry_run (prj_meta : Out.project_metadata)
             let e = Exception.catch e in
             Exception.reraise e
       in
-      (scan_id, [ rules_and_origins ])
+      (scan_id, scan_config, [ rules_and_origins ])
 
 (*****************************************************************************)
 (* Project metadata *)
@@ -653,8 +653,13 @@ let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
   let prj_meta = generate_meta_from_environment None in
   Logs.app (fun m -> m "%a" Fmt_helpers.pp_heading "Debugging Info");
   report_scan_environment prj_meta;
+
   (* TODO: fix_head_if_github_action(metadata) *)
-  let scan_id_opt, rules_and_origin =
+
+  (* Either a scan_config and the rules for the project, or None and the rules
+   * specified on command-line. If something fails, we Error.exit.
+   *)
+  let scan_config_opt, rules_and_origin =
     match depl_opt with
     (* TODO: document why we support running the ci command without a
      * token / deployment. We could simplify the code.
@@ -665,10 +670,10 @@ let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
             ~rewrite_rule_ids:conf.rewrite_rule_ids
             ~registry_caching:conf.registry_caching conf.rules_source )
     | Some (token, depl) ->
-        let scan_id, rules =
-          scan_id_and_rules_from_deployment ~dry_run prj_meta token depl
+        let scan_id, scan_config, rules =
+          scan_config_and_rules_from_deployment ~dry_run prj_meta token depl
         in
-        (Some scan_id, rules)
+        (Some (scan_id, scan_config), rules)
   in
 
   (* TODO:
@@ -717,14 +722,48 @@ let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
     let targets_and_ignored =
       Find_targets.get_targets conf.targeting_conf conf.target_roots
     in
+    (* TODO: should use those fields! the pattern match is useless but it's
+     * just to get compilation error when we add new fields in scan_config
+     *)
+    (match scan_config_opt with
+    | None -> ()
+    | Some
+        ( _scan_id,
+          {
+            (* this is used in scan_config_and_rules_from_deployment *)
+            rule_config = _;
+            (* those 2 do not matter; they should be in a separate
+             * scan_response actually in the futur
+             *)
+            deployment_id = _;
+            deployment_name = _;
+            (* TODO: seems unused *)
+            policy_names = _;
+            (* TODO: lots of info in there to customize, should
+             * adjust the environment and maybe recall
+             * generate_meta_from_environment
+             *)
+            ci_config_from_cloud = _;
+            (* TODO *)
+            autofix = _;
+            deepsemgrep = _;
+            dependency_query = _;
+            ignored_files = _;
+            enabled_products = _;
+            (* ?? *)
+            triage_ignored_match_based_ids = _;
+            triage_ignored_syntactic_ids = _;
+          } ) ->
+        ());
+
     let res =
       Scan_subcommand.run_scan_files conf profiler rules_and_origin
         targets_and_ignored
     in
     match res with
     | Error e ->
-        (match (depl_opt, scan_id_opt) with
-        | Some (token, _), Some scan_id ->
+        (match (depl_opt, scan_config_opt) with
+        | Some (token, _), Some (scan_id, _scan_config) ->
             report_failure ~dry_run ~token ~scan_id e
         | _else -> ());
         Logs.err (fun m -> m "Encountered error when running rules");
@@ -769,6 +808,7 @@ let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
         *)
         report_scan_completed ~blocking_findings ~blocking_rules
           ~non_blocking_findings ~non_blocking_rules;
+        let scan_id_opt = Option.map fst scan_config_opt in
         let app_block_override =
           upload_findings ~dry_run depl_opt scan_id_opt blocking_findings
             filtered_rules cli_output
@@ -779,8 +819,8 @@ let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
           ~app_block_override blocking_findings
   with
   | Error.Semgrep_error (_, ex) as e ->
-      (match (depl_opt, scan_id_opt) with
-      | Some (token, _), Some scan_id ->
+      (match (depl_opt, scan_config_opt) with
+      | Some (token, _), Some (scan_id, _scan_config) ->
           let r = Option.value ~default:Exit_code.fatal ex in
           report_failure ~dry_run ~token ~scan_id r
       | _else -> ());
