@@ -13,16 +13,30 @@ local check_compile_semgrep_pro_job = {
     'runs-on': 'ubuntu-latest',
     steps: [
       actions.checkout_with_submodules(),
+
       semgrep.github_bot.get_jwt_step,
       semgrep.github_bot.get_token_step,
-/* TODO
+
+      {
+        env: semgrep.github_bot.github_token,
+        name: 'Checkout semgrep-pro',
+        run: |||
+	  cd ..
+          gh repo clone returntocorp/semgrep-proprietary
+	  mv semgrep semgrep-proprietary/
+	  # GHA post cleanup requires /home/runner/work/semgrep/semgrep to still exist
+	  mv semgrep-proprietary semgrep
+        |||,
+        },
+
       {
         name: 'Setup OCaml and opam',
         uses: 'ocaml/setup-ocaml@v2',
         with: {
-          'ocaml-compiler': '5.1.x',
+          'ocaml-compiler': '4.14.x',
         },
       },
+
       # old: make -C semgrep install-deps-ALPINE-for-semgrep-core
       # but we're on ubuntu here, not alpine, and it seems like setup-ocaml
       # is able to infer the dependencies to install by inspecting
@@ -39,17 +53,12 @@ local check_compile_semgrep_pro_job = {
           make install-deps
         |||,
       },
-*/
+
       {
-        env: semgrep.github_bot.github_token,
-        name: 'checkout semgrep-pro',
+        name: 'compile semgrep-pro',
         run: |||
-	  cd ..
-          gh repo clone returntocorp/semgrep-proprietary
-	  mv semgrep semgrep-proprietary/
-	  # GHA post cleanup requires /home/runner/work/semgrep/semgrep to still exist
-	  mv semgrep-proprietary semgrep
-	  ls -al
+          eval $(opam env)
+          make
         |||,
         },
     ],
