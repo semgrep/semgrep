@@ -13,8 +13,7 @@ jobs:
       with:
         submodules: true
     - name: checkout semgrep-pro
-      run: "\n\t     git clone git@github.com:returntocorp/semgrep-proprietary.git\n\t
-        \ "
+      run: "git clone https://github.com/returntocorp/semgrep-proprietary.git"
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:alpine-2023-10-17
     env:
