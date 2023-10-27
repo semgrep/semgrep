@@ -30,7 +30,7 @@ val start_scan :
 (* TODO: diff with get_scan_config_from_token? *)
 val fetch_scan_config :
   dry_run:bool ->
-  token:string ->
+  token:Auth.token ->
   sca:bool ->
   full_scan:bool ->
   repository:string ->
@@ -41,13 +41,17 @@ val fetch_scan_config :
 (* upload both the scan_results and complete *)
 val upload_findings :
   dry_run:bool ->
-  token:string ->
+  token:Auth.token ->
   scan_id:scan_id ->
   results:Semgrep_output_v1_t.ci_scan_results ->
   complete:Semgrep_output_v1_t.ci_scan_complete ->
   (app_block_override, string) result
 (** [upload_findings ~dry_run ~token ~scan_id ~results ~complete]
     reports the findings to Semgrep App. *)
+
+(* report a failure for [scan_id] to Semgrep App *)
+val report_failure :
+  dry_run:bool -> token:Auth.token -> scan_id:scan_id -> Exit_code.t -> unit
 
 (* lwt-friendly versions for the language-server *)
 
