@@ -16,7 +16,7 @@ local check_compile_semgrep_pro_job = {
   // alt: use alpine and procedure to download gh binary tarball
   // alt: use setup-ocaml@v2, but seems fragile when you move
   //  around folders
-    container: 'returntocorp/ocaml:ubuntu-2023-10-17',
+    container: 'returntocorp/ocaml:alpine-2023-10-17',
     // We need this hack because GHA tampers with the HOME in container
     // and this does not play well with 'opam' installed in /root
     env: {
@@ -24,9 +24,9 @@ local check_compile_semgrep_pro_job = {
     },
     steps: [
       actions.checkout_with_submodules(),
-      {
-        run: 'apt-get install gh'
-      },
+//      {
+//        run: 'apt-get install gh'
+//      },
       # old: make -C semgrep install-deps-ALPINE-for-semgrep-core
       # but we're on ubuntu here and most packages are already installed
       {
@@ -35,6 +35,7 @@ local check_compile_semgrep_pro_job = {
 	  pwd
 	  ls
 	  opam switch
+          make install-deps-ALPINE-for-semgrep-core
           make install-deps-for-semgrep-core
           make install-deps
         |||,
