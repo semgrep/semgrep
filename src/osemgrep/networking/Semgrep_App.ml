@@ -16,26 +16,6 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 (* Types *)
 (*****************************************************************************)
 
-(* TODO? specify this with atd and have both app + osemgrep use it *)
-(* coupling: response from semgrep app (e.g. id as int vs string ) *)
-type deployment_config = {
-  id : int;
-  (* the important piece, the deployment name *)
-  name : string;
-  display_name : string; [@default ""]
-  (* ??? *)
-  slug : string; [@default ""]
-  source_type : string; [@default ""]
-  has_autofix : bool; [@default false]
-  has_deepsemgrep : bool; [@default false]
-  has_triage_via_comment : bool; [@default false]
-  has_dependency_query : bool; [@default false]
-  default_user_role : string; [@default ""]
-  organization_id : int; [@default 0]
-  scm_name : string; [@default ""]
-}
-[@@deriving yojson]
-
 (* LATER: declared this in semgrep_output_v1.atd instead? *)
 type scan_id = string
 type app_block_override = string (* reason *) option
@@ -53,9 +33,36 @@ let results_route scan_id = "/api/agent/scans/" ^ scan_id ^ "/results"
 let complete_route scan_id = "/api/agent/scans/" ^ scan_id ^ "/complete"
 
 (*****************************************************************************)
+(* Scan config version 1 (used by LS) *)
+(*****************************************************************************)
+
+(* Returns the scan config if the token is valid, otherwise None *)
+let get_scan_config_from_token_async ~token : Out.scan_config option Lwt.t =
+  let%lwt response =
+    Http_helpers.get_async
+      ~headers:[ ("authorization", "Bearer " ^ token) ]
+      (Uri.with_path !Semgrep_envvars.v.semgrep_url scan_config_route)
+  in
+  let scan_config_opt =
+    match response with
+    | Error msg ->
+        Logs.debug (fun m -> m "error while retrieving scan config: %s" msg);
+        None
+    | Ok body -> (
+        try Some (Out.scan_config_of_string body) with
+        | Yojson.Json_error msg ->
+            Logs.debug (fun m ->
+                m "failed to parse body as scan_config %s: %s" msg body);
+            None)
+  in
+  Lwt.return scan_config_opt
+
+let get_scan_config_from_token ~token =
+  Lwt_platform.run (get_scan_config_from_token_async ~token)
+
+(*****************************************************************************)
 (* Extractors *)
 (*****************************************************************************)
-(* TODO: we should use ATD to specify the backend response format instead *)
 
 (* TODO: specify as ATD the reply of api/agent/deployments/scans *)
 let extract_scan_id (data : string) : (scan_id, string) result =
@@ -80,82 +87,46 @@ let extract_scan_id (data : string) : (scan_id, string) result =
   | e ->
       Error ("Couldn't parse json, error: " ^ Printexc.to_string e ^ ": " ^ data)
 
-(* TODO the server reply when POST to
-   "/api/agent/scans/<scan_id>/findings_and_ignores" should be specified ATD *)
-let extract_errors (data : string) =
-  try
-    match JSON.json_of_string data with
-    | JSON.Object xs -> (
-        match List.assoc_opt "errors" xs with
-        | Some (JSON.Array errs) ->
-            List.iter
-              (fun err ->
-                match err with
-                | JSON.Object xs -> (
-                    match List.assoc_opt "message" xs with
-                    | Some (String s) ->
-                        Logs.warn (fun m ->
-                            m "Server returned following warning: %s" s)
-                    | _else ->
-                        Logs.err (fun m ->
-                            m "Couldn't find message in %s"
-                              (JSON.string_of_json err)))
-                | _else ->
-                    Logs.err (fun m ->
-                        m "Couldn't find message in %s"
-                          (JSON.string_of_json err)))
-              errs
-        | _else ->
-            Logs.err (fun m ->
-                m "Couldn't find errors in %s"
-                  (JSON.string_of_json (JSON.Object xs))))
-    | json ->
-        Logs.err (fun m -> m "Not a json object %s" (JSON.string_of_json json))
-  with
-  | e ->
+(* the server reply when POST to "/api/agent/scans/<scan_id>/results"  *)
+let extract_errors (data : string) : string list =
+  match Out.ci_scan_results_response_of_string data with
+  | { errors; task_id = _ } as response ->
+      Logs.debug (fun m ->
+          m "results response = %s" (Out.show_ci_scan_results_response response));
+      errors
+      |> Common.map (fun (x : Out.ci_scan_results_response_error) -> x.message)
+  | exception exn ->
       Logs.err (fun m ->
           m "Failed to decode server reply as json %s: %s"
-            (Printexc.to_string e) data)
+            (Printexc.to_string exn) data);
+      []
 
-(* TODO the server reply when POST to
-   "/api/agent/scans/<scan_id>/complete" should be specified in ATD
-*)
+(* the server reply when POST to "/api/agent/scans/<scan_id>/complete" *)
 let extract_block_override (data : string) : (app_block_override, string) result
     =
-  try
-    match JSON.json_of_string data with
-    | JSON.Object xs ->
-        let app_block_override =
-          match List.assoc_opt "app_block_override" xs with
-          | Some (Bool b) -> b
-          | _else -> false
-        and app_block_reason =
-          match List.assoc_opt "app_block_reason" xs with
-          | Some (String s) -> s
-          | _else -> ""
-        in
-        if app_block_override then Ok (Some app_block_reason)
-          (* TODO? can we have a app_block_reason set when override is false? *)
-        else Ok None
-    | json ->
-        Error
-          (Fmt.str "Failed to understand the server reply: %s"
-             (JSON.string_of_json json))
-  with
-  | e ->
+  match Out.ci_scan_complete_response_of_string data with
+  | { success = _; app_block_override; app_block_reason } as response ->
+      Logs.debug (fun m ->
+          m "complete response = %s"
+            (Out.show_ci_scan_complete_response response));
+      if app_block_override then Ok (Some app_block_reason)
+        (* TODO? can we have a app_block_reason set when override is false? *)
+      else Ok None
+  | exception exn ->
       Error
-        (Fmt.str "Failed to decode server reply as json %s: %s"
-           (Printexc.to_string e) data)
+        (spf "Failed to decode server reply as json %s: %s"
+           (Printexc.to_string exn) data)
 
 (*****************************************************************************)
 (* Step0: deployment config *)
 (*****************************************************************************)
 
 (* Returns the deployment config if the token is valid, otherwise None *)
-let get_deployment_from_token_async ~token : deployment_config option Lwt.t =
+let get_deployment_from_token_async ~token : Out.deployment_config option Lwt.t
+    =
+  let headers = [ ("authorization", "Bearer " ^ token) ] in
   let%lwt response =
-    Http_helpers.get_async
-      ~headers:[ ("authorization", "Bearer " ^ token) ]
+    Http_helpers.get_async ~headers
       (Uri.with_path !Semgrep_envvars.v.semgrep_url deployment_route)
   in
   let deployment_opt =
@@ -163,87 +134,15 @@ let get_deployment_from_token_async ~token : deployment_config option Lwt.t =
     | Error msg ->
         Logs.debug (fun m -> m "error while retrieving deployment: %s" msg);
         None
-    | Ok body -> (
-        try
-          let yojson = Yojson.Safe.from_string body in
-          let open Yojson.Safe.Util in
-          let config =
-            deployment_config_of_yojson (yojson |> member "deployment")
-          in
-          match config with
-          | Ok config -> Some config
-          | Error msg -> raise (Yojson.Json_error msg)
-        with
-        | Yojson.Json_error msg ->
-            Logs.debug (fun m -> m "failed to parse json %s: %s" msg body);
-            None)
+    | Ok body ->
+        let x = Out.deployment_response_of_string body in
+        Some x.deployment
   in
   Lwt.return deployment_opt
 
 (* from auth.py *)
 let get_deployment_from_token ~token =
   Lwt_platform.run (get_deployment_from_token_async ~token)
-
-(*****************************************************************************)
-(* Scan config version 1 *)
-(*****************************************************************************)
-
-(* Returns the scan config if the token is valid, otherwise None *)
-let get_scan_config_from_token_async ~token =
-  let%lwt response =
-    Http_helpers.get_async
-      ~headers:[ ("authorization", "Bearer " ^ token) ]
-      (Uri.with_path !Semgrep_envvars.v.semgrep_url scan_config_route)
-  in
-  let scan_config_opt =
-    match response with
-    | Error msg ->
-        Logs.debug (fun m -> m "error while retrieving scan config: %s" msg);
-        None
-    | Ok body -> (
-        try Some (Out.scan_config_of_string body) with
-        | Yojson.Json_error msg ->
-            Logs.debug (fun m ->
-                m "failed to parse body as scan_config %s: %s" msg body);
-            None)
-  in
-  Lwt.return scan_config_opt
-
-let get_scan_config_from_token ~token =
-  Lwt_platform.run (get_scan_config_from_token_async ~token)
-
-let scan_config_uri ?(sca = false) ?(dry_run = true) ?(full_scan = true)
-    repo_name =
-  let json_bool_to_string b = JSON.(string_of_json (Bool b)) in
-  Uri.(
-    add_query_params'
-      (with_path !Semgrep_envvars.v.semgrep_url scan_config_route)
-      [
-        ("sca", json_bool_to_string sca);
-        ("dry_run", json_bool_to_string dry_run);
-        ("full_scan", json_bool_to_string full_scan);
-        ("repo_name", repo_name);
-        ("semgrep_version", Version.version);
-      ])
-
-(* Returns a url with scan config encoded via search params based on a magic environment variable *)
-let url_for_policy ~token =
-  let deployment_config = get_deployment_from_token ~token in
-  match deployment_config with
-  | None ->
-      Error.abort
-        (spf "Invalid API Key. Run `semgrep logout` and `semgrep login` again.")
-  | Some _deployment_config -> (
-      (* NOTE: This logic is ported directly from python but seems very brittle
-         as we have helper functions to infer the repo name from the git remote
-         information.
-      *)
-      match Sys.getenv_opt "SEMGREP_REPO_NAME" with
-      | None ->
-          Error.abort
-            (spf
-               "Need to set env var SEMGREP_REPO_NAME to use `--config policy`")
-      | Some repo_name -> scan_config_uri repo_name)
 
 (*****************************************************************************)
 (* Step1 : start scan *)
@@ -307,8 +206,42 @@ Please make sure they have been set correctly.
         Error msg
 
 (*****************************************************************************)
-(* Step2 : fetch scan config version 2 *)
+(* Step2 : fetch scan config (version 2) *)
 (*****************************************************************************)
+
+(* deprecated? *)
+let scan_config_uri ?(sca = false) ?(dry_run = true) ?(full_scan = true)
+    repo_name =
+  let json_bool_to_string b = JSON.(string_of_json (Bool b)) in
+  Uri.(
+    add_query_params'
+      (with_path !Semgrep_envvars.v.semgrep_url scan_config_route)
+      [
+        ("sca", json_bool_to_string sca);
+        ("dry_run", json_bool_to_string dry_run);
+        ("full_scan", json_bool_to_string full_scan);
+        ("repo_name", repo_name);
+        ("semgrep_version", Version.version);
+      ])
+
+(* Returns a url with scan config encoded via search params based on a magic environment variable *)
+let url_for_policy ~token =
+  let deployment_config = get_deployment_from_token ~token in
+  match deployment_config with
+  | None ->
+      Error.abort
+        (spf "Invalid API Key. Run `semgrep logout` and `semgrep login` again.")
+  | Some _deployment_config -> (
+      (* NOTE: This logic is ported directly from python but seems very brittle
+         as we have helper functions to infer the repo name from the git remote
+         information.
+      *)
+      match Sys.getenv_opt "SEMGREP_REPO_NAME" with
+      | None ->
+          Error.abort
+            (spf
+               "Need to set env var SEMGREP_REPO_NAME to use `--config policy`")
+      | Some repo_name -> scan_config_uri repo_name)
 
 let fetch_scan_config_async ~dry_run ~token ~sca ~full_scan ~repository :
     (Out.scan_config, string) result Lwt.t =
@@ -382,7 +315,11 @@ let upload_findings ~dry_run ~token ~scan_id ~results ~complete :
     in
     let body = results in
     (match Http_helpers.post ~body ~headers url with
-    | Ok body -> extract_errors body
+    | Ok body ->
+        let errors = extract_errors body in
+        errors
+        |> List.iter (fun s ->
+               Logs.warn (fun m -> m "Server returned following warning: %s" s))
     | Error (code, msg) ->
         Logs.warn (fun m -> m "API server returned %u, this error: %s" code msg));
     (* mark as complete *)
@@ -395,3 +332,34 @@ let upload_findings ~dry_run ~token ~scan_id ~results ~complete :
     | Error (code, msg) ->
         Error
           ("API server returned " ^ string_of_int code ^ ", this error: " ^ msg))
+
+(*****************************************************************************)
+(* Error reporting to the backend *)
+(*****************************************************************************)
+
+(* report a failure for [scan_id] to Semgrep App *)
+let report_failure ~dry_run ~token ~scan_id (exit_code : Exit_code.t) : unit =
+  let int_code = Exit_code.to_int exit_code in
+  if dry_run then
+    Logs.app (fun m ->
+        m "Would have reported failure to semgrep.dev: %u" int_code)
+  else
+    let headers =
+      [
+        ("content-type", "application/json");
+        ("authorization", "Bearer " ^ token);
+      ]
+    in
+    let uri =
+      Uri.with_path !Semgrep_envvars.v.semgrep_url
+        ("/api/agent/scans/" ^ scan_id ^ "/error")
+    in
+    let failure : Out.ci_scan_failure =
+      { exit_code = int_code; (* TODO *)
+                              stderr = "" }
+    in
+    let body = Out.string_of_ci_scan_failure failure in
+    match Http_helpers.post ~body ~headers uri with
+    | Ok _ -> ()
+    | Error (code, msg) ->
+        Logs.err (fun m -> m "API server returned %u, this error: %s" code msg)
