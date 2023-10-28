@@ -19,6 +19,7 @@ from semgrep.constants import OutputFormat
         ("rules/invalid-rules/missing-hyphen.yaml"),
     ],
 )
+@pytest.mark.osemfail
 def test_validation_of_invalid_rules(run_semgrep_in_tmp: RunSemgrep, snapshot, rule):
     _, err = run_semgrep_in_tmp(
         rule,
@@ -40,6 +41,7 @@ def test_validation_of_invalid_rules(run_semgrep_in_tmp: RunSemgrep, snapshot, r
         ("rules/extra_field.yaml"),
     ],
 )
+@pytest.mark.osemfail
 def test_extra_top_level_valid(run_semgrep_in_tmp: RunSemgrep, snapshot, rule):
     """
     An extra field in the rule does not cause it to fail validation
@@ -57,7 +59,6 @@ def test_extra_top_level_valid(run_semgrep_in_tmp: RunSemgrep, snapshot, rule):
     )
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "rule",
