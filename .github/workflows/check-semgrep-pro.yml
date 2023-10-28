@@ -9,14 +9,14 @@ name: check-semgrep-pro
 jobs:
   check-compile-semgrep-pro:
     runs-on: ubuntu-latest
+    container: returntocorp/ocaml:ubuntu-2023-10-17
+    env:
+      HOME: /root
     steps:
     - uses: actions/checkout@v4
       with:
         submodules: true
-    - name: Setup OCaml and opam
-      uses: ocaml/setup-ocaml@v2
-      with:
-        ocaml-compiler: 5.1.x
+    - run: apt-get install gh
     - name: Test
       run: "\n\t  pwd\n\t  ls\n\t  opam switch\n          make install-deps-for-semgrep-core\n
         \         make install-deps\n        "
@@ -40,8 +40,7 @@ jobs:
       run: "\n\t  cd ..\n          gh repo clone returntocorp/semgrep-proprietary\n\t
         \ mv semgrep semgrep-proprietary/\n\t  # GHA post cleanup requires /home/runner/work/semgrep/semgrep
         to still exist\n\t  mv semgrep-proprietary semgrep\n        "
-    - name: Install dependencies
-      run: "\n          eval $(opam env)\n          make -C semgrep install-deps-for-semgrep-core\n
-        \         make install-deps\n        "
+    - name: Install pro dependencies
+      run: "\n          eval $(opam env)\n          make install-deps\n        "
     - name: compile semgrep-pro
       run: "\n          eval $(opam env)\n          make\n        "

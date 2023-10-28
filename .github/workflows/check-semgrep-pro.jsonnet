@@ -10,16 +10,25 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // ----------------------------------------------------------------------------
 
 local check_compile_semgrep_pro_job = {
-    'runs-on': 'ubuntu-latest',
+  'runs-on': 'ubuntu-latest',
+  // Switching to ubuntu here because alpine does not offer gh
+  // which is needed to checkout semgrep-pro from semgrep GHA.
+  // alt: use alpine and procedure to download gh binary tarball
+  // alt: use setup-ocaml@v2, but seems fragile when you move
+  //  around folders
+    container: 'returntocorp/ocaml:ubuntu-2023-10-17',
+    // We need this hack because GHA tampers with the HOME in container
+    // and this does not play well with 'opam' installed in /root
+    env: {
+      HOME: '/root',
+    },
     steps: [
       actions.checkout_with_submodules(),
       {
-        name: 'Setup OCaml and opam',
-        uses: 'ocaml/setup-ocaml@v2',
-        with: {
-          'ocaml-compiler': '5.1.x',
-        },
+        run: 'apt-get install gh'
       },
+      # old: make -C semgrep install-deps-ALPINE-for-semgrep-core
+      # but we're on ubuntu here and most packages are already installed
       {
         name: 'Test',
         run: |||
@@ -44,21 +53,10 @@ local check_compile_semgrep_pro_job = {
 	  mv semgrep-proprietary semgrep
         |||,
         },
-
-
-      # old: make -C semgrep install-deps-ALPINE-for-semgrep-core
-      # but we're on ubuntu here, not alpine, and it seems like setup-ocaml
-      # is able to infer the dependencies to install by inspecting
-      # the semgrep-server.opam file!
-      #
-      # TODO: use a actions/cache@ with the semgrep-server.opam.locked
-      # as a key? note that setup-ocaml is already using some caching
-      # mechanism, so it's maybe not needed.
       {
-        name: 'Install dependencies',
+        name: 'Install pro dependencies',
         run: |||
           eval $(opam env)
-          make -C semgrep install-deps-for-semgrep-core
           make install-deps
         |||,
       },
