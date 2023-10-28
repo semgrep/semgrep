@@ -4,7 +4,6 @@ from tests.fixtures import RunSemgrep
 
 
 @pytest.mark.kinda_slow
-@pytest.mark.osempass
 def test_regex_rule__nosemgrep(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
@@ -15,7 +14,6 @@ def test_regex_rule__nosemgrep(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
-@pytest.mark.osempass
 def test_nosem_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(run_semgrep_in_tmp("rules/nosem.yaml").stdout, "results.json")
 
@@ -32,7 +30,6 @@ def test_nosem_rule__invalid_id(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
-@pytest.mark.osempass
 def test_nosem_rule__with_disable_nosem(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/nosem.yaml", options=["--disable-nosem"]).stdout,

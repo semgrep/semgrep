@@ -15,14 +15,12 @@ syntax_fails = [
 ]
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("filename", syntax_passes)
 def test_rule_parser__success(run_semgrep_in_tmp: RunSemgrep, snapshot, filename):
     run_semgrep_in_tmp(f"rules/syntax/{filename}.yaml")
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("filename", syntax_fails)
 def test_rule_parser__failure(run_semgrep_in_tmp: RunSemgrep, snapshot, filename):
@@ -38,14 +36,12 @@ def test_regex_with_bad_language(run_semgrep_in_tmp: RunSemgrep, snapshot):
     run_semgrep_in_tmp("rules/syntax/badlanguage.yaml", assert_exit_code=8)
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_nonexisting_file(run_semgrep_in_tmp: RunSemgrep, snapshot):
     run_semgrep_in_tmp("rules/does_not_exist.yaml", assert_exit_code=7)
 
 
 # TODO: see comment in Scan_subcommand.ml.
-# @pytest.mark.osempass
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
 def test_rule_parser__empty(run_semgrep_in_tmp: RunSemgrep, snapshot):

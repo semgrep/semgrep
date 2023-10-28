@@ -41,7 +41,6 @@ def _etree_to_dict(t):
     return d
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_output_highlighting(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _errors = run_semgrep_in_tmp(
@@ -57,7 +56,6 @@ def test_output_highlighting(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_output_highlighting__no_color(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _errors = run_semgrep_in_tmp(
@@ -73,7 +71,6 @@ def test_output_highlighting__no_color(run_semgrep_in_tmp: RunSemgrep, snapshot)
     )
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_output_highlighting__force_color_and_no_color(
     run_semgrep_in_tmp: RunSemgrep, snapshot
@@ -98,7 +95,6 @@ def test_output_highlighting__force_color_and_no_color(
     )
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_yaml_capturing(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _errors = run_semgrep_in_tmp(
@@ -158,7 +154,6 @@ def test_yaml_metavariables(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.quick
-@pytest.mark.osempass
 def test_quiet_mode_has_empty_stderr(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
     Test that quiet mode doesn't print anything to stderr.
@@ -177,7 +172,6 @@ def test_quiet_mode_has_empty_stderr(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 # junit-xml is tested in a test_junit_xml_output due to ambiguous XML attribute ordering
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "format",
@@ -556,7 +550,6 @@ def test_cli_test_secret_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-# TODO! @pytest.mark.osempass
 # This is currently not passing because the loc field in the explanation
 # differs between pysemgrep and osemgrep because it's a location in the rule
 # (not in the target), and pysemgrep passes a preprocessed rule file to

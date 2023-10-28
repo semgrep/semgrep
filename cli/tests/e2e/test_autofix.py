@@ -3,7 +3,6 @@ from tests.fixtures import RunSemgrep
 
 
 # TODO: the dry-run are currently not working
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("dryrun", [False], ids=["not-dryrun"])
 @pytest.mark.parametrize(

@@ -5,7 +5,6 @@ import pytest
 from tests.semgrep_runner import SEMGREP_BASE_COMMAND
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_version():
     result = subprocess.check_output(

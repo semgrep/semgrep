@@ -149,7 +149,6 @@ def assert_err_match(snapshot, output, snapshot_name, replace_base_commit=None):
     return snapshot.assert_match(textwrap.dedent(err), snapshot_name)
 
 
-@pytest.mark.osempass
 def test_one_commit_with_baseline(git_tmp_path, snapshot):
     foo = git_tmp_path / "foo.py"
     foo.write_text(f"x = {SENTINEL_1}\n")
@@ -180,7 +179,6 @@ def test_one_commit_with_baseline(git_tmp_path, snapshot):
     )
 
 
-@pytest.mark.osempass
 def test_symlink(git_tmp_path, snapshot):
     # Test that head having no change to base (git commit --allow-empty)
     # doesnt break semgrep
@@ -219,7 +217,6 @@ def test_symlink(git_tmp_path, snapshot):
     )
 
 
-@pytest.mark.osempass
 def test_renamed_dir(git_tmp_path, snapshot):
     dir = git_tmp_path / "dir_old"
     dir.mkdir()
@@ -247,7 +244,6 @@ def test_renamed_dir(git_tmp_path, snapshot):
     assert_err_match(snapshot, baseline_output, "diff.err")
 
 
-@pytest.mark.osempass
 def test_dir_symlink_changed(git_tmp_path, snapshot):
     dir_one = git_tmp_path / "dir_one"
     dir_two = git_tmp_path / "dir_two"
@@ -280,7 +276,6 @@ def test_dir_symlink_changed(git_tmp_path, snapshot):
     assert_err_match(snapshot, baseline_output, "diff.err")
 
 
-@pytest.mark.osempass
 def test_file_changed_to_dir(git_tmp_path, snapshot):
     file_or_dir_path = git_tmp_path / "file_or_dir.py"
     file_or_dir_path.write_text(f"x = {SENTINEL_1}\n")
@@ -309,7 +304,6 @@ def test_file_changed_to_dir(git_tmp_path, snapshot):
     assert_err_match(snapshot, baseline_output, "diff.err")
 
 
-@pytest.mark.osempass
 def test_dir_changed_to_file(git_tmp_path, snapshot):
     file_or_dir_path = git_tmp_path / "file_or_dir.py"
     file_or_dir_path.mkdir()
@@ -341,7 +335,6 @@ def test_dir_changed_to_file(git_tmp_path, snapshot):
     assert_err_match(snapshot, baseline_output, "diff.err")
 
 
-@pytest.mark.osempass
 def test_no_findings_both(git_tmp_path, snapshot):
     # Test if no findings in head or base semgrep doesnt explode
     foo = git_tmp_path / "foo.py"
@@ -375,7 +368,6 @@ def test_no_findings_both(git_tmp_path, snapshot):
     )
 
 
-@pytest.mark.osempass
 def test_file_changed_to_symlink(git_tmp_path, snapshot):
     file_or_dir_path = git_tmp_path / "file_or_link.py"
     file_or_dir_path.write_text(f"x = {SENTINEL_1}\n")
@@ -398,7 +390,6 @@ def test_file_changed_to_symlink(git_tmp_path, snapshot):
     assert_err_match(snapshot, baseline_output, "diff.err")
 
 
-@pytest.mark.osempass
 def test_symlink_changed_to_file(git_tmp_path, snapshot):
     file_path = git_tmp_path / "definitely_a_file.py"
     file_path.write_text(f"x = {SENTINEL_1}\n")
@@ -423,7 +414,6 @@ def test_symlink_changed_to_file(git_tmp_path, snapshot):
     assert_err_match(snapshot, baseline_output, "diff.err")
 
 
-@pytest.mark.osempass
 def test_no_findings_head(git_tmp_path, snapshot):
     # Test that no findings in head reports no findings even if
     # findings in baseline
@@ -460,7 +450,6 @@ def test_no_findings_head(git_tmp_path, snapshot):
     )
 
 
-@pytest.mark.osempass
 def test_no_findings_baseline(git_tmp_path, snapshot):
     # Test when head contains all findings and baseline doesnt contain any
     foo = git_tmp_path / "foo.py"
@@ -495,7 +484,6 @@ def test_no_findings_baseline(git_tmp_path, snapshot):
     )
 
 
-@pytest.mark.osempass
 def test_some_intersection(git_tmp_path, snapshot):
     # Test when baseline contains some findings of head
     foo = git_tmp_path / "foo.py"
@@ -529,7 +517,6 @@ def test_some_intersection(git_tmp_path, snapshot):
     )
 
 
-@pytest.mark.osempass
 def test_all_intersect(git_tmp_path, snapshot):
     # Test when baseline and head contain same findings none are reported
     foo = git_tmp_path / "foo.py"
@@ -565,7 +552,6 @@ def test_all_intersect(git_tmp_path, snapshot):
     )
 
 
-@pytest.mark.osempass
 def test_no_intersection(git_tmp_path, snapshot):
     # If no intersection of baseline and head finding should still report head finding
     foo = git_tmp_path / "foo.py"
@@ -606,7 +592,6 @@ def test_no_intersection(git_tmp_path, snapshot):
         pytest.param("Foo.py", id="case-sensitive"),
     ],
 )
-@pytest.mark.osempass
 def test_renamed_file(git_tmp_path, snapshot, new_name):
     old_name = "foo.py"
     old_path = git_tmp_path / old_name
@@ -651,7 +636,6 @@ def test_run_in_subdirectory(git_tmp_path, snapshot):
     pass
 
 
-@pytest.mark.osempass
 def test_unstaged_changes(git_tmp_path, snapshot):
     # Should not abort if have unstaged changes
     foo = git_tmp_path / "foo"
@@ -671,7 +655,6 @@ def test_unstaged_changes(git_tmp_path, snapshot):
     assert_err_match(snapshot, output, "error.txt")
 
 
-@pytest.mark.osempass
 def test_staged_changes(git_tmp_path, snapshot):
     # Should report findings in staged changes
 
@@ -703,7 +686,6 @@ def test_baseline_has_head_untracked(git_tmp_path, snapshot):
 
 
 @pytest.mark.no_semgrep_cli
-@pytest.mark.osempass
 def test_not_git_directory(monkeypatch, tmp_path, snapshot):
     # Should abort baseline scan if not a git directory
     monkeypatch.chdir(tmp_path)
@@ -720,7 +702,6 @@ def test_not_git_directory(monkeypatch, tmp_path, snapshot):
     # snapshot.assert_match(output.stderr, "error.txt")
 
 
-@pytest.mark.osempass
 def test_commit_doesnt_exist(git_tmp_path, snapshot):
     # Should abort baseline scan if baseline is not valid commit
     foo = git_tmp_path / "foo"
@@ -810,7 +791,6 @@ def complex_merge_repo(git_tmp_path, snapshot):
 
 
 @pytest.mark.parametrize("current, baseline", permutations(["foo", "bar", "baz"], 2))
-@pytest.mark.osempass
 def test_crisscrossing_merges(complex_merge_repo, current, baseline, snapshot):
     subprocess.run(["git", "checkout", current])
     output = run_sentinel_scan(base_commit=baseline)

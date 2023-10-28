@@ -6,7 +6,6 @@ from tests.fixtures import RunSemgrep
 # marks it as scanned.
 # TODO: exclude pysemfail tests or fix the problem in pysemgrep (output.py)
 # See comment in Scan_subcommand.ml.
-# @pytest.mark.osempass
 # @pytest.mark.pysemfail
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
@@ -20,7 +19,6 @@ def test_pro_rule_skipping(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 # see comment above regarding pysemfail
-# @pytest.mark.osempass
 # @pytest.mark.pysemfail
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail

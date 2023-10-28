@@ -2,7 +2,6 @@ import pytest
 from tests.fixtures import RunSemgrep
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "rule,target",

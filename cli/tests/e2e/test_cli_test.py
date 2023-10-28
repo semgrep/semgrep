@@ -33,7 +33,6 @@ def test_cli_test_basic(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_cli_test_verbose(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
@@ -97,7 +96,6 @@ def test_cli_test_yaml_language(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_cli_test_show_supported_languages(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(

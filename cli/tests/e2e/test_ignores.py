@@ -7,7 +7,6 @@ from tests.fixtures import RunSemgrep
 from ..conftest import TESTS_PATH
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_semgrepignore(run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot):
     (tmp_path / ".semgrepignore").symlink_to(

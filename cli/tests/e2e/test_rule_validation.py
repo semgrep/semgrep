@@ -59,7 +59,6 @@ def test_extra_top_level_valid(run_semgrep_in_tmp: RunSemgrep, snapshot, rule):
     )
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "rule",
