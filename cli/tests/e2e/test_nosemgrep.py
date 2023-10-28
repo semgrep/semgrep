@@ -21,6 +21,7 @@ def test_nosem_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_nosem_rule__invalid_id(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, stderr = run_semgrep_in_tmp(
         "rules/nosem.yaml", target_name="nosem_invalid_id", assert_exit_code=2

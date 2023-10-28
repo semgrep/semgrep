@@ -51,6 +51,7 @@ def test_autofix(
     )
 
 
+@pytest.mark.osemfail
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("dryrun", [True, False], ids=["dryrun", "not-dryrun"])
 @pytest.mark.parametrize(

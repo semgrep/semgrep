@@ -193,6 +193,7 @@ pytestmark = pytest.mark.kinda_slow
         ),
     ],
 )
+@pytest.mark.osemfail
 def test_dependency_aware_rules(
     run_semgrep_on_copied_files: RunSemgrep, snapshot, rule, target
 ):
@@ -221,6 +222,7 @@ def test_dependency_aware_rules(
     ],
 )
 @pytest.mark.no_semgrep_cli
+@pytest.mark.osemfail
 def test_maven_version_comparison(version, specifier, outcome):
     assert is_in_range(Ecosystem(Maven()), specifier, version) == outcome
 
@@ -308,6 +310,7 @@ def test_maven_version_comparison(version, specifier, outcome):
 # And removing some human written comments that would never appear in a real lockfile from some tests
 # They also include random lockfiles we want to make sure we parse predictably
 @pytest.mark.no_semgrep_cli
+@pytest.mark.osemfail
 def test_parsing(parse_lockfile_path_in_tmp, caplog, target):
     caplog.set_level(logging.ERROR)
     _, error = parse_lockfile_path_in_tmp(Path(target))
@@ -328,6 +331,7 @@ def test_parsing(parse_lockfile_path_in_tmp, caplog, target):
 # contains no lockfiles for the language in our rule, we need to _not_ pass in
 # a target that begins with "targets", as that dir contains every kind of lockfile
 # So we add the keyword arg to run_semgrep and manually do some cd-ing
+@pytest.mark.osemfail
 def test_no_lockfiles(run_semgrep: RunSemgrep, monkeypatch, tmp_path, snapshot):
     (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())

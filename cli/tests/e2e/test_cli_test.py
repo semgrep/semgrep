@@ -17,6 +17,7 @@ def _mask_floats(text_output: str) -> str:
     return re.sub(FLOATS, "x.xxx", text_output)
 
 
+@pytest.mark.osemfail
 @pytest.mark.kinda_slow
 def test_cli_test_basic(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
@@ -49,6 +50,7 @@ def test_cli_test_verbose(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+@pytest.mark.osemfail
 @pytest.mark.kinda_slow
 def test_cli_test_time(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
@@ -66,6 +68,7 @@ def test_cli_test_time(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_timeout(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/cli_test/error/",
@@ -80,6 +83,7 @@ def test_timeout(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_cli_test_yaml_language(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/cli_test/language/",
@@ -110,6 +114,7 @@ def test_cli_test_show_supported_languages(run_semgrep_in_tmp: RunSemgrep, snaps
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_cli_test_suffixes(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/cli_test/suffixes/",
@@ -124,6 +129,7 @@ def test_cli_test_suffixes(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_cli_test_multiline_annotations(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/cli_test/multiple_annotations/",
@@ -139,6 +145,7 @@ def test_cli_test_multiline_annotations(run_semgrep_in_tmp: RunSemgrep, snapshot
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_parse_errors(run_semgrep_in_tmp: RunSemgrep, snapshot):
     _results, errors = run_semgrep_in_tmp(
         "rules/cli_test/parse_errors/",
@@ -155,6 +162,7 @@ def test_parse_errors(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.slow
+@pytest.mark.osemfail
 def test_cli_test_from_entrypoint(snapshot):
     env = {}
     env["PATH"] = os.environ.get("PATH", "")
@@ -178,6 +186,7 @@ def test_cli_test_from_entrypoint(snapshot):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_cli_test_match_rules_same_message(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/cli_test/match_rules_same_message/rules.yml",
@@ -192,6 +201,7 @@ def test_cli_test_match_rules_same_message(run_semgrep_in_tmp: RunSemgrep, snaps
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_cli_test_ignore_rule_paths(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/cli_test/ignore_rule_paths/",

@@ -33,6 +33,7 @@ def test_rule_parser__failure(run_semgrep_in_tmp: RunSemgrep, snapshot, filename
 # by Core_runner, which returns invalid_code (3) or fatal (2), using
 # Cli_json_output.exit_code_of_error_type
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_regex_with_bad_language(run_semgrep_in_tmp: RunSemgrep, snapshot):
     run_semgrep_in_tmp("rules/syntax/badlanguage.yaml", assert_exit_code=8)
 
@@ -46,12 +47,14 @@ def test_nonexisting_file(run_semgrep_in_tmp: RunSemgrep, snapshot):
 # TODO: see comment in Scan_subcommand.ml.
 # @pytest.mark.osempass
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_rule_parser__empty(run_semgrep_in_tmp: RunSemgrep, snapshot):
     run_semgrep_in_tmp(f"rules/syntax/empty.yaml", assert_exit_code=7)
 
 
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("filename", syntax_fails)
+@pytest.mark.osemfail
 def test_rule_parser__failure__error_messages(
     run_semgrep_in_tmp: RunSemgrep, snapshot, filename
 ):
@@ -77,6 +80,7 @@ def test_rule_parser__failure__error_messages(
 
 # https://github.com/returntocorp/semgrep/issues/1095
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_rule_parser_cli_pattern(run_semgrep_in_tmp: RunSemgrep, snapshot):
     # Check json output
     stdout, _ = run_semgrep_in_tmp(
@@ -95,6 +99,7 @@ def test_rule_parser_cli_pattern(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_rule_parser_error_key_name_text(run_semgrep_in_tmp: RunSemgrep, snapshot):
     # Check pretty print output
     _, stderr = run_semgrep_in_tmp(
@@ -107,6 +112,7 @@ def test_rule_parser_error_key_name_text(run_semgrep_in_tmp: RunSemgrep, snapsho
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_rule_parser_error_metavariable_text(run_semgrep_in_tmp: RunSemgrep, snapshot):
     _, stderr = run_semgrep_in_tmp(
         f"rules/syntax/invalid-metavariable-regex.yml",
@@ -118,6 +124,7 @@ def test_rule_parser_error_metavariable_text(run_semgrep_in_tmp: RunSemgrep, sna
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_rule_parser_error_invalid_key_name_text(
     run_semgrep_in_tmp: RunSemgrep, snapshot
 ):

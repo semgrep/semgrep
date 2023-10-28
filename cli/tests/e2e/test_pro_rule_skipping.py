@@ -9,6 +9,7 @@ from tests.fixtures import RunSemgrep
 # @pytest.mark.osempass
 # @pytest.mark.pysemfail
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_pro_rule_skipping(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
@@ -22,6 +23,7 @@ def test_pro_rule_skipping(run_semgrep_in_tmp: RunSemgrep, snapshot):
 # @pytest.mark.osempass
 # @pytest.mark.pysemfail
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_pro_rule_skipping_no_parsing(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(

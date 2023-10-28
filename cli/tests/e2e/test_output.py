@@ -114,6 +114,7 @@ def test_yaml_capturing(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_promql_duration_captures(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _errors = run_semgrep_in_tmp(
         "rules/promql-duration-capture.yaml",
@@ -131,6 +132,7 @@ def test_promql_duration_captures(run_semgrep_in_tmp: RunSemgrep, snapshot):
 # with metavariables. We don't want to introduce regressions which might
 # mess this up.
 @pytest.mark.quick
+@pytest.mark.osemfail
 def test_yaml_metavariables(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/yaml_key.yaml",
@@ -196,11 +198,13 @@ def test_output_format(run_semgrep_in_tmp: RunSemgrep, snapshot, format):
     "format",
     ["--gitlab-sast", "--gitlab-secrets", "--sarif"],
 )
+@pytest.mark.osemfail
 def test_output_format_osemfail(run_semgrep_in_tmp: RunSemgrep, snapshot, format):
     test_output_format(run_semgrep_in_tmp, snapshot, format)
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_omit_inventory(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/inventory/invent.yaml", target_name="inventory/invent.py"
@@ -209,6 +213,7 @@ def test_omit_inventory(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_omit_experiment(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/experiment/experiment.yaml",
@@ -218,6 +223,7 @@ def test_omit_experiment(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_debug_experimental_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     result = run_semgrep_in_tmp(
         "rules/experiment/experiment.yaml",
@@ -256,6 +262,7 @@ def test_debug_experimental_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_junit_xml_output(run_semgrep_in_tmp: RunSemgrep, snapshot):
     output, _ = run_semgrep_in_tmp(
         "rules/eqeq.yaml", output_format=OutputFormat.JUNIT_XML
@@ -271,6 +278,7 @@ def test_junit_xml_output(run_semgrep_in_tmp: RunSemgrep, snapshot):
 # If there are nosemgrep comments to ignore findings, SARIF output should include them
 # labeled as suppressed.
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
@@ -284,6 +292,7 @@ def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp: RunSemgrep, snapshot
 
 # Test that rule board information makes its way into SARIF output
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_sarif_output_rule_board(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
@@ -296,6 +305,7 @@ def test_sarif_output_rule_board(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_sarif_output_with_source(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout = run_semgrep_in_tmp(
         "rules/eqeq-source.yml", output_format=OutputFormat.SARIF
@@ -313,6 +323,7 @@ def test_sarif_output_with_source(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_sarif_output_with_source_edit(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout = run_semgrep_in_tmp(
         "rules/eqeq-meta.yaml", output_format=OutputFormat.SARIF
@@ -326,6 +337,7 @@ def test_sarif_output_with_source_edit(run_semgrep_in_tmp: RunSemgrep, snapshot)
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_sarif_output_with_nosemgrep_and_error(
     run_semgrep_in_tmp: RunSemgrep, snapshot
 ):
@@ -341,6 +353,7 @@ def test_sarif_output_with_nosemgrep_and_error(
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_sarif_output_with_autofix(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
@@ -360,6 +373,7 @@ IGNORE_LOG_REPORT_LAST_LINE = (
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_sarif_output_with_dataflow_traces(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
@@ -373,6 +387,7 @@ def test_sarif_output_with_dataflow_traces(run_semgrep_in_tmp: RunSemgrep, snaps
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_json_output_with_dataflow_traces(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
@@ -386,6 +401,7 @@ def test_json_output_with_dataflow_traces(run_semgrep_in_tmp: RunSemgrep, snapsh
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_semgrepignore_ignore_log_report(
     run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot
 ):
@@ -424,6 +440,7 @@ def test_semgrepignore_ignore_log_report(
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_semgrepignore_ignore_log_json_report(
     run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot
 ):
@@ -461,6 +478,7 @@ def test_semgrepignore_ignore_log_json_report(
     "git_repo",
     [True, False],
 )
+@pytest.mark.osemfail
 def test_git_repo_output(
     run_semgrep: RunSemgrep, git_repo, tmp_path, monkeypatch, snapshot
 ):
@@ -496,6 +514,7 @@ def test_git_repo_output(
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_sca_output(run_semgrep_on_copied_files: RunSemgrep, snapshot):
     results, _errors = run_semgrep_on_copied_files(
         "rules/dependency_aware/monorepo_with_first_party.yaml",
@@ -509,6 +528,7 @@ def test_sca_output(run_semgrep_on_copied_files: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_sca_lockfile_only_output(run_semgrep_on_copied_files: RunSemgrep, snapshot):
     results, _errors = run_semgrep_on_copied_files(
         "rules/dependency_aware/lodash-4.17.19.yaml",
@@ -522,6 +542,7 @@ def test_sca_lockfile_only_output(run_semgrep_on_copied_files: RunSemgrep, snaps
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_cli_test_secret_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/secrets.yaml",
@@ -541,6 +562,7 @@ def test_cli_test_secret_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
 # (not in the target), and pysemgrep passes a preprocessed rule file to
 # semgrep-core hence the mistmatch.
 @pytest.mark.quick
+@pytest.mark.osemfail
 def test_output_matching_explanations(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/eqeq-basic.yaml",

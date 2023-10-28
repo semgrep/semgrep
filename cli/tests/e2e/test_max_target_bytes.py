@@ -18,5 +18,6 @@ def test_max_target_bytes(run_semgrep_in_tmp: RunSemgrep, snapshot, max_bytes):
 
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("max_bytes", ["1B", "1.3R"])
+@pytest.mark.osemfail
 def test_max_target_bytes_osemfail(run_semgrep_in_tmp: RunSemgrep, snapshot, max_bytes):
     test_max_target_bytes(run_semgrep_in_tmp, snapshot, max_bytes)

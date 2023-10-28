@@ -713,6 +713,7 @@ def mock_autofix(request, mocker):
     sys.version_info < (3, 8),
     reason="snapshotting mock call kwargs doesn't work on py3.7",
 )
+@pytest.mark.osemfail
 def test_full_run(
     tmp_path,
     git_tmp_path_with_commit,
@@ -863,6 +864,7 @@ def test_full_run(
     snapshot.assert_match(json.dumps(complete_json, indent=2), "complete.json")
 
 
+@pytest.mark.osemfail
 def test_lockfile_parse_failure_reporting(
     git_tmp_path_with_commit, run_semgrep: RunSemgrep, snapshot
 ):
@@ -1117,6 +1119,7 @@ def test_lockfile_parse_failure_reporting(
 #    ), "Potentially scanning wrong files/commits"
 
 
+@pytest.mark.osemfail
 def test_shallow_wrong_merge_base(
     run_semgrep: RunSemgrep, snapshot, git_tmp_path, tmp_path, monkeypatch
 ):
@@ -1281,6 +1284,7 @@ def test_shallow_wrong_merge_base(
     ), "Potentially scanning wrong files/commits"
 
 
+@pytest.mark.osemfail
 def test_config_run(
     run_semgrep: RunSemgrep, git_tmp_path_with_commit, snapshot, mock_autofix
 ):
@@ -1309,6 +1313,7 @@ def test_config_run(
     "format",
     ["--json", "--gitlab-sast", "--gitlab-secrets", "--sarif", "--emacs", "--vim"],
 )
+@pytest.mark.osemfail
 def test_outputs(
     git_tmp_path_with_commit, snapshot, format, mock_autofix, run_semgrep: RunSemgrep
 ):
@@ -1334,6 +1339,7 @@ def test_outputs(
 
 
 @pytest.mark.parametrize("nosem", ["--enable-nosem", "--disable-nosem"])
+@pytest.mark.osemfail
 def test_nosem(
     git_tmp_path_with_commit, snapshot, mock_autofix, nosem, run_semgrep: RunSemgrep
 ):
@@ -1358,6 +1364,7 @@ def test_nosem(
     )
 
 
+@pytest.mark.osemfail
 def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, run_semgrep: RunSemgrep):
     _, base_commit, head_commit = git_tmp_path_with_commit
     result = run_semgrep(
@@ -1386,6 +1393,7 @@ def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, run_semgrep: RunSe
     )
 
 
+@pytest.mark.osemfail
 def test_fail_auth(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     """
     Test that failure to authenticate does not have exit code 0 or 1
@@ -1411,6 +1419,7 @@ def test_fail_auth(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     )
 
 
+@pytest.mark.osemfail
 def test_fail_auth_error_handler(
     run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit
 ):
@@ -1448,6 +1457,7 @@ def test_fail_start_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_comm
     )
 
 
+@pytest.mark.osemfail
 def test_fail_start_scan_error_handler(
     run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit
 ):
@@ -1468,6 +1478,7 @@ def test_fail_start_scan_error_handler(
     mock_send.assert_called_once_with(mocker.ANY, 2)
 
 
+@pytest.mark.osemfail
 def test_bad_config(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     """
     Test that bad rules has exit code > 1
@@ -1494,6 +1505,7 @@ def test_bad_config(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     assert "Invalid rule schema" in result.stderr
 
 
+@pytest.mark.osemfail
 def test_bad_config_error_handler(
     run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit
 ):
@@ -1524,6 +1536,7 @@ def test_bad_config_error_handler(
     mock_send.assert_called_once_with(mocker.ANY, 7)
 
 
+@pytest.mark.osemfail
 def test_fail_scan_findings(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     """
     Test failure with findings has exit code == 1.
@@ -1561,6 +1574,7 @@ def test_fail_finish_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_com
     )
 
 
+@pytest.mark.osemfail
 def test_backend_exit_code(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     """
     Test backend sending non-zero exit code on complete causes exit 1
@@ -1580,6 +1594,7 @@ def test_backend_exit_code(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_co
     )
 
 
+@pytest.mark.osemfail
 def test_fail_finish_scan_error_handler(
     run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit
 ):
@@ -1616,6 +1631,7 @@ def test_git_failure(run_semgrep: RunSemgrep, git_tmp_path_with_commit, mocker):
     )
 
 
+@pytest.mark.osemfail
 def test_git_failure_error_handler(
     run_semgrep: RunSemgrep, git_tmp_path_with_commit, mocker
 ):
@@ -1635,6 +1651,7 @@ def test_git_failure_error_handler(
     mock_send.assert_called_once_with(mocker.ANY, 2)
 
 
+@pytest.mark.osemfail
 def test_query_dependency(
     git_tmp_path_with_commit, snapshot, mocker, run_semgrep: RunSemgrep
 ):
@@ -1711,6 +1728,7 @@ def test_query_dependency(
     snapshot.assert_match(json.dumps(complete_json, indent=2), "complete.json")
 
 
+@pytest.mark.osemfail
 def test_metrics_enabled(run_semgrep: RunSemgrep, mocker):
     mock_send = mocker.patch.object(Metrics, "_post_metrics")
     run_semgrep(
@@ -1725,6 +1743,7 @@ def test_metrics_enabled(run_semgrep: RunSemgrep, mocker):
     mock_send.assert_called_once()
 
 
+@pytest.mark.osemfail
 def test_existing_supply_chain_finding(
     git_tmp_path_with_commit, snapshot, mocker, run_semgrep: RunSemgrep
 ):
@@ -1866,6 +1885,7 @@ def test_existing_supply_chain_finding(
     [[], ["product"]],
     ids=["empty-products", "non-empty-products"],
 )
+@pytest.mark.osemfail
 def test_enabled_products(
     enabled_products: List[str],
     run_semgrep: RunSemgrep,

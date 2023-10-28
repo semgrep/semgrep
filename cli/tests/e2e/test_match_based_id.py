@@ -81,6 +81,7 @@ def test_id_change(
         ("rules/match_based_id/join.yaml", "join.py", True),
     ],
 )
+@pytest.mark.osemfail
 def test_id_change_osemfail(
     run_semgrep_on_copied_files: RunSemgrep, tmp_path, rule, target_name, expect_change
 ):

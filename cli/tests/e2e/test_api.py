@@ -17,6 +17,7 @@ from semgrep.run_scan import run_scan_and_return_json
 # TODO: use SemgrepRunner instead, which is drop-in replacement for CliRunner.
 @pytest.mark.slow
 @pytest.mark.todo
+@pytest.mark.osemfail
 def test_api(unique_home_dir, capsys, run_semgrep_in_tmp: RunSemgrep):
     # Test that exposed python API works and prints out nothing to stderr or stdout
     # unique_home_dir is used to ensure that the test runs with it's own

@@ -735,6 +735,7 @@ def test_commit_doesnt_exist(git_tmp_path, snapshot):
     assert_err_match(snapshot, output, "error.txt")
 
 
+@pytest.mark.osemfail
 @pytest.fixture
 def complex_merge_repo(git_tmp_path, snapshot):
     r"""
