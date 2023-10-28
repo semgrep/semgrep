@@ -13,6 +13,7 @@ from semgrep.error import SemgrepError
 # 'pattern-new-feature' being unknown. The new output is another error
 # about a missing 'pattern' or similar field.
 @pytest.mark.quick
+@pytest.mark.osemfail
 def test_new_feature_registry_config(monkeypatch, snapshot, mocker, tmp_path):
     config_file = ConfigFile(
         None,
@@ -44,6 +45,7 @@ def test_new_feature_registry_config(monkeypatch, snapshot, mocker, tmp_path):
 
 
 @pytest.mark.quick
+@pytest.mark.osemfail
 def test_fallback_config_works(monkeypatch, snapshot, mocker, tmp_path):
     config_file = ConfigFile(
         None,

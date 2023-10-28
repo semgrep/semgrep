@@ -2,7 +2,6 @@ import pytest
 from tests.fixtures import RunSemgrep
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test1(run_semgrep_in_tmp: RunSemgrep, snapshot):
     # https://github.com/returntocorp/semgrep/issues/7271
@@ -16,7 +15,6 @@ def test1(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test2(run_semgrep_in_tmp: RunSemgrep, snapshot):
     # https://linear.app/r2c/issue/PA-2696

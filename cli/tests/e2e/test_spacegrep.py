@@ -2,7 +2,6 @@ import pytest
 from tests.fixtures import RunSemgrep
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "rule,target",
@@ -30,6 +29,7 @@ def test_spacegrep(run_semgrep_in_tmp: RunSemgrep, snapshot, rule, target):
         ("rules/spacegrep/nosem-html.yaml", "spacegrep/nosem.html"),
     ],
 )
+@pytest.mark.osemfail
 def test_spacegrep_nosem(run_semgrep_in_tmp: RunSemgrep, snapshot, rule, target):
     snapshot.assert_match(
         run_semgrep_in_tmp(

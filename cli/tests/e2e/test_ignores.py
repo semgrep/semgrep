@@ -7,7 +7,6 @@ from tests.fixtures import RunSemgrep
 from ..conftest import TESTS_PATH
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_semgrepignore(run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot):
     (tmp_path / ".semgrepignore").symlink_to(
@@ -22,6 +21,7 @@ def test_semgrepignore(run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot):
 
 # We provide no .semgrepignore but everything except find.js should still be ignored
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_default_semgrepignore(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
@@ -33,6 +33,7 @@ def test_default_semgrepignore(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 # Input from stdin will not have a path that is relative to tmp_path, where we're running semgrep
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_file_not_relative_to_base_path(run_semgrep: RunSemgrep, snapshot):
     results = run_semgrep(
         options=["--json", "-e", "a", "--lang", "js", "-"],
@@ -44,6 +45,7 @@ def test_file_not_relative_to_base_path(run_semgrep: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_internal_explicit_semgrepignore(
     run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot
 ):
