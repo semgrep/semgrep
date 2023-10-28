@@ -2,7 +2,6 @@ import pytest
 from tests.fixtures import RunSemgrep
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_paths(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(

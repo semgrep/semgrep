@@ -52,6 +52,7 @@ let tests () =
       Unit_guess_lang.tests;
       Unit_memory_limit.tests;
       Unit_SPcre.tests;
+      Unit_tok.tests;
       Unit_regexp_engine.tests;
       Unit_Rpath.tests;
       Unit_immutable_buffer.tests;
@@ -74,7 +75,9 @@ let tests () =
       Unit_LS.tests;
       Unit_Login.tests;
       Unit_Fetching.tests;
-      Unit_Networking.tests;
+      (* Networking tests disabled as they will get rate limited sometimes *)
+      (* And the SSL issues they've been testing have been stable *)
+      (*Unit_Networking.tests;*)
       Test_LS_e2e.tests;
       (* End OSemgrep tests *)
       Aliengrep.Unit_tests.tests;

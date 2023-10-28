@@ -1,0 +1,7 @@
+Fixed how the end positions assigned to metavariable bindings are computed, in
+order to handle trailing newlines. This affected Semgrep's JSON output. If a
+metavariable `$X` was bound to a piece of text containing a trailing newline,
+such as "a\n", where the starting position was e.g. at line 1, Semgrep reported
+that the end position was at line 2, when in fact the text is entirely within
+line 1. If the text happened to be at the end of a file, Semgrep could report
+an end position that was outside the bounds of the file.
