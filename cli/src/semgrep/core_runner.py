@@ -727,7 +727,29 @@ class CoreRunner:
             )
 
         with exit_stack:
+            if self._binary_path is None:
+                if engine.is_pro:
+                    logger.error(
+                        f"""
+Semgrep Pro is either uninstalled or it is out of date.
+
+Try installing Semgrep Pro (`semgrep install-semgrep-pro`).
+                        """
+                    )
+                else:
+                    # This really shouldn't happen, but let's cover our bases
+                    logger.error(
+                        f"""
+Could not find the semgrep-core executable. Your Semgrep install is likely corrupted. Please uninstall Semgrep and try again.
+                        """
+                    )
+                sys.exit(2)
             cmd = [
+                # bugfix: self._binary_path is an Optional[Path]. The
+                # recommended way to convert a Path to a string is to use the
+                # str function. However, mypy allows the use of str to convert
+                # Optional values to strings. Make sure to check against None
+                # even though mypy won't warn you.
                 str(self._binary_path),
                 "-json",
             ]
