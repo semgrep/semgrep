@@ -6,3 +6,27 @@ rules:
     severity: ERROR
     metadata:
     fix: $X == 2
+  - id: eqeq-four
+    pattern: $X == 4
+    message: "useless comparison to 4"
+    languages: [python]
+    severity: ERROR
+    metadata:
+        sca-kind: reachable
+    fix: $X == 2
+  - id: eqeq-three
+    pattern: $X == 3
+    message: "useless comparison to 3"
+    languages: [python]
+    severity: ERROR
+    metadata:
+        product: secrets
+    fix: $X == 2
+  - id: eqeq-two
+    pattern: $X == 2
+    message: "useless comparison to 2"
+    languages: [python]
+    severity: ERROR
+    metadata:
+        interfile: true
+    fix: $X == 5

@@ -95,6 +95,32 @@ let scan_workspace server =
   (* Scanning is blocking, so run in separate preemptive thread *)
   wrap_with_detach f
 
+let scan_open_documents server =
+  Logs.debug (fun m ->
+      m "Scanning open documents with %s" (Session.show server.session));
+
+  let f () =
+    let open_documents = server.session.cached_session.open_documents in
+    let session_targets = Session.targets server.session in
+    let open_documents =
+      List.filter (fun doc -> List.mem doc open_documents) session_targets
+    in
+    let token =
+      create_progress "Semgrep Scan in Progress" "Scanning Open Documents"
+    in
+    let results, files = run_semgrep ~targets:(Some open_documents) server in
+    Session.record_results server.session results files;
+    (* LSP expects empty diagnostics to clear problems *)
+    let diagnostics =
+      let files = Session.scanned_files server.session in
+      Diagnostics.diagnostics_of_results ~is_intellij:server.session.is_intellij
+        results files
+    in
+    end_progress token;
+    batch_notify diagnostics
+  in
+  wrap_with_detach f
+
 (** Scan a single file. Passing [content] will write it to a temp file,
    and scan that temp file, then return results as if [uri] was scanned *)
 let scan_file ?(content = None) server uri =
@@ -143,5 +169,8 @@ let refresh_rules server =
   Lwt.async (fun () ->
       let%lwt () = Session.cache_session server.session in
       end_progress token;
-      scan_workspace server;
+      (* We used to scan ALL files in the workspace *)
+      (* Now we just scan open documents so we aren't killing *)
+      (* CPU cycles for no reason *)
+      scan_open_documents server;
       Lwt.return_unit)

@@ -12,6 +12,7 @@ module Out = Semgrep_output_v1_t
 type session_cache = {
   mutable rules : Rule.t list;
   mutable skipped_fingerprints : string list;
+  mutable open_documents : Fpath.t list;
   lock : Lwt_mutex.t; [@opaque]
 }
 [@@deriving show]
@@ -36,7 +37,12 @@ type t = {
 
 let create capabilities =
   let cached_session =
-    { rules = []; skipped_fingerprints = []; lock = Lwt_mutex.create () }
+    {
+      rules = [];
+      skipped_fingerprints = [];
+      lock = Lwt_mutex.create ();
+      open_documents = [];
+    }
   in
   {
     capabilities;
@@ -180,7 +186,16 @@ let fetch_rules session =
       rules
   in
   let rule_filtering_conf =
-    Rule_filtering.{ exclude_rule_ids = []; severity = [] }
+    Rule_filtering.
+      {
+        exclude_rule_ids = [];
+        severity = [];
+        (* Exclude these as they require the pro engine which we don't support *)
+        exclude_products =
+          [
+            Rule_filtering.SCA; Rule_filtering.Secrets; Rule_filtering.Interfile;
+          ];
+      }
   in
   let rules, errors =
     (Rule_filtering.filter_rules rule_filtering_conf rules, errors)
@@ -225,6 +240,30 @@ let previous_scan_of_file session file =
 (*****************************************************************************)
 (* State setters *)
 (*****************************************************************************)
+let add_open_document session file =
+  Lwt.async (fun () ->
+      Lwt_mutex.with_lock session.cached_session.lock (fun () ->
+          session.cached_session.open_documents <-
+            file :: session.cached_session.open_documents;
+          Lwt.return_unit))
+
+let remove_open_document session file =
+  Lwt.async (fun () ->
+      Lwt_mutex.with_lock session.cached_session.lock (fun () ->
+          session.cached_session.open_documents <-
+            List.filter
+              (fun f -> not (Fpath.equal f file))
+              session.cached_session.open_documents;
+          Lwt.return_unit))
+
+let remove_open_documents session files =
+  Lwt.async (fun () ->
+      Lwt_mutex.with_lock session.cached_session.lock (fun () ->
+          session.cached_session.open_documents <-
+            List.filter
+              (fun f -> not (List.mem f files))
+              session.cached_session.open_documents;
+          Lwt.return_unit))
 
 let update_workspace_folders ?(added = []) ?(removed = []) session =
   let workspace_folders =

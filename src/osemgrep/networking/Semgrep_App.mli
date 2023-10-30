@@ -1,25 +1,9 @@
-type deployment_config = {
-  id : int;
-  name : string;
-  display_name : string; [@default ""]
-  slug : string; [@default ""]
-  source_type : string; [@default ""]
-  has_autofix : bool; [@default false]
-  has_deepsemgrep : bool; [@default false]
-  has_triage_via_comment : bool; [@default false]
-  has_dependency_query : bool; [@default false]
-  default_user_role : string; [@default ""]
-  organization_id : int; [@default 0]
-  scm_name : string; [@default ""]
-}
-[@@deriving yojson]
-(** [type deployment_config] is what the app returns for deployment config. *)
-
 type scan_id = string
 type app_block_override = string (* reason *) option
 
 (* retrieves the deployment config from the provided token. *)
-val get_deployment_from_token : token:Auth.token -> deployment_config option
+val get_deployment_from_token :
+  token:Auth.token -> Semgrep_output_v1_t.deployment_config option
 
 (* retrieves the scan config from the provided token. *)
 val get_scan_config_from_token :
@@ -46,7 +30,7 @@ val start_scan :
 (* TODO: diff with get_scan_config_from_token? *)
 val fetch_scan_config :
   dry_run:bool ->
-  token:string ->
+  token:Auth.token ->
   sca:bool ->
   full_scan:bool ->
   repository:string ->
@@ -57,7 +41,7 @@ val fetch_scan_config :
 (* upload both the scan_results and complete *)
 val upload_findings :
   dry_run:bool ->
-  token:string ->
+  token:Auth.token ->
   scan_id:scan_id ->
   results:Semgrep_output_v1_t.ci_scan_results ->
   complete:Semgrep_output_v1_t.ci_scan_complete ->
@@ -65,10 +49,14 @@ val upload_findings :
 (** [upload_findings ~dry_run ~token ~scan_id ~results ~complete]
     reports the findings to Semgrep App. *)
 
+(* report a failure for [scan_id] to Semgrep App *)
+val report_failure :
+  dry_run:bool -> token:Auth.token -> scan_id:scan_id -> Exit_code.t -> unit
+
 (* lwt-friendly versions for the language-server *)
 
 val get_deployment_from_token_async :
-  token:Auth.token -> deployment_config option Lwt.t
+  token:Auth.token -> Semgrep_output_v1_t.deployment_config option Lwt.t
 
 val get_scan_config_from_token_async :
   token:Auth.token -> Semgrep_output_v1_t.scan_config option Lwt.t

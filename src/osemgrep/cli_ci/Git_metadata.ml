@@ -102,18 +102,23 @@ let env : env Term.t =
 class meta ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
   object (self)
     method project_metadata : Project_metadata.t =
-      let commit_title =
+      let commit_title : string =
         Git_wrapper.git_check_output
           Bos.Cmd.(v "git" % "show" % "-s" % "--format=%B")
       in
-      let commit_author_email =
+      let commit_author_email : Emile.mailbox =
         Git_wrapper.git_check_output
           Bos.Cmd.(v "git" % "show" % "-s" % "--format=%ae")
         |> Emile.of_string |> Result.get_ok
       in
-      let commit_author_name =
+      let commit_author_name : string =
         Git_wrapper.git_check_output
           Bos.Cmd.(v "git" % "show" % "-s" % "--format=%an")
+      in
+      (* Returns epoch time as str of head commit *)
+      let commit_datetime : string =
+        Git_wrapper.git_check_output
+          Bos.Cmd.(v "git" % "show" % "-s" % "--format=%ct")
       in
       {
         semgrep_version = Version.version;
@@ -129,8 +134,10 @@ class meta ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
         commit_author_username = None;
         commit_author_image_url = None;
         commit_title = Some commit_title;
-        (* TODO, not ported? *)
-        commit_timestamp = self#commit_timestamp;
+        commit_timestamp =
+          (let time = float_of_string commit_datetime in
+           let tm : Unix.tm = Unix.gmtime time in
+           Some (ATDStringWrap.Datetime.unwrap tm));
         on = self#event_name;
         pull_request_author_username = None;
         pull_request_author_image_url = None;
@@ -138,6 +145,8 @@ class meta ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
         pull_request_title = self#pr_title;
         scan_environment;
         is_full_scan = self#is_full_scan;
+        repo_id = None;
+        org_id = None;
         (* TODO ugly: gitlab stuff, should maybe split
          * semgrep_output_v1.metadata and use inherit
          *)
@@ -216,5 +225,4 @@ class meta ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
 
     (* TODO? get rid of? use directly baseline_ref in is_full_scan? *)
     method merge_base_ref = baseline_ref
-    method commit_timestamp = failwith "TODO"
   end

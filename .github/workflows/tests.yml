@@ -64,7 +64,6 @@ jobs:
     strategy:
       matrix:
         python:
-        - "3.7"
         - "3.8"
         - "3.9"
         - "3.10"
@@ -190,7 +189,7 @@ jobs:
       run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
     - uses: actions/setup-python@v4
       with:
-        python-version: "3.7"
+        python-version: "3.8"
         cache: pipenv
     - run: pip install pipenv==2022.6.7
     - uses: actions/download-artifact@v3
@@ -216,7 +215,7 @@ jobs:
       run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
     - uses: actions/setup-python@v4
       with:
-        python-version: "3.7"
+        python-version: "3.8"
         cache: pipenv
     - run: pip install pipenv==2022.6.7
     - uses: actions/download-artifact@v3

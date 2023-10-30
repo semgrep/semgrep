@@ -133,7 +133,7 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
   in
   if cli_matches <> [] then (
     Unix.lockf Unix.stdout Unix.F_LOCK 0;
-    Fun.protect
+    Common.protect
       (fun () ->
         (* coupling: similar to Output.dispatch_output_format for Text *)
         Matches_report.pp_text_outputs

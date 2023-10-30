@@ -167,7 +167,7 @@ let replace_named_pipe_by_regular_file path =
         let remove () = if Sys.file_exists tmp_path then Sys.remove tmp_path in
         (* Try to remove temporary file when program exits. *)
         at_exit remove;
-        Fun.protect
+        Common.protect
           ~finally:(fun () -> close_out_noerr oc)
           (fun () -> output_string oc data);
         Fpath.v tmp_path
@@ -587,6 +587,9 @@ let iter_targets_and_get_matches_and_exn_to_errors config
                        (Core_profiling.empty_partial_profiling file),
                      Scanned )
                (* those were converted in Main_timeout in timeout_function()*)
+               (* FIXME:
+                  Actually, I managed to get this assert to trigger by running
+                  semgrep -c p/default-v2 on elasticsearch with -timeout 0.01 ! *)
                | Time_limit.Timeout _ -> assert false
                (* It would be nice to detect 'R.Err (R.InvalidRule _)' here
                 * for errors while parsing patterns. This exn used to be raised earlier
@@ -630,9 +633,8 @@ let iter_targets_and_get_matches_and_exn_to_errors config
 (* File targeting and rule filtering *)
 (*****************************************************************************)
 
-(* TODO: use Fpath.t for file *)
-let xtarget_of_file (config : Core_scan_config.t) (xlang : Xlang.t)
-    (file : Fpath.t) : Xtarget.t =
+let xtarget_of_file ~parsing_cache_dir (xlang : Xlang.t) (file : Fpath.t) :
+    Xtarget.t =
   let lazy_ast_and_errors =
     lazy
       (let lang =
@@ -647,9 +649,8 @@ let xtarget_of_file (config : Core_scan_config.t) (xlang : Xlang.t)
              failwith
                "requesting generic AST for an unspecified target language"
        in
-       Parse_with_caching.parse_and_resolve_name
-         ~parsing_cache_dir:config.parsing_cache_dir AST_generic.version lang
-         file)
+       Parse_with_caching.parse_and_resolve_name ~parsing_cache_dir
+         AST_generic.version lang file)
   in
   {
     Xtarget.file;
@@ -759,7 +760,10 @@ let extracted_targets_of_config (config : Core_scan_config.t)
            (* TODO: addt'l filtering required for rule_ids when targets are
               passed explicitly? *)
            let file = t.path in
-           let xtarget = xtarget_of_file config t.analyzer (Fpath.v file) in
+           let xtarget =
+             xtarget_of_file ~parsing_cache_dir:config.parsing_cache_dir
+               t.analyzer (Fpath.v file)
+           in
            let extracted_targets =
              Match_extract_mode.extract_nested_lang ~match_hook
                ~timeout:config.timeout
@@ -884,7 +888,10 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
            in
            (* TODO: can we skip all of this if there are no applicable
               rules? In particular, can we skip update_cli_progress? *)
-           let xtarget = xtarget_of_file config analyzer file in
+           let xtarget =
+             xtarget_of_file ~parsing_cache_dir:config.parsing_cache_dir
+               analyzer file
+           in
            let default_match_hook str match_ =
              if config.output_format =*= Text then
                print_match ~str config match_ Metavariable.ii_of_mval

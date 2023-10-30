@@ -163,7 +163,9 @@ type taint_spec = {
 }
 
 and taint_source = {
+  source_id : string;  (** See 'Parse_rule.parse_taint_source'. *)
   source_formula : formula;
+  source_exact : bool;
   source_by_side_effect : bool;
   source_control : bool;
   label : string;
@@ -192,7 +194,9 @@ and taint_source = {
  * because they are a bit confusing to use sometimes.
  *)
 and taint_sanitizer = {
+  sanitizer_id : string;
   sanitizer_formula : formula;
+  sanitizer_exact : bool;
   sanitizer_by_side_effect : bool;
   not_conflicting : bool;
       (* If [not_conflicting] is enabled, the sanitizer cannot conflict with
@@ -226,6 +230,7 @@ and taint_sink = {
  * will also be marked as tainted.
  *)
 and taint_propagator = {
+  propagator_id : string;
   propagator_formula : formula;
   propagator_by_side_effect : bool;
   from : MV.mvar wrap;
@@ -670,6 +675,24 @@ type error = {
 }
 
 exception Error of error
+
+(*
+   Determine if an error can be skipped. This is for presumably well-formed
+   rules that aren't compatible with the current version of semgrep
+   and shouldn't cause a failure.
+*)
+let is_skippable_error (kind : invalid_rule_error_kind) =
+  match kind with
+  | InvalidLanguage _
+  | InvalidPattern _
+  | InvalidRegexp _
+  | DeprecatedFeature _
+  | MissingPositiveTermInAnd
+  | InvalidOther _ ->
+      false
+  | IncompatibleRule _
+  | MissingPlugin _ ->
+      true
 
 (*
    You must provide a rule ID for a rule to be reported properly as an invalid

@@ -1,0 +1,5 @@
+Commutativity Support for Comparison Operators EQ and NOT_EQ
+
+We've introduced the `commutative_compop` rule option, enabling commutativity
+for comparison operators EQ and NOT_EQ. With this option, `a == b` will also
+match `b == a`, and `a != b` will also match `b != a`.

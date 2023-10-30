@@ -10,13 +10,48 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 
    Translated from ci.py (and partially from scans.py)
 
+   See https://www.notion.so/semgrep/Architecture-Overview-CI-Scans-afe6193a6cc84abd96cff5f2d91cecaa
+   for an excellent overview of how 'semgrep ci' works with the backend.
+   See also https://www.notion.so/semgrep/Scan-reliability-next-steps-Oct-2023-cf3dad02d1ff4e1a98db8acf7f7bbded
+
+   Debugging trick #1:
+   --------------------
+
    If 'semgrep ci' returns some networking errors, you may need to inspect
    the backend logs as the error message returned by the backend to the CLI
    might be short and may not contain the necessary information to debug.
    Even using --debug might not be enough.
-   You can inspect the backend logs in Datadog and cloudwatch (and Metabase).
-   However, it's probably better first to connect to the 'dev2' backend
-   rather than 'prod' to have a lot less to search through.
+
+   You can use Sentry https://semgrep.sentry.io/issues/?statsPeriod=24h
+   to look at the latest errors.
+
+   As an example, here is a workflow that failed in the past:
+   https://github.com/returntocorp/semgrep/actions/runs/6599573075/job/17928762827
+   Looking at the job log, we can see a problem when connecting to
+   the https://semgrep.dev/api/agent/scans/14253285/complete endpoint.
+   Then in Sentry you can paste this 'url: <URL>' in the query and search
+   for errors related to this endpoint (you may need to replace the 'https'
+   by 'http' sometimes to find something).
+
+
+   Debugging trick #2:
+   --------------------
+
+   You can also inspect the backend logs in Datadog. If you know
+   the scan_id of the problematic request, you can search for
+   @scan_id:<id> at https://app.datadoghq.com/logs
+
+   In the example above, the scan_id was 14253285.
+   You will probably need also to setup the period in the upper right
+   (e.g., select last few hours). If there are many matching logs,
+   you can focus on the one with errors (usually tagged with a red
+   rectangle on the left).
+
+   Debugging trick #3:
+   --------------------
+
+   When using Datadog, it might be better first to connect to the 'dev2'
+   backend rather than 'prod' to have a lot less logs to search through.
    You can filter out by `env: dev2` in Datadog. To connect to dev2,
    you'll need to run semgrep ci like this:
 
@@ -32,14 +67,12 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
    Tip: you can store those environment variables in a dev2.sh env file
    that you can source instead.
 
-   See https://www.notion.so/semgrep/Architecture-Overview-CI-Scans-afe6193a6cc84abd96cff5f2d91cecaa
-   for an excellent overview of how 'semgrep ci' works with the backend.
-   See also https://www.notion.so/semgrep/Scan-reliability-next-steps-Oct-2023-cf3dad02d1ff4e1a98db8acf7f7bbded
-*)
+   Debugging trick #4?:
+   --------------------
 
-(*****************************************************************************)
-(* Types *)
-(*****************************************************************************)
+   TODO You can also inspect the backend logs in cloudwatch, and Metabase?
+
+*)
 
 (*****************************************************************************)
 (* Error management *)
@@ -72,33 +105,6 @@ let exit_code_of_blocking_findings ~audit_mode ~on ~app_block_override
       Exit_code.findings
   | _else_ -> exit_code
 
-(* reports the failure for [scan_id] to Semgrep App *)
-let report_failure ~dry_run ~token ~scan_id (exit_code : Exit_code.t) : unit =
-  let int_code = Exit_code.to_int exit_code in
-  if dry_run then
-    Logs.app (fun m ->
-        m "Would have reported failure to semgrep.dev: %u" int_code)
-  else
-    let uri =
-      Uri.with_path !Semgrep_envvars.v.semgrep_url
-        ("/api/agent/scans/" ^ scan_id ^ "/error")
-    in
-    let headers =
-      [
-        ("content-type", "application/json");
-        ("authorization", "Bearer " ^ token);
-      ]
-    in
-    let body =
-      JSON.(
-        string_of_json
-          (Object [ ("exit_code", Int int_code); ("stderr", String "") ]))
-    in
-    match Http_helpers.post ~body ~headers uri with
-    | Ok _ -> ()
-    | Error (code, msg) ->
-        Logs.err (fun m -> m "API server returned %u, this error: %s" code msg)
-
 (*****************************************************************************)
 (* Scan config *)
 (*****************************************************************************)
@@ -106,7 +112,7 @@ let report_failure ~dry_run ~token ~scan_id (exit_code : Exit_code.t) : unit =
 
 (* if something fails, we Error.exit *)
 let deployment_config_opt (api_token : Auth.token option) (empty_config : bool)
-    : (Auth.token * Semgrep_App.deployment_config) option =
+    : (Auth.token * Out.deployment_config) option =
   match (api_token, empty_config) with
   | None, true ->
       Logs.app (fun m ->
@@ -130,7 +136,11 @@ let deployment_config_opt (api_token : Auth.token option) (empty_config : bool)
                 "API token not valid. Try to run `semgrep logout` and `semgrep \
                  login` again.");
           Error.exit Exit_code.invalid_api_key
-      | Some deployment_config -> Some (token, deployment_config))
+      | Some deployment_config ->
+          Logs.debug (fun m ->
+              m "received deployment = %s"
+                (Out.show_deployment_config deployment_config));
+          Some (token, deployment_config))
 
 (* eventually output the origin (if the semgrep_url is not semgrep.dev) *)
 let at_url_maybe ppf () : unit =
@@ -153,12 +163,11 @@ let decode_json_rules (data : string) : Rule_fetching.rules_and_origin =
       Rule_fetching.load_rules_from_file ~origin:Other_origin
         ~registry_caching:false file)
 
-(* Either a scan_id and the rules for the project, or None and the rules
- * specified on command-line. If something fails, we Error.exit.
- *)
-let scan_id_and_rules_from_deployment ~dry_run (prj_meta : Out.project_metadata)
-    (token : Auth.token) (deployment_config : Semgrep_App.deployment_config) :
-    Semgrep_App.scan_id * Rule_fetching.rules_and_origin list =
+let scan_config_and_rules_from_deployment ~dry_run
+    (prj_meta : Out.project_metadata) (token : Auth.token)
+    (deployment_config : Out.deployment_config) :
+    Semgrep_App.scan_id * Out.scan_config * Rule_fetching.rules_and_origin list
+    =
   Logs.app (fun m -> m "  %a" Fmt.(styled `Underline string) "CONNECTION");
   Logs.app (fun m ->
       m "  Reporting start of scan for %a"
@@ -197,19 +206,20 @@ let scan_id_and_rules_from_deployment ~dry_run (prj_meta : Out.project_metadata)
         | Error msg ->
             Logs.err (fun m -> m "Failed to download configuration: %s" msg);
             let r = Exit_code.fatal in
-            report_failure ~dry_run ~token ~scan_id r;
+            Semgrep_App.report_failure ~dry_run ~token ~scan_id r;
             Error.exit r
         | Ok config -> config
       in
+
       let rules_and_origins =
         try decode_json_rules scan_config.rule_config with
         | Error.Semgrep_error (_, opt_ex) as e ->
             let ex = Option.value ~default:Exit_code.fatal opt_ex in
-            report_failure ~dry_run ~token ~scan_id ex;
+            Semgrep_App.report_failure ~dry_run ~token ~scan_id ex;
             let e = Exception.catch e in
             Exception.reraise e
       in
-      (scan_id, [ rules_and_origins ])
+      (scan_id, scan_config, [ rules_and_origins ])
 
 (*****************************************************************************)
 (* Project metadata *)
@@ -545,7 +555,7 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   (results, complete)
 
 let upload_findings ~dry_run
-    (depl_opt : (string * Semgrep_App.deployment_config) option)
+    (depl_opt : (string * Out.deployment_config) option)
     (scan_id_opt : Semgrep_App.scan_id option) blocking_findings filtered_rules
     (cli_output : Out.cli_output) : Semgrep_App.app_block_override =
   match (depl_opt, scan_id_opt) with
@@ -620,8 +630,13 @@ let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
   let prj_meta = generate_meta_from_environment None in
   Logs.app (fun m -> m "%a" Fmt_helpers.pp_heading "Debugging Info");
   report_scan_environment prj_meta;
+
   (* TODO: fix_head_if_github_action(metadata) *)
-  let scan_id_opt, rules_and_origin =
+
+  (* Either a scan_config and the rules for the project, or None and the rules
+   * specified on command-line. If something fails, we Error.exit.
+   *)
+  let scan_config_opt, rules_and_origin =
     match depl_opt with
     (* TODO: document why we support running the ci command without a
      * token / deployment. We could simplify the code.
@@ -632,10 +647,10 @@ let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
             ~rewrite_rule_ids:conf.rewrite_rule_ids
             ~registry_caching:conf.registry_caching conf.rules_source )
     | Some (token, depl) ->
-        let scan_id, rules =
-          scan_id_and_rules_from_deployment ~dry_run prj_meta token depl
+        let scan_id, scan_config, rules =
+          scan_config_and_rules_from_deployment ~dry_run prj_meta token depl
         in
-        (Some scan_id, rules)
+        (Some (scan_id, scan_config), rules)
   in
 
   (* TODO:
@@ -684,15 +699,49 @@ let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
     let targets_and_ignored =
       Find_targets.get_targets conf.targeting_conf conf.target_roots
     in
+    (* TODO: should use those fields! the pattern match is useless but it's
+     * just to get compilation error when we add new fields in scan_config
+     *)
+    (match scan_config_opt with
+    | None -> ()
+    | Some
+        ( _scan_id,
+          {
+            (* this is used in scan_config_and_rules_from_deployment *)
+            rule_config = _;
+            (* those 2 do not matter; they should be in a separate
+             * scan_response actually in the futur
+             *)
+            deployment_id = _;
+            deployment_name = _;
+            (* TODO: seems unused *)
+            policy_names = _;
+            (* TODO: lots of info in there to customize, should
+             * adjust the environment and maybe recall
+             * generate_meta_from_environment
+             *)
+            ci_config_from_cloud = _;
+            (* TODO *)
+            autofix = _;
+            deepsemgrep = _;
+            dependency_query = _;
+            ignored_files = _;
+            enabled_products = _;
+            (* ?? *)
+            triage_ignored_match_based_ids = _;
+            triage_ignored_syntactic_ids = _;
+          } ) ->
+        ());
+
     let res =
       Scan_subcommand.run_scan_files conf profiler rules_and_origin
         targets_and_ignored
     in
     match res with
     | Error e ->
-        (match (depl_opt, scan_id_opt) with
-        | Some (token, _), Some scan_id ->
-            report_failure ~dry_run ~token ~scan_id e
+        (match (depl_opt, scan_config_opt) with
+        | Some (token, _), Some (scan_id, _scan_config) ->
+            Semgrep_App.report_failure ~dry_run ~token ~scan_id e
         | _else -> ());
         Logs.err (fun m -> m "Encountered error when running rules");
         e
@@ -736,6 +785,7 @@ let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
         *)
         report_scan_completed ~blocking_findings ~blocking_rules
           ~non_blocking_findings ~non_blocking_rules;
+        let scan_id_opt = Option.map fst scan_config_opt in
         let app_block_override =
           upload_findings ~dry_run depl_opt scan_id_opt blocking_findings
             filtered_rules cli_output
@@ -746,10 +796,10 @@ let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
           ~app_block_override blocking_findings
   with
   | Error.Semgrep_error (_, ex) as e ->
-      (match (depl_opt, scan_id_opt) with
-      | Some (token, _), Some scan_id ->
+      (match (depl_opt, scan_config_opt) with
+      | Some (token, _), Some (scan_id, _scan_config) ->
           let r = Option.value ~default:Exit_code.fatal ex in
-          report_failure ~dry_run ~token ~scan_id r
+          Semgrep_App.report_failure ~dry_run ~token ~scan_id r
       | _else -> ());
       Logs.err (fun m ->
           m "Encountered error when running rules: %s" (Printexc.to_string e));

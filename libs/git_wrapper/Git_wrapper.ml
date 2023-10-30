@@ -206,7 +206,7 @@ let run_with_worktree ~commit ?(branch = None) f =
         | Ok _ -> raise (Error ("Could not remove git worktree at " ^ temp_dir))
         | Error (`Msg e) -> raise (Error e)
       in
-      Fun.protect ~finally:cleanup work
+      Common.protect ~finally:cleanup work
   | Ok _ -> raise (Error ("Could not create git worktree for " ^ commit))
   | Error (`Msg e) -> raise (Error e)
 

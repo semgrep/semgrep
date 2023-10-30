@@ -1,0 +1,7 @@
+For taint rules using labels (experimental) Semgrep now preferably picks a
+source without `requires` for the taint trace
+
+Semgrep now prioritizes taint sources without `requires` condition when
+choosing a representative taint trace from multiple source traces. This helps
+users to more clearly identify the initial taint source when multiple traces
+are involved.

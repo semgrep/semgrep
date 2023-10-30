@@ -1,4 +1,5 @@
 import atexit
+import json
 import os
 import sys
 import time
@@ -154,6 +155,12 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     default=True,
     envvar="SEMGREP_SUPPRESS_ERRORS",
 )
+@click.option(
+    "--internal-ci-scan-results",
+    "internal_ci_scan_results",
+    is_flag=True,
+    hidden=True,
+)
 @handle_command_errors
 def ci(
     ctx: click.Context,
@@ -164,6 +171,7 @@ def ci(
     # TODO: Remove after October 2023. Left for a error message
     # redirect to `--secrets` aka run_secrets_flag.
     beta_testing_secrets: bool,
+    internal_ci_scan_results: bool,
     code: bool,
     config: Optional[Tuple[str, ...]],
     debug: bool,
@@ -368,12 +376,14 @@ def ci(
         scan_handler and "secrets" in scan_handler.enabled_products
     )
 
+    supply_chain_only = supply_chain and not code and not run_secrets
     engine_type = EngineType.decide_engine_type(
         requested_engine=requested_engine,
         scan_handler=scan_handler,
         git_meta=metadata,
         run_secrets=run_secrets,
         enable_pro_diff_scan=diff_depth >= 0,
+        supply_chain_only=supply_chain_only,
     )
 
     # set default settings for selected engine type
@@ -538,17 +548,18 @@ def ci(
     num_nonblocking_findings = len(nonblocking_matches)
     num_blocking_findings = len(blocking_matches)
 
-    output_handler.output(
-        non_cai_matches_by_rule,
-        all_targets=output_extra.all_targets,
-        ignore_log=ignore_log,
-        profiler=profiler,
-        filtered_rules=[*blocking_rules, *nonblocking_rules],
-        extra=output_extra,
-        severities=shown_severities,
-        is_ci_invocation=True,
-        engine_type=engine_type,
-    )
+    if not internal_ci_scan_results:
+        output_handler.output(
+            non_cai_matches_by_rule,
+            all_targets=output_extra.all_targets,
+            ignore_log=ignore_log,
+            profiler=profiler,
+            filtered_rules=[*blocking_rules, *nonblocking_rules],
+            extra=output_extra,
+            severities=shown_severities,
+            is_ci_invocation=True,
+            engine_type=engine_type,
+        )
 
     logger.info("CI scan completed successfully.")
     logger.info(
@@ -577,6 +588,18 @@ def ci(
                 contributions,
                 engine_type,
                 progress_bar,
+            )
+
+        if internal_ci_scan_results:
+            # console.print() would go to stderr; here we print() directly to stdout
+            print(
+                json.dumps(
+                    scan_handler.ci_scan_results.to_json()
+                    if scan_handler.ci_scan_results
+                    else {},
+                    sort_keys=True,
+                    default=lambda x: x.to_json(),
+                )
             )
 
         if complete_result.success:

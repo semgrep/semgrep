@@ -1362,7 +1362,11 @@ let parse_taint_requires env key x =
 (* TODO: can add a case where these take in only a single string *)
 let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
     Rule.taint_source =
+  let source_id = "source:" ^ String.concat ":" env.path in
   let parse_from_dict dict f =
+    let source_exact =
+      take_opt dict env parse_bool "exact" |> Option.value ~default:false
+    in
     let source_by_side_effect =
       take_opt dict env parse_bool "by-side-effect"
       |> Option.value ~default:false
@@ -1377,7 +1381,9 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
     let source_requires = take_opt dict env parse_taint_requires "requires" in
     let source_formula = f env dict in
     {
-      R.source_formula;
+      R.source_id;
+      source_formula;
+      source_exact;
       source_by_side_effect;
       source_control;
       label;
@@ -1392,7 +1398,9 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
     | Left value ->
         let source_formula = R.P (parse_rule_xpattern env value) in
         {
+          source_id;
           source_formula;
+          source_exact = false;
           source_by_side_effect = false;
           source_control = false;
           label = R.default_source_label;
@@ -1402,6 +1410,7 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
 
 let parse_taint_propagator ~(is_old : bool) env (key : key) (value : G.expr) :
     Rule.taint_propagator =
+  let propagator_id = "propagator:" ^ String.concat ":" env.path in
   let f =
     if is_old then parse_formula_old_from_dict else parse_formula_from_dict
   in
@@ -1424,7 +1433,8 @@ let parse_taint_propagator ~(is_old : bool) env (key : key) (value : G.expr) :
     in
     let propagator_formula = f env dict in
     {
-      R.propagator_formula;
+      R.propagator_id;
+      propagator_formula;
       propagator_by_side_effect;
       from;
       to_;
@@ -1437,7 +1447,11 @@ let parse_taint_propagator ~(is_old : bool) env (key : key) (value : G.expr) :
   parse_from_dict dict f
 
 let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
+  let sanitizer_id = "sanitizer:" ^ String.concat ":" env.path in
   let parse_from_dict dict f =
+    let sanitizer_exact =
+      take_opt dict env parse_bool "exact" |> Option.value ~default:false
+    in
     let sanitizer_by_side_effect =
       take_opt dict env parse_bool "by-side-effect"
       |> Option.value ~default:false
@@ -1448,7 +1462,13 @@ let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
       |> Option.value ~default:false
     in
     let sanitizer_formula = f env dict in
-    { sanitizer_formula; sanitizer_by_side_effect; R.not_conflicting }
+    {
+      sanitizer_id;
+      sanitizer_formula;
+      sanitizer_exact;
+      sanitizer_by_side_effect;
+      R.not_conflicting;
+    }
   in
   if is_old then
     let dict = yaml_to_dict env key value in
@@ -1458,7 +1478,9 @@ let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
     | Left value ->
         let sanitizer_formula = R.P (parse_rule_xpattern env value) in
         {
+          sanitizer_id;
           sanitizer_formula;
+          sanitizer_exact = false;
           sanitizer_by_side_effect = false;
           R.not_conflicting = false;
         }
@@ -1466,7 +1488,7 @@ let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
 
 let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     Rule.taint_sink =
-  let sink_id = String.concat ":" env.path in
+  let sink_id = "sink:" ^ String.concat ":" env.path in
   let parse_from_dict dict f =
     let sink_requires = take_opt dict env parse_taint_requires "requires" in
     let sink_formula = f env dict in
@@ -2013,15 +2035,13 @@ let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
   let xs =
     rules
     |> Common.mapi (fun i rule ->
-           if error_recovery then (
-             try Left (parse_one_rule ~rewrite_rule_ids t i rule) with
-             | Rule.Error { kind = InvalidRule ((kind, ruleid, _) as err); _ }
-               ->
-                 let s = Rule.string_of_invalid_rule_error_kind kind in
-                 logger#warning "skipping rule %s, error = %s"
-                   (Rule_ID.to_string ruleid) s;
-                 Right err)
-           else Left (parse_one_rule ~rewrite_rule_ids t i rule))
+           try Left (parse_one_rule ~rewrite_rule_ids t i rule) with
+           | Rule.Error { kind = InvalidRule ((kind, ruleid, _) as err); _ }
+             when error_recovery || R.is_skippable_error kind ->
+               let s = Rule.string_of_invalid_rule_error_kind kind in
+               logger#warning "skipping rule %s, error = %s"
+                 (Rule_ID.to_string ruleid) s;
+               Right err)
   in
   Common.partition_either (fun x -> x) xs
 
@@ -2120,8 +2140,9 @@ let parse_xpattern xlang (str, tok) =
 (*****************************************************************************)
 
 let parse file =
-  let xs, skipped = parse_file ~error_recovery:false file in
-  assert (skipped =*= []);
+  let xs, _skipped = parse_file ~error_recovery:false file in
+  (* The skipped rules include Apex rules and other rules that are always
+     skippable. *)
   xs
 
 (*****************************************************************************)

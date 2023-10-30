@@ -14,6 +14,9 @@ val run_semgrep :
 val scan_workspace : RPC_server.t -> unit
 (** [scan_workspace server] scans the workspace of the given session. *)
 
+val scan_open_documents : RPC_server.t -> unit
+(** [scan_open_documents server] scans the open documents of the given session. *)
+
 val scan_file : ?content:string option -> RPC_server.t -> Lsp__Uri0.t -> unit
 (** [scan_file server] scans the given file. If [content] is provided, it will
   * be used as the content of the file. Otherwise, the content will be read

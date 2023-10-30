@@ -70,6 +70,7 @@ class ScanHandler:
         self._scan_params: str = ""
         self._rules: str = ""
         self._enabled_products: List[str] = []
+        self.ci_scan_results: Optional[out.CiScanResults] = None
 
     @property
     def deployment_id(self) -> Optional[int]:
@@ -338,7 +339,7 @@ class ScanHandler:
             or os.getenv("BITBUCKET_TOKEN")
         )
 
-        ci_scan_results = out.CiScanResults(
+        self.ci_scan_results = out.CiScanResults(
             # send a backup token in case the app is not available
             token=token,
             findings=findings,
@@ -349,9 +350,11 @@ class ScanHandler:
             contributions=contributions,
         )
         if self._dependency_query:
-            ci_scan_results.dependencies = out.CiScanDependencies(lockfile_dependencies)
+            self.ci_scan_results.dependencies = out.CiScanDependencies(
+                lockfile_dependencies
+            )
 
-        findings_and_ignores = ci_scan_results.to_json()
+        findings_and_ignores = self.ci_scan_results.to_json()
 
         if any(
             isinstance(match.severity.value, out.Experiment) for match in new_ignored

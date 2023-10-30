@@ -6,15 +6,18 @@ name: build-test-manylinux-x86
 jobs:
   build-wheels:
     runs-on: ubuntu-latest
-    container: returntocorp/sgrep-build:ubuntu-16.04
+    container: returntocorp/sgrep-build:ubuntu-18.04
     steps:
     - uses: actions/checkout@v3
       with:
         submodules: true
-    - name: Setup Python
-      run: "\n        rm /usr/bin/python\n        ln `which python3.7` /usr/bin/python3\n
+    - run: apt-get update && apt install -y zip musl-tools software-properties-common
+        python3-pip
+    - run: "\n        add-apt-repository ppa:deadsnakes/ppa\n        apt install -y
+        python3.8\n        update-alternatives --install /usr/bin/python3 python3
+        /usr/bin/python3.6 1\n        update-alternatives --install /usr/bin/python3
+        python3 /usr/bin/python3.8 2\n        update-alternatives --config python3\n
         \     "
-    - run: apt-get update && apt install -y zip musl-tools
     - uses: actions/download-artifact@v3
       with:
         name: ocaml-build-artifacts-release
@@ -35,10 +38,10 @@ jobs:
         name: manylinux-x86-wheel
     - run: unzip ./manylinux-x86-wheel/dist.zip
     - name: install package
-      run: /opt/python/cp37-cp37m/bin/pip install dist/*.whl
+      run: /opt/python/cp38-cp38/bin/pip install dist/*.whl
     - name: test package
-      run: "\n        export PATH=/opt/python/cp37-cp37m/bin:$PATH\n        semgrep
+      run: "\n        export PATH=/opt/python/cp38-cp38/bin:$PATH\n        semgrep
         --version\n      "
     - name: e2e semgrep-core test
-      run: "\n        export PATH=/opt/python/cp37-cp37m/bin:$PATH\n        echo '1
+      run: "\n        export PATH=/opt/python/cp38-cp38/bin:$PATH\n        echo '1
         == 1' | semgrep -l python -e '$X == $X' -\n      "

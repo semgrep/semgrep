@@ -3,7 +3,6 @@ from tests.fixtures import RunSemgrep
 
 
 @pytest.mark.kinda_slow
-@pytest.mark.osempass
 @pytest.mark.parametrize(
     "rule,target",
     [
