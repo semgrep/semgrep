@@ -138,18 +138,12 @@ let fetch_rules session =
   in
   let home = Unix.getenv "HOME" |> Fpath.v in
   let rules_source =
-    let x = session.user_settings.configuration in
-    let y = x |> Common.map Fpath.v in
-    let z = y |> Common.map Fpath.normalize in
-    let a =
-      z
-      |> Common.map (fun f ->
-             let p = Fpath.rem_prefix (Fpath.v "~/") f in
-             Option.bind p (fun f -> Some (home // f))
-             |> Option.value ~default:f)
-    in
-    let b = a |> Common.map Fpath.to_string in
-    b
+    session.user_settings.configuration |> Common.map Fpath.v
+    |> Common.map Fpath.normalize
+    |> Common.map (fun f ->
+           let p = Fpath.rem_prefix (Fpath.v "~/") f in
+           Option.bind p (fun f -> Some (home // f)) |> Option.value ~default:f)
+    |> Common.map Fpath.to_string
   in
   let rules_source =
     if rules_source = [] && ci_rules = None then (

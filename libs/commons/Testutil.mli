@@ -112,7 +112,7 @@ val filter : ?substring:string -> ?pcre:string -> test list -> test list
    Basic usage:
 
      let alcotest_tests = to_alcotest my_quick_tests
-'a
+
    Advanced usage with slow (background) tests:
 
      let alcotest_tests =

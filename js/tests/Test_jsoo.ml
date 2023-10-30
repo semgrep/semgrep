@@ -74,7 +74,7 @@ let _ =
          in
          let tests = [ Unit_LS.tests ] |> List.flatten in
          let lwt_tests = [ Test_LS_e2e.lwt_tests ] |> List.flatten in
-         let _tests =
+         let tests =
            Common.map
              (fun (name, f) ->
                let f () =
@@ -98,11 +98,11 @@ let _ =
                (name, f))
              lwt_tests
          in
-         (* let run () =
-              Alcotest.run "semgrep-js"
-                (Testutil.to_alcotest tests)
-                ~and_exit:false ~argv ~filter:test_filter
-            in *)
+         let run () =
+           Alcotest.run "semgrep-js"
+             (Testutil.to_alcotest tests)
+             ~and_exit:false ~argv ~filter:test_filter
+         in
          let run_lwt () : unit Lwt.t =
            Alcotest_lwt.run "semgrep-js"
              (Testutil.to_alcotest_lwt lwt_tests)
@@ -110,5 +110,7 @@ let _ =
          in
          (* Semgrep_js_shared.wrap_with_js_error run; *)
          Semgrep_node_js_shared.promise_of_lwt
-           (Semgrep_js_shared.wrap_with_js_error (fun () -> run_lwt))
+           (Semgrep_js_shared.wrap_with_js_error (fun () () ->
+                run ();
+                run_lwt ()))
     end)

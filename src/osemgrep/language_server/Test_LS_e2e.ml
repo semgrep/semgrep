@@ -76,7 +76,6 @@ let create_info () =
   let in_stream, in_push_func = Lwt_stream.create () in
   let out_stream, out_push_func = Lwt_stream.create () in
   let server = LanguageServer.create () in
-  Logs.debug (fun m -> m "Server is: %s" (Session.show server.session));
   write_func := out_push_func;
   read_stream := in_stream;
   {
@@ -278,6 +277,7 @@ let mock_files () : _ * Fpath.t list =
          "remote";
          "add";
          "origin";
+         (* nosem *)
          "/tmp/origin";
        ]);
   checked_command
