@@ -48,6 +48,7 @@ from semgrep.rule import Rule
 from semgrep.rule_match import OrderedRuleMatchList
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_types import Language
+from semgrep.state import DesignTreatment
 from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
@@ -699,7 +700,6 @@ class CoreRunner:
         max_timeout_files: Set[Path] = set()
         # TODO this is a quick fix, refactor this logic
 
-        profiling_data: Optional[out.Profile] = None
         parsing_data: ParsingData = ParsingData()
 
         # Create an exit stack context manager to properly handle closing
@@ -841,9 +841,13 @@ class CoreRunner:
                 elif engine is EngineType.PRO_INTRAFILE:
                     cmd += ["-deep_intra_file"]
 
-            stderr: Optional[int] = subprocess.PIPE
             if state.terminal.is_debug:
                 cmd += ["--debug"]
+
+            show_progress = state.get_cli_ux_flavor() != DesignTreatment.MINIMAL
+            total = (
+                plan.num_targets * 3 if show_progress else 0
+            )  # Multiply by 3 for Pro Engine
 
             logger.debug("Running Semgrep engine with command:")
             logger.debug(" ".join(cmd))
@@ -858,9 +862,7 @@ class CoreRunner:
                 print(" ".join(printed_cmd))
                 sys.exit(0)
 
-            # Multiplied by three, because we have three places in Pro Engine to
-            # report progress, versus one for OSS Engine.
-            runner = StreamingSemgrepCore(cmd, plan.num_targets * 3, engine)
+            runner = StreamingSemgrepCore(cmd, total=total, engine_type=engine)
             runner.vfs_map = vfs_map
             returncode = runner.execute()
 
@@ -1056,7 +1058,12 @@ Exception raised: `{e}`
             ]
 
             # only scanning combined rules
-            runner = StreamingSemgrepCore(cmd, 1, self._engine_type)
+            show_progress = get_state().get_cli_ux_flavor() != DesignTreatment.MINIMAL
+            total = 1 if show_progress else 0
+
+            runner = StreamingSemgrepCore(
+                cmd, total=total, engine_type=self._engine_type
+            )
             returncode = runner.execute()
 
             # Process output
