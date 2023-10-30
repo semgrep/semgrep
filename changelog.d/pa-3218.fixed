@@ -1,0 +1,2 @@
+Rust: `unsafe` blocks are now translated into the Dataflow IL so e.g. it becomes
+possible for taint analysis to track taint from/to an `unsafe` block.

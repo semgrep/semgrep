@@ -101,9 +101,9 @@ let short_string_of_node_kind nkind =
           let lval_str =
             match lval_opt with
             | None -> ""
-            | Some lval -> Common.spf " %s =" (string_of_lval lval)
+            | Some lval -> Common.spf " %s = " (string_of_lval lval)
           in
-          Common.spf "<special>%s = %s(%s)" lval_str
+          Common.spf "<special>%s%s(%s)" lval_str
             (IL.show_call_special call_special)
             (string_of_arguments args)
       | FixmeInstr _ -> "<fix-me instr>")
