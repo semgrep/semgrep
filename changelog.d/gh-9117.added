@@ -1,4 +1,4 @@
-Added `sg` alias for semgrep binary which is functionally equivalent to 
+Added `sg` alias for semgrep binary which is functionally equivalent to
 ```sh
 alias sg="/opt/homebrew/bin/semgrep"
 ```
