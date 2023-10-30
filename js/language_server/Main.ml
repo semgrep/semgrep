@@ -30,14 +30,14 @@ open Semgrep_js_shared
 (*****************************************************************************)
 
 let _ =
-  RPC_server.io_ref := (module Semgrep_node_js_shared.Io);
+  RPC_server.io_ref := (module Semgrep_js_shared.Io);
   Logs.set_level (Some Logs.Debug);
-  Logs.set_reporter { Logs.report = Semgrep_node_js_shared.console_report };
+  Logs.set_reporter { Logs.report = Semgrep_js_shared.console_report };
   Http_helpers.client_ref := Some (module Cohttp_lwt_jsoo.Client);
   Js.export_all
     (object%js
        method init = init_jsoo
-       method start = Semgrep_node_js_shared.promise_of_lwt LS.start
+       method start = Semgrep_js_shared.promise_of_lwt LS.start
        method getMountpoints = get_jsoo_mountpoint ()
        method setParsePattern = setParsePattern
        method setJustParseWithLang = setJustParseWithLang

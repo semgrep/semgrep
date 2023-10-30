@@ -1,3 +1,17 @@
+/* What is this file for?
+   We would like to transpile our OCaml code to JS, to make it runnable in
+   the browser and on Windows systems. The OCaml standard library, however,
+   has external C dependencies, some of which are unimplemented by the JSOO
+   transpiler.
+   In particular, the Unix module consists largely of external C calls which
+   are not defined symbols in the produced JS.
+   To make sure we can still call those C functions (which happens in things
+   such as Bos, Time_limit, etc), we reimplement those fundamental Unix calls
+   in Javascript.
+   Note that this doesn't need to be a perfect reimplementation, but we can
+   get by with "good enough" behavior.
+ */
+
 const { spawnSync } = require("node:child_process");
 const os = require("os");
 const fs = require("fs");
@@ -14,18 +28,14 @@ globalThis.pidToProcessTable = new Map();
 globalThis.pidToChildrenTable = new Map();
 // There will be collisions if we ever allocate 20000 or more file descriptors
 // "naturally", that is, through `caml_sys_open`.
-globalThis.fdCount = 20000;
+// "Fake", because these file descriptors we produce are not real file descriptors,
+// but just indices corresponding to `unix_spawn` calls.
+globalThis.fakeFdThreshold = 20000;
+globalThis.fdCount = globalThis.fakeFdThreshold;
 globalThis.fdTable = new Map();
 
 //Provides: unix_spawn
 function unix_spawn(executable, args, optenv, usepath, redirect) {
-  console.error("unix_spawn");
-  console.error(executable);
-  console.error(args);
-  console.error(optenv);
-  console.error(usepath);
-  console.error(redirect);
-
   // get rid of the mandatory tag and the first argument, which is the
   // executable path
   let argv = args.slice(2);
@@ -52,42 +62,37 @@ function unix_spawn(executable, args, optenv, usepath, redirect) {
     globalThis.fdTable.set(output_fd, child.stdout);
 
     return child.pid;
-  } else {
-    let env = {};
-    for (const arg of optenv[1].slice(1)) {
-      const [key, value] = arg.split("=");
-      env[key] = value;
-    }
-    const child = globalThis.spawnSync(executable, argv, {
-      env: env,
-      stdio: "pipe",
-    });
-
-    globalThis.pidToProcessTable.set(child.pid, child);
-    globalThis.fdTable.set(output_fd, child.stdout);
-
-    let current_pid = globalThis.process.pid;
-
-    // associate parent to new child
-    if (globalThis.pidToChildrenTable.has(current_pid)) {
-      globalThis.pidToChildrenTable.set(
-        current_pid,
-        globalThis.pidToChildrenTable.get(current_pid).concat([child])
-      );
-    } else {
-      globalThis.pidToChildrenTable.set(current_pid, [child]);
-    }
-
-    return child.pid;
   }
+  let env = {};
+  for (const arg of optenv[1].slice(1)) {
+    const [key, value] = arg.split("=");
+    env[key] = value;
+  }
+  const child = globalThis.spawnSync(executable, argv, {
+    env: env,
+    stdio: "pipe",
+  });
+
+  globalThis.pidToProcessTable.set(child.pid, child);
+  globalThis.fdTable.set(output_fd, child.stdout);
+
+  let current_pid = globalThis.process.pid;
+
+  // associate parent to new child
+  if (globalThis.pidToChildrenTable.has(current_pid)) {
+    globalThis.pidToChildrenTable.set(
+      current_pid,
+      globalThis.pidToChildrenTable.get(current_pid).concat([child])
+    );
+  } else {
+    globalThis.pidToChildrenTable.set(current_pid, [child]);
+  }
+
+  return child.pid;
 }
 
 //Provides: unix_waitpid
 function unix_waitpid(flags, pid_req) {
-  console.error("unix_waitpid");
-  console.error(flags);
-  console.error(pid_req);
-
   // TODO: flags stuff is not implemented
   // TODO: WIFSTOPPED is not currently possible, because I don't know how to
   // tell if a Javascript process is stopped or killed
@@ -149,10 +154,6 @@ function unix_waitpid(flags, pid_req) {
 
 //Provides: unix_pipe
 function unix_pipe(cloexec, vunit) {
-  console.error("unix_pipe");
-  console.error(cloexec);
-  console.error(vunit);
-
   // The pipe we spawn here will eventually reach unix_spawn.
   // We don't want to use a real file descriptor, bceause we're trying
   // to avoid them, in favor of Node's redirection ability, which will open
@@ -170,25 +171,18 @@ function unix_pipe(cloexec, vunit) {
 
 //Provides: unix_set_close_on_exec
 function unix_set_close_on_exec(fd) {
-  console.error("unix_set_close_on_exec");
-  console.error(fd);
   return;
 }
 
 //Provides: unix_getcwd
 //Requires: caml_sys_getcwd
 function unix_getcwd(vunit) {
-  console.error("unix_cwd");
-
   return caml_sys_getcwd(vunit);
 }
 
 //Provides: unix_chdir
 //Requires: caml_sys_chdir
 function unix_chdir(path) {
-  console.error("unix_chdir");
-  console.error(path);
-
   caml_sys_chdir(path);
 
   return;
@@ -196,18 +190,12 @@ function unix_chdir(path) {
 
 //Provides: unix_clear_close_on_exec
 function unix_clear_close_on_exec(fd) {
-  console.error("unix_clear_close_on_exec");
-  console.error(fd);
   return;
 }
 
 //Provides: unix_dup
 //Requires: unix_pipe
 function unix_dup(cloexec, fd) {
-  console.error("unix_dup");
-  console.error(cloexec);
-  console.error(fd);
-
   // We just use the same unix_pipe logic to generate a fresh fake
   // file descriptor.
   return unix_pipe(cloexec, fd);
@@ -215,26 +203,16 @@ function unix_dup(cloexec, fd) {
 
 //Provides: unix_close
 function unix_close(fd) {
-  console.error("unix_close");
-  console.error(fd);
-
   return;
 }
 
 //Provides: unix_fork
 function unix_fork(vunit) {
-  console.error("unix_fork");
-  console.error(vunit);
-
   return;
 }
 
 //Provides: unix_setitimer
 function unix_setitimer(it, its) {
-  console.error("unix_setitimer");
-  console.error(it);
-  console.error(its);
-
   // In our code, the result value is just ignored, so we can return the same one.
   // TODO: Theoretically this is supposed to do some SIGALRM stuff too, but
   // that is complicated, so let's leave it as a TODO.
@@ -244,9 +222,6 @@ function unix_setitimer(it, its) {
 // TODO
 //Provides: unix_sleep
 function unix_sleep(duration) {
-  console.error("unix_sleep");
-  console.error(duration);
-
   // You cannot actually sleep synchronously, so let's just leave this
   // as a TODO.
 
@@ -279,11 +254,6 @@ function unix_umask(newmask) {
 //Provides: unix_write
 //Requires: caml_sys_fds
 function unix_write(fd, buf, ofs, len) {
-  console.error("unix_write");
-  console.error(fd);
-  console.error(ofs);
-  console.error(len);
-
   let file = caml_sys_fds[fd];
 
   // The reason why this gymnastics is needed, instead of just calling file.write
@@ -296,17 +266,12 @@ function unix_write(fd, buf, ofs, len) {
   // gets it right.
   let bufferSlice = buf.c.slice(ofs, ofs + len);
 
-  // The actual length of our buffer, which depends upon whether the index of
-  // ofs + len is greater than the buffer that we are reading from.
-  let bufferSliceLength =
-    ofs + len < bufferSlice.length ? ofs + len : bufferSlice.length;
-
   // The implementation of MlNodeFd.write is such that
   // this always returns 0 if this succeeds.
   // So let's ignore it.
-  let bytesWritten = file.write(null, bufferSlice, 0, bufferSliceLength);
+  let bytesWritten = file.write(null, bufferSlice, 0, bufferSlice.length);
 
-  return bufferSliceLength;
+  return bufferSlice.length;
 }
 
 //Provides: unix_read
@@ -314,10 +279,6 @@ function unix_write(fd, buf, ofs, len) {
 function unix_read(fd, buf, ofs, len) {
   // buf is of type `bytes` in OCaml, which in JSCaml is
   // represented by an MlBytes object
-  console.error("unix_read");
-  console.error(fd);
-  console.error(ofs);
-  console.error(len);
 
   // This will ensure buf.c is an array.
   // We only need to do this if it's not already an array, though.
@@ -334,14 +295,13 @@ function unix_read(fd, buf, ofs, len) {
   const from_buffer = Buffer.from(buf.c);
   from_buffer.copy(buffer, 0, 0, length);
 
-  if (fd >= 20000) {
+  if (fd >= globalThis.fakeFdThreshold) {
     // Via our protocol, this is a unique identifier associated to the
     // pipe (and by extension, the spawned process), which is mapped to
     // the corresponding child.
     // Because the child was spawned via 'pipe' stdio, we should be able
     // to just read the child's output fd to get the data.
     if (!globalThis.fdTable.has(fd)) {
-      console.error(`fd ${fd} not in fdTable`);
       return 0;
     }
 

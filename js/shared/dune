@@ -10,6 +10,8 @@
    yaml_ctypes_overrides
    semgrep.parsing
    semgrep.data
+   semgrep.language_server
+   lwt_platform.js
  )
  (js_of_ocaml
   (javascript_files
@@ -17,4 +19,4 @@
     core.js ; misc libraries
  ))
  (preprocess
-  (pps js_of_ocaml-ppx)))
+  (pps js_of_ocaml-ppx lwt_ppx)))

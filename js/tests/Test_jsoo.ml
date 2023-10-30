@@ -58,7 +58,7 @@ let test_filter ~name ~index =
 (* Stolen from Logs' logs_browser.ml *)
 let _ =
   Logs.set_level (Some Logs.Debug);
-  Logs.set_reporter { Logs.report = Semgrep_node_js_shared.console_report };
+  Logs.set_reporter { Logs.report = Semgrep_js_shared.console_report };
   Js.export_all
     (object%js
        method init = Semgrep_js_shared.init_jsoo
@@ -116,15 +116,18 @@ let _ =
              (Testutil.to_alcotest_lwt lwt_tests)
              ~and_exit:false ~argv ~filter:test_filter
          in
-         (* Semgrep_js_shared.wrap_with_js_error run; *)
          (* Some gymnastics are needed here because we need to
             produce a top level promise, in order to properly transform the
             lwt promise into a Javascript promise, and run it on the Node.js
             runtime.
             So we must use Alcotest_lwt to turn our test running into a
             promise.*)
-         Semgrep_node_js_shared.promise_of_lwt
+         Semgrep_js_shared.promise_of_lwt
            (Semgrep_js_shared.wrap_with_js_error (fun () () ->
+                (* I don't know why, but on my (Brandon's) machine, the
+                   e2e tests fail unless they are run in this order.
+                *)
+                let%lwt () = run_lwt () in
                 run ();
-                run_lwt ()))
+                Lwt.return_unit))
     end)

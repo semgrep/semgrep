@@ -237,12 +237,6 @@ let receive_request (info : info) : Request.t Lwt.t =
 let git_tmp_path () =
   Testutil_files.with_tempdir ~persist:true (fun dir ->
       let dir = Fpath.to_string dir in
-      (* This chdir does nothing in the JSCaml code, because the OCaml path is
-         only simulated, in the Javascript environment.
-         Hence, the liberal uses of `-C` everywhere.
-         This might still be wrong, though.
-      *)
-      let () = Sys.chdir dir in
       checked_command (String.concat " " [ "git"; "-C"; dir; "init" ]);
       checked_command
         (String.concat " "
