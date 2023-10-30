@@ -371,7 +371,12 @@ let commit cwd msg =
   let cmd = Bos.Cmd.(v "git" % "-C" % !!cwd % "commit" % "-m" % msg) in
   match Bos.OS.Cmd.run_status cmd with
   | Ok (`Exited 0) -> ()
-  | _ -> raise (Error "Error running git commit")
+  | Ok (`Exited i) ->
+      raise (Error (Common.spf "Error running git commit: bad exit %d" i))
+  | Ok (`Signaled i) ->
+      raise (Error (Common.spf "Error running git commit: bad signal %d" i))
+  | Error (`Msg s) ->
+      raise (Error (Common.spf "Error running git commit: %s" s))
 
 (* TODO: should return Uri.t option *)
 let get_project_url () : string option =
