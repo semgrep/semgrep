@@ -1916,6 +1916,15 @@ let check_version_compatibility rule_id ~min_version ~max_version =
       if not (Version_info.compare Version_info.version maxi <= 0) then
         incompatible_version ?max_version:(Some maxi) rule_id tok
 
+(* TODO: Unify how we differentiate which rules correspond to which products *)
+let product_of_metadata_opt x : Rule.product =
+  Option.(
+    x >>= fun x ->
+    J.member "product" x >>= function
+    | J.String "secrets" -> Some `Secrets
+    | _ -> None)
+  |> Option.value ~default:`SAST
+
 let parse_one_rule ~rewrite_rule_ids (t : G.tok) (i : int) (rule : G.expr) :
     Rule.t =
   let rd = yaml_to_dict_no_env ("rules", t) rule in
@@ -1964,6 +1973,7 @@ let parse_one_rule ~rewrite_rule_ids (t : G.tok) (i : int) (rule : G.expr) :
           take rd env parse_string_wrap "severity" )
   in
   let metadata_opt = take_opt_no_env rd (generic_to_json rule_id) "metadata" in
+  let product = product_of_metadata_opt metadata_opt in
   let fix_opt = take_opt rd env parse_string "fix" in
   let fix_regex_opt = take_opt rd env parse_fix_regex "fix-regex" in
   let paths_opt = take_opt rd env parse_paths "paths" in
@@ -1979,6 +1989,7 @@ let parse_one_rule ~rewrite_rule_ids (t : G.tok) (i : int) (rule : G.expr) :
     target_analyzer;
     severity = parse_severity ~id:env.id severity;
     mode;
+    product;
     (* optional fields *)
     metadata = metadata_opt;
     fix = fix_opt;

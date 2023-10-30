@@ -125,6 +125,7 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
 *)
 val select_applicable_rules_for_target :
   analyzer:Xlang.t ->
+  products:Rule.product list ->
   path:Fpath.t ->
   respect_rule_paths:bool ->
   Rule.t list ->

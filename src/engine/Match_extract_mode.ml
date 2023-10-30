@@ -104,7 +104,8 @@ let mk_extract_target dst_lang contents =
   let suffix = Xlang.informative_suffix dst_lang in
   let f = Common.new_temp_file "extracted" suffix in
   Common2.write_file ~file:f contents;
-  { In.path = f; analyzer = dst_lang }
+  (* Extract mode targets work with any product *)
+  { In.path = f; analyzer = dst_lang; products = [ `SAST; `SCA; `Secrets ] }
 
 (* Unquote string *)
 (* TODO: This is not yet implemented *)

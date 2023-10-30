@@ -697,7 +697,12 @@ let targets_of_config (config : Core_scan_config.t) :
       let target_mappings =
         files
         |> Common.map (fun file ->
-               { In.path = Fpath.to_string file; analyzer = xlang })
+               {
+                 In.path = Fpath.to_string file;
+                 analyzer = xlang;
+                 (* TODO: Define all_products somewhere. *)
+                 products = [ `SAST; `SCA; `Secrets ];
+               })
       in
       (target_mappings, skipped)
   | None, _, None -> failwith "you need to specify a language with -lang"
@@ -814,15 +819,16 @@ let select_applicable_rules_for_analyzer ~analyzer rules =
    or something even better to reduce the time spent on each target in
    case we have a high number of rules and a high fraction of irrelevant
    rules? *)
-let select_applicable_rules_for_target ~analyzer ~path ~respect_rule_paths rules
-    =
+let select_applicable_rules_for_target ~analyzer ~products ~path
+    ~respect_rule_paths rules =
   select_applicable_rules_for_analyzer ~analyzer rules
+  |> List.filter (fun r -> List.exists Rule.(equal_product r.product) products)
   |> List.filter (fun r ->
          (* Honor per-rule include/exclude.
-          * Note that this also done in pysemgrep, but we need to do it
-          * again here for osemgrep which use a different file targeting
-          * strategy.
-          *)
+            * Note that this also done in pysemgrep, but we need to do it
+            * again here for osemgrep which use a different file targeting
+            * strategy.
+         *)
          match r.R.paths with
          | Some paths when respect_rule_paths ->
              Filter_target.filter_paths paths path
@@ -877,8 +883,9 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
            (* runs in another process *)
            let file = Fpath.v target.path in
            let analyzer = target.analyzer in
+           let products = target.products in
            let applicable_rules =
-             select_applicable_rules_for_target ~analyzer ~path:file
+             select_applicable_rules_for_target ~analyzer ~products ~path:file
                ~respect_rule_paths:config.respect_rule_paths valid_rules
            in
            let was_scanned =

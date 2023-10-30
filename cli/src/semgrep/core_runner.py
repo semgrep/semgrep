@@ -633,9 +633,11 @@ class CoreRunner:
 
         Note: this is a list because a target can appear twice (e.g. Java + Generic)
         """
-        target_info: Dict[Tuple[Path, Language], List[int]] = collections.defaultdict(
-            list
-        )
+        # The range of target_info is (index into rules x product as json)
+        # Using product as JSON because we want structural equality of products instead of object equality.
+        target_info: Dict[
+            Tuple[Path, Language], Tuple[List[int], Set[str]]
+        ] = collections.defaultdict(lambda: (list(), set()))
 
         lockfiles = target_manager.get_all_lockfiles()
 
@@ -651,27 +653,29 @@ class CoreRunner:
             for language in rule.languages:
                 targets = list(
                     target_manager.get_files_for_rule(
-                        language,
-                        rule.includes,
-                        rule.excludes,
-                        rule.id,
+                        language, rule.includes, rule.excludes, rule.id, rule.product
                     )
                 )
 
                 for target in targets:
                     if all_targets is not None:
                         all_targets.add(target)
-                    target_info[target, language].append(rule_num)
+                    rules_nums, products = target_info[target, language]
+                    rules_nums.append(rule_num)
+                    products.add(rule.product.to_json_string())
 
         return Plan(
             [
                 Task(
                     path=target,
                     analyzer=language,
+                    products=tuple(
+                        map(lambda x: out.Product.from_json_string(x), products)
+                    ),
                     # tuple conversion makes rule_nums hashable, so usable as cache key
-                    rule_nums=tuple(target_info[target, language]),
+                    rule_nums=tuple(rule_nums),
                 )
-                for target, language in target_info
+                for ((target, language), (rule_nums, products)) in target_info.items()
             ],
             rules,
             lockfiles_by_ecosystem=lockfiles,
