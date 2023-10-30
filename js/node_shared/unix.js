@@ -30,10 +30,20 @@ globalThis.pidToChildrenTable = new Map();
 // "naturally", that is, through `caml_sys_open`.
 // "Fake", because these file descriptors we produce are not real file descriptors,
 // but just indices corresponding to `unix_spawn` calls.
+// According to Austin: should be Ok, because node uses libuv
+// https://www.geeksforgeeks.org/libuv-in-node-js/
 globalThis.fakeFdThreshold = 20000;
 globalThis.fdCount = globalThis.fakeFdThreshold;
 globalThis.fdTable = new Map();
 
+/* Some magic happens here, in conjunction with unix_pipe.
+   Read its description for more.
+   The basic TL;DR is we generate fake file descriptors when piping or duping,
+   which we then associate to the output of this process, using Node's inherent
+   IO redirection capabilities.
+   Then, when reading from this "file descriptor", we just get the associated
+   output.
+ */
 //Provides: unix_spawn
 function unix_spawn(executable, args, optenv, usepath, redirect) {
   // get rid of the mandatory tag and the first argument, which is the
@@ -302,6 +312,15 @@ function unix_read(fd, buf, ofs, len) {
     // Because the child was spawned via 'pipe' stdio, we should be able
     // to just read the child's output fd to get the data.
     if (!globalThis.fdTable.has(fd)) {
+      /* This is not an error case.
+         Because we synchronously read all the output, we return all the
+         data at once.
+         The code using `Unix.read`, however, is going to repeatedly read
+         until EOF.
+         So, our protocol is that on the first read, we return all the data
+         and remove the fd from the table. On the second read, there is no
+         fd, so we just signal that we are done reading.
+       */
       return 0;
     }
 

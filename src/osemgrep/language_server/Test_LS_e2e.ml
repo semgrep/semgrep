@@ -99,7 +99,6 @@ let rec backtrack path =
       Fpath.(path / "cli" / "tests" / "e2e" / "targets" / "ls" / "rules.yaml")
   | _ -> backtrack (Fpath.parent path)
 
-(* Lots of `parent`s here because we're located in _build/default/src/tests *)
 let rule_path = backtrack (Fpath.v (Sys.getcwd ()))
 
 let default_content =
