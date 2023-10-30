@@ -66,6 +66,13 @@ type t = {
  *)
 type result_or_exn = (t, Exception.t * Core_error.t option) result
 
+let show_result_or_exn = function
+  | Ok r -> "Ok " ^ show r
+  | Error (exn, err) ->
+      "Error "
+      ^ [%show: Core_error.t option] err
+      ^ ": " ^ Exception.to_string exn
+
 (*****************************************************************************)
 (* Builders *)
 (*****************************************************************************)

@@ -155,7 +155,11 @@ let prepare_config_for_core_scan (config : Core_scan_config.t)
     let target_mappings =
       x.targets
       |> Common.map (fun (path : Fpath.t) : Input_to_core_t.target ->
-             { path = !!path; analyzer = x.xlang })
+             {
+               path = !!path;
+               analyzer = x.xlang;
+               products = [ `SAST; `SCA; `Secrets ];
+             })
     in
     (target_mappings, x.rules)
   in

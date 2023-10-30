@@ -55,6 +55,7 @@
 ; output as pysemgrep. This allows us to use '~field: ... list' which is more
 ; convenient than '?field: ... list option'.
 ;
+
 (rule
  (targets semgrep_output_v1_j.ml semgrep_output_v1_j.mli)
  (deps    semgrep_output_v1.atd)
