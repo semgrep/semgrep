@@ -19,15 +19,15 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
     {
       "check_id": "rules.dependency_aware.go-sca",
       "end": {
-        "col": 0,
-        "line": 20,
-        "offset": 0
+        "col": 14,
+        "line": 2,
+        "offset": 24
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "\tgithub.com/cheekybits/genny v99.99.99\n)",
+        "lines": "\treturn bad()",
         "message": "oh no",
         "metadata": {},
         "metavars": {},
@@ -50,16 +50,17 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
             "lockfile": "targets/dependency_aware/go_toolchain/go.mod"
           },
           "reachability_rule": true,
-          "reachable": false,
+          "reachable": true,
           "sca_finding_schema": 20220913
         },
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
-      "path": "targets/dependency_aware/go_toolchain/go.mod",
+      "path": "targets/dependency_aware/go_toolchain/sca.go",
       "start": {
-        "col": 0,
-        "line": 19,
-        "offset": 0
+        "col": 9,
+        "line": 2,
+        "offset": 19
       }
     }
   ],
