@@ -34,6 +34,8 @@ type t = {
 
 type result_or_exn = (t, Exception.t * Core_error.t option) result
 
+val show_result_or_exn : result_or_exn -> string
+
 (* Intermediate match result.
  * The 'a below can be substituted with different profiling types
  * in Core_profiling.ml.

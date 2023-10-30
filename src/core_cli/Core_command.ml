@@ -113,7 +113,9 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
 
 let semgrep_core_with_rules_and_formatted_output (config : Core_scan_config.t) :
     unit =
+  logger#debug "before here";
   let res = Core_scan.scan_with_exn_handler config in
+  logger#debug "result: %s" (Core_result.show_result_or_exn res);
   output_core_results res config
 
 (*****************************************************************************)
