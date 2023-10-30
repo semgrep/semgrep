@@ -532,7 +532,7 @@ class TargetManager:
     respect_rule_paths: bool = True
     baseline_handler: Optional[BaselineHandler] = None
     allow_unknown_extensions: bool = False
-    file_ignore: Optional[FileIgnore] = None
+    ignore_profiles: Dict[str, FileIgnore] = {}
     ignore_log: FileTargetingLog = Factory(FileTargetingLog, takes_self=True)
     targets: Sequence[Target] = field(init=False)
 
@@ -698,7 +698,9 @@ class TargetManager:
         return frozenset(f for target in self.targets for f in target.files())
 
     @lru_cache(maxsize=None)
-    def get_files_for_language(self, lang: Union[Language, Ecosystem]) -> FilteredFiles:
+    def get_files_for_language(
+        self, lang: Union[Language, Ecosystem], product: out.Product
+    ) -> FilteredFiles:
         """
         Return all files that are decendants of any directory in TARGET that have
         an extension matching LANG or are a lockfile for LANG ecosystem that match any pattern in INCLUDES and do not
@@ -727,8 +729,13 @@ class TargetManager:
             files = self.filter_by_size(self.max_target_bytes, candidates=files.kept)
             self.ignore_log.size_limit.update(files.removed)
 
-        if self.file_ignore:
-            files = self.file_ignore.filter_paths(candidates=files.kept)
+        # TODO: RIght now the default is that secrets ignores no
+        # files.  Instead we should allow each product to be configured
+        # to use a specific targeting profile.
+        if product.kind in self.ignore_profiles:
+            file_ignore = self.ignore_profiles[product.kind]
+            files = file_ignore.filter_paths(candidates=files.kept)
+            # TODO: Fix ignore_log to log which profile filtered which files.
             self.ignore_log.semgrepignored.update(files.removed)
 
         kept_files = files.kept
@@ -754,6 +761,7 @@ class TargetManager:
         rule_includes: Sequence[str],
         rule_excludes: Sequence[str],
         rule_id: str,
+        rule_product: out.Product,
     ) -> FrozenSet[Path]:
         """
         Returns list of files that should be analyzed for a LANG
@@ -766,7 +774,7 @@ class TargetManager:
         in TARGET will bypass this global INCLUDE/EXCLUDE filter. The local INCLUDE/EXCLUDE
         filter is then applied.
         """
-        paths = self.get_files_for_language(lang)
+        paths = self.get_files_for_language(lang, rule_product)
 
         if self.respect_rule_paths:
             paths = self.filter_includes(rule_includes, candidates=paths.kept)
@@ -798,13 +806,16 @@ class TargetManager:
         }
 
     @lru_cache(maxsize=None)
-    def get_lockfiles(self, ecosystem: Ecosystem) -> FrozenSet[Path]:
+    def get_lockfiles(
+        self, ecosystem: Ecosystem, product: out.Product = out.Product(out.SCA())
+    ) -> FrozenSet[Path]:
         """
         Return set of paths to lockfiles for a given ecosystem
 
         Respects semgrepignore/exclude flag
         """
-        return self.get_files_for_language(ecosystem).kept
+        # Assumes get_lockfiles is only used for SCA.
+        return self.get_files_for_language(ecosystem, out.Product(out.SCA())).kept
 
     def find_single_lockfile(self, p: Path, ecosystem: Ecosystem) -> Optional[Path]:
         """

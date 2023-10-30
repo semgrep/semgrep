@@ -113,6 +113,16 @@ def get_file_ignore() -> FileIgnore:
     return file_ignore
 
 
+def file_ignore_to_ignore_profiles(file_ignore: FileIgnore) -> Dict[str, FileIgnore]:
+    # TODO: This pattern pattern encodes the default Targeting Profiles
+    # of .semgrepignore. Don't hardcode this like it is.
+    return {
+        out.SAST().kind: file_ignore,
+        out.SCA().kind: file_ignore,
+        out.Secrets().kind: FileIgnore(file_ignore.base_path, frozenset()),
+    }
+
+
 def remove_matches_in_baseline(
     head_matches_by_rule: RuleMatchMap,
     baseline_matches_by_rule: RuleMatchMap,
@@ -465,7 +475,7 @@ def run_scan(
             respect_rule_paths=respect_rule_paths,
             baseline_handler=baseline_handler,
             allow_unknown_extensions=not skip_unknown_extensions,
-            file_ignore=get_file_ignore(),
+            ignore_profiles=file_ignore_to_ignore_profiles(get_file_ignore()),
         )
     except FilesNotFoundError as e:
         raise SemgrepError(e)
@@ -595,7 +605,9 @@ def run_scan(
                         target_strings=baseline_target_strings,
                         respect_git_ignore=respect_git_ignore,
                         allow_unknown_extensions=not skip_unknown_extensions,
-                        file_ignore=get_file_ignore(),
+                        ignore_profiles=file_ignore_to_ignore_profiles(
+                            get_file_ignore()
+                        ),
                     )
 
                     (

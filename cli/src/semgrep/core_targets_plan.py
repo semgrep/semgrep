@@ -39,6 +39,7 @@ logger = getLogger(__name__)
 class Task:
     path: str = field(converter=str)
     analyzer: Language  # Xlang; see Xlang.mli
+    products: Tuple[out.Product, ...]
     # semgrep-core no longer uses the rule_nums field.
     # We're keeping it for now because it's needed by
     # 'split_by_lang_label_for_product'.
@@ -57,6 +58,7 @@ class Task:
         return {
             "path": self.path,
             "analyzer": self.analyzer,
+            "products": tuple(map(lambda x: x.to_json(), self.products)),
         }
 
 
@@ -118,6 +120,7 @@ class Plan:
                 else Task(
                     path=task.path,
                     analyzer=task.analyzer,
+                    products=(product,),
                     rule_nums=tuple(
                         num
                         for num in task.rule_nums
