@@ -5,6 +5,8 @@ rules:
     mode: taint
     pattern-sources:
       - patterns:
+          - pattern-inside: >
+              "..."
           - pattern: $URL
           - metavariable-pattern:
               metavariable: $URL

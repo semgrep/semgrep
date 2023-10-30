@@ -93,15 +93,16 @@ kinda-quick-tests:
 osemgrep-e2e:
 	PYTEST_USE_OSEMGREP=true $(MAKE) e2e
 
-# Run all the known passing-with-osemgrep tests (tagged with osempass)
+# Run all the known passing-with-osemgrep tests (not tagged with osemfail)
 # coupling: this is run in CI in .github/workflows/tests.yml
 osempass:
-	PYTEST_USE_OSEMGREP=true $(PYTEST) -n auto -m 'osempass and not todo' tests/e2e
+	PYTEST_USE_OSEMGREP=true $(PYTEST) -n auto \
+	  -m 'not osemfail and not todo' tests/e2e
 
-# to be used to discover tests that we should add the osempass pytest mark
+# to be used to discover tests that we should remove the osemfail pytest mark
 osempass-check-if-new-osempass:
 	PYTEST_USE_OSEMGREP=true $(PYTEST) -n auto -v --no-summary \
-	  -m 'not no_semgrep_cli and not todo and not osempass' tests/e2e \
+	  -m 'not no_semgrep_cli and not todo and osemfail' tests/e2e \
 	 | (grep PASSED || echo 'Found no new passing tests')
 
 # Run the quality assurance tests using osemgrep instead of the Python CLI.

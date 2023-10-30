@@ -82,7 +82,9 @@ and translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
 
 and translate_taint_source
     {
+      source_id = _;
       source_formula;
+      source_exact;
       source_by_side_effect;
       label;
       source_control;
@@ -98,6 +100,7 @@ and translate_taint_source
     | None -> []
     | Some { range; _ } -> [ ("requires", `String (range_to_string range)) ]
   in
+  let exact_obj = if source_exact then [ ("exact", `Bool true) ] else [] in
   let side_effect_obj =
     if source_by_side_effect then [ ("by-side-effect", `Bool true) ] else []
   in
@@ -106,7 +109,14 @@ and translate_taint_source
   in
   `O
     (List.concat
-       [ source_f; control_obj; label_obj; requires_obj; side_effect_obj ])
+       [
+         source_f;
+         exact_obj;
+         control_obj;
+         label_obj;
+         requires_obj;
+         side_effect_obj;
+       ])
 
 and translate_taint_sink { sink_id = _; sink_formula; sink_requires } :
     [> `O of (string * Yaml.value) list ] =
@@ -119,19 +129,26 @@ and translate_taint_sink { sink_id = _; sink_formula; sink_requires } :
   `O (List.concat [ sink_f; requires_obj ])
 
 and translate_taint_sanitizer
-    { sanitizer_formula; sanitizer_by_side_effect; not_conflicting } :
-    [> `O of (string * Yaml.value) list ] =
+    {
+      sanitizer_id = _;
+      sanitizer_formula;
+      sanitizer_exact;
+      sanitizer_by_side_effect;
+      not_conflicting;
+    } : [> `O of (string * Yaml.value) list ] =
   let (`O san_f) = translate_formula sanitizer_formula in
   let side_effect_obj =
     if sanitizer_by_side_effect then [ ("by-side-effect", `Bool true) ] else []
   in
+  let exact_obj = if sanitizer_exact then [ ("exact", `Bool true) ] else [] in
   let not_conflicting_obj =
     if not_conflicting then [ ("not-conflicting", `Bool true) ] else []
   in
-  `O (List.concat [ san_f; side_effect_obj; not_conflicting_obj ])
+  `O (List.concat [ san_f; exact_obj; side_effect_obj; not_conflicting_obj ])
 
 and translate_taint_propagator
     {
+      propagator_id = _;
       propagator_formula;
       propagator_by_side_effect;
       from;

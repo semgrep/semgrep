@@ -1,0 +1,30 @@
+rules:
+  - id: sql-injection
+    message: Semgrep found a match
+    languages:
+      - python
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern: |
+              def $FN(..., $PARAMS, ...):
+                ...
+          - focus-metavariable: $PARAMS
+      - exact: true
+        # By using `exact: true`, `framework.db_access.mysql_dict(safe)` will not
+        # constitute a finding, because `safe` will not be considered a source.
+        # Only the "exact" match of the source specification, that is, the entire
+        # `framework.db_access.mysql_dict(safe)` expression will be a source.
+        pattern: framework.db_access.mysql_dict(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: framework.db_access.mysql_dict($SINK)
+              - pattern: framework.db_access.mysql_update($SINK)
+          - focus-metavariable: $SINK
+    pattern-sanitizers:
+      - by-side-effect: true
+        patterns:
+          - pattern: framework.db_access.escape($INPUT)
+          - focus-metavariable: $INPUT

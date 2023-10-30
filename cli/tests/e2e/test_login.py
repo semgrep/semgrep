@@ -7,6 +7,7 @@ from semgrep.config_resolver import ConfigLoader
 
 
 @pytest.mark.slow
+@pytest.mark.osemfail
 def test_login(tmp_path, mocker):
     runner = SemgrepRunner(
         env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")},
