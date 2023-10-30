@@ -30,6 +30,12 @@
    hesitate to log a lot during the execution of the test.
 *)
 type test = string * (unit -> unit)
+
+(* Lwt.t promises transpiled to JS via jsoo must have their Lwt.t nature
+   hoisted all the way to the top level, so we can run them properly on the
+   JS runtime.
+   When running such tests in JS, we need our tests to also return promises.
+*)
 type lwt_test = string * (unit -> unit Lwt.t)
 
 (* Register a test. The test gets added to the global list of tests.

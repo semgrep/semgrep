@@ -88,6 +88,11 @@ let create_info () =
 (* Constants *)
 (*****************************************************************************)
 
+(* These tests are run separately from both the JS side and the regular Semgrep
+   side.
+   To ensure they can find the path properly, we just go backwards until we
+   find the directoroy named "semgrep".
+*)
 let rec backtrack path =
   match Fpath.basename path with
   | "semgrep" ->
@@ -150,6 +155,7 @@ let receive (info : info) : Packet.t Lwt.t =
   match info.server.state with
   | RPC_server.State.Stopped -> Alcotest.failf "Cannot receive, server stopped"
   | _ -> (
+      (* let%lwt () = Lwt.pause () in *)
       let%lwt server_msg = Lwt_stream.get (fst info.out_stream) in
       match server_msg with
       | Some packet -> Lwt.return packet
@@ -222,16 +228,14 @@ let receive_request (info : info) : Request.t Lwt.t =
 
 let git_tmp_path () =
   Testutil_files.with_tempdir ~persist:true (fun dir ->
+      let dir = Fpath.to_string dir in
       (* This chdir does nothing in the JSCaml code, because the OCaml path is
          only simulated, in the Javascript environment.
          Hence, the liberal uses of `-C` everywhere.
          This might still be wrong, though.
       *)
-      let () = Sys.chdir (Fpath.to_string dir) in
-      let dir = Fpath.to_string dir in
-      print_string "before init\n";
+      let () = Sys.chdir dir in
       checked_command (String.concat " " [ "git"; "-C"; dir; "init" ]);
-      print_string "after init\n";
       checked_command
         (String.concat " "
            [
@@ -613,7 +617,6 @@ let assert_progress info message =
   Lwt.return_unit
 
 let check_startup info folders (files : Fpath.t list) =
-  (* in here *)
   (* initialize *)
   let%lwt () = send_initialize info folders in
 
@@ -621,7 +624,6 @@ let check_startup info folders (files : Fpath.t list) =
   assert_contains (Response.yojson_of_t resp) "capabilities";
 
   let%lwt () = send_initialized info in
-
   let%lwt () = assert_progress info "Refreshing Rules" in
 
   let%lwt () = assert_progress info "Scanning Workspace" in
@@ -671,17 +673,14 @@ let with_session (f : info -> unit Lwt.t) : unit Lwt.t =
        Logs.err (fun m -> m "Got exception: %s" err);
        Alcotest.fail err);
   let info = create_info () in
-  (* shut down the server when f exits *)
   let server_promise = LanguageServer.start info.server in
   let f_promise = f info in
-  (* I seem to observe that both promises are coming up Rejected. *)
   Lwt.join [ f_promise; server_promise ]
 
 let test_ls_specs () =
   with_session (fun info ->
       let root, files = mock_files () in
       let%lwt () = Lwt.return_unit in
-      (* we get here *)
       let%lwt () = check_startup info [ root ] files in
       let%lwt () =
         files
@@ -770,8 +769,8 @@ let test_ls_specs () =
       send_exit info)
 
 let test_ls_ext () =
-  let root, files = mock_files () in
   with_session (fun info ->
+      let root, files = mock_files () in
       Testutil_files.with_chdir root (fun () ->
           let%lwt () = check_startup info [ root ] files in
 
@@ -879,10 +878,11 @@ let test_ls_ext () =
           send_exit info))
 
 let test_ls_multi () =
-  let (workspace1_root, workspace1_files), (workspace2_root, workspace2_files) =
-    mock_workspaces ()
-  in
   with_session (fun info ->
+      let ( (workspace1_root, workspace1_files),
+            (workspace2_root, workspace2_files) ) =
+        mock_workspaces ()
+      in
       let workspace_folders = [ workspace1_root; workspace2_root ] in
       let files = workspace1_files @ workspace2_files in
       let scanned_files =
@@ -930,8 +930,8 @@ let test_ls_multi () =
       send_exit info)
 
 let test_login () =
-  let root, files = mock_files () in
   with_session (fun info ->
+      let root, files = mock_files () in
       Testutil_files.with_chdir root (fun () ->
           let%lwt () = check_startup info [ root ] files in
           let%lwt () = send_initialize info [] in

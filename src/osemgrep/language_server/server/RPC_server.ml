@@ -223,7 +223,7 @@ struct
           Logs.warn (fun m -> m "Unhandled message");
           server
     in
-    server
+    Lwt.return server
 
   let rec rpc_loop server () =
     let module Io = (val !io_ref : LSIO) in
@@ -235,7 +235,7 @@ struct
         let%lwt client_msg = Io.read () in
         match client_msg with
         | Some msg ->
-            let server = handle_client_message msg server in
+            let%lwt server = handle_client_message msg server in
             rpc_loop server ()
         | None ->
             Logs.debug (fun m -> m "Client disconnected");

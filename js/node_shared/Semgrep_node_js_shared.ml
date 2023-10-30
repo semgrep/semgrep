@@ -1,6 +1,21 @@
 open Js_of_ocaml
 
 (*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+
+(* What is this folder for? We may have some common functionalities that we
+   would like to share among purely the Node-specific Javascript code. For
+   instance, our `unix.js` is something which should not be included into all
+   of the JSCaml code (like the parsers), but just the test code and actual
+   LSP code.
+
+   To maek this distinction apparent, we have `shared`, which is for things
+   universal to all of the JSCaml code, and `node_shared`, for only things
+   which should be distributed via Node.js.
+*)
+
+(*****************************************************************************)
 (* Reporting *)
 (*****************************************************************************)
 

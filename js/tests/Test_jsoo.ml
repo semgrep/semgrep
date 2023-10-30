@@ -109,6 +109,12 @@ let _ =
              ~and_exit:false ~argv ~filter:test_filter
          in
          (* Semgrep_js_shared.wrap_with_js_error run; *)
+         (* Some gymnastics are needed here because we need to
+            produce a top level promise, in order to properly transform the
+            lwt promise into a Javascript promise, and run it on the Node.js
+            runtime.
+            So we must use Alcotest_lwt to turn our test running into a
+            promise.*)
          Semgrep_node_js_shared.promise_of_lwt
            (Semgrep_js_shared.wrap_with_js_error (fun () () ->
                 run ();
