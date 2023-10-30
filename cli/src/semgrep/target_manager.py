@@ -70,6 +70,9 @@ logger = getLogger(__name__)
 MAX_CHARS_TO_READ_FOR_SHEBANG = 255
 PATHS_ALWAYS_SKIPPED = (".git",)
 
+SCA_PRODUCT = out.Product(out.SCA())
+
+
 ALL_EXTENSIONS: Collection[FileExtension] = {
     ext
     for definition in LANGUAGE.definition_by_id.values()
@@ -807,7 +810,7 @@ class TargetManager:
 
     @lru_cache(maxsize=None)
     def get_lockfiles(
-        self, ecosystem: Ecosystem, product: out.Product = out.Product(out.SCA())
+        self, ecosystem: Ecosystem, product: out.Product = SCA_PRODUCT
     ) -> FrozenSet[Path]:
         """
         Return set of paths to lockfiles for a given ecosystem
