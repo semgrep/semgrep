@@ -10,13 +10,13 @@ def fn(params):
 def fn(params):
     params["sql"] = "select value from table where x = %s" % db_access.escape(
         params["test"]
-    )
+    ) # 'params' is sanitized here
     # ok: sql-injection
     db_access.mysql_dict(params)
 
 
 def fn(params):
-    params["sql"] = "select xyz from table"
+    params["sql"] = "select xyz from table" # 'params' is sanitized here
     # ok: sql-injection
     results = db_access.mysql_dict(params)
 
@@ -32,7 +32,7 @@ def fn(params):
 
 
 def fn(params):
-    params["name"] = "test"
+    params["name"] = "test" # 'params' is sanitized here
     params["sql"] = "select * from params where name = %(name)s" % params
     # ok: sql-injection
     db_access.mysql_update(params)
@@ -48,8 +48,11 @@ def fn(params):
 
 def fn(params):
     alt = params
-    params['name'] = 'x'
+    params['name'] = 'x' # 'params' is sanitized here
     params["sql"] = "select * from params where name = %(name)s" % alt
+    # but then is tainted again here ^^^
+    # note that we do not curretly understand that `alt` is an alias (rather than
+    # a copy) of `params`.
     # todook: sql-injection
     db_access.mysql_update(params)
 

@@ -12,6 +12,10 @@ rules:
                 ...
           - focus-metavariable: $PARAMS
       - exact: true
+        # By using `exact: true`, `framework.db_access.mysql_dict(safe)` will not
+        # constitute a finding, because `safe` will not be considered a source.
+        # Only the "exact" match of the source specification, that is, the entire
+        # `framework.db_access.mysql_dict(safe)` expression will be a source.
         pattern: framework.db_access.mysql_dict(...)
     pattern-sinks:
       - patterns:
