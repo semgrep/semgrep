@@ -72,7 +72,15 @@ let _ =
          let argv =
            if filter <> "" then Array.append argv [| "-e"; filter |] else argv
          in
-         let tests = [ Unit_LS.tests ] |> List.flatten in
+         let tests =
+           [
+             Unit_parsing.tests ();
+             Unit_engine.tests ();
+             Unit_entropy.tests;
+             Unit_LS.tests;
+           ]
+           |> List.flatten
+         in
          let lwt_tests = [ Test_LS_e2e.lwt_tests ] |> List.flatten in
          let tests =
            Common.map
