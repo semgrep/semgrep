@@ -139,6 +139,14 @@ let open_and_write_default_content ?(mode = []) file =
   output_string oc default_content;
   close_out oc
 
+(* When running the JSCaml code, if we do an actual pause, the tests will
+   straight up exit, without giving any error messages or anything.
+   Further investigation seemed to show that pausing caused an issue with
+   how the promises resolve, such that the sleeping thread would stay
+   sleeping and the entire process would eventually exit.
+   So, when running in JSCaml, let's just not use pauses. *)
+let lwt_pause () = if !Common.jsoo then Lwt.return_unit else Lwt.pause ()
+
 (*****************************************************************************)
 (* Core primitives *)
 (*****************************************************************************)
@@ -147,7 +155,7 @@ let send (info : info) packet : unit Lwt.t =
   match info.server.state with
   | RPC_server.State.Stopped -> Alcotest.failf "Cannot send, server stopped"
   | _ ->
-      (* let%lwt () = Lwt.pause () in *)
+      let%lwt () = lwt_pause () in
       let () = (snd info.in_stream) (Some packet) in
       Lwt.return_unit
 
@@ -155,7 +163,7 @@ let receive (info : info) : Packet.t Lwt.t =
   match info.server.state with
   | RPC_server.State.Stopped -> Alcotest.failf "Cannot receive, server stopped"
   | _ -> (
-      (* let%lwt () = Lwt.pause () in *)
+      let%lwt () = lwt_pause () in
       let%lwt server_msg = Lwt_stream.get (fst info.out_stream) in
       match server_msg with
       | Some packet -> Lwt.return packet
