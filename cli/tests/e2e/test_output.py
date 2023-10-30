@@ -382,6 +382,20 @@ def test_sarif_output_with_dataflow_traces(run_semgrep_in_tmp: RunSemgrep, snaps
 
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
+def test_sarif_output_when_errors(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/eqeq.yaml",
+            target_name="basic/inexistent.py",
+            output_format=OutputFormat.SARIF,
+            assert_exit_code=2,
+        ).stdout,
+        "results.sarif",
+    )
+
+
+@pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_json_output_with_dataflow_traces(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(

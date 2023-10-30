@@ -1,0 +1,2 @@
+The --sarif does not crash when semgrep itself encountered errors
+while processing targets.

@@ -8,6 +8,7 @@ from typing import Sequence
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
+from semgrep.error import error_type_string
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
 from semgrep.rule import Rule
@@ -367,7 +368,7 @@ class SarifFormatter(BaseFormatter):
     @staticmethod
     def _semgrep_error_to_sarif_notification(error: SemgrepError) -> Mapping[str, Any]:
         cli_error = error.to_CliError()
-        descriptor = cli_error.type_
+        descriptor: str = error_type_string(cli_error.type_)
 
         error_to_sarif_level = {
             out.Error_(): "error",

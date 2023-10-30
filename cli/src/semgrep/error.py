@@ -96,7 +96,8 @@ class SemgrepError(Exception):
         return f"{level_tag} {self}"
 
 
-# used in text output and currently stored in our metrics payload.errors.errors
+# used in text and sarif output, and currently also stored in our metrics
+# payload.errors.errors
 def error_type_string(type_: out.ErrorType) -> str:
     # convert to the same string of out.ParseError for now
     if isinstance(type_.value, out.PartialParsing):
