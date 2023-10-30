@@ -19,13 +19,8 @@ function ocaml_terminal_size_get() {
 }
 
 //Provides: unix_open
-//Requires: caml_sys_open
+//Requires: caml_sys_open, caml_list_of_js_array, caml_list_to_js_array
 function unix_open(path, flags, perm) {
-  console.log("unix_open");
-  console.log(path);
-  console.log(flags);
-  console.log(perm);
-
   // Why is this needed?
   // There is a Unix.open_flag type, which is different than
   // that of the Stdlib.open_flag type.
@@ -91,31 +86,14 @@ function unix_open(path, flags, perm) {
     }
   }
 
-  function parse_flags(flags) {
-    if (flags == 0) {
-      return [];
-    } else {
-      let elem = flags[1];
-      return [elem].concat(parse_flags(flags[2]));
-    }
-  }
-
-  function unparse_flags(flags) {
-    if (flags.length == 0) {
-      return 0;
-    } else {
-      return [0, flags[0], unparse_flags(flags.slice(1))];
-    }
-  }
-
-  let parsed_flags = parse_flags(flags);
+  let parsed_flags = caml_list_to_js_array(flags);
   let translated_flags_nested = parsed_flags.map((flag) =>
     map_unix_flag_to_stdlib_flag(flag)
   );
   let translated_flags_flattened = translated_flags_nested.reduce((acc, l) =>
     acc.concat(l)
   );
-  let new_flags = unparse_flags(translated_flags_flattened);
+  let new_flags = caml_list_of_js_array(translated_flags_flattened);
 
   return caml_sys_open(path, new_flags, perm);
 }

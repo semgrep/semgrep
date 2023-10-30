@@ -10,7 +10,7 @@ open Js_of_ocaml
    of the JSCaml code (like the parsers), but just the test code and actual
    LSP code.
 
-   To maek this distinction apparent, we have `shared`, which is for things
+   To make this distinction apparent, we have `shared`, which is for things
    universal to all of the JSCaml code, and `node_shared`, for only things
    which should be distributed via Node.js.
 *)
