@@ -1251,7 +1251,7 @@ let run (conf : Interactive_CLI.conf) : Exit_code.t =
     targets
     |> Common.map (fun file ->
            let xtarget =
-             Core_scan.xtarget_of_file
+             Core_scan.xxxtarget_of_file
                ~parsing_cache_dir:config.parsing_cache_dir xlang file
            in
            Lock_protected.protect xtarget)

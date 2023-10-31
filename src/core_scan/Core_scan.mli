@@ -137,7 +137,7 @@ val select_applicable_rules_for_target :
 val select_applicable_rules_for_analyzer :
   analyzer:Xlang.t -> Rule.t list -> Rule.t list
 
-val xtarget_of_file :
+val xxxtarget_of_file :
   parsing_cache_dir:Fpath.t option -> Xlang.t -> Fpath.t -> Xtarget.t
 
 (*
