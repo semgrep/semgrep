@@ -44,7 +44,6 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
        supply-chain1
           found a dependency
 
-            1┆ [[package]]
             2┆ name = "badlib"
 
 
@@ -204,7 +203,7 @@ Would have sent findings and ignores blob: {
         {
             "check_id": "supply-chain1",
             "path": "poetry.lock",
-            "line": 1,
+            "line": 2,
             "column": 0,
             "end_line": 2,
             "end_column": 0,
@@ -212,7 +211,7 @@ Would have sent findings and ignores blob: {
             "severity": 2,
             "index": 0,
             "commit_date": <MASKED>
-            "syntactic_id": "6090c1bab6c8853da43c7119a6eb2ad0",
+            "syntactic_id": "33cc4a1a63bda19779c4f4bd6491df4a",
             "metadata": {
                 "dev.semgrep.actions": [],
                 "sca-kind": "upgrade-only"
@@ -220,9 +219,9 @@ Would have sent findings and ignores blob: {
             "is_blocking": false,
             "match_based_id": "2c4ff12fcdf80ef1c00dd0f566ae102d792c7ba68e560d70f111aae3b3216c0b1b943e74d2ce29c0361f1fbc37bd4e9aafd32c3435a36c61b8bd3963efe0d7a1_0",
             "hashes": {
-                "start_line_hash": "b153a50b131c8c33766f9a6658610e68af55399f8c6b69818f1b62ccd0a7d80d",
+                "start_line_hash": "13ed086097ee3dd997602b5df99fff011f3880f4fd53daca82db975bf8dd71dd",
                 "end_line_hash": "13ed086097ee3dd997602b5df99fff011f3880f4fd53daca82db975bf8dd71dd",
-                "code_hash": "46ce1ef80ef40363ab95f7f71ca6425d7b7b0248d191b6c3006301793c7c252f",
+                "code_hash": "bc2c211c9165ac9a493ea9f2d363ba4f2b6e64a92bb88b104d6d2b15fbc72973",
                 "pattern_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             },
             "sca_info": {
@@ -241,7 +240,7 @@ Would have sent findings and ignores blob: {
                         "ecosystem": "pypi",
                         "allowed_hashes": {},
                         "transitivity": "unknown",
-                        "line_number": 1
+                        "line_number": 2
                     },
                     "lockfile": "poetry.lock"
                 }
