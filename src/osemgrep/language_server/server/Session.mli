@@ -4,7 +4,7 @@ open Types
 type session_cache = {
   mutable rules : Rule.t list;
       (* Rules can take a long time to fetch + load, so we want to minimize it *)
-  mutable skipped_fingerprints : string list;
+  mutable skipped_app_fingerprints : string list;
   (* Skipped fingerprints need to be fetched from the app, so we only want to do this every so often.
    * These come from the same place ci rules do, so we fetch them at the same time as the above rules
    *)
@@ -21,6 +21,7 @@ type t = {
   workspace_folders : Fpath.t list;
   cached_scans : (Fpath.t, Semgrep_output_v1_t.cli_match list) Hashtbl.t;
   cached_session : session_cache;
+  skipped_local_fingerprints : string list;
   user_settings : User_settings.t;
   metrics : LS_metrics.t;
   is_intellij : bool;
@@ -46,12 +47,19 @@ val runner_conf : t -> Core_runner.conf
 (** [runner_conf t] returns the configuration for the runner. This includes scan settings from
     [t.user_settings] *)
 
+val skipped_fingerprints : t -> string list
+(** [skipped_fingerprints t] returns the list of skipped fingerprints for the session. This is
+    a list of fingerprints in [t.skipped_local_fingerprints] and [t.cached_session.skipped_fingerprints] *)
+
 val scanned_files : t -> Fpath.t list
 (** [scanned_files t] returns the list of files that have been scanned in the session *)
 
 val previous_scan_of_file :
   t -> Fpath.t -> Semgrep_output_v1_t.cli_match list option
 (** [previous_scan_of_file session path] returns the last results of a scan on a file if it exists *)
+
+val add_skipped_fingerprint : t -> string -> t
+(** [add_skipped_fingerprint t fingerprint] adds a fingerprint to the list of skipped fingerprints in the session *)
 
 val add_open_document : t -> Fpath.t -> unit
 (** [add_open_document t path] adds a file to the list of open documents in the session *)

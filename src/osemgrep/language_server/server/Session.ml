@@ -11,7 +11,7 @@ module Out = Semgrep_output_v1_t
    This is the only exception *)
 type session_cache = {
   mutable rules : Rule.t list;
-  mutable skipped_fingerprints : string list;
+  mutable skipped_app_fingerprints : string list;
   mutable open_documents : Fpath.t list;
   lock : Lwt_mutex.t; [@opaque]
 }
@@ -25,6 +25,7 @@ type t = {
   workspace_folders : Fpath.t list;
   cached_scans : (Fpath.t, Out.cli_match list) Hashtbl.t; [@opaque]
   cached_session : session_cache;
+  skipped_local_fingerprints : string list;
   user_settings : User_settings.t;
   metrics : LS_metrics.t;
   is_intellij : bool;
@@ -39,7 +40,7 @@ let create capabilities =
   let cached_session =
     {
       rules = [];
-      skipped_fingerprints = [];
+      skipped_app_fingerprints = [];
       lock = Lwt_mutex.create ();
       open_documents = [];
     }
@@ -49,6 +50,7 @@ let create capabilities =
     workspace_folders = [];
     cached_scans = Hashtbl.create 10;
     cached_session;
+    skipped_local_fingerprints = [];
     user_settings = User_settings.default;
     metrics = LS_metrics.default;
     is_intellij = false;
@@ -136,7 +138,6 @@ let fetch_ci_rules_and_origins () =
       Lwt.return conf
   | _ -> Lwt.return None
 
-(* TODO Default to auto *)
 let fetch_rules session =
   let%lwt ci_rules =
     if session.user_settings.ci then fetch_ci_rules_and_origins ()
@@ -203,7 +204,7 @@ let fetch_rules session =
 
   Lwt.return (rules, errors)
 
-let fetch_skipped_fingerprints () =
+let fetch_skipped_app_fingerprints () =
   (* At some point we should allow users to ignore ids locally *)
   let auth_token = auth_token () in
   match auth_token with
@@ -216,20 +217,19 @@ let fetch_skipped_fingerprints () =
       | None -> Lwt.return [])
   | None -> Lwt.return []
 
-let cache_session session =
-  let%lwt rules, _ = fetch_rules session in
-  let%lwt skipped_fingerprints = fetch_skipped_fingerprints () in
-  Lwt_mutex.with_lock session.cached_session.lock (fun () ->
-      session.cached_session.rules <- rules;
-      session.cached_session.skipped_fingerprints <- skipped_fingerprints;
-      Lwt.return_unit)
-
 (* Useful for when we need to reset diagnostics, such as when changing what
  * rules we've run *)
 let scanned_files session =
   (* We can get duplicates apparently *)
   Hashtbl.fold (fun file _ acc -> file :: acc) session.cached_scans []
   |> List.sort_uniq Fpath.compare
+
+let skipped_fingerprints session =
+  let skipped_fingerprints =
+    session.cached_session.skipped_app_fingerprints
+    @ session.skipped_local_fingerprints
+  in
+  List.sort_uniq String.compare skipped_fingerprints
 
 let runner_conf session =
   User_settings.core_runner_conf_of_t session.user_settings
@@ -240,6 +240,23 @@ let previous_scan_of_file session file =
 (*****************************************************************************)
 (* State setters *)
 (*****************************************************************************)
+
+let cache_session session =
+  let%lwt rules, _ = fetch_rules session in
+  let%lwt skipped_app_fingerprints = fetch_skipped_app_fingerprints () in
+  Lwt_mutex.with_lock session.cached_session.lock (fun () ->
+      session.cached_session.rules <- rules;
+      session.cached_session.skipped_app_fingerprints <-
+        skipped_app_fingerprints;
+      Lwt.return_unit)
+
+let add_skipped_fingerprint session fingerprint =
+  {
+    session with
+    skipped_local_fingerprints =
+      fingerprint :: session.skipped_local_fingerprints;
+  }
+
 let add_open_document session file =
   Lwt.async (fun () ->
       Lwt_mutex.with_lock session.cached_session.lock (fun () ->

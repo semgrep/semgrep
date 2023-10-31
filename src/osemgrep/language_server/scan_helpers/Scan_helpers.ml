@@ -68,9 +68,10 @@ let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
   Logs.debug (fun m -> m "Scanned %d files" (List.length scanned));
   Logs.debug (fun m ->
       m "Found %d matches before processing" (List.length res.core.results));
+  let skipped_fingerprints = Session.skipped_fingerprints session in
   let matches =
     let only_git_dirty = session.user_settings.only_git_dirty in
-    Processed_run.of_matches ~git_ref ~only_git_dirty res
+    Processed_run.of_matches ~skipped_fingerprints ~git_ref ~only_git_dirty res
   in
   Logs.debug (fun m -> m "Found %d matches" (List.length matches));
   (matches, scanned)
