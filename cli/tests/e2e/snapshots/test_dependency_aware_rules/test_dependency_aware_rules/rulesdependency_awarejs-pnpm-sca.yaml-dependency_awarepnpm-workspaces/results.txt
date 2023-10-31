@@ -19,15 +19,15 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
     {
       "check_id": "rules.dependency_aware.js-pnpm-sca",
       "end": {
-        "col": 6,
-        "line": 1,
-        "offset": 5
+        "col": 0,
+        "line": 70,
+        "offset": 0
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "bad()",
+        "lines": "  /axios/1.2.5:",
         "message": "oh no",
         "metadata": {},
         "metavars": {},
@@ -49,16 +49,15 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
             "lockfile": "targets/dependency_aware/pnpm-workspaces/pnpm-lock.yaml"
           },
           "reachability_rule": true,
-          "reachable": true,
+          "reachable": false,
           "sca_finding_schema": 20220913
         },
-        "severity": "WARNING",
-        "validation_state": "NO_VALIDATOR"
+        "severity": "WARNING"
       },
-      "path": "targets/dependency_aware/pnpm-workspaces/foo.js",
+      "path": "targets/dependency_aware/pnpm-workspaces/pnpm-lock.yaml",
       "start": {
-        "col": 1,
-        "line": 1,
+        "col": 0,
+        "line": 70,
         "offset": 0
       }
     },
