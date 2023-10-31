@@ -36,6 +36,7 @@ local check_compile_semgrep_pro_job = {
       name: 'Install semgrep dependencies',
       run: |||
         eval $(opam env)
+        opam switch
         make install-deps-for-semgrep-core
         make install-deps
       |||,
@@ -55,15 +56,16 @@ local check_compile_semgrep_pro_job = {
         cd ..
         gh repo clone returntocorp/semgrep-proprietary
         cd semgrep-proprietary
-	rmdir semgrep
+        rmdir semgrep
         ln -s ../semgrep
       |||,
     },
     {
       name: 'Install semgrep-pro dependencies',
       run: |||
-        cd ../semgrep-proprietary
         eval $(opam env)
+        opam switch
+        cd ../semgrep-proprietary
         pwd
         ls
         opam switch
