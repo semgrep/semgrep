@@ -48,10 +48,12 @@ local check_compile_semgrep_pro_job = {
       uses: 'ocaml/setup-ocaml@v2',
       with: {
         'ocaml-compiler': '4.14.x',
+	'cache-prefix': 'cache-v0-semgrep',
       },
     },
     // old: make -C semgrep install-deps-ALPINE-for-semgrep-core
     // but we're on ubuntu here and most packages are already installed
+    // or can be installed by opam itself via depext.
     {
       name: 'Install dependencies',
       run: |||
@@ -66,7 +68,7 @@ local check_compile_semgrep_pro_job = {
     },
 
     {
-      name: 'compile semgrep-pro',
+      name: 'Compile semgrep-pro',
       run: |||
         eval $(opam env)
         make

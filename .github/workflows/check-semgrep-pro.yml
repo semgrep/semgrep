@@ -38,10 +38,11 @@ jobs:
       uses: ocaml/setup-ocaml@v2
       with:
         ocaml-compiler: 4.14.x
+        cache-prefix: cache-v0-semgrep
     - name: Install dependencies
       run: "\n        eval $(opam env)\n        pwd\n        ls\n        opam switch\n
         \       set\n        make -C semgrep install-deps-for-semgrep-core\n        make
         install-deps\n      "
-    - name: compile semgrep-pro
+    - name: Compile semgrep-pro
       run: "\n        eval $(opam env)\n        make\n      "
 
