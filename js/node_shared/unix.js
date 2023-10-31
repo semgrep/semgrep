@@ -338,6 +338,8 @@ function unix_read(fd, buf, ofs, len) {
   // We only need to do this if it's not already an array, though.
   if (buf.t != 4) caml_convert_bytes_to_array(buf);
 
+  // We are just using `UNIX_BUFFER_SIZE` because that's what the original implementation does.
+  // https://github.com/ocaml/ocaml/blob/6bad032104aa3f03e5aba922acc6bd9f7835bf91/otherlibs/unix/read_unix.c#L28
   const UNIX_BUFFER_SIZE = 65536;
   let length = len <= UNIX_BUFFER_SIZE ? len : UNIX_BUFFER_SIZE;
 
