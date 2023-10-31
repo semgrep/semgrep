@@ -53,8 +53,8 @@ jobs:
       # https://app.circleci.com/settings/project/github/returntocorp/semgrep/environment-variables?
       - run: |
           echo $GITHUB_ARYX_GH_TOKEN | gh auth login --with-token
-      - run: |
           gh repo clone returntocorp/semgrep-proprietary
+      - run: |
           ls
 
   # Dogfood!
