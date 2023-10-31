@@ -32,15 +32,15 @@ local check_compile_semgrep_pro_job = {
         'ocaml-compiler': '4.14.x',
       },
     },
-    // old: make install-deps-ALPINE-for-semgrep-core
-    // but we're on ubuntu here and most packages are already installed
-    // or can be installed by opam itself via depext.
-    // alt: we could define a install-deps-UBUNTU-for-semgrep-core
+    // alt: looks like opam and setup-ocaml@ can automatically install
+    // depext dependencies, so the install-deps-UBUNTU-for-semgrep-core
+    // might be optional below.
     {
       name: 'Install semgrep dependencies',
       run: |||
         eval $(opam env)
         opam switch
+        make install-deps-UBUNTU-for-semgrep-core
         make install-deps-for-semgrep-core
         make install-deps
       |||,
