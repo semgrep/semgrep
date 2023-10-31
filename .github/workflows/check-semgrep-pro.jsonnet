@@ -58,17 +58,17 @@ local check_compile_semgrep_pro_job = {
         cd semgrep-proprietary
         rmdir semgrep
         ln -s ../semgrep
+	ln -s ../semgrep/_opam
       |||,
     },
     {
       name: 'Install semgrep-pro dependencies',
       run: |||
+        cd ../semgrep-proprietary
         eval $(opam env)
         opam switch
-        cd ../semgrep-proprietary
         pwd
         ls
-        opam switch
         set
         make install-deps
       |||,
