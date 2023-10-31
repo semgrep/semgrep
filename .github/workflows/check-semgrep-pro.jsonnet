@@ -19,8 +19,16 @@ local check_compile_semgrep_pro_job = {
   // alt: use circleCI but then even with token and with gh I can't clone
   //      semgrep-pro
   // alt: use setup-ocaml@v2, but need to be careful when moving around dirs
+  //      as it installs itself in /home/runner/work/semgrep/semgrep/_opam
   steps: [
     actions.checkout_with_submodules(),
+    {
+      name: 'Setup OCaml and opam',
+      uses: 'ocaml/setup-ocaml@v2',
+      with: {
+        'ocaml-compiler': '4.14.x',
+      },
+    },
     {
       run: 'sudo apt-get install gh',
     },
@@ -35,21 +43,9 @@ local check_compile_semgrep_pro_job = {
       run: |||
         cd ..
         gh repo clone returntocorp/semgrep-proprietary
-        mv semgrep semgrep-proprietary/semgrep
-        mv semgrep-proprietary semgrep
+	cd semgrep-proprietary
+	ln -s ../semgrep
       |||,
-    },
-    // note that setup-ocaml@ installs itself in
-    // /home/runner/work/semgrep/semgrep/_opam
-    // so important to move around directories before
-    // calling setup-ocaml otherwise opam will crash
-    {
-      name: 'Setup OCaml and opam',
-      uses: 'ocaml/setup-ocaml@v2',
-      with: {
-        'ocaml-compiler': '4.14.x',
-	'cache-prefix': 'cache-v0-semgrep',
-      },
     },
     // old: make -C semgrep install-deps-ALPINE-for-semgrep-core
     // but we're on ubuntu here and most packages are already installed
@@ -57,6 +53,7 @@ local check_compile_semgrep_pro_job = {
     {
       name: 'Install dependencies',
       run: |||
+	cd ../semgrep-proprietary
         eval $(opam env)
         pwd
         ls
@@ -70,6 +67,7 @@ local check_compile_semgrep_pro_job = {
     {
       name: 'Compile semgrep-pro',
       run: |||
+	cd ../semgrep-proprietary
         eval $(opam env)
         make
       |||,
