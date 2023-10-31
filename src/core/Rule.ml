@@ -462,12 +462,6 @@ and step = {
 and mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
 
 (*****************************************************************************)
-(* Products *)
-(*****************************************************************************)
-(* Corresponds to the products in Semgrep_output_v1_t and Input_to_core_t *)
-and product = [ `SAST | `SCA | `Secrets ] [@@deriving show, eq]
-
-(*****************************************************************************)
 (* The rule *)
 (*****************************************************************************)
 
@@ -549,7 +543,7 @@ type 'mode rule_info = {
    * Xpattern.Filename feature that integrates well with the xpatterns.
    *)
   paths : paths option;
-  product : product;
+  product : Out.product;
   (* ex: [("owasp", "A1: Injection")] but can be anything.
    * Metadata was (ab)used for the ("interfile", "true") setting, but this
    * is now done via Rule_options instead.
@@ -559,14 +553,6 @@ type 'mode rule_info = {
   validators : validator list option;
 }
 [@@deriving show]
-
-let equal_product x y =
-  match (x, y) with
-  | `SAST, `SAST
-  | `SCA, `SCA
-  | `Secrets, `Secrets ->
-      true
-  | _, _ -> false
 
 (* Step mode includes rules that use search_mode and taint_mode *)
 (* Later, if we keep it, we might want to make all rules have steps,

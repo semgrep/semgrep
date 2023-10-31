@@ -535,7 +535,7 @@ class TargetManager:
     respect_rule_paths: bool = True
     baseline_handler: Optional[BaselineHandler] = None
     allow_unknown_extensions: bool = False
-    ignore_profiles: Dict[str, FileIgnore] = {}
+    ignore_profiles: Dict[str, FileIgnore] = Factory(dict)
     ignore_log: FileTargetingLog = Factory(FileTargetingLog, takes_self=True)
     targets: Sequence[Target] = field(init=False)
 
@@ -732,9 +732,6 @@ class TargetManager:
             files = self.filter_by_size(self.max_target_bytes, candidates=files.kept)
             self.ignore_log.size_limit.update(files.removed)
 
-        # TODO: RIght now the default is that secrets ignores no
-        # files.  Instead we should allow each product to be configured
-        # to use a specific targeting profile.
         if product.kind in self.ignore_profiles:
             file_ignore = self.ignore_profiles[product.kind]
             files = file_ignore.filter_paths(candidates=files.kept)
@@ -818,7 +815,7 @@ class TargetManager:
         Respects semgrepignore/exclude flag
         """
         # Assumes get_lockfiles is only used for SCA.
-        return self.get_files_for_language(ecosystem, out.Product(out.SCA())).kept
+        return self.get_files_for_language(ecosystem, SCA_PRODUCT).kept
 
     def find_single_lockfile(self, p: Path, ecosystem: Ecosystem) -> Optional[Path]:
         """

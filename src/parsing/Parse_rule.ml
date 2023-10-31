@@ -1917,7 +1917,8 @@ let check_version_compatibility rule_id ~min_version ~max_version =
         incompatible_version ?max_version:(Some maxi) rule_id tok
 
 (* TODO: Unify how we differentiate which rules correspond to which products *)
-let product_of_metadata_opt x : Rule.product =
+(* FIXME: This currently relies on the fact that SCA rules are not passed to core*)
+let product_of_metadata_opt x : Semgrep_output_v1_t.product =
   Option.(
     x >>= fun x ->
     J.member "product" x >>= function

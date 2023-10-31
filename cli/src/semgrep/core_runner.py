@@ -670,9 +670,7 @@ class CoreRunner:
                 Task(
                     path=target,
                     analyzer=language,
-                    products=tuple(
-                        map(lambda x: out.Product.from_json_string(x), products)
-                    ),
+                    products=tuple(out.Product.from_json_string(x) for x in products),
                     # tuple conversion makes rule_nums hashable, so usable as cache key
                     rule_nums=tuple(rule_nums),
                 )

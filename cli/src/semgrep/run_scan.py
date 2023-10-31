@@ -114,7 +114,7 @@ def get_file_ignore() -> FileIgnore:
 
 
 def file_ignore_to_ignore_profiles(file_ignore: FileIgnore) -> Dict[str, FileIgnore]:
-    # TODO: This pattern pattern encodes the default Targeting Profiles
+    # TODO: This pattern encodes the default Targeting Profiles
     # of .semgrepignore. Don't hardcode this like it is.
     return {
         out.SAST().kind: file_ignore,

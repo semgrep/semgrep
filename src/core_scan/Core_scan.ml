@@ -822,7 +822,8 @@ let select_applicable_rules_for_analyzer ~analyzer rules =
 let select_applicable_rules_for_target ~analyzer ~products ~path
     ~respect_rule_paths rules =
   select_applicable_rules_for_analyzer ~analyzer rules
-  |> List.filter (fun r -> List.exists Rule.(equal_product r.product) products)
+  |> List.filter (fun r ->
+         List.exists (Semgrep_output_v1_j.equal_product r.Rule.product) products)
   |> List.filter (fun r ->
          (* Honor per-rule include/exclude.
             * Note that this also done in pysemgrep, but we need to do it
