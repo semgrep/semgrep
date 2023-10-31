@@ -29,6 +29,17 @@ local check_compile_semgrep_pro_job = {
         'ocaml-compiler': '4.14.x',
       },
     },
+    // old: make install-deps-ALPINE-for-semgrep-core
+    // but we're on ubuntu here and most packages are already installed
+    // or can be installed by opam itself via depext.
+    {
+      name: 'Install semgrep dependencies',
+      run: |||
+        eval $(opam env)
+        make install-deps-for-semgrep-core
+        make install-deps
+      |||,
+    },
     {
       run: 'sudo apt-get install gh',
     },
@@ -43,23 +54,20 @@ local check_compile_semgrep_pro_job = {
       run: |||
         cd ..
         gh repo clone returntocorp/semgrep-proprietary
-	cd semgrep-proprietary
-	ln -s ../semgrep
+        cd semgrep-proprietary
+	rmdir semgrep
+        ln -s ../semgrep
       |||,
     },
-    // old: make -C semgrep install-deps-ALPINE-for-semgrep-core
-    // but we're on ubuntu here and most packages are already installed
-    // or can be installed by opam itself via depext.
     {
-      name: 'Install dependencies',
+      name: 'Install semgrep-pro dependencies',
       run: |||
-	cd ../semgrep-proprietary
+        cd ../semgrep-proprietary
         eval $(opam env)
         pwd
         ls
         opam switch
         set
-        make -C semgrep install-deps-for-semgrep-core
         make install-deps
       |||,
     },
@@ -67,7 +75,7 @@ local check_compile_semgrep_pro_job = {
     {
       name: 'Compile semgrep-pro',
       run: |||
-	cd ../semgrep-proprietary
+        cd ../semgrep-proprietary
         eval $(opam env)
         make
       |||,
