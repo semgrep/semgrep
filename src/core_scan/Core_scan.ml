@@ -700,8 +700,7 @@ let targets_of_config (config : Core_scan_config.t) :
                {
                  In.path = Fpath.to_string file;
                  analyzer = xlang;
-                 (* TODO: Define all_products somewhere. *)
-                 products = [ `SAST; `SCA; `Secrets ];
+                 products = Product.all;
                })
       in
       (target_mappings, skipped)

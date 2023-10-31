@@ -1916,8 +1916,7 @@ let check_version_compatibility rule_id ~min_version ~max_version =
       if not (Version_info.compare Version_info.version maxi <= 0) then
         incompatible_version ?max_version:(Some maxi) rule_id tok
 
-(* TODO: Unify how we differentiate which rules correspond to which products *)
-(* FIXME: This currently relies on the fact that SCA rules are not passed to core*)
+(* TODO: Unify how we differentiate which rules correspond to which products.*)
 let product_of_metadata_opt x : Semgrep_output_v1_t.product =
   Option.(
     x >>= fun x ->

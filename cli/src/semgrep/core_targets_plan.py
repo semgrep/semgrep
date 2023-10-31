@@ -58,7 +58,7 @@ class Task:
         return {
             "path": self.path,
             "analyzer": self.analyzer,
-            "products": tuple(map(lambda x: x.to_json(), self.products)),
+            "products": tuple(x.to_json() for x in self.products),
         }
 
 

@@ -814,8 +814,7 @@ class TargetManager:
 
         Respects semgrepignore/exclude flag
         """
-        # Assumes get_lockfiles is only used for SCA.
-        return self.get_files_for_language(ecosystem, SCA_PRODUCT).kept
+        return self.get_files_for_language(ecosystem, product).kept
 
     def find_single_lockfile(self, p: Path, ecosystem: Ecosystem) -> Optional[Path]:
         """

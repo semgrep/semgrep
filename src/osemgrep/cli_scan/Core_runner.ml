@@ -158,7 +158,7 @@ let prepare_config_for_core_scan (config : Core_scan_config.t)
              {
                path = !!path;
                analyzer = x.xlang;
-               products = [ `SAST; `SCA; `Secrets ];
+               products = Product.all;
              })
     in
     (target_mappings, x.rules)
