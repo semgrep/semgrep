@@ -17,7 +17,7 @@ version: 2.1
 
 jobs:
   # This seems a bit redundant with the .github/workflow/build-xxx workflows
-  # but the GHAs are using Alpine, here at least we test whether
+  # but those workflows are using Alpine; here at least we test whether
   # we build under Ubuntu. Moreover, when GHA behaves weird, it's nice to
   # check whether similar commands are working fine in CircleCI.
   build-ubuntu:
