@@ -48,7 +48,9 @@ let _ =
            in
            let targets =
              List.map
-               (fun f -> Input_to_core_t.{ path = f; analyzer = xlang })
+               (fun f ->
+                 Input_to_core_t.
+                   { path = f; analyzer = xlang; products = Product.all })
                source_files
            in
            let config : Core_scan_config.t =

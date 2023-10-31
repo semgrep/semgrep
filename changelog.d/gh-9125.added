@@ -1,0 +1,5 @@
+secrets: Added independent targeting from other semgrep products.
+
+This change allows Secrets to scan all tracked files. In particular, those ignored
+by semgrepignore will now get scanned. There will be additional changes
+in the future to allow configuring the files that are scanned secrets.
