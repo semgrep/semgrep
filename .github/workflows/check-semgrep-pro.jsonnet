@@ -51,21 +51,21 @@ local check_compile_semgrep_pro_job = {
       },
 
       {
-        run: 'apt-get install gh'
+        run: 'sudo apt-get install gh'
       },
-      //semgrep.github_bot.get_jwt_step,
-      //semgrep.github_bot.get_token_step,
-      //{
-      //  env: semgrep.github_bot.github_token,
-      //  name: 'Checkout semgrep-pro',
-      //  run: |||
-      //	  cd ..
-      //    gh repo clone returntocorp/semgrep-proprietary
-      //	  mv semgrep semgrep-proprietary/
-      //	  # GHA post cleanup requires /home/runner/work/semgrep/semgrep to still exist
-      //	  mv semgrep-proprietary semgrep
-      //  |||,
-      //  },
+      semgrep.github_bot.get_jwt_step,
+      semgrep.github_bot.get_token_step,
+      {
+        env: semgrep.github_bot.github_token,
+        name: 'Checkout semgrep-pro',
+        run: |||
+      	  cd ..
+          gh repo clone returntocorp/semgrep-proprietary
+      	  #mv semgrep semgrep-proprietary/
+      	  # GHA post cleanup requires /home/runner/work/semgrep/semgrep to still exist
+      	  #mv semgrep-proprietary semgrep
+        |||,
+      },
       //{
       //  name: 'Install pro dependencies',
       //  run: |||
