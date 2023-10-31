@@ -32,15 +32,14 @@ local check_compile_semgrep_pro_job = {
         'ocaml-compiler': '4.14.x',
       },
     },
-    // alt: looks like opam and setup-ocaml@ can automatically install
-    // depext dependencies, so the install-deps-UBUNTU-for-semgrep-core
-    // might be optional below.
+    // alt: call 'sudo make install-deps-UBUNTU-for-semgrep-core'
+    // but looks like opam and setup-ocaml@ can automatically install
+    // depext dependencies.
     {
       name: 'Install semgrep dependencies',
       run: |||
         eval $(opam env)
         opam switch
-        make install-deps-UBUNTU-for-semgrep-core
         make install-deps-for-semgrep-core
         make install-deps
       |||,
@@ -62,10 +61,20 @@ local check_compile_semgrep_pro_job = {
         gh repo clone returntocorp/semgrep-proprietary
         cd semgrep-proprietary
         git submodule update --init
+      |||,
+    },
+    {
+      name: 'Adjust semgrep-pro to use the semgrep in this PR',
+      run: |||
+        cd ../semgrep-proprietary
         rm -rf semgrep
         ln -s ../semgrep
       |||,
     },
+    // setup-ocaml@ installs opam in a local folder per project,
+    // not in a global ~/.opam/, so here we reuse the same _opam
+    // in the semgrep-pro otherwise opam commands would fail
+    // with 'no opam switch set'
     {
       name: 'Ugly hack for setup-ocaml',
       run: |||
@@ -87,7 +96,7 @@ local check_compile_semgrep_pro_job = {
       run: |||
         cd ../semgrep-proprietary
         eval $(opam env)
-        make
+        make core
       |||,
     },
   ],
