@@ -19,6 +19,9 @@
    parmap
    digestif.ocaml
    sexplib
+   ; async stuff
+   lwt
+   alcotest-lwt
  )
  ; can't use profiling.ppx because of circular dependencies :(
  (preprocess

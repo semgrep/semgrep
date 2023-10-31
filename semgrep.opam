@@ -23,6 +23,7 @@ depends: [
   "fileutils"
   "alcotest"
   "alcotest-js"
+  "alcotest-lwt"
   "fmt"
   "ocolor"
   "ANSITerminal"
