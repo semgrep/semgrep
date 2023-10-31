@@ -105,7 +105,7 @@ let mk_extract_target dst_lang contents =
   let f = Common.new_temp_file "extracted" suffix in
   Common2.write_file ~file:f contents;
   (* Extract mode targets work with any product *)
-  { In.path = f; analyzer = dst_lang; products = [ `SAST; `SCA; `Secrets ] }
+  { In.path = f; analyzer = dst_lang; products = Product.all }
 
 (* Unquote string *)
 (* TODO: This is not yet implemented *)
