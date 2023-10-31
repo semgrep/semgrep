@@ -11,6 +11,7 @@
     commons
 
     semgrep_core_cli
+    semgrep_targeting
 
     osemgrep_networking
     osemgrep_core
