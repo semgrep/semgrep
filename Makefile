@@ -312,7 +312,7 @@ install-deps-ALPINE-for-pysemgrep:
 UBUNTU_DEPS=libev-dev
 
 install-deps-UBUNTU-for-semgrep-core:
-	apt-get install $(UBUNTU_DEPS)
+	apt-get install -y $(UBUNTU_DEPS)
 
 # -------------------------------------------------
 # macOS (brew)
