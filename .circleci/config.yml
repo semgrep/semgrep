@@ -24,9 +24,11 @@ jobs:
     steps:
       - checkout
       - run: |
-          ls
-          opam switch
-          pwd
+          git submodule update --init
+          eval $(opam env)
+          make install-deps-for-semgrep-core
+          make install-deps
+          make core
 
   # Dogfood!
   semgrep:
