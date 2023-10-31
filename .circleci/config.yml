@@ -34,6 +34,16 @@ jobs:
           make install-deps
           make core
 
+  check-semgrep-pro:
+    docker:
+      - image: returntocorp/ocaml:ubuntu-2023-10-17
+        user: root
+    working_directory: /src
+    steps:
+      - checkout
+      - run: |
+          git clone git@github.com:returntocorp/semgrep-proprietary.git
+
   # Dogfood!
   semgrep:
     docker:
@@ -140,9 +150,10 @@ workflows:
     jobs:
       - semgrep
 
-  build:
+  build-and-check:
     jobs:
       - build-ubuntu
+      - check-semgrep-pro
 
   #----------------------------------------
   # Crons
