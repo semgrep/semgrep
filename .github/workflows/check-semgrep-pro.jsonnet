@@ -96,7 +96,7 @@ local check_compile_semgrep_pro_job = {
       run: |||
         cd ../semgrep-proprietary
         eval $(opam env)
-        make core
+        make
       |||,
     },
   ],
