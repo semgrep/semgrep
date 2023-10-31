@@ -143,7 +143,6 @@ workflows:
   build-and-check:
     jobs:
       - build-ubuntu
-      - check-semgrep-pro
 
   #----------------------------------------
   # Crons
