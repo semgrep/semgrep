@@ -16,6 +16,18 @@ version: 2.1
 ###############################################################################
 
 jobs:
+  build:
+    docker:
+      - image: returntocorp/ocaml:ubuntu-2023-10-17
+        user: root
+    working_directory: /src
+    steps:
+      - checkout
+      - run: |
+          ls
+          opam switch
+          pwd
+
   # Dogfood!
   semgrep:
     docker:
@@ -121,6 +133,10 @@ workflows:
   semgrep:
     jobs:
       - semgrep
+
+  build:
+    jobs:
+      - build
 
   #----------------------------------------
   # Crons
