@@ -152,6 +152,8 @@ type precondition_with_range = {
 }
 [@@deriving show]
 
+type by_side_effect = Only | Yes | No [@@deriving show]
+
 (* The sources/sanitizers/sinks used to be a simple 'formula list',
  * but with taint labels things are bit more complicated.
  *)
@@ -166,7 +168,7 @@ and taint_source = {
   source_id : string;  (** See 'Parse_rule.parse_taint_source'. *)
   source_formula : formula;
   source_exact : bool;
-  source_by_side_effect : bool;
+  source_by_side_effect : by_side_effect;
   source_control : bool;
   label : string;
       (* The label to attach to the data.
