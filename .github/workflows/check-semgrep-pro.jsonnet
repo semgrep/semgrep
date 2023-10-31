@@ -24,7 +24,7 @@ local check_compile_semgrep_pro_job = {
     },
     steps: [
     {
-      uses: 'actions/checkout@v2',
+      uses: 'actions/checkout@v3',
       with: {
         submodules: true,
       },
@@ -42,8 +42,9 @@ local check_compile_semgrep_pro_job = {
 	  ls
 	  eval $(opam env)
 	  opam switch
-          make install-deps-for-semgrep-core
+	  set
           make install-deps
+          make install-deps-for-semgrep-core
         |||,
       },
 
@@ -92,9 +93,6 @@ local check_compile_semgrep_pro_job = {
         'develop',
       ],
     },
-  },
-  permissions: {
-    contents: "write",
   },
   jobs: {
     'check-compile-semgrep-pro': check_compile_semgrep_pro_job,

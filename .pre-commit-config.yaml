@@ -36,6 +36,7 @@ repos:
       - id: destroyed-symlinks
       - id: detect-private-key
       - id: end-of-file-fixer
+        exclude: "^\\.github/workflows/.+"
       - id: fix-byte-order-marker
       - id: fix-encoding-pragma
         args: [--remove]
