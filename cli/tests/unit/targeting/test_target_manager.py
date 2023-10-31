@@ -433,8 +433,8 @@ def test_unsupported_lang_paths_2(tmp_path, monkeypatch):
 
     target_manager = TargetManager(targets)
 
-    target_manager.get_files_for_language(LANG_GENERIC)
-    target_manager.get_files_for_language(LANG_REGEX)
+    target_manager.get_files_for_language(LANG_GENERIC, SAST_PRODUCT)
+    target_manager.get_files_for_language(LANG_REGEX, SAST_PRODUCT)
 
     assert_path_sets_equal(
         target_manager.ignore_log.unsupported_lang_paths, expected_unsupported
