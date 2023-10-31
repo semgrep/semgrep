@@ -34,25 +34,6 @@ jobs:
           make install-deps
           make core
 
-  check-semgrep-pro:
-    docker:
-      - image: returntocorp/ocaml:ubuntu-2023-10-17
-        user: root
-    working_directory: /src
-    steps:
-      - checkout
-      # The token below was created by Aryx (pad) from his own Github account.
-      # He used the first time the 'gh auth login' workflow (after installing the
-      # github-cli package on his machine) and then copied the generated token
-      # from ~/.config/gh/ and in
-      # https://app.circleci.com/settings/project/github/returntocorp/semgrep/environment-variables?
-      - run: |
-          apt-get install gh
-          echo $GITHUB_ARYX_GH_TOKEN | gh auth login --with-token
-          gh repo clone returntocorp/semgrep-proprietary
-      - run: |
-          ls
-
   # Dogfood!
   semgrep:
     docker:

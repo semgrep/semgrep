@@ -9,14 +9,16 @@ name: check-semgrep-pro
 jobs:
   check-compile-semgrep-pro:
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:ubuntu-2023-10-17
-    env:
-      HOME: /root
     steps:
     - uses: actions/checkout@v3
       with:
         submodules: true
-    - name: Test
-      run: "\n\t  pwd\n\t  ls\n\t  opam switch\n\t  set\n\t  eval $(opam env)\n          make
+    - name: Setup OCaml and opam
+      uses: ocaml/setup-ocaml@v2
+      with:
+        ocaml-compiler: 4.14.x
+    - name: Install dependencies
+      run: "\n\t  eval $(opam env)\n\t  pwd\n\t  ls\n\t  opam switch\n\t  set\n          make
         install-deps-for-semgrep-core\n          make install-deps\n        "
+    - run: apt-get install gh
 
