@@ -535,6 +535,7 @@ class TargetManager:
     respect_rule_paths: bool = True
     baseline_handler: Optional[BaselineHandler] = None
     allow_unknown_extensions: bool = False
+    # ignore_profiles range is str of product.kind
     ignore_profiles: Dict[str, FileIgnore] = Factory(dict)
     ignore_log: FileTargetingLog = Factory(FileTargetingLog, takes_self=True)
     targets: Sequence[Target] = field(init=False)
@@ -701,7 +702,9 @@ class TargetManager:
         return frozenset(f for target in self.targets for f in target.files())
 
     @lru_cache(maxsize=None)
-    def get_files_for_language(self, lang: Union[Language, Ecosystem], product: out.Product) -> FilteredFiles:
+    def get_files_for_language(
+        self, lang: Union[Language, Ecosystem], product: out.Product
+    ) -> FilteredFiles:
         """
         Return all files that are decendants of any directory in TARGET that have
         an extension matching LANG or are a lockfile for LANG ecosystem that match any pattern in INCLUDES and do not

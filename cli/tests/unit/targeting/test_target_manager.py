@@ -11,9 +11,9 @@ import pytest
 from semgrep.error import FilesNotFoundError
 from semgrep.ignores import FileIgnore
 from semgrep.semgrep_types import Language
+from semgrep.target_manager import SAST_PRODUCT
 from semgrep.target_manager import Target
 from semgrep.target_manager import TargetManager
-from semgrep.target_manager import SAST_PRODUCT
 
 
 @pytest.mark.quick
@@ -302,9 +302,10 @@ def test_ignores(tmp_path, monkeypatch):
         return TargetManager(
             [tmp_path],
             ignore_profiles={
-                SAST_PRODUCT:
-                FileIgnore.from_unprocessed_patterns(tmp_path, ignore_pats)
-                },
+                SAST_PRODUCT.kind: FileIgnore.from_unprocessed_patterns(
+                    tmp_path, ignore_pats
+                )
+            },
         ).get_files_for_rule(Language("python"), [], [], "dummy_rule_id", SAST_PRODUCT)
 
     monkeypatch.chdir(tmp_path)
@@ -396,9 +397,9 @@ def test_unsupported_lang_paths(tmp_path, monkeypatch):
 
     target_manager = TargetManager(targets)
 
-    target_manager.get_files_for_language(LANG_PY)
-    target_manager.get_files_for_language(LANG_GENERIC)
-    target_manager.get_files_for_language(LANG_REGEX)
+    target_manager.get_files_for_language(LANG_PY, SAST_PRODUCT)
+    target_manager.get_files_for_language(LANG_GENERIC, SAST_PRODUCT)
+    target_manager.get_files_for_language(LANG_REGEX, SAST_PRODUCT)
 
     assert_path_sets_equal(
         target_manager.ignore_log.unsupported_lang_paths, expected_unsupported
