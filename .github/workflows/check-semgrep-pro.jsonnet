@@ -35,6 +35,7 @@ local check_compile_semgrep_pro_job = {
 	  pwd
 	  ls
 	  opam switch
+	  eval $(opam env)
           make install-deps-for-semgrep-core
           make install-deps
         |||,
