@@ -39,7 +39,6 @@ local check_compile_semgrep_pro_job = {
       name: 'Install semgrep dependencies',
       run: |||
         eval $(opam env)
-        opam switch
         make install-deps-for-semgrep-core
         make install-deps
       |||,
