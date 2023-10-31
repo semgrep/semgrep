@@ -236,6 +236,10 @@ let receive_request (info : info) : Request.t Lwt.t =
 let git_tmp_path () =
   Testutil_files.with_tempdir ~persist:true (fun dir ->
       let dir = Fpath.to_string dir in
+      (* I don't know why, but the tests will hang in OCaml if we do
+         not chdir here.
+      *)
+      if not !Common.jsoo then Sys.chdir dir;
       checked_command (String.concat " " [ "git"; "-C"; dir; "init" ]);
       checked_command
         (String.concat " "

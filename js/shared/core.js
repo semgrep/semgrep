@@ -29,6 +29,10 @@ function unix_open(path, flags, perm) {
   // for instance.
   // So before we can call the system open command, we need to
   // translate the Unix open flags to stdlib open flags.
+  function todo(flag) {
+    console.debug(`TODO: map unix flag ${flag} to stdlib flag`);
+    return [];
+  }
   function map_unix_flag_to_stdlib_flag(flag) {
     switch (flag) {
       // O_RDONLY
@@ -57,32 +61,25 @@ function unix_open(path, flags, perm) {
         return [5];
       //O_NOCTTY
       case 8:
-        // TODO
-        return [];
+        return todo(flag);
       //O_DSYNC
       case 9:
-        // TODO
-        return [];
+        return todo(flag);
       //O_SYNC
       case 10:
-        // TODO
-        return [];
+        return todo(flag);
       //O_RSYNC
       case 11:
-        // TODO
-        return [];
+        return todo(flag);
       //O_SHARE_DELETE
       case 12:
-        // TODO
-        return [];
+        return todo(flag);
       //O_CLOEXEC
       case 13:
-        // TODO
-        return [];
+        return todo(flag);
       //O_KEEPEXEC
       case 14:
-        // TODO
-        return [];
+        return todo(flag);
     }
   }
 

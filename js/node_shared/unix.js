@@ -26,10 +26,28 @@ globalThis.process = process;
 globalThis.pidToProcessTable = new Map();
 // mapping pid of parent to its children
 globalThis.pidToChildrenTable = new Map();
+/* NOTE(fake-fds): Why do we have this idea of "fake" file descriptors?
+   Values of the `file_descriptor` type can arise from a few places. Two such
+   are `caml_sys_open`, which is implemented by jsoo, and `unix_pipe`, which
+   is implemented below.
+   A problem is that we don't want to mess with file descriptors when implementing
+   `unix_pipe` or `unix_spawn` -- ideally, we could use Node's redirection logic
+   and simply read the data internally from JS, instead of writing out to a file
+   explicitly.
+   As such, when we use `unix_pipe`, we want to generate "fake file descriptors",
+   which simply biject to `unix_spawn` calls, and can be used as keys to lookup
+   the output of those processes.
+   By our types, these fake file descriptors must be integers, however, and they
+   must contend with the fact that `caml_sys_open` will also generate file
+   descriptors, by just increasing indices.
+   At the point of calling `unix_read`, we need to know whether we are holding a
+   "real" file descriptor (from `caml_sys_open`), or a "fake" file descriptor
+   (from `unix_pipe`). To make sure there are no collisions, we are just going to
+   start our fake file descriptors at 20,000, and assume that any file descriptors
+   numbered greater than that are fake.
+*/
 // There will be collisions if we ever allocate 20000 or more file descriptors
-// "naturally", that is, through `caml_sys_open`.
-// "Fake", because these file descriptors we produce are not real file descriptors,
-// but just indices corresponding to `unix_spawn` calls.
+// "naturally", that is, through `caml_sys_open`, but this should be unlikely.
 // According to Austin: should be Ok, because node uses libuv
 // https://www.geeksforgeeks.org/libuv-in-node-js/
 globalThis.fakeFdThreshold = 20000;
@@ -37,7 +55,7 @@ globalThis.fdCount = globalThis.fakeFdThreshold;
 globalThis.fdTable = new Map();
 
 /* Some magic happens here, in conjunction with unix_pipe.
-   Read its description for more.
+   Read "NOTE(fake-fds)" for more.
    The basic TL;DR is we generate fake file descriptors when piping or duping,
    which we then associate to the output of this process, using Node's inherent
    IO redirection capabilities.
@@ -50,6 +68,14 @@ function unix_spawn(executable, args, optenv, usepath, redirect) {
   // executable path
   let argv = args.slice(2);
 
+  /* Since we only need to implement what is needed to make Bos work with our
+     git commands, we do not currently specially treat stdin/stdout/stderr
+     whatsoever.
+     This is OK for now, but is a deliberate decision by us to leave this as a
+     TODO. Future work may entail implementing this.
+   */
+
+  // See "NOTE(fake-fds)"
   // These redirects are given to `unix_spawn` by Bos via `Unix.create_process_gen`,
   // which gets them from Bos explicitly calling `pipe`.
   // Via our convention in unix_pipe, these are not actually "real" file descriptors,
@@ -75,8 +101,17 @@ function unix_spawn(executable, args, optenv, usepath, redirect) {
   }
   let env = {};
   for (const arg of optenv[1].slice(1)) {
-    const [key, value] = arg.split("=");
-    env[key] = value;
+    const idx = arg.indexOf("=");
+    switch (idx) {
+      case -1:
+        console.debug(
+          "unix_spawn: given optenv argument without '=' character"
+        );
+      default:
+        const key = arg.slice(0, idx);
+        const value = arg.slice(idx + 1);
+        env[key] = value;
+    }
   }
   const child = globalThis.spawnSync(executable, argv, {
     env: env,
@@ -139,6 +174,14 @@ function unix_waitpid(flags, pid_req) {
       throw new Error(`unix_waitpid: no child at pid {pid_req}`);
     }
 
+    // When reaping a parent, its children become orphaned, and
+    // have their parent set to a system-defined process.
+    // Often, this is 1.
+    // TODO: For now, let's just delete it altogether and worry about
+    // the precise parenting details later.
+    globalThis.pidToChildrenTable.delete(pid_req);
+    globalThis.pidToProcessTable.delete(pid_req);
+
     return handleChild(child);
     // process group nonsense
   } else {
@@ -164,6 +207,7 @@ function unix_waitpid(flags, pid_req) {
 
 //Provides: unix_pipe
 function unix_pipe(cloexec, vunit) {
+  // See "NOTE(fake-fds)"
   // The pipe we spawn here will eventually reach unix_spawn.
   // We don't want to use a real file descriptor, bceause we're trying
   // to avoid them, in favor of Node's redirection ability, which will open
@@ -306,6 +350,7 @@ function unix_read(fd, buf, ofs, len) {
   from_buffer.copy(buffer, 0, 0, length);
 
   if (fd >= globalThis.fakeFdThreshold) {
+    // See "NOTE(fake-fds)"
     // Via our protocol, this is a unique identifier associated to the
     // pipe (and by extension, the spawned process), which is mapped to
     // the corresponding child.
