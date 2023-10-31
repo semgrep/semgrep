@@ -19,12 +19,22 @@
 
 type xlang <ocaml attr="deriving show"> = string wrap <ocaml module="Xlang">
 
+(* Need to maintain pairity between this and semgrep_output_v1.product. *)
+type product
+  <ocaml attr="deriving show">
+  <python decorator="dataclass(frozen=True)"> = [
+  | SAST (* a.k.a. Code *) <json name="sast">
+  | SCA <json name="sca">
+  | Secrets <json name="secrets">
+]
+
 type target <ocaml attr="deriving show"> = {
   path: string (* source file *);
   (* Must be a valid target analyzer as defined in Xlang.mli.
      examples: "ocaml", "python", but also "spacegrep" or "regexp".
   *)
   analyzer: xlang;
+  products: product list;
 }
 
 (* The same path can be present multiple times in targets below, with

@@ -14,6 +14,7 @@
  *)
 open Common
 module MV = Metavariable
+module Out = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -542,6 +543,7 @@ type 'mode rule_info = {
    * Xpattern.Filename feature that integrates well with the xpatterns.
    *)
   paths : paths option;
+  product : Out.product;
   (* ex: [("owasp", "A1: Injection")] but can be anything.
    * Metadata was (ab)used for the ("interfile", "true") setting, but this
    * is now done via Rule_options instead.
@@ -888,6 +890,7 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
     paths = None;
     metadata = None;
     validators = None;
+    product = `SAST;
   }
 
 (* TODO(dinosaure): Currently, on the Python side, we remove the metadatas and
