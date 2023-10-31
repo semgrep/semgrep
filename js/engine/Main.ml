@@ -51,9 +51,12 @@ let _ =
                (fun f -> Input_to_core_t.{ path = f; analyzer = xlang })
                source_files
            in
+           let default_config = Scan_CLI.default in
            let config : Core_scan_config.t =
              {
-               Core_scan_config.default with
+               (Core_runner.core_scan_config_of_conf
+                  default_config.core_runner_conf)
+               with
                rule_source = Some (Rule_file (Fpath.v (Js.to_string rule_file)));
                output_format = Json false;
                target_source = Some (Core_scan_config.Targets targets);
@@ -63,10 +66,14 @@ let _ =
            let timed_rules = (rules_and_errors, 0.) in
            let res = Core_scan.scan config timed_rules in
            let res =
-             Core_json_output.core_output_of_matches_and_errors
-               (Some Autofix.render_fix) res
+             Core_runner.create_core_result (fst rules_and_errors) (Ok res)
            in
-           Semgrep_output_v1_j.string_of_core_output res
+           (* This is just the default configuration, but this function
+              doesn't actually depend upon the parts of the config that we
+              set above.
+           *)
+           let cli_output = Output.preprocess_result default_config res in
+           Semgrep_output_v1_j.string_of_cli_output cli_output
          in
          Semgrep_js_shared.wrap_with_js_error execute
     end)
