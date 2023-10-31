@@ -23,16 +23,13 @@ local check_compile_semgrep_pro_job = {
       HOME: '/root',
     },
     steps: [
+    // actions.checkout_with_submodules(),
     {
       uses: 'actions/checkout@v3',
       with: {
         submodules: true,
       },
     },
-//      actions.checkout_with_submodules(),
-//      {
-//        run: 'apt-get install gh'
-//      },
       # old: make -C semgrep install-deps-ALPINE-for-semgrep-core
       # but we're on ubuntu here and most packages are already installed
       {
@@ -40,42 +37,45 @@ local check_compile_semgrep_pro_job = {
         run: |||
 	  pwd
 	  ls
-	  eval $(opam env)
 	  opam switch
 	  set
-          make install-deps
+	  eval $(opam env)
           make install-deps-for-semgrep-core
-        |||,
-      },
-
-      semgrep.github_bot.get_jwt_step,
-      semgrep.github_bot.get_token_step,
-      {
-        env: semgrep.github_bot.github_token,
-        name: 'Checkout semgrep-pro',
-        run: |||
-	  cd ..
-          gh repo clone returntocorp/semgrep-proprietary
-	  mv semgrep semgrep-proprietary/
-	  # GHA post cleanup requires /home/runner/work/semgrep/semgrep to still exist
-	  mv semgrep-proprietary semgrep
-        |||,
-        },
-      {
-        name: 'Install pro dependencies',
-        run: |||
-          eval $(opam env)
           make install-deps
         |||,
       },
 
-      {
-        name: 'compile semgrep-pro',
-        run: |||
-          eval $(opam env)
-          make
-        |||,
-        },
+//      {
+//        run: 'apt-get install gh'
+//      },
+      //semgrep.github_bot.get_jwt_step,
+      //semgrep.github_bot.get_token_step,
+      //{
+      //  env: semgrep.github_bot.github_token,
+      //  name: 'Checkout semgrep-pro',
+      //  run: |||
+      //	  cd ..
+      //    gh repo clone returntocorp/semgrep-proprietary
+      //	  mv semgrep semgrep-proprietary/
+      //	  # GHA post cleanup requires /home/runner/work/semgrep/semgrep to still exist
+      //	  mv semgrep-proprietary semgrep
+      //  |||,
+      //  },
+      //{
+      //  name: 'Install pro dependencies',
+      //  run: |||
+      //    eval $(opam env)
+      //    make install-deps
+      //  |||,
+      //},
+
+      //{
+      //  name: 'compile semgrep-pro',
+      //  run: |||
+      //    eval $(opam env)
+      //    make
+      //  |||,
+      //  },
     ],
   };
 
