@@ -54,7 +54,7 @@ jobs:
       - run: |
           echo $GITHUB_ARYX_GH_TOKEN | gh auth login --with-token
       - run: |
-          gh clone returntocorp/semgrep-proprietary
+          gh repo clone returntocorp/semgrep-proprietary
           ls
 
   # Dogfood!
