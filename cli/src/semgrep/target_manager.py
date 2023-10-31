@@ -71,7 +71,7 @@ MAX_CHARS_TO_READ_FOR_SHEBANG = 255
 PATHS_ALWAYS_SKIPPED = (".git",)
 
 SCA_PRODUCT = out.Product(out.SCA())
-
+SAST_PRODUCT = out.Product(out.SCA())
 
 ALL_EXTENSIONS: Collection[FileExtension] = {
     ext
@@ -701,9 +701,7 @@ class TargetManager:
         return frozenset(f for target in self.targets for f in target.files())
 
     @lru_cache(maxsize=None)
-    def get_files_for_language(
-        self, lang: Union[Language, Ecosystem], product: out.Product
-    ) -> FilteredFiles:
+    def get_files_for_language(self, lang: Union[Language, Ecosystem], product: out.Product) -> FilteredFiles:
         """
         Return all files that are decendants of any directory in TARGET that have
         an extension matching LANG or are a lockfile for LANG ecosystem that match any pattern in INCLUDES and do not
