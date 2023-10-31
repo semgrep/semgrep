@@ -11,6 +11,10 @@
 
 version: 2.1
 
+# This is for using the Github CLI 'gh'
+orbs:
+  gh: circleci/github-cli@2.0
+
 ###############################################################################
 # The jobs
 ###############################################################################
@@ -41,8 +45,17 @@ jobs:
     working_directory: /src
     steps:
       - checkout
+      - gh/install
+      # The token below was created by Aryx (pad) from his own Github account.
+      # He used the first time the 'gh auth login' workflow (after installing the
+      # github-cli package on his machine) and then copied the generated token
+      # from ~/.config/gh/ and in
+      # https://app.circleci.com/settings/project/github/returntocorp/semgrep/environment-variables?
       - run: |
-          git clone https://github.com:returntocorp/semgrep-proprietary
+          echo $GITHUB_ARYX_GH_TOKEN | gh auth login --with-token
+      - run: |
+          gh clone returntocorp/semgrep-proprietary
+          ls
 
   # Dogfood!
   semgrep:
