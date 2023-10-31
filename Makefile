@@ -225,6 +225,25 @@ core-test-e2e:
 test-jsoo: build-semgrep-jsoo-debug
 	$(MAKE) -C js test
 
+# Test the compatibility with the main branch of semgrep-proprietary
+# in a separate work tree.
+.PHONY: pro
+pro:
+	test -L semgrep-proprietary || ln -s ../semgrep-proprietary .
+	@if ! test -e semgrep-proprietary; then \
+	  echo "** Please fix the symlink 'semgrep-proprietary'."; \
+	  echo "** Make it point to your semgrep-proprietary repo."; \
+	  exit 1; \
+	fi
+	set -eu && \
+	worktree_parent=$$(pwd)/.. && \
+	commit=$$(git rev-parse --short HEAD) && \
+	cd semgrep-proprietary && \
+	./scripts/check-compatibility \
+	  --worktree "$$worktree_parent"/semgrep-pro-compat \
+	  --semgrep-commit "$$commit" \
+	  --pro-commit origin/develop
+
 ###############################################################################
 # External dependencies installation targets
 ###############################################################################
