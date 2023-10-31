@@ -50,7 +50,7 @@ let _ =
              List.map
                (fun f ->
                  Input_to_core_t.
-                   { path = f; analyzer = xlang; product = Product.all })
+                   { path = f; analyzer = xlang; products = Product.all })
                source_files
            in
            let config : Core_scan_config.t =
