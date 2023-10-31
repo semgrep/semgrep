@@ -1,0 +1,21 @@
+rules:
+  - id: test-commutative-matching-enabled
+    languages:
+      - php
+    message: Working!
+    options:
+      commutative_compop: true
+    pattern-either:
+      - pattern: foo1($stuff) == foo2($stuff)
+      - pattern: foo1($stuff) != foo2($stuff)
+    severity: WARNING
+  - id: test-commutative-matching-disabled
+    languages:
+      - php
+    message: Working!
+    options:
+      commutative_compop: false
+    pattern-either:
+      - pattern: bar1($stuff) == bar2($stuff)
+      - pattern: bar1($stuff) != bar2($stuff)
+    severity: WARNING

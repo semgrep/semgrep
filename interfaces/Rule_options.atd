@@ -52,6 +52,7 @@ type t = {
   (* pretend && and || are commutative *)
   (* THINK: Should we merge ac_matching and commutative_boolop into a single setting? *)
   ~commutative_boolop <ocaml default="false"> : bool;
+  ~commutative_compop <ocaml default="false"> : bool;
 
   (* assign-patterns (e.g. `$X = $E`) will match var-defs (e.g. `var x = 1;`) *)
   ~vardef_assign <ocaml default="true"> : bool;

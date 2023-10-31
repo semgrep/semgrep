@@ -291,6 +291,11 @@ def print_scan_status(
     legacy_ux = cli_ux == DesignTreatment.LEGACY
     simple_ux = cli_ux == DesignTreatment.SIMPLE
     detailed_ux = cli_ux == DesignTreatment.DETAILED
+    minimal_ux = cli_ux == DesignTreatment.MINIMAL
+
+    # We skip printing the remaining output for pattern invocations
+    if minimal_ux:
+        return 0
 
     if simple_ux:
         logo = with_color(Colors.green, "○○○")

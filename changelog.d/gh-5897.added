@@ -1,0 +1,8 @@
+taint-mode: Added a Boolean `exact` option to sources and sanitizers to make
+matching stricter (default is `false`).
+
+If you specify a source such as `foo(...)`, and Semgrep encounters `foo(x)`,
+by default `foo(x)`, `foo`, and `x`, will all be considered tainted. If you add
+`exact: true` to the source specification, then only `foo(x)` will be regarded
+as tainted, that is the "exact" match for the specification. The same applies
+to "exact" sanitizers.

@@ -404,7 +404,9 @@ def run_scan(
         filtered_rules = all_rules
     else:
         shown_severities = {out.MatchSeverity.from_json(s) for s in severity}
-        filtered_rules = [rule for rule in all_rules if rule.severity.value in severity]
+        filtered_rules = [
+            rule for rule in all_rules if rule.severity in shown_severities
+        ]
     filtered_rules = filter_exclude_rule(filtered_rules, exclude_rule)
 
     output_handler.handle_semgrep_errors(config_errors)

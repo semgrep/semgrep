@@ -1793,32 +1793,47 @@ and m_call_op aop toka aargs bop tokb bargs tin =
     | G.And
     | G.Or ->
         tin.config.commutative_boolop
+    | G.Eq
+    | G.NotEq ->
+        tin.config.commutative_compop
     | __else__ -> false
   in
-  let m_op_default =
+  let m_op_default aargs bargs =
     m_arithmetic_operator aop bop >>= fun () -> m_arguments aargs bargs
   in
   (* If this an AC operation we try to perform AC matching, otherwise we perform
    * regular non-AC matching. *)
-  if tin.config.ac_matching && aop =*= bop && H.is_associative_operator aop then (
-    match
-      ( H.ac_matching_nf aop (Tok.unbracket aargs),
-        H.ac_matching_nf bop (Tok.unbracket bargs) )
-    with
-    | Some aargs_ac, Some bargs_ac ->
-        if is_commutative_operator aop then
-          m_ac_op tokb aop aargs_ac bargs_ac tin
-        else m_assoc_op tokb aop aargs_ac bargs_ac tin
-    | ___else___ ->
-        logger#warning
-          "Will not perform AC-matching, something went wrong when trying to \
-           convert operands to AC normal form: %s ~ %s"
-          (G.show_expr
-             (G.Call (G.IdSpecial (G.Op aop, toka) |> G.e, aargs) |> G.e))
-          (B.show_expr
-             (B.Call (B.IdSpecial (B.Op bop, tokb) |> G.e, bargs) |> G.e));
-        m_op_default tin)
-  else m_op_default tin
+  if tin.config.ac_matching && aop =*= bop then
+    match (H.is_associative_operator aop, is_commutative_operator aop) with
+    | true, is_commutative -> (
+        match
+          ( H.ac_matching_nf aop (Tok.unbracket aargs),
+            H.ac_matching_nf bop (Tok.unbracket bargs) )
+        with
+        | Some aargs_ac, Some bargs_ac -> (
+            match is_commutative with
+            | true (* assoc and comm *) ->
+                m_ac_op tokb aop aargs_ac bargs_ac tin
+            | false (* assoc and not comm*) ->
+                m_assoc_op tokb aop aargs_ac bargs_ac tin)
+        | ___else___ ->
+            logger#warning
+              "Will not perform AC-matching, something went wrong when trying \
+               to convert operands to AC normal form: %s ~ %s"
+              (G.show_expr
+                 (G.Call (G.IdSpecial (G.Op aop, toka) |> G.e, aargs) |> G.e))
+              (B.show_expr
+                 (B.Call (B.IdSpecial (B.Op bop, tokb) |> G.e, bargs) |> G.e));
+            m_op_default aargs bargs tin)
+    | false, true (* not assoc and comm *) -> (
+        match (aargs, bargs) with
+        | (_, [ _; _ ], _), (tb1, [ b1; b2 ], tb2) ->
+            tin
+            |> (m_op_default aargs bargs
+               >||> m_op_default aargs (tb1, [ b2; b1 ], tb2))
+        | _ -> m_op_default aargs bargs tin)
+    | false, false (* not assoc and not comm *) -> m_op_default aargs bargs tin
+  else m_op_default aargs bargs tin
 
 (* Associative-matching of operators.
  *

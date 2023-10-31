@@ -10,6 +10,7 @@ def test_severity_error(run_semgrep_in_tmp: RunSemgrep, snapshot):
     assert json_str != ""
     assert '"severity": "INFO"' not in json_str
     assert '"severity": "WARNING"' not in json_str
+    snapshot.assert_match(json_str, "results.json")
 
 
 @pytest.mark.kinda_slow

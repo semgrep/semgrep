@@ -1,0 +1,16 @@
+rules:
+  - id: test
+    message: Test
+    languages:
+      - rust
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - exact: true
+        by-side-effect: true
+        patterns:
+          - pattern: |
+              std::mem::transmute::<&mut $BOX, *mut $PTR>(&mut $STRUCT);
+          - focus-metavariable: $STRUCT
+    pattern-sinks:
+      - pattern: sink(...)

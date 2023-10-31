@@ -1,0 +1,126 @@
+{
+  "errors": [],
+  "paths": {
+    "scanned": [
+      "targets/basic/inside.py",
+      "targets/basic/metavariable-comparison-bad-content.py",
+      "targets/basic/metavariable-comparison-base.py",
+      "targets/basic/metavariable-comparison-strip.py",
+      "targets/basic/metavariable-comparison.py",
+      "targets/basic/metavariable-regex-multi-regex.py",
+      "targets/basic/metavariable-regex-multi-rule.py",
+      "targets/basic/metavariable-regex.py",
+      "targets/basic/nosem.py",
+      "targets/basic/regex.py",
+      "targets/basic/stupid.py"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.open-from-request",
+      "end": {
+        "col": 15,
+        "line": 4,
+        "offset": 96
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "    open(path)",
+        "message": "Unsafe open from request data",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "path",
+            "end": {
+              "col": 14,
+              "line": 4,
+              "offset": 95
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "request.get(\"unsafe\")",
+              "svalue_end": {
+                "col": 33,
+                "line": 3,
+                "offset": 81
+              },
+              "svalue_start": {
+                "col": 12,
+                "line": 3,
+                "offset": 60
+              }
+            },
+            "start": {
+              "col": 10,
+              "line": 4,
+              "offset": 91
+            }
+          }
+        },
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/basic/inside.py",
+      "start": {
+        "col": 5,
+        "line": 4,
+        "offset": 86
+      }
+    },
+    {
+      "check_id": "rules.open-from-request",
+      "end": {
+        "col": 12,
+        "line": 14,
+        "offset": 262
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "    open(z)",
+        "message": "Unsafe open from request data",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "z",
+            "end": {
+              "col": 11,
+              "line": 14,
+              "offset": 261
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "request.get(\"unsafe\")",
+              "svalue_end": {
+                "col": 26,
+                "line": 12,
+                "offset": 239
+              },
+              "svalue_start": {
+                "col": 5,
+                "line": 12,
+                "offset": 218
+              }
+            },
+            "start": {
+              "col": 10,
+              "line": 14,
+              "offset": 260
+            }
+          }
+        },
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/basic/inside.py",
+      "start": {
+        "col": 5,
+        "line": 14,
+        "offset": 255
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}

@@ -18,6 +18,7 @@ class DesignTreatment(Enum):
     LEGACY = auto()  # default
     SIMPLE = auto()  # simple output for product-focused users
     DETAILED = auto()  # detailed output for power users
+    MINIMAL = auto()  # minimal output for pattern invocations
 
 
 @frozen
@@ -40,11 +41,15 @@ class SemgrepState:
         """
         Returns the CLI UX flavor to use for the current CLI invocation.
         """
+        # NOTE: First, check if the we enabled the new UX treatment via environment variable
         new_cli_ux = get_state().env.with_new_cli_ux
         if not new_cli_ux:
             return DesignTreatment.LEGACY
+        # NOTE: Special case for pattern invocations
+        if SemgrepState.is_pattern_invocation():
+            return DesignTreatment.MINIMAL
         config = get_config()
-        # NOTE: We only support simple and detailed UX treatments for `semgrep scan` invocations
+        # NOTE: We only support simple and detailed UX treatments for `semgrep scan` not `semgrep ci`
         if SemgrepState.is_scan_invocation():
             # NOTE: Ignore the default 'auto' config and product flags such as 'supply-chain'
             has_config = bool(set(config) - {"auto", "supply-chain"})
@@ -59,6 +64,15 @@ class SemgrepState:
         ctx = get_context()
         command_name = ctx.command.name if hasattr(ctx, "command") else "unset"
         return command_name == "scan"
+
+    @staticmethod
+    def is_pattern_invocation() -> bool:
+        """
+        Returns True iff the current CLI invocation is a pattern invocation via `semgrep -e` or `semgrep --pattern`.
+        """
+        ctx = get_context()
+        params = ctx.params if hasattr(ctx, "params") else {}
+        return params.get("pattern") is not None
 
 
 def get_context() -> click.Context:

@@ -1,25 +1,6 @@
 type var = Dataflow_var_env.var
 (** A string of the form "<source name>:<sid>". *)
 
-type overlap = float
-(** Overlap ratio, only applies to AST nodes that fall in the range of a
- * source/sanitizer/sink annotation. It is a number in [0.0, 1.0], where
- * 1.0 means that the AST node matches the annotation perfectly. For
- * practical purposes we can interpret >0.99 as being the same as 1.0. *)
-
-type 'spec tmatch = {
-  spec : 'spec;
-      (** The specification on which the match is based, e.g. a taint source.
-      * This spec should have a pattern formula. *)
-  spec_pm : Pattern_match.t;
-      (** A pattern match obtained directly from the spec's pattern formula. *)
-  range : Range.t;
-      (** The range of this particular match, which will be a subrange of 'spec_pm',
-      * see note on 'Taint-tracking via ranges' in 'Match_tainting_mode.ml'. *)
-  overlap : overlap;
-      (** The overlap of this match ('range') with the spec match ('spec_pm'). *)
-}
-
 type a_propagator = {
   kind : [ `From | `To ];
   prop : Rule.taint_propagator;
@@ -31,10 +12,10 @@ type config = {
   rule_id : Rule_ID.t;  (** Taint rule id, for Deep Semgrep. *)
   track_control : bool;
       (** Whether the rule requires tracking "control taint". *)
-  is_source : AST_generic.any -> Rule.taint_source tmatch list;
+  is_source : AST_generic.any -> Rule.taint_source Taint_smatch.t list;
       (** Test whether 'any' is a taint source, this corresponds to
       * 'pattern-sources:' in taint-mode. *)
-  is_propagator : AST_generic.any -> a_propagator tmatch list;
+  is_propagator : AST_generic.any -> a_propagator Taint_smatch.t list;
       (** Test whether 'any' matches a taint propagator, this corresponds to
        * 'pattern-propagators:' in taint-mode.
        *
@@ -64,10 +45,10 @@ type config = {
        * anyhow it's clearly incorrect to taint `Shell`, so a better solution was
        * needed (hence `pattern-propagators`).
        *)
-  is_sink : AST_generic.any -> Rule.taint_sink tmatch list;
+  is_sink : AST_generic.any -> Rule.taint_sink Taint_smatch.t list;
       (** Test whether 'any' is a sink, this corresponds to 'pattern-sinks:'
       * in taint-mode. *)
-  is_sanitizer : AST_generic.any -> Rule.taint_sanitizer tmatch list;
+  is_sanitizer : AST_generic.any -> Rule.taint_sanitizer Taint_smatch.t list;
       (** Test whether 'any' is a sanitizer, this corresponds to
       * 'pattern-sanitizers:' in taint-mode. *)
   unify_mvars : bool;  (** Unify metavariables in sources and sinks? *)

@@ -25,6 +25,7 @@ module LV = IL_helpers
 module T = Taint
 module Lval_env = Taint_lval_env
 module Taints = T.Taint_set
+module TM = Taint_smatch
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -63,14 +64,6 @@ module SMap = Map.Make (String)
 (*****************************************************************************)
 
 type var = Var_env.var
-type overlap = float
-
-type 'spec tmatch = {
-  spec : 'spec;
-  spec_pm : PM.t;
-  range : Range.t;
-  overlap : overlap;
-}
 
 type a_propagator = {
   kind : [ `From | `To ];
@@ -82,10 +75,10 @@ type config = {
   filepath : Common.filename;
   rule_id : Rule_ID.t;
   track_control : bool;
-  is_source : G.any -> R.taint_source tmatch list;
-  is_propagator : AST_generic.any -> a_propagator tmatch list;
-  is_sink : G.any -> R.taint_sink tmatch list;
-  is_sanitizer : G.any -> R.taint_sanitizer tmatch list;
+  is_source : G.any -> R.taint_source TM.t list;
+  is_propagator : AST_generic.any -> a_propagator TM.t list;
+  is_sink : G.any -> R.taint_sink TM.t list;
+  is_sanitizer : G.any -> R.taint_sanitizer TM.t list;
       (* NOTE [is_sanitizer]:
        * A sanitizer is more "extreme" than you may expect. When a piece of code is
        * "sanitized" Semgrep will just not check it. For example, something like
@@ -99,104 +92,6 @@ type mapping = Lval_env.t D.mapping
 
 (* HACK: Tracks tainted functions intrafile. *)
 type fun_env = (var, Taints.t) Hashtbl.t
-
-(* NOTE "Top sinks":
- * (See note "Taint-tracking via ranges" in 'Match_tainting_mode.ml' for context.)
- *
- * We use sub-range checks to determine whether a piece of code is a sink, and this
- * can lead to unintuitive results. For example, `sink(if tainted then ok1 else ok2)`
- * is reported as a tainted sink despite `if tainted then ok1 else ok2` is actually
- * not tainted. The problem is that `tainted` is inside what `sink(...)` matches,
- * and using a sub-range check we end up considering `tainted` itself as a sink.
- *
- * Unfortunately simply checking for exact matches is fragile, because sometimes we
- * are not able to match sinks exactly. For example, if you want `echo ...;` to be a
- * sink in PHP, you cannot omit the ';' as `echo` is not an expression. But in the
- * IL, `echo` is represented as a `Call` instruction and the ';' is not part of the
- * `iorig`.
- *
- * A simple alternative would have been to add an `exact: true` option to request
- * exact matches. This is trivial to implement but it is more a "patch" than a
- * proper fix. It breaks some taint rules, and users would often not understand when
- * and why they need to set (or unset) this option to make their rules work.
- *
- * So, instead, we went for a solution that requires no extra option, it just works,
- * but it is a lot more complex to implement. Given a sink specification, we
- * check whether the sink matches any of the top-level nodes in the CFG (see
- * 'IL.node_kind'). Given two sink matches, if one is contained inside the other,
- * then we consider them the same match and we take the larger one as the canonical.
- * We store the canonical sink matches in a 'Top_sinks' data structure, and we use
- * these "top sinks" matches as a practical definition of what an "exact match" is.
- * For example, if the sink specification is `echo ...;`, and the code we have is
- * `echo $_GET['foo'];`, then this method will determine that `echo $_GET['foo']`
- * is the best match we can get, and that becomes the definition of exact. Then,
- * when we check whether an expression or instruction is a sink, if its range is a
- * strict sub-range of one of these top sinks, we simply disregard it (because it
- * is not an exact match). In our example above the top sink match will be
- * `sink(if tainted then ok1 else ok2)`, so we will disregard `tainted` as a sink
- * because we know there is a better match.
- *)
-module Top_sinks = struct
-  (* For m, m' in S.t, not (m.range $<=$ m'.range) && not (m'.range $<=$ m.range) *)
-  module S = Set.Make (struct
-    type t = R.taint_sink tmatch
-
-    (* This compare function is subtle but it allows both `add` and `is_best_match`
-     * to be simple and quite efficient. *)
-    let compare m1 m2 =
-      let sink_id_cmp = String.compare m1.spec.R.sink_id m2.spec.R.sink_id in
-      if sink_id_cmp <> 0 then sink_id_cmp
-      else
-        (* If m1 is contained in m2 or vice-versa, then they are the *same* sink match.
-         * We only want to keep one match per sink, the best match! *)
-        let r1 = m1.range in
-        let r2 = m2.range in
-        if Range.(r1 $<=$ r2 || r2 $<=$ r1) then 0 else Stdlib.compare r1 r2
-  end)
-
-  type t = S.t
-
-  let empty = S.empty
-
-  let _debug sinks =
-    sinks |> S.elements
-    |> Common.map (fun m -> Range.content_at_range m.spec_pm.file m.range)
-    |> String.concat " ; "
-
-  let rec add m' sinks =
-    (* We check if we have another match for the *same* sink specification
-     * (i.e., same 'sink_id'), and if so we must keep the best match and drop
-     * the other one. *)
-    match S.find_opt m' sinks with
-    | None -> S.add m' sinks
-    | Some m ->
-        let r = m.range in
-        let r' = m'.range in
-        (* Note that by `S`s definition, either `r` is contained in `r'` or vice-versa. *)
-        if r'.start > r.start || r'.end_ < r.end_ then
-          (* The new match is a worse fit so we keep the current one. *)
-          sinks
-        else
-          (* We found a better (larger) match! *)
-          (* There may be several matches in `sinks` that are subsumed by `m'`.
-           * E.g. we could have found sinks at ranges (1,5) and (6,10), and then
-           * we find that there is better sink match at range (1,10). This
-           * new larger match subsumes both (1,5) and (6, 10) matches.
-           * Thus, before we try adding `m'` to `sinks`, we need to make sure
-           * that there is no other match `m` that is included in `m'`.
-           * Otherwise `m'` would be considered a duplicate and it would not
-           * be added (e.g., if we try adding the range (1,10) to a set that
-           * still contains the range (6,10), given our `compare` function above
-           * the (1,10) range will be considered a duplicate), hence the
-           * recursive call to `add` here. *)
-          add m' (S.remove m sinks)
-
-  let is_best_match sinks m' =
-    match S.find_opt m' sinks with
-    | None -> true
-    | Some m -> m.range =*= m'.range
-end
-
 type java_props_cache = (string * G.SId.t, IL.name) Hashtbl.t
 
 let mk_empty_java_props_cache () = Hashtbl.create 30
@@ -208,7 +103,7 @@ type env = {
   config : config;
   fun_name : var option;
   lval_env : Lval_env.t;
-  top_sinks : Top_sinks.t;
+  top_matches : TM.Top_matches.t;
   java_props : java_props_cache;
 }
 
@@ -260,8 +155,6 @@ let status_to_taints = function
       Taints.empty
   | `Tainted taints -> taints
 
-let is_exact x = x.overlap > 0.99
-
 let union_map_taints_and_vars env f xs =
   let taints, lval_env =
     xs
@@ -277,13 +170,31 @@ let union_map_taints_and_vars env f xs =
   in
   (taints, lval_env)
 
-let orig_is_source config orig = config.is_source (any_of_orig orig)
-let orig_is_sanitized config orig = config.is_sanitizer (any_of_orig orig)
-let orig_is_sink config orig = config.is_sink (any_of_orig orig)
+let any_is_best_sanitizer env any =
+  env.config.is_sanitizer any
+  |> List.filter (fun (m : R.taint_sanitizer TM.t) ->
+         (not m.spec.sanitizer_exact) || TM.is_best_match env.top_matches m)
 
-let orig_is_best_sink env orig : R.taint_sink tmatch list =
-  orig_is_sink env.config orig
-  |> List.filter (Top_sinks.is_best_match env.top_sinks)
+let any_is_best_source env any =
+  env.config.is_source any
+  |> List.filter (fun (m : R.taint_source TM.t) ->
+         (not m.spec.source_exact) || TM.is_best_match env.top_matches m)
+
+let any_is_best_sink env any =
+  env.config.is_sink any |> List.filter (TM.is_best_match env.top_matches)
+
+let orig_is_source config orig = config.is_source (any_of_orig orig)
+
+let orig_is_best_source env orig : R.taint_source TM.t list =
+  any_is_best_source env (any_of_orig orig)
+
+let orig_is_sanitizer config orig = config.is_sanitizer (any_of_orig orig)
+
+let orig_is_best_sanitizer env orig =
+  any_is_best_sanitizer env (any_of_orig orig)
+
+let orig_is_sink config orig = config.is_sink (any_of_orig orig)
+let orig_is_best_sink env orig = any_is_best_sink env (any_of_orig orig)
 
 let any_of_lval lval =
   match lval with
@@ -294,27 +205,30 @@ let any_of_lval lval =
   | { base = VarSpecial (_, tok); rev_offset = [] } -> G.Tk tok
   | { base = Mem e; rev_offset = [] } -> any_of_orig e.eorig
 
-let lval_is_source config lval = config.is_source (any_of_lval lval)
-let lval_is_sanitized config lval = config.is_sanitizer (any_of_lval lval)
+let lval_is_source env lval = any_is_best_source env (any_of_lval lval)
+
+let lval_is_best_sanitizer env lval =
+  any_is_best_sanitizer env (any_of_lval lval)
+
 let lval_is_sink config lval = config.is_sink (any_of_lval lval)
-let sink_of_match x = { T.pm = x.spec_pm; rule_sink = x.spec }
+let sink_of_match x = { T.pm = x.TM.spec_pm; rule_sink = x.spec }
 
 let taints_of_matches env ~incoming sources =
   let control_sources, data_sources =
     sources
-    |> List.partition (fun (m : R.taint_source tmatch) -> m.spec.source_control)
+    |> List.partition (fun (m : R.taint_source TM.t) -> m.spec.source_control)
   in
   (* THINK: It could make sense to merge `incoming` with `control_incoming`, so
    * a control source could influence a data source and vice-versa. *)
   let data_taints =
     data_sources
-    |> Common.map (fun x -> (x.spec_pm, x.spec))
+    |> Common.map (fun x -> (x.TM.spec_pm, x.spec))
     |> T.taints_of_pms ~incoming
   in
   let control_incoming = Lval_env.get_control_taints env.lval_env in
   let control_taints =
     control_sources
-    |> Common.map (fun x -> (x.spec_pm, x.spec))
+    |> Common.map (fun x -> (x.TM.spec_pm, x.spec))
     |> T.taints_of_pms ~incoming:control_incoming
   in
   let lval_env = Lval_env.add_control_taints env.lval_env control_taints in
@@ -323,55 +237,6 @@ let taints_of_matches env ~incoming sources =
 let report_findings env findings =
   if findings <> [] then
     env.config.handle_findings env.fun_name findings env.lval_env
-
-let top_level_sinks_in_nodes config flow =
-  (* We traverse the CFG and we check whether the top-level expressions match
-   * any sink specification. Those that do match a sink are potential
-   * "top-level sinks". See NOTE "Top sinks". *)
-  (* TODO: This handles the common cases that people have more often complained
-   * about, it doesn't yet handle e.g. a sink specification like `sink([$SINK, ...])`
-   * (with `focus-metavariable: $SINK`), and code like `sink([ok1 if tainted else ok2])`.
-   * For that, we would need to visit subexpressions. *)
-  flow.CFG.reachable |> CFG.NodeiSet.to_seq
-  |> Seq.concat_map (fun ni ->
-         let origs_of_args args =
-           Seq.map (fun a -> (IL_helpers.exp_of_arg a).eorig) (List.to_seq args)
-         in
-         let node = flow.CFG.graph#nodes#assoc ni in
-         match node.n with
-         | NInstr instr ->
-             let top_expr_origs : orig Seq.t =
-               Seq.cons instr.iorig
-                 (match instr.i with
-                 | Call (_, c, args) -> Seq.cons c.eorig (origs_of_args args)
-                 | New (_, ty, _, args) ->
-                     let ty_origs =
-                       ty.exps |> List.to_seq |> Seq.map (fun e -> e.eorig)
-                     in
-                     Seq.append ty_origs (origs_of_args args)
-                 | CallSpecial (_, _, args) -> origs_of_args args
-                 | Assign (_, e) -> List.to_seq [ e.eorig ]
-                 | AssignAnon _
-                 | FixmeInstr _ ->
-                     Seq.empty)
-             in
-             top_expr_origs
-             |> Seq.concat_map (fun o -> orig_is_sink config o |> List.to_seq)
-         | NCond (_, exp)
-         | NReturn (_, exp)
-         | NThrow (_, exp) ->
-             orig_is_sink config exp.eorig |> List.to_seq
-         | Enter
-         | Exit
-         | TrueNode _
-         | FalseNode _
-         | Join
-         | NGoto _
-         | NLambda _
-         | NOther _
-         | NTodo _ ->
-             Seq.empty)
-  |> Seq.fold_left (fun s x -> Top_sinks.add x s) Top_sinks.empty
 
 (* Checks whether the sink corresponds has the shape
  *
@@ -477,8 +342,8 @@ let merge_source_sink_mvars env source_mvars sink_mvars =
 
 let partition_mutating_sources sources_matches =
   sources_matches
-  |> List.partition (fun (m : R.taint_source tmatch) ->
-         m.spec.source_by_side_effect && is_exact m)
+  |> List.partition (fun (m : R.taint_source TM.t) ->
+         m.spec.source_by_side_effect && TM.is_exact m)
 
 (*****************************************************************************)
 (* Types *)
@@ -832,8 +697,8 @@ let sanitize_lval_by_side_effect lval_env sanitizer_pms lval =
      * (presumably by side-effect) and is no longer tainted. We will update
      * the environment (i.e., `lval_env') accordingly. *)
     List.exists
-      (fun (m : R.taint_sanitizer tmatch) ->
-        m.spec.sanitizer_by_side_effect && is_exact m)
+      (fun (m : R.taint_sanitizer TM.t) ->
+        m.spec.sanitizer_by_side_effect && TM.is_exact m)
       sanitizer_pms
   in
   if lval_is_now_safe then Lval_env.clean lval_env lval else lval_env
@@ -842,7 +707,7 @@ let sanitize_lval_by_side_effect lval_env sanitizer_pms lval =
    If the expression is of the form `x.a.b.c` then we try to sanitize it by
    side-effect, in which case this function will return a new lval_env. *)
 let exp_is_sanitized env exp =
-  match orig_is_sanitized env.config exp.eorig with
+  match orig_is_best_sanitizer env exp.eorig with
   (* See NOTE [is_sanitizer] *)
   | [] -> None
   | sanitizer_pms -> (
@@ -872,7 +737,7 @@ let handle_taint_propagators env thing taints =
     env.config.is_propagator any
   in
   let propagate_froms, propagate_tos =
-    List.partition (fun p -> p.spec.kind =*= `From) propagators
+    List.partition (fun p -> p.TM.spec.kind =*= `From) propagators
   in
   let lval_env =
     (* `thing` is the source (the "from") of propagation, we add its taints to
@@ -909,7 +774,7 @@ let handle_taint_propagators env thing taints =
         *)
         match
           T.solve_precondition ~ignore_poly_taint:false ~taints
-            (R.get_propagator_precondition prop.spec.prop)
+            (R.get_propagator_precondition prop.TM.spec.prop)
         with
         | Some true ->
             (* If we have an output label, change the incoming taints to be
@@ -917,7 +782,7 @@ let handle_taint_propagators env thing taints =
                Otherwise, keep them the same.
             *)
             let new_taints =
-              match prop.spec.prop.propagator_label with
+              match prop.TM.spec.prop.propagator_label with
               | None -> taints
               | Some label ->
                   Taints.map
@@ -937,7 +802,7 @@ let handle_taint_propagators env thing taints =
     List.fold_left
       (fun (taints_in_acc, lval_env) prop ->
         let taints_from_prop =
-          match Lval_env.propagate_from prop.spec.var lval_env with
+          match Lval_env.propagate_from prop.TM.spec.var lval_env with
           | None -> Taints.empty
           | Some taints -> taints
         in
@@ -960,7 +825,7 @@ let handle_taint_propagators env thing taints =
   (taints_propagated, lval_env)
 
 let find_lval_taint_sources env incoming_taints lval =
-  let source_pms = lval_is_source env.config lval in
+  let source_pms = lval_is_source env lval in
   let mut_source_pms, reg_source_pms =
     (* If the lvalue is an exact match (overlap > 0.99) for a source
        * annotation, then we infer that the lvalue itself is now tainted
@@ -988,7 +853,7 @@ let rec check_tainted_lval env (lval : IL.lval) : Taints.t * Lval_env.t =
   in
   let sinks =
     lval_is_sink env.config lval
-    |> List.filter (Top_sinks.is_best_match env.top_sinks)
+    |> List.filter (TM.is_best_match env.top_matches)
     |> Common.map sink_of_match
   in
   let findings = findings_of_tainted_sinks { env with lval_env } taints sinks in
@@ -1079,7 +944,7 @@ and check_tainted_lval_aux env (lval : IL.lval) :
    *  with the info we have stored in `env.lval_env`. This can be subtle, see
    *  comments below.
    *)
-  match lval_is_sanitized env.config lval with
+  match lval_is_best_sanitizer env lval with
   (* See NOTE [is_sanitizer] *)
   (* TODO: We should check that taint and sanitizer(s) are unifiable. *)
   | _ :: _ as sanitizer_pms ->
@@ -1173,7 +1038,7 @@ and check_tainted_lval_aux env (lval : IL.lval) :
            * with the normal subset semantics for sinks we would consider `x'
            * itself to be a sink, and we would report a finding!
         *)
-        |> List.filter is_exact
+        |> List.filter TM.is_exact
         |> Common.map sink_of_match
       in
       let all_taints = Taints.union taints_from_env new_taints in
@@ -1293,7 +1158,7 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
   | None ->
       let taints_exp, lval_env = check_subexpr exp in
       let taints_sources, lval_env =
-        orig_is_source env.config exp.eorig
+        orig_is_best_source env exp.eorig
         |> taints_of_matches { env with lval_env } ~incoming:taints_exp
       in
       let taints = Taints.union taints_exp taints_sources in
@@ -1687,7 +1552,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
         (taints, lval_env)
     | FixmeInstr _ -> (Taints.empty, env.lval_env)
   in
-  let sanitizer_pms = orig_is_sanitized env.config instr.iorig in
+  let sanitizer_pms = orig_is_best_sanitizer env instr.iorig in
   match sanitizer_pms with
   (* See NOTE [is_sanitizer] *)
   | _ :: _ ->
@@ -1696,7 +1561,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
   | [] ->
       let taints_instr, lval_env = check_instr instr.i in
       let taint_sources, lval_env =
-        orig_is_source env.config instr.iorig
+        orig_is_best_source env instr.iorig
         |> taints_of_matches { env with lval_env } ~incoming:taints_instr
       in
       let taints = Taints.union taints_instr taint_sources in
@@ -1719,7 +1584,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
 let check_tainted_return env tok e : Taints.t * Lval_env.t =
   let sinks =
     env.config.is_sink (G.Tk tok) @ orig_is_sink env.config e.eorig
-    |> List.filter (Top_sinks.is_best_match env.top_sinks)
+    |> List.filter (TM.is_best_match env.top_matches)
     |> Common.map sink_of_match
   in
   let taints, var_env' = check_tainted_expr env e in
@@ -1784,10 +1649,10 @@ let transfer :
     Lval_env.t ->
     string option ->
     flow:F.cfg ->
-    top_sinks:Top_sinks.t ->
+    top_matches:TM.Top_matches.t ->
     java_props:java_props_cache ->
     Lval_env.t D.transfn =
- fun lang options config enter_env opt_name ~flow ~top_sinks ~java_props
+ fun lang options config enter_env opt_name ~flow ~top_matches ~java_props
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
   (* DataflowX.display_mapping flow mapping show_tainted; *)
@@ -1801,7 +1666,7 @@ let transfer :
         config;
         fun_name = opt_name;
         lval_env = in';
-        top_sinks;
+        top_matches;
         java_props;
       }
     in
@@ -1898,11 +1763,29 @@ let (fixpoint :
     | None -> Lval_env.empty
     | Some in_env -> in_env
   in
-  let top_sinks =
+  let top_matches =
     (* Here we compute the "canonical" or "top" sink matches, for each sink we check
      * whether there is a "best match" among the top nodes in the CFG.
-     * See NOTE "Top sinks" *)
-    top_level_sinks_in_nodes config flow
+     * See NOTE "Top matches" *)
+    TM.top_level_matches_in_nodes
+      ~matches_of_orig:(fun orig ->
+        let sources =
+          orig_is_source config orig |> List.to_seq
+          |> Seq.filter (fun (m : R.taint_source TM.t) -> m.spec.source_exact)
+          |> Seq.map (fun m -> TM.Any m)
+        in
+        let sanitizers =
+          orig_is_sanitizer config orig
+          |> List.to_seq
+          |> Seq.filter (fun (m : R.taint_sanitizer TM.t) ->
+                 m.spec.sanitizer_exact)
+          |> Seq.map (fun m -> TM.Any m)
+        in
+        let sinks =
+          orig_is_sink config orig |> List.to_seq |> Seq.map (fun m -> TM.Any m)
+        in
+        sources |> Seq.append sanitizers |> Seq.append sinks)
+      flow
   in
   (* THINK: Why I cannot just update mapping here ? if I do, the mapping gets overwritten later on! *)
   (* DataflowX.display_mapping flow init_mapping show_tainted; *)
@@ -1910,7 +1793,7 @@ let (fixpoint :
     DataflowX.fixpoint ~timeout:Limits_semgrep.taint_FIXPOINT_TIMEOUT
       ~eq_env:Lval_env.equal ~init:init_mapping
       ~trans:
-        (transfer lang options config enter_env opt_name ~flow ~top_sinks
+        (transfer lang options config enter_env opt_name ~flow ~top_matches
            ~java_props)
         (* tainting is a forward analysis! *)
       ~forward:true ~flow
