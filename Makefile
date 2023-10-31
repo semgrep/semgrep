@@ -309,7 +309,7 @@ install-deps-ALPINE-for-pysemgrep:
 # -------------------------------------------------
 # Ubuntu
 # -------------------------------------------------
-UBUNTU_DEPS=$(ALPINE_APK_DEPS_CORE)
+UBUNTU_DEPS=libev-dev
 
 install-deps-UBUNTU-for-semgrep-core:
 	apt-get install $(UBUNTU_DEPS)
