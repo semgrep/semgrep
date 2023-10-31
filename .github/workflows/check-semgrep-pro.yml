@@ -6,6 +6,8 @@ name: check-semgrep-pro
   push:
     branches:
     - develop
+permissions:
+  contents: write
 jobs:
   check-compile-semgrep-pro:
     runs-on: ubuntu-latest
@@ -13,7 +15,7 @@ jobs:
     env:
       HOME: /root
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v2
       with:
         submodules: true
     - name: Test

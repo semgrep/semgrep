@@ -23,7 +23,13 @@ local check_compile_semgrep_pro_job = {
       HOME: '/root',
     },
     steps: [
-      actions.checkout_with_submodules(),
+    {
+      uses: 'actions/checkout@v2',
+      with: {
+        submodules: true,
+      },
+    },
+//      actions.checkout_with_submodules(),
 //      {
 //        run: 'apt-get install gh'
 //      },
@@ -34,8 +40,8 @@ local check_compile_semgrep_pro_job = {
         run: |||
 	  pwd
 	  ls
-	  opam switch
 	  eval $(opam env)
+	  opam switch
           make install-deps-for-semgrep-core
           make install-deps
         |||,
@@ -86,6 +92,9 @@ local check_compile_semgrep_pro_job = {
         'develop',
       ],
     },
+  },
+  permissions: {
+    contents: "write",
   },
   jobs: {
     'check-compile-semgrep-pro': check_compile_semgrep_pro_job,
