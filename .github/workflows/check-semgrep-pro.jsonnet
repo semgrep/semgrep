@@ -15,13 +15,16 @@ local check_compile_semgrep_pro_job = {
   // which is needed to checkout semgrep-pro from semgrep GHA.
   // alt: use our r2c alpine-ocaml and procedure to download gh binary tarball
   // alt: use our r2c ubuntu-ocaml but get 'git ls-files exit 128' error under
-  //      GHA that I could not reproduce locally or in circleCI
-  // alt: use circleCI but then even with token and with gh I can't clone
-  //      semgrep-pro
+  //      GHA that I could not reproduce locally in docker or in circleCI
+  // alt: use circleCI but then even with a GH token and with gh I could not
+  //      clone semgrep-pro
   // alt: use setup-ocaml@v2, but need to be careful when moving around dirs
-  //      as it installs itself in /home/runner/work/semgrep/semgrep/_opam
+  //      as opam installs itself in /home/runner/work/semgrep/semgrep/_opam
+  //      and opam can work only when run from this directory
   steps: [
     actions.checkout_with_submodules(),
+    // this must be done after the checkout as opam installs itself
+    // locally in the project folder (/home/runner/work/semgrep/semgrep/_opam)
     {
       name: 'Setup OCaml and opam',
       uses: 'ocaml/setup-ocaml@v2',
@@ -32,6 +35,7 @@ local check_compile_semgrep_pro_job = {
     // old: make install-deps-ALPINE-for-semgrep-core
     // but we're on ubuntu here and most packages are already installed
     // or can be installed by opam itself via depext.
+    // alt: we could define a install-deps-UBUNTU-for-semgrep-core
     {
       name: 'Install semgrep dependencies',
       run: |||
@@ -41,6 +45,7 @@ local check_compile_semgrep_pro_job = {
         make install-deps
       |||,
     },
+    // Let's use gh and our github_bot token to access a private repo
     {
       run: 'sudo apt-get install gh',
     },
@@ -56,9 +61,16 @@ local check_compile_semgrep_pro_job = {
         cd ..
         gh repo clone returntocorp/semgrep-proprietary
         cd semgrep-proprietary
-        rmdir semgrep
+        git submodule update --init
+        rm -rf semgrep
         ln -s ../semgrep
-	ln -s ../semgrep/_opam
+      |||,
+    },
+    {
+      name: 'Ugly hack for setup-ocaml',
+      run: |||
+        cd ../semgrep-proprietary
+        ln -s ../semgrep/_opam
       |||,
     },
     {
@@ -66,10 +78,6 @@ local check_compile_semgrep_pro_job = {
       run: |||
         cd ../semgrep-proprietary
         eval $(opam env)
-        opam switch
-        pwd
-        ls
-        set
         make install-deps
       |||,
     },
