@@ -622,7 +622,9 @@ class CoreRunner:
     def plan_core_run(
         rules: List[Rule],
         target_manager: TargetManager,
+        *,
         all_targets: Optional[Set[Path]] = None,
+        product: Optional[out.Product] = None,
     ) -> Plan:
         """
         Gets the targets to run for each rule
@@ -639,16 +641,10 @@ class CoreRunner:
         )
 
         lockfiles = target_manager.get_all_lockfiles()
-
-        rules = [
-            rule
-            for rule in rules
-            # filter out SCA rules with no relevant lockfiles
-            if not (isinstance(rule.product.value, out.SCA))
-            or any(lockfiles[ecosystem] for ecosystem in rule.ecosystems)
-        ]
+        unused_rules = []
 
         for rule_num, rule in enumerate(rules):
+            any_target = False
             for language in rule.languages:
                 targets = list(
                     target_manager.get_files_for_rule(
@@ -658,11 +654,15 @@ class CoreRunner:
                         rule.id,
                     )
                 )
+                any_target = any_target or len(targets) > 0
 
                 for target in targets:
                     if all_targets is not None:
                         all_targets.add(target)
                     target_info[target, language].append(rule_num)
+
+            if not any_target:
+                unused_rules.append(rule)
 
         return Plan(
             [
@@ -675,7 +675,9 @@ class CoreRunner:
                 for target, language in target_info
             ],
             rules,
+            product=product,
             lockfiles_by_ecosystem=lockfiles,
+            unused_rules=unused_rules,
         )
 
     def _run_rules_direct_to_semgrep_core_helper(
@@ -782,11 +784,15 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                 # for `plan`, the `baseline_handler` is disabled within the `target_manager`
                 # when executing `plan_core_run`.
                 plan = self.plan_core_run(
-                    rules, evolve(target_manager, baseline_handler=None), all_targets
+                    rules,
+                    evolve(target_manager, baseline_handler=None),
+                    all_targets=all_targets,
                 )
 
             else:
-                plan = self.plan_core_run(rules, target_manager, all_targets)
+                plan = self.plan_core_run(
+                    rules, target_manager, all_targets=all_targets
+                )
 
             plan.record_metrics()
             parsing_data.add_targets(plan)

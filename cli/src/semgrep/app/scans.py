@@ -196,6 +196,7 @@ class ScanHandler:
         self._skipped_syntactic_ids = conf.triage_ignored_syntactic_ids
         self._skipped_match_based_ids = conf.triage_ignored_match_based_ids
         self.ignore_patterns = conf.ignored_files
+
         if conf.enabled_products:
             self._enabled_products = [x.to_json() for x in conf.enabled_products]
         else:

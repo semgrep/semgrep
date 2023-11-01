@@ -594,6 +594,7 @@ def scan(
                 config_errors = list(chain(config_errors, metacheck_errors))
 
                 valid_str = "invalid" if config_errors else "valid"
+                # NOTE: get_rules will de-duplicate rules as the same rule can appear across multiple config packs
                 rule_count = len(resolved_configs.get_rules(True))
                 logger.info(
                     f"Configuration is {valid_str} - found {len(config_errors)} configuration error(s), and {rule_count} rule(s)."
@@ -615,8 +616,9 @@ def scan(
                     shown_severities,
                     _dependencies,
                     _dependency_parser_errors,
-                    _num_executed_rules,
-                    _,
+                    _contributions,
+                    executed_rule_count,
+                    missed_rule_count,
                 ) = semgrep.run_scan.run_scan(
                     diff_depth=diff_depth,
                     dump_command_for_core=dump_command_for_core,
@@ -668,6 +670,8 @@ def scan(
                 severities=shown_severities,
                 print_summary=True,
                 engine_type=engine_type,
+                executed_rule_count=executed_rule_count,
+                missed_rule_count=missed_rule_count,
             )
 
             run_has_findings = any(filtered_matches_by_rule.values())

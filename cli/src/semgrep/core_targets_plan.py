@@ -92,13 +92,17 @@ class Plan:
         mappings: List[Task],
         rules: List[Rule],
         *,
+        product: Optional[out.Product] = None,
         lockfiles_by_ecosystem: Optional[Dict[Ecosystem, FrozenSet[Path]]] = None,
+        unused_rules: Optional[List[Rule]] = None,
     ):
         self.target_mappings = TargetMappings(mappings)
         # important: this is a list of rule_ids, not a set
         # target_mappings relies on the index of each rule_id in rule_ids
         self.rules = rules
+        self.product = product
         self.lockfiles_by_ecosystem = lockfiles_by_ecosystem
+        self.unused_rules = unused_rules or []
 
     # TODO: make this counts_by_lang_label, returning TaskCounts
     def split_by_lang_label(self) -> Dict[str, "TargetMappings"]:
