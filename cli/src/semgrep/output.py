@@ -285,6 +285,8 @@ class OutputHandler:
         print_summary: bool = False,
         is_ci_invocation: bool = False,
         engine_type: EngineType = EngineType.OSS,
+        executed_rule_count: int = 0,
+        missed_rule_count: int = 0,
     ) -> None:
         state = get_state()
         self.has_output = True
@@ -367,7 +369,7 @@ class OutputHandler:
             )
             num_findings = len(regular_matches)
             num_targets = len(self.all_targets)
-            num_rules = len(self.filtered_rules)
+            num_rules = executed_rule_count or len(self.filtered_rules)
 
             ignores_line = str(ignore_log or "No ignore information available")
             suggestion_line = ""
@@ -382,6 +384,8 @@ class OutputHandler:
             stats_line = ""
             if print_summary:
                 stats_line = f"\nRan {unit_str(num_rules, 'rule')} on {unit_str(num_targets, 'file')}: {unit_str(num_findings, 'finding')}."
+                if missed_rule_count:
+                    stats_line = f"{stats_line}\nMissed out on {unit_str(missed_rule_count, 'pro rule')}!"
             if ignore_log is not None:
                 logger.verbose(ignore_log.verbose_output())
 

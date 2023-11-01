@@ -438,8 +438,9 @@ def ci(
             shown_severities,
             dependencies,
             dependency_parser_errors,
-            num_executed_rules,
             contributions,
+            _executed_rule_count,
+            _missed_rule_count,
         ) = semgrep.run_scan.run_scan(
             engine_type=engine_type,
             run_secrets=run_secrets,
@@ -547,14 +548,14 @@ def ci(
 
     num_nonblocking_findings = len(nonblocking_matches)
     num_blocking_findings = len(blocking_matches)
-
+    filtered_rules = [*blocking_rules, *nonblocking_rules]
     if not internal_ci_scan_results:
         output_handler.output(
             non_cai_matches_by_rule,
             all_targets=output_extra.all_targets,
             ignore_log=ignore_log,
             profiler=profiler,
-            filtered_rules=[*blocking_rules, *nonblocking_rules],
+            filtered_rules=filtered_rules,
             extra=output_extra,
             severities=shown_severities,
             is_ci_invocation=True,
@@ -563,7 +564,7 @@ def ci(
 
     logger.info("CI scan completed successfully.")
     logger.info(
-        f"  Found {unit_str(num_blocking_findings + num_nonblocking_findings, 'finding')} ({num_blocking_findings} blocking) from {unit_str(num_executed_rules, 'rule')}."
+        f"  Found {unit_str(num_blocking_findings + num_nonblocking_findings, 'finding')} ({num_blocking_findings} blocking) from {unit_str(len(filtered_rules), 'rule')}."
     )
 
     complete_result: ScanCompleteResult | None = None

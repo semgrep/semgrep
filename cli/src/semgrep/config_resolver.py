@@ -32,6 +32,7 @@ from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
 from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
 from semgrep.constants import ID_KEY
+from semgrep.constants import MISSED_KEY
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RULES_KEY
 from semgrep.error import InvalidRuleSchemaError
@@ -350,6 +351,7 @@ class Config:
         # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
         with_code_rules: bool = False,
         with_supply_chain: bool = False,
+        missed_rule_count: int = 0,
     ) -> None:
         """
         Handles parsing and validating of config files
@@ -358,13 +360,14 @@ class Config:
         self.valid = valid_configs
         self.with_code_rules = with_code_rules
         self.with_supply_chain = with_supply_chain
+        self.missed_rule_count = missed_rule_count
 
     @classmethod
     def from_pattern_lang(
         cls, pattern: str, lang: str, replacement: Optional[str] = None
     ) -> Tuple["Config", Sequence[SemgrepError]]:
         config_dict = manual_config(pattern, lang, replacement)
-        valid, errors = cls._validate(config_dict)
+        valid, errors, _ = cls._validate(config_dict)
         return cls(valid), errors
 
     @classmethod
@@ -380,7 +383,7 @@ class Config:
         except SemgrepError as e:
             errors.append(e)
 
-        valid, parse_errors = cls._validate(config_dict)
+        valid, parse_errors, _ = cls._validate(config_dict)
         errors.extend(parse_errors)
         return cls(valid), errors
 
@@ -423,13 +426,14 @@ class Config:
             except SemgrepError as e:
                 errors.append(e)
 
-        valid, parse_errors = cls._validate(config_dict)
+        valid, parse_errors, missed_rule_count = cls._validate(config_dict)
         errors.extend(parse_errors)
         return (
             cls(
                 valid,
                 with_code_rules=with_code_rules,
                 with_supply_chain=with_supply_chain,
+                missed_rule_count=missed_rule_count,
             ),
             errors,
         )
@@ -502,18 +506,23 @@ class Config:
     @staticmethod
     def _validate(
         config_dict: Mapping[str, YamlTree]
-    ) -> Tuple[Mapping[str, Sequence[Rule]], Sequence[SemgrepError]]:
+    ) -> Tuple[Mapping[str, Sequence[Rule]], Sequence[SemgrepError], int]:
         """
         Take configs and separate into valid and list of errors parsing the invalid ones
         """
         errors: List[SemgrepError] = []
         valid: Dict[str, Any] = {}
+        missed_rule_count = 0
         for config_id, config_yaml_tree in config_dict.items():
-            config = config_yaml_tree.value
+            config: YamlMap = config_yaml_tree.value
             if not isinstance(config, YamlMap):
                 errors.append(SemgrepError(f"{config_id} was not a mapping"))
                 continue
-
+            # Increment the count of missed rules
+            missed_rule_container = config.get(MISSED_KEY)
+            missed_rule_count += (
+                int(missed_rule_container.value) if missed_rule_container else 0
+            )
             rules = config.get(RULES_KEY)
             if rules is None:
                 errors.append(
@@ -549,7 +558,7 @@ class Config:
 
             if valid_rules:
                 valid[config_id] = valid_rules
-        return valid, errors
+        return valid, errors, missed_rule_count
 
 
 def validate_single_rule(config_id: str, rule_yaml: YamlTree[YamlMap]) -> Rule:
