@@ -970,10 +970,6 @@ let test_ls_no_folders () =
 
       send_exit info)
 
-let test_ls_libev () =
-  Lwt_platform.set_engine ();
-  Lwt.return_unit
-
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -1000,5 +996,4 @@ let lwt_tests =
       ("Test LS multi-workspaces", test_ls_multi);
       ("Test Login", test_login);
       ("Test LS with no folders", test_ls_no_folders);
-      ("Test LS with libev", test_ls_libev);
     ]
