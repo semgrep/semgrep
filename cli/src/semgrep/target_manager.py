@@ -71,7 +71,7 @@ MAX_CHARS_TO_READ_FOR_SHEBANG = 255
 PATHS_ALWAYS_SKIPPED = (".git",)
 
 SCA_PRODUCT = out.Product(out.SCA())
-SAST_PRODUCT = out.Product(out.SCA())
+SAST_PRODUCT = out.Product(out.SAST())
 
 ALL_EXTENSIONS: Collection[FileExtension] = {
     ext
