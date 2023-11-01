@@ -1916,9 +1916,13 @@ let check_version_compatibility rule_id ~min_version ~max_version =
       if not (Version_info.compare Version_info.version maxi <= 0) then
         incompatible_version ?max_version:(Some maxi) rule_id tok
 
-(* TODO: Unify how we differentiate which rules correspond to which products.*)
+(* TODO: Unify how we differentiate which rules correspond to which
+   products. This basically just copies the logic of
+   semgrep/cli/src/semgrep/rule.py::Rule.product *)
 let parse_product rd (metadata : J.t option) : Semgrep_output_v1_t.product =
-  match Hashtbl.find_opt rd.h "r2c-internal-project-depends-on" with
+  match
+    take_opt_no_env rd (fun _ _ -> ()) "r2c-internal-project-depends-on"
+  with
   | Some _ -> `SCA
   | None -> (
       match metadata with
