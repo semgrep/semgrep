@@ -241,7 +241,7 @@ jobs:
       docker-tags: "\n  type=semver,pattern={{version}}\n  type=semver,pattern={{major}}.{{minor}}\n
         \ type=ref,event=pr\n  type=ref,event=branch\n  type=sha,event=branch\n  type=edge\n"
       artifact-name: image-test
-      repository-name: ${{ github.repository }}
+      repository-name: returntocorp/semgrep
       file: Dockerfile
       target: semgrep-cli
       enable-tests: true
@@ -254,7 +254,7 @@ jobs:
     secrets: inherit
     with:
       artifact-name: image-test
-      repository-name: ${{ github.repository }}
+      repository-name: returntocorp/semgrep
       dry-run: false
   build-test-docker-nonroot:
     needs:
@@ -266,7 +266,7 @@ jobs:
       docker-tags: "\n  type=semver,pattern={{version}}\n  type=semver,pattern={{major}}.{{minor}}\n
         \ type=ref,event=pr\n  type=ref,event=branch\n  type=sha,event=branch\n  type=edge\n"
       artifact-name: image-test-nonroot
-      repository-name: ${{ github.repository }}
+      repository-name: returntocorp/semgrep
       file: Dockerfile
       target: nonroot
       enable-tests: false
@@ -279,7 +279,7 @@ jobs:
     secrets: inherit
     with:
       artifact-name: image-test-nonroot
-      repository-name: ${{ github.repository }}
+      repository-name: returntocorp/semgrep
       dry-run: false
   test-semgrep-pro:
     needs:
@@ -291,7 +291,7 @@ jobs:
     secrets: inherit
     with:
       artifact-name: image-test
-      repository-name: ${{ github.repository }}
+      repository-name: returntocorp/semgrep
   build-test-core-x86:
     uses: ./.github/workflows/build-test-core-x86.yml
     secrets: inherit
