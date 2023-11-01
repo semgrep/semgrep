@@ -4,6 +4,7 @@
   js_of_ocaml
   semgrep.running
   semgrep.semgrep_js_shared
+  semgrep.semgrep_node_js_shared
   tree-sitter.run
   ; semgrep.parsing_languages ; skipped to go from 16MB to 7MB
   )

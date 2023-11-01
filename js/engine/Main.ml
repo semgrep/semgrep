@@ -54,9 +54,7 @@ let _ =
            let default_config = Scan_CLI.default in
            let config : Core_scan_config.t =
              {
-               (Core_runner.core_scan_config_of_conf
-                  default_config.core_runner_conf)
-               with
+               Core_scan_config.default with
                rule_source = Some (Rule_file (Fpath.v (Js.to_string rule_file)));
                output_format = Json false;
                target_source = Some (Core_scan_config.Targets targets);
