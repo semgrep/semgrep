@@ -1260,24 +1260,25 @@ and expr_stmt env (eorig : G.expr) tok : IL.stmt list =
   (* optimize? pass context to expr when no need for return value? *)
   let ss, e = expr_with_pre_stmts ~void:true env eorig in
 
-  (* ExprStmts don't care about results of an expression, so it is rightly
-   * setting void to true above. However, this means that function calls will
-   * return unit, and if we call mk_aux_var below, we will have something like
+  (* Some expressions may return unit, and if we call mk_aux_var below, not only
+   * is it extraneous, but it also interferes with implicit return analysis.
+   *
+   * For example,
    *   call f()
    *   tmp = unit
-   * which interferes with implicit return analysis, because the  analysis walks
+   * interferes with implicit return analysis, because the analysis walks
    * backwards from the exit node to mark the first instr node it sees on each
    * path.
    *
    * If we have
    *   call f()
    *   tmp = unit
-   * then `unit` will be marked as a returnning expression when we actually
+   * then `unit` will be marked as a returning expression when we actually
    * want to mark `f()`, so we must avoid creating `tmp = unit` following
    * a function call that doesn't expect results.
    *)
-  (match eorig with
-  | { e = G.Call _; _ } -> ()
+  (match e.e with
+  | Literal (G.Unit _) -> ()
   | _else_ -> mk_aux_var env tok e |> ignore);
 
   let ss' = pop_stmts env in

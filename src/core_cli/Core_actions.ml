@@ -85,7 +85,7 @@ let dump_il file =
     pr2 s;
     pr2 "==>";
 
-    (* Creating a CFG and throwing it away here here so the implicit return
+    (* Creating a CFG and throwing it away here so the implicit return
      * analysis pass may be run in order to mark implicit return nodes.
      *)
     let _ = CFG_build.cfg_of_fdef lang fdef in

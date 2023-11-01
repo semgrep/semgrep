@@ -94,6 +94,18 @@ module M
   end
 end
 
+module M
+  function f(implicit_return_parameter)
+    # ERROR:
+    implicit_return_parameter
+  end
+
+  function g()
+    # ERROR:
+    f("implicit return function call")
+  end
+end
+
 function f()
   # ERROR:
   return "explicit return should still work"

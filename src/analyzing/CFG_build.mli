@@ -1,6 +1,9 @@
 (* Compute the control flow graph of a sequence of statements.
  * This sequence of statements doesn't necessarily have to be
  * a function body, so no implicit return analysis is done here.
+ *
+ * This is useful in cases such as handling top-level functions
+ * which aren't real functions.
  *)
 val cfg_of_stmts : IL.stmt list -> IL.cfg
 
