@@ -16,4 +16,4 @@ Some files were skipped or only partially analyzed.
   Scan skipped: 2 files not matching --include patterns, 1 files matching --exclude patterns
   For a full list of skipped files, run semgrep with the --verbose flag.
 
-Ran 4 rules on 1 file: 1 finding.
+Ran 1 rule on 1 file: 1 finding.
