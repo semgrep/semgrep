@@ -549,17 +549,19 @@ def ci(
     num_nonblocking_findings = len(nonblocking_matches)
     num_blocking_findings = len(blocking_matches)
     filtered_rules = [*blocking_rules, *nonblocking_rules]
+
     if not internal_ci_scan_results:
         output_handler.output(
             non_cai_matches_by_rule,
             all_targets=output_extra.all_targets,
+            engine_type=engine_type,
             ignore_log=ignore_log,
             profiler=profiler,
             filtered_rules=filtered_rules,
             extra=output_extra,
             severities=shown_severities,
             is_ci_invocation=True,
-            engine_type=engine_type,
+            print_summary=False,
         )
 
     logger.info("CI scan completed successfully.")
