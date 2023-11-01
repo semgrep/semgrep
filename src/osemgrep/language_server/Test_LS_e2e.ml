@@ -970,7 +970,9 @@ let test_ls_no_folders () =
 
       send_exit info)
 
-let test_ls_libev () = Lwt_platform.set_engine ()
+let test_ls_libev () =
+  Lwt_platform.set_engine ();
+  Lwt.return_unit
 
 (*****************************************************************************)
 (* Entry point *)
