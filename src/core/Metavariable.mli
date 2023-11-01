@@ -34,6 +34,8 @@ type mvalue =
 *)
 type bindings = (mvar * mvalue) list [@@deriving show, eq]
 
+val location_aware_equal_mvalue : mvalue -> mvalue -> bool
+
 (* return whether a string could be a metavariable name (e.g., "$FOO", but not
  * "FOO"). This mostly check for the regexp $[A-Z_][A-Z_0-9]* but
  * also handles special variables like $_GET in PHP which are actually
