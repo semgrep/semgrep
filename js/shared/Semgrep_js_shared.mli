@@ -57,3 +57,20 @@ val make_js_module :
 (** [make_js_module langs parse parse_pattern] creates a javascript module
     that can be used to parse a given language. It takes a list of languages, a parse function,
     and a parse_pattern function. *)
+
+val promise_of_lwt : (unit -> 'a Lwt.t) -> 'res Js_of_ocaml.Js.t
+(** [promise_of_lwt] makes a JS promise out of an Lwt.t, which lets us run
+    OCaml Lwt.ts on the JS runtime.
+  *)
+
+(* some printing stuff *)
+module Io : RPC_server.LSIO
+
+val console_report :
+  'a 'b.
+  Logs.src ->
+  Logs.level ->
+  over:(unit -> unit) ->
+  (unit -> 'b) ->
+  ('a, 'b) Logs.msgf ->
+  'b

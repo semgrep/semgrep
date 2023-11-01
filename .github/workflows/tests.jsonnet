@@ -11,6 +11,8 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // some jobs rely on artifacts produced by this workflow
 local core_x86 = import 'build-test-core-x86.jsonnet';
 
+local docker_repository_name = 'returntocorp/semgrep';
+
 // ----------------------------------------------------------------------------
 // Helpers
 // ----------------------------------------------------------------------------
@@ -420,7 +422,7 @@ local build_test_docker_job = {
     'docker-tags': docker_tags,
     // ??
     'artifact-name': 'image-test',
-    'repository-name': '${{ github.repository }}',
+    'repository-name': docker_repository_name,
     file: 'Dockerfile',
     // see the Dockerfile, this is the name root variant
     target: 'semgrep-cli',
@@ -444,7 +446,7 @@ local build_test_docker_nonroot_job = {
     |||,
     'docker-tags': docker_tags,
     'artifact-name': 'image-test-nonroot',
-    'repository-name': '${{ github.repository }}',
+    'repository-name': docker_repository_name,
     file: 'Dockerfile',
     // see the Dockerfile, this is the name of the nonroot variant
     target: 'nonroot',
@@ -465,7 +467,7 @@ local push_docker_job = {
   secrets: 'inherit',
   with: {
     'artifact-name': 'image-test',
-    'repository-name': '${{ github.repository }}',
+    'repository-name': docker_repository_name,
     'dry-run': false,
   },
 };
@@ -479,7 +481,7 @@ local push_docker_nonroot_job = {
   secrets: 'inherit',
   with: {
     'artifact-name': 'image-test-nonroot',
-    'repository-name': '${{ github.repository }}',
+    'repository-name': docker_repository_name,
     'dry-run': false,
   },
 };
@@ -498,7 +500,7 @@ local test_semgrep_pro_job = {
   secrets: 'inherit',
   with: {
     'artifact-name': 'image-test',
-    'repository-name': '${{ github.repository }}',
+    'repository-name': docker_repository_name,
   },
 };
 

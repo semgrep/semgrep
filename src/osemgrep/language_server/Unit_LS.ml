@@ -9,6 +9,25 @@ module In = Input_to_core_t
 (* Mocks *)
 (*****************************************************************************)
 
+let checked_command cmd =
+  match Bos.OS.Cmd.run_status cmd with
+  | Ok (`Exited 0) -> ()
+  | _ -> failwith (Common.spf "Error running cmd: %s" (Bos.Cmd.to_string cmd))
+
+let setup_git workspace =
+  Git_wrapper.init workspace;
+  checked_command
+    Bos.Cmd.(
+      v "git" % "-C" % Fpath.to_string workspace % "config" % "user.email"
+      % "baselinetest@semgrep.com");
+  checked_command
+    Bos.Cmd.(
+      v "git" % "-C" % Fpath.to_string workspace % "config" % "user.name"
+      % "Baseline Test");
+  checked_command
+    Bos.Cmd.(
+      v "git" % "-C" % Fpath.to_string workspace % "checkout" % "-B" % "main")
+
 let mock_session () =
   let capabilities = Lsp.Types.ServerCapabilities.create () in
   let session = Session.create capabilities in
@@ -82,7 +101,7 @@ let mock_workspace ?(git = false) () =
   in
   let workspace = rand_dir () in
   let workspace = Fpath.v workspace in
-  if git then Git_wrapper.init workspace |> ignore;
+  if git then setup_git workspace |> ignore;
   workspace
 
 let add_file ?(git = false) ?(dirty = false)

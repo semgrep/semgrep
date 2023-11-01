@@ -88,11 +88,18 @@ let create_info () =
 (* Constants *)
 (*****************************************************************************)
 
-(* Lots of `parent`s here because we're located in _build/default/src/tests *)
-let rule_path =
-  Fpath.(
-    (v (Sys.getcwd ()) |> parent |> parent |> parent |> parent)
-    / "cli" / "tests" / "e2e" / "targets" / "ls" / "rules.yaml")
+(* These tests are run separately from both the JS side and the regular Semgrep
+   side.
+   To ensure they can find the path properly, we just go backwards until we
+   find the directoroy named "semgrep".
+*)
+let rec backtrack path =
+  match Fpath.basename path with
+  | "semgrep" ->
+      Fpath.(path / "cli" / "tests" / "e2e" / "targets" / "ls" / "rules.yaml")
+  | _ -> backtrack (Fpath.parent path)
+
+let rule_path = backtrack (Fpath.v (Sys.getcwd ()))
 
 let default_content =
   {|
@@ -131,6 +138,14 @@ let open_and_write_default_content ?(mode = []) file =
   output_string oc default_content;
   close_out oc
 
+(* When running the JSCaml code, if we do an actual pause, the tests will
+   straight up exit, without giving any error messages or anything.
+   Further investigation seemed to show that pausing caused an issue with
+   how the promises resolve, such that the sleeping thread would stay
+   sleeping and the entire process would eventually exit.
+   So, when running in JSCaml, let's just not use pauses. *)
+let lwt_pause () = if !Common.jsoo then Lwt.return_unit else Lwt.pause ()
+
 (*****************************************************************************)
 (* Core primitives *)
 (*****************************************************************************)
@@ -139,7 +154,7 @@ let send (info : info) packet : unit Lwt.t =
   match info.server.state with
   | RPC_server.State.Stopped -> Alcotest.failf "Cannot send, server stopped"
   | _ ->
-      let%lwt () = Lwt.pause () in
+      let%lwt () = lwt_pause () in
       let () = (snd info.in_stream) (Some packet) in
       Lwt.return_unit
 
@@ -147,7 +162,7 @@ let receive (info : info) : Packet.t Lwt.t =
   match info.server.state with
   | RPC_server.State.Stopped -> Alcotest.failf "Cannot receive, server stopped"
   | _ -> (
-      let%lwt () = Lwt.pause () in
+      let%lwt () = lwt_pause () in
       let%lwt server_msg = Lwt_stream.get (fst info.out_stream) in
       match server_msg with
       | Some packet -> Lwt.return packet
@@ -221,14 +236,26 @@ let receive_request (info : info) : Request.t Lwt.t =
 let git_tmp_path () =
   Testutil_files.with_tempdir ~persist:true (fun dir ->
       let dir = Fpath.to_string dir in
-      let () = Sys.chdir dir in
-      checked_command (String.concat " " [ "git"; "init" ]);
+      (* I don't know why, but the tests will hang in OCaml if we do
+         not chdir here.
+      *)
+      if not !Common.jsoo then Sys.chdir dir;
+      checked_command (String.concat " " [ "git"; "-C"; dir; "init" ]);
       checked_command
         (String.concat " "
-           [ "git"; "config"; "user.email"; "baselinetest@semgrep.com" ]);
+           [
+             "git";
+             "-C";
+             dir;
+             "config";
+             "user.email";
+             "baselinetest@semgrep.com";
+           ]);
       checked_command
-        (String.concat " " [ "git"; "config"; "user.name"; "Baseline Test" ]);
-      checked_command (String.concat " " [ "git"; "checkout"; "-B"; "main" ]);
+        (String.concat " "
+           [ "git"; "-C"; dir; "config"; "user.name"; "Baseline Test" ]);
+      checked_command
+        (String.concat " " [ "git"; "-C"; dir; "checkout"; "-B"; "main" ]);
       dir)
 
 let assert_contains (json : Json.t) str =
@@ -251,11 +278,45 @@ let mock_files () : _ * Fpath.t list =
 
   checked_command
     (* nosem *)
-    (String.concat " " [ "git"; "remote"; "add"; "origin"; "/tmp/origin" ]);
-  checked_command (String.concat " " [ "git"; "add"; "modified.py" ]);
-  checked_command (String.concat " " [ "git"; "add"; "existing.py" ]);
+    (String.concat " "
+       [
+         "git";
+         "-C";
+         Fpath.to_string git_tmp_path;
+         "remote";
+         "add";
+         "origin";
+         (* nosem *)
+         "/tmp/origin";
+       ]);
   checked_command
-    (String.concat " " [ "git"; "commit"; "-m"; "\"initial commit\"" ]);
+    (String.concat " "
+       [
+         "git";
+         "-C";
+         Fpath.to_string git_tmp_path;
+         "add";
+         Fpath.to_string modified_file;
+       ]);
+  checked_command
+    (String.concat " "
+       [
+         "git";
+         "-C";
+         Fpath.to_string git_tmp_path;
+         "add";
+         Fpath.to_string existing_file;
+       ]);
+  checked_command
+    (String.concat " "
+       [
+         "git";
+         "-C";
+         Fpath.to_string git_tmp_path;
+         "commit";
+         "-m";
+         "\"initial commit\"";
+       ]);
 
   open_and_write_default_content ~mode:[ Open_append ] modified_file;
 
@@ -342,7 +403,7 @@ let send_initialize info ?(only_git_dirty = true) workspaceFolders =
                   `List [ `String (rule_path |> Fpath.to_string) ] );
                 ("exclude", `List []);
                 ("include", `List []);
-                ("jobs", `Int 5);
+                ("jobs", `Int 1);
                 ("maxMemory", `Int 0);
                 ("maxTargetBytes", `Int 0);
                 ("onlyGitDirty", `Bool only_git_dirty);
@@ -621,19 +682,21 @@ let check_startup info folders (files : Fpath.t list) =
 (* Tests *)
 (*****************************************************************************)
 
-let with_session (f : info -> unit Lwt.t) : unit =
+let with_session (f : info -> unit Lwt.t) : unit Lwt.t =
+  (Lwt.async_exception_hook :=
+     fun exn ->
+       let err = Printexc.to_string exn in
+       Logs.err (fun m -> m "Got exception: %s" err);
+       Alcotest.fail err);
   let info = create_info () in
-  (* shut down the server when f exits *)
-  let finalized_f =
-    Lwt.finalize (fun () -> f info) (fun () -> send_exit info)
-  in
-  Lwt.async (fun () -> LanguageServer.start info.server);
-  Lwt_platform.run finalized_f |> ignore;
-  ()
+  let server_promise = LanguageServer.start info.server in
+  let f_promise = f info in
+  Lwt.join [ f_promise; server_promise ]
 
 let test_ls_specs () =
-  let root, files = mock_files () in
   with_session (fun info ->
+      let root, files = mock_files () in
+      let%lwt () = Lwt.return_unit in
       let%lwt () = check_startup info [ root ] files in
       let%lwt () =
         files
@@ -719,12 +782,11 @@ let test_ls_specs () =
       let%lwt notif = receive_notification info in
       let%lwt () = check_diagnostics notif added [] in
 
-      send_exit info);
-  ()
+      send_exit info)
 
 let test_ls_ext () =
-  let root, files = mock_files () in
   with_session (fun info ->
+      let root, files = mock_files () in
       Testutil_files.with_chdir root (fun () ->
           let%lwt () = check_startup info [ root ] files in
 
@@ -832,10 +894,11 @@ let test_ls_ext () =
           send_exit info))
 
 let test_ls_multi () =
-  let (workspace1_root, workspace1_files), (workspace2_root, workspace2_files) =
-    mock_workspaces ()
-  in
   with_session (fun info ->
+      let ( (workspace1_root, workspace1_files),
+            (workspace2_root, workspace2_files) ) =
+        mock_workspaces ()
+      in
       let workspace_folders = [ workspace1_root; workspace2_root ] in
       let files = workspace1_files @ workspace2_files in
       let scanned_files =
@@ -883,8 +946,8 @@ let test_ls_multi () =
       send_exit info)
 
 let test_login () =
-  let root, files = mock_files () in
   with_session (fun info ->
+      let root, files = mock_files () in
       Testutil_files.with_chdir root (fun () ->
           let%lwt () = check_startup info [ root ] files in
           let%lwt () = send_initialize info [] in
@@ -899,7 +962,7 @@ let test_login () =
           in
 
           assert (Regexp_engine.unanchored_match login_url_regex url);
-          Lwt.return_unit))
+          send_exit info))
 
 let test_ls_no_folders () =
   with_session (fun info ->
@@ -907,14 +970,30 @@ let test_ls_no_folders () =
 
       send_exit info)
 
-let test_ls_libev () = Lwt_platform.set_engine ()
+let test_ls_libev () =
+  Lwt_platform.set_engine ();
+  Lwt.return_unit
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
+let promise_tests =
+  [
+    ("Test LS", test_ls_specs);
+    ("Test LS exts", test_ls_ext);
+    ("Test LS multi-workspaces", test_ls_multi);
+    ("Test Login", test_login);
+    ("Test LS with no folders", test_ls_no_folders);
+  ]
+
 let tests =
+  let prepare f () = Lwt_platform.run (f ()) in
   Testutil.pack_tests "Language Server (e2e)"
+    (promise_tests |> Common.map (fun (s, f) -> (s, prepare f)))
+
+let lwt_tests =
+  Testutil.pack_tests_lwt "Language Server (e2e)"
     [
       ("Test LS", test_ls_specs);
       ("Test LS exts", test_ls_ext);
