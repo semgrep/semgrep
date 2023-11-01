@@ -4,6 +4,9 @@ name: nightly
   workflow_dispatch:
   schedule:
   - cron: 26 9 * * *
+  push:
+    branches:
+    - ci/test-nightly
 jobs:
   brew-build:
     name: Build Semgrep via Brew from `returntocorp/semgrep:develop`

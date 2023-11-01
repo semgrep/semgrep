@@ -89,6 +89,11 @@ local notify_failure_job = {
         cron: '26 9 * * *',
       },
     ],
+    push: {
+      branches: [
+        'ci/test-nightly',
+      ],
+    }
   },
   jobs: {
     'brew-build': brew_build_job,
