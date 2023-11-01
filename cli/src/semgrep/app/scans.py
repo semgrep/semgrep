@@ -1,6 +1,7 @@
 # Handle communication of findings / errors to semgrep.app
 import json
 import os
+import sys
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime
@@ -26,6 +27,7 @@ from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
 from semgrep.app.project_config import ProjectConfig
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
+from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
@@ -48,9 +50,9 @@ class ScanCompleteResult:
 
 
 class ScanHandler:
-    def __init__(self, dry_run: bool = False, deployment_name: str = "") -> None:
+    def __init__(self, dry_run: bool = False) -> None:
         self._deployment_id: Optional[int] = None
-        self._deployment_name: str = deployment_name
+        self._deployment_name: Optional[str] = None
 
         self.local_id = str(uuid4())
         self.scan_metadata = out.ScanMetadata(
@@ -58,7 +60,7 @@ class ScanHandler:
             unique_id=out.Uuid(self.local_id),
             requested_products=[],
         )
-        self.scan_id = None
+        self.scan_id: Optional[int] = None
         self.ignore_patterns: List[str] = []
         self._policy_names: List[str] = []
         self._autofix = False
@@ -80,7 +82,7 @@ class ScanHandler:
         return self._deployment_id
 
     @property
-    def deployment_name(self) -> str:
+    def deployment_name(self) -> Optional[str]:
         """
         Separate property for easy of mocking in test
         """
@@ -223,21 +225,22 @@ class ScanHandler:
             return
 
         request = out.ScanRequest(
-            meta=out.RawJson(
-                {
-                    **project_metadata.to_json(),
-                    **project_config.to_CiConfigFromRepo().to_json(),
-                }
-            ),
+            meta=out.RawJson({}),
             scan_metadata=self.scan_metadata,
             project_metadata=project_metadata,
             project_config=project_config.to_CiConfigFromRepo(),
         ).to_json()
         logger.debug(f"Starting scan: {json.dumps(request, indent=4)}")
         response = state.app_session.post(
-            f"{state.env.semgrep_url}/api/agent/deployments/scans",
+            f"{state.env.semgrep_url}/api/cli/scans",
             json=request,
         )
+
+        if response.status_code == 401:
+            logger.info(
+                "API token not valid. Try to run `semgrep logout` and `semgrep login` again.",
+            )
+            sys.exit(INVALID_API_KEY_EXIT_CODE)
 
         if response.status_code == 404:
             raise Exception(
@@ -253,9 +256,16 @@ class ScanHandler:
                 f"API server at {state.env.semgrep_url} returned this error: {response.text}"
             )
 
-        body = response.json()
-        self.scan_id = body["scan"]["id"]
-        self._enabled_products = body["scan"].get("enabled_products") or []
+        scan_response = out.ScanResponse.from_json(response.json())
+
+        self.scan_id = scan_response.scan.id
+        self._deployment_id = scan_response.scan.deployment_id
+        self._deployment_name = scan_response.scan.deployment_name
+
+        # we can do better here, but ok for now
+        self._enabled_products = [
+            p.to_json_string() for p in scan_response.scan_config.enabled_products
+        ]
 
     def report_failure(self, exit_code: int) -> None:
         """
