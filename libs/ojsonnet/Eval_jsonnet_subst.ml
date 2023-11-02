@@ -91,10 +91,8 @@ let vobj_to_obj l asserts fields r =
   in
   O (l, Object (asserts, new_fields), r)
 
-let logger = Logging.get_logger [ __MODULE__ ]
-
 let log_call str tk =
-  logger#trace "calling %s at %s" str (Tok.stringpos_of_tok tk)
+  Logs.debug (fun m -> m "calling %s at %s" str (Tok.stringpos_of_tok tk))
 
 let int_to_cmp = function
   | -1 -> Inf

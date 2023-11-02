@@ -3,6 +3,7 @@
  (public_name ojsonnet)
  (wrapped false)
  (libraries
+   logs
    commons
    parser_jsonnet.tree_sitter
  )
