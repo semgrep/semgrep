@@ -45,7 +45,7 @@ def parse_cargo(
         lines = s.split("\n")[1:]
         dep = lines[0].split("=")[1].strip()[1:-1]
         version = lines[1].split("=")[1].strip()[1:-1]
-        if len(lines) >= 3 and lines[3].startswith("checksum"):
+        if len(lines) >= 4 and lines[3].startswith("checksum"):
             hash = {"sha256": [lines[3].split("=")[1].strip()[1:-1]]}
         else:
             hash = {}
