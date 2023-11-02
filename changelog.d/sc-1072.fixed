@@ -1,0 +1,1 @@
+Fixed out of bounds list access error in Cargo.lock parser
