@@ -57,7 +57,7 @@ local check_compile_semgrep_pro_job = {
       // in post-cleanup if this directory does not exist anymore.
       run: |||
         cd ..
-        gh repo clone returntocorp/semgrep-proprietary
+        gh repo clone semgrep/semgrep-proprietary
         cd semgrep-proprietary
         git submodule update --init
       |||,

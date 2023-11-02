@@ -633,7 +633,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config
 (* File targeting and rule filtering *)
 (*****************************************************************************)
 
-let xxxtarget_of_file ~parsing_cache_dir (xlang : Xlang.t) (file : Fpath.t) :
+let xtarget_of_file ~parsing_cache_dir (xlang : Xlang.t) (file : Fpath.t) :
     Xtarget.t =
   let lazy_ast_and_errors =
     lazy
@@ -765,7 +765,7 @@ let extracted_targets_of_config (config : Core_scan_config.t)
               passed explicitly? *)
            let file = t.path in
            let xtarget =
-             xxxtarget_of_file ~parsing_cache_dir:config.parsing_cache_dir
+             xtarget_of_file ~parsing_cache_dir:config.parsing_cache_dir
                t.analyzer (Fpath.v file)
            in
            let extracted_targets =
@@ -896,7 +896,7 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
            (* TODO: can we skip all of this if there are no applicable
               rules? In particular, can we skip update_cli_progress? *)
            let xtarget =
-             xxxtarget_of_file ~parsing_cache_dir:config.parsing_cache_dir
+             xtarget_of_file ~parsing_cache_dir:config.parsing_cache_dir
                analyzer file
            in
            let default_match_hook str match_ =
