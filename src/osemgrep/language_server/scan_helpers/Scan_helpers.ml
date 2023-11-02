@@ -43,6 +43,7 @@ let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
   let res =
     let targets = Option.value ~default:(Session.targets session) targets in
     let runner_conf = Session.runner_conf session in
+    (* This is currently just ripped from Scan_subcommand. *)
     let scan_func =
       if session.user_settings.pro_intrafile then
         match !Scan_subcommand.hook_pro_scan_func_for_osemgrep with
@@ -56,6 +57,11 @@ let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
         | Some pro_scan_func ->
             (* THINK: files or folders? *)
             let roots = targets in
+            (* For now, we're going to just hard-code it at a whole scan, and
+               using the intrafile pro engine.
+               Interfile would likely be too intensive (and require us to target
+               folders, not the affected files)
+            *)
             let diff_config = Differential_scan_config.WholeScan in
             pro_scan_func roots ~diff_config
               (Engine_type.PRO Engine_type.Intrafile)
