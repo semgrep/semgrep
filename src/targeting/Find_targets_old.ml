@@ -246,7 +246,8 @@ let get_targets conf scanning_roots =
          in
          let ign =
            Semgrepignore.create ?include_patterns:conf.include_
-             ~cli_patterns:conf.exclude ~exclusion_mechanism ~project_root ()
+             ~cli_patterns:conf.exclude ~builtin_semgrepignore:Empty
+             ~exclusion_mechanism ~project_root ()
          in
          let paths, skipped_paths1 =
            paths
