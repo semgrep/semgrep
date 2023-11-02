@@ -44,7 +44,22 @@ let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
     let targets = Option.value ~default:(Session.targets session) targets in
     let runner_conf = Session.runner_conf session in
     let scan_func =
-      Core_runner.mk_scan_func_for_osemgrep Core_scan.scan_with_exn_handler
+      if true then
+        match !Scan_subcommand.hook_pro_scan_func_for_osemgrep with
+        | None ->
+            (* TODO: improve this error message depending on what the
+             * instructions should be *)
+            failwith
+              "You have requested running semgrep with a setting that requires \
+               the pro engine, but do not have the pro engine. You may need to \
+               acquire a different binary."
+        | Some pro_scan_func ->
+            (* THINK: files or folders? *)
+            let roots = targets in
+            let diff_config = Differential_scan_config.WholeScan in
+            pro_scan_func roots ~diff_config
+              (Engine_type.PRO Engine_type.Intrafile)
+      else Core_runner.mk_scan_func_for_osemgrep Core_scan.scan_with_exn_handler
     in
     scan_func ~respect_git_ignore:true ~file_match_results_hook:None runner_conf
       rules [] targets
