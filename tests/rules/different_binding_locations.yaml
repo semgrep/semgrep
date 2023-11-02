@@ -1,0 +1,12 @@
+rules:
+  - id: different-binding-locations
+    message: |
+      We should know the two different choices for
+      $A are different, and produce different matches!
+    languages:
+      - python
+    severity: WARNING
+    patterns:
+      - pattern: |
+          $FUNC(..., $A, ...)
+      - focus-metavariable: $A

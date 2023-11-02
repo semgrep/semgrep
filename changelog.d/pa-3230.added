@@ -1,0 +1,14 @@
+Matching: Matches with the same range but bindings in different locations
+will now no longer deduplicate.
+
+For instance, the pattern `$FUNC(..., $A, ...)` would produce only
+one match on the target file:
+```
+foo(true, true)
+```
+because you would have two matches to the range of the call, and both
+bindings of `$A` would be to `true`.
+
+Now, the deduplication logic sees that the bindings of `$A` are in
+different places, and thus should not be considered the same, and
+produce two matches.
