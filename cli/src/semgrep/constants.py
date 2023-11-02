@@ -3,6 +3,7 @@ from enum import auto
 from enum import Enum
 
 RULES_KEY = "rules"
+MISSED_KEY = "missed"  # The number of Pro rules missed out on
 ID_KEY = "id"
 CLI_RULE_ID = "-"
 PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep"
