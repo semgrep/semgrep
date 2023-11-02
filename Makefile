@@ -243,7 +243,7 @@ install-deps-for-semgrep-core: semgrep.opam
 	&& ./configure \
 	&& ./scripts/install-tree-sitter-lib
 	# Install OCaml dependencies (globally) from *.opam files.
-	LIBRARY_PATH="/opt/homebrew/lib" opam install -y --deps-only ./ ./libs/ocaml-tree-sitter-core
+	opam install -y --deps-only ./ ./libs/ocaml-tree-sitter-core
 
 # This will fail if semgrep.opam isn't up-to-date (in git),
 # and dune isn't installed yet. You can always install dune with
@@ -347,7 +347,7 @@ homebrew-setup:
 	# See details at https://github.com/Homebrew/homebrew-core/pull/82693.
 	# This workaround may no longer be necessary.
 	opam install -y --deps-only --no-depexts ./libs/ocaml-tree-sitter-core
-	opam install -y --deps-only --no-depexts ./
+	LIBRARY_PATH="/opt/homebrew/lib" opam install -y --deps-only --no-depexts ./
 
 # -------------------------------------------------
 # Arch Linux
