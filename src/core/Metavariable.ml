@@ -164,8 +164,8 @@ let location_aware_equal_mvalue mval1 mval2 =
         AST_generic_helpers.range_of_any_opt any2 )
     in
     match (range1, range2) with
-    | Some range1, Some range2 ->
-        [%eq: Tok.location * Tok.location] range1 range2
+    | Some (l1, r1), Some (l2, r2) ->
+        Tok.equal_location l1 l2 && Tok.equal_location r1 r2
     | _ -> true
   in
   ranges_equal && equal_mvalue mval1 mval2

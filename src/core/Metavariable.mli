@@ -34,6 +34,17 @@ type mvalue =
 *)
 type bindings = (mvar * mvalue) list [@@deriving show, eq]
 
+(* Mvalue equality reduces to equality on ASTs, which ignores the tokens
+   and instead compares the structure. It may optionally include the ident
+   info IDs, but the point is that it's agnostic to the positions of the
+   mvalues.
+   Sometimes we don't want this behavior. For instance, if we have two
+   matches which have $A bound to "true", but in different places in the
+   source, we might want to consider those matches different.
+   This equality function simply first discriminates on location of the
+   mvalues, and then checks for their literal equality, to make that
+   possible.
+*)
 val location_aware_equal_mvalue : mvalue -> mvalue -> bool
 
 (* return whether a string could be a metavariable name (e.g., "$FOO", but not
