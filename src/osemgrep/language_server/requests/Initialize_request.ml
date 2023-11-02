@@ -43,11 +43,15 @@ let initialize_server server
       initializationOptions |> member "doHover" |> to_bool_option
       |> Option.value ~default:false
     in
+    let pro_intrafile =
+      scan_options |> member "pro_intrafile" |> to_bool_option
+      |> Option.value ~default:false
+    in
     let res =
       scan_options |> User_settings.t_of_yojson
       |> Result.value ~default:server.session.user_settings
     in
-    { res with do_hover }
+    { res with do_hover; pro_intrafile }
   in
   let workspace_folders =
     match (workspaceFolders, rootUri) with

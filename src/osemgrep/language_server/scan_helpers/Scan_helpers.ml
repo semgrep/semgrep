@@ -44,7 +44,7 @@ let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
     let targets = Option.value ~default:(Session.targets session) targets in
     let runner_conf = Session.runner_conf session in
     let scan_func =
-      if true then
+      if session.user_settings.pro_intrafile then
         match !Scan_subcommand.hook_pro_scan_func_for_osemgrep with
         | None ->
             (* TODO: improve this error message depending on what the
