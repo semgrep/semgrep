@@ -1,12 +1,47 @@
+(* Sophia Roshal
+ *
+ * Copyright (C) 2023 Semgrep Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * LICENSE for more details.
+ *)
+
 open Core_jsonnet
 open Common
 module V = Value_jsonnet
 module A = AST_jsonnet
 module J = JSON
 
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Jsonnet evaluator following the substitution model from the spec.
+ *
+ * This is far slower than Eval_jsonnet.ml, but it is also more correct
+ * especially for programs using self and super.
+ *
+ * TODO: lots of duplication with Eval_jsonnet. It would be great to
+ * factorize (need to use a functor?)
+ *)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
 exception Error of string * Tok.t
 
 type cmp = Inf | Eq | Sup
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
 
 (*Creates std so that we can add it to the environment when we switch back to
   * environment model for handling standard library functions
@@ -24,7 +59,8 @@ let fk = Tok.unsafe_fake_tok ""
 let fake_self = IdSpecial (Self, Tok.unsafe_fake_tok "self")
 let fake_super = IdSpecial (Super, Tok.unsafe_fake_tok "super")
 
-let is_imp_std s =
+(* TODO: unused? *)
+let _is_imp_std s =
   s = "type" || s = "primitiveEquals" || s = "length" || s = "makeArray"
   || s = "filter" || s = "objectHasEx"
 
@@ -381,6 +417,16 @@ let rec eval_expr expr =
             | _else_ ->
                 error tkf (spf "Out of bound for array index: %s" (sv index))
           else error tkf (spf "Not an integer: %s" (sv index))
+      | Primitive (Str (s, tk)), Primitive (Double (f, tkf)) ->
+          let i = int_of_float f in
+          if i >= 0 && i < String.length s then
+            (* TODO: which token to use for good tracing in case of error? *)
+            let s' = String.make 1 (String.get s i) in
+            Primitive (Str (s', tk))
+          else
+            error tkf
+              (spf "string bounds error: %d not within [0, %d)" i
+                 (String.length s))
       (* Field access! A tricky operation. *)
       | V.Object (_l, (_assertsTODO, fields), _r), Primitive (Str (fld, tk))
         -> (
@@ -425,7 +471,6 @@ let rec eval_expr expr =
                               Tok.unsafe_fake_tok "}" ))
                   in
                   eval_expr new_e))
-      (* TODO? support ArrayAccess for Strings? *)
       | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv index)))
   | Call (e0, args) -> eval_call e0 args
   | UnaryOp ((op, tk), e) -> (
@@ -930,6 +975,11 @@ and evaluate_lazy_value_ (v : V.lazy_value) =
   | Val v -> v
   | Unevaluated e -> eval_expr e
 
+(*****************************************************************************)
+(* Manifest *)
+(*****************************************************************************)
+
+(* note that this is mutually recursive with eval_expr *)
 and manifest_value (v : V.value_) : JSON.t =
   match v with
   | Primitive x -> (

@@ -20,14 +20,17 @@ module A = AST_jsonnet
 module J = JSON
 module V = Value_jsonnet
 
-let logger = Logging.get_logger [ __MODULE__ ]
-
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
 (* Core_jsonnet to Value_jsonnet Jsonnet evaluator.
  *
  * See https://jsonnet.org/ref/spec.html#semantics
+ *
+ * This is using an environment-style evaluation and closures instead
+ * of lambda substitutions like in the spec.
+ * See Eval_jsonnet_subst for the substitution-based evaluator
+ * which is more correct (but far slower).
  *)
 
 (*****************************************************************************)
@@ -70,9 +73,10 @@ let string_of_local_id = function
   | V.LId s -> s
 
 let log_call (env : V.env) str tk =
-  logger#trace "calling %s> %s at %s"
-    (Common2.repeat "-" env.depth |> Common.join "")
-    str (Tok.stringpos_of_tok tk)
+  Logs.debug (fun m ->
+      m "calling %s> %s at %s"
+        (Common2.repeat "-" env.depth |> Common.join "")
+        str (Tok.stringpos_of_tok tk))
 
 (*****************************************************************************)
 (* Builtins *)
@@ -184,6 +188,16 @@ and eval_expr (env : V.env) (v : expr) : V.value_ =
             | _else_ ->
                 error tkf (spf "Out of bound for array index: %s" (sv index))
           else error tkf (spf "Not an integer: %s" (sv index))
+      | Primitive (Str (s, tk)), Primitive (Double (f, tkf)) ->
+          let i = int_of_float f in
+          if i >= 0 && i < String.length s then
+            (* TODO: which token to use for good tracing in case of error? *)
+            let s' = String.make 1 (String.get s i) in
+            Primitive (Str (s', tk))
+          else
+            error tkf
+              (spf "string bounds error: %d not within [0, %d)" i
+                 (String.length s))
       (* Field access! A tricky operation. *)
       | ( (V.Object (_l, (_assertsTODO, fields), _r) as obj),
           Primitive (Str (fld, tk)) ) -> (
@@ -223,7 +237,6 @@ and eval_expr (env : V.env) (v : expr) : V.value_ =
                     env.locals |> Map_.add V.LSelf { V.value = V.Val obj; env }
                   in
                   eval_expr { env with locals } e))
-      (* TODO? support ArrayAccess for Strings? *)
       | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv index)))
   | Call (e0, args) -> eval_call env e0 args
   | UnaryOp ((op, tk), e) -> (
