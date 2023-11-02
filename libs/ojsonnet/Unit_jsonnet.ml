@@ -32,7 +32,7 @@ let test_maker_err dir =
                let _ = Manifest_jsonnet.manifest_value value_ in
                Alcotest.(fail "this should have raised an error")
              with
-             | Eval_jsonnet.Error _ ->
+             | Eval_jsonnet_common.Error _ ->
                  Alcotest.(check bool) "this raised an error" true true ))
 
 let test_maker_pass_fail dir pass_or_fail =
@@ -65,7 +65,7 @@ let test_maker_pass_fail dir pass_or_fail =
 
                Alcotest.(check bool) result pass_or_fail (Y.equal json correct)
              with
-             | Eval_jsonnet.Error _ ->
+             | Eval_jsonnet_common.Error _ ->
                  Alcotest.(check bool)
                    "this threw an error" (not pass_or_fail) true ))
 

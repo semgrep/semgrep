@@ -51,7 +51,7 @@ let test_maker dirs pass_or_fail =
                       Alcotest.(check bool)
                         result pass_or_fail (Y.equal json correct)
                     with
-                    | Eval_jsonnet_subst.Error _ ->
+                    | Eval_jsonnet_common.Error _ ->
                         Alcotest.(check bool)
                           "this threw an error" (not pass_or_fail) true )))
   |> Common.flatten

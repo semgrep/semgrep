@@ -19,6 +19,7 @@ open Core_jsonnet
 module A = AST_jsonnet
 module J = JSON
 module V = Value_jsonnet
+open Eval_jsonnet_common
 
 (*****************************************************************************)
 (* Prelude *)
@@ -34,82 +35,17 @@ module V = Value_jsonnet
  *)
 
 (*****************************************************************************)
-(* Types and constants *)
-(*****************************************************************************)
-
-exception Error of string * Tok.t
-
-(* -1, 0, 1 *)
-type cmp = Inf | Eq | Sup
-
-(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-let error tk s =
-  (* TODO? if Parse_info.is_fake tk ... *)
-  raise (Error (s, tk))
-
-let fk = Tok.unsafe_fake_tok ""
-
-let sv e =
-  let s = V.show_value_ e in
-  if String.length s > 100 then Str.first_chars s 100 ^ "..." else s
 
 let eval_bracket ofa env (v1, v2, v3) =
   let v2 = ofa env v2 in
   (v1, v2, v3)
 
-let int_to_cmp = function
-  | -1 -> Inf
-  | 0 -> Eq
-  | 1 -> Sup
-  (* all the OCaml Xxx.compare should return only -1, 0, or 1 *)
-  | _else_ -> assert false
-
 let string_of_local_id = function
   | V.LSelf -> "self"
   | V.LSuper -> "super"
   | V.LId s -> s
-
-let log_call (env : V.env) str tk =
-  Logs.debug (fun m ->
-      m "calling %s> %s at %s"
-        (Common2.repeat "-" env.depth |> Common.join "")
-        str (Tok.stringpos_of_tok tk))
-
-(*****************************************************************************)
-(* Builtins *)
-(*****************************************************************************)
-(* alt: could move to Value_jsonnet.ml *)
-let std_type _env (v : V.value_) : string =
-  match v with
-  | V.Primitive (Null _) -> "null"
-  | V.Primitive (Bool _) -> "boolean"
-  | V.Primitive (Double _) -> "number"
-  | V.Primitive (Str _) -> "string"
-  | V.Object _ -> "object"
-  | V.Array _ -> "array"
-  | V.Lambda _ -> "function"
-
-let std_primivite_equals _env (v : V.value_) (v' : V.value_) : bool =
-  match (v, v') with
-  | Primitive p, Primitive p' -> (
-      match (p, p') with
-      (* alt: use deriving and Primitive.eq *)
-      | Null _, Null _ -> true
-      | Bool (b, _), Bool (b', _) -> b =:= b'
-      | Str (s, _), Str (s', _) -> s = s'
-      | Double (f, _), Double (f', _) -> f =*= f'
-      | Null _, _
-      | Bool _, _
-      | Str _, _
-      | Double _, _ ->
-          false)
-  (* Should we raise an exn if one of the value is not a primitive?
-   * No, the spec seems to not restrict what v and v' can be.
-   *)
-  | _else_ -> false
 
 let rec lookup (env : V.env) tk local_id =
   let entry =
@@ -276,7 +212,7 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
   | "type", [ Arg e ] ->
       log_call env ("std." ^ method_str) l;
       let v = eval_expr env e in
-      let s = std_type env v in
+      let s = std_type v in
       Primitive (Str (s, l))
   (* this method is called in std.jsonnet equals()::, and calls to
    * this equals() are generated in Desugar_jsonnet when
@@ -290,7 +226,7 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
       log_call env ("std." ^ method_str) l;
       let v = eval_expr env e in
       let v' = eval_expr env e' in
-      let b = std_primivite_equals env v v' in
+      let b = std_primivite_equals v v' in
       Primitive (Bool (b, l))
   | "primitiveEquals", _else_ ->
       error tk

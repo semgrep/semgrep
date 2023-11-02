@@ -12,9 +12,9 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
-open Core_jsonnet
 open Common
+open Core_jsonnet
+open Eval_jsonnet_common
 module V = Value_jsonnet
 module A = AST_jsonnet
 module J = JSON
@@ -32,15 +32,7 @@ module J = JSON
  *)
 
 (*****************************************************************************)
-(* Types *)
-(*****************************************************************************)
-
-exception Error of string * Tok.t
-
-type cmp = Inf | Eq | Sup
-
-(*****************************************************************************)
-(* Helpers *)
+(* Standard library *)
 (*****************************************************************************)
 
 (*Creates std so that we can add it to the environment when we switch back to
@@ -48,14 +40,22 @@ type cmp = Inf | Eq | Sup
 *)
 let pre_std = lazy (Std_jsonnet.get_std_jsonnet ())
 
-(* This is an arbitrary path, used as a placeholder, since we aren't desugaring from a file *)
+(* This is an arbitrary path, used as a placeholder, since we aren't
+ * desugaring from a file *)
 let path =
   match Fpath.of_string "../" with
   | Ok p -> p
   | Error _ -> failwith ""
 
 let std = lazy (Desugar_jsonnet.desugar_program path Lazy.(force pre_std))
-let fk = Tok.unsafe_fake_tok ""
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let log_call str tk =
+  Logs.debug (fun m -> m "calling %s at %s" str (Tok.stringpos_of_tok tk))
+
 let fake_self = IdSpecial (Self, Tok.unsafe_fake_tok "self")
 let fake_super = IdSpecial (Super, Tok.unsafe_fake_tok "super")
 
@@ -69,39 +69,6 @@ let freshvar =
   fun () ->
     incr store;
     ("?tmp" ^ string_of_int !store, fk)
-
-let std_type (v : V.value_) : string =
-  match v with
-  | V.Primitive (Null _) -> "null"
-  | V.Primitive (Bool _) -> "boolean"
-  | V.Primitive (Double _) -> "number"
-  | V.Primitive (Str _) -> "string"
-  | V.Object _ -> "object"
-  | V.Array _ -> "array"
-  | V.Lambda _ -> "function"
-
-let std_primivite_equals (v : V.value_) (v' : V.value_) : bool =
-  match (v, v') with
-  | Primitive p, Primitive p' -> (
-      match (p, p') with
-      (* alt: use deriving and Primitive.eq *)
-      | Null _, Null _ -> true
-      | Bool (b, _), Bool (b', _) -> b =:= b'
-      | Str (s, _), Str (s', _) -> s = s'
-      | Double (f, _), Double (f', _) -> f =*= f'
-      | Null _, _
-      | Bool _, _
-      | Str _, _
-      | Double _, _ ->
-          false)
-  (* Should we raise an exn if one of the value is not a primitive?
-   * No, the spec seems to not restrict what v and v' can be.
-   *)
-  | _else_ -> false
-
-let error tk s =
-  (* TODO? if Parse_info.is_fake tk ... *)
-  raise (Error (s, tk))
 
 (* Converts field names that have been evaluated into expressions *)
 let vfld_name_to_fld_name fld_name =
@@ -127,20 +94,6 @@ let vobj_to_obj l asserts fields r =
   in
   O (l, Object (asserts, new_fields), r)
 
-let log_call str tk =
-  Logs.debug (fun m -> m "calling %s at %s" str (Tok.stringpos_of_tok tk))
-
-let int_to_cmp = function
-  | -1 -> Inf
-  | 0 -> Eq
-  | 1 -> Sup
-  (* all the OCaml Xxx.compare should return only -1, 0, or 1 *)
-  | _else_ -> assert false
-
-let sv e =
-  let s = V.show_value_ e in
-  if String.length s > 900 then Str.first_chars s 900 ^ "..." else s
-
 let rec bind_list_contains binds id =
   match binds with
   | B ((name, _), _, _) :: t ->
@@ -156,6 +109,10 @@ let rec parameter_list_contains parameters id =
 let eval_bracket ofa (v1, v2, v3) =
   let v2 = ofa v2 in
   (v1, v2, v3)
+
+(*****************************************************************************)
+(* Subst *)
+(*****************************************************************************)
 
 (* This implements substitution for variables *)
 let rec substitute id sub expr =
@@ -358,7 +315,9 @@ let rec substitute_kw kw sub expr =
   | Error (tk, e) -> Error (tk, substitute_kw kw sub e)
   | ExprTodo ((_s, _tk), _ast_expr) -> ExprTodo ((_s, _tk), _ast_expr)
 
-(*TODO*)
+(*****************************************************************************)
+(* eval_expr *)
+(*****************************************************************************)
 
 let rec eval_expr expr =
   match expr with
@@ -602,40 +561,6 @@ and eval_binary_op el (op, tk) er =
             (spf "binary operator wrong operands: %s %s %s" (sv v1)
                (Tok.content_of_tok tk) (sv v2)))
 
-and eval_std_cmp tk (el : expr) (er : expr) : cmp =
-  let rec eval_std_cmp_value_ (v_el : V.value_) (v_er : V.value_) : cmp =
-    match (v_el, v_er) with
-    | V.Array (_, [||], _), V.Array (_, [||], _) -> Eq
-    | V.Array (_, [||], _), V.Array (_, _, _) -> Inf
-    | V.Array (_, _, _), V.Array (_, [||], _) -> Sup
-    | V.Array (al, ax, ar), V.Array (bl, bx, br) -> (
-        let a0 = evaluate_lazy_value_ ax.(0) in
-
-        let b0 = evaluate_lazy_value_ bx.(0) in
-
-        match eval_std_cmp_value_ a0 b0 with
-        | (Inf | Sup) as r -> r
-        | Eq ->
-            let a_sub =
-              V.Array (al, Array.sub ax 1 (Array.length ax - 1), ar)
-            in
-            let b_sub =
-              V.Array (bl, Array.sub bx 1 (Array.length bx - 1), br)
-            in
-            eval_std_cmp_value_ a_sub b_sub)
-    | Primitive (Double (fl, _)), Primitive (Double (fr, _)) ->
-        Float.compare fl fr |> int_to_cmp
-    | Primitive (Str (strl, _)), Primitive (Str (strr, _)) ->
-        (* TODO? or use unicode? *)
-        String.compare strl strr |> int_to_cmp
-        (* note that it does not make sense to compare (<, <=, >=, >) 2 booleans
-         * or 2 nulls. They are not ordonnable
-         *)
-    | _else_ ->
-        error tk (spf "comparing uncomparable: %s vs %s" (sv v_el) (sv v_er))
-  in
-  eval_std_cmp_value_ (eval_expr el) (eval_expr er)
-
 and eval_call e0 (largs, args, _rargs) =
   (*
    * Check if this is a standard library call. If it is, call the environment
@@ -650,7 +575,11 @@ and eval_call e0 (largs, args, _rargs) =
         let local_wrap =
           Local (fk, [ B (("std", fk), fk, Lazy.force std) ], fk, e0)
         in
-        Eval_jsonnet.eval_program local_wrap
+        (* !!! Switch to Eval_jsonnet !!! *)
+        Logs.debug (fun m -> m "switching to Eval_jsonnet!");
+        let f = Eval_jsonnet.eval_program local_wrap in
+        Logs.debug (fun m -> m "switching back to Eval_jsonnet_subst!");
+        f
     | _ -> eval_expr e0
   in
   match eval_func with
@@ -690,6 +619,44 @@ and eval_call e0 (largs, args, _rargs) =
       in
       eval_expr (Local (lparams, binds, rparams, eb))
   | v -> error largs (spf "not a function: %s" (sv v))
+
+(* -------------------------------------- *)
+(* Std builtins *)
+(* -------------------------------------- *)
+
+and eval_std_cmp tk (el : expr) (er : expr) : cmp =
+  let rec eval_std_cmp_value_ (v_el : V.value_) (v_er : V.value_) : cmp =
+    match (v_el, v_er) with
+    | V.Array (_, [||], _), V.Array (_, [||], _) -> Eq
+    | V.Array (_, [||], _), V.Array (_, _, _) -> Inf
+    | V.Array (_, _, _), V.Array (_, [||], _) -> Sup
+    | V.Array (al, ax, ar), V.Array (bl, bx, br) -> (
+        let a0 = evaluate_lazy_value_ ax.(0) in
+
+        let b0 = evaluate_lazy_value_ bx.(0) in
+
+        match eval_std_cmp_value_ a0 b0 with
+        | (Inf | Sup) as r -> r
+        | Eq ->
+            let a_sub =
+              V.Array (al, Array.sub ax 1 (Array.length ax - 1), ar)
+            in
+            let b_sub =
+              V.Array (bl, Array.sub bx 1 (Array.length bx - 1), br)
+            in
+            eval_std_cmp_value_ a_sub b_sub)
+    | Primitive (Double (fl, _)), Primitive (Double (fr, _)) ->
+        Float.compare fl fr |> int_to_cmp
+    | Primitive (Str (strl, _)), Primitive (Str (strr, _)) ->
+        (* TODO? or use unicode? *)
+        String.compare strl strr |> int_to_cmp
+        (* note that it does not make sense to compare (<, <=, >=, >) 2 booleans
+         * or 2 nulls. They are not ordonnable
+         *)
+    | _else_ ->
+        error tk (spf "comparing uncomparable: %s vs %s" (sv v_el) (sv v_er))
+  in
+  eval_std_cmp_value_ (eval_expr el) (eval_expr er)
 
 and eval_std_method e0 (method_str, tk) (l, args, r) =
   match (method_str, args) with
