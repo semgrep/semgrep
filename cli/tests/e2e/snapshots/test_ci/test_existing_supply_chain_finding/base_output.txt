@@ -17,7 +17,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
        supply-chain1
           found a dependency
 
-           17┆ [[package]]
            18┆ name = "python-dateutil"
 
 

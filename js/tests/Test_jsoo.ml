@@ -55,7 +55,10 @@ let test_filter ~name ~index =
   then `Skip
   else `Run
 
+(* Stolen from Logs' logs_browser.ml *)
 let _ =
+  Logs.set_level (Some Logs.Debug);
+  Logs.set_reporter { Logs.report = Semgrep_js_shared.console_report };
   Js.export_all
     (object%js
        method init = Semgrep_js_shared.init_jsoo
@@ -70,9 +73,15 @@ let _ =
            if filter <> "" then Array.append argv [| "-e"; filter |] else argv
          in
          let tests =
-           [ Unit_parsing.tests (); Unit_engine.tests (); Unit_entropy.tests ]
+           [
+             Unit_parsing.tests ();
+             Unit_engine.tests ();
+             Unit_entropy.tests;
+             Unit_LS.tests;
+           ]
            |> List.flatten
          in
+         let lwt_tests = [ Test_LS_e2e.lwt_tests ] |> List.flatten in
          let tests =
            Common.map
              (fun (name, f) ->
@@ -85,10 +94,40 @@ let _ =
                (name, f))
              tests
          in
+         let lwt_tests =
+           Common.map
+             (fun (name, f) ->
+               let f () =
+                 Semgrep_js_shared.wrap_with_js_error
+                   ~hook:
+                     (Some (fun () -> Firebug.console##log (Js.string name)))
+                   f
+               in
+               (name, f))
+             lwt_tests
+         in
          let run () =
            Alcotest.run "semgrep-js"
              (Testutil.to_alcotest tests)
              ~and_exit:false ~argv ~filter:test_filter
          in
-         Semgrep_js_shared.wrap_with_js_error run
+         let run_lwt () : unit Lwt.t =
+           Alcotest_lwt.run "semgrep-js"
+             (Testutil.to_alcotest_lwt lwt_tests)
+             ~and_exit:false ~argv ~filter:test_filter
+         in
+         (* Some gymnastics are needed here because we need to
+            produce a top level promise, in order to properly transform the
+            lwt promise into a Javascript promise, and run it on the Node.js
+            runtime.
+            So we must use Alcotest_lwt to turn our test running into a
+            promise.*)
+         Semgrep_js_shared.promise_of_lwt
+           (Semgrep_js_shared.wrap_with_js_error (fun () () ->
+                (* I don't know why, but on my (Brandon's) machine, the
+                   e2e tests fail unless they are run in this order.
+                *)
+                let%lwt () = run_lwt () in
+                run ();
+                Lwt.return_unit))
     end)

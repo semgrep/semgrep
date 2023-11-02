@@ -409,6 +409,7 @@ For more information see https://semgrep.dev
     ; unit testing
     alcotest
     alcotest-js
+    alcotest-lwt
     ; text and terminal formating
     fmt
     ocolor
@@ -453,7 +454,6 @@ For more information see https://semgrep.dev
     ; concurrency
     lwt
     lwt_ppx
-    conf-libev ; for lwt, to get better FD perf
     ; jsoo
     (js_of_ocaml (= 5.4.0))
     (js_of_ocaml-compiler (= 5.4.0))

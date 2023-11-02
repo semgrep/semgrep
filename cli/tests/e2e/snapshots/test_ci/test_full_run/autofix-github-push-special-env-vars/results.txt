@@ -70,7 +70,6 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_ACTOR="some_test_username" GITHUB_API_URL
        supply-chain1
           found a dependency
 
-            1┆ [[package]]
             2┆ name = "badlib"
 
 

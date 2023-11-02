@@ -1916,6 +1916,23 @@ let check_version_compatibility rule_id ~min_version ~max_version =
       if not (Version_info.compare Version_info.version maxi <= 0) then
         incompatible_version ?max_version:(Some maxi) rule_id tok
 
+(* TODO: Unify how we differentiate which rules correspond to which
+   products. This basically just copies the logic of
+   semgrep/cli/src/semgrep/rule.py::Rule.product *)
+let parse_product rd (metadata : J.t option) : Semgrep_output_v1_t.product =
+  match
+    take_opt_no_env rd (fun _ _ -> ()) "r2c-internal-project-depends-on"
+  with
+  | Some _ -> `SCA
+  | None -> (
+      match metadata with
+      | Some metadata -> (
+          match J.member "product" metadata with
+          | Some (J.String "secrets") -> `Secrets
+          (* TODO: Error if this isn't well formed...*)
+          | _ -> `SAST)
+      | _ -> `SAST)
+
 let parse_one_rule ~rewrite_rule_ids (t : G.tok) (i : int) (rule : G.expr) :
     Rule.t =
   let rd = yaml_to_dict_no_env ("rules", t) rule in
@@ -1956,6 +1973,8 @@ let parse_one_rule ~rewrite_rule_ids (t : G.tok) (i : int) (rule : G.expr) :
   in
   let mode_opt = take_opt rd env parse_string_wrap "mode" in
   let mode = parse_mode env mode_opt rd in
+  let metadata_opt = take_opt_no_env rd (generic_to_json rule_id) "metadata" in
+  let product = parse_product rd metadata_opt in
   let message, severity =
     match mode with
     | `Extract _ -> ("", ("INFO", Tok.unsafe_fake_tok ""))
@@ -1963,7 +1982,6 @@ let parse_one_rule ~rewrite_rule_ids (t : G.tok) (i : int) (rule : G.expr) :
         ( take rd env parse_string "message",
           take rd env parse_string_wrap "severity" )
   in
-  let metadata_opt = take_opt_no_env rd (generic_to_json rule_id) "metadata" in
   let fix_opt = take_opt rd env parse_string "fix" in
   let fix_regex_opt = take_opt rd env parse_fix_regex "fix-regex" in
   let paths_opt = take_opt rd env parse_paths "paths" in
@@ -1979,6 +1997,7 @@ let parse_one_rule ~rewrite_rule_ids (t : G.tok) (i : int) (rule : G.expr) :
     target_analyzer;
     severity = parse_severity ~id:env.id severity;
     mode;
+    product;
     (* optional fields *)
     metadata = metadata_opt;
     fix = fix_opt;

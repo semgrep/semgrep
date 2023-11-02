@@ -1,0 +1,18 @@
+; What is this folder for? We may have some common functionalities that we
+; would like to share among purely the Node-specific Javascript code. For
+; instance, our `unix.js` is something which should not be included into all
+; of the JSCaml code (like the parsers), but just the test code and actual
+; LSP code.
+; To make this distinction apparent, we have `shared`, which is for things
+; universal to all of the JSCaml code, and `node_shared`, for only things
+; which should be distributed via Node.js.
+(library
+ (public_name semgrep.semgrep_node_js_shared)
+ (name semgrep_node_js_shared)
+ (wrapped false)
+ (js_of_ocaml
+  (javascript_files
+    unix.js
+ ))
+ (preprocess
+  (pps js_of_ocaml-ppx lwt_ppx)))

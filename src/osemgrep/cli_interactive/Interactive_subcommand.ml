@@ -509,6 +509,7 @@ let mk_fake_rule xlang formula =
     fix = None;
     fix_regexp = None;
     paths = None;
+    product = `SAST;
     metadata = None;
     validators = None;
   }

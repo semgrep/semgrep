@@ -44,7 +44,6 @@ CI="true" CIRCLECI="true" CIRCLE_PROJECT_USERNAME="project_name" CIRCLE_PROJECT_
        supply-chain1
           found a dependency
 
-            1┆ [[package]]
             2┆ name = "badlib"
 
 

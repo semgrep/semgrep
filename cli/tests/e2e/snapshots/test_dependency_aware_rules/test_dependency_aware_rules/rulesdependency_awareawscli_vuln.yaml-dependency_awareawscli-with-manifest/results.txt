@@ -20,14 +20,14 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "check_id": "rules.dependency_aware.unconditional-depends-on-only",
       "end": {
         "col": 0,
-        "line": 21,
+        "line": 20,
         "offset": 0
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "    \"awscli\": {\n      \"hashes\": [",
+        "lines": "    \"awscli\": {",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 2",
         "metadata": {},
         "metavars": {},
@@ -70,14 +70,14 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "check_id": "rules.dependency_aware.vulnerable-awscli-apr-2017-wrong-pattern",
       "end": {
         "col": 0,
-        "line": 21,
+        "line": 20,
         "offset": 0
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "    \"awscli\": {\n      \"hashes\": [",
+        "lines": "    \"awscli\": {",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",
         "metadata": {},
         "metavars": {},
