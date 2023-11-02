@@ -328,7 +328,7 @@ install-deps-ALPINE-for-pysemgrep:
 # -------------------------------------------------
 # Ubuntu
 # -------------------------------------------------
-UBUNTU_DEPS=pkg-config libgmp-dev libpcre3-dev libev-dev
+UBUNTU_DEPS=pkg-config libgmp-dev libpcre3-dev
 
 install-deps-UBUNTU-for-semgrep-core:
 	apt-get install -y $(UBUNTU_DEPS)
