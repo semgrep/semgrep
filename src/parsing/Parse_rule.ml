@@ -137,6 +137,15 @@ let try_and_raise_invalid_pattern_if_error (env : env) (s, t) f =
       in
       Rule.raise_error (Some env.id) (InvalidRule (error_kind, env.id, t))
 
+let check_that_dict_is_empty (dict : dict) =
+  if Hashtbl.length dict.h > 0 then
+    let remaining_keys =
+      dict.h |> Hashtbl.to_seq_keys |> List.of_seq |> List.sort String.compare
+      |> String.concat ", "
+    in
+    yaml_error dict.first_tok
+      ("Unknown or duplicate properties found in YAML object: " ^ remaining_keys)
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -221,15 +230,17 @@ let yaml_to_dict_helper opt_rule_id error_fun_f error_fun_d
   | _ ->
       error_fun_d rule ("each " ^ enclosing_obj_name ^ " should be a dictionary")
 
+(* Lookup a key from dict and remove it. *)
+let dict_take_opt (dict : dict) (key_str : string) : (key * G.expr) option =
+  let tbl = dict.h in
+  let res = Hashtbl.find_opt tbl key_str in
+  Hashtbl.remove tbl key_str;
+  res
+
 (* Mutates the Hashtbl! *)
 let take_opt (dict : dict) (env : env) (f : env -> key -> G.expr -> 'a)
     (key_str : string) : 'a option =
-  Option.map
-    (fun (key, value) ->
-      let res = f env key value in
-      Hashtbl.remove dict.h key_str;
-      res)
-    (Hashtbl.find_opt dict.h key_str)
+  Option.map (fun (key, value) -> f env key value) (dict_take_opt dict key_str)
 
 (* Mutates the Hashtbl! *)
 let take (dict : dict) (env : env) (f : env -> key -> G.expr -> 'a)
@@ -2021,38 +2032,20 @@ let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
           yaml_error (Tok.tok_of_loc loc) "missing rules entry as top-level key"
         in
         match e.e with
-        | Container (Dict, _) -> (
+        | Container (Dict, _) ->
             let root_dict = yaml_to_dict_no_env "rule file" e in
-            (* TODO: do something with the new 'missed' field and reject
-               unknown fields. *)
-            match Hashtbl.find_opt root_dict.h "rules" with
-            | None -> missing_rules_field ()
-            | Some (_key, rules) -> (
-                (*
-        match e.G.e with
-        | Container
-            ( Dict,
-              ( _,
-                [
-                  {
-                    e =
-                      Container
-                        ( Tuple,
-                          ( _,
-                            [
-                              { e = L (String (_, ("rules", _), _)); _ }; rules;
-                            ],
-                            _ ) );
-                    _;
-                  };
-                ],
-                _ ) )
-*)
-                match rules.G.e with
-                | G.Container (G.Array, (_tok, rules, _r)) -> rules
-                | _ ->
-                    yaml_error_at_expr rules
-                      "expected a list of rules following `rules:`"))
+            let rules =
+              match dict_take_opt root_dict "rules" with
+              | None -> missing_rules_field ()
+              | Some (_key, rules) -> (
+                  match rules.G.e with
+                  | G.Container (G.Array, (_tok, rules, _r)) -> rules
+                  | _ ->
+                      yaml_error_at_expr rules
+                        "expected a list of rules following `rules:`")
+            in
+            check_that_dict_is_empty root_dict;
+            rules
         (* it's also ok to not have the toplevel rules:, anyway we never
          * used another toplevel key
          *)
