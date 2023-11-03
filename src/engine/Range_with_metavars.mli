@@ -4,7 +4,7 @@
 (* Since pattern-inside is different from just anding two patterns, *)
 (* we use range_kind to distinguish whether this came from matching *)
 (* a pattern-inside, normal pattern, or regexp *)
-type range_kind = Plain | Inside | Regexp [@@deriving show]
+type range_kind = Plain | Inside | Anywhere | Regexp [@@deriving show]
 
 type t = {
   r : Range.t;
@@ -23,6 +23,7 @@ val range_to_pattern_match_adjusted : Rule.rule -> t -> Pattern_match.t
 
 (* Set functions *)
 
+(* REVIEW: convert these bools to named args? *)
 val intersect_ranges :
   Rule_options.t -> bool (* debug_matches *) -> ranges -> ranges -> ranges
 

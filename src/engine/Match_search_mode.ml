@@ -725,6 +725,10 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
       let ranges, expls = evaluate_formula env opt_context formula in
       let expl = if_explanations env ranges [ expls ] (Out.Inside, tok) in
       (Common.map (fun r -> { r with RM.kind = RM.Inside }) ranges, expl)
+  | R.Anywhere (tok, formula) ->
+      let ranges, expls = evaluate_formula env opt_context formula in
+      let expl = if_explanations env ranges [ expls ] (Out.Anywhere, tok) in
+      (Common.map (fun r -> { r with RM.kind = RM.Anywhere }) ranges, expl)
   | R.Or (tok, xs) ->
       let ranges, expls =
         xs |> Common.map (evaluate_formula env opt_context) |> Common2.unzip

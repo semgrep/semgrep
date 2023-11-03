@@ -79,6 +79,7 @@ type formula =
    * https://github.com/returntocorp/semgrep/issues/1218
    *)
   | Inside of tok * formula
+  | Anywhere of tok * formula
 
 (* The conjunction must contain at least
  * one positive "term" (unless it's inside a CondNestedFormula, in which
@@ -782,14 +783,15 @@ let () = Printexc.register_printer opt_string_of_exn
    Evaluation order means that we will only visit children after parents.
    So we keep a reference cell around, and set it to true whenever we descend
    under an inside.
-   That way, pattern leaves underneath an Inside will properly be paired with
-   a true boolean.
+   That way, pattern leaves underneath an Inside/Anywhere will properly be
+   paired with a true boolean.
 *)
 let visit_new_formula f formula =
   let bref = ref false in
   let rec visit_new_formula f formula =
     match formula with
     | P p -> f p ~inside:!bref
+    | Anywhere (_, formula)
     | Inside (_, formula) ->
         Common.save_excursion bref true (fun () -> visit_new_formula f formula)
     | Not (_, x) -> visit_new_formula f x
@@ -801,18 +803,20 @@ let visit_new_formula f formula =
 
 (* used by the metachecker for precise error location *)
 let tok_of_formula = function
-  | And (t, _) -> t
+  | And (t, _)
   | Or (t, _)
+  | Inside (t, _)
+  | Anywhere (t, _)
   | Not (t, _) ->
       t
   | P p -> snd p.pstr
-  | Inside (t, _) -> t
 
 let kind_of_formula = function
   | P _ -> "pattern"
   | Or _
   | And _
   | Inside _
+  | Anywhere _
   | Not _ ->
       "formula"
 
@@ -864,6 +868,7 @@ let split_and (xs : formula list) : formula list * (tok * formula) list =
          | P _
          | And _
          | Inside _
+         | Anywhere _
          | Or _ ->
              Left e
          (* negatives *)
