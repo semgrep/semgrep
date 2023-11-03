@@ -19,9 +19,9 @@ def test_semgrepignore(run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot):
     )
 
 
-# We provide no .semgrepignore but everything except find.js should still be ignored
+# We provide no .semgrepignore but everything except find.js should still
+# be ignored
 @pytest.mark.kinda_slow
-@pytest.mark.osemfail
 def test_default_semgrepignore(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
