@@ -244,8 +244,8 @@ let mk_scan_func_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
   *)
   let lang_jobs = split_jobs_by_language all_rules all_targets in
   let rules_with_targets =
-    List.map (fun { Lang_job.rules; _ } -> rules) lang_jobs
-    |> List.flatten |> Common.uniq_by ( == )
+    List.concat_map (fun { Lang_job.rules; _ } -> rules) lang_jobs
+    |> Common.uniq_by ( == )
   in
   Logs.app (fun m ->
       m "%a"
