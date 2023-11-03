@@ -65,6 +65,7 @@ let lang_supports_implicit_return (lang : Lang.t) =
   | Elixir
   | Ruby
   | Rust
+  | Scala
   | Julia ->
       true
   | _else_ -> false
