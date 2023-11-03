@@ -41,6 +41,8 @@ type t = {
   gitignore_filter : Gitignore.filter;
 }
 
+type builtin_semgrepignore = Empty | Semgrep_scan_legacy
+
 (*
    TODO: Preprocess a file to expand ':include' directives before parsing it
    using gitignore rules.
@@ -50,17 +52,64 @@ type t = {
 
 type exclusion_mechanism = Gitignore_and_semgrepignore | Only_semgrepignore
 
-let create ?include_patterns ?(cli_patterns = []) ~exclusion_mechanism
-    ~project_root () =
+(*
+   The legacy built-in semgrepignore.
+
+   It was copied from templates/.semgrepignore in the Python source.
+*)
+let builtin_semgrepignore_for_semgrep_scan =
+  {|
+# Common large paths
+node_modules/
+build/
+dist/
+vendor/
+.env/
+.venv/
+.tox/
+*.min.js
+.npm/
+.yarn/
+
+# Common test paths
+test/
+tests/
+*_test.go
+
+# Semgrep rules folder
+.semgrep
+
+# Semgrep-action log folder
+.semgrep_logs/
+|}
+
+let contents_of_builtin_semgrepignore = function
+  | Empty -> ""
+  | Semgrep_scan_legacy -> builtin_semgrepignore_for_semgrep_scan
+
+let create ?include_patterns ?(cli_patterns = []) ~builtin_semgrepignore
+    ~exclusion_mechanism ~project_root () =
   let include_filter =
     Option.map (Include_filter.create ~project_root) include_patterns
   in
   let root_anchor = Glob.Pattern.root_pattern in
+  let builtin_patterns =
+    Parse_gitignore.from_string ~name:"built-in semgrepignore patterns"
+      ~source_kind:"built-in" ~anchor:root_anchor
+      (contents_of_builtin_semgrepignore builtin_semgrepignore)
+  in
   let cli_patterns =
     List.concat_map
       (Parse_gitignore.from_string ~name:"exclude pattern from command line"
-         ~kind:"exclude" ~anchor:root_anchor)
+         ~source_kind:"exclude" ~anchor:root_anchor)
       cli_patterns
+  in
+  let builtin_level : Gitignore.level =
+    {
+      level_kind = "built-in semgrepignore patterns";
+      source_name = "<built-in>";
+      patterns = builtin_patterns;
+    }
   in
   let cli_level : Gitignore.level =
     {
@@ -76,7 +125,8 @@ let create ?include_patterns ?(cli_patterns = []) ~exclusion_mechanism
     | Only_semgrepignore -> [ ("semgrepignore", ".semgrepignore") ]
   in
   let gitignore_filter =
-    Gitignore_filter.create ~higher_priority_levels:[ cli_level ]
+    Gitignore_filter.create
+      ~higher_priority_levels:[ builtin_level; cli_level ]
       ~gitignore_filenames ~project_root ()
   in
   { include_filter; gitignore_filter }
