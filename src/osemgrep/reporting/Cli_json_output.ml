@@ -351,7 +351,8 @@ let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
       (Rule_ID.to_string rule_id)
   in
   let hash = Digestif.BLAKE2B.digest_string string |> Digestif.BLAKE2B.to_hex in
-  Common.spf "%s -> %s" string hash
+  let hash2 = Digestif.BLAKE2B.digest_string string |> Digestif.BLAKE2B.to_hex in
+  Common.spf "%s -> %s|%s -> %s" string hash string hash2
 
 let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
     Out.cli_match =
