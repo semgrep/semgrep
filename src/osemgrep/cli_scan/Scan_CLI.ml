@@ -43,8 +43,6 @@ type conf = {
   rewrite_rule_ids : bool;
   (* Engine selection *)
   engine_type : Engine_type.t;
-  run_secrets : bool;
-  allow_untrusted_validators : bool;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;
   (* Display options *)
@@ -134,8 +132,6 @@ let default : conf =
         maturity = Maturity.Default;
       };
     engine_type = OSS;
-    run_secrets = false;
-    allow_untrusted_validators = false;
     output_format = Output_format.Text;
     output = None;
     force_color = false;
@@ -876,25 +872,39 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       | _else_ -> default.output_format
     in
     let engine_type =
-      match (oss, pro_lang, pro_intrafile, pro) with
-      | false, false, false, false when secrets ->
-          Engine_type.(PRO Language_only)
-      | false, false, false, false -> default.engine_type
+      (* This first bit just rules out mutually exclusive options. *)
+      (match (oss, pro_lang, pro_intrafile, pro) with
       | true, false, false, false when secrets ->
           Error.abort
             "Mutually exclusive options --oss/--beta-testing-secrets-enabled"
-      | true, false, false, false -> OSS
-      | false, true, false, false -> PRO Engine_type.Language_only
-      | false, false, true, false -> PRO Engine_type.Intrafile
-      | false, false, false, true -> PRO Engine_type.Interfile
+      | false, false, false, false
+      | true, false, false, false
+      | false, true, false, false
+      | false, false, true, false
+      | false, false, false, true ->
+          ()
       | _else_ ->
           (* TOPORT: list the possibilities *)
           Error.abort
             "Mutually exclusive options \
-             --oss/--pro-languages/--pro-intrafile/--pro"
+             --oss/--pro-languages/--pro-intrafile/--pro");
+      (* Now select the engine type *)
+      if oss then Engine_type.OSS
+      else
+        let analysis =
+          match () with
+          | _ when pro_intrafile -> Engine_type.Deep_intrafile
+          | _ when pro -> Engine_type.Deep_interfile
+          | _ -> Engine_type.Intrafile
+        in
+        let extra_languages = pro || pro_lang || pro_intrafile in
+        let secrets_config =
+          if secrets && not no_secrets_validation then
+            Some Engine_type.{ allow_all_origins = allow_untrusted_validators }
+          else None
+        in
+        Engine_type.make ~extra_languages ~analysis ~secrets_config
     in
-    (* TODO Should double check all other times this should run. *)
-    let run_secrets = secrets && not no_secrets_validation in
     let rules_source =
       match (config, (pattern, lang, replacement)) with
       (* ugly: when using --dump-ast, we can pass a pattern or a target,
@@ -1116,8 +1126,6 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       output_format;
       output;
       engine_type;
-      run_secrets;
-      allow_untrusted_validators;
       rewrite_rule_ids;
       strict;
       common;
