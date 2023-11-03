@@ -137,6 +137,15 @@ let try_and_raise_invalid_pattern_if_error (env : env) (s, t) f =
       in
       Rule.raise_error (Some env.id) (InvalidRule (error_kind, env.id, t))
 
+let check_that_dict_is_empty (dict : dict) =
+  if Hashtbl.length dict.h > 0 then
+    let remaining_keys =
+      dict.h |> Hashtbl.to_seq_keys |> List.of_seq |> List.sort String.compare
+      |> String.concat ", "
+    in
+    yaml_error dict.first_tok
+      ("Unknown or duplicate properties found in YAML object: " ^ remaining_keys)
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -191,7 +200,7 @@ let read_string_wrap e =
 (*****************************************************************************)
 
 let yaml_to_dict_helper opt_rule_id error_fun_f error_fun_d
-    (enclosing : string R.wrap) (rule : G.expr) : dict =
+    (enclosing_obj_name : string) (rule : G.expr) : dict =
   match rule.G.e with
   (* note that the l/r are actually populated by yaml_to_generic, even
    * though there is no proper corresponding token
@@ -218,17 +227,20 @@ let yaml_to_dict_helper opt_rule_id error_fun_f error_fun_d
                  Hashtbl.add dict key_str ((key_str, t), value)
              | _ -> error_fun_f field "Not a valid key value pair");
       { h = dict; first_tok = l }
-  | _ -> error_fun_d rule ("each " ^ fst enclosing ^ " should be a dictionary")
+  | _ ->
+      error_fun_d rule ("each " ^ enclosing_obj_name ^ " should be a dictionary")
+
+(* Lookup a key from dict and remove it. *)
+let dict_take_opt (dict : dict) (key_str : string) : (key * G.expr) option =
+  let tbl = dict.h in
+  let res = Hashtbl.find_opt tbl key_str in
+  Hashtbl.remove tbl key_str;
+  res
 
 (* Mutates the Hashtbl! *)
 let take_opt (dict : dict) (env : env) (f : env -> key -> G.expr -> 'a)
     (key_str : string) : 'a option =
-  Option.map
-    (fun (key, value) ->
-      let res = f env key value in
-      Hashtbl.remove dict.h key_str;
-      res)
-    (Hashtbl.find_opt dict.h key_str)
+  Option.map (fun (key, value) -> f env key value) (dict_take_opt dict key_str)
 
 (* Mutates the Hashtbl! *)
 let take (dict : dict) (env : env) (f : env -> key -> G.expr -> 'a)
@@ -239,9 +251,9 @@ let take (dict : dict) (env : env) (f : env -> key -> G.expr -> 'a)
 
 let fold_dict f dict x = Hashtbl.fold f dict.h x
 
-let yaml_to_dict (env : env) enclosing =
+let yaml_to_dict (env : env) (enclosing_obj_name : string G.wrap) =
   yaml_to_dict_helper (Some env.id) (error_at_expr env.id)
-    (error_at_expr env.id) enclosing
+    (error_at_expr env.id) (fst enclosing_obj_name)
 
 (*****************************************************************************)
 (* Parsing methods for before env is created *)
@@ -264,8 +276,9 @@ let take_no_env (dict : dict) (f : key -> G.expr -> 'a) (key_str : string) : 'a
   | Some res -> res
   | None -> yaml_error dict.first_tok ("Missing required field " ^ key_str)
 
-let yaml_to_dict_no_env =
+let yaml_to_dict_no_env enclosing_obj_name expr =
   yaml_to_dict_helper None yaml_error_at_expr yaml_error_at_expr
+    enclosing_obj_name expr
 
 let parse_string_wrap_no_env (key : key) x =
   match read_string_wrap x.G.e with
@@ -1933,9 +1946,9 @@ let parse_product rd (metadata : J.t option) : Semgrep_output_v1_t.product =
           | _ -> `SAST)
       | _ -> `SAST)
 
-let parse_one_rule ~rewrite_rule_ids (t : G.tok) (i : int) (rule : G.expr) :
-    Rule.t =
-  let rd = yaml_to_dict_no_env ("rules", t) rule in
+let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) : Rule.t =
+  (* TODO: explain the function arguments of yaml_to_dict_no_env *)
+  let rd = yaml_to_dict_no_env "rules" rule in
   (* We need a rule ID early to produce useful error messages. *)
   let rule_id_str, tok = take_no_env rd parse_string_wrap_no_env "id" in
   let rule_id = Rule_ID.of_string rule_id_str in
@@ -2011,50 +2024,43 @@ let parse_one_rule ~rewrite_rule_ids (t : G.tok) (i : int) (rule : G.expr) :
 let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
     (file : Fpath.t) (ast : AST_generic.program) :
     Rule.rules * Rule.invalid_rule_error list =
-  let t, rules =
+  let rules =
     match ast with
     | [ { G.s = G.ExprStmt (e, _); _ } ] -> (
-        match e.G.e with
-        | Container
-            ( Dict,
-              ( _,
-                [
-                  {
-                    e =
-                      Container
-                        ( Tuple,
-                          ( _,
-                            [
-                              { e = L (String (_, ("rules", _), _)); _ }; rules;
-                            ],
-                            _ ) );
-                    _;
-                  };
-                ],
-                _ ) ) -> (
-            match rules.G.e with
-            | G.Container (G.Array, (l, rules, _r)) -> (l, rules)
-            | _ ->
-                yaml_error_at_expr rules
-                  "expected a list of rules following `rules:`")
+        let missing_rules_field () =
+          let loc = Tok.first_loc_of_file !!file in
+          yaml_error (Tok.tok_of_loc loc) "missing rules entry as top-level key"
+        in
+        match e.e with
+        | Container (Dict, _) ->
+            let root_dict = yaml_to_dict_no_env "rule file" e in
+            let rules =
+              match dict_take_opt root_dict "rules" with
+              | None -> missing_rules_field ()
+              | Some (_key, rules) -> (
+                  match rules.G.e with
+                  | G.Container (G.Array, (_tok, rules, _r)) -> rules
+                  | _ ->
+                      yaml_error_at_expr rules
+                        "expected a list of rules following `rules:`")
+            in
+            check_that_dict_is_empty root_dict;
+            rules
         (* it's also ok to not have the toplevel rules:, anyway we never
          * used another toplevel key
          *)
-        | G.Container (G.Array, (l, rules, _r)) -> (l, rules)
-        | _ ->
-            let loc = Tok.first_loc_of_file !!file in
-            yaml_error (Tok.tok_of_loc loc)
-              "missing rules entry as top-level key")
+        | G.Container (G.Array, (_tok, rules, _r)) -> rules
+        | _ -> missing_rules_field ())
     | [] ->
         (* an empty rules file returns an empty list of rules *)
-        (Tok.(tok_of_loc (first_loc_of_file !!file)), [])
+        []
     | _ -> assert false
     (* yaml_to_generic should always return a ExprStmt *)
   in
   let xs =
     rules
     |> Common.mapi (fun i rule ->
-           try Left (parse_one_rule ~rewrite_rule_ids t i rule) with
+           try Left (parse_one_rule ~rewrite_rule_ids i rule) with
            | Rule.Error { kind = InvalidRule ((kind, ruleid, _) as err); _ }
              when error_recovery || R.is_skippable_error kind ->
                let s = Rule.string_of_invalid_rule_error_kind kind in
