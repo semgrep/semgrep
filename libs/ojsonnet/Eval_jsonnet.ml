@@ -47,6 +47,7 @@ let string_of_local_id = function
   | V.LSuper -> "super"
   | V.LId s -> s
 
+(* Start of big mutually recursive functions *)
 let rec lookup (env : V.env) tk local_id =
   let entry =
     try Map_.find local_id env.locals with
@@ -57,15 +58,20 @@ let rec lookup (env : V.env) tk local_id =
   in
   evaluate_lazy_value_ entry
 
+and evaluate_lazy_value_ (v : V.lazy_value) =
+  match v.value with
+  | Val v -> v
+  | Unevaluated e -> eval_expr v.env e
+
 (*****************************************************************************)
 (* eval_expr *)
 (*****************************************************************************)
 
-and eval_expr (env : V.env) (v : expr) : V.value_ =
-  match v with
-  | L v ->
+and eval_expr (env : V.env) (e : expr) : V.t =
+  match e with
+  | L lit ->
       let prim =
-        match v with
+        match lit with
         | A.Null tk -> V.Null tk
         | A.Bool (b, tk) -> V.Bool (b, tk)
         | A.Str x -> V.Str (A.string_of_string_ x)
@@ -83,7 +89,7 @@ and eval_expr (env : V.env) (v : expr) : V.value_ =
         |> Array.of_list
       in
       Array (l, elts, r)
-  | Lambda v -> Lambda v
+  | Lambda f -> Lambda f
   | O v -> eval_obj_inside env v
   | Id (s, tk) -> lookup env tk (V.LId s)
   | IdSpecial (Self, tk) -> lookup env tk V.LSelf
@@ -337,7 +343,7 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
  * a specialization of eval_call and eval_expr for Local.
  *)
 and eval_std_filter_element (env : V.env) (tk : tok) (f : function_definition)
-    (ei : V.lazy_value) : V.value_ * V.env =
+    (ei : V.lazy_value) : V.t * V.env =
   match f with
   | { f_params = _l, [ P (id, _eq, _default) ], _r; f_body; _ } ->
       (* similar to eval_expr for Local *)
@@ -533,7 +539,7 @@ and eval_binary_op env el (op, tk) er =
  * return a cmp.
  *)
 and eval_std_cmp env tk (el : expr) (er : expr) : cmp =
-  let rec eval_std_cmp_value_ (v_el : V.value_) (v_er : V.value_) : cmp =
+  let rec eval_std_cmp_value_ (v_el : V.t) (v_er : V.t) : cmp =
     match (v_el, v_er) with
     | V.Array (_, [||], _), V.Array (_, [||], _) -> Eq
     | V.Array (_, [||], _), V.Array (_, _, _) -> Inf
@@ -570,7 +576,7 @@ and eval_std_cmp env tk (el : expr) (er : expr) : cmp =
 (* eval_obj_inside *)
 (*****************************************************************************)
 
-and eval_obj_inside env (l, x, r) : V.value_ =
+and eval_obj_inside env (l, x, r) : V.t =
   match x with
   | Object (assertsTODO, fields) ->
       let hdupes = Hashtbl.create 16 in
@@ -620,16 +626,16 @@ and eval_for_comp env v =
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
-and tostring (v : V.value_) : string =
+and tostring (v : V.t) : string =
   let j = manifest_value v in
   JSON.string_of_json j
 
 (*Same as eval_expr but with profiling *)
-and eval_program_with_env (env : V.env) (e : Core_jsonnet.program) : V.value_ =
+and eval_program_with_env (env : V.env) (e : Core_jsonnet.program) : V.t =
   eval_expr env e
 [@@profiling]
 
-and eval_program (e : Core_jsonnet.program) : V.value_ =
+and eval_program (e : Core_jsonnet.program) : V.t =
   eval_program_with_env V.empty_env e
 
 (*****************************************************************************)
@@ -639,7 +645,7 @@ and eval_program (e : Core_jsonnet.program) : V.value_ =
  * Value_jsonnet.ml, this function became mutually recursive with
  * eval_expr() and so need to be defined in the same file.
  *)
-and manifest_value (v : V.value_) : JSON.t =
+and manifest_value (v : V.t) : JSON.t =
   match v with
   | Primitive x -> (
       match x with
@@ -678,11 +684,3 @@ and manifest_value (v : V.value_) : JSON.t =
                    Some (fst fld_name, j))
       in
       J.Object xs
-
-(*****************************************************************************)
-(* Helpers *)
-(*****************************************************************************)
-and evaluate_lazy_value_ (v : V.lazy_value) =
-  match v.value with
-  | Val v -> v
-  | Unevaluated e -> eval_expr v.env e

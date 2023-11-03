@@ -629,7 +629,7 @@ and eval_call env e0 (largs, args, _rargs) =
 (* -------------------------------------- *)
 
 and eval_std_cmp env tk (el : expr) (er : expr) : cmp =
-  let rec eval_std_cmp_value_ (v_el : V.value_) (v_er : V.value_) : cmp =
+  let rec eval_std_cmp_value_ (v_el : V.t) (v_er : V.t) : cmp =
     match (v_el, v_er) with
     | V.Array (_, [||], _), V.Array (_, [||], _) -> Eq
     | V.Array (_, [||], _), V.Array (_, _, _) -> Inf
@@ -788,7 +788,7 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
   | _else_ -> eval_call env e0 (l, args, r)
 
 and eval_std_filter_element env (tk : tok) (f : function_definition)
-    (ei : V.lazy_value) : V.value_ =
+    (ei : V.lazy_value) : V.t =
   match f with
   | { f_params = _l, [ P (_id, _eq, _default) ], _r; _ } -> (
       (* similar to eval_expr for Local *)
@@ -800,7 +800,7 @@ and eval_std_filter_element env (tk : tok) (f : function_definition)
       | Unevaluated e -> eval_call env (Lambda f) (_l, [ Arg e ], _r))
   | _else_ -> error tk "filter function takes 1 parameter"
 
-and eval_obj_inside env (l, x, r) : V.value_ =
+and eval_obj_inside env (l, x, r) : V.t =
   match x with
   | Object (assertsTODO, fields) ->
       let hdupes = Hashtbl.create 16 in
@@ -951,7 +951,7 @@ and evaluate_lazy_value_ env (v : V.lazy_value) =
 (*****************************************************************************)
 
 (* note that this is mutually recursive with eval_expr *)
-and manifest_value (v : V.value_) : JSON.t =
+and manifest_value (v : V.t) : JSON.t =
   let env = V.empty_env in
   match v with
   | Primitive x -> (
@@ -1002,7 +1002,7 @@ and manifest_value (v : V.value_) : JSON.t =
       in
       J.Object xs
 
-and tostring (v : V.value_) : string =
+and tostring (v : V.t) : string =
   let j = manifest_value v in
   JSON.string_of_json j
 
@@ -1010,4 +1010,4 @@ and tostring (v : V.value_) : string =
 (* Entry point *)
 (*****************************************************************************)
 
-let eval_program (x : Core_jsonnet.program) : V.value_ = eval_expr V.empty_env x
+let eval_program (x : Core_jsonnet.program) : V.t = eval_expr V.empty_env x
