@@ -76,6 +76,8 @@ type info = {
 (* Constants *)
 (*****************************************************************************)
 
+let semgrep_root = Fpath.v (Git_wrapper.get_git_root_path ())
+
 let default_content =
   {|
 x = 0
@@ -103,8 +105,6 @@ let () =
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-let semgrep_root = Fpath.v (Git_wrapper.get_git_root_path ())
 
 let checked_command s =
   if Sys.command s <> 0 then
@@ -696,6 +696,11 @@ let with_session (f : info -> unit Lwt.t) : unit Lwt.t =
        Logs.err (fun m -> m "Got exception: %s" err);
        Alcotest.fail err);
   let info = create_info () in
+  (* We do this protect here to have a clearer mental model of the
+     directory structure while the test is running.
+     For each individual test, we cd to that test's personal temporary
+     directory, which resets upon termination of the test.
+  *)
   Common.protect
     ~finally:(fun () -> Unix.chdir (Fpath.to_string semgrep_root))
     (fun () ->

@@ -538,4 +538,4 @@ type 'a smap = 'a SMap.t
 
 (* you should set this flag when you run code compiled by js_of_ocaml *)
 val jsoo : bool ref
-val chdir_to_semgrep_root : unit -> unit
+val chdir_to_repo_root : unit -> unit
