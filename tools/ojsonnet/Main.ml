@@ -64,7 +64,7 @@ let o_subst : bool Term.t =
   Arg.value (Arg.flag info)
 
 let o_envir : bool Term.t =
-  let info = Arg.info [ "env" ] ~doc:"Evaluate using environment model" in
+  let info = Arg.info [ "envir" ] ~doc:"Evaluate using environment model" in
   Arg.value (Arg.flag info)
 
 (* alt: use subcommands in ojsonnet but not worth the complexity *)
@@ -137,7 +137,7 @@ let interpret eval_strategy (file : Fpath.t) : JSON.t =
   let core = Desugar_jsonnet.desugar_program file ast in
   match eval_strategy with
   | Substitution ->
-      let value_ = Eval_jsonnet_subst.eval_expr core in
+      let value_ = Eval_jsonnet_subst.eval_program core in
       let json = Eval_jsonnet_subst.manifest_value value_ in
       json
   | Environment ->
