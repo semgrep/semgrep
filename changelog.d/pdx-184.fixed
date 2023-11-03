@@ -1,0 +1,2 @@
+LSP: Language server no longer crashes if your authorization token is invalid,
+and will display an error message and prompt to log in again instead.
