@@ -39,8 +39,8 @@ let error tk s =
 
 let fk = Tok.unsafe_fake_tok ""
 
-let sv e =
-  let s = V.show_value_ e in
+let sv v =
+  let s = V.show v in
   if String.length s > 100 then Str.first_chars s 100 ^ "..." else s
 
 let int_to_cmp = function
@@ -61,7 +61,7 @@ let log_call (env : V.env) str tk =
 (*****************************************************************************)
 
 (* alt: could move to Value_jsonnet.ml *)
-let std_type (v : V.value_) : string =
+let std_type (v : V.t) : string =
   match v with
   | V.Primitive (Null _) -> "null"
   | V.Primitive (Bool _) -> "boolean"
@@ -71,7 +71,7 @@ let std_type (v : V.value_) : string =
   | V.Array _ -> "array"
   | V.Lambda _ -> "function"
 
-let std_primivite_equals (v : V.value_) (v' : V.value_) : bool =
+let std_primivite_equals (v : V.t) (v' : V.t) : bool =
   match (v, v') with
   | Primitive p, Primitive p' -> (
       match (p, p') with
