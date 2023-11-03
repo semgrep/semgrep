@@ -68,6 +68,7 @@ let _ =
        method setJsonnetParser = Semgrep_js_shared.setJsonnetParser
 
        method run filter =
+         Common.chdir_to_semgrep_root ();
          let argv = [| "" |] in
          let argv =
            if filter <> "" then Array.append argv [| "-e"; filter |] else argv

@@ -237,8 +237,15 @@ function unix_getcwd(vunit) {
 //Provides: unix_chdir
 //Requires: caml_sys_chdir
 function unix_chdir(path) {
+  console.log(globalThis.process.cwd());
+  /* When we do a Unix chdir, this signals that we would like for the Node
+     process to change directories too.
+     This ensures that after doing a `Unix.chdir`, calls to things like Git
+     will respond as if we were actually in those directories.
+   */
+  globalThis.process.chdir(path);
   caml_sys_chdir(path);
-
+  console.log(globalThis.process.cwd());
   return;
 }
 

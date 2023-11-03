@@ -1219,6 +1219,16 @@ let files_of_dir_or_files_no_vcs_nofilter xs =
          else [ x ])
   |> flatten
 
+let chdir_to_semgrep_root () =
+  let rec parent changed =
+    if Sys.getcwd () = "/" then invalid_arg "couldn't find semgrep root"
+    else if not (Sys.file_exists ".git" && Sys.is_directory ".git") then (
+      Sys.chdir "..";
+      parent true)
+    else changed
+  in
+  if parent false then print_endline ("changed directory to " ^ Sys.getcwd ())
+
 (*****************************************************************************)
 (* Maps *)
 (*****************************************************************************)

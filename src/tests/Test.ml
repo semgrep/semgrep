@@ -108,14 +108,7 @@ let tests_with_delayed_error () =
 let main () =
   (* find the root of the semgrep repo as many of our tests rely on
      'let test_path = "tests/"' to find their test files *)
-  let rec parent changed =
-    if Sys.getcwd () = "/" then invalid_arg "couldn't find semgrep root"
-    else if not (Sys.file_exists ".git" && Sys.is_directory ".git") then (
-      Sys.chdir "..";
-      parent true)
-    else changed
-  in
-  if parent false then print_endline ("changed directory to " ^ Sys.getcwd ());
+  Common.chdir_to_semgrep_root ();
   Http_helpers.client_ref := Some (module Cohttp_lwt_unix.Client);
   Parsing_init.init ();
   Data_init.init ();
