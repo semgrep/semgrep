@@ -44,6 +44,9 @@ def test_file_not_relative_to_base_path(run_semgrep: RunSemgrep, snapshot):
     snapshot.assert_match(results.as_snapshot(), "results.txt")
 
 
+# Test the specification of a semgrepignore file via the environment
+# variable SEMGREP_R2C_INTERNAL_EXPLICIT_SEMGREPIGNORE.
+# This is for semgrep-action. See run_scan.py.
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
 def test_internal_explicit_semgrepignore(
