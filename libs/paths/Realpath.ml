@@ -38,27 +38,14 @@
 (* Types *)
 (*****************************************************************************)
 
-(* TODO? use of Fpath.t instead? or too confusing? *)
-type t = Rpath of string [@@deriving show, eq]
+type t = Realpath of Fpath.t [@@deriving show, eq]
 
 (*****************************************************************************)
 (* Main functions *)
 (*****************************************************************************)
 
-let of_fpath p = Rpath (Fpath.to_string p |> Unix.realpath)
-let of_string s = Rpath (Unix.realpath s)
-let to_fpath (Rpath s) = Fpath.v s
-let to_string (Rpath s) = s
+let of_fpath p = Realpath (Fpath.to_string p |> Unix.realpath |> Fpath.v)
+let of_string s = Realpath (Unix.realpath s |> Fpath.v)
+let to_fpath (Realpath x) = x
+let to_string (Realpath x) = Fpath.to_string x
 let canonical s = to_string (of_string s)
-let ( / ) (Rpath s1) s2 = of_string (Filename.concat s1 s2)
-let concat = ( / )
-let apply ~f (Rpath s) = f s
-let basename (Rpath s) = Filename.basename s
-let dirname (Rpath s) = Filename.dirname s |> of_string
-let extension (Rpath s) = Filename.extension s
-
-(* TODO: probably better to direct people to the File module, and remove those
- * functions. People just have to use 'rpath |> Rpath.to_fpath |> xxx'
- *)
-let is_directory = apply ~f:Sys.is_directory
-let file_exists = apply ~f:Sys.file_exists

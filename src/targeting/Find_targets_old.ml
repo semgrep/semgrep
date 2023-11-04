@@ -164,7 +164,7 @@ let files_from_git_ls ~cwd:scan_root =
       return frozenset(tracked | untracked_unignored - deleted)
   *)
   (* tracked files *)
-  let tracked_output = Git_wrapper.files_from_git_ls ~cwd:scan_root in
+  let tracked_output = Git_wrapper.ls_files ~cwd:scan_root [] in
   tracked_output
   |> Common.map (fun x -> if !!scan_root = "." then x else scan_root // x)
   |> List.filter is_valid_file

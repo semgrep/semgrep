@@ -17,10 +17,15 @@ type status = {
  *)
 val git_check_output : Bos.Cmd.t -> string
 
-(* precondition: cwd must be a directory
+(*
+   cwd: directory to cd into (-C)
+
+   The argument is the list of files to start scanning from which defaults
+   to the current directory.
+
    This returns a list of paths relative to cwd.
 *)
-val files_from_git_ls : cwd:Fpath.t -> Fpath.t list
+val ls_files : ?cwd:Fpath.t -> Fpath.t list -> Fpath.t list
 
 (* get merge base between arg and HEAD *)
 val get_merge_base : string -> string

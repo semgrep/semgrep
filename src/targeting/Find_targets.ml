@@ -34,6 +34,8 @@ module Out = Semgrep_output_v1_t
 (* Types *)
 (*************************************************************************)
 
+module Fpath_set = Set.Make (Fpath)
+
 (* TODO? process also user's gitignore file like ripgrep does?
  * TODO? use Glob.Pattern.t below instead of string for exclude and include_?
  *)
@@ -215,6 +217,34 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
   (!selected_paths, !skipped)
 
 (*************************************************************************)
+(* Additional Git-specific (or other) expansion of the scanning roots *)
+(*************************************************************************)
+
+(*
+   Get the list of files being tracked by git.
+
+   This doesn't include the "untracked files" reported by 'git status'.
+   These untracked files may or may not be desirable. Their fate will be
+   determined by the semgrepignore rules separately, along with the gitignored
+   files that are not being tracked.
+
+   Returning a set gives us the option to take the union, set difference,
+   etc. with other sets of targets.
+
+   We could also provide similar functions for other file tracking systems
+   (Mercurial/hg, Subversion/svn, ...)
+*)
+let _git_ls_files (project_roots : project_roots) : Fpath_set.t =
+  match project_roots.project.kind with
+  | Git_project ->
+      let (Realpath project_path) = project_roots.project.path in
+      project_roots.scanning_roots
+      |> Common.map (fun (x : fppath) -> x.fpath)
+      |> Git_wrapper.ls_files ~cwd:project_path
+      |> Fpath_set.of_list
+  | Other_project -> Fpath_set.empty
+
+(*************************************************************************)
 (* Grouping *)
 (*************************************************************************)
 
@@ -239,9 +269,9 @@ let group_scanning_roots_by_project (conf : conf)
          let kind, project_root, scanning_root_ppath =
            Git_project.find_any_project_root ?force_root scanning_root
          in
-         ( (kind, Rpath.of_fpath project_root),
+         ( ({ kind; path = Realpath.of_fpath project_root } : Project.t),
            { fpath = scanning_root; ppath = scanning_root_ppath } ))
-  (* using an Rpath in Project.t ensures we group correctly even
+  (* using a Realpath in Project.t ensures we group correctly even
    * if the scanning_roots went through different symlink paths
    *)
   |> Common.group_by fst
@@ -252,10 +282,30 @@ let group_scanning_roots_by_project (conf : conf)
 (* Entry point *)
 (*************************************************************************)
 
+(*
+   Target files are identified by following these steps:
+
+   1. A list of folders or files are specified explicitly on the command line.
+      These are referred to as "explicit" targets and they should not
+      be filtered out even if they match some exclusion patterns.
+      This is the input of the 'get_targets' function.
+   2. If the project is a git project, use 'git ls-files' or
+      equivalent to expand the scanning roots into a list of files.
+      This list may include files that would be excluded by the gitignore
+      mechanism but are nonetheless being tracked by git (it happens).
+   3. The scanning roots from step (1) are expanded using our own
+      semgrepignore mechanism. This allows the inclusion of additional
+      files that are not under git control because .semgrepignore
+      files allows de-exclusion/re-inclusion patterns such as e.g.
+      '!*.min.js'.
+      Typically, the sets of files produced by (2) and (3) overlap vastly.
+   4. Take the union of (2) and (3).
+*)
 let get_targets conf scanning_roots =
   scanning_roots
   |> group_scanning_roots_by_project conf
-  |> List.concat_map (fun { project = kind, project_root; scanning_roots } ->
+  |> List.concat_map
+       (fun { project = { kind; path = project_root }; scanning_roots } ->
          (* filter with .gitignore and .semgrepignore *)
          let exclusion_mechanism =
            match kind with
@@ -284,7 +334,7 @@ let get_targets conf scanning_roots =
            Semgrepignore.create ?include_patterns:conf.include_
              ~cli_patterns:conf.exclude
              ~builtin_semgrepignore:Semgrep_scan_legacy ~exclusion_mechanism
-             ~project_root:(Rpath.to_fpath project_root)
+             ~project_root:(Realpath.to_fpath project_root)
              ()
          in
          scanning_roots

@@ -153,8 +153,9 @@ Try running the command yourself to debug the issue.|}
       Logs.warn (fun m -> m fmt Bos.Cmd.pp cmd);
       raise (Error "Error when we run a git command")
 
-let files_from_git_ls ~cwd =
-  let cmd = Bos.Cmd.(v "git" % "-C" % !!cwd % "ls-files") in
+let ls_files ?(cwd = Fpath.v ".") root_paths =
+  let roots = root_paths |> Common.map Fpath.to_string |> Bos.Cmd.of_list in
+  let cmd = Bos.Cmd.(v "git" % "-C" % !!cwd % "ls-files" %% roots) in
   let files_r = Bos.OS.Cmd.run_out cmd in
   let results = Bos.OS.Cmd.out_lines ~trim:true files_r in
   let files =
