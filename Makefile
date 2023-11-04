@@ -559,6 +559,6 @@ check2:
 
 # see https://github.com/aryx/codemap for information on codemap
 visual:
-	codemap -screen_size 3 -filter pfff -efuns_client efuns_client -emacs_client /dev/null .
+	codemap -screen_size 3 -filter semgrep -efuns_client efuns_client -emacs_client /dev/null .
 visual2:
-	codemap -screen_size 3 -filter pfff -efuns_client efuns_client -emacs_client /dev/null src
+	codemap -screen_size 3 -filter semgrep -efuns_client efuns_client -emacs_client /dev/null src
