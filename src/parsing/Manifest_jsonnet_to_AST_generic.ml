@@ -15,7 +15,7 @@
 
 module G = AST_generic
 module A = AST_jsonnet
-module E = Eval_jsonnet
+module E = Eval_jsonnet_envir
 module V = Value_jsonnet
 
 (*****************************************************************************)

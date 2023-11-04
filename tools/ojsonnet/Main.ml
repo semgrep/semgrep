@@ -31,19 +31,18 @@ module Term = Cmdliner.Term
 
 type format = JSON | YAML [@@deriving show]
 type dump_action = DumpAST | DumpCore | DumpValue | DumpJSON [@@deriving show]
-type eval_strategy = Substitution | Environment [@@deriving show]
 
 (* Substitution is far slower, but correct. We get too many regressions
  * with Environment, including for our jsonnet GHA workflows
  * in .github/workflows/
  *)
-let default_eval_strategy = Substitution
+let default_eval_strategy = Eval_jsonnet.EvalSubst
 
 type conf = {
   target : Fpath.t;
   format : format;
   dump : dump_action option;
-  eval_strategy : eval_strategy;
+  eval_strategy : Eval_jsonnet.eval_strategy;
   common : CLI_common.conf;
 }
 [@@deriving show]
@@ -91,8 +90,8 @@ let term : conf Term.t =
       dump;
       eval_strategy =
         (match (envir, subst) with
-        | true, false -> Environment
-        | false, true -> Substitution
+        | true, false -> Eval_jsonnet.EvalEnvir
+        | false, true -> Eval_jsonnet.EvalSubst
         | true, true -> failwith "option mutually exclusive --envir/--subst"
         | false, false -> default_eval_strategy);
     }
@@ -135,15 +134,9 @@ let rec yojson_to_yaml_value (json : Yojson.Basic.t) : Yaml.value =
 let interpret eval_strategy (file : Fpath.t) : JSON.t =
   let ast = Parse_jsonnet.parse_program file in
   let core = Desugar_jsonnet.desugar_program file ast in
-  match eval_strategy with
-  | Substitution ->
-      let value_ = Eval_jsonnet_subst.eval_program core in
-      let json = Eval_jsonnet_subst.manifest_value value_ in
-      json
-  | Environment ->
-      let value_ = Eval_jsonnet.eval_program core in
-      let json = Eval_jsonnet.manifest_value value_ in
-      json
+  let v = Eval_jsonnet.eval_program ~strategy:eval_strategy core in
+  let json = Eval_jsonnet.manifest_value ~strategy:eval_strategy v in
+  json
 
 let run (conf : conf) : unit =
   CLI_common.setup_logging ~force_color:true ~level:conf.common.logging_level;
