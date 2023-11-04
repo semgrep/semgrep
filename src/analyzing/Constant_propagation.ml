@@ -647,6 +647,17 @@ let propagate_basic lang prog =
                 EN
                   (Id
                     (id, { id_resolved = { contents = Some (_kind, sid) }; _ }));
+              _;
+            },
+            MacroDef
+              { macroparams = []; macrobody = [ E { e = L literal; _ } ] } ) ->
+            add_constant_env id (sid, Lit literal) env;
+            super#visit_definition (env, ctx) x
+        | ( {
+              name =
+                EN
+                  (Id
+                    (id, { id_resolved = { contents = Some (_kind, sid) }; _ }));
               attrs;
               _;
             },
