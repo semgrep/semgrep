@@ -1,5 +1,9 @@
-# no need _build/ here, it's handled in .gitignore!
-# no need node_modules/ here, it's handled in js/.gitignore!
+# gitignore-like file for Codemap (see https://github.com/aryx/codemap)
+
+# No need _build/ here, it's handled in .gitignore :)
+# No need node_modules/ here, it's handled in js/.gitignore :)
+# This is far more flexible and powerful than the old skip_list.txt
+# way to skip files.
 
 # ocaml-tree-sitter generated code
 languages/**/Parse.ml
