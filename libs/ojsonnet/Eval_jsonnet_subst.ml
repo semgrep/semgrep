@@ -581,7 +581,7 @@ and eval_call env e0 (largs, args, _rargs) =
          * function; the function itself is still executed below
          * using the subst model.
          *)
-        Eval_jsonnet.eval_program e0_and_std
+        Eval_jsonnet_envir.eval_program e0_and_std
     | _ -> eval_expr env e0
   in
   match v0 with
