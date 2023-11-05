@@ -325,12 +325,6 @@ def ci(
                     start_scan_task, completed=100, description=start_scan_desc
                 )
 
-                connection_task = progress_bar.add_task(
-                    f"Fetching configuration from Semgrep Cloud Platform{at_url_maybe}"
-                )
-                scan_handler.fetch_and_init_scan_config(project_meta.to_json())
-                progress_bar.update(connection_task, completed=100)
-
                 product_names = [
                     PRODUCT_NAMES_MAP.get(p) or p for p in scan_handler.enabled_products
                 ]
