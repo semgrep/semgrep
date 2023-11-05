@@ -53,6 +53,7 @@ class ScanHandler:
             cli_version=out.Version(__VERSION__),
             unique_id=out.Uuid(self.local_id),
             requested_products=[],
+            dry_run=dry_run,
         )
         self.scan_response: Optional[out.ScanResponse] = None
         self.dry_run = dry_run
@@ -173,9 +174,6 @@ class ScanHandler:
         returns ignored list
         """
         state = get_state()
-        if self.dry_run:
-            logger.info(f"Would have sent POST request to create scan")
-            return
 
         request = out.ScanRequest(
             meta=out.RawJson(
@@ -188,6 +186,7 @@ class ScanHandler:
             project_metadata=project_metadata,
             project_config=project_config.to_CiConfigFromRepo(),
         ).to_json()
+
         logger.debug(f"Starting scan: {json.dumps(request, indent=4)}")
         response = state.app_session.post(
             f"{state.env.semgrep_url}/api/cli/scans",
