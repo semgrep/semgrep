@@ -263,13 +263,13 @@ class ScanHandler:
 
         scan_response = out.ScanResponse.from_json(response.json())
 
-        self.scan_id = scan_response.scan.id
-        self._deployment_id = scan_response.scan.deployment_id
-        self._deployment_name = scan_response.scan.deployment_name
+        self.scan_id = scan_response.info.id
+        self._deployment_id = scan_response.info.deployment_id
+        self._deployment_name = scan_response.info.deployment_name
 
         # we can do better here, but ok for now
         self._enabled_products = [
-            p.to_json_string() for p in scan_response.scan_config.enabled_products
+            p.to_json_string() for p in scan_response.info.enabled_products
         ]
 
     def report_failure(self, exit_code: int) -> None:
