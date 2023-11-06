@@ -30,15 +30,21 @@ jobs:
   get-sha:
     name: Get SHA for attaching Argo Workflow check
     runs-on: ubuntu-22.04
+    outputs:
+      sha: ${{ steps.get-sha.outputs.sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Get SHA
         id: get-sha
+        env:
+          BRANCH: "${{ github.event.inputs.branch }}"
         run: |
+          echo "Branch: $BRANCH"
           if [ "${{ github.event_name }}" = "pull_request" ]; then 
             echo "sha=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then 
+            git fetch origin $BRANCH
             SHA=$(git rev-parse $BRANCH)
             echo "sha=$SHA" >> "$GITHUB_OUTPUT"
           fi
@@ -52,12 +58,14 @@ jobs:
       - name: Trigger
         env:
           REPOSITORY: "${{ github.repository }}"
-          SHA: "${{ steps.get-sha.outputs.sha }}"
+          SHA: "${{ needs.get-sha.outputs.sha }}"
           RULESET: "p/default-v2"
           BASE_IMAGE: "returntocorp/semgrep:develop"
-          COMPARISON_IMAGE: "returntocorp/semgrep:${{ steps.setup-docker-tag.outputs.docker-tag }}"
-          TOKEN: "${{ secrets.ARGOCD_WORKFLOWS_TOKEN_DEV2 }}"
+          COMPARISON_IMAGE: "returntocorp/semgrep:${{ needs.setup-docker-tag.outputs.docker-tag }}"
+          TOKEN: "${{ secrets.ARGO_WORKFLOWS_TOKEN }}"
         run: |
-          curl -X POST https://argoworkflows-dev2.corp.r2c.dev/api/v1/events/security-research/semgrep-compare \
+          echo "Repository: $REPOSITORY"
+          echo "SHA: $SHA"
+          curl --fail-with-body -X POST https://argoworkflows-dev2.corp.r2c.dev/api/v1/events/security-research/semgrep-compare \
             -H "Authorization: Bearer $TOKEN" \
-            -d "{\"repository\": \"$REPOSITORY\", \"sha\": \"$SHA\", \"ruleset\": \"$RULESET\", \"container_image_base\": \"$BASE_IMAGE\", \"container_image_development\": \"COMPARISON_IMAGE\": \"$COMPARISON_IMAGE\"}"
+            -d "{\"repository\": \"$REPOSITORY\", \"sha\": \"$SHA\", \"ruleset\": \"$RULESET\", \"container_image_base\": \"$BASE_IMAGE\", \"container_image_development\": \"$COMPARISON_IMAGE\"}"
