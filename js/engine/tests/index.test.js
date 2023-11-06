@@ -45,6 +45,12 @@ describe("yaml parser", () => {
         .replaceAll("PRO", "OSS")
     );
     result["version"] = "<MASKED>";
+    // The fingerprint here is inconsistent across CI and locally.
+    // We don't know why. It appears to not be because of the OCaml translation,
+    // because the blakejs library was also inconsistent across platforms.
+    result["results"].map(
+      (match) => (match["extra"]["fingerprint"] = "<MASKED>")
+    );
     expect(result).toMatchSnapshot();
   });
   test("parses a pattern with pattern-regex", async () => {
@@ -60,6 +66,9 @@ describe("yaml parser", () => {
         .replaceAll("PRO", "OSS")
     );
     result["version"] = "<MASKED>";
+    result["results"].map(
+      (match) => (match["extra"]["fingerprint"] = "<MASKED>")
+    );
     expect(result).toMatchSnapshot();
   });
 });
