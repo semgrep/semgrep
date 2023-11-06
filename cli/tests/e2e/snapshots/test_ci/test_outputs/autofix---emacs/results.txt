@@ -22,10 +22,10 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
   environment - running in environment git, triggering event is unknown
 
   CONNECTION
-  Initializing scan ...Traceback (most recent call last):
-  File "/Users/jbergler/co/semgrep-cli/cli/src/semgrep/commands/ci.py", line 321, in ci
+  Initializing scan .. Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/ci.py", line 321, in ci
     scan_handler.start_scan(project_meta, project_config)
-  File "/Users/jbergler/co/semgrep-cli/cli/src/semgrep/app/scans.py", line 204, in start_scan
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/app/scans.py", line 203, in start_scan
     raise Exception(
 Exception: Failed to create a scan with given token and deployment_id.Please make sure they have been set correctly.API server at https://semgrep.dev returned this response: {"error":"The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again."}
 Could not start scan Failed to create a scan with given token and deployment_id.Please make sure they have been set correctly.API server at https://semgrep.dev returned this response: {"error":"The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again."}
