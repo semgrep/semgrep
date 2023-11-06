@@ -1,4 +1,0 @@
-Secrets: metadata overrides specified in validators were incorrectly applied on
-top of one another (on a per-rule basis), so that only the last was applied.
-Each update is now correctly applied independently to each finding based on the
-rule's validators.

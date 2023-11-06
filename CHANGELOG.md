@@ -6,6 +6,35 @@
 
 <!-- insertion point -->
 
+## [1.48.0](https://github.com/returntocorp/semgrep/releases/tag/v1.48.0) - 2023-11-06
+
+### Added
+
+- Matching: Matches with the same range but bindings in different locations
+  will now no longer deduplicate.
+
+  For instance, the pattern `$FUNC(..., $A, ...)` would produce only
+  one match on the target file:
+
+  ```
+  foo(true, true)
+  ```
+
+  because you would have two matches to the range of the call, and both
+  bindings of `$A` would be to `true`.
+
+  Now, the deduplication logic sees that the bindings of `$A` are in
+  different places, and thus should not be considered the same, and
+  produce two matches. (pa-3230)
+
+### Fixed
+
+- Fixed out of bounds list access error in Cargo.lock parser (sc-1072)
+- Secrets: metadata overrides specified in validators were incorrectly applied on
+  top of one another (on a per-rule basis), so that only the last was applied.
+  Each update is now correctly applied independently to each finding based on the
+  rule's validators. (scrt-231)
+
 ## [1.47.0](https://github.com/returntocorp/semgrep/releases/tag/v1.47.0) - 2023-11-01
 
 ### Added
