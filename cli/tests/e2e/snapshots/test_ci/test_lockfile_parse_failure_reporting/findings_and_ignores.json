@@ -604,6 +604,7 @@
     }
   ],
   "dependencies": {
+    "Pipfile.lock": [],
     "poetry.lock": [
       {
         "package": "badlib",
@@ -630,7 +631,6 @@
         "line_number": 18
       }
     ],
-    "Pipfile.lock": [],
     "yarn.lock": [
       {
         "package": "lodash",
