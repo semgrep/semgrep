@@ -1316,13 +1316,21 @@ def test_shallow_wrong_merge_base(
 
 @pytest.mark.osemfail
 def test_config_run(
-    run_semgrep: RunSemgrep, git_tmp_path_with_commit, snapshot, mock_autofix
+    run_semgrep: RunSemgrep,
+    git_tmp_path_with_commit,
+    snapshot,
+    mock_autofix,
+    requests_mock,
+    scan_config,
 ):
+    # This test seems to provide coverage over running `semgrep ci --config <registry thing>` while logged out
+    # Not actually sure who uses this, but its explicitly supported in code.
+    requests_mock.get("https://semgrep.dev/p/something", text=scan_config)
     result = run_semgrep(
         "p/something",
         options=["ci", "--no-suppress-errors"],
         strict=False,
-        assert_exit_code=None,
+        assert_exit_code=1,
         env={"SEMGREP_APP_TOKEN": ""},
         use_click_runner=True,  # TODO: probably because rely on some mocking
     )
