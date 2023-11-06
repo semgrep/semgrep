@@ -44,6 +44,7 @@ from semgrep.rule_lang import EmptySpan
 from semgrep.rule_lang import EmptyYamlException
 from semgrep.rule_lang import parse_config_preserve_spans
 from semgrep.rule_lang import Span
+from semgrep.rule_lang import validate_yaml
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.state import get_state
@@ -717,6 +718,7 @@ def parse_config_string(
     try:
         # we pretend it came from YAML so we can keep later code simple
         data = YamlTree.wrap(json.loads(contents), EmptySpan)
+        validate_yaml(data)
         return {config_id: data}
     except json.decoder.JSONDecodeError:
         pass

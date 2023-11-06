@@ -155,8 +155,8 @@ class AppSession(requests.Session):
             ),
         )
 
-        self.mount("https://", retry_adapter)
-        self.mount("http://", retry_adapter)
+        # self.mount("https://", retry_adapter)
+        # self.mount("http://", retry_adapter)
 
     def authenticate(self) -> None:
         # avoid circular imports in semgrep.state

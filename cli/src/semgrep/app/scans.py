@@ -214,6 +214,9 @@ class ScanHandler:
             )
 
         self.scan_response = out.ScanResponse.from_json(response.json())
+        logger.debug(
+            f"Scan started: {json.dumps(self.scan_response.to_json(), indent=4)}"
+        )
 
     def report_failure(self, exit_code: int) -> None:
         """
