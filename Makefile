@@ -71,7 +71,7 @@ build:
 	# OCaml compilation
 	$(MAKE) core
 	$(MAKE) copy-core-for-cli
-	$(MAKE) build-semgrep-jsoo
+	#$(MAKE) build-semgrep-jsoo
 	# Python setup
 	cd cli && pipenv install --dev
 	$(MAKE) -C cli build
