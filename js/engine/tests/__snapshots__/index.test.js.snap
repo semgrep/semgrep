@@ -62,7 +62,7 @@ exports[`yaml parser parses a pattern with pattern-regex 1`] = `
       },
       "extra": {
         "engine_kind": "OSS",
-        "fingerprint": "b6ba932ffd60cc34c6c6db6498d4c93e744ee6e74dfd056f2b2159e6ecb3762cec50ed049e7676a58f83d62c6167859c3bc7dbe0bea61ae73527f0500dbcd591_0",
+        "fingerprint": "<MASKED>",
         "is_ignored": false,
         "lines": "foo: bar",
         "message": "test",
@@ -160,7 +160,7 @@ exports[`yaml parser parses a simple pattern 1`] = `
       },
       "extra": {
         "engine_kind": "OSS",
-        "fingerprint": "35874dfca3d0cc4d0d5251f2a293aeb00cd1f27307aef3f069025cbf3542493966f011fe42a15d75bbca998f83939e72380f462f58e84b67876c1e1fb60ea74a_0",
+        "fingerprint": "<MASKED>",
         "is_ignored": false,
         "lines": "foo: bar",
         "message": "test",
