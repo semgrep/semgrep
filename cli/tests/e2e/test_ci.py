@@ -430,6 +430,12 @@ def complete_scan_mock(requests_mock, mocked_scan_id):
     )
 
 
+@pytest.fixture
+def mock_ci_api(start_scan_mock, upload_results_mock, complete_scan_mock):
+    # just for easier access to all mocks in tests that want them.
+    pass
+
+
 @pytest.fixture(params=[True, False], ids=["autofix", "noautofix"])
 def mock_autofix(request, mocker):
     mocker.patch.object(ScanHandler, "autofix", request.param)
@@ -1350,7 +1356,12 @@ def test_config_run(
 )
 @pytest.mark.osemfail
 def test_outputs(
-    git_tmp_path_with_commit, snapshot, format, mock_autofix, run_semgrep: RunSemgrep
+    mock_ci_api,
+    git_tmp_path_with_commit,
+    snapshot,
+    format,
+    mock_autofix,
+    run_semgrep: RunSemgrep,
 ):
     result = run_semgrep(
         options=["ci", "--no-suppress-errors", format],
