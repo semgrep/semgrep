@@ -32,44 +32,49 @@ describe("engine", () => {
   });
 });
 
+function executeSnapshotTest(engine, language, ruleFile, targetFile) {
+  const rulePath = path.resolve(`${__dirname}/${ruleFile}`);
+  const targetPath = path.resolve(`${__dirname}/${targetFile}`);
+
+  const result = JSON.parse(
+    engine
+      .execute(language, rulePath, `${__dirname}`, [targetPath])
+      .replaceAll("PRO", "OSS")
+  );
+  result["version"] = "<MASKED>";
+  // The fingerprint here is inconsistent across CI and locally.
+  // We don't know why. It appears to not be because of the OCaml translation,
+  // because the blakejs library was also inconsistent across platforms.
+  result["results"].map(
+    (match) => (match["extra"]["fingerprint"] = "<MASKED>")
+  );
+  expect(result).toMatchSnapshot();
+}
+
 describe("yaml parser", () => {
   test("parses a simple pattern", async () => {
     const engine = await enginePromise;
-    const rulePath = path.resolve(`${__dirname}/test-rule-yaml.json`);
-    const targetPath = path.resolve(`${__dirname}/test.yaml`);
-    const result = JSON.parse(
-      engine
-        .execute("yaml", rulePath, `${__dirname}`, [targetPath])
-        .replaceAll(rulePath, "test-rule-yaml.json")
-        .replaceAll(targetPath, "test.yaml")
-        .replaceAll("PRO", "OSS")
-    );
-    result["version"] = "<MASKED>";
-    // The fingerprint here is inconsistent across CI and locally.
-    // We don't know why. It appears to not be because of the OCaml translation,
-    // because the blakejs library was also inconsistent across platforms.
-    result["results"].map(
-      (match) => (match["extra"]["fingerprint"] = "<MASKED>")
-    );
-    expect(result).toMatchSnapshot();
+    executeSnapshotTest(engine, "yaml", "test-rule-yaml.json", "test.yaml");
   });
   test("parses a pattern with pattern-regex", async () => {
     const engine = await enginePromise;
-    const rulePath = path.resolve(`${__dirname}/test-rule-yaml-regex.json`);
-    const targetPath = path.resolve(`${__dirname}/test.yaml`);
-
-    const result = JSON.parse(
-      engine
-        .execute("yaml", rulePath, `${__dirname}`, [targetPath])
-        .replaceAll(rulePath, "test-rule-yaml.json")
-        .replaceAll(targetPath, "test.yaml")
-        .replaceAll("PRO", "OSS")
+    executeSnapshotTest(
+      engine,
+      "yaml",
+      "test-rule-yaml-regex.json",
+      "test.yaml"
     );
-    result["version"] = "<MASKED>";
-    result["results"].map(
-      (match) => (match["extra"]["fingerprint"] = "<MASKED>")
+  });
+  test("interpolates metavariables in rule message", async () => {
+    const engine = await enginePromise;
+    const python = require("../../languages/python/dist/index.cjs");
+    engine.addParser(await python.ParserFactory());
+    executeSnapshotTest(
+      engine,
+      "python",
+      "test-interpolate-metavars.json",
+      "test.py"
     );
-    expect(result).toMatchSnapshot();
   });
 });
 
