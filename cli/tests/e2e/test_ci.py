@@ -29,8 +29,6 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
 from semgrep.app.scans import ScanCompleteResult
 from semgrep.app.scans import ScanHandler
-from semgrep.config_resolver import ConfigFile
-from semgrep.config_resolver import ConfigLoader
 from semgrep.error_handler import ErrorHandler
 from semgrep.meta import GithubMeta
 from semgrep.meta import GitlabMeta
@@ -358,15 +356,10 @@ def scan_config():
 
 
 @pytest.fixture(autouse=True)
-def automocks(mocker, scan_config):
+def automocks(mocker, mock_ci_api):
     """
     Necessary patches to run `semgrep ci` tests
     """
-    mocker.patch.object(
-        ConfigLoader,
-        "_download_config_from_url",
-        side_effect=lambda url: ConfigFile(None, scan_config, url),
-    )
     mocker.patch.object(
         GitMeta,
         "commit_timestamp",
@@ -380,7 +373,14 @@ def mocked_scan_id() -> int:
 
 
 @pytest.fixture
-def start_scan_mock(requests_mock, scan_config, mocked_scan_id):
+def enable_dependency_query() -> bool:
+    return False
+
+
+@pytest.fixture
+def start_scan_mock(
+    requests_mock, scan_config, mocked_scan_id, enable_dependency_query
+):
     start_scan_response = out.ScanResponse.from_json(
         {
             "info": {
@@ -397,11 +397,7 @@ def start_scan_mock(requests_mock, scan_config, mocked_scan_id):
                 ],
             },
             "engine_params": {
-                "autofix": False,
-                "ignored_files": [],
-                "deepsemgrep": False,
-                "dependency_query": True,
-                "generic_slow_rollout": False,
+                "dependency_query": enable_dependency_query,
             },
         }
     )
@@ -1792,6 +1788,7 @@ def test_git_failure_error_handler(
     ],
     ids=["config"],
 )
+@pytest.mark.parametrize("enable_dependency_query", [True])
 @pytest.mark.osemfail
 def test_query_dependency(
     git_tmp_path_with_commit,
@@ -1854,19 +1851,19 @@ def test_metrics_enabled(
     [
         dedent(
             """
-    rules:
-      - id: supply-chain1
-        message: "found a dependency"
-        languages: [python]
-        severity: ERROR
-        r2c-internal-project-depends-on:
-          namespace: pypi
-          package: python-dateutil
-          version: == 2.8.2
-        metadata:
-          dev.semgrep.actions: [block]
-          sca-kind: upgrade-only
-    """
+            rules:
+              - id: supply-chain1
+                message: "found a dependency"
+                languages: [python]
+                severity: ERROR
+                r2c-internal-project-depends-on:
+                    namespace: pypi
+                    package: python-dateutil
+                    version: == 2.8.2
+                metadata:
+                    dev.semgrep.actions: [block]
+                    sca-kind: upgrade-only
+            """
         ).lstrip()
     ],
     ids=["config"],
