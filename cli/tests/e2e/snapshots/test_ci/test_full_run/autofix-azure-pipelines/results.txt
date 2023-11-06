@@ -79,8 +79,7 @@ BUILD_BUILDID="some_id" BUILD_REPOSITORY_URI="https://github.com/project_name/pr
                 pull_request
 
   CONNECTION
-  Reporting start of scan for deployment_name (scan_id=<MagicMock name='post()…
-  Fetching configuration from Semgrep Cloud Platform
+  Initializing scan (deployment=org_name, scan_id=35976)
   Enabled products: Code, Supply Chain
 
 ┌─────────────┐
@@ -109,6 +108,6 @@ CI scan completed successfully.
     https://semgrep.dev/orgs/org_name/findings
     https://semgrep.dev/orgs/org_name/supply-chain
   Has findings for blocking rules so exiting with code 1
-  semgrep.dev is suggesting a non-zero exit code <MASKED>
+  semgrep.dev is suggesting a non-zero exit code (Test Reason)
 
 === end of stderr - plain

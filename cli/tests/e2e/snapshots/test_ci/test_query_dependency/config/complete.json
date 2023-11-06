@@ -1,7 +1,7 @@
 {
   "exit_code": 1,
   "stats": {
-    "findings": 10,
+    "findings": 7,
     "errors": [],
     "total_time": 0.5,
     "unsupported_exts": {
@@ -18,15 +18,6 @@
     },
     "engine_requested": "OSS"
   },
-  "dependency_parser_errors": [
-    {
-      "path": "Pipfile.lock",
-      "parser": "jsondoc",
-      "reason": "expected one of ['\"', '-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?', '[', 'false', 'null', 'true', '{']",
-      "line": 2,
-      "col": 1,
-      "text": "invalid"
-    }
-  ],
+  "dependency_parser_errors": [],
   "task_id": "1234"
 }
