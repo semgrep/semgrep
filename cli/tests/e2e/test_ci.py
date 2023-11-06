@@ -1159,9 +1159,7 @@ def test_shallow_wrong_merge_base(
     git_tmp_path,
     tmp_path,
     monkeypatch,
-    start_scan_mock,
     upload_results_mock,
-    complete_scan_mock,
 ):
     """ """
     commits = defaultdict(list)
@@ -1207,6 +1205,7 @@ def test_shallow_wrong_merge_base(
         encoding="utf-8",
     )
     print(git_log.stdout)
+
     subprocess.run(["git", "checkout", "bar"])
     git_log = subprocess.run(
         ["git", "--no-pager", "log", "--oneline", "--decorate", "--graph"],
@@ -1282,9 +1281,6 @@ def test_shallow_wrong_merge_base(
         result.as_snapshot(
             mask=[
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
-                re.compile(
-                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
-                ),
             ]
         ),
         "bad_results.txt",
@@ -1307,9 +1303,6 @@ def test_shallow_wrong_merge_base(
         result.as_snapshot(
             mask=[
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
-                re.compile(
-                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
-                ),
             ]
         ),
         "results.txt",
@@ -1334,13 +1327,7 @@ def test_config_run(
         use_click_runner=True,  # TODO: probably because rely on some mocking
     )
     snapshot.assert_match(
-        result.as_snapshot(
-            mask=[
-                re.compile(
-                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
-                ),
-            ]
-        ),
+        result.as_snapshot(),
         "results.txt",
     )
 
@@ -1352,7 +1339,6 @@ def test_config_run(
 )
 @pytest.mark.osemfail
 def test_outputs(
-    mock_ci_api,
     git_tmp_path_with_commit,
     snapshot,
     format,
@@ -1369,13 +1355,7 @@ def test_outputs(
         use_click_runner=True,  # TODO: probably because rely on some mocking
     )
     snapshot.assert_match(
-        result.as_snapshot(
-            mask=[
-                re.compile(
-                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
-                ),
-            ]
-        ),
+        result.as_snapshot(),
         "results.txt",
     )
 
@@ -1386,22 +1366,15 @@ def test_nosem(
     git_tmp_path_with_commit, snapshot, mock_autofix, nosem, run_semgrep: RunSemgrep
 ):
     result = run_semgrep(
-        "p/something",
         options=["ci", "--no-suppress-errors", nosem],
         target_name=None,
         strict=False,
-        assert_exit_code=None,
-        env={"SEMGREP_APP_TOKEN": ""},
+        assert_exit_code=1,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
         use_click_runner=True,  # TODO: probably because rely on some mocking
     )
     snapshot.assert_match(
-        result.as_snapshot(
-            mask=[
-                re.compile(
-                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
-                ),
-            ]
-        ),
+        result.as_snapshot(),
         "output.txt",
     )
 
@@ -1557,32 +1530,12 @@ def test_fail_start_scan_error_handler(
     mock_send.assert_called_once_with(mocker.ANY, 2)
 
 
+@pytest.mark.parametrize("scan_config", [BAD_CONFIG], ids=["bad_config"])
 @pytest.mark.osemfail
-def test_bad_config(
-    run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit, requests_mock
-):
+def test_bad_config(run_semgrep: RunSemgrep, git_tmp_path_with_commit):
     """
     Test that bad rules has exit code > 1
     """
-    start_scan_response = out.ScanResponse.from_json(
-        {
-            "info": {
-                "id": 123,
-                "enabled_products": ["sast", "sca"],
-                "deployment_id": DEPLOYMENT_ID,
-                "deployment_name": "org_name",
-            },
-            "config": {
-                "rules": YAML(typ="safe").load(BAD_CONFIG),
-                "triage_ignored_syntactic_ids": [],
-                "triage_ignored_match_based_ids": [],
-            },
-            "engine_params": {},
-        }
-    )
-    requests_mock.post(
-        "https://semgrep.dev/api/cli/scans", json=start_scan_response.to_json()
-    )
     result = run_semgrep(
         options=["ci", "--no-suppress-errors"],
         target_name=None,
@@ -1594,32 +1547,14 @@ def test_bad_config(
     assert "Invalid rule schema" in result.stderr
 
 
+@pytest.mark.parametrize("scan_config", [BAD_CONFIG], ids=["bad_config"])
 @pytest.mark.osemfail
 def test_bad_config_error_handler(
-    run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit, requests_mock
+    run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit
 ):
     """
     Test that bad rules with --suppres-errors returns exit code 0
     """
-    start_scan_response = out.ScanResponse.from_json(
-        {
-            "info": {
-                "id": 123,
-                "enabled_products": ["sast", "sca"],
-                "deployment_id": DEPLOYMENT_ID,
-                "deployment_name": "org_name",
-            },
-            "config": {
-                "rules": YAML(typ="safe").load(BAD_CONFIG),
-                "triage_ignored_syntactic_ids": [],
-                "triage_ignored_match_based_ids": [],
-            },
-            "engine_params": {},
-        }
-    )
-    requests_mock.post(
-        "https://semgrep.dev/api/cli/scans", json=start_scan_response.to_json()
-    )
     mock_send = mocker.spy(ErrorHandler, "send")
     result = run_semgrep(
         options=["ci"],
@@ -1638,9 +1573,7 @@ def test_fail_scan_findings(
     run_semgrep: RunSemgrep,
     mocker,
     git_tmp_path_with_commit,
-    start_scan_mock,
     upload_results_mock,
-    complete_scan_mock,
 ):
     """
     Test failure with findings has exit code == 1.
@@ -1662,9 +1595,7 @@ def test_fail_scan_findings(
 
 
 # TODO: pass but for bad reasons I think, because we just don't handle the CLI args
-def test_fail_finish_scan(
-    run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit, start_scan_mock
-):
+def test_fail_finish_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     """
     Test failure to send findings has exit code > 1
     """
@@ -1684,8 +1615,6 @@ def test_backend_exit_code(
     run_semgrep: RunSemgrep,
     mocker,
     git_tmp_path_with_commit,
-    start_scan_mock,
-    complete_scan_mock,
 ):
     """
     Test backend sending non-zero exit code on complete causes exit 1
@@ -1829,9 +1758,6 @@ def test_query_dependency(
 def test_metrics_enabled(
     run_semgrep: RunSemgrep,
     mocker,
-    start_scan_mock,
-    upload_results_mock,
-    complete_scan_mock,
 ):
     mock_send = mocker.patch.object(Metrics, "_post_metrics")
     run_semgrep(
@@ -1980,9 +1906,6 @@ def test_enabled_products(
     run_semgrep: RunSemgrep,
     mocker,
     git_tmp_path_with_commit,
-    start_scan_mock,
-    upload_results_mock,
-    complete_scan_mock,
 ):
     """
     Verify that for any given product, there is a valid output
