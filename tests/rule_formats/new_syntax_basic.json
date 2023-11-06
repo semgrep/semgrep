@@ -1,0 +1,11 @@
+{
+  "rules": [
+    {
+      "id": "x",
+      "message": "nope",
+      "languages": ["python"],
+      "severity": "WARNING",
+      "match": "foo(...)"
+    }
+  ]
+}

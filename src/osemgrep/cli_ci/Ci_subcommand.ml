@@ -179,6 +179,7 @@ let scan_config_and_rules_from_deployment ~dry_run
       unique_id = Uuidm.v `V4;
       (* TODO: should look at conf.secrets, conf.sca, conf.code, etc. *)
       requested_products = [];
+      dry_run = false;
     }
   in
   (* TODO:
