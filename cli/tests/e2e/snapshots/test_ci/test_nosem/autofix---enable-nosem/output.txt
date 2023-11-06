@@ -22,35 +22,35 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
   environment - running in environment git, triggering event is unknown
 No mock address: GET https://semgrep.dev/p/something
 Traceback (most recent call last):
-  File "/Users/jbergler/co/semgrep-cli/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
     func(*args, **kwargs)
-  File "/Users/jbergler/co/semgrep-cli/cli/src/semgrep/commands/ci.py", line 431, in ci
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/ci.py", line 431, in ci
     ) = semgrep.run_scan.run_scan(
-  File "/Users/jbergler/co/semgrep-cli/cli/src/semgrep/run_scan.py", line 391, in run_scan
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/run_scan.py", line 391, in run_scan
     configs_obj, config_errors = get_config(
-  File "/Users/jbergler/co/semgrep-cli/cli/src/semgrep/config_resolver.py", line 863, in get_config
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 863, in get_config
     config, errors = Config.from_config_list(config_strs, project_url)
-  File "/Users/jbergler/co/semgrep-cli/cli/src/semgrep/config_resolver.py", line 409, in from_config_list
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 409, in from_config_list
     resolved_config = resolve_config(config, project_url)
-  File "/Users/jbergler/co/semgrep-cli/cli/src/semgrep/config_resolver.py", line 340, in resolve_config
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 340, in resolve_config
     config = parse_config_files(config_loader.load_config())
-  File "/Users/jbergler/co/semgrep-cli/cli/src/semgrep/config_resolver.py", line 158, in load_config
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 158, in load_config
     return [self._download_config()]
-  File "/Users/jbergler/co/semgrep-cli/cli/src/semgrep/config_resolver.py", line 179, in _download_config
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 179, in _download_config
     return self._download_config_from_url(self._config_path)
-  File "/Users/jbergler/co/semgrep-cli/cli/src/semgrep/config_resolver.py", line 199, in _download_config_from_url
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 199, in _download_config_from_url
     resp = app_session.get(url, headers={"Accept": "application/json"})
-  File "/Users/jbergler/.local/share/virtualenvs/cli-rmjhaaGR/lib/python3.10/site-packages/requests/sessions.py", line 602, in get
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/requests/sessions.py", line 602, in get
     return self.request("GET", url, **kwargs)
-  File "/Users/jbergler/co/semgrep-cli/cli/src/semgrep/app/session.py", line 190, in request
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/app/session.py", line 190, in request
     response = super().request(*args, **kwargs)
-  File "/Users/jbergler/.local/share/virtualenvs/cli-rmjhaaGR/lib/python3.10/site-packages/requests/sessions.py", line 589, in request
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/requests/sessions.py", line 589, in request
     resp = self.send(prep, **send_kwargs)
-  File "/Users/jbergler/.local/share/virtualenvs/cli-rmjhaaGR/lib/python3.10/site-packages/requests_mock/mocker.py", line 185, in _fake_send
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/requests_mock/mocker.py", line 185, in _fake_send
     return _original_send(session, request, **kwargs)
-  File "/Users/jbergler/.local/share/virtualenvs/cli-rmjhaaGR/lib/python3.10/site-packages/requests/sessions.py", line 703, in send
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/requests/sessions.py", line 703, in send
     r = adapter.send(request, **kwargs)
-  File "/Users/jbergler/.local/share/virtualenvs/cli-rmjhaaGR/lib/python3.10/site-packages/requests_mock/adapter.py", line 261, in send
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/requests_mock/adapter.py", line 261, in send
     raise exceptions.NoMockAddress(request)
 requests_mock.exceptions.NoMockAddress: No mock address: GET https://semgrep.dev/p/something
 
