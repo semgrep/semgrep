@@ -26,6 +26,7 @@
    parser_json.menhir parser_json.ast_generic
    ; no tree_sitter
    parser_scala.recursive_descent parser_scala.ast_generic
+   parser_yaml.ast_generic
    ; no menhir
    parser_bash.tree_sitter parser_bash.ast_generic
    parser_dockerfile.tree_sitter parser_dockerfile.ast_generic
@@ -49,7 +50,7 @@
    parser_promql.ast_generic
    parser_protobuf.ast_generic
 
-   ; no ast, directoy to generic AST
+   ; no ast, directly to generic AST
    tree-sitter-to-generic
  )
 )
