@@ -15,6 +15,7 @@ type t = {
    * in textual reports) or for tools (e.g., the playground).
    *)
   skipped_rules : Rule.invalid_rule_error list;
+  rules_with_targets : Rule.rule list;
   (* may contain skipped_target info *)
   extra : Core_profiling.t Core_profiling.debug_info;
   explanations : Matching_explanation.t list option;

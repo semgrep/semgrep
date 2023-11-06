@@ -483,6 +483,14 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     in
     Profiler.stop_ign profiler ~name:"total_time";
 
+    let rules_with_targets =
+      match exn_and_matches with
+      | Ok r ->
+          r.rules_with_targets
+          |> Common.map (fun (rv : Rule.rule) -> Rule_ID.to_string (fst rv.id))
+      | _ -> []
+    in
+
     if Metrics_.is_enabled () then (
       Metrics_.add_errors cli_output.errors;
       Metrics_.add_rules_hashes_and_rules_profiling ?profiling:res.core.time
@@ -509,7 +517,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
             skipped_groups ));
     Logs.app (fun m ->
         m "Ran %s on %s: %s."
-          (String_utils.unit_str (List.length filtered_rules) "rule")
+          (String_utils.unit_str (List.length rules_with_targets) "rule")
           (String_utils.unit_str (List.length cli_output.paths.scanned) "file")
           (String_utils.unit_str (List.length cli_output.results) "finding"));
 

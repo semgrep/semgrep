@@ -155,7 +155,7 @@ let prepare_config_for_core_scan (config : Core_scan_config.t)
     let target_mappings =
       x.targets
       |> Common.map (fun (path : Fpath.t) : Input_to_core_t.target ->
-             { path = !!path; analyzer = x.xlang })
+             { path = !!path; analyzer = x.xlang; products = Product.all })
     in
     (target_mappings, x.rules)
   in
@@ -243,6 +243,10 @@ let mk_scan_func_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
      See https://www.notion.so/r2cdev/Osemgrep-scanning-algorithm-5962232bfd74433ba50f97c86bd1a0f3
   *)
   let lang_jobs = split_jobs_by_language all_rules all_targets in
+  let rules_with_targets =
+    List.concat_map (fun { Lang_job.rules; _ } -> rules) lang_jobs
+    |> Common.uniq_by ( == )
+  in
   Logs.app (fun m ->
       m "%a"
         (fun ppf () ->
@@ -267,6 +271,7 @@ let mk_scan_func_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
           res with
           errors = rule_errors @ res.errors;
           skipped_rules = invalid_rules @ res.skipped_rules;
+          rules_with_targets;
         }
       in
 

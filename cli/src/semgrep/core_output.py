@@ -9,6 +9,7 @@ parsing and interpreting the semgrep-core profiling information).
 The precise type of the response from semgrep-core is specified in
 semgrep_interfaces/semgrep_output_v1.atd
 """
+import copy
 import dataclasses
 from dataclasses import replace
 from typing import Dict
@@ -174,6 +175,7 @@ def core_matches_to_rule_matches(
 
         metadata = rule.metadata
         if match.extra.metadata:
+            metadata = copy.deepcopy(metadata)
             metadata.update(match.extra.metadata.value)
 
         if match.extra.rendered_fix is not None:

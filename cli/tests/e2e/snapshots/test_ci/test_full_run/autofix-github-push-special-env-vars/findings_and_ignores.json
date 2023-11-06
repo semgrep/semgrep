@@ -575,13 +575,12 @@
   "renamed_paths": [],
   "rule_ids": [
     "eqeq-bad",
-    "eqeq-five",
     "eqeq-four",
-    "abceversion1",
     "taint-test",
+    "supply-chain3",
+    "eqeq-five",
     "supply-chain1",
-    "supply-chain2",
-    "supply-chain3"
+    "supply-chain2"
   ],
   "contributions": [
     {

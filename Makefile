@@ -225,6 +225,25 @@ core-test-e2e:
 test-jsoo: build-semgrep-jsoo-debug
 	$(MAKE) -C js test
 
+# Test the compatibility with the main branch of semgrep-proprietary
+# in a separate work tree.
+.PHONY: pro
+pro:
+	test -L semgrep-proprietary || ln -s ../semgrep-proprietary .
+	@if ! test -e semgrep-proprietary; then \
+	  echo "** Please fix the symlink 'semgrep-proprietary'."; \
+	  echo "** Make it point to your semgrep-proprietary repo."; \
+	  exit 1; \
+	fi
+	set -eu && \
+	worktree_parent=$$(pwd)/.. && \
+	commit=$$(git rev-parse --short HEAD) && \
+	cd semgrep-proprietary && \
+	./scripts/check-compatibility \
+	  --worktree "$$worktree_parent"/semgrep-pro-compat \
+	  --semgrep-commit "$$commit" \
+	  --pro-commit origin/develop
+
 ###############################################################################
 # External dependencies installation targets
 ###############################################################################
@@ -243,7 +262,7 @@ install-deps-for-semgrep-core: semgrep.opam
 	&& ./configure \
 	&& ./scripts/install-tree-sitter-lib
 	# Install OCaml dependencies (globally) from *.opam files.
-	LIBRARY_PATH="/opt/homebrew/lib" opam install -y --deps-only ./ ./libs/ocaml-tree-sitter-core
+	opam install -y --deps-only ./ ./libs/ocaml-tree-sitter-core
 
 # This will fail if semgrep.opam isn't up-to-date (in git),
 # and dune isn't installed yet. You can always install dune with
@@ -274,7 +293,7 @@ install-deps: install-deps-for-semgrep-core
 # Here is why we need those external packages to compile semgrep-core:
 # - pcre-dev: for ocaml-pcre now used in semgrep-core
 # - gmp-dev: for osemgrep and its use of cohttp
-ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev
+ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev
 
 # This target is used in our Dockerfile and a few GHA workflows.
 # There are pros and cons of having those commands here instead
@@ -309,6 +328,10 @@ install-deps-ALPINE-for-pysemgrep:
 # -------------------------------------------------
 # Ubuntu
 # -------------------------------------------------
+UBUNTU_DEPS=pkg-config libgmp-dev libpcre3-dev
+
+install-deps-UBUNTU-for-semgrep-core:
+	apt-get install -y $(UBUNTU_DEPS)
 
 # -------------------------------------------------
 # macOS (brew)
@@ -320,7 +343,7 @@ install-deps-ALPINE-for-pysemgrep:
 # - pkg-config?
 # - coreutils?
 # - gettext?
-BREW_DEPS=pcre gmp pkg-config coreutils gettext libev
+BREW_DEPS=pcre gmp pkg-config coreutils gettext
 
 # see also scripts/osx-setup-for-release.sh that adjust those
 # external packages to force static-linking
@@ -536,6 +559,6 @@ check2:
 
 # see https://github.com/aryx/codemap for information on codemap
 visual:
-	codemap -screen_size 3 -filter pfff -efuns_client efuns_client -emacs_client /dev/null .
+	codemap -screen_size 3 -filter semgrep -efuns_client efuns_client -emacs_client /dev/null .
 visual2:
-	codemap -screen_size 3 -filter pfff -efuns_client efuns_client -emacs_client /dev/null src
+	codemap -screen_size 3 -filter semgrep -efuns_client efuns_client -emacs_client /dev/null src

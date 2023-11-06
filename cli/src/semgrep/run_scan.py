@@ -41,6 +41,7 @@ from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
 from semgrep.core_runner import CoreRunner
 from semgrep.core_runner import get_contributions
+from semgrep.core_runner import Plan
 from semgrep.engine import EngineType
 from semgrep.error import FilesNotFoundError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
@@ -113,6 +114,16 @@ def get_file_ignore() -> FileIgnore:
     return file_ignore
 
 
+def file_ignore_to_ignore_profiles(file_ignore: FileIgnore) -> Dict[str, FileIgnore]:
+    # TODO: This pattern encodes the default Targeting Profiles
+    # of .semgrepignore. Don't hardcode this like it is.
+    return {
+        out.SAST().kind: file_ignore,
+        out.SCA().kind: file_ignore,
+        out.Secrets().kind: FileIgnore(file_ignore.base_path, frozenset()),
+    }
+
+
 def remove_matches_in_baseline(
     head_matches_by_rule: RuleMatchMap,
     baseline_matches_by_rule: RuleMatchMap,
@@ -168,13 +179,13 @@ def run_rules(
     OutputExtra,
     Dict[str, List[FoundDependency]],
     List[DependencyParserError],
-    int,
+    List[Plan],
 ]:
     if not target_mode_config:
         target_mode_config = TargetModeConfig.whole_scan()
 
     cli_ux = get_state().get_cli_ux_flavor()
-    num_executed_rules = scan_report.print_scan_status(
+    plans = scan_report.print_scan_status(
         filtered_rules,
         target_manager,
         target_mode_config,
@@ -285,7 +296,7 @@ def run_rules(
         output_extra,
         dependencies,
         dependency_parser_errors,
-        num_executed_rules,
+        plans,
     )
 
 
@@ -346,8 +357,9 @@ def run_scan(
     Collection[out.MatchSeverity],
     Dict[str, List[FoundDependency]],
     List[DependencyParserError],
-    int,
     out.Contributions,
+    int,  # Executed Rule Count
+    int,  # Missed Rule Count
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
 
@@ -385,6 +397,8 @@ def run_scan(
     # We determine if SAST / SCA is enabled based on the config str
     with_code_rules = configs_obj.with_code_rules
     with_supply_chain = configs_obj.with_supply_chain
+    # TODO: handle de-duplication for pro-rules
+    missed_rule_count = configs_obj.missed_rule_count
 
     # Metrics send part 1: add environment information
     # Must happen after configs are resolved because it is determined
@@ -465,7 +479,7 @@ def run_scan(
             respect_rule_paths=respect_rule_paths,
             baseline_handler=baseline_handler,
             allow_unknown_extensions=not skip_unknown_extensions,
-            file_ignore=get_file_ignore(),
+            ignore_profiles=file_ignore_to_ignore_profiles(get_file_ignore()),
         )
     except FilesNotFoundError as e:
         raise SemgrepError(e)
@@ -519,7 +533,7 @@ def run_scan(
         output_extra,
         dependencies,
         dependency_parser_errors,
-        num_executed_rules,
+        plans,
     ) = run_rules(
         filtered_rules,
         target_manager,
@@ -595,7 +609,9 @@ def run_scan(
                         target_strings=baseline_target_strings,
                         respect_git_ignore=respect_git_ignore,
                         allow_unknown_extensions=not skip_unknown_extensions,
-                        file_ignore=get_file_ignore(),
+                        ignore_profiles=file_ignore_to_ignore_profiles(
+                            get_file_ignore()
+                        ),
                     )
 
                     (
@@ -604,7 +620,7 @@ def run_scan(
                         _,
                         _,
                         _,
-                        _,
+                        _plans,
                     ) = run_rules(
                         # only the rules that had a match
                         [
@@ -658,6 +674,10 @@ def run_scan(
     renamed_targets = set(
         baseline_handler.status.renamed.values() if baseline_handler else []
     )
+    executed_rule_count = sum(
+        max(0, len(plan.rules) - len(plan.unused_rules)) for plan in plans
+    )
+
     return (
         filtered_matches_by_rule.kept,
         semgrep_errors,
@@ -669,8 +689,9 @@ def run_scan(
         shown_severities,
         dependencies,
         dependency_parser_errors,
-        num_executed_rules,
         contributions,
+        executed_rule_count,
+        missed_rule_count,
     )
 
 
@@ -704,6 +725,7 @@ def run_scan_and_return_json(
         profiler,
         output_extra,
         shown_severities,
+        _,
         _,
         _,
         _,

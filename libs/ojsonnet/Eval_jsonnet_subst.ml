@@ -1,30 +1,63 @@
-open Core_jsonnet
+(* Sophia Roshal
+ *
+ * Copyright (C) 2023 Semgrep Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * LICENSE for more details.
+ *)
 open Common
+open Core_jsonnet
+open Eval_jsonnet_common
 module V = Value_jsonnet
 module A = AST_jsonnet
 module J = JSON
 
-exception Error of string * Tok.t
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Jsonnet evaluator following the substitution model from the spec.
+ *
+ * This is far slower than Eval_jsonnet.ml, but it is also more correct
+ * especially for programs using self and super.
+ *
+ * TODO: lots of duplication with Eval_jsonnet. It would be great to
+ * factorize (need to use a functor?)
+ *)
 
-type cmp = Inf | Eq | Sup
+(*****************************************************************************)
+(* Standard library *)
+(*****************************************************************************)
 
 (*Creates std so that we can add it to the environment when we switch back to
   * environment model for handling standard library functions
 *)
 let pre_std = lazy (Std_jsonnet.get_std_jsonnet ())
 
-(* This is an arbitrary path, used as a placeholder, since we aren't desugaring from a file *)
+(* This is an arbitrary path, used as a placeholder, since we aren't
+ * desugaring from a file *)
 let path =
   match Fpath.of_string "../" with
   | Ok p -> p
   | Error _ -> failwith ""
 
 let std = lazy (Desugar_jsonnet.desugar_program path Lazy.(force pre_std))
-let fk = Tok.unsafe_fake_tok ""
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
 let fake_self = IdSpecial (Self, Tok.unsafe_fake_tok "self")
 let fake_super = IdSpecial (Super, Tok.unsafe_fake_tok "super")
 
-let is_imp_std s =
+(* TODO: unused? *)
+let _is_imp_std s =
   s = "type" || s = "primitiveEquals" || s = "length" || s = "makeArray"
   || s = "filter" || s = "objectHasEx"
 
@@ -33,39 +66,6 @@ let freshvar =
   fun () ->
     incr store;
     ("?tmp" ^ string_of_int !store, fk)
-
-let std_type (v : V.value_) : string =
-  match v with
-  | V.Primitive (Null _) -> "null"
-  | V.Primitive (Bool _) -> "boolean"
-  | V.Primitive (Double _) -> "number"
-  | V.Primitive (Str _) -> "string"
-  | V.Object _ -> "object"
-  | V.Array _ -> "array"
-  | V.Lambda _ -> "function"
-
-let std_primivite_equals (v : V.value_) (v' : V.value_) : bool =
-  match (v, v') with
-  | Primitive p, Primitive p' -> (
-      match (p, p') with
-      (* alt: use deriving and Primitive.eq *)
-      | Null _, Null _ -> true
-      | Bool (b, _), Bool (b', _) -> b =:= b'
-      | Str (s, _), Str (s', _) -> s = s'
-      | Double (f, _), Double (f', _) -> f =*= f'
-      | Null _, _
-      | Bool _, _
-      | Str _, _
-      | Double _, _ ->
-          false)
-  (* Should we raise an exn if one of the value is not a primitive?
-   * No, the spec seems to not restrict what v and v' can be.
-   *)
-  | _else_ -> false
-
-let error tk s =
-  (* TODO? if Parse_info.is_fake tk ... *)
-  raise (Error (s, tk))
 
 (* Converts field names that have been evaluated into expressions *)
 let vfld_name_to_fld_name fld_name =
@@ -91,22 +91,6 @@ let vobj_to_obj l asserts fields r =
   in
   O (l, Object (asserts, new_fields), r)
 
-let logger = Logging.get_logger [ __MODULE__ ]
-
-let log_call str tk =
-  logger#trace "calling %s at %s" str (Tok.stringpos_of_tok tk)
-
-let int_to_cmp = function
-  | -1 -> Inf
-  | 0 -> Eq
-  | 1 -> Sup
-  (* all the OCaml Xxx.compare should return only -1, 0, or 1 *)
-  | _else_ -> assert false
-
-let sv e =
-  let s = V.show_value_ e in
-  if String.length s > 900 then Str.first_chars s 900 ^ "..." else s
-
 let rec bind_list_contains binds id =
   match binds with
   | B ((name, _), _, _) :: t ->
@@ -122,6 +106,10 @@ let rec parameter_list_contains parameters id =
 let eval_bracket ofa (v1, v2, v3) =
   let v2 = ofa v2 in
   (v1, v2, v3)
+
+(*****************************************************************************)
+(* Subst *)
+(*****************************************************************************)
 
 (* This implements substitution for variables *)
 let rec substitute id sub expr =
@@ -324,9 +312,15 @@ let rec substitute_kw kw sub expr =
   | Error (tk, e) -> Error (tk, substitute_kw kw sub e)
   | ExprTodo ((_s, _tk), _ast_expr) -> ExprTodo ((_s, _tk), _ast_expr)
 
-(*TODO*)
+(*****************************************************************************)
+(* eval_expr *)
+(*****************************************************************************)
 
-let rec eval_expr expr =
+(* Note that we pass an environment here, but we just use its depth field
+ * for debugging purpose. We do not use its locals field; we use substitution
+ * to handle locals, not the environment.
+ *)
+let rec eval_expr env expr =
   match expr with
   | L v ->
       let prim =
@@ -350,7 +344,7 @@ let rec eval_expr expr =
       in
       Array (l, elts, r)
   | Lambda v -> Lambda v
-  | O v -> eval_obj_inside v
+  | O v -> eval_obj_inside env v
   | Id (name, tk) -> error tk ("trying to evaluate just a variable: " ^ name)
   | IdSpecial (_, tk) -> error tk "evaluating just a keyword"
   | Call
@@ -358,7 +352,7 @@ let rec eval_expr expr =
            (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, [ meth ], _))), _))
          as e0),
         (l, args, r) ) ->
-      eval_std_method e0 meth (l, args, r)
+      eval_std_method env e0 meth (l, args, r)
   | Local (_tlocal, binds, _tsemi, e) ->
       let new_e =
         List.fold_left
@@ -366,10 +360,10 @@ let rec eval_expr expr =
             substitute name (Local (_tlocal, binds, _tsemi, e')) e_1)
           e binds
       in
-      eval_expr new_e
+      eval_expr env new_e
   | ArrayAccess (v1, v2) -> (
-      let e = eval_expr v1 in
-      let l, index, _r = (eval_bracket eval_expr) v2 in
+      let e = eval_expr env v1 in
+      let l, index, _r = (eval_bracket (eval_expr env)) v2 in
       match (e, index) with
       | Array (_l, arr, _r), Primitive (Double (f, tkf)) ->
           if Float.is_integer f then
@@ -379,10 +373,20 @@ let rec eval_expr expr =
                 error tkf (spf "negative value for array index: %s" (sv index))
             | _ when i >= 0 && i < Array.length arr ->
                 let ei = arr.(i) in
-                evaluate_lazy_value_ ei
+                evaluate_lazy_value_ env ei
             | _else_ ->
                 error tkf (spf "Out of bound for array index: %s" (sv index))
           else error tkf (spf "Not an integer: %s" (sv index))
+      | Primitive (Str (s, tk)), Primitive (Double (f, tkf)) ->
+          let i = int_of_float f in
+          if i >= 0 && i < String.length s then
+            (* TODO: which token to use for good tracing in case of error? *)
+            let s' = String.make 1 (String.get s i) in
+            Primitive (Str (s', tk))
+          else
+            error tkf
+              (spf "string bounds error: %d not within [0, %d)" i
+                 (String.length s))
       (* Field access! A tricky operation. *)
       | V.Object (_l, (_assertsTODO, fields), _r), Primitive (Str (fld, tk))
         -> (
@@ -426,45 +430,45 @@ let rec eval_expr expr =
                               Object ([], []),
                               Tok.unsafe_fake_tok "}" ))
                   in
-                  eval_expr new_e))
-      (* TODO? support ArrayAccess for Strings? *)
+                  eval_expr env new_e))
       | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv index)))
-  | Call (e0, args) -> eval_call e0 args
+  | Call (e0, args) -> eval_call env e0 args
   | UnaryOp ((op, tk), e) -> (
       match op with
       | UBang -> (
-          match eval_expr e with
+          match eval_expr env e with
           | Primitive (Bool (b, tk)) -> Primitive (Bool (not b, tk))
           | v -> error tk (spf "Not a boolean for unary !: %s" (sv v)))
       | UPlus -> (
-          match eval_expr e with
+          match eval_expr env e with
           | Primitive (Double (f, tk)) -> Primitive (Double (f, tk))
           | v -> error tk (spf "Not a number for unary +: %s" (sv v)))
       | UMinus -> (
-          match eval_expr e with
+          match eval_expr env e with
           | Primitive (Double (f, tk)) -> Primitive (Double (-.f, tk))
           | v -> error tk (spf "Not a number for unary -: %s" (sv v)))
       | UTilde -> (
-          match eval_expr e with
+          match eval_expr env e with
           | Primitive (Double (f, tk)) ->
               let f = f |> Int64.of_float |> Int64.lognot |> Int64.to_float in
               Primitive (Double (f, tk))
           | v -> error tk (spf "Not a number for unary -: %s" (sv v))))
-  | BinaryOp (el, (op, tk), er) -> eval_binary_op el (op, tk) er
+  | BinaryOp (el, (op, tk), er) -> eval_binary_op env el (op, tk) er
   | If (tif, e1, e2, e3) -> (
-      match eval_expr e1 with
-      | Primitive (Bool (b, _)) -> if b then eval_expr e2 else eval_expr e3
+      match eval_expr env e1 with
+      | Primitive (Bool (b, _)) ->
+          if b then eval_expr env e2 else eval_expr env e3
       | v -> error tif (spf "not a boolean for if: %s" (sv v)))
   | Error (tk, e) -> (
-      match eval_expr e with
+      match eval_expr env e with
       | Primitive (Str (s, tk)) -> error tk (spf "ERROR: %s" s)
       | v -> error tk (spf "ERROR: %s" (tostring v)))
   | ExprTodo ((s, tk), _ast_expr) -> error tk (spf "ERROR: ExprTODO: %s" s)
 
-and eval_binary_op el (op, tk) er =
+and eval_binary_op env el (op, tk) er =
   match op with
   | Plus -> (
-      match (eval_expr el, eval_expr er) with
+      match (eval_expr env el, eval_expr env er) with
       | Array (l1, arr1, _r1), Array (_l2, arr2, r2) ->
           Array (l1, Array.append arr1 arr2, r2)
       | Primitive (Double (f1, tk)), Primitive (Double (f2, _)) ->
@@ -480,18 +484,18 @@ and eval_binary_op el (op, tk) er =
       | v1, v2 ->
           error tk (spf "TODO: Plus (%s, %s) not yet handled" (sv v1) (sv v2)))
   | And -> (
-      match eval_expr el with
-      | Primitive (Bool (b, _)) as v -> if b then eval_expr er else v
+      match eval_expr env el with
+      | Primitive (Bool (b, _)) as v -> if b then eval_expr env er else v
       | v -> error tk (spf "Not a boolean for &&: %s" (sv v)))
   | Or -> (
-      match eval_expr el with
-      | Primitive (Bool (b, _)) as v -> if b then v else eval_expr er
+      match eval_expr env el with
+      | Primitive (Bool (b, _)) as v -> if b then v else eval_expr env er
       | v -> error tk (spf "Not a boolean for ||: %s" (sv v)))
   | Lt
   | LtE
   | Gt
   | GtE ->
-      let cmp = eval_std_cmp tk el er in
+      let cmp = eval_std_cmp env tk el er in
       let bool =
         match (op, cmp) with
         | Lt, Inf -> true
@@ -511,7 +515,7 @@ and eval_binary_op el (op, tk) er =
   | Minus
   | Mult
   | Div -> (
-      match (eval_expr el, eval_expr er) with
+      match (eval_expr env el, eval_expr env er) with
       | Primitive (Double (f1, itk)), Primitive (Double (f2, _)) ->
           let op =
             match op with
@@ -530,8 +534,8 @@ and eval_binary_op el (op, tk) er =
   | BitAnd
   | BitOr
   | BitXor -> (
-      let v1 = eval_expr el in
-      let v2 = eval_expr er in
+      let v1 = eval_expr env el in
+      let v2 = eval_expr env er in
       match (v1, v2) with
       | Primitive (Double (f1, tk1)), Primitive (Double (f2, tk2)) ->
           let i1 = Int64.of_float f1 in
@@ -559,58 +563,28 @@ and eval_binary_op el (op, tk) er =
             (spf "binary operator wrong operands: %s %s %s" (sv v1)
                (Tok.content_of_tok tk) (sv v2)))
 
-and eval_std_cmp tk (el : expr) (er : expr) : cmp =
-  let rec eval_std_cmp_value_ (v_el : V.value_) (v_er : V.value_) : cmp =
-    match (v_el, v_er) with
-    | V.Array (_, [||], _), V.Array (_, [||], _) -> Eq
-    | V.Array (_, [||], _), V.Array (_, _, _) -> Inf
-    | V.Array (_, _, _), V.Array (_, [||], _) -> Sup
-    | V.Array (al, ax, ar), V.Array (bl, bx, br) -> (
-        let a0 = evaluate_lazy_value_ ax.(0) in
-
-        let b0 = evaluate_lazy_value_ bx.(0) in
-
-        match eval_std_cmp_value_ a0 b0 with
-        | (Inf | Sup) as r -> r
-        | Eq ->
-            let a_sub =
-              V.Array (al, Array.sub ax 1 (Array.length ax - 1), ar)
-            in
-            let b_sub =
-              V.Array (bl, Array.sub bx 1 (Array.length bx - 1), br)
-            in
-            eval_std_cmp_value_ a_sub b_sub)
-    | Primitive (Double (fl, _)), Primitive (Double (fr, _)) ->
-        Float.compare fl fr |> int_to_cmp
-    | Primitive (Str (strl, _)), Primitive (Str (strr, _)) ->
-        (* TODO? or use unicode? *)
-        String.compare strl strr |> int_to_cmp
-        (* note that it does not make sense to compare (<, <=, >=, >) 2 booleans
-         * or 2 nulls. They are not ordonnable
-         *)
-    | _else_ ->
-        error tk (spf "comparing uncomparable: %s vs %s" (sv v_el) (sv v_er))
-  in
-  eval_std_cmp_value_ (eval_expr el) (eval_expr er)
-
-and eval_call e0 (largs, args, _rargs) =
-  (*
-   * Check if this is a standard library call. If it is, call the environment
-   * model evaluation to get more efficiency (for example, on array_comprehensions2.jsonnet,
-   * this optimization creates an approx 100x speedup (11 seconds down to 0.1)
+and eval_call env e0 (largs, args, _rargs) =
+  (*Check if this is a standard library call. If it is, call the environment
+   * model evaluation to get more efficiency (for example, on
+   * array_comprehensions2.jsonnet, this optimization creates an approx 100x
+   * speedup (11 seconds down to 0.1)
    *)
-  let eval_func =
+  let v0 =
     match e0 with
     | ArrayAccess
         (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, [ _ ], _))), _)) ->
         (* set locals so that "std" shows up in the environment when evaluating *)
-        let local_wrap =
+        let e0_and_std =
           Local (fk, [ B (("std", fk), fk, Lazy.force std) ], fk, e0)
         in
-        Eval_jsonnet.eval_program local_wrap
-    | _ -> eval_expr e0
+        (* !!! Switch to Eval_jsonnet !!! but just to access the code of the
+         * function; the function itself is still executed below
+         * using the subst model.
+         *)
+        Eval_jsonnet_envir.eval_program e0_and_std
+    | _ -> eval_expr env e0
   in
-  match eval_func with
+  match v0 with
   | Lambda { f_tok = _; f_params = lparams, params, rparams; f_body = eb } ->
       let fstr =
         match e0 with
@@ -621,7 +595,7 @@ and eval_call e0 (largs, args, _rargs) =
             spf "%s.%s" obj meth
         | _else_ -> "<unknown>"
       in
-      log_call fstr largs;
+      log_call env fstr largs;
       (* the named_args are supposed to be the last one *)
       let basic_args, named_args =
         args
@@ -645,14 +619,54 @@ and eval_call e0 (largs, args, _rargs) =
                in
                B (id, teq, ei''))
       in
-      eval_expr (Local (lparams, binds, rparams, eb))
+      eval_expr
+        { env with depth = env.depth + 1 }
+        (Local (lparams, binds, rparams, eb))
   | v -> error largs (spf "not a function: %s" (sv v))
 
-and eval_std_method e0 (method_str, tk) (l, args, r) =
+(* -------------------------------------- *)
+(* Std builtins *)
+(* -------------------------------------- *)
+
+and eval_std_cmp env tk (el : expr) (er : expr) : cmp =
+  let rec eval_std_cmp_value_ (v_el : V.t) (v_er : V.t) : cmp =
+    match (v_el, v_er) with
+    | V.Array (_, [||], _), V.Array (_, [||], _) -> Eq
+    | V.Array (_, [||], _), V.Array (_, _, _) -> Inf
+    | V.Array (_, _, _), V.Array (_, [||], _) -> Sup
+    | V.Array (al, ax, ar), V.Array (bl, bx, br) -> (
+        let a0 = evaluate_lazy_value_ env ax.(0) in
+
+        let b0 = evaluate_lazy_value_ env bx.(0) in
+
+        match eval_std_cmp_value_ a0 b0 with
+        | (Inf | Sup) as r -> r
+        | Eq ->
+            let a_sub =
+              V.Array (al, Array.sub ax 1 (Array.length ax - 1), ar)
+            in
+            let b_sub =
+              V.Array (bl, Array.sub bx 1 (Array.length bx - 1), br)
+            in
+            eval_std_cmp_value_ a_sub b_sub)
+    | Primitive (Double (fl, _)), Primitive (Double (fr, _)) ->
+        Float.compare fl fr |> int_to_cmp
+    | Primitive (Str (strl, _)), Primitive (Str (strr, _)) ->
+        (* TODO? or use unicode? *)
+        String.compare strl strr |> int_to_cmp
+        (* note that it does not make sense to compare (<, <=, >=, >) 2 booleans
+         * or 2 nulls. They are not ordonnable
+         *)
+    | _else_ ->
+        error tk (spf "comparing uncomparable: %s vs %s" (sv v_el) (sv v_er))
+  in
+  eval_std_cmp_value_ (eval_expr env el) (eval_expr env er)
+
+and eval_std_method env e0 (method_str, tk) (l, args, r) =
   match (method_str, args) with
   | "type", [ Arg e ] ->
-      log_call ("std." ^ method_str) l;
-      let v = eval_expr e in
+      log_call env ("std." ^ method_str) l;
+      let v = eval_expr env e in
       let s = std_type v in
       Primitive (Str (s, l))
   (* this method is called in std.jsonnet equals()::, and calls to
@@ -664,9 +678,9 @@ and eval_std_method e0 (method_str, tk) (l, args, r) =
         (spf "Improper #arguments to std.type: expected 1, got %d"
            (List.length args))
   | "primitiveEquals", [ Arg e; Arg e' ] ->
-      log_call ("std." ^ method_str) l;
-      let v = eval_expr e in
-      let v' = eval_expr e' in
+      log_call env ("std." ^ method_str) l;
+      let v = eval_expr env e in
+      let v' = eval_expr env e' in
       let b = std_primivite_equals v v' in
       Primitive (Bool (b, l))
   | "primitiveEquals", _else_ ->
@@ -674,8 +688,8 @@ and eval_std_method e0 (method_str, tk) (l, args, r) =
         (spf "Improper #arguments to std.primitiveEquals: expected 2, got %d"
            (List.length args))
   | "length", [ Arg e ] -> (
-      log_call ("std." ^ method_str) l;
-      match eval_expr e with
+      log_call env ("std." ^ method_str) l;
+      match eval_expr env e with
       | Primitive (Str (s, tk)) ->
           let i = String.length s in
           Primitive (Double (float_of_int i, tk))
@@ -691,8 +705,8 @@ and eval_std_method e0 (method_str, tk) (l, args, r) =
             (spf "length operates on strings, objects, and arrays, got %s"
                (sv v)))
   | "makeArray", [ Arg e; Arg e' ] -> (
-      log_call ("std." ^ method_str) l;
-      match (eval_expr e, eval_expr e') with
+      log_call env ("std." ^ method_str) l;
+      match (eval_expr env e, eval_expr env e') with
       | Primitive (Double (n, tk)), Lambda fdef ->
           if Float.is_integer n then
             let n = Float.to_int n in
@@ -714,7 +728,7 @@ and eval_std_method e0 (method_str, tk) (l, args, r) =
         (spf "Improper number of arguments to std.makeArray: expected 2, got %d"
            (List.length args))
   | "filter", [ Arg e; Arg e' ] -> (
-      match (eval_expr e, eval_expr e') with
+      match (eval_expr env e, eval_expr env e') with
       | Lambda f, Array (l, eis, r) ->
           (* note that we do things lazily even here, so we still
            * return an Array with the same lazy value elements in it,
@@ -724,7 +738,7 @@ and eval_std_method e0 (method_str, tk) (l, args, r) =
             (* TODO? use Array.to_seqi instead? *)
             eis |> Array.to_list |> Common.index_list
             |> List.filter_map (fun (ei, ji) ->
-                   match eval_std_filter_element tk f ei with
+                   match eval_std_filter_element env tk f ei with
                    | Primitive (Bool (false, _)) -> None
                    | Primitive (Bool (true, _)) -> Some ji
                    | v ->
@@ -746,7 +760,7 @@ and eval_std_method e0 (method_str, tk) (l, args, r) =
         (spf "Improper number of arguments to std.filter: expected 2, got %d"
            (List.length args))
   | "objectHasEx", [ Arg e; Arg e'; Arg e'' ] -> (
-      match (eval_expr e, eval_expr e', eval_expr e'') with
+      match (eval_expr env e, eval_expr env e', eval_expr env e'') with
       | V.Object o, Primitive (Str (s, _)), Primitive (Bool (b, _)) ->
           let _, (_asserts, flds), _ = o in
           let eltopt =
@@ -771,22 +785,22 @@ and eval_std_method e0 (method_str, tk) (l, args, r) =
            "Improper number of arguments to std.objectHasEx: expected 3, got %d"
            (List.length args))
   (* default to regular call, handled by std.jsonnet code hopefully *)
-  | _else_ -> eval_call e0 (l, args, r)
+  | _else_ -> eval_call env e0 (l, args, r)
 
-and eval_std_filter_element (tk : tok) (f : function_definition)
-    (ei : V.lazy_value) : V.value_ =
+and eval_std_filter_element env (tk : tok) (f : function_definition)
+    (ei : V.lazy_value) : V.t =
   match f with
-  | { f_params = _l, [ P (_id, _eq, _default) ], _r; f_body = _; _ } -> (
+  | { f_params = _l, [ P (_id, _eq, _default) ], _r; _ } -> (
       (* similar to eval_expr for Local *)
       (* similar to eval_call *)
       (*TODO: Is the environment correct? *)
       match ei.value with
       | Val _ ->
           error (Tok.unsafe_fake_tok "oof") "shouldn't have been evaluated"
-      | Unevaluated e -> eval_call (Lambda f) (_l, [ Arg e ], _r))
+      | Unevaluated e -> eval_call env (Lambda f) (_l, [ Arg e ], _r))
   | _else_ -> error tk "filter function takes 1 parameter"
 
-and eval_obj_inside (l, x, r) : V.value_ =
+and eval_obj_inside env (l, x, r) : V.t =
   match x with
   | Object (assertsTODO, fields) ->
       let hdupes = Hashtbl.create 16 in
@@ -794,7 +808,7 @@ and eval_obj_inside (l, x, r) : V.value_ =
         fields
         |> Common.map_filter
              (fun { fld_name = FExpr (tk, ei, _); fld_hidden; fld_value } ->
-               match eval_expr ei with
+               match eval_expr env ei with
                | Primitive (Null _) -> None
                | Primitive (Str ((str, _) as fld_name)) ->
                    if Hashtbl.mem hdupes str then
@@ -927,12 +941,18 @@ and eval_plus_object _tk objl objr =
   let all_fields = new_ers @ lflds_no_overlap in
   (l, (asserts, all_fields), r)
 
-and evaluate_lazy_value_ (v : V.lazy_value) =
+and evaluate_lazy_value_ env (v : V.lazy_value) =
   match v.value with
   | Val v -> v
-  | Unevaluated e -> eval_expr e
+  | Unevaluated e -> eval_expr env e
 
-and manifest_value (v : V.value_) : JSON.t =
+(*****************************************************************************)
+(* Manifest *)
+(*****************************************************************************)
+
+(* note that this is mutually recursive with eval_expr *)
+and manifest_value (v : V.t) : JSON.t =
+  let env = V.empty_env in
   match v with
   | Primitive x -> (
       match x with
@@ -945,7 +965,7 @@ and manifest_value (v : V.value_) : JSON.t =
       J.Array
         (arr |> Array.to_list
         |> Common.map (fun (entry : V.lazy_value) ->
-               manifest_value (evaluate_lazy_value_ entry)))
+               manifest_value (evaluate_lazy_value_ env entry)))
   | V.Object (_l, (_assertsTODO, fields), _r) ->
       (* TODO: evaluate asserts *)
       let xs =
@@ -974,7 +994,7 @@ and manifest_value (v : V.value_) : JSON.t =
                                      Object ([], []),
                                      Tok.unsafe_fake_tok "}" ))
                          in
-                         eval_expr new_e
+                         eval_expr env new_e
                    in
 
                    let j = manifest_value v in
@@ -982,6 +1002,12 @@ and manifest_value (v : V.value_) : JSON.t =
       in
       J.Object xs
 
-and tostring (v : V.value_) : string =
+and tostring (v : V.t) : string =
   let j = manifest_value v in
   JSON.string_of_json j
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
+let eval_program (x : Core_jsonnet.program) : V.t = eval_expr V.empty_env x

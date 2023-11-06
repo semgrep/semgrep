@@ -102,7 +102,7 @@ jobs:
         type=semver,pattern={{version}}
         # tag image with major.minor (ex. "1.2")
         type=semver,pattern={{major}}.{{minor}}
-      repository-name: ${{ github.repository }}
+      repository-name: returntocorp/semgrep
       artifact-name: image-release
       file: Dockerfile
       target: semgrep-cli
@@ -128,7 +128,7 @@ jobs:
         type=semver,pattern={{version}}
         # tag image with major.minor version (ex. "1.2-nonroot")
         type=semver,pattern={{major}}.{{minor}}
-      repository-name: ${{ github.repository }}
+      repository-name: returntocorp/semgrep
       artifact-name: image-release-nonroot
       file: Dockerfile
       target: nonroot
@@ -178,7 +178,7 @@ jobs:
     secrets: inherit
     with:
       artifact-name: image-release
-      repository-name: ${{ github.repository }}
+      repository-name: returntocorp/semgrep
       dry-run: ${{ needs.inputs.outputs.dry-run == 'true' }}
 
   push-docker-nonroot:
@@ -187,7 +187,7 @@ jobs:
     secrets: inherit
     with:
       artifact-name: image-release-nonroot
-      repository-name: ${{ github.repository }}
+      repository-name: returntocorp/semgrep
       dry-run: ${{ needs.inputs.outputs.dry-run == 'true' }}
 
   upload-wheels:
