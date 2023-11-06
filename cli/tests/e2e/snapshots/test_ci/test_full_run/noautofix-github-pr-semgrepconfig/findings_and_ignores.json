@@ -545,5 +545,6 @@
         "commit_author_email": "test_environment@test.r2c.dev"
       }
     }
-  ]
+  ],
+  "dependencies": {}
 }
