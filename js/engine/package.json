@@ -30,6 +30,7 @@
     "jest": "^29.5.0"
   },
   "dependencies": {
+    "blakejs": "^1.2.1",
     "cross-dirname": "^0.1.0"
   }
 }

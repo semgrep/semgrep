@@ -1,0 +1,9 @@
+(library
+ (public_name hash_platform.unix)
+ (name hash_platform_unix)
+  (libraries
+    digestif
+    commons
+  )
+ (implements hash_platform)
+)

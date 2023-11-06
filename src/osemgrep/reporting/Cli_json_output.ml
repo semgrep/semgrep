@@ -350,8 +350,8 @@ let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
     spf "('%s', PosixPath('%s'), '%s')" xpat_str_interp path
       (Rule_ID.to_string rule_id)
   in
-  let hash = Digestif.BLAKE2B.digest_string string |> Digestif.BLAKE2B.to_hex in
-  hash
+  let hash = Hash_platform.hash string in
+  Common.spf "%s -> %s" string hash
 
 let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
     Out.cli_match =

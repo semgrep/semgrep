@@ -7,7 +7,7 @@
    commons
    fmt
    terminal_size
-   digestif
+   hash_platform
 
    osemgrep_core
    semgrep.reporting

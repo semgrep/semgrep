@@ -4,6 +4,8 @@ import { getDirname } from "cross-dirname";
 
 const WASM_FILENAME = "semgrep-engine.wasm";
 
+const blake = require("blakejs");
+
 export class MissingParserError extends Error {
   constructor(lang) {
     super(`No parser initialized for language: ${lang}`);
@@ -20,6 +22,7 @@ export const EngineFactory = async (wasmUri) => {
   });
   // libpcre regrettably must be global because semgrep eagerly compiles regexes
   globalThis.LibPcreModule = wasm;
+  globalThis.blake = blake;
   const {
     init,
     getMountpoints,

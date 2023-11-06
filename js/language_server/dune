@@ -11,6 +11,7 @@
   semgrep.semgrep_js_shared
   semgrep.semgrep_node_js_shared
   lwt_platform.js
+  hash_platform.js
 
    networking.http_helpers
    cohttp-lwt-jsoo

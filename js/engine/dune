@@ -6,6 +6,7 @@
   semgrep.semgrep_js_shared
   semgrep.semgrep_node_js_shared
   tree-sitter.run
+  hash_platform.js
   ; semgrep.parsing_languages ; skipped to go from 16MB to 7MB
   )
  (modes js)

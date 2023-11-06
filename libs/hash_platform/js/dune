@@ -1,0 +1,9 @@
+(library
+ (public_name hash_platform.js)
+ (name hash_platform_js)
+  (libraries
+    js_of_ocaml
+    commons
+  )
+ (implements hash_platform)
+)
