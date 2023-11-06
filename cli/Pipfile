@@ -47,3 +47,4 @@ typing_extensions = "*"
 [packages]
 jsonschema = "==4.6.1"
 semgrep = {editable = true, extras = ["experiments"], path = "."}
+requests-mock = "*"

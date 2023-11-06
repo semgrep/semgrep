@@ -22,8 +22,7 @@ Not on head ref: 7b5cda417c780f1f96c888e1d7bd062f46df236e; checking that out now
 
   CONNECTION
 Using b903231925961ac9d787ae53ee0bd15ec156e689 as the merge-base of 81af3f0c528f4206d48f2f1d1a0ada5fa9e01f38 and 7b5cda417c780f1f96c888e1d7bd062f46df236e
-  Reporting start of scan for deployment_name (scan_id=<MagicMock name='post()…
-  Fetching configuration from Semgrep Cloud Platform
+  Initializing scan (deployment=org_name, scan_id=35976)
   Enabled products: Code, Supply Chain
 
 ┌─────────────┐
@@ -80,7 +79,7 @@ CI scan completed successfully.
     https://semgrep.dev/orgs/org_name/findings
     https://semgrep.dev/orgs/org_name/supply-chain
   No blocking findings so exiting with code 0
-  semgrep.dev is suggesting a non-zero exit code <MASKED>
+  semgrep.dev is suggesting a non-zero exit code (Test Reason)
 
 === end of stdout - plain
 

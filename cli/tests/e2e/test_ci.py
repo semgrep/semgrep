@@ -19,6 +19,7 @@ from textwrap import dedent
 from typing import List
 
 import pytest
+from ruamel.yaml import YAML
 from tests.conftest import make_semgrepconfig_file
 from tests.e2e.test_baseline import _git_commit
 from tests.e2e.test_baseline import _git_merge
@@ -28,7 +29,6 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
 from semgrep.app.scans import ScanCompleteResult
 from semgrep.app.scans import ScanHandler
-from semgrep.app.session import AppSession
 from semgrep.config_resolver import ConfigFile
 from semgrep.config_resolver import ConfigLoader
 from semgrep.error_handler import ErrorHandler
@@ -60,6 +60,7 @@ BAD_CONFIG = dedent(
       message: "useless comparison"
       languages: [python]
       severity: ERROR
+      foo: bar
 """
 ).lstrip()
 FROZEN_ISOTIMESTAMP = "1970-01-01T00:00:00"
@@ -247,12 +248,9 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
     yield (repo_copy_base, base_commit, head_commit)
 
 
-@pytest.fixture(autouse=True)
-def automocks(mocker):
-    """
-    Necessary patches to run `semgrep ci` tests
-    """
-    file_content = dedent(
+@pytest.fixture
+def scan_config():
+    return dedent(
         """
         rules:
         - id: eqeq-bad
@@ -358,48 +356,84 @@ def automocks(mocker):
         """
     ).lstrip()
 
+
+@pytest.fixture(autouse=True)
+def automocks(mocker, scan_config):
+    """
+    Necessary patches to run `semgrep ci` tests
+    """
     mocker.patch.object(
         ConfigLoader,
         "_download_config_from_url",
-        side_effect=lambda url: ConfigFile(None, file_content, url),
+        side_effect=lambda url: ConfigFile(None, scan_config, url),
     )
     mocker.patch.object(
         GitMeta,
         "commit_timestamp",
         FROZEN_ISOTIMESTAMP,
     )
-    mocker.patch.object(
-        ScanHandler,
-        "_get_scan_config_from_app",
-        return_value=out.ScanConfig(
-            deployment_id=DEPLOYMENT_ID,
-            deployment_name="org_name",
-            ignored_files=[],
-            policy_names=["audit", "comment", "block"],
-            rule_config=file_content,
-        ),
+
+
+@pytest.fixture
+def mocked_scan_id() -> int:
+    return 35976
+
+
+@pytest.fixture
+def start_scan_mock(requests_mock, scan_config, mocked_scan_id):
+    start_scan_response = out.ScanResponse.from_json(
+        {
+            "info": {
+                "id": mocked_scan_id,
+                "enabled_products": ["sast", "sca"],
+                "deployment_id": DEPLOYMENT_ID,
+                "deployment_name": "org_name",
+            },
+            "config": {
+                "rules": YAML(typ="safe").load(scan_config),
+                "triage_ignored_syntactic_ids": ["f3b21c38bc22a1f1f870d49fc3a40244"],
+                "triage_ignored_match_based_ids": [
+                    "e536489e68267e16e71dd76a61e27815fd86a7e2417d96f8e0c43af48540a41d41e6acad52f7ccda83b5c6168dd5559cd49169617e3aac1b7ea091d8a20ebf12_0"
+                ],
+            },
+            "engine_params": {
+                "autofix": False,
+                "ignored_files": [],
+                "deepsemgrep": False,
+                "dependency_query": True,
+                "generic_slow_rollout": False,
+            },
+        }
     )
-    mocker.patch.object(
-        ScanHandler,
-        "skipped_syntactic_ids",
-        ["f3b21c38bc22a1f1f870d49fc3a40244"],
+    return requests_mock.post(
+        "https://semgrep.dev/api/cli/scans", json=start_scan_response.to_json()
     )
-    mocker.patch.object(
-        ScanHandler,
-        "skipped_match_based_ids",
-        [
-            "e536489e68267e16e71dd76a61e27815fd86a7e2417d96f8e0c43af48540a41d41e6acad52f7ccda83b5c6168dd5559cd49169617e3aac1b7ea091d8a20ebf12_0"
-        ],
+
+
+@pytest.fixture
+def upload_results_mock(requests_mock, mocked_scan_id):
+    results_response = out.CiScanResultsResponse(errors=[], task_id="1234")
+    return requests_mock.post(
+        f"https://semgrep.dev/api/agent/scans/{mocked_scan_id}/results",
+        json=results_response.to_json(),
     )
-    mocker.patch.object(
-        ScanHandler,
-        "enabled_products",
-        ["sast", "sca"],
+
+
+@pytest.fixture
+def complete_scan_mock(requests_mock, mocked_scan_id):
+    complete_response = out.CiScanCompleteResponse(
+        success=True, app_block_override=True, app_block_reason="Test Reason"
     )
-    mocker.patch(
-        "semgrep.app.auth.get_deployment_from_token", return_value="deployment_name"
+    return requests_mock.post(
+        f"https://semgrep.dev/api/agent/scans/{mocked_scan_id}/complete",
+        json=complete_response.to_json(),
     )
-    mocker.patch.object(AppSession, "post")
+
+
+@pytest.fixture
+def mock_ci_api(start_scan_mock, upload_results_mock, complete_scan_mock):
+    # just for easier access to all mocks in tests that want them.
+    pass
 
 
 @pytest.fixture(params=[True, False], ids=["autofix", "noautofix"])
@@ -722,6 +756,9 @@ def test_full_run(
     run_semgrep: RunSemgrep,
     mocker,
     mock_autofix,
+    start_scan_mock,
+    upload_results_mock,
+    complete_scan_mock,
 ):
     repo_copy_base, base_commit, head_commit = git_tmp_path_with_commit
 
@@ -807,10 +844,8 @@ def test_full_run(
         "results.txt",
     )
 
-    post_calls = AppSession.post.call_args_list  # type: ignore
-
     # Check correct metadata
-    scan_create_json = post_calls[0].kwargs["json"]
+    scan_create_json = start_scan_mock.last_request.json()
     meta_json = scan_create_json["meta"]
 
     if "SEMGREP_COMMIT" in env:
@@ -840,7 +875,7 @@ def test_full_run(
     del scan_create_json["scan_metadata"]
     snapshot.assert_match(json.dumps(scan_create_json, indent=2), "meta.json")
 
-    findings_and_ignores_json = post_calls[1].kwargs["json"]
+    findings_and_ignores_json = upload_results_mock.last_request.json()
     for f in findings_and_ignores_json["findings"]:
         assert f["commit_date"] is not None
         f["commit_date"] = "sanitized"
@@ -856,7 +891,7 @@ def test_full_run(
         json.dumps(findings_and_ignores_json, indent=2), "findings_and_ignores.json"
     )
 
-    complete_json = post_calls[2].kwargs["json"]
+    complete_json = complete_scan_mock.last_request.json()
     complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
     # TODO: flaky tests (on Linux at least)
     # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests for more info
@@ -866,7 +901,12 @@ def test_full_run(
 
 @pytest.mark.osemfail
 def test_lockfile_parse_failure_reporting(
-    git_tmp_path_with_commit, run_semgrep: RunSemgrep, snapshot
+    git_tmp_path_with_commit,
+    run_semgrep: RunSemgrep,
+    snapshot,
+    start_scan_mock,
+    upload_results_mock,
+    complete_scan_mock,
 ):
     repo_base, base_commit, _ = git_tmp_path_with_commit
     subprocess.run(
@@ -944,10 +984,8 @@ def test_lockfile_parse_failure_reporting(
         "results.txt",
     )
 
-    post_calls = AppSession.post.call_args_list  # type: ignore
-
     # Check correct metadata
-    findings_and_ignores_json = post_calls[1].kwargs["json"]
+    findings_and_ignores_json = upload_results_mock.last_request.json()
     for f in findings_and_ignores_json["findings"]:
         assert f["commit_date"] is not None
         f["commit_date"] = "sanitized"
@@ -963,7 +1001,7 @@ def test_lockfile_parse_failure_reporting(
         json.dumps(findings_and_ignores_json, indent=2), "findings_and_ignores.json"
     )
 
-    complete_json = post_calls[2].kwargs["json"]
+    complete_json = complete_scan_mock.last_request.json()
     complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
     complete_json["stats"]["lockfile_scan_info"] = {}
     assert len(complete_json["dependency_parser_errors"]) > 0
@@ -973,7 +1011,7 @@ def test_lockfile_parse_failure_reporting(
 # TODO: flaky test on Linux
 # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests
 # def test_github_ci_bad_base_sha(
-#    run_semgrep: RunSemgrep, snapshot, git_tmp_path, tmp_path, monkeypatch
+#    run_semgrep: RunSemgrep, snapshot, git_tmp_path, tmp_path, monkeypatch, start_scan_mock, upload_results_mock, complete_scan_mock
 # ):
 #    """
 #    Github PullRequest Event Webhook file's reported base sha is not guaranteed
@@ -1112,8 +1150,7 @@ def test_lockfile_parse_failure_reporting(
 #        "results.txt",
 #    )
 #
-#    post_calls = AppSession.post.call_args_list  # type: ignore
-#    findings_json = post_calls[1].kwargs["json"]
+#    findings_json = upload_results_mock.last_request.json()
 #    assert (
 #        len(findings_json["findings"]) == 1
 #    ), "Potentially scanning wrong files/commits"
@@ -1121,7 +1158,14 @@ def test_lockfile_parse_failure_reporting(
 
 @pytest.mark.osemfail
 def test_shallow_wrong_merge_base(
-    run_semgrep: RunSemgrep, snapshot, git_tmp_path, tmp_path, monkeypatch
+    run_semgrep: RunSemgrep,
+    snapshot,
+    git_tmp_path,
+    tmp_path,
+    monkeypatch,
+    start_scan_mock,
+    upload_results_mock,
+    complete_scan_mock,
 ):
     """ """
     commits = defaultdict(list)
@@ -1249,8 +1293,7 @@ def test_shallow_wrong_merge_base(
         ),
         "bad_results.txt",
     )
-    post_calls = AppSession.post.call_args_list  # type: ignore
-    findings_json = post_calls[1].kwargs["json"]
+    findings_json = upload_results_mock.last_request.json()
     assert (
         len(findings_json["findings"]) == 2
     ), "Test might be invalid since we expect this to scan the wrong thing"
@@ -1276,9 +1319,7 @@ def test_shallow_wrong_merge_base(
         "results.txt",
     )
 
-    post_calls = AppSession.post.call_args_list  # type: ignore
-    findings_json = post_calls[(len(post_calls) // 2) + 1].kwargs["json"]
-
+    findings_json = upload_results_mock.last_request.json()
     assert (
         len(findings_json["findings"]) == 1
     ), "Potentially scanning wrong files/commits"
@@ -1315,7 +1356,12 @@ def test_config_run(
 )
 @pytest.mark.osemfail
 def test_outputs(
-    git_tmp_path_with_commit, snapshot, format, mock_autofix, run_semgrep: RunSemgrep
+    mock_ci_api,
+    git_tmp_path_with_commit,
+    snapshot,
+    format,
+    mock_autofix,
+    run_semgrep: RunSemgrep,
 ):
     result = run_semgrep(
         options=["ci", "--no-suppress-errors", format],
@@ -1365,7 +1411,13 @@ def test_nosem(
 
 
 @pytest.mark.osemfail
-def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, run_semgrep: RunSemgrep):
+def test_dryrun(
+    tmp_path,
+    git_tmp_path_with_commit,
+    snapshot,
+    run_semgrep: RunSemgrep,
+    start_scan_mock,
+):
     _, base_commit, head_commit = git_tmp_path_with_commit
     result = run_semgrep(
         options=["ci", "--dry-run", "--no-suppress-errors"],
@@ -1376,7 +1428,7 @@ def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, run_semgrep: RunSe
         use_click_runner=True,  # TODO: probably because rely on some mocking
     )
 
-    AppSession.post.assert_not_called()  # type: ignore
+    assert start_scan_mock.last_request.json()["scan_metadata"]["dry_run"] == True
     snapshot.assert_match(
         result.as_snapshot(
             mask=[
@@ -1394,11 +1446,14 @@ def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, run_semgrep: RunSe
 
 
 @pytest.mark.osemfail
-def test_fail_auth(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
+def test_fail_auth_invalid_key(
+    run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit, requests_mock
+):
     """
-    Test that failure to authenticate does not have exit code 0 or 1
+    Test that an invalid api key returns exit code 13, even when errors are supressed
     """
-    mocker.patch("semgrep.app.auth.get_deployment_from_token", return_value=None)
+    requests_mock.post("https://semgrep.dev/api/cli/scans", status_code=401)
+    fail_open = requests_mock.post("https://fail-open.prod.semgrep.dev/failure")
     run_semgrep(
         options=["ci", "--no-suppress-errors"],
         target_name=None,
@@ -1407,8 +1462,37 @@ def test_fail_auth(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
         use_click_runner=True,
     )
+    assert not fail_open.called
 
-    mocker.patch("semgrep.app.auth.get_deployment_from_token", side_effect=Exception)
+
+@pytest.mark.osemfail
+def test_fail_auth_invalid_key_suppressed_by_default(
+    run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit, requests_mock
+):
+    """
+    Test that an invalid api key returns exit code 13, even when errors are supressed
+    """
+    requests_mock.post("https://semgrep.dev/api/cli/scans", status_code=401)
+    fail_open = requests_mock.post("https://fail-open.prod.semgrep.dev/failure")
+    run_semgrep(
+        options=["ci"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=0,
+        env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+        use_click_runner=True,
+    )
+    assert fail_open.called
+
+
+@pytest.mark.osemfail
+def test_fail_auth_invalid_response(
+    run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit, requests_mock
+):
+    """
+    Test that and invalid api key returns exit code 13
+    """
+    requests_mock.post("https://semgrep.dev/api/cli/scans", status_code=500)
     run_semgrep(
         options=["ci", "--no-suppress-errors"],
         target_name=None,
@@ -1420,13 +1504,13 @@ def test_fail_auth(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
 
 
 @pytest.mark.osemfail
-def test_fail_auth_error_handler(
-    run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit
+def test_fail_auth_invalid_response_can_be_supressed(
+    run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit, requests_mock
 ):
     """
     Test that failure to authenticate with --suppres-errors returns exit code 0
     """
-    mocker.patch("semgrep.app.auth.get_deployment_from_token", side_effect=Exception)
+    requests_mock.post("https://semgrep.dev/api/cli/scans", status_code=500)
     mock_send = mocker.spy(ErrorHandler, "send")
     run_semgrep(
         options=["ci"],
@@ -1478,20 +1562,30 @@ def test_fail_start_scan_error_handler(
 
 
 @pytest.mark.osemfail
-def test_bad_config(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
+def test_bad_config(
+    run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit, requests_mock
+):
     """
     Test that bad rules has exit code > 1
     """
-    mocker.patch.object(
-        ScanHandler,
-        "_get_scan_config_from_app",
-        return_value=out.ScanConfig(
-            deployment_id=DEPLOYMENT_ID,
-            deployment_name="org_name",
-            ignored_files=[],
-            policy_names=["audit", "comment", "block"],
-            rule_config=BAD_CONFIG,
-        ),
+    start_scan_response = out.ScanResponse.from_json(
+        {
+            "info": {
+                "id": 123,
+                "enabled_products": ["sast", "sca"],
+                "deployment_id": DEPLOYMENT_ID,
+                "deployment_name": "org_name",
+            },
+            "config": {
+                "rules": YAML(typ="safe").load(BAD_CONFIG),
+                "triage_ignored_syntactic_ids": [],
+                "triage_ignored_match_based_ids": [],
+            },
+            "engine_params": {},
+        }
+    )
+    requests_mock.post(
+        "https://semgrep.dev/api/cli/scans", json=start_scan_response.to_json()
     )
     result = run_semgrep(
         options=["ci", "--no-suppress-errors"],
@@ -1506,21 +1600,29 @@ def test_bad_config(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
 
 @pytest.mark.osemfail
 def test_bad_config_error_handler(
-    run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit
+    run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit, requests_mock
 ):
     """
     Test that bad rules with --suppres-errors returns exit code 0
     """
-    mocker.patch.object(
-        ScanHandler,
-        "_get_scan_config_from_app",
-        return_value=out.ScanConfig(
-            deployment_id=DEPLOYMENT_ID,
-            deployment_name="org_name",
-            ignored_files=[],
-            policy_names=["audit", "comment", "block"],
-            rule_config=BAD_CONFIG,
-        ),
+    start_scan_response = out.ScanResponse.from_json(
+        {
+            "info": {
+                "id": 123,
+                "enabled_products": ["sast", "sca"],
+                "deployment_id": DEPLOYMENT_ID,
+                "deployment_name": "org_name",
+            },
+            "config": {
+                "rules": YAML(typ="safe").load(BAD_CONFIG),
+                "triage_ignored_syntactic_ids": [],
+                "triage_ignored_match_based_ids": [],
+            },
+            "engine_params": {},
+        }
+    )
+    requests_mock.post(
+        "https://semgrep.dev/api/cli/scans", json=start_scan_response.to_json()
     )
     mock_send = mocker.spy(ErrorHandler, "send")
     result = run_semgrep(
@@ -1536,14 +1638,21 @@ def test_bad_config_error_handler(
 
 
 @pytest.mark.osemfail
-def test_fail_scan_findings(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
+def test_fail_scan_findings(
+    run_semgrep: RunSemgrep,
+    mocker,
+    git_tmp_path_with_commit,
+    start_scan_mock,
+    upload_results_mock,
+    complete_scan_mock,
+):
     """
     Test failure with findings has exit code == 1.
 
     Asserts that error logs are NOT sent to fail-open
     """
     mock_send = mocker.spy(ErrorHandler, "send")
-    mock_request_post = mocker.patch("semgrep.error_handler.requests.post")
+
     run_semgrep(
         options=["ci", "--suppress-errors"],
         target_name=None,
@@ -1553,11 +1662,13 @@ def test_fail_scan_findings(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_c
         use_click_runner=True,
     )
     mock_send.assert_called_once_with(mocker.ANY, 1)
-    mock_request_post.assert_not_called()
+    assert upload_results_mock.called
 
 
 # TODO: pass but for bad reasons I think, because we just don't handle the CLI args
-def test_fail_finish_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
+def test_fail_finish_scan(
+    run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit, start_scan_mock
+):
     """
     Test failure to send findings has exit code > 1
     """
@@ -1573,7 +1684,13 @@ def test_fail_finish_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_com
 
 
 @pytest.mark.osemfail
-def test_backend_exit_code(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
+def test_backend_exit_code(
+    run_semgrep: RunSemgrep,
+    mocker,
+    git_tmp_path_with_commit,
+    start_scan_mock,
+    complete_scan_mock,
+):
     """
     Test backend sending non-zero exit code on complete causes exit 1
     """
@@ -1648,49 +1765,43 @@ def test_git_failure_error_handler(
     mock_send.assert_called_once_with(mocker.ANY, 2)
 
 
+@pytest.mark.parametrize(
+    "scan_config",
+    [
+        dedent(
+            """
+    rules:
+      - id: eqeq-bad
+        pattern: $X == $X
+        message: "useless comparison"
+        languages: [python]
+        severity: ERROR
+      - id: supply-chain1
+        message: "found a dependency"
+        languages: [python]
+        severity: ERROR
+        r2c-internal-project-depends-on:
+          namespace: pypi
+          package: badlib
+          version: == 99.99.99
+        metadata:
+          dev.semgrep.actions: [block]
+          sca-kind: upgrade-only
+    """
+        ).lstrip()
+    ],
+    ids=["config"],
+)
 @pytest.mark.osemfail
 def test_query_dependency(
-    git_tmp_path_with_commit, snapshot, mocker, run_semgrep: RunSemgrep
+    git_tmp_path_with_commit,
+    snapshot,
+    mocker,
+    run_semgrep: RunSemgrep,
+    start_scan_mock,
+    upload_results_mock,
+    complete_scan_mock,
 ):
-    file_content = dedent(
-        """
-        rules:
-        - id: eqeq-bad
-          pattern: $X == $X
-          message: "useless comparison"
-          languages: [python]
-          severity: ERROR
-        - id: supply-chain1
-          message: "found a dependency"
-          languages: [python]
-          severity: ERROR
-          r2c-internal-project-depends-on:
-            namespace: pypi
-            package: badlib
-            version: == 99.99.99
-          metadata:
-            dev.semgrep.actions: [block]
-            sca-kind: upgrade-only
-        """
-    ).lstrip()
-    mocker.patch.object(
-        ConfigLoader,
-        "_download_config_from_url",
-        side_effect=lambda url: ConfigFile(None, file_content, url),
-    )
-    mocker.patch.object(
-        ScanHandler,
-        "_get_scan_config_from_app",
-        return_value=out.ScanConfig(
-            deployment_id=DEPLOYMENT_ID,
-            deployment_name="org_name",
-            ignored_files=[],
-            policy_names=["audit", "comment", "block"],
-            rule_config=file_content,
-            dependency_query=True,
-        ),
-    )
-
     result = run_semgrep(
         options=["ci", "--no-suppress-errors"],
         target_name=None,
@@ -1700,24 +1811,16 @@ def test_query_dependency(
         use_click_runner=True,
     )
     snapshot.assert_match(
-        result.as_snapshot(
-            mask=[
-                re.compile(
-                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
-                ),
-            ]
-        ),
+        result.as_snapshot(),
         "output.txt",
     )
 
-    post_calls = AppSession.post.call_args_list
-
-    results_json = post_calls[1].kwargs["json"]
+    results_json = upload_results_mock.last_request.json()
     snapshot.assert_match(
         json.dumps(results_json["dependencies"], indent=2), "dependencies.json"
     )
 
-    complete_json = post_calls[2].kwargs["json"]
+    complete_json = complete_scan_mock.last_request.json()
     complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
     # TODO: flaky tests (on Linux at least)
     # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests for more info
@@ -1726,7 +1829,13 @@ def test_query_dependency(
 
 
 @pytest.mark.osemfail
-def test_metrics_enabled(run_semgrep: RunSemgrep, mocker):
+def test_metrics_enabled(
+    run_semgrep: RunSemgrep,
+    mocker,
+    start_scan_mock,
+    upload_results_mock,
+    complete_scan_mock,
+):
     mock_send = mocker.patch.object(Metrics, "_post_metrics")
     run_semgrep(
         options=["ci"],
@@ -1740,44 +1849,39 @@ def test_metrics_enabled(run_semgrep: RunSemgrep, mocker):
     mock_send.assert_called_once()
 
 
+@pytest.mark.parametrize(
+    "scan_config",
+    [
+        dedent(
+            """
+    rules:
+      - id: supply-chain1
+        message: "found a dependency"
+        languages: [python]
+        severity: ERROR
+        r2c-internal-project-depends-on:
+          namespace: pypi
+          package: python-dateutil
+          version: == 2.8.2
+        metadata:
+          dev.semgrep.actions: [block]
+          sca-kind: upgrade-only
+    """
+        ).lstrip()
+    ],
+    ids=["config"],
+)
 @pytest.mark.osemfail
 def test_existing_supply_chain_finding(
-    git_tmp_path_with_commit, snapshot, mocker, run_semgrep: RunSemgrep
+    git_tmp_path_with_commit,
+    snapshot,
+    mocker,
+    run_semgrep: RunSemgrep,
+    start_scan_mock,
+    upload_results_mock,
+    complete_scan_mock,
 ):
     repo_copy_base, base_commit, head_commit = git_tmp_path_with_commit
-    file_content = dedent(
-        """
-        rules:
-        - id: supply-chain1
-          message: "found a dependency"
-          languages: [python]
-          severity: ERROR
-          r2c-internal-project-depends-on:
-            namespace: pypi
-            package: python-dateutil
-            version: == 2.8.2
-          metadata:
-            dev.semgrep.actions: [block]
-            sca-kind: upgrade-only
-        """
-    ).lstrip()
-    mocker.patch.object(
-        ConfigLoader,
-        "_download_config_from_url",
-        side_effect=lambda url: ConfigFile(None, file_content, url),
-    )
-    mocker.patch.object(
-        ScanHandler,
-        "_get_scan_config_from_app",
-        return_value=out.ScanConfig(
-            deployment_id=DEPLOYMENT_ID,
-            deployment_name="org_name",
-            ignored_files=[],
-            policy_names=["audit", "comment", "block"],
-            rule_config=file_content,
-        ),
-    )
-
     result = run_semgrep(
         options=["ci", "--no-suppress-errors"],
         target_name=None,
@@ -1792,17 +1896,12 @@ def test_existing_supply_chain_finding(
                 head_commit,
                 head_commit[:7],
                 base_commit,
-                re.compile(
-                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
-                ),
             ]
         ),
         "base_output.txt",
     )
 
-    post_calls = AppSession.post.call_args_list
-    num_old_post_calls = len(post_calls)
-    findings_json = post_calls[1].kwargs["json"]
+    findings_json = upload_results_mock.last_request.json()
     assert len(findings_json["findings"]) == 1
 
     lockfile1 = repo_copy_base / "poetry.lock"
@@ -1865,15 +1964,11 @@ def test_existing_supply_chain_finding(
                 new_head_commit,
                 new_head_commit[:7],
                 head_commit,
-                re.compile(
-                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
-                ),
             ]
         ),
         "new_output.txt",
     )
-    post_calls = AppSession.post.call_args_list
-    findings_json = post_calls[num_old_post_calls + 1].kwargs["json"]
+    findings_json = upload_results_mock.last_request.json()
     assert len(findings_json["findings"]) == 0
 
 
@@ -1888,6 +1983,9 @@ def test_enabled_products(
     run_semgrep: RunSemgrep,
     mocker,
     git_tmp_path_with_commit,
+    start_scan_mock,
+    upload_results_mock,
+    complete_scan_mock,
 ):
     """
     Verify that for any given product, there is a valid output
