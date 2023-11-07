@@ -60,7 +60,7 @@ jobs:
           REPOSITORY: "${{ github.repository }}"
           SHA: "${{ needs.get-sha.outputs.sha }}"
           RULESET: "p/default-v2"
-          BASE_IMAGE: "returntocorp/semgrep:develop"
+          BASE_IMAGE: "${{ needs.setup-docker-tag.outputs.docker-tag == 'develop' && 'latest' || 'develop' }}"
           COMPARISON_IMAGE: "returntocorp/semgrep:${{ needs.setup-docker-tag.outputs.docker-tag }}"
           TOKEN: "${{ secrets.ARGO_WORKFLOWS_TOKEN }}"
         run: |
