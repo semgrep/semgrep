@@ -137,7 +137,7 @@ class meta ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
         commit_timestamp =
           (let time = float_of_string commit_datetime in
            let tm : Unix.tm = Unix.gmtime time in
-           Some (ATDStringWrap.Datetime.unwrap tm));
+           Some (ATD_string_wrap.Datetime.unwrap tm));
         on = self#event_name;
         pull_request_author_username = None;
         pull_request_author_image_url = None;

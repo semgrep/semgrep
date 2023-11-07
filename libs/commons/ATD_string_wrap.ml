@@ -103,10 +103,3 @@ module Datetime = struct
                 wrapped back as %s"
                (Dumper.dump now) s (Dumper.dump now')))
 end
-
-module Ruleid = struct
-  type t = Rule_ID.t [@@deriving show]
-
-  let unwrap = Rule_ID.to_string
-  let wrap = Rule_ID.of_string
-end
