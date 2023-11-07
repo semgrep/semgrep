@@ -54,3 +54,9 @@ val fetch_token_async :
   * fails, it will return an error message. These will give users ~2 minutes to login
   * [wait_hook] is a function that will be called before each retry
   *)
+
+val verify_token_async : string -> bool Lwt.t
+(** [verify_token_async] verifies that a token is valid with the Semgrep App. *)
+
+val verify_token : string -> bool
+(** [verify_token] verifies that a token is valid with the Semgrep App. *)

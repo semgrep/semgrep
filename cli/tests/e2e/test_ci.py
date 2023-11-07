@@ -72,6 +72,7 @@ USED_GITHUB_VARS = set(
         f"git grep --recurse-submodules -hPo 'GITHUB_[\\w_]*' {_cli_src}",
         shell=True,
         capture_output=True,
+        check=True,
     )
     .stdout.decode()
     .strip()
