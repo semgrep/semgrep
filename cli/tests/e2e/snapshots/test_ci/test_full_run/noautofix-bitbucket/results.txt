@@ -79,7 +79,7 @@ CI="true" BITBUCKET_BUILD_NUMBER="hi" BITBUCKET_REPO_FULL_NAME="project_name/pro
                 pull_request
 
   CONNECTION
-  Initializing scan (deployment=org_name, scan_id=35976)
+  Initializing scan (deployment=org_name, scan_id=12345)
   Enabled products: Code, Supply Chain
 
 ┌─────────────┐

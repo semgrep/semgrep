@@ -79,7 +79,7 @@ CI="true" TRAVIS="true" TRAVIS_REPO_SLUG="project_name/project_name" TRAVIS_PULL
                 pull_request
 
   CONNECTION
-  Initializing scan (deployment=org_name, scan_id=35976)
+  Initializing scan (deployment=org_name, scan_id=12345)
   Enabled products: Code, Supply Chain
 
 ┌─────────────┐

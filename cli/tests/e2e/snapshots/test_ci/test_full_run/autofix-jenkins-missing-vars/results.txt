@@ -78,7 +78,7 @@ JENKINS_URL="some_url" SEMGREP_REPO_URL="https://random.url.org/some/path" SEMGR
   environment - running in environment jenkins, triggering event is unknown
 
   CONNECTION
-  Initializing scan (deployment=org_name, scan_id=35976)
+  Initializing scan (deployment=org_name, scan_id=12345)
   Enabled products: Code, Supply Chain
 
 ┌─────────────┐

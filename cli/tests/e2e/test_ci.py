@@ -370,7 +370,12 @@ def automocks(mocker, mock_ci_api):
 
 @pytest.fixture
 def mocked_scan_id() -> int:
-    return 35976
+    return 12345
+
+
+@pytest.fixture
+def mocked_task_id() -> str:
+    return "00000000-0000-0000-0000-000000000000"
 
 
 @pytest.fixture
@@ -408,10 +413,8 @@ def start_scan_mock(
 
 
 @pytest.fixture
-def upload_results_mock(requests_mock, mocked_scan_id):
-    results_response = out.CiScanResultsResponse(
-        errors=[], task_id="324625d6-d4c7-4e22-8e2b-ae9b3f33bf42"
-    )
+def upload_results_mock(requests_mock, mocked_scan_id, mocked_task_id):
+    results_response = out.CiScanResultsResponse(errors=[], task_id=mocked_task_id)
     return requests_mock.post(
         f"https://semgrep.dev/api/agent/scans/{mocked_scan_id}/results",
         json=results_response.to_json(),

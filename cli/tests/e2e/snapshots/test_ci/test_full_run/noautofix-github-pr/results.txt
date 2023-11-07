@@ -22,7 +22,7 @@ Not on head ref: <MASKED>; checking that out now.
 
   CONNECTION
 Using <MASKED> as the merge-base of <MASKED> and <MASKED>
-  Initializing scan (deployment=org_name, scan_id=35976)
+  Initializing scan (deployment=org_name, scan_id=12345)
   Enabled products: Code, Supply Chain
 
 ┌─────────────┐

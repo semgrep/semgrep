@@ -79,7 +79,7 @@ CI="true" TRAVIS="true" SEMGREP_REPO_NAME="a/repo/name" SEMGREP_REPO_URL="https:
                 pull_request
 
   CONNECTION
-  Initializing scan (deployment=org_name, scan_id=35976)
+  Initializing scan (deployment=org_name, scan_id=12345)
   Enabled products: Code, Supply Chain
 
 ┌─────────────┐

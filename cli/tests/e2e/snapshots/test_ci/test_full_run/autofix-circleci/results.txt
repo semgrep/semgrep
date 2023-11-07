@@ -79,7 +79,7 @@ CI="true" CIRCLECI="true" CIRCLE_PROJECT_USERNAME="project_name" CIRCLE_PROJECT_
                 pull_request
 
   CONNECTION
-  Initializing scan (deployment=org_name, scan_id=35976)
+  Initializing scan (deployment=org_name, scan_id=12345)
   Enabled products: Code, Supply Chain
 
 ┌─────────────┐

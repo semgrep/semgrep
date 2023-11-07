@@ -78,7 +78,7 @@ JENKINS_URL="some_url" GIT_URL="https://github.com/org/repo.git/" GIT_BRANCH="so
   environment - running in environment jenkins, triggering event is unknown
 
   CONNECTION
-  Initializing scan (deployment=org_name, scan_id=35976)
+  Initializing scan (deployment=org_name, scan_id=12345)
   Enabled products: Code, Supply Chain
 
 ┌─────────────┐
