@@ -66,3 +66,7 @@ let last_elt_opt x =
 
 let ends_with r ~suffix:inc_or_exc_rule =
   r = inc_or_exc_rule || String.ends_with ~suffix:("." ^ inc_or_exc_rule) r
+
+(* For ATD 'string wrap' in semgrep_output_v1.atd *)
+let unwrap = to_string
+let wrap = of_string
