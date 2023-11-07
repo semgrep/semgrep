@@ -408,7 +408,9 @@ def start_scan_mock(
 
 @pytest.fixture
 def upload_results_mock(requests_mock, mocked_scan_id):
-    results_response = out.CiScanResultsResponse(errors=[], task_id="1234")
+    results_response = out.CiScanResultsResponse(
+        errors=[], task_id="324625d6-d4c7-4e22-8e2b-ae9b3f33bf42"
+    )
     return requests_mock.post(
         f"https://semgrep.dev/api/agent/scans/{mocked_scan_id}/results",
         json=results_response.to_json(),
