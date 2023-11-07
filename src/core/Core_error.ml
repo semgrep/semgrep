@@ -156,8 +156,12 @@ let opt_error_of_rule_error (err : Rule.error) : t option =
    We also use it to register global exception printers for
    'Printexc.to_string' to show useful messages.
 
-   TODO: why not capture AST_generic.error here? So we could get rid
-   of Run_semgrep.exn_to_error wrapper.
+   See also JSON_report.json_of_exn for non-target related exn handling.
+
+   invariant: every target-related semgrep-specific exn that has a
+   Parse_info.t should be captured here for precise location in error
+   reporting.
+   - TODO: naming exns?
 *)
 let known_exn_to_error rule_id file (e : Exception.t) : t option =
   match Exception.get_exn e with
@@ -181,6 +185,8 @@ let known_exn_to_error rule_id file (e : Exception.t) : t option =
       Some (mk_error_tok rule_id tok msg Out.ParseError)
   | Parsing_error.Other_error (s, tok) ->
       Some (mk_error_tok rule_id tok s Out.OtherParseError)
+  | AST_generic.Error (s, tok) ->
+      Some (mk_error_tok rule_id tok s Out.AstBuilderError)
   | Rule.Error err -> opt_error_of_rule_error err
   | Time_limit.Timeout timeout_info ->
       let s = Printexc.get_backtrace () in
