@@ -27,6 +27,7 @@ val get_merge_base : string -> string
 
 (* get repository root path *)
 val get_git_root_path : unit -> string
+val chdir_to_repo_root : unit -> unit
 
 (* Executing a function inside a directory created from git-worktree.
 

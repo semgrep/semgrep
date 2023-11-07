@@ -158,6 +158,8 @@ let get_git_root_path () =
   | Ok (path, (_, `Exited 0)) -> path
   | _ -> raise (Error "Could not get git root from git rev-parse")
 
+let chdir_to_repo_root () = Sys.chdir (get_git_root_path ())
+
 let get_merge_base commit =
   let cmd = Bos.Cmd.(v "git" % "merge-base" % commit % "HEAD") in
   let base_r = Bos.OS.Cmd.run_out cmd in

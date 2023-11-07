@@ -71,7 +71,7 @@ let _ =
          (* This should place us at the root of the semgrep repository, which
             is important for some assumptions later on during testing.
          *)
-         Common.chdir_to_repo_root ();
+         Git_wrapper.chdir_to_repo_root ();
          let argv = [| "" |] in
          let argv =
            if filter <> "" then Array.append argv [| "-e"; filter |] else argv

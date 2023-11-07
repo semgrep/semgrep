@@ -106,9 +106,9 @@ let tests_with_delayed_error () =
       ]
 
 let main () =
-  (* find the root of the semgrep repo as many of our tests rely on
+  (* change to the root of the semgrep repo as many of our tests rely on
      'let test_path = "tests/"' to find their test files *)
-  Common.chdir_to_repo_root ();
+  Git_wrapper.chdir_to_repo_root ();
   Http_helpers.client_ref := Some (module Cohttp_lwt_unix.Client);
   Parsing_init.init ();
   Data_init.init ();
