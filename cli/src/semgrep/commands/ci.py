@@ -319,8 +319,13 @@ def ci(
                 start_scan_desc = "Initializing scan"
                 start_scan_task = progress_bar.add_task(start_scan_desc)
                 scan_handler.start_scan(project_meta, project_config)
+                extra_fields = []
+                if scan_handler.deployment_name:
+                    extra_fields.append(f"deployment={scan_handler.deployment_name}")
                 if scan_handler.scan_id:
-                    start_scan_desc += f" (deployment={scan_handler.deployment_name}, scan_id={scan_handler.scan_id})"
+                    extra_fields.append(f"scan_id={scan_handler.scan_id}")
+                if extra_fields:
+                    start_scan_desc += f" ({', '.join(extra_fields)})"
                 progress_bar.update(
                     start_scan_task, completed=100, description=start_scan_desc
                 )
