@@ -39,6 +39,8 @@ function executeSnapshotTest(engine, language, ruleFile, targetFile) {
   const result = JSON.parse(
     engine
       .execute(language, rulePath, `${__dirname}`, [targetPath])
+      .replaceAll(rulePath, ruleFile)
+      .replaceAll(targetPath, targetFile)
       .replaceAll("PRO", "OSS")
   );
   result["version"] = "<MASKED>";

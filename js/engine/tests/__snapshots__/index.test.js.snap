@@ -178,7 +178,7 @@ exports[`yaml parser parses a pattern with pattern-regex 1`] = `
           "line": 6,
           "offset": 99,
         },
-        "path": "/Users/brandonspark/semgrep/js/engine/tests/test-rule-yaml-regex.json",
+        "path": "test-rule-yaml-regex.json",
         "start": {
           "col": 24,
           "line": 6,
@@ -199,7 +199,7 @@ exports[`yaml parser parses a pattern with pattern-regex 1`] = `
             "metavars": {},
             "validation_state": "NO_VALIDATOR",
           },
-          "path": "/Users/brandonspark/semgrep/js/engine/tests/test.yaml",
+          "path": "test.yaml",
           "start": {
             "col": 1,
             "line": 1,
@@ -215,7 +215,7 @@ exports[`yaml parser parses a pattern with pattern-regex 1`] = `
   ],
   "paths": {
     "scanned": [
-      "/Users/brandonspark/semgrep/js/engine/tests/test.yaml",
+      "test.yaml",
     ],
   },
   "results": [
@@ -237,7 +237,7 @@ exports[`yaml parser parses a pattern with pattern-regex 1`] = `
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR",
       },
-      "path": "/Users/brandonspark/semgrep/js/engine/tests/test.yaml",
+      "path": "test.yaml",
       "start": {
         "col": 1,
         "line": 1,
@@ -262,7 +262,7 @@ exports[`yaml parser parses a simple pattern 1`] = `
           "line": 6,
           "offset": 96,
         },
-        "path": "/Users/brandonspark/semgrep/js/engine/tests/test-rule-yaml.json",
+        "path": "test-rule-yaml.json",
         "start": {
           "col": 18,
           "line": 6,
@@ -297,7 +297,7 @@ exports[`yaml parser parses a simple pattern 1`] = `
             },
             "validation_state": "NO_VALIDATOR",
           },
-          "path": "/Users/brandonspark/semgrep/js/engine/tests/test.yaml",
+          "path": "test.yaml",
           "start": {
             "col": 1,
             "line": 1,
@@ -313,7 +313,7 @@ exports[`yaml parser parses a simple pattern 1`] = `
   ],
   "paths": {
     "scanned": [
-      "/Users/brandonspark/semgrep/js/engine/tests/test.yaml",
+      "test.yaml",
     ],
   },
   "results": [
@@ -349,7 +349,7 @@ exports[`yaml parser parses a simple pattern 1`] = `
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR",
       },
-      "path": "/Users/brandonspark/semgrep/js/engine/tests/test.yaml",
+      "path": "test.yaml",
       "start": {
         "col": 1,
         "line": 1,
