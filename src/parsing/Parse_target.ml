@@ -96,8 +96,13 @@ let parse_and_resolve_name lang file =
   AST_generic.SId.unsafe_reset_counter ();
   Naming_AST.resolve lang ast;
   Typing.check_program lang ast;
+
+  (* Flow-insensitive constant propagation. *)
   Constant_propagation.propagate_basic lang ast;
+
+  (* Flow-sensitive constant propagation. *)
   Constant_propagation.propagate_dataflow lang ast;
+
   logger#info "Parse_target.parse_and_resolve_name done";
   res
 [@@profiling]

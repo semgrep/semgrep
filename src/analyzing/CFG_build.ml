@@ -16,6 +16,7 @@
 open Common
 open IL
 module F = IL (* to be even more similar to controlflow_build.ml *)
+module G = AST_generic
 
 (*****************************************************************************)
 (* Prelude *)
@@ -77,6 +78,8 @@ type state = {
      its parent function. *)
   unused_lambdas : (name, unit) Hashtbl.t;
 }
+
+type fdef_cfg = { fparams : name list; fcfg : cfg }
 
 (*****************************************************************************)
 (* Helpers *)
@@ -349,7 +352,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       CfgFirstLast (newi, Some newi, false)
   | FixmeStmt _ -> cfg_todo state previ stmt
 
-and cfg_lambda state previ joini fdef =
+and cfg_lambda state previ joini (fdef : IL.function_definition) =
   (* Lambdas are treated as statement blocks, the CFG does NOT capture the actual
      * flow of data that goes into the lambda through its parameters, and back
      * into the surrounding definition through its `return' statement. We won't
@@ -362,7 +365,9 @@ and cfg_lambda state previ joini fdef =
   let newi = state.g#add_node { F.n = NLambda fdef.fparams } in
   state.g |> add_arc_from_opt (previ, newi);
   let finallambda, _ignore_throws_in_lambda_ =
-    cfg_stmt_list { state with throw_destination = None } (Some newi) fdef.fbody
+    cfg_stmt_list
+      { state with throw_destination = None }
+      (Some newi) fdef.IL.fbody
   in
   state.g |> add_arc_from_opt (finallambda, joini)
 
@@ -507,3 +512,20 @@ let (cfg_of_stmts : stmt list -> F.cfg) =
    *)
   g |> add_arc_from_opt (last_node_opt, exiti);
   CFG.make g enteri exiti
+
+let cfg_of_fdef lang fdef =
+  if Implicit_return.lang_supports_implicit_return lang then (
+    (* We need to build the CFG here first because the analysis
+     * visits the CFG to determine returning nodes.
+     *)
+    let _fparams, fstmts = AST_to_IL.function_definition lang fdef in
+    Implicit_return.mark_implicit_return_nodes (cfg_of_stmts fstmts);
+
+    (* Rebuild CFG after marking the return nodes, so that all
+     * implicit returns become explicit.
+     *)
+    let fparams, fstmts = AST_to_IL.function_definition lang fdef in
+    { fparams; fcfg = cfg_of_stmts fstmts })
+  else
+    let fparams, fstmts = AST_to_IL.function_definition lang fdef in
+    { fparams; fcfg = cfg_of_stmts fstmts }
