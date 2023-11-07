@@ -77,7 +77,7 @@ let mk_error opt_rule_id loc msg err =
         Printf.sprintf "%s\n\n%s" please_file_issue_text msg
     | LexicalError
     | ParseError
-    | SpecifiedParseError
+    | OtherParseError
     | RuleParseError
     | InvalidYaml
     | SemgrepMatchFound
@@ -180,7 +180,7 @@ let known_exn_to_error rule_id file (e : Exception.t) : t option =
       in
       Some (mk_error_tok rule_id tok msg Out.ParseError)
   | Parsing_error.Other_error (s, tok) ->
-      Some (mk_error_tok rule_id tok s Out.SpecifiedParseError)
+      Some (mk_error_tok rule_id tok s Out.OtherParseError)
   | Rule.Error err -> opt_error_of_rule_error err
   | Time_limit.Timeout timeout_info ->
       let s = Printexc.get_backtrace () in
@@ -213,7 +213,15 @@ let exn_to_error rule_id file (e : Exception.t) : t =
           let loc = Tok.first_loc_of_file file in
           {
             rule_id;
-            typ = Out.FatalError;
+            (* bugfix: we used to return [Out.FatalError] here, but pysemgrep
+             * has some special handling for such error and aborts
+             * aggressively the scan and display a scary stack trace.
+             * We are probably here because of an unhandled exn
+             * in one of the parser (e.g., Failure "not a program") but
+             * we can recover from it, so let's generate a OtherParseError
+             * instead.
+             *)
+            typ = Out.OtherParseError;
             loc;
             msg = Printexc.to_string exn;
             details = Some trace;
@@ -248,7 +256,7 @@ let severity_of_error (typ : Out.error_type) : Out.error_severity =
   | LexicalError -> `Warning
   | ParseError -> `Warning
   | PartialParsing _ -> `Warning
-  | SpecifiedParseError -> `Warning
+  | OtherParseError -> `Warning
   | AstBuilderError -> `Error
   | RuleParseError -> `Error
   | PatternParseError _

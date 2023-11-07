@@ -75,7 +75,7 @@ class ParsingData:
             (
                 out.LexicalError,
                 out.ParseError,
-                out.SpecifiedParseError,
+                out.OtherParseError,
                 out.AstBuilderError,
             ),
         ):
