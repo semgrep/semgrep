@@ -692,6 +692,11 @@ let resolve lang prog =
             (* difference with ImportAs, we add in local scope in OCaml *)
             add_ident_current_scope id resolved env.names;
             super#visit_definition venv x
+        | ( { name = EN (Id (id, id_info)); _ },
+            MacroDef
+              { macroparams = []; macrobody = [ E ({ e = L _; _ } as e) ] } ) ->
+            declare_var env lang id id_info ~explicit:true (Some e) None;
+            super#visit_definition venv x
         (* general case, just recurse *)
         | _ -> super#visit_definition venv x
 
