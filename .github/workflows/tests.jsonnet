@@ -5,6 +5,7 @@
 // - we can build Linux and MacOS binaries and python "wheels" for pypi
 // - we don't have any perf regressions in our benchmarks
 
+local gha = import 'libs/gha.libsonnet';
 local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
@@ -94,7 +95,9 @@ local test_semgrep_core_job =
   semgrep.ocaml_alpine_container
   {
     steps: [
+      gha.speedy_checkout_step,
       actions.checkout_with_submodules(),
+      gha.git_safedir,
       {
         name: 'Build semgrep-core',
         run: |||
@@ -142,7 +145,9 @@ local test_osemgrep_job =
   semgrep.ocaml_alpine_container
   {
     steps: [
+      gha.speedy_checkout_step,
       actions.checkout_with_submodules(),
+      gha.git_safedir,
       {
         name: 'Build semgrep-core',
         run: |||
