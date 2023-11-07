@@ -14,7 +14,7 @@ exports[`yaml parser interpolates metavariables in rule message 1`] = `
               "line": 9,
               "offset": 195,
             },
-            "path": "/Users/brandonspark/semgrep/js/engine/tests/test-interpolate-metavars.json",
+            "path": "test-interpolate-metavars.json",
             "start": {
               "col": 22,
               "line": 9,
@@ -49,7 +49,7 @@ exports[`yaml parser interpolates metavariables in rule message 1`] = `
                 },
                 "validation_state": "NO_VALIDATOR",
               },
-              "path": "/Users/brandonspark/semgrep/js/engine/tests/test.py",
+              "path": "test.py",
               "start": {
                 "col": 1,
                 "line": 1,
@@ -69,7 +69,7 @@ exports[`yaml parser interpolates metavariables in rule message 1`] = `
           "line": 7,
           "offset": 149,
         },
-        "path": "/Users/brandonspark/semgrep/js/engine/tests/test-interpolate-metavars.json",
+        "path": "test-interpolate-metavars.json",
         "start": {
           "col": 7,
           "line": 7,
@@ -104,7 +104,7 @@ exports[`yaml parser interpolates metavariables in rule message 1`] = `
             },
             "validation_state": "NO_VALIDATOR",
           },
-          "path": "/Users/brandonspark/semgrep/js/engine/tests/test.py",
+          "path": "test.py",
           "start": {
             "col": 1,
             "line": 1,
@@ -117,7 +117,7 @@ exports[`yaml parser interpolates metavariables in rule message 1`] = `
   ],
   "paths": {
     "scanned": [
-      "/Users/brandonspark/semgrep/js/engine/tests/test.py",
+      "test.py",
     ],
   },
   "results": [
@@ -153,7 +153,7 @@ exports[`yaml parser interpolates metavariables in rule message 1`] = `
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR",
       },
-      "path": "/Users/brandonspark/semgrep/js/engine/tests/test.py",
+      "path": "test.py",
       "start": {
         "col": 1,
         "line": 1,
