@@ -73,5 +73,9 @@ module Make (MessageHandler : sig
   val capabilities : Lsp.Types.ServerCapabilities.t
 end) : sig
   val start : t -> unit Lwt.t
+
+  val handle_client_message :
+    Jsonrpc.Packet.t -> t -> (t * Jsonrpc.Packet.t option) Lwt.t
+
   val create : unit -> t
 end
