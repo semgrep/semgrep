@@ -623,6 +623,20 @@ let add_special_constants env lang prog =
 (* Entry point *)
 (*****************************************************************************)
 
+type propagate_basic_visitor_funcs = {
+  visit_definition :
+    env * Iter_with_context.context -> AST_generic.definition -> unit;
+  visit_expr :
+    env * Iter_with_context.context -> AST_generic.a_xml_attr_value -> unit;
+}
+
+let propagate_basic_visitor_hook : propagate_basic_visitor_funcs ref =
+  ref
+    {
+      visit_definition = (fun (_env, _ctx) _x -> ());
+      visit_expr = (fun (_env, _ctx) _x -> ());
+    }
+
 (* !Note that this assumes Naming_AST.resolve has been called before! *)
 let propagate_basic lang prog =
   logger#trace "Constant_propagation.propagate_basic program";
@@ -703,7 +717,9 @@ let propagate_basic lang prog =
                   add_constant_env id (sid, Sym e) env
               | None, _ -> ());
             super#visit_definition (env, ctx) x
-        | _ -> super#visit_definition (env, ctx) x
+        | _ ->
+            !propagate_basic_visitor_hook.visit_definition (env, ctx) x;
+            super#visit_definition (env, ctx) x
 
       (* the uses (and also defs for Python Assign) *)
       method! visit_expr (env, ctx) x =
@@ -794,7 +810,9 @@ let propagate_basic lang prog =
                   then add_constant_env id (sid, Sym rexp) env;
                   ());
             super#visit_expr (env, ctx) rexp
-        | __else__ -> super#visit_expr (env, ctx) x
+        | __else__ ->
+            !propagate_basic_visitor_hook.visit_expr (env, ctx) x;
+            super#visit_expr (env, ctx) x
     end
   in
   visitor#visit_program (env, Iter_with_context.initial_context) prog;
