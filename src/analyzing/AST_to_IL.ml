@@ -1100,6 +1100,17 @@ and stmt_expr env ?e_gen st =
   | G.Return (t, eorig, _) ->
       mk_s (Return (t, expr_opt env eorig)) |> add_stmt env;
       expr_opt env None
+  | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = _typTODO }) ->
+      let e = expr env e in
+      let lv = lval_of_ent env ent in
+      let i = mk_i (Assign (lv, e)) (Related (G.S st)) in
+      mk_s (Instr i) |> add_stmt env;
+      let eorig =
+        match e_gen with
+        | None -> related_exp (G.e (G.StmtExpr st))
+        | Some e_gen -> SameAs e_gen
+      in
+      mk_e (Fetch lv) eorig
   | __else__ ->
       (* In any case, let's make sure the statement is in the IL translation
        * so that e.g. taint can do its job. *)
