@@ -13,9 +13,13 @@ name: tests
 jobs:
   test-semgrep-core:
     steps:
+    - name: Make checkout speedy
+      run: git config --global fetch.parallel 50
     - uses: actions/checkout@v3
       with:
         submodules: true
+    - name: Configure git safedir properly
+      run: git config --global --add safe.directory $(pwd)
     - name: Build semgrep-core
       run: "\n          eval $(opam env)\n          make install-deps-ALPINE-for-semgrep-core\n
         \         make install-deps-for-semgrep-core\n          make core\n        "
@@ -30,14 +34,18 @@ jobs:
     - name: Publish match performance
       run: opam exec -- make report-perf-matching
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine-2023-10-17
+    container: returntocorp/ocaml:alpine-2023-11-07
     env:
       HOME: /root
   test-osemgrep:
     steps:
+    - name: Make checkout speedy
+      run: git config --global fetch.parallel 50
     - uses: actions/checkout@v3
       with:
         submodules: true
+    - name: Configure git safedir properly
+      run: git config --global --add safe.directory $(pwd)
     - name: Build semgrep-core
       run: "\n          eval $(opam env)\n          make install-deps-ALPINE-for-semgrep-core\n
         \         make install-deps-for-semgrep-core\n          make core\n        "
@@ -48,9 +56,10 @@ jobs:
         pipenv install --dev)\n        "
     - name: Run pytest for osemgrep known passing tests
       working-directory: cli
-      run: make osempass
+      run: "\n          git config --global --add safe.directory \"$(pwd)\"\n          make
+        osempass\n        "
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine-2023-10-17
+    container: returntocorp/ocaml:alpine-2023-11-07
     env:
       HOME: /root
   test-cli:
