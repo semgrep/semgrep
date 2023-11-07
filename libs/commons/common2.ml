@@ -1402,7 +1402,7 @@ let int_of_all s =
 
 let int64_of_string_opt s =
   try Some (Int64.of_string s) with
-  | Failure "int_of_string" -> None
+  | Failure _ -> None
 
 let int64_of_string_c_octal_opt s =
   let open Common in

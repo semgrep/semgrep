@@ -375,7 +375,7 @@ and eval_op op values code =
   | G.Minus, [ Float i1; Float i2 ] -> Float (i1 -. i2)
   | G.Minus, [ Int i1; Float i2 ] -> Float (Int64.to_float i1 -. i2)
   | G.Minus, [ Float i1; Int i2 ] -> Float (i1 -. Int64.to_float i2)
-  | G.Mod, [ Int i1; Int i2 ] -> Int Int64_ops.(i1 / i2)
+  | G.Mod, [ Int i1; Int i2 ] -> Int Int64_ops.(i1 mod i2)
   | G.Mod, [ Float i1; Float i2 ] -> Float (Float.rem i1 i2)
   | G.Mod, [ Int i1; Float i2 ] -> Float (Float.rem (Int64.to_float i1) i2)
   | G.Mod, [ Float i1; Int i2 ] -> Float (Float.rem i1 (Int64.to_float i2))

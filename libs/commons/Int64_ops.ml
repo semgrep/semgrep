@@ -7,6 +7,7 @@ let ( + ) = Int64.add
 let ( - ) = Int64.sub
 let ( * ) = Int64.mul
 let ( / ) = Int64.div
+let ( mod ) = Int64.rem
 let ( asr ) = Int64.shift_right
 let ( lsl ) = Int64.shift_left
 let ( lor ) = Int64.logor
