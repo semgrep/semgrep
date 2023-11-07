@@ -158,7 +158,19 @@ let get_git_root_path () =
   | Ok (path, (_, `Exited 0)) -> path
   | _ -> raise (Error "Could not get git root from git rev-parse")
 
-let chdir_to_repo_root () = Sys.chdir (get_git_root_path ())
+(* this does not technically use any Git features, because JSCaml cannot always
+   successfully call get_git_root_path. but, it's a convenient place to put
+   it.
+*)
+let chdir_to_repo_root () =
+  let rec parent changed =
+    if Sys.getcwd () = "/" then invalid_arg "couldn't find repo root"
+    else if not (Sys.file_exists ".git" && Sys.is_directory ".git") then (
+      Sys.chdir "..";
+      parent true)
+    else changed
+  in
+  parent false |> ignore
 
 let get_merge_base commit =
   let cmd = Bos.Cmd.(v "git" % "merge-base" % commit % "HEAD") in
