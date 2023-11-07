@@ -64,3 +64,13 @@
  (targets semgrep_output_v1_t.ml semgrep_output_v1_t.mli)
  (deps    semgrep_output_v1.atd)
  (action  (run atdgen -t %{deps})))
+
+(rule
+ (targets rule_schema_v2_j.ml rule_schema_v2_j.mli)
+ (deps    rule_schema_v2.atd)
+ (action  (run atdgen -j -j-std -j-defaults %{deps})))
+
+(rule
+ (targets rule_schema_v2_t.ml rule_schema_v2_t.mli)
+ (deps    rule_schema_v2.atd)
+ (action  (run atdgen -t %{deps})))
