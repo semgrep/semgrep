@@ -169,7 +169,10 @@ local test_osemgrep_job =
       {
         name: 'Run pytest for osemgrep known passing tests',
         'working-directory': 'cli',
-        run: 'make osempass',
+        run: |||
+          git config --global --add safe.directory "$(pwd)"
+          make osempass
+        |||,
       },
     ],
   };

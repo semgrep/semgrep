@@ -48,7 +48,8 @@ jobs:
         pipenv install --dev)\n        "
     - name: Run pytest for osemgrep known passing tests
       working-directory: cli
-      run: make osempass
+      run: "\n          git config --global --add safe.directory \"$(pwd)\"\n          make
+        osempass\n        "
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:alpine-2023-11-07
     env:
