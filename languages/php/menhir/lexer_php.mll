@@ -577,7 +577,7 @@ rule st_in_scripting = parse
           (* more? cf original lexer *)
           let s = tok lexbuf in
           let ii = tokinfo lexbuf in
-          T_LNUMBER (int_of_string_opt s, ii)
+          T_LNUMBER (Common2.int64_of_string_opt s, ii)
         }
     | DNUM | EXPONENT_DNUM
         { T_DNUMBER(float_of_string_opt ( tok lexbuf), tokinfo lexbuf) }

@@ -508,7 +508,7 @@ let map_polymorphic_variant_pattern (env : env)
 let number env tok =
   let s, t = str env tok (* number *) in
   try
-    let i = int_of_string s in
+    let i = Int64.of_string s in
     Int (Some i, t)
   with
   | _ ->

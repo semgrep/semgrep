@@ -502,6 +502,7 @@ val deg_to_rad : float -> float
 val clampf : float -> float
 val square : float -> float
 val power : int -> int -> int
+val power64 : int64 -> int64 -> int64
 val between : 'a -> 'a -> 'a -> bool
 val between_strict : int -> int -> int -> bool
 val bitrange : int -> int -> bool
@@ -526,10 +527,11 @@ val int_of_base : string -> int -> int
 val int_of_stringbits : string -> int
 val int_of_octal : string -> int
 val int_of_all : string -> int
+val int64_of_string_opt : string -> int64 option
 
 (* like int_of_string_opt, but also converts C octals like 0400 in
  * the right value. *)
-val int_of_string_c_octal_opt : string -> int option
+val int64_of_string_c_octal_opt : string -> int64 option
 
 (* like float_of_string_opt, but also converts C octals like 0400 in
  * the right value. *)

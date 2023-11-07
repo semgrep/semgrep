@@ -277,7 +277,7 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
       N (H2.name_of_id id) |> G.e
   | `Int tok ->
       let s, t = (* integer *) str env tok in
-      L (Int (Common2.int_of_string_c_octal_opt s, t)) |> G.e
+      L (Int (Common2.int64_of_string_c_octal_opt s, t)) |> G.e
   | `Float tok ->
       let s, t = (* float *) str env tok in
       L (Float (Common2.float_of_string_opt s, t)) |> G.e

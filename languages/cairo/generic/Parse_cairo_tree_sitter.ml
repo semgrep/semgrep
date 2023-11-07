@@ -467,7 +467,7 @@ and map_binary_expression (env : env) (x : CST.binary_expression) =
 
 and integer_literal env tok =
   let s, t = str env tok in
-  (int_of_string_opt s, t)
+  (Common2.int64_of_string_opt s, t)
 
 and map_literal (env : env) (x : CST.literal_expression) : G.literal =
   match x with

@@ -307,7 +307,7 @@ and stmt env st acc =
       | ( ( _,
             [
               Common.Left
-                (Name ("strict", _), (_, Sc (C (Int ((Some 1 | Some 0), _)))));
+                (Name ("strict", _), (_, Sc (C (Int ((Some 1L | Some 0L), _)))));
             ],
             _ ),
           SingleStmt (EmptyStmt _) )
@@ -315,7 +315,7 @@ and stmt env st acc =
             [
               Common.Left
                 ( Name ("strict_types", _),
-                  (_, Sc (C (Int ((Some 1 | Some 0), _)))) );
+                  (_, Sc (C (Int ((Some 1L | Some 0L), _)))) );
             ],
             _ ),
           SingleStmt (EmptyStmt _) )
@@ -324,7 +324,7 @@ and stmt env st acc =
        *) ->
           acc
       | ( ( _,
-            [ Common.Left (Name ("ticks", _), (_, Sc (C (Int (Some 1, _))))) ],
+            [ Common.Left (Name ("ticks", _), (_, Sc (C (Int (Some 1L, _))))) ],
             _ ),
           _ ) ->
           let cst = colon_stmt tok env colon_st in

@@ -250,22 +250,25 @@ let find_type_args args =
        | Some (Cst ctype) -> Some ctype
        | _arg -> None)
 
-let sign i = i asr (Sys.int_size - 1)
+let sign i = Int64.shift_right i (Sys.int_size - 1)
 
 let int_add n m =
-  let r = n + m in
-  if sign n = sign m && sign r <> sign n then None (* overflow *) else Some r
+  let r = Int64.add n m in
+  if Int64.equal (sign n) (sign m) && sign r <> sign n then None (* overflow *)
+  else Some r
 
 let int_mult i1 i2 =
   let overflow =
-    i1 <> 0 && i2 <> 0
-    && ((i1 < 0 && i2 = min_int) (* >max_int *)
-       || (i1 = min_int && i2 < 0) (* >max_int *)
-       ||
-       if sign i1 * sign i2 = 1 then abs i1 > abs (max_int / i2) (* >max_int *)
-       else abs i1 > abs (min_int / i2) (* <min_int *))
+    Int64_ops.(
+      i1 <> 0L && i2 <> 0L
+      && ((i1 < 0L && i2 = Int64.min_int) (* >max_int *)
+         || (i1 = Int64.min_int && i2 < 0L) (* >max_int *)
+         ||
+         if sign i1 * sign i2 = 1L then abs i1 > abs (max_int / i2)
+           (* >max_int *)
+         else abs i1 > abs (min_int / i2) (* <min_int *)))
   in
-  if overflow then None else Some (i1 * i2)
+  if overflow then None else Some Int64_ops.(i1 * i2)
 
 let binop_int_cst op i1 i2 =
   match (i1, i2) with
@@ -293,7 +296,7 @@ let concat_string_cst env s1 s2 =
   | Some (Lit (String (l, (s1, t1), r))), Some (Lit (Int (Some m, _)))
     when is_lang env Lang.Java || is_js env ->
       (* implicit int-to-string conversion *)
-      Some (Lit (String (l, (s1 ^ string_of_int m, t1), r)))
+      Some (Lit (String (l, (s1 ^ Int64.to_string m, t1), r)))
   | Some (Lit (String (l, (s1, t1), r))), Some (Lit (Float (Some m, _)))
     when is_js env ->
       (* implicit float-to-string conversion *)

@@ -1240,10 +1240,10 @@ and m_literal a b =
         *)
         match (a, b) with
         | G.Int (a1, a2), B.String (_, (b1, b2), _) ->
-            let i = Option.map Int.to_string a1 in
+            let i = Option.map Int64.to_string a1 in
             m_wrap_m_string_opt (i, a2) (Some b1, b2)
         | G.String (_, (a1, a2), _), B.Int (b1, b2) ->
-            let i = Option.map Int.to_string b1 in
+            let i = Option.map Int64.to_string b1 in
             m_wrap_m_string_opt (Some a1, a2) (i, b2)
         | G.Bool (a1, a2), B.String (_, (b1, b2), _) ->
             let b = Bool.to_string a1 in
@@ -1307,7 +1307,7 @@ and m_literal_inner a b =
 and m_wrap_m_int_opt (a1, a2) (b1, b2) =
   match (a1, b1) with
   (* iso: semantic equivalence of value! 0x8 can match 8 *)
-  | Some i1, Some i2 -> if i1 =|= i2 then return () else fail ()
+  | Some i1, Some i2 -> if Int64.(equal i1 i2) then return () else fail ()
   (* if the integers (or floats) were too large or were using
    * a syntax OCaml int_of_string could not parse,
    * we default to a string comparison *)
@@ -2184,7 +2184,7 @@ and m_generic_type_vs_type_t lang tok a b =
       m_generic_type_vs_type_t lang tok t1 t2
   | ( G.TyArray ((_l, Some { e = G.L (G.Int (Some size1, _)); _ }, _r), t1),
       Type.Array (Some size2, t2) ) ->
-      let* () = m_int size1 size2 in
+      let* () = m_int64 size1 size2 in
       (* THINK: Should be an invariant match rather than covariant? *)
       m_generic_type_vs_type_t lang tok t1 t2
   | G.TyFun (params1, tret1), Type.Function (params2, tret2) ->

@@ -570,7 +570,7 @@ and preproc_call_expression (env : env) ((v1, v2) : CST.preproc_call_expression)
 (* Int or Float ! *)
 and number_literal env tok =
   let s, t = str env tok in
-  match Common2.int_of_string_c_octal_opt s with
+  match Common2.int64_of_string_c_octal_opt s with
   | Some i -> Int (Some i, t)
   | None -> (
       match float_of_string_opt s with

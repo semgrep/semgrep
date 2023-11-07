@@ -498,7 +498,7 @@ and literal x =
   | Bool x -> G.L (G.Bool (wrap bool x))
   (* TODO: put real numbers here *)
   | Num (s, x) ->
-      let i = int_of_string_opt s in
+      let i = Common2.int64_of_string_opt s in
       G.L (G.Int (i, tok x))
   | Float (s, x) ->
       let f = float_of_string_opt s in

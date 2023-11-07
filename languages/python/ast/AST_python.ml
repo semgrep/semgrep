@@ -169,9 +169,9 @@ type expr =
   | ParenExpr of expr bracket
 
 and number =
-  | Int of int option wrap
+  | Int of int64 option wrap
   (* TODO: merge with Int? tree-sitter-python does not differentiate *)
-  | LongInt of int option wrap
+  | LongInt of int64 option wrap
   | Float of float option wrap
   | Imag of string wrap
 

@@ -391,7 +391,7 @@ let attribute_target_specifier (env : env)
 let integer_literal (env : env) (tok : CST.integer_literal) =
   let s, t = str env tok in
   (* integer_literal *)
-  G.Int (int_of_string_opt s, t)
+  G.Int (Common2.int64_of_string_opt s, t)
 
 let overloadable_operator (env : env) (x : CST.overloadable_operator) =
   match x with
@@ -1504,7 +1504,7 @@ and non_lvalue_expression (env : env) (x : CST.non_lvalue_expression) : G.expr =
       let v2 = query_body env v2 in
       linq_to_expr v1 v2
   | `Range_exp (v1, v2, v3) ->
-      let fake_zero = L (Int (Some 0, fake "0")) |> G.e in
+      let fake_zero = L (Int (Some 0L, fake "0")) |> G.e in
       let v1 =
         match v1 with
         | Some x -> expression env x

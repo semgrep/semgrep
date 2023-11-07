@@ -213,13 +213,13 @@ and expr =
   | UnaryOp of operator wrap * expr
   | BinaryOp of expr * operator wrap * expr
   (* coming from Erlang (coming itself from Prolog) *)
-  | OpArity of operator wrap * Tok.t (* '/' *) * int option wrap
+  | OpArity of operator wrap * Tok.t (* '/' *) * int64 option wrap
   | When of expr * Tok.t (* 'when' *) * expr_or_kwds
   | Join of expr * Tok.t (* '|' *) * expr_or_kwds
   | Lambda of Tok.t (* 'fn' *) * clauses * Tok.t (* 'end' *)
   | Capture of Tok.t (* '&' *) * expr
   | ShortLambda of Tok.t (* '&' *) * expr bracket
-  | PlaceHolder of Tok.t (* & *) * int option wrap
+  | PlaceHolder of Tok.t (* & *) * int64 option wrap
   | S of stmt
   (* semgrep-ext: *)
   | DeepEllipsis of expr bracket

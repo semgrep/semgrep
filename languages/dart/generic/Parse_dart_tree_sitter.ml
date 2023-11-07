@@ -1397,10 +1397,10 @@ and map_literal (env : env) (x : CST.literal) =
   match x with
   | `Deci_int_lit tok ->
       let s, t = (* decimal_integer_literal *) str env tok in
-      L (Int (int_of_string_opt s, t)) |> G.e
+      L (Int (Common2.int64_of_string_opt s, t)) |> G.e
   | `Hex_int_lit tok ->
       let s, t = (* hex_integer_literal *) str env tok in
-      L (Int (int_of_string_opt s, t)) |> G.e
+      L (Int (Common2.int64_of_string_opt s, t)) |> G.e
   | `Deci_floa_point_lit tok ->
       let s, t = (* decimal_floating_point_literal *) str env tok in
       L (Float (float_of_string_opt s, t)) |> G.e

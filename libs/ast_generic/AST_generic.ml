@@ -801,7 +801,7 @@ and literal =
    * may not be able to represent all numbers. For example, OCaml integers
    * are limited to 63 bits, but C integers can use 64 bits.
    *)
-  | Int of int option wrap
+  | Int of int64 option wrap
   | Float of float option wrap
   | Char of string wrap
   (* String literals:

@@ -76,7 +76,7 @@ and 'resolved t =
   (* TODO: generalize to other containers? But then use a TyContainer
    * in SAST.ml? *)
   (* int option for the cases where we know the size of the array *)
-  | Array of int option * 'resolved t
+  | Array of int64 option * 'resolved t
   | Function of 'resolved function_type
   | Pointer of 'resolved t
   (* todos (bailout) *)
@@ -252,7 +252,7 @@ let rec to_ast_generic_type_ ?(tok = None) lang
   | Array (size, ty) ->
       let size =
         Option.map
-          (fun n -> G.L (G.Int (Some n, make_tok (string_of_int n))) |> G.e)
+          (fun n -> G.L (G.Int (Some n, make_tok (Int64.to_string n))) |> G.e)
           size
       in
       let* ty = to_ast_generic_type_ lang f ty in

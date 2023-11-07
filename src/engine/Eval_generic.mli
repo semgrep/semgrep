@@ -1,6 +1,6 @@
 type value =
   | Bool of bool
-  | Int of int
+  | Int of int64
   | Float of float
   (* the string does not contain the enclosing '"' *)
   | String of string

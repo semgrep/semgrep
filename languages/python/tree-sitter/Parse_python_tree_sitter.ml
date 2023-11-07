@@ -823,7 +823,7 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : expr =
         (v1 @ (Common.map (fun (_, x, _) -> x) v2 |> Common.flatten))
   | `Int tok ->
       let s, tk = (* integer *) str env tok in
-      Num (Int (int_of_string_opt s, tk))
+      Num (Int (Common2.int64_of_string_opt s, tk))
   | `Float tok ->
       let s, tk = (* float *) str env tok in
       Num (Float (float_of_string_opt s, tk))

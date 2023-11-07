@@ -1133,7 +1133,7 @@ let literal ?(isNegated = None) ?(inPattern = false) in_ : literal =
              finish (Char (x, ii))
          | IntegerLiteral (x, ii) ->
              (* ast: in.intVal(isNegated) *)
-             finish (Int (negate (fun x -> -x) (x, ii)))
+             finish (Int (negate (fun x -> Int64.neg x) (x, ii)))
          | FloatingPointLiteral (x, ii) ->
              (* ast: in.floatVal(isNegated)*)
              finish (Float (negate (fun x -> -.x) (x, ii)))

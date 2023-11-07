@@ -128,7 +128,7 @@ and struct_kind = Struct | Union
 (* Expression *)
 (*****************************************************************************)
 and expr =
-  | Int of int option wrap
+  | Int of int64 option wrap
   | Float of float option wrap
   | String of string wrap (* TODO: bracket *)
   | Char of string wrap

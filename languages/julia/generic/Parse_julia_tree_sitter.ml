@@ -187,7 +187,7 @@ let map_integer_literal (env : env) (x : CST.integer_literal) =
     | `Tok_0x_pat_50ed65e x -> (* hexadecimal *) str env x
     | `Pat_a25c544 x -> (* numeral *) str env x
   in
-  L (Int (int_of_string_opt s, tok)) |> G.e
+  L (Int (Common2.int64_of_string_opt s, tok)) |> G.e
 
 let map_float_literal (env : env) (x : CST.float_literal) : expr =
   (* Note that decimal exponents in Julia allow the use of "e" to separate

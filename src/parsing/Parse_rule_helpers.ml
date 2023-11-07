@@ -132,7 +132,7 @@ let generic_to_json rule_id (key : key) ast =
     | G.L (Null _) -> J.Null
     | G.L (Bool (b, _)) -> J.Bool b
     | G.L (Float (Some f, _)) -> J.Float f
-    | G.L (Int (Some i, _)) -> J.Int i
+    | G.L (Int (Some i, _)) -> J.Int (Int64.to_int i)
     | G.L (String (_, (s, _), _)) ->
         (* should use the unescaped string *)
         J.String s
@@ -339,11 +339,11 @@ let parse_int env (key : key) x =
   match x.G.e with
   | G.L (Int (Some i, _)) -> i
   | G.L (String (_, (s, _), _)) -> (
-      try int_of_string s with
+      try Int64.of_string s with
       | Failure _ -> error_at_key env.id key (spf "parse_int for %s" (fst key)))
   | G.L (Float (Some f, _)) ->
-      let i = int_of_float f in
-      if float_of_int i =*= f then i else error_at_key env.id key "not an int"
+      let i = Int64.of_float f in
+      if Int64.to_float i =*= f then i else error_at_key env.id key "not an int"
   | _x -> error_at_key env.id key (spf "parse_int for %s" (fst key))
 
 let parse_str_or_dict env (value : G.expr) : (G.ident, dict) Either.t =

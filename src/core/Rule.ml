@@ -370,7 +370,7 @@ type request = {
 [@@deriving show]
 
 (* Used to match on the returned response of some request *)
-type response = { return_code : int; regex : Xpattern.regexp_string option }
+type response = { return_code : int64; regex : Xpattern.regexp_string option }
 [@@deriving show]
 
 type secrets = {
@@ -385,7 +385,7 @@ type secrets = {
 [@@deriving show]
 
 type http_match_clause = {
-  status_code : int option;
+  status_code : int64 option;
   (* Optional. Empty list if not set *)
   headers : header list;
   content : (formula * Xlang.t) option;
@@ -538,7 +538,7 @@ type 'mode rule_info = {
    *)
   equivalences : string list option;
   fix : string option;
-  fix_regexp : (Xpattern.regexp_string * int option * string) option;
+  fix_regexp : (Xpattern.regexp_string * int64 option * string) option;
   (* TODO: we should get rid of this and instead provide a more general
    * Xpattern.Filename feature that integrates well with the xpatterns.
    *)
