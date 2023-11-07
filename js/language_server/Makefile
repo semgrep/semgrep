@@ -4,7 +4,7 @@ default: build
 include ../engine/Makefile.include
 
 .PHONY: build
-build: dist/server.js
+build: out/src/server.js
 
 .PHONY: test
 test: build
@@ -28,6 +28,6 @@ dist/Main.bc.js: ../../_build/default/js/language_server/Main.bc.js
 	mkdir -p dist
 	cp -rf $< $@
 
-dist/server.js: node_modules/.package-lock.json dist/semgrep-engine.js dist/Main.bc.js
+out/src/server.js: node_modules/.package-lock.json dist/semgrep-engine.js dist/Main.bc.js
 	mkdir -p dist
 	npm run build

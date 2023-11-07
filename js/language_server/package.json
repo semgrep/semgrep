@@ -11,10 +11,15 @@
     "type": "git",
     "url": "github.com/returntocorp/semgrep"
   },
+  "files": [
+    "out",
+    "dist"
+  ],
   "author": "Semgrep, Inc.",
   "license": "LGPL-2.1",
   "devDependencies": {
     "@types/mocha": "^10.0.3",
+    "@types/node": "^20.9.0",
     "@types/vscode": "^1.83.2",
     "@vscode/test-electron": "^2.3.6",
     "find-process": "^1.4.7",
