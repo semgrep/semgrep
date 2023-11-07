@@ -1,0 +1,2 @@
+Fixed a bug where enabling the secret beta causes the default scan mode to be
+set to OSS, even when the Pro flag is turned on in the web UI.
