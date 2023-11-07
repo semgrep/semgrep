@@ -74,6 +74,8 @@ module Make (MessageHandler : sig
 end) : sig
   val start : t -> unit Lwt.t
 
+  (* Exposed so if we want to use the handler directly, and forgo *)
+  (* IO we can *)
   val handle_client_message :
     Jsonrpc.Packet.t -> t -> (t * Jsonrpc.Packet.t option) Lwt.t
 
