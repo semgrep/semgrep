@@ -434,22 +434,6 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
 (*****************************************************************************)
 (* Error management *)
 (*****************************************************************************)
-(* Small wrapper over Semgrep_error_code.exn_to_error to handle also semgrep-specific
- * exns that have a position.
- *
- * See also JSON_report.json_of_exn for non-target related exn handling.
- *
- * invariant: every target-related semgrep-specific exn that has a
- * Parse_info.t should be captured here for precise location in error
- * reporting.
- *  - TODO: naming exns?
- *)
-let exn_to_error file (e : Exception.t) =
-  match Exception.get_exn e with
-  | AST_generic.Error (s, tok) ->
-      let loc = Tok.unsafe_loc_of_tok tok in
-      E.mk_error None loc s AstBuilderError
-  | _ -> E.exn_to_error None file e
 
 (* Convert invalid rules to errors to be reported at the end.
    This used to raise an exception causing an early abort.
@@ -613,7 +597,8 @@ let iter_targets_and_get_matches_and_exn_to_errors config
                | exn when not !Flag_semgrep.fail_fast ->
                    let e = Exception.catch exn in
                    let errors =
-                     Core_error.ErrorSet.singleton (exn_to_error !!file e)
+                     Core_error.ErrorSet.singleton
+                       (E.exn_to_error None !!file e)
                    in
                    ( Core_result.make_match_result [] errors
                        (Core_profiling.empty_partial_profiling file),

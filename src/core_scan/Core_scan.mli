@@ -77,14 +77,6 @@ val replace_named_pipe_by_regular_file : Fpath.t -> Fpath.t
    allows easy manual testing.
 *)
 
-(* TODO: Fpath.t *)
-val exn_to_error : Common.filename -> Exception.t -> Core_error.t
-(**
-  Small wrapper over Semgrep_error_code.exn_to_error to handle also
-  semgrep-specific exns that have a position.
-  See also JSON_report.json_of_exn for non-target related exn handling.
-*)
-
 val extracted_targets_of_config :
   Core_scan_config.t ->
   Rule.t list ->
