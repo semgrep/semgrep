@@ -1,0 +1,3 @@
+Bump timeout (for a rule running on a file) from 2s to 5s. Recently we lowered
+from 30s down to 2s, and based on what we have observed so far, we believe 5s
+is a better timeout for the time being.
