@@ -19,8 +19,10 @@ from textwrap import dedent
 from typing import List
 
 import pytest
+from requests.exceptions import ConnectionError
 from ruamel.yaml import YAML
 from tests.conftest import make_semgrepconfig_file
+from tests.conftest import str_containing
 from tests.e2e.test_baseline import _git_commit
 from tests.e2e.test_baseline import _git_merge
 from tests.fixtures import RunSemgrep
@@ -1456,7 +1458,9 @@ def test_fail_auth_invalid_key_suppressed_by_default(
     """
     Test that an invalid api key returns exit code 13, even when errors are supressed
     """
-    requests_mock.post("https://semgrep.dev/api/cli/scans", status_code=401)
+    scan_create = requests_mock.post(
+        "https://semgrep.dev/api/cli/scans", status_code=401
+    )
     fail_open = requests_mock.post("https://fail-open.prod.semgrep.dev/failure")
     run_semgrep(
         options=["ci"],
@@ -1466,7 +1470,15 @@ def test_fail_auth_invalid_key_suppressed_by_default(
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
         use_click_runner=True,
     )
+
     assert fail_open.called
+    assert fail_open.last_request.json() == {
+        "url": "https://semgrep.dev/api/cli/scans",
+        "method": "POST",
+        "status_code": 401,
+        "request_id": scan_create.last_request.json()["scan_metadata"]["unique_id"],
+        "error": str_containing("INVALID_API_KEY_EXIT_CODE"),
+    }
 
 
 @pytest.mark.osemfail
@@ -1543,6 +1555,35 @@ def test_fail_start_scan_error_handler(
     )
 
     mock_send.assert_called_once_with(mocker.ANY, 2)
+
+
+@pytest.mark.osemfail
+def test_fail_open_works_when_backend_is_down(
+    run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit, requests_mock
+):
+    """
+    Test that an invalid api key returns exit code 13, even when errors are supressed
+    """
+    scan_create = requests_mock.post(
+        "https://semgrep.dev/api/cli/scans", exc=ConnectionError
+    )
+    fail_open = requests_mock.post("https://fail-open.prod.semgrep.dev/failure")
+    run_semgrep(
+        options=["ci"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=0,
+        env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+        use_click_runner=True,
+    )
+
+    assert fail_open.called
+    assert fail_open.last_request.json() == {
+        "url": "https://semgrep.dev/api/cli/scans",
+        "method": "POST",
+        "request_id": scan_create.last_request.json()["scan_metadata"]["unique_id"],
+        "error": str_containing("requests.exceptions.ConnectionError"),
+    }
 
 
 @pytest.mark.parametrize("scan_config", [BAD_CONFIG], ids=["bad_config"])

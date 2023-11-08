@@ -1,6 +1,8 @@
 from enum import auto
 from enum import Enum
 from typing import List
+from uuid import UUID
+from uuid import uuid4
 
 import click
 from attrs import Factory
@@ -30,6 +32,7 @@ class SemgrepState:
     """
 
     app_session: AppSession = Factory(AppSession)
+    request_id: UUID = Factory(uuid4)
     env: Env = Factory(Env)
     metrics: Metrics = Factory(Metrics)
     error_handler: ErrorHandler = Factory(ErrorHandler)
