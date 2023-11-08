@@ -5,6 +5,7 @@
   semgrep.running
   semgrep.semgrep_js_shared
   semgrep.semgrep_node_js_shared
+  lib_parsing.js
   tree-sitter.run
   ; semgrep.parsing_languages ; skipped to go from 16MB to 7MB
   )

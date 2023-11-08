@@ -16,6 +16,7 @@
    alcotest
    semgrep.language_server
   lwt_platform.js
+  lib_parsing.js
   alcotest-lwt
   cohttp-lwt-jsoo
  )
