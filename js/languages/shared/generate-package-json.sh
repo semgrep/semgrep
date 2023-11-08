@@ -29,8 +29,7 @@ cat <<EOF
   "license": "LGPL-2.1",
   "devDependencies": {
     "esbuild": "^0.17.17",
-    "jest": "^29.5.0",
-    "liquidjs": "^10.7.1"
+    "jest": "^29.5.0"
   },
   "dependencies": {
     "cross-dirname": "^0.1.0"
