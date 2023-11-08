@@ -935,7 +935,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                         out.LexicalError,
                         out.ParseError,
                         out.PartialParsing,
-                        out.SpecifiedParseError,
+                        out.OtherParseError,
                         out.AstBuilderError,
                     ),
                 ):

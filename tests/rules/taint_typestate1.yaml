@@ -1,0 +1,21 @@
+rules:
+  - id: test
+    message: Test
+    severity: INFO
+    languages: [python]
+    mode: taint
+    pattern-sources:
+    - by-side-effect: only
+      patterns:
+        - pattern: $FILE.close()
+        - focus-metavariable: $FILE
+    pattern-sanitizers:
+      - by-side-effect: true
+        patterns:
+          - pattern: |
+              $FILE = open(...)
+          - focus-metavariable: $FILE
+    pattern-sinks:
+      - patterns:
+          - pattern: $FILE.close(...)
+          - focus-metavariable: $FILE

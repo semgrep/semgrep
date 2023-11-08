@@ -1,0 +1,71 @@
+# This workflow triggers the `semgrep-comparison` Argo Workflow, which will
+# create a GitHub Check on this pull request (or specified branch if running manually).
+# The `semgrep-comparison` workflow compares two Semgrep versions for timing differences.
+name: trigger-semgrep-comparison-argo
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        required: true
+        type: string
+        description: The branch to compare against develop
+  workflow_call: {}
+
+jobs:
+  setup-docker-tag:
+    name: Set up Docker tag based on if this is a pull request
+    runs-on: ubuntu-22.04
+    outputs:
+      docker-tag: ${{ steps.setup-docker-tag.outputs.docker-tag }}
+    steps:
+      - name: Setup Docker Tag
+        id: setup-docker-tag
+        run: |
+          echo "Github event is ${{ github.event_name }}"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "docker-tag=pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+            echo "Setting docker tag to current pull request number"
+          else
+            echo "docker-tag=develop" >> "$GITHUB_OUTPUT"
+            echo "Setting dry-run to develop"
+          fi
+  get-sha:
+    name: Get SHA for attaching Argo Workflow check
+    runs-on: ubuntu-22.04
+    outputs:
+      sha: ${{ steps.get-sha.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v3
+      - id: get-sha
+        env:
+          BRANCH: "${{ github.event.inputs.branch }}"
+        run: |
+          echo "Branch: $BRANCH"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "sha=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            git fetch origin $BRANCH
+            SHA=$(git rev-parse origin/$BRANCH)
+            echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          fi
+  trigger-semgrep-comparison-argo-workflow:
+    runs-on: ubuntu-22.04
+    needs:
+      - setup-docker-tag
+      - get-sha
+    steps:
+      - name: Trigger
+        env:
+          REPOSITORY: "${{ github.repository }}"
+          SHA: "${{ needs.get-sha.outputs.sha }}"
+          RULESET: "p/default-v2"
+          BASE_IMAGE: "${{ needs.setup-docker-tag.outputs.docker-tag == 'develop' && 'returntocorp/semgrep:latest' || 'returntocorp/semgrep:develop' }}"
+          COMPARISON_IMAGE: "returntocorp/semgrep:${{ needs.setup-docker-tag.outputs.docker-tag }}"
+          TOKEN: "${{ secrets.ARGO_WORKFLOWS_TOKEN }}"
+        run: |
+          echo "Repository: $REPOSITORY"
+          echo "SHA: $SHA"
+          curl --fail-with-body -X POST https://argoworkflows-dev2.corp.r2c.dev/api/v1/events/security-research/semgrep-compare \
+            -H "Authorization: Bearer $TOKEN" \
+            -d "{\"repository\": \"$REPOSITORY\", \"sha\": \"$SHA\", \"ruleset\": \"$RULESET\", \"container_image_base\": \"$BASE_IMAGE\", \"container_image_development\": \"$COMPARISON_IMAGE\"}"

@@ -102,7 +102,10 @@ and translate_taint_source
   in
   let exact_obj = if source_exact then [ ("exact", `Bool true) ] else [] in
   let side_effect_obj =
-    if source_by_side_effect then [ ("by-side-effect", `Bool true) ] else []
+    match source_by_side_effect with
+    | Yes -> [ ("by-side-effect", `Bool true) ]
+    | Only -> [ ("by-side-effect", `String "only") ]
+    | No -> []
   in
   let control_obj =
     if source_control then [ ("control", `Bool true) ] else []

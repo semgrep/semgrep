@@ -60,10 +60,29 @@ type conf = {
 let metarules_pack = "p/semgrep-rule-lints"
 
 (*****************************************************************************)
+(* Experiment *)
+(*****************************************************************************)
+
+let parse_rule_with_atd_experiment_and_exit (file : Fpath.t) : unit =
+  let rules = Parse_rules_with_atd.parse_rules_v2 file in
+  pr2_gen rules;
+  exit 0
+
+(*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
 let run (conf : conf) : Exit_code.t =
+  (* small experiment *)
+  (match conf with
+  | {
+   common = { maturity = Maturity.Develop; _ };
+   rules_source = Rules_source.Configs [ file ];
+   _;
+  } ->
+      parse_rule_with_atd_experiment_and_exit (Fpath.v file)
+  | _else_ -> ());
+
   let settings = Semgrep_settings.load () in
   let token_opt = settings.api_token in
   (* Checking (1) and (2). Parsing the rules is already a form of validation.
