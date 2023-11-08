@@ -39,8 +39,7 @@ local check_compile_semgrep_pro_job = {
       name: 'Install semgrep dependencies',
       run: |||
         eval $(opam env)
-        make install-deps-for-semgrep-core
-        make install-deps
+        make setup
       |||,
     },
     // Let's use gh and our github_bot token to access a private repo
@@ -59,7 +58,7 @@ local check_compile_semgrep_pro_job = {
         cd ..
         gh repo clone semgrep/semgrep-proprietary
         cd semgrep-proprietary
-        git submodule update --init
+        make setup
       |||,
     },
     {
@@ -68,25 +67,6 @@ local check_compile_semgrep_pro_job = {
         cd ../semgrep-proprietary
         rm -rf semgrep
         ln -s ../semgrep
-      |||,
-    },
-    // setup-ocaml@ installs opam in a local folder per project,
-    // not in a global ~/.opam/, so here we reuse the same _opam
-    // in the semgrep-pro otherwise opam commands would fail
-    // with 'no opam switch set'
-    {
-      name: 'Ugly hack for setup-ocaml',
-      run: |||
-        cd ../semgrep-proprietary
-        ln -s ../semgrep/_opam
-      |||,
-    },
-    {
-      name: 'Install semgrep-pro dependencies',
-      run: |||
-        cd ../semgrep-proprietary
-        eval $(opam env)
-        make install-deps
       |||,
     },
 
