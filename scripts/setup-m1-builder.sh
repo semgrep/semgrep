@@ -17,7 +17,9 @@ sudo chmod g+rwx /usr/local/lib/
 
 brew update # Needed to sidestep bintray brownout
 # Usually we install python 3.7 for building wheels, but 3.7 isn't supported on m1 macs
-brew install opam pkg-config coreutils python pcre libev
+brew install opam python
+make install-deps-MACOS-for-semgrep-core
+
 opam init --no-setup --bare;
 #coupling: this should be the same version than in our Dockerfile
 opam switch create 4.14.0;
