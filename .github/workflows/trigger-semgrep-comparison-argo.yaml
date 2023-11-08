@@ -1,5 +1,5 @@
 # This workflow triggers the `semgrep-comparison` Argo Workflow, which will
-# create a GitHub Check on this pull request (or specified branch if running manually.
+# create a GitHub Check on this pull request (or specified branch if running manually).
 # The `semgrep-comparison` workflow compares two Semgrep versions for timing differences.
 name: trigger-semgrep-comparison-argo
 
@@ -46,7 +46,7 @@ jobs:
             echo "sha=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             git fetch origin $BRANCH
-            SHA=$(git rev-parse $BRANCH)
+            SHA=$(git rev-parse origin/$BRANCH)
             echo "sha=$SHA" >> "$GITHUB_OUTPUT"
           fi
   trigger-semgrep-comparison-argo-workflow:
