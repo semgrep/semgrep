@@ -90,7 +90,7 @@ let default : conf =
         baseline_commit = None;
         diff_depth = 2;
         max_target_bytes = 1_000_000 (* 1 MB *);
-        respect_git_ignore = true;
+        respect_gitignore = true;
         scan_unknown_extensions = false;
       };
     (* alt: could move in a Rule_filtering.default *)
@@ -241,9 +241,9 @@ negative value disables this filter. Defaults to %d bytes|}
 
   Arg.value (Arg.opt Cmdliner_helpers.number_of_bytes_converter default info)
 
-let o_respect_git_ignore : bool Term.t =
+let o_respect_gitignore : bool Term.t =
   H.negatable_flag [ "use-git-ignore" ] ~neg_options:[ "no-git-ignore" ]
-    ~default:default.targeting_conf.respect_git_ignore
+    ~default:default.targeting_conf.respect_gitignore
     ~doc:
       {|Skip files ignored by git. Scanning starts from the root
 folder specified on the Semgrep command line. Normally, if the
@@ -839,7 +839,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       max_lines_per_finding max_memory_mb max_target_bytes metrics num_jobs
       no_secrets_validation nosem optimizations oss output pattern pro
       project_root pro_intrafile pro_lang registry_caching replacement
-      respect_git_ignore rewrite_rule_ids sarif scan_unknown_extensions secrets
+      respect_gitignore rewrite_rule_ids sarif scan_unknown_extensions secrets
       severity show_supported_languages strict target_roots test
       test_ignore_todo text time_flag timeout _timeout_interfileTODO
       timeout_threshold validate version version_check vim =
@@ -976,7 +976,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
         diff_depth;
         max_target_bytes;
         scan_unknown_extensions;
-        respect_git_ignore;
+        respect_gitignore;
       }
     in
     let rule_filtering_conf =
@@ -1149,12 +1149,12 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     $ o_max_lines_per_finding $ o_max_memory_mb $ o_max_target_bytes $ o_metrics
     $ o_num_jobs $ o_no_secrets_validation $ o_nosem $ o_optimizations $ o_oss
     $ o_output $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile
-    $ o_pro_languages $ o_registry_caching $ o_replacement
-    $ o_respect_git_ignore $ o_rewrite_rule_ids $ o_sarif
-    $ o_scan_unknown_extensions $ o_secrets $ o_severity
-    $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
-    $ o_test_ignore_todo $ o_text $ o_time $ o_timeout $ o_timeout_interfile
-    $ o_timeout_threshold $ o_validate $ o_version $ o_version_check $ o_vim)
+    $ o_pro_languages $ o_registry_caching $ o_replacement $ o_respect_gitignore
+    $ o_rewrite_rule_ids $ o_sarif $ o_scan_unknown_extensions $ o_secrets
+    $ o_severity $ o_show_supported_languages $ o_strict $ o_target_roots
+    $ o_test $ o_test_ignore_todo $ o_text $ o_time $ o_timeout
+    $ o_timeout_interfile $ o_timeout_threshold $ o_validate $ o_version
+    $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
 

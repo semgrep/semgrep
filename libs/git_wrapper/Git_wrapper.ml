@@ -156,6 +156,7 @@ Try running the command yourself to debug the issue.|}
 let ls_files ?(cwd = Fpath.v ".") root_paths =
   let roots = root_paths |> Common.map Fpath.to_string |> Bos.Cmd.of_list in
   let cmd = Bos.Cmd.(v "git" % "-C" % !!cwd % "ls-files" %% roots) in
+  Logs.info (fun m -> m "Running external command: %s" (Bos.Cmd.to_string cmd));
   let files_r = Bos.OS.Cmd.run_out cmd in
   let results = Bos.OS.Cmd.out_lines ~trim:true files_r in
   let files =

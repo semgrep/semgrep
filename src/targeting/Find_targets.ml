@@ -54,7 +54,7 @@ type conf = {
   (* Whether or not follow what is specified in the .gitignore
    * The .semgrepignore are always respected.
    *)
-  respect_git_ignore : bool;
+  respect_gitignore : bool;
   (* TODO? use, and better parsing of the string? a Git.version type? *)
   baseline_commit : string option;
   diff_depth : int;
@@ -198,7 +198,7 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
                       * were not mentioned in the skip list
                       *)
                      if
-                       conf.respect_git_ignore
+                       conf.respect_gitignore
                        && Git_project.is_git_submodule_root fpath
                      then ignore ()
                        (* TODO? if a dir, then add trailing / to ppath
@@ -234,15 +234,16 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
    We could also provide similar functions for other file tracking systems
    (Mercurial/hg, Subversion/svn, ...)
 *)
-let _git_ls_files (project_roots : project_roots) : Fpath_set.t =
+let git_ls_files (project_roots : project_roots) : Fpath_set.t =
   match project_roots.project.kind with
   | Git_project ->
-      let (Realpath project_path) = project_roots.project.path in
       project_roots.scanning_roots
       |> Common.map (fun (x : fppath) -> x.fpath)
-      |> Git_wrapper.ls_files ~cwd:project_path
+      |> (fun paths -> Git_wrapper.ls_files paths)
       |> Fpath_set.of_list
-  | Other_project -> Fpath_set.empty
+  | Gitignore_project
+  | Other_project ->
+      Fpath_set.empty
 
 (*************************************************************************)
 (* Grouping *)
@@ -262,7 +263,7 @@ let group_scanning_roots_by_project (conf : conf)
   let force_root =
     match conf.project_root with
     | None -> None
-    | Some proj_root -> Some (Project.Git_project, proj_root)
+    | Some proj_root -> Some (Project.Gitignore_project, proj_root)
   in
   scanning_roots
   |> Common.map (fun scanning_root ->
@@ -279,8 +280,77 @@ let group_scanning_roots_by_project (conf : conf)
          { project; scanning_roots = xs |> Common.map snd })
 
 (*************************************************************************)
-(* Entry point *)
+(* Work on a single project *)
 (*************************************************************************)
+(*
+   We allow multiple scanning roots and they may not all belong to the same
+   git project. Most of the logic is done at a project level, though.
+*)
+
+let get_targets_from_filesystem conf (project_roots : project_roots) =
+  let { project = { kind; path = project_root }; scanning_roots } =
+    project_roots
+  in
+  (* filter with .gitignore and .semgrepignore *)
+  let exclusion_mechanism =
+    match kind with
+    | Git_project
+    | Gitignore_project ->
+        if conf.respect_gitignore then Semgrepignore.Gitignore_and_semgrepignore
+        else Semgrepignore.Only_semgrepignore
+    | Other_project -> Semgrepignore.Only_semgrepignore
+  in
+  (* filter also the --include and --exclude from the CLI args
+   * (the paths: exclude: include: in a rule are handled elsewhere, in
+   * Run_semgrep.ml by calling Filter_target.filter_paths
+   *
+   * We currently handle gitignores by creating this
+   * ign below that then will internally use some cache and complex
+   * logic to select files in walk_skip_and_collect().
+   * TODO? we could instead change strategy and accumulate the
+   * current set of applicable gitignore as we walk down the FS
+   * hierarchy. We would not need then to look at each element
+   * in the ppath and look for the present of a .gitignore there;
+   * the job would have already been done as we walked!
+   * We would still need to intialize at the beginning with
+   * the .gitignore of all the parents of the scan_root.
+   *)
+  let ign =
+    Semgrepignore.create ?include_patterns:conf.include_
+      ~cli_patterns:conf.exclude ~builtin_semgrepignore:Semgrep_scan_legacy
+      ~exclusion_mechanism
+      ~project_root:(Realpath.to_fpath project_root)
+      ()
+  in
+  List.fold_left
+    (fun (selected, skipped) scan_root ->
+      (* better: Note that we use Unix.stat below, not Unix.lstat, so
+       * osemgrep accepts symlink paths on the command--line;
+       * you can do 'osemgrep -e ... ~/symlink-to-proj' or even
+       * 'osemgrep -e ... symlink-to-file.py' whereas pysemgrep
+       * exits with '"/home/foo/symlink-to-proj" file not found'
+       * Note: This may raise Unix.Unix_error.
+       * TODO? improve Unix.Unix_error in Find_targets specific exn?
+       *)
+      let selected2, skipped2 =
+        match (Unix.stat !!(scan_root.fpath)).st_kind with
+        (* TOPORT? make sure has right permissions (readable) *)
+        | S_REG -> ([ scan_root.fpath ], [])
+        | S_DIR -> walk_skip_and_collect conf ign scan_root
+        | S_LNK ->
+            (* already dereferenced by Unix.stat *)
+            raise Impossible
+        (* TODO? use write_pipe_to_disk? *)
+        | S_FIFO -> ([], [])
+        (* TODO? return an error message or a new skipped_target kind? *)
+        | S_CHR
+        | S_BLK
+        | S_SOCK ->
+            ([], [])
+      in
+      ( Fpath_set.union selected (Fpath_set.of_list selected2),
+        List.rev_append skipped2 skipped ))
+    (Fpath_set.empty, []) scanning_roots
 
 (*
    Target files are identified by following these steps:
@@ -301,67 +371,31 @@ let group_scanning_roots_by_project (conf : conf)
       Typically, the sets of files produced by (2) and (3) overlap vastly.
    4. Take the union of (2) and (3).
 *)
+let get_targets_for_project conf (project_roots : project_roots) =
+  (* get git-tracked files as a set or the empty set *)
+  let git_tracked = git_ls_files project_roots in
+  let fs_targets, fs_skipped_targets =
+    get_targets_from_filesystem conf project_roots
+  in
+  let selected_targets = Fpath_set.union git_tracked fs_targets in
+  let skipped_targets =
+    fs_skipped_targets
+    |> List.filter (fun (x : Out.skipped_target) ->
+           not (Fpath_set.mem x.path selected_targets))
+  in
+  (selected_targets, skipped_targets)
+
+(*************************************************************************)
+(* Entry point *)
+(*************************************************************************)
+
 let get_targets conf scanning_roots =
   scanning_roots
   |> group_scanning_roots_by_project conf
-  |> List.concat_map
-       (fun { project = { kind; path = project_root }; scanning_roots } ->
-         (* filter with .gitignore and .semgrepignore *)
-         let exclusion_mechanism =
-           match kind with
-           | Project.Git_project ->
-               if conf.respect_git_ignore then
-                 Semgrepignore.Gitignore_and_semgrepignore
-               else Semgrepignore.Only_semgrepignore
-           | Project.Other_project -> Semgrepignore.Only_semgrepignore
-         in
-         (* filter also the --include and --exclude from the CLI args
-          * (the paths: exclude: include: in a rule are handled elsewhere, in
-          * Run_semgrep.ml by calling Filter_target.filter_paths
-          *
-          * We currently handle gitignores by creating this
-          * ign below that then will internally use some cache and complex
-          * logic to select files in walk_skip_and_collect().
-          * TODO? we could instead change strategy and accumulate the
-          * current set of applicable gitignore as we walk down the FS
-          * hierarchy. We would not need then to look at each element
-          * in the ppath and look for the present of a .gitignore there;
-          * the job would have already been done as we walked!
-          * We would still need to intialize at the beginning with
-          * the .gitignore of all the parents of the scan_root.
-          *)
-         let ign =
-           Semgrepignore.create ?include_patterns:conf.include_
-             ~cli_patterns:conf.exclude
-             ~builtin_semgrepignore:Semgrep_scan_legacy ~exclusion_mechanism
-             ~project_root:(Realpath.to_fpath project_root)
-             ()
-         in
-         scanning_roots
-         |> Common.map (fun scan_root ->
-                (* better: Note that we use Unix.stat below, not Unix.lstat, so
-                 * osemgrep accepts symlink paths on the command--line;
-                 * you can do 'osemgrep -e ... ~/symlink-to-proj' or even
-                 * 'osemgrep -e ... symlink-to-file.py' whereas pysemgrep
-                 * exits with '"/home/foo/symlink-to-proj" file not found'
-                 * Note: This may raise Unix.Unix_error.
-                 * TODO? improve Unix.Unix_error in Find_targets specific exn?
-                 *)
-                match (Unix.stat !!(scan_root.fpath)).st_kind with
-                (* TOPORT? make sure has right permissions (readable) *)
-                | S_REG -> ([ scan_root.fpath ], [])
-                | S_DIR -> walk_skip_and_collect conf ign scan_root
-                | S_LNK ->
-                    (* already dereferenced by Unix.stat *)
-                    raise Impossible
-                (* TODO? use write_pipe_to_disk? *)
-                | S_FIFO -> ([], [])
-                (* TODO? return an error message or a new skipped_target kind? *)
-                | S_CHR
-                | S_BLK
-                | S_SOCK ->
-                    ([], [])))
+  |> Common.map (get_targets_for_project conf)
   |> List.split
-  |> fun (paths_list, skipped_paths_list) ->
-  (List.flatten paths_list, List.flatten skipped_paths_list)
+  |> fun (path_set_list, skipped_paths_list) ->
+  let path_set = List.fold_left Fpath_set.union Fpath_set.empty path_set_list in
+  let paths = Fpath_set.elements path_set in
+  (paths, List.flatten skipped_paths_list)
 [@@profiling]

@@ -33,6 +33,7 @@ let tests =
             let expected_proj_root = Fpath.v "." in
             (match Git_project.find_any_project_root target_path with
             | Git_project, _, _ -> assert false
+            | Gitignore_project, _, _ -> assert false
             | Other_project, proj_root, path_to_a ->
                 printf "Obtained non-git project root: %s\n" !!proj_root;
                 Alcotest.(check string) "equal" !!expected_proj_root !!proj_root;
@@ -46,6 +47,7 @@ let tests =
             let expected_proj_root = test_root / "proj_link" in
             (match Git_project.find_any_project_root target_path with
             | Other_project, _, _ -> assert false
+            | Gitignore_project, _, _ -> assert false
             | Git_project, proj_root, path_to_a ->
                 printf "Obtained git project root: %s\n" !!proj_root;
                 Alcotest.(check string) "equal" !!expected_proj_root !!proj_root;
@@ -59,6 +61,7 @@ let tests =
                 let expected_proj_root = Unix.getcwd () |> Fpath.v in
                 match Git_project.find_any_project_root target_path with
                 | Other_project, _, _ -> assert false
+                | Gitignore_project, _, _ -> assert false
                 | Git_project, proj_root, path_to_b ->
                     printf "Expected git project root: %s\n"
                       !!expected_proj_root;

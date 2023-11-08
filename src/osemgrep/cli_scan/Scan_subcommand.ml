@@ -290,7 +290,7 @@ let mk_scan_func (conf : Scan_CLI.conf) file_match_results_hook errors targets
             pro_scan_func roots ~diff_config conf.engine_type)
   in
   scan_func_for_osemgrep
-    ~respect_git_ignore:conf.targeting_conf.respect_git_ignore
+    ~respect_git_ignore:conf.targeting_conf.respect_gitignore
     ~file_match_results_hook conf.core_runner_conf rules errors targets
 
 (*****************************************************************************)
@@ -599,7 +599,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     let skipped_groups = Skipped_report.group_skipped skipped in
     Logs.info (fun m ->
         m "%a" Skipped_report.pp_skipped
-          ( conf.targeting_conf.respect_git_ignore,
+          ( conf.targeting_conf.respect_gitignore,
             conf.common.maturity,
             conf.targeting_conf.max_target_bytes,
             skipped_groups ));
@@ -607,11 +607,13 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
      * prefix), and is filtered when using --quiet.
      *)
     Logs.app (fun m ->
-        m "%a" Summary_report.pp_summary
-          ( conf.targeting_conf.respect_git_ignore,
-            conf.common.maturity,
-            conf.targeting_conf.max_target_bytes,
-            skipped_groups ));
+        m "%a"
+          (Summary_report.pp_summary
+             ~respect_gitignore:conf.targeting_conf.respect_gitignore
+             ~maturity:conf.common.maturity
+             ~max_target_bytes:conf.targeting_conf.max_target_bytes
+             ~skipped_groups)
+          ());
     Logs.app (fun m ->
         m "Ran %s on %s: %s."
           (String_utils.unit_str (List.length rules_with_targets) "rule")

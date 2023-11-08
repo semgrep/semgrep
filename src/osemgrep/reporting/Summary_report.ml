@@ -15,8 +15,8 @@ module Out = Semgrep_output_v1_t
 (* Entry point *)
 (*****************************************************************************)
 
-let pp_summary ppf
-    (respect_git_ignore, maturity, max_target_bytes, skipped_groups) : unit =
+let pp_summary ~respect_gitignore ~(maturity : Maturity.t) ~max_target_bytes
+    ~skipped_groups ppf () : unit =
   let {
     Skipped_report.ignored = semgrep_ignored;
     include_ = include_ignored;
@@ -36,7 +36,7 @@ let pp_summary ppf
             )
   *)
   let out_limited =
-    if respect_git_ignore then
+    if respect_gitignore then
       (* # Each target could be a git repo, and we respect the git ignore
          # of each target, so to be accurate with this print statement we
          # need to check if any target is a git repo and not just the cwd
@@ -67,8 +67,11 @@ let pp_summary ppf
         opt_msg ("files larger than " ^ mb ^ " MB") file_size_ignored;
         opt_msg "files matching .semgrepignore patterns" semgrep_ignored;
         (match maturity with
-        | Maturity.Develop -> opt_msg "other files ignored" other_ignored
-        | _else_ -> None);
+        | Develop -> opt_msg "other files ignored" other_ignored
+        | Default
+        | Legacy
+        | Experimental ->
+            None);
       ]
   in
   let out_partial =

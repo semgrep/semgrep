@@ -14,7 +14,7 @@ type conf = {
   (* whether or not follow what is specified in the .gitignore
    * TODO? what about .semgrepignore?
    *)
-  respect_git_ignore : bool;
+  respect_gitignore : bool;
   (* TODO: not used for now *)
   baseline_commit : string option;
   (* TODO: not used for now *)
