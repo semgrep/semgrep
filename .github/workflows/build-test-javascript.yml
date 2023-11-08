@@ -76,10 +76,7 @@ jobs:
     - name: Build JS artifacts
       run: "\n        make -C js -j $(nproc) build\n      "
     - name: Test JS artifacts
-      uses: coactions/setup-xvfb@v1
-      with:
-        run: "\n            make -C js -j $(nproc) test\n            make -C js/tests\n
-          \       "
+      run: "\n          xvfb-run make -C js -j $(nproc) test\n      "
     - name: Package JS artifacts
       run: "\n        tar cvzf semgrep-js-artifacts.tar.gz \\\n          js/engine/dist/index.cjs
         \\\n          js/engine/dist/index.mjs \\\n          js/engine/dist/semgrep-engine.wasm

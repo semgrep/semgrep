@@ -133,13 +133,9 @@ local test_job = {
     },
     {
       name: 'Test JS artifacts',
-      uses: 'coactions/setup-xvfb@v1',
-      with: {
-        run: |||
-            make -C js -j $(nproc) test
-            make -C js/tests
-        |||
-      }
+      run: |||
+          xvfb-run make -C js -j $(nproc) test
+      |||
     },
     {
       name: 'Package JS artifacts',
