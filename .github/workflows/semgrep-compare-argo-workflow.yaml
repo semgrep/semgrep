@@ -3,7 +3,7 @@ name: trigger-semgrep-comparison-argo-workflow
 on:
   workflow_dispatch:
     inputs:
-      branch: 
+      branch:
         required: true
         type: string
         description: The branch to compare against develop
@@ -41,9 +41,9 @@ jobs:
           BRANCH: "${{ github.event.inputs.branch }}"
         run: |
           echo "Branch: $BRANCH"
-          if [ "${{ github.event_name }}" = "pull_request" ]; then 
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "sha=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then 
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             git fetch origin $BRANCH
             SHA=$(git rev-parse $BRANCH)
             echo "sha=$SHA" >> "$GITHUB_OUTPUT"
@@ -51,9 +51,9 @@ jobs:
   trigger-semgrep-comparison-argo-workflow:
     name: Trigger semgrep-comparison Argo Workflow
     runs-on: ubuntu-22.04
-    needs: 
-    - setup-docker-tag
-    - get-sha
+    needs:
+      - setup-docker-tag
+      - get-sha
     steps:
       - name: Trigger
         env:
