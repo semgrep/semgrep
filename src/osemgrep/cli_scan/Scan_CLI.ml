@@ -878,7 +878,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
           "Mutually exclusive options --oss/--beta-testing-secrets-enabled";
       if
         [ oss; pro_lang; pro_intrafile; pro ]
-        |> Common2.filter Fun.id |> List.length > 1
+        |> List.filter Fun.id |> List.length > 1
       then
         Error.abort
           "Mutually exclusive options \
@@ -889,10 +889,9 @@ let cmdline_term ~allow_empty_config : conf Term.t =
         let analysis =
           Engine_type.(
             match () with
-            | _ when pro_intrafile -> Deep_intrafile
-            | _ when pro -> Deep_interfile
-            | _ when pro_lang -> OSS_intrafile
-            | _ -> OSS_intrafile)
+            | _ when pro -> Interfile
+            | _ when pro_intrafile -> Interprocedural
+            | _ -> Intraprocedural)
         in
         let extra_languages = pro || pro_lang || pro_intrafile in
         let secrets_config =
@@ -900,7 +899,9 @@ let cmdline_term ~allow_empty_config : conf Term.t =
             Some Engine_type.{ allow_all_origins = allow_untrusted_validators }
           else None
         in
-        Engine_type.make ~extra_languages ~analysis ~secrets_config
+        match (extra_languages, analysis, secrets_config) with
+        | false, Intraprocedural, None -> OSS
+        | _ -> PRO { extra_languages; analysis; secrets_config }
     in
     let rules_source =
       match (config, (pattern, lang, replacement)) with
