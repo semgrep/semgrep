@@ -1,4 +1,3 @@
-let neg = Int64.neg
 let rem = Int64.rem
 let abs = Int64.abs
 let max_int = Int64.max_int

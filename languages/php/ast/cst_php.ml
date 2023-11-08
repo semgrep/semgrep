@@ -297,7 +297,7 @@ and scalar =
 
 and constant =
   | Bool of bool wrap
-  | Int of int64 option wrap (* decimal, hex, or binary int format *)
+  | Int of Concrete_int.t option wrap (* decimal, hex, or binary int format *)
   | Double of float option wrap
   (* see also Guil for interpolated strings
    * The string does not contain the enclosing '"' or "'".

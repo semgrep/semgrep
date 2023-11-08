@@ -26,7 +26,7 @@ let string_of_lval { base; rev_offset } =
 let string_of_literal (lit : AST_generic.literal) =
   match lit with
   | Bool (b, _) -> string_of_bool b
-  | Int (Some i, _) -> Int64.to_string i
+  | Int (Some i, _) -> Concrete_int.to_string i
   | Int _ -> "<INT-LIT>"
   | Float (Some f, _) -> string_of_float f
   | Float _ -> "<FLOAT-LIT>"

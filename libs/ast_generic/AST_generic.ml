@@ -450,6 +450,7 @@ class virtual ['self] iter_parent =
     method visit_id_info_id_t _env _ = ()
     method visit_resolved_name _env _ = ()
     method visit_tok _env _ = ()
+    method visit_t _env _ = ()
   end
 
 (* Basically a copy paste of iter_parent above, but with different return types
@@ -515,6 +516,7 @@ class virtual ['self] map_parent =
     method visit_id_info_id_t _env x = x
     method visit_resolved_name _env x = x
     method visit_tok _env x = x
+    method visit_t _env x = x
   end
 
 (*****************************************************************************)
@@ -801,7 +803,7 @@ and literal =
    * may not be able to represent all numbers. For example, OCaml integers
    * are limited to 63 bits, but C integers can use 64 bits.
    *)
-  | Int of int64 option wrap
+  | Int of Concrete_int.t option wrap
   | Float of float option wrap
   | Char of string wrap
   (* String literals:

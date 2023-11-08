@@ -279,7 +279,7 @@ let map_anonymous_function_use_clause (env : env)
 
 let map_integer env tok =
   let value, tok = _str env tok in
-  let value = Common2.int64_of_string_opt value in
+  let value = Concrete_int.of_string_opt value in
   A.Int (value, tok)
 
 let map_boolean env tok =

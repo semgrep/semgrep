@@ -325,7 +325,7 @@ let string_of_v ?(max_depth = max_int) v =
                        | Left _ -> ppf ",@ "
                        | Right v -> aux (max_depth - 1) v);
                   ppf "@])")
-          | VVar (s, i64) -> ppf "%s_%d" s (Int64.to_int i64)
+          | VVar (s, i64) -> ppf "%s_%Ld" s i64
           | VArrow _v1 -> failwith "Arrow TODO"
           | VNone -> ppf "None"
           | VSome v ->

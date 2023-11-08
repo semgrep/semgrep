@@ -438,7 +438,7 @@ rule token = parse
   (* ----------------------------------------------------------------------- *)
   (* literals *)
   | integerLiteral as n
-      { IntegerLiteral (Common2.int64_of_string_opt n, tokinfo lexbuf) }
+      { IntegerLiteral (Concrete_int.of_string_opt n, tokinfo lexbuf) }
   | floatingPointLiteral as n
       { FloatingPointLiteral (float_of_string_opt n, tokinfo lexbuf) }
 

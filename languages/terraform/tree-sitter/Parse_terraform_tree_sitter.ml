@@ -54,7 +54,7 @@ let pattern_of_ids ids =
 
 (* val parse_number_literal : string * Parse_info.t -> AST_generic.literal *)
 let parse_number_literal (s, t) =
-  match Common2.int64_of_string_c_octal_opt s with
+  match Concrete_int.of_string_c_octal_opt s with
   | Some i -> G.Int (Some i, t)
   | None -> (
       match float_of_string_opt s with

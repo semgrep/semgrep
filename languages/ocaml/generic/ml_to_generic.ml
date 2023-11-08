@@ -182,7 +182,9 @@ and stmt e : G.stmt =
       let n = G.N (G.Id (v1, G.empty_id_info ())) |> G.e in
       let next =
         G.AssignOp
-          (n, (nextop, tok), G.L (G.Int (Some (Int64.of_int 1), tok)) |> G.e)
+          ( n,
+            (nextop, tok),
+            G.L (G.Int (Some (Concrete_int.of_int 1), tok)) |> G.e )
         |> G.e
       in
       let cond =

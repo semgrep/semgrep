@@ -1,8 +1,8 @@
 (library
- (public_name lwt_platform.js)
- (name lwt_platform_js)
+ (public_name lib_platform.js)
+ (name lib_platform_js)
   (libraries
     lwt
   )
- (implements lwt_platform)
+ (implements lib_platform)
 )

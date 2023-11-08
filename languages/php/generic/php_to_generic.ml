@@ -215,7 +215,7 @@ and opt_expr_to_label_ident = function
   | None -> G.LNone
   | Some e -> (
       match e with
-      | Int (Some i, tok) -> G.LInt (Int64.to_int i, tok)
+      | Int (Some i, tok) -> G.LInt (Concrete_int.to_int i, tok)
       | Id [ label ] -> G.LId label
       | _ ->
           let e = expr e in

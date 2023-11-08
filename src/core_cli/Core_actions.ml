@@ -31,7 +31,7 @@ let json_of_v (v : OCaml.v) =
         | [] -> J.String (spf "%s" s)
         | [ one_element ] -> J.Object [ (s, aux one_element) ]
         | _ :: _ :: _ -> J.Object [ (s, J.Array (Common.map aux xs)) ])
-    | OCaml.VVar (s, i64) -> J.String (spf "%s_%d" s (Int64.to_int i64))
+    | OCaml.VVar (s, i64) -> J.String (spf "%s_%Ld" s i64)
     | OCaml.VArrow _ -> failwith "Arrow TODO"
     | OCaml.VNone -> J.Null
     | OCaml.VSome v -> J.Object [ ("some", aux v) ]

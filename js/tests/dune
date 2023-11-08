@@ -15,7 +15,7 @@
    libyaml_stubs_js
    alcotest
    semgrep.language_server
-  lwt_platform.js
+  lib_platform.js
   alcotest-lwt
   cohttp-lwt-jsoo
  )

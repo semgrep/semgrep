@@ -193,14 +193,14 @@ let literal_of_bool b =
   let tok = Tok.unsafe_fake_tok b_str in
   G.Bool (b, tok)
 
-let literal_of_int i =
-  let i_str = Int64.to_string i in
+let literal_of_int i64 =
+  let i_str = Int64.to_string i64 in
   (* TODO: use proper token when possible? *)
   let tok = Tok.unsafe_fake_tok i_str in
-  G.Int (Some i, tok)
+  G.Int (Some (Concrete_int.of_int64 i64), tok)
 
 let int_of_literal = function
-  | G.Int (x, _) -> x
+  | G.Int (x, _) -> Option.map Concrete_int.to_int64 x
   | ___else___ -> None
 
 let literal_of_string ?tok s : G.literal =

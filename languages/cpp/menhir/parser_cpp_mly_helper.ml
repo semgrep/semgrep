@@ -318,7 +318,8 @@ let fixFieldOrMethodDecl (xs, semicolon) : class_member =
       let fbody =
         match v_init with
         | None -> FBDecl semicolon
-        | Some (EqInit (tokeq, InitExpr (C (Int (Some 0L, iizero))))) ->
+        | Some (EqInit (tokeq, InitExpr (C (Int (Some i, iizero)))))
+          when Concrete_int.eq_const i 0 ->
             FBZero (tokeq, iizero, semicolon)
         | _ -> error "can't assign expression to method decl" semicolon
       in

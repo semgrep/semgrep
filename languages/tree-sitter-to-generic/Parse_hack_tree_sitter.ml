@@ -314,7 +314,7 @@ let literal (env : env) (x : CST.literal) : G.literal =
   | `Int tok ->
       (* integer *)
       let s, tok = str env tok in
-      G.Int (Common2.int64_of_string_opt s, tok)
+      G.Int (Concrete_int.of_string_opt s, tok)
   | `Float tok ->
       (* float *)
       let s, tok = str env tok in

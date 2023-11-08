@@ -342,7 +342,7 @@ let map_string_literal (env : env) ((v1, v2, v3) : CST.string_literal) :
 
 let integer_literal env tok =
   let s, t = str env tok in
-  (Common2.int64_of_string_opt s, t)
+  (Concrete_int.of_string_opt s, t)
 
 let float_literal env tok =
   let s, t = str env tok in
@@ -378,7 +378,7 @@ let map_literal_pattern (env : env) (x : CST.literal_pattern) : G.pattern =
           (* integer_literal *)
           let iopt =
             match iopt with
-            | Some i -> Some (Int64.neg i)
+            | Some i -> Some (Concrete_int.neg i)
             | None -> None
           in
           G.PatLiteral (G.Int (iopt, Tok.combine_toks (snd neg) [ t ]))
@@ -2219,7 +2219,7 @@ and map_ordered_field (_env : env) _outer_attrsTODO
     {
       G.name =
         G.EDynamic
-          (G.L (G.Int (Some (Int64.of_int index), G.fake index_s)) |> G.e);
+          (G.L (G.Int (Some (Concrete_int.of_int index), G.fake index_s)) |> G.e);
       G.attrs = [];
       G.tparams = [];
     }

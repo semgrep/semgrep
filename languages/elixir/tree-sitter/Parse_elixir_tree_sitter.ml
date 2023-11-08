@@ -526,7 +526,7 @@ and map_binary_operator (env : env) (x : CST.binary_operator) : expr =
       let op = map_operator_identifier env v1 in
       let tslash = (* "/" *) token env v2 in
       let s, t = (* integer *) str env v3 in
-      OpArity (op, tslash, (Common2.int64_of_string_opt s, t))
+      OpArity (op, tslash, (Concrete_int.of_string_opt s, t))
 
 and map_body (env : env) ((v1, v2, v3, v4) : CST.body) : body =
   let _v1 = map_terminator_opt env v1 in
@@ -747,7 +747,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
       Alias al
   | `Int tok ->
       let s, t = (* integer *) str env tok in
-      L (G.Int (Common2.int64_of_string_opt s, t))
+      L (G.Int (Concrete_int.of_string_opt s, t))
   | `Float tok ->
       let s, t = (* float *) str env tok in
       L (G.Float (float_of_string_opt s, t))
@@ -1174,7 +1174,7 @@ and map_unary_operator (env : env) (x : CST.unary_operator) : expr =
       let _v1 = map_before_unary_op_opt env v1 in
       let tand = (* "&" *) token env v2 in
       let s, t = (* integer *) str env v3 in
-      let e = (Common2.int64_of_string_opt s, t) in
+      let e = (Concrete_int.of_string_opt s, t) in
       PlaceHolder (tand, e)
 
 let map_source (env : env) ((v1, v2) : CST.source) : program =

@@ -138,7 +138,7 @@ a few other projects developed at r2c.
   (description "XXX")
 )
 
-(package (name lwt_platform)
+(package (name lib_platform)
   (synopsis "XXX")
   (description "XXX")
 )
@@ -166,6 +166,10 @@ parsers, especially ocamlyacc/menhir based parsers.
 )
 
 (package (name lib_parsing_tree_sitter)
+  (synopsis "XXX")
+  (description "XXX")
+)
+(package (name lib_types)
   (synopsis "XXX")
   (description "XXX")
 )

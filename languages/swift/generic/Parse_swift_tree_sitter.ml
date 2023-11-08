@@ -265,7 +265,7 @@ let map_special_literal (env : env) (x : CST.special_literal) =
 
 let map_integer_literal (env : env) (tok : CST.integer_literal) : G.literal =
   let s, t = str env tok in
-  G.Int (Common2.int64_of_string_opt s, t)
+  G.Int (Concrete_int.of_string_opt s, t)
 
 let map_mutation_modifier (env : env) (x : CST.mutation_modifier) : G.attribute
     =

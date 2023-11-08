@@ -1318,7 +1318,8 @@ let square x = x *. x
 let rec power x n = if n =|= 0 then 1 else x * power x (n - 1)
 
 let rec power64 x n =
-  if Int64_ops.(n =|= 0L) then 1L else Int64.mul x (power64 x (Int64.sub n 1L))
+  if not (Int64.equal n 0L) then 1L
+  else Int64.mul x (power64 x (Int64.sub n 1L))
 
 let between i min max = i > min && i < max
 let (between_strict : int -> int -> int -> bool) = fun a b c -> a < b && b < c
@@ -1411,9 +1412,20 @@ let int64_of_string_c_octal_opt s =
     int64_of_string_opt ("0o" ^ s)
   else int64_of_string_opt s
 
+let int_of_string_opt s =
+  try Some (int_of_string s) with
+  | Failure _ -> None
+
+let int_of_string_c_octal_opt s =
+  let open Common in
+  if s =~ "^0\\([0-7]+\\)$" then
+    let s = Common.matched1 s in
+    int_of_string_opt ("0o" ^ s)
+  else int_of_string_opt s
+
 let float_of_string_opt s =
   match int64_of_string_c_octal_opt s with
-  | Some i -> Some (float_of_int (Int64.to_int i))
+  | Some i -> Some (Int64.to_float i)
   | None -> float_of_string_opt s
 
 let ( += ) ref v = ref := !ref + v

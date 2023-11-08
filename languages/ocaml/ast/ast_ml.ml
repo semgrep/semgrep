@@ -158,7 +158,7 @@ type expr =
  * 'true' (and 'false') as Constructor ("true"), but not anymore
  *)
 and literal =
-  | Int of int64 option wrap
+  | Int of Concrete_int.t option wrap
   | Float of float option wrap
   | Char of string wrap
   | String of string wrap (* TODO bracket *)

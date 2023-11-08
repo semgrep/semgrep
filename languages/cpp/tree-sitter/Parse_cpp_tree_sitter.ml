@@ -186,7 +186,7 @@ let map_fold_operator (env : env) (x : CST.fold_operator) =
  * but for ast_cpp.ml, not AST_generic.ml
  *)
 let parse_number_literal (s, t) =
-  match Common2.int64_of_string_c_octal_opt s with
+  match Concrete_int.of_string_c_octal_opt s with
   | Some i -> Int (Some i, t)
   | None -> (
       match float_of_string_opt s with
@@ -621,7 +621,7 @@ let map_preproc_def (env : env) ((v1, v2, v3, v4) : CST.preproc_def) =
     match v3 with
     | Some tok -> (
         let parse_number_literal t s =
-          match Common2.int64_of_string_c_octal_opt s with
+          match Concrete_int.of_string_c_octal_opt s with
           | Some i -> Some (C (Int (Some i, t)))
           | None -> (
               match float_of_string_opt s with

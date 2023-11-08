@@ -305,28 +305,26 @@ and stmt env st acc =
       (* declare(strict=1); (or 0) can be skipped,
        * See 'i wiki/index.php/Pfff/Declare_strict' *)
       | ( ( _,
-            [
-              Common.Left
-                (Name ("strict", _), (_, Sc (C (Int ((Some 1L | Some 0L), _)))));
-            ],
+            [ Common.Left (Name ("strict", _), (_, Sc (C (Int (Some i, _))))) ],
             _ ),
           SingleStmt (EmptyStmt _) )
       | ( ( _,
             [
               Common.Left
-                ( Name ("strict_types", _),
-                  (_, Sc (C (Int ((Some 1L | Some 0L), _)))) );
+                (Name ("strict_types", _), (_, Sc (C (Int (Some i, _)))));
             ],
             _ ),
           SingleStmt (EmptyStmt _) )
-      (* declare(ticks=1); can be skipped too.
-       * http://www.php.net/manual/en/control-structures.declare.php#control-structures.declare.ticks
-       *) ->
+        when Concrete_int.eq_const i 0 || Concrete_int.eq_const i 1
+             (* declare(ticks=1); can be skipped too.
+              * http://www.php.net/manual/en/control-structures.declare.php#control-structures.declare.ticks
+              *) ->
           acc
       | ( ( _,
-            [ Common.Left (Name ("ticks", _), (_, Sc (C (Int (Some 1L, _))))) ],
+            [ Common.Left (Name ("ticks", _), (_, Sc (C (Int (Some i, _))))) ],
             _ ),
-          _ ) ->
+          _ )
+        when Concrete_int.eq_const i 1 ->
           let cst = colon_stmt tok env colon_st in
           cst :: acc
       | _ -> error tok "TODO: declare")

@@ -340,7 +340,7 @@ rule token = parse
   | '-'? ("0b" | "0B")   ['0'-'1']
                        ( ['0'-'1'] | '_')*
    { let s = tok lexbuf in
-     TInt (Common2.int64_of_string_opt s, tokinfo lexbuf)
+     TInt (Concrete_int.of_string_opt s, tokinfo lexbuf)
    }
 
   | '-'?

@@ -113,7 +113,7 @@ let with_tmp_file ~str ~ext f =
 
 let mval_of_string str t =
   let literal =
-    match Common2.int64_of_string_opt str with
+    match Concrete_int.of_string_opt str with
     | Some i -> G.Int (Some i, t)
     (* TODO? could try float_of_string_opt? *)
     | None -> G.String (Tok.unsafe_fake_bracket (str, t))

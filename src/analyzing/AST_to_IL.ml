@@ -344,7 +344,9 @@ and pattern env pat =
         pats
         |> Common.mapi (fun i pat_i ->
                let eorig = Related (G.P pat_i) in
-               let index_i = Literal (G.Int (Some (Int64.of_int i), tok1)) in
+               let index_i =
+                 Literal (G.Int (Some (Concrete_int.of_int i), tok1))
+               in
                let offset_i =
                  { o = Index { e = index_i; eorig }; oorig = NoOrig }
                in
@@ -431,7 +433,9 @@ and assign env lhs tok rhs_exp e_gen =
       let tup_elems =
         lhss
         |> Common.mapi (fun i lhs_i ->
-               let index_i = Literal (G.Int (Some (Int64.of_int i), tok1)) in
+               let index_i =
+                 Literal (G.Int (Some (Concrete_int.of_int i), tok1))
+               in
                let offset_i =
                  {
                    o = Index { e = index_i; eorig = related_exp lhs_i };
@@ -571,7 +575,7 @@ and expr_aux env ?(void = false) e_gen =
               | G.Decr -> G.Minus),
               tok )
           in
-          let one = G.Int (Some 1L, tok) in
+          let one = G.Int (Some (Concrete_int.of_int 1), tok) in
           let one_exp = mk_e (Literal one) (related_tok tok) in
           let opexp =
             mk_e

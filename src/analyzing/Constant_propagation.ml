@@ -261,8 +261,8 @@ let int_mult i1 i2 =
   let overflow =
     Int64_ops.(
       i1 <> 0L && i2 <> 0L
-      && ((i1 < 0L && i2 = Int64.min_int) (* >max_int *)
-         || (i1 = Int64.min_int && i2 < 0L) (* >max_int *)
+      && ((i1 < 0L && i2 = min_int) (* >max_int *)
+         || (i1 = min_int && i2 < 0L) (* >max_int *)
          ||
          if sign i1 * sign i2 = 1L then abs i1 > abs (max_int / i2)
            (* >max_int *)
@@ -273,8 +273,9 @@ let int_mult i1 i2 =
 let binop_int_cst op i1 i2 =
   match (i1, i2) with
   | Some (Lit (Int (Some n, t1))), Some (Lit (Int (Some m, _))) ->
+      let n, m = (Concrete_int.to_int64 n, Concrete_int.to_int64 m) in
       let* r = op n m in
-      Some (Lit (Int (Some r, t1)))
+      Some (Lit (Int (Some (Concrete_int.of_int64 r), t1)))
   | Some (Lit (Int _)), Some (Cst Cint)
   | Some (Cst Cint), Some (Lit (Int _)) ->
       Some (Cst Cint)
@@ -296,7 +297,7 @@ let concat_string_cst env s1 s2 =
   | Some (Lit (String (l, (s1, t1), r))), Some (Lit (Int (Some m, _)))
     when is_lang env Lang.Java || is_js env ->
       (* implicit int-to-string conversion *)
-      Some (Lit (String (l, (s1 ^ Int64.to_string m, t1), r)))
+      Some (Lit (String (l, (s1 ^ Concrete_int.to_string m, t1), r)))
   | Some (Lit (String (l, (s1, t1), r))), Some (Lit (Float (Some m, _)))
     when is_js env ->
       (* implicit float-to-string conversion *)

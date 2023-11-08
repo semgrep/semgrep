@@ -180,7 +180,7 @@ let mk_stmt_or_stmts = function
 (*-----------------------------------------*)
 
 (* tokens with "values" *)
-%token <int64 option * Tok.t> TInt
+%token <Concrete_int.t option * Tok.t> TInt
 %token <float option * Tok.t> TFloat
 %token <string * Tok.t> TChar TString
 

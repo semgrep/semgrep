@@ -1,4 +1,3 @@
-val neg : int64 -> int64
 val rem : int64 -> int64 -> int64
 val abs : int64 -> int64
 val max_int : int64

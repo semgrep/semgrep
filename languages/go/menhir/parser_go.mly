@@ -165,7 +165,7 @@ let rev_and_fix_items xs =
 (*-----------------------------------------*)
 
 (* tokens with "values" (was LLITERAL before) *)
-%token  <int64 option * Ast_go.tok> LINT
+%token  <Concrete_int.t option * Ast_go.tok> LINT
 %token  <float option * Ast_go.tok>  LFLOAT
 %token  <string * Ast_go.tok>  LIMAG  LRUNE LSTR
 %token  <AST_generic.operator * Ast_go.tok> LASOP

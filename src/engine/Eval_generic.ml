@@ -219,7 +219,7 @@ let value_of_lit ~code x =
   | G.Bool (b, _t) -> Bool b
   | G.String (_, (s, _t), _) -> String s
   (* big integers or floats can't be evaluated (Int (None, ...)) *)
-  | G.Int (Some i, _t) -> Int i
+  | G.Int (Some i, _t) -> Int (Concrete_int.to_int64 i)
   | G.Float (Some f, _t) -> Float f
   | _ -> raise (NotHandled code)
 
@@ -280,9 +280,9 @@ let rec eval env code =
       match v with
       | Int _ -> v
       | String s -> (
-          match Common2.int64_of_string_opt s with
+          match Concrete_int.of_string_opt s with
           | None -> raise (NotHandled code)
-          | Some i -> Int i)
+          | Some i -> Int (Concrete_int.to_int64 i))
       | __else__ -> raise (NotHandled code))
   | G.Call ({ e = G.IdSpecial (G.Op op, _t); _ }, (_, args, _)) ->
       let values =
@@ -369,7 +369,7 @@ and eval_op op values code =
   | G.Div, [ Float i1; Float i2 ] -> Float (i1 /. i2)
   | G.Div, [ Int i1; Float i2 ] -> Float (Int64.to_float i1 /. i2)
   | G.Div, [ Float i1; Int i2 ] -> Float (i1 /. Int64.to_float i2)
-  | G.Minus, [ Int i1 ] -> Int (Int64_ops.neg i1)
+  | G.Minus, [ Int i1 ] -> Int (Int64.neg i1)
   | G.Minus, [ Float i1 ] -> Float (-.i1)
   | G.Minus, [ Int i1; Int i2 ] -> Int Int64_ops.(i1 - i2)
   | G.Minus, [ Float i1; Float i2 ] -> Float (i1 -. i2)
