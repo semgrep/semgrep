@@ -4,6 +4,17 @@ const { EngineFactory } = require("../dist/index.cjs");
 
 const enginePromise = EngineFactory("./dist/semgrep-engine.wasm");
 
+// for masking the JSON output of the engine
+function maskResult(result) {
+  result["version"] = "<MASKED>";
+  // The fingerprint here is inconsistent across CI and locally.
+  // We don't know why. It appears to not be because of the OCaml translation,
+  // because the blakejs library was also inconsistent across platforms.
+  result["results"].map(
+    (match) => (match["extra"]["fingerprint"] = "<MASKED>")
+  );
+}
+
 describe("engine", () => {
   test("handles valid language", async () => {
     const engine = await enginePromise;
@@ -44,14 +55,7 @@ describe("yaml parser", () => {
         .replaceAll(targetPath, "test.yaml")
         .replaceAll("PRO", "OSS")
     );
-    result["version"] = "<MASKED>";
-    // The fingerprint here is inconsistent across CI and locally.
-    // We don't know why. It appears to not be because of the OCaml translation,
-    // because the blakejs library was also inconsistent across platforms.
-    result["results"].map(
-      (match) => (match["extra"]["fingerprint"] = "<MASKED>")
-    );
-    expect(result).toMatchSnapshot();
+    expect(maskResult(result)).toMatchSnapshot();
   });
   test("parses a pattern with pattern-regex", async () => {
     const engine = await enginePromise;
@@ -65,11 +69,27 @@ describe("yaml parser", () => {
         .replaceAll(targetPath, "test.yaml")
         .replaceAll("PRO", "OSS")
     );
-    result["version"] = "<MASKED>";
-    result["results"].map(
-      (match) => (match["extra"]["fingerprint"] = "<MASKED>")
+    expect(maskResult(result)).toMatchSnapshot();
+  });
+});
+
+describe("representation", () => {
+  test("js representation handles large ints", async () => {
+    const engine = await enginePromise;
+    const python = require("../../languages/python/dist/index.cjs");
+    engine.addParser(await python.ParserFactory());
+    const rulePath = path.resolve(`${__dirname}/test-representation.json`);
+    const targetPath = path.resolve(`${__dirname}/repr.py`);
+    const result = JSON.parse(
+      engine
+        .execute("python", rulePath, `${__dirname}`, [targetPath])
+        .replaceAll(rulePath, "test-representation.json")
+        .replaceAll(targetPath, "repr.py")
+        .replaceAll("PRO", "OSS")
     );
-    expect(result).toMatchSnapshot();
+    // we expect the result to have length 1, because the metavariable
+    // comparison succeeds
+    expect(maskResult(result).results).toHaveLength(1);
   });
 });
 

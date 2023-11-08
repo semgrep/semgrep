@@ -16,10 +16,7 @@
     commons
 
     semgrep_core
-
-    lib_parsing.unix
   )
- (inline_tests)
  (preprocess
    (pps
      ppx_profiling
