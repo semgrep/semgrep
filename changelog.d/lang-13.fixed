@@ -1,0 +1,3 @@
+Semgrep does not stop a scan anymore for parsing errors due to
+unconventional exceptions (e.g., Failure "not a program") in some
+parsers. Instead, such errors are reported as "Other syntax error".

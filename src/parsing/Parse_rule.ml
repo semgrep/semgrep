@@ -208,6 +208,14 @@ let parse_options rule_id (key : key) value =
 (* Parsers for taint *)
 (*****************************************************************************)
 
+let parse_by_side_effect env (key : key) x =
+  match x.G.e with
+  | G.L (String (_, ("true", _), _)) -> R.Yes
+  | G.L (String (_, ("false", _), _)) -> R.No
+  | G.L (String (_, ("only", _), _)) -> R.Only
+  | G.L (Bool (b, _)) -> if b then R.Yes else R.No
+  | _x -> error_at_key env.id key (spf "parse_by_side_effect for %s" (fst key))
+
 let requires_expr_to_precondition env key e =
   let invalid_requires () =
     error_at_key env.id key
@@ -254,8 +262,8 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
       take_opt dict env parse_bool "exact" |> Option.value ~default:false
     in
     let source_by_side_effect =
-      take_opt dict env parse_bool "by-side-effect"
-      |> Option.value ~default:false
+      take_opt dict env parse_by_side_effect "by-side-effect"
+      |> Option.value ~default:R.No
     in
     let source_control =
       take_opt dict env parse_bool "control" |> Option.value ~default:false
@@ -289,7 +297,7 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
           source_id;
           source_formula;
           source_exact = false;
-          source_by_side_effect = false;
+          source_by_side_effect = R.No;
           source_control = false;
           label = R.default_source_label;
           source_requires = None;

@@ -126,7 +126,7 @@ let rec string_of_error_type (error_type : Out.error_type) : string =
   | UnknownLanguageError
   | MissingPlugin
   | ParseError
-  | SpecifiedParseError
+  | OtherParseError
   | AstBuilderError
   | InvalidYaml
   | MatchingError

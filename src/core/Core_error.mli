@@ -40,7 +40,9 @@ val error :
 *)
 val error_of_invalid_rule_error : Rule.invalid_rule_error -> t
 
-(* Convert a caught exception and its stack trace to a Semgrep error. *)
+(* Convert a caught exception and its stack trace to a Semgrep error.
+ * See also JSON_report.json_of_exn for non-target related exn handling.
+ *)
 val exn_to_error : Rule_ID.t option -> Common.filename -> Exception.t -> t
 
 (*****************************************************************************)

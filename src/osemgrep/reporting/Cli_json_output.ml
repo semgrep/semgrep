@@ -125,7 +125,7 @@ let error_message ~rule_id ~(location : Out.location)
        the broken rule(s). *)
     | Some id, (RuleParseError | PatternParseError _) -> spf "in rule %s" id
     | ( Some id,
-        ( PartialParsing _ | ParseError | SpecifiedParseError | AstBuilderError
+        ( PartialParsing _ | ParseError | OtherParseError | AstBuilderError
         | InvalidYaml | MatchingError | SemgrepMatchFound | TooManyMatches
         | FatalError | Timeout | OutOfMemory | TimeoutDuringInterfile
         | OutOfMemoryDuringInterfile ) ) ->
@@ -174,7 +174,7 @@ let exit_code_of_error_type (error_type : Out.error_type) : Exit_code.t =
   | LexicalError
   | PartialParsing _ ->
       Exit_code.invalid_code
-  | SpecifiedParseError
+  | OtherParseError
   | AstBuilderError
   | RuleParseError
   | PatternParseError _
@@ -221,7 +221,7 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
         | SemgrepError
         | InvalidRuleSchemaError ->
             None
-        | SpecifiedParseError
+        | OtherParseError
         | AstBuilderError
         | RuleParseError
         | PatternParseError _
@@ -251,7 +251,7 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
         | ParseError
         | LexicalError
         | PartialParsing _
-        | SpecifiedParseError
+        | OtherParseError
         | AstBuilderError
         | InvalidYaml
         | InvalidRuleSchemaError
