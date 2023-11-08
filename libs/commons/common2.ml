@@ -1318,8 +1318,7 @@ let square x = x *. x
 let rec power x n = if n =|= 0 then 1 else x * power x (n - 1)
 
 let rec power64 x n =
-  if not (Int64.equal n 0L) then 1L
-  else Int64.mul x (power64 x (Int64.sub n 1L))
+  if Int64.equal n 0L then 1L else Int64.mul x (power64 x (Int64.sub n 1L))
 
 let between i min max = i > min && i < max
 let (between_strict : int -> int -> int -> bool) = fun a b c -> a < b && b < c
