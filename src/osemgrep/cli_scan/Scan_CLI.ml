@@ -109,7 +109,7 @@ let default : conf =
          * not overload on large machines
          *)
         Core_runner.num_jobs = min 16 (Parmap_helpers.get_cpu_count ());
-        timeout = 5.0 (* seconds *);
+        timeout = 5.0 (* seconds, keep up-to-date with User_settings.ml and constants.py *);
         timeout_threshold = 3;
         max_memory_mb = 0;
         optimizations = true;
