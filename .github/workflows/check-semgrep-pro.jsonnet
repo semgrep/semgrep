@@ -1,6 +1,6 @@
 // This workflow checks whether the current semgrep PR can break the
-// compilation of semgrep-pro if semgrep-pro was using this semgrep
-// branch as a submodule.
+// compilation and tests of semgrep-pro if semgrep-pro was using this
+// semgrep branch as a submodule.
 
 local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
@@ -95,7 +95,7 @@ local check_compile_semgrep_pro_job = {
       run: |||
         cd ../semgrep-proprietary
         eval $(opam env)
-        make
+        make all test
       |||,
     },
   ],
