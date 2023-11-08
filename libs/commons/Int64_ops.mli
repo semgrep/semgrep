@@ -1,3 +1,7 @@
+(* This module exists to be opened locally, so that normal arithmetic
+   operations on 64-bit integers can be used with familiar operators.
+*)
+
 val rem : int64 -> int64 -> int64
 val abs : int64 -> int64
 val max_int : int64

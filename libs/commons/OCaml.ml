@@ -193,9 +193,9 @@ type v =
 
 (* for generated code that want to transform and in and out of a v or t *)
 let vof_unit () = VUnit
-let vof_int x = VInt (*Int64.of_int*) (Int64.of_int x)
-let vof_int64 x = VInt (*Int64.of_int*) x
-let vof_float x = VFloat (*Int64.of_int*) x
+let vof_int x = VInt (Int64.of_int x)
+let vof_int64 x = VInt x
+let vof_float x = VFloat x
 let vof_string x = VString x
 let vof_bool b = VBool b
 let vof_list ofa x = VList (Common.map ofa x)
