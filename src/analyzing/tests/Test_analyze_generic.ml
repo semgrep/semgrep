@@ -64,9 +64,8 @@ let test_cfg_il ~parse_program file =
   Naming_AST.resolve lang ast;
   Visit_function_defs.visit
     (fun _ fdef ->
-      let _, xs = AST_to_IL.function_definition lang fdef in
-      let cfg = CFG_build.cfg_of_stmts xs in
-      Display_IL.display_cfg cfg)
+      let CFG_build.{ fparams = _; fcfg } = CFG_build.cfg_of_fdef lang fdef in
+      Display_IL.display_cfg fcfg)
     ast
 
 module F2 = IL
@@ -89,8 +88,9 @@ let test_dfg_svalue ~parse_program file =
       inherit [_] AST_generic.iter_no_id_info
 
       method! visit_function_definition _ def =
-        let inputs, xs = AST_to_IL.function_definition lang def in
-        let flow = CFG_build.cfg_of_stmts xs in
+        let CFG_build.{ fparams = inputs; fcfg = flow } =
+          CFG_build.cfg_of_fdef lang def
+        in
         pr2 "Constness";
         let mapping = Dataflow_svalue.fixpoint lang inputs flow in
         Dataflow_svalue.update_svalue flow mapping;

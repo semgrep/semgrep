@@ -43,6 +43,7 @@ from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
+from semgrep.state import DesignTreatment
 from semgrep.state import get_state
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
@@ -276,6 +277,7 @@ class OutputHandler:
         rule_matches_by_rule: RuleMatchMap,
         *,
         all_targets: Set[Path],
+        engine_type: EngineType = EngineType.OSS,
         filtered_rules: List[Rule],
         ignore_log: Optional[FileTargetingLog] = None,
         profiler: Optional[ProfileManager] = None,
@@ -284,7 +286,8 @@ class OutputHandler:
         severities: Optional[Collection[out.MatchSeverity]] = None,
         print_summary: bool = False,
         is_ci_invocation: bool = False,
-        engine_type: EngineType = EngineType.OSS,
+        executed_rule_count: int = 0,
+        missed_rule_count: int = 0,
     ) -> None:
         state = get_state()
         self.has_output = True
@@ -367,7 +370,7 @@ class OutputHandler:
             )
             num_findings = len(regular_matches)
             num_targets = len(self.all_targets)
-            num_rules = len(self.filtered_rules)
+            num_rules = executed_rule_count or len(self.filtered_rules)
 
             ignores_line = str(ignore_log or "No ignore information available")
             suggestion_line = ""
@@ -382,6 +385,11 @@ class OutputHandler:
             stats_line = ""
             if print_summary:
                 stats_line = f"\nRan {unit_str(num_rules, 'rule')} on {unit_str(num_targets, 'file')}: {unit_str(num_findings, 'finding')}."
+                if (
+                    missed_rule_count
+                    and state.get_cli_ux_flavor() != DesignTreatment.LEGACY
+                ):
+                    stats_line = f"{stats_line}\n💎 Missed out on {unit_str(missed_rule_count, 'pro rule')} since you aren't logged in!"
             if ignore_log is not None:
                 logger.verbose(ignore_log.verbose_output())
 

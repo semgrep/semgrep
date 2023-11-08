@@ -392,7 +392,7 @@ jobs:
     secrets: inherit
     with:
       version: ${{needs.get-version.outputs.version}}
-      repository: "returntocorp/semgrep-app"
+      repository: "semgrep/semgrep-app"
 
   bump-semgrep-action:
     if: ${{ ! inputs.dry-run }}
@@ -402,7 +402,7 @@ jobs:
     secrets: inherit
     with:
       version: ${{needs.get-version.outputs.version}}
-      repository: "returntocorp/semgrep-action"
+      repository: "semgrep/semgrep-action"
 
   bump-semgrep-rpc:
     if: ${{ ! inputs.dry-run }}
@@ -412,7 +412,7 @@ jobs:
     secrets: inherit
     with:
       version: ${{needs.get-version.outputs.version}}
-      repository: "returntocorp/semgrep-rpc"
+      repository: "semgrep/semgrep-rpc"
 
   notify-success:
     if: ${{ success() && ! inputs.dry-run }}

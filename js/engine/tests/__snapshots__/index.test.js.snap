@@ -2,7 +2,6 @@
 
 exports[`yaml parser parses a pattern with pattern-regex 1`] = `
 {
-  "engine_requested": "OSS",
   "errors": [],
   "explanations": [
     {
@@ -49,7 +48,9 @@ exports[`yaml parser parses a pattern with pattern-regex 1`] = `
     },
   ],
   "paths": {
-    "scanned": [],
+    "scanned": [
+      "test.yaml",
+    ],
   },
   "results": [
     {
@@ -61,8 +62,13 @@ exports[`yaml parser parses a pattern with pattern-regex 1`] = `
       },
       "extra": {
         "engine_kind": "OSS",
+        "fingerprint": "<MASKED>",
+        "is_ignored": false,
+        "lines": "foo: bar",
         "message": "test",
+        "metadata": {},
         "metavars": {},
+        "severity": "ERROR",
         "validation_state": "NO_VALIDATOR",
       },
       "path": "test.yaml",
@@ -73,12 +79,6 @@ exports[`yaml parser parses a pattern with pattern-regex 1`] = `
       },
     },
   ],
-  "rules_by_engine": [
-    [
-      "test",
-      "OSS",
-    ],
-  ],
   "skipped_rules": [],
   "version": "<MASKED>",
 }
@@ -86,7 +86,6 @@ exports[`yaml parser parses a pattern with pattern-regex 1`] = `
 
 exports[`yaml parser parses a simple pattern 1`] = `
 {
-  "engine_requested": "OSS",
   "errors": [],
   "explanations": [
     {
@@ -147,7 +146,9 @@ exports[`yaml parser parses a simple pattern 1`] = `
     },
   ],
   "paths": {
-    "scanned": [],
+    "scanned": [
+      "test.yaml",
+    ],
   },
   "results": [
     {
@@ -159,7 +160,11 @@ exports[`yaml parser parses a simple pattern 1`] = `
       },
       "extra": {
         "engine_kind": "OSS",
+        "fingerprint": "<MASKED>",
+        "is_ignored": false,
+        "lines": "foo: bar",
         "message": "test",
+        "metadata": {},
         "metavars": {
           "$X": {
             "abstract_content": "bar",
@@ -175,6 +180,7 @@ exports[`yaml parser parses a simple pattern 1`] = `
             },
           },
         },
+        "severity": "ERROR",
         "validation_state": "NO_VALIDATOR",
       },
       "path": "test.yaml",
@@ -184,12 +190,6 @@ exports[`yaml parser parses a simple pattern 1`] = `
         "offset": 0,
       },
     },
-  ],
-  "rules_by_engine": [
-    [
-      "test",
-      "OSS",
-    ],
   ],
   "skipped_rules": [],
   "version": "<MASKED>",

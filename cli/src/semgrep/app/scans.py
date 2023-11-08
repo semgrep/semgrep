@@ -1,20 +1,19 @@
 # Handle communication of findings / errors to semgrep.app
 import json
 import os
+import sys
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime
 from datetime import timedelta
 from pathlib import Path
 from time import sleep
-from typing import Any
 from typing import Dict
 from typing import FrozenSet
 from typing import List
 from typing import Optional
 from typing import Set
 from typing import TYPE_CHECKING
-from urllib.parse import urlencode
 from uuid import uuid4
 
 import click
@@ -25,7 +24,7 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
 from semgrep.app.project_config import ProjectConfig
-from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
+from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
@@ -48,78 +47,97 @@ class ScanCompleteResult:
 
 
 class ScanHandler:
-    def __init__(self, dry_run: bool = False, deployment_name: str = "") -> None:
-        self._deployment_id: Optional[int] = None
-        self._deployment_name: str = deployment_name
-
+    def __init__(self, dry_run: bool = False) -> None:
         self.local_id = str(uuid4())
         self.scan_metadata = out.ScanMetadata(
             cli_version=out.Version(__VERSION__),
             unique_id=out.Uuid(self.local_id),
             requested_products=[],
+            dry_run=dry_run,
         )
-        self.scan_id = None
-        self.ignore_patterns: List[str] = []
-        self._policy_names: List[str] = []
-        self._autofix = False
-        self._deepsemgrep = False
+        self.scan_response: Optional[out.ScanResponse] = None
         self.dry_run = dry_run
         self._dry_run_rules_url: str = ""
-        self._skipped_syntactic_ids: List[str] = []
-        self._skipped_match_based_ids: List[str] = []
         self._scan_params: str = ""
-        self._rules: str = ""
-        self._enabled_products: List[str] = []
         self.ci_scan_results: Optional[out.CiScanResults] = None
+
+    @property
+    def scan_id(self) -> Optional[int]:
+        if self.scan_response:
+            return self.scan_response.info.id
+        return None
 
     @property
     def deployment_id(self) -> Optional[int]:
         """
         Separate property for easy of mocking in test
         """
-        return self._deployment_id
+        if self.scan_response:
+            return self.scan_response.info.deployment_id
+        return None
 
     @property
-    def deployment_name(self) -> str:
+    def deployment_name(self) -> Optional[str]:
         """
         Separate property for easy of mocking in test
         """
-        return self._deployment_name
-
-    @property
-    def policy_names(self) -> List[str]:
-        """
-        Separate property for easy of mocking in test
-        """
-        return self._policy_names
+        if self.scan_response:
+            return self.scan_response.info.deployment_name
+        return None
 
     @property
     def autofix(self) -> bool:
         """
         Separate property for easy of mocking in test
         """
-        return self._autofix
+        if self.scan_response:
+            return self.scan_response.engine_params.autofix
+        return False
 
     @property
     def deepsemgrep(self) -> bool:
         """
         Separate property for easy of mocking in test
         """
-        return self._deepsemgrep
+        if self.scan_response:
+            return self.scan_response.engine_params.deepsemgrep
+        return False
+
+    @property
+    def dependency_query(self) -> bool:
+        """
+        Separate property for easy of mocking in test
+        """
+        if self.scan_response:
+            return self.scan_response.engine_params.dependency_query
+        return False
 
     @property
     def skipped_syntactic_ids(self) -> List[str]:
         """
         Separate property for easy of mocking in test
         """
-        return self._skipped_syntactic_ids
+        if self.scan_response:
+            return self.scan_response.config.triage_ignored_syntactic_ids
+        return []
 
     @property
     def skipped_match_based_ids(self) -> List[str]:
         """
         Separate property for easy of mocking in test
         """
-        return self._skipped_match_based_ids
+        if self.scan_response:
+            return self.scan_response.config.triage_ignored_match_based_ids
+        return []
+
+    @property
+    def ignore_patterns(self) -> List[str]:
+        """
+        Separate property for easy of mocking in test
+        """
+        if self.scan_response:
+            return self.scan_response.engine_params.ignored_files
+        return []
 
     @property
     def scan_params(self) -> str:
@@ -133,81 +151,19 @@ class ScanHandler:
         """
         Separate property for easy of mocking in test
         """
-        return self._rules
+        if self.scan_response:
+            return self.scan_response.config.rules.to_json_string()
+
+        return ""
 
     @property
     def enabled_products(self) -> List[str]:
         """
         Separate property for easy of mocking in test
         """
-        return self._enabled_products
-
-    def _get_scan_config_from_app(self, url: str) -> out.ScanConfig:
-        state = get_state()
-        response = state.app_session.get(url)
-        try:
-            response.raise_for_status()
-        except requests.RequestException:
-            raise Exception(
-                f"API server at {state.env.semgrep_url} returned this error: {response.text}"
-            )
-
-        body = response.json()
-
-        if not isinstance(body, dict):
-            raise Exception(
-                f"API server at {state.env.semgrep_url} returned type '{type(body)}'. Expected a dictionary."
-            )
-
-        return out.ScanConfig.from_json(body)
-
-    def fetch_and_init_scan_config(self, meta: Dict[str, Any]) -> None:
-        """
-        Get configurations for scan
-        """
-        state = get_state()
-
-        self._scan_params = urlencode(
-            {
-                "dry_run": self.dry_run,
-                "repo_name": meta.get("repository"),
-                "sca": meta.get("is_sca_scan", False),
-                "full_scan": meta.get("is_full_scan", False),
-                "semgrep_version": meta.get("semgrep_version", "0.0.0"),
-            }
-        )
-
-        if self.dry_run:
-            app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
-        else:
-            app_get_config_url = (
-                f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/config"
-            )
-
-        conf: out.ScanConfig = self._get_scan_config_from_app(app_get_config_url)
-
-        self._deployment_id = conf.deployment_id
-        self._deployment_name = conf.deployment_name
-        self._policy_names = conf.policy_names
-        self._rules = conf.rule_config
-        self._autofix = conf.autofix
-        self._deepsemgrep = conf.deepsemgrep
-        self._dependency_query = conf.dependency_query
-        self._skipped_syntactic_ids = conf.triage_ignored_syntactic_ids
-        self._skipped_match_based_ids = conf.triage_ignored_match_based_ids
-        self.ignore_patterns = conf.ignored_files
-        if conf.enabled_products:
-            self._enabled_products = [x.to_json() for x in conf.enabled_products]
-        else:
-            self._enabled_products = []
-
-        if state.terminal.is_debug:
-            config = conf.to_json()
-            try:
-                config["rule_config"] = json.loads(conf.rule_config)
-            except Exception:
-                pass
-            logger.debug(f"Got configuration {json.dumps(config, indent=4)}")
+        if self.scan_response:
+            return [p.to_json() for p in self.scan_response.info.enabled_products]
+        return []
 
     def start_scan(
         self, project_metadata: out.ProjectMetadata, project_config: ProjectConfig
@@ -218,9 +174,6 @@ class ScanHandler:
         returns ignored list
         """
         state = get_state()
-        if self.dry_run:
-            logger.info(f"Would have sent POST request to create scan")
-            return
 
         request = out.ScanRequest(
             meta=out.RawJson(
@@ -233,11 +186,18 @@ class ScanHandler:
             project_metadata=project_metadata,
             project_config=project_config.to_CiConfigFromRepo(),
         ).to_json()
+
         logger.debug(f"Starting scan: {json.dumps(request, indent=4)}")
         response = state.app_session.post(
-            f"{state.env.semgrep_url}/api/agent/deployments/scans",
+            f"{state.env.semgrep_url}/api/cli/scans",
             json=request,
         )
+
+        if response.status_code == 401:
+            logger.info(
+                "API token not valid. Try to run `semgrep logout` and `semgrep login` again.",
+            )
+            sys.exit(INVALID_API_KEY_EXIT_CODE)
 
         if response.status_code == 404:
             raise Exception(
@@ -253,9 +213,10 @@ class ScanHandler:
                 f"API server at {state.env.semgrep_url} returned this error: {response.text}"
             )
 
-        body = response.json()
-        self.scan_id = body["scan"]["id"]
-        self._enabled_products = body["scan"].get("enabled_products") or []
+        self.scan_response = out.ScanResponse.from_json(response.json())
+        logger.debug(
+            f"Scan started: {json.dumps(self.scan_response.to_json(), indent=4)}"
+        )
 
     def report_failure(self, exit_code: int) -> None:
         """
@@ -349,7 +310,7 @@ class ScanHandler:
             rule_ids=rule_ids,
             contributions=contributions,
         )
-        if self._dependency_query:
+        if self.dependency_query:
             self.ci_scan_results.dependencies = out.CiScanDependencies(
                 lockfile_dependencies
             )

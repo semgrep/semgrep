@@ -814,14 +814,16 @@ let propagate_dataflow lang ast =
       let xs =
         AST_to_IL.stmt lang (G.Block (Tok.unsafe_fake_bracket ast) |> G.s)
       in
+      (* Top-level function. No need to use CFG_build.cfg_of_fdef here. *)
       let flow = CFG_build.cfg_of_stmts xs in
       propagate_dataflow_one_function lang [] flow
   | _ ->
       ast
       |> Visit_function_defs.visit (fun _ent fdef ->
-             let inputs, xs = AST_to_IL.function_definition lang fdef in
-             let flow = CFG_build.cfg_of_stmts xs in
-             propagate_dataflow_one_function lang inputs flow);
+             let CFG_build.{ fparams; fcfg } =
+               CFG_build.cfg_of_fdef lang fdef
+             in
+             propagate_dataflow_one_function lang fparams fcfg);
 
       (* We consider the top-level function the interior of a degenerate function,
          and simply run constant propagation on that.
@@ -830,5 +832,6 @@ let propagate_dataflow lang ast =
          duplicate any work.
       *)
       let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
+      (* Top-level function. No need to use CFG_build.cfg_of_fdef here. *)
       let flow = CFG_build.cfg_of_stmts xs in
       propagate_dataflow_one_function lang [] flow

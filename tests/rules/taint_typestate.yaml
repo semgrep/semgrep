@@ -1,0 +1,20 @@
+rules:
+  - id: test
+    languages:
+      - python
+    message: Test
+    mode: taint
+    pattern-sources:
+      - by-side-effect: only
+        patterns:
+        - pattern: lock($L)
+        - focus-metavariable: $L
+    pattern-sanitizers:
+      - by-side-effect: true
+        patterns:
+        - pattern: unlock($L)
+        - focus-metavariable: $L
+    pattern-sinks:
+      - pattern: lock($L)
+    severity: WARNING
+

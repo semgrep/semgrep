@@ -46,7 +46,11 @@ class EngineType(Enum):
         """
         # Change default to pro-engine intrafile if secrets was requested.
         # Secrets is built into pro-engine, but any pro-setting should work.
-        if requested_engine is None and run_secrets:
+        if (
+            not (scan_handler and scan_handler.deepsemgrep)
+            and requested_engine is None
+            and run_secrets
+        ):
             requested_engine = cls.PRO_LANG
         elif run_secrets and requested_engine is cls.OSS:
             # Should be impossible if the CLI gates impossible arguemnet combinations.

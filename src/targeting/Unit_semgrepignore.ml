@@ -29,6 +29,7 @@ let test_filter ?includes:include_patterns ?excludes:cli_patterns
       printf "--- Filtered files ---\n";
       let filter =
         Semgrepignore.create ?include_patterns ?cli_patterns
+          ~builtin_semgrepignore:Empty
           ~exclusion_mechanism:Gitignore_and_semgrepignore ~project_root:root ()
       in
       let error = ref false in

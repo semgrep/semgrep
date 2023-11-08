@@ -52,6 +52,7 @@ type t = {
   matches : Pattern_match.t list;
   errors : Core_error.t list;
   skipped_rules : Rule.invalid_rule_error list;
+  rules_with_targets : Rule.rule list;
   (* may contain also skipped_target information *)
   extra : Core_profiling.t Core_profiling.debug_info;
   explanations : Matching_explanation.t list option;
@@ -89,6 +90,7 @@ let mk_final_result_with_just_errors (errors : Core_error.t list) : t =
     errors;
     (* default values *)
     matches = [];
+    rules_with_targets = [];
     skipped_rules = [];
     extra = No_info;
     explanations = None;
@@ -317,6 +319,7 @@ let make_final_result
     errors;
     extra;
     skipped_rules;
+    rules_with_targets = [];
     explanations = (if explanations =*= [] then None else Some explanations);
     rules_by_engine =
       rules_with_engine |> Common.map (fun (r, ek) -> (fst r.Rule.id, ek));

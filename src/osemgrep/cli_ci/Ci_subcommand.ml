@@ -3,6 +3,11 @@ module Out = Semgrep_output_v1_j
 module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (*****************************************************************************)
+(* TODO: migrate this to the new scan endpoint to match the pysemgrep        *)
+(*       changes in https://github.com/semgrep/semgrep/pull/9129             *)
+(*****************************************************************************)
+
+(*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
 (*
@@ -179,6 +184,7 @@ let scan_config_and_rules_from_deployment ~dry_run
       unique_id = Uuidm.v `V4;
       (* TODO: should look at conf.secrets, conf.sca, conf.code, etc. *)
       requested_products = [];
+      dry_run = false;
     }
   in
   (* TODO:

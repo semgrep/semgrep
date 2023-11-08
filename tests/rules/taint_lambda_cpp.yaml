@@ -1,0 +1,16 @@
+rules:
+  - id: source-sink
+    languages:
+      - cpp
+    message: source-sink
+    mode: taint
+    pattern-sinks:
+      - pattern: |
+          sink(...)
+    pattern-sources:
+      - by-side-effect: true
+        patterns:
+          - pattern: source($X)
+          - focus-metavariable: $X
+    severity: WARNING
+

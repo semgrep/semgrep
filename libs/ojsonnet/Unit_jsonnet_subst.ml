@@ -37,7 +37,7 @@ let test_maker dirs pass_or_fail =
                     let core = Desugar_jsonnet.desugar_program file ast in
                     (* Currently slightly hacky, since we later may want to test for errors thrown *)
                     try
-                      let value_ = Eval_jsonnet_subst.eval_expr core in
+                      let value_ = Eval_jsonnet_subst.eval_program core in
                       let json =
                         JSON.to_yojson
                           (Eval_jsonnet_subst.manifest_value value_)
@@ -51,7 +51,7 @@ let test_maker dirs pass_or_fail =
                       Alcotest.(check bool)
                         result pass_or_fail (Y.equal json correct)
                     with
-                    | Eval_jsonnet_subst.Error _ ->
+                    | Eval_jsonnet_common.Error _ ->
                         Alcotest.(check bool)
                           "this threw an error" (not pass_or_fail) true )))
   |> Common.flatten
