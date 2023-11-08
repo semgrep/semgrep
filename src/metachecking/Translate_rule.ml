@@ -86,8 +86,9 @@ and translate_taint_source
       source_formula;
       source_exact;
       source_by_side_effect;
-      label;
       source_control;
+      source_cond_branch;
+      label;
       source_requires;
     } : [> `O of (string * Yaml.value) list ] =
   let (`O source_f) = translate_formula source_formula in
@@ -110,12 +111,19 @@ and translate_taint_source
   let control_obj =
     if source_control then [ ("control", `Bool true) ] else []
   in
+  let cond_branch_obj =
+    match source_cond_branch with
+    | TaintThen -> [ ("conditional-branch", `String "then") ]
+    | TaintElse -> [ ("conditional-branch", `String "else") ]
+    | TaintBoth -> [] (* this is the default *)
+  in
   `O
     (List.concat
        [
          source_f;
          exact_obj;
          control_obj;
+         cond_branch_obj;
          label_obj;
          requires_obj;
          side_effect_obj;

@@ -165,12 +165,15 @@ type taint_spec = {
   propagators : taint_propagator list;
 }
 
+and taint_cond_branch = TaintThen | TaintElse | TaintBoth
+
 and taint_source = {
   source_id : string;  (** See 'Parse_rule.parse_taint_source'. *)
   source_formula : formula;
   source_exact : bool;
   source_by_side_effect : by_side_effect;
   source_control : bool;
+  source_cond_branch : taint_cond_branch;
   label : string;
       (* The label to attach to the data.
        * Alt: We could have an optional label instead, allow taint that is not

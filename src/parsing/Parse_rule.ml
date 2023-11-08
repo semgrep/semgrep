@@ -253,6 +253,14 @@ let parse_taint_requires env key x =
   let range = AST_generic_helpers.range_of_any_opt (E e) in
   { R.precondition = requires_expr_to_precondition env key e; range }
 
+let parse_taint_cond_branch env (key : key) x =
+  match x.G.e with
+  | G.L (String (_, ("then", _), _)) -> R.TaintThen
+  | G.L (String (_, ("else", _), _)) -> R.TaintElse
+  | G.L (String (_, ("both", _), _)) -> R.TaintBoth
+  | _x ->
+      error_at_key env.id key (spf "parse_taint_cond_branch for %s" (fst key))
+
 (* TODO: can add a case where these take in only a single string *)
 let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
     Rule.taint_source =
@@ -268,6 +276,10 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
     let source_control =
       take_opt dict env parse_bool "control" |> Option.value ~default:false
     in
+    let source_cond_branch =
+      take_opt dict env parse_taint_cond_branch "conditional-branch"
+      |> Option.value ~default:R.TaintBoth
+    in
     let label =
       take_opt dict env parse_string "label"
       |> Option.value ~default:R.default_source_label
@@ -280,6 +292,7 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
       source_exact;
       source_by_side_effect;
       source_control;
+      source_cond_branch;
       label;
       source_requires;
     }
@@ -299,6 +312,7 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
           source_exact = false;
           source_by_side_effect = R.No;
           source_control = false;
+          source_cond_branch = R.TaintBoth;
           label = R.default_source_label;
           source_requires = None;
         }

@@ -831,7 +831,7 @@ let handle_taint_propagators env thing taints =
   in
   (taints_propagated, lval_env)
 
-let find_lval_taint_sources env incoming_taints lval =
+let find_lval_taint_sources env ~cond_branch incoming_taints lval =
   let taints_of_pms env = taints_of_matches env ~incoming:incoming_taints in
   let source_pms = lval_is_source env lval in
   (* Partition sources according to the value of `by-side-effect:`,
@@ -840,13 +840,33 @@ let find_lval_taint_sources env incoming_taints lval =
     partition_sources_by_side_effect_oyn source_pms
   in
   let by_side_effect_only_taints, lval_env =
-    by_side_effect_only_pms |> taints_of_pms env
+    by_side_effect_only_pms
+    |> List.filter (fun (tm : R.taint_source TM.t) ->
+           match (cond_branch, tm.spec.source_cond_branch) with
+           | R.TaintBoth, _
+           | R.TaintThen, (R.TaintThen | R.TaintBoth)
+           | R.TaintElse, (R.TaintElse | R.TaintBoth) ->
+               true
+           | R.TaintThen, R.TaintElse
+           | R.TaintElse, R.TaintThen ->
+               false)
+    |> taints_of_pms env
   in
   let by_side_effect_no_taints, lval_env =
     by_side_effect_no_pms |> taints_of_pms { env with lval_env }
   in
   let by_side_effect_yes_taints, lval_env =
-    by_side_effect_yes_pms |> taints_of_pms { env with lval_env }
+    by_side_effect_yes_pms
+    |> List.filter (fun (tm : R.taint_source TM.t) ->
+           match (cond_branch, tm.spec.source_cond_branch) with
+           | R.TaintBoth, _
+           | R.TaintThen, (R.TaintThen | R.TaintBoth)
+           | R.TaintElse, (R.TaintElse | R.TaintBoth) ->
+               true
+           | R.TaintThen, R.TaintElse
+           | R.TaintElse, R.TaintThen ->
+               false)
+    |> taints_of_pms { env with lval_env }
   in
   let taints_to_add_to_env =
     by_side_effect_only_taints |> Taints.union by_side_effect_yes_taints
@@ -857,8 +877,11 @@ let find_lval_taint_sources env incoming_taints lval =
   in
   (taints_to_return, lval_env)
 
-let rec check_tainted_lval env (lval : IL.lval) : Taints.t * Lval_env.t =
-  let new_taints, lval_in_env, lval_env = check_tainted_lval_aux env lval in
+let rec check_tainted_lval ?(cond_branch = R.TaintBoth) env (lval : IL.lval) :
+    Taints.t * Lval_env.t =
+  let new_taints, lval_in_env, lval_env =
+    check_tainted_lval_aux ~cond_branch env lval
+  in
   let taints_from_env = status_to_taints lval_in_env in
   let taints = Taints.union new_taints taints_from_env in
   let taints =
@@ -944,7 +967,7 @@ and propagate_taint_via_java_getters_and_setters_without_definition env e args
       | __else__ -> (Taints.empty, env.lval_env))
   | __else__ -> (Taints.empty, env.lval_env)
 
-and check_tainted_lval_aux env (lval : IL.lval) :
+and check_tainted_lval_aux ~cond_branch env (lval : IL.lval) :
     Taints.t
     (* `Sanitized means that the lval matched a sanitizer "right now", whereas
      * `Clean means that the lval has been _previously_ sanitized. They are
@@ -993,7 +1016,8 @@ and check_tainted_lval_aux env (lval : IL.lval) :
             (taints, `None, lval_env)
         | { base = _; rev_offset = _ :: rev_offset' } ->
             (* Recursive case, given `x.a.b` we must first check `x.a`. *)
-            check_tainted_lval_aux env { lval with rev_offset = rev_offset' }
+            check_tainted_lval_aux ~cond_branch env
+              { lval with rev_offset = rev_offset' }
       in
       (* Check the status of lval in the environemnt. *)
       let lval_in_env =
@@ -1022,7 +1046,8 @@ and check_tainted_lval_aux env (lval : IL.lval) :
       (* Find taint sources matching lval. *)
       let current_taints = Taints.union sub_new_taints taints_from_env in
       let taints_from_sources, lval_env =
-        find_lval_taint_sources { env with lval_env } current_taints lval
+        find_lval_taint_sources ~cond_branch { env with lval_env }
+          current_taints lval
       in
       (* Check sub-expressions in the offset. *)
       let taints_from_offset, lval_env =
@@ -1086,8 +1111,9 @@ and check_tainted_lval_offset env offset =
 
 (* Test whether an expression is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)
-and check_tainted_expr env exp : Taints.t * Lval_env.t =
-  let check env = check_tainted_expr env in
+and check_tainted_expr ?(cond_branch = R.TaintBoth) env exp :
+    Taints.t * Lval_env.t =
+  let check env = check_tainted_expr ~cond_branch env in
   let check_subexpr exp =
     match exp.e with
     | Fetch _
@@ -1097,7 +1123,9 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
     | FixmeExp (_, _, Some e) -> check env e
     | Composite (_, (_, es, _)) -> union_map_taints_and_vars env check es
     | Operator ((op, _), es) ->
-        let _, args_taints, lval_env = check_function_call_arguments env es in
+        let _, args_taints, lval_env =
+          check_function_call_arguments ~cond_branch env es
+        in
         let args_taints =
           if env.options.taint_only_propagate_through_assignments then
             Taints.empty
@@ -1172,7 +1200,7 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
       let taints_exp, lval_env = check_subexpr exp in
       let taints_sources, lval_env =
         match exp.e with
-        | Fetch lval -> check_tainted_lval env lval
+        | Fetch lval -> check_tainted_lval env ~cond_branch lval
         | __else__ ->
             orig_is_best_source env exp.eorig
             |> taints_of_matches { env with lval_env } ~incoming:taints_exp
@@ -1189,13 +1217,15 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
  * taint propagation by chaining the 'lval_env's returned when checking the arguments.
  * For example, given `foo(x.a)` we'll check whether `x.a` is tainted or whether the
  * argument is a sink. *)
-and check_function_call_arguments env args =
+and check_function_call_arguments ?(cond_branch = R.TaintBoth) env args =
   let args_taints, (lval_env, all_taints) =
     args
     |> List.fold_left_map
          (fun (lval_env, all_taints) arg ->
            let e = IL_helpers.exp_of_arg arg in
-           let taints, lval_env = check_tainted_expr { env with lval_env } e in
+           let taints, lval_env =
+             check_tainted_expr ~cond_branch { env with lval_env } e
+           in
            let taints =
              check_type_and_drop_taints_if_bool_or_number env taints
                type_of_expr e
@@ -1730,7 +1760,13 @@ let transfer :
               lval_env'
         in
         lval_env'
-    | NCond (_tok, e)
+    | TrueNode e ->
+        let _, lval_env' = check_tainted_expr ~cond_branch:R.TaintThen env e in
+        lval_env'
+    | FalseNode e ->
+        let _, lval_env' = check_tainted_expr ~cond_branch:R.TaintElse env e in
+        lval_env'
+    | NCond _ -> in'
     | NThrow (_tok, e) ->
         let _, lval_env' = check_tainted_expr env e in
         lval_env'
@@ -1750,8 +1786,6 @@ let transfer :
     | NGoto _
     | Enter
     | Exit
-    | TrueNode _
-    | FalseNode _
     | Join
     | NOther _
     | NTodo _ ->
