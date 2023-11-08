@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import pytest
 from pytest_mock import MockerFixture
 
@@ -29,6 +31,7 @@ def mock_get_token(mocker):
 def mocked_state(mocker):
     mocked = mocker.MagicMock()
     mocked.app_session.user_agent = FAKE_USER_AGENT
+    mocked.request_id = uuid4()
     mocked.env.fail_open_url = FAIL_OPEN_URL.replace("/failure", "")
     mocker.patch("semgrep.state.get_state", return_value=mocked)
     yield mocked
@@ -52,6 +55,7 @@ def test_send_nominal(
     expected_payload = {
         "method": "get",
         "url": "https://semgrep.dev/api/agent/deployments/current",
+        "request_id": str(mocked_state.request_id),
     }
 
     expected_headers = {
@@ -89,6 +93,7 @@ def test_send_with_scan_id(
         "method": "get",
         "url": "https://semgrep.dev/api/agent/deployments/current",
         "scan_id": 1234,
+        "request_id": str(mocked_state.request_id),
     }
 
     expected_headers = {
@@ -117,18 +122,18 @@ def test_send_nominal_with_trace(
     error_handler.configure(suppress_errors=True)
 
     mocked_requests = mocker.patch("requests.post")
-    mocker.patch("sys.exc_info", return_value=(ValueError, "oops", "oops"))
     mocker.patch("traceback.format_exc", return_value=expected_traceback)
 
     try:
         raise ValueError()
     except Exception:
-        pass
+        error_handler.capture_error()
     finally:
         exit_code = error_handler.send(FATAL_EXIT_CODE)
 
     expected_payload = {
         "error": expected_traceback,
+        "request_id": str(mocked_state.request_id),
     }
     expected_headers = {
         "User-Agent": FAKE_USER_AGENT,

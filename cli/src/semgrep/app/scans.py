@@ -14,7 +14,6 @@ from typing import List
 from typing import Optional
 from typing import Set
 from typing import TYPE_CHECKING
-from uuid import uuid4
 
 import click
 import requests
@@ -48,7 +47,8 @@ class ScanCompleteResult:
 
 class ScanHandler:
     def __init__(self, dry_run: bool = False) -> None:
-        self.local_id = str(uuid4())
+        state = get_state()
+        self.local_id = str(state.request_id)
         self.scan_metadata = out.ScanMetadata(
             cli_version=out.Version(__VERSION__),
             unique_id=out.Uuid(self.local_id),

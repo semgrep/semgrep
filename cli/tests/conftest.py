@@ -502,3 +502,16 @@ def parse_lockfile_path_in_tmp_for_perf(
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
     monkeypatch.chdir(tmp_path)
     return parse_lockfile_path
+
+
+class str_containing:
+    """Assert that a given string meets some expectations."""
+
+    def __init__(self, pattern, flags=0):
+        self._pattern = pattern
+
+    def __eq__(self, actual):
+        return self._pattern in actual
+
+    def __repr__(self):
+        return self._pattern
