@@ -216,7 +216,9 @@ and expr =
   (* coming from Erlang (coming itself from Prolog) *)
   | OpArity of
       operator wrap
-      * Tok.t (* '/' *)
+      * Tok.t
+        (* '/' *)
+        (* must rename this so the visitor does not conflict with Tok.t *)
       * (Concrete_int.t[@name "concrete_int"]) option wrap
   | When of expr * Tok.t (* 'when' *) * expr_or_kwds
   | Join of expr * Tok.t (* '|' *) * expr_or_kwds
@@ -224,7 +226,10 @@ and expr =
   | Capture of Tok.t (* '&' *) * expr
   | ShortLambda of Tok.t (* '&' *) * expr bracket
   | PlaceHolder of
-      Tok.t (* & *) * (Concrete_int.t[@name "concrete_int"]) option wrap
+      (* must rename this so the visitor does not conflict with Tok.t *)
+      Tok.t
+      (* & *)
+      * (Concrete_int.t[@name "concrete_int"]) option wrap
   | S of stmt
   (* semgrep-ext: *)
   | DeepEllipsis of expr bracket
