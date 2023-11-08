@@ -58,6 +58,7 @@ local check_compile_semgrep_pro_job = {
         cd ..
         gh repo clone semgrep/semgrep-proprietary
         cd semgrep-proprietary
+        eval $(opam env)
         make setup
       |||,
     },

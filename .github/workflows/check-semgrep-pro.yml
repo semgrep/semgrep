@@ -38,7 +38,7 @@ jobs:
         GITHUB_TOKEN: ${{ steps.token.outputs.token }}
       name: Checkout semgrep-pro
       run: "\n        cd ..\n        gh repo clone semgrep/semgrep-proprietary\n        cd
-        semgrep-proprietary\n        make setup\n      "
+        semgrep-proprietary\n        eval $(opam env)\n        make setup\n      "
     - name: Adjust semgrep-pro to use the semgrep in this PR
       run: "\n        cd ../semgrep-proprietary\n        rm -rf semgrep\n        ln
         -s ../semgrep\n      "
