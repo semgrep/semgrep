@@ -101,24 +101,15 @@ WASM_DEP := dist/semgrep-parser.js
 WASM_NAME := semgrep-parser
 endif
 
-package.json: ../shared/generate-package-json.sh
-	$< $(SEMGREP_LANG) $(VERSION) > $@
-
-package-lock.json: package.json
-	npm install
-
-node_modules/.package-lock.json: package-lock.json
-	npm ci
-
 dist/entrypoint.js: ../shared/generate-entrypoint-js.sh
 	mkdir -p dist
 	$< '$(WASM_NAME)' '$(SEMGREP_LANG)' > $@
 
-dist/index.cjs: dist/entrypoint.js $(WASM_DEP) ../../../_build/default/js/languages/$(SEMGREP_LANG)/Parser.bc.js node_modules/.package-lock.json
+dist/index.cjs: dist/entrypoint.js $(WASM_DEP) ../../../_build/default/js/languages/$(SEMGREP_LANG)/Parser.bc.js
 	mkdir -p dist
 	npx esbuild $< $(ESBUILD_DEFAULTS) --format=cjs --outfile=$@
 
-dist/index.mjs: dist/entrypoint.js $(WASM_DEP) ../../../_build/default/js/languages/$(SEMGREP_LANG)/Parser.bc.js node_modules/.package-lock.json
+dist/index.mjs: dist/entrypoint.js $(WASM_DEP) ../../../_build/default/js/languages/$(SEMGREP_LANG)/Parser.bc.js
 	mkdir -p dist
 	npx esbuild $< $(ESBUILD_DEFAULTS) --format=esm --outfile=$@
 
