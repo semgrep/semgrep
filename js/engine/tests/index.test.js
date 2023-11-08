@@ -79,12 +79,12 @@ describe("representation", () => {
     const python = require("../../languages/python/dist/index.cjs");
     engine.addParser(await python.ParserFactory());
     const rulePath = path.resolve(`${__dirname}/test-representation.json`);
-    const targetPath = path.resolve(`${__dirname}/repr.py`);
+    const targetPath = path.resolve(`${__dirname}/test-representation.py`);
     const result = JSON.parse(
       engine
         .execute("python", rulePath, `${__dirname}`, [targetPath])
         .replaceAll(rulePath, "test-representation.json")
-        .replaceAll(targetPath, "repr.py")
+        .replaceAll(targetPath, "test-representation.py")
         .replaceAll("PRO", "OSS")
     );
     // we expect the result to have length 1, because the metavariable
