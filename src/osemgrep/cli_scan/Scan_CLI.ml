@@ -873,29 +873,26 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     in
     let engine_type =
       (* This first bit just rules out mutually exclusive options. *)
-      (match (oss, pro_lang, pro_intrafile, pro) with
-      | true, false, false, false when secrets ->
-          Error.abort
-            "Mutually exclusive options --oss/--beta-testing-secrets-enabled"
-      | false, false, false, false
-      | true, false, false, false
-      | false, true, false, false
-      | false, false, true, false
-      | false, false, false, true ->
-          ()
-      | _else_ ->
-          (* TOPORT: list the possibilities *)
-          Error.abort
-            "Mutually exclusive options \
-             --oss/--pro-languages/--pro-intrafile/--pro");
+      if oss && secrets then
+        Error.abort
+          "Mutually exclusive options --oss/--beta-testing-secrets-enabled";
+      if
+        [ oss; pro_lang; pro_intrafile; pro ]
+        |> Common2.filter Fun.id |> List.length > 1
+      then
+        Error.abort
+          "Mutually exclusive options \
+           --oss/--pro-languages/--pro-intrafile/--pro";
       (* Now select the engine type *)
       if oss then Engine_type.OSS
       else
         let analysis =
-          match () with
-          | _ when pro_intrafile -> Engine_type.Deep_intrafile
-          | _ when pro -> Engine_type.Deep_interfile
-          | _ -> Engine_type.Intrafile
+          Engine_type.(
+            match () with
+            | _ when pro_intrafile -> Deep_intrafile
+            | _ when pro -> Deep_interfile
+            | _ when pro_lang -> OSS_intrafile
+            | _ -> OSS_intrafile)
         in
         let extra_languages = pro || pro_lang || pro_intrafile in
         let secrets_config =
