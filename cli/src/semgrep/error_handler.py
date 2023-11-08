@@ -42,7 +42,7 @@ class ErrorHandler:
     def pop_request(self) -> None:
         self.payload = {}
 
-    def capture_error(self, e: BaseException | None = None) -> None:
+    def capture_error(self, e: Optional[BaseException] = None) -> None:
         import traceback
 
         if sys.exc_info()[0] is not None:
