@@ -18,7 +18,7 @@
 ;;
 ;; This makes it so the DevEx is relatively painless, and we can just use the same code.
 (library
- (public_name lib_platform)
+ (public_name lwt_platform)
  (wrapped false)
   (libraries
     lwt

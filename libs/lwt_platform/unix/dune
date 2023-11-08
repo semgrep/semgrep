@@ -1,8 +1,8 @@
 (library
- (public_name lib_platform.unix)
- (name lib_platform_unix)
+ (public_name lwt_platform.unix)
+ (name lwt_platform_unix)
   (libraries
     lwt.unix
   )
- (implements lib_platform)
+ (implements lwt_platform)
 )

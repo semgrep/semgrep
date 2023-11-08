@@ -6,7 +6,7 @@
     process_limits
     lib_parsing
     aliengrep
-    lib_platform.unix
+    lwt_platform.unix
     cohttp-lwt-unix
 
     commons.tests

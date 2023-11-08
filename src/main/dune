@@ -3,7 +3,7 @@
  (libraries
     semgrep_core_cli
     osemgrep_cli
-    lib_platform.unix
+    lwt_platform.unix
     lib_parsing.unix
  )
  (preprocess (pps ppx_profiling))

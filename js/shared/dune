@@ -11,7 +11,7 @@
    semgrep.parsing
    semgrep.data
    semgrep.language_server
-   lib_platform.js
+   lwt_platform.js
  )
  (js_of_ocaml
   (javascript_files

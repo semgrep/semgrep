@@ -21,7 +21,7 @@
     notty
     notty.unix
 
-    lib_platform.unix
+    lwt_platform.unix
   )
  (preprocess
    (pps
