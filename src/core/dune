@@ -49,6 +49,12 @@
  )
 )
 
+; this is for rule_schema_v2_t.ml which contains multiple types
+; using the same field names
+(env
+  (_
+    (flags (:standard  -w -30))))
+
 ; '-j-defaults' below is for matching the behavior of atdpy so that we can get the
 ; same JSON output from pysemgrep and osemgrep. This is useful only for
 ; passing end-to-end tests where osemgrep is expected to produce the same
