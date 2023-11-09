@@ -141,7 +141,7 @@ local test_job = {
       name: 'Setup APT for xvfb',
       run: |||
           sudo apt-get update
-          sudo apt-get install libnss3
+          sudo apt-get install libatk-bridge2.0-0
       |||,
     },
     {
