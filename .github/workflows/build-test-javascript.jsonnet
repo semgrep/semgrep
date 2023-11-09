@@ -141,7 +141,7 @@ local test_job = {
       name: 'Setup APT for xvfb',
       run: |||
           sudo apt-get update
-          sudo apt-get install -y libatk-bridge2.0-0 libgtk-3-0
+          sudo apt-get install -y libatk-bridge2.0-0 libgtk-3-0 libgbm1
       |||,
     },
     {

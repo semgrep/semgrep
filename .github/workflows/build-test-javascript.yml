@@ -79,7 +79,7 @@ jobs:
       run: "\n          make -C js -j $(nproc) test\n      "
     - name: Setup APT for xvfb
       run: "\n          sudo apt-get update\n          sudo apt-get install -y libatk-bridge2.0-0
-        libgtk-3-0\n      "
+        libgtk-3-0 libgbm1\n      "
     - name: Test LSP.js
       uses: coactions/setup-xvfb@v1
       with:
