@@ -140,11 +140,6 @@ let parsing_rules_tests () =
      |> Common.map (fun file ->
             (Fpath.basename file, fun () -> Parse_rule.parse file |> ignore)))
 
-(* Note that ATD does error recovery on variant names it does not know
- * or field names it does not know, so parsing correctly those files below
- * does not mean the file matched exactly the spec.
- * TODO: is there a way to call ATD and ask to be stricter?
- *)
 let parsing_rules_with_atd_tests () =
   let dir = tests_path / "rules_v2" in
   let tests1 =
