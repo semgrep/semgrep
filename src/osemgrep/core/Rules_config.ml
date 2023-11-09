@@ -43,8 +43,6 @@ and registry_config_kind =
   | Pack of string
   (* s/... *)
   | Snippet of string
-  (* ex: 'pad:basic' *)
-  | SavedSnippet of string (* username *) * string (* snippetname *)
   (* pack shortcuts *)
   (* "p/default" *)
   | Auto
@@ -68,10 +66,6 @@ let parse_config_string ~in_docker (config_str : config_string) : t =
   | s when s =~ "^s/\\(.*\\)" -> R (Snippet (Common.matched1 s))
   (* TODO? could not find a Uri.is_url helper function *)
   | s when s =~ "^http[s]?://" -> URL (Uri.of_string s)
-  (* must be after the URL pattern above *)
-  | s when s =~ "^\\(.*\\):\\(.*\\)" ->
-      let user, snippet = Common.matched2 s in
-      R (SavedSnippet (user, snippet))
   (* TOPORT? handle inline rules "rules:..." see python: utils.is_rules() *)
   | dir when Sys.file_exists dir && Sys.is_directory dir -> Dir (Fpath.v dir)
   | file when Sys.file_exists file -> File (Fpath.v file)
