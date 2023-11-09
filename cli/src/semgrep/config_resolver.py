@@ -290,6 +290,8 @@ class ConfigLoader:
         )
 
     def _fetch_semgrep_cloud_platform_scan_config(self) -> ConfigFile:
+        state = get_state()
+
         products = [
             out.Product.from_json(PRODUCT_NAMES[p])
             for p in self._config_path.split(",")
@@ -299,7 +301,7 @@ class ConfigLoader:
             meta=out.RawJson({}),  # required for now, but we won't populate it
             scan_metadata=out.ScanMetadata(
                 cli_version=out.Version(__VERSION__),
-                unique_id=out.Uuid(str(uuid4())),
+                unique_id=out.Uuid(str(state.request_id)),
                 requested_products=products,
                 dry_run=True,  # semgrep scan never submits findings, so always a dry run
             ),
