@@ -138,8 +138,11 @@ local test_job = {
       |||
     },
     {
-      name: 'Update APT for xvfb',
-      run: 'sudo apt-get update',
+      name: 'Setup APT for xvfb',
+      run: |||
+          sudo apt-get update
+          sudo apt-get install libnss3
+      |||,
     },
     {
       name: 'Test LSP.js',
