@@ -1,2 +1,1 @@
 Removed support for named snippets (`org_name:rule_id`) from `semgrep scan` which were removed from semgrep.dev a few months ago.
-
