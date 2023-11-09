@@ -390,7 +390,7 @@ def scan_options(func: Callable) -> Callable:
     "run_secrets_flag",
     is_flag=True,
     hidden=True,
-    help="Contact support@semgrep.com for more informationon this.",
+    help="Contact support@semgrep.com for more information on this.",
 )
 @scan_options
 @handle_command_errors
@@ -454,6 +454,9 @@ def scan(
 
             version_check()
         return None
+    
+    if config and "secrets" in config:
+        run_secrets_flag = True
 
     # Handled error outside engine type for more actionable advice.
     if run_secrets_flag and requested_engine is EngineType.OSS:

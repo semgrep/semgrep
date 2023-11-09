@@ -32,7 +32,7 @@ from semgrep.util import with_feature_status
 ##############################################################################
 
 # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
-def _print_product_status(sast_enabled: bool = True, sca_enabled: bool = False) -> None:
+def _print_product_status(sast_enabled: bool = True, sca_enabled: bool = False, secrets_enabled: bool = False) -> None:
     """
     (Simple) print the statuses of enabled products to stdout when the user
     is given the product-focused CLI UX treatment.
@@ -64,6 +64,13 @@ def _print_product_status(sast_enabled: bool = True, sca_enabled: bool = False) 
             sca_enabled,
             [
                 "Find and fix the reachable vulnerabilities in your OSS dependencies.",
+            ],
+        ),
+        (
+            "Semgrep Secrets",
+            secrets_enabled,
+            [
+                "Find secrets in your code",
             ],
         ),
     ]
@@ -281,6 +288,7 @@ def print_scan_status(
     # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
     with_code_rules: bool = True,
     with_supply_chain: bool = False,
+    with_secrets: bool = False,
 ) -> List[Plan]:
     """
     Prints the scan status and returns the plans
@@ -364,6 +372,7 @@ def print_scan_status(
         _print_product_status(
             sast_enabled=with_code_rules,
             sca_enabled=with_supply_chain,
+            secrets_enabled=with_secrets,
         )
         return plans
 

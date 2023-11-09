@@ -124,6 +124,10 @@ class ConfigLoader:
             state.metrics.add_feature("config", "sca")
             self._config_path = url_for_supply_chain()
             self._supports_fallback_config = True
+        elif is_secrets(config_str):
+            state.metrics.add_feature("config", "secrets")
+            self._config_path = url_for_secrets()
+            self._supports_fallback_config = True
         elif is_registry_id(config_str):
             state.metrics.add_feature("config", f"registry:prefix-{config_str[0]}")
             self._config_path = registry_id_to_url(config_str)
@@ -825,9 +829,29 @@ def url_for_supply_chain() -> str:
     params_str = urlencode(params)
     return f"{env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{params_str}"
 
+def url_for_secrets() -> str:
+    env = get_state().env
+
+    # The app considers anything that will not POST back to it to be a dry_run
+    params = {
+        "is_secrets_scan": True,
+        "dry_run": True,
+        "full_scan": True,
+        "semgrep_version": __VERSION__,
+    }
+
+    if "SEMGREP_REPO_NAME" in os.environ:
+        params["repo_name"] = os.environ.get("SEMGREP_REPO_NAME")
+
+    params_str = urlencode(params)
+    return f"{env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{params_str}"
+
 
 def is_supply_chain(config_str: str) -> bool:
     return config_str == "supply-chain"
+
+def is_secrets(config_str: str) -> bool:
+    return config_str == "secrets"
 
 
 def saved_snippet_to_url(snippet_id: str) -> str:

@@ -192,6 +192,7 @@ def run_rules(
         cli_ux=cli_ux,
         with_code_rules=with_code_rules,
         with_supply_chain=with_supply_chain,
+        with_secrets=run_secrets,
     )
 
     join_rules, rest_of_the_rules = partition(
