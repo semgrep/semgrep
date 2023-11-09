@@ -65,6 +65,7 @@ type conf = {
   show : Show_CLI.conf option;
   validate : Validate_subcommand.conf option;
   test : Test_subcommand.conf option;
+  ls : bool;
 }
 [@@deriving show]
 
@@ -150,6 +151,7 @@ let default : conf =
     validate = None;
     test = None;
     nosem = true;
+    ls = false;
   }
 
 (*************************************************************************)
@@ -824,6 +826,23 @@ let o_registry_caching : bool Term.t =
 Requires --experimental.
 |}
 
+(*
+   Let's use the following convention: the prefix '--x-' means "forbidden"
+   or "experimental".
+*)
+let o_ls : bool Term.t =
+  let info =
+    Arg.info [ "x-ls" ]
+      ~doc:
+        {|[INTERNAL] List the selected target files and the skipped target
+files before any rule-specific or language-specific filtering. Then exit.
+The output format is unspecified.
+THIS OPTION IS NOT PART OF THE SEMGREP API AND MAY
+CHANGE OR DISAPPEAR WITHOUT NOTICE.
+|}
+  in
+  Arg.value (Arg.flag info)
+
 (*****************************************************************************)
 (* Turn argv into a conf *)
 (*****************************************************************************)
@@ -835,7 +854,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       common config dataflow_traces diff_depth dryrun dump_ast
       dump_command_for_core dump_engine_path emacs error exclude
       exclude_rule_ids force_color gitlab_sast gitlab_secrets include_ json
-      junit_xml lang matching_explanations max_chars_per_line
+      junit_xml lang ls matching_explanations max_chars_per_line
       max_lines_per_finding max_memory_mb max_target_bytes metrics num_jobs
       no_secrets_validation nosem optimizations oss output pattern pro
       project_root pro_intrafile pro_lang registry_caching replacement
@@ -1133,6 +1152,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       show;
       validate;
       test;
+      ls;
       nosem;
     }
   in
@@ -1145,16 +1165,16 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     $ o_diff_depth $ o_dryrun $ o_dump_ast $ o_dump_command_for_core
     $ o_dump_engine_path $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids
     $ o_force_color $ o_gitlab_sast $ o_gitlab_secrets $ o_include $ o_json
-    $ o_junit_xml $ o_lang $ o_matching_explanations $ o_max_chars_per_line
-    $ o_max_lines_per_finding $ o_max_memory_mb $ o_max_target_bytes $ o_metrics
-    $ o_num_jobs $ o_no_secrets_validation $ o_nosem $ o_optimizations $ o_oss
-    $ o_output $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile
-    $ o_pro_languages $ o_registry_caching $ o_replacement $ o_respect_gitignore
-    $ o_rewrite_rule_ids $ o_sarif $ o_scan_unknown_extensions $ o_secrets
-    $ o_severity $ o_show_supported_languages $ o_strict $ o_target_roots
-    $ o_test $ o_test_ignore_todo $ o_text $ o_time $ o_timeout
-    $ o_timeout_interfile $ o_timeout_threshold $ o_validate $ o_version
-    $ o_version_check $ o_vim)
+    $ o_junit_xml $ o_lang $ o_ls $ o_matching_explanations
+    $ o_max_chars_per_line $ o_max_lines_per_finding $ o_max_memory_mb
+    $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_no_secrets_validation
+    $ o_nosem $ o_optimizations $ o_oss $ o_output $ o_pattern $ o_pro
+    $ o_project_root $ o_pro_intrafile $ o_pro_languages $ o_registry_caching
+    $ o_replacement $ o_respect_gitignore $ o_rewrite_rule_ids $ o_sarif
+    $ o_scan_unknown_extensions $ o_secrets $ o_severity
+    $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
+    $ o_test_ignore_todo $ o_text $ o_time $ o_timeout $ o_timeout_interfile
+    $ o_timeout_threshold $ o_validate $ o_version $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
 
