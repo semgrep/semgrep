@@ -1,0 +1,15 @@
+{
+  "rules": [
+    {
+      "id": "test-interpolate-metavars",
+      "languages": ["python"],
+      "message": "Print content is $A",
+      "patterns": [
+        {
+          "pattern": "print($A)"
+        }
+      ],
+      "severity": "WARNING"
+    }
+  ]
+}
