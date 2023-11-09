@@ -1,0 +1,9 @@
+rules:
+- id: new-syntax
+  match:
+    all:
+      - user($USER) 
+      - anywhere: pass($PASS)
+  message: xxx
+  languages: [python]
+  severity: WARNING
