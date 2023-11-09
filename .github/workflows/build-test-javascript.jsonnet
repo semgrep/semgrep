@@ -160,7 +160,6 @@ local test_job = {
         tar cvzf semgrep-js-artifacts.tar.gz \
           js/engine/dist/index.cjs \
           js/engine/dist/index.mjs \
-          js/engine/dist/semgrep-engine.wasm \
           js/languages/*/dist/index.cjs \
           js/languages/*/dist/index.mjs \
           js/languages/*/dist/semgrep-parser.wasm
