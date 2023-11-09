@@ -132,10 +132,18 @@ local test_job = {
       |||
     },
     {
+      name: 'Update APT',
+      run: 'sudo apt-get update',
+    },
+    {
       name: 'Test JS artifacts',
-      run: |||
-          xvfb-run make -C js -j $(nproc) test
-      |||
+      uses: 'coactions/setup-xvfb@v1',
+      with: {
+        run: |||
+            make -C js -j $(nproc) test
+        |||
+
+      }
     },
     {
       name: 'Package JS artifacts',
