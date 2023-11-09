@@ -1,11 +1,4 @@
 
-
-ESBUILD_DEFAULTS = \
-	--bundle \
-	--minify \
-	--platform=node \
-	--log-override:duplicate-case=silent
-
 .PHONY: default
 default: build
 

@@ -10,6 +10,7 @@
   semgrep.language_server
   semgrep.semgrep_js_shared
   semgrep.semgrep_node_js_shared
+  semgrep.parsing_languages
   lwt_platform.js
 
    networking.http_helpers
@@ -19,6 +20,15 @@
  (js_of_ocaml
   (javascript_files
    XMLHttpRequest.js
+   semgrep.js
  ))
  (preprocess
   (pps lwt_ppx js_of_ocaml-ppx)))
+
+; TODO: make this nicer
+(rule
+ (targets semgrep.js)
+ (action
+  (with-stdout-to
+   %{targets}
+   (run ../languages/shared/generate-semgrep-js.sh bash c cairo cpp c_sharp dart dockerfile elixir go hack html java json jsonnet julia kotlin lisp lua ocaml php promql proto python r ruby rust scala solidity swift terraform typescript vue tsx hcl clojure))))
