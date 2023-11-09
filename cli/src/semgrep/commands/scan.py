@@ -454,6 +454,11 @@ def scan(
 
             version_check()
         return None
+    
+    if config and "secrets" in config:
+        # If the user has specified --config secrets, we should enable secrets
+        # so the engine is properly chosen.
+        run_secrets_flag = True
 
     # Handled error outside engine type for more actionable advice.
     if run_secrets_flag and requested_engine is EngineType.OSS:
