@@ -88,7 +88,7 @@ class ConfigFile(NamedTuple):
 
 class ConfigType(Enum):
     REGISTRY = auto()
-    SEMGREP_CLOUD_PLATFORM = auto()
+    SEMGREP_CLOUD_PLATFORM = auto() 
     LOCAL = auto()
 
 
@@ -290,6 +290,9 @@ class ConfigLoader:
         )
 
     def _fetch_semgrep_cloud_platform_scan_config(self) -> ConfigFile:
+        """
+        Download a configuration from semgrep.dev using new /api/cli/scans endpoint
+        """
         state = get_state()
 
         products = [
@@ -307,6 +310,7 @@ class ConfigLoader:
             ),
             project_metadata=self._project_metadata_for_standalone_scan(),
         )
+
         return self._download_semgrep_cloud_platform_scan_config(request)
 
     def _download_semgrep_cloud_platform_scan_config(
