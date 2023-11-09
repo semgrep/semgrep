@@ -17,6 +17,7 @@ from typing import Tuple
 from urllib.parse import urlencode
 from urllib.parse import urlparse
 from urllib.parse import urlsplit
+from uuid import uuid4
 
 import requests
 import ruamel.yaml
@@ -35,6 +36,7 @@ from semgrep.constants import ID_KEY
 from semgrep.constants import MISSED_KEY
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RULES_KEY
+from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
@@ -86,6 +88,7 @@ class ConfigFile(NamedTuple):
 
 class ConfigType(Enum):
     REGISTRY = auto()
+    SEMGREP_CLOUD_PLATFORM = auto()
     LOCAL = auto()
 
 
@@ -115,6 +118,9 @@ class ConfigLoader:
             self._config_path = "https://semgrep.dev/c/p/r2c"
         elif is_url(config_str):
             state.metrics.add_feature("config", "url")
+            self._config_path = config_str
+        elif is_product_names(config_str):
+            self._origin = ConfigType.SEMGREP_CLOUD_PLATFORM
             self._config_path = config_str
         elif is_policy_id(config_str):
             state.metrics.add_feature("config", "policy")
@@ -156,6 +162,8 @@ class ConfigLoader:
         """
         if self._origin == ConfigType.REGISTRY:
             return [self._download_config()]
+        elif self._origin == ConfigType.SEMGREP_CLOUD_PLATFORM:
+            return [self._fetch_semgrep_cloud_platform_scan_config()]
         else:
             return self._load_config_from_local_path()
 
@@ -252,6 +260,89 @@ class ConfigLoader:
 
     def is_registry_url(self) -> bool:
         return self._origin == ConfigType.REGISTRY
+
+    def _project_metadata_for_standalone_scan(self) -> out.ProjectMetadata:
+        repo_name = os.environ.get("SEMGREP_REPO_NAME")
+        if repo_name is None:
+            raise SemgrepError(
+                f"Need to set env var SEMGREP_REPO_NAME to use `--config {self._config_path}`"
+            )
+
+        return out.ProjectMetadata(
+            semgrep_version=out.Version(__VERSION__),
+            scan_environment="semgrep-scan",
+            repository=repo_name,
+            repo_url=None,
+            branch=None,
+            commit=None,
+            commit_title=None,
+            commit_author_email=None,
+            commit_author_name=None,
+            commit_author_username=None,
+            commit_author_image_url=None,
+            ci_job_url=None,
+            on="unknown",
+            pull_request_author_username=None,
+            pull_request_author_image_url=None,
+            pull_request_id=None,
+            pull_request_title=None,
+            is_full_scan=True,  # always true for standalone scan
+        )
+
+    def _fetch_semgrep_cloud_platform_scan_config(self) -> ConfigFile:
+        products = [
+            out.Product.from_json(PRODUCT_NAMES[p])
+            for p in self._config_path.split(",")
+        ]
+
+        request = out.ScanRequest(
+            meta=out.RawJson({}),  # required for now, but we won't populate it
+            scan_metadata=out.ScanMetadata(
+                cli_version=out.Version(__VERSION__),
+                unique_id=out.Uuid(str(uuid4())),
+                requested_products=products,
+                dry_run=True,  # semgrep scan never submits findings, so always a dry run
+            ),
+            project_metadata=self._project_metadata_for_standalone_scan(),
+        )
+        return self._download_semgrep_cloud_platform_scan_config(request)
+
+    def _download_semgrep_cloud_platform_scan_config(
+        self, request: out.ScanRequest
+    ) -> ConfigFile:
+        state = get_state()
+        url = f"{state.env.semgrep_url}/api/cli/scans"
+        logger.debug("Downloading config from %s", url)
+        error = f"Failed to download configuration from {url}"
+        try:
+            response = state.app_session.post(
+                f"{state.env.semgrep_url}/api/cli/scans",
+                json=request.to_json(),
+            )
+
+            if response.status_code == requests.codes.unauthorized:
+                raise SemgrepError(
+                    "Invalid API Key. Run `semgrep logout` and `semgrep login` again.",
+                    code=INVALID_API_KEY_EXIT_CODE,
+                )
+
+            try:
+                response.raise_for_status()
+            except requests.RequestException:
+                raise Exception(
+                    f"API server at {state.env.semgrep_url} returned this error: {response.text}"
+                )
+
+            scan_response = out.ScanResponse.from_json(response.json())
+            return ConfigFile(None, scan_response.config.rules.to_json_string(), url)
+
+        except requests.exceptions.RetryError as ex:
+            error += f" Failed after multiple attempts ({ex.args[0].reason})"
+
+            logger.debug(
+                error
+            )  # since the raised exception may be caught and suppressed
+            raise SemgrepError(error)
 
 
 def read_config_at_path(loc: Path, base_path: Optional[Path] = None) -> ConfigFile:
@@ -803,6 +894,19 @@ def url_for_policy() -> str:
     }
     params_str = urlencode(params)
     return f"{env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{params_str}"
+
+
+PRODUCT_NAMES = {
+    "code": "sast",
+    "secrets": "secrets",
+    "supply-chain": "sca",
+}
+
+
+def is_product_names(config_str: str) -> bool:
+    allowed = set(PRODUCT_NAMES.keys())
+    names = set(config_str.split(","))
+    return names <= allowed
 
 
 def is_policy_id(config_str: str) -> bool:
