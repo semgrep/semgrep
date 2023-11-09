@@ -121,7 +121,9 @@ def exec_pysemgrep():
 # we can always tell users to run pysemgrep instead of semgrep and be sure
 # they'll get the old behavior.
 def exec_osemgrep():
-    if "--pro" in sys.argv:
+    argv = sys.argv
+    if ("--pro" in argv or
+        "--beta-testing-secrets-enabled" in argv):
         try:
             path = find_semgrep_core_path(pro=True,
                                       extra_message="\nYou may need to run `semgrep install-semgrep-pro`"    )

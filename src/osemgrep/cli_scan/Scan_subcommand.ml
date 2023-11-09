@@ -322,7 +322,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
                   in
                   let baseline_targets, baseline_diff_targets =
                     match conf.engine_type with
-                    | PRO Interfile ->
+                    | PRO Engine_type.{ analysis = Interprocedural; _ } ->
                         let all_in_baseline, _ =
                           Find_targets.get_targets conf.targeting_conf
                             conf.target_roots
@@ -436,7 +436,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
               status.added @ status.modified |> Common.map Fpath.v
             in
             match conf.engine_type with
-            | PRO Interfile ->
+            | PRO Engine_type.{ analysis = Interfile; _ } ->
                 Metrics_.g.payload.value.proFeatures <-
                   Some { diffDepth = Some diff_depth };
                 (targets, added_or_modified)
