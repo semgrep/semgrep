@@ -22,6 +22,11 @@ open File.Operators
  * instead of Parse_rule.ml or even rule_schema_v1.yaml
  *
  * See the comment in rule_schema_v2.atd for more info.
+ *
+ * Note that ATD by default does error recovery on variant names it does not
+ * know or field names it does not know. However, for schema validation we
+ * actually want to raise errors, hence the use of -j-strict-fields in
+ * src/core/dune when compiling rule_schema_v2.atd.
  *)
 
 (*****************************************************************************)
