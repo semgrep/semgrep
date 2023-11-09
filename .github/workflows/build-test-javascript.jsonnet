@@ -132,15 +132,21 @@ local test_job = {
       |||
     },
     {
-      name: 'Update APT',
+      name: 'Test JS artifacts',
+      run: |||
+          make -C js -j $(nproc) test
+      |||
+    },
+    {
+      name: 'Update APT for xvfb',
       run: 'sudo apt-get update',
     },
     {
-      name: 'Test JS artifacts',
+      name: 'Test LSP.js',
       uses: 'coactions/setup-xvfb@v1',
       with: {
         run: |||
-            make -C js -j $(nproc) test
+            make -C js/language_server test
         |||
 
       }

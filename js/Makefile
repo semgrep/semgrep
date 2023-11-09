@@ -15,7 +15,6 @@ test:
 	cd engine; $(MAKE) test
 	cd languages; $(MAKE) test
 	cd tests; $(MAKE)
-	cd language_server; $(MAKE) test
 
 .PHONY: e2e
 e2e: engine languages
