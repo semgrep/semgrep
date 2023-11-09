@@ -1,0 +1,11 @@
+rules:
+- id: rule_template_id
+  languages:
+  - python
+  match:
+    all:
+    - foo($ARG)
+    where:
+    - comparison: $ARG > 10
+  message: rule_template_message
+  severity: ERROR

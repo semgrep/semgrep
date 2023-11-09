@@ -3,8 +3,7 @@ rules:
     languages:
       - python 
     message: Found insecure crypto usage
-    #TODO: we should remove this field
-    mode: taint
+    # note that we don't need mode: taint anymore also
     taint:
       sources:
         - "tainted1" 
