@@ -194,18 +194,19 @@ let print_regression_information ~ext xs newscore =
   in
   (* nosemgrep *)
   let score_path = (* Config_pfff.regression_data_dir *) "/tmp/pfff" in
-  dirname_opt
-  |> Option.iter (fun dirname ->
-         pr2 "------------------------------";
-         pr2 "regression testing information";
-         pr2 "------------------------------";
-         let str = Str.global_replace (Str.regexp "/") "__" dirname in
-         let file =
-           Filename.concat score_path
-             ("score_parsing__" ^ str ^ ext ^ ".marshalled")
-         in
-         logger#debug "saving regression info in %s" file;
-         Common2.regression_testing newscore file);
+  if Sys.file_exists score_path then
+    dirname_opt
+    |> Option.iter (fun dirname ->
+           pr2 "------------------------------";
+           pr2 "regression testing information";
+           pr2 "------------------------------";
+           let str = Str.global_replace (Str.regexp "/") "__" dirname in
+           let file =
+             Filename.concat score_path
+               ("score_parsing__" ^ str ^ ext ^ ".marshalled")
+           in
+           logger#debug "saving regression info in %s" file;
+           Common2.regression_testing newscore file);
   ()
 
 (*****************************************************************************)
