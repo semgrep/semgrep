@@ -83,3 +83,31 @@ def test_fallback_config_works(mocker, tmp_path):
         in patched_fallback_download.call_args_list[0].args[0]
     )
     assert "loaded 1 configs" in result.stdout
+
+
+@pytest.mark.quick
+@pytest.mark.osemfail
+def test_cloud_platform_scan_config(mocker, tmp_path):
+    config_file = ConfigFile(
+        None,
+        "rules: []",
+        "https://semgrep.dev/p/ci",
+    )
+
+    patched_download = mocker.patch.object(
+        ConfigLoader,
+        "_download_semgrep_cloud_platform_scan_config",
+        return_value=config_file,
+    )
+
+    runner = SemgrepRunner(
+        env={
+            "SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml"),
+            "SEMGREP_APP_TOKEN": "",
+        },
+        use_click_runner=True,
+    )
+    result = runner.invoke(cli, ["scan", "--debug", "--config", "supply-chain"])
+
+    assert isinstance(patched_download.call_args_list[0].args[0], out.ScanRequest)
+    assert "loaded 1 configs" in result.stdout
