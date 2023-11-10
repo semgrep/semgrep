@@ -269,3 +269,25 @@ let full_pos_info_str (s : string) : pos_info =
   full_charpos_to_pos_aux ();
   pos_info_of_arrays arr1 arr2
 [@@profiling]
+
+(*****************************************************************************)
+(* unit tests *)
+(*****************************************************************************)
+
+let s = {|a
+hi
+|}
+
+let pos_info = full_pos_info_str s
+
+let equate_positions bytepos linecol =
+  pos_info.bytepos_to_linecol_fun bytepos =*= linecol
+  && pos_info.linecol_to_bytepos_fun linecol =*= bytepos
+
+let%test _ = equate_positions 0 (1, 0)
+
+(* newline character is counted as being on the same line *)
+let%test _ = equate_positions 1 (1, 1)
+let%test _ = equate_positions 2 (2, 0)
+let%test _ = equate_positions 3 (2, 1)
+let%test _ = equate_positions 4 (2, 2)
