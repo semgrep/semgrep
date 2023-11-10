@@ -69,6 +69,35 @@ let ( =*= ) = ( = )
 let ( = ) = String.equal
 
 (*****************************************************************************)
+(* Comparison *)
+(*****************************************************************************)
+
+type order = Less | Equal | Greater
+
+let binary_search ~f arr =
+  let arr_lo = 0 in
+  let arr_hi = Array.length arr in
+
+  let rec aux lo hi =
+    (* Must be (0, 0) or (arrlen, arrlen) *)
+    if Int.equal lo hi then Error lo
+    else
+      let mid = lo + (hi / 2) in
+      match f arr.(mid) with
+      | Equal -> Ok (mid, arr.(mid))
+      | Less -> aux lo (mid - 1)
+      | Greater -> aux (mid + 1) hi
+  in
+  aux arr_lo arr_hi
+
+let to_comparison f x y =
+  let res = f x y in
+  if res < 0 then Less else if res > 0 then Greater else Equal
+
+let%test _ =
+  binary_search ~f:(to_comparison Int.compare 2) [| 1; 2; 3; 4 |] =*= Ok (1, 2)
+
+(*****************************************************************************)
 (* Debugging/logging *)
 (*****************************************************************************)
 
