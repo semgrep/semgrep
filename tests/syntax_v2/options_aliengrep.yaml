@@ -1,0 +1,9 @@
+rules:
+  - id: begin-end
+    severity: WARNING
+    languages: [generic]
+    options:
+      generic_engine: aliengrep
+      generic_multiline: false
+    message: "found something"
+    match: "begin ... end"

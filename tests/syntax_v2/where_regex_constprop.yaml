@@ -1,0 +1,13 @@
+rules:
+  - id: use-absolute-workdir
+    match:
+      pattern: WORKDIR $DIR
+      where:
+        - metavariable: $DIR
+          regex: (^(?!-)[a-z0-9-]+(?<!-)(/(?!-)[a-z0-9-]+(?<!-))*$)
+          constant-propagation: true
+    message: foobar
+    severity: WARNING
+    languages:
+      - dockerfile
+    fix: WORKDIR /$WORD

@@ -1,0 +1,18 @@
+rules:
+  - id: arg-reassign
+    match:
+      any:
+      - pattern: $X = 1
+      - pattern: $X = 2
+    message: "$X is being assigned to one or two"
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: security
+      confidence: HIGH
+      publish-date: 2022-07-06 00:00:30+00:00
+      sca-kind: reachable
+      sca-schema: 20220815
+      sca-severity: HIGH
+      technology:
+      - python
