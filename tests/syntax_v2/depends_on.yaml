@@ -1,0 +1,10 @@
+rules:
+  - id: js-sca
+    match: bad()
+    r2c-internal-project-depends-on:
+      namespace: npm
+      package: bad-lib
+      version: < 0.0.8
+    message: oh no
+    languages: [js]
+    severity: WARNING
