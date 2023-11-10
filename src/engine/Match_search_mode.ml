@@ -754,8 +754,6 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
       let posrs, posrs_expls =
         Common.map (evaluate_formula env opt_context) pos |> Common2.unzip
       in
-
-      Common.(pr2 (spf "positives: %s" ([%show: RM.ranges list] posrs)));
       (* subtle: we need to process and intersect the pattern-inside after
        * (see tests/rules/inside.yaml).
        * TODO: this is ugly; AND should be commutative, so we should just
@@ -799,8 +797,6 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
             |> List.fold_left
                  (fun (ranges, acc_expls) (tok, x) ->
                    let ranges_neg, expl = evaluate_formula env opt_context x in
-                   Common.(
-                     pr2 (spf "neg range: %s" ([%show: RM.ranges] ranges_neg)));
                    let ranges =
                      RM.difference_ranges env.xconf.config ranges ranges_neg
                    in

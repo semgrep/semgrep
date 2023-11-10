@@ -269,21 +269,3 @@ let full_pos_info_str (s : string) : pos_info =
   full_charpos_to_pos_aux ();
   pos_info_of_arrays arr1 arr2
 [@@profiling]
-
-(* let full_pos_to_bytepos_large (file : Fpath.t) =
-   let lines =
-     let lines = Common2.cat (Fpath.to_string file) in
-     lines
-     |> List.fold_left (fun (acc, bytepos) s ->
-       ((bytepos, s) :: acc, bytepos + String.length s)
-     ) ([], 0)
-     |> fst
-     |> List.rev
-     |> Array.of_list
-   in
-   let binary_search find_fn lo hi i =
-     let mid = lo + hi / 2 in
-     Array.
-   in
-   fun bytepos -> search bytepos
-*)
