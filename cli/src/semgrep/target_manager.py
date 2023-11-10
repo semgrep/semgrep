@@ -711,7 +711,10 @@ class TargetManager:
 
     @lru_cache(maxsize=None)
     def get_files_for_language(
-        self, lang: Union[Language, Ecosystem], product: out.Product, ignore_baseline_handler: bool = False
+        self,
+        lang: Union[Language, Ecosystem],
+        product: out.Product,
+        ignore_baseline_handler: bool = False,
     ) -> FilteredFiles:
         """
         Return all files that are decendants of any directory in TARGET that have
@@ -804,14 +807,19 @@ class TargetManager:
 
     @lru_cache(maxsize=None)
     def get_lockfiles(
-        self, ecosystem: Ecosystem, product: out.Product = SCA_PRODUCT, ignore_baseline_hander: bool = False
+        self,
+        ecosystem: Ecosystem,
+        product: out.Product = SCA_PRODUCT,
+        ignore_baseline_hander: bool = False,
     ) -> FrozenSet[Path]:
         """
         Return set of paths to lockfiles for a given ecosystem
 
         Respects semgrepignore/exclude flag
         """
-        return self.get_files_for_language(ecosystem, product, ignore_baseline_hander).kept
+        return self.get_files_for_language(
+            ecosystem, product, ignore_baseline_hander
+        ).kept
 
     def find_single_lockfile(self, p: Path, ecosystem: Ecosystem) -> Optional[Path]:
         """
