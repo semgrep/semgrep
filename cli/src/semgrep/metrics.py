@@ -164,6 +164,13 @@ class Metrics:
         self.payload.value.engineRequested = engineType.name
 
     @suppress_errors
+    def add_requested_interfile_languages(self, requested_langs: List[str]) -> None:
+        """
+        Assumes configs is list of arguments passed to semgrep using --config
+        """
+        self.payload.value.requestedInterfileLanguages = requested_langs
+
+    @suppress_errors
     def add_diff_depth(self, diff_depth: int) -> None:
         if not self.payload.value.proFeatures:
             self.payload.value.proFeatures = ProFeatures()
