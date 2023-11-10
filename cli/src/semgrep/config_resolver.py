@@ -87,7 +87,7 @@ class ConfigFile(NamedTuple):
 
 class ConfigType(Enum):
     REGISTRY = auto()
-    SEMGREP_CLOUD_PLATFORM = auto() 
+    SEMGREP_CLOUD_PLATFORM = auto()
     LOCAL = auto()
 
 
@@ -317,7 +317,7 @@ class ConfigLoader:
                 except Exception:
                     pass
 
-            raise # error from first fetch
+            raise  # error from first fetch
 
     def _download_semgrep_cloud_platform_scan_config(
         self, request: out.ScanRequest
@@ -356,10 +356,10 @@ class ConfigLoader:
             )  # since the raised exception may be caught and suppressed
 
             raise SemgrepError(error)
-        
+
     def _download_semgrep_cloud_platform_fallback_scan_config(self) -> ConfigFile:
         """
-        This function decides what fallback url to call if the semgrep cloud platform 
+        This function decides what fallback url to call if the semgrep cloud platform
         scan config endpoint fails
 
         ! This will manually rebuild the url until we have a better solution
@@ -373,7 +373,7 @@ class ConfigLoader:
         elif self._config_path == "policy":
             fallback_url = url_for_policy()
         else:
-            raise 
+            raise
 
         fallback_url = re.sub(
             r"^[^?]*",  # replace everything but query params
@@ -382,7 +382,6 @@ class ConfigLoader:
         )
 
         return self._download_config_from_url(fallback_url)
-
 
 
 def read_config_at_path(loc: Path, base_path: Optional[Path] = None) -> ConfigFile:
@@ -679,7 +678,7 @@ class Config:
                 else:
                     if (
                         isinstance(rule.product.value, out.Secrets)
-                        # In some instances we might append config_id with `_{i}` where 
+                        # In some instances we might append config_id with `_{i}` where
                         # i is an integer
                         and not config_id.startswith(REGISTRY_CONFIG_ID)
                         and not config_id.startswith(CLOUD_PLATFORM_CONFIG_ID)
@@ -956,6 +955,7 @@ def is_product_names(config_str: str) -> bool:
     names = set(config_str.split(","))
     return names <= allowed
 
+
 def add_metrics_for_products(config_str: str) -> None:
     state = get_state()
     for product_name in config_str.split(","):
@@ -982,6 +982,7 @@ def url_for_supply_chain() -> str:
     params_str = urlencode(params)
     return f"{env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{params_str}"
 
+
 def url_for_secrets() -> str:
     env = get_state().env
 
@@ -1001,6 +1002,7 @@ def url_for_secrets() -> str:
 
 def is_supply_chain(config_str: str) -> bool:
     return config_str == "supply-chain"
+
 
 def is_secrets(config_str: str) -> bool:
     return config_str == "secrets"

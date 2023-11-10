@@ -1,10 +1,15 @@
 from uuid import uuid4
+
 import pytest
 import requests
-from semgrep.config_resolver import PRODUCT_NAMES, ConfigFile, ConfigLoader, ConfigType
-from semgrep.error import SemgrepError
+
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
+from semgrep.config_resolver import ConfigFile
+from semgrep.config_resolver import ConfigLoader
+from semgrep.config_resolver import ConfigType
+from semgrep.config_resolver import PRODUCT_NAMES
+from semgrep.error import SemgrepError
 from semgrep.state import SemgrepState
 
 FAKE_USER_AGENT = "user-agent"
