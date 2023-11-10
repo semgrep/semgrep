@@ -122,9 +122,14 @@ class ConfigLoader:
         elif is_product_names(config_str):
             self._origin = ConfigType.SEMGREP_CLOUD_PLATFORM
             self._config_path = config_str
+            self._supports_fallback_config = True
         elif is_policy_id(config_str):
             state.metrics.add_feature("config", "policy")
             self._config_path = url_for_policy()
+            self._supports_fallback_config = True
+        elif is_secrets(config_str):
+            state.metrics.add_feature("config", "secrets")
+            self._config_path = url_for_secrets()
             self._supports_fallback_config = True
         elif is_supply_chain(config_str):
             state.metrics.add_feature("config", "sca")
@@ -343,12 +348,44 @@ class ConfigLoader:
             return ConfigFile(None, scan_response.config.rules.to_json_string(), url)
 
         except requests.exceptions.RetryError as ex:
+            if self._supports_fallback_config:
+                try:
+                    return self._download_semgrep_cloud_platform_fallback_scan_config()
+                except Exception:
+                    pass
+
             error += f" Failed after multiple attempts ({ex.args[0].reason})"
 
             logger.debug(
                 error
             )  # since the raised exception may be caught and suppressed
             raise SemgrepError(error)
+        
+    def _download_semgrep_cloud_platform_fallback_scan_config(self) -> ConfigFile:
+        """
+        This function decides what fallback url to call if the semgrep rloud platform scan config endpoint fails
+
+        ! This will manually rebuild the url until we have a better solution
+        """
+        fallback_url = None
+
+        if self._config_path == "supply-chain":
+            fallback_url = url_for_supply_chain()
+        elif self._config_path == "secrets":
+            fallback_url = url_for_secrets()
+        elif self._config_path == "policy":
+            fallback_url = url_for_policy()
+        else:
+            raise 
+
+        fallback_url = re.sub(
+            r"^[^?]*",  # replace everything but query params
+            f"{get_state().env.fail_open_url}/config",
+            fallback_url,
+        )
+
+        return self._download_config_from_url(fallback_url)
+
 
 
 def read_config_at_path(loc: Path, base_path: Optional[Path] = None) -> ConfigFile:
@@ -932,6 +969,22 @@ def url_for_supply_chain() -> str:
     # The app considers anything that will not POST back to it to be a dry_run
     params = {
         "sca": True,
+        "dry_run": True,
+        "full_scan": True,
+        "semgrep_version": __VERSION__,
+    }
+    if "SEMGREP_REPO_NAME" in os.environ:
+        params["repo_name"] = os.environ.get("SEMGREP_REPO_NAME")
+
+    params_str = urlencode(params)
+    return f"{env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{params_str}"
+
+def url_for_secrets() -> str:
+    env = get_state().env
+
+    # The app considers anything that will not POST back to it to be a dry_run
+    params = {
+        "is_secrets_scan": True,
         "dry_run": True,
         "full_scan": True,
         "semgrep_version": __VERSION__,
