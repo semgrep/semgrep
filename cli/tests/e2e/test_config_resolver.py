@@ -59,7 +59,7 @@ def test_fallback_config_works(mocker, tmp_path):
         "_download_semgrep_cloud_platform_scan_config",
         side_effect=[
             SemgrepError(
-                f"Failed to download configuration. HTTP 500 when fetching URL"
+                "Failed to download configuration. HTTP 500 when fetching URL"
             ),
         ],
     )
