@@ -71,13 +71,14 @@
  (deps    semgrep_output_v1.atd)
  (action  (run atdgen -t %{deps})))
 
-; derive show automatically, note the use of -j-strict-fields here!
+; note the use of -j-strict-fields here!
 (rule
  (targets rule_schema_v2_j.ml rule_schema_v2_j.mli)
  (deps    rule_schema_v2.atd)
  (action  (run atdgen -j -j-std -j-defaults -j-strict-fields %{deps})))
 
+; derive show for the type defs
 (rule
  (targets rule_schema_v2_t.ml rule_schema_v2_t.mli)
  (deps    rule_schema_v2.atd)
- (action  (run atdgen -deriving-conv show -t %{deps})))
+ (action  (run atdgen -deriving-conv "show{with_path=false}" -t %{deps})))
