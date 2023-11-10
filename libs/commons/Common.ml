@@ -93,7 +93,6 @@ let create_binary_search (searchable : ('elt, 'container) binary_searchable) =
     let arr_hi = searchable.length arr in
 
     let rec aux lo hi =
-      (* Must be (0, 0) or (arrlen, arrlen) *)
       if Int.equal lo hi then Error lo
       else
         let mid = (lo + hi) / 2 in
@@ -118,7 +117,7 @@ let to_comparison f x y =
   let res = f x y in
   if res < 0 then Less else if res > 0 then Greater else Equal
 
-let cmp _i x = to_comparison Int.compare x
+let cmp target _i x = to_comparison Int.compare target x
 let%test _ = binary_search_arr ~f:(cmp 1) [| 1; 2; 4; 5 |] =*= Ok (0, 1)
 let%test _ = binary_search_arr ~f:(cmp 2) [| 1; 2; 4; 5 |] =*= Ok (1, 2)
 let%test _ = binary_search_arr ~f:(cmp 5) [| 1; 2; 4; 5 |] =*= Ok (3, 5)
