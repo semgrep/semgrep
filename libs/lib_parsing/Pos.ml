@@ -90,7 +90,10 @@ let string_of_pos { file; line; column; _ } = spf "%s:%d:%d" file line column
 (*****************************************************************************)
 
 (* conversion table, in the shape of a function *)
-type bytepos_to_linecol_fun = int -> int * int
+type pos_info = {
+  bytepos_to_linecol_fun : int -> int * int;
+  linecol_to_bytepos_fun : int * int -> int;
+}
 
 (* Lexing.ml in the standard OCaml libray does not handle
  * the line number position.
@@ -106,32 +109,62 @@ type bytepos_to_linecol_fun = int -> int * int
  *   - in each lexer you need to take care of newlines and update manually
  *     the field.
  *)
-let complete_position filename table (x : t) =
+let complete_position filename pos_info (x : t) =
   {
     x with
     file = filename;
-    line = fst (table x.bytepos);
-    column = snd (table x.bytepos);
+    line = fst (pos_info.bytepos_to_linecol_fun x.bytepos);
+    column = snd (pos_info.bytepos_to_linecol_fun x.bytepos);
   }
 
 (*
    line_arr maps byte position to line.
    col_arr maps byte position to column.
 *)
-let safe_linecol_of_arrays line_arr col_arr : bytepos_to_linecol_fun =
+let pos_info_of_arrays ?(file = "<unknown>") line_arr col_arr : pos_info =
   let len1 = Bigarray.Array1.dim line_arr in
   let len2 = Bigarray.Array1.dim col_arr in
   (* len1 and len2 should be equal but we're playing it safe *)
   let len = min len1 len2 in
   match len with
-  | 0 -> fun _i -> (1, 0)
+  | 0 ->
+      {
+        bytepos_to_linecol_fun = (fun _i -> (1, 0));
+        linecol_to_bytepos_fun = (fun _ -> 0);
+      }
   | _ ->
-      fun i ->
-        let i = max 0 (min i (len - 1)) in
-        (line_arr.{i}, col_arr.{i})
+      {
+        bytepos_to_linecol_fun =
+          (fun i ->
+            let i = max 0 (min i (len - 1)) in
+            (line_arr.{i}, col_arr.{i}));
+        linecol_to_bytepos_fun =
+          (let cmp = Common.to_comparison Int.compare in
+           (* This is the line/col we're trying to find the pos of.
+           *)
+           fun (line, col) ->
+             let res =
+               line_arr
+               |> Common.binary_search_bigarr1 ~f:(fun bytepos line' ->
+                      let col' = col_arr.{bytepos} in
+                      (* We want the relationship of the varying line' with respect to the
+                         line we are trying to search for.
+                         For instance, if we want to find line 5, but are given line 3, we
+                         should want to say Greater, because we want to go greater.
+                      *)
+                      match cmp line line' with
+                      | Equal -> cmp col col'
+                      | Less -> Less
+                      | Greater -> Greater)
+             in
+             match res with
+             | Error _idx ->
+                 failwith
+                   (Common.spf "invalid linecol %d:%d in file %s" line col file)
+             | Ok (bytepos, _) -> bytepos);
+      }
 
-let full_charpos_to_pos_large (file : Common.filename) : bytepos_to_linecol_fun
-    =
+let full_pos_info_large (file : Common.filename) : pos_info =
   let chan = open_in_bin file in
   let size = Common2.filesize file + 2 in
 
@@ -187,12 +220,12 @@ let full_charpos_to_pos_large (file : Common.filename) : bytepos_to_linecol_fun
   in
   full_charpos_to_pos_aux ();
   close_in chan;
-  safe_linecol_of_arrays arr1 arr2
+  pos_info_of_arrays ~file arr1 arr2
 [@@profiling]
 
 (* This is mostly a copy-paste of full_charpos_to_pos_large,
    but using a string for a target instead of a file. *)
-let full_charpos_to_pos_str (s : string) : bytepos_to_linecol_fun =
+let full_pos_info_str (s : string) : pos_info =
   let size = String.length s + 2 in
 
   (* old: let arr = Array.create size  (0,0) in *)
@@ -234,5 +267,23 @@ let full_charpos_to_pos_str (s : string) : bytepos_to_linecol_fun =
       str_lines
   in
   full_charpos_to_pos_aux ();
-  safe_linecol_of_arrays arr1 arr2
+  pos_info_of_arrays arr1 arr2
 [@@profiling]
+
+(* let full_pos_to_bytepos_large (file : Fpath.t) =
+   let lines =
+     let lines = Common2.cat (Fpath.to_string file) in
+     lines
+     |> List.fold_left (fun (acc, bytepos) s ->
+       ((bytepos, s) :: acc, bytepos + String.length s)
+     ) ([], 0)
+     |> fst
+     |> List.rev
+     |> Array.of_list
+   in
+   let binary_search find_fn lo hi i =
+     let mid = lo + hi / 2 in
+     Array.
+   in
+   fun bytepos -> search bytepos
+*)

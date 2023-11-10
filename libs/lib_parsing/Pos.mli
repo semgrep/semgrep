@@ -36,13 +36,19 @@ val string_of_pos : t -> string
 
 (*
    Return (line, column) from a byte position.
+   Also return byte position from a (line, column).
 
    If the byte position is out of range, the functions of this type return
    the nearest valid position which is either the first or the last position
    in the range.
    Empty files admit at least one valid byte position.
+
+   If the (line, column) is out of range, an exception will be raised.
 *)
-type bytepos_to_linecol_fun = int -> int * int
+type pos_info = {
+  bytepos_to_linecol_fun : int -> int * int;
+  linecol_to_bytepos_fun : int * int -> int;
+}
 
 (* Can we deprecate those full_charpos_xxx? use
  * Parsing_helpers.tokenize_all_and_adjust_pos()?
@@ -50,10 +56,10 @@ type bytepos_to_linecol_fun = int -> int * int
  *)
 
 (* f(i) will contain the (line x col) of the i char position *)
-val full_charpos_to_pos_large : Common.filename -> bytepos_to_linecol_fun
-val full_charpos_to_pos_str : string -> bytepos_to_linecol_fun
+val full_pos_info_large : Common.filename -> pos_info
+val full_pos_info_str : string -> pos_info
 
 (* fill in the line and column field of a position that were not set
  * during lexing because of limitations of ocamllex and Lexing.position.
  *)
-val complete_position : Common.filename -> bytepos_to_linecol_fun -> t -> t
+val complete_position : Common.filename -> pos_info -> t -> t

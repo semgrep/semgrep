@@ -110,7 +110,7 @@ let tokenize_all_and_adjust_pos input_source tokenizer visitor_tok is_eof =
   match input_source with
   | Str str ->
       let lexbuf = Lexing.from_string str in
-      let table = Pos.full_charpos_to_pos_str str in
+      let table = Pos.full_pos_info_str str in
       (* TODO: don't pass "<file>" where an actual file is expected.
          This results in cryptic errors later when the file can't be opened. *)
       tokenize_and_adjust_pos lexbuf table "<file>" tokenizer visitor_tok is_eof
@@ -118,7 +118,7 @@ let tokenize_all_and_adjust_pos input_source tokenizer visitor_tok is_eof =
       let file = Fpath.to_string path in
       Common.with_open_infile file (fun chan ->
           let lexbuf = Lexing.from_channel chan in
-          let table = Pos.full_charpos_to_pos_large file in
+          let table = Pos.full_pos_info_large file in
           tokenize_and_adjust_pos lexbuf table file tokenizer visitor_tok is_eof)
 
 (* Hacked lex. Ocamlyacc expects a function returning one token at a time
