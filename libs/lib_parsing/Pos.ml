@@ -274,10 +274,7 @@ let full_pos_info_str (s : string) : pos_info =
 (* unit tests *)
 (*****************************************************************************)
 
-let s = {|a
-hi
-|}
-
+let s = "a\nhi\n"
 let pos_info = full_pos_info_str s
 
 let equate_positions bytepos linecol =
