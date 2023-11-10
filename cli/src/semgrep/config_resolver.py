@@ -121,6 +121,7 @@ class ConfigLoader:
             self._config_path = config_str
         elif is_product_names(config_str):
             self._origin = ConfigType.SEMGREP_CLOUD_PLATFORM
+            add_metrics_for_products(config_str)
             self._config_path = config_str
             self._supports_fallback_config = True
         elif is_policy_id(config_str):
@@ -957,6 +958,11 @@ def is_product_names(config_str: str) -> bool:
     allowed = set(PRODUCT_NAMES.keys())
     names = set(config_str.split(","))
     return names <= allowed
+
+def add_metrics_for_products(config_str: str) -> None:
+    state = get_state()
+    for product_name in config_str.split(","):
+        state.metrics.add_feature("config", PRODUCT_NAMES[product_name])
 
 
 def is_policy_id(config_str: str) -> bool:
