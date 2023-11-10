@@ -1,0 +1,13 @@
+rules:
+  - id: assign-in-cond-expr
+    languages:
+      - cpp
+      - c
+    message: testing assignments in conditional expression.
+    mode: taint
+    pattern-sinks:
+      - pattern: sink($X)
+    pattern-sources:
+      - pattern: get_taint()
+    severity: ERROR
+
