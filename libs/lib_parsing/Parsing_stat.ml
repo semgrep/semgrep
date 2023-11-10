@@ -193,7 +193,7 @@ let print_regression_information ~ext xs newscore =
     | _ -> None
   in
   (* nosemgrep *)
-  let score_path = (* Config_pfff.regression_data_dir *) "/tmp/pfff" in
+  let score_path = (* Config_pfff.regression_data_dir *) "/tmp/parsing_stats" in
   if Sys.file_exists score_path then
     dirname_opt
     |> Option.iter (fun dirname ->
@@ -206,8 +206,8 @@ let print_regression_information ~ext xs newscore =
                ("score_parsing__" ^ str ^ ext ^ ".marshalled")
            in
            logger#debug "saving regression info in %s" file;
-           Common2.regression_testing newscore file);
-  ()
+           Common2.regression_testing newscore file)
+  else pr2 (spf "no regression info available: %s does not exist" score_path)
 
 (*****************************************************************************)
 (* Most problematic tokens *)

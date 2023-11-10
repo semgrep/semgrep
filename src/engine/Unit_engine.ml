@@ -544,7 +544,7 @@ let get_extract_source_lang file rules =
 let extract_tests () =
   let path = tests_path / "extract" in
   pack_tests "extract mode"
-    (let tests, _print_summary =
+    (let tests, _total_mismatch, _print_summary =
        Test_engine.make_tests ~unit_testing:true
          ~get_xlang:(Some get_extract_source_lang) [ path ]
      in
@@ -708,11 +708,11 @@ let lang_tainting_tests () =
 
 let full_rule_regression_tests () =
   let path = tests_path / "rules" in
-  let tests1, _print_summary =
+  let tests1, _total_mismatch, _print_summary =
     Test_engine.make_tests ~unit_testing:true ~prepend_lang:true [ path ]
   in
   let path = tests_path / "rules_v2" in
-  let tests2, _print_summary =
+  let tests2, _total_mismatch, _print_summary =
     Test_engine.make_tests ~unit_testing:true ~prepend_lang:true [ path ]
   in
   let tests = tests1 @ tests2 in
@@ -743,7 +743,7 @@ let full_rule_regression_tests () =
 let full_rule_taint_maturity_tests () =
   let path = tests_path / "taint_maturity" in
   pack_tests "taint maturity"
-    (let tests, _print_summary =
+    (let tests, _total_mismatch, _print_summary =
        Test_engine.make_tests ~unit_testing:true [ path ]
      in
      tests)
@@ -756,7 +756,7 @@ let full_rule_taint_maturity_tests () =
  *)
 let full_rule_semgrep_rules_regression_tests () =
   let path = tests_path / "semgrep-rules" in
-  let tests, _print_summary =
+  let tests, _total_mismatch, _print_summary =
     Test_engine.make_tests ~unit_testing:true [ path ]
   in
   let groups =
