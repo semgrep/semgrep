@@ -37,8 +37,11 @@ module Out = Semgrep_output_v1_t
 module Fpath_set = Set.Make (Fpath)
 
 (* TODO? process also user's gitignore file like ripgrep does?
- * TODO? use Glob.Pattern.t below instead of string for exclude and include_?
- *)
+   TODO? use Glob.Pattern.t below instead of string for exclude and include_?
+   TODO: add an option to select all git-tracked files regardless of
+         gitignore or semgrepignore exclusions (will be needed for Secrets)
+         and have the exclusions apply only to the files that aren't tracked.
+*)
 type conf = {
   (* global exclude list, passed via semgrep --exclude *)
   exclude : string list;
@@ -81,6 +84,14 @@ type project_roots = {
   scanning_roots : fppath list;
 }
 
+(*
+let fppath_split_base (x : fppath) =
+  let dir_fpath, name_fpath = Fpath.split_base x in
+  let dir_ppath, name_ppath = Ppath.split_base x in
+  let dir_path =
+    { fpath = Fpath.split_base x
+*)
+
 (*************************************************************************)
 (* Diagnostic *)
 (*************************************************************************)
@@ -110,6 +121,72 @@ let get_reason_for_exclusion (sel_events : Gitignore.selection_event list) :
 (*************************************************************************)
 (* Finding *)
 (*************************************************************************)
+
+type filter_result =
+  | Keep (* select this target file *)
+  | Dir (* the path is a directory to scan recursively *)
+  | Skip of Out.skipped_target (* ignore this file and report it *)
+  | Ignore_silently (* ignore and don't report this file *)
+
+let filter_path (ign : Semgrepignore.t) (fppath : fppath) : filter_result =
+  let { fpath; ppath } = fppath in
+  (* skip hidden files (this includes big directories like .git/)
+     TODO? maybe add a setting in conf? -> no, this is a job for
+     semgrepignore.
+     TODO: why are we doing this? It doesn't seem like pysemgrep
+     is doing this.
+  *)
+  if Fpath.basename fpath =~ "^\\." then
+    Skip
+      { Out.path = fpath; reason = Out.Dotfile; details = None; rule_id = None }
+  else
+    let status, selection_events = Semgrepignore.select ign ppath in
+    match status with
+    | Ignored ->
+        Logs.debug (fun m ->
+            m "Ignoring path %s:\n%s" !!fpath
+              (Gitignore.show_selection_events selection_events));
+        let reason = get_reason_for_exclusion selection_events in
+        Skip
+          {
+            Out.path = fpath;
+            reason;
+            details =
+              Some
+                "excluded by --include/--exclude, gitignore, or semgrepignore";
+            rule_id = None;
+          }
+    | Not_ignored -> (
+        (* TODO: check read permission? *)
+        match Unix.lstat !!fpath with
+        (* skipping symlinks *)
+        | { Unix.st_kind = S_LNK; _ } -> Ignore_silently
+        | { Unix.st_kind = S_REG; _ } -> Keep
+        | { Unix.st_kind = S_DIR; _ } -> Dir
+        | { Unix.st_kind = S_FIFO | S_CHR | S_BLK | S_SOCK; _ } ->
+            Ignore_silently
+        (* ignore for now errors. TODO? return a skip? *)
+        | exception Unix.Unix_error (_err, _fun, _info) -> Ignore_silently)
+
+(*
+   Filter a pre-expanded list of target files, such as a list of files
+   obtained with 'git ls-files'.
+*)
+let filter_paths (ign : Semgrepignore.t) (target_files : fppath list) :
+    Fpath.t list * Out.skipped_target list =
+  let (selected_paths : Fpath.t list ref) = ref [] in
+  let (skipped : Out.skipped_target list ref) = ref [] in
+  let add path = push path selected_paths in
+  let skip target = push target skipped in
+  target_files
+  |> List.iter (fun fppath ->
+         match filter_path ign fppath with
+         | Keep -> add fppath.fpath
+         | Dir ->
+             (* shouldn't happen if we work on the output of 'git ls-files *) ()
+         | Skip x -> skip x
+         | Ignore_silently -> ());
+  (!selected_paths, !skipped)
 
 (* We used to call 'git ls-files' when conf.respect_git_ignore was true,
  * which could potentially speedup things because git may rely on
@@ -158,58 +235,29 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
               TODO: why are we doing this? It doesn't seem like pysemgrep
               is doing this.
            *)
-           if name =~ "^\\." then
-             skip
-               {
-                 Out.path = fpath;
-                 reason = Out.Dotfile;
-                 details = None;
-                 rule_id = None;
-               }
-           else
-             let status, selection_events = Semgrepignore.select ign ppath in
-             match status with
-             | Ignored ->
-                 Logs.debug (fun m ->
-                     m "Ignoring path %s:\n%s" !!fpath
-                       (Gitignore.show_selection_events selection_events));
-                 let reason = get_reason_for_exclusion selection_events in
-                 skip
-                   {
-                     Out.path = fpath;
-                     reason;
-                     details =
-                       Some
-                         "excluded by --include/--exclude, gitignore, or \
-                          semgrepignore";
-                     rule_id = None;
-                   }
-             | Not_ignored -> (
-                 (* TODO: check read permission? *)
-                 match Unix.lstat !!fpath with
-                 (* skipping symlinks *)
-                 | { Unix.st_kind = S_LNK; _ } -> ()
-                 | { Unix.st_kind = S_REG; _ } -> add fpath
-                 | { Unix.st_kind = S_DIR; _ } ->
-                     (* skipping submodules.
-                      * TODO? should we add a skip_reason for it? pysemgrep
-                      * though was using `git ls-files` which implicitely does
-                      * not even consider submodule files, so those files/dirs
-                      * were not mentioned in the skip list
-                      *)
-                     if
-                       conf.respect_gitignore
-                       && Git_project.is_git_submodule_root fpath
-                     then ignore ()
-                       (* TODO? if a dir, then add trailing / to ppath
-                        * and try Git_filter.select() again!
-                        * (it would detected though anyway in the children of
-                        * the dir at least, but better to skip the dir ASAP
-                        *)
-                     else aux { fpath; ppath }
-                 | { Unix.st_kind = S_FIFO | S_CHR | S_BLK | S_SOCK; _ } -> ()
-                 (* ignore for now errors. TODO? return a skip? *)
-                 | exception Unix.Unix_error (_err, _fun, _info) -> ()))
+           let fppath = { fpath; ppath } in
+           match filter_path ign fppath with
+           | Keep -> add fpath
+           | Skip skipped -> skip skipped
+           | Dir ->
+               (* skipping submodules.
+                  TODO? should we add a skip_reason for it? pysemgrep
+                  though was using `git ls-files` which implicitely does
+                  not even consider submodule files, so those files/dirs
+                  were not mentioned in the skip list
+               *)
+               if
+                 conf.respect_gitignore
+                 && Git_project.is_git_submodule_root fpath
+               then ignore ()
+               else
+                 (* TODO? if a dir, then add trailing / to ppath
+                    and try Git_filter.select() again!
+                    (it would detected though anyway in the children of
+                    the dir at least, but better to skip the dir ASAP
+                 *)
+                 aux fppath
+           | Ignore_silently -> ())
   in
   aux scan_root;
   (* Let's not worry about file order here until we have to.
@@ -234,16 +282,40 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
    We could also provide similar functions for other file tracking systems
    (Mercurial/hg, Subversion/svn, ...)
 *)
-let git_ls_files (project_roots : project_roots) : Fpath_set.t =
+let git_list_tracked_files (project_roots : project_roots) : Fpath_set.t option
+    =
   match project_roots.project.kind with
   | Git_project ->
-      project_roots.scanning_roots
-      |> Common.map (fun (x : fppath) -> x.fpath)
-      |> (fun paths -> Git_wrapper.ls_files paths)
-      |> Fpath_set.of_list
+      Some
+        (project_roots.scanning_roots
+        |> Common.map (fun (x : fppath) -> x.fpath)
+        |> (fun paths -> Git_wrapper.ls_files paths)
+        |> Fpath_set.of_list)
   | Gitignore_project
   | Other_project ->
-      Fpath_set.empty
+      None
+
+(*
+   List all the files that are not being tracked by git except those in
+   '.git/'.
+
+   This is the complement of git_list_tracked_files (except for '.git/').
+*)
+let git_list_untracked_files (project_roots : project_roots) :
+    Fpath_set.t option =
+  match project_roots.project.kind with
+  | Git_project ->
+      Some
+        (project_roots.scanning_roots
+        |> Common.map (fun (x : fppath) -> x.fpath)
+        |> (fun paths ->
+             Git_wrapper.ls_files
+               ~kinds:[ (Others : Git_wrapper.ls_files_kind) ]
+               paths)
+        |> Fpath_set.of_list)
+  | Gitignore_project
+  | Other_project ->
+      None
 
 (*************************************************************************)
 (* Grouping *)
@@ -287,8 +359,8 @@ let group_scanning_roots_by_project (conf : conf)
    git project. Most of the logic is done at a project level, though.
 *)
 
-let get_targets_from_filesystem conf (project_roots : project_roots) =
-  let { project = { kind; path = project_root }; scanning_roots } =
+let setup_semgrepignore conf (project_roots : project_roots) : Semgrepignore.t =
+  let { project = { kind; path = project_root }; scanning_roots = _ } =
     project_roots
   in
   (* filter with .gitignore and .semgrepignore *)
@@ -315,13 +387,21 @@ let get_targets_from_filesystem conf (project_roots : project_roots) =
    * We would still need to intialize at the beginning with
    * the .gitignore of all the parents of the scan_root.
    *)
-  let ign =
-    Semgrepignore.create ?include_patterns:conf.include_
-      ~cli_patterns:conf.exclude ~builtin_semgrepignore:Semgrep_scan_legacy
-      ~exclusion_mechanism
-      ~project_root:(Realpath.to_fpath project_root)
-      ()
-  in
+  Semgrepignore.create ?include_patterns:conf.include_
+    ~cli_patterns:conf.exclude ~builtin_semgrepignore:Semgrep_scan_legacy
+    ~exclusion_mechanism
+    ~project_root:(Realpath.to_fpath project_root)
+    ()
+
+(* Work from a list of  obtained with git *)
+let filter_targets conf project_roots (all_files : Fpath.t list) =
+  let ign = setup_semgrepignore conf project_roots in
+  let fppaths = all_files |> Common.map (fun fpath -> { fpath; ppath }) in
+  let selected, skipped = filter_paths ign fppaths in
+  (Fpath_set.of_list selected, skipped)
+
+let get_targets_from_filesystem conf (project_roots : project_roots) =
+  let ign = setup_semgrepignore conf project_roots in
   List.fold_left
     (fun (selected, skipped) scan_root ->
       (* better: Note that we use Unix.stat below, not Unix.lstat, so
@@ -350,7 +430,7 @@ let get_targets_from_filesystem conf (project_roots : project_roots) =
       in
       ( Fpath_set.union selected (Fpath_set.of_list selected2),
         List.rev_append skipped2 skipped ))
-    (Fpath_set.empty, []) scanning_roots
+    (Fpath_set.empty, []) project_roots.scanning_roots
 
 (*
    Target files are identified by following these steps:
@@ -372,16 +452,18 @@ let get_targets_from_filesystem conf (project_roots : project_roots) =
    4. Take the union of (2) and (3).
 *)
 let get_targets_for_project conf (project_roots : project_roots) =
-  (* get git-tracked files as a set or the empty set *)
-  let git_tracked = git_ls_files project_roots in
-  let fs_targets, fs_skipped_targets =
-    get_targets_from_filesystem conf project_roots
-  in
-  let selected_targets = Fpath_set.union git_tracked fs_targets in
-  let skipped_targets =
-    fs_skipped_targets
-    |> List.filter (fun (x : Out.skipped_target) ->
-           not (Fpath_set.mem x.path selected_targets))
+  (* Obtain the list of files from git if possible because it does it
+     faster than what we can do by scanning the filesystem: *)
+  let git_tracked = git_list_tracked_files project_roots in
+  let git_untracked = git_list_untracked_files project_roots in
+  let selected_targets, skipped_targets =
+    match (git_tracked, git_untracked) with
+    | Some tracked, Some untracked ->
+        let all_files = Fpath_set.union tracked untracked in
+        all_files |> Fpath_set.elements |> filter_targets conf project_roots
+    | None, _
+    | _, None ->
+        get_targets_from_filesystem conf project_roots
   in
   (selected_targets, skipped_targets)
 

@@ -153,9 +153,19 @@ Try running the command yourself to debug the issue.|}
       Logs.warn (fun m -> m fmt Bos.Cmd.pp cmd);
       raise (Error "Error when we run a git command")
 
-let ls_files ?(cwd = Fpath.v ".") root_paths =
+type ls_files_kind =
+  | Cached (* --cached, the default *)
+  | Others (* --others, the complement of Cached but still excluding .git/ *)
+
+let string_of_ls_files_kind (kind : ls_files_kind) =
+  match kind with
+  | Cached -> "--cached"
+  | Others -> "--others"
+
+let ls_files ?(cwd = Fpath.v ".") ?(kinds = []) root_paths =
   let roots = root_paths |> Common.map Fpath.to_string |> Bos.Cmd.of_list in
-  let cmd = Bos.Cmd.(v "git" % "-C" % !!cwd % "ls-files" %% roots) in
+  let kinds = kinds |> Common.map string_of_ls_files_kind |> Bos.Cmd.of_list in
+  let cmd = Bos.Cmd.(v "git" % "-C" % !!cwd % "ls-files" %% kinds %% roots) in
   Logs.info (fun m -> m "Running external command: %s" (Bos.Cmd.to_string cmd));
   let files_r = Bos.OS.Cmd.run_out cmd in
   let results = Bos.OS.Cmd.out_lines ~trim:true files_r in

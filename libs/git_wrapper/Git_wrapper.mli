@@ -18,6 +18,15 @@ type status = {
 val git_check_output : Bos.Cmd.t -> string
 
 (*
+   This is incomplete. Git offer a variety of filters and subfilters,
+   and it would be a lot of work to translate them all into clean types.
+   Please extend this interface as needed.
+*)
+type ls_files_kind =
+  | Cached (* --cached, the default *)
+  | Others (* --others, the complement of Cached but still excluding .git/ *)
+
+(*
    cwd: directory to cd into (-C)
 
    The argument is the list of files to start scanning from which defaults
@@ -25,7 +34,8 @@ val git_check_output : Bos.Cmd.t -> string
 
    This returns a list of paths relative to cwd.
 *)
-val ls_files : ?cwd:Fpath.t -> Fpath.t list -> Fpath.t list
+val ls_files :
+  ?cwd:Fpath.t -> ?kinds:ls_files_kind list -> Fpath.t list -> Fpath.t list
 
 (* get merge base between arg and HEAD *)
 val get_merge_base : string -> string
