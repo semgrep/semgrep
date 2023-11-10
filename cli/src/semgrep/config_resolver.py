@@ -17,7 +17,6 @@ from typing import Tuple
 from urllib.parse import urlencode
 from urllib.parse import urlparse
 from urllib.parse import urlsplit
-from uuid import uuid4
 
 import requests
 import ruamel.yaml
@@ -268,7 +267,7 @@ class ConfigLoader:
         return self._origin == ConfigType.REGISTRY
 
     def _project_metadata_for_standalone_scan(self) -> out.ProjectMetadata:
-        repo_name = os.environ.get("SEMGREP_REPO_NAME") 
+        repo_name = os.environ.get("SEMGREP_REPO_NAME") or "unknown"
         if repo_name is None:
             raise SemgrepError(
                 f"Need to set env var SEMGREP_REPO_NAME to use `--config {self._config_path}`"
@@ -317,7 +316,16 @@ class ConfigLoader:
             project_metadata=self._project_metadata_for_standalone_scan(),
         )
 
-        return self._download_semgrep_cloud_platform_scan_config(request)
+        try:
+            return self._download_semgrep_cloud_platform_scan_config(request)
+        except Exception:
+            if self._supports_fallback_config:
+                try:
+                    return self._download_semgrep_cloud_platform_fallback_scan_config()
+                except Exception:
+                    pass
+
+            raise # error from first fetch
 
     def _download_semgrep_cloud_platform_scan_config(
         self, request: out.ScanRequest
@@ -349,22 +357,18 @@ class ConfigLoader:
             return ConfigFile(None, scan_response.config.rules.to_json_string(), url)
 
         except requests.exceptions.RetryError as ex:
-            if self._supports_fallback_config:
-                try:
-                    return self._download_semgrep_cloud_platform_fallback_scan_config()
-                except Exception:
-                    pass
-
             error += f" Failed after multiple attempts ({ex.args[0].reason})"
 
             logger.debug(
                 error
             )  # since the raised exception may be caught and suppressed
+
             raise SemgrepError(error)
         
     def _download_semgrep_cloud_platform_fallback_scan_config(self) -> ConfigFile:
         """
-        This function decides what fallback url to call if the semgrep rloud platform scan config endpoint fails
+        This function decides what fallback url to call if the semgrep cloud platform 
+        scan config endpoint fails
 
         ! This will manually rebuild the url until we have a better solution
         """
