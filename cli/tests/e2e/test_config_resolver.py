@@ -3,6 +3,8 @@ from textwrap import dedent
 import pytest
 from tests.semgrep_runner import SemgrepRunner
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+
 from semgrep.cli import cli
 from semgrep.config_resolver import ConfigFile
 from semgrep.config_resolver import ConfigLoader
@@ -46,7 +48,7 @@ def test_new_feature_registry_config(monkeypatch, snapshot, mocker, tmp_path):
 
 @pytest.mark.quick
 @pytest.mark.osemfail
-def test_fallback_config_works(monkeypatch, snapshot, mocker, tmp_path):
+def test_fallback_config_works(mocker, tmp_path):
     config_file = ConfigFile(
         None,
         "rules: []",
@@ -54,13 +56,16 @@ def test_fallback_config_works(monkeypatch, snapshot, mocker, tmp_path):
     )
     patched_download = mocker.patch.object(
         ConfigLoader,
-        "_download_config_from_url",
+        "_download_semgrep_cloud_platform_scan_config",
         side_effect=[
             SemgrepError(
                 f"Failed to download configuration. HTTP 500 when fetching URL"
             ),
-            config_file,
         ],
+    )
+
+    patched_fallback_download = mocker.patch.object(
+        ConfigLoader, "_download_config_from_url", return_value=config_file
     )
 
     runner = SemgrepRunner(
@@ -72,9 +77,9 @@ def test_fallback_config_works(monkeypatch, snapshot, mocker, tmp_path):
     )
     result = runner.invoke(cli, ["scan", "--debug", "--config", "supply-chain"])
 
-    assert "https://semgrep.dev/api" in patched_download.call_args_list[0].args[0]
+    assert isinstance(patched_download.call_args_list[0].args[0], out.ScanRequest)
     assert (
         "https://fail-open.prod.semgrep.dev/"
-        in patched_download.call_args_list[1].args[0]
+        in patched_fallback_download.call_args_list[0].args[0]
     )
     assert "loaded 1 configs" in result.stdout
