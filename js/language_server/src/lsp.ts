@@ -77,7 +77,7 @@ export const LSFactory = async () => {
     try {
       return parsers.get(lang).parseTarget(lang, str);
     } catch (e) {
-      console.log(`Error parsing target ${e}`);
+      console.error(`Error parsing target ${e}`);
       throw e;
     }
   };
@@ -85,7 +85,7 @@ export const LSFactory = async () => {
     try {
       return parsers.get(lang).parsePattern(true, lang, pattern);
     } catch (e) {
-      console.log(`Error parsing pattern ${e}`);
+      console.error(`Error parsing pattern ${e}`);
       throw e;
     }
   };
