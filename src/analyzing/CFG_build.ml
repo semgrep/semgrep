@@ -111,9 +111,7 @@ let resolve_gotos state =
   !(state.gotos)
   |> List.iter (fun (srci, label_key) ->
          match Hashtbl.find_opt state.labels label_key with
-         | None ->
-             Common.pr2
-             @@ Common.spf "Could not resolve label: %s" (fst label_key)
+         | None -> logger#warning "Could not resolve label: %s" (fst label_key)
          | Some dsti -> state.g |> add_arc (srci, dsti));
   state.gotos := []
 
