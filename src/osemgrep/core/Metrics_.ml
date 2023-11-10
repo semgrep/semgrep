@@ -163,7 +163,7 @@ let default_payload =
         numIgnored = None;
         ruleHashesWithFindings = None;
         engineRequested = "OSS";
-        requested_interfile_languages = Some [];
+        requestedInterfileLanguages = Some [];
       };
     parse_rate = [];
     extension =

@@ -452,8 +452,6 @@ class Metrics:
             f"{'Sending' if self.is_enabled else 'Not sending'} pseudonymous metrics since metrics are configured to {self.metrics_state.name} and registry usage is {self.is_using_registry}"
         )
 
-        print(self)
-
         if not self.is_enabled:
             return
 
