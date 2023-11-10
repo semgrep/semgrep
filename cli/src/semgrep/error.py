@@ -70,11 +70,11 @@ class SemgrepError(Exception):
         err = out.CliError(code=self.code, type_=self.type_(), level=self.level)
         return self.adjust_CliError(err)
 
-    # to be overriden in children
+    # to be overridden in children
     def type_(self) -> out.ErrorType:
         return out.ErrorType(out.SemgrepError())
 
-    # to be overriden in children
+    # to be overridden in children
     def adjust_CliError(self, base: out.CliError) -> out.CliError:
         """
         Default implementation. Subclasses should override to provide custom information.
