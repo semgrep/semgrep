@@ -176,6 +176,20 @@ class FileTargetingLog:
             else self.target_manager.get_all_files()
         )
 
+    def list_skipped_paths_with_reason(self) -> List[Tuple[Path, str]]:
+        res: List[Tuple[Path, str]] = []
+        # The strings used to describe the reason are those defined
+        # in semgrep_output_v1.atd for type 'skip_reason':
+        for x in self.always_skipped:
+            res.append((x, "always_skipped"))
+        for x in self.cli_includes:
+            res.append((x, "cli_include_flags_do_not_match"))
+        for x in self.cli_excludes:
+            res.append((x, "cli_exclude_flags_match"))
+        for x in self.size_limit:
+            res.append((x, "exceeded_size_limit"))
+        return sorted(res)
+
     def __str__(self) -> str:
         limited_fragments = []
         skip_fragments = []
@@ -459,7 +473,7 @@ class Target:
             [
                 "git",
                 "ls-files",
-                "--other",
+                "--others",
                 "--exclude-standard",
             ]
         )
@@ -716,8 +730,11 @@ class TargetManager:
         """
         all_files = self.get_all_files()
 
-        files = self.filter_by_language(lang, candidates=all_files)
-        self.ignore_log.by_language[lang].update(files.removed)
+        if lang:
+            files = self.filter_by_language(lang, candidates=all_files)
+            self.ignore_log.by_language[lang].update(files.removed)
+        else:
+            files = FilteredFiles(frozenset(all_files), frozenset())
 
         files = self.filter_includes(self.includes, candidates=files.kept)
         self.ignore_log.cli_includes.update(files.removed)

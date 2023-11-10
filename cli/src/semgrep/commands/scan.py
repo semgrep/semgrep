@@ -365,6 +365,18 @@ def scan_options(func: Callable) -> Callable:
     default=False,
 )
 @optgroup.option("--version", is_flag=True, default=False)
+@optgroup.option(
+    "--x-ls",
+    is_flag=True,
+    default=False,
+    help=(
+        "[INTERNAL] List the selected target files and the skipped target"
+        " files before any rule-specific or language-specific filtering. Then exit."
+        " The output format is unspecified."
+        " THIS OPTION IS NOT PART OF THE SEMGREP API AND MAY"
+        " CHANGE OR DISAPPEAR WITHOUT NOTICE."
+    ),
+)
 @optgroup.group("Test and debug options")
 @optgroup.option("--test", is_flag=True, default=False)
 @optgroup.option(
@@ -445,6 +457,7 @@ def scan(
     validate: bool,
     verbose: bool,
     version: bool,
+    x_ls: bool,
 ) -> Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]:
     if version:
         print(__VERSION__)
@@ -661,6 +674,7 @@ def scan(
                     severity=severity,
                     optimizations=optimizations,
                     baseline_commit=baseline_commit,
+                    x_ls=x_ls,
                 )
             except SemgrepError as e:
                 output_handler.handle_semgrep_errors([e])
