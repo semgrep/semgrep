@@ -17,11 +17,15 @@ let of_int x = x
 let ok = 0
 let findings = 1
 let fatal = 2
+
+(* a.k.a. target_parse_failure *)
 let invalid_code = 3
+
+(* a.k.a rule_parse_failure *)
 let invalid_pattern = 4
 let unparseable_yaml = 5
 
-(* let need_arbitrary_code_exec = 6 *)
+(* old: let need_arbitrary_code_exec = 6 *)
 let missing_config = 7
 let invalid_language = 8
 

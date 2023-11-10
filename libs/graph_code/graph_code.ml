@@ -233,13 +233,13 @@ let add_node n g =
   G.add_vertex_if_not_present n g.has;
   G.add_vertex_if_not_present n g.use;
   ()
-  [@@profiling]
+[@@profiling]
 
 let add_edge (n1, n2) e g =
   match e with
   | Has -> G.add_edge n1 n2 g.has
   | Use -> G.add_edge n1 n2 g.use
-  [@@profiling]
+[@@profiling]
 
 let remove_edge (n1, n2) e g =
   match e with
@@ -306,7 +306,7 @@ let pred n e g =
   match e with
   | Has -> G.pred n g.has
   | Use -> G.pred n g.use
-  [@@profiling]
+[@@profiling]
 
 let succ n e g =
   match e with
@@ -331,7 +331,7 @@ let mk_eff_use_pred g =
 let parent n g =
   let xs = G.pred n g.has in
   Common2.list_to_single_or_exn xs
-  [@@profiling]
+[@@profiling]
 
 let parents n g = G.pred n g.has [@@profiling]
 let children n g = G.succ n g.has

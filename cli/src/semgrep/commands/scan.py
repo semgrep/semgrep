@@ -35,11 +35,11 @@ from semgrep.constants import OutputFormat
 from semgrep.core_runner import CoreRunner
 from semgrep.engine import EngineType
 from semgrep.error import SemgrepError
+from semgrep.git import get_project_url
 from semgrep.metrics import MetricsState
 from semgrep.notifications import possibly_notify_user
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
-from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_core import SemgrepCore
@@ -96,22 +96,6 @@ _scan_options: List[Callable] = [
         "metrics",
         type=METRICS_STATE_TYPE,
         envvar="SEMGREP_SEND_METRICS",
-    ),
-    click.option(
-        "--disable-metrics",
-        "metrics_legacy",
-        is_flag=True,
-        type=METRICS_STATE_TYPE,
-        flag_value="off",
-        hidden=True,
-    ),
-    click.option(
-        "--enable-metrics",
-        "metrics_legacy",
-        is_flag=True,
-        type=METRICS_STATE_TYPE,
-        flag_value="on",
-        hidden=True,
     ),
     optgroup.group(
         "Path options",
@@ -223,6 +207,11 @@ _scan_options: List[Callable] = [
         is_flag=True,
         default=False,
     ),
+    optgroup.option(
+        "--matching-explanations",
+        is_flag=True,
+        default=False,
+    ),
     optgroup.group("Verbosity options", cls=MutuallyExclusiveOptionGroup),
     optgroup.option(
         "-q",
@@ -320,14 +309,15 @@ _scan_options: List[Callable] = [
         "--diff-depth",
         type=int,
         default=DEFAULT_DIFF_DEPTH,
-        help="""
-            The depth of the Pro (interfile) differential scan, the number of steps
-            (both in the caller and callee sides) from the targets in the call graph
-            tracked by the deep preprocessor. Only applied in differential scan mode.
-        """,
     ),
     optgroup.option("--dump-command-for-core", "-d", is_flag=True, hidden=True),
-    optgroup.option("--allow-untrusted-postprocessors", is_flag=True, hidden=True),
+    optgroup.option(
+        "--no-secrets-validation",
+        "disable_secrets_validation_flag",
+        is_flag=True,
+        hidden=True,
+    ),
+    optgroup.option("--allow-untrusted-validators", is_flag=True, hidden=True),
 ]
 
 
@@ -414,6 +404,7 @@ def scan(
     dump_engine_path: bool,
     requested_engine: Optional[EngineType],
     run_secrets_flag: bool,
+    disable_secrets_validation_flag: bool,
     dryrun: bool,
     dump_command_for_core: bool,
     enable_nosem: bool,
@@ -425,12 +416,12 @@ def scan(
     include: Optional[Tuple[str, ...]],
     jobs: Optional[int],
     lang: Optional[str],
+    matching_explanations: bool,
     max_chars_per_line: int,
     max_lines_per_finding: int,
     max_memory: Optional[int],
     max_target_bytes: int,
     metrics: Optional[MetricsState],
-    metrics_legacy: Optional[MetricsState],
     optimizations: str,
     dataflow_traces: bool,
     output: Optional[str],
@@ -439,7 +430,7 @@ def scan(
     quiet: bool,
     replacement: Optional[str],
     rewrite_rule_ids: bool,
-    allow_untrusted_postprocessors: bool,
+    allow_untrusted_validators: bool,
     scan_unknown_extensions: bool,
     severity: Optional[Tuple[str, ...]],
     strict: bool,
@@ -489,7 +480,7 @@ def scan(
         dataflow_traces = engine_type.has_dataflow_traces
 
     state = get_state()
-    state.metrics.configure(metrics, metrics_legacy)
+    state.metrics.configure(metrics)
     state.terminal.configure(
         verbose=verbose,
         debug=debug,
@@ -590,13 +581,12 @@ def scan(
                         metacheck_errors = CoreRunner(
                             jobs=jobs,
                             engine_type=engine_type,
-                            run_secrets=run_secrets_flag,
                             timeout=timeout,
                             max_memory=max_memory,
                             timeout_threshold=timeout_threshold,
                             interfile_timeout=interfile_timeout,
                             optimizations=optimizations,
-                            allow_untrusted_postprocessors=allow_untrusted_postprocessors,
+                            allow_untrusted_validators=allow_untrusted_validators,
                         ).validate_configs(config)
                     except SemgrepError as e:
                         metacheck_errors = [e]
@@ -604,6 +594,7 @@ def scan(
                 config_errors = list(chain(config_errors, metacheck_errors))
 
                 valid_str = "invalid" if config_errors else "valid"
+                # NOTE: get_rules will de-duplicate rules as the same rule can appear across multiple config packs
                 rule_count = len(resolved_configs.get_rules(True))
                 logger.info(
                     f"Configuration is {valid_str} - found {len(config_errors)} configuration error(s), and {rule_count} rule(s)."
@@ -625,14 +616,17 @@ def scan(
                     shown_severities,
                     _dependencies,
                     _dependency_parser_errors,
-                    _num_executed_rules,
-                    _,
+                    _contributions,
+                    executed_rule_count,
+                    missed_rule_count,
                 ) = semgrep.run_scan.run_scan(
                     diff_depth=diff_depth,
                     dump_command_for_core=dump_command_for_core,
                     time_flag=time_flag,
+                    matching_explanations=matching_explanations,
                     engine_type=engine_type,
                     run_secrets=run_secrets_flag,
+                    disable_secrets_validation=disable_secrets_validation_flag,
                     output_handler=output_handler,
                     target=targets,
                     pattern=pattern,
@@ -655,7 +649,7 @@ def scan(
                     timeout_threshold=timeout_threshold,
                     interfile_timeout=interfile_timeout,
                     skip_unknown_extensions=(not scan_unknown_extensions),
-                    allow_untrusted_postprocessors=allow_untrusted_postprocessors,
+                    allow_untrusted_validators=allow_untrusted_validators,
                     severity=severity,
                     optimizations=optimizations,
                     baseline_commit=baseline_commit,
@@ -676,6 +670,8 @@ def scan(
                 severities=shown_severities,
                 print_summary=True,
                 engine_type=engine_type,
+                executed_rule_count=executed_rule_count,
+                missed_rule_count=missed_rule_count,
             )
 
             run_has_findings = any(filtered_matches_by_rule.values())

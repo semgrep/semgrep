@@ -397,27 +397,13 @@ rules:
     severity: WARNING
 
   - id: no-logger-flash
-    patterns:
-      # FIXME: This doesn't work as expected
-      # - pattern-inside: |
-      #     let $LOGGER = Logging.get_logger ...
-      #     ...
-      - pattern: $LOGGER#flash ...
+    pattern-either:
+      - pattern-regex: "logger#flash"
+      - pattern-regex: "_logger#flash"
     message: >-
-      $LOGGER#flash is just for debuggging purposes.
+      logger#flash is just for debuggging purposes.
     fix: ""
     languages: [ocaml]
-    severity: WARNING
-
-  - id: no-logger-flash-in-comments
-    patterns:
-      - pattern: (* ... $LOGGER#flash ... *)
-    message: >-
-      $LOGGER#flash is just for debuggging purposes.
-    fix: ""
-    languages: [generic]
-    paths:
-      include: ["*.ml"]
     severity: WARNING
 
   - id: no-match-x-x-with
@@ -427,3 +413,17 @@ rules:
       You probably meant ($X, something-else) and this is due to a typo.
     languages: [ocaml]
     severity: WARNING
+
+  - id: no-fun-protect
+    pattern: Fun.protect
+    message: >-
+      `Fun.protect` does not block SIGALRM, which we use to implement timeouts (see
+      module 'Time_limit'). The alarm could trigger while we are executing a 'finally'
+      ths causing Semgrep to crash. Use `Common.protect` instead.
+    fix: Common.protect
+    languages: [ocaml]
+    severity: ERROR
+    paths:
+      include:
+        - src/*
+        - libs/*

@@ -31,4 +31,4 @@
 (* Entry point *)
 (*****************************************************************************)
 
-let manifest_value = Eval_jsonnet.manifest_value
+let manifest_value = Eval_jsonnet_envir.manifest_value

@@ -99,7 +99,7 @@ let is_same_line_or_close line tok =
 let tokens input_source =
   Parsing_helpers.tokenize_all_and_adjust_pos input_source Lexer.token
     TH.visitor_info_of_tok TH.is_eof
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Fuzzy parsing *)
@@ -176,7 +176,7 @@ let extract_macros file =
       in
       let toks = Parsing_hacks_define.fix_tokens_define toks in
       Pp_token.extract_macros toks)
-  [@@profiling]
+[@@profiling]
 
 (* less: pass it as a parameter to parse_program instead ?
  * old: was a ref, but a hashtbl.t is actually already a kind of ref
@@ -318,18 +318,19 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
                  (TH.info_of_tok tr.Parsing_helpers.current));
 
           (if !Flag.show_parsing_error then
-           match exn with
-           (* ocamlyacc *)
-           | Parsing.Parse_error
-           (* menhir *)
-           | Parser_cpp.Error ->
-               pr2
-                 ("parse error \n = " ^ error_msg_tok tr.Parsing_helpers.current)
-           | Parsing_error.Other_error (s, _i) ->
-               pr2
-                 ("semantic error " ^ s ^ "\n ="
-                 ^ error_msg_tok tr.Parsing_helpers.current)
-           | _ -> Exception.reraise e);
+             match exn with
+             (* ocamlyacc *)
+             | Parsing.Parse_error
+             (* menhir *)
+             | Parser_cpp.Error ->
+                 pr2
+                   ("parse error \n = "
+                   ^ error_msg_tok tr.Parsing_helpers.current)
+             | Parsing_error.Other_error (s, _i) ->
+                 pr2
+                   ("semantic error " ^ s ^ "\n ="
+                   ^ error_msg_tok tr.Parsing_helpers.current)
+             | _ -> Exception.reraise e);
 
           let line_error = TH.line_of_tok tr.Parsing_helpers.current in
 

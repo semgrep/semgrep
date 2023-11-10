@@ -5,7 +5,7 @@ rules:
       import child_process
       ...
   - pattern: |
-      "me"
+      me
   languages: [py]
   severity: WARNING 
   message: "test"

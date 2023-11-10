@@ -41,11 +41,8 @@ type conf = {
   error_on_findings : bool;
   strict : bool;
   rewrite_rule_ids : bool;
-  time_flag : bool;
   (* Engine selection *)
   engine_type : Engine_type.t;
-  run_secrets : bool;
-  allow_untrusted_postprocessors : bool;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;
   (* Display options *)
@@ -55,7 +52,6 @@ type conf = {
   output : string option;
   (* maybe should define an Output_option.t, or add a record to
    * Output_format.Text *)
-  dataflow_traces : bool;
   force_color : bool;
   max_chars_per_line : int;
   max_lines_per_finding : int;
@@ -99,7 +95,11 @@ let default : conf =
       };
     (* alt: could move in a Rule_filtering.default *)
     rule_filtering_conf =
-      { Rule_filtering.exclude_rule_ids = []; severity = [] };
+      {
+        Rule_filtering.exclude_rule_ids = [];
+        severity = [];
+        exclude_products = [];
+      };
     (* alt: could move in a Core_runner.default *)
     core_runner_conf =
       {
@@ -107,10 +107,14 @@ let default : conf =
          * not overload on large machines
          *)
         Core_runner.num_jobs = min 16 (Parmap_helpers.get_cpu_count ());
-        timeout = 30.0 (* seconds *);
+        timeout = 5.0;
+        (* ^ seconds, keep up-to-date with User_settings.ml and constants.py *)
         timeout_threshold = 3;
         max_memory_mb = 0;
         optimizations = true;
+        dataflow_traces = false;
+        matching_explanations = false;
+        time_flag = false;
         (* better to set to false for now; annoying to add --ast-caching to
          * each command, but while we're still developing osemgrep it is
          * better to eliminate some source of complexity by default.
@@ -128,13 +132,9 @@ let default : conf =
         logging_level = Some Logs.Warning;
         maturity = Maturity.Default;
       };
-    time_flag = false;
     engine_type = OSS;
-    run_secrets = false;
-    allow_untrusted_postprocessors = false;
     output_format = Output_format.Text;
     output = None;
-    dataflow_traces = false;
     force_color = false;
     max_chars_per_line = 160;
     max_lines_per_finding = 10;
@@ -425,6 +425,17 @@ let o_dataflow_traces : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
+let o_matching_explanations : bool Term.t =
+  let info =
+    Arg.info
+      [ "matching-explanations" ]
+      ~doc:
+        {|Add debugging information in the JSON output to trace how
+different parts of a rule are matched (a.k.a., "Inspect Rule"
+in the Semgrep playground)|}
+  in
+  Arg.value (Arg.flag info)
+
 let o_rewrite_rule_ids : bool Term.t =
   H.negatable_flag [ "rewrite-rule-ids" ] ~neg_options:[ "no-rewrite-rule-ids" ]
     ~default:default.rewrite_rule_ids
@@ -435,7 +446,7 @@ let o_rewrite_rule_ids : bool Term.t =
 
 let o_time : bool Term.t =
   H.negatable_flag [ "time" ] ~neg_options:[ "no-time" ]
-    ~default:default.time_flag
+    ~default:default.core_runner_conf.time_flag
     ~doc:
       {|Include a timing summary with the results. If output format is json,
  provides times for each pair (rule, target).
@@ -519,10 +530,16 @@ contact support@semgrep.com for more informationon this.|}
   in
   Arg.value (Arg.flag info)
 
-let o_allow_untrusted_postprocessors : bool Term.t =
+let o_no_secrets_validation : bool Term.t =
+  let info =
+    Arg.info [ "no-secrets-validation" ] ~doc:{|Disables secrets validation|}
+  in
+  Arg.value (Arg.flag info)
+
+let o_allow_untrusted_validators : bool Term.t =
   let info =
     Arg.info
-      [ "allow-untrusted-postprocessors" ]
+      [ "allow-untrusted-validators" ]
       ~doc:{|Run postprocessors from untrusted sources.|}
   in
   Arg.value (Arg.flag info)
@@ -638,7 +655,8 @@ changes to the console. This lets you see the changes before you commit to
 them. Only works with the --autofix flag. Otherwise does nothing.
 |}
 
-let o_severity : Severity.t list Term.t =
+(* In theory we should also accept EXPERIMENT and INVENTORY *)
+let o_severity : Rule.severity list Term.t =
   let info =
     Arg.info [ "severity" ]
       ~doc:
@@ -647,7 +665,11 @@ level. By default all applicable rules are run. Can add multiple times.
 Each should be one of INFO, WARNING, or ERROR.
 |}
   in
-  Arg.value (Arg.opt_all Severity.converter [] info)
+  Arg.value
+    (Arg.opt_all
+       (Cmdliner.Arg.enum
+          [ ("INFO", `Info); ("WARNING", `Warning); ("ERROR", `Error) ])
+       [] info)
 
 let o_exclude_rule_ids : string list Term.t =
   let info =
@@ -809,13 +831,14 @@ Requires --experimental.
 let cmdline_term ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
-  let combine allow_untrusted_postprocessors ast_caching autofix baseline_commit
+  let combine allow_untrusted_validators ast_caching autofix baseline_commit
       common config dataflow_traces diff_depth dryrun dump_ast
       dump_command_for_core dump_engine_path emacs error exclude
       exclude_rule_ids force_color gitlab_sast gitlab_secrets include_ json
-      junit_xml lang max_chars_per_line max_lines_per_finding max_memory_mb
-      max_target_bytes metrics num_jobs nosem optimizations oss output pattern
-      pro project_root pro_intrafile pro_lang registry_caching replacement
+      junit_xml lang matching_explanations max_chars_per_line
+      max_lines_per_finding max_memory_mb max_target_bytes metrics num_jobs
+      no_secrets_validation nosem optimizations oss output pattern pro
+      project_root pro_intrafile pro_lang registry_caching replacement
       respect_git_ignore rewrite_rule_ids sarif scan_unknown_extensions secrets
       severity show_supported_languages strict target_roots test
       test_ignore_todo text time_flag timeout _timeout_interfileTODO
@@ -823,7 +846,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Logs_helpers.setup_logging ~force_color
-      ~level:common.CLI_common.logging_level;
+      ~level:common.CLI_common.logging_level ();
 
     let target_roots = target_roots |> File.Path.of_strings in
 
@@ -850,25 +873,37 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       | _else_ -> default.output_format
     in
     let engine_type =
-      match (oss, pro_lang, pro_intrafile, pro) with
-      | false, false, false, false when secrets ->
-          Engine_type.(PRO Language_only)
-      | false, false, false, false -> default.engine_type
-      | true, false, false, false when secrets ->
-          Error.abort
-            "Mutually exclusive options --oss/--beta-testing-secrets-enabled"
-      | true, false, false, false -> OSS
-      | false, true, false, false -> PRO Engine_type.Language_only
-      | false, false, true, false -> PRO Engine_type.Intrafile
-      | false, false, false, true -> PRO Engine_type.Interfile
-      | _else_ ->
-          (* TOPORT: list the possibilities *)
-          Error.abort
-            "Mutually exclusive options \
-             --oss/--pro-languages/--pro-intrafile/--pro"
+      (* This first bit just rules out mutually exclusive options. *)
+      if oss && secrets then
+        Error.abort
+          "Mutually exclusive options --oss/--beta-testing-secrets-enabled";
+      if
+        [ oss; pro_lang; pro_intrafile; pro ]
+        |> List.filter Fun.id |> List.length > 1
+      then
+        Error.abort
+          "Mutually exclusive options \
+           --oss/--pro-languages/--pro-intrafile/--pro";
+      (* Now select the engine type *)
+      if oss then Engine_type.OSS
+      else
+        let analysis =
+          Engine_type.(
+            match () with
+            | _ when pro -> Interfile
+            | _ when pro_intrafile -> Interprocedural
+            | _ -> Intraprocedural)
+        in
+        let extra_languages = pro || pro_lang || pro_intrafile in
+        let secrets_config =
+          if secrets && not no_secrets_validation then
+            Some Engine_type.{ allow_all_origins = allow_untrusted_validators }
+          else None
+        in
+        match (extra_languages, analysis, secrets_config) with
+        | false, Intraprocedural, None -> OSS
+        | _ -> PRO { extra_languages; analysis; secrets_config }
     in
-    (* TODO Should double check all other times this should run. *)
-    let run_secrets = secrets in
     let rules_source =
       match (config, (pattern, lang, replacement)) with
       (* ugly: when using --dump-ast, we can pass a pattern or a target,
@@ -922,6 +957,9 @@ let cmdline_term ~allow_empty_config : conf Term.t =
         timeout_threshold;
         max_memory_mb;
         ast_caching;
+        dataflow_traces;
+        time_flag;
+        matching_explanations;
       }
     in
     let include_ =
@@ -946,6 +984,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
         Rule_filtering.exclude_rule_ids =
           Common.map Rule_ID.of_string exclude_rule_ids;
         severity;
+        exclude_products = [];
       }
     in
 
@@ -1077,7 +1116,6 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       autofix;
       dryrun;
       error_on_findings = error;
-      dataflow_traces;
       force_color;
       max_chars_per_line;
       max_lines_per_finding;
@@ -1087,11 +1125,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       output_format;
       output;
       engine_type;
-      run_secrets;
-      allow_untrusted_postprocessors;
       rewrite_rule_ids;
       strict;
-      time_flag;
       common;
       (* ugly: *)
       version;
@@ -1105,15 +1140,16 @@ let cmdline_term ~allow_empty_config : conf Term.t =
   Term.(
     (* !the o_xxx must be in alphabetic orders to match the parameters of
      * combine above! *)
-    const combine $ o_allow_untrusted_postprocessors $ o_ast_caching $ o_autofix
+    const combine $ o_allow_untrusted_validators $ o_ast_caching $ o_autofix
     $ o_baseline_commit $ CLI_common.o_common $ o_config $ o_dataflow_traces
     $ o_diff_depth $ o_dryrun $ o_dump_ast $ o_dump_command_for_core
     $ o_dump_engine_path $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids
     $ o_force_color $ o_gitlab_sast $ o_gitlab_secrets $ o_include $ o_json
-    $ o_junit_xml $ o_lang $ o_max_chars_per_line $ o_max_lines_per_finding
-    $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_nosem
-    $ o_optimizations $ o_oss $ o_output $ o_pattern $ o_pro $ o_project_root
-    $ o_pro_intrafile $ o_pro_languages $ o_registry_caching $ o_replacement
+    $ o_junit_xml $ o_lang $ o_matching_explanations $ o_max_chars_per_line
+    $ o_max_lines_per_finding $ o_max_memory_mb $ o_max_target_bytes $ o_metrics
+    $ o_num_jobs $ o_no_secrets_validation $ o_nosem $ o_optimizations $ o_oss
+    $ o_output $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile
+    $ o_pro_languages $ o_registry_caching $ o_replacement
     $ o_respect_git_ignore $ o_rewrite_rule_ids $ o_sarif
     $ o_scan_unknown_extensions $ o_secrets $ o_severity
     $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test

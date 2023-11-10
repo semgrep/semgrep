@@ -19,7 +19,6 @@ def test_duplicate_matches_indexing(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(results, "results.json")
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "rule,target_name,expect_change",
@@ -80,6 +79,7 @@ def test_id_change(
         ("rules/match_based_id/join.yaml", "join.py", True),
     ],
 )
+@pytest.mark.osemfail
 def test_id_change_osemfail(
     run_semgrep_on_copied_files: RunSemgrep, tmp_path, rule, target_name, expect_change
 ):

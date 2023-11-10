@@ -623,6 +623,14 @@ let add_special_constants env lang prog =
 (* Entry point *)
 (*****************************************************************************)
 
+type propagate_basic_visitor_funcs = {
+  visit_definition :
+    env * Iter_with_context.context -> AST_generic.definition -> unit;
+}
+
+let propagate_basic_visitor_hook : propagate_basic_visitor_funcs ref =
+  ref { visit_definition = (fun (_env, _ctx) _x -> ()) }
+
 (* !Note that this assumes Naming_AST.resolve has been called before! *)
 let propagate_basic lang prog =
   logger#trace "Constant_propagation.propagate_basic program";
@@ -703,7 +711,9 @@ let propagate_basic lang prog =
                   add_constant_env id (sid, Sym e) env
               | None, _ -> ());
             super#visit_definition (env, ctx) x
-        | _ -> super#visit_definition (env, ctx) x
+        | _ ->
+            !propagate_basic_visitor_hook.visit_definition (env, ctx) x;
+            super#visit_definition (env, ctx) x
 
       (* the uses (and also defs for Python Assign) *)
       method! visit_expr (env, ctx) x =
@@ -799,7 +809,7 @@ let propagate_basic lang prog =
   in
   visitor#visit_program (env, Iter_with_context.initial_context) prog;
   ()
-  [@@profiling]
+[@@profiling]
 
 let propagate_dataflow_one_function lang inputs flow =
   (* Exposed to help DeepSemgrep *)
@@ -814,14 +824,16 @@ let propagate_dataflow lang ast =
       let xs =
         AST_to_IL.stmt lang (G.Block (Tok.unsafe_fake_bracket ast) |> G.s)
       in
+      (* Top-level function. No need to use CFG_build.cfg_of_fdef here. *)
       let flow = CFG_build.cfg_of_stmts xs in
       propagate_dataflow_one_function lang [] flow
   | _ ->
       ast
       |> Visit_function_defs.visit (fun _ent fdef ->
-             let inputs, xs = AST_to_IL.function_definition lang fdef in
-             let flow = CFG_build.cfg_of_stmts xs in
-             propagate_dataflow_one_function lang inputs flow);
+             let CFG_build.{ fparams; fcfg } =
+               CFG_build.cfg_of_fdef lang fdef
+             in
+             propagate_dataflow_one_function lang fparams fcfg);
 
       (* We consider the top-level function the interior of a degenerate function,
          and simply run constant propagation on that.
@@ -830,5 +842,6 @@ let propagate_dataflow lang ast =
          duplicate any work.
       *)
       let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
+      (* Top-level function. No need to use CFG_build.cfg_of_fdef here. *)
       let flow = CFG_build.cfg_of_stmts xs in
       propagate_dataflow_one_function lang [] flow

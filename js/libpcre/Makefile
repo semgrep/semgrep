@@ -2,7 +2,7 @@ include ./Makefile.include
 
 EMCC_DEFAULTS = \
    -sALLOW_MEMORY_GROWTH=1 \
-   -sEXPORTED_RUNTIME_METHODS=UTF8ToString,stringToUTF8,stringToAscii,lengthBytesUTF8,getValue,setValue \
+   -sEXPORTED_RUNTIME_METHODS=UTF8ToString,stringToUTF8,stringToAscii,lengthBytesUTF8,intArrayFromString,writeArrayToMemory,getValue,setValue \
    -sMODULARIZE
 
 .PHONY: build

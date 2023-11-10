@@ -20,6 +20,7 @@ from semdep.parsers.pipfile import parse_pipfile
 from semdep.parsers.pnpm import parse_pnpm
 from semdep.parsers.poetry import parse_poetry
 from semdep.parsers.pom_tree import parse_pom_tree
+from semdep.parsers.pubspec_lock import parse_pubspec_lock
 from semdep.parsers.requirements import parse_requirements
 from semdep.parsers.util import DependencyParserError
 from semdep.parsers.yarn import parse_yarn
@@ -44,7 +45,7 @@ def parse_cargo(
         lines = s.split("\n")[1:]
         dep = lines[0].split("=")[1].strip()[1:-1]
         version = lines[1].split("=")[1].strip()[1:-1]
-        if len(lines) >= 3 and lines[3].startswith("checksum"):
+        if len(lines) >= 4 and lines[3].startswith("checksum"):
             hash = {"sha256": [lines[3].split("=")[1].strip()[1:-1]]}
         else:
             hash = {}
@@ -85,6 +86,7 @@ NEW_LOCKFILE_PARSERS: Dict[
     "pnpm-lock.yaml": parse_pnpm,  # JavaScript
     "composer.lock": parse_composer_lock,  # PHP,
     "packages.lock.json": parse_packages_lock_c_sharp,  # C#
+    "pubspec.lock": parse_pubspec_lock,  # Dart / Flutter
 }
 
 LOCKFILE_TO_MANIFEST: Dict[str, Optional[str]] = {
@@ -102,6 +104,7 @@ LOCKFILE_TO_MANIFEST: Dict[str, Optional[str]] = {
     "gradle.lockfile": "build.gradle",
     "pnpm-lock.yaml": None,
     "packages.lock.json": None,
+    "pubspec.lock": "pubspec.yaml",
 }
 
 

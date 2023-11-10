@@ -33,15 +33,15 @@ if WHEEL_CMD in sys.argv:
             # For more information about python compatibility tags, check out:
             # https://packaging.python.org/en/latest/specifications/platform-compatibility-tags/
 
-            # We support Python 3.7+
-            python = "cp37.cp38.cp39.cp310.cp311.py37.py38.py39.py310.py311"
+            # We support Python 3.8+
+            python = "cp38.cp39.cp310.cp311.py37.py38.py39.py310.py311"
 
             # We don't require a specific Python ABI
             abi = "none"
 
             # To prevent potential compatibility issues when mixing glibc and libmusl,
             # PyPI does not accept the default linux_x86_64 and linux_aarch64 platform
-            # tags. Instead, package maintainers must explicity identify if their package
+            # tags. Instead, package maintainers must explicitly identify if their package
             # supports glibc and/or libmusl. Semgrep-core is statically compiled,
             # so this isn't a concern for us.
             #
@@ -118,7 +118,6 @@ install_requires = [
     "jsonschema~=4.6",
     "packaging>=21.0",
     "peewee~=3.14",
-    "python-lsp-jsonrpc~=1.0.0",
     "requests~=2.22",
     "rich>=12.6.0",
     "ruamel.yaml>=0.16.0,<0.18",
@@ -132,7 +131,7 @@ extras_require = {"experiments": ["jsonnet~=0.18"]}
 
 setuptools.setup(
     name="semgrep",
-    version="1.41.0",
+    version="1.48.0",
     author="Semgrep Inc.",
     author_email="support@semgrep.com",
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",
@@ -142,7 +141,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",
-    scripts=["bin/semgrep", "bin/pysemgrep"],
+    scripts=["bin/semgrep", "bin/pysemgrep", "bin/sg"],
     packages=setuptools.find_packages(where="src"),
     package_dir={"": "src"},
     package_data={"semgrep": [os.path.join("bin", "*")]},
@@ -152,7 +151,6 @@ setuptools.setup(
         "License :: OSI Approved :: GNU Lesser General Public License v2 (LGPLv2)",
         "Operating System :: MacOS",
         "Operating System :: POSIX :: Linux",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
@@ -160,6 +158,6 @@ setuptools.setup(
         "Topic :: Security",
         "Topic :: Software Development :: Quality Assurance",
     ],
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     zip_safe=False,
 )

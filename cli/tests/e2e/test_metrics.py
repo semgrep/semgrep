@@ -125,6 +125,7 @@ def mock_config_request(monkeypatch: MonkeyPatch) -> Iterator[None]:
         ),
     ],
 )
+@pytest.mark.osemfail
 def test_flags(
     run_semgrep_in_tmp: RunSemgrep,
     mock_config_request,
@@ -153,6 +154,7 @@ def test_flags(
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_flags_actual_send(run_semgrep_in_tmp: RunSemgrep):
     """
     Test that the server for metrics sends back success
@@ -178,6 +180,7 @@ def _mask_version(value: str) -> str:
     reason="snapshotting mock call kwargs doesn't work on py3.7",
 )
 @mark.parametrize("pro_flag", [[]])  # TODO: ["--pro"] works in CI but failed locally
+@pytest.mark.osemfail
 def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch, pro_flag):
     # make the formatted timestamp strings deterministic
     mocker.patch.object(

@@ -207,6 +207,9 @@ let just_parse_with_lang lang file =
   | Lang.Hack ->
       run file [ TreeSitter Parse_hack_tree_sitter.parse ] (fun x -> x)
   | Lang.Html
+  (* TODO: there is now https://github.com/ObserverOfTime/tree-sitter-xml
+   * which we could use for XML instead of abusing tree-sitter-html
+   *)
   | Lang.Xml ->
       (* less: there is an html parser in pfff too we could use as backup *)
       run file [ TreeSitter Parse_html_tree_sitter.parse ] (fun x -> x)

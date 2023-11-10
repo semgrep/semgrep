@@ -92,7 +92,7 @@ let (convert : Graph_code.t -> graph) =
                     let j = hashtbl_find h.name_to_i node2 in
                     h.use.(i) <- j :: h.use.(i)));
   h
- [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Adapters *)

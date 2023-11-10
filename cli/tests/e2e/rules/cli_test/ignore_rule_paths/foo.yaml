@@ -1,0 +1,17 @@
+rules:
+  - id: ATS-insecure-media-loads
+    message: |
+      dummy
+    languages:
+      - xml
+    severity: WARNING
+    paths:
+      include:
+        - bar.xml
+    patterns:
+      - pattern: |
+          <dict>
+          ...
+          <foo>bar</foo>
+          ...
+          </dict>

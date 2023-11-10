@@ -3318,17 +3318,17 @@ and declaration (env : env) (x : CST.declaration) : stmt =
                         fparams =
                           fb
                             (if has_params then
-                             [
-                               Param
-                                 {
-                                   pname = Some ("value", fake "value");
-                                   ptype = Some v3;
-                                   pdefault = None;
-                                   pattrs = [];
-                                   pinfo = empty_id_info ();
-                                 };
-                             ]
-                            else []);
+                               [
+                                 Param
+                                   {
+                                     pname = Some ("value", fake "value");
+                                     ptype = Some v3;
+                                     pdefault = None;
+                                     pattrs = [];
+                                     pinfo = empty_id_info ();
+                                   };
+                               ]
+                             else []);
                         frettype = (if has_return then Some v3 else None);
                         (* TODO Should this be "void"? *)
                         fbody;

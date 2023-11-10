@@ -8,7 +8,7 @@
 
 type t = {
   rule_id : Rule_ID.t option;
-  typ : Semgrep_output_v1_t.core_error_kind;
+  typ : Semgrep_output_v1_t.error_type;
   loc : Tok.location;
   msg : string;
   (* ?? diff with msg? *)
@@ -28,15 +28,11 @@ val mk_error :
   Rule_ID.t option ->
   Tok.location ->
   string ->
-  Semgrep_output_v1_t.core_error_kind ->
+  Semgrep_output_v1_t.error_type ->
   t
 
 val error :
-  Rule_ID.t ->
-  Tok.location ->
-  string ->
-  Semgrep_output_v1_t.core_error_kind ->
-  unit
+  Rule_ID.t -> Tok.location -> string -> Semgrep_output_v1_t.error_type -> unit
 
 (* Convert an invalid rule into an error.
    TODO: return None for rules that are being skipped due to version
@@ -44,7 +40,9 @@ val error :
 *)
 val error_of_invalid_rule_error : Rule.invalid_rule_error -> t
 
-(* Convert a caught exception and its stack trace to a Semgrep error. *)
+(* Convert a caught exception and its stack trace to a Semgrep error.
+ * See also JSON_report.json_of_exn for non-target related exn handling.
+ *)
 val exn_to_error : Rule_ID.t option -> Common.filename -> Exception.t -> t
 
 (*****************************************************************************)
@@ -61,7 +59,7 @@ val try_with_print_exn_and_reraise : Common.filename -> (unit -> unit) -> unit
 val string_of_error : t -> string
 
 val severity_of_error :
-  Semgrep_output_v1_t.core_error_kind -> Semgrep_output_v1_t.core_severity
+  Semgrep_output_v1_t.error_type -> Semgrep_output_v1_t.error_severity
 
 (*****************************************************************************)
 (* Helpers for unit testing *)

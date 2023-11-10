@@ -134,7 +134,10 @@ REPOS = [
     Repo("https://github.com/OWASP/NodeGoat"),
     Repo("https://github.com/dropbox/questions"),
     Repo("https://github.com/coinbase/gtt-ui"),
-    Repo("https://github.com/DevSlop/Pixi"),
+    Repo(
+        "https://github.com/DevSlop/Pixi",
+        xfail_reason="DevSlop-Pixi/app/public/api-docs/ contains some minified JS files that cause Semgrep to timeout, so the output will contain some errors.",
+    ),
     Repo("https://github.com/home-assistant/home-assistant"),
     Repo("https://github.com/we45/Vulnerable-Flask-App"),
     Repo(

@@ -38,7 +38,7 @@ type rule = {
   (* originates from pattern-inside or pattern-not-inside *)
   message : string;
   severity : Rule.severity;
-  languages : Lang.t list;
+  langs : Lang.t list;
   (* at least one element *)
   (* Useful for debugging, to report bad rules. We could rule.id to
    * report those bad rules, but semgrep-python uses a weird encoding

@@ -93,7 +93,7 @@ let map_root pat = Re.seq (Re.bos :: map pat)
 let compile ~source pat =
   let re = map_root pat |> Re.compile in
   { source; re }
-  [@@profiling "Glob.Match.compile"]
+[@@profiling "Glob.Match.compile"]
 
 (* This is used during unit testing. *)
 let debug = ref false
@@ -105,7 +105,7 @@ let run matcher path =
     Printf.printf "** pattern: %S  path: %S  matches: %B\n"
       matcher.source.line_contents path res;
   res
-  [@@profiling "Glob.Match.run"]
+[@@profiling "Glob.Match.run"]
 
 let source matcher = matcher.source
 

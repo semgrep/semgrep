@@ -8,7 +8,7 @@ public class boxing_equivalences_string {
     java.lang.String s2 = "asdf";
     // MATCH:
     System.out.println(s1);
-    // TODO:
+    // MATCH:
     System.out.println(s2);
     // MATCH:
     System.out.println("asdf");

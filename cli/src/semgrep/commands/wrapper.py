@@ -3,6 +3,7 @@ from functools import wraps
 from typing import Any
 from typing import Callable
 from typing import NoReturn
+from typing import Optional
 
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import SemgrepError
@@ -30,15 +31,18 @@ def handle_command_errors(func: Callable) -> Callable:
         # than warning are handled twice
         logger = getLogger("semgrep")
         logger.propagate = False
+        exc: Optional[BaseException] = None
 
         try:
             func(*args, **kwargs)
         # Catch custom exception, output the right message and exit
         except SemgrepError as e:
             exit_code = e.code
-        except Exception as e:
+            exc = e
+        except Exception as e:  # noqa: W0718
             logger.exception(e)
             exit_code = FATAL_EXIT_CODE
+            exc = e
         except SystemExit as e:
             if e.code is None:
                 exit_code = 0
@@ -46,8 +50,10 @@ def handle_command_errors(func: Callable) -> Callable:
                 exit_code = FATAL_EXIT_CODE
             else:
                 exit_code = e.code
-        except:  # noqa: B001
+            exc = e
+        except BaseException as e:  # noqa: W0718
             exit_code = FATAL_EXIT_CODE
+            exc = e
         else:
             exit_code = 0
         finally:
@@ -56,6 +62,7 @@ def handle_command_errors(func: Callable) -> Callable:
             metrics.send()
 
             error_handler = get_state().error_handler
+            error_handler.capture_error(exc)
             exit_code = error_handler.send(exit_code)
 
         # not inside the finally block to avoid overriding other sys.exits

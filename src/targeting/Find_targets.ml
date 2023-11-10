@@ -124,9 +124,14 @@ let get_reason_for_exclusion (sel_events : Gitignore.selection_event list) :
  *)
 let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
     (scan_root : fppath) : Fpath.t list * Out.skipped_target list =
-  (* Imperative style! walk and collect *)
-  let (res : Fpath.t list ref) = ref [] in
+  (* Imperative style! walk and collect.
+     This is for the sake of readability so let's try to make this as
+     readable as possible.
+  *)
+  let (selected_paths : Fpath.t list ref) = ref [] in
   let (skipped : Out.skipped_target list ref) = ref [] in
+  let add path = push path selected_paths in
+  let skip target = push target skipped in
 
   (* mostly a copy-paste of List_files.list_regular_files() *)
   let rec aux (dir : fppath) =
@@ -146,19 +151,19 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
            in
            let ppath = Ppath.add_seg dir.ppath name in
            (* skip hidden files (this includes big directories like .git/)
-            * TODO? maybe add a setting in conf?
-            * TODO? add a skip reason for those?
-            *)
+              TODO? maybe add a setting in conf? -> no, this is a job for
+              semgrepignore.
+              TODO: why are we doing this? It doesn't seem like pysemgrep
+              is doing this.
+           *)
            if name =~ "^\\." then
-             let skip =
+             skip
                {
-                 Out.path = !!fpath;
+                 Out.path = fpath;
                  reason = Out.Dotfile;
                  details = None;
                  rule_id = None;
                }
-             in
-             Common.push skip skipped
            else
              let status, selection_events = Semgrepignore.select ign ppath in
              match status with
@@ -167,9 +172,9 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
                      m "Ignoring path %s:\n%s" !!fpath
                        (Gitignore.show_selection_events selection_events));
                  let reason = get_reason_for_exclusion selection_events in
-                 let skip =
+                 skip
                    {
-                     Out.path = !!fpath;
+                     Out.path = fpath;
                      reason;
                      details =
                        Some
@@ -177,14 +182,12 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
                           semgrepignore";
                      rule_id = None;
                    }
-                 in
-                 Common.push skip skipped
              | Not_ignored -> (
                  (* TODO: check read permission? *)
                  match Unix.lstat !!fpath with
                  (* skipping symlinks *)
                  | { Unix.st_kind = S_LNK; _ } -> ()
-                 | { Unix.st_kind = S_REG; _ } -> Common.push fpath res
+                 | { Unix.st_kind = S_REG; _ } -> add fpath
                  | { Unix.st_kind = S_DIR; _ } ->
                      (* skipping submodules.
                       * TODO? should we add a skip_reason for it? pysemgrep
@@ -207,10 +210,9 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
                  | exception Unix.Unix_error (_err, _fun, _info) -> ()))
   in
   aux scan_root;
-  (* TODO? List.rev? anyway we gonna sort those files later no? or for
-   * displaying matches incrementally the order matters?
-   *)
-  (!res, !skipped)
+  (* Let's not worry about file order here until we have to.
+     They will be sorted later. *)
+  (!selected_paths, !skipped)
 
 (*************************************************************************)
 (* Grouping *)
@@ -280,7 +282,8 @@ let get_targets conf scanning_roots =
           *)
          let ign =
            Semgrepignore.create ?include_patterns:conf.include_
-             ~cli_patterns:conf.exclude ~exclusion_mechanism
+             ~cli_patterns:conf.exclude
+             ~builtin_semgrepignore:Semgrep_scan_legacy ~exclusion_mechanism
              ~project_root:(Rpath.to_fpath project_root)
              ()
          in
@@ -311,4 +314,4 @@ let get_targets conf scanning_roots =
   |> List.split
   |> fun (paths_list, skipped_paths_list) ->
   (List.flatten paths_list, List.flatten skipped_paths_list)
-  [@@profiling]
+[@@profiling]

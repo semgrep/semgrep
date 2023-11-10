@@ -11,6 +11,12 @@ type status = {
 }
 [@@deriving show]
 
+(* very general helper to run a git command and return its output
+ * if everthing went fine or log the error (using Logs) and
+ * raise an Error otherwise
+ *)
+val git_check_output : Bos.Cmd.t -> string
+
 (* precondition: cwd must be a directory
    This returns a list of paths relative to cwd.
 *)
@@ -46,8 +52,15 @@ val is_git_repo : Fpath.t -> bool
 (** Returns true if passed directory a git repo*)
 
 (* precondition: cwd must be a directory *)
-val dirty_lines_of_file : Fpath.t -> (int * int) array option
-(** Returns a list of (start, end) line numbers for each dirty line in the file, or none if file is untracked. Assumes that you've checked the file is in a git repo *)
+val dirty_lines_of_file : ?git_ref:string -> Fpath.t -> (int * int) array option
+(** [dirty_lines_of_file path] will return an optional array of line ranges that indicate what
+  * lines have been changed. An optional [git_ref] can be passed that will be used
+  * to diff against. The default [git_ref] is ["HEAD"]
+  *)
+
+(* precondition: cwd must be a directory *)
+val is_tracked_by_git : Fpath.t -> bool
+(** [is_tracked_by_git path] Returns true if the file is tracked by git *)
 
 (* precondition: cwd must be a directory *)
 val dirty_files : Fpath.t -> Fpath.t list

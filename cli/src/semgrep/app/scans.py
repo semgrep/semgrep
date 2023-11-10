@@ -1,21 +1,19 @@
 # Handle communication of findings / errors to semgrep.app
 import json
 import os
+import sys
 from collections import Counter
-from copy import deepcopy
+from dataclasses import dataclass
 from datetime import datetime
 from datetime import timedelta
 from pathlib import Path
 from time import sleep
-from typing import Any
 from typing import Dict
 from typing import FrozenSet
 from typing import List
 from typing import Optional
 from typing import Set
-from typing import Tuple
 from typing import TYPE_CHECKING
-from urllib.parse import urlencode
 
 import click
 import requests
@@ -23,15 +21,15 @@ from boltons.iterutils import partition
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyParserError
-from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
-from semgrep.constants import RuleSeverity
+from semgrep import __VERSION__
+from semgrep.app.project_config import ProjectConfig
+from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
-
 
 if TYPE_CHECKING:
     from semgrep.engine import EngineType
@@ -40,72 +38,106 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-class ScanHandler:
-    def __init__(self, dry_run: bool = False, deployment_name: str = "") -> None:
-        self._deployment_id: Optional[int] = None
-        self._deployment_name: str = deployment_name
+@dataclass
+class ScanCompleteResult:
+    success: bool
+    app_block_override: bool
+    app_block_reason: str
 
-        self.scan_id = None
-        self.ignore_patterns: List[str] = []
-        self._policy_names: List[str] = []
-        self._autofix = False
-        self._deepsemgrep = False
+
+class ScanHandler:
+    def __init__(self, dry_run: bool = False) -> None:
+        state = get_state()
+        self.local_id = str(state.request_id)
+        self.scan_metadata = out.ScanMetadata(
+            cli_version=out.Version(__VERSION__),
+            unique_id=out.Uuid(self.local_id),
+            requested_products=[],
+            dry_run=dry_run,
+        )
+        self.scan_response: Optional[out.ScanResponse] = None
         self.dry_run = dry_run
         self._dry_run_rules_url: str = ""
-        self._skipped_syntactic_ids: List[str] = []
-        self._skipped_match_based_ids: List[str] = []
         self._scan_params: str = ""
-        self._rules: str = ""
-        self._enabled_products: List[str] = []
+        self.ci_scan_results: Optional[out.CiScanResults] = None
+
+    @property
+    def scan_id(self) -> Optional[int]:
+        if self.scan_response:
+            return self.scan_response.info.id
+        return None
 
     @property
     def deployment_id(self) -> Optional[int]:
         """
         Separate property for easy of mocking in test
         """
-        return self._deployment_id
+        if self.scan_response:
+            return self.scan_response.info.deployment_id
+        return None
 
     @property
-    def deployment_name(self) -> str:
+    def deployment_name(self) -> Optional[str]:
         """
         Separate property for easy of mocking in test
         """
-        return self._deployment_name
-
-    @property
-    def policy_names(self) -> List[str]:
-        """
-        Separate property for easy of mocking in test
-        """
-        return self._policy_names
+        if self.scan_response:
+            return self.scan_response.info.deployment_name
+        return None
 
     @property
     def autofix(self) -> bool:
         """
         Separate property for easy of mocking in test
         """
-        return self._autofix
+        if self.scan_response:
+            return self.scan_response.engine_params.autofix
+        return False
 
     @property
     def deepsemgrep(self) -> bool:
         """
         Separate property for easy of mocking in test
         """
-        return self._deepsemgrep
+        if self.scan_response:
+            return self.scan_response.engine_params.deepsemgrep
+        return False
+
+    @property
+    def dependency_query(self) -> bool:
+        """
+        Separate property for easy of mocking in test
+        """
+        if self.scan_response:
+            return self.scan_response.engine_params.dependency_query
+        return False
 
     @property
     def skipped_syntactic_ids(self) -> List[str]:
         """
         Separate property for easy of mocking in test
         """
-        return self._skipped_syntactic_ids
+        if self.scan_response:
+            return self.scan_response.config.triage_ignored_syntactic_ids
+        return []
 
     @property
     def skipped_match_based_ids(self) -> List[str]:
         """
         Separate property for easy of mocking in test
         """
-        return self._skipped_match_based_ids
+        if self.scan_response:
+            return self.scan_response.config.triage_ignored_match_based_ids
+        return []
+
+    @property
+    def ignore_patterns(self) -> List[str]:
+        """
+        Separate property for easy of mocking in test
+        """
+        if self.scan_response:
+            return self.scan_response.engine_params.ignored_files
+        return []
 
     @property
     def scan_params(self) -> str:
@@ -119,95 +151,53 @@ class ScanHandler:
         """
         Separate property for easy of mocking in test
         """
-        return self._rules
+        if self.scan_response:
+            return self.scan_response.config.rules.to_json_string()
+
+        return ""
 
     @property
     def enabled_products(self) -> List[str]:
         """
         Separate property for easy of mocking in test
         """
-        return self._enabled_products
+        if self.scan_response:
+            return [p.to_json() for p in self.scan_response.info.enabled_products]
+        return []
 
-    def _get_scan_config_from_app(self, url: str) -> Dict[str, Any]:
-        state = get_state()
-        response = state.app_session.get(url)
-        try:
-            response.raise_for_status()
-        except requests.RequestException:
-            raise Exception(
-                f"API server at {state.env.semgrep_url} returned this error: {response.text}"
-            )
-
-        body = response.json()
-
-        if not isinstance(body, dict):
-            raise Exception(
-                f"API server at {state.env.semgrep_url} returned type '{type(body)}'. Expected a dictionary."
-            )
-
-        return body
-
-    def fetch_and_init_scan_config(self, meta: Dict[str, Any]) -> None:
-        """
-        Get configurations for scan
-        """
-        state = get_state()
-
-        self._scan_params = urlencode(
-            {
-                "dry_run": self.dry_run,
-                "repo_name": meta.get("repository"),
-                "sca": meta.get("is_sca_scan", False),
-                "full_scan": meta.get("is_full_scan", False),
-                "semgrep_version": meta.get("semgrep_version", "0.0.0"),
-            }
-        )
-
-        if self.dry_run:
-            app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
-        else:
-            app_get_config_url = (
-                f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/config"
-            )
-
-        body = self._get_scan_config_from_app(app_get_config_url)
-
-        self._deployment_id = body["deployment_id"]
-        self._deployment_name = body["deployment_name"]
-        self._policy_names = body["policy_names"]
-        self._rules = body["rule_config"]
-        self._autofix = body.get("autofix") or False
-        self._deepsemgrep = body.get("deepsemgrep") or False
-        self._dependency_query = body.get("dependency_query") or False
-        self._skipped_syntactic_ids = body.get("triage_ignored_syntactic_ids") or []
-        self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids") or []
-        self._enabled_products = body.get("enabled_products") or []
-        self.ignore_patterns = body.get("ignored_files") or []
-
-        if state.terminal.is_debug:
-            config = deepcopy(body)
-            try:
-                config["rule_config"] = json.loads(config["rule_config"])
-            except Exception:
-                pass
-            logger.debug(f"Got configuration {json.dumps(config, indent=4)}")
-
-    def start_scan(self, meta: Dict[str, Any]) -> None:
+    def start_scan(
+        self, project_metadata: out.ProjectMetadata, project_config: ProjectConfig
+    ) -> None:
         """
         Get scan id and file ignores
 
         returns ignored list
         """
         state = get_state()
-        if self.dry_run:
-            logger.info(f"Would have sent POST request to create scan")
-            return
 
-        logger.debug(f"Starting scan: {json.dumps({'meta': meta}, indent=4)}")
+        request = out.ScanRequest(
+            meta=out.RawJson(
+                {
+                    **project_metadata.to_json(),
+                    **project_config.to_CiConfigFromRepo().to_json(),
+                }
+            ),
+            scan_metadata=self.scan_metadata,
+            project_metadata=project_metadata,
+            project_config=project_config.to_CiConfigFromRepo(),
+        ).to_json()
+
+        logger.debug(f"Starting scan: {json.dumps(request, indent=4)}")
         response = state.app_session.post(
-            f"{state.env.semgrep_url}/api/agent/deployments/scans",
-            json={"meta": meta},
+            f"{state.env.semgrep_url}/api/cli/scans",
+            json=request,
         )
+
+        if response.status_code == 401:
+            logger.info(
+                "API token not valid. Try to run `semgrep logout` and `semgrep login` again.",
+            )
+            sys.exit(INVALID_API_KEY_EXIT_CODE)
 
         if response.status_code == 404:
             raise Exception(
@@ -223,9 +213,10 @@ class ScanHandler:
                 f"API server at {state.env.semgrep_url} returned this error: {response.text}"
             )
 
-        body = response.json()
-        self.scan_id = body["scan"]["id"]
-        self._enabled_products = body["scan"].get("enabled_products") or []
+        self.scan_response = out.ScanResponse.from_json(response.json())
+        logger.debug(
+            f"Scan started: {json.dumps(self.scan_response.to_json(), indent=4)}"
+        )
 
     def report_failure(self, exit_code: int) -> None:
         """
@@ -266,9 +257,11 @@ class ScanHandler:
         contributions: out.Contributions,
         engine_requested: "EngineType",
         progress_bar: "Progress",
-    ) -> Tuple[bool, str]:
+    ) -> ScanCompleteResult:
         """
         commit_date here for legacy reasons. epoch time of latest commit
+
+        Returns (success, block_scan, block_reason)
         """
         state = get_state()
         rule_ids = [out.RuleId(r.id) for r in rules]
@@ -282,11 +275,11 @@ class ScanHandler:
         # appear in an intuitive order.  this requires reversed ordering here.
         all_matches.reverse()
         sort_order = {  # used only to order rules by severity
-            "EXPERIMENT": 0,
-            "INVENTORY": 1,
-            "INFO": 2,
-            "WARNING": 3,
-            "ERROR": 4,
+            out.Experiment(): 0,
+            out.Inventory(): 1,
+            out.Info(): 2,
+            out.Warning(): 3,
+            out.Error(): 4,
         }
         # NB: sorted guarantees stable sort, so within a given severity level
         # issues remain sorted as before
@@ -307,22 +300,26 @@ class ScanHandler:
             or os.getenv("BITBUCKET_TOKEN")
         )
 
-        ci_scan_results = out.CiScanResults(
+        self.ci_scan_results = out.CiScanResults(
             # send a backup token in case the app is not available
             token=token,
             findings=findings,
             ignores=ignores,
-            searched_paths=[str(t) for t in sorted(targets)],
-            renamed_paths=[str(rt) for rt in sorted(renamed_targets)],
+            searched_paths=[out.Fpath(str(t)) for t in sorted(targets)],
+            renamed_paths=[out.Fpath(str(rt)) for rt in sorted(renamed_targets)],
             rule_ids=rule_ids,
             contributions=contributions,
         )
-        if self._dependency_query:
-            ci_scan_results.dependencies = out.CiScanDependencies(lockfile_dependencies)
+        if self.dependency_query:
+            self.ci_scan_results.dependencies = out.CiScanDependencies(
+                lockfile_dependencies
+            )
 
-        findings_and_ignores = ci_scan_results.to_json()
+        findings_and_ignores = self.ci_scan_results.to_json()
 
-        if any(match.severity == RuleSeverity.EXPERIMENT for match in new_ignored):
+        if any(
+            isinstance(match.severity.value, out.Experiment) for match in new_ignored
+        ):
             logger.info("Some experimental rules were run during execution.")
 
         ignored_ext_freqs = Counter(
@@ -332,7 +329,7 @@ class ScanHandler:
 
         dependency_counts = {k: len(v) for k, v in lockfile_dependencies.items()}
 
-        complete = out.CiScanCompleteResponse(
+        complete = out.CiScanComplete(
             exit_code=1
             if any(match.is_blocking and not match.is_ignored for match in all_matches)
             else 0,
@@ -358,9 +355,6 @@ class ScanHandler:
             ),
         )
 
-        if self._dependency_query:
-            complete.dependencies = out.CiScanDependencies(lockfile_dependencies)
-
         if self.dry_run:
             logger.info(
                 f"Would have sent findings and ignores blob: {json.dumps(findings_and_ignores, indent=4)}"
@@ -368,13 +362,10 @@ class ScanHandler:
             logger.info(
                 f"Would have sent complete blob: {json.dumps(complete.to_json(), indent=4)}"
             )
-            return (False, "")
+            return ScanCompleteResult(True, False, "")
         else:
             logger.debug(
                 f"Sending findings and ignores blob: {json.dumps(findings_and_ignores, indent=4)}"
-            )
-            logger.debug(
-                f"Sending complete blob: {json.dumps(complete.to_json(), indent=4)}"
             )
 
         results_task = progress_bar.add_task("Uploading scan results")
@@ -401,11 +392,18 @@ class ScanHandler:
         except requests.RequestException as exc:
             raise Exception(f"API server returned this error: {response.text}") from exc
 
-        try_until = datetime.now() + timedelta(minutes=20)
-        slow_down_after = datetime.now() + timedelta(minutes=2)
         complete_task = progress_bar.add_task("Finalizing scan")
-        while datetime.now() < try_until:
-            logger.debug("Sending /complete")
+        try_until = datetime.utcnow() + timedelta(minutes=20)
+        slow_down_after = datetime.utcnow() + timedelta(minutes=2)
+
+        while True:
+            logger.debug(
+                f"Sending /complete {json.dumps(complete.to_json(), indent=4)}"
+            )
+
+            if datetime.utcnow() > try_until:
+                # let the backend know we won't be trying again
+                complete.final_attempt = True
 
             # mark as complete
             response = state.app_session.post(
@@ -422,18 +420,15 @@ class ScanHandler:
                 )
 
             ret = response.json()
+            success = ret.get("success", False)
 
-            if ret.get("success", False):
+            if success or complete.final_attempt:
                 progress_bar.update(complete_task, completed=100)
-                return (
-                    ret.get("app_block_override", False),
+                return ScanCompleteResult(
+                    success,
+                    bool(ret.get("app_block_override", False)),
                     ret.get("app_block_reason", ""),
                 )
-            else:
-                progress_bar.advance(complete_task)
-                sleep(5 if datetime.utcnow() < slow_down_after else 30)
-                continue
 
-        raise Exception(
-            f"API server at {state.env.semgrep_url} never completed processing the scan results."
-        )
+            progress_bar.advance(complete_task)
+            sleep(5 if datetime.utcnow() < slow_down_after else 30)

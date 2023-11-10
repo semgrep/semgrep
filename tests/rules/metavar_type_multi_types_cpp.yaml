@@ -1,0 +1,13 @@
+rules:
+  - id: match-multiple-metavar-type
+    patterns:
+      - pattern: $X.get($SRC, ...)
+      - metavariable-type:
+          metavariable: $X
+          types:
+            - ifstream
+            - mystream
+    message: Semgrep found a match
+    languages:
+      - cpp
+    severity: WARNING

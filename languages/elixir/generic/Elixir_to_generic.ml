@@ -367,6 +367,49 @@ and map_stmts env (xs : stmts) : G.stmt list =
            let e = map_expr env e in
            exprstmt e)
 
+and map_vardef env v1 v2 =
+  (* We don't expect the IdEllipsis case to enter this function. *)
+  let id = map_ident_or_metavar_only_exn_on_ellipsis env v1 in
+  let ent = G.basic_entity id in
+  let e2 = map_expr env v2 in
+  let def_stmt =
+    G.DefStmt (ent, VarDef { vinit = Some e2; vtype = None }) |> G.s
+  in
+  G.StmtExpr def_stmt |> G.e
+
+(* TODO: Elixir also has these patterns:
+ *   ^x = 0 meaning x cannot be re-assigned later, and
+ *   [x|y] = [0, 1, 2] where x maps to 0, and y maps to the rest
+ * and H.expr_to_pattern doesn't cover these cases.
+ *)
+and map_letpattern env v1 v2 =
+  let e1 = H.expr_to_pattern (map_expr env v1) in
+  let e2 = map_expr env v2 in
+  G.LetPattern (e1, e2) |> G.e
+
+and map_binary_op env v1 v2 v3 =
+  let e1 = map_expr env v1 in
+  let op = map_wrap_operator env v2 in
+  let e2 = map_expr env v3 in
+  match op with
+  | Left (op, tk) -> G.opcall (op, tk) [ e1; e2 ]
+  | Right id ->
+      let n = G.N (H.name_of_id id) |> G.e in
+      G.Call (n, fb ([ e1; e2 ] |> Common.map G.arg)) |> G.e
+
+and map_match env v1 v2 =
+  (* Single LHS names are VarDefs.
+   * Otherwise, including ellipsis, we consider them LetPatterns.
+   *)
+  match v1 with
+  | I id -> (
+      match id with
+      | Id _
+      | IdMetavar _ ->
+          map_vardef env id v2
+      | IdEllipsis _ -> map_letpattern env v1 v2)
+  | _else_ -> map_letpattern env v1 v2
+
 and map_expr env v : G.expr =
   match v with
   | S x ->
@@ -470,14 +513,9 @@ and map_expr env v : G.expr =
           let n = G.N (H.name_of_id id) |> G.e in
           G.Call (n, fb [ G.Arg e ]) |> G.e)
   | BinaryOp (v1, v2, v3) -> (
-      let e1 = map_expr env v1 in
-      let op = map_wrap_operator env v2 in
-      let e2 = map_expr env v3 in
-      match op with
-      | Left (op, tk) -> G.opcall (op, tk) [ e1; e2 ]
-      | Right id ->
-          let n = G.N (H.name_of_id id) |> G.e in
-          G.Call (n, fb ([ e1; e2 ] |> Common.map G.arg)) |> G.e)
+      match v2 with
+      | OMatch, _tk -> map_match env v1 v3
+      | _else_ -> map_binary_op env v1 v2 v3)
   | OpArity (v1, tslash, v3) ->
       let id = map_wrap_operator_ident env v1 in
       let x = (map_wrap (map_option map_int)) env v3 in

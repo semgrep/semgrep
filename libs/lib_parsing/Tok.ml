@@ -242,14 +242,21 @@ let content_of_tok_opt ii =
    inspecting the contents of the token, plus the start information.
 *)
 let end_pos_of_loc loc =
-  let line, col =
+  let line, col, trailing_nl =
     String.fold_left
-      (fun (line, col) c ->
+      (fun (line, col, after_nl) c ->
         match c with
-        | '\n' -> (line + 1, 0)
-        | _ -> (line, col + 1))
-      (loc.pos.line, loc.pos.column)
+        | '\n' when after_nl -> (line + 1, 0, true)
+        | '\n' -> (line, col, true)
+        | _ when after_nl -> (line + 1, 1, false)
+        | _ -> (line, col + 1, false))
+      (loc.pos.line, loc.pos.column, false)
       loc.str
+  in
+  let col =
+    (* THINK: We count a trailing newline as an extra character in the last line,
+     * is that the standard ? *)
+    if trailing_nl then col + 1 else col
   in
   (line, col, loc.pos.bytepos + String.length loc.str)
 

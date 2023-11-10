@@ -27,6 +27,7 @@ from typing_extensions import LiteralString
 import semgrep.semgrep_interfaces.semgrep_metrics as met
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
+from semgrep.error import error_type_string
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
 from semgrep.profile_manager import ProfileManager
@@ -40,6 +41,7 @@ from semgrep.semgrep_interfaces.semgrep_metrics import Misc
 from semgrep.semgrep_interfaces.semgrep_metrics import ParseStat
 from semgrep.semgrep_interfaces.semgrep_metrics import Payload
 from semgrep.semgrep_interfaces.semgrep_metrics import Performance
+from semgrep.semgrep_interfaces.semgrep_metrics import ProFeatures
 from semgrep.semgrep_interfaces.semgrep_metrics import RuleStats
 from semgrep.types import FilteredMatches
 from semgrep.verbose_logging import getLogger
@@ -122,6 +124,7 @@ class Metrics:
                 configNamesHash=met.Sha256(""),
                 projectHash=None,
                 ci=None,
+                isDiffScan=False,
             ),
             errors=Errors(),
             performance=Performance(maxMemoryBytes=None),
@@ -141,27 +144,17 @@ class Metrics:
     def configure(
         self,
         metrics_state: Optional[MetricsState],
-        legacy_state: Optional[MetricsState],
     ) -> None:
         """
         Configures whether to always, never, or automatically send metrics (based on whether config
         is pulled from the server).
 
         :param metrics_state: The value of the --metrics option
-        :param legacy_state: Value of the --enable-metrics/--disable-metrics option
         :raises click.BadParameter: if both --metrics and --enable-metrics/--disable-metrics are passed
         and their values are different
         """
 
-        if (
-            metrics_state is not None
-            and legacy_state is not None
-            and metrics_state != legacy_state
-        ):
-            raise click.BadParameter(
-                "--enable-metrics/--disable-metrics can not be used with either --metrics or SEMGREP_SEND_METRICS"
-            )
-        self.metrics_state = metrics_state or legacy_state or MetricsState.AUTO
+        self.metrics_state = metrics_state or MetricsState.AUTO
 
     @suppress_errors
     def add_engine_type(self, engineType: "EngineType") -> None:
@@ -169,6 +162,16 @@ class Metrics:
         Assumes configs is list of arguments passed to semgrep using --config
         """
         self.payload.value.engineRequested = engineType.name
+
+    @suppress_errors
+    def add_diff_depth(self, diff_depth: int) -> None:
+        if not self.payload.value.proFeatures:
+            self.payload.value.proFeatures = ProFeatures()
+        self.payload.value.proFeatures.diffDepth = diff_depth
+
+    @suppress_errors
+    def add_is_diff_scan(self, is_diff_scan: bool) -> None:
+        self.payload.environment.isDiffScan = is_diff_scan
 
     @property
     def is_using_registry(self) -> bool:
@@ -280,7 +283,9 @@ class Metrics:
 
     @suppress_errors
     def add_errors(self, errors: List[SemgrepError]) -> None:
-        self.payload.errors.errors = [e.semgrep_error_type() for e in errors]
+        self.payload.errors.errors = [
+            met.Error(error_type_string(e.type_())) for e in errors
+        ]
 
     @suppress_errors
     def add_profiling(self, profiler: ProfileManager) -> None:

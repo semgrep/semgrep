@@ -27,6 +27,7 @@ def idfn(options):
     ],
     ids=idfn,
 )
+@pytest.mark.osemfail
 def test_exclude_include(run_semgrep_in_tmp: RunSemgrep, snapshot, options):
     stdout, stderr = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
@@ -39,6 +40,7 @@ def test_exclude_include(run_semgrep_in_tmp: RunSemgrep, snapshot, options):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_exclude_include_verbose_sorted_1(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
@@ -53,6 +55,7 @@ def test_exclude_include_verbose_sorted_1(run_semgrep_in_tmp: RunSemgrep, snapsh
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_exclude_include_verbose_sorted_2(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(

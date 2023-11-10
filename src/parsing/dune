@@ -5,7 +5,7 @@
  (name semgrep_parsing)
  (wrapped false)
  (libraries
-   yaml pcre
+   pcre
 
    commons
    git_wrapper
@@ -16,12 +16,12 @@
 
    pfff-lang_GENERIC-naming
 
-   ; remaining language dependencies (the main one are in ../parsing_languages/)
+   ; remaining lang dependencies (the main one are in ../parsing_languages/)
    ojsonnet
+   parser_yaml.ast_generic
    ;TODO: use lighter JSON parser at some point or move
    ; also out of Parse_rule.ml to reduce even more JS size
    parser_json.menhir parser_json.ast_generic
-   parser_typescript.tree_sitter
 
    semgrep_core
    semgrep_optimizing

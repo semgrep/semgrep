@@ -65,3 +65,16 @@ def test_decide_engine_type(
         )
         == expected
     )
+
+    # Expect engine to be non-interfile/intrafile pro
+    expected_supply_chain_only_engine = expected if expected == ET.OSS else ET.PRO_LANG
+    assert (
+        ET.decide_engine_type(
+            requested_engine=requested,
+            scan_handler=scan_handler,
+            git_meta=git_meta,
+            enable_pro_diff_scan=enable_pro_diff,
+            supply_chain_only=True,
+        )
+        == expected_supply_chain_only_engine
+    )

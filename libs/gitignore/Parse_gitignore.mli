@@ -7,12 +7,15 @@
 *)
 
 val from_file :
-  anchor:Glob.Pattern.t -> kind:string -> Fpath.t -> Gitignore.path_selectors
+  anchor:Glob.Pattern.t ->
+  source_kind:string ->
+  Fpath.t ->
+  Gitignore.path_selectors
 
 val from_string :
   anchor:Glob.Pattern.t ->
   name:string ->
-  kind:string ->
+  source_kind:string ->
   string ->
   Gitignore.path_selectors
 

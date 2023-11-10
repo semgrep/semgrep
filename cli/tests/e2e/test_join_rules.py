@@ -28,6 +28,7 @@ from tests.fixtures import RunSemgrep
         ),
     ],
 )
+@pytest.mark.osemfail
 def test_join_rules(run_semgrep_in_tmp: RunSemgrep, snapshot, rule, target):
     snapshot.assert_match(
         run_semgrep_in_tmp(rule, target_name=target).stdout,
@@ -69,6 +70,7 @@ def test_join_rules(run_semgrep_in_tmp: RunSemgrep, snapshot, rule, target):
         # ),
     ],
 )
+@pytest.mark.osemfail
 def test_recursive_join_rules(run_semgrep_in_tmp: RunSemgrep, snapshot, rule, target):
     snapshot.assert_match(
         run_semgrep_in_tmp(rule, target_name=target).stdout, "results.json"

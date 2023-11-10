@@ -136,7 +136,7 @@ def parse_requirements(
             continue
         output.append(
             FoundDependency(
-                package=package,
+                package=package.lower(),
                 version=version,
                 ecosystem=Ecosystem(Pypi()),
                 allowed_hashes={},

@@ -14,6 +14,7 @@
  *)
 open Common
 module MV = Metavariable
+module Out = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -109,8 +110,9 @@ and metavar_cond =
   | CondType of
       MV.mvar
       * Xlang.t option (* when the type expression is in different lang *)
-      * string (* raw input string saved for regenerating rule yaml *)
-      * AST_generic.type_ (* LATER: could parse lazily, like the patterns *)
+      * string list (* raw input string saved for regenerating rule yaml *)
+      * AST_generic.type_ list
+    (* LATER: could parse lazily, like the patterns *)
   | CondAnalysis of MV.mvar * metavar_analysis_kind
   | CondNestedFormula of MV.mvar * Xlang.t option * formula
 
@@ -119,6 +121,16 @@ and metavar_analysis_kind = CondEntropy | CondEntropyV2 | CondReDoS
 (* Represents all of the metavariables that are being focused by a single
    `focus-metavariable`. *)
 and focus_mv_list = tok * MV.mvar list [@@deriving show, eq, hash]
+
+(*****************************************************************************)
+(* Semgrep_output aliases *)
+(*****************************************************************************)
+
+(* this is now defined in semgrep_output_v1.atd *)
+type severity = Semgrep_output_v1_t.match_severity [@@deriving show, eq]
+
+type validation_state = Semgrep_output_v1_t.validation_state
+[@@deriving show, eq]
 
 (*****************************************************************************)
 (* Taint-specific types *)
@@ -141,6 +153,8 @@ type precondition_with_range = {
 }
 [@@deriving show]
 
+type by_side_effect = Only | Yes | No [@@deriving show]
+
 (* The sources/sanitizers/sinks used to be a simple 'formula list',
  * but with taint labels things are bit more complicated.
  *)
@@ -152,8 +166,10 @@ type taint_spec = {
 }
 
 and taint_source = {
+  source_id : string;  (** See 'Parse_rule.parse_taint_source'. *)
   source_formula : formula;
-  source_by_side_effect : bool;
+  source_exact : bool;
+  source_by_side_effect : by_side_effect;
   source_control : bool;
   label : string;
       (* The label to attach to the data.
@@ -181,7 +197,9 @@ and taint_source = {
  * because they are a bit confusing to use sometimes.
  *)
 and taint_sanitizer = {
+  sanitizer_id : string;
   sanitizer_formula : formula;
+  sanitizer_exact : bool;
   sanitizer_by_side_effect : bool;
   not_conflicting : bool;
       (* If [not_conflicting] is enabled, the sanitizer cannot conflict with
@@ -215,6 +233,7 @@ and taint_sink = {
  * will also be marked as tainted.
  *)
 and taint_propagator = {
+  propagator_id : string;
   propagator_formula : formula;
   propagator_by_side_effect : bool;
   from : MV.mvar wrap;
@@ -367,52 +386,25 @@ type secrets = {
 }
 [@@deriving show]
 
-(*****************************************************************************)
-(* Languages definition *)
-(*****************************************************************************)
-
-(* See the toplevel comment in Target_selector.ml for more information
- * on the selector vs analyzer terminology used below.
- *
- * TODO: instead of always deriving those fields automatically from
- * the 'languages:' field of the rule in Parse_rule.ml, we should add
- * support for an optional new 'target-selectors:' field in the rule syntax.
- *)
-type languages = {
-  (* How to *select* target files e.g. "files that look like C files".
-     If unspecified, the selector selects all the files that are not
-     ignored by generic mechanisms such as semgrepignore.
-     In a Semgrep rule where a string is expected, the standard way
-     is to use "generic" but "regex" and "none" have the same effect.
-     They all translate into 'None'.
-
-     Example:
-
-       target_selector = Some [Javascript; Typescript];
-
-     ... selects all the files that can be parsed and analyzed
-     as TypeScript ( *.js, *.ts, *.tsx) since TypeScript is an extension of
-     JavaScript.
-  *)
-  target_selector : Target_selector.t option;
-  (* How to *analyze* target files. The accompanying patterns are specified
-     elsewhere in the rule.
-     Examples:
-     - "pattern for the C parser using the generic AST" (regular programming
-       language using a classic Semgrep pattern)
-     - "pattern for Fortran77 or for Fortran90" (two possible parsers)
-     - "spacegrep pattern"
-     - "high-entropy detection" (doesn't use a pattern)
-     - "extract JavaScript snippets from a PDF file" (doesn't use a pattern)
-     This information may have to be extracted from another part of the
-     YAML rule.
-
-     Example:
-
-       target_analyzer = L (Typescript, []);
-  *)
-  target_analyzer : Xlang.t;
+type http_match_clause = {
+  status_code : int option;
+  (* Optional. Empty list if not set *)
+  headers : header list;
+  content : (formula * Xlang.t) option;
 }
+[@@deriving show]
+
+type http_matcher = {
+  match_conditions : http_match_clause list;
+  validity : validation_state;
+  (* Fields to potentially modify *)
+  severity : severity option;
+  metadata : JSON.t option;
+  message : string option;
+}
+[@@deriving show]
+
+type validator = HTTP of { request : request; response : http_matcher list }
 [@@deriving show]
 
 (*****************************************************************************)
@@ -464,7 +456,8 @@ type steps_mode = [ `Steps of step list ] [@@deriving show]
 (*****************************************************************************)
 and step = {
   step_mode : mode_for_step;
-  step_languages : languages;
+  step_selector : Target_selector.t option;
+  step_analyzer : Xlang.t;
   step_paths : paths option;
 }
 
@@ -487,10 +480,8 @@ type 'mode rule_info = {
   message : string;
   (* Currently a dummy value for extract mode rules *)
   severity : severity;
-  (* This is the list of languages in which the root pattern makes sense.
-   *
-   * The two fields in the 'languages' type above used to be a single
-   * 'languages: Xlang.t' field.
+  (* Note: The two fields target_seletor and target_analyzer below used to
+   * be a single 'languages: Xlang.t' field.
    * Indeed, for historical reasons, the 'languages:' field in the
    * YAML file is a list of strings. There is no distinction between
    * target *selection* and target *analysis*. This led to oddities for
@@ -503,8 +494,45 @@ type 'mode rule_info = {
    * but analyze them using a regexp instead of a regular Semgrep pattern.
    *
    * see also https://www.notion.so/semgrep/What-s-a-language-3f4e75546edd4a0389fa29a24eedb6c0
+   *
+   * TODO: instead of always deriving those two fields automatically from
+   * the 'languages:' field of the rule in Parse_rule.ml, we should add
+   * support for an optional new 'target-selectors:' field in the rule syntax.
+   *
+   * target_selector: How to *select* target files e.g. "files that look
+   * like C files". If None, the selector selects all the files that are not
+   * ignored by generic mechanisms such as semgrepignore.
+   * In a Semgrep rule where a string is expected, the standard way
+   * is to use "generic" but "regex" and "none" have the same effect.
+   * They all translate into 'None'.
+   *
+   * Example:
+   *
+   *   target_selector = Some [Javascript; Typescript];
+   *
+   * ... selects all the files that can be parsed and analyzed
+   * as TypeScript ( *.js, *.ts, *.tsx) since TypeScript is an extension of
+   * JavaScript.
    *)
-  languages : languages;
+  target_selector : Target_selector.t option;
+  (* target_analyzer: How to *analyze* target files. The accompanying
+   * patterns are specified elsewhere in the rule.
+   *
+   * Examples:
+   * - "pattern for the C parser using the generic AST" (regular programming
+   *   language using a classic Semgrep pattern)
+   * - "pattern for Fortran77 or for Fortran90" (two possible parsers)
+   * - "spacegrep pattern"
+   * - "high-entropy detection" (doesn't use a pattern)
+   * - "extract JavaScript snippets from a PDF file" (doesn't use a pattern)
+   * This information may have to be extracted from another part of the
+   * YAML rule.
+   *
+   * Example:
+   *
+   *   target_analyzer = L (Typescript, []);
+   *)
+  target_analyzer : Xlang.t;
   (* OPTIONAL fields *)
   options : Rule_options.t option;
   (* deprecated? or should we resurrect the feature?
@@ -517,15 +545,15 @@ type 'mode rule_info = {
    * Xpattern.Filename feature that integrates well with the xpatterns.
    *)
   paths : paths option;
+  product : Out.product;
   (* ex: [("owasp", "A1: Injection")] but can be anything.
    * Metadata was (ab)used for the ("interfile", "true") setting, but this
    * is now done via Rule_options instead.
    *)
   metadata : JSON.t option;
+  (* TODO(cooper): would be nice to have nonempty but common2 version not nice to work with; no pp for one *)
+  validators : validator list option;
 }
-
-(* TODO? just reuse Error_code.severity *)
-and severity = Error | Warning | Info | Inventory | Experiment
 [@@deriving show]
 
 (* Step mode includes rules that use search_mode and taint_mode *)
@@ -598,6 +626,9 @@ let partition_rules (rules : rules) :
   in
   part_rules [] [] [] [] [] rules
 
+(* for informational messages *)
+let show_id rule = rule.id |> fst |> Rule_ID.to_string
+
 (*****************************************************************************)
 (* Error Management *)
 (*****************************************************************************)
@@ -648,6 +679,24 @@ type error = {
 }
 
 exception Error of error
+
+(*
+   Determine if an error can be skipped. This is for presumably well-formed
+   rules that aren't compatible with the current version of semgrep
+   and shouldn't cause a failure.
+*)
+let is_skippable_error (kind : invalid_rule_error_kind) =
+  match kind with
+  | InvalidLanguage _
+  | InvalidPattern _
+  | InvalidRegexp _
+  | DeprecatedFeature _
+  | MissingPositiveTermInAnd
+  | InvalidOther _ ->
+      false
+  | IncompatibleRule _
+  | MissingPlugin _ ->
+      true
 
 (*
    You must provide a rule ID for a rule to be reported properly as an invalid
@@ -740,7 +789,7 @@ let visit_new_formula f formula =
   let bref = ref false in
   let rec visit_new_formula f formula =
     match formula with
-    | P p -> f p !bref
+    | P p -> f p ~inside:!bref
     | Inside (_, formula) ->
         Common.save_excursion bref true (fun () -> visit_new_formula f formula)
     | Not (_, x) -> visit_new_formula f x
@@ -789,7 +838,7 @@ let rec formula_of_mode (mode : mode) =
 let xpatterns_of_rule rule =
   let formulae = formula_of_mode rule.mode in
   let xpat_store = ref [] in
-  let visit xpat _ = xpat_store := xpat :: !xpat_store in
+  let visit xpat ~inside:_ = xpat_store := xpat :: !xpat_store in
   List.iter (visit_new_formula visit) formulae;
   !xpat_store
 
@@ -797,17 +846,14 @@ let xpatterns_of_rule rule =
 (* Converters *)
 (*****************************************************************************)
 
-let languages_of_lang (lang : Lang.t) : languages =
-  { target_selector = Some [ lang ]; target_analyzer = L (lang, []) }
-
-let languages_of_xlang (xlang : Xlang.t) : languages =
+let selector_and_analyzer_of_xlang (xlang : Xlang.t) :
+    Target_selector.t option * Xlang.t =
   match xlang with
   | LRegex
   | LAliengrep
   | LSpacegrep ->
-      { target_selector = None; target_analyzer = xlang }
-  | L (lang, other_langs) ->
-      { target_selector = Some (lang :: other_langs); target_analyzer = xlang }
+      (None, xlang)
+  | L (lang, other_langs) -> (Some (lang :: other_langs), xlang)
 
 (* return list of "positive" x list of Not *)
 let split_and (xs : formula list) : formula list * (tok * formula) list =
@@ -828,6 +874,7 @@ let split_and (xs : formula list) : formula list * (tok * formula) list =
  *)
 let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
   let fk = Tok.unsafe_fake_tok "" in
+  let target_selector, target_analyzer = selector_and_analyzer_of_xlang xlang in
   {
     id = (Rule_ID.of_string "-e", fk);
     mode = `Search (P xpat);
@@ -835,14 +882,17 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
     max_version = None;
     (* alt: could put xpat.pstr for the message *)
     message = "";
-    severity = Error;
-    languages = languages_of_xlang xlang;
+    severity = `Error;
+    target_selector;
+    target_analyzer;
     options = None;
     equivalences = None;
     fix = None;
     fix_regexp = None;
     paths = None;
     metadata = None;
+    validators = None;
+    product = `SAST;
   }
 
 (* TODO(dinosaure): Currently, on the Python side, we remove the metadatas and

@@ -1,0 +1,15 @@
+rules:
+  - id: cpp-tainted-field-ptr
+    languages:
+      - cpp
+    message: testing flows though C++ ptrs
+    severity: INFO
+    mode: taint
+    pattern-sources:
+      - pattern: taint_source()
+    pattern-sinks:
+      - patterns:
+          - pattern: sink($X, ...)
+          - focus-metavariable:
+              - $X
+

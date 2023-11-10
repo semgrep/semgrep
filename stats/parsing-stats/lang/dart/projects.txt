@@ -2,9 +2,12 @@
 # Top dart projects from GitHub, sorted by stars.
 # Created by /Users/brandonspark/semgrep/libs/ocaml-tree-sitter-core/scripts/most-starred-for-language.
 #
-https://github.com/flutter/flutter
+# This leads to a segfault when running `-parsing_stats`, though it seems not to
+# be an issue when running Semgrep normally.
+# https://github.com/flutter/flutter
 https://github.com/Solido/awesome-flutter
-https://github.com/AppFlowy-IO/AppFlowy
+# Also segfaults
+# https://github.com/AppFlowy-IO/AppFlowy
 https://github.com/alibaba/flutter-go
 https://github.com/iampawan/FlutterExampleApps
 https://github.com/mitesh77/Best-Flutter-UI-Templates
@@ -15,7 +18,8 @@ https://github.com/localsend/localsend
 https://github.com/cfug/dio
 https://github.com/ReVanced/revanced-manager
 https://github.com/felangel/bloc
-https://github.com/dart-lang/sdk
+# Also segfaults
+# https://github.com/dart-lang/sdk
 https://github.com/jonataslaw/getx
 https://github.com/brianegan/flutter_architecture_samples
 https://github.com/kaina404/FlutterDouBan
@@ -27,7 +31,8 @@ https://github.com/OpenFlutter/Flutter-Notebook
 https://github.com/GopeedLab/gopeed
 https://github.com/Sangwan5688/BlackHole
 https://github.com/alibaba/flutter_boost
-https://github.com/toly1994328/FlutterUnit
+# Also segfaults
+# https://github.com/toly1994328/FlutterUnit
 https://github.com/nisrulz/flutter-examples
 https://github.com/2d-inc/HistoryOfEverything
 https://github.com/vandadnp/flutter-tips-and-tricks

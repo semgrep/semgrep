@@ -26,11 +26,17 @@
    to setup_logging.
 *)
 val enable_logging : unit -> unit
+val default_skip_libs : string list
 
 (* Setup the Logs library. This call is necessary before any logging
    calls, otherwise your log will not go anywhere (not even on stderr).
 *)
-val setup_logging : force_color:bool -> level:Logs.level option -> unit
+val setup_logging :
+  ?skip_libs:string list ->
+  force_color:bool ->
+  level:Logs.level option ->
+  unit ->
+  unit
 
 (* TODO:
    Logs.Error, Logs.Warning, and friends should apply the appropriate color

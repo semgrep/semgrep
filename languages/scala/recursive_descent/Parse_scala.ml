@@ -48,7 +48,7 @@ let tokens input_source =
   (* set to false to parse correctly arrows *)
   Parsing_helpers.tokenize_all_and_adjust_pos input_source token
     TH.visitor_info_of_tok TH.is_eof
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -83,7 +83,7 @@ let parse filename =
         Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
       stat.PS.error_line_count <- stat.PS.total_line_count;
       { Parsing_result.ast = []; tokens = toks; stat }
-  [@@profiling]
+[@@profiling]
 
 let parse_program file =
   let res = parse file in

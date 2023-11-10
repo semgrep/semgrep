@@ -47,9 +47,12 @@ let rec range_to_string (range : (Tok.location * Tok.location) option) =
 and translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
   match cond with
   | CondEval e -> `O [ ("comparison", `String (range_to_string e.e_range)) ]
-  | CondType (mv, lang, str, _) ->
+  | CondType (mv, lang, strs, _) ->
       `O
-        ([ ("metavariable", `String mv); ("type", `String str) ]
+        ([
+           ("metavariable", `String mv);
+           ("types", `A (Common.map (fun s -> `String s) strs));
+         ]
         @
         match lang with
         | None -> []
@@ -79,7 +82,9 @@ and translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
 
 and translate_taint_source
     {
+      source_id = _;
       source_formula;
+      source_exact;
       source_by_side_effect;
       label;
       source_control;
@@ -95,15 +100,26 @@ and translate_taint_source
     | None -> []
     | Some { range; _ } -> [ ("requires", `String (range_to_string range)) ]
   in
+  let exact_obj = if source_exact then [ ("exact", `Bool true) ] else [] in
   let side_effect_obj =
-    if source_by_side_effect then [ ("by-side-effect", `Bool true) ] else []
+    match source_by_side_effect with
+    | Yes -> [ ("by-side-effect", `Bool true) ]
+    | Only -> [ ("by-side-effect", `String "only") ]
+    | No -> []
   in
   let control_obj =
     if source_control then [ ("control", `Bool true) ] else []
   in
   `O
     (List.concat
-       [ source_f; control_obj; label_obj; requires_obj; side_effect_obj ])
+       [
+         source_f;
+         exact_obj;
+         control_obj;
+         label_obj;
+         requires_obj;
+         side_effect_obj;
+       ])
 
 and translate_taint_sink { sink_id = _; sink_formula; sink_requires } :
     [> `O of (string * Yaml.value) list ] =
@@ -116,19 +132,26 @@ and translate_taint_sink { sink_id = _; sink_formula; sink_requires } :
   `O (List.concat [ sink_f; requires_obj ])
 
 and translate_taint_sanitizer
-    { sanitizer_formula; sanitizer_by_side_effect; not_conflicting } :
-    [> `O of (string * Yaml.value) list ] =
+    {
+      sanitizer_id = _;
+      sanitizer_formula;
+      sanitizer_exact;
+      sanitizer_by_side_effect;
+      not_conflicting;
+    } : [> `O of (string * Yaml.value) list ] =
   let (`O san_f) = translate_formula sanitizer_formula in
   let side_effect_obj =
     if sanitizer_by_side_effect then [ ("by-side-effect", `Bool true) ] else []
   in
+  let exact_obj = if sanitizer_exact then [ ("exact", `Bool true) ] else [] in
   let not_conflicting_obj =
     if not_conflicting then [ ("not-conflicting", `Bool true) ] else []
   in
-  `O (List.concat [ san_f; side_effect_obj; not_conflicting_obj ])
+  `O (List.concat [ san_f; exact_obj; side_effect_obj; not_conflicting_obj ])
 
 and translate_taint_propagator
     {
+      propagator_id = _;
       propagator_formula;
       propagator_by_side_effect;
       from;
@@ -218,15 +241,15 @@ and translate_formula f : [> `O of (string * Yaml.value) list ] =
         (("all", `A (Common.map translate_formula conjuncts :> Yaml.value list))
         ::
         (if focus =*= [] && conditions =*= [] then []
-        else
-          [
-            ( "where",
-              `A
-                (Common.map
-                   (fun (_, cond) -> translate_metavar_cond cond)
-                   conditions
-                @ List.concat_map mk_focus_obj focus) );
-          ]))
+         else
+           [
+             ( "where",
+               `A
+                 (Common.map
+                    (fun (_, cond) -> translate_metavar_cond cond)
+                    conditions
+                 @ List.concat_map mk_focus_obj focus) );
+           ]))
   | Or (_, fs) ->
       `O [ ("any", `A (Common.map translate_formula fs :> Yaml.value list)) ]
   | Not (_, f) -> `O [ ("not", (translate_formula f :> Yaml.value)) ]

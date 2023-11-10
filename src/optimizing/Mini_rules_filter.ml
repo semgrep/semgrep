@@ -60,4 +60,4 @@ let filter_mini_rules_relevant_to_file_using_regexp rules lang file =
          if not match_ then
            logger#info "filtering rule %s" (Rule_ID.to_string rule.id);
          match_)
-  [@@profiling "Mini_rules_filter.filter"]
+[@@profiling "Mini_rules_filter.filter"]

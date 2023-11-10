@@ -6,6 +6,7 @@ module FT = File_type
 module C = Rules_config
 module R = Rule
 module XP = Xpattern
+module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -121,7 +122,7 @@ let fetch_content_from_url_async ?(token_opt = None) (url : Uri.t) :
   content
 
 let fetch_content_from_url ?(token_opt = None) (url : Uri.t) : string =
-  Lwt_main.run (fetch_content_from_url_async ~token_opt url)
+  Lwt_platform.run (fetch_content_from_url_async ~token_opt url)
 
 (*****************************************************************************)
 (* Registry caching *)
@@ -246,7 +247,7 @@ let import_callback ~registry_caching base str =
              Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
                  (* LATER: adjust locations so refer to registry URL *)
                  parse_yaml_for_jsonnet file))
-  [@@profiling]
+[@@profiling]
 
 (* similar to Parse_rule.parse_file but with special import callbacks
  * for a registry-aware jsonnet.
@@ -327,7 +328,7 @@ let load_rules_from_url_async ?token_opt ?(ext = "yaml") url :
   Lwt.return rules
 
 let load_rules_from_url ?token_opt ?(ext = "yaml") url : rules_and_origin =
-  Lwt_main.run (load_rules_from_url_async ?token_opt ~ext url)
+  Lwt_platform.run (load_rules_from_url_async ?token_opt ~ext url)
 
 let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
     ~registry_caching kind : rules_and_origin list Lwt.t =
@@ -421,7 +422,7 @@ let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt ~registry_caching
           in
           [ res ])
   | _ ->
-      Lwt_main.run
+      Lwt_platform.run
         (rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
            ~registry_caching kind)
 
@@ -494,4 +495,4 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
                  | R.Error _
                  | Failure _ ->
                      None))
-  [@@profiling]
+[@@profiling]

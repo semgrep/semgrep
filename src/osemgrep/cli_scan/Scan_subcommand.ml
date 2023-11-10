@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 module Env = Semgrep_envvars
 module Out = Semgrep_output_v1_t
 module SS = Set.Make (String)
@@ -91,7 +92,7 @@ let exit_code_of_errors ~strict (errors : Out.core_error list) : Exit_code.t =
       (* alt: raise a Semgrep_error that would be catched by CLI_Common
        * wrapper instead of returning an exit code directly? *)
       match () with
-      | _ when x.severity =*= Out.Error ->
+      | _ when x.severity =*= `Error ->
           Cli_json_output.exit_code_of_error_type x.error_type
       | _ when strict -> Cli_json_output.exit_code_of_error_type x.error_type
       | _else_ -> Exit_code.ok)
@@ -132,7 +133,7 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
   in
   if cli_matches <> [] then (
     Unix.lockf Unix.stdout Unix.F_LOCK 0;
-    Fun.protect
+    Common.protect
       (fun () ->
         (* coupling: similar to Output.dispatch_output_format for Text *)
         Matches_report.pp_text_outputs
@@ -160,9 +161,14 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
   let map = List.fold_left fold Map_.empty res.core.Out.results in
   Map_.fold
     (fun rule_id n acc ->
-      match Rule_ID.of_string_opt rule_id with
-      | Some rule_id -> (Hashtbl.find res.hrules rule_id, n) :: acc
-      | None -> acc)
+      let res =
+        try Hashtbl.find res.hrules rule_id with
+        | Not_found ->
+            failwith
+              (spf "could not find rule_id %s in hash"
+                 (Rule_ID.to_string rule_id))
+      in
+      (res, n) :: acc)
     map []
 
 (* Select and execute the scan func based on the configured engine settings.
@@ -292,10 +298,9 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
         let baseline_result =
           Profiler.record profiler ~name:"baseline_core_time" (fun () ->
               Git_wrapper.run_with_worktree ~commit (fun () ->
-                  let paths_in_match =
-                    r.matches
-                    |> Common.map (fun m -> m.Pattern_match.file)
-                    |> SS.of_list |> add_renamed |> remove_added |> SS.to_seq
+                  let prepare_targets paths =
+                    paths |> SS.of_list |> add_renamed |> remove_added
+                    |> SS.to_seq
                     |> Seq.filter_map (fun x ->
                            if
                              Sys.file_exists x
@@ -307,9 +312,17 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
                            else None)
                     |> List.of_seq
                   in
+                  let paths_in_match =
+                    r.matches
+                    |> Common.map (fun m -> m.Pattern_match.file)
+                    |> prepare_targets
+                  in
+                  let paths_in_scanned =
+                    r.scanned |> Common.map Fpath.to_string |> prepare_targets
+                  in
                   let baseline_targets, baseline_diff_targets =
                     match conf.engine_type with
-                    | PRO Interfile ->
+                    | PRO Engine_type.{ analysis = Interprocedural; _ } ->
                         let all_in_baseline, _ =
                           Find_targets.get_targets conf.targeting_conf
                             conf.target_roots
@@ -320,7 +333,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
                            only by the file displaying matches but also by its
                            dependencies. Hence, merely rescanning files with
                            matches is insufficient. *)
-                        (all_in_baseline, r.scanned)
+                        (all_in_baseline, paths_in_scanned)
                     | _ -> (paths_in_match, [])
                   in
                   core baseline_targets
@@ -350,6 +363,27 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
       (fun r1 r2 -> Rule_ID.equal (fst r1.Rule.id) (fst r2.Rule.id))
       rules
   in
+  (* desired/legacy semgrep behavior: fail if no valid rule was found
+
+     Problem in case of all Apex rules being skipped by semgrep-core:
+     - actual pysemgrep behavior:
+       * doesn't count these rules as skipped, resulting in a successful exit
+       * reports Apex targets as scanned that weren't scanned
+     - osemgrep behavior:
+       * reports skipped rules and skipped/scanned targets correctly
+     How to fix this:
+     - pysemgrep should read the 'scanned' field reporting the targets that
+       were really scanned by semgrep-core instead of the current
+       implementation that assumes semgrep-core will scan all the targets it
+       receives.
+     Should we fix this?
+     - it's necessary to get the same output with pysemgrep and osemgrep
+     - it's a bit of an effort on the Python side for something that's
+       not very important
+     Suggestion:
+     - tolerate different output between pysemgrep and osemgrep
+       for tests that we would mark as such.
+  *)
   if Common.null rules then Error Exit_code.missing_config
   else
     (* step 1: last touch on rules *)
@@ -367,7 +401,8 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     Logs.info (fun m ->
         skipped
         |> List.iter (fun (x : Semgrep_output_v1_t.skipped_target) ->
-               m "Ignoring %s due to %s (%s)" x.Semgrep_output_v1_t.path
+               m "Ignoring %s due to %s (%s)"
+                 !!(x.Semgrep_output_v1_t.path)
                  (Semgrep_output_v1_t.show_skip_reason
                     x.Semgrep_output_v1_t.reason)
                  (x.Semgrep_output_v1_t.details ||| "")));
@@ -392,22 +427,26 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
             (scan_func targets filtered_rules)
       | Some baseline_commit ->
           (* diff scan mode *)
+          Metrics_.g.payload.environment.isDiffScan <- true;
           let commit = Git_wrapper.get_merge_base baseline_commit in
           let status = Git_wrapper.status ~cwd:(Fpath.v ".") ~commit in
+          let diff_depth = Differential_scan_config.default_depth in
           let targets, diff_targets =
             let added_or_modified =
               status.added @ status.modified |> Common.map Fpath.v
             in
             match conf.engine_type with
-            | PRO Interfile -> (targets, added_or_modified)
+            | PRO Engine_type.{ analysis = Interfile; _ } ->
+                Metrics_.g.payload.value.proFeatures <-
+                  Some { diffDepth = Some diff_depth };
+                (targets, added_or_modified)
             | _ -> (added_or_modified, [])
           in
           let head_scan_result =
             Profiler.record profiler ~name:"head_core_time"
               (scan_func targets
                  ~diff_config:
-                   (Differential_scan_config.Depth
-                      (diff_targets, Differential_scan_config.default_depth))
+                   (Differential_scan_config.Depth (diff_targets, diff_depth))
                  filtered_rules)
           in
           scan_baseline_and_remove_duplicates conf profiler head_scan_result
@@ -444,6 +483,14 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     in
     Profiler.stop_ign profiler ~name:"total_time";
 
+    let rules_with_targets =
+      match exn_and_matches with
+      | Ok r ->
+          r.rules_with_targets
+          |> Common.map (fun (rv : Rule.rule) -> Rule_ID.to_string (fst rv.id))
+      | _ -> []
+    in
+
     if Metrics_.is_enabled () then (
       Metrics_.add_errors cli_output.errors;
       Metrics_.add_rules_hashes_and_rules_profiling ?profiling:res.core.time
@@ -470,7 +517,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
             skipped_groups ));
     Logs.app (fun m ->
         m "Ran %s on %s: %s."
-          (String_utils.unit_str (List.length filtered_rules) "rule")
+          (String_utils.unit_str (List.length rules_with_targets) "rule")
           (String_utils.unit_str (List.length cli_output.paths.scanned) "file")
           (String_utils.unit_str (List.length cli_output.results) "finding"));
 
@@ -566,6 +613,9 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
 let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
+  (* coupling: if you modify the pysemgrep fallback code below, you
+   * probably also need to modify it in Ci_subcommand.ml
+   *)
   (match conf.common.maturity with
   (* those are osemgrep-only option not available in pysemgrep,
    * so better print a good error message for it.

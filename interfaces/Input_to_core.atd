@@ -1,6 +1,5 @@
 (*
-   Type definitions for semgrep-core's JSON input, coming from the
-   python wrapper, 'semgrep'.
+   Type definitions for semgrep-core's JSON input, coming from pysemgrep.
 
    There are other very important form of inputs which are not specified here:
     - The rule syntax and schema (see rule_schema_v1.yaml; only the
@@ -20,39 +19,34 @@
 
 type xlang <ocaml attr="deriving show"> = string wrap <ocaml module="Xlang">
 
+(* Need to maintain pairity between this and semgrep_output_v1.product. *)
+type product
+  <ocaml attr="deriving show">
+  <python decorator="dataclass(frozen=True)"> = [
+  | SAST (* a.k.a. Code *) <json name="sast">
+  | SCA <json name="sca">
+  | Secrets <json name="secrets">
+]
+
 type target <ocaml attr="deriving show"> = {
   path: string (* source file *);
-  (* Must be a valid "language" as defined in Xlang.mli.
+  (* Must be a valid target analyzer as defined in Xlang.mli.
      examples: "ocaml", "python", but also "spacegrep" or "regexp".
-     less: would be great to use Lang.t here, but atd does not
-     allow (by design) to use types defined in other files. *)
-  language: xlang;
-  (* Index in the rule_ids list in targets of the rule_id to
-   * run this target on *)
-  rule_nums: int list;
+  *)
+  analyzer: xlang;
+  products: product list;
 }
 
 (* The same path can be present multiple times in targets below, with
  * different languages each time, so a Python file can be both analyzed
  * with Python rules, but also with generic/regexp rules.
  *
- * To avoid repeating the rule_ids, targets contains a list of all the
- * rule_ids and each target references the index of the rule_id
- *
  * alt: we could have a list of languages instead in target above, but
  * because of the way semgrep-core is designed (with its file_and_more type),
  * you could have at most one PL language, and then possibly
  * "generic" and "regexp".
- *
- * alt: rule_ids above could also be used to analyze at once the same
- * file with both PL and generic/regexp rules.
  *)
-type targets <ocaml attr="deriving show"> = {
-   target_mappings: target list;
-   (* If there is no rule_id, the default we will use is '-' *)
-   rule_ids: string list
-}
-
+type targets <ocaml attr="deriving show"> = target list
 
 (*****************************************************************************)
 (* Synthesizing from diffs (see locate_patched_functions in Synthesizing.mli) *)

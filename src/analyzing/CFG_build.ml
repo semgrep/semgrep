@@ -16,6 +16,7 @@
 open Common
 open IL
 module F = IL (* to be even more similar to controlflow_build.ml *)
+module G = AST_generic
 
 (*****************************************************************************)
 (* Prelude *)
@@ -73,9 +74,12 @@ type state = {
    * could not happen.
    *)
   lambdas : (name, IL.function_definition) Hashtbl.t;
-  (* If a lambda is never used, we just insert its CFG at declaration site. *)
-  unused_lambdas : (name, nodei * nodei) Hashtbl.t;
+  (* If a lambda is never used, we just insert its CFG at the end of
+     its parent function. *)
+  unused_lambdas : (name, unit) Hashtbl.t;
 }
+
+type fdef_cfg = { fparams : name list; fcfg : cfg }
 
 (*****************************************************************************)
 (* Helpers *)
@@ -107,9 +111,7 @@ let resolve_gotos state =
   !(state.gotos)
   |> List.iter (fun (srci, label_key) ->
          match Hashtbl.find_opt state.labels label_key with
-         | None ->
-             Common.pr2
-             @@ Common.spf "Could not resolve label: %s" (fst label_key)
+         | None -> logger#warning "Could not resolve label: %s" (fst label_key)
          | Some dsti -> state.g |> add_arc (srci, dsti));
   state.gotos := []
 
@@ -171,6 +173,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       state.g |> add_arc_from_opt (previ, newi);
       let lasti, throws =
         match x.i with
+        | New _
         | Call _ -> (
             (* If we are inside a try-catch, we consider the possibility of this call
                * raising an exception, then we add a jump to catch-blocks. This could
@@ -180,7 +183,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
                * Ideally we should have a preceeding analysis that infers which calls
                * may (or may not) raise exceptions. *)
             state.g |> add_arc_opt_to_opt (Some newi, state.throw_destination);
-            match build_cfg_for_lambdas_in state newi new_ with
+            match build_cfg_for_lambdas_in state (Some newi) new_ with
             | Some lasti -> (lasti, true)
             | None -> (newi, true))
         | AssignAnon ({ base = Var name; rev_offset = [] }, Lambda fdef) ->
@@ -190,7 +193,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
             let lasti = state.g#add_node { F.n = F.Join } in
             state.g |> add_arc (newi, lasti);
             Hashtbl.add state.lambdas name fdef;
-            Hashtbl.add state.unused_lambdas name (newi, lasti);
+            Hashtbl.add state.unused_lambdas name ();
             (lasti, false)
         | __else__ -> (newi, false)
       in
@@ -347,7 +350,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       CfgFirstLast (newi, Some newi, false)
   | FixmeStmt _ -> cfg_todo state previ stmt
 
-and cfg_lambda state previ joini fdef =
+and cfg_lambda state previ joini (fdef : IL.function_definition) =
   (* Lambdas are treated as statement blocks, the CFG does NOT capture the actual
      * flow of data that goes into the lambda through its parameters, and back
      * into the surrounding definition through its `return' statement. We won't
@@ -358,9 +361,11 @@ and cfg_lambda state previ joini fdef =
      * alt: We could inline lambdas perhaps?
   *)
   let newi = state.g#add_node { F.n = NLambda fdef.fparams } in
-  state.g |> add_arc (previ, newi);
+  state.g |> add_arc_from_opt (previ, newi);
   let finallambda, _ignore_throws_in_lambda_ =
-    cfg_stmt_list { state with throw_destination = None } (Some newi) fdef.fbody
+    cfg_stmt_list
+      { state with throw_destination = None }
+      (Some newi) fdef.IL.fbody
   in
   state.g |> add_arc_from_opt (finallambda, joini)
 
@@ -391,7 +396,7 @@ and build_cfg_for_lambdas_in state previ n =
      *       \_______________/
      *)
     let lasti = state.g#add_node { F.n = F.Join } in
-    state.g |> add_arc (previ, lasti);
+    state.g |> add_arc_from_opt (previ, lasti);
     lambda_fdefs |> List.iter (fun fdef -> cfg_lambda state previ lasti fdef);
     lambda_names
     |> List.iter (fun name -> Hashtbl.remove state.unused_lambdas name);
@@ -440,16 +445,14 @@ and cfg_stmt_list state previ xs =
       (Some dummyi, may_throw)
   | [] -> (lasti_opt, may_throw)
 
-let build_cfg_of_unused_lambdas state =
-  (* For those lambdas that are not dereferenced, we insert their CFG
-   * at the declaration site. *)
+let build_cfg_of_unused_lambdas state previ nexti =
   state.unused_lambdas
-  |> Hashtbl.iter (fun name (starti, lasti) ->
+  |> Hashtbl.iter (fun name _ ->
          match Hashtbl.find_opt state.lambdas name with
          | None ->
              logger#error "Cannot find the definition of a lambda";
              ()
-         | Some fdef -> cfg_lambda state starti lasti fdef);
+         | Some fdef -> cfg_lambda state previ nexti fdef);
   Hashtbl.clear state.unused_lambdas
 
 (*****************************************************************************)
@@ -480,9 +483,47 @@ let (cfg_of_stmts : stmt list -> F.cfg) =
   let last_node_opt, _ignore_may_throw_ = cfg_stmt_list state (Some newi) xs in
   (* Must wait until all nodes have been labeled before resolving gotos. *)
   resolve_gotos state;
-  build_cfg_of_unused_lambdas state;
+  (* Previously, we used to insert the CFGs of unused lambdas at the
+     declaration site. However, this approach triggered some false
+     positives. For example, consider the following code:
+     ```
+     void incorrect(int *p) {
+       auto f1 = [&p]() {
+         source(p);
+       };
+       auto f2 = [&p]() {
+         sink(p);
+       };
+     }
+     ```
+     In this code, there's no actual control flow between the source
+     and sink, and the lambdas are never even called. But when we
+     inserted their CFGs at the declaration site, it incorrectly
+     indicated a taint finding. To prevent these types of false
+     positives while still scanning the body of unused lambdas, we now
+     insert their CFGs in parallel at the end of their parent
+     function, right after all other statements and just before the
+     end node. *)
+  build_cfg_of_unused_lambdas state last_node_opt exiti;
   (* maybe the body does not contain a single 'return', so by default
    * connect last stmt to the exit node
    *)
   g |> add_arc_from_opt (last_node_opt, exiti);
   CFG.make g enteri exiti
+
+let cfg_of_fdef lang fdef =
+  if Implicit_return.lang_supports_implicit_return lang then (
+    (* We need to build the CFG here first because the analysis
+     * visits the CFG to determine returning nodes.
+     *)
+    let _fparams, fstmts = AST_to_IL.function_definition lang fdef in
+    Implicit_return.mark_implicit_return_nodes (cfg_of_stmts fstmts);
+
+    (* Rebuild CFG after marking the return nodes, so that all
+     * implicit returns become explicit.
+     *)
+    let fparams, fstmts = AST_to_IL.function_definition lang fdef in
+    { fparams; fcfg = cfg_of_stmts fstmts })
+  else
+    let fparams, fstmts = AST_to_IL.function_definition lang fdef in
+    { fparams; fcfg = cfg_of_stmts fstmts }

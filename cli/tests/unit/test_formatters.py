@@ -7,7 +7,6 @@ import pytest
 from ruamel.yaml import YAML
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
-from semgrep.constants import RuleSeverity
 from semgrep.formatter.sarif import SarifFormatter
 from semgrep.rule import Rule
 from semgrep.rule_lang import EmptySpan
@@ -20,7 +19,7 @@ yaml = YAML(typ="rt")
 def create_taint_rule_match():
     match = RuleMatch(
         message="message",
-        severity=RuleSeverity.ERROR,
+        severity=out.MatchSeverity(out.Error()),
         match=out.CoreMatch(
             check_id=out.RuleId("rule.id"),
             path=out.Fpath("foo.py"),

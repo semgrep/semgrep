@@ -5,7 +5,6 @@ import pytest
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.config_resolver import parse_config_string
-from semgrep.constants import RuleSeverity
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchSet
@@ -75,7 +74,7 @@ def get_rule_match(
 ) -> RuleMatch:
     return RuleMatch(
         message="message",
-        severity=RuleSeverity.ERROR,
+        severity=out.MatchSeverity(out.Error()),
         match=out.CoreMatch(
             check_id=out.RuleId(rule_id),
             path=out.Fpath(filepath),

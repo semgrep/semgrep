@@ -1,0 +1,30 @@
+# gitignore-like file for Codemap (see https://github.com/aryx/codemap)
+
+# No need _build/ here, it's handled in .gitignore :)
+# No need node_modules/ here, it's handled in js/.gitignore :)
+# This is far more flexible and powerful than the old skip_list.txt
+# way to skip files.
+
+# ocaml-tree-sitter generated code
+languages/**/Parse.ml
+languages/**/Boilerplate.ml
+languages/**/CST.ml
+
+# ATD generated code
+*_[jt].ml
+*_j.mli
+/cli/src/semgrep/semgrep_interfaces/semgrep_output_v1.*
+/cli/src/semgrep/semgrep_interfaces/ast_generic_v1.*
+# negation :)
+!/cli/src/semgrep/semgrep_interfaces/*.atd
+
+# big files
+/tests/semgrep-rules/libsonnet/metadata/cwe.libsonnet
+
+# big test files
+/cli/tests/e2e/rules/long_message.yaml
+/tests/perf/
+/tests/precommit_dogfooding/
+/perf/perf-matching/
+/perf/r2c-rules/
+/perf/rules/

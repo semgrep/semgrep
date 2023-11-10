@@ -38,10 +38,8 @@ comment = regex(r" *//([^\n]*)", flags=0, group=1)
 
 def multi_spec(spec: "Parser[A]") -> "Parser[List[Tuple[A,Optional[str]]]]":
     return (
-        regex(r"[ \t]*\(\n")
-        >> (
-            (regex(r"[ \t]*") >> pair(spec, comment.optional(None))) << string("\n")
-        ).many()
+        regex(r"\s*\(\s+")
+        >> (pair(spec, comment.optional(None)) << regex(r"\s+")).many()
         << string(")")
     ) | (regex(r"[ \t]*") >> pair(spec, comment.optional()).map(lambda x: [x]))
 
@@ -57,6 +55,7 @@ dep_spec = regex(r"([^ \n]+) v([^ \n]+)", flags=0, group=(1, 2)) | comment.resul
 specs: Dict[str, "Parser[Optional[Tuple[str,...]]]"] = {
     "module": comment.result(None) | consume_line,
     "go": comment.result(None) | consume_line,
+    "toolchain": comment.result(None) | consume_line,
     "require": dep_spec,
     "exclude": dep_spec,
     "replace": comment.result(None) | consume_line,

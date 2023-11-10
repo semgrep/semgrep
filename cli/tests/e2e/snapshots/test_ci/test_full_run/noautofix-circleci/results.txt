@@ -44,7 +44,6 @@ CI="true" CIRCLECI="true" CIRCLE_PROJECT_USERNAME="project_name" CIRCLE_PROJECT_
        supply-chain1
           found a dependency
 
-            1┆ [[package]]
             2┆ name = "badlib"
 
 
@@ -80,9 +79,8 @@ CI="true" CIRCLECI="true" CIRCLE_PROJECT_USERNAME="project_name" CIRCLE_PROJECT_
                 pull_request
 
   CONNECTION
-  Reporting start of scan for deployment_name (scan_id=<MagicMock name='post()…
-  Fetching configuration from Semgrep Cloud Platform
-  Enabled products: Semgrep Code, Semgrep Supply Chain
+  Initializing scan (deployment=org_name, scan_id=12345)
+  Enabled products: Code, Supply Chain
 
 ┌─────────────┐
 │ Scan Status │
@@ -110,6 +108,6 @@ CI scan completed successfully.
     https://semgrep.dev/orgs/org_name/findings
     https://semgrep.dev/orgs/org_name/supply-chain
   Has findings for blocking rules so exiting with code 1
-  semgrep.dev is suggesting a non-zero exit code <MASKED>
+  semgrep.dev is suggesting a non-zero exit code (Test Reason)
 
 === end of stderr - plain

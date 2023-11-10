@@ -1,3 +1,4 @@
+open File.Operators
 module Out = Semgrep_output_v1_t
 
 (*****************************************************************************)
@@ -60,6 +61,7 @@ let group_skipped (skipped : Out.skipped_target list) : skipped_targets_grouped
         | Minified
         | Binary
         | Dotfile
+        | Nonexistent_file
         | Irrelevant_rule
         | Too_many_matches ->
             `Other)
@@ -127,10 +129,10 @@ let pp_skipped ppf
     | xs ->
         List.iter
           (fun (Out.{ path; _ } : Out.skipped_target) ->
-            Fmt.pf ppf "  • %s@." path)
+            Fmt.pf ppf "  • %s@." !!path)
           (List.sort
              (fun (a : Out.skipped_target) (b : Out.skipped_target) ->
-               String.compare a.path b.path)
+               Fpath.compare a.path b.path)
              xs)
   in
 

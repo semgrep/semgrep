@@ -3,6 +3,7 @@
  (name parser_c_ast)
  (wrapped false)
  (libraries
+   ast_generic ; is_metavar_name
    commons
    lib_parsing
    parser_cpp.ast ; reuse operators

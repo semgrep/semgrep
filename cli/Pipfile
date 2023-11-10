@@ -11,6 +11,7 @@ pytest = "*"
 pytest-snapshot = "*"
 pytest-xdist = "*"
 tox = "*"
+requests-mock = "*"
 # versions must be manually synced:
 # - cli/setup.py lists dependencies
 # - cli/Pipfile lists type hint packages for dev env

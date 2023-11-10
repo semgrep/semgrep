@@ -23,7 +23,6 @@ from attrs import frozen
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import NOSEM_INLINE_COMMENT_RE
 from semgrep.constants import RuleScanSource
-from semgrep.constants import RuleSeverity
 from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
 from semgrep.rule import Rule
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
@@ -53,7 +52,9 @@ class RuleMatch:
 
     # fields from the rule
     message: str = field(repr=False)
-    severity: RuleSeverity
+    # TODO: reuse semgrep_output_v1.severity instead, or even get rid of
+    # the field and just reuse the one in match
+    severity: out.MatchSeverity
     metadata: Dict[str, Any] = field(repr=False, factory=dict)
 
     # Do not use this extra field! This prevents from having typed JSON output
@@ -126,7 +127,7 @@ class RuleMatch:
     # TODO: diff with rule.py product() method?
     @property
     def product(self) -> out.Product:
-        if "product" in self.metadata and self.metadata["product"] == "secrets":
+        if self.metadata.get("product") == "secrets":
             return out.Product(out.Secrets())
         elif "sca_info" in self.extra:
             return out.Product(out.SCA())
@@ -486,11 +487,11 @@ class RuleMatch:
         commit_date_app_format = datetime.fromtimestamp(int(commit_date)).isoformat()
 
         # Follow semgrep.dev severity conventions
-        if self.severity.value == RuleSeverity.ERROR.value:
+        if isinstance(self.severity.value, out.Error):
             app_severity = 2
-        elif self.severity.value == RuleSeverity.WARNING.value:
+        elif isinstance(self.severity.value, out.Warning):
             app_severity = 1
-        elif self.severity.value == RuleSeverity.EXPERIMENT.value:
+        elif isinstance(self.severity.value, out.Experiment):
             app_severity = 4
         else:
             app_severity = 0

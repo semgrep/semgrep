@@ -11,8 +11,7 @@ type metavariable_kind =
 type metavariable = metavariable_kind * string [@@deriving show, eq]
 
 type t = private {
-  pcre_pattern : string;
-  pcre : Pcre.regexp; [@opaque]
+  pcre : SPcre.t;
   metavariable_groups : (int * metavariable) list;
 }
 [@@deriving show, eq]

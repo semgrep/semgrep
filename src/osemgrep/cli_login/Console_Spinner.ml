@@ -10,7 +10,7 @@ let spinner = [| "⠋"; "⠙"; "⠹"; "⠸"; "⠼"; "⠴"; "⠦"; "⠧"; "⠇"; 
   We show each frame for 1/100th of the total delay.
 *)
 let show_spinner delay_ms : unit =
-  let print_frame ~frame_index:i =
+  let print_frame ~frame_index:i : unit =
     let spinner = spinner.(i mod Array.length spinner) in
     ANSITerminal.set_cursor 1 (-1);
     ANSITerminal.printf [ ANSITerminal.green ] "%s Waiting for sign in..."

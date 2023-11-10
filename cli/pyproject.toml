@@ -11,13 +11,13 @@ markers = [
     "slow: test takes more than 2s",
     "todo: the test is not implemented or needs work",
     "no_semgrep_cli: this test doesn't invoke the semgrep CLI or osemgrep",
-    "osempass: this test currently pass with osemgrep",
+    "osemfail: this test currently fails with osemgrep",
 ]
 
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-envlist = py37, py38, py39, py310, py311
+envlist = py38, py39, py310, py311
 
 [testenv]
 allowlist_externals = pipenv

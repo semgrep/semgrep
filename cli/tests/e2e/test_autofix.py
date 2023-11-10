@@ -3,7 +3,6 @@ from tests.fixtures import RunSemgrep
 
 
 # TODO: the dry-run are currently not working
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("dryrun", [False], ids=["not-dryrun"])
 @pytest.mark.parametrize(
@@ -25,6 +24,7 @@ from tests.fixtures import RunSemgrep
         ("rules/autofix/exact-collision.yaml", "autofix/collision.py"),
         ("rules/autofix/ocaml_paren_expr.yaml", "autofix/ocaml_paren_expr.ml"),
         ("rules/autofix/python-delete-import.yaml", "autofix/python-delete-import.py"),
+        ("rules/autofix/two-autofixes.yaml", "autofix/two-autofixes.txt"),
     ],
 )
 def test_autofix(
@@ -50,6 +50,7 @@ def test_autofix(
     )
 
 
+@pytest.mark.osemfail
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("dryrun", [True, False], ids=["dryrun", "not-dryrun"])
 @pytest.mark.parametrize(
@@ -68,7 +69,6 @@ def test_autofix(
             "rules/autofix/terraform-ec2-instance-metadata-options.yaml",
             "autofix/terraform-ec2-instance-metadata-options.hcl",
         ),
-        ("rules/autofix/two-autofixes.yaml", "autofix/two-autofixes.txt"),
     ],
 )
 @pytest.mark.kinda_slow

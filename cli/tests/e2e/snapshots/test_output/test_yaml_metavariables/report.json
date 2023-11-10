@@ -102,8 +102,8 @@
           "$VALUE": {
             "abstract_content": "\n    three\n",
             "end": {
-              "col": 1,
-              "line": 5,
+              "col": 11,
+              "line": 4,
               "offset": 45
             },
             "start": {
@@ -141,8 +141,8 @@
           "$VALUE": {
             "abstract_content": "\n   four\n",
             "end": {
-              "col": 1,
-              "line": 7,
+              "col": 9,
+              "line": 6,
               "offset": 62
             },
             "start": {
@@ -180,8 +180,8 @@
           "$VALUE": {
             "abstract_content": "       \n    fi\n\n    ve\n",
             "end": {
-              "col": 1,
-              "line": 11,
+              "col": 8,
+              "line": 10,
               "offset": 93
             },
             "start": {
@@ -219,8 +219,8 @@
           "$VALUE": {
             "abstract_content": "\n    si\n\n      x\n    \n",
             "end": {
-              "col": 1,
-              "line": 16,
+              "col": 6,
+              "line": 15,
               "offset": 123
             },
             "start": {
@@ -258,8 +258,8 @@
           "$VALUE": {
             "abstract_content": "\n    seven\n",
             "end": {
-              "col": 1,
-              "line": 18,
+              "col": 11,
+              "line": 17,
               "offset": 142
             },
             "start": {

@@ -1,11 +1,23 @@
 # Workflow to manually promote the returntocorp/semgrep:canary docker image
 # to returntocorp/semgrep:latest that most customers are using
 
-name: Promote returntocorp/semgrep:canary to :latest
+name: Promote :canary to :latest
 
 on:
   workflow_dispatch:
     inputs:
+      docker_image:
+        description: "Semgrep docker image to update"
+        type: choice
+        required: true
+        options:
+          - returntocorp/semgrep-test # testing image, we will eventually remove the option and hardcode to returntocorp/semgrep
+          - returntocorp/semgrep
+      debug:
+        description: "Check to enable verbose logging of bash commands"
+        type: boolean
+        required: true
+        default: false
       confirmed:
         description: "Are you sure you want to do this? This is a sensitive operation"
         type: boolean
@@ -21,8 +33,11 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - env:
+      - name: promote-canary-to-latest
+        env:
+          docker_image: ${{ inputs.docker_image }}
           confirmed: ${{ inputs.confirmed }}
+          debug: ${{ inputs.debug }}
         run: |
           #
           # Promoting an image via Docker tags is typically done via:
@@ -46,21 +61,30 @@ jobs:
           # - manifest lists: https://docs.docker.com/registry/spec/manifest-v2-2/
           # - imagetools create: https://docs.docker.com/engine/reference/commandline/buildx_imagetools_create/
 
-          canary_digest=$(docker buildx imagetools inspect --raw returntocorp/semgrep:canary | jq -r .config.digest)
-          latest_digest=$(docker buildx imagetools inspect --raw returntocorp/semgrep:latest | jq -r .config.digest)
+          if [[ "${debug}" == "true" ]]; then
+            echo "Enabling debug logging..."
+            set -x
+          fi
 
-          if [[ -z "${canary_digest}" ]]; then
-            echo "Error: returntocorp/semgrep:canary did not resolve to a manifest list"
-            echo "If this is urgent, you can manually run these commands to promote an arch-specific image:"
-            echo "docker pull returntocorp/semgrep:canary"
-            echo "docker tag returntocorp/semgrep:canary returntocorp/semgrep:latest"
-            echo "docker push returntocorp/semgrep:latest"
+          canary_digest=$(docker buildx imagetools inspect --format '{{printf "%s" .Manifest.Digest}}' ${docker_image}:canary || echo "")
+          latest_digest=$(docker buildx imagetools inspect --format '{{printf "%s" .Manifest.Digest}}' ${docker_image}:latest || echo "(not set)")
+
+          if [[ "${canary_digest}" == "" ]]; then
+            echo "Error: ${docker_image}:canary did not resolve to a manifest list"
+            echo "If this is urgent, you can manually login to our Docker Hub account and then run these commands to promote an arch-specific image:"
+            echo "docker pull ${docker_image}:canary"
+            echo "docker tag ${docker_image}:canary ${docker_image}:latest"
+            echo "docker push ${docker_image}:latest"
             exit 1
           fi
 
+          echo "Promoting ${docker_image}:canary (${canary_digest}) to ${docker_image}:latest (was ${latest_digest})"
+          echo ""
+
           if [[ "${confirmed}" == "true" ]]; then
-            echo "Promoting returntocorp/semgrep:canary (${canary_digest}) to returntocorp/semgrep:latest (was ${latest_digest})"
-            docker buildx imagetools create -t returntocorp/semgrep:latest returntocorp/semgrep:canary
+            docker buildx imagetools create -t ${docker_image}:latest ${docker_image}:canary
           else
-            echo "Would have promoted returntocorp/semgrep:canary (${canary_digest}) to returntocorp/semgrep:latest (was ${latest_digest})"
+            echo "(dry run)"
+            docker buildx imagetools create --dry-run -t ${docker_image}:latest ${docker_image}:canary
+            echo "(dry run)"
           fi

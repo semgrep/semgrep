@@ -21,12 +21,7 @@ type conf = {
   error_on_findings : bool;
   strict : bool;
   rewrite_rule_ids : bool;
-  time_flag : bool;
   engine_type : Engine_type.t;
-  (* Indicates the user requested Semgrep Secrets postprocessors to
-     validate secret findings. *)
-  run_secrets : bool;
-  allow_untrusted_postprocessors : bool;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;
   (* Display options *)
@@ -34,7 +29,6 @@ type conf = {
   output_format : Output_format.t;
   (* file or URL (None means output to stdout) *)
   output : string option;
-  dataflow_traces : bool;
   force_color : bool;
   (* text output config (TODO: make a separate type gathering all of them)
    * or add them under Output_format.Text

@@ -64,11 +64,11 @@ let global_filter ~opt_lang ~sort_by_decr_size paths =
   in
   let sorted_skipped =
     List.sort
-      (fun (a : Out.skipped_target) b -> String.compare a.path b.path)
+      (fun (a : Out.skipped_target) b -> Fpath.compare a.path b.path)
       skipped
   in
   (sorted_paths, sorted_skipped)
-  [@@profiling]
+[@@profiling]
 
 (*************************************************************************)
 (* Grouping (old) *)
@@ -168,7 +168,7 @@ let files_from_git_ls ~cwd:scan_root =
   tracked_output
   |> Common.map (fun x -> if !!scan_root = "." then x else scan_root // x)
   |> List.filter is_valid_file
-  [@@profiling]
+[@@profiling]
 
 (* python: mostly Target.files() method in target_manager.py *)
 let list_regular_files (conf : conf) (scan_root : Fpath.t) : Fpath.t list =
@@ -210,7 +210,7 @@ let list_regular_files (conf : conf) (scan_root : Fpath.t) : Fpath.t list =
   | S_BLK
   | S_SOCK ->
       []
-  [@@profiling]
+[@@profiling]
 
 (*************************************************************************)
 (* Entry point (old) *)
@@ -246,7 +246,8 @@ let get_targets conf scanning_roots =
          in
          let ign =
            Semgrepignore.create ?include_patterns:conf.include_
-             ~cli_patterns:conf.exclude ~exclusion_mechanism ~project_root ()
+             ~cli_patterns:conf.exclude ~builtin_semgrepignore:Empty
+             ~exclusion_mechanism ~project_root ()
          in
          let paths, skipped_paths1 =
            paths
@@ -280,7 +281,7 @@ let get_targets conf scanning_roots =
                       in
                       let skipped =
                         {
-                          Resp.path = !!path;
+                          Resp.path;
                           reason;
                           details =
                             Some
@@ -308,7 +309,7 @@ let get_targets conf scanning_roots =
                   then
                     Error
                       {
-                        Resp.path = !!path;
+                        Resp.path;
                         reason = Too_big;
                         details =
                           Some
@@ -325,7 +326,7 @@ let get_targets conf scanning_roots =
   List.split
   |> fun (paths_list, skipped_paths_list) ->
   (List.flatten paths_list, List.flatten skipped_paths_list)
-  [@@profiling]
+[@@profiling]
 
 (*************************************************************************)
 (* Legacy *)
@@ -354,7 +355,7 @@ let files_of_dirs_or_files ?(keep_root_files = true)
   in
   let sorted_skipped =
     List.sort
-      (fun (a : Out.skipped_target) b -> String.compare a.path b.path)
+      (fun (a : Out.skipped_target) b -> Fpath.compare a.path b.path)
       skipped
   in
   (sorted_paths, sorted_skipped)

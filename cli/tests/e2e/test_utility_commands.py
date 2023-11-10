@@ -16,6 +16,7 @@ def test_version():
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_dump_command_for_core():
     semgrep_core_command = subprocess.check_output(
         SEMGREP_BASE_COMMAND
@@ -34,6 +35,7 @@ def test_dump_command_for_core():
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_dump_engine():
     result = subprocess.check_output(
         SEMGREP_BASE_COMMAND + ["--dump-engine-path"],

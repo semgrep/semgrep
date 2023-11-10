@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
 open AST_generic
 module E = Core_error
 module J = JSON
@@ -93,16 +92,6 @@ let range_of_any_opt startp_of_match_range any =
 (* Converters *)
 (*****************************************************************************)
 
-(* TODO: same, should reuse directly semgrep_output_v1 *)
-let convert_validation_state = function
-  | Confirmed_valid -> `CONFIRMED_VALID
-  | Confirmed_invalid -> `CONFIRMED_INVALID
-  | Validation_error -> `VALIDATION_ERROR
-  | No_validator -> `NO_VALIDATOR
-
-let convert_rule ((id, ek) : Rule_ID.t * Engine_kind.t) =
-  (Rule_ID.to_string id, ek)
-
 let metavar_string_of_any any =
   (* TODO: metavar_string_of_any is used in get_propagated_value
       to get the string for propagated values. Not all propagated
@@ -171,7 +160,7 @@ let metavars startp_of_match_range (s, mval) =
  * pysemgrep).
  *)
 let content_of_loc (loc : Out.location) : string =
-  OutUtils.content_of_file_at_range (loc.start, loc.end_) (Fpath.v loc.path)
+  OutUtils.content_of_file_at_range (loc.start, loc.end_) loc.path
 
 let token_to_intermediate_var token : Out.match_intermediate_var option =
   let* location = OutUtils.tokens_to_single_loc [ token ] in
@@ -249,20 +238,22 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
     else x.file
   in
   {
-    Out.check_id = Rule_ID.to_string x.rule_id.id;
+    Out.check_id = x.rule_id.id;
     (* inherited location *)
-    path = file;
+    path = Fpath.v file;
     start = startp;
     end_ = endp;
     (* end inherited location *)
     extra =
       {
         message = Some x.rule_id.message;
+        severity = x.severity_override;
+        metadata = Option.map JSON.to_yojson x.metadata_override;
         metavars = x.env |> Common.map (metavars startp);
         dataflow_trace;
         rendered_fix;
         engine_kind = x.engine_kind;
-        validation_state = Some (convert_validation_state x.validation_state);
+        validation_state = Some x.validation_state;
         extra_extra = None;
       };
   }
@@ -282,7 +273,7 @@ let match_to_match render_fix (x : Pattern_match.t) :
       in
       let err = E.mk_error (Some x.rule_id.id) loc s Out.MatchingError in
       Right err
-  [@@profiling]
+[@@profiling]
 
 (* less: Semgrep_error_code should be defined fully Output_from_core.atd
  * so we would not need those conversions
@@ -290,7 +281,7 @@ let match_to_match render_fix (x : Pattern_match.t) :
 let error_to_error (err : Core_error.t) =
   let file = err.loc.pos.file in
   let startp, endp = OutUtils.position_range err.loc err.loc in
-  let rule_id = Option.map Rule_ID.to_string err.rule_id in
+  let rule_id = err.rule_id in
   let error_type = err.typ in
   let severity = E.severity_of_error err.typ in
   let message = err.msg in
@@ -299,7 +290,7 @@ let error_to_error (err : Core_error.t) =
     Out.error_type;
     rule_id;
     severity;
-    location = { path = file; start = startp; end_ = endp };
+    location = { path = Fpath.v file; start = startp; end_ = endp };
     message;
     details;
   }
@@ -332,7 +323,7 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
                |> Common.hash_of_list
              in
              {
-               Out.path = !!target;
+               Out.path = target;
                match_times =
                  rule_ids
                  |> Common.map (fun rule_id ->
@@ -360,7 +351,7 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
                num_bytes = File.filesize target;
                run_time;
              });
-    rules = rule_ids |> Common.map Rule_ID.to_string;
+    rules = rule_ids;
     rules_parse_time = profiling_data.rules_parse_time;
     max_memory_bytes = Some profiling_data.max_memory_bytes;
     (* TODO: does it cover all targets or just the relevant target we actually
@@ -403,9 +394,9 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
 let core_output_of_matches_and_errors render_fix (res : Core_result.t) :
     Out.core_output =
   let matches, new_errs =
-    Common.partition_either (match_to_match render_fix) res.RP.matches
+    Common.partition_either (match_to_match render_fix) res.matches
   in
-  let errs = !E.g_errors @ new_errs @ res.RP.errors in
+  let errs = !E.g_errors @ new_errs @ res.errors in
   let skipped_targets, profiling =
     match res.extra with
     | Core_profiling.Debug { skipped_targets; profiling } ->
@@ -425,23 +416,22 @@ let core_output_of_matches_and_errors render_fix (res : Core_result.t) :
         scanned = [];
       };
     skipped_rules =
-      res.RP.skipped_rules
+      res.skipped_rules
       |> Common.map (fun ((kind, rule_id, tk) : Rule.invalid_rule_error) ->
              let loc = Tok.unsafe_loc_of_tok tk in
              {
-               Out.rule_id = Rule_ID.to_string rule_id;
+               Out.rule_id;
                details = Rule.string_of_invalid_rule_error_kind kind;
                position = OutUtils.position_of_token_location loc;
              });
     time = profiling |> Option.map profiling_to_profiling;
     explanations =
-      ( res.RP.explanations |> Common.map explanation_to_explanation |> fun x ->
-        Some x );
-    rules_by_engine = Some (Common.map convert_rule res.rules_by_engine);
+      res.explanations |> Option.map (Common.map explanation_to_explanation);
+    rules_by_engine = Some res.rules_by_engine;
     engine_requested = Some `OSS;
     version = Some Version.version;
   }
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Error management *)

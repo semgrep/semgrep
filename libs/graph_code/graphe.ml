@@ -348,7 +348,7 @@ let entry_nodes g =
            xs |> List.iter (fun n -> Hashtbl.replace hdone n true);
            Common.push v res);
   !res |> List.map (fun i -> key_of_vertex i g) |> List.rev
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Iteration *)
@@ -480,7 +480,7 @@ let strongly_connected_components g =
                     "the strongly connected components should be disjoint";
                 Hashtbl.add h k i));
   (scc_array, h)
-  [@@profiling]
+[@@profiling]
 
 (* http://en.wikipedia.org/wiki/Strongly_connected_component *)
 let strongly_connected_components_condensation g (scc, hscc) =
@@ -495,7 +495,7 @@ let strongly_connected_components_condensation g (scc, hscc) =
          let k2 = Hashtbl.find hscc n2 in
          if k1 <> k2 then g2 |> add_edge k1 k2);
   g2
-  [@@profiling]
+[@@profiling]
 
 let depth_nodes g =
   if OG.Dfs.has_cycle g.og then failwith "not a DAG";
@@ -526,7 +526,7 @@ let depth_nodes g =
   let hfinalres = Hashtbl.create 101 in
   hres |> Hashtbl.iter (fun v n -> Hashtbl.add hfinalres (key_of_vertex v g) n);
   hfinalres
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Graph visualization and debugging *)

@@ -5,7 +5,6 @@
  (libraries
    commons
    lib_parsing
-   ast_generic ; is_metavar_name
    parser_cpp.menhir
    parser_c.ast
  )

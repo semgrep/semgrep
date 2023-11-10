@@ -10,6 +10,14 @@ type constness = Constant | NotConstant [@@deriving show]
 val hook_constness_of_function :
   (AST_generic.expr -> constness option) option ref
 
+val hook_transfer_of_assume :
+  (bool ->
+  IL.exp_kind ->
+  AST_generic.svalue Dataflow_var_env.t ->
+  AST_generic.svalue Dataflow_var_env.t)
+  option
+  ref
+
 val is_symbolic_expr : AST_generic.expr -> bool
 val eq : AST_generic.svalue -> AST_generic.svalue -> bool
 val union : AST_generic.svalue -> AST_generic.svalue -> AST_generic.svalue
@@ -20,6 +28,12 @@ val fixpoint : Lang.t -> IL.name list -> IL.cfg -> mapping
 *)
 
 val set_svalue_ref : AST_generic.id_info -> AST_generic.svalue -> unit
+
+val update_env_with :
+  AST_generic.svalue Dataflow_var_env.t ->
+  IL.name ->
+  AST_generic.svalue ->
+  AST_generic.svalue Dataflow_var_env.t
 
 val update_svalue : IL.cfg -> mapping -> unit
 (**

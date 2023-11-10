@@ -78,8 +78,8 @@
           "$MULTILINE": {
             "abstract_content": "\n    abc\n    def\n",
             "end": {
-              "col": 1,
-              "line": 14,
+              "col": 9,
+              "line": 13,
               "offset": 245
             },
             "start": {

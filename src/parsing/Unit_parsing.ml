@@ -54,6 +54,8 @@ let lang_parsing_tests () =
     pack_tests slang
       (let dir = tests_path_parsing / dir in
        let files = Common2.glob (spf "%s/*%s" !!dir ext) in
+       if files =*= [] then
+         failwith (spf "Empty set of parsing tests for %s" slang);
        parsing_tests_for_lang files lang)
   in
   pack_suites "lang parsing testing"
@@ -138,10 +140,30 @@ let parsing_rules_tests () =
      |> Common.map (fun file ->
             (Fpath.basename file, fun () -> Parse_rule.parse file |> ignore)))
 
+let parsing_rules_with_atd_tests () =
+  let dir = tests_path / "rules_v2" in
+  let tests1 =
+    Common2.glob (spf "%s/*.yaml" !!dir) @ Common2.glob (spf "%s/*.json" !!dir)
+  in
+  let dir = tests_path / "syntax_v2" in
+  let tests2 =
+    Common2.glob (spf "%s/*.yaml" !!dir) @ Common2.glob (spf "%s/*.json" !!dir)
+  in
+  pack_tests "Parsing rules with rule_schema_v2.atd"
+    (tests1 @ tests2 |> File.Path.of_strings
+    |> Common.map (fun file ->
+           (!!file, fun () -> Parse_rules_with_atd.parse_rules_v2 file |> ignore))
+    )
+
 (*****************************************************************************)
 (* Tests *)
 (*****************************************************************************)
 
 let tests () =
   List.flatten
-    [ lang_parsing_tests (); parsing_error_tests (); parsing_rules_tests () ]
+    [
+      lang_parsing_tests ();
+      parsing_error_tests ();
+      parsing_rules_tests ();
+      parsing_rules_with_atd_tests ();
+    ]

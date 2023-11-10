@@ -13,7 +13,7 @@ from semgrep.app import auth
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.config_resolver import get_config
 from semgrep.error import FATAL_EXIT_CODE
-from semgrep.project import get_project_url
+from semgrep.git import get_project_url
 from semgrep.state import get_state
 from semgrep.test import get_config_filenames
 from semgrep.test import get_config_test_filenames

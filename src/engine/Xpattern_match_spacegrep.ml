@@ -111,4 +111,4 @@ let matches_of_spacegrep (xconfig : Match_env.xconfig) spacegreps file =
       matcher = spacegrep_matcher xconfig;
     }
     file
-  [@@profiling]
+[@@profiling]

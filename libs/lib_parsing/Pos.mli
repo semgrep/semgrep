@@ -34,6 +34,14 @@ val string_of_pos : t -> string
 (* Adjust line x col in a position *)
 (*****************************************************************************)
 
+(*
+   Return (line, column) from a byte position.
+
+   If the byte position is out of range, the functions of this type return
+   the nearest valid position which is either the first or the last position
+   in the range.
+   Empty files admit at least one valid byte position.
+*)
 type bytepos_to_linecol_fun = int -> int * int
 
 (* Can we deprecate those full_charpos_xxx? use

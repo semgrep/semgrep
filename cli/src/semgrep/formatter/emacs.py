@@ -19,7 +19,7 @@ class EmacsFormatter(BaseFormatter):
             if rule_match.rule_id != CLI_RULE_ID
             else None
         )
-        match_severity = rule_match.severity.value.lower()
+        match_severity = rule_match.severity.value.to_json().lower()
         severity = match_severity + f"({check_id})" if check_id else match_severity
         return [
             str(rule_match.path),

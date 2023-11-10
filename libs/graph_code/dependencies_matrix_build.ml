@@ -131,7 +131,7 @@ let build_with_tree tree gopti =
                   dm.matrix.(parent_i).(parent_j) <-
                     dm.matrix.(parent_i).(parent_j) + 1));
   dm
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Ordering the rows/columns helpers *)

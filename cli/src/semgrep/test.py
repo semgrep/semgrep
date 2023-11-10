@@ -476,10 +476,14 @@ def generate_test_results(
 
     config_missing_tests_output = [str(c[0]) for c in config_without_tests]
 
+    # in a test context, we don't want to honor the paths: (include/exclude)
+    # directive since the test target file, which must have the same
+    # basename than the rule, may not match the paths: of the rule
     invoke_semgrep_fn = functools.partial(
         invoke_semgrep_multi,
         engine_type=engine_type,
         no_git_ignore=True,
+        respect_rule_paths=False,
         no_rewrite_rule_ids=True,
         strict=strict,
         optimizations=optimizations,

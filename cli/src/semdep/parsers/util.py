@@ -188,7 +188,7 @@ def upto(
     [include_other] will parse the delimiter and append it to the result
     [consume_other] will parse the delimiter and throw it out
     Only one should be used, if you use both behavior is undefined
-    [allow_newline] allows newlines to be consumed. Generally this happening is undesireable,
+    [allow_newline] allows newlines to be consumed. Generally this happening is undesirable,
     and indicates that something has gone wrong, but sometimes it may be what you want
     """
     if not allow_newline:

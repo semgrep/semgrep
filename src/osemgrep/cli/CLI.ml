@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open Common
 
 (*****************************************************************************)
 (* Prelude *)
@@ -31,6 +30,9 @@ open Common
    Translated from cli.py and commands/wrapper.py and parts of metrics.py
 *)
 
+open Common
+module Http_helpers_ = Http_helpers
+module Http_helpers = Http_helpers.Make (Lwt_platform)
 module Env = Semgrep_envvars
 
 (*****************************************************************************)
@@ -185,15 +187,14 @@ let dispatch_subcommand argv =
          * we progress in osemgrep port (or use Pysemgrep.Fallback further
          * down when we know we don't handle certain kind of arguments).
          *)
-        | "ci" when experimental -> Ci_subcommand.main subcmd_argv
         | "install-semgrep-pro" when experimental -> missing_subcommand ()
+        | "publish" when experimental -> missing_subcommand ()
         | "login" when experimental -> Login_subcommand.main subcmd_argv
         | "logout" when experimental -> Logout_subcommand.main subcmd_argv
-        | "publish" when experimental -> missing_subcommand ()
-        (* TODO: next target for not requiring the 'when experimental' guard!*)
-        | "lsp" when experimental -> Lsp_subcommand.main subcmd_argv
+        | "lsp" -> Lsp_subcommand.main subcmd_argv
         (* partial support, still use Pysemgrep.Fallback in it *)
         | "scan" -> Scan_subcommand.main subcmd_argv
+        | "ci" -> Ci_subcommand.main subcmd_argv
         (* osemgrep-only: and by default! no need experimental! *)
         | "install-ci" -> Install_subcommand.main subcmd_argv
         | "interactive" -> Interactive_subcommand.main subcmd_argv
@@ -208,7 +209,7 @@ let dispatch_subcommand argv =
             else raise Pysemgrep.Fallback
       with
       | Pysemgrep.Fallback -> Pysemgrep.pysemgrep argv)
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Error management *)
@@ -310,6 +311,7 @@ let main argv : Exit_code.t =
   (* hacks for having a smaller engine.js file *)
   Parsing_init.init ();
   Data_init.init ();
+  Http_helpers_.client_ref := Some (module Cohttp_lwt_unix.Client);
 
   metrics_init ();
   (* TOPORT: maybe_set_git_safe_directories() *)

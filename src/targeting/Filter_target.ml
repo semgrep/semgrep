@@ -91,4 +91,4 @@ let filter_paths (paths : Rule.paths) (path : Fpath.t) : bool =
       | _xs -> require |> List.exists (fun pat -> match_glob pat path)
     in
     is_required
-  [@@profiling]
+[@@profiling]

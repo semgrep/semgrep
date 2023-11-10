@@ -9,6 +9,7 @@
 # old: this file used to be the entry point of semgrep but became a regular
 # file when we introduced semgrep commands (e.g., scan, login). This file
 # is now called from commands/scan.py and commands/ci.py instead.
+# old: this file used to be called semgrep_main.py
 import json
 import time
 from io import StringIO
@@ -16,7 +17,6 @@ from os import environ
 from pathlib import Path
 from sys import getrecursionlimit
 from sys import setrecursionlimit
-from textwrap import wrap
 from typing import Any
 from typing import Collection
 from typing import Dict
@@ -27,26 +27,18 @@ from typing import Set
 from typing import Tuple
 from typing import Union
 
-from attrs import evolve
 from boltons.iterutils import partition
-from rich.columns import Columns
-from rich.padding import Padding
-from rich.table import Table
 
+import semgrep.scan_report as scan_report
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parse_lockfile import parse_lockfile_path
 from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
-from semgrep.app import auth
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
-from semgrep.console import console
-from semgrep.console import Title
-from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_DIFF_DEPTH
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
-from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
 from semgrep.core_runner import get_contributions
 from semgrep.core_runner import Plan
@@ -56,6 +48,7 @@ from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.exclude_rules import filter_exclude_rule
 from semgrep.git import BaselineHandler
+from semgrep.git import get_project_url
 from semgrep.ignores import FileIgnore
 from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.ignores import Parser
@@ -65,21 +58,17 @@ from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.output_extra import OutputExtra
 from semgrep.profile_manager import ProfileManager
-from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.rule_match import RuleMatchSet
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_types import JOIN_MODE
-from semgrep.state import DesignTreatment
 from semgrep.state import get_state
 from semgrep.target_manager import ECOSYSTEM_TO_LOCKFILES
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
 from semgrep.util import unit_str
-from semgrep.util import with_color
-from semgrep.util import with_feature_status
 from semgrep.verbose_logging import getLogger
 
 
@@ -125,359 +114,14 @@ def get_file_ignore() -> FileIgnore:
     return file_ignore
 
 
-def print_product_status(sast_enabled: bool = True, sca_enabled: bool = False) -> None:
-    """
-    (Simple) print the statuses of enabled products to stdout when the user
-    is given the product-focused CLI UX treatment.
-    """
-    learn_more_url = with_color(
-        Colors.cyan, "https://semgrep.dev/products/cloud-platform/", underline=True
-    )
-    login_command = with_color(Colors.gray, "`semgrep login`")
-    is_logged_in = auth.get_token() is not None
-    all_enabled = True  # assume all enabled until we find a disabled product
-
-    sections = [
-        (
-            "Semgrep OSS",
-            True,
-            [
-                "Basic security coverage for first-party code vulnerabilities.",
-            ],
-        ),
-        (
-            "Semgrep Code (SAST)",
-            is_logged_in and sast_enabled,
-            [
-                "Find and fix vulnerabilities in the code you write with advanced scanning and expert security rules.",
-            ],
-        ),
-        (
-            "Semgrep Supply Chain (SCA)",
-            sca_enabled,
-            [
-                "Find and fix the reachable vulnerabilities in your OSS dependencies.",
-            ],
-        ),
-    ]
-
-    for name, enabled, features in sections:
-        all_enabled = all_enabled and enabled
-        console.print(
-            f"\n{with_feature_status(enabled=enabled)} {with_color(Colors.foreground, name, bold=True)}"
-        )
-        for feature in features:
-            console.print(f"  {with_feature_status(enabled=enabled)} {feature}")
-
-    if not is_logged_in:
-        message = "\n".join(
-            wrap(
-                f"💎 Get started with all Semgrep products via {login_command}.",
-                width=80,
-            )
-            + [f"✨ Learn more at {learn_more_url}."]
-        )
-        console.print(f"\n{message}\n")
-    elif not all_enabled:
-        # TODO: Handle cases where SAST / SCA are not enabled (GROW-53)
-        # We should suggest a resolution such as enabling supply chain in SCP settings, and
-        # run then `semgrep ci`. However, there are some additional edge cases to consider
-        # such as feature availability / required plan upgrades, and thus we will punt showing
-        # a resolution for now.
-        console.print(" ")  # space intentional for progress bar padding
-    else:
-        console.print(" ")  # space intentional for progress bar padding
-
-
-def print_scan_plan_header(
-    target_manager: TargetManager,
-    sast_plan: Plan,
-    sca_plan: Plan,
-    target_mode_config: TargetModeConfig,
-    cli_ux: DesignTreatment = DesignTreatment.LEGACY,
-) -> None:
-    """
-    Prints the number of files intended to be scanned and (optionally)
-    the number of rules to be run based on the current configuration.
-    """
-    file_count = len(target_manager.get_all_files())
-    legacy_cli_ux = cli_ux == DesignTreatment.LEGACY
-    simple_ux = cli_ux == DesignTreatment.SIMPLE
-
-    if target_mode_config.is_pro_diff_scan:
-        total_file_count = len(
-            evolve(target_manager, baseline_handler=None).get_all_files()
-        )
-        diff_file_count = len(target_mode_config.get_diff_targets())
-        summary_line = f"Pro Differential Scanning {diff_file_count}/{unit_str(total_file_count, 'file')}"
-    else:
-        file_count = len(target_manager.get_all_files())
-        summary_line = f"Scanning {unit_str(file_count, 'file')}"
-
-    if target_manager.respect_git_ignore:
-        summary_line += (
-            f" {'tracked by git' if legacy_cli_ux else '(only git-tracked)'}"
-        )
-
-    if simple_ux:  # We skip printing the rule count with new simple CLI UX
-        console.print(f"{summary_line} with:")
-        return
-
-    # The sast_plan contains secrets rules too.  You might be tempted
-    # to use rule_count_by_product but the summary line doesn't
-    # historically take into account the effects of not scanning
-    # files, which rule_count_by_product includes.
-    sast_rule_count = len(sast_plan.rules)
-    is_secret_rule = lambda r: isinstance(r.product.value, out.Secrets)
-    secrets_rule_count = len(list(filter(is_secret_rule, sast_plan.rules)))
-
-    # TODO code_rule_count currently double counts pro_rules.
-    code_rule_count = sast_rule_count - secrets_rule_count
-    summary_line += f" with {unit_str(code_rule_count, 'Code rule')}"
-
-    if secrets_rule_count:
-        summary_line += f", {unit_str(secrets_rule_count, 'Secrets rule')}"
-
-    sca_rule_count = len(sca_plan.rules)
-    if sca_rule_count:
-        summary_line += f", {unit_str(sca_rule_count, 'Supply Chain rule')}"
-
-    console.print(summary_line + ":")
-
-
-def print_tables(tables: List[Table]) -> None:
-    columns = Columns(tables, padding=(1, 8))
-
-    # rich tables are 2 spaces indented by default
-    # deindent only by 1 to align the content, instead of the invisible table border
-    console.print(Padding(columns, (1, 0)), deindent=1)
-
-
-def print_degenerate_table(plan: Plan, *, rule_count: int) -> None:
-    """
-    Print a table with no rows and a simple message instead.
-    """
-    if not rule_count or not plan.target_mappings:
-        console.print("Nothing to scan.")
-    else:  # e.g. 1 rule, 4 files
-        console.print(f"Scanning {unit_str(len(plan.target_mappings), 'file')}.")
-
-
-def print_sast_table(sast_plan: Plan, *, product: out.Product, rule_count: int) -> None:
-    """
-    Pretty print the SAST / secrets plan to stdout.
-    """
-    if rule_count <= 1 or not sast_plan.target_mappings:
-        print_degenerate_table(sast_plan, rule_count=rule_count)
-        return
-
-    plan_by_lang = sast_plan.split_by_lang_label_for_product(product)
-
-    if len(plan_by_lang) == 1:
-        [(language, target_mapping)] = plan_by_lang.items()
-        console.print(
-            f"Scanning {unit_str(target_mapping.file_count, 'file')} with {unit_str(rule_count, f'{language} rule')}."
-        )
-        return
-
-    print_tables(
-        [
-            sast_plan.table_by_language(with_tables_for=product),
-            sast_plan.table_by_origin(with_tables_for=product),
-        ]
-    )
-
-
-def print_sca_table(sca_plan: Plan, rule_count: int) -> None:
-    """
-    Pretty print the sca plan to stdout with the legacy CLI UX.
-    """
-    if rule_count <= 1 or not sca_plan.target_mappings:
-        print_degenerate_table(sca_plan, rule_count=rule_count)
-        return
-
-    print_tables(
-        [
-            sca_plan.table_by_ecosystem(),
-            sca_plan.table_by_sca_analysis(),
-        ]
-    )
-
-
-def print_detailed_sca_table(sca_plan: Plan, rule_count: int) -> None:
-    """
-    Pretty print the plan to stdout with the detailed CLI UX.
-    """
-    if rule_count:
-        print_sca_table(sca_plan, rule_count)
-        return
-
-    sep = "\n   "
-    message = "No rules to run."
-    """
-    We need to account for several edges cases:
-        - `semgrep ci` was invoked but no rules were found (e.g. no lockfile).
-        - `semgrep scan` was invoked with the supply-chain flag and no rules found.
-        - `semgrep ci` was invoked without the supply-chain flag or feature enabled.
-    """
-    # 1. Validate that the user is indeed running SCA (and not from semgrep scan).
-    is_scan = get_state().is_scan_invocation()
-    is_supply_chain = get_state().is_supply_chain()
-    # 2. Check if the user has metrics enabled.
-    metrics = get_state().metrics
-    metrics_enabled = metrics.is_enabled
-    # If the user has metrics enabled, we can suggest they run `semgrep ci` to get more findings.
-    # Otherwise, we should expect the user to be already aware of the other products.
-    # 3. Check if the user has logged in.
-    has_auth = auth.get_token() is not None
-    # Users who have not logged in will not be able to run `semgrep ci`.
-    # For users with metrics enabled who are running scan without auth,
-    # we should suggest they login and run semgrep ci.
-    if is_scan and metrics_enabled:
-        login_command = with_color(Colors.gray, "`semgrep login`")
-        ci_command = with_color(Colors.gray, "`semgrep ci`")
-        if not has_auth:
-            message = sep.join(
-                wrap(
-                    f"💎 Sign in with {login_command} and run {ci_command} to find dependency vulnerabilities and advanced cross-file findings.",
-                    width=70,
-                )
-            )
-        elif not is_supply_chain:
-            message = sep.join(
-                wrap(
-                    f"💎 Run {ci_command} to find dependency vulnerabilities and advanced cross-file findings.",
-                    width=70,
-                )
-            )
-        else:  # supply chain but no rules (e.g. no lockfile)
-            pass
-    else:  # skip nudge for users who have not enabled metrics or are already running ci
-        pass
-    console.print(f"\n{message}\n")
-
-
-def print_scan_status(
-    rules: Sequence[Rule],
-    target_manager: TargetManager,
-    target_mode_config: TargetModeConfig,
-    cli_ux: DesignTreatment = DesignTreatment.LEGACY,
-) -> int:
-    """
-    Print a section like:
-
-    Return total number of rules semgrep think is applicable to this repo
-    e.g. it skips rules when there are no files with a relevant extension since no findings will be found
-    """
-    legacy_ux = cli_ux == DesignTreatment.LEGACY
-    simple_ux = cli_ux == DesignTreatment.SIMPLE
-    detailed_ux = cli_ux == DesignTreatment.DETAILED
-
-    if simple_ux:
-        logo = with_color(Colors.green, "○○○")
-        console.print(
-            f"""
-┌──── {logo} ────┐
-│ Semgrep CLI │
-└─────────────┘
-"""
-        )
-    else:
-        console.print(Title("Scan Status"))
-
-    sast_plan = CoreRunner.plan_core_run(
-        [
-            rule
-            for rule in rules
-            if (
-                (
-                    isinstance(rule.product.value, out.SAST)
-                    or isinstance(rule.product.value, out.Secrets)
-                )
-                and (not rule.from_transient_scan)
-            )
-        ],
-        target_manager
-        if not target_mode_config.is_pro_diff_scan
-        else evolve(
-            target_manager, target_strings=target_mode_config.get_diff_targets()
-        ),
-    )
-
-    sca_plan = CoreRunner.plan_core_run(
-        [rule for rule in rules if isinstance(rule.product.value, out.SCA)],
-        target_manager,
-    )
-
-    print_scan_plan_header(
-        target_manager, sast_plan, sca_plan, target_mode_config, cli_ux
-    )
-
-    sast_rule_count = len(sast_plan.rules)
-    sca_rule_count = len(sca_plan.rules)
-    has_sca_rules = sca_rule_count > 0
-
-    # NOTE: There's some funky behavior with handling the rule counts
-    # in which some functions require rule counts calculated in different ways.
-    alt_sast_rule_count = sast_plan.rule_count_for_product(out.Product(out.SAST()))
-    alt_sca_rule_count = sca_plan.rule_count_for_product(out.Product(out.SCA()))
-
-    secrets_rule_count = sast_plan.rule_count_for_product(out.Product(out.Secrets()))
-    has_secret_rules = secrets_rule_count > 0
-
-    if simple_ux:
-        # Print the feature summary table instead of all tables with new simple CLI UX
-        print_product_status(
-            sast_enabled=get_state().is_code(),
-            sca_enabled=get_state().is_supply_chain(),
-        )
-        return sast_rule_count + sca_rule_count
-
-    if not has_sca_rules and not has_secret_rules and legacy_ux:
-        # just print these tables without the section headers
-        print_sast_table(
-            sast_plan=sast_plan,
-            product=out.Product(out.SAST()),
-            rule_count=alt_sast_rule_count,
-        )
-        return sast_rule_count
-
-    if legacy_ux:
-        console.print(Padding(Title("Code Rules", order=2), (1, 0, 0, 0)))
-    else:
-        console.print(Title("Code Rules", order=2))
-
-    print_sast_table(
-        sast_plan=sast_plan,
-        product=out.Product(out.SAST()),
-        rule_count=alt_sast_rule_count,
-    )
-
-    # TODO: after launch this should no longer be conditional.
-    if has_secret_rules:
-        console.print(Title("Secrets Rules", order=2))
-        print_sast_table(
-            sast_plan=sast_plan,
-            product=out.Product(out.Secrets()),
-            rule_count=secrets_rule_count,
-        )
-
-    if not has_sca_rules and legacy_ux:
-        pass  # Skip showing an empty supply chain rules section for legacy ux
-    elif legacy_ux:
-        # Show the basic table for supply chain
-        console.print(Title("Supply Chain Rules", order=2))
-        print_sca_table(sca_plan=sca_plan, rule_count=alt_sca_rule_count)
-    else:
-        # Show the table with a supply chain nudge or supply chain
-        console.print(Title("Supply Chain Rules", order=2))
-        print_detailed_sca_table(sca_plan=sca_plan, rule_count=alt_sca_rule_count)
-
-    if detailed_ux:
-        console.print(Title("Progress", order=2))
-        console.print(" ")  # space intentional for progress bar padding
-
-    return sast_rule_count + sca_rule_count
+def file_ignore_to_ignore_profiles(file_ignore: FileIgnore) -> Dict[str, FileIgnore]:
+    # TODO: This pattern encodes the default Targeting Profiles
+    # of .semgrepignore. Don't hardcode this like it is.
+    return {
+        out.SAST().kind: file_ignore,
+        out.SCA().kind: file_ignore,
+        out.Secrets().kind: FileIgnore(file_ignore.base_path, frozenset()),
+    }
 
 
 def remove_matches_in_baseline(
@@ -512,7 +156,7 @@ def remove_matches_in_baseline(
     return kept_matches_by_rule
 
 
-# This run semgrep-core but also handles SCA and join rules
+# This runs semgrep-core (and also handles SCA and join rules)
 def run_rules(
     filtered_rules: List[Rule],
     target_manager: TargetManager,
@@ -520,23 +164,34 @@ def run_rules(
     output_handler: OutputHandler,
     dump_command_for_core: bool,
     time_flag: bool,
+    matching_explanations: bool,
     engine_type: EngineType,
+    # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
     run_secrets: bool = False,
+    disable_secrets_validation: bool = False,
     target_mode_config: Optional[TargetModeConfig] = None,
+    *,
+    with_code_rules: bool = True,
+    with_supply_chain: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
     OutputExtra,
     Dict[str, List[FoundDependency]],
     List[DependencyParserError],
-    int,
+    List[Plan],
 ]:
     if not target_mode_config:
         target_mode_config = TargetModeConfig.whole_scan()
 
     cli_ux = get_state().get_cli_ux_flavor()
-    num_executed_rules = print_scan_status(
-        filtered_rules, target_manager, target_mode_config, cli_ux
+    plans = scan_report.print_scan_status(
+        filtered_rules,
+        target_manager,
+        target_mode_config,
+        cli_ux=cli_ux,
+        with_code_rules=with_code_rules,
+        with_supply_chain=with_supply_chain,
     )
 
     join_rules, rest_of_the_rules = partition(
@@ -557,8 +212,10 @@ def run_rules(
         rest_of_the_rules,
         dump_command_for_core,
         time_flag,
+        matching_explanations,
         engine_type,
         run_secrets,
+        disable_secrets_validation,
         target_mode_config,
     )
 
@@ -639,7 +296,7 @@ def run_rules(
         output_extra,
         dependencies,
         dependency_parser_errors,
-        num_executed_rules,
+        plans,
     )
 
 
@@ -654,8 +311,10 @@ def run_scan(
     diff_depth: int = DEFAULT_DIFF_DEPTH,
     dump_command_for_core: bool = False,
     time_flag: bool = False,
+    matching_explanations: bool = False,
     engine_type: EngineType = EngineType.OSS,
     run_secrets: bool = False,
+    disable_secrets_validation: bool = False,
     output_handler: OutputHandler,
     target: Sequence[str],
     pattern: Optional[str],
@@ -674,13 +333,14 @@ def run_scan(
     dryrun: bool = False,
     disable_nosem: bool = False,
     no_git_ignore: bool = False,
+    respect_rule_paths: bool = True,
     timeout: int = DEFAULT_TIMEOUT,
     max_memory: int = 0,
     interfile_timeout: int = 0,
     max_target_bytes: int = 0,
     timeout_threshold: int = 0,
     skip_unknown_extensions: bool = False,
-    allow_untrusted_postprocessors: bool = False,
+    allow_untrusted_validators: bool = False,
     severity: Optional[Sequence[str]] = None,
     optimizations: str = "none",
     baseline_commit: Optional[str] = None,
@@ -694,11 +354,12 @@ def run_scan(
     List[Rule],
     ProfileManager,
     OutputExtra,
-    Collection[RuleSeverity],
+    Collection[out.MatchSeverity],
     Dict[str, List[FoundDependency]],
     List[DependencyParserError],
-    int,
     out.Contributions,
+    int,  # Executed Rule Count
+    int,  # Missed Rule Count
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
 
@@ -733,6 +394,12 @@ def run_scan(
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
     profiler.save("config_time", rule_start_time)
 
+    # We determine if SAST / SCA is enabled based on the config str
+    with_code_rules = configs_obj.with_code_rules
+    with_supply_chain = configs_obj.with_supply_chain
+    # TODO: handle de-duplication for pro-rules
+    missed_rule_count = configs_obj.missed_rule_count
+
     # Metrics send part 1: add environment information
     # Must happen after configs are resolved because it is determined
     # then whether metrics are sent or not
@@ -742,13 +409,18 @@ def run_scan(
         metrics.add_integration_name(environ.get("SEMGREP_INTEGRATION_NAME"))
         metrics.add_configs(configs)
         metrics.add_engine_type(engine_type)
+        metrics.add_is_diff_scan(baseline_commit is not None)
+        if engine_type.is_pro:
+            metrics.add_diff_depth(diff_depth)
 
     if not severity:
         shown_severities = DEFAULT_SHOWN_SEVERITIES
         filtered_rules = all_rules
     else:
-        shown_severities = {RuleSeverity(s) for s in severity}
-        filtered_rules = [rule for rule in all_rules if rule.severity.value in severity]
+        shown_severities = {out.MatchSeverity.from_json(s) for s in severity}
+        filtered_rules = [
+            rule for rule in all_rules if rule.severity in shown_severities
+        ]
     filtered_rules = filter_exclude_rule(filtered_rules, exclude_rule)
 
     output_handler.handle_semgrep_errors(config_errors)
@@ -804,9 +476,10 @@ def run_scan(
             max_target_bytes=max_target_bytes,
             target_strings=target,
             respect_git_ignore=respect_git_ignore,
+            respect_rule_paths=respect_rule_paths,
             baseline_handler=baseline_handler,
             allow_unknown_extensions=not skip_unknown_extensions,
-            file_ignore=get_file_ignore(),
+            ignore_profiles=file_ignore_to_ignore_profiles(get_file_ignore()),
         )
     except FilesNotFoundError as e:
         raise SemgrepError(e)
@@ -827,13 +500,13 @@ def run_scan(
     core_runner = CoreRunner(
         jobs=jobs,
         engine_type=engine_type,
-        run_secrets=run_secrets,
         timeout=timeout,
         max_memory=max_memory,
         interfile_timeout=interfile_timeout,
         timeout_threshold=timeout_threshold,
         optimizations=optimizations,
-        allow_untrusted_postprocessors=allow_untrusted_postprocessors,
+        allow_untrusted_validators=allow_untrusted_validators,
+        respect_rule_paths=respect_rule_paths,
     )
 
     if dump_contributions:
@@ -842,7 +515,7 @@ def run_scan(
         contributions = out.Contributions([])
 
     experimental_rules, unexperimental_rules = partition(
-        filtered_rules, lambda rule: rule.severity == RuleSeverity.EXPERIMENT
+        filtered_rules, lambda rule: (isinstance(rule.severity.value, out.Experiment))
     )
 
     logger.verbose("Rules:")
@@ -860,7 +533,7 @@ def run_scan(
         output_extra,
         dependencies,
         dependency_parser_errors,
-        num_executed_rules,
+        plans,
     ) = run_rules(
         filtered_rules,
         target_manager,
@@ -868,9 +541,13 @@ def run_scan(
         output_handler,
         dump_command_for_core,
         time_flag,
+        matching_explanations,
         engine_type,
         run_secrets,
+        disable_secrets_validation,
         target_mode_config,
+        with_code_rules=with_code_rules,
+        with_supply_chain=with_supply_chain,
     )
     profiler.save("core_time", core_start_time)
     output_handler.handle_semgrep_errors(semgrep_errors)
@@ -932,7 +609,9 @@ def run_scan(
                         target_strings=baseline_target_strings,
                         respect_git_ignore=respect_git_ignore,
                         allow_unknown_extensions=not skip_unknown_extensions,
-                        file_ignore=get_file_ignore(),
+                        ignore_profiles=file_ignore_to_ignore_profiles(
+                            get_file_ignore()
+                        ),
                     )
 
                     (
@@ -941,7 +620,7 @@ def run_scan(
                         _,
                         _,
                         _,
-                        _,
+                        _plans,
                     ) = run_rules(
                         # only the rules that had a match
                         [
@@ -954,8 +633,10 @@ def run_scan(
                         output_handler,
                         dump_command_for_core,
                         time_flag,
+                        matching_explanations,
                         engine_type,
                         run_secrets,
+                        disable_secrets_validation,
                         baseline_target_mode_config,
                     )
                     rule_matches_by_rule = remove_matches_in_baseline(
@@ -993,6 +674,10 @@ def run_scan(
     renamed_targets = set(
         baseline_handler.status.renamed.values() if baseline_handler else []
     )
+    executed_rule_count = sum(
+        max(0, len(plan.rules) - len(plan.unused_rules)) for plan in plans
+    )
+
     return (
         filtered_matches_by_rule.kept,
         semgrep_errors,
@@ -1004,8 +689,9 @@ def run_scan(
         shown_severities,
         dependencies,
         dependency_parser_errors,
-        num_executed_rules,
         contributions,
+        executed_rule_count,
+        missed_rule_count,
     )
 
 
@@ -1039,6 +725,7 @@ def run_scan_and_return_json(
         profiler,
         output_extra,
         shown_severities,
+        _,
         _,
         _,
         _,

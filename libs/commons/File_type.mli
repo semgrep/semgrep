@@ -43,6 +43,7 @@ and pl_type =
   | Web of webpl_type
   | IDL of idl_type
   | MiscPL of string
+  | Elixir
 
 and config_type =
   | Makefile

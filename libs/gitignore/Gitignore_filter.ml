@@ -115,4 +115,4 @@ let select t sel_events (full_git_path : Ppath.t) =
       select_path None sel_events t.lower_priority_levels rel_segments
     in
     result_of_selection_events sel_events
-  [@@profiling]
+[@@profiling]

@@ -28,7 +28,7 @@ let expr_at_range s file =
   match e_opt with
   | Some e -> pr (AST_generic.show_expr e)
   | None -> failwith (spf "could not find an expr at range %s in %s" s !!file)
-  [@@action]
+[@@action]
 
 let synthesize_patterns s file =
   let config = Rule_options.default_config in
@@ -38,15 +38,15 @@ let synthesize_patterns s file =
   in
   let s = J.string_of_json json_opts in
   pr s
-  [@@action]
+[@@action]
 
 let generate_pattern_choices s =
   let config = Rule_options.default_config in
   let options = Synthesizer.print_pattern_from_targets config s in
   List.iter (fun s -> pr s) options
-  [@@action]
+[@@action]
 
 let locate_patched_functions f =
   let res = Synthesizer.locate_patched_functions f in
   pr res
-  [@@action]
+[@@action]

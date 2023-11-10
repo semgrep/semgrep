@@ -1,0 +1,13 @@
+rules:
+- id: example-python
+  pattern: "f()"
+  languages: [py]
+  message: |
+    It's a Python finding.
+  severity: WARNING
+- id: example-javascript
+  pattern: "f()"
+  languages: [js]
+  message: |
+    It's a JavaScript finding.
+  severity: WARNING

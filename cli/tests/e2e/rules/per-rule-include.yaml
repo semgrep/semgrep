@@ -1,0 +1,10 @@
+rules:
+- id: example-python
+  pattern: "f()"
+  languages: [py]
+  paths:
+    include:
+      - scan-me.*
+  message: |
+    Found something
+  severity: WARNING

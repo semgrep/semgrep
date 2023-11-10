@@ -140,8 +140,8 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
           (* We don't want having to re-parse `content', but then we
            * need to fix the token locations in `mast`. *)
           let mast_start_loc =
-            mval |> MV.ii_of_mval |> AST_generic_helpers.range_of_tokens |> fst
-            |> Tok.unsafe_loc_of_tok
+            mval |> MV.ii_of_mval |> AST_generic_helpers.range_of_tokens_unsafe
+            |> fst |> Tok.unsafe_loc_of_tok
           in
           let mast_start_pos = mast_start_loc.pos in
           let fix_loc file (loc : Tok.location) =

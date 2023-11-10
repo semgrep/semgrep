@@ -1,0 +1,28 @@
+rules:
+  - id: taint-trace
+    message: found an error
+    languages:
+      - cpp
+      - c
+    severity: WARNING
+    mode: taint
+    metadata:
+      interfile: true
+    pattern-sources:
+      - label: USER_CONTROLLED
+        patterns:
+          - pattern: SOURCE()
+      - label: SCALAR
+        requires: USER_CONTROLLED
+        patterns:
+          - pattern-either:
+              - pattern: $LHS + $RHS
+          - focus-metavariable:
+              - $RHS
+              - $LHS
+    pattern-sinks:
+      - requires: USER_CONTROLLED and SCALAR
+        patterns:
+          - pattern-either:
+              - pattern: SINK(<... $SRC ...>)
+          - focus-metavariable: $SRC

@@ -2,7 +2,10 @@ let parse_pattern _ _ str = Go_to_generic.any (Parse_go.any_of_string str)
 
 let parse_target _ file =
   Pfff_or_tree_sitter.run file
-    [ TreeSitter Parse_go_tree_sitter.parse ]
+    [
+      TreeSitter Parse_go_tree_sitter.parse;
+      Pfff (Pfff_or_tree_sitter.throw_tokens Parse_go.parse);
+    ]
     Go_to_generic.program
 
 let _ =

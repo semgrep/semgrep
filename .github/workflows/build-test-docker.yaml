@@ -8,11 +8,11 @@ on:
       docker-flavor:
         required: true
         type: string
-        description: A multi-line string in the format accepted by docker metadata tag action for the flavor of the image
+        description: A multi-line string in the format accepted by docker metadata tag action for the flavor of the image. See https://github.com/docker/metadata-action#flavor-input for more information
       docker-tags:
         required: true
         type: string
-        description: A multi-line string in the format accepted by docker metadata tag action for the tags to apply to the image
+        description: A multi-line string in the format accepted by docker metadata tag action for the tags to apply to the image. See https://github.com/docker/metadata-action#tags-input for more information
       artifact-name:
         required: true
         type: string
@@ -41,11 +41,11 @@ on:
       docker-flavor:
         required: true
         type: string
-        description: A multi-line string in the format accepted by docker metadata tag action for the flavor of the image
+        description: A multi-line string in the format accepted by docker metadata tag action for the flavor of the image. See https://github.com/docker/metadata-action#flavor-input for more information
       docker-tags:
         required: true
         type: string
-        description: A multi-line string in the format accepted by docker metadata tag action for the tags to apply to the image
+        description: A multi-line string in the format accepted by docker metadata tag action for the tags to apply to the image. See https://github.com/docker/metadata-action#tags-input for more information
       artifact-name:
         required: true
         type: string

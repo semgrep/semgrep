@@ -971,6 +971,7 @@ let id x = x
 let const x _y = x
 let do_nothing () = ()
 let rec applyn n f o = if n = 0 then o else applyn (n - 1) f (f o)
+let on g f x y = g (f x) (f y)
 
 let forever f =
   while true do
@@ -3042,10 +3043,20 @@ let unixname () =
   let entry = Unix.getpwuid uid in
   entry.Unix.pw_name
 
-(* dont forget that cmd_to_list call bash and so pattern may contain
- * '*' symbols that will be expanded, so can do  glob "*.c"
- *)
-let glob pattern = cmd_to_list ("ls -1 " ^ pattern)
+(* This regex matches the directory part a glob pattern
+   used below. This way we are only trying to match
+   files contained in the dir specified by the pattern or subdirs,
+   instead of caluclating the contents of the entire
+   working directory. I.e. tests/**/*.extension would
+   result in tests/ *)
+let dir_regex = Str.regexp "^[^\\*]*"
+
+let glob pattern =
+  Str.search_forward dir_regex pattern 0 |> ignore;
+  let dir = Str.matched_string pattern in
+  let regex = pattern |> Re.Glob.glob ~anchored:true |> Re.compile in
+  let files = Common.dir_contents dir in
+  files |> List.filter (fun s -> Re.execp regex s)
 
 let dirs_of_dir dir =
   assert (is_directory dir);
@@ -4306,7 +4317,7 @@ let rec intersect x y =
 module StringSetOrig = Set.Make (struct
   type t = string
 
-  let compare = compare
+  let compare = String.compare
 end)
 
 module StringSet = struct

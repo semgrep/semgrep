@@ -19,11 +19,25 @@ from glom.core import TType
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
 from semgrep.external.git_url_parser import Parser
+from semgrep.git import git_check_output
 from semgrep.state import get_state
-from semgrep.util import git_check_output
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
+
+
+def uri_opt(uri: Optional[str]) -> Optional[out.Uri]:
+    if uri is None:
+        return None
+    else:
+        return out.Uri(uri)
+
+
+def sha1_opt(x: Optional[str]) -> Optional[out.Sha1]:
+    if x is None:
+        return None
+    else:
+        return out.Sha1(x)
 
 
 def get_url_from_sstp_url(sstp_url: Optional[str]) -> Optional[str]:
@@ -187,10 +201,10 @@ class GitMeta:
             # REQUIRED for semgrep-app backend
             repository=self.repo_name,
             # OPTIONAL for semgrep-app backend
-            repo_url=self.repo_url,
+            repo_url=uri_opt(self.repo_url),
             branch=self.branch,
-            ci_job_url=self.ci_job_url,
-            commit=self.commit_sha,
+            ci_job_url=uri_opt(self.ci_job_url),
+            commit=sha1_opt(self.commit_sha),
             commit_author_email=commit_author_email,
             commit_author_name=commit_author_name,
             commit_author_username=None,
@@ -586,13 +600,21 @@ class GithubMeta(GitMeta):
     def to_project_metadata(self) -> out.ProjectMetadata:
         res = super().to_project_metadata()
         res.commit_author_username = self.glom_event(T["sender"]["login"])
-        res.commit_author_image_url = self.glom_event(T["sender"]["avatar_url"])
+        res.commit_author_image_url = uri_opt(
+            self.glom_event(T["sender"]["avatar_url"])
+        )
         res.pull_request_author_username = self.glom_event(
             T["pull_request"]["user"]["login"]
         )
-        res.pull_request_author_image_url = self.glom_event(
-            T["pull_request"]["user"]["avatar_url"]
+        res.pull_request_author_image_url = uri_opt(
+            self.glom_event(T["pull_request"]["user"]["avatar_url"])
         )
+        repo_id = os.getenv("GITHUB_REPOSITORY_ID")
+        org_id = os.getenv("GITHUB_REPOSITORY_OWNER_ID")
+        if repo_id:
+            res.repo_id = repo_id
+        if org_id:
+            res.org_id = org_id
         return res
 
 
@@ -713,8 +735,8 @@ class GitlabMeta(GitMeta):
     def to_project_metadata(self) -> out.ProjectMetadata:
         res = super().to_project_metadata()
         res.branch = self.commit_ref
-        res.base_sha = self.merge_base_ref
-        res.start_sha = self.start_sha
+        res.base_sha = sha1_opt(self.merge_base_ref)
+        res.start_sha = sha1_opt(self.start_sha)
         return res
 
 

@@ -1,0 +1,30 @@
+rules:
+  - id: cpp-match-func-def
+    message: Semgrep found a match
+    options:
+      cpp_parsing_pref: as_fundef
+    languages:
+      - cpp
+    severity: WARNING
+    pattern-either:
+      - pattern: foo $X($Y);
+      - pattern: foo $X($Y, $Z);
+
+  - id: cpp-match-ctor
+    message: Semgrep found a match
+    options:
+      cpp_parsing_pref: as_vardef_with_ctor
+    languages:
+      - cpp
+    severity: WARNING
+    patterns:
+      - pattern: foo $X(...);
+      - pattern-not: foo $X(3, ...);
+
+  - id: cpp-match-ctor-3
+    message: Semgrep found a match
+    languages:
+      - cpp
+    severity: WARNING
+    pattern: foo $X(3, ...);
+

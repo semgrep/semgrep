@@ -8,6 +8,7 @@ from semgrep.cli import cli
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_publish(tmp_path, mocker):
     runner = SemgrepRunner(
         env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")},

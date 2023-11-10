@@ -1,0 +1,880 @@
+rules:
+  - id: mongo-driver-nosqli
+    message: "Untrusted input might be used to build a database query, which can
+      lead to a NoSQL injection vulnerability. An attacker can execute malicious
+      NoSQL statements and gain unauthorized access to sensitive data, modify,
+      delete data, or execute arbitrary system commands. Make sure all user
+      input is validated and sanitized, and avoid using tainted user input to
+      construct NoSQL statements if possible. Ideally, avoid raw queries and
+      instead use parameterized queries. "
+    severity: ERROR
+    metadata:
+      likelihood: HIGH
+      impact: HIGH
+      confidence: HIGH
+      category: security
+      subcategory:
+        - vuln
+      cwe:
+        - "CWE-943: Improper Neutralization of Special Elements in Data Query
+          Logic"
+      functional-categories:
+        - db::sink::sql-or-nosql-query::mongodb
+        - web::source::cookie::SpringBoot
+        - web::source::header::SpringBoot
+        - web::source::http-body::SpringBoot
+        - web::source::http-params::SpringBoot
+        - web::source::url-path-params::SpringBoot
+      owasp:
+        - A01:2017 - Injection
+      references:
+        - https://owasp.org/Top10/A03_2021-Injection
+      technology:
+        - spring
+        - kotlin
+        - mongo
+        - nosql
+      license: Copyright 2023 Semgrep, Inc.
+      vulnerability_class:
+        - Improper Validation
+    languages:
+      - kotlin
+    mode: taint
+    pattern-sources:
+      - label: USER_INPUT
+        patterns:
+          - pattern-either:
+              - pattern: |
+                  ($REQ: ServletRequest)
+              - pattern: |
+                  ($REQ: HttpServletRequest)
+              - pattern: |
+                  ($REQ: WebRequest)
+              - pattern: |
+                  ($REQ: ServletWebRequest)
+              - pattern: |
+                  ($REQ: FacesWebRequest)
+              - pattern: |
+                  ($REQ: NativeWebRequest)
+              - patterns:
+                  - pattern-either:
+                      - pattern: |
+                          fun $METHOD(..., @$REQ(...) $SOURCE: $TYPE, ...) {...}
+                      - pattern: |
+                          fun $METHOD(..., @$REQ $SOURCE: $TYPE, ...) {...}
+                      - pattern: >
+                          fun $METHOD(..., @$REQ(...) $SOURCE: $TYPE, ...) =
+                          $Z(...)
+                      - pattern: |
+                          fun $METHOD(..., @$REQ $SOURCE: $TYPE, ...) = $Z(...)
+                  - metavariable-regex:
+                      metavariable: $TYPE
+                      regex: ^(?!(Int|Long|Float|Double|Short|Byte|Char|UByte|UInt|ULong|UShort|Boolean))
+                  - metavariable-regex:
+                      metavariable: $REQ
+                      regex: (RequestBody|PathVariable|RequestParam|RequestHeader|CookieValue|ModelAttribute)
+                  - focus-metavariable: $SOURCE
+      - label: CONCAT
+        patterns:
+          - pattern-either:
+              - pattern: |
+                  "...${...}..."
+              - pattern: |
+                  "...${...}...".$MD(...)
+              - pattern: |
+                  "..." + ...
+              - pattern: |
+                  ... + "..."
+              - pattern: |
+                  "...${...}..." + ...
+              - pattern: |
+                  ... + "...${...}..."
+              - pattern: |
+                  String.format(...)
+        requires: USER_INPUT
+    pattern-sinks:
+      - patterns:
+          - focus-metavariable: $VAL
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          import org.bson.*
+                          ...
+                      - pattern-inside: |
+                          import org.bson.RawBsonDocument
+                          ...
+                  - pattern-either:
+                      - pattern: |
+                          RawBsonDocument($VAL)
+                      - pattern: |
+                          RawBsonDocument.parse($VAL)
+                      - pattern: |
+                          ($X: RawBsonDocument).$METHOD($VAL)
+                      - patterns:
+                          - pattern: |
+                              $X.putAll($VAL)
+                          - pattern-inside: |
+                              $X = RawBsonDocument(...)
+                              ...
+                      - patterns:
+                          - metavariable-pattern:
+                              metavariable: $METHOD
+                              patterns:
+                                - pattern-either:
+                                    - pattern: |
+                                        append
+                                    - pattern: |
+                                        put
+                          - metavariable-regex:
+                              metavariable: $KEY
+                              regex: .*(where|expr|regex|jsonSchema).*
+                          - pattern-either:
+                              - pattern: |
+                                  ($X: RawBsonDocument).$METHOD($KEY, $VAL)
+                              - patterns:
+                                  - pattern: |
+                                      $X.$METHOD($KEY, $VAL)
+                                  - pattern-inside: |
+                                      $X = RawBsonDocument(...)
+                                      ...
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          import org.bson.json.*
+                          ...
+                      - pattern-inside: |
+                          import org.bson.json.JsonObject
+                          ...
+                  - pattern-either:
+                      - pattern: |
+                          JsonObject($VAL)
+                      - pattern: |
+                          JsonObject.parse($VAL)
+                      - pattern: |
+                          ($X: JsonObject).$METHOD($VAL)
+                      - patterns:
+                          - pattern: |
+                              $X.putAll($VAL)
+                          - pattern-inside: |
+                              $X = JsonObject(...)
+                              ...
+                      - patterns:
+                          - metavariable-pattern:
+                              metavariable: $METHOD
+                              patterns:
+                                - pattern-either:
+                                    - pattern: |
+                                        append
+                                    - pattern: |
+                                        put
+                          - metavariable-regex:
+                              metavariable: $KEY
+                              regex: .*(where|expr|regex|jsonSchema).*
+                          - pattern-either:
+                              - pattern: |
+                                  ($X: JsonObject).$METHOD($KEY, $VAL)
+                              - patterns:
+                                  - pattern: |
+                                      $X.$METHOD($KEY, $VAL)
+                                  - pattern-inside: |
+                                      $X = JsonObject(...)
+                                      ...
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          import org.bson.*
+                          ...
+                      - pattern-inside: |
+                          import org.bson.Document
+                          ...
+                  - pattern-either:
+                      - pattern: |
+                          Document($VAL)
+                      - patterns:
+                          - pattern: |
+                              Document($KEY, $VAL)
+                          - metavariable-regex:
+                              metavariable: $KEY
+                              regex: .*(where|expr|regex|jsonSchema).*
+                      - pattern: |
+                          Document.parse($VAL)
+                      - pattern: |
+                          ($X: Document).$METHOD($VAL)
+                      - patterns:
+                          - pattern: |
+                              $X.putAll($VAL)
+                          - pattern-inside: |
+                              $X = Document(...)
+                              ...
+                      - patterns:
+                          - metavariable-pattern:
+                              metavariable: $METHOD
+                              patterns:
+                                - pattern-either:
+                                    - pattern: |
+                                        append
+                                    - pattern: |
+                                        put
+                          - metavariable-regex:
+                              metavariable: $KEY
+                              regex: .*(where|expr|regex|jsonSchema).*
+                          - pattern-either:
+                              - pattern: |
+                                  ($X: Document).$METHOD($KEY, $VAL)
+                              - patterns:
+                                  - pattern: |
+                                      $X.$METHOD($KEY, $VAL)
+                                  - pattern-inside: |
+                                      $X = Document(...)
+                                      ...
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          import com.mongodb.*
+                          ...
+                      - pattern-inside: |
+                          import com.mongodb.BasicDBObject
+                          ...
+                  - pattern-either:
+                      - patterns:
+                          - pattern: |
+                              BasicDBObject($KEY, $VAL)
+                          - metavariable-regex:
+                              metavariable: $KEY
+                              regex: .*(where|expr|regex|jsonSchema).*
+                      - pattern: |
+                          BasicDBObject.parse($VAL)
+                      - pattern: |
+                          ($X: BasicDBObject).$METHOD($VAL)
+                      - patterns:
+                          - pattern: |
+                              $X.putAll($VAL)
+                          - pattern-inside: |
+                              $X = BasicDBObject(...)
+                              ...
+                      - patterns:
+                          - metavariable-pattern:
+                              metavariable: $METHOD
+                              patterns:
+                                - pattern-either:
+                                    - pattern: |
+                                        append
+                                    - pattern: |
+                                        put
+                          - metavariable-regex:
+                              metavariable: $KEY
+                              regex: .*(where|expr|regex|jsonSchema).*
+                          - pattern-either:
+                              - pattern: |
+                                  ($X: BasicDBObject).$METHOD($KEY, $VAL)
+                              - patterns:
+                                  - pattern: |
+                                      $X.$METHOD($KEY, $VAL)
+                                  - pattern-inside: |
+                                      $X = BasicDBObject(...)
+                                      ...
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          import org.bson.*
+                          ...
+                      - pattern-inside: |
+                          import org.bson.BsonDocument
+                          ...
+                  - pattern-either:
+                      - patterns:
+                          - pattern: |
+                              BsonDocument($KEY, $VAL)
+                          - metavariable-regex:
+                              metavariable: $KEY
+                              regex: .*(where|expr|regex|jsonSchema).*
+                      - pattern: |
+                          BsonDocument.parse($VAL)
+                      - pattern: |
+                          ($X: BsonDocument).$METHOD($VAL)
+                      - patterns:
+                          - pattern: |
+                              $X.putAll($VAL)
+                          - pattern-inside: |
+                              $X = BsonDocument(...)
+                              ...
+                      - patterns:
+                          - metavariable-pattern:
+                              metavariable: $METHOD
+                              patterns:
+                                - pattern-either:
+                                    - pattern: |
+                                        append
+                                    - pattern: |
+                                        put
+                          - metavariable-regex:
+                              metavariable: $KEY
+                              regex: .*(where|expr|regex|jsonSchema).*
+                          - pattern-either:
+                              - pattern: |
+                                  ($X: BsonDocument).$METHOD($KEY, $VAL)
+                              - patterns:
+                                  - pattern: |
+                                      $X.$METHOD($KEY, $VAL)
+                                  - pattern-inside: |
+                                      $X = BsonDocument(...)
+                                      ...
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          import org.bson.*
+                          ...
+                      - pattern-inside: |
+                          import org.bson.Document
+                          ...
+                  - pattern-either:
+                      - pattern: |
+                          Document($VAL)
+                      - patterns:
+                          - pattern: |
+                              Document($KEY, $VAL)
+                          - metavariable-regex:
+                              metavariable: $KEY
+                              regex: .*(where|expr|regex|jsonSchema).*
+                      - pattern: |
+                          Document.parse($VAL)
+                      - pattern: |
+                          ($X: Document).$METHOD($VAL)
+                      - patterns:
+                          - pattern: |
+                              $X.putAll($VAL)
+                          - pattern-inside: |
+                              $X = Document(...)
+                              ...
+                      - patterns:
+                          - metavariable-pattern:
+                              metavariable: $METHOD
+                              patterns:
+                                - pattern-either:
+                                    - pattern: |
+                                        append
+                                    - pattern: |
+                                        put
+                          - metavariable-regex:
+                              metavariable: $KEY
+                              regex: .*(where|expr|regex|jsonSchema).*
+                          - pattern-either:
+                              - pattern: |
+                                  ($X: Document).$METHOD($KEY, $VAL)
+                              - patterns:
+                                  - pattern: |
+                                      $X.$METHOD($KEY, $VAL)
+                                  - pattern-inside: |
+                                      $X = Document(...)
+                                      ...
+        requires: CONCAT
+    pattern-sanitizers:
+      - patterns:
+          - pattern: |
+              $X.$METHOD(...)
+          - metavariable-regex:
+              metavariable: $METHOD
+              regex: (equals|toInt|toLong|toFloat|toDouble|toShort|toByte|toUByte|toUInt|toULong|toUShort)
+      - pattern: |
+          ($X: boolean)
+  - id: ktor-mongo-java-driver
+    message: "Untrusted input might be used to build a database query, which can
+      lead to a NoSQL injection vulnerability. An attacker can execute malicious
+      NoSQL statements and gain unauthorized access to sensitive data, modify,
+      delete data, or execute arbitrary system commands. Make sure all user
+      input is validated and sanitized, and avoid using tainted user input to
+      construct NoSQL statements if possible. Ideally, avoid raw queries and
+      instead use parameterized queries. "
+    severity: ERROR
+    metadata:
+      likelihood: HIGH
+      impact: HIGH
+      confidence: HIGH
+      category: security
+      subcategory:
+        - vuln
+      cwe:
+        - "CWE-943: Improper Neutralization of Special Elements in Data Query
+          Logic"
+      functional-categories:
+        - db::sink::sql-or-nosql-query::mongodb
+        - web::source::cookie::Ktor
+        - web::source::header::Ktor
+        - web::source::http-params::Ktor
+        - web::source::url-path-params::Ktor
+      owasp:
+        - A01:2017 - Injection
+      references:
+        - https://owasp.org/Top10/A03_2021-Injection
+      technology:
+        - ktor
+        - kotlin
+        - mongo
+        - nosql
+      license: Copyright 2023 Semgrep, Inc.
+      vulnerability_class:
+        - Improper Validation
+    languages:
+      - kotlin
+    mode: taint
+    options:
+      symbolic_propagation: true
+    pattern-sources:
+      - label: no_processing_needed
+        patterns:
+          - patterns:
+              - pattern-either:
+                  - patterns:
+                      - pattern-either:
+                          - pattern-inside: |
+                              import io.ktor.server.*
+                              ...
+                          - pattern-inside: |
+                              import io.ktor.server.application
+                              ...
+                      - pattern-either:
+                          - pattern: |
+                              application.call.parameters
+                          - patterns:
+                              - pattern: |
+                                  application.call.receive(...)
+                              - pattern-not-inside: |
+                                  val $X: Int = application.call.receive(...)
+                              - pattern-not-inside: |
+                                  val $X: Int = application.call.receive(...)
+                          - patterns:
+                              - pattern: |
+                                  application.call.request.$F(...)
+                              - metavariable-regex:
+                                  metavariable: $F
+                                  regex: ^(accept|acceptCharset|acceptCharsetItems|acceptEncoding|acceptEncodingItems|acceptItems|acceptLanguage|acceptLanguageItems|cacheControl|header|location|queryString|userAgent)$
+                          - patterns:
+                              - pattern-either:
+                                  - patterns:
+                                      - pattern: |
+                                          application.call.request.$F
+                                      - metavariable-regex:
+                                          metavariable: $F
+                                          regex: ^(cookies|queryParameters|rawQueryParameters|uri)$
+                                  - pattern: >
+                                      application.call.request.cookies.rawCookies
+                          - pattern: |
+                              application.call.request.local.uri
+                  - patterns:
+                      - pattern-either:
+                          - pattern-inside: |
+                              import io.ktor.server.application.*
+                              ...
+                          - pattern-inside: |
+                              import io.ktor.server.application.call
+                              ...
+                      - pattern-either:
+                          - pattern: |
+                              call.parameters
+                          - patterns:
+                              - pattern: |
+                                  call.receive(...)
+                              - pattern-not-inside: |
+                                  val $X: Int = call.receive(...)
+                              - pattern-not-inside: |
+                                  val $X: Int = call.receive(...)
+                          - patterns:
+                              - pattern: |
+                                  call.request.$F(...)
+                              - metavariable-regex:
+                                  metavariable: $F
+                                  regex: ^(accept|acceptCharset|acceptCharsetItems|acceptEncoding|acceptEncodingItems|acceptItems|acceptLanguage|acceptLanguageItems|cacheControl|header|location|queryString|userAgent)$
+                          - patterns:
+                              - pattern-either:
+                                  - patterns:
+                                      - pattern: |
+                                          call.request.$F
+                                      - metavariable-regex:
+                                          metavariable: $F
+                                          regex: ^(cookies|queryParameters|rawQueryParameters|uri)$
+                                  - pattern: |
+                                      call.request.cookies.rawCookies
+                          - pattern: |
+                              call.request.local.uri
+      - label: returns_url_encoded
+        patterns:
+          - patterns:
+              - pattern-either:
+                  - patterns:
+                      - pattern-either:
+                          - pattern-inside: |
+                              import io.ktor.server.*
+                              ...
+                          - pattern-inside: |
+                              import io.ktor.server.application
+                              ...
+                      - patterns:
+                          - pattern-either:
+                              - patterns:
+                                  - pattern: |
+                                      application.call.request.$F
+                                  - metavariable-regex:
+                                      metavariable: $F
+                                      regex: ^(uri)$
+                              - patterns:
+                                  - pattern: |
+                                      application.call.request.$F(...)
+                                  - metavariable-regex:
+                                      metavariable: $F
+                                      regex: ^(document|path|toLogString)$
+                  - patterns:
+                      - pattern-either:
+                          - pattern-inside: |
+                              import io.ktor.server.application.*
+                              ...
+                          - pattern-inside: |
+                              import io.ktor.server.application.call
+                              ...
+                      - patterns:
+                          - pattern-either:
+                              - patterns:
+                                  - pattern: |
+                                      call.request.$F
+                                  - metavariable-regex:
+                                      metavariable: $F
+                                      regex: ^(uri)$
+                              - patterns:
+                                  - pattern: |
+                                      call.request.$F(...)
+                                  - metavariable-regex:
+                                      metavariable: $F
+                                      regex: ^(document|path|toLogString)$
+      - label: urldecode
+        patterns:
+          - patterns:
+              - pattern-either:
+                  - patterns:
+                      - pattern-either:
+                          - pattern-inside: |
+                              import java.*
+                              ...
+                          - pattern-inside: |
+                              import java.net
+                              ...
+                      - patterns:
+                          - pattern: |
+                              net.URLDecoder.decode($INPUT, ...)
+                          - focus-metavariable: $INPUT
+                  - patterns:
+                      - pattern-either:
+                          - pattern-inside: |
+                              import java.net.*
+                              ...
+                          - pattern-inside: |
+                              import java.net.URLDecoder
+                              ...
+                      - patterns:
+                          - pattern: |
+                              URLDecoder.decode($INPUT, ...)
+                          - focus-metavariable: $INPUT
+        requires: returns_url_encoded
+      - label: CONCAT
+        patterns:
+          - pattern-either:
+              - pattern: |
+                  "...${...}..."
+              - pattern: |
+                  "...${...}...".$MD(...)
+              - pattern: |
+                  "..." + ...
+              - pattern: |
+                  ... + "..."
+              - pattern: |
+                  "...${...}..." + ...
+              - pattern: |
+                  ... + "...${...}..."
+              - pattern: |
+                  String.format(...)
+        requires: no_processing_needed or urldecode
+    pattern-sinks:
+      - patterns:
+          - focus-metavariable: $VAL
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          import org.bson.*
+                          ...
+                      - pattern-inside: |
+                          import org.bson.RawBsonDocument
+                          ...
+                  - pattern-either:
+                      - pattern: |
+                          RawBsonDocument($VAL)
+                      - pattern: |
+                          RawBsonDocument.parse($VAL)
+                      - pattern: |
+                          ($X: RawBsonDocument).$METHOD($VAL)
+                      - patterns:
+                          - pattern: |
+                              $X.putAll($VAL)
+                          - pattern-inside: |
+                              $X = RawBsonDocument(...)
+                              ...
+                      - patterns:
+                          - metavariable-pattern:
+                              metavariable: $METHOD
+                              patterns:
+                                - pattern-either:
+                                    - pattern: |
+                                        append
+                                    - pattern: |
+                                        put
+                          - metavariable-regex:
+                              metavariable: $KEY
+                              regex: .*(where|expr|regex|jsonSchema).*
+                          - pattern-either:
+                              - pattern: |
+                                  ($X: RawBsonDocument).$METHOD($KEY, $VAL)
+                              - patterns:
+                                  - pattern: |
+                                      $X.$METHOD($KEY, $VAL)
+                                  - pattern-inside: |
+                                      $X = RawBsonDocument(...)
+                                      ...
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          import org.bson.json.*
+                          ...
+                      - pattern-inside: |
+                          import org.bson.json.JsonObject
+                          ...
+                  - pattern-either:
+                      - pattern: |
+                          JsonObject($VAL)
+                      - pattern: |
+                          JsonObject.parse($VAL)
+                      - pattern: |
+                          ($X: JsonObject).$METHOD($VAL)
+                      - patterns:
+                          - pattern: |
+                              $X.putAll($VAL)
+                          - pattern-inside: |
+                              $X = JsonObject(...)
+                              ...
+                      - patterns:
+                          - metavariable-pattern:
+                              metavariable: $METHOD
+                              patterns:
+                                - pattern-either:
+                                    - pattern: |
+                                        append
+                                    - pattern: |
+                                        put
+                          - metavariable-regex:
+                              metavariable: $KEY
+                              regex: .*(where|expr|regex|jsonSchema).*
+                          - pattern-either:
+                              - pattern: |
+                                  ($X: JsonObject).$METHOD($KEY, $VAL)
+                              - patterns:
+                                  - pattern: |
+                                      $X.$METHOD($KEY, $VAL)
+                                  - pattern-inside: |
+                                      $X = JsonObject(...)
+                                      ...
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          import org.bson.*
+                          ...
+                      - pattern-inside: |
+                          import org.bson.Document
+                          ...
+                  - pattern-either:
+                      - pattern: |
+                          Document($VAL)
+                      - patterns:
+                          - pattern: |
+                              Document($KEY, $VAL)
+                          - metavariable-regex:
+                              metavariable: $KEY
+                              regex: .*(where|expr|regex|jsonSchema).*
+                      - pattern: |
+                          Document.parse($VAL)
+                      - pattern: |
+                          ($X: Document).$METHOD($VAL)
+                      - patterns:
+                          - pattern: |
+                              $X.putAll($VAL)
+                          - pattern-inside: |
+                              $X = Document(...)
+                              ...
+                      - patterns:
+                          - metavariable-pattern:
+                              metavariable: $METHOD
+                              patterns:
+                                - pattern-either:
+                                    - pattern: |
+                                        append
+                                    - pattern: |
+                                        put
+                          - metavariable-regex:
+                              metavariable: $KEY
+                              regex: .*(where|expr|regex|jsonSchema).*
+                          - pattern-either:
+                              - pattern: |
+                                  ($X: Document).$METHOD($KEY, $VAL)
+                              - patterns:
+                                  - pattern: |
+                                      $X.$METHOD($KEY, $VAL)
+                                  - pattern-inside: |
+                                      $X = Document(...)
+                                      ...
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          import com.mongodb.*
+                          ...
+                      - pattern-inside: |
+                          import com.mongodb.BasicDBObject
+                          ...
+                  - pattern-either:
+                      - patterns:
+                          - pattern: |
+                              BasicDBObject($KEY, $VAL)
+                          - metavariable-regex:
+                              metavariable: $KEY
+                              regex: .*(where|expr|regex|jsonSchema).*
+                      - pattern: |
+                          BasicDBObject.parse($VAL)
+                      - pattern: |
+                          ($X: BasicDBObject).$METHOD($VAL)
+                      - patterns:
+                          - pattern: |
+                              $X.putAll($VAL)
+                          - pattern-inside: |
+                              $X = BasicDBObject(...)
+                              ...
+                      - patterns:
+                          - metavariable-pattern:
+                              metavariable: $METHOD
+                              patterns:
+                                - pattern-either:
+                                    - pattern: |
+                                        append
+                                    - pattern: |
+                                        put
+                          - metavariable-regex:
+                              metavariable: $KEY
+                              regex: .*(where|expr|regex|jsonSchema).*
+                          - pattern-either:
+                              - pattern: |
+                                  ($X: BasicDBObject).$METHOD($KEY, $VAL)
+                              - patterns:
+                                  - pattern: |
+                                      $X.$METHOD($KEY, $VAL)
+                                  - pattern-inside: |
+                                      $X = BasicDBObject(...)
+                                      ...
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          import org.bson.*
+                          ...
+                      - pattern-inside: |
+                          import org.bson.BsonDocument
+                          ...
+                  - pattern-either:
+                      - patterns:
+                          - pattern: |
+                              BsonDocument($KEY, $VAL)
+                          - metavariable-regex:
+                              metavariable: $KEY
+                              regex: .*(where|expr|regex|jsonSchema).*
+                      - pattern: |
+                          BsonDocument.parse($VAL)
+                      - pattern: |
+                          ($X: BsonDocument).$METHOD($VAL)
+                      - patterns:
+                          - pattern: |
+                              $X.putAll($VAL)
+                          - pattern-inside: |
+                              $X = BsonDocument(...)
+                              ...
+                      - patterns:
+                          - metavariable-pattern:
+                              metavariable: $METHOD
+                              patterns:
+                                - pattern-either:
+                                    - pattern: |
+                                        append
+                                    - pattern: |
+                                        put
+                          - metavariable-regex:
+                              metavariable: $KEY
+                              regex: .*(where|expr|regex|jsonSchema).*
+                          - pattern-either:
+                              - pattern: |
+                                  ($X: BsonDocument).$METHOD($KEY, $VAL)
+                              - patterns:
+                                  - pattern: |
+                                      $X.$METHOD($KEY, $VAL)
+                                  - pattern-inside: |
+                                      $X = BsonDocument(...)
+                                      ...
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          import org.bson.*
+                          ...
+                      - pattern-inside: |
+                          import org.bson.Document
+                          ...
+                  - pattern-either:
+                      - pattern: |
+                          Document($VAL)
+                      - patterns:
+                          - pattern: |
+                              Document($KEY, $VAL)
+                          - metavariable-regex:
+                              metavariable: $KEY
+                              regex: .*(where|expr|regex|jsonSchema).*
+                      - pattern: |
+                          Document.parse($VAL)
+                      - pattern: |
+                          ($X: Document).$METHOD($VAL)
+                      - patterns:
+                          - pattern: |
+                              $X.putAll($VAL)
+                          - pattern-inside: |
+                              $X = Document(...)
+                              ...
+                      - patterns:
+                          - metavariable-pattern:
+                              metavariable: $METHOD
+                              patterns:
+                                - pattern-either:
+                                    - pattern: |
+                                        append
+                                    - pattern: |
+                                        put
+                          - metavariable-regex:
+                              metavariable: $KEY
+                              regex: .*(where|expr|regex|jsonSchema).*
+                          - pattern-either:
+                              - pattern: |
+                                  ($X: Document).$METHOD($KEY, $VAL)
+                              - patterns:
+                                  - pattern: |
+                                      $X.$METHOD($KEY, $VAL)
+                                  - pattern-inside: |
+                                      $X = Document(...)
+                                      ...
+        requires: CONCAT
+    pattern-sanitizers:
+      - patterns:
+          - pattern: |
+              $X.$METHOD(...)
+          - metavariable-regex:
+              metavariable: $METHOD
+              regex: (equals|toInt|toLong|toFloat|toDouble|toShort|toByte|toUByte|toUInt|toULong|toUShort)
+      - pattern: |
+          ($X: boolean)

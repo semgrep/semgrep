@@ -77,25 +77,10 @@ let just_parse_with_lang lang file =
   | Lang.Js
     when Stdlib.( == ) !just_parse_with_lang_ref undefined_just_parse_with_lang
     ->
-      (* we start directly with tree-sitter here, because
-       * the pfff parser is slow on minified files due to its (slow) error
-       * recovery strategy.
-       *)
-      run file
-        [
-          (* adding TreeSitter adds 400K in engine.js (30k in .js.br) *)
-          TreeSitter (Parse_typescript_tree_sitter.parse ~dialect:`TSX);
-          Pfff (throw_tokens Parse_js.parse);
-        ]
-        Js_to_generic.program
-  | Lang.Ts
-    when Stdlib.( == ) !just_parse_with_lang_ref undefined_just_parse_with_lang
-    ->
-      run file
-        [ TreeSitter (Parse_typescript_tree_sitter.parse ?dialect:None) ]
-        Js_to_generic.program
+      (* skip tree-sitter for parsing JS if just_parse_with_lang hasn't been initialized yet *)
+      run file [ Pfff (throw_tokens Parse_js.parse) ] Js_to_generic.program
   | _else_ -> !just_parse_with_lang_ref lang file
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Entry point *)
@@ -111,11 +96,16 @@ let parse_and_resolve_name lang file =
   AST_generic.SId.unsafe_reset_counter ();
   Naming_AST.resolve lang ast;
   Typing.check_program lang ast;
+
+  (* Flow-insensitive constant propagation. *)
   Constant_propagation.propagate_basic lang ast;
+
+  (* Flow-sensitive constant propagation. *)
   Constant_propagation.propagate_dataflow lang ast;
+
   logger#info "Parse_target.parse_and_resolve_name done";
   res
-  [@@profiling]
+[@@profiling]
 
 (* used in test files *)
 let parse_and_resolve_name_warn_if_partial lang file =
@@ -126,7 +116,10 @@ let parse_and_resolve_name_warn_if_partial lang file =
 
 let parse_and_resolve_name_fail_if_partial lang file =
   let { ast; skipped_tokens; _ } = parse_and_resolve_name lang file in
-  if skipped_tokens <> [] then failwith (spf "fail to fully parse %s" file);
+  if skipped_tokens <> [] then
+    failwith
+      (spf "fail to fully parse %s\n missing tokens:\n%s" file
+         (String.concat "\n" (Common.map Tok.show_location skipped_tokens)));
   ast
 
 (*****************************************************************************)

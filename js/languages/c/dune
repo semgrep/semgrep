@@ -13,4 +13,4 @@
  (action
   (with-stdout-to
    %{targets}
-   (run ../shared/generate-semgrep-js.sh c))))
+   (run ../shared/generate-semgrep-js.sh c cpp))))

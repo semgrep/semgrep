@@ -100,6 +100,18 @@ let before_return f v =
   v
 
 (*****************************************************************************)
+(* Composition/Control *)
+(*****************************************************************************)
+
+let protect ~finally work =
+  (* nosemgrep: no-fun-protect *)
+  try Fun.protect ~finally work with
+  | Fun.Finally_raised exn1 as exn ->
+      (* Just re-raise whatever exception was raised during a 'finally', drop 'Finally_raised'. *)
+      logger#error "protect: %s" (exn |> Exception.catch |> Exception.to_string);
+      Exception.catch_and_reraise exn1
+
+(*****************************************************************************)
 (* Profiling *)
 (*****************************************************************************)
 (* see also profiling/Profiling.ml now *)
@@ -113,13 +125,13 @@ let with_time f =
 
 let pr_time name f =
   let t1 = Unix.gettimeofday () in
-  Fun.protect f ~finally:(fun () ->
+  protect f ~finally:(fun () ->
       let t2 = Unix.gettimeofday () in
       pr (spf "%s: %.6f s" name (t2 -. t1)))
 
 let pr2_time name f =
   let t1 = Unix.gettimeofday () in
-  Fun.protect f ~finally:(fun () ->
+  protect f ~finally:(fun () ->
       let t2 = Unix.gettimeofday () in
       pr2 (spf "%s: %.6f s" name (t2 -. t1)))
 
@@ -468,7 +480,7 @@ let unwind_protect f cleanup =
         cleanup e;
         Exception.reraise e
 
-(* TODO: remove and use Fun.protect instead? but then it will not have the
+(* TODO: remove and use 'protect' instead? but then it will not have the
  * !debugger goodies *)
 let finalize f cleanup =
   (* Does this debugger mode changes the semantic of the program too much?
@@ -481,7 +493,7 @@ let finalize f cleanup =
     let res = f () in
     cleanup ();
     res)
-  else Fun.protect f ~finally:cleanup
+  else protect f ~finally:cleanup
 
 let save_excursion reference newv f =
   let old = !reference in
@@ -738,6 +750,14 @@ let i_to_s = string_of_int
 let s_to_i = int_of_string
 let null_string s = s = ""
 
+let contains s1 s2 =
+  let re = Str.regexp_string s2 in
+  try
+    ignore (Str.search_forward re s1 0);
+    true
+  with
+  | Not_found -> false
+
 (*****************************************************************************)
 (* Filenames *)
 (*****************************************************************************)
@@ -922,7 +942,7 @@ let read_file ?(max_len = max_int) path =
           else loop fd
     in
     let fd = Unix.openfile path [ Unix.O_RDONLY ] 0 in
-    Fun.protect ~finally:(fun () -> Unix.close fd) (fun () -> loop fd)
+    protect ~finally:(fun () -> Unix.close fd) (fun () -> loop fd)
 
 let write_file ~file s =
   let chan = open_out_bin file in
@@ -930,39 +950,6 @@ let write_file ~file s =
   close_out chan
 
 (* could be in control section too *)
-
-(*
-Update 2023-01-20: OCaml >= 4.13 provides a Unix.realpath which works
-on all platforms.
-
-Using an external C functions complicates the linking process of
-programs using commons/. Thus, I replaced realpath() with an OCaml-only
-similar functions fullpath().
-
-external c_realpath: string -> string option = "caml_realpath"
-
-let realpath2 path =
-  match c_realpath path with
-  | Some s -> s
-  | None -> failwith (spf "problem with realpath on %s" path)
-
-let realpath2 path =
-  let stat = Unix.stat path in
-  let dir, suffix =
-    match stat.Unix.st_kind with
-    | Unix.S_DIR -> path, ""
-    | _ -> Filename.dirname path, Filename.basename path
-  in
-
-  let oldpwd = Sys.getcwd () in
-  Sys.chdir dir;
-  let realpath_dir = Sys.getcwd () in
-  Sys.chdir oldpwd;
-  Filename.concat realpath_dir suffix
-
-let realpath path =
-  profile_code "Common.realpath" (fun () -> realpath2 path)
-*)
 
 let fullpath file =
   if not (Sys.file_exists file) then
@@ -1203,33 +1190,32 @@ let main_boilerplate f =
             erase_temp_files ()))
 (* let _ = if not !Sys.interactive then (main ()) *)
 
-let follow_symlinks = ref false
-let arg_symlink () = if !follow_symlinks then " -L " else ""
+(** [dir_contents] returns the paths of all regular files that are
+ * contained in [dir]. Each file is a path starting with [dir].
+  *)
+let dir_contents dir =
+  let rec loop result = function
+    | f :: fs when Sys.is_directory f ->
+        Sys.readdir f |> Array.to_list
+        |> map (Filename.concat f)
+        |> List.append fs |> loop result
+    | f :: fs -> loop (f :: result) fs
+    | [] -> result
+  in
+  loop [] [ dir ]
 
-let grep_dash_v_str =
-  "| grep -v /.hg/ |grep -v /CVS/ | grep -v /.git/ |grep -v /_darcs/"
-  ^ "| grep -v /.svn/ | grep -v .git_annot | grep -v .marshall"
+let follow_symlinks = ref false
+
+let vcs_re =
+  "(^((\\.hg)|(CVS)|(\\.git)|(_darcs)|(\\.svn))$)|(.*\\.git_annot$)|(.*\\.marshall$)"
+  |> Re.Posix.re |> Re.compile
 
 let files_of_dir_or_files_no_vcs_nofilter xs =
   xs
   |> map (fun x ->
          if Sys.is_directory x then
-           (* todo: should escape x *)
-           let cmd =
-             spf "find %s '%s' -type f %s"
-               (* -noleaf *) (arg_symlink ())
-               x grep_dash_v_str
-           in
-           let xs, status = cmd_to_list_and_status cmd in
-           match status with
-           | Unix.WEXITED 0 -> xs
-           (* bugfix: 'find -type f' does not like empty directories, but it's ok *)
-           | Unix.WEXITED 1 when Array.length (Sys.readdir x) =|= 0 -> []
-           | _ ->
-               raise
-                 (CmdError
-                    ( status,
-                      spf "CMD = %s, RESULT = %s" cmd (String.concat "\n" xs) ))
+           let files = dir_contents x in
+           List.filter (fun x -> not (Re.execp vcs_re x)) files
          else [ x ])
   |> flatten
 

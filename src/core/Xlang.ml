@@ -69,6 +69,19 @@ let lang_of_opt_xlang_exn (x : t option) : Lang.t =
   | None -> failwith (Lang.unsupported_language_message "unset")
   | Some xlang -> to_lang_exn xlang
 
+let is_compatible ~require ~provide =
+  match (require, provide) with
+  | LRegex, LRegex
+  | LSpacegrep, LSpacegrep
+  | LAliengrep, LAliengrep ->
+      true
+  | (LRegex | LSpacegrep | LAliengrep), _ -> false
+  | L (lang, []), L (lang2, langs2) ->
+      Lang.equal lang lang2 || List.exists (Lang.equal lang) langs2
+  | L (_lang, _extra_langs), _ ->
+      (* invalid argument; could be an exception *)
+      false
+
 let flatten x =
   match x with
   | L (lang, langs) -> Common.map (fun x -> L (x, [])) (lang :: langs)

@@ -1,0 +1,15 @@
+rules:
+  - id: tainting
+    languages:
+      - python
+    message: |
+      This confirms taint mode works.
+    taint:
+      sinks:
+        - requires: TAINTED
+          pattern: sink(...)
+      sources:
+        - label: TAINTED
+          pattern: source(...)
+    severity: ERROR
+

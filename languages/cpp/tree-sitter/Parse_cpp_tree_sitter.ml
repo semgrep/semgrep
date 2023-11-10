@@ -619,10 +619,27 @@ let map_preproc_def (env : env) ((v1, v2, v3, v4) : CST.preproc_def) =
   let v2 = str env v2 (* pattern [a-zA-Z_]\w* *) in
   let v3 =
     match v3 with
-    | Some tok ->
-        let x = token env tok (* preproc_arg *) in
-        (* TODO: we should parse this x! can be DefineExpr, etc. *)
-        DefineTodo ("MacroBody", x)
+    | Some tok -> (
+        let parse_number_literal t s =
+          match Common2.int_of_string_c_octal_opt s with
+          | Some i -> Some (C (Int (Some i, t)))
+          | None -> (
+              match float_of_string_opt s with
+              | Some f -> Some (C (Float (Some f, t)))
+              | None -> None)
+        in
+        let remove_comment s =
+          match Str.split (Str.regexp "//\\|/\\*") s with
+          | s :: _ -> Some (s |> String.trim)
+          | [] -> None
+        in
+        (* TODO: parse exprs other than number literals. *)
+        match token env tok (* preproc_arg *) with
+        | OriginTok { str; _ } as t -> (
+            match str |> remove_comment >>= parse_number_literal t with
+            | Some c -> DefineExpr c
+            | None -> DefineTodo ("MacroBody", t))
+        | t -> DefineTodo ("MacroBody", t))
     | None -> DefineEmpty
   in
   let _v4 = token env v4 (* "\n" *) in
@@ -3128,8 +3145,7 @@ and map_for_range_loop_body (env : env)
   let v5 = map_anon_choice_exp_3078596 env v5 in
   let n = name_of_dname_for_var env v3.dn in
   let ent = { name = n; specs } in
-  let var = { v_type = v3.dt t; v_init = None } in
-  ForRange (v1, (ent, var), v4, v5)
+  ForRange (v1, (v3.dt t, ent), v4, v5)
 
 and map_for_statement (env : env) ((v1, v2, v3, v4, v5) : CST.for_statement) =
   let v1 = token env v1 (* "for" *) in

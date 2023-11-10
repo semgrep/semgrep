@@ -12,6 +12,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+
+open Common
 module MV = Metavariable
 module RM = Range_with_metavars
 module G = AST_generic
@@ -72,9 +74,17 @@ let get_metavar_regex_capture_bindings env ~file r (mvar, re_str) =
              So we carry a base offset of the metavariable's start, so that we can
              perform that calculation.
           *)
-          let mast_start_loc =
-            mval |> MV.ii_of_mval |> AST_generic_helpers.range_of_tokens |> fst
-            |> Tok.unsafe_loc_of_tok
+          let* mast_start_loc =
+            (* metavariable-regex doesn't make sense on synthetic ASTs such as
+             * those created for resolved names, which are used pervasively by
+             * the Pro Engine. It should only try to match when we actually have
+             * underlying text to match against. So, if there is no legitimate
+             * source location associated with the mevariable, we'll just fail
+             * to match here. *)
+            let* start, _ =
+              mval |> MV.ii_of_mval |> AST_generic_helpers.range_of_tokens
+            in
+            Some (Tok.unsafe_loc_of_tok start)
           in
           let mval_start_pos = mast_start_loc.pos in
 

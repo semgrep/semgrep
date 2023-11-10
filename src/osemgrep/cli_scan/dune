@@ -10,7 +10,9 @@
     bos
     commons
 
+    semgrep_core
     semgrep_core_cli
+    semgrep_targeting
 
     osemgrep_networking
     osemgrep_core

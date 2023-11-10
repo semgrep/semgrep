@@ -121,6 +121,10 @@ build-docker:
 build-otarzan:
 	dune build _build/install/default/bin/otarzan
 
+.PHONY: build-ojsonnet
+build-ojsonnet:
+	dune build _build/install/default/bin/ojsonnet
+
 .PHONY: build-pfff
 build-pfff:
 	dune build _build/install/default/bin/pfff
@@ -130,11 +134,14 @@ build-pfff:
 build-parse-cairo:
 	dune build _build/install/default/bin/parse-cairo
 
-# Build the js_of_ocaml portion of the semgrep javascript packages
-# TODO: you actually can't 'cd js; make'; You first need this step
 .PHONY: build-semgrep-jsoo
 build-semgrep-jsoo:
 	dune build js --profile=release
+
+# Build Semgrep JS w/debug symbols, no mangling and source maps
+.PHONY: build-semgrep-jsoo-debug
+build-semgrep-jsoo-debug:
+	dune build js --profile=dev
 
 # Remove from the project tree everything that's not under source control
 # and was not created by 'make setup'.
@@ -184,12 +191,22 @@ test:
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-test
 core-test:
-	# The test executable has a few options that can be useful in some contexts.
-	dune build ./_build/default/src/tests/test.exe
+	$(MAKE) build-core-test
 	# The following command ensures that we can call 'test.exe --help'
 	# from the directory of the checkout
 	./_build/default/src/tests/test.exe --show-errors --help 2>&1 >/dev/null
 	./scripts/run-core-test
+
+# Please keep this standalone target.
+# We want to rebuild the tests without re-running all of them.
+# This is for working on one or a few specific test cases.
+# It rebuilds the test executable which can then be called with
+# './test <filter>' where <filter> selects the tests to run.
+.PHONY: build-core-test
+build-core-test:
+	# The test executable has a few options that can be useful in some
+	# contexts.
+	dune build ./_build/default/src/tests/test.exe
 
 .PHONY: test-bc
 test-bc:
@@ -197,19 +214,35 @@ test-bc:
 	dune build ./_build/default/src/tests/test.bc
 
 
-# This is for working on one or a few specific test cases.
-# It rebuilds the test executable which can then be called with
-# './test <filter>' where <filter> selects the tests to run.
-.PHONY: build-core-test
-build-core-test:
-	dune build ./_build/default/src/tests/test.exe
-
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-test-e2e
 core-test-e2e:
 	SEMGREP_CORE=$(PWD)/bin/semgrep-core \
 	$(MAKE) -C interfaces/semgrep_interfaces test
 	python3 tests/semgrep-core-e2e/test_target_file.py
+
+.PHONY: test-jsoo
+test-jsoo: build-semgrep-jsoo-debug
+	$(MAKE) -C js test
+
+# Test the compatibility with the main branch of semgrep-proprietary
+# in a separate work tree.
+.PHONY: pro
+pro:
+	test -L semgrep-proprietary || ln -s ../semgrep-proprietary .
+	@if ! test -e semgrep-proprietary; then \
+	  echo "** Please fix the symlink 'semgrep-proprietary'."; \
+	  echo "** Make it point to your semgrep-proprietary repo."; \
+	  exit 1; \
+	fi
+	set -eu && \
+	worktree_parent=$$(pwd)/.. && \
+	commit=$$(git rev-parse --short HEAD) && \
+	cd semgrep-proprietary && \
+	./scripts/check-compatibility \
+	  --worktree "$$worktree_parent"/semgrep-pro-compat \
+	  --semgrep-commit "$$commit" \
+	  --pro-commit origin/develop
 
 ###############################################################################
 # External dependencies installation targets
@@ -260,7 +293,7 @@ install-deps: install-deps-for-semgrep-core
 # Here is why we need those external packages to compile semgrep-core:
 # - pcre-dev: for ocaml-pcre now used in semgrep-core
 # - gmp-dev: for osemgrep and its use of cohttp
-ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev
+ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev libev-dev
 
 # This target is used in our Dockerfile and a few GHA workflows.
 # There are pros and cons of having those commands here instead
@@ -285,20 +318,20 @@ ALPINE_APK_DEPS_PYSEMGREP=python3 python3-dev
 # We could update to a more recent version.
 # coupling: if you modify the version, please modify also .github/workflows/*
 PIPENV='pipenv==2022.6.7'
-#TODO: virtualenv 20.22.0 is causing the build to fail with some weird errors:
-# 'AttributeError: module 'virtualenv.create.via_global_ref.builtin.cpython.mac_os' has no attribute 'CPython2macOsArmFramework'
-# so I pinned an older version
-VIRTENV='virtualenv==20.21.0'
 
 # For '--ignore-installed distlib' below see
 # https://stackoverflow.com/questions/63515454/why-does-pip3-install-pipenv-give-error-error-cannot-uninstall-distlib
 install-deps-ALPINE-for-pysemgrep:
 	apk add --no-cache $(ALPINE_APK_DEPS_PYSEMGREP)
-	pip install --no-cache-dir --ignore-installed distlib $(PIPENV) $(VIRTENV)
+	pip install --no-cache-dir --ignore-installed distlib $(PIPENV)
 
 # -------------------------------------------------
 # Ubuntu
 # -------------------------------------------------
+UBUNTU_DEPS=pkg-config libgmp-dev libpcre3-dev libev-dev
+
+install-deps-UBUNTU-for-semgrep-core:
+	apt-get install -y $(UBUNTU_DEPS)
 
 # -------------------------------------------------
 # macOS (brew)
@@ -310,7 +343,7 @@ install-deps-ALPINE-for-pysemgrep:
 # - pkg-config?
 # - coreutils?
 # - gettext?
-BREW_DEPS=pcre gmp pkg-config coreutils gettext
+BREW_DEPS=pcre gmp pkg-config coreutils gettext libev
 
 # see also scripts/osx-setup-for-release.sh that adjust those
 # external packages to force static-linking
@@ -337,7 +370,7 @@ homebrew-setup:
 	# See details at https://github.com/Homebrew/homebrew-core/pull/82693.
 	# This workaround may no longer be necessary.
 	opam install -y --deps-only --no-depexts ./libs/ocaml-tree-sitter-core
-	opam install -y --deps-only --no-depexts ./
+	LIBRARY_PATH="/opt/homebrew/lib" opam install -y --deps-only --no-depexts ./
 
 # -------------------------------------------------
 # Arch Linux
@@ -361,7 +394,12 @@ setup: semgrep.opam
 .PHONY: dev-setup
 dev-setup:
 	$(MAKE) setup
-	opam install -y --deps-only ./dev
+	# This is partly redundant with `make setup`, called above. We include `./`
+	# and `./libs/ocaml-tree-sitter-core` so that if the dependencies specified in
+	# `./dev` conflict with any of the other dependencies, we get a conflict
+	# message here rather than having this command silently install the versions
+	# that `./dev` requires, potentially breaking the build.
+	opam install -y --deps-only ./dev ./ ./libs/ocaml-tree-sitter-core
 
 # Update and rebuild everything within the project.
 .PHONY: rebuild
@@ -521,6 +559,6 @@ check2:
 
 # see https://github.com/aryx/codemap for information on codemap
 visual:
-	codemap -screen_size 3 -filter pfff -efuns_client efuns_client -emacs_client /dev/null .
+	codemap -screen_size 3 -filter semgrep -efuns_client efuns_client -emacs_client /dev/null .
 visual2:
-	codemap -screen_size 3 -filter pfff -efuns_client efuns_client -emacs_client /dev/null src
+	codemap -screen_size 3 -filter semgrep -efuns_client efuns_client -emacs_client /dev/null src

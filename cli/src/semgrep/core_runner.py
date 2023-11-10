@@ -7,36 +7,25 @@ import subprocess
 import sys
 import tempfile
 from datetime import datetime
-from functools import lru_cache
 from pathlib import Path
 from typing import Any
 from typing import Callable
 from typing import cast
 from typing import Coroutine
-from typing import DefaultDict
 from typing import Dict
-from typing import FrozenSet
 from typing import List
-from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Set
 from typing import Tuple
 
-from attr import asdict
-from attr import define
 from attr import evolve
-from attr import field
-from attr import frozen
-from boltons.iterutils import get_path
-from rich import box
 from rich.progress import BarColumn
 from rich.progress import Progress
 from rich.progress import TaskID
 from rich.progress import TaskProgressColumn
 from rich.progress import TextColumn
 from rich.progress import TimeElapsedColumn
-from rich.table import Table
 from ruamel.yaml import YAML
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
@@ -47,6 +36,8 @@ from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.core_output import core_error_to_semgrep_error
 from semgrep.core_output import core_matches_to_rule_matches
+from semgrep.core_targets_plan import Plan
+from semgrep.core_targets_plan import Task
 from semgrep.engine import EngineType
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
@@ -56,8 +47,8 @@ from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
 from semgrep.rule_match import OrderedRuleMatchList
 from semgrep.rule_match import RuleMatchMap
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
+from semgrep.state import DesignTreatment
 from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
@@ -473,249 +464,6 @@ class StreamingSemgrepCore:
         return rc
 
 
-@frozen
-class Task:
-    path: str = field(converter=str)
-    language: Language  # Xlang; see Xlang.mli
-    # a rule_num is the rule's index in the rule ID list
-    rule_nums: Tuple[int, ...]
-
-    @property
-    def language_label(self) -> str:
-        return (
-            "<multilang>"
-            if not self.language.definition.is_target_language
-            else self.language.definition.id
-        )
-
-
-class TargetMappings(List[Task]):
-    @property
-    def rule_count(self) -> int:
-        return len({rule_num for task in self for rule_num in task.rule_nums})
-
-    @property
-    def file_count(self) -> int:
-        return len(self)
-
-
-@define
-class TaskCounts:
-    files: int = 0
-    rules: int = 0
-
-
-class Plan:
-    """
-    Saves and displays knowledge of what will be run
-
-    to_json: creates the json passed to semgrep_core - see Input_to_core.atd
-    log: outputs a summary of how many files will be scanned for each file
-    """
-
-    def __init__(
-        self,
-        mappings: List[Task],
-        rules: List[Rule],
-        *,
-        lockfiles_by_ecosystem: Optional[Dict[Ecosystem, FrozenSet[Path]]] = None,
-    ):
-        self.target_mappings = TargetMappings(mappings)
-        # important: this is a list of rule_ids, not a set
-        # target_mappings relies on the index of each rule_id in rule_ids
-        self.rules = rules
-        self.lockfiles_by_ecosystem = lockfiles_by_ecosystem
-
-    # TODO: make this counts_by_lang_label, returning TaskCounts
-    def split_by_lang_label(self) -> Dict[str, "TargetMappings"]:
-        return self.split_by_lang_label_for_product()
-
-    # Divides rule mapping up into the rule counts per language
-    # filtering out rules for a specific product. If product = None
-    # then all products are included.
-    def split_by_lang_label_for_product(
-        self, product: Optional[out.Product] = None
-    ) -> Dict[str, "TargetMappings"]:
-        result: Dict[str, TargetMappings] = collections.defaultdict(TargetMappings)
-        for task in self.target_mappings:
-            result[task.language_label].append(
-                task
-                if product is None
-                else Task(
-                    path=task.path,
-                    language=task.language,
-                    rule_nums=tuple(
-                        num
-                        for num in task.rule_nums
-                        if self.rules[num].product == product
-                    ),
-                )
-            )
-        return result
-
-    @lru_cache(maxsize=1000)  # caching this saves 60+ seconds on mid-sized repos
-    def ecosystems_by_rule_nums(self, rule_nums: Tuple[int]) -> Set[Ecosystem]:
-        return {
-            ecosystem
-            for rule_num in rule_nums
-            for ecosystem in self.rules[rule_num].ecosystems
-        }
-
-    def counts_by_ecosystem(
-        self,
-    ) -> Mapping[Ecosystem, TaskCounts]:
-        result: DefaultDict[Ecosystem, TaskCounts] = collections.defaultdict(TaskCounts)
-
-        # if a pypi rule does reachability analysis on *.json files,
-        # when the user has no .json files, then there is no task for it,
-        # but we should still print it as a reachability rule we used
-        # so we get rule counts by looking at all rules
-        for rule in self.rules:
-            for ecosystem in rule.ecosystems:
-                result[ecosystem].rules += 1
-
-        # one .json file could determine the reachability of libraries from pypi and npm at the same time
-        # so one task might need increase counts for multiple ecosystems (unlike when splitting by lang)
-        for task in self.target_mappings:
-            for ecosystem in self.ecosystems_by_rule_nums(task.rule_nums):
-                result[ecosystem].files += 1
-
-        # if a rule scans npm and maven, but we only have npm lockfiles,
-        # then we skip mentioning maven in debug info by deleting maven's counts
-        if self.lockfiles_by_ecosystem is not None:
-            unused_ecosystems = {
-                ecosystem
-                for ecosystem in result
-                if not self.lockfiles_by_ecosystem.get(ecosystem)
-            }
-            for ecosystem in unused_ecosystems:
-                del result[ecosystem]
-
-        return result
-
-    def to_json(self) -> Dict[str, Any]:
-        return {
-            "target_mappings": [asdict(task) for task in self.target_mappings],
-            "rule_ids": [rule.id for rule in self.rules],
-        }
-
-    @property
-    def num_targets(self) -> int:
-        return len(self.target_mappings)
-
-    def rule_count_for_product(self, product: out.Product) -> int:
-        rule_nums: Set[int] = set()
-        for task in self.target_mappings:
-            for rule_num in task.rule_nums:
-                if self.rules[rule_num].product == product:
-                    rule_nums.add(rule_num)
-        return len(rule_nums)
-
-    def table_by_language(self, with_tables_for: Optional[out.Product] = None) -> Table:
-        table = Table(box=box.SIMPLE_HEAD, show_edge=False)
-        table.add_column("Language")
-        table.add_column("Rules", justify="right")
-        table.add_column("Files", justify="right")
-
-        plans_by_language = sorted(
-            self.split_by_lang_label_for_product(with_tables_for).items(),
-            key=lambda x: (x[1].file_count, x[1].rule_count),
-            reverse=True,
-        )
-        for language, plan in plans_by_language:
-            if plan.rule_count:
-                table.add_row(language, str(plan.rule_count), str(plan.file_count))
-
-        return table
-
-    def table_by_ecosystem(self) -> Table:
-        table = Table(box=box.SIMPLE_HEAD, show_edge=False)
-        table.add_column("Ecosystem")
-        table.add_column("Rules", justify="right")
-        table.add_column("Files", justify="right")
-        table.add_column("Lockfiles")
-
-        counts_by_ecosystem = self.counts_by_ecosystem()
-
-        for ecosystem, plan in sorted(
-            counts_by_ecosystem.items(),
-            key=lambda x: (x[1].files, x[1].rules),
-            reverse=True,
-        ):
-            if self.lockfiles_by_ecosystem is not None:
-                lockfile_paths = ", ".join(
-                    str(lockfile)
-                    for lockfile in self.lockfiles_by_ecosystem.get(ecosystem, [])
-                )
-            else:
-                lockfile_paths = "N/A"
-
-            table.add_row(
-                ecosystem.kind,
-                str(plan.rules),
-                str(plan.files),
-                lockfile_paths,
-            )
-
-        return table
-
-    def table_by_origin(self, with_tables_for: Optional[out.Product] = None) -> Table:
-        table = Table(box=box.SIMPLE_HEAD, show_edge=False)
-        table.add_column("Origin")
-        table.add_column("Rules", justify="right")
-
-        origin_counts = collections.Counter(
-            get_path(rule.metadata, ("semgrep.dev", "rule", "origin"), default="custom")
-            for rule in self.rules
-            if rule.product == with_tables_for
-        )
-
-        for origin, count in sorted(
-            origin_counts.items(), key=lambda x: x[1], reverse=True
-        ):
-            origin_name = origin.replace("_", " ").capitalize()
-
-            table.add_row(origin_name, str(count))
-
-        return table
-
-    def table_by_sca_analysis(self) -> Table:
-        table = Table(box=box.SIMPLE_HEAD, show_edge=False)
-        table.add_column("Analysis")
-        table.add_column("Rules", justify="right")
-
-        SCA_ANALYSIS_NAMES = {
-            "reachable": "Reachability",
-            "legacy": "Basic",
-            "malicious": "Basic",
-            "upgrade-only": "Basic",
-        }
-
-        sca_analysis_counts = collections.Counter(
-            SCA_ANALYSIS_NAMES.get(rule.metadata.get("sca-kind", ""), "Unknown")
-            for rule in self.rules
-            if isinstance(rule.product.value, out.SCA)
-        )
-
-        for sca_analysis, count in sorted(
-            sca_analysis_counts.items(), key=lambda x: x[1], reverse=True
-        ):
-            sca_analysis_name = sca_analysis.replace("_", " ").title()
-
-            table.add_row(sca_analysis_name, str(count))
-
-        return table
-
-    def record_metrics(self) -> None:
-        metrics = get_state().metrics
-
-        for language in self.split_by_lang_label():
-            metrics.add_feature("language", language)
-
-    def __str__(self) -> str:
-        return f"<Plan of {len(self.target_mappings)} tasks for {list(self.split_by_lang_label())}>"
-
-
 class CoreRunner:
     """
     Handles interactions between semgrep and semgrep-core
@@ -727,24 +475,24 @@ class CoreRunner:
         self,
         jobs: Optional[int],
         engine_type: EngineType,
-        run_secrets: bool,
         timeout: int,
         max_memory: int,
         timeout_threshold: int,
         interfile_timeout: int,
         optimizations: str,
-        allow_untrusted_postprocessors: bool,
+        allow_untrusted_validators: bool,
+        respect_rule_paths: bool = True,
     ):
         self._binary_path = engine_type.get_binary_path()
         self._jobs = jobs or engine_type.default_jobs
         self._engine_type = engine_type
-        self._run_secrets = engine_type
         self._timeout = timeout
         self._max_memory = max_memory
         self._timeout_threshold = timeout_threshold
         self._interfile_timeout = interfile_timeout
         self._optimizations = optimizations
-        self._allow_untrusted_postprocessors = allow_untrusted_postprocessors
+        self._allow_untrusted_validators = allow_untrusted_validators
+        self._respect_rule_paths = respect_rule_paths
 
     def _extract_core_output(
         self,
@@ -874,7 +622,9 @@ class CoreRunner:
     def plan_core_run(
         rules: List[Rule],
         target_manager: TargetManager,
+        *,
         all_targets: Optional[Set[Path]] = None,
+        product: Optional[out.Product] = None,
     ) -> Plan:
         """
         Gets the targets to run for each rule
@@ -886,48 +636,50 @@ class CoreRunner:
 
         Note: this is a list because a target can appear twice (e.g. Java + Generic)
         """
-        target_info: Dict[Tuple[Path, Language], List[int]] = collections.defaultdict(
-            list
-        )
+        # The range of target_info is (index into rules x product as json)
+        # Using product as JSON because we want structural equality of products instead of object equality.
+        target_info: Dict[
+            Tuple[Path, Language], Tuple[List[int], Set[str]]
+        ] = collections.defaultdict(lambda: (list(), set()))
 
         lockfiles = target_manager.get_all_lockfiles()
-
-        rules = [
-            rule
-            for rule in rules
-            # filter out SCA rules with no relevant lockfiles
-            if not (isinstance(rule.product.value, out.SCA))
-            or any(lockfiles[ecosystem] for ecosystem in rule.ecosystems)
-        ]
+        unused_rules = []
 
         for rule_num, rule in enumerate(rules):
+            any_target = False
             for language in rule.languages:
                 targets = list(
                     target_manager.get_files_for_rule(
-                        language,
-                        rule.includes,
-                        rule.excludes,
-                        rule.id,
+                        language, rule.includes, rule.excludes, rule.id, rule.product
                     )
                 )
+                any_target = any_target or len(targets) > 0
 
                 for target in targets:
                     if all_targets is not None:
                         all_targets.add(target)
-                    target_info[target, language].append(rule_num)
+                    rules_nums, products = target_info[target, language]
+                    rules_nums.append(rule_num)
+                    products.add(rule.product.to_json_string())
+
+            if not any_target:
+                unused_rules.append(rule)
 
         return Plan(
             [
                 Task(
                     path=target,
-                    language=language,
+                    analyzer=language,
+                    products=tuple(out.Product.from_json_string(x) for x in products),
                     # tuple conversion makes rule_nums hashable, so usable as cache key
-                    rule_nums=tuple(target_info[target, language]),
+                    rule_nums=tuple(rule_nums),
                 )
-                for target, language in target_info
+                for ((target, language), (rule_nums, products)) in target_info.items()
             ],
             rules,
+            product=product,
             lockfiles_by_ecosystem=lockfiles,
+            unused_rules=unused_rules,
         )
 
     def _run_rules_direct_to_semgrep_core_helper(
@@ -936,8 +688,10 @@ class CoreRunner:
         target_manager: TargetManager,
         dump_command_for_core: bool,
         time_flag: bool,
+        matching_explanations: bool,
         engine: EngineType,
         run_secrets: bool,
+        disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         state = get_state()
@@ -950,7 +704,6 @@ class CoreRunner:
         max_timeout_files: Set[Path] = set()
         # TODO this is a quick fix, refactor this logic
 
-        profiling_data: Optional[out.Profile] = None
         parsing_data: ParsingData = ParsingData()
 
         # Create an exit stack context manager to properly handle closing
@@ -978,7 +731,29 @@ class CoreRunner:
             )
 
         with exit_stack:
+            if self._binary_path is None:
+                if engine.is_pro:
+                    logger.error(
+                        f"""
+Semgrep Pro is either uninstalled or it is out of date.
+
+Try installing Semgrep Pro (`semgrep install-semgrep-pro`).
+                        """
+                    )
+                else:
+                    # This really shouldn't happen, but let's cover our bases
+                    logger.error(
+                        f"""
+Could not find the semgrep-core executable. Your Semgrep install is likely corrupted. Please uninstall Semgrep and try again.
+                        """
+                    )
+                sys.exit(2)
             cmd = [
+                # bugfix: self._binary_path is an Optional[Path]. The
+                # recommended way to convert a Path to a string is to use the
+                # str function. However, mypy allows the use of str to convert
+                # Optional values to strings. Make sure to check against None
+                # even though mypy won't warn you.
                 str(self._binary_path),
                 "-json",
             ]
@@ -1011,11 +786,15 @@ class CoreRunner:
                 # for `plan`, the `baseline_handler` is disabled within the `target_manager`
                 # when executing `plan_core_run`.
                 plan = self.plan_core_run(
-                    rules, evolve(target_manager, baseline_handler=None), all_targets
+                    rules,
+                    evolve(target_manager, baseline_handler=None),
+                    all_targets=all_targets,
                 )
 
             else:
-                plan = self.plan_core_run(rules, target_manager, all_targets)
+                plan = self.plan_core_run(
+                    rules, target_manager, all_targets=all_targets
+                )
 
             plan.record_metrics()
             parsing_data.add_targets(plan)
@@ -1035,9 +814,12 @@ class CoreRunner:
                     str(self._max_memory),
                 ]
             )
-
+            if matching_explanations:
+                cmd.append("-matching_explanations")
             if time_flag:
                 cmd.append("-json_time")
+            if not self._respect_rule_paths:
+                cmd.append("-disable_rule_paths")
 
             # Create a map to feed to semgrep-core as an alternative to
             # having it actually read the files.
@@ -1049,7 +831,7 @@ class CoreRunner:
             if self._optimizations != "none":
                 cmd.append("-fast")
 
-            if run_secrets:
+            if run_secrets and not disable_secrets_validation:
                 cmd += ["-secrets"]
                 if not engine.is_pro:
                     # This should be impossible, but the types don't rule it out so...
@@ -1057,8 +839,8 @@ class CoreRunner:
                         "Secrets post processors tried to run without the pro-engine."
                     )
 
-            if self._allow_untrusted_postprocessors:
-                cmd.append("-allow-untrusted-postprocessors")
+            if self._allow_untrusted_validators:
+                cmd.append("-allow-untrusted-validators")
 
             # TODO: use exact same command-line arguments so just
             # need to replace the SemgrepCore.path() part.
@@ -1089,9 +871,13 @@ class CoreRunner:
                 elif engine is EngineType.PRO_INTRAFILE:
                     cmd += ["-deep_intra_file"]
 
-            stderr: Optional[int] = subprocess.PIPE
             if state.terminal.is_debug:
                 cmd += ["--debug"]
+
+            show_progress = state.get_cli_ux_flavor() != DesignTreatment.MINIMAL
+            total = (
+                plan.num_targets * 3 if show_progress else 0
+            )  # Multiply by 3 for Pro Engine
 
             logger.debug("Running Semgrep engine with command:")
             logger.debug(" ".join(cmd))
@@ -1106,9 +892,7 @@ class CoreRunner:
                 print(" ".join(printed_cmd))
                 sys.exit(0)
 
-            # Multiplied by three, because we have three places in Pro Engine to
-            # report progress, versus one for OSS Engine.
-            runner = StreamingSemgrepCore(cmd, plan.num_targets * 3, engine)
+            runner = StreamingSemgrepCore(cmd, total=total, engine_type=engine)
             runner.vfs_map = vfs_map
             returncode = runner.execute()
 
@@ -1151,7 +935,7 @@ class CoreRunner:
                         out.LexicalError,
                         out.ParseError,
                         out.PartialParsing,
-                        out.SpecifiedParseError,
+                        out.OtherParseError,
                         out.AstBuilderError,
                     ),
                 ):
@@ -1176,8 +960,10 @@ class CoreRunner:
         target_manager: TargetManager,
         dump_command_for_core: bool,
         time_flag: bool,
+        matching_explanations: bool,
         engine: EngineType,
         run_secrets: bool,
+        disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
@@ -1194,8 +980,10 @@ class CoreRunner:
                 target_manager,
                 dump_command_for_core,
                 time_flag,
+                matching_explanations,
                 engine,
                 run_secrets,
+                disable_secrets_validation,
                 target_mode_config,
             )
         except SemgrepError as e:
@@ -1229,12 +1017,14 @@ Exception raised: `{e}`
         rules: List[Rule],
         dump_command_for_core: bool,
         time_flag: bool,
+        matching_explanations: bool,
         engine: EngineType,
         run_secrets: bool,
+        disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
-        Takes in rules and targets and retuns object with findings
+        Takes in rules and targets and returns object with findings
         """
         start = datetime.now()
 
@@ -1247,8 +1037,10 @@ Exception raised: `{e}`
             target_manager,
             dump_command_for_core,
             time_flag,
+            matching_explanations,
             engine,
             run_secrets,
+            disable_secrets_validation,
             target_mode_config,
         )
 
@@ -1257,7 +1049,7 @@ Exception raised: `{e}`
         )
         by_severity = collections.defaultdict(list)
         for rule, findings in findings_by_rule.items():
-            by_severity[rule.severity.value.lower()].extend(findings)
+            by_severity[rule.severity.to_json().lower()].extend(findings)
 
         by_sev_strings = [
             f"{len(findings)} {sev}" for sev, findings in by_severity.items()
@@ -1296,7 +1088,12 @@ Exception raised: `{e}`
             ]
 
             # only scanning combined rules
-            runner = StreamingSemgrepCore(cmd, 1, self._engine_type)
+            show_progress = get_state().get_cli_ux_flavor() != DesignTreatment.MINIMAL
+            total = 1 if show_progress else 0
+
+            runner = StreamingSemgrepCore(
+                cmd, total=total, engine_type=self._engine_type
+            )
             returncode = runner.execute()
 
             # Process output

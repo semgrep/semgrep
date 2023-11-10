@@ -417,5 +417,6 @@ type any = L of lval | E of exp | I of instr | S of stmt | Ss of stmt list
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let str_of_name name = fst name.ident
+let str_of_name name = Common.spf "%s:%s" (fst name.ident) (G.SId.show name.sid)
+let ident_str_of_name name = fst name.ident
 let str_of_label ((n, _), _) = n

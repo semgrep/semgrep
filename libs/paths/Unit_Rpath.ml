@@ -1,7 +1,7 @@
 (* TODO: copy paste of Unit_commons.with_file, but should be in Common.ml *)
 let with_file contents f =
   let file, oc = Filename.open_temp_file "test_pfff_read_file_" ".dat" in
-  Fun.protect
+  Common.protect
     ~finally:(fun () ->
       close_out_noerr oc;
       Sys.remove file)
@@ -10,8 +10,7 @@ let with_file contents f =
       close_out oc;
       f file)
 
-(* TODO: we should use Unix.realpath! but only available in 4.13 *)
-let realpath s = Common.fullpath s
+let realpath s = Unix.realpath s
 
 let test_path_conversion () =
   let check_path path =

@@ -5,6 +5,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 
+from semgrep import __VERSION__
 from semgrep.app.scans import ScanHandler
 from semgrep.constants import DEFAULT_MAX_MEMORY_PRO_CI
 from semgrep.constants import DEFAULT_PRO_TIMEOUT_CI
@@ -13,6 +14,9 @@ from semgrep.meta import GitMeta
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_interfaces import semgrep_output_v1 as out
 from semgrep.util import sub_check_output
+from semgrep.verbose_logging import getLogger
+
+logger = getLogger(__name__)
 
 
 class EngineType(Enum):
@@ -34,6 +38,7 @@ class EngineType(Enum):
         git_meta: Optional[GitMeta] = None,
         run_secrets: bool = False,
         enable_pro_diff_scan: bool = False,
+        supply_chain_only: bool = False,
     ) -> "EngineType":
         """Select which Semgrep engine type to use if none is explicitly requested.
 
@@ -41,10 +46,14 @@ class EngineType(Enum):
         """
         # Change default to pro-engine intrafile if secrets was requested.
         # Secrets is built into pro-engine, but any pro-setting should work.
-        if requested_engine is None and run_secrets:
+        if (
+            not (scan_handler and scan_handler.deepsemgrep)
+            and requested_engine is None
+            and run_secrets
+        ):
             requested_engine = cls.PRO_LANG
         elif run_secrets and requested_engine is cls.OSS:
-            # Should be impossible if the CLI gates impossible arguemnet combinations.
+            # Should be impossible if the CLI gates impossible arguement combinations.
             raise SemgrepError("Semgrep Secrets is not part of the open source engine")
 
         if git_meta and scan_handler:
@@ -57,6 +66,17 @@ class EngineType(Enum):
                 and not enable_pro_diff_scan
             ):
                 requested_engine = cls.PRO_INTRAFILE
+
+        # Using PRO_LANG engine since PRO_INTERFILE/PRO_INTRAFILE defaults to -j 1
+        # note if using OSS, then will keep using OSS
+        if (
+            requested_engine in {cls.PRO_INTERFILE, cls.PRO_INTRAFILE}
+            and supply_chain_only
+        ):
+            logger.info(
+                "Running only supply chain rules so running without extra interfile analysis"
+            )
+            return cls.PRO_LANG
 
         return requested_engine or cls.OSS
 
@@ -101,7 +121,27 @@ class EngineType(Enum):
         return 0  # unlimited
 
     def get_binary_path(self) -> Optional[Path]:
-        return SemgrepCore.pro_path() if self.is_pro else SemgrepCore.path()
+        if self.is_pro:
+            if self.check_is_correct_pro_version():
+                return SemgrepCore.pro_path()
+            else:
+                return None
+        else:
+            return SemgrepCore.path()
+
+    # Checks the version stamp that is installed alongside the
+    # semgrep-core-proprietary binary to ensure that semgrep-core-proprietary
+    # was installed by the current version of Semgrep.
+    #
+    # See also commands/install.py add_semgrep_pro_version_stamp.
+    def check_is_correct_pro_version(self) -> bool:
+        version_stamp_path = SemgrepCore.pro_version_stamp_path()
+        if version_stamp_path.is_file():
+            with version_stamp_path.open("r") as f:
+                version_at_install = f.readline().strip()
+                return version_at_install == __VERSION__
+        else:
+            return False
 
     def check_if_installed(self) -> bool:
         binary_path = self.get_binary_path()

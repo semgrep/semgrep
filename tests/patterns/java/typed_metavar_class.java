@@ -15,13 +15,13 @@ public class SemgrepTest
     // `Class<MessageDigest>`, not type `MessageDigest`. Maybe the pattern for
     // this shouldn't even involve a typed metavariable?
 
-    // TODO ?:
+    // MATCH:
     MessageDigest md1 = MessageDigest.getInstance("MD5");
 
-    // TODO ?:
+    // MATCH:
     MessageDigest md2 = MessageDigest.getInstance(MD5_1);
 
-    // TODO ?:
+    // MATCH:
     MessageDigest md3 = MessageDigest.getInstance(MD5_2);
 
     int stam1 = 0;

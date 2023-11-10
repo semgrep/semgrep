@@ -294,4 +294,4 @@ let fix_tokens xs =
         aux { env with stack } (x :: acc) xs
   in
   aux { stack = [ Toplevel ]; misc = () } [] xs
-  [@@profiling]
+[@@profiling]

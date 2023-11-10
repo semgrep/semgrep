@@ -24,13 +24,11 @@ from ruamel.yaml import YAML
 import semgrep.run_scan
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.config_resolver import Config
-from semgrep.config_resolver import ConfigPath
-from semgrep.constants import RuleSeverity
+from semgrep.config_resolver import resolve_config
 from semgrep.error import ERROR_MAP
 from semgrep.error import FATAL_EXIT_CODE
-from semgrep.error import Level
 from semgrep.error import SemgrepError
-from semgrep.project import get_project_url
+from semgrep.git import get_project_url
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.verbose_logging import getLogger
@@ -47,7 +45,7 @@ yaml = YAML()
 
 
 class InvalidConditionError(SemgrepError):
-    level = Level.ERROR
+    level = out.ErrorSeverity(out.Error_())
     code = FATAL_EXIT_CODE
 
 
@@ -232,7 +230,7 @@ def create_config_map(semgrep_config_strings: List[str]) -> Dict[str, Rule]:
     """
     config = {}
     for config_string in semgrep_config_strings:
-        resolved = ConfigPath(config_string, get_project_url()).resolve_config()
+        resolved = resolve_config(config_string, get_project_url())
         # Some code-fu to get single rules
         config.update(
             {config_string: list(Config._validate(resolved)[0].values())[0][0]}
@@ -383,8 +381,8 @@ def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> Rule
             "message", match.get("extra", {}).get("message", "[empty]")
         ),
         metadata=join_rule.get("metadata", match.get("extra", {}).get("metadata", {})),
-        severity=RuleSeverity(
-            join_rule.get("severity", match.get("severity", RuleSeverity.INFO.value))
+        severity=out.MatchSeverity.from_json(
+            join_rule.get("severity", match.get("severity", "INFO"))
         ),
         match=out.CoreMatch(
             check_id=out.RuleId(join_rule.get("id", match.get("check_id", "[empty]"))),
@@ -428,7 +426,7 @@ def run_join_rule(
     will be the rule ID.
 
     'on' is a list of strings of the form <collection>.<property> <operator> <collection>.<property>.
-    These are the conditions which must be satisifed for this rule to report results.
+    These are the conditions which must be satisfied for this rule to report results.
     All conditions must be satisfied.
 
     See cli/tests/e2e/rules/join_rules/user-input-with-unescaped-extension.yaml

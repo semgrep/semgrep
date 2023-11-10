@@ -1,0 +1,11 @@
+(library
+ (public_name semgrep.language_server.requests)
+ (name osemgrep_language_server_requests)
+ (wrapped false)
+ (libraries
+   semgrep.language_server.scan_helpers
+   semgrep.language_server.custom_requests
+ )
+  (preprocess
+  (pps js_of_ocaml-ppx lwt_ppx))
+)

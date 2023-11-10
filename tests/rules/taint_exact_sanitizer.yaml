@@ -1,0 +1,16 @@
+rules:
+  - id: missing
+    mode: taint
+    pattern-sources:
+      - pattern: user_input
+    pattern-sanitizers:
+      - exact: true
+        # Due to `exact: true`, only the output of `foo.bar()` will be considered
+        # as sanitized!
+        pattern: foo.bar(...)
+    pattern-sinks:
+      - pattern: qux(...)
+    message: Found unsafe potentially input thanks to taint mode!
+    languages:
+      - python
+    severity: WARNING

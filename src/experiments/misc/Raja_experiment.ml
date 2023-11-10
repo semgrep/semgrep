@@ -60,7 +60,7 @@ let adjust_core_output (x : Out.core_output) : Out.core_output =
     x.results
     |> Common.map (fun (m : Out.core_match) ->
            let _rule_id = m.check_id in
-           let path = Fpath.v m.path in
+           let path = m.path in
            let ranges = ranges_of_path path in
            let start, end_ = (m.start.offset, m.end_.offset) in
            match find_function_info (start, end_) ranges with

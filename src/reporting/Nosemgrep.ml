@@ -1,4 +1,3 @@
-open Common
 module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
@@ -69,8 +68,11 @@ let recognise_and_collect ~rex line =
   SPcre.exec_all ~rex line
   |> Result.map
        (Array.map (fun subst ->
-            try Some (Pcre.get_named_substring rex "ids" subst) with
-            | _ -> None))
+            match SPcre.get_named_substring rex "ids" subst with
+            | Ok opt_s -> opt_s
+            | Error _errmsg ->
+                (* TODO: log something? *)
+                None))
   |> Result.to_option
 
 (*
@@ -83,7 +85,7 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
   let lines =
     File.lines_of_file
       (max 0 (rule_match.Out.start.line - 1), rule_match.Out.end_.line)
-      (Fpath.v rule_match.Out.path)
+      rule_match.Out.path
   in
 
   let previous_line, line =
@@ -128,23 +130,28 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
       let ids = Common.map List.hd (* nosemgrep: list-hd *) ids in
       (* [String.split_on_char] can **not** return an empty list. *)
       (* check if the id specified by the user is the [rule_match]'s [rule_id]. *)
+      let nosem_matches id =
+        (* TODO: id should be a Rule_ID.t too *)
+        Rule_ID.ends_with rule_match.Out.check_id ~suffix:(Rule_ID.of_string id)
+      in
       List.fold_left
         (fun (result, errors) id ->
           let errors =
-            if strict && id <> rule_match.Out.check_id then
+            (* If the rule-id is 'foo.bar.my-rule' we accept 'foo.bar.my-rule' as well as
+             * any suffix of it such as 'my-rule' or 'bar.my-rule'. *)
+            if strict && not (nosem_matches id) then
               let msg =
                 Format.asprintf
                   "found 'nosem' comment with id '%s', but no corresponding \
                    rule trying '%s'"
-                  id rule_match.Out.check_id
+                  id
+                  (Rule_ID.to_string rule_match.Out.check_id)
               in
               let cli_error : Out.cli_error =
                 {
                   Out.code = 2;
-                  level =
-                    "warn"
-                    (* XXX(dinosaure): use [Severity.string_of_basic_severity]? *);
-                  type_ = "SemgrepError" (* TODO(dinosaure): correct? *);
+                  level = `Warning;
+                  type_ = SemgrepError;
                   rule_id = None;
                   message = Some msg;
                   path = None;
@@ -157,7 +164,7 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
               cli_error :: errors
             else errors
           in
-          (id = rule_match.Out.check_id || result, errors))
+          (nosem_matches id || result, errors))
         (false, []) ids
 
 (*****************************************************************************)

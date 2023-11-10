@@ -9,8 +9,7 @@ open Printf
 
 type compiled_conf = {
   conf : Conf.t;
-  pcre_pattern : string;
-  pcre_regexp : Pcre.regexp;
+  pcre : SPcre.t; (* holds the source pattern and the compiled regexp *)
 }
 
 type token =
@@ -68,7 +67,7 @@ let compile conf =
         other_10;
       ]
   in
-  let pcre_regexp =
+  let pcre =
     try SPcre.regexp pat with
     | exn ->
         let e = Exception.catch exn in
@@ -77,7 +76,7 @@ let compile conf =
               pat);
         Exception.reraise e
   in
-  { conf; pcre_pattern = pat; pcre_regexp }
+  { conf; pcre }
 
 let char_of_string str =
   if String.length str <> 1 then
@@ -85,12 +84,12 @@ let char_of_string str =
   else str.[0]
 
 let read_string ?(source_name = "<pattern>") conf str =
-  match SPcre.full_split ~rex:conf.pcre_regexp str with
+  match SPcre.full_split ~rex:conf.pcre str with
   | Error pcre_err ->
       pattern_error source_name
         (sprintf "PCRE error while parsing aliengrep pattern: %s; pattern: %s"
            (SPcre.show_error pcre_err)
-           conf.pcre_pattern)
+           conf.pcre.pattern)
   | Ok res ->
       res
       |> List.filter_map (function
@@ -102,7 +101,7 @@ let read_string ?(source_name = "<pattern>") conf str =
                  (sprintf
                     "Internal error while parsing aliengrep pattern: Text node \
                      %S; pattern: %s"
-                    txt conf.pcre_pattern)
+                    txt conf.pcre.pattern)
            | Pcre.Group (_, "") ->
                (* no capture *)
                None

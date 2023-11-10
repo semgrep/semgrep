@@ -187,7 +187,7 @@ let (info_from_charpos : int -> filename -> int * int * string) =
   let res = charpos_to_pos_aux 0 in
   close_in chan;
   res
- [@@profiling]
+[@@profiling]
 
 (* Decalage is here to handle stuff such as cpp which include file and who
  * can make shift.

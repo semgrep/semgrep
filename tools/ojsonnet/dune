@@ -1,0 +1,23 @@
+(executables
+ (names Main)
+ (libraries
+    commons
+    semgrep.osemgrep_core ; for CLI_Common flags
+    ojsonnet
+ )
+ ; for ocamldebug
+ (modes native byte)
+ (preprocess
+   (pps
+     ppx_profiling
+     ppx_deriving.show
+     ppx_deriving.eq
+   ))
+)
+
+
+(install
+ (package semgrep)
+ (section bin)
+ (files (Main.exe as ojsonnet))
+)

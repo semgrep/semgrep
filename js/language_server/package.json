@@ -1,0 +1,37 @@
+{
+  "name": "@semgrep/engine",
+  "version": "0.0.1",
+  "description": "Javascript bindings for the semgrep engine",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "jest",
+    "server": "node tests/test-server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "github.com/returntocorp/semgrep"
+  },
+  "files": [
+    "dist/index.cjs",
+    "dist/index.mjs",
+    "dist/index.d.ts",
+    "dist/semgrep-engine.wasm"
+  ],
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "author": "Semgrep, Inc.",
+  "license": "LGPL-2.1",
+  "devDependencies": {
+    "esbuild": "^0.17.16",
+    "jest": "^29.5.0",
+    "json-rpc-2.0": "^1.6.0"
+  },
+  "dependencies": {
+    "cross-dirname": "^0.1.0"
+  }
+}

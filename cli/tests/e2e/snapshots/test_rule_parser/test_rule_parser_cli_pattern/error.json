@@ -35,7 +35,14 @@
           }
         }
       ],
-      "type": "Pattern parse error"
+      "type": [
+        "PatternParseError",
+        [
+          "pattern",
+          "0",
+          "rules"
+        ]
+      ]
     }
   ],
   "paths": {

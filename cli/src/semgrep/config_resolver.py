@@ -32,9 +32,9 @@ from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
 from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
 from semgrep.constants import ID_KEY
+from semgrep.constants import MISSED_KEY
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RULES_KEY
-from semgrep.constants import RuleSeverity
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
@@ -44,6 +44,7 @@ from semgrep.rule_lang import EmptySpan
 from semgrep.rule_lang import EmptyYamlException
 from semgrep.rule_lang import parse_config_preserve_spans
 from semgrep.rule_lang import Span
+from semgrep.rule_lang import validate_yaml
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.state import get_state
@@ -67,11 +68,12 @@ DEFAULT_CONFIG = {
             "pattern": "$X == $X",
             "message": "$X == $X is a useless equality check",
             "languages": ["python"],
-            "severity": RuleSeverity.ERROR.value,
+            "severity": out.Error().to_json(),
         },
     ],
 }
 
+CLOUD_PLATFORM_CONFIG_ID = "semgrep-app-rules"
 REGISTRY_CONFIG_ID = "remote-registry"
 NON_REGISTRY_REMOTE_CONFIG_ID = "remote-url"
 
@@ -125,9 +127,6 @@ class ConfigLoader:
         elif is_registry_id(config_str):
             state.metrics.add_feature("config", f"registry:prefix-{config_str[0]}")
             self._config_path = registry_id_to_url(config_str)
-        elif is_saved_snippet(config_str):
-            state.metrics.add_feature("config", f"registry:snippet-id")
-            self._config_path = saved_snippet_to_url(config_str)
         elif config_str == AUTO_CONFIG_KEY:
             state.metrics.add_feature("config", "auto")
             self._config_path = f"{state.env.semgrep_url}/{AUTO_CONFIG_LOCATION}"
@@ -329,42 +328,44 @@ def parse_config_files(
     return config
 
 
-class ConfigPath:
-    def __init__(self, config_str: str, project_url: Optional[str] = None) -> None:
-        self._config_str = config_str
-        self._project_url = project_url
+def resolve_config(
+    config_str: str, project_url: Optional[str] = None
+) -> Dict[str, YamlTree]:
+    """resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
+    start_t = time.time()
+    config_loader = ConfigLoader(config_str, project_url)
+    config = parse_config_files(config_loader.load_config())
 
-    def resolve_config(self) -> Dict[str, YamlTree]:
-        """resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
-        start_t = time.time()
-
-        config = parse_config_files(
-            ConfigLoader(self._config_str, self._project_url).load_config()
-        )
-
-        if config:
-            logger.debug(f"loaded {len(config)} configs in {time.time() - start_t}")
-        return config
-
-    def __str__(self) -> str:
-        # TODO return the resolved config_path
-        return self._config_str
+    if config:
+        logger.debug(f"loaded {len(config)} configs in {time.time() - start_t}")
+    return config
 
 
 class Config:
-    def __init__(self, valid_configs: Mapping[str, Sequence[Rule]]) -> None:
+    def __init__(
+        self,
+        valid_configs: Mapping[str, Sequence[Rule]],
+        *,
+        # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
+        with_code_rules: bool = False,
+        with_supply_chain: bool = False,
+        missed_rule_count: int = 0,
+    ) -> None:
         """
         Handles parsing and validating of config files
         and exposes ability to get all rules in parsed config files
         """
         self.valid = valid_configs
+        self.with_code_rules = with_code_rules
+        self.with_supply_chain = with_supply_chain
+        self.missed_rule_count = missed_rule_count
 
     @classmethod
     def from_pattern_lang(
         cls, pattern: str, lang: str, replacement: Optional[str] = None
     ) -> Tuple["Config", Sequence[SemgrepError]]:
         config_dict = manual_config(pattern, lang, replacement)
-        valid, errors = cls._validate(config_dict)
+        valid, errors, _ = cls._validate(config_dict)
         return cls(valid), errors
 
     @classmethod
@@ -373,14 +374,14 @@ class Config:
         errors: List[SemgrepError] = []
 
         try:
-            resolved_config_key = "semgrep-app-rules"
+            resolved_config_key = CLOUD_PLATFORM_CONFIG_ID
             config_dict.update(
                 parse_config_string(resolved_config_key, config, filename=None)
             )
         except SemgrepError as e:
             errors.append(e)
 
-        valid, parse_errors = cls._validate(config_dict)
+        valid, parse_errors, _ = cls._validate(config_dict)
         errors.extend(parse_errors)
         return cls(valid), errors
 
@@ -396,14 +397,19 @@ class Config:
         """
         config_dict: Dict[str, YamlTree] = {}
         errors: List[SemgrepError] = []
+        with_supply_chain = False
+        with_code_rules = False
 
         for i, config in enumerate(configs):
             try:
                 # Patch config_id to fix https://github.com/returntocorp/semgrep/issues/1912
-                resolved_config = ConfigPath(config, project_url).resolve_config()
+                resolved_config = resolve_config(config, project_url)
                 if not resolved_config:
                     logger.verbose(f"Could not resolve config for {config}. Skipping.")
                     continue
+
+                with_code_rules = with_code_rules or not is_supply_chain(config)
+                with_supply_chain = with_supply_chain or is_supply_chain(config)
 
                 for (
                     resolved_config_key,
@@ -418,9 +424,17 @@ class Config:
             except SemgrepError as e:
                 errors.append(e)
 
-        valid, parse_errors = cls._validate(config_dict)
+        valid, parse_errors, missed_rule_count = cls._validate(config_dict)
         errors.extend(parse_errors)
-        return cls(valid), errors
+        return (
+            cls(
+                valid,
+                with_code_rules=with_code_rules,
+                with_supply_chain=with_supply_chain,
+                missed_rule_count=missed_rule_count,
+            ),
+            errors,
+        )
 
     def get_rules(self, no_rewrite_rule_ids: bool) -> List[Rule]:
         """
@@ -490,18 +504,23 @@ class Config:
     @staticmethod
     def _validate(
         config_dict: Mapping[str, YamlTree]
-    ) -> Tuple[Mapping[str, Sequence[Rule]], Sequence[SemgrepError]]:
+    ) -> Tuple[Mapping[str, Sequence[Rule]], Sequence[SemgrepError], int]:
         """
         Take configs and separate into valid and list of errors parsing the invalid ones
         """
         errors: List[SemgrepError] = []
         valid: Dict[str, Any] = {}
+        missed_rule_count = 0
         for config_id, config_yaml_tree in config_dict.items():
-            config = config_yaml_tree.value
+            config: YamlMap = config_yaml_tree.value
             if not isinstance(config, YamlMap):
                 errors.append(SemgrepError(f"{config_id} was not a mapping"))
                 continue
-
+            # Increment the count of missed rules
+            missed_rule_container = config.get(MISSED_KEY)
+            missed_rule_count += (
+                int(missed_rule_container.value) if missed_rule_container else 0
+            )
             rules = config.get(RULES_KEY)
             if rules is None:
                 errors.append(
@@ -522,6 +541,7 @@ class Config:
                     if (
                         isinstance(rule.product.value, out.Secrets)
                         and config_id != REGISTRY_CONFIG_ID
+                        and config_id != CLOUD_PLATFORM_CONFIG_ID
                     ):
                         # SECURITY: Set metadata from non-registry secrets
                         # rules so that postprocessors are not run. The default
@@ -536,7 +556,7 @@ class Config:
 
             if valid_rules:
                 valid[config_id] = valid_rules
-        return valid, errors
+        return valid, errors, missed_rule_count
 
 
 def validate_single_rule(config_id: str, rule_yaml: YamlTree[YamlMap]) -> Rule:
@@ -567,7 +587,7 @@ def manual_config(
         "pattern": pattern_tree,
         "message": pattern,
         "languages": [lang],
-        "severity": RuleSeverity.ERROR.value,
+        "severity": out.Error().to_json(),
     }
 
     if replacement:
@@ -695,6 +715,7 @@ def parse_config_string(
     try:
         # we pretend it came from YAML so we can keep later code simple
         data = YamlTree.wrap(json.loads(contents), EmptySpan)
+        validate_yaml(data)
         return {config_id: data}
     except json.decoder.JSONDecodeError:
         pass
@@ -732,13 +753,6 @@ def is_registry_id(config_str: str) -> bool:
     Starts with r/, p/, s/ for registry, pack, and snippet respectively
     """
     return config_str[:2] in {"r/", "p/", "s/"}
-
-
-def is_saved_snippet(config_str: str) -> bool:
-    """
-    config_str is saved snippet which has format username:snippetname
-    """
-    return len(config_str.split(":")) == 2
 
 
 def registry_id_to_url(registry_id: str) -> str:
@@ -804,13 +818,6 @@ def url_for_supply_chain() -> str:
 
 def is_supply_chain(config_str: str) -> bool:
     return config_str == "supply-chain"
-
-
-def saved_snippet_to_url(snippet_id: str) -> str:
-    """
-    Convert from username:snippetname to semgrep.dev url
-    """
-    return registry_id_to_url(f"s/{snippet_id}")
 
 
 def is_pack_id(config_str: str) -> bool:

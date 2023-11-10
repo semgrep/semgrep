@@ -40,6 +40,8 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/yarn",
         ),
         ("rules/dependency_aware/go-sca.yaml", "dependency_aware/go"),
+        ("rules/dependency_aware/go-sca.yaml", "dependency_aware/go_toolchain"),
+        ("rules/dependency_aware/go-sca.yaml", "dependency_aware/go_multi_newline"),
         ("rules/dependency_aware/ruby-sca.yaml", "dependency_aware/ruby"),
         (
             "rules/dependency_aware/ruby-sca.yaml",
@@ -47,6 +49,10 @@ pytestmark = pytest.mark.kinda_slow
         ),
         ("rules/dependency_aware/log4shell.yaml", "dependency_aware/log4j"),
         ("rules/dependency_aware/rust-sca.yaml", "dependency_aware/rust"),
+        (
+            "rules/dependency_aware/rust-sca.yaml",
+            "dependency_aware/rust_short_lockfile",
+        ),
         ("rules/dependency_aware/ansi-html.yaml", "dependency_aware/ansi"),
         ("rules/dependency_aware/js-sca.yaml", "dependency_aware/js"),
         ("rules/dependency_aware/generic-sca.yaml", "dependency_aware/generic"),
@@ -63,8 +69,20 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/gradle_empty=",
         ),
         (
+            "rules/dependency_aware/python-pipfile-sca.yaml",
+            "dependency_aware/pipfile",
+        ),
+        (
+            "rules/dependency_aware/python-pipfile-sca.yaml",
+            "dependency_aware/pipfile_with_uppercase_package_name",
+        ),
+        (
             "rules/dependency_aware/python-poetry-sca.yaml",
             "dependency_aware/poetry",
+        ),
+        (
+            "rules/dependency_aware/python-poetry-sca.yaml",
+            "dependency_aware/poetry_with_uppercase_package_name",
         ),
         (
             "rules/dependency_aware/python-poetry-sca.yaml",
@@ -85,6 +103,10 @@ pytestmark = pytest.mark.kinda_slow
         (
             "rules/dependency_aware/python-requirements-sca.yaml",
             "dependency_aware/requirements",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements_with_uppercase_package_name",
         ),
         (
             "rules/dependency_aware/python-requirements-sca.yaml",
@@ -169,8 +191,13 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/nuget",
         ),
         ("rules/dependency_aware/gradle-guava.yaml", "dependency_aware/gradle-direct"),
+        (
+            "rules/dependency_aware/dart-parity.yaml",
+            "dependency_aware/dart",
+        ),
     ],
 )
+@pytest.mark.osemfail
 def test_dependency_aware_rules(
     run_semgrep_on_copied_files: RunSemgrep, snapshot, rule, target
 ):
@@ -199,6 +226,7 @@ def test_dependency_aware_rules(
     ],
 )
 @pytest.mark.no_semgrep_cli
+@pytest.mark.osemfail
 def test_maven_version_comparison(version, specifier, outcome):
     assert is_in_range(Ecosystem(Maven()), specifier, version) == outcome
 
@@ -278,13 +306,16 @@ def test_maven_version_comparison(version, specifier, outcome):
         "targets/dependency_aware/osv_parsing/pnpm/tarball/pnpm-lock.yaml",
         "targets/dependency_aware/osv_parsing/pnpm/files/pnpm-lock.yaml",
         "targets/dependency_aware/osv_parsing/pnpm/exotic/pnpm-lock.yaml",
+        "targets/dependency_aware/pnpm-error-key/pnpm-lock.yaml",
     ],
 )
 # These tests are taken from https://github.com/google/osv-scanner/tree/main/pkg/lockfile/fixtures
 # With some minor edits, namely removing the "this isn't even a lockfile" tests
 # And removing some human written comments that would never appear in a real lockfile from some tests
+# They also include random lockfiles we want to make sure we parse predictably
 @pytest.mark.no_semgrep_cli
-def test_osv_parsing(parse_lockfile_path_in_tmp, caplog, target):
+@pytest.mark.osemfail
+def test_parsing(parse_lockfile_path_in_tmp, caplog, target):
     caplog.set_level(logging.ERROR)
     _, error = parse_lockfile_path_in_tmp(Path(target))
     # These two files have some packages we cannot really make sense of, so we ignore them
@@ -293,6 +324,8 @@ def test_osv_parsing(parse_lockfile_path_in_tmp, caplog, target):
         assert len(error) == 1
     elif target.endswith("exotic/pnpm-lock.yaml"):
         assert len(error) == 5
+    elif target.endswith("pnpm-error-key/pnpm-lock.yaml"):
+        assert len(error) == 1
     else:
         assert len(error) == 0
     assert len(caplog.records) == 0
@@ -302,6 +335,7 @@ def test_osv_parsing(parse_lockfile_path_in_tmp, caplog, target):
 # contains no lockfiles for the language in our rule, we need to _not_ pass in
 # a target that begins with "targets", as that dir contains every kind of lockfile
 # So we add the keyword arg to run_semgrep and manually do some cd-ing
+@pytest.mark.osemfail
 def test_no_lockfiles(run_semgrep: RunSemgrep, monkeypatch, tmp_path, snapshot):
     (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())

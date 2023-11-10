@@ -1,5 +1,5 @@
 
-SUPPORTED_LANGS := bash c cpp csharp dockerfile elixir go html java json jsonnet julia kotlin lisp lua ocaml php python r ruby rust scala solidity swift terraform typescript
+SUPPORTED_LANGS := bash c cairo cpp csharp dart dockerfile elixir go hack html java json jsonnet julia kotlin lisp lua ocaml php promql protobuf python r ruby rust scala solidity swift terraform typescript vue
 
 .PHONY: default
 default: build
@@ -19,7 +19,7 @@ build-%:
 
 .PHONY: test-%
 test-%:
-	cd $*; $(MAKE) test
+	cd $*; SEMGREP_JS_TEST_BUILD=1 $(MAKE) test
 
 .PHONY: package-%
 package-%:

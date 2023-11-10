@@ -21,10 +21,10 @@ let load t dir_path =
       let path = Ppath.to_fpath t.project_root dir_path in
       let patterns =
         List.fold_left
-          (fun acc (kind, name) ->
+          (fun acc (source_kind, name) ->
             let file_path = Fpath.add_seg path name in
             if Sys.file_exists (Fpath.to_string file_path) then
-              acc @ Parse_gitignore.from_file ~anchor ~kind file_path
+              acc @ Parse_gitignore.from_file ~anchor ~source_kind file_path
             else acc)
           [] t.gitignore_filenames
       in
@@ -42,4 +42,4 @@ let load t dir_path =
       in
       Hashtbl.add tbl key res;
       res
-  [@@profiling]
+[@@profiling]

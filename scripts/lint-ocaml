@@ -21,10 +21,10 @@ set -eu
 eval $(opam env)
 
 #coupling: must be the same than in dev/dev.opam
-required_version=0.23
+required_version=0.26.1
 
 if version=$(ocamlformat --version); then
-  if [[ "$version" =~ ^"$required_version."[0-9]+$ ]]; then
+  if [[ "$version" =~ ^"$required_version"$ ]]; then
     ocamlformat --inplace --enable-outside-detected-project "$@"
   else
     cat <<EOF

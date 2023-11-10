@@ -21,6 +21,7 @@ from semgrep.cli import cli
     sys.version_info < (3, 8),
     reason="snapshotting mock call kwargs doesn't work on py3.7",
 )
+@pytest.mark.osemfail
 def test_parse_metrics(tmp_path, snapshot, mocker, monkeypatch):
     mock_post = mocker.patch("requests.post")
 

@@ -1,9 +1,7 @@
 (*
    Skip targets.
-
 *)
 open Common
-open File.Operators
 module Resp = Semgrep_output_v1_t
 
 (****************************************************************************)
@@ -88,7 +86,7 @@ let is_minified (path : Fpath.t) =
       if stat.ws_freq < min_whitespace_frequency then
         Error
           {
-            Resp.path = !!path;
+            Resp.path;
             reason = Minified;
             details =
               Some
@@ -101,7 +99,7 @@ let is_minified (path : Fpath.t) =
       else if stat.line_freq < min_line_frequency then
         Error
           {
-            Resp.path = !!path;
+            Resp.path;
             reason = Minified;
             details =
               Some
@@ -137,7 +135,7 @@ let exclude_big_files paths =
          if max_bytes > 0 && size > max_bytes then
            Error
              {
-               Resp.path = !!path;
+               Resp.path;
                reason = Too_big;
                details =
                  Some

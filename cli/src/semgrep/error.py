@@ -2,17 +2,14 @@ import dataclasses
 import inspect
 import sys
 from dataclasses import dataclass
-from enum import Enum
 from pathlib import Path
-from typing import Any
 from typing import cast
-from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
 
-import attr  # TODO: update to next-gen API with @define; difficult cause these subclass of Exception
+import attr
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import Colors
@@ -41,11 +38,7 @@ INVALID_LANGUAGE_EXIT_CODE = 8
 INVALID_API_KEY_EXIT_CODE = 13
 SCAN_FAIL_EXIT_CODE = 14
 
-
-class Level(Enum):
-    ERROR = 4  # Always an error
-    WARN = 3  # Only an error if "strict" is set
-    INFO = 2  # Nothing may be wrong
+default_level = out.ErrorSeverity(out.Error_())
 
 
 class SemgrepError(Exception):
@@ -58,74 +51,81 @@ class SemgrepError(Exception):
     For pretty-printing, exceptions should override `__str__`.
     """
 
+    # In theory we should define those fields here:
+    # code: int
+    # level: out.ErrorSeverity
+    # type_: out.CoreErrorKind
+
     def __init__(
-        self, *args: object, code: int = FATAL_EXIT_CODE, level: Level = Level.ERROR
+        self,
+        *args: object,
+        code: int = FATAL_EXIT_CODE,
+        level: out.ErrorSeverity = default_level,
     ) -> None:
         self.code = code
         self.level = level
-
         super().__init__(*args)
 
     def to_CliError(self) -> out.CliError:
-        err = out.CliError(
-            code=self.code, type_=self.__class__.__name__, level=self.level.name.lower()
-        )
+        err = out.CliError(code=self.code, type_=self.type_(), level=self.level)
         return self.adjust_CliError(err)
 
+    # to be overridden in children
+    def type_(self) -> out.ErrorType:
+        return out.ErrorType(out.SemgrepError())
+
+    # to be overridden in children
     def adjust_CliError(self, base: out.CliError) -> out.CliError:
         """
         Default implementation. Subclasses should override to provide custom information.
         """
         return dataclasses.replace(base, message=str(self))
 
-    def to_dict(self) -> Dict[str, Any]:
-        return cast(Dict[str, Any], self.to_CliError().to_json())
-
     def format_for_terminal(self) -> str:
         level_tag = (
             with_color(Colors.red, "[", bgcolor=Colors.red)
             + with_color(
-                Colors.forced_white, self.level.name, bgcolor=Colors.red, bold=True
+                Colors.forced_white,
+                cast(str, self.level.to_json()).upper(),
+                bgcolor=Colors.red,
+                bold=True,
             )
             + with_color(Colors.red, "]", bgcolor=Colors.red)
         )
 
         return f"{level_tag} {self}"
 
-    # TODO: @classmethod?
-    def semgrep_error_type(self) -> str:
-        return type(self).__name__
+
+# used in text and sarif output, and currently also stored in our metrics
+# payload.errors.errors
+def error_type_string(type_: out.ErrorType) -> str:
+    # convert to the same string of out.ParseError for now
+    if isinstance(type_.value, out.PartialParsing):
+        return error_type_string(out.ErrorType(out.ParseError()))
+    # constructors with arguments
+    if isinstance(type_.value, out.PatternParseError):
+        return error_type_string(out.ErrorType(out.PatternParseError0()))
+    if isinstance(type_.value, out.IncompatibleRule_):
+        return error_type_string(out.ErrorType(out.IncompatibleRule0()))
+    # All the other cases don't have arguments in Semgrep_output_v1.atd
+    # and have some <json name="..."> annotations to generate the right string
+    else:
+        return str(type_.to_json())
 
 
 @dataclass(frozen=True)
 class SemgrepCoreError(SemgrepError):
     code: int
-    level: Level
+    level: out.ErrorSeverity
     # TODO: spans are used only for PatternParseError
     spans: Optional[List[out.ErrorSpan]]
     core: out.CoreError
 
-    # TODO: we should return a proper variant instead of converting to a str
-    def _error_type_string(self) -> str:
-        type_ = self.core.error_type
-        # convert to the same string of out.ParseError for now
-        if isinstance(type_.value, out.PartialParsing):
-            return "Syntax error"
-        if isinstance(type_.value, out.PatternParseError):
-            return "Pattern parse error"
-        if isinstance(type_.value, out.IncompatibleRule_):
-            return "Incompatible rule"
-        if isinstance(type_.value, out.MissingPlugin):
-            return "Missing plugin"
-        # All the other cases don't have arguments in Semgrep_output_v1.atd
-        # and have some <json name="..."> annotations to generate the right string
-        else:
-            return str(type_.to_json())
+    def type_(self) -> out.ErrorType:
+        return self.core.error_type
 
     def adjust_CliError(self, base: out.CliError) -> out.CliError:
-        base = dataclasses.replace(
-            base, type_=self._error_type_string(), message=str(self)
-        )
+        base = dataclasses.replace(base, message=str(self))
         if self.core.rule_id:
             base = dataclasses.replace(base, rule_id=self.core.rule_id)
 
@@ -160,9 +160,6 @@ class SemgrepCoreError(SemgrepError):
         """
         return isinstance(self.core.error_type.value, out.Timeout)
 
-    def semgrep_error_type(self) -> str:
-        return f"{type(self).__name__}: {self._error_type_string()}"
-
     @property
     def _error_message(self) -> str:
         """
@@ -185,7 +182,7 @@ class SemgrepCoreError(SemgrepError):
         else:
             error_context = f"at line {self.core.location.path.value}:{self.core.location.start.line}"
 
-        return f"{self._error_type_string()} {error_context}:\n {self.core.message}"
+        return f"{error_type_string(self.core.error_type)} {error_context}:\n {self.core.message}"
 
     @property
     def _stack_trace(self) -> str:
@@ -219,17 +216,9 @@ class SemgrepCoreError(SemgrepError):
         )
 
 
-class SemgrepInternalError(Exception):
-    """
-    Parent class of internal semgrep exceptions that should be handled internally and converted into `SemgrepError`s
-
-    Classes that inherit from SemgrepInternalError should begin with `_`
-    """
-
-
 @attr.s(auto_attribs=True, frozen=True)
 class FilesNotFoundError(SemgrepError):
-    level = Level.ERROR
+    level = out.ErrorSeverity(out.Error_())
     code = FATAL_EXIT_CODE
     paths: Sequence[Path]
 
@@ -306,7 +295,7 @@ class ErrorWithSpan(SemgrepError):
             base,
             short_msg=self.short_msg,
             long_msg=self.long_msg,
-            level=self.level.name.lower(),
+            level=self.level,
             spans=[s.to_ErrorSpan() for s in self.spans],
         )
         # otherwise, we end up with `help: null` in JSON
@@ -371,7 +360,7 @@ class ErrorWithSpan(SemgrepError):
         """
         Format this exception into a pretty string with context and color
         """
-        header = f"{with_color(Colors.red, 'semgrep ' + self.level.name.lower())}: {self.short_msg}"
+        header = f"{with_color(Colors.red, 'semgrep ' + self.level.to_json())}: {self.short_msg}"
         snippets = []
         for span in self.spans:
             if span.file != "semgrep temp file":
@@ -423,16 +412,23 @@ class ErrorWithSpan(SemgrepError):
 @attr.s(frozen=True, eq=True)
 class InvalidRuleSchemaError(ErrorWithSpan):
     code = RULE_PARSE_FAILURE_EXIT_CODE
-    level = Level.ERROR
+    level = out.ErrorSeverity(out.Error_())
+
+    def type_(self) -> out.ErrorType:
+        return out.ErrorType(out.InvalidRuleSchemaError())
 
 
 @attr.s(frozen=True, eq=True)
 class UnknownLanguageError(ErrorWithSpan):
     code = INVALID_LANGUAGE_EXIT_CODE
-    level = Level.ERROR
+    level = out.ErrorSeverity(out.Error_())
+
+    def type_(self) -> out.ErrorType:
+        return out.ErrorType(out.UnknownLanguageError())
 
 
 # cf. https://stackoverflow.com/questions/1796180/how-can-i-get-a-list-of-all-classes-within-current-module-in-python/1796247#1796247
+# This is used only in join_rules.py
 ERROR_MAP = {
     classname: classdef
     for classname, classdef in inspect.getmembers(

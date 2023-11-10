@@ -28,6 +28,8 @@
            A default value would be set with '<field default="true">'
            and this would be translated into 'True' for Python and whatever
            means "true" in other languages.
+
+   coupling: with semgrep-interfaces/rule_schema_v2.atd
 *)
 
 (* !!Do not rename the fields because they can be referenced in rules!! *)
@@ -52,6 +54,7 @@ type t = {
   (* pretend && and || are commutative *)
   (* THINK: Should we merge ac_matching and commutative_boolop into a single setting? *)
   ~commutative_boolop <ocaml default="false"> : bool;
+  ~commutative_compop <ocaml default="false"> : bool;
 
   (* assign-patterns (e.g. `$X = $E`) will match var-defs (e.g. `var x = 1;`) *)
   ~vardef_assign <ocaml default="true"> : bool;
@@ -90,6 +93,8 @@ type t = {
   ~xml_children_ordered <ocaml default="true"> : bool;
 
   ~generic_engine <ocaml default="`Spacegrep">: generic_engine;
+
+  ~cpp_parsing_pref <ocaml default="`AsVarDefWithCtor">: cpp_parsing_opt;
 
   (* Enable/disable multiline mode in aliengrep. This option is only
      relevant to the 'aliengrep' generic engine.
@@ -153,10 +158,21 @@ type t = {
   (* Whether a rule should be considered for interfile analysis. *)
   ~interfile <ocaml default="false"> : bool;
 
+  (* Whether last expression executed in a function is treated the
+     same as a return statement. This option is specific only to
+     languages that treat the last statement of a block inside
+     functions as a return statement, such as Ruby and Julia.  *)
+     ~implicit_return <ocaml default="true"> : bool;
+
   (* TODO: equivalences:
    *   - require_to_import (but need pass config to Js_to_generic)
    *)
 }
+
+type cpp_parsing_opt = [
+  | AsFunDef <json name="as_fundef">
+  | AsVarDefWithCtor <json name="as_vardef_with_ctor">
+]
 
 type generic_engine = [
   | Aliengrep <json name="aliengrep">

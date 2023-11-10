@@ -33,3 +33,10 @@ val sanitize_string : string -> string
      "xfoo.bar" ~suffix:"foo.bar" -> false
 *)
 val ends_with : t -> suffix:t -> bool
+
+(* "path.to.foo.bar" -> Some "bar" *)
+val last_elt_opt : t -> string option
+
+(* for ATD string wrap in semgrep_output_v1.atd *)
+val unwrap : t -> string
+val wrap : string -> t

@@ -76,7 +76,7 @@ let with_file name contents exec f =
   (match exec with
   | Exec -> Unix.chmod !!path 0o755
   | Nonexec -> ());
-  Fun.protect
+  Common.protect
     ~finally:(fun () -> close_out oc)
     (fun () ->
       output_string oc contents;

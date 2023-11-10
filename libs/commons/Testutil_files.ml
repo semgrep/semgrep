@@ -77,7 +77,7 @@ and write_one root file =
 
 let get_dir_entries path =
   let dir = Unix.opendir (Fpath.to_string path) in
-  Fun.protect
+  Common.protect
     ~finally:(fun () -> Unix.closedir dir)
     (fun () ->
       let acc = ref [] in
@@ -153,7 +153,7 @@ let mkdir ?(root = Sys.getcwd () |> Fpath.v) path =
 let with_chdir dir f =
   let dir_s = Fpath.to_string dir in
   let orig = Unix.getcwd () in
-  Fun.protect
+  Common.protect
     ~finally:(fun () -> Unix.chdir orig)
     (fun () ->
       Unix.chdir dir_s;
@@ -189,7 +189,7 @@ let remove path =
 
 let with_tempdir ?(persist = false) ?(chdir = false) func =
   let dir = create_tempdir () in
-  Fun.protect
+  Common.protect
     ~finally:(fun () -> if not persist then remove dir)
     (fun () -> if chdir then with_chdir dir (fun () -> func dir) else func dir)
 

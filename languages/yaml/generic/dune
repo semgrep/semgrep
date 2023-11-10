@@ -1,0 +1,13 @@
+(library
+ (public_name parser_yaml.ast_generic)
+ (name parser_yaml_ast_generic)
+ (wrapped false)
+ (libraries
+   yaml
+
+   commons
+   lib_parsing
+   ast_generic
+ )
+ (preprocess (pps ppx_deriving.show))
+)

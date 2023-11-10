@@ -28,7 +28,6 @@ val visit : 'a visit_method -> 'a -> ('a -> 'a) -> 'a
     children to be visited, then [child_f] is called to perform this.
 *)
 
-class type ['a] std_visitor =
-  object
-    method visit : 'a visit_method
-  end
+class type ['a] std_visitor = object
+  method visit : 'a visit_method
+end

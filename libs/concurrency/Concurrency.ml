@@ -31,4 +31,4 @@
 (* See also Lock_protected.ml *)
 let with_lock f lock =
   Mutex.lock lock;
-  Fun.protect ~finally:(fun () -> Mutex.unlock lock) f
+  Common.protect ~finally:(fun () -> Mutex.unlock lock) f

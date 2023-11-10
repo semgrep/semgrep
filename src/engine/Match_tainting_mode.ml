@@ -110,7 +110,7 @@ let convert_rule_id (id, _tok) =
     message = "";
     pattern_string = Rule_ID.to_string id;
     fix = None;
-    languages = [];
+    langs = [];
   }
 
 let option_bind_list opt f =
@@ -120,7 +120,7 @@ let option_bind_list opt f =
 
 (* Finds all matches of a taint-spec pattern formula. *)
 let range_w_metas_of_formula (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
-    (rule : Rule.t) (formula : Rule.formula) : RM.ranges * ME.t list =
+    (rule : R.t) (formula : R.formula) : RM.ranges * ME.t list =
   (* !! Calling Match_search_mode here !! *)
   let report, ranges =
     Match_search_mode.matches_of_formula xconf rule xtarget formula None
@@ -134,7 +134,7 @@ type propagator_match = {
   rwm : RM.t;
   from : Range.t;  (** The range matched by the `from` metavariable. *)
   to_ : Range.t;  (** The range matched by the `to` metavariable. *)
-  spec : Rule.taint_propagator;
+  spec : R.taint_propagator;
 }
 (** Taint will flow from `from` to `to_` through the axiliary variable `id`. *)
 
@@ -147,10 +147,10 @@ type propagator_match = {
 *)
 module Formula_tbl = struct
   include Hashtbl.Make (struct
-    type t = Rule.formula
+    type t = R.formula
 
-    let equal = AST_generic_equals.with_structural_equal Rule.equal_formula
-    let hash = Rule.hash_formula
+    let equal = AST_generic_equals.with_structural_equal R.equal_formula
+    let hash = R.hash_formula
   end)
 
   let cached_find_opt formula_cache formula compute_matches_fn =
@@ -194,7 +194,7 @@ type formula_cache = ((RM.t list * ME.t list) option * int) Formula_tbl.t
    that are only formula that are guaranteed to appear more than once in the
    collection.
 *)
-let mk_specialized_formula_cache (rules : Rule.taint_rule list) =
+let mk_specialized_formula_cache (rules : R.taint_rule list) =
   let count_tbl = Formula_tbl.create 128 in
   let flat_formulas =
     rules
@@ -241,7 +241,7 @@ let concat_map_with_expls f xs =
   (res, List.flatten !all_expls)
 
 let find_range_w_metas formula_cache (xconf : Match_env.xconfig)
-    (xtarget : Xtarget.t) (rule : Rule.t) (specs : (R.formula * 'a) list) :
+    (xtarget : Xtarget.t) (rule : R.t) (specs : (R.formula * 'a) list) :
     (RM.t * 'a) list * ME.t list =
   (* TODO: Make an Or formula and run a single query. *)
   (* if perf is a problem, we could build an interval set here *)
@@ -254,7 +254,7 @@ let find_range_w_metas formula_cache (xconf : Match_env.xconfig)
          (ranges |> Common.map (fun rwm -> (rwm, x)), expls))
 
 let find_sanitizers_matches formula_cache (xconf : Match_env.xconfig)
-    (xtarget : Xtarget.t) (rule : Rule.t) (specs : R.taint_sanitizer list) :
+    (xtarget : Xtarget.t) (rule : R.t) (specs : R.taint_sanitizer list) :
     (bool * RM.t * R.taint_sanitizer) list * ME.t list =
   specs
   |> concat_map_with_expls (fun (sanitizer : R.taint_sanitizer) ->
@@ -265,16 +265,15 @@ let find_sanitizers_matches formula_cache (xconf : Match_env.xconfig)
                  sanitizer.sanitizer_formula)
          in
          ( ranges
-           |> Common.map (fun x ->
-                  (sanitizer.Rule.not_conflicting, x, sanitizer)),
+           |> Common.map (fun x -> (sanitizer.R.not_conflicting, x, sanitizer)),
            expls ))
 
 (* Finds all matches of `pattern-propagators`. *)
 let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
-    (xtarget : Xtarget.t) (rule : Rule.t)
+    (xtarget : Xtarget.t) (rule : R.t)
     (propagators_spec : R.taint_propagator list) =
   propagators_spec
-  |> List.concat_map (fun (p : Rule.taint_propagator) ->
+  |> List.concat_map (fun (p : R.taint_propagator) ->
          let mvar_pfrom, tok_pfrom = p.from in
          let mvar_pto, tok_pto = p.to_ in
          let ranges_w_metavars, _expsTODO =
@@ -380,19 +379,25 @@ let any_is_in_sources_matches rule any matches =
   let ( let* ) = option_bind_list in
   let* r = range_of_any any in
   matches
-  |> Common.map_filter (fun (rwm, ts) ->
+  |> Common.map_filter (fun (rwm, (ts : R.taint_source)) ->
          if Range.( $<=$ ) r rwm.RM.r then
            Some
              (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
               let overlap = overlap_with ~match_range:rwm.RM.r r in
-              { D.spec = ts; spec_pm; range = r; overlap })
+              {
+                Taint_smatch.spec = ts;
+                spec_id = ts.source_id;
+                spec_pm;
+                range = r;
+                overlap;
+              })
          else None)
 
 (* Check whether `any` matches either the `from` or the `to` of any of the
  * `pattern-propagators`. Matches must be exact (overlap > 0.99) to make
  * taint propagation more precise and predictable. *)
 let any_is_in_propagators_matches rule any matches :
-    D.a_propagator D.tmatch list =
+    D.a_propagator Taint_smatch.t list =
   match range_of_any any with
   | None -> []
   | Some r ->
@@ -404,7 +409,13 @@ let any_is_in_propagators_matches rule any matches :
              let is_to = is_exact_match ~match_range:prop.to_ r in
              let mk_match kind =
                let spec : D.a_propagator = { kind; prop = prop.spec; var } in
-               { D.spec; spec_pm; range = r; overlap = 1.0 }
+               {
+                 Taint_smatch.spec;
+                 spec_id = prop.spec.propagator_id;
+                 spec_pm;
+                 range = r;
+                 overlap = 1.0;
+               }
              in
              (if is_from then [ mk_match `From ] else [])
              @ (if is_to then [ mk_match `To ] else [])
@@ -419,19 +430,31 @@ let any_is_in_sanitizers_matches rule any matches =
            Some
              (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
               let overlap = overlap_with ~match_range:rwm.RM.r r in
-              { D.spec; spec_pm; range = r; overlap })
+              {
+                Taint_smatch.spec;
+                spec_id = spec.R.sanitizer_id;
+                spec_pm;
+                range = r;
+                overlap;
+              })
          else None)
 
 let any_is_in_sinks_matches rule any matches =
   let ( let* ) = option_bind_list in
   let* r = range_of_any any in
   matches
-  |> Common.map_filter (fun (rwm, spec) ->
+  |> Common.map_filter (fun (rwm, (spec : R.taint_sink)) ->
          if Range.( $<=$ ) r rwm.RM.r then
            Some
              (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
               let overlap = overlap_with ~match_range:rwm.RM.r r in
-              { D.spec; spec_pm; range = r; overlap })
+              {
+                Taint_smatch.spec;
+                spec_id = spec.sink_id;
+                spec_pm;
+                range = r;
+                overlap;
+              })
          else None)
 
 let lazy_force x = Lazy.force x [@@profiling]
@@ -449,7 +472,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
   let xtarget =
     {
       Xtarget.file;
-      xlang = rule.languages.target_analyzer;
+      xlang = rule.target_analyzer;
       lazy_content = lazy (File.read_file file);
       lazy_ast_and_errors;
     }
@@ -457,15 +480,13 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
   let (sources_ranges : (RM.t * R.taint_source) list), expls_sources =
     find_range_w_metas formula_cache xconf xtarget rule
       (spec.sources |> snd
-      |> Common.map (fun (src : Rule.taint_source) -> (src.source_formula, src))
-      )
+      |> Common.map (fun (src : R.taint_source) -> (src.source_formula, src)))
   and (propagators_ranges : propagator_match list) =
     find_propagators_matches formula_cache xconf xtarget rule spec.propagators
   and (sinks_ranges : (RM.t * R.taint_sink) list), expls_sinks =
     find_range_w_metas formula_cache xconf xtarget rule
       (spec.sinks |> snd
-      |> Common.map (fun (sink : Rule.taint_sink) -> (sink.sink_formula, sink))
-      )
+      |> Common.map (fun (sink : R.taint_sink) -> (sink.sink_formula, sink)))
   in
   let sanitizers_ranges, expls_sanitizers =
     match spec.sanitizers with
@@ -541,6 +562,9 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
   ( {
       Dataflow_tainting.filepath = !!file;
       rule_id = fst rule.R.id;
+      track_control =
+        spec.sources |> snd
+        |> List.exists (fun (src : R.taint_source) -> src.source_control);
       is_source = (fun x -> any_is_in_sources_matches rule x sources_ranges);
       is_propagator =
         (fun x -> any_is_in_propagators_matches rule x propagators_ranges);
@@ -604,6 +628,36 @@ let pm_of_finding finding =
                  | Control ->
                      None)
         in
+        let rec find_requires = function
+          | Taint.PM (_, src) -> src.R.source_requires
+          | Taint.Call (_, _, ct) -> find_requires ct
+        in
+        (* We prioritize taint sources without preconditions,
+           selecting their traces first, and then consider sources
+           with preconditions as a secondary choice. When we generate
+           JSON output for the command-line interface, we arbitrarily
+           select the first trace in the list. Consequently, when
+           there are multiple sources, and their traces overlap,
+           leading to the same sink, the final output doesn't always
+           indicate the initial location of the tainted source
+           clearly. By following this approach, users are more likely
+           to identify the very first taint source that doesn't rely
+           on other sources as input. *)
+        let with_req, without_req =
+          source_taints
+          |> Common.partition_either (fun (src, tokens, sink_trace) ->
+                 match find_requires src.T.call_trace with
+                 | Some _ -> Left (src, tokens, sink_trace)
+                 | None -> Right (src, tokens, sink_trace))
+        in
+        let source_taints =
+          if without_req <> [] then without_req
+          else (
+            logger#warning
+              "Taint source without precondition wasn't found. Displaying the \
+               taint trace from the source with precondition.";
+            with_req)
+        in
         (* The old behavior used to be that, for sinks with a `requires`, we would
            generate a finding per every single taint source going in. Later deduplication
            would deal with it.
@@ -660,7 +714,7 @@ let add_to_env lang options taint_config env id ii opt_expr =
   let var_type = Typing.resolved_type_of_id_info lang var.id_info in
   let id_taints =
     taint_config.D.is_source (G.Tk (snd id))
-    |> Common.map (fun (x : _ D.tmatch) -> (x.spec_pm, x.spec))
+    |> Common.map (fun (x : _ Taint_smatch.t) -> (x.spec_pm, x.spec))
     (* These sources come from the parameters to a function,
         which are not within the normal control flow of a code.
         We can safely say there's no incoming taints to these sources.
@@ -790,7 +844,7 @@ let check_fundef lang options taint_config opt_ent ctx ?glob_env
   let name =
     let* ent = opt_ent in
     let* name = AST_to_IL.name_of_entity ent in
-    Some (D.str_of_name name)
+    Some (IL.str_of_name name)
   in
   let _, xs = AST_to_IL.function_definition lang ~ctx fdef in
   let flow = CFG_build.cfg_of_stmts xs in
@@ -896,13 +950,12 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
                     Common.spf "with rule %s" (Rule_ID.to_string m.rule_id.id)
                   in
                   match_hook str m))
-    |> Common.map (fun m ->
-           { m with PM.rule_id = convert_rule_id rule.Rule.id })
+    |> Common.map (fun m -> { m with PM.rule_id = convert_rule_id rule.R.id })
   in
   let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
   let report =
     RP.make_match_result matches errors
-      { Core_profiling.rule_id = fst rule.Rule.id; parse_time; match_time }
+      { Core_profiling.rule_id = fst rule.R.id; parse_time; match_time }
   in
   let explanations =
     if xconf.matching_explanations then

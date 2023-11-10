@@ -51,7 +51,7 @@ let tokens input_source =
   let token = Lexer_lisp.token in
   Parsing_helpers.tokenize_all_and_adjust_pos input_source token
     TH.visitor_info_of_tok TH.is_eof
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Parser *)
@@ -138,7 +138,7 @@ let parse filename =
     | exn -> Exception.catch_and_reraise exn
   in
   ((ast, toks_orig), stat)
-  [@@profiling]
+[@@profiling]
 
 let parse_program file =
   let (ast, _toks), _stat = parse file in

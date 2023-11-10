@@ -16,6 +16,23 @@ open Common
 (* in seconds *)
 let time_program_start = ref 0.
 
+let default_skip_libs =
+  [
+    "ca-certs";
+    "bos";
+    "cohttp.lwt.client";
+    "cohttp.lwt.io";
+    "conduit_lwt_server";
+    "mirage-crypto-rng.lwt";
+    "mirage-crypto-rng-lwt";
+    "mirage-crypto-rng.unix";
+    "handshake";
+    "tls.config";
+    "tls.tracing";
+    "eio_linux";
+    "x509";
+  ]
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -76,7 +93,7 @@ let enable_logging () =
   Logs.set_reporter (reporter ());
   ()
 
-let setup_logging ~force_color ~level =
+let setup_logging ?(skip_libs = default_skip_libs) ~force_color ~level () =
   let style_renderer = if force_color then Some `Ansi_tty else None in
   Fmt_tty.setup_std_outputs ?style_renderer ();
   Logs.set_level ~all:true level;
@@ -88,19 +105,7 @@ let setup_logging ~force_color ~level =
   Logs.Src.list ()
   |> List.iter (fun src ->
          match Logs.Src.name src with
-         | "ca-certs"
-         | "bos"
-         | "cohttp.lwt.client"
-         | "cohttp.lwt.io"
-         | "conduit_lwt_server"
-         | "mirage-crypto-rng.lwt"
-         | "mirage-crypto-rng-lwt"
-         | "mirage-crypto-rng.unix"
-         | "handshake"
-         | "tls.config"
-         | "tls.tracing"
-         | "x509" ->
-             Logs.Src.set_level src None
+         | x when List.mem x skip_libs -> Logs.Src.set_level src None
          (* those are the one we are really interested in *)
          | "application" -> ()
          | s -> failwith ("Logs library not handled: " ^ s))

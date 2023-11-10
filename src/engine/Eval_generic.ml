@@ -134,7 +134,7 @@ let print_result xopt =
       | Int 0 -> pr (string_of_bool false)
       | Int _ -> pr (string_of_bool true)
       | _ -> pr "NONE")
-  [@@action]
+[@@action]
 
 (*****************************************************************************)
 (* Eval algorithm *)

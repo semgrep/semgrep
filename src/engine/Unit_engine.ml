@@ -12,7 +12,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Purpose *)
 (*****************************************************************************)
-(* Unit (and integration) tests exercising the engine.
+(* Tests exercising the engine.
  *
  * Some of those tests exercise just the semgrep patterns part (with the
  * .sgrep), and not the whole rule part (with the .yaml). We could move
@@ -29,10 +29,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
 let tests_path = Fpath.v "tests"
 let tests_path_patterns = tests_path / "patterns"
 let polyglot_pattern_path = tests_path_patterns / "POLYGLOT"
-
-(*****************************************************************************)
-(* Helpers *)
-(*****************************************************************************)
 
 (*****************************************************************************)
 (* Maturity tests *)
@@ -287,8 +283,8 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =
       pattern;
       inside = false;
       message = "";
-      severity = R.Error;
-      languages = [ lang ];
+      severity = `Error;
+      langs = [ lang ];
       pattern_string = "test: no need for pattern string";
       fix = fix_pattern;
     }
@@ -530,13 +526,14 @@ let filter_irrelevant_rules_tests () =
 let get_extract_source_lang file rules =
   let _, _, erules, _, _ = R.partition_rules rules in
   let erule_langs =
-    erules |> Common.map (fun r -> r.R.languages) |> List.sort_uniq compare
+    erules
+    |> Common.map (fun r -> r.R.target_analyzer)
+    |> List.sort_uniq compare
   in
   match erule_langs with
   | [] -> failwith (spf "no language for extract rule found in %s" !!file)
-  | [ x ] -> x.target_analyzer
-  | x :: _ ->
-      let xlang = x.target_analyzer in
+  | [ x ] -> x
+  | xlang :: _ ->
       pr2
         (spf
            "too many languages from extract rules found in %s, picking the \
@@ -547,7 +544,7 @@ let get_extract_source_lang file rules =
 let extract_tests () =
   let path = tests_path / "extract" in
   pack_tests "extract mode"
-    (let tests, _print_summary =
+    (let tests, _total_mismatch, _print_summary =
        Test_engine.make_tests ~unit_testing:true
          ~get_xlang:(Some get_extract_source_lang) [ path ]
      in
@@ -574,7 +571,7 @@ let tainting_test lang rules_file file =
   let rules =
     rules
     |> List.filter (fun r ->
-           match r.Rule.languages.target_analyzer with
+           match r.Rule.target_analyzer with
            | Xlang.L (x, xs) -> List.mem lang (x :: xs)
            | _ -> false)
   in
@@ -709,25 +706,44 @@ let lang_tainting_tests () =
 (* Full rule tests *)
 (*****************************************************************************)
 
-(* TODO: For now we only have taint maturity tests for Beta, there are no specific
- * tests for GA. *)
-(* TODO: We should also have here an explicit list of test filenames, like "taint_if",
- * that is then checked for every language, like we do for the search mode maturity
- * tests. *)
-(* TODO: We could have a taint_maturity/POLYGLOT/ directory to put reusable rules
- * that can work for multiple languages (like we have for tests/patterns/POLYGLOT/ *)
+let full_rule_regression_tests () =
+  let path = tests_path / "rules" in
+  let tests1, _total_mismatch, _print_summary =
+    Test_engine.make_tests ~unit_testing:true ~prepend_lang:true [ path ]
+  in
+  let path = tests_path / "rules_v2" in
+  let tests2, _total_mismatch, _print_summary =
+    Test_engine.make_tests ~unit_testing:true ~prepend_lang:true [ path ]
+  in
+  let tests = tests1 @ tests2 in
+  let groups =
+    tests
+    |> Common.map (fun (name, ftest) ->
+           let group =
+             match String.split_on_char ' ' name with
+             | lang :: _ -> lang
+             | _ -> name
+           in
+           (group, (name, ftest)))
+    |> Common.group_assoc_bykey_eff
+  in
+
+  pack_suites "full rule"
+    (groups |> Common.map (fun (group, tests) -> pack_tests group tests))
+
+(* TODO: For now we only have taint maturity tests for Beta, there are no
+ * specific tests for GA.
+ * TODO: We should also have here an explicit list of test filenames, like
+ * "taint_if", that is then checked for every language, like we do for the
+ * search mode maturity tests.
+ * TODO: We could have a taint_maturity/POLYGLOT/ directory to put reusable
+ * rules that can work for multiple languages (like we have
+ * for tests/patterns/POLYGLOT/
+ *)
 let full_rule_taint_maturity_tests () =
   let path = tests_path / "taint_maturity" in
   pack_tests "taint maturity"
-    (let tests, _print_summary =
-       Test_engine.make_tests ~unit_testing:true [ path ]
-     in
-     tests)
-
-let full_rule_regression_tests () =
-  let path = tests_path / "rules" in
-  pack_tests "full rule"
-    (let tests, _print_summary =
+    (let tests, _total_mismatch, _print_summary =
        Test_engine.make_tests ~unit_testing:true [ path ]
      in
      tests)
@@ -740,7 +756,7 @@ let full_rule_regression_tests () =
  *)
 let full_rule_semgrep_rules_regression_tests () =
   let path = tests_path / "semgrep-rules" in
-  let tests, _print_summary =
+  let tests, _total_mismatch, _print_summary =
     Test_engine.make_tests ~unit_testing:true [ path ]
   in
   let groups =
@@ -772,36 +788,9 @@ let full_rule_semgrep_rules_regression_tests () =
                     || s =~ ".*/fingerprints/fingerprints.yaml"
                     || s
                        =~ ".*/terraform/aws/security/aws-fsx-lustre-files-ystem.yaml"
-                    (* TODO: Tests for tests/semgrep-rules/php/wordpress-plugins/security/audit/ are in
-                     * a subfolder due to `paths:` constraints in the rule, perhaps Semgrep should ignore
-                     * these constraints when in test mode. Note that `semgrep --test` simply ignores
-                     * these files, but our test runner fails if it cannot find an example target file. *)
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-ajax-no-auth-and-auth-hooks-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-authorisation-checks-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-code-execution-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-command-execution-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-csrf-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-file-download-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-file-inclusion-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-file-manipulation-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-open-redirect-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-php-object-injection-audit.yaml"
-                    || s
-                       =~ ".*/php/wordpress-plugins/security/audit/wp-sql-injection-audit.yaml"
+                    || s =~ ".*/generic/ci/audit/changed-semgrepignore.*"
                     (* TODO: parse error, weird *)
                     || s =~ ".*/unicode/security/bidi.yml"
-                    (* TODO many mismatches *)
-                    || s =~ ".*/generic/ci/audit/changed-semgrepignore.*"
                     || s
                        =~ ".*/python/django/maintainability/duplicate-path-assignment.yaml"
                     (* ?? *)

@@ -388,6 +388,7 @@ let is_resolvable_name_ctx env lang =
       | Lang.Java
       | Lang.Kotlin
       | Lang.Apex
+      | Lang.Csharp
       (* true for JS/TS so that we can resolve class methods *)
       | Lang.Js
       | Lang.Ts
@@ -408,6 +409,7 @@ let resolved_name_kind env lang =
       | Lang.Java
       | Lang.Kotlin
       | Lang.Apex
+      | Lang.Csharp
       (* true for JS/TS to resolve class methods. *)
       | Lang.Js
       | Lang.Ts
@@ -690,6 +692,11 @@ let resolve lang prog =
             (* difference with ImportAs, we add in local scope in OCaml *)
             add_ident_current_scope id resolved env.names;
             super#visit_definition venv x
+        | ( { name = EN (Id (id, id_info)); _ },
+            MacroDef
+              { macroparams = []; macrobody = [ E ({ e = L _; _ } as e) ] } ) ->
+            declare_var env lang id id_info ~explicit:true (Some e) None;
+            super#visit_definition venv x
         (* general case, just recurse *)
         | _ -> super#visit_definition venv x
 
@@ -964,4 +971,4 @@ let resolve lang prog =
   in
   visitor#visit_program () prog;
   ()
-  [@@profiling]
+[@@profiling]

@@ -77,18 +77,6 @@ val replace_named_pipe_by_regular_file : Fpath.t -> Fpath.t
    allows easy manual testing.
 *)
 
-(* TODO: Fpath.t *)
-val exn_to_error : Common.filename -> Exception.t -> Core_error.t
-(**
-  Small wrapper over Semgrep_error_code.exn_to_error to handle also
-  semgrep-specific exns that have a position.
-  See also JSON_report.json_of_exn for non-target related exn handling.
-*)
-
-val mk_rule_table :
-  Rule.t list -> string list (* rule IDs *) -> (int, Rule.t) Hashtbl.t
-(** Helper to create the table of rules to run for each file **)
-
 val extracted_targets_of_config :
   Core_scan_config.t ->
   Rule.t list ->
@@ -108,7 +96,6 @@ val rules_from_rule_source :
 
 val targets_of_config :
   Core_scan_config.t ->
-  Rule_ID.t list ->
   Input_to_core_t.targets * Semgrep_output_v1_t.skipped_target list
 (**
   Compute the set of targets, either by reading what was passed
@@ -123,10 +110,28 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
   * Core_error.t list
   * Semgrep_output_v1_j.skipped_target list
 
-(* TODO: This is used by semgrep-pro and not by semgrep. What is it?
-   TODO: Explain what it does if xlang contains multiple langs. *)
-val rules_for_xlang : Xlang.t -> Rule.t list -> Rule.t list
-val xtarget_of_file : Core_scan_config.t -> Xlang.t -> Fpath.t -> Xtarget.t
+(* This is also used by semgrep-proprietary. It filters the rules that
+   apply to a given target file for a given analyzer.
+   It takes into account the analyzer (specified by 'languages' field)
+   and the per-rule include/exclude patterns; possibly more in the future.
+*)
+val select_applicable_rules_for_target :
+  analyzer:Xlang.t ->
+  products:Semgrep_output_v1_t.product list ->
+  path:Fpath.t ->
+  respect_rule_paths:bool ->
+  Rule.t list ->
+  Rule.t list
+
+(* This is used only by semgrep-proprietary.
+   Compare to select_applicable_rules_for_target which additionally can
+   honor per-rule include/exclude patterns based on the target path.
+*)
+val select_applicable_rules_for_analyzer :
+  analyzer:Xlang.t -> Rule.t list -> Rule.t list
+
+val xtarget_of_file :
+  parsing_cache_dir:Fpath.t option -> Xlang.t -> Fpath.t -> Xtarget.t
 
 (*
    Sort targets by decreasing size. This is meant for optimizing

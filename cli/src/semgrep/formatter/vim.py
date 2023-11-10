@@ -4,7 +4,6 @@ from typing import Mapping
 from typing import Sequence
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
-from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
 from semgrep.rule import Rule
@@ -15,15 +14,15 @@ class VimFormatter(BaseFormatter):
     @staticmethod
     def _get_parts(rule_match: RuleMatch) -> Sequence[str]:
         severity = {
-            RuleSeverity.INFO: "I",
-            RuleSeverity.WARNING: "W",
-            RuleSeverity.ERROR: "E",
+            out.Info(): "I",
+            out.Warning(): "W",
+            out.Error(): "E",
         }
         return [
             str(rule_match.path),
             str(rule_match.start.line),
             str(rule_match.start.col),
-            severity[rule_match.severity],
+            severity[rule_match.severity.value],
             rule_match.rule_id,
             rule_match.message,
         ]

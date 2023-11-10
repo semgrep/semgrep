@@ -72,7 +72,7 @@ class Settings:
 
         if not isinstance(yaml_contents, Mapping):
             logger.warning(
-                f"Bad settings format; {self.path} will be overriden. Contents:\n{yaml_contents}"
+                f"Bad settings format; {self.path} will be overridden. Contents:\n{yaml_contents}"
             )
             return DEFAULT_SETTINGS.copy()
 

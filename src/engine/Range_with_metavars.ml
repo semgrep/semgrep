@@ -37,14 +37,14 @@ let (range_to_pattern_match_adjusted : Rule.t -> t -> Pattern_match.t) =
  fun r range ->
   let m = range.origin in
   let rule_id = m.rule_id in
-  let languages = Xlang.to_langs r.Rule.languages.target_analyzer in
+  let langs = Xlang.to_langs r.Rule.target_analyzer in
   (* adjust the rule id *)
   let rule_id : Pattern_match.rule_id =
     {
       rule_id with
       id = fst r.Rule.id;
       fix = r.Rule.fix;
-      languages;
+      langs;
       message =
         r.Rule.message (* keep pattern_str which can be useful to debug *);
     }
@@ -128,7 +128,7 @@ let intersect_ranges config debug_matches xs ys =
     logger#info "intersect_range:\n\t%s\nvs\n\t%s" (show_ranges xs)
       (show_ranges ys);
   left_included_merge xs ys @ left_included_merge ys xs
-  [@@profiling]
+[@@profiling]
 
 let difference_ranges config pos neg =
   let surviving_pos =
@@ -151,4 +151,4 @@ let difference_ranges config pos neg =
              ))
   in
   surviving_pos
-  [@@profiling]
+[@@profiling]

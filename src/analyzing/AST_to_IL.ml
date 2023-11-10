@@ -173,6 +173,14 @@ let mk_unit tok eorig =
   let unit = G.Unit tok in
   mk_e (Literal unit) eorig
 
+(* Just a fake `__TODO_xyz__ = ()` instruction to record a TODO in the generated IL. *)
+let mk_fake_TODO_instr ~str env tok =
+  let str = Common.spf "__TODO_%s__" str in
+  let unit = mk_unit (G.fake "()") NoOrig in
+  let var = fresh_var ~str env tok in
+  let lval = lval_of_base (Var var) in
+  mk_i (Assign (lval, unit)) NoOrig
+
 let add_instr env instr = Common.push (mk_s (Instr instr)) env.stmts
 
 (* Create an auxiliary variable for an expression---unless the expression
@@ -326,6 +334,7 @@ and pattern env pat =
   | G.PatId (id, id_info) ->
       let lval = lval_of_id_info env id id_info in
       (lval, [])
+  | G.PatList (tok1, pats, tok2)
   | G.PatTuple (tok1, pats, tok2) ->
       (* P1, ..., Pn *)
       let tmp = fresh_var env tok2 in
@@ -536,9 +545,9 @@ and expr_aux env ?(void = false) e_gen =
       )
   | G.Call
       ( ({ e = G.IdSpecial ((G.This | G.Super | G.Self | G.Parent), tok); _ } as
-        e),
+         e),
         args ) ->
-      call_generic env ~void tok e args
+      call_generic env ~void tok eorig e args
   | G.Call
       ({ e = G.IdSpecial (G.IncrDecr (incdec, _prepostIGNORE), tok); _ }, args)
     -> (
@@ -645,7 +654,7 @@ and expr_aux env ?(void = false) e_gen =
           add_call env tok eorig ~void (fun res -> Call (res, fixme, args)))
   | G.Call (e, args) ->
       let tok = G.fake "call" in
-      call_generic env ~void tok e args
+      call_generic env ~void tok eorig e args
   | G.L lit -> mk_e (Literal lit) eorig
   | G.DotAccess ({ e = N (Id (("var", _), _)); _ }, _, FN (Id ((s, t), id_info)))
     when is_hcl env.lang ->
@@ -864,8 +873,7 @@ and expr_lazy_op env op tok arg0 args eorig =
   in
   mk_e (Operator ((op, tok), arg0' :: args')) eorig
 
-and call_generic env ?(void = false) tok e args =
-  let eorig = SameAs (G.Call (e, args) |> G.e) in
+and call_generic env ?(void = false) tok eorig e args =
   let e = expr env e in
   (* In theory, instrs in args could have side effect on the value in 'e',
    * but we will agglomerate all those instrs in the environment and
@@ -1047,7 +1055,12 @@ and stmt_expr env ?e_gen st =
     | Some e_gen -> todo (G.E e_gen)
   in
   match st.G.s with
-  | G.ExprStmt (eorig, _) -> expr env eorig
+  | G.ExprStmt (eorig, tok) ->
+      let e = expr env eorig in
+      if eorig.is_implicit_return then (
+        mk_s (Return (tok, e)) |> add_stmt env;
+        expr_opt env None)
+      else e
   | G.If (tok, cond, st1, opt_st2) ->
       (* if cond then e1 else e2
        * -->
@@ -1063,21 +1076,22 @@ and stmt_expr env ?e_gen st =
        *       see https://www.cs.umd.edu/~mwh/papers/ril.pdf.
        *)
       let ss, e' = cond_with_pre_stmts env cond in
-      let e1 = stmt_expr env st1 in
-      let e2 =
+      let pre_a1, e1 = stmt_expr_with_pre_stmts env st1 in
+      let pre_a2, e2 =
         match opt_st2 with
-        | Some st2 -> stmt_expr env st2
+        | Some st2 -> stmt_expr_with_pre_stmts env st2
         | None ->
             (* Coming from OCaml-land we would not expect this to happen... but
              * we got some Ruby examples from r2c's SR team where there is an `if`
              * expression without an `else`... anyways, if it happens we translate
              * what we can, and we fill-in the `else` with a "fixme" node. *)
-            fixme_exp ToDo (G.Tk tok) (Related (G.S st))
+            ([], fixme_exp ToDo (G.Tk tok) (Related (G.S st)))
       in
       let fresh = fresh_lval env tok in
       let a1 = mk_s (Instr (mk_i (Assign (fresh, e1)) (related_tok tok))) in
       let a2 = mk_s (Instr (mk_i (Assign (fresh, e2)) (related_tok tok))) in
-      add_stmts env (ss @ [ mk_s (If (tok, e', [ a1 ], [ a2 ])) ]);
+      add_stmts env
+        (ss @ [ mk_s (If (tok, e', pre_a1 @ [ a1 ], pre_a2 @ [ a2 ])) ]);
       let eorig =
         match e_gen with
         | None -> related_exp (G.e (G.StmtExpr st))
@@ -1127,11 +1141,14 @@ and lval_of_ent env ent =
 and expr_with_pre_stmts env ?void e =
   with_pre_stmts env (fun env -> expr env ?void e)
 
+and stmt_expr_with_pre_stmts env st =
+  with_pre_stmts env (fun env -> stmt_expr env st)
+
 (* alt: could use H.cond_to_expr and reuse expr_with_pre_stmts *)
-and cond_with_pre_stmts env ?void cond =
+and cond_with_pre_stmts env cond =
   with_pre_stmts env (fun env ->
       match cond with
-      | G.Cond e -> expr env ?void e
+      | G.Cond e -> expr env e
       | G.OtherCond
           ( todok,
             [
@@ -1145,7 +1162,7 @@ and cond_with_pre_stmts env ?void cond =
       | G.OtherCond (categ, xs) ->
           let e = G.OtherExpr (categ, xs) |> G.e in
           log_fixme ToDo (G.E e);
-          expr env ?void e)
+          expr env e)
 
 and arg_with_pre_stmts env arg =
   with_pre_stmts env (fun env -> argument env arg)
@@ -1203,10 +1220,10 @@ and type_ env (ty : G.type_) : type_ =
  * use 'expr_with_pre_stmts' or other '*_pre_stmts*' functions. Just so that
  * we don't forget about 'env.stmts'! *)
 
-(* TODO: What other languages have no fallthrough? *)
 and no_switch_fallthrough : Lang.t -> bool = function
   | Go
-  | Ruby ->
+  | Ruby
+  | Rust ->
       true
   | _ -> false
 
@@ -1231,55 +1248,83 @@ and mk_switch_break_label env tok =
   in
   (break_label, [ mk_s (Label break_label) ], switch_env)
 
+and implicit_return env eorig tok =
+  (* We always expect a value from an expression that is implicitly
+   * returned, so void is set to false here.
+   *)
+  let ss, e = expr_with_pre_stmts ~void:false env eorig in
+  let ret = mk_s (Return (tok, e)) in
+  ss @ [ ret ]
+
+and expr_stmt env (eorig : G.expr) tok : IL.stmt list =
+  (* optimize? pass context to expr when no need for return value? *)
+  let ss, e = expr_with_pre_stmts ~void:true env eorig in
+
+  (* Some expressions may return unit, and if we call mk_aux_var below, not only
+   * is it extraneous, but it also interferes with implicit return analysis.
+   *
+   * For example,
+   *   call f()
+   *   tmp = unit
+   * interferes with implicit return analysis, because the analysis walks
+   * backwards from the exit node to mark the first instr node it sees on each
+   * path.
+   *
+   * If we have
+   *   call f()
+   *   tmp = unit
+   * then `unit` will be marked as a returning expression when we actually
+   * want to mark `f()`, so we must avoid creating `tmp = unit` following
+   * a function call that doesn't expect results.
+   *)
+  (match e.e with
+  | Literal (G.Unit _) -> ()
+  | _else_ -> mk_aux_var env tok e |> ignore);
+
+  let ss' = pop_stmts env in
+  match ss @ ss' with
+  | [] ->
+      (* This case may happen when we have a function like
+       *
+       *   function some_function(some_var) {
+       *     some_var
+       *   }
+       *
+       * the `some_var` will not show up in the CFG. Neither expr_with_pre_stmts
+       * nor mk_aux_var will cause nodes to be created.
+       *
+       * This is typically OK, because it doesn't make sense to write
+       * `some_var` for side-effects.
+       *
+       * The issue is that for some languages
+       * when `some_var` is the last evaluated expression in the function,
+       * `some_var` is also implictly returned from the function. In this case
+       * `some_var` actually means `return some_var`, so there should be a return
+       * node in the CFG.
+       *
+       * We'd like to always create an IL node here as a fake "no-op" assignment
+       *   tmp = some_var
+       * because we'd like to mark some_var's eorig as an implicit return node
+       * so later we can convert
+       *   some_var
+       * to
+       *   return some_var
+       * when some_var is marked as an implicit return node.
+       *
+       * If some_var isn't a returning expression, we have created an unneeded node
+       * but it doesn't affect correctness.
+       *)
+      let var = fresh_var env tok in
+      let lval = lval_of_base (Var var) in
+      let fake_i = mk_i (Assign (lval, e)) NoOrig in
+      [ mk_s (Instr fake_i) ]
+  | ss'' -> ss''
+
 and stmt_aux env st =
   match st.G.s with
-  | G.ExprStmt (eorig, tok) -> (
-      (* optimize? pass context to expr when no need for return value? *)
-      let ss, e = expr_with_pre_stmts ~void:true env eorig in
-      mk_aux_var env tok e |> ignore;
-      let ss' = pop_stmts env in
-      match ss @ ss' with
-      | [] ->
-          (* This case may happen when we have a function like
-           *
-           *   function some_function(some_var) {
-           *     some_var
-           *   }
-           *
-           * the `some_var` will not show up in the CFG. Neither expr_with_pre_stmts
-           * nor mk_aux_var will cause nodes to be created.
-           *
-           * This is typically OK, because it doesn't make sense to write
-           * `some_var` for side-effects.
-           *
-           * The issue is that for some languages
-           * when `some_var` is the last evaluated expression in the function,
-           * `some_var` is also implictly returned from the function. In this case
-           * `some_var` actually means `return some_var`, so there should be a return
-           * node in the CFG.
-           *
-           * TODO: Update the comments below when the updated implicit return support
-           * is implemented.
-           *
-           * Right now, this missing node is not an issue because we already
-           * have a hack for implicit return statements. However, it only works for
-           * simple cases. We plan to make it more general by building the CFG, mark
-           * "returning" nodes, then build an updated CFG that converts the marked
-           * nodes as Return nodes.
-           *
-           * Here, create a fake "no-op" assignment
-           *   tmp = some_var
-           * that will later on be converted to
-           *   return some_var
-           * if some_var is actually a returning expression.
-           * If some_var isn't a returning expression, we have created an unneeded node
-           * but it doesn't affect correctness.
-           *)
-          let var = fresh_var env tok in
-          let lval = lval_of_base (Var var) in
-          let fake_i = mk_i (Assign (lval, e)) NoOrig in
-          [ mk_s (Instr fake_i) ]
-      | ss'' -> ss'')
+  | G.ExprStmt (eorig, tok) ->
+      if eorig.is_implicit_return then implicit_return env eorig tok
+      else expr_stmt env eorig tok
   | G.DefStmt
       ( { name = EN obj; _ },
         G.VarDef
@@ -1418,39 +1463,6 @@ and stmt_aux env st =
       @ [ mk_s (Loop (tok, cond, st @ cont_label_s @ next @ ss2)) ]
       @ break_label_s
   | G.For (_, G.ForEllipsis _, _) -> sgrep_construct (G.S st)
-  | G.For
-      ( tok,
-        G.ForIn
-          ( [
-              G.ForInitVar
-                ({ name = G.EN (G.Id (id, ii)); _ }, { vinit = None; _ });
-            ],
-            [ e ] ),
-        stmts ) ->
-      (* e.g. C++: for (int *p : set)
-       * TODO: Should this be encoded as a ForEach already in Parse_cpp_tree_sitter ? *)
-      let pat = G.PatId (id, ii) in
-      for_each env tok (pat, snd id, e) stmts
-  | G.For (tok, G.ForIn (xs, e), stmts) ->
-      let orig_stmt = st in
-      let cont_label_s, break_label_s, st_env =
-        mk_break_continue_labels env tok
-      in
-      let ss1 = for_var_or_expr_list env xs in
-      let stmts = stmt st_env stmts in
-      let ss2, cond =
-        match e with
-        | first :: _TODO ->
-            (* TODO list *)
-            expr_with_pre_stmts env first
-        | [] ->
-            (* TODO: empty list of elements to iterate over
-               bash: for x do ... done *)
-            ([], fixme_exp ToDo (G.S orig_stmt) (related_tok tok))
-      in
-      ss1 @ ss2
-      @ [ mk_s (Loop (tok, cond, stmts @ cont_label_s @ ss2)) ]
-      @ break_label_s
   (* TODO: repeat env work of controlflow_build.ml *)
   | G.Continue (tok, lbl_ident, _) -> (
       match lbl_ident with
@@ -1528,8 +1540,15 @@ and stmt_aux env st =
       python_with_stmt env manager opt_pat body
   (* Java: synchronized (E) S *)
   | G.OtherStmtWithStmt (G.OSWS_Block _, [ G.E objorig ], stmt1) ->
+      (* TODO: Restrict this to a syncrhonized block ? *)
       let ss, _TODO_obj = expr_with_pre_stmts env objorig in
       ss @ stmt env stmt1
+  (* Rust: unsafe block *)
+  | G.OtherStmtWithStmt (G.OSWS_Block ("Unsafe", tok), [], stmt1) ->
+      let todo_stmt =
+        mk_s (Instr (mk_fake_TODO_instr ~str:"unsafe_block" env tok))
+      in
+      todo_stmt :: stmt env stmt1
   | G.OtherStmt _
   | G.OtherStmtWithStmt _ ->
       todo (G.S st)
@@ -1674,28 +1693,8 @@ and stmt env st =
   | Fixme (kind, any_generic) -> fixme_stmt kind any_generic
 
 and function_body env fbody =
-  let implicit_return_hack body_stmt =
-    match body_stmt with
-    | G.Block (_, ss, _) when env.lang =*= Lang.Ruby || env.lang =*= Lang.Rust
-      -> (
-        match List.rev ss with
-        | { s = G.ExprStmt (e, tok); _ } :: rev_ss' ->
-            Some (List.rev rev_ss', (e, tok))
-        | _else -> None)
-    | _else -> None
-  in
   let body_stmt = H.funcbody_to_stmt fbody in
-  match implicit_return_hack body_stmt.s with
-  | Some (gstmts, (ge, tok)) ->
-      (* HACK: This is meant to handle some common cases of implicit return in
-       * Ruby, but we should be more general and infer a return value for
-       * every statement, then insert a `Return` node with the return value of
-       * the function body (if needed). *)
-      let ss = List.concat_map (stmt env) gstmts in
-      let e_ss, e = expr_with_pre_stmts env ge in
-      let e_s = mk_s (Return (tok, e)) in
-      ss @ e_ss @ [ e_s ]
-  | None -> stmt env body_stmt
+  stmt env body_stmt
 
 (*
  *     with MANAGER as PAT:

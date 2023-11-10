@@ -57,7 +57,7 @@ end
 
 let meth = "semgrep/showAst"
 
-let on_request (params : Jsonrpc.Structured.t option) =
+let on_request _server (params : Jsonrpc.Structured.t option) =
   let { Request_params.document_uri; named } =
     Request_params.of_jsonrpc_params_exn params
   in

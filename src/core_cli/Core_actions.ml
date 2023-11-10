@@ -63,7 +63,7 @@ let dump_il_all file =
   Naming_AST.resolve lang ast;
   let xs = AST_to_IL.stmt lang (AST_generic.stmt1 ast) in
   List.iter (fun stmt -> pr2 (IL.show_stmt stmt)) xs
-  [@@action]
+[@@action]
 
 let dump_il file =
   let module G = AST_generic in
@@ -85,6 +85,14 @@ let dump_il file =
     pr2 s;
     pr2 "==>";
 
+    (* Creating a CFG and throwing it away here so the implicit return
+     * analysis pass may be run in order to mark implicit return nodes.
+     *)
+    let _ = CFG_build.cfg_of_fdef lang fdef in
+
+    (* This round, the IL stmts will show return nodes when
+     * they were implicit before.
+     *)
     let _, xs = AST_to_IL.function_definition lang fdef in
     let s = IL.show_any (IL.Ss xs) in
     pr2 s

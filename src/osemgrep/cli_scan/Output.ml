@@ -1,4 +1,5 @@
 open Common
+open File.Operators
 module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
@@ -19,6 +20,14 @@ module Out = Semgrep_output_v1_j
 *)
 
 (*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let string_of_severity (severity : Out.match_severity) : string =
+  Out.string_of_match_severity severity
+  |> JSON.remove_enclosing_quotes_of_jstring
+
+(*****************************************************************************)
 (* Autofix *)
 (*****************************************************************************)
 (* TODO? It is a bit weird to have code modification done in a module called
@@ -31,7 +40,7 @@ let apply_fixes (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
   let edits : Textedit.t list =
     Common.map_filter
       (fun (result : Out.cli_match) ->
-        let path = result.Out.path in
+        let path = !!(result.Out.path) in
         let* fix = result.Out.extra.fix in
         let start = result.Out.start.offset in
         let end_ = result.Out.end_.offset in
@@ -77,12 +86,12 @@ let dispatch_output_format (output_format : Output_format.t)
              | { check_id; path; start; extra = { message; severity; _ }; _ } ->
                  let parts =
                    [
-                     path;
+                     !!path;
                      spf "%d" start.line;
                      spf "%d" start.col;
                      (* TOPORT? restrict to just I|E|W ? *)
-                     spf "%c" severity.[0];
-                     check_id;
+                     spf "%c" (string_of_severity severity).[0];
+                     Rule_ID.to_string check_id;
                      message;
                    ]
                  in
@@ -100,17 +109,15 @@ let dispatch_output_format (output_format : Output_format.t)
               extra = { message; severity; _ };
               _;
              } ->
-                 let severity = String.lowercase_ascii severity in
+                 let severity =
+                   String.lowercase_ascii (string_of_severity severity)
+                 in
                  let severity_and_ruleid =
-                   if check_id = Rule_ID.to_string Constants.rule_id_for_dash_e
-                   then severity
+                   if check_id =*= Constants.rule_id_for_dash_e then severity
                    else
-                     let xs =
-                       check_id |> Str.split (Str.regexp_string ".") |> List.rev
-                     in
-                     match xs with
-                     | [] -> severity
-                     | x :: _ -> spf "%s(%s)" severity x
+                     match Rule_ID.last_elt_opt check_id with
+                     | None -> severity
+                     | Some x -> spf "%s(%s)" severity x
                  in
                  let line =
                    (* ugly: redoing the work done in cli_match_of_core_match.
@@ -119,14 +126,14 @@ let dispatch_output_format (output_format : Output_format.t)
                     *)
                    match
                      Semgrep_output_utils.lines_of_file_at_range (start, end_)
-                       (Fpath.v path)
+                       path
                    with
                    | [] -> ""
                    | x :: _ -> x (* TOPORT rstrip? *)
                  in
                  let parts =
                    [
-                     path;
+                     !!path;
                      spf "%d" start.line;
                      spf "%d" start.col;
                      (* TOPORT? restrict to just I|E|W ? *)
@@ -194,4 +201,4 @@ let output_result (conf : Scan_CLI.conf) (profiler : Profiler.t)
   if conf.autofix then apply_fixes_and_warn conf cli_output;
   dispatch_output_format conf.output_format conf cli_output;
   cli_output
-  [@@profiling]
+[@@profiling]

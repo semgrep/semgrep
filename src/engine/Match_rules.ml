@@ -67,25 +67,26 @@ let skipped_target_of_rule (file_and_more : Xtarget.t) (rule : R.rule) :
          (Rule_ID.to_string rule_id))
   in
   {
-    path = !!(file_and_more.file);
+    path = file_and_more.file;
     reason = Irrelevant_rule;
     details;
-    rule_id = Some (Rule_ID.to_string rule_id);
+    rule_id = Some rule_id;
   }
 
-let is_relevant_rule_for_xtarget ~cache r xconf xtarget =
+let is_relevant_rule_for_xtarget r xconf xtarget =
   let { Xtarget.file; lazy_content; _ } = xtarget in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf r.R.options in
   let is_relevant =
-    if xconf.filter_irrelevant_rules then (
-      match Analyze_rule.regexp_prefilter_of_rule ~cache r with
-      | None -> true
-      | Some (prefilter_formula, func) ->
-          let content = Lazy.force lazy_content in
-          let s = Semgrep_prefilter_j.string_of_formula prefilter_formula in
-          logger#trace "looking for %s in %s" s !!file;
-          func content)
-    else true
+    match xconf.filter_irrelevant_rules with
+    | NoPrefiltering -> true
+    | PrefilterWithCache cache -> (
+        match Analyze_rule.regexp_prefilter_of_rule ~cache:(Some cache) r with
+        | None -> true
+        | Some (prefilter_formula, func) ->
+            let content = Lazy.force lazy_content in
+            let s = Semgrep_prefilter_j.string_of_formula prefilter_formula in
+            logger#trace "looking for %s in %s" s !!file;
+            func content)
   in
   if not is_relevant then
     logger#trace "skipping rule %s for %s"
@@ -97,13 +98,10 @@ let is_relevant_rule_for_xtarget ~cache r xconf xtarget =
    all of the nontaint rules, and the rules which we skip due to prefiltering.
 *)
 let group_rules xconf rules xtarget =
-  let cache = Some (Hashtbl.create 101) in
   let relevant_taint_rules, relevant_nontaint_rules, skipped_rules =
     rules
     |> Common.partition_either3 (fun r ->
-           let relevant_rule =
-             is_relevant_rule_for_xtarget cache r xconf xtarget
-           in
+           let relevant_rule = is_relevant_rule_for_xtarget r xconf xtarget in
            match r.R.mode with
            | _ when not relevant_rule -> Right3 r
            | `Taint _ as mode -> Left3 { r with mode }
@@ -133,7 +131,7 @@ let group_rules xconf rules xtarget =
   *)
   let relevant_taint_rules_groups =
     relevant_taint_rules
-    |> Common.map (fun r -> (r.R.languages, r))
+    |> Common.map (fun r -> (r.R.target_analyzer, r))
     |> Common.group_assoc_bykey_eff |> Common.map snd
   in
   (relevant_taint_rules_groups, relevant_nontaint_rules, skipped_rules)

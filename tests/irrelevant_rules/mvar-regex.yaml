@@ -1,0 +1,13 @@
+rules:
+  - id: test
+    patterns:
+      - metavariable-regex:
+          metavariable: $PATTERN
+          regex: ^(SqlCommand|CommandText|OleDbCommand|OdbcCommand|OracleCommand)$
+      - pattern-either:
+          - pattern: |
+              $S.$PATTERN = string.Format(...);
+    message: Test
+    languages:
+      - csharp
+    severity: ERROR

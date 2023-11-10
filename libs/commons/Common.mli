@@ -112,6 +112,7 @@ val finalize : (unit -> 'a) -> (unit -> unit) -> 'a
 val i_to_s : int -> string
 val s_to_i : string -> int
 val null_string : string -> bool
+val contains : string -> string -> bool
 
 (* Shortcut for Printf.sprintf *)
 val spf : ('a, unit, string) format -> 'a
@@ -166,6 +167,9 @@ val fullpath : filename -> filename
 (* Deprecated: use the Ppath module instead! *)
 val filename_without_leading_path : string -> filename -> filename
 val readable : root:string -> filename -> filename
+
+val dir_contents : filename -> filename list
+(** [dir_contents dir] will return a recursive list of all files in a directory *)
 
 (* use the command 'find' internally and tries to skip files in
  * version control system (vcs) (e.g., .git, _darcs, etc.).
@@ -436,6 +440,25 @@ val partition_result :
 (*****************************************************************************)
 
 val memoized : ?use_cache:bool -> ('a, 'b) Hashtbl.t -> 'a -> (unit -> 'b) -> 'b
+
+(*****************************************************************************)
+(* Composition/Control *)
+(*****************************************************************************)
+
+val protect : finally:(unit -> unit) -> (unit -> 'a) -> 'a
+(** Same as 'Fun.protect' but it will not raise 'Finally_raised', if 'finally' raises
+ * any exception then that same exception is what 'protect' will raise. This can easily
+ * happen in Semgrep due to the asynchronous 'Time_limit.Timeout' exception raised
+ * when there is a timeout. Having to deal with 'Finally_raised' just makes things
+ * more complicated.
+ *
+ * alt: We tried using 'Unix.sigprocmask' to temporarily block 'SIGALRM' but somehow,
+ * in rare cases (e.g.run p/default on repos/brotli/js/decode.js) we end up calling
+ * 'Time_limit.set_timeout' while 'SIGALRM' is *blocked*. Unclear why, are we perhaps
+ * calling 'set_timeout' from within a 'finally'? Or is 'Unix.sigprocmask' failing to
+ * restore the signal mask? It works if we block/unblock (rather than block/restore)
+ * but this does not play well with calls to 'protect' nested inside 'finally' blocks.
+ *)
 
 (*****************************************************************************)
 (* Profiling *)

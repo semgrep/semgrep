@@ -40,7 +40,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *)
 type t = {
   rule_id : Rule_ID.t option;
-  typ : Out.core_error_kind;
+  typ : Out.error_type;
   loc : Tok.location;
   msg : string;
   details : string option;
@@ -69,7 +69,7 @@ let please_file_issue_text =
 
 let mk_error opt_rule_id loc msg err =
   let msg =
-    match (err : Out.core_error_kind) with
+    match (err : Out.error_type) with
     | MatchingError
     | AstBuilderError
     | FatalError
@@ -77,7 +77,7 @@ let mk_error opt_rule_id loc msg err =
         Printf.sprintf "%s\n\n%s" please_file_issue_text msg
     | LexicalError
     | ParseError
-    | SpecifiedParseError
+    | OtherParseError
     | RuleParseError
     | InvalidYaml
     | SemgrepMatchFound
@@ -86,8 +86,13 @@ let mk_error opt_rule_id loc msg err =
     | TimeoutDuringInterfile
     | OutOfMemoryDuringInterfile
     | PatternParseError _
+    | PatternParseError0
     | PartialParsing _
     | IncompatibleRule _
+    | IncompatibleRule0
+    | SemgrepError
+    | InvalidRuleSchemaError
+    | UnknownLanguageError
     | MissingPlugin ->
         msg
   in
@@ -108,7 +113,7 @@ let error_of_invalid_rule_error ((kind, rule_id, pos) : R.invalid_rule_error) :
     | IncompatibleRule (this_version, (min_version, max_version)) ->
         Out.IncompatibleRule
           {
-            rule_id = Rule_ID.to_string rule_id;
+            rule_id;
             this_version = Version_info.to_string this_version;
             min_version = Option.map Version_info.to_string min_version;
             max_version = Option.map Version_info.to_string max_version;
@@ -151,8 +156,12 @@ let opt_error_of_rule_error (err : Rule.error) : t option =
    We also use it to register global exception printers for
    'Printexc.to_string' to show useful messages.
 
-   TODO: why not capture AST_generic.error here? So we could get rid
-   of Run_semgrep.exn_to_error wrapper.
+   See also JSON_report.json_of_exn for non-target related exn handling.
+
+   invariant: every target-related semgrep-specific exn that has a
+   Parse_info.t should be captured here for precise location in error
+   reporting.
+   - TODO: naming exns?
 *)
 let known_exn_to_error rule_id file (e : Exception.t) : t option =
   match Exception.get_exn e with
@@ -175,7 +184,9 @@ let known_exn_to_error rule_id file (e : Exception.t) : t option =
       in
       Some (mk_error_tok rule_id tok msg Out.ParseError)
   | Parsing_error.Other_error (s, tok) ->
-      Some (mk_error_tok rule_id tok s Out.SpecifiedParseError)
+      Some (mk_error_tok rule_id tok s Out.OtherParseError)
+  | AST_generic.Error (s, tok) ->
+      Some (mk_error_tok rule_id tok s Out.AstBuilderError)
   | Rule.Error err -> opt_error_of_rule_error err
   | Time_limit.Timeout timeout_info ->
       let s = Printexc.get_backtrace () in
@@ -208,7 +219,15 @@ let exn_to_error rule_id file (e : Exception.t) : t =
           let loc = Tok.first_loc_of_file file in
           {
             rule_id;
-            typ = Out.FatalError;
+            (* bugfix: we used to return [Out.FatalError] here, but pysemgrep
+             * has some special handling for such error and aborts
+             * aggressively the scan and display a scary stack trace.
+             * We are probably here because of an unhandled exn
+             * in one of the parser (e.g., Failure "not a program") but
+             * we can recover from it, so let's generate a OtherParseError
+             * instead.
+             *)
+            typ = Out.OtherParseError;
             loc;
             msg = Printexc.to_string exn;
             details = Some trace;
@@ -232,31 +251,37 @@ let string_of_error err =
   spf "%s:%d:%d: %s: %s%s"
     (source_of_string pos.Tok.pos.file)
     pos.Tok.pos.line pos.Tok.pos.column
-    (Out.string_of_core_error_kind err.typ)
+    (Out.string_of_error_type err.typ)
     err.msg details
 
-let severity_of_error typ =
-  match (typ : Out.core_error_kind) with
-  | SemgrepMatchFound -> Out.Error
-  | MatchingError -> Warning
-  | TooManyMatches -> Warning
-  | LexicalError -> Warning
-  | ParseError -> Warning
-  | PartialParsing _ -> Warning
-  | SpecifiedParseError -> Warning
-  | AstBuilderError -> Error
-  | RuleParseError -> Error
-  | PatternParseError _ -> Error
-  | InvalidYaml -> Warning
-  | FatalError -> Error
-  | Timeout -> Warning
-  | OutOfMemory -> Warning
-  | TimeoutDuringInterfile -> Error
-  | OutOfMemoryDuringInterfile -> Error
+let severity_of_error (typ : Out.error_type) : Out.error_severity =
+  match typ with
+  | SemgrepMatchFound -> `Error
+  | MatchingError -> `Warning
+  | TooManyMatches -> `Warning
+  | LexicalError -> `Warning
+  | ParseError -> `Warning
+  | PartialParsing _ -> `Warning
+  | OtherParseError -> `Warning
+  | AstBuilderError -> `Error
+  | RuleParseError -> `Error
+  | PatternParseError _
+  | PatternParseError0 ->
+      `Error
+  | InvalidYaml -> `Warning
+  | FatalError -> `Error
+  | Timeout -> `Warning
+  | OutOfMemory -> `Warning
+  | TimeoutDuringInterfile -> `Error
+  | OutOfMemoryDuringInterfile -> `Error
+  | SemgrepError -> `Error
+  | InvalidRuleSchemaError -> `Error
+  | UnknownLanguageError -> `Error
+  (* Running into an incompatible rule may be normal, with nothing to fix *)
   | IncompatibleRule _
-  | MissingPlugin ->
-      (* Running into an incompatible rule may be normal, with nothing to fix *)
-      Info
+  | IncompatibleRule0 ->
+      `Info
+  | MissingPlugin -> `Info
 
 (*****************************************************************************)
 (* Try with error *)

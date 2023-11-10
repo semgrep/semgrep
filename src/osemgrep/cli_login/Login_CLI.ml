@@ -15,7 +15,7 @@ module Cmd = Cmdliner.Cmd
 type conf = {
   common : CLI_common.conf;
   (* Initialize the auth exchange with a temporary shared secret *)
-  init : string;
+  one_time_seed : string;
 }
 [@@deriving show]
 

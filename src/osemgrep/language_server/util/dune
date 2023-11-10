@@ -1,0 +1,9 @@
+(library
+ (public_name semgrep.language_server.util)
+ (name osemgrep_language_server_util)
+ (wrapped false)
+ (libraries
+   lsp
+   semgrep_core_cli
+ )
+)

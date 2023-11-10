@@ -54,11 +54,13 @@ let () =
   (* osemgrep!! *)
   | "osemgrep.bc"
   | "osemgrep" ->
-      let exit_code = CLI.main Sys.argv |> Exit_code.to_int in
+      let exit_code = CLI.main Sys.argv in
       (* TODO: remove or make debug-only *)
-      if exit_code <> 0 then
-        Printf.eprintf "exiting with error status %i: %s\n%!" exit_code
+      if exit_code <> Exit_code.ok then
+        Printf.eprintf "Error: %s\nExiting with error status %i: %s\n%!"
+          (Exit_code.to_message exit_code)
+          (Exit_code.to_int exit_code)
           (String.concat " " (Array.to_list Sys.argv));
-      exit exit_code
+      exit (Exit_code.to_int exit_code)
   (* legacy semgrep-core *)
-  | _else_ -> Core_CLI.main Sys.argv
+  | _ -> Core_CLI.main Sys.argv

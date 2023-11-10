@@ -300,3 +300,10 @@ let choose = min_elt
 (* pad: *)
 let (of_list : 'a list -> 'a t) =
  fun xs -> List.fold_left (fun a e -> add e a) empty xs
+
+(* martin: *)
+let pp pp_elt fmt set =
+  let pp_comma fmt () = Format.fprintf fmt ",@ " in
+  Format.fprintf fmt "{%a}"
+    (Format.pp_print_list ~pp_sep:pp_comma pp_elt)
+    (elements set)

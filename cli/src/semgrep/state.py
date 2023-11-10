@@ -1,6 +1,8 @@
 from enum import auto
 from enum import Enum
 from typing import List
+from uuid import UUID
+from uuid import uuid4
 
 import click
 from attrs import Factory
@@ -18,6 +20,7 @@ class DesignTreatment(Enum):
     LEGACY = auto()  # default
     SIMPLE = auto()  # simple output for product-focused users
     DETAILED = auto()  # detailed output for power users
+    MINIMAL = auto()  # minimal output for pattern invocations
 
 
 @frozen
@@ -29,6 +32,7 @@ class SemgrepState:
     """
 
     app_session: AppSession = Factory(AppSession)
+    request_id: UUID = Factory(uuid4)
     env: Env = Factory(Env)
     metrics: Metrics = Factory(Metrics)
     error_handler: ErrorHandler = Factory(ErrorHandler)
@@ -40,11 +44,15 @@ class SemgrepState:
         """
         Returns the CLI UX flavor to use for the current CLI invocation.
         """
+        # NOTE: First, check if the we enabled the new UX treatment via environment variable
         new_cli_ux = get_state().env.with_new_cli_ux
         if not new_cli_ux:
             return DesignTreatment.LEGACY
+        # NOTE: Special case for pattern invocations
+        if SemgrepState.is_pattern_invocation():
+            return DesignTreatment.MINIMAL
         config = get_config()
-        # NOTE: We only support simple and detailed UX treatments for `semgrep scan` invocations
+        # NOTE: We only support simple and detailed UX treatments for `semgrep scan` not `semgrep ci`
         if SemgrepState.is_scan_invocation():
             # NOTE: Ignore the default 'auto' config and product flags such as 'supply-chain'
             has_config = bool(set(config) - {"auto", "supply-chain"})
@@ -61,44 +69,13 @@ class SemgrepState:
         return command_name == "scan"
 
     @staticmethod
-    def is_supply_chain() -> bool:
+    def is_pattern_invocation() -> bool:
         """
-        Returns True iff the current CLI invocation is a supply chain (SCA) invocation.
-        """
-        ctx = get_context()
-        command_name = ctx.command.name if hasattr(ctx, "command") else "unset"
-        is_scan = command_name == "scan"
-        params = ctx.params if hasattr(ctx, "params") else {}
-        # NOTE: For `semgrep scan`, supply-chain is passed via --config
-        #   e.g. `semgrep scan --config supply-chain`
-        # whereas for `semgrep ci`, supply-chain is passed via --supply-chain
-        #   e.g. `semgrep ci --supply-chain`
-        _is_supply_chain = (
-            "supply-chain" in get_config()
-            if is_scan
-            else params.get("supply_chain")
-            or False  # NOTE: supply_chain no supply-chain for `ci`
-        )
-        return _is_supply_chain
-
-    @staticmethod
-    def is_code() -> bool:
-        """
-        Returns True iff the current CLI invocation includes a code (SAST) invocation.
+        Returns True iff the current CLI invocation is a pattern invocation via `semgrep -e` or `semgrep --pattern`.
         """
         ctx = get_context()
-        command_name = ctx.command.name if hasattr(ctx, "command") else "unset"
-        is_scan = command_name == "scan"
         params = ctx.params if hasattr(ctx, "params") else {}
-        config = get_config()
-        # NOTE: For `semgrep scan`, code is passed via --config
-        # whereas for `semgrep ci`, code is passed via --code
-        _is_code = (
-            bool(set(config) - {"supply-chain"})
-            if is_scan
-            else params.get("code") or False
-        )
-        return _is_code
+        return params.get("pattern") is not None
 
 
 def get_context() -> click.Context:

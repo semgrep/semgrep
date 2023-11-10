@@ -1,5 +1,5 @@
 open Common
-module Out = Semgrep_output_v1_t
+module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
 (* Prelude *)
@@ -49,6 +49,9 @@ module Out = Semgrep_output_v1_t
             -> Metabase (SEMGREP CLI - SNOWFLAKE)
         |-> OpenSearch (Name=semgrep-metrics)
 
+    For metabase, you can watch "Metabase for PA engineers" talk by Emma here:
+    https://drive.google.com/file/d/1BJNR578M3KxbuuIU5xNPFkhbYccfo9XH/view
+
     Notes:
       - Raw payload is ingested by our metrics endpoint exposed via our API
         Gateway
@@ -62,7 +65,7 @@ module Out = Semgrep_output_v1_t
         guess the shard ID?). The shard ID is based on the Partition Key
         (which is set to the ip address).
         TODO: if someone can figure out how to determine the shard ID easily
-        please update this comment!!!
+        please update this comment.
         In practice, your shard ID only needs to found once through trial and
         error by sending multiple payloads until you find a match. There is
         probably a better way to do this.
@@ -122,19 +125,22 @@ type t = {
   mutable payload : Semgrep_metrics_t.payload;
 }
 
+let now () : Unix.tm = Unix.gmtime (Unix.gettimeofday ())
+
 let default_payload =
   {
-    Semgrep_metrics_t.event_id = "";
+    Semgrep_metrics_t.event_id = Uuidm.v `V4;
     anonymous_user_id = "";
-    started_at = "";
-    sent_at = "";
+    started_at = now ();
+    sent_at = now ();
     environment =
       {
         version = Version.version;
         projectHash = None;
-        configNamesHash = "";
+        configNamesHash = Digestif.SHA256.digest_string "<noconfigyet>";
         rulesHash = None;
         ci = None;
+        isDiffScan = false;
         isAuthenticated = false;
         integrationName = None;
       };
@@ -152,6 +158,7 @@ let default_payload =
     value =
       {
         features = [];
+        proFeatures = None;
         numFindings = None;
         numIgnored = None;
         ruleHashesWithFindings = None;
@@ -194,16 +201,6 @@ let default =
  * are mutable.
  *)
 let g = default
-
-(*****************************************************************************)
-(* Helpers *)
-(*****************************************************************************)
-let string_of_gmtime (tm : Unix.tm) : string =
-  spf "%04d-%02d-%02dT%02d:%02d:%02d+00:00" (1900 + tm.tm_year) (1 + tm.tm_mon)
-    tm.tm_mday tm.tm_hour tm.tm_min tm.tm_sec
-
-(* ugly: would be better to have a proper time type in semgrep_metrics.atd *)
-let now () : string = string_of_gmtime (Unix.gmtime (Unix.gettimeofday ()))
 
 (*****************************************************************************)
 (* Metrics config *)
@@ -251,7 +248,7 @@ let string_of_user_agent () = String.concat " " g.user_agent
  *)
 let init ~anonymous_user_id ~ci =
   g.payload.started_at <- now ();
-  g.payload.event_id <- Uuidm.to_string (Uuidm.v4_gen (Random.get_state ()) ());
+  g.payload.event_id <- Uuidm.v4_gen (Random.get_state ()) ();
   g.payload.anonymous_user_id <- Uuidm.to_string anonymous_user_id;
   (* TODO: this field in semgrep_metrics.atd should be a boolean *)
   if ci then g.payload.environment.ci <- Some "true"
@@ -262,7 +259,6 @@ let string_of_metrics () = Semgrep_metrics_j.string_of_payload g.payload
 (*****************************************************************************)
 (* add_xxx wrappers *)
 (*****************************************************************************)
-
 let add_engine_kind (kind : Out.engine_kind) =
   (* TODO: use a better type in semgrep_metrics.atd for this field *)
   g.payload.value.engineRequested <- Out.show_engine_kind kind
@@ -279,7 +275,7 @@ let add_project_url_hash (project_url : string) =
     | __else__ -> parsed_url
   in
   g.payload.environment.projectHash <-
-    Some Digestif.SHA256.(to_hex (digest_string (Uri.to_string sanitized_url)))
+    Some (Digestif.SHA256.digest_string (Uri.to_string sanitized_url))
 
 let add_configs_hash configs =
   let ctx =
@@ -287,7 +283,7 @@ let add_configs_hash configs =
       (fun ctx str -> Digestif.SHA256.feed_string ctx str)
       Digestif.SHA256.empty configs
   in
-  g.payload.environment.configNamesHash <- Digestif.SHA256.(to_hex (get ctx))
+  g.payload.environment.configNamesHash <- Digestif.SHA256.get ctx
 
 let add_rules_hashes_and_rules_profiling ?profiling:_TODO rules =
   let hashes =
@@ -302,8 +298,7 @@ let add_rules_hashes_and_rules_profiling ?profiling:_TODO rules =
          (fun ctx str -> Digestif.SHA256.feed_string ctx str)
          Digestif.SHA256.empty
   in
-  g.payload.environment.rulesHash <-
-    Some Digestif.SHA256.(to_hex (get rulesHash_value));
+  g.payload.environment.rulesHash <- Some (Digestif.SHA256.get rulesHash_value);
   g.payload.performance.numRules <- Some (List.length rules);
   let ruleStats_value =
     Common.mapi
@@ -377,12 +372,16 @@ let add_targets_stats (targets : Fpath.t Set_.t)
     Some (targets |> Common.map File.filesize |> Common2.sum_int);
   g.payload.performance.numTargets <- Some (List.length targets)
 
+(* TODO? type_ is enough? or want also to log the path? but too
+ * privacy sensitive maybe?
+ *)
+let string_of_error (err : Out.cli_error) : string =
+  Error.string_of_error_type err.type_
+
 let add_errors errors =
   g.payload.errors.errors <-
     Some
-      (errors
-      |> Common.map (fun (err : Out.cli_error) -> (* TODO? enough? *)
-                                                  err.type_))
+      (errors |> Common.map (fun (err : Out.cli_error) -> string_of_error err))
 
 let add_profiling profiler =
   g.payload.performance.profilingTimes <- Some (Profiler.dump profiler)
@@ -394,3 +393,8 @@ let add_exit_code code =
 let add_feature ~category ~name =
   let str = Format.asprintf "%s/%s" category name in
   g.payload.value.features <- str :: g.payload.value.features
+
+(*****************************************************************************)
+(* Init and Send *)
+(*****************************************************************************)
+(* The code is now in CLI.ml *)

@@ -1,10 +1,11 @@
 module Y = Yojson.Basic
 
-(* compatibility mode with json-wheel *)
-
-(* a JSON object as a string *)
+(* a JSON value as a string, e.g., "\"Foobar\"", "true", "[1,2]".
+ * TODO: use a JsonStr of string instead of an alias for stricter typeing?
+ *)
 type str = string
 
+(* compatibility mode with json-wheel *)
 type t =
   | Object of (string * t) list
   | Array of t list
@@ -13,7 +14,26 @@ type t =
   | Float of float
   | Bool of bool
   | Null
-[@@deriving show]
+[@@deriving show, eq]
+
+(* polymorphic variant style, used in Yojson.Basic.t *)
+type yojson =
+  [ `Null
+  | `Bool of bool
+  | `Int of int
+  | `Float of float
+  | `String of string
+  | `Assoc of (string * yojson) list
+  | `List of yojson list ]
+
+(* used in Ezjsonm.mli and Yaml.mli *)
+type ezjsonm =
+  [ `Null
+  | `Bool of bool
+  | `Float of float
+  | `String of string
+  | `A of ezjsonm list
+  | `O of (string * ezjsonm) list ]
 
 let member m j =
   match j with
@@ -23,7 +43,7 @@ let member m j =
         members
   | _ -> None
 
-let rec (to_yojson : t -> Y.t) = function
+let rec (to_yojson : t -> yojson) = function
   | Object xs -> `Assoc (xs |> List.map (fun (s, t) -> (s, to_yojson t)))
   | Array xs -> `List (xs |> List.map to_yojson)
   | String s -> `String s
@@ -36,7 +56,7 @@ let rec (to_yojson : t -> Y.t) = function
   | Float f -> `Float f
   | Null -> `Null
 
-let rec (from_yojson : Y.t -> t) = function
+let rec (from_yojson : yojson -> t) = function
   | `Assoc xs -> Object (xs |> List.map (fun (s, t) -> (s, from_yojson t)))
   | `List xs -> Array (xs |> List.map from_yojson)
   | `String s -> String s
@@ -44,6 +64,26 @@ let rec (from_yojson : Y.t -> t) = function
   | `Bool b -> Bool b
   | `Float f -> Float f
   | `Null -> Null
+
+let rec yojson_to_ezjsonm (json : yojson) : ezjsonm =
+  match json with
+  | `Assoc xs -> `O (xs |> List.map (fun (s, t) -> (s, yojson_to_ezjsonm t)))
+  | `List xs -> `A (xs |> List.map yojson_to_ezjsonm)
+  | `String s -> `String s
+  | `Int i -> `Float (float_of_int i)
+  | `Bool b -> `Bool b
+  | `Float f -> `Float f
+  | `Null -> `Null
+
+let rec ezjsonm_to_yojson (json : ezjsonm) : yojson =
+  match json with
+  | `O xs -> `Assoc (xs |> List.map (fun (s, t) -> (s, ezjsonm_to_yojson t)))
+  | `A xs -> `List (xs |> List.map ezjsonm_to_yojson)
+  | `String s -> `String s
+  | `Bool b -> `Bool b
+  | `Float x when Float.is_integer x -> `Int (int_of_float x)
+  | `Float f -> `Float f
+  | `Null -> `Null
 
 let load_json file =
   let y = Y.from_file file in
@@ -57,3 +97,40 @@ let string_of_json ?compact ?recursive ?allow_nan json =
   ignore (compact, recursive, allow_nan);
   let y = to_yojson json in
   Y.to_string ~std:true y
+
+(* Essentially List.merge, but with a function for how to combine elements
+   which compare equal. *)
+let rec merge cmp cmb xs ys =
+  match (xs, ys) with
+  | [], l
+  | l, [] ->
+      l
+  | x :: xs, y :: ys ->
+      let c = cmp x y in
+      if c = 0 then cmb x y :: merge cmp cmb xs ys
+      else if c <= 0 then x :: merge cmp cmb xs (y :: ys)
+      else y :: merge cmp cmb (x :: xs) ys
+
+let update source updates =
+  match (source, updates) with
+  | `Assoc xs, `Assoc ys ->
+      let xs = List.sort (Common2.on String.compare fst) xs in
+      let ys = List.sort (Common2.on String.compare fst) ys in
+      `Assoc (merge (Common2.on String.compare fst) (fun _ x -> x) xs ys)
+  | _ -> updates
+
+(* When a json is not a [String ...]  *)
+exception NotAJString of t
+
+(* ATDgen does not support the ability to get the string
+ * of a type; you can get the json string (that is what will
+ * be ultimately saved in a .json file), but not the
+ * string so we need this hacky function to return the string.
+ *
+ * alt: could use regexp to remove the quotes
+ *)
+let remove_enclosing_quotes_of_jstring (str : str) : string =
+  match json_of_string str with
+  (* this will have the effect of removing the quote *)
+  | String s -> s
+  | x -> raise (NotAJString x)

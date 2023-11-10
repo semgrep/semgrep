@@ -9,6 +9,7 @@ parsing and interpreting the semgrep-core profiling information).
 The precise type of the response from semgrep-core is specified in
 semgrep_interfaces/semgrep_output_v1.atd
 """
+import copy
 import dataclasses
 from dataclasses import replace
 from typing import Dict
@@ -20,7 +21,6 @@ from typing import Tuple
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 import semgrep.util as util
 from semgrep.error import FATAL_EXIT_CODE
-from semgrep.error import Level
 from semgrep.error import OK_EXIT_CODE
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
@@ -42,14 +42,7 @@ def _core_location_to_error_span(location: out.Location) -> out.ErrorSpan:
 
 
 def core_error_to_semgrep_error(err: out.CoreError) -> SemgrepCoreError:
-    # Hackily convert the level string to Semgrep expectations
-    level_str = err.severity.kind
-    if level_str.upper() == "WARNING":
-        level_str = "WARN"
-    if level_str.upper() == "ERROR_":
-        level_str = "ERROR"
-    level = Level[level_str.upper()]
-
+    level = err.severity
     spans: Optional[List[out.ErrorSpan]] = None
     if isinstance(err.error_type.value, out.PatternParseError):
         yaml_path = err.error_type.value.value[::-1]
@@ -77,7 +70,7 @@ def core_error_to_semgrep_error(err: out.CoreError) -> SemgrepCoreError:
 
     # TODO benchmarking code relies on error code value right now
     # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
-    if level == Level.INFO:
+    if isinstance(level.value, out.Info_):
         code = OK_EXIT_CODE
     elif (
         isinstance(err.error_type.value, out.ParseError)
@@ -109,9 +102,27 @@ def core_matches_to_rule_matches(
     rule_table = {rule.id: rule for rule in rules}
 
     def interpolate(
-        text: str, metavariables: Dict[str, str], propagated_values: Dict[str, str]
+        text: str,
+        metavariables: Dict[str, str],
+        propagated_values: Dict[str, str],
+        mask_metavariables: bool,
     ) -> str:
         """Interpolates a string with the metavariables contained in it, returning a new string"""
+        if mask_metavariables:
+            for metavariable in metavariables.keys():
+                metavariable_content = metavariables[metavariable]
+                show_until = int(len(metavariable_content) * util.MASK_SHOW_PCT)
+                masked_content = metavariable_content[:show_until] + util.MASK_CHAR * (
+                    len(metavariable_content) - show_until
+                )
+                metavariables[metavariable] = masked_content
+
+                metavariable_value = propagated_values[metavariable]
+                show_until = int(len(metavariable_content) * util.MASK_SHOW_PCT)
+                masked_value = metavariable_value[:show_until] + util.MASK_CHAR * (
+                    len(metavariable_content) - show_until
+                )
+                propagated_values[metavariable] = masked_value
 
         # Sort by metavariable length to avoid name collisions (eg. $X2 must be handled before $X)
         for metavariable in sorted(metavariables.keys(), key=len, reverse=True):
@@ -153,12 +164,30 @@ def core_matches_to_rule_matches(
     def convert_to_rule_match(match: out.CoreMatch) -> RuleMatch:
         rule = rule_table[match.check_id.value]
         matched_values, propagated_values = read_metavariables(match)
-        message = interpolate(rule.message, matched_values, propagated_values)
+
+        message = match.extra.message if match.extra.message else rule.message
+        message = interpolate(
+            message,
+            matched_values,
+            propagated_values,
+            isinstance(rule.product.value, out.Secrets),
+        )
+
+        metadata = rule.metadata
+        if match.extra.metadata:
+            metadata = copy.deepcopy(metadata)
+            metadata.update(match.extra.metadata.value)
+
         if match.extra.rendered_fix is not None:
             fix = match.extra.rendered_fix
             logger.debug(f"Using AST-based autofix rendered in semgrep-core: `{fix}`")
         elif rule.fix is not None:
-            fix = interpolate(rule.fix, matched_values, propagated_values)
+            fix = interpolate(
+                rule.fix,
+                matched_values,
+                propagated_values,
+                isinstance(rule.product.value, out.Secrets),
+            )
             logger.debug(f"Using text-based autofix rendered in cli: `{fix}`")
         else:
             fix = None
@@ -188,8 +217,8 @@ def core_matches_to_rule_matches(
             match=match,
             extra=match.extra.to_json(),
             message=message,
-            metadata=rule.metadata,
-            severity=rule.severity,
+            metadata=metadata,
+            severity=match.extra.severity if match.extra.severity else rule.severity,
             fix=fix,
             fix_regex=fix_regex,
         )

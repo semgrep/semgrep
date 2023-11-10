@@ -61,8 +61,8 @@ let with_fallback value fallback =
  * language. *)
 module Make (Fallback : Printer) : sig
   class printer :
-    (AST_generic.any -> (Immutable_buffer.t, string) result)
-    -> Ugly_print_AST.printer_t
+    (AST_generic.any -> (Immutable_buffer.t, string) result) ->
+    Ugly_print_AST.printer_t
 end = struct
   class printer
     (primary : AST_generic.any -> (Immutable_buffer.t, string) result) :

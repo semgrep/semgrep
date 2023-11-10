@@ -70,7 +70,7 @@ let tokens ?(init_state = Lexer_php.INITIAL) input_source =
   in
   Parsing_helpers.tokenize_all_and_adjust_pos input_source token
     TH.visitor_info_of_tok TH.is_eof
-  [@@profiling]
+[@@profiling]
 
 let is_comment v =
   TH.is_comment v
@@ -189,7 +189,7 @@ let parse ?(pp = !Flag_php.pp_default) filename =
         tokens = info_item;
         stat;
       }
-  [@@profiling]
+[@@profiling]
 
 let parse_program ?pp file =
   let res = parse ?pp file in

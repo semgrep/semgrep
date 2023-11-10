@@ -25,7 +25,7 @@ open Pfff_or_tree_sitter
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let parse_pattern print_errors lang str =
+let parse_pattern print_errors options lang str =
   (* coupling: update the files semgrep/js/languages/<lang>/Parser.ml
      when updating this function.
      TODO: Share the logic of which parser to try for each language to
@@ -37,9 +37,18 @@ let parse_pattern print_errors lang str =
   | Lang.Scala ->
       let any = Parse_scala.any_of_string str in
       Scala_to_generic.any any
-  (* Use menhir only (TODO: try to use also a tree-sitter one) *)
+  (* Use menhir and tree-sitter *)
   | Lang.C ->
-      let any = Parse_c.any_of_string str in
+      let any =
+        str
+        |> run_pattern ~print_errors
+             [
+               (* this internally uses `Parse_cpp` *)
+               PfffPat (fun x -> Parse_c.any_of_string x);
+               (* this internally uses `Parse_cpp_tree_sitter` *)
+               TreeSitterPat Parse_c_tree_sitter.parse_pattern;
+             ]
+      in
       C_to_generic.any any
   | Lang.Go ->
       let any = Parse_go.any_of_string str in
@@ -81,7 +90,10 @@ let parse_pattern print_errors lang str =
                TreeSitterPat Parse_cpp_tree_sitter.parse_pattern;
              ]
       in
-      Cpp_to_generic.any any
+      Cpp_to_generic.any
+        ~parsing_opt:
+          (Option.map (fun x -> x.Rule_options_t.cpp_parsing_pref) options)
+        any
   | Lang.Java ->
       let any =
         str

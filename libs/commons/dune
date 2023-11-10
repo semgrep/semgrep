@@ -7,6 +7,7 @@
    fpath
    uri
    yojson
+   atdgen-runtime
    fmt
    ANSITerminal
    logs logs.fmt
@@ -19,6 +20,11 @@
    parmap
    digestif.ocaml
    sexplib
+   ; web stuff
+   uuidm
+   ; async stuff
+   lwt
+   alcotest-lwt
  )
  ; can't use profiling.ppx because of circular dependencies :(
  (preprocess

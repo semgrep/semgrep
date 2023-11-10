@@ -12,6 +12,7 @@ from semgrep.constants import OutputFormat
         {"filename": "invalid_python.py", "rule": "eqeq-python.yaml"},
     ],
 )
+@pytest.mark.osemfail
 def test_file_parser__failure__error_messages(
     run_semgrep_in_tmp: RunSemgrep, snapshot, settings
 ):
@@ -34,6 +35,7 @@ def test_file_parser__failure__error_messages(
         {"filename": "basic_java.java", "rule": "bad-java-rule.yaml"},
     ],
 )
+@pytest.mark.osemfail
 def test_rule_parser__failure__error_messages(
     run_semgrep_in_tmp: RunSemgrep, snapshot, settings
 ):

@@ -90,16 +90,16 @@ let parse_line ~anchor source_name source_kind line_number line_contents =
 (* Entry points *)
 (*****************************************************************************)
 
-let from_string ~anchor ~name ~kind str =
+let from_string ~anchor ~name ~source_kind str =
   let lines = read_lines_from_string str in
   Common.mapi
     (fun i contents ->
       let linenum = i + 1 in
-      parse_line ~anchor name kind linenum contents)
+      parse_line ~anchor name source_kind linenum contents)
     lines
   |> Common.map_filter (fun x -> x)
 
-let from_file ~anchor ~kind path =
+let from_file ~anchor ~source_kind path =
   Fpath.to_string path |> Common.read_file
-  |> from_string ~anchor ~name:(Fpath.to_string path) ~kind
-  [@@profiling]
+  |> from_string ~anchor ~name:(Fpath.to_string path) ~source_kind
+[@@profiling]

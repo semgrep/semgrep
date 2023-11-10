@@ -1,3 +1,0 @@
-FROM scratch
-
-COPY . /foo

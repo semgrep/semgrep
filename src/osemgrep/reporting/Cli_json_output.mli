@@ -8,7 +8,7 @@ val cli_output_of_core_results :
   Semgrep_output_v1_j.cli_output
 
 (* internals used in Scan_subcommant.ml *)
-val exit_code_of_error_type : Semgrep_output_v1_t.core_error_kind -> Exit_code.t
+val exit_code_of_error_type : Semgrep_output_v1_t.error_type -> Exit_code.t
 
 (* internals used also for incremental display of matches *)
 val cli_match_of_core_match :

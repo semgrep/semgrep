@@ -5,7 +5,6 @@ from collections import defaultdict
 from functools import reduce
 from pathlib import Path
 from typing import Any
-from typing import cast
 from typing import Collection
 from typing import Dict
 from typing import FrozenSet
@@ -26,10 +25,8 @@ from semgrep.console import console
 from semgrep.console import Title
 from semgrep.constants import Colors
 from semgrep.constants import OutputFormat
-from semgrep.constants import RuleSeverity
 from semgrep.engine import EngineType
 from semgrep.error import FINDINGS_EXIT_CODE
-from semgrep.error import Level
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
@@ -46,6 +43,7 @@ from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
+from semgrep.state import DesignTreatment
 from semgrep.state import get_state
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
@@ -69,8 +67,12 @@ FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
     OutputFormat.VIM: VimFormatter,
 }
 
-DEFAULT_SHOWN_SEVERITIES: Collection[RuleSeverity] = frozenset(
-    {RuleSeverity.INFO, RuleSeverity.WARNING, RuleSeverity.ERROR}
+DEFAULT_SHOWN_SEVERITIES: Collection[out.MatchSeverity] = frozenset(
+    {
+        out.MatchSeverity(out.Info()),
+        out.MatchSeverity(out.Warning()),
+        out.MatchSeverity(out.Error()),
+    }
 )
 
 
@@ -156,7 +158,7 @@ class OutputHandler:
         self.is_ci_invocation = False
         self.filtered_rules: List[Rule] = []
         self.extra: Optional[OutputExtra] = None
-        self.severities: Collection[RuleSeverity] = DEFAULT_SHOWN_SEVERITIES
+        self.severities: Collection[out.MatchSeverity] = DEFAULT_SHOWN_SEVERITIES
         self.explanations: Optional[List[out.MatchingExplanation]] = None
         self.engine_type: EngineType = EngineType.OSS
 
@@ -225,7 +227,8 @@ class OutputHandler:
             self.semgrep_structured_errors.append(error)
             self.error_set.add(error)
             if self.settings.output_format == OutputFormat.TEXT and (
-                error.level != Level.WARN or self.settings.verbose_errors
+                not (isinstance(error.level.value, out.Warning_))
+                or self.settings.verbose_errors
             ):
                 logger.error(error.format_for_terminal())
 
@@ -233,7 +236,7 @@ class OutputHandler:
         if ex is None:
             return
         if isinstance(ex, SemgrepError):
-            if ex.level == Level.ERROR and not (
+            if isinstance(ex.level.value, out.Error_) and not (
                 isinstance(ex, SemgrepCoreError)
                 and ex.is_special_interfile_analysis_error
             ):
@@ -274,15 +277,17 @@ class OutputHandler:
         rule_matches_by_rule: RuleMatchMap,
         *,
         all_targets: Set[Path],
+        engine_type: EngineType = EngineType.OSS,
         filtered_rules: List[Rule],
         ignore_log: Optional[FileTargetingLog] = None,
         profiler: Optional[ProfileManager] = None,
         extra: Optional[OutputExtra] = None,
         explanations: Optional[List[out.MatchingExplanation]] = None,
-        severities: Optional[Collection[RuleSeverity]] = None,
+        severities: Optional[Collection[out.MatchSeverity]] = None,
         print_summary: bool = False,
         is_ci_invocation: bool = False,
-        engine_type: EngineType = EngineType.OSS,
+        executed_rule_count: int = 0,
+        missed_rule_count: int = 0,
     ) -> None:
         state = get_state()
         self.has_output = True
@@ -328,9 +333,9 @@ class OutputHandler:
             # errors, they didn't affect the whether files were analyzed, but were a different
             # kind of error (for example, baseline commit not found)
             semgrep_core_errors = [
-                cast(SemgrepCoreError, err)
+                err
                 for err in self.semgrep_structured_errors
-                if SemgrepError.semgrep_error_type(err) == "SemgrepCoreError"
+                if isinstance(err, SemgrepCoreError)
             ]
 
             failed_to_analyze_lines_by_path = self._make_failed_to_analyze(
@@ -358,11 +363,14 @@ class OutputHandler:
             fingerprint_matches, regular_matches = partition(
                 self.rule_matches,
                 lambda m: m.severity
-                in [RuleSeverity.INVENTORY, RuleSeverity.EXPERIMENT],
+                in [
+                    out.MatchSeverity(out.Inventory()),
+                    out.MatchSeverity(out.Experiment()),
+                ],
             )
             num_findings = len(regular_matches)
             num_targets = len(self.all_targets)
-            num_rules = len(self.filtered_rules)
+            num_rules = executed_rule_count or len(self.filtered_rules)
 
             ignores_line = str(ignore_log or "No ignore information available")
             suggestion_line = ""
@@ -377,6 +385,11 @@ class OutputHandler:
             stats_line = ""
             if print_summary:
                 stats_line = f"\nRan {unit_str(num_rules, 'rule')} on {unit_str(num_targets, 'file')}: {unit_str(num_findings, 'finding')}."
+                if (
+                    missed_rule_count
+                    and state.get_cli_ux_flavor() != DesignTreatment.LEGACY
+                ):
+                    stats_line = f"{stats_line}\n💎 Missed out on {unit_str(missed_rule_count, 'pro rule')} since you aren't logged in!"
             if ignore_log is not None:
                 logger.verbose(ignore_log.verbose_output())
 
@@ -412,6 +425,9 @@ class OutputHandler:
     def _build_output(self) -> str:
         # CliOutputExtra members
         cli_paths = out.ScannedAndSkipped(
+            # This is incorrect when some rules are skipped by semgrep-core
+            # e.g. proprietary rules.
+            # TODO: Use what semgrep-core returns for 'scanned' and 'skipped'.
             scanned=[out.Fpath(str(path)) for path in sorted(self.all_targets)],
             skipped=None,
         )

@@ -1,0 +1,26 @@
+rules:
+  - id: new-syntax-taint 
+    languages:
+      - python 
+    message: Found insecure crypto usage
+    # note that we don't need mode: taint anymore also
+    taint:
+      sources:
+        - "tainted1" 
+        - pattern: "tainted2($A)"
+          where:
+            - comparison: $A == $A 
+      sinks:
+        - "sink(...)"
+        - pattern: |
+            sink2(...)
+      propagators:
+        - pattern: |
+            $A.foo($B)
+          from: $B 
+          to: $A
+      sanitizers:
+        - "clean(...)"
+        - pattern: |
+            clean2(...)
+    severity: ERROR

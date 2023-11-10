@@ -50,13 +50,13 @@ let with_file_tree tree func =
     / sprintf "test-list_files-%i" (Random.bits ())
   in
   Unix.mkdir !!workspace 0o777;
-  Fun.protect
+  Common.protect
     ~finally:(fun () ->
       try Sys.rmdir !!workspace with
       | _ -> ())
     (fun () ->
       create_files workspace tree;
-      Fun.protect
+      Common.protect
         ~finally:(fun () -> delete_files workspace tree)
         (fun () -> func workspace))
 

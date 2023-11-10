@@ -67,7 +67,7 @@ let test_dfg_tainting rules_file file =
   let rules =
     rules
     |> List.filter (fun r ->
-           match r.Rule.languages.target_analyzer with
+           match r.Rule.target_analyzer with
            | Xlang.L (x, xs) -> List.mem lang (x :: xs)
            | _ -> false)
   in

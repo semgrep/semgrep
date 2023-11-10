@@ -33,9 +33,14 @@ on:
           - latest
           - latest-nonroot
       image_ref:
-        description: "Docker tag or digest to point to, example: 1.40.0 or sha256:xxx"
+        description: "Docker tag or digest of returntocorp/semgrep to point to, example: 1.40.0 or sha256:xxx"
         type: string
         required: true
+      debug:
+        description: "Check to enable verbose logging of bash commands"
+        type: boolean
+        required: true
+        default: false
       confirmed:
         description: "Are you sure you want to do this? This is a sensitive operation"
         type: boolean
@@ -51,29 +56,45 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - env:
+      - name: set-docker-image-tag
+        env:
           docker_image: ${{ inputs.docker_image }}
           docker_tag: ${{ inputs.docker_tag }}
           image_ref: ${{ inputs.image_ref }}
+          confirmed: ${{ inputs.confirmed }}
+          debug: ${{ inputs.debug }}
         run: |
-          source_image="${docker_image}:${image_ref}"
+          if [[ "${debug}" == "true" ]]; then
+            echo "Enabling debug logging..."
+            set -x
+          fi
+
+          source_image="returntocorp/semgrep:${image_ref}"
           target_image="${docker_image}:${docker_tag}"
 
-          old_digest=$(docker buildx imagetools inspect ${target_image})
-          new_digest=$(docker buildx imagetools inspect ${source_image})
+          old_digest=$(docker buildx imagetools inspect --format '{{printf "%s" .Manifest.Digest}}' ${target_image} || echo "(not found)")
+          new_digest=$(docker buildx imagetools inspect --format '{{printf "%s" .Manifest.Digest}}' ${source_image} || echo "")
 
-          if [[ -z "${new_digest}" ]]; then
+          echo ""
+
+          if [[ "${new_digest}" == "" ]]; then
             echo "Error: ${source_image} did not resolve to a manifest list"
-            echo "If this is urgent, you can manually run these commands to point to an arch-specific image:"
+            echo "If this is urgent, you can manually login to our Docker Hub account and then run these commands to point to an arch-specific image:"
             echo "docker pull ${source_image}"
             echo "docker tag ${source_image} ${target_image}"
             echo "docker push ${target_image}"
             exit 1
           fi
 
+          echo "Resolved ${source_image} to digest: ${new_digest}"
+          echo ""
+
           echo "Will update ${target_image} from ${old_digest} to ${new_digest}"
+          echo ""
           if [[ "${confirmed}" == "true" ]]; then
             docker buildx imagetools create -t ${target_image} ${source_image}
           else
-            echo "(dry run, nothing changed)"
+            echo "(dry run)"
+            docker buildx imagetools create --dry-run -t ${target_image} ${source_image}
+            echo "(dry run)"
           fi

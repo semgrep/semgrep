@@ -86,6 +86,7 @@ let lang = ref None
 let output_format = ref Core_scan_config.default.output_format
 let match_format = ref Core_scan_config.default.match_format
 let mvars = ref ([] : Metavariable.mvar list)
+let respect_rule_paths = ref Core_scan_config.default.respect_rule_paths
 
 (* ------------------------------------------------------------------------- *)
 (* limits *)
@@ -238,6 +239,7 @@ let mk_config () =
     pattern_file = !pattern_file;
     rule_source = !rule_source;
     filter_irrelevant_rules = !filter_irrelevant_rules;
+    respect_rule_paths = !respect_rule_paths;
     (* not part of CLI *)
     equivalences_file = !equivalences_file;
     lang = !lang;
@@ -319,21 +321,6 @@ let all_actions () =
     ( "-dump_equivalences",
       " <file> (deprecated)",
       Arg_helpers.mk_action_1_conv Fpath.v Core_actions.dump_equivalences );
-    ( "-dump_jsonnet_ast",
-      " <file>",
-      Arg_helpers.mk_action_1_conv Fpath.v Test_ojsonnet.dump_jsonnet_ast );
-    ( "-dump_jsonnet_core",
-      " <file>",
-      Arg_helpers.mk_action_1_conv Fpath.v Test_ojsonnet.dump_jsonnet_core );
-    ( "-dump_jsonnet_value",
-      " <file>",
-      Arg_helpers.mk_action_1_conv Fpath.v Test_ojsonnet.dump_jsonnet_value );
-    ( "-dump_jsonnet_json",
-      " <file>",
-      Arg_helpers.mk_action_1_conv Fpath.v Test_ojsonnet.dump_jsonnet_json );
-    ( "-perf_test_jsonnet",
-      " <file>",
-      Arg_helpers.mk_action_1_conv Fpath.v Test_ojsonnet.perf_test_jsonnet );
     ( "-dump_tree_sitter_cst",
       " <file> dump the CST obtained from a tree-sitter parser",
       Arg_helpers.mk_action_1_conv Fpath.v (fun file ->
@@ -518,6 +505,9 @@ let options actions =
     ( "-fast",
       Arg.Set filter_irrelevant_rules,
       " filter rules not containing any strings in target file" );
+    ( "-disable_rule_paths",
+      Arg.Clear respect_rule_paths,
+      " do not honor the paths: directive of the rule" );
     ( "-tree_sitter_only",
       Arg.Set Flag.tree_sitter_only,
       " only use tree-sitter-based parsers" );

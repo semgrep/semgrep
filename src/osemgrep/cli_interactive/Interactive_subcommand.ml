@@ -490,7 +490,10 @@ let translate_formula iformula =
   | None -> failwith "should not happen"
   | Some iformula -> iformula
 
-let mk_fake_rule lang formula =
+let mk_fake_rule xlang formula =
+  let target_selector, target_analyzer =
+    Rule.selector_and_analyzer_of_xlang xlang
+  in
   {
     Rule.id = (Rule_ID.of_string "-i", fk);
     mode = `Search formula;
@@ -498,14 +501,17 @@ let mk_fake_rule lang formula =
     max_version = None;
     (* alt: could put xpat.pstr for the message *)
     message = "";
-    severity = Error;
-    languages = lang;
+    severity = `Error;
+    target_selector;
+    target_analyzer;
     options = None;
     equivalences = None;
     fix = None;
     fix_regexp = None;
     paths = None;
+    product = `SAST;
     metadata = None;
+    validators = None;
   }
 
 let atomic_map_file_zipper f state =
@@ -541,8 +547,7 @@ let buffer_matches_of_xtarget state (fake_rule : Rule.search_rule) xconf xtarget
     =
   let hook _s (_m : Pattern_match.t) = () in
   if
-    (* Since it's just a single rule, we don't need to cache it *)
-    Match_rules.is_relevant_rule_for_xtarget ~cache:None
+    Match_rules.is_relevant_rule_for_xtarget
       (fake_rule :> Rule.rule)
       xconf xtarget
   then
@@ -592,9 +597,7 @@ let buffer_matches_of_new_iformula (new_iform : iformula_zipper) (state : state)
   *)
   reset_file_zipper state;
   let rule_formula = translate_formula new_iform in
-  let fake_rule =
-    mk_fake_rule (Rule.languages_of_xlang state.xlang) rule_formula
-  in
+  let fake_rule = mk_fake_rule state.xlang rule_formula in
   let xconf =
     {
       Match_env.config = Rule_options.default_config;
@@ -602,7 +605,7 @@ let buffer_matches_of_new_iformula (new_iform : iformula_zipper) (state : state)
       nested_formula = false;
       matching_explanations = false;
       (* set to true for the -fast optimization! *)
-      filter_irrelevant_rules = true;
+      filter_irrelevant_rules = PrefilterWithCache (Hashtbl.create 10);
     }
   in
   if !(state.should_continue_iterating_targets) then
@@ -1223,7 +1226,7 @@ let interactive_loop ~turbo xlang xtargets =
       (* fake if to shutdown warning 21 of ocamlc "nonreturn-statement" *)
       if true then render_and_loop state.term state)
     (fun () -> Term.release t)
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Main logic *)
@@ -1248,7 +1251,10 @@ let run (conf : Interactive_CLI.conf) : Exit_code.t =
   let xtargets =
     targets
     |> Common.map (fun file ->
-           let xtarget = Core_scan.xtarget_of_file config xlang file in
+           let xtarget =
+             Core_scan.xtarget_of_file
+               ~parsing_cache_dir:config.parsing_cache_dir xlang file
+           in
            Lock_protected.protect xtarget)
   in
   interactive_loop ~turbo:conf.turbo xlang xtargets;

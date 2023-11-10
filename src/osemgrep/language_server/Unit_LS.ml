@@ -9,6 +9,25 @@ module In = Input_to_core_t
 (* Mocks *)
 (*****************************************************************************)
 
+let checked_command cmd =
+  match Bos.OS.Cmd.run_status cmd with
+  | Ok (`Exited 0) -> ()
+  | _ -> failwith (Common.spf "Error running cmd: %s" (Bos.Cmd.to_string cmd))
+
+let setup_git workspace =
+  Git_wrapper.init workspace;
+  checked_command
+    Bos.Cmd.(
+      v "git" % "-C" % Fpath.to_string workspace % "config" % "user.email"
+      % "baselinetest@semgrep.com");
+  checked_command
+    Bos.Cmd.(
+      v "git" % "-C" % Fpath.to_string workspace % "config" % "user.name"
+      % "Baseline Test");
+  checked_command
+    Bos.Cmd.(
+      v "git" % "-C" % Fpath.to_string workspace % "checkout" % "-B" % "main")
+
 let mock_session () =
   let capabilities = Lsp.Types.ServerCapabilities.create () in
   let session = Session.create capabilities in
@@ -37,17 +56,19 @@ let mock_run_results (files : string list) : Core_runner.result =
         dataflow_trace = None;
         rendered_fix = None;
         engine_kind = `OSS;
-        validation_state = Some `NO_VALIDATOR;
+        validation_state = Some `No_validator;
         extra_extra = None;
+        severity = None;
+        metadata = None;
       }
     in
     let (m : Out.core_match) =
       {
-        check_id = "print";
+        check_id = Rule_ID.of_string "print";
         (* inherited location *)
         start = { line = 1; col = 1; offset = 1 };
         end_ = { line = 1; col = 1; offset = 1 };
-        path = file;
+        path = Fpath.v file;
         extra;
       }
     in
@@ -80,7 +101,7 @@ let mock_workspace ?(git = false) () =
   in
   let workspace = rand_dir () in
   let workspace = Fpath.v workspace in
-  if git then Git_wrapper.init workspace |> ignore;
+  if git then setup_git workspace |> ignore;
   workspace
 
 let add_file ?(git = false) ?(dirty = false)
@@ -170,7 +191,7 @@ let processed_run () =
     let results = mock_run_results files in
     let matches = Processed_run.of_matches ~only_git_dirty results in
     let final_files =
-      matches |> Common.map (fun (m : Out.cli_match) -> m.path)
+      matches |> Common.map (fun (m : Out.cli_match) -> !!(m.path))
     in
     let final_files = Common.sort final_files in
     let expected = Common.sort expected in
@@ -254,7 +275,7 @@ let ci_tests () =
   in
   let test_cache_session () =
     let session = mock_session () in
-    Lwt_main.run (Session.cache_session session);
+    Lwt_platform.run (Session.cache_session session);
     let rules = session.cached_session.rules in
     Alcotest.(check int) "rules" 1 (List.length rules);
     let skipped_fingerprints = session.cached_session.skipped_fingerprints in
@@ -270,6 +291,11 @@ let ci_tests () =
   in
   pack_tests "CI Tests" tests
 
+let test_ls_libev () = Lwt_platform.set_engine ()
+
+let libev_tests =
+  pack_tests "Lib EV tests" [ ("Test LS with libev", test_ls_libev) ]
+
 let tests =
-  pack_suites "Language Server"
-    [ session_targets (); processed_run (); ci_tests () ]
+  pack_suites "Language Server (unit)"
+    [ session_targets (); processed_run (); ci_tests (); libev_tests ]

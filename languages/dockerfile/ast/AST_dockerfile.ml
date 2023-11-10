@@ -208,8 +208,8 @@ type instruction =
   | Shell (* changes the shell :-/ *) of loc * string wrap * string_array
   | Maintainer (* deprecated *) of loc * string wrap * string_or_metavar
   | Cross_build_xxx
-    (* e.g. CROSS_BUILD_COPY;
-       TODO: who uses this exactly? and where is it documented? *) of
+      (* e.g. CROSS_BUILD_COPY;
+         TODO: who uses this exactly? and where is it documented? *) of
       loc * string wrap * string wrap
   | Instr_semgrep_ellipsis of tok
   | Instr_semgrep_metavar of string wrap

@@ -1,4 +1,5 @@
 open Common
+open File.Operators
 module Out = Semgrep_output_v1_t
 
 (*****************************************************************************)
@@ -59,10 +60,29 @@ type conf = {
 let metarules_pack = "p/semgrep-rule-lints"
 
 (*****************************************************************************)
+(* Experiment *)
+(*****************************************************************************)
+
+let parse_rule_with_atd_experiment_and_exit (file : Fpath.t) : unit =
+  let rules = Parse_rules_with_atd.parse_rules_v2 file in
+  pr2 (Rule_schema_v2_t.show_rules rules);
+  exit 0
+
+(*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
 let run (conf : conf) : Exit_code.t =
+  (* small experiment *)
+  (match conf with
+  | {
+   common = { maturity = Maturity.Develop; _ };
+   rules_source = Rules_source.Configs [ file ];
+   _;
+  } ->
+      parse_rule_with_atd_experiment_and_exit (Fpath.v file)
+  | _else_ -> ());
+
   let settings = Semgrep_settings.load () in
   let token_opt = settings.api_token in
   (* Checking (1) and (2). Parsing the rules is already a form of validation.
@@ -116,7 +136,6 @@ let run (conf : conf) : Exit_code.t =
           scan_func conf.core_runner_conf metarules [] targets
         in
         let res = Core_runner.create_core_result metarules result_and_exn in
-
         (* TODO? sanity check errors below too? *)
         let { Out.results; errors = _; _ } =
           Cli_json_output.cli_output_of_core_results
@@ -161,7 +180,7 @@ let run (conf : conf) : Exit_code.t =
   metacheck_errors
   |> List.iter (fun (x : Out.cli_match) ->
          Logs.err (fun m ->
-             m "Semgrep match found at line %s:%d\n%s" x.path x.start.line
+             m "Semgrep match found at line %s:%d\n%s" !!(x.path) x.start.line
                x.extra.message));
   match num_errors with
   | 0 -> Exit_code.ok

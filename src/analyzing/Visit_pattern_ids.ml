@@ -72,4 +72,4 @@ let visit : AST_generic.any -> (G.ident * G.id_info) list =
     let ids = ref [] in
     v#visit_any ids any;
     !ids
-  [@@profiling]
+[@@profiling]

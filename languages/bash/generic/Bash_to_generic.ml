@@ -312,9 +312,13 @@ and command (env : env) (cmd : command) : stmt_or_expr =
   | Arithmetic_expression (loc, _) -> todo_expr2 loc
   | For_loop (loc, for_, loop_var, opt_in, do_, body, _done_) ->
       let header =
-        let values : G.expr list =
+        let in_tk, expr =
           match opt_in with
-          | Some (_in, vals) -> Common.map (fun x -> expression env x) vals
+          | Some (in_tk, vals) ->
+              ( in_tk,
+                G.Container
+                  (List, fb (Common.map (fun x -> expression env x) vals))
+                |> G.e )
           | None ->
               (*
                  Pretend there's a '"$@"', which is semantically correct
@@ -328,14 +332,20 @@ and command (env : env) (cmd : command) : stmt_or_expr =
                 let frag = Expansion (loc, Simple_expansion (loc, var_name)) in
                 String (tok, [ frag ], tok)
               in
-              [ expression env fake_arg_array ]
+              (G.fake "", expression env fake_arg_array)
         in
         match loop_var with
         | Simple_variable_name var
         | Special_variable_name var
         | Var_semgrep_metavar var ->
             let entity = G.basic_entity var in
-            G.ForIn ([ ForInitVar (entity, G.empty_var) ], values)
+            let pat =
+              match entity.name with
+              | EN (Id (id, idinfo)) -> G.PatId (id, idinfo) |> G.p
+              | EPattern pat -> pat
+              | _ -> G.OtherPat (("PatEnt", G.fake "PatEnt"), [ G.En entity ])
+            in
+            G.ForEach (pat, in_tk, expr)
       in
       let body = stmt_group env loc (blist env body) |> as_stmt in
       Stmt (loc, G.For (for_, header, body) |> G.s)

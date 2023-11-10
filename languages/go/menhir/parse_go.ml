@@ -41,7 +41,7 @@ let tokens input_source =
   let token lexbuf = Lexer.token lexbuf in
   Parsing_helpers.tokenize_all_and_adjust_pos input_source token
     TH.visitor_info_of_tok TH.is_eof
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -86,7 +86,7 @@ let parse filename =
         tokens = toks_orig;
         stat = Parsing_stat.bad_stat filename;
       }
-  [@@profiling]
+[@@profiling]
 
 let parse_program file =
   let res = parse file in

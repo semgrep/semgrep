@@ -1,0 +1,10 @@
+rules:
+  - id: dart-parity
+    r2c-internal-project-depends-on:
+      depends-on-either:
+        - namespace: pub
+          package: async
+          version: "== 2.11.0"
+    message: oh no
+    languages: [dart]
+    severity: WARNING

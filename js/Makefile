@@ -14,6 +14,7 @@ test:
 	cd libyaml; $(MAKE) test
 	cd engine; $(MAKE) test
 	cd languages; $(MAKE) test
+	cd tests; $(MAKE)
 
 .PHONY: e2e
 e2e: engine languages
@@ -46,6 +47,7 @@ clean:
 	cd libyaml; $(MAKE) clean
 	cd engine; $(MAKE) clean
 	cd languages; $(MAKE) clean
+	cd tests; $(MAKE) clean
 
 .PHONY: distclean
 distclean:

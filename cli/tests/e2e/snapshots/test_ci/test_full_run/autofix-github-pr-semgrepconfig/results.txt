@@ -1,5 +1,5 @@
 === command
-CI="true" GITHUB_ACTIONS="true" GITHUB_ACTOR="some_test_username" GITHUB_API_URL="https://api.github.com" GITHUB_REPOSITORY="project_name/project_name" GITHUB_RUN_ID="35" GITHUB_SERVER_URL="https://github.com" GITHUB_WORKSPACE="/home/runner/work/actions-test/actions-test" GITHUB_EVENT_NAME="pull_request" GITHUB_REF="refs/pull/123/merge" GITHUB_BASE_REF="main" GITHUB_HEAD_REF="some/branch-name" SEMGREP_PROJECT_CONFIG="tags:
+CI="true" GITHUB_ACTIONS="true" GITHUB_ACTOR="some_test_username" GITHUB_API_URL="https://api.github.com" GITHUB_REPOSITORY="project_name/project_name" GITHUB_RUN_ID="35" GITHUB_SERVER_URL="https://github.com" GITHUB_WORKSPACE="/home/runner/work/actions-test/actions-test" GITHUB_REPOSITORY_ID="4" GITHUB_REPOSITORY_OWNER_ID="2" GITHUB_EVENT_NAME="pull_request" GITHUB_REF="refs/pull/123/merge" GITHUB_BASE_REF="main" GITHUB_HEAD_REF="some/branch-name" SEMGREP_PROJECT_CONFIG="tags:
 - tag1
 - tag_key:tag_val
 " GITHUB_SHA="<MASKED>" GITHUB_EVENT_PATH="<MASKED>" SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep ci --no-suppress-errors
@@ -25,9 +25,8 @@ Not on head ref: <MASKED>; checking that out now.
 
   CONNECTION
 Using <MASKED> as the merge-base of <MASKED> and <MASKED>
-  Reporting start of scan for deployment_name (scan_id=<MagicMock name='post()…
-  Fetching configuration from Semgrep Cloud Platform
-  Enabled products: Semgrep Code, Semgrep Supply Chain
+  Initializing scan (deployment=org_name, scan_id=12345)
+  Enabled products: Code, Supply Chain
 
 ┌─────────────┐
 │ Scan Status │
@@ -101,13 +100,13 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
 
 CI scan completed successfully.
-  Found 7 findings (6 blocking) from 4 rules.
+  Found 7 findings (6 blocking) from 7 rules.
   Uploading scan results
   Finalizing scan           View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings
     https://semgrep.dev/orgs/org_name/supply-chain
   Has findings for blocking rules so exiting with code 1
-  semgrep.dev is suggesting a non-zero exit code <MASKED>
+  semgrep.dev is suggesting a non-zero exit code (Test Reason)
 
 === end of stdout - plain
 

@@ -136,7 +136,7 @@ def _clean_output_if_json(output_json: str, clean_fingerprint: bool) -> str:
             output["version"] = "0.42"
         for r in results:
             p = r.get("path")
-            if p and "/tmp" in p:
+            if p and tempfile.gettempdir() in p:
                 r["path"] = "/tmp/masked/path"
             if clean_fingerprint:
                 r["extra"]["fingerprint"] = "0x42"
@@ -200,7 +200,7 @@ ALWAYS_MASK: Maskers = (
     # In the future, we may have to hide the temporary folder since it
     # can vary from one OS to another.
     # This regexp masks the tail of a path containing 'tmp' or '/tmp'.
-    re.compile(r"((?:/?tmp[A-Za-z0-9_-]*)(?:/[A-Za-z0-9_.-]*)*)"),
+    re.compile(f"((?:{tempfile.gettempdir()})(?:/[A-Za-z0-9_.-]*)*)"),
     # osemgrep only. Needed to match the pysemgrep output b/c pysemgrep
     # uses a temporary path to store rules by osemgrep doesn't.
     re.compile(r'"path": *"(rules/[^"]*)"'),
@@ -502,3 +502,16 @@ def parse_lockfile_path_in_tmp_for_perf(
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
     monkeypatch.chdir(tmp_path)
     return parse_lockfile_path
+
+
+class str_containing:
+    """Assert that a given string meets some expectations."""
+
+    def __init__(self, pattern, flags=0):
+        self._pattern = pattern
+
+    def __eq__(self, actual):
+        return self._pattern in actual
+
+    def __repr__(self):
+        return self._pattern

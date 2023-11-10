@@ -1,3 +1,5 @@
+open Common
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -25,7 +27,7 @@ let pp_rules ppf (rules_source, filtered_rules) =
   Fmt.pf ppf "Rules:@.";
   let exp, normal =
     filtered_rules
-    |> List.partition (fun rule -> rule.Rule.severity = Rule.Experiment)
+    |> List.partition (fun (rule : Rule.t) -> rule.severity =*= `Experiment)
   in
 
   let rule_id r = fst r.Rule.id in

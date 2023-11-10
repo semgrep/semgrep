@@ -39,7 +39,8 @@ val arg_parse2 :
   cmdline_options ->
   Arg.usage_msg ->
   (unit -> unit) ->
-  (* short_usage func *) string list
+  (* short_usage func *)
+  string list
 
 (* The action lib. Useful to debug subpart of your system. See some of
  * my Main.ml for example of use. *)

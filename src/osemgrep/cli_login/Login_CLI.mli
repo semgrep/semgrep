@@ -7,8 +7,8 @@
 *)
 type conf = {
   common : CLI_common.conf;
-      (* Initialize the auth exchange with a temporary shared secret *)
-  init : string;
+  (* Initialize the auth exchange with a temporary shared secret *)
+  one_time_seed : string;
 }
 [@@deriving show]
 
