@@ -328,11 +328,11 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None)
       Parsing_stat.print_regression_information ~ext xs newscore;
     pr2 (spf "total mismatch: %d" !total_mismatch)
   in
-  (tests, !total_mismatch, print_summary)
+  (tests, total_mismatch, print_summary)
 
 let test_rules ?unit_testing xs =
   let paths = File.Path.of_strings xs in
   let tests, total_mismatch, print_summary = make_tests ?unit_testing paths in
   tests |> List.iter (fun (_name, test) -> test ());
   print_summary ();
-  if total_mismatch > 0 then exit 1
+  if !total_mismatch > 0 then exit 1

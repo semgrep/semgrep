@@ -95,12 +95,11 @@ local test_pro_rules_job = {
 
     // ^^^^^ Above this is all the same as in 'check-semgrep-pro.jsonnet'  ^^^^^
 
+    // We are in /home/runner/work/semgrep/semgrep at this point.
+
     {
       env: semgrep.github_bot.github_token,
       name: 'Checkout Pro rules',
-      // We are in /home/runner/work/semgrep/semgrep at this point
-      // and we must keep it that way otherwise GHA will complain
-      // in post-cleanup if this directory does not exist anymore.
       run: |||
         cd ..
         gh repo clone semgrep/semgrep-rules-proprietary
@@ -115,6 +114,8 @@ local test_pro_rules_job = {
         cd ../semgrep-rules-proprietary/paid
         # This rule is missing a target file
         rm -f kotlin/ktor/active-debug-code/ktor-development-mode-yaml.yaml
+        # This is much faster than `pysemgrep --test` and it's also stricter.
+        # TODO: Replace with `osemgrep-pro test` when that is ready.
         ../../semgrep-proprietary/bin/semgrep-core-proprietary -test_rules .
       |||,
     },
