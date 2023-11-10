@@ -82,10 +82,10 @@ let binary_search ~f arr =
     (* Must be (0, 0) or (arrlen, arrlen) *)
     if Int.equal lo hi then Error lo
     else
-      let mid = lo + (hi / 2) in
+      let mid = (lo + hi) / 2 in
       match f arr.(mid) with
       | Equal -> Ok (mid, arr.(mid))
-      | Less -> aux lo (mid - 1)
+      | Less -> aux lo mid
       | Greater -> aux (mid + 1) hi
   in
   aux arr_lo arr_hi
@@ -95,7 +95,23 @@ let to_comparison f x y =
   if res < 0 then Less else if res > 0 then Greater else Equal
 
 let%test _ =
-  binary_search ~f:(to_comparison Int.compare 2) [| 1; 2; 3; 4 |] =*= Ok (1, 2)
+  binary_search ~f:(to_comparison Int.compare 1) [| 1; 2; 4; 5 |] =*= Ok (0, 1)
+
+let%test _ =
+  binary_search ~f:(to_comparison Int.compare 2) [| 1; 2; 4; 5 |] =*= Ok (1, 2)
+
+let%test _ =
+  binary_search ~f:(to_comparison Int.compare 5) [| 1; 2; 4; 5 |] =*= Ok (3, 5)
+
+(* out of bounds or not in the array returns the position it should be inserted at *)
+let%test _ =
+  binary_search ~f:(to_comparison Int.compare 6) [| 1; 2; 4; 5 |] =*= Error 4
+
+let%test _ =
+  binary_search ~f:(to_comparison Int.compare 3) [| 1; 2; 4; 5 |] =*= Error 2
+
+let%test _ =
+  binary_search ~f:(to_comparison Int.compare 0) [| 1; 2; 4; 5 |] =*= Error 0
 
 (*****************************************************************************)
 (* Debugging/logging *)
