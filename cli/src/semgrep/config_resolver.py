@@ -262,7 +262,7 @@ class ConfigLoader:
         return self._origin == ConfigType.REGISTRY
 
     def _project_metadata_for_standalone_scan(self) -> out.ProjectMetadata:
-        repo_name = os.environ.get("SEMGREP_REPO_NAME")
+        repo_name = os.environ.get("SEMGREP_REPO_NAME") 
         if repo_name is None:
             raise SemgrepError(
                 f"Need to set env var SEMGREP_REPO_NAME to use `--config {self._config_path}`"
@@ -449,6 +449,7 @@ class Config:
         # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
         with_code_rules: bool = False,
         with_supply_chain: bool = False,
+        with_secrets: bool = False,
         missed_rule_count: int = 0,
     ) -> None:
         """
@@ -458,6 +459,7 @@ class Config:
         self.valid = valid_configs
         self.with_code_rules = with_code_rules
         self.with_supply_chain = with_supply_chain
+        self.with_secrets = with_secrets
         self.missed_rule_count = missed_rule_count
 
     @classmethod
@@ -499,6 +501,7 @@ class Config:
         errors: List[SemgrepError] = []
         with_supply_chain = False
         with_code_rules = False
+        with_secrets = False
 
         for i, config in enumerate(configs):
             try:
@@ -510,6 +513,7 @@ class Config:
 
                 with_code_rules = with_code_rules or not is_supply_chain(config)
                 with_supply_chain = with_supply_chain or is_supply_chain(config)
+                with_secrets = with_secrets or is_secrets(config)
 
                 for (
                     resolved_config_key,
@@ -531,6 +535,7 @@ class Config:
                 valid,
                 with_code_rules=with_code_rules,
                 with_supply_chain=with_supply_chain,
+                with_secrets=with_secrets,
                 missed_rule_count=missed_rule_count,
             ),
             errors,
@@ -640,8 +645,10 @@ class Config:
                 else:
                     if (
                         isinstance(rule.product.value, out.Secrets)
-                        and config_id != REGISTRY_CONFIG_ID
-                        and config_id != CLOUD_PLATFORM_CONFIG_ID
+                        # In some instances we might append config_id with `_{i}` where 
+                        # i is an integer
+                        and not config_id.startswith(REGISTRY_CONFIG_ID)
+                        and not config_id.startswith(CLOUD_PLATFORM_CONFIG_ID)
                     ):
                         # SECURITY: Set metadata from non-registry secrets
                         # rules so that postprocessors are not run. The default
@@ -938,6 +945,9 @@ def url_for_supply_chain() -> str:
 
 def is_supply_chain(config_str: str) -> bool:
     return config_str == "supply-chain"
+
+def is_secrets(config_str: str) -> bool:
+    return config_str == "secrets"
 
 
 def saved_snippet_to_url(snippet_id: str) -> str:
