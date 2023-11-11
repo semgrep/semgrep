@@ -426,7 +426,7 @@ def run_join_rule(
     will be the rule ID.
 
     'on' is a list of strings of the form <collection>.<property> <operator> <collection>.<property>.
-    These are the conditions which must be satisifed for this rule to report results.
+    These are the conditions which must be satisfied for this rule to report results.
     All conditions must be satisfied.
 
     See cli/tests/e2e/rules/join_rules/user-input-with-unescaped-extension.yaml

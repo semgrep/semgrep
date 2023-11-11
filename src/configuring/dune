@@ -21,4 +21,4 @@
 (rule
  (targets Rule_options_t.ml Rule_options_t.mli)
  (deps    Rule_options.atd)
- (action  (run atdgen -t %{deps})))
+ (action  (run atdgen -deriving-conv show -t %{deps})))

@@ -39,7 +39,7 @@ jobs:
       - name: Evaluate Dry Run
         id: dry-run
         run: |
-          if [[ "${{ inputs.dry-run }}" == "true" ]]; then
+          if [[ "${{ inputs.dry-run }}" == "true" ]] || [[ "${{ github.ref_name }}" == *test* ]]; then
             echo "dry-run=true" >> $GITHUB_OUTPUT
             echo "Setting dry-run to TRUE"
           else
