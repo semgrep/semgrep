@@ -18,10 +18,10 @@ let print_did_save_token () : unit =
   let epilog =
     Ocolor_format.asprintf
       {|
-  💡 From now on you can run @{<cyan>`semgrep ci`@} to start a Semgrep scan.
-    Supply Chain, Secrets and Pro rules will be applied in your scans automatically.
+💡 From now on you can run @{<cyan>`semgrep ci`@} to start a Semgrep scan.
+   Supply Chain, Secrets, and Pro rules will be applied in your scans automatically.
 
-  💎 Happy scanning!
+💎 Happy scanning!
   |}
   in
   Logs.app (fun m -> m "%s" epilog)
@@ -46,8 +46,8 @@ Logging in gives you access to Supply Chain, Secrets and Pro rules.
 Plus, you can manage your rules and code findings with Semgrep Cloud Platform.
 
 @{<ul>Steps@}
-1. Sign in with your authentication provider
-2. Activate your access token
+1. Sign in with your authentication provider.
+2. Activate your access token.
 3. Return here and start scanning!
 |}
   in
@@ -56,10 +56,13 @@ Plus, you can manage your rules and code findings with Semgrep Cloud Platform.
 (* Print out the flow, create the activation url and open the url in the browser *)
 let start_interactive_flow () : Uuidm.t option =
   if not Unix.(isatty stdin) then (
-    Logs.err (fun m ->
-        m
-          "Error: semgrep login is an interactive command: run in an \
-           interactive terminal (or define SEMGREP_APP_TOKEN)");
+    let msg =
+      Ocolor_format.asprintf
+        {|%s @{<cyan>`semgrep login`@} is meant to be run in an interactive terminal.
+You can pass @{<cyan>`SEMGREP_APP_TOKEN`@} as an environment variable instead.|}
+        (Logs_helpers.err_tag ())
+    in
+    Logs.err (fun m -> m "%s" msg);
     None)
   else (
     print_preamble ();
@@ -89,13 +92,13 @@ let fetch_token session_id =
       Exit_code.fatal
   | Ok (_, display_name) ->
       Console_Spinner.erase_spinner ();
+      print_did_save_token ();
       Logs.app (fun m ->
           m
             "%s Successfully logged in as %s! You can now run `semgrep ci` to \
              start a scan."
             (Logs_helpers.success_tag ())
             display_name);
-      print_did_save_token ();
       Exit_code.ok
 
 (*****************************************************************************)
