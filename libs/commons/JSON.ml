@@ -81,7 +81,7 @@ let rec ezjsonm_to_yojson (json : ezjsonm) : yojson =
   | `A xs -> `List (xs |> List.map ezjsonm_to_yojson)
   | `String s -> `String s
   | `Bool b -> `Bool b
-  (* TODO? detect if int and return Int instead? *)
+  | `Float x when Float.is_integer x -> `Int (int_of_float x)
   | `Float f -> `Float f
   | `Null -> `Null
 

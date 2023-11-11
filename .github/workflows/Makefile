@@ -20,7 +20,8 @@ OBJS = \
   build-test-javascript.yml \
   tests.yml \
   test-e2e-semgrep-ci.yml nightly.yml \
-  check-semgrep-pro.yml
+  check-semgrep-pro.yml \
+  test-pro-rules.yml
 
 all: $(JSONNET) $(OBJS)
 

@@ -1,0 +1,10 @@
+rules:
+- id: ignore-comments
+  languages:
+  - generic
+  match: |
+    a b
+  options:
+    generic_comment_style: cpp
+  message: found
+  severity: ERROR
