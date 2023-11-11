@@ -285,7 +285,12 @@ let check_files mk_config fparser input =
       let (res : Core_result.t) =
         Core_result.mk_final_result_with_just_errors errors
       in
-      let json = Core_json_output.core_output_of_matches_and_errors None res in
+      let json =
+        (* Usually we do a nosemgrep processing step after calling this function,
+           but not needed here because we don't have matches.
+        *)
+        Core_json_output.core_output_of_matches_and_errors None res
+      in
       pr (SJ.string_of_core_output json)
 
 let stat_files fparser xs =

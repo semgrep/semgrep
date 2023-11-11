@@ -252,6 +252,7 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
         metavars = x.env |> Common.map (metavars startp);
         dataflow_trace;
         rendered_fix;
+        is_ignored = false;
         engine_kind = x.engine_kind;
         validation_state = Some x.validation_state;
         extra_extra = None;

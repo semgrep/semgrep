@@ -31,6 +31,8 @@ type t = {
   (* Debugging/profiling/logging flags *)
   log_config_file : Fpath.t;
   log_to_file : Fpath.t option;
+  nosem : bool;
+  strict : bool;
   test : bool;
   debug : bool;
   profile : bool;
@@ -94,6 +96,8 @@ let default =
     (* Debugging/profiling/logging flags *)
     log_config_file = Fpath.v "log_config.json";
     log_to_file = None;
+    nosem = true;
+    strict = false;
     test = false;
     debug = false;
     profile = false;

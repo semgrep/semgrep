@@ -39,10 +39,10 @@ let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
     ({ session; _ } : RPC_server.t) =
   let rules = Option.value ~default:session.cached_session.rules rules in
   Logs.debug (fun m -> m "Running Semgrep with %d rules" (List.length rules));
+  let runner_conf = Session.runner_conf session in
   (* !!!Dispatch to the Semgrep engine!!! *)
   let res =
     let targets = Option.value ~default:(Session.targets session) targets in
-    let runner_conf = Session.runner_conf session in
     (* This is currently just ripped from Scan_subcommand. *)
     let scan_func =
       if session.user_settings.pro_intrafile then
@@ -69,7 +69,9 @@ let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
     in
     scan_func ~respect_git_ignore:true ~file_match_results_hook:None runner_conf
       rules [] targets
-    |> Core_runner.create_core_result rules
+    |> Core_runner.create_core_result
+         (Core_runner.core_scan_config_of_conf runner_conf)
+         rules
   in
   let errors =
     res.core.errors

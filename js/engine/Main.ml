@@ -66,7 +66,8 @@ let _ =
            let timed_rules = (rules_and_errors, 0.) in
            let res = Core_scan.scan config timed_rules in
            let res =
-             Core_runner.create_core_result (fst rules_and_errors) (Ok res)
+             Core_runner.create_core_result config (fst rules_and_errors)
+               (Ok res)
            in
            (* This is just the default configuration, but this function
               doesn't actually depend upon the parts of the config that we

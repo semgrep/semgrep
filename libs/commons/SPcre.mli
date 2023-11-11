@@ -196,10 +196,14 @@ val extract_all :
   string array array
 
 (*
-   Exception-less version of Pcre.get_named_substring.
+   Exception-less version of Pcre.get_named_substring and
+   Pcre.get_named_substring_ofs.
 
    Ok None: variable name is valid but unbound
    Error msg: no such variable in the original pattern
 *)
-val get_named_substring :
-  t -> string -> Pcre.substrings -> (string option, string) Result.t
+val get_named_substring_and_ofs :
+  t ->
+  string ->
+  Pcre.substrings ->
+  ((string * (int * int)) option, string) Result.t
