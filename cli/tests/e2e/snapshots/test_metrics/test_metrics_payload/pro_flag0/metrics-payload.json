@@ -56,6 +56,7 @@
     ],
     "numFindings": 1,
     "numIgnored": 0,
+    "requestedInterfileLanguages": [],
     "ruleHashesWithFindings": {
       "7d0af7d79e44c9bafdba5c83bacbb44c5b663c3c3efe1eec1676df5158303eb4": 1,
       "d9b9091bec0a312e3cbf9735b69e80411a0131779938f802de3899fec6354aa7": 0
