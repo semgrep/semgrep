@@ -64,5 +64,5 @@ let on_notification server params : unit =
           *)
           RPC_server.notify_show_message ~kind:MessageType.Info
             "Successfully logged into Semgrep Code";
-          let^ () = Semgrep_login.save_token_async token in
+          let^ _deployment = Semgrep_login.save_token_async token in
           Lwt.return ())

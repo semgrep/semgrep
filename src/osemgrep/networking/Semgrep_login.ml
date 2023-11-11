@@ -47,10 +47,10 @@ let save_token_async ?(ident = None) token =
   Semgrep_App.get_deployment_from_token_async token
   |> Lwt.map (function
        | None -> Error "Login token is not valid. Please try again."
-       | Some _deployment_config
+       | Some deployment_config
          when Semgrep_settings.save
                 Semgrep_settings.{ settings with api_token = Some token } ->
-           Ok ()
+           Ok deployment_config
        | _ -> Error "Failed to save token. Please try again.")
 
 let save_token ?(ident = None) token =
@@ -113,7 +113,9 @@ let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
                   (* NOTE: We should probably use user_id over user_name for uniqueness constraints *)
                   let ident = json |> member "user_name" |> to_string in
                   let%lwt result = save_token_async ~ident:(Some ident) token in
-                  Result.bind result (fun () -> Ok (token, ident)) |> Lwt.return
+                  Result.bind result (fun _deployment_config ->
+                      Ok (token, ident))
+                  |> Lwt.return
               | `Null
               | _ ->
                   let message = Printf.sprintf "Failed to get token: %s" body in

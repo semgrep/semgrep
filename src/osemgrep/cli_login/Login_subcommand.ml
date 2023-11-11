@@ -11,6 +11,14 @@
 (* Helpers *)
 (*****************************************************************************)
 
+let print_success_message display_name : unit =
+  let message =
+    Ocolor_format.asprintf {|%s Successfully logged in as @{<cyan>%s@}! |}
+      (Logs_helpers.success_tag ())
+      display_name
+  in
+  Logs.app (fun m -> m "%s" message)
+
 let print_did_save_token () : unit =
   Logs.app (fun m ->
       m "\nSaved access token in %a" Fpath.pp
@@ -27,10 +35,16 @@ let print_did_save_token () : unit =
   Logs.app (fun m -> m "%s" epilog)
 
 (* Helper to call our save token implementation when the token is passed as an env var *)
-let save_token token =
+let save_token ?(display_name = None) token =
   match Semgrep_login.save_token token with
-  | Ok () ->
+  | Ok deployment_config ->
       print_did_save_token ();
+      let display_name =
+        match display_name with
+        | Some name -> name
+        | None -> deployment_config.display_name
+      in
+      print_success_message display_name;
       Exit_code.ok
   | Error msg ->
       Logs.err (fun m -> m "%s" msg);
@@ -93,12 +107,7 @@ let fetch_token session_id =
   | Ok (_, display_name) ->
       Console_Spinner.erase_spinner ();
       print_did_save_token ();
-      Logs.app (fun m ->
-          m
-            "%s Successfully logged in as %s! You can now run `semgrep ci` to \
-             start a scan."
-            (Logs_helpers.success_tag ())
-            display_name);
+      print_success_message display_name;
       Exit_code.ok
 
 (*****************************************************************************)
@@ -113,7 +122,8 @@ let run (conf : Login_CLI.conf) : Exit_code.t =
   match settings.Semgrep_settings.api_token with
   | None -> (
       match !Semgrep_envvars.v.app_token with
-      | Some token when String.length token > 0 -> save_token token
+      | Some token when String.length token > 0 ->
+          save_token token ~display_name:None
       | None when String.length conf.one_time_seed > 0 ->
           let shared_secret = Uuidm.v5 Uuidm.nil conf.one_time_seed in
           Logs.debug (fun m ->
@@ -137,16 +147,7 @@ let run (conf : Login_CLI.conf) : Exit_code.t =
                   Exit_code.fatal
               | Ok (token, display_name) ->
                   Console_Spinner.erase_spinner ();
-                  Logs.app (fun m ->
-                      m
-                        "%s Successfully logged in as %s! You can now run \
-                         `semgrep ci` to start a scan."
-                        (Logs_helpers.success_tag ())
-                        display_name);
-                  (* TODO: refactor to avoid calling Semgrep_login.save_token twice:
-                     *  once in Semgrep_login.fetch_token and again here.
-                  *)
-                  save_token token)))
+                  save_token token ~display_name:(Some display_name))))
   | Some _ ->
       Logs.app (fun m ->
           m

@@ -84,7 +84,7 @@ let with_mock_envvars_and_normal_responses f =
 let with_logged_in f =
   let token = ok_token in
   match Semgrep_login.save_token token with
-  | Ok () -> f ()
+  | Ok _deployment_config -> f ()
   | Error e -> failwith e
 
 (*****************************************************************************)
@@ -95,13 +95,13 @@ let save_token_tests () =
   ignore with_logged_in;
   let valid_token_test () =
     match Semgrep_login.save_token ok_token with
-    | Ok () ->
+    | Ok _deployment_config ->
         Alcotest.(check bool) "logged in" true (Semgrep_login.is_logged_in ())
     | Error e -> failwith e
   in
   let invalid_token_test () =
     match Semgrep_login.save_token bad_token with
-    | Ok () -> failwith "Expected error"
+    | Ok _deployment_config -> failwith "Expected error"
     | Error _ ->
         Alcotest.(check bool)
           "not logged in" false

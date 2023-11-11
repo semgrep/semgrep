@@ -22,9 +22,14 @@ val make_login_url : unit -> login_session
   *)
 
 val save_token_async :
-  ?ident:string option -> string -> (unit, string) result Lwt.t
+  ?ident:string option ->
+  string ->
+  (Semgrep_output_v1_t.deployment_config, string) result Lwt.t
 
-val save_token : ?ident:string option -> string -> (unit, string) result
+val save_token :
+  ?ident:string option ->
+  string ->
+  (Semgrep_output_v1_t.deployment_config, string) result
 (** [save_token ?ident token] will save the token to the user's settings file.
   * If it fails, it will return an error message.
   * [ident] is the login identifier that can be used as an opaque UUID once hashed
