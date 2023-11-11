@@ -535,6 +535,7 @@ let cli_output_of_core_results ~logging_level (core : Out.core_output)
    time = _;
    rules_by_engine = _;
    engine_requested = _;
+   requested_interfile_languages;
   } ->
       (* TODO: not sure how it's sorted. Look at rule_match.py keys? *)
       let matches =
@@ -591,6 +592,7 @@ let cli_output_of_core_results ~logging_level (core : Out.core_output)
         paths;
         skipped_rules;
         explanations;
+        requested_interfile_languages;
         (* LATER *)
         time = None;
         rules_by_engine = None;
