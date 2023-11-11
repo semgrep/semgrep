@@ -1,0 +1,12 @@
+rules:
+  - id: du-same-file
+    languages:
+      - python
+    message: Found!
+    match:
+      all:
+      - anywhere: |
+          def $F(...):
+              ...
+      - "$F(...)"
+    severity: ERROR
