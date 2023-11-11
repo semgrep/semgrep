@@ -46,7 +46,8 @@ let login_cmdline_info : Cmd.info =
 
 let o_temporary_secret : string Term.t =
   let doc =
-    "Initialize login with a temporary secret from the onboarding flow"
+    "Initialize login with a temporary secret from the Semgrep App onboarding \
+     flow"
   in
   Arg.(value & opt string "" & info [ "init"; "setup" ] ~docv:"secret" ~doc)
 
