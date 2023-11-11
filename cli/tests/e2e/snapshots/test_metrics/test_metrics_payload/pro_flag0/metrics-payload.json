@@ -7,7 +7,7 @@
     "isAuthenticated": false,
     "isDiffScan": false,
     "projectHash": null,
-    "rulesHash": "43af0cc99ad4b3620194d238a7875cc37f8d8eaa1800fd395c15a5ee21967ac3",
+    "rulesHash": "7f693c12172d20798fe56ef8555cf42accb11ae6fc115d0d87405f2a988e9805",
     "version": "x.x.x"
   },
   "errors": {
@@ -17,23 +17,29 @@
   "event_id": "00000000-0000-0000-0000-000000000000",
   "extension": {},
   "parse_rate": {
-    "python": {
-      "bytes_parsed": 6,
-      "num_bytes": 6,
+    "csharp": {
+      "bytes_parsed": 1492,
+      "num_bytes": 1492,
+      "num_targets": 2,
+      "targets_parsed": 2
+    },
+    "java": {
+      "bytes_parsed": 300,
+      "num_bytes": 300,
       "num_targets": 1,
       "targets_parsed": 1
     }
   },
   "performance": {
-    "numRules": 4,
-    "numTargets": 1,
+    "numRules": 2,
+    "numTargets": 3,
     "profilingTimes": {
       "config_time": 0.0,
       "core_time": 0.0,
       "ignores_time": 0.0,
       "total_time": 0.0
     },
-    "totalBytesScanned": 6
+    "totalBytesScanned": 1792
   },
   "sent_at": "2017-03-03T00:00:00+09:00",
   "started_at": "2017-03-03T00:00:00+09:00",
@@ -44,16 +50,15 @@
       "cli-flag/metrics",
       "cli-flag/targets",
       "config/local",
-      "language/python",
+      "language/csharp",
+      "language/java",
       "subcommand/scan"
     ],
     "numFindings": 1,
     "numIgnored": 0,
     "ruleHashesWithFindings": {
-      "0c9be123b69d289f1b0fa65faefade9c76479bae63006869f3ecacd8ffe8b0a8": 0,
-      "5c6d327ecdc0f6028e2d9a7e79c0ca03887a91189fbfd871286edad46e5d2516": 1,
-      "c3f79a06bc39dcd0d7ed1e1b676934d1d9fa628d5631ecd666fc204e3d811089": 0,
-      "f19cada0143903df62f6b421917d325fbbcc5ff6a7c423818030cdf64c828731": 0
+      "7d0af7d79e44c9bafdba5c83bacbb44c5b663c3c3efe1eec1676df5158303eb4": 1,
+      "d9b9091bec0a312e3cbf9735b69e80411a0131779938f802de3899fec6354aa7": 0
     }
   }
 }

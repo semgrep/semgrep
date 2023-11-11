@@ -16,17 +16,30 @@
   },
   "event_id": "00000000-0000-0000-0000-000000000000",
   "extension": {},
-  "parse_rate": {},
+  "parse_rate": {
+    "csharp": {
+      "bytes_parsed": 1492,
+      "num_bytes": 1492,
+      "num_targets": 2,
+      "targets_parsed": 2
+    },
+    "java": {
+      "bytes_parsed": 300,
+      "num_bytes": 300,
+      "num_targets": 1,
+      "targets_parsed": 1
+    }
+  },
   "performance": {
     "numRules": 2,
-    "numTargets": 0,
+    "numTargets": 3,
     "profilingTimes": {
       "config_time": 0.0,
       "core_time": 0.0,
       "ignores_time": 0.0,
       "total_time": 0.0
     },
-    "totalBytesScanned": 0
+    "totalBytesScanned": 1792
   },
   "sent_at": "2017-03-03T00:00:00+09:00",
   "started_at": "2017-03-03T00:00:00+09:00",
@@ -38,17 +51,21 @@
       "cli-flag/requested_engine",
       "cli-flag/targets",
       "config/local",
+      "language/csharp",
+      "language/java",
       "subcommand/scan"
     ],
-    "numFindings": 0,
+    "numFindings": 2,
     "numIgnored": 0,
     "proFeatures": {
       "diffDepth": -1
     },
-    "requestedInterfileLanguages": [],
+    "requestedInterfileLanguages": [
+      "C#"
+    ],
     "ruleHashesWithFindings": {
-      "7d0af7d79e44c9bafdba5c83bacbb44c5b663c3c3efe1eec1676df5158303eb4": 0,
-      "d9b9091bec0a312e3cbf9735b69e80411a0131779938f802de3899fec6354aa7": 0
+      "7d0af7d79e44c9bafdba5c83bacbb44c5b663c3c3efe1eec1676df5158303eb4": 1,
+      "d9b9091bec0a312e3cbf9735b69e80411a0131779938f802de3899fec6354aa7": 1
     }
   }
 }
