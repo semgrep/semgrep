@@ -116,70 +116,34 @@ let run (conf : Login_CLI.conf) : Exit_code.t =
           Logs.debug (fun m ->
               m "using seed %s with uuid %s" conf.one_time_seed
                 (Uuidm.to_string shared_secret));
-          fetch_token (shared_secret, Uri.of_string "https://semgrep.dev")
+          fetch_token shared_secret
       | None
       | Some _ -> (
-          if not Unix.(isatty stdin) then (
-            Logs.err (fun m ->
-                m
-                  "Error: semgrep login is an interactive command: run in an \
-                   interactive terminal (or define SEMGREP_APP_TOKEN)");
-            Exit_code.fatal)
-          else
-            let session_id, url = Semgrep_login.make_login_url () in
-            Logs.app (fun m -> m "%a" Fmt_helpers.pp_heading "Login");
-            let preamble =
-              Ocolor_format.asprintf
-                {|
-Logging in gives you access to Supply Chain, Secrets and Pro rules.
-
-Plus, you can manage your rules and code findings with Semgrep Cloud Platform.
-
-@{<ul>Steps@}
-1. Sign in with your authentication provider
-2. Activate your access token
-3. Return here and start scanning!
-|}
-            in
-            Logs.app (fun m -> m "%s" preamble);
-            let cmd = Bos.Cmd.(v "open" % Uri.to_string url) in
-            let () =
-              let res = Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string in
-              match res with
-              | Ok _ ->
+          let session_id = start_interactive_flow () in
+          match session_id with
+          | None -> Exit_code.fatal
+          | Some session_id -> (
+              Unix.sleepf 0.1;
+              (* wait 100ms for the browser to open and then start showing the spinner *)
+              match
+                Semgrep_login.fetch_token
+                  ~wait_hook:Console_Spinner.show_spinner session_id
+              with
+              | Error msg ->
+                  Logs.err (fun m -> m "%s" msg);
+                  Exit_code.fatal
+              | Ok (token, display_name) ->
+                  Console_Spinner.erase_spinner ();
                   Logs.app (fun m ->
-                      m "Opening your sign-in link automatically...");
-                  let msg =
-                    Ocolor_format.asprintf
-                      "If nothing happened, please open this link in your \
-                       browser:\n\n\
-                       @{<cyan;ul>%s@}\n"
-                      (Uri.to_string url)
-                  in
-                  Logs.app (fun m -> m "%s" msg)
-              | __else__ -> ()
-            in
-            Unix.sleepf 0.1;
-            (* wait 100ms for the browser to open and then start showing the spinner *)
-            match
-              Semgrep_login.fetch_token ~wait_hook:Console_Spinner.show_spinner
-                (session_id, url)
-            with
-            | Error msg ->
-                Logs.err (fun m -> m "%s" msg);
-                Exit_code.fatal
-            | Ok (token, display_name) ->
-                Console_Spinner.erase_spinner ();
-                Logs.app (fun m ->
-                    m
-                      "%s Successfully logged in as %s! You can now run \
-                       `semgrep ci` to start a scan."
-                      (Logs_helpers.success_tag ())
-                      display_name);
-                (* TODO: refactor to avoid calling Semgrep_login.save_token twice:
-                 *  once in Semgrep_login.fetch_token and again here.
-                 *)
-                save_token token))
+                      m
+                        "%s Successfully logged in as %s! You can now run \
+                         `semgrep ci` to start a scan."
+                        (Logs_helpers.success_tag ())
+                        display_name);
+                  (* TODO: refactor to avoid calling Semgrep_login.save_token twice:
+                     *  once in Semgrep_login.fetch_token and again here.
+                  *)
+                  save_token token)))
   | Some _ ->
       Logs.app (fun m ->
           m

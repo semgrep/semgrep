@@ -55,7 +55,7 @@ let o_temporary_secret : string Term.t =
 (*****************************************************************************)
 
 let term =
-  let combine common init = { common; init } in
+  let combine common one_time_seed = { common; one_time_seed } in
   Term.(const combine $ CLI_common.o_common $ o_temporary_secret)
 
 let parse_argv (cmd_info : Cmd.info) (argv : string array) : conf =

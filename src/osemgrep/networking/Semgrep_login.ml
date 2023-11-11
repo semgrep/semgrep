@@ -18,7 +18,8 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 (* Types *)
 (*****************************************************************************)
 
-type login_session = Uuidm.t * Uri.t
+type shared_secret = Uuidm.t
+type login_session = shared_secret * Uri.t
 
 (*****************************************************************************)
 (* Code *)
@@ -66,7 +67,7 @@ let is_logged_in () =
   Option.is_some settings.api_token
 
 let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
-    ?(max_retries = 12) ?(wait_hook = fun _delay_ms -> ()) login_session =
+    ?(max_retries = 12) ?(wait_hook = fun _delay_ms -> ()) shared_secret =
   let apply_backoff current_wait_ms =
     Float.to_int (Float.ceil (Float.of_int current_wait_ms *. 1.3))
   in
@@ -74,7 +75,7 @@ let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
     Uri.with_path !Semgrep_envvars.v.semgrep_url "api/agent/tokens/requests"
   in
   let body =
-    {|{"token_request_key": "|} ^ Uuidm.to_string (fst login_session) ^ {|"}|}
+    {|{"token_request_key": "|} ^ Uuidm.to_string shared_secret ^ {|"}|}
   in
   let settings = Semgrep_settings.load () in
   let anonymous_user_id = settings.Semgrep_settings.anonymous_user_id in
@@ -143,7 +144,7 @@ let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
   fetch_token' next_wait_ms max_retries
 
 let fetch_token ?(min_wait_ms = 2000) ?(next_wait_ms = 1000) ?(max_retries = 12)
-    ?(wait_hook = fun _delay_ms -> ()) login_session =
+    ?(wait_hook = fun _delay_ms -> ()) shared_secret =
   Lwt_platform.run
     (fetch_token_async ~min_wait_ms ~next_wait_ms ~max_retries ~wait_hook
-       login_session)
+       shared_secret)

@@ -1,4 +1,5 @@
 type shared_secret = Uuidm.t
+(** [shared_secret] is the secret used to sign the request token. *)
 
 type login_session = shared_secret * Uri.t
 (** [login_session] is a request token and request url tuple.*)
@@ -35,7 +36,7 @@ val fetch_token :
   shared_secret ->
   (string * string, string) result
 (** [fetch_token ?min_wait_ms ?next_wait_ms ?max_retries wait_hook shared_secret] will
-  * fetch the access token using the shared secret. It will retry up to [max_retries]
+  * fetch the token using the request token and url the login session. It will retry up to [max_retries]
   * times, waiting [min_wait_ms] ms between each retry, and increasing the
   * wait time by [next_wait_ms] ms each time. If it fails, it will return an
   * error message. These will give users ~2 minutes to login
@@ -47,9 +48,9 @@ val fetch_token_async :
   ?next_wait_ms:int ->
   ?max_retries:int ->
   ?wait_hook:(int -> unit) ->
-  login_session ->
+  shared_secret ->
   (string * string, string) result Lwt.t
-(** [fetch_token_async ?min_wait_ms ?next_wait_ms ?max_retries wait_hook login_session] will
+(** [fetch_token_async ?min_wait_ms ?next_wait_ms ?max_retries wait_hook shared_secret] will
   * fetch the token using the request token and url the login session. It will retry up to [max_retries]
   * times, waiting [min_wait_ms] ms between each retry, and increasing the
   * wait time by [next_wait_ms] ms each time, returning a promise if successful. If it

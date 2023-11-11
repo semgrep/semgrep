@@ -4,11 +4,6 @@
 
 let spinner = [| "⠋"; "⠙"; "⠹"; "⠸"; "⠼"; "⠴"; "⠦"; "⠧"; "⠇"; "⠏" |]
 
-(*
-  Show a spinner while waiting for the user to sign in.
-  delay_ms is the total delay across all frames, in milliseconds.
-  We show each frame for 1/100th of the total delay.
-*)
 let show_spinner delay_ms : unit =
   let print_frame ~frame_index:i : unit =
     let spinner = spinner.(i mod Array.length spinner) in
