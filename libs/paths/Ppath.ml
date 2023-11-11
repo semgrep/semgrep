@@ -98,6 +98,16 @@ let add_seg path seg =
   let segments = append_segment path.segments seg in
   unsafe_create segments
 
+(* saving you 3 neurons *)
+let add_segs path segs = List.fold_left add_seg path segs
+
+let append_fpath path fpath =
+  match Fpath.segs fpath with
+  | "" :: _ ->
+      invalid_arg
+        ("Ppath.append_fpath: not a relative path: " ^ Fpath.to_string fpath)
+  | segs -> add_segs path segs
+
 module Operators = struct
   let ( / ) = add_seg
 end
@@ -112,7 +122,7 @@ let to_fpath ~root path =
       |> (* remove leading "./" typically occuring when the project root
             is "." *)
       Fpath.normalize
-  | _else_ -> assert false
+  | _ -> assert false
 
 (*****************************************************************************)
 (* Project Builder *)
@@ -163,7 +173,13 @@ let normalize_ppath x =
       in
       Ok (create segments)
 
-let of_fpath path = Fpath.segs path |> create
+let of_fpath path =
+  Fpath.segs path |> create |> make_absolute |> normalize_ppath
+
+let of_fpath_exn path =
+  match of_fpath path with
+  | Ok ppath -> ppath
+  | Error msg -> invalid_arg msg
 
 (*
    Prepend "./" to relative paths so as to make "." a prefix.
@@ -224,7 +240,7 @@ let in_project ~root path =
       Error
         (Common.spf "cannot make path %S relative to project root %S" !!path
            !!root)
-  | Some path -> path |> of_fpath |> make_absolute |> normalize_ppath
+  | Some path -> path |> of_fpath
 
 let from_segments segs =
   match segs with

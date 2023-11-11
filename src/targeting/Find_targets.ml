@@ -34,7 +34,7 @@ module Out = Semgrep_output_v1_t
 (* Types *)
 (*************************************************************************)
 
-module Fpath_set = Set.Make (Fpath)
+module Fppath_set = Set.Make (Fppath)
 
 (* TODO? process also user's gitignore file like ripgrep does?
    TODO? use Glob.Pattern.t below instead of string for exclude and include_?
@@ -68,29 +68,12 @@ type conf = {
 }
 [@@deriving show]
 
-(* For gitignore filtering, we need to operate on Ppath (see
- * the signature of Gitignore_filter.select()), but when semgrep
- * displays findings or errors, we want filenames derived from
- * the scanning roots, not the root of the project. This is why we need to
- * keep both the fpath and ppath for each target file as we walked
- * down the filesystem hierarchy.
- *)
-type fppath = { fpath : Fpath.t; ppath : Ppath.t }
-
 (* TODO? could move in Project.ml *)
 type project_roots = {
   project : Project.t;
   (* scanning roots that belong to the project *)
-  scanning_roots : fppath list;
+  scanning_roots : Fppath.t list;
 }
-
-(*
-let fppath_split_base (x : fppath) =
-  let dir_fpath, name_fpath = Fpath.split_base x in
-  let dir_ppath, name_ppath = Ppath.split_base x in
-  let dir_path =
-    { fpath = Fpath.split_base x
-*)
 
 (*************************************************************************)
 (* Diagnostic *)
@@ -128,8 +111,8 @@ type filter_result =
   | Skip of Out.skipped_target (* ignore this file and report it *)
   | Ignore_silently (* ignore and don't report this file *)
 
-let filter_path (ign : Semgrepignore.t) (fppath : fppath) : filter_result =
-  let { fpath; ppath } = fppath in
+let filter_path (ign : Semgrepignore.t) (fppath : Fppath.t) : filter_result =
+  let { fpath; ppath } : Fppath.t = fppath in
   (* skip hidden files (this includes big directories like .git/)
      TODO? maybe add a setting in conf? -> no, this is a job for
      semgrepignore.
@@ -172,7 +155,7 @@ let filter_path (ign : Semgrepignore.t) (fppath : fppath) : filter_result =
    Filter a pre-expanded list of target files, such as a list of files
    obtained with 'git ls-files'.
 *)
-let filter_paths (ign : Semgrepignore.t) (target_files : fppath list) :
+let filter_paths (ign : Semgrepignore.t) (target_files : Fppath.t list) :
     Fpath.t list * Out.skipped_target list =
   let (selected_paths : Fpath.t list ref) = ref [] in
   let (skipped : Out.skipped_target list ref) = ref [] in
@@ -202,7 +185,7 @@ let filter_paths (ign : Semgrepignore.t) (target_files : fppath list) :
  * pre: the scan_root must be a path to a directory
  *)
 let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
-    (scan_root : fppath) : Fpath.t list * Out.skipped_target list =
+    (scan_root : Fppath.t) : Fpath.t list * Out.skipped_target list =
   (* Imperative style! walk and collect.
      This is for the sake of readability so let's try to make this as
      readable as possible.
@@ -213,7 +196,7 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
   let skip target = push target skipped in
 
   (* mostly a copy-paste of List_files.list_regular_files() *)
-  let rec aux (dir : fppath) =
+  let rec aux (dir : Fppath.t) =
     Logs.debug (fun m ->
         m "listing dir %s (ppath = %s)" !!(dir.fpath)
           (Ppath.to_string dir.ppath));
@@ -235,7 +218,7 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
               TODO: why are we doing this? It doesn't seem like pysemgrep
               is doing this.
            *)
-           let fppath = { fpath; ppath } in
+           let fppath : Fppath.t = { fpath; ppath } in
            match filter_path ign fppath with
            | Keep -> add fpath
            | Skip skipped -> skip skipped
@@ -269,7 +252,38 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
 (*************************************************************************)
 
 (*
-   Get the list of files being tracked by git.
+   Get the list of files being tracked by git. Return a list of paths
+   relative to the project root in addition to their system path
+   so that we can filter them with semgrepignore.
+*)
+let git_list_files (file_kinds : Git_wrapper.ls_files_kind list)
+    (project_roots : project_roots) : Fppath_set.t option =
+  let project = project_roots.project in
+  match project.kind with
+  | Git_project ->
+      Some
+        (project_roots.scanning_roots
+        |> List.concat_map (fun (sc_root : Fppath.t) ->
+               Git_wrapper.ls_files ~kinds:file_kinds [ sc_root.fpath ]
+               |> Common.map (fun fpath ->
+                      let fpath_relative_to_scan_root =
+                        match Fpath.relativize ~root:sc_root.fpath fpath with
+                        | Some x -> x
+                        | None -> assert false
+                      in
+                      let ppath =
+                        Ppath.append_fpath sc_root.ppath
+                          fpath_relative_to_scan_root
+                      in
+                      ({ fpath; ppath } : Fppath.t)))
+        |> Fppath_set.of_list)
+  | Gitignore_project
+  | Other_project ->
+      None
+
+(*
+   Get the list of files being tracked by git, return a list of paths
+   relative to the project root.
 
    This doesn't include the "untracked files" reported by 'git status'.
    These untracked files may or may not be desirable. Their fate will be
@@ -282,40 +296,19 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
    We could also provide similar functions for other file tracking systems
    (Mercurial/hg, Subversion/svn, ...)
 *)
-let git_list_tracked_files (project_roots : project_roots) : Fpath_set.t option
+let git_list_tracked_files (project_roots : project_roots) : Fppath_set.t option
     =
-  match project_roots.project.kind with
-  | Git_project ->
-      Some
-        (project_roots.scanning_roots
-        |> Common.map (fun (x : fppath) -> x.fpath)
-        |> (fun paths -> Git_wrapper.ls_files paths)
-        |> Fpath_set.of_list)
-  | Gitignore_project
-  | Other_project ->
-      None
+  git_list_files [ Cached ] project_roots
 
 (*
    List all the files that are not being tracked by git except those in
-   '.git/'.
+   '.git/'. Return a list of paths relative to the project root.
 
    This is the complement of git_list_tracked_files (except for '.git/').
 *)
 let git_list_untracked_files (project_roots : project_roots) :
-    Fpath_set.t option =
-  match project_roots.project.kind with
-  | Git_project ->
-      Some
-        (project_roots.scanning_roots
-        |> Common.map (fun (x : fppath) -> x.fpath)
-        |> (fun paths ->
-             Git_wrapper.ls_files
-               ~kinds:[ (Others : Git_wrapper.ls_files_kind) ]
-               paths)
-        |> Fpath_set.of_list)
-  | Gitignore_project
-  | Other_project ->
-      None
+    Fppath_set.t option =
+  git_list_files [ Others ] project_roots
 
 (*************************************************************************)
 (* Grouping *)
@@ -343,7 +336,8 @@ let group_scanning_roots_by_project (conf : conf)
            Git_project.find_any_project_root ?force_root scanning_root
          in
          ( ({ kind; path = Realpath.of_fpath project_root } : Project.t),
-           { fpath = scanning_root; ppath = scanning_root_ppath } ))
+           ({ fpath = scanning_root; ppath = scanning_root_ppath } : Fppath.t)
+         ))
   (* using a Realpath in Project.t ensures we group correctly even
    * if the scanning_roots went through different symlink paths
    *)
@@ -394,16 +388,14 @@ let setup_semgrepignore conf (project_roots : project_roots) : Semgrepignore.t =
     ()
 
 (* Work from a list of  obtained with git *)
-let filter_targets conf project_roots (all_files : Fpath.t list) =
+let filter_targets conf project_roots (all_files : Fppath.t list) =
   let ign = setup_semgrepignore conf project_roots in
-  let fppaths = all_files |> Common.map (fun fpath -> { fpath; ppath }) in
-  let selected, skipped = filter_paths ign fppaths in
-  (Fpath_set.of_list selected, skipped)
+  filter_paths ign all_files
 
 let get_targets_from_filesystem conf (project_roots : project_roots) =
   let ign = setup_semgrepignore conf project_roots in
   List.fold_left
-    (fun (selected, skipped) scan_root ->
+    (fun (selected, skipped) (scan_root : Fppath.t) ->
       (* better: Note that we use Unix.stat below, not Unix.lstat, so
        * osemgrep accepts symlink paths on the command--line;
        * you can do 'osemgrep -e ... ~/symlink-to-proj' or even

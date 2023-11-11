@@ -51,6 +51,15 @@ val from_segments : string list -> (t, string) result
 (* Convert back to a system path. *)
 val to_fpath : root:Fpath.t -> t -> Fpath.t
 
+(* Convert from a system path to a normalized project path.
+   Both relative and absolute input paths are acceptable and equivalent.
+*)
+val of_fpath : Fpath.t -> (t, string) result
+
+(* Same as of_fpath but raises Invalid_argument if the path points outside
+   the project e.g. '/..' *)
+val of_fpath_exn : Fpath.t -> t
+
 (* /, useful as a folding starting point *)
 val root : t
 
@@ -64,6 +73,13 @@ val segments : t -> string list
 
 (* Append a segment to a path. *)
 val add_seg : t -> string -> t
+
+(* Append segments to a path. *)
+val add_segs : t -> string list -> t
+
+(* Append a relative fpath.
+   Raises Invalid_argument if the fpath is absolute. *)
+val append_fpath : t -> Fpath.t -> t
 
 (* Imitate File.Operators in libs/commons/ *)
 module Operators : sig
