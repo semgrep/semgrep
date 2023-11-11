@@ -1,5 +1,11 @@
 type render_fix = Pattern_match.t -> Textedit.t option
 
+val interpolate_metavars :
+  string ->
+  (string * Semgrep_output_v1_t.metavar_value) list ->
+  string ->
+  string
+
 (* Can return an Error because when have a NoTokenLocation exn when
  * trying to get the range of a match or metavar.
  *)

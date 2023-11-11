@@ -32,9 +32,60 @@ module OutUtils = Semgrep_output_utils
  *)
 type render_fix = Pattern_match.t -> Textedit.t option
 
+(* LATER: use Metavariable.bindings directly ! *)
+type metavars = (string * Out.metavar_value) list
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+
+(* Substitute the metavariables mentioned in a message to their
+ * matched content.
+ *
+ * We could either:
+ *  (1) go through all the metavars and textually substitute them in the text
+ *  (2) go through the text and find each metavariable regexp occurence
+ *    and replace them with their content
+ * python: the original code did (1) so we're doing the same for now,
+ * however (2) seems more logical to me and wasting less CPUs since
+ * you only substitute metavars that are actually mentioned in the message.
+ *
+ * TODO: expose this function so it can be used in language_server
+ *)
+let interpolate_metavars (text : string) (metavars : metavars) (file : filename)
+    : string =
+  (* sort by metavariable length to avoid name collisions
+   * (eg. $X2 must be handled before $X)
+   *)
+  let mvars =
+    metavars
+    |> List.sort (fun (a, _) (b, _) ->
+           compare (String.length b) (String.length a))
+  in
+  mvars
+  |> List.fold_left
+       (fun text (mvar, mval) ->
+         (* necessary typing to help the type check disambiguate fields,
+          * because of the use of multiple fields with the same
+          * name in semgrep_output_v1.atd *)
+         let (v : Out.metavar_value) = mval in
+         let content =
+           lazy
+             (Semgrep_output_utils.content_of_file_at_range (v.start, v.end_)
+                (Fpath.v file))
+         in
+         text
+         (* first value($X), and then $X *)
+         |> Str.global_substitute
+              (Str.regexp_string (spf "value(%s)" mvar))
+              (fun _whole_str ->
+                match v.propagated_value with
+                | Some x ->
+                    x.svalue_abstract_content (* default to the matched value *)
+                | None -> Lazy.force content)
+         |> Str.global_substitute (Str.regexp_string mvar) (fun _whole_str ->
+                Lazy.force content))
+       text
 
 let range_of_any_opt startp_of_match_range any =
   let empty_range = (startp_of_match_range, startp_of_match_range) in
@@ -209,8 +260,25 @@ let taint_trace_to_dataflow_trace (traces : PM.taint_trace_item list) :
     taint_sink = taint_call_trace sink_call_trace;
   }
 
-let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
-    =
+(* TODO: expose this function so it can be used in language_server *)
+let render_fix
+    (render_ast_based_fix_opt : (Pattern_match.t -> Textedit.t option) option)
+    (metavars : metavars) (pm : Pattern_match.t) : string option =
+  match pm with
+  | { rule_id; file; _ } -> (
+      let normal_fix fix_text =
+        Some (interpolate_metavars fix_text metavars file)
+      in
+      match (rule_id.fix, render_ast_based_fix_opt) with
+      | None, _ -> None
+      | Some fix_text, None -> normal_fix fix_text
+      | Some fix_text, Some render_ast_based_fix -> (
+          match render_ast_based_fix pm with
+          | None -> normal_fix fix_text
+          | Some res -> Some res.Textedit.replacement_text))
+
+let unsafe_match_to_match render_ast_based_fix_opt (x : Pattern_match.t) :
+    Out.core_match =
   let min_loc, max_loc = x.range_loc in
   let startp, endp = OutUtils.position_range min_loc max_loc in
   let dataflow_trace =
@@ -219,11 +287,11 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
         | (lazy trace) -> taint_trace_to_dataflow_trace trace)
       x.taint_trace
   in
-  let rendered_fix =
-    let* render_fix = render_fix_opt in
-    let* edit = render_fix x in
-    Some edit.Textedit.replacement_text
-  in
+  let metavars = x.env |> Common.map (metavars startp) in
+  let rendered_fix = render_fix render_ast_based_fix_opt metavars x in
+  (* message where the metavars have been interpolated *)
+  (* TODO(secrets): apply masking logic here *)
+  let message = interpolate_metavars x.rule_id.message metavars x.file in
   (* We need to do this, because in Terraform, we may end up with a `file` which
      does not correspond to the actual location of the tokens. This `file` is
      erroneous, and should be replaced by the location of the code of the match,
@@ -246,10 +314,10 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
     (* end inherited location *)
     extra =
       {
-        message = Some x.rule_id.message;
+        message = Some message;
         severity = x.severity_override;
         metadata = Option.map JSON.to_yojson x.metadata_override;
-        metavars = x.env |> Common.map (metavars startp);
+        metavars;
         dataflow_trace;
         rendered_fix;
         engine_kind = x.engine_kind;
@@ -386,6 +454,10 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
 
        stats = { okfiles = count_ok; errorfiles = count_errors };
 *)
+
+(*****************************************************************************)
+(* Preprocessing core output *)
+(*****************************************************************************)
 
 (*****************************************************************************)
 (* Final semgrep-core output *)

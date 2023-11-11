@@ -27,74 +27,9 @@ module Out = Semgrep_output_v1_j
 (* Types *)
 (*****************************************************************************)
 
-(* LATER: use Metavariable.bindings directly ! *)
-type metavars = (string * Out.metavar_value) list
-
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-(* Substitute the metavariables mentioned in a message to their
- * matched content.
- *
- * We could either:
- *  (1) go through all the metavars and textually substitute them in the text
- *  (2) go through the text and find each metavariable regexp occurence
- *    and replace them with their content
- * python: the original code did (1) so we're doing the same for now,
- * however (2) seems more logical to me and wasting less CPUs since
- * you only substitute metavars that are actually mentioned in the message.
- *
- * TODO: expose this function so it can be used in language_server
- *)
-let interpolate_metavars (text : string) (metavars : metavars) (file : filename)
-    : string =
-  (* sort by metavariable length to avoid name collisions
-   * (eg. $X2 must be handled before $X)
-   *)
-  let mvars =
-    metavars
-    |> List.sort (fun (a, _) (b, _) ->
-           compare (String.length b) (String.length a))
-  in
-  mvars
-  |> List.fold_left
-       (fun text (mvar, mval) ->
-         (* necessary typing to help the type check disambiguate fields,
-          * because of the use of multiple fields with the same
-          * name in semgrep_output_v1.atd *)
-         let (v : Out.metavar_value) = mval in
-         let content =
-           lazy
-             (Semgrep_output_utils.content_of_file_at_range (v.start, v.end_)
-                (Fpath.v file))
-         in
-         text
-         (* first value($X), and then $X *)
-         |> Str.global_substitute
-              (Str.regexp_string (spf "value(%s)" mvar))
-              (fun _whole_str ->
-                match v.propagated_value with
-                | Some x ->
-                    x.svalue_abstract_content (* default to the matched value *)
-                | None -> Lazy.force content)
-         |> Str.global_substitute (Str.regexp_string mvar) (fun _whole_str ->
-                Lazy.force content))
-       text
-
-(* TODO: expose this function so it can be used in language_server *)
-let render_fix (hrules : Rule.hrules) (x : Out.core_match) : string option =
-  match x with
-  | { check_id = rule_id; path; extra = { metavars; rendered_fix; _ }; _ } -> (
-      let rule =
-        try Hashtbl.find hrules rule_id with
-        | Not_found -> raise Impossible
-      in
-      (* TOPORT: debug logging which indicates the source of the fix *)
-      match (rendered_fix, rule.fix) with
-      | Some fix, _ -> Some fix
-      | None, Some fix -> Some (interpolate_metavars fix metavars !!path)
-      | None, None -> None)
 
 (*****************************************************************************)
 (* Core error to cli error *)
@@ -339,7 +274,8 @@ let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
   let xpat_str = String.concat " " sorted_xpat_strs in
   let metavars = Option.value ~default:[] metavars in
   let xpat_str_interp =
-    interpolate_metavars xpat_str metavars path |> String.escaped
+    Core_json_output.interpolate_metavars xpat_str metavars path
+    |> String.escaped
   in
   (* Python doesn't escape the double quote character, but ocaml does :/ so we need this monstrosity *)
   let py_esc_reg = Str.regexp "\\\\\\\"" in
@@ -370,8 +306,7 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
        engine_kind;
        extra_extra;
        validation_state;
-       (* used now in render_fix instead *)
-       rendered_fix = _;
+       rendered_fix = fix;
        (* LATER *)
        dataflow_trace = _;
      };
@@ -388,10 +323,6 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
         | None ->
             rule_message
       in
-      (* message where the metavars have been interpolated *)
-      (* TODO(secrets): apply masking logic here *)
-      let message = interpolate_metavars message metavars !!path in
-      let fix = render_fix hrules m in
       let check_id = rule_id in
       let metavars = Some metavars in
       (* LATER: this should be a variant in semgrep_output_v1.atd
