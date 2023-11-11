@@ -50,7 +50,6 @@ type metavars = (string * Out.metavar_value) list
  * however (2) seems more logical to me and wasting less CPUs since
  * you only substitute metavars that are actually mentioned in the message.
  *
- * TODO: expose this function so it can be used in language_server
  *)
 let interpolate_metavars (text : string) (metavars : metavars) (file : filename)
     : string =
@@ -454,10 +453,6 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
 
        stats = { okfiles = count_ok; errorfiles = count_errors };
 *)
-
-(*****************************************************************************)
-(* Preprocessing core output *)
-(*****************************************************************************)
 
 (*****************************************************************************)
 (* Final semgrep-core output *)
