@@ -40,6 +40,29 @@ val ( =:= ) : bool -> bool -> bool
 val ( =*= ) : 'a -> 'a -> bool
 
 (*****************************************************************************)
+(* Comparison *)
+(*****************************************************************************)
+
+type order = Less | Equal | Greater
+
+val binary_search_arr :
+  f:(int -> 'a -> order) -> 'a array -> (int * 'a, int) result
+(** [binary_search_arr f A] returns Ok (idx, x) if the element x can be found
+    at idx x, according to comparison function f.
+    Otherwise, it returns Error idx, where idx is the index that the element
+    must be inserted at, if it were to be in the array.
+    For instance, when searching for 2 in [|0, 3|], we get Error 1.
+    Inserting at the beginning is Error 0, and at the end is Error 2.
+  *)
+
+val binary_search_bigarr1 :
+  f:(int -> 'a -> order) ->
+  ('a, 'b, 'c) Bigarray.Array1.t ->
+  (int * 'a, int) result
+
+val to_comparison : ('a -> 'a -> int) -> 'a -> 'a -> order
+
+(*****************************************************************************)
 (* Printing/debugging *)
 (*****************************************************************************)
 (* see also Dumper.ml *)
@@ -363,9 +386,9 @@ val group_by_multi : ('a -> 'b list) -> 'a list -> ('b * 'a list) list
 (* Stack *)
 (*****************************************************************************)
 
-type 'a stack = 'a list
+type 'a stack = 'a list ref
 
-val push : 'a -> 'a stack ref -> unit
+val push : 'a -> 'a stack -> unit
 
 (*****************************************************************************)
 (* Hash *)

@@ -34,3 +34,11 @@ $(JSONNET):
 
 clean:
 	rm -f $(OBJS)
+
+# for pad's codemap
+.PHONY: gen-codemapignore
+gen-codemapignore: $(OBJS)
+	rm -f .codemapignore
+	for i in $(OBJS);  do \
+		echo $$i >> .codemapignore; \
+	done

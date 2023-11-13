@@ -251,10 +251,16 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       add_pending_goto state newi label;
       CfgFirstLast (newi, None, false)
   | Return (tok, e) ->
-      let newi = state.g#add_node { F.n = F.NReturn (tok, e) } in
+      let new_ = F.NReturn (tok, e) in
+      let newi = state.g#add_node { F.n = new_ } in
       state.g |> add_arc_from_opt (previ, newi);
-      state.g |> add_arc (newi, state.exiti);
-      CfgFirstLast (newi, None, false)
+      let lasti =
+        match build_cfg_for_lambdas_in state (Some newi) new_ with
+        | Some lasti -> lasti
+        | None -> newi
+      in
+      state.g |> add_arc (lasti, state.exiti);
+      CfgFirstLast (lasti, None, false)
   | Try (try_st, catches, else_st, finally_st) ->
       (* previ ->
        * newi ->
