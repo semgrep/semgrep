@@ -5,9 +5,9 @@ from typing import Callable
 from typing import NoReturn
 from typing import Optional
 
+from semgrep import state
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import SemgrepError
-from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
 
 
@@ -57,11 +57,11 @@ def handle_command_errors(func: Callable) -> Callable:
         else:
             exit_code = 0
         finally:
-            metrics = get_state().metrics
+            metrics = state.get_state().metrics
             metrics.add_exit_code(exit_code)
             metrics.send()
 
-            error_handler = get_state().error_handler
+            error_handler = state.get_state().error_handler
             error_handler.capture_error(exc)
             exit_code = error_handler.send(exit_code)
 
