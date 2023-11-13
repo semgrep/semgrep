@@ -667,9 +667,7 @@ def run_scan(
         metrics.add_errors(semgrep_errors)
         metrics.add_profiling(profiler)
         metrics.add_parse_rates(output_extra.parsing_data)
-        metrics.add_requested_interfile_languages(
-            output_extra.core.requested_interfile_languages
-        )
+        metrics.add_interfile_languages_used(output_extra.core.interfile_languages_used)
 
     if autofix:
         apply_fixes(filtered_matches_by_rule.kept, dryrun)

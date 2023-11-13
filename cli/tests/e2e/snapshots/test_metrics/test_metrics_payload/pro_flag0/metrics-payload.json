@@ -54,6 +54,7 @@
       "language/java",
       "subcommand/scan"
     ],
+    "interfileLanguagesUsed": [],
     "numFindings": 1,
     "numIgnored": 0,
     "ruleHashesWithFindings": {
