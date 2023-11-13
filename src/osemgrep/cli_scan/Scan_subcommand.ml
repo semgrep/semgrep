@@ -127,9 +127,8 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
   in
   let cli_matches =
     cli_matches
-    |> Common.exclude (fun m ->
-           let to_ignore, _errs = Nosemgrep.rule_match_nosem ~strict:false m in
-           to_ignore)
+    |> Common.exclude (fun (m : Out.cli_match) ->
+           Option.value ~default:false m.extra.is_ignored)
   in
   if cli_matches <> [] then (
     Unix.lockf Unix.stdout Unix.F_LOCK 0;
@@ -454,7 +453,9 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     in
     (* step 3': call the engine! *)
     let (res : Core_runner.result) =
-      Core_runner.create_core_result filtered_rules exn_and_matches
+      Core_runner.create_core_result
+        (Core_runner.core_scan_config_of_conf conf.core_runner_conf)
+        filtered_rules exn_and_matches
     in
     res.Core_runner.core.engine_requested
     |> Option.iter Metrics_.add_engine_kind;
@@ -604,7 +605,8 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
       (* final result for the shell *)
       if conf.error_on_findings && not (Common.null cli_output.results) then
         Exit_code.findings
-      else exit_code_of_errors ~strict:conf.strict res.core.errors
+      else
+        exit_code_of_errors ~strict:conf.core_runner_conf.strict res.core.errors
 
 (*****************************************************************************)
 (* Main logic *)

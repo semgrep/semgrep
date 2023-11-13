@@ -35,11 +35,9 @@ type conf = {
   rule_filtering_conf : Rule_filtering.conf;
   targeting_conf : Find_targets.conf;
   (* Other configuration options *)
-  nosem : bool;
   autofix : bool;
   dryrun : bool;
   error_on_findings : bool;
-  strict : bool;
   rewrite_rule_ids : bool;
   (* Engine selection *)
   engine_type : Engine_type.t;
@@ -112,6 +110,8 @@ let default : conf =
         timeout_threshold = 3;
         max_memory_mb = 0;
         optimizations = true;
+        nosem = true;
+        strict = false;
         dataflow_traces = false;
         matching_explanations = false;
         time_flag = false;
@@ -124,7 +124,6 @@ let default : conf =
     autofix = false;
     dryrun = false;
     error_on_findings = false;
-    strict = false;
     (* could be move in CLI_common.default_conf? *)
     common =
       {
@@ -149,7 +148,6 @@ let default : conf =
     show = None;
     validate = None;
     test = None;
-    nosem = true;
   }
 
 (*************************************************************************)
@@ -769,7 +767,7 @@ let o_error : bool Term.t =
 
 let o_strict : bool Term.t =
   H.negatable_flag [ "strict" ] ~neg_options:[ "no-strict" ]
-    ~default:default.strict
+    ~default:default.core_runner_conf.strict
     ~doc:
       {|Return a nonzero exit code when WARN level errors are encountered.
 Fails early if invalid configuration files are present.
@@ -957,6 +955,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
         timeout_threshold;
         max_memory_mb;
         ast_caching;
+        nosem;
+        strict;
         dataflow_traces;
         time_flag;
         matching_explanations;
@@ -1126,14 +1126,12 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       output;
       engine_type;
       rewrite_rule_ids;
-      strict;
       common;
       (* ugly: *)
       version;
       show;
       validate;
       test;
-      nosem;
     }
   in
   (* Term defines 'const' but also the '$' operator *)

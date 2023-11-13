@@ -4,8 +4,8 @@
 val process_ignores :
   keep_ignored:bool ->
   strict:bool ->
-  Semgrep_output_v1_j.cli_output ->
-  Semgrep_output_v1_j.cli_output
+  Semgrep_output_v1_j.core_output ->
+  Semgrep_output_v1_j.core_output
 
 (* used by osemgrep but also by the language_server *)
 
@@ -22,5 +22,5 @@ val nosem_previous_line_re : SPcre.t
 *)
 val rule_match_nosem :
   strict:bool ->
-  Semgrep_output_v1_t.cli_match ->
-  bool (* to_ignore *) * Semgrep_output_v1_t.cli_error list
+  Semgrep_output_v1_t.core_match ->
+  bool (* to_ignore *) * Semgrep_output_v1_t.core_error list

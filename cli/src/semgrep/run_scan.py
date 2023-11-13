@@ -52,7 +52,6 @@ from semgrep.git import get_project_url
 from semgrep.ignores import FileIgnore
 from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.ignores import Parser
-from semgrep.nosemgrep import process_ignores
 from semgrep.output import DEFAULT_SHOWN_SEVERITIES
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
@@ -650,12 +649,6 @@ def run_scan(
 
     ignores_start_time = time.time()
     keep_ignored = disable_nosem or output_handler.formatter.keep_ignores()
-    filtered_matches_by_rule, nosem_errors = process_ignores(
-        rule_matches_by_rule, keep_ignored=keep_ignored, strict=strict
-    )
-    profiler.save("ignores_time", ignores_start_time)
-    output_handler.handle_semgrep_errors(nosem_errors)
-
     profiler.save("total_time", rule_start_time)
 
     # Metrics send part 2: send results
@@ -663,13 +656,13 @@ def run_scan(
         metrics.add_rules(filtered_rules, output_extra.core.time)
         metrics.add_max_memory_bytes(output_extra.core.time)
         metrics.add_targets(output_extra.all_targets, output_extra.core.time)
-        metrics.add_findings(filtered_matches_by_rule)
+        metrics.add_findings(matches_by_rule)
         metrics.add_errors(semgrep_errors)
         metrics.add_profiling(profiler)
         metrics.add_parse_rates(output_extra.parsing_data)
 
     if autofix:
-        apply_fixes(filtered_matches_by_rule.kept, dryrun)
+        apply_fixes(matches_by_rule.kept, dryrun)
 
     renamed_targets = set(
         baseline_handler.status.renamed.values() if baseline_handler else []
@@ -679,7 +672,7 @@ def run_scan(
     )
 
     return (
-        filtered_matches_by_rule.kept,
+        matches_by_rule.kept,
         semgrep_errors,
         renamed_targets,
         target_manager.ignore_log,

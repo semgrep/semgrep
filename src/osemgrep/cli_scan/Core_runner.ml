@@ -25,6 +25,8 @@ type conf = {
   timeout : float;
   timeout_threshold : int;
   (* output flags *)
+  nosem : bool;
+  strict : bool;
   time_flag : bool;
   matching_explanations : bool;
   (* TODO: actually seems like semgrep-core always return them,
@@ -121,6 +123,8 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
    optimizations;
    ast_caching;
    matching_explanations;
+   nosem;
+   strict;
    (* TODO *)
    time_flag = _;
    dataflow_traces = _;
@@ -145,6 +149,8 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
         filter_irrelevant_rules;
         parsing_cache_dir;
         matching_explanations;
+        nosem;
+        strict;
         version = Version.version;
       }
 
@@ -180,8 +186,8 @@ let prepare_config_for_core_scan (config : Core_scan_config.t)
 (* LATER: we want to avoid this intermediate data structure but
  * for now that's what pysemgrep used to get so simpler to return it.
  *)
-let create_core_result (all_rules : Rule.rule list)
-    (result_or_exn : Core_result.result_or_exn) =
+let create_core_result (config : Core_scan_config.t)
+    (all_rules : Rule.rule list) (result_or_exn : Core_result.result_or_exn) =
   (* similar to Core_command.output_core_results code *)
   let res =
     match result_or_exn with
@@ -197,6 +203,8 @@ let create_core_result (all_rules : Rule.rule list)
   let match_results =
     Core_json_output.core_output_of_matches_and_errors (Some Autofix.render_fix)
       res
+    |> Nosemgrep.process_ignores ~keep_ignored:(not config.nosem)
+         ~strict:config.strict
   in
   (* TOPORT? or move in semgrep-core so get info ASAP
      if match_results.skipped_targets:

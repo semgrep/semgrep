@@ -7,6 +7,8 @@ type conf = {
   timeout : float;
   timeout_threshold : int;
   (* output flags *)
+  nosem : bool;
+  strict : bool;
   time_flag : bool;
   matching_explanations : bool;
   dataflow_traces : bool;
@@ -22,7 +24,8 @@ type result = {
   scanned : Fpath.t Set_.t;
 }
 
-val create_core_result : Rule.rule list -> Core_result.result_or_exn -> result
+val create_core_result :
+  Core_scan_config.t -> Rule.rule list -> Core_result.result_or_exn -> result
 
 (* similar to Core_scan.core_scan_func *)
 type scan_func_for_osemgrep =

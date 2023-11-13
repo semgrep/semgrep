@@ -15,11 +15,9 @@ type conf = {
   rule_filtering_conf : Rule_filtering.conf;
   targeting_conf : Find_targets.conf;
   (* Other configuration options *)
-  nosem : bool;
   autofix : bool;
   dryrun : bool;
   error_on_findings : bool;
-  strict : bool;
   rewrite_rule_ids : bool;
   engine_type : Engine_type.t;
   (* Performance options *)
