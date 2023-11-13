@@ -334,9 +334,9 @@ rule token = parse
   (* this is also part of IntegerLiteral, but we specialize it here to use the
    * right int_of_string *)
   | "0" (OctalDigits | Underscores OctalDigits) as n
-     { TInt (Concrete_int.of_string_opt( "0o" ^ n), tokinfo lexbuf) }
+     { TInt (Parsed_int.parse ( "0o" ^ n, tokinfo lexbuf)) }
 
-  | IntegerLiteral as n       { TInt (Concrete_int.of_string_opt n, tokinfo lexbuf) }
+  | IntegerLiteral as n       { TInt (Parsed_int.parse (n, tokinfo lexbuf)) }
   | FloatingPointLiteral as n { TFloat (float_of_string_opt n, tokinfo lexbuf) }
   | CharacterLiteral     { TChar (tok lexbuf, tokinfo lexbuf) }
   | '"' ( (StringCharacter | EscapeSequence)* as s) '"'

@@ -4,7 +4,6 @@
     semgrep_core_cli
     osemgrep_cli
     lwt_platform.unix
-    lib_parsing.unix
  )
  (preprocess (pps ppx_profiling))
  ; for ocamldebug

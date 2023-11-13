@@ -147,7 +147,7 @@ and package = tok (* 'package' *) * qualified_ident
  * scala3: called simple_literal
  *)
 and literal =
-  | Int of Concrete_int.t option wrap
+  | Int of Parsed_int.t
   | Float of float option wrap
   | Char of string wrap
   | String of string wrap (* TODO: bracket *)

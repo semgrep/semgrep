@@ -656,9 +656,7 @@ and map_action_macro env x : G.any list =
 
 and map_constant env x : G.expr =
   match x with
-  | Int v1 ->
-      let v1 = map_wrap env (map_of_option Fun.id) v1 in
-      G.L (G.Int v1) |> G.e
+  | Int v1 -> G.L (G.Int v1) |> G.e
   | Float v1 ->
       let v1 = map_wrap env (map_of_option map_of_float) v1 in
       G.L (G.Float v1) |> G.e

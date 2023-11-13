@@ -498,8 +498,8 @@ and literal x =
   | Bool x -> G.L (G.Bool (wrap bool x))
   (* TODO: put real numbers here *)
   | Num (s, x) ->
-      let i = Concrete_int.of_string_opt s in
-      G.L (G.Int (i, tok x))
+      let pi = Parsed_int.parse (s, x) in
+      G.L (G.Int pi)
   | Float (s, x) ->
       let f = float_of_string_opt s in
       G.L (G.Float (f, tok x))

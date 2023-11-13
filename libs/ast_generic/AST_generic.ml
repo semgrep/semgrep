@@ -450,7 +450,15 @@ class virtual ['self] iter_parent =
     method visit_id_info_id_t _env _ = ()
     method visit_resolved_name _env _ = ()
     method visit_tok _env _ = ()
-    method visit_concrete_int _env _ = ()
+
+    method visit_parsed_int env pi =
+      Parsed_int.map_tok
+        (fun tok ->
+          self#visit_tok env tok;
+          tok)
+        pi
+      |> ignore;
+      ()
   end
 
 (* Basically a copy paste of iter_parent above, but with different return types
@@ -516,7 +524,7 @@ class virtual ['self] map_parent =
     method visit_id_info_id_t _env x = x
     method visit_resolved_name _env x = x
     method visit_tok _env x = x
-    method visit_concrete_int _env x = x
+    method visit_parsed_int env pi = Parsed_int.map_tok (self#visit_tok env) pi
   end
 
 (*****************************************************************************)
@@ -807,7 +815,7 @@ and literal =
    *)
   (* See explanation for @name where the visitors are generated at the end of
      * this long recursive type. *)
-  | Int of (Concrete_int.t[@name "concrete_int"]) option wrap
+  | Int of (Parsed_int.t[@name "parsed_int"])
   | Float of float option wrap
   | Char of string wrap
   (* String literals:

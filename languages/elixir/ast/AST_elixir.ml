@@ -139,7 +139,7 @@ class virtual ['self] map_parent =
     (* stubs for AST_generic types *)
     method visit_literal _env x = x
     method visit_operator _env x = x
-    method visit_concrete_int _env x = x
+    method visit_parsed_int _env x = x
   end
 
 (* ------------------------------------------------------------------------- *)
@@ -219,7 +219,7 @@ and expr =
       * Tok.t
         (* '/' *)
         (* must rename this so the visitor does not conflict with Tok.t *)
-      * (Concrete_int.t[@name "concrete_int"]) option wrap
+      * (Parsed_int.t[@name "parsed_int"])
   | When of expr * Tok.t (* 'when' *) * expr_or_kwds
   | Join of expr * Tok.t (* '|' *) * expr_or_kwds
   | Lambda of Tok.t (* 'fn' *) * clauses * Tok.t (* 'end' *)
@@ -229,7 +229,7 @@ and expr =
       (* must rename this so the visitor does not conflict with Tok.t *)
       Tok.t
       (* & *)
-      * (Concrete_int.t[@name "concrete_int"]) option wrap
+      * (Parsed_int.t[@name "parsed_int"])
   | S of stmt
   (* semgrep-ext: *)
   | DeepEllipsis of expr bracket

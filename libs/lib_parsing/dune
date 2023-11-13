@@ -19,6 +19,4 @@
      ppx_sexp_conv
    )
  )
- ; See Concrete_int.mli for what this module is for, and why it must be virtual.
- (virtual_modules concrete_int)
 )

@@ -187,7 +187,7 @@ and expr =
 (* old: was just a string in ast.go *)
 and literal =
   (* less: Bool of bool wrap | Nil of tok? *)
-  | Int of Concrete_int.t option wrap
+  | Int of Parsed_int.t
   | Float of float option wrap
   | Imag of string wrap
   | Rune of string wrap (* unicode char *)

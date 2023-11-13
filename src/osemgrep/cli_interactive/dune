@@ -22,8 +22,6 @@
     notty.unix
 
     lwt_platform.unix
-    ; this will need to be removed when we distribute osemgrep via jscaml
-    lib_parsing.unix
    )
  (preprocess
    (pps

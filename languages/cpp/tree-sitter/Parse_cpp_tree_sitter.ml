@@ -186,13 +186,14 @@ let map_fold_operator (env : env) (x : CST.fold_operator) =
  * but for ast_cpp.ml, not AST_generic.ml
  *)
 let parse_number_literal (s, t) =
-  match Concrete_int.of_string_c_octal_opt s with
-  | Some i -> Int (Some i, t)
-  | None -> (
+  let pi = Parsed_int.parse_c_octal (s, t) in
+  match Parsed_int.out pi with
+  | Some _, _ -> Int pi
+  | _ -> (
       match float_of_string_opt s with
       | Some f -> Float (Some f, t)
       (* could be None because of a suffix in the string *)
-      | None -> Int (None, t))
+      | None -> Int pi)
 
 (* see tree-sitter-c/grammar.js *)
 let parse_primitive_type _env (s, t) =
@@ -621,9 +622,10 @@ let map_preproc_def (env : env) ((v1, v2, v3, v4) : CST.preproc_def) =
     match v3 with
     | Some tok -> (
         let parse_number_literal t s =
-          match Concrete_int.of_string_c_octal_opt s with
-          | Some i -> Some (C (Int (Some i, t)))
-          | None -> (
+          let pi = Parsed_int.parse_c_octal (s, t) in
+          match Parsed_int.out pi with
+          | Some _, _ -> Some (C (Int pi))
+          | _ -> (
               match float_of_string_opt s with
               | Some f -> Some (C (Float (Some f, t)))
               | None -> None)

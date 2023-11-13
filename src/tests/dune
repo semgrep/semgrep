@@ -9,7 +9,6 @@
 
     ; unix platform stuff
     lwt_platform.unix
-    lib_parsing.unix
     cohttp-lwt-unix
 
     commons.tests

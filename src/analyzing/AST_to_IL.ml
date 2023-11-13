@@ -334,8 +334,8 @@ and pattern env pat =
   | G.PatId (id, id_info) ->
       let lval = lval_of_id_info env id id_info in
       (lval, [])
-  | G.PatList (tok1, pats, tok2)
-  | G.PatTuple (tok1, pats, tok2) ->
+  | G.PatList (_tok1, pats, tok2)
+  | G.PatTuple (_tok1, pats, tok2) ->
       (* P1, ..., Pn *)
       let tmp = fresh_var env tok2 in
       let tmp_lval = lval_of_base (Var tmp) in
@@ -344,9 +344,7 @@ and pattern env pat =
         pats
         |> Common.mapi (fun i pat_i ->
                let eorig = Related (G.P pat_i) in
-               let index_i =
-                 Literal (G.Int (Some (Concrete_int.of_int i), tok1))
-               in
+               let index_i = Literal (G.Int (Parsed_int.of_int i)) in
                let offset_i =
                  { o = Index { e = index_i; eorig }; oorig = NoOrig }
                in
@@ -433,9 +431,7 @@ and assign env lhs tok rhs_exp e_gen =
       let tup_elems =
         lhss
         |> Common.mapi (fun i lhs_i ->
-               let index_i =
-                 Literal (G.Int (Some (Concrete_int.of_int i), tok1))
-               in
+               let index_i = Literal (G.Int (Parsed_int.of_int i)) in
                let offset_i =
                  {
                    o = Index { e = index_i; eorig = related_exp lhs_i };
@@ -575,7 +571,7 @@ and expr_aux env ?(void = false) e_gen =
               | G.Decr -> G.Minus),
               tok )
           in
-          let one = G.Int (Some (Concrete_int.of_int 1), tok) in
+          let one = G.Int (Parsed_int.of_int 1) in
           let one_exp = mk_e (Literal one) (related_tok tok) in
           let opexp =
             mk_e

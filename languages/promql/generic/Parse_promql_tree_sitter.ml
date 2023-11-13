@@ -78,7 +78,7 @@ let map_duration (env : env) (x : CST.duration) =
         List.map
           (fun (f, d) ->
             let si, ti = str env f in
-            let i = Concrete_int.of_string_opt si in
+            let pi = Parsed_int.parse (si, ti) in
             let sd, td =
               match d with
               | `Ms tok -> str env tok
@@ -92,10 +92,8 @@ let map_duration (env : env) (x : CST.duration) =
             G.Container
               ( G.Tuple,
                 fb
-                  [
-                    G.L (G.Int (i, ti)) |> G.e;
-                    G.L (G.String (fb (sd, td))) |> G.e;
-                  ] )
+                  [ G.L (G.Int pi) |> G.e; G.L (G.String (fb (sd, td))) |> G.e ]
+              )
             |> G.e)
           x
       in

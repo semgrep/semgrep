@@ -113,9 +113,10 @@ let with_tmp_file ~str ~ext f =
 
 let mval_of_string str t =
   let literal =
-    match Concrete_int.of_string_opt str with
-    | Some i -> G.Int (Some i, t)
+    let pi = Parsed_int.parse (str, t) in
+    match Parsed_int.out pi with
+    | Some _, _ -> G.Int pi
     (* TODO? could try float_of_string_opt? *)
-    | None -> G.String (Tok.unsafe_fake_bracket (str, t))
+    | _ -> G.String (Tok.unsafe_fake_bracket (str, t))
   in
   MV.E (G.L literal |> G.e)

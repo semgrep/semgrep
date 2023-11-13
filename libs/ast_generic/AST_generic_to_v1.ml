@@ -390,7 +390,9 @@ and map_literal = function
       let v1 = map_wrap map_of_bool v1 in
       `Bool v1
   | Int v1 ->
-      let v1 = map_wrap (map_of_option Concrete_int.to_int64) v1 in
+      let v1 =
+        map_wrap (map_of_option OCaml.map_of_int64) (Parsed_int.out v1)
+      in
       `Int v1
   | Float v1 ->
       let v1 = map_wrap map_id v1 in

@@ -122,7 +122,7 @@ type t =
 and virtual_location = location * int
 [@@deriving show { with_path = false }, eq, ord, sexp]
 
-type t_always_equal = t [@@deriving show]
+type t_always_equal = t [@@deriving show, sexp, ord]
 
 (* sgrep: we do not care about position when comparing for equality 2 ASTs.
  * related: Lib_AST.abstract_position_info_any and then use OCaml generic '='.

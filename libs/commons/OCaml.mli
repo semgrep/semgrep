@@ -65,6 +65,7 @@ val option_ofv : (v -> 'a) -> v -> 'a option
 val map_of_unit : unit -> unit
 val map_of_bool : bool -> bool
 val map_of_int : int -> int
+val map_of_int64 : int64 -> int64
 val map_of_float : float -> float
 val map_of_char : char -> char
 val map_of_string : string -> string

@@ -507,8 +507,9 @@ let map_polymorphic_variant_pattern (env : env)
 
 let number env tok =
   let s, t = str env tok (* number *) in
-  match Concrete_int.of_string_opt s with
-  | Some i -> Int (Some i, t)
+  let pi = Parsed_int.parse (s, t) in
+  match Parsed_int.out pi with
+  | Some _, _ -> Int pi
   | _ ->
       let fopt = float_of_string_opt s in
       Float (fopt, t)
@@ -606,10 +607,12 @@ let map_signed_constant (env : env) (x : CST.signed_constant) : literal =
       let v1 = map_anon_choice_PLUS_da42005 env v1 in
       let v2 = number env v2 (* tok_choice_pat_4349e4b *) in
       match (v1, v2) with
-      | Left t1, Int (opt, t2) -> Int (opt, Tok.combine_toks t1 [ t2 ])
+      | Left t1, Int pi ->
+          Int (Parsed_int.map_tok (fun t2 -> Tok.combine_toks t1 [ t2 ]) pi)
       | Left t1, Float (opt, t2) -> Float (opt, Tok.combine_toks t1 [ t2 ])
       (* TODO: negate nums *)
-      | Right t1, Int (_opt, t2) -> Int (None, Tok.combine_toks t1 [ t2 ])
+      | Right t1, Int pi ->
+          Int (Parsed_int.map_tok (fun t2 -> Tok.combine_toks t1 [ t2 ]) pi)
       | Right t1, Float (_opt, t2) -> Float (None, Tok.combine_toks t1 [ t2 ])
       | (Left t | Right t), _ ->
           raise

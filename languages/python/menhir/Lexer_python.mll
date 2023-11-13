@@ -512,9 +512,9 @@ and _token python2 state = parse
 
   (* literals *)
   | integer as n longintpostfix
-      { LONGINT (Concrete_int.of_string_opt n, tokinfo lexbuf) }
+      { LONGINT (Parsed_int.parse (n, tokinfo lexbuf)) }
   | integer as n
-      { INT (Concrete_int.of_string_opt n, tokinfo lexbuf) }
+      { INT (Parsed_int.parse (n, tokinfo lexbuf)) }
 
   | floatnumber as n
       { FLOAT (float_of_string_opt n, tokinfo lexbuf) }

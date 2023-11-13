@@ -54,12 +54,13 @@ let pattern_of_ids ids =
 
 (* val parse_number_literal : string * Parse_info.t -> AST_generic.literal *)
 let parse_number_literal (s, t) =
-  match Concrete_int.of_string_c_octal_opt s with
-  | Some i -> G.Int (Some i, t)
-  | None -> (
+  let pi = Parsed_int.parse_c_octal (s, t) in
+  match Parsed_int.out pi with
+  | Some _, _ -> G.Int pi
+  | None, _ -> (
       match float_of_string_opt s with
       | Some f -> G.Float (Some f, t)
-      | None -> G.Int (None, t))
+      | None -> G.Int pi)
 
 (*****************************************************************************)
 (* Boilerplate converter *)

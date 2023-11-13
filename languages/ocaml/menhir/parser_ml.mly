@@ -81,7 +81,7 @@ let topseqexpr v1 = mki (TopExpr (seq1 v1))
 (*-----------------------------------------*)
 
 (* tokens with "values" *)
-%token <Concrete_int.t option * Tok.t> TInt
+%token <Parsed_int.t> TInt
 %token <float option * Tok.t> TFloat
 %token <string * Tok.t> TChar TString
 %token <string * Tok.t> TLowerIdent TUpperIdent

@@ -140,7 +140,7 @@ type expr =
      non-0 is cast to true *)
   (* https://www.php.net/manual/en/language.types.boolean.php *)
   | Bool of bool wrap
-  | Int of Concrete_int.t option wrap
+  | Int of Parsed_int.t
   | Double of float option wrap
   (* PHP has no first-class functions so entities are sometimes passed
    * as strings so the string wrap below can actually correspond to a

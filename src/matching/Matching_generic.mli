@@ -169,7 +169,7 @@ val m_comb_1toN : ('a -> 'a list -> tin -> tout) -> 'a comb_matcher
 val m_eq : 'a matcher
 val m_bool : bool matcher
 val m_int : int matcher
-val m_concrete_int : Concrete_int.t matcher
+val m_parsed_int : Parsed_int.t matcher
 val m_string : string matcher
 val filepath_is_prefix : string -> string -> bool
 val m_filepath_prefix : string matcher

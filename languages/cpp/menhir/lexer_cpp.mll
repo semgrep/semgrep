@@ -541,7 +541,7 @@ rule token = parse
   (* this is also part of the case below, but we specialize it here to use the
    * right int_of_string *)
   | "0" (oct+ as n)
-     { TInt (Concrete_int.of_string_opt( "0o" ^ n), tokinfo lexbuf) }
+     { TInt (Parsed_int.parse ( "0o" ^ n, tokinfo lexbuf)) }
 
   | (( decimal | hexa | octal)
         ( ['u' 'U']
@@ -551,7 +551,7 @@ rule token = parse
         | (['u' 'U'] ['l' 'L'] ['l' 'L'])
         | (['l' 'L'] ['l' 'L'])
         )?
-    ) as x { TInt (Concrete_int.of_string_opt x, tokinfo lexbuf) }
+    ) as x { TInt (Parsed_int.parse (x, tokinfo lexbuf)) }
 
   | (real ['f' 'F']) as x { TFloat ((float_of_string_opt x, tokinfo lexbuf)) }
   | (real ['l' 'L']) as x { TFloat ((float_of_string_opt x, tokinfo lexbuf)) }

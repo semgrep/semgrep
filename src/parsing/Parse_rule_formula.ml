@@ -235,7 +235,7 @@ and metavariable_comparison = {
   (* I don't think those are really needed; they can be inferred
    * from the values *)
   strip : bool option;
-  base : Concrete_int.t option;
+  base : Parsed_int.t option;
 }
 
 (* Substitutes `$MVAR` with `int($MVAR)` in cond. *)

@@ -181,10 +181,7 @@ and stmt e : G.stmt =
       let var = { G.vinit = Some v2; vtype = None } in
       let n = G.N (G.Id (v1, G.empty_id_info ())) |> G.e in
       let next =
-        G.AssignOp
-          ( n,
-            (nextop, tok),
-            G.L (G.Int (Some (Concrete_int.of_int 1), tok)) |> G.e )
+        G.AssignOp (n, (nextop, tok), G.L (G.Int (Parsed_int.of_int 1)) |> G.e)
         |> G.e
       in
       let cond =
@@ -393,9 +390,7 @@ and expr e =
       x.G.e |> G.e
 
 and literal = function
-  | Int v1 ->
-      let v1 = wrap id v1 in
-      G.Int v1
+  | Int v1 -> G.Int v1
   | Float v1 ->
       let v1 = wrap id v1 in
       G.Float v1

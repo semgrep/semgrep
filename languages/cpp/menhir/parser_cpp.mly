@@ -66,7 +66,7 @@ open Parser_cpp_mly_helper
 (*-----------------------------------------*)
 (* The C tokens *)
 (*-----------------------------------------*)
-%token <Concrete_int.t option * Tok.t>   TInt
+%token <Parsed_int.t>   TInt
 %token <float option * Tok.t> TFloat
 %token <string * Tok.t>       TChar TString
 
@@ -1909,8 +1909,8 @@ define_val:
  (* for statement-like macro with fixed number of arguments *)
  | Tdo statement Twhile "(" expr ")"
      { match $5 with
-       | (C (Int (Some i, tok))) when Concrete_int.eq_const i 0 ->
-         DefineDoWhileZero ($1, $2, $3, ($4, tok, $6))
+       | (C (Int pi)) when Parsed_int.eq_const pi 0 ->
+         DefineDoWhileZero ($1, $2, $3, ($4, Parsed_int.get_tok pi, $6))
        | _ -> raise Parsing.Parse_error
      }
  (* for statement-like macro with varargs *)
