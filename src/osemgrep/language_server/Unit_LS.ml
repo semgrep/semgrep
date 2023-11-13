@@ -89,7 +89,7 @@ let mock_run_results (files : string list) : Core_runner.result =
       engine_requested = Some `OSS;
       (* If the engine requested is OSS, there must be no
          interfile requested languages *)
-      requested_interfile_languages = Some [];
+      interfile_languages_used = Some [];
     }
   in
   Core_runner.{ core; hrules; scanned }
