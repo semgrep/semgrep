@@ -363,7 +363,9 @@ class ConfigLoader:
         """
         fallback_url = None
 
-        if self._config_path == "supply-chain":
+        if self._config_path == "code":
+            fallback_url = url_for_code()
+        elif self._config_path == "supply-chain":
             fallback_url = url_for_supply_chain()
         elif self._config_path == "secrets":
             fallback_url = url_for_secrets()
@@ -954,6 +956,23 @@ def add_metrics_for_products(config_str: str) -> None:
 
 def is_policy_id(config_str: str) -> bool:
     return config_str == "policy"
+
+
+def url_for_code() -> str:
+    env = get_state().env
+
+    # The app considers anything that will not POST back to it to be a dry_run
+    params = {
+        "dry_run": True,
+        "full_scan": True,
+        "semgrep_version": __VERSION__,
+    }
+
+    if "SEMGREP_REPO_NAME" in os.environ:
+        params["repo_name"] = os.environ.get("SEMGREP_REPO_NAME")
+
+    params_str = urlencode(params)
+    return f"{env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{params_str}"
 
 
 def url_for_supply_chain() -> str:
