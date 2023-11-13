@@ -594,7 +594,7 @@ let parse_yaml_file ~is_target file str =
   (* we do not preprocess the yaml here; ellipsis should be transformed
    * only in the pattern *)
   let charpos_to_pos =
-    Some (Pos.full_pos_info_large file).bytepos_to_linecol_fun
+    Some (Pos.full_converters_large file).bytepos_to_linecol_fun
   in
   let parser = get_res file (S.parser str) in
   let env =
