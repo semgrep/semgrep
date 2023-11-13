@@ -1705,7 +1705,7 @@ and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
 
 and function_declaration_header (env : env)
     ((v1, v2, v3, v4, v5, v6, v7) : CST.function_declaration_header) :
-    G.function_definition * G.label * G.type_parameter stack =
+    G.function_definition * G.label * G.type_parameter list =
   let _async_modifierTODO =
     match v1 with
     | Some tok -> (* "async" *) Some (G.KeywordAttr (G.Async, token env tok))
