@@ -1,0 +1,119 @@
+(* Brandon Wu
+ *
+ * Copyright (c) 2023 Semgrep Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * LICENSE for more details.
+ *)
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* See the .mli for why this is important.
+ *
+ * In Javascript systems, we choose a 64 implementation for integers, which is
+ * more in line with the native integers used by the Javascript runtime.
+ * This reduces inconsistency in the JS translation.
+ *)
+
+open Ppx_hash_lib.Std.Hash.Builtin
+open Sexplib.Conv
+
+(*****************************************************************************)
+(* Int64 boilerplate *)
+(*****************************************************************************)
+
+(* There isn't an available hash_fold or hash function in Int64.t, so we have to
+   make it up here.
+   Unfortunately, there doesn't seem to be a direct hash function for int64 in
+   the Ppx_hash_lib either, so we just write what it would be.
+*)
+let hash_fold_int64 = Ppx_hash_lib.Std.Hash.fold_int64
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+(* alt: int64 option? *)
+(* alt: int64 option wrap? *)
+(* could save consumers of the API from dealing with whether the concrete int
+   is representable or not
+*)
+type t = int64 option * Tok.t_always_equal
+[@@deriving hash, show, ord, eq, sexp]
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let promote opt = (opt, Tok.unsafe_fake_tok "")
+
+let map f (opt, t) =
+  match opt with
+  | None -> (opt, t)
+  | Some i64 -> (Some (f i64), t)
+
+(*****************************************************************************)
+(* Creators *)
+(*****************************************************************************)
+
+let of_float f =
+  let iopt =
+    try Some (Int64.of_float f) with
+    | _ -> None
+  in
+  iopt |> promote
+
+let of_int i = Some (Int64.of_int i) |> promote
+let of_int64 i64 = Some i64 |> promote
+let parse (s, t) = (Common2.int64_of_string_opt s, t)
+let parse_c_octal (s, t) = (Common2.int64_of_string_c_octal_opt s, t)
+
+let of_string_opt s =
+  match Common2.int64_of_string_opt s with
+  | None -> None
+  | Some i64 -> Some (Some i64 |> promote)
+
+let zero = Some 0L |> promote
+let neg = map Int64.neg
+let map_tok f (opt, t) = (opt, f t)
+
+let bind f (opt, t) =
+  match opt with
+  | None -> None
+  | Some i64 -> f (i64, t)
+
+let out = Fun.id
+
+(*****************************************************************************)
+(* Destructors *)
+(*****************************************************************************)
+
+let to_int64_opt (opt, _) = opt
+let to_int_opt (opt, _) = Option.map Int64.to_int opt
+
+let to_string_opt (opt, _) =
+  match opt with
+  | Some i64 -> Some (Int64.to_string i64)
+  | None -> None
+
+let to_float_opt (opt, _) = Option.map Int64.to_float opt
+let get_tok (_, t) = t
+let has_val (opt, _) = Option.is_some opt
+let visit ~v_tok (opt, t) = (opt, v_tok t)
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let eq_const (opt, _) i2 =
+  match opt with
+  | None -> false
+  | Some i1 -> Int64.equal i1 (Int64.of_int i2)

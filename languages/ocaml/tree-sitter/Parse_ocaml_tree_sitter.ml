@@ -507,9 +507,8 @@ let map_polymorphic_variant_pattern (env : env)
 
 let number env tok =
   let s, t = str env tok (* number *) in
-  let pi = Parsed_int.parse (s, t) in
-  match Parsed_int.out pi with
-  | Some _, _ -> Int pi
+  match Parsed_int.parse (s, t) with
+  | pi when Parsed_int.has_val pi -> Int pi
   | _ ->
       let fopt = float_of_string_opt s in
       Float (fopt, t)

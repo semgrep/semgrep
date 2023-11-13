@@ -452,13 +452,12 @@ class virtual ['self] iter_parent =
     method visit_tok _env _ = ()
 
     method visit_parsed_int env pi =
-      Parsed_int.map_tok
+      Parsed_int.visit
         (fun tok ->
           self#visit_tok env tok;
           tok)
         pi
-      |> ignore;
-      ()
+      |> ignore
   end
 
 (* Basically a copy paste of iter_parent above, but with different return types

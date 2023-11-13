@@ -54,10 +54,9 @@ let pattern_of_ids ids =
 
 (* val parse_number_literal : string * Parse_info.t -> AST_generic.literal *)
 let parse_number_literal (s, t) =
-  let pi = Parsed_int.parse_c_octal (s, t) in
-  match Parsed_int.out pi with
-  | Some _, _ -> G.Int pi
-  | None, _ -> (
+  match Parsed_int.parse_c_octal (s, t) with
+  | pi when Parsed_int.has_val pi -> G.Int pi
+  | pi -> (
       match float_of_string_opt s with
       | Some f -> G.Float (Some f, t)
       | None -> G.Int pi)
