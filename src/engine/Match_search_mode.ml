@@ -341,7 +341,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
     else None
   in
   (* this will return a list of new ranges that have been restricted by the variables in focus_mvars *)
-  let apply_focus_mvars (focus_mvars : MV.mvar list) (range : RM.t) : RM.t stack
+  let apply_focus_mvars (focus_mvars : MV.mvar list) (range : RM.t) : RM.t list
       =
     (* A list that groups each metavariable under all of the `focus-metavariables`
      * within a `patterns` with the "metavariable value" that each one captures.
@@ -412,8 +412,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
              let focused_ranges = apply_focus_mvars focus_mvars init_range in
              focused_ranges)
     in
-    let intersect_ranges (list1 : RM.t stack) (list2 : RM.t stack) : RM.t stack
-        =
+    let intersect_ranges (list1 : RM.t list) (list2 : RM.t list) : RM.t list =
       match (list1, list2) with
       | [ range1 ], [ range2 ] -> (
           match intersect range1 range2 with
@@ -430,7 +429,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
             "Semgrep currently does not support multiple `focus-metavariable` \
              statements with multiple metavariables under a single `patterns`."
     in
-    let rec intersect_ranges_list (l : RM.t stack stack) : RM.t stack =
+    let rec intersect_ranges_list (l : RM.t list list) : RM.t list =
       match l with
       | [] -> failwith "No focus-metavariable statements found."
       | [ first ] -> first
