@@ -4,7 +4,7 @@
       "id": "test",
       "languages": ["python"],
       "patterns": [
-        { "pattern": "foo($BELOW_SIGNED_INT32, $ABOVE_SIGNED_INT32)" },
+        { "pattern": "print($BELOW_SIGNED_INT32, $ABOVE_SIGNED_INT32)" },
         {
           "metavariable-comparison": {
             "comparison": "int($BELOW_SIGNED_INT32) < 2147483647 and int($ABOVE_SIGNED_INT32) > 2147483647"

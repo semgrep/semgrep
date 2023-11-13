@@ -44,7 +44,7 @@ describe("engine", () => {
   });
 });
 
-function executeSnapshotTest(engine, language, ruleFile, targetFile) {
+function executeTest(engine, language, ruleFile, targetFile) {
   const rulePath = path.resolve(`${__dirname}/${ruleFile}`);
   const targetPath = path.resolve(`${__dirname}/${targetFile}`);
 
@@ -61,7 +61,7 @@ function executeSnapshotTest(engine, language, ruleFile, targetFile) {
 describe("yaml parser", () => {
   test("parses a simple pattern", async () => {
     const engine = await enginePromise;
-    const result = executeSnapshotTest(
+    const result = executeTest(
       engine,
       "yaml",
       "test-rule-yaml.json",
@@ -71,7 +71,7 @@ describe("yaml parser", () => {
   });
   test("parses a pattern with pattern-regex", async () => {
     const engine = await enginePromise;
-    const result = executeSnapshotTest(
+    const result = executeTest(
       engine,
       "yaml",
       "test-rule-yaml-regex.json",
@@ -86,9 +86,7 @@ describe("misc", () => {
     const engine = await enginePromise;
     const python = require("../../languages/python/dist/index.cjs");
     engine.addParser(await python.ParserFactory());
-    const rulePath = path.resolve(`${__dirname}/test-representation.json`);
-    const targetPath = path.resolve(`${__dirname}/test-representation.py`);
-    const result = executeSnapshotTest(
+    const result = executeTest(
       engine,
       "python",
       "test-representation.json",
@@ -96,19 +94,21 @@ describe("misc", () => {
     );
     // we expect the result to have length 1, because the metavariable
     // comparison succeeds
-    expect(result).toHaveLength(1);
+    expect(result.results).toHaveLength(1);
   });
   test("interpolates metavariables in rule message", async () => {
     const engine = await enginePromise;
     const python = require("../../languages/python/dist/index.cjs");
     engine.addParser(await python.ParserFactory());
-    const result = executeSnapshotTest(
+    const result = executeTest(
       engine,
       "python",
       "test-interpolate-metavars.json",
       "test.py"
     );
-    expect(result).toMatchSnapshot();
+    expect(result.results[0].extra.message).toBe(
+      'Print content is "Hello World"'
+    );
   });
 });
 
