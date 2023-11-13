@@ -8,4 +8,4 @@
 val main : string array -> Exit_code.t
 
 (* internal *)
-val run : Login_CLI.conf -> Exit_code.t
+val run : Logout_CLI.conf -> Exit_code.t

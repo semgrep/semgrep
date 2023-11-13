@@ -46,14 +46,14 @@ let on_notification server params : unit =
          return to the main event loop.
       *)
       Lwt.async (fun () ->
-          let^ url, sessionId =
+          let^ _url, sessionId =
             of_jsonrpc_params params
             |> Option.to_result ~none:"got invalid parameters"
             |> Lwt.return
           in
           let^ token, _ =
             Semgrep_login.fetch_token_async ~min_wait_ms:wait_before_retry_in_ms
-              ~max_retries (sessionId, url)
+              ~max_retries sessionId
           in
           let^ _deployment =
             Semgrep_App.get_deployment_from_token_async token
@@ -64,5 +64,5 @@ let on_notification server params : unit =
           *)
           RPC_server.notify_show_message ~kind:MessageType.Info
             "Successfully logged into Semgrep Code";
-          let^ () = Semgrep_login.save_token_async token in
+          let^ _deployment = Semgrep_login.save_token_async token in
           Lwt.return ())

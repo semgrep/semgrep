@@ -115,7 +115,7 @@ $ docker run -e SEMGREP_APP_TOKEN=<TOKEN> --rm -v "${PWD}:/src" returntocorp/sem
 
 Logging into Semgrep gets you access to:
 
-- [Semgrep Supply Chain](https://semgrep.dev/products/semgrep-supply-chain): A depenency scanner that detects reachable vulnerabilities in third party libraries
+- [Semgrep Supply Chain](https://semgrep.dev/products/semgrep-supply-chain): A dependency scanner that detects reachable vulnerabilities in third party libraries
 - [Semgrep Code's Pro rules](https://semgrep.dev/products/semgrep-code): 600+ high confidence rules written by Semgrep's security research team
 - [Semgrep Code's Pro engine](https://semgrep.dev/products/pro-engine/): An advanced code analysis engine, designed to detect complex vulnerabilities, and reduce false positives
 

@@ -1,0 +1,29 @@
+rules:
+- id: test
+  message: Test
+  severity: ERROR
+  languages:
+  - rust
+  mode: taint
+  pattern-sources:
+  - label: INPUT
+    patterns:
+    # 'focus-metavariable' is better but to reproduce this issue
+    # we need 'pattern' here.
+    - pattern: $PARAM
+    - pattern-inside: |
+        fn $FUNC(..., $PARAM : String, ...) {
+          ...
+        }
+  - label: FORMAT
+    patterns:
+    - focus-metavariable: $X
+    - pattern: |
+        format!("...", $X)
+    requires: INPUT
+  pattern-sinks:
+  - patterns:
+    - pattern: $CLIENT.post($QUERY)
+    - focus-metavariable: $QUERY
+    requires: FORMAT
+

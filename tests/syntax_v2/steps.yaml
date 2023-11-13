@@ -1,0 +1,14 @@
+rules:
+  - id: steps
+    message: "found use of steps"
+    language: python
+    severity: WARNING
+    steps:
+        - language: generic
+          match: "secret: $X"
+        - language: python
+          taint:
+            sources:
+              - $X
+            sinks:
+              - logger.log(...)
