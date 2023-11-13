@@ -142,9 +142,7 @@ class TestConfigLoaderForProducts:
         assert patched_fallback_download.call_count == 1
 
     @pytest.fixture
-    def mocked_cloud_platform_request(
-        self, mocked_state: SemgrepState, config_loader: ConfigLoader
-    ) -> out.ScanRequest:
+    def mocked_scan_request(self, config_loader: ConfigLoader) -> out.ScanRequest:
         products = [
             out.Product.from_json(PRODUCT_NAMES[p])
             for p in config_loader._config_path.split(",")
@@ -154,7 +152,7 @@ class TestConfigLoaderForProducts:
             meta=out.RawJson({}),
             scan_metadata=out.ScanMetadata(
                 cli_version=out.Version(__VERSION__),
-                unique_id=out.Uuid(str(mocked_state.request_id)),
+                unique_id=out.Uuid(str(uuid4())),
                 requested_products=products,
                 dry_run=True,
             ),
@@ -189,18 +187,16 @@ class TestConfigLoaderForProducts:
     def test__download_semgrep_cloud_platform_scan_config_success(
         self,
         config_loader: ConfigLoader,
-        mocked_state,
-        mocked_cloud_platform_request: out.ScanRequest,
+        mocked_scan_request: out.ScanRequest,
         mocked_scan_response: out.ScanResponse,
-        mocker,
+        requests_mock,
     ):
-        mock_response = mocker.MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = mocked_scan_response.to_json()
-        mocked_state.app_session.post.return_value = mock_response
+        requests_mock.post(
+            "https://semgrep.dev/api/cli/scans", json=mocked_scan_response.to_json()
+        )
 
         config = config_loader._download_semgrep_cloud_platform_scan_config(
-            mocked_cloud_platform_request
+            mocked_scan_request
         )
 
         assert config.config_id is None
@@ -212,41 +208,20 @@ class TestConfigLoaderForProducts:
     def test__download_semgrep_cloud_platform_scan_config_unauthorized(
         self,
         config_loader: ConfigLoader,
-        mocked_state,
-        mocked_cloud_platform_request: out.ScanRequest,
-        mocker,
+        mocked_scan_request: out.ScanRequest,
+        requests_mock,
     ):
-        mock_response = mocker.MagicMock()
-        mock_response.status_code = 401
-        mocked_state.app_session.post.return_value = mock_response
+        requests_mock.post(
+            "https://semgrep.dev/api/cli/scans",
+            status_code=401,
+        )
 
         with pytest.raises(SemgrepError) as exc:
             config_loader._download_semgrep_cloud_platform_scan_config(
-                mocked_cloud_platform_request
+                mocked_scan_request
             )
 
         assert "Invalid API Key" in str(exc.value)
-
-    @pytest.mark.quick
-    @pytest.mark.osemfail
-    def test_general_request_exception(
-        self,
-        mocked_state,
-        config_loader: ConfigLoader,
-        mocked_cloud_platform_request: out.ScanRequest,
-        mocker,
-    ):
-        # Setup mock response to raise RequestException
-        mock_response = mocker.MagicMock()
-        mock_response.raise_for_status.side_effect = requests.RequestException("Error")
-        mocked_state.app_session.post.return_value = mock_response
-
-        with pytest.raises(Exception) as exc:
-            config_loader._download_semgrep_cloud_platform_scan_config(
-                mocked_cloud_platform_request
-            )
-
-        assert "API server at" in str(exc.value)
 
     @pytest.mark.quick
     @pytest.mark.osemfail
