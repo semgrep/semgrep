@@ -10,12 +10,12 @@
   python         3      11          Custom       4
   js             1       3
 
-
-
-┌──────────────┐
-│ Scan Summary │
-└──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
-Ran 4 rules on 14 files: 2 findings.
+name 'matches_by_rule' is not defined
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 37, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/scan.py", line 622, in scan
+    ) = semgrep.run_scan.run_scan(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/run_scan.py", line 675, in run_scan
+    matches_by_rule.kept,
+NameError: name 'matches_by_rule' is not defined

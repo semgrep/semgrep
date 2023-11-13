@@ -5,12 +5,12 @@
 └─────────────┘
   Scanning 5 files tracked by git with 4 Code rules:
   Scanning 4 files.
-
-
-┌──────────────┐
-│ Scan Summary │
-└──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
-Ran 1 rule on 4 files: 4 findings.
+name 'matches_by_rule' is not defined
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 37, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/scan.py", line 622, in scan
+    ) = semgrep.run_scan.run_scan(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/run_scan.py", line 675, in run_scan
+    matches_by_rule.kept,
+NameError: name 'matches_by_rule' is not defined
