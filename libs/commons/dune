@@ -26,6 +26,7 @@
    lwt
    alcotest-lwt
  )
+ (inline_tests)
  ; can't use profiling.ppx because of circular dependencies :(
  (preprocess
    (pps
@@ -34,6 +35,7 @@
      ppx_deriving.ord
      ppx_hash
      ppx_sexp_conv
+     ppx_inline_test
    )
  )
 )
