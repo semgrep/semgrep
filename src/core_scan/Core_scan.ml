@@ -964,11 +964,11 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
   in
   (* Since the OSS engine was invoked, there were no interfile languages
      requested *)
-  let requested_interfile_langs = [] in
+  let interfile_languages_used = [] in
   let res =
     RP.make_final_result file_results
       (Common.map (fun r -> (r, `OSS)) valid_rules)
-      invalid_rules scanned requested_interfile_langs ~rules_parse_time
+      invalid_rules scanned interfile_languages_used ~rules_parse_time
   in
   logger#info "found %d matches, %d errors" (List.length res.matches)
     (List.length res.errors);

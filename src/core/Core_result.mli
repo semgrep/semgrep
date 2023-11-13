@@ -20,7 +20,7 @@ type t = {
   extra : Core_profiling.t Core_profiling.debug_info;
   explanations : Matching_explanation.t list option;
   rules_by_engine : (Rule_ID.t * Engine_kind.t) list;
-  requested_interfile_langs : Xlang.t list;
+  interfile_languages_used : Xlang.t list;
   (* The targets are all the files that were considered valid targets for the
    * semgrep scan. This excludes files that were filtered out on purpose
    * due to being in the wrong language, too big, etc.

@@ -430,7 +430,7 @@ let core_output_of_matches_and_errors render_fix (res : Core_result.t) :
     rules_by_engine = Some res.rules_by_engine;
     interfile_languages_used =
       Some
-        (Common.map (fun l -> Xlang.to_string l) res.requested_interfile_langs);
+        (Common.map (fun l -> Xlang.to_string l) res.interfile_languages_used);
     engine_requested = Some `OSS;
     version = Some Version.version;
   }
