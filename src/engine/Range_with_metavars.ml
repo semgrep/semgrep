@@ -106,7 +106,7 @@ let inside_compatible x y =
  * alt: we could do the rewriting ourselves, detecting that the
  * metavariable-regex has the wrong scope.
  *)
-let intersect_ranges config debug_matches xs ys =
+let intersect_ranges config ~debug_matches xs ys =
   let left_merge u v =
     if included_in config u v && inside_compatible u v then
       (* [r1] extended with [r2.mvars], assumes [included_in config r1 r2] *)

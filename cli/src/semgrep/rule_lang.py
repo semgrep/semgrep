@@ -463,7 +463,6 @@ class RuleValidation:
         "pattern-either",
         "pattern-regex",
         "patterns",
-        "semgrep-internal-patterns-allow-disjoint",
         "pattern-sinks",
         "pattern-sources",
         "join",

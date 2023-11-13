@@ -23,8 +23,7 @@ val range_to_pattern_match_adjusted : Rule.rule -> t -> Pattern_match.t
 
 (* Set functions *)
 
-(* REVIEW: convert these bools to named args? *)
 val intersect_ranges :
-  Rule_options.t -> bool (* debug_matches *) -> ranges -> ranges -> ranges
+  Rule_options.t -> debug_matches:bool -> ranges -> ranges -> ranges
 
 val difference_ranges : Rule_options.t -> ranges -> ranges -> ranges

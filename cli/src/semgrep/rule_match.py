@@ -210,20 +210,25 @@ class RuleMatch:
         Used for deduplication in the CLI before writing output.
         """
         return (
-            # REVIEW: comment still relevant?
-            # NOTE: We include the previous scan's rules in the config for consistent fixed status work.
-            # For unique hashing/grouping, previous and current scan rules must have distinct check IDs.
-            # Hence, previous scan rules are annotated with a unique check ID, while the original ID is kept in metadata.
-            # As check_id is used for cli_unique_key, this patch fetches the check ID from metadata for previous scan findings.
-            # TODO: Once the fixed status work is stable, all findings should fetch the check ID from metadata.
-            # This fallback prevents breaking current scan results if an issue arises.
+            # NOTE: We include the previous scan's rules in the config for
+            # consistent fixed status work. For unique hashing/grouping,
+            # previous and current scan rules must have distinct check IDs.
+            # Hence, previous scan rules are annotated with a unique check ID,
+            # while the original ID is kept in metadata. As check_id is used
+            # for cli_unique_key, this patch fetches the check ID from metadata
+            # for previous scan findings.
+            # TODO: Once the fixed status work is stable, all findings should
+            # fetch the check ID from metadata. This fallback prevents breaking
+            # current scan results if an issue arises.
             self.annotated_rule_name if self.from_transient_scan else self.rule_id,
             str(self.path),
             self.start.offset,
             self.end.offset,
             self.message,
             # TODO: Bring this back.
-            # This is necessary so we don't deduplicate taint findings which have different sources.
+            # This is necessary so we don't deduplicate taint findings which
+            # have different sources.
+            #
             # self.match.extra.dataflow_trace.to_json_string
             # if self.match.extra.dataflow_trace
             # else None,
