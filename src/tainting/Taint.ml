@@ -729,4 +729,28 @@ let taint_of_pm ~incoming pm =
   | None -> None
 
 let taints_of_pms ~incoming pms =
-  pms |> Common.map_filter (taint_of_pm ~incoming) |> Taint_set.of_list
+  let max_ITERS =
+    (* Just in case, we set a limit. *)
+    3
+  in
+  (* Since labels can have a 'requires' constraint, we need to try adding
+   * more labels until we reach a fixpoint. E.g., we could have a PM adding
+   * label 'A', and another PM adding label 'B' but requiring 'A', so until
+   * we add 'A' to the taint set we cannot add 'B'.
+   * alt: Top-sort and then a fold ? *)
+  let rec go i taints pms_i =
+    if i >= max_ITERS then taints
+    else
+      let incoming = taints |> Taint_set.union incoming in
+      let new_taint_list, pms_left =
+        pms_i |> Common2.fpartition (taint_of_pm ~incoming)
+      in
+      match new_taint_list with
+      | [] -> taints
+      | _ :: _ ->
+          let taints' =
+            Taint_set.of_list new_taint_list |> Taint_set.union taints
+          in
+          go (i + 1) taints' pms_left
+  in
+  go 0 Taint_set.empty pms
