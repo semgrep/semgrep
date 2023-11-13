@@ -109,7 +109,7 @@ let inside_compatible x y =
 let intersect_ranges config ~debug_matches xs ys =
   let left_merge u v =
     if included_in config u v && inside_compatible u v then
-      (* [r1] extended with [r2.mvars], assumes [included_in config r1 r2] *)
+      (* [u] extended with [v.mvars], assumes [included_in config u v] *)
       let v_only_mvars =
         v.mvars
         |> List.filter (fun (mvar, _) -> not (List.mem_assoc mvar u.mvars))

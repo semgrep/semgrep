@@ -79,6 +79,13 @@ type formula =
    * https://github.com/returntocorp/semgrep/issues/1218
    *)
   | Inside of tok * formula
+  (* alt: Could do this under a `where` (call it something like `also`).
+     Preferred this since existing where conditions are predicates on
+     metavariables and this is an additional separate formula. Additionally,
+     this version opens this up more naturally for negation (not
+     straightforward to negate a where clause, but can just use `not` for a
+     formula)
+  *)
   | Anywhere of tok * formula
 
 (* The conjunction must contain at least
