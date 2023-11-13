@@ -1,7 +1,7 @@
 rules:
   - id: steps
     message: "found use of steps"
-    languages: [python]
+    language: python
     severity: WARNING
     steps:
         - language: generic
