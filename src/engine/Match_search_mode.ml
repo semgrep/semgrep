@@ -331,7 +331,8 @@ let run_selector_on_ranges env selector_opt ranges =
         (List.length res.matches);
       res.matches
       |> Common.map RM.match_result_to_range
-      |> RM.intersect_ranges env.xconf.config !debug_matches ranges
+      |> RM.intersect_ranges env.xconf.config ~debug_matches:!debug_matches
+           ranges
 
 let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
     (ranges : RM.ranges) : RM.ranges =
@@ -724,6 +725,10 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
       let ranges, expls = evaluate_formula env opt_context formula in
       let expl = if_explanations env ranges [ expls ] (Out.Inside, tok) in
       (Common.map (fun r -> { r with RM.kind = RM.Inside }) ranges, expl)
+  | R.Anywhere (tok, formula) ->
+      let ranges, expls = evaluate_formula env opt_context formula in
+      let expl = if_explanations env ranges [ expls ] (Out.Anywhere, tok) in
+      (Common.map (fun r -> { r with RM.kind = RM.Anywhere }) ranges, expl)
   | R.Or (tok, xs) ->
       let ranges, expls =
         xs |> Common.map (evaluate_formula env opt_context) |> Common2.unzip
@@ -784,7 +789,8 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
             posrs
             |> List.fold_left
                  (fun acc r ->
-                   RM.intersect_ranges env.xconf.config !debug_matches acc r)
+                   RM.intersect_ranges env.xconf.config
+                     ~debug_matches:!debug_matches acc r)
                  ranges
           in
           (* optimization of `pattern: $X` *)

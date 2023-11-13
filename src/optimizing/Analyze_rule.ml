@@ -151,6 +151,10 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
       (* double negation *)
       | R.Not (_, f) -> remove_not f
       (* todo? apply De Morgan's law? *)
+      (* TODO: These logs seem to be pretty noisy. Lower or remove?
+         Seems like they're just artifacts from prior stubs, so
+         failwith "Not Or" was just translated to below case, etc..
+      *)
       | R.Or (_, _xs) ->
           logger#warning "Not Or";
           None
@@ -159,10 +163,16 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
           None
       | R.Inside _ ->
           logger#warning "Not Inside";
+          None
+      | R.Anywhere _ ->
+          logger#warning "Not Anywhere";
           None)
   | R.Inside (t, formula) ->
       let* formula = remove_not formula in
       Some (R.Inside (t, formula))
+  | R.Anywhere (t, formula) ->
+      let* formula = remove_not formula in
+      Some (R.Anywhere (t, formula))
   | R.P pat -> Some (P pat)
 
 let remove_not_final f =
@@ -199,7 +209,9 @@ let rec (cnf : Rule.formula -> cnf_step0) =
    * | R.And _xs -> failwith "Not And"
    * )
    *)
-  | R.Inside (_, formula) -> cnf formula
+  | R.Inside (_, formula)
+  | R.Anywhere (_, formula) ->
+      cnf formula
   | R.And (_, { conjuncts = xs; conditions = conds; _ }) ->
       let ys = Common.map cnf xs in
       let zs = Common.map (fun (_t, cond) -> And [ Or [ LCond cond ] ]) conds in
