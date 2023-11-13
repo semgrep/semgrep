@@ -323,21 +323,62 @@ let relative_eq parent_target target parent_config config =
   in
   Fpath.(equal (rem_ext ~multi:true rel1) (rem_ext ~multi:true rel2))
 
+let generate_check_output_line check_id check_results =
+  let soft_errors = check_results["errors"] in
+  let json_error_report = [] in
+  if soft_errors then
+    (* Display partial parsing errors and such. These are tolerated
+       when running a semgrep scan but fatal in test mode. *)
+    let json_error_report = [f"errors: {json.dumps(soft_errors, indent=2)}"] in
+
+    let generate_missed_vs_incorrect_lines matches = (* Mapping[str, Any] *)
+      let expected_lines = matches["expected_lines"]
+      and reported_lines = matches["reported_lines"]
+      in
+      let missed = f"missed lines: {list(set(expected_lines) - set(reported_lines))}"
+      and incorrect = (
+            f"incorrect lines: {list(set(reported_lines) - set(expected_lines))}"
+          )
+      in
+      missed ^ ", " ^ incorrect
+    in
+    let missed_vs_incorrect_lines =
+      List.map (fun (_, matches) ->
+          generate_missed_vs_incorrect_lines matches)
+        check_results["matches"].items()
+    in
+    let all_errors =
+      "\n\t".join(json_error_report + missed_vs_incorrect_lines)
+    in
+
+    let test_file_names =
+      List.map fst check_results["matches"].items |> String.concat " "
+    in
+    "\t✖ {check_id}\n\t{all_errors}\n\ttest file path: {test_file_names}\n\n"
+
 let get_config_filenames path =
   let does_not_start_with_dot p =
     not (String.starts_with ~prefix:"." (Fpath.basename p))
   in
-  let str = Fpath.to_string path in
-  if Sys.file_exists str then
-    if Sys.is_directory str then
-      get_all_files path
-      |> List.filter is_config_suffix
-      |> List.filter does_not_start_with_dot
-      |> List.filter (fun path -> does_not_start_with_dot (Fpath.parent path))
+  match path with
+  | Dir (path, _) ->
+    let str = Fpath.to_string path in
+    if Sys.file_exists str then
+      if Sys.is_directory str then
+        get_all_files path
+        |> List.filter is_config_suffix
+        |> List.filter does_not_start_with_dot
+        |> List.filter (fun path -> does_not_start_with_dot (Fpath.parent path))
+      else
+        [ path ]
     else
+      []
+  | File (path, _) ->
+    let str = Fpath.to_string path in
+    if Sys.file_exists str then
       [ path ]
-  else
-    []
+    else
+      []
 
 let get_config_test_filenames original_config configs original_target =
   let is_file p =
@@ -368,6 +409,12 @@ let get_config_test_filenames original_config configs original_target =
         Map_.add config tgts m)
       Map_.empty configs
 
+let checkid_passed matches_for_checkid =
+  List.for_all (fun (_filename, expected_and_reported_lines) ->
+      expected_and_reported_lines["expected_lines"]
+      == expected_and_reported_lines["reported_lines"])
+    (matches_for_checkid.items())
+
 (*****************************************************************************)
 (* Main logic *)
 (*****************************************************************************)
@@ -392,7 +439,25 @@ let run_conf (conf : conf) : Exit_code.t =
       config_test_filenames ([], [])
   in
 
-  invoke_semgrep_fn = functools.partial(
+  let config_missing_tests_output = config_without_tests in
+
+(*  let scan_func_for_osemgrep =
+    Core_runner.mk_scan_func_for_osemgrep Core_scan.scan_with_exn_handler
+  in
+  let scan_func =
+    scan_func_for_osemgrep
+      ~respect_git_ignore:conf.targeting_conf.respect_git_ignore
+      ~file_match_results_hook conf.core_runner_conf rules errors targets
+  in
+  let (res : Core_runner.result) =
+    Core_runner.create_core_result filtered_rules scan_func
+  in
+*)
+
+  let (results : (string * Core_result.result_or_exn) list)  =
+    Obj.magic config_with_tests
+  in
+(*  invoke_semgrep_fn = functools.partial(
     invoke_semgrep_multi,
     engine_type=engine_type,
     no_git_ignore=True,
@@ -402,35 +467,36 @@ let run_conf (conf : conf) : Exit_code.t =
   )
 with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
        results = pool.starmap(invoke_semgrep_fn, config_with_tests)
+*)
 
-    config_with_errors, config_without_errors = partition(results, lambda r: bool(r[1]))
-    config_with_errors_output = [
-        {"filename": str(filename), "error": error, "output": output}
-        for filename, error, output in config_with_errors
-    ]
+  let config_with_errors, config_without_errors =
+    List.partition_map (function f, Ok y -> Right (f, y) | f, Error e -> Left (f, e))
+      results
+  in
+  let config_with_errors_output =
+      List.map (fun (filename, (exn, _error_opt)) ->
+        filename, Printexc.to_string (Exception.get_exn exn), Exception.to_string exn)
+        config_with_errors
+  in
 
-    tested = [
-        (
-            filename,
-            get_expected_and_reported_lines(output, config_test_filenames[filename]),
-            output["errors"] if "errors" in output else [],
-        )
-        for filename, _, output in config_without_errors
-    ]
+  let tested =
+    List.map (fun (filename, result) ->
+        filename,
+        get_expected_and_reported_lines result config_test_filenames[filename],
+        result.errors)
+      config_without_errors
+  in
 
-    results_output: Mapping[str, Mapping[str, Any]] = {
-        str(filename): {
-            "checks": {
-                check_id: {
-                    "passed": checkid_passed(filename_and_matches) and not errors,
-                    "matches": filename_and_matches,
-                    "errors": errors,
-                }
-                for check_id, filename_and_matches in matches.items()
-            }
-        }
-        for filename, matches, errors in tested
-    }
+  let results_output =
+    (*: Mapping[str, Mapping[str, Any]] = { *)
+    List.map (fun (filename, matches, errors) ->
+        filename,
+        List.map (fun (check_id, filename_and_matches) ->
+            check_id, checkid_passed(filename_and_matches) && not errors,
+            filename_and_matches, errors)
+          matches)
+      tested
+  in
 
   (* TODO
     fixtest_filenames: Dict[Path, List[Tuple[Path, Path]]] = {
@@ -452,16 +518,19 @@ with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
    ]
 *)
 
-    # this saves execution time: fix will not be correct, if regular test is not correct
-    passed_test_filenames = [
-        filename
-        for _config_filename, matches, soft_errors in tested
-        for _check_id, filename_and_matches in matches.items()
-        for filename, expected_and_reported_lines in filename_and_matches.items()
-        if expected_and_reported_lines["expected_lines"]
-        == expected_and_reported_lines["reported_lines"]
-        and not soft_errors
-    ]
+  (* # this saves execution time: fix will not be correct, if regular test is not correct *)
+  let passed_test_filenames =
+    List.fold_left (fun acc (_config_filename, matches, soft_errors) ->
+        List.fold_left (fun acc (_check_id, filename_and_matches) ->
+            List.fold_left (fun acc (filename, expected_and_reported_lines) ->
+                if expected_and_reported_lines "expected_lines" == expected_and_reported_lines "reported_lines" && not soft_errors then
+                  filename :: acc
+                else
+                  acc)
+              acc filename_and_matches)
+          acc matches)
+      [] tested
+  in
 (*    configs_with_fixtests = {
         config: [
             (target, fixtest)
@@ -513,13 +582,14 @@ with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
         fixtest_results_output[str(t)] = {"passed": len(filediff) == 0}
         os.remove(tempcopy)
 *)
-    output = {
+  let output = {
         "config_missing_tests": config_missing_tests_output,
-                                (* "config_missing_fixtests": configs_missing_fixtests, *)
+    (* "config_missing_fixtests": configs_missing_fixtests, *)
         "config_with_errors": config_with_errors_output,
         "results": results_output,
                                 (* "fixtest_results": fixtest_results_output, *)
-    }
+      }
+  in
 
     strict_error = bool(config_with_errors_output) and strict
     any_failures = any(
@@ -533,24 +603,35 @@ with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
         for fixtest_file_results in fixtest_results_output.values()
       ) *)
 
-    exit_code = int(strict_error or any_failures or any_fixtest_failures)
+let exit_code = int(strict_error or any_failures or any_fixtest_failures) in
 
-    if json_output:
+if json_output then
         print(json.dumps(output, indent=4, separators=(",", ": ")))
         sys.exit(exit_code)
 
-    num_tests = 0
-    num_tests_passed = 0
-    check_output_lines: str = ""
-    for _filename, rr in results_output.items():
-        for check_id, check_results in sorted(rr["checks"].items()):
-            num_tests += 1
-            if not check_results["passed"]:
-                check_output_lines += _generate_check_output_line(
-                    check_id, check_results
-                )
-            else:
-                num_tests_passed += 1
+    let num_tests = 0
+and num_tests_passed = 0
+in
+let check_output_lines = "" in
+let num_tests, num_tests_passed, check_output_lines =
+  List.fold_left (fun (num_tests, num_tests_passed, check_output_lines)
+                   (_filename, rr) ->
+                   Liat.fold_left (fun (num_tests, num_tests_passed, check_output_lines)
+                                    (check_id, check_results) ->
+                                    let num_tests = num_tests + 1
+                                    and num_tests_passed, check_output_lines =
+            if not check_results["passed"] then
+              num_tests_passed,
+              check_output_lines ^ generate_check_output_line check_id check_results
+            else
+              num_tests_passed + 1,
+              check_output_lines
+                                    in
+                                    num_tests, num_tests_passed, check_output_lines)
+                     (num_tests, num_tests_passed, check_output_lines)
+                     rr "checks")
+    (0, 0, "") (results_output.items ())
+in
 
 (*    num_fixtests = 0
     num_fixtests_passed = 0
@@ -566,18 +647,13 @@ with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
         else:
             num_fixtests_passed += 1 *)
 
-    if num_tests == 0:
-        print(
-            "No unit tests found. See https://semgrep.dev/docs/writing-rules/testing-rules"
-        )
-    elif num_tests == num_tests_passed:
-        print(f"{num_tests_passed}/{num_tests}: ✓ All tests passed ")
-    else:
-        print(
-            f"{num_tests_passed}/{num_tests}: {num_tests - num_tests_passed} unit tests did not pass:"
-        )
-        print(BREAK_LINE)
-        print(check_output_lines)
+    (if num_tests = 0 then
+       Logs.app (fun m -> m "No unit tests found. See https://semgrep.dev/docs/writing-rules/testing-rules")
+     else if num_tests == num_tests_passed then
+       Logs.app (fun m -> m "%u/%u: ✓ All tests passed " num_tests_passed num_tests)
+     else
+       Logs.app (fun m -> m "%u/%u: %u unit tests did not pass:@.%s"
+                    num_tests_passed num_tests (num_tests - num_tests_passed) check_output_lines));
 
 (*    if num_fixtests == 0:
         print("No tests for fixes found.")
@@ -590,18 +666,16 @@ with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
         print(BREAK_LINE)
         print(fixtest_file_diffs) *)
 
-    if config_with_errors_output:
-        print(BREAK_LINE)
-        print("The following config files produced errors:")
-        print(
-            "\t"
+    if config_with_errors_output then
+        Logs.app (fun m -> m "@.The following config files produced errors:")
+        Logs.app (fun m -> m "");
+(*            "\t"
             + "\n\t".join(
                 f"{c['filename']}: {c['error']}" for c in config_with_errors_output
             )
-        )
+              ); *)
 
-    sys.exit(exit_code)
-
+    exit_code
 
 (*****************************************************************************)
 (* Entry point *)
