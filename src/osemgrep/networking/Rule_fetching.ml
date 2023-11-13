@@ -478,7 +478,7 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
             |> Common.map (fun (_k, l) -> l)
             |> Common.uniq_by ( =*= )
             (* TODO: we currently get a segfault with the Dart parser
-             * (for example on a pattern like ': Common.filename'), so we
+             * (for example on a pattern like ': string (* filename *)'), so we
              * skip Dart for now (which anyway is not really supported).
              *)
             |> Common.exclude (fun x -> x =*= Lang.Dart)
