@@ -4,7 +4,7 @@ val check :
   ?range_filter:(Tok.location * Tok.location -> bool) ->
   Rule_options.t * Equivalence.equivalences ->
   Mini_rule.rules ->
-  Common.filename * Lang.t * Target.t ->
+  string (* filename *) * Lang.t * Target.t ->
   Pattern_match.t list
 (** Match mini-rules (patterns) against a target file.
   *

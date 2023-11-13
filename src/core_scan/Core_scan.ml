@@ -720,7 +720,7 @@ let targets_of_config (config : Core_scan_config.t) :
 let extracted_targets_of_config (config : Core_scan_config.t)
     (all_rules : Rule.t list) :
     In.target list
-    * ( Common.filename,
+    * ( string (* filename *),
         Match_extract_mode.match_result_location_adjuster )
       Hashtbl.t =
   let extractors =

@@ -62,7 +62,7 @@ type t = {
   line : int; (* 1-based *)
   column : int; (* 0-based *)
   (* TODO: use Fpath.t *)
-  file : Common.filename;
+  file : string;
 }
 [@@deriving show, eq, ord, sexp]
 
@@ -130,8 +130,7 @@ let safe_linecol_of_arrays line_arr col_arr : bytepos_to_linecol_fun =
         let i = max 0 (min i (len - 1)) in
         (line_arr.{i}, col_arr.{i})
 
-let full_charpos_to_pos_large (file : Common.filename) : bytepos_to_linecol_fun
-    =
+let full_charpos_to_pos_large (file : string) : bytepos_to_linecol_fun =
   let chan = open_in_bin file in
   let size = Common2.filesize file + 2 in
 

@@ -187,7 +187,7 @@ let fetch_content_from_registry_url ~registry_caching url =
 (* Registry and yaml aware jsonnet *)
 (*****************************************************************************)
 
-let parse_yaml_for_jsonnet (file : Common.filename) : AST_jsonnet.program =
+let parse_yaml_for_jsonnet (file : string) : AST_jsonnet.program =
   Logs.debug (fun m -> m "loading yaml file %s, converting to jsonnet" file);
   (* TODO? or use Yaml_to_generic.parse_yaml_file which seems
    * to be used to parse semgrep rules?

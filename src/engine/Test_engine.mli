@@ -10,4 +10,4 @@ val make_tests :
   (string * (unit -> unit)) list * int ref (* total mismatch *) * (unit -> unit)
 
 (* Run the tests and print a summary. *)
-val test_rules : ?unit_testing:bool -> Common.filename list -> unit
+val test_rules : ?unit_testing:bool -> string (* filename *) list -> unit
