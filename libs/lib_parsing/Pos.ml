@@ -90,7 +90,7 @@ let string_of_pos { file; line; column; _ } = spf "%s:%d:%d" file line column
 (*****************************************************************************)
 
 (* conversion table, in the shape of a function *)
-type pos_info = {
+type bytepos_linecol_converters = {
   bytepos_to_linecol_fun : int -> int * int;
   linecol_to_bytepos_fun : int * int -> int;
 }
@@ -109,19 +109,20 @@ type pos_info = {
  *   - in each lexer you need to take care of newlines and update manually
  *     the field.
  *)
-let complete_position filename pos_info (x : t) =
+let complete_position filename converters (x : t) =
   {
     x with
     file = filename;
-    line = fst (pos_info.bytepos_to_linecol_fun x.bytepos);
-    column = snd (pos_info.bytepos_to_linecol_fun x.bytepos);
+    line = fst (converters.bytepos_to_linecol_fun x.bytepos);
+    column = snd (converters.bytepos_to_linecol_fun x.bytepos);
   }
 
 (*
    line_arr maps byte position to line.
    col_arr maps byte position to column.
 *)
-let pos_info_of_arrays ?(file = "<unknown>") line_arr col_arr : pos_info =
+let converters_of_arrays ?(file = "<unknown>") line_arr col_arr :
+    bytepos_linecol_converters =
   let len1 = Bigarray.Array1.dim line_arr in
   let len2 = Bigarray.Array1.dim col_arr in
   (* len1 and len2 should be equal but we're playing it safe *)
@@ -164,7 +165,8 @@ let pos_info_of_arrays ?(file = "<unknown>") line_arr col_arr : pos_info =
              | Ok (bytepos, _) -> bytepos);
       }
 
-let full_pos_info_large (file : Common.filename) : pos_info =
+let full_converters_large (file : Common.filename) : bytepos_linecol_converters
+    =
   let chan = open_in_bin file in
   let size = Common2.filesize file + 2 in
 
@@ -220,12 +222,12 @@ let full_pos_info_large (file : Common.filename) : pos_info =
   in
   full_charpos_to_pos_aux ();
   close_in chan;
-  pos_info_of_arrays ~file arr1 arr2
+  converters_of_arrays ~file arr1 arr2
 [@@profiling]
 
 (* This is mostly a copy-paste of full_charpos_to_pos_large,
    but using a string for a target instead of a file. *)
-let full_pos_info_str (s : string) : pos_info =
+let full_converters_str (s : string) : bytepos_linecol_converters =
   let size = String.length s + 2 in
 
   (* old: let arr = Array.create size  (0,0) in *)
@@ -267,7 +269,7 @@ let full_pos_info_str (s : string) : pos_info =
       str_lines
   in
   full_charpos_to_pos_aux ();
-  pos_info_of_arrays arr1 arr2
+  converters_of_arrays arr1 arr2
 [@@profiling]
 
 (*****************************************************************************)
@@ -275,11 +277,11 @@ let full_pos_info_str (s : string) : pos_info =
 (*****************************************************************************)
 
 let s = "a\nhi\n"
-let pos_info = full_pos_info_str s
+let converters = full_converters_str s
 
 let equate_positions bytepos linecol =
-  pos_info.bytepos_to_linecol_fun bytepos =*= linecol
-  && pos_info.linecol_to_bytepos_fun linecol =*= bytepos
+  converters.bytepos_to_linecol_fun bytepos =*= linecol
+  && converters.linecol_to_bytepos_fun linecol =*= bytepos
 
 let%test _ = equate_positions 0 (1, 0)
 

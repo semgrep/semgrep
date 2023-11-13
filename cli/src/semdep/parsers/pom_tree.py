@@ -36,7 +36,7 @@ dep = regex(
 ) | regex("([^:\n]+:[^:\n]+):[^:\n]+:([^:\n]+):[^:\n]+", flags=0, group=(1, 2))
 
 
-# Examples (these would not appear in this order in a file, they're seperate):
+# Examples (these would not appear in this order in a file, they're separate):
 # |  +- org.apache.maven:maven-model:jar:3.8.6:provided
 
 # |  |  \- org.codehaus.plexus:plexus-component-annotations:jar:1.5.5:provided

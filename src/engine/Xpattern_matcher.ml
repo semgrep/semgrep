@@ -98,7 +98,7 @@ let hmemo = Hashtbl.create 101
 
 let line_col_of_charpos file charpos =
   let conv =
-    Common.memoized hmemo file (fun () -> Pos.full_pos_info_large file)
+    Common.memoized hmemo file (fun () -> Pos.full_converters_large file)
   in
   conv.bytepos_to_linecol_fun charpos
 

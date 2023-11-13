@@ -271,6 +271,11 @@ let ci_tests () =
   in
   pack_tests "CI Tests" tests
 
+let test_ls_libev () = Lwt_platform.set_engine ()
+
+let libev_tests =
+  pack_tests "Lib EV tests" [ ("Test LS with libev", test_ls_libev) ]
+
 let tests =
-  pack_suites "Language Server"
-    [ session_targets (); processed_run (); ci_tests () ]
+  pack_suites "Language Server (unit)"
+    [ session_targets (); processed_run (); ci_tests (); libev_tests ]

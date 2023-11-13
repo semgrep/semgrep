@@ -1,0 +1,11 @@
+rules:
+  - id: anywhere-global
+    languages:
+      - python
+    message: You're calling bar with an insecure global flag
+    metadata:
+    patterns:
+    - semgrep-internal-pattern-anywhere:
+        pattern: "MAKE_BAR_INSECURE = True"
+    - pattern: "bar(...)"
+    severity: ERROR

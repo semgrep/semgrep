@@ -59,6 +59,7 @@ depends: [
   "digestif" {>= "1.0.0"}
   "lwt"
   "lwt_ppx"
+  "conf-libev"
   "js_of_ocaml" {= "5.4.0"}
   "js_of_ocaml-compiler" {= "5.4.0"}
   "js_of_ocaml-ppx" {= "5.4.0"}

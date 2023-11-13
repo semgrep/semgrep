@@ -1,0 +1,7 @@
+rules:
+  - id: use-dict-get
+    match: $DICT[$KEY]
+    fix: $DICT.get($KEY)
+    message: "Use `.get()` method to avoid a KeyNotFound error"
+    languages: [python]
+    severity: ERROR

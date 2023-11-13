@@ -106,6 +106,10 @@ let keyword_table = Common.hash_of_list [
   "mutable", (fun ii -> Tmutable ii);
   "virtual", (fun ii -> Tvirtual ii);
 
+  (* virtual specifier *)
+  "final", (fun ii -> Tfinal ii);
+  "override", (fun ii -> Toverride ii);
+
   (* c++0x:  *)
   "constexpr", (fun ii -> Tconstexpr ii);
   "thread_local", (fun ii -> Tthread_local ii);

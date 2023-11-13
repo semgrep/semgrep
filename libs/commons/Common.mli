@@ -386,9 +386,9 @@ val group_by_multi : ('a -> 'b list) -> 'a list -> ('b * 'a list) list
 (* Stack *)
 (*****************************************************************************)
 
-type 'a stack = 'a list
+type 'a stack = 'a list ref
 
-val push : 'a -> 'a stack ref -> unit
+val push : 'a -> 'a stack -> unit
 
 (*****************************************************************************)
 (* Hash *)

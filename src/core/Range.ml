@@ -70,11 +70,11 @@ let range_of_line_spec str file =
     let line1 = s_to_i a in
     let line2 = s_to_i b in
     (* quite inefficient, but should be ok *)
-    let trans = Pos.full_pos_info_large file in
+    let converters = Pos.full_converters_large file in
     let start = ref (-1) in
     let end_ = ref (-1) in
     for i = 0 to Common2.filesize file do
-      let l, _ = trans.bytepos_to_linecol_fun i in
+      let l, _ = converters.bytepos_to_linecol_fun i in
       if l =|= line1 then start := i;
       if l =|= line2 then end_ := i
     done;
@@ -89,11 +89,11 @@ let range_of_linecol_spec str file =
     let line1, col1 = (s_to_i a, s_to_i b) in
     let line2, col2 = (s_to_i c, s_to_i d) in
     (* quite inefficient, but should be ok *)
-    let trans = Pos.full_pos_info_large file in
+    let converters = Pos.full_converters_large file in
     let start = ref (-1) in
     let end_ = ref (-1) in
     for i = 0 to Common2.filesize file do
-      let l, c = trans.bytepos_to_linecol_fun i in
+      let l, c = converters.bytepos_to_linecol_fun i in
       if (l, c) =*= (line1, col1) then start := i;
       if (l, c) =*= (line2, col2) then end_ := i
     done;

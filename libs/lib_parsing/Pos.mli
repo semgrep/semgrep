@@ -43,9 +43,9 @@ val string_of_pos : t -> string
    in the range.
    Empty files admit at least one valid byte position.
 
-   If the (line, column) is out of range, an exception will be raised.
+   If the (line, column) is out of range, a Failure exception will be raised.
 *)
-type pos_info = {
+type bytepos_linecol_converters = {
   bytepos_to_linecol_fun : int -> int * int;
   linecol_to_bytepos_fun : int * int -> int;
 }
@@ -56,10 +56,10 @@ type pos_info = {
  *)
 
 (* f(i) will contain the (line x col) of the i char position *)
-val full_pos_info_large : Common.filename -> pos_info
-val full_pos_info_str : string -> pos_info
+val full_converters_large : Common.filename -> bytepos_linecol_converters
+val full_converters_str : string -> bytepos_linecol_converters
 
 (* fill in the line and column field of a position that were not set
  * during lexing because of limitations of ocamllex and Lexing.position.
  *)
-val complete_position : Common.filename -> pos_info -> t -> t
+val complete_position : Common.filename -> bytepos_linecol_converters -> t -> t

@@ -206,7 +206,7 @@ let mk_scan_func (conf : Scan_CLI.conf) file_match_results_hook errors targets
    tuples containing the rule ID, file path, and matched code snippet
    are equal. *)
 let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
-    (head : Core_result.t) (renamed : (filename * filename) stack) =
+    (head : Core_result.t) (renamed : (filename * filename) list) =
   let extract_sig renamed m =
     let rule_id = m.Pattern_match.rule_id in
     let path =
@@ -321,7 +321,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
                   in
                   let baseline_targets, baseline_diff_targets =
                     match conf.engine_type with
-                    | PRO Interfile ->
+                    | PRO Engine_type.{ analysis = Interprocedural; _ } ->
                         let all_in_baseline, _ =
                           Find_targets.get_targets conf.targeting_conf
                             conf.target_roots
@@ -435,7 +435,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
               status.added @ status.modified |> Common.map Fpath.v
             in
             match conf.engine_type with
-            | PRO Interfile ->
+            | PRO Engine_type.{ analysis = Interfile; _ } ->
                 Metrics_.g.payload.value.proFeatures <-
                   Some { diffDepth = Some diff_depth };
                 (targets, added_or_modified)

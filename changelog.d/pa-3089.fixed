@@ -1,0 +1,4 @@
+Fix regression for the unused lambda change in react-nextjs-router-push test
+
+A lambda expression defined in a return expression is also treated as used at
+the location of the return expression.

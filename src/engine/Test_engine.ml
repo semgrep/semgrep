@@ -283,6 +283,7 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
         | Ok () -> Hashtbl.add newscore !!file Common2.Ok
         | Error (num_errors, msg) ->
             pr2 msg;
+            pr2 "---";
             Hashtbl.add newscore !!file (Common2.Pb msg);
             total_mismatch := !total_mismatch + num_errors;
             if unit_testing then Alcotest.fail msg)
@@ -327,10 +328,11 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None)
       Parsing_stat.print_regression_information ~ext xs newscore;
     pr2 (spf "total mismatch: %d" !total_mismatch)
   in
-  (tests, print_summary)
+  (tests, total_mismatch, print_summary)
 
 let test_rules ?unit_testing xs =
   let paths = File.Path.of_strings xs in
-  let tests, print_summary = make_tests ?unit_testing paths in
+  let tests, total_mismatch, print_summary = make_tests ?unit_testing paths in
   tests |> List.iter (fun (_name, test) -> test ());
-  print_summary ()
+  print_summary ();
+  if !total_mismatch > 0 then exit 1

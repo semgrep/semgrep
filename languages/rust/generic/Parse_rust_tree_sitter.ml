@@ -1583,9 +1583,7 @@ and map_expression_ending_with_block (env : env)
       let body = map_block env v7 in
       let cond = G.OtherCond (("LetCond", let_), [ G.P pattern; G.E cond ]) in
       let while_stmt = G.While (while_, cond, body) |> G.s in
-      let expr = G.stmt_to_expr while_stmt in
-      (* TODO: this is wrong, the LetPattern is with cond, not expr *)
-      G.LetPattern (pattern, expr) |> G.e
+      G.stmt_to_expr while_stmt
   | `Loop_exp (v1, v2, v3) ->
       let _loop_labelTODO = Option.map map_loop_label_ v1 in
       let loop = token env v2 (* "loop" *) in
@@ -2006,16 +2004,15 @@ and map_if_expression (env : env) ((v1, v2, v3, v4) : CST.if_expression) :
 and map_if_let_expression (env : env)
     ((v1, v2, v3, v4, v5, v6, v7) : CST.if_let_expression) : G.expr =
   let if_ = token env v1 (* "if" *) in
-  let _let_ = token env v2 (* "let" *) in
+  let let_ = token env v2 (* "let" *) in
   let pattern = map_pattern env v3 in
   let _equals = token env v4 (* "=" *) in
   let cond = map_expression env v5 in
+  let cond = G.OtherCond (("LetCond", let_), [ G.P pattern; G.E cond ]) in
   let body = map_block env v6 in
   let else_ = Option.map (fun x -> map_else_clause env x) v7 in
-  (* TODO: use new complex condition type *)
-  let if_stmt = G.If (if_, G.Cond cond, body, else_) |> G.s in
-  let expr = G.stmt_to_expr if_stmt in
-  G.LetPattern (pattern, expr) |> G.e
+  let if_stmt = G.If (if_, cond, body, else_) |> G.s in
+  G.stmt_to_expr if_stmt
 
 (* ruin:
    and map_impl_block (env : env) ((v1, v2, v3, v4) : CST.impl_block) : G.stmt =

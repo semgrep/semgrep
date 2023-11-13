@@ -93,7 +93,7 @@ let rule_match_nosem ~strict (rule_match : Out.core_match) :
 
   let path = rule_match.path in
   let linecol_to_bytepos_fun =
-    (Pos.full_pos_info_large (Fpath.to_string path)).linecol_to_bytepos_fun
+    (Pos.full_converters_large (Fpath.to_string path)).linecol_to_bytepos_fun
   in
 
   let previous_line, line =

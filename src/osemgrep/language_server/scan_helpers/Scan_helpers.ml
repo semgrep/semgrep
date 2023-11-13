@@ -64,7 +64,13 @@ let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
             *)
             let diff_config = Differential_scan_config.WholeScan in
             pro_scan_func roots ~diff_config
-              (Engine_type.PRO Engine_type.Intrafile)
+              Engine_type.(
+                PRO
+                  {
+                    extra_languages = true;
+                    analysis = Interprocedural;
+                    secrets_config = None;
+                  })
       else Core_runner.mk_scan_func_for_osemgrep Core_scan.scan_with_exn_handler
     in
     scan_func ~respect_git_ignore:true ~file_match_results_hook:None runner_conf

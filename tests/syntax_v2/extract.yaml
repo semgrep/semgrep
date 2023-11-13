@@ -1,0 +1,15 @@
+rules:
+  - id: extract-javascript-from-html
+    match: |
+        <script>$...BODY</script>
+    languages:
+      - html
+    paths:
+      include:
+        - '*.html'
+    severity: INFO
+    message: "extract"
+    extract:
+      metavariable: $...BODY
+      dest-language: typescript
+      reduce: concat
