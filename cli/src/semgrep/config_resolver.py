@@ -971,55 +971,41 @@ def is_policy_id(config_str: str) -> bool:
     return config_str == "policy"
 
 
-def url_for_code() -> str:
+def legacy_url_for_scan(extra_params: dict | None = None) -> str:
+    """
+    Generates a legacy scan url (api/agent/deployments/scans/config) to
+    fetch a scan configuration.
+    """
     env = get_state().env
 
-    # The app considers anything that will not POST back to it to be a dry_run
+    # Common parameters for all scans
+    # - The app considers anything that will not POST back to it to be a dry_run
     params = {
         "dry_run": True,
         "full_scan": True,
         "semgrep_version": __VERSION__,
     }
 
+    if extra_params:
+        params.update(extra_params)
+
     if "SEMGREP_REPO_NAME" in os.environ:
         params["repo_name"] = os.environ.get("SEMGREP_REPO_NAME")
 
     params_str = urlencode(params)
     return f"{env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{params_str}"
+
+
+def url_for_code() -> str:
+    return legacy_url_for_scan()
 
 
 def url_for_supply_chain() -> str:
-    env = get_state().env
-
-    # The app considers anything that will not POST back to it to be a dry_run
-    params = {
-        "sca": True,
-        "dry_run": True,
-        "full_scan": True,
-        "semgrep_version": __VERSION__,
-    }
-    if "SEMGREP_REPO_NAME" in os.environ:
-        params["repo_name"] = os.environ.get("SEMGREP_REPO_NAME")
-
-    params_str = urlencode(params)
-    return f"{env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{params_str}"
+    return legacy_url_for_scan({"sca": True})
 
 
 def url_for_secrets() -> str:
-    env = get_state().env
-
-    # The app considers anything that will not POST back to it to be a dry_run
-    params = {
-        "is_secrets_scan": True,
-        "dry_run": True,
-        "full_scan": True,
-        "semgrep_version": __VERSION__,
-    }
-    if "SEMGREP_REPO_NAME" in os.environ:
-        params["repo_name"] = os.environ.get("SEMGREP_REPO_NAME")
-
-    params_str = urlencode(params)
-    return f"{env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{params_str}"
+    return legacy_url_for_scan({"is_secrets_scan": True})
 
 
 def is_supply_chain(config_str: str) -> bool:
