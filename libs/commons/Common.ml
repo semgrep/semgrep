@@ -1195,11 +1195,16 @@ let main_boilerplate f =
   *)
 let dir_contents dir =
   let rec loop result = function
-    | f :: fs when Sys.is_directory f ->
-        Sys.readdir f |> Array.to_list
-        |> map (Filename.concat f)
-        |> List.append fs |> loop result
-    | f :: fs -> loop (f :: result) fs
+    | f :: fs -> (
+        match f with
+        | f when not (Sys.file_exists f) ->
+            logger#error "%s does not exist anymore" f;
+            loop result fs
+        | f when Sys.is_directory f ->
+            Sys.readdir f |> Array.to_list
+            |> map (Filename.concat f)
+            |> List.append fs |> loop result
+        | f -> loop (f :: result) fs)
     | [] -> result
   in
   loop [] [ dir ]
