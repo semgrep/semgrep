@@ -255,12 +255,18 @@ class ConfigLoader:
     def is_registry_url(self) -> bool:
         return self._origin == ConfigType.REGISTRY
 
-    def _project_metadata_for_standalone_scan(self) -> out.ProjectMetadata:
-        repo_name = os.environ.get("SEMGREP_REPO_NAME") or "unknown"
+    def _project_metadata_for_standalone_scan(
+        self, require_repo_name: bool
+    ) -> out.ProjectMetadata:
+        repo_name = os.environ.get("SEMGREP_REPO_NAME")
+
         if repo_name is None:
-            raise SemgrepError(
-                f"Need to set env var SEMGREP_REPO_NAME to use `--config {self._config_path}`"
-            )
+            if require_repo_name:
+                raise SemgrepError(
+                    f"Need to set env var SEMGREP_REPO_NAME to use `--config {self._config_path}`"
+                )
+            else:
+                repo_name = "unknown"
 
         return out.ProjectMetadata(
             semgrep_version=out.Version(__VERSION__),
@@ -294,6 +300,11 @@ class ConfigLoader:
             for p in self._config_path.split(",")
         ]
 
+        # Require SEMGREP_REPO_NAME env var if SAST or Secrets are requested
+        require_repo_name = any(
+            p.value in [out.SAST(), out.Secrets()] for p in products
+        )
+
         request = out.ScanRequest(
             meta=out.RawJson({}),  # required for now, but we won't populate it
             scan_metadata=out.ScanMetadata(
@@ -302,7 +313,9 @@ class ConfigLoader:
                 requested_products=products,
                 dry_run=True,  # semgrep scan never submits findings, so always a dry run
             ),
-            project_metadata=self._project_metadata_for_standalone_scan(),
+            project_metadata=self._project_metadata_for_standalone_scan(
+                require_repo_name
+            ),
         )
 
         try:
