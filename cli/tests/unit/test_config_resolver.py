@@ -2,10 +2,12 @@ from uuid import uuid4
 
 import pytest
 import requests
+from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
 from semgrep.config_resolver import ConfigFile
+from semgrep.config_resolver import legacy_url_for_scan
 from semgrep.config_resolver import ConfigLoader
 from semgrep.config_resolver import ConfigType
 from semgrep.config_resolver import PRODUCT_NAMES
@@ -14,6 +16,21 @@ from semgrep.state import SemgrepState
 
 FAKE_USER_AGENT = "user-agent"
 API_URL = "https://semgrep.dev"
+
+
+@pytest.fixture
+def mock_env(monkeypatch):
+    # Set the environment variable
+    monkeypatch.setenv("SEMGREP_REPO_NAME", "test_repo")
+
+
+@pytest.fixture
+def mocked_state(mocker):
+    mocked = mocker.MagicMock()
+    mocked.request_id = uuid4()
+    mocked.env.semgrep_url = API_URL
+    mocker.patch("semgrep.config_resolver.get_state", return_value=mocked)
+    return mocked
 
 
 @pytest.mark.parametrize(
@@ -59,7 +76,12 @@ class TestConfigLoaderForProducts:
 
     @pytest.mark.quick
     @pytest.mark.osemfail
-    def test__fetch_semgrep_cloud_platform_scan_config(self, config_loader, mocker):
+    def test__fetch_semgrep_cloud_platform_scan_config(
+        self,
+        config_loader,
+        mocker,
+        mock_env,
+    ):
         config_file = ConfigFile(
             None,
             "rules: []",
@@ -89,7 +111,7 @@ class TestConfigLoaderForProducts:
     @pytest.mark.quick
     @pytest.mark.osemfail
     def test__fetch_semgrep_cloud_platform_scan_config__fallback(
-        self, config_loader, mocker
+        self, config_loader, mocker, mock_env
     ):
         config_file = ConfigFile(
             None,
@@ -120,14 +142,6 @@ class TestConfigLoaderForProducts:
         assert patched_fallback_download.call_count == 1
 
     @pytest.fixture
-    def mocked_state(self, mocker):
-        mocked = mocker.MagicMock()
-        mocked.request_id = uuid4()
-        mocked.env.semgrep_url = API_URL
-        mocker.patch("semgrep.config_resolver.get_state", return_value=mocked)
-        return mocked
-
-    @pytest.fixture
     def mocked_cloud_platform_request(
         self, mocked_state: SemgrepState, config_loader: ConfigLoader
     ) -> out.ScanRequest:
@@ -144,7 +158,9 @@ class TestConfigLoaderForProducts:
                 requested_products=products,
                 dry_run=True,
             ),
-            project_metadata=config_loader._project_metadata_for_standalone_scan(),
+            project_metadata=config_loader._project_metadata_for_standalone_scan(
+                require_repo_name=False
+            ),
         )
 
         return request
@@ -231,3 +247,66 @@ class TestConfigLoaderForProducts:
             )
 
         assert "API server at" in str(exc.value)
+
+    @pytest.mark.quick
+    @pytest.mark.osemfail
+    def test__project_metadata_for_standalone_scan(
+        self, config_loader: ConfigLoader, monkeypatch
+    ):
+        monkeypatch.setenv("SEMGREP_REPO_NAME", "test_repo")
+        metadata = config_loader._project_metadata_for_standalone_scan(
+            require_repo_name=True
+        )
+        assert isinstance(metadata, out.ProjectMetadata)
+        assert metadata.repository == "test_repo"
+
+    @pytest.mark.quick
+    @pytest.mark.osemfail
+    def test__project_metadata_for_standalone_scan__no_repo_throws(
+        self, config_loader: ConfigLoader, monkeypatch
+    ):
+        monkeypatch.delenv("SEMGREP_REPO_NAME", raising=False)
+        with pytest.raises(SemgrepError):
+            config_loader._project_metadata_for_standalone_scan(require_repo_name=True)
+
+    @pytest.mark.quick
+    @pytest.mark.osemfail
+    def test__project_metadata_for_standalone_scan__no_repo_success(
+        self, config_loader: ConfigLoader, monkeypatch
+    ):
+        monkeypatch.delenv("SEMGREP_REPO_NAME", raising=False)
+        metadata = config_loader._project_metadata_for_standalone_scan(
+            require_repo_name=False
+        )
+        assert metadata.repository == "unknown"
+
+
+@pytest.mark.quick
+@pytest.mark.osemfail
+@pytest.mark.parametrize(
+    "extra_params, repo_name, expected_url",
+    [
+        (
+            {},
+            None,
+            f"{API_URL}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?dry_run=True&full_scan=True&semgrep_version={__VERSION__}",
+        ),
+        (
+            {"sca": True},
+            None,
+            f"{API_URL}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?dry_run=True&full_scan=True&semgrep_version={__VERSION__}&sca=True",
+        ),
+        (
+            {},
+            "example_repo",
+            f"{API_URL}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?dry_run=True&full_scan=True&semgrep_version={__VERSION__}&repo_name=example_repo",
+        ),
+    ],
+)
+def test_legacy_url_for_scan(
+    mocked_state: SemgrepState, mocker, extra_params, repo_name, expected_url
+):
+    if repo_name:
+        mocker.patch("os.environ", {"SEMGREP_REPO_NAME": repo_name})
+
+    assert legacy_url_for_scan(extra_params) == expected_url
