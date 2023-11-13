@@ -20,7 +20,8 @@ OBJS = \
   build-test-javascript.yml \
   tests.yml \
   test-e2e-semgrep-ci.yml nightly.yml \
-  check-semgrep-pro.yml
+  check-semgrep-pro.yml \
+  test-pro-rules.yml
 
 all: $(JSONNET) $(OBJS)
 
@@ -33,3 +34,11 @@ $(JSONNET):
 
 clean:
 	rm -f $(OBJS)
+
+# for pad's codemap
+.PHONY: gen-codemapignore
+gen-codemapignore: $(OBJS)
+	rm -f .codemapignore
+	for i in $(OBJS);  do \
+		echo $$i >> .codemapignore; \
+	done

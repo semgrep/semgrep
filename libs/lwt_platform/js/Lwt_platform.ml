@@ -34,3 +34,4 @@ let run t =
 (* TODO: preemptive threads w/node workers *)
 let detach f x = f x |> Lwt.return
 let init_preemptive _ _ _ = ()
+let set_engine () = ()

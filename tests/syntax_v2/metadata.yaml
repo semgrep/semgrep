@@ -1,0 +1,14 @@
+rules:
+  - id: use-mkdir
+    match: RUN mkdir ...
+    message: some message
+    severity: WARNING
+    languages:
+      - dockerfile
+    metadata:
+      source-rule-url: https://github.com/hadolint/hadolint/wiki/DL3000
+      references:
+        - https://github.com/hadolint/hadolint/wiki/DL3000
+      category: best-practice
+      technology:
+        - dockerfile

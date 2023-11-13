@@ -28,6 +28,8 @@
            A default value would be set with '<field default="true">'
            and this would be translated into 'True' for Python and whatever
            means "true" in other languages.
+
+   coupling: with semgrep-interfaces/rule_schema_v2.atd
 *)
 
 (* !!Do not rename the fields because they can be referenced in rules!! *)

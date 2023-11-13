@@ -22,10 +22,6 @@ type conf = {
   strict : bool;
   rewrite_rule_ids : bool;
   engine_type : Engine_type.t;
-  (* Indicates the user requested Semgrep Secrets postprocessors to
-     validate secret findings. *)
-  run_secrets : bool;
-  allow_untrusted_validators : bool;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;
   (* Display options *)
