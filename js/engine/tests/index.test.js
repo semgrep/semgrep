@@ -13,6 +13,7 @@ function maskResult(result) {
   result["results"].map(
     (match) => (match["extra"]["fingerprint"] = "<MASKED>")
   );
+  return result;
 }
 
 describe("engine", () => {
@@ -43,53 +44,71 @@ describe("engine", () => {
   });
 });
 
+function executeSnapshotTest(engine, language, ruleFile, targetFile) {
+  const rulePath = path.resolve(`${__dirname}/${ruleFile}`);
+  const targetPath = path.resolve(`${__dirname}/${targetFile}`);
+
+  const result = JSON.parse(
+    engine
+      .execute(language, rulePath, `${__dirname}`, [targetPath])
+      .replaceAll(rulePath, ruleFile)
+      .replaceAll(targetPath, targetFile)
+      .replaceAll("PRO", "OSS")
+  );
+  return maskResult(result);
+}
+
 describe("yaml parser", () => {
   test("parses a simple pattern", async () => {
     const engine = await enginePromise;
-    const rulePath = path.resolve(`${__dirname}/test-rule-yaml.json`);
-    const targetPath = path.resolve(`${__dirname}/test.yaml`);
-    const result = JSON.parse(
-      engine
-        .execute("yaml", rulePath, `${__dirname}`, [targetPath])
-        .replaceAll(rulePath, "test-rule-yaml.json")
-        .replaceAll(targetPath, "test.yaml")
-        .replaceAll("PRO", "OSS")
+    const result = executeSnapshotTest(
+      engine,
+      "yaml",
+      "test-rule-yaml.json",
+      "test.yaml"
     );
-    expect(maskResult(result)).toMatchSnapshot();
+    expect(result).toMatchSnapshot();
   });
   test("parses a pattern with pattern-regex", async () => {
     const engine = await enginePromise;
-    const rulePath = path.resolve(`${__dirname}/test-rule-yaml-regex.json`);
-    const targetPath = path.resolve(`${__dirname}/test.yaml`);
-
-    const result = JSON.parse(
-      engine
-        .execute("yaml", rulePath, `${__dirname}`, [targetPath])
-        .replaceAll(rulePath, "test-rule-yaml.json")
-        .replaceAll(targetPath, "test.yaml")
-        .replaceAll("PRO", "OSS")
+    const result = executeSnapshotTest(
+      engine,
+      "yaml",
+      "test-rule-yaml-regex.json",
+      "test.yaml"
     );
-    expect(maskResult(result)).toMatchSnapshot();
+    expect(result).toMatchSnapshot();
   });
 });
 
-describe("representation", () => {
+describe("misc", () => {
   test("js representation handles large ints", async () => {
     const engine = await enginePromise;
     const python = require("../../languages/python/dist/index.cjs");
     engine.addParser(await python.ParserFactory());
     const rulePath = path.resolve(`${__dirname}/test-representation.json`);
     const targetPath = path.resolve(`${__dirname}/test-representation.py`);
-    const result = JSON.parse(
-      engine
-        .execute("python", rulePath, `${__dirname}`, [targetPath])
-        .replaceAll(rulePath, "test-representation.json")
-        .replaceAll(targetPath, "test-representation.py")
-        .replaceAll("PRO", "OSS")
+    const result = executeSnapshotTest(
+      engine,
+      "python",
+      "test-representation.json",
+      "test-representation.py"
     );
     // we expect the result to have length 1, because the metavariable
     // comparison succeeds
-    expect(maskResult(result).results).toHaveLength(1);
+    expect(result).toHaveLength(1);
+  });
+  test("interpolates metavariables in rule message", async () => {
+    const engine = await enginePromise;
+    const python = require("../../languages/python/dist/index.cjs");
+    engine.addParser(await python.ParserFactory());
+    const result = executeSnapshotTest(
+      engine,
+      "python",
+      "test-interpolate-metavars.json",
+      "test.py"
+    );
+    expect(result).toMatchSnapshot();
   });
 });
 

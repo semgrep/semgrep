@@ -127,9 +127,6 @@ class ConfigLoader:
         elif is_registry_id(config_str):
             state.metrics.add_feature("config", f"registry:prefix-{config_str[0]}")
             self._config_path = registry_id_to_url(config_str)
-        elif is_saved_snippet(config_str):
-            state.metrics.add_feature("config", f"registry:snippet-id")
-            self._config_path = saved_snippet_to_url(config_str)
         elif config_str == AUTO_CONFIG_KEY:
             state.metrics.add_feature("config", "auto")
             self._config_path = f"{state.env.semgrep_url}/{AUTO_CONFIG_LOCATION}"
@@ -758,13 +755,6 @@ def is_registry_id(config_str: str) -> bool:
     return config_str[:2] in {"r/", "p/", "s/"}
 
 
-def is_saved_snippet(config_str: str) -> bool:
-    """
-    config_str is saved snippet which has format username:snippetname
-    """
-    return len(config_str.split(":")) == 2
-
-
 def registry_id_to_url(registry_id: str) -> str:
     """
     Convert from registry_id to semgrep.dev url
@@ -828,13 +818,6 @@ def url_for_supply_chain() -> str:
 
 def is_supply_chain(config_str: str) -> bool:
     return config_str == "supply-chain"
-
-
-def saved_snippet_to_url(snippet_id: str) -> str:
-    """
-    Convert from username:snippetname to semgrep.dev url
-    """
-    return registry_id_to_url(f"s/{snippet_id}")
 
 
 def is_pack_id(config_str: str) -> bool:

@@ -41,7 +41,7 @@ if WHEEL_CMD in sys.argv:
 
             # To prevent potential compatibility issues when mixing glibc and libmusl,
             # PyPI does not accept the default linux_x86_64 and linux_aarch64 platform
-            # tags. Instead, package maintainers must explicity identify if their package
+            # tags. Instead, package maintainers must explicitly identify if their package
             # supports glibc and/or libmusl. Semgrep-core is statically compiled,
             # so this isn't a concern for us.
             #

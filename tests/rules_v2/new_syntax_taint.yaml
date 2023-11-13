@@ -3,7 +3,6 @@ rules:
     languages:
       - python 
     message: Found insecure crypto usage
-    mode: taint
     taint:
       sources:
         - "tainted1" 
