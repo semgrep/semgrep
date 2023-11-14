@@ -53,19 +53,18 @@ type t = {
      Why did we add the fixes here?
      When we bridge the gap from `Core_result.t` to `Out.core_output`, we have
      to associate each match to a (potential) edit.
-     We could do it from Core_json_output, but this is undesirable because it
-     will conflate the process of producing output and side-effectively applying
-     autofixes.
-     In addition, the `Autofix` module is not available from that directory.
-     We will choose to instead embed the fix information in `Core_result.t`, as
+     We will choose to embed the fix information in `Core_result.t`, as
      autofixing is now a valid function of the core engine, and thus the produced
      fixes are related to its produced results.
      These edits start as all None, but will be filled in by
      `Autofix.produce_autofixes`, and the associated Autofix_processor step.
+
      alt: we could have added this to `Pattern_match.t`, but that felt a bit early
      alt: we could have produced these autofixes when going from Core_result.t to
      Out.core_output, but this would require us to do autofixing at the same time
-     as output, which conflates concerns.
+     as output, which conflates process of producing output and side-effectively
+     applying autofixes. In addition, the `Autofix` module is not available from
+     that directory.
   *)
   matches_with_fixes : (Pattern_match.t * Textedit.t option) list;
   errors : Core_error.t list;
