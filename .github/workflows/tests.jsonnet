@@ -382,6 +382,14 @@ local benchmarks_full_job = {
   ],
 };
 
+local trigger_semgrep_comparison_argo = {
+  secrets: 'inherit',
+  needs: [
+    'push-docker',
+  ],
+  uses: './trigger-semgrep-comparison-argo.yml',
+};
+
 // ----------------------------------------------------------------------------
 // Docker
 // ----------------------------------------------------------------------------
@@ -572,6 +580,8 @@ local ignore_md = {
     'push-docker-performance-tests': push_docker_performance_tests_job,
     // Semgrep-pro mismatch check
     'test-semgrep-pro': test_semgrep_pro_job,
+    // trigger argo workflows
+    'trigger-semgrep-comparison-argo': trigger_semgrep_comparison_argo,
     // The inherit jobs also included from releases.yml
     'build-test-core-x86': {
       uses: './.github/workflows/build-test-core-x86.yml',
