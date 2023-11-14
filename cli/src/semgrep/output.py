@@ -502,6 +502,9 @@ class OutputHandler:
                 rules_by_engine=self.extra.core.rules_by_engine if self.extra else None,
                 # this flattens the information into just distinguishing "pro" and "not-pro"
                 engine_requested=self.engine_type.to_engine_kind(),
+                interfile_languages_used=self.extra.core.interfile_languages_used
+                if self.extra
+                else None,
                 # TODO, should just be self.extra.core.skipped_rules
                 skipped_rules=[],
             ),

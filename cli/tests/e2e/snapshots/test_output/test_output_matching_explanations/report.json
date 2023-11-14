@@ -138,6 +138,7 @@
       "op": "And"
     }
   ],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/basic/stupid.js"
