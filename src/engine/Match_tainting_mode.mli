@@ -49,7 +49,7 @@ val hook_setup_hook_function_taint_signature :
 val taint_config_of_rule :
   per_file_formula_cache:formula_cache ->
   Match_env.xconfig ->
-  Common.filename ->
+  string (* filename *) ->
   AST_generic.program * Tok.location list ->
   Rule.taint_rule ->
   (Dataflow_tainting.var option ->

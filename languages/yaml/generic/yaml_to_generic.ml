@@ -49,7 +49,7 @@ module G = AST_generic
  *)
 type env = {
   (* when we parse a pattern, the filename is fake ("<pattern_file>") *)
-  file : Common.filename;
+  file : string; (* filename *)
   (* This is the literal text of the program.
      We will use this to help us find the proper content of a metavariable matching
      a "folded" or "literal" style string.

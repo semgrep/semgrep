@@ -62,7 +62,7 @@ type t = {
   line : int; (* 1-based *)
   column : int; (* 0-based *)
   (* TODO: use Fpath.t *)
-  file : Common.filename;
+  file : string;
 }
 [@@deriving show, eq, ord, sexp]
 
@@ -121,7 +121,8 @@ let complete_position filename converters (x : t) =
    line_arr maps byte position to line.
    col_arr maps byte position to column.
 *)
-let converters_of_arrays ?(file = "<unknown>") line_arr col_arr : bytepos_linecol_converters =
+let converters_of_arrays ?(file = "<unknown>") line_arr col_arr :
+    bytepos_linecol_converters =
   let len1 = Bigarray.Array1.dim line_arr in
   let len2 = Bigarray.Array1.dim col_arr in
   (* len1 and len2 should be equal but we're playing it safe *)
@@ -164,7 +165,7 @@ let converters_of_arrays ?(file = "<unknown>") line_arr col_arr : bytepos_lineco
              | Ok (bytepos, _) -> bytepos);
       }
 
-let full_converters_large (file : Common.filename) : bytepos_linecol_converters =
+let full_converters_large (file : string) : bytepos_linecol_converters =
   let chan = open_in_bin file in
   let size = Common2.filesize file + 2 in
 
