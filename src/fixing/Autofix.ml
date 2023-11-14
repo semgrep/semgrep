@@ -216,7 +216,8 @@ let basic_fix ~(fix : string) (start, end_) (pm : Pattern_match.t) : Textedit.t
   let edit = Textedit.{ path = pm.file; start; end_; replacement_text } in
   edit
 
-let regex_fix ~regexp ~replacement ~count (start, end_) (pm : Pattern_match.t) =
+let regex_fix ~fix_regexp:Rule.{ regexp; count; replacement } (start, end_)
+    (pm : Pattern_match.t) =
   let rex = SPcre.regexp regexp in
   (* You need a minus one, to make it compatible with the inclusive Range.t *)
   let content =
@@ -273,8 +274,7 @@ let render_fix (pm : Pattern_match.t) : Textedit.t option =
       match ast_based_fix ~fix range pm with
       | None -> Some (basic_fix ~fix range pm)
       | Some fix -> Some fix)
-  | _, Some (regexp, count, replacement) ->
-      Some (regex_fix ~regexp ~replacement ~count range pm)
+  | _, Some fix_regexp -> Some (regex_fix ~fix_regexp range pm)
 
 (******************************************************************************)
 (* Entry point *)

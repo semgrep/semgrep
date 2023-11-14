@@ -292,8 +292,8 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix =
     match fix with
     | NoFix -> (None, None)
     | Fix s -> (Some s, None)
-    | FixRegex (regex, count, replacement) ->
-        (None, Some (regex, count, replacement))
+    | FixRegex (regexp, count, replacement) ->
+        (None, Some Rule.{ regexp; count; replacement })
   in
   let rule =
     {

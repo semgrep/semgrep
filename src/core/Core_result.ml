@@ -49,7 +49,8 @@ type 'a match_result = {
 [@@deriving show]
 
 type t = {
-  (* Why is this here?
+  (* old: matches : Pattern_match.t list
+     Why did we add the fixes here?
      When we bridge the gap from `Core_result.t` to `Out.core_output`, we have
      to associate each match to a (potential) edit.
      We could do it from Core_json_output, but this is undesirable because it
@@ -61,6 +62,10 @@ type t = {
      fixes are related to its produced results.
      These edits start as all None, but will be filled in by
      `Autofix.produce_autofixes`, and the associated Autofix_processor step.
+     alt: we could have added this to `Pattern_match.t`, but that felt a bit early
+     alt: we could have produced these autofixes when going from Core_result.t to
+     Out.core_output, but this would require us to do autofixing at the same time
+     as output, which conflates concerns.
   *)
   matches_with_fixes : (Pattern_match.t * Textedit.t option) list;
   errors : Core_error.t list;

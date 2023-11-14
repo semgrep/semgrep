@@ -123,6 +123,17 @@ and metavar_analysis_kind = CondEntropy | CondEntropyV2 | CondReDoS
 and focus_mv_list = tok * MV.mvar list [@@deriving show, eq, hash]
 
 (*****************************************************************************)
+(* Misc *)
+(*****************************************************************************)
+
+type fix_regexp = {
+  regexp : Xpattern.regexp_string;
+  count : int option;
+  replacement : string;
+}
+[@@deriving show, eq, hash]
+
+(*****************************************************************************)
 (* Semgrep_output aliases *)
 (*****************************************************************************)
 
@@ -540,7 +551,7 @@ type 'mode rule_info = {
    *)
   equivalences : string list option;
   fix : string option;
-  fix_regexp : (Xpattern.regexp_string * int option * string) option;
+  fix_regexp : fix_regexp option;
   (* TODO: we should get rid of this and instead provide a more general
    * Xpattern.Filename feature that integrates well with the xpatterns.
    *)
