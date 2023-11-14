@@ -124,11 +124,6 @@ class ConfigLoader:
             add_metrics_for_products(config_str)
             self._config_path = config_str
             self._supports_fallback_config = True
-        elif is_policy_id(config_str):
-            state.metrics.add_feature("config", "policy")
-            self._origin = ConfigType.SEMGREP_CLOUD_PLATFORM
-            self._config_path = config_str
-            self._supports_fallback_config = True
         elif is_registry_id(config_str):
             state.metrics.add_feature("config", f"registry:prefix-{config_str[0]}")
             self._config_path = registry_id_to_url(config_str)
@@ -955,6 +950,7 @@ def url_for_policy() -> str:
 
 PRODUCT_NAMES = {
     "code": "sast",
+    "policy": "sast",
     "secrets": "secrets",
     "supply-chain": "sca",
 }
@@ -969,7 +965,10 @@ def is_product_names(config_str: str) -> bool:
 def add_metrics_for_products(config_str: str) -> None:
     state = get_state()
     for product_name in config_str.split(","):
-        state.metrics.add_feature("config", PRODUCT_NAMES[product_name])
+        if is_policy_id(product_name):
+            state.metrics.add_feature("config", "policy")
+        else:
+            state.metrics.add_feature("config", PRODUCT_NAMES[product_name])
 
 
 def is_policy_id(config_str: str) -> bool:
