@@ -68,7 +68,7 @@ def _get_match_context(
     return start_line, start_col, end_line, end_col
 
 
-def _basic_fix(
+def _apply_fix(
     rule_match: RuleMatch, file_offsets: FileOffsets, fix: str
 ) -> Tuple[Fix, FileOffsets]:
 
@@ -96,38 +96,6 @@ def _basic_fix(
         file_offsets.col_offset = len(fix) - (end_col - start_col)
 
     return Fix(SPLIT_CHAR.join(contents_after_fix), modified_lines), file_offsets
-
-
-def _regex_replace(
-    rule_match: RuleMatch,
-    file_offsets: FileOffsets,
-    from_str: str,
-    to_str: str,
-    count: int = 1,
-) -> Tuple[Fix, FileOffsets]:
-    """
-    Use a regular expression to autofix.
-    Replaces from_str to to_str, starting from the left,
-    exactly `count` times.
-    """
-    path = rule_match.path
-    lines = _get_lines(path)
-
-    start_line, _, end_line, _ = _get_match_context(rule_match, file_offsets)
-
-    before_lines = lines[:start_line]
-    after_lines = lines[end_line + 1 :]
-
-    match_context = lines[start_line : end_line + 1]
-
-    fix = re.sub(from_str, to_str, "\n".join(match_context), count)
-    modified_context = fix.splitlines()
-    modified_contents = before_lines + modified_context + after_lines
-
-    # update offsets
-    file_offsets.line_offset = len(modified_context) - len(match_context)
-
-    return Fix(SPLIT_CHAR.join(modified_contents), modified_context), file_offsets
 
 
 def _write_contents(path: Path, contents: str) -> None:
@@ -215,7 +183,6 @@ def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> Non
 
     for rule_match in nonoverlapping_matches:
         fix = rule_match.fix
-        fix_regex = rule_match.fix_regex
         filepath = rule_match.path
         # initialize or retrieve/update offsets for the file
         file_offsets = modified_files_offsets.get(
@@ -226,21 +193,9 @@ def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> Non
             file_offsets.col_offset = 0
         if fix is not None:
             try:
-                fixobj, new_file_offset = _basic_fix(rule_match, file_offsets, fix)
+                fixobj, new_file_offset = _apply_fix(rule_match, file_offsets, fix)
             except Exception as e:
                 raise SemgrepError(f"unable to modify file {filepath}: {e}")
-        elif fix_regex:
-            regex = fix_regex.regex
-            replacement = fix_regex.replacement
-            count = fix_regex.count or 0
-            try:
-                fixobj, new_file_offset = _regex_replace(
-                    rule_match, file_offsets, regex, replacement, count
-                )
-            except Exception as e:
-                raise SemgrepError(
-                    f"unable to use regex to modify file {filepath} with fix '{fix}': {e}"
-                )
         else:
             continue
         # endif

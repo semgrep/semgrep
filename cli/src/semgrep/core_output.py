@@ -180,18 +180,8 @@ def core_matches_to_rule_matches(
 
         if match.extra.rendered_fix is not None:
             fix = match.extra.rendered_fix
-            logger.debug(f"Using AST-based autofix rendered in semgrep-core: `{fix}`")
-        elif rule.fix is not None:
-            fix = interpolate(
-                rule.fix,
-                matched_values,
-                propagated_values,
-                isinstance(rule.product.value, out.Secrets),
-            )
-            logger.debug(f"Using text-based autofix rendered in cli: `{fix}`")
         else:
             fix = None
-        fix_regex = None
 
         # this validation for fix_regex code was in autofix.py before
         # TODO: this validation should be done in rule.py when parsing the rule
@@ -211,8 +201,6 @@ def core_matches_to_rule_matches(
                         "optional 'count' value must be an integer when using 'fix-regex'"
                     )
 
-            fix_regex = out.FixRegex(regex=regex, replacement=replacement, count=count)
-
         return RuleMatch(
             match=match,
             extra=match.extra.to_json(),
@@ -220,7 +208,6 @@ def core_matches_to_rule_matches(
             metadata=metadata,
             severity=match.extra.severity if match.extra.severity else rule.severity,
             fix=fix,
-            fix_regex=fix_regex,
         )
 
     # TODO: Dict[out.RuleId, RuleMatchSet]
