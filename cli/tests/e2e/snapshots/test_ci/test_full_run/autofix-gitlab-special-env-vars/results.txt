@@ -45,7 +45,7 @@ CI="true" GITLAB_CI="true" SEMGREP_REPO_NAME="project_name/project_name" CI_PIPE
           useless comparison to 5
 
            ▶▶┆ Autofix ▶ (x == 2)
-           15┆ (x == 2)
+           15┆ x == 5
 
   BLOCKING CODE RULES FIRED:
     eqeq-bad

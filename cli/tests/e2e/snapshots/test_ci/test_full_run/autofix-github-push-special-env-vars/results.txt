@@ -81,7 +81,7 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_ACTOR="some_test_username" GITHUB_API_URL
           useless comparison to 5
 
            ▶▶┆ Autofix ▶ (x == 2)
-           15┆ (x == 2)
+           15┆ x == 5
 
   BLOCKING CODE RULES FIRED:
     eqeq-bad

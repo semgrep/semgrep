@@ -240,33 +240,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           "fingerprints": {
             "matchBasedId/v1": "186b96f64aca90b7f5a9c75f2e44538885d0e727ed3161ef7b6d46c40b3d078acfc8859b290e118cb8ca42f5b41e61afe73b0f416f47a2f16abce67b1be307d3_0"
           },
-          "fixes": [
-            {
-              "artifactChanges": [
-                {
-                  "artifactLocation": {
-                    "uri": "foo.py"
-                  },
-                  "replacements": [
-                    {
-                      "deletedRegion": {
-                        "endColumn": 11,
-                        "endLine": 15,
-                        "startColumn": 5,
-                        "startLine": 15
-                      },
-                      "insertedContent": {
-                        "text": "    (x == 2)"
-                      }
-                    }
-                  ]
-                }
-              ],
-              "description": {
-                "text": "useless comparison to 5\n Autofix: Semgrep rule suggested fix"
-              }
-            }
-          ],
           "locations": [
             {
               "physicalLocation": {
@@ -296,33 +269,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           "fingerprints": {
             "matchBasedId/v1": "d2d0825f113f2fee5f7cbd5fb160772b3f3ab5043120b912101f2f20d4a0cce42df32b8e89f889f945daa1b216f9755eb958b9cb73c4c4ddf2ef5ecd0b4d1ad3_0"
           },
-          "fixes": [
-            {
-              "artifactChanges": [
-                {
-                  "artifactLocation": {
-                    "uri": "foo.py"
-                  },
-                  "replacements": [
-                    {
-                      "deletedRegion": {
-                        "endColumn": 11,
-                        "endLine": 16,
-                        "startColumn": 5,
-                        "startLine": 16
-                      },
-                      "insertedContent": {
-                        "text": "    (y == 2)  # nosemgrep"
-                      }
-                    }
-                  ]
-                }
-              ],
-              "description": {
-                "text": "useless comparison to 5\n Autofix: Semgrep rule suggested fix"
-              }
-            }
-          ],
           "locations": [
             {
               "physicalLocation": {

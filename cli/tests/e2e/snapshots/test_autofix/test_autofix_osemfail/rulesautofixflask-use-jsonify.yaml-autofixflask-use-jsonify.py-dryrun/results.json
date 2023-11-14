@@ -16,14 +16,12 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
+        "fix": "flask.jsonify(user_dict)",
         "fix_regex": {
           "count": 1,
           "regex": "(json\\.){0,1}dumps",
           "replacement": "flask.jsonify"
         },
-        "fixed_lines": [
-          "    return flask.jsonify(user_dict)"
-        ],
         "is_ignored": false,
         "lines": "    return json.dumps(user_dict)",
         "message": "flask.jsonify() is a Flask helper method which handles the correct settings for returning JSON from Flask routes",
@@ -63,14 +61,12 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
+        "fix": "flask.jsonify(user_dict)",
         "fix_regex": {
           "count": 1,
           "regex": "(json\\.){0,1}dumps",
           "replacement": "flask.jsonify"
         },
-        "fixed_lines": [
-          "    return flask.jsonify(user_dict)"
-        ],
         "is_ignored": false,
         "lines": "    return dumps(user_dict)",
         "message": "flask.jsonify() is a Flask helper method which handles the correct settings for returning JSON from Flask routes",

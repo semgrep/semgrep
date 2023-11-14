@@ -16,13 +16,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
+        "fix": "csv.writer(csvfile, delimiter=',', quotechar='\"', quoting=csv.QUOTE_ALL)",
         "fix_regex": {
           "regex": "(.*)\\)",
           "replacement": "\\1, quoting=csv.QUOTE_ALL)"
         },
-        "fixed_lines": [
-          "csv.writer(csvfile, delimiter=',', quotechar='\"', quoting=csv.QUOTE_ALL)"
-        ],
         "is_ignored": false,
         "lines": "csv.writer(csvfile, delimiter=',', quotechar='\"')",
         "message": "Found an unquoted CSV writer. This is susceptible to injection. Use 'quoting=csv.QUOTE_ALL'.",
@@ -54,13 +52,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
+        "fix": "csv.writer(get_file(), delimiter=',', quotechar='\"', quoting=csv.QUOTE_ALL)",
         "fix_regex": {
           "regex": "(.*)\\)",
           "replacement": "\\1, quoting=csv.QUOTE_ALL)"
         },
-        "fixed_lines": [
-          "csv.writer(get_file(), delimiter=',', quotechar='\"', quoting=csv.QUOTE_ALL)"
-        ],
         "is_ignored": false,
         "lines": "csv.writer(get_file(), delimiter=',', quotechar='\"')",
         "message": "Found an unquoted CSV writer. This is susceptible to injection. Use 'quoting=csv.QUOTE_ALL'.",

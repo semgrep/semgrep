@@ -16,6 +16,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
+        "fix": "requests.get(url, timeout=30)",
         "fix_regex": {
           "regex": "(.*)\\)",
           "replacement": "\\1, timeout=30)"
@@ -45,6 +46,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
+        "fix": "requests.post(url, timeout=30)",
         "fix_regex": {
           "regex": "(.*)\\)",
           "replacement": "\\1, timeout=30)"
@@ -74,6 +76,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
+        "fix": "requests.request(\"GET\", url, timeout=30)",
         "fix_regex": {
           "regex": "(.*)\\)",
           "replacement": "\\1, timeout=30)"
@@ -103,6 +106,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
+        "fix": "requests.request(\"GET\", return_url(), timeout=30)",
         "fix_regex": {
           "regex": "(.*)\\)",
           "replacement": "\\1, timeout=30)"
@@ -132,6 +136,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
+        "fix": "post(url, timeout=30)",
         "fix_regex": {
           "regex": "(.*)\\)",
           "replacement": "\\1, timeout=30)"

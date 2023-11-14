@@ -64,10 +64,10 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           useless comparison to 5
 
            ▶▶┆ Autofix ▶ (x == 2)
-           15┆ (x == 2)
+           15┆ x == 5
             ⋮┆----------------------------------------
            ▶▶┆ Autofix ▶ (y == 2)
-           16┆ (y == 2)  # nosemgrep
+           16┆ y == 5  # nosemgrep
 
   BLOCKING CODE RULES FIRED:
     eqeq-bad

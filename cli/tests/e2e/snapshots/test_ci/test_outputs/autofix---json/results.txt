@@ -184,9 +184,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "(x == 2)",
-        "fixed_lines": [
-          "    (x == 2)"
-        ],
         "is_ignored": false,
         "lines": "    x == 5",
         "message": "useless comparison to 5",

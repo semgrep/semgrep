@@ -16,6 +16,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
+        "fix": "flask.jsonify(user_dict)",
         "fix_regex": {
           "count": 1,
           "regex": "(json\\.){0,1}dumps",
@@ -60,6 +61,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
+        "fix": "flask.jsonify(user_dict)",
         "fix_regex": {
           "count": 1,
           "regex": "(json\\.){0,1}dumps",

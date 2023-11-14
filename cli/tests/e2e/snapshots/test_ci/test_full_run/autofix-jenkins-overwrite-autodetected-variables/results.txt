@@ -56,7 +56,7 @@ JENKINS_URL="some_url" SEMGREP_REPO_NAME="a/repo/name" SEMGREP_REPO_URL="https:/
           useless comparison to 5
 
            ▶▶┆ Autofix ▶ (x == 2)
-           15┆ (x == 2)
+           15┆ x == 5
 
   BLOCKING CODE RULES FIRED:
     eqeq-bad

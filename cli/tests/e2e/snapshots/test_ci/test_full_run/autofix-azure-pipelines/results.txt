@@ -56,7 +56,7 @@ BUILD_BUILDID="some_id" BUILD_REPOSITORY_URI="https://github.com/project_name/pr
           useless comparison to 5
 
            ▶▶┆ Autofix ▶ (x == 2)
-           15┆ (x == 2)
+           15┆ x == 5
 
   BLOCKING CODE RULES FIRED:
     eqeq-bad

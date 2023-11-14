@@ -17,9 +17,6 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "raise RandomError",
-        "fixed_lines": [
-          "  raise RandomError"
-        ],
         "is_ignored": false,
         "lines": "  raise RandomError()",
         "message": "Found useless parentheses",

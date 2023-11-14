@@ -12,7 +12,7 @@ public class WebCrawler {
 
 	public void crawl(String[] args) throws Exception {
         // ruleid: defaulthttpclient-is-deprecated
-		HttpClient client = new SystemDefaultHttpClient();
+		HttpClient client = new DefaultHttpClient();
 		HttpGet request = new HttpGet("http://google.com");
 		HttpResponse response = client.execute(request);
 	}

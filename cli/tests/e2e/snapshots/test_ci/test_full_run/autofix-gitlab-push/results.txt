@@ -56,7 +56,7 @@ CI="true" GITLAB_CI="true" CI_PROJECT_PATH="project_name/project_name" CI_PIPELI
           useless comparison to 5
 
            ▶▶┆ Autofix ▶ (x == 2)
-           15┆ (x == 2)
+           15┆ x == 5
 
   BLOCKING CODE RULES FIRED:
     eqeq-bad

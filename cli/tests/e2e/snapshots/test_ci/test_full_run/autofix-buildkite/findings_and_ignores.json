@@ -243,9 +243,6 @@
         "code_hash": "2005925cbb09029b2f5c8700dcae5c9a8b9a4324a15643853626afd0bf65c052",
         "pattern_hash": "2005925cbb09029b2f5c8700dcae5c9a8b9a4324a15643853626afd0bf65c052"
       },
-      "fixed_lines": [
-        "    (x == 2)"
-      ],
       "validation_state": "NO_VALIDATOR"
     },
     {
@@ -491,9 +488,6 @@
         "code_hash": "d2c95171288a258009c5187392c5e2122e2640e0431af8b1cad77d5b403ed850",
         "pattern_hash": "d2c95171288a258009c5187392c5e2122e2640e0431af8b1cad77d5b403ed850"
       },
-      "fixed_lines": [
-        "    (y == 2)  # nosemgrep"
-      ],
       "validation_state": "NO_VALIDATOR"
     },
     {

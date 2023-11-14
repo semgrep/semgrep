@@ -56,7 +56,7 @@ CI="true" TRAVIS="true" TRAVIS_REPO_SLUG="project_name/project_name" TRAVIS_PULL
           useless comparison to 5
 
            ▶▶┆ Autofix ▶ (x == 2)
-           15┆ (x == 2)
+           15┆ x == 5
 
   BLOCKING CODE RULES FIRED:
     eqeq-bad

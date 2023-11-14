@@ -57,7 +57,7 @@ def change_forgotten_password(request, pk, token):
 
     try:
         # ruleid: use-none-for-password-default
-        new_password = request.data.get("password", None)
+        new_password = request.data.get("password", "")
         validate_password(new_password, user=user)
         user.set_password(new_password)
         user.save()
@@ -68,7 +68,7 @@ def change_forgotten_password(request, pk, token):
 
 class UserManager(BaseUserManager):
     # ruleid: use-none-for-password-default
-    def create_user(self, email, password=None):
+    def create_user(self, email, password=""):
         """
         Creates and saves a Poster with the given email and password.
         """
