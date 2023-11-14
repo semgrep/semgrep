@@ -156,20 +156,20 @@ let filter_path (ign : Semgrepignore.t) (fppath : Fppath.t) : filter_result =
    obtained with 'git ls-files'.
 *)
 let filter_paths (ign : Semgrepignore.t) (target_files : Fppath.t list) :
-    Fpath.t list * Out.skipped_target list =
-  let (selected_paths : Fpath.t list ref) = ref [] in
+    Fppath_set.t * Out.skipped_target list =
+  let (selected_paths : Fppath.t list ref) = ref [] in
   let (skipped : Out.skipped_target list ref) = ref [] in
   let add path = push path selected_paths in
   let skip target = push target skipped in
   target_files
   |> List.iter (fun fppath ->
          match filter_path ign fppath with
-         | Keep -> add fppath.fpath
+         | Keep -> add fppath
          | Dir ->
              (* shouldn't happen if we work on the output of 'git ls-files *) ()
          | Skip x -> skip x
          | Ignore_silently -> ());
-  (!selected_paths, !skipped)
+  (Fppath_set.of_list !selected_paths, !skipped)
 
 (* We used to call 'git ls-files' when conf.respect_git_ignore was true,
  * which could potentially speedup things because git may rely on
@@ -185,12 +185,12 @@ let filter_paths (ign : Semgrepignore.t) (target_files : Fppath.t list) :
  * pre: the scan_root must be a path to a directory
  *)
 let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
-    (scan_root : Fppath.t) : Fpath.t list * Out.skipped_target list =
+    (scan_root : Fppath.t) : Fppath.t list * Out.skipped_target list =
   (* Imperative style! walk and collect.
      This is for the sake of readability so let's try to make this as
      readable as possible.
   *)
-  let (selected_paths : Fpath.t list ref) = ref [] in
+  let (selected_paths : Fppath.t list ref) = ref [] in
   let (skipped : Out.skipped_target list ref) = ref [] in
   let add path = push path selected_paths in
   let skip target = push target skipped in
@@ -220,7 +220,7 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
            *)
            let fppath : Fppath.t = { fpath; ppath } in
            match filter_path ign fppath with
-           | Keep -> add fpath
+           | Keep -> add fppath
            | Skip skipped -> skip skipped
            | Dir ->
                (* skipping submodules.
@@ -407,7 +407,7 @@ let get_targets_from_filesystem conf (project_roots : project_roots) =
       let selected2, skipped2 =
         match (Unix.stat !!(scan_root.fpath)).st_kind with
         (* TOPORT? make sure has right permissions (readable) *)
-        | S_REG -> ([ scan_root.fpath ], [])
+        | S_REG -> ([ scan_root ], [])
         | S_DIR -> walk_skip_and_collect conf ign scan_root
         | S_LNK ->
             (* already dereferenced by Unix.stat *)
@@ -420,9 +420,9 @@ let get_targets_from_filesystem conf (project_roots : project_roots) =
         | S_SOCK ->
             ([], [])
       in
-      ( Fpath_set.union selected (Fpath_set.of_list selected2),
+      ( Fppath_set.union selected (Fppath_set.of_list selected2),
         List.rev_append skipped2 skipped ))
-    (Fpath_set.empty, []) project_roots.scanning_roots
+    (Fppath_set.empty, []) project_roots.scanning_roots
 
 (*
    Target files are identified by following these steps:
@@ -451,8 +451,8 @@ let get_targets_for_project conf (project_roots : project_roots) =
   let selected_targets, skipped_targets =
     match (git_tracked, git_untracked) with
     | Some tracked, Some untracked ->
-        let all_files = Fpath_set.union tracked untracked in
-        all_files |> Fpath_set.elements |> filter_targets conf project_roots
+        let all_files = Fppath_set.union tracked untracked in
+        all_files |> Fppath_set.elements |> filter_targets conf project_roots
     | None, _
     | _, None ->
         get_targets_from_filesystem conf project_roots
@@ -469,7 +469,13 @@ let get_targets conf scanning_roots =
   |> Common.map (get_targets_for_project conf)
   |> List.split
   |> fun (path_set_list, skipped_paths_list) ->
-  let path_set = List.fold_left Fpath_set.union Fpath_set.empty path_set_list in
-  let paths = Fpath_set.elements path_set in
+  let path_set =
+    List.fold_left Fppath_set.union Fppath_set.empty path_set_list
+  in
+  let paths = Fppath_set.elements path_set in
   (paths, List.flatten skipped_paths_list)
 [@@profiling]
+
+let get_target_fpaths conf scanning_roots =
+  let selected, skipped = get_targets conf scanning_roots in
+  (selected |> Common.map (fun (x : Fppath.t) -> x.fpath), skipped)

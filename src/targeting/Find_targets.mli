@@ -45,6 +45,12 @@ type conf = {
 val get_targets :
   conf ->
   Fpath.t list (* scanning roots *) ->
+  Fppath.t list * Semgrep_output_v1_t.skipped_target list
+
+(* Same as get_targets but drop the ppath (path within the project) *)
+val get_target_fpaths :
+  conf ->
+  Fpath.t list (* scanning roots *) ->
   Fpath.t list * Semgrep_output_v1_t.skipped_target list
 
 (* internals used also in Find_targets_old.ml *)

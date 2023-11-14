@@ -13,8 +13,8 @@ let string_of_json_string json =
 
 let run ~target_roots ~targeting_conf:conf () =
   let selected, skipped = Find_targets.get_targets conf target_roots in
-  selected |> List.sort Fpath.compare
-  |> List.iter (fun (path : Fpath.t) -> pr (spf "+ %s" (Fpath.to_string path)));
+  selected |> List.sort Fppath.compare
+  |> List.iter (fun (x : Fppath.t) -> pr (spf "+ %s" (Fpath.to_string x.fpath)));
   skipped
   |> List.sort (fun (a : Out.skipped_target) (b : Out.skipped_target) ->
          Fpath.compare a.path b.path)

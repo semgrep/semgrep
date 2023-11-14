@@ -421,7 +421,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
                     match conf.engine_type with
                     | PRO Engine_type.{ analysis = Interprocedural; _ } ->
                         let all_in_baseline, _ =
-                          Find_targets.get_targets conf.targeting_conf
+                          Find_targets.get_target_fpaths conf.targeting_conf
                             conf.target_roots
                         in
                         (* Performing a scan on the same set of files for the
@@ -711,7 +711,7 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
   in
   (* step2: getting the targets *)
   let targets_and_skipped =
-    Find_targets.get_targets conf.targeting_conf conf.target_roots
+    Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
   in
   (* step3: let's go *)
   let res =
