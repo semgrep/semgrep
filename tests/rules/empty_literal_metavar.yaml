@@ -1,0 +1,16 @@
+rules:
+  - id: empty-literal-metavar
+    patterns:
+    - pattern: |
+        foo("$X")
+    - focus-metavariable: $X
+    - metavariable-regex:
+        metavariable: $X
+        regex: ^$|hi
+    message: |
+      This test is demonstrating that literal metavariables can match
+      empty ranges, without crashing the engine upon a `focus`. They also
+      will faithfully match the empty string and "hi", respectively.
+    languages:
+      - kotlin
+    severity: WARNING

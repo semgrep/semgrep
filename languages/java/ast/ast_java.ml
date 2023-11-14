@@ -224,13 +224,14 @@ and expr =
   | SwitchE of Tok.t * expr * (cases * stmts) list (* TODO bracket *)
   (* usually just a single typ, but can also have intersection type t1 & t2 *)
   | Cast of typ list1 bracket * expr
-  | InstanceOf of expr * ref_type
+  | InstanceOf of expr * (ref_type, pattern) Common.either
   | Conditional of expr * expr * expr
   (* ugly java, like in C assignement is an expression not a statement :( *)
   | Assign of expr * Tok.t * expr
   | AssignOp of expr * AST_generic.operator wrap * expr
   (* javaext: 1.? *)
   | Lambda of parameters * Tok.t (* -> *) * stmt
+  | Template of expr * Tok.t * string_component list bracket
   (* sgrep-ext: *)
   | Ellipsis of Tok.t
   | DeepEllipsis of expr bracket
@@ -240,7 +241,7 @@ and expr =
 and literal =
   | Int of int option wrap
   | Float of float option wrap
-  | String of string wrap (* TODO: bracket *)
+  | String of string_component list bracket (* TODO: bracket *)
   | Char of string wrap
   | Bool of bool wrap
   | Null of Tok.t
@@ -248,8 +249,18 @@ and literal =
   (* TODO? the string contains the enclosing triple quotes for now *)
   | TextBlock of string wrap (* TODO bracket *)
 
+and string_component = StrLit of string wrap | StrInterp of expr bracket
 and arguments = expr list bracket
 and expr_or_type = (expr, typ) Common.either
+
+(*****************************************************************************)
+(* Patterns *)
+(*****************************************************************************)
+and pattern =
+  | PatUnderscore of Tok.t
+  | PatId of ident
+  | PatTyped of pattern * typ
+  | PatConstructor of qualified_ident * pattern list
 
 (*****************************************************************************)
 (* Statement *)
@@ -279,8 +290,14 @@ and stmt =
   | Assert of Tok.t * expr * expr option (* assert e or assert e : e2 *)
 
 and stmts = stmt list
-and case = Case of (Tok.t * expr) | Default of Tok.t
+
+and case =
+  | Case of Tok.t * pattern * guard option
+  | CaseExprs of Tok.t * expr list * guard option
+  | Default of Tok.t
+
 and cases = case list
+and guard = expr
 
 and for_control =
   | ForClassic of for_init * expr list (* TODO: expr option? *) * expr list
