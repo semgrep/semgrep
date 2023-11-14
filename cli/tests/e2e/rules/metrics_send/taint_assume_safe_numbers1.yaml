@@ -1,0 +1,14 @@
+rules:
+  - id: test
+    message: Test
+    languages: [java]
+    options:
+      taint_assume_safe_numbers: true
+    mode: taint
+    pattern-sources:
+    - patterns:
+      - pattern: public void $F(..., $X, ...) { ... }
+      - focus-metavariable: $X
+    pattern-sinks:
+    - pattern: sink(...)
+    severity: ERROR
