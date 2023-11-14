@@ -11,7 +11,7 @@ let missing_plugins : (Lang.t, unit) Hashtbl.t = Hashtbl.create 10
 type pattern_parser = string -> AST_generic.any Tree_sitter_run.Parsing_result.t
 
 type target_file_parser =
-  Common.filename -> AST_generic.program Tree_sitter_run.Parsing_result.t
+  string (* filename *) -> AST_generic.program Tree_sitter_run.Parsing_result.t
 
 let missing_plugin_msg lang =
   spf

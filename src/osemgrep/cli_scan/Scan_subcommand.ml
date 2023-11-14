@@ -209,7 +209,8 @@ let mk_scan_func (conf : Scan_CLI.conf) file_match_results_hook errors targets
    tuples containing the rule ID, file path, and matched code snippet
    are equal. *)
 let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
-    (head : Core_result.t) (renamed : (filename * filename) stack) =
+    (head : Core_result.t)
+    (renamed : (string (* filename *) * string (* filename *)) list) =
   let extract_sig renamed m =
     let rule_id = m.Pattern_match.rule_id in
     let path =

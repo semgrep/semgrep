@@ -40,6 +40,29 @@ val ( =:= ) : bool -> bool -> bool
 val ( =*= ) : 'a -> 'a -> bool
 
 (*****************************************************************************)
+(* Comparison *)
+(*****************************************************************************)
+
+type order = Less | Equal | Greater
+
+val binary_search_arr :
+  f:(int -> 'a -> order) -> 'a array -> (int * 'a, int) result
+(** [binary_search_arr f A] returns Ok (idx, x) if the element x can be found
+    at idx x, according to comparison function f.
+    Otherwise, it returns Error idx, where idx is the index that the element
+    must be inserted at, if it were to be in the array.
+    For instance, when searching for 2 in [|0, 3|], we get Error 1.
+    Inserting at the beginning is Error 0, and at the end is Error 2.
+  *)
+
+val binary_search_bigarr1 :
+  f:(int -> 'a -> order) ->
+  ('a, 'b, 'c) Bigarray.Array1.t ->
+  (int * 'a, int) result
+
+val to_comparison : ('a -> 'a -> int) -> 'a -> 'a -> order
+
+(*****************************************************************************)
 (* Printing/debugging *)
 (*****************************************************************************)
 (* see also Dumper.ml *)
@@ -151,31 +174,27 @@ val split : string (* sep regexp *) -> string -> string list
    Fpath.t instead of strings to represent file/directory paths.
 *)
 
-(* Some signatures are arguably clearer when using 'filename' instead of
- * 'string' (see write_file below for an example).
- * Ideally 'filename' should be a different type like in Scala with the
- * Path module: https://www.lihaoyi.com/post/HowtoworkwithFilesinScala.html
- *)
-type filename = string [@@deriving show, eq, ord, sexp]
-
 (*
    Check that the file exists and produce a valid absolute path for the file.
    Deprecated: use the Rpath module instead!
 *)
-val fullpath : filename -> filename
+val fullpath : string (* filename *) -> string (* filename *)
 
 (* Deprecated: use the Ppath module instead! *)
-val filename_without_leading_path : string -> filename -> filename
-val readable : root:string -> filename -> filename
+val filename_without_leading_path :
+  string -> string (* filename *) -> string (* filename *)
 
-val dir_contents : filename -> filename list
+val readable : root:string -> string (* filename *) -> string (* filename *)
+
+val dir_contents : string (* filename *) -> string (* filename *) list
 (** [dir_contents dir] will return a recursive list of all files in a directory *)
 
 (* use the command 'find' internally and tries to skip files in
  * version control system (vcs) (e.g., .git, _darcs, etc.).
  * Deprecated?
  *)
-val files_of_dir_or_files_no_vcs_nofilter : string list -> filename list
+val files_of_dir_or_files_no_vcs_nofilter :
+  string list -> string (* filename *) list
 
 (* ugly: internal flag for files_of_dir_or_files_no_vcs_nofilter *)
 val follow_symlinks : bool ref
@@ -195,8 +214,8 @@ val input_text_line : in_channel -> string
    Return the lines of a file. Both Windows-style and Unix-style line endings
    are recognized and removed from the end of the line.
 *)
-val cat : filename -> string list
-val write_file : file:filename -> string -> unit
+val cat : string (* filename *) -> string list
+val write_file : file:string (* filename *) -> string -> unit
 
 (* Read the contents of file.
 
@@ -209,7 +228,7 @@ val write_file : file:filename -> string -> unit
 
    If max_len is specified, at most that many bytes are read from the file.
 *)
-val read_file : ?max_len:int -> filename -> string
+val read_file : ?max_len:int -> string (* filename *) -> string
 
 (* Scheme-inspired combinators that automatically close the file
  * once the function callback is done. Here is an example of use:
@@ -217,19 +236,22 @@ val read_file : ?max_len:int -> filename -> string
  *     pr "this goes in foo.txt"
  *   )
  *)
-val with_open_outfile : filename -> ((string -> unit) * out_channel -> 'a) -> 'a
-val with_open_infile : filename -> (in_channel -> 'a) -> 'a
+val with_open_outfile :
+  string (* filename *) -> ((string -> unit) * out_channel -> 'a) -> 'a
+
+val with_open_infile : string (* filename *) -> (in_channel -> 'a) -> 'a
 
 (* creation of /tmp files, a la gcc
  * ex: new_temp_file "cocci" ".c" will give "/tmp/cocci-3252-434465.c"
  *)
-val new_temp_file : string (* prefix *) -> string (* suffix *) -> filename
+val new_temp_file :
+  string (* prefix *) -> string (* suffix *) -> string (* filename *)
 
 (* ??? *)
 val _temp_files_created : (string, unit) Hashtbl.t
 val save_tmp_files : bool ref
 val erase_temp_files : unit -> unit
-val erase_this_temp_file : filename -> unit
+val erase_this_temp_file : string (* filename *) -> unit
 
 (*****************************************************************************)
 (* Subprocess *)
@@ -363,9 +385,9 @@ val group_by_multi : ('a -> 'b list) -> 'a list -> ('b * 'a list) list
 (* Stack *)
 (*****************************************************************************)
 
-type 'a stack = 'a list
+type 'a stack = 'a list ref
 
-val push : 'a -> 'a stack ref -> unit
+val push : 'a -> 'a stack -> unit
 
 (*****************************************************************************)
 (* Hash *)

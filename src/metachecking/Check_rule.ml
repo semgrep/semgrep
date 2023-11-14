@@ -109,7 +109,9 @@ let unknown_metavar_in_comparison env f =
         [ metavars; ellipsis_metavars; regexp_captured_mvars ]
         |> Common.map Set.of_list
         |> List.fold_left Set.union Set.empty
-    | Inside (_, f) -> collect_metavars f
+    | Inside (_, f)
+    | Anywhere (_, f) ->
+        collect_metavars f
     | Not (_, _) -> Set.empty
     | Or (_, xs) ->
         let mv_sets = Common.map collect_metavars xs in

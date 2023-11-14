@@ -1,0 +1,2 @@
+taint-mode: If an expressions is tainted by multiple labels A and B, with B
+requiring A, the expression will now get boths labels A and B.
