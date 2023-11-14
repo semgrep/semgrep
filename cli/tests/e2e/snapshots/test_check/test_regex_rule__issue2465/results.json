@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/pattern-not-regex/issue2465.requirements.txt"
