@@ -117,6 +117,7 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     let (pms : Pattern_match.t list) = match_results.matches in
     let (core_matches : Out.core_match list) =
       pms
+      (* OK, because we don't need the edits to report the matches. *)
       |> Common.map (fun pm -> (pm, None))
       |> Common.partition_either Core_json_output.match_to_match
       |> fst

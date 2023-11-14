@@ -351,7 +351,6 @@ let regression_tests_for_lang ~polyglot_pattern_path files lang =
                      (Rule_ID.of_string "test-pattern")
                      start_loc "" Out.SemgrepMatchFound)
                  ~file ~pattern ~fix_pattern
-               |> Common.map (fun pm -> (pm, None))
              in
              (match fix_pattern with
              | Some _ -> compare_fixes ~polyglot_pattern_path ~file matches

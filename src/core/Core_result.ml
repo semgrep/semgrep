@@ -49,6 +49,19 @@ type 'a match_result = {
 [@@deriving show]
 
 type t = {
+  (* Why is this here?
+     When we bridge the gap from `Core_result.t` to `Out.core_output`, we have
+     to associate each match to a (potential) edit.
+     We could do it from Core_json_output, but this is undesirable because it
+     will conflate the process of producing output and side-effectively applying
+     autofixes.
+     In addition, the `Autofix` module is not available from that directory.
+     We will choose to instead embed the fix information in `Core_result.t`, as
+     autofixing is now a valid function of the core engine, and thus the produced
+     fixes are related to its produced results.
+     These edits start as all None, but will be filled in by
+     `Autofix.produce_autofixes`, and the associated Autofix_processor step.
+  *)
   matches : (Pattern_match.t * Textedit.t option) list;
   errors : Core_error.t list;
   skipped_rules : Rule.invalid_rule_error list;
@@ -265,7 +278,7 @@ let make_final_result
     results
     |> List.concat_map (fun (x : _ match_result) -> x.matches)
     (* These fixes are initially None, and will be populated with fixes
-       after we run Autofix.apply_autofixes.
+       after we run Autofix.produce_autofixes.
     *)
     |> Common.map (fun res -> (res, None))
   in

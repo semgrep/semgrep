@@ -220,10 +220,10 @@ let regex_fix ~regexp ~replacement ~count:_count (start, end_)
   edit
 
 (******************************************************************************)
-(* Generation and application of autofixes *)
+(* Autofix selection logic *)
 (******************************************************************************)
 
-let generate_autofix (pm : Pattern_match.t) : Textedit.t option =
+let render_fix (pm : Pattern_match.t) : Textedit.t option =
   let fix = pm.rule_id.fix in
   let fix_regex = pm.rule_id.fix_regexp in
   let range =
@@ -248,8 +248,8 @@ let generate_autofix (pm : Pattern_match.t) : Textedit.t option =
 (* Apply the fix for the list of matches to the given file, returning the
    * resulting file contents. Currently used only for tests, but with some changes
    * could be used in production as well. *)
-let produce_autofixes (matches : (Pattern_match.t * Textedit.t option) list) =
-  Common.map (fun (m, _) -> (m, generate_autofix m)) matches
+let produce_autofixes (matches : Pattern_match.t list) =
+  Common.map (fun m -> (m, render_fix m)) matches
 
 let apply_fixes_to_file matches_with_fixes ~file =
   let file_text = Common.read_file file in

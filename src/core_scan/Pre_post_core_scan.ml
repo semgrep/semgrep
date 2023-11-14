@@ -47,6 +47,37 @@ module No_Op_Processor : Processor = struct
   let post_process _ () results = results
 end
 
+module Autofix_processor : Processor = struct
+  type state = unit
+
+  let pre_process _config rules = (rules, ())
+
+  let post_process (config : Core_scan_config.t) () (res : Core_result.t) =
+    (* These edits should all be None, so it's OK to `fst` them out. *)
+    let matches_with_fixes =
+      Autofix.produce_autofixes (Common.map fst res.matches)
+    in
+    if config.autofix then Autofix.apply_fixes matches_with_fixes;
+    { res with matches = matches_with_fixes }
+end
+
+let hook_processor = ref (module Autofix_processor : Processor)
+
+(* quite similar to Core_scan.core_scan_func *)
+type 'a core_scan_func_with_rules =
+  'a ->
+  (Rule.t list * Rule.invalid_rule_error list) * float (* rule parse time *) ->
+  Core_result.t
+
+(*****************************************************************************)
+(* Composing processors *)
+(*****************************************************************************)
+
+(* For internal use, to compose processors.
+   This runs A and then B, like a donut.
+
+   A preprocess -> B preprocess -> B postprocess -> A postprocess
+*)
 module MkPairProcessor (A : Processor) (B : Processor) : Processor = struct
   type state = A.state * B.state
 
@@ -59,28 +90,9 @@ module MkPairProcessor (A : Processor) (B : Processor) : Processor = struct
     results |> B.post_process config state_b |> A.post_process config state_a
 end
 
-module Autofix_processor : Processor = struct
-  type state = unit
-
-  let pre_process _config rules = (rules, ())
-
-  let post_process (config : Core_scan_config.t) () (res : Core_result.t) =
-    let matches_with_fixes = Autofix.produce_autofixes res.matches in
-    if config.autofix then Autofix.apply_fixes matches_with_fixes;
-    { res with matches = matches_with_fixes }
-end
-
-let hook_processor = ref (module Autofix_processor : Processor)
-
 let push_processor (module P : Processor) =
   let module Paired = MkPairProcessor (P) ((val !hook_processor)) in
   hook_processor := (module Paired)
-
-(* quite similar to Core_scan.core_scan_func *)
-type 'a core_scan_func_with_rules =
-  'a ->
-  (Rule.t list * Rule.invalid_rule_error list) * float (* rule parse time *) ->
-  Core_result.t
 
 (*****************************************************************************)
 (* Entry point *)
