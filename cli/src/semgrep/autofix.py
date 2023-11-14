@@ -102,6 +102,73 @@ def _write_contents(path: Path, contents: str) -> None:
     path.write_text(contents)
 
 
+def matches_compare(x: RuleMatch, y: RuleMatch) -> int:
+    # If paths are not the same, just order based on that.
+    # I just need a total ordering on matches.
+    if x.path < y.path:
+        return -1
+    elif x.path > y.path:
+        return 1
+    else:
+        if x.start.offset < y.start.offset:
+            return -1
+        elif y.start.offset < x.start.offset:
+            return 1
+        else:
+            if x.end.offset < y.end.offset:
+                return -1
+            elif x.end.offset > y.end.offset:
+                return 1
+            else:
+                return 0
+
+
+def matches_overlap(x: RuleMatch, y: RuleMatch) -> bool:
+    if x.path == y.path:
+        if x.start.offset < y.start.offset:
+            return x.end.offset > y.start.offset
+        elif y.start.offset < x.start.offset:
+            return y.end.offset > x.start.offset
+        elif x.start.offset == y.start.offset:
+            return True
+
+    # If they are not from the same file, they cannot overlap.
+    return False
+
+
+def deduplicate_overlapping_matches(
+    rules_and_matches: Iterable[Tuple[Rule, OrderedRuleMatchList]]
+) -> OrderedRuleMatchList:
+
+    final_matches = []
+
+    ordered_matches = sorted(
+        (match for _, matches in rules_and_matches for match in matches),
+        key=cmp_to_key(matches_compare),
+    )
+    acc = None
+
+    for match in ordered_matches:
+        if acc is None:
+            acc = match
+            continue
+
+        if matches_overlap(acc, match):
+            logger.debug(
+                f"Two autofix matches from rules {acc.rule_id} and {match.rule_id} overlap, arbitrarily picking first one"
+            )
+            # Don't do anything, keep `acc` the same, and throw `match` out.`
+
+        else:
+            final_matches.append(acc)
+            acc = match
+
+    if acc is not None:
+        final_matches.append(acc)
+
+    return final_matches
+
+
 def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> None:
     """
     Modify files in place for all files with findings from rules with an
@@ -110,13 +177,11 @@ def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> Non
     modified_files: Set[Path] = set()
     modified_files_offsets: Dict[Path, FileOffsets] = {}
 
-    flattened_matches = [
-        match
-        for matches_per_rule in rule_matches_by_rule.values()
-        for match in matches_per_rule
-    ]
+    nonoverlapping_matches = deduplicate_overlapping_matches(
+        rule_matches_by_rule.items()
+    )
 
-    for rule_match in flattened_matches:
+    for rule_match in nonoverlapping_matches:
         fix = rule_match.fix
         filepath = rule_match.path
         # initialize or retrieve/update offsets for the file
