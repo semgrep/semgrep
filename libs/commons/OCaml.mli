@@ -120,6 +120,6 @@ val v_of_string_sexp: string -> v
 (*
 val v_of_json: Json_type.json_type -> v
 val json_of_v: v -> Json_type.json_type
-val save_json: string (* filename *) -> Json_type.json_type -> unit
-val load_json: string (* filename *) -> Json_type.json_type
+val save_json: Common.filename -> Json_type.json_type -> unit
+val load_json: Common.filename -> Json_type.json_type
 *)

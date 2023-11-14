@@ -1,12 +1,12 @@
 type 'a env = {
-  file : string;
+  file : Common.filename;
   (* get the charpos (offset) in file given a line x col *)
   conv : (int * int, int) Hashtbl.t;
   extra : 'a;
 }
 
 (* to fill in conv *)
-val line_col_to_pos : string (* filename *) -> (int * int, int) Hashtbl.t
+val line_col_to_pos : Common.filename -> (int * int, int) Hashtbl.t
 
 (* Tree_sitter_run tokens to Tok.t converters *)
 val token : 'a env -> Tree_sitter_run.Token.t -> Tok.t

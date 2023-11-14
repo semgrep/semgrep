@@ -47,8 +47,8 @@ type metavars = (string * Out.metavar_value) list
  *
  * TODO: expose this function so it can be used in language_server
  *)
-let interpolate_metavars (text : string) (metavars : metavars)
-    (file : string (* filename *)) : string =
+let interpolate_metavars (text : string) (metavars : metavars) (file : filename)
+    : string =
   (* sort by metavariable length to avoid name collisions
    * (eg. $X2 must be handled before $X)
    *)

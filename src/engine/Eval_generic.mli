@@ -36,10 +36,10 @@ val eval_regexp_matches :
 val eval_bool : env -> code -> bool
 
 (* for -test_eval *)
-val test_eval : string (* filename *) -> unit
+val test_eval : Common.filename -> unit
 
 (* used in regression testing code *)
-val parse_json : string (* filename *) -> env * code
+val parse_json : Common.filename -> env * code
 
 (* for metavariable-comparison and also for metavariable-regex with constant-propagation: true *)
 val bindings_to_env_just_strings :

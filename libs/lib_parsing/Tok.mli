@@ -91,10 +91,10 @@ val tok_of_loc : location -> t
 val tok_of_str_and_bytepos : string -> int -> t
 
 (* the token will be empty, but its pos will be the beginning of the file *)
-val first_tok_of_file : string (* filename *) -> t
+val first_tok_of_file : Common.filename -> t
 
 (* similar, the location will be empty *)
-val first_loc_of_file : string (* filename *) -> location
+val first_loc_of_file : Common.filename -> location
 
 (* used mainly by tree-sitter based parsers in semgrep.
  * [combine_toks t1 ts] will return a token where t1::ts
@@ -167,7 +167,7 @@ val content_of_tok_opt : t -> string option
 val line_of_tok : t -> int
 val col_of_tok : t -> int
 val bytepos_of_tok : t -> int
-val file_of_tok : t -> string (* filename *)
+val file_of_tok : t -> Common.filename
 
 (* Token positions in loc.pos denote the beginning of a token.
    Suppose we are interested in having instead the line, column, and charpos
@@ -213,11 +213,7 @@ val adjust_loc_wrt_base : location -> location -> location
 (* fill in the line and column field of location that were not set
  * during lexing because of limitations of ocamllex and Lexing.position.
  *)
-val complete_location :
-  string (* filename *) ->
-  Pos.bytepos_linecol_converters ->
-  location ->
-  location
+val complete_location : Common.filename -> Pos.bytepos_linecol_converters -> location -> location
 
 (*****************************************************************************)
 (* Misc *)

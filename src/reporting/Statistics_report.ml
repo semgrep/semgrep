@@ -42,8 +42,8 @@ let timeout = ref 10.
 type run = {
   lang : string;
   rule : string;
-  files : (string (* filename *) * float) list;
-  timeout : string (* filename *) list;
+  files : (filename * float) list;
+  timeout : filename list;
 }
 [@@deriving show]
 

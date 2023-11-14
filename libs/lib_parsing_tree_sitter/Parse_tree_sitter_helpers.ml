@@ -28,7 +28,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 type 'a env = {
   (* TODO: use Fpath.t *)
-  file : string; (* filename *)
+  file : Common.filename;
   (* get the charpos (offset) in file given a line x col *)
   conv : (int * int, int) Hashtbl.t;
   extra : 'a;

@@ -11,7 +11,7 @@ type t = {
   bytepos : int; (* 0-based *)
   line : int; (* 1-based *)
   column : int; (* 0-based *)
-  file : string;
+  file : Common.filename;
 }
 [@@deriving show, eq, ord, sexp]
 
@@ -25,7 +25,7 @@ type linecol = { l : int; c : int } [@@deriving show, eq]
 (*****************************************************************************)
 
 val fake_pos : t
-val first_pos_of_file : string (* filename *) -> t
+val first_pos_of_file : Common.filename -> t
 
 (* for error reporting *)
 val string_of_pos : t -> string
@@ -56,11 +56,10 @@ type bytepos_linecol_converters = {
  *)
 
 (* f(i) will contain the (line x col) of the i char position *)
-val full_converters_large : string (* filename *) -> bytepos_linecol_converters
+val full_converters_large : Common.filename -> bytepos_linecol_converters
 val full_converters_str : string -> bytepos_linecol_converters
 
 (* fill in the line and column field of a position that were not set
  * during lexing because of limitations of ocamllex and Lexing.position.
  *)
-val complete_position :
-  string (* filename *) -> bytepos_linecol_converters -> t -> t
+val complete_position : Common.filename -> bytepos_linecol_converters -> t -> t

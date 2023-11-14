@@ -33,12 +33,9 @@ type ('target_content, 'xpattern) t = {
   (* init returns an option to let the matcher the option to skip
    * certain files (e.g., big binary or minified files for spacegrep)
    *)
-  init : string (* filename *) -> 'target_content option;
+  init : filename -> 'target_content option;
   matcher :
-    'target_content ->
-    string (* filename *) ->
-    'xpattern ->
-    (match_range * MV.bindings) list;
+    'target_content -> filename -> 'xpattern -> (match_range * MV.bindings) list;
 }
 
 (* bugfix: I used to just report one token_location, and if the match
@@ -59,7 +56,7 @@ let info_of_token_location loc = Tok.OriginTok loc
 let (matches_of_matcher :
       ('xpattern * Xpattern.pattern_id * string) list ->
       ('target_content, 'xpattern) t ->
-      string (* filename *) ->
+      filename ->
       Core_profiling.times Core_result.match_result) =
  fun xpatterns matcher file ->
   if xpatterns =*= [] then Core_result.empty_match_result

@@ -12,7 +12,7 @@
 type input_source = Str of string | File of Fpath.t
 
 (* just a shortcut for Parsing_helpers.File (Fpath.v s) *)
-val file : string (* filename *) -> input_source
+val file : Common.filename -> input_source
 
 (* To be used by the lexer.
  * TODO: use labels instead of comments below?
@@ -58,6 +58,6 @@ val mk_lexer_for_yacc :
 val yyback : int -> Lexing.lexbuf -> unit
 
 (* TODO? remove? *)
-val error_message : string (* filename *) -> string * int -> string
+val error_message : Common.filename -> string * int -> string
 val error_message_info : Tok.t -> string
 val print_bad : int -> int * int -> string array -> unit

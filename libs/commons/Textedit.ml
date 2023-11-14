@@ -16,7 +16,7 @@
 (* This module represents and applies edits to text *)
 
 type t = {
-  path : string; (* filename *)
+  path : Common.filename;
   (* 0-based byte index, inclusive *)
   start : int;
   (* 0-based byte index, exclusive *)

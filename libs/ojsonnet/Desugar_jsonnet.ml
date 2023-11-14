@@ -42,13 +42,13 @@ module C = Core_jsonnet
  * registry (e.g., local x = import 'p/python').
  *)
 type import_callback =
-  string (* a directory *) -> string -> AST_jsonnet.expr option
+  Common.filename (* a directory *) -> string -> AST_jsonnet.expr option
 
 let default_callback _ _ = None
 
 type env = {
   (* like in Python jsonnet binding, "the base is the directly of the file" *)
-  base : string; (* a directory *)
+  base : Common.filename; (* a directory *)
   import_callback : import_callback;
   (* TODO: cache_file
    * The cache_file is used to ensure referencial transparency (see the spec

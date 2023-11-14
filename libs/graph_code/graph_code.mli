@@ -25,7 +25,7 @@ exception Error of error
 val string_of_error : error -> string
 
 type statistics = {
-  parse_errors : string (* filename *) list ref;
+  parse_errors : Common.filename list ref;
   (* could be Parse_info.token_location*)
   lookup_fail : (Tok.t * node) list ref;
   method_calls : (Tok.t * resolved) list ref;
@@ -49,8 +49,8 @@ type whitelist = dependency list
 val version : int
 
 (* IO *)
-val load : string (* filename *) -> t
-val save : t -> string (* filename *) -> unit
+val load : Common.filename -> t
+val save : t -> Common.filename -> unit
 val default_filename : string
 val root : node
 val pb : node
@@ -74,23 +74,16 @@ val remove_edge : node * node -> edge -> t -> unit
 val create_initial_hierarchy : t -> unit
 
 val create_intermediate_directories_if_not_present :
-  t ->
-  string
-  (* filename *)
-  (* a dir *) ->
-  unit
+  t -> Common.filename (* a dir *) -> unit
 
 val remove_empty_nodes : t -> node list -> unit
 
 (* useful for bytecode <-> source file heuristic matching *)
 val basename_to_readable_disambiguator :
-  string (* filename *) list ->
-  root:
-    string
-    (* filename *)
-    (* a dir *) ->
+  Common.filename list ->
+  root:Common.filename (* a dir *) ->
   string (* basename *) ->
-  string (* filename *) list
+  Common.filename list
 
 (* graph access *)
 val has_node : node -> t -> bool
@@ -112,7 +105,7 @@ val nodeinfo_opt : node -> t -> nodeinfo option
 val edgeinfo_opt : node * node -> edge -> t -> edgeinfo option
 
 (* should be in readable path if you want your codegraph to be "portable" *)
-val file_of_node : node -> t -> string (* filename *)
+val file_of_node : node -> t -> Common.filename
 val privacy_of_node : node -> t -> Entity_code.privacy
 val shortname_of_node : node -> string
 val gensym : string -> string
@@ -134,7 +127,7 @@ val print_statistics : statistics -> t -> unit
 val group_edges_by_files_edges :
   (node * node) list ->
   t ->
-  ((string (* filename *) * string (* filename *)) * (node * node) list) list
+  ((Common.filename * Common.filename) * (node * node) list) list
 
 val strongly_connected_components_use_graph :
   t -> node list array * (node, int) Hashtbl.t
@@ -146,16 +139,16 @@ val bottom_up_numbering : t -> (node, int) Hashtbl.t
 val top_down_numbering : t -> (node, int) Hashtbl.t
 
 (* example builder *)
-val graph_of_dotfile : string (* filename *) -> t
+val graph_of_dotfile : Common.filename -> t
 
 (* debugging support *)
 val string_of_node : node -> string
 val display_with_gv : t -> unit
 
 (* adjustments *)
-val load_adjust : string (* filename *) -> adjust list
-val load_whitelist : string (* filename *) -> whitelist
-val save_whitelist : whitelist -> string (* filename *) -> t -> unit
+val load_adjust : Common.filename -> adjust list
+val load_whitelist : Common.filename -> whitelist
+val save_whitelist : whitelist -> Common.filename -> t -> unit
 
 (* does side effect on the graph *)
 val adjust_graph : t -> adjust list -> whitelist -> unit

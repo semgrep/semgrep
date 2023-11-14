@@ -43,7 +43,7 @@ val cache :
  *)
 val cache_computation :
   ?use_cache:bool ->
-  string (* filename *) ->
+  Common.filename ->
   string (* extension *) ->
   (unit -> 'a) ->
   'a
@@ -52,9 +52,9 @@ val cache_computation :
  * computation so it will relaunch the computation in 'f' if needed.
  *)
 val cache_computation_robust :
-  string (* filename *) ->
+  Common.filename ->
   string (* extension for marshalled object *) ->
-  string (* filename *) list * 'x ->
+  Common.filename list * 'x ->
   string (* extension for marshalled dependencies *) ->
   (unit -> 'a) ->
   'a

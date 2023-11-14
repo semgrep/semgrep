@@ -29,12 +29,7 @@ module E = Entity_code
 
 (* mimics prolog_code.pl top comment *)
 type fact =
-  | At of
-      entity
-      * string
-        (* filename *)
-        (* readable path *)
-      * int (* line *)
+  | At of entity * Common.filename (* readable path *) * int (* line *)
   | Kind of entity * Entity_code.entity_kind
   | Type of entity * string (* could be more structured ... *)
   | Extends of string * string

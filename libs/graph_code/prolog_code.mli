@@ -1,10 +1,5 @@
 type fact =
-  | At of
-      entity
-      * string
-        (* filename *)
-        (* readable path *)
-      * int (* line *)
+  | At of entity * Common.filename (* readable path *) * int (* line *)
   | Kind of entity * Entity_code.entity_kind
   | Type of entity * string
   | Extends of string * string

@@ -62,7 +62,7 @@ val mvars_of_regexp_string : string -> mvar list
 val is_metavar_for_capture_group : string -> bool
 val ii_of_mval : mvalue -> Tok.t list
 val str_of_mval : mvalue -> string
-val range_of_mvalue : mvalue -> (string (* filename *) * Range.t) option
+val range_of_mvalue : mvalue -> (Common.filename * Range.t) option
 
 (* we sometimes need to convert to an any to be able to use
  * Lib_AST.ii_of_any, or Lib_AST.abstract_position_info_any

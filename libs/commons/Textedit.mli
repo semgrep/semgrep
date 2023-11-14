@@ -1,5 +1,5 @@
 type t = {
-  path : string;
+  path : Common.filename;
   (* 0-based byte index, inclusive *)
   start : int;
   (* 0-based byte index, exclusive *)

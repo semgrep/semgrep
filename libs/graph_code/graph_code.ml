@@ -149,7 +149,7 @@ exception Error of error
 
 (* coupling: see print_statistics below *)
 type statistics = {
-  parse_errors : string (* filename *) list ref;
+  parse_errors : Common.filename list ref;
   (* could be Parse_info.token_location*)
   lookup_fail : (Tok.t * node) list ref;
   method_calls : (Tok.t * resolved) list ref;

@@ -49,9 +49,7 @@ val print_graph_generic :
   ?launch_gv:bool ->
   ?extra_string:string ->
   str_of_key:('a -> string) ->
-  string
-  (* filename *)
-  (* dot file *) ->
+  Common.filename (* dot file *) ->
   'a graph ->
   unit
 

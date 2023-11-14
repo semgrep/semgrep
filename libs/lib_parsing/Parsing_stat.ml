@@ -29,7 +29,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 type ast_stat = { total_node_count : int; untranslated_node_count : int }
 
 type t = {
-  filename : string;
+  filename : Common.filename;
   total_line_count : int;
   mutable error_line_count : int;
   mutable have_timeout : bool;

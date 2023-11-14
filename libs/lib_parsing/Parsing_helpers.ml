@@ -154,7 +154,7 @@ let mk_lexer_for_yacc toks is_comment =
  * expensive so don't use it to get the line x col from every token in
  * a file. Instead use full_charpos_to_pos.
  *)
-let (info_from_charpos : int -> string (* filename *) -> int * int * string) =
+let (info_from_charpos : int -> filename -> int * int * string) =
  fun charpos filename ->
   (* Currently lexing.ml does not handle the line number position.
    * Even if there is some fields in the lexing structure, they are not
@@ -192,8 +192,7 @@ let (info_from_charpos : int -> string (* filename *) -> int * int * string) =
 (* Decalage is here to handle stuff such as cpp which include file and who
  * can make shift.
  *)
-let (error_messagebis : string (* filename *) -> string * int -> int -> string)
-    =
+let (error_messagebis : filename -> string * int -> int -> string) =
  fun filename (lexeme, lexstart) decalage ->
   let charpos = lexstart + decalage in
   let tok = lexeme in

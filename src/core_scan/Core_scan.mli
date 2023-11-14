@@ -81,7 +81,7 @@ val extracted_targets_of_config :
   Core_scan_config.t ->
   Rule.t list ->
   Input_to_core_t.target list
-  * ( string (* filename *),
+  * ( Common.filename,
       Match_extract_mode.match_result_location_adjuster )
     Hashtbl.t
 (**

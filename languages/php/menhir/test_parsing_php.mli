@@ -6,17 +6,17 @@
  * of_files_and_dirs> and compares it with any previous run, providing some
  * form of regression testing.
  *)
-val test_parse_php : string (* filename *) list -> unit
+val test_parse_php : Common.filename list -> unit
 
 (*x: test_parsing_php.mli *)
 (* Print the set of tokens in a PHP file *)
-val test_tokens_php : string (* filename *) -> unit
+val test_tokens_php : Common.filename -> unit
 
 (* Print the AST of a PHP file using a JSON format *)
-(* val test_json_php   : string (* filename *) -> unit *)
+(* val test_json_php   : Common.filename -> unit *)
 (*
 (* Print any scalar in a PHP file by internally using a visitor *)
-val test_visit_php  : string (* filename *) -> unit
+val test_visit_php  : Common.filename -> unit
 *)
 (*x: test_parsing_php.mli *)
 

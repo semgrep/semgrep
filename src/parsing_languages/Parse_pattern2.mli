@@ -5,4 +5,4 @@ val parse_pattern :
   string ->
   AST_generic.any
 
-val dump_tree_sitter_pattern_cst : Lang.t -> string (* filename *) -> unit
+val dump_tree_sitter_pattern_cst : Lang.t -> Common.filename -> unit

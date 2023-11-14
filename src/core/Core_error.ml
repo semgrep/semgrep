@@ -312,8 +312,8 @@ let default_error_regexp = ".*\\(ERROR\\|MATCH\\):"
 let (expected_error_lines_of_files :
       ?regexp:string ->
       ?ok_regexp:string option ->
-      string (* filename *) list ->
-      (string (* filename *) * int) (* line *) list) =
+      Common.filename list ->
+      (Common.filename * int) (* line *) list) =
  fun ?(regexp = default_error_regexp) ?(ok_regexp = None) test_files ->
   test_files
   |> List.concat_map (fun file ->
