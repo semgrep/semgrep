@@ -186,6 +186,17 @@ val substitute :
   string
 (** [substitute] replaces according to the substitution function [subst] *)
 
+val replace_first :
+  ?iflags:Pcre.irflag ->
+  ?flags:Pcre.rflag list ->
+  rex:t ->
+  ?pos:int ->
+  ?callout:Pcre.callout ->
+  template:string ->
+  string ->
+  string
+(** [replace] replaces the first match according to the substitution template `templ` *)
+
 val replace :
   ?iflags:Pcre.irflag ->
   ?flags:Pcre.rflag list ->
@@ -195,7 +206,7 @@ val replace :
   template:string ->
   string ->
   string
-(** [replace] replaces matches according to the substitution template `templ` *)
+(** [replace] replaces all matches according to the substitution template `templ` *)
 
 val extract_all :
   ?iflags:Pcre.irflag ->

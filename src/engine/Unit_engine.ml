@@ -21,6 +21,15 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *)
 
 (*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+type fix_type =
+  | Fix of string
+  | FixRegex of (* regex *) string * int option * (* replacement *) string
+  | NoFix
+
+(*****************************************************************************)
 (* Constants *)
 (*****************************************************************************)
 
@@ -271,13 +280,20 @@ let compare_fixes ~polyglot_pattern_path ~file matches =
   let fixed_text = Autofix.apply_fixes_to_file matches_with_fixes ~file in
   Alcotest.(check string) "applied autofixes" expected_fixed_text fixed_text
 
-let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =
+let match_pattern ~lang ~hook ~file ~pattern ~fix =
   let pattern =
     try Parse_pattern.parse_pattern lang ~print_errors:true pattern with
     | exn ->
         failwith
           (spf "fail to parse pattern `%s` with lang = %s (exn = %s)" pattern
              (Lang.to_string lang) (Common.exn_to_s exn))
+  in
+  let fix, fix_regexp =
+    match fix with
+    | NoFix -> (None, None)
+    | Fix s -> (Some s, None)
+    | FixRegex (regex, count, replacement) ->
+        (None, Some (regex, count, replacement))
   in
   let rule =
     {
@@ -288,9 +304,9 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =
       severity = `Error;
       langs = [ lang ];
       pattern_string = "test: no need for pattern string";
-      fix = fix_pattern;
+      fix;
       (* TODO: regexp test? *)
-      fix_regexp = None;
+      fix_regexp;
     }
   in
   let ast =
@@ -324,12 +340,27 @@ let regression_tests_for_lang ~polyglot_pattern_path files lang =
                | Error msg -> failwith msg
              in
              let pattern = File.read_file sgrep_file in
-             let fix_pattern =
+             let fix =
                match
                  related_file_of_target ~polyglot_pattern_path ~ext:"fix" ~file
                with
-               | Ok fix_file -> Some (File.read_file fix_file)
-               | Error _ -> None
+               | Ok fix_file -> Fix (File.read_file fix_file)
+               | Error _ -> (
+                   match
+                     related_file_of_target ~polyglot_pattern_path
+                       ~ext:"fix-regex" ~file
+                   with
+                   | Ok fix_regex_file -> (
+                       match File.cat fix_regex_file with
+                       | [ l1; l2 ] -> FixRegex (l1, None, l2)
+                       | [ l1; l2; l3 ] ->
+                           FixRegex (l1, Some (int_of_string l2), l3)
+                       | _ ->
+                           failwith
+                             (Common.spf
+                                "found fix-regex file %s with <> 2 lines"
+                                (Fpath.to_string fix_regex_file)))
+                   | Error _ -> NoFix)
              in
 
              E.g_errors := [];
@@ -350,11 +381,11 @@ let regression_tests_for_lang ~polyglot_pattern_path files lang =
                    E.error
                      (Rule_ID.of_string "test-pattern")
                      start_loc "" Out.SemgrepMatchFound)
-                 ~file ~pattern ~fix_pattern
+                 ~file ~pattern ~fix
              in
-             (match fix_pattern with
-             | Some _ -> compare_fixes ~polyglot_pattern_path ~file matches
-             | None -> ());
+             (match fix with
+             | NoFix -> ()
+             | _ -> compare_fixes ~polyglot_pattern_path ~file matches);
              let actual = !E.g_errors in
              let expected = E.expected_error_lines_of_files [ !!file ] in
              E.compare_actual_to_expected_for_alcotest actual expected ))

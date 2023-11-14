@@ -170,6 +170,10 @@ let replace ?iflags ?flags ~rex ?pos ?callout ~template subj =
   let itempl = Pcre.subst template in
   Pcre.replace ?iflags ?flags ~rex:rex.regexp ?pos ?callout ~itempl subj
 
+let replace_first ?iflags ?flags ~rex ?pos ?callout ~template subj =
+  let itempl = Pcre.subst template in
+  Pcre.replace_first ?iflags ?flags ~rex:rex.regexp ?pos ?callout ~itempl subj
+
 let extract_all ?iflags ?flags ~rex ?pos ?full_match ?callout subj =
   Pcre.extract_all ?iflags ?flags ~rex:rex.regexp ?pos ?full_match ?callout subj
 

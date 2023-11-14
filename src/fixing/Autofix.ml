@@ -20,8 +20,13 @@ let logger = Logging.get_logger [ __MODULE__ ]
 let ( let/ ) = Result.bind
 
 (******************************************************************************)
-(* Helpers *)
+(* Constants *)
 (******************************************************************************)
+
+(* For matching things of the form \<num>.
+   See `regex_fix` below for why this is needed.
+*)
+let capture_group_regex = "\\\\([0-9]+)"
 
 (******************************************************************************)
 (* Main module for AST-based autofix. This module will attempt to synthesize a
@@ -211,11 +216,42 @@ let basic_fix ~(fix : string) (start, end_) (pm : Pattern_match.t) : Textedit.t
   let edit = Textedit.{ path = pm.file; start; end_; replacement_text } in
   edit
 
-let regex_fix ~regexp ~replacement ~count:_count (start, end_)
-    (pm : Pattern_match.t) =
+let regex_fix ~regexp ~replacement ~count (start, end_) (pm : Pattern_match.t) =
   let rex = SPcre.regexp regexp in
-  let content = Range.content_at_range pm.file Range.{ start; end_ } in
-  let replacement_text = SPcre.replace ~rex ~template:replacement content in
+  (* You need a minus one, to make it compatible with the inclusive Range.t *)
+  let content =
+    Range.content_at_range pm.file Range.{ start; end_ = end_ - 1 }
+  in
+  (* What is this for?
+     Before, when autofix was in the Python CLI, `fix-regex` had the semantics
+     of allowing backreferences to be substituted via the syntax '\1' for the
+     first backreference.
+     Unfortunately, the Pcre-ocaml library has no conception of this syntax. It
+     instead uses $1, $2, etc, for backreferences.
+     We don't want to break this existing behavior, however.
+     The fix will be that if someone gives us a replacement regex of the form
+     '\1', we will try to replace it instead with '$1', etc.
+  *)
+  let replaced_replacement =
+    let capture_group_rex = SPcre.regexp capture_group_regex in
+    (* Confusingly, this $1 in the template is separate from the literal
+       capture group it is replacing. It is simply a dollar sign in front of
+       the capture group's number, which is captured in the `capture_group_regex`
+       above.
+       This lets us essentially capture everything matched by \<num> with
+       $<num>.
+    *)
+    SPcre.replace ~rex:capture_group_rex ~template:"$$1" replacement
+  in
+  let replacement_text =
+    match count with
+    | None -> SPcre.replace ~rex ~template:replaced_replacement content
+    | Some count ->
+        Common2.foldn
+          (fun content _i ->
+            SPcre.replace_first ~rex ~template:replaced_replacement content)
+          content count
+  in
   let edit = Textedit.{ path = pm.file; start; end_; replacement_text } in
   edit
 
@@ -238,7 +274,6 @@ let render_fix (pm : Pattern_match.t) : Textedit.t option =
       | None -> Some (basic_fix ~fix range pm)
       | Some fix -> Some fix)
   | _, Some (regexp, count, replacement) ->
-      let count = Option.value ~default:0 count in
       Some (regex_fix ~regexp ~replacement ~count range pm)
 
 (******************************************************************************)
