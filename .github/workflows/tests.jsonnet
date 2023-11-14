@@ -494,6 +494,26 @@ local push_docker_nonroot_job = {
   },
 };
 
+local build_test_docker_performance_tests_job = build_test_docker_nonroot_job + {
+  with: super.with + {
+    'docker-flavor': |||
+      latest=auto
+      suffix=-performance-tests,onlatest=true
+    |||,
+    'artifact-name': 'image-test-performance-tests',
+    target: 'performance-tests',
+  },
+};
+
+local push_docker_performance_tests_job = push_docker_nonroot_job + {
+  needs: [
+    'build-test-docker-performance-tests',
+  ],
+  with: super.with + {
+    'artifact-name': 'image-test-performance-tests',
+  }
+};
+
 // ----------------------------------------------------------------------------
 // Semgrep Pro
 // ----------------------------------------------------------------------------
@@ -548,6 +568,8 @@ local ignore_md = {
     'push-docker': push_docker_job,
     'build-test-docker-nonroot': build_test_docker_nonroot_job,
     'push-docker-nonroot': push_docker_nonroot_job,
+    'build-test-docker-performance-tests': build_test_docker_performance_tests_job,
+    'push-docker-performance-tests': push_docker_performance_tests_job,
     // Semgrep-pro mismatch check
     'test-semgrep-pro': test_semgrep_pro_job,
     // The inherit jobs also included from releases.yml
