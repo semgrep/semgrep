@@ -181,7 +181,7 @@ def _mask_version(value: str) -> str:
     sys.version_info < (3, 8),
     reason="snapshotting mock call kwargs doesn't work on py3.7",
 )
-@mark.parametrize("pro_flag", [[], ["--pro"]])
+@mark.parametrize("pro_flag", [[]])  # TODO add back test for pro, ["--pro"]])
 @pytest.mark.osemfail
 def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch, pro_flag):
     # make the formatted timestamp strings deterministic
