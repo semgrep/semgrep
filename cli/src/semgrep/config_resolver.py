@@ -126,7 +126,8 @@ class ConfigLoader:
             self._supports_fallback_config = True
         elif is_policy_id(config_str):
             state.metrics.add_feature("config", "policy")
-            self._config_path = url_for_policy()
+            self._origin = ConfigType.SEMGREP_CLOUD_PLATFORM
+            self._config_path = config_str
             self._supports_fallback_config = True
         elif is_registry_id(config_str):
             state.metrics.add_feature("config", f"registry:prefix-{config_str[0]}")
@@ -296,10 +297,13 @@ class ConfigLoader:
         """
         state = get_state()
 
-        products = [
-            out.Product.from_json(PRODUCT_NAMES[p])
-            for p in self._config_path.split(",")
-        ]
+        if is_policy_id(self._config_path):
+            products = [out.Product(out.SAST())]
+        else:
+            products = [
+                out.Product.from_json(PRODUCT_NAMES[p])
+                for p in self._config_path.split(",")
+            ]
 
         # Require SEMGREP_REPO_NAME env var if SAST or Secrets are requested
         require_repo_name = any(
@@ -377,13 +381,13 @@ class ConfigLoader:
         """
         fallback_url = None
 
-        if self._config_path == "code":
+        if is_code(self._config_path):
             fallback_url = url_for_code()
-        elif self._config_path == "supply-chain":
+        elif is_supply_chain(self._config_path):
             fallback_url = url_for_supply_chain()
-        elif self._config_path == "secrets":
+        elif is_secrets(self._config_path):
             fallback_url = url_for_secrets()
-        elif self._config_path == "policy":
+        elif is_policy_id(self._config_path):
             fallback_url = url_for_policy()
         else:
             raise
@@ -1007,6 +1011,10 @@ def url_for_supply_chain() -> str:
 
 def url_for_secrets() -> str:
     return legacy_url_for_scan({"is_secrets_scan": True})
+
+
+def is_code(config_str: str) -> bool:
+    return config_str == "code"
 
 
 def is_supply_chain(config_str: str) -> bool:
