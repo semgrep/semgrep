@@ -947,7 +947,7 @@ def url_for_policy() -> str:
 
 PRODUCT_NAMES = {
     "code": "sast",
-    "policy": "sast",
+    "policy": "sast",  # although policy isn't a product, it's effectively an alias for code
     "secrets": "secrets",
     "supply-chain": "sca",
 }
