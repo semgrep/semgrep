@@ -333,6 +333,11 @@ jobs:
     with:
       artifact-name: image-test
       repository-name: returntocorp/semgrep
+  trigger-semgrep-comparison-argo:
+    needs:
+    - push-docker
+    uses: ./.github/workflows/trigger-semgrep-comparison-argo.yml
+    secrets: inherit
   build-test-core-x86:
     uses: ./.github/workflows/build-test-core-x86.yml
     secrets: inherit
