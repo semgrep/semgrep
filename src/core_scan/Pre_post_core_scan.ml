@@ -55,10 +55,10 @@ module Autofix_processor : Processor = struct
   let post_process (config : Core_scan_config.t) () (res : Core_result.t) =
     (* These edits should all be None, so it's OK to `fst` them out. *)
     let matches_with_fixes =
-      Autofix.produce_autofixes (Common.map fst res.matches)
+      Autofix.produce_autofixes (Common.map fst res.matches_with_fixes)
     in
     if config.autofix then Autofix.apply_fixes matches_with_fixes;
-    { res with matches = matches_with_fixes }
+    { res with matches_with_fixes }
 end
 
 let hook_processor = ref (module Autofix_processor : Processor)

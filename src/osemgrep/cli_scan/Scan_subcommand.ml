@@ -232,9 +232,9 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
       List.iter
         (fun (m, _) ->
           m |> extract_sig None |> fun x -> Hashtbl.add sigs x true)
-        baseline.matches);
+        baseline.matches_with_fixes);
   let removed = ref 0 in
-  let matches =
+  let matches_with_fixes =
     Common.map_filter
       (fun (m, edit) ->
         let s = extract_sig (Some renamed) m in
@@ -243,7 +243,7 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
           incr removed;
           None)
         else Some (m, edit))
-      (head.matches
+      (head.matches_with_fixes
        (* Sort the matches in ascending order according to their byte positions.
           This ensures that duplicated matches are not removed arbitrarily;
           rather, priority is given to removing matches positioned closer to the
@@ -260,7 +260,7 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
   Logs.app (fun m ->
       m "Removed %s that were in baseline scan"
         (String_utils.unit_str !removed "finding"));
-  { head with matches }
+  { head with matches_with_fixes }
 
 (* Execute the engine again on the baseline checkout, utilizing only
    the files and rules linked with matches from the head checkout
@@ -278,7 +278,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
   match result_or_exn with
   | Error _ as err -> err
   | Ok r ->
-      if r.matches <> [] then
+      if r.matches_with_fixes <> [] then
         let add_renamed paths =
           List.fold_left (fun x (y, _) -> SS.add y x) paths status.renamed
         in
@@ -286,7 +286,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
           List.fold_left (Fun.flip SS.remove) paths status.added
         in
         let rules_in_match =
-          r.matches
+          r.matches_with_fixes
           |> Common.map (fun (m, _) ->
                  m.Pattern_match.rule_id.id |> Rule_ID.to_string)
           |> SS.of_list
@@ -316,7 +316,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
                     |> List.of_seq
                   in
                   let paths_in_match =
-                    r.matches
+                    r.matches_with_fixes
                     |> Common.map (fun (m, _) -> m.Pattern_match.file)
                     |> prepare_targets
                   in

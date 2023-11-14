@@ -42,7 +42,7 @@ let propagated_value_string_of_mval mval =
 
 let of_bindings bindings =
   bindings
-  |> List.filter_map (fun (mvar, mval) ->
+  |> Common.map_filter (fun (mvar, mval) ->
          match MV.range_of_mvalue mval with
          | None -> None
          | Some (file, mval_range) ->

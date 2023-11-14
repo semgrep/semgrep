@@ -967,12 +967,13 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
       (Common.map (fun r -> (r, `OSS)) valid_rules)
       invalid_rules scanned ~rules_parse_time
   in
-  logger#info "found %d matches, %d errors" (List.length res.matches)
+  logger#info "found %d matches, %d errors"
+    (List.length res.matches_with_fixes)
     (List.length res.errors);
 
-  let matches, new_errors, new_skipped =
+  let matches_with_fixes, new_errors, new_skipped =
     filter_files_with_too_many_matches_and_transform_as_timeout
-      config.max_match_per_file res.matches
+      config.max_match_per_file res.matches_with_fixes
   in
 
   (* note: uncomment the following and use semgrep-core -stat_matches
@@ -996,7 +997,7 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
         Core_profiling.Debug { skipped_targets; profiling }
     | (Core_profiling.Time _ | Core_profiling.No_info) as x -> x
   in
-  { res with matches; errors; extra }
+  { res with matches_with_fixes; errors; extra }
 
 (*****************************************************************************)
 (* Entry point *)

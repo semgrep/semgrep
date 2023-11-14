@@ -62,7 +62,7 @@ type t = {
      These edits start as all None, but will be filled in by
      `Autofix.produce_autofixes`, and the associated Autofix_processor step.
   *)
-  matches : (Pattern_match.t * Textedit.t option) list;
+  matches_with_fixes : (Pattern_match.t * Textedit.t option) list;
   errors : Core_error.t list;
   skipped_rules : Rule.invalid_rule_error list;
   rules_with_targets : Rule.rule list;
@@ -102,7 +102,7 @@ let mk_final_result_with_just_errors (errors : Core_error.t list) : t =
   {
     errors;
     (* default values *)
-    matches = [];
+    matches_with_fixes = [];
     rules_with_targets = [];
     skipped_rules = [];
     extra = No_info;
@@ -274,7 +274,7 @@ let make_final_result
     (skipped_rules : Rule.invalid_rule_error list) (scanned : Fpath.t list)
     ~rules_parse_time =
   (* contenating information from the match_result list *)
-  let matches =
+  let matches_with_nullary_fixes =
     results
     |> List.concat_map (fun (x : _ match_result) -> x.matches)
     (* These fixes are initially None, and will be populated with fixes
@@ -333,7 +333,7 @@ let make_final_result
     | MNo_info -> No_info
   in
   {
-    matches;
+    matches_with_fixes = matches_with_nullary_fixes;
     errors;
     extra;
     skipped_rules;

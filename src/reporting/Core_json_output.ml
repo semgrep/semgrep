@@ -386,7 +386,9 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
 (*****************************************************************************)
 
 let core_output_of_matches_and_errors (res : Core_result.t) : Out.core_output =
-  let matches, new_errs = Common.partition_either match_to_match res.matches in
+  let matches, new_errs =
+    Common.partition_either match_to_match res.matches_with_fixes
+  in
   let errs = !E.g_errors @ new_errs @ res.errors in
   let skipped_targets, profiling =
     match res.extra with

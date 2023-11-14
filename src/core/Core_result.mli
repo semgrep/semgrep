@@ -10,7 +10,7 @@ type 'a match_result = {
 
 type t = {
   (* See the .ml file for why this is here. *)
-  matches : (Pattern_match.t * Textedit.t option) list;
+  matches_with_fixes : (Pattern_match.t * Textedit.t option) list;
   errors : Core_error.t list;
   (* extra information useful to also give to the user (in JSON or
    * in textual reports) or for tools (e.g., the playground).
