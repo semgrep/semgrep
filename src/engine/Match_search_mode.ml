@@ -182,6 +182,7 @@ let (mini_rule_of_pattern :
     (* useful for debugging timeout *)
     pattern_string = pstr;
     fix = rule.Rule.fix;
+    fix_regexp = rule.Rule.fix_regexp;
   }
 
 (*****************************************************************************)

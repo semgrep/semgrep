@@ -131,7 +131,7 @@ let parse_fix_regex (env : env) (key : key) fields =
   let (count_opt : int option) =
     take_opt fix_regex_dict env parse_int "count"
   in
-  (parse_regexp env regex, count_opt, replacement)
+  Rule.{ regexp = parse_regexp env regex; count = count_opt; replacement }
 
 let parse_equivalences env key value =
   let parse_equivalence env equiv =

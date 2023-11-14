@@ -1,8 +1,8 @@
 # ruleid: test1
-exit(1)
+sys.exit(1)
 
 # ruleid: test1
-exit(2)
+sys.exit(2)
 
 # ok: test1
 sys.exit(1)

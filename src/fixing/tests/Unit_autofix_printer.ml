@@ -38,7 +38,7 @@ let check lang { target; pattern; fix_pattern; expected } =
       let matches =
         Unit_engine.match_pattern ~lang
           ~hook:(fun _ -> ())
-          ~file:target_file ~pattern ~fix_pattern:(Some fix_pattern)
+          ~file:target_file ~pattern ~fix:(Fix fix_pattern)
       in
       (* To keep it simple, we make sure that each example here has only a
        * single match. *)
