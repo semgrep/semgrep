@@ -971,7 +971,7 @@ def is_policy_id(config_str: str) -> bool:
     return config_str == "policy"
 
 
-def legacy_url_for_scan(extra_params: dict | None = None) -> str:
+def legacy_url_for_scan(extra_params: dict = {}) -> str:
     """
     Generates a legacy scan url (api/agent/deployments/scans/config) to
     fetch a scan configuration.
@@ -986,8 +986,7 @@ def legacy_url_for_scan(extra_params: dict | None = None) -> str:
         "semgrep_version": __VERSION__,
     }
 
-    if extra_params:
-        params.update(extra_params)
+    params.update(extra_params)
 
     if "SEMGREP_REPO_NAME" in os.environ:
         params["repo_name"] = os.environ.get("SEMGREP_REPO_NAME")
