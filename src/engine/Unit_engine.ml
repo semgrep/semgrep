@@ -346,6 +346,10 @@ let regression_tests_for_lang ~polyglot_pattern_path files lang =
                with
                | Ok fix_file -> Fix (File.read_file fix_file)
                | Error _ -> (
+                   (* A poor man's configuration format.
+                      Either two or three lines.
+                      regex-replacement or regex-count-replacement.
+                   *)
                    match
                      related_file_of_target ~polyglot_pattern_path
                        ~ext:"fix-regex" ~file
