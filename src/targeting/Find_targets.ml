@@ -113,43 +113,31 @@ type filter_result =
 
 let filter_path (ign : Semgrepignore.t) (fppath : Fppath.t) : filter_result =
   let { fpath; ppath } : Fppath.t = fppath in
-  (* skip hidden files (this includes big directories like .git/)
-     TODO? maybe add a setting in conf? -> no, this is a job for
-     semgrepignore.
-     TODO: why are we doing this? It doesn't seem like pysemgrep
-     is doing this.
-  *)
-  if Fpath.basename fpath =~ "^\\." then
-    Skip
-      { Out.path = fpath; reason = Out.Dotfile; details = None; rule_id = None }
-  else
-    let status, selection_events = Semgrepignore.select ign ppath in
-    match status with
-    | Ignored ->
-        Logs.debug (fun m ->
-            m "Ignoring path %s:\n%s" !!fpath
-              (Gitignore.show_selection_events selection_events));
-        let reason = get_reason_for_exclusion selection_events in
-        Skip
-          {
-            Out.path = fpath;
-            reason;
-            details =
-              Some
-                "excluded by --include/--exclude, gitignore, or semgrepignore";
-            rule_id = None;
-          }
-    | Not_ignored -> (
-        (* TODO: check read permission? *)
-        match Unix.lstat !!fpath with
-        (* skipping symlinks *)
-        | { Unix.st_kind = S_LNK; _ } -> Ignore_silently
-        | { Unix.st_kind = S_REG; _ } -> Keep
-        | { Unix.st_kind = S_DIR; _ } -> Dir
-        | { Unix.st_kind = S_FIFO | S_CHR | S_BLK | S_SOCK; _ } ->
-            Ignore_silently
-        (* ignore for now errors. TODO? return a skip? *)
-        | exception Unix.Unix_error (_err, _fun, _info) -> Ignore_silently)
+  let status, selection_events = Semgrepignore.select ign ppath in
+  match status with
+  | Ignored ->
+      Logs.debug (fun m ->
+          m "Ignoring path %s:\n%s" !!fpath
+            (Gitignore.show_selection_events selection_events));
+      let reason = get_reason_for_exclusion selection_events in
+      Skip
+        {
+          Out.path = fpath;
+          reason;
+          details =
+            Some "excluded by --include/--exclude, gitignore, or semgrepignore";
+          rule_id = None;
+        }
+  | Not_ignored -> (
+      (* TODO: check read permission? *)
+      match Unix.lstat !!fpath with
+      (* skipping symlinks *)
+      | { Unix.st_kind = S_LNK; _ } -> Ignore_silently
+      | { Unix.st_kind = S_REG; _ } -> Keep
+      | { Unix.st_kind = S_DIR; _ } -> Dir
+      | { Unix.st_kind = S_FIFO | S_CHR | S_BLK | S_SOCK; _ } -> Ignore_silently
+      (* ignore for now errors. TODO? return a skip? *)
+      | exception Unix.Unix_error (_err, _fun, _info) -> Ignore_silently)
 
 (*
    Filter a pre-expanded list of target files, such as a list of files
@@ -212,12 +200,6 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
              else Fpath.add_seg dir.fpath name
            in
            let ppath = Ppath.add_seg dir.ppath name in
-           (* skip hidden files (this includes big directories like .git/)
-              TODO? maybe add a setting in conf? -> no, this is a job for
-              semgrepignore.
-              TODO: why are we doing this? It doesn't seem like pysemgrep
-              is doing this.
-           *)
            let fppath : Fppath.t = { fpath; ppath } in
            match filter_path ign fppath with
            | Keep -> add fppath
