@@ -110,6 +110,7 @@ let convert_rule_id (id, _tok) =
     message = "";
     pattern_string = Rule_ID.to_string id;
     fix = None;
+    fix_regexp = None;
     langs = [];
   }
 

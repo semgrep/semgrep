@@ -48,6 +48,7 @@ type t = {
   output_format : output_format;
   match_format : Core_text_output.match_format;
   mvars : Metavariable.mvar list;
+  autofix : bool;
   (* Tweaking *)
   respect_rule_paths : bool;
   (* Limits *)
@@ -111,6 +112,7 @@ let default =
     output_format = Text;
     match_format = Core_text_output.Normal;
     mvars = [];
+    autofix = false;
     (* tweaking *)
     respect_rule_paths = true;
     (* Limits *)
