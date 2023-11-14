@@ -7,7 +7,7 @@
  * this allows us to use this file through node-ipc which is the defacto way to do this stuff
  *
  */
-import { LSFactory, LS } from "./lsp";
+import { LSFactory, LS } from "./semgrep-lsp-bindings";
 
 import { createConnection, Connection } from "vscode-languageserver/node";
 

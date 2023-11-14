@@ -1,4 +1,4 @@
-import { LSFactory } from "../lsp";
+import { LSFactory } from "../semgrep-lsp-bindings";
 import * as assert from "assert";
 import * as lsclient from "vscode-languageclient/node";
 import * as path from "path";
@@ -54,7 +54,7 @@ const EXPECTED_CAPABILITIES = {
     version: "0.0.0",
   },
 };
-const FIXTURES = path.join(__dirname, "../../../fixtures");
+const TARGETS = path.join(__dirname, "../../../targets");
 
 suite("Server Features", () => {
   test("Basic Run", async () => {
@@ -63,7 +63,7 @@ suite("Server Features", () => {
       capabilities: {},
       initializationOptions: {
         scan: {
-          configuration: [path.join(FIXTURES, "rules.yaml")],
+          configuration: [path.join(TARGETS, "rules.yaml")],
         },
       },
       clientInfo: {
@@ -93,7 +93,7 @@ suite("Server Features", () => {
 
 suite("Server e2e", async () => {
   const documentSelector: lsclient.DocumentSelector = [{ language: "python" }];
-  const serverModule = path.join(__dirname, "../server.js");
+  const serverModule = path.join(__dirname, "../semgrep-lsp.js");
   const serverOptions: lsclient.ServerOptions = {
     run: { module: serverModule, transport: lsclient.TransportKind.ipc },
     debug: {
@@ -107,14 +107,14 @@ suite("Server e2e", async () => {
     synchronize: {},
     initializationOptions: {
       scan: {
-        configuration: [path.join(FIXTURES, "rules.yaml")],
+        configuration: [path.join(TARGETS, "rules.yaml")],
         onlyGitDirty: false,
       },
     },
     workspaceFolder: {
       index: 0,
-      name: "fixtures",
-      uri: vscode.Uri.parse(FIXTURES),
+      name: "targets",
+      uri: vscode.Uri.parse(TARGETS),
     },
     middleware: {},
   };
@@ -150,7 +150,7 @@ suite("Server e2e", async () => {
   }).timeout(100000);
 
   test("Diagnostics", async () => {
-    await vscode.workspace.openTextDocument(path.join(FIXTURES, "test.py"));
+    await vscode.workspace.openTextDocument(path.join(TARGETS, "test.py"));
     const promise = new Promise((resolve, reject) => {
       client.onNotification("textDocument/publishDiagnostics", (params) => {
         resolve(params);

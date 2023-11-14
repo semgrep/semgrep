@@ -2,7 +2,7 @@
   "name": "@semgrep/language-server",
   "version": "0.0.1",
   "description": "Javascript bindings for the LSP",
-  "main": "extension.js",
+  "main": "out/src/semgrep-lsp.js",
   "scripts": {
     "test": "tsc && node ./out/src/tests/runTests.js",
     "build": "tsc"
