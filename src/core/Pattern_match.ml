@@ -153,6 +153,7 @@ and rule_id = {
    * mini_rule? *)
   message : string;
   fix : string option;
+  fix_regexp : (string * int option * string) option;
   (* ?? why we need that? *)
   langs : Lang.t list;
   (* used for debugging (could be removed at some point) *)

@@ -274,7 +274,8 @@ let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
   let xpat_str = String.concat " " sorted_xpat_strs in
   let metavars = Option.value ~default:[] metavars in
   let xpat_str_interp =
-    Core_json_output.interpolate_metavars xpat_str metavars path
+    Metavar_replacement.interpolate_metavars xpat_str
+      (Metavar_replacement.of_out metavars)
     |> String.escaped
   in
   (* Python doesn't escape the double quote character, but ocaml does :/ so we need this monstrosity *)

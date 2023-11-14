@@ -9,7 +9,7 @@ type 'a match_result = {
 [@@deriving show]
 
 type t = {
-  matches : Pattern_match.t list;
+  matches : (Pattern_match.t * Textedit.t option) list;
   errors : Core_error.t list;
   (* extra information useful to also give to the user (in JSON or
    * in textual reports) or for tools (e.g., the playground).

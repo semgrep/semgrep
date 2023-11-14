@@ -14,9 +14,14 @@
  *)
 
 open Common
+module Out = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 let ( let/ ) = Result.bind
+
+(******************************************************************************)
+(* Helpers *)
+(******************************************************************************)
 
 (******************************************************************************)
 (* Main module for AST-based autofix. This module will attempt to synthesize a
@@ -111,7 +116,7 @@ let validate_fix lang target_contents edit =
   | Error e -> fail (Exception.to_string e)
 
 (******************************************************************************)
-(* Entry Points *)
+(* Kinds of fixes *)
 (******************************************************************************)
 
 (* Attempts to render a fix. If successful, returns the text that should replace
@@ -124,15 +129,11 @@ let validate_fix lang target_contents edit =
  * - Printing of the resulting fix AST fails (probably because there is simply a
  *   node that is unhandled).
  * *)
-let render_fix pm =
-  let* fix_pattern = pm.Pattern_match.rule_id.fix in
+let ast_based_fix ~fix (start, end_) (pm : Pattern_match.t) : Textedit.t option
+    =
+  let fix_pattern = fix in
   let* lang = List.nth_opt pm.Pattern_match.rule_id.langs 0 in
   let metavars = pm.Pattern_match.env in
-  let start, end_ =
-    let start, end_ = pm.Pattern_match.range_loc in
-    let _, _, end_charpos = Tok.end_pos_of_loc end_ in
-    (start.Tok.pos.bytepos, end_charpos)
-  in
   let target_contents = lazy (Common.read_file pm.Pattern_match.file) in
   let result =
     try
@@ -200,24 +201,69 @@ let render_fix pm =
       |> List.iter (fun line -> logger#info "%s" line);
       None
 
-(* Apply the fix for the list of matches to the given file, returning the
- * resulting file contents. Currently used only for tests, but with some changes
- * could be used in production as well. *)
-let apply_fixes_to_file matches ~file =
-  let file_text = Common.read_file file in
-  let edits =
-    Common.map
-      (fun pm ->
-        match render_fix pm with
-        | Some edit -> edit
-        (* TODO option rather than exception if used in production *)
-        | None -> failwith (spf "could not render fix for %s" file))
-      matches
+let basic_fix ~(fix : string) (start, end_) (pm : Pattern_match.t) : Textedit.t
+    =
+  (* TODO: Use m.env instead *)
+  let replacement_text =
+    Metavar_replacement.interpolate_metavars fix
+      (Metavar_replacement.of_bindings pm.env)
   in
-  match Textedit.apply_edits_to_text file_text edits with
-  | Success x -> x
-  | Overlap { conflicting_edits; _ } ->
-      failwith
-        (spf "Could not apply fix because it overlapped with another: %s"
-           (Common.hd_exn "unexpected empty list" conflicting_edits)
-             .replacement_text)
+  let edit = Textedit.{ path = pm.file; start; end_; replacement_text } in
+  edit
+
+let regex_fix ~regexp ~replacement ~count:_count (start, end_)
+    (pm : Pattern_match.t) =
+  let rex = SPcre.regexp regexp in
+  let content = Range.content_at_range pm.file Range.{ start; end_ } in
+  let replacement_text = SPcre.replace ~rex ~template:replacement content in
+  let edit = Textedit.{ path = pm.file; start; end_; replacement_text } in
+  edit
+
+(******************************************************************************)
+(* Generation and application of autofixes *)
+(******************************************************************************)
+
+let generate_autofix (pm : Pattern_match.t) : Textedit.t option =
+  let fix = pm.rule_id.fix in
+  let fix_regex = pm.rule_id.fix_regexp in
+  let range =
+    let start, end_ = pm.Pattern_match.range_loc in
+    let _, _, end_charpos = Tok.end_pos_of_loc end_ in
+    (start.Tok.pos.bytepos, end_charpos)
+  in
+  match (fix, fix_regex) with
+  | None, None -> None
+  | Some fix, _ -> (
+      match ast_based_fix ~fix range pm with
+      | None -> Some (basic_fix ~fix range pm)
+      | Some fix -> Some fix)
+  | _, Some (regexp, count, replacement) ->
+      let count = Option.value ~default:0 count in
+      Some (regex_fix ~regexp ~replacement ~count range pm)
+
+let apply_fixes (pairs : (Pattern_match.t * Textedit.t option) list) =
+  let edits = pairs |> Common.map snd |> Common.map_filter Fun.id in
+  (* TODO: *)
+  let modified_files, _failed_fixes =
+    Textedit.apply_edits ~dryrun:false edits
+  in
+
+  if modified_files <> [] then
+    Logs.info (fun m ->
+        m "successfully modified %s."
+          (String_utils.unit_str (List.length modified_files) "file"))
+  else Logs.info (fun m -> m "no files modified.");
+  pairs
+
+(******************************************************************************)
+(* Entry point *)
+(******************************************************************************)
+
+(* Apply the fix for the list of matches to the given file, returning the
+   * resulting file contents. Currently used only for tests, but with some changes
+   * could be used in production as well. *)
+let apply_autofixes ~(autofix : bool)
+    (matches : (Pattern_match.t * Textedit.t option) list) =
+  if autofix then
+    Common.map (fun (m, _) -> (m, generate_autofix m)) matches |> apply_fixes
+  else matches

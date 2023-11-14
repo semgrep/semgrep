@@ -184,6 +184,18 @@ val substitute :
   subst:(string -> string) ->
   string ->
   string
+(** [substitute] replaces according to the substitution function [subst] *)
+
+val replace :
+  ?iflags:Pcre.irflag ->
+  ?flags:Pcre.rflag list ->
+  rex:t ->
+  ?pos:int ->
+  ?callout:Pcre.callout ->
+  template:string ->
+  string ->
+  string
+(** [replace] replaces matches according to the substitution template `templ` *)
 
 val extract_all :
   ?iflags:Pcre.irflag ->

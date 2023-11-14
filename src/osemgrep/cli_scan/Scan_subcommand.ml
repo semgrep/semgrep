@@ -117,7 +117,8 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     let (pms : Pattern_match.t list) = match_results.matches in
     let (core_matches : Out.core_match list) =
       pms
-      |> Common.partition_either (Core_json_output.match_to_match None)
+      |> Common.map (fun pm -> (pm, None))
+      |> Common.partition_either Core_json_output.match_to_match
       |> fst
     in
     let hrules = Rule.hrules_of_rules rules in
@@ -228,24 +229,25 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
   let sigs = Hashtbl.create 10 in
   Git_wrapper.run_with_worktree ~commit (fun () ->
       List.iter
-        (fun m -> m |> extract_sig None |> fun x -> Hashtbl.add sigs x true)
+        (fun (m, _) ->
+          m |> extract_sig None |> fun x -> Hashtbl.add sigs x true)
         baseline.matches);
   let removed = ref 0 in
   let matches =
     Common.map_filter
-      (fun m ->
+      (fun (m, edit) ->
         let s = extract_sig (Some renamed) m in
         if Hashtbl.mem sigs s then (
           Hashtbl.remove sigs s;
           incr removed;
           None)
-        else Some m)
+        else Some (m, edit))
       (head.matches
        (* Sort the matches in ascending order according to their byte positions.
           This ensures that duplicated matches are not removed arbitrarily;
           rather, priority is given to removing matches positioned closer to the
           beginning of the file. *)
-      |> List.sort (fun x y ->
+      |> List.sort (fun (x, _) (y, _) ->
              let x_start_range, x_end_range = x.Pattern_match.range_loc in
              let y_start_range, y_end_range = y.Pattern_match.range_loc in
              let start_compare =
@@ -284,7 +286,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
         in
         let rules_in_match =
           r.matches
-          |> Common.map (fun m ->
+          |> Common.map (fun (m, _) ->
                  m.Pattern_match.rule_id.id |> Rule_ID.to_string)
           |> SS.of_list
         in
@@ -314,7 +316,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
                   in
                   let paths_in_match =
                     r.matches
-                    |> Common.map (fun m -> m.Pattern_match.file)
+                    |> Common.map (fun (m, _) -> m.Pattern_match.file)
                     |> prepare_targets
                   in
                   let paths_in_scanned =

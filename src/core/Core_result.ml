@@ -49,7 +49,7 @@ type 'a match_result = {
 [@@deriving show]
 
 type t = {
-  matches : Pattern_match.t list;
+  matches : (Pattern_match.t * Textedit.t option) list;
   errors : Core_error.t list;
   skipped_rules : Rule.invalid_rule_error list;
   rules_with_targets : Rule.rule list;
@@ -262,7 +262,12 @@ let make_final_result
     ~rules_parse_time =
   (* contenating information from the match_result list *)
   let matches =
-    results |> List.concat_map (fun (x : _ match_result) -> x.matches)
+    results
+    |> List.concat_map (fun (x : _ match_result) -> x.matches)
+    (* These fixes are initially None, and will be populated with fixes
+       after we run Autofix.apply_autofixes.
+    *)
+    |> Common.map (fun res -> (res, None))
   in
   let explanations =
     results |> List.concat_map (fun (x : _ match_result) -> x.explanations)

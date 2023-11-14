@@ -48,6 +48,7 @@ type rule = {
    *)
   pattern_string : string;
   fix : string option;
+  fix_regexp : (string * int option * string) option;
 }
 
 and rules = rule list (*e: type [[Rule.rules]] *) [@@deriving show]

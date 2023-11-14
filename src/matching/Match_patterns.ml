@@ -138,6 +138,7 @@ let (rule_id_of_mini_rule : Mini_rule.t -> Pattern_match.rule_id) =
     message = mr.message;
     pattern_string = mr.pattern_string;
     fix = mr.fix;
+    fix_regexp = mr.fix_regexp;
     langs = mr.langs;
   }
 

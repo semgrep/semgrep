@@ -266,7 +266,8 @@ let compare_fixes ~polyglot_pattern_path ~file matches =
     in
     File.read_file expected_fixed_file
   in
-  let fixed_text = Autofix.apply_fixes_to_file matches ~file:!!file in
+  Autofix.apply_autofixes ~autofix:true matches |> ignore;
+  let fixed_text = Common.read_file (Fpath.to_string file) in
   Alcotest.(check string) "applied autofixes" expected_fixed_text fixed_text
 
 let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =
@@ -287,6 +288,8 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =
       langs = [ lang ];
       pattern_string = "test: no need for pattern string";
       fix = fix_pattern;
+      (* TODO: regexp test? *)
+      fix_regexp = None;
     }
   in
   let ast =
@@ -347,6 +350,7 @@ let regression_tests_for_lang ~polyglot_pattern_path files lang =
                      (Rule_ID.of_string "test-pattern")
                      start_loc "" Out.SemgrepMatchFound)
                  ~file ~pattern ~fix_pattern
+               |> Common.map (fun pm -> (pm, None))
              in
              (match fix_pattern with
              | Some _ -> compare_fixes ~polyglot_pattern_path ~file matches

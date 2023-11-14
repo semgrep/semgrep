@@ -353,7 +353,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
     max_match_per_file matches =
   let per_files =
     matches
-    |> Common.map (fun m -> (m.Pattern_match.file, m))
+    |> Common.map (fun (m, _) -> (m.Pattern_match.file, m))
     |> Common.group_assoc_bykey_eff
   in
   let offending_file_list =
@@ -364,7 +364,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
   let offending_files = Common.hashset_of_list offending_file_list in
   let new_matches =
     matches
-    |> Common.exclude (fun m ->
+    |> Common.exclude (fun (m, _) ->
            Hashtbl.mem offending_files m.Pattern_match.file)
   in
   let new_errors, new_skipped =
