@@ -1,0 +1,10 @@
+Added support for `--config <code|secrets>` to semgrep scan. When using
+code or secrets, the environment variable `SEMGREP_REPO_NAME` must be set.
+
+For example,
+```
+$ SEMGREP_REPO_NAME=test_repo semgrep --config secrets
+```
+
+Internally, `semgrep scan --config <product>` now uses the same endpoint as the
+`semgrep ci` to fetch the scan configuration.
