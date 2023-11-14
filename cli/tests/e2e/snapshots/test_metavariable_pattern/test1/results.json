@@ -9,6 +9,7 @@
       "type": "Internal matching error"
     }
   ],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/metavariable-pattern/test1.yml"
