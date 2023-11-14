@@ -305,7 +305,6 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix =
       langs = [ lang ];
       pattern_string = "test: no need for pattern string";
       fix;
-      (* TODO: regexp test? *)
       fix_regexp;
     }
   in

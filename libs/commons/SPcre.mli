@@ -195,7 +195,7 @@ val replace_first :
   template:string ->
   string ->
   string
-(** [replace] replaces the first match according to the substitution template `templ` *)
+(** [replace_first] replaces the first match according to the substitution template `templ` *)
 
 val replace :
   ?iflags:Pcre.irflag ->
