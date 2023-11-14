@@ -441,7 +441,8 @@ let get_config_test_filenames target configs =
 
 let checkid_passed matches_for_checkid =
   Map_.fold
-    (fun _filename (expected, reported) acc -> acc && expected == reported)
+    (fun _filename ((_, expected), (_, reported)) acc ->
+       acc && IS.(equal (of_list expected) (of_list reported)))
     matches_for_checkid true
 
 (*****************************************************************************)
@@ -562,7 +563,7 @@ let run_conf (conf : conf) : Exit_code.t =
     List.fold_left (fun acc (_config_filename, matches, soft_errors) ->
         Map_.fold (fun _checkid filename_and_matches acc ->
             Map_.fold (fun filename (expected, reported) acc ->
-                if expected == reported && soft_errors = [] then
+                if expected = reported && soft_errors = [] then
                   filename :: acc
                 else
                   acc)
@@ -618,7 +619,7 @@ let run_conf (conf : conf) : Exit_code.t =
          filediff = fixed_file_comparison(fixtest, tempcopy)
          # fixtest_results[t] = {"filediff": filediff, "fixtest": fixtest}
          fixtest_results[t] = (filediff, fixtest)
-         fixtest_results_output[str(t)] = {"passed": len(filediff) == 0}
+         fixtest_results_output[str(t)] = {"passed": len(filediff) = 0}
          os.remove(tempcopy)
   *)
   let output =
@@ -719,7 +720,7 @@ let run_conf (conf : conf) : Exit_code.t =
           m
             "No unit tests found. See \
              https://semgrep.dev/docs/writing-rules/testing-rules")
-    else if num_tests == num_tests_passed then
+    else if num_tests = num_tests_passed then
       Logs.app (fun m ->
           m "%u/%u: ✓ All tests passed " num_tests_passed num_tests)
     else
@@ -728,9 +729,9 @@ let run_conf (conf : conf) : Exit_code.t =
             (num_tests - num_tests_passed)
             check_output_lines);
 
-    (* if num_fixtests == 0:
+    (* if num_fixtests = 0:
            print("No tests for fixes found.")
-       elif num_fixtests == num_fixtests_passed:
+       elif num_fixtests = num_fixtests_passed:
            print(f"{num_fixtests_passed}/{num_fixtests}: ✓ All fix tests passed ")
        else:
            print(
