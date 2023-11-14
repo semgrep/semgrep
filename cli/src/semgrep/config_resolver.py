@@ -292,13 +292,10 @@ class ConfigLoader:
         """
         state = get_state()
 
-        if is_policy_id(self._config_path):
-            products = [out.Product(out.SAST())]
-        else:
-            products = [
-                out.Product.from_json(PRODUCT_NAMES[p])
-                for p in self._config_path.split(",")
-            ]
+        products = [
+            out.Product.from_json(PRODUCT_NAMES[p])
+            for p in self._config_path.split(",")
+        ]
 
         # Require SEMGREP_REPO_NAME env var if SAST or Secrets are requested
         require_repo_name = any(
