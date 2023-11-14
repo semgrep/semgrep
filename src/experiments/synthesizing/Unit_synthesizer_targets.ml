@@ -66,6 +66,7 @@ let ranges_matched lang file pattern : Range.t list =
       langs = [ lang ];
       pattern_string = "test: no need for pattern string";
       fix = None;
+      fix_regexp = None;
     }
   in
   let equiv = [] in

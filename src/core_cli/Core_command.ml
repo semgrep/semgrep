@@ -73,10 +73,7 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
             in
             Core_result.mk_final_result_with_just_errors [ err ]
       in
-      let res =
-        Core_json_output.core_output_of_matches_and_errors
-          (Some Autofix.render_fix) res
-      in
+      let res = Core_json_output.core_output_of_matches_and_errors res in
       (* one-off experiment, delete it at some point (March 2023) *)
       let res =
         if !Flag_semgrep.raja then Raja_experiment.adjust_core_output res
@@ -130,6 +127,7 @@ let minirule_of_pattern lang pattern_string pattern =
     severity = `Error;
     langs = [ lang ];
     fix = None;
+    fix_regexp = None;
   }
 
 (* less: could be nice to generalize to rule_of_config, but we sometimes
@@ -178,10 +176,7 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
             Rule.rule_of_xpattern xlang xpat)
       in
       let res = Core_scan.scan config (([ rule ], []), rules_parse_time) in
-      let json =
-        Core_json_output.core_output_of_matches_and_errors
-          (Some Autofix.render_fix) res
-      in
+      let json = Core_json_output.core_output_of_matches_and_errors res in
       let s = Out.string_of_core_output json in
       pr s
   | Text ->

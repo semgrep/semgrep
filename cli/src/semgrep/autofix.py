@@ -68,7 +68,7 @@ def _get_match_context(
     return start_line, start_col, end_line, end_col
 
 
-def _basic_fix(
+def _apply_fix(
     rule_match: RuleMatch, file_offsets: FileOffsets, fix: str
 ) -> Tuple[Fix, FileOffsets]:
 
@@ -98,107 +98,8 @@ def _basic_fix(
     return Fix(SPLIT_CHAR.join(contents_after_fix), modified_lines), file_offsets
 
 
-def _regex_replace(
-    rule_match: RuleMatch,
-    file_offsets: FileOffsets,
-    from_str: str,
-    to_str: str,
-    count: int = 1,
-) -> Tuple[Fix, FileOffsets]:
-    """
-    Use a regular expression to autofix.
-    Replaces from_str to to_str, starting from the left,
-    exactly `count` times.
-    """
-    path = rule_match.path
-    lines = _get_lines(path)
-
-    start_line, _, end_line, _ = _get_match_context(rule_match, file_offsets)
-
-    before_lines = lines[:start_line]
-    after_lines = lines[end_line + 1 :]
-
-    match_context = lines[start_line : end_line + 1]
-
-    fix = re.sub(from_str, to_str, "\n".join(match_context), count)
-    modified_context = fix.splitlines()
-    modified_contents = before_lines + modified_context + after_lines
-
-    # update offsets
-    file_offsets.line_offset = len(modified_context) - len(match_context)
-
-    return Fix(SPLIT_CHAR.join(modified_contents), modified_context), file_offsets
-
-
 def _write_contents(path: Path, contents: str) -> None:
     path.write_text(contents)
-
-
-def matches_compare(x: RuleMatch, y: RuleMatch) -> int:
-    # If paths are not the same, just order based on that.
-    # I just need a total ordering on matches.
-    if x.path < y.path:
-        return -1
-    elif x.path > y.path:
-        return 1
-    else:
-        if x.start.offset < y.start.offset:
-            return -1
-        elif y.start.offset < x.start.offset:
-            return 1
-        else:
-            if x.end.offset < y.end.offset:
-                return -1
-            elif x.end.offset > y.end.offset:
-                return 1
-            else:
-                return 0
-
-
-def matches_overlap(x: RuleMatch, y: RuleMatch) -> bool:
-    if x.path == y.path:
-        if x.start.offset < y.start.offset:
-            return x.end.offset > y.start.offset
-        elif y.start.offset < x.start.offset:
-            return y.end.offset > x.start.offset
-        elif x.start.offset == y.start.offset:
-            return True
-
-    # If they are not from the same file, they cannot overlap.
-    return False
-
-
-def deduplicate_overlapping_matches(
-    rules_and_matches: Iterable[Tuple[Rule, OrderedRuleMatchList]]
-) -> OrderedRuleMatchList:
-
-    final_matches = []
-
-    ordered_matches = sorted(
-        (match for _, matches in rules_and_matches for match in matches),
-        key=cmp_to_key(matches_compare),
-    )
-    acc = None
-
-    for match in ordered_matches:
-        if acc is None:
-            acc = match
-            continue
-
-        if matches_overlap(acc, match):
-            logger.debug(
-                f"Two autofix matches from rules {acc.rule_id} and {match.rule_id} overlap, arbitrarily picking first one"
-            )
-            # Don't do anything, keep `acc` the same, and throw `match` out.`
-
-        else:
-            final_matches.append(acc)
-            acc = match
-
-    if acc is not None:
-        final_matches.append(acc)
-
-    return final_matches
 
 
 def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> None:
@@ -209,13 +110,14 @@ def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> Non
     modified_files: Set[Path] = set()
     modified_files_offsets: Dict[Path, FileOffsets] = {}
 
-    nonoverlapping_matches = deduplicate_overlapping_matches(
-        rule_matches_by_rule.items()
-    )
+    flattened_matches = [
+        match
+        for matches_per_rule in rule_matches_by_rule.values()
+        for match in matches_per_rule
+    ]
 
-    for rule_match in nonoverlapping_matches:
+    for rule_match in flattened_matches:
         fix = rule_match.fix
-        fix_regex = rule_match.fix_regex
         filepath = rule_match.path
         # initialize or retrieve/update offsets for the file
         file_offsets = modified_files_offsets.get(
@@ -226,21 +128,9 @@ def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> Non
             file_offsets.col_offset = 0
         if fix is not None:
             try:
-                fixobj, new_file_offset = _basic_fix(rule_match, file_offsets, fix)
+                fixobj, new_file_offset = _apply_fix(rule_match, file_offsets, fix)
             except Exception as e:
                 raise SemgrepError(f"unable to modify file {filepath}: {e}")
-        elif fix_regex:
-            regex = fix_regex.regex
-            replacement = fix_regex.replacement
-            count = fix_regex.count or 0
-            try:
-                fixobj, new_file_offset = _regex_replace(
-                    rule_match, file_offsets, regex, replacement, count
-                )
-            except Exception as e:
-                raise SemgrepError(
-                    f"unable to use regex to modify file {filepath} with fix '{fix}': {e}"
-                )
         else:
             continue
         # endif
