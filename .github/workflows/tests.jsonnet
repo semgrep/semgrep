@@ -387,7 +387,7 @@ local trigger_semgrep_comparison_argo = {
   needs: [
     'push-docker',
   ],
-  uses: './trigger-semgrep-comparison-argo.yml',
+  uses: './.github/workflows/trigger-semgrep-comparison-argo.yml',
 };
 
 // ----------------------------------------------------------------------------
