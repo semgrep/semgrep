@@ -512,6 +512,7 @@ let mk_fake_rule xlang formula =
     product = `SAST;
     metadata = None;
     validators = None;
+    dependency_formula = [];
   }
 
 let atomic_map_file_zipper f state =

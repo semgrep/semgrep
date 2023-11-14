@@ -464,6 +464,21 @@ and step = {
 and mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
 
 (*****************************************************************************)
+(* Supply Chain *)
+(*****************************************************************************)
+
+(* You can only do single layer deep OR *)
+type dependency_formula = dependency_pattern list
+
+and dependency_pattern = {
+  (* TODO: actually good types *)
+  ecosystem : string;
+  package : string;
+  version_constraint : string;
+}
+[@@deriving show]
+
+(*****************************************************************************)
 (* The rule *)
 (*****************************************************************************)
 
@@ -553,6 +568,7 @@ type 'mode rule_info = {
   metadata : JSON.t option;
   (* TODO(cooper): would be nice to have nonempty but common2 version not nice to work with; no pp for one *)
   validators : validator list option;
+  dependency_formula : dependency_formula;
 }
 [@@deriving show]
 
@@ -893,6 +909,7 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
     metadata = None;
     validators = None;
     product = `SAST;
+    dependency_formula = [];
   }
 
 (* TODO(dinosaure): Currently, on the Python side, we remove the metadatas and
