@@ -213,8 +213,7 @@ val adjust_loc_wrt_base : location -> location -> location
 (* fill in the line and column field of location that were not set
  * during lexing because of limitations of ocamllex and Lexing.position.
  *)
-val complete_location :
-  Common.filename -> Pos.bytepos_to_linecol_fun -> location -> location
+val complete_location : Common.filename -> Pos.bytepos_linecol_converters -> location -> location
 
 (*****************************************************************************)
 (* Misc *)

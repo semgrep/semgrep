@@ -227,6 +227,7 @@ and translate_formula f : [> `O of (string * Yaml.value) list ] =
       | Aliengrep _ ->
           `O [ ("pattern", `String (fst pstr)) ]
       | Regexp _ -> `O [ ("regex", `String (fst pstr)) ])
+  | Anywhere (_, f) -> `O [ ("anywhere", (translate_formula f :> Yaml.value)) ]
   | Inside (_, f) -> `O [ ("inside", (translate_formula f :> Yaml.value)) ]
   | And (_, { conjuncts; focus; conditions; _ }) ->
       let mk_focus_obj (_, mv_list) =
