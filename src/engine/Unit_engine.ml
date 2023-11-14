@@ -241,7 +241,7 @@ let related_file_of_target ~polyglot_pattern_path ~ext ~file =
       in
       Error msg
 
-(* Allows the  semgrep-core test runner that we use to test matches to also test
+(* Allows the semgrep-core test runner that we use to test matches to also test
  * autofix. The format is pretty simple: add a `.fix` file with the fix pattern
  * and a `.fixed` file with the expected contents of the target after fixes are
  * applied.
@@ -266,8 +266,9 @@ let compare_fixes ~polyglot_pattern_path ~file matches =
     in
     File.read_file expected_fixed_file
   in
-  Autofix.apply_autofixes ~autofix:true matches |> ignore;
-  let fixed_text = Common.read_file (Fpath.to_string file) in
+  let matches_with_fixes = Autofix.produce_autofixes matches in
+  let file = Fpath.to_string file in
+  let fixed_text = Autofix.apply_fixes_to_file matches_with_fixes ~file in
   Alcotest.(check string) "applied autofixes" expected_fixed_text fixed_text
 
 let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =

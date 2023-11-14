@@ -7,7 +7,11 @@
  * could be used in production as well. *)
 (* val apply_fixes_to_file : Semgrep_output_v1_t.core_match list -> file:string -> string *)
 
-val apply_autofixes :
-  autofix:bool ->
+val produce_autofixes :
   (Pattern_match.t * Textedit.t option) list ->
   (Pattern_match.t * Textedit.t option) list
+
+val apply_fixes : (Pattern_match.t * Textedit.t option) list -> unit
+
+val apply_fixes_to_file :
+  (Pattern_match.t * Textedit.t option) list -> file:string -> string

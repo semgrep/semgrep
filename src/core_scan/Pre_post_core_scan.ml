@@ -47,7 +47,34 @@ module No_Op_Processor : Processor = struct
   let post_process _ () results = results
 end
 
-let hook_processor = ref (module No_Op_Processor : Processor)
+module MkPairProcessor (A : Processor) (B : Processor) : Processor = struct
+  type state = A.state * B.state
+
+  let pre_process config rules =
+    let rules, state_a = A.pre_process config rules in
+    let rules, state_b = B.pre_process config rules in
+    (rules, (state_a, state_b))
+
+  let post_process config (state_a, state_b) results =
+    results |> B.post_process config state_b |> A.post_process config state_a
+end
+
+module Autofix_processor : Processor = struct
+  type state = unit
+
+  let pre_process _config rules = (rules, ())
+
+  let post_process (config : Core_scan_config.t) () (res : Core_result.t) =
+    let matches_with_fixes = Autofix.produce_autofixes res.matches in
+    if config.autofix then Autofix.apply_fixes matches_with_fixes;
+    { res with matches = matches_with_fixes }
+end
+
+let hook_processor = ref (module Autofix_processor : Processor)
+
+let push_processor (module P : Processor) =
+  let module Paired = MkPairProcessor (P) ((val !hook_processor)) in
+  hook_processor := (module Paired)
 
 (* quite similar to Core_scan.core_scan_func *)
 type 'a core_scan_func_with_rules =

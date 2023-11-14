@@ -241,6 +241,27 @@ let generate_autofix (pm : Pattern_match.t) : Textedit.t option =
       let count = Option.value ~default:0 count in
       Some (regex_fix ~regexp ~replacement ~count range pm)
 
+(******************************************************************************)
+(* Entry point *)
+(******************************************************************************)
+
+(* Apply the fix for the list of matches to the given file, returning the
+   * resulting file contents. Currently used only for tests, but with some changes
+   * could be used in production as well. *)
+let produce_autofixes (matches : (Pattern_match.t * Textedit.t option) list) =
+  Common.map (fun (m, _) -> (m, generate_autofix m)) matches
+
+let apply_fixes_to_file matches_with_fixes ~file =
+  let file_text = Common.read_file file in
+  let edits = Common.map snd matches_with_fixes |> Common.map_filter Fun.id in
+  match Textedit.apply_edits_to_text file_text edits with
+  | Success x -> x
+  | Overlap { conflicting_edits; _ } ->
+      failwith
+        (spf "Could not apply fix because it overlapped with another: %s"
+           (Common.hd_exn "unexpected empty list" conflicting_edits)
+             .replacement_text)
+
 let apply_fixes (pairs : (Pattern_match.t * Textedit.t option) list) =
   let edits = pairs |> Common.map snd |> Common.map_filter Fun.id in
   (* TODO: *)
@@ -251,19 +272,5 @@ let apply_fixes (pairs : (Pattern_match.t * Textedit.t option) list) =
   if modified_files <> [] then
     Logs.info (fun m ->
         m "successfully modified %s."
-          (String_utils.unit_str (List.length modified_files) "file"))
-  else Logs.info (fun m -> m "no files modified.");
-  pairs
-
-(******************************************************************************)
-(* Entry point *)
-(******************************************************************************)
-
-(* Apply the fix for the list of matches to the given file, returning the
-   * resulting file contents. Currently used only for tests, but with some changes
-   * could be used in production as well. *)
-let apply_autofixes ~(autofix : bool)
-    (matches : (Pattern_match.t * Textedit.t option) list) =
-  if autofix then
-    Common.map (fun (m, _) -> (m, generate_autofix m)) matches |> apply_fixes
-  else matches
+          (String_utils.unit_str (List.length modified_files) "file(s)"))
+  else Logs.info (fun m -> m "no files modified.")

@@ -667,9 +667,6 @@ def run_scan(
         metrics.add_profiling(profiler)
         metrics.add_parse_rates(output_extra.parsing_data)
 
-    if autofix:
-        apply_fixes(filtered_matches_by_rule.kept, dryrun)
-
     renamed_targets = set(
         baseline_handler.status.renamed.values() if baseline_handler else []
     )
