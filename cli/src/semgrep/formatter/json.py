@@ -78,6 +78,7 @@ class JsonFormatter(BaseFormatter):
             paths=cli_output_extra.paths,
             time=cli_output_extra.time,
             explanations=cli_output_extra.explanations,
+            interfile_languages_used=cli_output_extra.interfile_languages_used,
             skipped_rules=[],  # TODO: concatenate skipped_rules field from core responses
         )
         # Sort keys for predictable output. This helps with snapshot tests, etc.
