@@ -55,6 +55,7 @@ from semgrep.util import is_url
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
+
 logger = getLogger(__name__)
 
 AUTO_CONFIG_KEY = "auto"
@@ -971,7 +972,7 @@ def is_policy_id(config_str: str) -> bool:
     return config_str == "policy"
 
 
-def legacy_url_for_scan(extra_params: dict = {}) -> str:
+def legacy_url_for_scan(extra_params: Optional[dict] = None) -> str:
     """
     Generates a legacy scan url (api/agent/deployments/scans/config) to
     fetch a scan configuration.
@@ -986,7 +987,8 @@ def legacy_url_for_scan(extra_params: dict = {}) -> str:
         "semgrep_version": __VERSION__,
     }
 
-    params.update(extra_params)
+    if extra_params:
+        params.update(extra_params)
 
     if "SEMGREP_REPO_NAME" in os.environ:
         params["repo_name"] = os.environ.get("SEMGREP_REPO_NAME")
