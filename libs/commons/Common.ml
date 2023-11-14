@@ -821,10 +821,6 @@ let contains s1 s2 =
 (* Filenames *)
 (*****************************************************************************)
 
-(* TODO: we should use strong types like in Li Haoyi filename Scala library! *)
-type filename = string (* TODO could check that exist :) type sux *)
-[@@deriving show, eq, ord, sexp]
-
 let chop_dirsymbol = function
   | s when s =~ "\\(.*\\)/$" -> matched1 s
   | s -> s
@@ -1032,7 +1028,7 @@ let fullpath file =
 
 (* emacs/lisp inspiration (eric cooper and yaron minsky use that too) *)
 let (with_open_outfile :
-      filename -> ((string -> unit) * out_channel -> 'a) -> 'a) =
+      string (* filename *) -> ((string -> unit) * out_channel -> 'a) -> 'a) =
  fun file f ->
   let chan = open_out_bin file in
   let pr s = output_string chan s in
@@ -1043,7 +1039,7 @@ let (with_open_outfile :
       res)
     (fun _e -> close_out chan)
 
-let (with_open_infile : filename -> (in_channel -> 'a) -> 'a) =
+let (with_open_infile : string (* filename *) -> (in_channel -> 'a) -> 'a) =
  fun file f ->
   let chan = open_in_bin file in
   unwind_protect

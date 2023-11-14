@@ -1,6 +1,7 @@
 type 'ast parser =
-  | Pfff of (Common.filename -> 'ast * Parsing_stat.t)
-  | TreeSitter of (Common.filename -> 'ast Tree_sitter_run.Parsing_result.t)
+  | Pfff of (string (* filename *) -> 'ast * Parsing_stat.t)
+  | TreeSitter of
+      (string (* filename *) -> 'ast Tree_sitter_run.Parsing_result.t)
 
 (* TODO: factorize with previous type *)
 type 'ast pattern_parser =
@@ -14,7 +15,7 @@ type 'ast pattern_parser =
      ] Js_to_generic.program
 *)
 val run :
-  Common.filename ->
+  string (* filename *) ->
   'ast parser list ->
   ('ast -> AST_generic.program) ->
   Parsing_result2.t
@@ -40,13 +41,14 @@ val error_of_tree_sitter_error :
   Tree_sitter_run.Tree_sitter_error.t -> Exception.t
 
 val throw_tokens :
-  (Common.filename -> ('ast, 'toks) Parsing_result.t) ->
-  Common.filename ->
+  (string (* filename *) -> ('ast, 'toks) Parsing_result.t) ->
+  string (* filename *) ->
   'ast * Parsing_stat.t
 
 val run_external_parser :
-  Common.filename ->
-  (Common.filename -> AST_generic.program Tree_sitter_run.Parsing_result.t) ->
+  string (* filename *) ->
+  (string (* filename *) ->
+  AST_generic.program Tree_sitter_run.Parsing_result.t) ->
   Parsing_result2.t
 
 (* helpers used both in Parse_pattern.ml and Parse_pattern2.ml *)
