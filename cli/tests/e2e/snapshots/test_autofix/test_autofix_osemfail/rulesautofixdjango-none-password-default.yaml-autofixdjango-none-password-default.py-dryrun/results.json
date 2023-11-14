@@ -16,10 +16,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "fix_regex": {
-          "regex": "(password.*)\"\"",
-          "replacement": "\\1None"
-        },
+        "fix": "new_password = request.data.get(\"password\", None)\n        validate_password(new_password, user=user)\n        user.set_password(new_password)\n        user.save()",
         "fixed_lines": [
           "        new_password = request.data.get(\"password\", None)",
           "        validate_password(new_password, user=user)",
@@ -110,10 +107,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "fix_regex": {
-          "regex": "(password.*)\"\"",
-          "replacement": "\\1None"
-        },
+        "fix": "def create_user(self, email, password=None):\n        \"\"\"\n        Creates and saves a Poster with the given email and password.\n        \"\"\"\n        if not email:\n            raise ValueError('Users must have an email address')\n\n        user = self.model(email=self.normalize_email(email))\n        user.set_password(password)\n        user.save(using=self._db)\n        return user",
         "fixed_lines": [
           "    def create_user(self, email, password=None):",
           "        \"\"\"",

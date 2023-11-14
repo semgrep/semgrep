@@ -16,10 +16,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "fix_regex": {
-          "regex": "(.*)\\)",
-          "replacement": "\\1, quoting=csv.QUOTE_ALL)"
-        },
+        "fix": "csv.writer(csvfile, delimiter=',', quotechar='\"', quoting=csv.QUOTE_ALL)",
         "fixed_lines": [
           "csv.writer(csvfile, delimiter=',', quotechar='\"', quoting=csv.QUOTE_ALL)"
         ],
@@ -54,10 +51,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "fix_regex": {
-          "regex": "(.*)\\)",
-          "replacement": "\\1, quoting=csv.QUOTE_ALL)"
-        },
+        "fix": "csv.writer(get_file(), delimiter=',', quotechar='\"', quoting=csv.QUOTE_ALL)",
         "fixed_lines": [
           "csv.writer(get_file(), delimiter=',', quotechar='\"', quoting=csv.QUOTE_ALL)"
         ],
