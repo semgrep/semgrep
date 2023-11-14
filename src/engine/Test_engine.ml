@@ -121,13 +121,20 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
         in
 
         (* expected *)
-        (* not tororuleid! not ok:! not todook:
+        (* we expect ruleid: or todook:
+           not todoruleid: and not ok:
            see https://semgrep.dev/docs/writing-rules/testing-rules/
            for the meaning of those labels.
+           Plus, SR has (ab)used "deepsemgrep-ruleid" in
+           java/servlets/security/tainted-cmd-from-http-request-deepsemgrep.java
+           and we want to ignore it too, hence the [^-].
+           TODO: We should find a better name than "deepsemgrep-ruleid" and
+             add support for it in semgrep-pro.
         *)
-        let regexp = ".*\\b\\(ruleid\\|todook\\):.*" in
+        let regexp = {|.*\b\(ruleid\|todook\):.*|} in
+        let ok_regexp = {|.*deepsemgrep-ruleid.*|} in
         let expected_error_lines =
-          E.expected_error_lines_of_files ~regexp [ !!target ]
+          E.expected_error_lines_of_files ~regexp ~ok_regexp [ !!target ]
         in
 
         (* actual *)
