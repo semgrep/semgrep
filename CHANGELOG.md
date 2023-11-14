@@ -6,6 +6,110 @@
 
 <!-- insertion point -->
 
+## [1.49.0](https://github.com/returntocorp/semgrep/releases/tag/v1.49.0) - 2023-11-14
+
+### Added
+
+- Added support in Ruby, Julia, and Rust to match implicit return statement inside functions.
+
+  For example:
+
+  ```julia
+  return 0
+  ```
+
+  can now match 0 in
+
+  ```julia
+  function f()
+    0
+  end
+  ```
+
+  This matching is enabled by default and can be disabled with the rule option `implicit_return`. (gh-8408)
+
+- Pro engine supports constant propagation of numbers defined via macro in C++ (gh-9221)
+- taint-mode: The `by-side-effect` option for taint sources (only) now accepts a
+  third value `only` (besides `true` and `false`). Setting `by-side-effect: only`
+  will define a taint source that _only_ propagates by side effect. This option
+  should allow (ab)using taint-mode for writing some typestate rules.
+
+  For example, this taint rule:
+
+  ```yaml
+  pattern-sources:
+    - by-side-effect: only
+      patterns:
+        - pattern: lock($L)
+        - focus-metavariable: $L
+  pattern-sanitizers:
+    - by-side-effect: true
+      patterns:
+        - pattern: unlock($L)
+        - focus-metavariable: $L
+  pattern-sinks:
+    - pattern: lock($L)
+  ```
+
+  will match the second `lock(x)` in this code:
+
+  ```python
+  lock(x) # no finding
+  lock(x) # finding
+  ```
+
+  The first `lock(x)` will not result in any finding, because the occurrence of `x` in
+  itself will not be tainted. Only after the function call we will record that `x` is
+  tainted (as a side-effect of `lock`). The second `lock(x)` will result in a finding
+  because the `x` has been tainted by the previous `lock(x)`. (pa-2980)
+
+### Changed
+
+- Removed support for named snippets (`org_name:rule_id`) from `semgrep scan` which were removed from semgrep.dev a few months ago. (gh-9203)
+- Improved handling of unused lambdas to reduce false positives
+
+  Previously, we used to insert the CFGs of unused lambdas at the declaration
+  site. However, this approach triggered some false positives. For example,
+  consider the following code:
+
+  ```
+  void incorrect(int *p) {
+    auto f1 = [&p]() {
+      source(p);
+    };
+    auto f2 = [&p]() {
+      sink(p);
+    };
+  }
+  ```
+
+  In this code, there's no actual control flow between the source and sink, and
+  the lambdas are never even called. But when we inserted their CFGs at the
+  declaration site, it incorrectly indicated a taint finding. To prevent these
+  types of false positives while still scanning the body of unused lambdas, we
+  now insert their CFGs in parallel at the end of their parent function, right
+  after all other statements and just before the end node. (pa-3089)
+
+- Bumped timeout (per-rule and per-file) from 2s to 5s. Recently we lowered it
+  from 30s down to 2s, but based on what we have observed so far, we believe 5s
+  is a better timeout for the time being. (timeout)
+
+### Fixed
+
+- Fixed a bug where enabling the secret beta causes the default scan mode to be
+  set to OSS, even when the Pro flag is turned on in the web UI. (ea-248)
+- Semgrep does not stop a scan anymore for parsing errors due to
+  unconventional exceptions (e.g., Failure "not a program") in some
+  parsers. Instead, such errors are reported as "Other syntax error". (lang-13)
+- Fix regression for the unused lambda change in react-nextjs-router-push test
+
+  A lambda expression defined in a return expression is also treated as used at
+  the location of the return expression. (pa-3089)
+
+- Updated the Rust parser with miscellaneous improvements. In particular, Semgrep can now parse `yield` expressions in Rust. (rust)
+- taint-mode: If an expressions is tainted by multiple labels A and B, with B
+  requiring A, the expression will now get boths labels A and B. (taint-labels)
+
 ## [1.48.0](https://github.com/returntocorp/semgrep/releases/tag/v1.48.0) - 2023-11-06
 
 ### Added
