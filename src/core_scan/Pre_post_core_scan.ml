@@ -57,7 +57,12 @@ module Autofix_processor : Processor = struct
     let matches_with_fixes =
       Autofix.produce_autofixes (Common.map fst res.matches_with_fixes)
     in
-    if config.autofix then Autofix.apply_fixes matches_with_fixes;
+    (* This is an unusual case! This should only happen if semgrep-core
+       is invoked on its own -- usually, the CLI should apply the fix
+       itself.
+    *)
+    if config.autofix then
+      Autofix.apply_fixes (Common.map_filter snd matches_with_fixes);
     { res with matches_with_fixes }
 end
 

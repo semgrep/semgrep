@@ -34,6 +34,7 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parse_lockfile import parse_lockfile_path
 from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
+from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
 from semgrep.constants import DEFAULT_DIFF_DEPTH
 from semgrep.constants import DEFAULT_TIMEOUT
@@ -666,6 +667,9 @@ def run_scan(
         metrics.add_errors(semgrep_errors)
         metrics.add_profiling(profiler)
         metrics.add_parse_rates(output_extra.parsing_data)
+
+    if autofix:
+        apply_fixes(filtered_matches_by_rule.kept, dryrun)
 
     renamed_targets = set(
         baseline_handler.status.renamed.values() if baseline_handler else []
