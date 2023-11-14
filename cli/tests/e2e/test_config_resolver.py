@@ -1,15 +1,13 @@
 import json
 from textwrap import dedent
-from typing import List
 
 import pytest
 from tests.semgrep_runner import SemgrepRunner
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.cli import cli
-from semgrep.config_resolver import PRODUCT_NAMES, ConfigFile
+from semgrep.config_resolver import ConfigFile
 from semgrep.config_resolver import ConfigLoader
-from semgrep.error import SemgrepError
 
 
 # What is this test really for? The old output was an error due the field
