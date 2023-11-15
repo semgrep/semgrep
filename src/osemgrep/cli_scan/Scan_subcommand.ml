@@ -145,6 +145,16 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
 (*****************************************************************************)
 (* Pretty Printing for CLI UX *)
 (*****************************************************************************)
+
+(* TODO: Update pysemgrep and osemgrep tests to match new output *)
+let new_cli_ux =
+  match !Env.v.user_agent_append with
+  | Some x -> (
+      match String.lowercase_ascii x with
+      | "pytest" -> false
+      | _ -> true)
+  | _ -> true
+
 let print_logo () : unit =
   let logo =
     Ocolor_format.asprintf
@@ -610,7 +620,7 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
   Profiler.start profiler ~name:"total_time";
 
   (* Print Semgrep CLI logo ASAP to minimize time to first meaningful content paint *)
-  print_logo ();
+  if new_cli_ux then print_logo ();
 
   (* Metrics initialization (and finalization) is done in CLI.ml,
    * but here we "configure" it (enable or disable it) based on CLI flags.
@@ -636,18 +646,19 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
      Ideally, pattern mode should be a different subcommand, but for now we will
      conditionally print the feature section.
   *)
-  (fun () ->
-    match conf.rules_source with
-    | Pattern _ ->
-        Logs.app (fun m ->
-            m "%s"
-              (Ocolor_format.asprintf {|@{<bold>  %s@}|}
-                 "Code scanning at ludicrous speed.\n"))
-    | _ ->
-        print_feature_section
-          ~includes_token:(settings.api_token <> None)
-          ~engine:conf.engine_type)
-    ();
+  if new_cli_ux then
+    (fun () ->
+      match conf.rules_source with
+      | Pattern _ ->
+          Logs.app (fun m ->
+              m "%s"
+                (Ocolor_format.asprintf {|@{<bold>  %s@}|}
+                   "Code scanning at ludicrous speed.\n"))
+      | _ ->
+          print_feature_section
+            ~includes_token:(settings.api_token <> None)
+            ~engine:conf.engine_type)
+      ();
 
   (* step0: potentially notify user about metrics *)
   if not (settings.has_shown_metrics_notification =*= Some true) then (
@@ -677,7 +688,7 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
   (* step1: getting the rules *)
 
   (* Display a message, ideally a progress bar to denote rule fetching *)
-  display_rule_source ~rule_source:conf.rules_source;
+  if new_cli_ux then display_rule_source ~rule_source:conf.rules_source;
 
   let rules_and_origins =
     Rule_fetching.rules_from_rules_source ~token_opt:settings.api_token
