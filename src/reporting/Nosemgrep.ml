@@ -64,13 +64,15 @@ let nosem_previous_line_re =
    Try to recognise the [rex] (a regex) into the given [line] and returns an
    array IDs (["ids"]) collected during this recognition.
 *)
-let recognise_and_collect ~rex line =
+let recognise_and_collect ~rex (line_num, line) =
   SPcre.exec_all ~rex line
   |> Result.map
        (Array.map (fun subst ->
-            match SPcre.get_named_substring rex "ids" subst with
-            | Ok opt_s -> opt_s
-            | Error _errmsg ->
+            match SPcre.get_named_substring_and_ofs rex "ids" subst with
+            | Ok (Some (s, (begin_ofs, _end_ofs))) ->
+                Some (line_num, s, begin_ofs)
+            | Ok None
+            | Error _ ->
                 (* TODO: log something? *)
                 None))
   |> Result.to_option
@@ -80,17 +82,24 @@ let recognise_and_collect ~rex line =
    If [strict:true], we returns possible errors when [nosem] is used with an
    ID which is not equal to the rule's ID.
 *)
-let rule_match_nosem ~strict (rule_match : Out.cli_match) :
-    bool * Out.cli_error list =
+let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
   let lines =
-    File.lines_of_file
-      (max 0 (rule_match.Out.start.line - 1), rule_match.Out.end_.line)
-      rule_match.Out.path
+    (* Minus one, because we need the preceding line. *)
+    let start, end_ = pm.range_loc in
+    let start_line = start.pos.line - 1 in
+    let end_line = end_.pos.line in
+    File.lines_of_file (start_line, end_line) (Fpath.v pm.file)
+    |> Common.mapi (fun idx x -> (start_line + idx, x))
+  in
+
+  let path = pm.file in
+  let linecol_to_bytepos_fun =
+    (Pos.full_converters_large path).linecol_to_bytepos_fun
   in
 
   let previous_line, line =
     match lines with
-    | line0 :: line1 :: _ when rule_match.Out.start.line > 0 ->
+    | line0 :: line1 :: _ when (fst pm.range_loc).pos.line > 0 ->
         (Some line0, Some line1)
     | line :: _ -> (None, Some line)
     | [] (* XXX(dinosaure): is it possible? *) -> (None, None)
@@ -125,43 +134,56 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
           (Option.value ~default:[||] ids_line)
           (Option.value ~default:[||] ids_previous_line)
       in
-      let ids = Common.map_filter Fun.id (Array.to_list ids) in
-      let ids = Common.map (String.split_on_char ' ') ids in
-      let ids = Common.map List.hd (* nosemgrep: list-hd *) ids in
-      (* [String.split_on_char] can **not** return an empty list. *)
+      let ids =
+        Array.to_list ids |> Common.map_filter Fun.id
+        |> Common.map (fun (line_num, s, col) ->
+               (* [String.split_on_char] can **not** return an empty list. *)
+               ( line_num,
+                 List.hd (String.split_on_char ' ' s) (* nosemgrep: list-hd *),
+                 col ))
+      in
       (* check if the id specified by the user is the [rule_match]'s [rule_id]. *)
       let nosem_matches id =
         (* TODO: id should be a Rule_ID.t too *)
-        Rule_ID.ends_with rule_match.Out.check_id ~suffix:(Rule_ID.of_string id)
+        Rule_ID.ends_with pm.rule_id.id ~suffix:(Rule_ID.of_string id)
       in
       List.fold_left
-        (fun (result, errors) id ->
+        (fun (result, errors) (line_num, id, col) ->
+          let loc =
+            Tok.
+              {
+                str = id;
+                pos =
+                  Pos.
+                    {
+                      bytepos = linecol_to_bytepos_fun (line_num, col);
+                      line = line_num;
+                      column = col;
+                      file = path;
+                    };
+              }
+          in
           let errors =
             (* If the rule-id is 'foo.bar.my-rule' we accept 'foo.bar.my-rule' as well as
              * any suffix of it such as 'my-rule' or 'bar.my-rule'. *)
-            if strict && not (nosem_matches id) then
+            if not (nosem_matches id) then
               let msg =
                 Format.asprintf
                   "found 'nosem' comment with id '%s', but no corresponding \
                    rule trying '%s'"
                   id
-                  (Rule_ID.to_string rule_match.Out.check_id)
+                  (Rule_ID.to_string pm.rule_id.id)
               in
-              let cli_error : Out.cli_error =
+              let core_error =
                 {
-                  Out.code = 2;
-                  level = `Warning;
-                  type_ = SemgrepError;
-                  rule_id = None;
-                  message = Some msg;
-                  path = None;
-                  long_msg = None;
-                  short_msg = None;
-                  spans = None;
-                  help = None;
+                  Core_error.rule_id = None;
+                  typ = SemgrepWarning;
+                  msg;
+                  loc;
+                  details = None;
                 }
               in
-              cli_error :: errors
+              core_error :: errors
             else errors
           in
           (nosem_matches id || result, errors))
@@ -171,23 +193,18 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
 (* Entry point *)
 (*****************************************************************************)
 
-let process_ignores ~keep_ignored ~strict (out : Out.cli_output) :
-    Out.cli_output =
-  let results, errors =
-    (* filters [rule_match]s by the [nosemgrep] tag. *)
-    Common.map_filter
-      (fun rule_match ->
-        let to_ignore, errors = rule_match_nosem ~strict rule_match in
-        let rule_match =
-          {
-            rule_match with
-            extra = { rule_match.extra with is_ignored = Some to_ignore };
-          }
-        in
-        if not to_ignore then Some (rule_match, errors)
-        else if keep_ignored then Some (rule_match, errors)
-        else None)
-      out.Out.results
+let produce_ignored (matches : Core_result.processed_match list) :
+    Core_result.processed_match list * Core_error.t list =
+  (* filters [rule_match]s by the [nosemgrep] tag. *)
+  let matches, wide_errors =
+    Common.map
+      (fun (pm : Core_result.processed_match) ->
+        let is_ignored, errors = rule_match_nosem pm.pm in
+        ({ pm with is_ignored }, errors))
+      matches
     |> List.split
   in
-  { out with results; errors = List.concat (out.Out.errors :: errors) }
+  (matches, List.concat wide_errors)
+
+let filter_ignored (matches : Out.core_match list) =
+  matches |> List.filter (fun (m : Out.core_match) -> not m.extra.is_ignored)

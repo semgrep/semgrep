@@ -129,14 +129,7 @@ let preprocess_result (conf : Scan_CLI.conf) (res : Core_runner.result) :
     Cli_json_output.cli_output_of_core_results
       ~logging_level:conf.common.logging_level res.core res.hrules res.scanned
   in
-  let keep_ignored =
-    (not conf.nosem) (* --disable-nosem *) || false
-    (* TODO(dinosaure): [false] depends on the output formatter. Currently,
-       we just have the JSON output. *)
-  in
-  cli_output
-  |> Nosemgrep.process_ignores ~keep_ignored ~strict:conf.Scan_CLI.strict
-  |> fun results ->
+  cli_output |> fun results ->
   {
     results with
     results = Cli_json_output.index_match_based_ids results.results;
