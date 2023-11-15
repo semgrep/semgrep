@@ -14,7 +14,6 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
         "lines": "        <li>person_name_full is <b>{{ person_name_full }}</b></li>",
         "message": "Detected a XSS vulnerability: '$VAR' is rendered\nunsafely in '$TEMPLATE'.\n",
         "metadata": {},

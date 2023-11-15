@@ -16,7 +16,6 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
         "lines": "        <li>person_name_full is <b>{{ person_name_full }}</b></li>",
         "message": "The variable '$VAR' is most likely an XSS. This variable originates from user input and is rendered in an unescaped manner. An attacker could control this variable and input scripts onto rendered pages, resulting in all manner of bad juju. The best fix is to make sure your template extensions end in '.html', which automatically escapes rendered variables.",
         "metadata": {},
