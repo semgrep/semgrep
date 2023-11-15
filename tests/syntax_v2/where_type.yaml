@@ -10,5 +10,4 @@ rules:
         - $X == $Y
       where:
         - metavariable: $Y
-          pattern: b
           type: String

@@ -11,7 +11,14 @@ set -e
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+# main tests
 dune runtest -f --no-buffer src/tests
+
+# run inline tests
+dune runtest -f --no-buffer libs/commons
+dune runtest -f --no-buffer libs/lib_parsing
+
+# osemgrep expect tests
 if ! dune runtest -f --no-buffer src/osemgrep; then
   echo -e "\n${RED}If expectation tests have failed, run \`dune promote\` to apply the corresponding diff.${NC}\n\n"
   exit 1

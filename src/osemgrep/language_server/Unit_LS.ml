@@ -87,6 +87,9 @@ let mock_run_results (files : string list) : Core_runner.result =
       time = None;
       rules_by_engine = None;
       engine_requested = Some `OSS;
+      (* If the engine requested is OSS, there must be no
+         interfile requested languages *)
+      interfile_languages_used = Some [];
     }
   in
   Core_runner.{ core; hrules; scanned }
@@ -291,6 +294,11 @@ let ci_tests () =
   in
   pack_tests "CI Tests" tests
 
+let test_ls_libev () = Lwt_platform.set_engine ()
+
+let libev_tests =
+  pack_tests "Lib EV tests" [ ("Test LS with libev", test_ls_libev) ]
+
 let tests =
-  pack_suites "Language Server"
-    [ session_targets (); processed_run (); ci_tests () ]
+  pack_suites "Language Server (unit)"
+    [ session_targets (); processed_run (); ci_tests (); libev_tests ]

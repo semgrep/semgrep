@@ -17,7 +17,9 @@ sudo chmod g+rwx /usr/local/lib/
 
 brew update # Needed to sidestep bintray brownout
 # Usually we install python 3.7 for building wheels, but 3.7 isn't supported on m1 macs
-brew install opam pkg-config coreutils python pcre
+brew install opam python
+make install-deps-MACOS-for-semgrep-core
+
 opam init --no-setup --bare;
 #coupling: this should be the same version than in our Dockerfile
 opam switch create 4.14.0;
@@ -28,6 +30,7 @@ eval "$(opam env)"
 # Remove pcre dynamically linked to force MacOS to use static
 # This needs to be done before make setup since it is used there
 rm /usr/local/opt/pcre/lib/libpcre.1.dylib
+rm /usr/local/opt/libev/lib/libev.4.dylib
 # Setup python symbolic links
 # Brew install won't alias python3 to python :/
 ln -s /opt/homebrew/bin/python3 /opt/homebrew/bin/python

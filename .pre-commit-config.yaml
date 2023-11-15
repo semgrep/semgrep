@@ -180,7 +180,7 @@ repos:
   # Dogfood! running semgrep in pre-commit!
   # ----------------------------------------------------------
   - repo: https://github.com/returntocorp/semgrep
-    rev: v1.44.0
+    rev: v1.48.0
     hooks:
       - id: semgrep
         name: Semgrep Jsonnet

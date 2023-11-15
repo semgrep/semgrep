@@ -19,8 +19,6 @@ and registry_config_kind =
   | Pack of string
   (* s/... *)
   | Snippet of string
-  (* ex: 'pad:basic' *)
-  | SavedSnippet of string (* username *) * string (* snippetname *)
   (* shortcuts *)
   (* "p/default" *)
   | Auto

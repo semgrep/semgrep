@@ -446,7 +446,6 @@ def scan(
     verbose: bool,
     version: bool,
 ) -> Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]:
-
     if version:
         print(__VERSION__)
         if enable_version_check:
@@ -454,6 +453,15 @@ def scan(
 
             version_check()
         return None
+
+    # I wish there was an easy way to leverage the engine_params from the
+    # new GET /api/cli/scans endpoint here but that info is not available
+    # until we fetch the rules which happens further along when processing
+    # the config.
+    if config and "secrets" in config:
+        # If the user has specified --config secrets, we should enable secrets
+        # so the engine is properly chosen.
+        run_secrets_flag = True
 
     # Handled error outside engine type for more actionable advice.
     if run_secrets_flag and requested_engine is EngineType.OSS:

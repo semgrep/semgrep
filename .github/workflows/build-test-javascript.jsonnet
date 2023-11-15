@@ -66,6 +66,7 @@ local build_job =
     steps: [
       gha.speedy_checkout_step,
       actions.checkout_with_submodules(),
+      gha.git_safedir,
       // TODO: we should just call 'make install-deps-for-semgrep-core'
       {
         name: 'Set up tree-sitter',

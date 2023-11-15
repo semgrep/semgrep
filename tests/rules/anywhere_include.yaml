@@ -1,0 +1,11 @@
+rules:
+  - id: legacy-io
+    languages:
+      - c
+    message: You're calling bar with an insecure global flag
+    metadata:
+    patterns:
+    - semgrep-internal-pattern-anywhere:
+        pattern: '#include "legacy-io-header.h"'
+    - pattern: "printk(...)"
+    severity: ERROR

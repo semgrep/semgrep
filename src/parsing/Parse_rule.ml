@@ -208,6 +208,14 @@ let parse_options rule_id (key : key) value =
 (* Parsers for taint *)
 (*****************************************************************************)
 
+let parse_by_side_effect env (key : key) x =
+  match x.G.e with
+  | G.L (String (_, ("true", _), _)) -> R.Yes
+  | G.L (String (_, ("false", _), _)) -> R.No
+  | G.L (String (_, ("only", _), _)) -> R.Only
+  | G.L (Bool (b, _)) -> if b then R.Yes else R.No
+  | _x -> error_at_key env.id key (spf "parse_by_side_effect for %s" (fst key))
+
 let requires_expr_to_precondition env key e =
   let invalid_requires () =
     error_at_key env.id key
@@ -254,8 +262,8 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
       take_opt dict env parse_bool "exact" |> Option.value ~default:false
     in
     let source_by_side_effect =
-      take_opt dict env parse_bool "by-side-effect"
-      |> Option.value ~default:false
+      take_opt dict env parse_by_side_effect "by-side-effect"
+      |> Option.value ~default:R.No
     in
     let source_control =
       take_opt dict env parse_bool "control" |> Option.value ~default:false
@@ -289,7 +297,7 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
           source_id;
           source_formula;
           source_exact = false;
-          source_by_side_effect = false;
+          source_by_side_effect = R.No;
           source_control = false;
           label = R.default_source_label;
           source_requires = None;
@@ -434,6 +442,7 @@ let parse_taint_pattern env key (value : G.expr) =
 (* Parsers for extract mode *)
 (*****************************************************************************)
 
+(* TODO: factorize code with parse_languages *)
 let parse_extract_dest ~id lang : Xlang.t =
   match lang with
   | ("none" | "regex"), _ -> LRegex
@@ -565,6 +574,8 @@ let parse_step_fields env key (value : G.expr) : R.step =
   in
   let env = { env with target_analyzer = step_analyzer } in
   let step_paths = take_opt rd env parse_paths "paths" in
+
+  (* TODO: factorize with parse_mode *)
   let mode_opt = take_opt rd env parse_string_wrap "mode" in
   let has_taint_key = Option.is_some (Hashtbl.find_opt rd.h "taint") in
   let step_mode =
@@ -727,13 +738,19 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
      if there is not a `taint` key present in the rule dict.
   *)
   let has_taint_key = Option.is_some (Hashtbl.find_opt rule_dict.h "taint") in
+  (* TODO? maybe have also has_extract_key, has_steps_key, has_secrets_key *)
   match (mode_opt, has_taint_key) with
+  (* no mode:, no taint:, default to look for match: *)
   | None, false
   | Some ("search", _), false ->
       parse_search_fields env rule_dict
-  | _, true
+  | None, true
   | Some ("taint", _), _ ->
       parse_taint_fields env rule_dict
+  (* TODO: for extract in syntax v2 (see rule_schema_v2.atd)
+   * | None, _, true (has_extract_key) ->
+   *     parse_extract_fields ...
+   *)
   | Some ("extract", _), _ ->
       let formula =
         Parse_rule_formula.parse_formula_old_from_dict env rule_dict
@@ -759,8 +776,8 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       in
       `Extract
         { formula; dst_lang; extract_rule_ids; extract; reduce; transform }
-  (* TODO: change this mode name to something more descriptive + not intentionally
-   * ambigous sometime later.
+  (* TODO: change this mode name to something more descriptive + not
+   * intentionally ambigous sometime later.
    *)
   | Some ("semgrep_internal_postprocessor", _), _ ->
       `Secrets (parse_secrets_fields env rule_dict)
@@ -768,6 +785,7 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
   | Some ("step", _), _ ->
       let steps = take rule_dict env parse_steps "steps" in
       `Steps steps
+  (* unknown mode *)
   | Some key, _ ->
       error_at_key env.id key
         (spf

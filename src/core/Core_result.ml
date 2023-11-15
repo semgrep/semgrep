@@ -57,6 +57,7 @@ type t = {
   extra : Core_profiling.t Core_profiling.debug_info;
   explanations : Matching_explanation.t list option;
   rules_by_engine : (Rule_ID.t * Engine_kind.t) list;
+  interfile_languages_used : Xlang.t list;
   scanned : Fpath.t list;
 }
 [@@deriving show]
@@ -95,6 +96,7 @@ let mk_final_result_with_just_errors (errors : Core_error.t list) : t =
     extra = No_info;
     explanations = None;
     rules_by_engine = [];
+    interfile_languages_used = [];
     scanned = [];
   }
 
@@ -259,7 +261,7 @@ let make_final_result
     (results : Core_profiling.file_profiling match_result list)
     (rules_with_engine : (Rule.t * Engine_kind.t) list)
     (skipped_rules : Rule.invalid_rule_error list) (scanned : Fpath.t list)
-    ~rules_parse_time =
+    (interfile_languages_used : Xlang.t list) ~rules_parse_time =
   (* contenating information from the match_result list *)
   let matches =
     results |> List.concat_map (fun (x : _ match_result) -> x.matches)
@@ -323,5 +325,6 @@ let make_final_result
     explanations = (if explanations =*= [] then None else Some explanations);
     rules_by_engine =
       rules_with_engine |> Common.map (fun (r, ek) -> (fst r.Rule.id, ek));
+    interfile_languages_used;
     scanned;
   }

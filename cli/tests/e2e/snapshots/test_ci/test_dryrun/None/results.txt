@@ -78,9 +78,7 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
   environment - running in environment git, triggering event is unknown
 
   CONNECTION
-Would have sent POST request to create scan
-  Reporting start of scan for deployment_name
-  Fetching configuration from Semgrep Cloud Platform
+  Initializing scan (deployment=org_name)
   Enabled products: Code, Supply Chain
 
 ┌─────────────┐

@@ -9,7 +9,7 @@ exception Missing_plugin of string
 type pattern_parser = string -> AST_generic.any Tree_sitter_run.Parsing_result.t
 
 type target_file_parser =
-  Common.filename -> AST_generic.program Tree_sitter_run.Parsing_result.t
+  string (* filename *) -> AST_generic.program Tree_sitter_run.Parsing_result.t
 
 (* Return an error message in case of a missing plugin. *)
 val check_if_missing : Lang.t -> (unit, string) Result.t

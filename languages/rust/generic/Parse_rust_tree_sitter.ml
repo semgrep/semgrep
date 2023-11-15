@@ -1245,6 +1245,19 @@ and map_enum_variant_list (env : env) ((v1, v2, v3, v4) : CST.enum_variant_list)
   G.OrType variants
 
 and map_expression (env : env) (x : CST.expression) =
+  match x with
+  | `Exp_except_range x -> map_expression_except_range env x
+  | `Range_exp x -> map_range_expression env x
+  | `Ellips tok -> G.Ellipsis (token env tok) (* "..." *) |> G.e
+  | `Deep_ellips (v1, v2, v3) ->
+      let lellips = token env v1 (* "<..." *) in
+      let expr = map_expression env v2 in
+      let rellips = token env v3 (* "...>" *) in
+      G.DeepEllipsis (lellips, expr, rellips) |> G.e
+  | `Member_access_ellips_exp (e, _, dots) ->
+      G.DotAccessEllipsis (map_expression env e, token env dots) |> G.e
+
+and map_expression_except_range (env : env) (x : CST.expression_except_range) =
   (match x with
   | `Un_exp (v1, v2) -> (
       let expr = map_expression env v2 in
@@ -1307,16 +1320,14 @@ and map_expression (env : env) (x : CST.expression) =
       let as_ = token env v2 (* "as" *) in
       let type_ = map_type_ env v3 in
       G.Cast (type_, as_, expr)
-  | `Range_exp x ->
-      let x = map_range_expression env x in
-      x.G.e
   | `Call_exp (v1, v2) ->
-      let expr = map_expression env v1 in
+      let expr = map_expression_except_range env v1 in
       let args = map_arguments env v2 in
       G.Call (expr, args)
   | `Ret_exp x ->
       let x = map_return_expression env x in
       x.G.e
+  | `Yield_exp x -> map_yield_expression env x
   | `Lit x -> G.L (map_literal env x)
   | `Id tok -> G.N (H2.name_of_id (ident env tok))
   (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
@@ -1508,16 +1519,18 @@ and map_expression (env : env) (x : CST.expression) =
         | `Gene_type_with_turb x -> map_generic_type_with_turbofish env x
       in
       let l, fields, r = map_field_initializer_list env v2 in
-      G.Constructor (name, (l, fields, r))
-  | `Member_access_ellips_exp (e, _, dots) ->
-      G.DotAccessEllipsis (map_expression env e, token env dots)
-  | `Ellips tok -> G.Ellipsis (token env tok) (* "..." *)
-  | `Deep_ellips (v1, v2, v3) ->
-      let lellips = token env v1 (* "<..." *) in
-      let expr = map_expression env v2 in
-      let rellips = token env v3 (* "...>" *) in
-      G.DeepEllipsis (lellips, expr, rellips))
+      G.Constructor (name, (l, fields, r)))
   |> G.e
+
+and map_yield_expression (env : env) (x : CST.yield_expression) =
+  match x with
+  | `Yield_exp (v1, v2) ->
+      let v1 = (* "yield" *) token env v1 in
+      let v2 = map_expression env v2 in
+      G.Yield (v1, Some v2, false)
+  | `Yield tok ->
+      let tok = (* "yield" *) token env tok in
+      G.Yield (tok, None, false)
 
 and map_expression_ending_with_block (env : env)
     (x : CST.expression_ending_with_block) : G.expr =
@@ -1570,9 +1583,7 @@ and map_expression_ending_with_block (env : env)
       let body = map_block env v7 in
       let cond = G.OtherCond (("LetCond", let_), [ G.P pattern; G.E cond ]) in
       let while_stmt = G.While (while_, cond, body) |> G.s in
-      let expr = G.stmt_to_expr while_stmt in
-      (* TODO: this is wrong, the LetPattern is with cond, not expr *)
-      G.LetPattern (pattern, expr) |> G.e
+      G.stmt_to_expr while_stmt
   | `Loop_exp (v1, v2, v3) ->
       let _loop_labelTODO = Option.map map_loop_label_ v1 in
       let loop = token env v2 (* "loop" *) in
@@ -1993,16 +2004,15 @@ and map_if_expression (env : env) ((v1, v2, v3, v4) : CST.if_expression) :
 and map_if_let_expression (env : env)
     ((v1, v2, v3, v4, v5, v6, v7) : CST.if_let_expression) : G.expr =
   let if_ = token env v1 (* "if" *) in
-  let _let_ = token env v2 (* "let" *) in
+  let let_ = token env v2 (* "let" *) in
   let pattern = map_pattern env v3 in
   let _equals = token env v4 (* "=" *) in
   let cond = map_expression env v5 in
+  let cond = G.OtherCond (("LetCond", let_), [ G.P pattern; G.E cond ]) in
   let body = map_block env v6 in
   let else_ = Option.map (fun x -> map_else_clause env x) v7 in
-  (* TODO: use new complex condition type *)
-  let if_stmt = G.If (if_, G.Cond cond, body, else_) |> G.s in
-  let expr = G.stmt_to_expr if_stmt in
-  G.LetPattern (pattern, expr) |> G.e
+  let if_stmt = G.If (if_, cond, body, else_) |> G.s in
+  G.stmt_to_expr if_stmt
 
 (* ruin:
    and map_impl_block (env : env) ((v1, v2, v3, v4) : CST.impl_block) : G.stmt =

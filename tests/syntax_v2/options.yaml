@@ -1,0 +1,10 @@
+rules:
+  - id: test-ac-matching
+    languages:
+      - php
+    message: Working!
+    options:
+      commutative_boolop: true
+    match: |
+      !check1($stuff) && !check2($stuff)
+    severity: WARNING

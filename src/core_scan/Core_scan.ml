@@ -434,22 +434,6 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
 (*****************************************************************************)
 (* Error management *)
 (*****************************************************************************)
-(* Small wrapper over Semgrep_error_code.exn_to_error to handle also semgrep-specific
- * exns that have a position.
- *
- * See also JSON_report.json_of_exn for non-target related exn handling.
- *
- * invariant: every target-related semgrep-specific exn that has a
- * Parse_info.t should be captured here for precise location in error
- * reporting.
- *  - TODO: naming exns?
- *)
-let exn_to_error file (e : Exception.t) =
-  match Exception.get_exn e with
-  | AST_generic.Error (s, tok) ->
-      let loc = Tok.unsafe_loc_of_tok tok in
-      E.mk_error None loc s AstBuilderError
-  | _ -> E.exn_to_error None file e
 
 (* Convert invalid rules to errors to be reported at the end.
    This used to raise an exception causing an early abort.
@@ -613,7 +597,8 @@ let iter_targets_and_get_matches_and_exn_to_errors config
                | exn when not !Flag_semgrep.fail_fast ->
                    let e = Exception.catch exn in
                    let errors =
-                     Core_error.ErrorSet.singleton (exn_to_error !!file e)
+                     Core_error.ErrorSet.singleton
+                       (E.exn_to_error None !!file e)
                    in
                    ( Core_result.make_match_result [] errors
                        (Core_profiling.empty_partial_profiling file),
@@ -735,7 +720,7 @@ let targets_of_config (config : Core_scan_config.t) :
 let extracted_targets_of_config (config : Core_scan_config.t)
     (all_rules : Rule.t list) :
     In.target list
-    * ( Common.filename,
+    * ( string (* filename *),
         Match_extract_mode.match_result_location_adjuster )
       Hashtbl.t =
   let extractors =
@@ -977,10 +962,13 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
            Hashtbl.mem scanned_target_table x.path)
     |> Common.map (fun x -> Fpath.v x.In.path)
   in
+  (* Since the OSS engine was invoked, there were no interfile languages
+     requested *)
+  let interfile_languages_used = [] in
   let res =
     RP.make_final_result file_results
       (Common.map (fun r -> (r, `OSS)) valid_rules)
-      invalid_rules scanned ~rules_parse_time
+      invalid_rules scanned interfile_languages_used ~rules_parse_time
   in
   logger#info "found %d matches, %d errors" (List.length res.matches)
     (List.length res.errors);

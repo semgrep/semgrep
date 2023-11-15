@@ -11,7 +11,7 @@
  * registry (e.g., local x = import 'p/python').
  *)
 type import_callback =
-  Common.filename (* a directory *) -> string -> AST_jsonnet.expr option
+  string (* a directory *) -> string -> AST_jsonnet.expr option
 
 val default_callback : import_callback
 

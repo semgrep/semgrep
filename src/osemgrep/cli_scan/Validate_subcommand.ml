@@ -64,9 +64,8 @@ let metarules_pack = "p/semgrep-rule-lints"
 (*****************************************************************************)
 
 let parse_rule_with_atd_experiment_and_exit (file : Fpath.t) : unit =
-  let s = File.read_file file in
-  let atd = Rule_schema_v2_j.rules_of_string s in
-  pr2_gen atd;
+  let rules = Parse_rules_with_atd.parse_rules_v2 file in
+  pr2 (Rule_schema_v2_t.show_rules rules);
   exit 0
 
 (*****************************************************************************)

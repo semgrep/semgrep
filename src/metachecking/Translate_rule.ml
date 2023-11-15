@@ -102,7 +102,10 @@ and translate_taint_source
   in
   let exact_obj = if source_exact then [ ("exact", `Bool true) ] else [] in
   let side_effect_obj =
-    if source_by_side_effect then [ ("by-side-effect", `Bool true) ] else []
+    match source_by_side_effect with
+    | Yes -> [ ("by-side-effect", `Bool true) ]
+    | Only -> [ ("by-side-effect", `String "only") ]
+    | No -> []
   in
   let control_obj =
     if source_control then [ ("control", `Bool true) ] else []
@@ -224,6 +227,7 @@ and translate_formula f : [> `O of (string * Yaml.value) list ] =
       | Aliengrep _ ->
           `O [ ("pattern", `String (fst pstr)) ]
       | Regexp _ -> `O [ ("regex", `String (fst pstr)) ])
+  | Anywhere (_, f) -> `O [ ("anywhere", (translate_formula f :> Yaml.value)) ]
   | Inside (_, f) -> `O [ ("inside", (translate_formula f :> Yaml.value)) ]
   | And (_, { conjuncts; focus; conditions; _ }) ->
       let mk_focus_obj (_, mv_list) =

@@ -13,9 +13,13 @@ name: tests
 jobs:
   test-semgrep-core:
     steps:
+    - name: Make checkout speedy
+      run: git config --global fetch.parallel 50
     - uses: actions/checkout@v3
       with:
         submodules: true
+    - name: Configure git safedir properly
+      run: git config --global --add safe.directory $(pwd)
     - name: Build semgrep-core
       run: "\n          eval $(opam env)\n          make install-deps-ALPINE-for-semgrep-core\n
         \         make install-deps-for-semgrep-core\n          make core\n        "
@@ -30,14 +34,18 @@ jobs:
     - name: Publish match performance
       run: opam exec -- make report-perf-matching
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine-2023-10-17
+    container: returntocorp/ocaml:alpine-2023-11-07
     env:
       HOME: /root
   test-osemgrep:
     steps:
+    - name: Make checkout speedy
+      run: git config --global fetch.parallel 50
     - uses: actions/checkout@v3
       with:
         submodules: true
+    - name: Configure git safedir properly
+      run: git config --global --add safe.directory $(pwd)
     - name: Build semgrep-core
       run: "\n          eval $(opam env)\n          make install-deps-ALPINE-for-semgrep-core\n
         \         make install-deps-for-semgrep-core\n          make core\n        "
@@ -48,9 +56,10 @@ jobs:
         pipenv install --dev)\n        "
     - name: Run pytest for osemgrep known passing tests
       working-directory: cli
-      run: make osempass
+      run: "\n          git config --global --add safe.directory \"$(pwd)\"\n          make
+        osempass\n        "
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine-2023-10-17
+    container: returntocorp/ocaml:alpine-2023-11-07
     env:
       HOME: /root
   test-cli:
@@ -281,6 +290,38 @@ jobs:
       artifact-name: image-test-nonroot
       repository-name: returntocorp/semgrep
       dry-run: false
+  build-test-docker-performance-tests:
+    needs:
+    - build-test-docker
+    secrets: inherit
+    uses: ./.github/workflows/build-test-docker.yaml
+    with:
+      artifact-name: image-test-performance-tests
+      docker-flavor: |
+        latest=auto
+        suffix=-performance-tests,onlatest=true
+      docker-tags: |
+        type=semver,pattern={{version}}
+        type=semver,pattern={{major}}.{{minor}}
+        type=ref,event=pr
+        type=ref,event=branch
+        type=sha,event=branch
+        type=edge
+      enable-tests: false
+      file: Dockerfile
+      repository-name: returntocorp/semgrep
+      target: performance-tests
+  push-docker-performance-tests:
+    needs:
+    - build-test-docker-performance-tests
+    if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' &&
+      !(github.event.pull_request.head.repo.full_name != github.repository))
+    secrets: inherit
+    uses: ./.github/workflows/push-docker.yaml
+    with:
+      artifact-name: image-test-performance-tests
+      dry-run: false
+      repository-name: returntocorp/semgrep
   test-semgrep-pro:
     needs:
     - build-test-docker
@@ -292,6 +333,11 @@ jobs:
     with:
       artifact-name: image-test
       repository-name: returntocorp/semgrep
+  trigger-semgrep-comparison-argo:
+    needs:
+    - push-docker
+    uses: ./.github/workflows/trigger-semgrep-comparison-argo.yml
+    secrets: inherit
   build-test-core-x86:
     uses: ./.github/workflows/build-test-core-x86.yml
     secrets: inherit

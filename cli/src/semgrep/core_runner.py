@@ -935,7 +935,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                         out.LexicalError,
                         out.ParseError,
                         out.PartialParsing,
-                        out.SpecifiedParseError,
+                        out.OtherParseError,
                         out.AstBuilderError,
                     ),
                 ):
@@ -1024,7 +1024,7 @@ Exception raised: `{e}`
         target_mode_config: TargetModeConfig,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
-        Takes in rules and targets and retuns object with findings
+        Takes in rules and targets and returns object with findings
         """
         start = datetime.now()
 
