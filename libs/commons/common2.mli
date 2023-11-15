@@ -502,7 +502,6 @@ val deg_to_rad : float -> float
 val clampf : float -> float
 val square : float -> float
 val power : int -> int -> int
-val power64 : int64 -> int64 -> int64
 val between : 'a -> 'a -> 'a -> bool
 val between_strict : int -> int -> int -> bool
 val bitrange : int -> int -> bool

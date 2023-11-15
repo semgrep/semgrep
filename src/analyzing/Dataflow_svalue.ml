@@ -238,7 +238,7 @@ let eval_unop_int op opt_i =
  * integers have just 63-bits in 64-bit architectures!
  *)
 let eval_binop_int tok op opt_i1 opt_i2 =
-  let open Int64_ops in
+  let open Int64_ in
   let sign_bit i = i asr Int.sub Sys.int_size 1 =|= 1L in
   match (op, opt_i1, opt_i2) with
   | G.Plus, Some i1, Some i2 ->

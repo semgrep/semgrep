@@ -1,18 +1,17 @@
-(* Why concrete integers?
- * This is a library for "concrete ints", which are a type that correspond to
- * literal integers that have been parsed by the Semgrep engine.
+(* Why parsed integers?
+ * This is a library for "parsed ints", which are a type that correspond to
+ * literal integers that have been parsed from source text.
 
- * In several places, we have integers that we use for obvious purposes,
- * such as counters, indices, etc. These can be conflated with the OCaml
- * representation of integers in the target, which are often not meant to be
- * manipulated, but are merely symbols.
+ * Integers have many obvious uses, such as counters, indices, etc. These can
+ * be conflated with the OCaml representation of integers in a target program,
+ * which are often not meant to be manipulated, but are merely symbols.
 
  * As such, it is somewhat useful to have a separate notion of integers which are
  * concrete in the target text, and integers which we make up for our internal
  * purposes.
  *)
 
-type t [@@deriving hash, show, ord, eq, sexp]
+type t [@@deriving hash, show, eq]
 
 (* creators *)
 val of_int : int -> t

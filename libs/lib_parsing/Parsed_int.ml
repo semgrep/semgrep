@@ -24,18 +24,6 @@
  *)
 
 open Ppx_hash_lib.Std.Hash.Builtin
-open Sexplib.Conv
-
-(*****************************************************************************)
-(* Int64 boilerplate *)
-(*****************************************************************************)
-
-(* There isn't an available hash_fold or hash function in Int64.t, so we have to
-   make it up here.
-   Unfortunately, there doesn't seem to be a direct hash function for int64 in
-   the Ppx_hash_lib either, so we just write what it would be.
-*)
-let hash_fold_int64 = Ppx_hash_lib.Std.Hash.fold_int64
 
 (*****************************************************************************)
 (* Types *)
@@ -43,11 +31,10 @@ let hash_fold_int64 = Ppx_hash_lib.Std.Hash.fold_int64
 
 (* alt: int64 option? *)
 (* alt: int64 option wrap? *)
-(* could save consumers of the API from dealing with whether the concrete int
+(* could save consumers of the API from dealing with whether the parsed int
    is representable or not
 *)
-type t = int64 option * Tok.t_always_equal
-[@@deriving hash, show, ord, eq, sexp]
+type t = Int64_.t option * Tok.t_always_equal [@@deriving hash, show, eq]
 
 (*****************************************************************************)
 (* Helpers *)

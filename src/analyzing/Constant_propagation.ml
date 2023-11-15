@@ -259,7 +259,7 @@ let int_add n m =
 
 let int_mult i1 i2 =
   let overflow =
-    Int64_ops.(
+    Int64_.(
       i1 <> 0L && i2 <> 0L
       && ((i1 < 0L && i2 = min_int) (* >max_int *)
          || (i1 = min_int && i2 < 0L) (* >max_int *)
@@ -268,7 +268,7 @@ let int_mult i1 i2 =
            (* >max_int *)
          else abs i1 > abs (min_int / i2) (* <min_int *)))
   in
-  if overflow then None else Some Int64_ops.(i1 * i2)
+  if overflow then None else Some Int64_.(i1 * i2)
 
 let binop_int_cst op i1 i2 =
   match (i1, i2) with

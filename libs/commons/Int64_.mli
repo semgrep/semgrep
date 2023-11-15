@@ -1,11 +1,13 @@
+include module type of Int64
+
+type t = Int64.t [@@deriving hash, show, eq]
+
+val power : int64 -> int64 -> int64
+
 (* This module exists to be opened locally, so that normal arithmetic
    operations on 64-bit integers can be used with familiar operators.
 *)
 
-val rem : int64 -> int64 -> int64
-val abs : int64 -> int64
-val max_int : int64
-val min_int : int64
 val ( + ) : int64 -> int64 -> int64
 val ( - ) : int64 -> int64 -> int64
 val ( * ) : int64 -> int64 -> int64
