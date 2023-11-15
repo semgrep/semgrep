@@ -58,7 +58,7 @@ let prefix_for_fpath_opt (fpath : Fpath.t) : string option =
   assert (Fpath.is_file_path fpath);
   let* rel_path =
     if Fpath.is_rel fpath then Some fpath
-      (* python: paths had no commen prefix; not possible to relativize *)
+      (* python: paths had no common prefix; not possible to relativize *)
     else Fpath.rem_prefix (Fpath.v (Sys.getcwd ())) fpath
   in
   (* LATER: we should use Fpath.normalize first, but pysemgrep
