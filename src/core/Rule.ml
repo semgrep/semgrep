@@ -472,11 +472,11 @@ type dependency_formula = dependency_pattern list
 
 and dependency_pattern = {
   (* TODO: actually good types *)
-  ecosystem : string;
-  package : string;
+  ecosystem : AST_generic.ecosystem;
+  package_name : string;
   version_constraint : string;
 }
-[@@deriving show]
+[@@deriving show, eq]
 
 (*****************************************************************************)
 (* The rule *)

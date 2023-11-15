@@ -2427,3 +2427,15 @@ class virtual ['self] map_legacy =
       let skind = self#visit_stmt_kind env x.s in
       { x with s = skind }
   end
+
+type dependency = {
+  package_name : string;
+  package_version : string;
+  ecosystem : ecosystem;
+  transitivity : transitivity;
+  url : string option;
+  loc : Pos.t * Pos.t;
+}
+
+and ecosystem = Npm
+and transitivity = Direct | Transitive | Unknown [@@deriving show, eq]

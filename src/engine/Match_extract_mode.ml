@@ -465,7 +465,7 @@ let extract_nested_lang ~match_hook ~timeout ~timeout_threshold
   let res =
     Match_rules.check ~match_hook ~timeout ~timeout_threshold xconf
       (erules :> Rule.rules)
-      xtarget
+      [] xtarget
   in
   let separate_matches, combine_matches =
     res.matches

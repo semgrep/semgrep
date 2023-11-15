@@ -97,15 +97,15 @@ let is_relevant_rule_for_xtarget r xconf xtarget =
 (* This function separates out rules into groups of taint rules by languages,
    all of the nontaint rules, and the rules which we skip due to prefiltering.
 *)
-let group_rules xconf rules xtarget =
+let group_rules xconf rules dependency_matches xtarget =
   let relevant_taint_rules, relevant_nontaint_rules, skipped_rules =
-    rules
-    |> Common.partition_either3 (fun r ->
+    Common2.zip rules dependency_matches
+    |> Common.partition_either3 (fun (r, dms) ->
            let relevant_rule = is_relevant_rule_for_xtarget r xconf xtarget in
            match r.R.mode with
            | _ when not relevant_rule -> Right3 r
-           | `Taint _ as mode -> Left3 { r with mode }
-           | (`Extract _ | `Search _) as mode -> Middle3 { r with mode }
+           | `Taint _ as mode -> Left3 ({ r with mode }, dms)
+           | (`Extract _ | `Search _) as mode -> Middle3 ({ r with mode }, dms)
            (* We are planning on removing `Secret mode and adding generic
               post processors to rules which only get run when run with secrets
               validation enabled. Until such time, run secrets rules that haven't
@@ -114,7 +114,7 @@ let group_rules xconf rules xtarget =
            | `Secrets { secrets = [ formula ]; _ } ->
                logger#info
                  "Running secret rule as search rule without validation.";
-               Middle3 { r with mode = `Search formula }
+               Middle3 ({ r with mode = `Search formula }, dms)
            (* Silently skip malformed secrets rules for now. *)
            | `Secrets _ as mode ->
                logger#error
@@ -131,7 +131,7 @@ let group_rules xconf rules xtarget =
   *)
   let relevant_taint_rules_groups =
     relevant_taint_rules
-    |> Common.map (fun r -> (r.R.target_analyzer, r))
+    |> Common.map (fun (r, dms) -> (r.R.target_analyzer, (r, dms)))
     |> Common.group_assoc_bykey_eff |> Common.map snd
   in
   (relevant_taint_rules_groups, relevant_nontaint_rules, skipped_rules)
@@ -174,8 +174,9 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
 (*****************************************************************************)
 
 let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
-    rules xtarget =
-  let { Xtarget.file; lazy_ast_and_errors; xlang; _ } = xtarget in
+    rules (dependency_matches : Pattern_match.dependency_match list option list)
+    xtarget =
+  let Xtarget.{ file; lazy_ast_and_errors; xlang; _ } = xtarget in
   logger#trace "checking %s with %d rules" !!file (List.length rules);
   (match (!Profiling.profile, xlang) with
   (* coupling: see Run_semgrep.xtarget_of_file() *)
@@ -194,37 +195,45 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
      The taint rules are "grouped", see [group_rule] for more.
   *)
   let relevant_taint_rules_groups, relevant_nontaint_rules, skipped_rules =
-    group_rules xconf rules xtarget
+    group_rules xconf rules dependency_matches xtarget
   in
-
   let res_taint_rules =
     relevant_taint_rules_groups
-    |> List.concat_map (fun relevant_taint_rules ->
+    |> List.concat_map (fun relevant_taint_rules_with_dependency_matches ->
+           let relevant_taint_rules, dependency_matches =
+             Common2.unzip relevant_taint_rules_with_dependency_matches
+           in
            Match_tainting_mode.check_rules ~match_hook ~per_rule_boilerplate_fn
-             relevant_taint_rules xconf xtarget)
+             relevant_taint_rules xconf xtarget
+           |> fun x -> Common2.zip x dependency_matches)
   in
   let res_nontaint_rules =
     relevant_nontaint_rules
-    |> Common.map (fun r ->
+    |> Common.map (fun (r, dms) ->
            let xconf =
              Match_env.adjust_xconfig_with_rule_options xconf r.R.options
            in
-           per_rule_boilerplate_fn
-             (r :> R.rule)
-             (fun () ->
-               (* dispatching *)
-               match r.R.mode with
-               | `Search _ as mode ->
-                   Match_search_mode.check_rule { r with mode } match_hook xconf
-                     xtarget
-               | `Extract extract_spec ->
-                   Match_search_mode.check_rule
-                     { r with mode = `Search extract_spec.R.formula }
-                     match_hook xconf xtarget
-               | `Steps _ -> raise Multistep_rules_not_available))
+           ( per_rule_boilerplate_fn
+               (r :> R.rule)
+               (fun () ->
+                 (* dispatching *)
+                 match r.R.mode with
+                 | `Search _ as mode ->
+                     Match_search_mode.check_rule { r with mode } match_hook
+                       xconf xtarget
+                 | `Extract extract_spec ->
+                     Match_search_mode.check_rule
+                       { r with mode = `Search extract_spec.R.formula }
+                       match_hook xconf xtarget
+                 | `Steps _ -> raise Multistep_rules_not_available),
+             dms ))
   in
   let res_total = res_taint_rules @ res_nontaint_rules in
-  let res = RP.collate_rule_results xtarget.Xtarget.file res_total in
+  let res =
+    res_total
+    |> Common.map Match_dependency.join_core_result
+    |> RP.collate_rule_results xtarget.Xtarget.file
+  in
   let extra =
     match res.extra with
     | Core_profiling.Debug { skipped_targets; profiling } ->

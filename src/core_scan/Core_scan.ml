@@ -642,6 +642,7 @@ let xtarget_of_file ~parsing_cache_dir (xlang : Xlang.t) (file : Fpath.t) :
     xlang;
     lazy_content = lazy (File.read_file file);
     lazy_ast_and_errors;
+    lockfile_data = None;
   }
 
 (* Compute the set of targets, either by reading what was passed
@@ -901,10 +902,21 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
              }
            in
            let matches =
+             (* If a rule tried to a find a dependency match and failed, then it will never produce any matches of any kind *)
+             let _skipped_supply_chain, applicable_rules_with_dep_matches =
+               applicable_rules
+               |> Match_dependency.match_all_dependencies xtarget
+               |> Common.partition_either (function
+                    | rule, Some [] -> Left rule
+                    | x -> Right x)
+             in
+             let applicable_rules, dependency_matches =
+               Common2.unzip applicable_rules_with_dep_matches
+             in
              let matches =
                Match_rules.check ~match_hook ~timeout:config.timeout
                  ~timeout_threshold:config.timeout_threshold xconf
-                 applicable_rules xtarget
+                 applicable_rules dependency_matches xtarget
              in
              (* If our target is a proprietary language, or we've been using the proprietary
               * engine, then label all the resulting matches with the Pro engine kind.

@@ -13,6 +13,7 @@ val check :
   timeout_threshold:int ->
   Match_env.xconfig ->
   Rule.rules ->
+  Pattern_match.dependency_match list option list ->
   Xtarget.t ->
   Core_profiling.partial_profiling Core_result.match_result
 

@@ -730,21 +730,20 @@ let parse_secrets_fields env rule_dict : R.secrets =
     response = { return_code; regex };
   }
 
-(* let parse_validator key env value =
-   let rd = yaml_to_dict env key value in
-   let http = take_opt rd env parse_http_validator "http" in
-   match http with
-   | Some validator -> validator
-   | None ->
-       error_at_key env.id key
-         ("No reconigzed validator (e.g., 'http') at " ^ fst key) *)
+let parse_ecosystem env key value =
+  match value.G.e with
+  | G.L (String (_, (ecosystem, _), _)) -> (
+      match String.lowercase_ascii ecosystem with
+      | "npm" -> AST_generic.Npm
+      | _ -> error_at_key env.id key ("Unknown ecosystem: " ^ ecosystem))
+  | _ -> error_at_key env.id key "Non-string data for ecosystem?"
 
 let parse_dependency_pattern key env value : R.dependency_pattern =
   let rd = yaml_to_dict env key value in
-  let ecosystem = take rd env parse_string "namespace" in
-  let package = take rd env parse_string "package" in
+  let ecosystem = take rd env parse_ecosystem "namespace" in
+  let package_name = take rd env parse_string "package" in
   let version_constraint = take rd env parse_string "version" in
-  R.{ ecosystem; package; version_constraint }
+  R.{ ecosystem; package_name; version_constraint }
 
 let parse_dependency_formula env key value : R.dependency_formula =
   let rd = yaml_to_dict env key value in
