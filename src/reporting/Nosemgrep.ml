@@ -177,7 +177,7 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
               let core_error =
                 {
                   Core_error.rule_id = None;
-                  typ = SemgrepError;
+                  typ = SemgrepWarning;
                   msg;
                   loc;
                   details = None;

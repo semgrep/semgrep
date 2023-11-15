@@ -121,6 +121,7 @@ let rec string_of_error_type (error_type : Out.error_type) : string =
   | IncompatibleRule0
   | LexicalError
   | RuleParseError
+  | SemgrepWarning
   | SemgrepError
   | InvalidRuleSchemaError
   | UnknownLanguageError
