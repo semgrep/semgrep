@@ -187,7 +187,7 @@ let map_fold_operator (env : env) (x : CST.fold_operator) =
  *)
 let parse_number_literal (s, t) =
   match Parsed_int.parse_c_octal (s, t) with
-  | (Some _, _) as pi -> (
+  | (None, _) as pi -> (
       match float_of_string_opt s with
       | Some f -> Float (Some f, t)
       (* could be None because of a suffix in the string *)

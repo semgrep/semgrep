@@ -35,8 +35,7 @@ open Sexplib.Std
 (* could save consumers of the API from dealing with whether the parsed int
    is representable or not
 *)
-type t = Int64_.t option * (Tok.t[@hash.ignore])
-[@@deriving hash, show, eq, sexp]
+type t = Int64_.t option * Tok.t_always_equal [@@deriving hash, show, eq, sexp]
 
 (*****************************************************************************)
 (* Helpers *)
