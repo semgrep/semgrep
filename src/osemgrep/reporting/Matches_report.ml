@@ -31,20 +31,25 @@ let group_titles = function
   | `Merged -> "Code Finding"
   | `Valid -> "Valid Secrets Finding"
   | `Invalid -> "Invalid Secrets Finding"
+  | `Validation_error -> "Secrets Validation Error"
   | `Unvalidated -> "Unvalidated Secrets Finding"
 
-let group_order = function
-  | `Merged -> 0
-  | `Blocking -> 1
-  | `Reachable -> 2
-  | `Valid -> 3
-  | `Undetermined -> 4
-  | `Unvalidated -> 5
-  | `Nonblocking -> 7
-  | `Unreachable -> 6
-  | `Invalid -> 8
-
-let compare_group x y = group_order x - group_order y
+let sort_by_groups als =
+  (* This is the order that groups will be desplayed in. *)
+  let group_order = function
+    | `Merged -> 0
+    | `Blocking -> 1
+    | `Reachable -> 2
+    | `Valid -> 3
+    | `Undetermined -> 4
+    | `Validation_error -> 5
+    | `Unvalidated -> 6
+    | `Nonblocking -> 7
+    | `Unreachable -> 8
+    | `Invalid -> 9
+  in
+  let compare_group x y = group_order x - group_order y in
+  als |> List.stable_sort (fun (g1, _) (g2, _) -> compare_group g1 g2)
 
 let is_blocking (json : Yojson.Basic.t) =
   match Yojson.Basic.Util.member "dev.semgrep.actions" json with
@@ -373,7 +378,7 @@ let pp_cli_output ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
        :: List.filter
             (fun (k, _) -> not (k = `Nonblocking || k = `Blocking))
             groups)
-  |> List.stable_sort (fun (g1, _) (g2, _) -> compare_group g1 g2)
+  |> sort_by_groups
   |> List.iter (fun (group, matches) ->
          if not (Common.null matches) then
            Fmt_helpers.pp_heading ppf
