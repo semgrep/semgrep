@@ -87,6 +87,7 @@ let auth_token () =
  * (and reparse rules...).
  * Once osemgrep is ready, we can just use its target manager directly here
  *)
+(* TODO: Cache targets *)
 let targets session =
   let dirty_files =
     Common.map (fun f -> (f, dirty_files_of_folder f)) session.workspace_folders
