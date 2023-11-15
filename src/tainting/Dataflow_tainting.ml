@@ -1713,8 +1713,19 @@ let transfer :
                  * See [Taint_lval_env] for details. *)
                 Lval_env.add lval_env' lval taints
               else
-                (* Instruction returns safe data, remove taints from lval.
-                 * See [Taint_lval_env] for details. *)
+                (* The RHS returns no taint, but taint could propagate by
+                 * side-effect too. So, we check whether the taint assigned
+                 * to 'lval' has changed to determine whether we need to
+                 * clean 'lval' or not. *)
+                let lval_taints_changed =
+                  let lval_taints_before =
+                    Lval_env.dumb_find in' lval |> status_to_taints
+                  in
+                  let lval_taints_after =
+                    Lval_env.dumb_find lval_env' lval |> status_to_taints
+                  in
+                  not (Taints.equal lval_taints_before lval_taints_after)
+                in
                 match x.i with
                 | New _ ->
                     (* Pro/HACK: `x = new T(args)` is interpreted as `x.T(args)` where `T`
@@ -1724,7 +1735,16 @@ let transfer :
                      *
                      * TODO: `new T(args)` should return an "object taint signature". *)
                     lval_env'
-                | _ -> Lval_env.clean lval_env' lval)
+                | _ when lval_taints_changed ->
+                    (* The taint of 'lval' has changed, so there was a source or
+                     * sanitizer acting by side-effect on this instruction. Thus we do NOT
+                     * do anything more here. *)
+                    lval_env'
+                | _ ->
+                    (* No side-effects on 'lval', and the instruction returns safe data,
+                     * so we assume that the assigment acts as a sanitizer and therefore
+                     * remove taints from lval. See [Taint_lval_env] for details. *)
+                    Lval_env.clean lval_env' lval)
           | None ->
               (* Instruction returns 'void' or its return value is ignored. *)
               lval_env'
