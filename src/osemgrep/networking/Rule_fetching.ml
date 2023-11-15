@@ -273,7 +273,7 @@ let modify_registry_provided_metadata (origin : origin) (rule : Rule.t) =
         match (obj : JSON.t) with
         | Object members ->
             JSON.Object
-              (List.map
+              (Common.map
                  (function
                    | key', _ when key = key' -> (key, v)
                    | x -> x)
