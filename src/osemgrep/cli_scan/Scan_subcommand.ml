@@ -14,6 +14,7 @@
  *)
 open Common
 open File.Operators
+module C = Rules_config
 module Env = Semgrep_envvars
 module Out = Semgrep_output_v1_t
 module SS = Set.Make (String)
@@ -216,9 +217,22 @@ let print_feature_section ~(includes_token : bool) ~(engine : Engine_type.t) :
 let display_rule_source ~(rule_source : Rules_source.t) : unit =
   let msg =
     match rule_source with
-    | Configs _ ->
+    | Configs xs
+      when List.exists
+             (function
+               | C.A _
+               | R _ ->
+                   true
+               | _ -> false)
+             (Common.map
+                (fun str ->
+                  Rules_config.parse_config_string ~in_docker:false str)
+                xs) ->
         Ocolor_format.asprintf {|@{<bold>  %s@}|}
           "Loading rules from registry..."
+    | Configs _ ->
+        Ocolor_format.asprintf {|@{<bold>  %s@}|}
+          "Loading rules from local config..."
     | Pattern _ -> Ocolor_format.asprintf {|@{  %s@}|} "Using custom pattern."
   in
   Logs.app (fun m -> m "%s" msg);
