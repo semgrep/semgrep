@@ -538,6 +538,7 @@ let options actions =
     ( "-disable-nosem",
       Arg.Clear nosem,
       " disable filtering of matches based on nosem" );
+    ("-strict", Arg.Set strict, " fail on warnings");
     ("--debug", Arg.Set debug, " output debugging information");
     ( "-debug_matching",
       Arg.Set Flag.debug_matching,
