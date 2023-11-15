@@ -253,6 +253,45 @@ let import_callback ~registry_caching base str =
                  parse_yaml_for_jsonnet file))
 [@@profiling]
 
+(* Performs modification to metadata for non-registry/app originating rules.
+ * This is so that we can have trusted data in metadata subsequent to this
+ * point and rely on the values in certain fields later.
+ *
+ * Currently this is important for:
+ *  - Secrets
+ *    * 'semgrep.dev'.rule.origin checked for validators
+ *)
+let modify_registry_provided_metadata (origin : origin) (rule : Rule.t) =
+  match origin with
+  | Registry
+  | App ->
+      rule
+  | CLI_argument
+  | Local_file _
+  | Untrusted_remote _ ->
+      let replace obj key v =
+        match (obj : JSON.t) with
+        | Object members ->
+            JSON.Object
+              (List.map
+                 (function
+                   | key', _ when key = key' -> (key, v)
+                   | x -> x)
+                 members)
+        | x -> x
+      in
+      {
+        rule with
+        metadata =
+          (let* metadata = rule.metadata in
+           let* registry_data = rule.metadata >>= JSON.member "semgrep.dev" in
+           let* rule_data = JSON.member "rule" registry_data in
+           Some
+             (replace rule_data "origin" (JSON.String "local")
+             |> replace registry_data "rule"
+             |> replace metadata "semgrep.dev"));
+      }
+
 (* similar to Parse_rule.parse_file but with special import callbacks
  * for a registry-aware jsonnet.
  * We also pass a ~registry_caching so our registry-aware jsonnet is also
@@ -263,27 +302,30 @@ let parse_rule ~rewrite_rule_ids ~origin ~registry_caching (file : Fpath.t) :
   let rule_id_rewriter =
     if rewrite_rule_ids then Some (mk_rewrite_rule_ids origin) else None
   in
-  match FT.file_type_of_file file with
-  | FT.Config FT.Jsonnet ->
-      Logs.warn (fun m ->
-          m
-            "Support for Jsonnet rules is experimental and currently meant \
-             for internal use only. The syntax may change or be removed at \
-             any point.");
-      let ast = Parse_jsonnet.parse_program file in
-      let core =
-        Desugar_jsonnet.desugar_program
-          ~import_callback:(import_callback ~registry_caching)
-          file ast
-      in
-      let value_ = Eval_jsonnet.eval_program core in
-      let gen = Manifest_jsonnet_to_AST_generic.manifest_value value_ in
-      (* TODO: put to true at some point *)
-      Parse_rule.parse_generic_ast ~rewrite_rule_ids:rule_id_rewriter
-        ~error_recovery:false file gen
-  | _ ->
-      Parse_rule.parse_and_filter_invalid_rules
-        ~rewrite_rule_ids:rule_id_rewriter file
+  let rules, errors =
+    match FT.file_type_of_file file with
+    | FT.Config FT.Jsonnet ->
+        Logs.warn (fun m ->
+            m
+              "Support for Jsonnet rules is experimental and currently meant \
+               for internal use only. The syntax may change or be removed at \
+               any point.");
+        let ast = Parse_jsonnet.parse_program file in
+        let core =
+          Desugar_jsonnet.desugar_program
+            ~import_callback:(import_callback ~registry_caching)
+            file ast
+        in
+        let value_ = Eval_jsonnet.eval_program core in
+        let gen = Manifest_jsonnet_to_AST_generic.manifest_value value_ in
+        (* TODO: put to true at some point *)
+        Parse_rule.parse_generic_ast ~rewrite_rule_ids:rule_id_rewriter
+          ~error_recovery:false file gen
+    | _ ->
+        Parse_rule.parse_and_filter_invalid_rules
+          ~rewrite_rule_ids:rule_id_rewriter file
+  in
+  (Common.map (modify_registry_provided_metadata origin) rules, errors)
 
 (*****************************************************************************)
 (* Loading rules *)
