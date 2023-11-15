@@ -300,6 +300,7 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
        extra_extra;
        validation_state;
        rendered_fix = fix;
+       is_ignored;
        (* LATER *)
        dataflow_trace = _;
      };
@@ -354,7 +355,7 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
             (* TODO: other fields derived from the rule *)
             fix_regex = None;
             (* TODO: extra fields *)
-            is_ignored = Some false;
+            is_ignored = Some is_ignored;
             fingerprint = match_based_id_partial rule rule_id metavars !!path;
             sca_info = None;
             fixed_lines = None;

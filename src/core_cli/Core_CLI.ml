@@ -42,6 +42,8 @@ let env_profile = "SEMGREP_CORE_PROFILE"
 let env_extra = "SEMGREP_CORE_EXTRA"
 let log_config_file = ref Core_scan_config.default.log_config_file
 let log_to_file = ref None
+let nosem = ref Core_scan_config.default.nosem
+let strict = ref Core_scan_config.default.strict
 
 (* see also verbose/... flags in Flag_semgrep.ml *)
 (* to test things *)
@@ -228,6 +230,8 @@ let mk_config () =
   {
     log_config_file = !log_config_file;
     log_to_file = !log_to_file;
+    nosem = !nosem;
+    strict = !strict;
     test = !test;
     debug = !debug;
     profile = !profile;
@@ -537,6 +541,10 @@ let options actions =
       Arg.Set_int max_match_per_file,
       " <int> maximum numbers of match per file" );
     ("-debug", Arg.Set debug, " output debugging information");
+    ( "-disable-nosem",
+      Arg.Clear nosem,
+      " disable filtering of matches based on nosem" );
+    ("-strict", Arg.Set nosem, " fail on warnings");
     ("-test", Arg.Set test, " (internal) set test context");
     ("-raja", Arg.Set Flag_semgrep.raja, " undocumented");
     ( "-max_match_per_file",
