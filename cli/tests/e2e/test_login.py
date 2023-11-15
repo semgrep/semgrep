@@ -95,7 +95,9 @@ def test_login(tmp_path, mocker):
     ), "registry should refuse to send rules to invalid token"
 
     # Run policy with bad token -> no associated deployment_id
-    result = runner.invoke(cli, ["--config", "policy"])
+    result = runner.invoke(
+        cli, ["--config", "policy"], env={"SEMGREP_REPO_NAME": "test-repo"}
+    )
     assert result.exit_code == 7
     assert "Invalid API Key" in result.output
 
