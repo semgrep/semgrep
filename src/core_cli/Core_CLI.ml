@@ -544,7 +544,7 @@ let options actions =
     ( "-disable-nosem",
       Arg.Clear nosem,
       " disable filtering of matches based on nosem" );
-    ("-strict", Arg.Set nosem, " fail on warnings");
+    ("-strict", Arg.Set strict, " fail on warnings");
     ("-test", Arg.Set test, " (internal) set test context");
     ("-raja", Arg.Set Flag_semgrep.raja, " undocumented");
     ( "-max_match_per_file",
