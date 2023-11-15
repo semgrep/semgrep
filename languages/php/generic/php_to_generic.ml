@@ -215,11 +215,12 @@ and opt_expr_to_label_ident = function
   | None -> G.LNone
   | Some e -> (
       match e with
-      | Int pi ->
-          pi
-          |> Parsed_int.bind (fun (i64, tok) ->
-                 Some (G.LInt (Int64.to_int i64, tok)))
-          |> Option.value ~default:(G.LDynamic (expr e))
+      | Int ((Some _, tok) as pi) -> (
+          match Parsed_int.to_int_opt pi with
+          | None ->
+              let e = expr e in
+              G.LDynamic e
+          | Some i -> G.LInt (i, tok))
       | Id [ label ] -> G.LId label
       | _ ->
           let e = expr e in

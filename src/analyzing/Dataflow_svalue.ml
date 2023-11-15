@@ -198,7 +198,7 @@ let literal_of_int i64 =
   G.Int (Parsed_int.of_int64 i64)
 
 let int_of_literal = function
-  | G.Int pi -> Parsed_int.to_int64_opt pi
+  | G.Int (opt, _) -> opt
   | ___else___ -> None
 
 let literal_of_string ?tok s : G.literal =

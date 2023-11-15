@@ -272,12 +272,9 @@ let int_mult i1 i2 =
 
 let binop_int_cst op i1 i2 =
   match (i1, i2) with
-  | Some (Lit (Int pi1)), Some (Lit (Int pi2)) -> (
-      match (Parsed_int.out pi1, Parsed_int.out pi2) with
-      | (Some n, _), (Some m, _) ->
-          let* r = op n m in
-          Some (Lit (Int (Parsed_int.of_int64 r)))
-      | _ -> None)
+  | Some (Lit (Int (Some n, _))), Some (Lit (Int (Some m, _))) ->
+      let* r = op n m in
+      Some (Lit (Int (Parsed_int.of_int64 r)))
   | Some (Lit (Int _)), Some (Cst Cint)
   | Some (Cst Cint), Some (Lit (Int _)) ->
       Some (Cst Cint)
@@ -296,13 +293,10 @@ let concat_string_cst env s1 s2 =
   match (s1, s2) with
   | Some (Lit (String (l, (s1, t1), r))), Some (Lit (String (_, (s2, _), _))) ->
       Some (Lit (String (l, (s1 ^ s2, t1), r)))
-  | Some (Lit (String (l, (s1, t1), r))), Some (Lit (Int pi))
-    when is_lang env Lang.Java || is_js env -> (
-      match Parsed_int.out pi with
-      | None, _ -> None
-      | Some i, _ ->
-          (* implicit int-to-string conversion *)
-          Some (Lit (String (l, (s1 ^ Int64.to_string i, t1), r))))
+  | Some (Lit (String (l, (s1, t1), r))), Some (Lit (Int (Some i, _)))
+    when is_lang env Lang.Java || is_js env ->
+      (* implicit int-to-string conversion *)
+      Some (Lit (String (l, (s1 ^ Int64.to_string i, t1), r)))
   | Some (Lit (String (l, (s1, t1), r))), Some (Lit (Float (Some m, _)))
     when is_js env ->
       (* implicit float-to-string conversion *)

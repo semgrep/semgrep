@@ -851,7 +851,7 @@ format_specifier: format_token+ { $1 }
  * https://docs.python.org/3/library/string.html#format-string-syntax
  *)
 format_token:
-  | INT   { mk_str (Parsed_int.get_tok $1) }
+  | INT   { mk_str (snd $1) }
   | FLOAT { mk_str (snd $1) }
   | NAME  { mk_str (snd $1) }
   | MOD { mk_str $1 } (* for dates *)

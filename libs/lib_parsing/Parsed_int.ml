@@ -51,6 +51,9 @@ let map f (opt, t) =
 (* Creators *)
 (*****************************************************************************)
 
+let parse (s, t) = (Common2.int64_of_string_opt s, t)
+let parse_c_octal (s, t) = (Common2.int64_of_string_c_octal_opt s, t)
+
 let of_float f =
   let iopt =
     try Some (Int64.of_float f) with
@@ -60,30 +63,20 @@ let of_float f =
 
 let of_int i = Some (Int64.of_int i) |> promote
 let of_int64 i64 = Some i64 |> promote
-let parse (s, t) = (Common2.int64_of_string_opt s, t)
-let parse_c_octal (s, t) = (Common2.int64_of_string_c_octal_opt s, t)
 
 let of_string_opt s =
   match Common2.int64_of_string_opt s with
   | None -> None
   | Some i64 -> Some (Some i64 |> promote)
 
-let zero = Some 0L |> promote
+let fake_zero = Some 0L |> promote
 let neg = map Int64.neg
 let map_tok f (opt, t) = (opt, f t)
-
-let bind f (opt, t) =
-  match opt with
-  | None -> None
-  | Some i64 -> f (i64, t)
-
-let out = Fun.id
 
 (*****************************************************************************)
 (* Destructors *)
 (*****************************************************************************)
 
-let to_int64_opt (opt, _) = opt
 let to_int_opt (opt, _) = Option.map Int64.to_int opt
 
 let to_string_opt (opt, _) =
@@ -92,8 +85,6 @@ let to_string_opt (opt, _) =
   | None -> None
 
 let to_float_opt (opt, _) = Option.map Int64.to_float opt
-let get_tok (_, t) = t
-let has_val (opt, _) = Option.is_some opt
 let visit ~v_tok (opt, t) = (opt, v_tok t)
 
 (*****************************************************************************)

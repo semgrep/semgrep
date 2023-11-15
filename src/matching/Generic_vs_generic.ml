@@ -1241,12 +1241,10 @@ and m_literal a b =
            sides of the trees.
         *)
         match (a, b) with
-        | G.Int pi, B.String (_, (b1, b2), _) ->
-            let opt, t = Parsed_int.out pi in
+        | G.Int (opt, t), B.String (_, (b1, b2), _) ->
             let i = Option.map Int64.to_string opt in
             m_wrap_m_string_opt (i, t) (Some b1, b2)
-        | G.String (_, (a1, a2), _), G.Int pi ->
-            let opt, t = Parsed_int.out pi in
+        | G.String (_, (a1, a2), _), G.Int (opt, t) ->
             let i = Option.map Int64.to_string opt in
             m_wrap_m_string_opt (Some a1, a2) (i, t)
         | G.Bool (a1, a2), B.String (_, (b1, b2), _) ->
@@ -1308,9 +1306,7 @@ and m_literal_inner a b =
   | G.Atom _, _ ->
       fail ()
 
-and m_parsed_int pi1 pi2 =
-  let a1, a2 = Parsed_int.out pi1 in
-  let b1, b2 = Parsed_int.out pi2 in
+and m_parsed_int (a1, a2) (b1, b2) =
   match (a1, b1) with
   (* iso: semantic equivalence of value! 0x8 can match 8 *)
   | Some i1, Some i2 -> if Int64.equal i1 i2 then return () else fail ()

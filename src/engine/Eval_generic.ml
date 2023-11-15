@@ -219,10 +219,7 @@ let value_of_lit ~code x =
   | G.Bool (b, _t) -> Bool b
   | G.String (_, (s, _t), _) -> String s
   (* big integers or floats can't be evaluated (Int (None, ...)) *)
-  | G.Int pi -> (
-      match Parsed_int.to_int64_opt pi with
-      | None -> raise (NotHandled code)
-      | Some i -> Int i)
+  | G.Int (Some i, _) -> Int i
   | G.Float (Some f, _t) -> Float f
   | _ -> raise (NotHandled code)
 
@@ -283,7 +280,7 @@ let rec eval env code =
       match v with
       | Int _ -> v
       | String s -> (
-          match Option.map Parsed_int.out (Parsed_int.of_string_opt s) with
+          match Parsed_int.of_string_opt s with
           | Some (Some i, _) -> Int i
           | _ -> raise (NotHandled code))
       | __else__ -> raise (NotHandled code))

@@ -441,8 +441,7 @@ and vof_literal = function
   | Bool v1 ->
       let v1 = vof_wrap OCaml.vof_bool v1 in
       OCaml.VSum ("Bool", [ v1 ])
-  | Int v1 ->
-      let opt, tk = Parsed_int.out v1 in
+  | Int (opt, tk) ->
       let v1 = vof_wrap (OCaml.vof_option OCaml.vof_int64) (opt, tk) in
       OCaml.VSum ("Int", [ v1 ])
   | Float v1 ->

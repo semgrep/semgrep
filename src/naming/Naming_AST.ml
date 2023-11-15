@@ -342,7 +342,7 @@ let rec get_resolved_type lang (vinit, vtype) =
       (* so this would be more portable across languages *)
       match vinit with
       | Some { e = L (Bool (_, tok)); _ } -> make_type "bool" tok
-      | Some { e = L (Int pi); _ } -> make_type "int" (Parsed_int.get_tok pi)
+      | Some { e = L (Int (_, tok)); _ } -> make_type "int" tok
       | Some { e = L (Float (_, tok)); _ } -> make_type "float" tok
       | Some { e = L (Char (_, tok)); _ } -> make_type "char" tok
       | Some { e = L (String (_, (_, tok), _)); _ } ->

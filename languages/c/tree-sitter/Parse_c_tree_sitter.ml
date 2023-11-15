@@ -570,10 +570,9 @@ and preproc_call_expression (env : env) ((v1, v2) : CST.preproc_call_expression)
 (* Int or Float ! *)
 and number_literal env tok =
   let s, t = str env tok in
-  let pi = Parsed_int.parse_c_octal (s, t) in
-  match Parsed_int.out pi with
-  | Some _, _ -> Int pi
-  | None, _ -> (
+  match Parsed_int.parse_c_octal (s, t) with
+  | (Some _, _) as pi -> Int pi
+  | pi -> (
       match float_of_string_opt s with
       | Some f -> Float (Some f, t)
       (* could be None because of a suffix in the string *)

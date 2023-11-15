@@ -84,7 +84,7 @@ let instr env x =
       match (lval, e.e) with
       | { base = Var n; rev_offset = [] }, Literal (G.Int pi) ->
           let v = var_of_name env n in
-          let h = heap_of_int env (Parsed_int.out pi) in
+          let h = heap_of_int env pi in
           add env (D.PointTo (v, h))
       | _ -> todo (I x))
   | _ -> todo (I x)

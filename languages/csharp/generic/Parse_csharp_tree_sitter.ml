@@ -1504,7 +1504,7 @@ and non_lvalue_expression (env : env) (x : CST.non_lvalue_expression) : G.expr =
       let v2 = query_body env v2 in
       linq_to_expr v1 v2
   | `Range_exp (v1, v2, v3) ->
-      let fake_zero = L (Int Parsed_int.zero) |> G.e in
+      let fake_zero = L (Int Parsed_int.fake_zero) |> G.e in
       let v1 =
         match v1 with
         | Some x -> expression env x

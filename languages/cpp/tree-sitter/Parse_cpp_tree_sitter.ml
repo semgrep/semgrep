@@ -187,7 +187,7 @@ let map_fold_operator (env : env) (x : CST.fold_operator) =
  *)
 let parse_number_literal (s, t) =
   match Parsed_int.parse_c_octal (s, t) with
-  | pi when not (Parsed_int.has_val pi) -> (
+  | (Some _, _) as pi -> (
       match float_of_string_opt s with
       | Some f -> Float (Some f, t)
       (* could be None because of a suffix in the string *)
@@ -622,7 +622,7 @@ let map_preproc_def (env : env) ((v1, v2, v3, v4) : CST.preproc_def) =
     | Some tok -> (
         let parse_number_literal t s =
           match Parsed_int.parse_c_octal (s, t) with
-          | pi when Parsed_int.has_val pi -> Some (C (Int pi))
+          | (Some _, _) as pi -> Some (C (Int pi))
           | _ -> (
               match float_of_string_opt s with
               | Some f -> Some (C (Float (Some f, t)))

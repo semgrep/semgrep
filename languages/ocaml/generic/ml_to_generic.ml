@@ -181,8 +181,7 @@ and stmt e : G.stmt =
       let var = { G.vinit = Some v2; vtype = None } in
       let n = G.N (G.Id (v1, G.empty_id_info ())) |> G.e in
       let next =
-        G.AssignOp (n, (nextop, tok), G.L (G.Int (Parsed_int.of_int 1)) |> G.e)
-        |> G.e
+        G.AssignOp (n, (nextop, tok), G.L (G.Int (Some 1L, tok)) |> G.e) |> G.e
       in
       let cond =
         G.Call (G.IdSpecial (G.Op condop, tok) |> G.e, fb [ G.Arg n; G.Arg v4 ])

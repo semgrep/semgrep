@@ -116,9 +116,8 @@ let with_tmp_file ~str ~ext f =
 
 let mval_of_string str t =
   let literal =
-    let pi = Parsed_int.parse (str, t) in
-    match Parsed_int.out pi with
-    | Some _, _ -> G.Int pi
+    match Parsed_int.parse (str, t) with
+    | (Some _, _) as pi -> G.Int pi
     (* TODO? could try float_of_string_opt? *)
     | _ -> G.String (Tok.unsafe_fake_bracket (str, t))
   in

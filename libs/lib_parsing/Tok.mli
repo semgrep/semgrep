@@ -78,7 +78,7 @@ val pp_full_token_info : bool ref
  * check for equality of big AST constructs (e.g., complex expressions) by not
  * caring about differences in token positions.
  *)
-type t_always_equal = t [@@deriving show, eq, hash, ord, sexp]
+type t_always_equal = t [@@deriving show, eq, hash]
 
 (*****************************************************************************)
 (* Token builders *)

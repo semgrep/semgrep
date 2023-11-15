@@ -1913,8 +1913,8 @@ define_val:
  (* for statement-like macro with fixed number of arguments *)
  | Tdo statement Twhile "(" expr ")"
      { match $5 with
-       | (C (Int pi)) when Parsed_int.eq_const pi 0 ->
-         DefineDoWhileZero ($1, $2, $3, ($4, Parsed_int.get_tok pi, $6))
+       | (C (Int ((_, tok) as pi))) when Parsed_int.eq_const pi 0 ->
+         DefineDoWhileZero ($1, $2, $3, ($4, tok, $6))
        | _ -> raise Parsing.Parse_error
      }
  (* for statement-like macro with varargs *)
