@@ -118,6 +118,9 @@ let setup_logging ?(skip_libs = default_skip_libs) ~force_color ~level () =
 (* Test helpers *)
 (*****************************************************************************)
 
+(* TODO: use save_excursion on disable_set_reporter and Logs.reporter
+ * to restore them
+ *)
 let with_mocked_logs ~f ~final =
   Logs.set_reporter
     {
@@ -131,7 +134,7 @@ let with_mocked_logs ~f ~final =
               let (ppf : Format.formatter) = Format.str_formatter in
               Format.kfprintf k ppf fmt));
     };
-  (* TODO? use Fun.finalize? *)
+  (* TODO? use Fun.finalize? or save_excursion *)
   disable_set_reporter := true;
   (* f() might call setup_logging() internally, but this will not
    * call Logs.set_reporter and override the reporter we set above
