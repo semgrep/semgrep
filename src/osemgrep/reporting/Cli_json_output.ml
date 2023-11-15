@@ -115,6 +115,7 @@ let exit_code_of_error_type (error_type : OutJ.error_type) : Exit_code.t =
   | OutOfMemory
   | TimeoutDuringInterfile
   | OutOfMemoryDuringInterfile
+  | SemgrepWarning
   | SemgrepError ->
       Exit_code.fatal
   | InvalidRuleSchemaError -> Exit_code.invalid_pattern
@@ -148,6 +149,7 @@ let cli_error_of_core_error (x : OutJ.core_error) : OutJ.cli_error =
         | SemgrepError
         | InvalidRuleSchemaError ->
             None
+        | SemgrepWarning
         | OtherParseError
         | AstBuilderError
         | RuleParseError
@@ -191,6 +193,7 @@ let cli_error_of_core_error (x : OutJ.core_error) : OutJ.cli_error =
         | OutOfMemory
         | TimeoutDuringInterfile
         | OutOfMemoryDuringInterfile
+        | SemgrepWarning
         | SemgrepError
         | IncompatibleRule _
         | IncompatibleRule0

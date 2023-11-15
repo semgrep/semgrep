@@ -90,6 +90,7 @@ let mk_error opt_rule_id loc msg err =
     | PartialParsing _
     | IncompatibleRule _
     | IncompatibleRule0
+    | SemgrepWarning
     | SemgrepError
     | InvalidRuleSchemaError
     | UnknownLanguageError
@@ -263,6 +264,7 @@ let severity_of_error (typ : OutJ.error_type) : OutJ.error_severity =
   | ParseError -> `Warning
   | PartialParsing _ -> `Warning
   | OtherParseError -> `Warning
+  | SemgrepWarning -> `Warning
   | AstBuilderError -> `Error
   | RuleParseError -> `Error
   | PatternParseError _
