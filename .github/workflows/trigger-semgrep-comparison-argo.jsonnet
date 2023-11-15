@@ -30,8 +30,8 @@ local util = import 'libs/util.libsonnet';
       'https://argoworkflows-dev2.corp.r2c.dev/api/v1/events/security-research/semgrep-compare',
       [
         {name: 'ruleset', value: 'p/default-v2'},
-        {name: 'container_image_base', value: "${{ needs.setup-docker-tag.outputs.docker-tag == 'develop' && 'returntocorp/semgrep:latest' || 'returntocorp/semgrep:develop' }}" },
-        {name: 'container_image_development', value: 'returntocorp/semgrep:${{ needs.setup-docker-tag.outputs.docker-tag }}' },
+        {name: 'container_image_base', value: "${{ needs.setup-docker-tag.outputs.docker-tag == 'develop' && 'latest' || 'develop' }}" },
+        {name: 'container_image_development', value: '${{ needs.setup-docker-tag.outputs.docker-tag }}' },
       ],
     ),
   },
