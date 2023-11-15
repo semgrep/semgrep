@@ -280,17 +280,24 @@ let modify_registry_provided_metadata (origin : origin) (rule : Rule.t) =
                  members)
         | x -> x
       in
-      {
-        rule with
-        metadata =
-          (let* metadata = rule.metadata in
-           let* registry_data = rule.metadata >>= JSON.member "semgrep.dev" in
-           let* rule_data = JSON.member "rule" registry_data in
-           Some
-             (replace rule_data "origin" (JSON.String "local")
-             |> replace registry_data "rule"
-             |> replace metadata "semgrep.dev"));
-      }
+      (* SECURITY: Set metadata from non-registry secrets rules so that
+       * validators are not run. The default requirement is that the rule be
+       * served from the pro origin. Without this, local rules could use
+       * validators which may exfiltrate data from source code.
+       *)
+      let updated_metdata =
+        let* metadata = rule.metadata in
+        let* registry_data = JSON.member "semgrep.dev" metadata in
+        let* rule_data = JSON.member "rule" registry_data in
+        match rule.product with
+        | `Secrets ->
+            replace rule_data "origin" (JSON.String "local")
+            |> replace registry_data "rule"
+            |> replace metadata "semgrep.dev"
+            |> fun x -> Some (Some x)
+        | _ -> None
+      in
+      { rule with metadata = updated_metdata ||| rule.metadata }
 
 (* similar to Parse_rule.parse_file but with special import callbacks
  * for a registry-aware jsonnet.
