@@ -38,7 +38,7 @@ let skipped_tests =
     (* TODO: re-enable this when we fix the jsoo int overflow bug *)
     ("Go", [ 24 ]);
     (* TODO: investigate c_array_inits pattern parse error*)
-    ("C", [ 0 ]);
+    ("C", [ 2 ]);
   ]
 
 (* Filter to skip tests *)
