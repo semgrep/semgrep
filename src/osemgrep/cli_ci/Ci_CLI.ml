@@ -96,7 +96,7 @@ let o_suppress_errors : bool Term.t =
       {|Configures how the CI command reacts when an error occurs.
 If true, encountered errors are suppressed and the exit code is zero (success).
 If false, encountered errors are not suppressed and the exit code is non-zero
-(success).|}
+(failure).|}
 
 (*************************************************************************)
 (* Turn argv into conf *)
