@@ -52,7 +52,7 @@ from semgrep.git import get_project_url
 from semgrep.ignores import FileIgnore
 from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.ignores import Parser
-from semgrep.nosemgrep import process_ignores
+from semgrep.nosemgrep import filter_ignored
 from semgrep.output import DEFAULT_SHOWN_SEVERITIES
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
@@ -650,11 +650,10 @@ def run_scan(
 
     ignores_start_time = time.time()
     keep_ignored = disable_nosem or output_handler.formatter.keep_ignores()
-    filtered_matches_by_rule, nosem_errors = process_ignores(
-        rule_matches_by_rule, keep_ignored=keep_ignored, strict=strict
+    filtered_matches_by_rule = filter_ignored(
+        rule_matches_by_rule, keep_ignored=keep_ignored
     )
     profiler.save("ignores_time", ignores_start_time)
-    output_handler.handle_semgrep_errors(nosem_errors)
 
     profiler.save("total_time", rule_start_time)
 

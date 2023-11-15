@@ -14,4 +14,4 @@ val produce_ignored :
    requires the ignores to have been "produced" via [produce_ignored] above first!
 *)
 val filter_ignored :
-  Core_result.processed_match list -> Core_result.processed_match list
+  Semgrep_output_v1_t.core_match list -> Semgrep_output_v1_t.core_match list

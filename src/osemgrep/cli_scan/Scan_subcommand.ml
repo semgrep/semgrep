@@ -460,8 +460,12 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     in
     (* step 3': call the engine! *)
     let (res : Core_runner.result) =
-      Core_runner.create_core_result filtered_rules exn_and_matches
+      let res = Core_runner.create_core_result filtered_rules exn_and_matches in
+      (* step 3'': filter via nosemgrep *)
+      let filtered_matches = Nosemgrep.filter_ignored res.core.results in
+      { res with core = { res.core with results = filtered_matches } }
     in
+
     res.Core_runner.core.engine_requested
     |> Option.iter Metrics_.add_engine_kind;
 

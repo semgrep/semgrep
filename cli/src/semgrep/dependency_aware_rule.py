@@ -111,6 +111,7 @@ def generate_unreachable_sca_findings(
                         extra=out.CoreMatchExtra(
                             metavars=out.Metavars({}),
                             engine_kind=out.EngineKind(out.OSS()),
+                            is_ignored=False,
                         ),
                     ),
                     extra={
