@@ -127,9 +127,6 @@ let fetch_content_from_url_async ?(token_opt = None) (url : Uri.t) :
   Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
   content
 
-let fetch_content_from_url ?(token_opt = None) (url : Uri.t) : string =
-  Lwt_platform.run (fetch_content_from_url_async ~token_opt url)
-
 (*****************************************************************************)
 (* Registry caching *)
 (*****************************************************************************)
@@ -159,9 +156,9 @@ type _registry_cached_value =
   Cache_disk.cached_value_on_disk
 
 (* better: faster fetching by using a cache *)
-let fetch_content_from_registry_url ~registry_caching url =
+let fetch_content_from_registry_url_async ~registry_caching url =
   Metrics_.g.is_using_registry <- true;
-  if not registry_caching then fetch_content_from_url url
+  if not registry_caching then fetch_content_from_url_async url
   else
     let cache_dir = !Env.v.user_dot_semgrep_dir / "cache" / "registry" in
     let cache_methods =
@@ -187,7 +184,7 @@ let fetch_content_from_registry_url ~registry_caching url =
         input_to_string = Uri.to_string;
       }
     in
-    Cache_disk.cache fetch_content_from_url cache_methods url
+    Cache_disk.cache_lwt fetch_content_from_url_async cache_methods url
 
 (*****************************************************************************)
 (* Registry and yaml aware jsonnet *)
@@ -243,7 +240,8 @@ let import_callback ~registry_caching base str =
               * because Yaml rule parsing is slower than Json rule parsing.
               *)
              let content =
-               fetch_content_from_registry_url ~registry_caching url
+               Lwt_platform.run
+                 (fetch_content_from_registry_url_async ~registry_caching url)
              in
              (* TODO: this assumes every URLs are for yaml, but maybe we could
               * also import URLs to jsonnet files or gist! or look at the
@@ -383,13 +381,9 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
       Lwt.return [ rules ]
   | C.R rkind ->
       let url = Semgrep_Registry.url_of_registry_config_kind rkind in
-      let%lwt content = fetch_content_from_url_async ~token_opt url in
-      (* TODO: reuse fetch_content_from_registry_url (need make it _async?)
-       * so we can factorize the is_using_registry modification
-       * (and also remove the when registry_caching special below
-       * as fetch_content_from_registry_url already handles caching)
-       *)
-      Metrics_.g.is_using_registry <- true;
+      let%lwt content =
+        fetch_content_from_registry_url_async ~registry_caching url
+      in
       (* TODO: this also assumes every registry URL is for yaml *)
       let rules =
         Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
@@ -422,25 +416,9 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
 
 let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt ~registry_caching
     kind : rules_and_origin list =
-  match kind with
-  | C.R rkind when registry_caching ->
-      (* TODO: should not need that, we're duplicating work
-       * from fetch_content_from_registry_url() and
-       * rules_from_dashdash_config_async()
-       *)
-      let url = Semgrep_Registry.url_of_registry_config_kind rkind in
-      let content = fetch_content_from_registry_url ~registry_caching url in
-      (* TODO: this also assumes every registry URL is for yaml *)
-      Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
-          let file = Fpath.v file in
-          let res =
-            load_rules_from_file ~origin:Other_origin ~registry_caching file
-          in
-          [ res ])
-  | _ ->
-      Lwt_platform.run
-        (rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
-           ~registry_caching kind)
+  Lwt_platform.run
+    (rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
+       ~registry_caching kind)
 
 (*****************************************************************************)
 (* Entry point *)
