@@ -1,6 +1,6 @@
 include module type of Int64
 
-type t = Int64.t [@@deriving hash, show, eq]
+type t = Int64.t [@@deriving hash, show, eq, sexp]
 
 val power : int64 -> int64 -> int64
 

@@ -11,7 +11,7 @@
  * purposes.
  *)
 
-type t = int64 option * Tok.t [@@deriving hash, show, eq]
+type t = int64 option * Tok.t [@@deriving hash, show, eq, sexp]
 
 (* These are the main functions you need to create a Parsed_int.t.
    The other ones are less important.
@@ -39,3 +39,4 @@ val visit : v_tok:(Tok.t -> Tok.t) -> t -> t
 
 (* misc *)
 val eq_const : t -> int -> bool
+val eq_value : t -> t -> bool

@@ -1,5 +1,6 @@
 include Int64
 open Ppx_hash_lib.Std.Hash.Builtin
+open Sexplib.Std
 
 (* There isn't an available hash_fold or hash function in Int64.t, so we have to
    make it up here.
@@ -8,7 +9,7 @@ open Ppx_hash_lib.Std.Hash.Builtin
 *)
 let hash_fold_int64 = Ppx_hash_lib.Std.Hash.fold_int64
 
-type t = int64 [@@deriving hash, show, eq]
+type t = int64 [@@deriving hash, show, eq, sexp]
 
 let rec power x n = if equal n 0L then 1L else mul x (power x (sub n 1L))
 let ( + ) = Int64.add

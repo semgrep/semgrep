@@ -4,6 +4,7 @@
  *
  *)
 open Common
+open Sexplib.Std
 module G = AST_generic
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -109,6 +110,7 @@ and 'resolved parameter_classic = {
 [@@deriving
   show { with_path = false },
     eq,
+    sexp,
     visitors { variety = "map"; ancestors = [ "map_parent" ] }]
 
 (*****************************************************************************)

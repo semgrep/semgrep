@@ -24,6 +24,7 @@
  *)
 
 open Ppx_hash_lib.Std.Hash.Builtin
+open Sexplib.Std
 
 (*****************************************************************************)
 (* Types *)
@@ -34,7 +35,8 @@ open Ppx_hash_lib.Std.Hash.Builtin
 (* could save consumers of the API from dealing with whether the parsed int
    is representable or not
 *)
-type t = Int64_.t option * Tok.t_always_equal [@@deriving hash, show, eq]
+type t = Int64_.t option * (Tok.t[@hash.ignore])
+[@@deriving hash, show, eq, sexp]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -95,3 +97,5 @@ let eq_const (opt, _) i2 =
   match opt with
   | None -> false
   | Some i1 -> Int64.equal i1 (Int64.of_int i2)
+
+let eq_value (opt1, _) (opt2, _) = Option.equal Int64.equal opt1 opt2
