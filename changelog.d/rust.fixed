@@ -1,1 +1,0 @@
-Updated the Rust parser with miscellaneous improvements. In particular, Semgrep can now parse `yield` expressions in Rust.
