@@ -88,7 +88,6 @@ let core_runner_conf_of_t settings =
       timeout_threshold = settings.timeout_threshold;
       (* TODO: This is breaks things in LSP.js *)
       ast_caching = false;
-      autofix = false;
       dataflow_traces = false;
       matching_explanations = false;
       time_flag = false;

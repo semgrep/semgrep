@@ -10,8 +10,6 @@ type conf = {
   time_flag : bool;
   matching_explanations : bool;
   dataflow_traces : bool;
-  (* special *)
-  autofix : bool;
   (* osemgrep-only: *)
   ast_caching : bool;
 }

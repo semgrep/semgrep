@@ -52,17 +52,11 @@ module Autofix_processor : Processor = struct
 
   let pre_process _config rules = (rules, ())
 
-  let post_process (config : Core_scan_config.t) () (res : Core_result.t) =
+  let post_process (_config : Core_scan_config.t) () (res : Core_result.t) =
     (* These edits should all be None, so it's OK to `fst` them out. *)
     let matches_with_fixes =
       Autofix.produce_autofixes (Common.map fst res.matches_with_fixes)
     in
-    (* This is an unusual case! This should only happen if semgrep-core
-       is invoked on its own -- usually, the CLI should apply the fix
-       itself.
-    *)
-    if config.autofix then
-      Autofix.apply_fixes (Common.map_filter snd matches_with_fixes);
     { res with matches_with_fixes }
 end
 

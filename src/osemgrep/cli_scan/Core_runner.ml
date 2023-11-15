@@ -31,8 +31,6 @@ type conf = {
    * even if it was not requested by the CLI
    *)
   dataflow_traces : bool;
-  (* special *)
-  autofix : bool;
   (* osemgrep-only: *)
   ast_caching : bool;
 }
@@ -123,7 +121,6 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
    optimizations;
    ast_caching;
    matching_explanations;
-   autofix = _;
    (* TODO *)
    time_flag = _;
    dataflow_traces = _;
@@ -149,12 +146,6 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
         parsing_cache_dir;
         matching_explanations;
         version = Version.version;
-        (* We actually don't want to inherit the `autofix` flag in the core, because that
-           will cause core to apply the autofix, which will mess up the CLI output.
-           osemgrep will apply the fix itself, so we just need to pass `false` here and
-           consume the resulting data.
-        *)
-        autofix = false;
       }
 
 let prepare_config_for_core_scan (config : Core_scan_config.t)
