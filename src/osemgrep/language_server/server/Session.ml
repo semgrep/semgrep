@@ -65,7 +65,7 @@ let decode_rules data =
   Common2.with_tmp_file ~str:data ~ext:"json" (fun file ->
       let file = Fpath.v file in
       let res =
-        Rule_fetching.load_rules_from_file ~origin:Other_origin
+        Rule_fetching.load_rules_from_file ~rewrite_rule_ids:false ~origin:App
           ~registry_caching:true file
       in
       Logs.info (fun m -> m "Loaded %d rules from CI" (List.length res.rules));

@@ -105,13 +105,23 @@ let run (conf : conf) : Exit_code.t =
         (* In a validate context, rules are actually targets of metarules.
          * alt: could also process Configs to compute the targets.
          *)
+        (* TODO(cooper): don't understand motivation of this map_filter. Not
+         * sure why we wouldn't do this on non-local files (understand for
+         * registry)
+         *
+         * Seems to be because we can't easily get the tmpfile and we are still
+         * entirely file-oriented rather than being able to scan buffers.
+         *)
         let targets =
           rules_and_origin
           |> Common.map_filter (fun (x : Rule_fetching.rules_and_origin) ->
                  match x.origin with
                  | Local_file path -> Some path
-                 | Other_origin ->
-                     (* TODO: stricter: warn if no origin (meaning URL or registry) *)
+                 | _ ->
+                     (* TODO: stricter: warn if we didn't validate since it
+                      * wasn't in a local file already (e.g., registry or other
+                      * remote URI)
+                      *)
                      None)
         in
         let in_docker = !Semgrep_envvars.v.in_docker in
