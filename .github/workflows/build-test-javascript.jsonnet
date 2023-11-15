@@ -135,6 +135,11 @@ local test_job = {
     {
       name: 'Test JS artifacts',
       run: |||
+        # Allow 'git rev-parse --show-toplevel' even though the owner of the
+        # semgrep folder is different than the owner of its contents.
+        # Needed by OCaml test code to determine the project root.
+        git config --global --add safe.directory /__w/semgrep/semgrep
+
         make -C js -j $(nproc) test
         make -C js/tests
       |||
