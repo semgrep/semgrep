@@ -106,7 +106,15 @@ let split_jobs_by_language all_rules all_targets : Lang_job.t list =
   |> Common.map_filter (fun (xlang, rules) ->
          let targets =
            all_targets
-           |> List.filter (Filter_target.filter_target_for_xlang xlang)
+           |> List.filter (fun target ->
+                  (* If the language is JS, also include TS files *)
+                  match xlang with
+                  | Xlang.L (Lang.Js, _) ->
+                      Filter_target.filter_target_for_xlang xlang target
+                      || Filter_target.filter_target_for_xlang
+                           Xlang.(of_lang Lang.Ts)
+                           target
+                  | _ -> Filter_target.filter_target_for_xlang xlang target)
          in
          if Common.null targets then None
          else Some ({ xlang; targets; rules } : Lang_job.t))

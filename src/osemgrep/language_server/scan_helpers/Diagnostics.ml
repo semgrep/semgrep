@@ -48,17 +48,12 @@ let diagnostics_of_file is_intellij matches file =
     List.filter (fun (m : Out.cli_match) -> m.path = file) matches
   in
   let diagnostics = Common.map (diagnostic_of_match is_intellij) matches in
-  let ranges_overlap (a : Diagnostic.t) (b : Diagnostic.t) =
-    if a.range.start.line = b.range.start.line then
-      a.range.start.character <= b.range.start.character
-    else
-      a.range.start.line <= b.range.start.line
-      && a.range.end_.line >= b.range.end_.line
-  in
   let diagnostics =
     Common.uniq_by
       (fun (a : Diagnostic.t) (b : Diagnostic.t) ->
-        a.code = b.code && ranges_overlap a b)
+        let a_json = a |> Diagnostic.yojson_of_t |> Yojson.Safe.to_string in
+        let b_json = b |> Diagnostic.yojson_of_t |> Yojson.Safe.to_string in
+        String.equal a_json b_json)
       diagnostics
   in
   let params =

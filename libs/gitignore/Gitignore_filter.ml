@@ -71,6 +71,11 @@ let select_path opt_gitignore_file_cache sel_events levels relative_segments =
         (* check whether partial path should be gitignored *)
         let file_path = parent_path / segment in
         let sel_events = select_one sel_events levels file_path in
+        let deselected =
+          match sel_events with
+          | Deselected _ :: _ -> true
+          | _ -> false
+        in
         if is_selected sel_events then
           (* stop here, don't go deeper as per gitignore spec *)
           sel_events
@@ -79,6 +84,8 @@ let select_path opt_gitignore_file_cache sel_events levels relative_segments =
           | []
           | [ "" ] ->
               loop sel_events levels file_path segments
+          (* If a path has been deselected, don't test for dir-only patterns *)
+          | _ :: _ when deselected -> loop sel_events levels file_path segments
           | _ :: _ ->
               (* add trailing slash to match directory-only patterns *)
               let dir_path = file_path / "" in

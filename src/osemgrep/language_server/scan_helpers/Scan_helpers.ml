@@ -148,35 +148,16 @@ let scan_open_documents server =
   in
   wrap_with_detach f
 
-(** Scan a single file. Passing [content] will write it to a temp file,
-   and scan that temp file, then return results as if [uri] was scanned *)
-let scan_file ?(content = None) server uri =
+(** Scan a single file *)
+let scan_file server uri =
   let f () =
     let file_path = Uri.to_path uri in
     let file = Fpath.v file_path in
-    let targets, git_ref =
-      match content with
-      | None -> ([ file ], None)
-      | Some content ->
-          let name = Fpath.basename file in
-          let ext = Fpath.get_ext file in
-          let tmp_file = Common.new_temp_file name ext in
-          Common.write_file tmp_file content;
-          ([ Fpath.v tmp_file ], Some Fpath.(to_string file))
-    in
+    let targets = [ file ] in
     let session_targets = Session.targets server.session in
     let targets = if List.mem file session_targets then targets else [] in
     let targets = Some targets in
-    let results, _ = run_semgrep ~git_ref ~targets server in
-    let results =
-      match content with
-      | Some _ ->
-          let existing_results, _ =
-            run_semgrep ~targets:(Some [ file ]) server
-          in
-          results @ existing_results
-      | None -> results
-    in
+    let results, _ = run_semgrep ~targets server in
     let results =
       Common.map (fun (m : Out.cli_match) -> { m with path = file }) results
     in
