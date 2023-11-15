@@ -29,6 +29,22 @@ let group_titles = function
   | `Nonblocking -> "Non-blocking Code Finding"
   | `Blocking -> "Blocking Code Finding"
   | `Merged -> "Code Finding"
+  | `Valid -> "Valid Secrets Finding"
+  | `Invalid -> "Invalid Secrets Finding"
+  | `Unvalidated -> "Unvalidated Secrets Finding"
+
+let group_order = function
+  | `Merged -> 0
+  | `Blocking -> 1
+  | `Reachable -> 2
+  | `Valid -> 3
+  | `Undetermined -> 4
+  | `Unvalidated -> 5
+  | `Nonblocking -> 7
+  | `Unreachable -> 6
+  | `Invalid -> 8
+
+let compare_group x y = group_order x - group_order y
 
 let is_blocking (json : Yojson.Basic.t) =
   match Yojson.Basic.Util.member "dev.semgrep.actions" json with
@@ -38,6 +54,24 @@ let is_blocking (json : Yojson.Basic.t) =
            | `String s -> String.equal s "block"
            | _else -> false)
   | _else -> false
+
+let product_of_cli_match (m : Out.cli_match) =
+  let metadata_product_opt =
+    try
+      match Yojson.Basic.Util.member "product" m.extra.metadata with
+      | `String "secrets" -> Some `Secrets
+      | `String "sca" -> Some `SCA
+      | `String ("code" | "sast") -> Some `SAST
+      | _ -> None
+    with
+    | _ -> None
+  in
+  match metadata_product_opt with
+  (* Not sure if this is correct. Assuming the product is SCA if there
+     is sca_info. *)
+  | None when Option.is_some m.extra.sca_info -> `SCA
+  | Some p -> p
+  | _ -> `SAST
 
 let ws_prefix s =
   let rec index_rec s lim i acc =
@@ -293,49 +327,53 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
 
 let pp_cli_output ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
     (cli_output : Out.cli_output) =
-  let groups =
-    cli_output.results |> Semgrep_output_utils.sort_cli_matches
-    |> Common.group_by (fun (m : Out.cli_match) ->
-           (* TODO: python (text.py):
-              if match.product == RuleProduct.sast:
-                subgroup = "blocking" if match.is_blocking else "nonblocking"
-              else:
-                subgroup = match.exposure_type or "undetermined"
+  cli_output.results |> Semgrep_output_utils.sort_cli_matches
+  |> Common.group_by (fun (m : Out.cli_match) ->
+         match product_of_cli_match m with
+         | `SCA ->
+             (* TO PORT:
+                                  subgroup = match.exposure_type or "undetermined"
 
-              figuring out the product, python uses (rule.py):
-                 RuleProduct.sca
-                 if "r2c-internal-project-depends-on" in self._raw
-                 else RuleProduct.sast
+                   figuring out the product, python uses (rule.py):
+                      RuleProduct.sca
+                      if "r2c-internal-project-depends-on" in self._raw
+                      else RuleProduct.sast
 
-              and exposure_type (rule_match.py):
-              if "sca_info" not in self.extra:
-                  return None
+                   and exposure_type (rule_match.py):
+                   if "sca_info" not in self.extra:
+                       return None
 
-              if self.metadata.get("sca-kind") == "upgrade-only":
-                  return "reachable"
-              elif self.metadata.get("sca-kind") == "legacy":
-                  return "undetermined"
-              else:
-                  return "reachable" if self.extra["sca_info"].reachable else "unreachable"
-           *)
-           if is_blocking m.Out.extra.Out.metadata then `Blocking
-           else `Nonblocking)
-  in
-  (* if not is_ci_invocation *)
-  let groups =
-    let merged =
-      (try List.assoc `Nonblocking groups with
-      | Not_found -> [])
-      @
-      try List.assoc `Blocking groups with
-      | Not_found -> []
-    in
-    (`Merged, merged)
-    :: List.filter
-         (fun (k, _) -> not (k = `Nonblocking || k = `Blocking))
-         groups
-  in
-  groups
+                   if self.metadata.get("sca-kind") == "upgrade-only":
+                       return "reachable"
+                   elif self.metadata.get("sca-kind") == "legacy":
+                       return "undetermined"
+                   else:
+                       return "reachable" if self.extra["sca_info"].reachable else "unreachable" *)
+             `Undetermined
+         | `SAST when is_blocking m.Out.extra.Out.metadata -> `Blocking
+         | `SAST -> `Nonblocking
+         | `Secrets -> (
+             match m.extra.validation_state with
+             | Some `Confirmed_valid -> `Valid
+             | Some `Confirmed_invalid -> `Invalid
+             | Some (`No_validator | `Validation_error)
+             | None ->
+                 `Unvalidated))
+  |> (fun groups ->
+       (* TO PORT:
+          if not is_ci_invocation: *)
+       let merged =
+         (try List.assoc `Nonblocking groups with
+         | Not_found -> [])
+         @
+         try List.assoc `Blocking groups with
+         | Not_found -> []
+       in
+       (`Merged, merged)
+       :: List.filter
+            (fun (k, _) -> not (k = `Nonblocking || k = `Blocking))
+            groups)
+  |> List.stable_sort (fun (g1, _) (g2, _) -> compare_group g1 g2)
   |> List.iter (fun (group, matches) ->
          if not (Common.null matches) then
            Fmt_helpers.pp_heading ppf
