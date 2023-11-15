@@ -49,7 +49,7 @@ module G = AST_generic
  *)
 type env = {
   (* when we parse a pattern, the filename is fake ("<pattern_file>") *)
-  file : Common.filename;
+  file : string; (* filename *)
   (* This is the literal text of the program.
      We will use this to help us find the proper content of a metavariable matching
      a "folded" or "literal" style string.
@@ -57,7 +57,7 @@ type env = {
   *)
   text : string;
   (* function *)
-  charpos_to_pos : (int -> int * int) option;
+  bytepos_to_pos : (int -> int * int) option;
   (* From yaml.mli: "[parser] tracks the state of generating {!Event.t}
    * values" *)
   parser : S.parser;
@@ -143,7 +143,7 @@ let mk_bracket
   (* The end index needs to be adjusted by one because the token is off *)
   let e_index' = e_index - 1 in
   let e_line, e_column =
-    match env.charpos_to_pos with
+    match env.bytepos_to_pos with
     | None -> (e_line, e_column)
     | Some f ->
         let e_line, e_column = f e_index' in
@@ -564,14 +564,14 @@ let preprocess_yaml str =
 
 let mask_unicode str =
   (* The YAML parser returns the charpos as the number of unicode (not 8-bit)
-     characters. However, Parse_info.full_charpos_to_pos expects the charpos
+     characters. However, the bytepos_to_pos function expects the bytepos
      to be the number of 8-bit characters. This difference causes incorrect
      line/col to be assigned to the end tokens of mappings after unicode
      characters. *)
   (* Note that the YAML parser does return a correct line and col, which we
      use everywhere else. However, it gives an exclusive end when returning
      the token that ends a mapping/sequence/other bracket, whereas Semgrep
-     expects an inclusive end. To adjust this, we currently need the charpos *)
+     expects an inclusive end. To adjust this, we currently need the bytepos *)
   let char_range = 128 in
   let control_char_start_range = 32 in
   let control_char_end_range = 1 in
@@ -593,13 +593,15 @@ let mask_unicode str =
 let parse_yaml_file ~is_target file str =
   (* we do not preprocess the yaml here; ellipsis should be transformed
    * only in the pattern *)
-  let charpos_to_pos = Some (Pos.full_charpos_to_pos_large file) in
+  let bytepos_to_pos =
+    Some (Pos.full_converters_large file).bytepos_to_linecol_fun
+  in
   let parser = get_res file (S.parser str) in
   let env =
     {
       file;
       text = str;
-      charpos_to_pos;
+      bytepos_to_pos;
       parser;
       anchors = Hashtbl.create 1;
       last_event = None;
@@ -619,7 +621,7 @@ let any str =
     {
       file;
       text = str;
-      charpos_to_pos = None;
+      bytepos_to_pos = None;
       parser;
       anchors = Hashtbl.create 1;
       last_event = None;

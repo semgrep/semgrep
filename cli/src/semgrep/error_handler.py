@@ -48,7 +48,9 @@ class ErrorHandler:
         if sys.exc_info()[0] is not None:
             self.payload["error"] = "".join(traceback.format_exc())
         elif e is not None:
-            self.payload["error"] = "".join(traceback.format_exception(e))
+            exc_type = e.__class__
+            tb = e.__traceback__
+            self.payload["error"] = "".join(traceback.format_exception(exc_type, e, tb))
 
     @property
     def is_enabled(self) -> bool:

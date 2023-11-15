@@ -415,6 +415,8 @@ let visitor_info_of_tok f = function
   | TIdent_MacroIterator (s, i) -> TIdent_MacroIterator (s, f i)
   | TIdent_MacroDecl (s, i) -> TIdent_MacroDecl (s, f i)
   | Tconst_MacroDeclConst i -> Tconst_MacroDeclConst (f i)
+  | Tfinal i -> Tfinal (f i)
+  | Toverride i -> Toverride (f i)
   (*  | TMacroTop          (s,i) -> TMacroTop             (s,f i) *)
   | TCPar_EOL i -> TCPar_EOL (f i)
   | TAny_Action i -> TAny_Action (f i)

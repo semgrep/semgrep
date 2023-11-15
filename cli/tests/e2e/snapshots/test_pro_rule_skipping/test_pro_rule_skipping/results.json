@@ -9,6 +9,7 @@
       "type": "Missing plugin"
     }
   ],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/pro-rule-skipping/x.cls"

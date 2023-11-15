@@ -337,6 +337,10 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
   | "pattern-inside" -> R.Inside (t, get_formula ~allow_string:true env value)
   | "pattern-not-inside" ->
       R.Not (t, R.Inside (t, get_formula ~allow_string:true env value))
+  | "semgrep-internal-pattern-anywhere" -> (
+      match parse_str_or_dict env value with
+      | Left _ -> R.Anywhere (t, R.P (get_pattern value))
+      | Right dict -> R.Anywhere (t, parse_formula_old_from_dict env dict))
   | "pattern-either" ->
       R.Or (t, parse_listi env key (get_nested_formula_in_list env) value)
   | "patterns" ->
@@ -544,7 +548,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
 (*****************************************************************************)
 
 let formula_keys =
-  [ "pattern"; "all"; "any"; "regex"; "taint"; "not"; "inside" ]
+  [ "pattern"; "all"; "any"; "regex"; "taint"; "not"; "inside"; "anywhere" ]
 
 let find_formula env (rule_dict : dict) : key * G.expr =
   match find_some_opt (Hashtbl.find_opt rule_dict.h) formula_keys with
@@ -766,6 +770,7 @@ and parse_pair env ((key, value) : key * G.expr) : R.formula =
   | "pattern" -> R.P (get_string_pattern value)
   | "not" -> R.Not (t, parse_formula env value)
   | "inside" -> R.Inside (t, parse_formula env value)
+  | "anywhere" -> R.Anywhere (t, parse_formula env value)
   | "all" ->
       let conjuncts = parse_listi env key parse_formula value in
       let pos, _ = R.split_and conjuncts in

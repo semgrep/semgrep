@@ -1,0 +1,4 @@
+In the metrics sent we now record the languages for which we invoked the interfile engine.
+This will enable us to measure the performance impact and error rates of new interfile
+languages. (For scans which don't send metrics, there is no change.) See the PRIAVCY.md
+for more information.
