@@ -421,6 +421,9 @@ let core_output_of_matches_and_errors (res : Core_result.t) : Out.core_output =
     explanations =
       res.explanations |> Option.map (Common.map explanation_to_explanation);
     rules_by_engine = Some res.rules_by_engine;
+    interfile_languages_used =
+      Some
+        (Common.map (fun l -> Xlang.to_string l) res.interfile_languages_used);
     engine_requested = Some `OSS;
     version = Some Version.version;
   }

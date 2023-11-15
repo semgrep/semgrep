@@ -962,10 +962,13 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
            Hashtbl.mem scanned_target_table x.path)
     |> Common.map (fun x -> Fpath.v x.In.path)
   in
+  (* Since the OSS engine was invoked, there were no interfile languages
+     requested *)
+  let interfile_languages_used = [] in
   let res =
     RP.make_final_result file_results
       (Common.map (fun r -> (r, `OSS)) valid_rules)
-      invalid_rules scanned ~rules_parse_time
+      invalid_rules scanned interfile_languages_used ~rules_parse_time
   in
   logger#info "found %d matches, %d errors"
     (List.length res.matches_with_fixes)
