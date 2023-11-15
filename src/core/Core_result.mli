@@ -8,9 +8,16 @@ type 'a match_result = {
 }
 [@@deriving show]
 
+(* See the .ml file for why we have this instead of just matches. *)
+type processed_match = {
+  pm : Pattern_match.t;
+  is_ignored : bool; [@default false]
+  autofix_edit : Textedit.t option; [@default None]
+}
+[@@deriving show]
+
 type t = {
-  (* See the .ml file for why this is here. *)
-  matches_with_fixes : (Pattern_match.t * Textedit.t option) list;
+  processed_matches : processed_match list;
   errors : Core_error.t list;
   (* extra information useful to also give to the user (in JSON or
    * in textual reports) or for tools (e.g., the playground).
@@ -35,6 +42,8 @@ type t = {
 [@@deriving show]
 
 type result_or_exn = (t, Exception.t * Core_error.t option) result
+
+val mk_processed_match : Pattern_match.t -> processed_match
 
 (* Intermediate match result.
  * The 'a below can be substituted with different profiling types

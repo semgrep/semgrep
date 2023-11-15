@@ -353,7 +353,8 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
     max_match_per_file matches =
   let per_files =
     matches
-    |> Common.map (fun (m, _) -> (m.Pattern_match.file, m))
+    |> Common.map (fun ({ pm; _ } : Core_result.processed_match) ->
+           (pm.file, pm))
     |> Common.group_assoc_bykey_eff
   in
   let offending_file_list =
@@ -364,8 +365,8 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
   let offending_files = Common.hashset_of_list offending_file_list in
   let new_matches =
     matches
-    |> Common.exclude (fun (m, _) ->
-           Hashtbl.mem offending_files m.Pattern_match.file)
+    |> Common.exclude (fun ({ pm; _ } : Core_result.processed_match) ->
+           Hashtbl.mem offending_files pm.file)
   in
   let new_errors, new_skipped =
     offending_file_list
@@ -968,12 +969,12 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
       invalid_rules scanned ~rules_parse_time
   in
   logger#info "found %d matches, %d errors"
-    (List.length res.matches_with_fixes)
+    (List.length res.processed_matches)
     (List.length res.errors);
 
-  let matches_with_fixes, new_errors, new_skipped =
+  let processed_matches, new_errors, new_skipped =
     filter_files_with_too_many_matches_and_transform_as_timeout
-      config.max_match_per_file res.matches_with_fixes
+      config.max_match_per_file res.processed_matches
   in
 
   (* note: uncomment the following and use semgrep-core -stat_matches
@@ -997,7 +998,7 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
         Core_profiling.Debug { skipped_targets; profiling }
     | (Core_profiling.Time _ | Core_profiling.No_info) as x -> x
   in
-  { res with matches_with_fixes; errors; extra }
+  { res with processed_matches; errors; extra }
 
 (*****************************************************************************)
 (* Entry point *)

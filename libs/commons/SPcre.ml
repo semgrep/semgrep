@@ -177,8 +177,12 @@ let replace_first ?iflags ?flags ~rex ?pos ?callout ~template subj =
 let extract_all ?iflags ?flags ~rex ?pos ?full_match ?callout subj =
   Pcre.extract_all ?iflags ?flags ~rex:rex.regexp ?pos ?full_match ?callout subj
 
-let get_named_substring rex name substrings =
-  try Ok (Some (Pcre.get_named_substring rex.regexp name substrings)) with
+let get_named_substring_and_ofs rex name substrings =
+  try
+    let substring = Pcre.get_named_substring rex.regexp name substrings in
+    let ofs = Pcre.get_named_substring_ofs rex.regexp name substrings in
+    Ok (Some (substring, ofs))
+  with
   | Not_found -> Ok None
   | Invalid_argument msg ->
       Error (sprintf "Invalid argument: %s\nSource pattern: %S" msg rex.pattern)

@@ -375,6 +375,7 @@ def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> Rule
         engine_kind=cli_match_extra.engine_kind
         if cli_match_extra.engine_kind
         else out.EngineKind(out.OSS()),
+        is_ignored=False,
     )
     return RuleMatch(
         message=join_rule.get(

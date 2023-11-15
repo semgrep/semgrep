@@ -183,6 +183,8 @@ def core_matches_to_rule_matches(
         else:
             fix = None
 
+        is_ignored = match.extra.is_ignored
+
         # this validation for fix_regex code was in autofix.py before
         # TODO: this validation should be done in rule.py when parsing the rule
         if rule.fix_regex:
@@ -208,6 +210,7 @@ def core_matches_to_rule_matches(
             metadata=metadata,
             severity=match.extra.severity if match.extra.severity else rule.severity,
             fix=fix,
+            is_ignored=is_ignored,
         )
 
     # TODO: Dict[out.RuleId, RuleMatchSet]

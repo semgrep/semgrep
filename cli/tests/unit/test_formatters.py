@@ -64,6 +64,7 @@ def create_taint_rule_match():
                     ),
                 ),
                 engine_kind=out.EngineKind(out.OSS()),
+                is_ignored=False,
             ),
         ),
     )
