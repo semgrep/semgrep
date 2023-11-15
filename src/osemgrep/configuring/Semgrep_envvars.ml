@@ -17,6 +17,10 @@ open File.Operators
    exn for any reason during the init, it will be raised even before
    main() is called, which leaves no room for error handling and
    better error messaging.
+
+   TODO: switch to cmdliner, like we did in Git_metadata.mli so
+   those variables can be combined in xxx_CLI.ml and be part
+   of the man pages of those commands!
 *)
 
 (*****************************************************************************)

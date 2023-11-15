@@ -38,6 +38,14 @@ val setup_logging :
   unit ->
   unit
 
+(* [with_mocked_log f final] will execute [f] in an environment
+ * where [setup_logging()] above is mostly converted in a noop and where
+ * logs are stored in a buffer. The content of this buffer is
+ * then accessible to the [final] function after [f] has finished
+ * and can be inspected to assert certain log events occured.
+ *)
+val with_mocked_logs : f:(unit -> 'a) -> final:(string -> 'a -> unit) -> unit
+
 (* TODO:
    Logs.Error, Logs.Warning, and friends should apply the appropriate color
    and tag prefix (e.g. ERROR) to the message. For now, those functions can

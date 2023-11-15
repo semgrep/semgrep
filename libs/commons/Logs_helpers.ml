@@ -33,6 +33,9 @@ let default_skip_libs =
     "x509";
   ]
 
+(* used for testing *)
+let disable_set_reporter = ref false
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -99,7 +102,8 @@ let setup_logging ?(skip_libs = default_skip_libs) ~force_color ~level () =
   Logs.set_level ~all:true level;
   let with_timestamp = level =*= Some Logs.Debug in
   time_program_start := now ();
-  Logs.set_reporter (reporter ~with_timestamp ());
+  if not !disable_set_reporter then
+    Logs.set_reporter (reporter ~with_timestamp ());
   (* from https://github.com/mirage/ocaml-cohttp#debugging *)
   (* Disable all third-party libs logs *)
   Logs.Src.list ()
@@ -109,6 +113,38 @@ let setup_logging ?(skip_libs = default_skip_libs) ~force_color ~level () =
          (* those are the one we are really interested in *)
          | "application" -> ()
          | s -> failwith ("Logs library not handled: " ^ s))
+
+(*****************************************************************************)
+(* Test helpers *)
+(*****************************************************************************)
+
+let with_mocked_logs ~f ~final =
+  Logs.set_reporter
+    {
+      Logs.report =
+        (fun (_src : Logs.src) (_level : Logs.level) ~over k msgf ->
+          let k _ =
+            over ();
+            k ()
+          in
+          msgf (fun ?header:_ ?tags:_ fmt ->
+              let (ppf : Format.formatter) = Format.str_formatter in
+              Format.kfprintf k ppf fmt));
+    };
+  (* TODO? use Fun.finalize? *)
+  disable_set_reporter := true;
+  (* f() might call setup_logging() internally, but this will not
+   * call Logs.set_reporter and override the reporter we set above
+   * thx to disable_set_reporter
+   *)
+  let res = f () in
+  disable_set_reporter := false;
+  let content = Format.flush_str_formatter () in
+  final content res
+
+(*****************************************************************************)
+(* TODO: remove those (see .mli) *)
+(*****************************************************************************)
 
 let err_tag ?(tag = " ERROR ") () =
   ANSITerminal.sprintf
