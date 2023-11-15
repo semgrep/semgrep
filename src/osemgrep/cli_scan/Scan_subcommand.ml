@@ -190,27 +190,27 @@ let print_feature_section ~(includes_token : bool) ~(engine : Engine_type.t) :
   in
   let features =
     [
-      ( ( "Semgrep OSS",
-          "Basic security coverage for first-party code vulnerabilities." ),
+      ( "Semgrep OSS",
+        "Basic security coverage for first-party code vulnerabilities.",
         true );
-      ( ( "Semgrep Code (SAST)",
-          "Find and fix vulnerabilities in the code you write with advanced \
-           scanning and expert security rules." ),
+      ( "Semgrep Code (SAST)",
+        "Find and fix vulnerabilities in the code you write with advanced \
+         scanning and expert security rules.",
         includes_token );
-      ( ( "Semgrep Secrets",
-          "Detect and validate potential secrets in your code." ),
+      ( "Semgrep Secrets",
+        "Detect and validate potential secrets in your code.",
         secrets_enabled );
     ]
   in
   (* Print our set of features and whether each is enabled *)
   List.iter
-    (fun tup ->
+    (fun (feature_name, desc, is_enabled) ->
       Logs.app (fun m ->
           m "%s %s"
-            (snd tup |> feature_status_str)
-            (Ocolor_format.asprintf {|@{<bold>%s@}|} (fst (fst tup))));
+            (feature_status_str ~enabled:is_enabled)
+            (Ocolor_format.asprintf {|@{<bold>%s@}|} feature_name));
       Logs.app (fun m ->
-          m "  %s %s\n" (snd tup |> feature_status_str) (snd (fst tup))))
+          m "  %s %s\n" (feature_status_str ~enabled:is_enabled) desc))
     features;
   ()
 
@@ -660,19 +660,17 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
      Ideally, pattern mode should be a different subcommand, but for now we will
      conditionally print the feature section.
   *)
-  if new_cli_ux then
-    (fun () ->
-      match conf.rules_source with
-      | Pattern _ ->
-          Logs.app (fun m ->
-              m "%s"
-                (Ocolor_format.asprintf {|@{<bold>  %s@}|}
-                   "Code scanning at ludicrous speed.\n"))
-      | _ ->
-          print_feature_section
-            ~includes_token:(settings.api_token <> None)
-            ~engine:conf.engine_type)
-      ();
+  (if new_cli_ux then
+     match conf.rules_source with
+     | Pattern _ ->
+         Logs.app (fun m ->
+             m "%s"
+               (Ocolor_format.asprintf {|@{<bold>  %s@}|}
+                  "Code scanning at ludicrous speed.\n"))
+     | _ ->
+         print_feature_section
+           ~includes_token:(settings.api_token <> None)
+           ~engine:conf.engine_type);
 
   (* step0: potentially notify user about metrics *)
   if not (settings.has_shown_metrics_notification =*= Some true) then (
