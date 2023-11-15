@@ -4,18 +4,6 @@ const { EngineFactory } = require("../dist/index.cjs");
 
 const enginePromise = EngineFactory("./dist/semgrep-engine.wasm");
 
-// for masking the JSON output of the engine
-function maskResult(result) {
-  result["version"] = "<MASKED>";
-  // The fingerprint here is inconsistent across CI and locally.
-  // We don't know why. It appears to not be because of the OCaml translation,
-  // because the blakejs library was also inconsistent across platforms.
-  result["results"].map(
-    (match) => (match["extra"]["fingerprint"] = "<MASKED>")
-  );
-  return result;
-}
-
 describe("engine", () => {
   test("handles valid language", async () => {
     const engine = await enginePromise;
@@ -44,7 +32,7 @@ describe("engine", () => {
   });
 });
 
-function executeTest(engine, language, ruleFile, targetFile) {
+function executeSnapshotTest(engine, language, ruleFile, targetFile) {
   const rulePath = path.resolve(`${__dirname}/${ruleFile}`);
   const targetPath = path.resolve(`${__dirname}/${targetFile}`);
 
@@ -55,29 +43,29 @@ function executeTest(engine, language, ruleFile, targetFile) {
       .replaceAll(targetPath, targetFile)
       .replaceAll("PRO", "OSS")
   );
-  return maskResult(result);
+  result["version"] = "<MASKED>";
+  // The fingerprint here is inconsistent across CI and locally.
+  // We don't know why. It appears to not be because of the OCaml translation,
+  // because the blakejs library was also inconsistent across platforms.
+  result["results"].map(
+    (match) => (match["extra"]["fingerprint"] = "<MASKED>")
+  );
+  expect(result).toMatchSnapshot();
 }
 
 describe("yaml parser", () => {
   test("parses a simple pattern", async () => {
     const engine = await enginePromise;
-    const result = executeTest(
-      engine,
-      "yaml",
-      "test-rule-yaml.json",
-      "test.yaml"
-    );
-    expect(result).toMatchSnapshot();
+    executeSnapshotTest(engine, "yaml", "test-rule-yaml.json", "test.yaml");
   });
   test("parses a pattern with pattern-regex", async () => {
     const engine = await enginePromise;
-    const result = executeTest(
+    executeSnapshotTest(
       engine,
       "yaml",
       "test-rule-yaml-regex.json",
       "test.yaml"
     );
-    expect(result).toMatchSnapshot();
   });
 });
 
@@ -86,28 +74,22 @@ describe("misc", () => {
     const engine = await enginePromise;
     const python = require("../../languages/python/dist/index.cjs");
     engine.addParser(await python.ParserFactory());
-    const result = executeTest(
+    executeSnapshotTest(
       engine,
       "python",
       "test-representation.json",
       "test-representation.py"
     );
-    // we expect the result to have length 1, because the metavariable
-    // comparison succeeds
-    expect(result.results).toHaveLength(1);
   });
   test("interpolates metavariables in rule message", async () => {
     const engine = await enginePromise;
     const python = require("../../languages/python/dist/index.cjs");
     engine.addParser(await python.ParserFactory());
-    const result = executeTest(
+    executeSnapshotTest(
       engine,
       "python",
       "test-interpolate-metavars.json",
       "test.py"
-    );
-    expect(result.results[0].extra.message).toBe(
-      'Print content is "Hello World"'
     );
   });
 });
