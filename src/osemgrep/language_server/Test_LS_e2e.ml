@@ -16,6 +16,7 @@
 open Lsp
 open Types
 open Jsonrpc
+open File.Operators
 module Out = Semgrep_output_v1_t
 module In = Input_to_core_t
 module SR = Server_request
@@ -90,16 +91,21 @@ let create_info () =
 
 (* These tests are run separately from both the JS side and the regular Semgrep
    side.
-   To ensure they can find the path properly, we just go backwards until we
-   find the directoroy named "semgrep".
 *)
-let rec backtrack path =
-  match Fpath.basename path with
-  | "semgrep" ->
-      Fpath.(path / "cli" / "tests" / "e2e" / "targets" / "ls" / "rules.yaml")
-  | _ -> backtrack (Fpath.parent path)
 
-let rule_path = backtrack (Fpath.v (Sys.getcwd ()))
+(*
+   This makes a system call that interferes with lwt's event loop.
+   Be careful.
+*)
+let get_rule_path () =
+  match Git_wrapper.get_project_root () with
+  | Some root ->
+      Fpath.(root / "cli" / "tests" / "e2e" / "targets" / "ls" / "rules.yaml")
+  | None ->
+      failwith "The test program must run from within the semgrep git project"
+
+(* We run this here because we can't run it during lwt's event loop. *)
+let rule_path = get_rule_path ()
 
 let default_content =
   {|
@@ -234,28 +240,30 @@ let receive_request (info : info) : Request.t Lwt.t =
 (*****************************************************************************)
 
 let git_tmp_path () =
-  Testutil_files.with_tempdir ~persist:true (fun dir ->
-      let dir = Fpath.to_string dir in
-      (* I don't know why, but the tests will hang in OCaml if we do
-         not chdir here.
-      *)
-      if not !Common.jsoo then Sys.chdir dir;
-      checked_command (String.concat " " [ "git"; "-C"; dir; "init" ]);
+  let _orig_dir = Sys.getcwd () in
+  Testutil_files.with_tempdir ~persist:true (*~chdir:true*) (fun dir ->
+      (* TODO: investigate/report
+         Mysterious bug: the test will hang as we chdir back into the original
+         directory. *)
+      if not !Common.jsoo then Sys.chdir !!dir;
+      checked_command (String.concat " " [ "git"; "-C"; !!dir; "init" ]);
       checked_command
         (String.concat " "
            [
              "git";
              "-C";
-             dir;
+             !!dir;
              "config";
              "user.email";
              "baselinetest@semgrep.com";
            ]);
       checked_command
         (String.concat " "
-           [ "git"; "-C"; dir; "config"; "user.name"; "Baseline Test" ]);
+           [ "git"; "-C"; !!dir; "config"; "user.name"; "Baseline Test" ]);
       checked_command
-        (String.concat " " [ "git"; "-C"; dir; "checkout"; "-B"; "main" ]);
+        (String.concat " " [ "git"; "-C"; !!dir; "checkout"; "-B"; "main" ]);
+      (* !!!!!!!!!!!!!!! This call causes hanging !!!!!!!!!!!!!!! *)
+      (* Sys.chdir _orig_dir; *)
       dir)
 
 let assert_contains (json : Json.t) str =
@@ -264,7 +272,7 @@ let assert_contains (json : Json.t) str =
     Alcotest.failf "Expected string `%s` in response %s" str json_str
 
 let mock_files () : _ * Fpath.t list =
-  let git_tmp_path = Fpath.v (git_tmp_path ()) in
+  let git_tmp_path = git_tmp_path () in
 
   let open Fpath in
   let root = git_tmp_path in
