@@ -139,11 +139,24 @@ workflows:
   # no triggers, runs on every PRs
   semgrep:
     jobs:
-      - semgrep
+      - semgrep:
+          filters:
+            branches:
+              # we ignore those branches which are used by semgrep-ci
+              # because we can't signup semgrep-ci github app in circleCI
+              # and get annoying "block-unregister-user" error on those PRs
+              ignore:
+                - /release-.*/
+                - /update-semgrep-rules-.*/
 
   build-and-check:
     jobs:
-      - build-ubuntu
+      - build-ubuntu:
+          filters:
+            branches:
+              ignore:
+                - /release-.*/
+                - /update-semgrep-rules-.*/
 
   #----------------------------------------
   # Crons
