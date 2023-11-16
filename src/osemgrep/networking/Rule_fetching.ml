@@ -104,6 +104,8 @@ let fetch_content_from_url_async ?(token_opt = None) (url : Uri.t) :
     string Lwt.t =
   (* TOPORT? _nice_semgrep_url() *)
   Logs.debug (fun m -> m "trying to download from %s" (Uri.to_string url));
+  let spinner_stopper = ref false in
+  Console_Spinner.spinner_async spinner_stopper;
   let content =
     let headers =
       match token_opt with
@@ -112,13 +114,22 @@ let fetch_content_from_url_async ?(token_opt = None) (url : Uri.t) :
     in
     let%lwt res = Http_helpers.get_async ?headers url in
     match res with
-    | Ok body -> Lwt.return body
+    | Ok body ->
+        (* Mark our spinner as completed *)
+        spinner_stopper := true;
+        (* Flush any pending output to prevent surprises *)
+        let%lwt () = Lwt_io.flush Lwt_io.stdout in
+        (* Clean up the loading indicator *)
+        ANSITerminal.set_cursor 1 (-1);
+        ANSITerminal.move_bol ();
+        ANSITerminal.erase ANSITerminal.Below;
+        (* Return the actual http response *)
+        Lwt.return body
     | Error msg ->
         (* was raise Semgrep_error, but equivalent to abort now *)
         Error.abort
           (spf "Failed to download config from %s: %s" (Uri.to_string url) msg)
   in
-  Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
   content
 
 let fetch_content_from_url ?(token_opt = None) (url : Uri.t) : string =
