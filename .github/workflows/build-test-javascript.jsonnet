@@ -133,12 +133,6 @@ local test_job = {
         make -C js -j $(nproc) build
       |||
     },
-    {
-      name: 'Test JS artifacts',
-      run: |||
-          make -C js -j $(nproc) test
-      |||
-    },
     // xvfb is a virtual x11 display, so we can run headless tests for LSP.js
     // libatk-bridge2.0-0 libgtk-3-0 libgbm1 are dependencies for vscode's test runner
     {

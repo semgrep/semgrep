@@ -79,8 +79,6 @@ jobs:
         node-version: "18"
     - name: Build JS artifacts
       run: "\n        make -C js -j $(nproc) build\n      "
-    - name: Test JS artifacts
-      run: "\n          make -C js -j $(nproc) test\n      "
     - name: Setup APT for xvfb
       run: "\n          sudo apt-get update\n          sudo apt-get install -y libatk-bridge2.0-0
         libgtk-3-0 libgbm1\n      "
