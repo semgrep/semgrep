@@ -117,7 +117,10 @@ let run (conf : conf) : Exit_code.t =
           |> Common.map_filter (fun (x : Rule_fetching.rules_and_origin) ->
                  match x.origin with
                  | Local_file path -> Some path
-                 | _ ->
+                 | CLI_argument
+                 | Registry
+                 | App
+                 | Untrusted_remote _ ->
                      (* TODO: stricter: warn if we didn't validate since it
                       * wasn't in a local file already (e.g., registry or other
                       * remote URI)
