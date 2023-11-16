@@ -369,13 +369,6 @@ def scan_options(func: Callable) -> Callable:
     "--x-ls",
     is_flag=True,
     default=False,
-    help=(
-        "[INTERNAL] List the selected target files and the skipped target"
-        " files before any rule-specific or language-specific filtering. Then exit."
-        " The output format is unspecified."
-        " THIS OPTION IS NOT PART OF THE SEMGREP API AND MAY"
-        " CHANGE OR DISAPPEAR WITHOUT NOTICE."
-    ),
 )
 @optgroup.group("Test and debug options")
 @optgroup.option("--test", is_flag=True, default=False)
