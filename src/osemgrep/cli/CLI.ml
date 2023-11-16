@@ -188,7 +188,6 @@ let dispatch_subcommand argv =
          * down when we know we don't handle certain kind of arguments).
          *)
         | "install-semgrep-pro" when experimental -> missing_subcommand ()
-        | "publish" when experimental -> missing_subcommand ()
         | "login" when experimental -> Login_subcommand.main subcmd_argv
         | "logout" when experimental -> Logout_subcommand.main subcmd_argv
         | "lsp" -> Lsp_subcommand.main subcmd_argv
@@ -196,6 +195,7 @@ let dispatch_subcommand argv =
         | "scan" -> Scan_subcommand.main subcmd_argv
         | "ci" -> Ci_subcommand.main subcmd_argv
         (* osemgrep-only: and by default! no need experimental! *)
+        | "publish" when experimental -> Publish_subcommand.main subcmd_argv
         | "install-ci" -> Install_subcommand.main subcmd_argv
         | "interactive" -> Interactive_subcommand.main subcmd_argv
         | "show" -> Show_subcommand.main subcmd_argv
