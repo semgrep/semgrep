@@ -101,27 +101,29 @@ let tests_with_delayed_error () =
   | e ->
       let exn = Exception.catch e in
       [
-        ( "cannot load test data - not a real test",
+        ( "ERROR DURING TEST SUITE INITIALIZATION",
           fun () -> Exception.reraise exn );
       ]
 
 let main () =
   (* find the root of the semgrep repo as many of our tests rely on
      'let test_path = "tests/"' to find their test files *)
-  let rec parent changed =
-    if Sys.getcwd () = "/" then invalid_arg "couldn't find semgrep root"
-    else if not (Sys.file_exists ".git" && Sys.is_directory ".git") then (
-      Sys.chdir "..";
-      parent true)
-    else changed
+  let repo_root =
+    match Git_wrapper.get_project_root () with
+    | Some path -> path
+    | None ->
+        failwith
+          "You must run the test program from within the semgrep repo and not \
+           one of its submodules."
   in
-  if parent false then print_endline ("changed directory to " ^ Sys.getcwd ());
-  Http_helpers.client_ref := Some (module Cohttp_lwt_unix.Client);
-  Parsing_init.init ();
-  Data_init.init ();
-  Core_CLI.register_exception_printers ();
-  Logs_helpers.setup_logging ~force_color:false ~level:(Some Logs.Debug) ();
-  let alcotest_tests = Testutil.to_alcotest (tests_with_delayed_error ()) in
-  Alcotest.run "semgrep-core" alcotest_tests
+  Testutil_files.with_chdir repo_root (fun () ->
+      print_endline ("Running tests from directory: " ^ Sys.getcwd ());
+      Http_helpers.client_ref := Some (module Cohttp_lwt_unix.Client);
+      Parsing_init.init ();
+      Data_init.init ();
+      Core_CLI.register_exception_printers ();
+      Logs_helpers.setup_logging ~force_color:false ~level:(Some Logs.Debug) ();
+      let alcotest_tests = Testutil.to_alcotest (tests_with_delayed_error ()) in
+      Alcotest.run "semgrep-core" alcotest_tests)
 
 let () = main ()

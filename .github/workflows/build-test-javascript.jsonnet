@@ -108,6 +108,7 @@ local test_job = {
   steps: [
     restore_from_cache,
     gha.speedy_checkout_step + guard_cache_hit,
+    gha.git_safedir,
     actions.checkout_with_submodules() + guard_cache_hit,
     {
       name: 'Set up tree-sitter',
@@ -152,6 +153,10 @@ local test_job = {
       uses: 'coactions/setup-xvfb@v1',
       with: {
         run: |||
+            # Allow 'git rev-parse --show-toplevel' even though the owner of the
+            # semgrep folder is different than the owner of its contents.
+            # Needed by OCaml test code to determine the project root.
+            git config --global --add safe.directory /__w/semgrep/semgrep
             make -C js/language_server test
         |||
 
