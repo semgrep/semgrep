@@ -145,15 +145,12 @@ let get_header req header =
 (*****************************************************************************)
 
 let with_testing_client make_fn test_fn () =
-  let prev_client = !Http_helpers.client_ref in
   let new_client : (module Cohttp_lwt.S.Client) =
     (module Make (struct
       let make_response = make_fn
     end))
   in
-  Http_helpers.client_ref := Some new_client;
-  test_fn ();
-  Http_helpers.client_ref := prev_client
+  Common.save_excursion Http_helpers.client_ref (Some new_client) test_fn
 
 (*****************************************************************************)
 (* Saved Request/Reponse Mocking *)

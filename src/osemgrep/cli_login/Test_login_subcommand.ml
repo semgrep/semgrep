@@ -47,8 +47,10 @@ type result = { exit_code : Exit_code.t; logs : string }
 
 let with_logs ~f ~final =
   Logs_helpers.with_mocked_logs ~f ~final:(fun log_content res ->
+      pr2 (spf "logs = %s" log_content);
       final { exit_code = res; logs = log_content })
 
+(* TODO: factorize with Unit_LS.with_mock_envvars *)
 let with_semgrep_envvar envvar str f =
   with_setenv envvar str (fun () ->
       Semgrep_envvars.with_envvars (Semgrep_envvars.of_current_sys_env ()) f)
@@ -59,6 +61,17 @@ let with_login_test_env f () =
       with_semgrep_envvar "SEMGREP_SETTINGS_FILE"
         !!(tmp_path / "settings.yaml")
         f)
+
+let with_fake_deployment_response return_value f =
+  let make_response_fn (req : Cohttp.Request.t) _body =
+    match Uri.path (Cohttp.Request.uri req) with
+    | "/api/agent/deployments/current" ->
+        Http_mock_client.check_method `GET req.meth;
+        let response_body = return_value |> Cohttp_lwt.Body.of_string in
+        Lwt.return Http_mock_client.(basic_response response_body)
+    | url -> Alcotest.fail (spf "unexpected request: %s" url)
+  in
+  Http_mock_client.with_testing_client make_response_fn f ()
 
 (*****************************************************************************)
 (* Tests *)
@@ -74,7 +87,6 @@ let test_logout_not_logged_in : Testutil.test =
         with_logs
           ~f:(fun () -> Logout_subcommand.main [| "semgrep-logout" |])
           ~final:(fun res ->
-            pr2 (spf "logs = %s" res.logs);
             assert (res.logs =~ ".*You are not logged in");
             assert (res.exit_code =*= Exit_code.ok))) )
 
@@ -93,27 +105,36 @@ let test_login_no_tty : Testutil.test =
             Unix.dup2 old_stdin Unix.stdin;
             exit_code)
           ~final:(fun res ->
-            pr2 (spf "logs = %s" res.logs);
             assert (res.logs =~ ".*meant to be run in an interactive terminal");
             assert (res.exit_code =*= Exit_code.fatal))) )
 
 (* This token does not have to be valid because we mock the function
  * that checks for its validation (XXX)
  *)
-let fake_token = "fake1234"
+let fake_token = "token1234"
+
+(* deployment_response in semgrep_output_v1.atd
+ * alt: could build one using Semgrep_output_v1_j
+ *)
+let fake_deployment =
+  {|
+  { "deployment":
+    { "id": 1234,
+      "name": "deployment1234"
+    }
+  }
+|}
 
 let test_login_with_env_token : Testutil.test =
   ( __FUNCTION__,
     with_login_test_env (fun () ->
-        with_logs
-          ~f:(fun () ->
-            Semgrep_envvars.with_envvars
-              { !Semgrep_envvars.v with app_token = Some fake_token } (fun () ->
-                Login_subcommand.main [| "semgrep-login" |]))
-          ~final:(fun res ->
-            pr2 (spf "logs = %s" res.logs);
-            assert (res.logs =~ ".*You are not logged in");
-            assert (res.exit_code =*= Exit_code.ok))) )
+        with_semgrep_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->
+            with_fake_deployment_response fake_deployment (fun () ->
+                with_logs
+                  ~f:(fun () -> Login_subcommand.main [| "semgrep-login" |])
+                  ~final:(fun res ->
+                    assert (res.logs =~ "[.\n]*Saved access token");
+                    assert (res.exit_code =*= Exit_code.ok))))) )
 
 (*****************************************************************************)
 (* Entry point *)
