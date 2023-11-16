@@ -37,7 +37,6 @@ let group_titles = function
 let sort_by_groups als =
   (* This is the order that groups will be desplayed in. *)
   let group_order = function
-    | `Merged -> 0
     | `Blocking -> 1
     | `Reachable -> 2
     | `Valid -> 3
@@ -47,6 +46,7 @@ let sort_by_groups als =
     | `Nonblocking -> 7
     | `Unreachable -> 8
     | `Invalid -> 9
+    | `Merged -> 10
   in
   let compare_group x y = group_order x - group_order y in
   als |> List.stable_sort (fun (g1, _) (g2, _) -> compare_group g1 g2)
@@ -361,9 +361,9 @@ let pp_cli_output ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
              match m.extra.validation_state with
              | Some `Confirmed_valid -> `Valid
              | Some `Confirmed_invalid -> `Invalid
-             | Some (`No_validator | `Validation_error)
-             | None ->
-                 `Unvalidated))
+             | Some `Validation_error -> `Validation_error
+             | Some `No_validator
+             | None -> `Unvalidated))
   |> (fun groups ->
        (* TO PORT:
           if not is_ci_invocation: *)
