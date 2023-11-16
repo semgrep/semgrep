@@ -118,11 +118,18 @@ let setup_logging ?(skip_libs = default_skip_libs) ~force_color ~level () =
 (* Test helpers *)
 (*****************************************************************************)
 
-(* TODO: use save_excursion on disable_set_reporter and Logs.reporter
- * to restore them
- *)
 let with_mocked_logs ~f ~final =
-  let reporter_to_format_stdbuf =
+  let buffer = Buffer.create 1000 in
+  let (ppf : Format.formatter) =
+    (* old: I was using Format.str_formatter but
+     * some libraries like Cmdliner are also using it
+     * and so parsing arguments with cmdliner has the side
+     * effect of cleaning Format.stdbuf used by str_formatter,
+     * so better to use a separate buffer
+     *)
+    Format.formatter_of_buffer buffer
+  in
+  let reporter_to_format_strbuf =
     {
       Logs.report =
         (fun (_src : Logs.src) (_level : Logs.level) ~over k msgf ->
@@ -130,22 +137,21 @@ let with_mocked_logs ~f ~final =
             over ();
             k ()
           in
-          msgf (fun ?header:_ ?tags:_ fmt ->
-              let (ppf : Format.formatter) = Format.str_formatter in
-              Format.kfprintf k ppf fmt));
+          msgf (fun ?header:_ ?tags:_ fmt -> Format.kfprintf k ppf fmt));
     }
   in
   let old_reporter = Logs.reporter () in
   Common.finalize
     (fun () ->
-      Logs.set_reporter reporter_to_format_stdbuf;
+      Logs.set_reporter reporter_to_format_strbuf;
       Common.save_excursion disable_set_reporter true (fun () ->
           (* f() might call setup_logging() internally, but this will not
            * call Logs.set_reporter and override the reporter we set above
            * thx to disable_set_reporter
            *)
           let res = f () in
-          let content = Format.flush_str_formatter () in
+          Format.pp_print_flush ppf ();
+          let content = Buffer.contents buffer in
           final content res))
     (fun () -> Logs.set_reporter old_reporter)
 

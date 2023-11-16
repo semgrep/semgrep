@@ -66,16 +66,25 @@ let test_login_no_tty : Testutil.test =
   ( __FUNCTION__,
     fun () ->
       with_login_test_env
-        ~f:(fun () -> Logout_subcommand.main [| "semgrep-logout" |])
+        ~f:(fun () ->
+          (* make stdin non-interactive so Unix.isatty Unix.stdin
+           * called in Login_subcommand.run returns false
+           *)
+          let old_stdin = Unix.dup Unix.stdin in
+          let in_, _out_ = Unix.pipe () in
+          Unix.dup2 in_ Unix.stdin;
+          let res = Login_subcommand.main [| "semgrep-login" |] in
+          Unix.dup2 old_stdin Unix.stdin;
+          res)
         ~final:(fun res ->
-          pr2 (spf "buffer = %s" res.logs);
-          assert (res.logs =~ ".*You are not logged in");
-          assert (res.exit_code =*= Exit_code.ok)) )
+          pr2 (spf "logs = %s" res.logs);
+          assert (res.logs =~ ".*meant to be run in an interactive terminal");
+          assert (res.exit_code =*= Exit_code.fatal)) )
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
 let tests =
-  pack_tests "OSemgrep Login (e2e)"
+  pack_tests "Osemgrep Login (e2e)"
     [ test_logout_already_logged_out; test_login_no_tty ]

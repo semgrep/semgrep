@@ -38,7 +38,7 @@ val setup_logging :
   unit ->
   unit
 
-(* [with_mocked_log f final] will execute [f] in an environment
+(* [with_mocked_logs ~f ~final] will execute [f] in an environment
  * where [setup_logging()] above is mostly converted in a noop and where
  * logs are stored in a buffer. The content of this buffer is
  * then accessible to the [final] function after [f] has finished

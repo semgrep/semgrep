@@ -50,7 +50,7 @@ val v : t ref
   * be modified by tests.
   *)
 
-(* For testing: [with_envvars newv f] temporary modifies [v] above to be
- * [newv] and run [f] in this new context
+(* [with_envvars newv f] temporarily modifies [v] above to be
+ * [newv] and run [f] in this new context. This is useful in tests.
  *)
 val with_envvars : t -> (unit -> 'a) -> 'a
