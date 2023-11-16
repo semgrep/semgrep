@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 open Testutil
 module Http_helpers = Http_helpers.Make (Lwt_platform)
 
@@ -27,6 +28,23 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
  *)
 
 (*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+type result = { exit_code : Exit_code.t; logs : string }
+
+let with_login_test_env ~f ~final =
+  Testutil_files.with_tempdir ~chdir:true (fun tmp_path ->
+      Semgrep_envvars.with_envvars
+        {
+          !Semgrep_envvars.v with
+          user_settings_file = tmp_path / "settings.yaml";
+        }
+        (fun () ->
+          Logs_helpers.with_mocked_logs ~f ~final:(fun log_content res ->
+              final { exit_code = res; logs = log_content })))
+
+(*****************************************************************************)
 (* Tests *)
 (*****************************************************************************)
 
@@ -34,19 +52,30 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
  * be even more "e2e" by calling CLI.main() instead, but that would require
  * to move this file out of cli_login/ because of mutual dependencies.
  *)
-let test_logout_already_logged_out () =
-  Logs_helpers.with_mocked_logs
-    ~f:(fun () -> Logout_subcommand.main [| "semgrep-logout" |])
-    ~final:(fun log_content exit_code ->
-      pr2 (spf "buffer = %s" log_content);
-      assert (log_content =~ ".*You are not logged in");
-      assert (exit_code =*= Exit_code.ok))
+let test_logout_already_logged_out : Testutil.test =
+  ( __FUNCTION__,
+    fun () ->
+      with_login_test_env
+        ~f:(fun () -> Logout_subcommand.main [| "semgrep-logout" |])
+        ~final:(fun res ->
+          pr2 (spf "logs = %s" res.logs);
+          assert (res.logs =~ ".*You are not logged in");
+          assert (res.exit_code =*= Exit_code.ok)) )
 
-(* TODO
-   Testutil_files.with_tempdir ~persist:true ~chdir:true (fun tmp_path ->
-       pr2 (spf "tmp_path = %s" !!tmp_path);
-*)
+let test_login_no_tty : Testutil.test =
+  ( __FUNCTION__,
+    fun () ->
+      with_login_test_env
+        ~f:(fun () -> Logout_subcommand.main [| "semgrep-logout" |])
+        ~final:(fun res ->
+          pr2 (spf "buffer = %s" res.logs);
+          assert (res.logs =~ ".*You are not logged in");
+          assert (res.exit_code =*= Exit_code.ok)) )
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
 
 let tests =
   pack_tests "OSemgrep Login (e2e)"
-    [ ("Logout already logged out", test_logout_already_logged_out) ]
+    [ test_logout_already_logged_out; test_login_no_tty ]

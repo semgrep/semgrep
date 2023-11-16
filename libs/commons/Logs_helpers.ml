@@ -122,7 +122,7 @@ let setup_logging ?(skip_libs = default_skip_libs) ~force_color ~level () =
  * to restore them
  *)
 let with_mocked_logs ~f ~final =
-  Logs.set_reporter
+  let reporter_to_format_stdbuf =
     {
       Logs.report =
         (fun (_src : Logs.src) (_level : Logs.level) ~over k msgf ->
@@ -133,17 +133,21 @@ let with_mocked_logs ~f ~final =
           msgf (fun ?header:_ ?tags:_ fmt ->
               let (ppf : Format.formatter) = Format.str_formatter in
               Format.kfprintf k ppf fmt));
-    };
-  (* TODO? use Fun.finalize? or save_excursion *)
-  disable_set_reporter := true;
-  (* f() might call setup_logging() internally, but this will not
-   * call Logs.set_reporter and override the reporter we set above
-   * thx to disable_set_reporter
-   *)
-  let res = f () in
-  disable_set_reporter := false;
-  let content = Format.flush_str_formatter () in
-  final content res
+    }
+  in
+  let old_reporter = Logs.reporter () in
+  Common.finalize
+    (fun () ->
+      Logs.set_reporter reporter_to_format_stdbuf;
+      Common.save_excursion disable_set_reporter true (fun () ->
+          (* f() might call setup_logging() internally, but this will not
+           * call Logs.set_reporter and override the reporter we set above
+           * thx to disable_set_reporter
+           *)
+          let res = f () in
+          let content = Format.flush_str_formatter () in
+          final content res))
+    (fun () -> Logs.set_reporter old_reporter)
 
 (*****************************************************************************)
 (* TODO: remove those (see .mli) *)

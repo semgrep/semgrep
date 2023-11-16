@@ -131,3 +131,9 @@ let v : t ref =
       in_agent = in_env "SEMGREP_AGENT";
       min_fetch_depth = env_or int_of_string "SEMGREP_GHA_MIN_FETCH_DEPTH" 0;
     }
+
+(*****************************************************************************)
+(* For testing *)
+(*****************************************************************************)
+
+let with_envvars newv f = Common.save_excursion v newv f
