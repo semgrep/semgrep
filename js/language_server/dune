@@ -1,6 +1,8 @@
 (env
  (js_of_ocaml (flags -no-inline -debug-info)))
 
+(data_only_dirs node_modules)
+
 (executables
  (names Main)
  (libraries

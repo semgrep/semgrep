@@ -163,6 +163,10 @@ dmypy.json
 
 ### custom stuff
 
+# JS stuff
+*.vscode-test
+out
+
 # semgrep-core build artifacts
 TAGS
 log_config.json

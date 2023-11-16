@@ -4,7 +4,7 @@ default: build
 include ../engine/Makefile.include
 
 .PHONY: build
-build: dist/index.cjs dist/index.mjs dist/index.d.ts
+build: out/src/server.js
 
 .PHONY: test
 test: build
@@ -23,14 +23,11 @@ package-lock.json:
 node_modules/.package-lock.json: package-lock.json
 	npm ci
 
-dist/index.cjs: src/index.js node_modules/.package-lock.json dist/semgrep-engine.js ../../_build/default/js/engine/Main.bc.js
+.PHONY: dist/Main.bc.js
+dist/Main.bc.js: ../../_build/default/js/language_server/Main.bc.js
 	mkdir -p dist
-	npx esbuild $< $(ESBUILD_DEFAULTS) --format=cjs --outfile=$@
+	cp -rf $< $@
 
-dist/index.mjs: src/index.js node_modules/.package-lock.json dist/semgrep-engine.js ../../_build/default/js/engine/Main.bc.js
+out/src/server.js: node_modules/.package-lock.json dist/semgrep-engine.js dist/Main.bc.js
 	mkdir -p dist
-	npx esbuild $< $(ESBUILD_DEFAULTS) --format=esm --outfile=$@
-
-dist/index.d.ts: src/index.d.ts
-	mkdir -p dist
-	cp $^ $@
+	npm run build
