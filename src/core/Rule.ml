@@ -227,7 +227,7 @@ and taint_sanitizer = {
 
 and taint_sink = {
   sink_id : string;  (** See 'Parse_rule.parse_taint_sink'. *)
-  sink_formula : formula;
+  sink_formula : [ `Formula of formula | `Fun_exit ];
   sink_requires : precondition_with_range option;
       (* A Boolean expression over taint labels. See also 'taint_source'.
        * The sink will only trigger a finding if the data that reaches it
@@ -837,7 +837,12 @@ let rec formula_of_mode (mode : mode) =
         | None -> []
         | Some (_, sanitizers) ->
             Common.map (fun sanitizer -> sanitizer.sanitizer_formula) sanitizers)
-      @ Common.map (fun sink -> sink.sink_formula) sinks
+      @ Common.map_filter
+          (fun sink ->
+            match sink.sink_formula with
+            | `Formula formula -> Some formula
+            | `Fun_exit -> None)
+          sinks
       @ Common.map (fun prop -> prop.propagator_formula) propagators
   | `Extract { formula; extract = _; _ } -> [ formula ]
   | `Secrets { secrets; _ } -> secrets

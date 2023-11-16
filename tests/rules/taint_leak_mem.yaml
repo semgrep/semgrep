@@ -1,0 +1,23 @@
+rules:
+  - id: test
+    message: Test
+    severity: WARNING
+    languages: [cpp]
+    options:
+      # taint_typestate: true for typestate-friendly settings ?
+      taint_only_propagate_through_assignments: true
+      taint_match_on: source
+    mode: taint
+    pattern-sources:
+      - by-side-effect: true
+        patterns:
+          - pattern: $OBJ = new $CON(...)
+          - focus-metavariable: $OBJ
+    pattern-sanitizers:
+      - by-side-effect: true
+        patterns:
+          - pattern: delete $OBJ
+          - focus-metavariable: $OBJ
+    pattern-sinks:
+      - at-exit: true
+        # requires: ...

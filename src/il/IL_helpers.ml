@@ -162,3 +162,22 @@ module LvalOrdered = struct
             ro1 ro2
     | _, _ -> Stdlib.compare lval1 lval2
 end
+
+(* TODO *)
+let any_of_node = function
+  | Enter
+  | Exit ->
+      None
+  | TrueNode e
+  | FalseNode e
+  | NCond (_, e)
+  | NReturn (_, e)
+  | NThrow (_, e) ->
+      Some (e.eorig |> IL.any_of_orig)
+  | NInstr i -> Some (i.iorig |> IL.any_of_orig)
+  | NGoto _
+  | Join
+  | NLambda _
+  | NOther _
+  | NTodo _ ->
+      None

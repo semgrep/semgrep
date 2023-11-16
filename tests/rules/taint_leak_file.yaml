@@ -1,0 +1,29 @@
+rules:
+  - id: test
+    message: Test
+    severity: WARNING
+    languages: [python]
+    options:
+      # taint_typestate: true for typestate-friendly settings ?
+      taint_only_propagate_through_assignments: true
+      taint_match_on: source
+    mode: taint
+    pattern-sources:
+      - by-side-effect: true
+        patterns:
+          - pattern: $FILE = open(...)
+          - focus-metavariable: $FILE
+    pattern-sanitizers:
+      - by-side-effect: true
+        patterns:
+          - pattern: $FILE.close(...)
+          - focus-metavariable: $FILE
+      - by-side-effect: true
+        patterns:
+          - pattern: $STORE[...] = $FILE
+          - focus-metavariable: $FILE
+        # TODO: metavariable-type on $STORE to check that it's
+        # a global variable?
+    pattern-sinks:
+      - at-exit: true
+        # requires: ...

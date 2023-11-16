@@ -392,7 +392,12 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
   let sink_id = "sink:" ^ String.concat ":" env.path in
   let parse_from_dict dict f =
     let sink_requires = take_opt dict env parse_taint_requires "requires" in
-    let sink_formula = f env dict in
+    let sink_at_exit =
+      take_opt dict env parse_bool "at-exit" |> Option.value ~default:false
+    in
+    let sink_formula =
+      if sink_at_exit then `Fun_exit else `Formula (f env dict)
+    in
     { R.sink_id; sink_formula; sink_requires }
   in
   if is_old then
@@ -402,7 +407,7 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     match parse_str_or_dict env value with
     | Left value ->
         let sink_formula =
-          R.P (Parse_rule_formula.parse_rule_xpattern env value)
+          `Formula (R.P (Parse_rule_formula.parse_rule_xpattern env value))
         in
         { sink_id; sink_formula; sink_requires = None }
     | Right dict ->

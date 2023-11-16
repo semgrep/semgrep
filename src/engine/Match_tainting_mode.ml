@@ -202,18 +202,9 @@ let mk_specialized_formula_cache (rules : R.taint_rule list) =
   let count_tbl = Formula_tbl.create 128 in
   let flat_formulas =
     rules
-    |> List.concat_map (fun rule ->
+    |> List.concat_map (fun (rule : R.taint_mode R.rule_info) ->
            let (`Taint (spec : R.taint_spec)) = rule.R.mode in
-           Common.map (fun source -> source.R.source_formula) (snd spec.sources)
-           @ Common.map
-               (fun sanitizer -> sanitizer.R.sanitizer_formula)
-               (match spec.sanitizers with
-               | None -> []
-               | Some (_, sanitizers) -> sanitizers)
-           @ Common.map (fun sink -> sink.R.sink_formula) (snd spec.sinks)
-           @ Common.map
-               (fun propagator -> propagator.R.propagator_formula)
-               spec.propagators)
+           R.formula_of_mode (`Taint spec))
   in
   flat_formulas
   |> List.iter (fun formula ->
@@ -621,7 +612,10 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
   and (sinks_ranges : (RM.t * R.taint_sink) list), expls_sinks =
     find_range_w_metas formula_cache xconf xtarget rule
       (spec.sinks |> snd
-      |> Common.map (fun (sink : R.taint_sink) -> (sink.sink_formula, sink)))
+      |> Common.map_filter (fun (sink : R.taint_sink) ->
+             match sink.sink_formula with
+             | `Formula formula -> Some (formula, sink)
+             | `Fun_exit -> None))
   in
   let sanitizers_ranges, expls_sanitizers =
     match spec.sanitizers with
@@ -706,6 +700,12 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
       is_sanitizer =
         (fun x -> any_is_in_sanitizers_matches rule x sanitizers_ranges);
       is_sink = (fun x -> any_is_in_sinks_matches rule x sinks_ranges);
+      sinks_at_exit =
+        spec.sinks |> snd
+        |> List.filter (fun (sink : R.taint_sink) ->
+               match sink.sink_formula with
+               | `Formula _ -> false
+               | `Fun_exit -> true);
       unify_mvars = config.taint_unify_mvars;
       handle_findings;
     },
@@ -870,8 +870,7 @@ let check_fundef lang options taint_config opt_ent ctx ?glob_env
     let* name = AST_to_IL.name_of_entity ent in
     Some (IL.str_of_name name)
   in
-  let _, xs = AST_to_IL.function_definition lang ~ctx fdef in
-  let flow = CFG_build.cfg_of_stmts xs in
+  let CFG_build.{ fcfg = flow; _ } = CFG_build.cfg_of_fdef lang ~ctx fdef in
   let in_env = mk_fun_input_env lang options taint_config ?glob_env fdef in
   let mapping =
     Dataflow_tainting.fixpoint ~in_env ?name lang options taint_config

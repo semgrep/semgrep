@@ -621,7 +621,10 @@ let regexp_prefilter_of_taint_rule ~xlang (_rule_id, rule_tok) taint_spec =
   in
   let sinks =
     taint_spec.R.sinks |> snd
-    |> Common.map (fun (sink : R.taint_sink) -> sink.sink_formula)
+    |> Common.map_filter (fun (sink : R.taint_sink) ->
+           match sink.sink_formula with
+           | `Formula formula -> Some formula
+           | `Fun_exit -> None)
   in
   let f =
     (* Note that this formula would likely not yield any meaningful result

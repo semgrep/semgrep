@@ -29,3 +29,5 @@ module LvalOrdered : sig
 
   val compare : t -> t -> int
 end
+
+val any_of_node : IL.node_kind -> AST_generic.any option

@@ -79,6 +79,7 @@ type config = {
   is_propagator : AST_generic.any -> a_propagator TM.t list;
   is_sink : G.any -> R.taint_sink TM.t list;
   is_sanitizer : G.any -> R.taint_sanitizer TM.t list;
+  sinks_at_exit : R.taint_sink list;
       (* NOTE [is_sanitizer]:
        * A sanitizer is more "extreme" than you may expect. When a piece of code is
        * "sanitized" Semgrep will just not check it. For example, something like
@@ -249,13 +250,14 @@ let report_findings env findings =
  *)
 let is_func_sink_with_focus taint_sink =
   match taint_sink.Rule.sink_formula with
-  | Rule.And
-      ( _,
-        {
-          conjuncts = [ P { pat = Sem ((lazy (E { e = Call _; _ })), _); _ } ];
-          focus = [ _focus ];
-          _;
-        } ) ->
+  | `Formula
+      (Rule.And
+        ( _,
+          {
+            conjuncts = [ P { pat = Sem ((lazy (E { e = Call _; _ })), _); _ } ];
+            focus = [ _focus ];
+            _;
+          } )) ->
       true
   | __else__ -> false
 
@@ -1654,6 +1656,52 @@ let findings_from_arg_updates_at_exit enter_env exit_env : T.finding list =
                [ T.ToArg (new_taints |> Taints.elements, arg) ]
              else [])
 
+let check_tainted_at_exit node env =
+  if node.at_exit then
+    match IL_helpers.any_of_node node.n with
+    | None -> ()
+    | Some any -> (
+        let toks = AST_generic_helpers.ii_of_any any in
+        match AST_generic_helpers.range_of_any_opt any with
+        | None -> ()
+        | Some range_loc ->
+            let pm =
+              {
+                PM.rule_id =
+                  {
+                    PM.id = env.config.rule_id;
+                    pattern_string = "<at-exit sink>";
+                    message = "";
+                    fix = None;
+                    langs = [];
+                  };
+                file = env.config.filepath;
+                range_loc;
+                tokens = lazy toks;
+                env = [];
+                taint_trace = None;
+                engine_kind = `OSS;
+                validation_state = `No_validator;
+                severity_override = None;
+                metadata_override = None;
+              }
+            in
+            let taints_at_exit =
+              let control_taints = Lval_env.get_control_taints env.lval_env in
+              env.lval_env |> Lval_env.seq_of_tainted
+              |> Seq.fold_left
+                   (fun taints (_, lval_taints) ->
+                     lval_taints |> Taints.union taints)
+                   control_taints
+            in
+            let sink_matches_at_exit =
+              env.config.sinks_at_exit
+              |> Common.map (fun rule_sink -> T.{ pm; rule_sink })
+            in
+            findings_of_tainted_sinks env taints_at_exit sink_matches_at_exit
+            |> report_findings env;
+            ())
+
 (*****************************************************************************)
 (* Transfer *)
 (*****************************************************************************)
@@ -1688,18 +1736,18 @@ let transfer :
   (* DataflowX.display_mapping flow mapping show_tainted; *)
   let in' : Lval_env.t = input_env ~enter_env ~flow mapping ni in
   let node = flow.graph#nodes#assoc ni in
+  let env =
+    {
+      lang;
+      options;
+      config;
+      fun_name = opt_name;
+      lval_env = in';
+      top_matches;
+      java_props;
+    }
+  in
   let out' : Lval_env.t =
-    let env =
-      {
-        lang;
-        options;
-        config;
-        fun_name = opt_name;
-        lval_env = in';
-        top_matches;
-        java_props;
-      }
-    in
     match node.F.n with
     | NInstr x ->
         let taints, lval_env' = check_tainted_instr env x in
@@ -1791,6 +1839,7 @@ let transfer :
     | NTodo _ ->
         in'
   in
+  check_tainted_at_exit node { env with lval_env = out' };
   { D.in_env = in'; out_env = out' }
 
 (*****************************************************************************)

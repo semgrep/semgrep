@@ -51,6 +51,7 @@ type config = {
   is_sanitizer : AST_generic.any -> Rule.taint_sanitizer Taint_smatch.t list;
       (** Test whether 'any' is a sanitizer, this corresponds to
       * 'pattern-sanitizers:' in taint-mode. *)
+  sinks_at_exit : Rule.taint_sink list;
   unify_mvars : bool;  (** Unify metavariables in sources and sinks? *)
   handle_findings :
     var option (** function name ('None' if anonymous) *) ->

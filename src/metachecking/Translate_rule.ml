@@ -123,13 +123,19 @@ and translate_taint_source
 
 and translate_taint_sink { sink_id = _; sink_formula; sink_requires } :
     [> `O of (string * Yaml.value) list ] =
-  let (`O sink_f) = translate_formula sink_formula in
+  let at_exit_obj, sink_f =
+    match sink_formula with
+    | `Formula formula ->
+        let (`O sink_f) = translate_formula formula in
+        ([], sink_f)
+    | `Fun_exit -> ([ ("at-exit", `Bool true) ], [])
+  in
   let requires_obj =
     match sink_requires with
     | None -> []
     | Some { range; _ } -> [ ("requires", `String (range_to_string range)) ]
   in
-  `O (List.concat [ sink_f; requires_obj ])
+  `O (List.concat [ at_exit_obj; sink_f; requires_obj ])
 
 and translate_taint_sanitizer
     {
