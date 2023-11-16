@@ -363,7 +363,8 @@ let pp_cli_output ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
              | Some `Confirmed_invalid -> `Invalid
              | Some `Validation_error -> `Validation_error
              | Some `No_validator
-             | None -> `Unvalidated))
+             | None ->
+                 `Unvalidated))
   |> (fun groups ->
        (* TO PORT:
           if not is_ci_invocation: *)
