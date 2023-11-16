@@ -12,7 +12,7 @@ import appdirs
 import pytest
 
 from ..conftest import TESTS_PATH
-from ..semgrep_runner import SEMGREP_BASE_COMMAND
+from ..semgrep_runner import SEMGREP_BASE_SCAN_COMMAND
 from .public_repos import REPOS
 
 # Some improbable string that was implanted in test targets [how?] [why?].
@@ -53,7 +53,7 @@ def chdir(dirname=None):
 
 
 def assert_sentinel_results(repo_path, sentinel_path, language):
-    cmd = SEMGREP_BASE_COMMAND + [
+    cmd = SEMGREP_BASE_SCAN_COMMAND + [
         "--disable-version-check",
         "--pattern",
         SENTINEL_PATTERN,
@@ -164,7 +164,7 @@ def test_semgrep_on_repo(monkeypatch, tmp_path, repo):
             sentinel_file.write(sentinel_info["file_contents"])
         assert_sentinel_results(repo_path, sentinel_path, language)
 
-    cmd = SEMGREP_BASE_COMMAND + [
+    cmd = SEMGREP_BASE_SCAN_COMMAND + [
         "--disable-version-check",
         "--config=rules/regex-sentinel.yaml",
         "--strict",
