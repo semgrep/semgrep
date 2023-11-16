@@ -100,13 +100,12 @@ let partition_rules_and_errors (xs : rules_and_origin list) :
   in
   (rules, errors)
 
-let fetch_content_from_url_async ?(token_opt = None) (url : Uri.t) :
-    string Lwt.t =
+let fetch_content_from_url_async ?(token_opt = None)
+    ?(wait_hook = fun _stopper -> ()) (url : Uri.t) : string Lwt.t =
   (* TOPORT? _nice_semgrep_url() *)
   Logs.debug (fun m -> m "trying to download from %s" (Uri.to_string url));
   let spinner_stopper = ref false in
-  if !ANSITerminal.isatty Unix.stdout then
-    Console_Spinner.spinner_async spinner_stopper;
+  wait_hook spinner_stopper;
   let content =
     let headers =
       match token_opt with
@@ -120,9 +119,6 @@ let fetch_content_from_url_async ?(token_opt = None) (url : Uri.t) :
         spinner_stopper := true;
         (* Flush any pending output to prevent surprises *)
         let%lwt () = Lwt_io.flush Lwt_io.stdout in
-        if !ANSITerminal.isatty Unix.stdout then
-          (* Clean up the loading indicator *)
-          Console_Spinner.erase_spinner ();
         (* Return the actual http response *)
         Lwt.return body
     | Error msg ->
@@ -314,9 +310,9 @@ let load_rules_from_file ~origin ~registry_caching (file : Fpath.t) :
      *)
     Error.abort (spf "file %s does not exist anymore" !!file)
 
-let load_rules_from_url_async ?token_opt ?(ext = "yaml") url :
+let load_rules_from_url_async ?token_opt ?(ext = "yaml") ?wait_hook url :
     rules_and_origin Lwt.t =
-  let%lwt content = fetch_content_from_url_async ?token_opt url in
+  let%lwt content = fetch_content_from_url_async ?token_opt url ?wait_hook in
   let ext, content =
     if ext = "policy" then
       (* project rule_config, from config_resolver.py in _make_config_request *)
@@ -338,11 +334,12 @@ let load_rules_from_url_async ?token_opt ?(ext = "yaml") url :
   in
   Lwt.return rules
 
-let load_rules_from_url ?token_opt ?(ext = "yaml") url : rules_and_origin =
-  Lwt_platform.run (load_rules_from_url_async ?token_opt ~ext url)
+let load_rules_from_url ?token_opt ?(ext = "yaml") ?wait_hook url :
+    rules_and_origin =
+  Lwt_platform.run (load_rules_from_url_async ?token_opt ~ext ?wait_hook url)
 
 let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
-    ~registry_caching kind : rules_and_origin list Lwt.t =
+    ~registry_caching ?wait_hook kind : rules_and_origin list Lwt.t =
   match kind with
   | C.File file ->
       Lwt.return
@@ -377,11 +374,13 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
                ~registry_caching file)
       |> Lwt.return
   | C.URL url ->
-      let%lwt rules = load_rules_from_url_async url in
+      let%lwt rules = load_rules_from_url_async url ?wait_hook in
       Lwt.return [ rules ]
   | C.R rkind ->
       let url = Semgrep_Registry.url_of_registry_config_kind rkind in
-      let%lwt content = fetch_content_from_url_async ~token_opt url in
+      let%lwt content =
+        fetch_content_from_url_async ~token_opt ?wait_hook url
+      in
       (* TODO: reuse fetch_content_from_registry_url (need make it _async?)
        * so we can factorize the is_using_registry modification
        * (and also remove the when registry_caching special below
@@ -406,7 +405,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
         | Some token -> token
       in
       let%lwt rules =
-        load_rules_from_url_async ~token_opt ~ext:"policy"
+        load_rules_from_url_async ~token_opt ~ext:"policy" ?wait_hook
           (Semgrep_App.url_for_policy ~token)
       in
       Metrics_.g.is_using_app <- true;
@@ -416,7 +415,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
       failwith "TODO: SupplyChain not handled yet"
 
 let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt ~registry_caching
-    kind : rules_and_origin list =
+    ?wait_hook kind : rules_and_origin list =
   match kind with
   | C.R rkind when registry_caching ->
       (* TODO: should not need that, we're duplicating work
@@ -435,7 +434,7 @@ let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt ~registry_caching
   | _ ->
       Lwt_platform.run
         (rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
-           ~registry_caching kind)
+           ~registry_caching ?wait_hook kind)
 
 (*****************************************************************************)
 (* Entry point *)
@@ -443,7 +442,7 @@ let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt ~registry_caching
 
 (* python: mix of resolver_config.get_config() and get_rules() *)
 let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
-    (src : Rules_source.t) : rules_and_origin list =
+    ?wait_hook (src : Rules_source.t) : rules_and_origin list =
   match src with
   | Configs xs ->
       xs
@@ -451,7 +450,7 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
              let in_docker = !Semgrep_envvars.v.in_docker in
              let config = Rules_config.parse_config_string ~in_docker str in
              rules_from_dashdash_config ~rewrite_rule_ids ~token_opt
-               ~registry_caching config)
+               ~registry_caching ?wait_hook config)
   (* better: '-e foo -l regex' was not handled in pysemgrep
    *  (got a weird 'invalid pattern clause' error)
    * better: '-e foo -l generic' was not handled in semgrep-core

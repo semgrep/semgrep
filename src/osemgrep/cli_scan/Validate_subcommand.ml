@@ -92,7 +92,9 @@ let run (conf : conf) : Exit_code.t =
    *)
   let rules_and_origin =
     Rule_fetching.rules_from_rules_source ~token_opt ~rewrite_rule_ids:true
-      ~registry_caching:false conf.rules_source
+      ~registry_caching:false
+      ~wait_hook:(fun _ -> ())
+      conf.rules_source
   in
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origin
@@ -121,7 +123,9 @@ let run (conf : conf) : Exit_code.t =
         let metarules_and_origin =
           Rule_fetching.rules_from_dashdash_config ~token_opt
             ~rewrite_rule_ids:true (* default *)
-            ~registry_caching:false config
+            ~registry_caching:false
+            ~wait_hook:(fun _ -> ())
+            config
         in
         let metarules, metaerrors =
           Rule_fetching.partition_rules_and_errors metarules_and_origin

@@ -36,6 +36,7 @@ val rules_from_rules_source :
   token_opt:Auth.token option ->
   rewrite_rule_ids:bool ->
   registry_caching:bool ->
+  ?wait_hook:(bool ref -> unit) ->
   Rules_source.t ->
   rules_and_origin list
 
@@ -45,6 +46,7 @@ val rules_from_dashdash_config_async :
   rewrite_rule_ids:bool ->
   token_opt:Auth.token option ->
   registry_caching:bool ->
+  ?wait_hook:(bool ref -> unit) ->
   Rules_config.t ->
   rules_and_origin list Lwt.t
 
@@ -56,6 +58,7 @@ val rules_from_dashdash_config :
   rewrite_rule_ids:bool ->
   token_opt:Auth.token option ->
   registry_caching:bool ->
+  ?wait_hook:(bool ref -> unit) ->
   Rules_config.t ->
   rules_and_origin list
 
@@ -64,4 +67,8 @@ val load_rules_from_file :
   origin:origin -> registry_caching:bool -> Fpath.t -> rules_and_origin
 
 val load_rules_from_url :
-  ?token_opt:Auth.token option -> ?ext:string -> Uri.t -> rules_and_origin
+  ?token_opt:Auth.token option ->
+  ?ext:string ->
+  ?wait_hook:(bool ref -> unit) ->
+  Uri.t ->
+  rules_and_origin

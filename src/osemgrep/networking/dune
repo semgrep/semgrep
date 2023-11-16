@@ -4,7 +4,6 @@
   (name osemgrep_networking)
   (wrapped false)
   (libraries
-    ANSITerminal
     lwt
     networking.http_mock_client
     networking.http_helpers

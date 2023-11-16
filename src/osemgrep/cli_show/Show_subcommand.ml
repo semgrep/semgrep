@@ -86,7 +86,9 @@ let run (conf : Show_CLI.conf) : Exit_code.t =
       let rules_and_errors =
         Rule_fetching.rules_from_dashdash_config
           ~rewrite_rule_ids:true (* command-line default *)
-          ~token_opt ~registry_caching:false config
+          ~token_opt ~registry_caching:false
+          ~wait_hook:(fun _ -> ())
+          config
       in
       rules_and_errors
       |> List.iter (fun x -> Common.pr (Rule_fetching.show_rules_and_origin x));
