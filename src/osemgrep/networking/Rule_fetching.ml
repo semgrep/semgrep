@@ -105,7 +105,8 @@ let fetch_content_from_url_async ?(token_opt = None) (url : Uri.t) :
   (* TOPORT? _nice_semgrep_url() *)
   Logs.debug (fun m -> m "trying to download from %s" (Uri.to_string url));
   let spinner_stopper = ref false in
-  Console_Spinner.spinner_async spinner_stopper;
+  if !ANSITerminal.isatty Unix.stdout then
+    Console_Spinner.spinner_async spinner_stopper;
   let content =
     let headers =
       match token_opt with
@@ -119,10 +120,9 @@ let fetch_content_from_url_async ?(token_opt = None) (url : Uri.t) :
         spinner_stopper := true;
         (* Flush any pending output to prevent surprises *)
         let%lwt () = Lwt_io.flush Lwt_io.stdout in
-        (* Clean up the loading indicator *)
-        ANSITerminal.set_cursor 1 (-1);
-        ANSITerminal.move_bol ();
-        ANSITerminal.erase ANSITerminal.Below;
+        if !ANSITerminal.isatty Unix.stdout then
+          (* Clean up the loading indicator *)
+          Console_Spinner.erase_spinner ();
         (* Return the actual http response *)
         Lwt.return body
     | Error msg ->

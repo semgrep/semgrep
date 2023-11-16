@@ -52,6 +52,6 @@ let spinner_async stop : unit =
   Lwt.async loop
 
 let erase_spinner () : unit =
-  ANSITerminal.move_cursor 0 (-1);
+  ANSITerminal.set_cursor 1 (-1);
   ANSITerminal.move_bol ();
   ANSITerminal.erase ANSITerminal.Below
