@@ -6,11 +6,6 @@
 open Common
 module Out = Semgrep_output_v1_j
 
-let string_of_json_string json =
-  match Yojson.Safe.from_string json with
-  | `String str -> str
-  | _ -> (* should not happen *) json
-
 let run ~target_roots ~targeting_conf:conf () =
   let selected, skipped = Find_targets.get_targets conf target_roots in
   selected |> List.sort Fppath.compare
@@ -21,6 +16,7 @@ let run ~target_roots ~targeting_conf:conf () =
   |> List.iter (fun (x : Out.skipped_target) ->
          pr
            (spf "- [%s] %s"
-              (x.reason |> Out.string_of_skip_reason |> string_of_json_string)
+              (x.reason |> Out.string_of_skip_reason
+             |> JSON.remove_enclosing_quotes_of_jstring)
               (Fpath.to_string x.path)));
   Exit_code.ok
