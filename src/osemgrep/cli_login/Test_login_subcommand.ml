@@ -52,7 +52,7 @@ let with_login_test_env ~f ~final =
  * be even more "e2e" by calling CLI.main() instead, but that would require
  * to move this file out of cli_login/ because of mutual dependencies.
  *)
-let test_logout_already_logged_out : Testutil.test =
+let test_logout_not_logged_in : Testutil.test =
   ( __FUNCTION__,
     fun () ->
       with_login_test_env
@@ -73,9 +73,9 @@ let test_login_no_tty : Testutil.test =
           let old_stdin = Unix.dup Unix.stdin in
           let in_, _out_ = Unix.pipe () in
           Unix.dup2 in_ Unix.stdin;
-          let res = Login_subcommand.main [| "semgrep-login" |] in
+          let exit_code = Login_subcommand.main [| "semgrep-login" |] in
           Unix.dup2 old_stdin Unix.stdin;
-          res)
+          exit_code)
         ~final:(fun res ->
           pr2 (spf "logs = %s" res.logs);
           assert (res.logs =~ ".*meant to be run in an interactive terminal");
@@ -87,4 +87,4 @@ let test_login_no_tty : Testutil.test =
 
 let tests =
   pack_tests "Osemgrep Login (e2e)"
-    [ test_logout_already_logged_out; test_login_no_tty ]
+    [ test_logout_not_logged_in; test_login_no_tty ]
