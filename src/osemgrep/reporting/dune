@@ -11,6 +11,7 @@
 
    osemgrep_core
    semgrep.reporting
+   semgrep.targeting
  )
  (preprocess
    (pps
