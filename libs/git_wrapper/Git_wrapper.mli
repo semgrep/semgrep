@@ -23,8 +23,14 @@ val git_check_output : Bos.Cmd.t -> string
    Please extend this interface as needed.
 *)
 type ls_files_kind =
-  | Cached (* --cached, the default *)
-  | Others (* --others, the complement of Cached but still excluding .git/ *)
+  | Cached
+    (* --cached, the default:
+       Show all files cached in Git’s index, i.e. all tracked files *)
+  | Others
+(* --others:
+   Show other (i.e. untracked) files in the output,
+   that is mostly the complement of Cached but still
+   excluding .git/ *)
 
 (*
    cwd: directory to cd into (-C)
