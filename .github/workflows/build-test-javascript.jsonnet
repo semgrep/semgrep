@@ -108,6 +108,7 @@ local test_job = {
   steps: [
     restore_from_cache,
     gha.speedy_checkout_step + guard_cache_hit,
+    gha.git_safedir,
     actions.checkout_with_submodules() + guard_cache_hit,
     {
       name: 'Set up tree-sitter',
