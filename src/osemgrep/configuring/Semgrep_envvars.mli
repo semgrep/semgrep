@@ -50,6 +50,9 @@ val v : t ref
   * be modified by tests.
   *)
 
+(* useful to work in cunjonction with with_envvars in testing context *)
+val of_current_sys_env : unit -> t
+
 (* [with_envvars newv f] temporarily modifies [v] above to be
  * [newv] and run [f] in this new context. This is useful in tests.
  *)

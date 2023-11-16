@@ -45,7 +45,6 @@ def test_login(tmp_path, mocker):
         ["login"],
         env={"SEMGREP_APP_TOKEN": fake_key},
     )
-    print(result.output)
     assert result.exit_code == 0
     assert result.output.startswith("Saved login token")
     assert "<redacted>" in result.output
