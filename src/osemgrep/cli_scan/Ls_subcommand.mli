@@ -3,7 +3,7 @@
    or language-specific filtering.
 
    This is an internal/experimental option for troubleshooting
-   currently implemented as a '--ls' flag of 'semgrep scan' for simplicity
+   currently implemented as a '--x-ls' flag of 'semgrep scan' for simplicity
    of implementation.
    If we wanted to make it official and permanent, we should probably
    turn it into a proper 'semgrep ls' subcommand.
