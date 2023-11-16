@@ -105,13 +105,16 @@ let body_of_file ?(trim = false) path =
 let check_body expected_body actual_body =
   let%lwt actual_body_content = Cohttp_lwt.Body.to_string actual_body in
   let%lwt expected_body_content = Cohttp_lwt.Body.to_string expected_body in
-  (* Using "" prevents always printing "ASSERT name" to stderr *)
+  (* Passing "" for the name of the check prevents an otherwise
+     unconditional print to stderr of the string "Assert <name>". *)
   Alcotest.(check string) "" expected_body_content actual_body_content;
   Lwt.return_unit
 
 let check_method expected_meth actual_meth =
+  (* Passing "" for the name of the check prevents an otherwise
+     unconditional print to stderr of the string "Assert <name>". *)
   Alcotest.(check string)
-    "" (* Using "" prevents always printing "ASSERT name" to stderr *)
+    ""
     (Cohttp.Code.string_of_method expected_meth)
     (Cohttp.Code.string_of_method actual_meth)
 
@@ -122,7 +125,8 @@ let check_header req header header_val =
       Alcotest.fail
         (Printf.sprintf "header %s not found. Headers: %s" header
            (Cohttp.Header.to_string (Cohttp.Request.headers req)))
-  (* Using "" prevents always printing "ASSERT name" to stderr *)
+  (* Passing "" for the name of the check prevents an otherwise
+     unconditional print to stderr of the string "Assert <name>". *)
   | Some actual_header -> Alcotest.(check string) "" header_val actual_header
 
 let check_headers expected_headers actual_headers =
@@ -135,7 +139,8 @@ let check_headers expected_headers actual_headers =
   let expected_headers =
     expected_headers |> Header.to_list |> lowercase_and_sort
   in
-  (* Using "" prevents always printing "ASSERT name" to stderr *)
+  (* Passing "" for the name of the check prevents an otherwise
+     unconditional print to stderr of the string "Assert <name>". *)
   Alcotest.(check (list (pair string string)))
     "" expected_headers actual_headers
 
