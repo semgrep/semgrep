@@ -6,7 +6,7 @@
    currently implemented as a '--x-ls' flag of 'semgrep scan' for simplicity
    of implementation.
    If we wanted to make it official and permanent, we should probably
-   turn it into a proper 'semgrep ls' subcommand.
+   turn it into a proper 'semgrep ls' or 'semgrep show targets' subcommand.
 *)
 
 (*
