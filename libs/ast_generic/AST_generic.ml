@@ -197,6 +197,10 @@ let version = "1.35.0"
  *    in Match_tainting_mode.Formula_tbl
  * - 'deriving visitors' to generator visitor and mapper boilerplate code
  *    automatically
+ * - 'deriving sexp' because the Type.t type uses `alternate_name`, and itself
+ *    derives sexp because it is used by semgrep-pro's SIG.type_.
+ *    Since Type.t only uses `alternate_name`, we only need to derive sexp for
+ *    that and related types, and not others like expr, stmt
  *)
 
 (* Provide hash_* for the core ocaml types *)
