@@ -3,107 +3,43 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_ACTOR="some_test_username" GITHUB_API_URL
 === end of command
 
 === exit code
-1
+2
 === end of exit code
 
 === stdout - plain
-
-
-┌────────────────┐
-│ Debugging Info │
-└────────────────┘
-
-  SCAN ENVIRONMENT
-  versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment github-actions, triggering event is
-                pull_request
-Fixing git state for github action pull request
-Not on head ref: <MASKED>; checking that out now.
-
-  CONNECTION
-Using <MASKED> as the merge-base of <MASKED> and <MASKED>
-  Initializing scan (deployment=org_name, scan_id=12345)
-  Enabled products: Code, Supply Chain
-
-┌─────────────┐
-│ Scan Status │
-└─────────────┘
-  Scanning 1 file tracked by git with 4 Code rules:
-  Scanning 1 file with 4 python rules.
-  Current version has 14 findings.
-
-Creating git worktree from '<MASKED>' to scan baseline.
-  Will report findings introduced by these commits (may be incomplete for shallow checkouts):
-    * <MASKED> Some other commit/ message
-
-
-
-┌─────────────┐
-│ Scan Status │
-└─────────────┘
-  Scanning 1 file tracked by git with 4 Code rules:
-  Scanning 1 file with 4 python rules.
-
-
-┌──────────────────────────┐
-│ 6 Blocking Code Findings │
-└──────────────────────────┘
-
-    foo.py
-       eqeq-bad
-          useless comparison
-
-            4┆ a == a
-            ⋮┆----------------------------------------
-            5┆ a == a
-            ⋮┆----------------------------------------
-            7┆ a == a
-            ⋮┆----------------------------------------
-           11┆ y == y
-            ⋮┆----------------------------------------
-       eqeq-four
-          useless comparison to 4
-
-           19┆ baz == 4
-            ⋮┆----------------------------------------
-       taint-test
-          unsafe use of danger
-
-           27┆ sink(d2)
-
-
-┌─────────────────────────────┐
-│ 1 Non-blocking Code Finding │
-└─────────────────────────────┘
-
-    foo.py
-       eqeq-five
-          useless comparison to 5
-
-           ▶▶┆ Autofix ▶ (x == 2)
-           15┆ x == 5
-
-  BLOCKING CODE RULES FIRED:
-    eqeq-bad
-    eqeq-four
-    taint-test
-
-
-
-┌──────────────┐
-│ Scan Summary │
-└──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files changed since baseline commit.
-
-CI scan completed successfully.
-  Found 7 findings (6 blocking) from 7 rules.
-  Uploading scan results
-  Finalizing scan           View results in Semgrep Cloud Platform:
-    https://semgrep.dev/orgs/org_name/findings
-    https://semgrep.dev/orgs/org_name/supply-chain
-  Has findings for blocking rules so exiting with code 1
-  semgrep.dev is suggesting a non-zero exit code (Test Reason)
+No mock address: GET https://semgrep.dev/c/auto
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 37, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/scan.py", line 630, in scan
+    ) = semgrep.run_scan.run_scan(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/run_scan.py", line 391, in run_scan
+    configs_obj, config_errors = get_config(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 1047, in get_config
+    config, errors = Config.from_config_list(config_strs, project_url)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 551, in from_config_list
+    resolved_config = resolve_config(config, project_url)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 479, in resolve_config
+    config = parse_config_files(config_loader.load_config())
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 155, in load_config
+    return [self._download_config()]
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 178, in _download_config
+    return self._download_config_from_url(self._config_path)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/config_resolver.py", line 198, in _download_config_from_url
+    resp = app_session.get(url, headers={"Accept": "application/json"})
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/requests/sessions.py", line 602, in get
+    return self.request("GET", url, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/app/session.py", line 190, in request
+    response = super().request(*args, **kwargs)
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/requests_mock/mocker.py", line 185, in _fake_send
+    return _original_send(session, request, **kwargs)
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/requests_mock/adapter.py", line 261, in send
+    raise exceptions.NoMockAddress(request)
+requests_mock.exceptions.NoMockAddress: No mock address: GET https://semgrep.dev/c/auto
 
 === end of stdout - plain
 

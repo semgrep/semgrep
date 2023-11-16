@@ -1,18 +1,5 @@
-
-
-┌─────────────┐
-│ Scan Status │
-└─────────────┘
-  Scanning 5 files tracked by git with 4 Code rules:
-  Scanning 2 files.
-
-
-┌──────────────┐
-│ Scan Summary │
-└──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-  Scan skipped: 2 files not matching --include patterns
-  For a full list of skipped files, run semgrep with the --verbose flag.
-
-Ran 1 rule on 2 files: 2 findings.
+semgrep scan: unknown option '--include 'included.*' --strict --config rules/eqeq.yaml --json targets/exclude_include'.
+Usage: semgrep scan [OPTION]… [TARGETS]…
+Try 'semgrep scan --help' for more information.
+Error: fatal error
+Exiting with error status 2: osemgrep --include 'included.*' --strict --config rules/eqeq.yaml --json targets/exclude_include

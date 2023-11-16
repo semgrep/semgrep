@@ -1,12 +1,5 @@
-running 1 rules from 1 config rules/bad-java-rule.yaml_0
-No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
-Rules:
-- rules.broken-rule
-
-
-┌─────────────┐
-│ Scan Status │
-└─────────────┘
-  Scanning 1 file tracked by git with 1 Code rule:
-  Scanning 1 file.
-Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False
+semgrep scan: unknown option '--verbose --no-time --strict --config rules/bad-java-rule.yaml --json targets/bad/basic_java.java', did you mean '-v'?
+Usage: semgrep scan [OPTION]… [TARGETS]…
+Try 'semgrep scan --help' for more information.
+Error: fatal error
+Exiting with error status 2: osemgrep --verbose --no-time --strict --config rules/bad-java-rule.yaml --json targets/bad/basic_java.java
