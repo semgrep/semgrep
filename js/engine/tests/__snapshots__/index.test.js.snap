@@ -115,6 +115,7 @@ exports[`misc interpolates metavariables in rule message 1`] = `
       "op": "And",
     },
   ],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "test.py",
@@ -173,87 +174,157 @@ exports[`misc js representation handles large ints 1`] = `
     {
       "children": [
         {
-          "children": [],
-          "loc": {
-            "end": {
-              "col": 71,
-              "line": 7,
-              "offset": 162,
-            },
-            "path": "test-representation.json",
-            "start": {
-              "col": 22,
-              "line": 7,
-              "offset": 113,
-            },
-          },
-          "matches": [
+          "children": [
             {
-              "check_id": "test",
-              "end": {
-                "col": 30,
-                "line": 1,
-                "offset": 29,
+              "children": [],
+              "loc": {
+                "end": {
+                  "col": 73,
+                  "line": 9,
+                  "offset": 190,
+                },
+                "path": "test-representation.json",
+                "start": {
+                  "col": 24,
+                  "line": 9,
+                  "offset": 141,
+                },
               },
-              "extra": {
-                "engine_kind": "OSS",
-                "message": "test",
-                "metavars": {
-                  "$ABOVE_SIGNED_INT32": {
-                    "abstract_content": "3000000000",
-                    "end": {
-                      "col": 29,
-                      "line": 1,
-                      "offset": 28,
-                    },
-                    "start": {
-                      "col": 19,
-                      "line": 1,
-                      "offset": 18,
-                    },
+              "matches": [
+                {
+                  "check_id": "test",
+                  "end": {
+                    "col": 30,
+                    "line": 1,
+                    "offset": 29,
                   },
-                  "$BELOW_SIGNED_INT32": {
-                    "abstract_content": "2000000000",
-                    "end": {
-                      "col": 17,
-                      "line": 1,
-                      "offset": 16,
+                  "extra": {
+                    "engine_kind": "OSS",
+                    "message": "test",
+                    "metavars": {
+                      "$ABOVE_SIGNED_INT32": {
+                        "abstract_content": "3000000000",
+                        "end": {
+                          "col": 29,
+                          "line": 1,
+                          "offset": 28,
+                        },
+                        "start": {
+                          "col": 19,
+                          "line": 1,
+                          "offset": 18,
+                        },
+                      },
+                      "$BELOW_SIGNED_INT32": {
+                        "abstract_content": "2000000000",
+                        "end": {
+                          "col": 17,
+                          "line": 1,
+                          "offset": 16,
+                        },
+                        "start": {
+                          "col": 7,
+                          "line": 1,
+                          "offset": 6,
+                        },
+                      },
                     },
-                    "start": {
-                      "col": 7,
-                      "line": 1,
-                      "offset": 6,
-                    },
+                    "validation_state": "NO_VALIDATOR",
+                  },
+                  "path": "test-representation.py",
+                  "start": {
+                    "col": 1,
+                    "line": 1,
+                    "offset": 0,
                   },
                 },
-                "validation_state": "NO_VALIDATOR",
+              ],
+              "op": [
+                "XPat",
+                "print($BELOW_SIGNED_INT32, $ABOVE_SIGNED_INT32)",
+              ],
+            },
+            {
+              "children": [],
+              "loc": {
+                "end": {
+                  "col": 112,
+                  "line": 12,
+                  "offset": 342,
+                },
+                "path": "test-representation.json",
+                "start": {
+                  "col": 31,
+                  "line": 12,
+                  "offset": 261,
+                },
               },
-              "path": "test-representation.py",
-              "start": {
-                "col": 1,
-                "line": 1,
-                "offset": 0,
-              },
+              "matches": [
+                {
+                  "check_id": "test",
+                  "end": {
+                    "col": 30,
+                    "line": 1,
+                    "offset": 29,
+                  },
+                  "extra": {
+                    "engine_kind": "OSS",
+                    "message": "test",
+                    "metavars": {
+                      "$ABOVE_SIGNED_INT32": {
+                        "abstract_content": "3000000000",
+                        "end": {
+                          "col": 29,
+                          "line": 1,
+                          "offset": 28,
+                        },
+                        "start": {
+                          "col": 19,
+                          "line": 1,
+                          "offset": 18,
+                        },
+                      },
+                      "$BELOW_SIGNED_INT32": {
+                        "abstract_content": "2000000000",
+                        "end": {
+                          "col": 17,
+                          "line": 1,
+                          "offset": 16,
+                        },
+                        "start": {
+                          "col": 7,
+                          "line": 1,
+                          "offset": 6,
+                        },
+                      },
+                    },
+                    "validation_state": "NO_VALIDATOR",
+                  },
+                  "path": "test-representation.py",
+                  "start": {
+                    "col": 1,
+                    "line": 1,
+                    "offset": 0,
+                  },
+                },
+              ],
+              "op": [
+                "Filter",
+                ""int($BELOW_SIGNED_INT32) < 2147483647 and int($ABOVE_SIGNED_INT32) > 2147483647"",
+              ],
             },
           ],
-          "op": [
-            "XPat",
-            "print($BELOW_SIGNED_INT32, $ABOVE_SIGNED_INT32)",
-          ],
-        },
-        {
-          "children": [],
           "loc": {
             "end": {
-              "col": 36,
-              "line": 9,
+              "col": 20,
+              "line": 10,
               "offset": 211,
             },
             "path": "test-representation.json",
             "start": {
-              "col": 11,
-              "line": 9,
-              "offset": 186,
+              "col": 13,
+              "line": 10,
+              "offset": 204,
             },
           },
           "matches": [
@@ -305,23 +376,20 @@ exports[`misc js representation handles large ints 1`] = `
               },
             },
           ],
-          "op": [
-            "Filter",
-            ""metavariable-comparison"",
-          ],
+          "op": "And",
         },
       ],
       "loc": {
         "end": {
-          "col": 17,
-          "line": 6,
-          "offset": 88,
+          "col": 14,
+          "line": 7,
+          "offset": 102,
         },
         "path": "test-representation.json",
         "start": {
-          "col": 7,
-          "line": 6,
-          "offset": 78,
+          "col": 9,
+          "line": 7,
+          "offset": 97,
         },
       },
       "matches": [
@@ -376,6 +444,7 @@ exports[`misc js representation handles large ints 1`] = `
       "op": "And",
     },
   ],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "test-representation.py",
@@ -487,6 +556,7 @@ exports[`yaml parser parses a pattern with pattern-regex 1`] = `
       ],
     },
   ],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "test.yaml",
@@ -585,6 +655,7 @@ exports[`yaml parser parses a simple pattern 1`] = `
       ],
     },
   ],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "test.yaml",
