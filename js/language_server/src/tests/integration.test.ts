@@ -9,7 +9,7 @@ const EXPECTED_CAPABILITIES = {
     codeActionProvider: true,
     hoverProvider: true,
     textDocumentSync: {
-      change: 1,
+      change: 2,
       openClose: true,
       save: true,
     },
