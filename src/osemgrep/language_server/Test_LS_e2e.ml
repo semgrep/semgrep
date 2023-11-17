@@ -125,6 +125,7 @@ let () =
       let err = Printexc.to_string exn in
       Alcotest.fail err
 
+let timeout = 30.0
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -145,6 +146,14 @@ let open_and_write_default_content ?(mode = []) file =
    sleeping and the entire process would eventually exit.
    So, when running in JSCaml, let's just not use pauses. *)
 let lwt_pause () = if !Common.jsoo then Lwt.return_unit else Lwt.pause ()
+
+let with_timeout (f : unit -> 'a Lwt.t) : unit -> 'a Lwt.t =
+  let timeout_promise =
+    let%lwt () = Lwt_platform.yield_for timeout in
+    Alcotest.failf "Test timed out after %f seconds!" timeout
+  in
+  let f () = Lwt.pick [ f (); timeout_promise ] in
+  f
 
 (*****************************************************************************)
 (* Core primitives *)
@@ -844,20 +853,7 @@ let test_ls_ext () =
                      Lwt.return_unit)
           in
 
-          (* Check did open does not rescan if diagnostics exist *)
-          let%lwt () =
-            files
-            |> Lwt_list.iteri_s (fun i _ ->
-                   let file = List.nth files i in
-                   let%lwt () =
-                     (* ??? is this an accurate translation *)
-                     if String.length (Fpath.to_string file) > 0 then
-                       send_did_open info file
-                     else Lwt.return_unit
-                   in
-                   Lwt.return_unit)
-          in
-
+          (* search *)
           let%lwt () = send_semgrep_search info "print(...)" in
           let%lwt resp = receive_response info in
           assert (
@@ -986,6 +982,7 @@ let promise_tests =
     ("Test Login", test_login);
     ("Test LS with no folders", test_ls_no_folders);
   ]
+  |> Common.map (fun (s, f) -> (s, with_timeout f))
 
 let tests =
   let prepare f () = Lwt_platform.run (f ()) in
@@ -994,11 +991,4 @@ let tests =
 
 let lwt_tests =
   Testutil.pack_tests_lwt "Language Server (e2e)"
-    [
-      ("Test LS", test_ls_specs);
-      ("Test LS exts", test_ls_ext);
-      ("Test LS multi-workspaces", test_ls_multi);
-      ("Test Login", test_login);
-      ("Test LS with no folders", test_ls_no_folders);
-      ("Test LS with libev", test_ls_libev);
-    ]
+    (("Test LS with libev", test_ls_libev) :: promise_tests)

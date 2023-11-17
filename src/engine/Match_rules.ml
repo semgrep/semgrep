@@ -197,14 +197,12 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
     group_rules xconf rules xtarget
   in
 
-  Logs.debug (fun m -> m "Scanning res_taint rules %s" !!(xtarget.file));
   let res_taint_rules =
     relevant_taint_rules_groups
     |> List.concat_map (fun relevant_taint_rules ->
            Match_tainting_mode.check_rules ~match_hook ~per_rule_boilerplate_fn
              relevant_taint_rules xconf xtarget)
   in
-  Logs.debug (fun m -> m "Scanning res_non_taint rules %s" !!(xtarget.file));
   let res_nontaint_rules =
     relevant_nontaint_rules
     |> Common.map (fun r ->

@@ -24,3 +24,9 @@ let run = Lwt_main.run
 let detach = Lwt_preemptive.detach
 let init_preemptive = Lwt_preemptive.init
 let set_engine () = Lwt_engine.set (new Lwt_engine.libev ())
+let timeout = Lwt_unix.timeout
+
+let yield_for n =
+  Lwt.catch
+    (fun () -> Lwt.bind (timeout n) (fun () -> Lwt.return_unit))
+    (fun _ -> Lwt.return_unit)
