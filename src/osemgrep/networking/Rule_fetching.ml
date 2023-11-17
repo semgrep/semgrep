@@ -238,6 +238,9 @@ let import_callback ~registry_caching base str =
               *
               * TODO: ask for JSON in headers which improves performance
               * because Yaml rule parsing is slower than Json rule parsing.
+              * TODO: fix token_opt parameter. Currently we don't pass it as
+              * import_callback either needs an additional parameter, or
+              * parse_rule should take an import_callback as a parameter.
               *)
              let content =
                Lwt_platform.run
