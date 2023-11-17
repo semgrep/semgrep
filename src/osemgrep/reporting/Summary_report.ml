@@ -15,6 +15,23 @@ module Out = Semgrep_output_v1_t
 (* Entry point *)
 (*****************************************************************************)
 
+exception FoundGitDir of Fpath.t
+
+let find_git_dir lst =
+  try
+    let _ =
+      List.fold_left
+        (fun _ x ->
+          let dir =
+            if Common2.dir_exists (Fpath.to_string x) then x else Fpath.parent x
+          in
+          if Git_wrapper.is_git_repo dir then raise (FoundGitDir dir))
+        () lst
+    in
+    None
+  with
+  | FoundGitDir x -> Some x
+
 let pp_summary ppf
     ( respect_git_ignore,
       maturity,
@@ -41,19 +58,10 @@ let pp_summary ppf
   *)
   let out_limited =
     if respect_git_ignore then
-      let any_git_repos =
-        target_roots
-        |> List.filter (fun root ->
-               match Fpath.append (Fpath.normalize root) (Fpath.v ".git") with
-               | git_dir when Common2.dir_exists (Fpath.to_string git_dir) ->
-                   true
-               | git_dir when Common2.lfile_exists (Fpath.to_string git_dir) ->
-                   true
-               | _ -> false)
-      in
-      if any_git_repos <> [] then
-        Some "Scan was limited to files tracked by git."
-      else None
+      let any_git_repos = find_git_dir target_roots in
+      match any_git_repos with
+      | Some _ -> Some "Scan was limited to files tracked by git."
+      | _ -> None
     else None
   in
   let opt_msg msg = function
@@ -80,10 +88,9 @@ let pp_summary ppf
   in
   match (out_skipped, out_partial, out_limited, skipped_groups.ignored) with
   | [], None, None, [] -> ()
-  | [], None, _limited, [] -> ()
   | xs, parts, limited, _ignored ->
       Fmt.pf ppf "Some files were skipped or only partially analyzed.@.";
-      Option.iter (fun txt -> Fmt.pf ppf "  %s\n" txt) limited;
+      Option.iter (fun txt -> Fmt.pf ppf "  %s" txt) limited;
       Option.iter
         (fun txt -> Fmt.pf ppf "  Partially scanned: %s@.\n" txt)
         parts;
