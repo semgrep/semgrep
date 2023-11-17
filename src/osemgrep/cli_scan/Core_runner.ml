@@ -250,6 +250,7 @@ let mk_scan_func_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
   Logs.app (fun m ->
       m "%a"
         (fun ppf () ->
+          (* TODO: validate if target is actually within a git repo and perhaps set respect_git_ignore to false otherwise *)
           Status_report.pp_status ~num_rules:(List.length all_rules)
             ~num_targets:(List.length all_targets) ~respect_git_ignore lang_jobs
             ppf)

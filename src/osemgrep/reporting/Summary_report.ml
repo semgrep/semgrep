@@ -15,8 +15,29 @@ module Out = Semgrep_output_v1_t
 (* Entry point *)
 (*****************************************************************************)
 
+exception FoundGitDir of Fpath.t
+
+let find_git_dir xs =
+  try
+    let _ =
+      List.iter
+        (fun x ->
+          let dir =
+            if Common2.dir_exists (Fpath.to_string x) then x else Fpath.parent x
+          in
+          if Git_wrapper.is_git_repo dir then raise (FoundGitDir dir))
+        xs
+    in
+    false
+  with
+  | FoundGitDir _ -> true
+
 let pp_summary ppf
-    (respect_git_ignore, maturity, max_target_bytes, skipped_groups) : unit =
+    ( respect_git_ignore,
+      maturity,
+      max_target_bytes,
+      target_roots,
+      skipped_groups ) : unit =
   let {
     Skipped_report.ignored = semgrep_ignored;
     include_ = include_ignored;
@@ -37,21 +58,10 @@ let pp_summary ppf
   *)
   let out_limited =
     if respect_git_ignore then
-      (* # Each target could be a git repo, and we respect the git ignore
-         # of each target, so to be accurate with this print statement we
-         # need to check if any target is a git repo and not just the cwd
-         targets_not_in_git = 0
-         dir_targets = 0
-         for t in self.target_manager.targets:
-             if t.path.is_dir():
-                 dir_targets += 1
-                 try:
-                     t.files_from_git_ls()
-                 except (subprocess.SubprocessError, FileNotFoundError):
-                     targets_not_in_git += 1
-                     continue
-         if targets_not_in_git != dir_targets: *)
-      Some "Scan was limited to files tracked by git."
+      let any_git_repos = find_git_dir target_roots in
+      match any_git_repos with
+      | true -> Some "Scan was limited to files tracked by git."
+      | false -> None
     else None
   in
   let opt_msg msg = function
@@ -76,19 +86,18 @@ let pp_summary ppf
       "files only partially analyzed due to a parsing or internal Semgrep error"
       errors
   in
-  match (out_skipped, out_partial, out_limited) with
-  | [], None, None -> ()
-  | xs, parts, limited ->
-      (* TODO if limited_fragments:
-              for fragment in limited_fragments:
-                  message += f"\n  {fragment}" *)
+  match (out_skipped, out_partial, out_limited, skipped_groups.ignored) with
+  | [], None, None, [] -> ()
+  | xs, parts, limited, _ignored ->
       Fmt.pf ppf "Some files were skipped or only partially analyzed.@.";
       Option.iter (fun txt -> Fmt.pf ppf "  %s" txt) limited;
-      Option.iter (fun txt -> Fmt.pf ppf "  Partially scanned: %s@." txt) parts;
+      Option.iter
+        (fun txt -> Fmt.pf ppf "  Partially scanned: %s@.\n" txt)
+        parts;
       (match xs with
       | [] -> ()
       | xs ->
-          Fmt.pf ppf "  Scan skipped: %s@." (String.concat ", " xs);
+          Fmt.pf ppf "  Scan skipped: %s.@." (String.concat ", " xs);
           Fmt.pf ppf
             "  For a full list of skipped files, run semgrep with the \
              --verbose flag.@.");
