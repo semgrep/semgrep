@@ -617,7 +617,7 @@ class TargetManager:
         return cast(List[Path], result)
 
     def filter_by_language(
-        self, language: Union[Language, Ecosystem], *, candidates: FrozenSet[Path]
+        self, language: Union[None, Language, Ecosystem], *, candidates: FrozenSet[Path]
     ) -> FilteredFiles:
         """
         Returns only paths that have the correct extension or shebang, or are the correct lockfile format
@@ -634,7 +634,7 @@ class TargetManager:
                 if any(str(path).endswith(ext) for ext in language.definition.exts)
                 or self.executes_with_shebang(path, language.definition.shebangs)
             )
-        else:
+        elif isinstance(language, Ecosystem):
             kept = frozenset(
                 path
                 for path in candidates
@@ -643,6 +643,8 @@ class TargetManager:
                     for lockfile_name in ECOSYSTEM_TO_LOCKFILES[language]
                 )
             )
+        else:
+            kept = frozenset(candidates)
         return FilteredFiles(kept, frozenset(candidates - kept))
 
     def filter_known_extensions(self, *, candidates: FrozenSet[Path]) -> FilteredFiles:
@@ -717,7 +719,7 @@ class TargetManager:
 
     @lru_cache(maxsize=None)
     def get_files_for_language(
-        self, lang: Union[Language, Ecosystem], product: out.Product
+        self, lang: Union[None, Language, Ecosystem], product: out.Product
     ) -> FilteredFiles:
         """
         Return all files that are decendants of any directory in TARGET that have
