@@ -45,10 +45,10 @@ let get_scan_config_from_token_async ~token : Out.scan_config option Lwt.t =
   in
   let scan_config_opt =
     match response with
-    | Error msg ->
+    | Error (msg, _) ->
         Logs.debug (fun m -> m "error while retrieving scan config: %s" msg);
         None
-    | Ok body -> (
+    | Ok (body, _) -> (
         try Some (Out.scan_config_of_string body) with
         | Yojson.Json_error msg ->
             Logs.debug (fun m ->
@@ -131,10 +131,10 @@ let get_deployment_from_token_async ~token : Out.deployment_config option Lwt.t
   in
   let deployment_opt =
     match response with
-    | Error msg ->
+    | Error (msg, _) ->
         Logs.debug (fun m -> m "error while retrieving deployment: %s" msg);
         None
-    | Ok body ->
+    | Ok (body, _) ->
         let x = Out.deployment_response_of_string body in
         Some x.deployment
   in
@@ -265,7 +265,7 @@ let fetch_scan_config_async ~dry_run ~token ~sca ~full_scan ~repository :
     let results =
       match response with
       | Ok _ as r -> r
-      | Error msg ->
+      | Error (msg, _) ->
           Error
             (Printf.sprintf "Failed to download config from %s: %s"
                (Uri.to_string url) msg)
@@ -277,7 +277,7 @@ let fetch_scan_config_async ~dry_run ~token ~sca ~full_scan ~repository :
   let conf =
     match content with
     | Error _ as e -> e
-    | Ok content -> Ok (Out.scan_config_of_string content)
+    | Ok (content, _) -> Ok (Out.scan_config_of_string content)
   in
   Lwt.return conf
 

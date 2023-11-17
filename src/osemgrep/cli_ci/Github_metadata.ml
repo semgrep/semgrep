@@ -251,7 +251,7 @@ let find_branchoff_point_from_github_api repo_name env :
               Digestif.SHA1.pp base_branch_hash Digestif.SHA1.pp
               head_branch_hash))
       >>= function
-      | Ok body ->
+      | Ok (body, _) ->
           let body = body |> Yojson.Basic.from_string in
           let commit =
             Option.bind

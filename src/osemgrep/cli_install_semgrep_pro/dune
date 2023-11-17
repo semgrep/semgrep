@@ -1,0 +1,26 @@
+; OCaml implementation of the 'semgrep ci' subcommand.
+;
+(library
+  (public_name semgrep.osemgrep_cli_install_semgrep_pro)
+  (name osemgrep_cli_install_semgrep_pro)
+  (wrapped false)
+  (libraries
+    cmdliner
+    commons
+    emile
+    osemgrep_configuring
+    osemgrep_core
+    osemgrep_networking
+    osemgrep_cli_scan ; reusing the same flags and most of the code
+    fileutils
+  )
+ (preprocess
+   (pps
+     ppx_profiling
+     ppx_deriving.show
+     ppx_deriving.eq
+     ppx_hash
+     lwt_ppx
+   )
+ )
+)

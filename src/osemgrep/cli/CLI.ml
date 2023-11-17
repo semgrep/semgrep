@@ -187,7 +187,8 @@ let dispatch_subcommand argv =
          * we progress in osemgrep port (or use Pysemgrep.Fallback further
          * down when we know we don't handle certain kind of arguments).
          *)
-        | "install-semgrep-pro" when experimental -> missing_subcommand ()
+        | "install-semgrep-pro" when experimental ->
+            Install_semgrep_pro_subcommand.main subcmd_argv
         | "publish" when experimental -> missing_subcommand ()
         | "login" when experimental -> Login_subcommand.main subcmd_argv
         | "logout" when experimental -> Logout_subcommand.main subcmd_argv

@@ -112,8 +112,8 @@ let fetch_content_from_url_async ?(token_opt = None) (url : Uri.t) :
     in
     let%lwt res = Http_helpers.get_async ?headers url in
     match res with
-    | Ok body -> Lwt.return body
-    | Error msg ->
+    | Ok (body, _) -> Lwt.return body
+    | Error (msg, _) ->
         (* was raise Semgrep_error, but equivalent to abort now *)
         Error.abort
           (spf "Failed to download config from %s: %s" (Uri.to_string url) msg)
