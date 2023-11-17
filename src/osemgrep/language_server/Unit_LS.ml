@@ -118,9 +118,7 @@ let add_file ?(git = false) ?(dirty = false)
   file
 
 let with_mock_envvars f () =
-  let old_settings = !Semgrep_envvars.v in
-  let new_settings = { old_settings with app_token = Some "123456789" } in
-  Common.save_excursion Semgrep_envvars.v new_settings f
+  Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" "123456789" f
 
 (*****************************************************************************)
 (* Tests *)

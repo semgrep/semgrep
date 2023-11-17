@@ -15,7 +15,6 @@
 open Common
 open File.Operators
 open Testutil
-module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -31,34 +30,17 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 (* Helpers *)
 (*****************************************************************************)
 
-(* TODO? move in commons? Test_helpers.ml? *)
-let with_setenv envvar str f =
-  let old = Sys.getenv_opt envvar in
-  Unix.putenv envvar str;
-  Common.finalize f (fun () ->
-      match old with
-      | Some str -> Unix.putenv envvar str
-      (* ugly: Unix does not provide unsetenv,
-       * see https://discuss.ocaml.org/t/unset-environment-variable/9025
-       *)
-      | None -> Unix.putenv envvar "")
-
 type result = { exit_code : Exit_code.t; logs : string }
 
 let with_logs ~f ~final =
-  Logs_helpers.with_mocked_logs ~f ~final:(fun log_content res ->
+  Testutil_mock.with_mocked_logs ~f ~final:(fun log_content res ->
       pr2 (spf "logs = %s" log_content);
       final { exit_code = res; logs = log_content })
-
-(* TODO: factorize with Unit_LS.with_mock_envvars *)
-let with_semgrep_envvar envvar str f =
-  with_setenv envvar str (fun () ->
-      Semgrep_envvars.with_envvars (Semgrep_envvars.of_current_sys_env ()) f)
 
 (* we return a fun () to match Testutil.test second element *)
 let with_login_test_env f () =
   Testutil_files.with_tempdir ~chdir:true (fun tmp_path ->
-      with_semgrep_envvar "SEMGREP_SETTINGS_FILE"
+      Semgrep_envvars.with_envvar "SEMGREP_SETTINGS_FILE"
         !!(tmp_path / "settings.yaml")
         f)
 
@@ -128,7 +110,7 @@ let fake_deployment =
 let test_login_with_env_token : Testutil.test =
   ( __FUNCTION__,
     with_login_test_env (fun () ->
-        with_semgrep_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->
+        Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->
             with_fake_deployment_response fake_deployment (fun () ->
                 with_logs
                   ~f:(fun () -> Login_subcommand.main [| "semgrep-login" |])
