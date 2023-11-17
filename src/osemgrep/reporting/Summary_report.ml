@@ -76,19 +76,19 @@ let pp_summary ppf
       "files only partially analyzed due to a parsing or internal Semgrep error"
       errors
   in
-  match (out_skipped, out_partial, out_limited) with
-  | [], None, None -> ()
-  | xs, parts, limited ->
-      (* TODO if limited_fragments:
-              for fragment in limited_fragments:
-                  message += f"\n  {fragment}" *)
+  match (out_skipped, out_partial, out_limited, skipped_groups.ignored) with
+  | [], None, None, [] -> ()
+  | [], None, _limited, [] -> ()
+  | xs, parts, limited, _ignored ->
       Fmt.pf ppf "Some files were skipped or only partially analyzed.@.";
-      Option.iter (fun txt -> Fmt.pf ppf "  %s" txt) limited;
-      Option.iter (fun txt -> Fmt.pf ppf "  Partially scanned: %s@." txt) parts;
+      Option.iter (fun txt -> Fmt.pf ppf "  %s\n" txt) limited;
+      Option.iter
+        (fun txt -> Fmt.pf ppf "  Partially scanned: %s@.\n" txt)
+        parts;
       (match xs with
       | [] -> ()
       | xs ->
-          Fmt.pf ppf "  Scan skipped: %s@." (String.concat ", " xs);
+          Fmt.pf ppf "  Scan skipped: %s.@." (String.concat ", " xs);
           Fmt.pf ppf
             "  For a full list of skipped files, run semgrep with the \
              --verbose flag.@.");
