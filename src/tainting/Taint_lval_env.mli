@@ -44,7 +44,8 @@ val dumb_find : env -> IL.lval -> [> `Clean | `None | `Tainted of Taint.taints ]
     'x.a.b' would return `None. The way we determine whether an l-value is tainted
     is a "bit" more complex, see Dataflow_tainting.check_tainted_lval. *)
 
-val propagate_from : Dataflow_var_env.var -> env -> Taint.taints option
+val propagate_from : Dataflow_var_env.var -> env -> Taint.taints option * env
+val pending_propagation : env -> Dataflow_var_env.var -> IL.lval -> env
 
 val clean : env -> IL.lval -> env
 (** Remove taint from an lvalue.
