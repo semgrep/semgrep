@@ -216,7 +216,10 @@ let exn_to_error rule_id file (e : Exception.t) : t =
           Exception.reraise e
       | exn ->
           let trace = Exception.to_string e in
-          let loc = Tok.first_loc_of_file file in
+          let loc =
+            if not String.(equal file "") then Tok.first_loc_of_file file
+            else Tok.fake_location
+          in
           {
             rule_id;
             (* bugfix: we used to return [Out.FatalError] here, but pysemgrep

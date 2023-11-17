@@ -38,69 +38,76 @@ let wrap_with_detach f = Lwt.async (fun () -> Lwt_platform.detach f ())
 let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
     ({ session; _ } : RPC_server.t) =
   let rules = Option.value ~default:session.cached_session.rules rules in
-  Logs.debug (fun m -> m "Running Semgrep with %d rules" (List.length rules));
-  (* !!!Dispatch to the Semgrep engine!!! *)
-  let res =
-    let targets = Option.value ~default:(Session.targets session) targets in
-    let runner_conf = Session.runner_conf session in
-    (* This is currently just ripped from Scan_subcommand. *)
-    let scan_func =
-      if session.user_settings.pro_intrafile then
-        match !Scan_subcommand.hook_pro_scan_func_for_osemgrep with
-        | None ->
-            (* TODO: improve this error message depending on what the
-             * instructions should be *)
-            failwith
-              "You have requested running semgrep with a setting that requires \
-               the pro engine, but do not have the pro engine. You may need to \
-               acquire a different binary."
-        | Some pro_scan_func ->
-            (* THINK: files or folders? *)
-            let roots = targets in
-            (* For now, we're going to just hard-code it at a whole scan, and
-               using the intrafile pro engine.
-               Interfile would likely be too intensive (and require us to target
-               folders, not the affected files)
-            *)
-            let diff_config = Differential_scan_config.WholeScan in
-            pro_scan_func roots ~diff_config
-              Engine_type.(
-                PRO
-                  {
-                    extra_languages = true;
-                    analysis = Interprocedural;
-                    secrets_config = None;
-                  })
-      else Core_runner.mk_scan_func_for_osemgrep Core_scan.scan_with_exn_handler
+  if rules = [] then (
+    Logs.debug (fun m -> m "No rules to run! Not scanning anything.");
+    ([], []))
+  else (
+    Logs.debug (fun m -> m "Running Semgrep with %d rules" (List.length rules));
+    (* !!!Dispatch to the Semgrep engine!!! *)
+    let res =
+      let targets = Option.value ~default:(Session.targets session) targets in
+      let runner_conf = Session.runner_conf session in
+      (* This is currently just ripped from Scan_subcommand. *)
+      let scan_func =
+        if session.user_settings.pro_intrafile then
+          match !Scan_subcommand.hook_pro_scan_func_for_osemgrep with
+          | None ->
+              (* TODO: improve this error message depending on what the
+               * instructions should be *)
+              failwith
+                "You have requested running semgrep with a setting that \
+                 requires the pro engine, but do not have the pro engine. You \
+                 may need to acquire a different binary."
+          | Some pro_scan_func ->
+              (* THINK: files or folders? *)
+              let roots = targets in
+              (* For now, we're going to just hard-code it at a whole scan, and
+                 using the intrafile pro engine.
+                 Interfile would likely be too intensive (and require us to target
+                 folders, not the affected files)
+              *)
+              let diff_config = Differential_scan_config.WholeScan in
+              pro_scan_func roots ~diff_config
+                Engine_type.(
+                  PRO
+                    {
+                      extra_languages = true;
+                      analysis = Interprocedural;
+                      secrets_config = None;
+                    })
+        else
+          Core_runner.mk_scan_func_for_osemgrep Core_scan.scan_with_exn_handler
+      in
+      let res =
+        scan_func ~respect_git_ignore:true ~file_match_results_hook:None
+          runner_conf rules [] targets
+      in
+      Core_runner.create_core_result rules res
     in
-    scan_func ~respect_git_ignore:true ~file_match_results_hook:None runner_conf
-      rules [] targets
-    |> Core_runner.create_core_result rules
-  in
-  let errors =
-    res.core.errors
-    |> Common.map (fun (e : Semgrep_output_v1_t.core_error) -> e.message)
-    |> String.concat "\n"
-  in
-  let skipped =
-    res.core.skipped_rules
-    |> Common.map (fun (r : Semgrep_output_v1_t.skipped_rule) ->
-           Rule_ID.to_string r.rule_id)
-    |> String.concat "\n"
-  in
-  Logs.debug (fun m -> m "Semgrep errors: %s" errors);
-  Logs.debug (fun m -> m "Semgrep skipped rules: %s" skipped);
-  (* Collect results. *)
-  let scanned = res.scanned |> Set_.elements in
-  Logs.debug (fun m -> m "Scanned %d files" (List.length scanned));
-  Logs.debug (fun m ->
-      m "Found %d matches before processing" (List.length res.core.results));
-  let matches =
-    let only_git_dirty = session.user_settings.only_git_dirty in
-    Processed_run.of_matches ~git_ref ~only_git_dirty res
-  in
-  Logs.debug (fun m -> m "Found %d matches" (List.length matches));
-  (matches, scanned)
+    let errors =
+      res.core.errors
+      |> Common.map (fun (e : Semgrep_output_v1_t.core_error) -> e.message)
+      |> String.concat "\n"
+    in
+    let skipped =
+      res.core.skipped_rules
+      |> Common.map (fun (r : Semgrep_output_v1_t.skipped_rule) ->
+             Rule_ID.to_string r.rule_id)
+      |> String.concat "\n"
+    in
+    Logs.debug (fun m -> m "Semgrep errors: %s" errors);
+    Logs.debug (fun m -> m "Semgrep skipped rules: %s" skipped);
+    (* Collect results. *)
+    let scanned = res.scanned |> Set_.elements in
+    Logs.debug (fun m -> m "Scanned %d files" (List.length scanned));
+    Logs.debug (fun m ->
+        m "Found %d matches before processing" (List.length res.core.results));
+    let matches =
+      let only_git_dirty = session.user_settings.only_git_dirty in
+      Processed_run.of_matches ~git_ref ~only_git_dirty res
+    in
+    Logs.debug (fun m -> m "Found %d matches" (List.length matches));
+    (matches, scanned))
 
 (** Scan all folders in the workspace *)
 let scan_workspace server =

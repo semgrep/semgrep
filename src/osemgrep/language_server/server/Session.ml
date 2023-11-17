@@ -10,7 +10,7 @@ module Out = Semgrep_output_v1_t
 (* We really don't wan't mutable state in the server.
    This is the only exception *)
 type session_cache = {
-  mutable rules : Rule.t list;
+  mutable rules : Rule.t list; [@opaque]
   mutable skipped_fingerprints : string list;
   mutable open_documents : Fpath.t list;
   lock : Lwt_mutex.t; [@opaque]
