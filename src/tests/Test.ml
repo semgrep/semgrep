@@ -1,5 +1,5 @@
 (*****************************************************************************)
-(* Purpose *)
+(* Prelude *)
 (*****************************************************************************)
 (* Unit tests entry point.
  *
@@ -8,11 +8,10 @@
  *   $./test foo
  *
  * to run all the tests containing foo in their description.
+ *
+ * This file used to contain lots of tests, but it's better to now
+ * distribute them in their relevant directory (e.g., engine/Unit_engine.ml)
  *)
-
-(*****************************************************************************)
-(* Constants *)
-(*****************************************************************************)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -21,13 +20,6 @@
 let any_gen_of_string str =
   let any = Parse_python.any_of_string str in
   Python_to_generic.any any
-
-(*****************************************************************************)
-(* Tests *)
-(*****************************************************************************)
-(* This file used to contain lots of tests, but it's better to now
- * distribute them in their relevant directory (e.g., engine/Unit_engine.ml)
- *)
 
 (*****************************************************************************)
 (* All tests *)
@@ -75,6 +67,7 @@ let tests () =
       Unit_LS.tests;
       Unit_Login.tests;
       Unit_Fetching.tests;
+      Test_login_subcommand.tests;
       (* Networking tests disabled as they will get rate limited sometimes *)
       (* And the SSL issues they've been testing have been stable *)
       (*Unit_Networking.tests;*)
