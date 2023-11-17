@@ -21,6 +21,7 @@
     osemgrep_cli_install
     osemgrep_cli_show
     osemgrep_cli_test
+    osemgrep_cli_whoami
     osemgrep_configuring
 
     ; reusing code from Core_cli

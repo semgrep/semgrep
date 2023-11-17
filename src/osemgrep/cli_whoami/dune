@@ -1,0 +1,27 @@
+; The 'semgrep whoami' subcommand.
+
+(library
+  (public_name semgrep.osemgrep_cli_whoami)
+  (name osemgrep_cli_whoami)
+  (wrapped false)
+  (libraries
+    cmdliner
+    commons
+    lwt
+    networking.http_helpers
+    lwt_platform
+
+    osemgrep_core
+    osemgrep_configuring
+    osemgrep_networking
+  )
+ (preprocess
+   (pps
+     ppx_profiling
+     ppx_deriving.show
+     ppx_deriving.eq
+     ppx_hash
+     lwt_ppx
+   )
+ )
+)
