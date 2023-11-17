@@ -18,12 +18,16 @@ let show_spinner delay_ms : unit =
   done
 
 let lwt_platform_sleep_impl = ref None
-let lwt_platform_sleep_setup () = lwt_platform_sleep_impl := Some Lwt_unix.sleep
+
+let lwt_platform_sleep_setup () =
+  if not !Common.jsoo then lwt_platform_sleep_impl := Some Lwt_unix.sleep
 
 let lwt_platform_sleep a =
   match !lwt_platform_sleep_impl with
   | Some f -> f a
-  | None -> Lwt.return ()
+  | None -> Lwt.return_unit
+
+let lwt_pause () = if !Common.jsoo then Lwt.return_unit else Lwt.pause ()
 
 let erase_spinner () : unit =
   ANSITerminal.set_cursor 1 (-1);
@@ -45,15 +49,15 @@ let spinner_async () : 'a Lwt.t =
       jump_y := false)
     else ();
     ANSITerminal.printf [ ANSITerminal.green ] "%s" spinner;
-    let inner_sleep = lwt_platform_sleep 0.0025 in
+    let inner_sleep = lwt_platform_sleep 0.005 in
     let%lwt () = inner_sleep in
-    Lwt.return ()
+    Lwt.return_unit
   in
   (* create a cancellable promise *)
   let rec loop i =
     let%lwt _ = print_frame ~frame_index:i in
-    let%lwt _ = lwt_platform_sleep 0.05 in
-    let%lwt _ = Lwt.pause () in
+    let%lwt _ = lwt_platform_sleep 0.025 in
+    let%lwt _ = lwt_pause () in
     loop (i + 1)
   in
   Lwt.finalize
@@ -61,8 +65,7 @@ let spinner_async () : 'a Lwt.t =
     (fun () ->
       (* Flush any pending output to prevent surprises *)
       let%lwt () = Lwt_io.flush Lwt_io.stdout in
-      (* Return the actual http response *)
       (* nosemgrep *)
       ANSITerminal.(print_string [] "\027[?25h");
       erase_spinner ();
-      Lwt.return ())
+      Lwt.return_unit)

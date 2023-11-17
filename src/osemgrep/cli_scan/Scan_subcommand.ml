@@ -704,7 +704,7 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
 
   (* Create the wait hook for our progress indicator *)
   let spinner_ls =
-    if !ANSITerminal.isatty Unix.stdout then
+    if !ANSITerminal.isatty Unix.stdout && not !Common.jsoo then
       [ Console_Spinner.spinner_async () ]
     else []
   in
@@ -715,7 +715,8 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
       ~registry_caching:conf.registry_caching conf.rules_source
   in
   let rules_and_origins =
-    Lwt_platform.run (Lwt.pick (rules_and_origins :: spinner_ls))
+    if !Common.jsoo then Lwt_platform.run rules_and_origins
+    else Lwt_platform.run (Lwt.pick (rules_and_origins :: spinner_ls))
   in
 
   (* step2: getting the targets *)
