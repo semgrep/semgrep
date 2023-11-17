@@ -35,9 +35,4 @@ let run t =
 let detach f x = f x |> Lwt.return
 let init_preemptive _ _ _ = ()
 let set_engine () = ()
-let timeout = Lwt_js.sleep
-
-let yield_for n =
-  Lwt.catch
-    (fun () -> Lwt.bind (timeout n) (fun () -> Lwt.return_unit))
-    (fun _ -> Lwt.return_unit)
+let (sleep : float -> 'a Lwt.t) = Js_of_ocaml_lwt.Lwt_js.sleep

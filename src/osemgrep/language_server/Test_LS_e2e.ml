@@ -131,7 +131,7 @@ let () =
       let err = Printexc.to_string exn in
       Alcotest.fail err
 
-let timeout = 30.0
+let timeout = 0.5
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -155,7 +155,7 @@ let lwt_pause () = if !Common.jsoo then Lwt.return_unit else Lwt.pause ()
 
 let with_timeout (f : unit -> 'a Lwt.t) : unit -> 'a Lwt.t =
   let timeout_promise =
-    let%lwt () = Lwt_platform.yield_for timeout in
+    let%lwt () = Lwt_platform.sleep timeout in
     Alcotest.failf "Test timed out after %f seconds!" timeout
   in
   let f () = Lwt.pick [ f (); timeout_promise ] in
@@ -990,6 +990,7 @@ let test_ls_libev () =
 (*****************************************************************************)
 
 let promise_tests =
+  ignore test_login;
   [
     ("Test LS", test_ls_specs);
     ("Test LS exts", test_ls_ext);

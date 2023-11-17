@@ -14,8 +14,5 @@ val set_engine : unit -> unit
     run out of FDs, crashing the LS.
   *)
 
-val timeout : float -> 'a Lwt.t
-(** [timeout delay] returns a promise that will raise an exception after [delay] seconds. *)
-
-val yield_for : float -> unit Lwt.t
-(** [yield_for delay] yields the current thread for [delay] seconds. *)
+val sleep : float -> unit Lwt.t
+(** [sleep delay] returns a promise that will be resolved after [delay] seconds. *)
