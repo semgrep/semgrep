@@ -16,7 +16,11 @@ module Out = Semgrep_output_v1_t
 (*****************************************************************************)
 
 let pp_summary ppf
-    (respect_git_ignore, maturity, max_target_bytes, skipped_groups) : unit =
+    ( respect_git_ignore,
+      maturity,
+      max_target_bytes,
+      target_roots,
+      skipped_groups ) : unit =
   let {
     Skipped_report.ignored = semgrep_ignored;
     include_ = include_ignored;
@@ -37,21 +41,19 @@ let pp_summary ppf
   *)
   let out_limited =
     if respect_git_ignore then
-      (* # Each target could be a git repo, and we respect the git ignore
-         # of each target, so to be accurate with this print statement we
-         # need to check if any target is a git repo and not just the cwd
-         targets_not_in_git = 0
-         dir_targets = 0
-         for t in self.target_manager.targets:
-             if t.path.is_dir():
-                 dir_targets += 1
-                 try:
-                     t.files_from_git_ls()
-                 except (subprocess.SubprocessError, FileNotFoundError):
-                     targets_not_in_git += 1
-                     continue
-         if targets_not_in_git != dir_targets: *)
-      Some "Scan was limited to files tracked by git."
+      let any_git_repos =
+        target_roots
+        |> List.filter (fun root ->
+               match Fpath.append (Fpath.normalize root) (Fpath.v ".git") with
+               | git_dir when Common2.dir_exists (Fpath.to_string git_dir) ->
+                   true
+               | git_dir when Common2.lfile_exists (Fpath.to_string git_dir) ->
+                   true
+               | _ -> false)
+      in
+      if any_git_repos <> [] then
+        Some "Scan was limited to files tracked by git."
+      else None
     else None
   in
   let opt_msg msg = function
