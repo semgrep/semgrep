@@ -106,13 +106,12 @@ let partition_rules_and_errors (xs : rules_and_origin list) :
   in
   (rules, errors)
 
-let fetch_content_from_url_async ?(token_opt = None) (url : Uri.t) :
-    string Lwt.t =
+let fetch_content_from_url_async ?(token_opt = None)
+    ?(wait_hook = fun _stopper -> ()) (url : Uri.t) : string Lwt.t =
   (* TOPORT? _nice_semgrep_url() *)
   Logs.debug (fun m -> m "trying to download from %s" (Uri.to_string url));
   let spinner_stopper = ref false in
-  if !ANSITerminal.isatty Unix.stdout then
-    Console_Spinner.spinner_async spinner_stopper;
+  wait_hook spinner_stopper;
   let content =
     let headers =
       match token_opt with
@@ -126,9 +125,6 @@ let fetch_content_from_url_async ?(token_opt = None) (url : Uri.t) :
         spinner_stopper := true;
         (* Flush any pending output to prevent surprises *)
         let%lwt () = Lwt_io.flush Lwt_io.stdout in
-        if !ANSITerminal.isatty Unix.stdout then
-          (* Clean up the loading indicator *)
-          Console_Spinner.erase_spinner ();
         (* Return the actual http response *)
         Lwt.return body
     | Error msg ->
@@ -484,17 +480,17 @@ let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt ~registry_caching
 (* Entry point *)
 (*****************************************************************************)
 
-(* python: mix of resolver_config.get_config() and get_rules() *)
-let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
-    (src : Rules_source.t) : rules_and_origin list =
+let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~registry_caching
+    (src : Rules_source.t) : rules_and_origin list Lwt.t =
   match src with
   | Configs xs ->
       xs
-      |> List.concat_map (fun str ->
+      |> Lwt_list.map_p (fun str ->
              let in_docker = !Semgrep_envvars.v.in_docker in
              let config = Rules_config.parse_config_string ~in_docker str in
-             rules_from_dashdash_config ~rewrite_rule_ids ~token_opt
+             rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
                ~registry_caching config)
+      |> Lwt.map List.concat
   (* better: '-e foo -l regex' was not handled in pysemgrep
    *  (got a weird 'invalid pattern clause' error)
    * better: '-e foo -l generic' was not handled in semgrep-core
@@ -519,7 +515,7 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
       | Some xlang ->
           (* TODO? capture also parse errors here? and transform the pattern
            * parse error in invalid_rule_error to return in rules_and_origin? *)
-          [ rules_and_origin_for_xlang xlang ]
+          Lwt.return [ rules_and_origin_for_xlang xlang ]
       (* osemgrep-only: better: can use -e without -l! we try all languages *)
       | None ->
           (* We need uniq_by because Lang.assoc contain multiple times the
@@ -537,6 +533,7 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
              *)
             |> Common.exclude (fun x -> x =*= Lang.Dart)
           in
+
           all_langs
           |> Common.map_filter (fun l ->
                  try
@@ -548,5 +545,14 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
                  with
                  | R.Error _
                  | Failure _ ->
-                     None))
+                     None)
+          |> Lwt.return)
 [@@profiling]
+
+(* TODO We can probably delete this. *)
+(* python: mix of resolver_config.get_config() and get_rules() *)
+let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
+    (src : Rules_source.t) : rules_and_origin list =
+  Lwt_platform.run
+    (rules_from_rules_source_async ~token_opt ~rewrite_rule_ids
+       ~registry_caching src)

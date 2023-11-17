@@ -699,14 +699,25 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
 
   (* step1: getting the rules *)
 
-  (* Display a message, ideally a progress bar to denote rule fetching *)
+  (* Display a message to denote rule fetching that is made interactive when possible *)
   if new_cli_ux then display_rule_source ~rule_source:conf.rules_source;
 
+  (* Create the wait hook for our progress indicator *)
+  let spinner_ls =
+    if !ANSITerminal.isatty Unix.stdout then
+      [ Console_Spinner.spinner_async () ]
+    else []
+  in
+  (* Fetch the rules *)
   let rules_and_origins =
-    Rule_fetching.rules_from_rules_source ~token_opt:settings.api_token
+    Rule_fetching.rules_from_rules_source_async ~token_opt:settings.api_token
       ~rewrite_rule_ids:conf.rewrite_rule_ids
       ~registry_caching:conf.registry_caching conf.rules_source
   in
+  let rules_and_origins =
+    Lwt_platform.run (Lwt.pick (rules_and_origins :: spinner_ls))
+  in
+
   (* step2: getting the targets *)
   let targets_and_skipped =
     Find_targets.get_targets conf.targeting_conf conf.target_roots

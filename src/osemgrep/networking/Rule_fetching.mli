@@ -55,6 +55,13 @@ val rules_from_rules_source :
   Rules_source.t ->
   rules_and_origin list
 
+val rules_from_rules_source_async :
+  token_opt:Auth.token option ->
+  rewrite_rule_ids:bool ->
+  registry_caching:bool ->
+  Rules_source.t ->
+  rules_and_origin list Lwt.t
+
 (* internals *)
 
 val rules_from_dashdash_config_async :
