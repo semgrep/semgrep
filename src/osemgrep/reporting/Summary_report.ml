@@ -17,20 +17,20 @@ module Out = Semgrep_output_v1_t
 
 exception FoundGitDir of Fpath.t
 
-let find_git_dir lst =
+let find_git_dir xs =
   try
     let _ =
-      List.fold_left
-        (fun _ x ->
+      List.iter
+        (fun x ->
           let dir =
             if Common2.dir_exists (Fpath.to_string x) then x else Fpath.parent x
           in
           if Git_wrapper.is_git_repo dir then raise (FoundGitDir dir))
-        () lst
+        xs
     in
-    None
+    false
   with
-  | FoundGitDir x -> Some x
+  | FoundGitDir _ -> true
 
 let pp_summary ppf
     ( respect_git_ignore,
@@ -60,8 +60,8 @@ let pp_summary ppf
     if respect_git_ignore then
       let any_git_repos = find_git_dir target_roots in
       match any_git_repos with
-      | Some _ -> Some "Scan was limited to files tracked by git."
-      | _ -> None
+      | true -> Some "Scan was limited to files tracked by git."
+      | false -> None
     else None
   in
   let opt_msg msg = function
