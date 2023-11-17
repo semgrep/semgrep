@@ -267,7 +267,7 @@ function unix_fork(vunit) {
 
 //Provides: unix_putenv
 function unix_putenv(key, val) {
-  //TODO: nodejs equivalent?
+  process.env[key] = value
   return;
 }
 
