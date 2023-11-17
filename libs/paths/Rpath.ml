@@ -38,14 +38,14 @@
 (* Types *)
 (*****************************************************************************)
 
-type t = Realpath of Fpath.t [@@deriving show, eq]
+type t = Rpath of Fpath.t [@@deriving show, eq]
 
 (*****************************************************************************)
 (* Main functions *)
 (*****************************************************************************)
 
-let of_fpath p = Realpath (Fpath.to_string p |> Unix.realpath |> Fpath.v)
-let of_string s = Realpath (Unix.realpath s |> Fpath.v)
-let to_fpath (Realpath x) = x
-let to_string (Realpath x) = Fpath.to_string x
+let of_fpath p = Rpath (Fpath.to_string p |> Unix.realpath |> Fpath.v)
+let of_string s = Rpath (Unix.realpath s |> Fpath.v)
+let to_fpath (Rpath x) = x
+let to_string (Rpath x) = Fpath.to_string x
 let canonical s = to_string (of_string s)

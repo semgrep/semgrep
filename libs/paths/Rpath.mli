@@ -20,7 +20,7 @@
    or directories. You cannot use this for something which does not
    yet exist. Use the Fpath library for that instead.
 
-   Also note that even though it's tempting to use Realpath.t inside your
+   Also note that even though it's tempting to use Rpath.t inside your
    program, because they provide a canonical representation of a path,
    you should prefer in general to use Fpath.t because users want
    error messages, findings, etc. that contain paths derived from
@@ -39,9 +39,9 @@
    `of_string`, and in particular, ensures that they all must be
    validated by `realpath()`.
 *)
-type t = private Realpath of Fpath.t [@@deriving show, eq]
+type t = private Rpath of Fpath.t [@@deriving show, eq]
 
-(* only way to build a Realpath *)
+(* only way to build a Rpath *)
 val of_fpath : Fpath.t -> t
 val of_string : string -> t
 

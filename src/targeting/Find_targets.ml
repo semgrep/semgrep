@@ -317,12 +317,12 @@ let group_scanning_roots_by_project (conf : conf)
          let kind, project_root, scanning_root_ppath =
            Git_project.find_any_project_root ?force_root scanning_root
          in
-         ( ({ kind; path = Realpath.of_fpath project_root } : Project.t),
+         ( ({ kind; path = Rpath.of_fpath project_root } : Project.t),
            ({ fpath = scanning_root; ppath = scanning_root_ppath } : Fppath.t)
          ))
-  (* using a Realpath in Project.t ensures we group correctly even
-   * if the scanning_roots went through different symlink paths
-   *)
+  (* Using a realpath (physical path) in Project.t ensures we group
+     correctly even if the scanning_roots went through different symlink paths.
+  *)
   |> Common.group_by fst
   |> Common.map (fun (project, xs) ->
          { project; scanning_roots = xs |> Common.map snd })
@@ -366,7 +366,7 @@ let setup_semgrepignore conf (project_roots : project_roots) : Semgrepignore.t =
   Semgrepignore.create ?include_patterns:conf.include_
     ~cli_patterns:conf.exclude ~builtin_semgrepignore:Semgrep_scan_legacy
     ~exclusion_mechanism
-    ~project_root:(Realpath.to_fpath project_root)
+    ~project_root:(Rpath.to_fpath project_root)
     ()
 
 (* Work from a list of  obtained with git *)

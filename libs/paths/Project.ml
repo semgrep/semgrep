@@ -14,4 +14,4 @@ type kind = Git_project | Gitignore_project | Other_project [@@deriving show]
  * use the project root rpath to build fpaths; you should use
  * a ppath associated with a scanning root fpath.
  *)
-type t = { kind : kind; path : Realpath.t }
+type t = { kind : kind; path : Rpath.t }

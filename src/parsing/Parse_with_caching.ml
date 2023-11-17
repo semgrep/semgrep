@@ -58,7 +58,7 @@ type ast_cached_value =
   ( (AST_generic.program * Tok.location list, Exception.t) Common.either,
     string (* AST_generic.version *)
     * Lang.t
-    * Realpath.t (* original file *)
+    * Rpath.t (* original file *)
     * float (* mtime of the original file *) )
   Cache_disk.cached_value_on_disk
 
@@ -90,7 +90,7 @@ let ast_or_exn_of_file (lang, file) =
 
 (* Cache_disk methods reused in a few places *)
 let cache_extra_for_input version (lang, file) =
-  (version, lang, Realpath.of_fpath file, File.filemtime file)
+  (version, lang, Rpath.of_fpath file, File.filemtime file)
 
 (* this is used for semgrep-core -generate_ast_binary done for Snowflake *)
 let binary_suffix : Fpath.ext = ".ast.binary"
@@ -143,7 +143,7 @@ let parse_and_resolve_name ?(parsing_cache_dir = None) version lang
             Cache_disk.cache_file_for_input =
               (fun (lang, file) ->
                 (* canonicalize to reduce cache misses *)
-                let file = Realpath.of_fpath file in
+                let file = Rpath.of_fpath file in
                 (* we may use different parsers for the same file
                  * (e.g., in Python3 or Python2 mode), so we put the lang as
                  * part of the cache "dependency".
@@ -153,8 +153,8 @@ let parse_and_resolve_name ?(parsing_cache_dir = None) version lang
                  * generate an exn when reading the cache and regenerate it.
                  *)
                 let str =
-                  spf "%s__%s__%s" (Realpath.to_string file)
-                    (Lang.to_string lang) version
+                  spf "%s__%s__%s" (Rpath.to_string file) (Lang.to_string lang)
+                    version
                 in
                 (* Better to obfuscate the cache files, like in Unison, to
                  * discourage people to play with it. Also simple way to escape
@@ -173,7 +173,7 @@ let parse_and_resolve_name ?(parsing_cache_dir = None) version lang
                  * - "Not the same file! Md5sum collision! Clean the cache file"
                  *)
                 version = version2
-                && Realpath.equal (Realpath.of_fpath file) file2
+                && Rpath.equal (Rpath.of_fpath file) file2
                 && Lang.equal lang lang2
                 && File.filemtime file =*= mtime2);
             input_to_string =
