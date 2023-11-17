@@ -51,6 +51,7 @@ let spinner_async () : 'a Lwt.t =
   let rec loop i =
     (* *)
     let%lwt _ = lwt_platform_sleep 0.05 in
+    let%lwt _ = Lwt.pause () in
     print_frame ~frame_index:i;
     loop (i + 1)
   in
