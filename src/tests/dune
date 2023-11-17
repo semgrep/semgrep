@@ -25,6 +25,7 @@
     semgrep.data
 
     osemgrep_language_server
+    osemgrep_cli_login
   )
  (modes native byte) ; bytecode here for debugging
  (preprocess

@@ -40,13 +40,11 @@ def test_login(tmp_path, mocker):
     assert "semgrep login is an interactive command" in result.output
 
     # Login with env token
-    # with patch.object(auth, "is_a_tty", return_value=True):
     result = runner.invoke(
         cli,
         ["login"],
         env={"SEMGREP_APP_TOKEN": fake_key},
     )
-    print(result.output)
     assert result.exit_code == 0
     assert result.output.startswith("Saved login token")
     assert "<redacted>" in result.output
@@ -95,7 +93,9 @@ def test_login(tmp_path, mocker):
     ), "registry should refuse to send rules to invalid token"
 
     # Run policy with bad token -> no associated deployment_id
-    result = runner.invoke(cli, ["--config", "policy"])
+    result = runner.invoke(
+        cli, ["--config", "policy"], env={"SEMGREP_REPO_NAME": "test-repo"}
+    )
     assert result.exit_code == 7
     assert "Invalid API Key" in result.output
 

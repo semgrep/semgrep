@@ -115,6 +115,7 @@ exports[`yaml parser interpolates metavariables in rule message 1`] = `
       "op": "And",
     },
   ],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "test.py",
@@ -213,6 +214,7 @@ exports[`yaml parser parses a pattern with pattern-regex 1`] = `
       ],
     },
   ],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "test.yaml",
@@ -311,6 +313,7 @@ exports[`yaml parser parses a simple pattern 1`] = `
       ],
     },
   ],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "test.yaml",

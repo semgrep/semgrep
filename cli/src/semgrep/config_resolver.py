@@ -124,10 +124,6 @@ class ConfigLoader:
             add_metrics_for_products(config_str)
             self._config_path = config_str
             self._supports_fallback_config = True
-        elif is_policy_id(config_str):
-            state.metrics.add_feature("config", "policy")
-            self._config_path = url_for_policy()
-            self._supports_fallback_config = True
         elif is_registry_id(config_str):
             state.metrics.add_feature("config", f"registry:prefix-{config_str[0]}")
             self._config_path = registry_id_to_url(config_str)
@@ -377,13 +373,13 @@ class ConfigLoader:
         """
         fallback_url = None
 
-        if self._config_path == "code":
+        if is_code(self._config_path):
             fallback_url = url_for_code()
-        elif self._config_path == "supply-chain":
+        elif is_supply_chain(self._config_path):
             fallback_url = url_for_supply_chain()
-        elif self._config_path == "secrets":
+        elif is_secrets(self._config_path):
             fallback_url = url_for_secrets()
-        elif self._config_path == "policy":
+        elif is_policy_id(self._config_path):
             fallback_url = url_for_policy()
         else:
             raise
@@ -951,6 +947,7 @@ def url_for_policy() -> str:
 
 PRODUCT_NAMES = {
     "code": "sast",
+    "policy": "sast",  # although policy isn't a product, it's effectively an alias for code
     "secrets": "secrets",
     "supply-chain": "sca",
 }
@@ -965,7 +962,10 @@ def is_product_names(config_str: str) -> bool:
 def add_metrics_for_products(config_str: str) -> None:
     state = get_state()
     for product_name in config_str.split(","):
-        state.metrics.add_feature("config", PRODUCT_NAMES[product_name])
+        if is_policy_id(product_name):
+            state.metrics.add_feature("config", "policy")
+        else:
+            state.metrics.add_feature("config", PRODUCT_NAMES[product_name])
 
 
 def is_policy_id(config_str: str) -> bool:
@@ -1007,6 +1007,10 @@ def url_for_supply_chain() -> str:
 
 def url_for_secrets() -> str:
     return legacy_url_for_scan({"is_secrets_scan": True})
+
+
+def is_code(config_str: str) -> bool:
+    return config_str == "code"
 
 
 def is_supply_chain(config_str: str) -> bool:

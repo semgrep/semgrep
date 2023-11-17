@@ -51,6 +51,14 @@ val status : cwd:Fpath.t -> commit:string -> status
 val is_git_repo : Fpath.t -> bool
 (** Returns true if passed directory a git repo*)
 
+(* Find the root of the repository containing 'cwd', if any.
+   The result may be a submodule of another git repo. *)
+val get_project_root : ?cwd:Fpath.t -> unit -> Fpath.t option
+
+(* Find the root of the git project containing 'cwd', if any.
+   The result is not a submodule of another git repo. *)
+val get_superproject_root : ?cwd:Fpath.t -> unit -> Fpath.t option
+
 (* precondition: cwd must be a directory *)
 val dirty_lines_of_file : ?git_ref:string -> Fpath.t -> (int * int) array option
 (** [dirty_lines_of_file path] will return an optional array of line ranges that indicate what

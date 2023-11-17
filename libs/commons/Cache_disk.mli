@@ -35,6 +35,13 @@ val cache :
   'input ->
   'value
 
+(* Need unit to avoid value restriction in impl. would be nice to not need somehow? *)
+val cache_lwt :
+  ('input -> 'value Lwt.t) ->
+  ('input, 'value, 'extra) cache_methods ->
+  'input ->
+  'value Lwt.t
+
 (* deprecated old functions, less flexible than cache() above. *)
 
 (* take file from which computation is done, an extension, and the function

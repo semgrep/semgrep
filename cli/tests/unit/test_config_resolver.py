@@ -34,12 +34,7 @@ def mocked_state(mocker):
 
 @pytest.mark.parametrize(
     "product",
-    [
-        "code",
-        "secrets",
-        "supply-chain",
-        "code,secrets",
-    ],
+    ["code", "secrets", "supply-chain", "code,secrets", "policy"],
 )
 class TestConfigLoaderForProducts:
     @pytest.fixture
