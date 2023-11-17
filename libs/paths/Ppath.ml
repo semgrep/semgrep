@@ -176,11 +176,6 @@ let normalize_ppath x =
 let of_fpath path =
   Fpath.segs path |> create |> make_absolute |> normalize_ppath
 
-let of_fpath_exn path =
-  match of_fpath path with
-  | Ok ppath -> ppath
-  | Error msg -> invalid_arg msg
-
 (*
    Prepend "./" to relative paths so as to make "." a prefix.
 *)
