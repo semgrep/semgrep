@@ -12,7 +12,7 @@ type t = target_file [@@deriving show]
 
 (* Helper functions for converting between Fpath lists and target_files *)
 
-let no_info_target_files_of_fpaths : Fpath.t list -> target_files =
+let non_special_target_files_of_fpaths : Fpath.t list -> target_files =
   Common.map (fun x -> (x, NoSpecialTargeting))
 
 let v (file, _info) = file

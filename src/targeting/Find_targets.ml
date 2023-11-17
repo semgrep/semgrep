@@ -213,7 +213,7 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
   (* Let's not worry about file order here until we have to.
      They will be sorted later. *)
   (* Target files found in directories always have the language inferred *)
-  (!selected_paths |> Target_file.no_info_target_files_of_fpaths, !skipped)
+  (!selected_paths |> Target_file.non_special_target_files_of_fpaths, !skipped)
 
 (*************************************************************************)
 (* Grouping *)

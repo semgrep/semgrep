@@ -78,7 +78,7 @@ def test_deduplication(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-@pytest.mark.osemfail
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_noextension_filtering(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
@@ -95,7 +95,7 @@ def test_noextension_filtering(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-@pytest.mark.osemfail
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_noextension_filtering_optimizations(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """

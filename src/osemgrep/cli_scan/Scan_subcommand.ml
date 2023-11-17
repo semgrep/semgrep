@@ -337,7 +337,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
                         (all_in_baseline, paths_in_scanned)
                     | _ ->
                         ( paths_in_match
-                          |> Target_file.no_info_target_files_of_fpaths,
+                          |> Target_file.non_special_target_files_of_fpaths,
                           [] )
                   in
                   core baseline_targets
@@ -447,7 +447,8 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
                   Some { diffDepth = Some diff_depth };
                 (targets, added_or_modified)
             | _ ->
-                ( added_or_modified |> Target_file.no_info_target_files_of_fpaths,
+                ( added_or_modified
+                  |> Target_file.non_special_target_files_of_fpaths,
                   [] )
           in
           let head_scan_result =

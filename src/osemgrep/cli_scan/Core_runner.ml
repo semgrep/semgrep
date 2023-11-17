@@ -120,6 +120,7 @@ let split_jobs_by_language all_rules all_targets : Lang_job.t list =
   let targets_with_unknown_extension =
     get_targets_with_unknown_extension all_targets
   in
+  Common.pr2 (Target_file.show_target_files all_targets);
   let all_targets = Target_file.fpaths_of_target_files all_targets in
   all_rules |> group_rules_by_target_language
   |> Common.map_filter (fun (xlang, rules) ->
