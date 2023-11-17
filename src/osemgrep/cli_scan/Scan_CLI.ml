@@ -526,7 +526,7 @@ let o_secrets : bool Term.t =
       [ "beta-testing-secrets-enabled" ]
       ~doc:
         {|Enable support for secret validation. Requires Semgrep Secrets,
-contact support@semgrep.com for more informationon this.|}
+contact support@semgrep.com for more information on this.|}
   in
   Arg.value (Arg.flag info)
 
@@ -557,8 +557,7 @@ let o_oss : bool Term.t =
   Arg.value (Arg.flag info)
 
 let blurb =
-  "Requires Semgrep Pro Engine, contact support@semgrep.com for more \
-   information on this."
+  "Requires Semgrep Pro Engine. See https://semgrep.dev/products/pro-engine/ for more."
 
 let o_pro_languages : bool Term.t =
   let info =

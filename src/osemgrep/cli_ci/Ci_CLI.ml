@@ -83,7 +83,7 @@ let o_secrets : bool Term.t =
     Arg.info [ "secrets" ]
       ~doc:
         {|Support for secret validation. Requires Semgrep Secrets,
-contact support@semgrep.com for more information this.|}
+contact support@semgrep.com for more information on this.|}
   in
   Arg.value (Arg.flag info)
 
