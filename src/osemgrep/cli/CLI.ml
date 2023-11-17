@@ -312,6 +312,7 @@ let main argv : Exit_code.t =
   Parsing_init.init ();
   Data_init.init ();
   Http_helpers_.client_ref := Some (module Cohttp_lwt_unix.Client);
+  Console_Spinner.lwt_platform_sleep_setup ();
 
   metrics_init ();
   (* TOPORT: maybe_set_git_safe_directories() *)

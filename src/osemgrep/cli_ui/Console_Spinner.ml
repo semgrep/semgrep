@@ -35,7 +35,7 @@ let spinner_async () : 'a Lwt.t =
   ANSITerminal.(print_string [] "\027[?25l");
   (* hide cursor to make progess indicator more visible *)
   let jump_y = ref true in
-  let print_frame ~frame_index:i : unit =
+  let print_frame ~frame_index:i : unit Lwt.t =
     let spinner = spinner.(i mod Array.length spinner) in
     ANSITerminal.move_bol ();
     (* ensure we update only the progress indicator *)
@@ -44,20 +44,24 @@ let spinner_async () : 'a Lwt.t =
       ANSITerminal.move_cursor 0 (-1);
       jump_y := false)
     else ();
-    (* extra guard against printing among race conditions *)
-    ANSITerminal.printf [ ANSITerminal.green ] "%s" spinner
+    ANSITerminal.printf [ ANSITerminal.green ] "%s" spinner;
+    let inner_sleep = lwt_platform_sleep 0.0025 in
+    let%lwt () = inner_sleep in
+    Lwt.return ()
   in
   (* create a cancellable promise *)
   let rec loop i =
-    (* *)
+    let%lwt _ = print_frame ~frame_index:i in
     let%lwt _ = lwt_platform_sleep 0.05 in
     let%lwt _ = Lwt.pause () in
-    print_frame ~frame_index:i;
     loop (i + 1)
   in
   Lwt.finalize
     (fun () -> loop 0)
     (fun () ->
+      (* Flush any pending output to prevent surprises *)
+      let%lwt () = Lwt_io.flush Lwt_io.stdout in
+      (* Return the actual http response *)
       (* nosemgrep *)
       ANSITerminal.(print_string [] "\027[?25h");
       erase_spinner ();
