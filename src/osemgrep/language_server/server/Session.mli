@@ -37,7 +37,7 @@ val cache_session : t -> unit Lwt.t
     as in [t.user_settings], and CI if an api token is available. This is an asynchronous operation,
     and so the rules are stored in a [session_cache] *)
 
-val targets : t -> Fpath.t list
+val targets : t -> Target_file.target_files
 (** [targets t] returns the list of targets for the session. This is a list of files in
     workspace folders, with includes and excludes in [t.user_settings], and git
     status taken into account if [t.user_settings.only_git_dirty] is set *)

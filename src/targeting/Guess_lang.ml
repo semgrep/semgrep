@@ -184,6 +184,21 @@ let is_executable_script cmd_names =
     ( Not has_an_extension,
       And (is_executable, uses_shebang_command_name cmd_names) )
 
+(* Matches if
+   - language has extension in Lang.ext_of_lang
+
+   This is so that we can make our check for unknown extensions work
+   the same way as the Python one. See Filter_target for more info
+*)
+let check_lang_extension lang path =
+  match has_lang_extension lang with
+  | And _
+  | Or _
+  | Not _ ->
+      (* This should be impossible *)
+      false
+  | Test_path f -> f path
+
 (*
    Matches if either
    - language has extension in Lang.ext_of_lang

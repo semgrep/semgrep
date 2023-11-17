@@ -1244,7 +1244,10 @@ let run (conf : Interactive_CLI.conf) : Exit_code.t =
    *)
   let xlang = Xlang.L (conf.lang, []) in
   let targets =
-    targets |> List.filter (Filter_target.filter_target_for_xlang xlang)
+    targets
+    (* In interactive mode, scan-unknown-extensions never applies *)
+    |> Target_file.fpaths_of_target_files
+    |> List.filter (Filter_target.filter_target_for_xlang xlang)
   in
   let config = Core_runner.core_scan_config_of_conf conf.core_runner_conf in
   let config = { config with roots = conf.target_roots; lang = Some xlang } in

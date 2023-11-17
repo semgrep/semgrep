@@ -132,7 +132,10 @@ let session_targets () =
     let user_settings = { session.user_settings with only_git_dirty } in
     let session = { session with user_settings; workspace_folders } in
     let session = set_session_targets session workspace_folders in
-    let targets = session |> Session.targets |> Common.map Fpath.to_string in
+    let targets =
+      session |> Session.targets |> Target_file.fpaths_of_target_files
+      |> Common.map Fpath.to_string
+    in
     let targets = Common.sort targets in
     let expected = Common.sort expected in
     Alcotest.(check (list string)) "targets" expected targets

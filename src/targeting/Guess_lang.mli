@@ -32,3 +32,9 @@ val inspect_files :
    if it looks like it's in the desired format.
 *)
 val get_first_block : ?block_size:int -> Fpath.t -> string
+
+(*
+   Check whether a path has any of the extensions for a language.
+   Does not check any other features of the path.
+*)
+val check_lang_extension : Language.t -> Fpath.t -> bool

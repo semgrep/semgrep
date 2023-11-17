@@ -73,7 +73,7 @@ type scan_func_for_osemgrep =
   (* LATER? use Config_resolve.rules_and_origin instead? *)
   Rule.rules ->
   Rule.invalid_rule_error list ->
-  Fpath.t list ->
+  Target_file.target_files ->
   Core_result.result_or_exn
 
 (*************************************************************************)
@@ -101,13 +101,33 @@ let group_rules_by_target_language rules : (Xlang.t * Rule.t list) list =
                 Hashtbl.replace tbl lang (rule :: rules)));
   Hashtbl.fold (fun lang rules acc -> (lang, rules) :: acc) tbl []
 
+let get_targets_with_unknown_extension all_targets =
+  (* Note: we could have this function also split out the targets
+     with unknown extensions, but it's probably a fairly minor
+     optimization that would make the code more complicated *)
+  let explicit_targets =
+    all_targets
+    |> Common.map_filter (fun (target, info) ->
+           match info with
+           | Target_file.NoSpecialTargeting -> None
+           | Target_file.ExplicitFileScanUnknownExtension -> Some target)
+  in
+  explicit_targets
+  |> List.filter (fun x ->
+         not (Filter_target.filter_target_has_known_extension x))
+
 let split_jobs_by_language all_rules all_targets : Lang_job.t list =
+  let targets_with_unknown_extension =
+    get_targets_with_unknown_extension all_targets
+  in
+  let all_targets = Target_file.fpaths_of_target_files all_targets in
   all_rules |> group_rules_by_target_language
   |> Common.map_filter (fun (xlang, rules) ->
          let targets =
            all_targets
            |> List.filter (Filter_target.filter_target_for_xlang xlang)
          in
+         let targets = targets @ targets_with_unknown_extension in
          if Common.null targets then None
          else Some ({ xlang; targets; rules } : Lang_job.t))
 
@@ -222,8 +242,8 @@ let mk_scan_func_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
     scan_func_for_osemgrep =
  fun ?(respect_git_ignore = true) ?(file_match_results_hook = None)
      (conf : conf) (all_rules : Rule.t list)
-     (invalid_rules : Rule.invalid_rule_error list) (all_targets : Fpath.t list)
-     : Core_result.result_or_exn ->
+     (invalid_rules : Rule.invalid_rule_error list)
+     (all_targets : Target_file.target_files) : Core_result.result_or_exn ->
   let rule_errors = Core_scan.errors_of_invalid_rule_errors invalid_rules in
   let config : Core_scan_config.t = core_scan_config_of_conf conf in
   let config = { config with file_match_results_hook } in

@@ -1,5 +1,5 @@
 val run_semgrep :
-  ?targets:Fpath.t list option ->
+  ?targets:Target_file.target_files option ->
   ?rules:Rule.rules option ->
   ?git_ref:string option ->
   RPC_server.t ->

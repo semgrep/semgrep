@@ -102,7 +102,7 @@ let targets session =
     && ((not session.user_settings.only_git_dirty)
        || member_folder_dirty_files file folder)
   in
-  let member_workspaces t =
+  let member_workspaces (t, _info) =
     List.exists (fun f -> member_workspace_folder t f) session.workspace_folders
   in
   let workspace_targets f =

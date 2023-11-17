@@ -25,7 +25,7 @@ val run_scan_files :
   Scan_CLI.conf ->
   Profiler.t ->
   Rule_fetching.rules_and_origin list ->
-  Fpath.t list * Semgrep_output_v1_t.skipped_target list ->
+  Target_file.target_files * Semgrep_output_v1_t.skipped_target list ->
   ( Rule.rule list * Core_runner.result * Semgrep_output_v1_t.cli_output,
     Exit_code.t )
   result

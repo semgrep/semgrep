@@ -63,7 +63,9 @@ let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
                folders, not the affected files)
             *)
             let diff_config = Differential_scan_config.WholeScan in
-            pro_scan_func roots ~diff_config
+            pro_scan_func
+              (roots |> Target_file.fpaths_of_target_files)
+              ~diff_config
               Engine_type.(
                 PRO
                   {
@@ -130,7 +132,9 @@ let scan_open_documents server =
     let open_documents = server.session.cached_session.open_documents in
     let session_targets = Session.targets server.session in
     let open_documents =
-      List.filter (fun doc -> List.mem doc open_documents) session_targets
+      List.filter
+        (fun (doc, _info) -> List.mem doc open_documents)
+        session_targets
     in
     let token =
       create_progress "Semgrep Scan in Progress" "Scanning Open Documents"
@@ -156,23 +160,29 @@ let scan_file ?(content = None) server uri =
     let file = Fpath.v file_path in
     let targets, git_ref =
       match content with
-      | None -> ([ file ], None)
+      | None -> ([ (file, Target_file.NoSpecialTargeting) ], None)
       | Some content ->
           let name = Fpath.basename file in
           let ext = Fpath.get_ext file in
           let tmp_file = Common.new_temp_file name ext in
           Common.write_file tmp_file content;
-          ([ Fpath.v tmp_file ], Some Fpath.(to_string file))
+          ( [ (Fpath.v tmp_file, Target_file.NoSpecialTargeting) ],
+            Some Fpath.(to_string file) )
     in
     let session_targets = Session.targets server.session in
-    let targets = if List.mem file session_targets then targets else [] in
+    let targets =
+      if List.exists (fun (p, _info) -> p = file) session_targets then targets
+      else []
+    in
     let targets = Some targets in
     let results, _ = run_semgrep ~git_ref ~targets server in
     let results =
       match content with
       | Some _ ->
           let existing_results, _ =
-            run_semgrep ~targets:(Some [ file ]) server
+            run_semgrep
+              ~targets:(Some [ (file, Target_file.NoSpecialTargeting) ])
+              server
           in
           results @ existing_results
       | None -> results

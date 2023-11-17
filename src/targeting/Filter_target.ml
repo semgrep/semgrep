@@ -19,6 +19,8 @@
 (* Helpers *)
 (*************************************************************************)
 
+let all_langs = Language.list |> Common.map (fun { Language.id; _ } -> id)
+
 (*************************************************************************)
 (* Entry points *)
 (*************************************************************************)
@@ -34,6 +36,13 @@ let filter_target_for_xlang (xlang : Xlang.t) (path : Fpath.t) : bool =
   | LSpacegrep
   | LAliengrep ->
       true
+
+(* Note that this is NOT the equivalent of running `filter_target_for_xlang`
+   on every language for the given path. Instead, it just checks whether
+   the extension is in the set of exts for languages. This more closely adheres
+   to the original Python implementation of `filter_known_extensions` *)
+let filter_target_has_known_extension (path : Fpath.t) : bool =
+  List.exists (fun l -> Guess_lang.check_lang_extension l path) all_langs
 
 (* Used by Run_semgrep.semgrep_with_rules().
  * See also https://semgrep.dev/docs/writing-rules/rule-syntax/#paths

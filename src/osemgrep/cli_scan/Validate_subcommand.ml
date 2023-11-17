@@ -113,6 +113,7 @@ let run (conf : conf) : Exit_code.t =
                  | Other_origin ->
                      (* TODO: stricter: warn if no origin (meaning URL or registry) *)
                      None)
+          |> Target_file.no_info_target_files_of_fpaths
         in
         let in_docker = !Semgrep_envvars.v.in_docker in
         let (config : Rules_config.t) =

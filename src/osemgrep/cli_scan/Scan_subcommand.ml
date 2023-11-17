@@ -268,7 +268,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
     (profiler : Profiler.t) (result_or_exn : Core_result.result_or_exn)
     (rules : Rule.rules) (commit : string) (status : Git_wrapper.status)
     (core :
-      Fpath.t list ->
+      Target_file.target_files ->
       ?diff_config:Differential_scan_config.t ->
       Rule.rules ->
       unit ->
@@ -335,7 +335,10 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
                            dependencies. Hence, merely rescanning files with
                            matches is insufficient. *)
                         (all_in_baseline, paths_in_scanned)
-                    | _ -> (paths_in_match, [])
+                    | _ ->
+                        ( paths_in_match
+                          |> Target_file.no_info_target_files_of_fpaths,
+                          [] )
                   in
                   core baseline_targets
                     ~diff_config:
@@ -353,7 +356,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
 (*****************************************************************************)
 let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     (rules_and_origins : Rule_fetching.rules_and_origin list)
-    (targets_and_skipped : Fpath.t list * Out.skipped_target list) :
+    (targets_and_skipped : Target_file.target_files * Out.skipped_target list) :
     (Rule.rule list * Core_runner.result * Out.cli_output, Exit_code.t) result =
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origins
@@ -398,7 +401,9 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     let targets, skipped = targets_and_skipped in
     Logs.debug (fun m ->
         m "%a" Targets_report.pp_targets_debug
-          (conf.target_roots, skipped, targets));
+          ( conf.target_roots,
+            skipped,
+            targets |> Target_file.fpaths_of_target_files ));
     Logs.info (fun m ->
         skipped
         |> List.iter (fun (x : Semgrep_output_v1_t.skipped_target) ->
@@ -441,7 +446,9 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
                 Metrics_.g.payload.value.proFeatures <-
                   Some { diffDepth = Some diff_depth };
                 (targets, added_or_modified)
-            | _ -> (added_or_modified, [])
+            | _ ->
+                ( added_or_modified |> Target_file.no_info_target_files_of_fpaths,
+                  [] )
           in
           let head_scan_result =
             Profiler.record profiler ~name:"head_core_time"

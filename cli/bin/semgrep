@@ -152,6 +152,7 @@ def exec_osemgrep():
         # If you call semgrep-core as osemgrep, then we get
         # osemgrep behavior, see src/main/Main.ml
         sys.argv[0] = "osemgrep"
+    print(sys.argv)
     os.execvp(str(path), sys.argv)
 
 # Needed for similar reasons as in pysemgrep, but only for the legacy

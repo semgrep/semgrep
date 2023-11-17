@@ -30,6 +30,7 @@ let default_depth = 2
    option is used, `targets` are automatically calculated based on the
    output from the `git diff` command between the baseline commit and
    the head commit. *)
+(* TODO should these be Target_file.target_files? *)
 type t =
   | BaseLine of Fpath.t list (* implies depth 0 *)
   | Depth of Fpath.t list (* starting point *) * int (* depth *)

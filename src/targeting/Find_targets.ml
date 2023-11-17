@@ -123,7 +123,7 @@ let get_reason_for_exclusion (sel_events : Gitignore.selection_event list) :
  * pre: the scan_root must be a path to a directory
  *)
 let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
-    (scan_root : fppath) : Fpath.t list * Out.skipped_target list =
+    (scan_root : fppath) : Target_file.target_files * Out.skipped_target list =
   (* Imperative style! walk and collect.
      This is for the sake of readability so let's try to make this as
      readable as possible.
@@ -212,7 +212,8 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
   aux scan_root;
   (* Let's not worry about file order here until we have to.
      They will be sorted later. *)
-  (!selected_paths, !skipped)
+  (* Target files found in directories always have the language inferred *)
+  (!selected_paths |> Target_file.no_info_target_files_of_fpaths, !skipped)
 
 (*************************************************************************)
 (* Grouping *)
@@ -253,6 +254,16 @@ let group_scanning_roots_by_project (conf : conf)
 (*************************************************************************)
 
 let get_targets conf scanning_roots =
+  let info_for_roots =
+    if conf.scan_unknown_extensions then
+      (* When people run `semgrep --scan-unknown-extensions file.noext dir/`,
+         the explicitly passed files should be scanned with all the rules
+         provided. We resolve this by marking all the roots that we determine
+         to be files. Later, we will filter these explicitly passed files to
+         only the ones with unknown extensions *)
+      Target_file.ExplicitFileScanUnknownExtension
+    else Target_file.NoSpecialTargeting
+  in
   scanning_roots
   |> group_scanning_roots_by_project conf
   |> List.concat_map (fun { project = kind, project_root; scanning_roots } ->
@@ -299,7 +310,7 @@ let get_targets conf scanning_roots =
                  *)
                 match (Unix.stat !!(scan_root.fpath)).st_kind with
                 (* TOPORT? make sure has right permissions (readable) *)
-                | S_REG -> ([ scan_root.fpath ], [])
+                | S_REG -> ([ (scan_root.fpath, info_for_roots) ], [])
                 | S_DIR -> walk_skip_and_collect conf ign scan_root
                 | S_LNK ->
                     (* already dereferenced by Unix.stat *)

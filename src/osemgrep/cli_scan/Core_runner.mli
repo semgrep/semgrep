@@ -36,7 +36,7 @@ type scan_func_for_osemgrep =
   (* LATER? use Config_resolve.rules_and_origin instead? *)
   Rule.rules ->
   Rule.invalid_rule_error list ->
-  Fpath.t list ->
+  Target_file.target_files ->
   Core_result.result_or_exn
 
 (* Core_scan_func adapter to be used in osemgrep.
@@ -58,4 +58,5 @@ val mk_scan_func_for_osemgrep :
 val core_scan_config_of_conf : conf -> Core_scan_config.t
 
 (* reused in semgrep-server *)
-val split_jobs_by_language : Rule.t list -> Fpath.t list -> Lang_job.t list
+val split_jobs_by_language :
+  Rule.t list -> Target_file.target_files -> Lang_job.t list
