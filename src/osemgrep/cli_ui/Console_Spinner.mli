@@ -4,5 +4,6 @@
   We show each frame for 1/100th of the total delay.
 *)
 val show_spinner : int -> unit
-val spinner_async : bool ref -> unit
+val spinner_async : unit -> 'a Lwt.t
 val erase_spinner : unit -> unit
+val lwt_platform_sleep_setup : unit -> unit

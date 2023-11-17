@@ -17,7 +17,20 @@ let show_spinner delay_ms : unit =
     Unix.sleepf (Float.of_int delay_ms /. Float.of_int (1000 * 100))
   done
 
-let spinner_async stop : unit =
+let lwt_platform_sleep_impl = ref None
+let lwt_platform_sleep_setup () = lwt_platform_sleep_impl := Some Lwt_unix.sleep
+
+let lwt_platform_sleep a =
+  match !lwt_platform_sleep_impl with
+  | Some f -> f a
+  | None -> Lwt.return ()
+
+let erase_spinner () : unit =
+  ANSITerminal.set_cursor 1 (-1);
+  ANSITerminal.move_bol ();
+  ANSITerminal.erase ANSITerminal.Below
+
+let spinner_async () : 'a Lwt.t =
   (* nosemgrep *)
   ANSITerminal.(print_string [] "\027[?25l");
   (* hide cursor to make progess indicator more visible *)
@@ -32,26 +45,20 @@ let spinner_async stop : unit =
       jump_y := false)
     else ();
     (* extra guard against printing among race conditions *)
-    if not !stop then ANSITerminal.printf [ ANSITerminal.green ] "%s" spinner
+    ANSITerminal.printf [ ANSITerminal.green ] "%s" spinner
   in
-  let rec loop () =
-    if !stop then (
+  (* create a cancellable promise *)
+  let rec loop i =
+    (* *)
+    let%lwt _ = lwt_platform_sleep 0.05 in
+    let%lwt _ = Lwt.pause () in
+    print_frame ~frame_index:i;
+    loop (i + 1)
+  in
+  Lwt.finalize
+    (fun () -> loop 0)
+    (fun () ->
       (* nosemgrep *)
       ANSITerminal.(print_string [] "\027[?25h");
-      (* restore cursor *)
+      erase_spinner ();
       Lwt.return ())
-    else
-      let%lwt () = Lwt_unix.sleep 0.1 in
-      (* create a cancellable promise *)
-      for frame_index = 1 to 10 do
-        print_frame ~frame_index;
-        Unix.sleepf 0.05 (* ensure we have a fast refresh rate at 50ms *)
-      done;
-      loop ()
-  in
-  Lwt.async loop
-
-let erase_spinner () : unit =
-  ANSITerminal.set_cursor 1 (-1);
-  ANSITerminal.move_bol ();
-  ANSITerminal.erase ANSITerminal.Below

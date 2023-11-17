@@ -21,4 +21,4 @@ export interface Engine {
   getMissingLanguages: () => string[];
   clearMissingLanguages: () => void;
 }
-export declare const EngineFactory: (wasmUri?: string) => Promise<Engine>;
+export declare const EngineFactory: () => Promise<Engine>;
