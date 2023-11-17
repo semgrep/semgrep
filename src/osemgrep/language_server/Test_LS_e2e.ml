@@ -994,6 +994,7 @@ let test_ls_libev () =
 (*****************************************************************************)
 
 let promise_tests =
+  ignore test_login;
   [
     ("Test LS", test_ls_specs);
     ("Test LS exts", test_ls_ext);
