@@ -17,14 +17,6 @@ let show_spinner delay_ms : unit =
     Unix.sleepf (Float.of_int delay_ms /. Float.of_int (1000 * 100))
   done
 
-let lwt_platform_sleep_impl = ref None
-let lwt_platform_sleep_setup () = lwt_platform_sleep_impl := Some Lwt_unix.sleep
-
-let lwt_platform_sleep a =
-  match !lwt_platform_sleep_impl with
-  | Some f -> f a
-  | None -> Lwt.return ()
-
 let erase_spinner () : unit =
   ANSITerminal.set_cursor 1 (-1);
   ANSITerminal.move_bol ();
@@ -45,15 +37,12 @@ let spinner_async () : 'a Lwt.t =
       jump_y := false)
     else ();
     ANSITerminal.printf [ ANSITerminal.green ] "%s" spinner;
-    let inner_sleep = lwt_platform_sleep 0.0025 in
-    let%lwt () = inner_sleep in
     Lwt.return ()
   in
   (* create a cancellable promise *)
   let rec loop i =
     let%lwt _ = print_frame ~frame_index:i in
-    let%lwt _ = lwt_platform_sleep 0.05 in
-    let%lwt _ = Lwt.pause () in
+    let%lwt _ = Lwt_platform.sleep 0.1 in
     loop (i + 1)
   in
   Lwt.finalize
