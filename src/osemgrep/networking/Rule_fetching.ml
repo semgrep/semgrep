@@ -238,7 +238,8 @@ let import_callback ~registry_caching base str =
               *
               * TODO: ask for JSON in headers which improves performance
               * because Yaml rule parsing is slower than Json rule parsing.
-              * TODO: fix token_opt parameter. Currently we don't pass it as
+              *
+              * TODO: fix token_opt parameter. Currently we don't pass it.
               * import_callback either needs an additional parameter, or
               * parse_rule should take an import_callback as a parameter.
               *)
@@ -428,8 +429,14 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
                ~registry_caching file)
       |> Lwt.return
   | C.URL url ->
+      (* TODO: Re-enable passing in our token to trusted remote urls.
+         * This is currently disabled because we don't want to pass our token
+         * to untrusted endpoints. There should be a relatively painless way
+         * to do this, but this can be addressed in a follow-up PR.
+      *)
       let%lwt rules =
-        load_rules_from_url_async ~origin:(Untrusted_remote url) ~token_opt url
+        load_rules_from_url_async ~origin:(Untrusted_remote url) ~token_opt:None
+          url
       in
       Lwt.return [ rules ]
   | C.R rkind ->
