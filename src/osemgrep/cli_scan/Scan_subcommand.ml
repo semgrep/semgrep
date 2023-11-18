@@ -735,33 +735,6 @@ let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
   (* coupling: if you modify the pysemgrep fallback code below, you
    * probably also need to modify it in Ci_subcommand.ml
    *)
-  (match conf.common.maturity with
-  (* those are osemgrep-only option not available in pysemgrep,
-   * so better print a good error message for it.
-   * coupling: see the 'NEW' section in Scan_CLI.ml for all those new flags
-   *)
-  | Maturity.Default
-    when conf.registry_caching || conf.core_runner_conf.ast_caching ->
-      Error.abort "--registry_caching or --ast_caching require --experimental"
-  | Maturity.Default -> (
-      (* TODO: handle more confs, or fallback to pysemgrep further down *)
-      match conf with
-      | {
-       show =
-         Some { target = Show_CLI.EnginePath _ | Show_CLI.CommandForCore; _ };
-       _;
-      } ->
-          raise Pysemgrep.Fallback
-      | { show = Some _; _ } -> ()
-      | _else_ -> raise Pysemgrep.Fallback)
-  (* this should never happen because --legacy is handled in cli/bin/semgrep *)
-  | Maturity.Legacy -> raise Pysemgrep.Fallback
-  (* ok the user explicitely requested --experimental (or --develop),
-   * let's keep going with osemgrep then
-   *)
-  | Maturity.Experimental
-  | Maturity.Develop ->
-      ());
   setup_logging conf;
   (* return a new conf because can adjust conf.num_jobs (-j) *)
   let conf = setup_profiling conf in

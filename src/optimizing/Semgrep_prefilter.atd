@@ -1,1 +1,36 @@
-../../interfaces/Semgrep_prefilter.atd
+(* Schema for the JSON output of semgrep-core -prefilter_of_rules.
+ *
+ * Those prefilters are used internally by semgrep-core to implement
+ * the -filter_irrelevant_rules optimization. They could also be used by
+ * external tools (e.g., the Semgrep query console) to avoid parsing
+ * certain files.
+ *
+ * For more information, see src/optimizing/Analyze_rule.ml
+ *)
+
+(* less: we could make this polymorphic and in a separate formula.atd that
+ * could be reused through different ATD files.
+ * note: there is no 'Not of formula' for now; not useful for Analyze_rule.ml
+ *)
+type formula = [
+  | Pred of predicate
+  | And of formula list (* at least 2 elements *)
+  (* less: maybe we could reduce that to a regexp too, inserting some | *)
+  | Or of formula list (* at least 2 elements *)
+  ]
+
+type predicate = [
+  (* less: maybe we could also reduce that to a regexp?
+   * But how to do an And with regexps? *)
+  | Idents of string list (* equivalent of an And; all idents must be present *)
+  | Regexp of string (* PCRE-compatible regexp *)
+]
+
+type prefilter = {
+  (* TODO: once we have ATD modules, we could reference rule_id type in another .atd *)
+    rule_id: string;
+    (* None means no prefilter for this rule *)
+    filter: formula option;
+}
+
+type prefilters = prefilter list

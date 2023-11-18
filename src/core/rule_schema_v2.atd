@@ -1,1 +1,700 @@
-../../interfaces/semgrep_interfaces/rule_schema_v2.atd
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Specification of the new Semgrep rule syntax (hence the v2) using ATD.
+ * (see https://atd.readthedocs.io/en/latest/ for more information on ATD).
+ *
+ * Note that even if most Semgrep users use YAML to write rules, and not JSON,
+ * we still use a JSON tool (here ATD, but also jsonschema) to specify
+ * the rule schema because YAML is a superset of JSON that can be
+ * mechanically translated into JSON; there is no yamlschema
+ * (see https://json-schema-everywhere.github.io/yaml).
+ *
+ * Jsonschema, used in rule_schema_v1.yml, is powerful but also arguably
+ * complicated and so it might be simpler for many Semgrep developers 
+ * (and also some Semgrep users) to use ATD to specify and understand the
+ * schema of a rule. It could provide a better basis to think about future
+ * syntax extensions.
+ *
+ * This file is now also used for some rule validation in
+ * `semgrep --validate --develop`.
+ *
+ * Note that this file does not replace Parse_rule.ml nor Rule.ml. We still
+ * want to accept the old syntax in Parse_rule.ml and also parse with
+ * position information and complex error recovery which ATD does not provide.
+ * This files does not replace either (yet) rule_schema_v1.yml which covers
+ * also the old syntax.
+ *)
+
+(*****************************************************************************)
+(* Basic types and string aliases *)
+(*****************************************************************************)
+
+(* escape hatch *)
+type raw_json <ocaml module="Yojson.Basic" t="t"> = abstract
+
+(* ex: "*.c" *)
+type glob = string
+
+(* ex: "[a-zA-Z0-9_]*\\.c" *)
+type regex = string
+
+(* ex: "https://www.google.com" *)
+type url = string
+
+(* ex: "1.49.0" (see also Version_info.t) *)
+type version = string
+
+(*****************************************************************************)
+(* The rule *)
+(*****************************************************************************)
+
+type rule = {
+     id: rule_id;
+
+     severity: severity;
+     (* The message can contain metavariables, as in "invalid $X == $X",
+      * and metavariable are interpolated when reporting the finding.
+      *)
+     message: string;
+
+     (* CHECK: must be set except for 'steps:' if all steps define a language,
+      * or when using just regex patterns (TODO? 'language: None' use case?)
+      *)
+     ?language: language option;
+     (* TODO: deprecate in v2 (and make language: above mandatory?) *)
+     ?languages: language list option;
+
+     (* CHECK: exactly one of those fields must be set, except for
+      * supply chain "parity" rules where all are unset.
+     *)
+     ?match_ <json name="match">: formula option;
+     ?taint: taint option;
+     ?steps: step list option;
+
+     (* TODO: when 'language:' not enough, for more flexible file selection *)
+     ?select: file_selector list option;
+     (* TODO? deprecate and replace by a 'filename:' in formula and select: *)
+     ?paths: paths option;
+
+     ?fix: string option;
+     ?fix_regex: fix_regex option;
+
+     (* Supply chain rules.
+      * CHECK: work with match:, but also without for "parity" rules
+      *)
+     ?project_depends_on <json name="r2c-internal-project-depends-on">:
+        project_depends_on option;
+     (* Extract rules (a.k.a. preprocessor rules)
+      * CHECK: work with match: (in theory also with taint:/steps: )
+      * alt: message:/severity: could be made optional when extract: is set,
+      * but it's annoying to change those types just for extract. Moreover,
+      * users can easily put 'severity: INFO' and a fake 'message:',
+      * and at least they can easily test the matching part of the rule
+      * by removing the 'extract:' and run it like a regular rule.
+      *)
+     ?extract: extract option;
+     (* Secrets rules (a.k.a. postprocessor rules)
+      * CHECK: work with match: (in theory also with taint:/steps: )
+      *)
+     ?validators: validator list option;
+
+     (* later: equivalences: ... *)
+     ?options: rule_options option;
+
+     (* TODO? impose more constraints on metadata? standard fields?
+      * add a 'confidence:'? 'product:'? 
+      *)
+     ?metadata: raw_json option;
+
+     ?min_version <json name="min-version">: version option;
+     ?max_version <json name="max-version">: version option;
+}
+
+(* ex: "myrule" (see also Rule_ID.t; spec: "^[a-zA-Z0-9._-]*$" *)
+type rule_id = string wrap <ocaml module="Rule_ID">
+
+(*****************************************************************************)
+(* Severity, language, selector, paths, fix_regex *)
+(*****************************************************************************)
+
+(* coupling: semgrep_output_v1.atd with match_severity 
+ * I've removed EXPERIMENT and INVENTORY which should not be used.
+*)
+type severity = [
+  | ERROR
+  | WARNING
+  | INFO
+]
+
+(* coupling: Language.ml *)
+type language = [
+  (* programming (and configuration) languages *)
+  | Apex         <json name="apex">
+  | Bash         <json name="bash">
+  | Sh           <json name="sh">
+  | C            <json name="c">
+  | Clojure      <json name="clojure">
+  | Cpp          <json name="cpp">
+  | CppSymbol    <json name="c++">
+  | Csharp       <json name="csharp">
+  | CsharpSymbol <json name="c#">
+  | Dart         <json name="dart">
+  | Dockerfile   <json name="dockerfile">
+  | Docker       <json name="docker">
+  | Ex           <json name="ex">
+  | Elixir       <json name="elixir">
+  | Go           <json name="go">
+  | Golang       <json name="golang">
+  | Hack         <json name="hack">
+  | Html         <json name="html">
+  | Java         <json name="java">
+  | Js           <json name="js">
+  | Javascript   <json name="javascript">
+  | Json         <json name="json">
+  | Jsonnet      <json name="jsonnet">
+  | Julia        <json name="julia">
+  | Kt           <json name="kt">
+  | Kotlin       <json name="kotlin">
+  | Lisp         <json name="lisp">
+  | Lua          <json name="lua">
+  | Ocaml        <json name="ocaml">
+  | Php          <json name="php">
+  | Python2      <json name="python2">
+  | Python3      <json name="python3">
+  | Py           <json name="py">
+  | Python       <json name="python">
+  | R            <json name="r">
+  | Ruby         <json name="ruby">
+  | Rust         <json name="rust">
+  | Scala        <json name="scala">
+  | Scheme       <json name="scheme">
+  | Solidity     <json name="solidity">
+  | Sol          <json name="sol">
+  | Swift        <json name="swift">
+  | Tf           <json name="tf">
+  | Hcl          <json name="hcl">
+  | Terraform    <json name="terraform">
+  | Ts           <json name="ts">
+  | Typescript   <json name="typescript">
+  | Vue          <json name="vue">
+  | Yaml         <json name="yaml">
+
+  (* a.k.a., spacegrep and aliengrep 
+   * TODO? remove and replace with 'generic:' in formula? 
+   *)
+  | Generic      <json name="generic">
+  (* TODO remove? redundant with 'regex:' in formula? *)
+  | Regex        <json name="regex">
+  (* TODO remove? *)
+  | None         <json name="none">
+]
+
+(* See https://www.notion.so/semgrep/Add-select-field-to-Semgrep-rules-d5078296b8884396bf78ef4cefdff66d
+ * TODO: language | "text" | "script" | ...
+ * TODO? support boolean? "text and not python"?
+ *)
+type file_selector = string
+
+type paths = {
+  (* CHECK: at least one of those fields must be set *)
+  ?include_ <json name="include">: glob list option;
+  ?exclude_ <json name="exclude">: glob list option;
+}
+
+type fix_regex = {
+  regex: regex;
+  replacement: string;
+  ?count: int option;
+}
+
+(*****************************************************************************)
+(* Rule (engine) options *)
+(*****************************************************************************)
+
+(* coupling: Rule_options.atd
+ * alt: <ocaml from="Rule_options" t="t"> but I prefer to repeat
+ * its content here so one can fully see the syntax of a rule in one file.
+ *)
+type rule_options = {
+  ?constant_propagation: bool option;
+  ?symbolic_propagation: bool option;
+
+  ?taint_unify_mvars: bool option;
+  ?taint_assume_safe_functions: bool option;
+  ?taint_assume_safe_indexes: bool option;
+  ?taint_assume_safe_comparisons: bool option;
+  ?taint_assume_safe_booleans: bool option;
+  ?taint_assume_safe_numbers: bool option;
+  ?taint_only_propagate_through_assignments: bool option;
+
+  ?ac_matching: bool option;
+  ?commutative_boolop: bool option;
+  ?commutative_compop: bool option;
+
+  ?vardef_assign: bool option;
+  ?flddef_assign: bool option;
+
+  ?attr_expr: bool option;
+  ?arrow_is_function:  bool option;
+  ?let_is_var:  bool option;
+
+  ?go_deeper_expr: bool option;
+  ?go_deeper_stmt: bool option;
+
+  ?implicit_deep_exprstmt: bool option;
+  ?implicit_ellipsis: bool option;
+
+  ?xml_singleton_loose_matching: bool option;
+  ?xml_attrs_implicit_ellipsis: bool option;
+  ?xml_children_ordered: bool option;
+
+  ?cpp_parsing_pref: cpp_parsing_opt option;
+
+  ?generic_engine:  generic_engine option;
+  ?generic_multiline: bool option;
+  ?generic_braces: (string * string) list option;
+  ?generic_extra_braces: (string * string) list option;
+  ?generic_extra_word_characters: string list option;
+  ?generic_caseless: bool option;
+  ?generic_ellipsis_max_span: int option;
+  ?generic_comment_style: generic_comment_style option;
+
+  ?interfile: bool option;
+}
+
+type generic_engine = [
+  | Aliengrep <json name="aliengrep">
+  | Spacegrep <json name="spacegrep">
+]
+
+type generic_comment_style = [
+  | C <json name="c">
+  | Cpp <json name="cpp">
+  | Shell <json name="shell">
+]
+
+type cpp_parsing_opt = [
+  | AsFunDef <json name="as_fundef">
+  | AsVarDefWithCtor <json name="as_vardef_with_ctor">
+]
+
+(*****************************************************************************)
+(* Formula *)
+(*****************************************************************************)
+
+(* For more information on the new syntax for patterns, see:
+ *  - Brandon's community Slack post announcing the new syntax
+ *    https://semgrep.slack.com/archives/C018NJRRCJ0/p1698430726062769?thread_ts=1698350734.415849&cid=C018NJRRCJ0
+ *    https://www.notion.so/semgrep/New-Rule-Syntax-Summary-f0bc252585f944a7b430294a88ae83a2
+ *    https://www.notion.so/semgrep/Rule-Syntax-2-0-cf8fdaf20992472881b64b6db188a78b
+ *  - Brandon's slides
+ *    https://docs.google.com/presentation/d/1zzmyFbfNlJqweyzuuFlo4zpSs3Gqhfi6FiNRONSEQ0E/edit#slide=id.g1eee710cdbf_0_26
+ *  - Pieter's video
+ *    https://www.youtube.com/watch?v=dZUPjFvknnI
+ *
+ * 'formula' below is handled by a <json adapter.ocaml=...> because there is no
+ * way to encode directly using ATD the way we chose to represent formulas
+ * in YAML/JSON
+ * alt: instead of using those ?all, ?regex, and CHECK:, we could use a
+ * proper variant, but that would require a more complex adapter and the
+ * distance between the spec and the actual syntax would be even longer.
+ * alt: we could instead do '?all: formula list option * condition list'
+ * below, but syntactically we also allow 'where' with pattern:, regex:,
+ * etc. as in:
+ *     - pattern: "foo($X)"
+ *       where: ...
+ * In fact that's the main reason we sometimes have to use pattern: string
+ * instead of a string because where: could not be attached to a string.
+ *
+ * old: this type was called new-pattern in rule_schema_v1.yaml
+ *
+ * CHECK: exactly one of pattern/regex/all/any/not/inside/anywhere field
+ * must be set
+ * CHECK: not/inside/anywhere can appear only inside an all:
+*)
+type formula = {
+  (* either directly a string or 'pattern: string' in the JSON *)
+  ?pattern: pattern option;
+  (* regex can also be entered with 'pattern: xxx' when languages: [regex] *)
+  ?regex: regex option;
+  (* TODO? ?generic: generic_pattern option *)
+  (* TODO? ?filename: glob_pattern option *)
+
+  (* Boolean opeators. alt: we could have chosen and/or instead of all/any *)
+  ?all: formula list option;
+  ?any: formula list option;
+  ?not: formula option;
+
+  (* later: we should remove with a better range logic *)
+  ?inside: formula option;
+  (* NEW: since 1.49. alt: in condition instead like 'where: - also: ...' *)
+  ?anywhere: formula option;
+  (* TODO? ?taint: taint option; and ?steps: ? *)
+
+  ?where: condition list option;
+}
+<json adapter.ocaml="Rule_schema_v2_adapter.Formula">
+
+(* This string must be a valid Semgrep pattern for the first language
+ * specified in the 'languages:' list in the rule.
+ *)
+type pattern = string
+
+(* Just like for formula, we're using an adapter to transform
+ * conditions in YAML like:
+ *  where:
+ *   - metavariable: $X
+ *     regex: $Z
+ * which when turned into JSON gives:
+ *  { where: 
+ *     [ { metavariable: $X, regex: $Z } ]
+ *   }
+ * which we must transform in an ATD-compliant:
+ *  ["M", [{ metavariable: $X, regex: $Z }]]
+ *)
+type condition = [
+  | Comparison   <json name="C"> of comparison
+  | Metavariable <json name="M"> of metavariable_cond
+  | Focus        <json name="F"> of focus
+  (* TODO? 'Also <json name="A"> of also_formula' (alt: to 'anywhere:') *)
+  ]
+<json adapter.ocaml="Rule_schema_v2_adapter.Condition">
+
+(* --------------------------- *)
+(* Comparison condition *)
+(* --------------------------- *)
+
+type comparison = {
+    comparison: comparison_expr;
+    ?base: int option;
+    ?strip: bool option;
+  }
+
+(* comparison expression with metavariables, ex: $X > 100 
+ * (currently using a Python-like syntax)
+ *)
+type comparison_expr = string
+
+(* --------------------------- *)
+(* Metavariable condition *)
+(* --------------------------- *)
+
+type metavariable_cond = {
+  metavariable: mvar;
+
+  (* CHECK: exactly one of type/types/analyzer/formula(all/any/...) must be set*)
+
+  ?type_ <json name="type">: string option;
+  ?types: string list option;
+
+  (* this covers regex:/pattern:, but also all:/any: with optional where:
+   * CHECK: language is valid only when combined with a formula
+   * CHECK: constant_propagation: is valid only when combined with regex:
+   *)
+  inherit formula;
+  (* if not specified, use the rule 'language:' *)
+  ?language: language option;
+  ?constant_propagation <json name="constant-propagation">: bool option;
+
+  ?analyzer: analyzer option;
+}  
+
+type mvar = string
+
+type analyzer = [
+  | Entropy <json name="entropy">
+  | EntropyV2 <json name="entropy_v2">
+  | Redos <json name="redos">
+]
+
+(* --------------------------- *)
+(* Focus condition *)
+(* --------------------------- *)
+
+type focus = {
+  (* either directly a string or a list of strings in the JSON *)
+  focus: mvar list;
+}
+
+(*****************************************************************************)
+(* Tainting *)
+(*****************************************************************************)
+
+(* STRICTER: actually rule_schema_v1.yaml has very loose definitions for
+ * tainting stuff. Even 'requires:' and 'label:' are not defined for the
+ * old syntax, and for the new syntax many fields are still missing
+ * in rule_schema_v1.yaml
+ *)
+type taint = {
+  sources: source list;
+  sinks: sink list;
+  ?sanitizers: sanitizer list option;
+  ?propagators: propagator list option;
+}
+
+(* --------------------------- *)
+(* Some taint options *)
+(* --------------------------- *)
+
+type label_options = {
+  ?label: label option;
+  ?requires: requires_expr option;
+}
+
+type label = string
+
+(* a boolean expression with labels, ex: "A and B" *)
+type requires_expr = string
+
+(* STRICTER: not even specified in rule_schema_v1.yaml *)
+type taint_options = {
+  ?by_side_effect <json name="by-side-effect">: by_side_effect option;
+  ?exact: bool option;
+}
+
+(* we need an adapter here because we allow boolean or "only" string *)
+type by_side_effect = [
+  | True  <json name="true">
+  | False <json name="false">
+  | Only  <json name="only">
+]
+<json adapter.ocaml="Rule_schema_v2_adapter.BySideEffect">
+
+(* --------------------------- *)
+(* Source *)
+(* --------------------------- *)
+
+(* we need to repeat the adapter below for the str -> pattern: str adaptation *)
+type source = {
+  inherit formula;
+  inherit label_options;
+  inherit taint_options;
+  ?control: bool option;
+}
+<json adapter.ocaml="Rule_schema_v2_adapter.Formula">
+
+(* --------------------------- *)
+(* Sink *)
+(* --------------------------- *)
+
+type sink = {
+  inherit formula;
+  (* just requires: here, no label: *)
+  ?requires: requires_expr option;
+}
+<json adapter.ocaml="Rule_schema_v2_adapter.Formula">
+
+(* --------------------------- *)
+(* Sanitizer *)
+(* --------------------------- *)
+
+type sanitizer = {
+  inherit formula;
+  inherit taint_options;
+  (* TODO: not-conflicting: *)
+}
+<json adapter.ocaml="Rule_schema_v2_adapter.Formula">
+
+(* --------------------------- *)
+(* Propagator *)
+(* --------------------------- *)
+
+type propagator = {
+  inherit formula;
+  from_ <json name="from">: mvar;
+  to_   <json name="to">: mvar;
+
+  inherit label_options;
+  (* no exact: here, just by-side-effect: *)
+  ?by_side_effect <json name="by-side-effect">: by_side_effect option;
+  (* TODO? replace-labels? *)
+}
+<json adapter.ocaml="Rule_schema_v2_adapter.Formula">
+
+(*****************************************************************************)
+(* Supply chain *)
+(*****************************************************************************)
+
+(* we need an adapter below too *)
+type project_depends_on = [
+  | DependsBasic <json name="B"> of project_depends_on_basic
+  | DependsEither <json name="E"> of project_depends_on_either
+]
+<json adapter.ocaml="Rule_schema_v2_adapter.ProjectDependsOn">
+
+type project_depends_on_basic = {
+  namespace: namespace;
+  package: string;
+  version: semver_range;
+}
+
+type project_depends_on_either = {
+  depends_on_either <json name="depends-on-either">:
+    project_depends_on_basic list;
+}
+
+(* coupling: semgrep_output_v1.ecosystem (better name than namespace) *)
+type namespace = [
+  | Npm      <json name="npm">
+  | Pypi     <json name="pypi">
+  | Gem      <json name="gem">
+  | Gomod    <json name="gomod">
+  | Cargo    <json name="cargo">
+  | Maven    <json name="maven">
+  | Composer <json name="composer">
+  | Nuget    <json name="nuget">
+  | Pub      <json name="pub">
+]
+
+(* ex: "< 0.0.8" *)
+type semver_range = string
+
+(*****************************************************************************)
+(* Extract *)
+(*****************************************************************************)
+
+(* TODO: this syntax is actually not even supported yet in Parse_rule.ml *)
+type extract = {
+  metavariable: mvar;
+
+  ?dest_language <json name="dest-language">: language option;
+  ?dest_rules <json name="dest-rules">: dest_rules option;
+  (* map-reduce! *)
+  ?transform: extract_transform option;
+  ?reduce: extract_reduce option;
+}
+
+type dest_rules = {
+  (* CHECK: at least one of those options must be set *)
+  ?exclude_ <json name="exclude">: rule_id list option;
+  ?include_ <json name="include">: rule_id list option;
+}
+
+type extract_reduce = [
+  | Concat   <json name="concat">
+  | Separate <json name="separate">
+]
+
+type extract_transform = [
+  | NoTransform           <json name="no_transform">
+  | UnquoteString         <json name="unquote_string">
+  | ConcatJsonStringArray <json name="concat_json_string_array">
+]
+(*****************************************************************************)
+(* Secrets *)
+(*****************************************************************************)
+
+(* See https://www.notion.so/semgrep/Postprocessor-Syntax-v1-0-b1481ce32ab8454a8066a1e767cd870a *)
+type validator = {
+   http: http_validator;
+   (* LATER:
+    * ?ftp: ...;
+    * ?imap: ...;
+    * ...
+    *)
+}
+
+type http_validator = {
+  request: http_request;
+  response: http_response_matcher list;
+}
+
+type headers = (string * header_pattern) list <json repr="object">
+
+(* can contain metavariables, ex: 'Bearer $X' *)
+type header_pattern = string
+
+(* --------------------------- *)
+(* Request *)
+(* --------------------------- *)
+
+type http_request = {
+  url: url;
+  method_ <json name="method">: http_method;
+  headers: headers;
+  ?auth: auth option;
+  ?body: string option;
+}
+
+type http_method = [
+  | GET
+  | POST
+  | DELETE
+  | HEAD
+  | PUT
+]
+
+(* TODO? type_ <json name="type">: auth_kind; *)
+type auth = raw_json
+
+(* --------------------------- *)
+(* Response *)
+(* --------------------------- *)
+
+(* alt: could have shortcuts like: 'Valid(status=[200, 403])', like we do
+ * in our jsonnet secret rules, instead of the currently more verbose
+ * { match: [{ status_code: 200}, {status_code: 403}], result: valid }
+ * but how we get a valid JSON syntax for 'Valid(status=[200, 403])'?
+ *)
+type http_response_matcher = {
+  match_ <json name="match">: match_ list;
+  result: result;
+}
+
+type match_ = {
+  (* CHECK at least one of status-code:/headers:/content: must be set *)
+  ?status_code <json name="status-code">: int option;
+  (* note that this time it's a list of headers! *)
+  ?headers: headers list option;
+  ?content: content option;
+}
+
+type content = {
+  inherit formula;
+  (* if not specified, assume to be 'generic' *)
+  ?language: language option;
+}
+<json adapter.ocaml="Rule_schema_v2_adapter.Formula">
+
+(* STRICTER: note that we are more complete than rule_schema_v1.yml here *)
+type result = {
+  validity: validity;
+  (* overriding the rule fields *)
+  ?severity: severity option;
+  ?metadata: raw_json option;
+  ?message: string option;
+}
+
+type validity = [
+  | Valid   <json name="valid">
+  | Invalid <json name="invalid">
+]
+
+(*****************************************************************************)
+(* Steps *)
+(*****************************************************************************)
+type step = {
+  (* CHECK: exactly one of those fields must be set *)
+  ?match_ <json name="match">: formula option;
+  ?taint: taint option;
+
+  (* if not specified, use the rule 'language:' *)
+  ?language: language option;
+  ?select: file_selector list option;
+  ?paths: paths option;
+}
+
+(*****************************************************************************)
+(* Toplevel *)
+(*****************************************************************************)
+
+type rules = {
+  rules: rule list;
+
+  (* Missed count of pro rules when not logged-in.
+   * Sent by the registry to the CLI since 1.49.
+   * See https://github.com/semgrep/semgrep-app/pull/11142
+   *)
+  ?missed: int option;
+}

@@ -197,7 +197,6 @@ let dispatch_subcommand argv =
         | "ci" -> Ci_subcommand.main subcmd_argv
         (* osemgrep-only: and by default! no need experimental! *)
         | "install-ci" -> Install_subcommand.main subcmd_argv
-        | "interactive" -> Interactive_subcommand.main subcmd_argv
         | "show" -> Show_subcommand.main subcmd_argv
         (* LATER: "test" *)
         | _else_ ->
@@ -284,7 +283,7 @@ let main argv : Exit_code.t =
    * > ignoring SIGXFSZ, continued attempts to increase the size of a file
    * > beyond the limit will fail with errno set to EFBIG.
    *)
-  Sys.set_signal Sys.sigxfsz Sys.Signal_ignore;
+(*  Sys.set_signal Sys.sigxfsz Sys.Signal_ignore; *)
 
   (* TODO? We used to tune the garbage collector but from profiling
      we found that the effect was small. Meanwhile, the memory

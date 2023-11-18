@@ -52,6 +52,8 @@
 let () =
   match Filename.basename Sys.argv.(0) with
   (* osemgrep!! *)
+  | "semgrep"
+  | "semgrep.exe"
   | "osemgrep.bc"
   | "osemgrep" ->
       let exit_code = CLI.main Sys.argv in

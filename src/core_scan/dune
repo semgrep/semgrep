@@ -3,8 +3,6 @@
  (name semgrep_running)
  (wrapped false)
  (libraries
-    parmap
-
     commons
 
     semgrep_core

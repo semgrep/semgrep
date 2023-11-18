@@ -1,1 +1,171 @@
-../../../interfaces/semgrep_interfaces/semgrep_metrics.atd
+(* Semgrep metrics.
+ *
+ * The goal of this module is to specify the schema for the metrics
+ * data sent by the Semgrep CLI to https://metrics.semgrep.dev.
+ *
+ * coupling: with semgrep/PRIVACY.md where we carefully document
+ * all the metrics we send with a big table explaining each field.
+ *
+ * translated originally from semgrep/cli/.../metrics.py
+ *
+ * TODO:
+ * - some optional arguments should be removed when `osemgrep` replace
+ *   `semgrep`. Currently, we tried to fit on tests and don't update the
+ *   JSON output. We tried to fit on the Python side too.
+*)
+
+<python text="from dataclasses import field">
+
+(*****************************************************************************)
+(* Basic types *)
+(*****************************************************************************)
+
+type uuid = string wrap <ocaml module="ATD_string_wrap.Uuidm">
+
+type sha256 = string wrap <ocaml module="ATD_string_wrap.Sha256">
+
+(* GMT time (in osemgrep at least), in isoformat *)
+type datetime = string wrap <ocaml module="ATD_string_wrap.Datetime">
+
+type lang = string
+
+(* Note that there is no 'fpath' type here. We don't send concrete filenames *)
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
+type payload = {
+    (* required event and timing *)
+    event_id <ocaml mutable>: uuid;
+    (* as stored in ~/.semgrep/settings.yml *)
+    anonymous_user_id <python default="''"> <ocaml mutable>: string;
+    started_at <python default="Datetime('')"> <ocaml mutable>: datetime;
+    sent_at <python default="Datetime('')"> <ocaml mutable>: datetime;
+
+    (* other fields *)
+    environment <ocaml mutable>: environment;
+    performance <ocaml mutable>: performance;
+    extension <ocaml mutable>: extension;
+    errors <ocaml mutable>: errors;
+    (* TODO? why called value? *)
+    value <ocaml mutable>: misc;
+    (* the string is a 'lang' below but we can't use the alias because this
+     * confuses atd which is checking for a 'string' because of the json
+     * repr annotation coming after.
+     * TODO? should we move under performance instead of at the top here?
+     *)
+    ~parse_rate <ocaml mutable>: (string (* lang *) * parse_stat) list
+                                 <json repr="object">;
+}
+
+(*****************************************************************************)
+(* Environment *)
+(*****************************************************************************)
+
+type environment = {
+    (* semgrep version *)
+    version <ocaml mutable>: string;
+    projectHash <ocaml mutable>: sha256 nullable;
+    configNamesHash <python default="Sha256hash('')"> <ocaml mutable>: sha256;
+    ?rulesHash <ocaml mutable>: sha256 option;
+    (* TODO: should be just boolean *)
+    ci <ocaml mutable>: string nullable;
+    (* indicates whether `--baseline-commit` option has been specified. When
+       `baseline_commit` option is set, it implies that the scan is operating
+       in differential scan mode. Since semgrep 1.46 *)
+    ~isDiffScan <python default="False"> <ocaml mutable> : bool;
+    ?integrationName <ocaml mutable>: string option;
+    ~isAuthenticated <python default="False"> <ocaml mutable>: bool;
+  }
+
+(*****************************************************************************)
+(* Performance *)
+(*****************************************************************************)
+
+type performance = {
+    ?numRules <ocaml mutable>: int option;
+    ?numTargets <ocaml mutable>: int option;
+    ?totalBytesScanned <ocaml mutable>: int option;
+    ?fileStats <ocaml mutable>: file_stats list option;
+    ?ruleStats <ocaml mutable>: rule_stats list option;
+    ?profilingTimes <ocaml mutable>: (string * float) list <json repr="object"> option;
+    ?maxMemoryBytes <ocaml mutable>: int option;
+  }
+
+type file_stats = {
+    size <ocaml mutable>: int;
+    numTimesScanned <ocaml mutable>: int;
+    (* LATER: factorize with semgrep_output_v1.atd? *)
+    ?parseTime <ocaml mutable>: float option;
+    ?matchTime <ocaml mutable>: float option;
+    ?runTime <ocaml mutable>: float option;
+  }
+
+type rule_stats = {
+    ruleHash <ocaml mutable>: string;
+    bytesScanned <ocaml mutable>: int;
+    ?matchTime <ocaml mutable>: float option;
+}
+
+(*****************************************************************************)
+(* Parsing stats *)
+(*****************************************************************************)
+
+type parse_stat = {
+    targets_parsed <ocaml mutable>: int;
+    num_targets <ocaml mutable>: int;
+    bytes_parsed <ocaml mutable>: int;
+    num_bytes <ocaml mutable>: int;
+}
+
+(*****************************************************************************)
+(* Errors *)
+(*****************************************************************************)
+
+type errors = {
+    ?returnCode <ocaml mutable>: int option;
+    ?errors <ocaml mutable>: error list option;
+}
+
+(* This is mostly semgrep_output_v1.error_type but in a string form
+ * thanks to Error.string_of_error_type.
+ * TODO: use directly semgrep_output_v1.error_type but need ATD modules.
+ *)
+type error = string
+
+(*****************************************************************************)
+(* Extension *)
+(*****************************************************************************)
+
+type extension = {
+    ?machineId <ocaml mutable>: string option;
+    ?isNewAppInstall <ocaml mutable>: bool option;
+    ?sessionId <ocaml mutable>: string option;
+    ?version <ocaml mutable>: string option;
+    ?ty <ocaml mutable>: string option;
+}
+
+(*****************************************************************************)
+(* Misc *)
+(*****************************************************************************)
+
+type pro_features = {
+    (* The value is determined by the `--diff-depth` option, and it's utilized
+       for inter-file differential scanning. Since semgrep 1.46 *)
+    ?diffDepth <ocaml mutable>: int option;
+}
+
+type misc = {
+    (* coupling: features is commented a lot in semgrep/PRIVACY.md *)
+    features <ocaml mutable>: string list;
+    (* Since semgrep 1.46 *)
+    ?proFeatures <ocaml mutable>: pro_features option;
+    ?numFindings <ocaml mutable>: int option;
+    ?numIgnored <ocaml mutable>: int option;
+    ?ruleHashesWithFindings <ocaml mutable>: (string * int) list <json repr="object"> option;
+    (* TODO: should be OSS | Pro, see semgrep_output_v1.atd engine_kind type *)
+    ~engineRequested <python default="'OSS'"> <ocaml mutable>: string;
+    (* Since Semgrep 1.49.0 *)
+    ?interfileLanguagesUsed: string list option;
+  }
