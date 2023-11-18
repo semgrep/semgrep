@@ -167,12 +167,13 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
             ~match_hook:(fun _ _ -> ())
             ~timeout:0. ~timeout_threshold:0 extract_rules xtarget
         in
-        let extract_targets, extract_result_map =
-          (List.fold_right (fun (t, fn) (ts, fn_tbl) ->
+        let extract_targets, extract_result_map, _extract_targets_map =
+          (List.fold_right (fun (t, fn, (newf, origf)) (ts, fn_tbl, file_tbl) ->
                Hashtbl.add fn_tbl t.Input_to_core_t.path fn;
-               (t :: ts, fn_tbl)))
+               Hashtbl.add file_tbl newf origf;
+               (t :: ts, fn_tbl, file_tbl)))
             extracted_ranges
-            ([], Hashtbl.create 5)
+            ([], Hashtbl.create 5, Hashtbl.create 5)
         in
         let xconf = Match_env.default_xconfig in
         let res =
