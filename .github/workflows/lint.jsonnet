@@ -4,6 +4,7 @@
 // We also run some Github Actions (GHA) lint checks.
 
 local actions = import "libs/actions.libsonnet";
+local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
 // ----------------------------------------------------------------------------
@@ -17,6 +18,7 @@ local pre_commit_job =
   {
     steps: [
       actions.checkout(),
+      gha.git_safedir,
       // We grab those submodules below because they are the one needed by 'mypy',
       // which runs as part of pre-commit to check our Python code.
       // alt: we could also use 'submodules: recursive' instead, but that would be slower
@@ -60,6 +62,7 @@ local pre_commit_manual_job = {
   'runs-on': 'ubuntu-latest',
   steps: [
     actions.checkout(),
+    gha.git_safedir,
     {
       uses: 'pre-commit/action@v3.0.0',
       with: {
@@ -126,6 +129,7 @@ local action_lint_job = {
   'runs-on': 'ubuntu-latest',
   steps: [
     actions.checkout(),
+    gha.git_safedir,
     {
       uses: 'actions/setup-go@v4',
       with: {
