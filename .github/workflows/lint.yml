@@ -8,7 +8,6 @@ name: lint
     - develop
 jobs:
   pre-commit:
-    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - name: Fetch semgrep-cli submodules
@@ -19,6 +18,10 @@ jobs:
         cache: pip
         cache-dependency-path: .github/workflows/lint.yml
     - uses: pre-commit/action@v3.0.0
+    runs-on: ubuntu-latest
+    container: returntocorp/ocaml:alpine-2023-11-07
+    env:
+      HOME: /root
   pre-commit-manual:
     runs-on: ubuntu-latest
     steps:

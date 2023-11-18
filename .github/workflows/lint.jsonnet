@@ -4,6 +4,7 @@
 // We also run some Github Actions (GHA) lint checks.
 
 local actions = import "libs/actions.libsonnet";
+local semgrep = import 'libs/semgrep.libsonnet';
 
 // ----------------------------------------------------------------------------
 // The jobs
@@ -11,40 +12,41 @@ local actions = import "libs/actions.libsonnet";
 
 // Running pre-commit in CI. See semgrep/.pre-commit-config.yaml for
 // our pre-commit configuration.
-local pre_commit_job = {
-  'runs-on': 'ubuntu-latest',
-  steps: [
-    actions.checkout(),
-    // We grab those submodules below because they are the one needed by 'mypy',
-    // which runs as part of pre-commit to check our Python code.
-    // alt: we could also use 'submodules: recursive' instead, but that would be slower
-    {
-      name: 'Fetch semgrep-cli submodules',
-      run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces',
-    },
-    // pre-commit is a Python script, this speedup things from Xmin to Ymin?
-    {
-      uses: 'actions/setup-python@v4',
-      with: {
-        'python-version': '3.11',
-        // This caches the pip installed dependencies that pre-commit uses.
-        // Otherwise it will need to reinstall everytime.
-        // TODO? who will need to reinstall everytime? github action? How much does
-        // this cache directive speedup this workflow?
-        cache: 'pip',
-        'cache-dependency-path': '.github/workflows/lint.yml',
+local pre_commit_job =
+  semgrep.ocaml_alpine_container
+  {
+    steps: [
+      actions.checkout(),
+      // We grab those submodules below because they are the one needed by 'mypy',
+      // which runs as part of pre-commit to check our Python code.
+      // alt: we could also use 'submodules: recursive' instead, but that would be slower
+      {
+        name: 'Fetch semgrep-cli submodules',
+        run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces',
       },
-    },
-    // note that in a CI context pre-commit runs the hooks with the '--all' flag, so
-    // semgrep for example is passed all the files in the repository, not just
-    // the one modifed in the PR (as it is the case when it's ran from git
-    // hooks locally). This is why sometimes pre-commit passes locally but fails
-    // in CI, for the same PR.
-    {
-      uses: 'pre-commit/action@v3.0.0',
-    },
-  ],
-};
+      // pre-commit is a Python script, this speedup things from Xmin to Ymin?
+      {
+        uses: 'actions/setup-python@v4',
+        with: {
+          'python-version': '3.11',
+          // This caches the pip installed dependencies that pre-commit uses.
+          // Otherwise it will need to reinstall everytime.
+          // TODO? who will need to reinstall everytime? github action? How much does
+          // this cache directive speedup this workflow?
+          cache: 'pip',
+          'cache-dependency-path': '.github/workflows/lint.yml',
+        },
+      },
+      // note that in a CI context pre-commit runs the hooks with the '--all' flag, so
+      // semgrep for example is passed all the files in the repository, not just
+      // the one modifed in the PR (as it is the case when it's ran from git
+      // hooks locally). This is why sometimes pre-commit passes locally but fails
+      // in CI, for the same PR.
+      {
+        uses: 'pre-commit/action@v3.0.0',
+      },
+    ],
+  };
 
 // The 'extra_args:' directive runs semgrep/.pre-commit-config.yaml#L150,
 // which runs Semgrep Bandit and Semgrep Python, which we don't run on normal pre-commit
