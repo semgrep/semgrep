@@ -42,7 +42,7 @@ let spinner_async () : 'a Lwt.t =
   (* create a cancellable promise *)
   let rec loop i =
     let%lwt _ = print_frame ~frame_index:i in
-    let%lwt _ = Lwt_platform.sleep 0.1 in
+    let%lwt _ = Lwt_platform.sleep 0.05 in
     loop (i + 1)
   in
   Lwt.finalize
