@@ -297,7 +297,7 @@ let print_match ?str config match_ ii_of_any =
 (*
    Run jobs in parallel, using number of cores specified with -j.
 *)
-let map_targets ncores f (targets : In.target list) =
+let map_targets _ncores f (targets : In.target list) =
   (*
      Sorting the targets by decreasing size is based on the assumption
      that larger targets will take more time to process. Starting with
@@ -310,33 +310,7 @@ let map_targets ncores f (targets : In.target list) =
      the two modes, we always sort the target queue in the same way.
   *)
   let targets = sort_targets_by_decreasing_size targets in
-  if ncores <= 1 then Common.map f targets
-  else (
-    (*
-       Parmap creates ncores children processes which listen for
-       chunks of input. When a chunk size is specified, parmap feeds
-       the ncores processes in small chunks of the specified size
-       instead of just dividing the input list into exactly ncores chunks.
-
-       Since our jobs are relatively big compared to the serialization
-       and communication overhead, setting the chunk size to 1 works
-       fine.  We don't want to have two giant target files in the same
-       chunk, so this setting takes care of it.
-    *)
-    (* Quoting Parmap's README:
-     * > To obtain maximum speed, Parmap tries to pin the worker processes to a CPU
-     * Unfortunately, on the new Apple M1, and depending on the number of workers,
-     * Parmap will enter an infinite loop trying (but failing) to pin a worker to
-     * CPU 0. This only happens with HomeBrew installs, presumably because under
-     * HomeBrew's build environment HAVE_MACH_THREAD_POLICY_H is set
-     * (https://github.com/rdicosmo/parmap/blob/1.2.3/src/setcore_stubs.c#L47).
-     * So, despite it may hurt perf a bit, we disable core pinning to work around
-     * this issue until this is fixed in a future version of Parmap.
-     *)
-    Parmap.disable_core_pinning ();
-    assert (ncores > 0);
-    let init _ = Logging.add_PID_tag () in
-    Parmap.parmap ~init ~ncores ~chunksize:1 f (Parmap.L targets))
+  Common.map f targets
 
 (*****************************************************************************)
 (* Timeout *)

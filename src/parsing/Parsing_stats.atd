@@ -1,1 +1,51 @@
-../../interfaces/Parsing_stats.atd
+(*
+   Output parsing stats for a collection of projects to json.
+   This is used by semgrep-core -parsing_stats -json
+*)
+
+type t = {
+  language: string; (* should be compatible with Lang.t *)
+  global: project_stats;
+  projects: project_stats list;
+}
+
+type project_stats = {
+  name: string;
+
+  (* 1 - error_line_count/line_count *)
+  parsing_rate: float;
+
+  (* Total number of lines that we attempted to parse. *)
+  line_count: int;
+
+  (* Number of lines that were unparseable.
+
+     For a given file:
+     - for tree-sitter parsers, this can be any value between 0 and the
+       number of lines in the file.
+     - for other parsers, it's either 0 or the total number of lines in
+       the file.
+
+     The number reported here is across all files that we attempted to parse.
+     It's within [0, line_count].
+  *)
+  error_line_count: int;
+
+  (* Number of files that we attempted to parse. *)
+  file_count: int;
+
+  (* Number of files that were parsed with one or more errors.
+     It is in the range [0, file_count]. *)
+  error_file_count: int;
+
+  (*
+     AST stats for evaluating the fraction of the AST that's made of
+     nodes that need a proper translation. These numbers depend on which
+     types of nodes counted, and of whether shallow todo nodes or
+     raw subtrees are used in the AST. The latter will produce more nodes
+     since they preserve whole sections of the original CST. Interpret
+     with care.
+  *)
+  total_node_count: int;
+  untranslated_node_count: int;
+}

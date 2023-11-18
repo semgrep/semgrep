@@ -1,1 +1,1337 @@
-../../interfaces/semgrep_interfaces/semgrep_output_v1.atd
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Specification of the Semgrep CLI JSON output format using ATD
+ * (see https://atd.readthedocs.io/en/latest/ for more information on ATD).
+ *
+ * This file specifies the JSON format of the 'semgrep scan --json' command,
+ * as well as the JSON format of messages sent to the Semgrep backend by the
+ * 'semgrep ci' command.
+ * For the definitions of the Semgrep input, see rule_schema_v2.atd
+ *
+ * This file has the _v1 suffix to explicitely represent the
+ * version of this JSON format. If you need to extend this file, please
+ * be careful because you may break consumers of this format (e.g., the
+ * Semgrep playground or Semgrep backend or external users of this JSON).
+ * See https://atd.readthedocs.io/en/latest/atdgen-tutorial.html#smooth-protocol-upgrades
+ * for more information on how to smoothly extend the types in this file.
+ *
+ * Any backward incompatible changes should require to upgrade the major
+ * version of Semgrep as this JSON output is part of the "API" of Semgrep
+ * (any incompatible changes to the rule format should also require a major
+ *  version upgrade). Hopefully, we will always be backward compatible.
+ * However, a few fields are tagged with 'EXPERIMENTAL' meaning external users
+ * should not rely on them as those fields may be changed or removed.
+ * They are not part of the "API" of Semgrep.
+ *
+ * !!Again, keep in mind that this file is used both by the CLI to *produce* a
+ * JSON output, and by our backends to *consume* the JSON, including to
+ * consume the JSON produced by old versions of the CLI. As of Sep 2023,
+ * our backend is still supporting as far as Semgrep 1.17.0!!
+ *
+ *
+ * This file is translated in OCaml modules by atdgen. Look for the
+ * corresponding Semgrep_output_v1_[tj].ml[i] generated files
+ * under dune's _build/ folder. A few types below have the 'deriving show'
+ * decorator because those types are reused in semgrep core data structures
+ * and we make heavy use of 'deriving show' in OCaml to help debug things.
+ *
+ * This file is also translated in Python modules by atdpy.
+ * For Python, a few types have the 'dataclass(frozen=True)' decorator
+ * so that the class can be hashed and put in set. Indeed, with 'Frozen=True'
+ * the class is immutable and dataclass can autogenerate a hash function for it.
+ *
+ * Finally this file is translated in jsonschema/openapi spec by atdcat, and
+ * in Typescript modules by atdts.
+ *
+ * history:
+ *  - the types in this file were originally inferred from JSON_report.ml for
+ *    use by spacegrep when it was separate from semgrep-core. It's now also
+ *    useds in JSON_report.ml (now called Core_json_output.ml)
+ *  - it was extended to not only support semgrep-core JSON output but also
+ *    (py)semgrep CLI output!
+ *  - it was then simplified with the osemgrep migration effort by
+ *    removing gradually the semgrep-core JSON output.
+ *  - it was extended to support 'semgrep ci' output to type most messages
+ *    sent between the Semgrep CLI and the Semgrep backend
+ *
+ * There are other important form of outputs which are not specified here:
+ *  - The semgrep metrics sent to https://metrics.semgrep.dev in
+ *    semgrep_metrics.atd
+ *  - The parsing stats of semgrep-core -parsing_stats -json have its own
+ *    Parsing_stats.atd
+ *  - The schema for the generic AST dump is in AST_generic_v1.atd
+ *)
+
+(* escape hatch *)
+type raw_json <ocaml module="Yojson.Basic" t="t"> = abstract
+
+(*****************************************************************************)
+(* String aliases *)
+(*****************************************************************************)
+
+(* File path. less: could convert directly to Path class of pathlib library for Python *)
+type fpath <ocaml attr="deriving show"> = string wrap <ocaml module="ATD_string_wrap.Fpath">
+
+type uri = string wrap <ocaml module="ATD_string_wrap.Uri">
+
+type sha1 = string wrap <ocaml module="ATD_string_wrap.Sha1">
+
+type uuid = string wrap <ocaml module="ATD_string_wrap.Uuidm">
+
+(* GMT time (in osemgrep at least), in isoformat, TODO ATD_string_wrap.Datetime *)
+type datetime = string
+
+(*****************************************************************************)
+(* Versioning *)
+(*****************************************************************************)
+type version <ocaml attr="deriving show"> = string (* e.g., "1.1.0" *)
+
+(*****************************************************************************)
+(* Location *)
+(*****************************************************************************)
+(* Note that there is no filename here like in 'location' below.
+ * Upgrade note: "position_bis" was merged with "position".
+ *)
+type position
+    <ocaml attr="deriving show">
+    <python decorator="dataclass(frozen=True, order=True)"> = {
+  line: int; (* starts from 1 *)
+  col: int; (* starts from 1 *)
+  (* Byte position from the beginning of the file, starts at 0.
+   * OCaml code sets it correctly. Python code sets it to a dummy value (-1).
+   * This uses '~' because semgrep < 1.30? was *producing* positions without
+   * offset sometimes, and we want the backend to still *consume* such positions.
+   *)
+  ~offset: int;
+}
+
+(* a.k.a range *)
+type location
+     <ocaml attr="deriving show">
+     <python decorator="dataclass(frozen=True)"> = {
+  path: fpath;
+  start: position;
+  end <ocaml name="end_">: position;
+}
+
+(*****************************************************************************)
+(* Simple semgrep types *)
+(*****************************************************************************)
+
+(* e.g., "javascript.security.do-not-use-eval" *)
+type rule_id
+     <ocaml attr="deriving show">
+     <python decorator="dataclass(frozen=True)"> =
+  string wrap <ocaml module="Rule_ID">
+
+(*
+   Error = something wrong that must be fixed
+   Warning = something wrong that should be fixed
+   Info = some special condition worth knowing about
+   Experiment = guess what
+   Inventory = deprecated: was used for the Code Asset Inventory (CAI) project
+
+   This is used in rules to specify the severity of matches/findings.
+
+   alt: could be called rule_severity, or finding_severity.
+   coupling: with 'severity' in 'rule_schema_v1.yaml'
+*)
+type match_severity
+    <ocaml attr="deriving show, eq">
+    <python decorator="dataclass(frozen=True)"> = [
+  | Error <json name="ERROR">
+  | Warning <json name="WARNING">
+  | Info <json name="INFO">
+  | Experiment <json name="EXPERIMENT">
+  | Inventory <json name="INVENTORY">
+]
+
+(*
+   Error = Always an error
+   Warning = Only an error if "strict" is set
+   Info = Nothing may be wrong
+
+   This is used to specify the severity of errors which
+   happened during Semgrep execution (e.g., a parse error)
+
+   alt: could reuse match_severity but seems cleaner to define its own type
+*)
+type error_severity
+    <ocaml attr="deriving show, eq">
+    <python decorator="dataclass(frozen=True)"> = [
+  | Error <json name="error">
+  | Warning <json name="warn">
+  | Info <json name="info">
+]
+
+(* TODO? PRO can actually have "flavors" (see Engine_type.ml) *)
+type engine_kind
+     <ocaml attr="deriving show">
+     <python decorator="dataclass(frozen=True)"> = [
+  | OSS
+  | PRO
+]
+
+type rule_id_and_engine_kind <python decorator="dataclass(frozen=True)"> =
+  (rule_id * engine_kind)
+
+(* Need to maintain pairity between this and Inputs_to_core.product. *)
+type product
+  <ocaml attr="deriving show, eq">
+  <python decorator="dataclass(frozen=True)"> = [
+  | SAST (* a.k.a. Code *) <json name="sast">
+  | SCA <json name="sca">
+  | Secrets <json name="secrets">
+]
+
+(* EXPERIMENTAL: This type is used by postprocessors for secrets to report back
+ * the validity of a finding. No_validator is currently also used when no
+ * validation has yet occurred, which if that becomes confusing we
+ * could adjust that, by adding another state.
+*)
+type validation_state
+  <ocaml attr="deriving show, eq">
+  <python decorator="dataclass(frozen=True)"> = [
+  | Confirmed_valid <json name="CONFIRMED_VALID">
+  | Confirmed_invalid <json name="CONFIRMED_INVALID">
+  | Validation_error <json name="VALIDATION_ERROR">
+  | No_validator <json name="NO_VALIDATOR">
+]
+
+(*****************************************************************************)
+(* Matches *)
+(*****************************************************************************)
+
+(* ----------------------------- *)
+(* Core *)
+(* ----------------------------- *)
+
+(* EXPERIMENTAL: Do not rely on those core_xxx types, they will disappear *)
+
+(* TODO: now only core_match_extra differ, otherwise it's just like cli_match *)
+type core_match <python decorator="dataclass(frozen=True)"> = {
+  check_id: rule_id;
+  inherit location;
+  extra: core_match_extra;
+}
+
+(* TODO: try to make it as close as possible to 'cli_match_extra' below *)
+type core_match_extra <python decorator="dataclass(frozen=True)"> = {
+  (* These fields generally come from the rule, but may be set here if they're
+   * being overriden for that particular finding. This would currently occur
+   * for rule with a validator for secrets, depending on what the valdiator
+   * might match, but could be expanded in the future.
+   *
+   * Added in semgrep 1.44.0 *)
+  ?message: string option;
+  ?metadata: raw_json option;
+  ?severity: match_severity option;
+
+  metavars: metavars;
+  ?dataflow_trace: match_dataflow_trace option;
+  (* If present, semgrep-core was able to compute a string that should be
+   * inserted in place of the text in the matched range in order to fix the
+   * finding. *)
+  ?rendered_fix: string option;
+  engine_kind: engine_kind;
+  (* If present indicates the status of postprocessor validation. This field
+   * not being present should be equivalent to No_validator.
+   * Added in semgrep 1.37.0 *)
+  ?validation_state : validation_state option;
+  (* Escape hatch to pass untyped info from semgrep-core to the semgrep output.
+   * Useful for quick experiments, especially when combined with semgrep
+   * --core-opts flag.
+   *)
+  ?extra_extra: raw_json option;
+}
+
+(* ----------------------------- *)
+(* CLI *)
+(* ----------------------------- *)
+
+type cli_match = {
+  check_id: rule_id;
+  inherit location;
+  extra: cli_match_extra;
+}
+
+type cli_match_extra = {
+  (* TODO: inherit match_extra; but need ?metavars because of dependency_aware code *)
+  ?metavars: metavars option;
+
+  (* added by the CLI (see formatter/json.py) *)
+  fingerprint: string;
+  lines: string;
+
+  (* fields coming from the rule *)
+  message: string;
+  metadata: raw_json;
+  severity: match_severity;
+
+  (* fields derived from the rule *)
+  ?fix: string option;
+  ?fix_regex: fix_regex option;
+
+  (* extra fields *)
+  ?is_ignored: bool option;
+  (* EXPERIMENTAL: added by dependency_aware code *)
+  ?sca_info: sca_info option;
+
+  (* TODO: done with monkey patching right now in the Python code,
+   * and seems to be used only when sending findings to the backend.
+   *)
+  ?fixed_lines: string list option;
+
+  (* EXPERIMENTAL: For now, present only for taint findings. May be extended to others
+   * later on. *)
+  ?dataflow_trace: match_dataflow_trace option;
+
+  ?engine_kind: engine_kind option;
+
+  (* EXPERIMENTAL: If present indicates the status of postprocessor validation. This
+   * field not being present should be equivalent to No_validator.
+   * Added in semgrep 1.37.0 *)
+  ?validation_state: validation_state option;
+
+  (* EXPERIMENTAL: see core_match_extra.extra_extra *)
+  ?extra_extra: raw_json option;
+}
+
+type fix_regex = {
+  regex: string;
+  replacement: string;
+  ?count: int option;
+}
+
+(*****************************************************************************)
+(* Metavariables *)
+(*****************************************************************************)
+
+(* Name/value map of the matched metavariables.
+ * The leading '$' must be included in the metavariable name.
+ * TODO: semgrep-core always return a metavars, but dependency_aware Python code
+ * does not always generate a metavars
+*)
+type metavars = (string * metavar_value) list
+  <json repr="object">
+  <python repr="dict">
+  <ts repr="map">
+
+(* TODO: should just inherit location. Maybe it was optimized to not contain
+ * the filename, which might be redundant with the information in core_match,
+ * but with deep-semgrep a metavar could also refer to code in another file,
+ * so simpler to generalize and 'inherit location'.
+ *)
+type metavar_value <python decorator="dataclass(frozen=True)"> = {
+  (* for certain metavariable like $...ARGS, 'end' may be equal to 'start'
+   * to represent an empty metavariable value. The rest of the Python
+   * code (message metavariable substitution and autofix) works
+   * without change for empty ranges (when end = start).
+   *)
+  start: position;
+  end <ocaml name="end_">: position;
+  abstract_content: string; (* value? *)
+  ?propagated_value: svalue_value option;
+}
+
+type svalue_value <python decorator="dataclass(frozen=True)"> = {
+  ?svalue_start: position option;
+  ?svalue_end: position option;
+  svalue_abstract_content: string; (* value? *)
+}
+
+(*****************************************************************************)
+(* Match dataflow trace *)
+(*****************************************************************************)
+
+(* EXPERIMENTAL *)
+type match_dataflow_trace <python decorator="dataclass(frozen=True)"> = {
+  ?taint_source: match_call_trace option;
+  (* Intermediate variables which are involved in the dataflow. For taint, this
+   * explains how the taint flows from the source to the sink. *)
+  ?intermediate_vars: match_intermediate_var list option;
+  (* For now, omitting the taint sink, since it's redundant data except for
+   * certain cases that only appear with DeepSemgrep. We can add it in later
+   * without breaking consumers. *)
+  ?taint_sink: match_call_trace option;
+}
+
+(* the string attached to the location is the actual text from the file
+ * TODO: define a location_with_content type that can be reused.
+ *)
+type match_call_trace <python decorator="dataclass(frozen=True, order=True)"> = [
+  | CliLoc of (location * string)
+  | CliCall of ((location * string) * match_intermediate_var list * match_call_trace)
+] <ocaml repr="classic">
+
+
+(* EXPERIMENTAL *)
+type match_intermediate_var <python decorator="dataclass(frozen=True)"> = {
+  location: location;
+  (* Unlike abstract_content, this is the actual text read from the
+   * corresponding source file *)
+  content: string;
+  (* This type happens to be mostly the same as a location for now, but
+   * it's split out because Iago has plans to extend this with more information
+   *)
+}
+
+(*****************************************************************************)
+(* Errors *)
+(*****************************************************************************)
+
+(* coupling: if you add a constructor here with arguments, you probably need
+ * to adjust _error_type_string() in error.py for pysemgrep and
+ * Error.string_of_error_type() for osemgrep.
+ *)
+type error_type
+    <ocaml attr="deriving show">
+    <python decorator="dataclass(frozen=True, order=True)"> = [
+  (* File parsing related errors;
+     coupling: if you add a target parse error then metrics for
+     cli need to be updated. See cli/src/semgrep/parsing_data.py.
+  *)
+  | LexicalError <json name="Lexical error">
+  | ParseError (* a.k.a SyntaxError *) <json name="Syntax error">
+  | OtherParseError <json name="Other syntax error">
+  | AstBuilderError <json name="AST builder error">
+  (* Pattern parsing related errors.
+   * There are more precise info about the error in
+   * Rule.invalid_rule_error_kind in Rule.ml.
+   * TODO? should we move invalid_rule_error_kind here?
+   *)
+  | RuleParseError <json name="Rule parse error">
+  (* generated in pysemgrep only. TODO: some should take error_span in parameter *)
+  | SemgrepError <json name="SemgrepError">
+  | InvalidRuleSchemaError <json name="InvalidRuleSchemaError">
+  | UnknownLanguageError <json name="UnknownLanguageError">
+  | InvalidYaml <json name="Invalid YAML">
+  (* matching (semgrep) related *)
+  | MatchingError (* internal error, e.g., NoTokenLocation *) <json name="Internal matching error">
+  | SemgrepMatchFound (* TODO of string (* check_id *) *) <json name="Semgrep match found">
+  | TooManyMatches <json name="Too many matches">
+  (* other *)
+  | FatalError (* missing file, OCaml errors, etc. *) <json name="Fatal error">
+  | Timeout <json name="Timeout">
+  | OutOfMemory <json name="Out of memory">
+  (* pro-engine specific *)
+  | TimeoutDuringInterfile <json name="Timeout during interfile analysis">
+  | OutOfMemoryDuringInterfile <json name="OOM during interfile analysis">
+  (* since semgrep 1.40.0 *)
+  | MissingPlugin <json name="Missing plugin">
+  (* !constructors with arguments! *)
+  (* the string list is the "YAML path" of the pattern, e.g. ["rules"; "1"; ...] *)
+  | PatternParseError of string list
+  (* since semgrep 0.97 *)
+  | PartialParsing of location list (* list of skipped tokens *)
+  (* since semgrep 1.38.0 *)
+  | IncompatibleRule of incompatible_rule
+  (* Those Xxx0 variants were introduced in semgrep 1.45.0, but actually they
+   * are here so that our backend can read the cli_error.type_ from old semgrep
+   * versions that were translating the PatternParseError _ and IncompatibleRule _
+   * above as a single string (instead of a list ["PatternParseError", ...] now).
+   * There is no PartialParsing0 because this was encoded as a ParseError instead.
+   * *)
+  | PatternParseError0 <json name="Pattern parse error">
+  | IncompatibleRule0 <json name="Incompatible rule">
+] <ocaml repr="classic">
+
+type incompatible_rule
+     <ocaml attr="deriving show">
+     <python decorator="dataclass(frozen=True)"> = {
+  rule_id: rule_id;
+  this_version: version;
+  ?min_version: version option;
+  ?max_version: version option;
+}
+
+(* TODO: type exit_code = ... *)
+
+
+(* ----------------------------- *)
+(* Core *)
+(* ----------------------------- *)
+(* EXPERIMENTAL: Do not rely on those internal types, they will disappear *)
+
+(* See Semgrep_error_code.ml *)
+(* TODO: try to make it as close as possible to 'cli_error' above, possibly
+ * extending cli_error with more fields (but those fields must be optional
+ * to remain backward compatible
+ *)
+type core_error <python decorator="dataclass(frozen=True)"> = {
+  ?rule_id: rule_id option;
+  error_type: error_type;
+  severity: error_severity;
+  location: location;
+  message: string;
+  ?details: string option;
+  }
+
+(* ----------------------------- *)
+(* CLI *)
+(* ----------------------------- *)
+(* (called SemgrepError in error.py) *)
+
+type cli_error = {
+  (* exit code for the type_ of error *)
+  code: int;
+  level: error_severity;
+  (* before 1.45.0 the type below was 'string', but was the result
+   * of converting error_type into a string, so using directly
+   * 'error_type' below should be mostly backward compatible
+   * thx to the <json name> annotations in error_type.
+   * To be fully backward compatible, we actually introduced the
+   * PatternParseError0 and IncompatibleRule0 cases in error_type.
+   *)
+  type_ <json name="type">: error_type;
+
+  (* LATER: use a variant instead of all those ?xxx types *)
+
+  ?rule_id: rule_id option;
+
+  (* for most parsing errors those are set *)
+  ?message: string option; (* contains error location *)
+  ?path: fpath option;
+
+  (* for invalid rules, for ErrorWithSpan *)
+  ?long_msg: string option;
+  ?short_msg: string option;
+  ?spans: error_span list option;
+  ?help: string option;
+}
+
+type error_span = {
+    (* for InvalidRuleSchemaError *)
+    (* LATER: could inherit location; but file: vs path: *)
+    (* TODO: source hash should probably also be mandatory? *)
+    (* TODO: sometimes set to "<No file>" in rule_lang.py *)
+    file: fpath;
+    start: position;
+    end <ocaml name="end_">: position;
+    ?source_hash: string option;
+
+    (*  The path to the pattern in the yaml rule
+     *  and an adjusted start/end within just the pattern
+     *  Used to report playground parse errors in the simple editor
+     *  TODO: add an example because our source code doesn't make much sense.
+     *
+     *  TODO: remove this or add back simple editor error highlighting
+     *)
+    ?config_start: position nullable option;
+    ?config_end: position nullable option;
+    ?config_path: string list nullable option;
+
+    (* LATER: what is this for? *)
+    ?context_start: position nullable option;
+    ?context_end: position nullable option;
+  }
+
+(*****************************************************************************)
+(* Skipping information *)
+(*****************************************************************************)
+
+(* A reason for skipping a target file or a pair (target, rule).
+ * Note that this type is also used in Report.ml hence the need
+ * for deriving show here.
+ *)
+type skip_reason <ocaml attr="deriving show"> = [
+  (* Originally returned by the Python CLI *)
+  | Always_skipped <json name="always_skipped">
+  | Semgrepignore_patterns_match <json name="semgrepignore_patterns_match">
+  | Cli_include_flags_do_not_match <json name="cli_include_flags_do_not_match">
+  | Cli_exclude_flags_match <json name="cli_exclude_flags_match">
+  | Exceeded_size_limit <json name="exceeded_size_limit">
+  | Analysis_failed_parser_or_internal_error
+      <json name="analysis_failed_parser_or_internal_error">
+  (* Originally returned by semgrep-core *)
+  | Excluded_by_config <json name="excluded_by_config">
+  | Wrong_language <json name="wrong_language">
+  | Too_big <json name="too_big">
+  | Minified <json name="minified">
+  | Binary <json name="binary">
+  | Irrelevant_rule <json name="irrelevant_rule">
+  | Too_many_matches <json name="too_many_matches">
+  (* New in osemgrep *)
+  | Gitignore_patterns_match
+  (* since 1.40.0 (dotfiles were always ignored, but not shown in the skip report *)
+  | Dotfile
+  (* since 1.44.0 *)
+  | Nonexistent_file
+] <ocaml repr="classic">
+
+(* coupling: ugly: with yield_json_objects() in target_manager.py *)
+type skipped_target <ocaml attr="deriving show"> = {
+  path: fpath;
+  reason: skip_reason;
+  (* since semgrep 1.39.0 (used to be return only by semgrep-core) *)
+  ?details: string option;
+  (* If the 'rule_id' field is missing, the target is assumed to have been
+   * skipped for all the rules *)
+  ?rule_id: rule_id option;
+}
+
+type scanned_and_skipped = {
+    scanned: fpath list;
+    (* Note that you get this field only if you use semgrep --verbose.
+     * TODO: needs fix in atdpy; see note tagged [X584759]
+     * ~skipped: skipped_target list;
+    *)
+    ?skipped: skipped_target list option;
+}
+
+type skipped_rule = {
+  rule_id: rule_id;
+  details: string;
+  (* position of the error in the rule file *)
+  position: position;
+}
+
+(*****************************************************************************)
+(* Profiling information *)
+(*****************************************************************************)
+(* coupling: with semgrep_metrics.atd performance section *)
+
+(* coupling: if you change the JSON schema below, you probably need to
+ * also modify perf/run-benchmarks. Run locally  $ ./run-benchmarks --dummy --upload
+ *)
+type profile = {
+    (* List of rules, including the one read but not run on any target.
+     * TODO? is this still true now that we just pass around the profile
+     *   computed in semgrep-core?
+     * This list is actually more an array which allows other
+     * fields to reference rule by number instead of rule_id
+     * (e.g., match_times further below) saving space in the JSON.
+     *
+     * Upgrade note: this used to be defined as a rule_id_dict where
+     * each rule_id was inside a {id: rule_id; ...} record so
+     * we could give parsing time info about each rule, but
+     * parsing one rule was never the slow part, so now we just juse the
+     * aggregated rules_parse_time below and do not need a
+     * complex rule_id_dict record anymore.
+     *)
+    rules: rule_id list;
+
+    (* LESS? could be part of profiling_times below instead *)
+    rules_parse_time: float;
+    (* coupling: semgrep_metrics.atd profilingTimes field?
+     * Those fields are not produced by semgrep-core; they
+     * are added by pysemgrep (and later osemgrep).
+     *
+     * LATER? define a cli_profiling_times with more precise keys?
+     * type cli_profiling_times <ocaml attr="deriving show"> = {
+     *   config_time: float;
+     *   core_time: float;
+     *   ignores_time: float;
+     *   total_time: float;
+     *  }
+     * LATER: get rid of profiler.dump_stats
+     *)
+    profiling_times: (string * float) list
+      <json repr="object">
+      <python repr="dict">
+      <ts repr="map">;
+
+    targets: target_times list;
+    total_bytes: int;
+
+    (* maximum amount of memory used by Semgrep(-core) during its execution *)
+    ?max_memory_bytes : int option;
+  }
+
+type target_times = {
+    path: fpath;
+    num_bytes: int;
+    (* each elt in the list refers to a rule in profile.rules *)
+    match_times: float list;
+    (* emma: "when we were first diagnosing performance, I recorded every time
+     * the file was read (including the later times that were just reloading
+     * the parsed file) to make sure reading the file wasn't taking a significant
+     * amount of time. Now that we know it isn't, we don't need to record this anymore.
+     * TODO: just use a single float instead."
+     *)
+    parse_times: float list;
+    (* run time for all rules on target *)
+    run_time: float;
+}
+
+(*****************************************************************************)
+(* Matching explanations *)
+(*****************************************************************************)
+(* coupling: semgrep-core/src/core/Matching_explanation.ml
+ * LATER: merge with Matching_explanation.t at some point
+ * EXPERIMENTAL *)
+type matching_explanation = {
+    op: matching_operation;
+    children: matching_explanation list;
+    (* result matches at this node (can be empty when we reach a nomatch) *)
+    matches: core_match list;
+    (* location in the rule file! not target file.
+     * This tries to delimit the part of the rule relevant to the current
+     * operation (e.g., the position of the 'patterns:' token in the rule
+     * for the And operation).
+     *)
+    loc: location;
+    }
+(* TODO:
+ * - Negation
+ * - Where filters (metavar-comparison, etc)
+ * - tainting source/sink/sanitizer
+ * - subpattern EllipsisAndStmt, ClassHeaderAndElems
+ * Note that this type is used in Matching_explanation.ml hence the need
+ * for deriving show below.
+ *)
+type matching_operation <ocaml attr="deriving show { with_path = false}"> = [
+  | And
+  | Or
+  | Inside
+  | Anywhere
+  (* XPat for eXtended pattern. Can be a spacegrep pattern, a
+   * regexp pattern, or a proper semgrep pattern.
+   * see semgrep-core/src/core/XPattern.ml
+   *)
+  | XPat of string
+  (* TODO *)
+  | Negation
+  (* TODO "metavar-regex:xxx" | "metavar-comparison:xxx" | "metavar-pattern" *)
+  | Filter of string
+  (* TODO tainting "operations" *)
+  | Taint
+  | TaintSource
+  | TaintSink
+  | TaintSanitizer
+  (* TODO subpatterns *)
+  | EllipsisAndStmts
+  | ClassHeaderAndElems
+] <ocaml repr="classic">
+
+
+(*****************************************************************************)
+(* Final scan output  *)
+(*****************************************************************************)
+
+(* ----------------------------- *)
+(* Core *)
+(* ----------------------------- *)
+
+(* TODO: merge with cli_output *)
+type core_output = {
+  ?version: version option;
+  results: core_match list;
+  (* errors are guaranteed to be duplicate free; see also Report.ml *)
+  errors: core_error list;
+
+  inherit cli_output_extra;
+}
+
+(* ----------------------------- *)
+(* CLI *)
+(* ----------------------------- *)
+
+(* TODO: rename to scan_output at some point *)
+type cli_output = {
+    (* since: 0.92 *)
+    ?version: version option;
+
+    errors: cli_error list;
+    results: cli_match list;
+
+    inherit cli_output_extra;
+}
+
+(* TODO? used only in TEXT format:
+ * ?color_output, per_finding_max_lines_limit, per_line_max_chars_limit
+*)
+type cli_output_extra = {
+    (* targeting information *)
+    paths: scanned_and_skipped;
+    (* profiling information *)
+    ?time: profile option;
+    (* debugging (rule writing) information.
+     * Note that as opposed to the dataflow trace, the explanations are not
+     * embedded inside a match because we give also explanations when things are
+     * not matching.
+     * EXPERIMENTAL: since semgrep 0.109
+     *)
+    ?explanations: matching_explanation list option;
+
+    (* These rules, classified by engine used, will let us be transparent in the CLI
+     * output over what rules were run with what.
+     * EXPERIMENTAL: since: 1.11.0
+     *)
+    ?rules_by_engine: rule_id_and_engine_kind list option;
+    ?engine_requested: engine_kind option;
+
+    (* Reporting just the requested engine isn't granular enough. We want to know
+       what languages had rules that invoked interfile. This is particularly important 
+       for tracking the performance impact of new interfile languages *)
+    (* EXPERIMENTAL: since 1.49.0 *)
+    ?interfile_languages_used: string list option; 
+
+    (* EXPERIMENTAL: since: 1.37.0 *)
+    ~skipped_rules: skipped_rule list;
+}
+
+(*****************************************************************************)
+(* Semgrep Supply Chain (SSC) *)
+(*****************************************************************************)
+(* This is also known as Software Composition Analysis (SCA) *)
+
+(* EXPERIMENTAL *)
+type sca_info = {
+  reachable: bool;
+  reachability_rule: bool;
+  sca_finding_schema: int;
+  dependency_match: dependency_match;
+}
+
+type dependency_match = {
+  dependency_pattern: dependency_pattern;
+  found_dependency: found_dependency;
+  lockfile: string;
+}
+
+(* both ecosystem and transitivity below have frozen=True so the generated
+ * classes can be hashed and put in sets (see calls to reachable_deps.add()
+ * in semgrep SCA code)
+ *)
+type ecosystem <python decorator="dataclass(frozen=True)"> = [
+  | Npm <json name="npm">
+  | Pypi  <json name="pypi">
+  | Gem <json name="gem">
+  | Gomod <json name="gomod">
+  | Cargo <json name="cargo">
+  | Maven <json name="maven">
+  | Composer <json name="composer">
+  | Nuget <json name="nuget">
+  | Pub <json name="pub">
+]
+
+type transitivity <python decorator="dataclass(frozen=True)"> = [
+  | Direct <json name="direct">
+  | Transitive <json name="transitive">
+  | Unknown <json name="unknown">
+]
+
+type dependency_pattern = {
+  ecosystem: ecosystem;
+  package: string;
+  semver_range: string;
+}
+
+type dependency_child = {
+  package: string;
+  version: string;
+}
+
+type found_dependency = {
+  package: string;
+  version: string;
+  ecosystem: ecosystem;
+  allowed_hashes: (string * string list) list
+    <json repr="object">
+    <python repr="dict">
+    <ts repr="map">;
+  ?resolved_url: string option;
+  transitivity: transitivity;
+  ?line_number: int option;
+  (* store child dependency information for calculating path to transitivity*)
+  ?children: dependency_child list option;
+}
+
+(* json names are to maintain backwards compatibility with the python enum it is replacing *)
+type sca_parser_name = [
+  | Gemfile_lock <json name="gemfile_lock">
+  | Go_mod <json name="go_mod">
+  | Go_sum <json name="go_sum">
+  | Gradle_lockfile <json name="gradle_lockfile">
+  | Gradle_build <json name="gradle_build">
+  | Jsondoc <json name="jsondoc">
+  | Pipfile <json name="pipfile">
+  | Pnpm_lock <json name="pnpm_lock">
+  | Poetry_lock <json name="poetry_lock">
+  | Pyproject_toml <json name="pyproject_toml">
+  | Requirements <json name="requirements">
+  | Yarn_1 <json name="yarn_1">
+  | Yarn_2 <json name="yarn_2">
+  | Pomtree <json name="pomtree">
+  | Cargo_parser <json name="cargo">
+  | Composer_lock <json name="composer_lock">
+  | Pubspec_lock <json name="pubspec_lock">
+]
+
+type dependency_parser_error = {
+  path: string;
+  parser: sca_parser_name;
+  reason: string;
+  (* Not using `position` because this type must be backwards compatible with the python
+   * class it is replacing.
+   *)
+  ?line: int option;
+  ?col: int option;
+  ?text: string option;
+}
+
+
+(*****************************************************************************)
+(* Communications with the Semgrep backend *)
+(*****************************************************************************)
+
+(* EXPERIMENTAL: do not rely on the types in this section; those are internal
+ * types used to communicate with the Semgrep backend and are not meant
+ * to be consumed directly by Semgrep users or tools wrapping up Semgrep.
+ *
+ * The sequence of HTTP requests is mostly:
+ *  - /deployments/current with token
+ *    and response with deployment name in a deployment config
+ *  - /deployments/scans when starting a scan, with information about the project
+ *    and response with scan_id
+ *  - /scans/<scan_id>/config to request the scan config
+ *    and response with scan_config including the rules to use
+ *  - /results to send the findings to the backend
+ *    and response with errors and task_id
+ *  - /complete when done, with the exit code and a few more information
+ *    and response with app_block_override and reason
+ *
+ * alt: we could move all of this in a separate semgrep_posts_v1.atd file
+ * or semgrep_webapp_v1.atd
+*)
+
+(* ----------------------------- *)
+(* CI Configuration *)
+(* ----------------------------- *)
+
+(* Response by the backend to the CLI to the POST deployments/current *)
+type deployment_config <ocaml attr="deriving show"> = {
+  id : int;
+  (* the important piece, the deployment name (e.g., "returntocorp" *)
+  name : string;
+  ~organization_id : int;
+  (* All three below seem similar to 'name' mostly (e.g., "returntocorp") *)
+  ~display_name : string;
+  ~scm_name : string;
+  ~slug : string;
+  (* ex: "github" *)
+  ~source_type : string;
+  (* Yet another feature lists
+   * TODO? factorize in ci_config_from_cloud instead of here and scan_config?
+   *)
+  ~has_autofix : bool;
+  ~has_deepsemgrep : bool;
+  ~has_triage_via_comment : bool;
+  ~has_dependency_query : bool;
+  (* ex: "member" *)
+  ~default_user_role : string;
+}
+
+(* Content of the .semgrepconfig.yml in the repository.
+ *
+ * This config allows to configure Semgrep per repo, e.g., to store
+ * a category/tag like "webapp" in a repo so that the Semgrep WebApp can
+ * return a set of relevant rules automatically for this repo in scan_config
+ * later when given this ci_config_from_repo in the scan_request.
+ *)
+type ci_config_from_repo = {
+    (* version of the .semgrepconfig.yml format. "V1" right now (useful?) *)
+    ~version <python default="Version('v1')"> <ts default="'v1'">: version;
+    ?tags: tag list option;
+}
+(* ?? ex? *)
+type tag = string
+
+(* Semgrep config from the WebApp
+ * TODO: not created yet by backend, and not used yet in the CLI
+ *)
+type ci_config_from_cloud = {
+    repo_config: ci_config;
+    ?org_config: ci_config option;
+    (* for monorepos, to be "monorepo-friendly" like they say in Ruff *)
+    ?dirs_config: (fpath * ci_config) list option;
+}
+
+(* Note that we should use very simple types below for the configuration
+ * of Semgrep: booleans or small enums. No int, as people often don't
+ * understand how to set values. For example even if we documented
+ * very well the --timeout option in Semgrep, people still didn't
+ * know which value to use.
+ *
+ * LATER: the type below could be used for the automatic generation of UI code
+ * in the WebApp for user to setup the CI config with UI widgets. We would need
+ * probably ATD extension to express validators, docstring, etc (Jonas's idea).
+ *
+ *)
+type ci_config = {
+   (* to override environment variables, as lots of the configuration of
+    * 'semgrep ci' comes from environment variables (e.g., SEMGREP_REPO_URL)
+    *)
+    env: ci_env;
+    enabled_products: product list;
+    (* glob patterns *)
+    ignored_files: string list;
+    (* other features *)
+    autofix: bool;
+    (* TODO?
+     *  - feature_rollout (hidden from users)
+     *  - feature_opt_in (set by users)
+     *  - deepsemgrep? but should we use product instead?
+     *  - dependency_query??
+     *  - triage_xxx?
+     *)
+}
+
+type ci_env = (string * string) list
+  <json repr="object">
+  <python repr="dict">
+  <ts repr="map">
+
+(* Response by the backend to the CLI to the POST /scans/<scan_id>/config *)
+type scan_config = {
+    (* TODO: remove deployment_id + deployment_name from here, instead this will be in scan_response.scan_info *)
+    deployment_id: int;
+    deployment_name: string;
+    (* ex: "audit", "comment", "block" TODO use enum? TODO: seems dead *)
+    policy_names: string list;
+    (* rules raw content in JSON format (but still sent as a string) *)
+    rule_config: string;
+    (* since 1.47.0 *)
+    ?ci_config_from_cloud: ci_config_from_cloud option;
+
+    (* Deprecated: should rely on ci_config_from_cloud instead *)
+    ~autofix: bool;
+    ~deepsemgrep: bool;
+    ~dependency_query: bool;
+    ~triage_ignored_syntactic_ids: string list;
+    ~triage_ignored_match_based_ids: string list;
+    (* glob patterns *)
+    ~ignored_files: string list;
+    (* since 1.37.0 *)
+    ?enabled_products: product list option;
+  }
+
+(* ----------------------------- *)
+(* CI Deployment response *)
+(* ----------------------------- *)
+type deployment_response = {
+    deployment: deployment_config;
+}
+
+(* ----------------------------- *)
+(* CI Scan request *)
+(* ----------------------------- *)
+
+(* Collect information about a project from the environment, filesystem,
+ * git repo, etc.
+ * See also semgrep_metrics.atd and PRIVACY.md
+ *
+ * TODO:
+ * - we could split it in different parts and use inherit to make things clearer
+ *   (while still being backward compatible)
+ *)
+type project_metadata = {
+    (* TODO: deprecate in favor of scan_metadata.cli_version *)
+    semgrep_version: version;
+
+    (* TODO: use enum with <json name="..."> *)
+    (* "git" | "github-actions" | "gitlab-ci" | "circleci"
+     * | "jenkins" | "bitbucket" | "azure-pipelines" | "buildkite" | "travis-ci" *)
+    scan_environment: string;
+
+    (* Git metadata. Many of those fields come from environment variables like
+     * GITHUB_xxx.
+     *)
+    repository: string;
+    repo_url: uri nullable;
+    (* The two fields below are stable across repository renaming and even org
+     * renaming, which can be useful to not report new findings on a repo
+     * just because this repo was renamed.
+     * Since Semgrep 1.46.0
+     * The string is usually an int, but more general to use a string.
+     *)
+    ?repo_id: string option;
+    (* a.k.a repository owner id *)
+    ?org_id: string option;
+
+    (* TODO: the branch should use a standard format? like refs/... ? or it can
+     * be a basic branch name like 'foobar'?
+     *)
+    branch: string nullable;
+    commit: sha1 nullable;
+    commit_title: string nullable;
+    (* since 1.38.0 *)
+    ?commit_timestamp: (*datetime*) string option;
+
+    (* TODO? inherit contributor instead? *)
+    (* TODO? Emile.mailbox in OCaml *)
+    commit_author_email: string nullable;
+    commit_author_name: string nullable;
+    commit_author_username: string nullable;
+    commit_author_image_url: uri nullable;
+
+    (* ?? *)
+    ci_job_url: uri nullable;
+
+    (* CI event name ("pull_request"|"pull_request_target"|"push"|"unknown"|...)
+     * TODO: use enum
+     *)
+    on: string;
+
+    pull_request_author_username: string nullable;
+    pull_request_author_image_url: uri nullable;
+    pull_request_id: string nullable;
+    pull_request_title: string nullable;
+
+    (* Gitlab only *)
+    ?base_sha: sha1 option;
+    ?start_sha: sha1 option;
+
+    (* Check if the current Git repository has enough to determine the
+     * merge_base_ref.
+     *)
+    is_full_scan: bool;
+
+    (* added later in ci.py (not from meta.py)
+     * TODO: deprecate these in favor of scan_metadata.requested_products
+     *)
+    ?is_sca_scan: bool option;
+    (* since 1.40.0 *)
+    ?is_code_scan: bool option;
+    (* since 1.41.0 *)
+    ?is_secrets_scan: bool option;
+}
+
+type scan_metadata = {
+  cli_version: version;
+  unique_id: uuid; (* client generated uuid for the scan *)
+  requested_products: product list;
+  ~dry_run: bool; (* from 1.47.0 *)
+}
+
+(* Sent by the CLI to the POST /api/cli/scans to create a scan. *)
+type scan_request = {
+    (* until 1.43ish, was 'meta: project_metadata;' before *)
+    meta: raw_json;
+    (* from 1.43 *)
+    ?project_metadata: project_metadata option; (* replacing meta *)
+    ?project_config: ci_config_from_repo option;
+    ?scan_metadata: scan_metadata option;
+}
+
+(* Response from the backend to the CLI to the POST /api/cli/scans *)
+type scan_response = {
+    info: scan_info;
+    config: scan_configuration;
+    engine_params: engine_configuration;
+}
+
+(* meta info about the scan *)
+type scan_info = {
+    ?id: int option; (* the scan id, null for dry-runs *)
+    enabled_products: product list;
+    deployment_id: int;
+    deployment_name: string;
+}
+
+(* config specific to the scan, eg *)
+type scan_configuration = {
+    rules: raw_json; (* can we type this better *)
+    ~triage_ignored_syntactic_ids: string list;
+    ~triage_ignored_match_based_ids: string list;
+}
+
+(* settings for the cli *)
+type engine_configuration = {
+    ~autofix: bool;
+    ~ignored_files: string list;
+    ~deepsemgrep: bool;
+    ~dependency_query: bool;
+    ~generic_slow_rollout: bool; (* for features we only want to turn on for select customers *)
+}
+
+(* ----------------------------- *)
+(* Findings *)
+(* ----------------------------- *)
+(* Yet another match type (in addition to core_match and cli_match).
+ * This one is used in ci_scan_results below.
+ *)
+
+type finding = {
+  check_id: rule_id;
+
+  (* ugly: should reuse location instead of those 5 fields *)
+  path: fpath;
+  line: int;
+  column: int;
+  end_line: int;
+  end_column: int;
+
+  message: string;
+  (* int|string until minimum version exceeds 1.32.0, then string *)
+  severity: abstract;
+
+  (* ?? *)
+  index: int;
+
+  commit_date: string;
+
+  syntactic_id: string;
+  (* since semgrep 0.98 *)
+  ?match_based_id: string option;
+  (* since semgrep 1.14.0 *)
+  ?hashes: finding_hashes option;
+
+  (* metadata from the rule *)
+  metadata: raw_json;
+
+  (* ?? *)
+  is_blocking: bool;
+
+  ?fixed_lines: string list option;
+
+  ?sca_info: sca_info option;
+  ?dataflow_trace: match_dataflow_trace option;
+  (* Added in semgrep 1.39.0 see comments in cli_match_extra. *)
+  ?validation_state: validation_state option;
+}
+
+(* The goal is to hash findings independently of their precise location so
+ * if a file is moved around or the line numbers change in a file, we
+ * do not report new findings but instead detect that the finding
+ * actually hashes to a previous old finding.
+ * See also match_based_id which is yet another way to hash a finding.
+ * See also https://www.notion.so/semgrep/Identifying-unique-findings-match_based_id-and-syntactic_id
+ *)
+type finding_hashes = {
+  start_line_hash: string;
+  end_line_hash: string;
+  (* hash of the syntactic_context/code contents from start_line through end_line *)
+  code_hash: string;
+  (* hash of the rule pattern with metavariables substituted in *)
+  pattern_hash: string;
+}
+
+
+(* ----------------------------- *)
+(* CI scan results *)
+(* ----------------------------- *)
+
+(* Sent by the CLI to /findings_and_ignores (a.k.a. /results) *)
+type ci_scan_results = {
+  (* TODO: ?version: version option; *)
+   findings: finding list;
+   ignores: finding list;
+
+   (* TODO? use a token type ? *)
+   token: string nullable;
+
+   searched_paths: fpath list;
+   renamed_paths: fpath list;
+
+   rule_ids: rule_id list;
+
+   (* since semgrep 1.34.0 *)
+   ?contributions: contributions option;
+   (* since semgrep 1.38.0 *)
+   (* this data was originally sent to /complete, but we want to start sending it /results *)
+   ?dependencies: ci_scan_dependencies option;
+}
+
+(* See https://semgrep.dev/docs/usage-limits
+ * coupling: this must match Git_wrapper.git_log_json_format
+ *)
+type contributor = {
+    commit_author_name: string;
+    commit_author_email: string;
+}
+
+type contribution = {
+    commit_hash: string;
+    (* TODO: datatime instead? *)
+    commit_timestamp: string;
+    contributor: contributor;
+}
+
+(* we keep this alias because we need to generate code to parse and write
+ * list of contributions.
+ *)
+type contributions = contribution list
+
+type ci_scan_dependencies = (string * found_dependency list) list
+    <json repr="object">
+    <python repr="dict">
+    <ts repr="map">
+
+
+
+
+(* Response by the backend to the CLI to the POST /results *)
+type ci_scan_results_response <ocaml attr="deriving show"> = {
+  errors: ci_scan_results_response_error list;
+  ?task_id: string option;
+}
+
+type ci_scan_results_response_error <ocaml attr="deriving show"> = {
+    message: string;
+}
+
+(* ----------------------------- *)
+(* CI scan complete *)
+(* ----------------------------- *)
+
+(* Sent by the CLI to /complete *)
+type ci_scan_complete = {
+  exit_code: int;
+  stats: ci_scan_complete_stats;
+  ?dependencies: ci_scan_dependencies option; (* remove when min version is 1.38.0 *)
+  ?dependency_parser_errors: dependency_parser_error list option;
+  (* since 1.31.0 *)
+  ?task_id: string option;
+  ?final_attempt: bool option; (* always optional *)
+  }
+
+type ci_scan_complete_stats = {
+  findings: int;
+  errors: cli_error list;
+  total_time: float;
+
+  unsupported_exts: (string * int) list
+    <json repr="object">
+    <python repr="dict">
+    <ts repr="map">;
+  lockfile_scan_info: (string * int) list
+    <json repr="object">
+    <python repr="dict">
+    <ts repr="map">;
+  parse_rate: (string * parsing_stats) list
+    <json repr="object">
+    <python repr="dict">
+    <ts repr="map">;
+  (* This is EngineType from python, which is different from engine_kind
+   * used in this file.
+   *)
+  ?engine_requested: string option;
+}
+
+type parsing_stats = {
+  targets_parsed: int;
+  num_targets: int;
+  bytes_parsed: int;
+  num_bytes: int;
+}
+
+(* Response by the backend to the CLI to the POST /complete *)
+type ci_scan_complete_response <ocaml attr="deriving show"> = {
+   success: bool;
+   ~app_block_override: bool;
+   (* only when app_block_override is true *)
+   ~app_block_reason: string;
+}
+
+(* ----------------------------- *)
+(* CI scan failure *)
+(* ----------------------------- *)
+
+(* Sent by the CLI to /scans/<scan_id>/error *)
+type ci_scan_failure = {
+    exit_code: int;
+    stderr: string;
+}

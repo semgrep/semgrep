@@ -8,14 +8,8 @@
  (preprocess (pps ppx_profiling))
  ; for ocamldebug
  (modes native byte)
- (flags (:include flags.sexp))
+ ; (flags (:include flags.sexp))
 )
-
-
-; use cli/flags.sh to generate the OS specific build flags
-(rule
- (targets flags.sexp)
- (action (run %{workspace_root}/src/main/flags.sh)))
 
 
 (install
@@ -24,6 +18,7 @@
  ; LATER: at some point we should copy it as osemgrep instead
  (files
   (Main.exe as semgrep-core)
+  (Main.exe as semgrep)
   (Main.bc as semgrep-core.bc)
  )
 )
