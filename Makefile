@@ -271,7 +271,11 @@ install-deps-for-semgrep-core: semgrep.opam
 	&& ./configure \
 	&& ./scripts/install-tree-sitter-lib
 	# Install OCaml dependencies (globally) from *.opam files.
-	opam install -y --deps-only ./ ./libs/ocaml-tree-sitter-core
+	# This now also installs the dev dependencies. This has the benefit
+	# of installing all the packages in one shot and detecting possible
+	# version conflicts.
+	opam install -y --deps-only \
+	  ./ ./libs/ocaml-tree-sitter-core ./dev/dev.opam
 
 # This will fail if semgrep.opam isn't up-to-date (in git),
 # and dune isn't installed yet. You can always install dune with
@@ -402,13 +406,8 @@ setup: semgrep.opam
 # Install development dependencies in addition to build dependencies.
 .PHONY: dev-setup
 dev-setup:
-	$(MAKE) setup
-	# This is partly redundant with `make setup`, called above. We include `./`
-	# and `./libs/ocaml-tree-sitter-core` so that if the dependencies specified in
-	# `./dev` conflict with any of the other dependencies, we get a conflict
-	# message here rather than having this command silently install the versions
-	# that `./dev` requires, potentially breaking the build.
-	opam install -y --deps-only ./dev ./ ./libs/ocaml-tree-sitter-core
+	@echo "'make dev-setup' was merged with 'make setup'. Use the latter."
+	exit 1
 
 # Update and rebuild everything within the project.
 .PHONY: rebuild
