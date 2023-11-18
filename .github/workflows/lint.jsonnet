@@ -14,7 +14,7 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // Running pre-commit in CI. See semgrep/.pre-commit-config.yaml for
 // our pre-commit configuration.
 local pre_commit_job =
-  semgrep.ocaml_alpine_container
+  semgrep.ocaml_ubuntu_container
   {
     steps: [
       actions.checkout(),

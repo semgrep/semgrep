@@ -82,6 +82,14 @@ local github_bot = {
     },
   },
 
+  ocaml_ubuntu_container: {
+    'runs-on': 'ubuntu-latest',
+    container: 'returntocorp/ocaml:ubuntu-2023-11-07',
+    env: {
+      HOME: '/root',
+    },
+  },
+
   ocaml5_alpine_container: {
     'runs-on': 'ubuntu-latest',
     container: 'returntocorp/ocaml:alpine5.1-2023-11-07',
