@@ -557,7 +557,8 @@ let o_oss : bool Term.t =
   Arg.value (Arg.flag info)
 
 let blurb =
-  "Requires Semgrep Pro Engine. See https://semgrep.dev/products/pro-engine/ for more."
+  "Requires Semgrep Pro Engine. See https://semgrep.dev/products/pro-engine/ \
+   for more."
 
 let o_pro_languages : bool Term.t =
   let info =
