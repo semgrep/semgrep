@@ -1,6 +1,10 @@
-semgrep scan: option '--max-target-bytes': Invalid representation for a
-              number of bytes: 1.3R
-Usage: semgrep scan [OPTION]… [TARGETS]…
-Try 'semgrep scan --help' for more information.
-Error: fatal error
-Exiting with error status 2: osemgrep --max-target-bytes 1.3R --strict --config rules/eqeq.yaml --json targets/basic
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/bin/semgrep", line 174, in <module>
+    exec_osemgrep()
+  File "/home/runner/work/semgrep/semgrep/cli/bin/semgrep", line 155, in exec_osemgrep
+    os.execvp(str(path), sys.argv)
+  File "/usr/lib/python3.10/os.py", line 575, in execvp
+    _execvpe(file, args)
+  File "/usr/lib/python3.10/os.py", line 598, in _execvpe
+    exec_func(file, *argrest)
+FileNotFoundError: [Errno 2] No such file or directory
