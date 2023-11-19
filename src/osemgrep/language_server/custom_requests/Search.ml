@@ -21,10 +21,10 @@ let on_request runner params =
       let xlang_opt =
         Option.bind lang_opt (fun l -> Some (Xlang.of_string l))
       in
-      let src = Rules_source.(Pattern (pattern, xlang_opt, None)) in
+      (* TODO: figure out why rules_from_rules_source_async hangs *)
+      (* let src = Rules_source.(Pattern (pattern, xlang_opt, None)) in *)
       let rules_and_origins =
-        Rule_fetching.rules_from_rules_source ~token_opt:None
-          ~rewrite_rule_ids:true ~registry_caching:false src
+        Rule_fetching.rules_from_pattern (pattern, xlang_opt, None)
       in
       let rules, _ =
         Rule_fetching.partition_rules_and_errors rules_and_origins

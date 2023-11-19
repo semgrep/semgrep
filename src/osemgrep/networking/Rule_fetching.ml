@@ -473,6 +473,57 @@ let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt ~registry_caching
 (* Entry point *)
 (*****************************************************************************)
 
+let rules_from_pattern pattern : rules_and_origin list =
+  let pat, xlang_opt, fix = pattern in
+  let fk = Tok.unsafe_fake_tok "" in
+  let rules_and_origin_for_xlang xlang =
+    let xpat = Parse_rule.parse_xpattern xlang (pat, fk) in
+    (* force the parsing of the pattern to get the parse error if any *)
+    (match xpat.XP.pat with
+    | XP.Sem (lpat, _) -> Lazy.force lpat |> ignore
+    | XP.Spacegrep _
+    | XP.Aliengrep _
+    | XP.Regexp _ ->
+        ());
+    let rule = Rule.rule_of_xpattern xlang xpat in
+    let rule = { rule with id = (Constants.rule_id_for_dash_e, fk); fix } in
+    { rules = [ rule ]; errors = []; origin = CLI_argument }
+  in
+  match xlang_opt with
+  | Some xlang ->
+      (* TODO? capture also parse errors here? and transform the pattern
+         * parse error in invalid_rule_error to return in rules_and_origin? *)
+      [ rules_and_origin_for_xlang xlang ]
+  (* osemgrep-only: better: can use -e without -l! we try all languages *)
+  | None ->
+      (* We need uniq_by because Lang.assoc contain multiple times the
+         * same value, for instance we have ("cpp", Cpp); ("c++", Cpp) in
+         * Lang.assoc
+         * TODO? use Xlang.assoc instead?
+      *)
+      let all_langs =
+        Lang.assoc
+        |> Common.map (fun (_k, l) -> l)
+        |> Common.uniq_by ( =*= )
+        (* TODO: we currently get a segfault with the Dart parser
+           * (for example on a pattern like ': string (* filename *)'), so we
+           * skip Dart for now (which anyway is not really supported).
+        *)
+        |> Common.exclude (fun x -> x =*= Lang.Dart)
+      in
+      all_langs
+      |> Common.map_filter (fun l ->
+             try
+               let xlang = Xlang.of_lang l in
+               let r = rules_and_origin_for_xlang xlang in
+               Logs.debug (fun m ->
+                   m "language %s valid for the pattern" (Lang.show l));
+               Some r
+             with
+             | R.Error _
+             | Failure _ ->
+                 None)
+
 let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~registry_caching
     (src : Rules_source.t) : rules_and_origin list Lwt.t =
   match src with
@@ -488,58 +539,8 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~registry_caching
    *  (got a weird 'invalid pattern clause' error)
    * better: '-e foo -l generic' was not handled in semgrep-core
    *)
-  | Pattern (pat, xlang_opt, fix) -> (
-      let fk = Tok.unsafe_fake_tok "" in
-      let rules_and_origin_for_xlang xlang =
-        let xpat = Parse_rule.parse_xpattern xlang (pat, fk) in
-        (* force the parsing of the pattern to get the parse error if any *)
-        (match xpat.XP.pat with
-        | XP.Sem (lpat, _) -> Lazy.force lpat |> ignore
-        | XP.Spacegrep _
-        | XP.Aliengrep _
-        | XP.Regexp _ ->
-            ());
-        let rule = Rule.rule_of_xpattern xlang xpat in
-        let rule = { rule with id = (Constants.rule_id_for_dash_e, fk); fix } in
-        { rules = [ rule ]; errors = []; origin = CLI_argument }
-      in
-
-      match xlang_opt with
-      | Some xlang ->
-          (* TODO? capture also parse errors here? and transform the pattern
-           * parse error in invalid_rule_error to return in rules_and_origin? *)
-          Lwt.return [ rules_and_origin_for_xlang xlang ]
-      (* osemgrep-only: better: can use -e without -l! we try all languages *)
-      | None ->
-          (* We need uniq_by because Lang.assoc contain multiple times the
-           * same value, for instance we have ("cpp", Cpp); ("c++", Cpp) in
-           * Lang.assoc
-           * TODO? use Xlang.assoc instead?
-           *)
-          let all_langs =
-            Lang.assoc
-            |> Common.map (fun (_k, l) -> l)
-            |> Common.uniq_by ( =*= )
-            (* TODO: we currently get a segfault with the Dart parser
-             * (for example on a pattern like ': string (* filename *)'), so we
-             * skip Dart for now (which anyway is not really supported).
-             *)
-            |> Common.exclude (fun x -> x =*= Lang.Dart)
-          in
-
-          all_langs
-          |> Common.map_filter (fun l ->
-                 try
-                   let xlang = Xlang.of_lang l in
-                   let r = rules_and_origin_for_xlang xlang in
-                   Logs.debug (fun m ->
-                       m "language %s valid for the pattern" (Lang.show l));
-                   Some r
-                 with
-                 | R.Error _
-                 | Failure _ ->
-                     None)
-          |> Lwt.return)
+  | Pattern (pat, xlang_opt, fix) ->
+      Lwt.return (rules_from_pattern (pat, xlang_opt, fix))
 [@@profiling]
 
 (* TODO We can probably delete this. *)
