@@ -67,24 +67,28 @@ let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
           "<multilang>"
       | Xlang.L (l, _) -> Lang.to_lowercase_alnum l
     in
-    (* TODO: Improve Performance *)
-    (* Unpack each job and transform lang to xlang *)
+    (* TODO: Improve Performance? *)
     let lang_jobs =
       lang_jobs
+      (* Unpack each job and transform lang to xlang *)
       |> Common.map (fun Lang_job.{ xlang; targets; rules } ->
              (xlang_label xlang, rules, targets))
-         (* Account for duplicate targets for multilang rules *)
+      (* Account for duplicate targets for multilang rules *)
       |> Common.group_by (fun (xlang, _, _) -> xlang)
       |> Common.map (fun (xlang, xs) ->
              let targets =
                xs
                |> List.concat_map (fun (_, _, targets) -> targets)
                |> Common.group_by Fun.id
-               |> Common.map (fun (target, xs) -> (target, List.length xs))
+               |> Common.map (fun (target, _) -> target)
                |> List.length
              in
              let rules =
-               xs |> List.concat_map (fun (_, rules, _) -> rules) |> List.length
+               xs
+               |> List.concat_map (fun (_, rules, _) -> rules)
+               |> Common.group_by Fun.id
+               |> Common.map (fun (rules, _) -> rules)
+               |> List.length
              in
              (xlang, rules, targets))
     in
