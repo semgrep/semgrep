@@ -36,6 +36,11 @@ let debugger = ref false
  *)
 let jsoo = ref false
 
+(* Increasing our ref count makes our team sad and is generally frowned upon.
+ * This is a temporary measure to help us prototype a new feature.
+ *)
+let missed_count = ref 0
+
 (*****************************************************************************)
 (* Circular dependencies *)
 (*****************************************************************************)
