@@ -33,6 +33,7 @@ let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
   Fmt_helpers.pp_heading ppf "Scan Status";
   Fmt.pf ppf "  Scanning %s%s with %s"
     (String_utils.unit_str num_targets "file")
+    (* TODO: validate if target is actually within a git repo *)
     (if respect_git_ignore then " tracked by git" else "")
     (String_utils.unit_str num_rules "Code rule");
 

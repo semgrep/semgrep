@@ -611,6 +611,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
           ( conf.targeting_conf.respect_git_ignore,
             conf.common.maturity,
             conf.targeting_conf.max_target_bytes,
+            conf.target_roots,
             skipped_groups ));
     Logs.app (fun m ->
         m "Ran %s on %s: %s."
