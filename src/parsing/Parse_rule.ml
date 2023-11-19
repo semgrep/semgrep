@@ -929,8 +929,8 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) : Rule.t =
 
 let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
     (file : Fpath.t) (ast : AST_generic.program) :
-    Rule.rules * Rule.invalid_rule_error list * int =
-  let rules, missed =
+    Rule.rules * Rule.invalid_rule_error list =
+  let rules =
     match ast with
     | [ { G.s = G.ExprStmt (e, _); _ } ] -> (
         let missing_rules_field () =
@@ -941,16 +941,15 @@ let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
         | Container (Dict, _) ->
             let root_dict = yaml_to_dict_no_env "rule file" e in
             let missed = dict_take_opt root_dict "missed" in
-            let missed =
+            let () =
               match missed with
               | Some (_key, v) ->
                   let jv =
                     generic_to_json (Rule_ID.of_string "dummy") _key v
                     |> J.string_of_json |> int_of_string
                   in
-                  Logs.app (fun m -> m "missed: %d" jv);
-                  jv
-              | None -> 0
+                  Logs.app (fun m -> m "missed: %d" jv)
+              | None -> ()
             in
             let rules =
               match dict_take_opt root_dict "rules" with
@@ -963,15 +962,15 @@ let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
                         "expected a list of rules following `rules:`")
             in
             check_that_dict_is_empty root_dict;
-            (rules, missed)
+            rules
         (* it's also ok to not have the toplevel rules:, anyway we never
          * used another toplevel key
          *)
-        | G.Container (G.Array, (_tok, rules, _r)) -> (rules, 0)
+        | G.Container (G.Array, (_tok, rules, _r)) -> rules
         | _ -> missing_rules_field ())
     | [] ->
         (* an empty rules file returns an empty list of rules *)
-        ([], 0)
+        []
     | _ -> assert false
     (* yaml_to_generic should always return a ExprStmt *)
   in
@@ -986,8 +985,7 @@ let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
                  (Rule_ID.to_string ruleid) s;
                Right err)
   in
-  let result = Common.partition_either (fun x -> x) xs in
-  (fst result, snd result, missed)
+  Common.partition_either (fun x -> x) xs
 
 (* We can't call just Yaml_to_generic.program below because when we parse
  * YAML Semgrep rules, we preprocess unicode characters differently.
@@ -1056,8 +1054,7 @@ let parse_file ?error_recovery ?(rewrite_rule_ids = None) file =
         logger#info "trying to parse %s as YAML" !!file;
         parse_yaml_rule_file ~is_target:true !!file
   in
-  let r, e, _v = parse_generic_ast ?error_recovery ~rewrite_rule_ids file ast in
-  (r, e)
+  parse_generic_ast ?error_recovery ~rewrite_rule_ids file ast
 
 (*****************************************************************************)
 (* Main Entry point *)

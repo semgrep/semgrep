@@ -332,11 +332,8 @@ let parse_rule ~rewrite_rule_ids ~origin ~registry_caching (file : Fpath.t) :
         let value_ = Eval_jsonnet.eval_program core in
         let gen = Manifest_jsonnet_to_AST_generic.manifest_value value_ in
         (* TODO: put to true at some point *)
-        let r, e, _m =
-          Parse_rule.parse_generic_ast ~rewrite_rule_ids:rule_id_rewriter
-            ~error_recovery:false file gen
-        in
-        (r, e)
+        Parse_rule.parse_generic_ast ~rewrite_rule_ids:rule_id_rewriter
+          ~error_recovery:false file gen
     | _ ->
         Parse_rule.parse_and_filter_invalid_rules
           ~rewrite_rule_ids:rule_id_rewriter file

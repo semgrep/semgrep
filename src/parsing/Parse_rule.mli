@@ -59,4 +59,4 @@ val parse_generic_ast :
   ?rewrite_rule_ids:(Rule_ID.t -> Rule_ID.t) option ->
   Fpath.t ->
   AST_generic.program ->
-  Rule.rules * Rule.invalid_rule_error list * int
+  Rule.rules * Rule.invalid_rule_error list
