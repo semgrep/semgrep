@@ -52,6 +52,7 @@ val rules_from_rules_source :
   token_opt:Auth.token option ->
   rewrite_rule_ids:bool ->
   registry_caching:bool ->
+  ?ext:string ->
   Rules_source.t ->
   rules_and_origin list
 
@@ -61,6 +62,7 @@ val rules_from_dashdash_config_async :
   rewrite_rule_ids:bool ->
   token_opt:Auth.token option ->
   registry_caching:bool ->
+  ?ext:string ->
   Rules_config.t ->
   rules_and_origin list Lwt.t
 
@@ -72,6 +74,7 @@ val rules_from_dashdash_config :
   rewrite_rule_ids:bool ->
   token_opt:Auth.token option ->
   registry_caching:bool ->
+  ?ext:string ->
   Rules_config.t ->
   rules_and_origin list
 

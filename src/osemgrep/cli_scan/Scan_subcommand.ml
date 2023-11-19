@@ -706,7 +706,7 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
   let rules_and_origins =
     Rule_fetching.rules_from_rules_source ~token_opt:settings.api_token
       ~rewrite_rule_ids:conf.rewrite_rule_ids
-      ~registry_caching:conf.registry_caching conf.rules_source
+      ~registry_caching:conf.registry_caching ~ext:"json" conf.rules_source
   in
   (* step2: getting the targets *)
   let targets_and_skipped =
