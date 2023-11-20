@@ -97,7 +97,8 @@ dist/semgrep-parser.o: $(TREE_SITTER_SOURCES) $(EXTRA_TREE_SITTER_SOURCES)
 		-shared \
 		-o $@
 
-dist/semgrep-parser.js dist/semgrep-parser.wasm: $(TREESITTER_SRCDIR)/lib.c dist/semgrep-parser.o $(EXTRA_PARSER_DEPS)	mkdir -p dist
+dist/semgrep-parser.js dist/semgrep-parser.wasm: $(TREESITTER_SRCDIR)/lib.c dist/semgrep-parser.o $(EXTRA_PARSER_DEPS)
+	mkdir -p dist
 	emcc \
         $(EMCC_OPTIMIZATION) \
 		-I$(TREESITTER_SRCDIR) \
