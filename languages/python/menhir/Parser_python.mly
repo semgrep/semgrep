@@ -109,7 +109,7 @@ let mk_str ii =
 
 (* tokens with "values" *)
 %token <string * AST_python.tok> NAME
-%token <int option    * AST_python.tok> INT LONGINT
+%token <Parsed_int.t> INT LONGINT
 %token <float option  * AST_python.tok> FLOAT
 %token <string * AST_python.tok> IMAG
 %token <string * string * AST_python.tok> STR
@@ -769,7 +769,7 @@ type_for_lsif:
 atom:
   | NAME        { Name ($1, Load) }
 
-  | INT         { Num (Int ($1)) }
+  | INT         { Num (Int $1) }
   | LONGINT     { Num (LongInt ($1)) }
   | FLOAT       { Num (Float ($1)) }
   | IMAG        { Num (Imag ($1)) }

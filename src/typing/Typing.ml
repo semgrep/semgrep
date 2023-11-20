@@ -217,7 +217,7 @@ and type_of_ast_generic_type lang t : G.name Type.t =
   | G.TyArray ((_l, size_expr, _r), elem_type) ->
       let size =
         match size_expr with
-        | Some { G.e = G.L (G.Int (Some n, _)); _ } -> Some n
+        | Some { G.e = G.L (G.Int pi); _ } -> Some pi
         | _else_ -> None
       in
       let elem_type = type_of_ast_generic_type lang elem_type in

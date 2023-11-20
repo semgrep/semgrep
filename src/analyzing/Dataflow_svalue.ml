@@ -193,14 +193,12 @@ let literal_of_bool b =
   let tok = Tok.unsafe_fake_tok b_str in
   G.Bool (b, tok)
 
-let literal_of_int i =
-  let i_str = string_of_int i in
+let literal_of_int i64 =
   (* TODO: use proper token when possible? *)
-  let tok = Tok.unsafe_fake_tok i_str in
-  G.Int (Some i, tok)
+  G.Int (Parsed_int.of_int64 i64)
 
 let int_of_literal = function
-  | G.Int (x, _) -> x
+  | G.Int (opt, _) -> opt
   | ___else___ -> None
 
 let literal_of_string ?tok s : G.literal =
@@ -232,7 +230,7 @@ let eval_binop_bool op b1 b2 =
 let eval_unop_int op opt_i =
   match (op, opt_i) with
   | G.Plus, Some i -> G.Lit (literal_of_int i)
-  | G.Minus, Some i -> G.Lit (literal_of_int (-i))
+  | G.Minus, Some i -> G.Lit (literal_of_int (Int64.neg i))
   | ___else____ -> G.Cst G.Cint
 
 (* This reduces arithmetic "exceptions" to `G.Cst G.Cint`, it does NOT
@@ -240,7 +238,8 @@ let eval_unop_int op opt_i =
  * integers have just 63-bits in 64-bit architectures!
  *)
 let eval_binop_int tok op opt_i1 opt_i2 =
-  let sign_bit i = i asr (Sys.int_size - 1) =|= 1 in
+  let open Int64_ in
+  let sign_bit i = i asr Int.sub Sys.int_size 1 =|= 1L in
   match (op, opt_i1, opt_i2) with
   | G.Plus, Some i1, Some i2 ->
       let r = i1 + i2 in
@@ -254,9 +253,9 @@ let eval_binop_int tok op opt_i1 opt_i2 =
       else G.Lit (literal_of_int (i1 - i2))
   | G.Mult, Some i1, Some i2 ->
       let overflow =
-        i1 <> 0 && i2 <> 0
-        && ((i1 < 0 && i2 =|= min_int) (* >max_int *)
-           || (i1 =|= min_int && i2 < 0) (* >max_int *)
+        i1 <> 0L && i2 <> 0L
+        && ((i1 < 0L && i2 =|= min_int) (* >max_int *)
+           || (i1 =|= min_int && i2 < 0L) (* >max_int *)
            ||
            if sign_bit i1 =:= sign_bit i2 then abs i1 > abs (max_int / i2)
              (* >max_int *)
@@ -264,7 +263,7 @@ let eval_binop_int tok op opt_i1 opt_i2 =
       in
       if overflow then G.Cst G.Cint else G.Lit (literal_of_int (i1 * i2))
   | G.Div, Some i1, Some i2 -> (
-      if i1 =|= min_int && i2 =|= -1 then
+      if i1 =|= min_int && i2 =|= -1L then
         G.Cst G.Cint (* = max_int+1, overflow *)
       else
         try G.Lit (literal_of_int (i1 / i2)) with

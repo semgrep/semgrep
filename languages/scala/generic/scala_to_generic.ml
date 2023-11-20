@@ -38,7 +38,6 @@ let fake = G.fake
 let fb = Tok.unsafe_fake_bracket
 let id x = x
 let v_string = id
-let v_int = id
 let v_float = id
 let v_bool = id
 let v_list = Common.map
@@ -178,9 +177,7 @@ and v_package (v1, v2) =
 
 and v_literal = function
   | Symbol (tquote, id) -> Left (G.Atom (tquote, id))
-  | Int v1 ->
-      let v1 = v_wrap (v_option v_int) v1 in
-      Left (G.Int v1)
+  | Int v1 -> Left (G.Int (Parsed_int.visit ~v_tok v1))
   | Float v1 ->
       let v1 = v_wrap (v_option v_float) v1 in
       Left (G.Float v1)

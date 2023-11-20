@@ -60,6 +60,17 @@ let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
              (String.capitalize_ascii src, [ List.length xs ]))
     in
     Fmt.pf ppf "@.";
+    let compare (lang, rules_targets) (lang', rules_targets') =
+      match (rules_targets, rules_targets') with
+      | [ rules; targets ], [ rules'; targets' ] -> (
+          match -compare targets targets' with
+          | 0 -> (
+              match -compare rules rules' with
+              | 0 -> compare lang lang'
+              | cmp -> cmp)
+          | cmp -> cmp)
+      | _ -> failwith "Unexpected pattern"
+    in
     let xlang_label = function
       | Xlang.LSpacegrep
       | Xlang.LAliengrep
@@ -103,5 +114,7 @@ let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
                | [ (_, [ r1; t1 ]) ], others ->
                    (lang, [ rules + r1; targets + t1 ]) :: others
                | _ -> assert false)
-             [] )
+             []
+        (* Sort by files desc, rules desc, lang asc *)
+        |> List.sort compare )
       ("Origin", [ "Rules" ], rule_origins)
