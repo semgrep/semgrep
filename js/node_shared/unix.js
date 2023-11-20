@@ -265,12 +265,6 @@ function unix_fork(vunit) {
   return;
 }
 
-//Provides: unix_putenv
-function unix_putenv(key, val) {
-  process.env[key] = value;
-  return;
-}
-
 //Provides: unix_setitimer
 function unix_setitimer(it, its) {
   // In our code, the result value is just ignored, so we can return the same one.

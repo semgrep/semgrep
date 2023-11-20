@@ -118,7 +118,16 @@ let add_file ?(git = false) ?(dirty = false)
   file
 
 let with_mock_envvars f () =
-  Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" "123456789" f
+  (* TODO: we should simply do:
+   *    Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" "123456789" f
+   * but we then get CI failures on build-js-tests
+   * see https://github.com/semgrep/semgrep/pull/9285
+   * because of the use of putenv in Semgrep_envvars.with_envvar,
+   * even after adding a fake on in js/node_shared/unix.js
+   *)
+  let old_settings = !Semgrep_envvars.v in
+  let new_settings = { old_settings with app_token = Some "123456789" } in
+  Common.save_excursion Semgrep_envvars.v new_settings f
 
 (*****************************************************************************)
 (* Tests *)
