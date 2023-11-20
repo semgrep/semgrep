@@ -223,9 +223,7 @@ and name v =
   )
 *)
 and literal = function
-  | Int v1 ->
-      let v1 = wrap id v1 in
-      G.Int v1
+  | Int v1 -> G.Int v1
   | Float v1 ->
       let v1 = wrap id v1 in
       G.Float v1

@@ -132,7 +132,7 @@ let str_of_info x = Tok.content_of_tok x
 (* The normal tokens *)
 (*-----------------------------------------*)
 %token <bool * Tok.t> T_BOOL
-%token <int option * Tok.t> T_LNUMBER
+%token <Parsed_int.t> T_LNUMBER
 %token <float option * Tok.t> T_DNUMBER
 %token <string * Tok.t>
  (* T_IDENT is for a regular ident and  T_VARIABLE is for a dollar ident. *)

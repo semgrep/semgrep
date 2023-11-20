@@ -160,9 +160,7 @@ and struct_kind = function
 
 and expr e =
   match e with
-  | Int v1 ->
-      let v1 = wrap id v1 in
-      G.L (G.Int v1) |> G.e
+  | Int pi -> G.L (G.Int pi) |> G.e
   | Float v1 ->
       let v1 = wrap id v1 in
       G.L (G.Float v1) |> G.e
