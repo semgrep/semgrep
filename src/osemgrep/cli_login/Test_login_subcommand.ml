@@ -19,7 +19,7 @@ open Testutil
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Port of test_login.py to OCaml.
+(* Partial port of test_login.py to OCaml (some is in Test_osemgrep.ml)
  *
  * Note that unlike most cli/tests/e2e/test_xxx.py tests, we can't reuse
  * test_login.py to test osemgrep because of the use of mocking

@@ -34,7 +34,7 @@ let default_skip_libs =
   ]
 
 (* used for testing *)
-let disable_set_reporter = ref false
+let in_mock_context = ref false
 
 (*****************************************************************************)
 (* Helpers *)
@@ -102,8 +102,7 @@ let setup_logging ?(skip_libs = default_skip_libs) ~force_color ~level () =
   Logs.set_level ~all:true level;
   let with_timestamp = level =*= Some Logs.Debug in
   time_program_start := now ();
-  if not !disable_set_reporter then
-    Logs.set_reporter (reporter ~with_timestamp ());
+  if not !in_mock_context then Logs.set_reporter (reporter ~with_timestamp ());
   (* from https://github.com/mirage/ocaml-cohttp#debugging *)
   (* Disable all third-party libs logs *)
   Logs.Src.list ()
