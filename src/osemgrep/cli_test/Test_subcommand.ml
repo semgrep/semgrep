@@ -55,7 +55,7 @@ let is_config_test_suffix path =
     let snd = Fpath.(get_ext (rem_ext path)) in
     snd ^ fst
   in
-  List.mem ext (List.map (fun e -> ".test" ^ e) yml_extensions)
+  List.mem ext (Common.map (fun e -> ".test" ^ e) yml_extensions)
   && not (is_config_fixtest_suffix path)
 
 let is_config_suffix path =
@@ -66,7 +66,7 @@ let get_all_files path =
   let str = Fpath.to_string path in
   Sys.readdir str |> Array.to_list
   |> List.filter (fun f -> Sys.file_exists f && not (Sys.is_directory f))
-  |> List.map (Fpath.add_seg path)
+  |> Common.map (Fpath.add_seg path)
 
 (* from test.py *)
 let comment_syntaxes =
@@ -96,16 +96,15 @@ let normalize_rule_ids line =
       in
       String.split_on_char ',' (String.trim rule_text)
       (* remove comment ends for non-newline comment syntaxes *)
-      |> List.map remove_ending_comments
-      |> List.map String.trim |> Common2.StringSet.of_list
+      |> Common.map remove_ending_comments
+      |> Common.map String.trim |> Common2.StringSet.of_list
   | _ -> Common2.StringSet.empty
 
 let annotations annotation =
   (* returns something like: {"#ruleid:", "# ruleid:", "//ruleid:", ...} *)
-  List.flatten
-    (List.map
-       (fun (fst, _) -> [ fst ^ annotation; fst ^ " " ^ annotation ])
-       comment_syntaxes)
+  List.concat_map
+    (fun (fst, _) -> [ fst ^ annotation; fst ^ " " ^ annotation ])
+    comment_syntaxes
 
 let line_has_todo_rule line =
   annotations "todoruleid"
@@ -364,7 +363,7 @@ let generate_check_output_line check_id matches soft_errors =
       (* Display partial parsing errors and such. These are tolerated
          when running a semgrep scan but fatal in test mode. *)
       [ JSON.string_of_json (JSON.Object [ ("errors", JSON.Array []) ]) ]
-      (* TODO: print errors (List.map (fun e -> ... *)
+      (* TODO: print errors (Common.map (fun e -> ... *)
     else []
   in
 
@@ -373,8 +372,8 @@ let generate_check_output_line check_id matches soft_errors =
     let missed = IS.diff exp_set rep_set
     and incorrect = IS.diff rep_set exp_set in
     Printf.sprintf "missed lines: %s, incorrect lines: %s"
-      (String.concat ", " (List.map string_of_int (IS.elements missed)))
-      (String.concat ", " (List.map string_of_int (IS.elements incorrect)))
+      (String.concat ", " (Common.map string_of_int (IS.elements missed)))
+      (String.concat ", " (Common.map string_of_int (IS.elements incorrect)))
   in
   let missed_vs_incorrect_lines =
     Map_.fold
@@ -507,7 +506,7 @@ let run_conf (conf : conf) : Exit_code.t =
       results
   in
   let config_with_errors_output =
-    List.map
+    Common.map
       (fun (filename, (exn, _error_opt)) ->
         ( filename,
           Printexc.to_string (Exception.get_exn exn),
@@ -516,7 +515,7 @@ let run_conf (conf : conf) : Exit_code.t =
   in
 
   let tested =
-    List.map
+    Common.map
       (fun (filename, result) ->
         ( filename,
           get_expected_and_reported_lines result
@@ -526,7 +525,7 @@ let run_conf (conf : conf) : Exit_code.t =
   in
 
   let results_output =
-    List.map
+    Common.map
       (fun (filename, matches, errors) ->
         ( filename,
           Map_.fold
@@ -627,14 +626,14 @@ let run_conf (conf : conf) : Exit_code.t =
       [
         ( "config_missing_tests",
           JSON.Array
-            (List.map
+            (Common.map
                (fun f -> JSON.String (Fpath.to_string f))
                config_missing_tests_output) );
         ("config_missing_fixtests", JSON.Array []);
         (* configs_missing_fixtests ; *)
         ( "config_with_errors",
           JSON.Array
-            (List.map
+            (Common.map
                (fun (file, exn_print, exn) ->
                  JSON.Object
                    [
@@ -645,7 +644,7 @@ let run_conf (conf : conf) : Exit_code.t =
                config_with_errors_output) );
         ( "results",
           JSON.Object
-            (List.map
+            (Common.map
                (fun (filename, matches_and_errors) ->
                  let obj =
                    (* TODO output:
