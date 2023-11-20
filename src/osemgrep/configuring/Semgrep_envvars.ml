@@ -138,3 +138,7 @@ let v : t ref = ref (of_current_sys_env ())
 (*****************************************************************************)
 
 let with_envvars newv f = Common.save_excursion v newv f
+
+let with_envvar envvar str f =
+  Testutil_mock.with_setenv envvar str (fun () ->
+      with_envvars (of_current_sys_env ()) f)
