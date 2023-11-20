@@ -574,7 +574,8 @@ let iter_targets_and_get_matches_and_exn_to_errors config
                (* FIXME:
                   Actually, I managed to get this assert to trigger by running
                   semgrep -c p/default-v2 on elasticsearch with -timeout 0.01 ! *)
-               | Time_limit.Timeout _ -> failwith "Time limit exceeded"
+               | Time_limit.Timeout _ ->
+                   failwith "Time limit exceeded (this shouldn't happen, FIXME)"
                (* It would be nice to detect 'R.Err (R.InvalidRule _)' here
                 * for errors while parsing patterns. This exn used to be raised earlier
                 * in sanity_check_rules_and_invalid_rules(), but after
@@ -628,7 +629,8 @@ let xtarget_of_file ~parsing_cache_dir (xlang : Xlang.t) (file : Fpath.t) :
          | L (lang, []) -> lang
          | L (_lang, _ :: _) ->
              failwith
-               "xlang from the language field in -target should be unique"
+               "xlang from the language field in -target should be unique \
+                (this shouldn't happen FIXME)"
          | _ ->
              (* alt: could return an empty program, but better to be defensive*)
              failwith

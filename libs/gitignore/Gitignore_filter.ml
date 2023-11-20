@@ -106,8 +106,13 @@ let select_path opt_gitignore_file_cache sel_events levels relative_segments =
 let select t sel_events (full_git_path : Ppath.t) =
   let rel_segments =
     match Ppath.segments full_git_path with
+    (* Remove empty line segment *)
     | "" :: xs -> xs
-    | __else__ -> assert false
+    | "/" :: _ ->
+        failwith
+          (Printf.sprintf "Gitignore: full_git_path %s not relative"
+             Ppath.(to_string full_git_path))
+    | xs -> xs
   in
   (* higher levels (command-line)
      and middle levels (gitignore files discovered along the way) *)

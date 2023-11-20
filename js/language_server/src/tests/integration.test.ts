@@ -4,6 +4,7 @@ import * as lsclient from "vscode-languageclient/node";
 import * as path from "path";
 import * as vscode from "vscode";
 
+// See [here](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#capabilities)
 const EXPECTED_CAPABILITIES = {
   capabilities: {
     codeActionProvider: true,

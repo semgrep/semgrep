@@ -217,6 +217,8 @@ let exn_to_error rule_id file (e : Exception.t) : t =
       | exn ->
           let trace = Exception.to_string e in
           let loc =
+            (* TODO: we shouldn't build Tok.t w/out a filename, but
+               lets do it here so we don't crash until we do *)
             if not String.(equal file "") then Tok.first_loc_of_file file
             else Tok.fake_location
           in
