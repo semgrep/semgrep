@@ -96,6 +96,8 @@ let run (conf : Show_CLI.conf) : Exit_code.t =
   | SupportedLanguages ->
       Common.pr (spf "supported languages are: %s" Xlang.supported_xlangs);
       Exit_code.ok
+  | Identity -> Whoami.invoke Identity
+  | Deployment -> Whoami.invoke Deployment
 
 (*****************************************************************************)
 (* Entry point *)

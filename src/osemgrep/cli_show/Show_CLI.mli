@@ -21,6 +21,8 @@ and target_kind =
   | EnginePath of bool (* pro = true *)
   | CommandForCore
   | SupportedLanguages
+  | Identity
+  | Deployment
 [@@deriving show]
 
 (*

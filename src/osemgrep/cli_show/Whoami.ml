@@ -3,16 +3,22 @@
 (*****************************************************************************)
 module Http_helpers = Http_helpers.Make (Lwt_platform)
 
-let get_identity_async ~token =
+type identity = Identity | Deployment
+
+let caller_to_endpoint ~caller : string =
+  match caller with
+  | Identity -> "api/agent/identity"
+  | Deployment -> "api/agent/deployments/current"
+
+let get_identity_async ~token ~caller =
   let headers =
     [
       ("Authorization", Fmt.str "Bearer %s" token);
       ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
     ]
   in
-  let url =
-    Uri.(with_path !Semgrep_envvars.v.semgrep_url "api/agent/identity")
-  in
+  let endpoint = caller_to_endpoint ~caller in
+  let url = Uri.(with_path !Semgrep_envvars.v.semgrep_url endpoint) in
   let%lwt res = Http_helpers.get_async ~headers url in
   match res with
   | Ok body -> Lwt.return body
@@ -21,9 +27,10 @@ let get_identity_async ~token =
           m "Failed to download config from %s: %s" (Uri.to_string url) msg);
       Lwt.return ""
 
-let get_identity ~token = Lwt_platform.run (get_identity_async ~token)
+let get_identity ~token ~caller =
+  Lwt_platform.run (get_identity_async ~token ~caller)
 
-let run (_conf : Whoami_CLI.conf) : Exit_code.t =
+let invoke (caller : identity) : Exit_code.t =
   let settings = Semgrep_settings.load () in
   let api_token = settings.Semgrep_settings.api_token in
   match api_token with
@@ -35,14 +42,7 @@ let run (_conf : Whoami_CLI.conf) : Exit_code.t =
             (Logs_helpers.warn_tag ()));
       Exit_code.fatal
   | Some token ->
-      let identity = get_identity ~token in
+      let identity = get_identity ~token ~caller in
       Logs.app (fun m ->
           m "%s You are logged in as %s" (Logs_helpers.success_tag ()) identity);
       Exit_code.ok
-
-(*****************************************************************************)
-(* Entry point *)
-(*****************************************************************************)
-let main (argv : string array) : Exit_code.t =
-  let conf = Whoami_CLI.parse_argv argv in
-  run conf

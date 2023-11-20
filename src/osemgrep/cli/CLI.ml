@@ -125,7 +125,6 @@ let known_subcommands =
     "install-ci";
     "interactive";
     "show";
-    "whoami";
   ]
 
 (* Exit with a code that a proper semgrep implementation would never return.
@@ -200,7 +199,6 @@ let dispatch_subcommand argv =
         | "install-ci" -> Install_subcommand.main subcmd_argv
         | "interactive" -> Interactive_subcommand.main subcmd_argv
         | "show" -> Show_subcommand.main subcmd_argv
-        | "whoami" -> Whoami_subcommand.main subcmd_argv
         (* LATER: "test" *)
         | _else_ ->
             if experimental then

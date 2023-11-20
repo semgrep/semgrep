@@ -1,7 +1,8 @@
 (*
    Show the current identity of the user running the command.
 *)
-val main : string array -> Exit_code.t
+
+type identity = Identity | Deployment
 
 (* internal *)
-val run : Whoami_CLI.conf -> Exit_code.t
+val invoke : identity -> Exit_code.t
