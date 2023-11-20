@@ -267,7 +267,7 @@ function unix_fork(vunit) {
 
 //Provides: unix_putenv
 function unix_putenv(key, val) {
-  process.env[key] = value
+  process.env[key] = value;
   return;
 }
 
