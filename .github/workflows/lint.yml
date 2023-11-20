@@ -14,6 +14,8 @@ jobs:
       run: git config --global --add safe.directory $(pwd)
     - name: Fetch semgrep-cli submodules
       run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
+    - name: Fix-ups for setup-python
+      run: apt-get install -y lsb-release
     - uses: actions/setup-python@v4
       with:
         python-version: "3.11"
@@ -21,7 +23,7 @@ jobs:
         cache-dependency-path: .github/workflows/lint.yml
     - uses: pre-commit/action@v3.0.0
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine-2023-11-07
+    container: returntocorp/ocaml:ubuntu-2023-11-07
     env:
       HOME: /root
   pre-commit-manual:

@@ -82,6 +82,13 @@ local github_bot = {
     },
   },
 
+
+  // ocaml-layer builds an image based on Alpine and another one based on
+  // Ubuntu.
+  // Alpine is necessary in practice for static linking (especially for C++
+  // libraries). Ubuntu is an alternative Linux distribution people may be
+  // more familiar with. It's been cheap to maintain both so far but we could
+  // decide to keep just one if it makes things simpler.
   ocaml_ubuntu_container: {
     'runs-on': 'ubuntu-latest',
     container: 'returntocorp/ocaml:ubuntu-2023-11-07',

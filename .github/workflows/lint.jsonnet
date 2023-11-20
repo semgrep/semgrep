@@ -26,6 +26,11 @@ local pre_commit_job =
         name: 'Fetch semgrep-cli submodules',
         run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces',
       },
+      // TODO: bake this into the base image once it works
+      {
+        name: 'Fix-ups for setup-python',
+        run: 'apt-get install -y lsb-release',
+      },
       // pre-commit is a Python script, this speedup things from Xmin to Ymin?
       {
         uses: 'actions/setup-python@v4',
