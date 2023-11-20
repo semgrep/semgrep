@@ -117,6 +117,7 @@ let tests =
             ("/b/d", true);
             ("/b/b/c", true);
           ] );
+      (* unanchored patterns should not match if the parent dir hasn't been matched, and the path is excluded *)
       ( "excluded patterns",
         test_filter
           [
