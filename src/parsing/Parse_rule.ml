@@ -210,7 +210,7 @@ let parse_options rule_id (key : key) value =
 
 let parse_by_side_effect env (key : key) x =
   match x.G.e with
-  | G.L (String (_, ("true", _), _)) -> R.Yes
+  | G.L (String (_, ("true", _), _)) -> R.Only
   | G.L (String (_, ("false", _), _)) -> R.No
   | G.L (String (_, ("only", _), _)) -> R.Only
   | G.L (Bool (b, _)) -> if b then R.Yes else R.No
