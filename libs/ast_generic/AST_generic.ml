@@ -197,6 +197,10 @@ let version = "1.35.0"
  *    in Match_tainting_mode.Formula_tbl
  * - 'deriving visitors' to generator visitor and mapper boilerplate code
  *    automatically
+ * - 'deriving sexp' because the Type.t type uses `alternate_name`, and itself
+ *    derives sexp because it is used by semgrep-pro's SIG.type_.
+ *    Since Type.t only uses `alternate_name`, we only need to derive sexp for
+ *    that and related types, and not others like expr, stmt
  *)
 
 (* Provide hash_* for the core ocaml types *)
@@ -450,6 +454,14 @@ class virtual ['self] iter_parent =
     method visit_id_info_id_t _env _ = ()
     method visit_resolved_name _env _ = ()
     method visit_tok _env _ = ()
+
+    method visit_parsed_int env pi =
+      Parsed_int.visit
+        (fun tok ->
+          self#visit_tok env tok;
+          tok)
+        pi
+      |> ignore
   end
 
 (* Basically a copy paste of iter_parent above, but with different return types
@@ -515,6 +527,7 @@ class virtual ['self] map_parent =
     method visit_id_info_id_t _env x = x
     method visit_resolved_name _env x = x
     method visit_tok _env x = x
+    method visit_parsed_int env pi = Parsed_int.map_tok (self#visit_tok env) pi
   end
 
 (*****************************************************************************)
@@ -803,7 +816,9 @@ and literal =
    * may not be able to represent all numbers. For example, OCaml integers
    * are limited to 63 bits, but C integers can use 64 bits.
    *)
-  | Int of int option wrap
+  (* See explanation for @name where the visitors are generated at the end of
+     * this long recursive type. *)
+  | Int of (Parsed_int.t[@name "parsed_int"])
   | Float of float option wrap
   | Char of string wrap
   (* String literals:

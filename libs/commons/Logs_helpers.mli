@@ -38,13 +38,8 @@ val setup_logging :
   unit ->
   unit
 
-(* [with_mocked_logs ~f ~final] will execute [f] in an environment
- * where [setup_logging()] above is mostly converted in a noop and where
- * logs are stored in a buffer. The content of this buffer is
- * then accessible to the [final] function after [f] has finished
- * and can be inspected to assert certain log events occured.
- *)
-val with_mocked_logs : f:(unit -> 'a) -> final:(string -> 'a -> unit) -> unit
+(* used for testing. See also Testutil_mock.with_mocked_logs() *)
+val disable_set_reporter : bool ref
 
 (* TODO:
    Logs.Error, Logs.Warning, and friends should apply the appropriate color
