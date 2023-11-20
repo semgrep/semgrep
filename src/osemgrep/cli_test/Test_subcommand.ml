@@ -441,7 +441,7 @@ let get_config_test_filenames target configs =
 let checkid_passed matches_for_checkid =
   Map_.fold
     (fun _filename ((_, expected), (_, reported)) acc ->
-       acc && IS.(equal (of_list expected) (of_list reported)))
+      acc && IS.(equal (of_list expected) (of_list reported)))
     matches_for_checkid true
 
 (*****************************************************************************)
