@@ -1,0 +1,2 @@
+Python: `async` statements are now translated into the Dataflow IL so Semgrep
+will be able to report findings e.g. inside `async with ...` statements.

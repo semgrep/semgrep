@@ -173,14 +173,6 @@ let mk_unit tok eorig =
   let unit = G.Unit tok in
   mk_e (Literal unit) eorig
 
-(* Just a fake `__TODO_xyz__ = ()` instruction to record a TODO in the generated IL. *)
-let mk_fake_TODO_instr ~str env tok =
-  let str = Common.spf "__TODO_%s__" str in
-  let unit = mk_unit (G.fake "()") NoOrig in
-  let var = fresh_var ~str env tok in
-  let lval = lval_of_base (Var var) in
-  mk_i (Assign (lval, unit)) NoOrig
-
 let add_instr env instr = Common.push (mk_s (Instr instr)) env.stmts
 
 (* Create an auxiliary variable for an expression---unless the expression
@@ -1545,10 +1537,11 @@ and stmt_aux env st =
       ss @ stmt env stmt1
   (* Rust: unsafe block *)
   | G.OtherStmtWithStmt (G.OSWS_Block ("Unsafe", tok), [], stmt1) ->
-      let todo_stmt =
-        mk_s (Instr (mk_fake_TODO_instr ~str:"unsafe_block" env tok))
-      in
-      todo_stmt :: stmt env stmt1
+      let todo_stmt = fixme_stmt ToDo (G.TodoK ("unsafe_block", tok)) in
+      todo_stmt @ stmt env stmt1
+  | G.OtherStmt (OS_Async, [ G.S stmt1 ]) ->
+      let todo_stmt = fixme_stmt ToDo (G.TodoK ("async", G.fake "async")) in
+      todo_stmt @ stmt env stmt1
   | G.OtherStmt _
   | G.OtherStmtWithStmt _ ->
       todo (G.S st)
