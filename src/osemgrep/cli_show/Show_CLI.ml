@@ -51,6 +51,8 @@ and target_kind =
    * accessible also as `semgrep scan --show-supported-languages
    *)
   | SupportedLanguages
+  | Identity
+  | Deployment
 [@@deriving show]
 
 (*************************************************************************)
@@ -89,6 +91,8 @@ let cmdline_term : conf Term.t =
       match args with
       | [ "dump-config"; config_str ] -> Config config_str
       | [ "supported-languages" ] -> SupportedLanguages
+      | [ "identity" ] -> Identity
+      | [ "deployment" ] -> Deployment
       | _ ->
           Error.abort
             (spf "show command not supported: %s" (String.concat " " args))
@@ -110,6 +114,10 @@ let man : Cmdliner.Manpage.block list =
     `Pre "semgrep show supported-languages";
     (* coupling: Scan_CLI.o_show_supported_languages help *)
     `P "Print a list of languages that are currently supported by Semgrep.";
+    `Pre "semgrep show deployment";
+    `P "Print the current logged-in deployment";
+    `Pre "semgrep show identity";
+    `P "Print the current logged-in token identity";
   ]
   @ CLI_common.help_page_bottom
 
