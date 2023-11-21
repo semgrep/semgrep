@@ -17,7 +17,6 @@
    bos
    re
    pcre
-   parmap
    digestif.ocaml
    sexplib
    ; web stuff

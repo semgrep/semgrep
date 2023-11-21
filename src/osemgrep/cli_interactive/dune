@@ -22,7 +22,7 @@
     notty.unix
 
     lwt_platform.unix
-  )
+   )
  (preprocess
    (pps
      ppx_profiling

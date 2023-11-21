@@ -228,82 +228,81 @@ let language_exceptions =
     (Lang.Ocaml, [ "deep_exprstmt"; "dots_stmts" ]);
     (* Experimental languages *)
     (Lang.R, [ "deep_exprstmt" ]);
-    (Lang.Elixir, [ "dots_nested_stmts" ]);
     (* xxx_stmts is NA *)
     (Lang.Jsonnet, [ "dots_stmts"; "deep_exprstmt"; "dots_nested_stmts" ]);
     (* TODO *)
     (Lang.Clojure, [ "deep_exprstmt"; "dots_nested_stmts" ]);
   ]
 
+(* TODO: infer dir and ext from lang using Lang helper functions *)
+let make_maturity_tests ?(lang_exn = language_exceptions) lang dir ext maturity
+    =
+  pack_tests
+    (spf "Maturity %s for %s" (show_maturity_level maturity) (Lang.show lang))
+    (let dir = tests_path_patterns / dir in
+     let features = assoc_maturity_level |> List.assoc maturity in
+     let exns =
+       try List.assoc lang lang_exn with
+       | Not_found -> []
+     in
+     (* sanity check exns *)
+     exns
+     |> List.iter (fun base ->
+            let path = dir / (base ^ ext) in
+            if Sys.file_exists !!path then
+              failwith
+                (spf "%s actually exist! remove it from exceptions" !!path));
+     let features = Common2.minus_set features exns in
+     features
+     |> Common.map (fun base ->
+            ( base,
+              fun () ->
+                let path = dir / (base ^ ext) in
+                (* if it's a does-not-apply (NA) case, consider adding it
+                 * to language_exceptions above
+                 *)
+                if not (Sys.file_exists !!path) then
+                  failwith
+                    (spf "missing test file %s for maturity %s" !!path
+                       (show_maturity_level maturity)) )))
+
 let maturity_tests () =
-  (* TODO: infer dir and ext from lang using Lang helper functions *)
-  let check_maturity lang dir ext maturity =
-    pack_tests
-      (spf "Maturity %s for %s" (show_maturity_level maturity) (Lang.show lang))
-      (let dir = tests_path_patterns / dir in
-       let features = assoc_maturity_level |> List.assoc maturity in
-       let exns =
-         try List.assoc lang language_exceptions with
-         | Not_found -> []
-       in
-       (* sanity check exns *)
-       exns
-       |> List.iter (fun base ->
-              let path = dir / (base ^ ext) in
-              if Sys.file_exists !!path then
-                failwith
-                  (spf "%s actually exist! remove it from exceptions" !!path));
-       let features = Common2.minus_set features exns in
-       features
-       |> Common.map (fun base ->
-              ( base,
-                fun () ->
-                  let path = dir / (base ^ ext) in
-                  (* if it's a does-not-apply (NA) case, consider adding it
-                   * to language_exceptions above
-                   *)
-                  if not (Sys.file_exists !!path) then
-                    failwith
-                      (spf "missing test file %s for maturity %s" !!path
-                         (show_maturity_level maturity)) )))
-  in
   (* coupling: https://semgrep.dev/docs/language-support/ *)
   pack_suites "Maturity level testing"
     [
       (* GA *)
-      check_maturity Lang.Csharp "csharp" ".cs" GA;
-      check_maturity Lang.Go "go" ".go" GA;
-      check_maturity Lang.Java "java" ".java" GA;
-      check_maturity Lang.Js "js" ".js" GA;
+      make_maturity_tests Lang.Csharp "csharp" ".cs" GA;
+      make_maturity_tests Lang.Go "go" ".go" GA;
+      make_maturity_tests Lang.Java "java" ".java" GA;
+      make_maturity_tests Lang.Js "js" ".js" GA;
       (* JSON has too many NA, not worth it *)
-      check_maturity Lang.Php "php" ".php" GA;
-      check_maturity Lang.Python "python" ".py" GA;
-      check_maturity Lang.Ruby "ruby" ".rb" GA;
-      check_maturity Lang.Ts "ts" ".ts" GA;
-      check_maturity Lang.Scala "scala" ".scala" GA;
+      make_maturity_tests Lang.Php "php" ".php" GA;
+      make_maturity_tests Lang.Python "python" ".py" GA;
+      make_maturity_tests Lang.Ruby "ruby" ".rb" GA;
+      make_maturity_tests Lang.Ts "ts" ".ts" GA;
+      make_maturity_tests Lang.Scala "scala" ".scala" GA;
       (* Beta *)
-      check_maturity Lang.Hack "hack" ".hack" Beta;
-      check_maturity Lang.Kotlin "kotlin" ".kt" Beta;
-      check_maturity Lang.Rust "rust" ".rs" Beta;
+      make_maturity_tests Lang.Hack "hack" ".hack" Beta;
+      make_maturity_tests Lang.Kotlin "kotlin" ".kt" Beta;
+      make_maturity_tests Lang.Rust "rust" ".rs" Beta;
       (* Terraform/HCL has too many NA, not worth it *)
 
       (* Experimental *)
-      check_maturity Lang.Bash "bash" ".bash" Experimental;
-      check_maturity Lang.C "c" ".c" Experimental;
-      check_maturity Lang.Cpp "cpp" ".cpp" Experimental;
+      make_maturity_tests Lang.Bash "bash" ".bash" Experimental;
+      make_maturity_tests Lang.C "c" ".c" Experimental;
+      make_maturity_tests Lang.Cpp "cpp" ".cpp" Experimental;
       (* TODO
-         check_maturity Lang.Dockerfile "dockerfile" ".dockerfile" Experimental;
+         make_maturity_tests Lang.Dockerfile "dockerfile" ".dockerfile" Experimental;
       *)
-      check_maturity Lang.Lua "lua" ".lua" Experimental;
-      check_maturity Lang.Ocaml "ocaml" ".ml" Experimental;
-      check_maturity Lang.R "r" ".r" Experimental;
-      check_maturity Lang.Solidity "solidity" ".sol" Experimental;
-      check_maturity Lang.Elixir "elixir" ".ex" Experimental;
-      check_maturity Lang.Swift "swift" ".swift" Experimental;
-      check_maturity Lang.Julia "julia" ".jl" Experimental;
+      make_maturity_tests Lang.Lua "lua" ".lua" Experimental;
+      make_maturity_tests Lang.Ocaml "ocaml" ".ml" Experimental;
+      make_maturity_tests Lang.R "r" ".r" Experimental;
+      make_maturity_tests Lang.Solidity "solidity" ".sol" Experimental;
+      make_maturity_tests Lang.Swift "swift" ".swift" Experimental;
+      make_maturity_tests Lang.Julia "julia" ".jl" Experimental;
       (* YAML has too many NA, not worth it *)
-      check_maturity Lang.Jsonnet "jsonnet" ".jsonnet" Experimental;
-      check_maturity Lang.Clojure "clojure" ".clj" Experimental
+      make_maturity_tests Lang.Jsonnet "jsonnet" ".jsonnet" Experimental;
+      make_maturity_tests Lang.Clojure "clojure" ".clj" Experimental
       (* Not even experimental yet *)
       (* HTML, XML, Vue, Dart *);
     ]

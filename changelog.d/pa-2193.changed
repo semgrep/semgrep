@@ -1,0 +1,3 @@
+taint-mode: Tweaked experimental option `taint_only_propagate_through_assignments`
+so that when it is enabled, `tainted.field` and `tainted(args)` will no longer
+propagate taint.

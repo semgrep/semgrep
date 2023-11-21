@@ -38,6 +38,9 @@ val setup_logging :
   unit ->
   unit
 
+(* used for testing. See also Testutil_mock.with_mocked_logs() *)
+val disable_set_reporter : bool ref
+
 (* TODO:
    Logs.Error, Logs.Warning, and friends should apply the appropriate color
    and tag prefix (e.g. ERROR) to the message. For now, those functions can

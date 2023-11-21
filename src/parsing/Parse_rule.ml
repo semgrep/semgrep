@@ -129,7 +129,7 @@ let parse_fix_regex (env : env) (key : key) fields =
     take fix_regex_dict env parse_string "replacement"
   in
   let (count_opt : int option) =
-    take_opt fix_regex_dict env parse_int "count"
+    take_opt fix_regex_dict env parse_int_strict "count"
   in
   Rule.{ regexp = parse_regexp env regex; count = count_opt; replacement }
 

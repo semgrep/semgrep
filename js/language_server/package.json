@@ -1,37 +1,67 @@
 {
-  "name": "@semgrep/engine",
+  "name": "@semgrep/language-server",
   "version": "0.0.1",
-  "description": "Javascript bindings for the semgrep engine",
-  "main": "dist/index.js",
+  "description": "Javascript bindings for the LSP",
+  "main": "out/src/semgrep-lsp.js",
   "scripts": {
-    "test": "jest",
-    "server": "node tests/test-server.js"
+    "test": "tsc && node ./out/src/tests/runTests.js",
+    "build": "tsc"
   },
   "repository": {
     "type": "git",
     "url": "github.com/returntocorp/semgrep"
   },
   "files": [
-    "dist/index.cjs",
-    "dist/index.mjs",
-    "dist/index.d.ts",
-    "dist/semgrep-engine.wasm"
+    "out",
+    "dist"
   ],
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "require": "./dist/index.cjs",
-      "import": "./dist/index.mjs"
-    }
-  },
   "author": "Semgrep, Inc.",
   "license": "LGPL-2.1",
   "devDependencies": {
-    "esbuild": "^0.17.16",
-    "jest": "^29.5.0",
-    "json-rpc-2.0": "^1.6.0"
+    "@types/mocha": "^10.0.3",
+    "@types/node": "^20.9.0",
+    "@types/vscode": "^1.83.2",
+    "@vscode/test-electron": "^2.3.6",
+    "find-process": "^1.4.7",
+    "glob": "^10.3.10",
+    "json-rpc-2.0": "^1.6.0",
+    "mocha": "^10.2.0",
+    "typescript": "^5.2.2",
+    "vscode-languageclient": "^9.0.1"
   },
   "dependencies": {
-    "cross-dirname": "^0.1.0"
+    "@semgrep/lang-bash": "file:../languages/bash",
+    "@semgrep/lang-c": "file:../languages/c",
+    "@semgrep/lang-cairo": "file:../languages/cairo",
+    "@semgrep/lang-cpp": "file:../languages/cpp",
+    "@semgrep/lang-csharp": "file:../languages/csharp",
+    "@semgrep/lang-dart": "file:../languages/dart",
+    "@semgrep/lang-dockerfile": "file:../languages/dockerfile",
+    "@semgrep/lang-go": "file:../languages/go",
+    "@semgrep/lang-hack": "file:../languages/hack",
+    "@semgrep/lang-html": "file:../languages/html",
+    "@semgrep/lang-java": "file:../languages/java",
+    "@semgrep/lang-json": "file:../languages/json",
+    "@semgrep/lang-jsonnet": "file:../languages/jsonnet",
+    "@semgrep/lang-julia": "file:../languages/julia",
+    "@semgrep/lang-kotlin": "file:../languages/kotlin",
+    "@semgrep/lang-lisp": "file:../languages/lisp",
+    "@semgrep/lang-lua": "file:../languages/lua",
+    "@semgrep/lang-ocaml": "file:../languages/ocaml",
+    "@semgrep/lang-php": "file:../languages/php",
+    "@semgrep/lang-promql": "file:../languages/promql",
+    "@semgrep/lang-protobuf": "file:../languages/protobuf",
+    "@semgrep/lang-python": "file:../languages/python",
+    "@semgrep/lang-r": "file:../languages/r",
+    "@semgrep/lang-ruby": "file:../languages/ruby",
+    "@semgrep/lang-rust": "file:../languages/rust",
+    "@semgrep/lang-scala": "file:../languages/scala",
+    "@semgrep/lang-solidity": "file:../languages/solidity",
+    "@semgrep/lang-swift": "file:../languages/swift",
+    "@semgrep/lang-terraform": "file:../languages/terraform",
+    "@semgrep/lang-typescript": "file:../languages/typescript",
+    "@semgrep/lang-vue": "file:../languages/vue",
+    "cross-dirname": "^0.1.0",
+    "vscode-languageserver": "^9.0.1"
   }
 }

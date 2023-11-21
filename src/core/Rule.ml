@@ -136,6 +136,11 @@ and focus_mv_list = tok * MV.mvar list [@@deriving show, eq, hash]
 
 type fix_regexp = {
   regexp : Xpattern.regexp_string;
+  (* Not using Parsed_int here, because we would rather fail early at rule
+     parsing time if we have to apply a regexp more times than we can
+     represent.
+     We also expect to never receive a count that is that big.
+  *)
   count : int option;
   replacement : string;
 }
@@ -391,7 +396,10 @@ type request = {
 [@@deriving show]
 
 (* Used to match on the returned response of some request *)
-type response = { return_code : int; regex : Xpattern.regexp_string option }
+type response = {
+  return_code : Parsed_int.t;
+  regex : Xpattern.regexp_string option;
+}
 [@@deriving show]
 
 type secrets = {
@@ -406,7 +414,7 @@ type secrets = {
 [@@deriving show]
 
 type http_match_clause = {
-  status_code : int option;
+  status_code : Parsed_int.t option;
   (* Optional. Empty list if not set *)
   headers : header list;
   content : (formula * Xlang.t) option;

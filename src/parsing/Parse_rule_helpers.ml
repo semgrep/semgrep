@@ -132,7 +132,12 @@ let generic_to_json rule_id (key : key) ast =
     | G.L (Null _) -> J.Null
     | G.L (Bool (b, _)) -> J.Bool b
     | G.L (Float (Some f, _)) -> J.Float f
-    | G.L (Int (Some i, _)) -> J.Int i
+    | G.L (Int pi) -> (
+        match Parsed_int.to_int_opt pi with
+        | None ->
+            Common.pr2 (G.show_expr_kind x.G.e);
+            error_at_expr rule_id x "no value for generic integer"
+        | Some i -> J.Int i)
     | G.L (String (_, (s, _), _)) ->
         (* should use the unescaped string *)
         J.String s
@@ -337,13 +342,31 @@ let parse_bool env (key : key) x =
 
 let parse_int env (key : key) x =
   match x.G.e with
-  | G.L (Int (Some i, _)) -> i
+  | G.L (Int pi) -> pi
   | G.L (String (_, (s, _), _)) -> (
-      try int_of_string s with
-      | Failure _ -> error_at_key env.id key (spf "parse_int for %s" (fst key)))
-  | G.L (Float (Some f, _)) ->
-      let i = int_of_float f in
-      if float_of_int i =*= f then i else error_at_key env.id key "not an int"
+      match Parsed_int.of_string_opt s with
+      | Some i -> i
+      | None -> error_at_key env.id key (spf "parse_int for %s" (fst key)))
+  | G.L (Float (Some f, _)) -> (
+      let i = Parsed_int.of_float f in
+      match Parsed_int.to_float_opt i with
+      | Some f' when f =*= f' -> i
+      | _ -> error_at_key env.id key "not an int")
+  | _x -> error_at_key env.id key (spf "parse_int for %s" (fst key))
+
+(* "Strict", because this function demands we can represent the integer inside. *)
+let parse_int_strict env (key : key) x =
+  match x.G.e with
+  | G.L (Int (Some i64, _)) -> Int64.to_int i64
+  | G.L (String (_, (s, _), _)) -> (
+      match Parsed_int.of_string_opt s with
+      | Some (Some i64, _) -> Int64.to_int i64
+      | _ -> error_at_key env.id key (spf "parse_int for %s" (fst key)))
+  | G.L (Float (Some f, _)) -> (
+      let pi = Parsed_int.of_float f in
+      match (pi, Parsed_int.to_float_opt pi) with
+      | (Some i64, _), Some f' when f =*= f' -> Int64.to_int i64
+      | _ -> error_at_key env.id key "not an int")
   | _x -> error_at_key env.id key (spf "parse_int for %s" (fst key))
 
 let parse_str_or_dict env (value : G.expr) : (G.ident, dict) Either.t =

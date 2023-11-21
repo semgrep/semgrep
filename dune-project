@@ -106,7 +106,6 @@ a few other projects developed at r2c.
     (ppxlib (>= "0.25.0"))
     (ppx_deriving (>= "5.2.1"))
     (ppx_hash (>= "v0.14.0" ))
-    (parmap (>= "1.2.4"))
     (digestif (>= "1.0.0"))
     uri
     bos
@@ -206,10 +205,6 @@ parsers, especially ocamlyacc/menhir based parsers.
   (description "XXX")
 )
 (package (name parser_dockerfile)
-  (synopsis "XXX")
-  (description "XXX")
-)
-(package (name parser_elixir)
   (synopsis "XXX")
   (description "XXX")
 )

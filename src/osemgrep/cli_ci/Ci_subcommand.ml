@@ -165,7 +165,7 @@ let at_url_maybe ppf () : unit =
 let decode_json_rules (data : string) : Rule_fetching.rules_and_origin =
   Common2.with_tmp_file ~str:data ~ext:"json" (fun file ->
       let file = Fpath.v file in
-      Rule_fetching.load_rules_from_file ~origin:Other_origin
+      Rule_fetching.load_rules_from_file ~rewrite_rule_ids:false ~origin:App
         ~registry_caching:false file)
 
 let scan_config_and_rules_from_deployment ~dry_run
@@ -703,7 +703,7 @@ let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
     *)
     let profiler = Profiler.make () in
     let targets_and_ignored =
-      Find_targets.get_targets conf.targeting_conf conf.target_roots
+      Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
     in
     (* TODO: should use those fields! the pattern match is useless but it's
      * just to get compilation error when we add new fields in scan_config

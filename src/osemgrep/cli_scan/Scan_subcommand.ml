@@ -14,6 +14,7 @@
  *)
 open Common
 open File.Operators
+module C = Rules_config
 module Env = Semgrep_envvars
 module Out = Semgrep_output_v1_t
 module SS = Set.Make (String)
@@ -144,6 +145,101 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
           ~color_output:conf.force_color Format.std_formatter cli_matches)
       ~finally:(fun () -> Unix.lockf Unix.stdout Unix.F_ULOCK 0))
 
+(*****************************************************************************)
+(* Pretty Printing for CLI UX *)
+(*****************************************************************************)
+
+(* TODO: Update pysemgrep and osemgrep tests to match new output *)
+let new_cli_ux =
+  match !Env.v.user_agent_append with
+  | Some x -> (
+      match String.lowercase_ascii x with
+      | "pytest" -> false
+      | _ -> true)
+  | _ -> true
+
+let print_logo () : unit =
+  let logo =
+    Ocolor_format.asprintf
+      {|
+┌──── @{<green>○○○@} ────┐
+│ Semgrep CLI │
+└─────────────┘
+|}
+  in
+  Logs.app (fun m -> m "%s" logo);
+  ()
+
+let feature_status_str ~(enabled : bool) : string =
+  let status =
+    if enabled then Ocolor_format.asprintf {|@{<green>✔@}|}
+    else Ocolor_format.asprintf {|@{<red>✘@}|}
+  in
+  status
+
+let print_feature_section ~(includes_token : bool) ~(engine : Engine_type.t) :
+    unit =
+  let secrets_enabled =
+    match engine with
+    | PRO
+        Engine_type.
+          { secrets_config = Some Engine_type.{ allow_all_origins = _; _ }; _ }
+      ->
+        true
+    | OSS
+    | PRO Engine_type.{ secrets_config = None; _ } ->
+        false
+  in
+  let features =
+    [
+      ( "Semgrep OSS",
+        "Basic security coverage for first-party code vulnerabilities.",
+        true );
+      ( "Semgrep Code (SAST)",
+        "Find and fix vulnerabilities in the code you write with advanced \
+         scanning and expert security rules.",
+        includes_token );
+      ( "Semgrep Secrets",
+        "Detect and validate potential secrets in your code.",
+        secrets_enabled );
+    ]
+  in
+  (* Print our set of features and whether each is enabled *)
+  List.iter
+    (fun (feature_name, desc, is_enabled) ->
+      Logs.app (fun m ->
+          m "%s %s"
+            (feature_status_str ~enabled:is_enabled)
+            (Ocolor_format.asprintf {|@{<bold>%s@}|} feature_name));
+      Logs.app (fun m ->
+          m "  %s %s\n" (feature_status_str ~enabled:is_enabled) desc))
+    features;
+  ()
+
+let display_rule_source ~(rule_source : Rules_source.t) : unit =
+  let msg =
+    match rule_source with
+    | Configs xs
+      when List.exists
+             (function
+               | C.A _
+               | R _ ->
+                   true
+               | _ -> false)
+             (Common.map
+                (fun str ->
+                  Rules_config.parse_config_string ~in_docker:false str)
+                xs) ->
+        Ocolor_format.asprintf {|@{<bold>  %s@}|}
+          "Loading rules from registry..."
+    | Configs _ ->
+        Ocolor_format.asprintf {|@{<bold>  %s@}|}
+          "Loading rules from local config..."
+    | Pattern _ -> Ocolor_format.asprintf {|@{  %s@}|} "Using custom pattern."
+  in
+  Logs.app (fun m -> m "%s" msg);
+  ()
+
 (*************************************************************************)
 (* Helpers *)
 (*************************************************************************)
@@ -196,7 +292,7 @@ let mk_scan_func (conf : Scan_CLI.conf) file_match_results_hook errors targets
             pro_scan_func roots ~diff_config conf.engine_type)
   in
   scan_func_for_osemgrep
-    ~respect_git_ignore:conf.targeting_conf.respect_git_ignore
+    ~respect_git_ignore:conf.targeting_conf.respect_gitignore
     ~file_match_results_hook conf.core_runner_conf rules errors targets
 
 (*****************************************************************************)
@@ -328,7 +424,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
                     match conf.engine_type with
                     | PRO Engine_type.{ analysis = Interprocedural; _ } ->
                         let all_in_baseline, _ =
-                          Find_targets.get_targets conf.targeting_conf
+                          Find_targets.get_target_fpaths conf.targeting_conf
                             conf.target_roots
                         in
                         (* Performing a scan on the same set of files for the
@@ -506,7 +602,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     let skipped_groups = Skipped_report.group_skipped skipped in
     Logs.info (fun m ->
         m "%a" Skipped_report.pp_skipped
-          ( conf.targeting_conf.respect_git_ignore,
+          ( conf.targeting_conf.respect_gitignore,
             conf.common.maturity,
             conf.targeting_conf.max_target_bytes,
             skipped_groups ));
@@ -514,11 +610,13 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
      * prefix), and is filtered when using --quiet.
      *)
     Logs.app (fun m ->
-        m "%a" Summary_report.pp_summary
-          ( conf.targeting_conf.respect_git_ignore,
-            conf.common.maturity,
-            conf.targeting_conf.max_target_bytes,
-            skipped_groups ));
+        m "%a"
+          (Summary_report.pp_summary
+             ~respect_gitignore:conf.targeting_conf.respect_gitignore
+             ~maturity:conf.common.maturity
+             ~max_target_bytes:conf.targeting_conf.max_target_bytes
+             ~skipped_groups)
+          ());
     Logs.app (fun m ->
         m "Ran %s on %s: %s."
           (String_utils.unit_str (List.length rules_with_targets) "rule")
@@ -545,6 +643,10 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
 let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
   let profiler = Profiler.make () in
   Profiler.start profiler ~name:"total_time";
+
+  (* Print Semgrep CLI logo ASAP to minimize time to first meaningful content paint *)
+  if new_cli_ux then print_logo ();
+
   (* Metrics initialization (and finalization) is done in CLI.ml,
    * but here we "configure" it (enable or disable it) based on CLI flags.
    *)
@@ -564,6 +666,22 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
       settings)
     |> Profiler.record profiler ~name:"config_time"
   in
+
+  (* Print feature section for enabled products if pattern mode is not being used.
+     Ideally, pattern mode should be a different subcommand, but for now we will
+     conditionally print the feature section.
+  *)
+  (if new_cli_ux then
+     match conf.rules_source with
+     | Pattern _ ->
+         Logs.app (fun m ->
+             m "%s"
+               (Ocolor_format.asprintf {|@{<bold>  %s@}|}
+                  "Code scanning at ludicrous speed.\n"))
+     | _ ->
+         print_feature_section
+           ~includes_token:(settings.api_token <> None)
+           ~engine:conf.engine_type);
 
   (* step0: potentially notify user about metrics *)
   if not (settings.has_shown_metrics_notification =*= Some true) then (
@@ -592,16 +710,17 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
 
   (* step1: getting the rules *)
 
-  (* Rule_fetching.rules_and_origin record also contain errors *)
+  (* Display a message, ideally a progress bar to denote rule fetching *)
+  if new_cli_ux then display_rule_source ~rule_source:conf.rules_source;
+
   let rules_and_origins =
     Rule_fetching.rules_from_rules_source ~token_opt:settings.api_token
       ~rewrite_rule_ids:conf.rewrite_rule_ids
       ~registry_caching:conf.registry_caching conf.rules_source
   in
-
   (* step2: getting the targets *)
   let targets_and_skipped =
-    Find_targets.get_targets conf.targeting_conf conf.target_roots
+    Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
   in
   (* step3: let's go *)
   let res =
@@ -639,7 +758,11 @@ let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
       match conf with
       | {
        show =
-         Some { target = Show_CLI.EnginePath _ | Show_CLI.CommandForCore; _ };
+         Some
+           {
+             show_kind = Show_CLI.DumpEnginePath _ | Show_CLI.DumpCommandForCore;
+             _;
+           };
        _;
       } ->
           raise Pysemgrep.Fallback
@@ -676,7 +799,10 @@ let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
   | _ when conf.validate <> None ->
       Validate_subcommand.run (Common2.some conf.validate)
   | _ when conf.show <> None -> Show_subcommand.run (Common2.some conf.show)
-  | _else_ ->
+  | _ when conf.ls ->
+      Ls_subcommand.run ~target_roots:conf.target_roots
+        ~targeting_conf:conf.targeting_conf ()
+  | _ ->
       (* --------------------------------------------------------- *)
       (* Let's go *)
       (* --------------------------------------------------------- *)

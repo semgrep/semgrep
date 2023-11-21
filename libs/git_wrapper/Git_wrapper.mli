@@ -17,10 +17,31 @@ type status = {
  *)
 val git_check_output : Bos.Cmd.t -> string
 
-(* precondition: cwd must be a directory
+(*
+   This is incomplete. Git offer a variety of filters and subfilters,
+   and it would be a lot of work to translate them all into clean types.
+   Please extend this interface as needed.
+*)
+type ls_files_kind =
+  | Cached
+    (* --cached, the default:
+       Show all files cached in Git’s index, i.e. all tracked files *)
+  | Others
+(* --others:
+   Show other (i.e. untracked) files in the output,
+   that is mostly the complement of Cached but still
+   excluding .git/ *)
+
+(*
+   cwd: directory to cd into (-C)
+
+   The argument is the list of files to start scanning from which defaults
+   to the current directory.
+
    This returns a list of paths relative to cwd.
 *)
-val files_from_git_ls : cwd:Fpath.t -> Fpath.t list
+val ls_files :
+  ?cwd:Fpath.t -> ?kinds:ls_files_kind list -> Fpath.t list -> Fpath.t list
 
 (* get merge base between arg and HEAD *)
 val get_merge_base : string -> string
@@ -50,6 +71,14 @@ val status : cwd:Fpath.t -> commit:string -> status
 (* precondition: cwd must be a directory *)
 val is_git_repo : Fpath.t -> bool
 (** Returns true if passed directory a git repo*)
+
+(* Find the root of the repository containing 'cwd', if any.
+   The result may be a submodule of another git repo. *)
+val get_project_root : ?cwd:Fpath.t -> unit -> Fpath.t option
+
+(* Find the root of the git project containing 'cwd', if any.
+   The result is not a submodule of another git repo. *)
+val get_superproject_root : ?cwd:Fpath.t -> unit -> Fpath.t option
 
 (* precondition: cwd must be a directory *)
 val dirty_lines_of_file : ?git_ref:string -> Fpath.t -> (int * int) array option

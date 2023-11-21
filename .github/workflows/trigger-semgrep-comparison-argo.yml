@@ -51,8 +51,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - env:
-          CONTAINER_IMAGE_BASE: ${{ needs.setup-docker-tag.outputs.docker-tag == 'develop' && 'returntocorp/semgrep:latest' || 'returntocorp/semgrep:develop' }}
-          CONTAINER_IMAGE_DEVELOPMENT: returntocorp/semgrep:${{ needs.setup-docker-tag.outputs.docker-tag }}
+          CONTAINER_IMAGE_BASE: ${{ needs.setup-docker-tag.outputs.docker-tag == 'develop' && 'latest' || 'develop' }}
+          CONTAINER_IMAGE_DEVELOPMENT: ${{ needs.setup-docker-tag.outputs.docker-tag }}
           REPOSITORY: ${{ github.repository }}
           RULESET: p/default-v2
           SHA: ${{ needs.get-sha.outputs.sha }}

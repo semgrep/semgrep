@@ -118,6 +118,10 @@ let range_w_metas_of_formula (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
   in
   (ranges, report.explanations)
 
+let get_source_requires src =
+  let _pm, src_spec = T.pm_of_trace src.T.call_trace in
+  src_spec.R.source_requires
+
 type propagator_match = {
   id : D.var;
       (** An unique identifier for the propagator match. This is used as an
@@ -451,6 +455,137 @@ let any_is_in_sinks_matches rule any matches =
 let lazy_force x = Lazy.force x [@@profiling]
 
 (*****************************************************************************)
+(* Pattern match from finding *)
+(*****************************************************************************)
+
+let rec convert_taint_call_trace = function
+  | Taint.PM (pm, _) ->
+      let toks = Lazy.force pm.PM.tokens |> List.filter Tok.is_origintok in
+      PM.Toks toks
+  | Taint.Call (expr, toks, ct) ->
+      PM.Call
+        {
+          call_toks =
+            AST_generic_helpers.ii_of_any (G.E expr)
+            |> List.filter Tok.is_origintok;
+          intermediate_vars = toks;
+          call_trace = convert_taint_call_trace ct;
+        }
+
+let sources_of_taints taints =
+  (* We only report actual sources reaching a sink. If users want Semgrep to
+   * report function parameters reaching a sink without sanitization, then
+   * they need to specify the parameters as taint sources. *)
+  let taint_sources =
+    taints
+    |> Common.map_filter (fun { T.taint = { orig; tokens }; sink_trace } ->
+           match orig with
+           | Src src -> Some (src, tokens, sink_trace)
+           (* even if there is any taint "variable", it's irrelevant for the
+            * finding, since the precondition is satisfied. *)
+           | Arg _
+           | Control ->
+               None)
+  in
+  (* We prioritize taint sources without preconditions,
+     selecting their traces first, and then consider sources
+     with preconditions as a secondary choice. When we generate
+     JSON output for the command-line interface, we arbitrarily
+     select the first trace in the list. Consequently, when
+     there are multiple sources, and their traces overlap,
+     leading to the same sink, the final output doesn't always
+     indicate the initial location of the tainted source
+     clearly. By following this approach, users are more likely
+     to identify the very first taint source that doesn't rely
+     on other sources as input. *)
+  let with_req, without_req =
+    taint_sources
+    |> Common.partition_either (fun (src, tokens, sink_trace) ->
+           match get_source_requires src with
+           | Some _ -> Left (src, tokens, sink_trace)
+           | None -> Right (src, tokens, sink_trace))
+  in
+  if without_req <> [] then without_req
+  else (
+    logger#warning
+      "Taint source without precondition wasn't found. Displaying the taint \
+       trace from the source with precondition.";
+    with_req)
+
+let trace_of_source source =
+  let src, tokens, sink_trace = source in
+  {
+    PM.source_trace = convert_taint_call_trace src.T.call_trace;
+    tokens;
+    sink_trace = convert_taint_call_trace sink_trace;
+  }
+
+let pms_of_finding ~match_on finding =
+  match finding with
+  | T.ToArg _
+  | T.ToReturn _ ->
+      []
+  | ToSink
+      {
+        taints_with_precondition = taints, requires;
+        sink = { pm = sink_pm; _ };
+        merged_env;
+      } -> (
+      if
+        not
+          (T.taints_satisfy_requires
+             (Common.map (fun t -> t.T.taint) taints)
+             requires)
+      then []
+      else
+        let taint_sources = sources_of_taints taints in
+        match match_on with
+        | `Sink ->
+            (* The old behavior used to be that, for sinks with a `requires`, we would
+               generate a finding per every single taint source going in. Later deduplication
+               would deal with it.
+               We will instead choose to consolidate all sources into a single finding. We can
+               do some postprocessing to report only relevant sources later on, but for now we
+               will lazily (again) defer that computation to later.
+            *)
+            let traces = Common.map trace_of_source taint_sources in
+            (* We always report the finding on the sink that gets tainted, the call trace
+                * must be used to explain how exactly the taint gets there. At some point
+                * we experimented with reporting the match on the `sink`'s function call that
+                * leads to the actual sink. E.g.:
+                *
+                *     def f(x):
+                *       sink(x)
+                *
+                *     def g():
+                *       f(source)
+                *
+                * Here we tried reporting the match on `f(source)` as "the line to blame"
+                * for the injection bug... but most users seem to be confused about this. They
+                * already expect Semgrep (and DeepSemgrep) to report the match on `sink(x)`.
+            *)
+            let taint_trace = Some (lazy traces) in
+            [ { sink_pm with env = merged_env; taint_trace } ]
+        | `Source ->
+            taint_sources
+            |> Common.map (fun source ->
+                   let src, tokens, sink_trace = source in
+                   let src_pm, _ = T.pm_of_trace src.T.call_trace in
+                   let trace =
+                     {
+                       PM.source_trace =
+                         convert_taint_call_trace src.T.call_trace;
+                       tokens;
+                       sink_trace = convert_taint_call_trace sink_trace;
+                     }
+                   in
+                   {
+                     src_pm with
+                     env = merged_env;
+                     taint_trace = Some (lazy [ trace ]);
+                   }))
+
+(*****************************************************************************)
 (* Main entry points *)
 (*****************************************************************************)
 
@@ -571,117 +706,6 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
       sinks = sinks_ranges;
     },
     expls )
-
-let rec convert_taint_call_trace = function
-  | Taint.PM (pm, _) ->
-      let toks = Lazy.force pm.PM.tokens |> List.filter Tok.is_origintok in
-      PM.Toks toks
-  | Taint.Call (expr, toks, ct) ->
-      PM.Call
-        {
-          call_toks =
-            AST_generic_helpers.ii_of_any (G.E expr)
-            |> List.filter Tok.is_origintok;
-          intermediate_vars = toks;
-          call_trace = convert_taint_call_trace ct;
-        }
-
-let pm_of_finding finding =
-  match finding with
-  | T.ToArg _
-  | T.ToReturn _ ->
-      None
-  | ToSink
-      {
-        taints_with_precondition = taints, requires;
-        sink = { pm = sink_pm; _ };
-        merged_env;
-      } ->
-      if
-        not
-          (T.taints_satisfy_requires
-             (Common.map (fun t -> t.T.taint) taints)
-             requires)
-      then None
-      else
-        (* We only report actual sources reaching a sink. If users want Semgrep to
-         * report function parameters reaching a sink without sanitization, then
-         * they need to specify the parameters as taint sources. *)
-        let source_taints =
-          taints
-          |> Common.map_filter
-               (fun { T.taint = { orig; tokens }; sink_trace } ->
-                 match orig with
-                 | Src src -> Some (src, tokens, sink_trace)
-                 (* even if there is any taint "variable", it's irrelevant for the
-                  * finding, since the precondition is satisfied. *)
-                 | Arg _
-                 | Control ->
-                     None)
-        in
-        let rec find_requires = function
-          | Taint.PM (_, src) -> src.R.source_requires
-          | Taint.Call (_, _, ct) -> find_requires ct
-        in
-        (* We prioritize taint sources without preconditions,
-           selecting their traces first, and then consider sources
-           with preconditions as a secondary choice. When we generate
-           JSON output for the command-line interface, we arbitrarily
-           select the first trace in the list. Consequently, when
-           there are multiple sources, and their traces overlap,
-           leading to the same sink, the final output doesn't always
-           indicate the initial location of the tainted source
-           clearly. By following this approach, users are more likely
-           to identify the very first taint source that doesn't rely
-           on other sources as input. *)
-        let with_req, without_req =
-          source_taints
-          |> Common.partition_either (fun (src, tokens, sink_trace) ->
-                 match find_requires src.T.call_trace with
-                 | Some _ -> Left (src, tokens, sink_trace)
-                 | None -> Right (src, tokens, sink_trace))
-        in
-        let source_taints =
-          if without_req <> [] then without_req
-          else (
-            logger#warning
-              "Taint source without precondition wasn't found. Displaying the \
-               taint trace from the source with precondition.";
-            with_req)
-        in
-        (* The old behavior used to be that, for sinks with a `requires`, we would
-           generate a finding per every single taint source going in. Later deduplication
-           would deal with it.
-           We will instead choose to consolidate all sources into a single finding. We can
-           do some postprocessing to report only relevant sources later on, but for now we
-           will lazily (again) defer that computation to later.
-        *)
-        let traces =
-          source_taints
-          |> Common.map (fun (src, tokens, sink_trace) ->
-                 {
-                   PM.source_trace = convert_taint_call_trace src.T.call_trace;
-                   tokens;
-                   sink_trace = convert_taint_call_trace sink_trace;
-                 })
-        in
-        (* We always report the finding on the sink that gets tainted, the call trace
-            * must be used to explain how exactly the taint gets there. At some point
-            * we experimented with reporting the match on the `sink`'s function call that
-            * leads to the actual sink. E.g.:
-            *
-            *     def f(x):
-            *       sink(x)
-            *
-            *     def g():
-            *       f(source)
-            *
-            * Here we tried reporting the match on `f(source)` as "the line to blame"
-            * for the injection bug... but most users seem to be confused about this. They
-            * already expect Semgrep (and DeepSemgrep) to report the match on `sink(x)`.
-        *)
-        let taint_trace = Some (lazy traces) in
-        Some { sink_pm with env = merged_env; taint_trace }
 
 let check_var_def lang options taint_config env id ii expr =
   let name = AST_to_IL.var_of_id_info id ii in
@@ -868,8 +892,8 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
     let handle_findings _ findings _env =
       findings
       |> List.iter (fun finding ->
-             pm_of_finding finding
-             |> Option.iter (fun pm -> Common.push pm matches))
+             pms_of_finding ~match_on:xconf.config.taint_match_on finding
+             |> List.iter (fun pm -> Common.push pm matches))
     in
     taint_config_of_rule ~per_file_formula_cache xconf !!file (ast, []) rule
       handle_findings

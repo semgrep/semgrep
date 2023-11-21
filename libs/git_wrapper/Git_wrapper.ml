@@ -86,6 +86,20 @@ exception Error of string
  *)
 let _git_diff_lines_re = {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
 let git_diff_lines_re = SPcre.regexp _git_diff_lines_re
+let getcwd () = Sys.getcwd () |> Fpath.v
+
+(*
+   Create an optional -C option to change directory.
+
+   Usage:
+
+     let cmd = Bos.Cmd.(v "git" %% cd cwd % "rev-parse" % "--show-toplevel") in
+     ...
+*)
+let cd opt_cwd =
+  match opt_cwd with
+  | None -> Bos.Cmd.empty
+  | Some path -> Bos.Cmd.of_list [ "-C"; !!path ]
 
 (** Given some git diff ranges (see above), extract the range info *)
 let range_of_git_diff lines =
@@ -139,8 +153,20 @@ Try running the command yourself to debug the issue.|}
       Logs.warn (fun m -> m fmt Bos.Cmd.pp cmd);
       raise (Error "Error when we run a git command")
 
-let files_from_git_ls ~cwd =
-  let cmd = Bos.Cmd.(v "git" % "-C" % !!cwd % "ls-files") in
+type ls_files_kind =
+  | Cached (* --cached, the default *)
+  | Others (* --others, the complement of Cached but still excluding .git/ *)
+
+let string_of_ls_files_kind (kind : ls_files_kind) =
+  match kind with
+  | Cached -> "--cached"
+  | Others -> "--others"
+
+let ls_files ?(cwd = Fpath.v ".") ?(kinds = []) root_paths =
+  let roots = root_paths |> Common.map Fpath.to_string |> Bos.Cmd.of_list in
+  let kinds = kinds |> Common.map string_of_ls_files_kind |> Bos.Cmd.of_list in
+  let cmd = Bos.Cmd.(v "git" % "-C" % !!cwd % "ls-files" %% kinds %% roots) in
+  Logs.info (fun m -> m "Running external command: %s" (Bos.Cmd.to_string cmd));
   let files_r = Bos.OS.Cmd.run_out cmd in
   let results = Bos.OS.Cmd.out_lines ~trim:true files_r in
   let files =
@@ -150,12 +176,29 @@ let files_from_git_ls ~cwd =
   in
   files |> File.Path.of_strings
 
-let get_git_root_path () =
-  let cmd = Bos.Cmd.(v "git" % "rev-parse" % "--show-toplevel") in
+let get_project_root ?cwd () =
+  let cmd = Bos.Cmd.(v "git" %% cd cwd % "rev-parse" % "--show-toplevel") in
   let path_r = Bos.OS.Cmd.run_out cmd in
   let result = Bos.OS.Cmd.out_string ~trim:true path_r in
   match result with
-  | Ok (path, (_, `Exited 0)) -> path
+  | Ok (path, (_, `Exited 0)) -> Some (Fpath.v path)
+  | _ -> None
+
+let get_superproject_root ?cwd () =
+  let cmd =
+    Bos.Cmd.(
+      v "git" %% cd cwd % "rev-parse" % "--show-superproject-working-tree")
+  in
+  let path_r = Bos.OS.Cmd.run_out cmd in
+  let result = Bos.OS.Cmd.out_string ~trim:true path_r in
+  match result with
+  | Ok ("", (_, `Exited 0)) -> get_project_root ?cwd ()
+  | Ok (path, (_, `Exited 0)) -> Some (Fpath.v path)
+  | _ -> None
+
+let get_project_root_exn () =
+  match get_project_root () with
+  | Some path -> path
   | _ -> raise (Error "Could not get git root from git rev-parse")
 
 let get_merge_base commit =
@@ -167,8 +210,8 @@ let get_merge_base commit =
   | _ -> raise (Error "Could not get merge base from git merge-base")
 
 let run_with_worktree ~commit ?(branch = None) f =
-  let cwd = Sys.getcwd () |> Fpath.v |> Fpath.to_dir_path in
-  let git_root = get_git_root_path () |> Fpath.v |> Fpath.to_dir_path in
+  let cwd = getcwd () |> Fpath.to_dir_path in
+  let git_root = get_project_root_exn () |> Fpath.to_dir_path in
   let relative_path =
     match Fpath.relativize ~root:git_root cwd with
     | Some p -> p
