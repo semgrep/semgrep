@@ -1,5 +1,4 @@
-# No security problem
-def test1(c):
+def test(c):
   #ruleid: test
   x = source()
   if c:
