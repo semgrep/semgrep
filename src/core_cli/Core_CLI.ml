@@ -341,12 +341,6 @@ let all_actions () =
           let file = Core_scan.replace_named_pipe_by_regular_file file in
           Test_parsing.dump_pfff_ast (Xlang.lang_of_opt_xlang_exn !lang) !!file)
     );
-    ( "-dump_elixir_raw_ast",
-      " <file>",
-      Arg_helpers.mk_action_1_arg Core_actions.dump_elixir_raw_ast );
-    ( "-dump_elixir_ast",
-      " <file>",
-      Arg_helpers.mk_action_1_arg Core_actions.dump_elixir_ast );
     ( "-diff_pfff_tree_sitter",
       " <file>",
       Arg_helpers.mk_action_n_arg Test_parsing.diff_pfff_tree_sitter );
