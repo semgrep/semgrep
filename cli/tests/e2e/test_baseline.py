@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 import pytest
-from tests.semgrep_runner import SEMGREP_BASE_COMMAND
+from tests.semgrep_runner import SEMGREP_BASE_SCAN_COMMAND
 
 pytestmark = pytest.mark.kinda_slow
 
@@ -101,7 +101,7 @@ def run_sentinel_scan(check: bool = True, base_commit: Optional[str] = None):
     env["SEMGREP_SETTINGS_FILE"] = unique_settings_file
     env["PATH"] = os.environ.get("PATH", "")
 
-    cmd = SEMGREP_BASE_COMMAND + [
+    cmd = SEMGREP_BASE_SCAN_COMMAND + [
         "--disable-version-check",
         "--metrics",
         "off",

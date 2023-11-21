@@ -11,5 +11,8 @@ val with_setenv : string -> string -> (unit -> 'a) -> 'a
  * where logs are stored in a buffer. The content of this buffer is
  * then accessible to the [final] function after [f] has finished
  * and can be inspected to assert certain log events occured.
+ * If an exception is raised during the execution of [f], it is passed in
+ * to [final] as [Error exn].
  *)
-val with_mocked_logs : f:(unit -> 'a) -> final:(string -> 'a -> unit) -> unit
+val with_mocked_logs :
+  f:(unit -> 'a) -> final:(string -> ('a, exn) result -> unit) -> unit

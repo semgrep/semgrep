@@ -40,7 +40,10 @@ let with_mocked_logs ~f ~final =
            * call Logs.set_reporter and override the reporter we set above
            * thx to disable_set_reporter
            *)
-          let res = f () in
+          let res =
+            try Ok (f ()) with
+            | exn -> Error exn
+          in
           Format.pp_print_flush ppf ();
           let content = Buffer.contents buffer in
           final content res))
