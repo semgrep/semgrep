@@ -387,8 +387,8 @@ homebrew-setup:
 	# because this check was failing on some platform.
 	# See details at https://github.com/Homebrew/homebrew-core/pull/82693.
 	# This workaround may no longer be necessary.
-	opam install -y --deps-only --no-depexts ./libs/ocaml-tree-sitter-core
-	LIBRARY_PATH="/opt/homebrew/lib" opam install -y --deps-only --no-depexts ./
+	# LIBRARY_PATH is set here so we build lwt w/libev
+	LIBRARY_PATH="$$(brew --prefix)/lib" opam install -y --deps-only --no-depexts $(REQUIRED_DEPS)
 
 # -------------------------------------------------
 # Arch Linux
