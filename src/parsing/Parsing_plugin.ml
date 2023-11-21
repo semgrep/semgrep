@@ -18,7 +18,7 @@ open Common
 (* Prelude *)
 (*****************************************************************************)
 (*
-   External parsers to be registered here by proprietary extensions of semgrep.
+   External parsers to be registered here by semgrep-pro.
 *)
 
 (*****************************************************************************)
