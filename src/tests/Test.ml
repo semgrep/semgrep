@@ -46,7 +46,7 @@ let tests () =
       Unit_SPcre.tests;
       Unit_tok.tests;
       Unit_regexp_engine.tests;
-      Unit_Realpath.tests;
+      Unit_Rpath.tests;
       Unit_immutable_buffer.tests;
       Unit_ugly_print_AST.tests;
       Unit_autofix_printer.tests;
