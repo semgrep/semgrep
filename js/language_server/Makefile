@@ -5,7 +5,11 @@ include ../engine/Makefile.include
 include ../tree-sitter/Makefile.include
 
 # TODO: manage this better
+
+# All languages that have a C parser we need to compile w/emcc
 LANGUAGES := bash c cairo cpp csharp dart dockerfile elixir go hack html java jsonnet kotlin lisp lua ocaml php promql protobuf python r rust solidity terraform typescript vue
+
+# Tree Sitter parser names so we can properly export them in EMCC
 TS_LANGS := bash c cairo clojure cpp c_sharp dart dockerfile elixir go hack html java jsonnet kotlin lua ocaml php promql proto python r rust solidity hcl typescript vue
 
 empty:=
@@ -36,7 +40,7 @@ node_modules/.package-lock.json: package-lock.json
 ../tree-sitter/dist/tree-sitter.o:
 	$(MAKE) -C ../tree-sitter dist/tree-sitter.o
 
-dist/language-server-c-bindings.js: ../libyaml/dist/libyaml.o ../libpcre/dist/libpcre.a ../tree-sitter/dist/tree-sitter.o $(LANGUAGES:%=../languages/%/dist/semgrep-parser.o)
+dist/language-server-wasm.js: ../libyaml/dist/libyaml.o ../libpcre/dist/libpcre.a ../tree-sitter/dist/tree-sitter.o $(LANGUAGES:%=../languages/%/dist/semgrep-parser.o)
 	mkdir -p dist
 	emcc \
 		-O3 \
@@ -45,13 +49,13 @@ dist/language-server-c-bindings.js: ../libyaml/dist/libyaml.o ../libpcre/dist/li
 		-s INITIAL_MEMORY=31457280 \
 		-s SINGLE_FILE=1 \
 		-sEXPORTED_FUNCTIONS=_malloc,_free,$(YAML_EXPORTED_FUNCTIONS),$(PCRE_EXPORTED_FUNCTIONS),$(TREESITTER_EXPORTED_FUNCTIONS),$(PARSER_EXPORTED_FUNCTIONS) \
-		-o $(word 1,$@)
+		-o $@
 
 .PHONY: dist/Main.bc.js
 dist/Main.bc.js: ../../_build/default/js/language_server/Main.bc.js
 	mkdir -p dist
 	cp -rf $< $@
 
-dist/semgrep-ls.js: node_modules/.package-lock.json dist/language-server-c-bindings.js dist/Main.bc.js
+dist/semgrep-ls.js: node_modules/.package-lock.json dist/language-server-wasm.js dist/Main.bc.js
 	mkdir -p dist
 	npm run build

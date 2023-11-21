@@ -1,4 +1,4 @@
-const LSWasm = require("./language-server-c-bindings");
+const LSWasm = require("./language-server-wasm");
 
 export interface LS {
   handleClientMessage: (packet: any) => Promise<any | undefined>;

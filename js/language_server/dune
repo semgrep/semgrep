@@ -25,6 +25,7 @@
  (preprocess
   (pps lwt_ppx js_of_ocaml-ppx)))
 
+;; TODO: Clean this up and make it less gross
 (rule
  (targets semgrep.js)
  (action
