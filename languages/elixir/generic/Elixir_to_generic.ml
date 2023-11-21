@@ -36,7 +36,6 @@ let exprstmt (e : G.expr) : G.stmt =
 
 let fb = Tok.unsafe_fake_bracket
 let map_string _env x = x
-let map_int _env x = x
 let map_char _env x = x
 let map_list f env xs = Common.map (f env) xs
 let map_option f env x = Option.map (f env) x
@@ -516,10 +515,9 @@ and map_expr env v : G.expr =
       match v2 with
       | OMatch, _tk -> map_match env v1 v3
       | _else_ -> map_binary_op env v1 v2 v3)
-  | OpArity (v1, tslash, v3) ->
+  | OpArity (v1, tslash, pi) ->
       let id = map_wrap_operator_ident env v1 in
-      let x = (map_wrap (map_option map_int)) env v3 in
-      let lit = G.L (G.Int x) |> G.e in
+      let lit = G.L (G.Int pi) |> G.e in
       G.OtherExpr (("OpArity", tslash), [ G.I id; G.E lit ]) |> G.e
   | When (v1, twhen, v3) ->
       let e1 = map_expr env v1 in
@@ -543,8 +541,7 @@ and map_expr env v : G.expr =
       let e = map_expr env v2 in
       H.set_e_range l r e;
       G.OtherExpr (("ShortLambda", tamp), [ G.E e ]) |> G.e
-  | PlaceHolder (tamp, v2) ->
-      let x = (map_wrap (map_option map_int)) env v2 in
+  | PlaceHolder (tamp, x) ->
       let lit = G.L (G.Int x) |> G.e in
       G.OtherExpr (("PlaceHolder", tamp), [ G.E lit ]) |> G.e
   | DeepEllipsis v ->

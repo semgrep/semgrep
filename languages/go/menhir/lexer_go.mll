@@ -350,10 +350,10 @@ rule token = parse
   (* literals *)
   (* this is also part of int_lit, but we specialize it here to use the
    * right int_of_string *)
-  | "0" (octal_digits as n) { LINT (int_of_string_opt( "0o" ^ n), tokinfo lexbuf) }
+  | "0" (octal_digits as n) { LINT (Parsed_int.parse ( "0o" ^ n, tokinfo lexbuf)) }
 
   | int_lit as n
-      { LINT (int_of_string_opt n, tokinfo lexbuf) }
+      { LINT (Parsed_int.parse (n, tokinfo lexbuf)) }
 
   | float_lit as n
       { LFLOAT (float_of_string_opt n, tokinfo lexbuf) }

@@ -17,7 +17,6 @@
 
     semgrep_core
   )
- (inline_tests)
  (preprocess
    (pps
      ppx_profiling

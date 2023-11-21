@@ -1,0 +1,20 @@
+rules:
+  - id: test
+    message: Test
+    severity: WARNING
+    languages: [python]
+    options:
+      taint_only_propagate_through_assignments: true
+    mode: taint
+    pattern-sources:
+      - by-side-effect: true
+        patterns:
+          - pattern: $FILE = open(...)
+          - focus-metavariable: $FILE
+    pattern-sanitizers:
+      - by-side-effect: true
+        patterns:
+          - pattern: $FILE.close(...)
+          - focus-metavariable: $FILE
+    pattern-sinks:
+      - pattern: sink(...)

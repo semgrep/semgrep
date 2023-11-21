@@ -165,7 +165,7 @@ let at_url_maybe ppf () : unit =
 let decode_json_rules (data : string) : Rule_fetching.rules_and_origin =
   Common2.with_tmp_file ~str:data ~ext:"json" (fun file ->
       let file = Fpath.v file in
-      Rule_fetching.load_rules_from_file ~origin:Other_origin
+      Rule_fetching.load_rules_from_file ~rewrite_rule_ids:false ~origin:App
         ~registry_caching:false file)
 
 let scan_config_and_rules_from_deployment ~dry_run

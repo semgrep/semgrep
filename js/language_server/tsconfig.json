@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "rootDir": ".",
+    "outDir": "out",
+    "types": ["node", "vscode", "mocha"],
+    "lib": ["es2020"],
+    "strict": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "declaration": true,
+    "stripInternal": true,
+    "sourceMap": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "target": "es2020",
+    "incremental": true,
+    "baseUrl": "."
+  },
+  "include": ["./src", "./dist"]
+}

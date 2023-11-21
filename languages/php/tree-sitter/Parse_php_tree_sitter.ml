@@ -279,8 +279,8 @@ let map_anonymous_function_use_clause (env : env)
 
 let map_integer env tok =
   let value, tok = _str env tok in
-  let value = int_of_string value in
-  A.Int (Some value, tok)
+  let pi = Parsed_int.parse (value, tok) in
+  A.Int pi
 
 let map_boolean env tok =
   let bool_of_string value =

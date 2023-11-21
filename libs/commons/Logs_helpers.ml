@@ -33,6 +33,9 @@ let default_skip_libs =
     "x509";
   ]
 
+(* used for testing *)
+let disable_set_reporter = ref false
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -99,7 +102,8 @@ let setup_logging ?(skip_libs = default_skip_libs) ~force_color ~level () =
   Logs.set_level ~all:true level;
   let with_timestamp = level =*= Some Logs.Debug in
   time_program_start := now ();
-  Logs.set_reporter (reporter ~with_timestamp ());
+  if not !disable_set_reporter then
+    Logs.set_reporter (reporter ~with_timestamp ());
   (* from https://github.com/mirage/ocaml-cohttp#debugging *)
   (* Disable all third-party libs logs *)
   Logs.Src.list ()
@@ -109,6 +113,10 @@ let setup_logging ?(skip_libs = default_skip_libs) ~force_color ~level () =
          (* those are the one we are really interested in *)
          | "application" -> ()
          | s -> failwith ("Logs library not handled: " ^ s))
+
+(*****************************************************************************)
+(* TODO: remove those (see .mli) *)
+(*****************************************************************************)
 
 let err_tag ?(tag = " ERROR ") () =
   ANSITerminal.sprintf

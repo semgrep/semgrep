@@ -76,7 +76,7 @@ let visitor_info_of_tok f = function
   | TNewline ii -> TNewline (f ii)
   | TCommentPP ii -> TCommentPP (f ii)
   | T_BOOL (s, ii) -> T_BOOL (s, f ii)
-  | T_LNUMBER (s, ii) -> T_LNUMBER (s, f ii)
+  | T_LNUMBER pi -> T_LNUMBER (Parsed_int.map_tok f pi)
   | T_DNUMBER (s, ii) -> T_DNUMBER (s, f ii)
   | T_IDENT (s, ii) -> T_IDENT (s, f ii)
   | T_METAVAR (s, ii) -> T_METAVAR (s, f ii)

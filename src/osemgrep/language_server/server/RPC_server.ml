@@ -127,17 +127,13 @@ type t = { session : Session.t; state : State.t }
 (* it writes the jsonrpc header then body with seperate calls to write, which *)
 (* means there's a race condition there. The below atomic calls ensures that *)
 (* the ENTIRE packet is written at the same time *)
-let respond id json =
+let respond packet =
   let module Io = (val !io_ref : LSIO) in
-  match json with
-  | Some json ->
-      Logs.debug (fun m ->
-          m "Sending response %s" (json |> Yojson.Safe.pretty_to_string));
-      let response = Response.ok id json in
-      let packet = Packet.Response response in
-      let%lwt () = Io.write packet in
-      Io.flush ()
-  | None -> Lwt.return ()
+  Logs.debug (fun m ->
+      m "Sending response %s"
+        (Packet.yojson_of_t packet |> Yojson.Safe.pretty_to_string));
+  let%lwt () = Io.write packet in
+  Io.flush ()
 
 (** Send a request to the client *)
 let request request =
@@ -210,20 +206,29 @@ struct
   open MessageHandler
 
   let handle_client_message (msg : Packet.t) server =
-    let server =
+    let server_and_resp_opt =
       match msg with
       | Notification n when CN.of_jsonrpc n |> Result.is_ok ->
-          on_notification (CN.of_jsonrpc n |> Result.get_ok) server
+          let server =
+            on_notification (CN.of_jsonrpc n |> Result.get_ok) server
+          in
+          (server, None)
       | Request req when CR.of_jsonrpc req |> Result.is_ok ->
           let (CR.E req_unpacked) = CR.of_jsonrpc req |> Result.get_ok in
           let response, server = on_request req_unpacked server in
-          Lwt.async (fun () -> respond req.id response);
-          server
+          let response =
+            Option.map
+              (fun json ->
+                let response = Response.ok req.id json in
+                Packet.Response response)
+              response
+          in
+          (server, response)
       | _ ->
           Logs.warn (fun m -> m "Unhandled message");
-          server
+          (server, None)
     in
-    Lwt.return server
+    Lwt.return server_and_resp_opt
 
   let rec rpc_loop server () =
     let module Io = (val !io_ref : LSIO) in
@@ -235,7 +240,11 @@ struct
         let%lwt client_msg = Io.read () in
         match client_msg with
         | Some msg ->
-            let%lwt server = handle_client_message msg server in
+            let%lwt server, resp_opt = handle_client_message msg server in
+            ignore
+              (Option.map
+                 (fun packet -> Lwt.async (fun () -> respond packet))
+                 resp_opt);
             rpc_loop server ()
         | None ->
             Logs.debug (fun m -> m "Client disconnected");

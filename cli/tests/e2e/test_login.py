@@ -40,13 +40,11 @@ def test_login(tmp_path, mocker):
     assert "semgrep login is an interactive command" in result.output
 
     # Login with env token
-    # with patch.object(auth, "is_a_tty", return_value=True):
     result = runner.invoke(
         cli,
         ["login"],
         env={"SEMGREP_APP_TOKEN": fake_key},
     )
-    print(result.output)
     assert result.exit_code == 0
     assert result.output.startswith("Saved login token")
     assert "<redacted>" in result.output
