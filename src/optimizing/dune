@@ -3,7 +3,6 @@
  (name semgrep_optimizing)
  (wrapped false)
  (libraries
-    parmap
     ast_generic
     semgrep.core
  )
