@@ -109,7 +109,9 @@ let targets session =
     let targets_conf =
       User_settings.find_targets_conf_of_t session.user_settings
     in
-    Find_targets.get_targets { targets_conf with project_root = Some f } [ f ]
+    Find_targets.get_target_fpaths
+      { targets_conf with project_root = Some f }
+      [ f ]
     |> fst
   in
   let targets =
