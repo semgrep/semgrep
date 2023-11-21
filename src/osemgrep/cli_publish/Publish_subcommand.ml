@@ -75,7 +75,7 @@ let get_config_filenames original_config =
   if Common2.is_file (Fpath.to_string original_config) then [ original_config ]
   else
     let configs =
-      Common2.(glob (spf "%s/*" (Fpath.to_string original_config)))
+      Common2.(glob (spf "%s/**" (Fpath.to_string original_config)))
     in
     configs
     |> Common.map_filter (fun file ->
@@ -90,7 +90,6 @@ let get_config_filenames original_config =
            else None)
 
 let get_config_test_filenames original_config configs original_target =
-  Common.(pr2 (spf "is file path %s" (Fpath.to_string original_config)));
   if
     Common2.is_file (Fpath.to_string original_config)
     && Common2.is_file (Fpath.to_string original_target)
@@ -99,14 +98,10 @@ let get_config_test_filenames original_config configs original_target =
     let targets =
       (if Common2.is_file (Fpath.to_string original_target) then
          Common2.(
-           glob (spf "%s/*" (Fpath.to_string (Fpath.parent original_target))))
-       else Common2.(glob (spf "%s/*" (Fpath.to_string original_target))))
+           glob (spf "%s/**" (Fpath.to_string (Fpath.parent original_target))))
+       else Common2.(glob (spf "%s/**" (Fpath.to_string original_target))))
       |> Common.map Fpath.v
     in
-
-    Common.(
-      pr2
-        (spf "targets are %s" (Common2.string_of_list Fpath.to_string targets)));
 
     let target_matches_config target config =
       let correct_suffix =
@@ -145,19 +140,32 @@ let upload_rule token rule_file (conf : Publish_CLI.conf) test_code_file =
   let rule_file = Fpath.to_string rule_file in
   (* THINK: is this the same as get_config(...).get_rules()? *)
   let rules, errors =
-    Rule_fetching.rules_from_rules_source ~token_opt:(Some token)
-      ~rewrite_rule_ids:true ~registry_caching:false
-      (Rules_source.Configs [ rule_file ])
-    |> Rule_fetching.partition_rules_and_errors
+    try
+      let rules, errors =
+        Rule_fetching.rules_from_rules_source ~token_opt:(Some token)
+          ~rewrite_rule_ids:true ~registry_caching:false
+          (Rules_source.Configs [ rule_file ])
+        |> Rule_fetching.partition_rules_and_errors
+      in
+      ( rules,
+        Common.map
+          (fun ((_, rule_id, _) as err) ->
+            Rule.{ rule_id = Some rule_id; kind = InvalidRule err })
+          errors )
+    with
+    (* TODO: Why is this needed? This exception should have been handled and
+       converted at `Parse_rule` time...
+    *)
+    | Parsing_error.Other_error (s, t) ->
+        ([], [ { rule_id = None; kind = InvalidYaml (s, t) } ])
+    | Rule.Error error -> ([], [ error ])
   in
 
   match (errors, rules) with
   | _ :: _, _ ->
       Logs.err (fun m ->
           m "    Invalid rule definition: %s is invalid: %s" rule_file
-            (errors
-            |> Common.map Rule.string_of_invalid_rule_error
-            |> String.concat ", "));
+            (errors |> Common.map Rule.string_of_error |> String.concat ", "));
       false
   | _, [ rule ] -> (
       (* TODO: This emits a "fatal: No remote configured to list refs from."
@@ -224,7 +232,6 @@ let upload_rule token rule_file (conf : Publish_CLI.conf) test_code_file =
       let semgrep_url = !Semgrep_envvars.v.semgrep_url in
       let uri = Uri.(with_path semgrep_url "api/registry/rules") in
       let body = JSON.string_of_json (JSON.from_yojson request_json) in
-      Common.(pr2 (spf "have %s" body));
       let headers =
         [
           ("Content-Type", "application/json");
@@ -272,21 +279,11 @@ let upload_rule token rule_file (conf : Publish_CLI.conf) test_code_file =
 
 let run_conf (conf : Publish_CLI.conf) : Exit_code.t =
   let settings = Semgrep_settings.load () in
-  match (settings.Semgrep_settings.api_token, !Semgrep_envvars.v.app_token) with
-  | Some token, _
-  | _, Some token -> (
+  match settings.Semgrep_settings.api_token with
+  | Some token -> (
       let config_filenames, config_test_filenames =
         get_test_code_for_config (Fpath.v conf.target)
       in
-
-      Common.(
-        pr2
-          (spf "1targets are %s"
-             (Common2.string_of_list
-                (fun (file, files) ->
-                  Common.spf "(%s: %s)" (Fpath.to_string file)
-                    (Common2.string_of_list Fpath.to_string files))
-                config_test_filenames)));
 
       match (config_filenames, conf.visibility) with
       | [], _ ->

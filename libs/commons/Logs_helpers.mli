@@ -43,8 +43,11 @@ val setup_logging :
  * logs are stored in a buffer. The content of this buffer is
  * then accessible to the [final] function after [f] has finished
  * and can be inspected to assert certain log events occured.
+ * If an exception is raised during the execution of [f], it is given to
+ * [final] to handle.
  *)
-val with_mocked_logs : f:(unit -> 'a) -> final:(string -> 'a -> unit) -> unit
+val with_mocked_logs :
+  f:(unit -> 'a) -> final:(string -> ('a, exn) result -> unit) -> unit
 
 (* TODO:
    Logs.Error, Logs.Warning, and friends should apply the appropriate color

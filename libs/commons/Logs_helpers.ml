@@ -149,7 +149,13 @@ let with_mocked_logs ~f ~final =
            * call Logs.set_reporter and override the reporter we set above
            * thx to disable_set_reporter
            *)
-          let res = f () in
+          (* We must capture the exception here, or we will not be not be
+             able to mock the logs of a function which may be exception-raising.
+          *)
+          let res =
+            try Ok (f ()) with
+            | exn -> Error exn
+          in
           Format.pp_print_flush ppf ();
           let content = Buffer.contents buffer in
           final content res))

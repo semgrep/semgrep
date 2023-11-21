@@ -48,7 +48,15 @@ type result = { exit_code : Exit_code.t; logs : string }
 let with_logs ~f ~final =
   Logs_helpers.with_mocked_logs ~f ~final:(fun log_content res ->
       pr2 (spf "logs = %s" log_content);
-      final { exit_code = res; logs = log_content })
+      final
+        {
+          exit_code =
+            (match res with
+            | Ok code -> code
+            | Error (Error.Exit code) -> code
+            | _ -> Exit_code.fatal);
+          logs = log_content;
+        })
 
 (* TODO: factorize with Unit_LS.with_mock_envvars *)
 let with_semgrep_envvar envvar str f =
