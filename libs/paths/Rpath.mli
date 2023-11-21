@@ -27,9 +27,6 @@
    what was passed on the command line, or Ppath.t if users want
    findings relative to the root of their project (and not real paths like
    /home/pad/my/long/project/foo/bar).
-
-   The name of the module imitates Fpath.ml, and Ppath.ml, but use Rpath.ml
-   for Real path.
 *)
 
 (* Note that the type below uses a 'private' variant constructor (see
@@ -42,9 +39,9 @@
    `of_string`, and in particular, ensures that they all must be
    validated by `realpath()`.
 *)
-type t = private Rpath of string [@@deriving show, eq]
+type t = private Rpath of Fpath.t [@@deriving show, eq]
 
-(* only way to build an Rpath *)
+(* only way to build a Rpath *)
 val of_fpath : Fpath.t -> t
 val of_string : string -> t
 
@@ -56,24 +53,3 @@ val to_string : t -> string
 
 (* <=> to_string (of_string s) *)
 val canonical : string -> string
-
-(* Similar to Fpath.(/) *)
-val ( / ) : t -> string -> t
-val concat : t -> string -> t
-val apply : f:(string -> 'a) -> t -> 'a
-
-(* Similar to functions in Filename.mli *)
-val basename : t -> string
-val dirname : t -> t
-val extension : t -> string
-
-(* Deprecated? Similar to functions in File.mli. You should
- * instead use directly the File module with 'File.xxx (Rpath.to_fpath rpath)'
- *)
-val is_directory : t -> bool
-
-(* This should always return true because you normally can't build an Rpath
- * from a nonexistent file. However, the underlying FS can change, or you may
- * have used concat() above which may lead to a nonexistent file.
- *)
-val file_exists : t -> bool

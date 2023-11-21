@@ -703,7 +703,7 @@ let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
     *)
     let profiler = Profiler.make () in
     let targets_and_ignored =
-      Find_targets.get_targets conf.targeting_conf conf.target_roots
+      Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
     in
     (* TODO: should use those fields! the pattern match is useless but it's
      * just to get compilation error when we add new fields in scan_config
