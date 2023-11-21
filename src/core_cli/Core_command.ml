@@ -77,11 +77,6 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
         Core_json_output.core_output_of_matches_and_errors
           (Some Autofix.render_fix) res
       in
-      (* one-off experiment, delete it at some point (March 2023) *)
-      let res =
-        if !Flag_semgrep.raja then Raja_experiment.adjust_core_output res
-        else res
-      in
       (*
         Not pretty-printing the json output (Yojson.Safe.prettify)
         because it kills performance, adding an extra 50% time on our

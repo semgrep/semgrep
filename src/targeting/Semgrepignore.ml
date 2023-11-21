@@ -59,6 +59,9 @@ type exclusion_mechanism = Gitignore_and_semgrepignore | Only_semgrepignore
 *)
 let builtin_semgrepignore_for_semgrep_scan =
   {|
+# Git administrative folder or file
+.git
+
 # Common large paths
 node_modules/
 build/

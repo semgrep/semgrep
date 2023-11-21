@@ -36,3 +36,17 @@ val make_lang_regression_tests :
   polyglot_pattern_path:Fpath.t ->
   (Lang.t * string * string) list ->
   Testutil.test list
+
+(* coupling: https://semgrep.dev/docs/language-support/
+ * See also https://r2c.quip.com/FOAuA4ThzULc/How-to-promote-a-language-
+ *)
+type maturity_level = GA | Beta | Experimental
+[@@deriving show { with_path = false }]
+
+val make_maturity_tests :
+  ?lang_exn:(Lang.t * string list) list (* skip list *) ->
+  Lang.t ->
+  string (* dir *) ->
+  string (* ext *) ->
+  maturity_level ->
+  Testutil.test list

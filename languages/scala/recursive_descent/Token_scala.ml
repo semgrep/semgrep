@@ -67,7 +67,7 @@ type token =
   | Kcatch of Tok.t
   | Kcase of Tok.t
   | Kabstract of Tok.t
-  | IntegerLiteral of (int option * Tok.t)
+  | IntegerLiteral of Parsed_int.t
   | ID_UPPER of (string * Tok.t)
   | ID_LOWER of (string * Tok.t)
   | ID_DOLLAR of (string * Tok.t)

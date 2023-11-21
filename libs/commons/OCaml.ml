@@ -166,7 +166,7 @@ type v =
   | VUnit
   | VBool of bool
   | VFloat of float
-  | VInt of int (* was int64 *)
+  | VInt of int64
   | VChar of char
   | VString of string
   | VTuple of v list
@@ -193,8 +193,9 @@ type v =
 
 (* for generated code that want to transform and in and out of a v or t *)
 let vof_unit () = VUnit
-let vof_int x = VInt (*Int64.of_int*) x
-let vof_float x = VFloat (*Int64.of_int*) x
+let vof_int x = VInt (Int64.of_int x)
+let vof_int64 x = VInt x
+let vof_float x = VFloat x
 let vof_string x = VString x
 let vof_bool b = VBool b
 let vof_list ofa x = VList (Common.map ofa x)
@@ -297,7 +298,7 @@ let string_of_v ?(max_depth = max_int) v =
           | VFloat v1 -> ppf "%f" v1
           | VChar v1 -> ppf "'%c'" v1
           | VString v1 -> ppf "\"%s\"" v1
-          | VInt i -> ppf "%d" i
+          | VInt i -> ppf "%Ld" i
           | VTuple xs ->
               ppf "(@[";
               xs |> add_sep
@@ -324,7 +325,7 @@ let string_of_v ?(max_depth = max_int) v =
                        | Left _ -> ppf ",@ "
                        | Right v -> aux (max_depth - 1) v);
                   ppf "@])")
-          | VVar (s, i64) -> ppf "%s_%d" s (Int64.to_int i64)
+          | VVar (s, i64) -> ppf "%s_%Ld" s i64
           | VArrow _v1 -> failwith "Arrow TODO"
           | VNone -> ppf "None"
           | VSome v ->
@@ -409,7 +410,7 @@ let (map_v : f:(k:(v -> v) -> v -> v) -> v -> v) =
           let v1 = map_of_string v1 in
           VString v1
       | VInt v1 ->
-          let v1 = map_of_int v1 in
+          let v1 = map_of_int64 v1 in
           VInt v1
       | VTuple v1 ->
           let v1 = map_of_list map_v v1 in
