@@ -47,7 +47,7 @@ def test_parse_metrics(tmp_path, snapshot, mocker, monkeypatch):
 
     monkeypatch.chdir(tmp_path / "parse_metrics")
     SemgrepRunner(use_click_runner=True).invoke(
-        cli, ["scan", "--config=rules.yaml", "--metrics=on"]
+        cli, args=["scan", "--config=rules.yaml", "--metrics=on"]
     )
 
     payload = json.loads(mock_post.call_args.kwargs["data"])
