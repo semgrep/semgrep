@@ -410,6 +410,17 @@ let regression_tests_for_lang ~polyglot_pattern_path files lang =
                  let expected = E.expected_error_lines_of_files [ !!file ] in
                  E.compare_actual_to_expected_for_alcotest actual expected) ))
 
+let make_lang_regression_tests ~test_pattern_path ~polyglot_pattern_path
+    lang_data =
+  (* TODO: infer dir and ext from lang using Lang helper functions *)
+  let lang_tests =
+    lang_data
+    |> Common.map (fun (lang, dir, ext) ->
+           pack_tests_for_lang ~lang_test_fn:regression_tests_for_lang
+             ~test_pattern_path ~polyglot_pattern_path lang dir ext)
+  in
+  pack_tests_with_label "lang testing" lang_tests
+
 let lang_regression_tests ~polyglot_pattern_path =
   let test_pattern_path = tests_path_patterns in
   let regular_tests =
