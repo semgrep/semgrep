@@ -23,6 +23,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Sequence
+from typing import Tuple
 from typing import Union
 
 from click.testing import CliRunner
@@ -35,23 +36,34 @@ from click.testing import CliRunner
 _USE_OSEMGREP = "PYTEST_USE_OSEMGREP" in os.environ
 
 # The --experimental is to force the use of osemgrep.
+_OSEMGREP_EXTRA_ARGS = ["--experimental"]
+
 # The --project-root option is used to prevent the .semgrepignore
 # at the root of the git project to be taken into account when testing,
 # which is a new behavior in osemgrep.
-_OSEMGREP_EXTRA_ARGS = ["--experimental", "--project-root", "."]
+_OSEMGREP_SCAN_EXTRA_ARGS = _OSEMGREP_EXTRA_ARGS + ["--project-root", "."]
 
 _SEMGREP_PATH = str((Path(__file__).parent.parent / "bin" / "semgrep").absolute())
 
 # Exported constant, convenient to use in a list context.
-SEMGREP_BASE_COMMAND: List[str] = (
-    [_SEMGREP_PATH] + _OSEMGREP_EXTRA_ARGS if _USE_OSEMGREP else [_SEMGREP_PATH]
+# This is not safe to use if you are going to append any subcommands after!
+# For instance, SEMGREP_BASE_SCAN_COMMAND + ["logout"] will fail with osemgrep,
+# because the subcommand must come first.
+SEMGREP_BASE_SCAN_COMMAND: List[str] = (
+    [_SEMGREP_PATH] + _OSEMGREP_SCAN_EXTRA_ARGS if _USE_OSEMGREP else [_SEMGREP_PATH]
 )
 
-SEMGREP_BASE_COMMAND_STR: str = " ".join(SEMGREP_BASE_COMMAND)
+SEMGREP_BASE_SCAN_COMMAND_STR: str = " ".join(SEMGREP_BASE_SCAN_COMMAND)
 
 ##############################################################################
 # Helpers
 ##############################################################################
+
+
+def mk_semgrep_base_command(subcommand: str, args: List[str]):
+    args = _OSEMGREP_EXTRA_ARGS + args if _USE_OSEMGREP else args
+    return [_SEMGREP_PATH] + [subcommand] + args
+
 
 # TODO: this should be removed as we don't want to run tests with Click
 @dataclass
@@ -80,21 +92,24 @@ class Result:
 
 # Run semgrep in an external process
 def fork_semgrep(
-    args: Optional[Union[str, Sequence[str]]], env: Optional[Dict[str, str]] = None
+    subcommand: Optional[str],
+    args: Optional[List[str]],
+    env: Optional[Dict[str, str]] = None,
 ) -> Result:
 
-    # argv preparation
-    arg_list: List[str] = []
-    if isinstance(args, str):
-        # Parse the list of shell-quoted arguments
-        arg_list = shlex.split(args)
-    elif isinstance(args, List):
-        arg_list = args
+    argv: List[str] = []
 
-    argv: List[str] = SEMGREP_BASE_COMMAND + arg_list
+    if args is None:
+        args = []
+
+    if subcommand is None:
+        argv = SEMGREP_BASE_SCAN_COMMAND + args
+    else:
+        argv = mk_semgrep_base_command(subcommand, args)
+
     # ugly: adding --project-root for --help would trigger the wrong help message
-    if "-h" in arg_list or "--help" in arg_list:
-        argv = [_SEMGREP_PATH] + arg_list
+    if "-h" in args or "--help" in args:
+        argv = [_SEMGREP_PATH] + args
 
     # env preparation
     env_dict = {}
@@ -131,9 +146,26 @@ class SemgrepRunner:
         if self._use_click_runner:
             self._runner = CliRunner(env=env, mix_stderr=mix_stderr)
 
-    def invoke(self, python_cli, args, input: Optional[str] = None, env=None) -> Result:
+    def invoke(
+        self,
+        python_cli,
+        subcommand: Optional[str] = None,
+        args: Optional[Union[str, Sequence[str]]] = None,
+        input: Optional[str] = None,
+        env=None,
+    ) -> Result:
+        # argv preparation
+        arg_list: List[str] = []
+        if isinstance(args, str):
+            # Parse the list of shell-quoted arguments
+            arg_list = shlex.split(args)
+        elif isinstance(args, List):
+            arg_list = args
+
         if self._use_click_runner:
-            result = self._runner.invoke(python_cli, args, input=input, env=env)
+            if subcommand:
+                arg_list = [subcommand] + arg_list
+            result = self._runner.invoke(python_cli, arg_list, input=input, env=env)
             stderr = result.stderr if not self._mix_stderr else ""
             return Result(result.exit_code, result.stdout, stderr)
         else:
@@ -143,4 +175,5 @@ class SemgrepRunner:
                 extra_env = dict(self._env, **env)
             else:
                 extra_env = dict(self._env)
-            return fork_semgrep(args, env=extra_env)
+
+            return fork_semgrep(subcommand, arg_list, env=extra_env)
