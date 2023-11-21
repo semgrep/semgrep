@@ -1020,13 +1020,14 @@ let cmdline_term ~allow_empty_config : conf Term.t =
           | Some str, Some lang_str, [] ->
               Some
                 {
-                  Show.target = Show.Pattern (str, Lang.of_string lang_str);
+                  Show.show_kind =
+                    Show.DumpPattern (str, Lang.of_string lang_str);
                   json;
                 }
           | None, Some lang_str, [ file ] ->
               Some
                 {
-                  Show.target = Show.File (file, Lang.of_string lang_str);
+                  Show.show_kind = Show.DumpAST (file, Lang.of_string lang_str);
                   json;
                 }
           | _, None, _ ->
@@ -1041,11 +1042,11 @@ let cmdline_term ~allow_empty_config : conf Term.t =
           | Some _, _, _ :: _ ->
               Error.abort "Can't specify both -e and a target for --dump-ast")
       | _ when dump_engine_path ->
-          Some { Show.target = Show.EnginePath pro; json }
+          Some { Show.show_kind = Show.DumpEnginePath pro; json }
       | _ when dump_command_for_core ->
-          Some { Show.target = Show.CommandForCore; json }
+          Some { Show.show_kind = Show.DumpCommandForCore; json }
       | _ when show_supported_languages ->
-          Some { Show.target = Show.SupportedLanguages; json }
+          Some { Show.show_kind = Show.SupportedLanguages; json }
       | _else_ -> None
     in
     (* ugly: validate should be a separate subcommand.

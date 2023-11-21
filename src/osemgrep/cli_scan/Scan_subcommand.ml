@@ -749,7 +749,11 @@ let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
       match conf with
       | {
        show =
-         Some { target = Show_CLI.EnginePath _ | Show_CLI.CommandForCore; _ };
+         Some
+           {
+             show_kind = Show_CLI.DumpEnginePath _ | Show_CLI.DumpCommandForCore;
+             _;
+           };
        _;
       } ->
           raise Pysemgrep.Fallback
