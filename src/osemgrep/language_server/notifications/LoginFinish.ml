@@ -25,10 +25,8 @@ let of_jsonrpc_params params : (Uri.t * Uuidm.t) option =
 (* Entry point *)
 (*****************************************************************************)
 
-let on_notification server params : unit =
+let on_notification _server params : unit =
   (* Emulating a poor man's writer's monad, mixed with some LWT goodness. *)
-  ignore server;
-  ignore params;
   let ( let^ ) (x : (_, string) Result.t Lwt.t) f : unit Lwt.t =
     let%lwt result = x in
     match result with
@@ -38,27 +36,32 @@ let on_notification server params : unit =
         Lwt.return ()
     | Ok y -> f y
   in
-  (* All of this is side-effecting, so we can run it asynchronously, and
-     return to the main event loop.
-  *)
-  Lwt.async (fun () ->
-      let^ _url, sessionId =
-        of_jsonrpc_params params
-        |> Option.to_result ~none:"got invalid parameters"
-        |> Lwt.return
-      in
-      let^ token, _ =
-        Semgrep_login.fetch_token_async ~min_wait_ms:wait_before_retry_in_ms
-          ~max_retries sessionId
-      in
-      let^ _deployment =
-        Semgrep_App.get_deployment_from_token_async token
-        |> Lwt.map (Option.to_result ~none:"failed to get deployment")
-      in
-      (* TODO: state.app_session.authenticate()
-         basically, just add the token to the metrics once that exists
+  match params with
+  | None ->
+      Logs.warn (fun m ->
+          m "semgrep/loginFinish got no params but expected some")
+  | Some _ ->
+      (* All of this is side-effecting, so we can run it asynchronously, and
+         return to the main event loop.
       *)
-      RPC_server.notify_show_message ~kind:MessageType.Info
-        "Successfully logged into Semgrep Code";
-      let^ _deployment = Semgrep_login.save_token_async token in
-      Lwt.return ())
+      Lwt.async (fun () ->
+          let^ _url, sessionId =
+            of_jsonrpc_params params
+            |> Option.to_result ~none:"got invalid parameters"
+            |> Lwt.return
+          in
+          let^ token, _ =
+            Semgrep_login.fetch_token_async ~min_wait_ms:wait_before_retry_in_ms
+              ~max_retries sessionId
+          in
+          let^ _deployment =
+            Semgrep_App.get_deployment_from_token_async token
+            |> Lwt.map (Option.to_result ~none:"failed to get deployment")
+          in
+          (* TODO: state.app_session.authenticate()
+             basically, just add the token to the metrics once that exists
+          *)
+          RPC_server.notify_show_message ~kind:MessageType.Info
+            "Successfully logged into Semgrep Code";
+          let^ _deployment = Semgrep_login.save_token_async token in
+          Lwt.return ())
