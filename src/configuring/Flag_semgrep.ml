@@ -39,3 +39,7 @@ let gc_tuning = ref true
  * code equivalences.
  *)
 let equivalence_mode = ref false
+
+(* Note that an important flag used during parsing is actually in pfff in
+ * Flag_parsing.sgrep_mode
+ *)

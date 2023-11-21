@@ -537,10 +537,6 @@ let options actions =
       Arg.Set_int max_match_per_file,
       " <int> maximum numbers of match per file" );
     ("-debug", Arg.Set debug, " output debugging information");
-    ( "-max_match_per_file",
-      Arg.Set_int max_match_per_file,
-      " <int> maximum numbers of match per file" );
-    ("-debug", Arg.Set debug, " output debugging information");
     ("--debug", Arg.Set debug, " output debugging information");
     ( "-debug_matching",
       Arg.Set Flag.debug_matching,
