@@ -44,7 +44,7 @@ eval "$(opam env)"
 export HOMEBREW_SYSTEM=1
 
 make install-deps-MACOS-for-semgrep-core
-make homebrew-setup
+LIBRARY_PATH="$(brew --prefix)/lib" make install-deps-for-semgrep-core
 
 # Remove dynamically linked libraries to force MacOS to use static ones.
 ls -l "$(brew --prefix)"/opt/pcre/lib || true

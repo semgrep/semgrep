@@ -389,7 +389,7 @@ homebrew-setup:
 	# This workaround may no longer be necessary.
 	opam install -y --deps-only --no-depexts ./libs/ocaml-tree-sitter-core
 	# LIBRARY_PATH is set here so we build lwt w/libev
-	LIBRARY_PATH="$$(brew --prefix)/lib" opam install -y --deps-only --no-depexts ./
+	LIBRARY_PATH="/opt/homebrew/lib" opam install -y --deps-only --no-depexts ./
 
 # -------------------------------------------------
 # Arch Linux
