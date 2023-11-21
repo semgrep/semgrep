@@ -12,10 +12,7 @@ LANGUAGES := bash c cairo cpp csharp dart dockerfile go hack html java jsonnet k
 # Tree Sitter parser names so we can properly export them in EMCC
 TS_LANGS := bash c cairo clojure cpp c_sharp dart dockerfile go hack html java jsonnet kotlin lua ocaml php promql proto python r rust solidity hcl typescript vue
 
-empty:=
-space:= $(empty) $(empty)
-comma:=,
-PARSER_EXPORTED_FUNCTIONS := $(subst $(space),$(comma),$(TS_LANGS:%=_tree_sitter_%))
+PARSER_EXPORTED_FUNCTIONS := $(shell echo $(TS_LANGS:%=_tree_sitter_%) | sed 's/ /,/g')
 
 .PHONY: build
 build: dist/semgrep-ls.js
