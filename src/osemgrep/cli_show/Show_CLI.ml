@@ -21,38 +21,39 @@ module Cmd = Cmdliner.Cmd
 *)
 type conf = {
   (* mix of --dump-ast/--dump-rule/... *)
-  target : target_kind;
+  show_kind : show_kind;
   json : bool;
 }
 
 (* coupling: if you add a command you probably need to modify [combine]
  * below and also the doc in [man] further below
  *)
-and target_kind =
-  (* 'semgrep show ???'
-   * accessible also as 'semgrep scan --dump-ast -e <pattern>'
-   * alt: we could accept XLang.t to dump extended patterns *)
-  | Pattern of string * Lang.t
-  (* 'semgrep show ???'
-   * accessible also as 'semgrep scan --lang <lang> --dump-ast <target>
-   * alt: we could accept multiple Files via multiple target_roots *)
-  | File of Fpath.t * Lang.t
-  (* 'semgrep show dump-config <config_str>' *)
-  | Config of Rules_config.config_string
-  (* 'semgrep show ???'
-   * accessible also as 'semgrep scan --dump-engine-path
-   * LATER: get rid of it? *)
-  | EnginePath of bool (* pro = true *)
-  (* 'semgrep show ???'
-   * accessible also as 'semgrep scan --dump-command-for-core' (or just '-d')
-   * LATER: get rid of it *)
-  | CommandForCore
+and show_kind =
+  | Version
   (* 'semgrep show supported-languages'
    * accessible also as `semgrep scan --show-supported-languages
    *)
   | SupportedLanguages
+  (* a.k.a whoami *)
   | Identity
   | Deployment
+  (* 'semgrep show ???'
+   * accessible also as 'semgrep scan --dump-ast -e <pattern>'
+   * alt: we could accept XLang.t to dump extended patterns *)
+  | DumpPattern of string * Lang.t
+  (* 'semgrep show ???'
+   * accessible also as 'semgrep scan --lang <lang> --dump-ast <target>
+   * alt: we could accept multiple Files via multiple target_roots *)
+  | DumpAST of Fpath.t * Lang.t
+  | DumpConfig of Rules_config.config_string
+  (* 'semgrep show ???'
+   * accessible also as 'semgrep scan --dump-engine-path
+   * LATER: get rid of it? *)
+  | DumpEnginePath of bool (* pro = true *)
+  (* 'semgrep show ???'
+   * accessible also as 'semgrep scan --dump-command-for-core' (or just '-d')
+   * LATER: get rid of it *)
+  | DumpCommandForCore
 [@@deriving show]
 
 (*************************************************************************)
@@ -84,12 +85,13 @@ let cmdline_term : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
   let combine args json =
-    let target =
+    let show_kind =
       (* coupling: if you add a command here, update also the man page
        * further below
        *)
       match args with
-      | [ "dump-config"; config_str ] -> Config config_str
+      | [ "version" ] -> Version
+      | [ "dump-config"; config_str ] -> DumpConfig config_str
       | [ "supported-languages" ] -> SupportedLanguages
       | [ "identity" ] -> Identity
       | [ "deployment" ] -> Deployment
@@ -97,7 +99,7 @@ let cmdline_term : conf Term.t =
           Error.abort
             (spf "show command not supported: %s" (String.concat " " args))
     in
-    { target; json }
+    { show_kind; json }
   in
 
   Term.(const combine $ o_args $ o_json)
@@ -109,15 +111,18 @@ let man : Cmdliner.Manpage.block list =
     `S Cmdliner.Manpage.s_description;
     `P "Display various information";
     `P "Here are the different subcommands";
-    `Pre "semgrep show dump-config <STRING>";
-    `P "Dump the internal representation of the result of --config=<STRING>";
+    (* the sub(sub)commands *)
+    `Pre "semgrep show version";
+    `P "Print the Semgrep version";
+    `Pre "semgrep show identity";
+    `P "Print the current logged-in token identity";
+    `Pre "semgrep show deployment";
+    `P "Print the current logged-in deployment";
     `Pre "semgrep show supported-languages";
     (* coupling: Scan_CLI.o_show_supported_languages help *)
     `P "Print a list of languages that are currently supported by Semgrep.";
-    `Pre "semgrep show deployment";
-    `P "Print the current logged-in deployment";
-    `Pre "semgrep show identity";
-    `P "Print the current logged-in token identity";
+    `Pre "semgrep show dump-config <STRING>";
+    `P "Dump the internal representation of the result of --config=<STRING>";
   ]
   @ CLI_common.help_page_bottom
 
