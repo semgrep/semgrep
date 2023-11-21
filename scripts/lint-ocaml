@@ -18,6 +18,11 @@ set -eu
 # Note however that the pre-commit CI action may loop forever if
 # you leave those commands uncommented (no idea why, go figure again).
 
+if [[ -v SKIP_OCAMLFORMAT ]]; then
+  echo "*** SKIP_OCAMLFORMAT is set. Skipping ocamlformat step!"
+  exit 0
+fi
+
 eval $(opam env)
 
 #coupling: must be the same than in dev/dev.opam
@@ -44,5 +49,3 @@ It's normally installed as part of 'make setup'.
 EOF
   exit 1
 fi
-
-#to debug: git diff
