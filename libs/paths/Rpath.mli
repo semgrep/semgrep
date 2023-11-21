@@ -27,6 +27,9 @@
    what was passed on the command line, or Ppath.t if users want
    findings relative to the root of their project (and not real paths like
    /home/pad/my/long/project/foo/bar).
+
+   The name of the module imitates Fpath.ml, and Ppath.ml, but use Rpath.ml
+   for Real path.
 *)
 
 (* Note that the type below uses a 'private' variant constructor (see
