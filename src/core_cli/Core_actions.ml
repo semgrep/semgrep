@@ -23,7 +23,7 @@ let json_of_v (v : OCaml.v) =
     | OCaml.VFloat v1 -> J.Float v1 (* ppf "%f" v1 *)
     | OCaml.VChar v1 -> J.String (spf "'%c'" v1)
     | OCaml.VString v1 -> J.String v1
-    | OCaml.VInt i -> J.Int i
+    | OCaml.VInt i -> J.Int (Int64.to_int i)
     | OCaml.VTuple xs -> J.Array (Common.map aux xs)
     | OCaml.VDict xs -> J.Object (Common.map (fun (k, v) -> (k, aux v)) xs)
     | OCaml.VSum (s, xs) -> (
@@ -31,7 +31,7 @@ let json_of_v (v : OCaml.v) =
         | [] -> J.String (spf "%s" s)
         | [ one_element ] -> J.Object [ (s, aux one_element) ]
         | _ :: _ :: _ -> J.Object [ (s, J.Array (Common.map aux xs)) ])
-    | OCaml.VVar (s, i64) -> J.String (spf "%s_%d" s (Int64.to_int i64))
+    | OCaml.VVar (s, i64) -> J.String (spf "%s_%Ld" s i64)
     | OCaml.VArrow _ -> failwith "Arrow TODO"
     | OCaml.VNone -> J.Null
     | OCaml.VSome v -> J.Object [ ("some", aux v) ]
@@ -40,21 +40,6 @@ let json_of_v (v : OCaml.v) =
     | OCaml.VTODO _ -> J.String "VTODO"
   in
   aux v
-
-(* temporary *)
-let dump_elixir_raw_ast file =
-  let x = Parse_elixir_tree_sitter.parse file in
-  match x.program with
-  | Some x -> pr (AST_elixir.show_program x)
-  | None -> failwith (spf "could not parse %s" file)
-
-let dump_elixir_ast file =
-  let x = Parse_elixir_tree_sitter.parse file in
-  match x.program with
-  | Some x ->
-      let x = Elixir_to_elixir.map_program x in
-      pr (AST_elixir.show_program x)
-  | None -> failwith (spf "could not parse %s" file)
 
 (* mostly a copy paste of Test_analyze_generic.ml *)
 let dump_il_all file =

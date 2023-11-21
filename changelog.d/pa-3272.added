@@ -1,0 +1,2 @@
+taint-mode: Added experimental rule option `taint_match_on: source` that makes
+Semgrep report taint findings on the taint source rather than on the sink.

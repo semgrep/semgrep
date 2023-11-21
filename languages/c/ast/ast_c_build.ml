@@ -659,7 +659,7 @@ and expr env e =
 
 and constant _env x =
   match x with
-  | Int (s, ii) -> A.Int (s, ii)
+  | Int pi -> A.Int pi
   | Float (s, ii) -> A.Float (s, ii)
   | Char (s, ii) -> A.Char (s, ii)
   | String (s, ii) -> A.String (s, ii)

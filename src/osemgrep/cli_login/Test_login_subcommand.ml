@@ -15,7 +15,6 @@
 open Common
 open File.Operators
 open Testutil
-module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -24,29 +23,17 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
  *
  * Note that unlike most cli/tests/e2e/test_xxx.py tests, we can't reuse
  * test_login.py to test osemgrep because of the use of mocking
- * and 'use_click+runner=True' in test_login.py
+ * and 'use_click_runner=True' in test_login.py
  *)
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-(* TODO? move in commons? Test_helpers.ml? *)
-let with_setenv envvar str f =
-  let old = Sys.getenv_opt envvar in
-  Unix.putenv envvar str;
-  Common.finalize f (fun () ->
-      match old with
-      | Some str -> Unix.putenv envvar str
-      (* ugly: Unix does not provide unsetenv,
-       * see https://discuss.ocaml.org/t/unset-environment-variable/9025
-       *)
-      | None -> Unix.putenv envvar "")
-
 type result = { exit_code : Exit_code.t; logs : string }
 
 let with_logs ~f ~final =
-  Logs_helpers.with_mocked_logs ~f ~final:(fun log_content res ->
+  Testutil_mock.with_mocked_logs ~f ~final:(fun log_content res ->
       pr2 (spf "logs = %s" log_content);
       final
         {
@@ -58,15 +45,10 @@ let with_logs ~f ~final =
           logs = log_content;
         })
 
-(* TODO: factorize with Unit_LS.with_mock_envvars *)
-let with_semgrep_envvar envvar str f =
-  with_setenv envvar str (fun () ->
-      Semgrep_envvars.with_envvars (Semgrep_envvars.of_current_sys_env ()) f)
-
 (* we return a fun () to match Testutil.test second element *)
 let with_login_test_env f () =
   Testutil_files.with_tempdir ~chdir:true (fun tmp_path ->
-      with_semgrep_envvar "SEMGREP_SETTINGS_FILE"
+      Semgrep_envvars.with_envvar "SEMGREP_SETTINGS_FILE"
         !!(tmp_path / "settings.yaml")
         f)
 
@@ -116,13 +98,14 @@ let test_login_no_tty : Testutil.test =
             assert (res.logs =~ ".*meant to be run in an interactive terminal");
             assert (res.exit_code =*= Exit_code.fatal))) )
 
-(* This token does not have to be valid because we mock the function
- * that checks for its validation (XXX)
+(* This token does not have to be valid because we mock the deployment
+ * request and response that is supposed to come from our endpoint and
+ * check for its validity.
  *)
 let fake_token = "token1234"
 
 (* deployment_response in semgrep_output_v1.atd
- * alt: could build one using Semgrep_output_v1_j
+ * alt: we could build it using Semgrep_output_v1_t deployment_response record.
  *)
 let fake_deployment =
   {|
@@ -136,12 +119,34 @@ let fake_deployment =
 let test_login_with_env_token : Testutil.test =
   ( __FUNCTION__,
     with_login_test_env (fun () ->
-        with_semgrep_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->
+        Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->
             with_fake_deployment_response fake_deployment (fun () ->
+                (* login with env token *)
                 with_logs
                   ~f:(fun () -> Login_subcommand.main [| "semgrep-login" |])
                   ~final:(fun res ->
                     assert (res.logs =~ "[.\n]*Saved access token");
+                    assert (res.exit_code =*= Exit_code.ok));
+
+                (* login should fail on second call *)
+                with_logs
+                  ~f:(fun () -> Login_subcommand.main [| "semgrep-login" |])
+                  ~final:(fun res ->
+                    assert (res.logs =~ ".*You're already logged in");
+                    assert (res.exit_code =*= Exit_code.fatal));
+
+                (* clear login (by logging out) *)
+                with_logs
+                  ~f:(fun () -> Logout_subcommand.main [| "semgrep-logout" |])
+                  ~final:(fun res ->
+                    assert (res.logs =~ ".*Logged out!");
+                    assert (res.exit_code =*= Exit_code.ok));
+
+                (* logout twice should work *)
+                with_logs
+                  ~f:(fun () -> Logout_subcommand.main [| "semgrep-logout" |])
+                  ~final:(fun res ->
+                    assert (res.logs =~ ".*You are not logged in");
                     assert (res.exit_code =*= Exit_code.ok))))) )
 
 (*****************************************************************************)

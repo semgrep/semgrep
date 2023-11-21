@@ -61,20 +61,8 @@ let fake_deployment =
   }
 |}
 
-(* TODO? move in commons? Test_helpers.ml? *)
-let with_setenv envvar str f =
-  let old = Sys.getenv_opt envvar in
-  Unix.putenv envvar str;
-  Common.finalize f (fun () ->
-      match old with
-      | Some str -> Unix.putenv envvar str
-      (* ugly: Unix does not provide unsetenv,
-       * see https://discuss.ocaml.org/t/unset-environment-variable/9025
-       *)
-      | None -> Unix.putenv envvar "")
-
 let with_logs ~f ~final =
-  Logs_helpers.with_mocked_logs ~f ~final:(fun log_content res ->
+  Testutil_mock.with_mocked_logs ~f ~final:(fun log_content res ->
       pr2 (spf "logs = %s" log_content);
       let exit_code, logs =
         match res with
@@ -84,15 +72,9 @@ let with_logs ~f ~final =
       in
       final { exit_code; logs })
 
-(* TODO: factorize with Unit_LS.with_mock_envvars *)
-let with_semgrep_envvar envvar str f =
-  with_setenv envvar str (fun () ->
-      Semgrep_envvars.with_envvars (Semgrep_envvars.of_current_sys_env ()) f)
-
-(* we return a fun () to match Testutil.test second element *)
 let with_test_env f =
   Testutil_files.with_tempdir ~chdir:true (fun tmp_path ->
-      with_semgrep_envvar "SEMGREP_SETTINGS_FILE"
+      Semgrep_envvars.with_envvar "SEMGREP_SETTINGS_FILE"
         !!(tmp_path / "settings.yaml")
         f)
 
@@ -117,45 +99,7 @@ let with_mocks f =
 (* Tests *)
 (*****************************************************************************)
 
-(* alt: we're calling Logout_subcommand.main() below; we could
- * be even more "e2e" by calling CLI.main() instead, but that would require
- * to move this file out of cli_login/ because of mutual dependencies.
- *)
-(* let _test_login_no_tty : Testutil.test =
-   ( __FUNCTION__,
-     with_test_env (fun () ->
-         with_logs
-           ~f:(fun () ->
-             (* make stdin non-interactive so Unix.isatty Unix.stdin
-              * called in Login_subcommand.run returns false
-              *)
-             let old_stdin = Unix.dup Unix.stdin in
-             let in_, _out_ = Unix.pipe () in
-             Unix.dup2 in_ Unix.stdin;
-             let exit_code = Login_subcommand.main [| "semgrep-login" |] in
-             Unix.dup2 old_stdin Unix.stdin;
-             exit_code)
-           ~final:(fun res ->
-             assert (res.logs =~ ".*meant to be run in an interactive terminal");
-             assert (res.exit_code =*= Exit_code.fatal))) ) *)
-
-(* let _test_logout_with_env_token : Testutil.test =
-   ( __FUNCTION__,
-     with_test_env (fun () ->
-         with_semgrep_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->
-             with_fake_deployment_response fake_deployment (fun () ->
-                 with_logs
-                   ~f:(fun () -> Login_subcommand.main [| "semgrep-logout" |])
-                   ~final:(fun res ->
-                     assert (res.logs =~ "[.\n]*Logged out (log back in with `semgrep login`)");
-                     assert (res.exit_code =*= Exit_code.ok))))) ) *)
-
 let test_publish () =
-  (* let runner = SemgrepRunner(
-         env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")},
-         use_click_runner=True,
-         mix_stderr=False
-     ) *)
   let tests_path = tests_path () in
   with_test_env (fun () ->
       with_mocks (fun () ->
@@ -179,13 +123,8 @@ let test_publish () =
                 Common.contains res.logs
                   "run `semgrep login` before using upload"));
 
-          (* mocker.patch(
-                 "semgrep.app.auth.get_deployment_from_token", return_value="deployment_name"
-             );
-          *)
-
           (* log back in *)
-          with_semgrep_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->
+          Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->
               with_logs
                 ~f:(fun () -> Login_subcommand.main [| "semgrep-login" |])
                 ~final:(fun res -> assert (res.exit_code =*= Exit_code.ok)));
@@ -206,14 +145,6 @@ let test_publish () =
               assert (res.exit_code =*= Exit_code.fatal);
               assert (Common.contains res.logs "Invalid rule definition:"));
 
-          (* fails if a yaml with more than one rule is specified *)
-          (*
-                str(
-                  Path(
-                      TESTS_PATH / "e2e" / "targets" / "semgrep-publish" / "multirule"
-                  ).resolve()
-              ),
-      *)
           with_logs
             ~f:(fun () ->
               let path =

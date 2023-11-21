@@ -342,7 +342,7 @@ let map_string_literal (env : env) ((v1, v2, v3) : CST.string_literal) :
 
 let integer_literal env tok =
   let s, t = str env tok in
-  (int_of_string_opt s, t)
+  Parsed_int.parse (s, t)
 
 let float_literal env tok =
   let s, t = str env tok in
@@ -374,14 +374,13 @@ let map_literal_pattern (env : env) (x : CST.literal_pattern) : G.pattern =
       let neg = str env v1 (* "-" *) in
       match v2 with
       | `Int_lit tok ->
-          let iopt, t = integer_literal env tok in
+          let pi = integer_literal env tok |> Parsed_int.neg in
           (* integer_literal *)
-          let iopt =
-            match iopt with
-            | Some i -> Some (-i)
-            | None -> None
-          in
-          G.PatLiteral (G.Int (iopt, Tok.combine_toks (snd neg) [ t ]))
+          G.PatLiteral
+            (G.Int
+               (pi
+               |> Parsed_int.map_tok (fun t -> Tok.combine_toks (snd neg) [ t ])
+               ))
       | `Float_lit tok ->
           let fopt, t = float_literal env tok in
           (* float_literal *)
@@ -2223,11 +2222,10 @@ and map_declaration_list env (v1, v2, v3) : G.stmt list G.bracket =
 
 and map_ordered_field (_env : env) _outer_attrsTODO
     (_attrsTODO : G.attribute list) (type_ : G.type_) (index : int) : G.field =
-  let index_s = string_of_int index in
   let var_def = { G.vinit = None; G.vtype = Some type_ } in
   let ent =
     {
-      G.name = G.EDynamic (G.L (G.Int (Some index, G.fake index_s)) |> G.e);
+      G.name = G.EDynamic (G.L (G.Int (Parsed_int.of_int index)) |> G.e);
       G.attrs = [];
       G.tparams = [];
     }

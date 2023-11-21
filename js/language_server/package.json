@@ -37,7 +37,6 @@
     "@semgrep/lang-csharp": "file:../languages/csharp",
     "@semgrep/lang-dart": "file:../languages/dart",
     "@semgrep/lang-dockerfile": "file:../languages/dockerfile",
-    "@semgrep/lang-elixir": "file:../languages/elixir",
     "@semgrep/lang-go": "file:../languages/go",
     "@semgrep/lang-hack": "file:../languages/hack",
     "@semgrep/lang-html": "file:../languages/html",

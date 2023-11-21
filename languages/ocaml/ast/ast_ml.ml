@@ -158,7 +158,7 @@ type expr =
  * 'true' (and 'false') as Constructor ("true"), but not anymore
  *)
 and literal =
-  | Int of int option wrap
+  | Int of Parsed_int.t
   | Float of float option wrap
   | Char of string wrap
   | String of string wrap (* TODO bracket *)

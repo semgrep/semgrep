@@ -67,6 +67,20 @@ describe("yaml parser", () => {
       "test.yaml"
     );
   });
+});
+
+describe("misc", () => {
+  test("js representation handles large ints", async () => {
+    const engine = await enginePromise;
+    const python = require("../../languages/python/dist/index.cjs");
+    engine.addParser(await python.ParserFactory());
+    executeSnapshotTest(
+      engine,
+      "python",
+      "test-representation.json",
+      "test-representation.py"
+    );
+  });
   test("interpolates metavariables in rule message", async () => {
     const engine = await enginePromise;
     const python = require("../../languages/python/dist/index.cjs");
