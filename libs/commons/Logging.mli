@@ -89,6 +89,7 @@ end
    original Easy_logging API?
 *)
 val get_logger : string list -> logger
+val get_logger_zz : string -> logger
 
 (*
    Get all the loggers created and registered with 'get_logger'.

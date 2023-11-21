@@ -23,7 +23,8 @@ module RP = Core_result
 module In = Input_to_core_j
 module Out = Semgrep_output_v1_j
 
-let logger = Logging.get_logger [ __MODULE__ ]
+(* let logger = Logging.get_logger [ __MODULE__ ] *)
+let logger = Logging.get_logger_zz "test_zz"
 let debug_extract_mode = ref false
 
 (*****************************************************************************)
@@ -512,7 +513,8 @@ let iter_targets_and_get_matches_and_exn_to_errors config
   targets
   |> map_targets config.ncores (fun (target : In.target) ->
          let file = Fpath.v target.path in
-         logger#info "Analyzing %s" !!file;
+         let lang = target.analyzer |> Xlang.to_string in
+         logger#info "Analyzing [%s] %s" lang !!file;
          let (res, was_scanned), run_time =
            Common.with_time (fun () ->
                try
@@ -609,6 +611,13 @@ let iter_targets_and_get_matches_and_exn_to_errors config
            | Scanned -> Some file
            | Not_scanned -> None
          in
+         let scanned_path_str =
+           match scanned_path with
+           | Some path -> Fpath.to_string path
+           | None -> "<skipped>"
+         in
+         let formatted_run_time = Printf.sprintf "%.2f" run_time in
+         logger#info "Ran %s [%s] %s" formatted_run_time lang scanned_path_str;
          (Core_result.add_run_time run_time res, scanned_path))
   |> List.split
   |> fun (results, opt_paths) ->

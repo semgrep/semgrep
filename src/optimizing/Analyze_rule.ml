@@ -538,11 +538,14 @@ let eval_and p (And xs) =
          v)
 
 let run_cnf_step2 cnf big_str =
+  Parmap.disable_core_pinning ();
+  let ncores = max 1 (Parmap.get_default_ncores () + 1) in
+  let init _ = Logging.add_PID_tag () in
   cnf
   |> eval_and (function
        | Idents xs ->
-           xs
-           |> List.for_all (fun id ->
+           Parmap.L xs
+           |> Parmap.parmap ~init ~ncores ~chunksize:1 (fun id ->
                   logger#debug "check for the presence of %S" id;
                   (* TODO: matching_exact_word does not work, why??
                      because string literals and metavariables are put under Idents? *)
@@ -550,6 +553,7 @@ let run_cnf_step2 cnf big_str =
                   (* Note that in case of a PCRE error, we want to assume that the
                      rule is relevant, hence ~on_error:true! *)
                   Regexp_engine.unanchored_match ~on_error:true re big_str)
+           |> List.for_all (fun x -> x)
        | Regexp2_search re -> Regexp_engine.unanchored_match re big_str)
 [@@profiling]
 
@@ -612,6 +616,7 @@ let regexp_prefilter_of_formula ~xlang f : prefilter option =
               true )
   with
   | GeneralPattern -> None
+[@@profiling]
 
 let regexp_prefilter_of_taint_rule ~xlang (_rule_id, rule_tok) taint_spec =
   (* We must be able to match some source _and_ some sink. *)
@@ -636,6 +641,7 @@ let regexp_prefilter_of_taint_rule ~xlang (_rule_id, rule_tok) taint_spec =
         } )
   in
   regexp_prefilter_of_formula ~xlang f
+[@@profiling]
 
 let regexp_prefilter_of_rule ~cache (r : R.rule) =
   let rule_id, _t = r.R.id in
@@ -671,3 +677,4 @@ let regexp_prefilter_of_rule ~cache (r : R.rule) =
   match cache with
   | None -> regex_prefilter_fun ()
   | Some cache -> Common.memoized cache key regex_prefilter_fun
+[@@profiling]

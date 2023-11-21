@@ -20,13 +20,14 @@ let setup ~debug ~log_config_file ~log_to_file =
   let want_logging = debug || log_config_file <> None || log_to_file <> None in
 
   (* Set log destination: none, stderr, or file *)
-  (if want_logging then
+  (* (if want_logging then
      let handler =
        match log_to_file with
        | None -> Easy_logging.(Handlers.make (CliErr Debug))
        | Some file -> Easy_logging.(Handlers.make (File (!!file, Debug)))
      in
-     Logging.apply_to_all_loggers (fun logger -> logger#add_handler handler));
+     Logging.apply_to_all_loggers (fun logger -> logger#add_handler handler)
+     ); *)
 
   (* Set default level to Info rather than logging nothing (NoLevel). *)
   (if want_logging then Logging.(set_global_level Warning));

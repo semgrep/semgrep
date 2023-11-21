@@ -150,4 +150,5 @@ let get_logger xs : logger =
   all_loggers := logger :: !all_loggers;
   logger
 
+let get_logger_zz name : logger = Logging.get_logger name
 let load_config_file file = Logging.load_global_config_file file
