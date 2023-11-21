@@ -1,3 +1,5 @@
-Configuration is invalid - found 1 configuration error(s), and 1 rule(s).
-[ERROR] Rule parse error in rule eqeq:
- Expected exactly one key of `pattern`, `all`, `any`, `regex`, `not`, or `inside`
+semgrep scan: unknown option '--validate --strict --config rules/invalid-rules/additional-invalid-pattern-operator.yaml targets/basic', did you mean '-v'?
+Usage: semgrep scan [OPTION]… [TARGETS]…
+Try 'semgrep scan --help' for more information.
+Error: fatal error
+Exiting with error status 2: osemgrep --validate --strict --config rules/invalid-rules/additional-invalid-pattern-operator.yaml targets/basic

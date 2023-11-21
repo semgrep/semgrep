@@ -1,15 +1,5 @@
-Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
-semgrep error: Invalid rule schema
-  --> rules/invalid-rules/missing-hyphen.yaml:4
-4 |     - pattern: |
-5 |         foo
-6 |       pattern-not: |
-7 |         bar
-8 |   message: |
-
-Additional properties are not allowed ('pattern' was unexpected)
-Additional properties are not allowed ('pattern', 'pattern-not' were unexpected)
-Additional properties are not allowed ('pattern-not' was unexpected)
-
-[ERROR] Rule parse error in rule eqeq:
- Expected object with only one entry -- did you forget a hyphen?
+semgrep scan: unknown option '--validate --strict --config rules/invalid-rules/missing-hyphen.yaml targets/basic', did you mean '-v'?
+Usage: semgrep scan [OPTION]… [TARGETS]…
+Try 'semgrep scan --help' for more information.
+Error: fatal error
+Exiting with error status 2: osemgrep --validate --strict --config rules/invalid-rules/missing-hyphen.yaml targets/basic
