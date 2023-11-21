@@ -143,52 +143,64 @@ let has_serious_errors (res : _ Tree_sitter_run.Parsing_result.t) =
 let (run_parser : 'ast parser -> string (* filename *) -> 'ast internal_result)
     =
  fun parser file ->
-  match parser with
-  | Pfff f ->
-      Common.save_excursion Flag_parsing.show_parsing_error false (fun () ->
-          logger#trace "trying to parse with Pfff parser %s" file;
-          try
-            let res = f file in
-            ResOk res
-          with
-          | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
-          | exn ->
-              let e = Exception.catch exn in
-              (* TODO: print where the exception was raised or reraise *)
-              logger#error "exn (%s) with Pfff parser" (Common.exn_to_s exn);
-              ResError e)
-  | TreeSitter f -> (
-      logger#trace "trying to parse with TreeSitter parser %s" file;
-      try
-        let res = f file in
-        let stat = stat_of_tree_sitter_stat file res.stat in
-        match (res.program, has_serious_errors res) with
-        | None, None ->
-            let msg =
-              "internal error: failed to recover typed tree from tree-sitter's \
-               untyped tree"
-            in
-            ResError (Exception.trace (Failure msg))
-        | Some ast, None -> ResOk (ast, stat)
-        | None, Some ts_error ->
-            let e = error_of_tree_sitter_error ts_error in
-            logger#error "non-recoverable error with TreeSitter parser:\n%s"
-              (Exception.to_string e);
-            ResError e
-        | Some ast, Some _error ->
-            (* Note that the first error is probably the most important;
-             * the following one may be due to cascading effects *)
-            logger#error "partial errors (%d) with TreeSitter parser"
-              (List.length res.errors);
-            ResPartial (ast, stat, res.errors)
-      with
-      | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
-      (* to get correct stack trace on parse error *)
-      | exn when !debug_exn -> Exception.catch_and_reraise exn
-      | exn ->
-          let e = Exception.catch exn in
-          logger#error "exn (%s) with TreeSitter parser" (Common.exn_to_s exn);
-          ResError e)
+  let (res, parser_str), run_time =
+    Common.with_time (fun () ->
+        match parser with
+        | Pfff f ->
+            let parser_str = "Pfff" in
+            Common.save_excursion Flag_parsing.show_parsing_error false
+              (fun () ->
+                logger#trace "trying to parse with Pfff parser %s" file;
+                try
+                  let res = f file in
+                  (ResOk res, parser_str)
+                with
+                | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
+                | exn ->
+                    let e = Exception.catch exn in
+                    (* TODO: print where the exception was raised or reraise *)
+                    logger#error "exn (%s) with Pfff parser"
+                      (Common.exn_to_s exn);
+                    (ResError e, parser_str))
+        | TreeSitter f -> (
+            let parser_str = "TreeSitter" in
+            logger#trace "trying to parse with TreeSitter parser %s" file;
+            try
+              let res = f file in
+              let stat = stat_of_tree_sitter_stat file res.stat in
+              match (res.program, has_serious_errors res) with
+              | None, None ->
+                  let msg =
+                    "internal error: failed to recover typed tree from \
+                     tree-sitter's untyped tree"
+                  in
+                  (ResError (Exception.trace (Failure msg)), parser_str)
+              | Some ast, None -> (ResOk (ast, stat), parser_str)
+              | None, Some ts_error ->
+                  let e = error_of_tree_sitter_error ts_error in
+                  logger#error
+                    "non-recoverable error with TreeSitter parser:\n%s"
+                    (Exception.to_string e);
+                  (ResError e, parser_str)
+              | Some ast, Some _error ->
+                  (* Note that the first error is probably the most important;
+                   * the following one may be due to cascading effects *)
+                  logger#error "partial errors (%d) with TreeSitter parser"
+                    (List.length res.errors);
+                  (ResPartial (ast, stat, res.errors), parser_str)
+            with
+            | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
+            (* to get correct stack trace on parse error *)
+            | exn when !debug_exn -> Exception.catch_and_reraise exn
+            | exn ->
+                let e = Exception.catch exn in
+                logger#error "exn (%s) with TreeSitter parser"
+                  (Common.exn_to_s exn);
+                (ResError e, parser_str)))
+  in
+  let run_time_fmt = Printf.sprintf "%.2f" run_time in
+  logger#trace "run_parser %s sec [%s] %s" run_time_fmt parser_str file;
+  res
 
 let rec (run_either :
           string (* filename *) -> 'ast parser list -> 'ast internal_result) =

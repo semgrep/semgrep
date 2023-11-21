@@ -145,10 +145,12 @@ let add_PID_tag () =
       logger#add_tag_generator (fun () -> pid_string))
 
 let get_logger xs : logger =
-  let final_name = "Main" :: xs |> String.concat "." in
-  let logger = Logging.get_logger final_name in
-  all_loggers := logger :: !all_loggers;
-  logger
+  match xs with
+  | [] -> failwith "get_logger: empty name"
+  | x :: _ ->
+      let final_name = Fmt.str "Main.%s" x in
+      let logger = Logging.get_logger final_name in
+      all_loggers := logger :: !all_loggers;
+      logger
 
-let get_logger_zz name : logger = Logging.get_logger name
 let load_config_file file = Logging.load_global_config_file file
