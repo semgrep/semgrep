@@ -40,11 +40,14 @@ let test_scan_config_registry_no_token : Testutil.test =
       Testutil_files.with_tempdir ~chdir:true (fun _tmp_path ->
           TL.with_logs
             ~f:(fun () ->
-              CLI.main
+              (* TODO: those tests pass when run via ./test Osemgrep
+               * but fail when part of 'make core-test'
+               *)
+              Scan_subcommand.main
                 [|
-                  "semgrep";
-                  "scan";
+                  "semgrep-scan";
                   "--experimental";
+                  "--debug";
                   "--config";
                   "r/python.lang.correctness.useless-eqeq.useless-eqeq";
                 |])

@@ -33,9 +33,12 @@ open Testutil
 type result = { exit_code : Exit_code.t; logs : string }
 
 let with_logs ~f ~final =
-  Testutil_mock.with_mocked_logs ~f ~final:(fun log_content res ->
+  Testutil_mock.with_mocked_logs ~f ~final:(fun log_content code ->
       pr2 (spf "logs = %s" log_content);
-      final { exit_code = res; logs = log_content })
+      pr2
+        (spf "exit_code = %d, meaning = %s" (Exit_code.to_int code)
+           (Exit_code.to_message code));
+      final { exit_code = code; logs = log_content })
 
 (* we return a fun () to match Testutil.test second element *)
 let with_login_test_env f () =
