@@ -56,6 +56,11 @@ type exclusion_mechanism = Gitignore_and_semgrepignore | Only_semgrepignore
    The legacy built-in semgrepignore.
 
    It was copied from templates/.semgrepignore in the Python source.
+
+   NOTE: As of 2023-11-20, we have added proto files and migrations
+   to our built-in ignored list as a sane default for most users. This
+   fixed a rare segfault for Mac OS users, and speeds up local scans
+   more generally.
 *)
 let builtin_semgrepignore_for_semgrep_scan =
   {|
@@ -75,6 +80,12 @@ vendor/
 test/
 tests/
 *_test.go
+
+# Proto files
+**/protos/
+
+# ORM Migrations
+**/migrations/versions/
 
 # Semgrep rules folder
 .semgrep
