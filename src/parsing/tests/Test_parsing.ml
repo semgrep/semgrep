@@ -195,9 +195,6 @@ let dump_tree_sitter_cst lang file =
   | Lang.Terraform ->
       Tree_sitter_hcl.Parse.file file
       |> dump_and_print_errors Tree_sitter_hcl.Boilerplate.dump_tree
-  | Lang.Elixir ->
-      Tree_sitter_elixir.Parse.file file
-      |> dump_and_print_errors Tree_sitter_elixir.Boilerplate.dump_tree
   | Lang.Julia ->
       Tree_sitter_julia.Parse.file file
       |> dump_and_print_errors Tree_sitter_julia.Boilerplate.dump_tree
