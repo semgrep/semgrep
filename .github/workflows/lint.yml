@@ -16,13 +16,13 @@ jobs:
     - name: Fetch semgrep-cli submodules
       run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
     - uses: actions/setup-python@v4
-      env:
-        SKIP_OCAMLFORMAT: "yes"
       with:
         python-version: "3.11"
         cache: pip
         cache-dependency-path: .github/workflows/lint.yml
     - uses: pre-commit/action@v3.0.0
+      env:
+        SKIP_OCAMLFORMAT: "yes"
   pre-commit-manual:
     runs-on: ubuntu-latest
     steps:

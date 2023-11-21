@@ -35,10 +35,6 @@ local pre_commit_job = {
     // pre-commit is a Python script, this speedup things from Xmin to Ymin?
     {
       uses: 'actions/setup-python@v4',
-      env: {
-        // Tell scripts/lint-ocaml to not bother with ocamlformat
-        SKIP_OCAMLFORMAT: 'yes'
-      },
       with: {
         'python-version': '3.11',
         // This caches the pip installed dependencies that pre-commit uses.
@@ -56,6 +52,10 @@ local pre_commit_job = {
     // in CI, for the same PR.
     {
       uses: 'pre-commit/action@v3.0.0',
+      env: {
+        // Tell scripts/lint-ocaml to not bother with ocamlformat
+        SKIP_OCAMLFORMAT: 'yes'
+      },
     },
   ],
 };
