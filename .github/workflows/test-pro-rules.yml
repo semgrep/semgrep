@@ -61,6 +61,6 @@ jobs:
     - name: Test Pro rules
       run: "\n        cd ../semgrep-rules-proprietary/paid\n        # This rule is
         missing a target file\n        rm -f kotlin/ktor/active-debug-code/ktor-development-mode-yaml.yaml\n
-        \       ../../semgrep-proprietary/bin/semgrep-core-proprietary -test_rules
-        .\n      "
-
+        \       # This is much faster than `pysemgrep --test` and it's also stricter.\n
+        \       # TODO: Replace with `osemgrep-pro test` when that is ready.\n        ../../semgrep-proprietary/bin/semgrep-core-proprietary
+        -test_rules .\n      "

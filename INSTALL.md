@@ -6,7 +6,8 @@ Developers should consult the makefiles, which are documented.
 The steps to set up and build everything are normally:
 
 ```
-$ make dev-setup   # meant to be run infrequently, may not be sufficient
+$ git submodule update --init --recursive
+$ make setup       # meant to be run infrequently, may not be sufficient
 $ make             # routine build
 $ make test        # test everything
 ```
