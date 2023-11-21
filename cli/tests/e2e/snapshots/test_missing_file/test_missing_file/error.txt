@@ -1,0 +1,5 @@
+semgrep scan: unknown option '--strict --config rules/nosem.yaml --json targets/stupid-does-not-exist.p'.
+Usage: semgrep scan [OPTION]… [TARGETS]…
+Try 'semgrep scan --help' for more information.
+Error: fatal error
+Exiting with error status 2: osemgrep --strict --config rules/nosem.yaml --json targets/stupid-does-not-exist.p
