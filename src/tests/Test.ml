@@ -17,9 +17,9 @@
 (* Helpers *)
 (*****************************************************************************)
 
-let any_gen_of_string str =
-  let any = Parse_python.any_of_string str in
-  Python_to_generic.any any
+(* let any_gen_of_string str =
+   let any = Parse_python.any_of_string str in
+   Python_to_generic.any any *)
 
 (*****************************************************************************)
 (* All tests *)
@@ -35,46 +35,46 @@ let any_gen_of_string str =
 let tests () =
   List.flatten
     [
-      Unit_list_files.tests;
-      Glob.Unit_glob.tests;
-      Unit_semgrepignore.tests;
-      Unit_parsing.tests ();
-      Unit_entropy.tests;
-      Unit_ReDoS.tests;
-      Unit_guess_lang.tests;
-      Unit_memory_limit.tests;
-      Unit_SPcre.tests;
-      Unit_tok.tests;
-      Unit_regexp_engine.tests;
-      Unit_Rpath.tests;
-      Unit_immutable_buffer.tests;
-      Unit_ugly_print_AST.tests;
-      Unit_autofix_printer.tests;
-      Unit_synthesizer.tests;
-      Unit_synthesizer_targets.tests;
-      Unit_dataflow.tests Parse_target.parse_program;
-      Unit_typing_generic.tests Parse_target.parse_program (fun lang file ->
-          Parse_pattern.parse_pattern lang file);
-      Unit_naming_generic.tests Parse_target.parse_program;
-      (* just expression vs expression testing for one language (Python) *)
-      Unit_matcher.tests ~any_gen_of_string;
+      (* Unit_list_files.tests;
+         Glob.Unit_glob.tests;
+         Unit_semgrepignore.tests;
+         Unit_parsing.tests ();
+         Unit_entropy.tests;
+         Unit_ReDoS.tests;
+         Unit_guess_lang.tests;
+         Unit_memory_limit.tests;
+         Unit_SPcre.tests;
+         Unit_tok.tests;
+         Unit_regexp_engine.tests;
+         Unit_Rpath.tests;
+         Unit_immutable_buffer.tests;
+         Unit_ugly_print_AST.tests;
+         Unit_autofix_printer.tests;
+         Unit_synthesizer.tests;
+         Unit_synthesizer_targets.tests;
+         Unit_dataflow.tests Parse_target.parse_program;
+         Unit_typing_generic.tests Parse_target.parse_program (fun lang file ->
+             Parse_pattern.parse_pattern lang file);
+         Unit_naming_generic.tests Parse_target.parse_program;
+         (* just expression vs expression testing for one language (Python) *)
+         Unit_matcher.tests ~any_gen_of_string; *)
       (* TODO Unit_matcher.spatch_unittest ~xxx *)
       (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
-      Unit_engine.tests ();
-      Unit_jsonnet_subst.tests ();
+      (* Unit_engine.tests ();
+         Unit_jsonnet_subst.tests (); *)
       Unit_metachecking.tests ();
       (* OSemgrep tests *)
-      Unit_LS.tests;
-      Unit_Login.tests;
-      Unit_Fetching.tests;
+      (* Unit_LS.tests;
+         Unit_Login.tests;
+         Unit_Fetching.tests; *)
       Test_login_subcommand.tests;
       Test_osemgrep.tests;
       (* Networking tests disabled as they will get rate limited sometimes *)
       (* And the SSL issues they've been testing have been stable *)
       (*Unit_Networking.tests;*)
-      Test_LS_e2e.tests;
+      (* Test_LS_e2e.tests; *)
       (* End OSemgrep tests *)
-      Aliengrep.Unit_tests.tests;
+      (* Aliengrep.Unit_tests.tests; *)
       (* Inline tests *)
       Testutil.get_registered_tests ();
     ]

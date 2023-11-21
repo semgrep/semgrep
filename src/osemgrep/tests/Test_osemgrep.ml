@@ -15,6 +15,7 @@
 open Common
 open Testutil
 module TL = Test_login_subcommand
+module Env = Semgrep_envvars
 
 (*****************************************************************************)
 (* Prelude *)
@@ -37,12 +38,18 @@ module TL = Test_login_subcommand
 let test_scan_config_registry_no_token : Testutil.test =
   ( __FUNCTION__,
     fun () ->
-      Testutil_files.with_tempdir ~chdir:true (fun _tmp_path ->
+      Testutil_files.with_tempdir ~chdir:true (fun tmp_path ->
           TL.with_logs
             ~f:(fun () ->
               (* TODO: those tests pass when run via ./test Osemgrep
                * but fail when part of 'make core-test'
                *)
+              let f = Testutil_files.file "test.py" in
+              Testutil_files.write tmp_path [ f ];
+              let cache_dir =
+                Fpath.v (Fpath.to_string !Env.v.user_dot_semgrep_dir ^ "/cache")
+              in
+              Testutil_files.remove cache_dir;
               Scan_subcommand.main
                 [|
                   "semgrep-scan";
