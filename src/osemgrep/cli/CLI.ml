@@ -311,7 +311,7 @@ let main argv : Exit_code.t =
   (* hacks for having a smaller engine.js file *)
   Parsing_init.init ();
   Data_init.init ();
-  Http_helpers_.client_ref := Some (module Cohttp_lwt_unix.Client);
+  Http_helpers_.set_client_ref (module Cohttp_lwt_unix.Client);
 
   metrics_init ();
   (* TOPORT: maybe_set_git_safe_directories() *)

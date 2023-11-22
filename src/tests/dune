@@ -28,6 +28,7 @@
 
     osemgrep_language_server
     osemgrep_cli_login
+    osemgrep_tests
   )
  (modes native byte) ; bytecode here for debugging
  (preprocess
