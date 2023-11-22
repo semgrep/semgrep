@@ -13,7 +13,6 @@ of nosemgrep comments.
 See https://github.com/returntocorp/semgrep-action/blob/develop/src/semgrep_agent/findings.py
 and check that it's compatible with any change we're making here.
 """
-from attrs import evolve
 from boltons.iterutils import partition
 
 from semgrep.rule_match import RuleMatchMap
