@@ -13,7 +13,6 @@ def test_publish(tmp_path, mocker):
     runner = SemgrepRunner(
         env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")},
         use_click_runner=True,
-        mix_stderr=False,
     )
 
     tests_path = Path(TESTS_PATH / "e2e" / "targets" / "semgrep-publish" / "valid")
@@ -30,7 +29,7 @@ def test_publish(tmp_path, mocker):
         args=[valid_target],
     )
     assert result.exit_code == 2
-    assert "run `semgrep login` before using upload\n" in result.stderr
+    assert result.output == "run `semgrep login` before using upload\n"
 
     mocker.patch(
         "semgrep.app.auth.get_deployment_from_token", return_value="deployment_name"

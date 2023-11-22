@@ -59,7 +59,7 @@ def test_login(tmp_path, mocker):
     assert "API token already exists in" in result.output
 
     # Clear login
-    result = runner.invoke(cli, subcommand="login", args=[])
+    result = runner.invoke(cli, subcommand="logout", args=[])
     assert result.exit_code == 0
     assert result.output == expected_logout_str
 
