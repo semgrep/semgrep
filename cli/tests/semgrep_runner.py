@@ -148,8 +148,8 @@ class SemgrepRunner:
     def invoke(
         self,
         python_cli,
+        args: Union[str, Sequence[str]],
         subcommand: Optional[str] = None,
-        args: Optional[Union[str, Sequence[str]]] = None,
         input: Optional[str] = None,
         env=None,
     ) -> Result:

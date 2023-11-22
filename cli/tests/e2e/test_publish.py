@@ -8,6 +8,7 @@ from semgrep.cli import cli
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_publish(tmp_path, mocker):
     runner = SemgrepRunner(
         env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")},
@@ -19,14 +20,14 @@ def test_publish(tmp_path, mocker):
     valid_target = str(tests_path.resolve())
     valid_single_file_target = str((tests_path / "valid1.yaml").resolve())
 
-    result = runner.invoke(cli, subcommand="logout")
+    result = runner.invoke(cli, subcommand="logout", args=[])
     assert result.exit_code == 0
 
     # should require login
     result = runner.invoke(
         cli,
-        "publish",
-        [valid_target],
+        subcommand="publish",
+        args=[valid_target],
     )
     assert result.exit_code == 2
     assert "run `semgrep login` before using upload\n" in result.stderr
@@ -36,18 +37,20 @@ def test_publish(tmp_path, mocker):
     )
 
     # log back in
-    result = runner.invoke(cli, "login", [], env={"SEMGREP_APP_TOKEN": "fakeapitoken"})
+    result = runner.invoke(
+        cli, subcommand="login", args=[], env={"SEMGREP_APP_TOKEN": "fakeapitoken"}
+    )
     assert result.exit_code == 0
 
     # fails if no rule specified
-    result = runner.invoke(cli, "publish", [])
+    result = runner.invoke(cli, subcommand="publish", args=[])
     assert result.exit_code == 2
 
     # fails if invalid rule specified
     result = runner.invoke(
         cli,
-        "publish",
-        [
+        subcommand="publish",
+        args=[
             str(
                 Path(
                     TESTS_PATH / "e2e" / "targets" / "semgrep-publish" / "invalid"
@@ -61,8 +64,8 @@ def test_publish(tmp_path, mocker):
     # fails if a yaml with more than one rule is specified
     result = runner.invoke(
         cli,
-        "publish",
-        [
+        subcommand="publish",
+        args=[
             str(
                 Path(
                     TESTS_PATH / "e2e" / "targets" / "semgrep-publish" / "multirule"
@@ -79,8 +82,8 @@ def test_publish(tmp_path, mocker):
     # fails if --visibility=public without --rule-id
     result = runner.invoke(
         cli,
-        "publish",
-        ["--visibility=public", valid_target],
+        subcommand="publish",
+        args=["--visibility=public", valid_target],
     )
     assert result.exit_code == 2
     assert (
@@ -90,8 +93,8 @@ def test_publish(tmp_path, mocker):
 
     result = runner.invoke(
         cli,
-        "publish",
-        ["--visibility=public", valid_single_file_target],
+        subcommand="publish",
+        args=["--visibility=public", valid_single_file_target],
     )
     assert result.exit_code == 2
     assert "--visibility=public requires --registry-id" in result.output

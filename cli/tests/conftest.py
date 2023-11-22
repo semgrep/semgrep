@@ -392,7 +392,7 @@ def _run_semgrep(
     env_string = " ".join(f'{k}="{v}"' for k, v in env.items())
 
     runner = SemgrepRunner(env=env, mix_stderr=False, use_click_runner=use_click_runner)
-    click_result = runner.invoke(cli, args, input=stdin)
+    click_result = runner.invoke(cli, args=args, input=stdin)
     result = SemgrepResult(
         # the actual executable was either semgrep or osemgrep. Is it bad?
         f"{env_string} semgrep {args}",

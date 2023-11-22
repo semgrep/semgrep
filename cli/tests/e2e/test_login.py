@@ -23,10 +23,7 @@ def test_login(tmp_path, mocker):
     )
 
     # Logout
-    result = runner.invoke(
-        "logout",
-        cli,
-    )
+    result = runner.invoke(cli, subcommand="logout", args=[])
     assert result.exit_code == 0
     assert result.output == expected_logout_str
 
@@ -34,6 +31,7 @@ def test_login(tmp_path, mocker):
     result = runner.invoke(
         cli,
         subcommand="login",
+        args=[],
         input=fake_key,
     )
     assert result.exit_code == 2
@@ -43,6 +41,7 @@ def test_login(tmp_path, mocker):
     result = runner.invoke(
         cli,
         subcommand="login",
+        args=[],
         env={"SEMGREP_APP_TOKEN": fake_key},
     )
     assert result.exit_code == 0
@@ -53,18 +52,19 @@ def test_login(tmp_path, mocker):
     result = runner.invoke(
         cli,
         subcommand="login",
+        args=[],
         env={"SEMGREP_APP_TOKEN": fake_key},
     )
     assert result.exit_code == 2
     assert "API token already exists in" in result.output
 
     # Clear login
-    result = runner.invoke(cli, subcommand="login")
+    result = runner.invoke(cli, subcommand="login", args=[])
     assert result.exit_code == 0
     assert result.output == expected_logout_str
 
     # Logout twice should work
-    result = runner.invoke(cli, subcommand="logout")
+    result = runner.invoke(cli, subcommand="logout", args=[])
     assert result.exit_code == 0
     assert result.output == expected_logout_str
 
@@ -72,6 +72,7 @@ def test_login(tmp_path, mocker):
     result = runner.invoke(
         cli,
         subcommand="login",
+        args=[],
         env={"SEMGREP_APP_TOKEN": fake_key},
     )
     assert result.exit_code == 0
