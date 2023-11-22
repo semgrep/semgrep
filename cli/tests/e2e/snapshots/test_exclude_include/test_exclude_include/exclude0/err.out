@@ -5,14 +5,16 @@
 └─────────────┘
   Scanning 5 files tracked by git with 4 Code rules:
   Scanning 2 files.
-
-
-┌──────────────┐
-│ Scan Summary │
-└──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-  Scan skipped: 2 files matching --exclude patterns
-  For a full list of skipped files, run semgrep with the --verbose flag.
-
-Ran 1 rule on 2 files: 2 findings.
+RuleMatch.__init__() got an unexpected keyword argument 'is_ignored'
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 37, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/scan.py", line 636, in scan
+    ) = semgrep.run_scan.run_scan(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/run_scan.py", line 671, in run_scan
+    filtered_matches_by_rule = filter_ignored(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/nosemgrep.py", line 51, in filter_ignored
+    evolved_matches.append(evolve(match, is_ignored=ignored))
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/attr/_funcs.py", line 413, in evolve
+    return cls(**changes)
+TypeError: RuleMatch.__init__() got an unexpected keyword argument 'is_ignored'

@@ -3,7 +3,7 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITO
 === end of command
 
 === exit code
-1
+2
 === end of exit code
 
 === stdout - plain
@@ -44,42 +44,19 @@ Creating git worktree from 'b903231925961ac9d787ae53ee0bd15ec156e689' to scan ba
 └─────────────┘
   Scanning 1 file tracked by git with 1 Code rule:
   Scanning 1 file.
-
-
-┌──────────────────────────────┐
-│ 2 Non-blocking Code Findings │
-└──────────────────────────────┘
-
-    bar.py
-       eqeq-five
-          useless comparison to 5
-
-           ▶▶┆ Autofix ▶ (bar == 2)
-            1┆ bar == 5
-
-    foo.py
-       eqeq-five
-          useless comparison to 5
-
-           ▶▶┆ Autofix ▶ (foo == 2)
-            2┆ foo == 5
-
-
-
-┌──────────────┐
-│ Scan Summary │
-└──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files changed since baseline commit.
-
-CI scan completed successfully.
-  Found 2 findings (0 blocking) from 7 rules.
-  Uploading scan results
-  Finalizing scan           View results in Semgrep Cloud Platform:
-    https://semgrep.dev/orgs/org_name/findings
-    https://semgrep.dev/orgs/org_name/supply-chain
-  No blocking findings so exiting with code 0
-  semgrep.dev is suggesting a non-zero exit code (Test Reason)
+RuleMatch.__init__() got an unexpected keyword argument 'is_ignored'
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 37, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/ci.py", line 436, in ci
+    ) = semgrep.run_scan.run_scan(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/run_scan.py", line 671, in run_scan
+    filtered_matches_by_rule = filter_ignored(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/nosemgrep.py", line 51, in filter_ignored
+    evolved_matches.append(evolve(match, is_ignored=ignored))
+  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/attr/_funcs.py", line 413, in evolve
+    return cls(**changes)
+TypeError: RuleMatch.__init__() got an unexpected keyword argument 'is_ignored'
 
 === end of stdout - plain
 
