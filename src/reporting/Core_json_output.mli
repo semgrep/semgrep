@@ -1,16 +1,13 @@
-type render_fix = Pattern_match.t -> Textedit.t option
-
 (* Can return an Error because when have a NoTokenLocation exn when
  * trying to get the range of a match or metavar.
  *)
 val match_to_match :
-  render_fix option ->
-  Pattern_match.t ->
+  Pattern_match.t * Textedit.t option ->
   (Semgrep_output_v1_t.core_match, Core_error.t) Common.either
 
 (* Note that this uses and reset !Core_error.g_errors internally *)
 val core_output_of_matches_and_errors :
-  render_fix option -> Core_result.t -> Semgrep_output_v1_t.core_output
+  Core_result.t -> Semgrep_output_v1_t.core_output
 
 (* for abstract_content and subpatterns matching-explanations
  * TODO: should not use! the result may miss some commas

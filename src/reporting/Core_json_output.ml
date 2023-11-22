@@ -24,15 +24,6 @@ module Out = Semgrep_output_v1_j
 module OutUtils = Semgrep_output_utils
 
 (*****************************************************************************)
-(* Types *)
-(*****************************************************************************)
-(* This is to avoid circular dependencies. We can't call
- * Autofix.render_fix in this library, so we need to pass it
- * as a function argument
- *)
-type render_fix = Pattern_match.t -> Textedit.t option
-
-(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
@@ -209,8 +200,8 @@ let taint_trace_to_dataflow_trace (traces : PM.taint_trace_item list) :
     taint_sink = taint_call_trace sink_call_trace;
   }
 
-let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
-    =
+let unsafe_match_to_match ((x : Pattern_match.t), (edit : Textedit.t option)) :
+    Out.core_match =
   let min_loc, max_loc = x.range_loc in
   let startp, endp = OutUtils.position_range min_loc max_loc in
   let dataflow_trace =
@@ -219,10 +210,12 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
         | (lazy trace) -> taint_trace_to_dataflow_trace trace)
       x.taint_trace
   in
-  let rendered_fix =
-    let* render_fix = render_fix_opt in
-    let* edit = render_fix x in
-    Some edit.Textedit.replacement_text
+  let metavars = x.env |> Common.map (metavars startp) in
+  (* message where the metavars have been interpolated *)
+  (* TODO(secrets): apply masking logic here *)
+  let message =
+    Metavar_replacement.interpolate_metavars x.rule_id.message
+      (Metavar_replacement.of_bindings x.env)
   in
   (* We need to do this, because in Terraform, we may end up with a `file` which
      does not correspond to the actual location of the tokens. This `file` is
@@ -246,22 +239,23 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
     (* end inherited location *)
     extra =
       {
-        message = Some x.rule_id.message;
+        message = Some message;
         severity = x.severity_override;
         metadata = Option.map JSON.to_yojson x.metadata_override;
-        metavars = x.env |> Common.map (metavars startp);
+        metavars;
         dataflow_trace;
-        rendered_fix;
+        rendered_fix =
+          Option.map (fun edit -> edit.Textedit.replacement_text) edit;
         engine_kind = x.engine_kind;
         validation_state = Some x.validation_state;
         extra_extra = None;
       };
   }
 
-let match_to_match render_fix (x : Pattern_match.t) :
+let match_to_match ((x : Pattern_match.t), (edit : Textedit.t option)) :
     (Out.core_match, Core_error.t) Common.either =
   try
-    Left (unsafe_match_to_match render_fix x)
+    Left (unsafe_match_to_match (x, edit))
     (* raised by min_max_ii_by_pos in range_of_any when the AST of the
      * pattern in x.code or the metavar does not contain any token
      *)
@@ -302,7 +296,7 @@ let rec explanation_to_explanation (exp : Matching_explanation.t) :
   {
     Out.op;
     children = children |> Common.map explanation_to_explanation;
-    matches = matches |> Common.map (unsafe_match_to_match None);
+    matches = matches |> Common.map (fun m -> unsafe_match_to_match (m, None));
     loc = OutUtils.location_of_token_location tloc;
   }
 
@@ -391,10 +385,9 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
 (* Final semgrep-core output *)
 (*****************************************************************************)
 
-let core_output_of_matches_and_errors render_fix (res : Core_result.t) :
-    Out.core_output =
+let core_output_of_matches_and_errors (res : Core_result.t) : Out.core_output =
   let matches, new_errs =
-    Common.partition_either (match_to_match render_fix) res.matches
+    Common.partition_either match_to_match res.matches_with_fixes
   in
   let errs = !E.g_errors @ new_errs @ res.errors in
   E.g_errors := [];

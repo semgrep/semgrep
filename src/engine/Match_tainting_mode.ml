@@ -104,15 +104,6 @@ module DataflowY = Dataflow_core.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F2.n
 end)
 
-let convert_rule_id (id, _tok) =
-  {
-    PM.id;
-    message = "";
-    pattern_string = Rule_ID.to_string id;
-    fix = None;
-    langs = [];
-  }
-
 let option_bind_list opt f =
   match opt with
   | None -> []
@@ -974,7 +965,6 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
                     Common.spf "with rule %s" (Rule_ID.to_string m.rule_id.id)
                   in
                   match_hook str m))
-    |> Common.map (fun m -> { m with PM.rule_id = convert_rule_id rule.R.id })
   in
   let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
   let report =

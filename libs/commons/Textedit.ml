@@ -23,6 +23,7 @@ type t = {
   end_ : int;
   replacement_text : string;
 }
+[@@deriving show]
 
 type edit_application_result =
   | Success of string

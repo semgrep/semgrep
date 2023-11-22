@@ -5,31 +5,37 @@
 *)
 val tests : unit -> Testutil.test list
 
+type fix_type =
+  | Fix of string
+  | FixRegex of
+      (* regex *) string * (* count *) int option * (* replacement *) string
+  | NoFix
+
 (* Can be used from other test code to concisely run Semgrep *)
 val match_pattern :
   lang:Lang.t ->
   hook:(Pattern_match.t -> unit) ->
   file:Fpath.t ->
   pattern:string ->
-  fix_pattern:string option ->
+  fix:fix_type ->
   Pattern_match.t list
 
 (*
-   Generate a test suite for a list of languages.
-   Two main folders are expected:
-   - test_pattern_path: folder containing one subfolder per language
-   - polyglot_pattern_path: folder containing patterns shared by multiple
-     languages.
+  Generate a test suite for a list of languages.
+  Two main folders are expected:
+  - test_pattern_path: folder containing one subfolder per language
+  - polyglot_pattern_path: folder containing patterns shared by multiple
+    languages.
 
-   Each language is specified as a triple:
-   - language of type Lang.t e.g. Lang.Ruby
-   - subdirectory containing the test cases e.g. "ruby"
-   - language extension of the target files e.g. ".rb"
+  Each language is specified as a triple:
+  - language of type Lang.t e.g. Lang.Ruby
+  - subdirectory containing the test cases e.g. "ruby"
+  - language extension of the target files e.g. ".rb"
 
-   Each language folder contains pairs of files:
-   - foo.rb: target file for the test case "foo".
-   - foo.sgrep: target file for the test case "foo". If missing, it must
-     exist in the polyglot folder.
+  Each language folder contains pairs of files:
+  - foo.rb: target file for the test case "foo".
+  - foo.sgrep: target file for the test case "foo". If missing, it must
+    exist in the polyglot folder.
 *)
 val make_lang_regression_tests :
   test_pattern_path:Fpath.t ->

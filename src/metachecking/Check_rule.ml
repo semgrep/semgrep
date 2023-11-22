@@ -223,7 +223,9 @@ let semgrep_check config metachecks rules : Core_error.t list =
   in
   let res = Core_scan.scan_with_exn_handler config in
   match res with
-  | Ok result -> result.matches |> Common.map match_to_semgrep_error
+  | Ok result ->
+      result.matches_with_fixes |> Common.map fst
+      |> Common.map match_to_semgrep_error
   | Error (exn, _) -> Exception.reraise exn
 
 (* TODO *)
@@ -287,7 +289,7 @@ let check_files mk_config fparser input =
       let (res : Core_result.t) =
         Core_result.mk_final_result_with_just_errors errors
       in
-      let json = Core_json_output.core_output_of_matches_and_errors None res in
+      let json = Core_json_output.core_output_of_matches_and_errors res in
       pr (SJ.string_of_core_output json)
 
 let stat_files fparser xs =
