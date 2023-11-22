@@ -22,7 +22,7 @@ module P = Pattern_match
 module RP = Core_result
 module SJ = Semgrep_output_v1_j
 module Set = Set_
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 

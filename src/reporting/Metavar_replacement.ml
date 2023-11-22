@@ -1,6 +1,6 @@
 open Common
 module MV = Metavariable
-module Out = Semgrep_output_v1_j
+module OutJ = Semgrep_output_v1_j
 module OutUtils = Semgrep_output_utils
 module G = AST_generic
 

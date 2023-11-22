@@ -1,4 +1,4 @@
-module Out = Semgrep_output_v1_j
+module OutJ = Semgrep_output_v1_j
 
 (*****************************************************************************)
 (* Prelude *)

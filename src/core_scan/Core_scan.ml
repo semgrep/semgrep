@@ -21,7 +21,7 @@ module MR = Mini_rule
 module R = Rule
 module RP = Core_result
 module In = Input_to_core_j
-module Out = Semgrep_output_v1_j
+module OutJ = Semgrep_output_v1_j
 
 let logger = Logging.get_logger [ __MODULE__ ]
 let debug_extract_mode = ref false

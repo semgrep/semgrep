@@ -1,5 +1,5 @@
 open Common
-module Out = Semgrep_output_v1_j
+module OutJ = Semgrep_output_v1_j
 module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (*****************************************************************************)

@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-module Out = Semgrep_output_v1_j
+module OutJ = Semgrep_output_v1_j
 module E = Core_error
 
 let logger = Logging.get_logger [ __MODULE__ ]

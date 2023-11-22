@@ -1,6 +1,6 @@
 open Testutil
 open File.Operators
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 module In = Input_to_core_t
 
 (** Try to test all of the more complex parts of the LS, but save the e2e stuff

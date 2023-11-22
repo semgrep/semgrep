@@ -1,4 +1,4 @@
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 module Arg = Cmdliner.Arg
 module Cmd = Cmdliner.Cmd
 module Term = Cmdliner.Term

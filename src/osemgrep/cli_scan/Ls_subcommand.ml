@@ -4,7 +4,7 @@
 *)
 
 open Common
-module Out = Semgrep_output_v1_j
+module OutJ = Semgrep_output_v1_j
 
 let run ~target_roots ~targeting_conf:conf () =
   let selected, skipped = Find_targets.get_targets conf target_roots in

@@ -1,6 +1,6 @@
 open Lsp
 open Types
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 let range_of_cli_match (m : Out.cli_match) =
   Range.create

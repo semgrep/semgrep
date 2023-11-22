@@ -14,7 +14,7 @@
  *)
 open Common
 module MV = Metavariable
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 

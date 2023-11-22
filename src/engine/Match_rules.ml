@@ -18,7 +18,7 @@ module R = Rule
 module RP = Core_result
 module Resp = Semgrep_output_v1_t
 module E = Core_error
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 

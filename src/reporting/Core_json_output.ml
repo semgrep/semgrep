@@ -20,7 +20,7 @@ module MV = Metavariable
 module RP = Core_result
 module PM = Pattern_match
 open Pattern_match
-module Out = Semgrep_output_v1_j
+module OutJ = Semgrep_output_v1_j
 module OutUtils = Semgrep_output_utils
 
 (*****************************************************************************)

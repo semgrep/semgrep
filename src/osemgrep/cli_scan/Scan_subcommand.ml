@@ -16,7 +16,7 @@ open Common
 open File.Operators
 module C = Rules_config
 module Env = Semgrep_envvars
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 module SS = Set.Make (String)
 
 (*****************************************************************************)

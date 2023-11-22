@@ -1,7 +1,7 @@
 open Lsp
 open Types
 module Conv = Convert_utils
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 let diagnostic_of_match is_intellij (m : Out.cli_match) =
   let severity = Conv.convert_severity m.extra.severity in

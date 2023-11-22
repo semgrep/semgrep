@@ -19,7 +19,7 @@ open Pfff_or_tree_sitter
 open Parsing_result2
 module Flag = Flag_semgrep
 module E = Core_error
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
