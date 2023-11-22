@@ -5,7 +5,7 @@ rules:
     message: Test
     mode: taint
     pattern-sources:
-      - by-side-effect: only
+      - by-side-effect: true
         patterns:
         - pattern: lock($L)
         - focus-metavariable: $L

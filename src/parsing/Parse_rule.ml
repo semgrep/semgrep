@@ -213,7 +213,7 @@ let parse_by_side_effect env (key : key) x =
   | G.L (String (_, ("true", _), _)) -> R.Only
   | G.L (String (_, ("false", _), _)) -> R.No
   | G.L (String (_, ("only", _), _)) -> R.Only
-  | G.L (Bool (b, _)) -> if b then R.Yes else R.No
+  | G.L (Bool (b, _)) -> if b then R.Only else R.No
   | _x -> error_at_key env.id key (spf "parse_by_side_effect for %s" (fst key))
 
 let requires_expr_to_precondition env key e =
