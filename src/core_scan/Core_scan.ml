@@ -22,6 +22,7 @@ module R = Rule
 module RP = Core_result
 module In = Input_to_core_j
 module OutJ = Semgrep_output_v1_j
+module Extract = Match_extract_mode
 
 let logger = Logging.get_logger [ __MODULE__ ]
 let debug_extract_mode = ref false
@@ -127,7 +128,7 @@ let debug_extract_mode = ref false
 (* Types *)
 (*****************************************************************************)
 
-type was_scanned = Scanned of Fpath.t | Not_scanned
+type was_scanned = Scanned of { original_target : Fpath.t } | Not_scanned
 
 (* The type of the semgrep core scan. We define it here so that
    semgrep and semgrep-proprietary use the same definition *)
@@ -570,7 +571,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config
                    in
                    ( Core_result.make_match_result [] errors
                        (Core_profiling.empty_partial_profiling file),
-                     Scanned file )
+                     Scanned { original_target = file } )
                (* those were converted in Main_timeout in timeout_function()*)
                (* FIXME:
                   Actually, I managed to get this assert to trigger by running
@@ -603,11 +604,11 @@ let iter_targets_and_get_matches_and_exn_to_errors config
                    in
                    ( Core_result.make_match_result [] errors
                        (Core_profiling.empty_partial_profiling file),
-                     Scanned file ))
+                     Scanned { original_target = file } ))
          in
          let scanned_path =
            match was_scanned with
-           | Scanned file -> Some file
+           | Scanned { original_target } -> Some original_target
            | Not_scanned -> None
          in
          (Core_result.add_run_time run_time res, scanned_path))
@@ -761,8 +762,7 @@ let extracted_targets_of_config (config : Core_scan_config.t)
                t.analyzer (Fpath.v file)
            in
            let extracted_targets =
-             Match_extract_mode.extract_nested_lang ~match_hook
-               ~timeout:config.timeout
+             Extract.extract_nested_lang ~match_hook ~timeout:config.timeout
                ~timeout_threshold:config.timeout_threshold extractors xtarget
            in
            (* Print number of extra targets so Python knows *)
@@ -770,13 +770,21 @@ let extracted_targets_of_config (config : Core_scan_config.t)
              add_additional_targets config (List.length extracted_targets);
            extracted_targets)
   in
+  (* Separate out the ranges *)
+  let ranges = List.fold_right (fun (t, _) ts -> t :: ts) extracted_ranges [] in
+
+  (* Build the hashtables for mapping back the ranges *)
+  (* TODO these would be better as Maps *)
   let num_targets = List.length basic_targets in
-  (List.fold_right (fun (t, fn, (newf, origf)) (ts, fn_tbl, file_tbl) ->
-       Hashtbl.add fn_tbl t.Input_to_core_t.path fn;
-       Hashtbl.add file_tbl newf origf;
-       (t :: ts, fn_tbl, file_tbl)))
-    extracted_ranges
-    ([], Hashtbl.create num_targets, Hashtbl.create num_targets)
+  let fn_tbl = Hashtbl.create num_targets in
+  let file_tbl = Hashtbl.create num_targets in
+  List.iter
+    (fun (t, { Extract.original_target; location_adjuster }) ->
+      Hashtbl.add fn_tbl t.Input_to_core_t.path location_adjuster;
+      Hashtbl.add file_tbl t.path original_target)
+    extracted_ranges;
+
+  (ranges, fn_tbl, file_tbl)
 
 (*****************************************************************************)
 (* a "core" scan *)
@@ -885,7 +893,7 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
              match applicable_rules with
              | [] -> Not_scanned
              | _ ->
-                 let file =
+                 let original_target =
                    (* Map back extracted targets when saving files as scanned *)
                    match
                      Hashtbl.find_opt extract_targets_map (Fpath.to_string file)
@@ -893,7 +901,7 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
                    | None -> file
                    | Some orig -> orig
                  in
-                 Scanned file
+                 Scanned { original_target }
            in
            (* TODO: can we skip all of this if there are no applicable
               rules? In particular, can we skip update_cli_progress? *)
