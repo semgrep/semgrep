@@ -559,7 +559,14 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     let (res : Core_runner.result) =
       let res = Core_runner.create_core_result filtered_rules exn_and_matches in
       (* step 3'': filter via nosemgrep *)
-      let filtered_matches = Nosemgrep.filter_ignored res.core.results in
+      let keep_ignored =
+        (not conf.nosem) (* --disable-nosem *) || false
+        (* TODO(dinosaure): [false] depends on the output formatter. Currently,
+           we just have the JSON output. *)
+      in
+      let filtered_matches =
+        Nosemgrep.filter_ignored ~keep_ignored res.core.results
+      in
       { res with core = { res.core with results = filtered_matches } }
     in
 

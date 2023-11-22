@@ -213,5 +213,7 @@ let produce_ignored (matches : Core_result.processed_match list) :
   in
   (matches, List.concat wide_errors)
 
-let filter_ignored (matches : OutJ.core_match list) =
-  matches |> List.filter (fun (m : OutJ.core_match) -> not m.extra.is_ignored)
+let filter_ignored ~keep_ignored (matches : OutJ.core_match list) =
+  matches
+  |> List.filter (fun (m : OutJ.core_match) ->
+         keep_ignored || not m.extra.is_ignored)
