@@ -14,7 +14,7 @@
  *)
 open File.Operators
 module E = Core_error
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 module PM = Pattern_match
 
 (*****************************************************************************)
@@ -80,7 +80,7 @@ let error env msg =
   let loc = Tok.first_loc_of_file !!(env.xtarget.Xtarget.file) in
   (* TODO: warning or error? MatchingError or ... ? *)
   let err =
-    E.mk_error (Some (fst env.rule.Rule.id)) loc msg Out.MatchingError
+    E.mk_error (Some (fst env.rule.Rule.id)) loc msg OutJ.MatchingError
   in
   env.errors := Core_error.ErrorSet.add err !(env.errors)
 

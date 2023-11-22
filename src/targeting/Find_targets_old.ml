@@ -1,7 +1,7 @@
 open Common
 open File.Operators
 module In = Input_to_core_t
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 module Resp = Semgrep_output_v1_t
 open Find_targets (* conf type *)
 
@@ -64,7 +64,7 @@ let global_filter ~opt_lang ~sort_by_decr_size paths =
   in
   let sorted_skipped =
     List.sort
-      (fun (a : Out.skipped_target) b -> Fpath.compare a.path b.path)
+      (fun (a : OutJ.skipped_target) b -> Fpath.compare a.path b.path)
       skipped
   in
   (sorted_paths, sorted_skipped)
@@ -356,7 +356,7 @@ let files_of_dirs_or_files ?(keep_root_files = true)
   in
   let sorted_skipped =
     List.sort
-      (fun (a : Out.skipped_target) b -> Fpath.compare a.path b.path)
+      (fun (a : OutJ.skipped_target) b -> Fpath.compare a.path b.path)
       skipped
   in
   (sorted_paths, sorted_skipped)

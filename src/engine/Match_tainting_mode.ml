@@ -26,7 +26,7 @@ module T = Taint
 module Lval_env = Taint_lval_env
 module MV = Metavariable
 module ME = Matching_explanation
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 module Labels = Set.Make (String)
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -651,13 +651,13 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
       in
       [
         {
-          ME.op = Out.TaintSource;
+          ME.op = OutJ.TaintSource;
           pos = fst spec.sources;
           children = expls_sources;
           matches = ranges_to_pms sources_ranges;
         };
         {
-          ME.op = Out.TaintSink;
+          ME.op = OutJ.TaintSink;
           pos = fst spec.sinks;
           children = expls_sinks;
           matches = ranges_to_pms sinks_ranges;
@@ -670,7 +670,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
       | Some (tok, _) ->
           [
             {
-              ME.op = Out.TaintSanitizer;
+              ME.op = OutJ.TaintSanitizer;
               pos = tok;
               children = expls_sanitizers;
               (* 'sanitizer_ranges' will be affected by `not-conflicting: true`:
@@ -975,7 +975,7 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
     if xconf.matching_explanations then
       [
         {
-          ME.op = Out.Taint;
+          ME.op = OutJ.Taint;
           children = expls;
           matches = report.matches;
           pos = snd rule.id;
