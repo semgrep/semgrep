@@ -1739,6 +1739,10 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
   | `Super_exp v1 ->
       let tok = token env v1 in
       IdSpecial (Super, tok) |> G.e
+  | `Call_exp (v1, v2) ->
+      let v1 = expression env v1 in
+      let v2 = call_suffix env v2 in
+      Call (v1, v2) |> G.e
   | `If_exp (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "if" *) in
       let _v2 = token env v2 (* "(" *) in
@@ -2065,10 +2069,6 @@ and unary_expression (env : env) (x : CST.unary_expression) =
       let v1 = expression env v1 in
       let v2 = postfix_unary_operator env v2 in
       v2 v1
-  | `Call_exp (v1, v2) ->
-      let v1 = expression env v1 in
-      let v2 = call_suffix env v2 in
-      Call (v1, v2) |> G.e
   | `Inde_exp (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = indexing_suffix env v2 in
