@@ -10,19 +10,21 @@
 *)
 type conf = {
   (* mix of --dump-ast/--dump-rule/... *)
-  target : target_kind;
+  show_kind : show_kind;
   json : bool;
 }
 
-and target_kind =
-  | Pattern of string * Lang.t
-  | File of Fpath.t * Lang.t
-  | Config of Rules_config.config_string
-  | EnginePath of bool (* pro = true *)
-  | CommandForCore
+and show_kind =
+  | Version
   | SupportedLanguages
   | Identity
   | Deployment
+  (* dumpers *)
+  | DumpPattern of string * Lang.t
+  | DumpAST of Fpath.t * Lang.t
+  | DumpConfig of Rules_config.config_string
+  | DumpEnginePath of bool (* pro = true *)
+  | DumpCommandForCore
 [@@deriving show]
 
 (*

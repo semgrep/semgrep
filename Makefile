@@ -261,17 +261,26 @@ pro:
 # Platform-independent dependencies installation
 # **************************************************
 
+# We need to install all the dependencies in a single 'opam install'
+# command so as to detect conflicts.
+REQUIRED_DEPS = ./ ./libs/ocaml-tree-sitter-core ./dev/required.opam
+OPTIONAL_DEPS = $(REQUIRED_DEPS) ./dev/optional.opam
+
 # This target is portable; it only assumes you have 'gcc', 'opam' and
 # other build-essential tools and a working OCaml (e.g., ocamlc) switch setup.
 # Note that this target is now called from our Dockerfile, so do not
 # run 'opam update' below to not slow down things.
+.PHONY: install-deps-for-semgrep-core
 install-deps-for-semgrep-core: semgrep.opam
 	# Fetch, build and install the tree-sitter runtime library locally.
 	cd libs/ocaml-tree-sitter-core \
 	&& ./configure \
 	&& ./scripts/install-tree-sitter-lib
 	# Install OCaml dependencies (globally) from *.opam files.
-	opam install -y --deps-only ./ ./libs/ocaml-tree-sitter-core
+	# This now also installs the dev dependencies. This has the benefit
+	# of installing all the packages in one shot and detecting possible
+	# version conflicts.
+	opam install -y --deps-only $(REQUIRED_DEPS)
 
 # This will fail if semgrep.opam isn't up-to-date (in git),
 # and dune isn't installed yet. You can always install dune with
@@ -378,8 +387,8 @@ homebrew-setup:
 	# because this check was failing on some platform.
 	# See details at https://github.com/Homebrew/homebrew-core/pull/82693.
 	# This workaround may no longer be necessary.
-	opam install -y --deps-only --no-depexts ./libs/ocaml-tree-sitter-core
-	LIBRARY_PATH="/opt/homebrew/lib" opam install -y --deps-only --no-depexts ./
+	# LIBRARY_PATH is set here so we build lwt w/libev
+	LIBRARY_PATH="$$(brew --prefix)/lib" opam install -y --deps-only --no-depexts $(REQUIRED_DEPS)
 
 # -------------------------------------------------
 # Arch Linux
@@ -399,16 +408,11 @@ setup: semgrep.opam
 	opam update -y
 	$(MAKE) install-deps-for-semgrep-core
 
-# Install development dependencies in addition to build dependencies.
+# Install optional development dependencies in addition to build dependencies.
 .PHONY: dev-setup
 dev-setup:
 	$(MAKE) setup
-	# This is partly redundant with `make setup`, called above. We include `./`
-	# and `./libs/ocaml-tree-sitter-core` so that if the dependencies specified in
-	# `./dev` conflict with any of the other dependencies, we get a conflict
-	# message here rather than having this command silently install the versions
-	# that `./dev` requires, potentially breaking the build.
-	opam install -y --deps-only ./dev ./ ./libs/ocaml-tree-sitter-core
+	opam install -y --deps-only $(OPTIONAL_DEPS)
 
 # Update and rebuild everything within the project.
 .PHONY: rebuild

@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2021 Semgrep Inc.
+ * Copyright (C) 2021-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -102,7 +102,7 @@ let mk_error_tok opt_rule_id tok msg err =
   let loc = Tok.unsafe_loc_of_tok tok in
   mk_error opt_rule_id loc msg err
 
-let error rule_id loc msg err =
+let push_error rule_id loc msg err =
   Common.push (mk_error (Some rule_id) loc msg err) g_errors
 
 let error_of_invalid_rule_error ((kind, rule_id, pos) : R.invalid_rule_error) :

@@ -266,7 +266,7 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
         |> List.iter
              (fun
                (res : Core_profiling.partial_profiling Core_result.match_result)
-             -> res.matches |> List.iter Core_json_output.match_to_error);
+             -> res.matches |> List.iter Core_json_output.match_to_push_error);
         (if not (E.ErrorSet.is_empty res.errors) then
            let errors =
              E.ErrorSet.elements res.errors
@@ -274,6 +274,7 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
            in
            failwith (spf "parsing error(s) on %s:\n%s" !!file errors));
         let actual_errors = !E.g_errors in
+        E.g_errors := [];
         actual_errors
         |> List.iter (fun e ->
                logger#info "found error: %s" (E.string_of_error e));

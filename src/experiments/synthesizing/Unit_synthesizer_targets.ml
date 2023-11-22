@@ -72,13 +72,17 @@ let ranges_matched lang file pattern : Range.t list =
   (* Are equivalences necessary for this? *)
   let matches =
     Match_patterns.check
-      ~hook:(fun { Pattern_match.tokens = (lazy xs); _ } ->
-        let toks = xs |> List.filter Tok.is_origintok in
-        let minii, _maxii = Tok_range.min_max_toks_by_pos toks in
-        let minii_loc = Tok.unsafe_loc_of_tok minii in
-        E.error
-          (Rule_ID.of_string "Synthesizer-tests")
-          minii_loc "" Out.SemgrepMatchFound)
+      ~hook:(fun { Pattern_match.tokens = (lazy _xs); _ } ->
+        ()
+        (* TODO: commented because push_error below leaves a bad state
+           for other tests, and anyway the code does not seem used
+                let toks = xs |> List.filter Tok.is_origintok in
+                let minii, _maxii = Tok_range.min_max_toks_by_pos toks in
+                let minii_loc = Tok.unsafe_loc_of_tok minii in
+                E.push_error
+                  (Rule_ID.of_string "Synthesizer-tests")
+                  minii_loc "" Out.SemgrepMatchFound
+        *))
       (Rule_options.default_config, equiv)
       [ rule ] (file, lang, ast)
   in

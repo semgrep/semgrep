@@ -8,6 +8,7 @@ val match_to_match :
   Pattern_match.t ->
   (Semgrep_output_v1_t.core_match, Core_error.t) Common.either
 
+(* Note that this uses and reset !Core_error.g_errors internally *)
 val core_output_of_matches_and_errors :
   render_fix option -> Core_result.t -> Semgrep_output_v1_t.core_output
 
@@ -22,4 +23,4 @@ val error_to_error : Core_error.t -> Semgrep_output_v1_t.core_error
 (* This is used only in the testing code, to reuse the
  * Semgrep_error_code.compare_actual_to_expected
  *)
-val match_to_error : Pattern_match.t -> unit
+val match_to_push_error : Pattern_match.t -> unit
