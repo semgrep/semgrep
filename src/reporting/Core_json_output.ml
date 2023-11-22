@@ -150,20 +150,20 @@ let metavars startp_of_match_range (s, mval) =
  * directly from semgrep-core (to avoid some boilerplate code in
  * pysemgrep).
  *)
-let content_of_loc (loc : Out.location) : string =
+let content_of_loc (loc : OutJ.location) : string =
   OutUtils.content_of_file_at_range (loc.start, loc.end_) loc.path
 
-let token_to_intermediate_var token : Out.match_intermediate_var option =
+let token_to_intermediate_var token : OutJ.match_intermediate_var option =
   let* location = OutUtils.tokens_to_single_loc [ token ] in
   Some
     ({ Out.location; content = content_of_loc location }
-      : Out.match_intermediate_var)
+      : OutJ.match_intermediate_var)
 
 let tokens_to_intermediate_vars tokens =
   Common.map_filter token_to_intermediate_var tokens
 
 let rec taint_call_trace (trace : PM.taint_call_trace) :
-    Out.match_call_trace option =
+    OutJ.match_call_trace option =
   match trace with
   | Toks toks ->
       let* loc = OutUtils.tokens_to_single_loc toks in
@@ -176,7 +176,7 @@ let rec taint_call_trace (trace : PM.taint_call_trace) :
         (Out.CliCall ((loc, content_of_loc loc), intermediate_vars, call_trace))
 
 let taint_trace_to_dataflow_trace (traces : PM.taint_trace_item list) :
-    Out.match_dataflow_trace =
+    OutJ.match_dataflow_trace =
   (* Here, we ignore all but the first taint trace, for source or sink.
      This is because we added support for multiple sources/sinks in a single
      trace, but only internally to semgrep-core. Externally, our CLI dataflow
@@ -201,7 +201,7 @@ let taint_trace_to_dataflow_trace (traces : PM.taint_trace_item list) :
   }
 
 let unsafe_match_to_match ((x : Pattern_match.t), (edit : Textedit.t option)) :
-    Out.core_match =
+    OutJ.core_match =
   let min_loc, max_loc = x.range_loc in
   let startp, endp = OutUtils.position_range min_loc max_loc in
   let dataflow_trace =
@@ -252,7 +252,7 @@ let unsafe_match_to_match ((x : Pattern_match.t), (edit : Textedit.t option)) :
   }
 
 let match_to_match ((x : Pattern_match.t), (edit : Textedit.t option)) :
-    (Out.core_match, Core_error.t) Common.either =
+    (OutJ.core_match, Core_error.t) Common.either =
   try
     Left (unsafe_match_to_match (x, edit))
     (* raised by min_max_ii_by_pos in range_of_any when the AST of the
@@ -289,7 +289,7 @@ let error_to_error (err : Core_error.t) =
   }
 
 let rec explanation_to_explanation (exp : Matching_explanation.t) :
-    Out.matching_explanation =
+    OutJ.matching_explanation =
   let { Matching_explanation.op; matches; pos; children } = exp in
   let tloc = Tok.unsafe_loc_of_tok pos in
   {
@@ -299,7 +299,7 @@ let rec explanation_to_explanation (exp : Matching_explanation.t) :
     loc = OutUtils.location_of_token_location tloc;
   }
 
-let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
+let profiling_to_profiling (profiling_data : Core_profiling.t) : OutJ.profile =
   let rule_ids : Rule_ID.t list =
     profiling_data.rules |> Common.map (fun (rule : Rule.t) -> fst rule.id)
   in
@@ -384,7 +384,7 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
 (* Final semgrep-core output *)
 (*****************************************************************************)
 
-let core_output_of_matches_and_errors (res : Core_result.t) : Out.core_output =
+let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
   let matches, new_errs =
     Common.partition_either match_to_match res.matches_with_fixes
   in

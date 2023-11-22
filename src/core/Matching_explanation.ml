@@ -28,7 +28,7 @@ module OutJ = Semgrep_output_v1_j
 
 (* coupling: semgrep_output_v1.atd matching_explanation type *)
 type t = {
-  op : Out.matching_operation;
+  op : OutJ.matching_operation;
   children : t list;
   (* resulting ranges *)
   matches : Pattern_match.t list;

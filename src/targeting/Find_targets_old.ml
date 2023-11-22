@@ -64,7 +64,7 @@ let global_filter ~opt_lang ~sort_by_decr_size paths =
   in
   let sorted_skipped =
     List.sort
-      (fun (a : Out.skipped_target) b -> Fpath.compare a.path b.path)
+      (fun (a : OutJ.skipped_target) b -> Fpath.compare a.path b.path)
       skipped
   in
   (sorted_paths, sorted_skipped)
@@ -356,7 +356,7 @@ let files_of_dirs_or_files ?(keep_root_files = true)
   in
   let sorted_skipped =
     List.sort
-      (fun (a : Out.skipped_target) b -> Fpath.compare a.path b.path)
+      (fun (a : OutJ.skipped_target) b -> Fpath.compare a.path b.path)
       skipped
   in
   (sorted_paths, sorted_skipped)

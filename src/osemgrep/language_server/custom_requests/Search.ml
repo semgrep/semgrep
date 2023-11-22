@@ -31,7 +31,7 @@ let on_request runner params =
       in
       let matches = runner rules in
       let matches_by_file =
-        Common.group_by (fun (m : Out.cli_match) -> !!(m.path)) matches
+        Common.group_by (fun (m : OutJ.cli_match) -> !!(m.path)) matches
       in
       let json =
         Common.map

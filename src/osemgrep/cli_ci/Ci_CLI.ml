@@ -36,7 +36,7 @@ type conf = {
   dry_run : bool;
   suppress_errors : bool;
   (* --code/--sca/--secrets/ *)
-  products : Out.product list;
+  products : OutJ.product list;
   (* 'semgrep ci' shares most of its flags with 'semgrep scan' *)
   scan_conf : Scan_CLI.conf;
 }

@@ -50,7 +50,7 @@ let of_bindings bindings =
              let propagated_content = propagated_value_string_of_mval mval in
              Some (mvar, { mval_content; propagated_content }))
 
-let of_out (metavars : Out.metavars) =
+let of_out (metavars : OutJ.metavars) =
   metavars
   |> Common.map (fun (mvar, metavar_value) ->
          let mval_content = lazy metavar_value.Out.abstract_content in

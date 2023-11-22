@@ -37,7 +37,7 @@ let complete_route scan_id = "/api/agent/scans/" ^ scan_id ^ "/complete"
 (*****************************************************************************)
 
 (* Returns the scan config if the token is valid, otherwise None *)
-let get_scan_config_from_token_async ~token : Out.scan_config option Lwt.t =
+let get_scan_config_from_token_async ~token : OutJ.scan_config option Lwt.t =
   let%lwt response =
     Http_helpers.get_async
       ~headers:[ ("authorization", "Bearer " ^ token) ]
@@ -94,7 +94,7 @@ let extract_errors (data : string) : string list =
       Logs.debug (fun m ->
           m "results response = %s" (Out.show_ci_scan_results_response response));
       errors
-      |> Common.map (fun (x : Out.ci_scan_results_response_error) -> x.message)
+      |> Common.map (fun (x : OutJ.ci_scan_results_response_error) -> x.message)
   | exception exn ->
       Logs.err (fun m ->
           m "Failed to decode server reply as json %s: %s"
@@ -122,7 +122,7 @@ let extract_block_override (data : string) : (app_block_override, string) result
 (*****************************************************************************)
 
 (* Returns the deployment config if the token is valid, otherwise None *)
-let get_deployment_from_token_async ~token : Out.deployment_config option Lwt.t
+let get_deployment_from_token_async ~token : OutJ.deployment_config option Lwt.t
     =
   let headers = [ ("authorization", "Bearer " ^ token) ] in
   let%lwt response =
@@ -150,7 +150,7 @@ let get_deployment_from_token ~token =
 
 (* TODO: pass project_config *)
 let start_scan ~dry_run ~token (prj_meta : Project_metadata.t)
-    (scan_meta : Out.scan_metadata) : (scan_id, string) result =
+    (scan_meta : OutJ.scan_metadata) : (scan_id, string) result =
   if dry_run then (
     Logs.app (fun m -> m "Would have sent POST request to create scan");
     Ok "")
@@ -175,7 +175,7 @@ let start_scan ~dry_run ~token (prj_meta : Project_metadata.t)
       (* ugly: would be good for ATDgen to generate also a json_of_xxx *)
       prj_meta |> Out.string_of_project_metadata |> Yojson.Basic.from_string
     in
-    let request : Out.scan_request =
+    let request : OutJ.scan_request =
       {
         meta;
         scan_metadata = Some scan_meta;
@@ -244,7 +244,7 @@ let url_for_policy ~token =
       | Some repo_name -> scan_config_uri repo_name)
 
 let fetch_scan_config_async ~dry_run ~token ~sca ~full_scan ~repository :
-    (Out.scan_config, string) result Lwt.t =
+    (OutJ.scan_config, string) result Lwt.t =
   (* TODO? seems like there are 2 ways to get a config, with the scan_params
    * or with a scan_id.
    * python:
@@ -354,7 +354,7 @@ let report_failure ~dry_run ~token ~scan_id (exit_code : Exit_code.t) : unit =
       Uri.with_path !Semgrep_envvars.v.semgrep_url
         ("/api/agent/scans/" ^ scan_id ^ "/error")
     in
-    let failure : Out.ci_scan_failure =
+    let failure : OutJ.ci_scan_failure =
       { exit_code = int_code; (* TODO *)
                               stderr = "" }
     in

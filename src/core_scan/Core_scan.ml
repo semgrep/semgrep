@@ -209,7 +209,7 @@ let sort_targets_by_decreasing_size (targets : In.target list) : In.target list
  * early on.
  *)
 let filter_existing_targets (targets : In.target list) :
-    In.target list * Out.skipped_target list =
+    In.target list * OutJ.skipped_target list =
   targets
   |> Common.partition_either (fun (target : In.target) ->
          let file = target.In.path in
@@ -655,7 +655,7 @@ let xtarget_of_file ~parsing_cache_dir (xlang : Xlang.t) (file : Fpath.t) :
  * by using the include/exclude fields.).
  *)
 let targets_of_config (config : Core_scan_config.t) :
-    In.targets * Out.skipped_target list =
+    In.targets * OutJ.skipped_target list =
   match (config.target_source, config.roots, config.lang) with
   (* We usually let semgrep-python computes the list of targets (and pass it
    * via -target), but it's convenient to also run semgrep-core without

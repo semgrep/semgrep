@@ -28,7 +28,7 @@ module OutJ = Semgrep_output_v1_j
 (*****************************************************************************)
 (* LATER: we should get rid of those intermediate Out.core_xxx *)
 
-let core_location_to_error_span (loc : Out.location) : Out.error_span =
+let core_location_to_error_span (loc : OutJ.location) : OutJ.error_span =
   {
     file = loc.path;
     start = loc.start;
@@ -95,7 +95,7 @@ let error_spans ~(error_type : Out.error_type) ~(location : Out.location) =
 (* # TODO benchmarking code relies on error code value right now
    * # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
 *)
-let exit_code_of_error_type (error_type : Out.error_type) : Exit_code.t =
+let exit_code_of_error_type (error_type : OutJ.error_type) : Exit_code.t =
   match error_type with
   | ParseError
   | LexicalError
@@ -128,7 +128,7 @@ let exit_code_of_error_type (error_type : Out.error_type) : Exit_code.t =
  * TODO: should we return an Error.Semgrep_core_error instead? like we
  * do in python? and then generate an Out.cli_error out of it?
  *)
-let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
+let cli_error_of_core_error (x : OutJ.core_error) : OutJ.cli_error =
   match x with
   | {
    error_type;
@@ -282,8 +282,8 @@ let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
   let hash = Digestif.BLAKE2B.digest_string string |> Digestif.BLAKE2B.to_hex in
   hash
 
-let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
-    Out.cli_match =
+let cli_match_of_core_match (hrules : Rule.hrules) (m : OutJ.core_match) :
+    OutJ.cli_match =
   match m with
   | {
    check_id = rule_id;
@@ -371,7 +371,7 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
  # (-j option).
  TOPORT: return {rule: sorted(matches) for rule, matches in findings.items()}
 *)
-let dedup_and_sort (xs : Out.cli_match list) : Out.cli_match list =
+let dedup_and_sort (xs : OutJ.cli_match list) : OutJ.cli_match list =
   let seen = Hashtbl.create 101 in
   xs
   |> List.filter (fun x ->
@@ -395,24 +395,25 @@ bad_function() # 2nd call
  * will be different. So the first will be <match_based_id>_0 and the second
  * will be <match_based_id>_1.
  *)
-let index_match_based_ids (matches : Out.cli_match list) : Out.cli_match list =
+let index_match_based_ids (matches : OutJ.cli_match list) : OutJ.cli_match list
+    =
   matches
   (* preserve order *)
   |> Common.mapi (fun i x -> (i, x))
   (* Group by rule and path *)
-  |> Common.group_by (fun (_, (x : Out.cli_match)) -> (x.path, x.check_id))
+  |> Common.group_by (fun (_, (x : OutJ.cli_match)) -> (x.path, x.check_id))
   (* Sort by start line *)
   |> Common.map (fun (path_and_rule_id, matches) ->
          ( path_and_rule_id,
            List.sort
-             (fun (_, (a : Out.cli_match)) (_, (b : Out.cli_match)) ->
+             (fun (_, (a : OutJ.cli_match)) (_, (b : OutJ.cli_match)) ->
                compare a.start.offset b.start.offset)
              matches ))
   (* Index per file *)
   |> Common.map (fun (path_and_rule_id, matches) ->
          let matches =
            Common.mapi
-             (fun i (i', (x : Out.cli_match)) ->
+             (fun i (i', (x : OutJ.cli_match)) ->
                ( i',
                  {
                    x with
@@ -438,8 +439,8 @@ let index_match_based_ids (matches : Out.cli_match list) : Out.cli_match list =
  * to depend on cli_scan/ from reporting/ here, hence the duplication.
  * alt: we could move Core_runner.result type in core/
  *)
-let cli_output_of_core_results ~logging_level (core : Out.core_output)
-    (hrules : Rule.hrules) (scanned : Fpath.t Set_.t) : Out.cli_output =
+let cli_output_of_core_results ~logging_level (core : OutJ.core_output)
+    (hrules : Rule.hrules) (scanned : Fpath.t Set_.t) : OutJ.cli_output =
   match core with
   | {
    version;
@@ -462,7 +463,7 @@ let cli_output_of_core_results ~logging_level (core : Out.core_output)
       (* TODO: not sure how it's sorted. Look at rule_match.py keys? *)
       let matches =
         matches
-        |> List.sort (fun (a : Out.core_match) (b : Out.core_match) ->
+        |> List.sort (fun (a : OutJ.core_match) (b : OutJ.core_match) ->
                compare a.check_id b.check_id)
       in
       (* TODO: not sure how it's sorted, but Set_.elements return

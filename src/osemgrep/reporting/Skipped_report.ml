@@ -29,7 +29,8 @@ type skipped_targets_grouped = {
 (* Helpers *)
 (*****************************************************************************)
 
-let errors_to_skipped (errors : Out.core_error list) : Out.skipped_target list =
+let errors_to_skipped (errors : OutJ.core_error list) : OutJ.skipped_target list
+    =
   errors
   |> Common.map (fun Out.{ location; message; rule_id; _ } ->
          Out.
@@ -40,11 +41,11 @@ let errors_to_skipped (errors : Out.core_error list) : Out.skipped_target list =
              rule_id;
            })
 
-let group_skipped (skipped : Out.skipped_target list) : skipped_targets_grouped
+let group_skipped (skipped : OutJ.skipped_target list) : skipped_targets_grouped
     =
   let groups =
     Common.group_by
-      (fun (Out.{ reason; _ } : Out.skipped_target) ->
+      (fun (Out.{ reason; _ } : OutJ.skipped_target) ->
         match reason with
         | Out.Gitignore_patterns_match
         | Semgrepignore_patterns_match ->
@@ -123,15 +124,15 @@ let pp_skipped ppf
     Fmt.pf ppf "  • <none>@.");
   Fmt.pf ppf "@.";
 
-  let pp_list (xs : Out.skipped_target list) =
+  let pp_list (xs : OutJ.skipped_target list) =
     match xs with
     | [] -> Fmt.pf ppf "  • <none>@."
     | xs ->
         List.iter
-          (fun (Out.{ path; _ } : Out.skipped_target) ->
+          (fun (Out.{ path; _ } : OutJ.skipped_target) ->
             Fmt.pf ppf "  • %s@." !!path)
           (List.sort
-             (fun (a : Out.skipped_target) (b : Out.skipped_target) ->
+             (fun (a : OutJ.skipped_target) (b : OutJ.skipped_target) ->
                Fpath.compare a.path b.path)
              xs)
   in

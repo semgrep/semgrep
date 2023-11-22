@@ -44,7 +44,7 @@ type result = {
   (* ocaml: not in original python implem, but just enough to get
    * Semgrep_scan.cli_output_of_core_results to work
    *)
-  core : Out.core_output;
+  core : OutJ.core_output;
   hrules : Rule.hrules;
   scanned : Fpath.t Set_.t;
       (* in python implem *)

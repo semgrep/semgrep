@@ -23,7 +23,7 @@ module OutJ = Semgrep_output_v1_j
 (* Helpers *)
 (*****************************************************************************)
 
-let string_of_severity (severity : Out.match_severity) : string =
+let string_of_severity (severity : OutJ.match_severity) : string =
   Out.string_of_match_severity severity
   |> JSON.remove_enclosing_quotes_of_jstring
 
@@ -32,7 +32,7 @@ let string_of_severity (severity : Out.match_severity) : string =
 (*****************************************************************************)
 
 let dispatch_output_format (output_format : Output_format.t)
-    (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
+    (conf : Scan_CLI.conf) (cli_output : OutJ.cli_output) =
   (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
   match output_format with
   | Json ->
@@ -40,7 +40,7 @@ let dispatch_output_format (output_format : Output_format.t)
       Common.pr s
   | Vim ->
       cli_output.results
-      |> List.iter (fun (m : Out.cli_match) ->
+      |> List.iter (fun (m : OutJ.cli_match) ->
              match m with
              | { check_id; path; start; extra = { message; severity; _ }; _ } ->
                  let parts =
@@ -58,7 +58,7 @@ let dispatch_output_format (output_format : Output_format.t)
   | Emacs ->
       (* TOPORT? sorted(rule_matches, key=lambda r: (r.path, r.rule_id)) *)
       cli_output.results
-      |> List.iter (fun (m : Out.cli_match) ->
+      |> List.iter (fun (m : OutJ.cli_match) ->
              match m with
              | {
               check_id;
@@ -124,8 +124,8 @@ let dispatch_output_format (output_format : Output_format.t)
  * by filtering out nosem, setting messages, adding fingerprinting etc.
  *)
 let preprocess_result (conf : Scan_CLI.conf) (res : Core_runner.result) :
-    Out.cli_output =
-  let cli_output : Out.cli_output =
+    OutJ.cli_output =
+  let cli_output : OutJ.cli_output =
     Cli_json_output.cli_output_of_core_results
       ~logging_level:conf.common.logging_level res.core res.hrules res.scanned
   in
@@ -147,7 +147,7 @@ let preprocess_result (conf : Scan_CLI.conf) (res : Core_runner.result) :
  * TODO: take a more precise conf than Scan_CLI.conf at some point
  *)
 let output_result (conf : Scan_CLI.conf) (profiler : Profiler.t)
-    (res : Core_runner.result) : Out.cli_output =
+    (res : Core_runner.result) : OutJ.cli_output =
   (* In theory, we should build the JSON CLI output only for the
    * Json conf.output_format, but cli_output contains lots of data-structures
    * that are useful for the other formats (e.g., Vim, Emacs), so we build

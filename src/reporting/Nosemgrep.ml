@@ -80,8 +80,8 @@ let recognise_and_collect ~rex line =
    If [strict:true], we returns possible errors when [nosem] is used with an
    ID which is not equal to the rule's ID.
 *)
-let rule_match_nosem ~strict (rule_match : Out.cli_match) :
-    bool * Out.cli_error list =
+let rule_match_nosem ~strict (rule_match : OutJ.cli_match) :
+    bool * OutJ.cli_error list =
   let lines =
     File.lines_of_file
       (max 0 (rule_match.Out.start.line - 1), rule_match.Out.end_.line)
@@ -147,7 +147,7 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
                   id
                   (Rule_ID.to_string rule_match.Out.check_id)
               in
-              let cli_error : Out.cli_error =
+              let cli_error : OutJ.cli_error =
                 {
                   Out.code = 2;
                   level = `Warning;
@@ -171,8 +171,8 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
 (* Entry point *)
 (*****************************************************************************)
 
-let process_ignores ~keep_ignored ~strict (out : Out.cli_output) :
-    Out.cli_output =
+let process_ignores ~keep_ignored ~strict (out : OutJ.cli_output) :
+    OutJ.cli_output =
   let results, errors =
     (* filters [rule_match]s by the [nosemgrep] tag. *)
     Common.map_filter

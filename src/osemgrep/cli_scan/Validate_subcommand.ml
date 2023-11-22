@@ -196,7 +196,7 @@ let run (conf : conf) : Exit_code.t =
         num_errors (List.length rules));
   (* coupling: with Check_rule.error and use of SemgrepMatchFound *)
   metacheck_errors
-  |> List.iter (fun (x : Out.cli_match) ->
+  |> List.iter (fun (x : OutJ.cli_match) ->
          Logs.err (fun m ->
              m "Semgrep match found at line %s:%d\n%s" !!(x.path) x.start.line
                x.extra.message));

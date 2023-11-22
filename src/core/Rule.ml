@@ -572,7 +572,7 @@ type 'mode rule_info = {
    * Xpattern.Filename feature that integrates well with the xpatterns.
    *)
   paths : paths option;
-  product : Out.product;
+  product : OutJ.product;
   (* ex: [("owasp", "A1: Injection")] but can be anything.
    * Metadata was (ab)used for the ("interfile", "true") setting, but this
    * is now done via Rule_options instead.
