@@ -29,14 +29,33 @@
    test and put it in its own file so we can consult it later. Don't
    hesitate to log a lot during the execution of the test.
 *)
-type test = string * (unit -> unit)
+type 'a t
+type test = unit t
+
+(* Legacy type that doesn't support options *)
+type simple_test = string * (unit -> unit)
 
 (* Lwt.t promises transpiled to JS via jsoo must have their Lwt.t nature
    hoisted all the way to the top level, so we can run them properly on the
    JS runtime.
    When running such tests in JS, we need our tests to also return promises.
 *)
-type lwt_test = string * (unit -> unit Lwt.t)
+type lwt_test = unit Lwt.t t
+type output = Stdout | Stderr | Merged_stdout_stderr | Separate_stdout_stderr
+
+(*
+   Create a test to appear in a test suite.
+*)
+val create_test :
+  ?check_output:output ->
+  ?speed_level:Alcotest.speed_level ->
+  string ->
+  (unit -> 'a) ->
+  'a t
+
+(* Convert legacy optionless format to new format *)
+val simple_test : string * (unit -> 'a) -> 'a t
+val simple_tests : (string * (unit -> 'a)) list -> 'a t list
 
 (* Register a test. The test gets added to the global list of tests.
    This is meant to declare inline tests as follows:
@@ -46,38 +65,36 @@ type lwt_test = string * (unit -> unit Lwt.t)
        ...
      )
 *)
-val test : string -> (unit -> unit) -> unit
+val test :
+  ?check_output:output ->
+  ?speed_level:Alcotest.speed_level ->
+  string ->
+  (unit -> unit) ->
+  unit
+
+val test_lwt :
+  ?check_output:output ->
+  ?speed_level:Alcotest.speed_level ->
+  string ->
+  (unit -> unit Lwt.t) ->
+  unit
 
 (* Get the list of registered tests. *)
 val get_registered_tests : unit -> test list
+val get_registered_lwt_tests : unit -> lwt_test list
 
 (*
-   This extends the name of each test by adding a prefix, using '>'
-   as a separator.
-
-   This is because Alcotest only supports two levels of
-   nesting. Here we just support one level, but in the end we use '>'
-   to split the path to each test, and do the right thing.
-
    Usage:
 
-     pack_tests "Suite Name" [test1; test2]
+     pack_tests_pro "Suite Name" [test1; test2]
      pack_suites "Suite Name" [suite1; suite2; suite3]
-
-   Design note: our use of '>' as a separator is much like '/' in file paths.
-   It's a little hackish. A clean alternative is to represent a test path by
-   a string list, but it makes writing individual test cases slightly
-   more awkward:
-
-     "do something", test_do_something;
-
-   would become
-
-     ["do something"], test_do_something;
 *)
-val pack_tests : string -> test list -> test list
-val pack_suites : string -> test list list -> test list
-val pack_tests_lwt : string -> lwt_test list -> lwt_test list
+val pack_tests_pro : string -> 'a t list -> 'a t list
+val pack_suites : string -> 'a t list list -> 'a t list
+
+(* Legacy interface. It's fine to keep using it but it doesn't allow
+   defining tests with special options such as capturing and checking stdout. *)
+val pack_tests : string -> (string * (unit -> 'a)) list -> 'a t list
 
 (*
    Sort tests by path, alphabetically:
@@ -88,23 +105,7 @@ val pack_tests_lwt : string -> lwt_test list -> lwt_test list
    Non-ascii path components are sorted by byte order, possibly giving
    unexpected results.
 *)
-val sort : test list -> test list
-
-(*
-   Keep only tests whose path matches the path.
-
-   Each path exists in two variants: "a>b>c" (internal)
-   and "a > b > c" (as known to alcotest). At least one of them must match
-   for the test to be selected.
-
-   The two selection methods right now are:
-   - using a substring
-   - using a regexp in PCRE (Perl) syntax
-
-   Note that the regular command line exposed by Alcotest.run already
-   enables some test filtering.
-*)
-val filter : ?substring:string -> ?pcre:string -> test list -> test list
+val sort : 'a t list -> 'a t list
 
 (*
    Alcotest.test is a list of Alcotest.test_case, so we need to assign
@@ -125,13 +126,8 @@ val filter : ?substring:string -> ?pcre:string -> test list -> test list
        to_alcotest ~speed_level:`Quick my_quick_tests
        @ to_alcotest ~speed_level:`Slow my_slow_tests
 *)
-val to_alcotest :
-  ?speed_level:Alcotest.speed_level -> test list -> unit Alcotest.test list
-
-val to_alcotest_lwt :
-  ?speed_level:Alcotest.speed_level ->
-  lwt_test list ->
-  unit Alcotest_lwt.test list
+val to_alcotest : test list -> unit Alcotest.test list
+val to_alcotest_lwt : lwt_test list -> unit Alcotest_lwt.test list
 
 (*
    Log a function call. e.g.

@@ -41,11 +41,12 @@ let test_long_ellipsis () =
 let test_multiline () = ()
 
 let tests =
-  [
-    ("literal_match", test_literal_match);
-    ("parentheses", test_parentheses);
-    ("metavariables", test_metavariables);
-    ("ellipsis", test_ellipsis);
-    ("long ellipsis", test_long_ellipsis);
-    ("multiline", test_multiline);
-  ]
+  Testutil.simple_tests
+    [
+      ("literal_match", test_literal_match);
+      ("parentheses", test_parentheses);
+      ("metavariables", test_metavariables);
+      ("ellipsis", test_ellipsis);
+      ("long ellipsis", test_long_ellipsis);
+      ("multiline", test_multiline);
+    ]
