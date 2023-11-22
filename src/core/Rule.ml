@@ -14,7 +14,7 @@
  *)
 open Common
 module MV = Metavariable
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -129,6 +129,22 @@ and metavar_analysis_kind = CondEntropy | CondEntropyV2 | CondReDoS
 (* Represents all of the metavariables that are being focused by a single
    `focus-metavariable`. *)
 and focus_mv_list = tok * MV.mvar list [@@deriving show, eq, hash]
+
+(*****************************************************************************)
+(* Misc *)
+(*****************************************************************************)
+
+type fix_regexp = {
+  regexp : Xpattern.regexp_string;
+  (* Not using Parsed_int here, because we would rather fail early at rule
+     parsing time if we have to apply a regexp more times than we can
+     represent.
+     We also expect to never receive a count that is that big.
+  *)
+  count : int option;
+  replacement : string;
+}
+[@@deriving show, eq, hash]
 
 (*****************************************************************************)
 (* Semgrep_output aliases *)
@@ -551,12 +567,12 @@ type 'mode rule_info = {
    *)
   equivalences : string list option;
   fix : string option;
-  fix_regexp : (Xpattern.regexp_string * Parsed_int.t option * string) option;
+  fix_regexp : fix_regexp option;
   (* TODO: we should get rid of this and instead provide a more general
    * Xpattern.Filename feature that integrates well with the xpatterns.
    *)
   paths : paths option;
-  product : Out.product;
+  product : OutJ.product;
   (* ex: [("owasp", "A1: Injection")] but can be anything.
    * Metadata was (ab)used for the ("interfile", "true") setting, but this
    * is now done via Rule_options instead.

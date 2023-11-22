@@ -203,12 +203,6 @@ class Rule:
     def fix(self) -> Optional[str]:
         return self._raw.get("fix")
 
-    # TODO: use v1.FixRegex and do the validation currently done
-    # in core_output.convert_to_rule_match() here
-    @property
-    def fix_regex(self) -> Optional[Dict[str, Any]]:
-        return self._raw.get("fix-regex")
-
     @classmethod
     def from_json(cls, rule_json: Dict[str, Any]) -> "Rule":
         return cls(rule_json, None)

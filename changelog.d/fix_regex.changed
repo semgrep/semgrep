@@ -1,0 +1,2 @@
+The 'fix_regex' field has been removed from the semgrep JSON output. Instead,
+the 'fix' field contains the content the result of the fix_regex.

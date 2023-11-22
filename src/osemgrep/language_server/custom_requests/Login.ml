@@ -1,7 +1,7 @@
 open Lsp.Types
 module SN = Lsp.Server_notification
 module Conv = Convert_utils
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 let meth = "semgrep/login"
 

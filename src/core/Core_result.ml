@@ -49,7 +49,24 @@ type 'a match_result = {
 [@@deriving show]
 
 type t = {
-  matches : Pattern_match.t list;
+  (* old: matches : Pattern_match.t list
+     Why did we add the fixes here?
+     When we bridge the gap from `Core_result.t` to `Out.core_output`, we have
+     to associate each match to a (potential) edit.
+     We will choose to embed the fix information in `Core_result.t`, as
+     autofixing is now a valid function of the core engine, and thus the produced
+     fixes are related to its produced results.
+     These edits start as all None, but will be filled in by
+     `Autofix.produce_autofixes`, and the associated Autofix_processor step.
+
+     alt: we could have added this to `Pattern_match.t`, but that felt a bit early
+     alt: we could have produced these autofixes when going from Core_result.t to
+     Out.core_output, but this would require us to do autofixing at the same time
+     as output, which conflates process of producing output and side-effectively
+     applying autofixes. In addition, the `Autofix` module is not available from
+     that directory.
+  *)
+  matches_with_fixes : (Pattern_match.t * Textedit.t option) list;
   errors : Core_error.t list;
   skipped_rules : Rule.invalid_rule_error list;
   rules_with_targets : Rule.rule list;
@@ -90,7 +107,7 @@ let mk_final_result_with_just_errors (errors : Core_error.t list) : t =
   {
     errors;
     (* default values *)
-    matches = [];
+    matches_with_fixes = [];
     rules_with_targets = [];
     skipped_rules = [];
     extra = No_info;
@@ -263,8 +280,13 @@ let make_final_result
     (skipped_rules : Rule.invalid_rule_error list) (scanned : Fpath.t list)
     (interfile_languages_used : Xlang.t list) ~rules_parse_time =
   (* contenating information from the match_result list *)
-  let matches =
-    results |> List.concat_map (fun (x : _ match_result) -> x.matches)
+  let matches_with_nullary_fixes =
+    results
+    |> List.concat_map (fun (x : _ match_result) -> x.matches)
+    (* These fixes are initially None, and will be populated with fixes
+       after we run Autofix.produce_autofixes.
+    *)
+    |> Common.map (fun res -> (res, None))
   in
   let explanations =
     results |> List.concat_map (fun (x : _ match_result) -> x.explanations)
@@ -317,7 +339,7 @@ let make_final_result
     | MNo_info -> No_info
   in
   {
-    matches;
+    matches_with_fixes = matches_with_nullary_fixes;
     errors;
     extra;
     skipped_rules;

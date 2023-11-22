@@ -21,7 +21,7 @@ module MR = Mini_rule
 module R = Rule
 module RP = Core_result
 module In = Input_to_core_j
-module Out = Semgrep_output_v1_j
+module OutJ = Semgrep_output_v1_j
 
 let logger = Logging.get_logger [ __MODULE__ ]
 let debug_extract_mode = ref false
@@ -186,7 +186,7 @@ let add_additional_targets config n =
 let update_cli_progress config =
   (* Print when each file is done so the Python progress bar knows *)
   match config.output_format with
-  | Json true -> pr "."
+  | Json true -> Out.put "."
   | _ -> ()
 
 (*
@@ -209,7 +209,7 @@ let sort_targets_by_decreasing_size (targets : In.target list) : In.target list
  * early on.
  *)
 let filter_existing_targets (targets : In.target list) :
-    In.target list * Out.skipped_target list =
+    In.target list * OutJ.skipped_target list =
   targets
   |> Common.partition_either (fun (target : In.target) ->
          let file = target.In.path in
@@ -230,31 +230,32 @@ let filter_existing_targets (targets : In.target list) :
 let string_of_toks toks =
   String.concat ", " (Common.map (fun tok -> Tok.content_of_tok tok) toks)
 
+(* TODO: use Logs.app instead of those Out.put? *)
 let rec print_taint_call_trace ~format ~spaces = function
   | Pattern_match.Toks toks -> Core_text_output.print_match ~format ~spaces toks
   | Call { call_toks; intermediate_vars; call_trace } ->
       let spaces_string = String.init spaces (fun _ -> ' ') in
-      pr (spaces_string ^ "call to");
+      Out.put (spaces_string ^ "call to");
       Core_text_output.print_match ~format ~spaces call_toks;
       if intermediate_vars <> [] then
-        pr
+        Out.put
           (spf "%sthese intermediate values are tainted: %s" spaces_string
              (string_of_toks intermediate_vars));
-      pr (spaces_string ^ "then");
+      Out.put (spaces_string ^ "then");
       print_taint_call_trace ~format ~spaces:(spaces + 2) call_trace
 
 let print_taint_trace ~format taint_trace =
   if format =*= Core_text_output.Normal then
     taint_trace |> Lazy.force
     |> List.iteri (fun idx { PM.source_trace; tokens; sink_trace } ->
-           if idx =*= 0 then pr "  * Taint may come from this source:"
-           else pr "  * Taint may also come from this source:";
+           if idx =*= 0 then Out.put "  * Taint may come from this source:"
+           else Out.put "  * Taint may also come from this source:";
            print_taint_call_trace ~format ~spaces:4 source_trace;
            if tokens <> [] then
-             pr
+             Out.put
                (spf "  * These intermediate values are tainted: %s"
                   (string_of_toks tokens));
-           pr "  * This is how taint reaches the sink:";
+           Out.put "  * This is how taint reaches the sink:";
            print_taint_call_trace ~format ~spaces:4 sink_trace)
 
 let print_match ?str config match_ ii_of_any =
@@ -286,7 +287,7 @@ let print_match ?str config match_ ii_of_any =
                   |> Core_text_output.join_with_space_if_needed
               | None -> failwith (spf "the metavariable '%s' was not bound" x))
      in
-     pr (spf "%s:%d: %s" file line (Common.join ":" strings_metavars));
+     Out.put (spf "%s:%d: %s" file line (Common.join ":" strings_metavars));
      ());
   Option.iter (print_taint_trace ~format:match_format) taint_trace
 
@@ -353,7 +354,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
     max_match_per_file matches =
   let per_files =
     matches
-    |> Common.map (fun m -> (m.Pattern_match.file, m))
+    |> Common.map (fun (m, _) -> (m.Pattern_match.file, m))
     |> Common.group_assoc_bykey_eff
   in
   let offending_file_list =
@@ -364,7 +365,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
   let offending_files = Common.hashset_of_list offending_file_list in
   let new_matches =
     matches
-    |> Common.exclude (fun m ->
+    |> Common.exclude (fun (m, _) ->
            Hashtbl.mem offending_files m.Pattern_match.file)
   in
   let new_errors, new_skipped =
@@ -404,7 +405,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
                   "%d rules result in too many matches, most offending rule \
                    has %d: %s"
                   offending_rules cnt pat)
-               Out.TooManyMatches
+               OutJ.TooManyMatches
            in
            let skipped =
              sorted_offending_rules
@@ -450,7 +451,7 @@ let sanity_check_invalid_patterns (res : Core_result.t) :
   match
     res.errors
     |> List.find_opt (function
-         | { Core_error.typ = Out.PatternParseError _; _ } -> true
+         | { Core_error.typ = OutJ.PatternParseError _; _ } -> true
          | _else_ -> false)
   with
   | None -> Ok res
@@ -561,10 +562,10 @@ let iter_targets_and_get_matches_and_exn_to_errors config
                           (match exn with
                           | Match_rules.File_timeout ->
                               logger#info "Timeout on %s" !!file;
-                              Out.Timeout
+                              OutJ.Timeout
                           | Out_of_memory ->
                               logger#info "OutOfMemory on %s" !!file;
-                              Out.OutOfMemory
+                              OutJ.OutOfMemory
                           | _ -> raise Impossible))
                    in
                    ( Core_result.make_match_result [] errors
@@ -655,7 +656,7 @@ let xtarget_of_file ~parsing_cache_dir (xlang : Xlang.t) (file : Fpath.t) :
  * by using the include/exclude fields.).
  *)
 let targets_of_config (config : Core_scan_config.t) :
-    In.targets * Out.skipped_target list =
+    In.targets * OutJ.skipped_target list =
   match (config.target_source, config.roots, config.lang) with
   (* We usually let semgrep-python computes the list of targets (and pass it
    * via -target), but it's convenient to also run semgrep-core without
@@ -970,12 +971,13 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
       (Common.map (fun r -> (r, `OSS)) valid_rules)
       invalid_rules scanned interfile_languages_used ~rules_parse_time
   in
-  logger#info "found %d matches, %d errors" (List.length res.matches)
+  logger#info "found %d matches, %d errors"
+    (List.length res.matches_with_fixes)
     (List.length res.errors);
 
-  let matches, new_errors, new_skipped =
+  let matches_with_fixes, new_errors, new_skipped =
     filter_files_with_too_many_matches_and_transform_as_timeout
-      config.max_match_per_file res.matches
+      config.max_match_per_file res.matches_with_fixes
   in
 
   (* note: uncomment the following and use semgrep-core -stat_matches
@@ -999,7 +1001,7 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
         Core_profiling.Debug { skipped_targets; profiling }
     | (Core_profiling.Time _ | Core_profiling.No_info) as x -> x
   in
-  { res with matches; errors; extra }
+  { res with matches_with_fixes; errors; extra }
 
 (*****************************************************************************)
 (* Entry point *)

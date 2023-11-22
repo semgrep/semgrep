@@ -96,7 +96,6 @@ def generate_unreachable_sca_findings(
                     metadata=rule.metadata,
                     severity=rule.severity,
                     fix=None,
-                    fix_regex=None,
                     match=out.CoreMatch(
                         check_id=out.RuleId(rule.id),
                         path=out.Fpath(str(lockfile_path)),

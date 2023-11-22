@@ -17,6 +17,7 @@ class RunSemgrep(Protocol):
         self,
         config: str | Path | list[str] | None = None,
         *,
+        subcommand: str | None = None,
         target_name: str | None = "basic",
         options: list[str | Path] | None = None,
         output_format: OutputFormat | None = OutputFormat.JSON,

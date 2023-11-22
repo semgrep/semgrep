@@ -626,11 +626,6 @@ def print_text_output(
             console.print(
                 f"{autofix_tag} {fix if fix else with_color(Colors.red, 'delete')}"
             )
-        elif rule_match.fix_regex:
-            fix_regex = rule_match.fix_regex
-            console.print(
-                f"{autofix_tag} s/{fix_regex.regex}/{fix_regex.replacement}/{fix_regex.count or 'g'}"
-            )
         elif (
             "sca_info" in rule_match.extra
             and "sca-fix-versions" in rule_match.metadata

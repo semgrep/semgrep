@@ -1,0 +1,16 @@
+taint-mode: When we encountered an assignment `lval := expr` where `expr` returned
+no taints, we automatically cleaned `lval`.  This was correct in the early days of
+taint-mode, before we introduced taint by side-effect, but it is wrong now. The LHS
+`lval` may be tainted by side-effect, in which case we cannot clean it just because
+`expr` returns no taint. Now that we introduced `by-side-effect: only` it is also
+possible for `expr` to taint `lval` by side-effect and return no immediate taint.
+
+This kind of source should now work as expected:
+
+```yaml
+- by-side-effect: true
+  patterns:
+    - pattern: |
+        $X = source()
+    - focus-metavariable: $X
+```

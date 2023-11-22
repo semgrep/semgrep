@@ -19,7 +19,7 @@ open Testutil
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Port of test_login.py to OCaml.
+(* Partial port of test_login.py to OCaml (some is in Test_osemgrep.ml)
  *
  * Note that unlike most cli/tests/e2e/test_xxx.py tests, we can't reuse
  * test_login.py to test osemgrep because of the use of mocking
@@ -35,15 +35,16 @@ type result = { exit_code : Exit_code.t; logs : string }
 let with_logs ~f ~final =
   Testutil_mock.with_mocked_logs ~f ~final:(fun log_content res ->
       pr2 (spf "logs = %s" log_content);
-      final
-        {
-          exit_code =
-            (match res with
-            | Ok code -> code
-            | Error (Error.Exit code) -> code
-            | _ -> Exit_code.fatal);
-          logs = log_content;
-        })
+      let code =
+        match res with
+        | Ok code -> code
+        | Error (Error.Exit code) -> code
+        | _ -> Exit_code.fatal
+      in
+      pr2
+        (spf "exit_code = %d, meaning = %s" (Exit_code.to_int code)
+           (Exit_code.to_message code));
+      final { exit_code = code; logs = log_content })
 
 (* we return a fun () to match Testutil.test second element *)
 let with_login_test_env f () =

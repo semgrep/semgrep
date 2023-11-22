@@ -1,5 +1,5 @@
 open File.Operators
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 module Env = Semgrep_envvars
 
 (*************************************************************************)
@@ -44,7 +44,7 @@ type result = {
   (* ocaml: not in original python implem, but just enough to get
    * Semgrep_scan.cli_output_of_core_results to work
    *)
-  core : Out.core_output;
+  core : OutJ.core_output;
   hrules : Rule.hrules;
   scanned : Fpath.t Set_.t;
       (* in python implem *)
@@ -194,10 +194,7 @@ let create_core_result (all_rules : Rule.rule list)
         Core_result.mk_final_result_with_just_errors [ err ]
   in
   let scanned = Set_.of_list res.scanned in
-  let match_results =
-    Core_json_output.core_output_of_matches_and_errors (Some Autofix.render_fix)
-      res
-  in
+  let match_results = Core_json_output.core_output_of_matches_and_errors res in
   (* TOPORT? or move in semgrep-core so get info ASAP
      if match_results.skipped_targets:
          for skip in match_results.skipped_targets:

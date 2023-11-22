@@ -17,10 +17,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "fix_regex": {
-          "regex": "(.*)\\)",
-          "replacement": "\\1, timeout=30)"
-        },
+        "fix": "requests.get(url, timeout=30)",
         "is_ignored": false,
         "lines": "r = requests.get(url)",
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
@@ -46,10 +43,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "fix_regex": {
-          "regex": "(.*)\\)",
-          "replacement": "\\1, timeout=30)"
-        },
+        "fix": "requests.post(url, timeout=30)",
         "is_ignored": false,
         "lines": "r = requests.post(url)",
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
@@ -75,10 +69,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "fix_regex": {
-          "regex": "(.*)\\)",
-          "replacement": "\\1, timeout=30)"
-        },
+        "fix": "requests.request(\"GET\", url, timeout=30)",
         "is_ignored": false,
         "lines": "r = requests.request(\"GET\", url)",
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
@@ -104,10 +95,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "fix_regex": {
-          "regex": "(.*)\\)",
-          "replacement": "\\1, timeout=30)"
-        },
+        "fix": "requests.request(\"GET\", return_url(), timeout=30)",
         "is_ignored": false,
         "lines": "r = requests.request(\"GET\", return_url())",
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
@@ -133,10 +121,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "fix_regex": {
-          "regex": "(.*)\\)",
-          "replacement": "\\1, timeout=30)"
-        },
+        "fix": "post(url, timeout=30)",
         "is_ignored": false,
         "lines": "    r = post(url)",
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
