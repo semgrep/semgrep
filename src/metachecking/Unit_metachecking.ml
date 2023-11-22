@@ -51,12 +51,13 @@ let metachecker_checks_tests () =
 
 (* Test the entire `-test_check` path *)
 let metachecker_regression_tests () =
-  [
-    ( "metachecker regresion testing",
-      fun () ->
-        let path = tests_path / "metachecks" in
-        Test_metachecking.test_rules ~unit_testing:true [ path ] );
-  ]
+  Testutil.simple_tests
+    [
+      ( "metachecker regression testing",
+        fun () ->
+          let path = tests_path / "metachecks" in
+          Test_metachecking.test_rules ~unit_testing:true [ path ] );
+    ]
 
 (*****************************************************************************)
 (* All tests *)

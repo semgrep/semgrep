@@ -1008,7 +1008,7 @@ let tests =
     (promise_tests |> Common.map (fun (s, f) -> (s, prepare f)))
 
 let lwt_tests =
-  Testutil.pack_tests_lwt "Language Server (e2e)"
+  Testutil.pack_tests "Language Server (e2e)"
     [
       ("Test LS", test_ls_specs);
       ("Test LS exts", test_ls_ext);

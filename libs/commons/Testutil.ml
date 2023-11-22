@@ -1,64 +1,82 @@
 (*
    Utilities for writing test suites for Alcotest.
+
+   Keep in mind that some of this may become its own library or move to
+   Alcotest.
 *)
 
 open Printf
 
-type test = string * (unit -> unit)
-type lwt_test = string * (unit -> unit Lwt.t)
+type output = Stdout | Stderr | Merged_stdout_stderr | Separate_stdout_stderr
 
+type 'a t = {
+  category : string list;
+  name : string;
+  func : unit -> 'a;
+  (* Options *)
+  speed_level : Alcotest.speed_level;
+  check_output : output option;
+  (* Automatically determined *)
+  id : string;
+}
+
+type test = unit t
+type lwt_test = unit Lwt.t t
+
+(* Legacy type that doesn't support options *)
+type simple_test = string * (unit -> unit)
+
+(****************************************************************************)
+(* Helpers *)
+(****************************************************************************)
 (*
-   We use '>' because '.' is common in files and we don't want to split
-   'foo.py' into 'foo' and 'py'.
-
-   Alternatively, we could keep paths as string lists and avoid the issue
-   of choosing a separator.
+   Dumb stuff for which
 *)
-let path_sep = '>'
-let path_sep_str = String.make 1 path_sep
-let pretty_path_sep_str = " > "
+
 let list_map f l = List.rev_map f l |> List.rev
 
 let list_flatten ll =
   List.fold_left (fun acc l -> List.rev_append l acc) [] ll |> List.rev
 
-let pack_tests suite_name (tests : _ list) : _ list =
-  list_map (fun (path, func) -> (suite_name ^ path_sep_str ^ path, func)) tests
+(****************************************************************************)
+(* Conversions *)
+(****************************************************************************)
 
-let pack_suites suite_name (tests : test list list) : test list =
-  tests |> list_flatten |> pack_tests suite_name
+(* Create a short alphanumeric hash. With only 28 bits, there's a tiny
+   chance that we run into collisions. *)
+let update_id x =
+  (* 30-bit hash *)
+  let hash = Hashtbl.hash_param 1_000_000 1_000_000 (x.category, x.name) in
+  let long_id = Printf.sprintf "%08x" hash in
+  assert (String.length long_id = 8);
+  (* 28 bits or 7 hexadecimal characters *)
+  let id = String.sub long_id 0 7 in
+  { x with id }
 
-let pack_tests_lwt = pack_tests
+let create_test ?check_output ?(speed_level = `Quick) name func =
+  { category = []; name; func; speed_level; check_output; id = "" } |> update_id
+
+let simple_test (name, func) = create_test name func
+let simple_tests simple_tests = list_map simple_test simple_tests
+
+let pack_tests_pro suite_name (tests : _ list) : _ list =
+  list_map
+    (fun x -> { x with category = suite_name :: x.category } |> update_id)
+    tests
+
+let pack_tests suite_name tests = pack_tests_pro suite_name (simple_tests tests)
+
+let pack_suites suite_name (tests : _ t list list) : _ t list =
+  tests |> list_flatten |> pack_tests_pro suite_name
 
 (*
-   Sort by path. For this, we split the paths on '>' and then take advantage
-   of the polymorphic 'compare' which does the right thing.
-
-   Compare:
-     compare "a>b" "a b" = 1  (* wrong *)
-   vs.
-     compare ["a"; "b"] ["a b"] = -1  (* correct *)
+   Sort by category and test name.
 *)
-let sort (tests : test list) : test list =
+let sort (tests : _ t list) : _ t list =
   tests
-  |> list_map (fun ((name, _func) as test) ->
-         let k = String.split_on_char path_sep name in
-         (k, test))
-  |> List.stable_sort (fun (a, _) (b, _) -> compare a b)
-  |> list_map snd
-
-(*
-   "Foo.Bar.hello" -> ("Foo.Bar", "hello")
-   "hello" -> ("", "hello")
-   "" -> ("", "")
-*)
-let split_path s =
-  match String.rindex_opt s path_sep with
-  | None -> ("", s)
-  | Some dot_pos ->
-      let left_len = dot_pos in
-      let right_len = String.length s - left_len - 1 in
-      (String.sub s 0 left_len, String.sub s (dot_pos + 1) right_len)
+  |> List.stable_sort (fun a b ->
+         let c = compare a.category b.category in
+         if c <> 0 then c else String.compare a.name b.name)
 
 (*
    Group pairs by the first value of the pair, preserving the original
@@ -81,59 +99,35 @@ let group_by_key key_value_list =
   |> List.sort (fun (pos1, _) (pos2, _) -> compare pos1 pos2)
   |> list_map snd
 
-let use_pretty_path_separator path =
-  path |> String.split_on_char path_sep |> String.concat pretty_path_sep_str
-
-let to_alcotest ?(speed_level = `Quick) tests : _ list =
+let to_alcotest tests : _ list =
   tests
-  |> list_map (fun (path, func) ->
-         let category, name = split_path path in
-         let category =
-           match category with
-           | "" -> name
-           | s -> s
+  |> list_map (fun x ->
+         let suite_name =
+           match x.category with
+           | [] -> x.name
+           | path -> String.concat " > " path
          in
-         let pretty_category = use_pretty_path_separator category in
-         (pretty_category, (name, speed_level, func)))
+         let suite_name = sprintf "[%s] %s" x.id suite_name in
+         (* This is the format expected by Alcotest: *)
+         (suite_name, (x.name, x.speed_level, x.func)))
   |> group_by_key
 
 let to_alcotest_lwt = to_alcotest
-
-let make_pcre_filter pat =
-  let re =
-    try Re.Pcre.re pat |> Re.compile with
-    | e ->
-        failwith
-          (Printf.sprintf "Cannot parse PCRE pattern '%s': %s" pat
-             (Printexc.to_string e))
-  in
-  fun s -> Re.matches re s <> []
-
-let filter ?substring ?pcre tests =
-  let has_substring =
-    match substring with
-    | None -> fun _ -> true
-    | Some sub ->
-        let re = Re.str sub |> Re.compile in
-        fun s -> Re.matches re s <> []
-  in
-  let matches_pcre =
-    match pcre with
-    | None -> fun _ -> true
-    | Some pat -> make_pcre_filter pat
-  in
-  tests
-  |> List.filter (fun (path, _test) ->
-         let pretty_path = use_pretty_path_separator path in
-         (has_substring path || has_substring pretty_path)
-         && (matches_pcre path || matches_pcre pretty_path))
 
 let run what f =
   printf "running %s...\n%!" what;
   Common.protect ~finally:(fun () -> printf "done with %s.\n%!" what) f
 
 let registered_tests : test list ref = ref []
+let registered_lwt_tests : lwt_test list ref = ref []
+let register x = registered_tests := x :: !registered_tests
+let register_lwt x = registered_lwt_tests := x :: !registered_lwt_tests
 
-(* 'register' might be a better name but it's a bit long. *)
-let test name func = registered_tests := (name, func) :: !registered_tests
+let test ?check_output ?speed_level name func =
+  create_test ?check_output ?speed_level name func |> register
+
+let test_lwt ?check_output ?speed_level name func =
+  create_test ?check_output ?speed_level name func |> register_lwt
+
 let get_registered_tests () = List.rev !registered_tests
+let get_registered_lwt_tests () = List.rev !registered_lwt_tests

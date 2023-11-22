@@ -560,20 +560,21 @@ let lang_autofix_tests ~polyglot_pattern_path =
 (*****************************************************************************)
 
 let eval_regression_tests () =
-  [
-    ( "eval regression testing",
-      fun () ->
-        let dir = tests_path / "eval" in
-        let files = Common2.glob (spf "%s/*.json" !!dir) in
-        files
-        |> List.iter (fun file ->
-               let env, code = Eval_generic.parse_json file in
-               let res = Eval_generic.eval env code in
-               Alcotest.(check bool)
-                 (spf "%s should evaluate to true" file)
-                 true
-                 (Eval_generic.Bool true =*= res)) );
-  ]
+  Testutil.simple_tests
+    [
+      ( "eval regression testing",
+        fun () ->
+          let dir = tests_path / "eval" in
+          let files = Common2.glob (spf "%s/*.json" !!dir) in
+          files
+          |> List.iter (fun file ->
+                 let env, code = Eval_generic.parse_json file in
+                 let res = Eval_generic.eval env code in
+                 Alcotest.(check bool)
+                   (spf "%s should evaluate to true" file)
+                   true
+                   (Eval_generic.Bool true =*= res)) );
+    ]
 
 (*****************************************************************************)
 (* Analyze_rule (filter irrelevant rules) tests *)
@@ -929,7 +930,7 @@ let full_rule_semgrep_rules_regression_tests () =
   pack_suites "full semgrep rule"
     (groups
     |> Common.map (fun (group, tests) ->
-           pack_tests (spf "%s" group) tests
+           tests
            |> Common.map (fun (name, ftest) ->
                   let test () =
                     match group with
@@ -946,7 +947,8 @@ let full_rule_semgrep_rules_regression_tests () =
                             "this used to raise an error (good news?)"
                     | _ -> ftest ()
                   in
-                  (name, test))))
+                  (name, test))
+           |> pack_tests group))
 
 (*****************************************************************************)
 (* All tests *)
