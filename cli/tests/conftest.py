@@ -396,7 +396,7 @@ def _run_semgrep(
     click_result = runner.invoke(cli, subcommand=subcommand, args=args, input=stdin)
     result = SemgrepResult(
         # the actual executable was either semgrep or osemgrep. Is it bad?
-        f"{env_string} semgrep {args}",
+        f"{env_string} semgrep {subcommand} {args}",
         click_result.stdout,
         click_result.stderr,
         click_result.exit_code,

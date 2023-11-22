@@ -1489,6 +1489,7 @@ def test_fail_auth_invalid_key_suppressed_by_default(
     }
 
 
+@pytest.mark.osemfail
 def test_fail_auth_invalid_response(
     run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit, requests_mock
 ):
@@ -1528,7 +1529,7 @@ def test_fail_auth_invalid_response_can_be_supressed(
     mock_send.assert_called_once_with(mocker.ANY, 2)
 
 
-# TODO: pass but for bad reasons I think, because we just don't handle the CLI args
+@pytest.mark.osemfail
 def test_fail_start_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     """
     Test that failing to start scan does not have exit code 0 or 1
@@ -1661,7 +1662,7 @@ def test_fail_scan_findings(
     assert upload_results_mock.called
 
 
-# TODO: pass but for bad reasons I think, because we just don't handle the CLI args
+@pytest.mark.osemfail
 def test_fail_finish_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     """
     Test failure to send findings has exit code > 1
@@ -1723,7 +1724,7 @@ def test_fail_finish_scan_error_handler(
     mock_send.assert_called_once_with(mocker.ANY, 2)
 
 
-# TODO: pass but for bad reasons I think, because we just don't handle the CLI args
+@pytest.mark.osemfail
 def test_git_failure(run_semgrep: RunSemgrep, git_tmp_path_with_commit, mocker):
     """
     Test failure from using git has exit code > 1
