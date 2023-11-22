@@ -68,4 +68,7 @@ let filemtime file = Unix.((stat !!file).st_mtime)
 let lines_of_file (start_line, end_line) file : string list =
   let arr = Common2.cat_array (Fpath.to_string file) in
   let lines = Common2.enum start_line end_line in
-  lines |> Common.map (fun i -> arr.(i))
+  match arr with
+  (* This is the case of the empty file. *)
+  | [| "" |] -> []
+  | _ -> lines |> Common.map (fun i -> arr.(i))

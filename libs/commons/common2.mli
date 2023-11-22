@@ -689,6 +689,7 @@ val size_ko : int -> string
 val edit_distance : string -> string -> int
 val md5sum_of_string : string -> string
 val wrap : ?width:int -> string -> string
+val strip : char -> string -> string
 
 (*x: common.mli for basic types *)
 (*****************************************************************************)

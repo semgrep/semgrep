@@ -1961,6 +1961,15 @@ let wrap ?(width = 80) s =
     l;
   Format.flush_str_formatter ()
 
+let strip c s =
+  let rec remove_prefix s =
+    match s with
+    | [] -> []
+    | c' :: cs -> if c =*= c' then remove_prefix cs else c' :: remove_prefix cs
+  in
+  list_of_string s |> remove_prefix |> List.rev |> remove_prefix |> List.rev
+  |> string_of_chars
+
 (*****************************************************************************)
 (* Filenames *)
 (*****************************************************************************)

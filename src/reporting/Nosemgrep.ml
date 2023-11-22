@@ -86,7 +86,7 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
   let lines =
     (* Minus one, because we need the preceding line. *)
     let start, end_ = pm.range_loc in
-    let start_line = start.pos.line - 1 in
+    let start_line = max (start.pos.line - 1) 1 in
     let end_line = end_.pos.line in
     File.lines_of_file (start_line, end_line) (Fpath.v pm.file)
     |> Common.mapi (fun idx x -> (start_line + idx, x))
@@ -119,21 +119,19 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
         recognise_and_collect ~rex:nosem_previous_line_re previous_line
   in
 
-  match (ids_line, ids_previous_line) with
-  | None, None
-  | Some [||], Some [||] ->
+  match
+    ( Option.value ~default:[||] ids_line,
+      Option.value ~default:[||] ids_previous_line )
+  with
+  | [||], [||] ->
       (* no lines or no [nosemgrep] occurrences found, keep the [rule_match]. *)
       (false, [])
-  | Some ids_line, Some ids_previous_line
-    when no_ids ids_line && no_ids ids_previous_line ->
+  | ids_line, ids_previous_line when no_ids ids_line && no_ids ids_previous_line
+    ->
       (* [nosemgrep] occurrences found but no [ids]. *)
       (true, [])
-  | __else__ ->
-      let ids =
-        Array.append
-          (Option.value ~default:[||] ids_line)
-          (Option.value ~default:[||] ids_previous_line)
-      in
+  | ids_line, ids_previous_line ->
+      let ids = Array.append ids_line ids_previous_line in
       let ids =
         Array.to_list ids |> Common.map_filter Fun.id
         |> Common.map (fun (line_num, s, col) ->
@@ -145,10 +143,19 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
       (* check if the id specified by the user is the [rule_match]'s [rule_id]. *)
       let nosem_matches id =
         (* TODO: id should be a Rule_ID.t too *)
-        Rule_ID.ends_with pm.rule_id.id ~suffix:(Rule_ID.of_string id)
+        let res =
+          Rule_ID.ends_with pm.rule_id.id ~suffix:(Rule_ID.of_string id)
+        in
+        res
       in
+
       List.fold_left
         (fun (result, errors) (line_num, id, col) ->
+          (* strip quotes from the beginning and end of the id. this allows
+             use of nosem as an HTML attribute inside tags.
+             HTML comments inside tags are not allowed by the spec.
+          *)
+          let id = Common2.strip '"' id in
           let loc =
             Tok.
               {
