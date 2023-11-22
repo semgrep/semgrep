@@ -49,7 +49,9 @@ def test_rule_match_attributes(mocker):
             start=out.Position(3, 1, 24),
             end=out.Position(3, 15, 38),
             extra=out.CoreMatchExtra(
-                metavars=out.Metavars({}), engine_kind=out.EngineKind(out.OSS())
+                metavars=out.Metavars({}),
+                engine_kind=out.EngineKind(out.OSS()),
+                is_ignored=False,
             ),
         ),
     )
@@ -85,7 +87,9 @@ def test_rule_match_sorting(mocker):
             start=out.Position(3, 1, 24),
             end=out.Position(3, 15, 38),
             extra=out.CoreMatchExtra(
-                metavars=out.Metavars({}), engine_kind=out.EngineKind(out.OSS())
+                metavars=out.Metavars({}),
+                engine_kind=out.EngineKind(out.OSS()),
+                is_ignored=False,
             ),
         ),
     )
@@ -98,7 +102,9 @@ def test_rule_match_sorting(mocker):
             start=out.Position(4, 1, 36),
             end=out.Position(4, 15, 50),
             extra=out.CoreMatchExtra(
-                metavars=out.Metavars({}), engine_kind=out.EngineKind(out.OSS())
+                metavars=out.Metavars({}),
+                engine_kind=out.EngineKind(out.OSS()),
+                is_ignored=False,
             ),
         ),
     )
@@ -128,7 +134,9 @@ def test_rule_match_hashing(mocker):
             start=out.Position(3, 1, 24),
             end=out.Position(3, 15, 38),
             extra=out.CoreMatchExtra(
-                metavars=out.Metavars({}), engine_kind=out.EngineKind(out.OSS())
+                metavars=out.Metavars({}),
+                engine_kind=out.EngineKind(out.OSS()),
+                is_ignored=False,
             ),
         ),
     )
@@ -156,7 +164,9 @@ def test_rule_match_is_nosemgrep_agnostic(mocker):
             start=out.Position(3, 1, 28),
             end=out.Position(5, 2, 48),
             extra=out.CoreMatchExtra(
-                metavars=out.Metavars({}), engine_kind=out.EngineKind(out.OSS())
+                metavars=out.Metavars({}),
+                engine_kind=out.EngineKind(out.OSS()),
+                is_ignored=False,
             ),
         ),
     )
@@ -179,7 +189,9 @@ def test_rule_match_is_nosemgrep_agnostic(mocker):
             start=out.Position(3, 1, 28),
             end=out.Position(5, 2, 72),
             extra=out.CoreMatchExtra(
-                metavars=out.Metavars({}), engine_kind=out.EngineKind(out.OSS())
+                metavars=out.Metavars({}),
+                engine_kind=out.EngineKind(out.OSS()),
+                is_ignored=False,
             ),
         ),
     )
@@ -203,7 +215,9 @@ def test_rule_match_is_nosemgrep_agnostic(mocker):
             start=out.Position(4, 1, 55),
             end=out.Position(6, 2, 75),
             extra=out.CoreMatchExtra(
-                metavars=out.Metavars({}), engine_kind=out.EngineKind(out.OSS())
+                metavars=out.Metavars({}),
+                engine_kind=out.EngineKind(out.OSS()),
+                is_ignored=False,
             ),
         ),
     )
@@ -238,7 +252,9 @@ def test_rule_match_set_indexes(mocker):
             start=out.Position(3, 1, 24),
             end=out.Position(3, 15, 38),
             extra=out.CoreMatchExtra(
-                metavars=out.Metavars({}), engine_kind=out.EngineKind(out.OSS())
+                metavars=out.Metavars({}),
+                engine_kind=out.EngineKind(out.OSS()),
+                is_ignored=False,
             ),
         ),
     )
@@ -251,7 +267,9 @@ def test_rule_match_set_indexes(mocker):
             start=out.Position(4, 1, 36),
             end=out.Position(4, 15, 50),
             extra=out.CoreMatchExtra(
-                metavars=out.Metavars({}), engine_kind=out.EngineKind(out.OSS())
+                metavars=out.Metavars({}),
+                engine_kind=out.EngineKind(out.OSS()),
+                is_ignored=False,
             ),
         ),
     )
@@ -264,7 +282,9 @@ def test_rule_match_set_indexes(mocker):
             start=out.Position(5, 1, 48),
             end=out.Position(5, 15, 62),
             extra=out.CoreMatchExtra(
-                metavars=out.Metavars({}), engine_kind=out.EngineKind(out.OSS())
+                metavars=out.Metavars({}),
+                engine_kind=out.EngineKind(out.OSS()),
+                is_ignored=False,
             ),
         ),
     )
@@ -277,7 +297,9 @@ def test_rule_match_set_indexes(mocker):
             start=out.Position(6, 1, 60),
             end=out.Position(6, 15, 74),
             extra=out.CoreMatchExtra(
-                metavars=out.Metavars({}), engine_kind=out.EngineKind(out.OSS())
+                metavars=out.Metavars({}),
+                engine_kind=out.EngineKind(out.OSS()),
+                is_ignored=False,
             ),
         ),
     )
@@ -291,7 +313,9 @@ def test_rule_match_set_indexes(mocker):
             start=out.Position(7, 1, 60),
             end=out.Position(7, 15, 74),
             extra=out.CoreMatchExtra(
-                metavars=out.Metavars({}), engine_kind=out.EngineKind(out.OSS())
+                metavars=out.Metavars({}),
+                engine_kind=out.EngineKind(out.OSS()),
+                is_ignored=False,
             ),
         ),
     )
@@ -345,7 +369,9 @@ def test_rule_match_to_app_finding(snapshot, mocker):
             start=out.Position(0, 0, 0),
             end=out.Position(0, 0, 0),
             extra=out.CoreMatchExtra(
-                metavars=out.Metavars({}), engine_kind=out.EngineKind(out.OSS())
+                metavars=out.Metavars({}),
+                engine_kind=out.EngineKind(out.OSS()),
+                is_ignored=False,
             ),
         ),
         extra={
@@ -397,7 +423,9 @@ def create_sca_rule_match(sca_kind, reachable_in_code, transitivity):
             start=out.Position(0, 0, 0),
             end=out.Position(0, 0, 0),
             extra=out.CoreMatchExtra(
-                metavars=out.Metavars({}), engine_kind=out.EngineKind(out.OSS())
+                metavars=out.Metavars({}),
+                engine_kind=out.EngineKind(out.OSS()),
+                is_ignored=False,
             ),
         ),
         extra={

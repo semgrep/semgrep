@@ -55,6 +55,7 @@ let mock_run_results (files : string list) : Core_runner.result =
         metavars = [];
         dataflow_trace = None;
         fix = None;
+        is_ignored = false;
         engine_kind = `OSS;
         validation_state = Some `No_validator;
         extra_extra = None;
@@ -233,33 +234,12 @@ let processed_run () =
     let expected = [ file2; file3 ] in
     test_processed_run files expected true
   in
-  let test_nosem () =
-    let workspace = mock_workspace () in
-    let file1 =
-      add_file ~content:"print(\"hello world\") # nosem" workspace ()
-    in
-    let file2 =
-      add_file ~content:"# nosem\nprint(\"hello world\")" workspace ()
-    in
-    let file3 =
-      add_file ~content:"# print(\"hello world\") # nosemgrep: print" workspace
-        ()
-    in
-    let file4 =
-      add_file ~content:"# print(\"hello world\") # nosemgrep: other_rule"
-        workspace ()
-    in
-    let files = [ file1; file2; file3; file4 ] in
-    let expected = [ file4 ] in
-    test_processed_run files expected false
-  in
   let tests =
     [
       ("Test no git", test_processed false false);
       ("Test git", test_processed false true);
       ("Test only git dirty with no git", test_processed true false);
       ("Test only git dirty with dirty files", test_git_dirty_lines);
-      ("Test nosem", test_nosem);
     ]
   in
   pack_tests "Processed Run" tests
