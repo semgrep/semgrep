@@ -21,8 +21,8 @@ let get_identity_async ~token ~caller =
   let url = Uri.(with_path !Semgrep_envvars.v.semgrep_url endpoint) in
   let%lwt res = Http_helpers.get_async ~headers url in
   match res with
-  | Ok body -> Lwt.return body
-  | Error msg ->
+  | Ok (body, _) -> Lwt.return body
+  | Error (msg, _) ->
       Logs.err (fun m ->
           m "Failed to download config from %s: %s" (Uri.to_string url) msg);
       Lwt.return ""
