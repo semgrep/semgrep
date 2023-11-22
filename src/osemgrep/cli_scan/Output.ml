@@ -24,7 +24,7 @@ module OutJ = Semgrep_output_v1_j
 (*****************************************************************************)
 
 let string_of_severity (severity : OutJ.match_severity) : string =
-  Out.string_of_match_severity severity
+  OutJ.string_of_match_severity severity
   |> JSON.remove_enclosing_quotes_of_jstring
 
 (*****************************************************************************)
@@ -36,7 +36,7 @@ let dispatch_output_format (output_format : Output_format.t)
   (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
   match output_format with
   | Json ->
-      let s = Out.string_of_cli_output cli_output in
+      let s = OutJ.string_of_cli_output cli_output in
       Common.pr s
   | Vim ->
       cli_output.results

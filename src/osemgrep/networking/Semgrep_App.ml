@@ -49,7 +49,7 @@ let get_scan_config_from_token_async ~token : OutJ.scan_config option Lwt.t =
         Logs.debug (fun m -> m "error while retrieving scan config: %s" msg);
         None
     | Ok body -> (
-        try Some (Out.scan_config_of_string body) with
+        try Some (OutJ.scan_config_of_string body) with
         | Yojson.Json_error msg ->
             Logs.debug (fun m ->
                 m "failed to parse body as scan_config %s: %s" msg body);
@@ -89,10 +89,11 @@ let extract_scan_id (data : string) : (scan_id, string) result =
 
 (* the server reply when POST to "/api/agent/scans/<scan_id>/results"  *)
 let extract_errors (data : string) : string list =
-  match Out.ci_scan_results_response_of_string data with
+  match OutJ.ci_scan_results_response_of_string data with
   | { errors; task_id = _ } as response ->
       Logs.debug (fun m ->
-          m "results response = %s" (Out.show_ci_scan_results_response response));
+          m "results response = %s"
+            (OutJ.show_ci_scan_results_response response));
       errors
       |> Common.map (fun (x : OutJ.ci_scan_results_response_error) -> x.message)
   | exception exn ->
@@ -104,11 +105,11 @@ let extract_errors (data : string) : string list =
 (* the server reply when POST to "/api/agent/scans/<scan_id>/complete" *)
 let extract_block_override (data : string) : (app_block_override, string) result
     =
-  match Out.ci_scan_complete_response_of_string data with
+  match OutJ.ci_scan_complete_response_of_string data with
   | { success = _; app_block_override; app_block_reason } as response ->
       Logs.debug (fun m ->
           m "complete response = %s"
-            (Out.show_ci_scan_complete_response response));
+            (OutJ.show_ci_scan_complete_response response));
       if app_block_override then Ok (Some app_block_reason)
         (* TODO? can we have a app_block_reason set when override is false? *)
       else Ok None
@@ -135,7 +136,7 @@ let get_deployment_from_token_async ~token : OutJ.deployment_config option Lwt.t
         Logs.debug (fun m -> m "error while retrieving deployment: %s" msg);
         None
     | Ok body ->
-        let x = Out.deployment_response_of_string body in
+        let x = OutJ.deployment_response_of_string body in
         Some x.deployment
   in
   Lwt.return deployment_opt
@@ -184,7 +185,7 @@ let start_scan ~dry_run ~token (prj_meta : Project_metadata.t)
         project_config = None;
       }
     in
-    let body = Out.string_of_scan_request request in
+    let body = OutJ.string_of_scan_request request in
     let pretty_body =
       body |> Yojson.Basic.from_string |> Yojson.Basic.pretty_to_string
     in
@@ -277,8 +278,9 @@ let fetch_scan_config_async ~dry_run ~token ~sca ~full_scan ~repository :
   let conf =
     match content with
     | Error _ as e -> e
-    | Ok content -> Ok (Out.scan_config_of_string content)
+    | Ok content -> Ok (OutJ.scan_config_of_string content)
   in
+
   Lwt.return conf
 
 let fetch_scan_config ~dry_run ~token ~sca ~full_scan ~repository =
@@ -292,8 +294,8 @@ let fetch_scan_config ~dry_run ~token ~sca ~full_scan ~repository =
 (* python: was called report_findings *)
 let upload_findings ~dry_run ~token ~scan_id ~results ~complete :
     (app_block_override, string) result =
-  let results = Out.string_of_ci_scan_results results in
-  let complete = Out.string_of_ci_scan_complete complete in
+  let results = OutJ.string_of_ci_scan_results results in
+  let complete = OutJ.string_of_ci_scan_complete complete in
   if dry_run then (
     Logs.app (fun m ->
         m "Would have sent findings and ignores blob: %s" results);
@@ -358,7 +360,7 @@ let report_failure ~dry_run ~token ~scan_id (exit_code : Exit_code.t) : unit =
       { exit_code = int_code; (* TODO *)
                               stderr = "" }
     in
-    let body = Out.string_of_ci_scan_failure failure in
+    let body = OutJ.string_of_ci_scan_failure failure in
     match Http_helpers.post ~body ~headers uri with
     | Ok _ -> ()
     | Error (code, msg) ->

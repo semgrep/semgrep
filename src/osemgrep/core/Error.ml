@@ -137,5 +137,5 @@ let rec string_of_error_type (error_type : OutJ.error_type) : string =
   | OutOfMemory
   | TimeoutDuringInterfile
   | OutOfMemoryDuringInterfile ->
-      Out.string_of_error_type error_type
+      OutJ.string_of_error_type error_type
       |> JSON.remove_enclosing_quotes_of_jstring

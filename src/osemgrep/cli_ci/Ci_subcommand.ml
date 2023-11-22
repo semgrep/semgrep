@@ -144,7 +144,7 @@ let deployment_config_opt (api_token : Auth.token option) (empty_config : bool)
       | Some deployment_config ->
           Logs.debug (fun m ->
               m "received deployment = %s"
-                (Out.show_deployment_config deployment_config));
+                (OutJ.show_deployment_config deployment_config));
           Some (token, deployment_config))
 
 (* eventually output the origin (if the semgrep_url is not semgrep.dev) *)

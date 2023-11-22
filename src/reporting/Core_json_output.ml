@@ -133,7 +133,7 @@ let metavars startp_of_match_range (s, mval) =
       raise
         (Tok.NoTokenLocation
            (spf "NoTokenLocation with metavar %s, close location = %s" s
-              (Out.string_of_position startp_of_match_range)))
+              (OutJ.string_of_position startp_of_match_range)))
   | Some (startp, endp) ->
       ( s,
         {

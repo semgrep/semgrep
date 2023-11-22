@@ -251,7 +251,7 @@ let string_of_error err =
   spf "%s:%d:%d: %s: %s%s"
     (source_of_string pos.Tok.pos.file)
     pos.Tok.pos.line pos.Tok.pos.column
-    (Out.string_of_error_type err.typ)
+    (OutJ.string_of_error_type err.typ)
     err.msg details
 
 let severity_of_error (typ : OutJ.error_type) : OutJ.error_severity =

@@ -81,7 +81,7 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
         User should use an external tool like jq or ydump (latter comes with
         yojson) for pretty-printing json.
       *)
-      let s = Out.string_of_core_output res in
+      let s = OutJ.string_of_core_output res in
       logger#info "size of returned JSON string: %d" (String.length s);
       pr s;
       match result_or_exn with
@@ -172,7 +172,7 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
       in
       let res = Core_scan.scan config (([ rule ], []), rules_parse_time) in
       let json = Core_json_output.core_output_of_matches_and_errors res in
-      let s = Out.string_of_core_output json in
+      let s = OutJ.string_of_core_output json in
       pr s
   | Text ->
       let minirule, _rules_parse_time =

@@ -51,7 +51,7 @@ let match_to_charpos_range (pm : Pattern_match.t) : string =
 let rec print_indent indent { op; children; matches; pos } =
   let s =
     spf "%s op = %s (at %d), matches = %s" (Common2.n_space indent)
-      (Out.show_matching_operation op)
+      (OutJ.show_matching_operation op)
       (Tok.bytepos_of_tok pos)
       (matches |> Common.map match_to_charpos_range |> Common.join " ")
   in

@@ -262,7 +262,7 @@ let string_of_metrics () = Semgrep_metrics_j.string_of_payload g.payload
 (*****************************************************************************)
 let add_engine_kind (kind : OutJ.engine_kind) =
   (* TODO: use a better type in semgrep_metrics.atd for this field *)
-  g.payload.value.engineRequested <- Out.show_engine_kind kind
+  g.payload.value.engineRequested <- OutJ.show_engine_kind kind
 
 (* TODO? should pass Uri.t directly *)
 let add_project_url_hash (project_url : string) =
