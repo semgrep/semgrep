@@ -26,7 +26,6 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
         "lines": "  /vercel@28.16.12:",
         "message": "oh no",
         "metadata": {},
