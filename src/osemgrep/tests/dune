@@ -1,0 +1,19 @@
+(library
+  (public_name semgrep.osemgrep_tests)
+  (name osemgrep_tests)
+  (wrapped false)
+  (libraries
+    commons
+
+    osemgrep_cli
+    osemgrep_cli_login
+  )
+ (preprocess
+   (pps
+     ppx_profiling
+     ppx_deriving.show
+     ppx_deriving.eq
+     ppx_hash
+   )
+ )
+)
