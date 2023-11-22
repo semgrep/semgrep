@@ -628,7 +628,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     (* this must happen posterior to reporting matches, or will report the
        already-fixed file
     *)
-    Autofix.apply_fixes_of_core_matches res.core.results;
+    if conf.autofix then Autofix.apply_fixes_of_core_matches res.core.results;
 
     (* TOPORT? was in formater/base.py
        def keep_ignores(self) -> bool:

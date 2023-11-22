@@ -19,19 +19,19 @@ module OutJ = Semgrep_output_v1_t
 let logger = Logging.get_logger [ __MODULE__ ]
 let ( let/ ) = Result.bind
 
-(******************************************************************************)
+(*****************************************************************************)
 (* Constants *)
-(******************************************************************************)
+(*****************************************************************************)
 
 (* For matching things of the form \<num>.
    See `regex_fix` below for why this is needed.
 *)
 let capture_group_regex = "\\\\([0-9]+)"
 
-(******************************************************************************)
+(*****************************************************************************)
 (* Main module for AST-based autofix. This module will attempt to synthesize a
  * fix based a rule's fix pattern and the match's metavariable bindings. *)
-(******************************************************************************)
+(*****************************************************************************)
 
 let parse_pattern lang pattern =
   try Ok (Parse_pattern.parse_pattern lang pattern) with
@@ -120,9 +120,9 @@ let validate_fix lang target_contents edit =
           fail "Failed to parse original file")
   | Error e -> fail (Exception.to_string e)
 
-(******************************************************************************)
+(*****************************************************************************)
 (* Kinds of fixes *)
-(******************************************************************************)
+(*****************************************************************************)
 
 (* Attempts to render a fix. If successful, returns the text that should replace
  * the matched range in the target file. If unsuccessful, returns None.
@@ -256,9 +256,9 @@ let regex_fix ~fix_regexp:Rule.{ regexp; count; replacement } (start, end_)
   let edit = Textedit.{ path = pm.file; start; end_; replacement_text } in
   edit
 
-(******************************************************************************)
+(*****************************************************************************)
 (* Autofix selection logic *)
-(******************************************************************************)
+(*****************************************************************************)
 
 let render_fix (pm : Pattern_match.t) : Textedit.t option =
   let fix = pm.rule_id.fix in
@@ -276,13 +276,14 @@ let render_fix (pm : Pattern_match.t) : Textedit.t option =
       | Some fix -> Some fix)
   | _, Some fix_regexp -> Some (regex_fix ~fix_regexp range pm)
 
-(******************************************************************************)
+(*****************************************************************************)
 (* Entry point *)
-(******************************************************************************)
+(*****************************************************************************)
 
 (* Apply the fix for the list of matches to the given file, returning the
-   * resulting file contents. Currently used only for tests, but with some changes
-   * could be used in production as well. *)
+ * resulting file contents. Currently used only for tests, but with some
+ * changes could be used in production as well.
+ *)
 let produce_autofixes (matches : Pattern_match.t list) =
   Common.map (fun m -> (m, render_fix m)) matches
 
