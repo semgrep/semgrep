@@ -15,7 +15,6 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
         "lines": "<h1>Search results for \"{{ query|safe }}\"</h1>",
         "message": "The variable '$VAR' is most likely an XSS. It originates as user input and is unsafely rendered with the '| safe' filter.",
         "metadata": {

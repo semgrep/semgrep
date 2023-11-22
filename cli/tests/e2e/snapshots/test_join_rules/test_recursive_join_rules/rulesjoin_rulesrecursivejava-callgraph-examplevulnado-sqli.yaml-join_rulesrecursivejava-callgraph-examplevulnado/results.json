@@ -15,7 +15,6 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
         "lines": "      String query = \"select * from users where username = '\" + un + \"' limit 1\";",
         "message": "SQLi",
         "metadata": {},
