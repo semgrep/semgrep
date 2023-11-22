@@ -5,7 +5,7 @@ module R = Rule
 module MR = Mini_rule
 module P = Pattern_match
 module E = Core_error
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -401,7 +401,7 @@ let regression_tests_for_lang ~polyglot_pattern_path files lang =
                  let start_loc, _end_loc = range_loc in
                  E.push_error
                    (Rule_ID.of_string "test-pattern")
-                   start_loc "" Out.SemgrepMatchFound)
+                   start_loc "" OutJ.SemgrepMatchFound)
                ~file ~pattern ~fix:NoFix
              |> ignore;
              let actual = !E.g_errors in
@@ -537,7 +537,7 @@ let autofix_tests_for_lang ~polyglot_pattern_path files lang =
                     *)
                    E.push_error
                      (Rule_ID.of_string "test-pattern")
-                     start_loc "" Out.SemgrepMatchFound)
+                     start_loc "" OutJ.SemgrepMatchFound)
                  ~file ~pattern ~fix
              in
              E.g_errors := [];
@@ -729,7 +729,7 @@ let tainting_test lang rules_file file =
     |> Common.map (fun m ->
            {
              rule_id = Some m.P.rule_id.id;
-             E.typ = Out.SemgrepMatchFound;
+             E.typ = OutJ.SemgrepMatchFound;
              loc = fst m.range_loc;
              msg = m.P.rule_id.message;
              details = None;

@@ -1,6 +1,6 @@
 open Lsp.Types
 module Conv = Convert_utils
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 let meth = "semgrep/loginFinish"
 let wait_before_retry_in_ms = 6 * 1000

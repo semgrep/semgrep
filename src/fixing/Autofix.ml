@@ -14,7 +14,7 @@
  *)
 
 open Common
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 let ( let/ ) = Result.bind
@@ -309,9 +309,9 @@ let apply_fixes (edits : Textedit.t list) =
           (String_utils.unit_str (List.length modified_files) "file(s)"))
   else Logs.info (fun m -> m "no files modified.")
 
-let apply_fixes_of_core_matches (matches : Out.core_match list) =
+let apply_fixes_of_core_matches (matches : OutJ.core_match list) =
   matches
-  |> Common.map_filter (fun (m : Out.core_match) ->
+  |> Common.map_filter (fun (m : OutJ.core_match) ->
          let* replacement_text = m.extra.fix in
          let start = m.start.offset in
          let end_ = m.end_.offset in

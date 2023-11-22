@@ -1,6 +1,6 @@
 open Common
 module MV = Metavariable
-module Out = Semgrep_output_v1_j
+module OutJ = Semgrep_output_v1_j
 module OutUtils = Semgrep_output_utils
 module G = AST_generic
 
@@ -50,13 +50,13 @@ let of_bindings bindings =
              let propagated_content = propagated_value_string_of_mval mval in
              Some (mvar, { mval_content; propagated_content }))
 
-let of_out (metavars : Out.metavars) =
+let of_out (metavars : OutJ.metavars) =
   metavars
   |> Common.map (fun (mvar, metavar_value) ->
-         let mval_content = lazy metavar_value.Out.abstract_content in
+         let mval_content = lazy metavar_value.OutJ.abstract_content in
          let propagated_content =
            Option.map
-             (fun svalue -> svalue.Out.svalue_abstract_content)
+             (fun svalue -> svalue.OutJ.svalue_abstract_content)
              metavar_value.propagated_value
          in
          (mvar, { mval_content; propagated_content }))

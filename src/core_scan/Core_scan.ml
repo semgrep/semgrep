@@ -21,7 +21,7 @@ module MR = Mini_rule
 module R = Rule
 module RP = Core_result
 module In = Input_to_core_j
-module Out = Semgrep_output_v1_j
+module OutJ = Semgrep_output_v1_j
 
 let logger = Logging.get_logger [ __MODULE__ ]
 let debug_extract_mode = ref false
@@ -209,7 +209,7 @@ let sort_targets_by_decreasing_size (targets : In.target list) : In.target list
  * early on.
  *)
 let filter_existing_targets (targets : In.target list) :
-    In.target list * Out.skipped_target list =
+    In.target list * OutJ.skipped_target list =
   targets
   |> Common.partition_either (fun (target : In.target) ->
          let file = target.In.path in
@@ -404,7 +404,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
                   "%d rules result in too many matches, most offending rule \
                    has %d: %s"
                   offending_rules cnt pat)
-               Out.TooManyMatches
+               OutJ.TooManyMatches
            in
            let skipped =
              sorted_offending_rules
@@ -450,7 +450,7 @@ let sanity_check_invalid_patterns (res : Core_result.t) :
   match
     res.errors
     |> List.find_opt (function
-         | { Core_error.typ = Out.PatternParseError _; _ } -> true
+         | { Core_error.typ = OutJ.PatternParseError _; _ } -> true
          | _else_ -> false)
   with
   | None -> Ok res
@@ -561,10 +561,10 @@ let iter_targets_and_get_matches_and_exn_to_errors config
                           (match exn with
                           | Match_rules.File_timeout ->
                               logger#info "Timeout on %s" !!file;
-                              Out.Timeout
+                              OutJ.Timeout
                           | Out_of_memory ->
                               logger#info "OutOfMemory on %s" !!file;
-                              Out.OutOfMemory
+                              OutJ.OutOfMemory
                           | _ -> raise Impossible))
                    in
                    ( Core_result.make_match_result [] errors
@@ -655,7 +655,7 @@ let xtarget_of_file ~parsing_cache_dir (xlang : Xlang.t) (file : Fpath.t) :
  * by using the include/exclude fields.).
  *)
 let targets_of_config (config : Core_scan_config.t) :
-    In.targets * Out.skipped_target list =
+    In.targets * OutJ.skipped_target list =
   match (config.target_source, config.roots, config.lang) with
   (* We usually let semgrep-python computes the list of targets (and pass it
    * via -target), but it's convenient to also run semgrep-core without

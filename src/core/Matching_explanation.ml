@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-module Out = Semgrep_output_v1_j
+module OutJ = Semgrep_output_v1_j
 
 (*****************************************************************************)
 (* Prelude *)
@@ -28,7 +28,7 @@ module Out = Semgrep_output_v1_j
 
 (* coupling: semgrep_output_v1.atd matching_explanation type *)
 type t = {
-  op : Out.matching_operation;
+  op : OutJ.matching_operation;
   children : t list;
   (* resulting ranges *)
   matches : Pattern_match.t list;
@@ -45,13 +45,13 @@ type t = {
 let match_to_charpos_range (pm : Pattern_match.t) : string =
   let min_loc, max_loc = pm.range_loc in
   let startp, endp = Semgrep_output_utils.position_range min_loc max_loc in
-  spf "%d-%d" startp.Out.offset endp.Out.offset
+  spf "%d-%d" startp.OutJ.offset endp.OutJ.offset
 
 (* alt: use Format module *)
 let rec print_indent indent { op; children; matches; pos } =
   let s =
     spf "%s op = %s (at %d), matches = %s" (Common2.n_space indent)
-      (Out.show_matching_operation op)
+      (OutJ.show_matching_operation op)
       (Tok.bytepos_of_tok pos)
       (matches |> Common.map match_to_charpos_range |> Common.join " ")
   in

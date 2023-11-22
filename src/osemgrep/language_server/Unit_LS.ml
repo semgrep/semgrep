@@ -1,6 +1,6 @@
 open Testutil
 open File.Operators
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 module In = Input_to_core_t
 
 (** Try to test all of the more complex parts of the LS, but save the e2e stuff
@@ -49,7 +49,7 @@ let mock_run_results (files : string list) : Core_runner.result =
   let hrules = Rule.hrules_of_rules [ rule ] in
   let scanned = Common.map (fun f -> Fpath.v f) files |> Set_.of_list in
   let match_of_file file =
-    let (extra : Out.core_match_extra) =
+    let (extra : OutJ.core_match_extra) =
       {
         message = Some "test";
         metavars = [];
@@ -62,7 +62,7 @@ let mock_run_results (files : string list) : Core_runner.result =
         metadata = None;
       }
     in
-    let (m : Out.core_match) =
+    let (m : OutJ.core_match) =
       {
         check_id = Rule_ID.of_string "print";
         (* inherited location *)
@@ -75,7 +75,7 @@ let mock_run_results (files : string list) : Core_runner.result =
     m
   in
   let matches = Common.map match_of_file files in
-  let (core : Out.core_output) =
+  let (core : OutJ.core_output) =
     {
       version = None;
       results = matches;
@@ -201,7 +201,7 @@ let processed_run () =
     let results = mock_run_results files in
     let matches = Processed_run.of_matches ~only_git_dirty results in
     let final_files =
-      matches |> Common.map (fun (m : Out.cli_match) -> !!(m.path))
+      matches |> Common.map (fun (m : OutJ.cli_match) -> !!(m.path))
     in
     let final_files = Common.sort final_files in
     let expected = Common.sort expected in

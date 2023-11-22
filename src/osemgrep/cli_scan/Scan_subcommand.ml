@@ -16,7 +16,7 @@ open Common
 open File.Operators
 module C = Rules_config
 module Env = Semgrep_envvars
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 module SS = Set.Make (String)
 
 (*****************************************************************************)
@@ -85,7 +85,7 @@ let setup_profiling (conf : Scan_CLI.conf) =
 (* python: this used to be done in a _final_raise method from output.py
  * but better separation of concern to do it here.
  *)
-let exit_code_of_errors ~strict (errors : Out.core_error list) : Exit_code.t =
+let exit_code_of_errors ~strict (errors : OutJ.core_error list) : Exit_code.t =
   match List.rev errors with
   | [] -> Exit_code.ok
   (* TODO? why do we look at the last error? What about the other errors? *)
@@ -111,12 +111,12 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     (_file : Fpath.t)
     (match_results : Core_profiling.partial_profiling Core_result.match_result)
     : unit =
-  let (cli_matches : Out.cli_match list) =
+  let (cli_matches : OutJ.cli_match list) =
     (* need to go through a series of transformation so that we can
      * get something that Matches_report.pp_text_outputs can operate on
      *)
     let (pms : Pattern_match.t list) = match_results.matches in
-    let (core_matches : Out.core_match list) =
+    let (core_matches : OutJ.core_match list) =
       pms
       (* OK, because we don't need the edits to report the matches. *)
       |> Common.map (fun pm -> (pm, None))
@@ -253,10 +253,10 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
     | Some n -> Some (succ n)
     | None -> Some 1
   in
-  let fold acc (core_match : Out.core_match) =
+  let fold acc (core_match : OutJ.core_match) =
     Map_.update core_match.check_id update acc
   in
-  let map = List.fold_left fold Map_.empty res.core.Out.results in
+  let map = List.fold_left fold Map_.empty res.core.results in
   Map_.fold
     (fun rule_id n acc ->
       let res =
@@ -452,8 +452,9 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
 (*****************************************************************************)
 let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     (rules_and_origins : Rule_fetching.rules_and_origin list)
-    (targets_and_skipped : Fpath.t list * Out.skipped_target list) :
-    (Rule.rule list * Core_runner.result * Out.cli_output, Exit_code.t) result =
+    (targets_and_skipped : Fpath.t list * OutJ.skipped_target list) :
+    (Rule.rule list * Core_runner.result * OutJ.cli_output, Exit_code.t) result
+    =
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origins
   in
