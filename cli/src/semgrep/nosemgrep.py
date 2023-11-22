@@ -45,12 +45,8 @@ def filter_ignored(
     """
     result = FilteredMatches(rule_matches_by_rule)
     for rule, matches in rule_matches_by_rule.items():
-        evolved_matches = []
-        for match in matches:
-            ignored = match.match.extra.is_ignored
-            evolved_matches.append(evolve(match, is_ignored=ignored))
         result.kept[rule], result.removed[rule] = partition(
-            evolved_matches,
+            matches,
             lambda match: keep_ignored or not match.match.extra.is_ignored,
         )
 
