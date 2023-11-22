@@ -1046,6 +1046,16 @@ exception UnixExit of int
 val exn_to_real_unixexit : (unit -> 'a) -> 'a
 (*e: common.mli for basic types *)
 
+(*****************************************************************************)
+(* Machine *)
+(*****************************************************************************)
+
+(* The machine architecture, such as arm64, x86_64 *)
+val arch : unit -> string
+
+(* The OS, such as Linux, Windows, Darwin *)
+val kernel : unit -> string
+
 (*###########################################################################*)
 (* Collection-like types *)
 (*###########################################################################*)
