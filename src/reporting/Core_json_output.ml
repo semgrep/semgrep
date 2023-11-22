@@ -249,7 +249,8 @@ let unsafe_match_to_match
         metadata = Option.map JSON.to_yojson x.metadata_override;
         metavars;
         dataflow_trace;
-        fix = Option.map (fun edit -> edit.Textedit.replacement_text) autofix_edit;
+        fix =
+          Option.map (fun edit -> edit.Textedit.replacement_text) autofix_edit;
         is_ignored;
         engine_kind = x.engine_kind;
         validation_state = Some x.validation_state;
