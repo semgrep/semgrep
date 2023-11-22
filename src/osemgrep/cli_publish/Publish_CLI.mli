@@ -11,7 +11,9 @@ val string_of_visibility : visibility_state -> string
 *)
 type conf = {
   (* Main configuration options *)
-  target : string;
+  common : CLI_common.conf;
+  (* May be the path of a rule, or a folder which contains rules. *)
+  upload_target : string;
   visibility : visibility_state;
   registry_id : string option;
 }

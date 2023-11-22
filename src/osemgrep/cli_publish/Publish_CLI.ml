@@ -21,22 +21,28 @@ type visibility_state = Org_private | Unlisted | Public [@@deriving show]
 
 (*
    The result of parsing a 'semgrep publish' command.
-
-   LATER: we could actually define this structure in ATD, so people could
-   programmatically set the command-line arguments they want if they
-   want to programmatically call Semgrep. This structure could also
-   be versioned so people can rely on a stable CLI "API".
 *)
 type conf = {
   (* Main configuration options *)
-  target : string;
+  common : CLI_common.conf;
+  upload_target : string;
   visibility : visibility_state;
   registry_id : string option;
 }
 [@@deriving show]
 
 let default : conf =
-  { target = "<required>"; visibility = Org_private; registry_id = None }
+  {
+    common =
+      {
+        profile = false;
+        logging_level = Some Logs.Warning;
+        maturity = Maturity.Default;
+      };
+    upload_target = "<required>";
+    visibility = Org_private;
+    registry_id = None;
+  }
 
 (*************************************************************************)
 (* Helpers *)
@@ -89,8 +95,8 @@ let o_registry_id : string option Term.t =
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
-let target =
-  let info = Arg.info [] ~doc:"Target rule to upload" in
+let upload_target =
+  let info = Arg.info [] ~doc:"Target rule(s) to upload" in
   Arg.required (Arg.pos 0 Arg.(some string) None info)
 
 (*****************************************************************************)
@@ -100,14 +106,15 @@ let target =
 let cmdline_term : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
-  let combine _common registry_id target visibility =
-    { target; visibility; registry_id }
+  let combine common registry_id upload_target visibility =
+    { common; upload_target; visibility; registry_id }
   in
   (* Term defines 'const' but also the '$' operator *)
   Term.(
     (* !the o_xxx must be in alphabetic orders to match the parameters of
      * combine above! *)
-    const combine $ CLI_common.o_common $ o_registry_id $ target $ o_visibility)
+    const combine $ CLI_common.o_common $ o_registry_id $ upload_target
+    $ o_visibility)
 
 let doc = "upload rule to semgrep.dev"
 

@@ -23,8 +23,8 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 (* Port of test_publish.py to OCaml.
  *
  * Note that unlike most cli/tests/e2e/test_xxx.py tests, we can't reuse
- * test_login.py to test osemgrep because of the use of mocking
- * and 'use_click+runner=True' in test_login.py
+ * test_publish.py to test osemgrep because of the use of mocking
+ * and 'use_click+runner=True' in test_publish.py
  *)
 
 let tests_path () = Fpath.(v (Sys.getcwd ()) / "cli" / "tests")

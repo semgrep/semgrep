@@ -49,6 +49,9 @@ val upload_findings :
 (** [upload_findings ~dry_run ~token ~scan_id ~results ~complete]
     reports the findings to Semgrep App. *)
 
+val upload_rule_to_registry :
+  token:Auth.token -> JSON.yojson -> (string, int * string) result
+
 (* report a failure for [scan_id] to Semgrep App *)
 val report_failure :
   dry_run:bool -> token:Auth.token -> scan_id:scan_id -> Exit_code.t -> unit
