@@ -106,7 +106,6 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
             pr "WARNING: some files were skipped or only partially analyzed:";
             res.errors |> List.iter (fun err -> pr (E.string_of_error err)))
       | Error (exn, _) -> Exception.reraise exn)
-
 (*****************************************************************************)
 (* semgrep-core -rules *)
 (*****************************************************************************)

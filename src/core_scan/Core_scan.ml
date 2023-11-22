@@ -447,6 +447,8 @@ let errors_of_invalid_rule_errors (invalid_rules : Rule.invalid_rule_error list)
 
 let sanity_check_invalid_patterns (res : Core_result.t) :
     Core_result.result_or_exn =
+  Logs.debug (fun m ->
+      m "\nzz: sanity_check_invalid_patterns: %d" (List.length res.errors));
   match
     res.errors
     |> List.find_opt (function
@@ -970,8 +972,9 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
       (Common.map (fun r -> (r, `OSS)) valid_rules)
       invalid_rules scanned interfile_languages_used ~rules_parse_time
   in
-  logger#info "found %d matches, %d errors" (List.length res.matches)
-    (List.length res.errors);
+  Logs.debug (fun m ->
+      m "\nzz: found %d matches, %d errors" (List.length res.matches)
+        (List.length res.errors));
 
   let matches, new_errors, new_skipped =
     filter_files_with_too_many_matches_and_transform_as_timeout
@@ -985,6 +988,7 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
 
   (* concatenate all errors *)
   let errors = rule_errors @ new_errors @ res.errors in
+  Logs.debug (fun m -> m "\nzz concatenate %d errors" (List.length errors));
 
   (* Concatenate all the skipped targets
    * TODO: maybe we should move skipped_target out of Debug and always
@@ -1023,5 +1027,5 @@ let scan_with_exn_handler (config : Core_scan_config.t) :
   with
   | exn when not !Flag_semgrep.fail_fast ->
       let e = Exception.catch exn in
-      logger#info "Uncaught exception: %s" (Exception.to_string e);
+      Logs.debug (fun m -> m "Uncaught exception: %s" (Exception.to_string e));
       Error (e, None)

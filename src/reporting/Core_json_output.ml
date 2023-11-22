@@ -396,6 +396,10 @@ let core_output_of_matches_and_errors render_fix (res : Core_result.t) :
   let matches, new_errs =
     Common.partition_either (match_to_match render_fix) res.matches
   in
+  Logs.debug (fun m -> m "\nzz: !E.g_errors: %d" (List.length !E.g_errors));
+  Logs.debug (fun m -> m "\nzz: new_errs: %d" (List.length new_errs));
+  Logs.debug (fun m -> m "\nzz:  res.errors: %d" (List.length res.errors));
+
   let errs = !E.g_errors @ new_errs @ res.errors in
   let skipped_targets, profiling =
     match res.extra with

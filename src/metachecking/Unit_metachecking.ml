@@ -54,7 +54,9 @@ let metachecker_regression_tests () =
     ( "metachecker regresion testing",
       fun () ->
         let path = tests_path / "metachecks" in
-        Test_metachecking.test_rules ~unit_testing:true [ path ] );
+        let res = Test_metachecking.test_rules ~unit_testing:true [ path ] in
+        E.g_errors := [];
+        res );
   ]
 
 (*****************************************************************************)

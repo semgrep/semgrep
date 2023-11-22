@@ -183,6 +183,13 @@ let prepare_config_for_core_scan (config : Core_scan_config.t)
 let create_core_result (all_rules : Rule.rule list)
     (result_or_exn : Core_result.result_or_exn) =
   (* similar to Core_command.output_core_results code *)
+  let ex_str =
+    match result_or_exn with
+    | Ok _ -> ""
+    | Error (e, _) -> Exception.to_string e
+  in
+  Logs.debug (fun m -> m "\nzz: create_core_result with '%s'" ex_str);
+
   let res =
     match result_or_exn with
     | Ok r -> r
@@ -198,6 +205,9 @@ let create_core_result (all_rules : Rule.rule list)
     Core_json_output.core_output_of_matches_and_errors (Some Autofix.render_fix)
       res
   in
+  Logs.debug (fun m ->
+      m "\nzz: post-create_core_result with '%d' errs"
+        (List.length match_results.errors));
   (* TOPORT? or move in semgrep-core so get info ASAP
      if match_results.skipped_targets:
          for skip in match_results.skipped_targets:
@@ -275,6 +285,10 @@ let mk_scan_func_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
           rules_with_targets;
         }
       in
+      Logs.debug (fun m ->
+          m "\nzz: core_scan_func errors: %d, skipped_rules: %d"
+            (List.length res.errors)
+            (List.length res.skipped_rules));
 
       let scanned = Set_.of_list res.scanned in
 

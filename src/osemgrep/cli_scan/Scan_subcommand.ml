@@ -558,6 +558,9 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
 
     (* step 4: adjust the skipped_targets *)
     let errors_skipped = Skipped_report.errors_to_skipped res.core.errors in
+    Logs.debug (fun m ->
+        m "\nzz: errors_skipped of size %d" (List.length errors_skipped));
+
     let skipped = skipped @ errors_skipped in
     let (res : Core_runner.result) =
       (* TODO: what is in core.skipped_targets? should we add them to
