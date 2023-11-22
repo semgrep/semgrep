@@ -387,27 +387,27 @@ let regression_tests_for_lang ~polyglot_pattern_path files lang =
              in
              let pattern = File.read_file sgrep_file in
 
-             Common.save_excursion E.g_errors [] (fun () ->
-                 (* old: semgrep-core used to support user-defined
-                    * equivalences, but the feature has been now deprecated.
-                    *
-                    * (* Python == is not the same than !(==) *)
-                    * if lang <> Lang.Python then
-                    *   Parse_equivalences.parse
-                    *     (Filename.concat data_path "basic_equivalences.yml")
-                    * else []
-                 *)
-                 match_pattern ~lang
-                   ~hook:(fun { Pattern_match.range_loc; _ } ->
-                     let start_loc, _end_loc = range_loc in
-                     E.error
-                       (Rule_ID.of_string "test-pattern")
-                       start_loc "" Out.SemgrepMatchFound)
-                   ~file ~pattern ~fix:NoFix
-                 |> ignore;
-                 let actual = !E.g_errors in
-                 let expected = E.expected_error_lines_of_files [ !!file ] in
-                 E.compare_actual_to_expected_for_alcotest actual expected) ))
+             (* old: semgrep-core used to support user-defined
+                * equivalences, but the feature has been now deprecated.
+                *
+                * (* Python == is not the same than !(==) *)
+                * if lang <> Lang.Python then
+                *   Parse_equivalences.parse
+                *     (Filename.concat data_path "basic_equivalences.yml")
+                * else []
+             *)
+             match_pattern ~lang
+               ~hook:(fun { Pattern_match.range_loc; _ } ->
+                 let start_loc, _end_loc = range_loc in
+                 E.push_error
+                   (Rule_ID.of_string "test-pattern")
+                   start_loc "" Out.SemgrepMatchFound)
+               ~file ~pattern ~fix:NoFix
+             |> ignore;
+             let actual = !E.g_errors in
+             E.g_errors := [];
+             let expected = E.expected_error_lines_of_files [ !!file ] in
+             E.compare_actual_to_expected_for_alcotest actual expected ))
 
 let make_lang_regression_tests ~test_pattern_path ~polyglot_pattern_path
     lang_data =
@@ -528,28 +528,22 @@ let autofix_tests_for_lang ~polyglot_pattern_path files lang =
                             (Fpath.to_string file)))
              in
 
-             Common.save_excursion E.g_errors [] (fun () ->
-                 (* old: semgrep-core used to support user-defined
-                    * equivalences, but the feature has been now deprecated.
-                    *
-                    * (* Python == is not the same than !(==) *)
-                    * if lang <> Lang.Python then
-                    *   Parse_equivalences.parse
-                    *     (Filename.concat data_path "basic_equivalences.yml")
-                    * else []
-                 *)
-                 let matches =
-                   match_pattern ~lang
-                     ~hook:(fun { Pattern_match.range_loc; _ } ->
-                       let start_loc, _end_loc = range_loc in
-                       E.error
-                         (Rule_ID.of_string "test-pattern")
-                         start_loc "" Out.SemgrepMatchFound)
-                     ~file ~pattern ~fix
-                 in
-                 match fix with
-                 | NoFix -> ()
-                 | _ -> compare_fixes ~polyglot_pattern_path ~file matches) ))
+             let matches =
+               match_pattern ~lang
+                 ~hook:(fun { Pattern_match.range_loc; _ } ->
+                   let start_loc, _end_loc = range_loc in
+                   (* TODO? needed? we don't seem to use it,
+                    * maybe left because of copy-pasta?
+                    *)
+                   E.push_error
+                     (Rule_ID.of_string "test-pattern")
+                     start_loc "" Out.SemgrepMatchFound)
+                 ~file ~pattern ~fix
+             in
+             E.g_errors := [];
+             match fix with
+             | NoFix -> ()
+             | _ -> compare_fixes ~polyglot_pattern_path ~file matches ))
 
 let lang_autofix_tests ~polyglot_pattern_path =
   let test_pattern_path = tests_path_autofix in

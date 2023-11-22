@@ -16,9 +16,10 @@ type t = {
 }
 [@@deriving show]
 
-val g_errors : t list ref
-
 module ErrorSet : Set.S with type elt = t
+
+(* !!global!! modified by push_error() below *)
+val g_errors : t list ref
 
 (*****************************************************************************)
 (* Converter functions *)
@@ -31,7 +32,8 @@ val mk_error :
   Semgrep_output_v1_t.error_type ->
   t
 
-val error :
+(* modifies g_errors *)
+val push_error :
   Rule_ID.t -> Tok.location -> string -> Semgrep_output_v1_t.error_type -> unit
 
 (* Convert an invalid rule into an error.
@@ -49,6 +51,7 @@ val exn_to_error : Rule_ID.t option -> string (* filename *) -> Exception.t -> t
 (* Try with error *)
 (*****************************************************************************)
 
+(* note that this modifies g_errors! *)
 val try_with_exn_to_error : string (* filename *) -> (unit -> unit) -> unit
 
 val try_with_print_exn_and_reraise :
