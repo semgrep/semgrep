@@ -142,8 +142,8 @@ let tests =
       Testutil.pack_suites "common"
         [
           Testutil.pack_tests "map" test_common_map;
-          [ ("cat", test_cat) ];
-          [ ("readable", test_readable) ];
-          [ ("read_file", test_read_file) ];
+          Testutil.simple_tests [ ("cat", test_cat) ];
+          Testutil.simple_tests [ ("readable", test_readable) ];
+          Testutil.simple_tests [ ("read_file", test_read_file) ];
         ];
     ]

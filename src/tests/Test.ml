@@ -96,10 +96,11 @@ let tests_with_delayed_error () =
   try tests () with
   | e ->
       let exn = Exception.catch e in
-      [
-        ( "ERROR DURING TEST SUITE INITIALIZATION",
-          fun () -> Exception.reraise exn );
-      ]
+      Testutil.simple_tests
+        [
+          ( "ERROR DURING TEST SUITE INITIALIZATION",
+            fun () -> Exception.reraise exn );
+        ]
 
 let main () =
   (* find the root of the semgrep repo as many of our tests rely on
