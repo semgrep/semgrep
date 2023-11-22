@@ -793,7 +793,7 @@ let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
    * 'semgrep test dir/'
    *)
   | _ when conf.version ->
-      Common.pr Version.version;
+      Out.put Version.version;
       (* TOPORT: if enable_version_check: version_check() *)
       Exit_code.ok
   | _ when conf.test <> None -> Test_subcommand.run (Common2.some conf.test)

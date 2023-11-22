@@ -186,7 +186,7 @@ let add_additional_targets config n =
 let update_cli_progress config =
   (* Print when each file is done so the Python progress bar knows *)
   match config.output_format with
-  | Json true -> pr "."
+  | Json true -> Out.put "."
   | _ -> ()
 
 (*
@@ -230,31 +230,32 @@ let filter_existing_targets (targets : In.target list) :
 let string_of_toks toks =
   String.concat ", " (Common.map (fun tok -> Tok.content_of_tok tok) toks)
 
+(* TODO: use Logs.app instead of those Out.put? *)
 let rec print_taint_call_trace ~format ~spaces = function
   | Pattern_match.Toks toks -> Core_text_output.print_match ~format ~spaces toks
   | Call { call_toks; intermediate_vars; call_trace } ->
       let spaces_string = String.init spaces (fun _ -> ' ') in
-      pr (spaces_string ^ "call to");
+      Out.put (spaces_string ^ "call to");
       Core_text_output.print_match ~format ~spaces call_toks;
       if intermediate_vars <> [] then
-        pr
+        Out.put
           (spf "%sthese intermediate values are tainted: %s" spaces_string
              (string_of_toks intermediate_vars));
-      pr (spaces_string ^ "then");
+      Out.put (spaces_string ^ "then");
       print_taint_call_trace ~format ~spaces:(spaces + 2) call_trace
 
 let print_taint_trace ~format taint_trace =
   if format =*= Core_text_output.Normal then
     taint_trace |> Lazy.force
     |> List.iteri (fun idx { PM.source_trace; tokens; sink_trace } ->
-           if idx =*= 0 then pr "  * Taint may come from this source:"
-           else pr "  * Taint may also come from this source:";
+           if idx =*= 0 then Out.put "  * Taint may come from this source:"
+           else Out.put "  * Taint may also come from this source:";
            print_taint_call_trace ~format ~spaces:4 source_trace;
            if tokens <> [] then
-             pr
+             Out.put
                (spf "  * These intermediate values are tainted: %s"
                   (string_of_toks tokens));
-           pr "  * This is how taint reaches the sink:";
+           Out.put "  * This is how taint reaches the sink:";
            print_taint_call_trace ~format ~spaces:4 sink_trace)
 
 let print_match ?str config match_ ii_of_any =
@@ -286,7 +287,7 @@ let print_match ?str config match_ ii_of_any =
                   |> Core_text_output.join_with_space_if_needed
               | None -> failwith (spf "the metavariable '%s' was not bound" x))
      in
-     pr (spf "%s:%d: %s" file line (Common.join ":" strings_metavars));
+     Out.put (spf "%s:%d: %s" file line (Common.join ":" strings_metavars));
      ());
   Option.iter (print_taint_trace ~format:match_format) taint_trace
 
