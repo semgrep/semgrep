@@ -83,7 +83,7 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
       *)
       let s = OutJ.string_of_core_output res in
       logger#info "size of returned JSON string: %d" (String.length s);
-      pr s;
+      Out.put s;
       match result_or_exn with
       | Error (e, _) -> Core_exit_code.exit_semgrep (Unknown_exception e)
       | Ok _ -> ())
@@ -95,8 +95,11 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
             |> Option.iter (List.iter Matching_explanation.print);
           (* the match has already been printed above. We just print errors here *)
           if not (null res.errors) then (
-            pr "WARNING: some files were skipped or only partially analyzed:";
-            res.errors |> List.iter (fun err -> pr (E.string_of_error err)))
+            (* TODO? Logs.warn? *)
+            Out.put
+              "WARNING: some files were skipped or only partially analyzed:";
+            (* TODO? Logs.err? *)
+            res.errors |> List.iter (fun err -> Out.put (E.string_of_error err)))
       | Error (exn, _) -> Exception.reraise exn)
 
 (*****************************************************************************)
@@ -173,7 +176,7 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
       let res = Core_scan.scan config (([ rule ], []), rules_parse_time) in
       let json = Core_json_output.core_output_of_matches_and_errors res in
       let s = OutJ.string_of_core_output json in
-      pr s
+      Out.put s
   | Text ->
       let minirule, _rules_parse_time =
         Common.with_time (fun () ->

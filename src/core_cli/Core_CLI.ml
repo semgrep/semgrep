@@ -183,6 +183,7 @@ let dump_pattern (file : Fpath.t) =
       let v = Meta_AST.vof_any any in
       let s = dump_v_to_format v in
       pr s)
+[@@action]
 
 let dump_patterns_of_rule (file : Fpath.t) =
   let file = Core_scan.replace_named_pipe_by_regular_file file in
@@ -198,6 +199,7 @@ let dump_patterns_of_rule (file : Fpath.t) =
           pr s
       | _ -> pr (Xpattern.show_xpattern_kind pat))
     xpats
+[@@action]
 
 let dump_ast ?(naming = false) lang file =
   let file = Core_scan.replace_named_pipe_by_regular_file file in
@@ -214,6 +216,7 @@ let dump_ast ?(naming = false) lang file =
       if Parsing_result2.has_error res then (
         dump_parsing_errors file res;
         Core_exit_code.(exit_semgrep False)))
+[@@action]
 
 (*****************************************************************************)
 (* Experiments *)

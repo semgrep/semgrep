@@ -20,11 +20,14 @@
  *
  * There are many different ways a program can output a string on
  * the standard output:
- *  - Stdlib.print_string using Stdlib.stdout
+ *  - Stdlib.pr
+int_string using Stdlib.stdout
  *  - Unix.write using Unix.stdout
  *  - Format.fmt using Formatter.std_formatter
+ *  - Ocolor_format.printf
  *  - Common.pr
  *  - ...
+ *  - and now Out.put() too :)
  *
  * alt:
  *  - Logs.app(), but Logs.app actually print on stderr by default

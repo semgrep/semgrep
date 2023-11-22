@@ -83,20 +83,20 @@ let ebnf_to_menhir file =
            | _ when s =~ "^[ \t]*$" -> ""
            | _ -> failwith (spf "not handled: %s" s))
   in
-  pr "%{";
-  pr "%}";
-  pr "";
+  pr2 "%{";
+  pr2 "%}";
+  pr2 "";
 
   htokens |> Common.hashset_to_list
-  |> List.iter (fun s -> pr (spf "%%token <unit> %s" s));
+  |> List.iter (fun s -> pr2 (spf "%%token <unit> %s" s));
 
   let i = ref 0 in
   hkwd |> Common.hashset_to_list
   |> List.iter (fun s ->
          incr i;
-         pr (spf "%%token <unit> X%d \"%s\"" !i s));
-  pr "%start <unit> compilationUnit";
-  pr "%%";
-  pr "";
+         pr2 (spf "%%token <unit> X%d \"%s\"" !i s));
+  pr2 "%start <unit> compilationUnit";
+  pr2 "%%";
+  pr2 "";
 
-  ys |> List.iter (fun s -> pr s)
+  ys |> List.iter (fun s -> pr2 s)

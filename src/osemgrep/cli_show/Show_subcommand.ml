@@ -11,7 +11,7 @@ module J = JSON
  *
  * LATER: get rid of Core_CLI.dump_pattern and Core_CLI.dump_ast functions
  *
- * Note that we're using Common.pr() here, to print on stdout (Logs.app
+ * Note that we're using Out.put() here, to print on stdout (Logs.app
  * is printing on stderr, but for a show command it's probably better to
  * print on stdout).
  *)
@@ -58,13 +58,13 @@ let dump_v_to_format ~json (v : OCaml.v) =
 let run (conf : Show_CLI.conf) : Exit_code.t =
   match conf.show_kind with
   | Version ->
-      Common.pr Version.version;
+      Out.put Version.version;
       (* TODO? opportunity to perform version-check? *)
       Exit_code.ok
   | Identity -> Whoami.invoke Identity
   | Deployment -> Whoami.invoke Deployment
   | SupportedLanguages ->
-      Common.pr (spf "supported languages are: %s" Xlang.supported_xlangs);
+      Out.put (spf "supported languages are: %s" Xlang.supported_xlangs);
       Exit_code.ok (* dumpers *)
   (* TODO? error management? improve error message for parse errors?
    * or let CLI.safe_run do the right thing?
@@ -74,7 +74,7 @@ let run (conf : Show_CLI.conf) : Exit_code.t =
       let any = Parse_pattern.parse_pattern lang ~print_errors:true str in
       let v = Meta_AST.vof_any any in
       let s = dump_v_to_format ~json:conf.json v in
-      Common.pr s;
+      Out.put s;
       Exit_code.ok
   | DumpAST (file, lang) ->
       (* mostly a copy paste of Core_CLI.dump_ast *)
@@ -85,7 +85,7 @@ let run (conf : Show_CLI.conf) : Exit_code.t =
       (* 80 columns is too little *)
       Format.set_margin 120;
       let s = dump_v_to_format ~json:conf.json v in
-      Common.pr s;
+      Out.put s;
       Exit_code.ok
   | DumpConfig config_str ->
       let settings = Semgrep_settings.load () in
@@ -98,7 +98,7 @@ let run (conf : Show_CLI.conf) : Exit_code.t =
           ~token_opt ~registry_caching:false config
       in
       rules_and_errors
-      |> List.iter (fun x -> Common.pr (Rule_fetching.show_rules_and_origin x));
+      |> List.iter (fun x -> Out.put (Rule_fetching.show_rules_and_origin x));
       Exit_code.ok
   | DumpEnginePath _pro -> failwith "TODO: dump-engine-path not implemented yet"
   | DumpCommandForCore ->
