@@ -14,7 +14,6 @@
  *)
 open Common
 open Testutil
-module E = Core_error
 module TL = Test_login_subcommand
 
 (*****************************************************************************)
@@ -38,8 +37,6 @@ module TL = Test_login_subcommand
 let test_scan_config_registry_no_token : Testutil.test =
   ( __FUNCTION__,
     fun () ->
-      (* IMPORTANT: clean up corrupted globals *)
-      E.g_errors := [];
       Testutil_files.with_tempdir ~chdir:true (fun _tmp_path ->
           TL.with_logs
             ~f:(fun () ->
