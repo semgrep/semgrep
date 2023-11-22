@@ -53,14 +53,22 @@ module Autofix_processor : Processor = struct
   let pre_process _config rules = (rules, ())
 
   let post_process (_config : Core_scan_config.t) () (res : Core_result.t) =
-    (* These edits should all be None, so it's OK to `fst` them out. *)
-    let matches_with_fixes =
-      Autofix.produce_autofixes (Common.map fst res.matches_with_fixes)
-    in
-    { res with matches_with_fixes }
+    let matches_with_fixes = Autofix.produce_autofixes res.processed_matches in
+    { res with processed_matches = matches_with_fixes }
 end
 
-let hook_processor = ref (module Autofix_processor : Processor)
+module Nosemgrep_processor : Processor = struct
+  type state = unit
+
+  let pre_process _config rules = (rules, ())
+
+  let post_process (config : Core_scan_config.t) () (res : Core_result.t) =
+    let processed_matches_with_ignores, errors =
+      Nosemgrep.produce_ignored res.processed_matches
+    in
+    let errors = if config.strict then errors @ res.errors else res.errors in
+    { res with processed_matches = processed_matches_with_ignores; errors }
+end
 
 (* quite similar to Core_scan.core_scan_func *)
 type 'a core_scan_func_with_rules =
@@ -88,6 +96,11 @@ module MkPairProcessor (A : Processor) (B : Processor) : Processor = struct
   let post_process config (state_a, state_b) results =
     results |> B.post_process config state_b |> A.post_process config state_a
 end
+
+module Initial_processor =
+  MkPairProcessor (Nosemgrep_processor) (Autofix_processor)
+
+let hook_processor = ref (module Initial_processor : Processor)
 
 let push_processor (module P : Processor) =
   let module Paired = MkPairProcessor (P) ((val !hook_processor)) in

@@ -83,6 +83,7 @@ def get_rule_match(
             extra=out.CoreMatchExtra(
                 metavars=out.Metavars(metavars if metavars else {}),
                 engine_kind=out.EngineKind(out.OSS()),
+                is_ignored=False,
             ),
         ),
         extra={"metavars": metavars if metavars else {}},
