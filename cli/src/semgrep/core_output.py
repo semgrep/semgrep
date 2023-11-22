@@ -189,7 +189,6 @@ def core_matches_to_rule_matches(
             metadata=metadata,
             severity=match.extra.severity if match.extra.severity else rule.severity,
             fix=fix,
-            is_ignored=match.extra.is_ignored,
         )
 
     # TODO: Dict[out.RuleId, RuleMatchSet]

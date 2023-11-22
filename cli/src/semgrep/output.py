@@ -320,7 +320,9 @@ class OutputHandler:
         self.is_ci_invocation = is_ci_invocation
 
         final_error = None
-        any_findings_not_ignored = any(not rm.is_ignored for rm in self.rule_matches)
+        any_findings_not_ignored = any(
+            not rm.match.extra.is_ignored for rm in self.rule_matches
+        )
 
         if self.final_error:
             final_error = self.final_error
