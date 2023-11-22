@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 from tests.fixtures import RunSemgrep
-from tests.semgrep_runner import SEMGREP_BASE_COMMAND
+from tests.semgrep_runner import SEMGREP_BASE_SCAN_COMMAND
 
 from semgrep.constants import OutputFormat
 
@@ -165,7 +165,7 @@ def test_cli_test_from_entrypoint(snapshot):
     env = {}
     env["PATH"] = os.environ.get("PATH", "")
 
-    cmd = SEMGREP_BASE_COMMAND + [
+    cmd = SEMGREP_BASE_SCAN_COMMAND + [
         "--test",
         "--config",
         "rules/cli_test/multiple_annotations/multiple-annotations.yaml",
