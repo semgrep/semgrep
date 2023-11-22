@@ -40,8 +40,6 @@ class JsonFormatter(BaseFormatter):
             extra.fixed_lines = rule_match.extra.get("fixed_lines")
         if rule_match.fix is not None:
             extra.fix = rule_match.fix
-        if rule_match.fix_regex:
-            extra.fix_regex = rule_match.fix_regex
         if rule_match.is_ignored is not None:
             extra.is_ignored = rule_match.is_ignored
         if rule_match.extra.get("extra_extra"):

@@ -312,7 +312,7 @@ let apply_fixes (edits : Textedit.t list) =
 let apply_fixes_of_core_matches (matches : Out.core_match list) =
   matches
   |> Common.map_filter (fun (m : Out.core_match) ->
-         let* replacement_text = m.extra.rendered_fix in
+         let* replacement_text = m.extra.fix in
          let start = m.start.offset in
          let end_ = m.end_.offset in
          Some
