@@ -1,5 +1,1 @@
-fun $FUNC(...) {
-    ...
-    $F(...).$FIELD = $VAR
-    ...
-}
+$F(...).$FIELD = $VAR
