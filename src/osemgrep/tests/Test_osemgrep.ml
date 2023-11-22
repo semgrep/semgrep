@@ -40,12 +40,10 @@ let test_scan_config_registry_no_token : Testutil.test =
       Testutil_files.with_tempdir ~chdir:true (fun _tmp_path ->
           TL.with_logs
             ~f:(fun () ->
-              (* TODO: those tests pass when run via ./test Osemgrep
-               * but fail when part of 'make core-test'
-               *)
-              Scan_subcommand.main
+              CLI.main
                 [|
-                  "semgrep-scan";
+                  "semgrep";
+                  "scan";
                   "--experimental";
                   "--debug";
                   "--config";
@@ -53,8 +51,7 @@ let test_scan_config_registry_no_token : Testutil.test =
                 |])
             ~final:(fun res -> assert (res.exit_code =*= Exit_code.ok))) )
 
-(* Remaining part of test_login.py (Most is in Test_login_subcommand.ml).
-*)
+(* Remaining part of test_login.py (see also Test_login_subcommand.ml) *)
 let test_scan_config_registry_with_invalid_token : Testutil.test =
   ( __FUNCTION__,
     TL.with_login_test_env (fun () ->
@@ -72,8 +69,8 @@ let test_scan_config_registry_with_invalid_token : Testutil.test =
                     assert (res.logs =~ "[.\n]*Saved access token");
                     assert (res.exit_code =*= Exit_code.ok)));
 
-            (* Even if we are allowed to login with a fake token because
-             * of the with_fake_deployment_response, outside of it
+            (* Even if we are allowed to login with a fake token (because
+             * of the with_fake_deployment_response), outside of it
              * we can't use the registry with an invalid token.
              *
              * alt: call CLI.main, but that would require to intercept
@@ -96,6 +93,7 @@ let test_scan_config_registry_with_invalid_token : Testutil.test =
                 ( {|Failed to download config from https://semgrep.dev/c/r/python.lang.correctness.useless-eqeq.useless-eqeq: HTTP GET failed: 401 Unauthorized:
 {"error":"Not authorized"}|},
                   _ ) ->
+                (* we got the exn as intended, good *)
                 ())) )
 
 (*****************************************************************************)

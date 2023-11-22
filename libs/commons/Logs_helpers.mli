@@ -42,7 +42,7 @@ val setup_logging :
 
 (* See Testutil_mock.with_mocked_logs(). If this global is set,
  * setup_logging() above will not call Logs.set_reporter (and so
- * set the mock logs_reporter in place).
+ * leave the mock logs_reporter in place).
  *)
 val in_mock_context : bool ref
 
