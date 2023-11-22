@@ -397,6 +397,7 @@ let core_output_of_matches_and_errors render_fix (res : Core_result.t) :
     Common.partition_either (match_to_match render_fix) res.matches
   in
   let errs = !E.g_errors @ new_errs @ res.errors in
+  E.g_errors := [];
   let skipped_targets, profiling =
     match res.extra with
     | Core_profiling.Debug { skipped_targets; profiling } ->
@@ -443,9 +444,9 @@ let core_output_of_matches_and_errors render_fix (res : Core_result.t) :
 (* this is used only in the testing code, to reuse the
  * Semgrep_error_code.compare_actual_to_expected
  *)
-let error loc (rule : Pattern_match.rule_id) =
-  E.error rule.id loc rule.message Out.SemgrepMatchFound
+let push_error loc (rule : Pattern_match.rule_id) =
+  E.push_error rule.id loc rule.message Out.SemgrepMatchFound
 
-let match_to_error x =
+let match_to_push_error x =
   let min_loc, _max_loc = x.range_loc in
-  error min_loc x.rule_id
+  push_error min_loc x.rule_id

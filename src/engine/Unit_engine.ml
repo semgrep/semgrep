@@ -326,9 +326,6 @@ let regression_tests_for_lang ~polyglot_pattern_path files lang =
                | Ok fix_file -> Some (File.read_file fix_file)
                | Error _ -> None
              in
-
-             E.g_errors := [];
-
              (* old: semgrep-core used to support user-defined
               * equivalences, but the feature has been now deprecated.
               *
@@ -342,15 +339,16 @@ let regression_tests_for_lang ~polyglot_pattern_path files lang =
                match_pattern ~lang
                  ~hook:(fun { Pattern_match.range_loc; _ } ->
                    let start_loc, _end_loc = range_loc in
-                   E.error
+                   E.push_error
                      (Rule_ID.of_string "test-pattern")
                      start_loc "" Out.SemgrepMatchFound)
                  ~file ~pattern ~fix_pattern
              in
+             let actual = !E.g_errors in
+             E.g_errors := [];
              (match fix_pattern with
              | Some _ -> compare_fixes ~polyglot_pattern_path ~file matches
              | None -> ());
-             let actual = !E.g_errors in
              let expected = E.expected_error_lines_of_files [ !!file ] in
              E.compare_actual_to_expected_for_alcotest actual expected ))
 
