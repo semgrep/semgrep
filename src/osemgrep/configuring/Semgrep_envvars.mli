@@ -49,3 +49,12 @@ val v : t ref
   * during initialization. This is a reference to allow these settings to
   * be modified by tests.
   *)
+
+(* useful to work in cunjonction with with_envvars in testing context *)
+val of_current_sys_env : unit -> t
+
+(* [with_envvar envvar value f] temporarily modifies [v] above
+ * with a new envvar and run [f] in this new context. This is useful
+ * in tests.
+ *)
+val with_envvar : string -> string -> (unit -> 'a) -> 'a

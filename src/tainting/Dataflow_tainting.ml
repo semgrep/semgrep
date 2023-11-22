@@ -995,6 +995,16 @@ and check_tainted_lval_aux env (lval : IL.lval) :
             (* Recursive case, given `x.a.b` we must first check `x.a`. *)
             check_tainted_lval_aux env { lval with rev_offset = rev_offset' }
       in
+      let sub_new_taints, sub_in_env =
+        if env.options.taint_only_propagate_through_assignments then
+          match sub_in_env with
+          | `Sanitized -> (Taints.empty, `Sanitized)
+          | `Clean
+          | `None
+          | `Tainted _ ->
+              (Taints.empty, `None)
+        else (sub_new_taints, sub_in_env)
+      in
       (* Check the status of lval in the environemnt. *)
       let lval_in_env =
         match sub_in_env with
@@ -1537,7 +1547,11 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
               (call_taints, lval_env)
         in
         (* We add the taint of the function itselt (i.e., 'e_taints') too. *)
-        let all_call_taints = Taints.union e_taints call_taints in
+        let all_call_taints =
+          if env.options.taint_only_propagate_through_assignments then
+            call_taints
+          else Taints.union e_taints call_taints
+        in
         let all_call_taints =
           check_type_and_drop_taints_if_bool_or_number env all_call_taints
             type_of_expr e

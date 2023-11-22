@@ -1,0 +1,8 @@
+rules:
+  - id: eqeq-bad
+    patterns:
+      - pattern: $X == $X
+    fix: $X == 4
+    message: "useless comparison"
+    languages: [python]
+    severity: ERROR

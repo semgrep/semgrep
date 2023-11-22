@@ -1396,6 +1396,21 @@ let int_of_all s =
   then int_of_octal s
   else int_of_string s
 
+let int64_of_string_opt s =
+  try Some (Int64.of_string s) with
+  | Failure _ -> None
+
+let int64_of_string_c_octal_opt s =
+  let open Common in
+  if s =~ "^0\\([0-7]+\\)$" then
+    let s = Common.matched1 s in
+    int64_of_string_opt ("0o" ^ s)
+  else int64_of_string_opt s
+
+let int_of_string_opt s =
+  try Some (int_of_string s) with
+  | Failure _ -> None
+
 let int_of_string_c_octal_opt s =
   let open Common in
   if s =~ "^0\\([0-7]+\\)$" then
@@ -1404,8 +1419,8 @@ let int_of_string_c_octal_opt s =
   else int_of_string_opt s
 
 let float_of_string_opt s =
-  match int_of_string_c_octal_opt s with
-  | Some i -> Some (float_of_int i)
+  match int64_of_string_c_octal_opt s with
+  | Some i -> Some (Int64.to_float i)
   | None -> float_of_string_opt s
 
 let ( += ) ref v = ref := !ref + v

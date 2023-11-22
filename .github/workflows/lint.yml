@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - name: Configure git safedir properly
+      run: git config --global --add safe.directory $(pwd)
     - name: Fetch semgrep-cli submodules
       run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
     - uses: actions/setup-python@v4
@@ -19,10 +21,14 @@ jobs:
         cache: pip
         cache-dependency-path: .github/workflows/lint.yml
     - uses: pre-commit/action@v3.0.0
+      env:
+        SKIP_OCAMLFORMAT: "yes"
   pre-commit-manual:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - name: Configure git safedir properly
+      run: git config --global --add safe.directory $(pwd)
     - uses: pre-commit/action@v3.0.0
       with:
         extra_args: --hook-stage manual
@@ -43,6 +49,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - name: Configure git safedir properly
+      run: git config --global --add safe.directory $(pwd)
     - uses: actions/setup-go@v4
       with:
         go-version: "1.19"

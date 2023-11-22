@@ -586,7 +586,7 @@ let map_override_specifier (env : env) ((v1, v2) : CST.override_specifier) =
 
 let map_hex_number (env : env) (x : CST.hex_number) =
   let s, t = str env x in
-  (int_of_string_opt s, t)
+  Parsed_int.parse (s, t)
 
 let map_hex_string_literal (env : env) (xs : CST.hex_string_literal) :
     (tok * string wrap bracket) list =
@@ -707,13 +707,13 @@ let map_yul_literal (env : env) (x : CST.yul_literal) : literal =
       (* pattern 0|([1-9][0-9]*\
          ) *)
       let s, t = str env tok in
-      Int (Common2.int_of_string_c_octal_opt s, t)
+      Int (Parsed_int.parse_c_octal (s, t))
   | `Yul_str_lit x ->
       let x = map_yul_string_literal env x in
       String x
   | `Yul_hex_num tok ->
       let s, t = (* pattern 0x[0-9A-Fa-f]* *) str env tok in
-      Int (int_of_string_opt s, t)
+      Int (Parsed_int.parse (s, t))
   | `Yul_bool x ->
       let b = map_yul_or_literal_boolean env x in
       Bool b
@@ -812,8 +812,8 @@ let map_literal (env : env) (x : CST.literal) : expr =
             let fopt, t = map_decimal_number env x in
             Float (fopt, t)
         | `Hex_num x ->
-            let iopt, t = map_hex_number env x in
-            Int (iopt, t)
+            let pi = map_hex_number env x in
+            Int pi
       in
       let res = L lit |> G.e in
       let res =

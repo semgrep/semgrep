@@ -93,31 +93,6 @@ let setJustParseWithLang (func : jstring -> jstring -> Parsing_result2.t) =
 (* Reporting *)
 (*****************************************************************************)
 
-(* JS specific IO for the RPC server *)
-module Io = RPC_server.MakeLSIO (struct
-  type input = in_channel
-  type output = out_channel
-
-  let read_line ic = input_line ic |> Lwt.return_some
-  let stdin = stdin
-  let stdout = stdout
-  let flush () = flush stdout |> Lwt.return
-  let atomic f oc = f oc
-
-  let write _ str =
-    (* nosem *)
-    print_string str;
-    Lwt.return ()
-
-  let read_exactly ic n =
-    let rec read_exactly acc = function
-      | 0 -> String.of_seq (acc |> List.rev |> List.to_seq)
-      | n -> read_exactly (input_char ic :: acc) (n - 1)
-    in
-    let exact = read_exactly [] n in
-    Lwt.return (Some exact)
-end)
-
 let ppf, flush =
   let b = Buffer.create 255 in
   let flush () =

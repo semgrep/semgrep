@@ -42,7 +42,13 @@ type rules_and_origin = {
  * or just put the Semgrep_dashdash_config.config_kind it comes from?
  * This type is used only for rewrite_rule_ids.
  *)
-and origin = Local_file of Fpath.t | Other_origin [@@deriving show]
+and origin =
+  | CLI_argument
+  | Local_file of Fpath.t
+  | Registry
+  | App
+  | Untrusted_remote of Uri.t
+[@@deriving show]
 
 (*****************************************************************************)
 (* Rewrite rule ids *)
@@ -52,7 +58,7 @@ let prefix_for_fpath_opt (fpath : Fpath.t) : string option =
   assert (Fpath.is_file_path fpath);
   let* rel_path =
     if Fpath.is_rel fpath then Some fpath
-      (* python: paths had no commen prefix; not possible to relativize *)
+      (* python: paths had no common prefix; not possible to relativize *)
     else Fpath.rem_prefix (Fpath.v (Sys.getcwd ())) fpath
   in
   (* LATER: we should use Fpath.normalize first, but pysemgrep
@@ -80,7 +86,7 @@ let mk_rewrite_rule_ids (origin : origin) : Rule_ID.t -> Rule_ID.t =
   let opt_prefix =
     match origin with
     | Local_file fpath -> prefix_for_fpath_opt fpath
-    | Other_origin -> None
+    | _ -> None
   in
   match opt_prefix with
   | None -> rule_id
@@ -108,7 +114,7 @@ let fetch_content_from_url_async ?(token_opt = None) (url : Uri.t) :
     let headers =
       match token_opt with
       | None -> None
-      | Some token -> Some [ ("authorization", "Bearer " ^ token) ]
+      | Some token -> Some [ ("Authorization", "Bearer " ^ token) ]
     in
     let%lwt res = Http_helpers.get_async ?headers url in
     match res with
@@ -120,9 +126,6 @@ let fetch_content_from_url_async ?(token_opt = None) (url : Uri.t) :
   in
   Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
   content
-
-let fetch_content_from_url ?(token_opt = None) (url : Uri.t) : string =
-  Lwt_platform.run (fetch_content_from_url_async ~token_opt url)
 
 (*****************************************************************************)
 (* Registry caching *)
@@ -153,9 +156,9 @@ type _registry_cached_value =
   Cache_disk.cached_value_on_disk
 
 (* better: faster fetching by using a cache *)
-let fetch_content_from_registry_url ~registry_caching url =
+let fetch_content_from_registry_url_async ~token_opt ~registry_caching url =
   Metrics_.g.is_using_registry <- true;
-  if not registry_caching then fetch_content_from_url url
+  if not registry_caching then fetch_content_from_url_async ~token_opt url
   else
     let cache_dir = !Env.v.user_dot_semgrep_dir / "cache" / "registry" in
     let cache_methods =
@@ -181,7 +184,7 @@ let fetch_content_from_registry_url ~registry_caching url =
         input_to_string = Uri.to_string;
       }
     in
-    Cache_disk.cache fetch_content_from_url cache_methods url
+    Cache_disk.cache_lwt fetch_content_from_url_async cache_methods url
 
 (*****************************************************************************)
 (* Registry and yaml aware jsonnet *)
@@ -235,9 +238,15 @@ let import_callback ~registry_caching base str =
               *
               * TODO: ask for JSON in headers which improves performance
               * because Yaml rule parsing is slower than Json rule parsing.
+              *
+              * TODO: fix token_opt parameter. Currently we don't pass it.
+              * import_callback either needs an additional parameter, or
+              * parse_rule should take an import_callback as a parameter.
               *)
              let content =
-               fetch_content_from_registry_url ~registry_caching url
+               Lwt_platform.run
+                 (fetch_content_from_registry_url_async ~token_opt:None
+                    ~registry_caching url)
              in
              (* TODO: this assumes every URLs are for yaml, but maybe we could
               * also import URLs to jsonnet files or gist! or look at the
@@ -249,33 +258,86 @@ let import_callback ~registry_caching base str =
                  parse_yaml_for_jsonnet file))
 [@@profiling]
 
+(* Performs modification to metadata for non-registry/app originating rules.
+ * This is so that we can have trusted data in metadata subsequent to this
+ * point and rely on the values in certain fields later.
+ *
+ * Currently this is important for:
+ *  - Secrets
+ *    * 'semgrep.dev'.rule.origin checked for validators
+ *)
+let modify_registry_provided_metadata (origin : origin) (rule : Rule.t) =
+  match origin with
+  | Registry
+  | App ->
+      rule
+  | CLI_argument
+  | Local_file _
+  | Untrusted_remote _ ->
+      let replace obj key v =
+        match (obj : JSON.t) with
+        | Object members ->
+            JSON.Object
+              (Common.map
+                 (function
+                   | key', _ when key = key' -> (key, v)
+                   | x -> x)
+                 members)
+        | x -> x
+      in
+      (* SECURITY: Set metadata from non-registry secrets rules so that
+       * validators are not run. The default requirement is that the rule be
+       * served from the pro origin. Without this, local rules could use
+       * validators which may exfiltrate data from source code.
+       *)
+      let updated_metdata =
+        let* metadata = rule.metadata in
+        let* registry_data = JSON.member "semgrep.dev" metadata in
+        let* rule_data = JSON.member "rule" registry_data in
+        match rule.product with
+        | `Secrets ->
+            replace rule_data "origin" (JSON.String "local")
+            |> replace registry_data "rule"
+            |> replace metadata "semgrep.dev"
+            |> fun x -> Some (Some x)
+        | _ -> None
+      in
+      { rule with metadata = updated_metdata ||| rule.metadata }
+
 (* similar to Parse_rule.parse_file but with special import callbacks
  * for a registry-aware jsonnet.
  * We also pass a ~registry_caching so our registry-aware jsonnet is also
  * registry-cache aware.
  *)
-let parse_rule ~origin ~registry_caching (file : Fpath.t) :
+let parse_rule ~rewrite_rule_ids ~origin ~registry_caching (file : Fpath.t) :
     Rule.rules * Rule.invalid_rule_error list =
-  let rewrite_rule_ids = Some (mk_rewrite_rule_ids origin) in
-  match FT.file_type_of_file file with
-  | FT.Config FT.Jsonnet ->
-      Logs.warn (fun m ->
-          m
-            "Support for Jsonnet rules is experimental and currently meant for \
-             internal use only. The syntax may change or be removed at any \
-             point.");
-      let ast = Parse_jsonnet.parse_program file in
-      let core =
-        Desugar_jsonnet.desugar_program
-          ~import_callback:(import_callback ~registry_caching)
-          file ast
-      in
-      let value_ = Eval_jsonnet.eval_program core in
-      let gen = Manifest_jsonnet_to_AST_generic.manifest_value value_ in
-      (* TODO: put to true at some point *)
-      Parse_rule.parse_generic_ast ~rewrite_rule_ids ~error_recovery:false file
-        gen
-  | _ -> Parse_rule.parse_and_filter_invalid_rules ~rewrite_rule_ids file
+  let rule_id_rewriter =
+    if rewrite_rule_ids then Some (mk_rewrite_rule_ids origin) else None
+  in
+  let rules, errors =
+    match FT.file_type_of_file file with
+    | FT.Config FT.Jsonnet ->
+        Logs.warn (fun m ->
+            m
+              "Support for Jsonnet rules is experimental and currently meant \
+               for internal use only. The syntax may change or be removed at \
+               any point.");
+        let ast = Parse_jsonnet.parse_program file in
+        let core =
+          Desugar_jsonnet.desugar_program
+            ~import_callback:(import_callback ~registry_caching)
+            file ast
+        in
+        let value_ = Eval_jsonnet.eval_program core in
+        let gen = Manifest_jsonnet_to_AST_generic.manifest_value value_ in
+        (* TODO: put to true at some point *)
+        Parse_rule.parse_generic_ast ~rewrite_rule_ids:rule_id_rewriter
+          ~error_recovery:false file gen
+    | _ ->
+        Parse_rule.parse_and_filter_invalid_rules
+          ~rewrite_rule_ids:rule_id_rewriter file
+  in
+  (Common.map (modify_registry_provided_metadata origin) rules, errors)
 
 (*****************************************************************************)
 (* Loading rules *)
@@ -290,11 +352,13 @@ let parse_rule ~origin ~registry_caching (file : Fpath.t) :
  * We pass a ~registry_caching parameter here because the rule file can
  * be a jsonnet file importing rules from the registry.
  *)
-let load_rules_from_file ~origin ~registry_caching (file : Fpath.t) :
-    rules_and_origin =
+let load_rules_from_file ~rewrite_rule_ids ~origin ~registry_caching
+    (file : Fpath.t) : rules_and_origin =
   Logs.debug (fun m -> m "loading local config from %s" !!file);
   if Sys.file_exists !!file then (
-    let rules, errors = parse_rule ~origin ~registry_caching file in
+    let rules, errors =
+      parse_rule ~rewrite_rule_ids ~origin ~registry_caching file
+    in
     Logs.debug (fun m -> m "Done loading local config from %s" !!file);
     { rules; errors; origin = Local_file file })
   else
@@ -303,7 +367,7 @@ let load_rules_from_file ~origin ~registry_caching (file : Fpath.t) :
      *)
     Error.abort (spf "file %s does not exist anymore" !!file)
 
-let load_rules_from_url_async ?token_opt ?(ext = "yaml") url :
+let load_rules_from_url_async ~origin ?token_opt ?(ext = "yaml") url :
     rules_and_origin Lwt.t =
   let%lwt content = fetch_content_from_url_async ?token_opt url in
   let ext, content =
@@ -323,22 +387,23 @@ let load_rules_from_url_async ?token_opt ?(ext = "yaml") url :
   let rules =
     Common2.with_tmp_file ~str:content ~ext (fun file ->
         let file = Fpath.v file in
-        load_rules_from_file ~origin:Other_origin ~registry_caching:false file)
+        load_rules_from_file ~rewrite_rule_ids:false ~origin
+          ~registry_caching:false file)
   in
   Lwt.return rules
 
-let load_rules_from_url ?token_opt ?(ext = "yaml") url : rules_and_origin =
-  Lwt_platform.run (load_rules_from_url_async ?token_opt ~ext url)
+let load_rules_from_url ~origin ?token_opt ?(ext = "yaml") url :
+    rules_and_origin =
+  Lwt_platform.run (load_rules_from_url_async ~origin ?token_opt ~ext url)
 
 let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
     ~registry_caching kind : rules_and_origin list Lwt.t =
   match kind with
-  | C.File file ->
+  | C.File path ->
       Lwt.return
         [
-          load_rules_from_file
-            ~origin:(if rewrite_rule_ids then Local_file file else Other_origin)
-            ~registry_caching file;
+          load_rules_from_file ~rewrite_rule_ids ~registry_caching
+            ~origin:(Local_file path) path;
         ]
   | C.Dir dir ->
       List_files.list dir
@@ -360,28 +425,33 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
       *)
       |> List.filter Parse_rule.is_valid_rule_filename
       |> Common.map (fun file ->
-             load_rules_from_file
-               ~origin:
-                 (if rewrite_rule_ids then Local_file file else Other_origin)
+             load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file file)
                ~registry_caching file)
       |> Lwt.return
   | C.URL url ->
-      let%lwt rules = load_rules_from_url_async url in
+      (* TODO: Re-enable passing in our token to trusted remote urls.
+         * This is currently disabled because we don't want to pass our token
+         * to untrusted endpoints. There should be a relatively painless way
+         * to do this, but this can be addressed in a follow-up PR.
+      *)
+      let%lwt rules =
+        load_rules_from_url_async ~origin:(Untrusted_remote url) ~token_opt:None
+          url
+      in
       Lwt.return [ rules ]
   | C.R rkind ->
       let url = Semgrep_Registry.url_of_registry_config_kind rkind in
-      let%lwt content = fetch_content_from_url_async ~token_opt url in
-      (* TODO: reuse fetch_content_from_registry_url (need make it _async?)
-       * so we can factorize the is_using_registry modification
-       * (and also remove the when registry_caching special below
-       * as fetch_content_from_registry_url already handles caching)
-       *)
-      Metrics_.g.is_using_registry <- true;
+      let%lwt content =
+        fetch_content_from_registry_url_async ~token_opt ~registry_caching url
+      in
       (* TODO: this also assumes every registry URL is for yaml *)
       let rules =
         Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
             let file = Fpath.v file in
-            [ load_rules_from_file ~origin:Other_origin ~registry_caching file ])
+            [
+              load_rules_from_file ~rewrite_rule_ids ~origin:Registry
+                ~registry_caching file;
+            ])
       in
       Lwt.return rules
   | C.A Policy ->
@@ -394,9 +464,9 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
                   token")
         | Some token -> token
       in
+      let uri = Semgrep_App.url_for_policy ~token in
       let%lwt rules =
-        load_rules_from_url_async ~token_opt ~ext:"policy"
-          (Semgrep_App.url_for_policy ~token)
+        load_rules_from_url_async ~token_opt ~ext:"policy" ~origin:Registry uri
       in
       Metrics_.g.is_using_app <- true;
       Lwt.return [ rules ]
@@ -406,25 +476,9 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
 
 let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt ~registry_caching
     kind : rules_and_origin list =
-  match kind with
-  | C.R rkind when registry_caching ->
-      (* TODO: should not need that, we're duplicating work
-       * from fetch_content_from_registry_url() and
-       * rules_from_dashdash_config_async()
-       *)
-      let url = Semgrep_Registry.url_of_registry_config_kind rkind in
-      let content = fetch_content_from_registry_url ~registry_caching url in
-      (* TODO: this also assumes every registry URL is for yaml *)
-      Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
-          let file = Fpath.v file in
-          let res =
-            load_rules_from_file ~origin:Other_origin ~registry_caching file
-          in
-          [ res ])
-  | _ ->
-      Lwt_platform.run
-        (rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
-           ~registry_caching kind)
+  Lwt_platform.run
+    (rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
+       ~registry_caching kind)
 
 (*****************************************************************************)
 (* Entry point *)
@@ -458,7 +512,7 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
             ());
         let rule = Rule.rule_of_xpattern xlang xpat in
         let rule = { rule with id = (Constants.rule_id_for_dash_e, fk); fix } in
-        { rules = [ rule ]; errors = []; origin = Other_origin }
+        { rules = [ rule ]; errors = []; origin = CLI_argument }
       in
 
       match xlang_opt with

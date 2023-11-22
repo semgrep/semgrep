@@ -64,7 +64,7 @@ let visitor_info_of_tok f = function
   | TCommentSpace ii -> TCommentSpace (f ii)
   | TComment ii -> TComment (f ii)
   | TCommentNewline ii -> TCommentNewline (f ii)
-  | LINT (s, ii) -> LINT (s, f ii)
+  | LINT pi -> LINT (Parsed_int.map_tok f pi)
   | LFLOAT (s, ii) -> LFLOAT (s, f ii)
   | LIMAG (s, ii) -> LIMAG (s, f ii)
   | LRUNE (s, ii) -> LRUNE (s, f ii)

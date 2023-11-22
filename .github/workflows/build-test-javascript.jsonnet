@@ -136,9 +136,31 @@ local test_job = {
     {
       name: 'Test JS artifacts',
       run: |||
-        make -C js -j $(nproc) test
-        make -C js/tests
+          # Allow 'git rev-parse --show-toplevel' even though the owner of the
+          # semgrep folder is different than the owner of its contents.
+          # Needed by OCaml test code to determine the project root.
+          git config --global --add safe.directory /__w/semgrep/semgrep
+          make -C js -j $(nproc) test
       |||
+    },
+    // xvfb is a virtual x11 display, so we can run headless tests for LSP.js
+    // libatk-bridge2.0-0 libgtk-3-0 libgbm1 are dependencies for vscode's test runner
+    {
+      name: 'Setup APT for xvfb',
+      run: |||
+          sudo apt-get update
+          sudo apt-get install -y libatk-bridge2.0-0 libgtk-3-0 libgbm1
+      |||,
+    },
+    {
+      name: 'Test LSP.js',
+      uses: 'coactions/setup-xvfb@v1',
+      with: {
+        run: |||
+            make -C js/language_server test
+        |||
+
+      }
     },
     {
       name: 'Package JS artifacts',
@@ -146,7 +168,6 @@ local test_job = {
         tar cvzf semgrep-js-artifacts.tar.gz \
           js/engine/dist/index.cjs \
           js/engine/dist/index.mjs \
-          js/engine/dist/semgrep-engine.wasm \
           js/languages/*/dist/index.cjs \
           js/languages/*/dist/index.mjs \
           js/languages/*/dist/semgrep-parser.wasm

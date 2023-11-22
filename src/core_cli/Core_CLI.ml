@@ -341,12 +341,6 @@ let all_actions () =
           let file = Core_scan.replace_named_pipe_by_regular_file file in
           Test_parsing.dump_pfff_ast (Xlang.lang_of_opt_xlang_exn !lang) !!file)
     );
-    ( "-dump_elixir_raw_ast",
-      " <file>",
-      Arg_helpers.mk_action_1_arg Core_actions.dump_elixir_raw_ast );
-    ( "-dump_elixir_ast",
-      " <file>",
-      Arg_helpers.mk_action_1_arg Core_actions.dump_elixir_ast );
     ( "-diff_pfff_tree_sitter",
       " <file>",
       Arg_helpers.mk_action_n_arg Test_parsing.diff_pfff_tree_sitter );
@@ -537,12 +531,6 @@ let options actions =
       Arg.Set_int max_match_per_file,
       " <int> maximum numbers of match per file" );
     ("-debug", Arg.Set debug, " output debugging information");
-    ("-test", Arg.Set test, " (internal) set test context");
-    ("-raja", Arg.Set Flag_semgrep.raja, " undocumented");
-    ( "-max_match_per_file",
-      Arg.Set_int max_match_per_file,
-      " <int> maximum numbers of match per file" );
-    ("-debug", Arg.Set debug, " output debugging information");
     ("--debug", Arg.Set debug, " output debugging information");
     ( "-debug_matching",
       Arg.Set Flag.debug_matching,
@@ -557,7 +545,6 @@ let options actions =
       Arg.String (fun file -> log_to_file := Some (Fpath.v file)),
       " <file> log debugging info to file" );
     ("-test", Arg.Set test, " (internal) set test context");
-    ("-raja", Arg.Set Flag_semgrep.raja, " undocumented");
   ]
   @ Flag_parsing_cpp.cmdline_flags_macrofile ()
   (* inlining of: Common2.cmdline_flags_devel () @ *)

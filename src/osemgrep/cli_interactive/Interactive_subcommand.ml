@@ -1237,7 +1237,7 @@ let interactive_loop ~turbo xlang xtargets =
 let run (conf : Interactive_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
   let targets, _skipped =
-    Find_targets.get_targets conf.targeting_conf conf.target_roots
+    Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
   in
   (* TODO: support generic and regex patterns as well. See code in Deep.
    * Just use Parse_rule.parse_xpattern xlang (str, fk)

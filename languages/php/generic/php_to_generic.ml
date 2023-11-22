@@ -215,7 +215,12 @@ and opt_expr_to_label_ident = function
   | None -> G.LNone
   | Some e -> (
       match e with
-      | Int (Some i, tok) -> G.LInt (i, tok)
+      | Int ((Some _, tok) as pi) -> (
+          match Parsed_int.to_int_opt pi with
+          | None ->
+              let e = expr e in
+              G.LDynamic e
+          | Some i -> G.LInt (i, tok))
       | Id [ label ] -> G.LId label
       | _ ->
           let e = expr e in
@@ -248,9 +253,7 @@ and expr e : G.expr =
   | Bool v1 ->
       let v1 = wrap id v1 in
       G.L (G.Bool v1) |> G.e
-  | Int v1 ->
-      let v1 = wrap id v1 in
-      G.L (G.Int v1) |> G.e
+  | Int v1 -> G.L (G.Int v1) |> G.e
   | Double v1 ->
       let v1 = wrap id v1 in
       G.L (G.Float v1) |> G.e
