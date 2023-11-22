@@ -299,7 +299,7 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
        engine_kind;
        extra_extra;
        validation_state;
-       rendered_fix = fix;
+       fix;
        (* LATER *)
        dataflow_trace = _;
      };
@@ -351,8 +351,6 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
             severity;
             metadata;
             fix;
-            (* TODO: other fields derived from the rule *)
-            fix_regex = None;
             (* TODO: extra fields *)
             is_ignored = Some false;
             fingerprint = match_based_id_partial rule rule_id metavars !!path;

@@ -244,8 +244,7 @@ let unsafe_match_to_match ((x : Pattern_match.t), (edit : Textedit.t option)) :
         metadata = Option.map JSON.to_yojson x.metadata_override;
         metavars;
         dataflow_trace;
-        rendered_fix =
-          Option.map (fun edit -> edit.Textedit.replacement_text) edit;
+        fix = Option.map (fun edit -> edit.Textedit.replacement_text) edit;
         engine_kind = x.engine_kind;
         validation_state = Some x.validation_state;
         extra_extra = None;
