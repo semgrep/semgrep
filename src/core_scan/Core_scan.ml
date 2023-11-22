@@ -404,7 +404,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
                   "%d rules result in too many matches, most offending rule \
                    has %d: %s"
                   offending_rules cnt pat)
-               Out.TooManyMatches
+               OutJ.TooManyMatches
            in
            let skipped =
              sorted_offending_rules
@@ -450,7 +450,7 @@ let sanity_check_invalid_patterns (res : Core_result.t) :
   match
     res.errors
     |> List.find_opt (function
-         | { Core_error.typ = Out.PatternParseError _; _ } -> true
+         | { Core_error.typ = OutJ.PatternParseError _; _ } -> true
          | _else_ -> false)
   with
   | None -> Ok res
@@ -561,10 +561,10 @@ let iter_targets_and_get_matches_and_exn_to_errors config
                           (match exn with
                           | Match_rules.File_timeout ->
                               logger#info "Timeout on %s" !!file;
-                              Out.Timeout
+                              OutJ.Timeout
                           | Out_of_memory ->
                               logger#info "OutOfMemory on %s" !!file;
-                              Out.OutOfMemory
+                              OutJ.OutOfMemory
                           | _ -> raise Impossible))
                    in
                    ( Core_result.make_match_result [] errors

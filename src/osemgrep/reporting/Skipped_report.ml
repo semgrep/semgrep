@@ -32,8 +32,8 @@ type skipped_targets_grouped = {
 let errors_to_skipped (errors : OutJ.core_error list) : OutJ.skipped_target list
     =
   errors
-  |> Common.map (fun Out.{ location; message; rule_id; _ } ->
-         Out.
+  |> Common.map (fun OutJ.{ location; message; rule_id; _ } ->
+         OutJ.
            {
              path = location.path;
              reason = Analysis_failed_parser_or_internal_error;
@@ -45,9 +45,9 @@ let group_skipped (skipped : OutJ.skipped_target list) : skipped_targets_grouped
     =
   let groups =
     Common.group_by
-      (fun (Out.{ reason; _ } : OutJ.skipped_target) ->
+      (fun (OutJ.{ reason; _ } : OutJ.skipped_target) ->
         match reason with
-        | Out.Gitignore_patterns_match
+        | Gitignore_patterns_match
         | Semgrepignore_patterns_match ->
             `Semgrepignore
         | Too_big
@@ -129,7 +129,7 @@ let pp_skipped ppf
     | [] -> Fmt.pf ppf "  • <none>@."
     | xs ->
         List.iter
-          (fun (Out.{ path; _ } : OutJ.skipped_target) ->
+          (fun ({ path; _ } : OutJ.skipped_target) ->
             Fmt.pf ppf "  • %s@." !!path)
           (List.sort
              (fun (a : OutJ.skipped_target) (b : OutJ.skipped_target) ->

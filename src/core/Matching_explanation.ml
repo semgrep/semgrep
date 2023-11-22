@@ -45,7 +45,7 @@ type t = {
 let match_to_charpos_range (pm : Pattern_match.t) : string =
   let min_loc, max_loc = pm.range_loc in
   let startp, endp = Semgrep_output_utils.position_range min_loc max_loc in
-  spf "%d-%d" startp.Out.offset endp.Out.offset
+  spf "%d-%d" startp.OutJ.offset endp.OutJ.offset
 
 (* alt: use Format module *)
 let rec print_indent indent { op; children; matches; pos } =

@@ -72,7 +72,7 @@ let error env t s =
   let loc = Tok.unsafe_loc_of_tok t in
   let _check_idTODO = "semgrep-metacheck-builtin" in
   let rule_id, _ = env.r.id in
-  let err = E.mk_error (Some rule_id) loc s Out.SemgrepMatchFound in
+  let err = E.mk_error (Some rule_id) loc s OutJ.SemgrepMatchFound in
   Common.push err env.errors
 
 (*****************************************************************************)
@@ -209,7 +209,7 @@ let semgrep_check config metachecks rules : Core_error.t list =
     let s = m.rule_id.message in
     let _check_id = m.rule_id.id in
     (* TODO: why not set ~rule_id here?? bug? *)
-    E.mk_error None loc s Out.SemgrepMatchFound
+    E.mk_error None loc s OutJ.SemgrepMatchFound
   in
   let (config : Core_scan_config.t) =
     {

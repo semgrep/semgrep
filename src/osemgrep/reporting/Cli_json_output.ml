@@ -42,8 +42,8 @@ let core_location_to_error_span (loc : OutJ.location) : OutJ.error_span =
   }
 
 (* Generate error message exposed to user *)
-let error_message ~rule_id ~(location : Out.location)
-    ~(error_type : Out.error_type) ~core_message : string =
+let error_message ~rule_id ~(location : OutJ.location)
+    ~(error_type : OutJ.error_type) ~core_message : string =
   let path = location.path in
   let rule_id_str_opt = Option.map Rule_ID.to_string rule_id in
   let error_context =
@@ -65,7 +65,7 @@ let error_message ~rule_id ~(location : Out.location)
     (Error.string_of_error_type error_type)
     error_context core_message
 
-let error_spans ~(error_type : Out.error_type) ~(location : Out.location) =
+let error_spans ~(error_type : OutJ.error_type) ~(location : OutJ.location) =
   match error_type with
   | PatternParseError _yaml_pathTODO ->
       (* TOPORT
@@ -471,7 +471,7 @@ let cli_output_of_core_results ~logging_level (core : OutJ.core_output)
        * python: scanned=[str(path) for path in sorted(self.all_targets)]
        *)
       let scanned = scanned |> Set_.elements in
-      let (paths : Out.scanned_and_skipped) =
+      let (paths : OutJ.scanned_and_skipped) =
         match logging_level with
         | Some (Logs.Info | Logs.Debug) ->
             (* Skipping the python intermediate FileTargetingLog for now.

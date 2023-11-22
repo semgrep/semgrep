@@ -101,18 +101,20 @@ let get_propagated_value default_start mvalue =
     match range_of_any_opt default_start any with
     | Some (start, end_) ->
         Some
-          {
-            Out.svalue_start = Some start;
-            svalue_end = Some end_;
-            svalue_abstract_content = metavar_string_of_any any;
-          }
+          OutJ.
+            {
+              svalue_start = Some start;
+              svalue_end = Some end_;
+              svalue_abstract_content = metavar_string_of_any any;
+            }
     | None ->
         Some
-          {
-            Out.svalue_start = None;
-            svalue_end = None;
-            svalue_abstract_content = metavar_string_of_any any;
-          }
+          OutJ.
+            {
+              svalue_start = None;
+              svalue_end = None;
+              svalue_abstract_content = metavar_string_of_any any;
+            }
   in
   match mvalue with
   | E { e = N (Id (_, id_info)); _ } -> (
@@ -136,12 +138,13 @@ let metavars startp_of_match_range (s, mval) =
               (OutJ.string_of_position startp_of_match_range)))
   | Some (startp, endp) ->
       ( s,
-        {
-          Out.start = startp;
-          end_ = endp;
-          abstract_content = metavar_string_of_any any;
-          propagated_value = get_propagated_value startp_of_match_range any;
-        } )
+        OutJ.
+          {
+            start = startp;
+            end_ = endp;
+            abstract_content = metavar_string_of_any any;
+            propagated_value = get_propagated_value startp_of_match_range any;
+          } )
 
 (* TODO! semgrep-core used to have its own format for taint traces
  * (called core_match_call_trace), but with osemgrep we want to merge
@@ -156,7 +159,7 @@ let content_of_loc (loc : OutJ.location) : string =
 let token_to_intermediate_var token : OutJ.match_intermediate_var option =
   let* location = OutUtils.tokens_to_single_loc [ token ] in
   Some
-    ({ Out.location; content = content_of_loc location }
+    (OutJ.{ location; content = content_of_loc location }
       : OutJ.match_intermediate_var)
 
 let tokens_to_intermediate_vars tokens =
@@ -167,13 +170,13 @@ let rec taint_call_trace (trace : PM.taint_call_trace) :
   match trace with
   | Toks toks ->
       let* loc = OutUtils.tokens_to_single_loc toks in
-      Some (Out.CliLoc (loc, content_of_loc loc))
+      Some (OutJ.CliLoc (loc, content_of_loc loc))
   | Call { call_trace; intermediate_vars; call_toks } ->
       let* loc = OutUtils.tokens_to_single_loc call_toks in
       let intermediate_vars = tokens_to_intermediate_vars intermediate_vars in
       let* call_trace = taint_call_trace call_trace in
       Some
-        (Out.CliCall ((loc, content_of_loc loc), intermediate_vars, call_trace))
+        (OutJ.CliCall ((loc, content_of_loc loc), intermediate_vars, call_trace))
 
 let taint_trace_to_dataflow_trace (traces : PM.taint_trace_item list) :
     OutJ.match_dataflow_trace =
@@ -194,11 +197,12 @@ let taint_trace_to_dataflow_trace (traces : PM.taint_trace_item list) :
     | { Pattern_match.source_trace; tokens; sink_trace } :: _ ->
         (source_trace, tokens, sink_trace)
   in
-  {
-    Out.taint_source = taint_call_trace source_call_trace;
-    intermediate_vars = Some (tokens_to_intermediate_vars tokens);
-    taint_sink = taint_call_trace sink_call_trace;
-  }
+  OutJ.
+    {
+      taint_source = taint_call_trace source_call_trace;
+      intermediate_vars = Some (tokens_to_intermediate_vars tokens);
+      taint_sink = taint_call_trace sink_call_trace;
+    }
 
 let unsafe_match_to_match ((x : Pattern_match.t), (edit : Textedit.t option)) :
     OutJ.core_match =
@@ -231,7 +235,7 @@ let unsafe_match_to_match ((x : Pattern_match.t), (edit : Textedit.t option)) :
     else x.file
   in
   {
-    Out.check_id = x.rule_id.id;
+    check_id = x.rule_id.id;
     (* inherited location *)
     path = Fpath.v file;
     start = startp;
@@ -264,14 +268,14 @@ let match_to_match ((x : Pattern_match.t), (edit : Textedit.t option)) :
       let s =
         spf "NoTokenLocation with pattern %s, %s" x.rule_id.pattern_string s
       in
-      let err = E.mk_error (Some x.rule_id.id) loc s Out.MatchingError in
+      let err = E.mk_error (Some x.rule_id.id) loc s OutJ.MatchingError in
       Right err
 [@@profiling]
 
 (* less: Semgrep_error_code should be defined fully Output_from_core.atd
  * so we would not need those conversions
  *)
-let error_to_error (err : Core_error.t) =
+let error_to_error (err : Core_error.t) : OutJ.core_error =
   let file = err.loc.pos.file in
   let startp, endp = OutUtils.position_range err.loc err.loc in
   let rule_id = err.rule_id in
@@ -280,7 +284,7 @@ let error_to_error (err : Core_error.t) =
   let message = err.msg in
   let details = err.details in
   {
-    Out.error_type;
+    error_type;
     rule_id;
     severity;
     location = { path = Fpath.v file; start = startp; end_ = endp };
@@ -293,7 +297,7 @@ let rec explanation_to_explanation (exp : Matching_explanation.t) :
   let { Matching_explanation.op; matches; pos; children } = exp in
   let tloc = Tok.unsafe_loc_of_tok pos in
   {
-    Out.op;
+    op;
     children = children |> Common.map explanation_to_explanation;
     matches = matches |> Common.map (fun m -> unsafe_match_to_match (m, None));
     loc = OutUtils.location_of_token_location tloc;
@@ -304,7 +308,7 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : OutJ.profile =
     profiling_data.rules |> Common.map (fun (rule : Rule.t) -> fst rule.id)
   in
   {
-    Out.targets =
+    targets =
       profiling_data.file_times
       |> Common.map
            (fun { Core_profiling.file = target; rule_times; run_time } ->
@@ -315,35 +319,36 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : OutJ.profile =
                       (rp.rule_id, rp))
                |> Common.hash_of_list
              in
-             {
-               Out.path = target;
-               match_times =
-                 rule_ids
-                 |> Common.map (fun rule_id ->
-                        try
-                          let rprof : Core_profiling.rule_profiling =
-                            Hashtbl.find rule_id_to_rule_prof rule_id
-                          in
-                          rprof.match_time
-                        with
-                        | Not_found -> 0.);
-               (* TODO: we could probably just aggregate in a single
-                * float instead of returning those list of parse_time
-                * which don't really make sense; we just parse once a file.
-                *)
-               parse_times =
-                 rule_ids
-                 |> Common.map (fun rule_id ->
-                        try
-                          let rprof : Core_profiling.rule_profiling =
-                            Hashtbl.find rule_id_to_rule_prof rule_id
-                          in
-                          rprof.parse_time
-                        with
-                        | Not_found -> 0.);
-               num_bytes = File.filesize target;
-               run_time;
-             });
+             OutJ.
+               {
+                 path = target;
+                 match_times =
+                   rule_ids
+                   |> Common.map (fun rule_id ->
+                          try
+                            let rprof : Core_profiling.rule_profiling =
+                              Hashtbl.find rule_id_to_rule_prof rule_id
+                            in
+                            rprof.match_time
+                          with
+                          | Not_found -> 0.);
+                 (* TODO: we could probably just aggregate in a single
+                  * float instead of returning those list of parse_time
+                  * which don't really make sense; we just parse once a file.
+                  *)
+                 parse_times =
+                   rule_ids
+                   |> Common.map (fun rule_id ->
+                          try
+                            let rprof : Core_profiling.rule_profiling =
+                              Hashtbl.find rule_id_to_rule_prof rule_id
+                            in
+                            rprof.parse_time
+                          with
+                          | Not_found -> 0.);
+                 num_bytes = File.filesize target;
+                 run_time;
+               });
     rules = rule_ids;
     rules_parse_time = profiling_data.rules_parse_time;
     max_memory_bytes = Some profiling_data.max_memory_bytes;
@@ -398,7 +403,7 @@ let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
     | Core_profiling.No_info -> (None, None)
   in
   {
-    Out.results = matches |> OutUtils.sort_core_matches;
+    results = matches |> OutUtils.sort_core_matches;
     errors = errs |> Common.map error_to_error;
     paths =
       {
@@ -412,11 +417,12 @@ let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
       res.skipped_rules
       |> Common.map (fun ((kind, rule_id, tk) : Rule.invalid_rule_error) ->
              let loc = Tok.unsafe_loc_of_tok tk in
-             {
-               Out.rule_id;
-               details = Rule.string_of_invalid_rule_error_kind kind;
-               position = OutUtils.position_of_token_location loc;
-             });
+             OutJ.
+               {
+                 rule_id;
+                 details = Rule.string_of_invalid_rule_error_kind kind;
+                 position = OutUtils.position_of_token_location loc;
+               });
     time = profiling |> Option.map profiling_to_profiling;
     explanations =
       res.explanations |> Option.map (Common.map explanation_to_explanation);
@@ -437,7 +443,7 @@ let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
  * Semgrep_error_code.compare_actual_to_expected
  *)
 let push_error loc (rule : Pattern_match.rule_id) =
-  E.push_error rule.id loc rule.message Out.SemgrepMatchFound
+  E.push_error rule.id loc rule.message OutJ.SemgrepMatchFound
 
 let match_to_push_error x =
   let min_loc, _max_loc = x.range_loc in

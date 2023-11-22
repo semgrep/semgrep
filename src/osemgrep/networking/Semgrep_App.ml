@@ -174,7 +174,7 @@ let start_scan ~dry_run ~token (prj_meta : Project_metadata.t)
     (* TODO: should concatenate with raw_json project_config *)
     let meta =
       (* ugly: would be good for ATDgen to generate also a json_of_xxx *)
-      prj_meta |> Out.string_of_project_metadata |> Yojson.Basic.from_string
+      prj_meta |> OutJ.string_of_project_metadata |> Yojson.Basic.from_string
     in
     let request : OutJ.scan_request =
       {

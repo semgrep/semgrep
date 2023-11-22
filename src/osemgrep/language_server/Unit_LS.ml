@@ -49,7 +49,7 @@ let mock_run_results (files : string list) : Core_runner.result =
   let hrules = Rule.hrules_of_rules [ rule ] in
   let scanned = Common.map (fun f -> Fpath.v f) files |> Set_.of_list in
   let match_of_file file =
-    let (extra : Out.core_match_extra) =
+    let (extra : OutJ.core_match_extra) =
       {
         message = Some "test";
         metavars = [];
@@ -62,7 +62,7 @@ let mock_run_results (files : string list) : Core_runner.result =
         metadata = None;
       }
     in
-    let (m : Out.core_match) =
+    let (m : OutJ.core_match) =
       {
         check_id = Rule_ID.of_string "print";
         (* inherited location *)
@@ -75,7 +75,7 @@ let mock_run_results (files : string list) : Core_runner.result =
     m
   in
   let matches = Common.map match_of_file files in
-  let (core : Out.core_output) =
+  let (core : OutJ.core_output) =
     {
       version = None;
       results = matches;

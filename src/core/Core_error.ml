@@ -111,15 +111,15 @@ let error_of_invalid_rule_error ((kind, rule_id, pos) : R.invalid_rule_error) :
   let err =
     match kind with
     | IncompatibleRule (this_version, (min_version, max_version)) ->
-        Out.IncompatibleRule
+        OutJ.IncompatibleRule
           {
             rule_id;
             this_version = Version_info.to_string this_version;
             min_version = Option.map Version_info.to_string min_version;
             max_version = Option.map Version_info.to_string max_version;
           }
-    | MissingPlugin _msg -> Out.MissingPlugin
-    | _ -> Out.RuleParseError
+    | MissingPlugin _msg -> OutJ.MissingPlugin
+    | _ -> OutJ.RuleParseError
   in
   mk_error_tok (Some rule_id) pos msg err
 
@@ -131,7 +131,7 @@ let opt_error_of_rule_error (err : Rule.error) : t option =
       Some
         {
           rule_id = Some rule_id;
-          typ = Out.PatternParseError yaml_path;
+          typ = OutJ.PatternParseError yaml_path;
           loc = Tok.unsafe_loc_of_tok pos;
           msg =
             spf
@@ -145,9 +145,9 @@ let opt_error_of_rule_error (err : Rule.error) : t option =
         }
   | InvalidRule err -> Some (error_of_invalid_rule_error err)
   | InvalidYaml (msg, pos) ->
-      Some (mk_error_tok rule_id pos msg Out.InvalidYaml)
+      Some (mk_error_tok rule_id pos msg OutJ.InvalidYaml)
   | DuplicateYamlKey (s, pos) ->
-      Some (mk_error_tok rule_id pos s Out.InvalidYaml)
+      Some (mk_error_tok rule_id pos s OutJ.InvalidYaml)
   (* TODO?? *)
   | UnparsableYamlException _ -> None
 
@@ -169,7 +169,7 @@ let known_exn_to_error rule_id file (e : Exception.t) : t option =
      module so that we can use it for the exception printers that are
      registered there. *)
   | Parsing_error.Lexical_error (s, tok) ->
-      Some (mk_error_tok rule_id tok s Out.LexicalError)
+      Some (mk_error_tok rule_id tok s OutJ.LexicalError)
   | Parsing_error.Syntax_error tok ->
       let msg =
         match tok with
@@ -182,11 +182,11 @@ let known_exn_to_error rule_id file (e : Exception.t) : t option =
         | Tok.OriginTok { str; _ } -> spf "`%s` was unexpected" str
         | __else__ -> "unknown reason"
       in
-      Some (mk_error_tok rule_id tok msg Out.ParseError)
+      Some (mk_error_tok rule_id tok msg OutJ.ParseError)
   | Parsing_error.Other_error (s, tok) ->
-      Some (mk_error_tok rule_id tok s Out.OtherParseError)
+      Some (mk_error_tok rule_id tok s OutJ.OtherParseError)
   | AST_generic.Error (s, tok) ->
-      Some (mk_error_tok rule_id tok s Out.AstBuilderError)
+      Some (mk_error_tok rule_id tok s OutJ.AstBuilderError)
   | Rule.Error err -> opt_error_of_rule_error err
   | Time_limit.Timeout timeout_info ->
       let s = Printexc.get_backtrace () in
@@ -194,13 +194,13 @@ let known_exn_to_error rule_id file (e : Exception.t) : t option =
       (* This exception should always be reraised. *)
       let loc = Tok.first_loc_of_file file in
       let msg = Time_limit.string_of_timeout_info timeout_info in
-      Some (mk_error rule_id loc msg Out.Timeout)
+      Some (mk_error rule_id loc msg OutJ.Timeout)
   | Memory_limit.ExceededMemoryLimit msg ->
       let loc = Tok.first_loc_of_file file in
-      Some (mk_error rule_id loc msg Out.OutOfMemory)
+      Some (mk_error rule_id loc msg OutJ.OutOfMemory)
   | Out_of_memory ->
       let loc = Tok.first_loc_of_file file in
-      Some (mk_error rule_id loc "Heap space exceeded" Out.OutOfMemory)
+      Some (mk_error rule_id loc "Heap space exceeded" OutJ.OutOfMemory)
   (* general case, can't extract line information from it, default to line 1 *)
   | _exn -> None
 
@@ -227,7 +227,7 @@ let exn_to_error rule_id file (e : Exception.t) : t =
              * we can recover from it, so let's generate a OtherParseError
              * instead.
              *)
-            typ = Out.OtherParseError;
+            typ = OutJ.OtherParseError;
             loc;
             msg = Printexc.to_string exn;
             details = Some trace;

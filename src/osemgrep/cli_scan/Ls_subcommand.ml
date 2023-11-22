@@ -16,7 +16,7 @@ let run ~target_roots ~targeting_conf:conf () =
   |> List.iter (fun (x : OutJ.skipped_target) ->
          pr
            (spf "- [%s] %s"
-              (x.reason |> Out.string_of_skip_reason
+              (x.reason |> OutJ.string_of_skip_reason
              |> JSON.remove_enclosing_quotes_of_jstring)
               (Fpath.to_string x.path)));
   Exit_code.ok

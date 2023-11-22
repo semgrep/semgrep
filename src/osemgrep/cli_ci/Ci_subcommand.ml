@@ -327,15 +327,14 @@ let partition_findings ~keep_ignored (results : OutJ.cli_match list) =
   let groups =
     results
     |> List.filter (fun (m : OutJ.cli_match) ->
-           Option.value ~default:false m.Out.extra.Out.is_ignored
-           && not keep_ignored)
+           Option.value ~default:false m.extra.is_ignored && not keep_ignored)
     |> Common.group_by (fun (m : OutJ.cli_match) ->
            if
              Common2.string_match_substring
                (Str.regexp "r2c-internal-cai")
-               (Rule_ID.to_string m.Out.check_id)
+               (Rule_ID.to_string m.check_id)
            then `Cai
-           else if is_blocking (JSON.from_yojson m.Out.extra.Out.metadata) then
+           else if is_blocking (JSON.from_yojson m.extra.metadata) then
              (* and "sca_info" not in match.extra *)
              `Blocking
            else `Non_blocking)
@@ -372,36 +371,35 @@ let ord_of_severity (severity : Rule.severity) : int =
 
 let finding_of_cli_match _commit_date index (m : OutJ.cli_match) : OutJ.finding
     =
-  let (r : Out.finding) =
-    Out.
-      {
-        check_id = m.check_id;
-        path = m.path;
-        line = m.start.line;
-        column = m.start.col;
-        end_line = m.end_.line;
-        end_column = m.end_.col;
-        message = m.extra.message;
-        severity = severity_to_int m.extra.severity;
-        index;
-        commit_date = "";
-        (* TODO datetime.fromtimestamp(int(commit_date)).isoformat() *)
-        syntactic_id = "";
-        (* TODO, see rule_match.py *)
-        match_based_id = None;
-        (* TODO: see rule_match.py *)
-        hashes = None;
-        (* TODO should compute start_line_hash / end_line_hash / code_hash / pattern_hash *)
-        metadata = m.extra.metadata;
-        is_blocking = is_blocking (JSON.from_yojson m.Out.extra.Out.metadata);
-        fixed_lines =
-          None
-          (* TODO: if self.extra.get("fixed_lines"): ret.fixed_lines = self.extra.get("fixed_lines") *);
-        sca_info = None;
-        (* TODO *)
-        dataflow_trace = None;
-        validation_state = None;
-      }
+  let (r : OutJ.finding) =
+    {
+      check_id = m.check_id;
+      path = m.path;
+      line = m.start.line;
+      column = m.start.col;
+      end_line = m.end_.line;
+      end_column = m.end_.col;
+      message = m.extra.message;
+      severity = severity_to_int m.extra.severity;
+      index;
+      commit_date = "";
+      (* TODO datetime.fromtimestamp(int(commit_date)).isoformat() *)
+      syntactic_id = "";
+      (* TODO, see rule_match.py *)
+      match_based_id = None;
+      (* TODO: see rule_match.py *)
+      hashes = None;
+      (* TODO should compute start_line_hash / end_line_hash / code_hash / pattern_hash *)
+      metadata = m.extra.metadata;
+      is_blocking = is_blocking (JSON.from_yojson m.extra.metadata);
+      fixed_lines =
+        None
+        (* TODO: if self.extra.get("fixed_lines"): ret.fixed_lines = self.extra.get("fixed_lines") *);
+      sca_info = None;
+      (* TODO *)
+      dataflow_trace = None;
+      validation_state = None;
+    }
   in
   r
 
@@ -468,8 +466,8 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   in
   let new_ignored, new_matches =
     all_matches
-    |> List.partition (fun m ->
-           Option.value ~default:false m.Out.extra.Out.is_ignored)
+    |> List.partition (fun (m : OutJ.cli_match) ->
+           Option.value ~default:false m.extra.is_ignored)
   in
   let findings = Common.mapi (finding_of_cli_match commit_date) new_matches in
   let ignores = Common.mapi (finding_of_cli_match commit_date) new_ignored in
@@ -509,7 +507,7 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   let ignored_ext_freqs =
     Option.value ~default:[] skipped
     |> Common.group_by (fun (skipped_target : OutJ.skipped_target) ->
-           Fpath.get_ext skipped_target.Out.path)
+           Fpath.get_ext skipped_target.path)
     |> List.filter (fun (ext, _) -> not (String.equal ext ""))
     (* don't count files with no extension *)
     |> Common.map (fun (ext, xs) -> (ext, List.length xs))
@@ -774,7 +772,7 @@ let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
               ]
         *)
         let _cai_findings, blocking_findings, non_blocking_findings =
-          partition_findings ~keep_ignored cli_output.Out.results
+          partition_findings ~keep_ignored cli_output.results
         in
 
         (* TODO (output already called in Scan_subcommand.scan_files)

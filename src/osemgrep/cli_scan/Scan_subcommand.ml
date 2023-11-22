@@ -111,12 +111,12 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     (_file : Fpath.t)
     (match_results : Core_profiling.partial_profiling Core_result.match_result)
     : unit =
-  let (cli_matches : Out.cli_match list) =
+  let (cli_matches : OutJ.cli_match list) =
     (* need to go through a series of transformation so that we can
      * get something that Matches_report.pp_text_outputs can operate on
      *)
     let (pms : Pattern_match.t list) = match_results.matches in
-    let (core_matches : Out.core_match list) =
+    let (core_matches : OutJ.core_match list) =
       pms
       (* OK, because we don't need the edits to report the matches. *)
       |> Common.map (fun pm -> (pm, None))
@@ -256,7 +256,7 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
   let fold acc (core_match : OutJ.core_match) =
     Map_.update core_match.check_id update acc
   in
-  let map = List.fold_left fold Map_.empty res.core.Out.results in
+  let map = List.fold_left fold Map_.empty res.core.results in
   Map_.fold
     (fun rule_id n acc ->
       let res =
