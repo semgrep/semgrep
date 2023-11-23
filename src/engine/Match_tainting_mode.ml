@@ -859,14 +859,15 @@ let mk_file_env taint_instance ast =
   visitor#visit_program env ast;
   !env
 
-let check_fundef lang taint_instance opt_ent ctx ?glob_env java_props_cache fdef
-    =
+let check_fundef taint_instance opt_ent ctx ?glob_env java_props_cache fdef =
   let name =
     let* ent = opt_ent in
     let* name = AST_to_IL.name_of_entity ent in
     Some (IL.str_of_name name)
   in
-  let _, xs = AST_to_IL.function_definition lang ~ctx fdef in
+  let _, xs =
+    AST_to_IL.function_definition taint_instance.Taint_instance.lang ~ctx fdef
+  in
   let flow = CFG_build.cfg_of_stmts xs in
   let in_env = mk_fun_input_env taint_instance ?glob_env fdef in
   let mapping =
@@ -926,8 +927,7 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
   (* Check each function definition. *)
   Visit_function_defs.visit
     (fun opt_ent fdef ->
-      check_fundef lang taint_instance opt_ent !ctx ~glob_env java_props_cache
-        fdef
+      check_fundef taint_instance opt_ent !ctx ~glob_env java_props_cache fdef
       |> ignore)
     ast;
 

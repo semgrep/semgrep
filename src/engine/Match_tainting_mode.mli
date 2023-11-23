@@ -70,7 +70,6 @@ val mk_fun_input_env :
  * It is exposed to be used by inter-file taint analysis in Pro.  *)
 
 val check_fundef :
-  Lang.t ->
   Taint_instance.t ->
   AST_generic.entity option (** entity being analyzed *) ->
   AST_to_IL.ctx ->
