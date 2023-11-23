@@ -19,6 +19,7 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 (* LATER: declared this in semgrep_output_v1.atd instead? *)
 type scan_id = string
 type app_block_override = string (* reason *) option
+type pro_engine_arch = Osx_arm64 | Osx_x86 | Manylinux
 
 (*****************************************************************************)
 (* Routes *)
@@ -332,6 +333,27 @@ let upload_findings ~dry_run ~token ~scan_id ~results ~complete :
     | Error (code, msg) ->
         Error
           ("API server returned " ^ string_of_int code ^ ", this error: " ^ msg))
+
+(*****************************************************************************)
+(* Installing Pro Engine *)
+(*****************************************************************************)
+
+let download_pro_binary ~token platform_kind =
+  let arch_str =
+    match platform_kind with
+    | Osx_arm64 -> "osx-arm64"
+    | Osx_x86 -> "osx-x86"
+    | Manylinux -> "manylinux"
+  in
+  let uri =
+    Uri.(
+      add_query_params'
+        (with_path !Semgrep_envvars.v.semgrep_url
+           (Common.spf "api/agent/deployments/deepbinary/%s" arch_str))
+        [ ("version", Version.version) ])
+  in
+  let headers = [ ("Authorization", "Bearer " ^ token) ] in
+  Http_helpers.get ~headers uri
 
 (*****************************************************************************)
 (* Error reporting to the backend *)

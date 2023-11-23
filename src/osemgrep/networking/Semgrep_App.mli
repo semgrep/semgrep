@@ -1,6 +1,9 @@
 type scan_id = string
 type app_block_override = string (* reason *) option
 
+(* The architecture of the Pro Engine binary to install. *)
+type pro_engine_arch = Osx_arm64 | Osx_x86 | Manylinux
+
 (* retrieves the deployment config from the provided token. *)
 val get_deployment_from_token :
   token:Auth.token -> Semgrep_output_v1_t.deployment_config option
@@ -70,3 +73,8 @@ val fetch_scan_config_async :
   (Semgrep_output_v1_t.scan_config, string) result Lwt.t
 (** [fetch_scan_config_async ~token ~sca ~dry_run ~full_scan repo] returns a
      promise of the rules for the provided configuration. *)
+
+val download_pro_binary :
+  token:Auth.token ->
+  pro_engine_arch ->
+  (string * Http_helpers.get_info, string * Http_helpers.get_info) result

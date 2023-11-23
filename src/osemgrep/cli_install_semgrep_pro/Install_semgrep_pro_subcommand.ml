@@ -22,6 +22,10 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 (*
    Parse a semgrep-install-semgrep-pro command, execute it and exit.
 
+   This command installs the Semgrep Pro Engine binary via interfacing with
+   Semgrep App, by making an HTTP request to an endpoint in the app with an
+   authentication token.
+
    Translated from install.py
 *)
 
@@ -50,16 +54,7 @@ let download_semgrep_pro platform_kind dest =
           m "No API token found, please run `semgrep login` first.");
       false
   | Some token -> (
-      let uri =
-        Uri.(
-          add_query_params'
-            (with_path !Semgrep_envvars.v.semgrep_url
-               (Common.spf "api/agent/deployments/deepbinary/%s" platform_kind))
-            [ ("version", Version.version) ])
-      in
-      let headers = [ ("Authorization", "Bearer " ^ token) ] in
-
-      match Http_helpers.get ~headers uri with
+      match Semgrep_App.download_pro_binary ~token platform_kind with
       | Error (_, { code = 401; _ }) ->
           Logs.err (fun m ->
               m
@@ -133,22 +128,22 @@ let run_conf (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
       Exit_code.fatal
   | _ ->
       let platform_kind =
-        match Common2.kernel () with
+        match Platform.kernel () with
         | s when String.starts_with ~prefix:"darwin" (String.lowercase_ascii s)
           ->
             (* arm64 is possible. Dunno if other arms are, so let's just check a prefix. *)
-            if String.starts_with ~prefix:"arm" (Common2.arch ()) then
-              "osx-arm64"
-            else "osx-x86"
+            if String.starts_with ~prefix:"arm" (Platform.arch ()) then
+              Semgrep_App.Osx_arm64
+            else Osx_x86
         | s when String.starts_with ~prefix:"linux" (String.lowercase_ascii s)
           ->
-            "manylinux"
+            Manylinux
         | _ ->
             Logs.app (fun m ->
                 m
                   "Running on potentially unsupported platform. Installing \
                    linux compatible binary");
-            "manylinux"
+            Manylinux
       in
 
       (* Download the binary into a temporary location, check it, then install it.

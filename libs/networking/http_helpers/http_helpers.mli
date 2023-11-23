@@ -18,7 +18,10 @@ end) : sig
     (string * get_info, string * get_info) result Lwt.t
   (** [get_async ~headers uri] retrieves [uri] (via HTTP GET) with the provided
     [headers], asynchronously. The return value is either a promise of [Ok body] - if the request was
-    successful, or an error message. *)
+    successful, or an error message.
+    If a temporary redirect (307) is returned, this function will automatically
+    re-query and resolve the redirection.
+   *)
 
   val post_async :
     body:string ->
@@ -42,7 +45,10 @@ end) : sig
     (string * get_info, string * get_info) result
   (** [get ~headers uri] retrieves [uri] (via HTTP GET) with the provided
     [headers]. The return value is either [Ok body] - if the request was
-    successful, or an error message. *)
+    successful, or an error message.
+    If a temporary redirect (307) is returned, this function will automatically
+    re-query and resolve the redirection.
+   *)
 
   val post :
     body:string ->
