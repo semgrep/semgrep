@@ -420,3 +420,12 @@ type any = L of lval | E of exp | I of instr | S of stmt | Ss of stmt list
 let str_of_name name = Common.spf "%s:%s" (fst name.ident) (G.SId.show name.sid)
 let ident_str_of_name name = fst name.ident
 let str_of_label ((n, _), _) = n
+
+let any_of_lval lval =
+  match lval with
+  | { rev_offset = { oorig; _ } :: _; _ } -> any_of_orig oorig
+  | { base = Var var; rev_offset = [] } ->
+      let _, tok = var.ident in
+      G.Tk tok
+  | { base = VarSpecial (_, tok); rev_offset = [] } -> G.Tk tok
+  | { base = Mem e; rev_offset = [] } -> any_of_orig e.eorig

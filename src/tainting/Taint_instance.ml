@@ -3,6 +3,7 @@ module G = AST_generic
 module R = Rule
 module T = Taint
 module Taints = T.Taint_set
+module TM = Taint_smatch
 module Var_env = Dataflow_var_env
 
 type var = Dataflow_var_env.var
@@ -24,6 +25,12 @@ type options = {
   assume_safe_booleans : bool;
   unify_mvars : bool;  (** Unify metavariables in sources and sinks? *)
 }
+
+type handle_findings =
+  G.entity option (** function name ('None' if anonymous) *) ->
+  Taint.finding list ->
+  Lval_env.t ->
+  unit
 
 type t = {
   lang : Language.t;
@@ -76,14 +83,78 @@ type t = {
    * `sanitize(sink(tainted))` will not yield any finding.
    * *)
   options : options;
-  handle_findings :
-    var option (** function name ('None' if anonymous) *) ->
-    Taint.finding list ->
-    Taint_lval_env.t ->
-    unit;
-      (** Callback to report findings. *)
+  handle_findings : handle_findings;  (** Callback to report findings. *)
 }
 (** Taint rule instantiated for a given file.
   *
   * For a source to taint a sink, the bindings of both source and sink must be
   * unifiable. See 'unify_meta_envs'. *)
+
+let orig_is_source target orig = target.is_source (IL.any_of_orig orig)
+let orig_is_sanitizer target orig = target.is_sanitizer (IL.any_of_orig orig)
+let orig_is_sink target orig = target.is_sink (IL.any_of_orig orig)
+
+type func = {
+  target : t;
+  entity : G.entity option;
+  start_env : Lval_env.t;
+  top_matches : Taint_smatch.Top_matches.t;
+}
+
+let any_is_best_sanitizer func any =
+  func.target.is_sanitizer any
+  |> List.filter (fun (m : R.taint_sanitizer TM.t) ->
+         (not m.spec.sanitizer_exact) || TM.is_best_match func.top_matches m)
+
+let any_is_best_source func any =
+  func.target.is_source any
+  |> List.filter (fun (m : R.taint_source TM.t) ->
+         (not m.spec.source_exact) || TM.is_best_match func.top_matches m)
+
+let any_is_best_sink func any =
+  func.target.is_sink any |> List.filter (TM.is_best_match func.top_matches)
+
+let orig_is_best_source func orig : R.taint_source TM.t list =
+  any_is_best_source func (IL.any_of_orig orig)
+
+let orig_is_best_sanitizer func orig =
+  any_is_best_sanitizer func (IL.any_of_orig orig)
+
+let orig_is_best_sink func orig = any_is_best_sink func (IL.any_of_orig orig)
+let lval_is_source func lval = any_is_best_source func (IL.any_of_lval lval)
+
+let lval_is_best_sanitizer env lval =
+  any_is_best_sanitizer env (IL.any_of_lval lval)
+
+let lval_is_sink func lval = func.target.is_sink (IL.any_of_lval lval)
+
+let mk_func target ?entity ?(in_env = Lval_env.empty) flow =
+  {
+    target;
+    entity;
+    start_env = in_env;
+    top_matches =
+      (* Here we compute the "canonical" or "top" sink matches, for each sink we check
+       * whether there is a "best match" among the top nodes in the CFG.
+       * See NOTE "Top matches" *)
+      TM.top_level_matches_in_nodes
+        ~matches_of_orig:(fun orig ->
+          let sources =
+            orig_is_source target orig |> List.to_seq
+            |> Seq.filter (fun (m : R.taint_source TM.t) -> m.spec.source_exact)
+            |> Seq.map (fun m -> TM.Any m)
+          in
+          let sanitizers =
+            orig_is_sanitizer target orig
+            |> List.to_seq
+            |> Seq.filter (fun (m : R.taint_sanitizer TM.t) ->
+                   m.spec.sanitizer_exact)
+            |> Seq.map (fun m -> TM.Any m)
+          in
+          let sinks =
+            orig_is_sink target orig |> List.to_seq
+            |> Seq.map (fun m -> TM.Any m)
+          in
+          sources |> Seq.append sanitizers |> Seq.append sinks)
+        flow;
+  }

@@ -17,7 +17,7 @@ type java_props_cache
 val mk_empty_java_props_cache : unit -> java_props_cache
 
 val hook_function_taint_signature :
-  (Taint_instance.t ->
+  (Taint_instance.func ->
   AST_generic.expr ->
   (AST_generic.parameters (* params of function *) * Taint.signature) option)
   option
@@ -28,13 +28,7 @@ val hook_find_attribute_in_class :
   (AST_generic.name -> string -> AST_generic.name option) option ref
 (** DEEP *)
 
-val fixpoint :
-  ?in_env:Taint_lval_env.t ->
-  ?name:var ->
-  Taint_instance.t ->
-  java_props_cache ->
-  IL.cfg ->
-  mapping
+val fixpoint : Taint_instance.func -> java_props_cache -> IL.cfg -> mapping
 (** Main entry point, [fixpoint instance cfg] returns a mapping (effectively a set)
   * containing all the tainted variables in [cfg]. Besides, if it infers any taint
   * 'findings', it will invoke [instance.handle_findings] which can perform any

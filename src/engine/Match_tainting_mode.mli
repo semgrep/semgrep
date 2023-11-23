@@ -53,10 +53,7 @@ val taint_instance_for_rule_and_target :
   string (* filename *) ->
   AST_generic.program * Tok.location list ->
   Rule.taint_rule ->
-  (Dataflow_tainting.var option ->
-  Taint.finding list ->
-  Taint_lval_env.t ->
-  unit) ->
+  Taint_instance.handle_findings ->
   Taint_instance.t * debug_taint * Matching_explanation.t list
 
 val mk_fun_input_env :
@@ -71,7 +68,7 @@ val mk_fun_input_env :
 
 val check_fundef :
   Taint_instance.t ->
-  AST_generic.entity option (** entity being analyzed *) ->
+  ?entity:AST_generic.entity (** entity being analyzed *) ->
   AST_to_IL.ctx ->
   ?glob_env:Taint_lval_env.t ->
   Dataflow_tainting.java_props_cache ->

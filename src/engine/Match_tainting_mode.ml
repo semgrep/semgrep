@@ -720,7 +720,8 @@ let check_var_def taint_instance env id ii expr =
   let flow = CFG_build.cfg_of_stmts xs in
   let end_mapping =
     let java_props_cache = D.mk_empty_java_props_cache () in
-    Dataflow_tainting.fixpoint ~in_env:env taint_instance java_props_cache flow
+    let taint_func = Taint_instance.mk_func taint_instance ~in_env:env flow in
+    Dataflow_tainting.fixpoint taint_func java_props_cache flow
   in
   let out_env = end_mapping.(flow.exit).Dataflow_core.out_env in
   let lval : IL.lval = { base = Var name; rev_offset = [] } in
@@ -859,20 +860,17 @@ let mk_file_env taint_instance ast =
   visitor#visit_program env ast;
   !env
 
-let check_fundef taint_instance opt_ent ctx ?glob_env java_props_cache fdef =
-  let name =
-    let* ent = opt_ent in
-    let* name = AST_to_IL.name_of_entity ent in
-    Some (IL.str_of_name name)
-  in
+let check_fundef taint_instance ?entity ctx ?glob_env java_props_cache fdef =
   let _, xs =
     AST_to_IL.function_definition taint_instance.Taint_instance.lang ~ctx fdef
   in
   let flow = CFG_build.cfg_of_stmts xs in
   let in_env = mk_fun_input_env taint_instance ?glob_env fdef in
   let mapping =
-    Dataflow_tainting.fixpoint ~in_env ?name taint_instance java_props_cache
-      flow
+    let taint_func =
+      Taint_instance.mk_func taint_instance ~in_env ?entity flow
+    in
+    Dataflow_tainting.fixpoint taint_func java_props_cache flow
   in
   (flow, mapping)
 
@@ -926,8 +924,8 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
 
   (* Check each function definition. *)
   Visit_function_defs.visit
-    (fun opt_ent fdef ->
-      check_fundef taint_instance opt_ent !ctx ~glob_env java_props_cache fdef
+    (fun entity fdef ->
+      check_fundef taint_instance ?entity !ctx ~glob_env java_props_cache fdef
       |> ignore)
     ast;
 
@@ -941,7 +939,8 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
       in
       let stmts = AST_to_IL.stmt lang fields in
       let flow = CFG_build.cfg_of_stmts stmts in
-      Dataflow_tainting.fixpoint taint_instance java_props_cache flow |> ignore)
+      let taint_func = Taint_instance.mk_func taint_instance flow in
+      Dataflow_tainting.fixpoint taint_func java_props_cache flow |> ignore)
     ast;
 
   (* Check the top-level statements.
@@ -952,8 +951,8 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
     Common.with_time (fun () ->
         let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
         let flow = CFG_build.cfg_of_stmts xs in
-        Dataflow_tainting.fixpoint taint_instance java_props_cache flow
-        |> ignore)
+        let taint_func = Taint_instance.mk_func taint_instance flow in
+        Dataflow_tainting.fixpoint taint_func java_props_cache flow |> ignore)
   in
   let matches =
     !matches

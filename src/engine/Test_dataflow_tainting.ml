@@ -26,7 +26,7 @@ let test_tainting file config def =
   Common.pr2 "\nDataflow";
   Common.pr2 "--------";
   let flow, mapping =
-    Match_tainting_mode.check_fundef config None AST_to_IL.empty_ctx
+    Match_tainting_mode.check_fundef config AST_to_IL.empty_ctx
       (Dataflow_tainting.mk_empty_java_props_cache ())
       def
   in

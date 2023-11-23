@@ -23,7 +23,7 @@ module PM = Pattern_match
 module R = Rule
 module LV = IL_helpers
 module T = Taint
-module Inst = Taint_instance
+module TI = Taint_instance
 module Lval_env = Taint_lval_env
 module Taints = T.Taint_set
 module TM = Taint_smatch
@@ -75,10 +75,8 @@ let mk_empty_java_props_cache () = Hashtbl.create 30
 
 (* THINK: Separate read-only enviroment into a new a "cfg" type? *)
 type env = {
-  instance : Taint_instance.t;
-  fun_name : var option;
+  instance : Taint_instance.func;
   lval_env : Lval_env.t;
-  top_matches : TM.Top_matches.t;
   java_props : java_props_cache;
 }
 
@@ -93,7 +91,7 @@ let hook_find_attribute_in_class = ref None
 (* Options *)
 (*****************************************************************************)
 
-let options env = env.instance.options
+let options env = env.instance.target.options
 
 let propagate_through_functions env =
   (not (options env).assume_safe_functions)
@@ -147,48 +145,6 @@ let union_map_taints_and_vars env f xs =
   in
   (taints, lval_env)
 
-let any_is_best_sanitizer env any =
-  env.instance.is_sanitizer any
-  |> List.filter (fun (m : R.taint_sanitizer TM.t) ->
-         (not m.spec.sanitizer_exact) || TM.is_best_match env.top_matches m)
-
-let any_is_best_source env any =
-  env.instance.is_source any
-  |> List.filter (fun (m : R.taint_source TM.t) ->
-         (not m.spec.source_exact) || TM.is_best_match env.top_matches m)
-
-let any_is_best_sink env any =
-  env.instance.is_sink any |> List.filter (TM.is_best_match env.top_matches)
-
-let orig_is_source instance orig = instance.Inst.is_source (any_of_orig orig)
-
-let orig_is_best_source env orig : R.taint_source TM.t list =
-  any_is_best_source env (any_of_orig orig)
-
-let orig_is_sanitizer instance orig =
-  instance.Inst.is_sanitizer (any_of_orig orig)
-
-let orig_is_best_sanitizer env orig =
-  any_is_best_sanitizer env (any_of_orig orig)
-
-let orig_is_sink instance orig = instance.Inst.is_sink (any_of_orig orig)
-let orig_is_best_sink env orig = any_is_best_sink env (any_of_orig orig)
-
-let any_of_lval lval =
-  match lval with
-  | { rev_offset = { oorig; _ } :: _; _ } -> any_of_orig oorig
-  | { base = Var var; rev_offset = [] } ->
-      let _, tok = var.ident in
-      G.Tk tok
-  | { base = VarSpecial (_, tok); rev_offset = [] } -> G.Tk tok
-  | { base = Mem e; rev_offset = [] } -> any_of_orig e.eorig
-
-let lval_is_source env lval = any_is_best_source env (any_of_lval lval)
-
-let lval_is_best_sanitizer env lval =
-  any_is_best_sanitizer env (any_of_lval lval)
-
-let lval_is_sink instance lval = instance.Inst.is_sink (any_of_lval lval)
 let sink_of_match x = { T.pm = x.TM.spec_pm; rule_sink = x.spec }
 
 let taints_of_matches env ~incoming sources =
@@ -214,7 +170,8 @@ let taints_of_matches env ~incoming sources =
 
 let report_findings env findings =
   if findings <> [] then
-    env.instance.handle_findings env.fun_name findings env.lval_env
+    env.instance.target.handle_findings env.instance.entity findings
+      env.lval_env
 
 (* Checks whether the sink corresponds has the shape
  *
@@ -342,14 +299,14 @@ let partition_sources_by_side_effect_oyn sources_matches =
 let type_of_lval env lval =
   match lval with
   | { base = Var x; rev_offset = [] } ->
-      Typing.resolved_type_of_id_info env.instance.lang x.id_info
+      Typing.resolved_type_of_id_info env.instance.target.lang x.id_info
   | { base = _; rev_offset = { o = Dot fld; _ } :: _ } ->
-      Typing.resolved_type_of_id_info env.instance.lang fld.id_info
+      Typing.resolved_type_of_id_info env.instance.target.lang fld.id_info
   | __else__ -> Type.NoType
 
 let type_of_expr env e =
   match e.eorig with
-  | SameAs eorig -> Typing.type_of_expr env.instance.lang eorig |> fst
+  | SameAs eorig -> Typing.type_of_expr env.instance.target.lang eorig |> fst
   | __else__ -> Type.NoType
 
 (* We only check this at a few key places to avoid calling `type_of_expr` too
@@ -533,7 +490,7 @@ let findings_of_tainted_return taints return_tok : T.finding list =
     [ T.ToReturn (taint_list, return_tok) ]
 
 let check_orig_if_sink env ?filter_sinks orig taints =
-  let sinks = orig_is_best_sink env orig in
+  let sinks = TI.orig_is_best_sink env.instance orig in
   let sinks =
     match filter_sinks with
     | None -> sinks
@@ -615,7 +572,10 @@ let find_pos_in_actual_args args_taints fparams =
     taint_opt
 
 let fix_poly_taint_with_field env lval st =
-  if env.instance.lang =*= Lang.Java || Lang.is_js env.instance.lang then
+  if
+    env.instance.target.lang =*= Lang.Java
+    || Lang.is_js env.instance.target.lang
+  then
     match lval.rev_offset with
     | { o = Dot n; _ } :: _ -> (
         match st with
@@ -697,7 +657,7 @@ let sanitize_lval_by_side_effect lval_env sanitizer_pms lval =
    If the expression is of the form `x.a.b.c` then we try to sanitize it by
    side-effect, in which case this function will return a new lval_env. *)
 let exp_is_sanitized env exp =
-  match orig_is_best_sanitizer env exp.eorig with
+  match TI.orig_is_best_sanitizer env.instance exp.eorig with
   (* See NOTE [is_sanitizer] *)
   | [] -> None
   | sanitizer_pms -> (
@@ -724,10 +684,10 @@ let handle_taint_propagators env thing taints =
       | `Exp exp -> any_of_orig exp.eorig
       | `Ins ins -> any_of_orig ins.iorig
     in
-    env.instance.is_propagator any
+    env.instance.target.is_propagator any
   in
   let propagate_froms, propagate_tos =
-    List.partition (fun p -> p.TM.spec.Inst.kind =*= `From) propagators
+    List.partition (fun p -> p.TM.spec.TI.kind =*= `From) propagators
   in
   let lval_env =
     (* `thing` is the source (the "from") of propagation, we add its taints to
@@ -764,7 +724,7 @@ let handle_taint_propagators env thing taints =
         *)
         match
           T.solve_precondition ~ignore_poly_taint:false ~taints
-            (R.get_propagator_precondition prop.TM.spec.Inst.prop)
+            (R.get_propagator_precondition prop.TM.spec.TI.prop)
         with
         | Some true ->
             (* If we have an output label, change the incoming taints to be
@@ -772,7 +732,7 @@ let handle_taint_propagators env thing taints =
                Otherwise, keep them the same.
             *)
             let new_taints =
-              match prop.TM.spec.Inst.prop.propagator_label with
+              match prop.TM.spec.TI.prop.propagator_label with
               | None -> taints
               | Some label ->
                   Taints.map
@@ -792,7 +752,7 @@ let handle_taint_propagators env thing taints =
     List.fold_left
       (fun (taints_in_acc, lval_env) prop ->
         let taints_from_prop =
-          match Lval_env.propagate_from prop.TM.spec.Inst.var lval_env with
+          match Lval_env.propagate_from prop.TM.spec.TI.var lval_env with
           | None -> Taints.empty
           | Some taints -> taints
         in
@@ -816,7 +776,7 @@ let handle_taint_propagators env thing taints =
 
 let find_lval_taint_sources env incoming_taints lval =
   let taints_of_pms env = taints_of_matches env ~incoming:incoming_taints in
-  let source_pms = lval_is_source env lval in
+  let source_pms = TI.lval_is_source env.instance lval in
   (* Partition sources according to the value of `by-side-effect:`,
    * either `only`, `yes`, or `no`. *)
   let by_side_effect_only_pms, by_side_effect_yes_pms, by_side_effect_no_pms =
@@ -848,8 +808,8 @@ let rec check_tainted_lval env (lval : IL.lval) : Taints.t * Lval_env.t =
     check_type_and_drop_taints_if_bool_or_number env taints type_of_lval lval
   in
   let sinks =
-    lval_is_sink env.instance lval
-    |> List.filter (TM.is_best_match env.top_matches)
+    TI.lval_is_sink env.instance lval
+    |> List.filter (TM.is_best_match env.instance.top_matches)
     |> Common.map sink_of_match
   in
   let findings = findings_of_tainted_sinks { env with lval_env } taints sinks in
@@ -876,7 +836,8 @@ and propagate_taint_via_java_getters_and_setters_without_definition env e args
    _;
   }
   (* We check for the "get"/"set" prefix below. *)
-    when env.instance.lang =*= Lang.Java && String.length method_str > 3 -> (
+    when env.instance.target.lang =*= Lang.Java && String.length method_str > 3
+    -> (
       let mk_prop_lval () =
         (* e.g. getFooBar/setFooBar -> fooBar *)
         let prop_str =
@@ -940,7 +901,7 @@ and check_tainted_lval_aux env (lval : IL.lval) :
    *  with the info we have stored in `env.lval_env`. This can be subtle, see
    *  comments below.
    *)
-  match lval_is_best_sanitizer env lval with
+  match TI.lval_is_best_sanitizer env.instance lval with
   (* See NOTE [is_sanitizer] *)
   (* TODO: We should check that taint and sanitizer(s) are unifiable. *)
   | _ :: _ as sanitizer_pms ->
@@ -1038,7 +999,7 @@ and check_tainted_lval_aux env (lval : IL.lval) :
       in
       let new_taints = taints_incoming |> Taints.union taints_propagated in
       let sinks =
-        lval_is_sink env.instance lval
+        TI.lval_is_sink env.instance lval
         (* For sub-lvals we require sinks to be exact matches. Why? Let's say
            * we have `sink(x.a)` and `x' is tainted but `x.a` is clean...
            * with the normal subset semantics for sinks we would consider `x'
@@ -1166,7 +1127,7 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
         match exp.e with
         | Fetch lval -> check_tainted_lval env lval
         | __else__ ->
-            orig_is_best_source env exp.eorig
+            TI.orig_is_best_source env.instance exp.eorig
             |> taints_of_matches { env with lval_env } ~incoming:taints_exp
       in
       let taints = Taints.union taints_exp taints_sources in
@@ -1562,7 +1523,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
         (taints, lval_env)
     | FixmeInstr _ -> (Taints.empty, env.lval_env)
   in
-  let sanitizer_pms = orig_is_best_sanitizer env instr.iorig in
+  let sanitizer_pms = TI.orig_is_best_sanitizer env.instance instr.iorig in
   match sanitizer_pms with
   (* See NOTE [is_sanitizer] *)
   | _ :: _ ->
@@ -1571,7 +1532,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
   | [] ->
       let taints_instr, lval_env = check_instr instr.i in
       let taint_sources, lval_env =
-        orig_is_best_source env instr.iorig
+        TI.orig_is_best_source env.instance instr.iorig
         |> taints_of_matches { env with lval_env } ~incoming:taints_instr
       in
       let taints = Taints.union taints_instr taint_sources in
@@ -1593,8 +1554,9 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
  * report the finding too (by side effect). *)
 let check_tainted_return env tok e : Taints.t * Lval_env.t =
   let sinks =
-    env.instance.is_sink (G.Tk tok) @ orig_is_sink env.instance e.eorig
-    |> List.filter (TM.is_best_match env.top_matches)
+    env.instance.target.is_sink (G.Tk tok)
+    @ TI.orig_is_sink env.instance.target e.eorig
+    |> List.filter (TM.is_best_match env.instance.top_matches)
     |> Common.map sink_of_match
   in
   let taints, var_env' = check_tainted_expr env e in
@@ -1653,23 +1615,20 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
       | penv1 :: penvs -> List.fold_left Lval_env.union penv1 penvs)
 
 let transfer :
-    Taint_instance.t ->
-    Lval_env.t ->
-    string option ->
+    Taint_instance.func ->
     flow:F.cfg ->
-    top_matches:TM.Top_matches.t ->
     java_props:java_props_cache ->
     Lval_env.t D.transfn =
- fun instance enter_env opt_name ~flow ~top_matches ~java_props
+ fun instance ~flow ~java_props
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
   (* DataflowX.display_mapping flow mapping show_tainted; *)
-  let in' : Lval_env.t = input_env ~enter_env ~flow mapping ni in
+  let in' : Lval_env.t =
+    input_env ~enter_env:instance.start_env ~flow mapping ni
+  in
   let node = flow.graph#nodes#assoc ni in
   let out' : Lval_env.t =
-    let env =
-      { instance; fun_name = opt_name; lval_env = in'; top_matches; java_props }
-    in
+    let env = { instance; lval_env = in'; java_props } in
     match node.F.n with
     | NInstr x ->
         let taints, lval_env' = check_tainted_instr env x in
@@ -1747,58 +1706,21 @@ let transfer :
 (* Entry point *)
 (*****************************************************************************)
 
-let (fixpoint :
-      ?in_env:Lval_env.t ->
-      ?name:Var_env.var ->
-      Inst.t ->
-      java_props_cache ->
-      F.cfg ->
-      mapping) =
- fun ?in_env ?name:opt_name instance java_props flow ->
+let (fixpoint : TI.func -> java_props_cache -> F.cfg -> mapping) =
+ fun instance java_props flow ->
   let init_mapping = DataflowX.new_node_array flow Lval_env.empty_inout in
-  let enter_env =
-    match in_env with
-    | None -> Lval_env.empty
-    | Some in_env -> in_env
-  in
-  let top_matches =
-    (* Here we compute the "canonical" or "top" sink matches, for each sink we check
-     * whether there is a "best match" among the top nodes in the CFG.
-     * See NOTE "Top matches" *)
-    TM.top_level_matches_in_nodes
-      ~matches_of_orig:(fun orig ->
-        let sources =
-          orig_is_source instance orig
-          |> List.to_seq
-          |> Seq.filter (fun (m : R.taint_source TM.t) -> m.spec.source_exact)
-          |> Seq.map (fun m -> TM.Any m)
-        in
-        let sanitizers =
-          orig_is_sanitizer instance orig
-          |> List.to_seq
-          |> Seq.filter (fun (m : R.taint_sanitizer TM.t) ->
-                 m.spec.sanitizer_exact)
-          |> Seq.map (fun m -> TM.Any m)
-        in
-        let sinks =
-          orig_is_sink instance orig |> List.to_seq
-          |> Seq.map (fun m -> TM.Any m)
-        in
-        sources |> Seq.append sanitizers |> Seq.append sinks)
-      flow
-  in
   (* THINK: Why I cannot just update mapping here ? if I do, the mapping gets overwritten later on! *)
   (* DataflowX.display_mapping flow init_mapping show_tainted; *)
   let end_mapping =
     DataflowX.fixpoint ~timeout:Limits_semgrep.taint_FIXPOINT_TIMEOUT
       ~eq_env:Lval_env.equal ~init:init_mapping
-      ~trans:
-        (transfer instance enter_env opt_name ~flow ~top_matches ~java_props)
+      ~trans:(transfer instance ~flow ~java_props)
         (* tainting is a forward analysis! *)
       ~forward:true ~flow
   in
   let exit_env = end_mapping.(flow.exit).D.out_env in
-  ( findings_from_arg_updates_at_exit enter_env exit_env |> fun findings ->
-    if findings <> [] then instance.handle_findings opt_name findings exit_env
-  );
+  ( findings_from_arg_updates_at_exit instance.start_env exit_env
+  |> fun findings ->
+    if findings <> [] then
+      instance.target.handle_findings instance.entity findings exit_env );
   end_mapping
