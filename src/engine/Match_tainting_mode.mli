@@ -14,14 +14,14 @@ type debug_taint = {
 type formula_cache
 
 (* These formula caches are only safe to use to share results between
-   runs of rules on the same target! It is consumed by [taint_config_of_rule].
+   runs of rules on the same target! It is consumed by [taint_instance_for_rule_and_target].
 *)
 val mk_specialized_formula_cache : Rule.taint_rule list -> formula_cache
 
 val hook_setup_hook_function_taint_signature :
   (Match_env.xconfig ->
   Rule.taint_rule ->
-  Dataflow_tainting.config ->
+  Taint_instance.t ->
   Xtarget.t ->
   unit)
   option
@@ -32,7 +32,7 @@ val hook_setup_hook_function_taint_signature :
   * 'Dataflow_tainting.hook_function_taint_signature'.
   *
   * Doing it here (vs what DeepSemgrep does) has the advantage that we can re-use
-  * the same 'Dataflow_tainting.config' without having to do any caching on disk.
+  * the same 'Taint_instance.t' without having to do any caching on disk.
   *
   * FIXME: Once we have the taint signature of a function we do not need to run
   *   taint tracking on it anymore... but we still do it hence duplicating work.
@@ -44,9 +44,9 @@ val hook_setup_hook_function_taint_signature :
 (* This [formula_cache] argument is exposed here because this function is also
    a subroutine but the cache itself should be created outside of the any main
    loop which runs over rules. This cache is only safe to share with if
-   [taint_config_of_rule] is used on the same file!
+   [taint_instance_for_rule_and_target] is used on the same file!
 *)
-val taint_config_of_rule :
+val taint_instance_for_rule_and_target :
   per_file_formula_cache:formula_cache ->
   Match_env.xconfig ->
   string (* filename *) ->
@@ -56,12 +56,12 @@ val taint_config_of_rule :
   Taint.finding list ->
   Taint_lval_env.t ->
   unit) ->
-  Dataflow_tainting.config * debug_taint * Matching_explanation.t list
+  Taint_instance.t * debug_taint * Matching_explanation.t list
 
 val mk_fun_input_env :
   Language.t ->
   Rule_options_t.t ->
-  Dataflow_tainting.config ->
+  Taint_instance.t ->
   ?glob_env:Taint_lval_env.t ->
   AST_generic.function_definition ->
   Taint_lval_env.t
@@ -73,16 +73,16 @@ val mk_fun_input_env :
 val check_fundef :
   Lang.t ->
   Rule_options.t ->
-  Dataflow_tainting.config ->
+  Taint_instance.t ->
   AST_generic.entity option (** entity being analyzed *) ->
   AST_to_IL.ctx ->
   ?glob_env:Taint_lval_env.t ->
   Dataflow_tainting.java_props_cache ->
   AST_generic.function_definition ->
   IL.cfg * Dataflow_tainting.mapping
-(** Check a function definition using a [Dataflow_tainting.config] (which can
-  * be obtained with [taint_config_of_rule]). Findings are passed on-the-fly
-  * to the [handle_findings] callback in the dataflow config.
+(** Check a function definition using a [Taint_instance.t] (which can
+  * be obtained with [taint_instance_for_rule_and_target]). Findings are passed on-the-fly
+  * to the [handle_findings] callback in the taint instance.
   *
   * This is a low-level function exposed for debugging purposes (-dfg_tainting).
   *)

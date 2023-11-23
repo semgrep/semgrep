@@ -84,9 +84,9 @@ let test_dfg_tainting rules_file file =
      for test purposes.
   *)
   let tbl = Match_tainting_mode.mk_specialized_formula_cache [] in
-  let config, debug_taint, _exps =
-    Match_tainting_mode.taint_config_of_rule ~per_file_formula_cache:tbl xconf
-      !!file (ast, []) rule handle_findings
+  let instance, debug_taint, _exps =
+    Match_tainting_mode.taint_instance_for_rule_and_target
+      ~per_file_formula_cache:tbl xconf !!file (ast, []) rule handle_findings
   in
   Common.pr2 "\nSources";
   Common.pr2 "-------";
@@ -102,7 +102,7 @@ let test_dfg_tainting rules_file file =
       inherit [_] AST_generic.iter_no_id_info as super
 
       method! visit_function_definition env def =
-        test_tainting lang !!file xconf.config config def;
+        test_tainting lang !!file xconf.config instance def;
         (* go into nested functions *)
         super#visit_function_definition env def
     end
