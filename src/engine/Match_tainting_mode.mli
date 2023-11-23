@@ -49,6 +49,7 @@ val hook_setup_hook_function_taint_signature :
 val taint_instance_for_rule_and_target :
   per_file_formula_cache:formula_cache ->
   Match_env.xconfig ->
+  Language.t ->
   string (* filename *) ->
   AST_generic.program * Tok.location list ->
   Rule.taint_rule ->
@@ -59,7 +60,6 @@ val taint_instance_for_rule_and_target :
   Taint_instance.t * debug_taint * Matching_explanation.t list
 
 val mk_fun_input_env :
-  Language.t ->
   Rule_options_t.t ->
   Taint_instance.t ->
   ?glob_env:Taint_lval_env.t ->

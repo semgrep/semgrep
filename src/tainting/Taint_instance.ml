@@ -15,6 +15,7 @@ type a_propagator = {
 }
 
 type t = {
+  lang : Language.t;
   filepath : string;  (** File under analysis, for Deep Semgrep. *)
   rule_id : Rule_ID.t;  (** Taint rule id, for Deep Semgrep. *)
   track_control : bool;

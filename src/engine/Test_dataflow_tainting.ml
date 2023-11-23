@@ -86,7 +86,8 @@ let test_dfg_tainting rules_file file =
   let tbl = Match_tainting_mode.mk_specialized_formula_cache [] in
   let instance, debug_taint, _exps =
     Match_tainting_mode.taint_instance_for_rule_and_target
-      ~per_file_formula_cache:tbl xconf !!file (ast, []) rule handle_findings
+      ~per_file_formula_cache:tbl xconf lang !!file (ast, []) rule
+      handle_findings
   in
   Common.pr2 "\nSources";
   Common.pr2 "-------";

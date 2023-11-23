@@ -75,7 +75,6 @@ let mk_empty_java_props_cache () = Hashtbl.create 30
 
 (* THINK: Separate read-only enviroment into a new a "cfg" type? *)
 type env = {
-  lang : Lang.t;
   options : Rule_options.t;
   instance : Taint_instance.t;
   fun_name : var option;
@@ -337,14 +336,14 @@ let partition_sources_by_side_effect_oyn sources_matches =
 let type_of_lval env lval =
   match lval with
   | { base = Var x; rev_offset = [] } ->
-      Typing.resolved_type_of_id_info env.lang x.id_info
+      Typing.resolved_type_of_id_info env.instance.lang x.id_info
   | { base = _; rev_offset = { o = Dot fld; _ } :: _ } ->
-      Typing.resolved_type_of_id_info env.lang fld.id_info
+      Typing.resolved_type_of_id_info env.instance.lang fld.id_info
   | __else__ -> Type.NoType
 
 let type_of_expr env e =
   match e.eorig with
-  | SameAs eorig -> Typing.type_of_expr env.lang eorig |> fst
+  | SameAs eorig -> Typing.type_of_expr env.instance.lang eorig |> fst
   | __else__ -> Type.NoType
 
 (* We only check this at a few key places to avoid calling `type_of_expr` too
@@ -610,7 +609,7 @@ let find_pos_in_actual_args args_taints fparams =
     taint_opt
 
 let fix_poly_taint_with_field env lval st =
-  if env.lang =*= Lang.Java || Lang.is_js env.lang then
+  if env.instance.lang =*= Lang.Java || Lang.is_js env.instance.lang then
     match lval.rev_offset with
     | { o = Dot n; _ } :: _ -> (
         match st with
@@ -871,7 +870,7 @@ and propagate_taint_via_java_getters_and_setters_without_definition env e args
    _;
   }
   (* We check for the "get"/"set" prefix below. *)
-    when env.lang =*= Lang.Java && String.length method_str > 3 -> (
+    when env.instance.lang =*= Lang.Java && String.length method_str > 3 -> (
       let mk_prop_lval () =
         (* e.g. getFooBar/setFooBar -> fooBar *)
         let prop_str =
@@ -1651,7 +1650,6 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
       | penv1 :: penvs -> List.fold_left Lval_env.union penv1 penvs)
 
 let transfer :
-    Lang.t ->
     Rule_options.t ->
     Taint_instance.t ->
     Lval_env.t ->
@@ -1660,7 +1658,7 @@ let transfer :
     top_matches:TM.Top_matches.t ->
     java_props:java_props_cache ->
     Lval_env.t D.transfn =
- fun lang options instance enter_env opt_name ~flow ~top_matches ~java_props
+ fun options instance enter_env opt_name ~flow ~top_matches ~java_props
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
   (* DataflowX.display_mapping flow mapping show_tainted; *)
@@ -1669,7 +1667,6 @@ let transfer :
   let out' : Lval_env.t =
     let env =
       {
-        lang;
         options;
         instance;
         fun_name = opt_name;
@@ -1758,13 +1755,12 @@ let transfer :
 let (fixpoint :
       ?in_env:Lval_env.t ->
       ?name:Var_env.var ->
-      Lang.t ->
       Rule_options.t ->
       Inst.t ->
       java_props_cache ->
       F.cfg ->
       mapping) =
- fun ?in_env ?name:opt_name lang options instance java_props flow ->
+ fun ?in_env ?name:opt_name options instance java_props flow ->
   let init_mapping = DataflowX.new_node_array flow Lval_env.empty_inout in
   let enter_env =
     match in_env with
@@ -1803,7 +1799,7 @@ let (fixpoint :
     DataflowX.fixpoint ~timeout:Limits_semgrep.taint_FIXPOINT_TIMEOUT
       ~eq_env:Lval_env.equal ~init:init_mapping
       ~trans:
-        (transfer lang options instance enter_env opt_name ~flow ~top_matches
+        (transfer options instance enter_env opt_name ~flow ~top_matches
            ~java_props)
         (* tainting is a forward analysis! *)
       ~forward:true ~flow
