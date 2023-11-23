@@ -58,6 +58,7 @@ type extracted_target_and_adjuster = {
   analyzer : Xlang.t;
 }
 
+(* TODO: use a single hashtbl from extracted_target to the type above *)
 type adjusters = {
   loc_adjuster : (extracted_target, match_result_location_adjuster) Hashtbl.t;
   original_target : (extracted_target, original_target) Hashtbl.t;
@@ -103,14 +104,3 @@ let adjusters_of_extracted_targets
          Hashtbl.add fn_tbl extracted adjuster;
          Hashtbl.add file_tbl extracted original);
   { loc_adjuster = fn_tbl; original_target = file_tbl }
-
-(*
-        let extract_result_map = Hashtbl.create 5 in
-        let extract_targets_map = Hashtbl.create 5 in
-        List.iter
-          (fun (t, (original_target, location_adjuster)) ->
-            Hashtbl.add extract_result_map t.Input_to_core_t.path
-              location_adjuster;
-            Hashtbl.add extract_targets_map t.path original_target)
-          extracted_ranges;
-*)

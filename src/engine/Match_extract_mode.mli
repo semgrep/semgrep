@@ -3,6 +3,8 @@
    the provided target file. Each generated target will also have a
    function which can transform match results in the generated target/file to
    match results corresponding to the file from which that extraction occured.
+
+   Note that this internally calls Match_rules.check().
 *)
 val extract :
   match_hook:(string -> Pattern_match.t -> unit) ->
