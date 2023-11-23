@@ -444,6 +444,43 @@ let checkid_passed matches_for_checkid =
       acc && IS.(equal (of_list expected) (of_list reported)))
     matches_for_checkid true
 
+let scan conf rule_file targets =
+  let rule_and_origin = Rule_fetching.load_rules_from_file
+      ~rewrite_rule_ids:true ~origin:(Rule_fetching.Local_file rule_file)
+      ~registry_caching:true
+      rule_file
+  in
+  let filtered_rules, errors =
+    Rule_fetching.partition_rules_and_errors [ rule_and_origin ]
+  in
+
+  let scan_func = mk_scan_func conf file_match_results_hook errors in
+  let exn_and_matches =
+    Profiler.record profiler ~name:"core_time"
+      (scan_func targets filtered_rules)
+  in
+  let (res : Core_runner.result) =
+    Core_runner.create_core_result filtered_rules exn_and_matches
+  in
+
+  (* step 4: adjust the skipped_targets *)
+  let errors_skipped = Skipped_report.errors_to_skipped res.core.errors in
+  let skipped = skipped @ errors_skipped in
+  let (res : Core_runner.result) =
+    (* TODO: what is in core.skipped_targets? should we add them to
+     * skipped above too?
+     *)
+    let skipped =
+      Some (skipped @ Common.optlist_to_list res.core.paths.skipped)
+    in
+    (* Add the targets that were semgrepignored or errorneous *)
+    {
+      res with
+      core = { res.core with paths = { res.core.paths with skipped } };
+    }
+  in
+  res
+
 (*****************************************************************************)
 (* Main logic *)
 (*****************************************************************************)
@@ -465,39 +502,16 @@ let run_conf (conf : conf) : Exit_code.t =
     Map_.fold
       (fun k v (with_test, without_test) ->
         if v = [] then (with_test, k :: without_test)
-        else (k :: with_test, without_test))
+        else ((k, v) :: with_test, without_test))
       config_test_filenames ([], [])
   in
 
   let config_missing_tests_output = config_without_tests in
 
-  (* let scan_func_for_osemgrep =
-       Core_runner.mk_scan_func_for_osemgrep Core_scan.scan_with_exn_handler
-     in
-     let scan_func =
-       scan_func_for_osemgrep
-         ~respect_git_ignore:conf.targeting_conf.respect_git_ignore
-         ~file_match_results_hook conf.core_runner_conf rules errors targets
-     in
-     let (res : Core_runner.result) =
-       Core_runner.create_core_result filtered_rules scan_func
-     in
-  *)
   let (results : (Fpath.t * Core_result.result_or_exn) list) =
-    Obj.magic config_with_tests (* TODO *)
+    List.map (fun (cfg, targets) -> cfg, scan conf cfg targets) config_with_tests
   in
 
-  (* invoke_semgrep_fn = functools.partial(
-         invoke_semgrep_multi,
-         engine_type=engine_type,
-         no_git_ignore=True,
-         no_rewrite_rule_ids=True,
-         strict=strict,
-         optimizations=optimizations,
-       )
-     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
-            results = pool.starmap(invoke_semgrep_fn, config_with_tests)
-  *)
   let config_with_errors, config_without_errors =
     List.partition_map
       (function
