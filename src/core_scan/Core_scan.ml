@@ -14,7 +14,6 @@
  *)
 open Common
 open File.Operators
-open Core_scan_config
 module PM = Pattern_match
 module E = Core_error
 module MR = Mini_rule
@@ -172,7 +171,7 @@ type target_handler =
 let replace_named_pipe_by_regular_file path =
   File.replace_named_pipe_by_regular_file_if_needed ~prefix:"semgrep-core-" path
 
-let add_additional_targets config n =
+let add_additional_targets (config : Core_scan_config.t) (n : int) : unit =
   (* Print additional target count so the Python progress bar knows *)
   match config.output_format with
   | Json true -> Out.put (string_of_int n)
@@ -182,7 +181,7 @@ let add_additional_targets config n =
    safe to write a dot on stdout in a child process and why it's mixed with
    JSON output.
 *)
-let update_cli_progress config =
+let update_cli_progress (config : Core_scan_config.t) : unit =
   (* Print when each file is done so the Python progress bar knows *)
   match config.output_format with
   | Json true -> Out.put "."
@@ -257,17 +256,16 @@ let print_taint_trace ~format taint_trace =
            Out.put "  * This is how taint reaches the sink:";
            print_taint_call_trace ~format ~spaces:4 sink_trace)
 
-let print_match ?str config match_ ii_of_any =
+let print_match ?str (config : Core_scan_config.t) match_ ii_of_any =
   (* there are a few fake tokens in the generic ASTs now (e.g.,
    * for DotAccess generated outside the grammar) *)
-  let { match_format; mvars; _ } = config in
   let { Pattern_match.env; tokens = (lazy tokens_matched_code); taint_trace; _ }
       =
     match_
   in
   let toks = tokens_matched_code |> List.filter Tok.is_origintok in
-  (if mvars =*= [] then
-     Core_text_output.print_match ?str ~format:match_format toks
+  (if config.mvars =*= [] then
+     Core_text_output.print_match ?str ~format:config.match_format toks
    else
      (* similar to the code of Lib_matcher.print_match, maybe could
       * factorize code a bit.
@@ -276,7 +274,7 @@ let print_match ?str config match_ ii_of_any =
      let file, line = (Tok.file_of_tok mini, Tok.line_of_tok mini) in
 
      let strings_metavars =
-       mvars
+       config.mvars
        |> Common.map (fun x ->
               match Common2.assoc_opt x env with
               | Some any ->
@@ -288,7 +286,7 @@ let print_match ?str config match_ ii_of_any =
      in
      Out.put (spf "%s:%d: %s" file line (Common.join ":" strings_metavars));
      ());
-  Option.iter (print_taint_trace ~format:match_format) taint_trace
+  Option.iter (print_taint_trace ~format:config.match_format) taint_trace
 
 (*****************************************************************************)
 (* Parallelism *)
@@ -463,21 +461,23 @@ let sanity_check_invalid_patterns (res : Core_result.t) :
 (*****************************************************************************)
 
 (* for -rules *)
-let rules_from_rule_source config =
+let rules_from_rule_source (config : Core_scan_config.t) :
+    Rule.t list * Rule.invalid_rule_error list =
   let rule_source =
     match config.rule_source with
-    | Some (Rule_file file) ->
+    | Some (Core_scan_config.Rule_file file) ->
         (* useful when using process substitution, e.g.
          * semgrep-core -rules <(curl https://semgrep.dev/c/p/ocaml) ...
          *)
-        Some (Rule_file (replace_named_pipe_by_regular_file file))
+        Some
+          (Core_scan_config.Rule_file (replace_named_pipe_by_regular_file file))
     | other -> other
   in
   match rule_source with
-  | Some (Rule_file file) ->
+  | Some (Core_scan_config.Rule_file file) ->
       logger#linfo (lazy (spf "Parsing %s:\n%s" !!file (File.read_file file)));
       Parse_rule.parse_and_filter_invalid_rules ~rewrite_rule_ids:None file
-  | Some (Rules rules) -> (rules, [])
+  | Some (Core_scan_config.Rules rules) -> (rules, [])
   | None ->
       (* TODO: ensure that this doesn't happen *)
       failwith "missing rules"
