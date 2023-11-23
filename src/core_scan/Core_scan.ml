@@ -221,6 +221,37 @@ let filter_existing_targets (targets : In.target list) :
                rule_id = None;
              })
 
+let set_matches_to_proprietary_origin_if_needed (xtarget : Xtarget.t)
+    (matches : Core_profiling.partial_profiling RP.match_result) :
+    Core_profiling.partial_profiling RP.match_result =
+  (* If our target is a proprietary language, or we've been using the
+   * proprietary engine, then label all the resulting matches with the Pro
+   * engine kind. This can't really be done any later, because we need the
+   * language that we're running on.
+   *
+   * If those hooks are set, it's probably a pretty good indication that
+   * we're using Pro features.
+   *)
+  if
+    Option.is_some !Match_tainting_mode.hook_setup_hook_function_taint_signature
+    || Option.is_some !Dataflow_tainting.hook_function_taint_signature
+    || Xlang.is_proprietary xtarget.xlang
+  then
+    {
+      matches with
+      Core_result.matches = Common.map PM.to_proprietary matches.matches;
+    }
+  else matches
+
+(* adjust the match location for extracted targets *)
+let adjust_location_extracted_targets_if_needed (adjusters : Extract.adjusters)
+    (file : Fpath.t)
+    (matches : Core_profiling.partial_profiling RP.match_result) :
+    Core_profiling.partial_profiling RP.match_result =
+  match Hashtbl.find_opt adjusters.loc_adjuster (Extracted file) with
+  | Some match_result_loc_adjuster -> match_result_loc_adjuster matches
+  | None -> matches
+
 (*****************************************************************************)
 (* Printing matches *)
 (*****************************************************************************)
@@ -812,9 +843,9 @@ let select_applicable_rules_for_target ~analyzer ~products ~path
          | _else -> true)
 
 (* build the callback for iter_targets_and_get_matches_and_exn_to_errors *)
-let mk_target_handler (config : Core_scan_config.t) valid_rules
-    filter_irrelevant_rules (adjusters : Extract.adjusters) match_hook :
-    target_handler =
+let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
+    (prefilter_cache_opt : Match_env.prefilter_config)
+    (adjusters : Extract.adjusters) match_hook : target_handler =
  (* Note that this function runs in another process *)
  fun (target : In.target) ->
   let file = Fpath.v target.path in
@@ -827,7 +858,7 @@ let mk_target_handler (config : Core_scan_config.t) valid_rules
   let was_scanned =
     match applicable_rules with
     | [] -> Not_scanned
-    | _ ->
+    | _x :: _xs ->
         (* Map back extracted targets when recording files as scanned *)
         let original_target =
           match Hashtbl.find_opt adjusters.original_target (Extracted file) with
@@ -852,49 +883,22 @@ let mk_target_handler (config : Core_scan_config.t) valid_rules
       equivs = parse_equivalences config.equivalences_file;
       nested_formula = false;
       matching_explanations = config.matching_explanations;
-      filter_irrelevant_rules;
+      filter_irrelevant_rules = prefilter_cache_opt;
     }
   in
   let matches =
-    let matches =
-      Match_rules.check ~match_hook ~timeout:config.timeout
-        ~timeout_threshold:config.timeout_threshold xconf applicable_rules
-        xtarget
-    in
-    (* If our target is a proprietary language, or we've been using the proprietary
-     * engine, then label all the resulting matches with the Pro engine kind.
-     * This can't really be done any later, because we need the language that
-     * we're running on.
-     *)
-    (* If these hooks are set, it's probably a pretty good indication that we're
-       using Pro features.
-    *)
-    if
-      Option.is_some
-        !Match_tainting_mode.hook_setup_hook_function_taint_signature
-      || Option.is_some !Dataflow_tainting.hook_function_taint_signature
-      || Xlang.is_proprietary xtarget.xlang
-    then
-      {
-        matches with
-        Core_result.matches = Common.map PM.to_proprietary matches.matches;
-      }
-    else matches
+    (* !!Calling Match_rules!! Calling the matching engine!! *)
+    Match_rules.check ~match_hook ~timeout:config.timeout
+      ~timeout_threshold:config.timeout_threshold xconf applicable_rules xtarget
+    |> set_matches_to_proprietary_origin_if_needed xtarget
+    |> adjust_location_extracted_targets_if_needed adjusters file
   in
   (* So we can display matches incrementally in osemgrep!
    * Note that this is run in a child process of Parmap, so
    * the hook should not rely on shared memory.
    *)
   config.file_match_results_hook |> Option.iter (fun hook -> hook file matches);
-
   update_cli_progress config;
-
-  (* adjust the match location for extracted targets *)
-  let matches =
-    match Hashtbl.find_opt adjusters.loc_adjuster (Extracted file) with
-    | Some match_result_loc_adjuster -> match_result_loc_adjuster matches
-    | None -> matches
-  in
   (matches, was_scanned)
 
 (* This is the main function used by pysemgrep right now.
@@ -932,7 +936,7 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
   in
 
   let all_targets = targets @ new_extracted_targets in
-  let filter_irrelevant_rules =
+  let prefilter_cache_opt =
     if config.filter_irrelevant_rules then
       Match_env.PrefilterWithCache (Hashtbl.create (List.length valid_rules))
     else NoPrefiltering
@@ -944,7 +948,7 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
   let file_results, scanned_targets =
     all_targets
     |> iter_targets_and_get_matches_and_exn_to_errors config
-         (mk_target_handler config valid_rules filter_irrelevant_rules adjusters
+         (mk_target_handler config valid_rules prefilter_cache_opt adjusters
             match_hook)
   in
   let scanned_target_table =
