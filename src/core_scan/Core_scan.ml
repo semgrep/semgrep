@@ -131,9 +131,9 @@ type core_scan_func = Core_scan_config.t -> Core_result.result_or_exn
  * The information is useful to return to pysemgrep/osemgrep to
  * display statistics.
  *
- * The [original_target] below is useful to deal with extract mode, because
- * the file processed in [iter_targets_and_get_matches_and_exn_to_errors],
- * usually a temporary "extracted" file, is not the file we want to report
+ * The [original_target] below is useful to deal with extract rules. Indeed,
+ * the file processed in [iter_targets_and_get_matches_and_exn_to_errors]
+ * may be a temporary "extracted" file that is not the file we want to report
  * as scanned; we want to report as scanned the original target file.
  *)
 type was_scanned = Scanned of Extract.original_target | Not_scanned
@@ -169,22 +169,6 @@ type target_handler = In.target -> RP.matches_single_file * was_scanned
 *)
 let replace_named_pipe_by_regular_file path =
   File.replace_named_pipe_by_regular_file_if_needed ~prefix:"semgrep-core-" path
-
-let add_additional_targets (config : Core_scan_config.t) (n : int) : unit =
-  (* Print additional target count so the Python progress bar knows *)
-  match config.output_format with
-  | Json true -> Out.put (string_of_int n)
-  | _ -> ()
-
-(* TODO: suspicious: this runs in a child process. Please explain how it's
-   safe to write a dot on stdout in a child process and why it's mixed with
-   JSON output.
-*)
-let update_cli_progress (config : Core_scan_config.t) : unit =
-  (* Print when each file is done so the Python progress bar knows *)
-  match config.output_format with
-  | Json true -> Out.put "."
-  | _ -> ()
 
 (*
    Sort targets by decreasing size. This is meant for optimizing
@@ -241,13 +225,26 @@ let set_matches_to_proprietary_origin_if_needed (xtarget : Xtarget.t)
     }
   else matches
 
-(* adjust the match location for extracted targets *)
-let adjust_location_extracted_targets_if_needed (adjusters : Extract.adjusters)
-    (file : Fpath.t) (matches : RP.matches_single_file) : RP.matches_single_file
+(*****************************************************************************)
+(* Pysemgrep progress bar *)
+(*****************************************************************************)
+
+(* Print additional target count so the Python progress bar knows *)
+let print_cli_additional_targets (config : Core_scan_config.t) (n : int) : unit
     =
-  match Hashtbl.find_opt adjusters.loc_adjuster (Extracted file) with
-  | Some match_result_loc_adjuster -> match_result_loc_adjuster matches
-  | None -> matches
+  match config.output_format with
+  | Json true -> Out.put (string_of_int n)
+  | _ -> ()
+
+(* TODO: suspicious: this runs in a child process. Please explain how it's
+   safe to write a dot on stdout in a child process and why it's mixed with
+   JSON output.
+*)
+let print_cli_progress (config : Core_scan_config.t) : unit =
+  (* Print when each file is done so the Python progress bar knows *)
+  match config.output_format with
+  | Json true -> Out.put "."
+  | _ -> ()
 
 (*****************************************************************************)
 (* Printing matches *)
@@ -780,7 +777,7 @@ let extracted_targets_of_config (config : Core_scan_config.t)
            in
            (* Print number of extra targets so pysemgrep knows *)
            if not (Common.null extracted_targets) then
-             add_additional_targets config (List.length extracted_targets);
+             print_cli_additional_targets config (List.length extracted_targets);
            extracted_targets)
   in
   let adjusters = Extract.adjusters_of_extracted_targets extracted_targets in
@@ -791,6 +788,14 @@ let extracted_targets_of_config (config : Core_scan_config.t)
            { In.path = !!path; analyzer; products = Product.all })
   in
   (in_targets, adjusters)
+
+(* adjust the match location for extracted targets *)
+let adjust_location_extracted_targets_if_needed (adjusters : Extract.adjusters)
+    (file : Fpath.t) (matches : RP.matches_single_file) : RP.matches_single_file
+    =
+  match Hashtbl.find_opt adjusters.loc_adjuster (Extracted file) with
+  | Some match_result_loc_adjuster -> match_result_loc_adjuster matches
+  | None -> matches
 
 (*****************************************************************************)
 (* a "core" scan *)
@@ -857,7 +862,7 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
         Scanned original_target
   in
   (* TODO: can we skip all of this if there are no applicable
-     rules? In particular, can we skip update_cli_progress? *)
+     rules? In particular, can we skip print_cli_progress? *)
   let xtarget =
     xtarget_of_file ~parsing_cache_dir:config.parsing_cache_dir analyzer file
   in
@@ -887,7 +892,7 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
    * the hook should not rely on shared memory.
    *)
   config.file_match_results_hook |> Option.iter (fun hook -> hook file matches);
-  update_cli_progress config;
+  print_cli_progress config;
   (matches, was_scanned)
 
 (* This is the main function used by pysemgrep right now.

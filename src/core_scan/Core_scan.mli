@@ -101,12 +101,12 @@ val select_applicable_rules_for_analyzer :
 (* This function prints the number of additional targets, which is consumed by
    pysemgrep to update the progress bar. See `core_runner.py`
 *)
-val add_additional_targets : Core_scan_config.t -> int -> unit
+val print_cli_additional_targets : Core_scan_config.t -> int -> unit
 
 (* This function prints a dot, which is consumed by pysemgrep to update
    the progress bar. See `core_runner.py`
 *)
-val update_cli_progress : Core_scan_config.t -> unit
+val print_cli_progress : Core_scan_config.t -> unit
 
 (* used internally but also called by osemgrep *)
 val errors_of_invalid_rule_errors :
