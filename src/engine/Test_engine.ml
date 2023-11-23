@@ -176,7 +176,7 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
         let extract_result_map = Hashtbl.create 5 in
         let extract_targets_map = Hashtbl.create 5 in
         List.iter
-          (fun (t, { Match_extract_mode.original_target; location_adjuster }) ->
+          (fun (t, (original_target, location_adjuster)) ->
             Hashtbl.add extract_result_map t.Input_to_core_t.path
               location_adjuster;
             Hashtbl.add extract_targets_map t.path original_target)

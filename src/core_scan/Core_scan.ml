@@ -24,7 +24,6 @@ module In = Input_to_core_j
 module OutJ = Semgrep_output_v1_j
 
 let logger = Logging.get_logger [ __MODULE__ ]
-let debug_extract_mode = ref false
 
 (*****************************************************************************)
 (* Purpose *)
@@ -130,7 +129,7 @@ let debug_extract_mode = ref false
 type core_scan_func = Core_scan_config.t -> Core_result.result_or_exn
 
 (* A target is [Not_scanned] when we didn't find any applicable rules.
- * The information is useful to return to pysemgrep and osemgrep to
+ * The information is useful to return to pysemgrep/osemgrep to
  * display statistics.
  *
  * The [original_target] below is useful to deal with extract mode, because
@@ -138,7 +137,9 @@ type core_scan_func = Core_scan_config.t -> Core_result.result_or_exn
  * usually a temporary "extracted" file, is not the file we want to report
  * as scanned; we want to report as scanned the original target file.
  *)
-type was_scanned = Scanned of { original_target : Fpath.t } | Not_scanned
+type was_scanned =
+  | Scanned of { original_target : Extract.original_target }
+  | Not_scanned
 
 (* Type of the iter_targets_and_get_matches_and_exn_to_errors callback.
 
@@ -726,18 +727,9 @@ let targets_of_config (config : Core_scan_config.t) :
 (* Extract-mode helpers *)
 (*****************************************************************************)
 
-(* Extract new targets using the extractors. The rule ids correspond
- * to the rules to run against those new extracted targets (which should be
- * the original rules passed via -rules, without the extract-mode rules).
- * See the .mli for more explanations.
- *)
+(* Extract new targets using the extractors *)
 let extracted_targets_of_config (config : Core_scan_config.t)
-    (all_rules : Rule.t list) :
-    In.target list
-    * ( string (* filename *),
-        Match_extract_mode.match_result_location_adjuster )
-      Hashtbl.t
-    * (string, Fpath.t) Hashtbl.t =
+    (all_rules : Rule.t list) : In.target list * Extract.adjusters =
   let extractors =
     Common.map_filter
       (fun (r : Rule.t) ->
@@ -754,7 +746,7 @@ let extracted_targets_of_config (config : Core_scan_config.t)
   logger#info "extracting nested content from %d files"
     (List.length basic_targets);
   let match_hook str match_ =
-    if !debug_extract_mode && config.output_format =*= Text then (
+    if !Extract.debug_extract_mode && config.output_format =*= Text then (
       pr2 "extracted content from ";
       print_match ~str config match_ Metavariable.ii_of_mval)
   in
@@ -773,7 +765,7 @@ let extracted_targets_of_config (config : Core_scan_config.t)
                ~timeout:config.timeout
                ~timeout_threshold:config.timeout_threshold extractors xtarget
            in
-           (* Print number of extra targets so Python knows *)
+           (* Print number of extra targets so pysemgrep knows *)
            if Common.null extracted_targets then
              add_additional_targets config (List.length extracted_targets);
            extracted_targets)
@@ -787,12 +779,12 @@ let extracted_targets_of_config (config : Core_scan_config.t)
   let fn_tbl = Hashtbl.create num_targets in
   let file_tbl = Hashtbl.create num_targets in
   extracted_ranges
-  |> List.iter
-       (fun (t, { Match_extract_mode.original_target; location_adjuster }) ->
-         Hashtbl.add fn_tbl t.Input_to_core_t.path location_adjuster;
-         Hashtbl.add file_tbl t.path original_target);
+  |> List.iter (fun ((t : In.target), (original_target, location_adjuster)) ->
+         let path = Extract.Extracted (Fpath.v t.path) in
+         Hashtbl.add fn_tbl path location_adjuster;
+         Hashtbl.add file_tbl path original_target);
 
-  (ranges, fn_tbl, file_tbl)
+  (ranges, Extract.{ loc_adjuster = fn_tbl; original_target = file_tbl })
 
 (*****************************************************************************)
 (* a "core" scan *)
@@ -845,7 +837,7 @@ let select_applicable_rules_for_target ~analyzer ~products ~path
 
 (* build the callback for iter_targets_and_get_matches_and_exn_to_errors *)
 let mk_target_handler (config : Core_scan_config.t) valid_rules
-    filter_irrelevant_rules extract_targets_map extract_result_map match_hook :
+    filter_irrelevant_rules (adjusters : Extract.adjusters) match_hook :
     target_handler =
  (* Note that this function runs in another process *)
  fun (target : In.target) ->
@@ -860,9 +852,9 @@ let mk_target_handler (config : Core_scan_config.t) valid_rules
     match applicable_rules with
     | [] -> Not_scanned
     | _ ->
-        (* Map back extracted targets when recording files as scanned*)
+        (* Map back extracted targets when recording files as scanned *)
         let original_target =
-          match Hashtbl.find_opt extract_targets_map (Fpath.to_string file) with
+          match Hashtbl.find_opt adjusters.original_target (Extracted file) with
           | None -> file
           | Some orig -> orig
         in
@@ -923,8 +915,8 @@ let mk_target_handler (config : Core_scan_config.t) valid_rules
 
   (* adjust the match location for extracted targets *)
   let matches =
-    match Hashtbl.find_opt extract_result_map !!file with
-    | Some f -> f matches
+    match Hashtbl.find_opt adjusters.loc_adjuster (Extracted file) with
+    | Some match_result_loc_adjuster -> match_result_loc_adjuster matches
     | None -> matches
   in
   (matches, was_scanned)
@@ -957,7 +949,7 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
   (* The "extracted" targets we generate on the fly by calling
    * our extractors (extract mode rules) on the relevant basic targets.
    *)
-  let new_extracted_targets, extract_result_map, extract_targets_map =
+  let new_extracted_targets, adjusters =
     extracted_targets_of_config config valid_rules
   in
 
@@ -974,8 +966,8 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
   let file_results, scanned_targets =
     all_targets
     |> iter_targets_and_get_matches_and_exn_to_errors config
-         (mk_target_handler config valid_rules filter_irrelevant_rules
-            extract_targets_map extract_result_map match_hook)
+         (mk_target_handler config valid_rules filter_irrelevant_rules adjusters
+            match_hook)
   in
   let scanned_target_table =
     (* provide fast access to paths that were scanned by at least one rule;

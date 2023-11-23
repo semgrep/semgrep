@@ -54,51 +54,6 @@ val print_match :
 (* Utilities functions used in tests or semgrep-pro *)
 (*****************************************************************************)
 
-(* This function prints the number of additional targets, which is consumed by
-   pysemgrep to update the progress bar. See `core_runner.py`
-*)
-val add_additional_targets : Core_scan_config.t -> int -> unit
-
-(* This function prints a dot, which is consumed by pysemgrep to update
-   the progress bar. See `core_runner.py`
-*)
-val update_cli_progress : Core_scan_config.t -> unit
-
-(* used internally but also called by osemgrep *)
-val errors_of_invalid_rule_errors :
-  Rule.invalid_rule_error list -> Core_error.t list
-
-val replace_named_pipe_by_regular_file : Fpath.t -> Fpath.t
-(* Small wrapper around File.replace_named_pipe_by_regular_file_if_needed.
-   Any file coming from the command line should go through this so as to
-   allows easy manual testing.
-*)
-
-val extracted_targets_of_config :
-  Core_scan_config.t ->
-  Rule.t list ->
-  Input_to_core_t.target list
-  * ( string (* filename *),
-      Match_extract_mode.match_result_location_adjuster )
-    Hashtbl.t
-  * (string, Fpath.t) Hashtbl.t
-(**
-   Generate a list of new targets, which are extracted from extract rules.
-   The rule ids correspond to the rules to run against the generated
-   targets.
-
-   Returns `new_targets, match_location_adjusters_map, file_map`
-
-   The second two return values allow us to map from the new targets to the real
-   original targets. This is necessary since the new targets are tmp files
-   that contain snippets of the original target.
-
-   The first map allows us to map back the location of matches to a location in
-   the original target.
-   The second map allows us to map from a tmp file to the original target it was
-   generated from.
-*)
-
 val rules_from_rule_source :
   Core_scan_config.t -> Rule.rules * Rule.invalid_rule_error list
 (** Get the rules *)
@@ -112,12 +67,15 @@ val targets_of_config :
   The rule ids argument is useful only when you don't use -target.
  *)
 
-val filter_files_with_too_many_matches_and_transform_as_timeout :
-  int ->
-  (Pattern_match.t * Textedit.t option) list ->
-  (Pattern_match.t * Textedit.t option) list
-  * Core_error.t list
-  * Semgrep_output_v1_j.skipped_target list
+val extracted_targets_of_config :
+  Core_scan_config.t ->
+  Rule.t list ->
+  Input_to_core_t.target list * Extract.adjusters
+(**
+   Generate a list of new targets, which are extracted with extract rules
+   from original targets. This returns also "adjusters" which are functions
+   to map back matches on extracted targets to matches on the original target.
+*)
 
 (* This is also used by semgrep-proprietary. It filters the rules that
    apply to a given target file for a given analyzer.
@@ -138,6 +96,33 @@ val select_applicable_rules_for_target :
 *)
 val select_applicable_rules_for_analyzer :
   analyzer:Xlang.t -> Rule.t list -> Rule.t list
+
+(* This function prints the number of additional targets, which is consumed by
+   pysemgrep to update the progress bar. See `core_runner.py`
+*)
+val add_additional_targets : Core_scan_config.t -> int -> unit
+
+(* This function prints a dot, which is consumed by pysemgrep to update
+   the progress bar. See `core_runner.py`
+*)
+val update_cli_progress : Core_scan_config.t -> unit
+
+(* used internally but also called by osemgrep *)
+val errors_of_invalid_rule_errors :
+  Rule.invalid_rule_error list -> Core_error.t list
+
+val replace_named_pipe_by_regular_file : Fpath.t -> Fpath.t
+(* Small wrapper around File.replace_named_pipe_by_regular_file_if_needed.
+   Any file coming from the command line should go through this so as to
+   allows easy manual testing.
+*)
+
+val filter_files_with_too_many_matches_and_transform_as_timeout :
+  int ->
+  (Pattern_match.t * Textedit.t option) list ->
+  (Pattern_match.t * Textedit.t option) list
+  * Core_error.t list
+  * Semgrep_output_v1_j.skipped_target list
 
 val xtarget_of_file :
   parsing_cache_dir:Fpath.t option -> Xlang.t -> Fpath.t -> Xtarget.t

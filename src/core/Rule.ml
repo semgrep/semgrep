@@ -305,6 +305,7 @@ let get_sink_requires { sink_requires; _ } =
 (* Extract mode (semgrep as a preprocessor) *)
 (*****************************************************************************)
 
+(* See also Extract.ml for extract mode helpers *)
 type extract = {
   formula : formula;
   dst_lang : Xlang.t;

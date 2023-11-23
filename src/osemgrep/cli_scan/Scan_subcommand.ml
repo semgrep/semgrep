@@ -521,6 +521,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
       | { output_format; _ } -> (output_format, None)
     in
     let scan_func = mk_scan_func conf file_match_results_hook errors in
+    (* step 3': call the engine! *)
     let exn_and_matches =
       match conf.targeting_conf.baseline_commit with
       | None ->
@@ -553,7 +554,6 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
           scan_baseline_and_remove_duplicates conf profiler head_scan_result
             filtered_rules commit status scan_func
     in
-    (* step 3': call the engine! *)
     let (res : Core_runner.result) =
       Core_runner.create_core_result filtered_rules exn_and_matches
     in

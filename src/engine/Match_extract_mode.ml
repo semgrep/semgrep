@@ -35,32 +35,10 @@ let logger = Logging.get_logger [ __MODULE__ ]
 *)
 
 (*****************************************************************************)
-(* Types *)
-(*****************************************************************************)
-(* A function which maps a match result from the *extracted* target
- * (e.g., '/tmp/extract-foo.rb') to a match result to the
- * *original* target (e.g., 'src/foo.erb').
- *
- * We could use instead:
- *
- *        (a -> a) -> a Report.match_result -> a Report.match_result
- *
- * although this is a bit less ergonomic for the caller.
- *)
-type match_result_location_adjuster =
-  Core_profiling.partial_profiling Core_result.match_result ->
-  Core_profiling.partial_profiling Core_result.match_result
-
-type original_target_for_extract_target = {
-  original_target : Fpath.t;
-  location_adjuster : match_result_location_adjuster;
-}
-
-(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-(* from Run_semgrep *)
+(* was in Core_scan.ml before (was called Run_semgrep.ml back then) *)
 let mk_rule_table rules =
   rules |> Common.map (fun r -> (fst r.Rule.id, r)) |> Common.hash_of_list
 
@@ -390,11 +368,7 @@ let extract_and_concat erule_table xtarget matches =
          let (`Extract { Rule.dst_lang; _ }) = r.mode in
          let target = mk_extract_target dst_lang contents in
          ( target,
-           {
-             original_target = xtarget.file;
-             location_adjuster =
-               map_res map_loc (Fpath.v target.path) xtarget.file;
-           } ))
+           (xtarget.file, map_res map_loc (Fpath.v target.path) xtarget.file) ))
 
 let extract_as_separate erule_table xtarget matches =
   matches
@@ -453,11 +427,8 @@ let extract_as_separate erule_table xtarget matches =
              in
              Some
                ( target,
-                 {
-                   original_target = xtarget.file;
-                   location_adjuster =
-                     map_res map_loc (Fpath.v target.path) xtarget.file;
-                 } )
+                 ( xtarget.file,
+                   map_res map_loc (Fpath.v target.path) xtarget.file ) )
          | Some ({ mode = `Extract { Rule.extract; _ }; id = id, _; _ }, None)
            ->
              report_unbound_mvar id extract m;
