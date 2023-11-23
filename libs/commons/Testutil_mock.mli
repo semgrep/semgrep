@@ -12,4 +12,5 @@ val with_setenv : string -> string -> (unit -> 'a) -> 'a
  * then accessible to the [final] function after [f] has finished
  * and can be inspected to assert certain log events occured.
  *)
-val with_mocked_logs : f:(unit -> 'a) -> final:(string -> 'a -> unit) -> unit
+val with_mocked_logs :
+  f:(unit -> 'a) -> final:(string -> ('a, exn) result -> unit) -> unit

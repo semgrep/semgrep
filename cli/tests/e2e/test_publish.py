@@ -8,6 +8,7 @@ from semgrep.cli import cli
 
 
 @pytest.mark.kinda_slow
+# osemfail, but now translated to Test_publish_subcommand.ml
 @pytest.mark.osemfail
 def test_publish(tmp_path, mocker):
     runner = SemgrepRunner(

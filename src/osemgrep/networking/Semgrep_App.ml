@@ -26,6 +26,7 @@ type app_block_override = string (* reason *) option
 
 let deployment_route = "/api/agent/deployments/current"
 let start_scan_route = "/api/agent/deployments/scans"
+let registry_rule_route = "/api/registry/rules"
 
 (* TODO: diff with api/agent/scans/<scan_id>/config? *)
 let scan_config_route = "/api/agent/deployments/scans/config"
@@ -334,6 +335,19 @@ let upload_findings ~dry_run ~token ~scan_id ~results ~complete :
     | Error (code, msg) ->
         Error
           ("API server returned " ^ string_of_int code ^ ", this error: " ^ msg))
+
+let upload_rule_to_registry ~token json =
+  let semgrep_url = !Semgrep_envvars.v.semgrep_url in
+  let uri = Uri.(with_path semgrep_url registry_rule_route) in
+  let body = JSON.string_of_json (JSON.from_yojson json) in
+  let headers =
+    [
+      ("Content-Type", "application/json");
+      ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
+      ("Authorization", "Bearer " ^ token);
+    ]
+  in
+  Http_helpers.post ~body ~headers uri
 
 (*****************************************************************************)
 (* Error reporting to the backend *)
