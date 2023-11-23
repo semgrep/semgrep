@@ -368,7 +368,8 @@ let extract_and_concat erule_table xtarget matches =
          let (`Extract { Rule.dst_lang; _ }) = r.mode in
          let target = mk_extract_target dst_lang contents in
          ( target,
-           (xtarget.file, map_res map_loc (Fpath.v target.path) xtarget.file) ))
+           ( Extract.Original xtarget.file,
+             map_res map_loc (Fpath.v target.path) xtarget.file ) ))
 
 let extract_as_separate erule_table xtarget matches =
   matches
@@ -427,7 +428,7 @@ let extract_as_separate erule_table xtarget matches =
              in
              Some
                ( target,
-                 ( xtarget.file,
+                 ( Extract.Original xtarget.file,
                    map_res map_loc (Fpath.v target.path) xtarget.file ) )
          | Some ({ mode = `Extract { Rule.extract; _ }; id = id, _; _ }, None)
            ->

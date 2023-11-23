@@ -128,7 +128,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
    semgrep and semgrep-proprietary use the same definition *)
 type core_scan_func = Core_scan_config.t -> Core_result.result_or_exn
 
-(* A target is [Not_scanned] when we didn't find any applicable rules.
+(* A target is [Not_scanned] when semgrep didn't find any applicable rules.
  * The information is useful to return to pysemgrep/osemgrep to
  * display statistics.
  *
@@ -137,9 +137,7 @@ type core_scan_func = Core_scan_config.t -> Core_result.result_or_exn
  * usually a temporary "extracted" file, is not the file we want to report
  * as scanned; we want to report as scanned the original target file.
  *)
-type was_scanned =
-  | Scanned of { original_target : Extract.original_target }
-  | Not_scanned
+type was_scanned = Scanned of Extract.original_target | Not_scanned
 
 (* Type of the iter_targets_and_get_matches_and_exn_to_errors callback.
 
@@ -576,7 +574,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                      in
                      ( Core_result.make_match_result [] errors
                          (Core_profiling.empty_partial_profiling file),
-                       Scanned { original_target = file } )
+                       Scanned (Original file) )
                  (* those were converted in Main_timeout in timeout_function()*)
                  (* FIXME:
                     Actually, I managed to get this assert to trigger by running
@@ -609,11 +607,11 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                      in
                      ( Core_result.make_match_result [] errors
                          (Core_profiling.empty_partial_profiling file),
-                       Scanned { original_target = file } ))
+                       Scanned (Original file) ))
            in
            let scanned_path =
              match was_scanned with
-             | Scanned { original_target } -> Some original_target
+             | Scanned (Original target) -> Some target
              | Not_scanned -> None
            in
            (Core_result.add_run_time run_time res, scanned_path))
@@ -855,10 +853,10 @@ let mk_target_handler (config : Core_scan_config.t) valid_rules
         (* Map back extracted targets when recording files as scanned *)
         let original_target =
           match Hashtbl.find_opt adjusters.original_target (Extracted file) with
-          | None -> file
+          | None -> Extract.Original file
           | Some orig -> orig
         in
-        Scanned { original_target }
+        Scanned original_target
   in
   (* TODO: can we skip all of this if there are no applicable
      rules? In particular, can we skip update_cli_progress? *)

@@ -23,7 +23,7 @@
 (*****************************************************************************)
 
 (* ex: foo.html *)
-type original_target = (* Original of *) Fpath.t
+type original_target = Original of Fpath.t
 
 (* ex: /tmp/extracted-foo-42.js *)
 type extracted_target = Extracted of Fpath.t
