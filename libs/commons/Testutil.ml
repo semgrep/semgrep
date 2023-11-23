@@ -50,6 +50,7 @@ let update_id x =
   let long_id = Printf.sprintf "%08x" hash in
   assert (String.length long_id = 8);
   (* 28 bits or 7 hexadecimal characters *)
+  (* nosemgrep: ocamllint-str-first-chars *)
   let id = String.sub long_id 0 7 in
   { x with id }
 
