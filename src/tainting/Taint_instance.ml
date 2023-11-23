@@ -14,6 +14,17 @@ type a_propagator = {
   var : var; (* REMOVE USE prop.id *)
 }
 
+type options = {
+  constant_propagation : bool;
+  only_propagate_through_assignments : bool;
+  assume_safe_comparisons : bool;
+  assume_safe_functions : bool;
+  assume_safe_indexes : bool;
+  assume_safe_numbers : bool;
+  assume_safe_booleans : bool;
+  unify_mvars : bool;  (** Unify metavariables in sources and sinks? *)
+}
+
 type t = {
   lang : Language.t;
   filepath : string;  (** File under analysis, for Deep Semgrep. *)
@@ -64,7 +75,7 @@ type t = {
    * "sanitized" Semgrep will just not check it. For example, something like
    * `sanitize(sink(tainted))` will not yield any finding.
    * *)
-  unify_mvars : bool;  (** Unify metavariables in sources and sinks? *)
+  options : options;
   handle_findings :
     var option (** function name ('None' if anonymous) *) ->
     Taint.finding list ->

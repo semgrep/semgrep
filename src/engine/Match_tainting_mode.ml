@@ -562,7 +562,20 @@ let taint_instance_for_rule_and_target ~per_file_formula_cache xconf lang file
           ]
     else []
   in
-  let config = xconf.config in
+  let options : Taint_instance.options =
+    let rule_options = xconf.config in
+    {
+      constant_propagation = rule_options.constant_propagation;
+      only_propagate_through_assignments =
+        rule_options.taint_only_propagate_through_assignments;
+      assume_safe_comparisons = rule_options.taint_assume_safe_comparisons;
+      assume_safe_functions = rule_options.taint_assume_safe_functions;
+      assume_safe_indexes = rule_options.taint_assume_safe_indexes;
+      assume_safe_numbers = rule_options.taint_assume_safe_numbers;
+      assume_safe_booleans = rule_options.taint_assume_safe_booleans;
+      unify_mvars = rule_options.taint_unify_mvars;
+    }
+  in
   ( {
       Taint_instance.lang;
       filepath = !!file;
@@ -576,7 +589,7 @@ let taint_instance_for_rule_and_target ~per_file_formula_cache xconf lang file
       is_sanitizer =
         (fun x -> any_is_in_sanitizers_matches rule x sanitizers_ranges);
       is_sink = (fun x -> any_is_in_sinks_matches rule x sinks_ranges);
-      unify_mvars = config.taint_unify_mvars;
+      options;
       handle_findings;
     },
     {
@@ -697,7 +710,7 @@ let pm_of_finding finding =
         let taint_trace = Some (lazy traces) in
         Some { sink_pm with env = merged_env; taint_trace }
 
-let check_var_def options taint_instance env id ii expr =
+let check_var_def taint_instance env id ii expr =
   let name = AST_to_IL.var_of_id_info id ii in
   let assign =
     G.Assign (G.N (G.Id (id, ii)) |> G.e, Tok.fake_tok (snd id) "=", expr)
@@ -707,14 +720,13 @@ let check_var_def options taint_instance env id ii expr =
   let flow = CFG_build.cfg_of_stmts xs in
   let end_mapping =
     let java_props_cache = D.mk_empty_java_props_cache () in
-    Dataflow_tainting.fixpoint ~in_env:env options taint_instance
-      java_props_cache flow
+    Dataflow_tainting.fixpoint ~in_env:env taint_instance java_props_cache flow
   in
   let out_env = end_mapping.(flow.exit).Dataflow_core.out_env in
   let lval : IL.lval = { base = Var name; rev_offset = [] } in
   Lval_env.dumb_find out_env lval
 
-let add_to_env options taint_instance env id ii opt_expr =
+let add_to_env taint_instance env id ii opt_expr =
   let var = AST_to_IL.var_of_id_info id ii in
   let var_type =
     Typing.resolved_type_of_id_info taint_instance.Taint_instance.lang
@@ -732,7 +744,7 @@ let add_to_env options taint_instance env id ii opt_expr =
   let expr_taints =
     match opt_expr with
     | Some e -> (
-        match check_var_def options taint_instance env id ii e with
+        match check_var_def taint_instance env id ii e with
         | `None
         | `Clean ->
             T.Taint_set.empty
@@ -741,12 +753,13 @@ let add_to_env options taint_instance env id ii opt_expr =
   in
   let taints = id_taints |> T.Taint_set.union expr_taints in
   let taints =
-    Dataflow_tainting.drop_taints_if_bool_or_number options taints var_type
+    Dataflow_tainting.drop_taints_if_bool_or_number taint_instance.options
+      taints var_type
   in
   Lval_env.add env (IL_helpers.lval_of_var var) taints
 
-let mk_fun_input_env options taint_instance ?(glob_env = Lval_env.empty) fdef =
-  let add_to_env = add_to_env options taint_instance in
+let mk_fun_input_env taint_instance ?(glob_env = Lval_env.empty) fdef =
+  let add_to_env = add_to_env taint_instance in
   let in_env =
     (* For each argument, check if it's a source and, if so, add it to the input
      * environment. *)
@@ -811,8 +824,8 @@ let is_global (id_info : G.id_info) =
   let* kind, _sid = !(id_info.id_resolved) in
   Some (H.name_is_global kind)
 
-let mk_file_env options taint_instance ast =
-  let add_to_env = add_to_env options taint_instance in
+let mk_file_env taint_instance ast =
+  let add_to_env = add_to_env taint_instance in
   let env = ref Lval_env.empty in
   let visitor =
     object (_self : 'self)
@@ -846,8 +859,8 @@ let mk_file_env options taint_instance ast =
   visitor#visit_program env ast;
   !env
 
-let check_fundef lang options taint_instance opt_ent ctx ?glob_env
-    java_props_cache fdef =
+let check_fundef lang taint_instance opt_ent ctx ?glob_env java_props_cache fdef
+    =
   let name =
     let* ent = opt_ent in
     let* name = AST_to_IL.name_of_entity ent in
@@ -855,10 +868,10 @@ let check_fundef lang options taint_instance opt_ent ctx ?glob_env
   in
   let _, xs = AST_to_IL.function_definition lang ~ctx fdef in
   let flow = CFG_build.cfg_of_stmts xs in
-  let in_env = mk_fun_input_env options taint_instance ?glob_env fdef in
+  let in_env = mk_fun_input_env taint_instance ?glob_env fdef in
   let mapping =
-    Dataflow_tainting.fixpoint ~in_env ?name options taint_instance
-      java_props_cache flow
+    Dataflow_tainting.fixpoint ~in_env ?name taint_instance java_props_cache
+      flow
   in
   (flow, mapping)
 
@@ -908,13 +921,13 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
 
   let java_props_cache = Dataflow_tainting.mk_empty_java_props_cache () in
 
-  let glob_env = mk_file_env xconf.config taint_instance ast in
+  let glob_env = mk_file_env taint_instance ast in
 
   (* Check each function definition. *)
   Visit_function_defs.visit
     (fun opt_ent fdef ->
-      check_fundef lang xconf.config taint_instance opt_ent !ctx ~glob_env
-        java_props_cache fdef
+      check_fundef lang taint_instance opt_ent !ctx ~glob_env java_props_cache
+        fdef
       |> ignore)
     ast;
 
@@ -928,9 +941,7 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
       in
       let stmts = AST_to_IL.stmt lang fields in
       let flow = CFG_build.cfg_of_stmts stmts in
-      Dataflow_tainting.fixpoint xconf.config taint_instance java_props_cache
-        flow
-      |> ignore)
+      Dataflow_tainting.fixpoint taint_instance java_props_cache flow |> ignore)
     ast;
 
   (* Check the top-level statements.
@@ -941,8 +952,7 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
     Common.with_time (fun () ->
         let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
         let flow = CFG_build.cfg_of_stmts xs in
-        Dataflow_tainting.fixpoint xconf.config taint_instance java_props_cache
-          flow
+        Dataflow_tainting.fixpoint taint_instance java_props_cache flow
         |> ignore)
   in
   let matches =

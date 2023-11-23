@@ -22,12 +22,11 @@ let pr2_ranges file rwms =
          in
          Common.pr2 (code_text ^ " @l." ^ line_str))
 
-let test_tainting lang file options config def =
+let test_tainting lang file config def =
   Common.pr2 "\nDataflow";
   Common.pr2 "--------";
   let flow, mapping =
-    Match_tainting_mode.check_fundef lang options config None
-      AST_to_IL.empty_ctx
+    Match_tainting_mode.check_fundef lang config None AST_to_IL.empty_ctx
       (Dataflow_tainting.mk_empty_java_props_cache ())
       def
   in
@@ -103,7 +102,7 @@ let test_dfg_tainting rules_file file =
       inherit [_] AST_generic.iter_no_id_info as super
 
       method! visit_function_definition env def =
-        test_tainting lang !!file xconf.config instance def;
+        test_tainting lang !!file instance def;
         (* go into nested functions *)
         super#visit_function_definition env def
     end

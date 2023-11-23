@@ -60,7 +60,6 @@ val taint_instance_for_rule_and_target :
   Taint_instance.t * debug_taint * Matching_explanation.t list
 
 val mk_fun_input_env :
-  Rule_options_t.t ->
   Taint_instance.t ->
   ?glob_env:Taint_lval_env.t ->
   AST_generic.function_definition ->
@@ -72,7 +71,6 @@ val mk_fun_input_env :
 
 val check_fundef :
   Lang.t ->
-  Rule_options.t ->
   Taint_instance.t ->
   AST_generic.entity option (** entity being analyzed *) ->
   AST_to_IL.ctx ->

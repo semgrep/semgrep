@@ -59,7 +59,7 @@ let (range_to_pattern_match_adjusted : Rule.t -> t -> Pattern_match.t) =
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
-let included_in config rv1 rv2 =
+let included_in ~constant_propagation rv1 rv2 =
   (Range.( $<=$ ) rv1.r rv2.r || rv2.kind = Anywhere)
   && rv1.mvars
      |> List.for_all (fun (mvar, mval1) ->
@@ -77,7 +77,8 @@ let included_in config rv1 rv2 =
             *)
             | _ when Metavariable.is_metavar_for_capture_group mvar -> true
             | Some mval2 ->
-                Matching_generic.equal_ast_bound_code config mval1 mval2)
+                Matching_generic.equal_ast_bound_code ~constant_propagation
+                  mval1 mval2)
 
 (* when we know x <= y, are the ranges also in the good Inside direction *)
 let inside_compatible x y =
@@ -106,9 +107,9 @@ let inside_compatible x y =
  * alt: we could do the rewriting ourselves, detecting that the
  * metavariable-regex has the wrong scope.
  *)
-let intersect_ranges config ~debug_matches xs ys =
+let intersect_ranges ~constant_propagation ~debug_matches xs ys =
   let left_merge u v =
-    if included_in config u v && inside_compatible u v then
+    if included_in ~constant_propagation u v && inside_compatible u v then
       (* [u] extended with [v.mvars], assumes [included_in config u v] *)
       let v_only_mvars =
         v.mvars
@@ -129,7 +130,7 @@ let intersect_ranges config ~debug_matches xs ys =
   @ merge (Fun.flip left_merge) xs ys
 [@@profiling]
 
-let difference_ranges config pos neg =
+let difference_ranges ~constant_propagation pos neg =
   let surviving_pos =
     pos
     |> List.filter (fun x ->
@@ -142,11 +143,15 @@ let difference_ranges config pos neg =
                      *)
                     match y.kind with
                     (* pattern-not-inside: x cannot occur inside y *)
-                    | Inside -> included_in config x y
+                    | Inside -> included_in ~constant_propagation x y
                     (* pattern-not-regex: x and y exclude each other *)
-                    | Regexp -> included_in config x y || included_in config y x
+                    | Regexp ->
+                        included_in ~constant_propagation x y
+                        || included_in ~constant_propagation y x
                     (* pattern-not: we require the ranges to be equal *)
-                    | Plain -> included_in config x y && included_in config y x
+                    | Plain ->
+                        included_in ~constant_propagation x y
+                        && included_in ~constant_propagation y x
                     (* not: { anywhere: y } -- y cannot occur *)
                     | Anywhere -> true)))
   in

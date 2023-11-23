@@ -100,7 +100,10 @@ val lazy_rest_of_list : 'a Lazy.t -> 'a
 val regexp_matcher_of_regexp_string : string -> string -> bool
 
 val equal_ast_bound_code :
-  Rule_options.t -> Metavariable.mvalue -> Metavariable.mvalue -> bool
+  constant_propagation:bool ->
+  Metavariable.mvalue ->
+  Metavariable.mvalue ->
+  bool
 
 (* generic matchers *)
 val m_option : 'a matcher -> 'a option matcher

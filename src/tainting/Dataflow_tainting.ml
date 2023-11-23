@@ -75,7 +75,6 @@ let mk_empty_java_props_cache () = Hashtbl.create 30
 
 (* THINK: Separate read-only enviroment into a new a "cfg" type? *)
 type env = {
-  options : Rule_options.t;
   instance : Taint_instance.t;
   fun_name : var option;
   lval_env : Lval_env.t;
@@ -94,13 +93,15 @@ let hook_find_attribute_in_class = ref None
 (* Options *)
 (*****************************************************************************)
 
+let options env = env.instance.options
+
 let propagate_through_functions env =
-  (not env.options.taint_assume_safe_functions)
-  && not env.options.taint_only_propagate_through_assignments
+  (not (options env).assume_safe_functions)
+  && not (options env).only_propagate_through_assignments
 
 let propagate_through_indexes env =
-  (not env.options.taint_assume_safe_indexes)
-  && not env.options.taint_only_propagate_through_assignments
+  (not (options env).assume_safe_indexes)
+  && not (options env).only_propagate_through_assignments
 
 (*****************************************************************************)
 (* Helpers *)
@@ -141,7 +142,7 @@ let union_map_taints_and_vars env f xs =
          (Taints.empty, env.lval_env)
   in
   let taints =
-    if env.options.taint_only_propagate_through_assignments then Taints.empty
+    if (options env).only_propagate_through_assignments then Taints.empty
     else taints
   in
   (taints, lval_env)
@@ -244,8 +245,11 @@ let unify_mvars_sets env mvars1 mvars2 =
         match List.assoc_opt mvar mvars2 with
         | None -> Some ((mvar, mval) :: xs)
         | Some mval' ->
-            if Matching_generic.equal_ast_bound_code env.options mval mval' then
-              Some ((mvar, mval) :: xs)
+            if
+              Matching_generic.equal_ast_bound_code
+                ~constant_propagation:(options env).constant_propagation mval
+                mval'
+            then Some ((mvar, mval) :: xs)
             else None)
       (Some []) mvars1
   in
@@ -289,7 +293,9 @@ let merge_source_mvars env bindings =
          | Some (Some mval') ->
              if
                not
-                 (Matching_generic.equal_ast_bound_code env.options mval mval')
+                 (Matching_generic.equal_ast_bound_code
+                    ~constant_propagation:(options env).constant_propagation
+                    mval mval')
              then Hashtbl.remove bindings_tbl mvar);
   (* After this, the only surviving bindings should be those where
      there was no conflict between bindings in different sources.
@@ -306,7 +312,7 @@ let merge_source_mvars env bindings =
 
 (* Merge source's and sink's bound metavariables. *)
 let merge_source_sink_mvars env source_mvars sink_mvars =
-  if env.instance.unify_mvars then
+  if (options env).unify_mvars then
     (* This used to be the default, but it turned out to be confusing even for
      * r2c's security team! Typically you think of `pattern-sources` and
      * `pattern-sinks` as independent. We keep this option mainly for
@@ -355,11 +361,10 @@ let type_of_expr env e =
  *  fill it in, so that every expression has its known type available without
  *  extra cost.
  *)
-let drop_taints_if_bool_or_number (options : Rule_options.t) taints ty =
+let drop_taints_if_bool_or_number (options : Taint_instance.options) taints ty =
   match ty with
-  | Type.(Builtin Bool) when options.taint_assume_safe_booleans -> Taints.empty
-  | Type.(Builtin (Int | Float | Number)) when options.taint_assume_safe_numbers
-    ->
+  | Type.(Builtin Bool) when options.assume_safe_booleans -> Taints.empty
+  | Type.(Builtin (Int | Float | Number)) when options.assume_safe_numbers ->
       Taints.empty
   | __else__ -> taints
 
@@ -371,15 +376,15 @@ let drop_taints_if_bool_or_number (options : Rule_options.t) taints ty =
  * should make type_of_expr less costly.
  *)
 let check_type_and_drop_taints_if_bool_or_number env taints type_of_x x =
+  let options = options env in
   if
-    (env.options.taint_assume_safe_booleans
-   || env.options.taint_assume_safe_numbers)
+    (options.assume_safe_booleans || options.assume_safe_numbers)
     && not (Taints.is_empty taints)
   then
     match type_of_x env x with
     | Type.Function (_, return_ty) ->
-        drop_taints_if_bool_or_number env.options taints return_ty
-    | ty -> drop_taints_if_bool_or_number env.options taints ty
+        drop_taints_if_bool_or_number options taints return_ty
+    | ty -> drop_taints_if_bool_or_number options taints ty
   else taints
 
 (*****************************************************************************)
@@ -465,7 +470,8 @@ let findings_of_tainted_sink env taints_with_traces (sink : T.sink) :
          behavior is that one of the `$X` bindings is chosen arbitrarily. We will
          try to keep this behavior here.
       *)
-      if env.instance.unify_mvars || Option.is_none sink.rule_sink.sink_requires
+      if
+        (options env).unify_mvars || Option.is_none sink.rule_sink.sink_requires
       then
         taints_and_bindings
         |> Common.map_filter (fun (t, bindings) ->
@@ -973,7 +979,7 @@ and check_tainted_lval_aux env (lval : IL.lval) :
             check_tainted_lval_aux env { lval with rev_offset = rev_offset' }
       in
       let sub_new_taints, sub_in_env =
-        if env.options.taint_only_propagate_through_assignments then
+        if (options env).only_propagate_through_assignments then
           match sub_in_env with
           | `Sanitized -> (Taints.empty, `Sanitized)
           | `Clean
@@ -1019,7 +1025,7 @@ and check_tainted_lval_aux env (lval : IL.lval) :
       in
       (* Check taint propagators. *)
       let taints_incoming (* TODO: find a better name *) =
-        if env.options.taint_only_propagate_through_assignments then
+        if (options env).only_propagate_through_assignments then
           taints_from_sources
         else
           sub_new_taints
@@ -1086,8 +1092,7 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
     | Operator ((op, _), es) ->
         let _, args_taints, lval_env = check_function_call_arguments env es in
         let args_taints =
-          if env.options.taint_only_propagate_through_assignments then
-            Taints.empty
+          if (options env).only_propagate_through_assignments then Taints.empty
           else args_taints
         in
         let op_taints =
@@ -1107,7 +1112,7 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
           | G.NotIn
           | G.Is
           | G.NotIs ->
-              if env.options.taint_assume_safe_comparisons then Taints.empty
+              if (options env).assume_safe_comparisons then Taints.empty
               else args_taints
           | G.And
           | G.Or
@@ -1525,8 +1530,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
         in
         (* We add the taint of the function itselt (i.e., 'e_taints') too. *)
         let all_call_taints =
-          if env.options.taint_only_propagate_through_assignments then
-            call_taints
+          if (options env).only_propagate_through_assignments then call_taints
           else Taints.union e_taints call_taints
         in
         let all_call_taints =
@@ -1552,8 +1556,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
     | CallSpecial (_, _, args) ->
         let _, taints, lval_env = check_function_call_arguments env args in
         let taints =
-          if env.options.taint_only_propagate_through_assignments then
-            Taints.empty
+          if (options env).only_propagate_through_assignments then Taints.empty
           else taints
         in
         (taints, lval_env)
@@ -1650,7 +1653,6 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
       | penv1 :: penvs -> List.fold_left Lval_env.union penv1 penvs)
 
 let transfer :
-    Rule_options.t ->
     Taint_instance.t ->
     Lval_env.t ->
     string option ->
@@ -1658,7 +1660,7 @@ let transfer :
     top_matches:TM.Top_matches.t ->
     java_props:java_props_cache ->
     Lval_env.t D.transfn =
- fun options instance enter_env opt_name ~flow ~top_matches ~java_props
+ fun instance enter_env opt_name ~flow ~top_matches ~java_props
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
   (* DataflowX.display_mapping flow mapping show_tainted; *)
@@ -1666,14 +1668,7 @@ let transfer :
   let node = flow.graph#nodes#assoc ni in
   let out' : Lval_env.t =
     let env =
-      {
-        options;
-        instance;
-        fun_name = opt_name;
-        lval_env = in';
-        top_matches;
-        java_props;
-      }
+      { instance; fun_name = opt_name; lval_env = in'; top_matches; java_props }
     in
     match node.F.n with
     | NInstr x ->
@@ -1755,12 +1750,11 @@ let transfer :
 let (fixpoint :
       ?in_env:Lval_env.t ->
       ?name:Var_env.var ->
-      Rule_options.t ->
       Inst.t ->
       java_props_cache ->
       F.cfg ->
       mapping) =
- fun ?in_env ?name:opt_name options instance java_props flow ->
+ fun ?in_env ?name:opt_name instance java_props flow ->
   let init_mapping = DataflowX.new_node_array flow Lval_env.empty_inout in
   let enter_env =
     match in_env with
@@ -1799,8 +1793,7 @@ let (fixpoint :
     DataflowX.fixpoint ~timeout:Limits_semgrep.taint_FIXPOINT_TIMEOUT
       ~eq_env:Lval_env.equal ~init:init_mapping
       ~trans:
-        (transfer options instance enter_env opt_name ~flow ~top_matches
-           ~java_props)
+        (transfer instance enter_env opt_name ~flow ~top_matches ~java_props)
         (* tainting is a forward analysis! *)
       ~forward:true ~flow
   in

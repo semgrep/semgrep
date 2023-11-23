@@ -31,7 +31,6 @@ val hook_find_attribute_in_class :
 val fixpoint :
   ?in_env:Taint_lval_env.t ->
   ?name:var ->
-  Rule_options.t ->
   Taint_instance.t ->
   java_props_cache ->
   IL.cfg ->
@@ -47,4 +46,4 @@ val fixpoint :
 
 (* TODO: Move to module 'Taint' maybe. *)
 val drop_taints_if_bool_or_number :
-  Rule_options_t.t -> Taint.Taint_set.t -> 'a Type.t -> Taint.Taint_set.t
+  Taint_instance.options -> Taint.Taint_set.t -> 'a Type.t -> Taint.Taint_set.t

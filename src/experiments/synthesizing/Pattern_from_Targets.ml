@@ -112,8 +112,10 @@ let lookup env e =
   let rec look = function
     | [] -> None
     | (e1, e2) :: xs ->
-        if Matching_generic.equal_ast_bound_code env.config (E e) (E e1) then
-          Some e2
+        if
+          Matching_generic.equal_ast_bound_code
+            ~constant_propagation:env.config.constant_propagation (E e) (E e1)
+        then Some e2
         else look xs
   in
   look mapping

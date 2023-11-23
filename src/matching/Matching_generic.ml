@@ -228,7 +228,7 @@ let extend_stmts_matched rightmost_stmt (env : tin) =
 (* pre: both 'a' and 'b' contains only regular code; there are no
  * metavariables inside them.
  *)
-let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
+let rec equal_ast_bound_code ~constant_propagation (a : MV.mvalue)
     (b : MV.mvalue) : bool =
   let res =
     match (a, b) with
@@ -291,7 +291,7 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
         MV.Id (_, Some { B.id_svalue = { contents = Some (B.Lit b_lit) }; _ }) )
     | ( MV.Id (_, Some { G.id_svalue = { contents = Some (G.Lit a_lit) }; _ }),
         MV.E { e = B.L b_lit; _ } )
-      when config.constant_propagation ->
+      when constant_propagation ->
         G.equal_literal a_lit b_lit
     (* general case, equality modulo-position-and-svalue.
      * TODO: in theory we should use user-defined equivalence to allow
@@ -352,10 +352,13 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
          * (this is useful in the Javascript transpilation context of
          * complex pattern parameter).
          *)
-        equal_ast_bound_code config a (MV.Id (b_id, Some b_id_info))
+        equal_ast_bound_code ~constant_propagation a
+          (MV.Id (b_id, Some b_id_info))
     (* TODO: we should get rid of that too, we should properly bind to MV.N *)
     | MV.E { e = G.N (G.Id (a_id, a_id_info)); _ }, MV.Id _ ->
-        equal_ast_bound_code config (MV.Id (a_id, Some a_id_info)) b
+        equal_ast_bound_code ~constant_propagation
+          (MV.Id (a_id, Some a_id_info))
+          b
     | _, _ -> false
   in
   if not res then
@@ -372,8 +375,10 @@ let check_and_add_metavar_binding ((mvar : MV.mvar), valu) (tin : tin) =
        * Moreover here we know both valu and valu' are regular code,
        * not patterns, so we can just use the generic '=' of OCaml.
        *)
-      if equal_ast_bound_code tin.config valu valu' then Some tin
-        (* valu remains the metavar witness *)
+      if
+        equal_ast_bound_code
+          ~constant_propagation:tin.config.constant_propagation valu valu'
+      then Some tin (* valu remains the metavar witness *)
       else None
   | None ->
       (* first time the metavar is bound, just add it to the environment *)
