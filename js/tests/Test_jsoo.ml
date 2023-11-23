@@ -56,7 +56,7 @@ let test_filter ~name ~index =
   else `Run
 
 (* Stolen from Logs' logs_browser.ml *)
-let _ =
+let () =
   Logs.set_level (Some Logs.Debug);
   Logs.set_reporter { Logs.report = Semgrep_js_shared.console_report };
   Js.export_all
@@ -84,26 +84,28 @@ let _ =
          let lwt_tests = [ Test_LS_e2e.lwt_tests ] |> List.flatten in
          let tests =
            Common.map
-             (fun (name, f) ->
+             (fun (test : Alcotest_ext.test) ->
                let f () =
                  Semgrep_js_shared.wrap_with_js_error
                    ~hook:
-                     (Some (fun () -> Firebug.console##log (Js.string name)))
-                   f
+                     (Some
+                        (fun () -> Firebug.console##log (Js.string test.name)))
+                   test.func
                in
-               (name, f))
+               Alcotest_ext.create test.name f)
              tests
          in
          let lwt_tests =
            Common.map
-             (fun (name, f) ->
+             (fun (test : Alcotest_ext.lwt_test) ->
                let f () =
                  Semgrep_js_shared.wrap_with_js_error
                    ~hook:
-                     (Some (fun () -> Firebug.console##log (Js.string name)))
-                   f
+                     (Some
+                        (fun () -> Firebug.console##log (Js.string test.name)))
+                   test.func
                in
-               (name, f))
+               Alcotest_ext.create test.name f)
              lwt_tests
          in
          let run () =

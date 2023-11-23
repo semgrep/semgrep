@@ -5,6 +5,8 @@
    https://mirage.github.io/alcotest/alcotest/Alcotest/index.html
 *)
 
+type output = Stdout | Stderr | Merged_stdout_stderr | Separate_stdout_stderr
+
 (*
    A test is a name and a function that raises exceptions to signal
    test failure.
@@ -29,7 +31,17 @@
    test and put it in its own file so we can consult it later. Don't
    hesitate to log a lot during the execution of the test.
 *)
-type 'a t
+type 'a t = private {
+  category : string list;
+  name : string;
+  func : unit -> 'a;
+  (* Options *)
+  speed_level : Alcotest.speed_level;
+  check_output : output option;
+  (* Automatically determined *)
+  id : string;
+}
+
 type test = unit t
 
 (* Legacy type that doesn't support options *)
@@ -41,12 +53,11 @@ type simple_test = string * (unit -> unit)
    When running such tests in JS, we need our tests to also return promises.
 *)
 type lwt_test = unit Lwt.t t
-type output = Stdout | Stderr | Merged_stdout_stderr | Separate_stdout_stderr
 
 (*
    Create a test to appear in a test suite.
 *)
-val create_test :
+val create :
   ?check_output:output ->
   ?speed_level:Alcotest.speed_level ->
   string ->

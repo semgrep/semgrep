@@ -54,10 +54,10 @@ let update_id x =
   let id = String.sub long_id 0 7 in
   { x with id }
 
-let create_test ?check_output ?(speed_level = `Quick) name func =
+let create ?check_output ?(speed_level = `Quick) name func =
   { category = []; name; func; speed_level; check_output; id = "" } |> update_id
 
-let simple_test (name, func) = create_test name func
+let simple_test (name, func) = create name func
 let simple_tests simple_tests = list_map simple_test simple_tests
 
 let pack_tests_pro suite_name (tests : _ list) : _ list =
@@ -120,10 +120,10 @@ let register x = registered_tests := x :: !registered_tests
 let register_lwt x = registered_lwt_tests := x :: !registered_lwt_tests
 
 let test ?check_output ?speed_level name func =
-  create_test ?check_output ?speed_level name func |> register
+  create ?check_output ?speed_level name func |> register
 
 let test_lwt ?check_output ?speed_level name func =
-  create_test ?check_output ?speed_level name func |> register_lwt
+  create ?check_output ?speed_level name func |> register_lwt
 
 let get_registered_tests () = List.rev !registered_tests
 let get_registered_lwt_tests () = List.rev !registered_lwt_tests
