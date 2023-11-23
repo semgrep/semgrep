@@ -148,8 +148,7 @@ type was_scanned = Scanned of Extract.original_target | Not_scanned
 
    Remember that a target handler runs in another process (via Parmap).
 *)
-type target_handler =
-  In.target -> Core_profiling.partial_profiling RP.match_result * was_scanned
+type target_handler = In.target -> RP.matches_single_file * was_scanned
 
 (*****************************************************************************)
 (* Helpers *)
@@ -222,8 +221,7 @@ let filter_existing_targets (targets : In.target list) :
              })
 
 let set_matches_to_proprietary_origin_if_needed (xtarget : Xtarget.t)
-    (matches : Core_profiling.partial_profiling RP.match_result) :
-    Core_profiling.partial_profiling RP.match_result =
+    (matches : RP.matches_single_file) : RP.matches_single_file =
   (* If our target is a proprietary language, or we've been using the
    * proprietary engine, then label all the resulting matches with the Pro
    * engine kind. This can't really be done any later, because we need the
@@ -245,9 +243,8 @@ let set_matches_to_proprietary_origin_if_needed (xtarget : Xtarget.t)
 
 (* adjust the match location for extracted targets *)
 let adjust_location_extracted_targets_if_needed (adjusters : Extract.adjusters)
-    (file : Fpath.t)
-    (matches : Core_profiling.partial_profiling RP.match_result) :
-    Core_profiling.partial_profiling RP.match_result =
+    (file : Fpath.t) (matches : RP.matches_single_file) : RP.matches_single_file
+    =
   match Hashtbl.find_opt adjusters.loc_adjuster (Extracted file) with
   | Some match_result_loc_adjuster -> match_result_loc_adjuster matches
   | None -> matches

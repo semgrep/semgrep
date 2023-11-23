@@ -240,10 +240,7 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
               failwith (spf "exn on %s (exn = %s)" !!file (Common.exn_to_s exn))
         in
         res :: eres
-        |> List.iter
-             (fun
-               (res : Core_profiling.partial_profiling Core_result.match_result)
-             ->
+        |> List.iter (fun (res : Core_result.matches_single_file) ->
                match res.extra with
                | Debug _
                | No_info ->
@@ -271,10 +268,8 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
                                   target: %s)"
                                  rule_time.parse_time !!file !!target)));
         res :: eres
-        |> List.iter
-             (fun
-               (res : Core_profiling.partial_profiling Core_result.match_result)
-             -> res.matches |> List.iter Core_json_output.match_to_push_error);
+        |> List.iter (fun (res : Core_result.matches_single_file) ->
+               res.matches |> List.iter Core_json_output.match_to_push_error);
         (if not (E.ErrorSet.is_empty res.errors) then
            let errors =
              E.ErrorSet.elements res.errors

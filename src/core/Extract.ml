@@ -40,10 +40,8 @@ let debug_extract_mode = ref false
  *
  * although this is a bit less ergonomic for the caller.
  *)
-
 type match_result_location_adjuster =
-  Core_profiling.partial_profiling Core_result.match_result ->
-  Core_profiling.partial_profiling Core_result.match_result
+  Core_result.matches_single_file -> Core_result.matches_single_file
 
 type adjusters = {
   loc_adjuster : (extracted_target, match_result_location_adjuster) Hashtbl.t;

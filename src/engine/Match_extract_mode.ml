@@ -182,7 +182,7 @@ let map_bindings map_loc bindings =
   Common.map map_binding bindings
 
 let map_res map_loc (tmpfile : Fpath.t) (file : Fpath.t)
-    (mr : Core_profiling.partial_profiling Core_result.match_result) =
+    (mr : Core_result.matches_single_file) =
   let matches =
     Common.map
       (fun (m : Pattern_match.t) ->

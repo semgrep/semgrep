@@ -108,9 +108,7 @@ let exit_code_of_errors ~strict (errors : OutJ.core_error list) : Exit_code.t =
  * the use of Unix.lockf below.
  *)
 let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
-    (_file : Fpath.t)
-    (match_results : Core_profiling.partial_profiling Core_result.match_result)
-    : unit =
+    (_file : Fpath.t) (match_results : Core_result.matches_single_file) : unit =
   let (cli_matches : OutJ.cli_match list) =
     (* need to go through a series of transformation so that we can
      * get something that Matches_report.pp_text_outputs can operate on
