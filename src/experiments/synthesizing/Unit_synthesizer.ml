@@ -176,7 +176,7 @@ let java_tests =
  *)
 
 let tests =
-  Testutil.simple_tests
+  Alcotest_ext.simple_tests
     [
       ( "pattern inference features",
         fun () ->

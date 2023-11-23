@@ -11,7 +11,7 @@ let timeout_secs = 1.0
 let tests_path = "tests"
 
 let tests parse_program =
-  Testutil.pack_tests "dataflow_python"
+  Alcotest_ext.pack_tests "dataflow_python"
     [
       (* Just checking that it terminates without crashing. *)
       ( "regression files",

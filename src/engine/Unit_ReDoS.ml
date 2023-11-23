@@ -182,7 +182,7 @@ let test_vulnerability_prediction () =
     pattern_expectations
 
 let tests =
-  Testutil.simple_tests
+  Alcotest_ext.simple_tests
     [
       ("unescape", test_unescape);
       ("pcre pattern explosion", test_pcre_pattern_explosions);

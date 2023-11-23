@@ -1,6 +1,6 @@
 open Common
 open Fpath_.Operators
-open Testutil
+open Alcotest_ext
 module R = Rule
 module MR = Mini_rule
 module P = Pattern_match
@@ -559,7 +559,7 @@ let lang_autofix_tests ~polyglot_pattern_path =
 (*****************************************************************************)
 
 let eval_regression_tests () =
-  Testutil.simple_tests
+  Alcotest_ext.simple_tests
     [
       ( "eval regression testing",
         fun () ->

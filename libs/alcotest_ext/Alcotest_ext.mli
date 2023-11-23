@@ -60,7 +60,7 @@ val simple_tests : (string * (unit -> 'a)) list -> 'a t list
 (* Register a test. The test gets added to the global list of tests.
    This is meant to declare inline tests as follows:
 
-     let () = Testutil.test "foo" (fun () ->
+     let () = Alcotest_ext.test "foo" (fun () ->
        (* test body raising exceptions to signal failure *)
        ...
      )
@@ -128,13 +128,3 @@ val sort : 'a t list -> 'a t list
 *)
 val to_alcotest : test list -> unit Alcotest.test list
 val to_alcotest_lwt : lwt_test list -> unit Alcotest_lwt.test list
-
-(*
-   Log a function call. e.g.
-
-     Testutil.run file (fun () -> Parse_java.parse file)
-
-   will log the file name instead of letting us guess which file was being
-   parsed.
-*)
-val run : string -> (unit -> 'a) -> 'a

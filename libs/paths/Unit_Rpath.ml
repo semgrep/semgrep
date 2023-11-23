@@ -34,4 +34,4 @@ let test_path_conversion () =
       assert (path |> Rpath.to_string |> Sys.is_directory |> not))
 
 let tests =
-  Testutil.pack_tests "Rpath" [ ("path_conversion", test_path_conversion) ]
+  Alcotest_ext.pack_tests "Rpath" [ ("path_conversion", test_path_conversion) ]

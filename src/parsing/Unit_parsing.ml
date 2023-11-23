@@ -1,6 +1,6 @@
 open Common
-open Testutil
 open Fpath_.Operators
+open Alcotest_ext
 module E = Core_error
 
 (*****************************************************************************)

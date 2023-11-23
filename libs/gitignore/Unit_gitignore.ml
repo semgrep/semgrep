@@ -64,7 +64,7 @@ let test_filter (files : F.t list) selection () =
 (*****************************************************************************)
 
 let tests =
-  Testutil.pack_tests "Gitignore"
+  Alcotest_ext.pack_tests "Gitignore"
     [
       ("list one file", test_list [ file "a" ]);
       ( "list hierarchy",
