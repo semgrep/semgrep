@@ -404,7 +404,6 @@ homebrew-setup:
 # important dependencies change.
 .PHONY: setup
 setup: semgrep.opam
-	git submodule update --init
 	./scripts/check-bash-version
 	opam update -y
 	$(MAKE) install-deps-for-semgrep-core

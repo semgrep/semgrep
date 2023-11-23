@@ -51,6 +51,11 @@ type match_result_location_adjuster =
   Core_profiling.partial_profiling Core_result.match_result ->
   Core_profiling.partial_profiling Core_result.match_result
 
+type original_target_for_extract_target = {
+  original_target : Fpath.t;
+  location_adjuster : match_result_location_adjuster;
+}
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -384,7 +389,12 @@ let extract_and_concat erule_table xtarget matches =
          (* Write out the extracted text in a tmpfile *)
          let (`Extract { Rule.dst_lang; _ }) = r.mode in
          let target = mk_extract_target dst_lang contents in
-         (target, map_res map_loc (Fpath.v target.path) xtarget.file))
+         ( target,
+           {
+             original_target = xtarget.file;
+             location_adjuster =
+               map_res map_loc (Fpath.v target.path) xtarget.file;
+           } ))
 
 let extract_as_separate erule_table xtarget matches =
   matches
@@ -441,7 +451,13 @@ let extract_as_separate erule_table xtarget matches =
                    map_loc start_extract_pos line_offset col_offset
                      !!(xtarget.Xtarget.file)
              in
-             Some (target, map_res map_loc (Fpath.v target.path) xtarget.file)
+             Some
+               ( target,
+                 {
+                   original_target = xtarget.file;
+                   location_adjuster =
+                     map_res map_loc (Fpath.v target.path) xtarget.file;
+                 } )
          | Some ({ mode = `Extract { Rule.extract; _ }; id = id, _; _ }, None)
            ->
              report_unbound_mvar id extract m;

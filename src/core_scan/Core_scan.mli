@@ -84,10 +84,22 @@ val extracted_targets_of_config :
   * ( string (* filename *),
       Match_extract_mode.match_result_location_adjuster )
     Hashtbl.t
+  * (string, Fpath.t) Hashtbl.t
 (**
    Generate a list of new targets, which are extracted from extract rules.
    The rule ids correspond to the rules to run against the generated
    targets.
+
+   Returns `new_targets, match_location_adjusters_map, file_map`
+
+   The second two return values allow us to map from the new targets to the real
+   original targets. This is necessary since the new targets are tmp files
+   that contain snippets of the original target.
+
+   The first map allows us to map back the location of matches to a location in
+   the original target.
+   The second map allows us to map from a tmp file to the original target it was
+   generated from.
 *)
 
 val rules_from_rule_source :

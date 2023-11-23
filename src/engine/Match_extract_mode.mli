@@ -7,6 +7,11 @@ type match_result_location_adjuster =
   Core_profiling.partial_profiling Core_result.match_result ->
   Core_profiling.partial_profiling Core_result.match_result
 
+type original_target_for_extract_target = {
+  original_target : Fpath.t;
+  location_adjuster : match_result_location_adjuster;
+}
+
 (*
    Generates a list of targets corresponding to extract mode rule matches in
    the provided target file. The resulting target will be configured to run
@@ -20,4 +25,4 @@ val extract_nested_lang :
   timeout_threshold:int ->
   Rule.extract_rule list ->
   Xtarget.t ->
-  (Input_to_core_t.target * match_result_location_adjuster) list
+  (Input_to_core_t.target * original_target_for_extract_target) list

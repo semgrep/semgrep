@@ -126,7 +126,7 @@ def test_script(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-@pytest.mark.osemfail
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_extract(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
@@ -141,7 +141,7 @@ def test_extract(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-@pytest.mark.osemfail
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_extract_exclude(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
@@ -156,7 +156,7 @@ def test_extract_exclude(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-@pytest.mark.osemfail
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_extract_include(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
@@ -740,7 +740,7 @@ def test_metavariable_propagation_comparison(run_semgrep_in_tmp: RunSemgrep, sna
     )
 
 
-@pytest.mark.osemfail
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_taint_mode(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(

@@ -300,8 +300,7 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : OutJ.core_match) :
        extra_extra;
        validation_state;
        fix;
-       (* LATER *)
-       dataflow_trace = _;
+       dataflow_trace;
      };
   } ->
       let rule =
@@ -356,7 +355,7 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : OutJ.core_match) :
             fingerprint = match_based_id_partial rule rule_id metavars !!path;
             sca_info = None;
             fixed_lines = None;
-            dataflow_trace = None;
+            dataflow_trace;
             (* It's optional in the CLI output, but not in the core match results!
              *)
             engine_kind = Some engine_kind;
