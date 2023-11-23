@@ -1,5 +1,5 @@
 open Common
-open Testutil
+open Alcotest_ext
 open File.Operators
 module E = Core_error
 

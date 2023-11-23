@@ -108,12 +108,12 @@ let _ =
          in
          let run () =
            Alcotest.run "semgrep-js"
-             (Testutil.to_alcotest tests)
+             (Alcotest_ext.to_alcotest tests)
              ~and_exit:false ~argv ~filter:test_filter
          in
          let run_lwt () : unit Lwt.t =
            Alcotest_lwt.run "semgrep-js"
-             (Testutil.to_alcotest_lwt lwt_tests)
+             (Alcotest_ext.to_alcotest_lwt lwt_tests)
              ~and_exit:false ~argv ~filter:test_filter
          in
          (* Some gymnastics are needed here because we need to

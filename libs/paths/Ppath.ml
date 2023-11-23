@@ -262,7 +262,7 @@ let of_string_for_tests string =
 (*****************************************************************************)
 
 let () =
-  Testutil.test "Ppath" (fun () ->
+  Alcotest_ext.test "Ppath" (fun () ->
       let test_str f input expected_output =
         Alcotest.(check string) "equal" expected_output (f input)
       in

@@ -1,4 +1,4 @@
-open Testutil
+open Alcotest_ext
 open File.Operators
 module OutJ = Semgrep_output_v1_t
 module In = Input_to_core_t

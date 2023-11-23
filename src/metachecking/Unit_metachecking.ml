@@ -1,6 +1,6 @@
 open Common
 open File.Operators
-open Testutil
+open Alcotest_ext
 module E = Core_error
 
 (*****************************************************************************)
@@ -51,7 +51,7 @@ let metachecker_checks_tests () =
 
 (* Test the entire `-test_check` path *)
 let metachecker_regression_tests () =
-  Testutil.simple_tests
+  Alcotest_ext.simple_tests
     [
       ( "metachecker regression testing",
         fun () ->

@@ -114,11 +114,6 @@ let to_alcotest tests : _ list =
   |> group_by_key
 
 let to_alcotest_lwt = to_alcotest
-
-let run what f =
-  printf "running %s...\n%!" what;
-  Common.protect ~finally:(fun () -> printf "done with %s.\n%!" what) f
-
 let registered_tests : test list ref = ref []
 let registered_lwt_tests : lwt_test list ref = ref []
 let register x = registered_tests := x :: !registered_tests

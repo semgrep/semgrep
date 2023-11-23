@@ -92,7 +92,7 @@ module Datetime = struct
     else failwith (spf "wrong datetime format: %s" s)
 
   let () =
-    Testutil.test "Datetime" (fun () ->
+    Alcotest_ext.test "Datetime" (fun () ->
         let now = Unix.gmtime (Unix.gettimeofday ()) in
         let s : string = unwrap now in
         let now' = wrap s in

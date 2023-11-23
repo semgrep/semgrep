@@ -2,4 +2,4 @@
    Unit tests for SPcre
 *)
 
-val tests : Testutil.test list
+val tests : Alcotest_ext.test list

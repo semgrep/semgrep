@@ -41,7 +41,7 @@ let test_long_ellipsis () =
 let test_multiline () = ()
 
 let tests =
-  Testutil.simple_tests
+  Alcotest_ext.simple_tests
     [
       ("literal_match", test_literal_match);
       ("parentheses", test_parentheses);

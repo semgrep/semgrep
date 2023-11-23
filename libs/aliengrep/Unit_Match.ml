@@ -321,7 +321,7 @@ let test_caseless () =
     [ Num_matches 1; Match_value "HeLLo" ]
 
 let tests =
-  Testutil.simple_tests
+  Alcotest_ext.simple_tests
     [
       ("word", test_word);
       ("whitespace", test_whitespace);

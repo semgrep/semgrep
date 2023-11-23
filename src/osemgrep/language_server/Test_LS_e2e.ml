@@ -1004,11 +1004,11 @@ let promise_tests =
 
 let tests =
   let prepare f () = Lwt_platform.run (f ()) in
-  Testutil.pack_tests "Language Server (e2e)"
+  Alcotest_ext.pack_tests "Language Server (e2e)"
     (promise_tests |> Common.map (fun (s, f) -> (s, prepare f)))
 
 let lwt_tests =
-  Testutil.pack_tests "Language Server (e2e)"
+  Alcotest_ext.pack_tests "Language Server (e2e)"
     [
       ("Test LS", test_ls_specs);
       ("Test LS exts", test_ls_ext);

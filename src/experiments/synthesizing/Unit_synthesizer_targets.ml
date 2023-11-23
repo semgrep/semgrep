@@ -118,7 +118,7 @@ let run_single_test file linecols expected_pattern =
 (*****************************************************************************)
 
 let tests =
-  Testutil.simple_tests
+  Alcotest_ext.simple_tests
     [
       ( "pattern from targets",
         fun () ->

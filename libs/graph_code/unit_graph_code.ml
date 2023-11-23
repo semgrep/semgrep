@@ -73,12 +73,12 @@ let build_g_and_dm () =
 (*****************************************************************************)
 
 let tests ~graph_of_string =
-  Testutil.pack_suites "graph_code"
+  Alcotest_ext.pack_suites "graph_code"
     [
       (*---------------------------------------------------------------------------*)
       (* The graph *)
       (*---------------------------------------------------------------------------*)
-      Testutil.pack_tests "graph"
+      Alcotest_ext.pack_tests "graph"
         [
           ( "scc",
             fun () ->
@@ -251,7 +251,7 @@ let tests ~graph_of_string =
       (*---------------------------------------------------------------------------*)
       (* The matrix *)
       (*---------------------------------------------------------------------------*)
-      Testutil.pack_tests "dm"
+      Alcotest_ext.pack_tests "dm"
         [
           ( "dead columns",
             fun () ->
