@@ -764,7 +764,7 @@ let extracted_targets_of_config (config : Core_scan_config.t)
                ~timeout_threshold:config.timeout_threshold extractors xtarget
            in
            (* Print number of extra targets so pysemgrep knows *)
-           if Common.null extracted_targets then
+           if not (Common.null extracted_targets) then
              add_additional_targets config (List.length extracted_targets);
            extracted_targets)
   in
