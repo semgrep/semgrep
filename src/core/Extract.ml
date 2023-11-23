@@ -43,6 +43,21 @@ let debug_extract_mode = ref false
 type match_result_location_adjuster =
   Core_result.matches_single_file -> Core_result.matches_single_file
 
+(* Intermediate type used by Match_extract_mode.ml which ultimately
+ * gets collated with other to build a final [adjusters] below.
+ *
+ * old: was Input_to_core_t.target when this type was in Match_extract_mode
+ * but in core/ we don't want to depend on targeting/ (which contains the
+ * Input_to_core.atd symlink)
+ *)
+type extracted_target_and_adjuster = {
+  extracted : extracted_target;
+  original : original_target;
+  adjuster : match_result_location_adjuster;
+  (* useful to build in Input_to_core_t.target *)
+  analyzer : Xlang.t;
+}
+
 type adjusters = {
   loc_adjuster : (extracted_target, match_result_location_adjuster) Hashtbl.t;
   original_target : (extracted_target, original_target) Hashtbl.t;
@@ -76,3 +91,26 @@ let filter_extract_rules (rules : Rule.t list) : Rule.extract_rule list =
          | `Steps _
          | `Secrets _ ->
              None)
+
+let adjusters_of_extracted_targets
+    (extracted_targets : extracted_target_and_adjuster list) : adjusters =
+  (* Build the hashtables for mapping back the ranges *)
+  (* TODO these would be better as Maps *)
+  let fn_tbl = Hashtbl.create 101 in
+  let file_tbl = Hashtbl.create 101 in
+  extracted_targets
+  |> List.iter (fun { extracted; adjuster; original; analyzer = _ } ->
+         Hashtbl.add fn_tbl extracted adjuster;
+         Hashtbl.add file_tbl extracted original);
+  { loc_adjuster = fn_tbl; original_target = file_tbl }
+
+(*
+        let extract_result_map = Hashtbl.create 5 in
+        let extract_targets_map = Hashtbl.create 5 in
+        List.iter
+          (fun (t, (original_target, location_adjuster)) ->
+            Hashtbl.add extract_result_map t.Input_to_core_t.path
+              location_adjuster;
+            Hashtbl.add extract_targets_map t.path original_target)
+          extracted_ranges;
+*)

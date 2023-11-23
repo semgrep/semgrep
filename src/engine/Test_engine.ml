@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2021-2022 r2c
+ * Copyright (C) 2021-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,6 +18,7 @@ module FT = File_type
 module R = Rule
 module E = Core_error
 module RP = Core_result
+module In = Input_to_core_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -35,6 +36,8 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * This module provides a service similar to what semgrep --test provides,
  * but without requiring the Python wrapper. It is also significantly
  * faster than semgrep --test (not sure why).
+ *
+ * LATER: merge with osemgrep Test_subcommand.ml
  *)
 
 (*****************************************************************************)
@@ -165,22 +168,20 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
         (* coupling: This is basically duplicated from Core_scan
            TODO we should test extract mode through integration tests
            rather than duplicating all this *)
-        let extracted_ranges =
-          Match_extract_mode.extract_nested_lang
+        let (extracted_targets : Extract.extracted_target_and_adjuster list) =
+          Match_extract_mode.extract
             ~match_hook:(fun _ _ -> ())
             ~timeout:0. ~timeout_threshold:0 extract_rules xtarget
         in
-        let extract_targets =
-          List.fold_right (fun (t, _) ts -> t :: ts) extracted_ranges []
+        let adjusters =
+          Extract.adjusters_of_extracted_targets extracted_targets
         in
-        let extract_result_map = Hashtbl.create 5 in
-        let extract_targets_map = Hashtbl.create 5 in
-        List.iter
-          (fun (t, (original_target, location_adjuster)) ->
-            Hashtbl.add extract_result_map t.Input_to_core_t.path
-              location_adjuster;
-            Hashtbl.add extract_targets_map t.path original_target)
-          extracted_ranges;
+        let in_targets : In.target list =
+          extracted_targets
+          |> Common.map
+               (fun Extract.{ extracted = Extracted path; analyzer; _ } ->
+                 { In.path = !!path; analyzer; products = Product.all })
+        in
 
         let xconf = Match_env.default_xconfig in
         let res =
@@ -201,10 +202,10 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
             failwith (spf "exn on %s (exn = %s)" !!file (Common.exn_to_s exn)));
         let eres =
           try
-            extract_targets
-            |> Common.map (fun t ->
-                   let file = t.Input_to_core_t.path in
-                   let xlang = t.Input_to_core_t.analyzer in
+            in_targets
+            |> Common.map (fun (t : In.target) ->
+                   let file = t.path in
+                   let xlang = t.analyzer in
                    let lazy_ast_and_errors =
                      lazy
                        (match xlang with
@@ -232,8 +233,12 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
                        ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
                    in
                    (* adjust the match location for extracted files *)
-                   match Hashtbl.find_opt extract_result_map file with
-                   | Some f -> f matches
+                   match
+                     Hashtbl.find_opt adjusters.loc_adjuster
+                       (Extracted (Fpath.v file))
+                   with
+                   | Some match_result_loc_adjuster ->
+                       match_result_loc_adjuster matches
                    | None -> matches)
           with
           | exn ->

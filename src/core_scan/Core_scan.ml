@@ -764,7 +764,7 @@ let extracted_targets_of_config (config : Core_scan_config.t)
       pr2 "extracted content from ";
       print_match ~str config match_ Metavariable.ii_of_mval)
   in
-  let extracted_ranges =
+  let (extracted_targets : Extract.extracted_target_and_adjuster list) =
     basic_targets
     |> List.concat_map (fun (t : In.target) ->
            (* TODO: addt'l filtering required for rule_ids when targets are
@@ -775,8 +775,7 @@ let extracted_targets_of_config (config : Core_scan_config.t)
                t.analyzer (Fpath.v file)
            in
            let extracted_targets =
-             Match_extract_mode.extract_nested_lang ~match_hook
-               ~timeout:config.timeout
+             Match_extract_mode.extract ~match_hook ~timeout:config.timeout
                ~timeout_threshold:config.timeout_threshold extract_rules xtarget
            in
            (* Print number of extra targets so pysemgrep knows *)
@@ -784,21 +783,14 @@ let extracted_targets_of_config (config : Core_scan_config.t)
              add_additional_targets config (List.length extracted_targets);
            extracted_targets)
   in
-  (* Separate out the ranges *)
-  let ranges = List.fold_right (fun (t, _) ts -> t :: ts) extracted_ranges [] in
-
-  (* Build the hashtables for mapping back the ranges *)
-  (* TODO these would be better as Maps *)
-  let num_targets = List.length basic_targets in
-  let fn_tbl = Hashtbl.create num_targets in
-  let file_tbl = Hashtbl.create num_targets in
-  extracted_ranges
-  |> List.iter (fun ((t : In.target), (original_target, location_adjuster)) ->
-         let path = Extract.Extracted (Fpath.v t.path) in
-         Hashtbl.add fn_tbl path location_adjuster;
-         Hashtbl.add file_tbl path original_target);
-
-  (ranges, Extract.{ loc_adjuster = fn_tbl; original_target = file_tbl })
+  let adjusters = Extract.adjusters_of_extracted_targets extracted_targets in
+  let in_targets : In.target list =
+    extracted_targets
+    |> Common.map (fun Extract.{ extracted = Extracted path; analyzer; _ } ->
+           (* Extract mode targets work with any product? *)
+           { In.path = !!path; analyzer; products = Product.all })
+  in
+  (in_targets, adjusters)
 
 (*****************************************************************************)
 (* a "core" scan *)
