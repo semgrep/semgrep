@@ -21,7 +21,7 @@ val mk_specialized_formula_cache : Rule.taint_rule list -> formula_cache
 val hook_setup_hook_function_taint_signature :
   (Match_env.xconfig ->
   Rule.taint_rule ->
-  Taint_instance.t ->
+  Taint_instance.target ->
   Xtarget.t ->
   unit)
   option
@@ -54,10 +54,10 @@ val taint_instance_for_rule_and_target :
   AST_generic.program * Tok.location list ->
   Rule.taint_rule ->
   Taint_instance.handle_findings ->
-  Taint_instance.t * debug_taint * Matching_explanation.t list
+  Taint_instance.target * debug_taint * Matching_explanation.t list
 
 val mk_fun_input_env :
-  Taint_instance.t ->
+  Taint_instance.target ->
   ?glob_env:Taint_lval_env.t ->
   AST_generic.function_definition ->
   Taint_lval_env.t
@@ -67,7 +67,7 @@ val mk_fun_input_env :
  * It is exposed to be used by inter-file taint analysis in Pro.  *)
 
 val check_fundef :
-  Taint_instance.t ->
+  Taint_instance.target ->
   ?entity:AST_generic.entity (** entity being analyzed *) ->
   AST_to_IL.ctx ->
   ?glob_env:Taint_lval_env.t ->

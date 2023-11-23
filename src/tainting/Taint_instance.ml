@@ -1,3 +1,18 @@
+(* Iago Abal, Yoann Padioleau
+ *
+ * Copyright (C) 2019-2023 Semgrep Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * LICENSE for more details.
+ *)
+
 module Lval_env = Taint_lval_env
 module G = AST_generic
 module R = Rule
@@ -26,13 +41,21 @@ type options = {
   unify_mvars : bool;  (** Unify metavariables in sources and sinks? *)
 }
 
+let propagate_through_functions options =
+  (not options.assume_safe_functions)
+  && not options.only_propagate_through_assignments
+
+let propagate_through_indexes options =
+  (not options.assume_safe_indexes)
+  && not options.only_propagate_through_assignments
+
 type handle_findings =
   G.entity option (** function name ('None' if anonymous) *) ->
   Taint.finding list ->
   Lval_env.t ->
   unit
 
-type t = {
+type target = {
   lang : Language.t;
   filepath : string;  (** File under analysis, for Deep Semgrep. *)
   rule_id : Rule_ID.t;  (** Taint rule id, for Deep Semgrep. *)
@@ -95,24 +118,26 @@ let orig_is_sanitizer target orig = target.is_sanitizer (IL.any_of_orig orig)
 let orig_is_sink target orig = target.is_sink (IL.any_of_orig orig)
 
 type func = {
-  target : t;
+  target : target;
   entity : G.entity option;
   start_env : Lval_env.t;
   top_matches : Taint_smatch.Top_matches.t;
 }
 
+let is_best_match func = TM.is_best_match func.top_matches
+
 let any_is_best_sanitizer func any =
   func.target.is_sanitizer any
   |> List.filter (fun (m : R.taint_sanitizer TM.t) ->
-         (not m.spec.sanitizer_exact) || TM.is_best_match func.top_matches m)
+         (not m.spec.sanitizer_exact) || is_best_match func m)
 
 let any_is_best_source func any =
   func.target.is_source any
   |> List.filter (fun (m : R.taint_source TM.t) ->
-         (not m.spec.source_exact) || TM.is_best_match func.top_matches m)
+         (not m.spec.source_exact) || is_best_match func m)
 
 let any_is_best_sink func any =
-  func.target.is_sink any |> List.filter (TM.is_best_match func.top_matches)
+  func.target.is_sink any |> List.filter (is_best_match func)
 
 let orig_is_best_source func orig : R.taint_source TM.t list =
   any_is_best_source func (IL.any_of_orig orig)
@@ -123,10 +148,11 @@ let orig_is_best_sanitizer func orig =
 let orig_is_best_sink func orig = any_is_best_sink func (IL.any_of_orig orig)
 let lval_is_source func lval = any_is_best_source func (IL.any_of_lval lval)
 
-let lval_is_best_sanitizer env lval =
-  any_is_best_sanitizer env (IL.any_of_lval lval)
+let lval_is_best_sanitizer func lval =
+  any_is_best_sanitizer func (IL.any_of_lval lval)
 
 let lval_is_sink func lval = func.target.is_sink (IL.any_of_lval lval)
+let lval_is_best_sink func lval = any_is_best_sink func (IL.any_of_lval lval)
 
 let mk_func target ?entity ?(in_env = Lval_env.empty) flow =
   {

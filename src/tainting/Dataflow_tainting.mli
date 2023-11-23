@@ -5,11 +5,6 @@ type mapping = Taint_lval_env.t Dataflow_core.mapping
 (** Mapping from variables to taint sources (if the variable is tainted).
   * If a variable is not in the map, then it's not tainted. *)
 
-type fun_env = (var, Taint.Taint_set.t) Hashtbl.t
-(** Set of functions known to act as taint sources (their output is
-  * tainted). This is used for a HACK to do some poor-man's intrafile
-  * interprocedural taint tracking. TO BE DEPRECATED. *)
-
 type java_props_cache
 (** When we encounter getters/setters without a definition, we need to resolve them
   * to their corresponding property, we cache the results here. *)
