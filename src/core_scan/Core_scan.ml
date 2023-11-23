@@ -727,20 +727,8 @@ let targets_of_config (config : Core_scan_config.t) :
 
 (* Extract new targets using the extractors *)
 let extracted_targets_of_config (config : Core_scan_config.t)
-    (all_rules : Rule.t list) : In.target list * Extract.adjusters =
-  let extractors =
-    Common.map_filter
-      (fun (r : Rule.t) ->
-        match r.mode with
-        | `Extract _ as e -> Some ({ r with mode = e } : Rule.extract_rule)
-        | `Search _
-        | `Taint _
-        | `Steps _
-        | `Secrets _ ->
-            None)
-      all_rules
-  in
-  let basic_targets, _skipped = targets_of_config config in
+    (extract_rules : Rule.extract_rule list) (basic_targets : In.target list) :
+    In.target list * Extract.adjusters =
   logger#info "extracting nested content from %d files"
     (List.length basic_targets);
   let match_hook str match_ =
@@ -761,7 +749,7 @@ let extracted_targets_of_config (config : Core_scan_config.t)
            let extracted_targets =
              Match_extract_mode.extract_nested_lang ~match_hook
                ~timeout:config.timeout
-               ~timeout_threshold:config.timeout_threshold extractors xtarget
+               ~timeout_threshold:config.timeout_threshold extract_rules xtarget
            in
            (* Print number of extra targets so pysemgrep knows *)
            if not (Common.null extracted_targets) then
@@ -800,17 +788,7 @@ let select_applicable_rules_for_analyzer ~analyzer rules =
      TODO: The above may no longer apply since we got rid of
      the numeric indices mapping to rule IDs/names. Do something?
   *)
-  |> List.filter (fun r ->
-         match r.R.mode with
-         | `Extract _ -> false
-         (* TODO We are running Secrets rules now, but they just
-            get turned into search rules inside matching.
-            Unify Secrets and Search rules. *)
-         | `Secrets _
-         | `Search _
-         | `Taint _
-         | `Steps _ ->
-             true)
+  |> Common.exclude Extract.is_extract_rule
 
 (* This is also used by semgrep-proprietary. *)
 (* TODO: reduce memory allocation by using only one call to List.filter?
@@ -932,7 +910,7 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
 
   (* The basic targets.
    * TODO: possibly extract (recursively) from generated stuff? *)
-  let targets_info, skipped = targets_of_config config in
+  let basic_targets, skipped = targets_of_config config in
   let targets =
     (* Optimization: no valid rule => no findings.
        This solution avoids using an exception which would be a little harder
@@ -941,14 +919,16 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
        but the rule is invalid. *)
     match valid_rules with
     | [] -> []
-    | _some_rules -> targets_info
+    | _some_rules -> basic_targets
   in
 
   (* The "extracted" targets we generate on the fly by calling
    * our extractors (extract mode rules) on the relevant basic targets.
    *)
   let new_extracted_targets, adjusters =
-    extracted_targets_of_config config valid_rules
+    extracted_targets_of_config config
+      (Extract.filter_extract_rules valid_rules)
+      basic_targets
   in
 
   let all_targets = targets @ new_extracted_targets in

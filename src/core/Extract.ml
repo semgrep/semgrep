@@ -57,3 +57,24 @@ type adjusters = {
 (*****************************************************************************)
 (* API *)
 (*****************************************************************************)
+
+let is_extract_rule (r : Rule.t) : bool =
+  match r.mode with
+  | `Extract _ -> true
+  | `Secrets _
+  | `Search _
+  | `Taint _
+  | `Steps _ ->
+      false
+
+(* this does not just filter, this also returns a better type *)
+let filter_extract_rules (rules : Rule.t list) : Rule.extract_rule list =
+  rules
+  |> Common.map_filter (fun (r : Rule.t) ->
+         match r.mode with
+         | `Extract _ as e -> Some ({ r with mode = e } : Rule.extract_rule)
+         | `Search _
+         | `Taint _
+         | `Steps _
+         | `Secrets _ ->
+             None)

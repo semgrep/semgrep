@@ -69,7 +69,8 @@ val targets_of_config :
 
 val extracted_targets_of_config :
   Core_scan_config.t ->
-  Rule.t list ->
+  Rule.extract_rule list ->
+  Input_to_core_t.target list ->
   Input_to_core_t.target list * Extract.adjusters
 (**
    Generate a list of new targets, which are extracted with extract rules
