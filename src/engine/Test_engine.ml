@@ -162,18 +162,26 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
               | mode -> Left { r with mode })
             rules
         in
+        (* coupling: This is basically duplicated from Core_scan
+           TODO we should test extract mode through integration tests
+           rather than duplicating all this *)
         let extracted_ranges =
           Match_extract_mode.extract_nested_lang
             ~match_hook:(fun _ _ -> ())
             ~timeout:0. ~timeout_threshold:0 extract_rules xtarget
         in
-        let extract_targets, extract_result_map =
-          (List.fold_right (fun (t, fn) (ts, fn_tbl) ->
-               Hashtbl.add fn_tbl t.Input_to_core_t.path fn;
-               (t :: ts, fn_tbl)))
-            extracted_ranges
-            ([], Hashtbl.create 5)
+        let extract_targets =
+          List.fold_right (fun (t, _) ts -> t :: ts) extracted_ranges []
         in
+        let extract_result_map = Hashtbl.create 5 in
+        let extract_targets_map = Hashtbl.create 5 in
+        List.iter
+          (fun (t, { Match_extract_mode.original_target; location_adjuster }) ->
+            Hashtbl.add extract_result_map t.Input_to_core_t.path
+              location_adjuster;
+            Hashtbl.add extract_targets_map t.path original_target)
+          extracted_ranges;
+
         let xconf = Match_env.default_xconfig in
         let res =
           try
