@@ -22,7 +22,7 @@ val scan_with_exn_handler : Core_scan_config.t -> Core_result.result_or_exn
  * an exception (for example in case of a fatal error).
  *
  * This is called by scan_with_exn_handler(). This also uses
- * a few hooks that can be defined in semgrep variants:
+ * a few hooks that can be defined in semgrep-pro:
  *  - Match_tainting_mode.hook_setup_hook_function_taint_signature
  *  - Dataflow_tainting.hook_function_taint_signature
  *
@@ -51,7 +51,7 @@ val print_match :
   unit
 
 (*****************************************************************************)
-(* Utilities functions used in tests or semgrep-core variants *)
+(* Utilities functions used in tests or semgrep-pro *)
 (*****************************************************************************)
 
 (* This function prints the number of additional targets, which is consumed by
@@ -69,10 +69,7 @@ val errors_of_invalid_rule_errors :
   Rule.invalid_rule_error list -> Core_error.t list
 
 val replace_named_pipe_by_regular_file : Fpath.t -> Fpath.t
-(**
-   Copy named pipes created with <(echo 'foo') on the command line
-   into a regular file to avoid illegal seeks when reporting match results
-   or parsing errors.
+(* Small wrapper around File.replace_named_pipe_by_regular_file_if_needed.
    Any file coming from the command line should go through this so as to
    allows easy manual testing.
 *)

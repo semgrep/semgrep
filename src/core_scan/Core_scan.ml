@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2020-2023 r2c
+ * Copyright (C) 2020-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -22,7 +22,6 @@ module R = Rule
 module RP = Core_result
 module In = Input_to_core_j
 module OutJ = Semgrep_output_v1_j
-module Extract = Match_extract_mode
 
 let logger = Logging.get_logger [ __MODULE__ ]
 let debug_extract_mode = ref false
@@ -32,26 +31,24 @@ let debug_extract_mode = ref false
 (*****************************************************************************)
 (* A "Core" scan.
  *
- * # Notes
- *
- * ## pysemgrep vs semgrep core
+ * ## pysemgrep vs semgrep-core
  *
  * Officially, `semgrep-core` is never run on its own. External users run
- * `semgrep`, which invokes `semgrep-core` with the appropriate rules and targets.
- * However, for development purposes it can be convenient to skip the wrapper.
- * Therefore, we also maintain some code paths that allow `semgrep-core` to take
- * in rules or patterns and perform its own file targeting. These will not always
- * return the same results as the equivalent `semgrep` run. To see valid inputs to
- * `semgrep-core`, see `semgrep-core --help`.
+ * `semgrep`, which invokes `semgrep-core` with the appropriate rules and
+ * targets. However, for development purposes it can be convenient to skip
+ * the wrapper. Therefore, we also maintain some code paths that allow
+ * `semgrep-core` to take in rules or patterns and perform its own file
+ * targeting. These will not always return the same results as the equivalent
+ * `semgrep` run.
  *
- * When invoked by `semgrep`, `semgrep-core` will always be passed `-rules` and
- * `-targets`. All the code relevant to `semgrep` runs will be found in branches
- * where the rules file and the targets file are not `""`.
+ * When invoked by `pysemgrep`, `semgrep-core` will always be passed
+ * `-rules` and `-targets`. All the code relevant to `pysemgrep` runs will be
+ * found in code paths where the rules file and the targets file are not `""`.
  *
  * While the `rules` file is just the collection of rules, the `targets` file
- * describes the mapping of targets to rules. See `targets` in `Input_to_core.atd`
- * for a description of its schema. `semgrep-core` follows the target-to-rule
- * mappings without validation or filtering.
+ * describes the mapping of targets to rules. See `Input_to_core.atd` target
+ * type. `semgrep-core` follows the target-to-rulemappings without validation
+ * or filtering.
  *
  * ## Performance
  *
@@ -66,11 +63,11 @@ let debug_extract_mode = ref false
  * The `-json_time` output includes timings for the three broad components. In
  * general (at least at the time this was written), target parsing takes the
  * longest. Matching does not usually take long, though it can when there are
- * many general patterns (e.g. `$X`) that require going deep (e.g. multiple `...`
- * or `<... $X ...>`). Also, getting the range of a large sub-AST can be slow
- * because it requires collecting all the tokens in that sub-AST. Most of the
- * rules that take longest are generic rules, however, because they run on
- * every file.
+ * many general patterns (e.g. `$X`) that require going deep
+ *(e.g. multiple `...` or `<... $X ...>`). Also, getting the range of a
+ * large sub-AST can be slow because it requires collecting all the tokens in
+ * that sub-AST. Most of the rules that take longest are generic rules,
+ * however, because they run on every file.
  *
  * ## Memory usage
  *
@@ -117,8 +114,8 @@ let debug_extract_mode = ref false
  *
  * Note that `obj_size` may inadvertently prevent an object from being freed.
  *
- * Additionally, OCaml provides `Spacetime` for certain compilers. It works best
- * on Linux machines.
+ * Additionally, OCaml provides `Spacetime` for certain compilers.
+ *It works best on Linux machines.
  *
  * We also have had stack overflows. OCaml <=4.14.0, we avoided this using
  * `Common.map`, which is tail-recursive, instead of `List.map`.
@@ -128,11 +125,33 @@ let debug_extract_mode = ref false
 (* Types *)
 (*****************************************************************************)
 
-type was_scanned = Scanned of { original_target : Fpath.t } | Not_scanned
-
 (* The type of the semgrep core scan. We define it here so that
    semgrep and semgrep-proprietary use the same definition *)
 type core_scan_func = Core_scan_config.t -> Core_result.result_or_exn
+
+(* A target is [Not_scanned] when we didn't find any applicable rules.
+ * The information is useful to return to pysemgrep and osemgrep to
+ * display statistics.
+ *
+ * The [original_target] below is useful to deal with extract mode, because
+ * the file processed in [iter_targets_and_get_matches_and_exn_to_errors],
+ * usually a temporary "extracted" file, is not the file we want to report
+ * as scanned; we want to report as scanned the original target file.
+ *)
+type was_scanned = Scanned of { original_target : Fpath.t } | Not_scanned
+
+(* Type of the iter_targets_and_get_matches_and_exn_to_errors callback.
+
+   A target handler returns (matches, was_scanned) where was_scanned indicates
+   whether at least one rule applied to the target since the target could
+   be excluded by all the rules via per-rule include/exclude patterns.
+   alt: baking this flag into match_result type would lead to even worse
+   complexity
+
+   Remember that a target handler runs in another process (via Parmap).
+*)
+type target_handler =
+  In.target -> Core_profiling.partial_profiling RP.match_result * was_scanned
 
 (*****************************************************************************)
 (* Helpers *)
@@ -152,32 +171,12 @@ type core_scan_func = Core_scan_config.t -> Core_result.result_or_exn
    coupling: this functionality is implemented also in semgrep-python.
 *)
 let replace_named_pipe_by_regular_file path =
-  if !Common.jsoo then path
-    (* don't bother supporting exotic things like fds if running in JS *)
-  else
-    match (Unix.stat !!path).st_kind with
-    | Unix.S_FIFO ->
-        let data = File.read_file path in
-        let prefix = spf "semgrep-core-" in
-        let suffix = spf "-%s" (Fpath.basename path) in
-        let tmp_path, oc =
-          Filename.open_temp_file
-            ~mode:[ Open_creat; Open_excl; Open_wronly; Open_binary ]
-            prefix suffix
-        in
-        let remove () = if Sys.file_exists tmp_path then Sys.remove tmp_path in
-        (* Try to remove temporary file when program exits. *)
-        at_exit remove;
-        Common.protect
-          ~finally:(fun () -> close_out_noerr oc)
-          (fun () -> output_string oc data);
-        Fpath.v tmp_path
-    | _ -> path
+  File.replace_named_pipe_by_regular_file_if_needed ~prefix:"semgrep-core-" path
 
 let add_additional_targets config n =
   (* Print additional target count so the Python progress bar knows *)
   match config.output_format with
-  | Json true -> pr @@ string_of_int n
+  | Json true -> Out.put (string_of_int n)
   | _ -> ()
 
 (* TODO: suspicious: this runs in a child process. Please explain how it's
@@ -498,128 +497,135 @@ let parse_equivalences equivalences_file =
 (*****************************************************************************)
 
 (*
-   handle_target returns (results, was_scanned) where was_scanned indicates
-   whether at least one rule applied to the target since the target could
-   be excluded by all the rules via per-rule include/exclude patterns.
-   (sorry about the complexity; baking this flag into match_result type
-   would lead to even worse complexity)
-
    Returns a list of match results and a separate list of scanned targets.
 *)
-let iter_targets_and_get_matches_and_exn_to_errors config
-    (handle_target :
-      In.target ->
-      Core_profiling.partial_profiling RP.match_result * was_scanned) targets :
+let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
+    (handle_target : target_handler) (targets : In.target list) :
     Core_profiling.file_profiling RP.match_result list * Fpath.t list =
-  targets
-  |> map_targets config.ncores (fun (target : In.target) ->
-         let file = Fpath.v target.path in
-         logger#info "Analyzing %s" !!file;
-         let (res, was_scanned), run_time =
-           Common.with_time (fun () ->
-               try
-                 let get_context () =
-                   match !Rule.last_matched_rule with
-                   | None -> !!file
-                   | Some rule_id ->
-                       spf "%s on %s" (Rule_ID.to_string rule_id) !!file
-                 in
-                 Memory_limit.run_with_memory_limit ~get_context
-                   ~mem_limit_mb:config.max_memory_mb (fun () ->
-                     (* we used to call timeout_function() here, but this
-                      * is now done in Match_rules because we now
-                      * timeout per rule, not per file since semgrep-python
-                      * pass all the rules to semgrep-core.
-                      *
-                      * old: timeout_function file config.timeout ...
-                      *)
-                     handle_target target |> fun v ->
-                     (* This is just to test -max_memory, to give a chance
-                      * to Gc.create_alarm to run even if the program does
-                      * not even need to run the Gc. However, this has a
-                      * slow perf penality on small programs, which is why
-                      * it's better to keep guarded when you're
-                      * not testing -max_memory.
-                      *)
-                     if config.test then Gc.full_major ();
-                     logger#trace "done with %s" !!file;
-                     v)
-               with
-               (* note that Semgrep_error_code.exn_to_error already handles
-                * Timeout and would generate a TimeoutError code for it,
-                * but we intercept Timeout here to give a better diagnostic.
-                *)
-               | (Match_rules.File_timeout | Out_of_memory) as exn ->
-                   (match !Match_patterns.last_matched_rule with
-                   | None -> ()
-                   | Some rule ->
-                       logger#info "critical exn while matching ruleid %s"
-                         (Rule_ID.to_string rule.id);
-                       logger#info "full pattern is: %s" rule.MR.pattern_string);
-                   let loc = Tok.first_loc_of_file !!file in
-                   let errors =
-                     Core_error.ErrorSet.singleton
-                       (E.mk_error !Rule.last_matched_rule loc ""
-                          (match exn with
-                          | Match_rules.File_timeout ->
-                              logger#info "Timeout on %s" !!file;
-                              OutJ.Timeout
-                          | Out_of_memory ->
-                              logger#info "OutOfMemory on %s" !!file;
-                              OutJ.OutOfMemory
-                          | _ -> raise Impossible))
+  (* The path in match_and_path_list is None when the file was not scanned *)
+  let (match_and_path_list
+        : (Core_profiling.file_profiling RP.match_result * Fpath.t option) list)
+      =
+    targets
+    |> map_targets config.ncores (fun (target : In.target) ->
+           let file = Fpath.v target.path in
+           logger#info "Analyzing %s" !!file;
+           let (res, was_scanned), run_time =
+             Common.with_time (fun () ->
+                 try
+                   (* this is used to generate warnings in the logs
+                    * when we exceed or are close to exceed the memory limit
+                    *)
+                   let get_context () =
+                     match !Rule.last_matched_rule with
+                     | None -> !!file
+                     | Some rule_id ->
+                         spf "%s on %s" (Rule_ID.to_string rule_id) !!file
                    in
-                   ( Core_result.make_match_result [] errors
-                       (Core_profiling.empty_partial_profiling file),
-                     Scanned { original_target = file } )
-               (* those were converted in Main_timeout in timeout_function()*)
-               (* FIXME:
-                  Actually, I managed to get this assert to trigger by running
-                  semgrep -c p/default-v2 on elasticsearch with -timeout 0.01 ! *)
-               | Time_limit.Timeout _ -> assert false
-               (* It would be nice to detect 'R.Err (R.InvalidRule _)' here
-                * for errors while parsing patterns. This exn used to be raised earlier
-                * in sanity_check_rules_and_invalid_rules(), but after
-                * the lazy parsing of patterns, those errors are raised
-                * later. Unfortunately, we can't catch and reraise here, because
-                * with -j 2, Parmap will just abort the whole thing and return
-                * a different kind of exception to the caller. Instead, we
-                * we need to convert all exns in errors (see the code further below),
-                * and only in sanity_check_invalid_patterns() we can detect if one
-                * of those errors was a PatternParseError.
-                * does-not-work:
-                * | R.Err (R.InvalidRule _) as exn when false ->
-                *   Exception.catch_and_reraise exn
-                *)
-               (* convert all other exns (e.g., a parse error in a target file,
-                * a parse error in a pattern), in an empty match result with errors,
-                * so that one error in one target file or rule does not abort the whole
-                * semgrep-core process.
-                *)
-               | exn when not !Flag_semgrep.fail_fast ->
-                   let e = Exception.catch exn in
-                   let errors =
-                     Core_error.ErrorSet.singleton
-                       (E.exn_to_error None !!file e)
-                   in
-                   ( Core_result.make_match_result [] errors
-                       (Core_profiling.empty_partial_profiling file),
-                     Scanned { original_target = file } ))
-         in
-         let scanned_path =
-           match was_scanned with
-           | Scanned { original_target } -> Some original_target
-           | Not_scanned -> None
-         in
-         (Core_result.add_run_time run_time res, scanned_path))
-  |> List.split
-  |> fun (results, opt_paths) ->
-  ( results,
-    Common.map_filter (fun o -> o) opt_paths
+                   Memory_limit.run_with_memory_limit ~get_context
+                     ~mem_limit_mb:config.max_memory_mb (fun () ->
+                       (* we used to call timeout_function() here, but this
+                        * is now done in Match_rules because we now
+                        * timeout per rule, not per file since pysemgrep
+                        * passed all the rules to semgrep-core.
+                        *
+                        * old: timeout_function file config.timeout ...
+                        *)
+                       let res, was_scanned = handle_target target in
+
+                       (* This is just to test -max_memory, to give a chance
+                        * to Gc.create_alarm to run even if the program does
+                        * not even need to run the Gc. However, this has a
+                        * slow perf penality on small programs, which is why
+                        * it's better to keep guarded when you're
+                        * not testing -max_memory.
+                        *)
+                       if config.test then Gc.full_major ();
+                       logger#trace "done with %s" !!file;
+
+                       (res, was_scanned))
+                 with
+                 (* note that Semgrep_error_code.exn_to_error already handles
+                  * Timeout and would generate a TimeoutError code for it,
+                  * but we intercept Timeout here to give a better diagnostic.
+                  *)
+                 | (Match_rules.File_timeout | Out_of_memory) as exn ->
+                     (* TODO? why we use Match_patters.last_matched_rule here
+                      * and below Rule.last_matched_rule?
+                      *)
+                     (match !Match_patterns.last_matched_rule with
+                     | None -> ()
+                     | Some rule ->
+                         logger#info "critical exn while matching ruleid %s"
+                           (Rule_ID.to_string rule.id);
+                         logger#info "full pattern is: %s"
+                           rule.MR.pattern_string);
+                     let loc = Tok.first_loc_of_file !!file in
+                     let errors =
+                       Core_error.ErrorSet.singleton
+                         (E.mk_error !Rule.last_matched_rule loc ""
+                            (match exn with
+                            | Match_rules.File_timeout ->
+                                logger#info "Timeout on %s" !!file;
+                                OutJ.Timeout
+                            | Out_of_memory ->
+                                logger#info "OutOfMemory on %s" !!file;
+                                OutJ.OutOfMemory
+                            | _ -> raise Impossible))
+                     in
+                     ( Core_result.make_match_result [] errors
+                         (Core_profiling.empty_partial_profiling file),
+                       Scanned { original_target = file } )
+                 (* those were converted in Main_timeout in timeout_function()*)
+                 (* FIXME:
+                    Actually, I managed to get this assert to trigger by running
+                    semgrep -c p/default-v2 on elasticsearch with -timeout 0.01 ! *)
+                 | Time_limit.Timeout _ -> assert false
+                 (* It would be nice to detect 'R.Err (R.InvalidRule _)' here
+                  * for errors while parsing patterns. This exn used to be raised earlier
+                  * in sanity_check_rules_and_invalid_rules(), but after
+                  * the lazy parsing of patterns, those errors are raised
+                  * later. Unfortunately, we can't catch and reraise here, because
+                  * with -j 2, Parmap will just abort the whole thing and return
+                  * a different kind of exception to the caller. Instead, we
+                  * we need to convert all exns in errors (see the code further below),
+                  * and only in sanity_check_invalid_patterns() we can detect if one
+                  * of those errors was a PatternParseError.
+                  * does-not-work:
+                  * | R.Err (R.InvalidRule _) as exn when false ->
+                  *   Exception.catch_and_reraise exn
+                  *)
+                 (* convert all other exns (e.g., a parse error in a target file,
+                  * a parse error in a pattern), in an empty match result with errors,
+                  * so that one error in one target file or rule does not abort the whole
+                  * semgrep-core process.
+                  *)
+                 | exn when not !Flag_semgrep.fail_fast ->
+                     let e = Exception.catch exn in
+                     let errors =
+                       Core_error.ErrorSet.singleton
+                         (E.exn_to_error None !!file e)
+                     in
+                     ( Core_result.make_match_result [] errors
+                         (Core_profiling.empty_partial_profiling file),
+                       Scanned { original_target = file } ))
+           in
+           let scanned_path =
+             match was_scanned with
+             | Scanned { original_target } -> Some original_target
+             | Not_scanned -> None
+           in
+           (Core_result.add_run_time run_time res, scanned_path))
+  in
+  let matches, opt_paths = List.split match_and_path_list in
+  let scanned =
+    opt_paths |> Common.map_filter Fun.id
     (* It's necessary to remove duplicates because extracted targets are
        mapped back to their original target, and you can have multiple
        extracted targets for a single file. Might as well sort too *)
-    |> List.sort_uniq Fpath.compare )
+    |> List.sort_uniq Fpath.compare
+  in
+  (matches, scanned)
 
 (*****************************************************************************)
 (* File targeting and rule filtering *)
@@ -723,6 +729,7 @@ let targets_of_config (config : Core_scan_config.t) :
 (* Extract new targets using the extractors. The rule ids correspond
  * to the rules to run against those new extracted targets (which should be
  * the original rules passed via -rules, without the extract-mode rules).
+ * See the .mli for more explanations.
  *)
 let extracted_targets_of_config (config : Core_scan_config.t)
     (all_rules : Rule.t list) :
@@ -762,7 +769,8 @@ let extracted_targets_of_config (config : Core_scan_config.t)
                t.analyzer (Fpath.v file)
            in
            let extracted_targets =
-             Extract.extract_nested_lang ~match_hook ~timeout:config.timeout
+             Match_extract_mode.extract_nested_lang ~match_hook
+               ~timeout:config.timeout
                ~timeout_threshold:config.timeout_threshold extractors xtarget
            in
            (* Print number of extra targets so Python knows *)
@@ -778,11 +786,11 @@ let extracted_targets_of_config (config : Core_scan_config.t)
   let num_targets = List.length basic_targets in
   let fn_tbl = Hashtbl.create num_targets in
   let file_tbl = Hashtbl.create num_targets in
-  List.iter
-    (fun (t, { Extract.original_target; location_adjuster }) ->
-      Hashtbl.add fn_tbl t.Input_to_core_t.path location_adjuster;
-      Hashtbl.add file_tbl t.path original_target)
-    extracted_ranges;
+  extracted_ranges
+  |> List.iter
+       (fun (t, { Match_extract_mode.original_target; location_adjuster }) ->
+         Hashtbl.add fn_tbl t.Input_to_core_t.path location_adjuster;
+         Hashtbl.add file_tbl t.path original_target);
 
   (ranges, fn_tbl, file_tbl)
 
@@ -835,10 +843,96 @@ let select_applicable_rules_for_target ~analyzer ~products ~path
              Filter_target.filter_paths paths path
          | _else -> true)
 
+(* build the callback for iter_targets_and_get_matches_and_exn_to_errors *)
+let mk_target_handler (config : Core_scan_config.t) valid_rules
+    filter_irrelevant_rules extract_targets_map extract_result_map match_hook :
+    target_handler =
+ (* Note that this function runs in another process *)
+ fun (target : In.target) ->
+  let file = Fpath.v target.path in
+  let analyzer = target.analyzer in
+  let products = target.products in
+  let applicable_rules =
+    select_applicable_rules_for_target ~analyzer ~products ~path:file
+      ~respect_rule_paths:config.respect_rule_paths valid_rules
+  in
+  let was_scanned =
+    match applicable_rules with
+    | [] -> Not_scanned
+    | _ ->
+        (* Map back extracted targets when recording files as scanned*)
+        let original_target =
+          match Hashtbl.find_opt extract_targets_map (Fpath.to_string file) with
+          | None -> file
+          | Some orig -> orig
+        in
+        Scanned { original_target }
+  in
+  (* TODO: can we skip all of this if there are no applicable
+     rules? In particular, can we skip update_cli_progress? *)
+  let xtarget =
+    xtarget_of_file ~parsing_cache_dir:config.parsing_cache_dir analyzer file
+  in
+  let default_match_hook str match_ =
+    if config.output_format =*= Text then
+      print_match ~str config match_ Metavariable.ii_of_mval
+  in
+  let match_hook = Option.value match_hook ~default:default_match_hook in
+  let xconf =
+    {
+      Match_env.config = Rule_options.default_config;
+      equivs = parse_equivalences config.equivalences_file;
+      nested_formula = false;
+      matching_explanations = config.matching_explanations;
+      filter_irrelevant_rules;
+    }
+  in
+  let matches =
+    let matches =
+      Match_rules.check ~match_hook ~timeout:config.timeout
+        ~timeout_threshold:config.timeout_threshold xconf applicable_rules
+        xtarget
+    in
+    (* If our target is a proprietary language, or we've been using the proprietary
+     * engine, then label all the resulting matches with the Pro engine kind.
+     * This can't really be done any later, because we need the language that
+     * we're running on.
+     *)
+    (* If these hooks are set, it's probably a pretty good indication that we're
+       using Pro features.
+    *)
+    if
+      Option.is_some
+        !Match_tainting_mode.hook_setup_hook_function_taint_signature
+      || Option.is_some !Dataflow_tainting.hook_function_taint_signature
+      || Xlang.is_proprietary xtarget.xlang
+    then
+      {
+        matches with
+        Core_result.matches = Common.map PM.to_proprietary matches.matches;
+      }
+    else matches
+  in
+  (* So we can display matches incrementally in osemgrep!
+   * Note that this is run in a child process of Parmap, so
+   * the hook should not rely on shared memory.
+   *)
+  config.file_match_results_hook |> Option.iter (fun hook -> hook file matches);
+
+  update_cli_progress config;
+
+  (* adjust the match location for extracted targets *)
+  let matches =
+    match Hashtbl.find_opt extract_result_map !!file with
+    | Some f -> f matches
+    | None -> matches
+  in
+  (matches, was_scanned)
+
 (* This is the main function used by pysemgrep right now.
  * This is also called now from osemgrep.
- * It takes a set of rules and a set of targets (targets derived from config,
- * and potentially also extract rules) and iteratively process those targets.
+ * It takes a set of rules and a set of targets and iteratively process those
+ * targets.
  * coupling: If you modify this function, you probably need also to modify
  * Deep_scan.scan() in semgrep-pro which is mostly a copy-paste of this file.
  *)
@@ -880,95 +974,8 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
   let file_results, scanned_targets =
     all_targets
     |> iter_targets_and_get_matches_and_exn_to_errors config
-         (fun (target : In.target) ->
-           (* runs in another process *)
-           let file = Fpath.v target.path in
-           let analyzer = target.analyzer in
-           let products = target.products in
-           let applicable_rules =
-             select_applicable_rules_for_target ~analyzer ~products ~path:file
-               ~respect_rule_paths:config.respect_rule_paths valid_rules
-           in
-           let was_scanned =
-             match applicable_rules with
-             | [] -> Not_scanned
-             | _ ->
-                 let original_target =
-                   (* Map back extracted targets when saving files as scanned *)
-                   match
-                     Hashtbl.find_opt extract_targets_map (Fpath.to_string file)
-                   with
-                   | None -> file
-                   | Some orig -> orig
-                 in
-                 Scanned { original_target }
-           in
-           (* TODO: can we skip all of this if there are no applicable
-              rules? In particular, can we skip update_cli_progress? *)
-           let xtarget =
-             xtarget_of_file ~parsing_cache_dir:config.parsing_cache_dir
-               analyzer file
-           in
-           let default_match_hook str match_ =
-             if config.output_format =*= Text then
-               print_match ~str config match_ Metavariable.ii_of_mval
-           in
-           let match_hook =
-             Option.value match_hook ~default:default_match_hook
-           in
-           let xconf =
-             {
-               Match_env.config = Rule_options.default_config;
-               equivs = parse_equivalences config.equivalences_file;
-               nested_formula = false;
-               matching_explanations = config.matching_explanations;
-               filter_irrelevant_rules;
-             }
-           in
-           let matches =
-             let matches =
-               Match_rules.check ~match_hook ~timeout:config.timeout
-                 ~timeout_threshold:config.timeout_threshold xconf
-                 applicable_rules xtarget
-             in
-             (* If our target is a proprietary language, or we've been using the proprietary
-              * engine, then label all the resulting matches with the Pro engine kind.
-              * This can't really be done any later, because we need the language that
-              * we're running on.
-              *)
-             (* If these hooks are set, it's probably a pretty good indication that we're
-                using Pro features.
-             *)
-             if
-               Option.is_some
-                 !Match_tainting_mode.hook_setup_hook_function_taint_signature
-               || Option.is_some
-                    !Dataflow_tainting.hook_function_taint_signature
-               || Xlang.is_proprietary xtarget.xlang
-             then
-               {
-                 matches with
-                 Core_result.matches =
-                   Common.map PM.to_proprietary matches.matches;
-               }
-             else matches
-           in
-           (* So we can display matches incrementally in osemgrep!
-            * Note that this is run in a child process of Parmap, so
-            * the hook should not rely on shared memory.
-            *)
-           config.file_match_results_hook
-           |> Option.iter (fun hook -> hook file matches);
-
-           update_cli_progress config;
-
-           (* adjust the match location for extracted targets *)
-           let matches =
-             match Hashtbl.find_opt extract_result_map !!file with
-             | Some f -> f matches
-             | None -> matches
-           in
-           (matches, was_scanned))
+         (mk_target_handler config valid_rules filter_irrelevant_rules
+            extract_targets_map extract_result_map match_hook)
   in
   let scanned_target_table =
     (* provide fast access to paths that were scanned by at least one rule;
