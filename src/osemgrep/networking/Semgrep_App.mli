@@ -61,7 +61,8 @@ val report_failure :
   dry_run:bool -> token:Auth.token -> scan_id:scan_id -> Exit_code.t -> unit
 
 (* could be in Semgrep_Registry.ml but actually the request interact
- * with the Semgrep backend, not with the registry
+ * with the Semgrep backend, not with the registry.
+ * TODO: pass an ATD construct instead of JSON below
  *)
 val upload_rule_to_registry :
   token:Auth.token -> JSON.yojson -> (string, int * string) result

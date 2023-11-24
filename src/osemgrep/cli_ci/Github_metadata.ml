@@ -2,7 +2,6 @@ open Common
 module Arg = Cmdliner.Arg
 module Term = Cmdliner.Term
 module Cmd = Cmdliner.Cmd
-module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -164,7 +163,7 @@ let shallow_fetch_branch branch_name =
 
    Different from _shallow_fetch_branch because it does not assign a local
    name to the commit. It just does the fetch. *)
-let shallow_fetch_commit commit_hash =
+let _shallow_fetch_commit commit_hash =
   let _ =
     Git_wrapper.git_check_output
       Bos.Cmd.(
@@ -236,35 +235,39 @@ let get_base_branch_hash env =
         "We are not into a PR context (the GitHub pull_request event is \
          missing)"
 
+(* from meta.py:
+   "By default, the GitHub Actions checkout action gives you a shallow
+   clone of the repository. In order to get the merge base, we need to
+   fetch the history of the head branch and the base branch, all the way
+   back to the point where the head branch diverged. In a large
+   repository, this can be a lot of commits, and this fetching can
+   dramatically impact performance.
+     To avoid this, on the first attempt to find the merge base, we try to
+   use the GitHub REST API instead of fetching enough history to compute
+   it locally. We only do this if the `GH_TOKEN` environment variable is
+   provided. GitHub Actions provides that token to workflows, but the
+   workflow needs to explicitly make it available to Semgrep via an
+   environment variable like this:
+     env:
+     GH_TOKEN: ${{ github.token }}
+     This will allow Semgrep to make this API request even for private
+   repositories."
+*)
 let find_branchoff_point_from_github_api repo_name env :
     Digestif.SHA1.t option Lwt.t =
   let base_branch_hash = get_base_branch_hash env in
   let head_branch_hash = get_head_branch_hash env in
 
   match (env._GH_TOKEN, env._GITHUB_API_URL, head_branch_hash) with
-  | Some gh_token, Some api_url, Some head_branch_hash -> (
-      let headers = [ ("Authorization", Fmt.str "Bearer %s" gh_token) ] in
-      let open Lwt.Infix in
-      Http_helpers.get_async ~headers
-        (Uri.of_string
-           (Fmt.str "%a/repos/%s/compare/%a...%a" Uri.pp api_url repo_name
-              Digestif.SHA1.pp base_branch_hash Digestif.SHA1.pp
-              head_branch_hash))
-      >>= function
-      | Ok body ->
-          let body = body |> Yojson.Basic.from_string in
-          let commit =
-            Option.bind
-              Glom.(
-                get_and_coerce_opt string body
-                  [ k "merge_base_commit"; k "sha" ])
-              Digestif.SHA1.of_hex_opt
-          in
-          Option.iter shallow_fetch_commit commit;
-          Lwt.return commit
-      | __else__ -> Lwt.return_none)
+  | Some gh_token, Some api_url, Some head_branch_hash ->
+      Github_API.find_branchoff_point_async ~gh_token ~api_url ~repo_name
+        ~base_branch_hash head_branch_hash
   | __else__ -> Lwt.return_none
 
+(* from meta.py:
+   "GithubActions is a shallow clone and the "base" that github sends
+   is not the merge base. We must fetch and get the merge-base ourselves"
+*)
 let rec find_branchoff_point ?(attempt_count = 0) repo_name env =
   let base_branch_hash = get_base_branch_hash env
   and head_branch_hash = Option.get (get_head_branch_hash env) in
@@ -279,7 +282,11 @@ let rec find_branchoff_point ?(attempt_count = 0) repo_name env =
       Float.to_int (2. ** 31.) - 1
     else fetch_depth
   in
-  if attempt_count =|= 0 then find_branchoff_point_from_github_api repo_name env
+  if attempt_count =|= 0 then
+    (* TODO let%lwt base = find_xxx in
+     * Option.iter shallow_fetch_commit base;
+     *)
+    find_branchoff_point_from_github_api repo_name env
   else
     (* XXX(dinosaure): we safely can use [Option.get]. This information is
        required to [get_base_branch_ref]. *)
