@@ -1721,7 +1721,7 @@ let transfer :
         let lval_env' =
           let has_taints = not (Taints.is_empty taints) in
           match opt_lval with
-          | Some lval -> (
+          | Some lval ->
               if has_taints then
                 (* Instruction returns tainted data, add taints to lval.
                  * See [Taint_lval_env] for details. *)
@@ -1732,33 +1732,18 @@ let transfer :
                  * to 'lval' has changed to determine whether we need to
                  * clean 'lval' or not. *)
                 let lval_taints_changed =
-                  let lval_taints_before =
-                    Lval_env.dumb_find in' lval |> status_to_taints
-                  in
-                  let lval_taints_after =
-                    Lval_env.dumb_find lval_env' lval |> status_to_taints
-                  in
-                  not (Taints.equal lval_taints_before lval_taints_after)
+                  not (Lval_env.equal_by_lval in' lval_env' lval)
                 in
-                match x.i with
-                | New _ ->
-                    (* Pro/HACK: `x = new T(args)` is interpreted as `x.T(args)` where `T`
-                     * is the constructor. But `x.T` does not return any taint, taint is
-                     * propagated to `x` by side-effect, and in a field-sensitivity way.
-                     * If we clean `x` here, then we would be removing that taint.
-                     *
-                     * TODO: `new T(args)` should return an "object taint signature". *)
-                    lval_env'
-                | _ when lval_taints_changed ->
-                    (* The taint of 'lval' has changed, so there was a source or
-                     * sanitizer acting by side-effect on this instruction. Thus we do NOT
-                     * do anything more here. *)
-                    lval_env'
-                | _ ->
-                    (* No side-effects on 'lval', and the instruction returns safe data,
-                     * so we assume that the assigment acts as a sanitizer and therefore
-                     * remove taints from lval. See [Taint_lval_env] for details. *)
-                    Lval_env.clean lval_env' lval)
+                if lval_taints_changed then
+                  (* The taint of 'lval' has changed, so there was a source or
+                   * sanitizer acting by side-effect on this instruction. Thus we do NOT
+                   * do anything more here. *)
+                  lval_env'
+                else
+                  (* No side-effects on 'lval', and the instruction returns safe data,
+                   * so we assume that the assigment acts as a sanitizer and therefore
+                   * remove taints from lval. See [Taint_lval_env] for details. *)
+                  Lval_env.clean lval_env' lval
           | None ->
               (* Instruction returns 'void' or its return value is ignored. *)
               lval_env'

@@ -70,5 +70,10 @@ val union : env -> env -> env
      best case scenario to reduce FPs. *)
 
 val equal : env -> env -> bool
+
+val equal_by_lval : env -> env -> IL.lval -> bool
+(** Check whether two environments assign the exact same taint to and l-value
+ * and each one of its extensions. *)
+
 val to_string : (Taint.taints -> string) -> env -> string
 val seq_of_tainted : env -> (IL.lval * Taint.taints) Seq.t
