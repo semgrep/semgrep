@@ -178,7 +178,14 @@ let any_is_best_sanitizer env any =
 let any_is_best_source env any =
   env.config.is_source any
   |> List.filter (fun (m : R.taint_source TM.t) ->
-         (not m.spec.source_exact) || TM.is_best_match env.top_matches m)
+         (* Remove sources that should match exactly but do not here. *)
+         match m.spec.source_by_side_effect with
+         | Only -> TM.is_exact m
+         (* 'Yes' should probably be treated like 'Only' but for backwards
+          * compatibility we keep it this way. *)
+         | Yes
+         | No ->
+             (not m.spec.source_exact) || TM.is_best_match env.top_matches m)
 
 let any_is_best_sink env any =
   env.config.is_sink any |> List.filter (TM.is_best_match env.top_matches)
@@ -340,17 +347,20 @@ let merge_source_sink_mvars env source_mvars sink_mvars =
     (* The union of both sets, but taking the sink mvars in case of collision. *)
     sink_biased_union_mvars source_mvars sink_mvars
 
-let partition_sources_by_side_effect_oyn sources_matches =
+let partition_sources_by_side_effect sources_matches =
   sources_matches
   |> Common.partition_either3 (fun (m : R.taint_source TM.t) ->
          match m.spec.source_by_side_effect with
-         (* We require an exact match for `by-side-effect` to take effect. *)
-         | R.Only when TM.is_exact m -> Left3 m
+         | R.Only -> Left3 m
+         (* A 'Yes' should be a 'Yes' regardless of whether the match is exact,
+          * whether the match is exact or not is/should be taken into consideeration
+          * later on. Same as for 'Only'. But for backwards-compatibility we keep
+          * it this way for now. *)
          | R.Yes when TM.is_exact m -> Middle3 m
-         | R.No
-         | R.Only
-         | R.Yes ->
+         | R.Yes
+         | R.No ->
              Right3 m)
+  |> fun (only, yes, no) -> (`Only only, `Yes yes, `No no)
 
 (*****************************************************************************)
 (* Types *)
@@ -836,17 +846,25 @@ let find_lval_taint_sources env incoming_taints lval =
   let source_pms = lval_is_source env lval in
   (* Partition sources according to the value of `by-side-effect:`,
    * either `only`, `yes`, or `no`. *)
-  let by_side_effect_only_pms, by_side_effect_yes_pms, by_side_effect_no_pms =
-    partition_sources_by_side_effect_oyn source_pms
+  let ( `Only by_side_effect_only_pms,
+        `Yes by_side_effect_yes_pms,
+        `No by_side_effect_no_pms ) =
+    partition_sources_by_side_effect source_pms
   in
   let by_side_effect_only_taints, lval_env =
-    by_side_effect_only_pms |> taints_of_pms env
+    by_side_effect_only_pms
+    (* We require an exact match for `by-side-effect` to take effect. *)
+    |> List.filter TM.is_exact
+    |> taints_of_pms env
+  in
+  let by_side_effect_yes_taints, lval_env =
+    by_side_effect_yes_pms
+    (* We require an exact match for `by-side-effect` to take effect. *)
+    |> List.filter TM.is_exact
+    |> taints_of_pms { env with lval_env }
   in
   let by_side_effect_no_taints, lval_env =
     by_side_effect_no_pms |> taints_of_pms { env with lval_env }
-  in
-  let by_side_effect_yes_taints, lval_env =
-    by_side_effect_yes_pms |> taints_of_pms { env with lval_env }
   in
   let taints_to_add_to_env =
     by_side_effect_only_taints |> Taints.union by_side_effect_yes_taints
