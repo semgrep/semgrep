@@ -61,8 +61,8 @@ let run (conf : Show_CLI.conf) : Exit_code.t =
       Out.put Version.version;
       (* TODO? opportunity to perform version-check? *)
       Exit_code.ok
-  | Identity -> Whoami.invoke Identity
-  | Deployment -> Whoami.invoke Deployment
+  | Identity -> Whoami.print Whoami.Identity
+  | Deployment -> Whoami.print Whoami.Deployment
   | SupportedLanguages ->
       Out.put (spf "supported languages are: %s" Xlang.supported_xlangs);
       Exit_code.ok (* dumpers *)

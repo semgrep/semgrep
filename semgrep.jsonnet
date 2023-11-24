@@ -31,6 +31,27 @@ local semgrep_rules = [
       exclude: ['Common.ml', 'common2.ml'],
     },
   },
+  {
+    id: 'no-http-outside-networking',
+    match: {
+      pattern: 'Http_helpers.$F ...',
+      where: [
+        {
+          metavariable: '$F',
+          regex: '^(get|post)',
+        },
+      ],
+    },
+    languages: ['ocaml'],
+    severity: 'ERROR',
+    message: |||
+      Do not use Http_helpers outside the networking/ directory. Move the code
+      in one of the networking/ modules and hide it behind a typed interface.
+    |||,
+    paths: {
+      exclude: ['networking'],
+    },
+  },
 ];
 
 local todo_skipped_for_now = [

@@ -2,7 +2,6 @@
    Show the current identity of the user running the command.
 *)
 
-type identity = Identity | Deployment
+type identity_kind = Identity | Deployment
 
-(* internal *)
-val invoke : identity -> Exit_code.t
+val print : identity_kind -> Exit_code.t
