@@ -82,27 +82,9 @@ let log_cli_feature (flag : string) : unit =
 (* CLI subcmds need to call Metrics_.configure conf.metrics
    otherwise metrics will not be send as Metrics.g.config default
    to Off
-   alt: we could implement send_metrics() in Metrics_.ml,
-   but we would need to add a dependency on Http_helpers.
 *)
 let send_metrics () : unit =
-  if Metrics_.is_enabled () then (
-    (* Populate the sent_at timestamp *)
-    Metrics_.prepare_to_send ();
-    let user_agent = Metrics_.string_of_user_agent () in
-    let metrics = Metrics_.string_of_metrics () in
-    let url = !Env.v.metrics_url in
-    (* TODO? move to networking/Semgrep_Metrics.ml ? *)
-    let headers =
-      [ ("Content-Type", "application/json"); ("User-Agent", user_agent) ]
-    in
-    Logs.debug (fun m -> m "Metrics: %s" metrics);
-    Logs.debug (fun m -> m "userAgent: '%s'" user_agent);
-    match Http_helpers.post ~body:metrics ~headers url with
-    | Ok body -> Logs.debug (fun m -> m "Metrics Endpoint response: %s" body)
-    | Error (status_code, err) ->
-        Logs.warn (fun m -> m "Metrics Endpoint error: %d %s" status_code err);
-        ())
+  if Metrics_.is_enabled () then Semgrep_Metrics.send ()
   else Logs.debug (fun m -> m "Metrics not enabled, skipping sending")
 
 (*****************************************************************************)

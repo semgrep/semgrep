@@ -5,6 +5,9 @@ module C = Rules_config
 (* Prelude *)
 (*****************************************************************************)
 (* Gather Semgrep registry related code.
+ *
+ * See also Rule_fetching.ml for the actual code fetching the rules from
+ * the registry.
  *)
 
 (*****************************************************************************)

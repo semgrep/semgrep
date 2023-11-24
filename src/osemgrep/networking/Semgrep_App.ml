@@ -1,3 +1,17 @@
+(* Yoann Padioleau
+ *
+ * Copyright (C) 2023 Semgrep Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * LICENSE for more details.
+ *)
 open Common
 module OutJ = Semgrep_output_v1_j
 module Http_helpers = Http_helpers.Make (Lwt_platform)
@@ -7,7 +21,15 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 (*****************************************************************************)
 (* Gather Semgrep App (backend) related code.
  *
- * TODO? split some code in Auth.ml?
+ * This module and directory should be the only places where we
+ * call Http_helpers. This module provides an abstract and typed interface to
+ * our Semgrep backend.
+ * alt: maybe grpc was better than ATD for the CLI<->backend comms?
+ *
+ * This module (and Semgrep_login.ml) should be the only place where we use
+ * !Semgrep_envvars.v.semgrep_url
+ *
+ * TODO? move some code in Auth.ml?
  *
  * Partially translated from auth.py and scans.py.
  *)
