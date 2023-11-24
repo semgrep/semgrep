@@ -166,7 +166,9 @@ let protect ~finally work =
   (* nosemgrep: no-fun-protect *)
   try Fun.protect ~finally work with
   | Fun.Finally_raised exn1 as exn ->
-      (* Just re-raise whatever exception was raised during a 'finally', drop 'Finally_raised'. *)
+      (* Just re-raise whatever exception was raised during a 'finally',
+       * drop 'Finally_raised'.
+       *)
       logger#error "protect: %s" (exn |> Exception.catch |> Exception.to_string);
       Exception.catch_and_reraise exn1
 
@@ -530,6 +532,9 @@ let push v l = l := v :: !l
 (* Exn *)
 (*###########################################################################*)
 
+(* See also Common.protect earlier *)
+
+(* use Common.protect instead? *)
 let unwind_protect f cleanup =
   if !debugger then f ()
   else
@@ -586,6 +591,7 @@ let exn_to_s exn = Printexc.to_string exn
 (*****************************************************************************)
 (* Composition/Control *)
 (*****************************************************************************)
+(* now earlier *)
 
 (*****************************************************************************)
 (* Error management *)
@@ -667,7 +673,6 @@ type ('a, 'b) either = Left of 'a | Right of 'b [@@deriving eq, show, sexp]
 (* with sexp *)
 type ('a, 'b, 'c) either3 = Left3 of 'a | Middle3 of 'b | Right3 of 'c
 [@@deriving eq, show]
-(* with sexp *)
 
 (* If you don't want to use [@@deriving eq, show] above, you
  * can copy-paste manually the generated code by getting the
@@ -1047,7 +1052,9 @@ let (with_open_infile : string (* filename *) -> (in_channel -> 'a) -> 'a) =
       let res = f chan in
       close_in chan;
       res)
-    (fun _e -> close_in chan)
+    (fun _e ->
+      (* TODO? use close_in_noerr? *)
+      close_in chan)
 
 (* creation of tmp files, a la gcc *)
 
@@ -1115,7 +1122,6 @@ let hash_of_list xs =
 (*****************************************************************************)
 
 type 'a hashset = ('a, bool) Hashtbl.t
-(* with sexp *)
 
 let hashset_to_list h = hash_to_list h |> map fst
 
@@ -1144,7 +1150,6 @@ let group_assoc_bykey_eff xs =
 (*****************************************************************************)
 
 type 'a stack = 'a list ref
-(* with sexp *)
 
 (*****************************************************************************)
 (* Tree *)
