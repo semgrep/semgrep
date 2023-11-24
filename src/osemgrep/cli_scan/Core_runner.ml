@@ -66,10 +66,7 @@ type result = {
 type scan_func_for_osemgrep =
   ?respect_git_ignore:bool ->
   ?file_match_results_hook:
-    (Fpath.t ->
-    Core_profiling.partial_profiling Core_result.match_result ->
-    unit)
-    option ->
+    (Fpath.t -> Core_result.matches_single_file -> unit) option ->
   conf ->
   (* LATER? use Config_resolve.rules_and_origin instead? *)
   Rule.rules ->

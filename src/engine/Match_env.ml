@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2022 r2c
+ * Copyright (C) 2019-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -34,6 +34,7 @@ type pattern_id = Xpattern.pattern_id
 (* !This hash table uses the Hashtbl.find_all property! *)
 type id_to_match_results = (pattern_id, Pattern_match.t) Hashtbl.t
 
+(* alt: prefilter_cache option *)
 type prefilter_config =
   | PrefilterWithCache of Analyze_rule.prefilter_cache
   | NoPrefiltering

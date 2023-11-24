@@ -24,8 +24,8 @@
    Exceptions are caught and turned into an appropriate exit code
    (unless you used --debug).
 
-   We don't use Cmdliner to dispatch subcommands because it's too
-   complicated and anywant we want full control on main help message.
+   alt: we don't use Cmdliner to dispatch subcommands because it's too
+   complicated and anyway we want full control on the main help message.
 
    Translated from cli.py and commands/wrapper.py and parts of metrics.py
 *)
@@ -73,7 +73,7 @@ let metrics_init () : unit =
 (* For debugging customer issues, we append the CLI flags for each subcommand,
    handling the logic in this base CLI entry point pre- subcommand dispatch.
 *)
-let log_cli_feature flag : unit =
+let log_cli_feature (flag : string) : unit =
   Metrics_.add_feature "cli-flag"
     (flag
     |> Base.String.chop_prefix_if_exists ~prefix:"-"
@@ -92,6 +92,7 @@ let send_metrics () : unit =
     let user_agent = Metrics_.string_of_user_agent () in
     let metrics = Metrics_.string_of_metrics () in
     let url = !Env.v.metrics_url in
+    (* TODO? move to networking/Semgrep_Metrics.ml ? *)
     let headers =
       [ ("Content-Type", "application/json"); ("User-Agent", user_agent) ]
     in
@@ -258,7 +259,7 @@ let before_exit ~profile () : unit =
 (*****************************************************************************)
 
 (* called from ../../main/Main.ml *)
-let main argv : Exit_code.t =
+let main (argv : string array) : Exit_code.t =
   Printexc.record_backtrace true;
   let debug = Array.mem "--debug" argv in
   let profile = Array.mem "--profile" argv in
