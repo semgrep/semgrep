@@ -72,7 +72,7 @@ val union : env -> env -> env
 val equal : env -> env -> bool
 
 val equal_by_lval : env -> env -> IL.lval -> bool
-(** Check whether two environments assign the exact same taint to and l-value
+(** Check whether two environments assign the exact same taint to an l-value
  * and each one of its extensions. *)
 
 val to_string : (Taint.taints -> string) -> env -> string

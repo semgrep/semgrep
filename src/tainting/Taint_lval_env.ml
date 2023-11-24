@@ -289,29 +289,40 @@ let equal
   && LvalSet.equal cleaned1 cleaned2
   && Taints.equal control1 control2
 
-let equal_by_lval { tainted = tainted1; _ } { tainted = tainted2; _ } lval =
+let equal_by_lval { tainted = tainted1; cleaned = cleaned1; _ }
+    { tainted = tainted2; cleaned = cleaned2; _ } lval =
   match normalize_lval lval with
   | None ->
       (* Cannot track taint for this l-value; e.g. because the base is not a simple
          variable. We just return the same environment untouched. *)
       false
   | Some lval ->
-      LvalMap.merge
-        (fun lv opt_taint1 opt_taint2 ->
-          if lval_is_prefix lval lv then
-            match (opt_taint1, opt_taint2) with
-            | None, None -> None
-            | Some _, None
-            | None, Some _ ->
-                (* not equals *)
-                (* TODO: Check if `t` is the empty set ? *)
-                Some ()
-            | Some t1, Some t2 ->
-                if Taints.equal t1 t2 then None else (* not equals *)
-                                                  Some ()
-          else None)
-        tainted1 tainted2
-      |> LvalMap.is_empty
+      let equal_tainted =
+        LvalMap.merge
+          (fun lv opt_taint1 opt_taint2 ->
+            if lval_is_prefix lval lv || lval_is_prefix lv lval then
+              match (opt_taint1, opt_taint2) with
+              | None, None -> None
+              | Some _, None
+              | None, Some _ ->
+                  (* not equals *)
+                  (* TODO: Check if `t` is the empty set ? *)
+                  Some ()
+              | Some t1, Some t2 ->
+                  if Taints.equal t1 t2 then None else (* not equals *)
+                                                    Some ()
+            else None)
+          tainted1 tainted2
+        |> LvalMap.is_empty
+      in
+      equal_tainted
+      && LvalSet.equal
+           (cleaned1
+           |> LvalSet.filter (fun lv ->
+                  lval_is_prefix lval lv || lval_is_prefix lv lval))
+           (cleaned2
+           |> LvalSet.filter (fun lv ->
+                  lval_is_prefix lval lv || lval_is_prefix lv lval))
 
 let to_string taint_to_str { tainted; propagated; cleaned; control } =
   (* FIXME: lval_to_str *)
