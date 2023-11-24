@@ -20,14 +20,19 @@
  *
  * There are many different ways a program can output a string on
  * the standard output:
- *  - Stdlib.pr
-int_string using Stdlib.stdout
+ *  - Stdlib.print_string using Stdlib.stdout
  *  - Unix.write using Unix.stdout
  *  - Format.fmt using Formatter.std_formatter
- *  - Ocolor_format.printf
+ *  - Fmt.pr, or Fmt.pf using Fmt.stdout
  *  - Common.pr
+ *  - Ocolor_format.printf
  *  - ...
  *  - and now Out.put() too :)
+ *
+ * The goal of this module is to provide another way that can be
+ * mocked and grepped and redirected more easily. This is useful
+ * for command-line programs that want to clearly separate
+ * the normal output of the program from other output.
  *
  * alt:
  *  - Logs.app(), but Logs.app actually print on stderr by default
