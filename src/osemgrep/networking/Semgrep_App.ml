@@ -46,6 +46,7 @@ type app_block_override = string (* reason *) option
 (* Routes *)
 (*****************************************************************************)
 
+let identity_route = "/api/agent/identity"
 let deployment_route = "/api/agent/deployments/current"
 let start_scan_route = "/api/agent/deployments/scans"
 let registry_rule_route = "/api/registry/rules"
@@ -61,11 +62,9 @@ let complete_route scan_id = "/api/agent/scans/" ^ scan_id ^ "/complete"
 
 (* Returns the scan config if the token is valid, otherwise None *)
 let get_scan_config_from_token_async ~token : OutJ.scan_config option Lwt.t =
-  let%lwt response =
-    Http_helpers.get_async
-      ~headers:[ ("authorization", "Bearer " ^ token) ]
-      (Uri.with_path !Semgrep_envvars.v.semgrep_url scan_config_route)
-  in
+  let url = Uri.with_path !Semgrep_envvars.v.semgrep_url scan_config_route in
+  let headers = [ ("authorization", "Bearer " ^ token) ] in
+  let%lwt response = Http_helpers.get_async ~headers url in
   let scan_config_opt =
     match response with
     | Error msg ->
@@ -149,10 +148,8 @@ let extract_block_override (data : string) : (app_block_override, string) result
 let get_deployment_from_token_async ~token : OutJ.deployment_config option Lwt.t
     =
   let headers = [ ("authorization", "Bearer " ^ token) ] in
-  let%lwt response =
-    Http_helpers.get_async ~headers
-      (Uri.with_path !Semgrep_envvars.v.semgrep_url deployment_route)
-  in
+  let url = Uri.with_path !Semgrep_envvars.v.semgrep_url deployment_route in
+  let%lwt response = Http_helpers.get_async ~headers url in
   let deployment_opt =
     match response with
     | Error msg ->
@@ -190,9 +187,7 @@ let start_scan ~dry_run ~token (prj_meta : Project_metadata.t)
         ("Authorization", "Bearer " ^ token);
       ]
     in
-    let scan_endpoint =
-      Uri.with_path !Semgrep_envvars.v.semgrep_url start_scan_route
-    in
+    let url = Uri.with_path !Semgrep_envvars.v.semgrep_url start_scan_route in
     (* deprecated from 1.43 *)
     (* TODO: should concatenate with raw_json project_config *)
     let meta =
@@ -213,7 +208,7 @@ let start_scan ~dry_run ~token (prj_meta : Project_metadata.t)
       body |> Yojson.Basic.from_string |> Yojson.Basic.pretty_to_string
     in
     Logs.debug (fun m -> m "Starting scan: %s" pretty_body);
-    match Http_helpers.post ~body ~headers scan_endpoint with
+    match Http_helpers.post ~body ~headers url with
     | Ok body -> extract_scan_id body
     | Error (status, msg) ->
         let pre_msg =
@@ -225,7 +220,7 @@ Please make sure they have been set correctly.
         in
         let msg =
           Fmt.str "%sAPI server at %a returned this error: %s" pre_msg Uri.pp
-            scan_endpoint msg
+            url msg
         in
         Error msg
 
@@ -278,13 +273,13 @@ let fetch_scan_config_async ~dry_run ~token ~sca ~full_scan ~repository :
    *    app_get_config_url = f"{state.env.semgrep_url}/api/agent/deployments/scans/{self.scan_id}/config"
    *)
   let url = scan_config_uri ~sca ~dry_run ~full_scan repository in
+  let headers =
+    [
+      ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
+      ("Authorization", "Bearer " ^ token);
+    ]
+  in
   let%lwt content =
-    let headers =
-      [
-        ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
-        ("Authorization", Fmt.str "Bearer %s" token);
-      ]
-    in
     let%lwt response = Http_helpers.get_async ~headers url in
     let results =
       match response with
@@ -358,19 +353,6 @@ let upload_findings ~dry_run ~token ~scan_id ~results ~complete :
         Error
           ("API server returned " ^ string_of_int code ^ ", this error: " ^ msg))
 
-let upload_rule_to_registry ~token json =
-  let semgrep_url = !Semgrep_envvars.v.semgrep_url in
-  let uri = Uri.(with_path semgrep_url registry_rule_route) in
-  let body = JSON.string_of_json (JSON.from_yojson json) in
-  let headers =
-    [
-      ("Content-Type", "application/json");
-      ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
-      ("Authorization", "Bearer " ^ token);
-    ]
-  in
-  Http_helpers.post ~body ~headers uri
-
 (*****************************************************************************)
 (* Error reporting to the backend *)
 (*****************************************************************************)
@@ -388,7 +370,7 @@ let report_failure ~dry_run ~token ~scan_id (exit_code : Exit_code.t) : unit =
         ("authorization", "Bearer " ^ token);
       ]
     in
-    let uri =
+    let url =
       Uri.with_path !Semgrep_envvars.v.semgrep_url
         ("/api/agent/scans/" ^ scan_id ^ "/error")
     in
@@ -397,7 +379,41 @@ let report_failure ~dry_run ~token ~scan_id (exit_code : Exit_code.t) : unit =
                               stderr = "" }
     in
     let body = OutJ.string_of_ci_scan_failure failure in
-    match Http_helpers.post ~body ~headers uri with
+    match Http_helpers.post ~body ~headers url with
     | Ok _ -> ()
     | Error (code, msg) ->
         Logs.err (fun m -> m "API server returned %u, this error: %s" code msg)
+
+(*****************************************************************************)
+(* Other endpoints *)
+(*****************************************************************************)
+
+(* for semgrep show identity *)
+let get_identity_async ~token =
+  let headers =
+    [
+      ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
+      ("Authorization", "Bearer " ^ token);
+    ]
+  in
+  let url = Uri.with_path !Semgrep_envvars.v.semgrep_url identity_route in
+  let%lwt res = Http_helpers.get_async ~headers url in
+  match res with
+  | Ok body -> Lwt.return body
+  | Error msg ->
+      Logs.err (fun m ->
+          m "Failed to download identity from %s: %s" (Uri.to_string url) msg);
+      Lwt.return ""
+
+(* for semgrep publish *)
+let upload_rule_to_registry ~token json =
+  let url = Uri.with_path !Semgrep_envvars.v.semgrep_url registry_rule_route in
+  let headers =
+    [
+      ("Content-Type", "application/json");
+      ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
+      ("Authorization", "Bearer " ^ token);
+    ]
+  in
+  let body = JSON.string_of_json (JSON.from_yojson json) in
+  Http_helpers.post ~body ~headers url
