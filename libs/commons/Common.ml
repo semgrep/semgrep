@@ -132,9 +132,9 @@ let%test _ = binary_search_arr ~f:(cmp 0) [| 1; 2; 4; 5 |] =*= Error 0
 (*****************************************************************************)
 
 let pr s =
-  print_string s;
-  print_string "\n";
-  flush stdout
+  Stdlib.print_string s;
+  Stdlib.print_string "\n";
+  flush Stdlib.stdout
 
 let pr2 s =
   prerr_string s;
@@ -952,7 +952,7 @@ let input_text_line ic =
 
 let cat file =
   let acc = ref [] in
-  let chan = open_in_bin file in
+  let chan = Stdlib.open_in_bin file in
   try
     while true do
       acc := input_text_line chan :: !acc
@@ -983,7 +983,7 @@ let cat file =
 *)
 let read_file ?(max_len = max_int) path =
   if !jsoo then (
-    let ic = open_in_bin path in
+    let ic = Stdlib.open_in_bin path in
     let s = really_input_string ic (in_channel_length ic) in
     close_in ic;
     s)
@@ -1005,7 +1005,7 @@ let read_file ?(max_len = max_int) path =
     protect ~finally:(fun () -> Unix.close fd) (fun () -> loop fd)
 
 let write_file ~file s =
-  let chan = open_out_bin file in
+  let chan = Stdlib.open_out_bin file in
   output_string chan s;
   close_out chan
 
@@ -1035,7 +1035,7 @@ let fullpath file =
 let (with_open_outfile :
       string (* filename *) -> ((string -> unit) * out_channel -> 'a) -> 'a) =
  fun file f ->
-  let chan = open_out_bin file in
+  let chan = Stdlib.open_out_bin file in
   let pr s = output_string chan s in
   unwind_protect
     (fun () ->
@@ -1046,7 +1046,7 @@ let (with_open_outfile :
 
 let (with_open_infile : string (* filename *) -> (in_channel -> 'a) -> 'a) =
  fun file f ->
-  let chan = open_in_bin file in
+  let chan = Stdlib.open_in_bin file in
   unwind_protect
     (fun () ->
       let res = f chan in
@@ -1197,7 +1197,7 @@ let rec uniq_by eq xs =
 (* now in prelude: exception UnixExit of int *)
 let exn_to_real_unixexit f =
   try f () with
-  | UnixExit x -> exit x
+  | UnixExit x -> Stdlib.exit x
 
 let pp_do_in_zero_box f =
   Format.open_box 0;

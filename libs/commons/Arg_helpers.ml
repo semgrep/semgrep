@@ -78,10 +78,10 @@ let parse_options options usage_msg argv =
   with
   | Arg.Bad msg ->
       Printf.eprintf "%s" msg;
-      exit 2
+      Stdlib.exit 2
   | Arg.Help msg ->
       Printf.printf "%s" msg;
-      exit 0
+      Stdlib.exit 0
 
 let usage usage_msg options = Arg.usage (Arg.align options) usage_msg
 

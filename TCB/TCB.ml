@@ -274,22 +274,34 @@ external snd : 'a * 'b -> 'b = "%field1"
 let ( @ ) = ( @ )
 
 (**************************************************************************)
-(* Stdin/Stdout/Stderr (FORBIDDEN) *)
+(* Stdin/Stdout (FORBIDDEN) *)
 (**************************************************************************)
 
-type nonrec in_channel = in_channel
-type nonrec out_channel = out_channel
+let stdin = ()
+let stdout = ()
 
-let stdin = stdin
-let stdout = stdout
+(* printing on stdout *)
+let print_char = ()
+let print_string = ()
+let print_bytes = ()
+let print_int = ()
+let print_float = ()
+let print_endline = ()
+let print_newline = ()
+
+(* reading on stdin *)
+let read_line = ()
+let read_int = ()
+let read_int_opt = ()
+let read_float = ()
+let read_float_opt = ()
+
+(**************************************************************************)
+(* Stderr *)
+(**************************************************************************)
+
+(* stderr is an ambient authority *)
 let stderr = stderr
-let print_char = print_char
-let print_string = print_string
-let print_bytes = print_bytes
-let print_int = print_int
-let print_float = print_float
-let print_endline = print_endline
-let print_newline = print_newline
 let prerr_char = prerr_char
 let prerr_string = prerr_string
 let prerr_bytes = prerr_bytes
@@ -297,11 +309,6 @@ let prerr_int = prerr_int
 let prerr_float = prerr_float
 let prerr_endline = prerr_endline
 let prerr_newline = prerr_newline
-let read_line = read_line
-let read_int = read_int
-let read_int_opt = read_int_opt
-let read_float = read_float
-let read_float_opt = read_float_opt
 
 (**************************************************************************)
 (* Filesystem (FORBIDDEN) *)
@@ -318,25 +325,22 @@ type nonrec open_flag = open_flag =
   | Open_text
   | Open_nonblock
 
-(* nosemgrep *)
-let open_out = open_out
-let open_out_bin = open_out_bin
-let open_out_gen = open_out_gen
+(* nosemgrep: ocaml.lang.portability.crlf-support.prefer-write-in-binary-mode *)
+let open_out = ()
+let open_out_bin = ()
+let open_out_gen = ()
 
-(* nosemgrep *)
-let open_in = open_in
-let open_in_bin = open_in_bin
-let open_in_gen = open_in_gen
-let close_out = close_out
-let close_out_noerr = close_out_noerr
-let set_binary_mode_out = set_binary_mode_out
-let close_in = close_in
-let close_in_noerr = close_in_noerr
-let set_binary_mode_in = set_binary_mode_in
+(* nosemgrep: ocaml.lang.portability.crlf-support.prefer-read-in-binary-mode *)
+let open_in = ()
+let open_in_bin = ()
+let open_in_gen = ()
 
 (**************************************************************************)
 (* Channel IO *)
 (**************************************************************************)
+
+type nonrec in_channel = in_channel
+type nonrec out_channel = out_channel
 
 (* Those functions are ok; they already take a channel as a parameter, which
  * is a capability.
@@ -370,6 +374,14 @@ let input_value = input_value
 let seek_in = seek_in
 let pos_in = pos_in
 let in_channel_length = in_channel_length
+
+(* closing is ok *)
+let close_in = close_in
+let close_in_noerr = close_in_noerr
+let set_binary_mode_in = set_binary_mode_in
+let close_out = close_out
+let close_out_noerr = close_out_noerr
+let set_binary_mode_out = set_binary_mode_out
 
 module LargeFile = LargeFile
 
@@ -413,9 +425,9 @@ let ( ^^ ) = ( ^^ )
 (* Exit (FORBIDDEN) *)
 (**************************************************************************)
 
-let exit = exit
-let at_exit = at_exit
-let do_at_exit = do_at_exit
+let exit = ()
+let at_exit = ()
+let do_at_exit = ()
 
 (**************************************************************************)
 (* Misc *)

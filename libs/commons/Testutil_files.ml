@@ -232,5 +232,5 @@ let () =
           assert (sort tree2 = sort tree);
 
           let paths = flatten tree |> File.Path.to_strings in
-          List.iter print_endline paths;
+          List.iter Stdlib.print_endline paths;
           assert (paths = [ "a"; "b"; "c"; "d/e" ])))

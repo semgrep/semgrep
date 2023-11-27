@@ -175,17 +175,17 @@ let indent_do f =
       _tab_level_print := !_tab_level_print - _tab_indent)
 
 let pr s =
-  print_string !_prefix_pr;
-  do_n !_tab_level_print (fun () -> print_string " ");
-  print_string s;
-  print_string "\n";
-  flush stdout
+  Stdlib.print_string !_prefix_pr;
+  do_n !_tab_level_print (fun () -> Stdlib.print_string " ");
+  Stdlib.print_string s;
+  Stdlib.print_string "\n";
+  flush Stdlib.stdout
 
 let pr_no_nl s =
-  print_string !_prefix_pr;
-  do_n !_tab_level_print (fun () -> print_string " ");
-  print_string s;
-  flush stdout
+  Stdlib.print_string !_prefix_pr;
+  do_n !_tab_level_print (fun () -> Stdlib.print_string " ");
+  Stdlib.print_string s;
+  flush Stdlib.stdout
 
 let _chan_pr2 = ref (None : out_channel option)
 
@@ -356,14 +356,14 @@ let mk_pr2_wrappers aref =
 (* could also be in File section *)
 
 let redirect_stdout file f =
-  let chan = open_out_bin file in
+  let chan = Stdlib.open_out_bin file in
   let descr = Unix.descr_of_out_channel chan in
 
   let saveout = Unix.dup Unix.stdout in
   Unix.dup2 descr Unix.stdout;
-  flush stdout;
+  flush Stdlib.stdout;
   let res = f () in
-  flush stdout;
+  flush Stdlib.stdout;
   Unix.dup2 saveout Unix.stdout;
   close_out chan;
   res
@@ -374,24 +374,24 @@ let redirect_stdout_opt optfile f =
   | Some outfile -> redirect_stdout outfile f
 
 let redirect_stdout_stderr file f =
-  let chan = open_out_bin file in
+  let chan = Stdlib.open_out_bin file in
   let descr = Unix.descr_of_out_channel chan in
 
   let saveout = Unix.dup Unix.stdout in
   let saveerr = Unix.dup Unix.stderr in
   Unix.dup2 descr Unix.stdout;
   Unix.dup2 descr Unix.stderr;
-  flush stdout;
+  flush Stdlib.stdout;
   flush stderr;
   f ();
-  flush stdout;
+  flush Stdlib.stdout;
   flush stderr;
   Unix.dup2 saveout Unix.stdout;
   Unix.dup2 saveerr Unix.stderr;
   close_out chan
 
 let redirect_stdin file f =
-  let chan = open_in_bin file in
+  let chan = Stdlib.open_in_bin file in
   let descr = Unix.descr_of_in_channel chan in
 
   let savein = Unix.dup Unix.stdin in
@@ -432,7 +432,7 @@ let _chan = ref stderr
 let start_log_file () =
   let filename = spf "/tmp/debugml%d:%d" (Unix.getuid ()) (Unix.getpid ()) in
   pr2 (spf "now using %s for logging" filename);
-  _chan := open_out_bin filename
+  _chan := Stdlib.open_out_bin filename
 
 let dolog s =
   output_string !_chan (s ^ "\n");
@@ -452,7 +452,7 @@ let if_log4 f = if !verbose_level >= 4 then f ()
 
 let pause () =
   pr2 "pause: type return";
-  ignore (read_line ())
+  ignore (Stdlib.read_line ())
 
 (* was used by fix_caml *)
 let _trace_var = ref 0
@@ -461,7 +461,7 @@ let dec_var () = decr _trace_var
 let get_var () = !_trace_var
 
 let (print_n : int -> string -> unit) =
- fun i s -> do_n i (fun () -> print_string s)
+ fun i s -> do_n i (fun () -> Stdlib.print_string s)
 
 let (printerr_n : int -> string -> unit) =
  fun i s -> do_n i (fun () -> prerr_string s)
@@ -760,14 +760,14 @@ let take_one xs =
 (*****************************************************************************)
 
 let get_value filename =
-  let chan = open_in_bin filename in
+  let chan = Stdlib.open_in_bin filename in
   let x = input_value chan in
   (* <=> Marshal.from_channel  *)
   close_in chan;
   x
 
 let write_value valu filename =
-  let chan = open_out_bin filename in
+  let chan = Stdlib.open_out_bin filename in
   output_value chan valu;
   (* <=> Marshal.to_channel *)
   (* Marshal.to_channel chan valu [Marshal.Closures]; *)
@@ -820,23 +820,23 @@ let string_of_option f = function
   | None -> "None "
   | Some x -> "Some " ^ f x
 
-let print_bool x = print_string (if x then "True" else "False")
+let print_bool x = Stdlib.print_string (if x then "True" else "False")
 
 let print_option pr = function
-  | None -> print_string "None"
+  | None -> Stdlib.print_string "None"
   | Some x ->
-      print_string "Some (";
+      Stdlib.print_string "Some (";
       pr x;
-      print_string ")"
+      Stdlib.print_string ")"
 
 let print_list pr xs =
-  print_string "[";
+  Stdlib.print_string "[";
   List.iter
     (fun x ->
       pr x;
-      print_string ",")
+      Stdlib.print_string ",")
     xs;
-  print_string "]"
+  Stdlib.print_string "]"
 
 (* specialised
    let (string_of_list: char list -> string) =
@@ -916,7 +916,7 @@ let mk_str_func_of_assoc_conv xs =
 
 (* put your macro in macro.ml4, and you can test it interactivly as in lisp *)
 let macro_expand s =
-  let c = open_out_bin "/tmp/ttttt.ml" in
+  let c = Stdlib.open_out_bin "/tmp/ttttt.ml" in
   output_string c s;
   close_out c;
   command2
@@ -2662,7 +2662,7 @@ let _ = example (nblines "toto\ntata\n" =|= 2)
 (* Fold over a file in chunks *)
 let fold_file f x file_name =
   let buffer = Bytes.create 1024 in
-  let file = open_in file_name in
+  let file = Stdlib.open_in file_name in
   let rec go a =
     let length = input file buffer 0 (Bytes.length buffer) in
     let a' = f a (Bytes.sub buffer 0 length) in
@@ -2726,7 +2726,7 @@ let _ = example (lines_with_nl_either "ab\n\nc" =*=
 (* Process/Files *)
 (*****************************************************************************)
 let cat_orig file =
-  let chan = open_in_bin file in
+  let chan = Stdlib.open_in_bin file in
   let rec cat_orig_aux () =
     try
       (* cant do input_line chan::aux() cos ocaml eval from right to left ! *)
@@ -2739,7 +2739,7 @@ let cat_orig file =
 
 (* tail recursive efficient version *)
 let cat file =
-  let chan = open_in_bin file in
+  let chan = Stdlib.open_in_bin file in
   let rec cat_aux acc () =
     (* cant do input_line chan::aux() cos ocaml eval from right to left ! *)
     let b, l =
@@ -2784,7 +2784,7 @@ let interpolate str =
 (* could do a print_string but printf dont like print_string *)
 let echo s =
   Printf.printf "%s" s;
-  flush stdout;
+  flush Stdlib.stdout;
   s
 
 let usleep s =
@@ -2806,7 +2806,7 @@ let do_in_fork f =
            pr2 "being killed";
            Unix.kill 0 Sys.sigkill));
     f ();
-    exit 0)
+    Stdlib.exit 0)
   else pid
 
 exception CmdError of Unix.process_status * string
@@ -2859,7 +2859,7 @@ let y_or_no msg =
   if !_batch_mode then true
   else
     let rec aux () =
-      match read_line () with
+      match Stdlib.read_line () with
       | "y"
       | "yes"
       | "Y" ->
@@ -2880,7 +2880,7 @@ let command2_y_or_no cmd =
     true)
   else (
     pr2 (cmd ^ " [y/n] ?");
-    match read_line () with
+    match Stdlib.read_line () with
     | "y"
     | "yes"
     | "Y" ->
@@ -2913,7 +2913,7 @@ let command_safe ?verbose:(_verbose = false) program args =
 let mkdir ?(mode = 0o770) file = Unix.mkdir file mode
 
 let read_file file =
-  let ic = open_in_bin file in
+  let ic = Stdlib.open_in_bin file in
   let size = in_channel_length ic in
   let buf = Bytes.create size in
   really_input ic buf 0 size;
@@ -2921,7 +2921,7 @@ let read_file file =
   buf |> Bytes.to_string
 
 let write_file ~file s =
-  let chan = open_out_bin file in
+  let chan = Stdlib.open_out_bin file in
   output_string chan s;
   close_out chan
 
@@ -2933,7 +2933,7 @@ let filesize file =
     (unix_stat file).Unix.st_size
     (* src: https://rosettacode.org/wiki/File_size#OCaml *)
   else
-    let ic = open_in_bin file in
+    let ic = Stdlib.open_in_bin file in
     let i = in_channel_length ic in
     close_in ic;
     i
@@ -3175,7 +3175,9 @@ let has_env _var = failwith "Common.has_env, TODO"
 let (with_open_outfile_append :
       filename -> ((string -> unit) * out_channel -> 'a) -> 'a) =
  fun file f ->
-  let chan = open_out_gen [ Open_creat; Open_append; Open_binary ] 0o666 file in
+  let chan =
+    Stdlib.open_out_gen [ Open_creat; Open_append; Open_binary ] 0o666 file
+  in
   let pr s = output_string chan s in
   Common.unwind_protect
     (fun () ->
@@ -3213,7 +3215,7 @@ let with_tmp_dir f =
 (* now in prelude: exception UnixExit of int *)
 let exn_to_real_unixexit f =
   try f () with
-  | UnixExit x -> exit x
+  | UnixExit x -> Stdlib.exit x
 
 let uncat xs file =
   Common.with_open_outfile file (fun (pr, _chan) ->
@@ -5061,7 +5063,7 @@ type pixel = int * int * int (* RGB *)
 (* required pixel list in row major order, line after line *)
 let (write_ppm : int -> int -> pixel list -> string -> unit) =
  fun width height xs filename ->
-  let chan = open_out_bin filename in
+  let chan = Stdlib.open_out_bin filename in
   output_string chan "P6\n";
   output_string chan (string_of_int width ^ "\n");
   output_string chan (string_of_int height ^ "\n");
@@ -5185,12 +5187,12 @@ let parserCommon lexbuf parserer lexer =
     result
   with
   | Parsing.Parse_error ->
-      print_string "buf: ";
-      print_bytes lexbuf.Lexing.lex_buffer;
-      print_string "\n";
-      print_string "current: ";
-      print_int lexbuf.Lexing.lex_curr_pos;
-      print_string "\n";
+      Stdlib.print_string "buf: ";
+      Stdlib.print_bytes lexbuf.Lexing.lex_buffer;
+      Stdlib.print_string "\n";
+      Stdlib.print_string "current: ";
+      Stdlib.print_int lexbuf.Lexing.lex_curr_pos;
+      Stdlib.print_string "\n";
       raise Parsing.Parse_error
 
 (* marche pas ca neuneu *)
@@ -5209,7 +5211,7 @@ let getDoubleParser parserer lexer =
         parserCommon lexbuf1 parserer lexer),
     function
     | string ->
-        let chan = open_in_bin string in
+        let chan = Stdlib.open_in_bin string in
         let lexbuf2 = Lexing.from_channel chan in
         parserCommon lexbuf2 parserer lexer )
 
@@ -5293,7 +5295,7 @@ let regression_testing_vs newscore bestscore =
                      res;
                    Printf.printf "%s\n" (chop ("Old error: " ^ y));
                    Printf.printf "New error: %s\n" x)));
-  flush stdout;
+  flush Stdlib.stdout;
   flush stderr;
   newbestscore
 
@@ -5659,9 +5661,9 @@ let format_to_string f =
   let _ = f () in
   Format.print_newline ();
   Format.print_flush ();
-  Format.set_formatter_out_channel stdout;
+  Format.set_formatter_out_channel Stdlib.stdout;
   close_out o;
-  let i = open_in_bin nm in
+  let i = Stdlib.open_in_bin nm in
   let lines = ref [] in
   let rec loop _ =
     let cur = input_line i in
@@ -5872,8 +5874,8 @@ class ['a] olist (ys : 'a list) =
 (* let _ = write_value ((new setb[])#add 1) "/tmp/test" *)
 let typing_sux_test () =
   let x = Obj.magic [ 1; 2; 3 ] in
-  let f1 xs = List.iter print_int xs in
-  let f2 xs = List.iter print_string xs in
+  let f1 xs = List.iter Stdlib.print_int xs in
+  let f2 xs = List.iter Stdlib.print_string xs in
   f1 x;
   f2 x
 

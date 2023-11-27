@@ -112,7 +112,7 @@ let replace_named_pipe_by_regular_file_if_needed ?(prefix = "named-pipe")
         in
         let remove () = if Sys.file_exists tmp_path then Sys.remove tmp_path in
         (* Try to remove temporary file when program exits. *)
-        at_exit remove;
+        Stdlib.at_exit remove;
         Common.protect
           ~finally:(fun () -> close_out_noerr oc)
           (fun () -> output_string oc data);
