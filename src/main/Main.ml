@@ -56,7 +56,7 @@ let () =
       (* osemgrep!! *)
       | "osemgrep.bc"
       | "osemgrep" ->
-          let exit_code = CLI.main argv in
+          let exit_code = CLI.main caps argv in
           (* remove? or make debug-only? or use Logs.info? *)
           if exit_code <> Exit_code.ok then
             Printf.eprintf "Error: %s\nExiting with error status %i: %s\n%!"

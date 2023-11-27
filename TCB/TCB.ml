@@ -68,6 +68,7 @@ module UStdlib = Pervasives [@@alert "-all"]
 (* Exceptions (see also Printexc module) *)
 (**************************************************************************)
 
+(*
 external raise : exn -> 'a = "%raise"
 external raise_notrace : exn -> 'a = "%raise_notrace"
 
@@ -75,6 +76,7 @@ let invalid_arg = invalid_arg
 let failwith = failwith
 
 exception Exit
+*)
 
 (* TODO? many more exns defined in Stdlib.mli were not in pervasives.ml *)
 
@@ -82,6 +84,7 @@ exception Exit
 (* Comparisons *)
 (**************************************************************************)
 
+(*
 external ( = ) : 'a -> 'a -> bool = "%equal"
 external ( <> ) : 'a -> 'a -> bool = "%notequal"
 external ( < ) : 'a -> 'a -> bool = "%lessthan"
@@ -95,14 +98,17 @@ let max = max
 
 external ( == ) : 'a -> 'a -> bool = "%eq"
 external ( != ) : 'a -> 'a -> bool = "%noteq"
+*)
 
 (**************************************************************************)
 (* Boolean (See also Bool module) *)
 (**************************************************************************)
 
+(*
 external not : bool -> bool = "%boolnot"
 external ( && ) : bool -> bool -> bool = "%sequand"
 external ( || ) : bool -> bool -> bool = "%sequor"
+*)
 
 (* was deprecated before *)
 let ( & ) = ()
@@ -112,6 +118,7 @@ let ( or ) = ()
 (* __XXX__ *)
 (**************************************************************************)
 
+(*
 external __LOC__ : string = "%loc_LOC"
 external __FILE__ : string = "%loc_FILE"
 external __LINE__ : int = "%loc_LINE"
@@ -120,18 +127,22 @@ external __POS__ : string * int * int * int = "%loc_POS"
 external __LOC_OF__ : 'a -> string * 'a = "%loc_LOC"
 external __LINE_OF__ : 'a -> int * 'a = "%loc_LINE"
 external __POS_OF__ : 'a -> (string * int * int * int) * 'a = "%loc_POS"
+*)
 
 (**************************************************************************)
 (* Control (see also Fun module) *)
 (**************************************************************************)
 
+(*
 external ( |> ) : 'a -> ('a -> 'b) -> 'b = "%revapply"
 external ( @@ ) : ('a -> 'b) -> 'a -> 'b = "%apply"
+*)
 
 (**************************************************************************)
 (* Int (see also Intxxx modules) *)
 (**************************************************************************)
 
+(*
 external ( + ) : int -> int -> int = "%addint"
 external ( - ) : int -> int -> int = "%subint"
 external ( * ) : int -> int -> int = "%mulint"
@@ -155,11 +166,13 @@ let lnot = lnot
 external ( lsl ) : int -> int -> int = "%lslint"
 external ( lsr ) : int -> int -> int = "%lsrint"
 external ( asr ) : int -> int -> int = "%asrint"
+*)
 
 (**************************************************************************)
 (* Float *)
 (**************************************************************************)
 
+(*
 external ( +. ) : float -> float -> float = "%addfloat"
 external ( -. ) : float -> float -> float = "%subfloat"
 external ( *. ) : float -> float -> float = "%mulfloat"
@@ -254,18 +267,23 @@ external classify_float : (float[@unboxed]) -> fpclass
   = "caml_classify_float" "caml_classify_float_unboxed"
 [@@noalloc]
 
+*)
+
 (**************************************************************************)
 (* Char (see also Char/Uchar) modules *)
 (**************************************************************************)
 
+(*
 external int_of_char : char -> int = "%identity"
 
 let char_of_int = char_of_int
+*)
 
 (**************************************************************************)
 (* String (see also String/Bytes modules *)
 (**************************************************************************)
 
+(*
 let ( ^ ) = ( ^ )
 
 (* bool *)
@@ -287,18 +305,23 @@ external float_of_string : string -> float = "caml_float_of_string"
 
 let float_of_string_opt = float_of_string_opt
 
+*)
 (**************************************************************************)
 (* Pairs *)
 (**************************************************************************)
 
+(*
 external fst : 'a * 'b -> 'a = "%field0"
 external snd : 'a * 'b -> 'b = "%field1"
+*)
 
 (**************************************************************************)
 (* Lists (see also List module) *)
 (**************************************************************************)
 
+(*
 let ( @ ) = ( @ )
+*)
 
 (**************************************************************************)
 (* Stdin/Stdout (FORBIDDEN) (see also Sys/Unix/... modules)  *)
@@ -332,6 +355,7 @@ let read_float_opt = ()
 (**************************************************************************)
 
 (* stderr is an ambient authority *)
+(*
 let stderr = stderr
 let prerr_char = prerr_char
 let prerr_string = prerr_string
@@ -340,12 +364,15 @@ let prerr_int = prerr_int
 let prerr_float = prerr_float
 let prerr_endline = prerr_endline
 let prerr_newline = prerr_newline
+*)
 
 (**************************************************************************)
 (* Filesystem (FORBIDDEN) (see also Sys/Unix modules) *)
 (**************************************************************************)
 
+(*
 type nonrec open_flag = open_flag
+*)
 
 (* nosemgrep: ocaml.lang.portability.crlf-support.prefer-write-in-binary-mode *)
 let open_out = ()
@@ -362,13 +389,16 @@ let open_in_gen = ()
 (**************************************************************************)
 
 (* already a capability *)
+(*
 type nonrec in_channel = in_channel
 type nonrec out_channel = out_channel
+*)
 
 (* Those functions are ok; they already take a channel as a parameter, which
  * is a capability.
  *)
 
+(*
 let flush = flush
 let flush_all = flush_all
 
@@ -404,6 +434,8 @@ let close_out = close_out
 let close_out_noerr = close_out_noerr
 let set_binary_mode_out = set_binary_mode_out
 
+*)
+
 (* was not in pervasive.ml but was in Stdlib.mli *)
 let unsafe_really_input = ()
 
@@ -425,6 +457,7 @@ let output_value = ()
 (* Refs *)
 (**************************************************************************)
 
+(*
 type nonrec 'a ref = 'a ref
 
 external ref : 'a -> 'a ref = "%makemutable"
@@ -432,17 +465,21 @@ external ( ! ) : 'a ref -> 'a = "%field0"
 external ( := ) : 'a ref -> 'a -> unit = "%setfield0"
 external incr : int ref -> unit = "%incr"
 external decr : int ref -> unit = "%decr"
+*)
 
 (**************************************************************************)
 (* Result (see also Result module) *)
 (**************************************************************************)
 
+(*
 type nonrec ('a, 'b) result = ('a, 'b) result
+*)
 
 (**************************************************************************)
 (* Format (see also Format module) *)
 (**************************************************************************)
 
+(*
 type ('a, 'b, 'c, 'd, 'e, 'f) format6 =
   ('a, 'b, 'c, 'd, 'e, 'f) CamlinternalFormatBasics.format6
 
@@ -456,6 +493,7 @@ external format_of_string :
   = "%identity"
 
 let ( ^^ ) = ( ^^ )
+*)
 
 (**************************************************************************)
 (* Exit (FORBIDDEN) (see also Sys/Unix modules) *)
@@ -472,7 +510,9 @@ let do_at_exit = ()
 (* safe, but better to forbid to use *)
 let valid_float_lexem = ()
 
+(*
 external ignore : 'a -> unit = "%ignore"
+*)
 
 (*###########################################################################*)
 (* Safe Module aliases *)
@@ -608,6 +648,10 @@ module Sys = struct
     | Signal_default
     | Signal_ignore
     | Signal_handle of (int -> unit)
+
+  (* LATER? create different capabilities for each signal? *)
+  let sigalrm = Sys.sigalrm
+  let sigxfsz = Sys.sigxfsz
 
   type backend_type = Sys.backend_type
   type extra_prefix = Sys.extra_prefix
@@ -949,6 +993,7 @@ end
 module Printexc = struct
   type raw_backtrace = Printexc.raw_backtrace
 
+  let record_backtrace = Printexc.record_backtrace
   let register_printer = Printexc.register_printer
   let get_backtrace = Printexc.get_backtrace
   let get_raw_backtrace = Printexc.get_raw_backtrace
