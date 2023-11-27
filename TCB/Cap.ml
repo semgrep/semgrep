@@ -1,16 +1,26 @@
-(* Capabilities.
+(**************************************************************************)
+(* Prelude *)
+(**************************************************************************)
+(* Capabilities implemented as simple abstract types and explicit
+ * parameters ("Lambda the ultimate security tool").
  *
  * references:
  *  - https://en.wikipedia.org/wiki/Capability-based_security
- *  - For a good introduction, see "Computer Systems Security
- *    Session 6: Capabilities", by Zeldovich and Mickens, Fall 2014
+ *  - "Computer Systems Security Session 6: Capabilities" accessible at
  *    https://www.youtube.com/watch?v=TQhmua7Z2cY
+ *    by Zeldovich and Mickens, Fall 2014. Good introduction.
  *
  * related work:
- *  - EIO capabilities for network, fs, etc.
- *    see especially Eio_unix.Stdenv.base, and also
+ *  - EIO capabilities for network, fs, io, etc.
+ *    see especially Eio_unix.Stdenv.base, and also Thomas's blog post
  *    https://roscidus.com/blog/blog/2023/04/26/lambda-capabilities/
- *  - a lot
+ *  - TODO Android's permissions? iphone permissions?
+ *  - TODO lots of related work
+ *
+ * alt:
+ *  - effect system, but not ready yet for OCaml
+ *  - semgrep rules, but this would be more of a blacklist approach whereas
+ *    here it is more a whitelist approach
  *
  * Assumed capabilities:
  *  - use RAM (see Memory_limit.ml for some limits)
@@ -45,6 +55,10 @@ end
 (**************************************************************************)
 
 module File = struct
+  (* TODO: embed also the filename in it? useful for
+   * error reporting.
+   * TODO? inout_channel?
+   *)
   type in_channel = Stdlib.in_channel
   type out_channel = Stdlib.out_channel
 end
@@ -53,9 +67,24 @@ end
 (* Exec *)
 (**************************************************************************)
 
-(* TODO: sub capabilities exec a particular program *)
+(* TODO: sub capabilities exec a particular program 'git_cmd Exec.t' *)
 module Exec = struct
   type t = unit
+end
+
+(**************************************************************************)
+(* Process *)
+(**************************************************************************)
+
+module Process = struct
+  type argv = unit
+  type env = unit
+
+  (* TODO: subtypes, like timeout signal very important *)
+  type signal = unit
+  type fork = unit
+  type domain = unit
+  type thread = unit
 end
 
 (**************************************************************************)
@@ -65,13 +94,27 @@ end
 module Console = struct
   type stdin = unit
   type stdout = unit
-  (* no stderr *)
+  (* no stderr, ambient authority *)
+end
+
+(**************************************************************************)
+(* Misc *)
+(**************************************************************************)
+
+module Misc = struct
+  (* supposedely important for side-channel attack *)
+  type time = unit
+
+  (* useful to be sure the program is deterministic and is not calling
+   * any random generator functions.
+   *)
+  type random = unit
 end
 
 (**************************************************************************)
 (* The powerbox *)
 (**************************************************************************)
-(* Entry point giving all the authories, a.k.a. the "Powerbox".
+(* Entry point giving all the authories, a.k.a. the "Powerbox"
  *
  * references:
  *  - "How Emily Tamed the Caml"
@@ -84,7 +127,16 @@ end
  *    https://dl.acm.org/doi/pdf/10.1145/3527320
  *)
 
-type fs_powerbox = {
+(* alt: called "Stdenv.Base.env" in EIO *)
+type powerbox = {
+  process : process_powerbox;
+  fs : fs_powerbox;
+  exec : Exec.t;
+  network : Network.t;
+  misc : misc_powerbox;
+}
+
+and fs_powerbox = {
   root_read : FS.root_read;
   root_write : FS.root_write;
   cwd_read : FS.cwd_read;
@@ -93,29 +145,36 @@ type fs_powerbox = {
   tmp_write : FS.tmp_write;
 }
 
-(* called "env" in EIO *)
-type powerbox = {
+and process_powerbox = {
   stdin : Console.stdin;
   stdout : Console.stdout;
-  fs : fs_powerbox;
-  exec : Exec.t;
-  network : Network.t;
+  argv : Process.argv;
+  env : Process.env;
+  signal : Process.signal;
+  fork : Process.fork;
+  domain : Process.domain;
+  thread : Process.thread;
 }
 
+and misc_powerbox = { time : Misc.time; random : Misc.random }
+
+(* "subtypes" of powerbox *)
 type no_network = {
-  stdin : Console.stdin;
-  stdout : Console.stdout;
+  process : process_powerbox;
   fs : fs_powerbox;
   exec : Exec.t;
 }
 
-type no_exec = {
+type no_exec = { process : process_powerbox; fs : fs_powerbox }
+type no_fs = { process : process_powerbox }
+
+type no_concurrency = {
   stdin : Console.stdin;
   stdout : Console.stdout;
-  fs : fs_powerbox;
+  argv : Process.argv;
+  env : Process.env;
 }
 
-type no_fs = { stdin : Console.stdin; stdout : Console.stdout }
 type nocap = unit
 
 let fs_powerbox =
@@ -128,7 +187,42 @@ let fs_powerbox =
     tmp_write = ();
   }
 
-let powerbox =
-  { stdin = (); stdout = (); fs = fs_powerbox; exec = (); network = () }
+let process_powerbox =
+  {
+    stdin = ();
+    stdout = ();
+    argv = ();
+    env = ();
+    signal = ();
+    fork = ();
+    domain = ();
+    thread = ();
+  }
 
-let main (f : powerbox -> 'a) : 'a = f powerbox
+let misc_powerbox = { time = (); random = () }
+
+let powerbox =
+  {
+    process = process_powerbox;
+    fs = fs_powerbox;
+    exec = ();
+    network = ();
+    misc = misc_powerbox;
+  }
+
+(**************************************************************************)
+(* Entry point *)
+(**************************************************************************)
+
+let already_called_main = ref false
+
+(* TODO: in addition to the dynamic check below, we could also
+ * write a semgrep rule to forbid any call to Cap.main() except
+ * in Main.ml (via a nosemgrep or paths: exclude:)
+ *)
+let main (f : powerbox -> 'a) : 'a =
+  (* can't cheat :) can't nest them *)
+  if !already_called_main then failwith "Cap.main() already called"
+  else (
+    already_called_main := true;
+    f powerbox)
