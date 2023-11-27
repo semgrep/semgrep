@@ -32,7 +32,7 @@
 (*###########################################################################*)
 
 (* U for "Unsafe/Unvetted" *)
-module UStdlib = Stdlib
+module UStdlib = Pervasives [@@alert "-all"]
 
 (* See also UUnix, USys, ... later *)
 
@@ -486,32 +486,46 @@ external ignore : 'a -> unit = "%ignore"
 (**************************************************************************)
 (* Basic data structures (usually safe) *)
 (**************************************************************************)
+
+(* Those modules used to not be in comments, but I think it slows down
+ * ocaml because the signature of 'TCB' (which is opened for every module)
+ * becomes bigger. Anyway, we were aliasing them to their original content,
+ * so simpler to just do nothing. What matters is to restrict the
+ * dangerous modules
+ *)
+
+(*
 module Unit = Unit
 module Bool = Bool
 module Uchar = Uchar
 module Char = Char
 module String = String
-
+*)
 (**************************************************************************)
 (* Numbers *)
 (**************************************************************************)
+(*
 module Int = Int
 module Int32 = Int32
 module Int64 = Int64
 module Nativeint = Nativeint
 module Float = Float
 module Complex = Complex
+*)
 
 (**************************************************************************)
 (* Composite data structures *)
 (**************************************************************************)
+(*
 module Option = Option
 module Result = Result
 module Either = Either
+*)
 
 (**************************************************************************)
 (* Containers *)
 (**************************************************************************)
+(*
 module Seq = Seq
 module List = List
 module Set = Set
@@ -520,16 +534,38 @@ module Map = Map
 module Queue = Queue
 module Hashtbl = Hashtbl
 module Weak = Weak
+*)
 
 (**************************************************************************)
 (* Arrays and buffers *)
 (**************************************************************************)
 
 (* less: could forbid the unsafe variants *)
+(*
 module Array = Array
 module Bigarray = Bigarray
 module Bytes = Bytes
 module Buffer = Buffer
+*)
+(**************************************************************************)
+(* Misc *)
+(**************************************************************************)
+
+(*
+(* only unsafe is [usage()] printing on stdout, but not worth it for now *)
+module Arg = Arg
+module Lazy = Lazy
+(* only unsafe is getenv "TEMP", but not worth restrict for no *)
+module Filename = Filename
+(* less: *)
+module Random = Random
+(* ?? *)
+module Callback = Callback
+module Digest = Digest
+module Ephemeron = Ephemeron
+module Fun = Fun
+module Gc = Gc
+*)
 
 (**************************************************************************)
 (* Deprecated modules *)
@@ -549,27 +585,6 @@ module Pervasives = struct end
 
 (* nobody use oo *)
 module Oo = struct end
-
-(**************************************************************************)
-(* Misc *)
-(**************************************************************************)
-
-(* only unsafe is [usage()] printing on stdout, but not worth it for now *)
-module Arg = Arg
-module Lazy = Lazy
-
-(* TODO: to review *)
-module Filename = Filename
-
-(* less: *)
-module Random = Random
-
-(* ?? *)
-module Callback = Callback
-module Digest = Digest
-module Ephemeron = Ephemeron
-module Fun = Fun
-module Gc = Gc
 
 (*###########################################################################*)
 (* Other module aliases (FORBIDDEN) *)
@@ -952,7 +967,9 @@ end
 (* Concurrency (RESTRICTED) *)
 (*###########################################################################*)
 
+(*
 module Atomic = Atomic
+*)
 
 (*###########################################################################*)
 (* Process/threads/domains (RESTRICTED) *)

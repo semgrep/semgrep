@@ -65,7 +65,7 @@ end
 (**************************************************************************)
 
 (* The big one *)
-type powerbox = {
+type all_caps = {
   process : process_powerbox;
   fs : fs_powerbox;
   exec : Exec.t;
@@ -119,13 +119,13 @@ type no_concurrency = {
  *)
 
 (* pure computation, just cpu/ram *)
-type nocap
+type no_cap
 
 (**************************************************************************)
 (* Entry point *)
 (**************************************************************************)
 
-(* Only way to access a powerbox. This must be restricted to be called
+(* Only way to access capabilities. This must be restricted to be called
  * only from a Main.ml (or Test.ml).
  *)
-val main : (powerbox -> 'a) -> 'a
+val main : (all_caps -> 'a) -> 'a
