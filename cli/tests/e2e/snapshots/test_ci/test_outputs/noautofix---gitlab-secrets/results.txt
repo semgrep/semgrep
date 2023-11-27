@@ -51,7 +51,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         {
           "name": "Semgrep - eqeq-bad",
           "type": "semgrep_type",
-          "url": "https://semgrep.dev/r/eqeq-bad",
+          "url": null,
           "value": "eqeq-bad"
         }
       ],
@@ -88,7 +88,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         {
           "name": "Semgrep - eqeq-bad",
           "type": "semgrep_type",
-          "url": "https://semgrep.dev/r/eqeq-bad",
+          "url": null,
           "value": "eqeq-bad"
         }
       ],
@@ -125,7 +125,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         {
           "name": "Semgrep - eqeq-bad",
           "type": "semgrep_type",
-          "url": "https://semgrep.dev/r/eqeq-bad",
+          "url": null,
           "value": "eqeq-bad"
         }
       ],
@@ -162,7 +162,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         {
           "name": "Semgrep - eqeq-bad",
           "type": "semgrep_type",
-          "url": "https://semgrep.dev/r/eqeq-bad",
+          "url": null,
           "value": "eqeq-bad"
         }
       ],
@@ -199,7 +199,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         {
           "name": "Semgrep - eqeq-five",
           "type": "semgrep_type",
-          "url": "https://semgrep.dev/r/eqeq-five",
+          "url": null,
           "value": "eqeq-five"
         }
       ],
@@ -236,7 +236,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         {
           "name": "Semgrep - eqeq-four",
           "type": "semgrep_type",
-          "url": "https://semgrep.dev/r/eqeq-four",
+          "url": null,
           "value": "eqeq-four"
         }
       ],
@@ -273,7 +273,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         {
           "name": "Semgrep - taint-test",
           "type": "semgrep_type",
-          "url": "https://semgrep.dev/r/taint-test",
+          "url": null,
           "value": "taint-test"
         }
       ],
@@ -316,7 +316,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         {
           "name": "Semgrep - supply-chain1",
           "type": "semgrep_type",
-          "url": "https://semgrep.dev/r/supply-chain1",
+          "url": null,
           "value": "supply-chain1"
         }
       ],
