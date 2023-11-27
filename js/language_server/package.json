@@ -4,8 +4,8 @@
   "description": "Javascript bindings for the LSP",
   "main": "out/src/semgrep-lsp.js",
   "scripts": {
-    "test": "tsc && node ./out/src/tests/runTests.js",
-    "build": "tsc"
+    "test": "node ./out/src/tests/runTests.js",
+    "build": "tsc && cp out/src/semgrep-lsp.js dist/semgrep-lsp.js && cp out/src/semgrep-lsp-bindings.js dist/semgrep-lsp-bindings.js"
   },
   "repository": {
     "type": "git",
@@ -30,38 +30,6 @@
     "vscode-languageclient": "^9.0.1"
   },
   "dependencies": {
-    "@semgrep/lang-bash": "file:../languages/bash",
-    "@semgrep/lang-c": "file:../languages/c",
-    "@semgrep/lang-cairo": "file:../languages/cairo",
-    "@semgrep/lang-cpp": "file:../languages/cpp",
-    "@semgrep/lang-csharp": "file:../languages/csharp",
-    "@semgrep/lang-dart": "file:../languages/dart",
-    "@semgrep/lang-dockerfile": "file:../languages/dockerfile",
-    "@semgrep/lang-go": "file:../languages/go",
-    "@semgrep/lang-hack": "file:../languages/hack",
-    "@semgrep/lang-html": "file:../languages/html",
-    "@semgrep/lang-java": "file:../languages/java",
-    "@semgrep/lang-json": "file:../languages/json",
-    "@semgrep/lang-jsonnet": "file:../languages/jsonnet",
-    "@semgrep/lang-julia": "file:../languages/julia",
-    "@semgrep/lang-kotlin": "file:../languages/kotlin",
-    "@semgrep/lang-lisp": "file:../languages/lisp",
-    "@semgrep/lang-lua": "file:../languages/lua",
-    "@semgrep/lang-ocaml": "file:../languages/ocaml",
-    "@semgrep/lang-php": "file:../languages/php",
-    "@semgrep/lang-promql": "file:../languages/promql",
-    "@semgrep/lang-protobuf": "file:../languages/protobuf",
-    "@semgrep/lang-python": "file:../languages/python",
-    "@semgrep/lang-r": "file:../languages/r",
-    "@semgrep/lang-ruby": "file:../languages/ruby",
-    "@semgrep/lang-rust": "file:../languages/rust",
-    "@semgrep/lang-scala": "file:../languages/scala",
-    "@semgrep/lang-solidity": "file:../languages/solidity",
-    "@semgrep/lang-swift": "file:../languages/swift",
-    "@semgrep/lang-terraform": "file:../languages/terraform",
-    "@semgrep/lang-typescript": "file:../languages/typescript",
-    "@semgrep/lang-vue": "file:../languages/vue",
-    "cross-dirname": "^0.1.0",
     "vscode-languageserver": "^9.0.1"
   }
 }

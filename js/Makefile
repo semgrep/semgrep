@@ -16,10 +16,6 @@ test:
 	cd languages; $(MAKE) test
 	cd tests; $(MAKE)
 
-.PHONY: e2e
-e2e: engine languages
-	cd e2e; $(MAKE) test
-
 .PHONY: package
 package:
 	cd engine; $(MAKE) package
