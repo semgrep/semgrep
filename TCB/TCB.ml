@@ -381,6 +381,9 @@ let close_out = close_out
 let close_out_noerr = close_out_noerr
 let set_binary_mode_out = set_binary_mode_out
 
+(* was not in pervasive.ml but was in Stdlib.mli *)
+let unsafe_really_input = ()
+
 module LargeFile = LargeFile
 
 (**************************************************************************)
@@ -431,9 +434,8 @@ let do_at_exit = ()
 (* Misc *)
 (**************************************************************************)
 
-let valid_float_lexem = valid_float_lexem
-
-(* TODO? also unsafe_really_input in Stdlib.mli *)
+(* safe, but better to forbid to use *)
+let valid_float_lexem = ()
 
 external ignore : 'a -> unit = "%ignore"
 
@@ -442,65 +444,68 @@ external ignore : 'a -> unit = "%ignore"
 (*###########################################################################*)
 (* those were at the end of Stdlib.ml *)
 
-(*
-!module Arg          = Arg
-module Array        = Array
-module ArrayLabels  = ArrayLabels
-module Atomic       = Atomic
-module Bigarray     = Bigarray
-module Bool         = Bool
-module Buffer       = Buffer
-module Bytes        = Bytes
-module BytesLabels  = BytesLabels
-module Callback     = Callback
-module Char         = Char
-module Complex      = Complex
-module Digest       = Digest
-module Either       = Either
-module Ephemeron    = Ephemeron
-module Filename     = Filename
-module Float        = Float
-!module Format       = Format
-module Fun          = Fun
-module Gc           = Gc
-module Genlex       = Genlex
-module Hashtbl      = Hashtbl
-!module In_channel   = In_channel
-module Int          = Int
-module Int32        = Int32
-module Int64        = Int64
-module Lazy         = Lazy
-!module Lexing       = Lexing
-module List         = List
-module ListLabels   = ListLabels
-module Map          = Map
-!module Marshal      = Marshal
-module MoreLabels   = MoreLabels
-module Nativeint    = Nativeint
-!module Obj          = Obj
-module Oo           = Oo
-module Option       = Option
-!module Out_channel  = Out_channel
-!module Parsing      = Parsing
-!module Pervasives   = Pervasives
-!module Printexc     = Printexc
-!module Printf       = Printf
-module Queue        = Queue
-!module Random       = Random
-module Result       = Result
-!module Scanf        = Scanf
-module Seq          = Seq
-module Set          = Set
-module Stack        = Stack
-module StdLabels    = StdLabels
-module Stream       = Stream
-module String       = String
-module StringLabels = StringLabels
-!!module Sys          = Sys
-module Uchar        = Uchar
-module Unit         = Unit
-module Weak         = Weak
-*)
+(* Basic data structures (usually safe) *)
+module Unit = Unit
+module Bool = Bool
+module Uchar = Uchar
+module Char = Char
+module String = String
+
+(* Numbers *)
+module Complex = Complex
+module Float = Float
+module Int = Int
+module Int32 = Int32
+module Int64 = Int64
+module Nativeint = Nativeint
+
+(* Composite data structures *)
+module Option = Option
+module Result = Result
+module Either = Either
+
+(* Containers *)
+module Seq = Seq
+module List = List
+module Set = Set
+module Stack = Stack
+module Map = Map
+module Queue = Queue
+module Hashtbl = Hashtbl
+module Lazy = Lazy
+
+(* less: could forbid the unsafe variants *)
+module Array = Array
+module Bigarray = Bigarray
+module Bytes = Bytes
+module Buffer = Buffer
+
+(* only unsafe is [usage()] printing on stdout, but not worth it for now *)
+module Arg = Arg
+
+(* label variants (forbidden, not worth it) *)
+module ArrayLabels = struct end
+module BytesLabels = struct end
+module ListLabels = struct end
+module MoreLabels = struct end
+module StringLabels = struct end
+module StdLabels = struct end
+
+(* deprecated anyway *)
+module Genlex = struct end
+module Stream = struct end
+module Pervasives = struct end
+
+(* TODO: to review *)
+module Filename = Filename
+
+(* ?? *)
+module Atomic = Atomic
+module Callback = Callback
+module Digest = Digest
+module Ephemeron = Ephemeron
+module Fun = Fun
+module Gc = Gc
 
 (*###########################################################################*)
 (* Sys (RESTRICTED) *)
@@ -735,7 +740,7 @@ module Unix = struct
 end
 
 (*###########################################################################*)
-(* Obj *)
+(* Obj (FORBIDDEN) *)
 (*###########################################################################*)
 
 module Obj = struct end
@@ -743,3 +748,21 @@ module Obj = struct end
 (*###########################################################################*)
 (* Other *)
 (*###########################################################################*)
+
+(**************************************************************************)
+(* XXX *)
+(**************************************************************************)
+
+(* TODO to mask *)
+module Out_channel = Out_channel
+module In_channel = In_channel
+module Format = Format
+module Lexing = Lexing
+module Marshal = Marshal
+module Oo = Oo
+module Parsing = Parsing
+module Printexc = Printexc
+module Printf = Printf
+module Random = Random
+module Scanf = Scanf
+module Weak = Weak
