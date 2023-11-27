@@ -7,6 +7,10 @@
  * to the entry point of your program.
  *)
 
+(**************************************************************************)
+(* Standard capabilities *)
+(**************************************************************************)
+
 module Console : sig
   type stdin
   type stdout
@@ -20,21 +24,22 @@ module Process : sig
 
   (* advanced stuff *)
   type signal
+  type exit
 
   (* See also the separate Exec.t *)
   type fork
-  type exit
-  type domain
   type thread
+  type domain
 end
 
+(* read/write on root/cwd/tmp *)
 module FS : sig
-  type root_read
-  type root_write
-  type cwd_read
-  type cwd_write
-  type tmp_read
-  type tmp_write
+  type root_r
+  type root_w
+  type cwd_r
+  type cwd_w
+  type tmp_r
+  type tmp_w
 end
 
 module Exec : sig
@@ -54,6 +59,10 @@ module Misc : sig
   type time
   type random
 end
+
+(**************************************************************************)
+(* Powerbox *)
+(**************************************************************************)
 
 (* The big one *)
 type powerbox = {
@@ -78,12 +87,12 @@ and process_powerbox = {
 }
 
 and fs_powerbox = {
-  root_read : FS.root_read;
-  root_write : FS.root_write;
-  cwd_read : FS.cwd_read;
-  cwd_write : FS.cwd_write;
-  tmp_read : FS.tmp_read;
-  tmp_write : FS.tmp_write;
+  root_r : FS.root_r;
+  root_w : FS.root_w;
+  cwd_r : FS.cwd_r;
+  cwd_w : FS.cwd_w;
+  tmp_r : FS.tmp_r;
+  tmp_w : FS.tmp_w;
 }
 
 and misc_powerbox = { time : Misc.time; random : Misc.random }
@@ -111,6 +120,10 @@ type no_concurrency = {
 
 (* pure computation, just cpu/ram *)
 type nocap
+
+(**************************************************************************)
+(* Entry point *)
+(**************************************************************************)
 
 (* Only way to access a powerbox. This must be restricted to be called
  * only from a Main.ml (or Test.ml).

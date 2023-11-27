@@ -47,12 +47,12 @@ end
 
 (* TODO: read vs write, specific dir (in_chan or out_chan of opened dir *)
 module FS = struct
-  type root_read = unit
-  type root_write = unit
-  type cwd_read = unit
-  type cwd_write = unit
-  type tmp_read = unit
-  type tmp_write = unit
+  type root_r = unit
+  type root_w = unit
+  type cwd_r = unit
+  type cwd_w = unit
+  type tmp_r = unit
+  type tmp_w = unit
 end
 
 (**************************************************************************)
@@ -90,16 +90,17 @@ module Process = struct
    * TODO: subtypes, like timeout signal very important
    *)
   type signal = unit
-  type fork = unit
   type exit = unit
-  type domain = unit
+  type fork = unit
   type thread = unit
+  type domain = unit
 end
 
 (**************************************************************************)
 (* Console *)
 (**************************************************************************)
 
+(* alt: could be part of Process *)
 module Console = struct
   type stdin = unit
   type stdout = unit
@@ -146,12 +147,12 @@ type powerbox = {
 }
 
 and fs_powerbox = {
-  root_read : FS.root_read;
-  root_write : FS.root_write;
-  cwd_read : FS.cwd_read;
-  cwd_write : FS.cwd_write;
-  tmp_read : FS.tmp_read;
-  tmp_write : FS.tmp_write;
+  root_r : FS.root_r;
+  root_w : FS.root_w;
+  cwd_r : FS.cwd_r;
+  cwd_w : FS.cwd_w;
+  tmp_r : FS.tmp_r;
+  tmp_w : FS.tmp_w;
 }
 
 and process_powerbox = {
@@ -189,14 +190,7 @@ type no_concurrency = {
 type nocap = unit
 
 let fs_powerbox =
-  {
-    root_read = ();
-    root_write = ();
-    cwd_read = ();
-    cwd_write = ();
-    tmp_read = ();
-    tmp_write = ();
-  }
+  { root_r = (); root_w = (); cwd_r = (); cwd_w = (); tmp_r = (); tmp_w = () }
 
 let process_powerbox =
   {
