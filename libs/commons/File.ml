@@ -85,7 +85,9 @@ let find_first_match_with_whole_line path ?split term =
   find_first_match_with_whole_line path ?split term
   |> Result.to_option |> Option.join
 
-let filemtime file = Unix.((stat !!file).st_mtime)
+let filemtime file =
+  let stat = UUnix.stat !!file in
+  stat.st_mtime
 
 (* TODO? slow, and maybe we should cache it to avoid rereading
  * each time the same file for each match.
@@ -101,7 +103,7 @@ let replace_named_pipe_by_regular_file_if_needed ?(prefix = "named-pipe")
   if !Common.jsoo then path
     (* don't bother supporting exotic things like fds if running in JS *)
   else
-    match (Unix.stat !!path).st_kind with
+    match (UUnix.stat !!path).st_kind with
     | Unix.S_FIFO ->
         let data = read_file path in
         let suffix = "-" ^ Fpath.basename path in
@@ -110,9 +112,11 @@ let replace_named_pipe_by_regular_file_if_needed ?(prefix = "named-pipe")
             ~mode:[ Open_creat; Open_excl; Open_wronly; Open_binary ]
             prefix suffix
         in
-        let remove () = if Sys.file_exists tmp_path then Sys.remove tmp_path in
+        let remove () =
+          if USys.file_exists tmp_path then USys.remove tmp_path
+        in
         (* Try to remove temporary file when program exits. *)
-        Stdlib.at_exit remove;
+        UStdlib.at_exit remove;
         Common.protect
           ~finally:(fun () -> close_out_noerr oc)
           (fun () -> output_string oc data);

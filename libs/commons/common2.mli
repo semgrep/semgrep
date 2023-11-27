@@ -32,7 +32,6 @@ class ['a] olist : 'a list -> object
   method view : 'a list
 end
 
-val typing_sux_test : unit -> unit
 (*e: common.mli misc/test *)
 
 (*x: common.mli globals *)

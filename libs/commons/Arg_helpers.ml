@@ -78,10 +78,10 @@ let parse_options options usage_msg argv =
   with
   | Arg.Bad msg ->
       Printf.eprintf "%s" msg;
-      Stdlib.exit 2
+      UStdlib.exit 2
   | Arg.Help msg ->
       Printf.printf "%s" msg;
-      Stdlib.exit 0
+      UStdlib.exit 0
 
 let usage usage_msg options = Arg.usage (Arg.align options) usage_msg
 
@@ -116,7 +116,7 @@ let arg_parse2 l msg short_usage_fun =
   let f file = args := file :: !args in
   let l = Arg.align l in
   try
-    Arg.parse_argv Sys.argv l f msg;
+    Arg.parse_argv USys.argv l f msg;
     args := List.rev !args;
     !args
   with
