@@ -1,7 +1,9 @@
 (library
  (public_name commons)
  (wrapped false)
+ (flags (:standard  -open TCB))
  (libraries
+   TCB
    str
    unix
    fpath

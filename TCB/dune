@@ -1,0 +1,12 @@
+; Trusted Computing Base (see https://en.wikipedia.org/wiki/Trusted_computing_base)
+(library
+ (public_name TCB)
+ (wrapped false)
+ (libraries
+ )
+ (preprocess
+   (pps
+     ppx_deriving.show
+   )
+ )
+)
