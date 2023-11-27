@@ -11,6 +11,7 @@
    yojson
    atdgen-runtime
    fmt
+   ocolor
    ANSITerminal
    logs logs.fmt
    easy_logging easy_logging_yojson

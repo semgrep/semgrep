@@ -117,7 +117,7 @@ let missing_subcommand () =
   Logs.err (fun m -> m "This semgrep subcommand is not implemented\n%!");
   Exit_code.not_implemented_in_osemgrep
 
-let dispatch_subcommand argv =
+let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
   match Array.to_list argv with
   (* impossible because argv[0] contains the program name *)
   | [] -> assert false
@@ -126,7 +126,7 @@ let dispatch_subcommand argv =
    *)
   | [ _ ]
   | [ _; "--experimental" ] ->
-      Help.print_help ();
+      Help.print_help caps.process.stdout;
       Migration.abort_if_use_of_legacy_dot_semgrep_yml ();
       Exit_code.ok
   | [ _; ("-h" | "--help") ]
@@ -137,7 +137,7 @@ let dispatch_subcommand argv =
    *)
   | [ _; ("-h" | "--help"); "--experimental" ]
   | [ _; "--experimental"; ("-h" | "--help") ] ->
-      Help.print_semgrep_dashdash_help ();
+      Help.print_semgrep_dashdash_help caps.process.stdout;
       Exit_code.ok
   | argv0 :: args -> (
       let subcmd, subcmd_args =
@@ -159,7 +159,7 @@ let dispatch_subcommand argv =
       Metrics_.add_feature "subcommand" subcmd;
       Metrics_.add_user_agent_tag (spf "command/%s" subcmd);
       subcmd_argv |> Array.to_list
-      |> exclude (fun x -> not (Base.String.is_prefix ~prefix:"-" x))
+      |> Common.exclude (fun x -> not (Base.String.is_prefix ~prefix:"-" x))
       |> List.iter log_cli_feature;
       (* coupling: with known_subcommands if you add an entry below.
        * coupling: with Help.ml if you add an entry below.
@@ -176,12 +176,12 @@ let dispatch_subcommand argv =
         | "logout" when experimental -> Logout_subcommand.main subcmd_argv
         | "lsp" -> Lsp_subcommand.main subcmd_argv
         (* partial support, still use Pysemgrep.Fallback in it *)
-        | "scan" -> Scan_subcommand.main subcmd_argv
+        | "scan" -> Scan_subcommand.main caps subcmd_argv
         | "ci" -> Ci_subcommand.main subcmd_argv
         (* osemgrep-only: and by default! no need experimental! *)
         | "install-ci" -> Install_subcommand.main subcmd_argv
         | "interactive" -> Interactive_subcommand.main subcmd_argv
-        | "show" -> Show_subcommand.main subcmd_argv
+        | "show" -> Show_subcommand.main caps subcmd_argv
         (* LATER: "test" *)
         | _else_ ->
             if experimental then
@@ -216,7 +216,7 @@ let safe_run ~debug f : Exit_code.t =
     | Error.Exit code -> code
     (* should never happen, you should prefer Error.Exit to Common.UnixExit
      * but just in case *)
-    | Common.UnixExit i -> Exit_code.of_int i
+    | UCommon.UnixExit i -> Exit_code.of_int i
     (* TOPORT: PLEASE_FILE_ISSUE_TEXT for unexpected exn *)
     | Failure msg ->
         Logs.err (fun m -> m "Error: %s%!" msg);
@@ -233,7 +233,7 @@ let before_exit ~profile () : unit =
   (* mostly a copy of Profiling.main_boilerplate finalize code *)
   if profile then Profiling.print_diagnostics_and_gc_stats ();
   (* alt: could use Logs.debug, but --profile would require then --debug *)
-  Common.erase_temp_files ();
+  UCommon.erase_temp_files ();
   ()
 
 (*****************************************************************************)
@@ -299,7 +299,7 @@ let main (caps : Cap.all_caps) (argv : string array) : Exit_code.t =
   metrics_init ();
   (* TOPORT: maybe_set_git_safe_directories() *)
   (* TOADAPT? adapt more of Common.boilerplate? *)
-  let exit_code = safe_run ~debug (fun () -> dispatch_subcommand argv) in
+  let exit_code = safe_run ~debug (fun () -> dispatch_subcommand caps argv) in
   Metrics_.add_exit_code exit_code;
   send_metrics ();
   before_exit ~profile ();
