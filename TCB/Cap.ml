@@ -22,6 +22,11 @@
  *  - semgrep rules, but this would be more of a blacklist approach whereas
  *    here it is more a whitelist approach
  *
+ * LATER:
+ *  - exn (ability to thrown exn)
+ *  - comparison
+ *  - refs
+ *
  * Assumed capabilities:
  *  - use RAM (see Memory_limit.ml for some limits)
  *  - use CPU (see Time_limit.ml for some limits)
@@ -77,12 +82,16 @@ end
 (**************************************************************************)
 
 module Process = struct
+  (* basic stuff *)
   type argv = unit
   type env = unit
 
-  (* TODO: subtypes, like timeout signal very important *)
+  (* advanced stuff
+   * TODO: subtypes, like timeout signal very important
+   *)
   type signal = unit
   type fork = unit
+  type exit = unit
   type domain = unit
   type thread = unit
 end
@@ -150,8 +159,10 @@ and process_powerbox = {
   stdout : Console.stdout;
   argv : Process.argv;
   env : Process.env;
+  (* advanced stuff *)
   signal : Process.signal;
   fork : Process.fork;
+  exit : Process.exit;
   domain : Process.domain;
   thread : Process.thread;
 }
@@ -195,6 +206,7 @@ let process_powerbox =
     env = ();
     signal = ();
     fork = ();
+    exit = ();
     domain = ();
     thread = ();
   }

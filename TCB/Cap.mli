@@ -14,12 +14,16 @@ module Console : sig
 end
 
 module Process : sig
+  (* basic stuff *)
   type argv
   type env
+
+  (* advanced stuff *)
   type signal
 
   (* See also the separate Exec.t *)
   type fork
+  type exit
   type domain
   type thread
 end
@@ -65,8 +69,10 @@ and process_powerbox = {
   stdout : Console.stdout;
   argv : Process.argv;
   env : Process.env;
+  (* advanced stuff *)
   signal : Process.signal;
   fork : Process.fork;
+  exit : Process.exit;
   domain : Process.domain;
   thread : Process.thread;
 }

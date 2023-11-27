@@ -3,27 +3,29 @@
 (**************************************************************************)
 (* The Trusted Computing Base (TCB).
  *
- * This module is meant as a replacement for the Stdlib but providing
- * more discipline on the use of very sensitive resources: stdout, stdin,
- * files, etc.
- * This file started with the content of ~/.opam/4.14.1/lib/pervasives.ml
- * but with many functions changing their type and value to unit to mask
+ * This module is meant as a replacement for Stdlib.mli but making it
+ * impossible to use very sensitive resources such stdout, stdin, files, etc.
+ * In some sense, it's insane Stdlib.ml contains [open_in] and [open_out]
+ * which gives the ability to any line of code to destruct entirely the
+ * filesystem of the user.
+ *
+ * This file started with the content of ~/.opam/4.14.1/lib/pervasives.ml,
+ * which itself is a summary and alias of Stdlib.mli, but with many functions
+ * changing their type to [unit] and value to '()'  to mask
  * and forbid their use. Indeed, even if you use ocamlc -open TCB,
  * the compiler still open Stdlib, so the only way to forbid access to the
- * sensitive resource in Stdlib is to reuse the same name but change its
+ * sensitive resource in Stdlib is to reuse the same name but change the
  * type to unit.
  *
  * references:
  *  - https://en.wikipedia.org/wiki/Trusted_computing_base
  *
- * Currently the TCB for semgrep is this file and lots of other things:
+ * Currently the TCB for semgrep itself is this file and lots of other things:
  *  - Logs library, BOS, cohttp, ..., all the libs we use, see opam.lock
  *  - tree-sitter C runtime and all the parser.c (could write
  *    semgrep rules to audit and check those parser.c files)
+ *  - ... lots of stuff, huge TCB
  *
- * TODO:
- *  - reread "lambda capabilities"
- *  - look mmm code, there was SafeStd.ml file? and sandboxing of ocaml?
  *)
 
 (**************************************************************************)
@@ -272,23 +274,15 @@ external snd : 'a * 'b -> 'b = "%field1"
 let ( @ ) = ( @ )
 
 (**************************************************************************)
-(* Stdin/Stdout/Stderr (we seriously restrict its use!) *)
+(* Stdin/Stdout/Stderr (FORBIDDEN) *)
 (**************************************************************************)
 
 type nonrec in_channel = in_channel
 type nonrec out_channel = out_channel
 
-(*
 let stdin = stdin
 let stdout = stdout
 let stderr = stderr
- *)
-(* TODO:
-   let stdin = ()
-   let stdout = ()
-   let stderr = ()
-*)
-
 let print_char = print_char
 let print_string = print_string
 let print_bytes = print_bytes
@@ -310,7 +304,7 @@ let read_float = read_float
 let read_float_opt = read_float_opt
 
 (**************************************************************************)
-(* Filesystem (we seriously restrict its use!) *)
+(* Filesystem (FORBIDDEN) *)
 (**************************************************************************)
 
 type nonrec open_flag = open_flag =
@@ -344,8 +338,14 @@ let set_binary_mode_in = set_binary_mode_in
 (* Channel IO *)
 (**************************************************************************)
 
+(* Those functions are ok; they already take a channel as a parameter, which
+ * is a capability.
+ *)
+
 let flush = flush
 let flush_all = flush_all
+
+(* output *)
 let output_char = output_char
 let output_string = output_string
 let output_bytes = output_bytes
@@ -357,6 +357,8 @@ let output_value = output_value
 let seek_out = seek_out
 let pos_out = pos_out
 let out_channel_length = out_channel_length
+
+(* input *)
 let input_char = input_char
 let input_line = input_line
 let input = input
@@ -408,7 +410,7 @@ external format_of_string :
 let ( ^^ ) = ( ^^ )
 
 (**************************************************************************)
-(* Exit *)
+(* Exit (FORBIDDEN) *)
 (**************************************************************************)
 
 let exit = exit
