@@ -28,27 +28,44 @@
  *)
 
 (*###########################################################################*)
-(* Stdlib (was pervasive) *)
+(* Unsafe variants *)
 (*###########################################################################*)
 
+(* U for "Unsafe/Unvetted" *)
 module UStdlib = Stdlib
 
+(* See also UUnix, USys, ... later *)
+
+(*###########################################################################*)
+(* Stdlib *)
+(*###########################################################################*)
+
+(* Stdlib.ml, which was called pervasive.ml for a long time, is [open]ed
+ * implicitely in every file, so we must mask the dangerous functions
+ * in it.
+ * I tried to keep the same order of the definitions than in Stdlib.mli
+ * (and pervasive.ml) below so if new versions of OCaml introduce new
+ * builtins, we can easily just go thouch each file in parallel and
+ * notice those new builtins.
+ *)
+
 (**************************************************************************)
-(*                                                                        *)
+(* Copyright *)
+(**************************************************************************)
+
+(* This file started with the content of ~/.opam/4.14.1/lib/pervasives.ml
+ * with the following copyright:
+ *)
+
 (*                                 OCaml                                  *)
-(*                                                                        *)
 (*                   Jeremie Dimino, Jane Street Europe                   *)
-(*                                                                        *)
 (*   Copyright 2017 Jane Street Group LLC                                 *)
-(*                                                                        *)
 (*   All rights reserved.  This file is distributed under the terms of    *)
 (*   the GNU Lesser General Public License version 2.1, with the          *)
 (*   special exception on linking described in the file LICENSE.          *)
-(*                                                                        *)
-(**************************************************************************)
 
 (**************************************************************************)
-(* Exceptions *)
+(* Exceptions (see also Printexc module) *)
 (**************************************************************************)
 
 external raise : exn -> 'a = "%raise"
@@ -80,7 +97,7 @@ external ( == ) : 'a -> 'a -> bool = "%eq"
 external ( != ) : 'a -> 'a -> bool = "%noteq"
 
 (**************************************************************************)
-(* Boolean *)
+(* Boolean (See also Bool module) *)
 (**************************************************************************)
 
 external not : bool -> bool = "%boolnot"
@@ -105,14 +122,14 @@ external __LINE_OF__ : 'a -> int * 'a = "%loc_LINE"
 external __POS_OF__ : 'a -> (string * int * int * int) * 'a = "%loc_POS"
 
 (**************************************************************************)
-(* Control *)
+(* Control (see also Fun module) *)
 (**************************************************************************)
 
 external ( |> ) : 'a -> ('a -> 'b) -> 'b = "%revapply"
 external ( @@ ) : ('a -> 'b) -> 'a -> 'b = "%apply"
 
 (**************************************************************************)
-(* Int *)
+(* Int (see also Intxxx modules) *)
 (**************************************************************************)
 
 external ( + ) : int -> int -> int = "%addint"
@@ -238,22 +255,32 @@ external classify_float : (float[@unboxed]) -> fpclass
 [@@noalloc]
 
 (**************************************************************************)
-(* Chars and strings *)
+(* Char (see also Char/Uchar) modules *)
 (**************************************************************************)
-
-let ( ^ ) = ( ^ )
 
 external int_of_char : char -> int = "%identity"
 
 let char_of_int = char_of_int
+
+(**************************************************************************)
+(* String (see also String/Bytes modules *)
+(**************************************************************************)
+
+let ( ^ ) = ( ^ )
+
+(* bool *)
 let string_of_bool = string_of_bool
 let bool_of_string = bool_of_string
 let bool_of_string_opt = bool_of_string_opt
+
+(* int *)
 let string_of_int = string_of_int
 
 external int_of_string : string -> int = "caml_int_of_string"
 
 let int_of_string_opt = int_of_string_opt
+
+(* float *)
 let string_of_float = string_of_float
 
 external float_of_string : string -> float = "caml_float_of_string"
@@ -268,14 +295,18 @@ external fst : 'a * 'b -> 'a = "%field0"
 external snd : 'a * 'b -> 'b = "%field1"
 
 (**************************************************************************)
-(* Lists *)
+(* Lists (see also List module) *)
 (**************************************************************************)
 
 let ( @ ) = ( @ )
 
 (**************************************************************************)
-(* Stdin/Stdout (FORBIDDEN) *)
+(* Stdin/Stdout (FORBIDDEN) (see also Sys/Unix/... modules)  *)
 (**************************************************************************)
+
+(* See also for Out: Printf/Format/Printexc
+ * See also for In: Scanf/Lexing/Parsing
+ *)
 
 let stdin = ()
 let stdout = ()
@@ -311,7 +342,7 @@ let prerr_endline = prerr_endline
 let prerr_newline = prerr_newline
 
 (**************************************************************************)
-(* Filesystem (FORBIDDEN) *)
+(* Filesystem (FORBIDDEN) (see also Sys/Unix modules) *)
 (**************************************************************************)
 
 type nonrec open_flag = open_flag
@@ -327,18 +358,10 @@ let open_in_bin = ()
 let open_in_gen = ()
 
 (**************************************************************************)
-(* Marshalling *)
+(* Channel IO (see also Out_channel/In_channel/Unix modules) *)
 (**************************************************************************)
 
-let input_value = ()
-
-(* this we could potentially allow, but more symetric to forbid *)
-let output_value = ()
-
-(**************************************************************************)
-(* Channel IO *)
-(**************************************************************************)
-
+(* already a capability *)
 type nonrec in_channel = in_channel
 type nonrec out_channel = out_channel
 
@@ -384,7 +407,19 @@ let set_binary_mode_out = set_binary_mode_out
 (* was not in pervasive.ml but was in Stdlib.mli *)
 let unsafe_really_input = ()
 
-module LargeFile = LargeFile
+(* we could reexport it, but I don't think code in Semgrep use it *)
+module LargeFile = struct end
+
+(**************************************************************************)
+(* Marshalling (see also Marshal module) (FORBIDDEN) *)
+(**************************************************************************)
+
+let input_value = ()
+
+(* We could potentially allow output_value(), but more symetric to forbid,
+ * and anyway better to explicitely use the Marshal module
+ *)
+let output_value = ()
 
 (**************************************************************************)
 (* Refs *)
@@ -399,13 +434,13 @@ external incr : int ref -> unit = "%incr"
 external decr : int ref -> unit = "%decr"
 
 (**************************************************************************)
-(* Result *)
+(* Result (see also Result module) *)
 (**************************************************************************)
 
 type nonrec ('a, 'b) result = ('a, 'b) result
 
 (**************************************************************************)
-(* Format *)
+(* Format (see also Format module) *)
 (**************************************************************************)
 
 type ('a, 'b, 'c, 'd, 'e, 'f) format6 =
@@ -423,7 +458,7 @@ external format_of_string :
 let ( ^^ ) = ( ^^ )
 
 (**************************************************************************)
-(* Exit (FORBIDDEN) *)
+(* Exit (FORBIDDEN) (see also Sys/Unix modules) *)
 (**************************************************************************)
 
 let exit = ()
@@ -440,31 +475,43 @@ let valid_float_lexem = ()
 external ignore : 'a -> unit = "%ignore"
 
 (*###########################################################################*)
-(* Module aliases *)
+(* Safe Module aliases *)
 (*###########################################################################*)
-(* those were at the end of Stdlib.ml *)
+(* Those modules were listed (alphabetically) at the end of Stdlib.ml
+ * I've reordered them to give more structures, but if new OCaml versions
+ * introduce new standard module, it can be important to update the list
+ * below.
+ *)
 
+(**************************************************************************)
 (* Basic data structures (usually safe) *)
+(**************************************************************************)
 module Unit = Unit
 module Bool = Bool
 module Uchar = Uchar
 module Char = Char
 module String = String
 
+(**************************************************************************)
 (* Numbers *)
-module Complex = Complex
-module Float = Float
+(**************************************************************************)
 module Int = Int
 module Int32 = Int32
 module Int64 = Int64
 module Nativeint = Nativeint
+module Float = Float
+module Complex = Complex
 
+(**************************************************************************)
 (* Composite data structures *)
+(**************************************************************************)
 module Option = Option
 module Result = Result
 module Either = Either
 
+(**************************************************************************)
 (* Containers *)
+(**************************************************************************)
 module Seq = Seq
 module List = List
 module Set = Set
@@ -472,7 +519,11 @@ module Stack = Stack
 module Map = Map
 module Queue = Queue
 module Hashtbl = Hashtbl
-module Lazy = Lazy
+module Weak = Weak
+
+(**************************************************************************)
+(* Arrays and buffers *)
+(**************************************************************************)
 
 (* less: could forbid the unsafe variants *)
 module Array = Array
@@ -480,9 +531,9 @@ module Bigarray = Bigarray
 module Bytes = Bytes
 module Buffer = Buffer
 
-(* only unsafe is [usage()] printing on stdout, but not worth it for now *)
-module Arg = Arg
-
+(**************************************************************************)
+(* Deprecated modules *)
+(**************************************************************************)
 (* label variants (forbidden, not worth it) *)
 module ArrayLabels = struct end
 module BytesLabels = struct end
@@ -496,11 +547,24 @@ module Genlex = struct end
 module Stream = struct end
 module Pervasives = struct end
 
+(* nobody use oo *)
+module Oo = struct end
+
+(**************************************************************************)
+(* Misc *)
+(**************************************************************************)
+
+(* only unsafe is [usage()] printing on stdout, but not worth it for now *)
+module Arg = Arg
+module Lazy = Lazy
+
 (* TODO: to review *)
 module Filename = Filename
 
+(* less: *)
+module Random = Random
+
 (* ?? *)
-module Atomic = Atomic
 module Callback = Callback
 module Digest = Digest
 module Ephemeron = Ephemeron
@@ -508,10 +572,18 @@ module Fun = Fun
 module Gc = Gc
 
 (*###########################################################################*)
+(* Other module aliases (FORBIDDEN) *)
+(*###########################################################################*)
+
+(* already in Stdlib and anyway unsafe and rarely used because new *)
+module Out_channel = struct end
+module In_channel = struct end
+
+(*###########################################################################*)
 (* Sys (RESTRICTED) *)
 (*###########################################################################*)
 
-(* U for "Unsafe/Unvetted" Sys *)
+(* Unsafe (original) Sys *)
 module USys = Sys
 
 module Sys = struct
@@ -717,6 +789,8 @@ module Unix = struct
 
   (* already a capability *)
   type inet_addr = Unix.inet_addr
+
+  (* not that used so not worth repeating their definitions *)
   type socket_domain = Unix.socket_domain
   type socket_type = Unix.socket_type
   type sockaddr = Unix.sockaddr
@@ -743,26 +817,143 @@ end
 (* Obj (FORBIDDEN) *)
 (*###########################################################################*)
 
+(* We absolutely need to forbid Obj, and especially Obj.magic which can
+ * subvert the type system and allows for example code to forge any
+ * types (including capabilities).
+ *)
 module Obj = struct end
 
 (*###########################################################################*)
-(* Other *)
+(* Marshall (RESTRICTED) *)
 (*###########################################################################*)
 
-(**************************************************************************)
-(* XXX *)
-(**************************************************************************)
+module UMarshal = Marshal
 
-(* TODO to mask *)
-module Out_channel = Out_channel
-module In_channel = In_channel
-module Format = Format
-module Lexing = Lexing
-module Marshal = Marshal
-module Oo = Oo
-module Parsing = Parsing
-module Printexc = Printexc
-module Printf = Printf
-module Random = Random
-module Scanf = Scanf
-module Weak = Weak
+module Marshal = struct
+  type extern_flags = Marshal.extern_flags =
+    | No_sharing  (** Don't preserve sharing *)
+    | Closures  (** Send function closures *)
+    | Compat_32  (** Ensure 32-bit compatibility *)
+
+  (* FORBIDDEN:
+     - from_string
+  *)
+  let to_string = Marshal.to_string
+end
+
+(*###########################################################################*)
+(* Reading (RESTRICTED) *)
+(*###########################################################################*)
+
+module Lexing = struct
+  type position = Lexing.position = {
+    pos_fname : string;
+    pos_lnum : int;
+    pos_bol : int;
+    pos_cnum : int;
+  }
+
+  type lexbuf = Lexing.lexbuf = {
+    refill_buff : lexbuf -> unit;
+    mutable lex_buffer : bytes;
+    mutable lex_buffer_len : int;
+    mutable lex_abs_pos : int;
+    mutable lex_start_pos : int;
+    mutable lex_curr_pos : int;
+    mutable lex_last_pos : int;
+    mutable lex_last_action : int;
+    mutable lex_eof_reached : bool;
+    mutable lex_mem : int array;
+    mutable lex_start_p : position;
+    mutable lex_curr_p : position;
+  }
+
+  let from_string = Lexing.from_string
+  let from_channel = Lexing.from_channel
+
+  (* FORBIDDEN:
+*)
+end
+
+module UParsing = Parsing
+
+module Parsing = struct
+  (* FORBIDDEN:
+*)
+end
+
+(* Forbidden, not worth it *)
+module Scanf = struct end
+
+(*###########################################################################*)
+(* Printing (RESTRICTED) *)
+(*###########################################################################*)
+
+module UPrintf = Printf
+
+module Printf = struct
+  let sprintf = Printf.sprintf
+  let fprintf = Printf.fprintf
+  let eprintf = Printf.eprintf
+
+  (* FORBIDDEN:
+     - printf
+  *)
+end
+
+module UFormat = Format
+
+module Format = struct
+  (* already a capability *)
+  type formatter = Format.formatter
+
+  let err_formatter = Format.err_formatter
+  let formatter_of_buffer = Format.formatter_of_buffer
+  let fprintf = Format.fprintf
+  let eprintf = Format.eprintf
+  let sprintf = Format.sprintf
+
+  (* pp_xxx are safe *)
+  let pp_print_int = Format.pp_print_int
+  let pp_print_string = Format.pp_print_string
+  let pp_print_list = Format.pp_print_list
+  let pp_print_as = Format.pp_print_as
+  let pp_print_flush = Format.pp_print_flush
+  let pp_set_margin = Format.pp_set_margin
+  let pp_open_box = Format.pp_open_box
+  let pp_print_break = Format.pp_print_break
+
+  (* FORBIDDEN:
+      - all the print_xxx variant that use directly to stdout
+      - std_formatter
+      - printf
+      - stdbuf, str_formatter (unsafe in the end)
+  *)
+end
+
+module Printexc = struct
+  type raw_backtrace = Printexc.raw_backtrace
+
+  let register_printer = Printexc.register_printer
+  let get_backtrace = Printexc.get_backtrace
+  let get_raw_backtrace = Printexc.get_raw_backtrace
+  let get_callstack = Printexc.get_callstack
+  let raise_with_backtrace = Printexc.raise_with_backtrace
+  let to_string = Printexc.to_string
+  let raw_backtrace_to_string = Printexc.raw_backtrace_to_string
+
+  (* FORBIDDEN:
+     - print, print_backtrace
+     - ...
+  *)
+end
+
+(*###########################################################################*)
+(* Concurrency (RESTRICTED) *)
+(*###########################################################################*)
+
+module Atomic = Atomic
+
+(*###########################################################################*)
+(* Process/threads/domains (RESTRICTED) *)
+(*###########################################################################*)

@@ -80,7 +80,7 @@ let parse_options options usage_msg argv =
       Printf.eprintf "%s" msg;
       UStdlib.exit 2
   | Arg.Help msg ->
-      Printf.printf "%s" msg;
+      UPrintf.printf "%s" msg;
       UStdlib.exit 0
 
 let usage usage_msg options = Arg.usage (Arg.align options) usage_msg

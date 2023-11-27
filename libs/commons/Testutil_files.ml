@@ -201,17 +201,17 @@ let with_tempfiles ?persist ?chdir files func =
       func root)
 
 let print_files files =
-  flatten files |> List.iter (fun path -> printf "%s\n" !!path)
+  flatten files |> List.iter (fun path -> UPrintf.printf "%s\n" !!path)
 
 let with_tempfiles_verbose (files : t list) func =
   with_tempdir ~chdir:true (fun root ->
       let files = sort files in
-      printf "Input files:\n";
+      UPrintf.printf "Input files:\n";
       print_files files;
       write root files;
       (* Nice listing of the real file tree.
          Don't care if the 'tree' command is unavailable. *)
-      USys.command (sprintf "tree -a '%s'" !!root) |> ignore;
+      USys.command (Printf.sprintf "tree -a '%s'" !!root) |> ignore;
       func root)
 
 let () =

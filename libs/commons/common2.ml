@@ -560,7 +560,7 @@ let (test_all : unit -> unit) =
  fun () ->
   List.iter
     (fun (s, b) ->
-      Printf.printf "%s: %s\n" s (if b then "passed" else "failed"))
+      UPrintf.printf "%s: %s\n" s (if b then "passed" else "failed"))
     !_list_bool
 
 let ( ++ ) a b = a @ b
@@ -775,7 +775,7 @@ let write_value valu filename =
 let write_back func filename = write_value (func (get_value filename)) filename
 let read_value f = get_value f
 let marshal__to_string v flags = Marshal.to_string v flags
-let marshal__from_string v flags = Marshal.from_string v flags
+let marshal__from_string v flags = UMarshal.from_string v flags
 
 (*****************************************************************************)
 (* Counter *)
@@ -851,37 +851,37 @@ let rec print_between between fn = function
       print_between between fn xs
 
 let adjust_pp_with_indent f =
-  Format.open_box !_tab_level_print;
+  UFormat.open_box !_tab_level_print;
   (*Format.force_newline();*)
   f ();
-  Format.close_box ();
-  Format.print_newline ()
+  UFormat.close_box ();
+  UFormat.print_newline ()
 
 let adjust_pp_with_indent_and_header s f =
-  Format.open_box (!_tab_level_print + String.length s);
-  do_n !_tab_level_print (fun () -> Format.print_string " ");
-  Format.print_string s;
+  UFormat.open_box (!_tab_level_print + String.length s);
+  do_n !_tab_level_print (fun () -> UFormat.print_string " ");
+  UFormat.print_string s;
   f ();
-  Format.close_box ();
-  Format.print_newline ()
+  UFormat.close_box ();
+  UFormat.print_newline ()
 
 let pp_do_in_box f =
-  Format.open_box 1;
+  UFormat.open_box 1;
   f ();
-  Format.close_box ()
+  UFormat.close_box ()
 
 let pp_do_in_zero_box f =
-  Format.open_box 0;
+  UFormat.open_box 0;
   f ();
-  Format.close_box ()
+  UFormat.close_box ()
 
 let pp_f_in_box f =
-  Format.open_box 1;
+  UFormat.open_box 1;
   let res = f () in
-  Format.close_box ();
+  UFormat.close_box ();
   res
 
-let pp s = Format.print_string s
+let pp s = UFormat.print_string s
 
 (*
  * use as
@@ -1877,7 +1877,7 @@ let is_string_prefix s1 s2 =
 let plural i s =
   if i =|= 1 then Printf.sprintf "%d %s" i s else Printf.sprintf "%d %ss" i s
 
-let showCodeHex xs = List.iter (fun i -> Printf.printf "%02x" i) xs
+let showCodeHex xs = List.iter (fun i -> UPrintf.printf "%02x" i) xs
 let take_string n s = String.sub s 0 (n - 1)
 let take_string_safe n s = if n > String.length s then s else take_string n s
 
@@ -1951,14 +1951,14 @@ let _ = assert (edit_distance "vintner" "writers" =|= 5)
 (* We can emulate the Perl wrap function with the following function *)
 let wrap ?(width = 80) s =
   let l = Str.split (Str.regexp " ") s in
-  Format.pp_set_margin Format.str_formatter width;
-  Format.pp_open_box Format.str_formatter 0;
+  Format.pp_set_margin UFormat.str_formatter width;
+  Format.pp_open_box UFormat.str_formatter 0;
   List.iter
     (fun x ->
-      Format.pp_print_string Format.str_formatter x;
-      Format.pp_print_break Format.str_formatter 1 0)
+      Format.pp_print_string UFormat.str_formatter x;
+      Format.pp_print_break UFormat.str_formatter 1 0)
     l;
-  Format.flush_str_formatter ()
+  UFormat.flush_str_formatter ()
 
 (*****************************************************************************)
 (* Filenames *)
@@ -2782,7 +2782,7 @@ let interpolate str =
 
 (* could do a print_string but printf dont like print_string *)
 let echo s =
-  Printf.printf "%s" s;
+  UPrintf.printf "%s" s;
   flush UStdlib.stdout;
   s
 
@@ -5186,14 +5186,14 @@ let parserCommon lexbuf parserer lexer =
     let result = parserer lexer lexbuf in
     result
   with
-  | Parsing.Parse_error ->
+  | UParsing.Parse_error ->
       UStdlib.print_string "buf: ";
       UStdlib.print_bytes lexbuf.Lexing.lex_buffer;
       UStdlib.print_string "\n";
       UStdlib.print_string "current: ";
       UStdlib.print_int lexbuf.Lexing.lex_curr_pos;
       UStdlib.print_string "\n";
-      raise Parsing.Parse_error
+      raise UParsing.Parse_error
 
 (* marche pas ca neuneu *)
 (*
@@ -5274,27 +5274,27 @@ let regression_testing_vs newscore bestscore =
          with
          | None, None -> raise Common.Impossible
          | Some x, None ->
-             Printf.printf "new test file appeared: %s\n" res;
+             UPrintf.printf "new test file appeared: %s\n" res;
              Hashtbl.add newbestscore res x
-         | None, Some _x -> Printf.printf "old test file disappeared: %s\n" res
+         | None, Some _x -> UPrintf.printf "old test file disappeared: %s\n" res
          | Some newone, Some bestone -> (
              match (newone, bestone) with
              | Ok, Ok -> Hashtbl.add newbestscore res Ok
              | Pb x, Ok ->
-                 Printf.printf
+                 UPrintf.printf
                    "PBBBBBBBB: a test file does not work anymore!!! : %s\n" res;
-                 Printf.printf "Error : %s\n" x;
+                 UPrintf.printf "Error : %s\n" x;
                  Hashtbl.add newbestscore res Ok
              | Ok, Pb _x ->
-                 Printf.printf "Great: a test file now works: %s\n" res;
+                 UPrintf.printf "Great: a test file now works: %s\n" res;
                  Hashtbl.add newbestscore res Ok
              | Pb x, Pb y ->
                  Hashtbl.add newbestscore res (Pb x);
                  if not (x =$= y) then (
-                   Printf.printf "Semipb: still error but not same error : %s\n"
-                     res;
-                   Printf.printf "%s\n" (chop ("Old error: " ^ y));
-                   Printf.printf "New error: %s\n" x)));
+                   UPrintf.printf
+                     "Semipb: still error but not same error : %s\n" res;
+                   UPrintf.printf "%s\n" (chop ("Old error: " ^ y));
+                   UPrintf.printf "New error: %s\n" x)));
   flush UStdlib.stdout;
   flush stderr;
   newbestscore
@@ -5471,7 +5471,7 @@ let unserial x =
   match !x with
   | Unfold c -> c
   | Serial s ->
-      let res = Marshal.from_string s 0 in
+      let res = UMarshal.from_string s 0 in
       (*        x := Unfold res; *)
       res
 
@@ -5656,12 +5656,12 @@ let format_to_string f =
   (* to avoid interference with other code using Format.printf, e.g.
    * Ounit.run_tt
    *)
-  Format.print_flush ();
-  Format.set_formatter_out_channel o;
+  UFormat.print_flush ();
+  UFormat.set_formatter_out_channel o;
   let _ = f () in
-  Format.print_newline ();
-  Format.print_flush ();
-  Format.set_formatter_out_channel UStdlib.stdout;
+  UFormat.print_newline ();
+  UFormat.print_flush ();
+  UFormat.set_formatter_out_channel UStdlib.stdout;
   close_out o;
   let i = UStdlib.open_in_bin nm in
   let lines = ref [] in

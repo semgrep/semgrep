@@ -1200,9 +1200,9 @@ let exn_to_real_unixexit f =
   | UnixExit x -> UStdlib.exit x
 
 let pp_do_in_zero_box f =
-  Format.open_box 0;
+  UFormat.open_box 0;
   f ();
-  Format.close_box ()
+  UFormat.close_box ()
 
 let before_exit = ref []
 

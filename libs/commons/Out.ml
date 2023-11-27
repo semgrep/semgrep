@@ -54,4 +54,4 @@
 
 (* Out.put :) *)
 let put s = Common.pr s
-let formatter () = Format.std_formatter
+let formatter () = UFormat.std_formatter
