@@ -469,6 +469,10 @@ def scan(
         # so the engine is properly chosen.
         run_secrets_flag = True
 
+    # Implicity enable secrets if the user has specified --allow-untrusted-validators
+    if allow_untrusted_validators:
+        run_secrets_flag = True
+
     # Handled error outside engine type for more actionable advice.
     if run_secrets_flag and requested_engine is EngineType.OSS:
         abort(
