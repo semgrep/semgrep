@@ -125,7 +125,8 @@
         "lines": "    return a + b == a + b",
         "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`",
         "metadata": {
-          "shortlink": "https://sg.run/xyz1"
+          "shortlink": "https://sg.run/xyz1",
+          "source": "https://semgrep.dev/r/eqeq-bad"
         },
         "metavars": {
           "$X": {
