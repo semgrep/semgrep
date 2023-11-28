@@ -36,6 +36,32 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 module Env = Semgrep_envvars
 
 (*****************************************************************************)
+(* Cohttp client *)
+(*****************************************************************************)
+
+(* Python's `requests` library behaves such that it uses the values of the
+   env var REQUESTS_CA_BUNDLE (and `CURL_CA_BUNDLE`, if that doesn't exist) to
+   supply some custom CA certs that should be accepted.
+   For parity with Pysemgrep, we produce an instance of Cohttp_lwt_unix, where
+   each method by default uses a `ctx` that references that cert file.
+   See `Cohttp_lwt_unix_with_ctx.ml` for more.
+*)
+module Input = struct
+  include Cohttp_lwt_unix.Net
+
+  let ctx =
+    let certfile =
+      match Sys.getenv_opt "REQUESTS_CA_BUNDLE" with
+      | Some v -> Some v
+      | None -> Sys.getenv_opt "CURL_CA_BUNDLE"
+    in
+    let ssl_ctx = Conduit_lwt_unix_ssl.Client.create_ctx ?certfile () in
+    Lwt_main.run (Conduit_lwt_unix.init ~ssl_ctx ())
+end
+
+module Cohttp_lwt_unix_with_certfile = Cohttp_lwt_unix_with_ctx.Make (Input)
+
+(*****************************************************************************)
 (* Constants *)
 (*****************************************************************************)
 
@@ -294,7 +320,7 @@ let main (argv : string array) : Exit_code.t =
   (* hacks for having a smaller engine.js file *)
   Parsing_init.init ();
   Data_init.init ();
-  Http_helpers_.set_client_ref (module Cohttp_lwt_unix.Client);
+  Http_helpers_.set_client_ref (module Cohttp_lwt_unix_with_certfile.Client);
 
   metrics_init ();
   (* TOPORT: maybe_set_git_safe_directories() *)

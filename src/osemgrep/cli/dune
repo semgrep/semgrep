@@ -24,6 +24,9 @@
     osemgrep_cli_test
     osemgrep_configuring
 
+    ; networking
+    networking.cohttp_lwt_unix_with_ctx
+
     ; reusing code from Core_cli
     semgrep_core_cli
   )
