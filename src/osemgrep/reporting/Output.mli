@@ -22,8 +22,7 @@ val default : conf
 val preprocess_result : conf -> Core_runner.result -> OutJ.cli_output
 (** [preprocess_result conf result] preprocesses the result of a scan
   * according to the configuration [conf]. This handles
-  * nosemgrep, interolating messages, and more. It returns a function that
-  * will output the result, so it can be timed.
+  * nosemgrep, interpolating messages, and more.
   *)
 
 (* Output the core results on stdout depending on flags in
