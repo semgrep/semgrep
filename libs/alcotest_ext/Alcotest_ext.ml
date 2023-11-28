@@ -16,7 +16,8 @@ type 'a t = {
   (* Options *)
   speed_level : Alcotest.speed_level;
   check_output : output option;
-  (* Automatically determined *)
+  (* Automatically determined. This will be used as a compact key
+     for referencing tests in filters or in file names. *)
   id : string;
 }
 
@@ -29,12 +30,11 @@ type simple_test = string * (unit -> unit)
 (****************************************************************************)
 (* Helpers *)
 (****************************************************************************)
-(*
-   Dumb stuff for which
-*)
 
+(* safe version of List.map for ocaml < 5 *)
 let list_map f l = List.rev_map f l |> List.rev
 
+(* safe version of List.flatten *)
 let list_flatten ll =
   List.fold_left (fun acc l -> List.rev_append l acc) [] ll |> List.rev
 
