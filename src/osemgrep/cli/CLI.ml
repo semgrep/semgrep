@@ -159,7 +159,7 @@ let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
       Metrics_.add_feature "subcommand" subcmd;
       Metrics_.add_user_agent_tag (spf "command/%s" subcmd);
       subcmd_argv |> Array.to_list
-      |> Common.exclude (fun x -> not (Base.String.is_prefix ~prefix:"-" x))
+      |> List_.exclude (fun x -> not (Base.String.is_prefix ~prefix:"-" x))
       |> List.iter log_cli_feature;
       (* coupling: with known_subcommands if you add an entry below.
        * coupling: with Help.ml if you add an entry below.

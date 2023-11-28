@@ -169,7 +169,7 @@ let dump_parsing_errors file (res : Parsing_result2.t) =
   pr2 (spf "WARNING: fail to fully parse %s" !!file);
   pr2 (Parsing_result2.format_errors ~style:Auto res);
   pr2
-    (Common.map (fun e -> "  " ^ Dumper.dump e) res.skipped_tokens
+    (List_.map (fun e -> "  " ^ Dumper.dump e) res.skipped_tokens
     |> String.concat "\n")
 
 (* works with -lang *)

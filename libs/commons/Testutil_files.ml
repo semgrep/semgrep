@@ -25,7 +25,7 @@ let get_name = function
       name
 
 let rec sort xs =
-  Common.map sort_one xs
+  List_.map sort_one xs
   |> List.sort (fun a b -> String.compare (get_name a) (get_name b))
 
 and sort_one x =
@@ -56,7 +56,7 @@ let flatten ?(root = Fpath.v ".") ?(include_dirs = false) files =
   let acc, _dir = flatten ([], root) files in
   List.rev acc
   |> (* remove the leading "./" *)
-  Common.map Fpath.normalize
+  List_.map Fpath.normalize
 
 let rec write root files = List.iter (write_one root) files
 
@@ -101,7 +101,7 @@ let read root =
     match (UUnix.lstat (Fpath.to_string path)).st_kind with
     | S_DIR ->
         let names = get_dir_entries path in
-        Dir (name, Common.map (fun name -> read (path / name)) names)
+        Dir (name, List_.map (fun name -> read (path / name)) names)
     | S_REG -> File (name, Common.read_file (Fpath.to_string path))
     | S_LNK -> Symlink (name, UUnix.readlink (Fpath.to_string path))
     | _other ->
@@ -111,7 +111,7 @@ let read root =
   match (UUnix.stat (Fpath.to_string root)).st_kind with
   | S_DIR ->
       let names = get_dir_entries root in
-      Common.map (fun name -> read (root / name)) names
+      List_.map (fun name -> read (root / name)) names
   | _other ->
       failwith
         ("Testutil_files.read: root must be a directory: "

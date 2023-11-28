@@ -173,7 +173,7 @@ let mk_unit tok eorig =
   let unit = G.Unit tok in
   mk_e (Literal unit) eorig
 
-let add_instr env instr = Common.push (mk_s (Instr instr)) env.stmts
+let add_instr env instr = Stack_.push (mk_s (Instr instr)) env.stmts
 
 (* Create an auxiliary variable for an expression---unless the expression
  * itself is already a variable! *)
@@ -195,7 +195,7 @@ let add_call env tok eorig ~void mk_call =
     add_instr env (mk_i (mk_call (Some lval)) eorig);
     mk_e (Fetch lval) NoOrig
 
-let add_stmt env st = Common.push st env.stmts
+let add_stmt env st = Stack_.push st env.stmts
 let add_stmts env xs = xs |> List.iter (add_stmt env)
 
 let pop_stmts env =
@@ -240,7 +240,7 @@ let composite_of_container : G.container_operator -> IL.composite_kind =
   | Set -> CSet
   | Dict -> CDict
 
-let mk_unnamed_args (exps : IL.exp list) = Common.map (fun x -> Unnamed x) exps
+let mk_unnamed_args (exps : IL.exp list) = List_.map (fun x -> Unnamed x) exps
 
 let is_hcl lang =
   match lang with
@@ -334,7 +334,7 @@ and pattern env pat =
       (* Pi = tmp[i] *)
       let ss =
         pats
-        |> Common.mapi (fun i pat_i ->
+        |> List_.mapi (fun i pat_i ->
                let eorig = Related (G.P pat_i) in
                let index_i = Literal (G.Int (Parsed_int.of_int i)) in
                let offset_i =
@@ -422,7 +422,7 @@ and assign env lhs tok rhs_exp e_gen =
       (* Ei = tmp[i] *)
       let tup_elems =
         lhss
-        |> Common.mapi (fun i lhs_i ->
+        |> List_.mapi (fun i lhs_i ->
                let index_i = Literal (G.Int (Parsed_int.of_int i)) in
                let offset_i =
                  {
@@ -456,7 +456,7 @@ and assign env lhs tok rhs_exp e_gen =
       add_instr env (mk_i (Assign (tmp_lval, rhs_exp)) eorig);
       let record_pairs : field list =
         fields
-        |> Common.map (function
+        |> List_.map (function
              | G.F
                  {
                    s =
@@ -710,7 +710,7 @@ and expr_aux env ?(void = false) e_gen =
                  ());
           expr env last)
   | G.Container (kind, xs) ->
-      let xs = bracket_keep (Common.map (expr env)) xs in
+      let xs = bracket_keep (List_.map (expr env)) xs in
       let kind = composite_kind kind in
       mk_e (Composite (kind, xs)) eorig
   | G.Comprehension _ -> todo (G.E e_gen)
@@ -806,7 +806,7 @@ and expr_aux env ?(void = false) e_gen =
       mk_e (Fetch tmp) NoOrig
   | G.Constructor (cname, (tok1, esorig, tok2)) ->
       let cname = var_of_name cname in
-      let es = esorig |> Common.map (fun eiorig -> expr env eiorig) in
+      let es = esorig |> List_.map (fun eiorig -> expr env eiorig) in
       mk_e (Composite (Constructor cname, (tok1, es, tok2))) eorig
   | G.RegexpTemplate ((l, e, r), _opt) ->
       mk_e (Composite (Regexp, (l, [ expr env e ], r))) NoOrig
@@ -825,7 +825,7 @@ and expr_aux env ?(void = false) e_gen =
   | G.OtherExpr ((str, tok), xs) ->
       let es =
         xs
-        |> Common.map (fun x ->
+        |> List_.map (fun x ->
                match x with
                | G.E e1orig -> expr env e1orig
                | __else__ -> fixme_exp ToDo x (related_tok tok))
@@ -913,7 +913,7 @@ and composite_kind = function
   | G.Tuple -> CTuple
 
 (* TODO: dependency of order between arguments for instr? *)
-and arguments env xs = xs |> Common.map (argument env)
+and arguments env xs = xs |> List_.map (argument env)
 
 and argument env arg =
   match arg with
@@ -930,7 +930,7 @@ and record env ((_tok, origfields, _) as record_def) =
   let e_gen = G.Record record_def |> G.e in
   let fields =
     origfields
-    |> Common.map_filter (function
+    |> List_.map_filter (function
          | G.F
              {
                s =
@@ -1011,7 +1011,7 @@ and record env ((_tok, origfields, _) as record_def) =
 and xml_expr env xml =
   let attrs =
     xml.G.xml_attrs
-    |> Common.map_filter (function
+    |> List_.map_filter (function
          | G.XmlAttr (_, tok, eorig)
          | G.XmlAttrExpr (tok, eorig, _) ->
              let exp = expr env eorig in
@@ -1021,7 +1021,7 @@ and xml_expr env xml =
   in
   let body =
     xml.G.xml_body
-    |> Common.map_filter (function
+    |> List_.map_filter (function
          | G.XmlExpr (tok, Some eorig, _) ->
              let exp = expr env eorig in
              let _, lval = mk_aux_var env tok exp in
@@ -1188,7 +1188,7 @@ and for_var_or_expr_list env xs =
 (*****************************************************************************)
 and parameters _env params : name list =
   params |> Tok.unbracket
-  |> Common.map_filter (function
+  |> List_.map_filter (function
        | G.Param { pname = Some i; pinfo; _ } -> Some (var_of_id_info i pinfo)
        | ___else___ -> None (* TODO *))
 

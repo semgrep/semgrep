@@ -81,12 +81,12 @@ let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
   in
   let errors =
     res.core.errors
-    |> Common.map (fun (e : Semgrep_output_v1_t.core_error) -> e.message)
+    |> List_.map (fun (e : Semgrep_output_v1_t.core_error) -> e.message)
     |> String.concat "\n"
   in
   let skipped =
     res.core.skipped_rules
-    |> Common.map (fun (r : Semgrep_output_v1_t.skipped_rule) ->
+    |> List_.map (fun (r : Semgrep_output_v1_t.skipped_rule) ->
            Rule_ID.to_string r.rule_id)
     |> String.concat "\n"
   in
@@ -180,7 +180,7 @@ let scan_file ?(content = None) server uri =
       | None -> results
     in
     let results =
-      Common.map (fun (m : OutJ.cli_match) -> { m with path = file }) results
+      List_.map (fun (m : OutJ.cli_match) -> { m with path = file }) results
     in
     let files = [ file ] in
     Session.record_results server.session results files;

@@ -163,8 +163,8 @@ let string_of_ls_files_kind (kind : ls_files_kind) =
   | Others -> "--others"
 
 let ls_files ?(cwd = Fpath.v ".") ?(kinds = []) root_paths =
-  let roots = root_paths |> Common.map Fpath.to_string |> Bos.Cmd.of_list in
-  let kinds = kinds |> Common.map string_of_ls_files_kind |> Bos.Cmd.of_list in
+  let roots = root_paths |> List_.map Fpath.to_string |> Bos.Cmd.of_list in
+  let kinds = kinds |> List_.map string_of_ls_files_kind |> Bos.Cmd.of_list in
   let cmd = Bos.Cmd.(v "git" % "-C" % !!cwd % "ls-files" %% kinds %% roots) in
   Logs.info (fun m -> m "Running external command: %s" (Bos.Cmd.to_string cmd));
   let files_r = Bos.OS.Cmd.run_out cmd in
@@ -393,7 +393,7 @@ let dirty_files cwd =
   in
   (* out_lines splits on newlines, so we always have an extra space at the end *)
   let files = List.filter (fun f -> not (String.trim f = "")) lines in
-  let files = Common.map (fun l -> Fpath.v (Str.string_after l 3)) files in
+  let files = List_.map (fun l -> Fpath.v (Str.string_after l 3)) files in
   files
 
 let init cwd =
@@ -403,7 +403,7 @@ let init cwd =
   | _ -> raise (Error "Error running git init")
 
 let add cwd files =
-  let files = Common.map Fpath.to_string files in
+  let files = List_.map Fpath.to_string files in
   let files = String.concat " " files in
   let cmd = Bos.Cmd.(v "git" % "-C" % !!cwd % "add" % files) in
   match Bos.OS.Cmd.run_status cmd with

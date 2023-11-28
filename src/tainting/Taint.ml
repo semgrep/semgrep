@@ -121,7 +121,7 @@ let trace_of_pm (pm, x) = PM (pm, x)
 let rec _show_call_trace show_thing = function
   | PM (pm, x) ->
       let toks = Lazy.force pm.PM.tokens |> List.filter Tok.is_origintok in
-      let s = toks |> Common.map Tok.content_of_tok |> String.concat " " in
+      let s = toks |> List_.map Tok.content_of_tok |> String.concat " " in
       Printf.sprintf "%s [%s]" s (show_thing x)
   | Call (_e, _, trace) ->
       Printf.sprintf "Call(... %s)" (_show_call_trace show_thing trace)
@@ -152,7 +152,7 @@ let _show_arg { base; offset = os } =
   ^
   if os <> [] then
     let os_str =
-      os |> Common.map (fun n -> fst n.IL.ident) |> String.concat "."
+      os |> List_.map (fun n -> fst n.IL.ident) |> String.concat "."
     in
     "." ^ os_str
   else ""
@@ -263,7 +263,7 @@ let rec _show_source { call_trace; label; precondition } =
   let precondition_prefix = _show_taints_with_precondition precondition in
   let str =
     let toks = Lazy.force pm.PM.tokens |> List.filter Tok.is_origintok in
-    toks |> Common.map Tok.content_of_tok |> String.concat "_"
+    toks |> List_.map Tok.content_of_tok |> String.concat "_"
   in
   Printf.sprintf "<%s(%d,%d)%s#%s/%s|t:%d>" precondition_prefix r.start r.end_
     str ts.label label (depth 0 call_trace)
@@ -273,7 +273,7 @@ and _show_taints_with_precondition precondition =
   | None -> ""
   | Some (ts, pre) ->
       Common.spf "PRE|%s|if %s|"
-        (Common.map _show_taint ts |> String.concat " + ")
+        (List_.map _show_taint ts |> String.concat " + ")
         (_show_precondition pre)
 
 and _show_taint taint =
@@ -522,7 +522,7 @@ end
 type taints = Taint_set.t
 
 let show_taints taints =
-  taints |> Taint_set.elements |> Common.map _show_taint |> String.concat ", "
+  taints |> Taint_set.elements |> List_.map _show_taint |> String.concat ", "
   |> fun str -> "{ " ^ str ^ " }"
 
 (*****************************************************************************)
@@ -535,7 +535,7 @@ let labels_in_precondition pre =
     | R.PLabel l -> LabelSet.singleton l
     | R.PAnd pres
     | R.POr pres ->
-        pres |> Common.map loop |> List.fold_left LabelSet.union LabelSet.empty
+        pres |> List_.map loop |> List.fold_left LabelSet.union LabelSet.empty
     | R.PNot pre -> loop pre
   in
   loop pre
@@ -668,7 +668,7 @@ let rec map_preconditions f taint =
   | Src ({ precondition = Some (incoming, expr); _ } as src) -> (
       let new_incoming =
         incoming
-        |> Common.map_filter (map_preconditions f)
+        |> List_.map_filter (map_preconditions f)
         |> f |> Taint_set.of_list
       in
       let new_incoming = filter_relevant_taints expr new_incoming in

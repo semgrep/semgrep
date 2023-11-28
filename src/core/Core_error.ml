@@ -103,7 +103,7 @@ let mk_error_tok opt_rule_id tok msg err =
   mk_error opt_rule_id loc msg err
 
 let push_error rule_id loc msg err =
-  Common.push (mk_error (Some rule_id) loc msg err) g_errors
+  Stack_.push (mk_error (Some rule_id) loc msg err) g_errors
 
 let error_of_invalid_rule_error ((kind, rule_id, pos) : R.invalid_rule_error) :
     t =
@@ -292,7 +292,7 @@ let try_with_exn_to_error file f =
   | Time_limit.Timeout _ as exn -> Exception.catch_and_reraise exn
   | exn ->
       let e = Exception.catch exn in
-      Common.push (exn_to_error None file e) g_errors
+      Stack_.push (exn_to_error None file e) g_errors
 
 let try_with_print_exn_and_reraise file f =
   try f () with
@@ -317,8 +317,8 @@ let (expected_error_lines_of_files :
  fun ?(regexp = default_error_regexp) ?(ok_regexp = None) test_files ->
   test_files
   |> List.concat_map (fun file ->
-         Common.cat file |> Common.index_list_1
-         |> Common.map_filter (fun (s, idx) ->
+         Common.cat file |> List_.index_list_1
+         |> List_.map_filter (fun (s, idx) ->
                 (* Right now we don't care about the actual error messages. We
                  * don't check if they match. We are just happy to check for
                  * correct lines error reporting.
@@ -339,7 +339,7 @@ let (expected_error_lines_of_files :
 let compare_actual_to_expected actual_findings expected_findings_lines =
   let actual_findings_lines =
     actual_findings
-    |> Common.map (fun err ->
+    |> List_.map (fun err ->
            let loc = err.loc in
            (loc.Tok.pos.file, loc.Tok.pos.line))
   in

@@ -91,7 +91,7 @@ let on_notification notification (server : RPC_server.t) =
     | CN.DidDeleteFiles { files; _ } ->
         (* This is lame, for whatever reason they chose to type uri as string here, not Uri.t *)
         let files =
-          Common.map
+          List_.map
             (fun { FileDelete.uri } ->
               Str.string_after uri (String.length "file://") |> Fpath.v)
             files

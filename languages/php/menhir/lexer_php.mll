@@ -100,7 +100,7 @@ let t_variable_or_metavar s info =
  *
  * todo: callable, goto
  *)
-let keyword_table = Common.hash_of_list [
+let keyword_table = Hashtbl_.hash_of_list [
 
   "while",   (fun ii -> T_WHILE ii);   "endwhile", (fun ii -> T_ENDWHILE ii);
   "do",      (fun ii -> T_DO ii);
@@ -289,8 +289,8 @@ let rec current_mode () =
       error("mode_stack is empty, defaulting to INITIAL");
       reset();
       current_mode ()
-let push_mode mode = Common.push mode _mode_stack
-let pop_mode () = ignore(Common2.pop2 _mode_stack)
+let push_mode mode = Stack_.push mode _mode_stack
+let pop_mode () = ignore(Stack_.pop _mode_stack)
 
 (* What is the semantic of BEGIN() in flex ? start from scratch with empty
  * stack ?

@@ -74,12 +74,12 @@ let fold_left func init path =
 let list_with_stat path =
   fold_left (fun acc path stat -> (path, stat) :: acc) [] path |> List.rev
 
-let list path = list_with_stat path |> Common.map fst
+let list path = list_with_stat path |> List_.map fst
 
 (* python: Target.files_from_filesystem *)
 let list_regular_files ?(keep_root = false) root_path =
   list_with_stat root_path
-  |> Common.map_filter (fun (path, (stat : Unix.stats)) ->
+  |> List_.map_filter (fun (path, (stat : Unix.stats)) ->
          logger#info "root: %s path: %s" !!root_path !!path;
          if keep_root && path = root_path then Some path
          else

@@ -74,7 +74,7 @@ let test_empty_dir_as_root () =
 (* Because file listings are not guaranteed to be in any particular order. *)
 let compare_path_lists expected actual =
   let sort x =
-    List.sort Fpath.compare x |> Common.map ( !! ) |> String.concat "\n"
+    List.sort Fpath.compare x |> List_.map ( !! ) |> String.concat "\n"
   in
   Alcotest.(check string) "equal" (sort expected) (sort actual)
 

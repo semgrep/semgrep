@@ -81,7 +81,7 @@ let mk_trees h xs =
   (* filter comment tokens *)
   let xs =
     xs
-    |> Common.exclude (fun t ->
+    |> List_.exclude (fun t ->
            let kind = h.kind t in
            match kind with
            | Esthet _
@@ -144,13 +144,13 @@ let mk_trees h xs =
   and split_comma xs =
     let rec aux acc xs =
       match xs with
-      | [] -> if null acc then [] else [ Left (acc |> List.rev) ]
+      | [] -> if List_.null acc then [] else [ Either.Left (acc |> List.rev) ]
       | x :: xs -> (
           match x with
           | Ast_fuzzy.Tok (",", info) ->
               let before = acc |> List.rev in
-              if null before then aux [] xs
-              else Left before :: Right info :: aux [] xs
+              if List_.null before then aux [] xs
+              else Either.Left before :: Either.Right info :: aux [] xs
           | _ -> aux (x :: acc) xs)
     in
     aux [] xs
@@ -158,7 +158,7 @@ let mk_trees h xs =
   aux xs
 
 let mk_tokens hooks toks =
-  toks |> List.map (fun tok -> (hooks.kind tok, hooks.tokf tok))
+  toks |> List_.map (fun tok -> (hooks.kind tok, hooks.tokf tok))
 
 (*****************************************************************************)
 (* Visitor *)
@@ -272,7 +272,7 @@ let (toks_of_trees : trees -> Tok.t list) =
  fun trees ->
   let globals = ref [] in
   let hooks =
-    { default_visitor with ktok = (fun (_k, _) i -> Common.push i globals) }
+    { default_visitor with ktok = (fun (_k, _) i -> Stack_.push i globals) }
   in
   let vout = mk_visitor hooks in
   vout trees;

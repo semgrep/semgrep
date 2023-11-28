@@ -18,8 +18,6 @@ module UCommon = Common
 
 module Common = struct
   let spf = Common.spf
-  let map = Common.map
-  let exclude = Common.exclude
 end
 
 (* deprecated anyway, we should not use it *)

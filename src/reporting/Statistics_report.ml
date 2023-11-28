@@ -76,7 +76,7 @@ let parse_run (rule, xs) =
   let lang =
     match
       xs
-      |> Common.find_some_opt (fun s ->
+      |> List_.find_some_opt (fun s ->
              if s =~ ".*Executed as.*-lang \\([^ ]+\\) .*" then
                Some (Common.matched1 s)
              else None)
@@ -87,7 +87,7 @@ let parse_run (rule, xs) =
   let last_time = ref 0. in
   let files =
     xs
-    |> Common.map_filter (fun s ->
+    |> List_.map_filter (fun s ->
            match () with
            | _ when s =~ "\\[\\([0-9]+\\.[0-9]+\\) .* done with \\(.*\\)" ->
                let time, f = Common.matched2 s in
@@ -106,7 +106,7 @@ let parse_run (rule, xs) =
   in
   let timeout =
     xs
-    |> Common.map_filter (fun s ->
+    |> List_.map_filter (fun s ->
            if s =~ ".*raised Timeout in .* for \\(.*\\)" then
              Some (Common.matched1 s)
            else None)
@@ -117,7 +117,7 @@ let stat file =
   (* parsing *)
   let xs = Common.cat file in
   let ys = xs |> Common2.split_list_regexp "^Running rule" in
-  let runs = ys |> Common.map parse_run in
+  let runs = ys |> List_.map parse_run in
 
   if !debug then runs |> List.iter (fun r -> pr2 (show_run r));
 
@@ -132,41 +132,41 @@ let stat file =
   let problematic_files =
     runs
     |> List.concat_map (fun x -> x.files)
-    |> Common.exclude (fun (file, _) -> List.mem file timeout_files)
-    |> Common.sort_by_val_highfirst |> Common.take_safe 30
+    |> List_.exclude (fun (file, _) -> List.mem file timeout_files)
+    |> Assoc.sort_by_val_highfirst |> List_.take_safe 30
   in
   problematic_files |> List.iter pr2_gen;
 
   let problematic_rules =
     runs
-    |> Common.map (fun x ->
+    |> List_.map (fun x ->
            ( (x.rule, List.length x.files, x.lang),
-             x.files |> Common.map snd |> Common2.sum_float ))
-    |> Common.sort_by_val_highfirst |> Common.take_safe 30
+             x.files |> List_.map snd |> Common2.sum_float ))
+    |> Assoc.sort_by_val_highfirst |> List_.take_safe 30
   in
   pr2 "PROBLEMATIC RULES";
   problematic_rules |> List.iter pr2_gen;
 
   pr2 "STATS PER LANGUAGES";
-  let groups = runs |> Common.group_by (fun x -> x.lang) in
+  let groups = runs |> Assoc.group_by (fun x -> x.lang) in
   let stats =
     groups
-    |> Common.map (fun (xlang, xs) ->
+    |> List_.map (fun (xlang, xs) ->
            let total_rules = List.length xs in
            let total_time =
              xs
              |> List.concat_map (fun x -> x.files)
-             |> Common.map snd |> Common2.sum_float
+             |> List_.map snd |> Common2.sum_float
            in
            let total_files =
-             xs |> Common.map (fun x -> List.length x.files) |> Common2.sum
+             xs |> List_.map (fun x -> List.length x.files) |> Common2.sum
            in
            { xlang; total_rules; total_time; total_files })
   in
 
   stats
-  |> Common.map (fun stat -> (stat, stat.total_time))
-  |> Common.sort_by_val_highfirst
+  |> List_.map (fun stat -> (stat, stat.total_time))
+  |> Assoc.sort_by_val_highfirst
   |> List.iter (fun (stat, _) -> report_stat_per_lang stat);
 
   ()

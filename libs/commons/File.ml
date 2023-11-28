@@ -34,8 +34,8 @@
 module Path = struct
   include Fpath
 
-  let of_strings strings = Common.map Fpath.v strings
-  let to_strings paths = Common.map Fpath.to_string paths
+  let of_strings strings = List_.map Fpath.v strings
+  let to_strings paths = List_.map Fpath.to_string paths
   let ( !! ) = Fpath.to_string
 end
 
@@ -76,7 +76,7 @@ let find_first_match_with_whole_line path ?split:(chr = '\n') =
   let res = Bytes.create len in
   really_input ic res 0 len;
   let lines = Bytes.split_on_char chr res in
-  let lines = Common.map Bytes.unsafe_to_string lines in
+  let lines = List_.map Bytes.unsafe_to_string lines in
   List.find_opt
     (fun str -> Option.is_some (String_utils.contains term str))
     lines
@@ -96,7 +96,7 @@ let filemtime file =
 let lines_of_file (start_line, end_line) file : string list =
   let arr = Common2.cat_array (Fpath.to_string file) in
   let lines = Common2.enum start_line end_line in
-  lines |> Common.map (fun i -> arr.(i))
+  lines |> List_.map (fun i -> arr.(i))
 
 let replace_named_pipe_by_regular_file_if_needed ?(prefix = "named-pipe")
     (path : Fpath.t) : Fpath.t =

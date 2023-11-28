@@ -24,19 +24,19 @@ let json_of_v (v : OCaml.v) =
     | OCaml.VChar v1 -> J.String (spf "'%c'" v1)
     | OCaml.VString v1 -> J.String v1
     | OCaml.VInt i -> J.Int (Int64.to_int i)
-    | OCaml.VTuple xs -> J.Array (Common.map aux xs)
-    | OCaml.VDict xs -> J.Object (Common.map (fun (k, v) -> (k, aux v)) xs)
+    | OCaml.VTuple xs -> J.Array (List_.map aux xs)
+    | OCaml.VDict xs -> J.Object (List_.map (fun (k, v) -> (k, aux v)) xs)
     | OCaml.VSum (s, xs) -> (
         match xs with
         | [] -> J.String (spf "%s" s)
         | [ one_element ] -> J.Object [ (s, aux one_element) ]
-        | _ :: _ :: _ -> J.Object [ (s, J.Array (Common.map aux xs)) ])
+        | _ :: _ :: _ -> J.Object [ (s, J.Array (List_.map aux xs)) ])
     | OCaml.VVar (s, i64) -> J.String (spf "%s_%Ld" s i64)
     | OCaml.VArrow _ -> failwith "Arrow TODO"
     | OCaml.VNone -> J.Null
     | OCaml.VSome v -> J.Object [ ("some", aux v) ]
     | OCaml.VRef v -> J.Object [ ("ref@", aux v) ]
-    | OCaml.VList xs -> J.Array (Common.map aux xs)
+    | OCaml.VList xs -> J.Array (List_.map aux xs)
     | OCaml.VTODO _ -> J.String "VTODO"
   in
   aux v
@@ -132,7 +132,7 @@ let generate_ast_binary lang file =
 let dump_ext_of_lang () =
   let lang_to_exts =
     Lang.keys
-    |> Common.map (fun lang_str ->
+    |> List_.map (fun lang_str ->
            match Lang.of_string_opt lang_str with
            | Some lang ->
                lang_str ^ "->" ^ String.concat ", " (Lang.ext_of_lang lang)
@@ -160,7 +160,7 @@ let prefilter_of_rules file =
   let rules = Parse_rule.parse file in
   let xs =
     rules
-    |> Common.map (fun r ->
+    |> List_.map (fun r ->
            let pre_opt = Analyze_rule.regexp_prefilter_of_rule ~cache r in
            let pre_atd_opt =
              Option.map Analyze_rule.prefilter_formula_of_prefilter pre_opt

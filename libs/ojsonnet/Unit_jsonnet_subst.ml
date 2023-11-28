@@ -18,10 +18,10 @@ let related_file_of_target ~ext ~file =
 
 let test_maker dirs pass_or_fail =
   dirs
-  |> Common.map (fun dir ->
+  |> List_.map (fun dir ->
          Common2.glob (spf "%s/*%s" !!dir "jsonnet")
          |> File.Path.of_strings
-         |> Common.map (fun file ->
+         |> List_.map (fun file ->
                 ( Fpath.basename file,
                   fun () ->
                     let comparison_file_path =
@@ -54,6 +54,6 @@ let test_maker dirs pass_or_fail =
                     | Eval_jsonnet_common.Error _ ->
                         Alcotest.(check bool)
                           "this threw an error" (not pass_or_fail) true )))
-  |> Common.flatten
+  |> List_.flatten
 
 let tests () = Testutil.pack_tests "ojsonnet subst" (test_maker dir_pass true)

@@ -65,13 +65,13 @@ let apply equivs lang any =
   |> List.iter (fun { Eq.left; op; right; _ } ->
          match (left, op, right) with
          | E l, Eq.Equiv, E r ->
-             Common.push (l, r) expr_rules;
-             Common.push (r, l) expr_rules
-         | E l, Eq.Imply, E r -> Common.push (l, r) expr_rules
+             Stack_.push (l, r) expr_rules;
+             Stack_.push (r, l) expr_rules
+         | E l, Eq.Imply, E r -> Stack_.push (l, r) expr_rules
          | S l, Eq.Equiv, S r ->
-             Common.push (l, r) stmt_rules;
-             Common.push (r, l) stmt_rules
-         | S l, Eq.Imply, S r -> Common.push (l, r) stmt_rules
+             Stack_.push (l, r) stmt_rules;
+             Stack_.push (r, l) stmt_rules
+         | S l, Eq.Imply, S r -> Stack_.push (l, r) stmt_rules
          | __else__ ->
              failwith "only expr and stmt equivalence patterns are supported");
   (* the order matters, keep the original order reverting Common.push *)

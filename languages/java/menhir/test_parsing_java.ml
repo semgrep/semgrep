@@ -23,7 +23,7 @@ let find_source_files_of_dir_or_files xs =
          match File_type.file_type_of_file filename with
          | FT.PL FT.Java -> true
          | _ -> false)
-  |> Common.sort
+  |> List_.sort
 
 (*****************************************************************************)
 (* Subsystem testing *)
@@ -57,7 +57,7 @@ let test_parse xs =
                      (spf "PB with %s (exn = %s)" !!file (Common.exn_to_s exn));
                    Exception.reraise e
              in
-             Common.push stat stat_list;
+             Stack_.push stat stat_list;
              let s = spf "bad = %d" stat.PS.error_line_count in
              if stat.PS.error_line_count =|= 0 then
                Hashtbl.add newscore !!file Common2.Ok

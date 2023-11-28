@@ -237,7 +237,7 @@ let rec map_ambiguous_name (env : env) (x : CST.ambiguous_name) : G.dotted_ident
       v1 @ [ v3 ]
 
 let map_catch_clause (env : env) ((v1, v2, v3, v4, v5) : CST.catch_clause) :
-    tok * (ident, G.catch_exn) Common.either =
+    tok * (ident, G.catch_exn) Either.t =
   let catch_tok = (* "catch" *) token env v1 in
   let _v2 = (* "(" *) token env v2 in
   let v3 = (* pattern [a-zA-Z_$][\w$]* *) str env v3 in
@@ -248,7 +248,7 @@ let map_catch_clause (env : env) ((v1, v2, v3, v4, v5) : CST.catch_clause) :
       let v2 = (* pattern [a-zA-Z_$][\w$]* *) str env v2 in
       ( catch_tok,
         Right (OtherCatch (("DoubleCatch", catch_tok), [ G.I v3; G.I v2 ])) )
-  | None -> (catch_tok, Left v3)
+  | None -> (catch_tok, Either.Left v3)
 
 let map_identifier_list (env : env) ((v1, v2) : CST.identifier_list) =
   map_identifier_list_ env (v1, v2)
@@ -282,8 +282,8 @@ let map_sub_string_test (env : env) ((v1, v2) : CST.sub_string_test) =
      TODO: add test for this
   *)
   match env.extra with
-  | Program -> Common.Middle3 (N (H2.name_of_id (s2, t2)) |> G.e)
-  | Pattern -> Left3 (s1 ^ s2, Tok.combine_toks t1 [ t2 ])
+  | Program -> Either_.Middle3 (N (H2.name_of_id (s2, t2)) |> G.e)
+  | Pattern -> Either_.Left3 (s1 ^ s2, Tok.combine_toks t1 [ t2 ])
 
 let map_script_tag (env : env) ((v1, v2, v3) : CST.script_tag) : G.stmt =
   let v1 = (* "#!" *) str env v1 in
@@ -388,7 +388,7 @@ let map_binary_operator (env : env) (x : CST.binary_operator) =
 (* See "note: string literals". *)
 
 let map_string_token (env : env) (x : Tree_sitter_run.Token.t) =
-  Common.Left3 (str env x)
+  Either_.Left3 (str env x)
 
 let map_string_contents (env : env) x =
   match x with
@@ -794,7 +794,7 @@ and map_constructor_invocation (env : env)
   in
   OtherExpr
     ( ("ConstructorInvocation", fake "ConstructorInvocation"),
-      [ G.Name v1; G.Anys (Common.map (fun x -> Ta x) v2); G.E constructor ] )
+      [ G.Name v1; G.Anys (List_.map (fun x -> Ta x) v2); G.E constructor ] )
   |> G.e
 
 and map_constructor_param (env : env)
@@ -1074,14 +1074,14 @@ and map_for_loop_parts (env : env) (x : CST.for_loop_parts) : for_header =
         | Some x -> (
             match x with
             | `Local_var_decl x ->
-                Common.map
+                List_.map
                   (fun (x, y) -> ForInitVar (x, y))
                   (map_local_variable_declaration_unwrapped env x)
             | `Opt_exp_rep_COMMA_exp_semi (v1, v2) ->
                 let v1 =
                   match v1 with
                   | Some x ->
-                      Common.map
+                      List_.map
                         (fun x -> ForInitExpr x)
                         (map_anon_arg_rep_COMMA_arg_eb223b2 env x)
                   | None -> []
@@ -1283,7 +1283,7 @@ and map_function_type_tail ~ret_ty (env : env)
   let _v3_TODO =
     match v3 with
     | Some tok ->
-        Common.map
+        List_.map
           (fun tp ->
             OtherTypeParam (("OptionalTP", (* "?" *) token env tok), [ G.Tp tp ]))
           v2
@@ -1361,13 +1361,13 @@ and map_initialized_variable_definition_unwrapped (env : env)
           v2)
         v3
   in
-  Common.map
+  List_.map
     (fun (id, vinit) -> (basic_entity ~attrs id, { vtype; vinit }))
     inits
 
 and map_initialized_variable_definition (env : env)
     ((v1, v2, v3) : CST.initialized_variable_definition) : stmt list =
-  Common.map
+  List_.map
     (fun (ent, vardef) -> DefStmt (ent, VarDef vardef) |> G.s)
     (map_initialized_variable_definition_unwrapped env (v1, v2, v3))
 
@@ -1578,8 +1578,8 @@ and map_on_part (env : env) (x : CST.on_part) : catch =
       let v2 = map_block env v2 in
       let catch_exn =
         match v1 with
-        | Left id -> CatchPattern (PatId (id, G.empty_id_info ()))
-        | Right catch_exn -> catch_exn
+        | Either.Left id -> CatchPattern (PatId (id, G.empty_id_info ()))
+        | Either.Right catch_exn -> catch_exn
       in
       (tok, catch_exn, Block v2 |> G.s)
   | `On_type_not_void_opt_catch_clause_blk (v1, v2, v3, v4) ->
@@ -1589,11 +1589,12 @@ and map_on_part (env : env) (x : CST.on_part) : catch =
         match v3 with
         | Some x -> (
             match map_catch_clause env x with
-            | _, Left id -> CatchParam (G.param_of_id ~ptype:(Some v2) id)
+            | _, Either.Left id ->
+                CatchParam (G.param_of_id ~ptype:(Some v2) id)
             (* If we are already set on an exn (the DoubleCatch case)
                then we cannot incorporate the type.
             *)
-            | _, Right catch_exn -> catch_exn)
+            | _, Either.Right catch_exn -> catch_exn)
         | None ->
             CatchParam
               {
@@ -1630,7 +1631,7 @@ and map_optional_formal_parameters (env : env)
       [
         OtherParam
           ( ("OptionalParams", fake "OptionalParams"),
-            Common.map (fun param -> G.Pa param) (v2 :: v3) );
+            List_.map (fun param -> G.Pa param) (v2 :: v3) );
       ]
   | `Named_formal_params (v1, v2, v3, v4, v5) ->
       let _v1 = (* "{" *) token env v1 in
@@ -1734,13 +1735,13 @@ and map_parameter_type_list (env : env) ((v1, v2, v3) : CST.parameter_type_list)
                int Function(int, string y, [int z, int w])
                where the optional parameters are clearly separated.
             *)
-            let opt_args = Common.map (fun param -> G.Pa param) v4 in
+            let opt_args = List_.map (fun param -> G.Pa param) v4 in
             (v1 :: v2)
             @ [ G.OtherParam (("OptParams", G.fake "OptParams"), opt_args) ]
         | `Opt_param_types x ->
             let opt_args =
               map_optional_parameter_types env x
-              |> Common.map (fun param -> G.Pa param)
+              |> List_.map (fun param -> G.Pa param)
             in
             [ G.OtherParam (("OptParams", G.fake "OptParams"), opt_args) ])
     | None -> []
@@ -2165,7 +2166,7 @@ and map_string_literal (env : env) (xs : CST.string_literal) : G.expr =
                    map_raw_string_literal_double_quotes_multiple env x
                | `Raw_str_lit_single_quotes_mult x ->
                    map_raw_string_literal_single_quotes_multiple env x)
-        |> Common.map (fun x -> Arg x)) )
+        |> List_.map (fun x -> Arg x)) )
   |> G.e
 
 and map_string_literal_to_strings (env : env) (xs : CST.string_literal) :
@@ -2254,8 +2255,8 @@ and map_switch_block (env : env) ((v1, v2, v3) : CST.switch_block) :
     List.map
       (fun x ->
         match x with
-        | `Switch_label x -> Common.Left (map_switch_label env x)
-        | `Stmt x -> Right (map_statement_as_stmt env x))
+        | `Switch_label x -> Either.Left (map_switch_label env x)
+        | `Stmt x -> Either.Right (map_statement_as_stmt env x))
       v2
   in
   let _v3 = (* "}" *) token env v3 in
@@ -2263,13 +2264,13 @@ and map_switch_block (env : env) ((v1, v2, v3) : CST.switch_block) :
     List.fold_right
       (fun either acc ->
         match (either, acc) with
-        | Common.Left _case, (None, acc) ->
+        | Either.Left _case, (None, acc) ->
             (* this means we saw a case with no stmt below, just skip and move on *)
             (None, acc)
-        | Right stmt, (None, acc) -> (Some ([], stmt), acc)
-        | Left case, (Some (cases, stmt), acc) ->
+        | Either.Right stmt, (None, acc) -> (Some ([], stmt), acc)
+        | Either.Left case, (Some (cases, stmt), acc) ->
             (Some (case :: cases, stmt), acc)
-        | Right stmt, (Some (cases, stmt'), acc) ->
+        | Either.Right stmt, (Some (cases, stmt'), acc) ->
             (Some ([], stmt), CasesAndBody (cases, stmt') :: acc))
       v2 (None, [])
   with
@@ -2302,7 +2303,7 @@ and map_template_substitution (env : env) ((v1, v2) : CST.template_substitution)
         let v1 = (* "{" *) token env v1 in
         let v2 = map_expression env v2 in
         let v3 = (* "}" *) token env v3 in
-        Common.Right3 (v1, Some v2, v3)
+        Either_.Right3 (v1, Some v2, v3)
     | `Id_dollar_esca tok ->
         let s2, t2 =
           (* pattern ([a-zA-Z_]|(\\\$))([\w]|(\\\$))* *) str env tok
@@ -2336,7 +2337,7 @@ and map_type_arguments (env : env) (x : CST.type_arguments) : type_arguments =
       let v1 = (* "<" *) token env v1 in
       let v2 =
         match v2 with
-        | Some x -> Common.map (fun ty -> TA ty) (map_interface_type_list env x)
+        | Some x -> List_.map (fun ty -> TA ty) (map_interface_type_list env x)
         | None -> []
       in
       let v3 = (* ">" *) token env v3 in
@@ -2509,13 +2510,13 @@ and map_uri (env : env) (x : CST.uri) : G.module_name =
         if s =~ "^\\(dart\\):\\(.*\\)$" then
           let prefix, s = Common.matched2 s in
           let dotted =
-            Common.map (fun s -> (s, t)) (prefix :: String.split_on_char '/' s)
+            List_.map (fun s -> (s, t)) (prefix :: String.split_on_char '/' s)
           in
           DottedName dotted
         else if s =~ "^\\(package\\):\\(.*\\)$" then
           let prefix, s = Common.matched2 s in
           let dotted =
-            Common.map (fun s -> (s, t)) (prefix :: String.split_on_char '/' s)
+            List_.map (fun s -> (s, t)) (prefix :: String.split_on_char '/' s)
           in
           DottedName dotted
         else DottedName [ (s, t) ])
@@ -2996,7 +2997,7 @@ let map_mixin_application_class ~attrs ~class_tok (env : env)
 *)
 let augment_body initializers body =
   let initializers =
-    Common.map (fun e -> ExprStmt (e, G.sc) |> G.s) initializers
+    List_.map (fun e -> ExprStmt (e, G.sc) |> G.s) initializers
   in
   match (initializers, body) with
   | [], _ -> body
@@ -3118,7 +3119,7 @@ let map_import_specification (env : env) (x : CST.import_specification) =
               ImportAll (v1, uri, v5)
           | _ ->
               (* If there are selective imports, convert to an ImportFrom. *)
-              let selected = Common.map (fun id -> (id, None)) v4 in
+              let selected = List_.map (fun id -> (id, None)) v4 in
               ImportFrom (v1, uri, selected)))
   | `Import_uri_defe_as_id_rep_comb_semi (v1, v2, v3, v4, v5, v6, v7) ->
       (* This is a 'lazy import'.
@@ -3377,7 +3378,7 @@ let map_declaration_ ?(attrs = []) (env : env) (x : CST.declaration_) :
             in
             let v3 = map_static_final_declaration_list env v3 in
             let attrs = [ v1 ] in
-            (attrs, vtype, Common.map (fun (id, e) -> (id, Some e)) v3)
+            (attrs, vtype, List_.map (fun (id, e) -> (id, Some e)) v3)
         | `Late_buil_choice_final_buil_opt_type_init_id_list (v1, v2) ->
             let late_attr = unhandled_keywordattr ((* "late" *) str env v1) in
             let v2 =
@@ -3408,7 +3409,7 @@ let map_declaration_ ?(attrs = []) (env : env) (x : CST.declaration_) :
             (attrs, Some v1, v2)
       in
       let attrs = (static_attr :: new_attrs) @ attrs in
-      Common.map
+      List_.map
         (fun (id, vinit) ->
           DefStmt (basic_entity ~attrs id, VarDef { vinit; vtype }) |> G.s)
         inits
@@ -3431,7 +3432,7 @@ let map_declaration_ ?(attrs = []) (env : env) (x : CST.declaration_) :
                     | None -> None
                   in
                   let v3 = map_identifier_list_ env v3 in
-                  (attrs, vtype, Common.map (fun id -> (id, None)) v3)
+                  (attrs, vtype, List_.map (fun id -> (id, None)) v3)
               | `Choice_type_init_id_list (v1, v2) ->
                   let v1 = map_anon_choice_type_be0da33 env v1 in
                   let v2 = map_initialized_identifier_list env v2 in
@@ -3446,7 +3447,7 @@ let map_declaration_ ?(attrs = []) (env : env) (x : CST.declaration_) :
             (attrs, Some v1, v2)
       in
       let attrs = (cov_attr :: new_attrs) @ attrs in
-      Common.map
+      List_.map
         (fun (id, vinit) ->
           DefStmt (basic_entity ~attrs id, VarDef { vinit; vtype }) |> G.s)
         inits
@@ -3464,7 +3465,7 @@ let map_declaration_ ?(attrs = []) (env : env) (x : CST.declaration_) :
         | None -> None
       in
       let inits = map_initialized_identifier_list env v4 in
-      Common.map
+      List_.map
         (fun (id, vinit) ->
           DefStmt (basic_entity ~attrs id, VarDef { vinit; vtype }) |> G.s)
         inits
@@ -3477,7 +3478,7 @@ let map_declaration_ ?(attrs = []) (env : env) (x : CST.declaration_) :
       in
       let v2 = map_var_or_type env v2 in
       let inits = map_initialized_identifier_list env v3 in
-      Common.map
+      List_.map
         (fun (id, vinit) ->
           DefStmt (basic_entity ~attrs id, VarDef { vinit; vtype = Some v2 })
           |> G.s)
@@ -3550,8 +3551,7 @@ let map_import_or_export (env : env) (x : CST.import_or_export) : stmt =
         let v4 = List.concat_map (map_combinator env) v4 in
         let _v5 = map_semicolon env v5 in
         let d =
-          OtherDirective (v2, G.Modn v3 :: Common.map (fun x -> G.I x) v4)
-          |> G.d
+          OtherDirective (v2, G.Modn v3 :: List_.map (fun x -> G.I x) v4) |> G.d
         in
         { d with d_attrs = v1 }
   in
@@ -3580,7 +3580,7 @@ let map_extension_declaration ~attrs (env : env) (x : CST.extension_declaration)
   match x with
   | `Exte_opt_id_opt_type_params_on_type_exte_body (v1, v2, v3, v4, v5, v6) ->
       let _v1 = (* "extension" *) token env v1 in
-      let attrs = [ G.Anys (Common.map (fun attr -> G.At attr) attrs) ] in
+      let attrs = [ G.Anys (List_.map (fun attr -> G.At attr) attrs) ] in
       let v2 =
         match v2 with
         | Some tok -> [ G.I ((* pattern [a-zA-Z_$][\w$]* *) str env tok) ]
@@ -3590,8 +3590,7 @@ let map_extension_declaration ~attrs (env : env) (x : CST.extension_declaration)
         match v3 with
         | Some x ->
             [
-              G.Anys
-                (Common.map (fun tp -> G.Tp tp) (map_type_parameters env x));
+              G.Anys (List_.map (fun tp -> G.Tp tp) (map_type_parameters env x));
             ]
         | None -> []
       in
@@ -3671,8 +3670,7 @@ let map_top_level_definition ~attrs (env : env) (x : CST.top_level_definition) :
         match v3 with
         | Some x ->
             [
-              G.Anys
-                (Common.map (fun tp -> G.Tp tp) (map_type_parameters env x));
+              G.Anys (List_.map (fun tp -> G.Tp tp) (map_type_parameters env x));
             ]
         | None -> []
       in
@@ -3683,18 +3681,18 @@ let map_top_level_definition ~attrs (env : env) (x : CST.top_level_definition) :
               G.Anys
                 (let _v1 = (* "on" *) token env v1 in
                  let v2 = map_type_not_void_list env v2 in
-                 Common.map (fun ty -> G.T ty) v2);
+                 List_.map (fun ty -> G.T ty) v2);
             ]
         | None -> []
       in
       let v5 =
         match v5 with
         | Some x ->
-            [ G.Anys (Common.map (fun ty -> G.T ty) (map_interfaces env x)) ]
+            [ G.Anys (List_.map (fun ty -> G.T ty) (map_interfaces env x)) ]
         | None -> []
       in
       let _, v6, _ = map_class_body env v6 in
-      let attrs = Anys (attrs |> Common.map (fun x -> G.At x)) in
+      let attrs = Anys (attrs |> List_.map (fun x -> G.At x)) in
       [
         OtherStmt
           (OS_Todo, [ attrs; TodoK v1; G.I v2 ] @ v3 @ v4 @ v5 @ [ G.Flds v6 ])
@@ -3759,7 +3757,7 @@ let map_top_level_definition ~attrs (env : env) (x : CST.top_level_definition) :
       in
       let v3 = map_static_final_declaration_list env v3 in
       let _v4 = map_semicolon env v4 in
-      Common.map
+      List_.map
         (fun (id, expr) ->
           G.DefStmt (basic_entity ~attrs id, VarDef { vinit = Some expr; vtype })
           |> G.s)
@@ -3777,7 +3775,7 @@ let map_top_level_definition ~attrs (env : env) (x : CST.top_level_definition) :
       in
       let v4 = map_initialized_identifier_list env v4 in
       let _v5 = map_semicolon env v5 in
-      Common.map
+      List_.map
         (fun (id, vinit) ->
           G.DefStmt (basic_entity ~attrs id, VarDef { vinit; vtype }) |> G.s)
         v4
@@ -3791,7 +3789,7 @@ let map_top_level_definition ~attrs (env : env) (x : CST.top_level_definition) :
       let vtype = map_var_or_type env v2 in
       let v3 = map_initialized_identifier_list env v3 in
       let _v4 = map_semicolon env v4 in
-      Common.map
+      List_.map
         (fun (id, vinit) ->
           G.DefStmt
             (basic_entity ~attrs id, VarDef { vinit; vtype = Some vtype })
@@ -3815,9 +3813,9 @@ let map_program (env : env) (prog : CST.program) =
         | Some x -> [ map_library_name env x ]
         | None -> []
       in
-      let v3 = Common.map (map_import_or_export env) v3 in
-      let v4 = Common.map (map_part_directive env) v4 in
-      let v5 = Common.map (map_part_of_directive env) v5 in
+      let v3 = List_.map (map_import_or_export env) v3 in
+      let v4 = List_.map (map_part_directive env) v4 in
+      let v5 = List_.map (map_part_of_directive env) v5 in
       let v6 =
         List.concat_map
           (fun (v1, v2) ->

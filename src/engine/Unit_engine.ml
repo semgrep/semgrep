@@ -254,7 +254,7 @@ let make_maturity_tests ?(lang_exn = language_exceptions) lang dir ext maturity
                 (spf "%s actually exist! remove it from exceptions" !!path));
      let features = Common2.minus_set features exns in
      features
-     |> Common.map (fun base ->
+     |> List_.map (fun base ->
             ( base,
               fun () ->
                 let path = dir / (base ^ ext) in
@@ -374,7 +374,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix =
 *)
 let regression_tests_for_lang ~polyglot_pattern_path files lang =
   files
-  |> Common.map (fun file ->
+  |> List_.map (fun file ->
          ( Fpath.basename file,
            fun () ->
              let sgrep_file =
@@ -414,7 +414,7 @@ let make_lang_regression_tests ~test_pattern_path ~polyglot_pattern_path
   (* TODO: infer dir and ext from lang using Lang helper functions *)
   let lang_tests =
     lang_data
-    |> Common.map (fun (lang, dir, ext) ->
+    |> List_.map (fun (lang, dir, ext) ->
            pack_tests_for_lang ~lang_test_fn:regression_tests_for_lang
              ~test_pattern_path ~polyglot_pattern_path lang dir ext)
   in
@@ -424,7 +424,7 @@ let lang_regression_tests ~polyglot_pattern_path =
   let test_pattern_path = tests_path_patterns in
   let regular_tests =
     full_lang_info
-    |> Common.map (fun (lang, dir, ext) ->
+    |> List_.map (fun (lang, dir, ext) ->
            pack_tests_for_lang ~lang_test_fn:regression_tests_for_lang
              ~test_pattern_path ~polyglot_pattern_path lang dir ext)
   in
@@ -434,7 +434,7 @@ let lang_regression_tests ~polyglot_pattern_path =
         (let dir = test_pattern_path / "js" in
          let files = Common2.glob (spf "%s/*.js" !!dir) in
          let files =
-           Common.exclude (fun s -> s =~ ".*xml" || s =~ ".*jsx") files
+           List_.exclude (fun s -> s =~ ".*xml" || s =~ ".*jsx") files
            |> File.Path.of_strings
          in
          let lang = Lang.Ts in
@@ -486,7 +486,7 @@ let compare_fixes ~polyglot_pattern_path ~file matches =
 
 let autofix_tests_for_lang ~polyglot_pattern_path files lang =
   files
-  |> Common.map (fun file ->
+  |> List_.map (fun file ->
          ( Fpath.basename file,
            fun () ->
              let sgrep_file =
@@ -549,7 +549,7 @@ let lang_autofix_tests ~polyglot_pattern_path =
   let test_pattern_path = tests_path_autofix in
   let lang_tests =
     full_lang_info
-    |> Common.map (fun (lang, dir, ext) ->
+    |> List_.map (fun (lang, dir, ext) ->
            pack_tests_for_lang ~lang_test_fn:autofix_tests_for_lang
              ~test_pattern_path ~polyglot_pattern_path lang dir ext)
   in
@@ -630,7 +630,7 @@ let filter_irrelevant_rules_tests () =
             | _ -> true (* TODO include .test.yaml*))
      in
      target_files
-     |> Common.map (fun target_file -> test_irrelevant_rule_file target_file))
+     |> List_.map (fun target_file -> test_irrelevant_rule_file target_file))
 
 (*****************************************************************************)
 (* Extract tests *)
@@ -639,9 +639,7 @@ let filter_irrelevant_rules_tests () =
 let get_extract_source_lang file rules =
   let _, _, erules, _, _ = R.partition_rules rules in
   let erule_langs =
-    erules
-    |> Common.map (fun r -> r.R.target_analyzer)
-    |> List.sort_uniq compare
+    erules |> List_.map (fun r -> r.R.target_analyzer) |> List.sort_uniq compare
   in
   match erule_langs with
   | [] -> failwith (spf "no language for extract rule found in %s" !!file)
@@ -726,7 +724,7 @@ let tainting_test lang rules_file file =
   in
   let actual =
     matches
-    |> Common.map (fun m ->
+    |> List_.map (fun m ->
            {
              rule_id = Some m.P.rule_id.id;
              E.typ = OutJ.SemgrepMatchFound;
@@ -740,7 +738,7 @@ let tainting_test lang rules_file file =
 
 let tainting_tests_for_lang files lang =
   files
-  |> Common.map (fun file ->
+  |> List_.map (fun file ->
          ( Fpath.basename file,
            fun () ->
              let rules_file =
@@ -831,18 +829,18 @@ let full_rule_regression_tests () =
   let tests = tests1 @ tests2 in
   let groups =
     tests
-    |> Common.map (fun (name, ftest) ->
+    |> List_.map (fun (name, ftest) ->
            let group =
              match String.split_on_char ' ' name with
              | lang :: _ -> lang
              | _ -> name
            in
            (group, (name, ftest)))
-    |> Common.group_assoc_bykey_eff
+    |> Assoc.group_assoc_bykey_eff
   in
 
   pack_suites "full rule"
-    (groups |> Common.map (fun (group, tests) -> pack_tests group tests))
+    (groups |> List_.map (fun (group, tests) -> pack_tests group tests))
 
 (* TODO: For now we only have taint maturity tests for Beta, there are no
  * specific tests for GA.
@@ -874,7 +872,7 @@ let full_rule_semgrep_rules_regression_tests () =
   in
   let groups =
     tests
-    |> Common.map_filter (fun (name, ftest) ->
+    |> List_.map_filter (fun (name, ftest) ->
            let group_opt =
              match name with
              (* TODO: cleanup nodejsscan? "no target for" error *)
@@ -924,13 +922,14 @@ let full_rule_semgrep_rules_regression_tests () =
                  None
            in
            group_opt |> Option.map (fun groupname -> (groupname, (name, ftest))))
-    |> Common.group_assoc_bykey_eff
+    |> Assoc.group_assoc_bykey_eff
   in
+
   pack_suites "full semgrep rule"
     (groups
-    |> Common.map (fun (group, tests) ->
+    |> List_.map (fun (group, tests) ->
            pack_tests (spf "%s" group) tests
-           |> Common.map (fun (name, ftest) ->
+           |> List_.map (fun (name, ftest) ->
                   let test () =
                     match group with
                     | "PB" ->

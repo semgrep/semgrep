@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Either_
 open Ast_js
 module G = AST_generic
 module H = AST_generic_helpers
@@ -32,7 +33,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 let id x = x
 let option = Option.map
-let list = Common.map
+let list = List_.map
 let bool = id
 let string = id
 let error = AST_generic.error
@@ -123,7 +124,7 @@ let special (x, tok) =
           (fun args ->
             G.Call
               ( G.IdSpecial (G.ConcatString G.InterpolatedConcat, tok) |> G.e,
-                args |> Common.map (fun e -> G.Arg e) |> fb ))
+                args |> List_.map (fun e -> G.Arg e) |> fb ))
       else
         SR_NeedArgs
           (fun args ->
@@ -143,7 +144,7 @@ let special (x, tok) =
                                   *)
                                  (G.ConcatString G.TaggedTemplateLiteral, tok)
                                |> G.e,
-                               rest |> Common.map (fun e -> G.Arg e) |> fb )
+                               rest |> List_.map (fun e -> G.Arg e) |> fb )
                           |> G.e);
                       ] ))
   | ArithOp op -> SR_Special (G.Op op, tok)
@@ -239,7 +240,7 @@ and expr (x : expr) =
       G.Cast (v3, v2, v1) |> G.e
   | ExprTodo (v1, v2) ->
       let v2 = list expr v2 in
-      G.OtherExpr (v1, v2 |> Common.map (fun e -> G.E e)) |> G.e
+      G.OtherExpr (v1, v2 |> List_.map (fun e -> G.E e)) |> G.e
   | ParenExpr (l, e, r) ->
       let e = expr e in
       H.set_e_range l r e;
@@ -304,7 +305,7 @@ and expr (x : expr) =
       (* Since the attrs aren't included in the AST, at least update the range
        * to include them. See
        * https://github.com/returntocorp/semgrep/issues/7353 *)
-      let attrs_any = Common.map (fun attr -> G.At attr) more_attrs in
+      let attrs_any = List_.map (fun attr -> G.At attr) more_attrs in
       H.set_e_range_with_anys (G.Dk (G.FuncDef def) :: attrs_any) e;
       e
   | Apply (IdSpecial v1, v2) ->
@@ -312,22 +313,22 @@ and expr (x : expr) =
       let v2 = bracket (list expr) v2 in
       (match x with
       | SR_Special v ->
-          G.Call (G.IdSpecial v |> G.e, bracket (Common.map G.arg) v2)
+          G.Call (G.IdSpecial v |> G.e, bracket (List_.map G.arg) v2)
       | SR_Literal l ->
           logger#info "Weird: literal in call position";
           (* apparently there's code like (null)("fs"), no idea what that is *)
-          G.Call (G.L l |> G.e, bracket (Common.map G.arg) v2)
+          G.Call (G.L l |> G.e, bracket (List_.map G.arg) v2)
       | SR_NeedArgs f -> f (Tok.unbracket v2)
       | SR_Other categ ->
           (* ex: NewTarget *)
           G.Call
             ( G.OtherExpr (categ, []) |> G.e,
-              bracket (Common.map (fun e -> G.Arg e)) v2 )
-      | SR_Expr e -> G.Call (e |> G.e, bracket (Common.map G.arg) v2))
+              bracket (List_.map (fun e -> G.Arg e)) v2 )
+      | SR_Expr e -> G.Call (e |> G.e, bracket (List_.map G.arg) v2))
       |> G.e
   | Apply (v1, v2) ->
       let v1 = expr v1 and v2 = bracket (list expr) v2 in
-      G.Call (v1, bracket (Common.map (fun e -> G.Arg e)) v2) |> G.e
+      G.Call (v1, bracket (List_.map (fun e -> G.Arg e)) v2) |> G.e
   | New (tok, e, args) ->
       let tok = info tok in
       let e = expr e in
@@ -425,7 +426,7 @@ and for_header = function
       | Left vars ->
           let vars =
             vars
-            |> Common.map (fun x ->
+            |> List_.map (fun x ->
                    let a, b = var_of_var x in
                    G.ForInitVar (a, b))
           in
@@ -489,10 +490,10 @@ and type_ x =
       let t = type_ t in
       G.TyArray ((lt, None, rt), t) |> G.t
   | TyTuple (lt, xs, rt) ->
-      let xs = Common.map tuple_type_member xs in
+      let xs = List_.map tuple_type_member xs in
       G.TyTuple (lt, xs, rt) |> G.t
   | TyFun (params, typ_opt) ->
-      let params = Common.map parameter_binding params in
+      let params = List_.map parameter_binding params in
       let rett =
         match typ_opt with
         | None -> G.ty_builtin ("void", Tok.unsafe_fake_tok "void")
@@ -501,7 +502,7 @@ and type_ x =
       G.TyFun (params, rett) |> G.t
   | TyRecordAnon (lt, properties, rt) ->
       G.TyRecordAnon
-        ((G.Class, Tok.fake_tok lt ""), (lt, Common.map property properties, rt))
+        ((G.Class, Tok.fake_tok lt ""), (lt, List_.map property properties, rt))
       |> G.t
   | TyOr (t1, tk, t2) ->
       let t1 = type_ t1 in
@@ -511,7 +512,7 @@ and type_ x =
       let t1 = type_ t1 in
       let t2 = type_ t2 in
       G.TyAnd (t1, tk, t2) |> G.t
-  | TypeTodo (categ, xs) -> G.OtherType (categ, Common.map any xs) |> G.t
+  | TypeTodo (categ, xs) -> G.OtherType (categ, List_.map any xs) |> G.t
 
 and tuple_type_member x =
   match x with
@@ -611,7 +612,7 @@ and attribute = function
         | Some x -> x
         | None -> fb []
       in
-      let args = list argument args |> Common.map G.arg in
+      let args = list argument args |> List_.map G.arg in
       let name = H.name_of_ids ids in
       G.NamedAttr (t, name, (t1, args, t2))
 
@@ -724,7 +725,7 @@ and module_directive x =
       G.OtherDirective (("ReExportNamespace", v1), [ G.Str (fb v4) ])
   | Import (t, v1, v2) ->
       let v1 =
-        Common.map
+        List_.map
           (fun (v1, v2) ->
             let v1 = name v1 and v2 = option alias v2 in
             (v1, v2))
@@ -750,7 +751,7 @@ and list_stmt xs =
   (* converting require() in import, so they can benefit from the
    * other goodies coming with import in semgrep (e.g., equivalence aliasing)
    *)
-  xs |> Common.map (fun st -> [ stmt st ]) |> List.flatten
+  xs |> List_.map (fun st -> [ stmt st ]) |> List.flatten
 
 and program v = list_stmt v
 

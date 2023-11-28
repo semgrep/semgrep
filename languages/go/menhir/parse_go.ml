@@ -49,7 +49,7 @@ let tokens input_source =
 let parse filename =
   (* this can throw Parse_info.Lexical_error *)
   let toks_orig = tokens (Parsing_helpers.file filename) in
-  let toks = Common.exclude TH.is_comment_or_space toks_orig in
+  let toks = List_.exclude TH.is_comment_or_space toks_orig in
   (* insert implicit SEMICOLON and replace some LBRACE with LBODY *)
   let toks = Parsing_hacks_go.fix_tokens toks in
   let tr, lexer, lexbuf_fake =
@@ -104,7 +104,7 @@ let (program_of_string : string -> Ast_go.program) =
 let any_of_string s =
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
       let toks_orig = tokens (Parsing_helpers.Str s) in
-      let toks = Common.exclude TH.is_comment_or_space toks_orig in
+      let toks = List_.exclude TH.is_comment_or_space toks_orig in
       (* insert implicit SEMICOLON and replace some LBRACE with LBODY *)
       let toks = Parsing_hacks_go.fix_tokens toks in
       let tr, lexer, lexbuf_fake =

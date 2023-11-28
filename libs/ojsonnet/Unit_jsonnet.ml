@@ -22,7 +22,7 @@ let related_file_of_target ~ext ~file =
 let test_maker_err dir =
   Common2.glob (spf "%s/*%s" !!dir "jsonnet")
   |> File.Path.of_strings
-  |> Common.map (fun file ->
+  |> List_.map (fun file ->
          ( Fpath.basename file,
            fun () ->
              let ast = Parse_jsonnet.parse_program file in
@@ -38,7 +38,7 @@ let test_maker_err dir =
 let test_maker_pass_fail dir pass_or_fail =
   Common2.glob (spf "%s/*%s" !!dir "jsonnet")
   |> File.Path.of_strings
-  |> Common.map (fun file ->
+  |> List_.map (fun file ->
          ( Fpath.basename file,
            fun () ->
              let comparison_file_path =

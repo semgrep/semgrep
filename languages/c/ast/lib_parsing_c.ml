@@ -29,7 +29,7 @@ let find_source_files_of_dir_or_files xs =
              (* todo: fix syncweb so don't need this! *)
              not (FT.is_syncweb_obj_file filename)
          | _ -> false)
-  |> Common.sort
+  |> List_.sort
 
 (*****************************************************************************)
 (* ii_of_any *)

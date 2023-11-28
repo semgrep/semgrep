@@ -218,7 +218,7 @@ let dump_tree_sitter_cst lang file =
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
 let test_parse_tree_sitter lang root_paths =
-  let paths = Common.map Common.fullpath root_paths |> File.Path.of_strings in
+  let paths = List_.map Common.fullpath root_paths |> File.Path.of_strings in
   let paths, _skipped_paths =
     Find_targets_old.files_of_dirs_or_files (Some lang) paths
   in
@@ -280,7 +280,7 @@ let test_parse_tree_sitter lang root_paths =
                    print_exn file exn;
                    Parsing_stat.bad_stat file
              in
-             Common.push stat stat_list));
+             Stack_.push stat stat_list));
   Parsing_stat.print_parsing_stat_list !stat_list;
   ()
 
@@ -335,7 +335,7 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
 
   let paths =
     (* = absolute paths *)
-    Common.map Common.fullpath files_or_dirs |> File.Path.of_strings
+    List_.map Common.fullpath files_or_dirs |> File.Path.of_strings
   in
   let paths, skipped =
     Find_targets_old.files_of_dirs_or_files (Some lang) paths
@@ -425,7 +425,7 @@ let update_parsing_rate (acc : Parsing_stats_t.project_stats) :
 *)
 let aggregate_file_stats (results : (string * Parsing_stat.t list) list) :
     Parsing_stats_t.project_stats list =
-  Common.map
+  List_.map
     (fun (project_name, file_stats) ->
       let acc =
         {
@@ -510,7 +510,7 @@ let print_json lang results =
   print_endline (Yojson.Safe.prettify s)
 
 let parse_projects ~verbose lang project_dirs =
-  Common.map
+  List_.map
     (fun dir ->
       let name = dir in
       parse_project ~verbose lang name [ dir ])

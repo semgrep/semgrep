@@ -285,17 +285,17 @@ let render_fix (pm : Pattern_match.t) : Textedit.t option =
  * changes could be used in production as well.
  *)
 let produce_autofixes (matches : Pattern_match.t list) =
-  Common.map (fun m -> (m, render_fix m)) matches
+  List_.map (fun m -> (m, render_fix m)) matches
 
 let apply_fixes_to_file matches_with_fixes ~file =
   let file_text = Common.read_file file in
-  let edits = Common.map snd matches_with_fixes |> Common.map_filter Fun.id in
+  let edits = List_.map snd matches_with_fixes |> List_.map_filter Fun.id in
   match Textedit.apply_edits_to_text file_text edits with
   | Success x -> x
   | Overlap { conflicting_edits; _ } ->
       failwith
         (spf "Could not apply fix because it overlapped with another: %s"
-           (Common.hd_exn "unexpected empty list" conflicting_edits)
+           (List_.hd_exn "unexpected empty list" conflicting_edits)
              .replacement_text)
 
 let apply_fixes (edits : Textedit.t list) =
@@ -312,7 +312,7 @@ let apply_fixes (edits : Textedit.t list) =
 
 let apply_fixes_of_core_matches (matches : OutJ.core_match list) =
   matches
-  |> Common.map_filter (fun (m : OutJ.core_match) ->
+  |> List_.map_filter (fun (m : OutJ.core_match) ->
          let* replacement_text = m.extra.fix in
          let start = m.start.offset in
          let end_ = m.end_.offset in

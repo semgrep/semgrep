@@ -129,7 +129,7 @@ let rec parse ?(parsing_mode = Python) filename =
        *)
       if
         parsing_mode =*= Python
-        && tr.Parsing_helpers.passed |> Common.take_safe 10
+        && tr.Parsing_helpers.passed |> List_.take_safe 10
            |> List.exists (function
                 | T.NAME (("print" | "exec"), _)
                 | T.ASYNC _

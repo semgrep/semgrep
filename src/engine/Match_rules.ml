@@ -100,7 +100,7 @@ let is_relevant_rule_for_xtarget r xconf xtarget =
 let group_rules xconf rules xtarget =
   let relevant_taint_rules, relevant_nontaint_rules, skipped_rules =
     rules
-    |> Common.partition_either3 (fun r ->
+    |> Either_.partition_either3 (fun r ->
            let relevant_rule = is_relevant_rule_for_xtarget r xconf xtarget in
            match r.R.mode with
            | _ when not relevant_rule -> Right3 r
@@ -131,8 +131,8 @@ let group_rules xconf rules xtarget =
   *)
   let relevant_taint_rules_groups =
     relevant_taint_rules
-    |> Common.map (fun r -> (r.R.target_analyzer, r))
-    |> Common.group_assoc_bykey_eff |> Common.map snd
+    |> List_.map (fun r -> (r.R.target_analyzer, r))
+    |> Assoc.group_assoc_bykey_eff |> List_.map snd
   in
   (relevant_taint_rules_groups, relevant_nontaint_rules, skipped_rules)
 
@@ -205,7 +205,7 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
   in
   let res_nontaint_rules =
     relevant_nontaint_rules
-    |> Common.map (fun r ->
+    |> List_.map (fun r ->
            let xconf =
              Match_env.adjust_xconfig_with_rule_options xconf r.R.options
            in
@@ -229,7 +229,7 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
     match res.extra with
     | Core_profiling.Debug { skipped_targets; profiling } ->
         let skipped =
-          Common.map (skipped_target_of_rule xtarget) skipped_rules
+          List_.map (skipped_target_of_rule xtarget) skipped_rules
         in
         Core_profiling.Debug
           { skipped_targets = skipped @ skipped_targets; profiling }

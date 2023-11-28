@@ -197,7 +197,7 @@ and type_of_ast_generic_type lang t : G.name Type.t =
   | G.TyApply ({ G.t = G.TyN name; _ }, (_l, args, _r)) ->
       let args =
         args
-        |> Common.map (function
+        |> List_.map (function
              | G.TA t -> Type.TA (type_of_ast_generic_type lang t)
              | G.TAWildcard (_, None) -> Type.TAWildcard None
              | G.TAWildcard (_, Some ((kind, _), t)) ->
@@ -225,7 +225,7 @@ and type_of_ast_generic_type lang t : G.name Type.t =
   | G.TyFun (params, tret) ->
       let params =
         params
-        |> Common.map (function
+        |> List_.map (function
              | G.Param { G.pname; ptype; _ } ->
                  let pident = Option.map fst pname in
                  let ptype =
@@ -273,7 +273,7 @@ let name_and_targs_of_named_type lang = function
         _ ) ->
       let (str_last, _), _ = name_last in
       let middle_strs =
-        middle |> Common.map (fun ((str, _info), _targs) -> str)
+        middle |> List_.map (fun ((str, _info), _targs) -> str)
       in
       let str = String.concat "." (middle_strs @ [ str_last ]) in
       Some (str, targs)
