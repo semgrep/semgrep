@@ -11,7 +11,7 @@ module OutT = Semgrep_output_v1_t
 
    Partially translated from output.py
 
-   We're using Common.pr() below, not Logs.app(), because we want to output
+   We're using Out.put() below, not Logs.app(), because we want to output
    findings on stdout (Logs.app uses stderr). That also mean semgrep will
    display findings even with --quiet.
 *)
