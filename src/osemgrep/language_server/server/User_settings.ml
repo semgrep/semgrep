@@ -36,6 +36,7 @@ type t = {
   only_git_dirty : bool; [@key "onlyGitDirty"] [@default true]
   ci : bool; [@default true]
   do_hover : bool; [@default false]
+  pro_intrafile : bool; [@default false]
 }
 [@@deriving yojson]
 
@@ -47,11 +48,13 @@ let default =
     jobs = 1;
     max_memory = 0;
     max_target_bytes = 1000000;
-    timeout = 2;
+    timeout = 5;
+    (* ^ seconds, coupling: keep up-to-date with Scan_CLI.ml and constants.py *)
     timeout_threshold = 3;
     only_git_dirty = true;
     ci = true (* Secret setting for testing purposes *);
     do_hover = false;
+    pro_intrafile = false;
   }
 
 let t_of_yojson json = of_yojson json
@@ -67,7 +70,7 @@ let find_targets_conf_of_t settings =
       exclude = settings.exclude;
       include_;
       max_target_bytes = settings.max_target_bytes;
-      respect_git_ignore = true;
+      respect_gitignore = true;
       baseline_commit = None;
       diff_depth = 0;
       scan_unknown_extensions = true;

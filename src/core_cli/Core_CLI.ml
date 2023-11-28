@@ -183,6 +183,7 @@ let dump_pattern (file : Fpath.t) =
       let v = Meta_AST.vof_any any in
       let s = dump_v_to_format v in
       pr s)
+[@@action]
 
 let dump_patterns_of_rule (file : Fpath.t) =
   let file = Core_scan.replace_named_pipe_by_regular_file file in
@@ -198,6 +199,7 @@ let dump_patterns_of_rule (file : Fpath.t) =
           pr s
       | _ -> pr (Xpattern.show_xpattern_kind pat))
     xpats
+[@@action]
 
 let dump_ast ?(naming = false) lang file =
   let file = Core_scan.replace_named_pipe_by_regular_file file in
@@ -214,6 +216,7 @@ let dump_ast ?(naming = false) lang file =
       if Parsing_result2.has_error res then (
         dump_parsing_errors file res;
         Core_exit_code.(exit_semgrep False)))
+[@@action]
 
 (*****************************************************************************)
 (* Experiments *)
@@ -341,12 +344,6 @@ let all_actions () =
           let file = Core_scan.replace_named_pipe_by_regular_file file in
           Test_parsing.dump_pfff_ast (Xlang.lang_of_opt_xlang_exn !lang) !!file)
     );
-    ( "-dump_elixir_raw_ast",
-      " <file>",
-      Arg_helpers.mk_action_1_arg Core_actions.dump_elixir_raw_ast );
-    ( "-dump_elixir_ast",
-      " <file>",
-      Arg_helpers.mk_action_1_arg Core_actions.dump_elixir_ast );
     ( "-diff_pfff_tree_sitter",
       " <file>",
       Arg_helpers.mk_action_n_arg Test_parsing.diff_pfff_tree_sitter );
@@ -537,12 +534,6 @@ let options actions =
       Arg.Set_int max_match_per_file,
       " <int> maximum numbers of match per file" );
     ("-debug", Arg.Set debug, " output debugging information");
-    ("-test", Arg.Set test, " (internal) set test context");
-    ("-raja", Arg.Set Flag_semgrep.raja, " undocumented");
-    ( "-max_match_per_file",
-      Arg.Set_int max_match_per_file,
-      " <int> maximum numbers of match per file" );
-    ("-debug", Arg.Set debug, " output debugging information");
     ("--debug", Arg.Set debug, " output debugging information");
     ( "-debug_matching",
       Arg.Set Flag.debug_matching,
@@ -557,7 +548,6 @@ let options actions =
       Arg.String (fun file -> log_to_file := Some (Fpath.v file)),
       " <file> log debugging info to file" );
     ("-test", Arg.Set test, " (internal) set test context");
-    ("-raja", Arg.Set Flag_semgrep.raja, " undocumented");
   ]
   @ Flag_parsing_cpp.cmdline_flags_macrofile ()
   (* inlining of: Common2.cmdline_flags_devel () @ *)

@@ -1,5 +1,5 @@
 (*****************************************************************************)
-(* Purpose *)
+(* Prelude *)
 (*****************************************************************************)
 (* Unit tests entry point.
  *
@@ -8,11 +8,10 @@
  *   $./test foo
  *
  * to run all the tests containing foo in their description.
+ *
+ * This file used to contain lots of tests, but it's better to now
+ * distribute them in their relevant directory (e.g., engine/Unit_engine.ml)
  *)
-
-(*****************************************************************************)
-(* Constants *)
-(*****************************************************************************)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -21,13 +20,6 @@
 let any_gen_of_string str =
   let any = Parse_python.any_of_string str in
   Python_to_generic.any any
-
-(*****************************************************************************)
-(* Tests *)
-(*****************************************************************************)
-(* This file used to contain lots of tests, but it's better to now
- * distribute them in their relevant directory (e.g., engine/Unit_engine.ml)
- *)
 
 (*****************************************************************************)
 (* All tests *)
@@ -75,6 +67,9 @@ let tests () =
       Unit_LS.tests;
       Unit_Login.tests;
       Unit_Fetching.tests;
+      Test_login_subcommand.tests;
+      Test_publish_subcommand.tests;
+      Test_osemgrep.tests;
       (* Networking tests disabled as they will get rate limited sometimes *)
       (* And the SSL issues they've been testing have been stable *)
       (*Unit_Networking.tests;*)
@@ -101,20 +96,29 @@ let tests_with_delayed_error () =
   | e ->
       let exn = Exception.catch e in
       [
-        ( "cannot load test data - not a real test",
+        ( "ERROR DURING TEST SUITE INITIALIZATION",
           fun () -> Exception.reraise exn );
       ]
 
 let main () =
   (* change to the root of the semgrep repo as many of our tests rely on
      'let test_path = "tests/"' to find their test files *)
-  Git_wrapper.chdir_to_repo_root ();
-  Http_helpers.client_ref := Some (module Cohttp_lwt_unix.Client);
-  Parsing_init.init ();
-  Data_init.init ();
-  Core_CLI.register_exception_printers ();
-  Logs_helpers.setup_logging ~force_color:false ~level:(Some Logs.Debug) ();
-  let alcotest_tests = Testutil.to_alcotest (tests_with_delayed_error ()) in
-  Alcotest.run "semgrep-core" alcotest_tests
+  let repo_root =
+    match Git_wrapper.get_project_root () with
+    | Some path -> path
+    | None ->
+        failwith
+          "You must run the test program from within the semgrep repo and not \
+           one of its submodules."
+  in
+  Testutil_files.with_chdir repo_root (fun () ->
+      print_endline ("Running tests from directory: " ^ Sys.getcwd ());
+      Http_helpers.client_ref := Some (module Cohttp_lwt_unix.Client);
+      Parsing_init.init ();
+      Data_init.init ();
+      Core_CLI.register_exception_printers ();
+      Logs_helpers.setup_logging ~force_color:false ~level:(Some Logs.Debug) ();
+      let alcotest_tests = Testutil.to_alcotest (tests_with_delayed_error ()) in
+      Alcotest.run "semgrep-core" alcotest_tests)
 
 let () = main ()

@@ -16,9 +16,10 @@ type t = {
 }
 [@@deriving show]
 
-val g_errors : t list ref
-
 module ErrorSet : Set.S with type elt = t
+
+(* !!global!! modified by push_error() below *)
+val g_errors : t list ref
 
 (*****************************************************************************)
 (* Converter functions *)
@@ -31,7 +32,8 @@ val mk_error :
   Semgrep_output_v1_t.error_type ->
   t
 
-val error :
+(* modifies g_errors *)
+val push_error :
   Rule_ID.t -> Tok.location -> string -> Semgrep_output_v1_t.error_type -> unit
 
 (* Convert an invalid rule into an error.
@@ -40,15 +42,20 @@ val error :
 *)
 val error_of_invalid_rule_error : Rule.invalid_rule_error -> t
 
-(* Convert a caught exception and its stack trace to a Semgrep error. *)
-val exn_to_error : Rule_ID.t option -> Common.filename -> Exception.t -> t
+(* Convert a caught exception and its stack trace to a Semgrep error.
+ * See also JSON_report.json_of_exn for non-target related exn handling.
+ *)
+val exn_to_error : Rule_ID.t option -> string (* filename *) -> Exception.t -> t
 
 (*****************************************************************************)
 (* Try with error *)
 (*****************************************************************************)
 
-val try_with_exn_to_error : Common.filename -> (unit -> unit) -> unit
-val try_with_print_exn_and_reraise : Common.filename -> (unit -> unit) -> unit
+(* note that this modifies g_errors! *)
+val try_with_exn_to_error : string (* filename *) -> (unit -> unit) -> unit
+
+val try_with_print_exn_and_reraise :
+  string (* filename *) -> (unit -> unit) -> unit
 
 (*****************************************************************************)
 (* Pretty printers *)
@@ -67,13 +74,13 @@ val severity_of_error :
 val expected_error_lines_of_files :
   ?regexp:string ->
   ?ok_regexp:string option ->
-  Common.filename list ->
-  (Common.filename * int) (* line with ERROR *) list
+  string (* filename *) list ->
+  (string (* filename *) * int) (* line with ERROR *) list
 
 (* Return the number of errors and an error message, if there's any error. *)
 val compare_actual_to_expected :
-  t list -> (Common.filename * int) list -> (unit, int * string) result
+  t list -> (string (* filename *) * int) list -> (unit, int * string) result
 
 (* Call Alcotest.fail in case of errors *)
 val compare_actual_to_expected_for_alcotest :
-  t list -> (Common.filename * int) list -> unit
+  t list -> (string (* filename *) * int) list -> unit

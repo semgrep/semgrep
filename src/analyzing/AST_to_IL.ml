@@ -173,14 +173,6 @@ let mk_unit tok eorig =
   let unit = G.Unit tok in
   mk_e (Literal unit) eorig
 
-(* Just a fake `__TODO_xyz__ = ()` instruction to record a TODO in the generated IL. *)
-let mk_fake_TODO_instr ~str env tok =
-  let str = Common.spf "__TODO_%s__" str in
-  let unit = mk_unit (G.fake "()") NoOrig in
-  let var = fresh_var ~str env tok in
-  let lval = lval_of_base (Var var) in
-  mk_i (Assign (lval, unit)) NoOrig
-
 let add_instr env instr = Common.push (mk_s (Instr instr)) env.stmts
 
 (* Create an auxiliary variable for an expression---unless the expression
@@ -334,8 +326,8 @@ and pattern env pat =
   | G.PatId (id, id_info) ->
       let lval = lval_of_id_info env id id_info in
       (lval, [])
-  | G.PatList (tok1, pats, tok2)
-  | G.PatTuple (tok1, pats, tok2) ->
+  | G.PatList (_tok1, pats, tok2)
+  | G.PatTuple (_tok1, pats, tok2) ->
       (* P1, ..., Pn *)
       let tmp = fresh_var env tok2 in
       let tmp_lval = lval_of_base (Var tmp) in
@@ -344,7 +336,7 @@ and pattern env pat =
         pats
         |> Common.mapi (fun i pat_i ->
                let eorig = Related (G.P pat_i) in
-               let index_i = Literal (G.Int (Some i, tok1)) in
+               let index_i = Literal (G.Int (Parsed_int.of_int i)) in
                let offset_i =
                  { o = Index { e = index_i; eorig }; oorig = NoOrig }
                in
@@ -431,7 +423,7 @@ and assign env lhs tok rhs_exp e_gen =
       let tup_elems =
         lhss
         |> Common.mapi (fun i lhs_i ->
-               let index_i = Literal (G.Int (Some i, tok1)) in
+               let index_i = Literal (G.Int (Parsed_int.of_int i)) in
                let offset_i =
                  {
                    o = Index { e = index_i; eorig = related_exp lhs_i };
@@ -571,7 +563,7 @@ and expr_aux env ?(void = false) e_gen =
               | G.Decr -> G.Minus),
               tok )
           in
-          let one = G.Int (Some 1, tok) in
+          let one = G.Int (Parsed_int.of_int 1) in
           let one_exp = mk_e (Literal one) (related_tok tok) in
           let opexp =
             mk_e
@@ -1545,10 +1537,11 @@ and stmt_aux env st =
       ss @ stmt env stmt1
   (* Rust: unsafe block *)
   | G.OtherStmtWithStmt (G.OSWS_Block ("Unsafe", tok), [], stmt1) ->
-      let todo_stmt =
-        mk_s (Instr (mk_fake_TODO_instr ~str:"unsafe_block" env tok))
-      in
-      todo_stmt :: stmt env stmt1
+      let todo_stmt = fixme_stmt ToDo (G.TodoK ("unsafe_block", tok)) in
+      todo_stmt @ stmt env stmt1
+  | G.OtherStmt (OS_Async, [ G.S stmt1 ]) ->
+      let todo_stmt = fixme_stmt ToDo (G.TodoK ("async", G.fake "async")) in
+      todo_stmt @ stmt env stmt1
   | G.OtherStmt _
   | G.OtherStmtWithStmt _ ->
       todo (G.S st)

@@ -1,4 +1,3 @@
-(* will populate Core_error.errors *)
 val check : Rule.t -> Core_error.t list
 
 (* to test -check_rules *)

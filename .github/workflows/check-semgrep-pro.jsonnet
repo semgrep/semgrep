@@ -1,6 +1,6 @@
 // This workflow checks whether the current semgrep PR can break the
-// compilation of semgrep-pro if semgrep-pro was using this semgrep
-// branch as a submodule.
+// compilation and tests of semgrep-pro if semgrep-pro was using this
+// semgrep branch as a submodule.
 
 local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
@@ -9,7 +9,7 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // The job
 // ----------------------------------------------------------------------------
 
-local check_compile_semgrep_pro_job = {
+local check_compile_test_semgrep_pro_job = {
   'runs-on': 'ubuntu-latest',
   // Switching to Ubuntu here because Alpine does not provide easily 'gh'
   // which is needed to checkout semgrep-pro from semgrep GHA.
@@ -98,6 +98,15 @@ local check_compile_semgrep_pro_job = {
         make
       |||,
     },
+
+    {
+      name: 'Test semgrep-pro',
+      run: |||
+        cd ../semgrep-proprietary
+        eval $(opam env)
+        make test
+      |||,
+    },
   ],
 };
 
@@ -117,6 +126,6 @@ local check_compile_semgrep_pro_job = {
     },
   },
   jobs: {
-    'check-compile-semgrep-pro': check_compile_semgrep_pro_job,
+    'check-compile-test-semgrep-pro': check_compile_test_semgrep_pro_job,
   },
 }

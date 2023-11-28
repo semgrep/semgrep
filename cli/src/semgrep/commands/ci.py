@@ -20,7 +20,6 @@ from rich.table import Table
 
 import semgrep.run_scan
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
-from semgrep.app import auth
 from semgrep.app.project_config import ProjectConfig
 from semgrep.app.scans import ScanCompleteResult
 from semgrep.app.scans import ScanHandler
@@ -239,13 +238,7 @@ def ci(
         )
         sys.exit(FATAL_EXIT_CODE)
     elif token:
-        deployment_name = auth.get_deployment_from_token(token)
-        if not deployment_name:
-            logger.info(
-                "API token not valid. Try to run `semgrep logout` and `semgrep login` again.",
-            )
-            sys.exit(INVALID_API_KEY_EXIT_CODE)
-        scan_handler = ScanHandler(dry_run=dry_run, deployment_name=deployment_name)
+        scan_handler = ScanHandler(dry_run=dry_run)
     else:  # impossible state… until we break the code above
         raise RuntimeError("The token and/or config are misconfigured")
 
@@ -323,20 +316,19 @@ def ci(
                     else ""
                 )
 
-                start_scan_desc = f"Reporting start of scan for [bold]{scan_handler.deployment_name}[/bold]"
+                start_scan_desc = "Initializing scan"
                 start_scan_task = progress_bar.add_task(start_scan_desc)
                 scan_handler.start_scan(project_meta, project_config)
+                extra_fields = []
+                if scan_handler.deployment_name:
+                    extra_fields.append(f"deployment={scan_handler.deployment_name}")
                 if scan_handler.scan_id:
-                    start_scan_desc += f" (scan_id={scan_handler.scan_id})"
+                    extra_fields.append(f"scan_id={scan_handler.scan_id}")
+                if extra_fields:
+                    start_scan_desc += f" ({', '.join(extra_fields)})"
                 progress_bar.update(
                     start_scan_task, completed=100, description=start_scan_desc
                 )
-
-                connection_task = progress_bar.add_task(
-                    f"Fetching configuration from Semgrep Cloud Platform{at_url_maybe}"
-                )
-                scan_handler.fetch_and_init_scan_config(project_meta.to_json())
-                progress_bar.update(connection_task, completed=100)
 
                 product_names = [
                     PRODUCT_NAMES_MAP.get(p) or p for p in scan_handler.enabled_products

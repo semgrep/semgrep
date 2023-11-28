@@ -1,6 +1,6 @@
 open Common
 open File.Operators
-module Out = Semgrep_output_v1_j
+module OutJ = Semgrep_output_v1_j
 
 (*****************************************************************************)
 (* Prelude *)
@@ -14,7 +14,7 @@ module Out = Semgrep_output_v1_j
    it currently depends on Scan_CLI.conf and Core_runner so simpler to keep
    here for now.
 
-   We're using Common.pr() below, not Logs.app(), because we want to output
+   We're using Out.put() below, not Logs.app(), because we want to output
    findings on stdout (Logs.app uses stderr). That also mean semgrep will
    display findings even with --quiet.
 *)
@@ -23,65 +23,24 @@ module Out = Semgrep_output_v1_j
 (* Helpers *)
 (*****************************************************************************)
 
-let string_of_severity (severity : Out.match_severity) : string =
-  Out.string_of_match_severity severity
+let string_of_severity (severity : OutJ.match_severity) : string =
+  OutJ.string_of_match_severity severity
   |> JSON.remove_enclosing_quotes_of_jstring
-
-(*****************************************************************************)
-(* Autofix *)
-(*****************************************************************************)
-(* TODO? It is a bit weird to have code modification done in a module called
- * Output.ml, but we need the cli_output to perform the autofix,
- * so easier to put the code here for now.
- *)
-
-let apply_fixes (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
-  (* TODO fix_regex *)
-  let edits : Textedit.t list =
-    Common.map_filter
-      (fun (result : Out.cli_match) ->
-        let path = !!(result.Out.path) in
-        let* fix = result.Out.extra.fix in
-        let start = result.Out.start.offset in
-        let end_ = result.Out.end_.offset in
-        Some { Textedit.path; start; end_; replacement_text = fix })
-      cli_output.results
-  in
-  Textedit.apply_edits ~dryrun:conf.dryrun edits
-
-let apply_fixes_and_warn (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
-  (* TODO report when we fail to apply a fix because it overlaps with another?
-   *  Currently it looks like the Python CLI will just blindly apply
-   * overlapping fixes, probably breaking code.
-   *
-   * At some point we could re-run Semgrep on all files where some fixes
-   * haven't been applied because they overlap with other fixes, and repeat
-   * until all are applied (with some bounds to prevent divergence). This
-   * probably happens rarely enough that it would be very fast, and it would
-   * make the autofix experience better.
-   *)
-  let modified_files, _failed_fixes = apply_fixes conf cli_output in
-  if not conf.dryrun then
-    if modified_files <> [] then
-      Logs.info (fun m ->
-          m "successfully modified %s."
-            (String_utils.unit_str (List.length modified_files) "file"))
-    else Logs.info (fun m -> m "no files modified.")
 
 (*****************************************************************************)
 (* Format dispatcher *)
 (*****************************************************************************)
 
 let dispatch_output_format (output_format : Output_format.t)
-    (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
+    (conf : Scan_CLI.conf) (cli_output : OutJ.cli_output) =
   (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
   match output_format with
   | Json ->
-      let s = Out.string_of_cli_output cli_output in
-      Common.pr s
+      let s = OutJ.string_of_cli_output cli_output in
+      Out.put s
   | Vim ->
       cli_output.results
-      |> List.iter (fun (m : Out.cli_match) ->
+      |> List.iter (fun (m : OutJ.cli_match) ->
              match m with
              | { check_id; path; start; extra = { message; severity; _ }; _ } ->
                  let parts =
@@ -95,11 +54,11 @@ let dispatch_output_format (output_format : Output_format.t)
                      message;
                    ]
                  in
-                 Common.pr (String.concat ":" parts))
+                 Out.put (String.concat ":" parts))
   | Emacs ->
       (* TOPORT? sorted(rule_matches, key=lambda r: (r.path, r.rule_id)) *)
       cli_output.results
-      |> List.iter (fun (m : Out.cli_match) ->
+      |> List.iter (fun (m : OutJ.cli_match) ->
              match m with
              | {
               check_id;
@@ -142,7 +101,7 @@ let dispatch_output_format (output_format : Output_format.t)
                      message;
                    ]
                  in
-                 Common.pr (String.concat ":" parts))
+                 Out.put (String.concat ":" parts))
   | Text ->
       Matches_report.pp_cli_output ~max_chars_per_line:conf.max_chars_per_line
         ~max_lines_per_finding:conf.max_lines_per_finding
@@ -153,7 +112,7 @@ let dispatch_output_format (output_format : Output_format.t)
   | Gitlab_secrets
   | Junit_xml
   | Sarif ->
-      Common.pr
+      Out.put
         (spf "TODO: output format %s not supported yet"
            (Output_format.show output_format))
 
@@ -165,8 +124,8 @@ let dispatch_output_format (output_format : Output_format.t)
  * by filtering out nosem, setting messages, adding fingerprinting etc.
  *)
 let preprocess_result (conf : Scan_CLI.conf) (res : Core_runner.result) :
-    Out.cli_output =
-  let cli_output : Out.cli_output =
+    OutJ.cli_output =
+  let cli_output : OutJ.cli_output =
     Cli_json_output.cli_output_of_core_results
       ~logging_level:conf.common.logging_level res.core res.hrules res.scanned
   in
@@ -188,7 +147,7 @@ let preprocess_result (conf : Scan_CLI.conf) (res : Core_runner.result) :
  * TODO: take a more precise conf than Scan_CLI.conf at some point
  *)
 let output_result (conf : Scan_CLI.conf) (profiler : Profiler.t)
-    (res : Core_runner.result) : Out.cli_output =
+    (res : Core_runner.result) : OutJ.cli_output =
   (* In theory, we should build the JSON CLI output only for the
    * Json conf.output_format, but cli_output contains lots of data-structures
    * that are useful for the other formats (e.g., Vim, Emacs), so we build
@@ -197,8 +156,6 @@ let output_result (conf : Scan_CLI.conf) (profiler : Profiler.t)
   let cli_output () = preprocess_result conf res in
   (* TOPORT? output.output() *)
   let cli_output = Profiler.record profiler ~name:"ignores_times" cli_output in
-  (* ugly: but see the comment above why we do it here *)
-  if conf.autofix then apply_fixes_and_warn conf cli_output;
   dispatch_output_format conf.output_format conf cli_output;
   cli_output
 [@@profiling]

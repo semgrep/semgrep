@@ -10,6 +10,7 @@ type t = {
   only_git_dirty : bool;
   ci : bool;
   do_hover : bool;
+  pro_intrafile : bool;
 }
 
 val default : t

@@ -1,0 +1,16 @@
+rules:
+- id: new-syntax
+  match:
+    all:
+      - foo(...) 
+      - any:
+        - foo(1, ...)
+        - foo(1, 2, ...)
+      - not: |
+          foo(1, 2, 4, ...)
+      - inside: |
+          def $NAME(...):
+            ...
+  message: xxx
+  languages: [python]
+  severity: WARNING

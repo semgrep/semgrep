@@ -26,6 +26,8 @@
    to setup_logging.
 *)
 val enable_logging : unit -> unit
+
+(* list of Logs.src we don't want to enable logging for (third-party libs) *)
 val default_skip_libs : string list
 
 (* Setup the Logs library. This call is necessary before any logging
@@ -37,6 +39,12 @@ val setup_logging :
   level:Logs.level option ->
   unit ->
   unit
+
+(* See Testutil_mock.with_mocked_logs(). If this global is set,
+ * setup_logging() above will not call Logs.set_reporter (and so
+ * leave the mock logs_reporter in place).
+ *)
+val in_mock_context : bool ref
 
 (* TODO:
    Logs.Error, Logs.Warning, and friends should apply the appropriate color

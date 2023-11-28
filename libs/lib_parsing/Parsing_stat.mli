@@ -5,7 +5,7 @@
 type ast_stat = { total_node_count : int; untranslated_node_count : int }
 
 type t = {
-  filename : Common.filename;
+  filename : string;
   total_line_count : int;
   mutable error_line_count : int;
   mutable have_timeout : bool;
@@ -18,9 +18,9 @@ type t = {
   ast_stat : ast_stat option;
 }
 
-val default_stat : Common.filename -> t
-val bad_stat : Common.filename -> t
-val correct_stat : Common.filename -> t
+val default_stat : string (* filename *) -> t
+val bad_stat : string (* filename *) -> t
+val correct_stat : string (* filename *) -> t
 
 (*
    Print file name and number of lines and error lines in compact format

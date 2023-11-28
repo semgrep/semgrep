@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2021-2022 r2c
+ * Copyright (C) 2021-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,6 +18,7 @@ module FT = File_type
 module R = Rule
 module E = Core_error
 module RP = Core_result
+module In = Input_to_core_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -35,6 +36,8 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * This module provides a service similar to what semgrep --test provides,
  * but without requiring the Python wrapper. It is also significantly
  * faster than semgrep --test (not sure why).
+ *
+ * LATER: merge with osemgrep Test_subcommand.ml
  *)
 
 (*****************************************************************************)
@@ -162,18 +165,24 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
               | mode -> Left { r with mode })
             rules
         in
-        let extracted_ranges =
-          Match_extract_mode.extract_nested_lang
+        (* coupling: This is basically duplicated from Core_scan
+           TODO we should test extract mode through integration tests
+           rather than duplicating all this *)
+        let (extracted_targets : Extract.extracted_target_and_adjuster list) =
+          Match_extract_mode.extract
             ~match_hook:(fun _ _ -> ())
             ~timeout:0. ~timeout_threshold:0 extract_rules xtarget
         in
-        let extract_targets, extract_result_map =
-          (List.fold_right (fun (t, fn) (ts, fn_tbl) ->
-               Hashtbl.add fn_tbl t.Input_to_core_t.path fn;
-               (t :: ts, fn_tbl)))
-            extracted_ranges
-            ([], Hashtbl.create 5)
+        let adjusters =
+          Extract.adjusters_of_extracted_targets extracted_targets
         in
+        let in_targets : In.target list =
+          extracted_targets
+          |> Common.map
+               (fun Extract.{ extracted = Extracted path; analyzer; _ } ->
+                 { In.path = !!path; analyzer; products = Product.all })
+        in
+
         let xconf = Match_env.default_xconfig in
         let res =
           try
@@ -193,10 +202,10 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
             failwith (spf "exn on %s (exn = %s)" !!file (Common.exn_to_s exn)));
         let eres =
           try
-            extract_targets
-            |> Common.map (fun t ->
-                   let file = t.Input_to_core_t.path in
-                   let xlang = t.Input_to_core_t.analyzer in
+            in_targets
+            |> Common.map (fun (t : In.target) ->
+                   let file = t.path in
+                   let xlang = t.analyzer in
                    let lazy_ast_and_errors =
                      lazy
                        (match xlang with
@@ -224,18 +233,19 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
                        ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
                    in
                    (* adjust the match location for extracted files *)
-                   match Hashtbl.find_opt extract_result_map file with
-                   | Some f -> f matches
+                   match
+                     Hashtbl.find_opt adjusters.loc_adjuster
+                       (Extracted (Fpath.v file))
+                   with
+                   | Some match_result_loc_adjuster ->
+                       match_result_loc_adjuster matches
                    | None -> matches)
           with
           | exn ->
               failwith (spf "exn on %s (exn = %s)" !!file (Common.exn_to_s exn))
         in
         res :: eres
-        |> List.iter
-             (fun
-               (res : Core_profiling.partial_profiling Core_result.match_result)
-             ->
+        |> List.iter (fun (res : Core_result.matches_single_file) ->
                match res.extra with
                | Debug _
                | No_info ->
@@ -263,10 +273,8 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
                                   target: %s)"
                                  rule_time.parse_time !!file !!target)));
         res :: eres
-        |> List.iter
-             (fun
-               (res : Core_profiling.partial_profiling Core_result.match_result)
-             -> res.matches |> List.iter Core_json_output.match_to_error);
+        |> List.iter (fun (res : Core_result.matches_single_file) ->
+               res.matches |> List.iter Core_json_output.match_to_push_error);
         (if not (E.ErrorSet.is_empty res.errors) then
            let errors =
              E.ErrorSet.elements res.errors
@@ -274,6 +282,7 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
            in
            failwith (spf "parsing error(s) on %s:\n%s" !!file errors));
         let actual_errors = !E.g_errors in
+        E.g_errors := [];
         actual_errors
         |> List.iter (fun e ->
                logger#info "found error: %s" (E.string_of_error e));
@@ -283,6 +292,7 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
         | Ok () -> Hashtbl.add newscore !!file Common2.Ok
         | Error (num_errors, msg) ->
             pr2 msg;
+            pr2 "---";
             Hashtbl.add newscore !!file (Common2.Pb msg);
             total_mismatch := !total_mismatch + num_errors;
             if unit_testing then Alcotest.fail msg)
@@ -327,10 +337,11 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None)
       Parsing_stat.print_regression_information ~ext xs newscore;
     pr2 (spf "total mismatch: %d" !total_mismatch)
   in
-  (tests, print_summary)
+  (tests, total_mismatch, print_summary)
 
 let test_rules ?unit_testing xs =
   let paths = File.Path.of_strings xs in
-  let tests, print_summary = make_tests ?unit_testing paths in
+  let tests, total_mismatch, print_summary = make_tests ?unit_testing paths in
   tests |> List.iter (fun (_name, test) -> test ());
-  print_summary ()
+  print_summary ();
+  if !total_mismatch > 0 then exit 1

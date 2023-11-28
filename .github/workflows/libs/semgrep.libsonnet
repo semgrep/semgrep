@@ -74,7 +74,7 @@ local github_bot = {
 
   ocaml_alpine_container: {
     'runs-on': 'ubuntu-latest',
-    container: 'returntocorp/ocaml:alpine-2023-10-17',
+    container: 'returntocorp/ocaml:alpine-2023-11-07',
     // We need this hack because GHA tampers with the HOME in container
     // and this does not play well with 'opam' installed in /root
     env: {
@@ -82,9 +82,24 @@ local github_bot = {
     },
   },
 
+
+  // ocaml-layer builds an image based on Alpine and another one based on
+  // Ubuntu.
+  // Alpine is necessary in practice for static linking (especially for C++
+  // libraries). Ubuntu is an alternative Linux distribution people may be
+  // more familiar with. It's been cheap to maintain both so far but we could
+  // decide to keep just one if it makes things simpler.
+  ocaml_ubuntu_container: {
+    'runs-on': 'ubuntu-latest',
+    container: 'returntocorp/ocaml:ubuntu-2023-11-07',
+    env: {
+      HOME: '/root',
+    },
+  },
+
   ocaml5_alpine_container: {
     'runs-on': 'ubuntu-latest',
-    container: 'returntocorp/ocaml:alpine5.1-2023-10-17',
+    container: 'returntocorp/ocaml:alpine5.1-2023-11-07',
     env: {
       HOME: '/root',
     },

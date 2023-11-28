@@ -81,7 +81,7 @@ def get_project_url() -> Optional[str]:
     except Exception as e:
         logger.debug(f"Failed to get project url from 'git ls-remote': {e}")
         try:
-            # add \n to match urls from git ls-remote (backwards compatability)
+            # add \n to match urls from git ls-remote (backwards compatibility)
             return manually_search_file(".git/config", ".com", "\n")
         except Exception as e:
             logger.debug(f"Failed to get project url from .git/config: {e}")
@@ -142,7 +142,7 @@ class BaselineHandler:
             self.status = self._get_git_status()
         except subprocess.CalledProcessError as e:
             raise Exception(
-                f"Error initializing baseline. While running command {e.cmd} recieved non-zero exit status of {e.returncode}.\n(stdout)->{e.stdout}\n(strerr)->{e.stderr}"
+                f"Error initializing baseline. While running command {e.cmd} received non-zero exit status of {e.returncode}.\n(stdout)->{e.stdout}\n(strerr)->{e.stderr}"
             )
 
     def _get_git_status(self) -> GitStatus:

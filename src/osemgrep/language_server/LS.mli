@@ -4,5 +4,11 @@ val start : unit -> unit Lwt.t
 (* exposed for testing purposes *)
 module LanguageServer : sig
   val start : RPC_server.t -> unit Lwt.t
+
+  val handle_client_message :
+    Jsonrpc.Packet.t ->
+    RPC_server.t ->
+    (RPC_server.t * Jsonrpc.Packet.t option) Lwt.t
+
   val create : unit -> RPC_server.t
 end

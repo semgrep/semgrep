@@ -1,0 +1,24 @@
+rules:
+  - id: test
+    languages:
+      - python
+    severity: ERROR
+    message: Test
+    taint:
+      sources:
+        - label: INPUT
+          pattern: input()
+      propagators:
+        - by-side-effect: false
+          all:
+            - pattern: foo
+            - inside: $F($X)
+          where:
+            - focus: $F
+          from: $X
+          to: $F
+          label: FOO
+          requires: INPUT
+      sinks:
+        - requires: FOO
+          pattern: sink(...)

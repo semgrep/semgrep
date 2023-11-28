@@ -1,0 +1,13 @@
+rules:
+- id: rule_template_id
+  languages:
+  - python
+  match:
+    all:
+    - os.environ
+    - not:
+        any:
+        - inside: os.environ.get(...)
+        - inside: os.environ[...]
+  message: rule_template_message
+  severity: ERROR

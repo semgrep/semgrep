@@ -121,16 +121,6 @@ let dump (action : dump_action) (target : Fpath.t) : unit =
 (* Entry point *)
 (*****************************************************************************)
 
-let rec yojson_to_yaml_value (json : Yojson.Basic.t) : Yaml.value =
-  match json with
-  | `Assoc xs -> `O (xs |> List.map (fun (s, t) -> (s, yojson_to_yaml_value t)))
-  | `List xs -> `A (xs |> List.map yojson_to_yaml_value)
-  | `String s -> `String s
-  | `Int i -> `Float (float_of_int i)
-  | `Bool b -> `Bool b
-  | `Float f -> `Float f
-  | `Null -> `Null
-
 let interpret eval_strategy (file : Fpath.t) : JSON.t =
   let ast = Parse_jsonnet.parse_program file in
   let core = Desugar_jsonnet.desugar_program file ast in
@@ -153,7 +143,7 @@ let run (conf : conf) : unit =
           flush stdout
       | YAML ->
           let y = JSON.to_yojson json in
-          let v = yojson_to_yaml_value y in
+          let v = JSON.yojson_to_ezjsonm y in
           let str = Yaml.to_string_exn v in
           print_string str;
           flush stdout)

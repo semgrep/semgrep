@@ -35,7 +35,7 @@ def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[DependencyP
     namespace, package name, and semver ranges
     """
     for entry in entries:
-        # schema checks should gaurantee we have these fields, but we'll code defensively
+        # schema checks should guarantee we have these fields, but we'll code defensively
         namespace = entry.get("namespace")
         if namespace is None:
             raise SemgrepError(f"project-depends-on is missing `namespace`")
@@ -96,7 +96,6 @@ def generate_unreachable_sca_findings(
                     metadata=rule.metadata,
                     severity=rule.severity,
                     fix=None,
-                    fix_regex=None,
                     match=out.CoreMatch(
                         check_id=out.RuleId(rule.id),
                         path=out.Fpath(str(lockfile_path)),

@@ -250,28 +250,31 @@ let find_type_args args =
        | Some (Cst ctype) -> Some ctype
        | _arg -> None)
 
-let sign i = i asr (Sys.int_size - 1)
+let sign i = Int64.shift_right i (Sys.int_size - 1)
 
 let int_add n m =
-  let r = n + m in
-  if sign n = sign m && sign r <> sign n then None (* overflow *) else Some r
+  let r = Int64.add n m in
+  if Int64.equal (sign n) (sign m) && sign r <> sign n then None (* overflow *)
+  else Some r
 
 let int_mult i1 i2 =
   let overflow =
-    i1 <> 0 && i2 <> 0
-    && ((i1 < 0 && i2 = min_int) (* >max_int *)
-       || (i1 = min_int && i2 < 0) (* >max_int *)
-       ||
-       if sign i1 * sign i2 = 1 then abs i1 > abs (max_int / i2) (* >max_int *)
-       else abs i1 > abs (min_int / i2) (* <min_int *))
+    Int64_.(
+      i1 <> 0L && i2 <> 0L
+      && ((i1 < 0L && i2 = min_int) (* >max_int *)
+         || (i1 = min_int && i2 < 0L) (* >max_int *)
+         ||
+         if sign i1 * sign i2 = 1L then abs i1 > abs (max_int / i2)
+           (* >max_int *)
+         else abs i1 > abs (min_int / i2) (* <min_int *)))
   in
-  if overflow then None else Some (i1 * i2)
+  if overflow then None else Some Int64_.(i1 * i2)
 
 let binop_int_cst op i1 i2 =
   match (i1, i2) with
-  | Some (Lit (Int (Some n, t1))), Some (Lit (Int (Some m, _))) ->
+  | Some (Lit (Int (Some n, _))), Some (Lit (Int (Some m, _))) ->
       let* r = op n m in
-      Some (Lit (Int (Some r, t1)))
+      Some (Lit (Int (Parsed_int.of_int64 r)))
   | Some (Lit (Int _)), Some (Cst Cint)
   | Some (Cst Cint), Some (Lit (Int _)) ->
       Some (Cst Cint)
@@ -290,10 +293,10 @@ let concat_string_cst env s1 s2 =
   match (s1, s2) with
   | Some (Lit (String (l, (s1, t1), r))), Some (Lit (String (_, (s2, _), _))) ->
       Some (Lit (String (l, (s1 ^ s2, t1), r)))
-  | Some (Lit (String (l, (s1, t1), r))), Some (Lit (Int (Some m, _)))
+  | Some (Lit (String (l, (s1, t1), r))), Some (Lit (Int (Some i, _)))
     when is_lang env Lang.Java || is_js env ->
       (* implicit int-to-string conversion *)
-      Some (Lit (String (l, (s1 ^ string_of_int m, t1), r)))
+      Some (Lit (String (l, (s1 ^ Int64.to_string i, t1), r)))
   | Some (Lit (String (l, (s1, t1), r))), Some (Lit (Float (Some m, _)))
     when is_js env ->
       (* implicit float-to-string conversion *)
@@ -623,6 +626,14 @@ let add_special_constants env lang prog =
 (* Entry point *)
 (*****************************************************************************)
 
+type propagate_basic_visitor_funcs = {
+  visit_definition :
+    env * Iter_with_context.context -> AST_generic.definition -> unit;
+}
+
+let propagate_basic_visitor_hook : propagate_basic_visitor_funcs ref =
+  ref { visit_definition = (fun (_env, _ctx) _x -> ()) }
+
 (* !Note that this assumes Naming_AST.resolve has been called before! *)
 let propagate_basic lang prog =
   logger#trace "Constant_propagation.propagate_basic program";
@@ -703,7 +714,9 @@ let propagate_basic lang prog =
                   add_constant_env id (sid, Sym e) env
               | None, _ -> ());
             super#visit_definition (env, ctx) x
-        | _ -> super#visit_definition (env, ctx) x
+        | _ ->
+            !propagate_basic_visitor_hook.visit_definition (env, ctx) x;
+            super#visit_definition (env, ctx) x
 
       (* the uses (and also defs for Python Assign) *)
       method! visit_expr (env, ctx) x =

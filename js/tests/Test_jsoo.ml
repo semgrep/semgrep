@@ -38,7 +38,7 @@ let skipped_tests =
     (* TODO: re-enable this when we fix the jsoo int overflow bug *)
     ("Go", [ 24 ]);
     (* TODO: investigate c_array_inits pattern parse error*)
-    ("C", [ 0 ]);
+    ("C", [ 2 ]);
   ]
 
 (* Filter to skip tests *)
@@ -71,7 +71,15 @@ let _ =
          (* This should place us at the root of the semgrep repository, which
             is important for some assumptions later on during testing.
          *)
-         Git_wrapper.chdir_to_repo_root ();
+         let repo_root =
+           match Git_wrapper.get_project_root () with
+           | Some path -> path
+           | None ->
+               failwith
+                 "You must run the test program from within the semgrep repo \
+                  and not one of its submodules."
+         in
+         Unix.chdir (Fpath.to_string repo_root);
          let argv = [| "" |] in
          let argv =
            if filter <> "" then Array.append argv [| "-e"; filter |] else argv

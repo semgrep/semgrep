@@ -28,6 +28,8 @@
            A default value would be set with '<field default="true">'
            and this would be translated into 'True' for Python and whatever
            means "true" in other languages.
+
+   coupling: with semgrep-interfaces/rule_schema_v2.atd
 *)
 
 (* !!Do not rename the fields because they can be referenced in rules!! *)
@@ -37,6 +39,7 @@ type t = {
   ~symbolic_propagation <ocaml default="false"> : bool;
 
   (* metavariables common to a source and sink will be unified *)
+  ~taint_match_on <ocaml default="`Sink">: taint_match_on;
   ~taint_unify_mvars <ocaml default="false"> : bool;
   ~taint_assume_safe_functions <ocaml default="false"> : bool;
   ~taint_assume_safe_indexes <ocaml default="false"> : bool;
@@ -181,4 +184,9 @@ type generic_comment_style = [
   | C <json name="c"> (* /* ... */ *)
   | Cpp <json name="cpp"> (* /* ... */ or // ... *)
   | Shell <json name="shell"> (* # ... *)
+]
+
+type taint_match_on = [
+  | Source <json name="source">
+  | Sink <json name="sink"> (* default *)
 ]

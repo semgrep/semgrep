@@ -69,6 +69,65 @@ let ( =*= ) = ( = )
 let ( = ) = String.equal
 
 (*****************************************************************************)
+(* Comparison *)
+(*****************************************************************************)
+
+type order = Less | Equal | Greater
+
+(* We use this to be able to factorize our code for binary search, by
+   instantiating our code against different kinds of containers and
+   element types.
+   In particular, this is an improvement over functorization, because the
+   type of Bigarray.Array1.t is actually triply-polymorphic. By making the
+   container type itself unspecified, we are able to abstract over even
+   multiply-polymorphic containers.
+*)
+type ('elt, 'container) binary_searchable = {
+  length : 'container -> int;
+  get : 'container -> int -> 'elt;
+}
+
+let create_binary_search (searchable : ('elt, 'container) binary_searchable) =
+  let binary_search ~f arr =
+    let arr_lo = 0 in
+    let arr_hi = searchable.length arr in
+
+    let rec aux lo hi =
+      if Int.equal lo hi then Error lo
+      else
+        let mid = (lo + hi) / 2 in
+        match f mid (searchable.get arr mid) with
+        | Equal -> Ok (mid, searchable.get arr mid)
+        | Less -> aux lo mid
+        | Greater -> aux (mid + 1) hi
+    in
+    aux arr_lo arr_hi
+  in
+  binary_search
+
+let arr_searchable = { length = Array.length; get = Array.get }
+
+let bigarr1_searchable =
+  { length = Bigarray.Array1.dim; get = Bigarray.Array1.get }
+
+let binary_search_arr ~f x = create_binary_search arr_searchable ~f x
+let binary_search_bigarr1 ~f x = create_binary_search bigarr1_searchable ~f x
+
+let to_comparison f x y =
+  let res = f x y in
+  if res < 0 then Less else if res > 0 then Greater else Equal
+
+let cmp target _i x = to_comparison Int.compare target x
+let%test _ = binary_search_arr ~f:(cmp 1) [| 1; 2; 4; 5 |] =*= Ok (0, 1)
+let%test _ = binary_search_arr ~f:(cmp 2) [| 1; 2; 4; 5 |] =*= Ok (1, 2)
+let%test _ = binary_search_arr ~f:(cmp 5) [| 1; 2; 4; 5 |] =*= Ok (3, 5)
+
+(* out of bounds or not in the array returns the position it should be inserted at *)
+let%test _ = binary_search_arr ~f:(cmp 6) [| 1; 2; 4; 5 |] =*= Error 4
+let%test _ = binary_search_arr ~f:(cmp 3) [| 1; 2; 4; 5 |] =*= Error 2
+let%test _ = binary_search_arr ~f:(cmp 0) [| 1; 2; 4; 5 |] =*= Error 0
+
+(*****************************************************************************)
 (* Debugging/logging *)
 (*****************************************************************************)
 
@@ -107,7 +166,9 @@ let protect ~finally work =
   (* nosemgrep: no-fun-protect *)
   try Fun.protect ~finally work with
   | Fun.Finally_raised exn1 as exn ->
-      (* Just re-raise whatever exception was raised during a 'finally', drop 'Finally_raised'. *)
+      (* Just re-raise whatever exception was raised during a 'finally',
+       * drop 'Finally_raised'.
+       *)
       logger#error "protect: %s" (exn |> Exception.catch |> Exception.to_string);
       Exception.catch_and_reraise exn1
 
@@ -471,6 +532,9 @@ let push v l = l := v :: !l
 (* Exn *)
 (*###########################################################################*)
 
+(* See also Common.protect earlier *)
+
+(* use Common.protect instead? *)
 let unwind_protect f cleanup =
   if !debugger then f ()
   else
@@ -527,6 +591,7 @@ let exn_to_s exn = Printexc.to_string exn
 (*****************************************************************************)
 (* Composition/Control *)
 (*****************************************************************************)
+(* now earlier *)
 
 (*****************************************************************************)
 (* Error management *)
@@ -608,7 +673,6 @@ type ('a, 'b) either = Left of 'a | Right of 'b [@@deriving eq, show, sexp]
 (* with sexp *)
 type ('a, 'b, 'c) either3 = Left3 of 'a | Middle3 of 'b | Right3 of 'c
 [@@deriving eq, show]
-(* with sexp *)
 
 (* If you don't want to use [@@deriving eq, show] above, you
  * can copy-paste manually the generated code by getting the
@@ -761,10 +825,6 @@ let contains s1 s2 =
 (*****************************************************************************)
 (* Filenames *)
 (*****************************************************************************)
-
-(* TODO: we should use strong types like in Li Haoyi filename Scala library! *)
-type filename = string (* TODO could check that exist :) type sux *)
-[@@deriving show, eq, ord, sexp]
 
 let chop_dirsymbol = function
   | s when s =~ "\\(.*\\)/$" -> matched1 s
@@ -973,7 +1033,7 @@ let fullpath file =
 
 (* emacs/lisp inspiration (eric cooper and yaron minsky use that too) *)
 let (with_open_outfile :
-      filename -> ((string -> unit) * out_channel -> 'a) -> 'a) =
+      string (* filename *) -> ((string -> unit) * out_channel -> 'a) -> 'a) =
  fun file f ->
   let chan = open_out_bin file in
   let pr s = output_string chan s in
@@ -984,7 +1044,7 @@ let (with_open_outfile :
       res)
     (fun _e -> close_out chan)
 
-let (with_open_infile : filename -> (in_channel -> 'a) -> 'a) =
+let (with_open_infile : string (* filename *) -> (in_channel -> 'a) -> 'a) =
  fun file f ->
   let chan = open_in_bin file in
   unwind_protect
@@ -992,7 +1052,9 @@ let (with_open_infile : filename -> (in_channel -> 'a) -> 'a) =
       let res = f chan in
       close_in chan;
       res)
-    (fun _e -> close_in chan)
+    (fun _e ->
+      (* TODO? use close_in_noerr? *)
+      close_in chan)
 
 (* creation of tmp files, a la gcc *)
 
@@ -1060,7 +1122,6 @@ let hash_of_list xs =
 (*****************************************************************************)
 
 type 'a hashset = ('a, bool) Hashtbl.t
-(* with sexp *)
 
 let hashset_to_list h = hash_to_list h |> map fst
 
@@ -1088,8 +1149,7 @@ let group_assoc_bykey_eff xs =
 (* Stack *)
 (*****************************************************************************)
 
-type 'a stack = 'a list
-(* with sexp *)
+type 'a stack = 'a list ref
 
 (*****************************************************************************)
 (* Tree *)
@@ -1195,11 +1255,16 @@ let main_boilerplate f =
   *)
 let dir_contents dir =
   let rec loop result = function
-    | f :: fs when Sys.is_directory f ->
-        Sys.readdir f |> Array.to_list
-        |> map (Filename.concat f)
-        |> List.append fs |> loop result
-    | f :: fs -> loop (f :: result) fs
+    | f :: fs -> (
+        match f with
+        | f when not (Sys.file_exists f) ->
+            logger#error "%s does not exist anymore" f;
+            loop result fs
+        | f when Sys.is_directory f ->
+            Sys.readdir f |> Array.to_list
+            |> map (Filename.concat f)
+            |> List.append fs |> loop result
+        | f -> loop (f :: result) fs)
     | [] -> result
   in
   loop [] [ dir ]

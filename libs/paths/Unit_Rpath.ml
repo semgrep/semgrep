@@ -30,11 +30,8 @@ let test_path_conversion () =
       assert (
         File.read_file ~max_len (Rpath.to_fpath path)
         = Str.first_chars data max_len);
-      assert (Rpath.file_exists path);
-      assert (not (Rpath.is_directory path)));
-  assert (
-    Rpath.to_string Rpath.(of_string "." / "." / ".." / "." / "..")
-    = realpath "../..")
+      assert (path |> Rpath.to_string |> Sys.file_exists);
+      assert (path |> Rpath.to_string |> Sys.is_directory |> not))
 
 let tests =
   Testutil.pack_tests "Rpath" [ ("path_conversion", test_path_conversion) ]

@@ -99,6 +99,15 @@ val input_text_line : in_channel -> string
 val cat : Fpath.t -> string list
 val write_file : Fpath.t -> string -> unit
 
+(* [lines_of_file (start_line, end_line) file] returns
+ * the list of lines from start_line to end_line included.
+ *
+ * Note that the returned lines do not contain \n.
+ *
+ * This function is slow, you should not use it!
+ *)
+val lines_of_file : int * int -> Fpath.t -> string list
+
 (* Read the contents of file.
 
    This implementation works even with Linux files like /dev/fd/63
@@ -111,6 +120,15 @@ val write_file : Fpath.t -> string -> unit
    If max_len is specified, at most that many bytes are read from the file.
 *)
 val read_file : ?max_len:int -> Fpath.t -> string
+
+(* If the file is a named pipe (e.g., created with <(echo 'foo')), copy it
+   into a temporary regular file (with prefix [prefix]) and return the path
+   of that temporary file. This allows multiple reads on the file and
+   avoids illegal seeks when reporting match results or parsing errors.
+   The temporary file is deleted at_exit.
+*)
+val replace_named_pipe_by_regular_file_if_needed :
+  ?prefix:string -> Fpath.t -> Fpath.t
 
 (* Scheme-inspired combinators that automatically close the file
  * once the function callback is done. Here is an example of use:
@@ -149,12 +167,3 @@ val find_first_match_with_whole_line :
 val is_executable : Fpath.t -> bool
 val filesize : Fpath.t -> int
 val filemtime : Fpath.t -> float
-
-(* [lines_of_file (start_line, end_line) file] returns
- * the list of lines from start_line to end_line included.
- *
- * Note that the returned lines do not contain \n.
- *
- * This function is slow, you should not use it!
- *)
-val lines_of_file : int * int -> Fpath.t -> string list

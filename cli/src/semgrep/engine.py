@@ -53,7 +53,7 @@ class EngineType(Enum):
         ):
             requested_engine = cls.PRO_LANG
         elif run_secrets and requested_engine is cls.OSS:
-            # Should be impossible if the CLI gates impossible arguemnet combinations.
+            # Should be impossible if the CLI gates impossible arguement combinations.
             raise SemgrepError("Semgrep Secrets is not part of the open source engine")
 
         if git_meta and scan_handler:

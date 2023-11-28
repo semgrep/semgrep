@@ -1,4 +1,4 @@
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 open File.Operators
 
 (*****************************************************************************)
@@ -22,13 +22,43 @@ let text_width =
   (* TODO: what is this w - (w - 100) ? What if w <= 5? *)
   if w <= 110 then w - 5 else w - (w - 100)
 
-let group_titles = function
+type report_group =
+  [ OutJ.validation_state
+  | `Unreachable
+  | `Undetermined
+  | `Reachable
+  | `Nonblocking
+  | `Blocking
+  | `Merged ]
+
+let group_titles : report_group -> string = function
   | `Unreachable -> "Unreachable Supply Chain Finding"
   | `Undetermined -> "Undetermined Supply Chain Finding"
   | `Reachable -> "Reachable Supply Chain Finding"
   | `Nonblocking -> "Non-blocking Code Finding"
   | `Blocking -> "Blocking Code Finding"
   | `Merged -> "Code Finding"
+  | `Confirmed_valid -> "Valid Secrets Finding"
+  | `Confirmed_invalid -> "Invalid Secrets Finding"
+  | `Validation_error -> "Secrets Validation Error"
+  | `No_validator -> "Unvalidated Secrets Finding"
+
+let sort_by_groups als =
+  (* This is the order that groups will be desplayed in. *)
+  let group_order : report_group -> int = function
+    | `Blocking -> 1
+    | `Reachable -> 2
+    | `Confirmed_valid -> 3
+    | `Undetermined -> 4
+    | `Validation_error -> 5
+    | `No_validator -> 6
+    | `Nonblocking -> 7
+    | `Unreachable -> 8
+    | `Confirmed_invalid -> 9
+    | `Merged -> 10
+  in
+  let compare_group x y = group_order x - group_order y in
+  als |> List.stable_sort (Common2.on compare_group fst)
 
 let is_blocking (json : Yojson.Basic.t) =
   match Yojson.Basic.Util.member "dev.semgrep.actions" json with
@@ -125,7 +155,7 @@ let cut s idx1 idx2 =
     Str.string_after s idx2 )
 
 let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
-    ~show_separator ppf (m : Out.cli_match) =
+    ~show_separator ppf (m : OutJ.cli_match) =
   ignore color_output;
   let lines =
     Option.value
@@ -214,9 +244,9 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
         Fmt.pf ppf "%s⋮┆%s" findings_indent_depth (String.make 40 '-')
 
 let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
-    (matches : Out.cli_match list) =
-  let print_one (last : Out.cli_match option) (cur : Out.cli_match)
-      (next : Out.cli_match option) =
+    (matches : OutJ.cli_match list) =
+  let print_one (last : OutJ.cli_match option) (cur : OutJ.cli_match)
+      (next : OutJ.cli_match option) =
     let last_message =
       let print, msg =
         match last with
@@ -276,7 +306,7 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
   let last, cur =
     matches
     |> List.fold_left
-         (fun (last, cur) (next : Out.cli_match) ->
+         (fun (last, cur) (next : OutJ.cli_match) ->
            (match cur with
            | None -> ()
            | Some m -> print_one last m (Some next));
@@ -292,50 +322,50 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
 (*****************************************************************************)
 
 let pp_cli_output ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
-    (cli_output : Out.cli_output) =
-  let groups =
-    cli_output.results |> Semgrep_output_utils.sort_cli_matches
-    |> Common.group_by (fun (m : Out.cli_match) ->
-           (* TODO: python (text.py):
-              if match.product == RuleProduct.sast:
-                subgroup = "blocking" if match.is_blocking else "nonblocking"
-              else:
-                subgroup = match.exposure_type or "undetermined"
+    (cli_output : OutJ.cli_output) =
+  cli_output.results |> Semgrep_output_utils.sort_cli_matches
+  |> Common.group_by (fun (m : OutJ.cli_match) ->
+         match Product.of_cli_match m with
+         | `SCA ->
+             (* TO PORT:
+                                       subgroup = match.exposure_type or "undetermined"
 
-              figuring out the product, python uses (rule.py):
-                 RuleProduct.sca
-                 if "r2c-internal-project-depends-on" in self._raw
-                 else RuleProduct.sast
+                        figuring out the product, python uses (rule.py):
+                           RuleProduct.sca
+                           if "r2c-internal-project-depends-on" in self._raw
+                           else RuleProduct.sast
 
-              and exposure_type (rule_match.py):
-              if "sca_info" not in self.extra:
-                  return None
+                        and exposure_type (rule_match.py):
+                        if "sca_info" not in self.extra:
+                            return None
 
-              if self.metadata.get("sca-kind") == "upgrade-only":
-                  return "reachable"
-              elif self.metadata.get("sca-kind") == "legacy":
-                  return "undetermined"
-              else:
-                  return "reachable" if self.extra["sca_info"].reachable else "unreachable"
-           *)
-           if is_blocking m.Out.extra.Out.metadata then `Blocking
-           else `Nonblocking)
-  in
-  (* if not is_ci_invocation *)
-  let groups =
-    let merged =
-      (try List.assoc `Nonblocking groups with
-      | Not_found -> [])
-      @
-      try List.assoc `Blocking groups with
-      | Not_found -> []
-    in
-    (`Merged, merged)
-    :: List.filter
-         (fun (k, _) -> not (k = `Nonblocking || k = `Blocking))
-         groups
-  in
-  groups
+                        if self.metadata.get("sca-kind") == "upgrade-only":
+                            return "reachable"
+                        elif self.metadata.get("sca-kind") == "legacy":
+                            return "undetermined"
+                        else:
+                            return "reachable" if self.extra["sca_info"].reachable else "unreachable" *)
+             `Undetermined
+         | `SAST when is_blocking m.extra.metadata -> `Blocking
+         | `SAST -> `Nonblocking
+         | `Secrets ->
+             (Option.value ~default:`No_validator m.extra.validation_state
+               :> report_group))
+  |> (fun groups ->
+       (* TO PORT:
+          if not is_ci_invocation: *)
+       let merged =
+         (try List.assoc `Nonblocking groups with
+         | Not_found -> [])
+         @
+         try List.assoc `Blocking groups with
+         | Not_found -> []
+       in
+       (`Merged, merged)
+       :: List.filter
+            (fun (k, _) -> not (k = `Nonblocking || k = `Blocking))
+            groups)
+  |> sort_by_groups
   |> List.iter (fun (group, matches) ->
          if not (Common.null matches) then
            Fmt_helpers.pp_heading ppf

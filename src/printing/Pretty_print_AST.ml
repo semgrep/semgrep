@@ -647,7 +647,7 @@ and literal _env l =
   match l with
   | Bool (true, t) -> token ~d:"true" t
   | Bool (false, t) -> token ~d:"false" t
-  | Int (_, t) -> token t
+  | Int (_, tok) -> token tok
   | Float (_, t) -> token t
   | Char (s, _) -> F.sprintf "'%s'" s
   (* TODO: once we will have string wrap bracket in AST_generic,

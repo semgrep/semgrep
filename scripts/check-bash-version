@@ -1,0 +1,19 @@
+#! /usr/bin/env bash
+#
+# Check that Mac users installed a version of Bash more recent than 2007.
+#
+# This is for the maintenance scripts used to build and test semgrep.
+# It's not required for running semgrep.
+#
+set -eu -o pipefail
+
+if ! { bash --version | grep -q 'version [56789]'; }; then
+  cat >&2 <<EOF
+Error: Bash >= 5.0 is required.
+If you're on a Mac, run:
+
+  brew install bash
+
+EOF
+  exit 1
+fi

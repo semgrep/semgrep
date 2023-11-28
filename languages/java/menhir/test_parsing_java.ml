@@ -70,12 +70,13 @@ let test_parse xs =
   ()
 
 let test_lexer file =
-  let lexbuf = Lexing.from_channel (open_in_bin file) in
-  while true do
-    let result = Lexer_java.token lexbuf in
-    pr2_gen result;
-    if Token_helpers_java.is_eof result then exit 0
-  done
+  Common.with_open_infile file (fun chan ->
+      let lexbuf = Lexing.from_channel chan in
+      while true do
+        let result = Lexer_java.token lexbuf in
+        pr2_gen result;
+        if Token_helpers_java.is_eof result then exit 0
+      done)
 
 let test_dump file =
   let s =

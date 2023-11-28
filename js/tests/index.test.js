@@ -7,7 +7,6 @@ const languages = [
   "csharp",
   "dart",
   "dockerfile",
-  "elixir",
   "go",
   "hack",
   "html",
@@ -48,9 +47,7 @@ const getParsers = async () => {
 const entrypoint = async () => {
   try {
     console.log("Running tests");
-    const wasm = await SemgrepEngine({
-      locateFile: (_) => "./dist/semgrep-engine.wasm",
-    });
+    const wasm = await SemgrepEngine();
     globalThis.LibPcreModule = wasm;
     const {
       init,

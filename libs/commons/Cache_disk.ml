@@ -20,8 +20,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Caching computation (e.g., parsed ASTs, network data, big result) on disk.
- *)
+(* Caching computation (e.g., parsed ASTs, network data, big result) on disk *)
 
 (*****************************************************************************)
 (* Types *)
@@ -61,31 +60,26 @@ type ('input, 'value, 'extra) cache_methods = {
 (* Helpers *)
 (*****************************************************************************)
 
-let get_value filename =
-  let chan = open_in_bin filename in
-  let x = input_value chan in
-  (* <=> Marshal.from_channel  *)
-  close_in chan;
-  x
+(* input_value <=> Marshal.from_channel  *)
+let get_value filename = Common.with_open_infile filename Stdlib.input_value
 
+(* output_value <=> Marshal.to_channel chan valu [Marshal.Closures] *)
 let write_value valu filename =
-  let chan = open_out_bin filename in
-  output_value chan valu;
-  (* <=> Marshal.to_channel *)
-  (* Marshal.to_channel chan valu [Marshal.Closures]; *)
-  close_out chan
+  Common.with_open_outfile filename (fun (_pr, chan) ->
+      Stdlib.output_value chan valu)
 
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
 
-(* flexible cache *)
-let (cache :
-      ('input -> 'value) ->
+let (cache_monad :
+      ('value -> 'wrapped_value) ->
+      ('wrapped_value -> ('value -> 'wrapped_value) -> 'wrapped_value) ->
+      ('input -> 'wrapped_value) ->
       ('input, 'value, 'extra) cache_methods ->
       'input ->
-      'value) =
- fun compute_value methods input ->
+      'wrapped_value) =
+ fun return bind compute_value methods input ->
   let cache_file = methods.cache_file_for_input input in
   let input_str = methods.input_to_string input in
   let compute_and_save_in_cache () =
@@ -100,20 +94,20 @@ let (cache :
      *)
     | Ok _ -> ()
     | Error (`Msg err) -> failwith err);
-    let value = compute_value input in
-    let extra = methods.cache_extra_for_input input in
-    let (v : ('value, 'extra) cached_value_on_disk) = { extra; value } in
-    Logs.debug (fun m -> m "saving %s content in %s" input_str !!cache_file);
-    (try write_value v !!cache_file with
-    | Sys_error err ->
-        (* We must Signal_ignore SIGXFSZ to get this exn; See the comment
-         * on "SIGXFSZ (file size limit exceeded)" in Semgrep CLI.ml
-         *)
-        Logs.debug (fun m ->
-            m "could not write cache file for %s (err = %s)" input_str err);
-        (* Make sure we don't leave corrupt cache files behind us *)
-        if Sys.file_exists !!cache_file then Sys.remove !!cache_file);
-    value
+    bind (compute_value input) (fun value ->
+        let extra = methods.cache_extra_for_input input in
+        let (v : ('value, 'extra) cached_value_on_disk) = { extra; value } in
+        Logs.debug (fun m -> m "saving %s content in %s" input_str !!cache_file);
+        (try write_value v !!cache_file with
+        | Sys_error err ->
+            (* We must Signal_ignore SIGXFSZ to get this exn; See the comment
+             * on "SIGXFSZ (file size limit exceeded)" in Semgrep CLI.ml
+             *)
+            Logs.debug (fun m ->
+                m "could not write cache file for %s (err = %s)" input_str err);
+            (* Make sure we don't leave corrupt cache files behind us *)
+            if Sys.file_exists !!cache_file then Sys.remove !!cache_file);
+        return value)
   in
   (* TODO? in theory we could use the filemtime of cache_file and
    * if the input is a file, we could check whether the cache is
@@ -127,13 +121,20 @@ let (cache :
     if methods.check_extra extra then (
       Logs.debug (fun m ->
           m "using the cache file %s for %s" !!cache_file input_str);
-      value)
+      return value)
     else (
       Logs.debug (fun m ->
           m "invalid cache %s for %s (or too old)" !!cache_file input_str);
 
       compute_and_save_in_cache ())
   else compute_and_save_in_cache ()
+
+(* flexible cache *)
+let cache compute_value methods input =
+  cache_monad Fun.id ( |> ) compute_value methods input
+
+let cache_lwt compute_value methods input =
+  cache_monad Lwt.return Lwt.bind compute_value methods input
 
 (*****************************************************************************)
 (* Deprecated *)

@@ -304,29 +304,19 @@ and stmt env st acc =
       match (args, colon_st) with
       (* declare(strict=1); (or 0) can be skipped,
        * See 'i wiki/index.php/Pfff/Declare_strict' *)
-      | ( ( _,
-            [
-              Common.Left
-                (Name ("strict", _), (_, Sc (C (Int ((Some 1 | Some 0), _)))));
-            ],
-            _ ),
+      | ( (_, [ Common.Left (Name ("strict", _), (_, Sc (C (Int pi)))) ], _),
           SingleStmt (EmptyStmt _) )
       | ( ( _,
-            [
-              Common.Left
-                ( Name ("strict_types", _),
-                  (_, Sc (C (Int ((Some 1 | Some 0), _)))) );
-            ],
+            [ Common.Left (Name ("strict_types", _), (_, Sc (C (Int pi)))) ],
             _ ),
           SingleStmt (EmptyStmt _) )
-      (* declare(ticks=1); can be skipped too.
-       * http://www.php.net/manual/en/control-structures.declare.php#control-structures.declare.ticks
-       *) ->
+        when Parsed_int.eq_const pi 0 || Parsed_int.eq_const pi 1
+             (* declare(ticks=1); can be skipped too.
+              * http://www.php.net/manual/en/control-structures.declare.php#control-structures.declare.ticks
+              *) ->
           acc
-      | ( ( _,
-            [ Common.Left (Name ("ticks", _), (_, Sc (C (Int (Some 1, _))))) ],
-            _ ),
-          _ ) ->
+      | (_, [ Common.Left (Name ("ticks", _), (_, Sc (C (Int pi)))) ], _), _
+        when Parsed_int.eq_const pi 1 ->
           let cst = colon_stmt tok env colon_st in
           cst :: acc
       | _ -> error tok "TODO: declare")

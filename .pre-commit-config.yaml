@@ -27,6 +27,7 @@ repos:
       - id: check-merge-conflict
       - id: check-shebang-scripts-are-executable
       - id: check-symlinks
+        exclude: "^bin"
       - id: check-toml
       - id: check-vcs-permalinks
       - id: check-xml
@@ -84,7 +85,7 @@ repos:
     rev: v1.0.0
     hooks:
       - id: mypy
-        exclude: ^cli/tests/.+$|^setup.py$|^cli/src/semdep/external/packaging/.*$|^cli/src/semdep/external/parsy/.*$|^cli/scripts/.*$|^scripts/.+$|^stats/parsing-stats/.+$|^perf/.+$$
+        exclude: ^cli/tests/.+$|^setup.py$|^cli/src/semdep/external/packaging/.*$|^cli/src/semdep/external/parsy/.*$|^cli/scripts/.*$|^scripts/.+$|^stats/parsing-stats/.+$|^perf/.+$|^js/language_server/targets/.+$
         args: [--config, mypy.ini, --show-error-codes, --python-version, "3.11"]
         additional_dependencies: &mypy-deps
           # versions must be manually synced:
@@ -180,7 +181,7 @@ repos:
   # Dogfood! running semgrep in pre-commit!
   # ----------------------------------------------------------
   - repo: https://github.com/returntocorp/semgrep
-    rev: v1.44.0
+    rev: v1.48.0
     hooks:
       - id: semgrep
         name: Semgrep Jsonnet

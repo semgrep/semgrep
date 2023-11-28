@@ -1,17 +1,53 @@
+(* Martin Jambon
+ *
+ * Copyright (C) 2023 Semgrep Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * LICENSE for more details.
+ *)
+open Common
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
 (*
-   External parsers to be registered here by proprietary extensions of semgrep.
+   External parsers to be registered here by semgrep-pro.
 *)
 
-open Common
+(*****************************************************************************)
+(* Types and globals *)
+(*****************************************************************************)
+
+type pattern_parser =
+  string (* pattern content *) ->
+  AST_generic.any Tree_sitter_run.Parsing_result.t
+
+type target_file_parser =
+  string (* filename *) -> AST_generic.program Tree_sitter_run.Parsing_result.t
+
+module type T = sig
+  val register_parsers :
+    parse_pattern:pattern_parser -> parse_target:target_file_parser -> unit
+
+  val is_available : unit -> bool
+  val parse_pattern : pattern_parser
+  val parse_target : target_file_parser
+end
 
 exception Missing_plugin of string
 
 let missing_plugins : (Lang.t, unit) Hashtbl.t = Hashtbl.create 10
 
-type pattern_parser = string -> AST_generic.any Tree_sitter_run.Parsing_result.t
-
-type target_file_parser =
-  Common.filename -> AST_generic.program Tree_sitter_run.Parsing_result.t
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
 
 let missing_plugin_msg lang =
   spf
@@ -81,16 +117,16 @@ let make lang =
   in
   (register, is_available, parse_pattern, parse_target)
 
-module type T = sig
-  val register_parsers :
-    parse_pattern:pattern_parser -> parse_target:target_file_parser -> unit
-
-  val is_available : unit -> bool
-  val parse_pattern : pattern_parser
-  val parse_target : target_file_parser
-end
+(*****************************************************************************)
+(* Plugins *)
+(*****************************************************************************)
 
 module Apex = struct
   let register_parsers, is_available, parse_pattern, parse_target =
     make Lang.Apex
+end
+
+module Elixir = struct
+  let register_parsers, is_available, parse_pattern, parse_target =
+    make Lang.Elixir
 end

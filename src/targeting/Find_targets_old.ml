@@ -1,7 +1,7 @@
 open Common
 open File.Operators
 module In = Input_to_core_t
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 module Resp = Semgrep_output_v1_t
 open Find_targets (* conf type *)
 
@@ -64,7 +64,7 @@ let global_filter ~opt_lang ~sort_by_decr_size paths =
   in
   let sorted_skipped =
     List.sort
-      (fun (a : Out.skipped_target) b -> Fpath.compare a.path b.path)
+      (fun (a : OutJ.skipped_target) b -> Fpath.compare a.path b.path)
       skipped
   in
   (sorted_paths, sorted_skipped)
@@ -100,14 +100,13 @@ let group_roots_by_project conf paths =
     | None -> None
     | Some proj_root -> Some (Project.Git_project, proj_root)
   in
-  if conf.respect_git_ignore then
+  if conf.respect_gitignore then
     paths
     |> group_by_project_root (fun path ->
-           match Git_project.find_any_project_root ?force_root path with
-           | (Project.Other_project as kind), root, git_path ->
-               ((kind, root), Ppath.to_fpath root git_path)
-           | (Project.Git_project as kind), root, git_path ->
-               ((kind, root), Ppath.to_fpath ~root git_path))
+           let kind, root, git_path =
+             Git_project.find_any_project_root ?force_root path
+           in
+           ((kind, root), Ppath.to_fpath root git_path))
   else
     (* ignore gitignore files but respect semgrepignore files *)
     paths
@@ -164,7 +163,7 @@ let files_from_git_ls ~cwd:scan_root =
       return frozenset(tracked | untracked_unignored - deleted)
   *)
   (* tracked files *)
-  let tracked_output = Git_wrapper.files_from_git_ls ~cwd:scan_root in
+  let tracked_output = Git_wrapper.ls_files ~cwd:scan_root [] in
   tracked_output
   |> Common.map (fun x -> if !!scan_root = "." then x else scan_root // x)
   |> List.filter is_valid_file
@@ -186,7 +185,7 @@ let list_regular_files (conf : conf) (scan_root : Fpath.t) : Fpath.t list =
        * and so it does not really mean the user want to use git (and
        * a possible .gitignore) to list files.
        *)
-      if conf.respect_git_ignore then (
+      if conf.respect_gitignore then (
         try files_from_git_ls ~cwd:scan_root with
         | (Git_wrapper.Error _ | Common.CmdError _ | Unix.Unix_error _) as exn
           ->
@@ -241,8 +240,10 @@ let get_targets conf scanning_roots =
          (* step1: filter with .gitignore and .semgrepignore *)
          let exclusion_mechanism : Semgrepignore.exclusion_mechanism =
            match (proj_kind : Project.kind) with
-           | Project.Git_project -> Gitignore_and_semgrepignore
-           | Project.Other_project -> Only_semgrepignore
+           | Git_project
+           | Gitignore_project ->
+               Gitignore_and_semgrepignore
+           | Other_project -> Only_semgrepignore
          in
          let ign =
            Semgrepignore.create ?include_patterns:conf.include_
@@ -355,7 +356,7 @@ let files_of_dirs_or_files ?(keep_root_files = true)
   in
   let sorted_skipped =
     List.sort
-      (fun (a : Out.skipped_target) b -> Fpath.compare a.path b.path)
+      (fun (a : OutJ.skipped_target) b -> Fpath.compare a.path b.path)
       skipped
   in
   (sorted_paths, sorted_skipped)

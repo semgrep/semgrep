@@ -1,0 +1,23 @@
+rules:
+  - id: rule
+    message: Found GH secret
+    severity: INFO
+    languages:
+      - python
+    match: "\"$SECRET\""
+    validators:
+    - http:
+        request:
+          url: http://www.example.com/api/america
+          method: GET
+          headers:
+            authorization: Bearer $SECRET
+            user-agent: semgrep
+        response:
+          - match:
+              - status-code: 2
+            result:
+              validity: valid
+              message: "TEST 0"
+              metadata:
+                test: 0

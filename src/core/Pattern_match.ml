@@ -81,7 +81,7 @@ type t = {
   (* rule (or mini rule) responsible for the pattern match found *)
   rule_id : rule_id; [@equal fun a b -> a.id = b.id]
   (* location information: TODO Fpath.t *)
-  file : Common.filename;
+  file : string; (* filename *)
   (* less: redundant with location? *)
   (* note that the two Tok.location can be equal *)
   range_loc : Tok.location * Tok.location;
@@ -153,6 +153,7 @@ and rule_id = {
    * mini_rule? *)
   message : string;
   fix : string option;
+  fix_regexp : Rule.fix_regexp option;
   (* ?? why we need that? *)
   langs : Lang.t list;
   (* used for debugging (could be removed at some point) *)

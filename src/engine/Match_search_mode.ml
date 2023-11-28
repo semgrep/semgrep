@@ -25,6 +25,7 @@ module RM = Range_with_metavars
 module E = Core_error
 module ME = Matching_explanation
 module GG = Generic_vs_generic
+module OutJ = Semgrep_output_v1_j
 open Match_env
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -182,6 +183,7 @@ let (mini_rule_of_pattern :
     (* useful for debugging timeout *)
     pattern_string = pstr;
     fix = rule.Rule.fix;
+    fix_regexp = rule.Rule.fix_regexp;
   }
 
 (*****************************************************************************)
@@ -331,7 +333,8 @@ let run_selector_on_ranges env selector_opt ranges =
         (List.length res.matches);
       res.matches
       |> Common.map RM.match_result_to_range
-      |> RM.intersect_ranges env.xconf.config !debug_matches ranges
+      |> RM.intersect_ranges env.xconf.config ~debug_matches:!debug_matches
+           ranges
 
 let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
     (ranges : RM.ranges) : RM.ranges =
@@ -341,7 +344,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
     else None
   in
   (* this will return a list of new ranges that have been restricted by the variables in focus_mvars *)
-  let apply_focus_mvars (focus_mvars : MV.mvar list) (range : RM.t) : RM.t stack
+  let apply_focus_mvars (focus_mvars : MV.mvar list) (range : RM.t) : RM.t list
       =
     (* A list that groups each metavariable under all of the `focus-metavariables`
      * within a `patterns` with the "metavariable value" that each one captures.
@@ -412,8 +415,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
              let focused_ranges = apply_focus_mvars focus_mvars init_range in
              focused_ranges)
     in
-    let intersect_ranges (list1 : RM.t stack) (list2 : RM.t stack) : RM.t stack
-        =
+    let intersect_ranges (list1 : RM.t list) (list2 : RM.t list) : RM.t list =
       match (list1, list2) with
       | [ range1 ], [ range2 ] -> (
           match intersect range1 range2 with
@@ -430,7 +432,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
             "Semgrep currently does not support multiple `focus-metavariable` \
              statements with multiple metavariables under a single `patterns`."
     in
-    let rec intersect_ranges_list (l : RM.t stack stack) : RM.t stack =
+    let rec intersect_ranges_list (l : RM.t list list) : RM.t list =
       match l with
       | [] -> failwith "No focus-metavariable statements found."
       | [ first ] -> first
@@ -522,7 +524,7 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
                   *)
                  let pos = snd xpat.pstr in
                  (* less: in theory we could decompose again pat and get children*)
-                 { ME.op = Out.XPat pstr; pos; matches; children = [] })
+                 { ME.op = XPat pstr; pos; matches; children = [] })
         in
         (* less: add a Out.EllipsisAndStmts intermediate? *)
         children
@@ -719,18 +721,22 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
       let children =
         children_explanations_of_xpat env xpat |> Common.map (fun x -> Some x)
       in
-      let expl = if_explanations env ranges children (Out.XPat pstr, tok) in
+      let expl = if_explanations env ranges children (OutJ.XPat pstr, tok) in
       (ranges, expl)
   | R.Inside (tok, formula) ->
       let ranges, expls = evaluate_formula env opt_context formula in
-      let expl = if_explanations env ranges [ expls ] (Out.Inside, tok) in
+      let expl = if_explanations env ranges [ expls ] (OutJ.Inside, tok) in
       (Common.map (fun r -> { r with RM.kind = RM.Inside }) ranges, expl)
+  | R.Anywhere (tok, formula) ->
+      let ranges, expls = evaluate_formula env opt_context formula in
+      let expl = if_explanations env ranges [ expls ] (OutJ.Anywhere, tok) in
+      (Common.map (fun r -> { r with RM.kind = RM.Anywhere }) ranges, expl)
   | R.Or (tok, xs) ->
       let ranges, expls =
         xs |> Common.map (evaluate_formula env opt_context) |> Common2.unzip
       in
       let ranges = List.flatten ranges in
-      let expl = if_explanations env ranges expls (Out.Or, tok) in
+      let expl = if_explanations env ranges expls (OutJ.Or, tok) in
       (ranges, expl)
   | R.And (t, ({ conditions = conds; focus; _ } as conj)) -> (
       (* we now treat pattern: and pattern-inside: differently. We first
@@ -785,7 +791,8 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
             posrs
             |> List.fold_left
                  (fun acc r ->
-                   RM.intersect_ranges env.xconf.config !debug_matches acc r)
+                   RM.intersect_ranges env.xconf.config
+                     ~debug_matches:!debug_matches acc r)
                  ranges
           in
           (* optimization of `pattern: $X` *)
@@ -801,7 +808,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
                      RM.difference_ranges env.xconf.config ranges ranges_neg
                    in
                    let expl =
-                     if_explanations env ranges [ expl ] (Out.Negation, tok)
+                     if_explanations env ranges [ expl ] (OutJ.Negation, tok)
                    in
                    (ranges, expl :: acc_expls))
                  (ranges, [])
@@ -832,7 +839,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
                      if_explanations env
                        (Common.map fst ranges_with_bindings)
                        []
-                       (Out.Filter (Tok.content_of_tok tok), tok)
+                       (OutJ.Filter (Tok.content_of_tok tok), tok)
                    in
                    (ranges_with_bindings, expl :: acc_expls))
                  (Common.map (fun x -> (x, [])) ranges, [])
@@ -867,13 +874,13 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
             | (tok, _mvar) :: _rest ->
                 [
                   if_explanations env ranges []
-                    (Out.Filter "metavariable-focus", tok);
+                    (OutJ.Filter "metavariable-focus", tok);
                 ]
           in
           let expl =
             if_explanations env ranges
               (posrs_expls @ negs_expls @ filter_expls @ focus_expls)
-              (Out.And, t)
+              (OutJ.And, t)
           in
           (ranges, expl))
   | R.Not _ -> failwith "Invalid Not; you can only negate inside an And"

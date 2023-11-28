@@ -10,7 +10,7 @@ let with_foo_client =
     let make_fn = (fun req body ->
         match Uri.path (Cohttp.Request.uri req) with
         | "http://foo.com/api/v1/blah" ->
-            Http_mock_client.check_method req "GET";
+            Http_mock_client.check_method `GET req.meth;
             Http_mock_client.check_body body "./tests/foo/request.json";
             let response_body =
               "./tests/ls/ci/response.json"

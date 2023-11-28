@@ -41,7 +41,7 @@ if WHEEL_CMD in sys.argv:
 
             # To prevent potential compatibility issues when mixing glibc and libmusl,
             # PyPI does not accept the default linux_x86_64 and linux_aarch64 platform
-            # tags. Instead, package maintainers must explicity identify if their package
+            # tags. Instead, package maintainers must explicitly identify if their package
             # supports glibc and/or libmusl. Semgrep-core is statically compiled,
             # so this isn't a concern for us.
             #
@@ -131,7 +131,7 @@ extras_require = {"experiments": ["jsonnet~=0.18"]}
 
 setuptools.setup(
     name="semgrep",
-    version="1.48.0",
+    version="1.50.0",
     author="Semgrep Inc.",
     author_email="support@semgrep.com",
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",

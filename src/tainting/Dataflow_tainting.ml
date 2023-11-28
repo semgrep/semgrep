@@ -72,7 +72,7 @@ type a_propagator = {
 }
 
 type config = {
-  filepath : Common.filename;
+  filepath : string;
   rule_id : Rule_ID.t;
   track_control : bool;
   is_source : G.any -> R.taint_source TM.t list;
@@ -340,10 +340,17 @@ let merge_source_sink_mvars env source_mvars sink_mvars =
     (* The union of both sets, but taking the sink mvars in case of collision. *)
     sink_biased_union_mvars source_mvars sink_mvars
 
-let partition_mutating_sources sources_matches =
+let partition_sources_by_side_effect_oyn sources_matches =
   sources_matches
-  |> List.partition (fun (m : R.taint_source TM.t) ->
-         m.spec.source_by_side_effect && TM.is_exact m)
+  |> Common.partition_either3 (fun (m : R.taint_source TM.t) ->
+         match m.spec.source_by_side_effect with
+         (* We require an exact match for `by-side-effect` to take effect. *)
+         | R.Only when TM.is_exact m -> Left3 m
+         | R.Yes when TM.is_exact m -> Middle3 m
+         | R.No
+         | R.Only
+         | R.Yes ->
+             Right3 m)
 
 (*****************************************************************************)
 (* Types *)
@@ -825,24 +832,30 @@ let handle_taint_propagators env thing taints =
   (taints_propagated, lval_env)
 
 let find_lval_taint_sources env incoming_taints lval =
+  let taints_of_pms env = taints_of_matches env ~incoming:incoming_taints in
   let source_pms = lval_is_source env lval in
-  let mut_source_pms, reg_source_pms =
-    (* If the lvalue is an exact match (overlap > 0.99) for a source
-       * annotation, then we infer that the lvalue itself is now tainted
-       * (presumably by side-effect) and we will update the `lval_env`
-       * accordingly. Otherwise the lvalue belongs to a piece of code that
-       * is a source of taint, but it is not tainted on its own. *)
-    partition_mutating_sources source_pms
+  (* Partition sources according to the value of `by-side-effect:`,
+   * either `only`, `yes`, or `no`. *)
+  let by_side_effect_only_pms, by_side_effect_yes_pms, by_side_effect_no_pms =
+    partition_sources_by_side_effect_oyn source_pms
   in
-  let taints_sources_reg, lval_env =
-    reg_source_pms |> taints_of_matches env ~incoming:incoming_taints
+  let by_side_effect_only_taints, lval_env =
+    by_side_effect_only_pms |> taints_of_pms env
   in
-  let taints_sources_mut, lval_env =
-    mut_source_pms
-    |> taints_of_matches { env with lval_env } ~incoming:incoming_taints
+  let by_side_effect_no_taints, lval_env =
+    by_side_effect_no_pms |> taints_of_pms { env with lval_env }
   in
-  let lval_env = Lval_env.add lval_env lval taints_sources_mut in
-  (Taints.union taints_sources_reg taints_sources_mut, lval_env)
+  let by_side_effect_yes_taints, lval_env =
+    by_side_effect_yes_pms |> taints_of_pms { env with lval_env }
+  in
+  let taints_to_add_to_env =
+    by_side_effect_only_taints |> Taints.union by_side_effect_yes_taints
+  in
+  let lval_env = Lval_env.add lval_env lval taints_to_add_to_env in
+  let taints_to_return =
+    Taints.union by_side_effect_no_taints by_side_effect_yes_taints
+  in
+  (taints_to_return, lval_env)
 
 let rec check_tainted_lval env (lval : IL.lval) : Taints.t * Lval_env.t =
   let new_taints, lval_in_env, lval_env = check_tainted_lval_aux env lval in
@@ -982,6 +995,16 @@ and check_tainted_lval_aux env (lval : IL.lval) :
             (* Recursive case, given `x.a.b` we must first check `x.a`. *)
             check_tainted_lval_aux env { lval with rev_offset = rev_offset' }
       in
+      let sub_new_taints, sub_in_env =
+        if env.options.taint_only_propagate_through_assignments then
+          match sub_in_env with
+          | `Sanitized -> (Taints.empty, `Sanitized)
+          | `Clean
+          | `None
+          | `Tainted _ ->
+              (Taints.empty, `None)
+        else (sub_new_taints, sub_in_env)
+      in
       (* Check the status of lval in the environemnt. *)
       let lval_in_env =
         match sub_in_env with
@@ -1077,11 +1100,11 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
   let check env = check_tainted_expr env in
   let check_subexpr exp =
     match exp.e with
-    | Fetch lval -> check_tainted_lval env lval
-    | FixmeExp (_, _, Some e) -> check env e
+    | Fetch _
     | Literal _
     | FixmeExp (_, _, None) ->
         (Taints.empty, env.lval_env)
+    | FixmeExp (_, _, Some e) -> check env e
     | Composite (_, (_, es, _)) -> union_map_taints_and_vars env check es
     | Operator ((op, _), es) ->
         let _, args_taints, lval_env = check_function_call_arguments env es in
@@ -1158,8 +1181,11 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
   | None ->
       let taints_exp, lval_env = check_subexpr exp in
       let taints_sources, lval_env =
-        orig_is_best_source env exp.eorig
-        |> taints_of_matches { env with lval_env } ~incoming:taints_exp
+        match exp.e with
+        | Fetch lval -> check_tainted_lval env lval
+        | __else__ ->
+            orig_is_best_source env exp.eorig
+            |> taints_of_matches { env with lval_env } ~incoming:taints_exp
       in
       let taints = Taints.union taints_exp taints_sources in
       let taints_propagated, var_env =
@@ -1521,7 +1547,11 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
               (call_taints, lval_env)
         in
         (* We add the taint of the function itselt (i.e., 'e_taints') too. *)
-        let all_call_taints = Taints.union e_taints call_taints in
+        let all_call_taints =
+          if env.options.taint_only_propagate_through_assignments then
+            call_taints
+          else Taints.union e_taints call_taints
+        in
         let all_call_taints =
           check_type_and_drop_taints_if_bool_or_number env all_call_taints
             type_of_expr e
@@ -1697,8 +1727,19 @@ let transfer :
                  * See [Taint_lval_env] for details. *)
                 Lval_env.add lval_env' lval taints
               else
-                (* Instruction returns safe data, remove taints from lval.
-                 * See [Taint_lval_env] for details. *)
+                (* The RHS returns no taint, but taint could propagate by
+                 * side-effect too. So, we check whether the taint assigned
+                 * to 'lval' has changed to determine whether we need to
+                 * clean 'lval' or not. *)
+                let lval_taints_changed =
+                  let lval_taints_before =
+                    Lval_env.dumb_find in' lval |> status_to_taints
+                  in
+                  let lval_taints_after =
+                    Lval_env.dumb_find lval_env' lval |> status_to_taints
+                  in
+                  not (Taints.equal lval_taints_before lval_taints_after)
+                in
                 match x.i with
                 | New _ ->
                     (* Pro/HACK: `x = new T(args)` is interpreted as `x.T(args)` where `T`
@@ -1708,7 +1749,16 @@ let transfer :
                      *
                      * TODO: `new T(args)` should return an "object taint signature". *)
                     lval_env'
-                | _ -> Lval_env.clean lval_env' lval)
+                | _ when lval_taints_changed ->
+                    (* The taint of 'lval' has changed, so there was a source or
+                     * sanitizer acting by side-effect on this instruction. Thus we do NOT
+                     * do anything more here. *)
+                    lval_env'
+                | _ ->
+                    (* No side-effects on 'lval', and the instruction returns safe data,
+                     * so we assume that the assigment acts as a sanitizer and therefore
+                     * remove taints from lval. See [Taint_lval_env] for details. *)
+                    Lval_env.clean lval_env' lval)
           | None ->
               (* Instruction returns 'void' or its return value is ignored. *)
               lval_env'

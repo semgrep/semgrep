@@ -1,0 +1,34 @@
+rules:
+# Include an interfile csharp rule
+- id: process-taint
+  message: >-
+    Untrusted input might be injected into a command executed by the application, which can lead to a
+    command injection vulnerability. An attacker can execute arbitrary commands, potentially gaining complete
+    control of the system. To prevent this vulnerability, avoid executing OS commands with user input.
+    If this is unavoidable, validate and sanitize the input, and use safe methods for executing the commands.
+  severity: ERROR
+  languages:
+  - csharp
+  mode: taint
+  options:
+     interfile: true
+  pattern-sources:
+  - patterns:
+    - pattern: |
+          HttpContext.Request.Query
+  pattern-sinks:
+  - pattern: print(...)
+# Include only a single file Java rule
+- id: test
+  message: Test
+  languages: [java]
+  options:
+    taint_assume_safe_numbers: true
+  mode: taint
+  pattern-sources:
+  - patterns:
+    - pattern: public void $F(..., $X, ...) { ... }
+    - focus-metavariable: $X
+  pattern-sinks:
+  - pattern: sink(...)
+  severity: ERROR

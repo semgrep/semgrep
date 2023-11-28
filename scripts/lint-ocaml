@@ -18,6 +18,11 @@ set -eu
 # Note however that the pre-commit CI action may loop forever if
 # you leave those commands uncommented (no idea why, go figure again).
 
+if [[ -v SKIP_OCAMLFORMAT ]]; then
+  echo "*** SKIP_OCAMLFORMAT is set. Skipping ocamlformat step!"
+  exit 0
+fi
+
 eval $(opam env)
 
 #coupling: must be the same than in dev/dev.opam
@@ -31,6 +36,8 @@ if version=$(ocamlformat --version); then
 *** ocamlformat is in the wrong version:
   - expecting ocamlformat $required_version
   - found ocamlformat $version
+
+Run 'make setup' to install the correct version.
 EOF
     exit 1
   fi
@@ -38,13 +45,7 @@ else
   cat <<EOF
 *** ocamlformat was not found. ***
 
-If you wish to re-indent OCaml code, you must install ocamlformat, which is
-normally done with the following command:
-
-  $ opam install ocamlformat
-
-For now, let's pretend everything is fine.
+It's normally installed as part of 'make setup'.
 EOF
+  exit 1
 fi
-
-#to debug: git diff

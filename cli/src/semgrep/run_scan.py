@@ -300,6 +300,16 @@ def run_rules(
     )
 
 
+# This is used for testing and comparing with osemgrep.
+def list_targets_and_exit(target_manager: TargetManager, product: out.Product) -> None:
+    targets = target_manager.get_files_for_language(None, product)
+    for path in sorted(targets.kept):
+        print(f"+ {path}")
+    for (path, reason) in target_manager.ignore_log.list_skipped_paths_with_reason():
+        print(f"- [{reason}] {path}")
+    exit(0)
+
+
 ##############################################################################
 # Entry points
 ##############################################################################
@@ -346,6 +356,7 @@ def run_scan(
     baseline_commit: Optional[str] = None,
     baseline_commit_is_mergebase: bool = False,
     dump_contributions: bool = False,
+    x_ls: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -481,6 +492,9 @@ def run_scan(
             allow_unknown_extensions=not skip_unknown_extensions,
             ignore_profiles=file_ignore_to_ignore_profiles(get_file_ignore()),
         )
+        # Debugging option --x-ls
+        if x_ls:
+            list_targets_and_exit(target_manager, out.Product(out.SAST()))
     except FilesNotFoundError as e:
         raise SemgrepError(e)
 
@@ -667,6 +681,7 @@ def run_scan(
         metrics.add_errors(semgrep_errors)
         metrics.add_profiling(profiler)
         metrics.add_parse_rates(output_extra.parsing_data)
+        metrics.add_interfile_languages_used(output_extra.core.interfile_languages_used)
 
     if autofix:
         apply_fixes(filtered_matches_by_rule.kept, dryrun)

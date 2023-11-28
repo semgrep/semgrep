@@ -42,6 +42,16 @@ class ErrorHandler:
     def pop_request(self) -> None:
         self.payload = {}
 
+    def capture_error(self, e: Optional[BaseException] = None) -> None:
+        import traceback
+
+        if sys.exc_info()[0] is not None:
+            self.payload["error"] = "".join(traceback.format_exc())
+        elif e is not None:
+            exc_type = e.__class__
+            tb = e.__traceback__
+            self.payload["error"] = "".join(traceback.format_exception(exc_type, e, tb))
+
     @property
     def is_enabled(self) -> bool:
         """
@@ -69,8 +79,6 @@ class ErrorHandler:
 
         url = f"{state.env.fail_open_url}/failure"
 
-        import traceback
-
         logger.error(
             "There were errors during analysis but Semgrep will succeed because there were no blocking findings, use --no-suppress-errors if you want Semgrep to fail when there are errors."
         )
@@ -84,8 +92,10 @@ class ErrorHandler:
             "User-Agent": str(state.app_session.user_agent),
             "Authorization": f"Bearer {token or ''}",
         }
-        if sys.exc_info()[0] is not None:
-            self.payload["error"] = traceback.format_exc()
+        if "error" not in self.payload:
+            self.capture_error()
+
+        self.payload["request_id"] = str(state.request_id)
 
         try:
             requests.post(url, headers=headers, json=self.payload, timeout=3)

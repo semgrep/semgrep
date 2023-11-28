@@ -44,13 +44,19 @@ eval "$(opam env)"
 export HOMEBREW_SYSTEM=1
 
 make install-deps-MACOS-for-semgrep-core
-make install-deps-for-semgrep-core
+# We do this so we build LWT with libev on the path
+# Coupling: This should be similar to homebrew setup
+# austin: Why can't we use make homebrew-setup here? It doesn't seem to work
+#         because of something with how tree-sitter is installed.
+LIBRARY_PATH="$(brew --prefix)/lib" make install-deps-for-semgrep-core
 
 # Remove dynamically linked libraries to force MacOS to use static ones.
 ls -l "$(brew --prefix)"/opt/pcre/lib || true
 ls -l "$(brew --prefix)"/opt/gmp/lib || true
+ls -l "$(brew --prefix)"/opt/libev/lib || true
 rm -f "$(brew --prefix)"/opt/pcre/lib/libpcre.1.dylib
 rm -f "$(brew --prefix)"/opt/gmp/lib/libgmp.10.dylib
+rm -f "$(brew --prefix)"/opt/libev/lib/libev.4.dylib
 
 # This needs to be done after make install-deps-xxx but before make core
 TREESITTER_LIBDIR=libs/ocaml-tree-sitter-core/tree-sitter/lib
