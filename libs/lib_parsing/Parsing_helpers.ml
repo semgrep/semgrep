@@ -164,29 +164,28 @@ let (info_from_charpos : int -> string (* filename *) -> int * int * string) =
    *      (pos.pos_cnum - pos.pos_bol) in
    * Hence this function to overcome the previous limitation.
    *)
-  let chan = open_in_bin filename in
-  let linen = ref 0 in
-  let posl = ref 0 in
-  let rec charpos_to_pos_aux last_valid =
-    let s =
-      try Some (input_line chan) with
-      | End_of_file when charpos =|= last_valid -> None
-    in
-    incr linen;
-    match s with
-    | Some s ->
-        let s = s ^ "\n" in
-        if !posl + String.length s > charpos then (
-          close_in chan;
-          (!linen, charpos - !posl, s))
-        else (
-          posl := !posl + String.length s;
-          charpos_to_pos_aux !posl)
-    | None -> (!linen, charpos - !posl, "\n")
-  in
-  let res = charpos_to_pos_aux 0 in
-  close_in chan;
-  res
+  Common.with_open_infile filename (fun chan ->
+      let linen = ref 0 in
+      let posl = ref 0 in
+      let rec charpos_to_pos_aux last_valid =
+        let s =
+          try Some (input_line chan) with
+          | End_of_file when charpos =|= last_valid -> None
+        in
+        incr linen;
+        match s with
+        | Some s ->
+            let s = s ^ "\n" in
+            if !posl + String.length s > charpos then (
+              (* ??? why closing early? *)
+              close_in chan;
+              (!linen, charpos - !posl, s))
+            else (
+              posl := !posl + String.length s;
+              charpos_to_pos_aux !posl)
+        | None -> (!linen, charpos - !posl, "\n")
+      in
+      charpos_to_pos_aux 0)
 [@@profiling]
 
 (* Decalage is here to handle stuff such as cpp which include file and who

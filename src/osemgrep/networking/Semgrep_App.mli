@@ -1,5 +1,8 @@
-type scan_id = string
-type app_block_override = string (* reason *) option
+(* This module provides helpers to communicate with our Semgrep backend
+ * in a typed and abstract way. Internally, it relies on HTTP requests
+ * but this is mostly invisible in the types below thanks to
+ * semgrep_output_v1.atd
+ *)
 
 (* The architecture of the Pro Engine binary to install. *)
 type pro_engine_arch = Osx_arm64 | Osx_x86 | Manylinux
@@ -19,6 +22,8 @@ val url_for_policy : token:Auth.token -> Uri.t
    the parameters and the repository name *)
 val scan_config_uri :
   ?sca:bool -> ?dry_run:bool -> ?full_scan:bool -> string -> Uri.t
+
+type scan_id = string
 
 val start_scan :
   dry_run:bool ->
@@ -41,6 +46,8 @@ val fetch_scan_config :
 (** [fetch_scan_config ~token ~sca ~dry_run ~full_scan repo] returns the rules
     (as a RAW string containing JSON data) for the provided configuration. *)
 
+type app_block_override = string (* reason *) option
+
 (* upload both the scan_results and complete *)
 val upload_findings :
   dry_run:bool ->
@@ -55,6 +62,15 @@ val upload_findings :
 (* report a failure for [scan_id] to Semgrep App *)
 val report_failure :
   dry_run:bool -> token:Auth.token -> scan_id:scan_id -> Exit_code.t -> unit
+
+(* could be in Semgrep_Registry.ml but actually the request interact
+ * with the Semgrep backend, not with the registry.
+ * TODO: pass an ATD construct instead of JSON below
+ *)
+val upload_rule_to_registry :
+  token:Auth.token -> JSON.yojson -> (string, int * string) result
+
+val get_identity_async : token:Auth.token -> string Lwt.t
 
 (* lwt-friendly versions for the language-server *)
 

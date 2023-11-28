@@ -31,7 +31,7 @@ exports[`misc interpolates metavariables in rule message 1`] = `
               },
               "extra": {
                 "engine_kind": "OSS",
-                "message": "Print content is $A",
+                "message": "Print content is "Hello World"",
                 "metavars": {
                   "$A": {
                     "abstract_content": ""Hello World"",
@@ -86,7 +86,7 @@ exports[`misc interpolates metavariables in rule message 1`] = `
           },
           "extra": {
             "engine_kind": "OSS",
-            "message": "Print content is $A",
+            "message": "Print content is "Hello World"",
             "metavars": {
               "$A": {
                 "abstract_content": ""Hello World"",

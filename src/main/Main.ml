@@ -55,7 +55,7 @@ let () =
   | "osemgrep.bc"
   | "osemgrep" ->
       let exit_code = CLI.main Sys.argv in
-      (* TODO: remove or make debug-only *)
+      (* remove? or make debug-only? or use Logs.info? *)
       if exit_code <> Exit_code.ok then
         Printf.eprintf "Error: %s\nExiting with error status %i: %s\n%!"
           (Exit_code.to_message exit_code)

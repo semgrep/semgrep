@@ -354,6 +354,21 @@ let parse_int env (key : key) x =
       | _ -> error_at_key env.id key "not an int")
   | _x -> error_at_key env.id key (spf "parse_int for %s" (fst key))
 
+(* "Strict", because this function demands we can represent the integer inside. *)
+let parse_int_strict env (key : key) x =
+  match x.G.e with
+  | G.L (Int (Some i64, _)) -> Int64.to_int i64
+  | G.L (String (_, (s, _), _)) -> (
+      match Parsed_int.of_string_opt s with
+      | Some (Some i64, _) -> Int64.to_int i64
+      | _ -> error_at_key env.id key (spf "parse_int for %s" (fst key)))
+  | G.L (Float (Some f, _)) -> (
+      let pi = Parsed_int.of_float f in
+      match (pi, Parsed_int.to_float_opt pi) with
+      | (Some i64, _), Some f' when f =*= f' -> Int64.to_int i64
+      | _ -> error_at_key env.id key "not an int")
+  | _x -> error_at_key env.id key (spf "parse_int for %s" (fst key))
+
 let parse_str_or_dict env (value : G.expr) : (G.ident, dict) Either.t =
   match value.G.e with
   | G.L (String (_, (value, t), _)) ->

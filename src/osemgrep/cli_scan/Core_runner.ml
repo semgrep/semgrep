@@ -1,5 +1,6 @@
+open Common
 open File.Operators
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 module Env = Semgrep_envvars
 
 (*************************************************************************)
@@ -44,7 +45,7 @@ type result = {
   (* ocaml: not in original python implem, but just enough to get
    * Semgrep_scan.cli_output_of_core_results to work
    *)
-  core : Out.core_output;
+  core : OutJ.core_output;
   hrules : Rule.hrules;
   scanned : Fpath.t Set_.t;
       (* in python implem *)
@@ -65,16 +66,43 @@ type result = {
 type scan_func_for_osemgrep =
   ?respect_git_ignore:bool ->
   ?file_match_results_hook:
-    (Fpath.t ->
-    Core_profiling.partial_profiling Core_result.match_result ->
-    unit)
-    option ->
+    (Fpath.t -> Core_result.matches_single_file -> unit) option ->
   conf ->
   (* LATER? use Config_resolve.rules_and_origin instead? *)
   Rule.rules ->
   Rule.invalid_rule_error list ->
   Fpath.t list ->
   Core_result.result_or_exn
+
+(*************************************************************************)
+(* Extract mode *)
+(*************************************************************************)
+
+(* TODO? move to Xlang.ml? *)
+module XlangSet = Set.Make (struct
+  let compare
+      (* This only compares the first language in the case of `L (lang :: _)`.
+         That should be fine because for the use of Xlang in this file,
+         `L _` should always be flattened out *)
+        a b =
+    String.compare (Xlang.to_string a) (Xlang.to_string b)
+
+  type t = Xlang.t
+end)
+
+(* Extract mode: we need to make sure to include rules that will apply
+   to targets that have been extracted. To do that, we'll detect the languages
+   that targets might be extracted to and include them in the jobs *)
+(* TODO it would be nicer to just extract the targets before splitting jobs,
+   but that would cause us to change things for the Core_scan shared path *)
+let detect_extract_languages all_rules =
+  all_rules
+  |> List.fold_left
+       (fun acc { Rule.mode; _ } ->
+         match mode with
+         | `Extract { Rule.dst_lang; _ } -> XlangSet.add dst_lang acc
+         | _ -> acc)
+       XlangSet.empty
 
 (*************************************************************************)
 (* Helpers *)
@@ -101,14 +129,39 @@ let group_rules_by_target_language rules : (Xlang.t * Rule.t list) list =
                 Hashtbl.replace tbl lang (rule :: rules)));
   Hashtbl.fold (fun lang rules acc -> (lang, rules) :: acc) tbl []
 
+let add_typescript_to_javascript_rules_hack (all_rules : Rule.t list) :
+    Rule.t list =
+  (* If Javascript is one of the rule languages, we should also run on
+     Typescript files. This implementation mimics the hack in `rule.py`.
+     We could alternatively set this by changing lang.json, but we should
+     be careful to do that without affecting other things like the docs *)
+  all_rules
+  |> Common.map (fun r ->
+         match r.Rule.target_analyzer with
+         | LRegex
+         | LSpacegrep
+         | LAliengrep ->
+             r
+         | L (l, ls) ->
+             let lset = Set_.of_list ls in
+             let lset =
+               if l =*= Language.Js || Set_.mem Language.Js lset then
+                 Set_.add Language.Ts lset
+               else lset
+             in
+             { r with Rule.target_analyzer = L (l, lset |> Set_.elements) })
+
 let split_jobs_by_language all_rules all_targets : Lang_job.t list =
+  let all_rules = add_typescript_to_javascript_rules_hack all_rules in
+  let extract_languages = detect_extract_languages all_rules in
   all_rules |> group_rules_by_target_language
   |> Common.map_filter (fun (xlang, rules) ->
          let targets =
            all_targets
            |> List.filter (Filter_target.filter_target_for_xlang xlang)
          in
-         if Common.null targets then None
+         if Common.null targets && not (XlangSet.mem xlang extract_languages)
+         then None
          else Some ({ xlang; targets; rules } : Lang_job.t))
 
 let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
@@ -194,10 +247,7 @@ let create_core_result (all_rules : Rule.rule list)
         Core_result.mk_final_result_with_just_errors [ err ]
   in
   let scanned = Set_.of_list res.scanned in
-  let match_results =
-    Core_json_output.core_output_of_matches_and_errors (Some Autofix.render_fix)
-      res
-  in
+  let match_results = Core_json_output.core_output_of_matches_and_errors res in
   (* TOPORT? or move in semgrep-core so get info ASAP
      if match_results.skipped_targets:
          for skip in match_results.skipped_targets:
@@ -245,7 +295,7 @@ let mk_scan_func_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
   let lang_jobs = split_jobs_by_language all_rules all_targets in
   let rules_with_targets =
     List.concat_map (fun { Lang_job.rules; _ } -> rules) lang_jobs
-    |> Common.uniq_by ( == )
+    |> Common.uniq_by Stdlib.( == )
   in
   Logs.app (fun m ->
       m "%a"

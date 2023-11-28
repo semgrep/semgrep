@@ -35,12 +35,15 @@ let with_mocked_logs ~f ~final =
   Common.finalize
     (fun () ->
       Logs.set_reporter reporter_to_format_strbuf;
-      Common.save_excursion Logs_helpers.disable_set_reporter true (fun () ->
+      Common.save_excursion Logs_helpers.in_mock_context true (fun () ->
           (* f() might call Logs_helpers.setup_logging() internally, but this will not
            * call Logs.set_reporter and override the reporter we set above
            * thx to disable_set_reporter
            *)
-          let res = f () in
+          let res =
+            try Ok (f ()) with
+            | exn -> Error exn
+          in
           Format.pp_print_flush ppf ();
           let content = Buffer.contents buffer in
           final content res))

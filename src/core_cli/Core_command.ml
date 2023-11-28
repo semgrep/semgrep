@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-module Out = Semgrep_output_v1_j
+module OutJ = Semgrep_output_v1_j
 module E = Core_error
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -38,7 +38,7 @@ let timeout_function file timeout f =
   | Some res -> res
   | None ->
       let loc = Tok.first_loc_of_file file in
-      let err = E.mk_error None loc "" Out.Timeout in
+      let err = E.mk_error None loc "" OutJ.Timeout in
       Common.push err E.g_errors
 
 (* for -e/-f *)
@@ -73,10 +73,7 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
             in
             Core_result.mk_final_result_with_just_errors [ err ]
       in
-      let res =
-        Core_json_output.core_output_of_matches_and_errors
-          (Some Autofix.render_fix) res
-      in
+      let res = Core_json_output.core_output_of_matches_and_errors res in
       (*
         Not pretty-printing the json output (Yojson.Safe.prettify)
         because it kills performance, adding an extra 50% time on our
@@ -84,9 +81,9 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
         User should use an external tool like jq or ydump (latter comes with
         yojson) for pretty-printing json.
       *)
-      let s = Out.string_of_core_output res in
+      let s = OutJ.string_of_core_output res in
       logger#info "size of returned JSON string: %d" (String.length s);
-      pr s;
+      Out.put s;
       match result_or_exn with
       | Error (e, _) -> Core_exit_code.exit_semgrep (Unknown_exception e)
       | Ok _ -> ())
@@ -98,8 +95,11 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
             |> Option.iter (List.iter Matching_explanation.print);
           (* the match has already been printed above. We just print errors here *)
           if not (null res.errors) then (
-            pr "WARNING: some files were skipped or only partially analyzed:";
-            res.errors |> List.iter (fun err -> pr (E.string_of_error err)))
+            (* TODO? Logs.warn? *)
+            Out.put
+              "WARNING: some files were skipped or only partially analyzed:";
+            (* TODO? Logs.err? *)
+            res.errors |> List.iter (fun err -> Out.put (E.string_of_error err)))
       | Error (exn, _) -> Exception.reraise exn)
 
 (*****************************************************************************)
@@ -125,6 +125,7 @@ let minirule_of_pattern lang pattern_string pattern =
     severity = `Error;
     langs = [ lang ];
     fix = None;
+    fix_regexp = None;
   }
 
 (* less: could be nice to generalize to rule_of_config, but we sometimes
@@ -173,12 +174,9 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
             Rule.rule_of_xpattern xlang xpat)
       in
       let res = Core_scan.scan config (([ rule ], []), rules_parse_time) in
-      let json =
-        Core_json_output.core_output_of_matches_and_errors
-          (Some Autofix.render_fix) res
-      in
-      let s = Out.string_of_core_output json in
-      pr s
+      let json = Core_json_output.core_output_of_matches_and_errors res in
+      let s = OutJ.string_of_core_output json in
+      Out.put s
   | Text ->
       let minirule, _rules_parse_time =
         Common.with_time (fun () ->

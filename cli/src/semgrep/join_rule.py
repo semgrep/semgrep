@@ -394,7 +394,6 @@ def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> Rule
         # still needed?
         extra=match.get("extra", {}),
         fix=None,
-        fix_regex=None,
     )
 
 

@@ -21,7 +21,7 @@ open RPC_server
 module CN = Client_notification
 module CR = Client_request
 module Conv = Convert_utils
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 (*****************************************************************************)
 (* Semgrep helpers *)
@@ -180,7 +180,7 @@ let scan_file ?(content = None) server uri =
       | None -> results
     in
     let results =
-      Common.map (fun (m : Out.cli_match) -> { m with path = file }) results
+      Common.map (fun (m : OutJ.cli_match) -> { m with path = file }) results
     in
     let files = [ file ] in
     Session.record_results server.session results files;

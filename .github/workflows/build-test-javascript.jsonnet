@@ -170,7 +170,8 @@ local test_job = {
           js/engine/dist/index.mjs \
           js/languages/*/dist/index.cjs \
           js/languages/*/dist/index.mjs \
-          js/languages/*/dist/semgrep-parser.wasm
+          js/languages/*/dist/semgrep-parser.wasm \
+          js/language_server/dist/*
       |||,
     },
     {

@@ -73,7 +73,6 @@ class RuleMatch:
     # We call rstrip() for consistency with semgrep-core, which ignores whitespace
     # including newline chars at the end of multiline patterns
     fix: Optional[str] = field(converter=rstrip, default=None)
-    fix_regex: Optional[out.FixRegex] = None
 
     # ???
     index: int = 0

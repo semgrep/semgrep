@@ -1354,6 +1354,9 @@ and other_stmt_operator =
   | OS_ThrowNothing
   | OS_ThrowArgsLocation
   | OS_Pass
+  (* TODO: OS_Async should be a 'other_stmt_with_stmt_operator' !
+   * See comment attached to 'OtherStmt' re 'stmt's not being allowed
+   * in the arguments. *)
   | OS_Async
   (* C/C++ *)
   | OS_Asm

@@ -1,0 +1,4 @@
+-include ../../libs/ocaml-tree-sitter-core/tree-sitter-config.mk
+
+TREESITTER_EXPORTED_FUNCTIONS := _ts_parser_new,_ts_parser_set_language,_ts_parser_parse_string,_ts_tree_root_node,_ts_node_type,_ts_node_start_point,_ts_node_end_point,_ts_node_is_missing,_ts_node_is_named,_ts_node_child_count,_ts_node_child,_ts_tree_delete
+TREESITTER_SRCDIR := $(abspath $(TREESITTER_INCDIR)/../../downloads/tree-sitter/lib/src)

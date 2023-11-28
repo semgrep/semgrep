@@ -166,7 +166,6 @@ let converters_of_arrays ?(file = "<unknown>") line_arr col_arr :
       }
 
 let full_converters_large (file : string) : bytepos_linecol_converters =
-  let chan = open_in_bin file in
   let size = Common2.filesize file + 2 in
 
   (* old: let arr = Array.create size  (0,0) in *)
@@ -178,49 +177,49 @@ let full_converters_large (file : string) : bytepos_linecol_converters =
   let charpos = ref 0 in
   let line = ref 0 in
 
-  let full_charpos_to_pos_aux () =
-    try
-      while true do
-        let s = input_line chan in
-        incr line;
-        let len = String.length s in
-
-        (* '... +1 do'  cos input_line does not return the trailing \n *)
-        let col = ref 0 in
-        for i = 0 to len - 1 + 1 do
-          (* old: arr.(!charpos + i) <- (!line, i); *)
-          arr1.{!charpos + i} <- !line;
-          arr2.{!charpos + i} <- !col;
-          (* ugly: hack for weird windows files containing a single
-           * carriage return (\r) instead of a carriage return + newline
-           * (\r\n) to delimit newlines. Not recognizing those single
-           * \r as a newline marker prevents Javascript ASI to correctly
-           * insert semicolons.
-           * note: we could fix info_from_charpos() too, but it's not
-           * used for ASI so simpler to leave it as is.
-           *)
-          if i < len - 1 && String.get s i =$= '\r' then (
+  Common.with_open_infile file (fun chan ->
+      let full_charpos_to_pos_aux () =
+        try
+          while true do
+            let s = input_line chan in
             incr line;
-            col := -1);
-          incr col
-        done;
-        charpos := !charpos + len + 1
-      done
-    with
-    | End_of_file ->
-        for
-          i = !charpos
-          to (* old: Array.length arr *)
-             Bigarray.Array1.dim arr1 - 1
-        do
-          (* old: arr.(i) <- (!line, 0); *)
-          arr1.{i} <- !line;
-          arr2.{i} <- 0
-        done;
-        ()
-  in
-  full_charpos_to_pos_aux ();
-  close_in chan;
+            let len = String.length s in
+
+            (* '... +1 do'  cos input_line does not return the trailing \n *)
+            let col = ref 0 in
+            for i = 0 to len - 1 + 1 do
+              (* old: arr.(!charpos + i) <- (!line, i); *)
+              arr1.{!charpos + i} <- !line;
+              arr2.{!charpos + i} <- !col;
+              (* ugly: hack for weird windows files containing a single
+               * carriage return (\r) instead of a carriage return + newline
+               * (\r\n) to delimit newlines. Not recognizing those single
+               * \r as a newline marker prevents Javascript ASI to correctly
+               * insert semicolons.
+               * note: we could fix info_from_charpos() too, but it's not
+               * used for ASI so simpler to leave it as is.
+               *)
+              if i < len - 1 && String.get s i =$= '\r' then (
+                incr line;
+                col := -1);
+              incr col
+            done;
+            charpos := !charpos + len + 1
+          done
+        with
+        | End_of_file ->
+            for
+              i = !charpos
+              to (* old: Array.length arr *)
+                 Bigarray.Array1.dim arr1 - 1
+            do
+              (* old: arr.(i) <- (!line, 0); *)
+              arr1.{i} <- !line;
+              arr2.{i} <- 0
+            done;
+            ()
+      in
+      full_charpos_to_pos_aux ());
   converters_of_arrays ~file arr1 arr2
 [@@profiling]
 

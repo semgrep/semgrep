@@ -1,7 +1,15 @@
 val client_ref : (module Cohttp_lwt.S.Client) option ref
 (** [client_ref] is a reference to the Cohttp client module used by the
-    functions in this module. By default, it is set to [Cohttp_lwt_unix.Client],
-    but can be changed to an instance of [TestingClient] if you want to test things. *)
+    functions in this module. By default, it is set to
+    [Cohttp_lwt_unix.Client], but can be changed to an instance
+    of [TestingClient] if you want to test things. *)
+
+val set_client_ref : (module Cohttp_lwt.S.Client) -> unit
+
+(* See Http_mock_client.ml. If this global is set, set_client_ref()
+ * above will be a noop (and so leave the mock_http_client in place).
+ *)
+val in_mock_context : bool ref
 
 type get_info = {
   response : Cohttp.Response.t;
