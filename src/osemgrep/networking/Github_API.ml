@@ -12,7 +12,7 @@ let find_branchoff_point_async ~gh_token ~api_url ~repo_name ~base_branch_hash
             Digestif.SHA1.pp base_branch_hash Digestif.SHA1.pp head_branch_hash))
   in
   match response with
-  | Ok body ->
+  | Ok (body, _) ->
       let body = body |> Yojson.Basic.from_string in
       let commit =
         Option.bind

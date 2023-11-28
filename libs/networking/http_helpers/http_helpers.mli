@@ -11,14 +11,25 @@ val set_client_ref : (module Cohttp_lwt.S.Client) -> unit
  *)
 val in_mock_context : bool ref
 
+type get_info = {
+  response : Cohttp.Response.t;
+  body : Cohttp_lwt.Body.t;
+  code : int;
+}
+
 module Make (I : sig
   val run : 'a Lwt.t -> 'a
 end) : sig
   val get_async :
-    ?headers:(string * string) list -> Uri.t -> (string, string) result Lwt.t
+    ?headers:(string * string) list ->
+    Uri.t ->
+    (string * get_info, string * get_info) result Lwt.t
   (** [get_async ~headers uri] retrieves [uri] (via HTTP GET) with the provided
     [headers], asynchronously. The return value is either a promise of [Ok body] - if the request was
-    successful, or an error message. *)
+    successful, or an error message.
+    If a temporary redirect (307) is returned, this function will automatically
+    re-query and resolve the redirection.
+   *)
 
   val post_async :
     body:string ->
@@ -36,10 +47,16 @@ end) : sig
     The returned value is a promise of either [Ok body] if the request was successful,
     or an [Error (code, msg)], including the HTTP status [code] and a message. *)
 
-  val get : ?headers:(string * string) list -> Uri.t -> (string, string) result
+  val get :
+    ?headers:(string * string) list ->
+    Uri.t ->
+    (string * get_info, string * get_info) result
   (** [get ~headers uri] retrieves [uri] (via HTTP GET) with the provided
     [headers]. The return value is either [Ok body] - if the request was
-    successful, or an error message. *)
+    successful, or an error message.
+    If a temporary redirect (307) is returned, this function will automatically
+    re-query and resolve the redirection.
+   *)
 
   val post :
     body:string ->
