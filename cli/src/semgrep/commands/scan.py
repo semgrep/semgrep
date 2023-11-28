@@ -482,7 +482,7 @@ def scan(
     # Implicity enable secrets if the user has specified --allow-untrusted-validators
     if allow_untrusted_validators and not run_secrets_flag:
         logger.debug(
-            "Implicity enabled secrets validation since allow_untrusted_validators is set."
+            "Implicity enable secrets validation since allow_untrusted_validators is set."
         )
         run_secrets_flag = True
 
