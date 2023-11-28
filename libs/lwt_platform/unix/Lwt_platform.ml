@@ -13,6 +13,9 @@
  * LICENSE for more details.
  *)
 
+(* Commentary *)
+(* Unix specific LWT primitives *)
+(* See lwt_platform top level dune for further explanation *)
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -24,3 +27,4 @@ let run = Lwt_main.run
 let detach = Lwt_preemptive.detach
 let init_preemptive = Lwt_preemptive.init
 let set_engine () = Lwt_engine.set (new Lwt_engine.libev ())
+let sleep = Lwt_unix.sleep

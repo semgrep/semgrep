@@ -86,6 +86,9 @@ tests/
 .semgrep_logs/
 |}
 
+let gitignore_files = ("gitignore", ".gitignore")
+let semgrep_ignore_files = ("semgrepignore", ".semgrepignore")
+
 let contents_of_builtin_semgrepignore = function
   | Empty -> ""
   | Semgrep_scan_legacy -> builtin_semgrepignore_for_semgrep_scan
@@ -123,14 +126,24 @@ let create ?include_patterns ?(cli_patterns = []) ~builtin_semgrepignore
   in
   let gitignore_filenames =
     match exclusion_mechanism with
-    | Gitignore_and_semgrepignore ->
-        [ ("gitignore", ".gitignore"); ("semgrepignore", ".semgrepignore") ]
-    | Only_semgrepignore -> [ ("semgrepignore", ".semgrepignore") ]
+    | Gitignore_and_semgrepignore -> [ gitignore_files; semgrep_ignore_files ]
+    | Only_semgrepignore -> [ semgrep_ignore_files ]
+  in
+  (* Check if there is a top level .semgrepignore. If not use builtins *)
+  let semgrep_ignore_exists =
+    let gitignore_cache =
+      Gitignores_cache.create ~gitignore_filenames:[ semgrep_ignore_files ]
+        ~project_root ()
+    in
+    Gitignores_cache.load gitignore_cache Ppath.root |> Option.is_some
+  in
+  let higher_priority_levels =
+    if semgrep_ignore_exists then [ cli_level ]
+    else [ builtin_level; cli_level ]
   in
   let gitignore_filter =
-    Gitignore_filter.create
-      ~higher_priority_levels:[ builtin_level; cli_level ]
-      ~gitignore_filenames ~project_root ()
+    Gitignore_filter.create ~higher_priority_levels ~gitignore_filenames
+      ~project_root ()
   in
   { include_filter; gitignore_filter }
 
