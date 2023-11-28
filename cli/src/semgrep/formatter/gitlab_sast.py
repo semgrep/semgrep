@@ -25,17 +25,6 @@ def _to_gitlab_severity(semgrep_severity: out.MatchSeverity) -> str:
     return conversion_table.get(semgrep_severity, "Unknown")
 
 
-def _construct_semgrep_rule_url(rule_id: str) -> str:
-    # this is a hack to fix name -> registry disagreement
-    components = rule_id.split(".")
-    result = []
-    for chunk in components:
-        if chunk not in result:
-            result.append(chunk)
-    rule_name = ".".join(result)
-    return f"https://semgrep.dev/r/{rule_name}"
-
-
 class GitlabSastFormatter(BaseFormatter):
     def _format_rule_match(self, rule_match: RuleMatch) -> Mapping[str, Any]:
         result: Dict[str, Any] = {
@@ -75,7 +64,7 @@ class GitlabSastFormatter(BaseFormatter):
                     "type": "semgrep_type",
                     "name": f"Semgrep - {rule_match.rule_id}",
                     "value": rule_match.rule_id,
-                    "url": _construct_semgrep_rule_url(rule_match.rule_id),
+                    "url": rule_match.metadata.get("source"),
                 }
             ],
             "flags": [],
