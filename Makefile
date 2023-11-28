@@ -23,7 +23,7 @@
 #
 # Then to compile semgrep simply type:
 #
-#     $ make
+#     $ make all
 #
 # See INSTALL.md for more information
 # See also https://semgrep.dev/docs/contributing/contributing-code/
@@ -63,11 +63,14 @@
 # not exist but we still want 'make setup' to succeed
 -include libs/ocaml-tree-sitter-core/tree-sitter-config.mk
 
-# First (and default) target. Routine build.
-# It assumes all dependencies and configuration are already in place and
-# correct.
-.PHONY: build
-build:
+# First (and default) target.
+.PHONY: default
+default: core
+
+# Routine build. It assumes all dependencies and configuration are already in
+# place and correct.
+.PHONY: all
+all:
 	# OCaml compilation
 	$(MAKE) core
 	$(MAKE) copy-core-for-cli
@@ -90,14 +93,11 @@ unused-libs:
 core:
 	$(MAKE) minimal-build
 	# make executables easily accessible for manual testing:
-	test -e bin || ln -s _build/install/default/bin .
 	ln -s semgrep-core bin/osemgrep
 
 #history: was called the 'all' target in semgrep-core/Makefile before
 .PHONY: core-bc
 core-bc: minimal-build-bc
-	# make executables easily accessible for manual testing:
-	test -e bin || ln -s _build/install/default/bin .
 	ln -s semgrep-core.bc bin/osemgrep.bc
 
 # Make binaries available to pysemgrep
@@ -163,7 +163,6 @@ clean:
 .PHONY: core-clean
 core-clean:
 	dune clean
-	rm -f bin
 	# We still need to keep the nonempty opam files in git for
 	# 'make setup', so we should only remove the empty opam files.
 	# This removes the gitignored opam files.
@@ -192,7 +191,11 @@ uninstall:
 
 # Note that this target is actually not used in CI; it's only for local dev
 .PHONY: test
-test:
+test: core-test
+
+# Note that this target is actually not used in CI; it's only for local dev
+.PHONY: test-all
+test-all:
 	$(MAKE) core-test
 	$(MAKE) -C cli test
 	$(MAKE) -C cli osempass
