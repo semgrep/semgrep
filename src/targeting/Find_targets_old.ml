@@ -187,7 +187,7 @@ let list_regular_files (conf : conf) (scan_root : Fpath.t) : Fpath.t list =
        *)
       if conf.respect_gitignore then (
         try files_from_git_ls ~cwd:scan_root with
-        | (Git_wrapper.Error _ | Common.CmdError _ | Unix.Unix_error _) as exn
+        | (Git_wrapper.Error _ | UCommon.CmdError _ | Unix.Unix_error _) as exn
           ->
             Logs.info (fun m ->
                 m
@@ -346,7 +346,7 @@ let files_of_dirs_or_files ?(keep_root_files = true)
   in
   let paths =
     paths |> File.Path.to_strings
-    |> Common.files_of_dir_or_files_no_vcs_nofilter |> File.Path.of_strings
+    |> UCommon.files_of_dir_or_files_no_vcs_nofilter |> File.Path.of_strings
   in
   let paths, skipped = global_filter ~opt_lang ~sort_by_decr_size paths in
   let paths = explicit_targets @ paths in

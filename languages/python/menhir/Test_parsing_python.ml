@@ -70,7 +70,7 @@ let test_dump_python file =
       Common.save_excursion Flag.exn_when_lexical_error false (fun () ->
           let ast = Parse_python.parse_program file in
           let s = AST_python.show_program ast in
-          pr s))
+          UCommon.pr s))
 
 (*****************************************************************************)
 (* Main entry for Arg *)

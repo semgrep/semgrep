@@ -162,8 +162,8 @@ let scan_file ?(content = None) server uri =
       | Some content ->
           let name = Fpath.basename file in
           let ext = Fpath.get_ext file in
-          let tmp_file = Common.new_temp_file name ext in
-          Common.write_file tmp_file content;
+          let tmp_file = UCommon.new_temp_file name ext in
+          UCommon.write_file tmp_file content;
           ([ Fpath.v tmp_file ], Some Fpath.(to_string file))
     in
     let session_targets = Session.targets server.session in

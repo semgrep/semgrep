@@ -317,7 +317,7 @@ let (expected_error_lines_of_files :
  fun ?(regexp = default_error_regexp) ?(ok_regexp = None) test_files ->
   test_files
   |> List.concat_map (fun file ->
-         Common.cat file |> List_.index_list_1
+         UCommon.cat file |> List_.index_list_1
          |> List_.map_filter (fun (s, idx) ->
                 (* Right now we don't care about the actual error messages. We
                  * don't check if they match. We are just happy to check for

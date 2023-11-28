@@ -106,14 +106,14 @@ let test_parse_ts xs =
 let test_dump_js file =
   let ast = Parse_js.parse_program file in
   let s = Ast_js.show_a_program ast in
-  pr s
+  UCommon.pr s
 
 let test_dump_ts file =
   (* typescript and JSX have lexing conflicts *)
   Common.save_excursion Flag_parsing_js.jsx false (fun () ->
       let ast = Parse_js.parse_program file in
       let s = Ast_js.show_a_program ast in
-      pr s)
+      UCommon.pr s)
 
 (*****************************************************************************)
 (* Main entry for Arg *)

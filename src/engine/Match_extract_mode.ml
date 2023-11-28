@@ -90,7 +90,7 @@ let offsets_of_mval extract_mvalue =
 let mk_extract_target (dst_lang : Xlang.t) (contents : string) :
     extracted_target =
   let suffix = Xlang.informative_suffix dst_lang in
-  let f = Common.new_temp_file "extracted" suffix in
+  let f = UCommon.new_temp_file "extracted" suffix in
   Common2.write_file ~file:f contents;
   Extracted (Fpath.v f)
 
@@ -278,7 +278,7 @@ let extract_and_concat (ehrules : ehrules) (xtarget : Xtarget.t)
          (* Read the extracted text from the source file *)
          |> List_.map (fun { start_pos; start_line; start_col; end_pos } ->
                 let contents_raw =
-                  Common.with_open_infile !!(xtarget.Xtarget.file) (fun chan ->
+                  UCommon.with_open_infile !!(xtarget.Xtarget.file) (fun chan ->
                       let extract_size = end_pos - start_pos in
                       seek_in chan start_pos;
                       really_input_string chan extract_size)
@@ -402,7 +402,7 @@ let extract_as_separate (ehrules : ehrules) (xtarget : Xtarget.t)
              in
              (* Read the extracted text from the source file *)
              let contents_raw =
-               Common.with_open_infile m.file (fun chan ->
+               UCommon.with_open_infile m.file (fun chan ->
                    let extract_size = end_extract_pos - start_extract_pos in
                    seek_in chan start_extract_pos;
                    really_input_string chan extract_size)

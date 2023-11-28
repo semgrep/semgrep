@@ -26,7 +26,7 @@ let expr_at_range s file =
   Naming_AST.resolve lang ast;
   let e_opt = Range_to_AST.expr_at_range r ast in
   match e_opt with
-  | Some e -> pr (AST_generic.show_expr e)
+  | Some e -> UCommon.pr (AST_generic.show_expr e)
   | None -> failwith (spf "could not find an expr at range %s in %s" s !!file)
 [@@action]
 
@@ -37,16 +37,16 @@ let synthesize_patterns s file =
     J.Object (List_.map (fun (k, v) -> (k, J.String v)) options)
   in
   let s = J.string_of_json json_opts in
-  pr s
+  UCommon.pr s
 [@@action]
 
 let generate_pattern_choices s =
   let config = Rule_options.default_config in
   let options = Synthesizer.print_pattern_from_targets config s in
-  List.iter (fun s -> pr s) options
+  List.iter (fun s -> UCommon.pr s) options
 [@@action]
 
 let locate_patched_functions f =
   let res = Synthesizer.locate_patched_functions f in
-  pr res
+  UCommon.pr res
 [@@action]

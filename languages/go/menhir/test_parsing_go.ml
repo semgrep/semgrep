@@ -59,7 +59,7 @@ let test_parse_go xs =
 let test_dump_go file =
   let ast = Parse_go.parse_program file in
   let s = Ast_go.show_program ast in
-  pr s
+  UCommon.pr s
 
 (*****************************************************************************)
 (* Main entry for Arg *)

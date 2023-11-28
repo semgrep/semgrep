@@ -42,7 +42,7 @@ let test_dump_simple file =
       let ast = Parse_php.parse_program file in
       let ast = Ast_php_build.program ast in
       let s = Ast_php.show_program ast in
-      pr s)
+      UCommon.pr s)
 
 (*
 let test_pp_simple file =

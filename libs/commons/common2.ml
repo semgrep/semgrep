@@ -2760,7 +2760,7 @@ let cat_array file = "" :: cat file |> Array.of_list
 *)
 
 let cat_excerpts file lines =
-  Common.with_open_infile file (fun chan ->
+  UCommon.with_open_infile file (fun chan ->
       let lines = List.sort compare lines in
       let rec aux acc lines count =
         let b, l =
@@ -3070,7 +3070,7 @@ let glob pattern =
   Str.search_forward dir_regex pattern 0 |> ignore;
   let dir = Str.matched_string pattern in
   let regex = pattern |> Re.Glob.glob ~anchored:true |> Re.compile in
-  let files = Common.dir_contents dir in
+  let files = UCommon.dir_contents dir in
   files |> List.filter (fun s -> Re.execp regex s)
 
 let dirs_of_dir dir =
@@ -3097,7 +3097,7 @@ let grep_dash_v_str =
   "| grep -v /.hg/ |grep -v /CVS/ | grep -v /.git/ |grep -v /_darcs/"
   ^ "| grep -v /.svn/ | grep -v .git_annot | grep -v .marshall"
 
-let arg_symlink () = if !Common.follow_symlinks then " -L " else ""
+let arg_symlink () = if !UCommon.follow_symlinks then " -L " else ""
 
 let files_of_dir_or_files_no_vcs ext xs =
   xs
@@ -3189,13 +3189,13 @@ let (with_open_outfile_append :
 let tmp_file_cleanup_hooks = ref []
 
 let with_tmp_file ~(str : string) ~(ext : string) (f : string -> 'a) : 'a =
-  let tmpfile = Common.new_temp_file "tmp" ("." ^ ext) in
+  let tmpfile = UCommon.new_temp_file "tmp" ("." ^ ext) in
   write_file ~file:tmpfile str;
   Common.finalize
     (fun () -> f tmpfile)
     (fun () ->
       !tmp_file_cleanup_hooks |> List.iter (fun f -> f tmpfile);
-      Common.erase_this_temp_file tmpfile)
+      UCommon.erase_this_temp_file tmpfile)
 
 let register_tmp_file_cleanup_hook f = Stack_.push f tmp_file_cleanup_hooks
 
@@ -3218,7 +3218,7 @@ let exn_to_real_unixexit f =
   | UnixExit x -> UStdlib.exit x
 
 let uncat xs file =
-  Common.with_open_outfile file (fun (pr, _chan) ->
+  UCommon.with_open_outfile file (fun (pr, _chan) ->
       xs
       |> List.iter (fun s ->
              pr s;
@@ -5542,7 +5542,7 @@ let cmdline_flags_devel () =
       Arg.Set Common.debugger,
       " option to set if launched inside ocamldebug" );
     ( "-keep_tmp_files",
-      Arg.Set Common.save_tmp_files,
+      Arg.Set UCommon.save_tmp_files,
       " keep temporary generated files" );
   ]
 
@@ -5558,7 +5558,7 @@ let cmdline_flags_other () =
   [
     ("-nocheck_stack", Arg.Clear _check_stack, " ");
     ("-batch_mode", Arg.Set _batch_mode, " no interactivity");
-    ("-keep_tmp_files", Arg.Set Common.save_tmp_files, " ");
+    ("-keep_tmp_files", Arg.Set UCommon.save_tmp_files, " ");
   ]
 
 (* potentially other common options but not yet integrated:
@@ -5636,7 +5636,7 @@ let realpath path =
   | xs -> failwith (spf "problem with realpath on %s: %s " path (unlines xs))
 
 let with_pr2_to_string f =
-  let file = Common.new_temp_file "pr2" "out" in
+  let file = UCommon.new_temp_file "pr2" "out" in
   redirect_stdout_stderr file f;
   cat file
 
@@ -5826,9 +5826,9 @@ let _ =
 *)
 
 let unix_diff_strings s1 s2 =
-  let tmp1 = Common.new_temp_file "s1" "" in
+  let tmp1 = UCommon.new_temp_file "s1" "" in
   write_file tmp1 s1;
-  let tmp2 = Common.new_temp_file "s2" "" in
+  let tmp2 = UCommon.new_temp_file "s2" "" in
   write_file tmp2 s2;
   unix_diff tmp1 tmp2
 

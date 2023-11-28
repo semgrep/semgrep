@@ -16,7 +16,7 @@ let test_parse_c xs =
   |> (*Console.progress (fun k -> *)
   List.iter (fun file ->
       (*k(); *)
-      pr (spf "PARSING: %s" !!file);
+      UCommon.pr (spf "PARSING: %s" !!file);
       let { Parsing_result.stat; _ } = Parse_c.parse file in
       Stack_.push stat stat_list);
   Parsing_stat.print_recurring_problematic_tokens !stat_list;
@@ -28,7 +28,7 @@ let test_dump_c file =
   Parse_cpp.init_defs !Flag_parsing_cpp.macros_h;
   let ast = Parse_c.parse_program file in
   let s = Ast_c.show_program ast in
-  pr s
+  UCommon.pr s
 
 (*****************************************************************************)
 (* Main entry for Arg *)

@@ -43,7 +43,9 @@ let with_mock_normal_responses =
           | Some "Bearer bad_token" -> (401, "./tests/login/bad_response.json")
           | _ -> failwith "Unexpected token"
         in
-        let body = body_path |> Common.read_file |> Cohttp_lwt.Body.of_string in
+        let body =
+          body_path |> UCommon.read_file |> Cohttp_lwt.Body.of_string
+        in
         Lwt.return Http_mock_client.(basic_response ~status body)
     | "/api/agent/tokens/requests" ->
         let%lwt () =
