@@ -223,6 +223,12 @@ def ci(
     state.error_handler.configure(suppress_errors)
     scan_handler = None
 
+    if allow_untrusted_validators and not run_secrets_flag:
+        logger.debug(
+            "Implicity enabled secrets validation since allow_untrusted_validators is set."
+        )
+        run_secrets_flag = True
+
     token = state.app_session.token
     if not token and not config:
         # Not logged in and no explicit config
@@ -230,7 +236,10 @@ def ci(
         sys.exit(INVALID_API_KEY_EXIT_CODE)
     elif not token and config:
         # Not logged in but has explicit config
-        pass
+        if run_secrets_flag:
+            logger.debug("Disabling secrets validation since user is not logged in.")
+            run_secrets_flag = False
+            allow_untrusted_validators = False
     elif token and config:
         # Logged in but has explicit config
         logger.info(
