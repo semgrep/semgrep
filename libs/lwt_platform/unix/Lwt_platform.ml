@@ -13,6 +13,9 @@
  * LICENSE for more details.
  *)
 
+(* Commentary *)
+(* Unix specific LWT primitives *)
+(* See lwt_platform top level dune for further explanation *)
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
