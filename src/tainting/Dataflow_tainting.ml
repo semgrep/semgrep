@@ -352,8 +352,8 @@ let partition_sources_by_side_effect sources_matches =
   |> Common.partition_either3 (fun (m : R.taint_source TM.t) ->
          match m.spec.source_by_side_effect with
          | R.Only -> Left3 m
-         (* A 'Yes' should be a 'Yes' regardless of whether the match is exact,
-          * whether the match is exact or not is/should be taken into consideeration
+         (* A 'Yes' should be a 'Yes' regardless of whether the match is exact...
+          * Whether the match is exact or not is/should be taken into consideration
           * later on. Same as for 'Only'. But for backwards-compatibility we keep
           * it this way for now. *)
          | R.Yes when TM.is_exact m -> Middle3 m
