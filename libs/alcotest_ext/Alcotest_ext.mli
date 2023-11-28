@@ -32,11 +32,16 @@ type output = Stdout | Stderr | Merged_stdout_stderr | Separate_stdout_stderr
    hesitate to log a lot during the execution of the test.
 *)
 type 'a t = private {
+  (* Categories are made for organizing tests as a tree which is useful
+     for display and filtering. A new category is created typically when
+     grouping multiple test suites into one with 'pack_suites'.
+     e.g. ["food"; "fruit"; "kiwi"] *)
   category : string list;
   name : string;
   func : unit -> 'a;
   (* Options *)
   speed_level : Alcotest.speed_level;
+  (* TODO: tags (= pytest markers) *)
   check_output : output option;
   (* Automatically determined *)
   id : string;
@@ -97,8 +102,8 @@ val get_registered_lwt_tests : unit -> lwt_test list
 (*
    Usage:
 
-     pack_tests_pro "Suite Name" [test1; test2]
-     pack_suites "Suite Name" [suite1; suite2; suite3]
+     pack_tests_pro "apples" [test_color; test_juiciness]
+     pack_suites "fruit" [apple_tests; banana_tests; strawberry_tests]
 *)
 val pack_tests_pro : string -> 'a t list -> 'a t list
 val pack_suites : string -> 'a t list list -> 'a t list
