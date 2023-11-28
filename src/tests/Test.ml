@@ -32,7 +32,7 @@ let any_gen_of_string str =
    explicitly by calling a function. These functions are roughly those
    that call 'Common2.glob'.
 *)
-let tests () =
+let tests (all_caps : Cap.all_caps) =
   List.flatten
     [
       Unit_list_files.tests;
@@ -69,7 +69,7 @@ let tests () =
       Unit_Fetching.tests;
       Test_login_subcommand.tests;
       Test_publish_subcommand.tests;
-      Test_osemgrep.tests;
+      Test_osemgrep.tests all_caps;
       (* Networking tests disabled as they will get rate limited sometimes *)
       (* And the SSL issues they've been testing have been stable *)
       (*Unit_Networking.tests;*)
@@ -91,8 +91,8 @@ let tests () =
    See https://github.com/mirage/alcotest/issues/358 for a request
    to allow what we want without this workaround.
 *)
-let tests_with_delayed_error () =
-  try tests () with
+let tests_with_delayed_error all_caps =
+  try tests all_caps with
   | e ->
       let exn = Exception.catch e in
       [
@@ -100,7 +100,7 @@ let tests_with_delayed_error () =
           fun () -> Exception.reraise exn );
       ]
 
-let main () =
+let main (all_caps : Cap.all_caps) : unit =
   (* find the root of the semgrep repo as many of our tests rely on
      'let test_path = "tests/"' to find their test files *)
   let repo_root =
@@ -118,7 +118,9 @@ let main () =
       Data_init.init ();
       Core_CLI.register_exception_printers ();
       Logs_helpers.setup_logging ~force_color:false ~level:(Some Logs.Debug) ();
-      let alcotest_tests = Testutil.to_alcotest (tests_with_delayed_error ()) in
+      let alcotest_tests =
+        Testutil.to_alcotest (tests_with_delayed_error all_caps)
+      in
       Alcotest.run "semgrep-core" alcotest_tests)
 
-let () = main ()
+let () = Cap.main (fun all_caps -> main all_caps)
