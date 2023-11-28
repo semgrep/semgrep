@@ -1,4 +1,4 @@
-import { LSFactory } from "../semgrep-lsp-bindings";
+const { LSFactory } = require("../../../dist/semgrep-lsp-bindings");
 import * as assert from "assert";
 import * as lsclient from "vscode-languageclient/node";
 import * as path from "path";
@@ -94,7 +94,7 @@ suite("Server Features", () => {
 
 suite("Server e2e", async () => {
   const documentSelector: lsclient.DocumentSelector = [{ language: "python" }];
-  const serverModule = path.join(__dirname, "../semgrep-lsp.js");
+  const serverModule = path.join(__dirname, "../../../dist/semgrep-lsp.js");
   const serverOptions: lsclient.ServerOptions = {
     run: { module: serverModule, transport: lsclient.TransportKind.ipc },
     debug: {

@@ -1,1 +1,0 @@
-def bar, do: :baz

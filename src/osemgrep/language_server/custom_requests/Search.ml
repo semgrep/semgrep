@@ -4,7 +4,7 @@ open Lsp.Types
 open Jsonrpc
 open File.Operators
 module Conv = Convert_utils
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 let meth = "semgrep/search"
 
@@ -31,7 +31,7 @@ let on_request runner params =
       in
       let matches = runner rules in
       let matches_by_file =
-        Common.group_by (fun (m : Out.cli_match) -> !!(m.path)) matches
+        Common.group_by (fun (m : OutJ.cli_match) -> !!(m.path)) matches
       in
       let json =
         Common.map

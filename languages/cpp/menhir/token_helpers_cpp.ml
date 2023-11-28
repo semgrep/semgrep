@@ -396,7 +396,7 @@ let visitor_info_of_tok f = function
   | TAssign (x, i) -> TAssign (x, f i)
   | TIdent (s, i) -> TIdent (s, f i)
   | TIdent_Typedef (s, i) -> TIdent_Typedef (s, f i)
-  | TInt (s, i) -> TInt (s, f i)
+  | TInt pi -> TInt (Parsed_int.map_tok f pi)
   (* cppext: *)
   | TDefine i1 -> TDefine (f i1)
   | TUndef (s, i1) -> TUndef (s, f i1)

@@ -689,6 +689,7 @@ let m_comb_1toN m_1toN a bs : _ comb_result =
 let m_eq a b = if a =*= b then return () else fail ()
 let m_bool a b = if a =:= b then return () else fail ()
 let m_int a b = if a =|= b then return () else fail ()
+let m_parsed_int a b = if Parsed_int.equal a b then return () else fail ()
 let m_string a b = if a = b then return () else fail ()
 
 (* old: Before we just checked whether `s2` was a prefix of `s1`, e.g.

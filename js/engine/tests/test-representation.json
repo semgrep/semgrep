@@ -1,0 +1,22 @@
+{
+  "rules": [
+    {
+      "id": "test",
+      "languages": ["python"],
+      "match": {
+        "all": [
+          {
+            "pattern": "print($BELOW_SIGNED_INT32, $ABOVE_SIGNED_INT32)",
+            "where": [
+              {
+                "comparison": "int($BELOW_SIGNED_INT32) < 2147483647 and int($ABOVE_SIGNED_INT32) > 2147483647"
+              }
+            ]
+          }
+        ]
+      },
+      "message": "test",
+      "severity": "ERROR"
+    }
+  ]
+}

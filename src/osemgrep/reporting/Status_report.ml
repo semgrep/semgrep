@@ -33,6 +33,7 @@ let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
   Fmt_helpers.pp_heading ppf "Scan Status";
   Fmt.pf ppf "  Scanning %s%s with %s"
     (String_utils.unit_str num_targets "file")
+    (* TODO: validate if target is actually within a git repo *)
     (if respect_git_ignore then " tracked by git" else "")
     (String_utils.unit_str num_rules "Code rule");
 
@@ -59,6 +60,24 @@ let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
              (String.capitalize_ascii src, [ List.length xs ]))
     in
     Fmt.pf ppf "@.";
+    let compare (lang, rules_targets) (lang', rules_targets') =
+      match (rules_targets, rules_targets') with
+      | [ rules; targets ], [ rules'; targets' ] -> (
+          match -compare targets targets' with
+          | 0 -> (
+              match -compare rules rules' with
+              | 0 -> compare lang lang'
+              | cmp -> cmp)
+          | cmp -> cmp)
+      | _ -> failwith "Unexpected pattern"
+    in
+    (* NOTE: Some "languages" are instead general-purpose text analyzers and not true
+     * programming languages. These include "regex", "generic" AKA "spacegrep",
+     * and "aliengrep". Each of these "languages" have their own pattern syntax
+     * and engine for matching patterns against targets, and thus need to be
+    * executed separately from each other. However, for simplicity, we merge the
+    * stats for these "languages" into a single "<multilang>" row.
+     *)
     let xlang_label = function
       | Xlang.LSpacegrep
       | Xlang.LAliengrep
@@ -66,12 +85,34 @@ let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
           "<multilang>"
       | Xlang.L (l, _) -> Lang.to_lowercase_alnum l
     in
+    let lang_stats =
+      lang_jobs
+      (* Unpack each job, transforming xlang into its mapped language key *)
+      |> Common.map (fun Lang_job.{ xlang; targets; rules } ->
+             (xlang_label xlang, rules, targets))
+      (* Merge jobs by mapped language key *)
+      |> Common.group_by (fun (xlang, _, _) -> xlang)
+      |> Common.map (fun (xlang, xxs) ->
+             let targets =
+               xxs
+               |> List.concat_map (fun (_, _, targets) -> targets)
+               |> Common.group_by Fun.id
+               |> Common.map (fun (target, _) -> target)
+               |> List.length
+             in
+             let rules =
+               xxs
+               |> List.concat_map (fun (_, rules, _) -> rules)
+               |> Common.group_by Fun.id
+               |> Common.map (fun (rules, _) -> rules)
+               |> List.length
+             in
+             (xlang, rules, targets))
+    in
     Fmt_helpers.pp_tables ppf
       ( "Language",
         [ "Rules"; "Files" ],
-        lang_jobs
-        |> Common.map (fun Lang_job.{ xlang; targets; rules } ->
-               (xlang_label xlang, List.length rules, List.length targets))
+        lang_stats
         |> List.fold_left
              (fun acc (lang, rules, targets) ->
                match List.partition (fun (l, _) -> l = lang) acc with
@@ -79,5 +120,7 @@ let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
                | [ (_, [ r1; t1 ]) ], others ->
                    (lang, [ rules + r1; targets + t1 ]) :: others
                | _ -> assert false)
-             [] )
+             []
+        (* Sort by files desc, rules desc, lang asc *)
+        |> List.sort compare )
       ("Origin", [ "Rules" ], rule_origins)

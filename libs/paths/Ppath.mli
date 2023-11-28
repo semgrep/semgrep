@@ -65,6 +65,13 @@ val segments : t -> string list
 (* Append a segment to a path. *)
 val add_seg : t -> string -> t
 
+(* Append segments to a path. *)
+val add_segs : t -> string list -> t
+
+(* Append a relative fpath.
+   Raises Invalid_argument if the fpath is absolute. *)
+val append_fpath : t -> Fpath.t -> t
+
 (* Imitate File.Operators in libs/commons/ *)
 module Operators : sig
   (* Same as append *)

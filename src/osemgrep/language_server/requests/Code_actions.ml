@@ -19,13 +19,13 @@ open RPC_server
 module CN = Client_notification
 module CR = Client_request
 module Conv = Convert_utils
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-let code_action_of_match (m : Out.cli_match) =
+let code_action_of_match (m : OutJ.cli_match) =
   let fix =
     match m.extra.fix with
     | Some fix -> fix
@@ -51,10 +51,10 @@ let code_action_of_match (m : Out.cli_match) =
   in
   `CodeAction action
 
-let code_actions_of_file (matches : Out.cli_match list) file =
+let code_actions_of_file (matches : OutJ.cli_match list) file =
   let matches =
     List.filter
-      (fun (m : Out.cli_match) -> m.path = file && m.extra.fix <> None)
+      (fun (m : OutJ.cli_match) -> m.path = file && m.extra.fix <> None)
       matches
   in
   Common.map code_action_of_match matches
@@ -93,7 +93,7 @@ let code_actions_of_file (matches : Out.cli_match list) file =
     See:
     https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_codeAction
 *)
-let code_actions_of_cli_matches (matches : Out.cli_match list)
+let code_actions_of_cli_matches (matches : OutJ.cli_match list)
     (files : Fpath.t list) : [> `CodeAction of Lsp.Types.CodeAction.t ] list =
   List.concat_map (code_actions_of_file matches) files
 

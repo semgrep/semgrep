@@ -157,7 +157,8 @@ let with_testing_client make_fn test_fn () =
       let make_response = make_fn
     end))
   in
-  Common.save_excursion Http_helpers.client_ref (Some new_client) test_fn
+  Common.save_excursion Http_helpers.in_mock_context true (fun () ->
+      Common.save_excursion Http_helpers.client_ref (Some new_client) test_fn)
 
 (*****************************************************************************)
 (* Saved Request/Reponse Mocking *)

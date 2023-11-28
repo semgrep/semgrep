@@ -1,6 +1,6 @@
 open Testutil
 open File.Operators
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 module In = Input_to_core_t
 
 (** Try to test all of the more complex parts of the LS, but save the e2e stuff
@@ -49,12 +49,12 @@ let mock_run_results (files : string list) : Core_runner.result =
   let hrules = Rule.hrules_of_rules [ rule ] in
   let scanned = Common.map (fun f -> Fpath.v f) files |> Set_.of_list in
   let match_of_file file =
-    let (extra : Out.core_match_extra) =
+    let (extra : OutJ.core_match_extra) =
       {
         message = Some "test";
         metavars = [];
         dataflow_trace = None;
-        rendered_fix = None;
+        fix = None;
         engine_kind = `OSS;
         validation_state = Some `No_validator;
         extra_extra = None;
@@ -62,7 +62,7 @@ let mock_run_results (files : string list) : Core_runner.result =
         metadata = None;
       }
     in
-    let (m : Out.core_match) =
+    let (m : OutJ.core_match) =
       {
         check_id = Rule_ID.of_string "print";
         (* inherited location *)
@@ -75,7 +75,7 @@ let mock_run_results (files : string list) : Core_runner.result =
     m
   in
   let matches = Common.map match_of_file files in
-  let (core : Out.core_output) =
+  let (core : OutJ.core_output) =
     {
       version = None;
       results = matches;
@@ -118,6 +118,13 @@ let add_file ?(git = false) ?(dirty = false)
   file
 
 let with_mock_envvars f () =
+  (* TODO: we should simply do:
+   *    Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" "123456789" f
+   * but we then get CI failures on build-js-tests
+   * see https://github.com/semgrep/semgrep/pull/9285
+   * because of the use of putenv in Semgrep_envvars.with_envvar,
+   * even after adding a fake on in js/node_shared/unix.js
+   *)
   let old_settings = !Semgrep_envvars.v in
   let new_settings = { old_settings with app_token = Some "123456789" } in
   Common.save_excursion Semgrep_envvars.v new_settings f
@@ -194,7 +201,7 @@ let processed_run () =
     let results = mock_run_results files in
     let matches = Processed_run.of_matches ~only_git_dirty results in
     let final_files =
-      matches |> Common.map (fun (m : Out.cli_match) -> !!(m.path))
+      matches |> Common.map (fun (m : OutJ.cli_match) -> !!(m.path))
     in
     let final_files = Common.sort final_files in
     let expected = Common.sort expected in

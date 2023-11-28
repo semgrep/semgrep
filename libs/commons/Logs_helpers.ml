@@ -1,3 +1,17 @@
+(* Yoann Padioleau
+ *
+ * Copyright (C) 2022 Semgrep Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * LICENSE for more details.
+ *)
 open Common
 
 (*****************************************************************************)
@@ -34,7 +48,7 @@ let default_skip_libs =
   ]
 
 (* used for testing *)
-let disable_set_reporter = ref false
+let in_mock_context = ref false
 
 (*****************************************************************************)
 (* Helpers *)
@@ -102,8 +116,7 @@ let setup_logging ?(skip_libs = default_skip_libs) ~force_color ~level () =
   Logs.set_level ~all:true level;
   let with_timestamp = level =*= Some Logs.Debug in
   time_program_start := now ();
-  if not !disable_set_reporter then
-    Logs.set_reporter (reporter ~with_timestamp ());
+  if not !in_mock_context then Logs.set_reporter (reporter ~with_timestamp ());
   (* from https://github.com/mirage/ocaml-cohttp#debugging *)
   (* Disable all third-party libs logs *)
   Logs.Src.list ()
@@ -113,47 +126,6 @@ let setup_logging ?(skip_libs = default_skip_libs) ~force_color ~level () =
          (* those are the one we are really interested in *)
          | "application" -> ()
          | s -> failwith ("Logs library not handled: " ^ s))
-
-(*****************************************************************************)
-(* Test helpers *)
-(*****************************************************************************)
-
-let with_mocked_logs ~f ~final =
-  let buffer = Buffer.create 1000 in
-  let (ppf : Format.formatter) =
-    (* old: I was using Format.str_formatter but
-     * some libraries like Cmdliner are also using it
-     * and so parsing arguments with cmdliner has the side
-     * effect of cleaning Format.stdbuf used by str_formatter,
-     * so better to use a separate buffer
-     *)
-    Format.formatter_of_buffer buffer
-  in
-  let reporter_to_format_strbuf =
-    {
-      Logs.report =
-        (fun (_src : Logs.src) (_level : Logs.level) ~over k msgf ->
-          let k _ =
-            over ();
-            k ()
-          in
-          msgf (fun ?header:_ ?tags:_ fmt -> Format.kfprintf k ppf fmt));
-    }
-  in
-  let old_reporter = Logs.reporter () in
-  Common.finalize
-    (fun () ->
-      Logs.set_reporter reporter_to_format_strbuf;
-      Common.save_excursion disable_set_reporter true (fun () ->
-          (* f() might call setup_logging() internally, but this will not
-           * call Logs.set_reporter and override the reporter we set above
-           * thx to disable_set_reporter
-           *)
-          let res = f () in
-          Format.pp_print_flush ppf ();
-          let content = Buffer.contents buffer in
-          final content res))
-    (fun () -> Logs.set_reporter old_reporter)
 
 (*****************************************************************************)
 (* TODO: remove those (see .mli) *)

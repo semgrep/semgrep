@@ -19,7 +19,7 @@ open Pfff_or_tree_sitter
 open Parsing_result2
 module Flag = Flag_semgrep
 module E = Core_error
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -48,7 +48,7 @@ let errors_from_skipped_tokens xs =
       let locs =
         xs |> Common.map Semgrep_output_utils.location_of_token_location
       in
-      Core_error.ErrorSet.singleton { err with typ = Out.PartialParsing locs }
+      Core_error.ErrorSet.singleton { err with typ = OutJ.PartialParsing locs }
 
 let undefined_just_parse_with_lang _lang _file =
   failwith "just_parse_with_lang_ref unset"

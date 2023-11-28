@@ -1,4 +1,4 @@
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 (*************************************************************************)
 (* Prelude *)
 (*************************************************************************)
@@ -16,7 +16,7 @@ module Out = Semgrep_output_v1_t
 (*************************************************************************)
 
 (** Checks if the range of [cli_match] overlaps with [dirty_lines] *)
-let match_in_dirty_lines (cli_match : Out.cli_match) dirty_lines =
+let match_in_dirty_lines (cli_match : OutJ.cli_match) dirty_lines =
   Array.exists
     (fun (start, end_) ->
       start <= cli_match.end_.line && cli_match.start.line <= end_)
@@ -26,7 +26,7 @@ let match_in_dirty_lines (cli_match : Out.cli_match) dirty_lines =
     in lines changed since last commit *)
 let filter_clean_lines git_ref matches =
   let matches_by_file =
-    matches |> Common.group_by (fun (m : Out.cli_match) -> m.path)
+    matches |> Common.group_by (fun (m : OutJ.cli_match) -> m.path)
   in
   let in_git, not_in_git =
     matches_by_file
@@ -60,7 +60,7 @@ let of_matches ?(skipped_fingerprints = []) ?(only_git_dirty = true)
   (* Match the rules with the matches so we can get fixes/rule-ids/messages *)
   let matches =
     result.results
-    |> List.filter (fun (m : Out.cli_match) ->
+    |> List.filter (fun (m : OutJ.cli_match) ->
            not (List.mem m.extra.fingerprint skipped_fingerprints))
   in
   (* Filter dirty lines *)

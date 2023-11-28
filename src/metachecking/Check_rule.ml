@@ -22,7 +22,7 @@ module P = Pattern_match
 module RP = Core_result
 module SJ = Semgrep_output_v1_j
 module Set = Set_
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -72,7 +72,7 @@ let error env t s =
   let loc = Tok.unsafe_loc_of_tok t in
   let _check_idTODO = "semgrep-metacheck-builtin" in
   let rule_id, _ = env.r.id in
-  let err = E.mk_error (Some rule_id) loc s Out.SemgrepMatchFound in
+  let err = E.mk_error (Some rule_id) loc s OutJ.SemgrepMatchFound in
   Common.push err env.errors
 
 (*****************************************************************************)
@@ -209,7 +209,7 @@ let semgrep_check config metachecks rules : Core_error.t list =
     let s = m.rule_id.message in
     let _check_id = m.rule_id.id in
     (* TODO: why not set ~rule_id here?? bug? *)
-    E.mk_error None loc s Out.SemgrepMatchFound
+    E.mk_error None loc s OutJ.SemgrepMatchFound
   in
   let (config : Core_scan_config.t) =
     {
@@ -223,7 +223,9 @@ let semgrep_check config metachecks rules : Core_error.t list =
   in
   let res = Core_scan.scan_with_exn_handler config in
   match res with
-  | Ok result -> result.matches |> Common.map match_to_semgrep_error
+  | Ok result ->
+      result.matches_with_fixes |> Common.map fst
+      |> Common.map match_to_semgrep_error
   | Error (exn, _) -> Exception.reraise exn
 
 (* TODO *)
@@ -287,7 +289,7 @@ let check_files mk_config fparser input =
       let (res : Core_result.t) =
         Core_result.mk_final_result_with_just_errors errors
       in
-      let json = Core_json_output.core_output_of_matches_and_errors None res in
+      let json = Core_json_output.core_output_of_matches_and_errors res in
       pr (SJ.string_of_core_output json)
 
 let stat_files fparser xs =

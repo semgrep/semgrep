@@ -17,10 +17,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "fix_regex": {
-          "regex": "DefaultHttpClient\\(",
-          "replacement": "SystemDefaultHttpClient("
-        },
+        "fix": "HttpClient client = new SystemDefaultHttpClient()",
         "fixed_lines": [
           "\t\tHttpClient client = new SystemDefaultHttpClient();"
         ],

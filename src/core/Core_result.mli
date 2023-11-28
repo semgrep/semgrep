@@ -1,15 +1,7 @@
 (* Final match result for all the files and all the rules *)
-
-type 'a match_result = {
-  matches : Pattern_match.t list;
-  errors : Core_error.ErrorSet.t;
-  extra : 'a Core_profiling.debug_info;
-  explanations : Matching_explanation.t list;
-}
-[@@deriving show]
-
 type t = {
-  matches : Pattern_match.t list;
+  (* See the .ml file for why we added the Textedit.t part. *)
+  matches_with_fixes : (Pattern_match.t * Textedit.t option) list;
   errors : Core_error.t list;
   (* extra information useful to also give to the user (in JSON or
    * in textual reports) or for tools (e.g., the playground).
@@ -42,6 +34,17 @@ type result_or_exn = (t, Exception.t * Core_error.t option) result
  * This usually represents the match results for one target file
  * (possibly matches coming from more than one rule).
  *)
+
+type 'a match_result = {
+  matches : Pattern_match.t list;
+  errors : Core_error.ErrorSet.t;
+  extra : 'a Core_profiling.debug_info;
+  explanations : Matching_explanation.t list;
+}
+[@@deriving show]
+
+(* shortcut *)
+type matches_single_file = Core_profiling.partial_profiling match_result
 
 (* take the match results for each file, all the rules, all the targets,
  * and build the final result

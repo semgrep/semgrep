@@ -54,7 +54,7 @@ let find_targets_conf_of_t settings =
       exclude = settings.exclude;
       include_;
       max_target_bytes = settings.max_target_bytes;
-      respect_git_ignore = true;
+      respect_gitignore = true;
       baseline_commit = None;
       diff_depth = 0;
       scan_unknown_extensions = false;

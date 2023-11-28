@@ -1,4 +1,4 @@
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 open File.Operators
 
 (*****************************************************************************)
@@ -23,7 +23,7 @@ let text_width =
   if w <= 110 then w - 5 else w - (w - 100)
 
 type report_group =
-  [ Out.validation_state
+  [ OutJ.validation_state
   | `Unreachable
   | `Undetermined
   | `Reachable
@@ -155,7 +155,7 @@ let cut s idx1 idx2 =
     Str.string_after s idx2 )
 
 let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
-    ~show_separator ppf (m : Out.cli_match) =
+    ~show_separator ppf (m : OutJ.cli_match) =
   ignore color_output;
   let lines =
     Option.value
@@ -244,9 +244,9 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
         Fmt.pf ppf "%s⋮┆%s" findings_indent_depth (String.make 40 '-')
 
 let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
-    (matches : Out.cli_match list) =
-  let print_one (last : Out.cli_match option) (cur : Out.cli_match)
-      (next : Out.cli_match option) =
+    (matches : OutJ.cli_match list) =
+  let print_one (last : OutJ.cli_match option) (cur : OutJ.cli_match)
+      (next : OutJ.cli_match option) =
     let last_message =
       let print, msg =
         match last with
@@ -306,7 +306,7 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
   let last, cur =
     matches
     |> List.fold_left
-         (fun (last, cur) (next : Out.cli_match) ->
+         (fun (last, cur) (next : OutJ.cli_match) ->
            (match cur with
            | None -> ()
            | Some m -> print_one last m (Some next));
@@ -322,9 +322,9 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
 (*****************************************************************************)
 
 let pp_cli_output ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
-    (cli_output : Out.cli_output) =
+    (cli_output : OutJ.cli_output) =
   cli_output.results |> Semgrep_output_utils.sort_cli_matches
-  |> Common.group_by (fun (m : Out.cli_match) ->
+  |> Common.group_by (fun (m : OutJ.cli_match) ->
          match Product.of_cli_match m with
          | `SCA ->
              (* TO PORT:

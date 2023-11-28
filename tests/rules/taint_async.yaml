@@ -1,0 +1,16 @@
+rules:
+  - id: test
+    severity: WARNING
+    languages:
+      - python
+    message: Test
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern: |
+              {...,"$KEY": "$VAL",...}
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: (?i)authorization
+    pattern-sinks:
+      - pattern: aiohttp.ClientSession(...)

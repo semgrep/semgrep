@@ -1,0 +1,12 @@
+Fixed Kotlin parse error.
+
+Previously, code like this would throw a parse error
+
+```
+fun f1(context : Context) {
+    Foo(context).elem = var1
+}
+```
+due to not recognizing `Foo(context).elem = ...` as valid.
+Now calls are recognized as valid in the left hand of
+assignments.

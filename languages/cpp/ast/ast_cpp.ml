@@ -336,7 +336,7 @@ and action_macro = ActMisc of tok list
  * String had isWchar param, but not worth it.
  *)
 and constant =
-  | Int of int option wrap
+  | Int of Parsed_int.t
   (* the wrap can contain the f/F/l/L suffix *)
   | Float of float option wrap
   | Char of string wrap (* normally it is equivalent to Int *)

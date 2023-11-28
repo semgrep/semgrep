@@ -1,4 +1,4 @@
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 module Arg = Cmdliner.Arg
 module Cmd = Cmdliner.Cmd
 module Term = Cmdliner.Term
@@ -36,7 +36,7 @@ type conf = {
   dry_run : bool;
   suppress_errors : bool;
   (* --code/--sca/--secrets/ *)
-  products : Out.product list;
+  products : OutJ.product list;
   (* 'semgrep ci' shares most of its flags with 'semgrep scan' *)
   scan_conf : Scan_CLI.conf;
 }
@@ -83,7 +83,7 @@ let o_secrets : bool Term.t =
     Arg.info [ "secrets" ]
       ~doc:
         {|Support for secret validation. Requires Semgrep Secrets,
-contact support@semgrep.com for more information this.|}
+contact support@semgrep.com for more information on this.|}
   in
   Arg.value (Arg.flag info)
 

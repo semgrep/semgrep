@@ -238,7 +238,7 @@ and expr =
   | ObjAccessEllipsis of expr * Tok.t (* ... *)
 
 and literal =
-  | Int of int option wrap
+  | Int of Parsed_int.t
   | Float of float option wrap
   | String of string wrap (* TODO: bracket *)
   | Char of string wrap

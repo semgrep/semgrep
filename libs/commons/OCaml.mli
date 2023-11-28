@@ -12,7 +12,7 @@ type v =
   | VUnit
   | VBool of bool
   | VFloat of float
-  | VInt of int
+  | VInt of int64
   | VChar of char
   | VString of string
   | VTuple of v list
@@ -42,6 +42,7 @@ val map_v : f:(k:(v -> v) -> v -> v) -> v -> v
 val vof_unit : unit -> v
 val vof_bool : bool -> v
 val vof_int : int -> v
+val vof_int64 : int64 -> v
 val vof_float : float -> v
 val vof_string : string -> v
 val vof_list : ('a -> v) -> 'a list -> v
@@ -53,7 +54,7 @@ val vof_either3 :
   ('a -> v) -> ('b -> v) -> ('c -> v) -> ('a, 'b, 'c) Common.either3 -> v
 
 val vof_all3 : ('a -> v) -> ('b -> v) -> ('c -> v) -> 'a * 'b * 'c -> v
-val int_ofv : v -> int
+val int_ofv : v -> int64
 val float_ofv : v -> float
 val unit_ofv : v -> unit
 val string_ofv : v -> string
@@ -64,6 +65,7 @@ val option_ofv : (v -> 'a) -> v -> 'a option
 val map_of_unit : unit -> unit
 val map_of_bool : bool -> bool
 val map_of_int : int -> int
+val map_of_int64 : int64 -> int64
 val map_of_float : float -> float
 val map_of_char : char -> char
 val map_of_string : string -> string

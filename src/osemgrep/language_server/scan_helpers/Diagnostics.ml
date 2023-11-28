@@ -1,9 +1,9 @@
 open Lsp
 open Types
 module Conv = Convert_utils
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
-let diagnostic_of_match is_intellij (m : Out.cli_match) =
+let diagnostic_of_match is_intellij (m : OutJ.cli_match) =
   let severity = Conv.convert_severity m.extra.severity in
   let message = m.extra.message in
   let check_id_str = Rule_ID.to_string m.check_id in
@@ -45,7 +45,7 @@ let diagnostic_of_match is_intellij (m : Out.cli_match) =
 
 let diagnostics_of_file is_intellij matches file =
   let matches =
-    List.filter (fun (m : Out.cli_match) -> m.path = file) matches
+    List.filter (fun (m : OutJ.cli_match) -> m.path = file) matches
   in
   let diagnostics = Common.map (diagnostic_of_match is_intellij) matches in
   let diagnostics =

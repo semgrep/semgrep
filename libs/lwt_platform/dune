@@ -22,6 +22,7 @@
  (wrapped false)
   (libraries
     lwt
+    commons
   )
  (virtual_modules lwt_platform)
 )

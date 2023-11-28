@@ -1,7 +1,7 @@
 open Lsp
 open Types
 open File.Operators
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 (*****************************************************************************)
 (* Types *)
@@ -23,7 +23,7 @@ type t = {
         fun fmt c ->
           Yojson.Safe.pretty_print fmt (ServerCapabilities.yojson_of_t c)]
   workspace_folders : Fpath.t list;
-  cached_scans : (Fpath.t, Out.cli_match list) Hashtbl.t; [@opaque]
+  cached_scans : (Fpath.t, OutJ.cli_match list) Hashtbl.t; [@opaque]
   cached_session : session_cache;
   user_settings : User_settings.t;
   metrics : LS_metrics.t;
@@ -110,7 +110,9 @@ let targets session =
     let targets_conf =
       User_settings.find_targets_conf_of_t session.user_settings
     in
-    Find_targets.get_targets { targets_conf with project_root = Some f } [ f ]
+    Find_targets.get_target_fpaths
+      { targets_conf with project_root = Some f }
+      [ f ]
     |> fst
   in
   let targets =
@@ -273,7 +275,7 @@ let update_workspace_folders ?(added = []) ?(removed = []) session =
 
 let record_results session results files =
   let results_by_file =
-    Common.group_by (fun (r : Out.cli_match) -> r.path) results
+    Common.group_by (fun (r : OutJ.cli_match) -> r.path) results
   in
   List.iter (fun f -> Hashtbl.replace session.cached_scans f []) files;
   List.iter
