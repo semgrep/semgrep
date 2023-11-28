@@ -2,7 +2,10 @@
 (* OK *)
 (**************************************************************************)
 
-(* *)
+(*
+ - Common.ml, ...
+ - CapOut.ml
+ *)
 
 (**************************************************************************)
 (* FORBIDDEN *)
@@ -10,15 +13,10 @@
 
 module Out = struct end
 
+(* deprecated anyway, we should not use it *)
+module Common2 = struct end
+module File = struct end
+
 (**************************************************************************)
 (* RESTRICTED *)
 (**************************************************************************)
-
-module UCommon = Common
-
-module Common = struct
-  let spf = Common.spf
-end
-
-(* deprecated anyway, we should not use it *)
-module Common2 = struct end
