@@ -239,8 +239,11 @@ function unix_getcwd(vunit) {
 function unix_chdir(path) {
   /* When we do a Unix chdir, this signals that we would like for the Node
      process to change directories too.
-     This ensures that after doing a `Unix.chdir`, calls to things like Git
-     will respond as if we were actually in those directories.
+     Context: The Node process only simulates an OCaml runtime, and so Sys.chdir
+     doesn't change the directory, but only changes a field in the Node runtime.
+     Sometimes, we would like the Node process to change directories too, though,
+     so calls to things like Git will respond as if we were actually in those
+     directories.
    */
   globalThis.process.chdir(path);
   caml_sys_chdir(path);
