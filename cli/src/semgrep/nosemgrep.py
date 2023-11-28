@@ -33,20 +33,17 @@ def filter_ignored(
 
     :param rule_matches_by_rule: The input findings (typically from a Semgrep call)
     :param keep_ignored: if true will keep nosem findings in returned object, otherwise removes them
-    :param strict: The value of the --strict flag (affects error return)
     :return:
     - FilteredMatches: dicts from rule to list of findings. Findings have is_ignored
         set to true if there was matching nosem comment found for it.
         If keep_ignored set to true, will keep all findings that have is_ignored: True
         in the .kept attribute, otherwise moves them to .removed
-    - list of semgrep errors when dealing with nosem:
-        i.e. a nosem without associated finding or nosem id not matching finding
     """
     result = FilteredMatches(rule_matches_by_rule)
     for rule, matches in rule_matches_by_rule.items():
         result.kept[rule], result.removed[rule] = partition(
             matches,
-            lambda match: keep_ignored or not match.match.extra.is_ignored,
+            lambda match: keep_ignored or not match.is_ignored,
         )
 
     return result

@@ -120,6 +120,10 @@ class RuleMatch:
     def end(self) -> out.Position:
         return self.match.end
 
+    @property
+    def is_ignored(self) -> bool:
+        return self.match.extra.is_ignored
+
     # TODO: diff with rule.py product() method?
     @property
     def product(self) -> out.Product:

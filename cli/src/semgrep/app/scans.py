@@ -287,7 +287,7 @@ class ScanHandler:
             all_matches, key=lambda match: sort_order[match.severity.value]
         )
         new_ignored, new_matches = partition(
-            all_matches, lambda match: bool(match.match.extra.is_ignored)
+            all_matches, lambda match: bool(match.is_ignored)
         )
         findings = [match.to_app_finding_format(commit_date) for match in new_matches]
         ignores = [match.to_app_finding_format(commit_date) for match in new_ignored]
@@ -331,10 +331,7 @@ class ScanHandler:
 
         complete = out.CiScanComplete(
             exit_code=1
-            if any(
-                match.is_blocking and not match.match.extra.is_ignored
-                for match in all_matches
-            )
+            if any(match.is_blocking and not match.is_ignored for match in all_matches)
             else 0,
             dependency_parser_errors=dependency_parser_errors,
             stats=out.CiScanCompleteStats(

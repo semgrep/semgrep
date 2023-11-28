@@ -1,8 +1,8 @@
 (* See the .ml file for why we have this instead of just matches. *)
 type processed_match = {
   pm : Pattern_match.t;
-  is_ignored : bool; [@default false]
-  autofix_edit : Textedit.t option; [@default None]
+  is_ignored : bool;
+  autofix_edit : Textedit.t option;
 }
 [@@deriving show]
 

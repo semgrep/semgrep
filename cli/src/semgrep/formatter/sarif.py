@@ -212,7 +212,7 @@ class SarifFormatter(BaseFormatter):
             if code_flows:
                 rule_match_sarif["codeFlows"] = [code_flows]
 
-        if rule_match.match.extra.is_ignored:
+        if rule_match.is_ignored:
             rule_match_sarif["suppressions"] = [{"kind": "inSource"}]
 
         fix = SarifFormatter._rule_match_to_sarif_fix(rule_match)

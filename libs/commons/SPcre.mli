@@ -219,7 +219,7 @@ val extract_all :
   string array array
 
 (*
-   Exception-less version of Pcre.get_named_substring_and_ofs.
+   Exception-less version of Pcre.get_named_substring and Pcre.get_named_substring_ofs
 
    Ok None: variable name is valid but unbound
    Error msg: no such variable in the original pattern

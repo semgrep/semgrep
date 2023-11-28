@@ -87,8 +87,8 @@ type matches_single_file = Core_profiling.partial_profiling match_result
 *)
 type processed_match = {
   pm : Pattern_match.t;
-  is_ignored : bool; [@default false]
-  autofix_edit : Textedit.t option; [@default None]
+  is_ignored : bool;
+  autofix_edit : Textedit.t option;
 }
 [@@deriving show]
 
