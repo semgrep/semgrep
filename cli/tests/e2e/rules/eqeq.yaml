@@ -29,6 +29,7 @@ rules:
     severity: ERROR
     metadata:
       shortlink: https://sg.run/xyz1
+      source: https://semgrep.dev/r/eqeq-bad
   - id: python37-compatability-os-module
     patterns:
       - pattern-not-inside: |
