@@ -54,7 +54,7 @@ let download_semgrep_pro platform_kind dest =
           m "No API token found, please run `semgrep login` first.");
       false
   | Some token -> (
-      match Semgrep_App.download_pro_binary ~token platform_kind with
+      match Semgrep_App.fetch_pro_binary ~token platform_kind with
       | Error (_, { code = 401; _ }) ->
           Logs.err (fun m ->
               m
@@ -128,22 +128,18 @@ let run_conf (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
       Exit_code.fatal
   | _ ->
       let platform_kind =
-        match Platform.kernel () with
-        | s when String.starts_with ~prefix:"darwin" (String.lowercase_ascii s)
-          ->
-            (* arm64 is possible. Dunno if other arms are, so let's just check a prefix. *)
-            if String.starts_with ~prefix:"arm" (Platform.arch ()) then
-              Semgrep_App.Osx_arm64
-            else Osx_x86
-        | s when String.starts_with ~prefix:"linux" (String.lowercase_ascii s)
-          ->
-            Manylinux
+        match (Platform.kernel (), Platform.arch ()) with
+        | Darwin, Arm
+        | Darwin, Arm64 ->
+            Semgrep_App.Osx_arm64
+        | Darwin, _ -> Semgrep_App.Osx_x86_64
+        | Linux, _ -> Manylinux_x86_64
         | _ ->
             Logs.app (fun m ->
                 m
                   "Running on potentially unsupported platform. Installing \
                    linux compatible binary");
-            Manylinux
+            Manylinux_x86_64
       in
 
       (* Download the binary into a temporary location, check it, then install it.

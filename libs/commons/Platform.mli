@@ -1,5 +1,6 @@
-(* The machine architecture, such as arm64, x86_64 *)
-val arch : unit -> string
+(* TODO: maybe use Sys.os_type? *)
+type arch = Arm | Arm64 | X86_64 | OtherArch of string
+type kernel = Darwin | Linux | OtherKernel of string
 
-(* The OS, such as Linux, Windows, Darwin *)
-val kernel : unit -> string
+val arch : unit -> arch
+val kernel : unit -> kernel

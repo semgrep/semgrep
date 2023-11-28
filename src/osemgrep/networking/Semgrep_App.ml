@@ -41,7 +41,7 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 (* LATER: declared this in semgrep_output_v1.atd instead? *)
 type scan_id = string
 type app_block_override = string (* reason *) option
-type pro_engine_arch = Osx_arm64 | Osx_x86 | Manylinux
+type pro_engine_arch = Osx_arm64 | Osx_x86_64 | Manylinux_x86_64
 
 (*****************************************************************************)
 (* Routes *)
@@ -358,12 +358,12 @@ let upload_findings ~dry_run ~token ~scan_id ~results ~complete :
 (* Installing Pro Engine *)
 (*****************************************************************************)
 
-let download_pro_binary ~token platform_kind =
+let fetch_pro_binary ~token platform_kind =
   let arch_str =
     match platform_kind with
     | Osx_arm64 -> "osx-arm64"
-    | Osx_x86 -> "osx-x86"
-    | Manylinux -> "manylinux"
+    | Osx_x86_64 -> "osx-x86"
+    | Manylinux_x86_64 -> "manylinux"
   in
   let uri =
     Uri.(
