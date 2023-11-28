@@ -42,7 +42,7 @@
         {
           "name": "Semgrep - rules.eqeq-is-bad",
           "type": "semgrep_type",
-          "url": null,
+          "url": "https://semgrep.dev/r/eqeq-bad",
           "value": "rules.eqeq-is-bad"
         }
       ],
