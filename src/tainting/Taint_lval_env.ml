@@ -300,6 +300,11 @@ let equal_by_lval { tainted = tainted1; cleaned = cleaned1; _ }
       let equal_tainted =
         LvalMap.merge
           (fun lv opt_taint1 opt_taint2 ->
+            (* We need to consider both extensions of 'lval' as well as its
+             * prefixes. E.g. given `x.a`, if `x` is tainted then `x.a` is
+             * tainted too; and if `x.a.b` is tainted in one environment and
+             * not in the other, that implies that the taint "signature" of
+             * `x.a` has changed. *)
             if lval_is_prefix lval lv || lval_is_prefix lv lval then
               match (opt_taint1, opt_taint2) with
               | None, None -> None

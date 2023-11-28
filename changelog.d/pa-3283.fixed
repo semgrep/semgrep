@@ -1,5 +1,5 @@
 taint-mode: Removed a hack that made `lval = new ...` assignments to not clean
-the `lval` despite the RHS was not tainted. This caused FPs in doble-free rules.
+the `lval` despite the RHS was not tainted. This caused FPs in double-free rules.
 For example, given this source:
 
 ```yaml
