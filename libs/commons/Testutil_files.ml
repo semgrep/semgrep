@@ -66,7 +66,7 @@ and write_one root file =
       write dir entries
   | File (name, contents) ->
       let path = root / name |> Fpath.to_string in
-      Common.write_file ~file:path contents
+      UCommon.write_file ~file:path contents
   | Symlink (name, dest) ->
       let path = root / name |> Fpath.to_string in
       let dest_path = Fpath.v dest |> Fpath.to_string in
@@ -99,7 +99,7 @@ let read root =
     | S_DIR ->
         let names = get_dir_entries path in
         Dir (name, List_.map (fun name -> read (path / name)) names)
-    | S_REG -> File (name, Common.read_file (Fpath.to_string path))
+    | S_REG -> File (name, UCommon.read_file (Fpath.to_string path))
     | S_LNK -> Symlink (name, Unix.readlink (Fpath.to_string path))
     | _other ->
         failwith

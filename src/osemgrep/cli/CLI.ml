@@ -12,6 +12,9 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+module Http_helpers_ = Http_helpers
+module Http_helpers = Http_helpers.Make (Lwt_platform)
+module Env = Semgrep_envvars
 
 (*****************************************************************************)
 (* Prelude *)
@@ -29,11 +32,6 @@
 
    Translated from cli.py and commands/wrapper.py and parts of metrics.py
 *)
-
-open Common
-module Http_helpers_ = Http_helpers
-module Http_helpers = Http_helpers.Make (Lwt_platform)
-module Env = Semgrep_envvars
 
 (*****************************************************************************)
 (* Constants *)
@@ -150,7 +148,7 @@ let dispatch_subcommand argv =
       let experimental = Array.mem "--experimental" argv in
       (* basic metrics on what was the command *)
       Metrics_.add_feature "subcommand" subcmd;
-      Metrics_.add_user_agent_tag (spf "command/%s" subcmd);
+      Metrics_.add_user_agent_tag (Printf.sprintf "command/%s" subcmd);
       subcmd_argv |> Array.to_list
       |> List_.exclude (fun x -> not (Base.String.is_prefix ~prefix:"-" x))
       |> List.iter log_cli_feature;
@@ -182,7 +180,7 @@ let dispatch_subcommand argv =
               (* this should never happen because we default to 'scan',
                * but better to be safe than sorry.
                *)
-              Error.abort (spf "unknown semgrep command: %s" subcmd)
+              Error.abort (Printf.sprintf "unknown semgrep command: %s" subcmd)
             else raise Pysemgrep.Fallback
       with
       | Pysemgrep.Fallback -> Pysemgrep.pysemgrep argv)
@@ -227,7 +225,7 @@ let before_exit ~profile () : unit =
   (* mostly a copy of Profiling.main_boilerplate finalize code *)
   if profile then Profiling.print_diagnostics_and_gc_stats ();
   (* alt: could use Logs.debug, but --profile would require then --debug *)
-  Common.erase_temp_files ();
+  UCommon.erase_temp_files ();
   ()
 
 (*****************************************************************************)

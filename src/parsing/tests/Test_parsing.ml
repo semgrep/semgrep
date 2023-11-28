@@ -218,7 +218,7 @@ let dump_tree_sitter_cst lang file =
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
 let test_parse_tree_sitter lang root_paths =
-  let paths = List_.map Common.fullpath root_paths |> Fpath_.of_strings in
+  let paths = List_.map UCommon.fullpath root_paths |> FPath_.of_strings in
   let paths, _skipped_paths =
     Find_targets_old.files_of_dirs_or_files (Some lang) paths
   in
@@ -335,7 +335,7 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
 
   let paths =
     (* = absolute paths *)
-    List_.map Common.fullpath files_or_dirs |> Fpath_.of_strings
+    List_.map UCommon.fullpath files_or_dirs |> Fpath_.of_strings
   in
   let paths, skipped =
     Find_targets_old.files_of_dirs_or_files (Some lang) paths

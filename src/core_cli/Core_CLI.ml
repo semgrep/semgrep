@@ -182,7 +182,7 @@ let dump_pattern (file : Fpath.t) =
       let any = Parse_pattern.parse_pattern lang ~print_errors:true s in
       let v = Meta_AST.vof_any any in
       let s = dump_v_to_format v in
-      pr s)
+      UCommon.pr s)
 [@@action]
 
 let dump_patterns_of_rule (file : Fpath.t) =
@@ -196,8 +196,8 @@ let dump_patterns_of_rule (file : Fpath.t) =
           let any = Lazy.force lazypat in
           let v = Meta_AST.vof_any any in
           let s = dump_v_to_format v in
-          pr s
-      | _ -> pr (Xpattern.show_xpattern_kind pat))
+          UCommon.pr s
+      | _ -> UCommon.pr (Xpattern.show_xpattern_kind pat))
     xpats
 [@@action]
 
@@ -212,7 +212,7 @@ let dump_ast ?(naming = false) lang file =
       (* 80 columns is too little *)
       Format.set_margin 120;
       let s = dump_v_to_format v in
-      pr s;
+      UCommon.pr s;
       if Parsing_result2.has_error res then (
         dump_parsing_errors file res;
         Core_exit_code.(exit_semgrep False)))
@@ -553,7 +553,7 @@ let options actions =
             profile := true),
         " output profiling information" );
       ( "-keep_tmp_files",
-        Arg.Set Common.save_tmp_files,
+        Arg.Set UCommon.save_tmp_files,
         " keep temporary generated files" );
     ]
   @ Meta_AST.cmdline_flags_precision () (* -full_token_info *)
@@ -715,7 +715,7 @@ let with_exception_trace f =
  * Semgrep-pro, hence the introduction of a function.
  *)
 let main (argv : string array) : unit =
-  Common.main_boilerplate (fun () ->
+  UCommon.main_boilerplate (fun () ->
       register_exception_printers ();
       Common.finalize
         (fun () -> with_exception_trace (fun () -> main_no_exn_handler argv))

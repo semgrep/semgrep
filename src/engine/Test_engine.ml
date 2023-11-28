@@ -225,7 +225,7 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
                      {
                        Xtarget.file = Fpath.v file;
                        xlang;
-                       lazy_content = lazy (Common.read_file file);
+                       lazy_content = lazy (UCommon.read_file file);
                        lazy_ast_and_errors;
                      }
                    in

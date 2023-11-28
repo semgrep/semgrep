@@ -127,18 +127,18 @@ let parse_json file =
 let print_result xopt =
   match xopt with
   (* nosem *)
-  | None -> pr "NONE"
+  | None -> UCommon.pr "NONE"
   | Some v -> (
       match v with
       (* nosem *)
-      | Bool b -> pr (string_of_bool b)
+      | Bool b -> UCommon.pr (string_of_bool b)
       (* allow to abuse int to encode boolean ... ugly C tradition *)
       (* nosem *)
-      | Int 0L -> pr (string_of_bool false)
+      | Int 0L -> UCommon.pr (string_of_bool false)
       (* nosem *)
-      | Int _ -> pr (string_of_bool true)
+      | Int _ -> UCommon.pr (string_of_bool true)
       (* nosem *)
-      | _ -> pr "NONE")
+      | _ -> UCommon.pr "NONE")
 [@@action]
 
 (*****************************************************************************)

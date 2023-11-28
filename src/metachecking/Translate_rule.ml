@@ -38,7 +38,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 let rec range_to_string (range : (Tok.location * Tok.location) option) =
   match range with
   | Some (start, end_) ->
-      Common.with_open_infile start.pos.file (fun chan ->
+      UCommon.with_open_infile start.pos.file (fun chan ->
           let extract_size = end_.pos.bytepos - start.pos.bytepos in
           seek_in chan start.pos.bytepos;
           really_input_string chan extract_size)
@@ -343,6 +343,6 @@ let translate_files fparser xs =
           `O [ ("rules", `A new_rules) ]
           |> Yaml.to_string ~len:5242880 ~encoding:`Utf8 ~layout_style:`Block
                ~scalar_style:`Literal
-          |> Result.get_ok |> pr
+          |> Result.get_ok |> UCommon.pr
       | _ -> failwith "wrong syntax")
     formulas_by_file

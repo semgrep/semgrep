@@ -265,7 +265,7 @@ let parse2 opt_timeout filename =
 
         x :: aux tr
     | Either.Right err_tok ->
-        let max_line = Common.cat filename |> List.length in
+        let max_line = UCommon.cat filename |> List.length in
         (if !Flag.show_parsing_error then
            let filelines = Common2.cat_array filename in
            let cur = tr.Parsing_helpers.current in

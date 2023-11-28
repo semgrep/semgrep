@@ -53,7 +53,7 @@ type skip =
 (* IO *)
 (*****************************************************************************)
 let load file =
-  Common.cat !!file
+  UCommon.cat !!file
   |> List_.exclude (fun s -> s =~ "#.*" || s =~ "^[ \t]*$")
   |> List_.map (fun s ->
          match s with

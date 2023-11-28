@@ -96,7 +96,7 @@ let simple_shell_programming_demo () =
     (* alt: |. F.grep "OCAML" *)
     |> F.collect F.stdout
   in
-  pr out
+  UCommon.pr out
 
 (*****************************************************************************)
 (* Entry point *)
@@ -104,7 +104,7 @@ let simple_shell_programming_demo () =
 
 let run ps =
   if ps.verbose then pr2 (spf "debug: params = %s" (show_cli_params ps));
-  pr (spf "Hello %s from %s" ps.command ps.username);
+  UCommon.pr (spf "Hello %s from %s" ps.command ps.username);
   simple_shell_programming_demo ();
   ()
 
