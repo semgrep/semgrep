@@ -30,7 +30,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "is_ignored": false,
         "lines": "    a == a",
         "message": "useless comparison",
-        "metadata": {},
+        "metadata": {
+          "source": "https://semgrep.dev/r/eqeq-bad"
+        },
         "metavars": {
           "$X": {
             "abstract_content": "a",
@@ -69,7 +71,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "is_ignored": false,
         "lines": "    a == a",
         "message": "useless comparison",
-        "metadata": {},
+        "metadata": {
+          "source": "https://semgrep.dev/r/eqeq-bad"
+        },
         "metavars": {
           "$X": {
             "abstract_content": "a",
@@ -108,7 +112,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "is_ignored": false,
         "lines": "    a == a",
         "message": "useless comparison",
-        "metadata": {},
+        "metadata": {
+          "source": "https://semgrep.dev/r/eqeq-bad"
+        },
         "metavars": {
           "$X": {
             "abstract_content": "a",
@@ -147,7 +153,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "is_ignored": false,
         "lines": "    y == y",
         "message": "useless comparison",
-        "metadata": {},
+        "metadata": {
+          "source": "https://semgrep.dev/r/eqeq-bad"
+        },
         "metavars": {
           "$X": {
             "abstract_content": "y",
@@ -197,7 +205,8 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
               "version_id": "version1"
             },
             "src": "unchanged"
-          }
+          },
+          "source": "https://semgrep.dev/r/eqeq-five"
         },
         "metavars": {
           "$X": {
@@ -249,7 +258,8 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
               "version_id": "version2"
             },
             "src": "new-version"
-          }
+          },
+          "source": "https://semgrep.dev/r/eqeq-four"
         },
         "metavars": {
           "$X": {
@@ -359,7 +369,8 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
               "version_id": "version1"
             },
             "src": "new-rule"
-          }
+          },
+          "source": "https://semgrep.dev/r/taint-test"
         },
         "metavars": {
           "$X": {
@@ -414,7 +425,8 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "message": "found a dependency",
         "metadata": {
           "dev.semgrep.actions": [],
-          "sca-kind": "upgrade-only"
+          "sca-kind": "upgrade-only",
+          "source": "https://semgrep.dev/-/advisories/supply-chain1"
         },
         "metavars": {},
         "sca_info": {
