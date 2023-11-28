@@ -163,7 +163,6 @@ clean:
 .PHONY: core-clean
 core-clean:
 	dune clean
-	rm -f bin
 	# We still need to keep the nonempty opam files in git for
 	# 'make setup', so we should only remove the empty opam files.
 	# This removes the gitignored opam files.
