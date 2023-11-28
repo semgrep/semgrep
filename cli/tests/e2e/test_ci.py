@@ -259,6 +259,8 @@ def scan_config():
           message: "useless comparison"
           languages: [python]
           severity: ERROR
+          metadata:
+            source: https://semgrep.dev/r/eqeq-bad
         - id: eqeq-five
           pattern: $X == 5
           message: "useless comparison to 5"
@@ -266,6 +268,7 @@ def scan_config():
           severity: ERROR
           metadata:
             dev.semgrep.actions: []
+            source: https://semgrep.dev/r/eqeq-five
             semgrep.dev:
                 rule:
                     rule_id: "abcd"
@@ -281,6 +284,7 @@ def scan_config():
           severity: ERROR
           metadata:
             dev.semgrep.actions: ["block"]
+            source: https://semgrep.dev/r/eqeq-four
             semgrep.dev:
                 rule:
                     rule_id: abce
@@ -295,6 +299,7 @@ def scan_config():
           severity: ERROR
           metadata:
             dev.semgrep.actions: []
+            source: https://semgrep.dev/r/abceversion1
             semgrep.dev:
                 rule:
                     rule_id: abce
@@ -314,6 +319,7 @@ def scan_config():
             - pattern: sink($X)
           metadata:
             dev.semgrep.actions: ["block"]
+            source: https://semgrep.dev/r/taint-test
             semgrep.dev:
                 rule:
                     rule_id: abcf
@@ -331,6 +337,7 @@ def scan_config():
             version: == 99.99.99
           metadata:
             dev.semgrep.actions: []
+            source: https://semgrep.dev/-/advisories/supply-chain1
             sca-kind: upgrade-only
         - id: supply-chain2
           message: "found a dependency"
@@ -342,6 +349,7 @@ def scan_config():
             version: == 99.99.99
           metadata:
             dev.semgrep.actions: []
+            source: https://semgrep.dev/-/advisories/supply-chain2
             sca-kind: upgrade-only
         - id: supply-chain3
           message: "found another dependency but its a bad one >:D"
@@ -353,6 +361,7 @@ def scan_config():
             version: == 99.99.99
           metadata:
             dev.semgrep.actions: ["block"]
+            source: https://semgrep.dev/-/advisories/supply-chain3
             sca-kind: reachable
         """
     ).lstrip()
