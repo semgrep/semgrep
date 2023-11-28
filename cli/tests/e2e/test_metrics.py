@@ -219,7 +219,9 @@ def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch, pro_flag):
         use_click_runner=True,
     )
     runner.invoke(
-        cli, ["scan", "--config=rule.yaml", "--metrics=on", "metrics_files"] + pro_flag
+        cli,
+        subcommand="scan",
+        args=["--config=rule.yaml", "--metrics=on", "metrics_files"] + pro_flag,
     )
 
     payload = json.loads(mock_post.call_args.kwargs["data"])

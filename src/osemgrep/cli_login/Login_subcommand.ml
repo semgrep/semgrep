@@ -4,6 +4,11 @@
 (*
    Parse a semgrep-login command, execute it and exit.
 
+   Note that in practice this subcommand is not as critical as it seems.
+   Indeed, in most cases one does not have to login in CI but instead one
+   can set the SEMGREP_APP_TOKEN in the environment which is then used
+   by 'semgrep ci'.
+
    Translated from login.py
 *)
 

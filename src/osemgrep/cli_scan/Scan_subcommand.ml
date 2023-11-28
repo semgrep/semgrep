@@ -108,9 +108,7 @@ let exit_code_of_errors ~strict (errors : OutJ.core_error list) : Exit_code.t =
  * the use of Unix.lockf below.
  *)
 let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
-    (_file : Fpath.t)
-    (match_results : Core_profiling.partial_profiling Core_result.match_result)
-    : unit =
+    (_file : Fpath.t) (match_results : Core_result.matches_single_file) : unit =
   let (cli_matches : OutJ.cli_match list) =
     (* need to go through a series of transformation so that we can
      * get something that Matches_report.pp_text_outputs can operate on
@@ -523,6 +521,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
       | { output_format; _ } -> (output_format, None)
     in
     let scan_func = mk_scan_func conf file_match_results_hook errors in
+    (* step 3': call the engine! *)
     let exn_and_matches =
       match conf.targeting_conf.baseline_commit with
       | None ->
@@ -555,7 +554,6 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
           scan_baseline_and_remove_duplicates conf profiler head_scan_result
             filtered_rules commit status scan_func
     in
-    (* step 3': call the engine! *)
     let (res : Core_runner.result) =
       let res = Core_runner.create_core_result filtered_rules exn_and_matches in
       (* step 3'': filter via nosemgrep *)
@@ -807,7 +805,7 @@ let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
    * 'semgrep test dir/'
    *)
   | _ when conf.version ->
-      Common.pr Version.version;
+      Out.put Version.version;
       (* TOPORT: if enable_version_check: version_check() *)
       Exit_code.ok
   | _ when conf.test <> None -> Test_subcommand.run (Common2.some conf.test)

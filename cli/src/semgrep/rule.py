@@ -58,6 +58,8 @@ class Rule:
 
         # add typescript to languages if the rule supports javascript.
         # TODO: Move this hack to lang.json
+        # coupling: if you move this hack, also fix
+        # Core_runner.add_typescript_to_javascript_rules_hack
         if any(
             language == LANGUAGE.resolve("javascript") for language in rule_languages
         ):

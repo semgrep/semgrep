@@ -1,13 +1,3 @@
-(* Final match result for all the files and all the rules *)
-
-type 'a match_result = {
-  matches : Pattern_match.t list;
-  errors : Core_error.ErrorSet.t;
-  extra : 'a Core_profiling.debug_info;
-  explanations : Matching_explanation.t list;
-}
-[@@deriving show]
-
 (* See the .ml file for why we have this instead of just matches. *)
 type processed_match = {
   pm : Pattern_match.t;
@@ -16,6 +6,7 @@ type processed_match = {
 }
 [@@deriving show]
 
+(* Final match result for all the files and all the rules *)
 type t = {
   processed_matches : processed_match list;
   errors : Core_error.t list;
@@ -52,6 +43,17 @@ val mk_processed_match : Pattern_match.t -> processed_match
  * This usually represents the match results for one target file
  * (possibly matches coming from more than one rule).
  *)
+
+type 'a match_result = {
+  matches : Pattern_match.t list;
+  errors : Core_error.ErrorSet.t;
+  extra : 'a Core_profiling.debug_info;
+  explanations : Matching_explanation.t list;
+}
+[@@deriving show]
+
+(* shortcut *)
+type matches_single_file = Core_profiling.partial_profiling match_result
 
 (* take the match results for each file, all the rules, all the targets,
  * and build the final result

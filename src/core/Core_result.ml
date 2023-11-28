@@ -1,6 +1,20 @@
+(* Yoann Padioleau
+ *
+ * Copyright (C) 2023 Semgrep Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * LICENSE for more details.
+ *)
 open Common
-module E = Core_error
 open Core_profiling
+module E = Core_error
 
 (*****************************************************************************)
 (* Prelude *)
@@ -47,6 +61,9 @@ type 'a match_result = {
   explanations : Matching_explanation.t list;
 }
 [@@deriving show]
+
+(* shortcut *)
+type matches_single_file = Core_profiling.partial_profiling match_result
 
 (* What is postprocessing information?
    These are just match-specific information that we "after" a core scan has

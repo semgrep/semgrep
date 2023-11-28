@@ -73,16 +73,16 @@ let print_match ?(format = Normal) ?(str = "") ?(spaces = 0) ii =
     | Normal ->
         let prefix = if str = "" then prefix else prefix ^ " " ^ str in
         let spaces_string = String.init spaces (fun _ -> ' ') in
-        pr (spaces_string ^ prefix);
+        Out.put (spaces_string ^ prefix);
         (* todo? some context too ? *)
-        lines_str |> List.iter (fun s -> pr (spaces_string ^ " " ^ s))
+        lines_str |> List.iter (fun s -> Out.put (spaces_string ^ " " ^ s))
     (* bugfix: do not add extra space after ':', otherwise M-x wgrep will not work *)
     | Emacs ->
-        pr (prefix ^ ":" ^ Common.hd_exn "unexpected empty list" lines_str)
+        Out.put (prefix ^ ":" ^ Common.hd_exn "unexpected empty list" lines_str)
     | OneLine ->
-        pr
+        Out.put
           (prefix ^ ": "
           ^ (ii |> Common.map Tok.content_of_tok |> join_with_space_if_needed))
   with
   | Failure "get_pos: Ab or FakeTok" ->
-      pr "<could not locate match, FakeTok or AbstractTok>"
+      Out.put "<could not locate match, FakeTok or AbstractTok>"

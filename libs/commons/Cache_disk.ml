@@ -20,8 +20,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Caching computation (e.g., parsed ASTs, network data, big result) on disk.
- *)
+(* Caching computation (e.g., parsed ASTs, network data, big result) on disk *)
 
 (*****************************************************************************)
 (* Types *)
@@ -61,19 +60,13 @@ type ('input, 'value, 'extra) cache_methods = {
 (* Helpers *)
 (*****************************************************************************)
 
-let get_value filename =
-  let chan = open_in_bin filename in
-  let x = input_value chan in
-  (* <=> Marshal.from_channel  *)
-  close_in chan;
-  x
+(* input_value <=> Marshal.from_channel  *)
+let get_value filename = Common.with_open_infile filename Stdlib.input_value
 
+(* output_value <=> Marshal.to_channel chan valu [Marshal.Closures] *)
 let write_value valu filename =
-  let chan = open_out_bin filename in
-  output_value chan valu;
-  (* <=> Marshal.to_channel *)
-  (* Marshal.to_channel chan valu [Marshal.Closures]; *)
-  close_out chan
+  Common.with_open_outfile filename (fun (_pr, chan) ->
+      Stdlib.output_value chan valu)
 
 (*****************************************************************************)
 (* Entry points *)

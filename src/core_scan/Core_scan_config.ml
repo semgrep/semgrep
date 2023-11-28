@@ -67,10 +67,7 @@ type t = {
    * in Run_semgrep, so the hook should not rely on shared memory!
    *)
   file_match_results_hook :
-    (Fpath.t ->
-    Core_profiling.partial_profiling Core_result.match_result ->
-    unit)
-    option;
+    (Fpath.t -> Core_result.matches_single_file -> unit) option;
   (* Flag used by pysemgrep *)
   target_source : target_source option;
   (* Common.ml action for the -dump_xxx *)

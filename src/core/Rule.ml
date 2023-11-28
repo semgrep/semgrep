@@ -25,6 +25,8 @@ open Ppx_hash_lib.Std.Hash.Builtin
 (*****************************************************************************)
 (* Data structures to represent a Semgrep rule (=~ AST of a rule).
  *
+ * See also semgrep-interfaces/rule_schema_v2.atd which specifies the
+ * concrete syntax of a rule.
  * See also Mini_rule.ml where formula and many other features disappear.
  *)
 
@@ -129,22 +131,6 @@ and metavar_analysis_kind = CondEntropy | CondEntropyV2 | CondReDoS
 (* Represents all of the metavariables that are being focused by a single
    `focus-metavariable`. *)
 and focus_mv_list = tok * MV.mvar list [@@deriving show, eq, hash]
-
-(*****************************************************************************)
-(* Misc *)
-(*****************************************************************************)
-
-type fix_regexp = {
-  regexp : Xpattern.regexp_string;
-  (* Not using Parsed_int here, because we would rather fail early at rule
-     parsing time if we have to apply a regexp more times than we can
-     represent.
-     We also expect to never receive a count that is that big.
-  *)
-  count : int option;
-  replacement : string;
-}
-[@@deriving show, eq, hash]
 
 (*****************************************************************************)
 (* Semgrep_output aliases *)
@@ -305,6 +291,7 @@ let get_sink_requires { sink_requires; _ } =
 (* Extract mode (semgrep as a preprocessor) *)
 (*****************************************************************************)
 
+(* See also Extract.ml for extract mode helpers *)
 type extract = {
   formula : formula;
   dst_lang : Xlang.t;
@@ -317,7 +304,7 @@ type extract = {
 }
 
 (* SR wants to be able to choose rules to run on.
-   Behaves the same as paths. *)
+   Behaves the same as paths, but for rule ids. *)
 and extract_rule_ids = {
   required_rules : Rule_ID.t wrap list;
   excluded_rules : Rule_ID.t wrap list;
@@ -336,7 +323,7 @@ and extract_transform = NoTransform | Unquote | ConcatJsonArray
 and extract_reduction = Separate | Concat [@@deriving show]
 
 (*****************************************************************************)
-(* secrets mode *)
+(* secrets mode (Pro-only) *)
 (*****************************************************************************)
 
 (* This type encodes a basic HTTP request; mainly used for in the secrets
@@ -463,6 +450,22 @@ type paths = {
 [@@deriving show]
 
 (*****************************************************************************)
+(* Misc *)
+(*****************************************************************************)
+
+type fix_regexp = {
+  regexp : Xpattern.regexp_string;
+  (* Not using Parsed_int here, because we would rather fail early at rule
+     parsing time if we have to apply a regexp more times than we can
+     represent.
+     We also expect to never receive a count that is that big.
+  *)
+  count : int option;
+  replacement : string;
+}
+[@@deriving show, eq, hash]
+
+(*****************************************************************************)
 (* Shared mode definitions *)
 (*****************************************************************************)
 
@@ -479,7 +482,7 @@ type secrets_mode = [ `Secrets of secrets ] [@@deriving show]
 type steps_mode = [ `Steps of step list ] [@@deriving show]
 
 (*****************************************************************************)
-(* Steps mode *)
+(* Steps mode (Pro-only) *)
 (*****************************************************************************)
 and step = {
   step_mode : mode_for_step;
@@ -495,14 +498,11 @@ and mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
 (*****************************************************************************)
 
 type 'mode rule_info = {
+  (* --------------------------------- *)
   (* MANDATORY fields *)
+  (* --------------------------------- *)
   id : Rule_ID.t wrap;
   mode : 'mode;
-  (* Range of Semgrep versions supported by the rule.
-     Note that a rule with these fields may not even be parseable
-     in the current version of Semgrep and wouldn't even reach this point. *)
-  min_version : Version_info.t option;
-  max_version : Version_info.t option;
   (* Currently a dummy value for extract mode rules *)
   message : string;
   (* Currently a dummy value for extract mode rules *)
@@ -560,18 +560,24 @@ type 'mode rule_info = {
    *   target_analyzer = L (Typescript, []);
    *)
   target_analyzer : Xlang.t;
+  (* --------------------------------- *)
   (* OPTIONAL fields *)
+  (* --------------------------------- *)
   options : Rule_options.t option;
   (* deprecated? or should we resurrect the feature?
    * TODO: if we resurrect the feature, we should parse the string
    *)
   equivalences : string list option;
+  (* a.k.a autofix *)
   fix : string option;
   fix_regexp : fix_regexp option;
   (* TODO: we should get rid of this and instead provide a more general
    * Xpattern.Filename feature that integrates well with the xpatterns.
    *)
   paths : paths option;
+  (* This is not a concrete field in the rule, but it's derived from
+   * other fields (e.g., metadata, mode) in Parse_rule.ml
+   *)
   product : OutJ.product;
   (* ex: [("owasp", "A1: Injection")] but can be anything.
    * Metadata was (ab)used for the ("interfile", "true") setting, but this
@@ -580,6 +586,11 @@ type 'mode rule_info = {
   metadata : JSON.t option;
   (* TODO(cooper): would be nice to have nonempty but common2 version not nice to work with; no pp for one *)
   validators : validator list option;
+  (* Range of Semgrep versions supported by the rule.
+     Note that a rule with these fields may not even be parseable
+     in the current version of Semgrep and wouldn't even reach this point. *)
+  min_version : Version_info.t option;
+  max_version : Version_info.t option;
 }
 [@@deriving show]
 
@@ -612,7 +623,9 @@ type steps_rule = steps_mode rule_info [@@deriving show]
 (* Helpers *)
 (*****************************************************************************)
 
-let hrules_of_rules (rules : t list) : hrules =
+(* old: was t list -> hrules, but nice to allow for more precise hrules *)
+let hrules_of_rules (rules : 'mode rule_info list) :
+    (Rule_ID.t, 'mode rule_info) Hashtbl.t =
   rules |> Common.map (fun r -> (fst r.id, r)) |> Common.hash_of_list
 
 let partition_rules (rules : rules) :
@@ -662,6 +675,7 @@ let show_id rule = rule.id |> fst |> Rule_ID.to_string
 
 (* This is used to let the user know which rule the engine was using when
  * a Timeout or OutOfMemory exn occured.
+ * TODO: relation with Match_patterns.last_matched_rule?
  *)
 let last_matched_rule : Rule_ID.t option ref = ref None
 
