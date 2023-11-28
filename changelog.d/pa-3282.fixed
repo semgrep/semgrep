@@ -1,7 +1,7 @@
 taint-mode: Fixed a bug in the recently added `by-side-effect: only` option
 causing that when matching l-values of the form `l.x` and `l[i]`, the `l`
 occurence would unexpectedly become tainted too. This led to FPs in some
-typestate rules like those checking for double-lock double-free.
+typestate rules like those checking for double-lock or double-free.
 
 Now a source such as:
 
