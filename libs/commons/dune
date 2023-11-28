@@ -2,25 +2,24 @@
  (public_name commons)
  (wrapped false)
  (libraries
-   ANSITerminal
-   alcotest
-   alcotest_ext
-   atdgen-runtime
-   bos
-   cmdliner
-   digestif.ocaml
-   easy_logging
-   easy_logging_yojson
-   fmt
-   fpath
-   logs logs.fmt
-   pcre
-   re
-   sexplib
    str
    unix
+   fpath
    uri
    yojson
+   atdgen-runtime
+   fmt
+   ANSITerminal
+   logs logs.fmt
+   easy_logging easy_logging_yojson
+   alcotest
+   alcotest_ext
+   cmdliner
+   bos
+   re
+   pcre
+   digestif.ocaml
+   sexplib
    ; web stuff
    uuidm
    ; async stuff
