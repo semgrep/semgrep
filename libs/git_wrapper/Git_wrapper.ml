@@ -39,8 +39,14 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *)
 
 (*****************************************************************************)
-(* Types *)
+(* Types and constants *)
 (*****************************************************************************)
+
+(* TODO: could also do
+ * [type git_cap] abstract type and then
+ * let git_cap_of_exec _caps = unit
+ *)
+type caps = < exec : Cap.Exec.t >
 
 type status = {
   added : string list;
@@ -50,6 +56,8 @@ type status = {
   renamed : (string * string) list;
 }
 [@@deriving show]
+
+let git : Cmd.t = Cmd.v "git"
 
 (*****************************************************************************)
 (* Error management *)
@@ -93,7 +101,7 @@ let getcwd () = USys.getcwd () |> Fpath.v
 
    Usage:
 
-     let cmd = Bos.Cmd.(v "git" %% cd cwd % "rev-parse" % "--show-toplevel") in
+     let cmd = Cmd.(git %% cd cwd % "rev-parse" % "--show-toplevel") in
      ...
 *)
 let cd opt_cwd =
@@ -165,7 +173,7 @@ let string_of_ls_files_kind (kind : ls_files_kind) =
 let ls_files ?(cwd = Fpath.v ".") ?(kinds = []) root_paths =
   let roots = root_paths |> List_.map Fpath.to_string |> Cmd.of_list in
   let kinds = kinds |> List_.map string_of_ls_files_kind |> Cmd.of_list in
-  let cmd = Cmd.(v "git" % "-C" % !!cwd % "ls-files" %% kinds %% roots) in
+  let cmd = Cmd.(git % "-C" % !!cwd % "ls-files" %% kinds %% roots) in
   Logs.info (fun m -> m "Running external command: %s" (Cmd.to_string cmd));
   let files_r = UCmd.run_out cmd in
   let results = UCmd.out_lines ~trim:true files_r in
@@ -177,7 +185,7 @@ let ls_files ?(cwd = Fpath.v ".") ?(kinds = []) root_paths =
   files |> Fpath_.of_strings
 
 let get_project_root ?cwd () =
-  let cmd = Cmd.(v "git" %% cd cwd % "rev-parse" % "--show-toplevel") in
+  let cmd = Cmd.(git %% cd cwd % "rev-parse" % "--show-toplevel") in
   let path_r = UCmd.run_out cmd in
   let result = UCmd.out_string ~trim:true path_r in
   match result with
@@ -186,7 +194,7 @@ let get_project_root ?cwd () =
 
 let get_superproject_root ?cwd () =
   let cmd =
-    Cmd.(v "git" %% cd cwd % "rev-parse" % "--show-superproject-working-tree")
+    Cmd.(git %% cd cwd % "rev-parse" % "--show-superproject-working-tree")
   in
   let path_r = UCmd.run_out cmd in
   let result = UCmd.out_string ~trim:true path_r in
@@ -201,7 +209,7 @@ let get_project_root_exn () =
   | _ -> raise (Error "Could not get git root from git rev-parse")
 
 let get_merge_base commit =
-  let cmd = Cmd.(v "git" % "merge-base" % commit % "HEAD") in
+  let cmd = Cmd.(git % "merge-base" % commit % "HEAD") in
   let base_r = UCmd.run_out cmd in
   let results = UCmd.out_string ~trim:true base_r in
   match results with
@@ -226,10 +234,9 @@ let run_with_worktree ~commit ?(branch = None) f =
   let temp_dir = rand_dir () in
   let cmd =
     match branch with
-    | None -> Cmd.(v "git" % "worktree" % "add" % temp_dir % commit)
+    | None -> Cmd.(git % "worktree" % "add" % temp_dir % commit)
     | Some new_branch ->
-        Cmd.(
-          v "git" % "worktree" % "add" % temp_dir % commit % "-b" % new_branch)
+        Cmd.(git % "worktree" % "add" % temp_dir % commit % "-b" % new_branch)
   in
   let status = UCmd.run_status ~quiet:true cmd in
   match status with
@@ -241,7 +248,7 @@ let run_with_worktree ~commit ?(branch = None) f =
       in
       let cleanup () =
         cwd |> Fpath.to_string |> UUnix.chdir;
-        let cmd = Cmd.(v "git" % "worktree" % "remove" % temp_dir) in
+        let cmd = Cmd.(git % "worktree" % "remove" % temp_dir) in
         let status = UCmd.run_status ~quiet:true cmd in
         match status with
         | Ok (`Exited 0) -> logger#info "Finished cleaning up git worktree"
@@ -255,7 +262,7 @@ let run_with_worktree ~commit ?(branch = None) f =
 let status ~cwd ~commit =
   let cmd =
     Cmd.(
-      v "git" % "-C" % !!cwd % "diff" % "--cached" % "--name-status"
+      git % "-C" % !!cwd % "diff" % "--cached" % "--name-status"
       % "--no-ext-diff" % "-z" % "--diff-filter=ACDMRTUXB"
       % "--ignore-submodules" % "--relative" % commit)
   in
@@ -331,9 +338,7 @@ let status ~cwd ~commit =
   }
 
 let is_git_repo cwd =
-  let cmd =
-    Cmd.(v "git" % "-C" % !!cwd % "rev-parse" % "--is-inside-work-tree")
-  in
+  let cmd = Cmd.(git % "-C" % !!cwd % "rev-parse" % "--is-inside-work-tree") in
   let run = UCmd.run_status ~quiet:true cmd in
   match run with
   | Ok (`Exited 0) -> true
@@ -344,15 +349,13 @@ let dirty_lines_of_file ?(git_ref = "HEAD") file =
   let cwd = Fpath.parent file in
   let cmd =
     (* --error-unmatch Returns a non 0 exit code if a file is not tracked by git. This way further on in this function we don't try running git diff on untracked files, as this isn't allowed. *)
-    Cmd.(v "git" % "-C" % !!cwd % "ls-files" % "--error-unmatch" % !!file)
+    Cmd.(git % "-C" % !!cwd % "ls-files" % "--error-unmatch" % !!file)
   in
   let status = UCmd.run_status ~quiet:true cmd in
   match (status, git_ref = "HEAD") with
   | _, false
   | Ok (`Exited 0), _ ->
-      let cmd =
-        Cmd.(v "git" % "-C" % !!cwd % "diff" % "-U0" % git_ref % !!file)
-      in
+      let cmd = Cmd.(git % "-C" % !!cwd % "diff" % "-U0" % git_ref % !!file) in
       let out = UCmd.run_out cmd in
       let lines_r = UCmd.out_string ~trim:true out in
       let lines =
@@ -370,7 +373,7 @@ let dirty_lines_of_file ?(git_ref = "HEAD") file =
 let is_tracked_by_git file =
   let cwd = Fpath.parent file in
   let cmd =
-    Cmd.(v "git" % "-C" % !!cwd % "ls-files" % "--error-unmatch" % !!file)
+    Cmd.(git % "-C" % !!cwd % "ls-files" % "--error-unmatch" % !!file)
   in
   let status = UCmd.run_status ~quiet:true cmd in
   match status with
@@ -380,8 +383,7 @@ let is_tracked_by_git file =
 
 let dirty_files cwd =
   let cmd =
-    Cmd.(
-      v "git" % "-C" % !!cwd % "status" % "--porcelain" % "--ignore-submodules")
+    Cmd.(git % "-C" % !!cwd % "status" % "--porcelain" % "--ignore-submodules")
   in
   let lines_r = UCmd.run_out cmd in
   let lines = UCmd.out_lines ~trim:false lines_r in
@@ -396,7 +398,7 @@ let dirty_files cwd =
   files
 
 let init cwd =
-  let cmd = Cmd.(v "git" % "-C" % !!cwd % "init") in
+  let cmd = Cmd.(git % "-C" % !!cwd % "init") in
   match UCmd.run_status cmd with
   | Ok (`Exited 0) -> ()
   | _ -> raise (Error "Error running git init")
@@ -404,13 +406,13 @@ let init cwd =
 let add cwd files =
   let files = List_.map Fpath.to_string files in
   let files = String.concat " " files in
-  let cmd = Cmd.(v "git" % "-C" % !!cwd % "add" % files) in
+  let cmd = Cmd.(git % "-C" % !!cwd % "add" % files) in
   match UCmd.run_status cmd with
   | Ok (`Exited 0) -> ()
   | _ -> raise (Error "Error running git add")
 
 let commit cwd msg =
-  let cmd = Cmd.(v "git" % "-C" % !!cwd % "commit" % "-m" % msg) in
+  let cmd = Cmd.(git % "-C" % !!cwd % "commit" % "-m" % msg) in
   match UCmd.run_status cmd with
   | Ok (`Exited 0) -> ()
   | Ok (`Exited i) ->
@@ -422,7 +424,7 @@ let commit cwd msg =
 
 (* TODO: should return Uri.t option *)
 let get_project_url () : string option =
-  let cmd = Cmd.(v "git" % "ls-remote" % "--get-url") in
+  let cmd = Cmd.(git % "ls-remote" % "--get-url") in
   let out = UCmd.run_out cmd in
   match UCmd.out_string ~trim:true out with
   | Ok (url, _) -> Some url
@@ -451,10 +453,10 @@ let time_to_str (timestamp : float) : string =
 let get_git_logs ?(since = None) () : string list =
   let cmd =
     match since with
-    | None -> Cmd.(v "git" % "log" % git_log_json_format)
+    | None -> Cmd.(git % "log" % git_log_json_format)
     | Some time ->
         let after = spf "--after=\"%s\"" (time_to_str time) in
-        Cmd.(v "git" % "log" % after % git_log_json_format)
+        Cmd.(git % "log" % after % git_log_json_format)
   in
   let lines_r = UCmd.run_out cmd in
   let lines = UCmd.out_lines ~trim:true lines_r in

@@ -1,5 +1,7 @@
 (* Small wrapper around the 'git' command-line program *)
 
+type caps = < exec : Cap.Exec.t >
+
 exception Error of string
 
 type status = {
