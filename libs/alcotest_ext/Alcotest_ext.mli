@@ -5,7 +5,12 @@
    https://mirage.github.io/alcotest/alcotest/Alcotest/index.html
 *)
 
-type output = Stdout | Stderr | Merged_stdout_stderr | Separate_stdout_stderr
+type output =
+  | Ignore_output
+  | Stdout
+  | Stderr
+  | Merged_stdout_stderr
+  | Separate_stdout_stderr
 
 (*
    A test is a name and a function that raises exceptions to signal
@@ -32,6 +37,8 @@ type output = Stdout | Stderr | Merged_stdout_stderr | Separate_stdout_stderr
    hesitate to log a lot during the execution of the test.
 *)
 type 'a t = private {
+  (* Hash of the full name of the test, computed automatically. *)
+  id : string;
   (* Categories are made for organizing tests as a tree which is useful
      for display and filtering. A new category is created typically when
      grouping multiple test suites into one with 'pack_suites'.
@@ -40,11 +47,10 @@ type 'a t = private {
   name : string;
   func : unit -> 'a;
   (* Options *)
+  tags : string list;
+  (* special "tag" supported directly by Alcotest: *)
   speed_level : Alcotest.speed_level;
-  (* TODO: tags (= pytest markers) *)
-  check_output : output option;
-  (* Automatically determined *)
-  id : string;
+  check_output : output;
 }
 
 type test = unit t
@@ -63,10 +69,26 @@ type lwt_test = unit Lwt.t t
    Create a test to appear in a test suite.
 *)
 val create :
+  ?category:string list ->
   ?check_output:output ->
   ?speed_level:Alcotest.speed_level ->
+  ?tags:string list ->
   string ->
   (unit -> 'a) ->
+  'a t
+
+(*
+   Update some of the test's fields. This ensures that the 'id' is recomputed
+   correctly.
+*)
+val update :
+  ?category:string list ->
+  ?check_output:output ->
+  ?func:(unit -> 'a) ->
+  ?name:string ->
+  ?speed_level:Alcotest.speed_level ->
+  ?tags:string list ->
+  'a t ->
   'a t
 
 (* Convert legacy optionless format to new format *)

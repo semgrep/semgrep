@@ -7,18 +7,24 @@
 
 open Printf
 
-type output = Stdout | Stderr | Merged_stdout_stderr | Separate_stdout_stderr
+type output =
+  | Ignore_output
+  | Stdout
+  | Stderr
+  | Merged_stdout_stderr
+  | Separate_stdout_stderr
 
 type 'a t = {
+  (* The will be used as a compact key
+     for referencing tests in filters and in file names. *)
+  id : string;
   category : string list;
   name : string;
   func : unit -> 'a;
   (* Options *)
+  tags : string list;
   speed_level : Alcotest.speed_level;
-  check_output : output option;
-  (* Automatically determined. This will be used as a compact key
-     for referencing tests in filters or in file names. *)
-  id : string;
+  check_output : output;
 }
 
 type test = unit t
@@ -54,16 +60,30 @@ let update_id x =
   let id = String.sub long_id 0 7 in
   { x with id }
 
-let create ?check_output ?(speed_level = `Quick) name func =
-  { category = []; name; func; speed_level; check_output; id = "" } |> update_id
+let create ?(category = []) ?(check_output = Ignore_output)
+    ?(speed_level = `Quick) ?(tags = []) name func =
+  { id = ""; category; name; func; tags; speed_level; check_output }
+  |> update_id
+
+let opt option default = Option.value option ~default
+
+let update ?category ?check_output ?func ?name ?speed_level ?tags old =
+  {
+    id = "";
+    category = opt category old.category;
+    name = opt name old.name;
+    func = opt func old.func;
+    tags = opt tags old.tags;
+    speed_level = opt speed_level old.speed_level;
+    check_output = opt check_output old.check_output;
+  }
+  |> update_id
 
 let simple_test (name, func) = create name func
 let simple_tests simple_tests = list_map simple_test simple_tests
 
 let pack_tests_pro suite_name (tests : _ list) : _ list =
-  list_map
-    (fun x -> { x with category = suite_name :: x.category } |> update_id)
-    tests
+  list_map (fun x -> update x ~category:(suite_name :: x.category)) tests
 
 let pack_tests suite_name tests = pack_tests_pro suite_name (simple_tests tests)
 

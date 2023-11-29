@@ -92,7 +92,7 @@ let () =
                         (fun () -> Firebug.console##log (Js.string test.name)))
                    test.func
                in
-               Alcotest_ext.create test.name f)
+               Alcotest_ext.update test ~func:f)
              tests
          in
          let lwt_tests =
@@ -105,7 +105,7 @@ let () =
                         (fun () -> Firebug.console##log (Js.string test.name)))
                    test.func
                in
-               Alcotest_ext.create test.name f)
+               Alcotest_ext.update test ~func:f)
              lwt_tests
          in
          let run () =
