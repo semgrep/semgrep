@@ -25,6 +25,7 @@ type 'a t = {
   tags : string list;
   speed_level : Alcotest.speed_level;
   check_output : output;
+  skipped : bool;
 }
 
 type test = unit t
@@ -45,6 +46,17 @@ let list_flatten ll =
   List.fold_left (fun acc l -> List.rev_append l acc) [] ll |> List.rev
 
 (****************************************************************************)
+(* Tags *)
+(****************************************************************************)
+
+(* Duplicates are ok *)
+let declared_tags : string list ref = ref []
+let declare_tag str = declared_tags := str :: !declared_tags
+let is_valid_tag str = List.mem str !declared_tags
+let list_valid_tags () = !declared_tags
+let has_tag tag test = List.mem tag test.tags
+
+(****************************************************************************)
 (* Conversions *)
 (****************************************************************************)
 
@@ -60,24 +72,46 @@ let update_id x =
   let id = String.sub long_id 0 7 in
   { x with id }
 
-let create ?(category = []) ?(check_output = Ignore_output)
+let check_tags test =
+  test.tags
+  |> List.iter (fun tag ->
+         if not (is_valid_tag tag) then
+           failwith
+             (sprintf
+                "Test %S is tagged with the undeclared tag %S.\n\
+                 If it's not a misspelling, the tag should be registered \
+                 globally using\n\
+                 'Alcotest_ext.declare_tag %S'." test.name tag tag))
+
+let validate test = check_tags test
+
+let create ?(category = []) ?(check_output = Ignore_output) ?(skipped = false)
     ?(speed_level = `Quick) ?(tags = []) name func =
-  { id = ""; category; name; func; tags; speed_level; check_output }
-  |> update_id
+  let res =
+    { id = ""; category; name; func; tags; speed_level; check_output; skipped }
+    |> update_id
+  in
+  validate res;
+  res
 
 let opt option default = Option.value option ~default
 
-let update ?category ?check_output ?func ?name ?speed_level ?tags old =
-  {
-    id = "";
-    category = opt category old.category;
-    name = opt name old.name;
-    func = opt func old.func;
-    tags = opt tags old.tags;
-    speed_level = opt speed_level old.speed_level;
-    check_output = opt check_output old.check_output;
-  }
-  |> update_id
+let update ?category ?check_output ?func ?name ?skipped ?speed_level ?tags old =
+  let res =
+    {
+      id = "";
+      category = opt category old.category;
+      name = opt name old.name;
+      func = opt func old.func;
+      tags = opt tags old.tags;
+      speed_level = opt speed_level old.speed_level;
+      check_output = opt check_output old.check_output;
+      skipped = opt skipped old.skipped;
+    }
+    |> update_id
+  in
+  validate res;
+  res
 
 let simple_test (name, func) = create name func
 let simple_tests simple_tests = list_map simple_test simple_tests
@@ -129,8 +163,9 @@ let to_alcotest tests : _ list =
            | path -> String.concat " > " path
          in
          let suite_name = sprintf "[%s] %s" x.id suite_name in
+         let func = if x.skipped then Alcotest.skip else x.func in
          (* This is the format expected by Alcotest: *)
-         (suite_name, (x.name, x.speed_level, x.func)))
+         (suite_name, (x.name, x.speed_level, func)))
   |> group_by_key
 
 let to_alcotest_lwt = to_alcotest

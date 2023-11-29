@@ -107,9 +107,9 @@ let pack_tests_for_lang
        polyglot_pattern_path:Fpath.t ->
        Fpath.t list ->
        Language.t ->
-       (string * (unit -> unit)) list) ~test_pattern_path ~polyglot_pattern_path
-    lang dir ext =
-  pack_tests
+       Alcotest_ext.test list) ~test_pattern_path ~polyglot_pattern_path lang
+    dir ext =
+  pack_tests_pro
     (spf "semgrep %s" (Lang.show lang))
     (let dir = test_pattern_path / dir in
      let files = Common2.glob (spf "%s/*%s" !!dir ext) |> Fpath_.of_strings in
@@ -236,7 +236,7 @@ let language_exceptions =
 (* TODO: infer dir and ext from lang using Lang helper functions *)
 let make_maturity_tests ?(lang_exn = language_exceptions) lang dir ext maturity
     =
-  pack_tests
+  pack_tests_pro
     (spf "Maturity %s for %s" (show_maturity_level maturity) (Lang.show lang))
     (let dir = tests_path_patterns / dir in
      let features = assoc_maturity_level |> List.assoc maturity in
@@ -254,8 +254,8 @@ let make_maturity_tests ?(lang_exn = language_exceptions) lang dir ext maturity
      let features = Common2.minus_set features exns in
      features
      |> List_.map (fun base ->
-            ( base,
-              fun () ->
+            Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang) base
+              (fun () ->
                 let path = dir / (base ^ ext) in
                 (* if it's a does-not-apply (NA) case, consider adding it
                  * to language_exceptions above
@@ -263,7 +263,7 @@ let make_maturity_tests ?(lang_exn = language_exceptions) lang dir ext maturity
                 if not (Sys.file_exists !!path) then
                   failwith
                     (spf "missing test file %s for maturity %s" !!path
-                       (show_maturity_level maturity)) )))
+                       (show_maturity_level maturity)))))
 
 let maturity_tests () =
   (* coupling: https://semgrep.dev/docs/language-support/ *)
@@ -373,9 +373,15 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix =
 *)
 let regression_tests_for_lang ~polyglot_pattern_path files lang =
   files
+<<<<<<< HEAD
   |> List_.map (fun file ->
          ( Fpath.basename file,
            fun () ->
+=======
+  |> Common.map (fun file ->
+         Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang)
+           (Fpath.basename file) (fun () ->
+>>>>>>> a50107268 (Tag tests to be skipped by js tests)
              let sgrep_file =
                match
                  related_file_of_target ~polyglot_pattern_path ~ext:"sgrep"
@@ -406,7 +412,7 @@ let regression_tests_for_lang ~polyglot_pattern_path files lang =
              let actual = !E.g_errors in
              E.g_errors := [];
              let expected = E.expected_error_lines_of_files [ !!file ] in
-             E.compare_actual_to_expected_for_alcotest actual expected ))
+             E.compare_actual_to_expected_for_alcotest actual expected))
 
 let make_lang_regression_tests ~test_pattern_path ~polyglot_pattern_path
     lang_data =
@@ -429,7 +435,7 @@ let lang_regression_tests ~polyglot_pattern_path =
   in
   let irregular_tests =
     [
-      pack_tests "semgrep Typescript on Javascript (no JSX)"
+      pack_tests_pro "semgrep Typescript on Javascript (no JSX)"
         (let dir = test_pattern_path / "js" in
          let files = Common2.glob (spf "%s/*.js" !!dir) in
          let files =
@@ -439,7 +445,7 @@ let lang_regression_tests ~polyglot_pattern_path =
 
          let lang = Lang.Ts in
          regression_tests_for_lang ~polyglot_pattern_path files lang);
-      pack_tests "semgrep C++ on C tests"
+      pack_tests_pro "semgrep C++ on C tests"
         (let dir = test_pattern_path / "c" in
          let files = Common2.glob (spf "%s/*.c" !!dir) |> Fpath_.of_strings in
 
@@ -485,9 +491,15 @@ let compare_fixes ~polyglot_pattern_path ~file matches =
 
 let autofix_tests_for_lang ~polyglot_pattern_path files lang =
   files
+<<<<<<< HEAD
   |> List_.map (fun file ->
          ( Fpath.basename file,
            fun () ->
+=======
+  |> Common.map (fun file ->
+         Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang)
+           (Fpath.basename file) (fun () ->
+>>>>>>> a50107268 (Tag tests to be skipped by js tests)
              let sgrep_file =
                match
                  related_file_of_target ~polyglot_pattern_path ~ext:"sgrep"
@@ -542,7 +554,7 @@ let autofix_tests_for_lang ~polyglot_pattern_path files lang =
              E.g_errors := [];
              match fix with
              | NoFix -> ()
-             | _ -> compare_fixes ~polyglot_pattern_path ~file matches ))
+             | _ -> compare_fixes ~polyglot_pattern_path ~file matches))
 
 let lang_autofix_tests ~polyglot_pattern_path =
   let test_pattern_path = tests_path_autofix in
@@ -654,7 +666,7 @@ let get_extract_source_lang file rules =
 
 let extract_tests () =
   let path = tests_path / "extract" in
-  pack_tests "extract mode"
+  pack_tests_pro "extract mode"
     (let tests, _total_mismatch, _print_summary =
        Test_engine.make_tests ~unit_testing:true
          ~get_xlang:(Some get_extract_source_lang) [ path ]
@@ -825,18 +837,31 @@ let full_rule_regression_tests () =
   let tests = tests1 @ tests2 in
   let groups =
     tests
+<<<<<<< HEAD
     |> List_.map (fun (name, ftest) ->
+=======
+    |> Common.map (fun (test : Alcotest_ext.test) ->
+>>>>>>> a50107268 (Tag tests to be skipped by js tests)
            let group =
-             match String.split_on_char ' ' name with
+             match String.split_on_char ' ' test.name with
              | lang :: _ -> lang
-             | _ -> name
+             | _ -> test.name
            in
+<<<<<<< HEAD
            (group, (name, ftest)))
     |> Assoc.group_assoc_bykey_eff
   in
 
   pack_suites "full rule"
     (groups |> List_.map (fun (group, tests) -> pack_tests group tests))
+=======
+           (group, test))
+    |> Common.group_assoc_bykey_eff
+  in
+
+  pack_suites "full rule"
+    (groups |> Common.map (fun (group, tests) -> pack_tests_pro group tests))
+>>>>>>> a50107268 (Tag tests to be skipped by js tests)
 
 (* TODO: For now we only have taint maturity tests for Beta, there are no
  * specific tests for GA.
@@ -849,7 +874,7 @@ let full_rule_regression_tests () =
  *)
 let full_rule_taint_maturity_tests () =
   let path = tests_path / "taint_maturity" in
-  pack_tests "taint maturity"
+  pack_tests_pro "taint maturity"
     (let tests, _total_mismatch, _print_summary =
        Test_engine.make_tests ~unit_testing:true [ path ]
      in
@@ -868,9 +893,13 @@ let full_rule_semgrep_rules_regression_tests () =
   in
   let groups =
     tests
+<<<<<<< HEAD
     |> List_.map_filter (fun (name, ftest) ->
+=======
+    |> Common.map_filter (fun (test : Alcotest_ext.test) ->
+>>>>>>> a50107268 (Tag tests to be skipped by js tests)
            let group_opt =
-             match name with
+             match test.name with
              (* TODO: cleanup nodejsscan? "no target for" error *)
              | s
                when s =~ ".*/contrib/nodejsscan/xss_serialize_js.yaml"
@@ -910,28 +939,38 @@ let full_rule_semgrep_rules_regression_tests () =
              | s when s =~ ".*/semgrep-rules/tests/" -> None
              (* ok let's keep all the other one with the appropriate group name *)
              | s when s =~ ".*/semgrep-rules/\\([a-zA-Z]+\\)/.*" ->
-                 let s = Common.matched1 name in
+                 let s = Common.matched1 test.name in
                  Some (String.capitalize_ascii s)
              (* this skips the semgrep-rules/.github enrtries *)
              | _ ->
-                 logger#info "skipping %s" name;
+                 logger#info "skipping %s" test.name;
                  None
            in
+<<<<<<< HEAD
            group_opt |> Option.map (fun groupname -> (groupname, (name, ftest))))
     |> Assoc.group_assoc_bykey_eff
+=======
+           group_opt |> Option.map (fun groupname -> (groupname, test)))
+    |> Common.group_assoc_bykey_eff
+>>>>>>> a50107268 (Tag tests to be skipped by js tests)
   in
 
   pack_suites "full semgrep rule"
     (groups
     |> List_.map (fun (group, tests) ->
            tests
+<<<<<<< HEAD
            |> List_.map (fun (name, ftest) ->
                   let test () =
+=======
+           |> Common.map (fun (test : Alcotest_ext.test) ->
+                  let ftest () =
+>>>>>>> a50107268 (Tag tests to be skipped by js tests)
                     match group with
                     | "PB" ->
                         let is_throwing =
                           try
-                            ftest ();
+                            test.func ();
                             false
                           with
                           | _exn -> true
@@ -939,10 +978,10 @@ let full_rule_semgrep_rules_regression_tests () =
                         if not is_throwing then
                           Alcotest.fail
                             "this used to raise an error (good news?)"
-                    | _ -> ftest ()
+                    | _ -> test.func ()
                   in
-                  (name, test))
-           |> pack_tests group))
+                  Alcotest_ext.update test ~func:ftest)
+           |> pack_tests_pro group))
 
 (*****************************************************************************)
 (* All tests *)

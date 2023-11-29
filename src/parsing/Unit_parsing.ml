@@ -23,22 +23,22 @@ let tests_path_parsing = tests_path / "parsing"
 let parsing_tests_for_lang files lang =
   files
   |> List_.map (fun file ->
-         ( Filename.basename file,
-           fun () ->
+         Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang)
+           (Filename.basename file) (fun () ->
              Parse_target.parse_and_resolve_name_fail_if_partial lang file
-             |> ignore ))
+             |> ignore))
 
 let partial_parsing_tests_for_lang files lang =
   files
   |> List_.map (fun file ->
-         ( Filename.basename file,
-           fun () ->
+         Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang)
+           (Filename.basename file) (fun () ->
              let { Parsing_result2.skipped_tokens = errs; _ } =
                Parse_target.parse_and_resolve_name lang file
              in
              if errs =*= [] then
                Alcotest.fail
-                 "it should parse partially the file (with some errors)" ))
+                 "it should parse partially the file (with some errors)"))
 
 (*****************************************************************************)
 (* Tests *)
@@ -51,7 +51,7 @@ let lang_parsing_tests () =
   (* TODO: infer dir and ext from lang using Lang helper functions *)
   let pack_parsing_tests_for_lang lang dir ext =
     let slang = Lang.show lang in
-    pack_tests slang
+    pack_tests_pro slang
       (let dir = tests_path_parsing / dir in
        let files = Common2.glob (spf "%s/*%s" !!dir ext) in
        if files =*= [] then
@@ -88,7 +88,7 @@ let lang_parsing_tests () =
       (* a few parsing tests where we expect some partials
        * See cpp/parsing_partial/
        *)
-      pack_tests "C++ partial parsing"
+      pack_tests_pro "C++ partial parsing"
         (let dir = tests_path_parsing / "cpp" / "parsing_partial" in
          let files = Common2.glob (spf "%s/*.cpp" !!dir) in
          let lang = Lang.Cpp in

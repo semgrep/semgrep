@@ -297,22 +297,22 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
             total_mismatch := !total_mismatch + num_errors;
             if unit_testing then Alcotest.fail msg)
   in
-  let name =
+  let name, tags =
+    let langs =
+      !!file |> find_target_of_yaml_file |> Fpath.v |> Lang.langs_of_filename
+    in
+    let tags = Test_tags.tags_of_langs langs in
     if prepend_lang then
-      let langs =
-        !!file |> find_target_of_yaml_file |> Fpath.v |> Lang.langs_of_filename
-        |> List_.map Lang.to_capitalized_alnum
-      in
       let langs =
         match langs with
         | [] -> [ "Generic" ]
-        | _ -> langs
+        | _ -> List_.map Lang.to_capitalized_alnum langs
       in
       let lang = langs |> String.concat " " in
-      spf "%s %s" lang !!file
-    else !!file
+      (spf "%s %s" lang !!file, tags)
+    else (!!file, tags)
   in
-  (name, test)
+  Alcotest_ext.create ~tags name test
 
 let make_tests ?(unit_testing = false) ?(get_xlang = None)
     ?(prepend_lang = false) xs =
@@ -342,6 +342,6 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None)
 let test_rules ?unit_testing xs =
   let paths = Fpath_.of_strings xs in
   let tests, total_mismatch, print_summary = make_tests ?unit_testing paths in
-  tests |> List.iter (fun (_name, test) -> test ());
+  tests |> List.iter (fun (test : Alcotest_ext.test) -> test.func ());
   print_summary ();
   if !total_mismatch > 0 then exit 1

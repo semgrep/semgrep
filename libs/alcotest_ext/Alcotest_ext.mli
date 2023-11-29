@@ -46,11 +46,14 @@ type 'a t = private {
   category : string list;
   name : string;
   func : unit -> 'a;
-  (* Options *)
-  tags : string list;
+  (***** Options *****)
+  tags : string list; (* tags must be declared using 'declare_tag' *)
   (* special "tag" supported directly by Alcotest: *)
   speed_level : Alcotest.speed_level;
   check_output : output;
+  (* The 'skipped' property causes a test to be skipped by Alcotest but still
+     shown as "[SKIP]" rather than being omitted. *)
+  skipped : bool;
 }
 
 type test = unit t
@@ -66,11 +69,22 @@ type simple_test = string * (unit -> unit)
 type lwt_test = unit Lwt.t t
 
 (*
+   Tags are strings, which is nice and extensible, but to prevent misspellings,
+   we require them to be registered using 'declare_tag'.
+
+   The validity of tags is checked at the time of test creation.
+*)
+val declare_tag : string -> unit
+val list_valid_tags : unit -> string list
+val has_tag : string -> test -> bool
+
+(*
    Create a test to appear in a test suite.
 *)
 val create :
   ?category:string list ->
   ?check_output:output ->
+  ?skipped:bool ->
   ?speed_level:Alcotest.speed_level ->
   ?tags:string list ->
   string ->
@@ -86,6 +100,7 @@ val update :
   ?check_output:output ->
   ?func:(unit -> 'a) ->
   ?name:string ->
+  ?skipped:bool ->
   ?speed_level:Alcotest.speed_level ->
   ?tags:string list ->
   'a t ->

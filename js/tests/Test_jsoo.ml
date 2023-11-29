@@ -41,7 +41,10 @@ let skipped_tests =
     ("C", [ 2 ]);
   ]
 
-(* Filter to skip tests *)
+(* Filter to skip tests
+   TODO: it's broken due to changes in test suite name and/or structure.
+   Remove after we're done with tag-based filtering. *)
+(*
 let test_filter ~name ~index =
   if
     List.filter
@@ -54,6 +57,14 @@ let test_filter ~name ~index =
     <> []
   then `Skip
   else `Run
+*)
+
+let skip_todo_tests tests =
+  tests
+  |> List_.map (fun test ->
+         if Alcotest_ext.has_tag Test_tags.todo_js test then
+           Alcotest_ext.update ~skipped:true test
+         else test)
 
 (* Stolen from Logs' logs_browser.ml *)
 let () =
@@ -107,16 +118,42 @@ let () =
                in
                Alcotest_ext.update test ~func:f)
              lwt_tests
+           tests
+           |> List_.map (fun (test : Alcotest_ext.test) ->
+                  let f () =
+                    Semgrep_js_shared.wrap_with_js_error
+                      ~hook:
+                        (Some
+                           (fun () ->
+                             Firebug.console##log (Js.string test.name)))
+                      test.func
+                  in
+                  Alcotest_ext.update test ~func:f)
+           |> skip_todo_tests
+         in
+         let lwt_tests =
+           lwt_tests
+           |> List_.map (fun (test : Alcotest_ext.lwt_test) ->
+                  let f () =
+                    Semgrep_js_shared.wrap_with_js_error
+                      ~hook:
+                        (Some
+                           (fun () ->
+                             Firebug.console##log (Js.string test.name)))
+                      test.func
+                  in
+                  Alcotest_ext.update test ~func:f)
+           |> skip_todo_tests
          in
          let run () =
            Alcotest.run "semgrep-js"
              (Alcotest_ext.to_alcotest tests)
-             ~and_exit:false ~argv ~filter:test_filter
+             ~and_exit:false ~argv
          in
          let run_lwt () : unit Lwt.t =
            Alcotest_lwt.run "semgrep-js"
              (Alcotest_ext.to_alcotest_lwt lwt_tests)
-             ~and_exit:false ~argv ~filter:test_filter
+             ~and_exit:false ~argv
          in
          (* Some gymnastics are needed here because we need to
             produce a top level promise, in order to properly transform the
