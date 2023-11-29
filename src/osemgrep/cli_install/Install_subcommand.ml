@@ -90,8 +90,7 @@ let install_gh_cli () : unit =
   match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
   | Ok _ -> Logs.app (fun m -> m "Github cli installed successfully")
   | _ ->
-      Logs.err (fun m ->
-          m "%s Github cli failed to install" (Logs_helpers.err_tag ()));
+      Logs.err (fun m -> m "%s Github cli failed to install" (Logs_.err_tag ()));
       (* TODO? we could instead just remove the last step of 'install-ci'
        * and let the user commit the workflow by himself?
        *)
@@ -422,7 +421,7 @@ let run (conf : Install_CLI.conf) : Exit_code.t =
           m
             "%s You are not logged in! Run `semgrep login` before using \
              `semgrep install-ci`"
-            (Logs_helpers.err_tag ()));
+            (Logs_.err_tag ()));
       Exit_code.fatal
   | Some token ->
       (* setup gh *)
@@ -433,7 +432,7 @@ let run (conf : Install_CLI.conf) : Exit_code.t =
       add_semgrep_workflow ~token conf;
       Logs.app (fun m ->
           m "%s Installed semgrep workflow for this repository"
-            (Logs_helpers.success_tag ()));
+            (Logs_.success_tag ()));
       Exit_code.ok
 
 (*****************************************************************************)

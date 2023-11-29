@@ -368,7 +368,7 @@ let pp_cli_output ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
   |> sort_by_groups
   |> List.iter (fun (group, matches) ->
          if not (List_.null matches) then
-           Fmt_helpers.pp_heading ppf
-             (String_utils.unit_str (List.length matches) (group_titles group));
+           Fmt_.pp_heading ppf
+             (String_.unit_str (List.length matches) (group_titles group));
          pp_text_outputs ~max_chars_per_line ~max_lines_per_finding
            ~color_output ppf matches)

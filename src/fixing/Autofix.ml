@@ -307,7 +307,7 @@ let apply_fixes (edits : Textedit.t list) =
   if modified_files <> [] then
     Logs.info (fun m ->
         m "successfully modified %s."
-          (String_utils.unit_str (List.length modified_files) "file(s)"))
+          (String_.unit_str (List.length modified_files) "file(s)"))
   else Logs.info (fun m -> m "no files modified.")
 
 let apply_fixes_of_core_matches (matches : OutJ.core_match list) =

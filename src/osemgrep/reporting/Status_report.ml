@@ -30,12 +30,12 @@ let origin rule =
 (*****************************************************************************)
 
 let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
-  Fmt_helpers.pp_heading ppf "Scan Status";
+  Fmt_.pp_heading ppf "Scan Status";
   Fmt.pf ppf "  Scanning %s%s with %s"
-    (String_utils.unit_str num_targets "file")
+    (String_.unit_str num_targets "file")
     (* TODO: validate if target is actually within a git repo *)
     (if respect_git_ignore then " tracked by git" else "")
-    (String_utils.unit_str num_rules "Code rule");
+    (String_.unit_str num_rules "Code rule");
 
   (* TODO if sca_rules ...
      Fmt.(option ~none:(any "") (any ", " ++ int ++ any "Supply Chain rule" *)
@@ -48,7 +48,7 @@ let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
   Fmt.pf ppf ":@.";
   if num_rules = 0 then Fmt.pf ppf "  Nothing to scan."
   else if num_rules = 1 then
-    Fmt.pf ppf "  Scanning %s." (String_utils.unit_str num_targets "file")
+    Fmt.pf ppf "  Scanning %s." (String_.unit_str num_targets "file")
   else
     let rule_origins =
       lang_jobs
@@ -109,7 +109,7 @@ let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
              in
              (xlang, rules, targets))
     in
-    Fmt_helpers.pp_tables ppf
+    Fmt_.pp_tables ppf
       ( "Language",
         [ "Rules"; "Files" ],
         lang_stats

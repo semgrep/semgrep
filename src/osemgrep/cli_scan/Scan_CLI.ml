@@ -2,7 +2,7 @@ open Common
 module Arg = Cmdliner.Arg
 module Term = Cmdliner.Term
 module Cmd = Cmdliner.Cmd
-module H = Cmdliner_helpers
+module H = Cmdliner_
 module Show = Show_CLI
 
 (*****************************************************************************)
@@ -241,7 +241,7 @@ negative value disables this filter. Defaults to %d bytes|}
            default)
   in
 
-  Arg.value (Arg.opt Cmdliner_helpers.number_of_bytes_converter default info)
+  Arg.value (Arg.opt Cmdliner_.number_of_bytes_converter default info)
 
 let o_respect_gitignore : bool Term.t =
   H.negatable_flag [ "use-git-ignore" ] ~neg_options:[ "no-git-ignore" ]
@@ -864,8 +864,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       timeout_threshold validate version version_check vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
-    Logs_helpers.setup_logging ~force_color
-      ~level:common.CLI_common.logging_level ();
+    Logs_.setup_logging ~force_color ~level:common.CLI_common.logging_level ();
 
     let target_roots = target_roots |> File.Path.of_strings in
 
