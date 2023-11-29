@@ -52,7 +52,7 @@ let test_scan_config_registry_no_token all_caps : Testutil.test =
             ~final:(fun res -> assert (res.exit_code =*= Exit_code.ok))) )
 
 (* Remaining part of test_login.py (see also Test_login_subcommand.ml) *)
-let test_scan_config_registry_with_invalid_token all_caps : Testutil.test =
+let test_scan_config_registry_with_invalid_token caps : Testutil.test =
   ( __FUNCTION__,
     TL.with_login_test_env (fun () ->
         Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" TL.fake_token (fun () ->
@@ -64,7 +64,9 @@ let test_scan_config_registry_with_invalid_token all_caps : Testutil.test =
                      * some metrics call, so simpler to call directly
                      * Login_subcommand.
                      *)
-                    Login_subcommand.main [| "semgrep-login" |])
+                    Login_subcommand.main
+                      (caps :> Login_subcommand.caps)
+                      [| "semgrep-login" |])
                   ~final:(fun res ->
                     assert (res.logs =~ "[.\n]*Saved access token");
                     assert (res.exit_code =*= Exit_code.ok)));
@@ -79,7 +81,7 @@ let test_scan_config_registry_with_invalid_token all_caps : Testutil.test =
              * TODO: test_login.py assert exit_code == 7
              *)
             try
-              Scan_subcommand.main all_caps
+              Scan_subcommand.main caps
                 [|
                   "semgrep-scan";
                   "--experimental";
@@ -100,9 +102,9 @@ let test_scan_config_registry_with_invalid_token all_caps : Testutil.test =
 (* Entry point *)
 (*****************************************************************************)
 
-let tests all_caps =
+let tests caps =
   pack_tests "Osemgrep (e2e)"
     [
-      test_scan_config_registry_no_token all_caps;
-      test_scan_config_registry_with_invalid_token all_caps;
+      test_scan_config_registry_no_token caps;
+      test_scan_config_registry_with_invalid_token caps;
     ]

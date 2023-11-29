@@ -396,6 +396,7 @@ let load_rules_from_url ~origin ?token_opt ?(ext = "yaml") url :
     rules_and_origin =
   Lwt_platform.run (load_rules_from_url_async ~origin ?token_opt ~ext url)
 
+(* TODO: caps *)
 let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
     ~registry_caching kind : rules_and_origin list Lwt.t =
   match kind with
@@ -464,7 +465,9 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
                   token")
         | Some token -> token
       in
-      let uri = Semgrep_App.url_for_policy token in
+      let caps = Cap.network_caps_UNSAFE () in
+      let caps = Auth.cap_token_and_network token caps in
+      let uri = Semgrep_App.url_for_policy caps in
       let%lwt rules =
         load_rules_from_url_async ~token_opt ~ext:"policy" ~origin:Registry uri
       in

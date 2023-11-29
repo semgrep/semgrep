@@ -145,9 +145,8 @@ let extract_block_override (data : string) : (app_block_override, string) result
 (*****************************************************************************)
 
 (* Returns the deployment config if the token is valid, otherwise None *)
-let get_deployment_from_token_async token : OutJ.deployment_config option Lwt.t
-    =
-  let headers = [ Auth.auth_header_of_token token ] in
+let get_deployment_from_token_async caps : OutJ.deployment_config option Lwt.t =
+  let headers = [ Auth.auth_header_of_token caps#token ] in
   let url = Uri.with_path !Semgrep_envvars.v.semgrep_url deployment_route in
   let%lwt response = Http_helpers.get_async ~headers url in
   let deployment_opt =
@@ -244,8 +243,8 @@ let scan_config_uri ?(sca = false) ?(dry_run = true) ?(full_scan = true)
       ])
 
 (* Returns a url with scan config encoded via search params based on a magic environment variable *)
-let url_for_policy token =
-  let deployment_config = get_deployment_from_token token in
+let url_for_policy caps =
+  let deployment_config = get_deployment_from_token caps in
   match deployment_config with
   | None ->
       Error.abort
@@ -403,13 +402,13 @@ let get_identity_async caps =
       Lwt.return ""
 
 (* for semgrep publish *)
-let upload_rule_to_registry token json =
+let upload_rule_to_registry caps json =
   let url = Uri.with_path !Semgrep_envvars.v.semgrep_url registry_rule_route in
   let headers =
     [
       ("Content-Type", "application/json");
       ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
-      Auth.auth_header_of_token token;
+      Auth.auth_header_of_token caps#token;
     ]
   in
   let body = JSON.string_of_json (JSON.from_yojson json) in
