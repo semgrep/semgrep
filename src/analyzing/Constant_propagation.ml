@@ -360,6 +360,9 @@ let rec eval env x : svalue option =
       eval env e
   | Call ({ e = IdSpecial special; _ }, args) -> eval_special env special args
   | Call ({ e = N name; _ }, args) -> eval_call env name args
+  | Call (({ e = DotAccess (_, _, FN (Id _)); _ } as e), args) ->
+      let* name = H.name_of_dot_access e in
+      eval_call env name args
   | N name -> (
       match find_name env name with
       | Some svalue -> Some svalue
@@ -400,6 +403,25 @@ and eval_call env name args =
       Id ((("escapeshellarg" | "htmlspecialchars_decode"), _), _),
       [ Some (Lit (String _) | Cst Cstr) ] ) ->
       Some (Cst Cstr)
+  | ( Some Lang.Java,
+      IdQualified
+        {
+          name_last = ("format", _), _;
+          name_middle =
+            Some
+              (QDots
+                ( [ (("String", _), _) ]
+                | [ (("java", _), _); (("lang", _), _); (("String", _), _) ] ));
+          _;
+        },
+      _args ) ->
+      if
+        args
+        |> List.for_all (function
+             | Some (Lit _ | Cst _) -> true
+             | _ -> false)
+      then Some (Cst Cstr)
+      else None
   | _lang, _name, _args -> None
 
 let constant_propagation_and_evaluate_literal ?lang =
