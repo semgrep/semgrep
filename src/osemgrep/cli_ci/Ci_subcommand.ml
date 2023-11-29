@@ -428,11 +428,11 @@ let report_scan_completed ~blocking_findings ~blocking_rules
   Logs.app (fun m -> m "CI scan completed successfully.");
   Logs.app (fun m ->
       m "  Found %s (%u blocking) from %s."
-        (String_utils.unit_str
+        (String_.unit_str
            (List.length blocking_findings + List.length non_blocking_findings)
            "finding")
         (List.length blocking_findings)
-        (String_utils.unit_str
+        (String_.unit_str
            (List.length blocking_rules + List.length non_blocking_rules)
            "rule"));
   ()
@@ -634,7 +634,7 @@ let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
   in
   (* TODO: pass baseline commit! *)
   let prj_meta = generate_meta_from_environment None in
-  Logs.app (fun m -> m "%a" Fmt_helpers.pp_heading "Debugging Info");
+  Logs.app (fun m -> m "%a" Fmt_.pp_heading "Debugging Info");
   report_scan_environment prj_meta;
 
   (* TODO: fix_head_if_github_action(metadata) *)

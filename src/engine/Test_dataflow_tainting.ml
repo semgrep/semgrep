@@ -112,7 +112,5 @@ let test_dfg_tainting rules_file file =
 
 let actions () =
   [
-    ( "-dfg_tainting",
-      "<rules> <target>",
-      Arg_helpers.mk_action_2_arg test_dfg_tainting );
+    ("-dfg_tainting", "<rules> <target>", Arg_.mk_action_2_arg test_dfg_tainting);
   ]

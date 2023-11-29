@@ -5,4 +5,4 @@ val test_tokens_ml : string (* filename *) -> unit
  * the command line, e.g. '$ pfff -parse_ml foo.ml will call the
  * test_parse_ml function.
  *)
-val actions : unit -> Arg_helpers.cmdline_actions
+val actions : unit -> Arg_.cmdline_actions

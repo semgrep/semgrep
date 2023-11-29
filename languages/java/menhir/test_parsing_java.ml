@@ -95,7 +95,7 @@ let test_dump file =
 
 let actions () =
   [
-    ("-tokens_java", "   <file>", Arg_helpers.mk_action_1_arg test_lexer);
-    ("-parse_java", "   <file or dir>", Arg_helpers.mk_action_n_arg test_parse);
-    ("-dump_java", "   <file>", Arg_helpers.mk_action_1_arg test_dump);
+    ("-tokens_java", "   <file>", Arg_.mk_action_1_arg test_lexer);
+    ("-parse_java", "   <file or dir>", Arg_.mk_action_n_arg test_parse);
+    ("-dump_java", "   <file>", Arg_.mk_action_1_arg test_dump);
   ]

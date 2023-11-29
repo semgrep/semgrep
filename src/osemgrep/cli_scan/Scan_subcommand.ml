@@ -330,7 +330,7 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
   in
   Logs.app (fun m ->
       m "Removed %s that were in baseline scan"
-        (String_utils.unit_str !removed "finding"));
+        (String_.unit_str !removed "finding"));
   { head with matches_with_fixes }
 
 (* Execute the engine again on the baseline checkout, utilizing only
@@ -594,9 +594,9 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
           ());
     Logs.app (fun m ->
         m "Ran %s on %s: %s."
-          (String_utils.unit_str (List.length rules_with_targets) "rule")
-          (String_utils.unit_str (List.length cli_output.paths.scanned) "file")
-          (String_utils.unit_str (List.length cli_output.results) "finding"));
+          (String_.unit_str (List.length rules_with_targets) "rule")
+          (String_.unit_str (List.length cli_output.paths.scanned) "file")
+          (String_.unit_str (List.length cli_output.results) "finding"));
 
     (* step 6: apply autofixes *)
     (* this must happen posterior to reporting matches, or will report the

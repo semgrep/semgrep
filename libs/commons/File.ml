@@ -77,9 +77,7 @@ let find_first_match_with_whole_line path ?split:(chr = '\n') =
   really_input ic res 0 len;
   let lines = Bytes.split_on_char chr res in
   let lines = List_.map Bytes.unsafe_to_string lines in
-  List.find_opt
-    (fun str -> Option.is_some (String_utils.contains term str))
-    lines
+  List.find_opt (fun str -> Option.is_some (String_.contains term str)) lines
 
 let find_first_match_with_whole_line path ?split term =
   find_first_match_with_whole_line path ?split term

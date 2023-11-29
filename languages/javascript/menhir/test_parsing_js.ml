@@ -121,9 +121,9 @@ let test_dump_ts file =
 
 let actions () =
   [
-    ("-tokens_js", "   <file>", Arg_helpers.mk_action_1_arg test_tokens_js);
-    ("-parse_js", "   <file or dir>", Arg_helpers.mk_action_n_arg test_parse_js);
-    ("-parse_ts", "   <file or dir>", Arg_helpers.mk_action_n_arg test_parse_ts);
-    ("-dump_js", "   <file>", Arg_helpers.mk_action_1_arg test_dump_js);
-    ("-dump_ts", "   <file>", Arg_helpers.mk_action_1_arg test_dump_ts);
+    ("-tokens_js", "   <file>", Arg_.mk_action_1_arg test_tokens_js);
+    ("-parse_js", "   <file or dir>", Arg_.mk_action_n_arg test_parse_js);
+    ("-parse_ts", "   <file or dir>", Arg_.mk_action_n_arg test_parse_ts);
+    ("-dump_js", "   <file>", Arg_.mk_action_1_arg test_dump_js);
+    ("-dump_ts", "   <file>", Arg_.mk_action_1_arg test_dump_ts);
   ]
