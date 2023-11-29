@@ -4,7 +4,7 @@
 
 (*
  - Common.ml, ...
- - CapOut.ml
+ - CapXxx.ml
  *)
 
 (**************************************************************************)
@@ -15,7 +15,6 @@ module Out = struct end
 
 (* deprecated anyway, we should not use it *)
 module Common2 = struct end
-module File = struct end
 
 (**************************************************************************)
 (* RESTRICTED *)

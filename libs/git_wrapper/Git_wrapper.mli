@@ -111,7 +111,7 @@ val get_project_url : unit -> string option
     TODO: should maybe raise an exn instead if not run from a git repo.
 *)
 
-val get_git_logs : ?since:Common2.float_time option -> unit -> string list
+val get_git_logs : ?since:float option -> unit -> string list
 (** [get_git_logs()] will run 'git log' in the current directory
     and returns for each log a JSON string that fits the schema
     defined in semgrep_output_v1.atd contribution type.
