@@ -22,8 +22,8 @@ open Testutil
 (* Helpers *)
 (*****************************************************************************)
 
-let ok_token = "ok_token"
-let bad_token = "bad_token"
+let ok_token = Auth.unsafe_token_of_string "ok_token"
+let bad_token = Auth.unsafe_token_of_string "bad_token"
 
 let secret =
   Uuidm.of_string "00000000-0000-0000-0000-000000000000" |> Option.get
@@ -120,7 +120,9 @@ let fetch_token_tests () =
     let token = Semgrep_login.fetch_token secret in
     match token with
     | Ok (token, username) ->
-        Alcotest.(check string) "token" ok_token token;
+        let str_token = Auth.string_of_token token in
+        let ok_token_str = Auth.string_of_token ok_token in
+        Alcotest.(check string) "token" ok_token_str str_token;
         Alcotest.(check string) "username" "testuser" username
     | Error e -> failwith e
   in

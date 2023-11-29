@@ -561,7 +561,7 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   (results, complete)
 
 let upload_findings ~dry_run
-    (depl_opt : (string * OutJ.deployment_config) option)
+    (depl_opt : (Auth.token * OutJ.deployment_config) option)
     (scan_id_opt : Semgrep_App.scan_id option) blocking_findings filtered_rules
     (cli_output : OutJ.cli_output) : Semgrep_App.app_block_override =
   match (depl_opt, scan_id_opt) with

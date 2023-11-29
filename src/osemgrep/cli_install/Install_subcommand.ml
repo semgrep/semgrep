@@ -218,16 +218,17 @@ let semgrep_app_token_secret_exists ~git_dir:dir : bool =
   | Ok b -> b
   | _ -> false
 
-let add_semgrep_gh_secret ~git_dir:dir ~token : unit =
+let add_semgrep_gh_secret ~git_dir:dir ~(token : Auth.token) : unit =
+  let str_token = Auth.string_of_token token in
   let cmd =
     Bos.Cmd.(
       v "gh" % "secret" % "set" % "SEMGREP_APP_TOKEN" % "-a" % "actions"
-      % "--body" % token)
+      % "--body" % str_token)
   in
   Bos.OS.Dir.with_current dir
     (fun () ->
       match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
-      | Ok _ -> Logs.debug (fun m -> m "Set SEMGREP_APP_TOKEN=%s" token)
+      | Ok _ -> Logs.debug (fun m -> m "Set SEMGREP_APP_TOKEN=%s" str_token)
       | _ ->
           Logs.warn (fun m -> m "Failed to set SEMGREP_APP_TOKEN for %s" !!dir);
           Error.abort "Failed to set SEMGREP_APP_TOKEN. Please add it manually")
@@ -379,7 +380,8 @@ let write_workflow_file ~git_dir:dir : unit =
    2. Commit and push changes to the repo
    3. Open a PR to the repo to merge the changes
 *)
-let add_semgrep_workflow ~token (conf : Install_CLI.conf) : unit =
+let add_semgrep_workflow ~(token : Auth.token) (conf : Install_CLI.conf) : unit
+    =
   let (repo : string) =
     match conf.repo with
     | Dir v -> Fpath.to_dir_path v |> Fpath.rem_empty_seg |> Fpath.to_string

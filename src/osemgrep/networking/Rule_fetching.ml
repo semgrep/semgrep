@@ -114,7 +114,7 @@ let fetch_content_from_url_async ?(token_opt = None) (url : Uri.t) :
     let headers =
       match token_opt with
       | None -> None
-      | Some token -> Some [ ("Authorization", "Bearer " ^ token) ]
+      | Some token -> Some [ Auth.auth_header_of_token token ]
     in
     let%lwt res = Http_helpers.get_async ?headers url in
     match res with

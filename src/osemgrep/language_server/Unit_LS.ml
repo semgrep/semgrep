@@ -126,7 +126,8 @@ let with_mock_envvars f () =
    * even after adding a fake on in js/node_shared/unix.js
    *)
   let old_settings = !Semgrep_envvars.v in
-  let new_settings = { old_settings with app_token = Some "123456789" } in
+  let app_token = Some (Auth.unsafe_token_of_string "123456789") in
+  let new_settings = { old_settings with app_token } in
   Common.save_excursion Semgrep_envvars.v new_settings f
 
 (*****************************************************************************)
