@@ -1,4 +1,7 @@
-type caps = < stdout : Cap.Console.stdout ; network : Cap.Network.t >
+type caps =
+  < stdout : Cap.Console.stdout
+  ; (* we need the network for the 'semgrep show identity/deployment' *)
+  network : Cap.Network.t >
 
 (*
    Parse a semgrep-show command, execute it and exit.
