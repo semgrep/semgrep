@@ -464,7 +464,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
                   token")
         | Some token -> token
       in
-      let uri = Semgrep_App.url_for_policy ~token in
+      let uri = Semgrep_App.url_for_policy token in
       let%lwt rules =
         load_rules_from_url_async ~token_opt ~ext:"policy" ~origin:Registry uri
       in

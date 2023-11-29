@@ -54,7 +54,7 @@ let download_semgrep_pro platform_kind dest =
           m "No API token found, please run `semgrep login` first.");
       false
   | Some token -> (
-      match Semgrep_App.fetch_pro_binary ~token platform_kind with
+      match Semgrep_App.fetch_pro_binary token platform_kind with
       | Error (_, { code = 401; _ }) ->
           Logs.err (fun m ->
               m
