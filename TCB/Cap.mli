@@ -64,36 +64,35 @@ end
 (* Powerbox *)
 (**************************************************************************)
 
-type fs_powerbox =
-  < root_r : FS.root_r
-  ; root_w : FS.root_w
-  ; cwd_r : FS.cwd_r
-  ; cwd_w : FS.cwd_w
-  ; tmp_r : FS.tmp_r
-  ; tmp_w : FS.tmp_w >
+type root = < root_r : FS.root_r ; root_w : FS.root_w >
+type cwd = < cwd_r : FS.cwd_r ; cwd_w : FS.cwd_w >
+type tmp = < tmp_r : FS.tmp_r ; tmp_w : FS.tmp_w >
+type fs = < root ; cwd ; tmp >
+type console = < stdin : Console.stdin ; stdout : Console.stdout >
 
-(* TODO: split in multiple parts *)
-type process_powerbox =
-  < stdin : Console.stdin
-  ; stdout : Console.stdout
+type process_multi =
+  < fork : Process.fork ; domain : Process.domain ; thread : Process.thread >
+
+type process_single = < signal : Process.signal ; exit : Process.exit >
+
+type process =
+  < console
+  ; process_single
+  ; process_multi
   ; argv : Process.argv
-  ; env : Process.env
-  ; (* advanced stuff *)
-  signal : Process.signal
-  ; fork : Process.fork
-  ; exit : Process.exit
-  ; domain : Process.domain
-  ; thread : Process.thread >
+  ; env : Process.env >
 
-type misc_powerbox = < time : Misc.time ; random : Misc.random >
+(* TODO: extend *)
+type network = < network : Network.t >
+type misc = < time : Misc.time ; random : Misc.random >
 
 (* alt: called "Stdenv.Base.env" in EIO *)
 type all_caps =
-  < process_powerbox
-  ; fs_powerbox
+  < process
+  ; fs (* a mix of fs and process_multi as it requires both *)
   ; exec : Exec.t
-  ; network : Network.t
-  ; misc_powerbox >
+  ; network
+  ; misc >
 
 (* you can also pass individual capabilities like just
  * stdout with 'Console.stdout'
