@@ -57,7 +57,7 @@ let save_token ?(ident = None) token =
   Lwt_platform.run (save_token_async ~ident token)
 
 let verify_token_async token =
-  let%lwt resopt = Semgrep_App.get_deployment_from_token_async ~token in
+  let%lwt resopt = Semgrep_App.get_deployment_from_token_async token in
   Lwt.return (Option.is_some resopt)
 
 let verify_token token = Lwt_platform.run (verify_token_async token)

@@ -94,7 +94,7 @@ let upload_rule token rule_file (conf : Publish_CLI.conf) test_code_file =
           | lang :: _ -> `String (Lang.to_string lang)
         in
         let deployment_id =
-          match Semgrep_App.get_deployment_from_token ~token with
+          match Semgrep_App.get_deployment_from_token token with
           | None -> `Null
           | Some config -> `Int config.id
         in
@@ -123,7 +123,7 @@ let upload_rule token rule_file (conf : Publish_CLI.conf) test_code_file =
       in
 
       let semgrep_url = !Semgrep_envvars.v.semgrep_url in
-      match Semgrep_App.upload_rule_to_registry ~token request_json with
+      match Semgrep_App.upload_rule_to_registry token request_json with
       | Error (status_code, text) ->
           Logs.err (fun m ->
               m "    Failed to upload rule with status code %d" status_code);

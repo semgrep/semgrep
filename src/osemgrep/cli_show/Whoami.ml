@@ -16,14 +16,13 @@ let print
       (match kind with
       | Identity ->
           let id =
-            Lwt_platform.run (Semgrep_App.get_identity_async ~token caps)
+            Lwt_platform.run (Semgrep_App.get_identity_async token caps)
           in
           Logs.app (fun m ->
               m "%s You are logged in as %s" (Logs_.success_tag ()) id)
       | Deployment -> (
           let (x : OutJ.deployment_config option) =
-            Lwt_platform.run
-              (Semgrep_App.get_deployment_from_token_async ~token)
+            Lwt_platform.run (Semgrep_App.get_deployment_from_token_async token)
           in
           match x with
           | None -> failwith "no deployment_config"
