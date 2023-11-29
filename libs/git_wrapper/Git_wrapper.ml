@@ -142,7 +142,7 @@ let range_of_git_diff lines =
 (* Entry points *)
 (*****************************************************************************)
 
-let git_check_output (args : Cmd.args) : string =
+let git_check_output _caps (args : Cmd.args) : string =
   let cmd : Cmd.t = (git, args) in
   match UCmd.string_of_run ~trim:true cmd with
   | Ok (str, (_, `Exited 0)) -> str
