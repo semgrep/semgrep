@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 open Testutil
 module E = Core_error
 

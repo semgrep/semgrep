@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module Flag = Flag_parsing
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -20,7 +20,7 @@ let test_tokens file =
   ()
 
 let test_parse xs =
-  let xs = xs |> File.Path.of_strings |> List.map File.fullpath in
+  let xs = xs |> Fpath_.of_strings |> List.map File.fullpath in
 
   let fullxs, _skipped_paths =
     Parse_scala.find_source_files_of_dir_or_files xs

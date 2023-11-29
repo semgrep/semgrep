@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 module C = Rules_config
 module Env = Semgrep_envvars
 module OutJ = Semgrep_output_v1_t

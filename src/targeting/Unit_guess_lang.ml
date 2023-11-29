@@ -2,7 +2,7 @@
    Unit tests for Guess_lang
 *)
 open Lang
-open File.Operators
+open Fpath_.Operators
 
 type exec = Exec | Nonexec
 type success = OK | XFAIL

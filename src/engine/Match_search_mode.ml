@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 module R = Rule
 module XP = Xpattern
 module MR = Mini_rule

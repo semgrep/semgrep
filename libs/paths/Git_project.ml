@@ -4,7 +4,7 @@
    Tests are in Unit_semgrepignore.ml
 *)
 
-open File.Operators
+open Fpath_.Operators
 
 let is_git_root (path : Fpath.t) : bool =
   match (Unix.stat !!(path / ".git")).st_kind with

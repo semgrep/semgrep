@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module OutJ = Semgrep_output_v1_t
 
 (*****************************************************************************)

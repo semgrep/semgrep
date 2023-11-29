@@ -1,7 +1,7 @@
 (*
    Public entry point for parsing regexps.
 *)
-open File.Operators
+open Fpath_.Operators
 
 let from_lexbuf conf lexbuf =
   try Parser.main (Lexer.token conf) lexbuf with

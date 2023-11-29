@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module J = JSON
 module E = Core_error
 

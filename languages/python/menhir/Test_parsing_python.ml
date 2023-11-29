@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module PS = Parsing_stat
 module Flag = Flag_parsing
 module FT = File_type
@@ -34,7 +34,7 @@ let test_tokens_python file =
   ()
 
 let test_parse_python_common parsing_mode xs =
-  let xs = File.Path.of_strings xs in
+  let xs = Fpath_.of_strings xs in
   let xs = List.map File.fullpath xs in
 
   let fullxs, _skipped_paths =

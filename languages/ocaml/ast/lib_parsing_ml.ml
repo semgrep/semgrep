@@ -13,7 +13,7 @@
  * license.txt for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 
 (*module V = Visitor_ml*)
 
@@ -64,7 +64,7 @@ let find_cmt_files_of_dir_or_files (xs : Fpath.t list) : Fpath.t list =
                   Common2.filename_of_dbe (d, b, "cmt")
               | [ "cmti" ] -> Common2.filename_of_dbe (d, b, "cmti")
               | _ -> raise Impossible))
-  |> File.Path.of_strings |> List_.sort
+  |> Fpath_.of_strings |> List_.sort
 
 (*****************************************************************************)
 (* Extract infos *)

@@ -788,7 +788,7 @@ let o_target_roots : string list Term.t =
       ~doc:{|Files or folders to be scanned by semgrep.|}
   in
   Arg.value
-    (Arg.pos_all Arg.string (default.target_roots |> File.Path.to_strings) info)
+    (Arg.pos_all Arg.string (default.target_roots |> Fpath_.to_strings) info)
 
 (* ------------------------------------------------------------------ *)
 (* !!NEW arguments!! not in pysemgrep *)
@@ -866,7 +866,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
      * correctly *)
     Logs_.setup_logging ~force_color ~level:common.CLI_common.logging_level ();
 
-    let target_roots = target_roots |> File.Path.of_strings in
+    let target_roots = target_roots |> Fpath_.of_strings in
 
     let output_format =
       let all_flags =

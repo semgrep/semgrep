@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 module FT = File_type
 module R = Rule
 module E = Core_error
@@ -340,7 +340,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None)
   (tests, total_mismatch, print_summary)
 
 let test_rules ?unit_testing xs =
-  let paths = File.Path.of_strings xs in
+  let paths = Fpath_.of_strings xs in
   let tests, total_mismatch, print_summary = make_tests ?unit_testing paths in
   tests |> List.iter (fun (_name, test) -> test ());
   print_summary ();

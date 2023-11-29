@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module E = Error
 module Env = Semgrep_envvars
 module FT = File_type

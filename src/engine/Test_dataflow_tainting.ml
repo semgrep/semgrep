@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module G = AST_generic
 module RM = Range_with_metavars
 

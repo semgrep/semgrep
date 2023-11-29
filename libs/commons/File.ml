@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Fpath_.Operators
 
 (*****************************************************************************)
 (* Prelude *)
@@ -28,35 +29,14 @@
 *)
 
 (*****************************************************************************)
-(* Submodules *)
-(*****************************************************************************)
-
-module Path = struct
-  include Fpath
-
-  let of_strings strings = List_.map Fpath.v strings
-  let to_strings paths = List_.map Fpath.to_string paths
-  let ( !! ) = Fpath.to_string
-end
-
-module Operators = struct
-  let ( / ) = Fpath.( / )
-  let ( // ) = Fpath.( // )
-  let ( !! ) = Path.( !! )
-end
-
-open Operators
-
-(*****************************************************************************)
 (* API *)
 (*****************************************************************************)
 
 let fullpath file = UCommon.fullpath !!file |> Fpath.v
-let readable ~root path = Filename_.readable ~root:!!root !!path |> Fpath.v
 
 let files_of_dirs_or_files_no_vcs_nofilter xs =
-  xs |> Path.to_strings |> UCommon.files_of_dir_or_files_no_vcs_nofilter
-  |> Path.of_strings
+  xs |> Fpath_.to_strings |> UCommon.files_of_dir_or_files_no_vcs_nofilter
+  |> Fpath_.of_strings
 
 let input_text_line = Common.input_text_line
 let cat path = UCommon.cat !!path

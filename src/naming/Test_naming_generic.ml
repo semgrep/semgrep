@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module H = AST_generic_helpers
 
 let test_naming_generic ~parse_program file =

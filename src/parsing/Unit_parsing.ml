@@ -1,6 +1,6 @@
 open Common
 open Testutil
-open File.Operators
+open Fpath_.Operators
 module E = Core_error
 
 (*****************************************************************************)
@@ -110,7 +110,7 @@ let parsing_error_tests () =
   let dir = tests_path / "parsing_errors" in
   pack_tests "Parsing error detection"
     (let tests = Common2.glob (spf "%s/*" !!dir) in
-     tests |> File.Path.of_strings
+     tests |> Fpath_.of_strings
      |> List_.map (fun file ->
             ( Fpath.basename file,
               fun () ->
@@ -136,7 +136,7 @@ let parsing_rules_tests () =
         * CI: Common2.glob (spf "%s/*.jsonnet" dir)
         *)
      in
-     tests |> File.Path.of_strings
+     tests |> Fpath_.of_strings
      |> List_.map (fun file ->
             (Fpath.basename file, fun () -> Parse_rule.parse file |> ignore)))
 
@@ -150,7 +150,7 @@ let parsing_rules_with_atd_tests () =
     Common2.glob (spf "%s/*.yaml" !!dir) @ Common2.glob (spf "%s/*.json" !!dir)
   in
   pack_tests "Parsing rules with rule_schema_v2.atd"
-    (tests1 @ tests2 |> File.Path.of_strings
+    (tests1 @ tests2 |> Fpath_.of_strings
     |> List_.map (fun file ->
            (!!file, fun () -> Parse_rules_with_atd.parse_rules_v2 file |> ignore))
     )

@@ -1,4 +1,4 @@
-open File.Operators
+open Fpath_.Operators
 
 let pp_targets_debug ppf (target_roots, semgrepignored_targets, targets) =
   Fmt.pf ppf "target roots: [@.";

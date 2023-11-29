@@ -51,7 +51,7 @@ let cmdline_term : conf Term.t =
           (* may raise unsupported language exn *)
           Lang.of_string s
     in
-    let target_roots = File.Path.of_strings target_roots in
+    let target_roots = Fpath_.of_strings target_roots in
     (* like in Scan_CLI.combine *)
     let include_ =
       match include_ with
