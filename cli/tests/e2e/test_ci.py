@@ -31,6 +31,7 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
 from semgrep.app.scans import ScanCompleteResult
 from semgrep.app.scans import ScanHandler
+from semgrep.engine import EngineType
 from semgrep.error_handler import ErrorHandler
 from semgrep.meta import GithubMeta
 from semgrep.meta import GitlabMeta
@@ -2010,3 +2011,33 @@ def test_enabled_products(
     else:
         assert f"Enabled products: {enabled_products[0]}" in result.stderr
         assert "No products are enabled for this organization" not in result.stderr
+
+
+@pytest.mark.parametrize("enable_deepsemgrep", [True, False])
+@pytest.mark.osemfail
+def test_pro_diff_slow_rollout(
+    run_semgrep: RunSemgrep,
+    mocker,
+    enable_deepsemgrep,
+):
+    """
+    Verify that generic_slow_rollout enables pro diff scan
+    """
+    mocker.patch.object(ScanHandler, "generic_slow_rollout", True)
+    mocker.patch.object(ScanHandler, "deepsemgrep", enable_deepsemgrep)
+    mocker.patch.object(EngineType, "check_if_installed", return_value=True)
+    mock_send = mocker.patch.object(Metrics, "add_diff_depth")
+
+    result = run_semgrep(
+        options=["ci", "--no-suppress-errors"],
+        target_name=None,
+        strict=False,
+        force_metrics_off=False,
+        assert_exit_code=None,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,
+    )
+    if enable_deepsemgrep:
+        mock_send.assert_called_once_with(2)
+    else:
+        mock_send.assert_not_called()
