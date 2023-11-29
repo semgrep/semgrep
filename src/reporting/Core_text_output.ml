@@ -67,7 +67,7 @@ let print_match ?(format = Normal) ?(str = "") ?(spaces = 0) ii =
     let file, line = (Tok.file_of_tok mini, Tok.line_of_tok mini) in
     let prefix = spf "%s:%d" file line in
     let lines_str =
-      File.lines_of_file (Tok.line_of_tok mini, end_line) (Fpath.v file)
+      UFile.lines_of_file (Tok.line_of_tok mini, end_line) (Fpath.v file)
     in
     match format with
     | Normal ->

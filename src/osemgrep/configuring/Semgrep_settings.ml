@@ -84,7 +84,7 @@ let load ?(maturity = Maturity.Default) () =
       Sys.file_exists (Fpath.to_string settings)
       && Unix.(stat (Fpath.to_string settings)).st_kind = Unix.S_REG
     then
-      let data = File.read_file settings in
+      let data = UFile.read_file settings in
       match Yaml.of_string data with
       | Error _ ->
           Logs.warn (fun m ->
@@ -120,7 +120,7 @@ let save setting =
     if not (Sys.file_exists dir) then Sys.mkdir dir 0o755;
     let tmp = Filename.temp_file ~temp_dir:dir "settings" "yml" in
     if Sys.file_exists tmp then Sys.remove tmp;
-    File.write_file (Fpath.v tmp) str;
+    UFile.write_file (Fpath.v tmp) str;
     (* Create a temporary file and rename to have a consistent settings file,
        even if the power fails (or a Ctrl-C happens) during the write_file. *)
     Unix.rename tmp (Fpath.to_string settings);

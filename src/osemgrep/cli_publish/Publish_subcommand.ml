@@ -72,7 +72,7 @@ let upload_rule token rule_file (conf : Publish_CLI.conf) test_code_file =
         | None -> "<none>"
         | Some url -> url
       in
-      let rule_source = File.read_file (Fpath.v rule_file) in
+      let rule_source = UFile.read_file (Fpath.v rule_file) in
       let rule =
         let origin_note =
           Common.spf "published from %s in %s" rule_file project_url
@@ -101,7 +101,7 @@ let upload_rule token rule_file (conf : Publish_CLI.conf) test_code_file =
         let test_target =
           match test_code_file with
           | None -> `Null
-          | Some file -> `String (File.read_file file)
+          | Some file -> `String (UFile.read_file file)
         in
         let registry_id =
           match conf.registry_id with

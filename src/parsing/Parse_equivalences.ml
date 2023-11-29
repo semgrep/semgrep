@@ -26,7 +26,7 @@ let error s = failwith (spf "sgrep_equivalence: wrong format. %s" s)
 (*****************************************************************************)
 
 let parse file =
-  let str = File.read_file file in
+  let str = UFile.read_file file in
   let yaml_res = Yaml.of_string str in
   match yaml_res with
   | Result.Ok v -> (

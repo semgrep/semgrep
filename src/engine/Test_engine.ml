@@ -151,7 +151,7 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
           {
             Xtarget.file = target;
             xlang;
-            lazy_content = lazy (File.read_file target);
+            lazy_content = lazy (UFile.read_file target);
             lazy_ast_and_errors;
           }
         in
@@ -317,7 +317,7 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
 let make_tests ?(unit_testing = false) ?(get_xlang = None)
     ?(prepend_lang = false) xs =
   let fullxs, _skipped_paths =
-    xs |> File.files_of_dirs_or_files_no_vcs_nofilter
+    xs |> UFile.files_of_dirs_or_files_no_vcs_nofilter
     |> List.filter Parse_rule.is_valid_rule_filename
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
