@@ -13,11 +13,16 @@ let print
   let api_token = settings.Semgrep_settings.api_token in
   match api_token with
   | Some token ->
+      (* TODO: is there shorter way to combine? *)
+      let caps =
+        object
+          method network = caps#network
+          method token = token
+        end
+      in
       (match kind with
       | Identity ->
-          let id =
-            Lwt_platform.run (Semgrep_App.get_identity_async token caps)
-          in
+          let id = Lwt_platform.run (Semgrep_App.get_identity_async caps) in
           Logs.app (fun m ->
               m "%s You are logged in as %s" (Logs_.success_tag ()) id)
       | Deployment -> (

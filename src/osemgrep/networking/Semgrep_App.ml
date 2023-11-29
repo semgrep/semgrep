@@ -386,11 +386,11 @@ let report_failure ~dry_run token ~scan_id (exit_code : Exit_code.t) : unit =
 (*****************************************************************************)
 
 (* for semgrep show identity *)
-let get_identity_async token _caps =
+let get_identity_async caps =
   let headers =
     [
       ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
-      Auth.auth_header_of_token token;
+      Auth.auth_header_of_token caps#token;
     ]
   in
   let url = Uri.with_path !Semgrep_envvars.v.semgrep_url identity_route in

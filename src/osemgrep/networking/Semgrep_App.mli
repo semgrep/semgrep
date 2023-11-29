@@ -68,7 +68,7 @@ val upload_rule_to_registry :
   Auth.token -> JSON.yojson -> (string, int * string) result
 
 val get_identity_async :
-  Auth.token -> < network : Cap.Network.t ; .. > -> string Lwt.t
+  < network : Cap.Network.t ; token : Auth.token ; .. > -> string Lwt.t
 
 (* lwt-friendly versions for the language-server *)
 
