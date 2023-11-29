@@ -116,7 +116,7 @@ let run_conf (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
       m "Semgrep Pro Engine will be installed in %s" !!pro_executable_path);
 
   (* This hook should only be set if this is currently the semgrep-proprietary binary *)
-  (match !Scan_subcommand.hook_pro_scan_func_for_osemgrep with
+  (match !Core_runner.hook_pro_scan_func_for_osemgrep with
   | Some _ ->
       Logs.app (fun m -> m "Overwriting Semgrep Pro Engine already installed!")
   | None -> ());

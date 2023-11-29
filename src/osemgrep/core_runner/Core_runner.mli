@@ -22,8 +22,6 @@ type result = {
   scanned : Fpath.t Set_.t;
 }
 
-val create_core_result : Rule.rule list -> Core_result.result_or_exn -> result
-
 (* similar to Core_scan.core_scan_func *)
 type scan_func_for_osemgrep =
   ?respect_git_ignore:bool ->
@@ -35,6 +33,17 @@ type scan_func_for_osemgrep =
   Rule.invalid_rule_error list ->
   Fpath.t list ->
   Core_result.result_or_exn
+
+(* Semgrep Pro hook for osemgrep *)
+val hook_pro_scan_func_for_osemgrep :
+  (Fpath.t list ->
+  ?diff_config:Differential_scan_config.t ->
+  Engine_type.t ->
+  scan_func_for_osemgrep)
+  option
+  ref
+
+val create_core_result : Rule.rule list -> Core_result.result_or_exn -> result
 
 (* Core_scan_func adapter to be used in osemgrep.
 

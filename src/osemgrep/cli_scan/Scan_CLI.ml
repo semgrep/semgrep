@@ -35,26 +35,15 @@ type conf = {
   rule_filtering_conf : Rule_filtering.conf;
   targeting_conf : Find_targets.conf;
   (* Other configuration options *)
-  nosem : bool;
-  autofix : bool;
-  dryrun : bool;
   error_on_findings : bool;
-  strict : bool;
   rewrite_rule_ids : bool;
   (* Engine selection *)
   engine_type : Engine_type.t;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;
-  (* Display options *)
-  (* mix of --json, --emacs, --vim, etc. *)
-  output_format : Output_format.t;
   (* file or URL (None means output to stdout) *)
   output : string option;
-  (* maybe should define an Output_option.t, or add a record to
-   * Output_format.Text *)
-  force_color : bool;
-  max_chars_per_line : int;
-  max_lines_per_finding : int;
+  output_conf : Output.conf;
   (* Networking options *)
   metrics : Metrics_.config;
   registry_caching : bool; (* similar to core_runner_conf.ast_caching *)
@@ -122,10 +111,7 @@ let default : conf =
          *)
         ast_caching = false;
       };
-    autofix = false;
-    dryrun = false;
     error_on_findings = false;
-    strict = false;
     (* could be move in CLI_common.default_conf? *)
     common =
       {
@@ -134,11 +120,8 @@ let default : conf =
         maturity = Maturity.Default;
       };
     engine_type = OSS;
-    output_format = Output_format.Text;
     output = None;
-    force_color = false;
-    max_chars_per_line = 160;
-    max_lines_per_finding = 10;
+    output_conf = Output.default;
     rewrite_rule_ids = true;
     (* will send metrics only if the user uses the registry or the app *)
     metrics = Metrics_.Auto;
@@ -150,7 +133,6 @@ let default : conf =
     show = None;
     validate = None;
     test = None;
-    nosem = true;
     ls = false;
   }
 
@@ -392,7 +374,7 @@ to 3 hours.|}
  *)
 let o_force_color : bool Term.t =
   H.negatable_flag_with_env [ "force-color" ] ~neg_options:[ "no-force-color" ]
-    ~default:default.force_color
+    ~default:default.output_conf.force_color
       (* TOPORT? need handle SEMGREP_COLOR_NO_COLOR or NO_COLOR
        * # https://no-color.org/
        *)
@@ -407,7 +389,7 @@ let o_max_chars_per_line : int Term.t =
     Arg.info [ "max-chars-per-line" ]
       ~doc:"Maximum number of characters to show per line."
   in
-  Arg.value (Arg.opt Arg.int default.max_chars_per_line info)
+  Arg.value (Arg.opt Arg.int default.output_conf.max_chars_per_line info)
 
 let o_max_lines_per_finding : int Term.t =
   let info =
@@ -417,7 +399,7 @@ let o_max_lines_per_finding : int Term.t =
         {|Maximum number of lines of code that will be shown for each match
 before trimming (set to 0 for unlimited).|}
   in
-  Arg.value (Arg.opt Arg.int default.max_lines_per_finding info)
+  Arg.value (Arg.opt Arg.int default.output_conf.max_lines_per_finding info)
 
 let o_dataflow_traces : bool Term.t =
   let info =
@@ -641,7 +623,7 @@ with --pattern. Only valid with a command-line specified pattern.
 
 let o_autofix : bool Term.t =
   H.negatable_flag [ "a"; "autofix" ] ~neg_options:[ "no-autofix" ]
-    ~default:default.autofix
+    ~default:default.output_conf.autofix
     ~doc:
       {|Apply autofix patches. WARNING: data loss can occur with this flag.
 Make sure your files are stored in a version control system. Note that
@@ -650,7 +632,7 @@ this mode is experimental and not guaranteed to function properly.
 
 let o_dryrun : bool Term.t =
   H.negatable_flag [ "dryrun" ] ~neg_options:[ "no-dryrun" ]
-    ~default:default.dryrun
+    ~default:default.output_conf.dryrun
     ~doc:
       {|If --dryrun, does not write autofixes to a file. This will print the
 changes to the console. This lets you see the changes before you commit to
@@ -771,7 +753,7 @@ let o_error : bool Term.t =
 
 let o_strict : bool Term.t =
   H.negatable_flag [ "strict" ] ~neg_options:[ "no-strict" ]
-    ~default:default.strict
+    ~default:default.output_conf.strict
     ~doc:
       {|Return a nonzero exit code when WARN level errors are encountered.
 Fails early if invalid configuration files are present.
@@ -889,8 +871,22 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       | _ when gitlab_sast -> Output_format.Gitlab_sast
       | _ when gitlab_secrets -> Output_format.Gitlab_secrets
       | _ when junit_xml -> Output_format.Junit_xml
-      | _else_ -> default.output_format
+      | _else_ -> default.output_conf.output_format
     in
+    let output_conf : Output.conf =
+      {
+        nosem;
+        autofix;
+        dryrun;
+        strict;
+        force_color;
+        output_format;
+        max_chars_per_line;
+        max_lines_per_finding;
+        logging_level = common.logging_level;
+      }
+    in
+
     let engine_type =
       (* This first bit just rules out mutually exclusive options. *)
       if oss && secrets then
@@ -1126,27 +1122,20 @@ let cmdline_term ~allow_empty_config : conf Term.t =
           m
             "Paths that match both --include and --exclude will be skipped by \
              Semgrep.");
-
     {
       rules_source;
       target_roots;
       rule_filtering_conf;
       targeting_conf;
       core_runner_conf;
-      autofix;
-      dryrun;
       error_on_findings = error;
-      force_color;
-      max_chars_per_line;
-      max_lines_per_finding;
       metrics;
       registry_caching;
       version_check;
-      output_format;
       output;
+      output_conf;
       engine_type;
       rewrite_rule_ids;
-      strict;
       common;
       (* ugly: *)
       version;
@@ -1154,7 +1143,6 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       validate;
       test;
       ls;
-      nosem;
     }
   in
   (* Term defines 'const' but also the '$' operator *)

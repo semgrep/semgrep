@@ -50,7 +50,7 @@ let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
       (* This is currently just ripped from Scan_subcommand. *)
       let scan_func =
         let pro_intrafile = session.user_settings.pro_intrafile in
-        match !Scan_subcommand.hook_pro_scan_func_for_osemgrep with
+        match !Core_runner.hook_pro_scan_func_for_osemgrep with
         | Some pro_scan_func when pro_intrafile ->
             (* THINK: files or folders? *)
             let roots = targets in

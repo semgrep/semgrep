@@ -74,6 +74,31 @@ type scan_func_for_osemgrep =
   Fpath.t list ->
   Core_result.result_or_exn
 
+(*****************************************************************************)
+(* To run a Pro scan (Deep scan and multistep scan) *)
+(*****************************************************************************)
+
+(* Semgrep Pro hook. Note that this is useful only for osemgrep. Indeed,
+ * for pysemgrep the code path is instead to fork the
+ * semgrep-core-proprietary program, which executes Pro_CLI_main.ml
+ * which then calls Run.ml code which is mostly a copy-paste of Core_scan.ml
+ * with the Pro scan specifities hard-coded (no need for hooks).
+ * We could do the same for osemgrep, but that would require to copy-paste
+ * lots of code, so simpler to use a hook instead.
+ *
+ * Note that Scan_subcommand.ml itself is linked in (o)semgrep-pro,
+ * and executed by osemgrep-pro. When linked from osemgrep-pro, this
+ * hook below will be set.
+ *)
+let (hook_pro_scan_func_for_osemgrep :
+      (Fpath.t list ->
+      ?diff_config:Differential_scan_config.t ->
+      Engine_type.t ->
+      scan_func_for_osemgrep)
+      option
+      ref) =
+  ref None
+
 (*************************************************************************)
 (* Extract mode *)
 (*************************************************************************)
