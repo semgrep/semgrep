@@ -124,7 +124,7 @@ let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
    *)
   | [ _ ]
   | [ _; "--experimental" ] ->
-      Help.print_help caps.process.stdout;
+      Help.print_help caps#stdout;
       Migration.abort_if_use_of_legacy_dot_semgrep_yml ();
       Exit_code.ok
   | [ _; ("-h" | "--help") ]
@@ -135,7 +135,7 @@ let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
    *)
   | [ _; ("-h" | "--help"); "--experimental" ]
   | [ _; "--experimental"; ("-h" | "--help") ] ->
-      Help.print_semgrep_dashdash_help caps.process.stdout;
+      Help.print_semgrep_dashdash_help caps#stdout;
       Exit_code.ok
   | argv0 :: args -> (
       let subcmd, subcmd_args =
@@ -265,7 +265,7 @@ let main (caps : Cap.all_caps) (argv : string array) : Exit_code.t =
    * > ignoring SIGXFSZ, continued attempts to increase the size of a file
    * > beyond the limit will fail with errno set to EFBIG.
    *)
-  CapSys.set_signal caps.process.signal Sys.sigxfsz Sys.Signal_ignore;
+  CapSys.set_signal caps#signal Sys.sigxfsz Sys.Signal_ignore;
 
   (* TODO? We used to tune the garbage collector but from profiling
      we found that the effect was small. Meanwhile, the memory

@@ -57,7 +57,7 @@ let dump_v_to_format ~json (v : OCaml.v) =
 
 let run (caps : Cap.all_caps) (conf : Show_CLI.conf) : Exit_code.t =
   ignore caps;
-  let stdout = caps.process.stdout in
+  let stdout = caps#stdout in
   match conf.show_kind with
   | Version ->
       CapConsole.out stdout Version.version;

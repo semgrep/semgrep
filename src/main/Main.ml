@@ -51,7 +51,7 @@
  *)
 let () =
   Cap.main (fun (caps : Cap.all_caps) ->
-      let argv = CapSys.argv caps.process.argv in
+      let argv = CapSys.argv caps#argv in
       match Filename.basename argv.(0) with
       (* osemgrep!! *)
       | "osemgrep.bc"
@@ -63,6 +63,6 @@ let () =
               (Exit_code.to_message exit_code)
               (Exit_code.to_int exit_code)
               (String.concat " " (Array.to_list argv));
-          CapStdlib.exit caps.process.exit (Exit_code.to_int exit_code)
+          CapStdlib.exit caps#exit (Exit_code.to_int exit_code)
       (* legacy semgrep-core *)
       | _ -> Core_CLI.main argv)
