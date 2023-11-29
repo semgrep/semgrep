@@ -3201,7 +3201,7 @@ let register_tmp_file_cleanup_hook f = Stack_.push f tmp_file_cleanup_hooks
 
 let with_tmp_dir f =
   let tmp_dir =
-    Filename.temp_file (spf "with-tmp-dir-%d" (UUnix.getpid ())) ""
+    UFilename.temp_file (spf "with-tmp-dir-%d" (UUnix.getpid ())) ""
   in
   UUnix.unlink tmp_dir;
   (* who cares about race *)
@@ -5642,7 +5642,7 @@ let with_pr2_to_string f =
 
 (* julia: convert something printed using format to print into a string *)
 let format_to_string f =
-  let nm, o = Filename.open_temp_file "format_to_s" ".out" in
+  let nm, o = UFilename.open_temp_file "format_to_s" ".out" in
   (* to avoid interference with other code using Format.printf, e.g.
    * Ounit.run_tt
    *)

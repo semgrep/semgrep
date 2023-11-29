@@ -86,7 +86,7 @@ let replace_named_pipe_by_regular_file_if_needed ?(prefix = "named-pipe")
         let data = read_file path in
         let suffix = "-" ^ Fpath.basename path in
         let tmp_path, oc =
-          Filename.open_temp_file
+          UFilename.open_temp_file
             ~mode:[ Open_creat; Open_excl; Open_wronly; Open_binary ]
             prefix suffix
         in

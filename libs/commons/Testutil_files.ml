@@ -163,7 +163,7 @@ let create_tempdir () =
     if n > 10 then
       failwith "Can't create a temporary test folder with a random name";
     let name = sprintf "test-%x" (Random.bits ()) in
-    let path = Filename.concat (Filename.get_temp_dir_name ()) name in
+    let path = Filename.concat (UFilename.get_temp_dir_name ()) name in
     if USys.file_exists path then loop (n + 1)
     else (
       UUnix.mkdir path 0o777;

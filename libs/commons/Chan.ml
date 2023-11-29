@@ -31,8 +31,8 @@
 
 (* alt: "in", but reserved keyword, and "in_" is ugly *)
 
-type i = { ic : In_channel.t; p : Fpath.t }
-type o = { oc : Out_channel.t; p : Fpath.t }
+type i = { ic : in_channel; p : Fpath.t }
+type o = { oc : out_channel; p : Fpath.t }
 
 (*****************************************************************************)
 (* API *)

@@ -2,5 +2,5 @@
 
 (* alt: we could make those types abstract *)
 
-type i = { ic : In_channel.t; p : Fpath.t }
-type o = { oc : Out_channel.t; p : Fpath.t }
+type i = { ic : in_channel; p : Fpath.t }
+type o = { oc : out_channel; p : Fpath.t }

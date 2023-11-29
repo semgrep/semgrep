@@ -185,7 +185,7 @@ let _temp_files_created = Hashtbl.create 101
 let new_temp_file prefix suffix =
   let pid = if !jsoo then 42 else UUnix.getpid () in
   let processid = i_to_s pid in
-  let tmp_file = Filename.temp_file (prefix ^ "-" ^ processid ^ "-") suffix in
+  let tmp_file = UFilename.temp_file (prefix ^ "-" ^ processid ^ "-") suffix in
   Hashtbl.add _temp_files_created tmp_file ();
   tmp_file
 
@@ -216,11 +216,11 @@ let dir_contents dir =
   let rec loop result = function
     | f :: fs -> (
         match f with
-        | f when not (Sys.file_exists f) ->
+        | f when not (USys.file_exists f) ->
             logger#error "%s does not exist anymore" f;
             loop result fs
-        | f when Sys.is_directory f ->
-            Sys.readdir f |> Array.to_list
+        | f when USys.is_directory f ->
+            USys.readdir f |> Array.to_list
             |> List_.map (Filename.concat f)
             |> List.append fs |> loop result
         | f -> loop (f :: result) fs)
@@ -237,7 +237,7 @@ let vcs_re =
 let files_of_dir_or_files_no_vcs_nofilter xs =
   xs
   |> List_.map (fun x ->
-         if Sys.is_directory x then
+         if USys.is_directory x then
            let files = dir_contents x in
            List.filter (fun x -> not (Re.execp vcs_re x)) files
          else [ x ])
