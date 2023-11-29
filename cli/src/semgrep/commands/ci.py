@@ -366,6 +366,11 @@ def ci(
         logger.info(f"Could not start scan {e}")
         sys.exit(FATAL_EXIT_CODE)
 
+    # Enable beta features
+    if scan_handler and scan_handler.generic_slow_rollout:
+        # slow rollout for pro diff scan
+        diff_depth = 2
+
     # Handled error outside engine type for more actionable advice.
     if run_secrets_flag and requested_engine is EngineType.OSS:
         logger.info(

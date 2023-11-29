@@ -600,11 +600,13 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                      ( Core_result.make_match_result [] errors
                          (Core_profiling.empty_partial_profiling file),
                        Scanned (Original file) )
-                 (* those were converted in Main_timeout in timeout_function()*)
-                 (* FIXME:
-                    Actually, I managed to get this assert to trigger by running
-                    semgrep -c p/default-v2 on elasticsearch with -timeout 0.01 ! *)
-                 | Time_limit.Timeout _ -> assert false
+                     (* those were converted in Main_timeout in timeout_function()*)
+                     (* FIXME:
+                        Actually, I managed to get this assert to trigger by running
+                        semgrep -c p/default-v2 on elasticsearch with -timeout 0.01 ! *)
+                 | Time_limit.Timeout _ ->
+                     failwith
+                       "Time limit exceeded (this shouldn't happen, FIXME)"
                  (* It would be nice to detect 'R.Err (R.InvalidRule _)' here
                   * for errors while parsing patterns. This exn used to be raised earlier
                   * in sanity_check_rules_and_invalid_rules(), but after
@@ -664,8 +666,9 @@ let xtarget_of_file ~parsing_cache_dir (xlang : Xlang.t) (file : Fpath.t) :
          match xlang with
          | L (lang, []) -> lang
          | L (_lang, _ :: _) ->
-             (* xlang from the language field in -target should be unique *)
-             assert false
+             failwith
+               "xlang from the language field in -target should be unique \
+                (this shouldn't happen FIXME)"
          | _ ->
              (* alt: could return an empty program, but better to be defensive*)
              failwith
