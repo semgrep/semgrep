@@ -114,7 +114,7 @@ let generate_ast_json file =
       let v1 = AST_generic_to_v1.program ast in
       let s = Ast_generic_v1_j.string_of_program v1 in
       let file = !!file ^ ".ast.json" |> Fpath.v in
-      File.write_file file s;
+      UFile.write_file file s;
       pr2 (spf "saved JSON output in %s" !!file)
   | [] -> failwith (spf "unsupported language for %s" !!file)
 [@@action]

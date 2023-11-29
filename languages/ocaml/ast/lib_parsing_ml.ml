@@ -22,7 +22,7 @@ open Fpath_.Operators
 (*****************************************************************************)
 
 let find_source_files_of_dir_or_files xs =
-  File.files_of_dirs_or_files_no_vcs_nofilter xs
+  UFile.files_of_dirs_or_files_no_vcs_nofilter xs
   |> List.filter (fun filename ->
          match File_type.file_type_of_file filename with
          | File_type.PL (File_type.OCaml ("ml" | "mli")) -> true
@@ -30,7 +30,7 @@ let find_source_files_of_dir_or_files xs =
   |> List_.sort
 
 let find_ml_files_of_dir_or_files xs =
-  File.files_of_dirs_or_files_no_vcs_nofilter xs
+  UFile.files_of_dirs_or_files_no_vcs_nofilter xs
   |> List.filter (fun filename ->
          match File_type.file_type_of_file filename with
          | File_type.PL (File_type.OCaml "ml") -> true
@@ -38,7 +38,7 @@ let find_ml_files_of_dir_or_files xs =
   |> List_.sort
 
 let find_cmt_files_of_dir_or_files (xs : Fpath.t list) : Fpath.t list =
-  File.files_of_dirs_or_files_no_vcs_nofilter xs
+  UFile.files_of_dirs_or_files_no_vcs_nofilter xs
   |> List.filter (fun filename ->
          match File_type.file_type_of_file filename with
          | File_type.Obj ("cmt" | "cmti") -> true

@@ -168,7 +168,8 @@ type target_handler = In.target -> RP.matches_single_file * was_scanned
    coupling: this functionality is implemented also in semgrep-python.
 *)
 let replace_named_pipe_by_regular_file path =
-  File.replace_named_pipe_by_regular_file_if_needed ~prefix:"semgrep-core-" path
+  UFile.replace_named_pipe_by_regular_file_if_needed ~prefix:"semgrep-core-"
+    path
 
 (*
    Sort targets by decreasing size. This is meant for optimizing
@@ -501,7 +502,7 @@ let rules_from_rule_source (config : Core_scan_config.t) :
   in
   match rule_source with
   | Some (Core_scan_config.Rule_file file) ->
-      logger#linfo (lazy (spf "Parsing %s:\n%s" !!file (File.read_file file)));
+      logger#linfo (lazy (spf "Parsing %s:\n%s" !!file (UFile.read_file file)));
       Parse_rule.parse_and_filter_invalid_rules ~rewrite_rule_ids:None file
   | Some (Core_scan_config.Rules rules) -> (rules, [])
   | None ->
@@ -681,7 +682,7 @@ let xtarget_of_file ~parsing_cache_dir (xlang : Xlang.t) (file : Fpath.t) :
   {
     Xtarget.file;
     xlang;
-    lazy_content = lazy (File.read_file file);
+    lazy_content = lazy (UFile.read_file file);
     lazy_ast_and_errors;
   }
 
@@ -746,7 +747,7 @@ let targets_of_config (config : Core_scan_config.t) :
         match target_source with
         | Targets x -> x
         | Target_file target_file ->
-            File.read_file target_file |> In.targets_of_string
+            UFile.read_file target_file |> In.targets_of_string
       in
       filter_existing_targets targets
 

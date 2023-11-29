@@ -175,7 +175,7 @@ let dump_parsing_errors file (res : Parsing_result2.t) =
 (* works with -lang *)
 let dump_pattern (file : Fpath.t) =
   let file = Core_scan.replace_named_pipe_by_regular_file file in
-  let s = File.read_file file in
+  let s = UFile.read_file file in
   (* mostly copy-paste of parse_pattern in runner, but with better error report *)
   let lang = Xlang.lang_of_opt_xlang_exn !lang in
   E.try_with_print_exn_and_reraise !!file (fun () ->

@@ -83,7 +83,7 @@ let recognise_and_collect ~rex line =
 let rule_match_nosem ~strict (rule_match : OutJ.cli_match) :
     bool * OutJ.cli_error list =
   let lines =
-    File.lines_of_file
+    UFile.lines_of_file
       (max 0 (rule_match.start.line - 1), rule_match.end_.line)
       rule_match.path
   in

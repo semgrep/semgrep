@@ -599,7 +599,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
     {
       Xtarget.file;
       xlang = rule.target_analyzer;
-      lazy_content = lazy (File.read_file file);
+      lazy_content = lazy (UFile.read_file file);
       lazy_ast_and_errors;
     }
   in

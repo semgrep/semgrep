@@ -25,10 +25,10 @@ let test_path_conversion () =
       let path = Rpath.of_string file in
       let max_len = 24 in
       assert (Rpath.to_string path = realpath file);
-      assert (Rpath.to_fpath path |> File.read_file = data);
-      assert (Rpath.to_fpath path |> File.cat = [ data ]);
+      assert (Rpath.to_fpath path |> UFile.read_file = data);
+      assert (Rpath.to_fpath path |> UFile.cat = [ data ]);
       assert (
-        File.read_file ~max_len (Rpath.to_fpath path)
+        UFile.read_file ~max_len (Rpath.to_fpath path)
         = Str.first_chars data max_len);
       assert (path |> Rpath.to_string |> Sys.file_exists);
       assert (path |> Rpath.to_string |> Sys.is_directory |> not))

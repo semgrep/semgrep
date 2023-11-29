@@ -452,7 +452,7 @@ let send_initialized info =
 
 let send_did_open info (path : Fpath.t) =
   let path = Fpath.to_string path in
-  let text = File.read_file (Fpath.v path) in
+  let text = UFile.read_file (Fpath.v path) in
   let textDocument =
     TextDocumentItem.create ~languageId:"python" ~version:1
       ~uri:(Uri.of_path path) ~text

@@ -322,13 +322,13 @@ let translate_files fparser xs =
       let rules =
         match FT.file_type_of_file file with
         | FT.Config FT.Json ->
-            File.read_file file |> JSON.json_of_string |> json_to_yaml
+            UFile.read_file file |> JSON.json_of_string |> json_to_yaml
         | FT.Config FT.Yaml ->
-            Yaml.of_string (File.read_file file) |> Result.get_ok
+            Yaml.of_string (UFile.read_file file) |> Result.get_ok
         | _ ->
             logger#error "wrong rule format, only JSON/YAML/JSONNET are valid";
             logger#info "trying to parse %s as YAML" !!file;
-            Yaml.of_string (File.read_file file) |> Result.get_ok
+            Yaml.of_string (UFile.read_file file) |> Result.get_ok
       in
       match rules with
       | `O [ ("rules", `A rules) ] ->

@@ -384,7 +384,7 @@ let regression_tests_for_lang ~polyglot_pattern_path files lang =
                | Ok file -> file
                | Error msg -> failwith msg
              in
-             let pattern = File.read_file sgrep_file in
+             let pattern = UFile.read_file sgrep_file in
 
              (* old: semgrep-core used to support user-defined
                 * equivalences, but the feature has been now deprecated.
@@ -476,7 +476,7 @@ let compare_fixes ~polyglot_pattern_path ~file matches =
       | Ok file -> file
       | Error msg -> failwith msg
     in
-    File.read_file expected_fixed_file
+    UFile.read_file expected_fixed_file
   in
   let matches_with_fixes = Autofix.produce_autofixes matches in
   let file = Fpath.to_string file in
@@ -496,12 +496,12 @@ let autofix_tests_for_lang ~polyglot_pattern_path files lang =
                | Ok file -> file
                | Error msg -> failwith msg
              in
-             let pattern = File.read_file sgrep_file in
+             let pattern = UFile.read_file sgrep_file in
              let fix =
                match
                  related_file_of_target ~polyglot_pattern_path ~ext:"fix" ~file
                with
-               | Ok fix_file -> Fix (File.read_file fix_file)
+               | Ok fix_file -> Fix (UFile.read_file fix_file)
                | Error _ -> (
                    (* A poor man's configuration format.
                       Either two or three lines.
@@ -512,7 +512,7 @@ let autofix_tests_for_lang ~polyglot_pattern_path files lang =
                        ~ext:"fix-regex" ~file
                    with
                    | Ok fix_regex_file -> (
-                       match File.cat fix_regex_file with
+                       match UFile.cat fix_regex_file with
                        | [ l1; l2 ] -> FixRegex (l1, None, l2)
                        | [ l1; l2; l3 ] ->
                            FixRegex (l1, Some (int_of_string l2), l3)
@@ -590,7 +590,7 @@ let test_irrelevant_rule rule_file target_file =
                (spf "Rule %s: no regex prefilter formula"
                   (Rule_ID.to_string (fst rule.id)))
          | Some (f, func) ->
-             let content = File.read_file target_file in
+             let content = UFile.read_file target_file in
              let s = Semgrep_prefilter_j.string_of_formula f in
              if func content then
                Alcotest.fail
@@ -702,7 +702,7 @@ let tainting_test lang rules_file file =
              {
                Xtarget.file;
                xlang = Xlang.L (lang, []);
-               lazy_content = lazy (File.read_file file);
+               lazy_content = lazy (UFile.read_file file);
                lazy_ast_and_errors = lazy (ast, []);
              }
            in

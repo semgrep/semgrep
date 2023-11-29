@@ -30,7 +30,7 @@ let test_maker dirs pass_or_fail =
                       | Error msg -> failwith msg
                     in
                     let correct =
-                      Y.from_string (File.read_file comparison_file_path)
+                      Y.from_string (UFile.read_file comparison_file_path)
                     in
 
                     let ast = Parse_jsonnet.parse_program file in
