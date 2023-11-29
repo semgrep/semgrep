@@ -31,4 +31,12 @@ defmodule Test do
     sink(x)
   end
 
+  def test5(c) do
+      x = y = "tainted"
+      #ruleid: taint-maturity
+      sink(x)
+      #ruleid: taint-maturity
+      sink(y)
+  end
+
 end
