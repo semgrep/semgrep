@@ -15,7 +15,7 @@ type status = {
  * if everthing went fine or log the error (using Logs) and
  * raise an Error otherwise
  *)
-val git_check_output : Bos.Cmd.t -> string
+val git_check_output : Cmd.args -> string
 
 (*
    This is incomplete. Git offer a variety of filters and subfilters,
