@@ -259,6 +259,11 @@ let mk_class_constructor_name (ty : G.type_) cons_id_info =
 let add_entity_name ctx ident =
   { entity_names = IdentSet.add (H.str_of_ident ident) ctx.entity_names }
 
+let def_expr_evaluates_to_value (lang:Lang.t) =
+  match lang with
+  | Elixir -> true
+  | _else_ -> false
+
 (*****************************************************************************)
 (* lvalue *)
 (*****************************************************************************)
@@ -1100,7 +1105,8 @@ and stmt_expr env ?e_gen st =
   | G.Return (t, eorig, _) ->
       mk_s (Return (t, expr_opt env eorig)) |> add_stmt env;
       expr_opt env None
-  | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = _typTODO }) ->
+  | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = _typTODO })
+    when def_expr_evaluates_to_value env.lang ->
       let e = expr env e in
       let lv = lval_of_ent env ent in
       mk_i (Assign (lv, e)) (Related (G.S st)) |> add_instr env;
