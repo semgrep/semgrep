@@ -126,7 +126,7 @@ let run (conf : Login_CLI.conf) : Exit_code.t =
   match settings.Semgrep_settings.api_token with
   | None -> (
       match !Semgrep_envvars.v.app_token with
-      | Some token when String.length token > 0 ->
+      | Some token when String.length (Auth.string_of_token token) > 0 ->
           save_token token ~display_name:None
       | None when String.length conf.one_time_seed > 0 ->
           let shared_secret = Uuidm.v5 Uuidm.nil conf.one_time_seed in

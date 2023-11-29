@@ -10,7 +10,7 @@
 (* TODO: use ATD to specify the settings file format *)
 type t = {
   has_shown_metrics_notification : bool option;
-  api_token : string option;
+  api_token : Auth.token option;
   anonymous_user_id : Uuidm.t;
 }
 
@@ -45,7 +45,9 @@ let of_yaml = function
       let* api_token =
         Option.fold ~none:(Ok None)
           ~some:(function
-            | `String s -> Ok (Some s)
+            | `String s ->
+                let token = Auth.unsafe_token_of_string s in
+                Ok (Some token)
             | _else -> Error (`Msg "api token not a string"))
           api_token
       in
@@ -69,7 +71,7 @@ let to_yaml { has_shown_metrics_notification; api_token; anonymous_user_id } =
      | Some v -> [ ("has_shown_metrics_notification", `Bool v) ])
     @ (match api_token with
       | None -> []
-      | Some v -> [ ("api_token", `String v) ])
+      | Some v -> [ ("api_token", `String (Auth.string_of_token v)) ])
     @ [ ("anonymous_user_id", `String (Uuidm.to_string anonymous_user_id)) ])
 
 (*****************************************************************************)
