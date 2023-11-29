@@ -15,7 +15,6 @@ from dataclasses import replace
 from typing import Dict
 from typing import List
 from typing import Optional
-from typing import Set
 from typing import Tuple
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
@@ -191,15 +190,17 @@ def core_matches_to_rule_matches(
             fix=fix,
         )
 
+    by_unique_key: Dict[Tuple, RuleMatch] = {}
+    for match in res.results:
+        rule_match = convert_to_rule_match(match)
+        curr = by_unique_key.setdefault(rule_match.cli_unique_key, rule_match)
+        if rule_match.should_report_instead(curr):
+            by_unique_key[rule_match.cli_unique_key] = rule_match
+
     # TODO: Dict[out.RuleId, RuleMatchSet]
     findings: Dict[Rule, RuleMatchSet] = {rule: RuleMatchSet(rule) for rule in rules}
-    seen_cli_unique_keys: Set[Tuple] = set()
-    for match in res.results:
-        rule = rule_table[match.check_id.value]
-        rule_match = convert_to_rule_match(match)
-        if rule_match.cli_unique_key in seen_cli_unique_keys:
-            continue
-        seen_cli_unique_keys.add(rule_match.cli_unique_key)
+    for rule_match in by_unique_key.values():
+        rule = rule_table[rule_match.rule_id]
         findings[rule].add(rule_match)
 
     # Sort results so as to guarantee the same results across different

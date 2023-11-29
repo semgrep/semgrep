@@ -228,14 +228,27 @@ class RuleMatch:
             # if self.match.extra.dataflow_trace
             # else None,
             None,
-            # TODO: it may be better to instead consider the validator with
-            # metavariables interpolated in, as this gives a greater picture of
-            # the differences in validation (different validation attempts
-            # would then be considered different, rather than only outcomes).
-            # However, this would require us to carry much more information
-            # about the rule around with the match, so I've gone for a simpler
-            # option here.
-            self.match.extra.validation_state,
+            # NOTE: previously, we considered self.match.extra.validation_state
+            # here, but since in some cases (e.g., with `anywhere`) we generate
+            # many matches in certain cases, we want to consider secrets
+            # matches unique under the above set of things, but with a priority
+            # associated with the validation state; i.e., a match with a
+            # confirmed valid state should replace all matches equal under the
+            # above key. We can't do that just by not considering validation
+            # state since we would pick one arbitrarily, and if we added it
+            # below then we would report _both_ valid and invalid (but we only
+            # want to report valid, if a valid one is present and unique per
+            # above fields). See also `should_report_instead`.
+        )
+
+    def should_report_instead(self, other: "RuleMatch") -> bool:
+        """
+        Returns True iff we should report `self` in lieu of reporting `other`.
+
+        Assumes that self.cli_unique_key == other.cli_unique_key
+        """
+        return isinstance(self.validation_state, out.ConfirmedValid) and not isinstance(
+            other.validation_state, out.ConfirmedValid
         )
 
     @ci_unique_key.default
