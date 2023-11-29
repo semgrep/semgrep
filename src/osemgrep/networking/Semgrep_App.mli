@@ -67,7 +67,8 @@ val report_failure :
 val upload_rule_to_registry :
   token:Auth.token -> JSON.yojson -> (string, int * string) result
 
-val get_identity_async : token:Auth.token -> string Lwt.t
+val get_identity_async :
+  token:Auth.token -> < network : Cap.Network.t ; .. > -> string Lwt.t
 
 (* lwt-friendly versions for the language-server *)
 

@@ -1,4 +1,4 @@
-type caps = < stdout : Cap.Console.stdout >
+type caps = < stdout : Cap.Console.stdout ; network : Cap.Network.t >
 
 (*
    Parse a semgrep-show command, execute it and exit.

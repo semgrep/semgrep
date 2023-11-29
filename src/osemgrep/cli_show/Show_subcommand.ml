@@ -19,7 +19,7 @@ module J = JSON
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type caps = < stdout : Cap.Console.stdout >
+type caps = < stdout : Cap.Console.stdout ; network : Cap.Network.t >
 
 (*****************************************************************************)
 (* Helpers *)
@@ -68,8 +68,8 @@ let run (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
       CapConsole.out stdout Version.version;
       (* TODO? opportunity to perform version-check? *)
       Exit_code.ok
-  | Identity -> Whoami.print Whoami.Identity
-  | Deployment -> Whoami.print Whoami.Deployment
+  | Identity -> Whoami.print caps Whoami.Identity
+  | Deployment -> Whoami.print caps Whoami.Deployment
   | SupportedLanguages ->
       CapConsole.out stdout
         (spf "supported languages are: %s" Xlang.supported_xlangs);

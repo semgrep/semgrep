@@ -389,7 +389,7 @@ let report_failure ~dry_run ~token ~scan_id (exit_code : Exit_code.t) : unit =
 (*****************************************************************************)
 
 (* for semgrep show identity *)
-let get_identity_async ~token =
+let get_identity_async ~token _caps =
   let headers =
     [
       ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
