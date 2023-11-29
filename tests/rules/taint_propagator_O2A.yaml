@@ -1,0 +1,15 @@
+rules:
+  - id: test
+    message: Test
+    languages: [cpp]
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - pattern: source()
+    pattern-sinks:
+      - pattern: sink(...)
+    pattern-propagators:
+      - pattern: $FROM >> $TO
+        from: $FROM
+        to: $TO
+        by-side-effect: true

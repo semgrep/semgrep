@@ -1,0 +1,23 @@
+rules:
+  - id: test
+    message: Test
+    languages: [c]
+    severity: ERROR
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern: |
+              int main(int $ARGC, char **$ARGV) {
+                ...
+              }
+          - focus-metavariable: $ARGV
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: mysql_query($ARG1, $SINK)
+          - focus-metavariable: $SINK
+    pattern-propagators:
+      - by-side-effect: true
+        pattern: strcat($TO, $FROM)
+        from: $FROM
+        to: $TO
