@@ -179,7 +179,8 @@ let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
         (* osemgrep-only: and by default! no need experimental! *)
         | "install-ci" -> Install_subcommand.main subcmd_argv
         | "interactive" -> Interactive_subcommand.main subcmd_argv
-        | "show" -> Show_subcommand.main caps subcmd_argv
+        | "show" ->
+            Show_subcommand.main (caps :> Show_subcommand.caps) subcmd_argv
         (* LATER: "test" *)
         | _else_ ->
             if experimental then

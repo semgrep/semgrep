@@ -17,6 +17,11 @@ module J = JSON
  *)
 
 (*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+type caps = < stdout : Cap.Console.stdout >
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
@@ -55,7 +60,7 @@ let dump_v_to_format ~json (v : OCaml.v) =
 (* Main logic *)
 (*****************************************************************************)
 
-let run (caps : Cap.all_caps) (conf : Show_CLI.conf) : Exit_code.t =
+let run (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
   ignore caps;
   let stdout = caps#stdout in
   match conf.show_kind with
@@ -111,6 +116,6 @@ let run (caps : Cap.all_caps) (conf : Show_CLI.conf) : Exit_code.t =
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let main (caps : Cap.all_caps) (argv : string array) : Exit_code.t =
+let main (caps : caps) (argv : string array) : Exit_code.t =
   let conf = Show_CLI.parse_argv argv in
   run caps conf
