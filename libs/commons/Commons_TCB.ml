@@ -15,7 +15,6 @@ module Out = struct end
 
 (* deprecated anyway, we should not use it *)
 module Common2 = struct end
-module UCmd = Bos.OS.Cmd
 
 (* use Cmd instead and CapExec *)
 module Bos = struct end

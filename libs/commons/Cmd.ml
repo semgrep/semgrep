@@ -5,14 +5,20 @@
  *
  * alt: we could have called it Cmd_, to be consistent with our other
  * extended modules, but Cmd is not used, and there is no ambiguity with
- * Bos.Cmd so Cmd.ml it is
+ * Bos.Cmd so Cmd.ml it is.
  *)
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
-type t = Bos.Cmd.t
+type name = Name of string
+type args = string list
+type t = name * args
+
+let to_cmd (Name str, args) = Bos.Cmd.(v str %% of_list args)
+let bos_apply f x = f (to_cmd x)
+let to_string = bos_apply Bos.Cmd.to_string
 
 (*****************************************************************************)
 (* API *)
@@ -22,13 +28,14 @@ type t = Bos.Cmd.t
  * to use CapExec.ml)
  *)
 
+(*
 let empty = Bos.Cmd.empty
 let of_list = Bos.Cmd.of_list
-let to_string = Bos.Cmd.to_string
 let pp = Bos.Cmd.pp
 let v = Bos.Cmd.v
 let ( % ) = Bos.Cmd.( % )
 let ( %% ) = Bos.Cmd.( %% )
+*)
 
 (* FORBIDDEN:
  *  - ??
