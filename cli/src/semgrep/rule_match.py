@@ -247,9 +247,13 @@ class RuleMatch:
 
         Assumes that self.cli_unique_key == other.cli_unique_key
         """
-        return isinstance(self.validation_state, out.ConfirmedValid) and not isinstance(
-            other.validation_state, out.ConfirmedValid
-        )
+        if self.validation_state is None:
+            return False
+        if other.validation_state is None:
+            return True
+        return isinstance(
+            self.validation_state.value, out.ConfirmedValid
+        ) and not isinstance(other.validation_state.value, out.ConfirmedValid)
 
     @ci_unique_key.default
     def get_ci_unique_key(self) -> Tuple:
