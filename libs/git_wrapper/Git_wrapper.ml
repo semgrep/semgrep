@@ -98,8 +98,8 @@ let getcwd () = USys.getcwd () |> Fpath.v
 *)
 let cd opt_cwd =
   match opt_cwd with
-  | None -> Bos.Cmd.empty
-  | Some path -> Bos.Cmd.of_list [ "-C"; !!path ]
+  | None -> Cmd.empty
+  | Some path -> Cmd.of_list [ "-C"; !!path ]
 
 (** Given some git diff ranges (see above), extract the range info *)
 let range_of_git_diff lines =
@@ -133,9 +133,9 @@ let range_of_git_diff lines =
 (* Entry points *)
 (*****************************************************************************)
 
-let git_check_output (cmd : Bos.Cmd.t) : string =
-  let out = Bos.OS.Cmd.run_out cmd in
-  match Bos.OS.Cmd.out_string ~trim:true out with
+let git_check_output (cmd : Cmd.t) : string =
+  let out = UCmd.run_out cmd in
+  match UCmd.out_string ~trim:true out with
   | Ok (str, (_, `Exited 0)) -> str
   | Ok _
   | Error (`Msg _) ->
@@ -150,7 +150,7 @@ Failed to run %a. Possible reasons:
 
 Try running the command yourself to debug the issue.|}
       in
-      Logs.warn (fun m -> m fmt Bos.Cmd.pp cmd);
+      Logs.warn (fun m -> m fmt Cmd.pp cmd);
       raise (Error "Error when we run a git command")
 
 type ls_files_kind =
@@ -163,12 +163,12 @@ let string_of_ls_files_kind (kind : ls_files_kind) =
   | Others -> "--others"
 
 let ls_files ?(cwd = Fpath.v ".") ?(kinds = []) root_paths =
-  let roots = root_paths |> List_.map Fpath.to_string |> Bos.Cmd.of_list in
-  let kinds = kinds |> List_.map string_of_ls_files_kind |> Bos.Cmd.of_list in
-  let cmd = Bos.Cmd.(v "git" % "-C" % !!cwd % "ls-files" %% kinds %% roots) in
-  Logs.info (fun m -> m "Running external command: %s" (Bos.Cmd.to_string cmd));
-  let files_r = Bos.OS.Cmd.run_out cmd in
-  let results = Bos.OS.Cmd.out_lines ~trim:true files_r in
+  let roots = root_paths |> List_.map Fpath.to_string |> Cmd.of_list in
+  let kinds = kinds |> List_.map string_of_ls_files_kind |> Cmd.of_list in
+  let cmd = Cmd.(v "git" % "-C" % !!cwd % "ls-files" %% kinds %% roots) in
+  Logs.info (fun m -> m "Running external command: %s" (Cmd.to_string cmd));
+  let files_r = UCmd.run_out cmd in
+  let results = UCmd.out_lines ~trim:true files_r in
   let files =
     match results with
     | Ok (files, (_, `Exited 0)) -> files
@@ -177,20 +177,19 @@ let ls_files ?(cwd = Fpath.v ".") ?(kinds = []) root_paths =
   files |> Fpath_.of_strings
 
 let get_project_root ?cwd () =
-  let cmd = Bos.Cmd.(v "git" %% cd cwd % "rev-parse" % "--show-toplevel") in
-  let path_r = Bos.OS.Cmd.run_out cmd in
-  let result = Bos.OS.Cmd.out_string ~trim:true path_r in
+  let cmd = Cmd.(v "git" %% cd cwd % "rev-parse" % "--show-toplevel") in
+  let path_r = UCmd.run_out cmd in
+  let result = UCmd.out_string ~trim:true path_r in
   match result with
   | Ok (path, (_, `Exited 0)) -> Some (Fpath.v path)
   | _ -> None
 
 let get_superproject_root ?cwd () =
   let cmd =
-    Bos.Cmd.(
-      v "git" %% cd cwd % "rev-parse" % "--show-superproject-working-tree")
+    Cmd.(v "git" %% cd cwd % "rev-parse" % "--show-superproject-working-tree")
   in
-  let path_r = Bos.OS.Cmd.run_out cmd in
-  let result = Bos.OS.Cmd.out_string ~trim:true path_r in
+  let path_r = UCmd.run_out cmd in
+  let result = UCmd.out_string ~trim:true path_r in
   match result with
   | Ok ("", (_, `Exited 0)) -> get_project_root ?cwd ()
   | Ok (path, (_, `Exited 0)) -> Some (Fpath.v path)
@@ -202,9 +201,9 @@ let get_project_root_exn () =
   | _ -> raise (Error "Could not get git root from git rev-parse")
 
 let get_merge_base commit =
-  let cmd = Bos.Cmd.(v "git" % "merge-base" % commit % "HEAD") in
-  let base_r = Bos.OS.Cmd.run_out cmd in
-  let results = Bos.OS.Cmd.out_string ~trim:true base_r in
+  let cmd = Cmd.(v "git" % "merge-base" % commit % "HEAD") in
+  let base_r = UCmd.run_out cmd in
+  let results = UCmd.out_string ~trim:true base_r in
   match results with
   | Ok (merge_base, (_, `Exited 0)) -> merge_base
   | _ -> raise (Error "Could not get merge base from git merge-base")
@@ -227,12 +226,12 @@ let run_with_worktree ~commit ?(branch = None) f =
   let temp_dir = rand_dir () in
   let cmd =
     match branch with
-    | None -> Bos.Cmd.(v "git" % "worktree" % "add" % temp_dir % commit)
+    | None -> Cmd.(v "git" % "worktree" % "add" % temp_dir % commit)
     | Some new_branch ->
-        Bos.Cmd.(
+        Cmd.(
           v "git" % "worktree" % "add" % temp_dir % commit % "-b" % new_branch)
   in
-  let status = Bos.OS.Cmd.run_status ~quiet:true cmd in
+  let status = UCmd.run_status ~quiet:true cmd in
   match status with
   | Ok (`Exited 0) ->
       let work () =
@@ -242,8 +241,8 @@ let run_with_worktree ~commit ?(branch = None) f =
       in
       let cleanup () =
         cwd |> Fpath.to_string |> UUnix.chdir;
-        let cmd = Bos.Cmd.(v "git" % "worktree" % "remove" % temp_dir) in
-        let status = Bos.OS.Cmd.run_status ~quiet:true cmd in
+        let cmd = Cmd.(v "git" % "worktree" % "remove" % temp_dir) in
+        let status = UCmd.run_status ~quiet:true cmd in
         match status with
         | Ok (`Exited 0) -> logger#info "Finished cleaning up git worktree"
         | Ok _ -> raise (Error ("Could not remove git worktree at " ^ temp_dir))
@@ -255,13 +254,13 @@ let run_with_worktree ~commit ?(branch = None) f =
 
 let status ~cwd ~commit =
   let cmd =
-    Bos.Cmd.(
+    Cmd.(
       v "git" % "-C" % !!cwd % "diff" % "--cached" % "--name-status"
       % "--no-ext-diff" % "-z" % "--diff-filter=ACDMRTUXB"
       % "--ignore-submodules" % "--relative" % commit)
   in
-  let files_r = Bos.OS.Cmd.run_out cmd in
-  let results = Bos.OS.Cmd.out_string ~trim:true files_r in
+  let files_r = UCmd.run_out cmd in
+  let results = UCmd.out_string ~trim:true files_r in
   let stats =
     match results with
     | Ok (str, (_, `Exited 0)) -> str |> String.split_on_char '\000'
@@ -333,9 +332,9 @@ let status ~cwd ~commit =
 
 let is_git_repo cwd =
   let cmd =
-    Bos.Cmd.(v "git" % "-C" % !!cwd % "rev-parse" % "--is-inside-work-tree")
+    Cmd.(v "git" % "-C" % !!cwd % "rev-parse" % "--is-inside-work-tree")
   in
-  let run = Bos.OS.Cmd.run_status ~quiet:true cmd in
+  let run = UCmd.run_status ~quiet:true cmd in
   match run with
   | Ok (`Exited 0) -> true
   | Ok _ -> false
@@ -345,17 +344,17 @@ let dirty_lines_of_file ?(git_ref = "HEAD") file =
   let cwd = Fpath.parent file in
   let cmd =
     (* --error-unmatch Returns a non 0 exit code if a file is not tracked by git. This way further on in this function we don't try running git diff on untracked files, as this isn't allowed. *)
-    Bos.Cmd.(v "git" % "-C" % !!cwd % "ls-files" % "--error-unmatch" % !!file)
+    Cmd.(v "git" % "-C" % !!cwd % "ls-files" % "--error-unmatch" % !!file)
   in
-  let status = Bos.OS.Cmd.run_status ~quiet:true cmd in
+  let status = UCmd.run_status ~quiet:true cmd in
   match (status, git_ref = "HEAD") with
   | _, false
   | Ok (`Exited 0), _ ->
       let cmd =
-        Bos.Cmd.(v "git" % "-C" % !!cwd % "diff" % "-U0" % git_ref % !!file)
+        Cmd.(v "git" % "-C" % !!cwd % "diff" % "-U0" % git_ref % !!file)
       in
-      let out = Bos.OS.Cmd.run_out cmd in
-      let lines_r = Bos.OS.Cmd.out_string ~trim:true out in
+      let out = UCmd.run_out cmd in
+      let lines_r = UCmd.out_string ~trim:true out in
       let lines =
         match lines_r with
         | Ok (lines, (_, `Exited 1))
@@ -371,9 +370,9 @@ let dirty_lines_of_file ?(git_ref = "HEAD") file =
 let is_tracked_by_git file =
   let cwd = Fpath.parent file in
   let cmd =
-    Bos.Cmd.(v "git" % "-C" % !!cwd % "ls-files" % "--error-unmatch" % !!file)
+    Cmd.(v "git" % "-C" % !!cwd % "ls-files" % "--error-unmatch" % !!file)
   in
-  let status = Bos.OS.Cmd.run_status ~quiet:true cmd in
+  let status = UCmd.run_status ~quiet:true cmd in
   match status with
   | Ok (`Exited 0) -> true
   | Ok _ -> false
@@ -381,11 +380,11 @@ let is_tracked_by_git file =
 
 let dirty_files cwd =
   let cmd =
-    Bos.Cmd.(
+    Cmd.(
       v "git" % "-C" % !!cwd % "status" % "--porcelain" % "--ignore-submodules")
   in
-  let lines_r = Bos.OS.Cmd.run_out cmd in
-  let lines = Bos.OS.Cmd.out_lines ~trim:false lines_r in
+  let lines_r = UCmd.run_out cmd in
+  let lines = UCmd.out_lines ~trim:false lines_r in
   let lines =
     match lines with
     | Ok (lines, (_, `Exited 0)) -> lines
@@ -397,22 +396,22 @@ let dirty_files cwd =
   files
 
 let init cwd =
-  let cmd = Bos.Cmd.(v "git" % "-C" % !!cwd % "init") in
-  match Bos.OS.Cmd.run_status cmd with
+  let cmd = Cmd.(v "git" % "-C" % !!cwd % "init") in
+  match UCmd.run_status cmd with
   | Ok (`Exited 0) -> ()
   | _ -> raise (Error "Error running git init")
 
 let add cwd files =
   let files = List_.map Fpath.to_string files in
   let files = String.concat " " files in
-  let cmd = Bos.Cmd.(v "git" % "-C" % !!cwd % "add" % files) in
-  match Bos.OS.Cmd.run_status cmd with
+  let cmd = Cmd.(v "git" % "-C" % !!cwd % "add" % files) in
+  match UCmd.run_status cmd with
   | Ok (`Exited 0) -> ()
   | _ -> raise (Error "Error running git add")
 
 let commit cwd msg =
-  let cmd = Bos.Cmd.(v "git" % "-C" % !!cwd % "commit" % "-m" % msg) in
-  match Bos.OS.Cmd.run_status cmd with
+  let cmd = Cmd.(v "git" % "-C" % !!cwd % "commit" % "-m" % msg) in
+  match UCmd.run_status cmd with
   | Ok (`Exited 0) -> ()
   | Ok (`Exited i) ->
       raise (Error (Common.spf "Error running git commit: bad exit %d" i))
@@ -423,9 +422,9 @@ let commit cwd msg =
 
 (* TODO: should return Uri.t option *)
 let get_project_url () : string option =
-  let cmd = Bos.Cmd.(v "git" % "ls-remote" % "--get-url") in
-  let out = Bos.OS.Cmd.run_out cmd in
-  match Bos.OS.Cmd.out_string ~trim:true out with
+  let cmd = Cmd.(v "git" % "ls-remote" % "--get-url") in
+  let out = UCmd.run_out cmd in
+  match UCmd.out_string ~trim:true out with
   | Ok (url, _) -> Some url
   | Error _ ->
       UFile.find_first_match_with_whole_line (Fpath.v ".git/config") ".com"
@@ -452,13 +451,13 @@ let time_to_str (timestamp : float) : string =
 let get_git_logs ?(since = None) () : string list =
   let cmd =
     match since with
-    | None -> Bos.Cmd.(v "git" % "log" % git_log_json_format)
+    | None -> Cmd.(v "git" % "log" % git_log_json_format)
     | Some time ->
         let after = spf "--after=\"%s\"" (time_to_str time) in
-        Bos.Cmd.(v "git" % "log" % after % git_log_json_format)
+        Cmd.(v "git" % "log" % after % git_log_json_format)
   in
-  let lines_r = Bos.OS.Cmd.run_out cmd in
-  let lines = Bos.OS.Cmd.out_lines ~trim:true lines_r in
+  let lines_r = UCmd.run_out cmd in
+  let lines = UCmd.out_lines ~trim:true lines_r in
   let lines =
     match lines with
     (* ugly: we should parse those lines and return a proper type,
