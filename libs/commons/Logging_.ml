@@ -13,7 +13,7 @@
    TODO? could move setup in commons/Logging.ml
 *)
 
-open File.Operators
+open Fpath_.Operators
 
 let logger = Logging.get_logger [ __MODULE__ ]
 

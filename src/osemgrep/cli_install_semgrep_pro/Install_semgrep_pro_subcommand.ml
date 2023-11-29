@@ -12,7 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open File.Operators
+open Fpath_.Operators
 module Out = Semgrep_output_v1_j
 module Http_helpers = Http_helpers.Make (Lwt_platform)
 

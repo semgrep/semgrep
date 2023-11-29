@@ -1,10 +1,10 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module Y = Yojson.Basic
 
 let dir_pass =
   [ "tests/jsonnet/eval_pass"; "tests/jsonnet/tutorial_tests/pass" ]
-  |> File.Path.of_strings
+  |> Fpath_.of_strings
 
 let related_file_of_target ~ext ~file =
   let dirname, basename, _e = Common2.dbe_of_filename !!file in
@@ -20,7 +20,7 @@ let test_maker dirs pass_or_fail =
   dirs
   |> List_.map (fun dir ->
          Common2.glob (spf "%s/*%s" !!dir "jsonnet")
-         |> File.Path.of_strings
+         |> Fpath_.of_strings
          |> List_.map (fun file ->
                 ( Fpath.basename file,
                   fun () ->

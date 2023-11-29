@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 module R = Rule
 module RP = Core_result
 module Resp = Semgrep_output_v1_t

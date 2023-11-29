@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 module D = Dataflow_tainting
 module Var_env = Dataflow_var_env
 module G = AST_generic

@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module Flag = Flag_parsing
 
 (*****************************************************************************)
@@ -20,7 +20,7 @@ let test_tokens_lisp file =
   ()
 
 let test_parse_lisp xs =
-  let xs = File.Path.of_strings xs in
+  let xs = Fpath_.of_strings xs in
   let fullxs = Lib_parsing_lisp.find_source_files_of_dir_or_files xs in
   let stat_list = ref [] in
 

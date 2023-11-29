@@ -13,7 +13,7 @@
  *
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 module Flag = Flag_parsing
 module PS = Parsing_stat
 module FT = File_type

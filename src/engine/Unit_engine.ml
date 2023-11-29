@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 open Testutil
 module R = Rule
 module MR = Mini_rule
@@ -112,9 +112,8 @@ let pack_tests_for_lang
   pack_tests
     (spf "semgrep %s" (Lang.show lang))
     (let dir = test_pattern_path / dir in
-     let files =
-       Common2.glob (spf "%s/*%s" !!dir ext) |> File.Path.of_strings
-     in
+     let files = Common2.glob (spf "%s/*%s" !!dir ext) |> Fpath_.of_strings in
+
      lang_test_fn ~polyglot_pattern_path files lang)
 
 (*****************************************************************************)
@@ -435,15 +434,15 @@ let lang_regression_tests ~polyglot_pattern_path =
          let files = Common2.glob (spf "%s/*.js" !!dir) in
          let files =
            List_.exclude (fun s -> s =~ ".*xml" || s =~ ".*jsx") files
-           |> File.Path.of_strings
+           |> Fpath_.of_strings
          in
+
          let lang = Lang.Ts in
          regression_tests_for_lang ~polyglot_pattern_path files lang);
       pack_tests "semgrep C++ on C tests"
         (let dir = test_pattern_path / "c" in
-         let files =
-           Common2.glob (spf "%s/*.c" !!dir) |> File.Path.of_strings
-         in
+         let files = Common2.glob (spf "%s/*.c" !!dir) |> Fpath_.of_strings in
+
          let lang = Lang.Cpp in
          regression_tests_for_lang ~polyglot_pattern_path files lang);
     ]
@@ -624,7 +623,7 @@ let filter_irrelevant_rules_tests () =
     (let dir = tests_path / "irrelevant_rules" in
      let target_files =
        Common2.glob (spf "%s/*" !!dir)
-       |> File.Path.of_strings
+       |> Fpath_.of_strings
        |> File_type.files_of_dirs_or_files (function
             | File_type.Config File_type.Yaml -> false
             | _ -> true (* TODO include .test.yaml*))
@@ -757,58 +756,54 @@ let lang_tainting_tests () =
     [
       pack_tests "tainting Go"
         (let dir = taint_tests_path / "go" in
-         let files =
-           Common2.glob (spf "%s/*.go" !!dir) |> File.Path.of_strings
-         in
+         let files = Common2.glob (spf "%s/*.go" !!dir) |> Fpath_.of_strings in
+
          let lang = Lang.Go in
          tainting_tests_for_lang files lang);
       pack_tests "tainting PHP"
         (let dir = taint_tests_path / "php" in
-         let files =
-           Common2.glob (spf "%s/*.php" !!dir) |> File.Path.of_strings
-         in
+         let files = Common2.glob (spf "%s/*.php" !!dir) |> Fpath_.of_strings in
+
          let lang = Lang.Php in
          tainting_tests_for_lang files lang);
       pack_tests "tainting Python"
         (let dir = taint_tests_path / "python" in
-         let files =
-           Common2.glob (spf "%s/*.py" !!dir) |> File.Path.of_strings
-         in
+         let files = Common2.glob (spf "%s/*.py" !!dir) |> Fpath_.of_strings in
+
          let lang = Lang.Python in
          tainting_tests_for_lang files lang);
       pack_tests "tainting Java"
         (let dir = taint_tests_path / "java" in
          let files =
-           Common2.glob (spf "%s/*.java" !!dir) |> File.Path.of_strings
+           Common2.glob (spf "%s/*.java" !!dir) |> Fpath_.of_strings
          in
+
          let lang = Lang.Java in
          tainting_tests_for_lang files lang);
       pack_tests "tainting Javascript"
         (let dir = taint_tests_path / "js" in
-         let files =
-           Common2.glob (spf "%s/*.js" !!dir) |> File.Path.of_strings
-         in
+         let files = Common2.glob (spf "%s/*.js" !!dir) |> Fpath_.of_strings in
+
          let lang = Lang.Js in
          tainting_tests_for_lang files lang);
       pack_tests "tainting Ruby"
         (let dir = taint_tests_path / "ruby" in
-         let files =
-           Common2.glob (spf "%s/*.rb" !!dir) |> File.Path.of_strings
-         in
+         let files = Common2.glob (spf "%s/*.rb" !!dir) |> Fpath_.of_strings in
+
          let lang = Lang.Ruby in
          tainting_tests_for_lang files lang);
       pack_tests "tainting Typescript"
         (let dir = taint_tests_path / "ts" in
-         let files =
-           Common2.glob (spf "%s/*.ts" !!dir) |> File.Path.of_strings
-         in
+         let files = Common2.glob (spf "%s/*.ts" !!dir) |> Fpath_.of_strings in
+
          let lang = Lang.Ts in
          tainting_tests_for_lang files lang);
       pack_tests "tainting Scala"
         (let dir = taint_tests_path / "scala" in
          let files =
-           Common2.glob (spf "%s/*.scala" !!dir) |> File.Path.of_strings
+           Common2.glob (spf "%s/*.scala" !!dir) |> Fpath_.of_strings
          in
+
          let lang = Lang.Scala in
          tainting_tests_for_lang files lang);
     ]

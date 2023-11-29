@@ -13,7 +13,7 @@
  * license.txt for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -95,7 +95,7 @@ let filter_files skip_list ~root relative_paths : Fpath.t list * Fpath.t list =
   let relative_paths =
     relative_paths
     |> List.filter (fun rel_path ->
-           let path = File.readable ~root rel_path in
+           let path = Fpath_.readable ~root rel_path in
            if
              Hashtbl.mem skip_files path
              || skip_dirs |> List.exists (fun dir -> !!path =~ !!dir ^ ".*")
@@ -134,8 +134,9 @@ let find_skip_file_from_root root =
         (* www specific *)
         "conf/codegraph/skip_list.txt";
       ]
-      |> File.Path.of_strings
+      |> Fpath_.of_strings
     in
+
     candidates
     |> List_.find_some_opt (fun f ->
            let full = Fpath.append root f in
@@ -178,7 +179,7 @@ let reorder_files_skip_errors_last skip_list root xs =
   let skip_errors, ok =
     xs
     |> List.partition (fun file ->
-           let readable = File.readable ~root file in
+           let readable = Fpath_.readable ~root file in
            is_file_want_to_skip_error readable)
   in
   ok @ skip_errors

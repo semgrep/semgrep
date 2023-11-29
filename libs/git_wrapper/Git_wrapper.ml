@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -174,7 +174,7 @@ let ls_files ?(cwd = Fpath.v ".") ?(kinds = []) root_paths =
     | Ok (files, (_, `Exited 0)) -> files
     | _ -> raise (Error "Could not get files from git ls-files")
   in
-  files |> File.Path.of_strings
+  files |> Fpath_.of_strings
 
 let get_project_root ?cwd () =
   let cmd = Bos.Cmd.(v "git" %% cd cwd % "rev-parse" % "--show-toplevel") in
