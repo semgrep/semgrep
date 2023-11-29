@@ -28,7 +28,7 @@ type t = {
   configuration : string list; [@default []]
   exclude : string list; [@default []]
   include_ : string list; [@key "include"] [@default []]
-  jobs : int; [@default 1]
+  jobs : int; [@default 2]
   max_memory : int; [@key "maxMemory"] [@default 0]
   max_target_bytes : int; [@key "maxTargetBytes"] [@default 1000000]
   timeout : int; [@default 30]
@@ -40,23 +40,7 @@ type t = {
 }
 [@@deriving yojson]
 
-let default =
-  {
-    configuration = [];
-    exclude = [];
-    include_ = [];
-    jobs = 1;
-    max_memory = 0;
-    max_target_bytes = 1000000;
-    timeout = 5;
-    (* ^ seconds, coupling: keep up-to-date with Scan_CLI.ml and constants.py *)
-    timeout_threshold = 3;
-    only_git_dirty = true;
-    ci = true (* Secret setting for testing purposes *);
-    do_hover = false;
-    pro_intrafile = false;
-  }
-
+let default = Yojson.Safe.from_string "{}" |> of_yojson |> Result.get_ok
 let t_of_yojson json = of_yojson json
 let yojson_of_t settings = to_yojson settings
 let pp fmt settings = Yojson.Safe.pretty_print fmt (yojson_of_t settings)
@@ -70,10 +54,10 @@ let find_targets_conf_of_t settings =
       exclude = settings.exclude;
       include_;
       max_target_bytes = settings.max_target_bytes;
-      respect_git_ignore = true;
+      respect_gitignore = true;
       baseline_commit = None;
       diff_depth = 0;
-      scan_unknown_extensions = true;
+      scan_unknown_extensions = false;
       project_root = None;
     }
 
@@ -81,8 +65,7 @@ let core_runner_conf_of_t settings =
   Core_runner.
     {
       num_jobs = settings.jobs;
-      (* This breaks things for some reason if true*)
-      optimizations = false;
+      optimizations = true;
       max_memory_mb = settings.max_memory;
       timeout = float_of_int settings.timeout;
       timeout_threshold = settings.timeout_threshold;

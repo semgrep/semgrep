@@ -53,7 +53,12 @@ let _ =
   Http_helpers.client_ref := Some (module Cohttp_lwt_jsoo.Client);
   Js.export_all
     (object%js
-       method init = init_jsoo
+       method init yaml_wasm_module =
+         init_jsoo yaml_wasm_module;
+         Parse_pattern.parse_pattern_ref := Parse_pattern2.parse_pattern;
+         Parse_target.just_parse_with_lang_ref :=
+           Parse_target2.just_parse_with_lang
+
        method setWriteRef f = write_ref := f
 
        method handleClientMessage json =
@@ -69,8 +74,4 @@ let _ =
                |> Option.map Yojson.Safe.to_string
              in
              Lwt.return (Js.Opt.option response_json))
-
-       method getMountpoints = get_jsoo_mountpoint ()
-       method setParsePattern = setParsePattern
-       method setJustParseWithLang = setJustParseWithLang
     end)

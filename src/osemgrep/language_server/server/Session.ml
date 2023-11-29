@@ -1,7 +1,7 @@
 open Lsp
 open Types
 open File.Operators
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 (*****************************************************************************)
 (* Types *)
@@ -10,7 +10,7 @@ module Out = Semgrep_output_v1_t
 (* We really don't wan't mutable state in the server.
    This is the only exception *)
 type session_cache = {
-  mutable rules : Rule.t list;
+  mutable rules : Rule.t list; [@opaque]
   mutable skipped_fingerprints : string list;
   mutable open_documents : Fpath.t list;
   lock : Lwt_mutex.t; [@opaque]
@@ -23,7 +23,7 @@ type t = {
         fun fmt c ->
           Yojson.Safe.pretty_print fmt (ServerCapabilities.yojson_of_t c)]
   workspace_folders : Fpath.t list;
-  cached_scans : (Fpath.t, Out.cli_match list) Hashtbl.t; [@opaque]
+  cached_scans : (Fpath.t, OutJ.cli_match list) Hashtbl.t; [@opaque]
   cached_session : session_cache;
   user_settings : User_settings.t;
   metrics : LS_metrics.t;
@@ -87,6 +87,7 @@ let auth_token () =
  * (and reparse rules...).
  * Once osemgrep is ready, we can just use its target manager directly here
  *)
+(* TODO: Cache targets *)
 let targets session =
   let dirty_files =
     Common.map (fun f -> (f, dirty_files_of_folder f)) session.workspace_folders
@@ -109,7 +110,9 @@ let targets session =
     let targets_conf =
       User_settings.find_targets_conf_of_t session.user_settings
     in
-    Find_targets.get_targets { targets_conf with project_root = Some f } [ f ]
+    Find_targets.get_target_fpaths
+      { targets_conf with project_root = Some f }
+      [ f ]
     |> fst
   in
   let targets =
@@ -191,10 +194,7 @@ let fetch_rules session =
         exclude_rule_ids = [];
         severity = [];
         (* Exclude these as they require the pro engine which we don't support *)
-        exclude_products =
-          [
-            Rule_filtering.SCA; Rule_filtering.Secrets; Rule_filtering.Interfile;
-          ];
+        exclude_products = [ `SCA; `Secrets ];
       }
   in
   let rules, errors =
@@ -275,7 +275,7 @@ let update_workspace_folders ?(added = []) ?(removed = []) session =
 
 let record_results session results files =
   let results_by_file =
-    Common.group_by (fun (r : Out.cli_match) -> r.path) results
+    Common.group_by (fun (r : OutJ.cli_match) -> r.path) results
   in
   List.iter (fun f -> Hashtbl.replace session.cached_scans f []) files;
   List.iter

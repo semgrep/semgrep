@@ -64,7 +64,7 @@ let visitor_info_of_tok f = function
   | ID_UPPER (s, ii) -> ID_UPPER (s, f ii)
   | ID_BACKQUOTED (s, ii) -> ID_BACKQUOTED (s, f ii)
   | OP (s, ii) -> OP (s, f ii)
-  | IntegerLiteral (x, ii) -> IntegerLiteral (x, f ii)
+  | IntegerLiteral pi -> IntegerLiteral (Parsed_int.map_tok f pi)
   | FloatingPointLiteral (x, ii) -> FloatingPointLiteral (x, f ii)
   | CharacterLiteral (x, ii) -> CharacterLiteral (x, f ii)
   | BooleanLiteral (x, ii) -> BooleanLiteral (x, f ii)

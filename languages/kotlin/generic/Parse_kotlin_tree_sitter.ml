@@ -167,7 +167,7 @@ let boolean_literal (env : env) (x : CST.boolean_literal) =
 
 let hex_literal (env : env) (tok : CST.hex_literal) =
   let s, t = str env tok (* hex_literal *) in
-  (int_of_string_opt s, t)
+  Parsed_int.parse (s, t)
 
 let use_site_target (env : env) ((v1, v2) : CST.use_site_target) =
   let s, t =
@@ -197,7 +197,7 @@ let additive_operator (env : env) (x : CST.additive_operator) =
  *)
 let integer_literal (env : env) (tok : CST.integer_literal) =
   let s, t = str env tok (* integer_literal *) in
-  (int_of_string_opt s, t)
+  Parsed_int.parse (s, t)
 
 let as_operator (env : env) (x : CST.as_operator) =
   match x with
@@ -253,7 +253,7 @@ let parameter_modifier (env : env) (x : CST.parameter_modifier) =
 let bin_literal (env : env) (tok : CST.bin_literal) =
   let s, t = str env tok in
   (* bin_literal *)
-  (int_of_string_opt s, t)
+  Parsed_int.parse (s, t)
 
 (* "\"" *)
 
@@ -378,17 +378,18 @@ let literal_constant (env : env) (x : CST.literal_constant) =
   | `Long_lit (v1, v2) ->
       let v1 = anon_choice_int_lit_9015f32 env v1 in
       let _v2 = token env v2 (* "L" *) in
-      Int (fst v1, snd v1)
+      Int v1
   | `Unsi_lit (v1, v2, v3) ->
-      let iopt, v1 = anon_choice_int_lit_9015f32 env v1 in
+      let v1 = anon_choice_int_lit_9015f32 env v1 in
       let v2 = str env v2 (* pattern [uU] *) in
       let _v3 =
         match v3 with
         | Some tok -> Some (str env tok) (* "L" *)
         | None -> None
       in
-      let _str = Tok.content_of_tok v1 ^ fst v2 in
-      Int (iopt, Tok.combine_toks v1 [ snd v2 ])
+      (* let _str = Tok.content_of_tok v1 ^ fst v2 in
+      *)
+      Int (Parsed_int.map_tok (fun v1 -> Tok.combine_toks v1 [ snd v2 ]) v1)
 
 let semi (env : env) x = token env x
 
@@ -1738,6 +1739,10 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
   | `Super_exp v1 ->
       let tok = token env v1 in
       IdSpecial (Super, tok) |> G.e
+  | `Call_exp (v1, v2) ->
+      let v1 = expression env v1 in
+      let v2 = call_suffix env v2 in
+      Call (v1, v2) |> G.e
   | `If_exp (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "if" *) in
       let _v2 = token env v2 (* "(" *) in
@@ -2064,10 +2069,6 @@ and unary_expression (env : env) (x : CST.unary_expression) =
       let v1 = expression env v1 in
       let v2 = postfix_unary_operator env v2 in
       v2 v1
-  | `Call_exp (v1, v2) ->
-      let v1 = expression env v1 in
-      let v2 = call_suffix env v2 in
-      Call (v1, v2) |> G.e
   | `Inde_exp (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = indexing_suffix env v2 in

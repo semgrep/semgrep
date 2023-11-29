@@ -23,17 +23,15 @@ def test_login(tmp_path, mocker):
     )
 
     # Logout
-    result = runner.invoke(
-        cli,
-        ["logout"],
-    )
+    result = runner.invoke(cli, subcommand="logout", args=[])
     assert result.exit_code == 0
     assert result.output == expected_logout_str
 
     # Fail to login without a tty
     result = runner.invoke(
         cli,
-        ["login"],
+        subcommand="login",
+        args=[],
         input=fake_key,
     )
     assert result.exit_code == 2
@@ -42,7 +40,8 @@ def test_login(tmp_path, mocker):
     # Login with env token
     result = runner.invoke(
         cli,
-        ["login"],
+        subcommand="login",
+        args=[],
         env={"SEMGREP_APP_TOKEN": fake_key},
     )
     assert result.exit_code == 0
@@ -52,32 +51,28 @@ def test_login(tmp_path, mocker):
     # Login should fail on second call
     result = runner.invoke(
         cli,
-        ["login"],
+        subcommand="login",
+        args=[],
         env={"SEMGREP_APP_TOKEN": fake_key},
     )
     assert result.exit_code == 2
     assert "API token already exists in" in result.output
 
     # Clear login
-    result = runner.invoke(
-        cli,
-        ["logout"],
-    )
+    result = runner.invoke(cli, subcommand="logout", args=[])
     assert result.exit_code == 0
     assert result.output == expected_logout_str
 
     # Logout twice should work
-    result = runner.invoke(
-        cli,
-        ["logout"],
-    )
+    result = runner.invoke(cli, subcommand="logout", args=[])
     assert result.exit_code == 0
     assert result.output == expected_logout_str
 
     # Next we'll check registry config works while logged in, so we have to log back in
     result = runner.invoke(
         cli,
-        ["login"],
+        subcommand="login",
+        args=[],
         env={"SEMGREP_APP_TOKEN": fake_key},
     )
     assert result.exit_code == 0
@@ -86,7 +81,7 @@ def test_login(tmp_path, mocker):
     # Run p/ci
     result = runner.invoke(
         cli,
-        ["--config", "r/python.lang.correctness.useless-eqeq.useless-eqeq"],
+        args=["--config", "r/python.lang.correctness.useless-eqeq.useless-eqeq"],
     )
     assert (
         result.exit_code == 7
@@ -94,7 +89,7 @@ def test_login(tmp_path, mocker):
 
     # Run policy with bad token -> no associated deployment_id
     result = runner.invoke(
-        cli, ["--config", "policy"], env={"SEMGREP_REPO_NAME": "test-repo"}
+        cli, args=["--config", "policy"], env={"SEMGREP_REPO_NAME": "test-repo"}
     )
     assert result.exit_code == 7
     assert "Invalid API Key" in result.output
@@ -104,7 +99,7 @@ def test_login(tmp_path, mocker):
     # Run policy without SEMGREP_REPO_NAME
     result = runner.invoke(
         cli,
-        ["--config", "policy"],
+        args=["--config", "policy"],
     )
     assert result.exit_code == 7
     assert "Need to set env var SEMGREP_REPO_NAME" in result.output
@@ -116,7 +111,7 @@ def test_login(tmp_path, mocker):
         side_effect=lambda url: ConfigFile(None, "invalid-conifg}", url),
     )
     result = runner.invoke(
-        cli, ["--config", "policy"], env={"SEMGREP_REPO_NAME": "org/repo"}
+        cli, args=["--config", "policy"], env={"SEMGREP_REPO_NAME": "org/repo"}
     )
     assert result.exit_code == 7
     assert mocked_config.called

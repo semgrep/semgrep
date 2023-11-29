@@ -14,9 +14,8 @@
  *)
 
 (* Commentary *)
-(* This Lwt_main.run dropin assumes that some other process ran the promise *)
-(* For example in Js_of_ocaml, Javascript's event loop will do this *)
-
+(* Javascript specific LWT primitives *)
+(* See lwt_platform top level dune for further explanation *)
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -24,6 +23,8 @@
 (*****************************************************************************)
 (* Code *)
 (*****************************************************************************)
+(* This Lwt_main.run dropin assumes that some other process ran the promise *)
+(* For example in Js_of_ocaml, Javascript's event loop will do this *)
 let run t =
   match Lwt.state t with
   | Lwt.Return x -> x

@@ -27,6 +27,7 @@ repos:
       - id: check-merge-conflict
       - id: check-shebang-scripts-are-executable
       - id: check-symlinks
+        exclude: "^bin"
       - id: check-toml
       - id: check-vcs-permalinks
       - id: check-xml

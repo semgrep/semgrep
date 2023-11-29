@@ -1,16 +1,35 @@
 val client_ref : (module Cohttp_lwt.S.Client) option ref
 (** [client_ref] is a reference to the Cohttp client module used by the
-    functions in this module. By default, it is set to [Cohttp_lwt_unix.Client],
-    but can be changed to an instance of [TestingClient] if you want to test things. *)
+    functions in this module. By default, it is set to
+    [Cohttp_lwt_unix.Client], but can be changed to an instance
+    of [TestingClient] if you want to test things. *)
+
+val set_client_ref : (module Cohttp_lwt.S.Client) -> unit
+
+(* See Http_mock_client.ml. If this global is set, set_client_ref()
+ * above will be a noop (and so leave the mock_http_client in place).
+ *)
+val in_mock_context : bool ref
+
+type get_info = {
+  response : Cohttp.Response.t;
+  body : Cohttp_lwt.Body.t;
+  code : int;
+}
 
 module Make (I : sig
   val run : 'a Lwt.t -> 'a
 end) : sig
   val get_async :
-    ?headers:(string * string) list -> Uri.t -> (string, string) result Lwt.t
+    ?headers:(string * string) list ->
+    Uri.t ->
+    (string * get_info, string * get_info) result Lwt.t
   (** [get_async ~headers uri] retrieves [uri] (via HTTP GET) with the provided
     [headers], asynchronously. The return value is either a promise of [Ok body] - if the request was
-    successful, or an error message. *)
+    successful, or an error message.
+    If a temporary redirect (307) is returned, this function will automatically
+    re-query and resolve the redirection.
+   *)
 
   val post_async :
     body:string ->
@@ -28,10 +47,16 @@ end) : sig
     The returned value is a promise of either [Ok body] if the request was successful,
     or an [Error (code, msg)], including the HTTP status [code] and a message. *)
 
-  val get : ?headers:(string * string) list -> Uri.t -> (string, string) result
+  val get :
+    ?headers:(string * string) list ->
+    Uri.t ->
+    (string * get_info, string * get_info) result
   (** [get ~headers uri] retrieves [uri] (via HTTP GET) with the provided
     [headers]. The return value is either [Ok body] - if the request was
-    successful, or an error message. *)
+    successful, or an error message.
+    If a temporary redirect (307) is returned, this function will automatically
+    re-query and resolve the redirection.
+   *)
 
   val post :
     body:string ->

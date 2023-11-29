@@ -13,7 +13,6 @@ from typing import Iterator
 from typing import List
 from typing import Optional
 from typing import Tuple
-from typing import TYPE_CHECKING
 from uuid import UUID
 
 from attrs import evolve
@@ -29,9 +28,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.util import get_lines
-
-if TYPE_CHECKING:
-    from semgrep.rule import Rule
 
 
 def rstrip(value: Optional[str]) -> Optional[str]:
@@ -73,7 +69,6 @@ class RuleMatch:
     # We call rstrip() for consistency with semgrep-core, which ignores whitespace
     # including newline chars at the end of multiline patterns
     fix: Optional[str] = field(converter=rstrip, default=None)
-    fix_regex: Optional[out.FixRegex] = None
 
     # ???
     index: int = 0

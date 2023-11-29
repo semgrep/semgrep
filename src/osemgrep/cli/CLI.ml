@@ -24,8 +24,8 @@
    Exceptions are caught and turned into an appropriate exit code
    (unless you used --debug).
 
-   We don't use Cmdliner to dispatch subcommands because it's too
-   complicated and anywant we want full control on main help message.
+   alt: we don't use Cmdliner to dispatch subcommands because it's too
+   complicated and anyway we want full control on the main help message.
 
    Translated from cli.py and commands/wrapper.py and parts of metrics.py
 *)
@@ -73,7 +73,7 @@ let metrics_init () : unit =
 (* For debugging customer issues, we append the CLI flags for each subcommand,
    handling the logic in this base CLI entry point pre- subcommand dispatch.
 *)
-let log_cli_feature flag : unit =
+let log_cli_feature (flag : string) : unit =
   Metrics_.add_feature "cli-flag"
     (flag
     |> Base.String.chop_prefix_if_exists ~prefix:"-"
@@ -82,26 +82,9 @@ let log_cli_feature flag : unit =
 (* CLI subcmds need to call Metrics_.configure conf.metrics
    otherwise metrics will not be send as Metrics.g.config default
    to Off
-   alt: we could implement send_metrics() in Metrics_.ml,
-   but we would need to add a dependency on Http_helpers.
 *)
 let send_metrics () : unit =
-  if Metrics_.is_enabled () then (
-    (* Populate the sent_at timestamp *)
-    Metrics_.prepare_to_send ();
-    let user_agent = Metrics_.string_of_user_agent () in
-    let metrics = Metrics_.string_of_metrics () in
-    let url = !Env.v.metrics_url in
-    let headers =
-      [ ("Content-Type", "application/json"); ("User-Agent", user_agent) ]
-    in
-    Logs.debug (fun m -> m "Metrics: %s" metrics);
-    Logs.debug (fun m -> m "userAgent: '%s'" user_agent);
-    match Http_helpers.post ~body:metrics ~headers url with
-    | Ok body -> Logs.debug (fun m -> m "Metrics Endpoint response: %s" body)
-    | Error (status_code, err) ->
-        Logs.warn (fun m -> m "Metrics Endpoint error: %d %s" status_code err);
-        ())
+  if Metrics_.is_enabled () then Semgrep_Metrics.send ()
   else Logs.debug (fun m -> m "Metrics not enabled, skipping sending")
 
 (*****************************************************************************)
@@ -126,13 +109,6 @@ let known_subcommands =
     "interactive";
     "show";
   ]
-
-(* Exit with a code that a proper semgrep implementation would never return.
-   Uncaught OCaml exception result in exit code 2.
-   This is to ensure that the tests that expect error status 2 fail. *)
-let missing_subcommand () =
-  Logs.err (fun m -> m "This semgrep subcommand is not implemented\n%!");
-  Exit_code.not_implemented_in_osemgrep
 
 let dispatch_subcommand argv =
   match Array.to_list argv with
@@ -187,8 +163,9 @@ let dispatch_subcommand argv =
          * we progress in osemgrep port (or use Pysemgrep.Fallback further
          * down when we know we don't handle certain kind of arguments).
          *)
-        | "install-semgrep-pro" when experimental -> missing_subcommand ()
-        | "publish" when experimental -> missing_subcommand ()
+        | "install-semgrep-pro" when experimental ->
+            Install_semgrep_pro_subcommand.main subcmd_argv
+        | "publish" when experimental -> Publish_subcommand.main subcmd_argv
         | "login" when experimental -> Login_subcommand.main subcmd_argv
         | "logout" when experimental -> Logout_subcommand.main subcmd_argv
         | "lsp" -> Lsp_subcommand.main subcmd_argv
@@ -258,7 +235,7 @@ let before_exit ~profile () : unit =
 (*****************************************************************************)
 
 (* called from ../../main/Main.ml *)
-let main argv : Exit_code.t =
+let main (argv : string array) : Exit_code.t =
   Printexc.record_backtrace true;
   let debug = Array.mem "--debug" argv in
   let profile = Array.mem "--profile" argv in
@@ -311,7 +288,7 @@ let main argv : Exit_code.t =
   (* hacks for having a smaller engine.js file *)
   Parsing_init.init ();
   Data_init.init ();
-  Http_helpers_.client_ref := Some (module Cohttp_lwt_unix.Client);
+  Http_helpers_.set_client_ref (module Cohttp_lwt_unix.Client);
 
   metrics_init ();
   (* TOPORT: maybe_set_git_safe_directories() *)

@@ -1,0 +1,17 @@
+rules:
+  - id: test
+    languages:
+      - python
+    message: Test
+    mode: taint
+    pattern-sinks:
+      - pattern: |
+          sink(...)
+    pattern-sources:
+      - by-side-effect: true
+        patterns:
+          - pattern: |
+              $X = source()
+          - focus-metavariable: $X
+    severity: ERROR
+

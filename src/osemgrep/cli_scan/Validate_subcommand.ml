@@ -1,6 +1,6 @@
 open Common
 open File.Operators
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 (*****************************************************************************)
 (* Prelude *)
@@ -63,6 +63,11 @@ let metarules_pack = "p/semgrep-rule-lints"
 (* Experiment *)
 (*****************************************************************************)
 
+(* TODO: use validation ocaml code to enforce the CHECK: in rule_schema_v2.atd.
+ * For example, check that at least one and only one field is set in formula.
+ * Reclaim some of the jsonschema power. Maybe define combinators to express
+ * that in rule_schema_v2_adapter.ml?
+ *)
 let parse_rule_with_atd_experiment_and_exit (file : Fpath.t) : unit =
   let rules = Parse_rules_with_atd.parse_rules_v2 file in
   pr2 (Rule_schema_v2_t.show_rules rules);
@@ -150,7 +155,7 @@ let run (conf : conf) : Exit_code.t =
         in
         let res = Core_runner.create_core_result metarules result_and_exn in
         (* TODO? sanity check errors below too? *)
-        let { Out.results; errors = _; _ } =
+        let OutJ.{ results; errors = _; _ } =
           Cli_json_output.cli_output_of_core_results
             ~logging_level:conf.common.logging_level res.core res.hrules
             res.scanned
@@ -191,7 +196,7 @@ let run (conf : conf) : Exit_code.t =
         num_errors (List.length rules));
   (* coupling: with Check_rule.error and use of SemgrepMatchFound *)
   metacheck_errors
-  |> List.iter (fun (x : Out.cli_match) ->
+  |> List.iter (fun (x : OutJ.cli_match) ->
          Logs.err (fun m ->
              m "Semgrep match found at line %s:%d\n%s" !!(x.path) x.start.line
                x.extra.message));

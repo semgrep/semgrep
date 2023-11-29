@@ -31,6 +31,7 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
 from semgrep.app.scans import ScanCompleteResult
 from semgrep.app.scans import ScanHandler
+from semgrep.engine import EngineType
 from semgrep.error_handler import ErrorHandler
 from semgrep.meta import GithubMeta
 from semgrep.meta import GitlabMeta
@@ -259,6 +260,8 @@ def scan_config():
           message: "useless comparison"
           languages: [python]
           severity: ERROR
+          metadata:
+            source: https://semgrep.dev/r/eqeq-bad
         - id: eqeq-five
           pattern: $X == 5
           message: "useless comparison to 5"
@@ -266,6 +269,7 @@ def scan_config():
           severity: ERROR
           metadata:
             dev.semgrep.actions: []
+            source: https://semgrep.dev/r/eqeq-five
             semgrep.dev:
                 rule:
                     rule_id: "abcd"
@@ -281,6 +285,7 @@ def scan_config():
           severity: ERROR
           metadata:
             dev.semgrep.actions: ["block"]
+            source: https://semgrep.dev/r/eqeq-four
             semgrep.dev:
                 rule:
                     rule_id: abce
@@ -295,6 +300,7 @@ def scan_config():
           severity: ERROR
           metadata:
             dev.semgrep.actions: []
+            source: https://semgrep.dev/r/abceversion1
             semgrep.dev:
                 rule:
                     rule_id: abce
@@ -314,6 +320,7 @@ def scan_config():
             - pattern: sink($X)
           metadata:
             dev.semgrep.actions: ["block"]
+            source: https://semgrep.dev/r/taint-test
             semgrep.dev:
                 rule:
                     rule_id: abcf
@@ -331,6 +338,7 @@ def scan_config():
             version: == 99.99.99
           metadata:
             dev.semgrep.actions: []
+            source: https://semgrep.dev/-/advisories/supply-chain1
             sca-kind: upgrade-only
         - id: supply-chain2
           message: "found a dependency"
@@ -342,6 +350,7 @@ def scan_config():
             version: == 99.99.99
           metadata:
             dev.semgrep.actions: []
+            source: https://semgrep.dev/-/advisories/supply-chain2
             sca-kind: upgrade-only
         - id: supply-chain3
           message: "found another dependency but its a bad one >:D"
@@ -353,6 +362,7 @@ def scan_config():
             version: == 99.99.99
           metadata:
             dev.semgrep.actions: ["block"]
+            source: https://semgrep.dev/-/advisories/supply-chain3
             sca-kind: reachable
         """
     ).lstrip()
@@ -824,7 +834,8 @@ def test_full_run(
         make_semgrepconfig_file(repo_copy_base, contents)
 
     result = run_semgrep(
-        options=["ci", "--no-suppress-errors"],
+        subcommand="ci",
+        options=["--no-suppress-errors"],
         strict=False,
         assert_exit_code=None,
         env=env,
@@ -965,7 +976,8 @@ def test_lockfile_parse_failure_reporting(
     ).strip()
 
     result = run_semgrep(
-        options=["ci", "--no-suppress-errors"],
+        subcommand="ci",
+        options=["--no-suppress-errors"],
         strict=False,
         assert_exit_code=None,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
@@ -1279,7 +1291,8 @@ def test_shallow_wrong_merge_base(
 
     # Scan the wrong thing first and verify we get more findings than expected (2 > 1)
     result = run_semgrep(
-        options=["ci", "--no-force-color", "--no-suppress-errors"],
+        subcommand="ci",
+        options=["--no-force-color", "--no-suppress-errors"],
         strict=False,
         assert_exit_code=None,
         env=env,
@@ -1300,7 +1313,8 @@ def test_shallow_wrong_merge_base(
 
     # Run again with greater depth
     result = run_semgrep(
-        options=["ci", "--no-force-color", "--no-suppress-errors"],
+        subcommand="ci",
+        options=["--no-force-color", "--no-suppress-errors"],
         strict=False,
         assert_exit_code=None,
         env={**env, "SEMGREP_GHA_MIN_FETCH_DEPTH": "100"},
@@ -1336,7 +1350,8 @@ def test_config_run(
     requests_mock.get("https://semgrep.dev/p/something", text=scan_config)
     result = run_semgrep(
         "p/something",
-        options=["ci", "--no-suppress-errors"],
+        subcommand="ci",
+        options=["--no-suppress-errors"],
         strict=False,
         assert_exit_code=1,
         env={"SEMGREP_APP_TOKEN": ""},
@@ -1362,7 +1377,8 @@ def test_outputs(
     run_semgrep: RunSemgrep,
 ):
     result = run_semgrep(
-        options=["ci", "--no-suppress-errors", format],
+        subcommand="ci",
+        options=["--no-suppress-errors", format],
         target_name=None,
         strict=False,
         assert_exit_code=None,
@@ -1382,7 +1398,8 @@ def test_nosem(
     git_tmp_path_with_commit, snapshot, mock_autofix, nosem, run_semgrep: RunSemgrep
 ):
     result = run_semgrep(
-        options=["ci", "--no-suppress-errors", nosem],
+        subcommand="ci",
+        options=["--no-suppress-errors", nosem],
         target_name=None,
         strict=False,
         assert_exit_code=1,
@@ -1406,7 +1423,8 @@ def test_dryrun(
 ):
     _, base_commit, head_commit = git_tmp_path_with_commit
     result = run_semgrep(
-        options=["ci", "--dry-run", "--no-suppress-errors"],
+        subcommand="ci",
+        options=["--dry-run", "--no-suppress-errors"],
         target_name=None,
         strict=False,
         assert_exit_code=None,
@@ -1431,7 +1449,6 @@ def test_dryrun(
     )
 
 
-@pytest.mark.osemfail
 def test_fail_auth_invalid_key(
     run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit, requests_mock
 ):
@@ -1441,7 +1458,8 @@ def test_fail_auth_invalid_key(
     requests_mock.post("https://semgrep.dev/api/cli/scans", status_code=401)
     fail_open = requests_mock.post("https://fail-open.prod.semgrep.dev/failure")
     run_semgrep(
-        options=["ci", "--no-suppress-errors"],
+        subcommand="ci",
+        options=["--no-suppress-errors"],
         target_name=None,
         strict=False,
         assert_exit_code=13,
@@ -1463,7 +1481,7 @@ def test_fail_auth_invalid_key_suppressed_by_default(
     )
     fail_open = requests_mock.post("https://fail-open.prod.semgrep.dev/failure")
     run_semgrep(
-        options=["ci"],
+        subcommand="ci",
         target_name=None,
         strict=False,
         assert_exit_code=0,
@@ -1490,7 +1508,8 @@ def test_fail_auth_invalid_response(
     """
     requests_mock.post("https://semgrep.dev/api/cli/scans", status_code=500)
     run_semgrep(
-        options=["ci", "--no-suppress-errors"],
+        subcommand="ci",
+        options=["--no-suppress-errors"],
         target_name=None,
         strict=False,
         assert_exit_code=2,
@@ -1509,7 +1528,7 @@ def test_fail_auth_invalid_response_can_be_supressed(
     requests_mock.post("https://semgrep.dev/api/cli/scans", status_code=500)
     mock_send = mocker.spy(ErrorHandler, "send")
     run_semgrep(
-        options=["ci"],
+        subcommand="ci",
         target_name=None,
         strict=False,
         assert_exit_code=0,
@@ -1520,14 +1539,15 @@ def test_fail_auth_invalid_response_can_be_supressed(
     mock_send.assert_called_once_with(mocker.ANY, 2)
 
 
-# TODO: pass but for bad reasons I think, because we just don't handle the CLI args
+@pytest.mark.osemfail
 def test_fail_start_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     """
     Test that failing to start scan does not have exit code 0 or 1
     """
     mocker.patch.object(ScanHandler, "start_scan", side_effect=Exception("Timeout"))
     run_semgrep(
-        options=["ci", "--no-suppress-errors"],
+        subcommand="ci",
+        options=["--no-suppress-errors"],
         target_name=None,
         strict=False,
         assert_exit_code=2,
@@ -1546,7 +1566,7 @@ def test_fail_start_scan_error_handler(
     mocker.patch.object(ScanHandler, "start_scan", side_effect=Exception("Timeout"))
     mock_send = mocker.spy(ErrorHandler, "send")
     run_semgrep(
-        options=["ci"],
+        subcommand="ci",
         target_name=None,
         strict=False,
         assert_exit_code=0,
@@ -1569,7 +1589,7 @@ def test_fail_open_works_when_backend_is_down(
     )
     fail_open = requests_mock.post("https://fail-open.prod.semgrep.dev/failure")
     run_semgrep(
-        options=["ci"],
+        subcommand="ci",
         target_name=None,
         strict=False,
         assert_exit_code=0,
@@ -1593,7 +1613,8 @@ def test_bad_config(run_semgrep: RunSemgrep, git_tmp_path_with_commit):
     Test that bad rules has exit code > 1
     """
     result = run_semgrep(
-        options=["ci", "--no-suppress-errors"],
+        subcommand="ci",
+        options=["--no-suppress-errors"],
         target_name=None,
         strict=False,
         assert_exit_code=7,
@@ -1613,7 +1634,7 @@ def test_bad_config_error_handler(
     """
     mock_send = mocker.spy(ErrorHandler, "send")
     result = run_semgrep(
-        options=["ci"],
+        subcommand="ci",
         target_name=None,
         strict=False,
         assert_exit_code=0,
@@ -1639,7 +1660,8 @@ def test_fail_scan_findings(
     mock_send = mocker.spy(ErrorHandler, "send")
 
     run_semgrep(
-        options=["ci", "--suppress-errors"],
+        subcommand="ci",
+        options=["--suppress-errors"],
         target_name=None,
         strict=False,
         assert_exit_code=1,
@@ -1650,14 +1672,15 @@ def test_fail_scan_findings(
     assert upload_results_mock.called
 
 
-# TODO: pass but for bad reasons I think, because we just don't handle the CLI args
+@pytest.mark.osemfail
 def test_fail_finish_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     """
     Test failure to send findings has exit code > 1
     """
     mocker.patch.object(ScanHandler, "report_findings", side_effect=Exception)
     run_semgrep(
-        options=["ci", "--no-suppress-errors"],
+        subcommand="ci",
+        options=["--no-suppress-errors"],
         target_name=None,
         strict=False,
         assert_exit_code=2,
@@ -1681,7 +1704,8 @@ def test_backend_exit_code(
         return_value=ScanCompleteResult(True, True, "some reason to fail"),
     )
     run_semgrep(
-        options=["ci", "--no-suppress-errors"],
+        subcommand="ci",
+        options=["--no-suppress-errors"],
         target_name=None,
         strict=False,
         assert_exit_code=1,
@@ -1700,7 +1724,7 @@ def test_fail_finish_scan_error_handler(
     mocker.patch.object(ScanHandler, "report_findings", side_effect=Exception)
     mock_send = mocker.spy(ErrorHandler, "send")
     run_semgrep(
-        options=["ci"],
+        subcommand="ci",
         target_name=None,
         strict=False,
         assert_exit_code=0,
@@ -1710,14 +1734,15 @@ def test_fail_finish_scan_error_handler(
     mock_send.assert_called_once_with(mocker.ANY, 2)
 
 
-# TODO: pass but for bad reasons I think, because we just don't handle the CLI args
+@pytest.mark.osemfail
 def test_git_failure(run_semgrep: RunSemgrep, git_tmp_path_with_commit, mocker):
     """
     Test failure from using git has exit code > 1
     """
     mocker.patch.object(GitMeta, "to_project_metadata", side_effect=Exception)
     run_semgrep(
-        options=["ci", "--no-suppress-errors"],
+        subcommand="ci",
+        options=["--no-suppress-errors"],
         target_name=None,
         strict=False,
         assert_exit_code=2,
@@ -1736,7 +1761,7 @@ def test_git_failure_error_handler(
     mocker.patch.object(GitMeta, "to_project_metadata", side_effect=Exception)
     mock_send = mocker.spy(ErrorHandler, "send")
     run_semgrep(
-        options=["ci"],
+        subcommand="ci",
         target_name=None,
         strict=False,
         assert_exit_code=0,
@@ -1785,7 +1810,8 @@ def test_query_dependency(
     complete_scan_mock,
 ):
     result = run_semgrep(
-        options=["ci", "--no-suppress-errors"],
+        subcommand="ci",
+        options=["--no-suppress-errors"],
         target_name=None,
         strict=False,
         assert_exit_code=None,
@@ -1817,7 +1843,7 @@ def test_metrics_enabled(
 ):
     mock_send = mocker.patch.object(Metrics, "_post_metrics")
     run_semgrep(
-        options=["ci"],
+        subcommand="ci",
         target_name=None,
         strict=False,
         assert_exit_code=1,
@@ -1862,7 +1888,8 @@ def test_existing_supply_chain_finding(
 ):
     repo_copy_base, base_commit, head_commit = git_tmp_path_with_commit
     result = run_semgrep(
-        options=["ci", "--no-suppress-errors"],
+        subcommand="ci",
+        options=["--no-suppress-errors"],
         target_name=None,
         strict=False,
         assert_exit_code=None,
@@ -1930,7 +1957,8 @@ def test_existing_supply_chain_finding(
     ).strip()
 
     result = run_semgrep(
-        options=["ci", "--no-suppress-errors", "--baseline-commit", head_commit],
+        subcommand="ci",
+        options=["--no-suppress-errors", "--baseline-commit", head_commit],
         target_name=None,
         strict=False,
         assert_exit_code=None,
@@ -1983,3 +2011,33 @@ def test_enabled_products(
     else:
         assert f"Enabled products: {enabled_products[0]}" in result.stderr
         assert "No products are enabled for this organization" not in result.stderr
+
+
+@pytest.mark.parametrize("enable_deepsemgrep", [True, False])
+@pytest.mark.osemfail
+def test_pro_diff_slow_rollout(
+    run_semgrep: RunSemgrep,
+    mocker,
+    enable_deepsemgrep,
+):
+    """
+    Verify that generic_slow_rollout enables pro diff scan
+    """
+    mocker.patch.object(ScanHandler, "generic_slow_rollout", True)
+    mocker.patch.object(ScanHandler, "deepsemgrep", enable_deepsemgrep)
+    mocker.patch.object(EngineType, "check_if_installed", return_value=True)
+    mock_send = mocker.patch.object(Metrics, "add_diff_depth")
+
+    result = run_semgrep(
+        options=["ci", "--no-suppress-errors"],
+        target_name=None,
+        strict=False,
+        force_metrics_off=False,
+        assert_exit_code=None,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,
+    )
+    if enable_deepsemgrep:
+        mock_send.assert_called_once_with(2)
+    else:
+        mock_send.assert_not_called()

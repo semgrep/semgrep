@@ -114,12 +114,12 @@ let fetch_content_from_url_async ?(token_opt = None) (url : Uri.t) :
     let headers =
       match token_opt with
       | None -> None
-      | Some token -> Some [ ("authorization", "Bearer " ^ token) ]
+      | Some token -> Some [ ("Authorization", "Bearer " ^ token) ]
     in
     let%lwt res = Http_helpers.get_async ?headers url in
     match res with
-    | Ok body -> Lwt.return body
-    | Error msg ->
+    | Ok (body, _) -> Lwt.return body
+    | Error (msg, _) ->
         (* was raise Semgrep_error, but equivalent to abort now *)
         Error.abort
           (spf "Failed to download config from %s: %s" (Uri.to_string url) msg)
@@ -156,9 +156,9 @@ type _registry_cached_value =
   Cache_disk.cached_value_on_disk
 
 (* better: faster fetching by using a cache *)
-let fetch_content_from_registry_url_async ~registry_caching url =
+let fetch_content_from_registry_url_async ~token_opt ~registry_caching url =
   Metrics_.g.is_using_registry <- true;
-  if not registry_caching then fetch_content_from_url_async url
+  if not registry_caching then fetch_content_from_url_async ~token_opt url
   else
     let cache_dir = !Env.v.user_dot_semgrep_dir / "cache" / "registry" in
     let cache_methods =
@@ -238,10 +238,15 @@ let import_callback ~registry_caching base str =
               *
               * TODO: ask for JSON in headers which improves performance
               * because Yaml rule parsing is slower than Json rule parsing.
+              *
+              * TODO: fix token_opt parameter. Currently we don't pass it.
+              * import_callback either needs an additional parameter, or
+              * parse_rule should take an import_callback as a parameter.
               *)
              let content =
                Lwt_platform.run
-                 (fetch_content_from_registry_url_async ~registry_caching url)
+                 (fetch_content_from_registry_url_async ~token_opt:None
+                    ~registry_caching url)
              in
              (* TODO: this assumes every URLs are for yaml, but maybe we could
               * also import URLs to jsonnet files or gist! or look at the
@@ -424,14 +429,20 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
                ~registry_caching file)
       |> Lwt.return
   | C.URL url ->
+      (* TODO: Re-enable passing in our token to trusted remote urls.
+         * This is currently disabled because we don't want to pass our token
+         * to untrusted endpoints. There should be a relatively painless way
+         * to do this, but this can be addressed in a follow-up PR.
+      *)
       let%lwt rules =
-        load_rules_from_url_async ~origin:(Untrusted_remote url) url
+        load_rules_from_url_async ~origin:(Untrusted_remote url) ~token_opt:None
+          url
       in
       Lwt.return [ rules ]
   | C.R rkind ->
       let url = Semgrep_Registry.url_of_registry_config_kind rkind in
       let%lwt content =
-        fetch_content_from_registry_url_async ~registry_caching url
+        fetch_content_from_registry_url_async ~token_opt ~registry_caching url
       in
       (* TODO: this also assumes every registry URL is for yaml *)
       let rules =

@@ -32,6 +32,7 @@
 (*****************************************************************************)
 
 let print_help () =
+  (* TODO: add a Out.printf_color? *)
   Ocolor_format.printf
     {|
 ┌──── @{<green>○○○@} ────┐
@@ -58,7 +59,7 @@ For the CLI docs visit @{<cyan;ul>https://semgrep.dev/docs/category/semgrep-cli/
 |}
 
 let print_semgrep_dashdash_help () =
-  print_string
+  Out.put
     {|Usage: semgrep [OPTIONS] COMMAND [ARGS]...
 
   To get started quickly, run `semgrep scan --config auto`
@@ -78,5 +79,4 @@ Commands:
   lsp                  Start the Semgrep LSP server (useful for IDEs)
   publish              Upload rule to semgrep.dev
   scan                 Run semgrep rules on files
-  show                 Show various information about Semgrep
-|}
+  show                 Show various information about Semgrep|}
