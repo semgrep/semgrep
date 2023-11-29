@@ -1,2 +1,0 @@
-In gitlab output, use correct url attached to rule instead of generating it.
-This fixes url for supply chain findings.
