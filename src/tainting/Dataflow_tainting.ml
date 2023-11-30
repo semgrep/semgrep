@@ -245,63 +245,6 @@ let report_findings env findings =
   if findings <> [] then
     env.config.handle_findings env.fun_name findings env.lval_env
 
-(* TODO: Add `exact: true` option to sinks so one can skip this heuristic, and
- * it could be a good default for "syntax 2.0". The current behavior could be
- * `exact: compat`, and the old behavior could be `exact: false`. *)
-(* Checks whether the sink corresponds has essentially the shape
- *
- *     patterns:
- *     - pattern: <func>(<args>)
- *     - focus-metavariable: $MVAR
- *
- * or, more generally, a shape like
- *
- *     patterns:
- *     - pattern-either:
- *       - patterns:
- *         - pattern-inside: |
- *             <P>
- *         - pattern: <func>(<args>)
- *       - ...
- *     - focus-metavariable: $MVAR
- *
- * In which case we know that the function call itself is not the sink, but
- * it is either the <func> or one (or more) of the <args>.
- *)
-let is_func_sink_with_focus taint_sink =
-  let rec is_inside_or_not = function
-    | R.Inside _
-    | R.Not _ ->
-        true
-    | R.Or (_, formulas) -> List.for_all is_inside_or_not formulas
-    | R.P _
-    | R.And _
-    | R.Anywhere _ ->
-        false
-  in
-  let rec is_call_pattern = function
-    | R.P { pat = Sem ((lazy (E { e = Call _; _ })), _); _ } -> true
-    | R.Or (_tok, formulas) -> List.for_all is_call_pattern formulas
-    | R.And (_, { conjuncts; focus = []; _ }) ->
-        (* NOTE: No `focus-metavaraible:` here to make sure this is matching a call. *)
-        is_call_pattern_conjuncts conjuncts
-    | R.P _
-    | R.Inside _
-    | R.Not _
-    | R.And _
-    | R.Anywhere _ ->
-        false
-  and is_call_pattern_conjuncts conjuncts =
-    let _insides_and_nots, remaining_conjuncts =
-      List.partition is_inside_or_not conjuncts
-    in
-    List.for_all is_call_pattern remaining_conjuncts
-  in
-  match taint_sink.Rule.sink_formula with
-  | Rule.And (_, { conjuncts; focus = [ _focus ]; _ }) ->
-      is_call_pattern_conjuncts conjuncts
-  | __else__ -> false
-
 let unify_mvars_sets env mvars1 mvars2 =
   let xs =
     List.fold_left
@@ -1576,7 +1519,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
          * not match the `is_func_sink_with_focus` pattern.
          *)
         check_orig_if_sink { env with lval_env } instr.iorig all_args_taints
-          ~filter_sinks:(fun m -> not (is_func_sink_with_focus m.spec));
+          ~filter_sinks:(fun m -> not m.spec.sink_is_func_with_focus);
         let call_taints, lval_env =
           match
             check_function_signature { env with lval_env } e args args_taints
