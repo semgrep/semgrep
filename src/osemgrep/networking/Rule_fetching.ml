@@ -473,6 +473,9 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
   | C.A SupplyChain ->
       Metrics_.g.is_using_app <- true;
       failwith "TODO: SupplyChain not handled yet"
+  | C.A Secrets ->
+      Metrics_.g.is_using_app <- true;
+      failwith "TODO: Secrets not handled yet"
 
 let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt ~registry_caching
     kind : rules_and_origin list =

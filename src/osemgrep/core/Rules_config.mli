@@ -30,6 +30,7 @@ and app_config_kind =
   (* this requires also SEMGREP_REPO_NAME to be set *)
   | Policy
   | SupplyChain
+  | Secrets
 [@@deriving show]
 
 (* the in_docker parameter is useful just for better error reporting *)
