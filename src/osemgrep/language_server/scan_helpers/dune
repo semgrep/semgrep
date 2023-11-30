@@ -5,6 +5,7 @@
  (libraries
    semgrep.language_server.server
    semgrep.language_server.util
+   semgrep.osemgrep_reporting
 
  )
  (preprocess

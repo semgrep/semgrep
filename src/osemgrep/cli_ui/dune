@@ -1,8 +1,7 @@
-; OCaml implementation of the 'semgrep login' and 'semgrep logout' subcommands.
-;
+; This library should contain all UI code for the CLI
 (library
-  (public_name semgrep.osemgrep_cli_login)
-  (name osemgrep_cli_login)
+  (public_name semgrep.osemgrep_cli_ui)
+  (name osemgrep_cli_ui)
   (wrapped false)
   (libraries
   ; External libraries
@@ -10,11 +9,11 @@
     cmdliner
     ocolor
     commons
+    lwt
+    lwt_platform
 
-    osemgrep_cli_ui
     osemgrep_configuring
     osemgrep_core
-    osemgrep_networking
   )
  (preprocess
    (pps
@@ -22,6 +21,7 @@
      ppx_deriving.show
      ppx_deriving.eq
      ppx_hash
+     lwt_ppx
    )
  )
 )

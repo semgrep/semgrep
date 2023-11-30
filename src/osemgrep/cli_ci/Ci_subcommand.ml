@@ -620,13 +620,13 @@ let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
       ());
 
   (* step1: initialization *)
-  CLI_common.setup_logging ~force_color:conf.force_color
+  CLI_common.setup_logging ~force_color:conf.output_conf.force_color
     ~level:conf.common.logging_level;
   (* TODO? we probably want to set the metrics to On by default in CI ctx? *)
   Metrics_.configure conf.metrics;
   let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
   Logs.debug (fun m -> m "conf = %s" (Ci_CLI.show_conf ci_conf));
-  let dry_run = conf.dryrun in
+  let dry_run = conf.output_conf.dryrun in
 
   (* step2: token -> deployment_config -> scan_id -> scan_config -> rules *)
   let depl_opt =

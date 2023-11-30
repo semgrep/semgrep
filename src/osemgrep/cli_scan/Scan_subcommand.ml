@@ -30,36 +30,11 @@ module SS = Set.Make (String)
 *)
 
 (*****************************************************************************)
-(* To run a Pro scan (Deep scan and multistep scan) *)
-(*****************************************************************************)
-
-(* Semgrep Pro hook. Note that this is useful only for osemgrep. Indeed,
- * for pysemgrep the code path is instead to fork the
- * semgrep-core-proprietary program, which executes Pro_CLI_main.ml
- * which then calls Run.ml code which is mostly a copy-paste of Core_scan.ml
- * with the Pro scan specifities hard-coded (no need for hooks).
- * We could do the same for osemgrep, but that would require to copy-paste
- * lots of code, so simpler to use a hook instead.
- *
- * Note that Scan_subcommand.ml itself is linked in (o)semgrep-pro,
- * and executed by osemgrep-pro. When linked from osemgrep-pro, this
- * hook below will be set.
- *)
-let (hook_pro_scan_func_for_osemgrep :
-      (Fpath.t list ->
-      ?diff_config:Differential_scan_config.t ->
-      Engine_type.t ->
-      Core_runner.scan_func_for_osemgrep)
-      option
-      ref) =
-  ref None
-
-(*****************************************************************************)
 (* Logging/Profiling/Debugging *)
 (*****************************************************************************)
 
 let setup_logging (conf : Scan_CLI.conf) =
-  CLI_common.setup_logging ~force_color:conf.force_color
+  CLI_common.setup_logging ~force_color:conf.output_conf.force_color
     ~level:conf.common.logging_level;
   Logs.debug (fun m -> m "Semgrep version: %s" Version.version);
   ()
@@ -138,9 +113,10 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
       (fun () ->
         (* coupling: similar to Output.dispatch_output_format for Text *)
         Matches_report.pp_text_outputs
-          ~max_chars_per_line:conf.max_chars_per_line
-          ~max_lines_per_finding:conf.max_lines_per_finding
-          ~color_output:conf.force_color Format.std_formatter cli_matches)
+          ~max_chars_per_line:conf.output_conf.max_chars_per_line
+          ~max_lines_per_finding:conf.output_conf.max_lines_per_finding
+          ~color_output:conf.output_conf.force_color Format.std_formatter
+          cli_matches)
       ~finally:(fun () -> Unix.lockf Unix.stdout Unix.F_ULOCK 0))
 
 (*****************************************************************************)
@@ -277,7 +253,7 @@ let mk_scan_func (conf : Scan_CLI.conf) file_match_results_hook errors targets
     | OSS ->
         Core_runner.mk_scan_func_for_osemgrep Core_scan.scan_with_exn_handler
     | PRO _ -> (
-        match !hook_pro_scan_func_for_osemgrep with
+        match !Core_runner.hook_pro_scan_func_for_osemgrep with
         | None ->
             (* TODO: improve this error message depending on what the
              * instructions should be *)
@@ -510,13 +486,13 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     let output_format, file_match_results_hook =
       match conf with
       | {
-       output_format = Output_format.Text;
+       output_conf = { output_format = Output_format.Text; _ };
        common = { maturity = Maturity.Develop; _ };
        _;
       } ->
           ( Output_format.TextIncremental,
             Some (file_match_results_hook conf filtered_rules) )
-      | { output_format; _ } -> (output_format, None)
+      | { output_conf; _ } -> (output_conf.output_format, None)
     in
     let scan_func = mk_scan_func conf file_match_results_hook errors in
     (* step 3': call the engine! *)
@@ -578,7 +554,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     (* step 5: report the matches *)
     (* outputting the result on stdout! in JSON/Text/... depending on conf *)
     let cli_output =
-      Output.output_result { conf with output_format } profiler res
+      Output.output_result { conf.output_conf with output_format } profiler res
     in
     Profiler.stop_ign profiler ~name:"total_time";
 
@@ -626,7 +602,8 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     (* this must happen posterior to reporting matches, or will report the
        already-fixed file
     *)
-    if conf.autofix then Autofix.apply_fixes_of_core_matches res.core.results;
+    if conf.output_conf.autofix then
+      Autofix.apply_fixes_of_core_matches res.core.results;
 
     (* TOPORT? was in formater/base.py
        def keep_ignores(self) -> bool:
@@ -709,14 +686,25 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
 
   (* step1: getting the rules *)
 
-  (* Display a message, ideally a progress bar to denote rule fetching *)
+  (* Display a message to denote rule fetching that is made interactive when possible *)
   if new_cli_ux then display_rule_source ~rule_source:conf.rules_source;
 
+  (* Create the wait hook for our progress indicator *)
+  let spinner_ls =
+    if !ANSITerminal.isatty Unix.stdout && not !Common.jsoo then
+      [ Console_Spinner.spinner_async () ]
+    else []
+  in
+  (* Fetch the rules *)
   let rules_and_origins =
-    Rule_fetching.rules_from_rules_source ~token_opt:settings.api_token
+    Rule_fetching.rules_from_rules_source_async ~token_opt:settings.api_token
       ~rewrite_rule_ids:conf.rewrite_rule_ids
       ~registry_caching:conf.registry_caching conf.rules_source
   in
+  let rules_and_origins =
+    Lwt_platform.run (Lwt.pick (rules_and_origins :: spinner_ls))
+  in
+
   (* step2: getting the targets *)
   let targets_and_skipped =
     Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
@@ -732,7 +720,7 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
       (* final result for the shell *)
       if conf.error_on_findings && not (Common.null cli_output.results) then
         Exit_code.findings
-      else exit_code_of_errors ~strict:conf.strict res.core.errors
+      else exit_code_of_errors ~strict:conf.output_conf.strict res.core.errors
 
 (*****************************************************************************)
 (* Main logic *)

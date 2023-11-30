@@ -1,0 +1,17 @@
+(library
+  (public_name semgrep.core_runner)
+  (name osemgrep_core_runner)
+  (wrapped false)
+  (libraries
+
+   osemgrep_core
+   osemgrep_configuring
+   semgrep.running
+
+  )
+ (preprocess
+   (pps
+     ppx_deriving.show
+   )
+ )
+)
