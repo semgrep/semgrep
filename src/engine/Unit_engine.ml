@@ -373,15 +373,9 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix =
 *)
 let regression_tests_for_lang ~polyglot_pattern_path files lang =
   files
-<<<<<<< HEAD
   |> List_.map (fun file ->
-         ( Fpath.basename file,
-           fun () ->
-=======
-  |> Common.map (fun file ->
          Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang)
            (Fpath.basename file) (fun () ->
->>>>>>> a50107268 (Tag tests to be skipped by js tests)
              let sgrep_file =
                match
                  related_file_of_target ~polyglot_pattern_path ~ext:"sgrep"
@@ -491,15 +485,9 @@ let compare_fixes ~polyglot_pattern_path ~file matches =
 
 let autofix_tests_for_lang ~polyglot_pattern_path files lang =
   files
-<<<<<<< HEAD
   |> List_.map (fun file ->
-         ( Fpath.basename file,
-           fun () ->
-=======
-  |> Common.map (fun file ->
          Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang)
            (Fpath.basename file) (fun () ->
->>>>>>> a50107268 (Tag tests to be skipped by js tests)
              let sgrep_file =
                match
                  related_file_of_target ~polyglot_pattern_path ~ext:"sgrep"
@@ -751,8 +739,8 @@ let tainting_test lang rules_file file =
 let tainting_tests_for_lang files lang =
   files
   |> List_.map (fun file ->
-         ( Fpath.basename file,
-           fun () ->
+         Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang)
+           (Fpath.basename file) (fun () ->
              let rules_file =
                let d, b, _e = Common2.dbe_of_filename !!file in
                let candidate1 = Common2.filename_of_dbe (d, b, "yaml") in
@@ -761,31 +749,31 @@ let tainting_tests_for_lang files lang =
                  failwith
                    (spf "could not find tainting rules file for %s" !!file)
              in
-             tainting_test lang rules_file file ))
+             tainting_test lang rules_file file))
 
 let lang_tainting_tests () =
   let taint_tests_path = tests_path / "tainting_rules" in
   pack_suites "lang tainting rules testing"
     [
-      pack_tests "tainting Go"
+      pack_tests_pro "tainting Go"
         (let dir = taint_tests_path / "go" in
          let files = Common2.glob (spf "%s/*.go" !!dir) |> Fpath_.of_strings in
 
          let lang = Lang.Go in
          tainting_tests_for_lang files lang);
-      pack_tests "tainting PHP"
+      pack_tests_pro "tainting PHP"
         (let dir = taint_tests_path / "php" in
          let files = Common2.glob (spf "%s/*.php" !!dir) |> Fpath_.of_strings in
 
          let lang = Lang.Php in
          tainting_tests_for_lang files lang);
-      pack_tests "tainting Python"
+      pack_tests_pro "tainting Python"
         (let dir = taint_tests_path / "python" in
          let files = Common2.glob (spf "%s/*.py" !!dir) |> Fpath_.of_strings in
 
          let lang = Lang.Python in
          tainting_tests_for_lang files lang);
-      pack_tests "tainting Java"
+      pack_tests_pro "tainting Java"
         (let dir = taint_tests_path / "java" in
          let files =
            Common2.glob (spf "%s/*.java" !!dir) |> Fpath_.of_strings
@@ -793,25 +781,25 @@ let lang_tainting_tests () =
 
          let lang = Lang.Java in
          tainting_tests_for_lang files lang);
-      pack_tests "tainting Javascript"
+      pack_tests_pro "tainting Javascript"
         (let dir = taint_tests_path / "js" in
          let files = Common2.glob (spf "%s/*.js" !!dir) |> Fpath_.of_strings in
 
          let lang = Lang.Js in
          tainting_tests_for_lang files lang);
-      pack_tests "tainting Ruby"
+      pack_tests_pro "tainting Ruby"
         (let dir = taint_tests_path / "ruby" in
          let files = Common2.glob (spf "%s/*.rb" !!dir) |> Fpath_.of_strings in
 
          let lang = Lang.Ruby in
          tainting_tests_for_lang files lang);
-      pack_tests "tainting Typescript"
+      pack_tests_pro "tainting Typescript"
         (let dir = taint_tests_path / "ts" in
          let files = Common2.glob (spf "%s/*.ts" !!dir) |> Fpath_.of_strings in
 
          let lang = Lang.Ts in
          tainting_tests_for_lang files lang);
-      pack_tests "tainting Scala"
+      pack_tests_pro "tainting Scala"
         (let dir = taint_tests_path / "scala" in
          let files =
            Common2.glob (spf "%s/*.scala" !!dir) |> Fpath_.of_strings
@@ -837,31 +825,18 @@ let full_rule_regression_tests () =
   let tests = tests1 @ tests2 in
   let groups =
     tests
-<<<<<<< HEAD
-    |> List_.map (fun (name, ftest) ->
-=======
-    |> Common.map (fun (test : Alcotest_ext.test) ->
->>>>>>> a50107268 (Tag tests to be skipped by js tests)
+    |> List_.map (fun (test : Alcotest_ext.test) ->
            let group =
              match String.split_on_char ' ' test.name with
              | lang :: _ -> lang
              | _ -> test.name
            in
-<<<<<<< HEAD
-           (group, (name, ftest)))
+           (group, test))
     |> Assoc.group_assoc_bykey_eff
   in
 
   pack_suites "full rule"
-    (groups |> List_.map (fun (group, tests) -> pack_tests group tests))
-=======
-           (group, test))
-    |> Common.group_assoc_bykey_eff
-  in
-
-  pack_suites "full rule"
-    (groups |> Common.map (fun (group, tests) -> pack_tests_pro group tests))
->>>>>>> a50107268 (Tag tests to be skipped by js tests)
+    (groups |> List_.map (fun (group, tests) -> pack_tests_pro group tests))
 
 (* TODO: For now we only have taint maturity tests for Beta, there are no
  * specific tests for GA.
@@ -893,11 +868,7 @@ let full_rule_semgrep_rules_regression_tests () =
   in
   let groups =
     tests
-<<<<<<< HEAD
-    |> List_.map_filter (fun (name, ftest) ->
-=======
-    |> Common.map_filter (fun (test : Alcotest_ext.test) ->
->>>>>>> a50107268 (Tag tests to be skipped by js tests)
+    |> List_.map_filter (fun (test : Alcotest_ext.test) ->
            let group_opt =
              match test.name with
              (* TODO: cleanup nodejsscan? "no target for" error *)
@@ -948,26 +919,16 @@ let full_rule_semgrep_rules_regression_tests () =
                  logger#info "skipping %s" test.name;
                  None
            in
-<<<<<<< HEAD
-           group_opt |> Option.map (fun groupname -> (groupname, (name, ftest))))
-    |> Assoc.group_assoc_bykey_eff
-=======
            group_opt |> Option.map (fun groupname -> (groupname, test)))
-    |> Common.group_assoc_bykey_eff
->>>>>>> a50107268 (Tag tests to be skipped by js tests)
+    |> Assoc.group_assoc_bykey_eff
   in
 
   pack_suites "full semgrep rule"
     (groups
     |> List_.map (fun (group, tests) ->
            tests
-<<<<<<< HEAD
-           |> List_.map (fun (name, ftest) ->
-                  let test () =
-=======
-           |> Common.map (fun (test : Alcotest_ext.test) ->
+           |> List_.map (fun (test : Alcotest_ext.test) ->
                   let ftest () =
->>>>>>> a50107268 (Tag tests to be skipped by js tests)
                     match group with
                     | "XFAIL" ->
                         (* TODO: mark these tests as XFAIL

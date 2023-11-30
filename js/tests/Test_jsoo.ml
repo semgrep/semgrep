@@ -22,43 +22,46 @@ open Js_of_ocaml
 (* Code *)
 (*****************************************************************************)
 
-(* skipped_tests is a list of test names and and optional indicies to skip *)
-(* for example: *)
-(* ("foo", []) will skip all tests with "foo" in the name *)
-(* ("foo", [1; 3]) will skip test with "fool" in the name AND whose index are 1 or 3 *)
-let skipped_tests =
-  [
-    (* TODO: investigate C++ test issues *)
-    ("Cpp", []);
-    ("C++", []);
-    (* TODO: re-enable once we fix Julia build slowness *)
-    ("Julia", []);
-    (* TODO: re-enable once we fix Ruby build slowness *)
-    ("Ruby", []);
-    (* TODO: re-enable this when we fix the jsoo int overflow bug *)
-    ("Go", [ 24 ]);
-    (* TODO: investigate c_array_inits pattern parse error*)
-    ("C", [ 2 ]);
-  ]
+(* Old code for skipping tests that are known to fail.
+      The new code skips test based on tags. Tags are set elsewhere.
 
-(* Filter to skip tests
-   TODO: it's broken due to changes in test suite name and/or structure.
-   Remove after we're done with tag-based filtering. *)
-(*
-let test_filter ~name ~index =
-  if
-    List.filter
-      (fun (language, indexes) ->
-        Common.contains
-          (String.lowercase_ascii name)
-          (String.lowercase_ascii language)
-        && (indexes = [] || List.exists (fun n2 -> n2 = index) indexes))
-      skipped_tests
-    <> []
-  then `Skip
-  else `Run
+   (* skipped_tests is a list of test names and and optional indicies to skip *)
+   (* for example: *)
+   (* ("foo", []) will skip all tests with "foo" in the name *)
+   (* ("foo", [1; 3]) will skip test with "fool" in the name AND whose index are 1 or 3 *)
+   let skipped_tests =
+     [
+       (* TODO: investigate C++ test issues *)
+       ("Cpp", []);
+       ("C++", []);
+       (* TODO: re-enable once we fix Julia build slowness *)
+       ("Julia", []);
+       (* TODO: re-enable once we fix Ruby build slowness *)
+       ("Ruby", []);
+       (* TODO: re-enable this when we fix the jsoo int overflow bug *)
+       ("Go", [ 24 ]);
+       (* TODO: investigate c_array_inits pattern parse error*)
+       ("C", [ 2 ]);
+     ]
+
+   let test_filter ~name ~index =
+     if
+       List.filter
+         (fun (language, indexes) ->
+           Common.contains
+             (String.lowercase_ascii name)
+             (String.lowercase_ascii language)
+           && (indexes = [] || List.exists (fun n2 -> n2 = index) indexes))
+         skipped_tests
+       <> []
+     then `Skip
+     else `Run
 *)
 
+(* This may skip more tests than necessary depending on the tagging accuracy.
+   Ideally, tests that are expected to fail and only those should be marked
+   as xfail rather than being skipped so we can detect when their status
+   changes. *)
 let skip_todo_tests tests =
   tests
   |> List_.map (fun test ->
