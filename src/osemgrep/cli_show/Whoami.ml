@@ -4,7 +4,7 @@ module OutJ = Semgrep_output_v1_j
 (* Main logic *)
 (*****************************************************************************)
 
-type identity_kind = Identity | Deployment
+type identity_kind = Identity | Deployment | Bucket
 
 let print (kind : identity_kind) : Exit_code.t =
   let settings = Semgrep_settings.load () in
@@ -12,6 +12,19 @@ let print (kind : identity_kind) : Exit_code.t =
   match api_token with
   | Some token ->
       (match kind with
+      | Bucket ->
+          let settings = Semgrep_settings.load () in
+          let anonymous_user_id = settings.Semgrep_settings.anonymous_user_id in
+          Logs.debug (fun m ->
+              m "anonymous_user_id: %s" (anonymous_user_id |> Uuidm.to_string));
+          let bytes = anonymous_user_id |> Uuidm.to_bytes |> Bytes.of_string in
+          Logs.debug (fun m ->
+              m "bytes: %s" (bytes |> Bytes.escaped |> Bytes.to_string));
+          let int_repr = Bytes.get_int64_be bytes 0 |> Int64.to_int in
+          Logs.debug (fun m -> m "int_repr: %d" int_repr);
+          let bucket = int_repr mod 1000 |> abs in
+          Logs.app (fun m ->
+              m "%s bucket %d" (Logs_helpers.success_tag ()) bucket)
       | Identity ->
           let id = Lwt_platform.run (Semgrep_App.get_identity_async ~token) in
           Logs.app (fun m ->

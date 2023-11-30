@@ -12,6 +12,7 @@ type conf = {
   (* mix of --dump-ast/--dump-rule/... *)
   show_kind : show_kind;
   json : bool;
+  logging_level : Logs.level option;
 }
 
 and show_kind =
@@ -19,6 +20,7 @@ and show_kind =
   | SupportedLanguages
   | Identity
   | Deployment
+  | Bucket
   (* dumpers *)
   | DumpPattern of string * Lang.t
   | DumpAST of Fpath.t * Lang.t
