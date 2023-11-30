@@ -920,6 +920,8 @@ let full_rule_semgrep_rules_regression_tests () =
                     || s =~ ".*/contrib/nodejsscan/eval_drpc_deserialize.yaml"
                     || s =~ ".*/contrib/nodejsscan/error_disclosure.yaml"
                     (* TODO: cleanup semgrep-rules: "no target for" error *)
+                    (* TODO: do this filtering before Test_engine.make_tests
+                       because it already requires the target files. *)
                     || s =~ ".*/contrib/dlint/dlint-equivalent.yaml"
                     || s =~ ".*/fingerprints/fingerprints.yaml"
                     || s
@@ -931,6 +933,7 @@ let full_rule_semgrep_rules_regression_tests () =
                        =~ ".*/python/django/maintainability/duplicate-path-assignment.yaml"
                     (* ?? *)
                     || s =~ ".*/yaml/semgrep/consistency/.*" ->
+                 (* peanut butter? *)
                  Some "PB"
              (* not rule files *)
              | s when s =~ ".*.test.yml" -> None
@@ -941,7 +944,7 @@ let full_rule_semgrep_rules_regression_tests () =
              | s when s =~ ".*/semgrep-rules/\\([a-zA-Z]+\\)/.*" ->
                  let s = Common.matched1 test.name in
                  Some (String.capitalize_ascii s)
-             (* this skips the semgrep-rules/.github enrtries *)
+             (* this skips the semgrep-rules/.github entries *)
              | _ ->
                  logger#info "skipping %s" test.name;
                  None
