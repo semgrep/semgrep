@@ -102,7 +102,7 @@ let tests_with_delayed_error () =
       ]
 
 let main () =
-  (* find the root of the semgrep repo as many of our tests rely on
+  (* change to the root of the semgrep repo as many of our tests rely on
      'let test_path = "tests/"' to find their test files *)
   let repo_root =
     match Git_wrapper.get_project_root () with

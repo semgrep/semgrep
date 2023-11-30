@@ -16,7 +16,6 @@
 open Lsp
 open Types
 open Jsonrpc
-open File.Operators
 module OutJ = Semgrep_output_v1_t
 module In = Input_to_core_t
 module SR = Server_request
@@ -70,42 +69,17 @@ type info = {
   server : RPC_server.t;
   in_stream : Jsonrpc.Packet.t Lwt_stream.t * push_function;
   out_stream : Jsonrpc.Packet.t Lwt_stream.t * push_function;
+  tmp_path : Fpath.t;
 }
-
-let create_info () =
-  RPC_server.io_ref := (module Io);
-  let in_stream, in_push_func = Lwt_stream.create () in
-  let out_stream, out_push_func = Lwt_stream.create () in
-  let server = LanguageServer.create () in
-  write_func := out_push_func;
-  read_stream := in_stream;
-  {
-    server;
-    in_stream = (in_stream, in_push_func);
-    out_stream = (out_stream, out_push_func);
-  }
 
 (*****************************************************************************)
 (* Constants *)
 (*****************************************************************************)
 
-(* These tests are run separately from both the JS side and the regular Semgrep
-   side.
-*)
-
-(*
-   This makes a system call that interferes with lwt's event loop.
-   Be careful.
-*)
-let get_rule_path () =
+let semgrep_root =
   match Git_wrapper.get_project_root () with
-  | Some root ->
-      Fpath.(root / "cli" / "tests" / "e2e" / "targets" / "ls" / "rules.yaml")
-  | None ->
-      failwith "The test program must run from within the semgrep git project"
-
-(* We run this here because we can't run it during lwt's event loop. *)
-let rule_path = get_rule_path ()
+  | Some f -> f
+  | None -> failwith "tests must be run from within a repository!"
 
 let default_content =
   {|
@@ -151,7 +125,16 @@ let open_and_write_default_content ?(mode = []) file =
    how the promises resolve, such that the sleeping thread would stay
    sleeping and the entire process would eventually exit.
    So, when running in JSCaml, let's just not use pauses. *)
-let lwt_pause () = if !Common.jsoo then Lwt.return_unit else Lwt.pause ()
+let lwt_pause () =
+  if !Common.jsoo then Lwt.return_unit
+  else
+    (* For some reason, Lwt.pause makes the Sys.cwd change.
+       I have no idea why. But this fixes that.
+    *)
+    let dir = Sys.getcwd () in
+    let%lwt () = Lwt.pause () in
+    Sys.chdir dir;
+    Lwt.return_unit
 
 let with_timeout (f : unit -> 'a Lwt.t) : unit -> 'a Lwt.t =
   let timeout_promise =
@@ -249,28 +232,24 @@ let receive_request (info : info) : Request.t Lwt.t =
 (*****************************************************************************)
 
 let git_tmp_path () =
-  let _orig_dir = Sys.getcwd () in
-  Testutil_files.with_tempdir ~persist:true (*~chdir:true*) (fun dir ->
-      (* TODO: investigate/report
-         Mysterious bug: the test will hang as we chdir back into the original
-         directory. *)
-      if not !Common.jsoo then Sys.chdir !!dir;
-      checked_command (String.concat " " [ "git"; "-C"; !!dir; "init" ]);
+  Testutil_files.with_tempdir ~persist:true (fun dir ->
+      let dir = Fpath.to_string dir in
+      checked_command (String.concat " " [ "git"; "-C"; dir; "init" ]);
       checked_command
         (String.concat " "
            [
              "git";
              "-C";
-             !!dir;
+             dir;
              "config";
              "user.email";
              "baselinetest@semgrep.com";
            ]);
       checked_command
         (String.concat " "
-           [ "git"; "-C"; !!dir; "config"; "user.name"; "Baseline Test" ]);
+           [ "git"; "-C"; dir; "config"; "user.name"; "Baseline Test" ]);
       checked_command
-        (String.concat " " [ "git"; "-C"; !!dir; "checkout"; "-B"; "main" ]);
+        (String.concat " " [ "git"; "-C"; dir; "checkout"; "-B"; "main" ]);
       (* !!!!!!!!!!!!!!! This call causes hanging !!!!!!!!!!!!!!! *)
       (* Sys.chdir _orig_dir; *)
       dir)
@@ -280,11 +259,9 @@ let assert_contains (json : Json.t) str =
   if not (Common.contains json_str str) then
     Alcotest.failf "Expected string `%s` in response %s" str json_str
 
-let mock_files () : _ * Fpath.t list =
-  let git_tmp_path = git_tmp_path () in
-
+let mock_files info : _ * Fpath.t list =
   let open Fpath in
-  let root = git_tmp_path in
+  let git_tmp_path = info.tmp_path in
   (* should have preexisting matches that are committed *)
   let modified_file = git_tmp_path / "modified.py" in
   (* should have preexisting matches that are not committed *)
@@ -337,7 +314,7 @@ let mock_files () : _ * Fpath.t list =
 
   open_and_write_default_content ~mode:[ Open_append ] modified_file;
 
-  let new_file = root / "new.py" in
+  let new_file = git_tmp_path / "new.py" in
   (* created after commit *)
   open_and_write_default_content ~mode:[ Open_wronly ] new_file;
 
@@ -349,8 +326,8 @@ let mock_files () : _ * Fpath.t list =
 
   (git_tmp_path, files)
 
-let mock_workspaces () =
-  let ((workspace1_root, workspace1_files) as workspace1) = mock_files () in
+let mock_workspaces info =
+  let ((workspace1_root, workspace1_files) as workspace1) = mock_files info in
   let workspace1_root = Fpath.to_string workspace1_root in
 
   (* Copy mock files to a second workspace
@@ -390,6 +367,26 @@ let mock_workspaces () =
 
   (workspace1, (Fpath.v workspace2_root, workspace2_files))
 
+let create_info () =
+  RPC_server.io_ref := (module Io);
+  let in_stream, in_push_func = Lwt_stream.create () in
+  let out_stream, out_push_func = Lwt_stream.create () in
+  let server = LanguageServer.create () in
+  write_func := out_push_func;
+  read_stream := in_stream;
+  (* These tests are run separately from both the JS side and the regular Semgrep
+     side.
+     To ensure they can find the path properly, we just go backwards until we
+     find the directoroy named "semgrep".
+  *)
+  let tmp_path = Fpath.v (git_tmp_path ()) in
+  {
+    server;
+    in_stream = (in_stream, in_push_func);
+    out_stream = (out_stream, out_push_func);
+    tmp_path;
+  }
+
 (*****************************************************************************)
 (* Sending functions *)
 (*****************************************************************************)
@@ -417,7 +414,14 @@ let send_initialize info ?(only_git_dirty = true) workspaceFolders =
             `Assoc
               [
                 ( "configuration",
-                  `List [ `String (rule_path |> Fpath.to_string) ] );
+                  `List
+                    [
+                      `String
+                        (Fpath.(
+                           semgrep_root / "cli" / "tests" / "e2e" / "targets"
+                           / "ls" / "rules.yaml")
+                        |> Fpath.to_string);
+                    ] );
                 ("exclude", `List []);
                 ("include", `List []);
                 ("jobs", `Int 1);
@@ -706,13 +710,22 @@ let with_session (f : info -> unit Lwt.t) : unit Lwt.t =
        Logs.err (fun m -> m "Got exception: %s" err);
        Alcotest.fail err);
   let info = create_info () in
-  let server_promise = LanguageServer.start info.server in
-  let f_promise = f info in
-  Lwt.join [ f_promise; server_promise ]
+  (* We do this protect here to have a clearer mental model of the
+     directory structure while the test is running.
+     For each individual test, we cd to that test's personal temporary
+     directory, which resets upon termination of the test.
+  *)
+  Common.protect
+    ~finally:(fun () -> Unix.chdir (Fpath.to_string semgrep_root))
+    (fun () ->
+      Unix.chdir (Fpath.to_string info.tmp_path);
+      let server_promise = LanguageServer.start info.server in
+      let f_promise = f info in
+      Lwt.join [ f_promise; server_promise ])
 
 let test_ls_specs () =
   with_session (fun info ->
-      let root, files = mock_files () in
+      let root, files = mock_files info in
       let%lwt () = Lwt.return_unit in
       let%lwt () = check_startup info [ root ] files in
       let%lwt () =
@@ -803,105 +816,102 @@ let test_ls_specs () =
 
 let test_ls_ext () =
   with_session (fun info ->
-      let root, files = mock_files () in
-      Testutil_files.with_chdir root (fun () ->
-          let%lwt () = check_startup info [ root ] files in
+      let root, files = mock_files info in
+      let%lwt () = check_startup info [ root ] files in
 
-          (* scan workspace *)
-          let%lwt () = send_semgrep_scan_workspace info in
-          let%lwt () = assert_progress info "Scanning Workspace" in
+      (* scan workspace *)
+      let%lwt () = send_semgrep_scan_workspace info in
+      let%lwt () = assert_progress info "Scanning Workspace" in
 
-          let scanned_files =
-            List.filter
-              (fun f -> not (Common.contains (Fpath.to_string f) "existing"))
-              files
-          in
-          let%lwt num_ids =
-            Lwt_list.map_s
-              (fun _ ->
-                let%lwt notif = receive_notification info in
-                Lwt.return
-                  YS.Util.(
-                    List.length
-                      (notif.params |> Option.get |> Structured.yojson_of_t
-                     |> member "diagnostics" |> to_list)))
-              scanned_files
-          in
+      let scanned_files =
+        List.filter
+          (fun f -> not (Common.contains (Fpath.to_string f) "existing"))
+          files
+      in
+      let%lwt num_ids =
+        Lwt_list.map_s
+          (fun _ ->
+            let%lwt notif = receive_notification info in
+            Lwt.return
+              YS.Util.(
+                List.length
+                  (notif.params |> Option.get |> Structured.yojson_of_t
+                 |> member "diagnostics" |> to_list)))
+          scanned_files
+      in
 
-          (* scan workspace full *)
-          let%lwt () = send_semgrep_scan_workspace ~full:true info in
+      (* scan workspace full *)
+      let%lwt () = send_semgrep_scan_workspace ~full:true info in
 
-          let%lwt notif = receive_notification info in
-          let%lwt () =
-            assert_message notif
-              "Scanning all files regardless of git status. These diagnostics \
-               will persist until a file is edited. To default to always \
-               scanning regardless of git status, please disable 'Only Git \
-               Dirty' in settings"
-          in
+      let%lwt notif = receive_notification info in
+      let%lwt () =
+        assert_message notif
+          "Scanning all files regardless of git status. These diagnostics will \
+           persist until a file is edited. To default to always scanning \
+           regardless of git status, please disable 'Only Git Dirty' in \
+           settings"
+      in
 
-          let%lwt () = assert_progress info "Scanning Workspace" in
+      let%lwt () = assert_progress info "Scanning Workspace" in
 
-          let%lwt () =
-            files
-            |> Lwt_list.iteri_s
-                 YS.Util.(
-                   fun i _ ->
-                     let%lwt notif = receive_notification info in
-                     let uri =
-                       notif.params |> Option.get |> Structured.yojson_of_t
-                       |> member "uri"
-                     in
-                     if Common.contains (YS.to_string uri) "modified" then
-                       assert (
-                         List.length
-                           (notif.params |> Option.get |> Structured.yojson_of_t
-                          |> member "diagnostics" |> to_list)
-                         > List.nth num_ids i);
-                     Lwt.return_unit)
-          in
+      let%lwt () =
+        files
+        |> Lwt_list.iteri_s
+             YS.Util.(
+               fun i _ ->
+                 let%lwt notif = receive_notification info in
+                 let uri =
+                   notif.params |> Option.get |> Structured.yojson_of_t
+                   |> member "uri"
+                 in
+                 if Common.contains (YS.to_string uri) "modified" then
+                   assert (
+                     List.length
+                       (notif.params |> Option.get |> Structured.yojson_of_t
+                      |> member "diagnostics" |> to_list)
+                     > List.nth num_ids i);
+                 Lwt.return_unit)
+      in
 
-          (* search *)
-          let%lwt () = send_semgrep_search info "print(...)" in
-          let%lwt resp = receive_response info in
-          assert (
-            YS.Util.(
-              resp.result |> Result.get_ok |> member "locations" |> to_list
-              |> List.length = 3));
+      (* search *)
+      let%lwt () = send_semgrep_search info "print(...)" in
+      let%lwt resp = receive_response info in
+      assert (
+        YS.Util.(
+          resp.result |> Result.get_ok |> member "locations" |> to_list
+          |> List.length = 3));
 
-          (* hover is on by default *)
-          let%lwt () =
-            files
-            |> Lwt_list.iter_s (fun file ->
-                   let%lwt () = send_hover info file ~character:1 ~line:0 in
-                   let%lwt resp = receive_response info in
-                   assert (resp.result |> Result.get_ok <> `Null);
-                   (* just checking that "contents" exists *)
-                   YS.Util.(
-                     resp.result |> Result.get_ok |> member "contents" |> ignore);
-                   Lwt.return_unit)
-          in
+      (* hover is on by default *)
+      let%lwt () =
+        files
+        |> Lwt_list.iter_s (fun file ->
+               let%lwt () = send_hover info file ~character:1 ~line:0 in
+               let%lwt resp = receive_response info in
+               assert (resp.result |> Result.get_ok <> `Null);
+               (* just checking that "contents" exists *)
+               YS.Util.(
+                 resp.result |> Result.get_ok |> member "contents" |> ignore);
+               Lwt.return_unit)
+      in
 
-          (* showAst *)
-          let%lwt () =
-            files
-            |> Lwt_list.iter_s (fun file ->
-                   let%lwt () = send_semgrep_show_ast info file in
-                   let%lwt resp = receive_response info in
-                   let resp =
-                     resp.result |> Result.get_ok |> YS.Util.to_string
-                   in
-                   assert (Regexp_engine.unanchored_match prog_regex resp);
-                   Lwt.return_unit)
-          in
+      (* showAst *)
+      let%lwt () =
+        files
+        |> Lwt_list.iter_s (fun file ->
+               let%lwt () = send_semgrep_show_ast info file in
+               let%lwt resp = receive_response info in
+               let resp = resp.result |> Result.get_ok |> YS.Util.to_string in
+               assert (Regexp_engine.unanchored_match prog_regex resp);
+               Lwt.return_unit)
+      in
 
-          send_exit info))
+      send_exit info)
 
 let test_ls_multi () =
   with_session (fun info ->
       let ( (workspace1_root, workspace1_files),
             (workspace2_root, workspace2_files) ) =
-        mock_workspaces ()
+        mock_workspaces info
       in
       let workspace_folders = [ workspace1_root; workspace2_root ] in
       let files = workspace1_files @ workspace2_files in
@@ -957,7 +967,7 @@ let test_login () =
       let settings = Semgrep_settings.load () in
       if not (Semgrep_settings.save { settings with api_token = None }) then
         Alcotest.fail "failed to save settings to log out in ls e2e test";
-      let root, files = mock_files () in
+      let root, files = mock_files info in
       Testutil_files.with_chdir root (fun () ->
           let%lwt () = check_startup info [ root ] files in
           let%lwt () = send_initialize info [] in
@@ -970,7 +980,6 @@ let test_login () =
           let url =
             YS.Util.(msg.result |> Result.get_ok |> member "url" |> to_string)
           in
-
           assert (Regexp_engine.unanchored_match login_url_regex url);
           Semgrep_settings.save settings |> ignore;
           send_exit info))

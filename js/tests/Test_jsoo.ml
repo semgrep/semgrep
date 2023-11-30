@@ -68,6 +68,18 @@ let _ =
        method setJsonnetParser = Semgrep_js_shared.setJsonnetParser
 
        method run filter =
+         (* This should place us at the root of the semgrep repository, which
+            is important for some assumptions later on during testing.
+         *)
+         let repo_root =
+           match Git_wrapper.get_project_root () with
+           | Some path -> path
+           | None ->
+               failwith
+                 "You must run the test program from within the semgrep repo \
+                  and not one of its submodules."
+         in
+         Unix.chdir (Fpath.to_string repo_root);
          let argv = [| "" |] in
          let argv =
            if filter <> "" then Array.append argv [| "-e"; filter |] else argv
