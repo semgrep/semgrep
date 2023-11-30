@@ -63,6 +63,7 @@ let run (conf : Show_CLI.conf) : Exit_code.t =
       Exit_code.ok
   | Identity -> Whoami.print Whoami.Identity
   | Deployment -> Whoami.print Whoami.Deployment
+  | Bucket -> Whoami.print Whoami.Bucket
   | SupportedLanguages ->
       Out.put (spf "supported languages are: %s" Xlang.supported_xlangs);
       Exit_code.ok (* dumpers *)

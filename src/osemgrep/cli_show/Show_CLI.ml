@@ -23,6 +23,7 @@ type conf = {
   (* mix of --dump-ast/--dump-rule/... *)
   show_kind : show_kind;
   json : bool;
+  logging_level : Logs.level option;
 }
 
 (* coupling: if you add a command you probably need to modify [combine]
@@ -37,6 +38,7 @@ and show_kind =
   (* a.k.a whoami *)
   | Identity
   | Deployment
+  | Bucket
   (* 'semgrep show ???'
    * accessible also as 'semgrep scan --dump-ast -e <pattern>'
    * alt: we could accept XLang.t to dump extended patterns *)
@@ -84,7 +86,10 @@ let o_args : string list Term.t =
 let cmdline_term : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
-  let combine args json =
+  let combine args json common =
+    Logs_helpers.setup_logging ~force_color:false
+      ~level:common.CLI_common.logging_level ();
+
     let show_kind =
       (* coupling: if you add a command here, update also the man page
        * further below
@@ -95,14 +100,21 @@ let cmdline_term : conf Term.t =
       | [ "supported-languages" ] -> SupportedLanguages
       | [ "identity" ] -> Identity
       | [ "deployment" ] -> Deployment
+      | [ "bucket" ] -> Bucket
       | _ ->
           Error.abort
             (spf "show command not supported: %s" (String.concat " " args))
     in
-    { show_kind; json }
+    {
+      show_kind;
+      json;
+      logging_level =
+        Option.value (Some common.CLI_common.logging_level)
+          ~default:(Some Logs.Info);
+    }
   in
 
-  Term.(const combine $ o_args $ o_json)
+  Term.(const combine $ o_args $ o_json $ CLI_common.o_common)
 
 let doc = "Show various information"
 
