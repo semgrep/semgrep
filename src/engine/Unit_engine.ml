@@ -933,8 +933,7 @@ let full_rule_semgrep_rules_regression_tests () =
                        =~ ".*/python/django/maintainability/duplicate-path-assignment.yaml"
                     (* ?? *)
                     || s =~ ".*/yaml/semgrep/consistency/.*" ->
-                 (* peanut butter? *)
-                 Some "PB"
+                 Some "XFAIL"
              (* not rule files *)
              | s when s =~ ".*.test.yml" -> None
              (* not languages tests *)
@@ -970,7 +969,9 @@ let full_rule_semgrep_rules_regression_tests () =
                   let ftest () =
 >>>>>>> a50107268 (Tag tests to be skipped by js tests)
                     match group with
-                    | "PB" ->
+                    | "XFAIL" ->
+                        (* TODO: mark these tests as XFAIL
+                           once Alcotest_ext supports it *)
                         let is_throwing =
                           try
                             test.func ();
