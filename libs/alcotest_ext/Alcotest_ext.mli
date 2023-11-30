@@ -76,7 +76,7 @@ type lwt_test = unit Lwt.t t
 *)
 val declare_tag : string -> unit
 val list_valid_tags : unit -> string list
-val has_tag : string -> test -> bool
+val has_tag : string -> 'a t -> bool
 
 (*
    Create a test to appear in a test suite.
