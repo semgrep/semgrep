@@ -59,7 +59,7 @@ type t = {
   semgrep_url : Uri.t;
   fail_open_url : Uri.t;
   metrics_url : Uri.t;
-  app_token : string option;
+  app_token : Auth.token option;
   integration_name : string option;
   version_check_url : Uri.t;
   version_check_timeout : int;
@@ -102,7 +102,8 @@ let of_current_sys_env () : t =
         (Uri.of_string "https://fail-open.prod.semgrep.dev/failure");
     metrics_url =
       env_or Uri.of_string "SEMGREP_METRICS_URL" Metrics_.metrics_url;
-    app_token = env_opt "SEMGREP_APP_TOKEN";
+    app_token =
+      Option.map Auth.unsafe_token_of_string (env_opt "SEMGREP_APP_TOKEN");
     (* integration_name can take a label like "funkyintegration" for custom partner integrations *)
     integration_name = env_opt "SEMGREP_INTEGRATION_NAME";
     version_check_url =

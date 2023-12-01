@@ -57,7 +57,7 @@ let save_token ?(ident = None) token =
   Lwt_platform.run (save_token_async ~ident token)
 
 let verify_token_async token =
-  let%lwt resopt = Semgrep_App.get_deployment_from_token_async ~token in
+  let%lwt resopt = Semgrep_App.get_deployment_from_token_async token in
   Lwt.return (Option.is_some resopt)
 
 let verify_token token = Lwt_platform.run (verify_token_async token)
@@ -109,9 +109,10 @@ let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
               let json = Yojson.Basic.from_string body in
               let open Yojson.Basic.Util in
               match json |> member "token" with
-              | `String token ->
+              | `String str_token ->
                   (* NOTE: We should probably use user_id over user_name for uniqueness constraints *)
                   let ident = json |> member "user_name" |> to_string in
+                  let token = Auth.unsafe_token_of_string str_token in
                   let%lwt result = save_token_async ~ident:(Some ident) token in
                   Result.bind result (fun _deployment_config ->
                       Ok (token, ident))

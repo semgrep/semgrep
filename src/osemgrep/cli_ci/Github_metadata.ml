@@ -257,7 +257,8 @@ let find_branchoff_point_from_github_api repo_name env :
   let head_branch_hash = get_head_branch_hash env in
 
   match (env._GH_TOKEN, env._GITHUB_API_URL, head_branch_hash) with
-  | Some gh_token, Some api_url, Some head_branch_hash ->
+  | Some str_token, Some api_url, Some head_branch_hash ->
+      let gh_token = Auth.unsafe_token_of_string str_token in
       Github_API.find_branchoff_point_async ~gh_token ~api_url ~repo_name
         ~base_branch_hash head_branch_hash
   | __else__ -> Lwt.return_none
