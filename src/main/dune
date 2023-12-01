@@ -1,6 +1,9 @@
 (executables
  (names Main)
- (flags (:include flags.sexp) (:standard -open TCB -open Commons_TCB))
+ (flags
+   (:include flags.sexp)
+;   (:standard -open TCB -open Commons_TCB)
+   )
  (libraries
     TCB
     semgrep_core_cli

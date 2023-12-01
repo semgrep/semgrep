@@ -4,7 +4,7 @@
 (library
   (public_name semgrep.osemgrep_cli)
   (name osemgrep_cli)
-  (flags (:standard -open TCB -open Commons_TCB))
+;  (flags (:standard -open TCB -open Commons_TCB))
   (wrapped false)
   (libraries
     ; External libraries
