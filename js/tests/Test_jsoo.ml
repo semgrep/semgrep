@@ -108,6 +108,7 @@ let () =
                in
                Alcotest_ext.update test ~func:f)
              tests
+           |> skip_todo_tests
          in
          let lwt_tests =
            List_.map
@@ -120,31 +121,7 @@ let () =
                    test.func
                in
                Alcotest_ext.update test ~func:f)
-             lwt_tests tests
-           |> List_.map (fun (test : Alcotest_ext.test) ->
-                  let f () =
-                    Semgrep_js_shared.wrap_with_js_error
-                      ~hook:
-                        (Some
-                           (fun () ->
-                             Firebug.console##log (Js.string test.name)))
-                      test.func
-                  in
-                  Alcotest_ext.update test ~func:f)
-           |> skip_todo_tests
-         in
-         let lwt_tests =
-           lwt_tests
-           |> List_.map (fun (test : Alcotest_ext.lwt_test) ->
-                  let f () =
-                    Semgrep_js_shared.wrap_with_js_error
-                      ~hook:
-                        (Some
-                           (fun () ->
-                             Firebug.console##log (Js.string test.name)))
-                      test.func
-                  in
-                  Alcotest_ext.update test ~func:f)
+             lwt_tests
            |> skip_todo_tests
          in
          let run () =
