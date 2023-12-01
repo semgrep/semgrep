@@ -37,8 +37,8 @@ type prof = ProfAll | ProfNone | ProfSome of string list
 let (with_open_stringbuf : ((string -> unit) * Buffer.t -> unit) -> string) =
  fun f ->
   let buf = Buffer.create 1000 in
-  let pr s = Buffer.add_string buf (s ^ "\n") in
-  f (pr, buf);
+  let xpr s = Buffer.add_string buf (s ^ "\n") in
+  f (xpr, buf);
   Buffer.contents buf
 
 (*****************************************************************************)
@@ -130,20 +130,20 @@ let profile_diagnostic () =
       Hashtbl.fold (fun k v acc -> (k, v) :: acc) !_profile_table []
       |> List.sort (fun (_k1, (t1, _n1)) (_k2, (t2, _n2)) -> compare t2 t1)
     in
-    with_open_stringbuf (fun (pr, _) ->
-        pr "---------------------";
-        pr "profiling result";
-        pr "---------------------";
+    with_open_stringbuf (fun (xpr, _) ->
+        xpr "---------------------";
+        xpr "profiling result";
+        xpr "---------------------";
         xs
         |> List.iter (fun (k, (t, n)) ->
-               pr (Printf.sprintf "%-40s : %10.3f sec %10d count" k !t !n)))
+               xpr (Printf.sprintf "%-40s : %10.3f sec %10d count" k !t !n)))
 
 let report_if_take_time timethreshold s f =
   let t = Unix.gettimeofday () in
   let res = f () in
   let t' = Unix.gettimeofday () in
   if t' -. t > float_of_int timethreshold then
-    pr2 (Printf.sprintf "Note: processing took %7.1fs: %s" (t' -. t) s);
+    pr2 (spf "Note: processing took %7.1fs: %s" (t' -. t) s);
   res
 
 (*****************************************************************************)
@@ -177,6 +177,6 @@ let print_diagnostics_and_gc_stats () =
 
 (* ugly *)
 let _ =
-  Common.before_exit :=
+  UCommon.before_exit :=
     (fun () -> if !profile <> ProfNone then print_diagnostics_and_gc_stats ())
-    :: !Common.before_exit
+    :: !UCommon.before_exit

@@ -61,20 +61,20 @@ let subexprs_of_stmt_kind = function
   (* n *)
   | For (_, MultiForEach es, _) ->
       es
-      |> Common.map_filter (function
+      |> List_.map_filter (function
            | FE (_, _, e) -> Some [ e ]
            | FECond ((_, _, e1), _, e2) -> Some [ e1; e2 ]
            | FEllipsis _ -> None)
       |> List.concat
   | For (_, ForClassic (xs, eopt1, eopt2), _) ->
       (xs
-      |> Common.map_filter (function
+      |> List_.map_filter (function
            | ForInitExpr e -> Some e
            | ForInitVar (_, vdef) -> vdef.vinit))
       @ Option.to_list eopt1 @ Option.to_list eopt2
   | Assert (_, (_, args, _), _) ->
       args
-      |> Common.map_filter (function
+      |> List_.map_filter (function
            | Arg e -> Some e
            | _ -> None)
   | OtherStmt (_op, xs) -> subexprs_of_any_list xs
@@ -97,7 +97,7 @@ let subexprs_of_stmt st = subexprs_of_stmt_kind st.s
 
 let subexprs_of_args args =
   args |> Tok.unbracket
-  |> Common.map_filter (function
+  |> List_.map_filter (function
        | Arg e
        | ArgKwd (_, e)
        | ArgKwdOptional (_, e) ->
@@ -139,7 +139,7 @@ let subexprs_of_expr with_symbolic_propagation e =
   | Comprehension (_, (_, (e, xs), _)) ->
       e
       :: (xs
-         |> Common.map (function
+         |> List_.map (function
               | CompFor (_, _pat, _, e) -> e
               | CompIf (_, e) -> e))
   | New (_, _t, _ii, args) -> subexprs_of_args args
@@ -160,14 +160,14 @@ let subexprs_of_expr with_symbolic_propagation e =
   | Alias (_, e1) -> [ e1 ]
   | Lambda def -> subexprs_of_stmt (H.funcbody_to_stmt def.fbody)
   | Xml { xml_attrs; xml_body; _ } ->
-      Common.map_filter
+      List_.map_filter
         (function
           | XmlAttr (_, _, e)
           | XmlAttrExpr (_, e, _) ->
               Some e
           | _ -> None)
         xml_attrs
-      @ Common.map_filter
+      @ List_.map_filter
           (function
             | XmlExpr (_, Some e, _) -> Some e
             | XmlXml xml -> Some (Xml xml |> AST_generic.e)
@@ -303,7 +303,7 @@ let substmts_of_stmt st =
            | CaseEllipsis _ -> [])
   | Try (_, st, xs, opt1, opt2) -> (
       [ st ]
-      @ (xs |> Common.map Common2.thd3)
+      @ (xs |> List_.map Common2.thd3)
       @ (match opt1 with
         | None -> []
         | Some (_, st) -> [ st ])
@@ -331,7 +331,7 @@ let substmts_of_stmt st =
         (* this will add lots of substatements *)
         | FuncDef def -> [ H.funcbody_to_stmt def.fbody ]
         | ClassDef def ->
-            def.cbody |> Tok.unbracket |> Common.map (function F st -> st))
+            def.cbody |> Tok.unbracket |> List_.map (function F st -> st))
 
 (*****************************************************************************)
 (* Visitors  *)
@@ -348,7 +348,7 @@ let lambdas_in_expr e =
       inherit [_] AST_generic.iter_no_id_info
 
       (* TODO Should we recurse into the Lambda? *)
-      method! visit_Lambda aref def = Common.push def aref
+      method! visit_Lambda aref def = Stack_.push def aref
     end
   in
   do_visit_with_ref visitor (E e)
@@ -381,7 +381,7 @@ let flatten_substmts_of_stmts xs =
 
   let rec aux x =
     (* return the current statement first, and add substmts *)
-    Common.push x res;
+    Stack_.push x res;
 
     (* this can be really slow because lambdas_in_expr() below can be called
      * a zillion times on big files (see tests/PERF/) if we do the
@@ -392,7 +392,7 @@ let flatten_substmts_of_stmts xs =
        (* getting deeply nested lambdas stmts *)
        let lambdas = es |> List.concat_map lambdas_in_expr_memo in
        lambdas
-       |> Common.map (fun def -> H.funcbody_to_stmt def.fbody)
+       |> List_.map (fun def -> H.funcbody_to_stmt def.fbody)
        |> List.iter aux);
 
     let xs = substmts_of_stmt x in

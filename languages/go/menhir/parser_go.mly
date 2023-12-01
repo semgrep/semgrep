@@ -22,6 +22,7 @@
  *  at https://github.com/golang/go
  *)
 open Common
+open Either_
 open AST_generic (* for the arithmetic operator *)
 open Ast_go
 
@@ -370,7 +371,7 @@ import:
 |   LIMPORT import_stmt
       { [$2 $1] }
 |   LIMPORT "(" listsc_t(import_stmt_or_dots) ")"
-      { $3 |> Common.filter_some |> List.map (fun f -> f $1) }
+      { $3 |> List_.filter_some |> List_.map (fun f -> f $1) }
 |   LIMPORT "(" ")" { [] }
 
 import_stmt_or_dots:

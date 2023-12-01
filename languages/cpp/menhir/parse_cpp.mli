@@ -24,7 +24,7 @@ val add_defs : Fpath.t -> unit
 (* used to extract macros from standard.h, but also now used on C files
  * in -extract_macros to assist in building a macros.h
  *)
-val extract_macros : Fpath.t -> (string, Pp_token.define_body) Common.assoc
+val extract_macros : Fpath.t -> (string, Pp_token.define_body) Assoc.t
 
 (* usually correspond to what is inside your standard.h *)
 (* val _defs_builtins : (string, Cpp_token_c.define_def) Hashtbl.t ref *)

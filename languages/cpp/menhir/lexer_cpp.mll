@@ -63,7 +63,7 @@ let tok_add_s = Tok.tok_add_s
 (* ---------------------------------------------------------------------- *)
 
 (* opti: less convenient, but using a hash is faster than using a match *)
-let keyword_table = Common.hash_of_list [
+let keyword_table = Hashtbl_.hash_of_list [
 
   "void",   (fun ii -> Tvoid ii);
   "char",   (fun ii -> Tchar ii);

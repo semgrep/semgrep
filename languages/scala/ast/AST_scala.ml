@@ -111,7 +111,7 @@ type import_path_elem =
 type import_path = import_path_elem list [@@deriving show]
 
 type named_selector = import_path_elem * ident_or_wildcard option
-and wildcard_selector = (ident, tok * type_ option) either
+and wildcard_selector = (ident, tok * type_ option) Either_.t
 
 and import_selector =
   | NamedSelector of named_selector
@@ -285,7 +285,7 @@ and arguments =
 
 and argument = expr
 and case_clauses = (pattern, block) case_clause list
-and type_case_clauses = (((* _ *) tok, type_) either, type_) case_clause list
+and type_case_clauses = (((* _ *) tok, type_) Either_.t, type_) case_clause list
 
 and ('a, 'b) case_clause =
   | CC of ('a, 'b) case_clause_classic

@@ -283,17 +283,17 @@ let iter_nodes f g = G.iter_nodes f g.has
 
 let all_use_edges g =
   let res = ref [] in
-  G.iter_edges (fun n1 n2 -> Common.push (n1, n2) res) g.use;
+  G.iter_edges (fun n1 n2 -> Stack_.push (n1, n2) res) g.use;
   !res
 
 let all_has_edges g =
   let res = ref [] in
-  G.iter_edges (fun n1 n2 -> Common.push (n1, n2) res) g.has;
+  G.iter_edges (fun n1 n2 -> Stack_.push (n1, n2) res) g.has;
   !res
 
 let all_nodes g =
   let res = ref [] in
-  G.iter_nodes (fun n -> Common.push n res) g.has;
+  G.iter_nodes (fun n -> Stack_.push n res) g.has;
   !res
 
 (*****************************************************************************)
@@ -338,7 +338,7 @@ let children n g = G.succ n g.has
 
 let rec node_and_all_children n g =
   let xs = G.succ n g.has in
-  if null xs then [ n ]
+  if List_.null xs then [ n ]
   else n :: (xs |> List.map (fun n -> node_and_all_children n g) |> List.flatten)
 
 let nb_nodes g = G.nb_nodes g.has
@@ -374,7 +374,7 @@ let privacy_of_node n g =
   let info = nodeinfo n g in
   let props = info.props in
   props
-  |> Common.find_some (function
+  |> List_.find_some (function
        | E.Privacy x -> Some x
        | _ -> None)
 
@@ -499,15 +499,15 @@ let bottom_up_numbering g =
 (* Graph adjustments *)
 (*****************************************************************************)
 let load_adjust file =
-  Common.cat file
-  |> Common.exclude (fun s -> s =~ "#.*" || s =~ "^[ \t]*$")
+  UCommon.cat file
+  |> List_.exclude (fun s -> s =~ "#.*" || s =~ "^[ \t]*$")
   |> List.map (fun s ->
          match s with
          | _ when s =~ "\\([^ ]+\\)[ ]+->[ ]*\\([^ ]+\\)" -> Common.matched2 s
          | _ -> failwith ("wrong line format in adjust file: " ^ s))
 
 let load_whitelist file =
-  Common.cat file
+  UCommon.cat file
   |> List.map (fun s ->
          if s =~ "\\(.*\\) --> \\(.*\\) " then
            let s1, s2 = Common.matched2 s in
@@ -515,7 +515,7 @@ let load_whitelist file =
          else failwith (spf "load_whitelist: wrong line: %s" s))
 
 let save_whitelist xs file g =
-  Common.with_open_outfile file (fun (pr_no_nl, _chan) ->
+  UCommon.with_open_outfile file (fun (pr_no_nl, _chan) ->
       xs
       |> List.iter (fun (n1, n2) ->
              let file = file_of_node n2 g in
@@ -554,10 +554,10 @@ let adjust_graph g xs whitelist =
 (*****************************************************************************)
 (* assumes a "path/to/file.x" -> "path/to/file2.x" format *)
 let graph_of_dotfile dotfile =
-  let xs = Common.cat dotfile in
+  let xs = UCommon.cat dotfile in
   let deps =
     xs
-    |> Common.map_filter (fun s ->
+    |> List_.map_filter (fun s ->
            if s =~ "^\"\\(.*\\)\" -> \"\\(.*\\)\"$" then
              let src, dst = Common.matched2 s in
              Some (src, dst)
@@ -596,30 +596,31 @@ let graph_of_dotfile dotfile =
 (* Statistics *)
 (*****************************************************************************)
 let print_statistics stats g =
-  pr (spf "nb nodes = %d, nb edges = %d" (nb_nodes g) (nb_use_edges g));
-  pr (spf "parse errors = %d" (!(stats.parse_errors) |> List.length));
-  pr (spf "lookup fail = %d" (!(stats.lookup_fail) |> List.length));
+  UCommon.pr (spf "nb nodes = %d, nb edges = %d" (nb_nodes g) (nb_use_edges g));
+  UCommon.pr (spf "parse errors = %d" (!(stats.parse_errors) |> List.length));
+  UCommon.pr (spf "lookup fail = %d" (!(stats.lookup_fail) |> List.length));
 
-  pr
+  UCommon.pr
     (spf "unresolved method calls = %d"
        (!(stats.method_calls)
        |> List.filter (fun (_, x) -> not x)
        |> List.length));
-  pr
+  UCommon.pr
     (spf "(resolved method calls = %d)"
        (!(stats.method_calls) |> List.filter (fun (_, x) -> x) |> List.length));
 
-  pr
+  UCommon.pr
     (spf "unresolved field access = %d"
        (!(stats.field_access)
        |> List.filter (fun (_, x) -> not x)
        |> List.length));
-  pr
+  UCommon.pr
     (spf "(resolved field access) = %d)"
        (!(stats.field_access) |> List.filter (fun (_, x) -> x) |> List.length));
 
-  pr
+  UCommon.pr
     (spf "unresolved class access = %d"
        (!(stats.unresolved_class_access) |> List.length));
-  pr (spf "unresolved calls = %d" (!(stats.unresolved_calls) |> List.length));
+  UCommon.pr
+    (spf "unresolved calls = %d" (!(stats.unresolved_calls) |> List.length));
   ()

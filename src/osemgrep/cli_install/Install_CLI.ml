@@ -2,7 +2,7 @@ open Common
 module Arg = Cmdliner.Arg
 module Term = Cmdliner.Term
 module Cmd = Cmdliner.Cmd
-module H = Cmdliner_helpers
+module H = Cmdliner_
 
 (*****************************************************************************)
 (* Prelude *)

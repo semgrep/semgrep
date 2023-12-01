@@ -2,6 +2,7 @@
 (library
   (public_name git_wrapper)
   (name git_wrapper)
+  (flags (:standard -open TCB -open Commons_TCB))
   (wrapped false)
   (libraries
      fpath

@@ -30,7 +30,7 @@ module H = AST_generic_helpers
 (*****************************************************************************)
 let id x = x
 let option = Option.map
-let list = Common.map
+let list = List_.map
 let (string : string -> string) = id
 let (bool : bool -> bool) = id
 let (int : int -> int) = id
@@ -119,7 +119,7 @@ and class_type v =
       |> G.t
   | (id, Some ts) :: xs ->
       G.TyApply
-        (G.TyN (H.name_of_ids (List.rev (id :: Common.map fst xs))) |> G.t, ts)
+        (G.TyN (H.name_of_ids (List.rev (id :: List_.map fst xs))) |> G.t, ts)
       |> G.t
 
 and type_argument = function
@@ -281,7 +281,7 @@ and expr e =
                 cimplements = [];
                 cmixins = [];
                 cparams = fb [];
-                cbody = decls |> bracket (Common.map (fun x -> G.F x));
+                cbody = decls |> bracket (List_.map (fun x -> G.F x));
               }
             |> G.e
           in
@@ -309,9 +309,9 @@ and expr e =
       and v4 = option (bracket decls) v4 in
       let anys =
         [ G.E v0; G.T v2 ]
-        @ (v3 |> Tok.unbracket |> Common.map (fun arg -> G.Ar arg))
-        @ (Option.to_list v4 |> Common.map Tok.unbracket |> List.flatten
-          |> Common.map (fun st -> G.S st))
+        @ (v3 |> Tok.unbracket |> List_.map (fun arg -> G.Ar arg))
+        @ (Option.to_list v4 |> List_.map Tok.unbracket |> List.flatten
+          |> List_.map (fun st -> G.S st))
       in
       G.OtherExpr (("NewQualifiedClass", tok2), anys)
   | MethodRef (v1, v2, v3, v4) ->
@@ -387,7 +387,7 @@ and expr e =
             let v1 = cases v1 and v2 = stmts v2 in
             (v1, G.stmt1 v2))
           v2
-        |> Common.map (fun x -> G.CasesAndBody x)
+        |> List_.map (fun x -> G.CasesAndBody x)
       in
       let x = G.stmt_to_expr (G.Switch (v0, Some (Cond v1), v2) |> G.s) in
       x.G.e)
@@ -457,7 +457,7 @@ and stmt_aux st =
             let v1 = cases v1 and v2 = stmts v2 in
             (v1, G.stmt1 v2))
           v2
-        |> Common.map (fun x -> G.CasesAndBody x)
+        |> List_.map (fun x -> G.CasesAndBody x)
       in
       [ G.Switch (v0, Some (G.Cond v1), v2) |> G.s ]
   | While (t, v1, v2) ->
@@ -494,7 +494,7 @@ and stmt_aux st =
       let v1 = expr v1 in
       [ G.Throw (t, v1, G.sc) |> G.s ]
   | LocalVarList vs ->
-      Common.map
+      List_.map
         (fun v1 ->
           let ent, v = var_with_init v1 in
           G.DefStmt (ent, G.VarDef v) |> G.s)
@@ -504,7 +504,7 @@ and stmt_aux st =
   | Assert (t, v1, v2) ->
       let v1 = expr v1 and v2 = option expr v2 in
       let es = v1 :: Option.to_list v2 in
-      let args = es |> Common.map G.arg in
+      let args = es |> List_.map G.arg in
       [ G.Assert (t, fb args, G.sc) |> G.s ]
 
 and tok_and_stmt (t, v) =
@@ -545,10 +545,10 @@ and for_control tok = function
 and for_init = function
   | ForInitVars v1 ->
       let v1 = list var_with_init v1 in
-      v1 |> Common.map (fun (ent, v) -> G.ForInitVar (ent, v))
+      v1 |> List_.map (fun (ent, v) -> G.ForInitVar (ent, v))
   | ForInitExprs v1 ->
       let v1 = list expr v1 in
-      v1 |> Common.map (fun e -> G.ForInitExpr e)
+      v1 |> List_.map (fun e -> G.ForInitExpr e)
 
 and var { name; mods; type_ = xtyp } =
   let v1 = ident name in
@@ -585,7 +585,7 @@ and init = function
       let v1 = bracket (list init) v1 in
       G.Container (G.Array, v1) |> G.e
 
-and parameters v : G.parameter list = Common.map parameter_binding v
+and parameters v : G.parameter list = List_.map parameter_binding v
 
 and parameter_binding = function
   | ParamClassic v
@@ -606,7 +606,7 @@ and method_decl ?(cl_kind = None) { m_var; m_formals; m_throws; m_body } =
   (* TODO: use fthrow field instead *)
   let throws =
     v3
-    |> Common.map (fun t -> G.OtherAttribute (("Throw", G.fake ""), [ G.T t ]))
+    |> List_.map (fun t -> G.OtherAttribute (("Throw", G.fake ""), [ G.T t ]))
   in
   let fbody =
     match (cl_kind, v4) with
@@ -628,8 +628,8 @@ and enum_decl { en_name; en_mods; en_impls; en_body } =
   let v2 = modifiers en_mods in
   let v3 = list class_parent en_impls in
   let v4, v5 = en_body in
-  let v4 = list enum_constant v4 |> Common.map G.fld in
-  let v5 = decls v5 |> Common.map (fun st -> G.F st) in
+  let v4 = list enum_constant v4 |> List_.map G.fld in
+  let v5 = decls v5 |> List_.map (fun st -> G.F st) in
   let ent = G.basic_entity v1 ~attrs:(G.attr EnumClass (snd v1) :: v2) in
   let cbody = fb (v4 @ v5) in
   let cdef =
@@ -653,7 +653,7 @@ and enum_constant (v1, v2, v3) =
   (ent, G.EnumEntryDef def)
 
 and class_body ?(cl_kind = None) (l, xs, r) : G.field list G.bracket =
-  let xs = decls ~cl_kind xs |> Common.map (fun x -> G.F x) in
+  let xs = decls ~cl_kind xs |> List_.map (fun x -> G.F x) in
   (l, xs, r)
 
 and class_decl
@@ -778,7 +778,7 @@ let any = function
       let v1 = stmt v1 in
       G.S v1
   | AStmts v1 ->
-      let v1 = Common.map stmt v1 in
+      let v1 = List_.map stmt v1 in
       G.Ss v1
   | ATyp v1 ->
       let v1 = typ v1 in

@@ -100,9 +100,9 @@ let is_proprietary = has_tag "is_proprietary"
 (* Get the info associated with a language *)
 let info : t -> Language.info =
   let assoc =
-    Common.map (fun (info : Language.info) -> (info.id, info)) Language.list
+    List_.map (fun (info : Language.info) -> (info.id, info)) Language.list
   in
-  let tbl = Common.hash_of_list assoc in
+  let tbl = Hashtbl_.hash_of_list assoc in
   fun key ->
     try Hashtbl.find tbl key with
     | Not_found ->
@@ -112,10 +112,10 @@ let info : t -> Language.info =
 let assoc =
   List.concat_map
     (fun (info : Language.info) ->
-      Common.map (fun key -> (key, info.id)) info.keys)
+      List_.map (fun key -> (key, info.id)) info.keys)
     Language.list
 
-let lang_map = Common.hash_of_list assoc
+let lang_map = Hashtbl_.hash_of_list assoc
 let of_string_opt x = Hashtbl.find_opt lang_map (String.lowercase_ascii x)
 let keys = Common2.hkeys lang_map
 let supported_langs : string = String.concat ", " keys

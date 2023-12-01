@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 open Testutil
 module E = Core_error
 
@@ -33,7 +33,7 @@ let metachecker_checks_tests () =
     (let dir = tests_path / "errors" in
      let files = Common2.glob (spf "%s/*.yaml" !!dir) in
      files
-     |> Common.map (fun file ->
+     |> List_.map (fun file ->
             let file = Fpath.v file in
             ( Fpath.basename file,
               fun () ->

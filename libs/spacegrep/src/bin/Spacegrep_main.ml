@@ -78,7 +78,7 @@ let run_all ~search_param ~debug ~force ~warn ~comment_style patterns docs :
   let skipped = ref [] in
   let matches =
     docs
-    |> Common.map_filter
+    |> List_.map_filter
          (fun (get_doc_src : ?max_len:int -> unit -> Src_file.t) ->
            let matches, run_time =
              Match.timef (fun () ->
@@ -134,7 +134,7 @@ let run_all ~search_param ~debug ~force ~warn ~comment_style patterns docs :
                        Match.timef (fun () -> parse_doc comment_style doc_src)
                      in
                      let matches_in_file =
-                       Common.mapi
+                       List_.mapi
                          (fun pat_id (pat_src, pat) ->
                            if debug then
                              printf
@@ -183,8 +183,8 @@ let run config =
     (match config.pattern with
     | None -> []
     | Some pat_str -> [ Src_file.of_string pat_str ])
-    @ Common.map Src_file.of_file pattern_files
-    |> Common.map (fun pat_src ->
+    @ List_.map Src_file.of_file pattern_files
+    |> List_.map (fun pat_src ->
            (pat_src, parse_pattern config.comment_style pat_src))
   in
   let patterns, errors =
@@ -208,9 +208,7 @@ let run config =
         ]
     | roots ->
         let files = Find_files.list roots in
-        Common.map
-          (fun file ?max_len () -> Src_file.of_file ?max_len file)
-          files
+        List_.map (fun file ?max_len () -> Src_file.of_file ?max_len file) files
   in
   let debug = config.debug in
   if debug then Match.debug := true;

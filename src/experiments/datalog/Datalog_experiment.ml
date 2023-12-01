@@ -63,7 +63,7 @@ type env = { facts : Datalog_fact.t list ref }
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let add env x = Common.push x env.facts
+let add env x = Stack_.push x env.facts
 
 let todo any =
   let s = IL.show_any any in
@@ -119,7 +119,7 @@ let gen_facts file outdir =
       inherit [_] AST_generic.iter_no_id_info
 
       method! visit_function_definition _env def =
-        Common.push (facts_of_function lang def) facts
+        Stack_.push (facts_of_function lang def) facts
     end
   in
   v#visit_program () ast;

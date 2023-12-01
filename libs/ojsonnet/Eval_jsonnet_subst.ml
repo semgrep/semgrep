@@ -115,13 +115,13 @@ let eval_bracket ofa (v1, v2, v3) =
 let rec substitute id sub expr =
   match expr with
   | L v -> L v
-  | Array (l, xs, r) -> Array (l, Common.map (substitute id sub) xs, r)
+  | Array (l, xs, r) -> Array (l, List_.map (substitute id sub) xs, r)
   | Lambda { f_tok; f_params = lparams, params, rparams; f_body } ->
       if parameter_list_contains params id then
         Lambda { f_tok; f_params = (lparams, params, rparams); f_body }
       else
         let new_params =
-          Common.map
+          List_.map
             (fun (P (name, tk, e)) -> P (name, tk, substitute id sub e))
             params
         in
@@ -136,10 +136,10 @@ let rec substitute id sub expr =
       match v with
       | Object (asserts, fields) ->
           let new_asserts =
-            Common.map (fun (tk, expr) -> (tk, substitute id sub expr)) asserts
+            List_.map (fun (tk, expr) -> (tk, substitute id sub expr)) asserts
           in
           let new_fields =
-            Common.map
+            List_.map
               (fun { fld_name; fld_hidden; fld_value } ->
                 match fld_name with
                 | FExpr (l, name, r) ->
@@ -166,7 +166,7 @@ let rec substitute id sub expr =
       let new_args =
         if id = "std" then args
         else
-          Common.map
+          List_.map
             (fun arg ->
               match arg with
               | Arg e -> Arg (substitute id sub e)
@@ -185,7 +185,7 @@ let rec substitute id sub expr =
       if bind_list_contains binds id then Local (_tlocal, binds, _tsemi, e)
       else
         let new_binds =
-          Common.map
+          List_.map
             (fun (B (name, tk, expr)) -> B (name, tk, substitute id sub expr))
             binds
         in
@@ -195,7 +195,7 @@ let rec substitute id sub expr =
   | Call (e0, (l, args, r)) ->
       let new_func = substitute id sub e0 in
       let new_args =
-        Common.map
+        List_.map
           (fun arg ->
             match arg with
             | Arg e -> Arg (substitute id sub e)
@@ -216,10 +216,10 @@ let rec substitute id sub expr =
 let rec substitute_kw kw sub expr =
   match expr with
   | L v -> L v
-  | Array (l, xs, r) -> Array (l, Common.map (substitute_kw kw sub) xs, r)
+  | Array (l, xs, r) -> Array (l, List_.map (substitute_kw kw sub) xs, r)
   | Lambda { f_tok; f_params = lparams, params, rparams; f_body } ->
       let new_params =
-        Common.map
+        List_.map
           (fun (P (id, tok, e)) -> P (id, tok, substitute_kw kw sub e))
           params
       in
@@ -234,7 +234,7 @@ let rec substitute_kw kw sub expr =
       match v with
       | Object (asserts, fields) ->
           let new_fields =
-            Common.map
+            List_.map
               (fun { fld_name = FExpr (l, e, r); fld_hidden; fld_value } ->
                 {
                   fld_name = FExpr (l, substitute_kw kw sub e, r);
@@ -264,7 +264,7 @@ let rec substitute_kw kw sub expr =
               r1 ) ),
         (l, args, r) ) ->
       let new_args =
-        Common.map
+        List_.map
           (fun arg ->
             match arg with
             | Arg e -> Arg (substitute_kw kw sub e)
@@ -281,7 +281,7 @@ let rec substitute_kw kw sub expr =
           (l, new_args, r) )
   | Local (_tlocal, binds, _tsemi, e) ->
       let new_binds =
-        Common.map
+        List_.map
           (fun (B (name, tk, expr)) -> B (name, tk, substitute_kw kw sub expr))
           binds
       in
@@ -291,7 +291,7 @@ let rec substitute_kw kw sub expr =
   | Call (e0, (l, args, r)) ->
       let new_func = substitute_kw kw sub e0 in
       let new_args =
-        Common.map
+        List_.map
           (fun arg ->
             match arg with
             | Arg e -> Arg (substitute_kw kw sub e)
@@ -338,8 +338,7 @@ let rec eval_expr env expr =
   | Array (l, xs, r) ->
       let elts =
         xs
-        |> Common.map (fun x ->
-               { V.value = V.Unevaluated x; env = V.empty_env })
+        |> List_.map (fun x -> { V.value = V.Unevaluated x; env = V.empty_env })
         |> Array.of_list
       in
       Array (l, elts, r)
@@ -599,17 +598,17 @@ and eval_call env e0 (largs, args, _rargs) =
       (* the named_args are supposed to be the last one *)
       let basic_args, named_args =
         args
-        |> Common.partition_either (function
+        |> Either_.partition_either (function
              | Arg ei -> Left ei
              | NamedArg (id, _tk, ei) -> Right (fst id, ei))
       in
       (* opti? use a hashtbl? but for < 5 elts, probably worse? *)
-      let hnamed_args = Common.hash_of_list named_args in
+      let hnamed_args = Hashtbl_.hash_of_list named_args in
       let basic_args = Array.of_list basic_args in
       let m = Array.length basic_args in
       let binds =
         params
-        |> List.mapi (fun i (P (id, teq, ei')) ->
+        |> List_.mapi (fun i (P (id, teq, ei')) ->
                let ei'' =
                  match i with
                  | _ when i < m -> basic_args.(i) (* ei *)
@@ -736,7 +735,7 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
            *)
           let elts' =
             (* TODO? use Array.to_seqi instead? *)
-            eis |> Array.to_list |> Common.index_list
+            eis |> Array.to_list |> List_.index_list
             |> List.filter_map (fun (ei, ji) ->
                    match eval_std_filter_element env tk f ei with
                    | Primitive (Bool (false, _)) -> None
@@ -806,7 +805,7 @@ and eval_obj_inside env (l, x, r) : V.t =
       let hdupes = Hashtbl.create 16 in
       let fields =
         fields
-        |> Common.map_filter
+        |> List_.map_filter
              (fun { fld_name = FExpr (tk, ei, _); fld_hidden; fld_value } ->
                match eval_expr env ei with
                | Primitive (Null _) -> None
@@ -843,8 +842,8 @@ and eval_plus_object _tk objl objr =
   let asserts = lassert @ rassert in
   let hash_of_right_field_names =
     rflds
-    |> Common.map (fun { V.fld_name = s, _; _ } -> s)
-    |> Common.hashset_of_list
+    |> List_.map (fun { V.fld_name = s, _; _ } -> s)
+    |> Hashtbl_.hashset_of_list
   in
 
   let lflds_no_overlap =
@@ -864,7 +863,7 @@ and eval_plus_object _tk objl objr =
 
   let new_rh_asserts =
     lassert
-    |> Common.map (fun ((tk, e), _) ->
+    |> List_.map (fun ((tk, e), _) ->
            ( tk,
              e
              |> substitute_kw fake_super (Id super)
@@ -872,7 +871,7 @@ and eval_plus_object _tk objl objr =
   in
   let new_rh_fields =
     lflds
-    |> Common.map (fun { V.fld_name; fld_hidden; fld_value } ->
+    |> List_.map (fun { V.fld_name; fld_hidden; fld_value } ->
            match fld_value.value with
            | Val _ ->
                error (Tok.unsafe_fake_tok "") "shouldn't have been evaluated"
@@ -964,13 +963,13 @@ and manifest_value (v : V.t) : JSON.t =
   | Array (_, arr, _) ->
       J.Array
         (arr |> Array.to_list
-        |> Common.map (fun (entry : V.lazy_value) ->
+        |> List_.map (fun (entry : V.lazy_value) ->
                manifest_value (evaluate_lazy_value_ env entry)))
   | V.Object (_l, (_assertsTODO, fields), _r) ->
       (* TODO: evaluate asserts *)
       let xs =
         fields
-        |> Common.map_filter (fun { V.fld_name; fld_hidden; fld_value } ->
+        |> List_.map_filter (fun { V.fld_name; fld_hidden; fld_value } ->
                match fst fld_hidden with
                | A.Hidden -> None
                | A.Visible

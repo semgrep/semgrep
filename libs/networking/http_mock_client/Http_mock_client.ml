@@ -98,7 +98,7 @@ let basic_response ?(status = 200) ?(headers = Header.init ()) body =
   { response; body }
 
 let body_of_file ?(trim = false) path =
-  let content = Common.read_file path in
+  let content = UCommon.read_file path in
   let content = if trim then String.trim content else content in
   Cohttp_lwt.Body.of_string content
 
@@ -132,7 +132,7 @@ let check_header req header header_val =
 let check_headers expected_headers actual_headers =
   let lowercase_and_sort xs =
     xs
-    |> Common.map (fun (x, y) -> (String.lowercase_ascii x, y))
+    |> List_.map (fun (x, y) -> (String.lowercase_ascii x, y))
     |> List.sort (fun (x, _) (y, _) -> String.compare x y)
   in
   let actual_headers = actual_headers |> Header.to_list |> lowercase_and_sort in
@@ -206,7 +206,7 @@ let trim_front s =
 
 let parse_headers headers =
   headers
-  |> Common.map (fun header ->
+  |> List_.map (fun header ->
          let i = String.index header ':' in
          let before, after =
            ( Str.first_chars header i,
@@ -268,7 +268,7 @@ let parse_resp =
             body ))
 
 let client_from_file req_resp_file =
-  let contents = Common.read_file req_resp_file in
+  let contents = UCommon.read_file req_resp_file in
   let rec go s acc =
     if String.length s = 0 then acc
     else if not (List.mem (String.get s 0) [ '>'; '<' ]) then
@@ -301,6 +301,6 @@ let client_from_file req_resp_file =
   ( new_client,
     fun f ->
       f
-      @@ Common.map_filter
+      @@ List_.map_filter
            (fun (req, resp, used) -> if !used then None else Some (req, resp))
            pairs )

@@ -16,7 +16,7 @@ val parse_and_resolve_name :
  * we could get some segfaults (unmarshalling is not type-safe in OCaml)).
  *)
 type ast_cached_value =
-  ( (AST_generic.program * Tok.location list, Exception.t) Common.either,
+  ( (AST_generic.program * Tok.location list, Exception.t) Either.t,
     string (* AST_generic.version *)
     * Lang.t
     * Rpath.t (* original file *)
