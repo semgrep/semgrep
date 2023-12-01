@@ -37,7 +37,7 @@ let target_to_string lang target =
 let parse_range_args xs =
   let rec read_input xs =
     match xs with
-    | [] -> raise Arg_helpers.WrongNumberOfArguments
+    | [] -> raise Arg_.WrongNumberOfArguments
     | [ file ] -> ([], Fpath.v file)
     | x :: xs ->
         let ranges, file = read_input xs in

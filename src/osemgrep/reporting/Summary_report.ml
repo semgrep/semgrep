@@ -28,7 +28,7 @@ let pp_summary ~respect_gitignore ~(maturity : Maturity.t) ~max_target_bytes
     skipped_groups
   in
 
-  Fmt_helpers.pp_heading ppf "Scan Summary";
+  Fmt_.pp_heading ppf "Scan Summary";
   (* TODO
         if self.target_manager.baseline_handler:
             limited_fragments.append(

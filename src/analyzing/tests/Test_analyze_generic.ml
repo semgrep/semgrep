@@ -106,17 +106,15 @@ let actions ~parse_program =
   [
     ( "-typing_generic",
       " <file>",
-      Arg_helpers.mk_action_1_arg (test_typing_generic ~parse_program) );
+      Arg_.mk_action_1_arg (test_typing_generic ~parse_program) );
     ( "-constant_propagation",
       " <file>",
-      Arg_helpers.mk_action_1_arg (test_constant_propagation ~parse_program) );
+      Arg_.mk_action_1_arg (test_constant_propagation ~parse_program) );
     ( "-il_generic",
       " <file>",
-      Arg_helpers.mk_action_1_arg (test_il_generic ~parse_program) );
-    ( "-cfg_il",
-      " <file>",
-      Arg_helpers.mk_action_1_arg (test_cfg_il ~parse_program) );
+      Arg_.mk_action_1_arg (test_il_generic ~parse_program) );
+    ("-cfg_il", " <file>", Arg_.mk_action_1_arg (test_cfg_il ~parse_program));
     ( "-dfg_svalue",
       " <file>",
-      Arg_helpers.mk_action_1_arg (test_dfg_svalue ~parse_program) );
+      Arg_.mk_action_1_arg (test_dfg_svalue ~parse_program) );
   ]

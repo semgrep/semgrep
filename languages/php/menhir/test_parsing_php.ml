@@ -152,9 +152,7 @@ let test_parse_xdebug_expr s =
 let actions () =
   [
     (*s: test_parsing_php actions *)
-    ( "-parse_php",
-      "   <file or dir>",
-      Arg_helpers.mk_action_n_arg test_parse_php );
+    ("-parse_php", "   <file or dir>", Arg_.mk_action_n_arg test_parse_php);
     (*x: test_parsing_php actions *)
     (*
     "-visit_php", "   <file>",
@@ -170,22 +168,22 @@ let actions () =
 *)
     (*x: test_parsing_php actions *)
     (* an alias for -sexp_php *)
-    ("-dump_php", "   <file>", Arg_helpers.mk_action_1_arg test_dump_php);
-    ("-dump_php_ml", "   <file>", Arg_helpers.mk_action_1_arg test_dump_php);
+    ("-dump_php", "   <file>", Arg_.mk_action_1_arg test_dump_php);
+    ("-dump_php_ml", "   <file>", Arg_.mk_action_1_arg test_dump_php);
     (*x: test_parsing_php actions *)
     (*x: test_parsing_php actions *)
     (*x: test_parsing_php actions *)
-    ("-tokens_php", "   <file>", Arg_helpers.mk_action_1_arg test_tokens_php)
+    ("-tokens_php", "   <file>", Arg_.mk_action_1_arg test_tokens_php)
     (*e: test_parsing_php actions *)
     (*
     "-unparse_php", "   <file>",
-    Arg_helpers.mk_action_1_arg test_unparse_php;
+    Arg_.mk_action_1_arg test_unparse_php;
     "-pretty_print_php", "   <file>",
-    Arg_helpers.mk_action_1_arg test_pretty_print_php;
+    Arg_.mk_action_1_arg test_pretty_print_php;
     "-parse_xdebug_expr", "   <string>",
-    Arg_helpers.mk_action_1_arg test_parse_xdebug_expr;
+    Arg_.mk_action_1_arg test_parse_xdebug_expr;
     "-parse_xhp_with_xhpize", "   <file>",
-    Arg_helpers.mk_action_1_arg test_parse_xhp_with_xhpize;
+    Arg_.mk_action_1_arg test_parse_xhp_with_xhpize;
 *);
   ]
 (*e: test_parsing_php.ml *)

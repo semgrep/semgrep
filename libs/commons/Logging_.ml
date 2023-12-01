@@ -1,3 +1,11 @@
+(* TODO? would be good to merge with Logging.ml but then I get some circular
+ * dependencies
+ *)
+
+(*****************************************************************************)
+(* Setup *)
+(*****************************************************************************)
+
 (*
    Set up logging globally and for each module based on what
    we found on the command line or config files.
