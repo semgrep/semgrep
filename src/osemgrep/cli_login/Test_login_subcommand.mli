@@ -1,4 +1,7 @@
-val tests : Testutil.test list
+(* alt: use Login_subcommand.caps *)
+val tests :
+  < network : Cap.Network.t ; stdout : Cap.Console.stdout > ->
+  Testutil.test list
 
 (* to be reused in other tests *)
 

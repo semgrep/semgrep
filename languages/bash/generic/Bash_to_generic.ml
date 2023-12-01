@@ -128,7 +128,7 @@ let block : stmt_or_expr list -> stmt_or_expr = function
   | [ x ] -> x
   | several ->
       let loc = Tok_range.of_list stmt_or_expr_loc several in
-      let stmts = Common.map as_stmt several in
+      let stmts = List_.map as_stmt several in
       Stmt (loc, G.s (G.Block (bracket loc stmts)))
 
 let mk_name (str_wrap : string wrap) : G.name =
@@ -202,7 +202,7 @@ end
    Usage: call C.cmd args
 *)
 let call loc name exprs =
-  G.Call (name loc, bracket loc (Common.map (fun e -> G.Arg e) exprs)) |> G.e
+  G.Call (name loc, bracket loc (List_.map (fun e -> G.Arg e) exprs)) |> G.e
 
 let todo_tokens ((start, end_) : loc) =
   let wrap tok = (Tok.content_of_tok tok, tok) in
@@ -235,7 +235,7 @@ let redirect_pipeline_stderr_to_stdout pip =
 let rec blist (env : env) (l : blist) : stmt_or_expr list =
   match l with
   | Seq (_loc, left, right) -> blist env left @ blist env right
-  | Pipelines (_loc, pl) -> Common.map (fun x -> pipeline env x) pl
+  | Pipelines (_loc, pl) -> List_.map (fun x -> pipeline env x) pl
   | Empty _loc -> []
 
 and pipeline (env : env) (x : pipeline) : stmt_or_expr =
@@ -284,7 +284,7 @@ and command (env : env) (cmd : command) : stmt_or_expr =
       (* TODO: fix the tree-sitter grammar so it doesn't insert a "MISSING"
          node set to the empty string when there's no command following
          multiple assignments. *)
-      Common.map (assignment env) assignments |> block
+      List_.map (assignment env) assignments |> block
   | Simple_command { loc; assignments = _; arguments } -> (
       match arguments with
       | [ (Expr_semgrep_ellipsis tok as e) ] ->
@@ -292,7 +292,7 @@ and command (env : env) (cmd : command) : stmt_or_expr =
       | [ (String_fragment (loc, Frag_semgrep_named_ellipsis _) as e) ] ->
           Expr (loc, expression env e)
       | arguments ->
-          let args = Common.map (expression env) arguments in
+          let args = List_.map (expression env) arguments in
           Expr (loc, call loc C.cmd args))
   | And (loc, left, and_tok, right) ->
       let left = pipeline env left |> as_expr in
@@ -317,7 +317,7 @@ and command (env : env) (cmd : command) : stmt_or_expr =
           | Some (in_tk, vals) ->
               ( in_tk,
                 G.Container
-                  (List, fb (Common.map (fun x -> expression env x) vals))
+                  (List, fb (List_.map (fun x -> expression env x) vals))
                 |> G.e )
           | None ->
               (*
@@ -357,11 +357,11 @@ and command (env : env) (cmd : command) : stmt_or_expr =
   | Case (loc, case, subject, _in_, clauses, _esac) ->
       let subject = expression env subject in
       let clauses =
-        Common.map
+        List_.map
           (fun (_loc, patterns, _paren, stmts, _opt_term) ->
             (* TODO: handle the different kinds of terminators. Insert breaks. *)
             let patterns =
-              Common.map
+              List_.map
                 (fun e ->
                   let tok, _ = AST_bash_loc.expression_loc e in
                   let pat =
@@ -414,7 +414,7 @@ and command (env : env) (cmd : command) : stmt_or_expr =
   | Coprocess (_loc, _opt_name, cmd) -> (* TODO: coproc *) command env cmd
   | Assignment ass -> assignment env ass
   | Declaration x ->
-      let assignments = Common.map (assignment env) x.assignments in
+      let assignments = List_.map (assignment env) x.assignments in
       (* TODO: don't ignore the "unknown" arguments that contain variables
          and such. *)
       assignments |> block
@@ -458,7 +458,7 @@ and assignment (env : env) ass =
    is needed for matching. We can't simplify it into a single expression
    if there's only one statement. *)
 and stmt_group (_env : env) (loc : loc) (l : stmt_or_expr list) : stmt_or_expr =
-  let stmts = Common.map as_stmt l in
+  let stmts = List_.map as_stmt l in
   let start, end_ = loc in
   Stmt (loc, G.s (G.Block (start, stmts, end_)))
 
@@ -476,7 +476,7 @@ and expression (env : env) (e : expression) : G.expr =
           G.L (G.String (fb wrap)) |> G.e
       | _ ->
           let loc = (open_, close) in
-          Common.map (string_fragment env) frags |> call loc C.quoted_concat)
+          List_.map (string_fragment env) frags |> call loc C.quoted_concat)
   | String_fragment (_loc, frag) -> string_fragment env frag
   | Raw_string (* 'foo' *) (str, tok) ->
       (* normalization to enable matching of e.g. 'foo' against foo *)
@@ -491,7 +491,7 @@ and expression (env : env) (e : expression) : G.expr =
   | Ansii_c_string str -> G.L (G.String (fb str)) |> G.e
   | Special_character str -> G.L (G.String (fb str)) |> G.e
   | Concatenation (loc, el) ->
-      Common.map (expression env) el |> call loc C.concat
+      List_.map (expression env) el |> call loc C.concat
   | Expr_semgrep_ellipsis tok -> G.Ellipsis tok |> G.e
   | Expr_semgrep_deep_ellipsis (_loc, (open_, e, close)) ->
       G.DeepEllipsis (open_, expression env e, close) |> G.e
@@ -499,7 +499,7 @@ and expression (env : env) (e : expression) : G.expr =
   | Equality_test (loc, _, _) -> (* don't know what this is *) todo_expr loc
   | Empty_expression loc -> G.L (G.String (fb ("", fst loc))) |> G.e
   | Array (_loc, (open_, elts, close)) ->
-      let elts = Common.map (expression env) elts in
+      let elts = List_.map (expression env) elts in
       G.Container (G.Array, (open_, elts, close)) |> G.e
   | Process_substitution (loc, (_open_, x, _close)) ->
       let arg = blist env x |> block |> as_expr in
@@ -533,7 +533,7 @@ and expansion (_env : env) (x : expansion) : G.expr =
 
 and expand loc (var_expr : G.expr) : G.expr = call loc C.expand [ var_expr ]
 
-let program_with_env (env : env) x = blist (env : env) x |> Common.map as_stmt
+let program_with_env (env : env) x = blist (env : env) x |> List_.map as_stmt
 
 (*****************************************************************************)
 (* Entry points *)

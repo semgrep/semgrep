@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Either_
 module AST = Ast_c
 module CST = Tree_sitter_c.CST
 open Ast_cpp
@@ -166,7 +167,7 @@ let string_literal (env : env) ((v1, v2, v3) : CST.string_literal) : string wrap
     (* "\"" *)
   in
   let v2 =
-    Common.map
+    List_.map
       (fun x ->
         match x with
         | `Imm_tok_prec_p1_pat_c7f65b4 tok ->
@@ -176,8 +177,8 @@ let string_literal (env : env) ((v1, v2, v3) : CST.string_literal) : string wrap
       v2
   in
   let v3 = token env v3 (* "\"" *) in
-  let s = v2 |> Common.map fst |> String.concat "" in
-  (s, Tok.combine_toks v1 (Common.map snd v2 @ [ v3 ]))
+  let s = v2 |> List_.map fst |> String.concat "" in
+  (s, Tok.combine_toks v1 (List_.map snd v2 @ [ v3 ]))
 
 let gnu_asm_qualifier (env : env) (x : CST.gnu_asm_qualifier) =
   match x with
@@ -363,7 +364,7 @@ let old_style_parameter_list (env : env)
   let v2 =
     match v2 with
     | Some (v1, v2) ->
-        v1 :: Common.map snd v2
+        v1 :: List_.map snd v2
         |> List.filter_map (fun x ->
                anon_choice_type_id_fe6e1ce env x ty_hashtbl)
     | None -> []
@@ -436,7 +437,7 @@ let rec preproc_argument_list (env : env)
     | Some (v1, v2) ->
         let v1 = preproc_expression env v1 in
         let v2 =
-          Common.map
+          List_.map
             (fun (v1, v2) ->
               let _v1 = token env v1 (* "," *) in
               let v2 = preproc_expression env v2 in
@@ -447,7 +448,7 @@ let rec preproc_argument_list (env : env)
     | None -> []
   in
   let v3 = token env v3 (* ")" *) in
-  (v1, v2 |> Common.map (fun x -> Arg x), v3)
+  (v1, v2 |> List_.map (fun x -> Arg x), v3)
 
 and preproc_binary_expression (env : env) (x : CST.preproc_binary_expression) :
     expr =
@@ -609,7 +610,7 @@ let preproc_params (env : env) ((v1, v2, v3) : CST.preproc_params) : name list =
     | Some (v1, v2) ->
         let v1 = anon_choice_type_id_d3c4b5f env v1 in
         let v2 =
-          Common.map
+          List_.map
             (fun (v1, v2) ->
               let _v1 = token env v1 (* "," *) in
               let v2 = anon_choice_type_id_d3c4b5f env v2 in
@@ -659,7 +660,7 @@ let rec abstract_declarator (env : env) (x : CST.abstract_declarator) :
   match x with
   | `Abst_poin_decl (v1, v2, v3) ->
       let v1 = token env v1 (* "*" *) in
-      let _v2 = Common.map (type_qualifier env) v2 in
+      let _v2 = List_.map (type_qualifier env) v2 in
       let v3 =
         match v3 with
         | Some x ->
@@ -679,7 +680,7 @@ let rec abstract_declarator (env : env) (x : CST.abstract_declarator) :
       v1
   | `Abst_array_decl (v1, v2, v3, v4, v5) ->
       let _v2 = token env v2 (* "[" *) in
-      let _v3 = Common.map (type_qualifier env) v3 in
+      let _v3 = List_.map (type_qualifier env) v3 in
       let v4 =
         match v4 with
         | Some x -> Some (anon_choice_exp_508611b env x)
@@ -781,7 +782,7 @@ and anon_choice_init_pair_1a6981e (env : env)
   match x with
   | `Init_pair (v1, v2, v3) ->
       let v1 =
-        Common.map
+        List_.map
           (fun x ->
             match x with
             | `Subs_desi x ->
@@ -829,13 +830,13 @@ and anon_choice_prep_else_in_field_decl_list_97ea65e (env : env)
   match x with
   | `Prep_else_in_field_decl_list (v1, v2) ->
       let _v1 = token env v1 (* pattern #[ 	]*else *) in
-      let _v2 = Common.map (field_declaration_list_item env) v2 in
+      let _v2 = List_.map (field_declaration_list_item env) v2 in
       ()
   | `Prep_elif_in_field_decl_list (v1, v2, v3, v4, v5) ->
       let _v1 = token env v1 (* pattern #[ 	]*elif *) in
       let _v2 = preproc_expression env v2 in
       let _v3 = token env v3 (* "\n" *) in
-      let _v4 = Common.map (field_declaration_list_item env) v4 in
+      let _v4 = List_.map (field_declaration_list_item env) v4 in
       let _v5 =
         match v5 with
         | Some x ->
@@ -885,7 +886,7 @@ and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) :
     | Some (v1, v2) ->
         let v1 = map_anon_choice_opt___exte___exp_2bc8eaa env v1 in
         let v2 =
-          Common.map
+          List_.map
             (fun (v1, v2) ->
               let _v1 = token env v1 (* "," *) in
               let v2 = map_anon_choice_opt___exte___exp_2bc8eaa env v2 in
@@ -1077,14 +1078,14 @@ and block_item (env : env) (x : CST.block_item) =
   | `Link_spec x -> linkage_specification env x
   | `Decl x ->
       let vars = declaration env x in
-      vars |> Common.map (fun v -> DefStmt (VarDef v))
+      vars |> List_.map (fun v -> DefStmt (VarDef v))
   | `Choice_case_stmt x ->
       let st = statement env x in
       [ st ]
   | `Attr_stmt x -> [ attributed_statement env x ]
   | `Type_defi x ->
       let xs = type_definition env x in
-      xs |> Common.map (fun x -> DefStmt (TypeDef x))
+      xs |> List_.map (fun x -> DefStmt (TypeDef x))
   | `Empty_decl (v1, v2) ->
       (* I don't know why we do this but it's the same as the other EmptyDecl below *)
       let _v1 = type_specifier env v1 in
@@ -1104,9 +1105,9 @@ and call_expression (env : env) ((v1, v2) : CST.call_expression) : expr =
 
 and declaration_specifiers (env : env)
     ((v1, v2, v3) : CST.declaration_specifiers) : type_ =
-  let _v1 = Common.map (declaration_modifiers env) v1 in
+  let _v1 = List_.map (declaration_modifiers env) v1 in
   let v2 = type_specifier env v2 in
-  let _v3 = Common.map (declaration_modifiers env) v3 in
+  let _v3 = List_.map (declaration_modifiers env) v3 in
   v2
 
 (* return a couple (name * partial type (to be applied to return type)) *)
@@ -1123,8 +1124,8 @@ and declarator (env : env) (x : CST.declarator) : name * (type_ -> type_) =
         | None -> None
       in
       let v2 = token env v2 (* "*" *) in
-      let _v3 = Common.map (ms_pointer_modifier env) v3 in
-      let _v4 = Common.map (type_qualifier env) v4 in
+      let _v3 = List_.map (ms_pointer_modifier env) v3 in
+      let _v4 = List_.map (type_qualifier env) v4 in
       let id, f = declarator env v5 in
       (id, fun t -> TPointer (v2, t) |> f)
   | `Func_decl (v1, v2, v3, v4) ->
@@ -1136,12 +1137,12 @@ and declarator (env : env) (x : CST.declarator) : name * (type_ -> type_) =
         | Some x -> Some (gnu_asm_statement env x)
         | None -> None
       in
-      let _v4 = Common.map (attribute_specifier env) v4 in
+      let _v4 = List_.map (attribute_specifier env) v4 in
       (id, fun t -> f (TFunction (t, v2)))
   | `Array_decl (v1, v2, v3, v4, v5) ->
       let id, f = declarator env v1 in
       let _v2 = token env v2 (* "[" *) in
-      let _v3 = Common.map (type_qualifier env) v3 in
+      let _v3 = List_.map (type_qualifier env) v3 in
       let v4 =
         match v4 with
         | Some x -> Some (anon_choice_exp_508611b env x)
@@ -1177,7 +1178,7 @@ and enumerator_list (env : env) ((v1, v2, v3, v4) : CST.enumerator_list) =
     | Some (v1, v2) ->
         let v1 = enumerator env v1 in
         let v2 =
-          Common.map
+          List_.map
             (fun (v1, v2) ->
               let _v1 = token env v1 (* "," *) in
               let v2 = enumerator env v2 in
@@ -1364,7 +1365,7 @@ and field_declaration_list_item (env : env)
               | None -> None
             in
             let v3 =
-              Common.map
+              List_.map
                 (fun (v1, v2, v3) ->
                   let _v1 = token env v1 (* "," *) in
                   let v2 = field_declarator env v2 in
@@ -1386,7 +1387,7 @@ and field_declaration_list_item (env : env)
         | None -> None
       in
       let _v4 = token env v4 (* ";" *) in
-      v2 |> Common.map (fun (id, f) -> { fld_name = Some id; fld_type = f v1 })
+      v2 |> List_.map (fun (id, f) -> { fld_name = Some id; fld_type = f v1 })
   | `Prep_def x ->
       let _ = preproc_def env x in
       []
@@ -1444,8 +1445,8 @@ and field_declarator (env : env) (x : CST.field_declarator) :
         | None -> None
       in
       let v2 = token env v2 (* "*" *) in
-      let _v3 = Common.map (ms_pointer_modifier env) v3 in
-      let _v4 = Common.map (type_qualifier env) v4 in
+      let _v3 = List_.map (ms_pointer_modifier env) v3 in
+      let _v4 = List_.map (type_qualifier env) v4 in
       let id, f = field_declarator env v5 in
       (id, fun t -> TPointer (v2, t) |> f)
   | `Func_field_decl (v1, v2) ->
@@ -1455,7 +1456,7 @@ and field_declarator (env : env) (x : CST.field_declarator) :
   | `Array_field_decl (v1, v2, v3, v4, v5) ->
       let id, f = field_declarator env v1 in
       let _v2 = token env v2 (* "[" *) in
-      let _v3 = Common.map (type_qualifier env) v3 in
+      let _v3 = List_.map (type_qualifier env) v3 in
       let v4 =
         match v4 with
         | Some x -> Some (anon_choice_exp_508611b env x)
@@ -1493,7 +1494,7 @@ and initializer_list (env : env) ((v1, v2, v3, v4) : CST.initializer_list) :
     | Some (v1, v2) ->
         let v1 = anon_choice_init_pair_1a6981e env v1 in
         let v2 =
-          Common.map
+          List_.map
             (fun (v1, v2) ->
               let _v1 = token env v1 (* "," *) in
               let v2 = anon_choice_init_pair_1a6981e env v2 in
@@ -1512,7 +1513,7 @@ and initializer_list (env : env) ((v1, v2, v3, v4) : CST.initializer_list) :
   (* TODO: can be RecordInit too! *)
   let elems =
     v2
-    |> Common.map (function
+    |> List_.map (function
          | Right e -> (None, e)
          | Left (designators, _tkeq, e) -> (
              match designators with
@@ -1532,7 +1533,7 @@ and linkage_specification (env : env) ((v1, v2, v3) : CST.linkage_specification)
         [ DefStmt (FuncDef def) ]
     | `Decl x ->
         let vars = declaration env x in
-        vars |> Common.map (fun v -> DefStmt (VarDef v))
+        vars |> List_.map (fun v -> DefStmt (VarDef v))
     | `Decl_list x -> declaration_list env x
   in
   v3
@@ -1572,8 +1573,8 @@ and old_style_function_definition (env : env)
        `old_style_function_declarator` below.
     *)
     List.concat_map (declaration env) v4
-    |> Common.map (arg_of_var_decl env)
-    |> Common.map (fun ((s, _), ty) -> (s, ty))
+    |> List_.map (arg_of_var_decl env)
+    |> List_.map (fun ((s, _), ty) -> (s, ty))
     |> List.to_seq |> Hashtbl.of_seq
   in
   let (n, ret_ty_f), (_, params, _) =
@@ -1600,7 +1601,7 @@ and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) :
     | Some (v1, v2) ->
         let v1 = anon_choice_param_decl_4ac2852 env v1 in
         let v2 =
-          Common.map
+          List_.map
             (fun (v1, v2) ->
               let _v1 = token env v1 (* "," *) in
               let v2 = anon_choice_param_decl_4ac2852 env v2 in
@@ -1709,9 +1710,9 @@ and type_definition_type (env : env) ((v1, v2, v3) : CST.type_definition_type) =
 
 and type_descriptor (env : env) ((v1, v2, v3, v4) : CST.type_descriptor) : type_
     =
-  let _v1 = Common.map (type_qualifier env) v1 in
+  let _v1 = List_.map (type_qualifier env) v1 in
   let v2 = type_specifier env v2 in
-  let _v3 = Common.map (type_qualifier env) v3 in
+  let _v3 = List_.map (type_qualifier env) v3 in
   let v4 =
     match v4 with
     | Some x -> (abstract_declarator env x) v2
@@ -1829,7 +1830,7 @@ and type_specifier (env : env) (x : CST.type_specifier) : type_ =
   | `Sized_type_spec (v1, v2) ->
       let v1 =
         (* repeat1 in grammar.js so at least one *)
-        Common.map
+        List_.map
           (fun x ->
             match x with
             | `Signed tok -> str env tok (* "signed" *)
@@ -1848,13 +1849,13 @@ and type_specifier (env : env) (x : CST.type_specifier) : type_ =
         | None -> []
       in
       let xs = v1 @ v2 in
-      let s = xs |> Common.map fst |> String.concat " " in
-      let ys = xs |> Common.map snd in
+      let s = xs |> List_.map fst |> String.concat " " in
+      let ys = xs |> List_.map snd in
       (* repeat1 in grammar.js so Common.hd_exn "unexpected empty list" is safe *)
       let tk =
         Tok.combine_toks
-          (Common.hd_exn "impossible!!!" ys)
-          (Common.tl_exn "unexpected empty list" ys)
+          (List_.hd_exn "impossible!!!" ys)
+          (List_.tl_exn "unexpected empty list" ys)
       in
       TBase (s, tk)
   | `Prim_type tok ->
@@ -1909,8 +1910,8 @@ and type_declarator (env : env) (x : CST.type_declarator) :
         | None -> None
       in
       let v2 = token env v2 (* "*" *) in
-      let _v3 = Common.map (ms_pointer_modifier env) v3 in
-      let _v4 = Common.map (type_qualifier env) v4 in
+      let _v3 = List_.map (ms_pointer_modifier env) v3 in
+      let _v4 = List_.map (type_qualifier env) v4 in
       let id, f = type_declarator env v5 in
       (id, fun t -> TPointer (v2, t) |> f)
   | `Func_type_decl (v1, v2) ->
@@ -1920,7 +1921,7 @@ and type_declarator (env : env) (x : CST.type_declarator) :
   | `Array_type_decl (v1, v2, v3, v4, v5) ->
       let id, f = type_declarator env v1 in
       let _v2 = token env v2 (* "[" *) in
-      let _v3 = Common.map (type_qualifier env) v3 in
+      let _v3 = List_.map (type_qualifier env) v3 in
       let v4 =
         match v4 with
         | Some x -> Some (anon_choice_exp_508611b env x)
@@ -1982,13 +1983,13 @@ and type_definition (env : env) ((v1, v2, v3, v4, v5, v6) : CST.type_definition)
   let v4 = type_definition_declarators env v4 in
   let _v5_TODO = List.map (attribute_specifier env) v5 in
   let _v6 = (* ";" *) token env v6 in
-  v4 |> Common.map (fun (id, f) -> { t_name = id; t_type = f v3 })
+  v4 |> List_.map (fun (id, f) -> { t_name = id; t_type = f v3 })
 
 and declaration (env : env) ((v1, v2, v3) : CST.declaration) : var_decl list =
   let ty = declaration_specifiers env v1 in
   let v2 = declaration_declarator env v2 in
   let _v3 = (* ";" *) token env v3 in
-  v2 |> Common.map (fun f -> f ty)
+  v2 |> List_.map (fun f -> f ty)
 
 and arg_of_var_decl (_env : env)
     ({ v_name; v_type; v_storage = _; v_init = _ } : var_decl) =
@@ -2045,10 +2046,10 @@ and case_statement (env : env) ((v1, v2, v3) : CST.case_statement) =
         | `Choice_attr_stmt x -> [ non_case_statement env x ]
         | `Decl x ->
             let vars = declaration env x in
-            vars |> Common.map (fun v -> DefStmt (VarDef v))
+            vars |> List_.map (fun v -> DefStmt (VarDef v))
         | `Type_defi x ->
             type_definition env x
-            |> Common.map (fun tydef -> DefStmt (TypeDef tydef)))
+            |> List_.map (fun tydef -> DefStmt (TypeDef tydef)))
       v3
   in
   mk_case v3
@@ -2066,7 +2067,7 @@ and compound_statement_for_switch (env : env)
   let v2 = List.concat_map (block_item env) v2 in
   let _v3 = token env v3 (* "}" *) in
   v2
-  |> Common.map_filter (function
+  |> List_.map_filter (function
        | CaseStmt x -> Some x
        (* todo: we drop all the other stuff ... *)
        | _ -> None)
@@ -2296,7 +2297,7 @@ and statement env x : stmt =
 
 and case_to_stmt x = CaseStmt x
 
-and statement2 (env : env) (x : CST.statement) : (case, stmt) Common.either =
+and statement2 (env : env) (x : CST.statement) : (case, stmt) Either.t =
   match x with
   | `Case_stmt (v1, v2, v3) ->
       let _v2 = token env v2 (* ":" *) in
@@ -2310,7 +2311,7 @@ and statement2 (env : env) (x : CST.statement) : (case, stmt) Common.either =
                 [ Vars vars ]
             | `Type_defi x ->
                 let xs = type_definition env x in
-                xs |> Common.map (fun t -> DefStmt (TypeDef t)))
+                xs |> List_.map (fun t -> DefStmt (TypeDef t)))
           v3
       in
 
@@ -2342,20 +2343,20 @@ and top_level_item (env : env) (x : CST.top_level_item) : toplevel list =
         | `Func_defi x -> [ DefStmt (FuncDef (function_definition env x)) ]
         | `Decl x ->
             let vars = declaration env x in
-            vars |> Common.map (fun v -> DefStmt (VarDef v))
+            vars |> List_.map (fun v -> DefStmt (VarDef v))
         | `Decl_list x -> declaration_list env x
       in
       v3
   | `Decl x ->
       let vars = declaration env x in
-      vars |> Common.map (fun v -> DefStmt (VarDef v))
+      vars |> List_.map (fun v -> DefStmt (VarDef v))
   | `Choice_case_stmt x ->
       let st = top_level_statement env x in
       [ st ]
   | `Attr_stmt x -> [ attributed_statement env x ]
   | `Type_defi x ->
       let xs = type_definition env x in
-      xs |> Common.map (fun x -> DefStmt (TypeDef x))
+      xs |> List_.map (fun x -> DefStmt (TypeDef x))
   | `Empty_decl (v1, v2) ->
       let _v1 = type_specifier env v1 in
       let _v2 = token env v2 (* ";" *) in
@@ -2400,10 +2401,10 @@ and translation_unit (env : env) (xs : CST.translation_unit) : program =
       env.struct_defs_toadd <- [];
       env.enum_defs_toadd <- [];
       env.typedefs_toadd <- [];
-      ((structs |> Common.map (fun x -> StructDef x))
-       @ (enums |> Common.map (fun x -> EnumDef x))
-       @ (typedefs |> Common.map (fun x -> TypeDef x))
-      |> Common.map (fun x -> DefStmt x))
+      ((structs |> List_.map (fun x -> StructDef x))
+       @ (enums |> List_.map (fun x -> EnumDef x))
+       @ (typedefs |> List_.map (fun x -> TypeDef x))
+      |> List_.map (fun x -> DefStmt x))
       @ res)
     xs
 

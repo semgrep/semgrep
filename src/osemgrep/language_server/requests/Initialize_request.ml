@@ -79,8 +79,10 @@ let initialize_server server
       let settings = Semgrep_settings.load () in
       match settings.api_token with
       | Some token ->
+          let caps = Cap.network_caps_UNSAFE () in
+          let caps = Auth.cap_token_and_network token caps in
           (* "if not valid", basically *)
-          if%lwt Semgrep_login.verify_token_async token |> Lwt.map not then (
+          if%lwt Semgrep_login.verify_token_async caps |> Lwt.map not then (
             RPC_server.notify_show_message ~kind:MessageType.Error
               "Invalid Semgrep token detected, please log in again.";
             Semgrep_settings.save { settings with api_token = None } |> ignore;

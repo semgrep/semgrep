@@ -9,7 +9,7 @@ let convert_ellipses (fragments : tmp list) =
   match fragments with
   | [Starstar] -> Any_subpath
   | xs ->
-     Segment (Common.map (function Fragment x -> x | Starstar -> Star) xs)
+     Segment (List_.map (function Fragment x -> x | Starstar -> Star) xs)
 %}
 %token SLASH QUESTION STAR STARSTAR EOF
 %token <char> CHAR

@@ -9,4 +9,4 @@ let get_contributions () : Semgrep_output_v1_j.contribution list =
    *)
   let last_30_days = Common2.today () |> Common2.month_before in
   Git_wrapper.get_git_logs ~since:(Some last_30_days) ()
-  |> Common.map Semgrep_output_v1_j.contribution_of_string
+  |> List_.map Semgrep_output_v1_j.contribution_of_string

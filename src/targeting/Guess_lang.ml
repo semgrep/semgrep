@@ -4,7 +4,7 @@
 *)
 
 open Common
-open File.Operators
+open Fpath_.Operators
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -64,7 +64,7 @@ let prepend_period_if_needed s =
    Both '.d.ts' and '.ts' are considered extensions of 'hello.d.ts'.
 *)
 let has_extension extensions =
-  has_suffix (Common.map prepend_period_if_needed extensions)
+  has_suffix (List_.map prepend_period_if_needed extensions)
 
 let has_lang_extension lang = has_extension (Lang.ext_of_lang lang)
 
@@ -91,7 +91,7 @@ let is_executable =
   Or (has_extension [ ".exe" ], Test_path f)
 
 let get_first_line path =
-  Common.with_open_infile !!path (fun ic ->
+  UCommon.with_open_infile !!path (fun ic ->
       try input_line ic with
       | End_of_file -> (* empty file *) "")
 
@@ -100,7 +100,7 @@ let get_first_line path =
    a single filesystem block.
 *)
 let get_first_block ?(block_size = 4096) path =
-  Common.with_open_infile !!path (fun ic ->
+  UCommon.with_open_infile !!path (fun ic ->
       let len = min block_size (in_channel_length ic) in
       really_input_string ic len)
 
@@ -300,4 +300,5 @@ let inspect_file lang path =
   let bool_res = inspect_file_p lang path in
   wrap_with_error_message lang path bool_res
 
-let inspect_files lang paths = Common.partition_result (inspect_file lang) paths
+let inspect_files lang paths =
+  Result_.partition_result (inspect_file lang) paths

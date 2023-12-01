@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module Flag = Flag_parsing
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -20,7 +20,7 @@ let test_tokens file =
   ()
 
 let test_parse xs =
-  let xs = xs |> File.Path.of_strings |> List.map File.fullpath in
+  let xs = xs |> Fpath_.of_strings |> List.map UFile.fullpath in
 
   let fullxs, _skipped_paths =
     Parse_scala.find_source_files_of_dir_or_files xs
@@ -38,7 +38,7 @@ let test_parse xs =
                Common.save_excursion Flag.error_recovery true (fun () ->
                    Parse_scala.parse !!file)
              in
-             Common.push stat stat_list));
+             Stack_.push stat stat_list));
   Parsing_stat.print_parsing_stat_list !stat_list;
   ()
 
@@ -56,9 +56,7 @@ let test_dump file =
 
 let actions () =
   [
-    ("-tokens_scala", "   <file>", Arg_helpers.mk_action_1_arg test_tokens);
-    ( "-parse_scala",
-      "   <files or dirs>",
-      Arg_helpers.mk_action_n_arg test_parse );
-    ("-dump_scala", "   <file>", Arg_helpers.mk_action_1_arg test_dump);
+    ("-tokens_scala", "   <file>", Arg_.mk_action_1_arg test_tokens);
+    ("-parse_scala", "   <files or dirs>", Arg_.mk_action_n_arg test_parse);
+    ("-dump_scala", "   <file>", Arg_.mk_action_1_arg test_dump);
   ]

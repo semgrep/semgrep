@@ -43,7 +43,7 @@ let test_common_map =
     let acc = ref [] in
     let expected_output = List.map f input in
     let output =
-      Common.map
+      List_.map
         (fun x ->
           let res = f x in
           acc := res :: !acc;
@@ -55,7 +55,7 @@ let test_common_map =
     assert (order = expected_output)
   in
   let tests =
-    List.map
+    List_.map
       (fun len ->
         let name = sprintf "list length = %i" len in
         let test () = test len in
@@ -75,7 +75,7 @@ let test_cat () =
   let oc = open_out_bin file in
   output_string oc contents;
   close_out oc;
-  match Common.cat file with
+  match UCommon.cat file with
   | [ "hello"; "world"; "!" ] -> ()
   | lines ->
       List.iteri (fun i line -> eprintf "line %i: %S\n" i line) lines;
@@ -85,19 +85,19 @@ let test_cat () =
 let test_readable () =
   Alcotest.(check string)
     "same string" "Bar.java"
-    (Common.readable ~root:"." "./Bar.java");
+    (Filename_.readable ~root:"." "./Bar.java");
   Alcotest.(check string)
     "same string" "Bar.java"
-    (Common.readable ~root:"." "Bar.java");
+    (Filename_.readable ~root:"." "Bar.java");
   Alcotest.(check string)
     "same string" "a/b/Bar.java"
-    (Common.readable ~root:"." "a/b/Bar.java");
+    (Filename_.readable ~root:"." "a/b/Bar.java");
   Alcotest.(check string)
     "same string" "Bar.java"
-    (Common.readable ~root:"/a/b/" "/a/b/Bar.java");
+    (Filename_.readable ~root:"/a/b/" "/a/b/Bar.java");
   Alcotest.(check string)
     "same string" "Bar.java"
-    (Common.readable ~root:"/a/b/" "/a/b//Bar.java");
+    (Filename_.readable ~root:"/a/b/" "/a/b//Bar.java");
   ()
 
 let with_file contents f =
@@ -118,23 +118,23 @@ let with_file contents f =
 let test_read_file () =
   (* test file smaller than one filesystem block (most likely) *)
   let data = String.make 200 'A' in
-  with_file data (fun file -> assert (Common.read_file file = data));
+  with_file data (fun file -> assert (UCommon.read_file file = data));
   (* test file larger than one filesystem block (most likely) *)
   let data = String.make 100_000 'A' in
-  with_file data (fun file -> assert (Common.read_file file = data));
+  with_file data (fun file -> assert (UCommon.read_file file = data));
   (* test empty file *)
   let data = "" in
-  with_file data (fun file -> assert (Common.read_file file = data));
+  with_file data (fun file -> assert (UCommon.read_file file = data));
   (* test partial read *)
   let data = String.make 8192 'A' in
   let max_len = 100 in
   with_file data (fun file ->
-      assert (Common.read_file ~max_len file = String.sub data 0 max_len));
+      assert (UCommon.read_file ~max_len file = String.sub data 0 max_len));
   (* test 0-length read *)
   let data = String.make 8192 'A' in
   let max_len = 0 in
   with_file data (fun file ->
-      assert (Common.read_file ~max_len file = String.sub data 0 max_len))
+      assert (UCommon.read_file ~max_len file = String.sub data 0 max_len))
 
 let tests =
   Testutil.pack_suites "commons"

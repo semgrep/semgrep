@@ -257,7 +257,7 @@ let rec to_ast_generic_type_ ?(tok = None) lang
   | Function (params, tret) ->
       let params =
         params
-        |> Common.map (function
+        |> List_.map (function
              | Param { pident; ptype } -> (
                  let topt = to_ast_generic_type_ lang f ptype in
                  match topt with

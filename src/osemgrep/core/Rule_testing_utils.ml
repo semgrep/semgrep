@@ -9,7 +9,7 @@
 *)
 let fixtest_suffix = ".fixed"
 let yml_extensions = [ ".yml"; ".yaml" ]
-let yml_test_suffixes = Common.map (fun ext -> ".test" ^ ext) yml_extensions
+let yml_test_suffixes = List_.map (fun ext -> ".test" ^ ext) yml_extensions
 
 (* old: was a thing where we split up the file exts into a suffix list, then
    compared other suffix lists
@@ -52,7 +52,7 @@ let relatively_eq parent_target target parent_config config =
 
            and that xs and ys are the same, modulo suffix
         *)
-        List.equal ( = ) (Common.take s' l1) (Common.take s' l2)
+        List.equal ( = ) (List_.take s' l1) (List_.take s' l2)
         && Fpath.equal
              (List.nth l1 s' |> Fpath.v |> Fpath.rem_ext ~multi:true)
              (List.nth l2 s' |> Fpath.v |> Fpath.rem_ext ~multi:true)
@@ -65,7 +65,7 @@ let get_config_filenames original_config =
       Common2.(glob (spf "%s/**" (Fpath.to_string original_config)))
     in
     configs
-    |> Common.map_filter (fun file ->
+    |> List_.map_filter (fun file ->
            let fpath = Fpath.v file in
            if
              is_config_suffix fpath
@@ -87,7 +87,7 @@ let get_config_test_filenames ~original_config ~configs ~original_target =
          Common2.(
            glob (spf "%s/**" (Fpath.to_string (Fpath.parent original_target))))
        else Common2.(glob (spf "%s/**" (Fpath.to_string original_target))))
-      |> Common.map Fpath.v
+      |> List_.map Fpath.v
     in
 
     let target_matches_config target config =
@@ -100,7 +100,7 @@ let get_config_test_filenames ~original_config ~configs ~original_target =
       && Fpath.is_file_path target && correct_suffix
     in
 
-    Common.map
+    List_.map
       (fun config ->
         ( config,
           List.filter

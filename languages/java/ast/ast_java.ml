@@ -249,7 +249,7 @@ and literal =
   | TextBlock of string wrap (* TODO bracket *)
 
 and arguments = expr list bracket
-and expr_or_type = (expr, typ) Common.either
+and expr_or_type = (expr, typ) Either_.t
 
 (*****************************************************************************)
 (* Statement *)
@@ -301,7 +301,7 @@ and catch_exn =
 and resources = resource list bracket
 
 (* the expr is a an id or a field access *)
-and resource = (var_with_init, expr) Common.either
+and resource = (var_with_init, expr) Either_.t
 
 (*****************************************************************************)
 (* Definitions *)

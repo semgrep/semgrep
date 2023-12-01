@@ -10,7 +10,7 @@
 (* TODO: use ATD to specify the settings file format *)
 type t = {
   has_shown_metrics_notification : bool option;
-  api_token : string option;
+  api_token : Auth.token option;
   anonymous_user_id : Uuidm.t;
 }
 
@@ -45,7 +45,9 @@ let of_yaml = function
       let* api_token =
         Option.fold ~none:(Ok None)
           ~some:(function
-            | `String s -> Ok (Some s)
+            | `String s ->
+                let token = Auth.unsafe_token_of_string s in
+                Ok (Some token)
             | _else -> Error (`Msg "api token not a string"))
           api_token
       in
@@ -69,7 +71,7 @@ let to_yaml { has_shown_metrics_notification; api_token; anonymous_user_id } =
      | Some v -> [ ("has_shown_metrics_notification", `Bool v) ])
     @ (match api_token with
       | None -> []
-      | Some v -> [ ("api_token", `String v) ])
+      | Some v -> [ ("api_token", `String (Auth.string_of_token v)) ])
     @ [ ("anonymous_user_id", `String (Uuidm.to_string anonymous_user_id)) ])
 
 (*****************************************************************************)
@@ -84,7 +86,7 @@ let load ?(maturity = Maturity.Default) () =
       Sys.file_exists (Fpath.to_string settings)
       && Unix.(stat (Fpath.to_string settings)).st_kind = Unix.S_REG
     then
-      let data = File.read_file settings in
+      let data = UFile.read_file settings in
       match Yaml.of_string data with
       | Error _ ->
           Logs.warn (fun m ->
@@ -120,7 +122,7 @@ let save setting =
     if not (Sys.file_exists dir) then Sys.mkdir dir 0o755;
     let tmp = Filename.temp_file ~temp_dir:dir "settings" "yml" in
     if Sys.file_exists tmp then Sys.remove tmp;
-    File.write_file (Fpath.v tmp) str;
+    UFile.write_file (Fpath.v tmp) str;
     (* Create a temporary file and rename to have a consistent settings file,
        even if the power fails (or a Ctrl-C happens) during the write_file. *)
     Unix.rename tmp (Fpath.to_string settings);

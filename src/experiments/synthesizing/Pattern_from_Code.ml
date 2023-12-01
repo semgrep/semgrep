@@ -262,7 +262,7 @@ and generalize_exp e env =
 (* Helper functions to make it easier to add all variations *)
 (* Generalizes e, then applies the same transformation f to each *)
 and add_expr e f env =
-  Common.map
+  List_.map
     (fun x ->
       match x with
       | str, E e' -> f (str, e')
@@ -270,7 +270,7 @@ and add_expr e f env =
     (generalize_exp e env)
 
 and add_stmt s f env =
-  Common.map
+  List_.map
     (fun x ->
       match x with
       | str, S s' -> f (str, s')

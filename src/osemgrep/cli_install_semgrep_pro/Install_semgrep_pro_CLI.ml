@@ -2,7 +2,7 @@ module Out = Semgrep_output_v1_t
 module Arg = Cmdliner.Arg
 module Cmd = Cmdliner.Cmd
 module Term = Cmdliner.Term
-module H = Cmdliner_helpers
+module H = Cmdliner_
 
 (*****************************************************************************)
 (* Prelude *)

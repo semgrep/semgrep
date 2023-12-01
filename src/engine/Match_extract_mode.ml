@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 open Extract
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -49,7 +49,7 @@ type ehrules = (Rule_ID.t, Rule.extract_rule) Hashtbl.t
 let extract_rule_and_mvar_of_match_opt (ehrules : ehrules) (m : Pattern_match.t)
     : (Rule.extract_rule * Metavariable.mvalue option) option =
   m.Pattern_match.env
-  |> Common.find_some_opt (fun (x, mvar) ->
+  |> List_.find_some_opt (fun (x, mvar) ->
          match Hashtbl.find_opt ehrules m.Pattern_match.rule_id.id with
          | None -> None
          | Some r ->
@@ -90,7 +90,7 @@ let offsets_of_mval extract_mvalue =
 let mk_extract_target (dst_lang : Xlang.t) (contents : string) :
     extracted_target =
   let suffix = Xlang.informative_suffix dst_lang in
-  let f = Common.new_temp_file "extracted" suffix in
+  let f = UCommon.new_temp_file "extracted" suffix in
   Common2.write_file ~file:f contents;
   Extracted (Fpath.v f)
 
@@ -106,7 +106,7 @@ let convert_from_json_array_to_string json =
   Yojson.Basic.from_string json'
   |> Yojson.Basic.Util.member "semgrep_fake_payload"
   |> Yojson.Basic.Util.to_list
-  |> Common.map Yojson.Basic.Util.to_string
+  |> List_.map Yojson.Basic.Util.to_string
   |> String.concat "\n"
 
 (*****************************************************************************)
@@ -152,21 +152,20 @@ let map_taint_trace map_loc traces =
   let map_loc = lift_map_loc map_loc in
   let rec map_taint_call_trace trace =
     match trace with
-    | Pattern_match.Toks tokens ->
-        Pattern_match.Toks (Common.map map_loc tokens)
+    | Pattern_match.Toks tokens -> Pattern_match.Toks (List_.map map_loc tokens)
     | Pattern_match.Call { call_toks; intermediate_vars; call_trace } ->
         Pattern_match.Call
           {
-            call_toks = Common.map map_loc call_toks;
-            intermediate_vars = Common.map map_loc intermediate_vars;
+            call_toks = List_.map map_loc call_toks;
+            intermediate_vars = List_.map map_loc intermediate_vars;
             call_trace = map_taint_call_trace call_trace;
           }
   in
-  Common.map
+  List_.map
     (fun { Pattern_match.source_trace; tokens; sink_trace } ->
       {
         Pattern_match.source_trace = map_taint_call_trace source_trace;
-        tokens = Common.map map_loc tokens;
+        tokens = List_.map map_loc tokens;
         sink_trace = map_taint_call_trace sink_trace;
       })
     traces
@@ -183,14 +182,14 @@ let map_bindings map_loc bindings =
     | None -> raise Common.Impossible
   in
   let map_binding (mvar, mval) = (mvar, map_tokens map_loc mval) in
-  Common.map map_binding bindings
+  List_.map map_binding bindings
 
 let map_res map_loc (Extracted tmpfile) (Original file) :
     match_result_location_adjuster =
  fun (mr : Core_result.matches_single_file) : Core_result.matches_single_file ->
   let matches =
     mr.matches
-    |> Common.map (fun (m : Pattern_match.t) ->
+    |> List_.map (fun (m : Pattern_match.t) ->
            {
              m with
              file = !!file;
@@ -209,7 +208,7 @@ let map_res map_loc (Extracted tmpfile) (Original file) :
     match mr.extra with
     | Core_profiling.Debug { skipped_targets; profiling } ->
         let skipped_targets =
-          Common.map
+          List_.map
             (fun (st : Semgrep_output_v1_t.skipped_target) ->
               { st with path = (if st.path =*= tmpfile then file else st.path) })
             skipped_targets
@@ -234,10 +233,10 @@ let extract_and_concat (ehrules : ehrules) (xtarget : Xtarget.t)
    *)
   |> Common2.group (fun m m' ->
          m.Pattern_match.rule_id =*= m'.Pattern_match.rule_id)
-  |> Common.map (fun matches -> Common2.nonempty_to_list matches)
+  |> List_.map (fun matches -> Common2.nonempty_to_list matches)
   (* Convert matches to the extract metavariable / bound value *)
-  |> Common.map
-       (Common.map_filter (fun m ->
+  |> List_.map
+       (List_.map_filter (fun m ->
             match extract_rule_and_mvar_of_match_opt ehrules m with
             | Some ({ mode = `Extract { Rule.extract; _ }; id = id, _; _ }, None)
               ->
@@ -246,20 +245,20 @@ let extract_and_concat (ehrules : ehrules) (xtarget : Xtarget.t)
             | Some (r, Some mval) -> Some (r, mval)
             | None -> None))
   (* Factor out rule *)
-  |> Common.map_filter (function
+  |> List_.map_filter (function
        | [] -> None
-       | (r, _) :: _ as xs -> Some (r, Common.map snd xs))
+       | (r, _) :: _ as xs -> Some (r, List_.map snd xs))
   (* Convert mval match to offset of location in file *)
-  |> Common.map (fun (r, mvals) ->
+  |> List_.map (fun (r, mvals) ->
          ( r,
-           Common.map_filter
+           List_.map_filter
              (fun mval ->
                let offsets = offsets_of_mval mval in
                if Option.is_none offsets then report_no_source_range r;
                offsets)
              mvals ))
   (* For every rule ... *)
-  |> Common.map (fun (r, offsets) ->
+  |> List_.map (fun (r, offsets) ->
          (* Sort matches by start position for merging *)
          List.fast_sort (fun x y -> Int.compare x.start_pos y.start_pos) offsets
          |> List.fold_left
@@ -277,9 +276,9 @@ let extract_and_concat (ehrules : ehrules) (xtarget : Xtarget.t)
               []
          |> List.rev
          (* Read the extracted text from the source file *)
-         |> Common.map (fun { start_pos; start_line; start_col; end_pos } ->
+         |> List_.map (fun { start_pos; start_line; start_col; end_pos } ->
                 let contents_raw =
-                  Common.with_open_infile !!(xtarget.Xtarget.file) (fun chan ->
+                  UCommon.with_open_infile !!(xtarget.Xtarget.file) (fun chan ->
                       let extract_size = end_pos - start_pos in
                       seek_in chan start_pos;
                       really_input_string chan extract_size)
@@ -383,7 +382,7 @@ let extract_and_concat (ehrules : ehrules) (xtarget : Xtarget.t)
 let extract_as_separate (ehrules : ehrules) (xtarget : Xtarget.t)
     (matches : Pattern_match.t list) : extracted_target_and_adjuster list =
   matches
-  |> Common.map_filter (fun m ->
+  |> List_.map_filter (fun m ->
          match extract_rule_and_mvar_of_match_opt ehrules m with
          | Some (erule, Some extract_mvalue) ->
              (* Note: char/line offset should be relative to the extracted
@@ -403,7 +402,7 @@ let extract_as_separate (ehrules : ehrules) (xtarget : Xtarget.t)
              in
              (* Read the extracted text from the source file *)
              let contents_raw =
-               Common.with_open_infile m.file (fun chan ->
+               UCommon.with_open_infile m.file (fun chan ->
                    let extract_size = end_extract_pos - start_extract_pos in
                    seek_in chan start_extract_pos;
                    really_input_string chan extract_size)
@@ -481,7 +480,7 @@ let extract ~match_hook ~timeout ~timeout_threshold
   in
   let separate_matches, combine_matches =
     res.matches
-    |> Common.partition_either (fun (m : Pattern_match.t) ->
+    |> Either_.partition_either (fun (m : Pattern_match.t) ->
            match Hashtbl.find_opt ehrules m.rule_id.id with
            | Some erule -> (
                let (`Extract { Rule.reduce; _ }) = erule.mode in
