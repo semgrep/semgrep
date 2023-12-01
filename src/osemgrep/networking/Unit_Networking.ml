@@ -29,8 +29,8 @@ let get_and_check url =
   let response = Http_helpers.get uri in
   (* Check OK Status *)
   match response with
-  | Ok body -> body
-  | Error e -> failwith (Printf.sprintf "Error (%s): %s" url e)
+  | Ok (body, _) -> body
+  | Error (e, _) -> failwith (Printf.sprintf "Error (%s): %s" url e)
 
 let post_and_check url body =
   Logs.debug (fun m -> m "POST %s" url);
@@ -47,8 +47,8 @@ let get_and_check_lwt url =
   let%lwt response = Http_helpers.get_async uri in
   (* Check OK Status *)
   match response with
-  | Ok body -> Lwt.return body
-  | Error e -> failwith (Printf.sprintf "Error (%s): %s" url e)
+  | Ok (body, _) -> Lwt.return body
+  | Error (e, _) -> failwith (Printf.sprintf "Error (%s): %s" url e)
 
 let post_and_check_lwt url body =
   Logs.debug (fun m -> m "(lwt) POST %s" url);

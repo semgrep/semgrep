@@ -10,7 +10,7 @@ module OutJ = Semgrep_output_v1_t
 (* We really don't wan't mutable state in the server.
    This is the only exception *)
 type session_cache = {
-  mutable rules : Rule.t list;
+  mutable rules : Rule.t list; [@opaque]
   mutable skipped_fingerprints : string list;
   mutable open_documents : Fpath.t list;
   lock : Lwt_mutex.t; [@opaque]
@@ -87,6 +87,7 @@ let auth_token () =
  * (and reparse rules...).
  * Once osemgrep is ready, we can just use its target manager directly here
  *)
+(* TODO: Cache targets *)
 let targets session =
   let dirty_files =
     List_.map (fun f -> (f, dirty_files_of_folder f)) session.workspace_folders
@@ -193,10 +194,7 @@ let fetch_rules session =
         exclude_rule_ids = [];
         severity = [];
         (* Exclude these as they require the pro engine which we don't support *)
-        exclude_products =
-          [
-            Rule_filtering.SCA; Rule_filtering.Secrets; Rule_filtering.Interfile;
-          ];
+        exclude_products = [ `SCA; `Secrets ];
       }
   in
   let rules, errors =

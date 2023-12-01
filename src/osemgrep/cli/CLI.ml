@@ -108,13 +108,6 @@ let known_subcommands =
     "show";
   ]
 
-(* Exit with a code that a proper semgrep implementation would never return.
-   Uncaught OCaml exception result in exit code 2.
-   This is to ensure that the tests that expect error status 2 fail. *)
-let missing_subcommand () =
-  Logs.err (fun m -> m "This semgrep subcommand is not implemented\n%!");
-  Exit_code.not_implemented_in_osemgrep
-
 let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
   match Array.to_list argv with
   (* impossible because argv[0] contains the program name *)
@@ -168,7 +161,8 @@ let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
          * we progress in osemgrep port (or use Pysemgrep.Fallback further
          * down when we know we don't handle certain kind of arguments).
          *)
-        | "install-semgrep-pro" when experimental -> missing_subcommand ()
+        | "install-semgrep-pro" when experimental ->
+            Install_semgrep_pro_subcommand.main subcmd_argv
         | "publish" when experimental ->
             Publish_subcommand.main
               (caps :> Publish_subcommand.caps)

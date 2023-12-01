@@ -38,6 +38,7 @@ let tests (caps : Cap.all_caps) =
       Unit_list_files.tests;
       Glob.Unit_glob.tests;
       Unit_semgrepignore.tests;
+      Unit_gitignore.tests;
       Unit_parsing.tests ();
       Unit_entropy.tests;
       Unit_ReDoS.tests;

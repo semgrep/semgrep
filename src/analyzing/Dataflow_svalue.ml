@@ -15,6 +15,7 @@
 open Common
 open IL
 module G = AST_generic
+module H = AST_generic_helpers
 module F = IL
 module D = Dataflow_core
 module Var_env = Dataflow_var_env
@@ -357,6 +358,40 @@ and eval_concat env args =
         args'
   | ___else___ -> G.NotCst
 
+let eval_format env args =
+  let cs = List_.map (eval env) args in
+  if
+    cs
+    |> List.for_all (function
+         | G.Lit _
+         | G.Cst _ ->
+             true
+         | _ -> false)
+  then G.Cst G.Cstr
+  else G.NotCst
+
+let eval_builtin_func lang env func args =
+  let args = List_.map IL_helpers.exp_of_arg args in
+  match func with
+  | { e = _; eorig = SameAs eorig } -> (
+      let* gname = H.name_of_dot_access eorig in
+      match (lang, gname) with
+      | ( Lang.Java,
+          G.IdQualified
+            {
+              name_last = ("format", _), _;
+              name_middle =
+                Some
+                  (QDots
+                    ( [ (("String", _), _) ]
+                    | [ (("java", _), _); (("lang", _), _); (("String", _), _) ]
+                      ));
+              _;
+            } ) ->
+          Some (eval_format env args)
+      | __else__ -> None)
+  | __else__ -> None
+
 (*****************************************************************************)
 (* Symbolic evaluation *)
 (*****************************************************************************)
@@ -577,19 +612,23 @@ let transfer :
             (* var = exp *)
             let cexp = eval_or_sym_prop inp' exp in
             update_env_with inp' var cexp
-        | Call (Some { base = Var var; rev_offset = [] }, func, args) ->
+        | Call (Some { base = Var var; rev_offset = [] }, func, args) -> (
             let args_val =
               List_.map (fun arg -> eval inp' (IL_helpers.exp_of_arg arg)) args
             in
             if result_of_function_call_is_constant lang func args_val then
               VarMap.add (IL.str_of_name var) (G.Cst G.Cstr) inp'
             else
-              (* symbolic propagation *)
-              (* Call to an arbitrary function, we are intraprocedural so we cannot
-               * propagate actual constants in this case, but we can propagate the
-               * call itself as a symbolic expression. *)
-              let ccall = sym_prop instr.iorig in
-              update_env_with inp' var ccall
+              match eval_builtin_func lang inp' func args with
+              | None
+              | Some NotCst ->
+                  (* symbolic propagation *)
+                  (* Call to an arbitrary function, we are intraprocedural so we cannot
+                   * propagate actual constants in this case, but we can propagate the
+                   * call itself as a symbolic expression. *)
+                  let ccall = sym_prop instr.iorig in
+                  update_env_with inp' var ccall
+              | Some cexp -> update_env_with inp' var cexp)
         | New ({ base = Var var; rev_offset = [] }, _ty, _ii, _args) ->
             update_env_with inp' var (sym_prop instr.iorig)
         | CallSpecial

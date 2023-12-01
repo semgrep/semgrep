@@ -104,6 +104,15 @@ class ScanHandler:
         return False
 
     @property
+    def generic_slow_rollout(self) -> bool:
+        """
+        Separate property for easy of mocking in test
+        """
+        if self.scan_response:
+            return self.scan_response.engine_params.generic_slow_rollout
+        return False
+
+    @property
     def dependency_query(self) -> bool:
         """
         Separate property for easy of mocking in test

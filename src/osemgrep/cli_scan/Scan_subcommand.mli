@@ -11,15 +11,6 @@ val main : Cap.all_caps -> string array -> Exit_code.t
 val run_conf : Cap.all_caps -> Scan_CLI.conf -> Exit_code.t
 val run_scan_conf : Scan_CLI.conf -> Exit_code.t
 
-(* Semgrep Pro hook for osemgrep *)
-val hook_pro_scan_func_for_osemgrep :
-  (Fpath.t list ->
-  ?diff_config:Differential_scan_config.t ->
-  Engine_type.t ->
-  Core_runner.scan_func_for_osemgrep)
-  option
-  ref
-
 (* internal: scan all the files - also used in CI *)
 val run_scan_files :
   Scan_CLI.conf ->

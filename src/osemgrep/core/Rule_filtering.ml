@@ -1,3 +1,5 @@
+module Out = Semgrep_output_v1_t
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -15,12 +17,10 @@
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type product = SAST | SCA | Secrets | Interfile [@@deriving show]
-
 type conf = {
   exclude_rule_ids : Rule_ID.t list;
   severity : Rule.severity list;
-  exclude_products : product list;
+  exclude_products : Out.product list;
 }
 [@@deriving show]
 
@@ -32,13 +32,11 @@ let get_rule_product_from_metadata (rule : Rule.t) =
   | Some json -> (
       let product_field = JSON.member "product" json in
       let sca_field = JSON.member "sca-kind" json in
-      let interfile = JSON.member "interfile" json in
-      match (product_field, sca_field, interfile) with
-      | _, _, Some (Bool true) -> Interfile
-      | Some (String "secrets"), _, _ -> Secrets
-      | _, Some (String _), _ -> SCA
-      | _ -> SAST)
-  | _ -> SAST
+      match (product_field, sca_field) with
+      | Some (String "secrets"), _ -> `Secrets
+      | _, Some (String _) -> `SCA
+      | _ -> `SAST)
+  | _ -> `SAST
 
 let filter_rules (conf : conf) (rules : Rule.rules) : Rule.rules =
   let rules =

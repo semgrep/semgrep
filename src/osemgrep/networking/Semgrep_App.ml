@@ -41,6 +41,7 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 (* LATER: declared this in semgrep_output_v1.atd instead? *)
 type scan_id = string
 type app_block_override = string (* reason *) option
+type pro_engine_arch = Osx_arm64 | Osx_x86_64 | Manylinux_x86_64
 
 (*****************************************************************************)
 (* Routes *)
@@ -67,10 +68,10 @@ let get_scan_config_from_token_async token : OutJ.scan_config option Lwt.t =
   let%lwt response = Http_helpers.get_async ~headers url in
   let scan_config_opt =
     match response with
-    | Error msg ->
+    | Error (msg, _) ->
         Logs.debug (fun m -> m "error while retrieving scan config: %s" msg);
         None
-    | Ok body -> (
+    | Ok (body, _) -> (
         try Some (OutJ.scan_config_of_string body) with
         | Yojson.Json_error msg ->
             Logs.debug (fun m ->
@@ -151,10 +152,10 @@ let get_deployment_from_token_async caps : OutJ.deployment_config option Lwt.t =
   let%lwt response = Http_helpers.get_async ~headers url in
   let deployment_opt =
     match response with
-    | Error msg ->
+    | Error (msg, _) ->
         Logs.debug (fun m -> m "error while retrieving deployment: %s" msg);
         None
-    | Ok body ->
+    | Ok (body, _) ->
         let x = OutJ.deployment_response_of_string body in
         Some x.deployment
   in
@@ -283,7 +284,7 @@ let fetch_scan_config_async ~dry_run token ~sca ~full_scan ~repository :
     let results =
       match response with
       | Ok _ as r -> r
-      | Error msg ->
+      | Error (msg, _) ->
           Error
             (Printf.sprintf "Failed to download config from %s: %s"
                (Uri.to_string url) msg)
@@ -295,7 +296,7 @@ let fetch_scan_config_async ~dry_run token ~sca ~full_scan ~repository :
   let conf =
     match content with
     | Error _ as e -> e
-    | Ok content -> Ok (OutJ.scan_config_of_string content)
+    | Ok (content, _) -> Ok (OutJ.scan_config_of_string content)
   in
 
   Lwt.return conf
@@ -353,6 +354,27 @@ let upload_findings ~dry_run token ~scan_id ~results ~complete :
           ("API server returned " ^ string_of_int code ^ ", this error: " ^ msg))
 
 (*****************************************************************************)
+(* Installing Pro Engine *)
+(*****************************************************************************)
+
+let fetch_pro_binary token platform_kind =
+  let arch_str =
+    match platform_kind with
+    | Osx_arm64 -> "osx-arm64"
+    | Osx_x86_64 -> "osx-x86"
+    | Manylinux_x86_64 -> "manylinux"
+  in
+  let uri =
+    Uri.(
+      add_query_params'
+        (with_path !Semgrep_envvars.v.semgrep_url
+           (Common.spf "api/agent/deployments/deepbinary/%s" arch_str))
+        [ ("version", Version.version) ])
+  in
+  let headers = [ Auth.auth_header_of_token token ] in
+  Http_helpers.get ~headers uri
+
+(*****************************************************************************)
 (* Error reporting to the backend *)
 (*****************************************************************************)
 
@@ -395,8 +417,8 @@ let get_identity_async caps =
   let url = Uri.with_path !Semgrep_envvars.v.semgrep_url identity_route in
   let%lwt res = Http_helpers.get_async ~headers url in
   match res with
-  | Ok body -> Lwt.return body
-  | Error msg ->
+  | Ok (body, _) -> Lwt.return body
+  | Error (msg, _) ->
       Logs.err (fun m ->
           m "Failed to download identity from %s: %s" (Uri.to_string url) msg);
       Lwt.return ""

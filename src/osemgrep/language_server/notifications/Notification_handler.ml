@@ -51,13 +51,6 @@ let on_notification notification (server : RPC_server.t) =
         Logs.debug (fun m -> m "Server initialized");
         Scan_helpers.refresh_rules server;
         server
-    | CN.TextDocumentDidChange
-        { textDocument = { uri; _ }; contentChanges = first :: _ } ->
-        Logs.debug (fun m ->
-            m "Scanning file %s on change " (Uri.to_string uri));
-        let content = Some first.text in
-        Scan_helpers.scan_file ~content server uri;
-        server
     | CN.DidSaveTextDocument { textDocument = { uri }; _ } ->
         Logs.debug (fun m -> m "Scanning file %s on save" (Uri.to_string uri));
         Scan_helpers.scan_file server uri;
@@ -66,17 +59,15 @@ let on_notification notification (server : RPC_server.t) =
         let path = uri |> Uri.to_path |> Fpath.v in
         Session.remove_open_document server.session path;
         server
+    | CN.TextDocumentDidChange
+        { textDocument = { uri; _ }; contentChanges = first :: _ } ->
+        (* TODO: remove diagnostics if edit is in range *)
+        ignore first;
+        ignore uri;
+        server
     | CN.TextDocumentDidOpen { textDocument = { uri; _ } } ->
         let path = uri |> Uri.to_path |> Fpath.v in
-        let prev_scan = Session.previous_scan_of_file server.session path in
-        (* We usually scan every file on startup, so let's only rescan an opened
-            file if there weren't previous results *)
-        if Option.is_some prev_scan then
-          Logs.debug (fun m ->
-              m "File %s already scanned, not rescanning" (Uri.to_string uri))
-        else (
-          Logs.debug (fun m -> m "Scanning file %s on open" (Uri.to_string uri));
-          Scan_helpers.scan_file server uri);
+        Scan_helpers.scan_file server uri;
         Session.add_open_document server.session path;
         server
     | CN.ChangeWorkspaceFolders { event = { added; removed }; _ } ->

@@ -118,8 +118,8 @@ let fetch_content_from_url_async ?(token_opt = None) (url : Uri.t) :
     in
     let%lwt res = Http_helpers.get_async ?headers url in
     match res with
-    | Ok body -> Lwt.return body
-    | Error msg ->
+    | Ok (body, _) -> Lwt.return body
+    | Error (msg, _) ->
         (* was raise Semgrep_error, but equivalent to abort now *)
         Error.abort
           (spf "Failed to download config from %s: %s" (Uri.to_string url) msg)
@@ -487,69 +487,80 @@ let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt ~registry_caching
 (* Entry point *)
 (*****************************************************************************)
 
-(* python: mix of resolver_config.get_config() and get_rules() *)
-let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
-    (src : Rules_source.t) : rules_and_origin list =
+let rules_from_pattern pattern : rules_and_origin list =
+  let pat, xlang_opt, fix = pattern in
+  let fk = Tok.unsafe_fake_tok "" in
+  let rules_and_origin_for_xlang xlang =
+    let xpat = Parse_rule.parse_xpattern xlang (pat, fk) in
+    (* force the parsing of the pattern to get the parse error if any *)
+    (match xpat.XP.pat with
+    | XP.Sem (lpat, _) -> Lazy.force lpat |> ignore
+    | XP.Spacegrep _
+    | XP.Aliengrep _
+    | XP.Regexp _ ->
+        ());
+    let rule = Rule.rule_of_xpattern xlang xpat in
+    let rule = { rule with id = (Constants.rule_id_for_dash_e, fk); fix } in
+    { rules = [ rule ]; errors = []; origin = CLI_argument }
+  in
+  match xlang_opt with
+  | Some xlang ->
+      (* TODO? capture also parse errors here? and transform the pattern
+         * parse error in invalid_rule_error to return in rules_and_origin? *)
+      [ rules_and_origin_for_xlang xlang ]
+  (* osemgrep-only: better: can use -e without -l! we try all languages *)
+  | None ->
+      (* We need uniq_by because Lang.assoc contain multiple times the
+         * same value, for instance we have ("cpp", Cpp); ("c++", Cpp) in
+         * Lang.assoc
+         * TODO? use Xlang.assoc instead?
+      *)
+      let all_langs =
+        Lang.assoc
+        |> List_.map (fun (_k, l) -> l)
+        |> List_.uniq_by ( =*= )
+        (* TODO: we currently get a segfault with the Dart parser
+           * (for example on a pattern like ': string (* filename *)'), so we
+           * skip Dart for now (which anyway is not really supported).
+        *)
+        |> List_.exclude (fun x -> x =*= Lang.Dart)
+      in
+      all_langs
+      |> List_.map_filter (fun l ->
+             try
+               let xlang = Xlang.of_lang l in
+               let r = rules_and_origin_for_xlang xlang in
+               Logs.debug (fun m ->
+                   m "language %s valid for the pattern" (Lang.show l));
+               Some r
+             with
+             | R.Error _
+             | Failure _ ->
+                 None)
+
+let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~registry_caching
+    (src : Rules_source.t) : rules_and_origin list Lwt.t =
   match src with
   | Configs xs ->
       xs
-      |> List.concat_map (fun str ->
+      |> Lwt_list.map_p (fun str ->
              let in_docker = !Semgrep_envvars.v.in_docker in
              let config = Rules_config.parse_config_string ~in_docker str in
-             rules_from_dashdash_config ~rewrite_rule_ids ~token_opt
+             rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
                ~registry_caching config)
+      |> Lwt.map List.concat
   (* better: '-e foo -l regex' was not handled in pysemgrep
    *  (got a weird 'invalid pattern clause' error)
    * better: '-e foo -l generic' was not handled in semgrep-core
    *)
-  | Pattern (pat, xlang_opt, fix) -> (
-      let fk = Tok.unsafe_fake_tok "" in
-      let rules_and_origin_for_xlang xlang =
-        let xpat = Parse_rule.parse_xpattern xlang (pat, fk) in
-        (* force the parsing of the pattern to get the parse error if any *)
-        (match xpat.XP.pat with
-        | XP.Sem (lpat, _) -> Lazy.force lpat |> ignore
-        | XP.Spacegrep _
-        | XP.Aliengrep _
-        | XP.Regexp _ ->
-            ());
-        let rule = Rule.rule_of_xpattern xlang xpat in
-        let rule = { rule with id = (Constants.rule_id_for_dash_e, fk); fix } in
-        { rules = [ rule ]; errors = []; origin = CLI_argument }
-      in
-
-      match xlang_opt with
-      | Some xlang ->
-          (* TODO? capture also parse errors here? and transform the pattern
-           * parse error in invalid_rule_error to return in rules_and_origin? *)
-          [ rules_and_origin_for_xlang xlang ]
-      (* osemgrep-only: better: can use -e without -l! we try all languages *)
-      | None ->
-          (* We need uniq_by because Lang.assoc contain multiple times the
-           * same value, for instance we have ("cpp", Cpp); ("c++", Cpp) in
-           * Lang.assoc
-           * TODO? use Xlang.assoc instead?
-           *)
-          let all_langs =
-            Lang.assoc
-            |> List_.map (fun (_k, l) -> l)
-            |> List_.uniq_by ( =*= )
-            (* TODO: we currently get a segfault with the Dart parser
-             * (for example on a pattern like ': string (* filename *)'), so we
-             * skip Dart for now (which anyway is not really supported).
-             *)
-            |> List_.exclude (fun x -> x =*= Lang.Dart)
-          in
-          all_langs
-          |> List_.map_filter (fun l ->
-                 try
-                   let xlang = Xlang.of_lang l in
-                   let r = rules_and_origin_for_xlang xlang in
-                   Logs.debug (fun m ->
-                       m "language %s valid for the pattern" (Lang.show l));
-                   Some r
-                 with
-                 | R.Error _
-                 | Failure _ ->
-                     None))
+  | Pattern (pat, xlang_opt, fix) ->
+      Lwt.return (rules_from_pattern (pat, xlang_opt, fix))
 [@@profiling]
+
+(* TODO We can probably delete this. *)
+(* python: mix of resolver_config.get_config() and get_rules() *)
+let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
+    (src : Rules_source.t) : rules_and_origin list =
+  Lwt_platform.run
+    (rules_from_rules_source_async ~token_opt ~rewrite_rule_ids
+       ~registry_caching src)
