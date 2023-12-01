@@ -18,7 +18,7 @@ let check_nonnegated_pattern str =
 let create ~project_root patterns =
   List.iter check_nonnegated_pattern patterns;
   let glob_matchers =
-    Common.map
+    List_.map
       (fun pat ->
         Parse_gitignore.parse_pattern
           ~source:

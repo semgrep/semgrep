@@ -1,7 +1,7 @@
 (*
    Public entry point for parsing regexps.
 *)
-open File.Operators
+open Fpath_.Operators
 
 let from_lexbuf conf lexbuf =
   try Parser.main (Lexer.token conf) lexbuf with
@@ -12,7 +12,7 @@ let from_lexbuf conf lexbuf =
 let channel conf ic = Lexing.from_channel ic |> from_lexbuf conf
 
 let file ?(conf = Dialect.default_conf) path =
-  Common.with_open_infile !!path (fun ic -> channel conf ic)
+  UCommon.with_open_infile !!path (fun ic -> channel conf ic)
 
 let string ?(conf = Dialect.default_conf) s =
   Lexing.from_string s |> from_lexbuf conf

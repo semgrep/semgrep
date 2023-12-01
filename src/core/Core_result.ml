@@ -302,7 +302,7 @@ let make_final_result
     (* These fixes are initially None, and will be populated with fixes
        after we run Autofix.produce_autofixes.
     *)
-    |> Common.map (fun res -> (res, None))
+    |> List_.map (fun res -> (res, None))
   in
   let explanations =
     results |> List.concat_map (fun (x : _ match_result) -> x.explanations)
@@ -332,9 +332,9 @@ let make_final_result
   in
   let extra =
     let mk_profiling () =
-      let file_times = results |> Common.map get_profiling in
+      let file_times = results |> List_.map get_profiling in
       {
-        rules = Common.map fst rules_with_engine;
+        rules = List_.map fst rules_with_engine;
         rules_parse_time;
         file_times;
         (* Notably, using the `top_heap_words` does not measure cumulative
@@ -362,7 +362,7 @@ let make_final_result
     rules_with_targets = [];
     explanations = (if explanations =*= [] then None else Some explanations);
     rules_by_engine =
-      rules_with_engine |> Common.map (fun (r, ek) -> (fst r.Rule.id, ek));
+      rules_with_engine |> List_.map (fun (r, ek) -> (fst r.Rule.id, ek));
     interfile_languages_used;
     scanned;
   }

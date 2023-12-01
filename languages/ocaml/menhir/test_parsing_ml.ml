@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module Flag = Flag_parsing
 
 (*****************************************************************************)
@@ -18,8 +18,8 @@ let test_tokens_ml file =
   ()
 
 let test_parse_ml_or_mli xs =
-  let xs = File.Path.of_strings xs in
-  let xs = List.map File.fullpath xs in
+  let xs = Fpath_.of_strings xs in
+  let xs = List.map UFile.fullpath xs in
 
   let fullxs, _skipped_paths =
     Lib_parsing_ml.find_source_files_of_dir_or_files xs
@@ -36,14 +36,14 @@ let test_parse_ml_or_mli xs =
                Common.save_excursion Flag.error_recovery true (fun () ->
                    Parse_ml.parse !!file)
              in
-             Common.push stat stat_list));
+             Stack_.push stat stat_list));
   Parsing_stat.print_parsing_stat_list !stat_list;
   ()
 
 let test_show_ml file =
   let ast = Parse_ml.parse_program file in
   let s = Ast_ml.show_any (Ast_ml.Pr ast) in
-  pr s
+  UCommon.pr s
 
 (*****************************************************************************)
 (* One shot *)
@@ -52,7 +52,7 @@ let test_show_ml file =
 let refactor_grammar subst_file file =
   let h = Hashtbl.create 101 in
 
-  let xs = Common.cat subst_file in
+  let xs = UCommon.cat subst_file in
 
   let rec populate_hash xs =
     match xs with
@@ -70,7 +70,7 @@ let refactor_grammar subst_file file =
   in
   populate_hash xs;
 
-  let ys = Common.cat file in
+  let ys = UCommon.cat file in
   ys
   |> List.iter (fun l ->
          let s =
@@ -80,7 +80,7 @@ let refactor_grammar subst_file file =
                | Not_found -> s)
              l
          in
-         pr s);
+         UCommon.pr s);
   ()
 
 (*****************************************************************************)
@@ -89,12 +89,12 @@ let refactor_grammar subst_file file =
 
 let actions () =
   [
-    ("-tokens_ml", "   <file>", Arg_helpers.mk_action_1_arg test_tokens_ml);
+    ("-tokens_ml", "   <file>", Arg_.mk_action_1_arg test_tokens_ml);
     ( "-parse_ml",
       "   <files or dirs>",
-      Arg_helpers.mk_action_n_arg test_parse_ml_or_mli );
-    ("-dump_ml", "   <file>", Arg_helpers.mk_action_1_arg test_show_ml);
+      Arg_.mk_action_n_arg test_parse_ml_or_mli );
+    ("-dump_ml", "   <file>", Arg_.mk_action_1_arg test_show_ml);
     ( "-refactor_grammar",
       "   <subst_file> <file>",
-      Arg_helpers.mk_action_2_arg refactor_grammar );
+      Arg_.mk_action_2_arg refactor_grammar );
   ]

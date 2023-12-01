@@ -81,7 +81,7 @@ let union loc_a (start, end_) =
   extend loc end_
 
 let of_locs locs = List.fold_left union unsafe_fake_loc locs
-let of_list get_loc xs = Common.map get_loc xs |> of_locs
+let of_list get_loc xs = List_.map get_loc xs |> of_locs
 
 (* TODO: we should filter with is_origintok() first, to avoid having
  * the caller to do it.

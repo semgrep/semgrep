@@ -1,6 +1,6 @@
 (*s: semgrep/matching/Unit_matcher.ml *)
 open Common
-open File.Operators
+open Fpath_.Operators
 module G = AST_generic
 module PPG = Pretty_print_AST
 

@@ -9,14 +9,18 @@ type pro_engine_arch = Osx_arm64 | Osx_x86_64 | Manylinux_x86_64
 
 (* retrieves the deployment config from the provided token. *)
 val get_deployment_from_token :
-  token:Auth.token -> Semgrep_output_v1_t.deployment_config option
+  < network : Cap.Network.t ; token : Auth.token ; .. > ->
+  Semgrep_output_v1_t.deployment_config option
 
 (* retrieves the scan config from the provided token. *)
 val get_scan_config_from_token :
-  token:Auth.token -> Semgrep_output_v1_t.scan_config option
+  Auth.token -> Semgrep_output_v1_t.scan_config option
 
-(* internally rely on api_token in ~/.settings and SEMGREP_REPO_NAME *)
-val url_for_policy : token:Auth.token -> Uri.t
+(* Internally rely on api_token in ~/.settings and SEMGREP_REPO_NAME
+ * Need the network to get the deployment info from the token.
+ *)
+val url_for_policy :
+  < network : Cap.Network.t ; token : Auth.token ; .. > -> Uri.t
 
 (* construct the Uri where to retrieve the scan configuration, depending on
    the parameters and the repository name *)
@@ -27,7 +31,7 @@ type scan_id = string
 
 val start_scan :
   dry_run:bool ->
-  token:Auth.token ->
+  Auth.token ->
   Project_metadata.t ->
   Semgrep_output_v1_t.scan_metadata ->
   (scan_id, string) result
@@ -38,7 +42,7 @@ val start_scan :
 (* TODO: diff with get_scan_config_from_token? *)
 val fetch_scan_config :
   dry_run:bool ->
-  token:Auth.token ->
+  Auth.token ->
   sca:bool ->
   full_scan:bool ->
   repository:string ->
@@ -51,7 +55,7 @@ type app_block_override = string (* reason *) option
 (* upload both the scan_results and complete *)
 val upload_findings :
   dry_run:bool ->
-  token:Auth.token ->
+  Auth.token ->
   scan_id:scan_id ->
   results:Semgrep_output_v1_t.ci_scan_results ->
   complete:Semgrep_output_v1_t.ci_scan_complete ->
@@ -61,28 +65,32 @@ val upload_findings :
 
 (* report a failure for [scan_id] to Semgrep App *)
 val report_failure :
-  dry_run:bool -> token:Auth.token -> scan_id:scan_id -> Exit_code.t -> unit
+  dry_run:bool -> Auth.token -> scan_id:scan_id -> Exit_code.t -> unit
 
 (* could be in Semgrep_Registry.ml but actually the request interact
  * with the Semgrep backend, not with the registry.
  * TODO: pass an ATD construct instead of JSON below
  *)
 val upload_rule_to_registry :
-  token:Auth.token -> JSON.yojson -> (string, int * string) result
+  < network : Cap.Network.t ; token : Auth.token ; .. > ->
+  JSON.yojson ->
+  (string, int * string) result
 
-val get_identity_async : token:Auth.token -> string Lwt.t
+val get_identity_async :
+  < network : Cap.Network.t ; token : Auth.token ; .. > -> string Lwt.t
 
 (* lwt-friendly versions for the language-server *)
 
 val get_deployment_from_token_async :
-  token:Auth.token -> Semgrep_output_v1_t.deployment_config option Lwt.t
+  < network : Cap.Network.t ; token : Auth.token ; .. > ->
+  Semgrep_output_v1_t.deployment_config option Lwt.t
 
 val get_scan_config_from_token_async :
-  token:Auth.token -> Semgrep_output_v1_t.scan_config option Lwt.t
+  Auth.token -> Semgrep_output_v1_t.scan_config option Lwt.t
 
 val fetch_scan_config_async :
   dry_run:bool ->
-  token:Auth.token ->
+  Auth.token ->
   sca:bool ->
   full_scan:bool ->
   repository:string ->
@@ -92,6 +100,6 @@ val fetch_scan_config_async :
 
 (* content of binary is in the body of response (get_info) *)
 val fetch_pro_binary :
-  token:Auth.token ->
+  Auth.token ->
   pro_engine_arch ->
   (string * Http_helpers.get_info, string * Http_helpers.get_info) result

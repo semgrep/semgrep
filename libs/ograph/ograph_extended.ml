@@ -189,7 +189,7 @@ let dfs_iter xi f g =
              Hashtbl.add already xi true;
              f xi;
              let succ = g#successors xi in
-             aux_dfs (succ#tolist |> Common.map fst)))
+             aux_dfs (succ#tolist |> List_.map fst)))
   in
   aux_dfs [ xi ]
 
@@ -201,18 +201,18 @@ let dfs_iter_with_path xi f g =
       Hashtbl.add already xi true;
       f xi path;
       let succ = g#successors xi in
-      let succ' = succ#tolist |> Common.map fst in
+      let succ' = succ#tolist |> List_.map fst in
       succ' |> List.iter (fun yi -> aux_dfs (xi :: path) yi))
   in
   aux_dfs [] xi
 
 let generate_ograph_generic g label fnode filename =
-  Common.with_open_outfile filename (fun (pr, _) ->
-      pr "digraph misc {\n";
-      pr "size = \"10,10\";\n";
+  UCommon.with_open_outfile filename (fun (xpr, _) ->
+      xpr "digraph misc {\n";
+      xpr "size = \"10,10\";\n";
       (match label with
       | None -> ()
-      | Some x -> pr (Printf.sprintf "label = \"%s\";\n" x));
+      | Some x -> xpr (spf "label = \"%s\";\n" x));
 
       let nodes = g#nodes in
       nodes#iter (fun (k, node) ->
@@ -222,42 +222,40 @@ let generate_ograph_generic g label fnode filename =
             | None -> (
                 match border_color with
                 | None -> ""
-                | Some x ->
-                    Printf.sprintf ", style=\"setlinewidth(3)\", color = %s" x)
+                | Some x -> spf ", style=\"setlinewidth(3)\", color = %s" x)
             | Some x -> (
                 match border_color with
                 | None ->
-                    Printf.sprintf
-                      ", style=\"setlinewidth(3),filled\", fillcolor = %s" x
+                    spf ", style=\"setlinewidth(3),filled\", fillcolor = %s" x
                 | Some x' ->
-                    Printf.sprintf
+                    spf
                       ", style=\"setlinewidth(3),filled\", fillcolor = %s, \
                        color = %s"
                       x x')
           in
           (* so can see if nodes without arcs were created *)
-          pr (spf "%d [label=\"%s   [%d]\"%s];\n" k str k color));
+          xpr (spf "%d [label=\"%s   [%d]\"%s];\n" k str k color));
 
       nodes#iter (fun (k, _node) ->
           let succ = g#successors k in
-          succ#iter (fun (j, _edge) -> pr (spf "%d -> %d;\n" k j)));
-      pr "}\n");
+          succ#iter (fun (j, _edge) -> xpr (spf "%d -> %d;\n" k j)));
+      xpr "}\n");
   ()
 
 let generate_ograph_xxx g filename =
-  with_open_outfile filename (fun (pr, _) ->
-      pr "digraph misc {\n";
-      pr "size = \"10,10\";\n";
+  UCommon.with_open_outfile filename (fun (xpr, _) ->
+      xpr "digraph misc {\n";
+      xpr "size = \"10,10\";\n";
 
       let nodes = g#nodes in
       nodes#iter (fun (k, (_node, s)) ->
           (* so can see if nodes without arcs were created *)
-          pr (spf "%d [label=\"%s   [%d]\"];\n" k s k));
+          xpr (spf "%d [label=\"%s   [%d]\"];\n" k s k));
 
       nodes#iter (fun (k, _node) ->
           let succ = g#successors k in
-          succ#iter (fun (j, _edge) -> pr (spf "%d -> %d;\n" k j)));
-      pr "}\n");
+          succ#iter (fun (j, _edge) -> xpr (spf "%d -> %d;\n" k j)));
+      xpr "}\n");
   ()
 
 let get_os =
@@ -276,10 +274,8 @@ let get_os =
   fun () -> Lazy.force os
 
 let launch_png_cmd filename =
-  let _status =
-    Unix.system (Printf.sprintf "dot -Tpng %s -o %s.png" filename filename)
-  in
-  let _status = Unix.system (Printf.sprintf "open %s.png" filename) in
+  let _status = Unix.system (spf "dot -Tpng %s -o %s.png" filename filename) in
+  let _status = Unix.system (spf "open %s.png" filename) in
   ()
 
 let launch_gv_cmd filename =
