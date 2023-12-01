@@ -138,7 +138,7 @@ let adjust_graph_pack_some_children_under_dotdotdot parent to_pack g =
   in
   Hashtbl.add new_g.name_to_i new_node new_idx;
   let idx_parent = hashtbl_find new_g.name_to_i parent in
-  let idx_packs = to_pack_idx |> Common.hashset_of_list in
+  let idx_packs = to_pack_idx |> Hashtbl_.hashset_of_list in
   new_g.has_children.(idx_parent) <-
     (* bugfix: don't forget to add new_idx *)
     new_idx :: new_g.has_children.(idx_parent)

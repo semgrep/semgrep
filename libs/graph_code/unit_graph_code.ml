@@ -111,7 +111,7 @@ let tests ~graph_of_string =
 
               let numbering = G.top_down_numbering g in
               let xs =
-                Common.hash_to_list numbering |> Common.sort_by_val_lowfirst
+                Hashtbl_.hash_to_list numbering |> Assoc.sort_by_val_lowfirst
               in
               Alcotest.(check bool)
                 "it should find the right ordering of nodes" true
@@ -125,7 +125,7 @@ let tests ~graph_of_string =
 
               let numbering = G.bottom_up_numbering g in
               let xs =
-                Common.hash_to_list numbering |> Common.sort_by_val_lowfirst
+                Hashtbl_.hash_to_list numbering |> Assoc.sort_by_val_lowfirst
               in
               Alcotest.(check bool)
                 "it should find the right ordering of nodes" true

@@ -44,6 +44,6 @@ let test_dsm file =
 
 let actions () =
   [
-    ("-test_graph_code", " <>", Arg_helpers.mk_action_0_arg test_graph_code);
-    ("-test_dsm", " <file>", Arg_helpers.mk_action_1_arg test_dsm);
+    ("-test_graph_code", " <>", Arg_.mk_action_0_arg test_graph_code);
+    ("-test_dsm", " <file>", Arg_.mk_action_1_arg test_dsm);
   ]
