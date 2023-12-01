@@ -45,6 +45,7 @@ dist/language-server-wasm.js: ../libyaml/dist/libyaml.o ../libpcre/dist/libpcre.
 		$(EMCC_DEFAULTS) \
 		-s INITIAL_MEMORY=31457280 \
 		-s SINGLE_FILE=1 \
+		$(EMCC_DEFAULTS) \
 		-sEXPORTED_FUNCTIONS=_malloc,_free,$(YAML_EXPORTED_FUNCTIONS),$(PCRE_EXPORTED_FUNCTIONS),$(TREESITTER_EXPORTED_FUNCTIONS),$(PARSER_EXPORTED_FUNCTIONS) \
 		-o $@
 
@@ -56,3 +57,8 @@ dist/Main.bc.js: ../../_build/default/js/language_server/Main.bc.js
 dist/semgrep-ls.js: node_modules/.package-lock.json dist/language-server-wasm.js dist/Main.bc.js
 	mkdir -p dist
 	npm run build
+
+
+# TODO: No token create request on startup
+# TODO: `yaml_get_version_string` was unexpected
+# TODO:  `%` was unexpected
