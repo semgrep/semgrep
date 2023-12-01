@@ -68,7 +68,7 @@ let single_xlang_from_rules file rules =
 let find_target_of_yaml_file_opt file =
   let d, b, ext = Common2.dbe_of_filename file in
   Common2.readdir_to_file_list d @ Common2.readdir_to_link_list d
-  |> Common.find_some_opt (fun file2 ->
+  |> List_.find_some_opt (fun file2 ->
          let path2 = Filename.concat d file2 in
          (* Config files have a single .yaml extension (assumption),
           * but test files may have multiple extensions, e.g.
@@ -91,38 +91,9 @@ let find_target_of_yaml_file_opt file =
              else None)
 
 let find_target_of_yaml_file file =
-<<<<<<< HEAD
-  try
-    let d, b, ext = Common2.dbe_of_filename file in
-    Common2.readdir_to_file_list d @ Common2.readdir_to_link_list d
-    |> List_.find_some (fun file2 ->
-           let path2 = Filename.concat d file2 in
-           (* Config files have a single .yaml extension (assumption),
-            * but test files may have multiple extensions, e.g.
-            * ".test.yaml" (YAML test files), ".sites-available.conf",
-            * ... *)
-           match Common2.dbe_of_filename_many_ext_opt file2 with
-           | None -> None
-           | Some (_, b2, ext2) ->
-               if
-                 b = b2 && ext <> ext2
-                 (* .yaml.j2 are Jinja2 templates to generate Semgrep files *)
-                 && ext2 <> "yaml.j2"
-                 (* those are autofix test files that should be skipped *)
-                 && (not (ext2 =~ ".*fixed"))
-                 (* ugly: jsonnet exclusion below because of some .jsonnet and
-                  * .yaml ambiguities in tests/rules
-                  *)
-                 && ext2 <> "jsonnet"
-               then Some path2
-               else None)
-  with
-  | Not_found -> failwith (spf "could not find a target for %s" file)
-=======
   match find_target_of_yaml_file_opt file with
   | Some x -> x
   | None -> failwith (spf "could not find a target for %s" file)
->>>>>>> 10801f357 (Work around missing target files needed earlier than previously anticipated)
 
 (*****************************************************************************)
 (* Entry point *)

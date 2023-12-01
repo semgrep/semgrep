@@ -39,12 +39,12 @@ let tags_of_lang (lang : Lang.t) =
         [ todo_js ]
     | _ -> []
   in
-  Common.flatten [ lang_tags; todo_js_tags ]
+  List_.flatten [ lang_tags; todo_js_tags ]
 
 let tags_of_langs (langs : Lang.t list) =
   match langs with
   | [] -> [ lang_generic ]
   | langs ->
-      langs |> Common.map tags_of_lang |> Common.flatten
+      langs |> List_.map tags_of_lang |> List_.flatten
       |> List.sort Alcotest_ext.Tag.compare
-      |> Common.uniq_by Alcotest_ext.Tag.equal
+      |> List_.uniq_by Alcotest_ext.Tag.equal
