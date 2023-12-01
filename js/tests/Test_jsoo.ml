@@ -120,8 +120,7 @@ let () =
                    test.func
                in
                Alcotest_ext.update test ~func:f)
-             lwt_tests
-           tests
+             lwt_tests tests
            |> List_.map (fun (test : Alcotest_ext.test) ->
                   let f () =
                     Semgrep_js_shared.wrap_with_js_error
