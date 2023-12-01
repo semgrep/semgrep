@@ -38,7 +38,7 @@ let full_module_names is_pattern from_module_name imports_opt =
   match (from_module_name, imports_opt) with
   | DottedName idents, Some import_ident_names ->
       let new_module_names : module_name list =
-        Common.map
+        List_.map
           (fun import_ident_name -> DottedName (idents @ [ import_ident_name ]))
           import_ident_names
       in
@@ -60,7 +60,7 @@ let normalize_import_opt is_pattern i =
   | ImportFrom (t, module_name, imports) ->
       let imports =
         (* Drop the local aliases *)
-        Common.map fst imports
+        List_.map fst imports
       in
       full_module_names is_pattern module_name (Some imports) >>= fun x ->
       Some (t, x)

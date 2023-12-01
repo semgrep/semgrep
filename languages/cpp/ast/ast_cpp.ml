@@ -118,7 +118,7 @@ and ident_or_op =
 and template_arguments = template_argument list angle
 
 (* C++ allows integers for template arguments! (=~ dependent types) *)
-and template_argument = (type_, expr) Common.either
+and template_argument = (type_, expr) Either_.t
 
 and qualifier =
   | QClassname of ident (* a_class_name or a_namespace_name *)
@@ -199,7 +199,7 @@ and typeC =
    * ident) type ident;' because when you want to do a macro(char[256],
    * x), then it will generate invalid code, but with a '#define
    * macro(type, ident) __typeof(type) ident;' it will work. *)
-  | TypeOf of tok * (type_, expr) Common.either paren
+  | TypeOf of tok * (type_, expr) Either_.t paren
   (* c++0x: *)
   | TAuto of tok
   (* forunparser: *)
@@ -245,7 +245,7 @@ and expr =
   | CondExpr of expr * tok * expr option * tok * expr
   (* should be considered as statements, bad C language *)
   | Sequence of expr * tok (* , *) * expr
-  | Assign of a_lhs * assignOp * (expr, initialiser) Common.either
+  | Assign of a_lhs * assignOp * (expr, initialiser) Either_.t
   | Prefix of fixOp wrap * expr
   | Postfix of expr * fixOp wrap
   (* contains GetRef and Deref!! less: lift up? *)
@@ -270,7 +270,7 @@ and expr =
   (* c++ext: parens with TPrimitive and braces with TypeName *)
   | ConstructedObject of type_ * obj_init
   (* ?? *)
-  | TypeId of tok * (type_, expr) Common.either paren
+  | TypeId of tok * (type_, expr) Either_.t paren
   | CplusplusCast of cast_operator wrap * type_ angle * expr paren
   | New of
       tok (*::*) option
@@ -519,7 +519,7 @@ and for_header =
   (* sgrep-ext: *)
   | ForEllipsis of tok (* ... *)
 
-and a_expr_or_vars = (expr_stmt, vars_decl) Common.either
+and a_expr_or_vars = (expr_stmt, vars_decl) Either_.t
 and a_label = string wrap
 
 and jump =

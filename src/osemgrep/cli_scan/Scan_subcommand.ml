@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 module C = Rules_config
 module Env = Semgrep_envvars
 module OutJ = Semgrep_output_v1_t
@@ -92,18 +92,18 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     let (core_matches : OutJ.core_match list) =
       pms
       (* OK, because we don't need the edits to report the matches. *)
-      |> Common.map (fun pm -> (pm, None))
-      |> Common.partition_either Core_json_output.match_to_match
+      |> List_.map (fun pm -> (pm, None))
+      |> Either_.partition_either Core_json_output.match_to_match
       |> fst
     in
     let hrules = Rule.hrules_of_rules rules in
     core_matches
-    |> Common.map (Cli_json_output.cli_match_of_core_match hrules)
+    |> List_.map (Cli_json_output.cli_match_of_core_match hrules)
     |> Cli_json_output.dedup_and_sort
   in
   let cli_matches =
     cli_matches
-    |> Common.exclude (fun m ->
+    |> List_.exclude (fun m ->
            let to_ignore, _errs = Nosemgrep.rule_match_nosem ~strict:false m in
            to_ignore)
   in
@@ -200,7 +200,7 @@ let display_rule_source ~(rule_source : Rules_source.t) : unit =
                | R _ ->
                    true
                | _ -> false)
-             (Common.map
+             (List_.map
                 (fun str ->
                   Rules_config.parse_config_string ~in_docker:false str)
                 xs) ->
@@ -230,7 +230,7 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
   let fold acc (core_match : OutJ.core_match) =
     Map_.update core_match.check_id update acc
   in
-  let map = List.fold_left fold Map_.empty res.core.results in
+  let xmap = List.fold_left fold Map_.empty res.core.results in
   Map_.fold
     (fun rule_id n acc ->
       let res =
@@ -241,7 +241,7 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
                  (Rule_ID.to_string rule_id))
       in
       (res, n) :: acc)
-    map []
+    xmap []
 
 (* Select and execute the scan func based on the configured engine settings.
  * Yet another mk_scan_func adapter. TODO: can we simplify?
@@ -286,13 +286,13 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
     let path =
       m.Pattern_match.file |> fun p ->
       renamed
-      >>= Common.find_some_opt (fun (before, after) ->
+      >>= List_.find_some_opt (fun (before, after) ->
               if after = p then Some before else None)
       |> Option.value ~default:p
     in
     let start_range, end_range = m.Pattern_match.range_loc in
     let syntactic_ctx =
-      File.lines_of_file
+      UFile.lines_of_file
         (start_range.pos.line, end_range.pos.line)
         (Fpath.v m.Pattern_match.file)
     in
@@ -306,7 +306,7 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
         baseline.matches_with_fixes);
   let removed = ref 0 in
   let matches_with_fixes =
-    Common.map_filter
+    List_.map_filter
       (fun (m, edit) ->
         let s = extract_sig (Some renamed) m in
         if Hashtbl.mem sigs s then (
@@ -330,7 +330,7 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
   in
   Logs.app (fun m ->
       m "Removed %s that were in baseline scan"
-        (String_utils.unit_str !removed "finding"));
+        (String_.unit_str !removed "finding"));
   { head with matches_with_fixes }
 
 (* Execute the engine again on the baseline checkout, utilizing only
@@ -358,7 +358,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
         in
         let rules_in_match =
           r.matches_with_fixes
-          |> Common.map (fun (m, _) ->
+          |> List_.map (fun (m, _) ->
                  m.Pattern_match.rule_id.id |> Rule_ID.to_string)
           |> SS.of_list
         in
@@ -388,11 +388,11 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
                   in
                   let paths_in_match =
                     r.matches_with_fixes
-                    |> Common.map (fun (m, _) -> m.Pattern_match.file)
+                    |> List_.map (fun (m, _) -> m.Pattern_match.file)
                     |> prepare_targets
                   in
                   let paths_in_scanned =
-                    r.scanned |> Common.map Fpath.to_string |> prepare_targets
+                    r.scanned |> List_.map Fpath.to_string |> prepare_targets
                   in
                   let baseline_targets, baseline_diff_targets =
                     match conf.engine_type with
@@ -434,7 +434,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
   in
   (* TODO: we should probably warn the user about rules using the same id *)
   let rules =
-    Common.uniq_by
+    List_.uniq_by
       (fun r1 r2 -> Rule_ID.equal (fst r1.Rule.id) (fst r2.Rule.id))
       rules
   in
@@ -459,7 +459,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
      - tolerate different output between pysemgrep and osemgrep
        for tests that we would mark as such.
   *)
-  if Common.null rules then Error Exit_code.missing_config
+  if List_.null rules then Error Exit_code.missing_config
   else
     (* step 1: last touch on rules *)
     let filtered_rules =
@@ -509,7 +509,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
           let diff_depth = Differential_scan_config.default_depth in
           let targets, diff_targets =
             let added_or_modified =
-              status.added @ status.modified |> Common.map Fpath.v
+              status.added @ status.modified |> List_.map Fpath.v
             in
             match conf.engine_type with
             | PRO Engine_type.{ analysis = Interfile; _ } ->
@@ -542,7 +542,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
        * skipped above too?
        *)
       let skipped =
-        Some (skipped @ Common.optlist_to_list res.core.paths.skipped)
+        Some (skipped @ List_.optlist_to_list res.core.paths.skipped)
       in
       (* Add the targets that were semgrepignored or errorneous *)
       {
@@ -562,7 +562,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
       match exn_and_matches with
       | Ok r ->
           r.rules_with_targets
-          |> Common.map (fun (rv : Rule.rule) -> Rule_ID.to_string (fst rv.id))
+          |> List_.map (fun (rv : Rule.rule) -> Rule_ID.to_string (fst rv.id))
       | _ -> []
     in
 
@@ -594,9 +594,9 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
           ());
     Logs.app (fun m ->
         m "Ran %s on %s: %s."
-          (String_utils.unit_str (List.length rules_with_targets) "rule")
-          (String_utils.unit_str (List.length cli_output.paths.scanned) "file")
-          (String_utils.unit_str (List.length cli_output.results) "finding"));
+          (String_.unit_str (List.length rules_with_targets) "rule")
+          (String_.unit_str (List.length cli_output.paths.scanned) "file")
+          (String_.unit_str (List.length cli_output.results) "finding"));
 
     (* step 6: apply autofixes *)
     (* this must happen posterior to reporting matches, or will report the
@@ -718,7 +718,7 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
   | Ok (_, res, cli_output) ->
       (* step4: exit with the right exit code *)
       (* final result for the shell *)
-      if conf.error_on_findings && not (Common.null cli_output.results) then
+      if conf.error_on_findings && not (List_.null cli_output.results) then
         Exit_code.findings
       else exit_code_of_errors ~strict:conf.output_conf.strict res.core.errors
 
@@ -728,7 +728,7 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
+let run_conf (caps : Cap.all_caps) (conf : Scan_CLI.conf) : Exit_code.t =
   (* coupling: if you modify the pysemgrep fallback code below, you
    * probably also need to modify it in Ci_subcommand.ml
    *)
@@ -785,7 +785,10 @@ let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
   | _ when conf.test <> None -> Test_subcommand.run (Common2.some conf.test)
   | _ when conf.validate <> None ->
       Validate_subcommand.run (Common2.some conf.validate)
-  | _ when conf.show <> None -> Show_subcommand.run (Common2.some conf.show)
+  | _ when conf.show <> None ->
+      Show_subcommand.run
+        (caps :> Show_subcommand.caps)
+        (Common2.some conf.show)
   | _ when conf.ls ->
       Ls_subcommand.run ~target_roots:conf.target_roots
         ~targeting_conf:conf.targeting_conf ()
@@ -799,6 +802,6 @@ let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
 (* Entry point *)
 (*****************************************************************************)
 
-let main (argv : string array) : Exit_code.t =
+let main (caps : Cap.all_caps) (argv : string array) : Exit_code.t =
   let conf = Scan_CLI.parse_argv argv in
-  run_conf conf
+  run_conf caps conf

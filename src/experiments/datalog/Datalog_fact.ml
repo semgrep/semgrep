@@ -157,7 +157,7 @@ let string_of_fact fact =
   let str, xs = meta_fact fact in
   spf "%s(%s)" str
     (xs
-    |> Common.map (function
+    |> List_.map (function
          | V x
          | F x
          | N x

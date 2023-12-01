@@ -289,8 +289,8 @@ let add_configs_hash configs =
 let add_rules_hashes_and_rules_profiling ?profiling:_TODO rules =
   let hashes =
     rules
-    |> Common.map Rule.sha256_of_rule
-    |> Common.map Digestif.SHA256.to_hex
+    |> List_.map Rule.sha256_of_rule
+    |> List_.map Digestif.SHA256.to_hex
     |> List.sort String.compare
   in
   let rulesHash_value =
@@ -302,7 +302,7 @@ let add_rules_hashes_and_rules_profiling ?profiling:_TODO rules =
   g.payload.environment.rulesHash <- Some (Digestif.SHA256.get rulesHash_value);
   g.payload.performance.numRules <- Some (List.length rules);
   let ruleStats_value =
-    Common.mapi
+    List_.mapi
       (fun idx _rule ->
         {
           Semgrep_metrics_t.ruleHash = List.nth hashes idx;
@@ -323,7 +323,7 @@ let add_rules_hashes_and_findings_count (filtered_matches : (Rule.t * int) list)
     =
   let ruleHashesWithFindings_value =
     filtered_matches
-    |> Common.map (fun (rule, rule_matches) ->
+    |> List_.map (fun (rule, rule_matches) ->
            (Digestif.SHA256.to_hex (Rule.sha256_of_rule rule), rule_matches))
   in
   g.payload.value.ruleHashesWithFindings <- Some ruleHashesWithFindings_value
@@ -336,29 +336,30 @@ let add_targets_stats (targets : Fpath.t Set_.t)
     | None -> Hashtbl.create 0
     | Some prof ->
         prof.file_times
-        |> Common.map (fun ({ Core_profiling.file; _ } as file_prof) ->
+        |> List_.map (fun ({ Core_profiling.file; _ } as file_prof) ->
                (file, file_prof))
-        |> Common.hash_of_list
+        |> Hashtbl_.hash_of_list
   in
+
   let file_stats =
     targets
-    |> Common.map (fun path ->
+    |> List_.map (fun path ->
            let runTime, parseTime, matchTime =
              match Hashtbl.find_opt hprof path with
              | Some fprof ->
                  ( Some fprof.run_time,
                    Some
                      (fprof.rule_times
-                     |> Common.map (fun rt -> rt.Core_profiling.parse_time)
+                     |> List_.map (fun rt -> rt.Core_profiling.parse_time)
                      |> Common2.sum_float),
                    Some
                      (fprof.rule_times
-                     |> Common.map (fun rt -> rt.Core_profiling.match_time)
+                     |> List_.map (fun rt -> rt.Core_profiling.match_time)
                      |> Common2.sum_float) )
              | None -> (None, None, None)
            in
            {
-             Semgrep_metrics_t.size = File.filesize path;
+             Semgrep_metrics_t.size = UFile.filesize path;
              numTimesScanned =
                (match Hashtbl.find_opt hprof path with
                | None -> 0
@@ -370,7 +371,7 @@ let add_targets_stats (targets : Fpath.t Set_.t)
   in
   g.payload.performance.fileStats <- Some file_stats;
   g.payload.performance.totalBytesScanned <-
-    Some (targets |> Common.map File.filesize |> Common2.sum_int);
+    Some (targets |> List_.map UFile.filesize |> Common2.sum_int);
   g.payload.performance.numTargets <- Some (List.length targets)
 
 (* TODO? type_ is enough? or want also to log the path? but too
@@ -382,7 +383,7 @@ let string_of_error (err : OutJ.cli_error) : string =
 let add_errors errors =
   g.payload.errors.errors <-
     Some
-      (errors |> Common.map (fun (err : OutJ.cli_error) -> string_of_error err))
+      (errors |> List_.map (fun (err : OutJ.cli_error) -> string_of_error err))
 
 let add_profiling profiler =
   g.payload.performance.profilingTimes <- Some (Profiler.dump profiler)

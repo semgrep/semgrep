@@ -160,7 +160,7 @@ let find_remaining_metavars metavar_tbl ast =
 
       method! visit_ident env id =
         let idstr, _ = id in
-        if Hashtbl.mem metavar_tbl idstr then Common.push idstr seen_metavars;
+        if Hashtbl.mem metavar_tbl idstr then Stack_.push idstr seen_metavars;
         super#visit_ident env id
 
       method! visit_String env lit =
@@ -172,7 +172,7 @@ let find_remaining_metavars metavar_tbl ast =
          * anywhere within a string, and abort if we find one that hasn't been
          * replaced. *)
         if str =~ Lazy.force str_metavars_regexp then
-          Common.push (Common.matched1 str) seen_metavars;
+          Stack_.push (Common.matched1 str) seen_metavars;
         super#visit_String env lit
     end
   in
@@ -195,7 +195,7 @@ let find_remaining_metavars metavar_tbl ast =
  *   attempted. In this case, this function should detect that and return None.
  * *)
 let replace_metavars metavars pattern_ast =
-  let metavar_tbl = Common.hash_of_list metavars in
+  let metavar_tbl = Hashtbl_.hash_of_list metavars in
   let res = replace metavar_tbl pattern_ast in
   match find_remaining_metavars metavar_tbl res with
   | [] -> Ok res

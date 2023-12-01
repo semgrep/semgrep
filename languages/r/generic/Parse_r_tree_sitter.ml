@@ -28,8 +28,8 @@ let str = H.str
 let fb = Tok.unsafe_fake_bracket
 
 let combine_str_and_infos l xs r =
-  let s = xs |> Common.map fst |> String.concat "" in
-  let t = Tok.combine_toks l (Common.map snd xs @ [ r ]) in
+  let s = xs |> List_.map fst |> String.concat "" in
+  let t = Tok.combine_toks l (List_.map snd xs @ [ r ]) in
   (s, t)
 
 (*****************************************************************************)
@@ -68,7 +68,7 @@ let map_pat_3e57880 (env : env) (tok : CST.pat_3e57880) =
 let map_special (env : env) ((v1, v2, v3) : CST.special) : G.ident =
   let v1 = (* "%" *) token env v1 in
   let v2 =
-    Common.map
+    List_.map
       (fun x ->
         match x with
         | `Pat_5e7ac5f x -> map_pat_5e7ac5f env x
@@ -86,7 +86,7 @@ let map_identifier (env : env) (x : CST.identifier) : G.ident =
       | `BQUOT_rep_choice_pat_4ad362e_BQUOT (v1, v2, v3) ->
           let l = (* "`" *) token env v1 in
           let xs =
-            Common.map
+            List_.map
               (fun x ->
                 match x with
                 | `Pat_4ad362e x -> map_pat_4ad362e env x
@@ -104,7 +104,7 @@ let map_string_ (env : env) (x : CST.string_) : string G.wrap G.bracket =
   | `DQUOT_rep_choice_pat_de5d470_DQUOT (v1, v2, v3) ->
       let l = (* "\"" *) token env v1 in
       let xs =
-        Common.map
+        List_.map
           (fun x ->
             match x with
             | `Pat_de5d470 x -> map_pat_de5d470 env x
@@ -116,7 +116,7 @@ let map_string_ (env : env) (x : CST.string_) : string G.wrap G.bracket =
   | `SQUOT_rep_choice_pat_3e57880_SQUOT (v1, v2, v3) ->
       let l = (* "'" *) token env v1 in
       let xs =
-        Common.map
+        List_.map
           (fun x ->
             match x with
             | `Pat_3e57880 x -> map_pat_3e57880 env x
@@ -135,7 +135,7 @@ let rec map_argument (env : env) (x : CST.argument) : G.argument =
 
 and map_arguments (env : env) (xs : CST.arguments) : G.argument list =
   (* TODO ,, has a meaning? *)
-  Common.map_filter
+  List_.map_filter
     (fun x ->
       match x with
       | `Arg x -> Some (map_argument env x)
@@ -308,7 +308,7 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
   | `Assign x -> map_assignment env x
   | `Paren_list (v1, v2, v3) ->
       let l = (* "(" *) token env v1 in
-      let xs = Common.map (map_expression env) v2 in
+      let xs = List_.map (map_expression env) v2 in
       let r = (* ")" *) token env v3 in
       Container (Tuple, (l, xs, r)) |> G.e
   | `Bin x -> map_binary env x
@@ -483,7 +483,7 @@ and map_formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) :
     | Some (v1, v2, v3) ->
         let e = map_formal_parameter env v1 in
         let xs =
-          Common.map
+          List_.map
             (fun (v1, v2) ->
               let _v1 = (* "," *) token env v1 in
               let v2 = map_formal_parameter env v2 in
@@ -543,7 +543,7 @@ and map_pipe_rhs_argument (env : env) (x : CST.pipe_rhs_argument) : G.argument =
 
 and map_pipe_rhs_arguments (env : env) (xs : CST.pipe_rhs_arguments) :
     G.argument list =
-  Common.map_filter
+  List_.map_filter
     (fun x ->
       match x with
       | `Pipe_rhs_arg x -> Some (map_pipe_rhs_argument env x)
@@ -553,7 +553,7 @@ and map_pipe_rhs_arguments (env : env) (xs : CST.pipe_rhs_arguments) :
     xs
 
 and map_program (env : env) (xs : CST.program) : G.program =
-  Common.map
+  List_.map
     (fun (v1, v2) ->
       let v1 = map_statement env v1 in
       let _v2 =

@@ -58,7 +58,7 @@ let main_action _xs = raise Todo
 let test_json_pretty_printer file =
   let json = J.load_json file in
   let s = J.string_of_json json in
-  pr s
+  UCommon.pr s
 (*e: function [[Main.test_json_pretty_printer]] *)
 
 (* ---------------------------------------------------------------------- *)

@@ -106,7 +106,7 @@ let check conf =
   | [] -> ()
   | chars ->
       let chars =
-        chars |> Common.map (fun c -> sprintf "%C" c) |> String.concat " "
+        chars |> List_.map (fun c -> sprintf "%C" c) |> String.concat " "
       in
       config_error
         ("some word characters are also defined as brace characters: " ^ chars));

@@ -13,7 +13,7 @@
  * license.txt for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -61,12 +61,12 @@ type ('input, 'value, 'extra) cache_methods = {
 (*****************************************************************************)
 
 (* input_value <=> Marshal.from_channel  *)
-let get_value filename = Common.with_open_infile filename Stdlib.input_value
+let get_value filename = UCommon.with_open_infile filename UStdlib.input_value
 
 (* output_value <=> Marshal.to_channel chan valu [Marshal.Closures] *)
 let write_value valu filename =
-  Common.with_open_outfile filename (fun (_pr, chan) ->
-      Stdlib.output_value chan valu)
+  UCommon.with_open_outfile filename (fun (_pr, chan) ->
+      UStdlib.output_value chan valu)
 
 (*****************************************************************************)
 (* Entry points *)
@@ -106,14 +106,14 @@ let (cache_monad :
             Logs.debug (fun m ->
                 m "could not write cache file for %s (err = %s)" input_str err);
             (* Make sure we don't leave corrupt cache files behind us *)
-            if Sys.file_exists !!cache_file then Sys.remove !!cache_file);
+            if USys.file_exists !!cache_file then USys.remove !!cache_file);
         return value)
   in
   (* TODO? in theory we could use the filemtime of cache_file and
    * if the input is a file, we could check whether the cache is
    * up-to-date without even reading it
    *)
-  if Sys.file_exists !!cache_file then
+  if USys.file_exists !!cache_file then
     let (v : ('value, 'extra) cached_value_on_disk) =
       Common2.get_value !!cache_file
     in
@@ -146,15 +146,15 @@ let cache_lwt compute_value methods input =
  *)
 let cache_computation ?(use_cache = true) file ext_cache f =
   if not use_cache then f ()
-  else if not (Sys.file_exists file) then (
+  else if not (USys.file_exists file) then (
     logger#error "WARNING: cache_computation: can't find %s" file;
     logger#error "defaulting to calling the function";
     f ())
   else
     let file_cache = file ^ ext_cache in
     if
-      Sys.file_exists file_cache
-      && File.filemtime (Fpath.v file_cache) >= File.filemtime (Fpath.v file)
+      USys.file_exists file_cache
+      && UFile.filemtime (Fpath.v file_cache) >= UFile.filemtime (Fpath.v file)
     then (
       logger#info "using cache: %s" file_cache;
       get_value file_cache)
@@ -165,7 +165,7 @@ let cache_computation ?(use_cache = true) file ext_cache f =
 
 let cache_computation_robust file ext_cache
     (need_no_changed_files, need_no_changed_variables) ext_depend f =
-  if not (Sys.file_exists file) then failwith ("can't find: " ^ file);
+  if not (USys.file_exists file) then failwith ("can't find: " ^ file);
 
   let file_cache = file ^ ext_cache in
   let dependencies_cache = file ^ ext_depend in
@@ -173,12 +173,12 @@ let cache_computation_robust file ext_cache
   let dependencies =
     (* could do md5sum too *)
     ( file :: need_no_changed_files
-      |> List.map (fun f -> (f, File.filemtime (Fpath.v f))),
+      |> List.map (fun f -> (f, UFile.filemtime (Fpath.v f))),
       need_no_changed_variables )
   in
 
   if
-    Sys.file_exists dependencies_cache
+    USys.file_exists dependencies_cache
     && get_value dependencies_cache =*= dependencies
   then get_value file_cache
   else (

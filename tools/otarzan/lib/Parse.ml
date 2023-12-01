@@ -31,7 +31,7 @@ let parse file =
  *)
 let extract_toplevel_typedefs program : Ast_ml.type_declaration list list =
   program
-  |> Common.map_filter (function
+  |> List_.map_filter (function
        (* less: we could look at iattrs and restrict the boilerplate
         * to type decls with certain attributes (e.g., [@@otarzan]) like
         * for deriving

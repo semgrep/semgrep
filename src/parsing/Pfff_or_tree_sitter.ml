@@ -245,12 +245,12 @@ let (run :
     match () with
     | () when !Flag.tree_sitter_only ->
         xs
-        |> Common.exclude (function
+        |> List_.exclude (function
              | Pfff _ -> true
              | TreeSitter _ -> false)
     | () when !Flag.pfff_only ->
         xs
-        |> Common.exclude (function
+        |> List_.exclude (function
              | TreeSitter _ -> true
              | Pfff _ -> false)
     | () -> xs

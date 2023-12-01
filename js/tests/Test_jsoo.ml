@@ -83,7 +83,7 @@ let _ =
          in
          let lwt_tests = [ Test_LS_e2e.lwt_tests ] |> List.flatten in
          let tests =
-           Common.map
+           List_.map
              (fun (name, f) ->
                let f () =
                  Semgrep_js_shared.wrap_with_js_error
@@ -95,7 +95,7 @@ let _ =
              tests
          in
          let lwt_tests =
-           Common.map
+           List_.map
              (fun (name, f) ->
                let f () =
                  Semgrep_js_shared.wrap_with_js_error
