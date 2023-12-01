@@ -32,7 +32,7 @@
 (*###########################################################################*)
 
 (* U for "Unsafe/Unvetted" *)
-module UStdlib = Pervasives [@@alert "-all"]
+module UStdlib = Stdlib
 
 (* See also UUnix, USys, ... later *)
 
