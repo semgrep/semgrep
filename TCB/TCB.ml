@@ -894,10 +894,13 @@ module Obj = struct end
 module UMarshal = Marshal
 
 module Marshal = struct
-  type extern_flags = Marshal.extern_flags =
-    | No_sharing  (** Don't preserve sharing *)
-    | Closures  (** Send function closures *)
-    | Compat_32  (** Ensure 32-bit compatibility *)
+  type extern_flags = Marshal.extern_flags
+  (* can't put def here because there is a change between 4.14 and 5.0
+     =
+      | No_sharing  (** Don't preserve sharing *)
+      | Closures  (** Send function closures *)
+      | Compat_32  (** Ensure 32-bit compatibility *)
+  *)
 
   (* FORBIDDEN:
      - from_string
