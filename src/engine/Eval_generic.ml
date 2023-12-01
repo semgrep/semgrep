@@ -85,8 +85,8 @@ let metavar_of_json s = function
  * so this format is not used anymore in semgrep-python, but we still
  * use it for some of our regression tests in tests/eval/.
  *)
-let parse_json file =
-  let json = JSON.load_json file in
+let parse_json (file : string) : env * code =
+  let json = UChan.with_open_in (Fpath.v file) JSON.json_of_chan in
   match json with
   | J.Object xs -> (
       match Assoc.sort_by_key_lowfirst xs with
@@ -127,18 +127,18 @@ let parse_json file =
 let print_result xopt =
   match xopt with
   (* nosem *)
-  | None -> pr "NONE"
+  | None -> UCommon.pr "NONE"
   | Some v -> (
       match v with
       (* nosem *)
-      | Bool b -> pr (string_of_bool b)
+      | Bool b -> UCommon.pr (string_of_bool b)
       (* allow to abuse int to encode boolean ... ugly C tradition *)
       (* nosem *)
-      | Int 0L -> pr (string_of_bool false)
+      | Int 0L -> UCommon.pr (string_of_bool false)
       (* nosem *)
-      | Int _ -> pr (string_of_bool true)
+      | Int _ -> UCommon.pr (string_of_bool true)
       (* nosem *)
-      | _ -> pr "NONE")
+      | _ -> UCommon.pr "NONE")
 [@@action]
 
 (*****************************************************************************)

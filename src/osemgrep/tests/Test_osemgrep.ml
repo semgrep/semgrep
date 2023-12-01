@@ -34,13 +34,13 @@ module TL = Test_login_subcommand
 (*****************************************************************************)
 
 (* no need for a token to access public rules in the registry *)
-let test_scan_config_registry_no_token : Testutil.test =
+let test_scan_config_registry_no_token all_caps : Testutil.test =
   ( __FUNCTION__,
     fun () ->
       Testutil_files.with_tempdir ~chdir:true (fun _tmp_path ->
           TL.with_logs
             ~f:(fun () ->
-              CLI.main
+              CLI.main all_caps
                 [|
                   "semgrep";
                   "scan";
@@ -52,7 +52,7 @@ let test_scan_config_registry_no_token : Testutil.test =
             ~final:(fun res -> assert (res.exit_code =*= Exit_code.ok))) )
 
 (* Remaining part of test_login.py (see also Test_login_subcommand.ml) *)
-let test_scan_config_registry_with_invalid_token : Testutil.test =
+let test_scan_config_registry_with_invalid_token caps : Testutil.test =
   ( __FUNCTION__,
     TL.with_login_test_env (fun () ->
         Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" TL.fake_token (fun () ->
@@ -64,7 +64,9 @@ let test_scan_config_registry_with_invalid_token : Testutil.test =
                      * some metrics call, so simpler to call directly
                      * Login_subcommand.
                      *)
-                    Login_subcommand.main [| "semgrep-login" |])
+                    Login_subcommand.main
+                      (caps :> Login_subcommand.caps)
+                      [| "semgrep-login" |])
                   ~final:(fun res ->
                     assert (res.logs =~ "[.\n]*Saved access token");
                     assert (res.exit_code =*= Exit_code.ok)));
@@ -79,7 +81,7 @@ let test_scan_config_registry_with_invalid_token : Testutil.test =
              * TODO: test_login.py assert exit_code == 7
              *)
             try
-              Scan_subcommand.main
+              Scan_subcommand.main caps
                 [|
                   "semgrep-scan";
                   "--experimental";
@@ -100,9 +102,9 @@ let test_scan_config_registry_with_invalid_token : Testutil.test =
 (* Entry point *)
 (*****************************************************************************)
 
-let tests =
+let tests caps =
   pack_tests "Osemgrep (e2e)"
     [
-      test_scan_config_registry_no_token;
-      test_scan_config_registry_with_invalid_token;
+      test_scan_config_registry_no_token caps;
+      test_scan_config_registry_with_invalid_token caps;
     ]

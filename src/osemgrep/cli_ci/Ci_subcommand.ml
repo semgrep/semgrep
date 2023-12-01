@@ -80,6 +80,12 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 *)
 
 (*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+type caps = Cap.all_caps
+
+(*****************************************************************************)
 (* Error management *)
 (*****************************************************************************)
 
@@ -116,8 +122,8 @@ let exit_code_of_blocking_findings ~audit_mode ~on ~app_block_override
 (* token -> deployment_config -> scan_id -> scan_config -> rules *)
 
 (* if something fails, we Error.exit *)
-let deployment_config_opt (api_token : Auth.token option) (empty_config : bool)
-    : (Auth.token * OutJ.deployment_config) option =
+let deployment_config_opt caps (api_token : Auth.token option)
+    (empty_config : bool) : (Auth.token * OutJ.deployment_config) option =
   match (api_token, empty_config) with
   | None, true ->
       Logs.app (fun m ->
@@ -134,7 +140,10 @@ let deployment_config_opt (api_token : Auth.token option) (empty_config : bool)
   (* TODO: document why we support running the ci command without a token *)
   | None, _ -> None
   | Some token, _ -> (
-      match Semgrep_App.get_deployment_from_token token with
+      match
+        Semgrep_App.get_deployment_from_token
+          (Auth.cap_token_and_network token caps)
+      with
       | None ->
           Logs.app (fun m ->
               m
@@ -235,8 +244,8 @@ let scan_config_and_rules_from_deployment ~dry_run
  * coupling: if you add more cases below, you probably need to modify
  * Ci_CLI.cmdline_term to pass more env there.
  *)
-let generate_meta_from_environment (baseline_ref : Digestif.SHA1.t option) :
-    Project_metadata.t =
+let generate_meta_from_environment caps (baseline_ref : Digestif.SHA1.t option)
+    : Project_metadata.t =
   let extract_env term =
     let argv = [| "empty" |] and info_ = Cmdliner.Cmd.info "" in
     let eval term =
@@ -254,10 +263,10 @@ let generate_meta_from_environment (baseline_ref : Digestif.SHA1.t option) :
   | Some "true" ->
       let env = extract_env Git_metadata.env in
       let gha_env = extract_env Github_metadata.env in
-      (new Github_metadata.meta baseline_ref env gha_env)#project_metadata
+      (new Github_metadata.meta caps baseline_ref env gha_env)#project_metadata
   | _else ->
       let env = extract_env Git_metadata.env in
-      (new Git_metadata.meta ~scan_environment:"git" ~baseline_ref env)
+      (new Git_metadata.meta caps ~scan_environment:"git" ~baseline_ref env)
         #project_metadata
 
 (* https://docs.gitlab.com/ee/ci/variables/predefined_variables.html *)
@@ -602,7 +611,7 @@ let upload_findings ~dry_run
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
+let run_conf caps (ci_conf : Ci_CLI.conf) : Exit_code.t =
   let conf = ci_conf.scan_conf in
   (match conf.common.maturity with
   (* coupling: copy-pasted from Scan_subcommand.ml *)
@@ -629,10 +638,13 @@ let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
 
   (* step2: token -> deployment_config -> scan_id -> scan_config -> rules *)
   let depl_opt =
-    deployment_config_opt settings.api_token (conf.rules_source =*= Configs [])
+    deployment_config_opt caps settings.api_token
+      (conf.rules_source =*= Configs [])
   in
   (* TODO: pass baseline commit! *)
-  let prj_meta = generate_meta_from_environment None in
+  let prj_meta =
+    generate_meta_from_environment (caps :> Git_wrapper.caps) None
+  in
   Logs.app (fun m -> m "%a" Fmt_.pp_heading "Debugging Info");
   report_scan_environment prj_meta;
 
@@ -815,6 +827,6 @@ let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
 (* Entry point *)
 (*****************************************************************************)
 
-let main (argv : string array) : Exit_code.t =
+let main caps (argv : string array) : Exit_code.t =
   let conf = Ci_CLI.parse_argv argv in
-  run_conf conf
+  run_conf caps conf

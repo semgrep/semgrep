@@ -359,7 +359,7 @@ let add_targets_stats (targets : Fpath.t Set_.t)
              | None -> (None, None, None)
            in
            {
-             Semgrep_metrics_t.size = File.filesize path;
+             Semgrep_metrics_t.size = UFile.filesize path;
              numTimesScanned =
                (match Hashtbl.find_opt hprof path with
                | None -> 0
@@ -371,7 +371,7 @@ let add_targets_stats (targets : Fpath.t Set_.t)
   in
   g.payload.performance.fileStats <- Some file_stats;
   g.payload.performance.totalBytesScanned <-
-    Some (targets |> List_.map File.filesize |> Common2.sum_int);
+    Some (targets |> List_.map UFile.filesize |> Common2.sum_int);
   g.payload.performance.numTargets <- Some (List.length targets)
 
 (* TODO? type_ is enough? or want also to log the path? but too

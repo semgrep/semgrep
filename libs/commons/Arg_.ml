@@ -78,10 +78,10 @@ let parse_options options usage_msg argv =
   with
   | Arg.Bad msg ->
       Printf.eprintf "%s" msg;
-      exit 2
+      UStdlib.exit 2
   | Arg.Help msg ->
-      Printf.printf "%s" msg;
-      exit 0
+      UPrintf.printf "%s" msg;
+      UStdlib.exit 0
 
 let usage usage_msg options = Arg.usage (Arg.align options) usage_msg
 
@@ -92,22 +92,23 @@ let arg_align2 xs = Arg.align xs |> List.rev |> List_.drop 2 |> List.rev
 let short_usage usage_msg ~short_opt = usage usage_msg short_opt
 
 let pr_xxxxxxxxxxxxxxxxx () =
-  pr "-----------------------------------------------------------------------"
+  UCommon.pr
+    "-----------------------------------------------------------------------"
 
 let long_usage usage_msg ~short_opt ~long_opt =
-  pr usage_msg;
-  pr "";
+  UCommon.pr usage_msg;
+  UCommon.pr "";
   let all_options_with_title = ("main options", "", short_opt) :: long_opt in
   all_options_with_title
   |> List.iter (fun (title, explanations, xs) ->
-         pr title;
+         UCommon.pr title;
          pr_xxxxxxxxxxxxxxxxx ();
          if explanations <> "" then (
-           pr explanations;
-           pr "");
+           UCommon.pr explanations;
+           UCommon.pr "");
          arg_align2 xs
-         |> List.iter (fun (key, _action, s) -> pr ("  " ^ key ^ s));
-         pr "");
+         |> List.iter (fun (key, _action, s) -> UCommon.pr ("  " ^ key ^ s));
+         UCommon.pr "");
   ()
 
 (* copy paste of Arg.parse. Don't want the default -help msg *)
@@ -116,7 +117,7 @@ let arg_parse2 l msg short_usage_fun =
   let f file = args := file :: !args in
   let l = Arg.align l in
   try
-    Arg.parse_argv Sys.argv l f msg;
+    Arg.parse_argv USys.argv l f msg;
     args := List.rev !args;
     !args
   with

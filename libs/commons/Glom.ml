@@ -2,7 +2,7 @@ type t = Yojson.Basic.t
 
 let cli =
   let parser str =
-    if Sys.file_exists str then
+    if USys.file_exists str then
       try Ok (str, Yojson.Basic.from_file ~fname:str str) with
       | Yojson.Json_error _ ->
           Error (`Msg (Fmt.str "Invalid JSON file: %s" str))

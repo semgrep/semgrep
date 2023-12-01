@@ -18,7 +18,7 @@ module Ast = Ast_java
 module FT = File_type
 
 let find_source_files_of_dir_or_files xs =
-  File.files_of_dirs_or_files_no_vcs_nofilter xs
+  UFile.files_of_dirs_or_files_no_vcs_nofilter xs
   |> List.filter (fun filename ->
          match File_type.file_type_of_file filename with
          | FT.PL FT.Java -> true
@@ -30,7 +30,7 @@ let find_source_files_of_dir_or_files xs =
 (*****************************************************************************)
 
 let test_parse xs =
-  let xs = xs |> Fpath_.of_strings |> List.map File.fullpath in
+  let xs = xs |> Fpath_.of_strings |> List.map UFile.fullpath in
 
   let fullxs, _skipped_paths =
     find_source_files_of_dir_or_files xs
@@ -70,7 +70,7 @@ let test_parse xs =
   ()
 
 let test_lexer file =
-  Common.with_open_infile file (fun chan ->
+  UCommon.with_open_infile file (fun chan ->
       let lexbuf = Lexing.from_channel chan in
       while true do
         let result = Lexer_java.token lexbuf in
@@ -81,13 +81,13 @@ let test_lexer file =
 let test_dump file =
   let s =
     if !Flag_parsing.sgrep_mode then
-      let ast = Parse_java.any_of_string (Common.read_file file) in
+      let ast = Parse_java.any_of_string (UCommon.read_file file) in
       Ast_java.show_any ast
     else
       let ast = Parse_java.parse_program file in
       Ast_java.show_program ast
   in
-  pr s
+  UCommon.pr s
 
 (*****************************************************************************)
 (* Main entry for Arg *)

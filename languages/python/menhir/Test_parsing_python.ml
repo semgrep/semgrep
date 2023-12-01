@@ -6,7 +6,7 @@ module FT = File_type
 
 (* was in Lib_parsing_python.ml before *)
 let find_source_files_of_dir_or_files xs =
-  File.files_of_dirs_or_files_no_vcs_nofilter xs
+  UFile.files_of_dirs_or_files_no_vcs_nofilter xs
   |> List.filter (fun filename ->
          let ftype = File_type.file_type_of_file filename in
          match ftype with
@@ -35,7 +35,7 @@ let test_tokens_python file =
 
 let test_parse_python_common parsing_mode xs =
   let xs = Fpath_.of_strings xs in
-  let xs = List.map File.fullpath xs in
+  let xs = List.map UFile.fullpath xs in
 
   let fullxs, _skipped_paths =
     find_source_files_of_dir_or_files xs
@@ -70,7 +70,7 @@ let test_dump_python file =
       Common.save_excursion Flag.exn_when_lexical_error false (fun () ->
           let ast = Parse_python.parse_program file in
           let s = AST_python.show_program ast in
-          pr s))
+          UCommon.pr s))
 
 (*****************************************************************************)
 (* Main entry for Arg *)

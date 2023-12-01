@@ -137,7 +137,7 @@ let pattern_of_config lang (config : Core_scan_config.t) =
   | Some _s1, Some _s2 ->
       failwith "I need just one pattern; use -f OR -e (not both)"
   | Some file, None ->
-      let s = File.read_file file in
+      let s = UFile.read_file file in
       (parse_pattern lang s, s)
   (* this is for Emma, who often confuses -e with -f :) *)
   | None, Some s when s =~ ".*\\.sgrep$" ->

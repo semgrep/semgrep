@@ -14,7 +14,7 @@ let try_with_print_exn_and_reraise _a b = b ()
 (*****************************************************************************)
 (* mostly a copy paste of Test_parsing_php.parse_php *)
 let test_parse_simple xs =
-  let xs = xs |> Fpath_.of_strings |> List.map File.fullpath in
+  let xs = xs |> Fpath_.of_strings |> List.map UFile.fullpath in
   let fullxs, _skipped_paths =
     Lib_parsing_php.find_source_files_of_dir_or_files xs
     |> Skip_code.filter_files_if_skip_list ~root:xs
@@ -42,7 +42,7 @@ let test_dump_simple file =
       let ast = Parse_php.parse_program file in
       let ast = Ast_php_build.program ast in
       let s = Ast_php.show_program ast in
-      pr s)
+      UCommon.pr s)
 
 (*
 let test_pp_simple file =
