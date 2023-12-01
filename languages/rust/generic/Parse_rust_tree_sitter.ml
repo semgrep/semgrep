@@ -496,7 +496,6 @@ let map_non_special_token (env : env) (x : CST.non_special_token) : G.any =
       if s = "..." && env.extra =*= Pattern then G.E (G.Ellipsis t |> G.e)
       else G.Tk (token env tok)
       (*tok*)
-  | `Meta tok -> G.Tk (token env tok) (* pattern \$[a-zA-Z_]\w* *)
   | `Muta_spec tok -> G.I (str env tok) (* "mut" *)
   | `Self tok -> G.I (str env tok) (* "self" *)
   | `Super tok -> G.I (str env tok) (* "super" *)
@@ -594,7 +593,39 @@ and map_tokens (env : env) (x : CST.tokens) : rust_macro_item =
       (* pattern [^+*?]+ *)
       let quantifier = map_token_quantifier env v6 in
       MacTreeBis ((lparen, tokens, rparen), ident, quantifier)
+  | `Meta tok ->
+      let tok = (* pattern \$[a-zA-Z_]\w* *) str env tok in
+      MacAny (G.I tok)
   | `Choice_lit x -> MacAny (map_non_special_token env x)
+
+let map_non_delim_token (env : env) (x : CST.non_delim_token) =
+  match x with
+  | `Choice_lit x -> MacAny (map_non_special_token env x)
+  | `DOLLAR tok -> MacAny (G.Tk ((* "$" *) token env tok))
+
+let rec map_delim_token_tree (env : env) (x : CST.delim_token_tree) :
+    rust_macro_item list G.bracket =
+  match x with
+  | `LPAR_rep_delim_tokens_RPAR (v1, v2, v3) ->
+      let lparen = token env v1 (* "(" *) in
+      let tokens = List_.map (map_delim_tokens env) v2 in
+      let rparen = token env v3 (* ")" *) in
+      (lparen, tokens, rparen)
+  | `LBRACK_rep_delim_tokens_RBRACK (v1, v2, v3) ->
+      let lbracket = token env v1 (* "[" *) in
+      let tokens = List_.map (map_delim_tokens env) v2 in
+      let rbracket = token env v3 (* "]" *) in
+      (lbracket, tokens, rbracket)
+  | `LCURL_rep_delim_tokens_RCURL (v1, v2, v3) ->
+      let lbrace = token env v1 (* "{" *) in
+      let tokens = List_.map (map_delim_tokens env) v2 in
+      let rbrace = token env v3 (* "}" *) in
+      (lbrace, tokens, rbrace)
+
+and map_delim_tokens (env : env) (x : CST.delim_tokens) =
+  match x with
+  | `Non_delim_tok x -> map_non_delim_token env x
+  | `Delim_tok_tree x -> MacTree (map_delim_token_tree env x)
 
 let rec map_token_pattern (env : env) (x : CST.token_pattern) :
     rust_macro_pattern =
@@ -614,6 +645,9 @@ let rec map_token_pattern (env : env) (x : CST.token_pattern) :
       let _colon = token env v2 (* ":" *) in
       let fragment_specifier = map_fragment_specifier env v3 in
       RustMacPatBinding (ident, fragment_specifier)
+  | `Meta tok ->
+      let tok = (* pattern \$[a-zA-Z_]\w* *) str env tok in
+      RustMacPatToken (G.I tok)
   | `Choice_lit x -> RustMacPatToken (map_non_special_token env x)
 
 and map_token_tree_pattern (env : env) (x : CST.token_tree_pattern) :
@@ -2117,7 +2151,7 @@ and map_macro_invocation (env : env) ((v1, v2, v3) : CST.macro_invocation) :
         let s, t = (s ^ "!", Tok.combine_toks i1 [ bang ]) in
         G.IdQualified { qualified_info with name_last = ((s, t), topt) }
   in
-  let l, xs, r = map_token_tree env v3 in
+  let l, xs, r = map_delim_token_tree env v3 in
   let anys = macro_items_to_anys xs in
   let args =
     match anys with
