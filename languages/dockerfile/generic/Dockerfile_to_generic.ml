@@ -26,9 +26,9 @@ let call ((orig_name, name_tok) : string wrap)
 let call_exprs (name : string wrap) (loc : Tok_range.t)
     ?(opt_args : (G.ident * G.expr) list = []) (args : G.expr list) : G.expr =
   let opt_args =
-    Common.map (fun (name, e) -> G.ArgKwdOptional (name, e)) opt_args
+    List_.map (fun (name, e) -> G.ArgKwdOptional (name, e)) opt_args
   in
-  let pos_args = Common.map (fun e -> G.Arg e) args in
+  let pos_args = List_.map (fun e -> G.Arg e) args in
   (* optional arguments must be placed last according to AST_generic.ml *)
   let args = pos_args @ opt_args in
   call name loc args
@@ -51,7 +51,7 @@ let call_shell loc (shell_compat : shell_compatibility) args =
     | Other name -> name
   in
   let func = make_hidden_function loc shell_name in
-  let args = Common.map (fun e -> G.Arg e) args in
+  let args = List_.map (fun e -> G.Arg e) args in
   let args_start, args_end = loc in
   G.Call (func, (args_start, args, args_end)) |> G.e
 
@@ -108,12 +108,12 @@ let simple_docker_string_expr (x : docker_string_fragment) : G.expr =
       | [ x ] -> simple_double_quoted_string_expr (open_, x, close)
       | fragments ->
           let fragments =
-            Common.map
+            List_.map
               (fun x -> simple_double_quoted_string_expr (fb x))
               fragments
           in
           let func = make_hidden_function loc "concat" in
-          let args = Common.map (fun x -> G.Arg x) fragments in
+          let args = List_.map (fun x -> G.Arg x) fragments in
           let start, end_ = loc in
           G.Call (func, (start, args, end_)) |> G.e)
   | Expansion (loc, x) -> expansion_expr loc x
@@ -137,9 +137,9 @@ let docker_string_expr ((loc, fragments) : docker_string) : G.expr =
   match fragments with
   | [ x ] -> simple_docker_string_expr x
   | fragments ->
-      let exprs = Common.map simple_docker_string_expr fragments in
+      let exprs = List_.map simple_docker_string_expr fragments in
       let func = make_hidden_function loc "concat" in
-      let args = Common.map (fun x -> G.Arg x) exprs in
+      let args = List_.map (fun x -> G.Arg x) exprs in
       let start, end_ = loc in
       G.Call (func, (start, args, end_)) |> G.e
 
@@ -158,7 +158,7 @@ let array_elt_expr (x : array_elt) : G.expr =
   | Arr_ellipsis x -> ellipsis_expr x
 
 let string_array ((open_, args, close) : string_array) : G.expr =
-  G.Container (G.Array, (open_, Common.map array_elt_expr args, close)) |> G.e
+  G.Container (G.Array, (open_, List_.map array_elt_expr args, close)) |> G.e
 
 (*
    Return the arguments to pass to the dockerfile command e.g. the arguments
@@ -219,7 +219,7 @@ let from (opt_param : param option) (image_spec : image_spec) opt_alias :
 
 let label_pairs (kv_pairs : label_pair list) : G.argument list =
   kv_pairs
-  |> Common.map (function
+  |> List_.map (function
        | Label_semgrep_ellipsis tok -> G.Arg (ellipsis_expr tok)
        | Label_pair (_loc, key, _eq, value) -> (
            match key with
@@ -229,7 +229,7 @@ let label_pairs (kv_pairs : label_pair list) : G.argument list =
 let add_or_copy (opt_param : param option) (src : path_or_ellipsis list)
     (dst : docker_string) =
   let opt_param = opt_param_arg opt_param in
-  let src = Common.map (fun x -> G.Arg (str_or_ellipsis_expr x)) src in
+  let src = List_.map (fun x -> G.Arg (str_or_ellipsis_expr x)) src in
   src @ [ G.Arg (docker_string_expr dst) ] @ opt_param
 
 let user_args (user : docker_string) (group : (tok * docker_string) option) =
@@ -251,7 +251,7 @@ let run_param (x : run_param) =
       (* Convert --mount=--mount=foo=bar,baz=42 to a call to a mount function
          that takes optional labeled arguments. *)
       let opt_args =
-        Common.map
+        List_.map
           (fun (_loc, name, value) -> (name, unquoted_string_expr value))
           options
       in
@@ -262,12 +262,12 @@ let run_param (x : run_param) =
 let cmd_instr_expr (env : env) loc name (params : run_param list)
     (cmd : argv_or_shell) : G.expr =
   call_exprs name loc
-    ~opt_args:(Common.map run_param params)
+    ~opt_args:(List_.map run_param params)
     (argv_or_shell env cmd)
 
 let healthcheck_cmd_args env (params : param list) (cmd : cmd) : G.argument list
     =
-  let opt_args = Common.map param_arg params in
+  let opt_args = List_.map param_arg params in
   let cmd_arg =
     let loc, name, params, cmd = cmd in
     G.Arg (cmd_instr_expr env loc name params cmd)
@@ -294,7 +294,7 @@ let arg_args key opt_value : G.expr list =
 let array_or_paths (x : array_or_paths) : G.expr list =
   match x with
   | Array (_loc, ar) -> [ string_array ar ]
-  | Paths (_loc, paths) -> Common.map str_or_ellipsis_expr paths
+  | Paths (_loc, paths) -> List_.map str_or_ellipsis_expr paths
 
 let expose_port_expr (x : expose_port) : G.expr list =
   match x with
@@ -324,7 +324,7 @@ let healthcheck env loc name (x : healthcheck) =
 let env_decl pairs =
   let decls =
     pairs
-    |> Common.map (function
+    |> List_.map (function
          | Label_semgrep_ellipsis tok ->
              G.ExprStmt (G.Ellipsis tok |> G.e, Tok.unsafe_sc) |> G.s
          | Label_pair (_loc, key, _eq, value) -> (
@@ -382,7 +382,7 @@ let instruction env (x : instruction) : G.stmt =
   | _ -> stmt_of_expr (DLoc.instruction_loc x) expr
 
 let program_with_env (env : env) (x : program) : G.stmt list =
-  Common.map (instruction env) x
+  List_.map (instruction env) x
 
 (*****************************************************************************)
 (* Entry points *)

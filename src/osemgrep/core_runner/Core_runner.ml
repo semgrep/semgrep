@@ -161,7 +161,7 @@ let add_typescript_to_javascript_rules_hack (all_rules : Rule.t list) :
      We could alternatively set this by changing lang.json, but we should
      be careful to do that without affecting other things like the docs *)
   all_rules
-  |> Common.map (fun r ->
+  |> List_.map (fun r ->
          match r.Rule.target_analyzer with
          | LRegex
          | LSpacegrep
@@ -180,12 +180,12 @@ let split_jobs_by_language all_rules all_targets : Lang_job.t list =
   let all_rules = add_typescript_to_javascript_rules_hack all_rules in
   let extract_languages = detect_extract_languages all_rules in
   all_rules |> group_rules_by_target_language
-  |> Common.map_filter (fun (xlang, rules) ->
+  |> List_.map_filter (fun (xlang, rules) ->
          let targets =
            all_targets
            |> List.filter (Filter_target.filter_target_for_xlang xlang)
          in
-         if Common.null targets && not (XlangSet.mem xlang extract_languages)
+         if List_.null targets && not (XlangSet.mem xlang extract_languages)
          then None
          else Some ({ xlang; targets; rules } : Lang_job.t))
 
@@ -232,7 +232,7 @@ let prepare_config_for_core_scan (config : Core_scan_config.t)
       Input_to_core_t.target list * Rule.rules =
     let target_mappings =
       x.targets
-      |> Common.map (fun (path : Fpath.t) : Input_to_core_t.target ->
+      |> List_.map (fun (path : Fpath.t) : Input_to_core_t.target ->
              { path = !!path; analyzer = x.xlang; products = Product.all })
     in
     (target_mappings, x.rules)
@@ -320,7 +320,7 @@ let mk_scan_func_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
   let lang_jobs = split_jobs_by_language all_rules all_targets in
   let rules_with_targets =
     List.concat_map (fun { Lang_job.rules; _ } -> rules) lang_jobs
-    |> Common.uniq_by Stdlib.( == )
+    |> List_.uniq_by Stdlib.( == )
   in
   Logs.app (fun m ->
       m "%a"

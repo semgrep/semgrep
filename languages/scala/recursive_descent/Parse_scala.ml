@@ -111,4 +111,4 @@ let find_source_files_of_dir_or_files xs =
          match File_type.file_type_of_file filename with
          | File_type.PL File_type.Scala -> true
          | _ -> false)
-  |> Common.sort
+  |> List_.sort

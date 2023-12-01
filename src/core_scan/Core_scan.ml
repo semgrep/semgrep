@@ -177,9 +177,9 @@ let replace_named_pipe_by_regular_file path =
 let sort_targets_by_decreasing_size (targets : In.target list) : In.target list
     =
   targets
-  |> Common.map (fun target -> (target, Common2.filesize target.In.path))
+  |> List_.map (fun target -> (target, Common2.filesize target.In.path))
   |> List.sort (fun (_, (a : int)) (_, b) -> compare b a)
-  |> Common.map fst
+  |> List_.map fst
 
 (* In some context, a target passed in might have disappeared, or have been
  * encoded in the wrong way in the Inputs_to_core.atd (for example
@@ -192,7 +192,7 @@ let sort_targets_by_decreasing_size (targets : In.target list) : In.target list
 let filter_existing_targets (targets : In.target list) :
     In.target list * OutJ.skipped_target list =
   targets
-  |> Common.partition_either (fun (target : In.target) ->
+  |> Either_.partition_either (fun (target : In.target) ->
          let file = target.In.path in
          if Sys.file_exists file then Left target
          else
@@ -221,7 +221,7 @@ let set_matches_to_proprietary_origin_if_needed (xtarget : Xtarget.t)
   then
     {
       matches with
-      Core_result.matches = Common.map PM.to_proprietary matches.matches;
+      Core_result.matches = List_.map PM.to_proprietary matches.matches;
     }
   else matches
 
@@ -251,7 +251,7 @@ let print_cli_progress (config : Core_scan_config.t) : unit =
 (*****************************************************************************)
 
 let string_of_toks toks =
-  String.concat ", " (Common.map (fun tok -> Tok.content_of_tok tok) toks)
+  String.concat ", " (List_.map (fun tok -> Tok.content_of_tok tok) toks)
 
 (* TODO: use Logs.app instead of those Out.put? *)
 let rec print_taint_call_trace ~format ~spaces = function
@@ -300,12 +300,12 @@ let print_match ?str (config : Core_scan_config.t) match_ ii_of_any =
 
      let strings_metavars =
        config.mvars
-       |> Common.map (fun x ->
+       |> List_.map (fun x ->
               match Common2.assoc_opt x env with
               | Some any ->
                   any |> ii_of_any
                   |> List.filter Tok.is_origintok
-                  |> Common.map Tok.content_of_tok
+                  |> List_.map Tok.content_of_tok
                   |> Core_text_output.join_with_space_if_needed
               | None -> failwith (spf "the metavariable '%s' was not bound" x))
      in
@@ -333,7 +333,7 @@ let map_targets ncores f (targets : In.target list) =
      the two modes, we always sort the target queue in the same way.
   *)
   let targets = sort_targets_by_decreasing_size targets in
-  if ncores <= 1 then Common.map f targets
+  if ncores <= 1 then List_.map f targets
   else (
     (*
        Parmap creates ncores children processes which listen for
@@ -376,36 +376,37 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
     max_match_per_file matches =
   let per_files =
     matches
-    |> Common.map (fun (m, _) -> (m.Pattern_match.file, m))
-    |> Common.group_assoc_bykey_eff
+    |> List_.map (fun (m, _) -> (m.Pattern_match.file, m))
+    |> Assoc.group_assoc_bykey_eff
   in
+
   let offending_file_list =
     per_files
-    |> Common.map_filter (fun (file, xs) ->
+    |> List_.map_filter (fun (file, xs) ->
            if List.length xs > max_match_per_file then Some file else None)
   in
-  let offending_files = Common.hashset_of_list offending_file_list in
+  let offending_files = Hashtbl_.hashset_of_list offending_file_list in
   let new_matches =
     matches
-    |> Common.exclude (fun (m, _) ->
+    |> List_.exclude (fun (m, _) ->
            Hashtbl.mem offending_files m.Pattern_match.file)
   in
   let new_errors, new_skipped =
     offending_file_list
-    |> Common.map (fun file ->
+    |> List_.map (fun file ->
            (* logging useful info for rule writers *)
            logger#info "too many matches on %s, generating exn for it" file;
            let sorted_offending_rules =
              let matches = List.assoc file per_files in
              matches
-             |> Common.map (fun m ->
+             |> List_.map (fun m ->
                     let rule_id = m.Pattern_match.rule_id in
                     ( ( rule_id.Pattern_match.id,
                         rule_id.Pattern_match.pattern_string ),
                       m ))
-             |> Common.group_assoc_bykey_eff
-             |> Common.map (fun (k, xs) -> (k, List.length xs))
-             |> Common.sort_by_val_highfirst
+             |> Assoc.group_assoc_bykey_eff
+             |> List_.map (fun (k, xs) -> (k, List.length xs))
+             |> Assoc.sort_by_val_highfirst
              (* nosemgrep *)
            in
            let offending_rules = List.length sorted_offending_rules in
@@ -431,7 +432,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
            in
            let skipped =
              sorted_offending_rules
-             |> Common.map (fun (((rule_id : Rule_ID.t), _pat), n) ->
+             |> List_.map (fun (((rule_id : Rule_ID.t), _pat), n) ->
                     let details =
                       Some
                         (spf
@@ -466,7 +467,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
 *)
 let errors_of_invalid_rule_errors (invalid_rules : Rule.invalid_rule_error list)
     =
-  Common.map E.error_of_invalid_rule_error invalid_rules
+  List_.map E.error_of_invalid_rule_error invalid_rules
 
 let sanity_check_invalid_patterns (res : Core_result.t) :
     Core_result.result_or_exn =
@@ -645,7 +646,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
   in
   let matches, opt_paths = List.split match_and_path_list in
   let scanned =
-    opt_paths |> Common.map_filter Fun.id
+    opt_paths |> List_.map_filter Fun.id
     (* It's necessary to remove duplicates because extracted targets are
        mapped back to their original target, and you can have multiple
        extracted targets for a single file. Might as well sort too *)
@@ -705,7 +706,7 @@ let targets_of_config (config : Core_scan_config.t) :
    *)
   | None, roots, Some xlang ->
       (* less: could also apply Common.fullpath? *)
-      let roots = roots |> Common.map replace_named_pipe_by_regular_file in
+      let roots = roots |> List_.map replace_named_pipe_by_regular_file in
       let lang_opt =
         match xlang with
         | Xlang.LRegex
@@ -721,7 +722,7 @@ let targets_of_config (config : Core_scan_config.t) :
       in
       let target_mappings =
         files
-        |> Common.map (fun file ->
+        |> List_.map (fun file ->
                {
                  In.path = Fpath.to_string file;
                  analyzer = xlang;
@@ -779,14 +780,14 @@ let extracted_targets_of_config (config : Core_scan_config.t)
                ~timeout_threshold:config.timeout_threshold extract_rules xtarget
            in
            (* Print number of extra targets so pysemgrep knows *)
-           if not (Common.null extracted_targets) then
+           if not (List_.null extracted_targets) then
              print_cli_additional_targets config (List.length extracted_targets);
            extracted_targets)
   in
   let adjusters = Extract.adjusters_of_extracted_targets extracted_targets in
   let in_targets : In.target list =
     extracted_targets
-    |> Common.map (fun Extract.{ extracted = Extracted path; analyzer; _ } ->
+    |> List_.map (fun Extract.{ extracted = Extracted path; analyzer; _ } ->
            (* Extract mode targets work with any product? *)
            { In.path = !!path; analyzer; products = Product.all })
   in
@@ -816,7 +817,7 @@ let select_applicable_rules_for_analyzer ~analyzer rules =
      TODO: The above may no longer apply since we got rid of
      the numeric indices mapping to rule IDs/names. Do something?
   *)
-  |> Common.exclude Extract.is_extract_rule
+  |> List_.exclude Extract.is_extract_rule
 
 (* This is also used by semgrep-proprietary. *)
 (* TODO: reduce memory allocation by using only one call to List.filter?
@@ -963,14 +964,14 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
     targets
     |> List.filter (fun (x : In.target) ->
            Hashtbl.mem scanned_target_table x.path)
-    |> Common.map (fun x -> Fpath.v x.In.path)
+    |> List_.map (fun x -> Fpath.v x.In.path)
   in
   (* Since the OSS engine was invoked, there were no interfile languages
      requested *)
   let interfile_languages_used = [] in
   let res =
     RP.make_final_result file_results
-      (Common.map (fun r -> (r, `OSS)) valid_rules)
+      (List_.map (fun r -> (r, `OSS)) valid_rules)
       invalid_rules scanned interfile_languages_used ~rules_parse_time
   in
   logger#info "found %d matches, %d errors"

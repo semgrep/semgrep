@@ -73,7 +73,7 @@ let prefix_for_fpath_opt (fpath : Fpath.t) : string option =
   | [ _file ] -> None
   | _file :: dirs ->
       let prefix =
-        dirs |> List.rev |> Common.map (fun s -> s ^ ".") |> String.concat ""
+        dirs |> List.rev |> List_.map (fun s -> s ^ ".") |> String.concat ""
       in
       Some prefix
 
@@ -278,7 +278,7 @@ let modify_registry_provided_metadata (origin : origin) (rule : Rule.t) =
         match (obj : JSON.t) with
         | Object members ->
             JSON.Object
-              (Common.map
+              (List_.map
                  (function
                    | key', _ when key = key' -> (key, v)
                    | x -> x)
@@ -337,7 +337,7 @@ let parse_rule ~rewrite_rule_ids ~origin ~registry_caching (file : Fpath.t) :
         Parse_rule.parse_and_filter_invalid_rules
           ~rewrite_rule_ids:rule_id_rewriter file
   in
-  (Common.map (modify_registry_provided_metadata origin) rules, errors)
+  (List_.map (modify_registry_provided_metadata origin) rules, errors)
 
 (*****************************************************************************)
 (* Loading rules *)
@@ -424,7 +424,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
          )
       *)
       |> List.filter Parse_rule.is_valid_rule_filename
-      |> Common.map (fun file ->
+      |> List_.map (fun file ->
              load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file file)
                ~registry_caching file)
       |> Lwt.return

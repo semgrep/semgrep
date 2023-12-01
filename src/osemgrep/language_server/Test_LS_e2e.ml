@@ -381,7 +381,7 @@ let mock_workspaces () =
   FileUtil.cp ~recurse:true [ workspace1_root ] workspace2_root;
 
   let workspace2_files =
-    Common.map
+    List_.map
       (fun file -> Fpath.(v workspace2_root / filename file))
       workspace1_files
     |> List.sort (fun x y ->
@@ -406,7 +406,7 @@ let send_initialize info ?(only_git_dirty = true) workspaceFolders =
     let workspaceFolders =
       Some
         (workspaceFolders
-        |> Common.map (fun f ->
+        |> List_.map (fun f ->
                let f = Fpath.to_string f in
                { Types.WorkspaceFolder.uri = Uri.of_path f; name = f }))
     in
@@ -486,13 +486,13 @@ let send_did_delete info (path : Fpath.t) =
 (* Info comes last because otherwise the optional arguments are unerasable... shame. *)
 let send_did_change_folder ?(added = []) ?(removed = []) info =
   let added =
-    added |> Common.map Fpath.to_string
-    |> Common.map (fun file ->
+    added |> List_.map Fpath.to_string
+    |> List_.map (fun file ->
            WorkspaceFolder.create ~name:file ~uri:(Uri.of_path file))
   in
   let removed =
-    removed |> Common.map Fpath.to_string
-    |> Common.map (fun file ->
+    removed |> List_.map Fpath.to_string
+    |> List_.map (fun file ->
            WorkspaceFolder.create ~name:file ~uri:(Uri.of_path file))
   in
   let notif =
@@ -575,7 +575,7 @@ let check_diagnostics (notif : Notification.t) (file : Fpath.t) expected_ids =
     (Common.spf "file://%s" (Fpath.to_string file));
   let ids =
     resp |> member "params" |> member "diagnostics" |> to_list
-    |> Common.map (fun d -> member "code" d)
+    |> List_.map (fun d -> member "code" d)
   in
   Alcotest.(check string)
     "diagnostics are cohesive"
@@ -687,7 +687,7 @@ let check_startup info folders (files : Fpath.t list) =
 
   let%lwt _ =
     scanned_files
-    |> Common.mapi (fun i file ->
+    |> List_.mapi (fun i file ->
            let notification = List.nth scan_notifications i in
            check_diagnostics notification file expected_ids)
     |> Lwt_list.map_s Fun.id
@@ -727,7 +727,7 @@ let test_ls_specs () =
                    PublishDiagnosticsParams.t_of_yojson info
                in
                let old_ids =
-                 Common.map (fun d -> d.Diagnostic.code) params.diagnostics
+                 List_.map (fun d -> d.Diagnostic.code) params.diagnostics
                in
 
                (* This sleep is to ensure that the subsequent write to
@@ -747,7 +747,7 @@ let test_ls_specs () =
                    PublishDiagnosticsParams.t_of_yojson info
                in
                let new_ids =
-                 Common.map (fun d -> d.Diagnostic.code) params.diagnostics
+                 List_.map (fun d -> d.Diagnostic.code) params.diagnostics
                in
 
                Alcotest.(check int)
@@ -1005,7 +1005,7 @@ let promise_tests =
 let tests =
   let prepare f () = Lwt_platform.run (f ()) in
   Testutil.pack_tests "Language Server (e2e)"
-    (promise_tests |> Common.map (fun (s, f) -> (s, prepare f)))
+    (promise_tests |> List_.map (fun (s, f) -> (s, prepare f)))
 
 let lwt_tests =
   Testutil.pack_tests_lwt "Language Server (e2e)"

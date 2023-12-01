@@ -64,7 +64,7 @@ let prepend_period_if_needed s =
    Both '.d.ts' and '.ts' are considered extensions of 'hello.d.ts'.
 *)
 let has_extension extensions =
-  has_suffix (Common.map prepend_period_if_needed extensions)
+  has_suffix (List_.map prepend_period_if_needed extensions)
 
 let has_lang_extension lang = has_extension (Lang.ext_of_lang lang)
 
@@ -300,4 +300,5 @@ let inspect_file lang path =
   let bool_res = inspect_file_p lang path in
   wrap_with_error_message lang path bool_res
 
-let inspect_files lang paths = Common.partition_result (inspect_file lang) paths
+let inspect_files lang paths =
+  Result_.partition_result (inspect_file lang) paths

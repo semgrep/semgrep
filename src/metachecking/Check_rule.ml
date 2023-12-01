@@ -73,7 +73,7 @@ let error env t s =
   let _check_idTODO = "semgrep-metacheck-builtin" in
   let rule_id, _ = env.r.id in
   let err = E.mk_error (Some rule_id) loc s OutJ.SemgrepMatchFound in
-  Common.push err env.errors
+  Stack_.push err env.errors
 
 (*****************************************************************************)
 (* Checks *)
@@ -107,14 +107,14 @@ let unknown_metavar_in_comparison env f =
           | __else__ -> []
         in
         [ metavars; ellipsis_metavars; regexp_captured_mvars ]
-        |> Common.map Set.of_list
+        |> List_.map Set.of_list
         |> List.fold_left Set.union Set.empty
     | Inside (_, f)
     | Anywhere (_, f) ->
         collect_metavars f
     | Not (_, _) -> Set.empty
     | Or (_, xs) ->
-        let mv_sets = Common.map collect_metavars xs in
+        let mv_sets = List_.map collect_metavars xs in
         List.fold_left
           (* TODO originally we took the intersection, since strictly
            * speaking a metavariable needs to be in all cases of a pattern-either
@@ -127,7 +127,7 @@ let unknown_metavar_in_comparison env f =
             (fun acc mv_set -> Set.union acc mv_set)
           Set.empty mv_sets
     | And (_, { conjuncts; conditions; focus }) ->
-        let mv_sets = Common.map collect_metavars conjuncts in
+        let mv_sets = List_.map collect_metavars conjuncts in
         let mvs =
           List.fold_left
             (fun acc mv_set -> Set.union acc mv_set)
@@ -224,8 +224,8 @@ let semgrep_check config metachecks rules : Core_error.t list =
   let res = Core_scan.scan_with_exn_handler config in
   match res with
   | Ok result ->
-      result.matches_with_fixes |> Common.map fst
-      |> Common.map match_to_semgrep_error
+      result.matches_with_fixes |> List_.map fst
+      |> List_.map match_to_semgrep_error
   | Error (exn, _) -> Exception.reraise exn
 
 (* TODO *)

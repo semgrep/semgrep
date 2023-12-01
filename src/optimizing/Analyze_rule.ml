@@ -133,15 +133,15 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
  fun f ->
   match f with
   | R.And (t, { conjuncts = xs; conditions = conds; focus }) ->
-      let ys = Common.map_filter remove_not xs in
-      if null ys then (
+      let ys = List_.map_filter remove_not xs in
+      if List_.null ys then (
         logger#warning "null And after remove_not";
         None)
       else Some (R.And (t, { conjuncts = ys; conditions = conds; focus }))
   | R.Or (t, xs) ->
       (* See NOTE "AND vs OR and map_filter". *)
       let* ys = option_map remove_not xs in
-      if null ys then (
+      if List_.null ys then (
         logger#warning "null Or after remove_not";
         None)
       else Some (R.Or (t, ys))
@@ -213,8 +213,8 @@ let rec (cnf : Rule.formula -> cnf_step0) =
   | R.Anywhere (_, formula) ->
       cnf formula
   | R.And (_, { conjuncts = xs; conditions = conds; _ }) ->
-      let ys = Common.map cnf xs in
-      let zs = Common.map (fun (_t, cond) -> And [ Or [ LCond cond ] ]) conds in
+      let ys = List_.map cnf xs in
+      let zs = List_.map (fun (_t, cond) -> And [ Or [ LCond cond ] ]) conds in
       And (ys @ zs |> List.concat_map (function And ors -> ors))
   | R.Or (_, xs) ->
       let is_dangerously_large p q =
@@ -226,7 +226,7 @@ let rec (cnf : Rule.formula -> cnf_step0) =
         (* Divide rather than multiply to avoid integer overflow *)
         p_len > Int.div 50_000 q_len
       in
-      let ys = Common.map cnf xs in
+      let ys = List_.map cnf xs in
       List.fold_left
         (fun (And ps) (And qs) ->
           (* Abort before this starts consuming insane amounts of memory. *)
@@ -237,7 +237,7 @@ let rec (cnf : Rule.formula -> cnf_step0) =
             |> List.concat_map (fun pi ->
                    let ands =
                      qs
-                     |> Common.map (fun qi ->
+                     |> List_.map (fun qi ->
                             let (Or pi_ors) = pi in
                             let (Or qi_ors) = qi in
                             (* `ps` is the accumulator so we expect it to be larger *)
@@ -311,7 +311,7 @@ and leaf_step1 f =
 let rec (and_step1 : is_id_mvar:is_id_mvar -> cnf_step0 -> cnf_step1) =
  fun ~is_id_mvar cnf ->
   match cnf with
-  | And xs -> And (xs |> Common.map_filter (or_step1 ~is_id_mvar))
+  | And xs -> And (xs |> List_.map_filter (or_step1 ~is_id_mvar))
 
 and or_step1 ~is_id_mvar cnf =
   match cnf with
@@ -319,7 +319,7 @@ and or_step1 ~is_id_mvar cnf =
       (* old: We had `Common.map_filter` here before, but that gives the wrong
        * semantics. See NOTE "AND vs OR and map_filter". *)
       let* ys = option_map (leaf_step1 ~is_id_mvar) xs in
-      if null ys then None else Some (Or ys)
+      if List_.null ys then None else Some (Or ys)
 
 and leaf_step1 ~is_id_mvar f =
   match f with
@@ -363,7 +363,7 @@ and metavarcond_step1 ~is_id_mvar x =
 let and_step1bis_filter_general (And xs) =
   let has_empty_idents, rest =
     xs
-    |> Common.partition_either (function Or xs ->
+    |> Either_.partition_either (function Or xs ->
            if
              xs
              |> List.exists (function
@@ -375,10 +375,10 @@ let and_step1bis_filter_general (And xs) =
   (* TODO: regression on vertx-sqli.yaml   *)
   let filtered =
     has_empty_idents
-    |> Common.map_filter (fun (Or xs) ->
+    |> List_.map_filter (fun (Or xs) ->
            let xs' =
              xs
-             |> Common.exclude (function
+             |> List_.exclude (function
                   | StringsAndMvars ([], mvars) ->
                       mvars
                       |> List.exists (fun mvar ->
@@ -393,7 +393,7 @@ let and_step1bis_filter_general (And xs) =
                                              mvar2 = mvar)))
                   | __else__ -> false)
            in
-           if null xs' then None else Some (Or xs'))
+           if List_.null xs' then None else Some (Or xs'))
   in
   And (filtered @ rest)
 [@@profiling]
@@ -408,7 +408,7 @@ type cnf_step2 = step2 cnf [@@deriving show]
 
 let or_step2 (Or xs) =
   let step1_to_step2 =
-    Common.map (function
+    List_.map (function
       | StringsAndMvars ([], _) -> raise GeneralPattern
       | StringsAndMvars (xs, _) -> Idents xs
       | Regexp re_str -> Regexp2_search (Regexp_engine.pcre_compile re_str)
@@ -432,17 +432,17 @@ let or_step2 (Or xs) =
   | GeneralPattern -> None
 
 let and_step2 (And xs) =
-  let ys = xs |> Common.map_filter or_step2 in
-  if null ys then raise GeneralPattern;
+  let ys = xs |> List_.map_filter or_step2 in
+  if List_.null ys then raise GeneralPattern;
   And ys
 
 let prefilter_formula_of_cnf_step2 (And xs) : Semgrep_prefilter_t.formula =
   let xs' =
     xs
-    |> Common.map (fun (Or ys) ->
+    |> List_.map (fun (Or ys) ->
            let ys' =
              ys
-             |> Common.map (function
+             |> List_.map (function
                   | Idents xs -> `Pred (`Idents xs)
                   | Regexp2_search re ->
                       let re_str = Regexp_engine.show re in
@@ -522,10 +522,10 @@ let _run_final (AndFinal xs) big_str =
 (*****************************************************************************)
 
 let eval_and p (And xs) =
-  if null xs then raise EmptyAnd;
+  if List_.null xs then raise EmptyAnd;
   xs
   |> List.for_all (function Or xs ->
-         if null xs then raise EmptyOr;
+         if List_.null xs then raise EmptyOr;
          xs |> List.exists (fun x -> p x) |> fun v ->
          (* Dumper.dump fails in js_of_ocaml. It's a printout so let's just
             ignore it *)
@@ -617,11 +617,11 @@ let regexp_prefilter_of_taint_rule ~xlang (_rule_id, rule_tok) taint_spec =
   (* We must be able to match some source _and_ some sink. *)
   let sources =
     taint_spec.R.sources |> snd
-    |> Common.map (fun (src : R.taint_source) -> src.source_formula)
+    |> List_.map (fun (src : R.taint_source) -> src.source_formula)
   in
   let sinks =
     taint_spec.R.sinks |> snd
-    |> Common.map (fun (sink : R.taint_sink) -> sink.sink_formula)
+    |> List_.map (fun (sink : R.taint_sink) -> sink.sink_formula)
   in
   let f =
     (* Note that this formula would likely not yield any meaningful result

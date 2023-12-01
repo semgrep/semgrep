@@ -26,7 +26,7 @@ let find_source_files_of_dir_or_files xs =
              (* todo: fix syncweb so don't need this! *)
              not (FT.is_syncweb_obj_file filename)
          | _ -> false)
-  |> Common.sort
+  |> List_.sort
 
 let test_parse_cpp ?lang xs =
   let xs = File.Path.of_strings xs in
@@ -60,7 +60,7 @@ let test_parse_cpp ?lang xs =
                    pr2 (spf "PB on %s, exn = %s" !!file (Common.exn_to_s exn));
                    Parsing_stat.bad_stat !!file
              in
-             Common.push stat stat_list;
+             Stack_.push stat stat_list;
 
              let s = spf "bad = %d" stat.PS.error_line_count in
              if stat.PS.error_line_count =|= 0 then
@@ -123,7 +123,7 @@ let test_dump_cpp_view file =
   let toks_orig = Parse_cpp.tokens (Parsing_helpers.file file) in
   let toks =
     toks_orig
-    |> Common.exclude (fun x ->
+    |> List_.exclude (fun x ->
            Token_helpers_cpp.is_comment x || Token_helpers_cpp.is_eof x)
   in
   let extended = toks |> List.map Token_views_cpp.mk_token_extended in

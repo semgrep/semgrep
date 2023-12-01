@@ -102,7 +102,9 @@ let fix_tokens_lbody toks =
         toks
     in
     let horigin =
-      toks |> List.map (fun t -> (TH.info_of_tok t, t)) |> Common.hash_of_list
+      toks
+      |> List_.map (fun t -> (TH.info_of_tok t, t))
+      |> Hashtbl_.hash_of_list
     in
 
     let retag_lbrace = Hashtbl.create 101 in
@@ -141,8 +143,8 @@ let fix_tokens_lbody toks =
           aux Normal xs1;
           xs2
           |> List.iter (function
-               | Left xs -> aux Normal xs
-               | Right _ -> ());
+               | Either.Left xs -> aux Normal xs
+               | Either.Right _ -> ());
           aux Normal xs3;
           aux Normal ys (* for a := struct {...} { ... } { ... } *)
       | F.Tok (("struct" | "interface"), _)
@@ -191,8 +193,8 @@ let fix_tokens_lbody toks =
           | F.Parens (_, xs, _) ->
               xs
               |> List.iter (function
-                   | Left trees -> aux Normal trees
-                   | Right _comma -> ())
+                   | Either.Left trees -> aux Normal trees
+                   | Either.Right _comma -> ())
           | _ -> ());
           aux env xs
     in

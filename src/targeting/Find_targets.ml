@@ -147,8 +147,8 @@ let filter_paths (ign : Semgrepignore.t) (target_files : Fppath.t list) :
     Fppath_set.t * Out.skipped_target list =
   let (selected_paths : Fppath.t list ref) = ref [] in
   let (skipped : Out.skipped_target list ref) = ref [] in
-  let add path = push path selected_paths in
-  let skip target = push target skipped in
+  let add path = Stack_.push path selected_paths in
+  let skip target = Stack_.push target skipped in
   target_files
   |> List.iter (fun fppath ->
          match filter_path ign fppath with
@@ -180,8 +180,8 @@ let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
   *)
   let (selected_paths : Fppath.t list ref) = ref [] in
   let (skipped : Out.skipped_target list ref) = ref [] in
-  let add path = push path selected_paths in
-  let skip target = push target skipped in
+  let add path = Stack_.push path selected_paths in
+  let skip target = Stack_.push target skipped in
 
   (* mostly a copy-paste of List_files.list_regular_files() *)
   let rec aux (dir : Fppath.t) =
@@ -247,7 +247,7 @@ let git_list_files (file_kinds : Git_wrapper.ls_files_kind list)
         (project_roots.scanning_roots
         |> List.concat_map (fun (sc_root : Fppath.t) ->
                Git_wrapper.ls_files ~kinds:file_kinds [ sc_root.fpath ]
-               |> Common.map (fun fpath ->
+               |> List_.map (fun fpath ->
                       let fpath_relative_to_scan_root =
                         match Fpath.relativize ~root:sc_root.fpath fpath with
                         | Some x -> x
@@ -313,7 +313,7 @@ let group_scanning_roots_by_project (conf : conf)
     | Some proj_root -> Some (Project.Gitignore_project, proj_root)
   in
   scanning_roots
-  |> Common.map (fun scanning_root ->
+  |> List_.map (fun scanning_root ->
          let kind, project_root, scanning_root_ppath =
            Git_project.find_any_project_root ?force_root scanning_root
          in
@@ -323,9 +323,9 @@ let group_scanning_roots_by_project (conf : conf)
   (* Using a realpath (physical path) in Project.t ensures we group
      correctly even if the scanning_roots went through different symlink paths.
   *)
-  |> Common.group_by fst
-  |> Common.map (fun (project, xs) ->
-         { project; scanning_roots = xs |> Common.map snd })
+  |> Assoc.group_by fst
+  |> List.map (fun (project, xs) ->
+         { project; scanning_roots = xs |> List_.map snd })
 
 (*************************************************************************)
 (* Work on a single project *)
@@ -448,7 +448,7 @@ let get_targets_for_project conf (project_roots : project_roots) =
 let get_targets conf scanning_roots =
   scanning_roots
   |> group_scanning_roots_by_project conf
-  |> Common.map (get_targets_for_project conf)
+  |> List_.map (get_targets_for_project conf)
   |> List.split
   |> fun (path_set_list, skipped_paths_list) ->
   let path_set =
@@ -460,4 +460,4 @@ let get_targets conf scanning_roots =
 
 let get_target_fpaths conf scanning_roots =
   let selected, skipped = get_targets conf scanning_roots in
-  (selected |> Common.map (fun (x : Fppath.t) -> x.fpath), skipped)
+  (selected |> List_.map (fun (x : Fppath.t) -> x.fpath), skipped)

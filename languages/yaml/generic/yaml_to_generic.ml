@@ -609,7 +609,7 @@ let parse_yaml_file ~is_target file str =
     }
   in
   let xs = parse env in
-  Common.map G.exprstmt xs
+  List_.map G.exprstmt xs
 
 (* The entry points for yaml-language parsing *)
 

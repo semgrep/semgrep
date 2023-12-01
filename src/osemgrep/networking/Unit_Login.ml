@@ -113,7 +113,7 @@ let save_token_tests () =
         ("invalid token", invalid_token_test); ("valid token", valid_token_test);
       ]
   in
-  Common.map (fun (n, f) -> (n, with_mock_envvars_and_normal_responses f)) tests
+  List_.map (fun (n, f) -> (n, with_mock_envvars_and_normal_responses f)) tests
 
 let fetch_token_tests () =
   let fetch_basic () =

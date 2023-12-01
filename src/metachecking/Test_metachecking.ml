@@ -41,7 +41,7 @@ let test_rules ?(unit_testing = false) xs =
     |> File_type.files_of_dirs_or_files (function
          | FT.Config FT.Yaml -> true
          | _ -> false)
-    |> Common.exclude (fun filepath ->
+    |> List_.exclude (fun filepath ->
            (* .test.yaml files are YAML target files rather than config files! *)
            Fpath.has_ext ".test.yaml" filepath
            || Fpath.has_ext ".rule.yaml" filepath)
@@ -62,7 +62,7 @@ let test_rules ?(unit_testing = false) xs =
            try
              let d, b, ext = Common2.dbe_of_filename !!file in
              Common2.readdir_to_file_list d @ Common2.readdir_to_link_list d
-             |> Common.find_some (fun file2 ->
+             |> List_.find_some (fun file2 ->
                     let path2 = Filename.concat d file2 |> Fpath.v in
                     (* Config files have a single .yaml extension (assumption),
                      * but test files may have multiple extensions, e.g.

@@ -78,7 +78,7 @@ let find_source_files_of_dir_or_files ?(verbose = false) ?(include_hack = false)
          in
          if (not valid) && verbose then pr2 ("not analyzing: " ^ !!filename);
          valid)
-  |> Common.sort
+  |> List_.sort
 
 (*****************************************************************************)
 (* Extract infos *)

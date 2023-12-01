@@ -58,7 +58,7 @@ let dirty_files_of_folder folder =
   let git_repo = Git_wrapper.is_git_repo folder in
   if git_repo then
     let dirty_files = Git_wrapper.dirty_files folder in
-    Some (Common.map (fun x -> folder // x) dirty_files)
+    Some (List_.map (fun x -> folder // x) dirty_files)
   else None
 
 let decode_rules data =
@@ -90,7 +90,7 @@ let auth_token () =
 (* TODO: Cache targets *)
 let targets session =
   let dirty_files =
-    Common.map (fun f -> (f, dirty_files_of_folder f)) session.workspace_folders
+    List_.map (fun f -> (f, dirty_files_of_folder f)) session.workspace_folders
   in
   let member_folder_dirty_files file folder =
     let dirty_files = List.assoc folder dirty_files in
@@ -147,12 +147,12 @@ let fetch_rules session =
   in
   let home = Unix.getenv "HOME" |> Fpath.v in
   let rules_source =
-    session.user_settings.configuration |> Common.map Fpath.v
-    |> Common.map Fpath.normalize
-    |> Common.map (fun f ->
+    session.user_settings.configuration |> List_.map Fpath.v
+    |> List_.map Fpath.normalize
+    |> List_.map (fun f ->
            let p = Fpath.rem_prefix (Fpath.v "~/") f in
            Option.bind p (fun f -> Some (home // f)) |> Option.value ~default:f)
-    |> Common.map Fpath.to_string
+    |> List_.map Fpath.to_string
   in
   let rules_source =
     if rules_source = [] && ci_rules = None then (
@@ -184,7 +184,7 @@ let fetch_rules session =
     Rule_fetching.partition_rules_and_errors rules_and_origins
   in
   let rules =
-    Common.uniq_by
+    List_.uniq_by
       (fun r1 r2 -> Rule_ID.equal (fst r1.Rule.id) (fst r2.Rule.id))
       rules
   in
@@ -275,7 +275,7 @@ let update_workspace_folders ?(added = []) ?(removed = []) session =
 
 let record_results session results files =
   let results_by_file =
-    Common.group_by (fun (r : OutJ.cli_match) -> r.path) results
+    Assoc.group_by (fun (r : OutJ.cli_match) -> r.path) results
   in
   List.iter (fun f -> Hashtbl.replace session.cached_scans f []) files;
   List.iter

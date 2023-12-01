@@ -170,7 +170,7 @@ let scan_file server uri =
     let targets = Some targets in
     let results, _ = run_semgrep ~targets server in
     let results =
-      Common.map (fun (m : OutJ.cli_match) -> { m with path = file }) results
+      List_.map (fun (m : OutJ.cli_match) -> { m with path = file }) results
     in
     let files = [ file ] in
     Session.record_results server.session results files;

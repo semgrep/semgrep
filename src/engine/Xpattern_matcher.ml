@@ -77,7 +77,7 @@ let (matches_of_matcher :
               |> List.concat_map (fun (xpat, id, pstr) ->
                      let xs = matcher.matcher target_content file xpat in
                      xs
-                     |> Common.map (fun ((loc1, loc2), env) ->
+                     |> List_.map (fun ((loc1, loc2), env) ->
                             (* this will be adjusted later *)
                             let rule_id = Match_env.fake_rule_id (id, pstr) in
                             {

@@ -47,7 +47,7 @@ let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 
 let commentized xs =
   xs
-  |> Common.map_filter (function
+  |> List_.map_filter (function
        | T.TComment_Pp (cppkind, ii) ->
            if !Flag_cpp.filter_classic_passed then
              match cppkind with
@@ -127,14 +127,14 @@ and multi_grouped_list_comma xs =
   let rec aux acc xs =
     match xs with
     | [] ->
-        if null acc then []
-        else [ Left (acc |> List.rev |> multi_grouped_list) ]
+        if List_.null acc then []
+        else [ Either.Left (acc |> List.rev |> multi_grouped_list) ]
     | x :: xs -> (
         match x with
         | Token_views_cpp.Tok tok when Tok.content_of_tok (tokext tok) = "," ->
             let before = acc |> List.rev |> multi_grouped_list in
-            if null before then aux [] xs
-            else Left before :: Right (tokext tok) :: aux [] xs
+            if List_.null before then aux [] xs
+            else Either.Left before :: Either.Right (tokext tok) :: aux [] xs
         | _ -> aux (x :: acc) xs)
   in
   aux [] xs
@@ -150,7 +150,7 @@ let parse_fuzzy file =
       let toks_orig = tokens (Parsing_helpers.file !!file) in
       let toks =
         toks_orig
-        |> Common.exclude (fun x ->
+        |> List_.exclude (fun x ->
                Token_helpers_cpp.is_comment x || Token_helpers_cpp.is_eof x)
       in
       let extended = toks |> List.map Token_views_cpp.mk_token_extended in
@@ -238,7 +238,7 @@ let rec lexer_function tr lexbuf =
 
 (* was a define ? *)
 let passed_a_define tr =
-  let xs = tr.passed |> List.rev |> Common.exclude TH.is_comment in
+  let xs = tr.passed |> List.rev |> List_.exclude TH.is_comment in
   if List.length xs >= 2 then
     match Common2.head_middle_tail xs with
     | T.TDefine _, _, T.TCommentNewline_DefineEndOfMacro _ -> true
@@ -355,7 +355,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
           tr.Parsing_helpers.passed <- passed';
 
           tr.Parsing_helpers.current <-
-            Common.hd_exn "can't be happening" passed';
+            List_.hd_exn "can't be happening" passed';
 
           (* <> line_error *)
           let info = TH.info_of_tok tr.Parsing_helpers.current in

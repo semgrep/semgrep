@@ -54,8 +54,8 @@ type skip =
 (*****************************************************************************)
 let load file =
   Common.cat !!file
-  |> Common.exclude (fun s -> s =~ "#.*" || s =~ "^[ \t]*$")
-  |> List.map (fun s ->
+  |> List_.exclude (fun s -> s =~ "#.*" || s =~ "^[ \t]*$")
+  |> List_.map (fun s ->
          match s with
          | _ when s =~ "^dir:[ ]*\\([^ ]+\\)" ->
              Dir (Fpath.v (Common.matched1 s))
@@ -74,20 +74,20 @@ let load file =
 let filter_files skip_list ~root relative_paths : Fpath.t list * Fpath.t list =
   let skip_files =
     skip_list
-    |> Common.map_filter (function
+    |> List_.map_filter (function
          | File s -> Some s
          | _ -> None)
-    |> Common.hashset_of_list
+    |> Hashtbl_.hashset_of_list
   in
   let skip_dirs =
     skip_list
-    |> Common.map_filter (function
+    |> List_.map_filter (function
          | Dir s -> Some s
          | _ -> None)
   in
   let skip_dir_elements =
     skip_list
-    |> Common.map_filter (function
+    |> List_.map_filter (function
          | DirElement s -> Some s
          | _ -> None)
   in
@@ -113,7 +113,7 @@ let find_vcs_root_from_absolute_path file =
   let xs = Common.split "/" (Common2.dirname !!file) in
   let xxs = Common2.inits xs in
   xxs |> List.rev
-  |> Common.find_some_opt (fun xs ->
+  |> List_.find_some_opt (fun xs ->
          let dir = "/" ^ Common.join "/" xs in
          if
            Sys.file_exists (Filename.concat dir ".git")
@@ -137,7 +137,7 @@ let find_skip_file_from_root root =
       |> File.Path.of_strings
     in
     candidates
-    |> Common.find_some_opt (fun f ->
+    |> List_.find_some_opt (fun f ->
            let full = Fpath.append root f in
            if Sys.file_exists !!full then Some full else None)
 
@@ -166,7 +166,7 @@ let filter_files_if_skip_list ~root xs =
 let build_filter_errors_file skip_list =
   let skip_dirs =
     skip_list
-    |> Common.map_filter (function
+    |> List_.map_filter (function
          | SkipErrorsDir dir -> Some dir
          | _ -> None)
   in
