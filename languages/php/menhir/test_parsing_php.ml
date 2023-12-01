@@ -52,7 +52,7 @@ let test_parse_php xs =
                Common.save_excursion Flag.error_recovery true (fun () ->
                    Parse_php.parse !!file)
              in
-             Common.push stat stat_list;
+             Stack_.push stat stat_list;
              (*s: add stat for regression testing in hash *)
              let s = spf "bad = %d" stat.PS.error_line_count in
              if stat.PS.error_line_count =|= 0 then

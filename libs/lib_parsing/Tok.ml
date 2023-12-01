@@ -325,7 +325,7 @@ let empty_tok_after tok : t =
   | Error _ -> rewrap_str "" tok
 
 let combine_bracket_contents (open_, xs, _close) =
-  let toks = Common.map snd xs in
+  let toks = List_.map snd xs in
   match toks with
   | x :: xs -> combine_toks x xs
   | [] -> empty_tok_after open_

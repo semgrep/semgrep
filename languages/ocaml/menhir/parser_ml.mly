@@ -10,8 +10,8 @@
 (*  under the terms of the Q Public License version 1.0.               *)
 (*                                                                     *)
 (***********************************************************************)
-open Common
 open Ast_ml
+open Either_
 
 (*************************************************************************)
 (* Prelude *)
@@ -778,8 +778,8 @@ simple_pattern:
  | val_ident %prec below_EQUAL      { PatVar ($1) }
  | constr_longident
      { match $1 with
-       | Left x -> PatConstructor (x, None)
-       | Right lit -> PatLiteral lit
+       | Either.Left x -> PatConstructor (x, None)
+       | Either.Right lit -> PatLiteral lit
      }
 
  | "_"                              { PatUnderscore $1 }

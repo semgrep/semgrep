@@ -60,7 +60,7 @@ let map_frag (frag : Pattern.segment_fragment) : Re.t =
   | Char c -> Re.char c
   | Char_class { complement; ranges } ->
       let cset =
-        Common.map
+        List_.map
           (fun range ->
             match range with
             | Class_char c -> Re.char c
@@ -72,7 +72,7 @@ let map_frag (frag : Pattern.segment_fragment) : Re.t =
   | Star -> Re.rep not_slash
 
 let map_seg (seg : segment_fragment list) : Re.t =
-  Re.seq (Common.map map_frag seg)
+  Re.seq (List_.map map_frag seg)
 
 let rec map pat =
   match pat with

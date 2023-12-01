@@ -48,10 +48,10 @@ val vof_string : string -> v
 val vof_list : ('a -> v) -> 'a list -> v
 val vof_option : ('a -> v) -> 'a option -> v
 val vof_ref : ('a -> v) -> 'a ref -> v
-val vof_either : ('a -> v) -> ('b -> v) -> ('a, 'b) Common.either -> v
+val vof_either : ('a -> v) -> ('b -> v) -> ('a, 'b) Either.t -> v
 
 val vof_either3 :
-  ('a -> v) -> ('b -> v) -> ('c -> v) -> ('a, 'b, 'c) Common.either3 -> v
+  ('a -> v) -> ('b -> v) -> ('c -> v) -> ('a, 'b, 'c) Either_.either3 -> v
 
 val vof_all3 : ('a -> v) -> ('b -> v) -> ('c -> v) -> 'a * 'b * 'c -> v
 val int_ofv : v -> int64
@@ -75,14 +75,14 @@ val map_of_option : ('a -> 'b) -> 'a option -> 'b option
 val map_of_list : ('a -> 'b) -> 'a list -> 'b list
 
 val map_of_either :
-  ('a -> 'b) -> ('c -> 'd) -> ('a, 'c) Common.either -> ('b, 'd) Common.either
+  ('a -> 'b) -> ('c -> 'd) -> ('a, 'c) Either.t -> ('b, 'd) Either.t
 
 val map_of_either3 :
   ('a -> 'b) ->
   ('c -> 'd) ->
   ('e -> 'f) ->
-  ('a, 'c, 'e) Common.either3 ->
-  ('b, 'd, 'f) Common.either3
+  ('a, 'c, 'e) Either_.either3 ->
+  ('b, 'd, 'f) Either_.either3
 
 val map_of_all3 :
   ('a -> 'b) -> ('c -> 'd) -> ('e -> 'f) -> 'a * 'c * 'e -> 'b * 'd * 'f
@@ -97,13 +97,13 @@ val v_option : ('a -> unit) -> 'a option -> unit
 val v_list : ('a -> unit) -> 'a list -> unit
 val v_ref_do_visit : ('a -> unit) -> 'a ref -> unit
 val v_ref_do_not_visit : ('a -> unit) -> 'a ref -> unit
-val v_either : ('a -> unit) -> ('b -> unit) -> ('a, 'b) Common.either -> unit
+val v_either : ('a -> unit) -> ('b -> unit) -> ('a, 'b) Either.t -> unit
 
 val v_either3 :
   ('a -> unit) ->
   ('b -> unit) ->
   ('c -> unit) ->
-  ('a, 'b, 'c) Common.either3 ->
+  ('a, 'b, 'c) Either_.either3 ->
   unit
 
 (* sexp converters *)

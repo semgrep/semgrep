@@ -47,9 +47,9 @@ let diagnostics_of_file is_intellij matches file =
   let matches =
     List.filter (fun (m : OutJ.cli_match) -> m.path = file) matches
   in
-  let diagnostics = Common.map (diagnostic_of_match is_intellij) matches in
+  let diagnostics = List_.map (diagnostic_of_match is_intellij) matches in
   let diagnostics =
-    Common.uniq_by
+    List_.uniq_by
       (fun (a : Diagnostic.t) (b : Diagnostic.t) ->
         Common2.on String.equal
           (fun x -> x |> Diagnostic.yojson_of_t |> Yojson.Safe.to_string)
@@ -64,4 +64,4 @@ let diagnostics_of_file is_intellij matches file =
   Server_notification.PublishDiagnostics params
 
 let diagnostics_of_results ~is_intellij results files =
-  Common.map (diagnostics_of_file is_intellij results) files
+  List_.map (diagnostics_of_file is_intellij results) files

@@ -1526,7 +1526,7 @@ val top : 'a stack -> 'a
 val pop : 'a stack -> 'a stack
 val top_option : 'a stack -> 'a option
 val push : 'a -> 'a stack ref -> unit
-val pop2 : 'a stack ref -> 'a
+
 (*x: common.mli for collection types *)
 (*****************************************************************************)
 (* Stack with undo/redo support *)

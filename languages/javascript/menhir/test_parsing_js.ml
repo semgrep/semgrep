@@ -66,7 +66,7 @@ let test_parse_common xs fullxs ext =
                      stat = Parsing_stat.bad_stat !!file;
                    }
              in
-             Common.push stat stat_list;
+             Stack_.push stat stat_list;
              let s = spf "bad = %d" stat.PS.error_line_count in
              if stat.PS.error_line_count =|= 0 then
                Hashtbl.add newscore !!file Common2.Ok
@@ -83,8 +83,9 @@ let test_parse_js xs =
            match FT.file_type_of_file filename with
            | FT.PL (FT.Web FT.Js) -> true
            | _else_ -> false)
-    |> Common.sort
+    |> List_.sort
   in
+
   test_parse_common xs fullxs "js"
 
 let test_parse_ts xs =
@@ -95,8 +96,9 @@ let test_parse_ts xs =
            match FT.file_type_of_file filename with
            | FT.PL (FT.Web FT.TypeScript) -> true
            | _ -> false)
-    |> Common.sort
+    |> List_.sort
   in
+
   (* typescript and JSX have lexing conflicts *)
   Common.save_excursion Flag_parsing_js.jsx false (fun () ->
       test_parse_common xs fullxs "ts")

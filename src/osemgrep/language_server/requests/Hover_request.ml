@@ -40,11 +40,11 @@ let on_request server ({ position; textDocument; _ } : HoverParams.t) =
     let base_charpos =
       let contents = Common.cat file in
       let lines =
-        contents |> Common.index_list
+        contents |> List_.index_list
         |> List.filter (fun (_, idx) -> idx < position.line)
       in
       lines
-      |> Common.map (fun (l, _) -> String.length l + 1)
+      |> List_.map (fun (l, _) -> String.length l + 1)
       |> List.fold_left ( + ) 0
     in
     let charpos = base_charpos + position.character in

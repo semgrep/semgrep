@@ -286,7 +286,7 @@ let mk_string_ (l, (str, tk), r) = (None, DoubleQuote, (l, [ (str, tk) ], r))
 
 let string_of_string_ (x : string_) : string wrap =
   let _verbatimTODO, _kindTODO, (l, xs, r) = x in
-  let str = xs |> Common.map fst |> String.concat "" in
-  let infos = xs |> Common.map snd in
+  let str = xs |> List_.map fst |> String.concat "" in
+  let infos = xs |> List_.map snd in
   let tk = Tok.combine_toks l (infos @ [ r ]) in
   (str, tk)

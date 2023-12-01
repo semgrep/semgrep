@@ -88,7 +88,7 @@ let usage usage_msg options = Arg.usage (Arg.align options) usage_msg
 (* for coccinelle *)
 
 (* If you don't want the -help and --help that are appended by Arg.align *)
-let arg_align2 xs = Arg.align xs |> List.rev |> Common.drop 2 |> List.rev
+let arg_align2 xs = Arg.align xs |> List.rev |> List_.drop 2 |> List.rev
 let short_usage usage_msg ~short_opt = usage usage_msg short_opt
 
 let pr_xxxxxxxxxxxxxxxxx () =
@@ -124,7 +124,7 @@ let arg_parse2 l msg short_usage_fun =
       (* eprintf "%s" msg; exit 2; *)
       let xs = lines msg in
       (* take only head, it's where the error msg is *)
-      pr2 (Common.hd_exn "unexpected empty list" xs);
+      pr2 (List_.hd_exn "unexpected empty list" xs);
       short_usage_fun ();
       raise (UnixExit 2)
   | Arg.Help _msg ->
@@ -144,15 +144,15 @@ exception WrongNumberOfArguments
 
 let options_of_actions action_ref actions =
   actions
-  |> map (fun (key, doc, _func) ->
+  |> List_.map (fun (key, doc, _func) ->
          (key, Arg.Unit (fun () -> action_ref := key), doc))
 
 let (action_list : cmdline_actions -> Arg.key list) =
- fun xs -> map (fun (a, _b, _c) -> a) xs
+ fun xs -> List_.map (fun (a, _b, _c) -> a) xs
 
 let (do_action : Arg.key -> string list (* args *) -> cmdline_actions -> unit) =
  fun key args xs ->
-  let assoc = xs |> map (fun (a, _b, c) -> (a, c)) in
+  let assoc = xs |> List_.map (fun (a, _b, c) -> (a, c)) in
   let action_func = List.assoc key assoc in
   action_func args
 
@@ -182,4 +182,4 @@ let mk_action_4_arg f = function
 
 let mk_action_n_arg f = f
 let mk_action_1_conv conv f = mk_action_1_arg (fun str -> f (conv str))
-let mk_action_n_conv conv f = mk_action_n_arg (fun xs -> f (Common.map conv xs))
+let mk_action_n_conv conv f = mk_action_n_arg (fun xs -> f (List_.map conv xs))

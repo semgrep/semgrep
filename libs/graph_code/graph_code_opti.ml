@@ -106,7 +106,7 @@ let children n g =
 let all_children n g =
   let rec aux i =
     let xs = g.has_children.(i) in
-    if null xs then [ i ]
+    if List_.null xs then [ i ]
     else i :: (xs |> List.map (fun i -> aux i) |> List.flatten)
   in
   aux (hashtbl_find g.name_to_i n) |> List.map (fun i -> g.i_to_name.(i))
@@ -142,5 +142,5 @@ let adjust_graph_pack_some_children_under_dotdotdot parent to_pack g =
   new_g.has_children.(idx_parent) <-
     (* bugfix: don't forget to add new_idx *)
     new_idx :: new_g.has_children.(idx_parent)
-    |> Common.exclude (fun i -> Hashtbl.mem idx_packs i);
+    |> List_.exclude (fun i -> Hashtbl.mem idx_packs i);
   (new_g, new_node)

@@ -834,7 +834,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
    * of the corresponding '$ o_xx $' further below! *)
   let combine allow_untrusted_validators ast_caching autofix baseline_commit
       common config dataflow_traces diff_depth dryrun dump_ast
-      dump_command_for_core dump_engine_path emacs error exclude
+      dump_command_for_core dump_engine_path emacs error exclude_
       exclude_rule_ids force_color gitlab_sast gitlab_secrets include_ json
       junit_xml lang ls matching_explanations max_chars_per_line
       max_lines_per_finding max_memory_mb max_target_bytes metrics num_jobs
@@ -856,7 +856,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
         [ json; emacs; vim; sarif; gitlab_sast; gitlab_secrets; junit_xml ]
       in
       let cnt =
-        all_flags |> Common.map (fun b -> if b then 1 else 0) |> Common2.sum_int
+        all_flags |> List_.map (fun b -> if b then 1 else 0) |> Common2.sum_int
       in
       if cnt >= 2 then
         (* TOPORT: list the possibilities *)
@@ -985,7 +985,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     let targeting_conf =
       {
         Find_targets.project_root = Option.map Fpath.v project_root;
-        exclude;
+        exclude = exclude_;
         include_;
         baseline_commit;
         diff_depth;
@@ -997,7 +997,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     let rule_filtering_conf =
       {
         Rule_filtering.exclude_rule_ids =
-          Common.map Rule_ID.of_string exclude_rule_ids;
+          List_.map Rule_ID.of_string exclude_rule_ids;
         severity;
         exclude_products = [];
       }
@@ -1116,7 +1116,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
      * in osemgrep equal to the one in pysemgrep or when we remove
      * this sanity checks in pysemgrep and just rely on osemgrep to do it.
      *)
-    if include_ <> None && exclude <> [] && common.maturity <> Maturity.Default
+    if include_ <> None && exclude_ <> [] && common.maturity <> Maturity.Default
     then
       Logs.warn (fun m ->
           m

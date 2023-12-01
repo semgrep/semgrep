@@ -18,7 +18,7 @@ let test_parse_c xs =
       (*k(); *)
       pr (spf "PARSING: %s" !!file);
       let { Parsing_result.stat; _ } = Parse_c.parse file in
-      Common.push stat stat_list);
+      Stack_.push stat stat_list);
   Parsing_stat.print_recurring_problematic_tokens !stat_list;
   Parsing_stat.print_parsing_stat_list !stat_list;
   ()

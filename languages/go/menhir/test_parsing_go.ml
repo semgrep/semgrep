@@ -44,7 +44,7 @@ let test_parse_go xs =
                        Common.save_excursion Flag.exn_when_lexical_error false
                          (fun () -> Parse_go.parse !!file))
                  in
-                 Common.push stat stat_list;
+                 Stack_.push stat stat_list;
                  let s = spf "bad = %d" stat.PS.error_line_count in
                  if stat.PS.error_line_count =|= 0 then
                    Hashtbl.add newscore !!file Common2.Ok

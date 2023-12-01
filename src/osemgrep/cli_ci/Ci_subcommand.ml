@@ -87,7 +87,7 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 let exit_code_of_blocking_findings ~audit_mode ~on ~app_block_override
     blocking_findings : Exit_code.t =
   let exit_code =
-    if not (Common.null blocking_findings) then
+    if not (List_.null blocking_findings) then
       if audit_mode then (
         Logs.app (fun m ->
             m
@@ -328,7 +328,7 @@ let partition_findings ~keep_ignored (results : OutJ.cli_match list) =
     results
     |> List.filter (fun (m : OutJ.cli_match) ->
            Option.value ~default:false m.extra.is_ignored && not keep_ignored)
-    |> Common.group_by (fun (m : OutJ.cli_match) ->
+    |> Assoc.group_by (fun (m : OutJ.cli_match) ->
            if
              Common2.string_match_substring
                (Str.regexp "r2c-internal-cai")
@@ -448,7 +448,7 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   let targets = cli_output.paths.scanned in
   let skipped = cli_output.paths.skipped in
 
-  let rule_ids = rules |> Common.map (fun r -> fst r.Rule.id) in
+  let rule_ids = rules |> List_.map (fun r -> fst r.Rule.id) in
   let contributions = Parse_contribution.get_contributions () in
   (*
       we want date stamps assigned by the app to be assigned such that the
@@ -469,8 +469,8 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
     |> List.partition (fun (m : OutJ.cli_match) ->
            Option.value ~default:false m.extra.is_ignored)
   in
-  let findings = Common.mapi (finding_of_cli_match commit_date) new_matches in
-  let ignores = Common.mapi (finding_of_cli_match commit_date) new_ignored in
+  let findings = List_.mapi (finding_of_cli_match commit_date) new_matches in
+  let ignores = List_.mapi (finding_of_cli_match commit_date) new_ignored in
   let ci_token =
     match Sys.getenv_opt "GITHUB_TOKEN" with
     (* GitHub (cloud) *)
@@ -506,11 +506,11 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
 
   let ignored_ext_freqs =
     Option.value ~default:[] skipped
-    |> Common.group_by (fun (skipped_target : OutJ.skipped_target) ->
+    |> Assoc.group_by (fun (skipped_target : OutJ.skipped_target) ->
            Fpath.get_ext skipped_target.path)
     |> List.filter (fun (ext, _) -> not (String.equal ext ""))
     (* don't count files with no extension *)
-    |> Common.map (fun (ext, xs) -> (ext, List.length xs))
+    |> List_.map (fun (ext, xs) -> (ext, List.length xs))
   in
 
   (* POST to /api/agent/scans/<scan_id>/complete *)
@@ -569,7 +569,7 @@ let upload_findings ~dry_run
       Logs.app (fun m -> m "  Uploading findings.");
       let results, complete =
         findings_and_complete
-          ~has_blocking_findings:(not (Common.null blocking_findings))
+          ~has_blocking_findings:(not (List_.null blocking_findings))
           ~commit_date:"" ~engine_requested:`OSS cli_output filtered_rules
       in
       let override =

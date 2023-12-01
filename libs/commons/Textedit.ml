@@ -116,13 +116,13 @@ let apply_edits ~dryrun edits =
     (fun file file_edits ->
       let file_text = Common.read_file file in
       let file_edits =
-        Common.map (remove_newline_for_empty_replacement file_text) file_edits
+        List_.map (remove_newline_for_empty_replacement file_text) file_edits
       in
       let new_text =
         match apply_edits_to_text file_text file_edits with
         | Success x -> x
         | Overlap { partial_result; conflicting_edits } ->
-            Common.push conflicting_edits all_conflicting_edits;
+            Stack_.push conflicting_edits all_conflicting_edits;
             partial_result
       in
       (* TOPORT: when dryrun, report fixed lines *)

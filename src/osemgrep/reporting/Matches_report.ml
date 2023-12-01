@@ -83,7 +83,7 @@ let ws_prefix s =
 let dedent_lines (lines : string list) =
   let ws_prefixes =
     List.sort compare
-      (Common.map_filter
+      (List_.map_filter
          (fun line ->
            if String.(length (trim line)) = 0 then None
            else Some (ws_prefix line))
@@ -109,7 +109,7 @@ let dedent_lines (lines : string list) =
     in
     eq hd tl (min (List.length hd) (List.length tl)) 0
   in
-  ( Common.map
+  ( List_.map
       (fun line ->
         if String.(length (trim line)) = 0 then line
         else Str.string_after line longest_prefix)
@@ -170,7 +170,7 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
     in
     let keep = min ll max_lines in
     if keep = ll then (lines, None)
-    else (Common.take keep lines, Some (ll - keep))
+    else (List_.take keep lines, Some (ll - keep))
   in
   let start_line = m.start.line in
   let stripped, _ =
@@ -324,7 +324,7 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
 let pp_cli_output ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
     (cli_output : OutJ.cli_output) =
   cli_output.results |> Semgrep_output_utils.sort_cli_matches
-  |> Common.group_by (fun (m : OutJ.cli_match) ->
+  |> Assoc.group_by (fun (m : OutJ.cli_match) ->
          match Product.of_cli_match m with
          | `SCA ->
              (* TO PORT:
@@ -367,7 +367,7 @@ let pp_cli_output ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
             groups)
   |> sort_by_groups
   |> List.iter (fun (group, matches) ->
-         if not (Common.null matches) then
+         if not (List_.null matches) then
            Fmt_helpers.pp_heading ppf
              (String_utils.unit_str (List.length matches) (group_titles group));
          pp_text_outputs ~max_chars_per_line ~max_lines_per_finding

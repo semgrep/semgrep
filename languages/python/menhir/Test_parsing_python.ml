@@ -12,7 +12,7 @@ let find_source_files_of_dir_or_files xs =
          match ftype with
          | File_type.PL File_type.Python -> true
          | _ -> false)
-  |> Common.sort
+  |> List_.sort
 
 (*****************************************************************************)
 (* Subsystem testing *)
@@ -56,7 +56,7 @@ let test_parse_python_common parsing_mode xs =
                    Common.save_excursion Flag.exn_when_lexical_error false
                      (fun () -> Parse_python.parse ~parsing_mode !!file))
              in
-             Common.push stat stat_list;
+             Stack_.push stat stat_list;
              let s = spf "bad = %d" stat.PS.error_line_count in
              if stat.PS.error_line_count =|= 0 then
                Hashtbl.add newscore !!file Common2.Ok

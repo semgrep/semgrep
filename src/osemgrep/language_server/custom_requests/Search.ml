@@ -31,16 +31,16 @@ let on_request runner params =
       in
       let matches = runner rules in
       let matches_by_file =
-        Common.group_by (fun (m : OutJ.cli_match) -> !!(m.path)) matches
+        Assoc.group_by (fun (m : OutJ.cli_match) -> !!(m.path)) matches
       in
       let json =
-        Common.map
+        List_.map
           (fun (file, matches) ->
             let uri = file |> Uri.of_path |> Uri.to_string in
             let ranges =
               matches
-              |> Common.map Conv.range_of_cli_match
-              |> Common.map Range.yojson_of_t
+              |> List_.map Conv.range_of_cli_match
+              |> List_.map Range.yojson_of_t
             in
             `Assoc [ ("uri", `String uri); ("ranges", `List ranges) ])
           matches_by_file

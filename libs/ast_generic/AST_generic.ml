@@ -2198,8 +2198,8 @@ let is_case_insensitive info = IdFlags.is_case_insensitive !(info.id_flags)
 
 (* TODO: move AST_generic_helpers.name_of_id and ids here *)
 
-let dotted_to_canonical xs = Common.map fst xs
-let canonical_to_dotted tid xs = xs |> Common.map (fun s -> (s, tid))
+let dotted_to_canonical xs = List_.map fst xs
+let canonical_to_dotted tid xs = xs |> List_.map (fun s -> (s, tid))
 
 (* ------------------------------------------------------------------------- *)
 (* Entities *)
@@ -2221,17 +2221,16 @@ let arg e = Arg e
 (* Expressions *)
 (* ------------------------------------------------------------------------- *)
 let special spec es =
-  Call (IdSpecial spec |> e, Tok.unsafe_fake_bracket (es |> Common.map arg))
-  |> e
+  Call (IdSpecial spec |> e, Tok.unsafe_fake_bracket (es |> List_.map arg)) |> e
 
 let opcall (op, tok) exprs : expr = special (Op op, tok) exprs
 
 let string_ (lquote, xs, rquote) : string wrap bracket =
-  let s = xs |> Common.map fst |> String.concat "" in
+  let s = xs |> List_.map fst |> String.concat "" in
   let t =
     match xs with
     | [] -> Tok.fake_tok lquote ""
-    | (_, t) :: ys -> Tok.combine_toks t (Common.map snd ys)
+    | (_, t) :: ys -> Tok.combine_toks t (List_.map snd ys)
   in
   (lquote, (s, t), rquote)
 
@@ -2240,7 +2239,7 @@ let string_ (lquote, xs, rquote) : string wrap bracket =
  *)
 let interpolated (lquote, xs, rquote) =
   match xs with
-  | [ Common.Left3 (str, tstr) ] ->
+  | [ Either_.Left3 (str, tstr) ] ->
       L (String (lquote, (str, tstr), rquote)) |> e
   | __else__ ->
       let special = IdSpecial (ConcatString InterpolatedConcat, lquote) |> e in
@@ -2248,16 +2247,16 @@ let interpolated (lquote, xs, rquote) =
         ( special,
           ( lquote,
             xs
-            |> Common.map (function
-                 | Common.Left3 x ->
+            |> List_.map (function
+                 | Either_.Left3 x ->
                      Arg (L (String (Tok.unsafe_fake_bracket x)) |> e)
-                 | Common.Right3 (lbrace, eopt, rbrace) ->
+                 | Either_.Right3 (lbrace, eopt, rbrace) ->
                      let special =
                        IdSpecial (InterpolatedElement, lbrace) |> e
                      in
-                     let args = eopt |> Option.to_list |> Common.map arg in
+                     let args = eopt |> Option.to_list |> List_.map arg in
                      Arg (Call (special, (lbrace, args, rbrace)) |> e)
-                 | Common.Middle3 e -> Arg e),
+                 | Either_.Middle3 e -> Arg e),
             rquote ) )
       |> e
 

@@ -21,15 +21,15 @@ let layout_table (h1, heading) entries =
     if i = 0 then 1 else dec 0 i
   in
   let len1, lengths =
-    let acc = Common.map String.length heading in
+    let acc = List_.map String.length heading in
     List.fold_left
       (fun (n1, needed) (c1, curr) ->
         ( max (String.length c1) n1,
-          Common.map2 max needed (Common.map int_size curr) ))
+          List_.map2 max needed (List_.map int_size curr) ))
       (String.length h1, acc)
       entries
   in
-  let lengths = Common.map (fun i -> i + 3) lengths in
+  let lengths = List_.map (fun i -> i + 3) lengths in
   let line = List.fold_left (fun acc w -> acc + w) (len1 + 2) lengths |> line in
   let pad str_size len =
     let to_pad = len - str_size in
@@ -38,16 +38,15 @@ let layout_table (h1, heading) entries =
   String.concat ""
     (List.flatten
        ([ h1; pad (String.length h1) len1 ]
-       :: Common.map2
-            (fun h l -> [ pad (String.length h) l; h ])
-            heading lengths))
+       :: List_.map2 (fun h l -> [ pad (String.length h) l; h ]) heading lengths
+       ))
   :: line
-  :: Common.map
+  :: List_.map
        (fun (e1, entries) ->
          String.concat ""
            (List.flatten
               ([ e1; pad (String.length e1) len1 ]
-              :: Common.map2
+              :: List_.map2
                    (fun e l -> [ pad (int_size e) l; string_of_int e ])
                    entries lengths)))
        entries
@@ -68,7 +67,7 @@ let pp_tables ppf (h1, heading1, entries1) (h2, heading2, entries2) =
   and lines2 = layout_table (h2, heading2) entries2 in
   let l1_space =
     String.make
-      (String.length (Common.hd_exn "unexpected empty list" lines1))
+      (String.length (List_.hd_exn "unexpected empty list" lines1))
       ' '
   in
   let space = String.make 10 ' ' in

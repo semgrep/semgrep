@@ -189,7 +189,7 @@ let dfs_iter xi f g =
              Hashtbl.add already xi true;
              f xi;
              let succ = g#successors xi in
-             aux_dfs (succ#tolist |> Common.map fst)))
+             aux_dfs (succ#tolist |> List_.map fst)))
   in
   aux_dfs [ xi ]
 
@@ -201,7 +201,7 @@ let dfs_iter_with_path xi f g =
       Hashtbl.add already xi true;
       f xi path;
       let succ = g#successors xi in
-      let succ' = succ#tolist |> Common.map fst in
+      let succ' = succ#tolist |> List_.map fst in
       succ' |> List.iter (fun yi -> aux_dfs (xi :: path) yi))
   in
   aux_dfs [] xi

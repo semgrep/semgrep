@@ -125,7 +125,7 @@ and interface_field =
 
 (* the 'type_' below can't be an interface itself and can't be a type param *)
 and constraint_ = tok option (* '~', "underlying" type *) * type_
-and expr_or_type = (expr, type_) Common.either
+and expr_or_type = (expr, type_) Either_.t
 
 (*****************************************************************************)
 (* Expression *)
@@ -404,7 +404,7 @@ let package_and_imports_of_program xs =
   in
   let imports =
     xs
-    |> Common.map_filter (function
+    |> List_.map_filter (function
          | Import x -> Some x
          | _ -> None)
   in

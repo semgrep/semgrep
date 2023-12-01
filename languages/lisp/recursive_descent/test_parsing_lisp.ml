@@ -29,7 +29,7 @@ let test_parse_lisp xs =
          pr2 ("PARSING: " ^ !!file);
 
          let _xs, stat = Parse_lisp.parse !!file in
-         Common.push stat stat_list);
+         Stack_.push stat stat_list);
   Parsing_stat.print_parsing_stat_list !stat_list;
   ()
 

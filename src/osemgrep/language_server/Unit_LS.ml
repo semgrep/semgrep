@@ -47,7 +47,7 @@ let mock_run_results (files : string list) : Core_runner.result =
   let rule = Rule.rule_of_xpattern xlang xpat in
   let rule = { rule with id = (Rule_ID.of_string "print", fk) } in
   let hrules = Rule.hrules_of_rules [ rule ] in
-  let scanned = Common.map (fun f -> Fpath.v f) files |> Set_.of_list in
+  let scanned = List_.map (fun f -> Fpath.v f) files |> Set_.of_list in
   let match_of_file file =
     let (extra : OutJ.core_match_extra) =
       {
@@ -74,7 +74,7 @@ let mock_run_results (files : string list) : Core_runner.result =
     in
     m
   in
-  let matches = Common.map match_of_file files in
+  let matches = List_.map match_of_file files in
   let (core : OutJ.core_output) =
     {
       version = None;
@@ -139,9 +139,9 @@ let session_targets () =
     let user_settings = { session.user_settings with only_git_dirty } in
     let session = { session with user_settings; workspace_folders } in
     let session = set_session_targets session workspace_folders in
-    let targets = session |> Session.targets |> Common.map Fpath.to_string in
-    let targets = Common.sort targets in
-    let expected = Common.sort expected in
+    let targets = session |> Session.targets |> List_.map Fpath.to_string in
+    let targets = List_.sort targets in
+    let expected = List_.sort expected in
     Alcotest.(check (list string)) "targets" expected targets
   in
   let test_session_basic git only_git_dirty () =
@@ -201,10 +201,10 @@ let processed_run () =
     let results = mock_run_results files in
     let matches = Processed_run.of_matches ~only_git_dirty results in
     let final_files =
-      matches |> Common.map (fun (m : OutJ.cli_match) -> !!(m.path))
+      matches |> List_.map (fun (m : OutJ.cli_match) -> !!(m.path))
     in
-    let final_files = Common.sort final_files in
-    let expected = Common.sort expected in
+    let final_files = List_.sort final_files in
+    let expected = List_.sort expected in
     Alcotest.(check (list string)) "processed run" expected final_files
   in
   let test_processed only_git_dirty git () =

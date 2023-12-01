@@ -319,7 +319,7 @@ and eval_lval env lval =
 
 and eval_op env wop args =
   let op, tok = wop in
-  let cs = args |> Common.map IL_helpers.exp_of_arg |> Common.map (eval env) in
+  let cs = args |> List_.map IL_helpers.exp_of_arg |> List_.map (eval env) in
   match (op, cs) with
   | G.Plus, [ c1 ] -> c1
   | op, [ G.Lit (G.Bool (b, _)) ] -> eval_unop_bool op b
@@ -342,7 +342,7 @@ and eval_op env wop args =
   | ___else___ -> G.NotCst
 
 and eval_concat env args =
-  match Common.map (eval env) args with
+  match List_.map (eval env) args with
   | [] -> G.Lit (literal_of_string "")
   | G.Lit (G.String (_, (r, tok), _)) :: args' ->
       List.fold_left
@@ -359,7 +359,7 @@ and eval_concat env args =
   | ___else___ -> G.NotCst
 
 let eval_format env args =
-  let cs = Common.map (eval env) args in
+  let cs = List_.map (eval env) args in
   if
     cs
     |> List.for_all (function
@@ -371,7 +371,7 @@ let eval_format env args =
   else G.NotCst
 
 let eval_builtin_func lang env func args =
-  let args = Common.map IL_helpers.exp_of_arg args in
+  let args = List_.map IL_helpers.exp_of_arg args in
   match func with
   | { e = _; eorig = SameAs eorig } -> (
       let* gname = H.name_of_dot_access eorig in
@@ -542,7 +542,7 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
   | _else -> (
       let pred_envs =
         CFG.predecessors flow ni
-        |> Common.map (fun (pi, _) -> mapping.(pi).D.out_env)
+        |> List_.map (fun (pi, _) -> mapping.(pi).D.out_env)
       in
       (* Note that `VarMap.empty` represents an environment where all variables
        * are non-constant, thus `VarMap.empty` is not the neutral element wrt
@@ -614,7 +614,7 @@ let transfer :
             update_env_with inp' var cexp
         | Call (Some { base = Var var; rev_offset = [] }, func, args) -> (
             let args_val =
-              Common.map (fun arg -> eval inp' (IL_helpers.exp_of_arg arg)) args
+              List_.map (fun arg -> eval inp' (IL_helpers.exp_of_arg arg)) args
             in
             if result_of_function_call_is_constant lang func args_val then
               VarMap.add (IL.str_of_name var) (G.Cst G.Cstr) inp'
@@ -633,7 +633,7 @@ let transfer :
             update_env_with inp' var (sym_prop instr.iorig)
         | CallSpecial
             (Some { base = Var var; rev_offset = [] }, (special, _), args) ->
-            let args = Common.map IL_helpers.exp_of_arg args in
+            let args = List_.map IL_helpers.exp_of_arg args in
             let cexp =
               (* We try to evaluate the special function, if we know how. *)
               if special =*= Concat then

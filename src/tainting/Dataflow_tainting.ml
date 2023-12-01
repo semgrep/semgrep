@@ -229,13 +229,13 @@ let taints_of_matches env ~incoming sources =
    * a control source could influence a data source and vice-versa. *)
   let data_taints =
     data_sources
-    |> Common.map (fun x -> (x.TM.spec_pm, x.spec))
+    |> List_.map (fun x -> (x.TM.spec_pm, x.spec))
     |> T.taints_of_pms ~incoming
   in
   let control_incoming = Lval_env.get_control_taints env.lval_env in
   let control_taints =
     control_sources
-    |> Common.map (fun x -> (x.TM.spec_pm, x.spec))
+    |> List_.map (fun x -> (x.TM.spec_pm, x.spec))
     |> T.taints_of_pms ~incoming:control_incoming
   in
   let lval_env = Lval_env.add_control_taints env.lval_env control_taints in
@@ -299,7 +299,7 @@ let merge_source_mvars env bindings =
   let flat_bindings = List.concat bindings in
   let bindings_tbl =
     flat_bindings
-    |> Common.map (fun (mvar, _) -> (mvar, None))
+    |> List_.map (fun (mvar, _) -> (mvar, None))
     |> List.to_seq |> Hashtbl.of_seq
   in
   flat_bindings
@@ -325,7 +325,7 @@ let merge_source_mvars env bindings =
      there was no conflict between bindings in different sources.
   *)
   bindings_tbl |> Hashtbl.to_seq |> List.of_seq
-  |> Common.map_filter (fun (mvar, mval_opt) ->
+  |> List_.map_filter (fun (mvar, mval_opt) ->
          match mval_opt with
          | None ->
              (* This actually shouldn't really be possible, every
@@ -349,7 +349,7 @@ let merge_source_sink_mvars env source_mvars sink_mvars =
 
 let partition_sources_by_side_effect sources_matches =
   sources_matches
-  |> Common.partition_either3 (fun (m : R.taint_source TM.t) ->
+  |> Either_.partition_either3 (fun (m : R.taint_source TM.t) ->
          match m.spec.source_by_side_effect with
          | R.Only -> Left3 m
          (* A 'Yes' should be a 'Yes' regardless of whether the match is exact...
@@ -461,7 +461,7 @@ let findings_of_tainted_sink env taints_with_traces (sink : T.sink) :
       let { T.pm = sink_pm; rule_sink = ts } = sink in
       let taints_and_bindings =
         taints_with_traces
-        |> Common.map (fun ({ T.taint; _ } as item) ->
+        |> List_.map (fun ({ T.taint; _ } as item) ->
                let bindings =
                  match taint.T.orig with
                  | T.Src source ->
@@ -501,7 +501,7 @@ let findings_of_tainted_sink env taints_with_traces (sink : T.sink) :
       if env.config.unify_mvars || Option.is_none sink.rule_sink.sink_requires
       then
         taints_and_bindings
-        |> Common.map_filter (fun (t, bindings) ->
+        |> List_.map_filter (fun (t, bindings) ->
                let* merged_env =
                  merge_source_sink_mvars env sink_pm.PM.env bindings
                in
@@ -514,7 +514,7 @@ let findings_of_tainted_sink env taints_with_traces (sink : T.sink) :
                     }))
       else
         match
-          taints_and_bindings |> Common.map snd |> merge_source_mvars env
+          taints_and_bindings |> List_.map snd |> merge_source_mvars env
           |> merge_source_sink_mvars env sink_pm.PM.env
         with
         | None -> []
@@ -523,7 +523,7 @@ let findings_of_tainted_sink env taints_with_traces (sink : T.sink) :
               T.ToSink
                 {
                   taints_with_precondition =
-                    (Common.map fst taints_and_bindings, R.get_sink_requires ts);
+                    (List_.map fst taints_and_bindings, R.get_sink_requires ts);
                   sink;
                   merged_env;
                 };
@@ -545,7 +545,7 @@ let findings_of_tainted_sinks env taints sinks : T.finding list =
            *)
            let taints_with_traces =
              taints |> Taints.elements
-             |> Common.map (fun t ->
+             |> List_.map (fun t ->
                     { T.taint = t; sink_trace = T.PM (sink.T.pm, ()) })
            in
            findings_of_tainted_sink env taints_with_traces sink)
@@ -555,7 +555,7 @@ let findings_of_tainted_return taints return_tok : T.finding list =
   else
     let taint_list =
       taints |> Taints.elements
-      |> Common.map (fun t -> { t with T.tokens = List.rev t.T.tokens })
+      |> List_.map (fun t -> { t with T.tokens = List.rev t.T.tokens })
     in
     [ T.ToReturn (taint_list, return_tok) ]
 
@@ -566,7 +566,7 @@ let check_orig_if_sink env ?filter_sinks orig taints =
     | None -> sinks
     | Some sink_pred -> sinks |> List.filter sink_pred
   in
-  let sinks = sinks |> Common.map sink_of_match in
+  let sinks = sinks |> List_.map sink_of_match in
   let findings = findings_of_tainted_sinks env taints sinks in
   report_findings env findings
 
@@ -585,7 +585,7 @@ let find_pos_in_actual_args args_taints fparams =
   let named_arg_map =
     named_args_taints
     |> List.fold_left
-         (fun map ((s, _), taint) -> SMap.add s taint map)
+         (fun xmap ((s, _), taint) -> SMap.add s taint xmap)
          SMap.empty
   in
   let name_to_taints = Hashtbl.create 10 in
@@ -885,7 +885,7 @@ let rec check_tainted_lval env (lval : IL.lval) : Taints.t * Lval_env.t =
   let sinks =
     lval_is_sink env.config lval
     |> List.filter (TM.is_best_match env.top_matches)
-    |> Common.map sink_of_match
+    |> List_.map sink_of_match
   in
   let findings = findings_of_tainted_sinks { env with lval_env } taints sinks in
   report_findings { env with lval_env } findings;
@@ -1080,7 +1080,7 @@ and check_tainted_lval_aux env (lval : IL.lval) :
            * itself to be a sink, and we would report a finding!
         *)
         |> List.filter TM.is_exact
-        |> Common.map sink_of_match
+        |> List_.map sink_of_match
       in
       let all_taints = Taints.union taints_from_env new_taints in
       let findings =
@@ -1253,7 +1253,7 @@ let check_tainted_var env (var : IL.name) : Taints.t * Lval_env.t =
  *)
 let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) =
   let os =
-    sig_arg.offset |> Common.map (fun x -> { o = Dot x; oorig = NoOrig })
+    sig_arg.offset |> List_.map (fun x -> { o = Dot x; oorig = NoOrig })
   in
   let* lval, obj =
     match sig_arg.base with
@@ -1362,7 +1362,7 @@ let check_function_signature env fun_exp args args_taints =
           list = function
         | T.ToReturn (taints, _return_tok) ->
             taints
-            |> Common.map_filter (fun t ->
+            |> List_.map_filter (fun t ->
                    match t.T.orig with
                    | Src src ->
                        let call_trace =
@@ -1447,7 +1447,7 @@ let check_function_signature env fun_exp args args_taints =
                          in
                          let+ arg_taints = arg_to_taints arg in
                          Taints.elements arg_taints
-                         |> Common.map (fun x -> { T.taint = x; sink_trace })
+                         |> List_.map (fun x -> { T.taint = x; sink_trace })
                      | Control ->
                          (* coupling: how to best refactor with Arg's case? *)
                          let sink_trace =
@@ -1457,7 +1457,7 @@ let check_function_signature env fun_exp args args_taints =
                            Lval_env.get_control_taints env.lval_env
                          in
                          Taints.elements control_taints
-                         |> Common.map (fun x -> { T.taint = x; sink_trace }))
+                         |> List_.map (fun x -> { T.taint = x; sink_trace }))
             in
             findings_of_tainted_sink env incoming_taints sink
             |> report_findings env;
@@ -1588,7 +1588,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
         | None -> (all_args_taints, lval_env))
     | New (_, ty, None, args) ->
         (* 'New' without reference to constructor *)
-        let exps = ty.exps @ (args |> Common.map IL_helpers.exp_of_arg) in
+        let exps = ty.exps @ (args |> List_.map IL_helpers.exp_of_arg) in
         exps |> union_map_taints_and_vars env check_expr
     | CallSpecial (_, _, args) ->
         let _, taints, lval_env = check_function_call_arguments env args in
@@ -1633,7 +1633,7 @@ let check_tainted_return env tok e : Taints.t * Lval_env.t =
   let sinks =
     env.config.is_sink (G.Tk tok) @ orig_is_sink env.config e.eorig
     |> List.filter (TM.is_best_match env.top_matches)
-    |> Common.map sink_of_match
+    |> List_.map sink_of_match
   in
   let taints, var_env' = check_tainted_expr env e in
   let taints =
@@ -1654,7 +1654,7 @@ let findings_from_arg_updates_at_exit enter_env exit_env : T.finding list =
           * ArgToArg. *)
          match
            enter_taints |> Taints.elements
-           |> Common.map_filter (fun taint ->
+           |> List_.map_filter (fun taint ->
                   match taint.T.orig with
                   | T.Arg arg -> Some arg
                   | _ -> None)
@@ -1683,7 +1683,7 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
   | _else -> (
       let pred_envs =
         CFG.predecessors flow ni
-        |> Common.map (fun (pi, _) -> mapping.(pi).D.out_env)
+        |> List_.map (fun (pi, _) -> mapping.(pi).D.out_env)
       in
       match pred_envs with
       | [] -> Lval_env.empty
