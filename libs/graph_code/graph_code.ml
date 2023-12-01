@@ -283,17 +283,17 @@ let iter_nodes f g = G.iter_nodes f g.has
 
 let all_use_edges g =
   let res = ref [] in
-  G.iter_edges (fun n1 n2 -> Common.push (n1, n2) res) g.use;
+  G.iter_edges (fun n1 n2 -> Stack_.push (n1, n2) res) g.use;
   !res
 
 let all_has_edges g =
   let res = ref [] in
-  G.iter_edges (fun n1 n2 -> Common.push (n1, n2) res) g.has;
+  G.iter_edges (fun n1 n2 -> Stack_.push (n1, n2) res) g.has;
   !res
 
 let all_nodes g =
   let res = ref [] in
-  G.iter_nodes (fun n -> Common.push n res) g.has;
+  G.iter_nodes (fun n -> Stack_.push n res) g.has;
   !res
 
 (*****************************************************************************)
@@ -338,7 +338,7 @@ let children n g = G.succ n g.has
 
 let rec node_and_all_children n g =
   let xs = G.succ n g.has in
-  if null xs then [ n ]
+  if List_.null xs then [ n ]
   else n :: (xs |> List.map (fun n -> node_and_all_children n g) |> List.flatten)
 
 let nb_nodes g = G.nb_nodes g.has
@@ -374,7 +374,7 @@ let privacy_of_node n g =
   let info = nodeinfo n g in
   let props = info.props in
   props
-  |> Common.find_some (function
+  |> List_.find_some (function
        | E.Privacy x -> Some x
        | _ -> None)
 
@@ -461,7 +461,7 @@ let group_edges_by_files_edges xs g =
   |> Common2.group_by_mapped_key (fun (n1, n2) ->
          (file_of_node n1 g, file_of_node n2 g))
   |> List.map (fun (x, deps) -> (List.length deps, (x, deps)))
-  |> Common.sort_by_key_highfirst |> List.map snd
+  |> Assoc.sort_by_key_highfirst |> List.map snd
 
 (*****************************************************************************)
 (* Graph algorithms *)
@@ -500,7 +500,7 @@ let bottom_up_numbering g =
 (*****************************************************************************)
 let load_adjust file =
   Common.cat file
-  |> Common.exclude (fun s -> s =~ "#.*" || s =~ "^[ \t]*$")
+  |> List_.exclude (fun s -> s =~ "#.*" || s =~ "^[ \t]*$")
   |> List.map (fun s ->
          match s with
          | _ when s =~ "\\([^ ]+\\)[ ]+->[ ]*\\([^ ]+\\)" -> Common.matched2 s
@@ -557,7 +557,7 @@ let graph_of_dotfile dotfile =
   let xs = Common.cat dotfile in
   let deps =
     xs
-    |> Common.map_filter (fun s ->
+    |> List_.map_filter (fun s ->
            if s =~ "^\"\\(.*\\)\" -> \"\\(.*\\)\"$" then
              let src, dst = Common.matched2 s in
              Some (src, dst)

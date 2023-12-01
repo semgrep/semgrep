@@ -30,12 +30,12 @@ let origin rule =
 (*****************************************************************************)
 
 let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
-  Fmt_helpers.pp_heading ppf "Scan Status";
+  Fmt_.pp_heading ppf "Scan Status";
   Fmt.pf ppf "  Scanning %s%s with %s"
-    (String_utils.unit_str num_targets "file")
+    (String_.unit_str num_targets "file")
     (* TODO: validate if target is actually within a git repo *)
     (if respect_git_ignore then " tracked by git" else "")
-    (String_utils.unit_str num_rules "Code rule");
+    (String_.unit_str num_rules "Code rule");
 
   (* TODO if sca_rules ...
      Fmt.(option ~none:(any "") (any ", " ++ int ++ any "Supply Chain rule" *)
@@ -48,15 +48,15 @@ let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
   Fmt.pf ppf ":@.";
   if num_rules = 0 then Fmt.pf ppf "  Nothing to scan."
   else if num_rules = 1 then
-    Fmt.pf ppf "  Scanning %s." (String_utils.unit_str num_targets "file")
+    Fmt.pf ppf "  Scanning %s." (String_.unit_str num_targets "file")
   else
     let rule_origins =
       lang_jobs
       |> List.fold_left
-           (fun acc Lang_job.{ rules; _ } -> Common.map origin rules @ acc)
+           (fun acc Lang_job.{ rules; _ } -> List_.map origin rules @ acc)
            []
-      |> Common.group_by Fun.id
-      |> Common.map (fun (src, xs) ->
+      |> Assoc.group_by Fun.id
+      |> List_.map (fun (src, xs) ->
              (String.capitalize_ascii src, [ List.length xs ]))
     in
     Fmt.pf ppf "@.";
@@ -88,28 +88,28 @@ let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
     let lang_stats =
       lang_jobs
       (* Unpack each job, transforming xlang into its mapped language key *)
-      |> Common.map (fun Lang_job.{ xlang; targets; rules } ->
+      |> List_.map (fun Lang_job.{ xlang; targets; rules } ->
              (xlang_label xlang, rules, targets))
       (* Merge jobs by mapped language key *)
-      |> Common.group_by (fun (xlang, _, _) -> xlang)
-      |> Common.map (fun (xlang, xxs) ->
+      |> Assoc.group_by (fun (xlang, _, _) -> xlang)
+      |> List_.map (fun (xlang, xxs) ->
              let targets =
                xxs
                |> List.concat_map (fun (_, _, targets) -> targets)
-               |> Common.group_by Fun.id
-               |> Common.map (fun (target, _) -> target)
+               |> Assoc.group_by Fun.id
+               |> List_.map (fun (target, _) -> target)
                |> List.length
              in
              let rules =
                xxs
                |> List.concat_map (fun (_, rules, _) -> rules)
-               |> Common.group_by Fun.id
-               |> Common.map (fun (rules, _) -> rules)
+               |> Assoc.group_by Fun.id
+               |> List_.map (fun (rules, _) -> rules)
                |> List.length
              in
              (xlang, rules, targets))
     in
-    Fmt_helpers.pp_tables ppf
+    Fmt_.pp_tables ppf
       ( "Language",
         [ "Rules"; "Files" ],
         lang_stats

@@ -141,7 +141,7 @@ let make_js_module ?(parse_target_ts_only = None) (langs : Lang.t list)
     parse_target parse_pattern =
   let lang_names =
     Array.of_list
-      (Common.map (fun x -> Js.string (Lang.to_lowercase_alnum x)) langs)
+      (List_.map (fun x -> Js.string (Lang.to_lowercase_alnum x)) langs)
   in
   Js.export "createParser" (fun wasm_module ->
       set_parser_wasm_module wasm_module;

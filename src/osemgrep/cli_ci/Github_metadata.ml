@@ -53,9 +53,7 @@ let env : env Term.t =
     let doc = "The GitHub commit." in
     let env = Cmd.Env.info "GITHUB_SHA" in
     Arg.(
-      value
-      & opt (some Cmdliner_helpers.sha1) None
-      & info [ "github-sha" ] ~env ~doc)
+      value & opt (some Cmdliner_.sha1) None & info [ "github-sha" ] ~env ~doc)
   in
   let gh_token =
     let doc = "The GitHub token." in
@@ -73,7 +71,7 @@ let env : env Term.t =
     let env = Cmd.Env.info "GITHUB_SERVER_URL" in
     Arg.(
       value
-      & opt Cmdliner_helpers.uri (Uri.of_string "https://github.com")
+      & opt Cmdliner_.uri (Uri.of_string "https://github.com")
       & info [ "github-server-url" ] ~doc ~env)
   in
   let github_api_url =
@@ -81,7 +79,7 @@ let env : env Term.t =
     let env = Cmd.Env.info "GITHUB_API_URL" in
     Arg.(
       value
-      & opt (some Cmdliner_helpers.uri) None
+      & opt (some Cmdliner_.uri) None
       & info [ "github-api-url" ] ~doc ~env)
   in
   let github_run_id =
@@ -259,7 +257,8 @@ let find_branchoff_point_from_github_api repo_name env :
   let head_branch_hash = get_head_branch_hash env in
 
   match (env._GH_TOKEN, env._GITHUB_API_URL, head_branch_hash) with
-  | Some gh_token, Some api_url, Some head_branch_hash ->
+  | Some str_token, Some api_url, Some head_branch_hash ->
+      let gh_token = Auth.unsafe_token_of_string str_token in
       Github_API.find_branchoff_point_async ~gh_token ~api_url ~repo_name
         ~base_branch_hash head_branch_hash
   | __else__ -> Lwt.return_none

@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 open Testutil
 module Http_helpers = Http_helpers.Make (Lwt_platform)
 

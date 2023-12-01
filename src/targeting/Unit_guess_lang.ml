@@ -2,7 +2,7 @@
    Unit tests for Guess_lang
 *)
 open Lang
-open File.Operators
+open Fpath_.Operators
 
 type exec = Exec | Nonexec
 type success = OK | XFAIL
@@ -24,7 +24,7 @@ let name_tests : (string * Lang.t * Fpath.t * success) list =
     ("typescript .d.ts", Ts, "foo.d.ts", XFAIL);
     ("spaces", Ruby, " a b  c.rb", OK);
   ]
-  |> Common.map (fun (name, (lang : Lang.t), path, expect) ->
+  |> List_.map (fun (name, (lang : Lang.t), path, expect) ->
          (name, lang, Fpath.v path, expect))
 
 let contents_tests : (string * Lang.t * string * string * exec * success) list =
@@ -99,11 +99,11 @@ let test_with_contents lang name contents exec expectation =
       | _ -> assert false)
 
 let test_inspect_file =
-  Common.map
+  List_.map
     (fun (test_name, lang, path, expectation) ->
       (test_name, fun () -> test_name_only lang path expectation))
     name_tests
-  @ Common.map
+  @ List_.map
       (fun (test_name, lang, file_name, contents, exec, expectation) ->
         ( test_name,
           fun () -> test_with_contents lang file_name contents exec expectation

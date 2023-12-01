@@ -32,7 +32,7 @@ let pattern_to_string lang any =
   | E e -> expr_to_string lang (*mvars*) e
   | S s -> stmt_to_string lang (*mvars*) s
   | Ss stmts ->
-      Common.map (stmt_to_string lang (*mvars*)) stmts |> String.concat "\n"
+      List_.map (stmt_to_string lang (*mvars*)) stmts |> String.concat "\n"
   | Args args -> arguments_to_string (*{ lang; mvars }*) lang args
   | _ ->
       pr2 (AST_generic.show_any any);

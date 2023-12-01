@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Fpath_.Operators
 
 (*****************************************************************************)
 (* Prelude *)
@@ -28,35 +29,14 @@
 *)
 
 (*****************************************************************************)
-(* Submodules *)
-(*****************************************************************************)
-
-module Path = struct
-  include Fpath
-
-  let of_strings strings = Common.map Fpath.v strings
-  let to_strings paths = Common.map Fpath.to_string paths
-  let ( !! ) = Fpath.to_string
-end
-
-module Operators = struct
-  let ( / ) = Fpath.( / )
-  let ( // ) = Fpath.( // )
-  let ( !! ) = Path.( !! )
-end
-
-open Operators
-
-(*****************************************************************************)
 (* API *)
 (*****************************************************************************)
 
 let fullpath file = Common.fullpath !!file |> Fpath.v
-let readable ~root path = Common.readable ~root:!!root !!path |> Fpath.v
 
 let files_of_dirs_or_files_no_vcs_nofilter xs =
-  xs |> Path.to_strings |> Common.files_of_dir_or_files_no_vcs_nofilter
-  |> Path.of_strings
+  xs |> Fpath_.to_strings |> Common.files_of_dir_or_files_no_vcs_nofilter
+  |> Fpath_.of_strings
 
 let input_text_line = Common.input_text_line
 let cat path = Common.cat !!path
@@ -76,10 +56,8 @@ let find_first_match_with_whole_line path ?split:(chr = '\n') =
   let res = Bytes.create len in
   really_input ic res 0 len;
   let lines = Bytes.split_on_char chr res in
-  let lines = Common.map Bytes.unsafe_to_string lines in
-  List.find_opt
-    (fun str -> Option.is_some (String_utils.contains term str))
-    lines
+  let lines = List_.map Bytes.unsafe_to_string lines in
+  List.find_opt (fun str -> Option.is_some (String_.contains term str)) lines
 
 let find_first_match_with_whole_line path ?split term =
   find_first_match_with_whole_line path ?split term
@@ -94,7 +72,7 @@ let filemtime file = Unix.((stat !!file).st_mtime)
 let lines_of_file (start_line, end_line) file : string list =
   let arr = Common2.cat_array (Fpath.to_string file) in
   let lines = Common2.enum start_line end_line in
-  lines |> Common.map (fun i -> arr.(i))
+  lines |> List_.map (fun i -> arr.(i))
 
 let replace_named_pipe_by_regular_file_if_needed ?(prefix = "named-pipe")
     (path : Fpath.t) : Fpath.t =

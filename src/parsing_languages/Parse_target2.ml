@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 open Pfff_or_tree_sitter
 
 (*****************************************************************************)

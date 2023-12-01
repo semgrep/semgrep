@@ -152,7 +152,7 @@ let dispatch_subcommand argv =
       Metrics_.add_feature "subcommand" subcmd;
       Metrics_.add_user_agent_tag (spf "command/%s" subcmd);
       subcmd_argv |> Array.to_list
-      |> exclude (fun x -> not (Base.String.is_prefix ~prefix:"-" x))
+      |> List_.exclude (fun x -> not (Base.String.is_prefix ~prefix:"-" x))
       |> List.iter log_cli_feature;
       (* coupling: with known_subcommands if you add an entry below.
        * coupling: with Help.ml if you add an entry below.
@@ -280,7 +280,7 @@ let main (argv : string array) : Exit_code.t =
    * even before we fully parse the command-line arguments.
    * alt: we could analyze [argv] and do it sooner for all subcommands here.
    *)
-  Logs_helpers.enable_logging ();
+  Logs_.enable_logging ();
   (* TOADAPT: profile_start := Unix.gettimeofday (); *)
   (* pad poor's man profiler *)
   if profile then Profiling.profile := Profiling.ProfAll;

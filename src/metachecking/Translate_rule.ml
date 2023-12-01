@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 module FT = File_type
 open Rule
 
@@ -51,7 +51,7 @@ and translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
       `O
         ([
            ("metavariable", `String mv);
-           ("types", `A (Common.map (fun s -> `String s) strs));
+           ("types", `A (List_.map (fun s -> `String s) strs));
          ]
         @
         match lang with
@@ -179,7 +179,7 @@ and translate_taint_propagator
     match propagator_replace_labels with
     | None -> []
     | Some strs ->
-        [ ("replace-labels", `A (Common.map (fun s -> `String s) strs)) ]
+        [ ("replace-labels", `A (List_.map (fun s -> `String s) strs)) ]
   in
   let from_obj = [ ("from", `String (fst from)) ] in
   let to_obj = [ ("to", `String (fst to_)) ] in
@@ -202,20 +202,20 @@ and translate_taint_spec
     match sanitizers with
     | None -> []
     | Some (_, sanitizers) ->
-        [ ("sanitizers", `A (Common.map translate_taint_sanitizer sanitizers)) ]
+        [ ("sanitizers", `A (List_.map translate_taint_sanitizer sanitizers)) ]
   in
   let propagators =
-    match Common.map translate_taint_propagator propagators with
+    match List_.map translate_taint_propagator propagators with
     | [] -> []
     | other -> [ ("propagators", `A other) ]
   in
   `O
     (List.concat
        [
-         [ ("sources", `A (Common.map translate_taint_source (snd sources))) ];
+         [ ("sources", `A (List_.map translate_taint_source (snd sources))) ];
          sanitizers;
          propagators;
-         [ ("sinks", `A (Common.map translate_taint_sink (snd sinks))) ];
+         [ ("sinks", `A (List_.map translate_taint_sink (snd sinks))) ];
        ])
 
 and translate_formula f : [> `O of (string * Yaml.value) list ] =
@@ -236,30 +236,30 @@ and translate_formula f : [> `O of (string * Yaml.value) list ] =
             (* probably shouldn't happen... *)
             []
         | [ mv ] -> [ `O [ ("focus", `String mv) ] ]
-        | mvs -> [ `O [ ("focus", `A (Common.map (fun x -> `String x) mvs)) ] ]
+        | mvs -> [ `O [ ("focus", `A (List_.map (fun x -> `String x) mvs)) ] ]
       in
       `O
-        (("all", `A (Common.map translate_formula conjuncts :> Yaml.value list))
+        (("all", `A (List_.map translate_formula conjuncts :> Yaml.value list))
         ::
         (if focus =*= [] && conditions =*= [] then []
          else
            [
              ( "where",
                `A
-                 (Common.map
+                 (List_.map
                     (fun (_, cond) -> translate_metavar_cond cond)
                     conditions
                  @ List.concat_map mk_focus_obj focus) );
            ]))
   | Or (_, fs) ->
-      `O [ ("any", `A (Common.map translate_formula fs :> Yaml.value list)) ]
+      `O [ ("any", `A (List_.map translate_formula fs :> Yaml.value list)) ]
   | Not (_, f) -> `O [ ("not", (translate_formula f :> Yaml.value)) ]
 
 let rec json_to_yaml json : Yaml.value =
   match json with
   | JSON.Object fields ->
-      `O (Common.map (fun (name, value) -> (name, json_to_yaml value)) fields)
-  | Array items -> `A (Common.map json_to_yaml items)
+      `O (List_.map (fun (name, value) -> (name, json_to_yaml value)) fields)
+  | Array items -> `A (List_.map json_to_yaml items)
   | String s -> `String s
   | Int i -> `Float (float_of_int i)
   | Float f -> `Float f
@@ -298,11 +298,11 @@ let replace_pattern rule_fields translated_formula : (string * Yaml.value) list
 let translate_files fparser xs =
   let formulas_by_file =
     xs
-    |> Common.map (fun file ->
+    |> List_.map (fun file ->
            logger#info "processing %s" !!file;
            let formulas =
              fparser file
-             |> Common.map (fun rule ->
+             |> List_.map (fun rule ->
                     match rule.mode with
                     | `Search formula
                     | `Extract { formula; _ } ->
@@ -333,7 +333,7 @@ let translate_files fparser xs =
       match rules with
       | `O [ ("rules", `A rules) ] ->
           let new_rules =
-            Common.map2
+            List_.map2
               (fun rule new_formula ->
                 match rule with
                 | `O rule_fields -> `O (replace_pattern rule_fields new_formula)

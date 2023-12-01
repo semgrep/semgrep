@@ -1526,7 +1526,7 @@ val top : 'a stack -> 'a
 val pop : 'a stack -> 'a stack
 val top_option : 'a stack -> 'a option
 val push : 'a -> 'a stack ref -> unit
-val pop2 : 'a stack ref -> 'a
+
 (*x: common.mli for collection types *)
 (*****************************************************************************)
 (* Stack with undo/redo support *)
@@ -1813,9 +1813,9 @@ val unserial : 'a cached -> 'a
 (* Postlude *)
 (*###########################################################################*)
 (*s: common.mli postlude *)
-val cmdline_flags_devel : unit -> Arg_helpers.cmdline_options
-val cmdline_flags_verbose : unit -> Arg_helpers.cmdline_options
-val cmdline_flags_other : unit -> Arg_helpers.cmdline_options
-val cmdline_actions : unit -> Arg_helpers.cmdline_actions
+val cmdline_flags_devel : unit -> Arg_.cmdline_options
+val cmdline_flags_verbose : unit -> Arg_.cmdline_options
+val cmdline_flags_other : unit -> Arg_.cmdline_options
+val cmdline_actions : unit -> Arg_.cmdline_actions
 (*e: common.mli postlude *)
 (*e: common.mli *)

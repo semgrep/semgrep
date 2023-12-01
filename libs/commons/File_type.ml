@@ -14,7 +14,7 @@
  * license.txt for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 
 (*****************************************************************************)
 (* Prelude *)
@@ -422,4 +422,4 @@ let is_json_filename filename = !!filename =~ ".*\\.json$"
 let files_of_dirs_or_files p xs =
   xs |> File.files_of_dirs_or_files_no_vcs_nofilter
   |> List.filter (fun filename -> p (file_type_of_file filename))
-  |> Common.sort
+  |> List_.sort

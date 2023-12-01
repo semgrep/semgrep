@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module PS = Parsing_stat
 module Flag = Flag_parsing
 module FT = File_type
@@ -12,7 +12,7 @@ let find_source_files_of_dir_or_files xs =
          match ftype with
          | File_type.PL File_type.Python -> true
          | _ -> false)
-  |> Common.sort
+  |> List_.sort
 
 (*****************************************************************************)
 (* Subsystem testing *)
@@ -34,7 +34,7 @@ let test_tokens_python file =
   ()
 
 let test_parse_python_common parsing_mode xs =
-  let xs = File.Path.of_strings xs in
+  let xs = Fpath_.of_strings xs in
   let xs = List.map File.fullpath xs in
 
   let fullxs, _skipped_paths =
@@ -56,7 +56,7 @@ let test_parse_python_common parsing_mode xs =
                    Common.save_excursion Flag.exn_when_lexical_error false
                      (fun () -> Parse_python.parse ~parsing_mode !!file))
              in
-             Common.push stat stat_list;
+             Stack_.push stat stat_list;
              let s = spf "bad = %d" stat.PS.error_line_count in
              if stat.PS.error_line_count =|= 0 then
                Hashtbl.add newscore !!file Common2.Ok
@@ -78,20 +78,15 @@ let test_dump_python file =
 
 let actions () =
   [
-    ( "-tokens_python",
-      "   <file>",
-      Arg_helpers.mk_action_1_arg test_tokens_python );
+    ("-tokens_python", "   <file>", Arg_.mk_action_1_arg test_tokens_python);
     ( "-parse_python",
       "   <files or dirs>",
-      Arg_helpers.mk_action_n_arg (test_parse_python_common Parse_python.Python)
-    );
+      Arg_.mk_action_n_arg (test_parse_python_common Parse_python.Python) );
     ( "-parse_python2",
       "   <files or dirs>",
-      Arg_helpers.mk_action_n_arg
-        (test_parse_python_common Parse_python.Python2) );
+      Arg_.mk_action_n_arg (test_parse_python_common Parse_python.Python2) );
     ( "-parse_python3",
       "   <files or dirs>",
-      Arg_helpers.mk_action_n_arg
-        (test_parse_python_common Parse_python.Python3) );
-    ("-dump_python", "   <file>", Arg_helpers.mk_action_1_arg test_dump_python);
+      Arg_.mk_action_n_arg (test_parse_python_common Parse_python.Python3) );
+    ("-dump_python", "   <file>", Arg_.mk_action_1_arg test_dump_python);
   ]

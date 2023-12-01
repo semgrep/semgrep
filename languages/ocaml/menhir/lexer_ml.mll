@@ -37,7 +37,7 @@ let error = Parsing_error.lexical_error
 (* Keywords *)
 (* ---------------------------------------------------------------------- *)
 (* src: http://caml.inria.fr/pub/docs/manual-ocaml/lex.html *)
-let keyword_table = Common.hash_of_list [
+let keyword_table = Hashtbl_.hash_of_list [
 
   "fun", (fun ii -> Tfun ii);
   "function", (fun ii -> Tfunction ii);

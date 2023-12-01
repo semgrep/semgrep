@@ -190,7 +190,7 @@ let fix_tokens_fuzzy toks =
     let retag_lparen_constructor = Hashtbl.create 101 in
 
     let horigin =
-      toks |> List.map (fun t -> (TH.info_of_tok t, t)) |> Common.hash_of_list
+      toks |> List.map (fun t -> (TH.info_of_tok t, t)) |> Hashtbl_.hash_of_list
     in
 
     (match trees with
@@ -225,8 +225,8 @@ let fix_tokens_fuzzy toks =
     and iter_parens env xs =
       xs
       |> List.iter (function
-           | Left trees -> aux env trees
-           | Right _comma -> ())
+           | Either.Left trees -> aux env trees
+           | Either.Right _comma -> ())
     in
     aux () trees;
 

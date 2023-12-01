@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module PS = Parsing_stat
 module Flag = Flag_parsing
 
@@ -23,7 +23,7 @@ let test_tokens_go file =
 let try_with_print_exn_and_reraise _a b = b ()
 
 let test_parse_go xs =
-  let xs = xs |> File.Path.of_strings |> List.map File.fullpath in
+  let xs = xs |> Fpath_.of_strings |> List.map File.fullpath in
 
   let fullxs, _skipped_paths =
     Lib_parsing_go.find_source_files_of_dir_or_files xs
@@ -44,7 +44,7 @@ let test_parse_go xs =
                        Common.save_excursion Flag.exn_when_lexical_error false
                          (fun () -> Parse_go.parse !!file))
                  in
-                 Common.push stat stat_list;
+                 Stack_.push stat stat_list;
                  let s = spf "bad = %d" stat.PS.error_line_count in
                  if stat.PS.error_line_count =|= 0 then
                    Hashtbl.add newscore !!file Common2.Ok
@@ -67,9 +67,7 @@ let test_dump_go file =
 
 let actions () =
   [
-    ("-tokens_go", "   <file>", Arg_helpers.mk_action_1_arg test_tokens_go);
-    ( "-parse_go",
-      "   <files or dirs>",
-      Arg_helpers.mk_action_n_arg test_parse_go );
-    ("-dump_go", "   <file>", Arg_helpers.mk_action_1_arg test_dump_go);
+    ("-tokens_go", "   <file>", Arg_.mk_action_1_arg test_tokens_go);
+    ("-parse_go", "   <files or dirs>", Arg_.mk_action_n_arg test_parse_go);
+    ("-dump_go", "   <file>", Arg_.mk_action_1_arg test_dump_go);
   ]

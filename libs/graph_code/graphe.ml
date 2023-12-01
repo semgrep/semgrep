@@ -346,7 +346,7 @@ let entry_nodes g =
          else
            let xs = OG.succ g.og v in
            xs |> List.iter (fun n -> Hashtbl.replace hdone n true);
-           Common.push v res);
+           Stack_.push v res);
   !res |> List.map (fun i -> key_of_vertex i g) |> List.rev
 [@@profiling]
 

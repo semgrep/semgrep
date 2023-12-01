@@ -24,5 +24,5 @@ val test_visit_php  : string (* filename *) -> unit
  * the command line, e.g. '$ pfff -parse_php foo.php' will call the
  * test_parse_php function.
  *)
-val actions : unit -> Arg_helpers.cmdline_actions
+val actions : unit -> Arg_.cmdline_actions
 (*e: test_parsing_php.mli *)

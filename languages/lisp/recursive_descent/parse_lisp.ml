@@ -119,7 +119,7 @@ let parse filename =
   let stat = Parsing_stat.default_stat filename in
   let toks_orig = tokens (Parsing_helpers.file filename) in
 
-  let toks = toks_orig |> Common.exclude TH.is_comment in
+  let toks = toks_orig |> List_.exclude TH.is_comment in
 
   let ast =
     try

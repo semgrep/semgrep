@@ -1,3 +1,11 @@
+(* TODO? would be good to merge with Logging.ml but then I get some circular
+ * dependencies
+ *)
+
+(*****************************************************************************)
+(* Setup *)
+(*****************************************************************************)
+
 (*
    Set up logging globally and for each module based on what
    we found on the command line or config files.
@@ -5,7 +13,7 @@
    TODO? could move setup in commons/Logging.ml
 *)
 
-open File.Operators
+open Fpath_.Operators
 
 let logger = Logging.get_logger [ __MODULE__ ]
 

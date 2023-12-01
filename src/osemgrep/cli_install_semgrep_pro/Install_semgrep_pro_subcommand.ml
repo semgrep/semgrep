@@ -12,7 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open File.Operators
+open Fpath_.Operators
 module Out = Semgrep_output_v1_j
 module Http_helpers = Http_helpers.Make (Lwt_platform)
 
@@ -54,7 +54,7 @@ let download_semgrep_pro platform_kind dest =
           m "No API token found, please run `semgrep login` first.");
       false
   | Some token -> (
-      match Semgrep_App.fetch_pro_binary ~token platform_kind with
+      match Semgrep_App.fetch_pro_binary token platform_kind with
       | Error (_, { code = 401; _ }) ->
           Logs.err (fun m ->
               m

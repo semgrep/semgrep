@@ -19,8 +19,7 @@
 let print_success_message display_name : unit =
   let message =
     Ocolor_format.asprintf {|%s Successfully logged in as @{<cyan>%s@}! |}
-      (Logs_helpers.success_tag ())
-      display_name
+      (Logs_.success_tag ()) display_name
   in
   Logs.app (fun m -> m "%s" message)
 
@@ -56,7 +55,7 @@ let save_token ?(display_name = None) token =
       Exit_code.fatal
 
 let print_preamble () : unit =
-  Logs.app (fun m -> m "%a" Fmt_helpers.pp_heading "Login");
+  Logs.app (fun m -> m "%a" Fmt_.pp_heading "Login");
   let preamble =
     Ocolor_format.asprintf
       {|
@@ -79,7 +78,7 @@ let start_interactive_flow () : Uuidm.t option =
       Ocolor_format.asprintf
         {|%s @{<cyan>`semgrep login`@} is meant to be run in an interactive terminal.
 You can pass @{<cyan>`SEMGREP_APP_TOKEN`@} as an environment variable instead.|}
-        (Logs_helpers.err_tag ())
+        (Logs_.err_tag ())
     in
     Logs.err (fun m -> m "%s" msg);
     None)
@@ -127,7 +126,7 @@ let run (conf : Login_CLI.conf) : Exit_code.t =
   match settings.Semgrep_settings.api_token with
   | None -> (
       match !Semgrep_envvars.v.app_token with
-      | Some token when String.length token > 0 ->
+      | Some token when String.length (Auth.string_of_token token) > 0 ->
           save_token token ~display_name:None
       | None when String.length conf.one_time_seed > 0 ->
           let shared_secret = Uuidm.v5 Uuidm.nil conf.one_time_seed in
@@ -158,7 +157,7 @@ let run (conf : Login_CLI.conf) : Exit_code.t =
           m
             "%s You're already logged in. Use `semgrep logout` to log out \
              first, and then you can login with a new access token."
-            (Logs_helpers.err_tag ()));
+            (Logs_.err_tag ()));
       Exit_code.fatal
 (*****************************************************************************)
 (* Entry point *)

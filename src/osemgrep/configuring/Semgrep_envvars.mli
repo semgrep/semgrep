@@ -15,7 +15,7 @@ type t = {
   fail_open_url : Uri.t;
   (* $SEMGREP_METRICS_URL *)
   metrics_url : Uri.t;
-  app_token : string option;
+  app_token : Auth.token option;
   (* $SEMGREP_INTEGRATION_NAME *)
   integration_name : string option;
   (* $SEMGREP_VERSION_CHECK_URL *)

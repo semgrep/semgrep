@@ -23,12 +23,12 @@ val make_login_url : unit -> login_session
 
 val save_token_async :
   ?ident:string option ->
-  string ->
+  Auth.token ->
   (Semgrep_output_v1_t.deployment_config, string) result Lwt.t
 
 val save_token :
   ?ident:string option ->
-  string ->
+  Auth.token ->
   (Semgrep_output_v1_t.deployment_config, string) result
 (** [save_token ?ident token] will save the token to the user's settings file.
   * If it fails, it will return an error message.
@@ -47,7 +47,7 @@ val fetch_token :
   ?max_retries:int ->
   ?wait_hook:(int -> unit) ->
   shared_secret ->
-  (string * string, string) result
+  (Auth.token * string, string) result
 (** [fetch_token ?min_wait_ms ?next_wait_ms ?max_retries wait_hook shared_secret] will
   * fetch the token using the request token and url the login session. It will retry up to [max_retries]
   * times, waiting [min_wait_ms] ms between each retry, and increasing the
@@ -62,7 +62,7 @@ val fetch_token_async :
   ?max_retries:int ->
   ?wait_hook:(int -> unit) ->
   shared_secret ->
-  (string * string, string) result Lwt.t
+  (Auth.token * string, string) result Lwt.t
 (** [fetch_token_async ?min_wait_ms ?next_wait_ms ?max_retries wait_hook shared_secret] will
   * fetch the token using the request token and url the login session. It will retry up to [max_retries]
   * times, waiting [min_wait_ms] ms between each retry, and increasing the
@@ -71,8 +71,8 @@ val fetch_token_async :
   * [wait_hook] is a function that will be called before each retry
   *)
 
-val verify_token_async : string -> bool Lwt.t
+val verify_token_async : Auth.token -> bool Lwt.t
 (** [verify_token_async] verifies that a token is valid with the Semgrep App. *)
 
-val verify_token : string -> bool
+val verify_token : Auth.token -> bool
 (** [verify_token] verifies that a token is valid with the Semgrep App. *)

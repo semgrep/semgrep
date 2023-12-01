@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module PS = Parsing_stat
 module Flag = Flag_parsing
 module Flag_cpp = Flag_parsing_cpp
@@ -26,10 +26,10 @@ let find_source_files_of_dir_or_files xs =
              (* todo: fix syncweb so don't need this! *)
              not (FT.is_syncweb_obj_file filename)
          | _ -> false)
-  |> Common.sort
+  |> List_.sort
 
 let test_parse_cpp ?lang xs =
-  let xs = File.Path.of_strings xs in
+  let xs = Fpath_.of_strings xs in
   let fullxs, _skipped_paths =
     find_source_files_of_dir_or_files xs
     |> Skip_code.filter_files_if_skip_list ~root:xs
@@ -60,7 +60,7 @@ let test_parse_cpp ?lang xs =
                    pr2 (spf "PB on %s, exn = %s" !!file (Common.exn_to_s exn));
                    Parsing_stat.bad_stat !!file
              in
-             Common.push stat stat_list;
+             Stack_.push stat stat_list;
 
              let s = spf "bad = %d" stat.PS.error_line_count in
              if stat.PS.error_line_count =|= 0 then
@@ -123,7 +123,7 @@ let test_dump_cpp_view file =
   let toks_orig = Parse_cpp.tokens (Parsing_helpers.file file) in
   let toks =
     toks_orig
-    |> Common.exclude (fun x ->
+    |> List_.exclude (fun x ->
            Token_helpers_cpp.is_comment x || Token_helpers_cpp.is_eof x)
   in
   let extended = toks |> List.map Token_views_cpp.mk_token_extended in
@@ -136,7 +136,7 @@ let test_dump_cpp_view file =
   pr s
 
 let test_parse_cpp_fuzzy xs =
-  let xs = File.Path.of_strings xs in
+  let xs = Fpath_.of_strings xs in
   let fullxs, _skipped_paths =
     find_source_files_of_dir_or_files xs
     |> Skip_code.filter_files_if_skip_list ~root:xs
@@ -160,27 +160,21 @@ let test_parse_cpp_fuzzy xs =
 
 let actions () =
   [
-    ("-tokens_cpp", "   <file>", Arg_helpers.mk_action_1_arg test_tokens_cpp);
-    ( "-parse_cpp",
-      "   <file or dir>",
-      Arg_helpers.mk_action_n_arg test_parse_cpp );
+    ("-tokens_cpp", "   <file>", Arg_.mk_action_1_arg test_tokens_cpp);
+    ("-parse_cpp", "   <file or dir>", Arg_.mk_action_n_arg test_parse_cpp);
     ( "-parse_cpp_c",
       "   <file or dir>",
-      Arg_helpers.mk_action_n_arg (test_parse_cpp ~lang:Flag_cpp.C) );
+      Arg_.mk_action_n_arg (test_parse_cpp ~lang:Flag_cpp.C) );
     ( "-parse_cpp_cplusplus",
       "   <file or dir>",
-      Arg_helpers.mk_action_n_arg (test_parse_cpp ~lang:Flag_cpp.Cplusplus) );
-    ("-dump_cpp", "   <file>", Arg_helpers.mk_action_1_arg test_dump_cpp);
-    ( "-dump_cpp_full",
-      "   <file>",
-      Arg_helpers.mk_action_1_arg test_dump_cpp_full );
-    ( "-dump_cpp_view",
-      "   <file>",
-      Arg_helpers.mk_action_1_arg test_dump_cpp_view );
+      Arg_.mk_action_n_arg (test_parse_cpp ~lang:Flag_cpp.Cplusplus) );
+    ("-dump_cpp", "   <file>", Arg_.mk_action_1_arg test_dump_cpp);
+    ("-dump_cpp_full", "   <file>", Arg_.mk_action_1_arg test_dump_cpp_full);
+    ("-dump_cpp_view", "   <file>", Arg_.mk_action_1_arg test_dump_cpp_view);
     ( "-parse_cpp_fuzzy",
       "   <files or dirs>",
-      Arg_helpers.mk_action_n_arg test_parse_cpp_fuzzy )
+      Arg_.mk_action_n_arg test_parse_cpp_fuzzy )
     (*
-    ("-dump_cpp_fuzzy", "   <file>", Arg_helpers.mk_action_1_arg test_dump_cpp_fuzzy);
+    ("-dump_cpp_fuzzy", "   <file>", Arg_.mk_action_1_arg test_dump_cpp_fuzzy);
  *);
   ]

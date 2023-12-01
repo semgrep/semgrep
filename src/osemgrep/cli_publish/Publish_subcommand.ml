@@ -42,7 +42,7 @@ let upload_rule token rule_file (conf : Publish_CLI.conf) test_code_file =
         |> Rule_fetching.partition_rules_and_errors
       in
       ( rules,
-        Common.map
+        List_.map
           (fun ((_, rule_id, _) as err) ->
             Rule.{ rule_id = Some rule_id; kind = InvalidRule err })
           errors )
@@ -59,7 +59,7 @@ let upload_rule token rule_file (conf : Publish_CLI.conf) test_code_file =
   | _ :: _, _ ->
       Logs.err (fun m ->
           m "    Invalid rule definition: %s is invalid: %s" rule_file
-            (errors |> Common.map Rule.string_of_error |> String.concat ", "));
+            (errors |> List_.map Rule.string_of_error |> String.concat ", "));
       false
   | _, [ rule ] -> (
       (* TODO: This emits a "fatal: No remote configured to list refs from."
@@ -94,7 +94,7 @@ let upload_rule token rule_file (conf : Publish_CLI.conf) test_code_file =
           | lang :: _ -> `String (Lang.to_string lang)
         in
         let deployment_id =
-          match Semgrep_App.get_deployment_from_token ~token with
+          match Semgrep_App.get_deployment_from_token token with
           | None -> `Null
           | Some config -> `Int config.id
         in
@@ -123,7 +123,7 @@ let upload_rule token rule_file (conf : Publish_CLI.conf) test_code_file =
       in
 
       let semgrep_url = !Semgrep_envvars.v.semgrep_url in
-      match Semgrep_App.upload_rule_to_registry ~token request_json with
+      match Semgrep_App.upload_rule_to_registry token request_json with
       | Error (status_code, text) ->
           Logs.err (fun m ->
               m "    Failed to upload rule with status code %d" status_code);

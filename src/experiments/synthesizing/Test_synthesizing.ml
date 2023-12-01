@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 module J = JSON
 module In = Input_to_core_j
 
@@ -34,7 +34,7 @@ let synthesize_patterns s file =
   let config = Rule_options.default_config in
   let options = Synthesizer.synthesize_patterns config s file in
   let json_opts =
-    J.Object (Common.map (fun (k, v) -> (k, J.String v)) options)
+    J.Object (List_.map (fun (k, v) -> (k, J.String v)) options)
   in
   let s = J.string_of_json json_opts in
   pr s

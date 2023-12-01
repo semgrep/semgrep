@@ -113,7 +113,7 @@ let is_minified (path : Fpath.t) =
       else Ok path
     else Ok path
 
-let exclude_minified_files paths = Common.partition_result is_minified paths
+let exclude_minified_files paths = Result_.partition_result is_minified paths
 
 (****************************************************************************)
 (* Big file filtering *)
@@ -130,7 +130,7 @@ let exclude_minified_files paths = Common.partition_result is_minified paths
 let exclude_big_files paths =
   let max_bytes = !Flag_semgrep.max_target_bytes in
   paths
-  |> Common.partition_result (fun path ->
+  |> Result_.partition_result (fun path ->
          let size = File.filesize path in
          if max_bytes > 0 && size > max_bytes then
            Error

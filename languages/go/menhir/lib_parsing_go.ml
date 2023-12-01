@@ -24,4 +24,4 @@ let find_source_files_of_dir_or_files xs =
          match ftype with
          | File_type.PL File_type.Go -> true
          | _ -> false)
-  |> Common.sort
+  |> List_.sort

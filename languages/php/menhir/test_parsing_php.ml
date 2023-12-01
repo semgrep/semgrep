@@ -1,6 +1,6 @@
 (*s: test_parsing_php.ml *)
 open Common
-open File.Operators
+open Fpath_.Operators
 module Flag = Flag_parsing
 module PS = Parsing_stat
 
@@ -21,7 +21,7 @@ let test_tokens_php file =
 (*e: test_tokens_php *)
 (*s: test_parse_php *)
 let test_parse_php xs =
-  let xs = File.Path.of_strings xs in
+  let xs = Fpath_.of_strings xs in
   let fullxs = Lib_parsing_php.find_source_files_of_dir_or_files xs in
 
   let fullxs, _skipped_paths =
@@ -52,7 +52,7 @@ let test_parse_php xs =
                Common.save_excursion Flag.error_recovery true (fun () ->
                    Parse_php.parse !!file)
              in
-             Common.push stat stat_list;
+             Stack_.push stat stat_list;
              (*s: add stat for regression testing in hash *)
              let s = spf "bad = %d" stat.PS.error_line_count in
              if stat.PS.error_line_count =|= 0 then
@@ -152,9 +152,7 @@ let test_parse_xdebug_expr s =
 let actions () =
   [
     (*s: test_parsing_php actions *)
-    ( "-parse_php",
-      "   <file or dir>",
-      Arg_helpers.mk_action_n_arg test_parse_php );
+    ("-parse_php", "   <file or dir>", Arg_.mk_action_n_arg test_parse_php);
     (*x: test_parsing_php actions *)
     (*
     "-visit_php", "   <file>",
@@ -170,22 +168,22 @@ let actions () =
 *)
     (*x: test_parsing_php actions *)
     (* an alias for -sexp_php *)
-    ("-dump_php", "   <file>", Arg_helpers.mk_action_1_arg test_dump_php);
-    ("-dump_php_ml", "   <file>", Arg_helpers.mk_action_1_arg test_dump_php);
+    ("-dump_php", "   <file>", Arg_.mk_action_1_arg test_dump_php);
+    ("-dump_php_ml", "   <file>", Arg_.mk_action_1_arg test_dump_php);
     (*x: test_parsing_php actions *)
     (*x: test_parsing_php actions *)
     (*x: test_parsing_php actions *)
-    ("-tokens_php", "   <file>", Arg_helpers.mk_action_1_arg test_tokens_php)
+    ("-tokens_php", "   <file>", Arg_.mk_action_1_arg test_tokens_php)
     (*e: test_parsing_php actions *)
     (*
     "-unparse_php", "   <file>",
-    Arg_helpers.mk_action_1_arg test_unparse_php;
+    Arg_.mk_action_1_arg test_unparse_php;
     "-pretty_print_php", "   <file>",
-    Arg_helpers.mk_action_1_arg test_pretty_print_php;
+    Arg_.mk_action_1_arg test_pretty_print_php;
     "-parse_xdebug_expr", "   <string>",
-    Arg_helpers.mk_action_1_arg test_parse_xdebug_expr;
+    Arg_.mk_action_1_arg test_parse_xdebug_expr;
     "-parse_xhp_with_xhpize", "   <file>",
-    Arg_helpers.mk_action_1_arg test_parse_xhp_with_xhpize;
+    Arg_.mk_action_1_arg test_parse_xhp_with_xhpize;
 *);
   ]
 (*e: test_parsing_php.ml *)

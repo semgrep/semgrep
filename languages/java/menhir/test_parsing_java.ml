@@ -11,7 +11,7 @@
  *
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 module PS = Parsing_stat
 module Flag = Flag_parsing
 module Ast = Ast_java
@@ -23,14 +23,14 @@ let find_source_files_of_dir_or_files xs =
          match File_type.file_type_of_file filename with
          | FT.PL FT.Java -> true
          | _ -> false)
-  |> Common.sort
+  |> List_.sort
 
 (*****************************************************************************)
 (* Subsystem testing *)
 (*****************************************************************************)
 
 let test_parse xs =
-  let xs = xs |> File.Path.of_strings |> List.map File.fullpath in
+  let xs = xs |> Fpath_.of_strings |> List.map File.fullpath in
 
   let fullxs, _skipped_paths =
     find_source_files_of_dir_or_files xs
@@ -57,7 +57,7 @@ let test_parse xs =
                      (spf "PB with %s (exn = %s)" !!file (Common.exn_to_s exn));
                    Exception.reraise e
              in
-             Common.push stat stat_list;
+             Stack_.push stat stat_list;
              let s = spf "bad = %d" stat.PS.error_line_count in
              if stat.PS.error_line_count =|= 0 then
                Hashtbl.add newscore !!file Common2.Ok
@@ -95,7 +95,7 @@ let test_dump file =
 
 let actions () =
   [
-    ("-tokens_java", "   <file>", Arg_helpers.mk_action_1_arg test_lexer);
-    ("-parse_java", "   <file or dir>", Arg_helpers.mk_action_n_arg test_parse);
-    ("-dump_java", "   <file>", Arg_helpers.mk_action_1_arg test_dump);
+    ("-tokens_java", "   <file>", Arg_.mk_action_1_arg test_lexer);
+    ("-parse_java", "   <file or dir>", Arg_.mk_action_n_arg test_parse);
+    ("-dump_java", "   <file>", Arg_.mk_action_1_arg test_dump);
   ]

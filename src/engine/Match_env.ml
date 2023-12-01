@@ -12,7 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open File.Operators
+open Fpath_.Operators
 module E = Core_error
 module OutJ = Semgrep_output_v1_t
 module PM = Pattern_match
