@@ -100,7 +100,8 @@ val create :
 
 (*
    Update some of the test's fields. This ensures that the 'id' is recomputed
-   correctly.
+   correctly. If specified, any of the optional property will replace
+   the previous value.
 *)
 val update :
   ?category:string list ->
@@ -109,7 +110,7 @@ val update :
   ?name:string ->
   ?skipped:bool ->
   ?speed_level:Alcotest.speed_level ->
-  ?tags:string list ->
+  ?tags:Tag.t list ->
   'a t ->
   'a t
 

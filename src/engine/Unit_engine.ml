@@ -855,6 +855,19 @@ let full_rule_taint_maturity_tests () =
      in
      tests)
 
+(*
+   Special exclusions for Semgrep JS
+*)
+let mark_todo_js test =
+  match test.name with
+  | s
+    when (* The target file has an unsupported .erb extension, making it excluded
+            correctly by the OCaml test suite but not by the JS test suite
+            (or something close to this). *)
+         s =~ ".*/ruby/rails/security/brakeman/check-reverse-tabnabbing.yaml" ->
+      Alcotest_ext.update test ~tags:(Test_tags.todo_js :: test.tags)
+  | _ -> test
+
 (* quite similar to full_rule_regression_tests but prefer to pack_tests
  * with "full semgrep rule Java", so one can just run the Java tests
  * with ./test Java
@@ -869,6 +882,7 @@ let full_rule_semgrep_rules_regression_tests () =
   let groups =
     tests
     |> List_.map_filter (fun (test : Alcotest_ext.test) ->
+           let test = mark_todo_js test in
            let group_opt =
              match test.name with
              (* TODO: cleanup nodejsscan? "no target for" error *)

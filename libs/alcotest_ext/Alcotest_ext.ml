@@ -188,7 +188,9 @@ let to_alcotest tests : _ list =
          let tags =
            match x.tags with
            | [] -> ""
-           | tags -> sprintf " {%s}" (String.concat ", " tags)
+           | tags ->
+               let tags = List.sort Tag.compare tags in
+               sprintf " {%s}" (String.concat ", " tags)
          in
          let suite_name =
            match x.category with
