@@ -1000,7 +1000,7 @@ let promise_tests =
     *)
     ("Test LS with no folders", test_ls_no_folders);
   ]
-  |> Common.map (fun (s, f) -> (s, with_timeout f))
+  |> List_.map (fun (s, f) -> (s, with_timeout f))
 
 let tests =
   let prepare f () = Lwt_platform.run (f ()) in

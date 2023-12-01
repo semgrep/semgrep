@@ -514,16 +514,16 @@ let rules_from_pattern pattern : rules_and_origin list =
       *)
       let all_langs =
         Lang.assoc
-        |> Common.map (fun (_k, l) -> l)
-        |> Common.uniq_by ( =*= )
+        |> List_.map (fun (_k, l) -> l)
+        |> List_.uniq_by ( =*= )
         (* TODO: we currently get a segfault with the Dart parser
            * (for example on a pattern like ': string (* filename *)'), so we
            * skip Dart for now (which anyway is not really supported).
         *)
-        |> Common.exclude (fun x -> x =*= Lang.Dart)
+        |> List_.exclude (fun x -> x =*= Lang.Dart)
       in
       all_langs
-      |> Common.map_filter (fun l ->
+      |> List_.map_filter (fun l ->
              try
                let xlang = Xlang.of_lang l in
                let r = rules_and_origin_for_xlang xlang in

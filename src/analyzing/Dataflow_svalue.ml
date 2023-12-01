@@ -359,7 +359,7 @@ and eval_concat env args =
   | ___else___ -> G.NotCst
 
 let eval_format env args =
-  let cs = Common.map (eval env) args in
+  let cs = List_.map (eval env) args in
   if
     cs
     |> List.for_all (function
@@ -371,7 +371,7 @@ let eval_format env args =
   else G.NotCst
 
 let eval_builtin_func lang env func args =
-  let args = Common.map IL_helpers.exp_of_arg args in
+  let args = List_.map IL_helpers.exp_of_arg args in
   match func with
   | { e = _; eorig = SameAs eorig } -> (
       let* gname = H.name_of_dot_access eorig in
