@@ -705,6 +705,11 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
     Lwt_platform.run (Lwt.pick (rules_and_origins :: spinner_ls))
   in
 
+  if new_cli_ux && !Common.missed_count > 0 then
+    Logs.app (fun m ->
+        m "\n💎 Missed out on %d pro rules since you aren't logged in!"
+          !Common.missed_count);
+
   (* step2: getting the targets *)
   let targets_and_skipped =
     Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
