@@ -66,6 +66,7 @@ depends: [
   "js_of_ocaml-lwt" {= "5.4.0"}
   "ctypes_stubs_js"
   "integers_stubs_js"
+  "angstrom"
   "odoc" {with-doc}
 ]
 build: [

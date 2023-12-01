@@ -617,6 +617,115 @@ let iter_targets_and_get_matches_and_exn_to_errors config
 (*****************************************************************************)
 (* File targeting and rule filtering *)
 (*****************************************************************************)
+let rec find_lockfile file : Fpath.t option =
+  let exception Found of Fpath.t in
+  let dir = Fpath.parent file in
+  if Fpath.is_root dir then None
+  else
+    try
+      dir
+      |> List_files.iter (fun file _ ->
+             if Fpath.basename file =*= "package-lock.json" then
+               raise (Found file));
+      find_lockfile dir
+    with
+    | Found file -> Some file
+
+let read_key key (json : Yojson.Basic.t) =
+  match json with
+  | `Assoc xs -> List.assoc_opt key xs
+  | _ -> None
+
+type package_lock_name =
+  | Str of string * package_lock_name
+  | NM of package_lock_name
+  | Done
+(* [@@deriving show] *)
+
+let parse_package_lock file (json : Yojson.Basic.t) :
+    AST_generic.dependency list =
+  let ( let* ) = Option.bind in
+  let rec parse_package_name str = function
+    | 'n' :: 'o' :: 'd' :: 'e' :: '_' :: 'm' :: 'o' :: 'd' :: 'u' :: 'l' :: 'e'
+      :: 's' :: '/' :: xs -> (
+        match str with
+        | _ :: _ ->
+            Str
+              ( Common2.string_of_list Common2.string_of_char (List.rev str),
+                NM (parse_package_name [] xs) )
+        | [] -> NM (parse_package_name [] xs))
+    | x :: xs -> parse_package_name (x :: str) xs
+    | [] -> (
+        match str with
+        | _ :: _ -> Str (str |> List.rev |> List.to_seq |> String.of_seq, Done)
+        | [] -> Done)
+  in
+  let rec name_of_package_name = function
+    | NM (Str (name, Done)) -> name
+    | NM x
+    | Str (_, x) ->
+        name_of_package_name x
+    | Done -> failwith "impossible"
+  in
+  let rec nm_count = function
+    | NM x -> 1 + nm_count x
+    | Str (_, x) -> nm_count x
+    | Done -> 0
+  in
+  match read_key "packages" json with
+  | Some pckgs -> (
+      let manifest_deps =
+        let* manifest = read_key "" pckgs in
+        let* deps = read_key "dependencies" manifest in
+        match deps with
+        | `Assoc mds -> Some mds
+        | _ -> None
+      in
+      match pckgs with
+      | `Assoc pckgs ->
+          pckgs
+          |> List.filter_map (function
+               | "", _ -> None
+               | name, package ->
+                   (* pr2 name; *)
+                   let name =
+                     name |> Common2.list_of_string |> parse_package_name []
+                   in
+                   (* pr2 (show_package_lock_name name); *)
+                   let* package_version =
+                     let* v = read_key "version" package in
+                     match v with
+                     | `String v -> Some v
+                     | _ -> None
+                   in
+                   let package_name = name |> name_of_package_name in
+                   let is_nested = nm_count name > 1 in
+                   Some
+                     AST_generic.
+                       {
+                         package_name;
+                         package_version;
+                         ecosystem = Npm;
+                         transitivity =
+                           (if is_nested then Transitive
+                            else
+                              match manifest_deps with
+                              | Some mds ->
+                                  if
+                                    mds |> List.map fst |> List.mem package_name
+                                  then Direct
+                                  else Transitive
+                              | _ -> Unknown);
+                         url = None;
+                         (* TODO: Actually get line info *)
+                         loc = (Pos.make ~file 0, Pos.make ~file 0);
+                       })
+      | _ -> [])
+  | None -> []
+
+let parse_lockfile file =
+  file |> Fpath.to_string |> Yojson.Basic.from_file
+  |> parse_package_lock (Fpath.to_string file)
 
 let xtarget_of_file ~parsing_cache_dir (xlang : Xlang.t) (file : Fpath.t) :
     Xtarget.t =
@@ -637,12 +746,21 @@ let xtarget_of_file ~parsing_cache_dir (xlang : Xlang.t) (file : Fpath.t) :
        Parse_with_caching.parse_and_resolve_name ~parsing_cache_dir
          AST_generic.version lang file)
   in
+  let lockfile_path = find_lockfile file in
   {
     Xtarget.file;
     xlang;
     lazy_content = lazy (File.read_file file);
     lazy_ast_and_errors;
-    lockfile_data = None;
+    lockfile_data =
+      (lockfile_path
+      |> Option.map @@ fun file ->
+         {
+           Xtarget.lockfile = file;
+           ecosystem = AST_generic.Npm;
+           lazy_lockfile_content = lazy (File.read_file file);
+           lazy_lockfile_ast_and_errors = lazy (parse_lockfile file);
+         });
   }
 
 (* Compute the set of targets, either by reading what was passed
@@ -910,13 +1028,10 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
                     | rule, Some [] -> Left rule
                     | x -> Right x)
              in
-             let applicable_rules, dependency_matches =
-               Common2.unzip applicable_rules_with_dep_matches
-             in
              let matches =
                Match_rules.check ~match_hook ~timeout:config.timeout
                  ~timeout_threshold:config.timeout_threshold xconf
-                 applicable_rules dependency_matches xtarget
+                 applicable_rules_with_dep_matches xtarget
              in
              (* If our target is a proprietary language, or we've been using the proprietary
               * engine, then label all the resulting matches with the Pro engine kind.

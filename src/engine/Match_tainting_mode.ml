@@ -978,9 +978,11 @@ let check_rules ~match_hook
        R.rule ->
        (unit -> Core_profiling.rule_profiling Core_result.match_result) ->
        Core_profiling.rule_profiling Core_result.match_result)
-    (rules : R.taint_rule list) (xconf : Match_env.xconfig)
-    (xtarget : Xtarget.t) :
-    Core_profiling.rule_profiling Core_result.match_result list =
+    (rules : (R.taint_rule * Pattern_match.dependency_match list option) list)
+    (xconf : Match_env.xconfig) (xtarget : Xtarget.t) :
+    (Core_profiling.rule_profiling Core_result.match_result
+    * Pattern_match.dependency_match list option)
+    list =
   (* We create a "formula cache" here, before dealing with individual rules, to
      permit sharing of matches for sources, sanitizers, propagators, and sinks
      between rules.
@@ -988,10 +990,12 @@ let check_rules ~match_hook
      In particular, this expects to see big gains due to shared propagators,
      in Semgrep Pro. There may be some benefit in OSS, but it's low-probability.
   *)
-  let per_file_formula_cache = mk_specialized_formula_cache rules in
+  let per_file_formula_cache =
+    rules |> Common.map fst |> mk_specialized_formula_cache
+  in
 
   rules
-  |> Common.map (fun rule ->
+  |> Common.map (fun (rule, dm) ->
          let xconf =
            Match_env.adjust_xconfig_with_rule_options xconf rule.R.options
          in
@@ -999,7 +1003,8 @@ let check_rules ~match_hook
             timing out if this rule takes too long, and returning a dummy
             result for the timed-out rule.
          *)
-         per_rule_boilerplate_fn
-           (rule :> R.rule)
-           (fun () ->
-             check_rule per_file_formula_cache rule match_hook xconf xtarget))
+         ( per_rule_boilerplate_fn
+             (rule :> R.rule)
+             (fun () ->
+               check_rule per_file_formula_cache rule match_hook xconf xtarget),
+           dm ))

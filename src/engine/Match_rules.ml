@@ -97,9 +97,9 @@ let is_relevant_rule_for_xtarget r xconf xtarget =
 (* This function separates out rules into groups of taint rules by languages,
    all of the nontaint rules, and the rules which we skip due to prefiltering.
 *)
-let group_rules xconf rules dependency_matches xtarget =
+let group_rules xconf rules_with_dms xtarget =
   let relevant_taint_rules, relevant_nontaint_rules, skipped_rules =
-    Common2.zip rules dependency_matches
+    rules_with_dms
     |> Common.partition_either3 (fun (r, dms) ->
            let relevant_rule = is_relevant_rule_for_xtarget r xconf xtarget in
            match r.R.mode with
@@ -174,10 +174,9 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
 (*****************************************************************************)
 
 let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
-    rules (dependency_matches : Pattern_match.dependency_match list option list)
-    xtarget =
+    rules_with_dms xtarget =
   let Xtarget.{ file; lazy_ast_and_errors; xlang; _ } = xtarget in
-  logger#trace "checking %s with %d rules" !!file (List.length rules);
+  logger#trace "checking %s with %d rules" !!file (List.length rules_with_dms);
   (match (!Profiling.profile, xlang) with
   (* coupling: see Run_semgrep.xtarget_of_file() *)
   | Profiling.ProfAll, Xlang.L (_lang, []) ->
@@ -195,17 +194,13 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
      The taint rules are "grouped", see [group_rule] for more.
   *)
   let relevant_taint_rules_groups, relevant_nontaint_rules, skipped_rules =
-    group_rules xconf rules dependency_matches xtarget
+    group_rules xconf rules_with_dms xtarget
   in
   let res_taint_rules =
     relevant_taint_rules_groups
-    |> List.concat_map (fun relevant_taint_rules_with_dependency_matches ->
-           let relevant_taint_rules, dependency_matches =
-             Common2.unzip relevant_taint_rules_with_dependency_matches
-           in
+    |> List.concat_map (fun relevant_taint_rules_with_dms ->
            Match_tainting_mode.check_rules ~match_hook ~per_rule_boilerplate_fn
-             relevant_taint_rules xconf xtarget
-           |> fun x -> Common2.zip x dependency_matches)
+             relevant_taint_rules_with_dms xconf xtarget)
   in
   let res_nontaint_rules =
     relevant_nontaint_rules

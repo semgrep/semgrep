@@ -3,6 +3,8 @@
  (name semgrep_engine)
  (wrapped false)
  (libraries
+   angstrom
+
    pcre
    alcotest
 

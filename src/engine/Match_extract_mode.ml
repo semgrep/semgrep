@@ -464,8 +464,8 @@ let extract_nested_lang ~match_hook ~timeout ~timeout_threshold
   let xconf = Match_env.default_xconfig in
   let res =
     Match_rules.check ~match_hook ~timeout ~timeout_threshold xconf
-      (erules :> Rule.rules)
-      [] xtarget
+      (Common.map (fun x -> (x, None)) (erules :> Rule.rules))
+      xtarget
   in
   let separate_matches, combine_matches =
     res.matches

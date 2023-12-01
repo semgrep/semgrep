@@ -93,11 +93,13 @@ val check_rules :
     (Rule.rule ->
     (unit -> Core_profiling.rule_profiling Core_result.match_result) ->
     Core_profiling.rule_profiling Core_result.match_result) ->
-  Rule.taint_rule list ->
+  (Rule.taint_rule * Pattern_match.dependency_match list option) list ->
   Match_env.xconfig ->
   Xtarget.t ->
   (* timeout function *)
-  Core_profiling.rule_profiling Core_result.match_result list
+  (Core_profiling.rule_profiling Core_result.match_result
+  * Pattern_match.dependency_match list option)
+  list
 (** Runs the engine on a group of taint rules, which should be for the
   * same language. Running on multiple rules at once enables inter-rule
   * optimizations.

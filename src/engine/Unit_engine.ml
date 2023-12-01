@@ -586,6 +586,7 @@ let tainting_test lang rules_file file =
 
   let matches =
     taint_rules
+    |> Common.map (fun x -> (x, None))
     |> List.concat_map (fun rule ->
            let xtarget =
              {
@@ -603,7 +604,7 @@ let tainting_test lang rules_file file =
                [ rule ] xconf xtarget
            in
            match results with
-           | [ res ] -> res.matches
+           | [ (res, _) ] -> res.matches
            (* By construction, `check_rules` should only return the same number of results as rules it
               was initially given.
               So this case is impossible.

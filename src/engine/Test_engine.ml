@@ -182,7 +182,9 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
                functions as for Semgrep CLI. *)
             Match_rules.check
               ~match_hook:(fun _ _ -> ())
-              ~timeout:0. ~timeout_threshold:0 xconf rules [] xtarget
+              ~timeout:0. ~timeout_threshold:0 xconf
+              (Common.map (fun x -> (x, None)) rules)
+              xtarget
           with
           | exn ->
               failwith (spf "exn on %s (exn = %s)" !!file (Common.exn_to_s exn))
@@ -223,7 +225,9 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
                    let matches =
                      Match_rules.check
                        ~match_hook:(fun _ _ -> ())
-                       ~timeout:0. ~timeout_threshold:0 xconf rules [] xtarget
+                       ~timeout:0. ~timeout_threshold:0 xconf
+                       (Common.map (fun x -> (x, None)) rules)
+                       xtarget
                    in
                    (* adjust the match location for extracted files *)
                    match Hashtbl.find_opt extract_result_map file with
