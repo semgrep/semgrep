@@ -1,6 +1,6 @@
 (* just to speedup compilation *)
 
-module UStdlib = Pervasives [@@alert "-all"]
+module UStdlib = Stdlib
 module USys = Sys
 module UUnix = Unix
 module UPrintf = Printf

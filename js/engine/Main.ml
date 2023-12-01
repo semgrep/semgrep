@@ -17,7 +17,7 @@ let _ =
           Refer to js/engine/src/index.d.ts for more information.
         *)
        method writeFile filename content =
-         Common.write_file (Js.to_string filename) (Js.to_string content)
+         UCommon.write_file (Js.to_string filename) (Js.to_string content)
 
        method deleteFile filename = Sys.remove (Js.to_string filename)
 
