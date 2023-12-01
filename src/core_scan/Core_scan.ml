@@ -631,17 +631,17 @@ let rec find_lockfile file : Fpath.t option =
     with
     | Found file -> Some file
 
-let read_key key (json : Yojson.Basic.t) =
-  match json with
-  | `Assoc xs -> List.assoc_opt key xs
-  | _ -> None
+(* let read_key key (json : Yojson.Basic.t) =
+   match json with
+   | `Assoc xs -> List.assoc_opt key xs
+   | _ -> None *)
 
 type package_lock_name =
   | Str of string * package_lock_name
   | NM of package_lock_name
   | Done
 (* [@@deriving show] *)
-
+(*
 let parse_package_lock file (json : Yojson.Basic.t) :
     AST_generic.dependency list =
   let ( let* ) = Option.bind in
@@ -727,6 +727,126 @@ let parse_lockfile file =
   file |> Fpath.to_string |> Yojson.Basic.from_file
   |> parse_package_lock (Fpath.to_string file)
 
+
+let map_generic_dict f xs = xs |> Tok.unbracket |> Common.map (fun (expr : AST_generic.expr) ->
+  match expr.e with
+    | Container (Tuple, (_ , [ {e = L (String (_, (str, _), _)) ; _} ; value ] , _ )) -> f str value
+    | _ -> None
+  ) *)
+
+let read_key key (expr : AST_generic.expr) =
+  match expr.e with
+  | Container (Dict, xs) ->
+      xs |> Tok.unbracket
+      |> Common.find_some_opt (fun (expr : AST_generic.expr) ->
+             match expr.e with
+             | Container
+                 ( Tuple,
+                   (_, [ { e = L (String (_, (str, _), _)); _ }; value ], _) )
+               when String.equal str key ->
+                 Some value
+             | _ -> None)
+  | _ -> None
+
+let parse_package_lock (expr : AST_generic.expr) : AST_generic.dependency list =
+  let ( let* ) = Option.bind in
+  let rec parse_package_name str = function
+    | 'n' :: 'o' :: 'd' :: 'e' :: '_' :: 'm' :: 'o' :: 'd' :: 'u' :: 'l' :: 'e'
+      :: 's' :: '/' :: xs -> (
+        match str with
+        | _ :: _ ->
+            Str
+              ( Common2.string_of_list Common2.string_of_char (List.rev str),
+                NM (parse_package_name [] xs) )
+        | [] -> NM (parse_package_name [] xs))
+    | x :: xs -> parse_package_name (x :: str) xs
+    | [] -> (
+        match str with
+        | _ :: _ -> Str (str |> List.rev |> List.to_seq |> String.of_seq, Done)
+        | [] -> Done)
+  in
+  let rec name_of_package_name = function
+    | NM (Str (name, Done)) -> name
+    | NM x
+    | Str (_, x) ->
+        name_of_package_name x
+    | Done -> failwith "impossible"
+  in
+  let rec nm_count = function
+    | NM x -> 1 + nm_count x
+    | Str (_, x) -> nm_count x
+    | Done -> 0
+  in
+  match read_key "packages" expr with
+  | Some pckgs -> (
+      let manifest_deps =
+        let* manifest = read_key "" pckgs in
+        read_key "dependencies" manifest
+      in
+      match pckgs.e with
+      | Container (Dict, pckgs) ->
+          pckgs |> Tok.unbracket
+          |> List.filter_map (fun (expr : AST_generic.expr) ->
+                 match expr.e with
+                 | Container
+                     ( Tuple,
+                       (_, [ { e = L (String (_, ("", _), _)); _ }; _ ], _) ) ->
+                     None
+                 | Container
+                     ( Tuple,
+                       ( _,
+                         [
+                           { e = L (String (_, (name, nameTok), _)); _ };
+                           package;
+                         ],
+                         _ ) ) ->
+                     let name =
+                       name |> Common2.list_of_string |> parse_package_name []
+                     in
+                     let* package_version =
+                       let* v = read_key "version" package in
+                       match v.e with
+                       | L (String (_, (v, _), _)) -> Some v
+                       | _ -> None
+                     in
+                     let package_name = name |> name_of_package_name in
+                     let is_nested = nm_count name > 1 in
+                     Some
+                       AST_generic.
+                         {
+                           package_name;
+                           package_version;
+                           ecosystem = Npm;
+                           transitivity =
+                             (if is_nested then Transitive
+                              else
+                                match manifest_deps with
+                                | Some expr -> (
+                                    match read_key package_name expr with
+                                    | Some _ -> Direct
+                                    | None -> Transitive)
+                                | _ -> Unknown);
+                           url = None;
+                           loc =
+                             ( (Tok.unsafe_loc_of_tok nameTok).pos,
+                               (Tok.unsafe_loc_of_tok nameTok).pos );
+                         }
+                 | _ -> None)
+      | _ -> [])
+  | None -> []
+
+let parse_lockfile file =
+  let ast, _ =
+    Parse_with_caching.parse_and_resolve_name AST_generic.version Language.Json
+      file
+  in
+  match ast with
+  | [ { s = ExprStmt (e, _); _ } ] -> parse_package_lock e
+  | _ -> []
+
+(* type dlist = AST_generic.dependency list
+   [@@deriving show] *)
+
 let xtarget_of_file ~parsing_cache_dir (xlang : Xlang.t) (file : Fpath.t) :
     Xtarget.t =
   let lazy_ast_and_errors =
@@ -755,6 +875,7 @@ let xtarget_of_file ~parsing_cache_dir (xlang : Xlang.t) (file : Fpath.t) :
     lockfile_data =
       (lockfile_path
       |> Option.map @@ fun file ->
+         (* pr2 (show_dlist @@ parse_lockfile file); *)
          {
            Xtarget.lockfile = file;
            ecosystem = AST_generic.Npm;

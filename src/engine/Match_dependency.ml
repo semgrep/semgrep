@@ -1,7 +1,7 @@
 type version_core = { major : int; minor : int; incrementals : int list }
 type version = Version of version_core | Other of string
 
-let parse_version =
+let version_parser =
   let open Angstrom in
   let int =
     take_while1 (function
@@ -19,30 +19,77 @@ let parse_version =
   in
   version <|> (any_string >>| fun s -> Other s)
 
+let constraint_parser =
+  let open Angstrom in
+  let constr =
+    choice
+      [
+        string "==" *> return `EQ;
+        string ">=" *> return `GTE;
+        string "<=" *> return `LTE;
+        string ">" *> return `GT;
+        string "<" *> return `LT;
+      ]
+  in
+  let* c = constr in
+  many (char ' ')
+  *>
+  let* v = version_parser in
+  return (c, v)
+
+let parse_version str =
+  Angstrom.parse_string ~consume:All version_parser str |> Result.get_ok
+
+let parse_constraint str =
+  Angstrom.parse_string ~consume:All constraint_parser str |> Result.get_ok
+
 let compare_version_core c1 c2 =
   let cmp n m = if n > m then `GT else if n < m then `LT else `EQ in
-  let join i j =
-    match (i, j) with
-    | `GT, _
-    | `LT, _ ->
-        i
-    | `EQ, j -> j
+  let rec check = function
+    | (i, j) :: is -> (
+        match cmp i j with
+        | `EQ -> check is
+        | `GT -> `GT
+        | `LT -> `LT)
+    | [] -> `EQ
   in
   (c1.major, c2.major) :: (c1.minor, c2.minor)
   :: Common2.zip c1.incrementals c2.incrementals
-  |> List.fold_left (fun acc (i, j) -> join acc (cmp i j)) `EQ
-(*
-let compare v1 v2 =
-  match v1, v2 with
-    | Version c1, Version c2 -> compare_version_core c1 c2 *)
+  |> check
+
+type cmp = [ `EQ | `GT | `LT ] [@@deriving show]
+
+let check_constraint (c, v) v' =
+  match (v, v') with
+  | Version v, Version v' -> (
+      match c with
+      | `EQ -> compare_version_core v' v = `EQ
+      | `GTE -> compare_version_core v' v <> `LT
+      | `LTE -> compare_version_core v' v <> `GT
+      | `GT -> compare_version_core v' v = `GT
+      | `LT -> compare_version_core v' v = `LT)
+  | _ -> false
+
+let match_dependency_pattern (deps : AST_generic.dependency list)
+    (pat : Rule.dependency_pattern) : Pattern_match.dependency_match list =
+  deps
+  |> List.filter_map @@ fun (dep : AST_generic.dependency) ->
+     if
+       String.equal dep.package_name pat.package_name
+       && check_constraint
+            (parse_constraint pat.version_constraint)
+            (parse_version dep.package_version)
+     then Some (dep, pat)
+     else None
 
 (* Return the set of dependency/pattern pairs that matched *)
 let match_dependency_formula :
     Xtarget.lockfile_data ->
     Rule.dependency_formula ->
     Pattern_match.dependency_match list =
- fun _ _ -> []
-(* failwith "match_dependency_formula" *)
+ fun { lazy_lockfile_ast_and_errors; _ } ->
+  List.concat_map (fun pat ->
+      match_dependency_pattern (Lazy.force lazy_lockfile_ast_and_errors) pat)
 
 let match_dependencies xtarget rule =
   match xtarget.Xtarget.lockfile_data with
