@@ -252,7 +252,7 @@ let hill_climbing nodes dm =
 let sort_by_count_rows_low_first xs m dm =
   xs
   |> List.map (fun n -> (n, count_row (hashtbl_find_node dm.name_to_i n) m))
-  |> Common.sort_by_val_lowfirst |> List.map fst
+  |> Assoc.sort_by_val_lowfirst |> List.map fst
 
 (*
 let sort_by_count_columns_high_first xs m dm =
@@ -277,7 +277,7 @@ let sort_by_count_rows_low_columns_high_first xs m dm =
            /. (1. +. float_of_int (count_column idx m))
          in
          (n, h))
-  |> Common.sort_by_val_lowfirst |> List.map fst
+  |> Assoc.sort_by_val_lowfirst |> List.map fst
 
 (*
  * See http://dsmweb.org/dsmweb/en/understand-dsm/technical-dsm-tutorial/partitioning.html
@@ -365,7 +365,7 @@ let info_orders dm =
            spf "%-20s: count lines = %d, count columns = %d, H = %.2f"
              (fst dm.i_to_name.(i))
              nrow ncol h ))
-  |> Array.to_list |> Common.sort_by_key_lowfirst
+  |> Array.to_list |> Assoc.sort_by_key_lowfirst
   |> List.iter (fun (_, s) -> pr2 s)
 
 (*****************************************************************************)
@@ -378,7 +378,7 @@ let optional_manual_reordering (s, _node_kind) nodes constraints_opt =
   | Some h ->
       if Hashtbl.mem h s then
         let xs = hashtbl_find h s in
-        let horder = xs |> Common.index_list_1 |> Hashtbl_.hash_of_list in
+        let horder = xs |> List_.index_list_1 |> Hashtbl_.hash_of_list in
         let current = ref 0 in
         let nodes_with_order =
           nodes
@@ -391,7 +391,7 @@ let optional_manual_reordering (s, _node_kind) nodes constraints_opt =
                      current := n;
                      ((s, node_kind), n))
         in
-        Common.sort_by_val_lowfirst nodes_with_order |> List.map fst
+        Assoc.sort_by_val_lowfirst nodes_with_order |> List.map fst
       else (
         pr2 (spf "didn't find entry in constraints for %s" s);
         nodes)
@@ -485,7 +485,7 @@ let adjust_gopti_if_needed_lazily tree gopti =
                    let m = dm.matrix in
                    (n, count_column idx m + count_row idx m)
                    (* + m.(idx).(idx) / 3 *))
-            |> Common.sort_by_val_highfirst |> List.map fst
+            |> Assoc.sort_by_val_highfirst |> List.map fst
           in
           (* minus one because after the packing we will have
            * threshold_pack - 1 + the new entry = threshold_pack

@@ -461,7 +461,7 @@ let group_edges_by_files_edges xs g =
   |> Common2.group_by_mapped_key (fun (n1, n2) ->
          (file_of_node n1 g, file_of_node n2 g))
   |> List.map (fun (x, deps) -> (List.length deps, (x, deps)))
-  |> Common.sort_by_key_highfirst |> List.map snd
+  |> Assoc.sort_by_key_highfirst |> List.map snd
 
 (*****************************************************************************)
 (* Graph algorithms *)
