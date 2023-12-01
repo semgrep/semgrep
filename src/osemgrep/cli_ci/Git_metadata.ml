@@ -45,7 +45,7 @@ let env : env Term.t =
     let env = Cmd.Env.info "SEMGREP_REPO_URL" in
     Arg.(
       value
-      & opt (some Cmdliner_helpers.uri) None
+      & opt (some Cmdliner_.uri) None
       & info [ "semgrep-repo-url" ] ~env ~doc)
   in
   let semgrep_commit =
@@ -53,7 +53,7 @@ let env : env Term.t =
     let env = Cmd.Env.info "SEMGREP_COMMIT" in
     Arg.(
       value
-      & opt (some Cmdliner_helpers.sha1) None
+      & opt (some Cmdliner_.sha1) None
       & info [ "semgrep-commit" ] ~env ~doc)
   in
   let semgrep_job_url =
@@ -61,7 +61,7 @@ let env : env Term.t =
     let env = Cmd.Env.info "SEMGREP_JOB_URL" in
     Arg.(
       value
-      & opt (some Cmdliner_helpers.uri) None
+      & opt (some Cmdliner_.uri) None
       & info [ "semgrep-job-url" ] ~env ~doc)
   in
   let semgrep_pr_id =

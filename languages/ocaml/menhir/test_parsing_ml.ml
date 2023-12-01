@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module Flag = Flag_parsing
 
 (*****************************************************************************)
@@ -18,7 +18,7 @@ let test_tokens_ml file =
   ()
 
 let test_parse_ml_or_mli xs =
-  let xs = File.Path.of_strings xs in
+  let xs = Fpath_.of_strings xs in
   let xs = List.map File.fullpath xs in
 
   let fullxs, _skipped_paths =
@@ -36,7 +36,7 @@ let test_parse_ml_or_mli xs =
                Common.save_excursion Flag.error_recovery true (fun () ->
                    Parse_ml.parse !!file)
              in
-             Common.push stat stat_list));
+             Stack_.push stat stat_list));
   Parsing_stat.print_parsing_stat_list !stat_list;
   ()
 
@@ -89,12 +89,12 @@ let refactor_grammar subst_file file =
 
 let actions () =
   [
-    ("-tokens_ml", "   <file>", Arg_helpers.mk_action_1_arg test_tokens_ml);
+    ("-tokens_ml", "   <file>", Arg_.mk_action_1_arg test_tokens_ml);
     ( "-parse_ml",
       "   <files or dirs>",
-      Arg_helpers.mk_action_n_arg test_parse_ml_or_mli );
-    ("-dump_ml", "   <file>", Arg_helpers.mk_action_1_arg test_show_ml);
+      Arg_.mk_action_n_arg test_parse_ml_or_mli );
+    ("-dump_ml", "   <file>", Arg_.mk_action_1_arg test_show_ml);
     ( "-refactor_grammar",
       "   <subst_file> <file>",
-      Arg_helpers.mk_action_2_arg refactor_grammar );
+      Arg_.mk_action_2_arg refactor_grammar );
   ]

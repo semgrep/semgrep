@@ -117,7 +117,7 @@ let test_information_density () =
 
 let get_entropies strings =
   strings
-  |> Common.map (fun s ->
+  |> List_.map (fun s ->
          print_info s;
          (s, Entropy.entropy s))
 
@@ -143,7 +143,7 @@ let test_high_entropy () =
 
 let get_densities strings =
   strings
-  |> Common.map (fun s ->
+  |> List_.map (fun s ->
          print_info s;
          (s, Entropy.information_density s))
 
@@ -170,7 +170,7 @@ let test_high_density () =
 
 let get_scores strings =
   strings
-  |> Common.map (fun s ->
+  |> List_.map (fun s ->
          print_info s;
          (s, Entropy.score s))
 

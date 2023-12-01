@@ -1,4 +1,4 @@
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 (*****************************************************************************)
 (* Prelude *)
@@ -15,29 +15,8 @@ module Out = Semgrep_output_v1_t
 (* Entry point *)
 (*****************************************************************************)
 
-exception FoundGitDir of Fpath.t
-
-let find_git_dir xs =
-  try
-    let _ =
-      List.iter
-        (fun x ->
-          let dir =
-            if Common2.dir_exists (Fpath.to_string x) then x else Fpath.parent x
-          in
-          if Git_wrapper.is_git_repo dir then raise (FoundGitDir dir))
-        xs
-    in
-    false
-  with
-  | FoundGitDir _ -> true
-
-let pp_summary ppf
-    ( respect_git_ignore,
-      maturity,
-      max_target_bytes,
-      target_roots,
-      skipped_groups ) : unit =
+let pp_summary ~respect_gitignore ~(maturity : Maturity.t) ~max_target_bytes
+    ~skipped_groups ppf () : unit =
   let {
     Skipped_report.ignored = semgrep_ignored;
     include_ = include_ignored;
@@ -49,7 +28,7 @@ let pp_summary ppf
     skipped_groups
   in
 
-  Fmt_helpers.pp_heading ppf "Scan Summary";
+  Fmt_.pp_heading ppf "Scan Summary";
   (* TODO
         if self.target_manager.baseline_handler:
             limited_fragments.append(
@@ -57,11 +36,22 @@ let pp_summary ppf
             )
   *)
   let out_limited =
-    if respect_git_ignore then
-      let any_git_repos = find_git_dir target_roots in
-      match any_git_repos with
-      | true -> Some "Scan was limited to files tracked by git."
-      | false -> None
+    if respect_gitignore then
+      (* # Each target could be a git repo, and we respect the git ignore
+         # of each target, so to be accurate with this print statement we
+         # need to check if any target is a git repo and not just the cwd
+         targets_not_in_git = 0
+         dir_targets = 0
+         for t in self.target_manager.targets:
+             if t.path.is_dir():
+                 dir_targets += 1
+                 try:
+                     t.files_from_git_ls()
+                 except (subprocess.SubprocessError, FileNotFoundError):
+                     targets_not_in_git += 1
+                     continue
+         if targets_not_in_git != dir_targets: *)
+      Some "Scan was limited to files tracked by git."
     else None
   in
   let opt_msg msg = function
@@ -70,15 +60,18 @@ let pp_summary ppf
   in
   let out_skipped =
     let mb = string_of_int Stdlib.(max_target_bytes / 1000 / 1000) in
-    Common.map_filter Fun.id
+    List_.map_filter Fun.id
       [
         opt_msg "files not matching --include patterns" include_ignored;
         opt_msg "files matching --exclude patterns" exclude_ignored;
         opt_msg ("files larger than " ^ mb ^ " MB") file_size_ignored;
         opt_msg "files matching .semgrepignore patterns" semgrep_ignored;
         (match maturity with
-        | Maturity.Develop -> opt_msg "other files ignored" other_ignored
-        | _else_ -> None);
+        | Develop -> opt_msg "other files ignored" other_ignored
+        | Default
+        | Legacy
+        | Experimental ->
+            None);
       ]
   in
   let out_partial =

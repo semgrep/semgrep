@@ -73,9 +73,6 @@
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-python"]
 	path = languages/python/tree-sitter/semgrep-python
 	url = https://github.com/returntocorp/semgrep-python.git
-[submodule "semgrep-core/src/tree-sitter-lang/semgrep-elixir"]
-	path = languages/elixir/tree-sitter/semgrep-elixir
-	url = https://github.com/returntocorp/semgrep-elixir
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-swift"]
 	path = languages/swift/tree-sitter/semgrep-swift
 	url = https://github.com/returntocorp/semgrep-swift.git

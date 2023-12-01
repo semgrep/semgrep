@@ -77,7 +77,7 @@ let (matches_of_matcher :
               |> List.concat_map (fun (xpat, id, pstr) ->
                      let xs = matcher.matcher target_content file xpat in
                      xs
-                     |> Common.map (fun ((loc1, loc2), env) ->
+                     |> List_.map (fun ((loc1, loc2), env) ->
                             (* this will be adjusted later *)
                             let rule_id = Match_env.fake_rule_id (id, pstr) in
                             {
@@ -116,9 +116,9 @@ let with_tmp_file ~str ~ext f =
 
 let mval_of_string str t =
   let literal =
-    match int_of_string_opt str with
-    | Some i -> G.Int (Some i, t)
+    match Parsed_int.parse (str, t) with
+    | (Some _, _) as pi -> G.Int pi
     (* TODO? could try float_of_string_opt? *)
-    | None -> G.String (Tok.unsafe_fake_bracket (str, t))
+    | _ -> G.String (Tok.unsafe_fake_bracket (str, t))
   in
   MV.E (G.L literal |> G.e)

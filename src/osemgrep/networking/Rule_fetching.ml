@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module E = Error
 module Env = Semgrep_envvars
 module FT = File_type
@@ -73,7 +73,7 @@ let prefix_for_fpath_opt (fpath : Fpath.t) : string option =
   | [ _file ] -> None
   | _file :: dirs ->
       let prefix =
-        dirs |> List.rev |> Common.map (fun s -> s ^ ".") |> String.concat ""
+        dirs |> List.rev |> List_.map (fun s -> s ^ ".") |> String.concat ""
       in
       Some prefix
 
@@ -113,18 +113,13 @@ let fetch_content_from_url_async ?(token_opt = None) ?(ext = "json")
   let content =
     let headers =
       match token_opt with
-      | None -> Some [ ("Accept", Fmt.str "application/%s" ext) ]
-      | Some token ->
-          Some
-            [
-              ("Authorization", "Bearer " ^ token);
-              ("Accept", Fmt.str "application/%s" ext);
-            ]
+      | None -> None
+      | Some token -> Some [ Auth.auth_header_of_token token ]
     in
     let%lwt res = Http_helpers.get_async ?headers url in
     match res with
-    | Ok body -> Lwt.return body
-    | Error msg ->
+    | Ok (body, _) -> Lwt.return body
+    | Error (msg, _) ->
         (* was raise Semgrep_error, but equivalent to abort now *)
         Error.abort
           (spf "Failed to download config from %s: %s" (Uri.to_string url) msg)
@@ -161,9 +156,9 @@ type _registry_cached_value =
   Cache_disk.cached_value_on_disk
 
 (* better: faster fetching by using a cache *)
-let fetch_content_from_registry_url_async ~registry_caching ?ext url =
+let fetch_content_from_registry_url_async ~token_opt ~registry_caching url =
   Metrics_.g.is_using_registry <- true;
-  if not registry_caching then fetch_content_from_url_async ?ext url
+  if not registry_caching then fetch_content_from_url_async ~token_opt url
   else
     let cache_dir = !Env.v.user_dot_semgrep_dir / "cache" / "registry" in
     let cache_methods =
@@ -243,11 +238,15 @@ let import_callback ~registry_caching base str =
               *
               * TODO: ask for JSON in headers which improves performance
               * because Yaml rule parsing is slower than Json rule parsing.
+              *
+              * TODO: fix token_opt parameter. Currently we don't pass it.
+              * import_callback either needs an additional parameter, or
+              * parse_rule should take an import_callback as a parameter.
               *)
              let content =
                Lwt_platform.run
-                 (fetch_content_from_registry_url_async ~registry_caching
-                    ~ext:"yaml" url)
+                 (fetch_content_from_registry_url_async ~token_opt:None
+                    ~registry_caching url)
              in
              (* TODO: this assumes every URLs are for yaml, but maybe we could
               * also import URLs to jsonnet files or gist! or look at the
@@ -279,7 +278,7 @@ let modify_registry_provided_metadata (origin : origin) (rule : Rule.t) =
         match (obj : JSON.t) with
         | Object members ->
             JSON.Object
-              (Common.map
+              (List_.map
                  (function
                    | key', _ when key = key' -> (key, v)
                    | x -> x)
@@ -338,7 +337,7 @@ let parse_rule ~rewrite_rule_ids ~origin ~registry_caching (file : Fpath.t) :
         Parse_rule.parse_and_filter_invalid_rules
           ~rewrite_rule_ids:rule_id_rewriter file
   in
-  (Common.map (modify_registry_provided_metadata origin) rules, errors)
+  (List_.map (modify_registry_provided_metadata origin) rules, errors)
 
 (*****************************************************************************)
 (* Loading rules *)
@@ -425,19 +424,25 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
          )
       *)
       |> List.filter Parse_rule.is_valid_rule_filename
-      |> Common.map (fun file ->
+      |> List_.map (fun file ->
              load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file file)
                ~registry_caching file)
       |> Lwt.return
   | C.URL url ->
+      (* TODO: Re-enable passing in our token to trusted remote urls.
+         * This is currently disabled because we don't want to pass our token
+         * to untrusted endpoints. There should be a relatively painless way
+         * to do this, but this can be addressed in a follow-up PR.
+      *)
       let%lwt rules =
-        load_rules_from_url_async ~origin:(Untrusted_remote url) url
+        load_rules_from_url_async ~origin:(Untrusted_remote url) ~token_opt:None
+          url
       in
       Lwt.return [ rules ]
   | C.R rkind ->
       let url = Semgrep_Registry.url_of_registry_config_kind rkind in
       let%lwt content =
-        fetch_content_from_registry_url_async ~registry_caching ?ext url
+        fetch_content_from_registry_url_async ~token_opt ~registry_caching url
       in
       (* TODO: this also assumes every registry URL is for yaml *)
       let rules =
@@ -459,7 +464,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
                   token")
         | Some token -> token
       in
-      let uri = Semgrep_App.url_for_policy ~token in
+      let uri = Semgrep_App.url_for_policy token in
       let%lwt rules =
         load_rules_from_url_async ~token_opt ~ext:"policy" ~origin:Registry uri
       in
@@ -479,69 +484,80 @@ let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt ~registry_caching
 (* Entry point *)
 (*****************************************************************************)
 
-(* python: mix of resolver_config.get_config() and get_rules() *)
-let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching ?ext
-    (src : Rules_source.t) : rules_and_origin list =
+let rules_from_pattern pattern : rules_and_origin list =
+  let pat, xlang_opt, fix = pattern in
+  let fk = Tok.unsafe_fake_tok "" in
+  let rules_and_origin_for_xlang xlang =
+    let xpat = Parse_rule.parse_xpattern xlang (pat, fk) in
+    (* force the parsing of the pattern to get the parse error if any *)
+    (match xpat.XP.pat with
+    | XP.Sem (lpat, _) -> Lazy.force lpat |> ignore
+    | XP.Spacegrep _
+    | XP.Aliengrep _
+    | XP.Regexp _ ->
+        ());
+    let rule = Rule.rule_of_xpattern xlang xpat in
+    let rule = { rule with id = (Constants.rule_id_for_dash_e, fk); fix } in
+    { rules = [ rule ]; errors = []; origin = CLI_argument }
+  in
+  match xlang_opt with
+  | Some xlang ->
+      (* TODO? capture also parse errors here? and transform the pattern
+         * parse error in invalid_rule_error to return in rules_and_origin? *)
+      [ rules_and_origin_for_xlang xlang ]
+  (* osemgrep-only: better: can use -e without -l! we try all languages *)
+  | None ->
+      (* We need uniq_by because Lang.assoc contain multiple times the
+         * same value, for instance we have ("cpp", Cpp); ("c++", Cpp) in
+         * Lang.assoc
+         * TODO? use Xlang.assoc instead?
+      *)
+      let all_langs =
+        Lang.assoc
+        |> List_.map (fun (_k, l) -> l)
+        |> List_.uniq_by ( =*= )
+        (* TODO: we currently get a segfault with the Dart parser
+           * (for example on a pattern like ': string (* filename *)'), so we
+           * skip Dart for now (which anyway is not really supported).
+        *)
+        |> List_.exclude (fun x -> x =*= Lang.Dart)
+      in
+      all_langs
+      |> List_.map_filter (fun l ->
+             try
+               let xlang = Xlang.of_lang l in
+               let r = rules_and_origin_for_xlang xlang in
+               Logs.debug (fun m ->
+                   m "language %s valid for the pattern" (Lang.show l));
+               Some r
+             with
+             | R.Error _
+             | Failure _ ->
+                 None)
+
+let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~registry_caching
+    (src : Rules_source.t) : rules_and_origin list Lwt.t =
   match src with
   | Configs xs ->
       xs
-      |> List.concat_map (fun str ->
+      |> Lwt_list.map_p (fun str ->
              let in_docker = !Semgrep_envvars.v.in_docker in
              let config = Rules_config.parse_config_string ~in_docker str in
-             rules_from_dashdash_config ~rewrite_rule_ids ~token_opt
-               ~registry_caching ?ext config)
+             rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
+               ~registry_caching config)
+      |> Lwt.map List.concat
   (* better: '-e foo -l regex' was not handled in pysemgrep
    *  (got a weird 'invalid pattern clause' error)
    * better: '-e foo -l generic' was not handled in semgrep-core
    *)
-  | Pattern (pat, xlang_opt, fix) -> (
-      let fk = Tok.unsafe_fake_tok "" in
-      let rules_and_origin_for_xlang xlang =
-        let xpat = Parse_rule.parse_xpattern xlang (pat, fk) in
-        (* force the parsing of the pattern to get the parse error if any *)
-        (match xpat.XP.pat with
-        | XP.Sem (lpat, _) -> Lazy.force lpat |> ignore
-        | XP.Spacegrep _
-        | XP.Aliengrep _
-        | XP.Regexp _ ->
-            ());
-        let rule = Rule.rule_of_xpattern xlang xpat in
-        let rule = { rule with id = (Constants.rule_id_for_dash_e, fk); fix } in
-        { rules = [ rule ]; errors = []; origin = CLI_argument }
-      in
-
-      match xlang_opt with
-      | Some xlang ->
-          (* TODO? capture also parse errors here? and transform the pattern
-           * parse error in invalid_rule_error to return in rules_and_origin? *)
-          [ rules_and_origin_for_xlang xlang ]
-      (* osemgrep-only: better: can use -e without -l! we try all languages *)
-      | None ->
-          (* We need uniq_by because Lang.assoc contain multiple times the
-           * same value, for instance we have ("cpp", Cpp); ("c++", Cpp) in
-           * Lang.assoc
-           * TODO? use Xlang.assoc instead?
-           *)
-          let all_langs =
-            Lang.assoc
-            |> Common.map (fun (_k, l) -> l)
-            |> Common.uniq_by ( =*= )
-            (* TODO: we currently get a segfault with the Dart parser
-             * (for example on a pattern like ': string (* filename *)'), so we
-             * skip Dart for now (which anyway is not really supported).
-             *)
-            |> Common.exclude (fun x -> x =*= Lang.Dart)
-          in
-          all_langs
-          |> Common.map_filter (fun l ->
-                 try
-                   let xlang = Xlang.of_lang l in
-                   let r = rules_and_origin_for_xlang xlang in
-                   Logs.debug (fun m ->
-                       m "language %s valid for the pattern" (Lang.show l));
-                   Some r
-                 with
-                 | R.Error _
-                 | Failure _ ->
-                     None))
+  | Pattern (pat, xlang_opt, fix) ->
+      Lwt.return (rules_from_pattern (pat, xlang_opt, fix))
 [@@profiling]
+
+(* TODO We can probably delete this. *)
+(* python: mix of resolver_config.get_config() and get_rules() *)
+let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
+    (src : Rules_source.t) : rules_and_origin list =
+  Lwt_platform.run
+    (rules_from_rules_source_async ~token_opt ~rewrite_rule_ids
+       ~registry_caching src)

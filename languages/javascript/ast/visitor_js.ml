@@ -433,8 +433,8 @@ let (mk_visitor : visitor_in -> visitor_out) =
   and v_keyword_attribute _ = ()
   and v_class_kind _ = ()
   and v_parent = function
-    | Common.Left e -> v_expr e
-    | Common.Right t -> v_type_ t
+    | Either.Left e -> v_expr e
+    | Either.Right t -> v_type_ t
   and v_obj_ v = v_bracket (v_list v_property) v
   and v_class_definition
       {

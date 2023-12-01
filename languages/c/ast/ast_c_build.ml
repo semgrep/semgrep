@@ -13,6 +13,7 @@
  * license.txt for more details.
  *)
 open Common
+open Either_
 open Ast_cpp
 module A = Ast_c
 
@@ -142,7 +143,7 @@ and declaration env x =
   | Func def -> [ A.FuncDef (func_def env def) ]
   (* was in block_declaration before *)
   | DeclList (xs, _) ->
-      let xs = Common.map_filter (onedecl env) xs in
+      let xs = List_.map_filter (onedecl env) xs in
 
       let structs = env.struct_defs_toadd in
       let enums = env.enum_defs_toadd in
@@ -327,7 +328,7 @@ and initialiser env x =
             (bracket_keep
                (fun xs ->
                  xs
-                 |> Common.map (function
+                 |> List_.map (function
                       (* less: todo? *)
                       | InitIndexOld ((_, idx, _), ini) ->
                           (Some (expr env idx), initialiser env ini)
@@ -448,8 +449,8 @@ and stmt env st =
         (l, { a_template; a_outputs; a_inputs; a_clobbers; a_gotos }, r),
         sc ) ->
       let a_template = expr env a_template in
-      let a_outputs = Common.map (ident_asm_operand env) a_outputs in
-      let a_inputs = Common.map (expr_asm_operand env) a_inputs in
+      let a_outputs = List_.map (ident_asm_operand env) a_outputs in
+      let a_inputs = List_.map (expr_asm_operand env) a_inputs in
       A.AsmStmt
         ( asm_tk,
           (l, A.{ a_template; a_outputs; a_inputs; a_clobbers; a_gotos }, r),
@@ -536,7 +537,7 @@ and cases env st =
                  * together *)
                 let xs', rest =
                   stmts_after_case @ xs
-                  |> Common.span (function
+                  |> List_.span (function
                        | X (S (Case (_, _, _, _st)))
                        | X (S (Default (_, _, _st))) ->
                            false
@@ -569,7 +570,7 @@ and block_declaration env block_decl =
   let xs = declaration env block_decl in
   let ys =
     xs
-    |> Common.map_filter (function
+    |> List_.map_filter (function
          | A.VarDef x -> Some x
          | _ -> None)
   in
@@ -618,13 +619,11 @@ and expr env e =
               raise Todo),
           expr env e3 )
   | Call (e, (t1, args, t2)) ->
-      A.Call (expr env e, (t1, Common.map_filter (argument env) args, t2))
+      A.Call (expr env e, (t1, List_.map_filter (argument env) args, t2))
   | GccConstructor ((_, ft, _), xs) ->
       A.GccConstructor (full_type env ft, initialiser env (InitList xs))
   | Generic (tk, (l, (e, args), r)) ->
-      let args =
-        Common.map (fun (t, e) -> (full_type env t, expr env e)) args
-      in
+      let args = List_.map (fun (t, e) -> (full_type env t, expr env e)) args in
       A.Generic (tk, (l, (expr env e, args), r))
   | IdSpecial (SizeOf, tk) -> A.IdSpecial (SizeOf, tk)
   | ConstructedObject (_, _) ->
@@ -659,13 +658,13 @@ and expr env e =
 
 and constant _env x =
   match x with
-  | Int (s, ii) -> A.Int (s, ii)
+  | Int pi -> A.Int pi
   | Float (s, ii) -> A.Float (s, ii)
   | Char (s, ii) -> A.Char (s, ii)
   | String (s, ii) -> A.String (s, ii)
   | Nullptr ii -> A.Null ii
   | Bool x -> A.Bool x
-  | MultiString scs -> A.ConcatString (scs |> Common.map string_component)
+  | MultiString scs -> A.ConcatString (scs |> List_.map string_component)
 
 and string_component = function
   | StrLit id -> A.StrLit id

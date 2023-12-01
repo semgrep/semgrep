@@ -30,7 +30,7 @@ module H = AST_generic_helpers
 (*****************************************************************************)
 let id x = x
 let option = Option.map
-let list = Common.map
+let list = List_.map
 let string = id
 let bool = id
 
@@ -69,11 +69,11 @@ let mk_var_or_func tlet params tret body =
 
 let defs_of_bindings tlet attrs xs =
   xs
-  |> Common.map (function
-       | Left (ent, params, tret, body) ->
+  |> List_.map (function
+       | Either.Left (ent, params, tret, body) ->
            let ent = add_attrs ent attrs in
            G.DefStmt (ent, mk_var_or_func tlet params tret body) |> G.s
-       | Right (pat, e) ->
+       | Either.Right (pat, e) ->
            (* TODO no attrs *)
            let exp = G.LetPattern (pat, e) |> G.e in
            G.exprstmt exp)
@@ -132,14 +132,14 @@ and type_kind = function
       G.TyFun ([ G.Param (G.param_of_type v1) ], v2)
   | TyApp (v1, v2) ->
       let v1 = list type_ v1 and v2 = name v2 in
-      G.TyApply (G.TyN v2 |> G.t, fb (v1 |> Common.map (fun t -> G.TA t)))
+      G.TyApply (G.TyN v2 |> G.t, fb (v1 |> List_.map (fun t -> G.TA t)))
   | TyTuple v1 ->
       let v1 = list type_ v1 in
       G.TyTuple (fb v1)
   | TyTodo (t, v1) ->
       let t = todo_category t in
       let v1 = list type_ v1 in
-      G.OtherType (t, Common.map (fun x -> G.T x) v1)
+      G.OtherType (t, List_.map (fun x -> G.T x) v1)
 
 and expr_body e : G.stmt = stmt e
 
@@ -164,7 +164,7 @@ and stmt e : G.stmt =
       let v1 = stmt v1 and v2 = list match_case v2 in
       let catches =
         v2
-        |> Common.map (fun (pat, e) ->
+        |> List_.map (fun (pat, e) ->
                (fake "catch", G.CatchPattern pat, G.exprstmt e))
       in
       G.Try (t, v1, catches, None, None) |> G.s
@@ -181,7 +181,7 @@ and stmt e : G.stmt =
       let var = { G.vinit = Some v2; vtype = None } in
       let n = G.N (G.Id (v1, G.empty_id_info ())) |> G.e in
       let next =
-        G.AssignOp (n, (nextop, tok), G.L (G.Int (Some 1, tok)) |> G.e) |> G.e
+        G.AssignOp (n, (nextop, tok), G.L (G.Int (Some 1L, tok)) |> G.e) |> G.e
       in
       let cond =
         G.Call (G.IdSpecial (G.Op condop, tok) |> G.e, fb [ G.Arg n; G.Arg v4 ])
@@ -377,7 +377,7 @@ and expr e =
   | ExprTodo (t, xs) ->
       let t = todo_category t in
       let xs = list expr xs in
-      G.OtherExpr (t, Common.map (fun x -> G.E x) xs) |> G.e
+      G.OtherExpr (t, List_.map (fun x -> G.E x) xs) |> G.e
   | If _
   | Try _
   | For _
@@ -389,9 +389,7 @@ and expr e =
       x.G.e |> G.e
 
 and literal = function
-  | Int v1 ->
-      let v1 = wrap id v1 in
-      G.Int v1
+  | Int v1 -> G.Int v1
   | Float v1 ->
       let v1 = wrap id v1 in
       G.Float v1
@@ -493,12 +491,12 @@ and pattern = function
   | PatTodo (t, xs) ->
       let t = todo_category t in
       let xs = list pattern xs in
-      G.OtherPat (t, Common.map (fun x -> G.P x) xs)
+      G.OtherPat (t, List_.map (fun x -> G.P x) xs)
 
 and let_binding = function
   | LetClassic v1 ->
       let v1 = let_def v1 in
-      Left v1
+      Either.Left v1
   | LetPattern (v1, v2) -> (
       let v1 = pattern v1 and v2 = expr v2 in
       match v1 with
@@ -513,8 +511,8 @@ and let_binding = function
                *)
               idinfo.G.id_type := Some ty
           | _ -> raise Impossible);
-          Left (ent, [], None, G.exprstmt v2)
-      | _ -> Right (v1, v2))
+          Either.Left (ent, [], None, G.exprstmt v2)
+      | _ -> Either.Right (v1, v2))
 
 and let_def { lname; lparams; lrettype; lbody } =
   let v1 = ident lname in
@@ -543,8 +541,8 @@ and type_declaration x =
       let v3 = type_def_kind tbody in
       let entity = { (G.basic_entity v1) with G.tparams = v2 } in
       let def = { G.tbody = v3 } in
-      Left (entity, def)
-  | TyDeclTodo categ -> Right categ
+      Either.Left (entity, def)
+  | TyDeclTodo categ -> Either.Right categ
 
 and type_parameter v =
   match v with
@@ -599,7 +597,7 @@ and module_expr = function
   | ModuleTodo (t, xs) ->
       let t = todo_category t in
       let xs = list module_expr xs in
-      G.OtherModule (t, Common.map (fun x -> G.ModDk x) xs)
+      G.OtherModule (t, List_.map (fun x -> G.ModDk x) xs)
 
 and attributes xs = list attribute xs
 
@@ -608,7 +606,7 @@ and attribute x =
   | NamedAttr (t1, (dotted, xs), t2) ->
       let args =
         xs
-        |> Common.map_filter (function
+        |> List_.map_filter (function
              | { i = TopExpr e; iattrs = [] } ->
                  let e = expr e in
                  Some (G.Arg e)
@@ -626,12 +624,13 @@ and item { i; iattrs } =
   | Type (_t, v1) ->
       let xs = list type_declaration v1 in
       xs
-      |> Common.map (function
-           | Left (ent, def) ->
+      |> List_.map (function
+           | Either.Left (ent, def) ->
                (* add attrs to all mutual type decls *)
                let ent = add_attrs ent attrs in
                G.DefStmt (ent, G.TypeDef def) |> G.s
-           | Right categ -> G.OtherStmt (G.OS_Todo, [ G.TodoK categ ]) |> G.s)
+           | Either.Right categ ->
+               G.OtherStmt (G.OS_Todo, [ G.TodoK categ ]) |> G.s)
   | Exception (_t, v1, v2) ->
       let v1 = ident v1 and v2 = list type_ v2 in
       let ent = G.basic_entity v1 ~attrs in
@@ -669,8 +668,8 @@ and item { i; iattrs } =
         G.OtherStmt
           ( G.OS_Todo,
             [ G.TodoK t ]
-            @ Common.map (fun x -> G.S x) xs
-            @ Common.map (fun x -> G.At x) attrs )
+            @ List_.map (fun x -> G.S x) xs
+            @ List_.map (fun x -> G.At x) attrs )
         |> G.s;
       ]
 

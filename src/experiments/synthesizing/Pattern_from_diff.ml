@@ -120,7 +120,7 @@ let pattern_from_diff f =
   let functions =
     try
       let file_ast = Parse_target.parse_program file in
-      Common.map_filter (function_from_range file_ast) f.In.diffs
+      List_.map_filter (function_from_range file_ast) f.In.diffs
     with
     | _ -> []
   in
@@ -133,5 +133,5 @@ let pattern_from_diff f =
     [
       ("url", J.String f.In.url);
       ("filename", J.String f.In.filename);
-      ("funcnames", J.Array (functions |> Common.map (fun f -> J.String f)));
+      ("funcnames", J.Array (functions |> List_.map (fun f -> J.String f)));
     ]

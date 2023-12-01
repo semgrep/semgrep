@@ -316,7 +316,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         {
           "name": "Semgrep - supply-chain1",
           "type": "semgrep_type",
-          "url": "https://semgrep.dev/r/supply-chain1",
+          "url": "https://semgrep.dev/-/advisories/supply-chain1",
           "value": "supply-chain1"
         }
       ],

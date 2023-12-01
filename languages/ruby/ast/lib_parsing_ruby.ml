@@ -25,4 +25,4 @@ let find_source_files_of_dir_or_files xs =
          match File_type.file_type_of_file filename with
          | FT.PL FT.Ruby -> true
          | _ -> false)
-  |> Common.sort
+  |> List_.sort

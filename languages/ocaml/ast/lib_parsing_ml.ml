@@ -13,7 +13,7 @@
  * license.txt for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 
 (*module V = Visitor_ml*)
 
@@ -27,7 +27,7 @@ let find_source_files_of_dir_or_files xs =
          match File_type.file_type_of_file filename with
          | File_type.PL (File_type.OCaml ("ml" | "mli")) -> true
          | _ -> false)
-  |> Common.sort
+  |> List_.sort
 
 let find_ml_files_of_dir_or_files xs =
   File.files_of_dirs_or_files_no_vcs_nofilter xs
@@ -35,16 +35,16 @@ let find_ml_files_of_dir_or_files xs =
          match File_type.file_type_of_file filename with
          | File_type.PL (File_type.OCaml "ml") -> true
          | _ -> false)
-  |> Common.sort
+  |> List_.sort
 
-let find_cmt_files_of_dir_or_files xs =
+let find_cmt_files_of_dir_or_files (xs : Fpath.t list) : Fpath.t list =
   File.files_of_dirs_or_files_no_vcs_nofilter xs
   |> List.filter (fun filename ->
          match File_type.file_type_of_file filename with
          | File_type.Obj ("cmt" | "cmti") -> true
          | _ -> false)
   (* ocaml 4.07 stdlib now has those .p.cmt files that cause dupe errors *)
-  |> Common.exclude (fun filename -> !!filename =~ ".*\\.p\\.cmt")
+  |> List_.exclude (fun filename -> !!filename =~ ".*\\.p\\.cmt")
   (* sometimes there is just a .cmti and no corresponding .cmt because
    * people put the information only in a .mli
    *)
@@ -64,7 +64,7 @@ let find_cmt_files_of_dir_or_files xs =
                   Common2.filename_of_dbe (d, b, "cmt")
               | [ "cmti" ] -> Common2.filename_of_dbe (d, b, "cmti")
               | _ -> raise Impossible))
-  |> File.Path.of_strings |> Common.sort
+  |> Fpath_.of_strings |> List_.sort
 
 (*****************************************************************************)
 (* Extract infos *)

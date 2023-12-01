@@ -58,6 +58,8 @@ class Rule:
 
         # add typescript to languages if the rule supports javascript.
         # TODO: Move this hack to lang.json
+        # coupling: if you move this hack, also fix
+        # Core_runner.add_typescript_to_javascript_rules_hack
         if any(
             language == LANGUAGE.resolve("javascript") for language in rule_languages
         ):
@@ -202,12 +204,6 @@ class Rule:
     @property
     def fix(self) -> Optional[str]:
         return self._raw.get("fix")
-
-    # TODO: use v1.FixRegex and do the validation currently done
-    # in core_output.convert_to_rule_match() here
-    @property
-    def fix_regex(self) -> Optional[Dict[str, Any]]:
-        return self._raw.get("fix-regex")
 
     @classmethod
     def from_json(cls, rule_json: Dict[str, Any]) -> "Rule":

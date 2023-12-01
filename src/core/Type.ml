@@ -42,6 +42,7 @@ class virtual ['self] map_parent =
      * recurse down. We should put alternate names in the type parameter anyway.
      * *)
     method visit_alternate_name _env x = x
+    method visit_parsed_int _env x = x
   end
 
 (*****************************************************************************)
@@ -76,7 +77,7 @@ and 'resolved t =
   (* TODO: generalize to other containers? But then use a TyContainer
    * in SAST.ml? *)
   (* int option for the cases where we know the size of the array *)
-  | Array of int option * 'resolved t
+  | Array of (Parsed_int.t[@name "parsed_int"]) option * 'resolved t
   | Function of 'resolved function_type
   | Pointer of 'resolved t
   (* todos (bailout) *)
@@ -250,17 +251,13 @@ let rec to_ast_generic_type_ ?(tok = None) lang
   | Builtin x ->
       Some (ast_generic_type_of_builtin_type ~tok:(make_tok "") lang x)
   | Array (size, ty) ->
-      let size =
-        Option.map
-          (fun n -> G.L (G.Int (Some n, make_tok (string_of_int n))) |> G.e)
-          size
-      in
+      let size = Option.map (fun pi -> G.L (G.Int pi) |> G.e) size in
       let* ty = to_ast_generic_type_ lang f ty in
       Some (G.TyArray (Tok.unsafe_fake_bracket size, ty) |> G.t)
   | Function (params, tret) ->
       let params =
         params
-        |> Common.map (function
+        |> List_.map (function
              | Param { pident; ptype } -> (
                  let topt = to_ast_generic_type_ lang f ptype in
                  match topt with

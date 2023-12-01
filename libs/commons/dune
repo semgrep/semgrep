@@ -2,6 +2,7 @@
  (public_name commons)
  (wrapped false)
  (libraries
+   TCB
    str
    unix
    fpath
@@ -10,6 +11,7 @@
    atdgen-runtime
    fmt
    ANSITerminal
+   ocolor
    logs logs.fmt
    easy_logging easy_logging_yojson
    alcotest

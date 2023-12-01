@@ -319,7 +319,7 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
   let def_bracket sparam =
     define sparam.bracket_name (* = sl_bracket or ml_bracket *)
       (conf.brackets
-      |> Common.map (fun (open_, close) ->
+      |> List_.map (fun (open_, close) ->
              sprintf {|%s%s%s|}
                (String.make 1 open_ |> Pcre_util.quote)
                (ellipsis_pat_of_spacing_param ~with_whitespace_padding:true

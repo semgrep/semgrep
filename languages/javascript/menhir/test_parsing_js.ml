@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module Flag = Flag_parsing
 module J = JSON
 module PS = Parsing_stat
@@ -66,7 +66,7 @@ let test_parse_common xs fullxs ext =
                      stat = Parsing_stat.bad_stat !!file;
                    }
              in
-             Common.push stat stat_list;
+             Stack_.push stat stat_list;
              let s = spf "bad = %d" stat.PS.error_line_count in
              if stat.PS.error_line_count =|= 0 then
                Hashtbl.add newscore !!file Common2.Ok
@@ -76,27 +76,29 @@ let test_parse_common xs fullxs ext =
   ()
 
 let test_parse_js xs =
-  let xs = File.Path.of_strings xs in
+  let xs = Fpath_.of_strings xs in
   let fullxs =
     File.files_of_dirs_or_files_no_vcs_nofilter xs
     |> List.filter (fun filename ->
            match FT.file_type_of_file filename with
            | FT.PL (FT.Web FT.Js) -> true
            | _else_ -> false)
-    |> Common.sort
+    |> List_.sort
   in
+
   test_parse_common xs fullxs "js"
 
 let test_parse_ts xs =
-  let xs = File.Path.of_strings xs in
+  let xs = Fpath_.of_strings xs in
   let fullxs =
     File.files_of_dirs_or_files_no_vcs_nofilter xs
     |> List.filter (fun filename ->
            match FT.file_type_of_file filename with
            | FT.PL (FT.Web FT.TypeScript) -> true
            | _ -> false)
-    |> Common.sort
+    |> List_.sort
   in
+
   (* typescript and JSX have lexing conflicts *)
   Common.save_excursion Flag_parsing_js.jsx false (fun () ->
       test_parse_common xs fullxs "ts")
@@ -119,9 +121,9 @@ let test_dump_ts file =
 
 let actions () =
   [
-    ("-tokens_js", "   <file>", Arg_helpers.mk_action_1_arg test_tokens_js);
-    ("-parse_js", "   <file or dir>", Arg_helpers.mk_action_n_arg test_parse_js);
-    ("-parse_ts", "   <file or dir>", Arg_helpers.mk_action_n_arg test_parse_ts);
-    ("-dump_js", "   <file>", Arg_helpers.mk_action_1_arg test_dump_js);
-    ("-dump_ts", "   <file>", Arg_helpers.mk_action_1_arg test_dump_ts);
+    ("-tokens_js", "   <file>", Arg_.mk_action_1_arg test_tokens_js);
+    ("-parse_js", "   <file or dir>", Arg_.mk_action_n_arg test_parse_js);
+    ("-parse_ts", "   <file or dir>", Arg_.mk_action_n_arg test_parse_ts);
+    ("-dump_js", "   <file>", Arg_.mk_action_1_arg test_dump_js);
+    ("-dump_ts", "   <file>", Arg_.mk_action_1_arg test_dump_ts);
   ]

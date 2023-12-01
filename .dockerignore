@@ -178,7 +178,6 @@ scripts/oncall-email/yesterday.json
 # Do not check in compiled binaries
 cli/src/semgrep/bin/*
 !cli/src/semgrep/bin/__init__.py
-bin
 
 # Ignore bench files
 **/perf/bench

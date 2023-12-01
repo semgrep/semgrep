@@ -38,7 +38,7 @@ let build_g_and_dm () =
           [| 0; 0; 0; 0 |]; [| 1; 0; 0; 0 |]; [| 1; 2; 0; 0 |]; [| 1; 0; 3; 0 |];
         |];
       name_to_i =
-        Common.hash_of_list
+        Hashtbl_.hash_of_list
           [
             (("foo.ml", E.File), 0);
             (("a/x.ml", E.File), 1);

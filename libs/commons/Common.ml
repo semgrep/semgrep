@@ -171,7 +171,9 @@ let protect ~finally work =
   (* nosemgrep: no-fun-protect *)
   try Fun.protect ~finally work with
   | Fun.Finally_raised exn1 as exn ->
-      (* Just re-raise whatever exception was raised during a 'finally', drop 'Finally_raised'. *)
+      (* Just re-raise whatever exception was raised during a 'finally',
+       * drop 'Finally_raised'.
+       *)
       logger#error "protect: %s" (exn |> Exception.catch |> Exception.to_string);
       Exception.catch_and_reraise exn1
 
@@ -200,341 +202,12 @@ let pr2_time name f =
       pr2 (spf "%s: %.6f s" name (t2 -. t1)))
 
 (*###########################################################################*)
-(* List functions *)
-(*###########################################################################*)
-
-(*****************************************************************************)
-(* List.map *)
-(*****************************************************************************)
-
-(*
-   Custom list type used to store intermediate lists, while minimizing
-   the number of allocated blocks.
-*)
-type 'a list5 =
-  | Elt of 'a * 'a list5
-  | Tuple of 'a * 'a * 'a * 'a * 'a * 'a list5
-  | Empty
-
-let rev5 l =
-  let rec aux acc l =
-    match l with
-    | Tuple (e, d, c, b, a, l) ->
-        (* common case *)
-        aux (a :: b :: c :: d :: e :: acc) l
-    | Elt (a, l) -> aux (a :: acc) l
-    | Empty -> acc
-  in
-  aux [] l
-
-let rec slow_map acc f l =
-  match l with
-  | [] -> rev5 acc
-  | [ a ] -> rev5 (Elt (f a, acc))
-  | [ a; b ] ->
-      let a = f a in
-      let b = f b in
-      rev5 (Elt (b, Elt (a, acc)))
-  | [ a; b; c ] ->
-      let a = f a in
-      let b = f b in
-      let c = f c in
-      rev5 (Elt (c, Elt (b, Elt (a, acc))))
-  | [ a; b; c; d ] ->
-      let a = f a in
-      let b = f b in
-      let c = f c in
-      let d = f d in
-      rev5 (Elt (d, Elt (c, Elt (b, Elt (a, acc)))))
-  | [ a; b; c; d; e ] ->
-      let a = f a in
-      let b = f b in
-      let c = f c in
-      let d = f d in
-      let e = f e in
-      rev5 (Elt (e, Elt (d, Elt (c, Elt (b, Elt (a, acc))))))
-  | a :: b :: c :: d :: e :: l ->
-      let a = f a in
-      let b = f b in
-      let c = f c in
-      let d = f d in
-      let e = f e in
-      slow_map (Tuple (e, d, c, b, a, acc)) f l
-
-let rec fast_map rec_calls_remaining f l =
-  if rec_calls_remaining <= 0 then slow_map Empty f l
-  else
-    match l with
-    | [] -> []
-    | [ a ] -> [ f a ]
-    | [ a; b ] ->
-        let a = f a in
-        let b = f b in
-        [ a; b ]
-    | [ a; b; c ] ->
-        let a = f a in
-        let b = f b in
-        let c = f c in
-        [ a; b; c ]
-    | [ a; b; c; d ] ->
-        let a = f a in
-        let b = f b in
-        let c = f c in
-        let d = f d in
-        [ a; b; c; d ]
-    | [ a; b; c; d; e ] ->
-        let a = f a in
-        let b = f b in
-        let c = f c in
-        let d = f d in
-        let e = f e in
-        [ a; b; c; d; e ]
-    | a :: b :: c :: d :: e :: l ->
-        let a = f a in
-        let b = f b in
-        let c = f c in
-        let d = f d in
-        let e = f e in
-        a :: b :: c :: d :: e :: fast_map (rec_calls_remaining - 1) f l
-
-(*
-   This implementation of List.map makes at most 1000 non-tailrec calls
-   before switching to a slower tailrec implementation.
-
-   Additionally, this implementation guarantees left-to-right evaluation.
-*)
-let map f l = fast_map 1000 f l
-
-(*****************************************************************************)
-(* List.map2 *)
-(*****************************************************************************)
-
-let rec slow_map2 acc f l1 l2 =
-  match (l1, l2) with
-  | [], [] -> rev5 acc
-  | [ a1 ], [ a2 ] -> rev5 (Elt (f a1 a2, acc))
-  | [ a1; b1 ], [ a2; b2 ] ->
-      let a = f a1 a2 in
-      let b = f b1 b2 in
-      rev5 (Elt (b, Elt (a, acc)))
-  | [ a1; b1; c1 ], [ a2; b2; c2 ] ->
-      let a = f a1 a2 in
-      let b = f b1 b2 in
-      let c = f c1 c2 in
-      rev5 (Elt (c, Elt (b, Elt (a, acc))))
-  | [ a1; b1; c1; d1 ], [ a2; b2; c2; d2 ] ->
-      let a = f a1 a2 in
-      let b = f b1 b2 in
-      let c = f c1 c2 in
-      let d = f d1 d2 in
-      rev5 (Elt (d, Elt (c, Elt (b, Elt (a, acc)))))
-  | [ a1; b1; c1; d1; e1 ], [ a2; b2; c2; d2; e2 ] ->
-      let a = f a1 a2 in
-      let b = f b1 b2 in
-      let c = f c1 c2 in
-      let d = f d1 d2 in
-      let e = f e1 e2 in
-      rev5 (Elt (e, Elt (d, Elt (c, Elt (b, Elt (a, acc))))))
-  | a1 :: b1 :: c1 :: d1 :: e1 :: l1, a2 :: b2 :: c2 :: d2 :: e2 :: l2 ->
-      let a = f a1 a2 in
-      let b = f b1 b2 in
-      let c = f c1 c2 in
-      let d = f d1 d2 in
-      let e = f e1 e2 in
-      slow_map2 (Tuple (e, d, c, b, a, acc)) f l1 l2
-  | _other -> raise (Failure "Common.map2: lists not equal length")
-
-let rec fast_map2 rec_calls_remaining f l1 l2 =
-  if rec_calls_remaining <= 0 then slow_map2 Empty f l1 l2
-  else
-    match (l1, l2) with
-    | [], [] -> []
-    | [ a1 ], [ a2 ] -> [ f a1 a2 ]
-    | [ a1; b1 ], [ a2; b2 ] ->
-        let a = f a1 a2 in
-        let b = f b1 b2 in
-        [ a; b ]
-    | [ a1; b1; c1 ], [ a2; b2; c2 ] ->
-        let a = f a1 a2 in
-        let b = f b1 b2 in
-        let c = f c1 c2 in
-        [ a; b; c ]
-    | [ a1; b1; c1; d1 ], [ a2; b2; c2; d2 ] ->
-        let a = f a1 a2 in
-        let b = f b1 b2 in
-        let c = f c1 c2 in
-        let d = f d1 d2 in
-        [ a; b; c; d ]
-    | [ a1; b1; c1; d1; e1 ], [ a2; b2; c2; d2; e2 ] ->
-        let a = f a1 a2 in
-        let b = f b1 b2 in
-        let c = f c1 c2 in
-        let d = f d1 d2 in
-        let e = f e1 e2 in
-        [ a; b; c; d; e ]
-    | a1 :: b1 :: c1 :: d1 :: e1 :: l1, a2 :: b2 :: c2 :: d2 :: e2 :: l2 ->
-        let a = f a1 a2 in
-        let b = f b1 b2 in
-        let c = f c1 c2 in
-        let d = f d1 d2 in
-        let e = f e1 e2 in
-        a :: b :: c :: d :: e :: fast_map2 (rec_calls_remaining - 1) f l1 l2
-    | _other -> raise (Failure "Common.map2: lists not equal length")
-
-(*
-   This implementation of List.map makes at most 1000 non-tailrec calls
-   before switching to a slower tailrec implementation.
-
-   Additionally, this implementation guarantees left-to-right evaluation.
-*)
-let map2 f l1 l2 = fast_map2 1000 f l1 l2
-
-(*****************************************************************************)
-(* Other list functions *)
-(*****************************************************************************)
-
-let hd_exn errmsg xs =
-  match xs with
-  | [] -> failwith errmsg
-  | head :: _ -> head
-
-let tl_exn errmsg xs =
-  match xs with
-  | [] -> failwith errmsg
-  | _ :: tail -> tail
-
-let mapi f l = map2 f (List.init (List.length l) Fun.id) l
-
-(* Tail-recursive to prevent stack overflows. *)
-let flatten xss =
-  xss |> List.fold_left (fun acc xs -> List.rev_append xs acc) [] |> List.rev
-
-let rec drop n xs =
-  match (n, xs) with
-  | 0, _ -> xs
-  | _, [] -> failwith "drop: not enough"
-  | n, _x :: xs -> drop (n - 1) xs
-
-let take n xs =
-  let rec next n xs acc =
-    match (n, xs) with
-    | 0, _ -> List.rev acc
-    | _, [] -> failwith "Common.take: not enough"
-    | n, x :: xs -> next (n - 1) xs (x :: acc)
-  in
-  next n xs []
-
-let enum x n =
-  if not (x <= n) then
-    failwith (Printf.sprintf "bad values in enum, expect %d <= %d" x n);
-  let rec enum_aux acc x n =
-    if x =|= n then n :: acc else enum_aux (x :: acc) (x + 1) n
-  in
-  List.rev (enum_aux [] x n)
-
-let exclude p xs = List.filter (fun x -> not (p x)) xs
-
-let rec (span : ('a -> bool) -> 'a list -> 'a list * 'a list) =
- fun p -> function
-  | [] -> ([], [])
-  | x :: xs ->
-      if p x then
-        let l1, l2 = span p xs in
-        (x :: l1, l2)
-      else ([], x :: xs)
-
-let rec take_safe n xs =
-  match (n, xs) with
-  | 0, _ -> []
-  | _, [] -> []
-  | n, x :: xs -> x :: take_safe (n - 1) xs
-
-(* Partition elements by key. Preserve the original order. *)
-let group_by f xs =
-  (* use Hashtbl.find_all property *)
-  let h = Hashtbl.create 101 in
-
-  (* could use Set *)
-  let hkeys = Hashtbl.create 101 in
-
-  xs
-  |> List.iter (fun x ->
-         let k = f x in
-         Hashtbl.replace hkeys k true;
-         Hashtbl.add h k x);
-  Hashtbl.fold
-    (fun k _ acc -> (k, Hashtbl.find_all h k |> List.rev) :: acc)
-    hkeys []
-
-let group_by_multi fkeys xs =
-  (* use Hashtbl.find_all property *)
-  let h = Hashtbl.create 101 in
-
-  (* could use Set *)
-  let hkeys = Hashtbl.create 101 in
-
-  xs
-  |> List.iter (fun x ->
-         let ks = fkeys x in
-         ks
-         |> List.iter (fun k ->
-                Hashtbl.replace hkeys k true;
-                Hashtbl.add h k x));
-  Hashtbl.fold (fun k _ acc -> (k, Hashtbl.find_all h k) :: acc) hkeys []
-
-(* you should really use group_assoc_bykey_eff *)
-let rec group_by_mapped_key fkey l =
-  match l with
-  | [] -> []
-  | x :: xs ->
-      let k = fkey x in
-      let xs1, xs2 =
-        List.partition
-          (fun x' ->
-            let k2 = fkey x' in
-            k =*= k2)
-          xs
-      in
-      (k, x :: xs1) :: group_by_mapped_key fkey xs2
-
-let rec zip xs ys =
-  match (xs, ys) with
-  | [], [] -> []
-  | [], _ -> failwith "zip: not same length"
-  | _, [] -> failwith "zip: not same length"
-  | x :: xs, y :: ys -> (x, y) :: zip xs ys
-
-let null xs =
-  match xs with
-  | [] -> true
-  | _ -> false
-
-let index_list xs =
-  if null xs then [] (* enum 0 (-1) generate an exception *)
-  else zip xs (enum 0 (List.length xs - 1))
-
-let index_list_0 xs = index_list xs
-let index_list_1 xs = xs |> index_list |> map (fun (x, i) -> (x, i + 1))
-let sort_prof a b = List.sort a b
-
-let sort_by_val_highfirst xs =
-  sort_prof (fun (_k1, v1) (_k2, v2) -> compare v2 v1) xs
-
-let sort_by_val_lowfirst xs =
-  sort_prof (fun (_k1, v1) (_k2, v2) -> compare v1 v2) xs
-
-let sort_by_key_highfirst xs =
-  sort_prof (fun (k1, _v1) (k2, _v2) -> compare k2 k1) xs
-
-let sort_by_key_lowfirst xs =
-  sort_prof (fun (k1, _v1) (k2, _v2) -> compare k1 k2) xs
-
-let push v l = l := v :: !l
-
-(*###########################################################################*)
 (* Exn *)
 (*###########################################################################*)
 
+(* See also Common.protect earlier *)
+
+(* use Common.protect instead? *)
 let unwind_protect f cleanup =
   if !debugger then f ()
   else
@@ -591,6 +264,7 @@ let exn_to_s exn = Printexc.to_string exn
 (*****************************************************************************)
 (* Composition/Control *)
 (*****************************************************************************)
+(* now earlier *)
 
 (*****************************************************************************)
 (* Error management *)
@@ -622,7 +296,7 @@ let exn_to_s exn = Printexc.to_string exn
 (*****************************************************************************)
 
 (*****************************************************************************)
-(* Option/Either *)
+(* Option *)
 (*****************************************************************************)
 
 let ( let* ) = Option.bind
@@ -656,115 +330,16 @@ let ( >>= ) m1 m2 =
    | Some x -> [x]
 *)
 
-(* often used in grammar actions in menhir *)
-let optlist_to_list = function
-  | None -> []
-  | Some xs -> xs
-
 (* not sure why but can't use let (?:) a b = ... then at use time ocaml yells*)
 let ( ||| ) a b =
   match a with
   | Some x -> x
   | None -> b
 
-type ('a, 'b) either = Left of 'a | Right of 'b [@@deriving eq, show, sexp]
-
-(* with sexp *)
-type ('a, 'b, 'c) either3 = Left3 of 'a | Middle3 of 'b | Right3 of 'c
-[@@deriving eq, show]
-(* with sexp *)
-
-(* If you don't want to use [@@deriving eq, show] above, you
- * can copy-paste manually the generated code by getting the
- * result of ocamlfind ocamlc -dsource ... on this code
- *  type ('a, 'b) either =
- *  | Left of 'a
- *  | Right of 'b
- *  [@@deriving show]
- *
- * which should look like this:
- * let pp_either = fun poly_a -> fun poly_b -> fun fmt -> function
- *   | Left a0 ->
- *       (Format.fprintf fmt "(@[<2>Left@ ";
- *        (poly_a fmt) a0;
- *        Format.fprintf fmt "@])")
- *   | Right a0 ->
- *       (Format.fprintf fmt "(@[<2>Right@ ";
- *        (poly_b fmt) a0;
- *        Format.fprintf fmt "@])")
- *
- * let pp_either3 = fun poly_a -> fun poly_b -> fun poly_c -> fun fmt -> function
- *   | Left3 a0 ->
- *       (Format.fprintf fmt "(@[<2>Left3@ ";
- *        (poly_a fmt) a0;
- *        Format.fprintf fmt "@])")
- *   | Middle3 a0 ->
- *       (Format.fprintf fmt "(@[<2>Middle3@ ";
- *        (poly_b fmt) a0;
- *        Format.fprintf fmt "@])")
- *   | Right3 a0 ->
- *       (Format.fprintf fmt "(@[<2>Right3@ ";
- *        (poly_c fmt) a0;
- *        Format.fprintf fmt "@])")
- *)
-
-let partition_either f l =
-  let rec part_either left right = function
-    | [] -> (List.rev left, List.rev right)
-    | x :: l -> (
-        match f x with
-        | Left e -> part_either (e :: left) right l
-        | Right e -> part_either left (e :: right) l)
-  in
-  part_either [] [] l
-
-let partition_either3 f l =
-  let rec part_either left middle right = function
-    | [] -> (List.rev left, List.rev middle, List.rev right)
-    | x :: l -> (
-        match f x with
-        | Left3 e -> part_either (e :: left) middle right l
-        | Middle3 e -> part_either left (e :: middle) right l
-        | Right3 e -> part_either left middle (e :: right) l)
-  in
-  part_either [] [] [] l
-
-let partition_result f l =
-  let rec aux left right = function
-    | [] -> (List.rev left, List.rev right)
-    | x :: l -> (
-        match f x with
-        | Ok x -> aux (x :: left) right l
-        | Error x -> aux left (x :: right) l)
-  in
-  aux [] [] l
-
-let rec filter_some = function
-  | [] -> []
-  | None :: l -> filter_some l
-  | Some e :: l -> e :: filter_some l
-
-(* Tail-recursive to prevent stack overflows. *)
-let map_filter f xs =
-  List.fold_left
-    (fun acc x ->
-      match f x with
-      | None -> acc
-      | Some y -> y :: acc)
-    [] xs
-  |> List.rev
-
-let rec find_some_opt p = function
-  | [] -> None
-  | x :: l -> (
-      match p x with
-      | Some v -> Some v
-      | None -> find_some_opt p l)
-
-let find_some p xs =
-  match find_some_opt p xs with
-  | None -> raise Not_found
-  | Some x -> x
+(*****************************************************************************)
+(* Either *)
+(*****************************************************************************)
+(* now in Either_.ml *)
 
 (*****************************************************************************)
 (* Regexp, can also use PCRE *)
@@ -1052,7 +627,9 @@ let (with_open_infile : string (* filename *) -> (in_channel -> 'a) -> 'a) =
       let res = f chan in
       close_in chan;
       res)
-    (fun _e -> close_in chan)
+    (fun _e ->
+      (* TODO? use close_in_noerr? *)
+      close_in chan)
 
 (* creation of tmp files, a la gcc *)
 
@@ -1083,13 +660,18 @@ let erase_this_temp_file f =
     Sys.remove f)
 
 (*###########################################################################*)
-(* Collection-like types other than List *)
+(* Containers *)
 (*###########################################################################*)
+
+(*****************************************************************************)
+(* List *)
+(*****************************************************************************)
+(* Now in List_.ml *)
 
 (*****************************************************************************)
 (* Assoc *)
 (*****************************************************************************)
-type ('a, 'b) assoc = ('a * 'b) list
+(* Now in Assoc.ml *)
 
 (*****************************************************************************)
 (* Arrays *)
@@ -1100,79 +682,36 @@ type ('a, 'b) assoc = ('a * 'b) list
 (*****************************************************************************)
 
 (*****************************************************************************)
-(* Set. Have a look too at set*.mli  *)
+(* Set *)
 (*****************************************************************************)
+(* Now in Set_.ml *)
 
 (*****************************************************************************)
 (* Hash *)
 (*****************************************************************************)
-
-let hash_to_list h =
-  Hashtbl.fold (fun k v acc -> (k, v) :: acc) h [] |> List.sort compare
-
-let hash_of_list xs =
-  let h = Hashtbl.create 101 in
-  xs |> List.iter (fun (k, v) -> Hashtbl.replace h k v);
-  h
-
-(*****************************************************************************)
-(* Hash sets *)
-(*****************************************************************************)
-
-type 'a hashset = ('a, bool) Hashtbl.t
-(* with sexp *)
-
-let hashset_to_list h = hash_to_list h |> map fst
-
-(* old: slightly slower?
- * let hashset_of_list xs =
- *   xs +> map (fun x -> x, true) +> hash_of_list
- *)
-let hashset_of_list (xs : 'a list) : ('a, bool) Hashtbl.t =
-  let h = Hashtbl.create (List.length xs) in
-  xs |> List.iter (fun k -> Hashtbl.replace h k true);
-  h
-
-let hkeys h =
-  let hkey = Hashtbl.create 101 in
-  h |> Hashtbl.iter (fun k _v -> Hashtbl.replace hkey k true);
-  hashset_to_list hkey
-
-let group_assoc_bykey_eff xs =
-  let h = Hashtbl.create 101 in
-  xs |> List.iter (fun (k, v) -> Hashtbl.add h k v);
-  let keys = hkeys h in
-  keys |> map (fun k -> (k, Hashtbl.find_all h k))
+(* Now in Hashtbl_.ml *)
 
 (*****************************************************************************)
 (* Stack *)
 (*****************************************************************************)
-
-type 'a stack = 'a list ref
-(* with sexp *)
+(* Now in Stack_.ml *)
 
 (*****************************************************************************)
 (* Tree *)
 (*****************************************************************************)
 
 (*****************************************************************************)
-(* Graph. Have a look too at Ograph_*.mli  *)
+(* Maps *)
 (*****************************************************************************)
 
-(*****************************************************************************)
-(* Generic op *)
-(*****************************************************************************)
-let sort xs = List.sort compare xs
+module SMap = Map.Make (String)
 
-(* maybe too slow? use an hash instead to first group, and then in
- * that group remove duplicates? *)
-let rec uniq_by eq xs =
-  match xs with
-  | [] -> []
-  | x :: xs -> (
-      match List.find_opt (fun y -> eq x y) xs with
-      | Some _ -> uniq_by eq xs
-      | None -> x :: uniq_by eq xs)
+type 'a smap = 'a SMap.t
+
+(*****************************************************************************)
+(* Graph *)
+(*****************************************************************************)
+(* Now in Ograph_*.ml *)
 
 (*###########################################################################*)
 (* Misc functions *)
@@ -1262,7 +801,7 @@ let dir_contents dir =
             loop result fs
         | f when Sys.is_directory f ->
             Sys.readdir f |> Array.to_list
-            |> map (Filename.concat f)
+            |> List_.map (Filename.concat f)
             |> List.append fs |> loop result
         | f -> loop (f :: result) fs)
     | [] -> result
@@ -1277,20 +816,12 @@ let vcs_re =
 
 let files_of_dir_or_files_no_vcs_nofilter xs =
   xs
-  |> map (fun x ->
+  |> List_.map (fun x ->
          if Sys.is_directory x then
            let files = dir_contents x in
            List.filter (fun x -> not (Re.execp vcs_re x)) files
          else [ x ])
-  |> flatten
-
-(*****************************************************************************)
-(* Maps *)
-(*****************************************************************************)
-
-module SMap = Map.Make (String)
-
-type 'a smap = 'a SMap.t
+  |> List_.flatten
 
 (*****************************************************************************)
 (* Disable physical equality/inequality operators *)

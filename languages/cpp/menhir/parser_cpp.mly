@@ -18,6 +18,7 @@
  * license.txt for more details.
  *)
 open Common
+open Either_
 
 open Ast_cpp
 open Parser_cpp_mly_helper
@@ -66,7 +67,7 @@ open Parser_cpp_mly_helper
 (*-----------------------------------------*)
 (* The C tokens *)
 (*-----------------------------------------*)
-%token <int option * Tok.t>   TInt
+%token <Parsed_int.t>   TInt
 %token <float option * Tok.t> TFloat
 %token <string * Tok.t>       TChar TString
 
@@ -630,7 +631,7 @@ literal:
  | TChar   { C (Char   ($1)) }
  | TString { C (String ($1)) }
  (* gccext: cppext: *)
- | string_elem string_elem+ { C (MultiString (Common.map (fun x -> StrLit x) ($1 :: $2))) }
+ | string_elem string_elem+ { C (MultiString (List_.map (fun x -> StrLit x) ($1 :: $2))) }
  (*c++ext: *)
  | Ttrue   { C (Bool (true, $1)) }
  | Tfalse  { C (Bool (false, $1)) }
@@ -1322,10 +1323,10 @@ class_head:
      { $1, None, [] }
  | class_key ident base_clause?
      { let name = name_of_id $2 in
-       $1, Some name, optlist_to_list $3 }
+       $1, Some name, List_.optlist_to_list $3 }
  | class_key nested_name_specifier ident base_clause?
      { let name = name_of_id $3 in
-       $1, Some name, optlist_to_list $4 }
+       $1, Some name, List_.optlist_to_list $4 }
 
 (* was called struct_union before *)
 class_key:
@@ -1913,7 +1914,7 @@ define_val:
  (* for statement-like macro with fixed number of arguments *)
  | Tdo statement Twhile "(" expr ")"
      { match $5 with
-       | (C (Int (Some 0, tok))) ->
+       | (C (Int ((_, tok) as pi))) when Parsed_int.eq_const pi 0 ->
          DefineDoWhileZero ($1, $2, $3, ($4, tok, $6))
        | _ -> raise Parsing.Parse_error
      }

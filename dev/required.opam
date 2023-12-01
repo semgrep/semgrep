@@ -1,0 +1,12 @@
+# This is meant to be installed with 'opam install --deps-only ./path/to/dev'
+#
+opam-version: "2.0"
+maintainer: "r2c"
+authors: "r2c"
+homepage: "n/a"
+bug-reports: "n/a"
+synopsis: "OCaml dependencies needed in CI"
+
+depends: [
+  "ocamlformat" {= "0.26.1" }  # used by the pre-commit hook
+]

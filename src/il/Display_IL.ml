@@ -26,8 +26,10 @@ let string_of_lval { base; rev_offset } =
 let string_of_literal (lit : AST_generic.literal) =
   match lit with
   | Bool (b, _) -> string_of_bool b
-  | Int (Some i, _) -> string_of_int i
-  | Int _ -> "<INT-LIT>"
+  | Int pi -> (
+      match Parsed_int.to_string_opt pi with
+      | None -> "<INT-LIT>"
+      | Some s -> s)
   | Float (Some f, _) -> string_of_float f
   | Float _ -> "<FLOAT-LIT>"
   | Char (s, _) -> s
@@ -64,7 +66,7 @@ let string_of_argument arg =
       "_"
 
 let string_of_arguments args =
-  Common.map string_of_argument args |> String.concat ","
+  List_.map string_of_argument args |> String.concat ","
 
 let short_string_of_node_kind nkind =
   match nkind with
@@ -78,7 +80,7 @@ let short_string_of_node_kind nkind =
   | NReturn (_, e) -> Common.spf "return %s" (string_of_exp e)
   | NThrow _ -> "throw ...;"
   | NLambda params ->
-      let params_strs = Common.map str_of_name params in
+      let params_strs = List_.map str_of_name params in
       "LAMBDA " ^ String.concat ", " params_strs
   | NOther (Noop str) -> Common.spf "<noop: %s>" str
   | NOther _ -> "<other>"

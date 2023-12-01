@@ -2,11 +2,8 @@
    Utilities for creating, scanning, and deleting a hierarchy
    of test files.
 *)
-open File.Operators
+open Fpath_.Operators
 open Printf
-
-let ( / ) = Fpath.( / )
-let ( // ) = Fpath.( // )
 
 type t =
   | Dir of string * t list
@@ -25,7 +22,7 @@ let get_name = function
       name
 
 let rec sort xs =
-  Common.map sort_one xs
+  List_.map sort_one xs
   |> List.sort (fun a b -> String.compare (get_name a) (get_name b))
 
 and sort_one x =
@@ -56,7 +53,7 @@ let flatten ?(root = Fpath.v ".") ?(include_dirs = false) files =
   let acc, _dir = flatten ([], root) files in
   List.rev acc
   |> (* remove the leading "./" *)
-  Common.map Fpath.normalize
+  List_.map Fpath.normalize
 
 let rec write root files = List.iter (write_one root) files
 
@@ -101,7 +98,7 @@ let read root =
     match (Unix.lstat (Fpath.to_string path)).st_kind with
     | S_DIR ->
         let names = get_dir_entries path in
-        Dir (name, Common.map (fun name -> read (path / name)) names)
+        Dir (name, List_.map (fun name -> read (path / name)) names)
     | S_REG -> File (name, Common.read_file (Fpath.to_string path))
     | S_LNK -> Symlink (name, Unix.readlink (Fpath.to_string path))
     | _other ->
@@ -111,7 +108,7 @@ let read root =
   match (Unix.stat (Fpath.to_string root)).st_kind with
   | S_DIR ->
       let names = get_dir_entries root in
-      Common.map (fun name -> read (root / name)) names
+      List_.map (fun name -> read (root / name)) names
   | _other ->
       failwith
         ("Testutil_files.read: root must be a directory: "
@@ -231,6 +228,6 @@ let () =
           let tree2 = read root in
           assert (sort tree2 = sort tree);
 
-          let paths = flatten tree |> File.Path.to_strings in
-          List.iter print_endline paths;
+          let paths = flatten tree |> Fpath_.to_strings in
+          List.iter Stdlib.print_endline paths;
           assert (paths = [ "a"; "b"; "c"; "d/e" ])))

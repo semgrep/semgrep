@@ -1,8 +1,8 @@
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 module Arg = Cmdliner.Arg
 module Cmd = Cmdliner.Cmd
 module Term = Cmdliner.Term
-module H = Cmdliner_helpers
+module H = Cmdliner_
 
 (*****************************************************************************)
 (* Prelude *)
@@ -36,7 +36,7 @@ type conf = {
   dry_run : bool;
   suppress_errors : bool;
   (* --code/--sca/--secrets/ *)
-  products : Out.product list;
+  products : OutJ.product list;
   (* 'semgrep ci' shares most of its flags with 'semgrep scan' *)
   scan_conf : Scan_CLI.conf;
 }

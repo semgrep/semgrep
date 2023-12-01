@@ -521,7 +521,7 @@ let rec find_macro_lineparen xs =
                &&
                match other.t with
                | TOBrace _ -> false (* otherwise would match funcdecl *)
-               | TCBrace _ when Common.hd_exn "empty context" ctx <> InFunction
+               | TCBrace _ when List_.hd_exn "empty context" ctx <> InFunction
                  ->
                    false
                | TPtVirg _
@@ -554,8 +554,7 @@ let rec find_macro_lineparen xs =
         &&
         match other.t with
         | TOBrace _ -> false (* otherwise would match funcdecl *)
-        | TCBrace _ when Common.hd_exn "empty context" ctx <> InFunction ->
-            false
+        | TCBrace _ when List_.hd_exn "empty context" ctx <> InFunction -> false
         | TPtVirg _
         | TCol _ ->
             false
@@ -564,7 +563,7 @@ let rec find_macro_lineparen xs =
         || col2 <= col1
            &&
            match other.t with
-           | TCBrace _ when Common.hd_exn "empty context" ctx =*= InFunction ->
+           | TCBrace _ when List_.hd_exn "empty context" ctx =*= InFunction ->
                true
            | Treturn _ -> true
            | Tif _ -> true
@@ -598,14 +597,13 @@ let rec find_macro_lineparen xs =
         match other.t with
         | TPtVirg _ -> false
         | TOr _ -> false
-        | TCBrace _ when Common.hd_exn "empty context" ctx <> InFunction ->
-            false
+        | TCBrace _ when List_.hd_exn "empty context" ctx <> InFunction -> false
         | tok when TH.is_binary_operator tok -> false
         | _ -> true)
         || col2 <= col1
            &&
            match other.t with
-           | TCBrace _ when Common.hd_exn "empty context" ctx =*= InFunction ->
+           | TCBrace _ when List_.hd_exn "empty context" ctx =*= InFunction ->
                true
            | Treturn _ -> true
            | Tif _ -> true

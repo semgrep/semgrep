@@ -1,7 +1,7 @@
 (* Expanding or extracting macros, at the token level *)
 
 (* the either is to differentialte macro-variables from macro-functions *)
-type define_body = (unit, string list) Common.either * Parser_cpp.token list
+type define_body = (unit, string list) Either.t * Parser_cpp.token list
 
 (* TODO
    (* corresponds to what is in the yacfe configuration file (e.g. standard.h) *)
@@ -27,7 +27,7 @@ type define_body = (unit, string list) Common.either * Parser_cpp.token list
 
 (* extracting define_def, e.g. from a standard.h; assume have called
  * fix_tokens_define before to have the TDefEol *)
-val extract_macros : Parser_cpp.token list -> (string, define_body) Common.assoc
+val extract_macros : Parser_cpp.token list -> (string, define_body) Assoc.t
 
 (* TODO
    val string_of_define_def: define_def -> string

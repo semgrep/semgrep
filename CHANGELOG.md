@@ -6,6 +6,109 @@
 
 <!-- insertion point -->
 
+## [1.51.0](https://github.com/returntocorp/semgrep/releases/tag/v1.51.0) - 2023-11-29
+
+### Added
+
+- taint-mode: Added experimental rule option `taint_match_on: source` that makes
+  Semgrep report taint findings on the taint source rather than on the sink. (pa-3272)
+
+### Changed
+
+- Elixir got moved to Pro. (elixir_pro)
+- The 'fix_regex' field has been removed from the semgrep JSON output. Instead,
+  the 'fix' field contains the content the result of the fix_regex. (fix_regex)
+- taint-mode: Tweaked experimental option `taint_only_propagate_through_assignments`
+  so that when it is enabled, `tainted.field` and `tainted(args)` will no longer
+  propagate taint. (pa-2193)
+
+### Fixed
+
+- Fixed Kotlin parse error.
+
+  Previously, code like this would throw a parse error
+
+  ```
+  fun f1(context : Context) {
+      Foo(context).elem = var1
+  }
+  ```
+
+  due to not recognizing `Foo(context).elem = ...` as valid.
+  Now calls are recognized as valid in the left hand of
+  assignments. (ea-104)
+
+- Python: `async` statements are now translated into the Dataflow IL so Semgrep
+  will be able to report findings e.g. inside `async with ...` statements. (gh-9182)
+- In gitlab output, use correct url attached to rule instead of generating it.
+  This fixes url for supply chain findings. (gitlab)
+- - The language server will no longer crash on startup for intellij (language-server)
+- - The language server no longer crashes when installed through pip on Mac platforms (language-server-macos)
+- taint-mode: When we encountered an assignment `lval := expr` where `expr` returned
+  no taints, we automatically cleaned `lval`. This was correct in the early days of
+  taint-mode, before we introduced taint by side-effect, but it is wrong now. The LHS
+  `lval` may be tainted by side-effect, in which case we cannot clean it just because
+  `expr` returns no taint. Now that we introduced `by-side-effect: only` it is also
+  possible for `expr` to taint `lval` by side-effect and return no immediate taint.
+
+  This kind of source should now work as expected:
+
+  ````yaml
+  - by-side-effect: true
+    patterns:
+      - pattern: |
+          $X = source()
+      - focus-metavariable: $X
+  ``` (pa-3164)
+  ````
+
+- taint-mode: Fixed a bug in the recently added `by-side-effect: only` option
+  causing that when matching l-values of the form `l.x` and `l[i]`, the `l`
+  occurence would unexpectedly become tainted too. This led to FPs in some
+  typestate rules like those checking for double-lock or double-free.
+
+  Now a source such as:
+
+  ```yaml
+  - by-side-effect: only
+    patterns:
+      - pattern: lock($L)
+      - focus-metavariable: $L
+  ```
+
+  will not produce FPs on code such as:
+
+  ````python
+  lock(obj.l)
+  unlock(obj.l)
+  lock(obj.l)
+  ``` (pa-3282)
+  ````
+
+- taint-mode: Removed a hack that made `lval = new ...` assignments to not clean
+  the `lval` despite the RHS was not tainted. This caused FPs in double-free rules.
+  For example, given this source:
+
+  ```yaml
+  pattern-sources:
+    - by-side-effect: only
+      patterns:
+        - pattern: delete $VAR;
+        - focus-metavariable: $VAR
+  ```
+
+  And the code below:
+
+  ```cpp
+  while (nondet) {
+    int *v = new int;
+    delete v; // FP
+  }
+  ```
+
+  The `delete v` statement was reported as a double-free, because Semgrep did not
+  consider that `v = new int` would clean the taint in `v`. (pa-3283)
+
 ## [1.50.0](https://github.com/returntocorp/semgrep/releases/tag/v1.50.0) - 2023-11-17
 
 No significant changes.

@@ -16,14 +16,28 @@ open Cohttp
  *)
 
 (*****************************************************************************)
-(* Client *)
+(* Types *)
+(*****************************************************************************)
+
+type get_info = {
+  response : Cohttp.Response.t;
+  body : Cohttp_lwt.Body.t;
+  code : int;
+}
+
+(*****************************************************************************)
+(* Globals *)
 (*****************************************************************************)
 
 (* Create a client reference so we can swap it out with a testing version *)
+
+let client_ref : (module Cohttp_lwt.S.Client) option ref = ref None
+let in_mock_context = ref false
+let set_client_ref v = if not !in_mock_context then client_ref := Some v
+
 (*****************************************************************************)
 (* Async *)
 (*****************************************************************************)
-let client_ref : (module Cohttp_lwt.S.Client) option ref = ref None
 
 (* We use a functor here so that we can pass in what we use for the Lwt runtime. *)
 (* This is platform dependent (JS vs Unix), so we can't just choose one *)
@@ -37,7 +51,7 @@ module Make (Lwt_platform : sig
   val run : 'a Lwt.t -> 'a
 end) =
 struct
-  let get_async ?(headers = []) url =
+  let rec get_async ?(headers = []) url =
     Logs.debug (fun m -> m "GET on %s" (Uri.to_string url));
     (* This checks to make sure a client has been set *)
     (* Instead of defaulting to a client, as that can cause *)
@@ -48,21 +62,35 @@ struct
            | None -> failwith "HTTP client not initialized")
     in
     let headers = Header.of_list headers in
-    let%lwt response, body = Client.get ~headers url in
-    let%lwt body = Cohttp_lwt.Body.to_string body in
+    let%lwt response, orig_body = Client.get ~headers url in
+    let%lwt body = Cohttp_lwt.Body.to_string orig_body in
     let code = response |> Response.status |> Code.code_of_status in
     match code with
-    | _ when Code.is_success code -> Lwt.return (Ok body)
+    | _ when Code.is_success code ->
+        Lwt.return (Ok (body, { code; response; body = orig_body }))
+    (* Automatically resolve redirects, in this case a 307 Temporary Redirect.
+       This is important for installing the Semgrep Pro Engine binary, which
+       receives a temporary redirect at the proper endpoint.
+    *)
+    | 307 -> (
+        let location = Header.get (response |> Response.headers) "location" in
+        match location with
+        | None ->
+            let code_str = Code.string_of_status response.status in
+            let err = "HTTP GET failed: " ^ code_str ^ ":\n" ^ body in
+            Logs.debug (fun m -> m "%s" err);
+            Lwt.return (Error (err, { code; response; body = orig_body }))
+        | Some url -> get_async (Uri.of_string url))
     | _ when Code.is_error code ->
         let code_str = Code.string_of_status response.status in
         let err = "HTTP GET failed: " ^ code_str ^ ":\n" ^ body in
         Logs.debug (fun m -> m "%s" err);
-        Lwt.return (Error err)
+        Lwt.return (Error (err, { code; response; body = orig_body }))
     | _ ->
         let code_str = Code.string_of_status response.status in
         let err = "HTTP GET unexpected response: " ^ code_str ^ ":\n" ^ body in
         Logs.debug (fun m -> m "%s" err);
-        Lwt.return (Error err)
+        Lwt.return (Error (err, { code; response; body = orig_body }))
 
   let post_async ~body ?(headers = [ ("content-type", "application/json") ])
       ?(chunked = false) url =

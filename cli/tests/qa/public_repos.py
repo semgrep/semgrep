@@ -138,7 +138,10 @@ REPOS = [
         "https://github.com/DevSlop/Pixi",
         xfail_reason="DevSlop-Pixi/app/public/api-docs/ contains some minified JS files that cause Semgrep to timeout, so the output will contain some errors.",
     ),
-    Repo("https://github.com/home-assistant/home-assistant"),
+    Repo(
+        "https://github.com/home-assistant/home-assistant",
+        xfail_reason="Lack of support for match statement in Python",
+    ),
     Repo("https://github.com/we45/Vulnerable-Flask-App"),
     Repo(
         "https://github.com/draios/sysdig-inspect",

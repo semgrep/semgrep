@@ -4,7 +4,7 @@
  * the command line, e.g. '$ pfff_misc -cfg_php foo.php' will call the
  * test_cfg_php function.
  *)
-val actions : unit -> Arg_helpers.cmdline_actions
+val actions : unit -> Arg_.cmdline_actions
 
 (*x: test_analyze_php.mli *)
 (*e: test_analyze_php.mli *)

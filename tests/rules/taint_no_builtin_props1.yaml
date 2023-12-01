@@ -1,0 +1,12 @@
+rules:
+- id: test
+  severity: WARNING
+  message: Test
+  languages: [python]
+  mode: taint
+  options:
+    taint_only_propagate_through_assignments: true
+  pattern-sources:
+  - pattern: source(...)
+  pattern-sinks:
+  - pattern: sink(...)

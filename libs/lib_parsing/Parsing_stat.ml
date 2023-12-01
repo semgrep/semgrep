@@ -186,7 +186,7 @@ let print_parsing_stat_list ?(verbose = false) statxs =
 (*****************************************************************************)
 
 let print_regression_information ~ext xs newscore =
-  let xs = File.Path.to_strings xs in
+  let xs = Fpath_.to_strings xs in
   let dirname_opt =
     match xs with
     | [ x ] when Common2.is_directory x -> Some (Common.fullpath x)
@@ -222,7 +222,7 @@ let lines_around_error_line ~context (file, line) =
   let res = ref [] in
 
   for i = startl to endl - 1 do
-    Common.push arr.(i) res
+    Stack_.push arr.(i) res
   done;
   List.rev !res
 
@@ -242,9 +242,9 @@ let print_recurring_problematic_tokens xs =
   Common2.pr2_xxxxxxxxxxxxxxxxx ();
   pr2 "maybe 10 most problematic tokens";
   Common2.pr2_xxxxxxxxxxxxxxxxx ();
-  Common.hash_to_list h
+  Hashtbl_.hash_to_list h
   |> List.sort (fun (_k1, (v1, _)) (_k2, (v2, _)) -> compare v2 v1)
-  |> Common.take_safe 10
+  |> List_.take_safe 10
   |> List.iter (fun (k, (i, (file_ex, line_ex))) ->
          pr2 (spf "%s: present in %d parsing errors" k i);
          pr2 "example: ";

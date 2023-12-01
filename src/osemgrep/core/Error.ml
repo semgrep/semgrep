@@ -1,4 +1,4 @@
-module Out = Semgrep_output_v1_j
+module OutJ = Semgrep_output_v1_j
 
 (*****************************************************************************)
 (* Prelude *)
@@ -105,7 +105,7 @@ let () =
  * for the constructors with arguments).
  * python: error_type_string() in error.py
  *)
-let rec string_of_error_type (error_type : Out.error_type) : string =
+let rec string_of_error_type (error_type : OutJ.error_type) : string =
   match error_type with
   (* python: convert to the same string of core.ParseError for now *)
   | PartialParsing _ -> string_of_error_type ParseError
@@ -137,5 +137,5 @@ let rec string_of_error_type (error_type : Out.error_type) : string =
   | OutOfMemory
   | TimeoutDuringInterfile
   | OutOfMemoryDuringInterfile ->
-      Out.string_of_error_type error_type
+      OutJ.string_of_error_type error_type
       |> JSON.remove_enclosing_quotes_of_jstring

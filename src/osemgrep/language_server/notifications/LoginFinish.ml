@@ -1,6 +1,6 @@
 open Lsp.Types
 module Conv = Convert_utils
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 let meth = "semgrep/loginFinish"
 let wait_before_retry_in_ms = 6 * 1000
@@ -25,9 +25,8 @@ let of_jsonrpc_params params : (Uri.t * Uuidm.t) option =
 (* Entry point *)
 (*****************************************************************************)
 
-let on_notification server params : unit =
+let on_notification _server params : unit =
   (* Emulating a poor man's writer's monad, mixed with some LWT goodness. *)
-  ignore server;
   let ( let^ ) (x : (_, string) Result.t Lwt.t) f : unit Lwt.t =
     let%lwt result = x in
     match result with

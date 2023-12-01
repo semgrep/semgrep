@@ -1,6 +1,20 @@
+(* Yoann Padioleau
+ *
+ * Copyright (C) 2023 Semgrep Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * LICENSE for more details.
+ *)
 open Common
-module E = Core_error
 open Core_profiling
+module E = Core_error
 
 (*****************************************************************************)
 (* Prelude *)
@@ -48,8 +62,27 @@ type 'a match_result = {
 }
 [@@deriving show]
 
+(* shortcut *)
+type matches_single_file = Core_profiling.partial_profiling match_result
+
 type t = {
-  matches : Pattern_match.t list;
+  (* old: matches : Pattern_match.t list
+     Why did we add the fixes here?
+     When we bridge the gap from `Core_result.t` to `Out.core_output`, we have
+     to associate each match to a (potential) edit.
+     We will choose to embed the fix information in `Core_result.t`, as
+     autofixing is now a valid function of the core engine, and thus the
+     produced fixes are related to its produced results.
+     These edits start as all None, but will be filled in by
+     `Autofix.produce_autofixes`, and the associated Autofix_processor step.
+     alt: we could have added this to `Pattern_match.t`, but felt a bit early
+     alt: we could have produced these autofixes when going from
+          Core_result.t to Out.core_output, but this would require us to do
+          autofixing at the same time as output, which conflates process of
+          producing output and side-effectively applying autofixes.
+          In addition, the `Autofix` module is not available from that dir.
+  *)
+  matches_with_fixes : (Pattern_match.t * Textedit.t option) list;
   errors : Core_error.t list;
   skipped_rules : Rule.invalid_rule_error list;
   rules_with_targets : Rule.rule list;
@@ -90,7 +123,7 @@ let mk_final_result_with_just_errors (errors : Core_error.t list) : t =
   {
     errors;
     (* default values *)
-    matches = [];
+    matches_with_fixes = [];
     rules_with_targets = [];
     skipped_rules = [];
     extra = No_info;
@@ -263,8 +296,13 @@ let make_final_result
     (skipped_rules : Rule.invalid_rule_error list) (scanned : Fpath.t list)
     (interfile_languages_used : Xlang.t list) ~rules_parse_time =
   (* contenating information from the match_result list *)
-  let matches =
-    results |> List.concat_map (fun (x : _ match_result) -> x.matches)
+  let matches_with_nullary_fixes =
+    results
+    |> List.concat_map (fun (x : _ match_result) -> x.matches)
+    (* These fixes are initially None, and will be populated with fixes
+       after we run Autofix.produce_autofixes.
+    *)
+    |> List_.map (fun res -> (res, None))
   in
   let explanations =
     results |> List.concat_map (fun (x : _ match_result) -> x.explanations)
@@ -294,9 +332,9 @@ let make_final_result
   in
   let extra =
     let mk_profiling () =
-      let file_times = results |> Common.map get_profiling in
+      let file_times = results |> List_.map get_profiling in
       {
-        rules = Common.map fst rules_with_engine;
+        rules = List_.map fst rules_with_engine;
         rules_parse_time;
         file_times;
         (* Notably, using the `top_heap_words` does not measure cumulative
@@ -317,14 +355,14 @@ let make_final_result
     | MNo_info -> No_info
   in
   {
-    matches;
+    matches_with_fixes = matches_with_nullary_fixes;
     errors;
     extra;
     skipped_rules;
     rules_with_targets = [];
     explanations = (if explanations =*= [] then None else Some explanations);
     rules_by_engine =
-      rules_with_engine |> Common.map (fun (r, ek) -> (fst r.Rule.id, ek));
+      rules_with_engine |> List_.map (fun (r, ek) -> (fst r.Rule.id, ek));
     interfile_languages_used;
     scanned;
   }

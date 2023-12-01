@@ -41,7 +41,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* This is the (partially parsed/evaluated) content of a metavariable *)
 type value =
   | Bool of bool
-  | Int of int
+  | Int of int64
   | Float of float
   | String of string (* string without the enclosing '"' *)
   | List of value list
@@ -74,7 +74,7 @@ exception NotInEnv of Metavariable.mvar
 (* JSON Parsing *)
 (*****************************************************************************)
 let metavar_of_json s = function
-  | J.Int i -> Int i
+  | J.Int i -> Int (Int64.of_int i)
   | J.Bool b -> Bool b
   | J.String s -> String s
   | J.Float f -> Float f
@@ -89,7 +89,7 @@ let parse_json file =
   let json = JSON.load_json file in
   match json with
   | J.Object xs -> (
-      match Common.sort_by_key_lowfirst xs with
+      match Assoc.sort_by_key_lowfirst xs with
       | [
        ("code", J.String code);
        ("language", J.String lang);
@@ -106,11 +106,11 @@ let parse_json file =
             | _ -> failwith "only expressions are supported"
           in
           let metavars =
-            xs |> Common.map (fun (s, json) -> (s, metavar_of_json s json))
+            xs |> List_.map (fun (s, json) -> (s, metavar_of_json s json))
           in
           let env =
             {
-              mvars = Common.hash_of_list metavars;
+              mvars = Hashtbl_.hash_of_list metavars;
               constant_propagation = true;
               file = Fpath.v file;
             }
@@ -126,13 +126,18 @@ let parse_json file =
 (* alt: could use exit code, or return JSON *)
 let print_result xopt =
   match xopt with
+  (* nosem *)
   | None -> pr "NONE"
   | Some v -> (
       match v with
+      (* nosem *)
       | Bool b -> pr (string_of_bool b)
       (* allow to abuse int to encode boolean ... ugly C tradition *)
-      | Int 0 -> pr (string_of_bool false)
+      (* nosem *)
+      | Int 0L -> pr (string_of_bool false)
+      (* nosem *)
       | Int _ -> pr (string_of_bool true)
+      (* nosem *)
       | _ -> pr "NONE")
 [@@action]
 
@@ -206,14 +211,15 @@ let string_duration_to_milliseconds s code =
           loop ("", v + (d * 365 * 24 * 60 * 60 * 1000)) (i + 1)
       | _ -> raise (NotHandled code)
   in
-  if s = "" then raise (NotHandled code) else Int (loop ("", 0) 0)
+  if s = "" then raise (NotHandled code)
+  else Int (Int64.of_int (loop ("", 0) 0))
 
 let value_of_lit ~code x =
   match x with
   | G.Bool (b, _t) -> Bool b
   | G.String (_, (s, _t), _) -> String s
   (* big integers or floats can't be evaluated (Int (None, ...)) *)
-  | G.Int (Some i, _t) -> Int i
+  | G.Int (Some i, _) -> Int i
   | G.Float (Some f, _t) -> Float f
   | _ -> raise (NotHandled code)
 
@@ -274,20 +280,20 @@ let rec eval env code =
       match v with
       | Int _ -> v
       | String s -> (
-          match int_of_string_opt s with
-          | None -> raise (NotHandled code)
-          | Some i -> Int i)
+          match Parsed_int.of_string_opt s with
+          | Some (Some i, _) -> Int i
+          | _ -> raise (NotHandled code))
       | __else__ -> raise (NotHandled code))
   | G.Call ({ e = G.IdSpecial (G.Op op, _t); _ }, (_, args, _)) ->
       let values =
         args
-        |> Common.map (function
+        |> List_.map (function
              | G.Arg e -> eval env e
              | _ -> raise (NotHandled code))
       in
       eval_op op values code
   | G.Container (G.List, (_, xs, _)) ->
-      let vs = Common.map (eval env) xs in
+      let vs = List_.map (eval env) xs in
       List vs
   (* Emulate Python str just enough *)
   | G.Call ({ e = G.N (G.Id (("str", _), _)); _ }, (_, [ G.Arg e ], _)) ->
@@ -345,58 +351,58 @@ and eval_op op values code =
   | G.Or, [ Bool b1; Bool b2 ] -> Bool (b1 || b2)
   | G.Gt, [ Int i1; Int i2 ] -> Bool (i1 > i2)
   | G.Gt, [ Float i1; Float i2 ] -> Bool (i1 > i2)
-  | G.Gt, [ Int i1; Float i2 ] -> Bool (float_of_int i1 > i2)
-  | G.Gt, [ Float i1; Int i2 ] -> Bool (i1 > float_of_int i2)
+  | G.Gt, [ Int i1; Float i2 ] -> Bool (Int64.to_float i1 > i2)
+  | G.Gt, [ Float i1; Int i2 ] -> Bool (i1 > Int64.to_float i2)
   | G.GtE, [ Int i1; Int i2 ] -> Bool (i1 >= i2)
   | G.GtE, [ Float i1; Float i2 ] -> Bool (i1 >= i2)
-  | G.GtE, [ Int i1; Float i2 ] -> Bool (float_of_int i1 >= i2)
-  | G.GtE, [ Float i1; Int i2 ] -> Bool (i1 >= float_of_int i2)
+  | G.GtE, [ Int i1; Float i2 ] -> Bool (Int64.to_float i1 >= i2)
+  | G.GtE, [ Float i1; Int i2 ] -> Bool (i1 >= Int64.to_float i2)
   | G.Lt, [ Int i1; Int i2 ] -> Bool (i1 < i2)
   | G.Lt, [ Float i1; Float i2 ] -> Bool (i1 < i2)
-  | G.Lt, [ Int i1; Float i2 ] -> Bool (float_of_int i1 < i2)
-  | G.Lt, [ Float i1; Int i2 ] -> Bool (i1 < float_of_int i2)
+  | G.Lt, [ Int i1; Float i2 ] -> Bool (Int64.to_float i1 < i2)
+  | G.Lt, [ Float i1; Int i2 ] -> Bool (i1 < Int64.to_float i2)
   | G.LtE, [ Int i1; Int i2 ] -> Bool (i1 <= i2)
   | G.LtE, [ Float i1; Float i2 ] -> Bool (i1 <= i2)
-  | G.LtE, [ Int i1; Float i2 ] -> Bool (float_of_int i1 <= i2)
-  | G.LtE, [ Float i1; Int i2 ] -> Bool (i1 <= float_of_int i2)
-  | G.Div, [ Int i1; Int i2 ] -> Int (i1 / i2)
+  | G.LtE, [ Int i1; Float i2 ] -> Bool (Int64.to_float i1 <= i2)
+  | G.LtE, [ Float i1; Int i2 ] -> Bool (i1 <= Int64.to_float i2)
+  | G.Div, [ Int i1; Int i2 ] -> Int Int64_.(i1 / i2)
   | G.Div, [ Float i1; Float i2 ] -> Float (i1 /. i2)
-  | G.Div, [ Int i1; Float i2 ] -> Float (float_of_int i1 /. i2)
-  | G.Div, [ Float i1; Int i2 ] -> Float (i1 /. float_of_int i2)
-  | G.Minus, [ Int i1 ] -> Int (-i1)
+  | G.Div, [ Int i1; Float i2 ] -> Float (Int64.to_float i1 /. i2)
+  | G.Div, [ Float i1; Int i2 ] -> Float (i1 /. Int64.to_float i2)
+  | G.Minus, [ Int i1 ] -> Int (Int64.neg i1)
   | G.Minus, [ Float i1 ] -> Float (-.i1)
-  | G.Minus, [ Int i1; Int i2 ] -> Int (i1 - i2)
+  | G.Minus, [ Int i1; Int i2 ] -> Int Int64_.(i1 - i2)
   | G.Minus, [ Float i1; Float i2 ] -> Float (i1 -. i2)
-  | G.Minus, [ Int i1; Float i2 ] -> Float (float_of_int i1 -. i2)
-  | G.Minus, [ Float i1; Int i2 ] -> Float (i1 -. float_of_int i2)
-  | G.Mod, [ Int i1; Int i2 ] -> Int (i1 mod i2)
+  | G.Minus, [ Int i1; Float i2 ] -> Float (Int64.to_float i1 -. i2)
+  | G.Minus, [ Float i1; Int i2 ] -> Float (i1 -. Int64.to_float i2)
+  | G.Mod, [ Int i1; Int i2 ] -> Int Int64_.(i1 mod i2)
   | G.Mod, [ Float i1; Float i2 ] -> Float (Float.rem i1 i2)
-  | G.Mod, [ Int i1; Float i2 ] -> Float (Float.rem (float_of_int i1) i2)
-  | G.Mod, [ Float i1; Int i2 ] -> Float (Float.rem i1 (float_of_int i2))
-  | G.Mult, [ Int i1; Int i2 ] -> Int (i1 * i2)
+  | G.Mod, [ Int i1; Float i2 ] -> Float (Float.rem (Int64.to_float i1) i2)
+  | G.Mod, [ Float i1; Int i2 ] -> Float (Float.rem i1 (Int64.to_float i2))
+  | G.Mult, [ Int i1; Int i2 ] -> Int Int64_.(i1 * i2)
   | G.Mult, [ Float i1; Float i2 ] -> Float (i1 *. i2)
-  | G.Mult, [ Int i1; Float i2 ] -> Float (float_of_int i1 *. i2)
-  | G.Mult, [ Float i1; Int i2 ] -> Float (i1 *. float_of_int i2)
+  | G.Mult, [ Int i1; Float i2 ] -> Float (Int64.to_float i1 *. i2)
+  | G.Mult, [ Float i1; Int i2 ] -> Float (i1 *. Int64.to_float i2)
   | G.Plus, [ Int i1 ] -> Int i1
   | G.Plus, [ Float i1 ] -> Float i1
-  | G.Plus, [ Int i1; Int i2 ] -> Int (i1 + i2)
+  | G.Plus, [ Int i1; Int i2 ] -> Int Int64_.(i1 + i2)
   | G.Plus, [ Float i1; Float i2 ] -> Float (i1 +. i2)
-  | G.Plus, [ Int i1; Float i2 ] -> Float (float_of_int i1 +. i2)
-  | G.Plus, [ Float i1; Int i2 ] -> Float (i1 +. float_of_int i2)
-  | G.Pow, [ Int i1; Int i2 ] -> Int (Common2.power i1 i2)
-  | G.Pow, [ Float i1; Int i2 ] -> Float (i1 ** float_of_int i2)
-  | G.Pow, [ Int i1; Float i2 ] -> Float (float_of_int i1 ** i2)
+  | G.Plus, [ Int i1; Float i2 ] -> Float (Int64.to_float i1 +. i2)
+  | G.Plus, [ Float i1; Int i2 ] -> Float (i1 +. Int64.to_float i2)
+  | G.Pow, [ Int i1; Int i2 ] -> Int (Int64_.power i1 i2)
+  | G.Pow, [ Float i1; Int i2 ] -> Float (i1 ** Int64.to_float i2)
+  | G.Pow, [ Int i1; Float i2 ] -> Float (Int64.to_float i1 ** i2)
   | G.Pow, [ Float i1; Float i2 ] -> Float (i1 ** i2)
-  | G.BitNot, [ Int i1 ] -> Int (Int.lognot i1)
-  | G.BitAnd, [ Int i1; Int i2 ] -> Int (Int.logand i1 i2)
-  | G.BitOr, [ Int i1; Int i2 ] -> Int (Int.logor i1 i2)
-  | G.BitXor, [ Int i1; Int i2 ] -> Int (Int.logxor i1 i2)
-  | G.Eq, [ Int v1; Float v2 ] -> Bool (float_of_int v1 =*= v2)
-  | G.Eq, [ Float v1; Int v2 ] -> Bool (v1 =*= float_of_int v2)
+  | G.BitNot, [ Int i1 ] -> Int (Int64.lognot i1)
+  | G.BitAnd, [ Int i1; Int i2 ] -> Int (Int64.logand i1 i2)
+  | G.BitOr, [ Int i1; Int i2 ] -> Int (Int64.logor i1 i2)
+  | G.BitXor, [ Int i1; Int i2 ] -> Int (Int64.logxor i1 i2)
+  | G.Eq, [ Int v1; Float v2 ] -> Bool (Int64.to_float v1 =*= v2)
+  | G.Eq, [ Float v1; Int v2 ] -> Bool (v1 =*= Int64.to_float v2)
   (* TODO? dangerous use of polymorphic =*= ? *)
   | G.Eq, [ v1; v2 ] -> Bool (v1 =*= v2)
-  | G.NotEq, [ Int v1; Float v2 ] -> Bool (float_of_int v1 <> v2)
-  | G.NotEq, [ Float v1; Int v2 ] -> Bool (v1 <> float_of_int v2)
+  | G.NotEq, [ Int v1; Float v2 ] -> Bool (Int64.to_float v1 <> v2)
+  | G.NotEq, [ Float v1; Int v2 ] -> Bool (v1 <> Int64.to_float v2)
   (* TODO? dangerous use of polymorphic <> ? *)
   | G.NotEq, [ v1; v2 ] -> Bool (v1 <> v2)
   | G.In, [ v1; v2 ] -> (
@@ -421,7 +427,7 @@ and eval_str _env ~code v =
   let str =
     match v with
     | Bool b -> string_of_bool b
-    | Int i -> string_of_int i
+    | Int i -> Int64.to_string i
     | Float f -> string_of_float f
     | String s -> s
     | AST s -> s
@@ -481,7 +487,7 @@ let bindings_to_env (config : Rule_options.t) ~file bindings =
   let constant_propagation = config.constant_propagation in
   let mvars =
     bindings
-    |> Common.map_filter (fun (mvar, mval) ->
+    |> List_.map_filter (fun (mvar, mval) ->
            let try_bind_to_exp e =
              try
                Some
@@ -511,16 +517,18 @@ let bindings_to_env (config : Rule_options.t) ~file bindings =
            | MV.E e -> try_bind_to_exp e
            | MV.Text (s, _, _) -> Some (mvar, String s)
            | x -> string_of_binding mvar x)
-    |> Common.hash_of_list
+    |> Hashtbl_.hash_of_list
   in
+
   { mvars; constant_propagation; file }
 
 let bindings_to_env_just_strings (config : Rule_options.t) ~file xs =
   let mvars =
     xs
-    |> Common.map_filter (fun (mvar, mval) -> string_of_binding mvar mval)
-    |> Common.hash_of_list
+    |> List_.map_filter (fun (mvar, mval) -> string_of_binding mvar mval)
+    |> Hashtbl_.hash_of_list
   in
+
   { mvars; constant_propagation = config.constant_propagation; file }
 
 (*****************************************************************************)

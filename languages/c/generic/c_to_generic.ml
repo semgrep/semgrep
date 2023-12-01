@@ -12,7 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open Common
+open Either_
 module G = AST_generic
 module H = AST_generic_helpers
 open Ast_cpp
@@ -31,7 +31,7 @@ open Ast_c
 (*****************************************************************************)
 let id x = x
 let option = Option.map
-let list = Common.map
+let list = List_.map
 let string = id
 let fake tok s = Tok.fake_tok tok s
 let unsafe_fake s = Tok.unsafe_fake_tok s
@@ -160,9 +160,7 @@ and struct_kind = function
 
 and expr e =
   match e with
-  | Int v1 ->
-      let v1 = wrap id v1 in
-      G.L (G.Int v1) |> G.e
+  | Int pi -> G.L (G.Int pi) |> G.e
   | Float v1 ->
       let v1 = wrap id v1 in
       G.L (G.Float v1) |> G.e
@@ -279,7 +277,7 @@ and expr e =
         ( unsafe_fake "new",
           v1,
           G.empty_id_info (),
-          fb ([ v2 ] |> Common.map G.arg) )
+          fb ([ v2 ] |> List_.map G.arg) )
       |> G.e
   | Generic (tk, (_l, (e, assocs), _r)) ->
       let e = expr e in
@@ -287,7 +285,7 @@ and expr e =
         G.Cond (Call (IdSpecial (Typeof, tk) |> G.e, fb [ G.Arg e ]) |> G.e)
       in
       let cases =
-        Common.map
+        List_.map
           (fun (ty, e) ->
             G.CasesAndBody
               ( [ G.Case (G.fake "", G.PatType (type_ ty)) ],
@@ -308,8 +306,8 @@ and special_wrap (spec, tk) =
   | AlignOf -> N (Id (("alignof", tk), G.empty_id_info ())) |> G.e
 
 and string_component = function
-  | StrIdent id -> Common.Middle3 (G.N (Id (id, G.empty_id_info ())) |> G.e)
-  | StrLit s -> Common.Left3 s
+  | StrIdent id -> Either_.Middle3 (G.N (Id (id, G.empty_id_info ())) |> G.e)
+  | StrLit s -> Either_.Left3 s
 
 and argument v =
   match v with
@@ -331,7 +329,7 @@ and stmt st =
   | CaseStmt x ->
       (* should not happen, should only appear in Switch *)
       let case, st = case_and_body x in
-      let anys = [ case ] |> Common.map (fun cs -> G.Cs cs) in
+      let anys = [ case ] |> List_.map (fun cs -> G.Cs cs) in
       G.OtherStmtWithStmt (OSWS_Todo, anys, st)
   | ExprSt (v1, t) ->
       let v1 = expr v1 in
@@ -346,7 +344,7 @@ and stmt st =
       let v0 = info v0 in
       let v1 = expr v1 and v2 = list case_and_body v2 in
       let cases =
-        v2 |> Common.map (fun (case, body) -> G.CasesAndBody ([ case ], body))
+        v2 |> List_.map (fun (case, body) -> G.CasesAndBody ([ case ], body))
       in
       G.Switch (v0, Some (G.Cond v1), cases)
   | While (t, v1, v2) ->
@@ -380,7 +378,7 @@ and stmt st =
       G.Goto (t, v1, G.sc)
   | Vars v1 ->
       let v1 = list var_decl v1 in
-      (G.stmt1 (v1 |> Common.map (fun v -> G.s (G.DefStmt v)))).G.s
+      (G.stmt1 (v1 |> List_.map (fun v -> G.s (G.DefStmt v)))).G.s
   | AsmStmt
       ( asm_tk,
         (_l, { a_template; a_outputs; a_inputs; a_clobbers; a_gotos }, _r),
@@ -388,8 +386,8 @@ and stmt st =
       let a_template = [ G.E (expr a_template) ] in
       let a_outputs = List.concat_map name_asm_operand a_outputs in
       let a_inputs = List.concat_map expr_asm_operand a_inputs in
-      let a_clobbers = Common.map (fun x -> G.I (name x)) a_clobbers in
-      let a_gotos = Common.map (fun x -> G.I (name x)) a_gotos in
+      let a_clobbers = List_.map (fun x -> G.I (name x)) a_clobbers in
+      let a_gotos = List_.map (fun x -> G.I (name x)) a_gotos in
       G.OtherStmt
         ( G.OS_Asm,
           [ G.Tk asm_tk ] @ a_template @ a_outputs @ a_inputs @ a_clobbers
@@ -424,7 +422,7 @@ and stmt st =
             (tk, OtherCond (("if", G.fake "if"), [ G.E (expr e) ]))
       in
       let elifs =
-        Common.map
+        List_.map
           (fun (tk, e, stmts) -> (tk, G.Cond (expr e), list stmt stmts))
           p_elifs
       in
@@ -441,7 +439,7 @@ and stmt st =
             | Some old_s ->
                 Some
                   (G.If (tk, cond, Block (fb stmts) |> G.s, Some (old_s |> G.s))))
-          ((top_tk, cond, Common.map stmt p_stmts) :: elifs)
+          ((top_tk, cond, List_.map stmt p_stmts) :: elifs)
           p_else
       with
       | None -> failwith "impossible"
@@ -523,12 +521,12 @@ and struct_def { s_name; s_kind; s_flds } =
   match s_kind with
   | Struct ->
       let fields =
-        bracket (Common.map (fun (n, t) -> G.basic_field n None (Some t))) v3
+        bracket (List_.map (fun (n, t) -> G.basic_field n None (Some t))) v3
       in
       (entity, G.TypeDef { G.tbody = G.AndType fields })
   | Union ->
       let ctors =
-        v3 |> Tok.unbracket |> Common.map (fun (n, t) -> G.OrUnion (n, t))
+        v3 |> Tok.unbracket |> List_.map (fun (n, t) -> G.OrUnion (n, t))
       in
       (entity, G.TypeDef { G.tbody = G.OrType ctors })
 
@@ -547,7 +545,7 @@ and enum_def { e_name = v1; e_type = _v2_TODO; e_consts = v3 } =
       v3
   in
   let entity = G.basic_entity v1 in
-  let ors = v3 |> Common.map (fun (n, eopt) -> G.OrEnum (n, eopt)) in
+  let ors = v3 |> List_.map (fun (n, eopt) -> G.OrEnum (n, eopt)) in
   (entity, G.TypeDef { G.tbody = G.OrType ors })
 
 and type_def { t_name = v1; t_type = v2 } =

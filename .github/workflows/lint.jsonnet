@@ -2,8 +2,17 @@
 // Note that we run Semgrep inside pre-commit, so this is also dogfooding
 // and testing how semgrep interact with pre-commit.
 // We also run some Github Actions (GHA) lint checks.
+//
+// TODO: set up an environment that has both ocaml and python so we can run
+//       all the pre-commit checks in one simple step like we do on our
+//       dev machines.
+//       At the time of writing, actions/setup-python@v4 fails for various
+//       reasons when running it in our Alpine or Ubuntu containers
+//       built with ocaml-layer that would provide ocamlformat.
+//       Not sure why this is hard.
 
 local actions = import "libs/actions.libsonnet";
+local gha = import 'libs/gha.libsonnet';
 
 // ----------------------------------------------------------------------------
 // The jobs
@@ -15,6 +24,7 @@ local pre_commit_job = {
   'runs-on': 'ubuntu-latest',
   steps: [
     actions.checkout(),
+    gha.git_safedir,
     // We grab those submodules below because they are the one needed by 'mypy',
     // which runs as part of pre-commit to check our Python code.
     // alt: we could also use 'submodules: recursive' instead, but that would be slower
@@ -42,6 +52,10 @@ local pre_commit_job = {
     // in CI, for the same PR.
     {
       uses: 'pre-commit/action@v3.0.0',
+      env: {
+        // Tell scripts/lint-ocaml to not bother with ocamlformat
+        SKIP_OCAMLFORMAT: 'yes'
+      },
     },
   ],
 };
@@ -58,6 +72,7 @@ local pre_commit_manual_job = {
   'runs-on': 'ubuntu-latest',
   steps: [
     actions.checkout(),
+    gha.git_safedir,
     {
       uses: 'pre-commit/action@v3.0.0',
       with: {
@@ -124,6 +139,7 @@ local action_lint_job = {
   'runs-on': 'ubuntu-latest',
   steps: [
     actions.checkout(),
+    gha.git_safedir,
     {
       uses: 'actions/setup-go@v4',
       with: {

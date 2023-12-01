@@ -6,6 +6,8 @@
     process_limits
     lib_parsing
     aliengrep
+
+    ; unix platform stuff
     lwt_platform.unix
     cohttp-lwt-unix
 
@@ -26,6 +28,8 @@
 
     osemgrep_language_server
     osemgrep_cli_login
+    osemgrep_cli_publish
+    osemgrep_tests
   )
  (modes native byte) ; bytecode here for debugging
  (preprocess

@@ -14,9 +14,8 @@
  *)
 
 (* Commentary *)
-(* This Lwt_main.run dropin assumes that some other process ran the promise *)
-(* For example in Js_of_ocaml, Javascript's event loop will do this *)
-
+(* Javascript specific LWT primitives *)
+(* See lwt_platform top level dune for further explanation *)
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -24,6 +23,8 @@
 (*****************************************************************************)
 (* Code *)
 (*****************************************************************************)
+(* This Lwt_main.run dropin assumes that some other process ran the promise *)
+(* For example in Js_of_ocaml, Javascript's event loop will do this *)
 let run t =
   match Lwt.state t with
   | Lwt.Return x -> x
@@ -35,3 +36,4 @@ let run t =
 let detach f x = f x |> Lwt.return
 let init_preemptive _ _ _ = ()
 let set_engine () = ()
+let (sleep : float -> 'a Lwt.t) = Js_of_ocaml_lwt.Lwt_js.sleep

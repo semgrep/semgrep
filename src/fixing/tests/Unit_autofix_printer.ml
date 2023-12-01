@@ -32,13 +32,13 @@ type autofix_printer_test_case = {
  * fixes tested there are correct.
  *)
 let check lang { target; pattern; fix_pattern; expected } =
-  let ext = Common.hd_exn "unexpected empty list" (Lang.ext_of_lang lang) in
+  let ext = List_.hd_exn "unexpected empty list" (Lang.ext_of_lang lang) in
   Common2.with_tmp_file ~str:target ~ext (fun target_file ->
       let target_file = Fpath.v target_file in
       let matches =
         Unit_engine.match_pattern ~lang
           ~hook:(fun _ -> ())
-          ~file:target_file ~pattern ~fix_pattern:(Some fix_pattern)
+          ~file:target_file ~pattern ~fix:(Fix fix_pattern)
       in
       (* To keep it simple, we make sure that each example here has only a
        * single match. *)

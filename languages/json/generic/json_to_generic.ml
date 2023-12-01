@@ -45,7 +45,7 @@ let expr ?(unescape_strings = false) x =
         | Record (lp, xs, rp) ->
             let ys =
               xs
-              |> Common.map (function
+              |> List_.map (function
                    | G.F
                        {
                          s =
@@ -54,15 +54,15 @@ let expr ?(unescape_strings = false) x =
                                FieldDefColon { vinit = Some e; _ } );
                          _;
                        } ->
-                       Left (id, e)
+                       Either.Left (id, e)
                    | G.F { s = ExprStmt ({ e = Ellipsis t; _ }, _); _ } ->
-                       Right t
+                       Either.Right t
                    | x -> failwith (spf "not a JSON field: %s" (G.show_field x)))
             in
             let zs =
               ys
-              |> Common.map (function
-                   | Left (id, e) ->
+              |> List_.map (function
+                   | Either.Left (id, e) ->
                        let key =
                          (* we don't want $FLD: 1 to be transformed
                           * in "$FLD" : 1, which currently would not match
@@ -73,7 +73,7 @@ let expr ?(unescape_strings = false) x =
                        in
                        G.Container (G.Tuple, Tok.unsafe_fake_bracket [ key; e ])
                        |> G.e
-                   | Right t -> G.Ellipsis t |> G.e)
+                   | Either.Right t -> G.Ellipsis t |> G.e)
             in
             G.Container (G.Dict, (lp, zs, rp)) |> G.e
         | G.L (G.String (_, (escaped, t), _)) when unescape_strings ->

@@ -2,9 +2,9 @@ open Yojson.Safe.Util
 open Lsp
 open Lsp.Types
 open Jsonrpc
-open File.Operators
+open Fpath_.Operators
 module Conv = Convert_utils
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 let meth = "semgrep/search"
 
@@ -21,26 +21,26 @@ let on_request runner params =
       let xlang_opt =
         Option.bind lang_opt (fun l -> Some (Xlang.of_string l))
       in
-      let src = Rules_source.(Pattern (pattern, xlang_opt, None)) in
+      (* TODO: figure out why rules_from_rules_source_async hangs *)
+      (* let src = Rules_source.(Pattern (pattern, xlang_opt, None)) in *)
       let rules_and_origins =
-        Rule_fetching.rules_from_rules_source ~token_opt:None
-          ~rewrite_rule_ids:true ~registry_caching:false src
+        Rule_fetching.rules_from_pattern (pattern, xlang_opt, None)
       in
       let rules, _ =
         Rule_fetching.partition_rules_and_errors rules_and_origins
       in
       let matches = runner rules in
       let matches_by_file =
-        Common.group_by (fun (m : Out.cli_match) -> !!(m.path)) matches
+        Assoc.group_by (fun (m : OutJ.cli_match) -> !!(m.path)) matches
       in
       let json =
-        Common.map
+        List_.map
           (fun (file, matches) ->
             let uri = file |> Uri.of_path |> Uri.to_string in
             let ranges =
               matches
-              |> Common.map Conv.range_of_cli_match
-              |> Common.map Range.yojson_of_t
+              |> List_.map Conv.range_of_cli_match
+              |> List_.map Range.yojson_of_t
             in
             `Assoc [ ("uri", `String uri); ("ranges", `List ranges) ])
           matches_by_file

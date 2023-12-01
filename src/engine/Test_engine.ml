@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2021-2022 r2c
+ * Copyright (C) 2021-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -13,11 +13,12 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 module FT = File_type
 module R = Rule
 module E = Core_error
 module RP = Core_result
+module In = Input_to_core_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -35,6 +36,8 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * This module provides a service similar to what semgrep --test provides,
  * but without requiring the Python wrapper. It is also significantly
  * faster than semgrep --test (not sure why).
+ *
+ * LATER: merge with osemgrep Test_subcommand.ml
  *)
 
 (*****************************************************************************)
@@ -43,7 +46,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 
 let (xlangs_of_rules : Rule.t list -> Xlang.t list) =
  fun rs ->
-  rs |> Common.map (fun r -> r.R.target_analyzer) |> List.sort_uniq compare
+  rs |> List_.map (fun r -> r.R.target_analyzer) |> List.sort_uniq compare
 
 let first_xlang_of_rules (rs : Rule.t list) : Xlang.t =
   match rs with
@@ -66,7 +69,7 @@ let find_target_of_yaml_file file =
   try
     let d, b, ext = Common2.dbe_of_filename file in
     Common2.readdir_to_file_list d @ Common2.readdir_to_link_list d
-    |> Common.find_some (fun file2 ->
+    |> List_.find_some (fun file2 ->
            let path2 = Filename.concat d file2 in
            (* Config files have a single .yaml extension (assumption),
             * but test files may have multiple extensions, e.g.
@@ -155,25 +158,31 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
         E.g_errors := [];
         Core_profiling.mode := MTime;
         let rules, extract_rules =
-          Common.partition_either
+          Either_.partition_either
             (fun r ->
               match r.Rule.mode with
               | `Extract _ as e -> Right { r with mode = e }
               | mode -> Left { r with mode })
             rules
         in
-        let extracted_ranges =
-          Match_extract_mode.extract_nested_lang
+        (* coupling: This is basically duplicated from Core_scan
+           TODO we should test extract mode through integration tests
+           rather than duplicating all this *)
+        let (extracted_targets : Extract.extracted_target_and_adjuster list) =
+          Match_extract_mode.extract
             ~match_hook:(fun _ _ -> ())
             ~timeout:0. ~timeout_threshold:0 extract_rules xtarget
         in
-        let extract_targets, extract_result_map =
-          (List.fold_right (fun (t, fn) (ts, fn_tbl) ->
-               Hashtbl.add fn_tbl t.Input_to_core_t.path fn;
-               (t :: ts, fn_tbl)))
-            extracted_ranges
-            ([], Hashtbl.create 5)
+        let adjusters =
+          Extract.adjusters_of_extracted_targets extracted_targets
         in
+        let in_targets : In.target list =
+          extracted_targets
+          |> List_.map
+               (fun Extract.{ extracted = Extracted path; analyzer; _ } ->
+                 { In.path = !!path; analyzer; products = Product.all })
+        in
+
         let xconf = Match_env.default_xconfig in
         let res =
           try
@@ -193,10 +202,10 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
             failwith (spf "exn on %s (exn = %s)" !!file (Common.exn_to_s exn)));
         let eres =
           try
-            extract_targets
-            |> Common.map (fun t ->
-                   let file = t.Input_to_core_t.path in
-                   let xlang = t.Input_to_core_t.analyzer in
+            in_targets
+            |> List_.map (fun (t : In.target) ->
+                   let file = t.path in
+                   let xlang = t.analyzer in
                    let lazy_ast_and_errors =
                      lazy
                        (match xlang with
@@ -224,18 +233,19 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
                        ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
                    in
                    (* adjust the match location for extracted files *)
-                   match Hashtbl.find_opt extract_result_map file with
-                   | Some f -> f matches
+                   match
+                     Hashtbl.find_opt adjusters.loc_adjuster
+                       (Extracted (Fpath.v file))
+                   with
+                   | Some match_result_loc_adjuster ->
+                       match_result_loc_adjuster matches
                    | None -> matches)
           with
           | exn ->
               failwith (spf "exn on %s (exn = %s)" !!file (Common.exn_to_s exn))
         in
         res :: eres
-        |> List.iter
-             (fun
-               (res : Core_profiling.partial_profiling Core_result.match_result)
-             ->
+        |> List.iter (fun (res : Core_result.matches_single_file) ->
                match res.extra with
                | Debug _
                | No_info ->
@@ -263,17 +273,16 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
                                   target: %s)"
                                  rule_time.parse_time !!file !!target)));
         res :: eres
-        |> List.iter
-             (fun
-               (res : Core_profiling.partial_profiling Core_result.match_result)
-             -> res.matches |> List.iter Core_json_output.match_to_error);
+        |> List.iter (fun (res : Core_result.matches_single_file) ->
+               res.matches |> List.iter Core_json_output.match_to_push_error);
         (if not (E.ErrorSet.is_empty res.errors) then
            let errors =
              E.ErrorSet.elements res.errors
-             |> Common.map Core_error.show |> String.concat "-----\n"
+             |> List_.map Core_error.show |> String.concat "-----\n"
            in
            failwith (spf "parsing error(s) on %s:\n%s" !!file errors));
         let actual_errors = !E.g_errors in
+        E.g_errors := [];
         actual_errors
         |> List.iter (fun e ->
                logger#info "found error: %s" (E.string_of_error e));
@@ -292,7 +301,7 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
     if prepend_lang then
       let langs =
         !!file |> find_target_of_yaml_file |> Fpath.v |> Lang.langs_of_filename
-        |> Common.map Lang.to_capitalized_alnum
+        |> List_.map Lang.to_capitalized_alnum
       in
       let langs =
         match langs with
@@ -319,7 +328,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None)
 
   let tests =
     fullxs
-    |> Common.map
+    |> List_.map
          (make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
             ~total_mismatch)
   in
@@ -331,7 +340,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None)
   (tests, total_mismatch, print_summary)
 
 let test_rules ?unit_testing xs =
-  let paths = File.Path.of_strings xs in
+  let paths = Fpath_.of_strings xs in
   let tests, total_mismatch, print_summary = make_tests ?unit_testing paths in
   tests |> List.iter (fun (_name, test) -> test ());
   print_summary ();

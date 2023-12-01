@@ -4,7 +4,7 @@
 (* This module contains functions (and types) which are very often used.
  * They are so common (hence the name of this file) that lots of modules
  * just 'open Common' to get in scope those functions.
- * This file acts like a second Stdlib.ml (used to be called Pervasives.ml).
+ * This file acts like a second stdlib.ml (used to be called pervasives.ml).
  *
  * However, because this module is often open'ed, it should
  * not define too many functions (<100) because we can't impose
@@ -275,136 +275,27 @@ val cmd_to_list : ?verbose:bool -> string -> string list (* alias *)
 (*****************************************************************************)
 (* Lists *)
 (*****************************************************************************)
-
-(* Shortcut for xs =*= [].
- * It is not that shorter, but it avoids to use =*= which helps
- * to reduce the number of places to look for possible problems with =*=.
- *)
-val null : 'a list -> bool
-
-val map : ('a -> 'b) -> 'a list -> 'b list
-(** Same as [List.map] but stack-safe and slightly faster on short lists.
-    Additionally, we guarantee that the mapping function is applied from
-    left to right like for [List.iter].
-*)
-
-(* Replacement for 'Common.hd_exn "unexpected empty list"', which returns the
-   first element of a list or
-   fails with an unhelpful exception. 'Common.hd_exn msg []' will raise
-   the exception 'Failure msg' which is only a slight improvement over
-   'Common.hd_exn "unexpected empty list"'.
-
-   In general, you should prefer a match-with and not have to call a
-   function to extract the first element of a list.
-
-   Usage: Common.hd_exn "found an empty list of things" xs
-
-   If receiving an empty list is a bug, prefer the following:
-
-     match xs with
-     | [] -> assert false
-     | xs -> ...
-*)
-val hd_exn : string -> 'a list -> 'a
-
-(* Replacement for 'Common.tl_exn "unexpected empty list"' but not a great
-   improvement. The same recommendations as for 'Common.hd_exn "unexpected
-   empty list"' apply. *)
-val tl_exn : string -> 'a list -> 'a list
-
-val map2 : ('a -> 'b -> 'c) -> 'a list -> 'b list -> 'c list
-(** Same as [List.map2] but stack-safe and slightly faster on short lists.
-    Additionally, we guarantee that the mapping function is applied from
-    left to right like for [List.iter].
-*)
-
-val mapi : (int -> 'a -> 'b) -> 'a list -> 'b list
-(** Same as [List.mapi] but stack-safe and slightly faster on short lists.
-    Additionally, we guarantee that the mapping function is applied from
-    left to right like for [List.iter].
-*)
-
-val flatten : 'a list list -> 'a list
-(** Same as [List.flatten] but tail recursive. *)
-
-(* opposite of Common.filter *)
-val exclude : ('a -> bool) -> 'a list -> 'a list
-
-(* Sort in a polymorphic way. You should really use 'deriving ord' instead *)
-val sort : 'a list -> 'a list
-val uniq_by : ('a -> 'a -> bool) -> 'a list -> 'a list
-
-val map_filter : ('a -> 'b option) -> 'a list -> 'b list
-(** Same as [List.filter_map] but tail recursive. *)
-
-val find_some : ('a -> 'b option) -> 'a list -> 'b
-val find_some_opt : ('a -> 'b option) -> 'a list -> 'b option
-val filter_some : 'a option list -> 'a list
-
-(* Haskell-inspired list combinators (take/drop/span) *)
-
-(* this may raise Failure "Common.take: not enough" *)
-val take : int -> 'a list -> 'a list
-
-(* this does not raise a Failure and take only the first n elements *)
-val take_safe : int -> 'a list -> 'a list
-
-(* this may raise Failure "drop: not enough" *)
-val drop : int -> 'a list -> 'a list
-val span : ('a -> bool) -> 'a list -> 'a list * 'a list
-
-(* zip a list with an increasing list of numbers.
- * e.g., index_list ["a"; "b"] -> ["a", 0; "b", 1].
- * An alternative is to use functions like List.iteri.
- *)
-val index_list : 'a list -> ('a * int) list
-val index_list_0 : 'a list -> ('a * int) list
-
-(* similar to index_list_0 but start the index at 1 *)
-val index_list_1 : 'a list -> ('a * int) list
+(* now in List_.mli *)
 
 (*****************************************************************************)
 (* Assoc *)
 (*****************************************************************************)
-
-type ('a, 'b) assoc = ('a * 'b) list
-
-(* sorts *)
-val sort_by_val_lowfirst : ('a, 'b) assoc -> ('a * 'b) list
-val sort_by_val_highfirst : ('a, 'b) assoc -> ('a * 'b) list
-val sort_by_key_lowfirst : ('a, 'b) assoc -> ('a * 'b) list
-val sort_by_key_highfirst : ('a, 'b) assoc -> ('a * 'b) list
-
-(* group by *)
-val group_by : ('a -> 'b) -> 'a list -> ('b * 'a list) list
-val group_assoc_bykey_eff : ('a * 'b) list -> ('a * 'b list) list
-val group_by_mapped_key : ('a -> 'b) -> 'a list -> ('b * 'a list) list
-val group_by_multi : ('a -> 'b list) -> 'a list -> ('b * 'a list) list
+(* now in Assoc.mli *)
 
 (*****************************************************************************)
 (* Stack *)
 (*****************************************************************************)
-
-type 'a stack = 'a list ref
-
-val push : 'a -> 'a stack -> unit
+(* now in Stack_.mli *)
 
 (*****************************************************************************)
 (* Hash *)
 (*****************************************************************************)
-
-val hash_of_list : ('a * 'b) list -> ('a, 'b) Hashtbl.t
-val hash_to_list : ('a, 'b) Hashtbl.t -> ('a * 'b) list
-
-type 'a hashset = ('a, bool) Hashtbl.t
-
-val hashset_of_list : 'a list -> 'a hashset
-val hashset_to_list : 'a hashset -> 'a list
-val optlist_to_list : 'a list option -> 'a list
+(* now in Hashtbl_.mli *)
 
 (*****************************************************************************)
 (* Option *)
 (*****************************************************************************)
+(* See also List_.mli with many option related functions (e.g., map_filter) *)
 
 (* Since OCaml 4.08 you can define your own "binding operator"
  * (see https://v2.ocaml.org/manual/bindingops.html)
@@ -434,28 +325,7 @@ val ( ||| ) : 'a option -> 'a -> 'a
 (*****************************************************************************)
 (* Either *)
 (*****************************************************************************)
-(* Note that since OCaml 4.12.0, the standard library has an Either module
- * but it is not recognized by default by ppx_deriving so it's simpler
- * for now to define our own either.
- *)
-
-(* Haskell-inspired either type *)
-type ('a, 'b) either = Left of 'a | Right of 'b [@@deriving eq, show, sexp]
-
-val partition_either : ('a -> ('b, 'c) either) -> 'a list -> 'b list * 'c list
-
-type ('a, 'b, 'c) either3 = Left3 of 'a | Middle3 of 'b | Right3 of 'c
-[@@deriving eq, show]
-
-val partition_either3 :
-  ('a -> ('b, 'c, 'd) either3) -> 'a list -> 'b list * 'c list * 'd list
-
-(*
-   Same as 'partition_either' but operates on the standard type 'result'
-   (Ok or Error).
-*)
-val partition_result :
-  ('a -> ('ok, 'error) result) -> 'a list -> 'ok list * 'error list
+(* Now in Either_.mli *)
 
 (*****************************************************************************)
 (* Optimizations *)

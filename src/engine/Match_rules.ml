@@ -13,12 +13,12 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 module R = Rule
 module RP = Core_result
 module Resp = Semgrep_output_v1_t
 module E = Core_error
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -100,7 +100,7 @@ let is_relevant_rule_for_xtarget r xconf xtarget =
 let group_rules xconf rules xtarget =
   let relevant_taint_rules, relevant_nontaint_rules, skipped_rules =
     rules
-    |> Common.partition_either3 (fun r ->
+    |> Either_.partition_either3 (fun r ->
            let relevant_rule = is_relevant_rule_for_xtarget r xconf xtarget in
            match r.R.mode with
            | _ when not relevant_rule -> Right3 r
@@ -131,8 +131,8 @@ let group_rules xconf rules xtarget =
   *)
   let relevant_taint_rules_groups =
     relevant_taint_rules
-    |> Common.map (fun r -> (r.R.target_analyzer, r))
-    |> Common.group_assoc_bykey_eff |> Common.map snd
+    |> List_.map (fun r -> (r.R.target_analyzer, r))
+    |> Assoc.group_assoc_bykey_eff |> List_.map snd
   in
   (relevant_taint_rules_groups, relevant_nontaint_rules, skipped_rules)
 
@@ -164,7 +164,7 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
         if timeout_threshold > 0 && !cnt_timeout >= timeout_threshold then
           raise File_timeout;
         let loc = Tok.first_loc_of_file file in
-        let error = E.mk_error (Some rule_id) loc "" Out.Timeout in
+        let error = E.mk_error (Some rule_id) loc "" OutJ.Timeout in
         RP.make_match_result []
           (Core_error.ErrorSet.singleton error)
           (Core_profiling.empty_rule_profiling rule)
@@ -205,7 +205,7 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
   in
   let res_nontaint_rules =
     relevant_nontaint_rules
-    |> Common.map (fun r ->
+    |> List_.map (fun r ->
            let xconf =
              Match_env.adjust_xconfig_with_rule_options xconf r.R.options
            in
@@ -229,7 +229,7 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
     match res.extra with
     | Core_profiling.Debug { skipped_targets; profiling } ->
         let skipped =
-          Common.map (skipped_target_of_rule xtarget) skipped_rules
+          List_.map (skipped_target_of_rule xtarget) skipped_rules
         in
         Core_profiling.Debug
           { skipped_targets = skipped @ skipped_targets; profiling }

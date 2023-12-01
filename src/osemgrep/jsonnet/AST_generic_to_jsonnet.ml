@@ -51,7 +51,7 @@ let rec expr_to_expr (e : G.expr) : A.expr =
       match literal with
       | G.Null tk -> A.L (A.Null tk)
       | G.Bool (b, tk) -> A.L (A.Bool (b, tk))
-      | G.Int (Some i, tk) -> A.L (A.Number (string_of_int i, tk))
+      | G.Int (Some i64, tk) -> A.L (A.Number (Int64.to_string i64, tk))
       | G.Float (Some f, tk) -> A.L (A.Number (string_of_float f, tk))
       | G.String x -> A.L (A.Str (A.mk_string_ x))
       | _else_ -> error ())
@@ -65,12 +65,12 @@ let rec expr_to_expr (e : G.expr) : A.expr =
   | G.Container (kind, (l, xs, r)) -> (
       match kind with
       | G.Array ->
-          let arr_inside = xs |> Common.map (fun e -> expr_to_expr e) in
+          let arr_inside = xs |> List_.map (fun e -> expr_to_expr e) in
           A.A (l, A.Array arr_inside, r)
       | G.Dict ->
           let members =
             xs
-            |> Common.map (fun e ->
+            |> List_.map (fun e ->
                    match e.G.e with
                    | G.Container (G.Tuple, (l, [ k; v ], _)) ->
                        let fld_name =

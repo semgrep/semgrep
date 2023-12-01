@@ -41,7 +41,7 @@ def test_new_feature_registry_config(monkeypatch, snapshot, mocker, tmp_path):
         },
         use_click_runner=True,
     )
-    result = runner.invoke(cli, ["scan", "--config", "p/ci"])
+    result = runner.invoke(cli, subcommand="scan", args=["--config", "p/ci"])
     snapshot.assert_match(result.output, "output.txt")
 
 
@@ -87,7 +87,9 @@ def test_fallback_config_works(requests_mock, mocker, tmp_path):
         },
         use_click_runner=True,
     )
-    result = runner.invoke(cli, ["scan", "--debug", "--config", "supply-chain"])
+    result = runner.invoke(
+        cli, subcommand="scan", args=["--debug", "--config", "supply-chain"]
+    )
 
     assert (
         "https://fail-open.prod.semgrep.dev/"
@@ -118,6 +120,8 @@ def test_cloud_platform_scan_config(requests_mock, cli_option, tmp_path):
         },
         use_click_runner=True,
     )
-    result = runner.invoke(cli, ["scan", "--debug", "--config", cli_option])
+    result = runner.invoke(
+        cli, subcommand="scan", args=["--debug", "--config", cli_option]
+    )
 
     assert "loaded 1 configs" in result.stdout

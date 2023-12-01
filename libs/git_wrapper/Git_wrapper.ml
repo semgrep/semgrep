@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -153,8 +153,20 @@ Try running the command yourself to debug the issue.|}
       Logs.warn (fun m -> m fmt Bos.Cmd.pp cmd);
       raise (Error "Error when we run a git command")
 
-let files_from_git_ls ~cwd =
-  let cmd = Bos.Cmd.(v "git" % "-C" % !!cwd % "ls-files") in
+type ls_files_kind =
+  | Cached (* --cached, the default *)
+  | Others (* --others, the complement of Cached but still excluding .git/ *)
+
+let string_of_ls_files_kind (kind : ls_files_kind) =
+  match kind with
+  | Cached -> "--cached"
+  | Others -> "--others"
+
+let ls_files ?(cwd = Fpath.v ".") ?(kinds = []) root_paths =
+  let roots = root_paths |> List_.map Fpath.to_string |> Bos.Cmd.of_list in
+  let kinds = kinds |> List_.map string_of_ls_files_kind |> Bos.Cmd.of_list in
+  let cmd = Bos.Cmd.(v "git" % "-C" % !!cwd % "ls-files" %% kinds %% roots) in
+  Logs.info (fun m -> m "Running external command: %s" (Bos.Cmd.to_string cmd));
   let files_r = Bos.OS.Cmd.run_out cmd in
   let results = Bos.OS.Cmd.out_lines ~trim:true files_r in
   let files =
@@ -162,7 +174,7 @@ let files_from_git_ls ~cwd =
     | Ok (files, (_, `Exited 0)) -> files
     | _ -> raise (Error "Could not get files from git ls-files")
   in
-  files |> File.Path.of_strings
+  files |> Fpath_.of_strings
 
 let get_project_root ?cwd () =
   let cmd = Bos.Cmd.(v "git" %% cd cwd % "rev-parse" % "--show-toplevel") in
@@ -381,7 +393,7 @@ let dirty_files cwd =
   in
   (* out_lines splits on newlines, so we always have an extra space at the end *)
   let files = List.filter (fun f -> not (String.trim f = "")) lines in
-  let files = Common.map (fun l -> Fpath.v (Str.string_after l 3)) files in
+  let files = List_.map (fun l -> Fpath.v (Str.string_after l 3)) files in
   files
 
 let init cwd =
@@ -391,7 +403,7 @@ let init cwd =
   | _ -> raise (Error "Error running git init")
 
 let add cwd files =
-  let files = Common.map Fpath.to_string files in
+  let files = List_.map Fpath.to_string files in
   let files = String.concat " " files in
   let cmd = Bos.Cmd.(v "git" % "-C" % !!cwd % "add" % files) in
   match Bos.OS.Cmd.run_status cmd with

@@ -138,6 +138,7 @@ let (rule_id_of_mini_rule : Mini_rule.t -> Pattern_match.rule_id) =
     message = mr.message;
     pattern_string = mr.pattern_string;
     fix = mr.fix;
+    fix_regexp = mr.fix_regexp;
     langs = mr.langs;
   }
 
@@ -179,7 +180,7 @@ let match_rules_and_recurse m_env (file, hook, matches) rules matcher k any x =
                           metadata_override = None;
                         }
                       in
-                      Common.push pm matches;
+                      Stack_.push pm matches;
                       hook pm));
   (* try the rules on substatements and subexpressions *)
   k x
@@ -253,21 +254,21 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
            let any = Apply_equivalences.apply equivs lang any in
            (* Annotate exp, stmt, stmts patterns with the rule strings *)
            let push_with_annotation _any pattern rules =
-             Common.push (pattern, rule) rules
+             Stack_.push (pattern, rule) rules
            in
            match any with
            | E pattern -> push_with_annotation any pattern expr_rules
            | S pattern -> push_with_annotation any pattern stmt_rules
            | Ss pattern -> push_with_annotation any pattern stmts_rules
-           | T pattern -> Common.push (pattern, rule) type_rules
-           | P pattern -> Common.push (pattern, rule) pattern_rules
-           | At pattern -> Common.push (pattern, rule) attribute_rules
-           | Fld pattern -> Common.push (pattern, rule) fld_rules
-           | Flds pattern -> Common.push (pattern, rule) flds_rules
-           | Partial pattern -> Common.push (pattern, rule) partial_rules
-           | Name pattern -> Common.push (pattern, rule) name_rules
-           | Raw pattern -> Common.push (pattern, rule) raw_rules
-           | XmlAt pattern -> Common.push (pattern, rule) xml_attribute_rules
+           | T pattern -> Stack_.push (pattern, rule) type_rules
+           | P pattern -> Stack_.push (pattern, rule) pattern_rules
+           | At pattern -> Stack_.push (pattern, rule) attribute_rules
+           | Fld pattern -> Stack_.push (pattern, rule) fld_rules
+           | Flds pattern -> Stack_.push (pattern, rule) flds_rules
+           | Partial pattern -> Stack_.push (pattern, rule) partial_rules
+           | Name pattern -> Stack_.push (pattern, rule) name_rules
+           | Raw pattern -> Stack_.push (pattern, rule) raw_rules
+           | XmlAt pattern -> Stack_.push (pattern, rule) xml_attribute_rules
            | Args _
            | Params _
            | Xmls _
@@ -345,7 +346,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                   metadata_override = None;
                                 }
                               in
-                              Common.push pm matches;
+                              Stack_.push pm matches;
                               hook pm)
                  | Some (start_loc, end_loc) ->
                      logger#info
@@ -406,7 +407,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                     metadata_override = None;
                                   }
                                 in
-                                Common.push pm matches;
+                                Stack_.push pm matches;
                                 hook pm));
             super#visit_stmt env x
           in
@@ -455,7 +456,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                       metadata_override = None;
                                     }
                                   in
-                                  Common.push pm matches;
+                                  Stack_.push pm matches;
                                   hook pm)));
           super#v_stmts env x
 
@@ -519,7 +520,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
           !stmts_rules
           |> List.iter (fun (pattern, rule) ->
                  Profiling.profile_code "Semgrep_generic.kfields" (fun () ->
-                     let x = Common.map (fun (F x) -> x) x in
+                     let x = List_.map (fun (F x) -> x) x in
                      let matches_with_env =
                        match_sts_sts rule pattern x m_env
                      in
@@ -550,7 +551,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                       metadata_override = None;
                                     }
                                   in
-                                  Common.push pm matches;
+                                  Stack_.push pm matches;
                                   hook pm)));
           match_rules_and_recurse m_env (file, hook, matches) !flds_rules
             match_flds_flds (super#v_fields env)

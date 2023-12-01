@@ -365,6 +365,11 @@ def scan_options(func: Callable) -> Callable:
     default=False,
 )
 @optgroup.option("--version", is_flag=True, default=False)
+@optgroup.option(
+    "--x-ls",
+    is_flag=True,
+    default=False,
+)
 @optgroup.group("Test and debug options")
 @optgroup.option("--test", is_flag=True, default=False)
 @optgroup.option(
@@ -445,6 +450,7 @@ def scan(
     validate: bool,
     verbose: bool,
     version: bool,
+    x_ls: bool,
 ) -> Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]:
     if version:
         print(__VERSION__)
@@ -661,6 +667,7 @@ def scan(
                     severity=severity,
                     optimizations=optimizations,
                     baseline_commit=baseline_commit,
+                    x_ls=x_ls,
                 )
             except SemgrepError as e:
                 output_handler.handle_semgrep_errors([e])

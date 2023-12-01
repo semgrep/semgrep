@@ -14,7 +14,7 @@ val check :
   Match_env.xconfig ->
   Rule.rules ->
   Xtarget.t ->
-  Core_profiling.partial_profiling Core_result.match_result
+  Core_result.matches_single_file
 
 (* for osemgrep interactive *)
 val is_relevant_rule_for_xtarget :
