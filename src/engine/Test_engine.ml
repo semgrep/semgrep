@@ -330,6 +330,8 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
   in
   match !!file |> find_target_of_yaml_file_opt with
   | Some target_path ->
+      (* This assumes we can guess the target programming language
+         from the file extension. *)
       let langs = target_path |> Fpath.v |> Lang.langs_of_filename in
       let tags = Test_tags.tags_of_langs langs in
       let name =

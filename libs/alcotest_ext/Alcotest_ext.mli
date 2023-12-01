@@ -12,6 +12,23 @@ type output =
   | Merged_stdout_stderr
   | Separate_stdout_stderr
 
+module Tag : sig
+  (*
+     Tags are strings which is nice and extensible, but to prevent
+     misspellings and conflicts, we require them to be registered
+     using 'Tag.declare'.
+  *)
+  type t = private string
+
+  (* Create a tag. Each tag may only be created once. *)
+  val declare : string -> t
+  val list : unit -> t list
+  val compare : t -> t -> int
+  val equal : t -> t -> bool
+  val show : t -> string
+  val to_string : t -> string
+end
+
 (*
    A test is a name and a function that raises exceptions to signal
    test failure.
@@ -47,7 +64,7 @@ type 'a t = private {
   name : string;
   func : unit -> 'a;
   (***** Options *****)
-  tags : string list; (* tags must be declared using 'declare_tag' *)
+  tags : Tag.t list; (* tags must be declared once using 'create_tag' *)
   (* special "tag" supported directly by Alcotest: *)
   speed_level : Alcotest.speed_level;
   check_output : output;
@@ -69,16 +86,6 @@ type simple_test = string * (unit -> unit)
 type lwt_test = unit Lwt.t t
 
 (*
-   Tags are strings, which is nice and extensible, but to prevent misspellings,
-   we require them to be registered using 'declare_tag'.
-
-   The validity of tags is checked at the time of test creation.
-*)
-val declare_tag : string -> unit
-val list_valid_tags : unit -> string list
-val has_tag : string -> 'a t -> bool
-
-(*
    Create a test to appear in a test suite.
 *)
 val create :
@@ -86,7 +93,7 @@ val create :
   ?check_output:output ->
   ?skipped:bool ->
   ?speed_level:Alcotest.speed_level ->
-  ?tags:string list ->
+  ?tags:Tag.t list ->
   string ->
   (unit -> 'a) ->
   'a t
@@ -105,6 +112,8 @@ val update :
   ?tags:string list ->
   'a t ->
   'a t
+
+val has_tag : Tag.t -> 'a t -> bool
 
 (* Convert legacy optionless format to new format *)
 val simple_test : string * (unit -> 'a) -> 'a t

@@ -7,33 +7,6 @@
 
 open Printf
 
-type output =
-  | Ignore_output
-  | Stdout
-  | Stderr
-  | Merged_stdout_stderr
-  | Separate_stdout_stderr
-
-type 'a t = {
-  (* The will be used as a compact key
-     for referencing tests in filters and in file names. *)
-  id : string;
-  category : string list;
-  name : string;
-  func : unit -> 'a;
-  (* Options *)
-  tags : string list;
-  speed_level : Alcotest.speed_level;
-  check_output : output;
-  skipped : bool;
-}
-
-type test = unit t
-type lwt_test = unit Lwt.t t
-
-(* Legacy type that doesn't support options *)
-type simple_test = string * (unit -> unit)
-
 (****************************************************************************)
 (* Helpers *)
 (****************************************************************************)
@@ -49,39 +22,87 @@ let list_flatten ll =
 (* Tags *)
 (****************************************************************************)
 
-(*
-   The tag syntax is a dot-separated identifier similar to pytest markers.
-   coupling: update the error message below when changing this syntax
-*)
-let tag_syntax = {|\A[a-z_][a-z_0-9]*(?:[.][a-z_][a-z_0-9]*)*\z|}
+module Tag = struct
+  type t = (* private *) string
 
-let has_valid_tag_syntax =
-  (* We use the same regexp library as Alcotest to facilitate
-     future integration efforts. *)
-  let re = Re.Pcre.regexp tag_syntax in
-  fun tag -> Re.execp re tag
+  let compare = String.compare
+  let equal = String.equal
+  let show x = x
+  let to_string x = x
 
-let check_tag_syntax tag =
-  if not (has_valid_tag_syntax tag) then
-    invalid_arg
-      (sprintf
-         "Alcotest_ext.declare_tag: invalid syntax for test tag %S.\n\
-          It must be a dot-separated sequence of one or more lowercase \
-          alphanumeric\n\
-          identifiers e.g. \"foo_bar.v2.todo\" . It must match the following \
-          regexp:\n\
-         \  %s" tag tag_syntax)
+  (*
+     The tag syntax is a dot-separated identifier similar to pytest markers.
+     coupling: update the error message below when changing this syntax
+  *)
+  let tag_syntax = {|\A[a-z_][a-z_0-9]*(?:[.][a-z_][a-z_0-9]*)*\z|}
 
-(* Duplicates are ok *)
-let declared_tags : string list ref = ref []
+  let has_valid_tag_syntax =
+    (* We use the same regexp library as Alcotest to facilitate
+       future integration efforts. *)
+    let re = Re.Pcre.regexp tag_syntax in
+    fun tag -> Re.execp re tag
 
-let declare_tag str =
-  check_tag_syntax str;
-  declared_tags := str :: !declared_tags
+  let check_tag_syntax tag =
+    if not (has_valid_tag_syntax tag) then
+      invalid_arg
+        (sprintf
+           "Alcotest_ext.declare_tag: invalid syntax for test tag %S.\n\
+            It must be a dot-separated sequence of one or more lowercase \
+            alphanumeric\n\
+            identifiers e.g. \"foo_bar.v2.todo\" . It must match the following \
+            regexp:\n\
+           \  %s" tag tag_syntax)
 
-let is_valid_tag str = List.mem str !declared_tags
-let list_valid_tags () = !declared_tags
-let has_tag tag test = List.mem tag test.tags
+  (* no duplicates are allowed *)
+  let declared_tags : (t, unit) Hashtbl.t = Hashtbl.create 100
+
+  let declare tag =
+    check_tag_syntax tag;
+    if Hashtbl.mem declared_tags tag then
+      invalid_arg
+        (sprintf
+           "Alcotest_ext.declare_tag: tag %S was declared multiple times.\n\
+            Each tag must be declared exactly once to avoid accidental \
+            conflicts."
+           tag)
+    else Hashtbl.add declared_tags tag ();
+    tag
+
+  let list () =
+    Hashtbl.fold (fun tag () acc -> tag :: acc) declared_tags []
+    |> List.sort String.compare
+end
+
+(****************************************************************************)
+(* Main types *)
+(****************************************************************************)
+
+type output =
+  | Ignore_output
+  | Stdout
+  | Stderr
+  | Merged_stdout_stderr
+  | Separate_stdout_stderr
+
+type 'a t = {
+  (* The will be used as a compact key
+     for referencing tests in filters and in file names. *)
+  id : string;
+  category : string list;
+  name : string;
+  func : unit -> 'a;
+  (* Options *)
+  tags : Tag.t list;
+  speed_level : Alcotest.speed_level;
+  check_output : output;
+  skipped : bool;
+}
+
+type test = unit t
+type lwt_test = unit Lwt.t t
+
+(* Legacy type that doesn't support options *)
+type simple_test = string * (unit -> unit)
 
 (****************************************************************************)
 (* Conversions *)
@@ -99,47 +120,27 @@ let update_id x =
   let id = String.sub long_id 0 7 in
   { x with id }
 
-let check_tags test =
-  test.tags
-  |> List.iter (fun tag ->
-         if not (is_valid_tag tag) then
-           failwith
-             (sprintf
-                "Test %S is tagged with the undeclared tag %S.\n\
-                 If it's not a misspelling, the tag should be registered \
-                 globally using\n\
-                 'Alcotest_ext.declare_tag %S'." test.name tag tag))
-
-let validate test = check_tags test
-
 let create ?(category = []) ?(check_output = Ignore_output) ?(skipped = false)
     ?(speed_level = `Quick) ?(tags = []) name func =
-  let res =
-    { id = ""; category; name; func; tags; speed_level; check_output; skipped }
-    |> update_id
-  in
-  validate res;
-  res
+  { id = ""; category; name; func; tags; speed_level; check_output; skipped }
+  |> update_id
 
 let opt option default = Option.value option ~default
 
 let update ?category ?check_output ?func ?name ?skipped ?speed_level ?tags old =
-  let res =
-    {
-      id = "";
-      category = opt category old.category;
-      name = opt name old.name;
-      func = opt func old.func;
-      tags = opt tags old.tags;
-      speed_level = opt speed_level old.speed_level;
-      check_output = opt check_output old.check_output;
-      skipped = opt skipped old.skipped;
-    }
-    |> update_id
-  in
-  validate res;
-  res
+  {
+    id = "";
+    category = opt category old.category;
+    name = opt name old.name;
+    func = opt func old.func;
+    tags = opt tags old.tags;
+    speed_level = opt speed_level old.speed_level;
+    check_output = opt check_output old.check_output;
+    skipped = opt skipped old.skipped;
+  }
+  |> update_id
 
+let has_tag tag test = List.mem tag test.tags
 let simple_test (name, func) = create name func
 let simple_tests simple_tests = list_map simple_test simple_tests
 
@@ -187,7 +188,7 @@ let to_alcotest tests : _ list =
          let tags =
            match x.tags with
            | [] -> ""
-           | tags -> sprintf " {%s}" (String.concat "," tags)
+           | tags -> sprintf " {%s}" (String.concat ", " tags)
          in
          let suite_name =
            match x.category with

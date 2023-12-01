@@ -912,6 +912,10 @@ let full_rule_semgrep_rules_regression_tests () =
              | s when s =~ ".*/semgrep-rules/tests/" -> None
              (* ok let's keep all the other one with the appropriate group name *)
              | s when s =~ ".*/semgrep-rules/\\([a-zA-Z]+\\)/.*" ->
+                 (* This is confusing because it looks like a programming
+                    language from Lang.t but there's no guarantee that
+                    it's a valid one.
+                    TODO: don't capitalize? leave a slash? *)
                  let s = Common.matched1 test.name in
                  Some (String.capitalize_ascii s)
              (* this skips the semgrep-rules/.github entries *)
@@ -928,11 +932,11 @@ let full_rule_semgrep_rules_regression_tests () =
     |> List_.map (fun (group, tests) ->
            tests
            |> List_.map (fun (test : Alcotest_ext.test) ->
-                  let ftest () =
-                    match group with
-                    | "XFAIL" ->
-                        (* TODO: mark these tests as XFAIL
-                           once Alcotest_ext supports it *)
+                  match group with
+                  | "XFAIL" ->
+                      (* TODO: mark these tests as XFAIL
+                         once Alcotest_ext supports it *)
+                      let ftest () =
                         let is_throwing =
                           try
                             test.func ();
@@ -943,9 +947,9 @@ let full_rule_semgrep_rules_regression_tests () =
                         if not is_throwing then
                           Alcotest.fail
                             "this used to raise an error (good news?)"
-                    | _ -> test.func ()
-                  in
-                  Alcotest_ext.update test ~func:ftest)
+                      in
+                      Alcotest_ext.update test ~func:ftest
+                  | _ -> test)
            |> pack_tests_pro group))
 
 (*****************************************************************************)
