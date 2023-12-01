@@ -57,8 +57,3 @@ dist/Main.bc.js: ../../_build/default/js/language_server/Main.bc.js
 dist/semgrep-ls.js: node_modules/.package-lock.json dist/language-server-wasm.js dist/Main.bc.js
 	mkdir -p dist
 	npm run build
-
-
-# TODO: No token create request on startup
-# TODO: `yaml_get_version_string` was unexpected
-# TODO:  `%` was unexpected
