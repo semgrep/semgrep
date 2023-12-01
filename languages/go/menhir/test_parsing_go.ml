@@ -23,7 +23,7 @@ let test_tokens_go file =
 let try_with_print_exn_and_reraise _a b = b ()
 
 let test_parse_go xs =
-  let xs = xs |> Fpath_.of_strings |> List.map File.fullpath in
+  let xs = xs |> Fpath_.of_strings |> List.map UFile.fullpath in
 
   let fullxs, _skipped_paths =
     Lib_parsing_go.find_source_files_of_dir_or_files xs
@@ -59,7 +59,7 @@ let test_parse_go xs =
 let test_dump_go file =
   let ast = Parse_go.parse_program file in
   let s = Ast_go.show_program ast in
-  pr s
+  UCommon.pr s
 
 (*****************************************************************************)
 (* Main entry for Arg *)

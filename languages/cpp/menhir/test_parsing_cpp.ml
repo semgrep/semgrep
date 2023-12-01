@@ -18,7 +18,7 @@ let test_tokens_cpp file =
 
 (* used to be in Lib_parsing_cpp.ml *)
 let find_source_files_of_dir_or_files xs =
-  File.files_of_dirs_or_files_no_vcs_nofilter xs
+  UFile.files_of_dirs_or_files_no_vcs_nofilter xs
   |> List.filter (fun filename ->
          match File_type.file_type_of_file filename with
          | FT.PL (FT.C ("l" | "y")) -> false
@@ -96,7 +96,7 @@ let test_dump_cpp file =
   Parse_cpp.init_defs !Flag_cpp.macros_h;
   let ast = Parse_cpp.parse_program file in
   let s = Ast_cpp.show_program ast in
-  pr s
+  UCommon.pr s
 
 let test_dump_cpp_full file =
   let file = Fpath.v file in
@@ -104,7 +104,7 @@ let test_dump_cpp_full file =
   let ast = Parse_cpp.parse_program file in
   let toks = Parse_cpp.tokens (Parsing_helpers.file !!file) in
   let s = Ast_cpp.show_program (* TODO ~precision *) ast in
-  pr s;
+  UCommon.pr s;
   toks
   |> List.iter (fun tok ->
          match tok with
@@ -133,7 +133,7 @@ let test_dump_cpp_view file =
   Token_views_context.set_context_tag_multi multi;
   let v = Token_views_cpp.vof_multi_grouped_list multi in
   let s = OCaml.string_of_v v in
-  pr s
+  UCommon.pr s
 
 let test_parse_cpp_fuzzy xs =
   let xs = Fpath_.of_strings xs in

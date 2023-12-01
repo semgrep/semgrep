@@ -1,13 +1,13 @@
 let with_setenv envvar str f =
-  let old = Sys.getenv_opt envvar in
-  Unix.putenv envvar str;
+  let old = USys.getenv_opt envvar in
+  UUnix.putenv envvar str;
   Common.finalize f (fun () ->
       match old with
-      | Some str -> Unix.putenv envvar str
+      | Some str -> UUnix.putenv envvar str
       (* ugly: Unix does not provide unsetenv,
        * see https://discuss.ocaml.org/t/unset-environment-variable/9025
        *)
-      | None -> Unix.putenv envvar "")
+      | None -> UUnix.putenv envvar "")
 
 let with_mocked_logs ~f ~final =
   let buffer = Buffer.create 1000 in
@@ -28,7 +28,7 @@ let with_mocked_logs ~f ~final =
             over ();
             k ()
           in
-          msgf (fun ?header:_ ?tags:_ fmt -> Format.kfprintf k ppf fmt));
+          msgf (fun ?header:_ ?tags:_ fmt -> UFormat.kfprintf k ppf fmt));
     }
   in
   let old_reporter = Logs.reporter () in

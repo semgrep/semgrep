@@ -23,7 +23,7 @@ let setup ~debug ~log_config_file ~log_to_file =
      specific modules.
   *)
   let log_config_file =
-    if Sys.file_exists !!log_config_file then Some log_config_file else None
+    if USys.file_exists !!log_config_file then Some log_config_file else None
   in
   let want_logging = debug || log_config_file <> None || log_to_file <> None in
 

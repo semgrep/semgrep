@@ -1,4 +1,3 @@
-(*s: common.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 1998-2009 Yoann Padioleau
@@ -108,7 +107,7 @@ let null xs =
   | [] -> true
   | _ -> false
 
-let command2 s = ignore (Sys.command s)
+let command2 s = ignore (USys.command s)
 let (matched : int -> string -> string) = fun i s -> Str.matched_group i s
 let matched1 s = matched 1 s
 let matched2 s = (matched 1 s, matched 2 s)
@@ -175,17 +174,17 @@ let indent_do f =
       _tab_level_print := !_tab_level_print - _tab_indent)
 
 let pr s =
-  print_string !_prefix_pr;
-  do_n !_tab_level_print (fun () -> print_string " ");
-  print_string s;
-  print_string "\n";
-  flush stdout
+  UStdlib.print_string !_prefix_pr;
+  do_n !_tab_level_print (fun () -> UStdlib.print_string " ");
+  UStdlib.print_string s;
+  UStdlib.print_string "\n";
+  flush UStdlib.stdout
 
 let pr_no_nl s =
-  print_string !_prefix_pr;
-  do_n !_tab_level_print (fun () -> print_string " ");
-  print_string s;
-  flush stdout
+  UStdlib.print_string !_prefix_pr;
+  do_n !_tab_level_print (fun () -> UStdlib.print_string " ");
+  UStdlib.print_string s;
+  flush UStdlib.stdout
 
 let _chan_pr2 = ref (None : out_channel option)
 
@@ -247,7 +246,7 @@ let reset_pr_indent () = _tab_level_print := 0
  * By Richard W.M. Jones (rich@annexia.org).
  * dumper.ml 1.2 2005/02/06 12:38:21 rich Exp
  *)
-open Obj
+open Stdlib.Obj
 
 let rec dump2 r =
   if is_int r then string_of_int (magic r : int)
@@ -356,15 +355,15 @@ let mk_pr2_wrappers aref =
 (* could also be in File section *)
 
 let redirect_stdout file f =
-  let chan = open_out_bin file in
+  let chan = UStdlib.open_out_bin file in
   let descr = Unix.descr_of_out_channel chan in
 
-  let saveout = Unix.dup Unix.stdout in
-  Unix.dup2 descr Unix.stdout;
-  flush stdout;
+  let saveout = Unix.dup UUnix.stdout in
+  Unix.dup2 descr UUnix.stdout;
+  flush UStdlib.stdout;
   let res = f () in
-  flush stdout;
-  Unix.dup2 saveout Unix.stdout;
+  flush UStdlib.stdout;
+  Unix.dup2 saveout UUnix.stdout;
   close_out chan;
   res
 
@@ -374,30 +373,30 @@ let redirect_stdout_opt optfile f =
   | Some outfile -> redirect_stdout outfile f
 
 let redirect_stdout_stderr file f =
-  let chan = open_out_bin file in
+  let chan = UStdlib.open_out_bin file in
   let descr = Unix.descr_of_out_channel chan in
 
-  let saveout = Unix.dup Unix.stdout in
+  let saveout = Unix.dup UUnix.stdout in
   let saveerr = Unix.dup Unix.stderr in
-  Unix.dup2 descr Unix.stdout;
+  Unix.dup2 descr UUnix.stdout;
   Unix.dup2 descr Unix.stderr;
-  flush stdout;
+  flush UStdlib.stdout;
   flush stderr;
   f ();
-  flush stdout;
+  flush UStdlib.stdout;
   flush stderr;
-  Unix.dup2 saveout Unix.stdout;
+  Unix.dup2 saveout UUnix.stdout;
   Unix.dup2 saveerr Unix.stderr;
   close_out chan
 
 let redirect_stdin file f =
-  let chan = open_in_bin file in
+  let chan = UStdlib.open_in_bin file in
   let descr = Unix.descr_of_in_channel chan in
 
-  let savein = Unix.dup Unix.stdin in
-  Unix.dup2 descr Unix.stdin;
+  let savein = Unix.dup UUnix.stdin in
+  Unix.dup2 descr UUnix.stdin;
   f ();
-  Unix.dup2 savein Unix.stdin;
+  Unix.dup2 savein UUnix.stdin;
   close_in chan
 
 let redirect_stdin_opt optfile f =
@@ -430,9 +429,9 @@ let spf = Printf.sprintf
 let _chan = ref stderr
 
 let start_log_file () =
-  let filename = spf "/tmp/debugml%d:%d" (Unix.getuid ()) (Unix.getpid ()) in
+  let filename = spf "/tmp/debugml%d:%d" (UUnix.getuid ()) (UUnix.getpid ()) in
   pr2 (spf "now using %s for logging" filename);
-  _chan := open_out_bin filename
+  _chan := UStdlib.open_out_bin filename
 
 let dolog s =
   output_string !_chan (s ^ "\n");
@@ -452,7 +451,7 @@ let if_log4 f = if !verbose_level >= 4 then f ()
 
 let pause () =
   pr2 "pause: type return";
-  ignore (read_line ())
+  ignore (UStdlib.read_line ())
 
 (* was used by fix_caml *)
 let _trace_var = ref 0
@@ -461,7 +460,7 @@ let dec_var () = decr _trace_var
 let get_var () = !_trace_var
 
 let (print_n : int -> string -> unit) =
- fun i s -> do_n i (fun () -> print_string s)
+ fun i s -> do_n i (fun () -> UStdlib.print_string s)
 
 let (printerr_n : int -> string -> unit) =
  fun i s -> do_n i (fun () -> prerr_string s)
@@ -487,10 +486,10 @@ let memory_stat () =
 
 let timenow () =
   "sys:"
-  ^ string_of_float (Sys.time ())
+  ^ string_of_float (USys.time ())
   ^ " seconds" ^ ":real:"
   ^
-  let tm = Unix.time () |> Unix.gmtime in
+  let tm = UUnix.time () |> Unix.gmtime in
   (tm.Unix.tm_min |> string_of_int)
   ^ " min:"
   ^ (tm.Unix.tm_sec |> string_of_int)
@@ -561,7 +560,7 @@ let (test_all : unit -> unit) =
  fun () ->
   List.iter
     (fun (s, b) ->
-      Printf.printf "%s: %s\n" s (if b then "passed" else "failed"))
+      UPrintf.printf "%s: %s\n" s (if b then "passed" else "failed"))
     !_list_bool
 
 let ( ++ ) a b = a @ b
@@ -760,15 +759,15 @@ let take_one xs =
 (*****************************************************************************)
 
 let get_value filename =
-  let chan = open_in_bin filename in
-  let x = input_value chan in
+  let chan = UStdlib.open_in_bin filename in
+  let x = UStdlib.input_value chan in
   (* <=> Marshal.from_channel  *)
   close_in chan;
   x
 
 let write_value valu filename =
-  let chan = open_out_bin filename in
-  output_value chan valu;
+  let chan = UStdlib.open_out_bin filename in
+  UStdlib.output_value chan valu;
   (* <=> Marshal.to_channel *)
   (* Marshal.to_channel chan valu [Marshal.Closures]; *)
   close_out chan
@@ -776,7 +775,7 @@ let write_value valu filename =
 let write_back func filename = write_value (func (get_value filename)) filename
 let read_value f = get_value f
 let marshal__to_string v flags = Marshal.to_string v flags
-let marshal__from_string v flags = Marshal.from_string v flags
+let marshal__from_string v flags = UMarshal.from_string v flags
 
 (*****************************************************************************)
 (* Counter *)
@@ -820,23 +819,23 @@ let string_of_option f = function
   | None -> "None "
   | Some x -> "Some " ^ f x
 
-let print_bool x = print_string (if x then "True" else "False")
+let print_bool x = UStdlib.print_string (if x then "True" else "False")
 
 let print_option pr = function
-  | None -> print_string "None"
+  | None -> UStdlib.print_string "None"
   | Some x ->
-      print_string "Some (";
+      UStdlib.print_string "Some (";
       pr x;
-      print_string ")"
+      UStdlib.print_string ")"
 
 let print_list pr xs =
-  print_string "[";
+  UStdlib.print_string "[";
   List.iter
     (fun x ->
       pr x;
-      print_string ",")
+      UStdlib.print_string ",")
     xs;
-  print_string "]"
+  UStdlib.print_string "]"
 
 (* specialised
    let (string_of_list: char list -> string) =
@@ -852,37 +851,37 @@ let rec print_between between fn = function
       print_between between fn xs
 
 let adjust_pp_with_indent f =
-  Format.open_box !_tab_level_print;
+  UFormat.open_box !_tab_level_print;
   (*Format.force_newline();*)
   f ();
-  Format.close_box ();
-  Format.print_newline ()
+  UFormat.close_box ();
+  UFormat.print_newline ()
 
 let adjust_pp_with_indent_and_header s f =
-  Format.open_box (!_tab_level_print + String.length s);
-  do_n !_tab_level_print (fun () -> Format.print_string " ");
-  Format.print_string s;
+  UFormat.open_box (!_tab_level_print + String.length s);
+  do_n !_tab_level_print (fun () -> UFormat.print_string " ");
+  UFormat.print_string s;
   f ();
-  Format.close_box ();
-  Format.print_newline ()
+  UFormat.close_box ();
+  UFormat.print_newline ()
 
 let pp_do_in_box f =
-  Format.open_box 1;
+  UFormat.open_box 1;
   f ();
-  Format.close_box ()
+  UFormat.close_box ()
 
 let pp_do_in_zero_box f =
-  Format.open_box 0;
+  UFormat.open_box 0;
   f ();
-  Format.close_box ()
+  UFormat.close_box ()
 
 let pp_f_in_box f =
-  Format.open_box 1;
+  UFormat.open_box 1;
   let res = f () in
-  Format.close_box ();
+  UFormat.close_box ();
   res
 
-let pp s = Format.print_string s
+let pp s = UFormat.print_string s
 
 (*
  * use as
@@ -916,7 +915,7 @@ let mk_str_func_of_assoc_conv xs =
 
 (* put your macro in macro.ml4, and you can test it interactivly as in lisp *)
 let macro_expand s =
-  let c = open_out_bin "/tmp/ttttt.ml" in
+  let c = UStdlib.open_out_bin "/tmp/ttttt.ml" in
   output_string c s;
   close_out c;
   command2
@@ -1116,16 +1115,16 @@ exception FileAlreadyLocked
 let acquire_file_lock filename =
   pr2 ("Locking file: " ^ filename);
   try
-    let _fd = Unix.openfile filename [ Unix.O_CREAT; Unix.O_EXCL ] 0o777 in
+    let _fd = UUnix.openfile filename [ Unix.O_CREAT; Unix.O_EXCL ] 0o777 in
     ()
   with
-  | Unix.Unix_error (e, fm, argm) ->
+  | UUnix.Unix_error (e, fm, argm) ->
       pr2 (spf "exn Unix_error: %s %s %s\n" (Unix.error_message e) fm argm);
       raise FileAlreadyLocked
 
 let release_file_lock filename =
   pr2 ("Releasing file: " ^ filename);
-  Sys.remove filename;
+  USys.remove filename;
   ()
 
 (*****************************************************************************)
@@ -1878,7 +1877,7 @@ let is_string_prefix s1 s2 =
 let plural i s =
   if i =|= 1 then Printf.sprintf "%d %s" i s else Printf.sprintf "%d %ss" i s
 
-let showCodeHex xs = List.iter (fun i -> Printf.printf "%02x" i) xs
+let showCodeHex xs = List.iter (fun i -> UPrintf.printf "%02x" i) xs
 let take_string n s = String.sub s 0 (n - 1)
 let take_string_safe n s = if n > String.length s then s else take_string n s
 
@@ -1952,14 +1951,14 @@ let _ = assert (edit_distance "vintner" "writers" =|= 5)
 (* We can emulate the Perl wrap function with the following function *)
 let wrap ?(width = 80) s =
   let l = Str.split (Str.regexp " ") s in
-  Format.pp_set_margin Format.str_formatter width;
-  Format.pp_open_box Format.str_formatter 0;
+  Format.pp_set_margin UFormat.str_formatter width;
+  Format.pp_open_box UFormat.str_formatter 0;
   List.iter
     (fun x ->
-      Format.pp_print_string Format.str_formatter x;
-      Format.pp_print_break Format.str_formatter 1 0)
+      Format.pp_print_string UFormat.str_formatter x;
+      Format.pp_print_break UFormat.str_formatter 1 0)
     l;
-  Format.flush_str_formatter ()
+  UFormat.flush_str_formatter ()
 
 (*****************************************************************************)
 (* Filenames *)
@@ -2131,8 +2130,8 @@ let relative_to_absolute s =
 *)
 
 let relative_to_absolute s =
-  if s =$= "." then Sys.getcwd ()
-  else if Filename.is_relative s then Sys.getcwd () ^ "/" ^ s
+  if s =$= "." then USys.getcwd ()
+  else if Filename.is_relative s then USys.getcwd () ^ "/" ^ s
   else s
 
 let is_relative s = Filename.is_relative s
@@ -2347,7 +2346,7 @@ let unix_time_of_string s =
     let y = s_to_i syear - 1900 in
     let mon = smonth |> month_of_string |> int_of_month |> fun i -> i - 1 in
 
-    let tm = Unix.localtime (Unix.time ()) in
+    let tm = Unix.localtime (UUnix.time ()) in
     {
       tm with
       Unix.tm_year = y;
@@ -2557,17 +2556,17 @@ let _test_date_1 () =
 (* src: ferre in logfun/.../date.ml *)
 
 let day_secs : float = 86400.
-let today : unit -> float = fun () -> Unix.time ()
-let yesterday : unit -> float = fun () -> Unix.time () -. day_secs
-let tomorrow : unit -> float = fun () -> Unix.time () +. day_secs
-let lastweek : unit -> float = fun () -> Unix.time () -. (7.0 *. day_secs)
-let lastmonth : unit -> float = fun () -> Unix.time () -. (30.0 *. day_secs)
+let today : unit -> float = fun () -> UUnix.time ()
+let yesterday : unit -> float = fun () -> UUnix.time () -. day_secs
+let tomorrow : unit -> float = fun () -> UUnix.time () +. day_secs
+let lastweek : unit -> float = fun () -> UUnix.time () -. (7.0 *. day_secs)
+let lastmonth : unit -> float = fun () -> UUnix.time () -. (30.0 *. day_secs)
 let week_before : float_time -> float_time = fun d -> d -. (7.0 *. day_secs)
 let month_before : float_time -> float_time = fun d -> d -. (30.0 *. day_secs)
 let week_after : float_time -> float_time = fun d -> d +. (7.0 *. day_secs)
 
 let timestamp () =
-  let now = Unix.time () in
+  let now = UUnix.time () in
   let tm = floattime_to_unixtime now in
 
   let d = tm.Unix.tm_mday in
@@ -2662,7 +2661,7 @@ let _ = example (nblines "toto\ntata\n" =|= 2)
 (* Fold over a file in chunks *)
 let fold_file f x file_name =
   let buffer = Bytes.create 1024 in
-  let file = open_in file_name in
+  let file = UStdlib.open_in file_name in
   let rec go a =
     let length = input file buffer 0 (Bytes.length buffer) in
     let a' = f a (Bytes.sub buffer 0 length) in
@@ -2726,7 +2725,7 @@ let _ = example (lines_with_nl_either "ab\n\nc" =*=
 (* Process/Files *)
 (*****************************************************************************)
 let cat_orig file =
-  let chan = open_in_bin file in
+  let chan = UStdlib.open_in_bin file in
   let rec cat_orig_aux () =
     try
       (* cant do input_line chan::aux() cos ocaml eval from right to left ! *)
@@ -2739,7 +2738,7 @@ let cat_orig file =
 
 (* tail recursive efficient version *)
 let cat file =
-  let chan = open_in_bin file in
+  let chan = UStdlib.open_in_bin file in
   let rec cat_aux acc () =
     (* cant do input_line chan::aux() cos ocaml eval from right to left ! *)
     let b, l =
@@ -2761,7 +2760,7 @@ let cat_array file = "" :: cat file |> Array.of_list
 *)
 
 let cat_excerpts file lines =
-  Common.with_open_infile file (fun chan ->
+  UCommon.with_open_infile file (fun chan ->
       let lines = List.sort compare lines in
       let rec aux acc lines count =
         let b, l =
@@ -2783,8 +2782,8 @@ let interpolate str =
 
 (* could do a print_string but printf dont like print_string *)
 let echo s =
-  Printf.printf "%s" s;
-  flush stdout;
+  UPrintf.printf "%s" s;
+  flush UStdlib.stdout;
   s
 
 let usleep s =
@@ -2797,22 +2796,22 @@ let usleep s =
  *)
 
 let do_in_fork f =
-  let pid = Unix.fork () in
+  let pid = UUnix.fork () in
   if pid =|= 0 then (
     (* Unix.setsid(); *)
-    Sys.set_signal Sys.sigint
+    USys.set_signal USys.sigint
       (Sys.Signal_handle
          (fun _ ->
            pr2 "being killed";
-           Unix.kill 0 Sys.sigkill));
+           UUnix.kill 0 USys.sigkill));
     f ();
-    exit 0)
+    UStdlib.exit 0)
   else pid
 
 exception CmdError of Unix.process_status * string
 
 let process_output_to_list2 ?(verbose = false) command =
-  let chan = Unix.open_process_in command in
+  let chan = UUnix.open_process_in command in
   let res = ref ([] : string list) in
   let rec process_otl_aux () =
     let e = input_line chan in
@@ -2845,7 +2844,8 @@ let unix_diff file1 file2 =
 (* see also unix_diff_strings at the bottom *)
 
 let get_mem () =
-  cmd_to_list ("grep VmData /proc/" ^ string_of_int (Unix.getpid ()) ^ "/status")
+  cmd_to_list
+    ("grep VmData /proc/" ^ string_of_int (UUnix.getpid ()) ^ "/status")
   |> join ""
 
 (* now in prelude:
@@ -2859,7 +2859,7 @@ let y_or_no msg =
   if !_batch_mode then true
   else
     let rec aux () =
-      match read_line () with
+      match UStdlib.read_line () with
       | "y"
       | "yes"
       | "Y" ->
@@ -2880,7 +2880,7 @@ let command2_y_or_no cmd =
     true)
   else (
     pr2 (cmd ^ " [y/n] ?");
-    match read_line () with
+    match UStdlib.read_line () with
     | "y"
     | "yes"
     | "Y" ->
@@ -2897,23 +2897,23 @@ let command2_y_or_no_exit_if_no cmd =
   if res then () else raise (UnixExit 1)
 
 let command_safe ?verbose:(_verbose = false) program args =
-  let pid = Unix.fork () in
+  let pid = UUnix.fork () in
   let cmd_str = program :: args |> join " " in
   if pid =|= 0 then (
     pr2 ("running: " ^ cmd_str);
-    Unix.execv program (Array.of_list (program :: args)))
+    UUnix.execv program (Array.of_list (program :: args)))
   else
-    let _pid2, status = Unix.waitpid [] pid in
+    let _pid2, status = UUnix.waitpid [] pid in
     match status with
     | Unix.WEXITED retcode -> retcode
     | Unix.WSIGNALED _
     | Unix.WSTOPPED _ ->
         failwith ("problem running: " ^ cmd_str)
 
-let mkdir ?(mode = 0o770) file = Unix.mkdir file mode
+let mkdir ?(mode = 0o770) file = UUnix.mkdir file mode
 
 let read_file file =
-  let ic = open_in_bin file in
+  let ic = UStdlib.open_in_bin file in
   let size = in_channel_length ic in
   let buf = Bytes.create size in
   really_input ic buf 0 size;
@@ -2921,19 +2921,19 @@ let read_file file =
   buf |> Bytes.to_string
 
 let write_file ~file s =
-  let chan = open_out_bin file in
+  let chan = UStdlib.open_out_bin file in
   output_string chan s;
   close_out chan
 
 (* TODO: add [@@profiling] but mutual deps :( *)
-let unix_stat file = Unix.stat file
+let unix_stat file = UUnix.stat file
 
 let filesize file =
   if not !Common.jsoo (* this does not work well with jsoo *) then
     (unix_stat file).Unix.st_size
     (* src: https://rosettacode.org/wiki/File_size#OCaml *)
   else
-    let ic = open_in_bin file in
+    let ic = UStdlib.open_in_bin file in
     let i = in_channel_length ic in
     close_in ic;
     i
@@ -2947,26 +2947,26 @@ let nblines_file file = cat file |> List.length
 
 let lfile_exists filename =
   try
-    match (Unix.lstat filename).Unix.st_kind with
+    match (UUnix.lstat filename).Unix.st_kind with
     | Unix.S_REG
     | Unix.S_LNK ->
         true
     | _ -> false
   with
-  | Unix.Unix_error (Unix.ENOENT, _, _) -> false
+  | UUnix.Unix_error (Unix.ENOENT, _, _) -> false
 
 (* Helps avoid the `Fatal error: exception Unix_error: No such file or directory stat` *)
 let dir_exists path =
   try
-    match (Unix.lstat path).Unix.st_kind with
+    match (UUnix.lstat path).Unix.st_kind with
     | S_DIR -> true
     | _ -> false
   with
-  | Unix.Unix_error (Unix.ENOENT, _, _) -> false
+  | UUnix.Unix_error (Unix.ENOENT, _, _) -> false
 
 let is_directory file = (unix_stat file).Unix.st_kind =*= Unix.S_DIR
 let is_file file = (unix_stat file).Unix.st_kind =*= Unix.S_REG
-let is_symlink file = (Unix.lstat file).Unix.st_kind =*= Unix.S_LNK
+let is_symlink file = (UUnix.lstat file).Unix.st_kind =*= Unix.S_LNK
 
 let is_executable file =
   let stat = unix_stat file in
@@ -2981,14 +2981,14 @@ let _hmemo_unix_stat_eff = Hashtbl.create 101
 
 let unix_lstat_eff file =
   if is_absolute file then
-    memoized _hmemo_unix_lstat_eff file (fun () -> Unix.lstat file)
+    memoized _hmemo_unix_lstat_eff file (fun () -> UUnix.lstat file)
   else
     (* this is for efficieny reason to be able to memoize the stats *)
     failwith "must pass absolute path to unix_lstat_eff"
 
 let unix_stat_eff file =
   if is_absolute file then
-    memoized _hmemo_unix_stat_eff file (fun () -> Unix.stat file)
+    memoized _hmemo_unix_stat_eff file (fun () -> UUnix.stat file)
   else
     (* this is for efficieny reason to be able to memoize the stats *)
     failwith "must pass absolute path to unix_stat_eff"
@@ -3004,7 +3004,7 @@ let lfile_exists_eff filename =
         true
     | _ -> false
   with
-  | Unix.Unix_error (Unix.ENOENT, _, _) -> false
+  | UUnix.Unix_error (Unix.ENOENT, _, _) -> false
 
 let is_directory_eff file = (unix_lstat_eff file).Unix.st_kind =*= Unix.S_DIR
 let is_file_eff file = (unix_lstat_eff file).Unix.st_kind =*= Unix.S_REG
@@ -3019,20 +3019,20 @@ let is_executable_eff file =
 (* src: from chailloux et al book *)
 let capsule_unix f args =
   try f args with
-  | Unix.Unix_error (e, fm, argm) ->
+  | UUnix.Unix_error (e, fm, argm) ->
       log
         (Printf.sprintf "exn Unix_error: %s %s %s\n" (Unix.error_message e) fm
            argm)
 
 let (readdir_to_kind_list : string -> Unix.file_kind -> string list) =
  fun path kind ->
-  Sys.readdir path |> Array.to_list
+  USys.readdir path |> Array.to_list
   |> List.filter (fun s ->
          try
-           let stat = Unix.lstat (path ^ "/" ^ s) in
+           let stat = UUnix.lstat (path ^ "/" ^ s) in
            stat.Unix.st_kind =*= kind
          with
-         | Unix.Unix_error _ ->
+         | UUnix.Unix_error _ ->
              pr2 ("EXN pb stating file: " ^ s);
              false)
 
@@ -3047,16 +3047,16 @@ let (readdir_to_link_list : string -> string list) =
 
 let (readdir_to_dir_size_list : string -> (string * int) list) =
  fun path ->
-  Sys.readdir path |> Array.to_list
+  USys.readdir path |> Array.to_list
   |> map_filter (fun s ->
-         let stat = Unix.lstat (path ^ "/" ^ s) in
+         let stat = UUnix.lstat (path ^ "/" ^ s) in
          if stat.Unix.st_kind =*= Unix.S_DIR then Some (s, stat.Unix.st_size)
          else None)
 
 let unixname () =
-  let uid = Unix.getuid () in
-  let entry = Unix.getpwuid uid in
-  entry.Unix.pw_name
+  let uid = UUnix.getuid () in
+  let entry = UUnix.getpwuid uid in
+  entry.UUnix.pw_name
 
 (* This regex matches the directory part a glob pattern
    used below. This way we are only trying to match
@@ -3070,7 +3070,7 @@ let glob pattern =
   Str.search_forward dir_regex pattern 0 |> ignore;
   let dir = Str.matched_string pattern in
   let regex = pattern |> Re.Glob.glob ~anchored:true |> Re.compile in
-  let files = Common.dir_contents dir in
+  let files = UCommon.dir_contents dir in
   files |> List.filter (fun s -> Re.execp regex s)
 
 let dirs_of_dir dir =
@@ -3097,7 +3097,7 @@ let grep_dash_v_str =
   "| grep -v /.hg/ |grep -v /CVS/ | grep -v /.git/ |grep -v /_darcs/"
   ^ "| grep -v /.svn/ | grep -v .git_annot | grep -v .marshall"
 
-let arg_symlink () = if !Common.follow_symlinks then " -L " else ""
+let arg_symlink () = if !UCommon.follow_symlinks then " -L " else ""
 
 let files_of_dir_or_files_no_vcs ext xs =
   xs
@@ -3175,7 +3175,9 @@ let has_env _var = failwith "Common.has_env, TODO"
 let (with_open_outfile_append :
       filename -> ((string -> unit) * out_channel -> 'a) -> 'a) =
  fun file f ->
-  let chan = open_out_gen [ Open_creat; Open_append; Open_binary ] 0o666 file in
+  let chan =
+    UStdlib.open_out_gen [ Open_creat; Open_append; Open_binary ] 0o666 file
+  in
   let pr s = output_string chan s in
   Common.unwind_protect
     (fun () ->
@@ -3187,36 +3189,36 @@ let (with_open_outfile_append :
 let tmp_file_cleanup_hooks = ref []
 
 let with_tmp_file ~(str : string) ~(ext : string) (f : string -> 'a) : 'a =
-  let tmpfile = Common.new_temp_file "tmp" ("." ^ ext) in
+  let tmpfile = UCommon.new_temp_file "tmp" ("." ^ ext) in
   write_file ~file:tmpfile str;
   Common.finalize
     (fun () -> f tmpfile)
     (fun () ->
       !tmp_file_cleanup_hooks |> List.iter (fun f -> f tmpfile);
-      Common.erase_this_temp_file tmpfile)
+      UCommon.erase_this_temp_file tmpfile)
 
 let register_tmp_file_cleanup_hook f = Stack_.push f tmp_file_cleanup_hooks
 
 let with_tmp_dir f =
   let tmp_dir =
-    Filename.temp_file (spf "with-tmp-dir-%d" (Unix.getpid ())) ""
+    UFilename.temp_file (spf "with-tmp-dir-%d" (UUnix.getpid ())) ""
   in
-  Unix.unlink tmp_dir;
+  UUnix.unlink tmp_dir;
   (* who cares about race *)
-  Unix.mkdir tmp_dir 0o755;
+  UUnix.mkdir tmp_dir 0o755;
   Common.finalize
     (fun () -> f tmp_dir)
     (fun () ->
       command2 (spf "rm -f %s/*" tmp_dir);
-      Unix.rmdir tmp_dir)
+      UUnix.rmdir tmp_dir)
 
 (* now in prelude: exception UnixExit of int *)
 let exn_to_real_unixexit f =
   try f () with
-  | UnixExit x -> exit x
+  | UnixExit x -> UStdlib.exit x
 
 let uncat xs file =
-  Common.with_open_outfile file (fun (pr, _chan) ->
+  UCommon.with_open_outfile file (fun (pr, _chan) ->
       xs
       |> List.iter (fun s ->
              pr s;
@@ -5052,7 +5054,7 @@ type pixel = int * int * int (* RGB *)
 (* required pixel list in row major order, line after line *)
 let (write_ppm : int -> int -> pixel list -> string -> unit) =
  fun width height xs filename ->
-  let chan = open_out_bin filename in
+  let chan = UStdlib.open_out_bin filename in
   output_string chan "P6\n";
   output_string chan (string_of_int width ^ "\n");
   output_string chan (string_of_int height ^ "\n");
@@ -5074,9 +5076,9 @@ type diff = Match | BnotinA | AnotinB
 
 let (diff : (int -> int -> diff -> unit) -> string list * string list -> unit) =
  fun f (xs, ys) ->
-  let file1 = "/tmp/diff1-" ^ string_of_int (Unix.getuid ()) in
-  let file2 = "/tmp/diff2-" ^ string_of_int (Unix.getuid ()) in
-  let fileresult = "/tmp/diffresult-" ^ string_of_int (Unix.getuid ()) in
+  let file1 = "/tmp/diff1-" ^ string_of_int (UUnix.getuid ()) in
+  let file2 = "/tmp/diff2-" ^ string_of_int (UUnix.getuid ()) in
+  let fileresult = "/tmp/diffresult-" ^ string_of_int (UUnix.getuid ()) in
   write_file file1 (unwords xs);
   write_file file2 (unwords ys);
   command2
@@ -5162,7 +5164,7 @@ let contain_any_token_with_egrep tokens file =
            | _ -> s)
   in
   let cmd = spf "egrep -q '(%s)' %s" (join "|" tokens) file in
-  match Sys.command cmd with
+  match USys.command cmd with
   | 0 (* success *) -> true
   | _ (* failure *) -> false (* no match, so not worth trying *)
 
@@ -5175,14 +5177,14 @@ let parserCommon lexbuf parserer lexer =
     let result = parserer lexer lexbuf in
     result
   with
-  | Parsing.Parse_error ->
-      print_string "buf: ";
-      print_bytes lexbuf.Lexing.lex_buffer;
-      print_string "\n";
-      print_string "current: ";
-      print_int lexbuf.Lexing.lex_curr_pos;
-      print_string "\n";
-      raise Parsing.Parse_error
+  | UParsing.Parse_error ->
+      UStdlib.print_string "buf: ";
+      UStdlib.print_bytes lexbuf.Lexing.lex_buffer;
+      UStdlib.print_string "\n";
+      UStdlib.print_string "current: ";
+      UStdlib.print_int lexbuf.Lexing.lex_curr_pos;
+      UStdlib.print_string "\n";
+      raise UParsing.Parse_error
 
 (* marche pas ca neuneu *)
 (*
@@ -5200,7 +5202,7 @@ let getDoubleParser parserer lexer =
         parserCommon lexbuf1 parserer lexer),
     function
     | string ->
-        let chan = open_in_bin string in
+        let chan = UStdlib.open_in_bin string in
         let lexbuf2 = Lexing.from_channel chan in
         parserCommon lexbuf2 parserer lexer )
 
@@ -5263,35 +5265,35 @@ let regression_testing_vs newscore bestscore =
          with
          | None, None -> raise Common.Impossible
          | Some x, None ->
-             Printf.printf "new test file appeared: %s\n" res;
+             UPrintf.printf "new test file appeared: %s\n" res;
              Hashtbl.add newbestscore res x
-         | None, Some _x -> Printf.printf "old test file disappeared: %s\n" res
+         | None, Some _x -> UPrintf.printf "old test file disappeared: %s\n" res
          | Some newone, Some bestone -> (
              match (newone, bestone) with
              | Ok, Ok -> Hashtbl.add newbestscore res Ok
              | Pb x, Ok ->
-                 Printf.printf
+                 UPrintf.printf
                    "PBBBBBBBB: a test file does not work anymore!!! : %s\n" res;
-                 Printf.printf "Error : %s\n" x;
+                 UPrintf.printf "Error : %s\n" x;
                  Hashtbl.add newbestscore res Ok
              | Ok, Pb _x ->
-                 Printf.printf "Great: a test file now works: %s\n" res;
+                 UPrintf.printf "Great: a test file now works: %s\n" res;
                  Hashtbl.add newbestscore res Ok
              | Pb x, Pb y ->
                  Hashtbl.add newbestscore res (Pb x);
                  if not (x =$= y) then (
-                   Printf.printf "Semipb: still error but not same error : %s\n"
-                     res;
-                   Printf.printf "%s\n" (chop ("Old error: " ^ y));
-                   Printf.printf "New error: %s\n" x)));
-  flush stdout;
+                   UPrintf.printf
+                     "Semipb: still error but not same error : %s\n" res;
+                   UPrintf.printf "%s\n" (chop ("Old error: " ^ y));
+                   UPrintf.printf "New error: %s\n" x)));
+  flush UStdlib.stdout;
   flush stderr;
   newbestscore
 
 let regression_testing newscore best_score_file =
   pr2 ("regression file: " ^ best_score_file);
   let (bestscore : score) =
-    if not (Sys.file_exists best_score_file) then
+    if not (USys.file_exists best_score_file) then
       write_value (empty_score ()) best_score_file;
     get_value best_score_file
   in
@@ -5459,7 +5461,7 @@ let unserial x =
   match !x with
   | Unfold c -> c
   | Serial s ->
-      let res = Marshal.from_string s 0 in
+      let res = UMarshal.from_string s 0 in
       (*        x := Unfold res; *)
       res
 
@@ -5540,7 +5542,7 @@ let cmdline_flags_devel () =
       Arg.Set Common.debugger,
       " option to set if launched inside ocamldebug" );
     ( "-keep_tmp_files",
-      Arg.Set Common.save_tmp_files,
+      Arg.Set UCommon.save_tmp_files,
       " keep temporary generated files" );
   ]
 
@@ -5556,7 +5558,7 @@ let cmdline_flags_other () =
   [
     ("-nocheck_stack", Arg.Clear _check_stack, " ");
     ("-batch_mode", Arg.Set _batch_mode, " no interactivity");
-    ("-keep_tmp_files", Arg.Set Common.save_tmp_files, " ");
+    ("-keep_tmp_files", Arg.Set UCommon.save_tmp_files, " ");
   ]
 
 (* potentially other common options but not yet integrated:
@@ -5634,24 +5636,24 @@ let realpath path =
   | xs -> failwith (spf "problem with realpath on %s: %s " path (unlines xs))
 
 let with_pr2_to_string f =
-  let file = Common.new_temp_file "pr2" "out" in
+  let file = UCommon.new_temp_file "pr2" "out" in
   redirect_stdout_stderr file f;
   cat file
 
 (* julia: convert something printed using format to print into a string *)
 let format_to_string f =
-  let nm, o = Filename.open_temp_file "format_to_s" ".out" in
+  let nm, o = UFilename.open_temp_file "format_to_s" ".out" in
   (* to avoid interference with other code using Format.printf, e.g.
    * Ounit.run_tt
    *)
-  Format.print_flush ();
-  Format.set_formatter_out_channel o;
+  UFormat.print_flush ();
+  UFormat.set_formatter_out_channel o;
   let _ = f () in
-  Format.print_newline ();
-  Format.print_flush ();
-  Format.set_formatter_out_channel stdout;
+  UFormat.print_newline ();
+  UFormat.print_flush ();
+  UFormat.set_formatter_out_channel UStdlib.stdout;
   close_out o;
-  let i = open_in_bin nm in
+  let i = UStdlib.open_in_bin nm in
   let lines = ref [] in
   let rec loop _ =
     let cur = input_line i in
@@ -5824,9 +5826,9 @@ let _ =
 *)
 
 let unix_diff_strings s1 s2 =
-  let tmp1 = Common.new_temp_file "s1" "" in
+  let tmp1 = UCommon.new_temp_file "s1" "" in
   write_file tmp1 s1;
-  let tmp2 = Common.new_temp_file "s2" "" in
+  let tmp2 = UCommon.new_temp_file "s2" "" in
   write_file tmp2 s2;
   unix_diff tmp1 tmp2
 
@@ -5860,14 +5862,13 @@ class ['a] olist (ys : 'a list) =
   end
 
 (* let _ = write_value ((new setb[])#add 1) "/tmp/test" *)
+(*
 let typing_sux_test () =
   let x = Obj.magic [ 1; 2; 3 ] in
-  let f1 xs = List.iter print_int xs in
-  let f2 xs = List.iter print_string xs in
+  let f1 xs = List.iter UStdlib.print_int xs in
+  let f2 xs = List.iter UStdlib.print_string xs in
   f1 x;
   f2 x
-
+*)
 (* let (test: 'a osetb -> 'a ocollection) = fun o -> (o :> 'a ocollection) *)
 (* let _ = test (new osetb (Setb.empty)) *)
-
-(*e: common.ml *)

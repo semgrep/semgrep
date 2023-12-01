@@ -40,6 +40,30 @@ val ( =:= ) : bool -> bool -> bool
 val ( =*= ) : 'a -> 'a -> bool
 
 (*****************************************************************************)
+(* Disable physical equality/inequality operators *)
+(*****************************************************************************)
+
+(*
+   Disable the use of (==) since some people confuse it with structural
+   equality. We do this here since we're disabling in with semgrep anyway
+   and it's quicker if the compiler can report it.
+*)
+
+(* Physical (shallow) equality, normally available as (==) *)
+val phys_equal : 'a -> 'a -> bool
+
+(* Physical (shallow) inequality, normally available as (!=) *)
+val phys_not_equal : 'a -> 'a -> bool
+
+type hidden_by_your_nanny
+
+val ( == ) : hidden_by_your_nanny
+val ( != ) : hidden_by_your_nanny
+
+val equal_ref_option :
+  ('a -> 'b -> bool) -> 'a option ref -> 'b option ref -> bool
+
+(*****************************************************************************)
 (* Comparison *)
 (*****************************************************************************)
 
@@ -63,13 +87,9 @@ val binary_search_bigarr1 :
 val to_comparison : ('a -> 'a -> int) -> 'a -> 'a -> order
 
 (*****************************************************************************)
-(* Printing/debugging *)
+(* debugging *)
 (*****************************************************************************)
 (* see also Dumper.ml *)
-
-(* Same as print_endline: print the string and a newline, then flush stdout.
- * Just shorter. *)
-val pr : string -> unit
 
 (* Print a string and a newline to stderr, then flush stderr. The '2'
  * is used to refect that it prints on stderr (file descriptor '2' in Unix). *)
@@ -166,113 +186,6 @@ val join : string (* sep *) -> string list -> string
 val split : string (* sep regexp *) -> string -> string list
 
 (*****************************************************************************)
-(* Real file paths - deprecated, use File.mli *)
-(*****************************************************************************)
-(* Deprecated!
-
-   Migration in progress: File.ml reproduces the functions below and uses
-   Fpath.t instead of strings to represent file/directory paths.
-*)
-
-(*
-   Check that the file exists and produce a valid absolute path for the file.
-   Deprecated: use the Rpath module instead!
-*)
-val fullpath : string (* filename *) -> string (* filename *)
-
-(* Deprecated: use the Ppath module instead! *)
-val filename_without_leading_path :
-  string -> string (* filename *) -> string (* filename *)
-
-val readable : root:string -> string (* filename *) -> string (* filename *)
-
-val dir_contents : string (* filename *) -> string (* filename *) list
-(** [dir_contents dir] will return a recursive list of all files in a directory *)
-
-(* use the command 'find' internally and tries to skip files in
- * version control system (vcs) (e.g., .git, _darcs, etc.).
- * Deprecated?
- *)
-val files_of_dir_or_files_no_vcs_nofilter :
-  string list -> string (* filename *) list
-
-(* ugly: internal flag for files_of_dir_or_files_no_vcs_nofilter *)
-val follow_symlinks : bool ref
-
-(*****************************************************************************)
-(* IO - deprecated, use File.mli *)
-(*****************************************************************************)
-
-(* Inputs a line of text in a platform-agnostic way. Should be preferred over
-   `input_line`, especially when dealing with Windows.
-   More info can be found in `Common.ml`.
-   This in-channel should be opened in binary mode.
-*)
-val input_text_line : in_channel -> string
-
-(*
-   Return the lines of a file. Both Windows-style and Unix-style line endings
-   are recognized and removed from the end of the line.
-*)
-val cat : string (* filename *) -> string list
-val write_file : file:string (* filename *) -> string -> unit
-
-(* Read the contents of file.
-
-   This implementation works even with Linux files like /dev/fd/63
-   created by bash when using "process substitution"* e.g.
-
-     my-ocaml-program <(echo contents)
-
-   * https://www.gnu.org/software/bash/manual/html_node/Process-Substitution.html
-
-   If max_len is specified, at most that many bytes are read from the file.
-*)
-val read_file : ?max_len:int -> string (* filename *) -> string
-
-(* Scheme-inspired combinators that automatically close the file
- * once the function callback is done. Here is an example of use:
- *   with_open_outfile "/tmp/foo.txt" (fun (pr, _chan) ->
- *     pr "this goes in foo.txt"
- *   )
- *)
-val with_open_outfile :
-  string (* filename *) -> ((string -> unit) * out_channel -> 'a) -> 'a
-
-val with_open_infile : string (* filename *) -> (in_channel -> 'a) -> 'a
-
-(* creation of /tmp files, a la gcc
- * ex: new_temp_file "cocci" ".c" will give "/tmp/cocci-3252-434465.c"
- *)
-val new_temp_file :
-  string (* prefix *) -> string (* suffix *) -> string (* filename *)
-
-(* ??? *)
-val _temp_files_created : (string, unit) Hashtbl.t
-val save_tmp_files : bool ref
-val erase_temp_files : unit -> unit
-val erase_this_temp_file : string (* filename *) -> unit
-
-(*****************************************************************************)
-(* Subprocess *)
-(*****************************************************************************)
-(* Deprecated? Use Bos instead? *)
-
-(* This allows to capture the output of an external command.
- * It is more convenient to use than Unix.open_process_in.
- * Here is an example of use:
- *  let (lines, _status) = cmd_to_list_and_status "find /home" in
- *  ...
- *)
-val cmd_to_list_and_status :
-  ?verbose:bool -> string -> string list * Unix.process_status
-
-exception CmdError of Unix.process_status * string
-
-(* this may raise CmdError *)
-val cmd_to_list : ?verbose:bool -> string -> string list (* alias *)
-
-(*****************************************************************************)
 (* Lists *)
 (*****************************************************************************)
 (* now in List_.mli *)
@@ -291,6 +204,20 @@ val cmd_to_list : ?verbose:bool -> string -> string list (* alias *)
 (* Hash *)
 (*****************************************************************************)
 (* now in Hashtbl_.mli *)
+
+(*****************************************************************************)
+(* Polymorphic Set and Map *)
+(*****************************************************************************)
+(* now in Set_.mli and Map_.mli *)
+
+(*****************************************************************************)
+(* Polymorphic String Map *)
+(*****************************************************************************)
+
+(* type of maps from string to `a *)
+module SMap : Map.S with type key = String.t
+
+type 'a smap = 'a SMap.t
 
 (*****************************************************************************)
 (* Option *)
@@ -328,6 +255,16 @@ val ( ||| ) : 'a option -> 'a -> 'a
 (* Now in Either_.mli *)
 
 (*****************************************************************************)
+(* IO *)
+(*****************************************************************************)
+(* Inputs a line of text in a platform-agnostic way. Should be preferred over
+   `input_line`, especially when dealing with Windows.
+   More info can be found in `Common.ml`.
+   This in-channel should be opened in binary mode.
+*)
+val input_text_line : in_channel -> string
+
+(*****************************************************************************)
 (* Optimizations *)
 (*****************************************************************************)
 
@@ -360,39 +297,15 @@ val protect : finally:(unit -> unit) -> (unit -> 'a) -> 'a
 (*
    Measure how long it takes for a function to run, returning the result
    and the duration.
+   LATER: could be moved to CapCommon.ml
 *)
 val with_time : (unit -> 'a) -> 'a * float
 
 (*
    Run a function and print how long it took to return or to raise an
-   exception. pr_time prints to stdout, pr2_time prints to stderr.
+   exception. pr2_time prints to stderr.
 *)
-val pr_time : string -> (unit -> 'a) -> 'a
 val pr2_time : string -> (unit -> 'a) -> 'a
-
-(*****************************************************************************)
-(* Disable physical equality/inequality operators *)
-(*****************************************************************************)
-
-(*
-   Disable the use of (==) since some people confuse it with structural
-   equality. We do this here since we're disabling in with semgrep anyway
-   and it's quicker if the compiler can report it.
-*)
-
-(* Physical (shallow) equality, normally available as (==) *)
-val phys_equal : 'a -> 'a -> bool
-
-(* Physical (shallow) inequality, normally available as (!=) *)
-val phys_not_equal : 'a -> 'a -> bool
-
-type hidden_by_your_nanny
-
-val ( == ) : hidden_by_your_nanny
-val ( != ) : hidden_by_your_nanny
-
-val equal_ref_option :
-  ('a -> 'b -> bool) -> 'a option ref -> 'b option ref -> bool
 
 (*****************************************************************************)
 (* Operators *)
@@ -413,20 +326,6 @@ end
 (*****************************************************************************)
 (* Misc *)
 (*****************************************************************************)
-
-(* run by main_boilerplate below at its finalize step before exiting.
- * Can be used for example to display some profiling information
- * (see Profiling.ml as an example)
- *)
-val before_exit : (unit -> unit) list ref
-
-(* do some finalize, signal handling, unix exit conversion, etc *)
-val main_boilerplate : (unit -> unit) -> unit
-
-(* type of maps from string to `a *)
-module SMap : Map.S with type key = String.t
-
-type 'a smap = 'a SMap.t
 
 (* you should set this flag when you run code compiled by js_of_ocaml *)
 val jsoo : bool ref

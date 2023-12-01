@@ -347,7 +347,7 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : OutJ.profile =
                             rprof.parse_time
                           with
                           | Not_found -> 0.);
-                 num_bytes = File.filesize target;
+                 num_bytes = UFile.filesize target;
                  run_time;
                });
     rules = rule_ids;
@@ -359,7 +359,7 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : OutJ.profile =
     total_bytes =
       profiling_data.file_times
       |> List_.map (fun { Core_profiling.file = target; _ } ->
-             File.filesize target)
+             UFile.filesize target)
       |> Common2.sum_int;
     (* those are filled later in pysemgrep from the Profiler class *)
     profiling_times = [];

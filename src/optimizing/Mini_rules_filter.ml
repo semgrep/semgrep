@@ -32,7 +32,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 
 let filter_mini_rules_relevant_to_file_using_regexp rules lang file =
-  let str = Common.read_file file in
+  let str = UCommon.read_file file in
   rules
   |> List.filter (fun rule ->
          let pat = rule.R.pattern in

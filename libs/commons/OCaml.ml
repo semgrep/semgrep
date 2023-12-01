@@ -287,7 +287,7 @@ let add_sep xs =
 
 let string_of_v ?(max_depth = max_int) v =
   Common2.format_to_string (fun () ->
-      let ppf = Format.printf in
+      let ppf = UFormat.printf in
       let rec aux max_depth v =
         if max_depth <= 0 then ppf "..."
         else

@@ -290,7 +290,7 @@ let check_files mk_config fparser input =
         Core_result.mk_final_result_with_just_errors errors
       in
       let json = Core_json_output.core_output_of_matches_and_errors res in
-      pr (SJ.string_of_core_output json)
+      UCommon.pr (SJ.string_of_core_output json)
 
 let stat_files fparser xs =
   let fullxs, _skipped_paths =

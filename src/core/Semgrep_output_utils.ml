@@ -43,7 +43,7 @@ let first_and_last = function
 let lines_of_file_at_range (range : position * position) (file : Fpath.t) :
     string list =
   let start, end_ = range in
-  File.lines_of_file (start.line, end_.line) file
+  UFile.lines_of_file (start.line, end_.line) file
 [@@profiling]
 
 (* Returns the text between the positions; start inclusive, end exclusive.
@@ -55,7 +55,7 @@ let lines_of_file_at_range (range : position * position) (file : Fpath.t) :
 let content_of_file_at_range (range : position * position) (file : Fpath.t) :
     string =
   let start, end_ = range in
-  let str = File.read_file file in
+  let str = UFile.read_file file in
   String.sub str start.offset (end_.offset - start.offset)
 [@@profiling]
 
