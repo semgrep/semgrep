@@ -1516,7 +1516,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
         (* After we introduced Top_sinks, we need to explicitly support sinks like
          * `sink(...)` by considering that all of the parameters are sinks. To make
          * sure that we are backwards compatible, we do this for any sink that does
-         * not match the `is_func_sink_with_focus` pattern.
+         * not match the `Rule.is_func_sink_with_focus` form.
          *)
         check_orig_if_sink { env with lval_env } instr.iorig all_args_taints
           ~filter_sinks:(fun m -> not m.spec.sink_is_func_with_focus);
