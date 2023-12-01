@@ -85,7 +85,7 @@ and eval_expr (env : V.env) (e : expr) : V.t =
   | Array (l, xs, r) ->
       let elts =
         xs
-        |> Common.map (fun x -> { V.value = Unevaluated x; env })
+        |> List_.map (fun x -> { V.value = Unevaluated x; env })
         |> Array.of_list
       in
       Array (l, elts, r)
@@ -286,7 +286,7 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
            *)
           let elts' =
             (* TODO? use Array.to_seqi instead? *)
-            eis |> Array.to_list |> Common.index_list
+            eis |> Array.to_list |> List_.index_list
             |> List.filter_map (fun (ei, ji) ->
                    match eval_std_filter_element env tk f ei with
                    | Primitive (Bool (false, _)), _ -> None
@@ -369,17 +369,17 @@ and eval_call env e0 (largs, args, _rargs) =
       (* the named_args are supposed to be the last one *)
       let basic_args, named_args =
         args
-        |> Common.partition_either (function
+        |> Either_.partition_either (function
              | Arg ei -> Left ei
              | NamedArg (id, _tk, ei) -> Right (fst id, ei))
       in
       (* opti? use a hashtbl? but for < 5 elts, probably worse? *)
-      let hnamed_args = Common.hash_of_list named_args in
+      let hnamed_args = Hashtbl_.hash_of_list named_args in
       let basic_args = Array.of_list basic_args in
       let m = Array.length basic_args in
       let binds =
         params
-        |> List.mapi (fun i (P (id, teq, ei')) ->
+        |> List_.mapi (fun i (P (id, teq, ei')) ->
                let ei'' =
                  match i with
                  | _ when i < m -> basic_args.(i) (* ei *)
@@ -399,8 +399,8 @@ and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
   let _, (rassert, rflds), r = objr in
   let hobjr =
     rflds
-    |> Common.map (fun { V.fld_name = s, _; _ } -> s)
-    |> Common.hashset_of_list
+    |> List_.map (fun { V.fld_name = s, _; _ } -> s)
+    |> Hashtbl_.hashset_of_list
   in
   (* TODO: this currently just merges the f *)
   let asserts = lassert @ rassert in
@@ -411,7 +411,7 @@ and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
   (* Add Super to the environment of the right fields *)
   let rflds' =
     rflds
-    |> Common.map (fun ({ V.fld_value = { value; env }; _ } as fld) ->
+    |> List_.map (fun ({ V.fld_value = { value; env }; _ } as fld) ->
            (* TODO: here we bind super to objl, and this works for simple
             * examples (e.g., basic_super1.jsonnet) but failed for
             * more complex examples where the accessed field uses self, as in
@@ -582,7 +582,7 @@ and eval_obj_inside env (l, x, r) : V.t =
       let hdupes = Hashtbl.create 16 in
       let fields =
         fields
-        |> Common.map_filter
+        |> List_.map_filter
              (fun { fld_name = FExpr (tk, ei, _); fld_hidden; fld_value } ->
                match eval_expr env ei with
                | Primitive (Null _) -> None
@@ -657,13 +657,13 @@ and manifest_value (v : V.t) : JSON.t =
   | Array (_, arr, _) ->
       J.Array
         (arr |> Array.to_list
-        |> Common.map (fun (entry : V.lazy_value) ->
+        |> List_.map (fun (entry : V.lazy_value) ->
                manifest_value (evaluate_lazy_value_ entry)))
   | V.Object (_l, (_assertsTODO, fields), _r) as obj ->
       (* TODO: evaluate asserts *)
       let xs =
         fields
-        |> Common.map_filter (fun { V.fld_name; fld_hidden; fld_value } ->
+        |> List_.map_filter (fun { V.fld_name; fld_hidden; fld_value } ->
                match fst fld_hidden with
                | A.Hidden -> None
                | A.Visible

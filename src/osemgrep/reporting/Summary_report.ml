@@ -28,7 +28,7 @@ let pp_summary ~respect_gitignore ~(maturity : Maturity.t) ~max_target_bytes
     skipped_groups
   in
 
-  Fmt_helpers.pp_heading ppf "Scan Summary";
+  Fmt_.pp_heading ppf "Scan Summary";
   (* TODO
         if self.target_manager.baseline_handler:
             limited_fragments.append(
@@ -60,7 +60,7 @@ let pp_summary ~respect_gitignore ~(maturity : Maturity.t) ~max_target_bytes
   in
   let out_skipped =
     let mb = string_of_int Stdlib.(max_target_bytes / 1000 / 1000) in
-    Common.map_filter Fun.id
+    List_.map_filter Fun.id
       [
         opt_msg "files not matching --include patterns" include_ignored;
         opt_msg "files matching --exclude patterns" exclude_ignored;

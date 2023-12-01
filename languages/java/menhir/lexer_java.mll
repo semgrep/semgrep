@@ -45,7 +45,7 @@ let error = Parsing_error.lexical_error
 (* ---------------------------------------------------------------------- *)
 let primitive_type t = (t, (fun ii -> PRIMITIVE_TYPE (t, ii)))
 
-let keyword_table = Common.hash_of_list [
+let keyword_table = Hashtbl_.hash_of_list [
   "if", (fun ii -> IF ii);
   "else", (fun ii -> ELSE ii);
 

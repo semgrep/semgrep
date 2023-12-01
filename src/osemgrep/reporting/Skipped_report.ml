@@ -1,4 +1,4 @@
-open File.Operators
+open Fpath_.Operators
 module OutJ = Semgrep_output_v1_t
 
 (*****************************************************************************)
@@ -32,7 +32,7 @@ type skipped_targets_grouped = {
 let errors_to_skipped (errors : OutJ.core_error list) : OutJ.skipped_target list
     =
   errors
-  |> Common.map (fun OutJ.{ location; message; rule_id; _ } ->
+  |> List_.map (fun OutJ.{ location; message; rule_id; _ } ->
          OutJ.
            {
              path = location.path;
@@ -44,7 +44,7 @@ let errors_to_skipped (errors : OutJ.core_error list) : OutJ.skipped_target list
 let group_skipped (skipped : OutJ.skipped_target list) : skipped_targets_grouped
     =
   let groups =
-    Common.group_by
+    Assoc.group_by
       (fun (OutJ.{ reason; _ } : OutJ.skipped_target) ->
         match reason with
         | Gitignore_patterns_match

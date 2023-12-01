@@ -32,7 +32,7 @@ module G = AST_generic
 (*****************************************************************************)
 let map_string _env x = x
 let map_bool _env x = x
-let map_list f env xs = Common.map (f env) xs
+let map_list f env xs = List_.map (f env) xs
 let map_option f env x = Option.map (f env) x
 
 (*****************************************************************************)
@@ -76,7 +76,7 @@ let rec map_expr env v : G.expr =
       let defs = (map_list map_bind) env v2 in
       let _tsemi = map_tok env v3 in
       let e = map_expr env v4 in
-      let stmts = defs |> Common.map (fun def -> G.DefStmt def |> G.s) in
+      let stmts = defs |> List_.map (fun def -> G.DefStmt def |> G.s) in
       let block = Tok.unsafe_fake_bracket (stmts @ [ G.exprstmt e ]) in
       G.stmt_to_expr (G.Block block |> G.s)
   | DotAccess (v1, v2, v3) ->
@@ -242,7 +242,7 @@ and map_assert_ env (v1, v2, v3) : G.stmt =
   in
   let eopt = (map_option map_tuple) env v3 in
   let es = e :: Option.to_list eopt in
-  let args = es |> Common.map G.arg in
+  let args = es |> List_.map G.arg in
   let st = G.Assert (tassert, Tok.unsafe_fake_bracket args, G.sc) |> G.s in
   st
 
@@ -408,10 +408,10 @@ and map_obj_comprehension env v =
   let defs2 = (map_list map_obj_local) env oc_locals2 in
   fun (l, r) ->
     let any =
-      (defs1 |> Common.map (fun (_tlocal, def) -> G.Def def))
+      (defs1 |> List_.map (fun (_tlocal, def) -> G.Def def))
       @ [ G.Def def ]
-      @ (for_if_comps |> Common.map (fun for_if -> G.ForOrIfComp for_if))
-      @ (defs2 |> Common.map (fun (_tlocal, def) -> G.Def def))
+      @ (for_if_comps |> List_.map (fun for_if -> G.ForOrIfComp for_if))
+      @ (defs2 |> List_.map (fun (_tlocal, def) -> G.Def def))
       @ [ G.Tk r ]
     in
     G.OtherExpr (("ObjComprehension", l), any) |> G.e

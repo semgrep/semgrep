@@ -68,7 +68,7 @@ let pr2, _pr2_once = Common2.mk_pr2_wrappers Flag.verbose_parsing
 (*****************************************************************************)
 
 (* the tokens in the body of the macro are all ExpandedTok *)
-type define_body = (unit, string list) either * Parser_cpp.token list
+type define_body = (unit, string list) Either.t * Parser_cpp.token list
 
 (* TODO:
    type define_def = string * define_param * define_body
@@ -97,7 +97,7 @@ type define_body = (unit, string list) either * Parser_cpp.token list
  * OCaml code (but are now hardcoded in standard.h ...)
  *)
 let (cpp_engine :
-      (string, Parser.token list) assoc ->
+      (string, Parser.token list) Assoc.t ->
       Parser.token list ->
       Parser.token list) =
  fun env xs ->
@@ -127,12 +127,12 @@ let apply_macro_defs defs xs =
       when Hashtbl.mem defs s ->
         Hack.pr2_pp ("MACRO: found known macro = " ^ s);
         (match Hashtbl.find defs s with
-        | Left (), bodymacro ->
+        | Either.Left (), bodymacro ->
             pr2 ("macro without param used before parenthize, wierd: " ^ s);
             (* ex: PRINTP("NCR53C400 card%s detected\n" ANDP(((struct ... *)
             Hack.set_as_comment Token_cpp.CppMacroExpanded id;
             id.new_tokens_before <- bodymacro
-        | Right params, bodymacro ->
+        | Either.Right params, bodymacro ->
             if List.length params =|= List.length xxs then
               let xxs' =
                 xxs
@@ -157,11 +157,11 @@ let apply_macro_defs defs xs =
     | PToken ({ t = TIdent (s, _i1); _ } as id) :: xs when Hashtbl.mem defs s ->
         Hack.pr2_pp ("MACRO: found known macro = " ^ s);
         (match Hashtbl.find defs s with
-        | Right _params, _bodymacro ->
+        | Either.Right _params, _bodymacro ->
             pr2 ("macro with params but no parens found, wierd: " ^ s);
             (* dont apply the macro, perhaps a redefinition *)
             ()
-        | Left (), bodymacro -> (
+        | Either.Left (), bodymacro -> (
             (* special case when 1-1 substitution, we reuse the token *)
             match bodymacro with
             | [ newtok ] ->
@@ -204,13 +204,13 @@ let rec define_parse xs =
       in
       let params =
         tokparams
-        |> Common.map_filter (function
+        |> List_.map_filter (function
              | TComma _ -> None
              | TIdent (s, _) -> Some s
              | x -> Common2.error_cant_have x)
       in
-      let body = body |> List.map (TH.visitor_info_of_tok Ast.make_expanded) in
-      let def = (s, (Right params, body)) in
+      let body = body |> List_.map (TH.visitor_info_of_tok Ast.make_expanded) in
+      let def = (s, (Either.Right params, body)) in
       def :: define_parse xs
   | TDefine _i1 :: TIdent_Define (s, _i2) :: xs ->
       let body, _, xs =
@@ -220,7 +220,7 @@ let rec define_parse xs =
              | _ -> false)
       in
       let body = body |> List.map (TH.visitor_info_of_tok Ast.make_expanded) in
-      let def = (s, (Left (), body)) in
+      let def = (s, (Either.Left (), body)) in
       def :: define_parse xs
   | TDefine _i1 :: _ -> raise Impossible
   | _x :: xs -> define_parse xs

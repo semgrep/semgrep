@@ -83,7 +83,7 @@ let recognise_and_collect ~rex line =
 let rule_match_nosem ~strict (rule_match : OutJ.cli_match) :
     bool * OutJ.cli_error list =
   let lines =
-    File.lines_of_file
+    UFile.lines_of_file
       (max 0 (rule_match.start.line - 1), rule_match.end_.line)
       rule_match.path
   in
@@ -125,9 +125,9 @@ let rule_match_nosem ~strict (rule_match : OutJ.cli_match) :
           (Option.value ~default:[||] ids_line)
           (Option.value ~default:[||] ids_previous_line)
       in
-      let ids = Common.map_filter Fun.id (Array.to_list ids) in
-      let ids = Common.map (String.split_on_char ' ') ids in
-      let ids = Common.map List.hd (* nosemgrep: list-hd *) ids in
+      let ids = List_.map_filter Fun.id (Array.to_list ids) in
+      let ids = List_.map (String.split_on_char ' ') ids in
+      let ids = List_.map List.hd (* nosemgrep: list-hd *) ids in
       (* [String.split_on_char] can **not** return an empty list. *)
       (* check if the id specified by the user is the [rule_match]'s [rule_id]. *)
       let nosem_matches id =
@@ -175,7 +175,7 @@ let process_ignores ~keep_ignored ~strict (out : OutJ.cli_output) :
     OutJ.cli_output =
   let results, errors =
     (* filters [rule_match]s by the [nosemgrep] tag. *)
-    Common.map_filter
+    List_.map_filter
       (fun rule_match ->
         let to_ignore, errors = rule_match_nosem ~strict rule_match in
         let rule_match =

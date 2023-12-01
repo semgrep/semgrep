@@ -5,4 +5,4 @@ val test_tokens_python : string (* filename *) -> unit
  * the command line, e.g. '$ pfff -parse_python foo.py will call the
  * test_parse_python function.
  *)
-val actions : unit -> Arg_helpers.cmdline_actions
+val actions : unit -> Arg_.cmdline_actions

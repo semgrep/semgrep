@@ -1,5 +1,5 @@
 open Printf
-open File.Operators
+open Fpath_.Operators
 open Testutil_files (* file/dir/symlink *)
 module F = Testutil_files
 

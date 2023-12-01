@@ -76,7 +76,7 @@ let setup_logging ~force_color ~level =
    * logging/output we want in osemgrep, so this is a good opportunity
    * to evaluate a new logging library.
    *)
-  Logs_helpers.setup_logging ~force_color ~level ();
+  Logs_.setup_logging ~force_color ~level ();
   (* TOPORT
         # Setup file logging
         # env.user_log_file dir must exist
@@ -102,7 +102,7 @@ let setup_logging ~force_color ~level =
     | Some Logs.Debug -> true
     | _else_ -> false
   in
-  Logging_helpers.setup ~debug
+  Logging_.setup ~debug
     ~log_config_file:(Fpath.v "log_config.json")
     ~log_to_file:None;
   ()

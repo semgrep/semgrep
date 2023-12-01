@@ -103,7 +103,7 @@ let append (a : t) (b : t) : t =
   remove_trailing_slash a @ remove_leading_slash b
 
 let of_path_segments (segments : string list) : t =
-  Common.map
+  List_.map
     (fun s ->
       let chars = String.fold_right (fun c acc -> Char c :: acc) s [] in
       Segment chars)

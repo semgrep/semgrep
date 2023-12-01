@@ -61,7 +61,7 @@ let rec find_next_synchro ~next ~already_passed =
   else
     let before, after =
       last_round
-      |> Common.span (fun tok ->
+      |> List_.span (fun tok ->
              match tok with
              (* by looking at TOBrace we are sure that the "start of something"
               * will not arrive too early
