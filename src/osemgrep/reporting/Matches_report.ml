@@ -1,5 +1,5 @@
 module OutJ = Semgrep_output_v1_t
-open File.Operators
+open Fpath_.Operators
 
 (*****************************************************************************)
 (* Prelude *)

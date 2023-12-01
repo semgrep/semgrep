@@ -2,7 +2,7 @@ open Yojson.Safe.Util
 open Lsp
 open Lsp.Types
 open Jsonrpc
-open File.Operators
+open Fpath_.Operators
 module Conv = Convert_utils
 module OutJ = Semgrep_output_v1_t
 

@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module PS = Parsing_stat
 
 (*****************************************************************************)
@@ -14,7 +14,7 @@ let try_with_print_exn_and_reraise _a b = b ()
 (*****************************************************************************)
 (* mostly a copy paste of Test_parsing_php.parse_php *)
 let test_parse_simple xs =
-  let xs = xs |> File.Path.of_strings |> List.map File.fullpath in
+  let xs = xs |> Fpath_.of_strings |> List.map File.fullpath in
   let fullxs, _skipped_paths =
     Lib_parsing_php.find_source_files_of_dir_or_files xs
     |> Skip_code.filter_files_if_skip_list ~root:xs

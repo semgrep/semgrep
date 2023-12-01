@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 module PM = Pattern_match
 module E = Core_error
 module MR = Mini_rule

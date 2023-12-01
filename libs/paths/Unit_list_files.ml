@@ -7,7 +7,7 @@
 [@@@warning "-37"]
 
 open Printf
-open File.Operators
+open Fpath_.Operators
 
 type file_tree = Dir of string * file_tree list | File of string * file_kind
 and file_kind = Regular of string | Symlink of string

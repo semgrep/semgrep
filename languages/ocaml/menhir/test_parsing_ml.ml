@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module Flag = Flag_parsing
 
 (*****************************************************************************)
@@ -18,7 +18,7 @@ let test_tokens_ml file =
   ()
 
 let test_parse_ml_or_mli xs =
-  let xs = File.Path.of_strings xs in
+  let xs = Fpath_.of_strings xs in
   let xs = List.map File.fullpath xs in
 
   let fullxs, _skipped_paths =

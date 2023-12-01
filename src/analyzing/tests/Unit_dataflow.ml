@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 
 (*****************************************************************************)
 (* Unit tests *)
@@ -18,7 +18,7 @@ let tests parse_program =
         fun () ->
           let dir = Filename.concat tests_path "dataflow/python" in
           let files = Common2.glob (spf "%s/*.py" dir) in
-          files |> File.Path.of_strings
+          files |> Fpath_.of_strings
           |> List.iter (fun file ->
                  let ast = parse_program !!file in
                  let lang = Lang.lang_of_filename_exn file in

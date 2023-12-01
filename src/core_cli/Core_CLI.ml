@@ -7,7 +7,7 @@
  *    May you share freely, never taking more than you give.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 open Core_scan_config
 module Flag = Flag_semgrep
 module E = Core_error
@@ -699,7 +699,7 @@ let main_no_exn_handler (sys_argv : string array) : unit =
              tune these parameters in the future/do more testing, but
              for now just turn it off *)
           (* if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc (); *)
-          let config = { config with roots = File.Path.of_strings roots } in
+          let config = { config with roots = Fpath_.of_strings roots } in
           Core_command.semgrep_core_dispatch config)
 
 let with_exception_trace f =

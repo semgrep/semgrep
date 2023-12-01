@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 module PS = Parsing_stat
 module G = AST_generic
 module J = JSON
@@ -218,12 +218,12 @@ let dump_tree_sitter_cst lang file =
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
 let test_parse_tree_sitter lang root_paths =
-  let paths = List_.map Common.fullpath root_paths |> File.Path.of_strings in
+  let paths = List_.map Common.fullpath root_paths |> Fpath_.of_strings in
   let paths, _skipped_paths =
     Find_targets_old.files_of_dirs_or_files (Some lang) paths
   in
   let stat_list = ref [] in
-  paths |> File.Path.to_strings
+  paths |> Fpath_.to_strings
   |> Console.progress (fun k ->
          List.iter (fun file ->
              k ();
@@ -335,13 +335,13 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
 
   let paths =
     (* = absolute paths *)
-    List_.map Common.fullpath files_or_dirs |> File.Path.of_strings
+    List_.map Common.fullpath files_or_dirs |> Fpath_.of_strings
   in
   let paths, skipped =
     Find_targets_old.files_of_dirs_or_files (Some lang) paths
   in
   let stats =
-    paths |> File.Path.to_strings
+    paths |> Fpath_.to_strings
     |> List.rev_map (fun file ->
            pr2
              (spf "%05.1fs: [%s] processing %s" (Sys.time ())
@@ -552,7 +552,7 @@ let diff_pfff_tree_sitter xs =
 (*****************************************************************************)
 
 let test_parse_rules roots =
-  let roots = File.Path.of_strings roots in
+  let roots = Fpath_.of_strings roots in
   let targets, _skipped_paths =
     Find_targets_old.files_of_dirs_or_files (Some Lang.Yaml) roots
   in

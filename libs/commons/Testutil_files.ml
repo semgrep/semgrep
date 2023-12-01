@@ -2,11 +2,8 @@
    Utilities for creating, scanning, and deleting a hierarchy
    of test files.
 *)
-open File.Operators
+open Fpath_.Operators
 open Printf
-
-let ( / ) = Fpath.( / )
-let ( // ) = Fpath.( // )
 
 type t =
   | Dir of string * t list
@@ -231,6 +228,6 @@ let () =
           let tree2 = read root in
           assert (sort tree2 = sort tree);
 
-          let paths = flatten tree |> File.Path.to_strings in
-          List.iter print_endline paths;
+          let paths = flatten tree |> Fpath_.to_strings in
+          List.iter Stdlib.print_endline paths;
           assert (paths = [ "a"; "b"; "c"; "d/e" ])))

@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module In = Input_to_core_t
 module OutJ = Semgrep_output_v1_t
 module Resp = Semgrep_output_v1_t
@@ -345,9 +345,10 @@ let files_of_dirs_or_files ?(keep_root_files = true)
     else (roots, [])
   in
   let paths =
-    paths |> File.Path.to_strings
-    |> Common.files_of_dir_or_files_no_vcs_nofilter |> File.Path.of_strings
+    paths |> Fpath_.to_strings |> Common.files_of_dir_or_files_no_vcs_nofilter
+    |> Fpath_.of_strings
   in
+
   let paths, skipped = global_filter ~opt_lang ~sort_by_decr_size paths in
   let paths = explicit_targets @ paths in
   let sorted_paths =

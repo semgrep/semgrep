@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module Flag = Flag_parsing
 module J = JSON
 module PS = Parsing_stat
@@ -76,7 +76,7 @@ let test_parse_common xs fullxs ext =
   ()
 
 let test_parse_js xs =
-  let xs = File.Path.of_strings xs in
+  let xs = Fpath_.of_strings xs in
   let fullxs =
     File.files_of_dirs_or_files_no_vcs_nofilter xs
     |> List.filter (fun filename ->
@@ -89,7 +89,7 @@ let test_parse_js xs =
   test_parse_common xs fullxs "js"
 
 let test_parse_ts xs =
-  let xs = File.Path.of_strings xs in
+  let xs = Fpath_.of_strings xs in
   let fullxs =
     File.files_of_dirs_or_files_no_vcs_nofilter xs
     |> List.filter (fun filename ->
