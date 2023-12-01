@@ -3,10 +3,9 @@
     {
       "code": 2,
       "level": "warn",
-      "message": "Timeout when running rules.forcetimeout on targets/equivalence/open_redirect.py:\n ",
+      "message": "Other syntax error at line targets/equivalence/open_redirect.py:1:\n Stack overflow",
       "path": "targets/equivalence/open_redirect.py",
-      "rule_id": "rules.forcetimeout",
-      "type": "Timeout"
+      "type": "Other syntax error"
     }
   ],
   "interfile_languages_used": [],
