@@ -63,6 +63,7 @@ val rules_from_rules_source_async :
   token_opt:Auth.token option ->
   rewrite_rule_ids:bool ->
   registry_caching:bool ->
+  ?ext:string ->
   Rules_source.t ->
   rules_and_origin list Lwt.t
 

@@ -6,6 +6,7 @@ module FT = File_type
 module C = Rules_config
 module R = Rule
 module XP = Xpattern
+module Http_helpers_ = Http_helpers
 module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (*****************************************************************************)
@@ -112,11 +113,16 @@ let fetch_content_from_url_async ?(token_opt = None) ?(ext = "json")
   Logs.debug (fun m -> m "trying to download from %s" (Uri.to_string url));
   let content =
     let headers =
-      match token_opt with
-      | None -> None
-      | Some token -> Some [ Auth.auth_header_of_token token ]
+      match ext with
+      | "json" -> Http_helpers_.accept_json_header
+      | _ -> Http_helpers_.accept_yaml_header
     in
-    let%lwt res = Http_helpers.get_async ?headers url in
+    let headers =
+      match token_opt with
+      | None -> [ headers ]
+      | Some token -> [ headers; Auth.auth_header_of_token token ]
+    in
+    let%lwt res = Http_helpers.get_async ?headers:(Some headers) url in
     match res with
     | Ok (body, _) -> Lwt.return body
     | Error (msg, _) ->
@@ -156,9 +162,10 @@ type _registry_cached_value =
   Cache_disk.cached_value_on_disk
 
 (* better: faster fetching by using a cache *)
-let fetch_content_from_registry_url_async ~token_opt ~registry_caching url =
+let fetch_content_from_registry_url_async ~token_opt ~registry_caching ?ext url
+    =
   Metrics_.g.is_using_registry <- true;
-  if not registry_caching then fetch_content_from_url_async ~token_opt url
+  if not registry_caching then fetch_content_from_url_async ~token_opt ?ext url
   else
     let cache_dir = !Env.v.user_dot_semgrep_dir / "cache" / "registry" in
     let cache_methods =
@@ -436,13 +443,14 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
       *)
       let%lwt rules =
         load_rules_from_url_async ~origin:(Untrusted_remote url) ~token_opt:None
-          url
+          ?ext url
       in
       Lwt.return [ rules ]
   | C.R rkind ->
       let url = Semgrep_Registry.url_of_registry_config_kind rkind in
       let%lwt content =
-        fetch_content_from_registry_url_async ~token_opt ~registry_caching url
+        fetch_content_from_registry_url_async ~token_opt ~registry_caching ?ext
+          url
       in
       (* TODO: this also assumes every registry URL is for yaml *)
       let rules =
@@ -536,7 +544,7 @@ let rules_from_pattern pattern : rules_and_origin list =
                  None)
 
 let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~registry_caching
-    (src : Rules_source.t) : rules_and_origin list Lwt.t =
+    ?ext (src : Rules_source.t) : rules_and_origin list Lwt.t =
   match src with
   | Configs xs ->
       xs
@@ -544,7 +552,7 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~registry_caching
              let in_docker = !Semgrep_envvars.v.in_docker in
              let config = Rules_config.parse_config_string ~in_docker str in
              rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
-               ~registry_caching config)
+               ~registry_caching ?ext config)
       |> Lwt.map List.concat
   (* better: '-e foo -l regex' was not handled in pysemgrep
    *  (got a weird 'invalid pattern clause' error)
@@ -556,8 +564,8 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~registry_caching
 
 (* TODO We can probably delete this. *)
 (* python: mix of resolver_config.get_config() and get_rules() *)
-let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
+let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching ?ext
     (src : Rules_source.t) : rules_and_origin list =
   Lwt_platform.run
     (rules_from_rules_source_async ~token_opt ~rewrite_rule_ids
-       ~registry_caching src)
+       ~registry_caching ?ext src)

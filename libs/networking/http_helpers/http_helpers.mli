@@ -11,6 +11,12 @@ val set_client_ref : (module Cohttp_lwt.S.Client) -> unit
  *)
 val in_mock_context : bool ref
 
+(* ("accept", "application/json") *)
+val accept_json_header : string * string
+
+(* ("accept", "text/yaml") *)
+val accept_yaml_header : string * string
+
 type get_info = {
   response : Cohttp.Response.t;
   body : Cohttp_lwt.Body.t;
