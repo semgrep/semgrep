@@ -88,7 +88,7 @@ let has_ellipsis_and_filter_ellipsis_gen f xs =
   let has_ellipsis = ref false in
   let ys =
     xs
-    |> Common.exclude (fun x ->
+    |> List_.exclude (fun x ->
            let res = f x in
            if res then has_ellipsis := true;
            res)
@@ -469,7 +469,7 @@ let rec m_name_inner a b =
         let new_qualifier =
           match List.rev dotted with
           | [] -> raise Impossible
-          | _x :: xs -> List.rev xs |> Common.map (fun id -> (id, None))
+          | _x :: xs -> List.rev xs |> List_.map (fun id -> (id, None))
         in
         m_name a
           (B.IdQualified
@@ -591,7 +591,7 @@ and m_name a b =
              that the location data of the imports we are inserting should not matter.
           *)
           let import_with_fake_location =
-            Common.map (fun (s, _) -> (s, G.fake "")) import
+            List_.map (fun (s, _) -> (s, G.fake "")) import
           in
           let b_ids = import_with_fake_location @ dotted_b in
           m_name_inner a (H.name_of_ids b_ids))
@@ -616,7 +616,7 @@ and m_qualifier a b =
   match (a, b) with
   (* Like for m_dotted_name, [$X] should match anything *)
   | G.QDots [ ((str, t), _) ], B.QDots b when MV.is_metavar_name str ->
-      envf (str, t) (MV.E (make_dotted (Common.map fst b)))
+      envf (str, t) (MV.E (make_dotted (List_.map fst b)))
   | G.QDots a, B.QDots b -> m_list m_ident_and_type_arguments a b
   | G.QExpr (a1, a2), B.QExpr (b1, b2) -> m_expr a1 b1 >>= fun () -> m_tok a2 b2
   | G.QDots _, _
@@ -851,7 +851,7 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
           }),
       _b ) ->
       (* TODO: double check names does not have any type_args *)
-      let full = (names |> Common.map fst) @ [ alabel ] in
+      let full = (names |> List_.map fst) @ [ alabel ] in
       m_expr (make_dotted full) b
   | G.DotAccess (_, _, _), B.N b1 ->
       (* Reinterprets a DotAccess expression such as a.b.c as a name, when
@@ -986,7 +986,7 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
       | B.Container (B.Tuple, (_, vars, _)), B.Container (B.Tuple, (_, vals, _))
         when List.length vars =|= List.length vals ->
           let create_assigns expr1 expr2 = B.Assign (expr1, bt, expr2) |> G.e in
-          let mult_assigns = Common.map2 create_assigns vars vals in
+          let mult_assigns = List_.map2 create_assigns vars vals in
           let rec aux xs =
             match xs with
             | [] -> fail ()
@@ -1988,8 +1988,8 @@ and m_ac_op tok op aargs_ac bargs_ac =
           in
           let tout =
             m_list__m_argument
-              (Common.map G.arg avars_dots)
-              (Common.map B.arg bs') tin
+              (List_.map G.arg avars_dots)
+              (List_.map B.arg bs') tin
           in
           [ ([], tout) ])
       |> m_comb_flatten
@@ -3143,7 +3143,7 @@ and m_fields (xsa : G.field list) (xsb : G.field list) =
   let xsa =
     (* TODO: Similar to has_ellipsis_and_filter_ellipsis, refactor? *)
     xsa
-    |> Common.exclude (function
+    |> List_.exclude (function
          | G.F { s = G.ExprStmt ({ e = G.Ellipsis _; _ }, _); _ } ->
              has_ellipsis := true;
              true

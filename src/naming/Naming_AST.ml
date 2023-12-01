@@ -151,7 +151,7 @@ type scope_info = {
   enttype : type_ option;
 }
 
-type scope = (string, scope_info) assoc
+type scope = (string, scope_info) Assoc.t
 
 type scopes = {
   global : scope ref;
@@ -421,7 +421,7 @@ let resolved_name_kind env lang =
 (* !also set the id_info of the parameter as a side effect! *)
 let params_of_parameters env params : scope =
   params |> Tok.unbracket
-  |> Common.map_filter (function
+  |> List_.map_filter (function
        | Param { pname = Some id; pinfo = id_info; ptype = typ; _ } ->
            let sid = SId.mk () in
            let resolved = { entname = (Parameter, sid); enttype = typ } in
@@ -439,7 +439,7 @@ let js_get_angular_constructor_args env attrs defs =
       attrs
   in
   defs
-  |> Common.map_filter (function
+  |> List_.map_filter (function
        | {
            s =
              DefStmt
@@ -518,7 +518,7 @@ let resolve lang prog =
                   if Lang.is_js lang then
                     let _, fields, _ = c.cbody in
                     js_get_angular_constructor_args env attrs
-                      (Common.map (fun (F x) -> x) fields)
+                      (List_.map (fun (F x) -> x) fields)
                   else []
                 in
                 (* TODO? Maybe we need a `with_new_class_scope`. For now, abusing `with_new_function_scope`. *)
@@ -853,7 +853,7 @@ let resolve lang prog =
                 | Some { entname = ImportedEntity xs, _sidm; _ } ->
                     (* The entity is fully qualified, no need for sid *)
                     let sid = SId.unsafe_default in
-                    let rest_of_middle = Common.map fst rest_of_middle in
+                    let rest_of_middle = List_.map fst rest_of_middle in
                     let canonical =
                       xs @ dotted_to_canonical (rest_of_middle @ [ id ])
                     in

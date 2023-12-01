@@ -108,7 +108,7 @@ let name_of_ids ?(case_insensitive = false) xs =
   | x :: xs ->
       let qualif =
         if xs =*= [] then None
-        else Some (QDots (xs |> List.rev |> Common.map (fun id -> (id, None))))
+        else Some (QDots (xs |> List.rev |> List_.map (fun id -> (id, None))))
       in
       IdQualified
         {
@@ -171,7 +171,7 @@ let dotted_ident_of_name (n : name) : dotted_ident =
       let before =
         match name_middle with
         (* we skip the type parts in ds ... *)
-        | Some (QDots ds) -> ds |> Common.map fst
+        | Some (QDots ds) -> ds |> List_.map fst
         | Some (QExpr _) ->
             logger#error "unexpected qualifier type";
             []
@@ -194,10 +194,10 @@ let rec expr_to_pattern e =
   match e.e with
   | N (Id (id, info)) -> PatId (id, info)
   | Container (Tuple, (t1, xs, t2)) ->
-      PatTuple (t1, xs |> Common.map expr_to_pattern, t2)
+      PatTuple (t1, xs |> List_.map expr_to_pattern, t2)
   | L l -> PatLiteral l
   | Container (List, (t1, xs, t2)) ->
-      PatList (t1, xs |> Common.map expr_to_pattern, t2)
+      PatList (t1, xs |> List_.map expr_to_pattern, t2)
   | Ellipsis t -> PatEllipsis t
   (* TODO:  PatKeyVal and more *)
   | _ -> OtherPat (("ExprToPattern", fake ""), [ E e ])
@@ -209,10 +209,10 @@ let rec pattern_to_expr p =
   (match p with
   | PatId (id, info) -> N (Id (id, info))
   | PatTuple (t1, xs, t2) ->
-      Container (Tuple, (t1, xs |> Common.map pattern_to_expr, t2))
+      Container (Tuple, (t1, xs |> List_.map pattern_to_expr, t2))
   | PatLiteral l -> L l
   | PatList (t1, xs, t2) ->
-      Container (List, (t1, xs |> Common.map pattern_to_expr, t2))
+      Container (List, (t1, xs |> List_.map pattern_to_expr, t2))
   | OtherPat (("ExprToPattern", _), [ E e ]) -> e.e
   | _ -> raise NotAnExpr)
   |> G.e
@@ -412,14 +412,14 @@ let ac_matching_nf op args =
   (* yes... here we use exceptions like a "goto" to avoid the option monad *)
   let rec nf args1 =
     args1
-    |> Common.map (function
+    |> List_.map (function
          | Arg e -> e
          | ArgKwd _
          | ArgKwdOptional _
          | ArgType _
          | OtherArg _ ->
              raise_notrace Exit)
-    |> Common.map nf_one |> List.flatten
+    |> List_.map nf_one |> List.flatten
   and nf_one e =
     match e.e with
     | Call ({ e = IdSpecial (Op op1, _tok1); _ }, (_, args1, _)) when op =*= op1
@@ -463,12 +463,12 @@ let set_e_range l r e =
 class ['self] extract_info_visitor =
   object (_self : 'self)
     inherit ['self] AST_generic.iter_no_id_info as super
-    method! visit_tok globals tok = Common.push tok globals
+    method! visit_tok globals tok = Stack_.push tok globals
 
     method! visit_expr globals x =
       match x.e with
       (* Ignore the tokens from the expression str is aliased to *)
-      | Alias ((_str, t), _e) -> Common.push t globals
+      | Alias ((_str, t), _e) -> Stack_.push t globals
       | _ -> super#visit_expr globals x
   end
 

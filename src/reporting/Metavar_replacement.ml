@@ -21,7 +21,7 @@ let metavar_string_of_any any =
   any |> AST_generic_helpers.ii_of_any
   |> List.filter Tok.is_origintok
   |> List.sort Tok.compare_pos
-  |> Common.map Tok.content_of_tok
+  |> List_.map Tok.content_of_tok
   |> Core_text_output.join_with_space_if_needed
 
 let propagated_value_string_of_mval mval =
@@ -42,7 +42,7 @@ let propagated_value_string_of_mval mval =
 
 let of_bindings bindings =
   bindings
-  |> Common.map_filter (fun (mvar, mval) ->
+  |> List_.map_filter (fun (mvar, mval) ->
          match MV.range_of_mvalue mval with
          | None -> None
          | Some (file, mval_range) ->
@@ -52,7 +52,7 @@ let of_bindings bindings =
 
 let of_out (metavars : OutJ.metavars) =
   metavars
-  |> Common.map (fun (mvar, metavar_value) ->
+  |> List_.map (fun (mvar, metavar_value) ->
          let mval_content = lazy metavar_value.OutJ.abstract_content in
          let propagated_content =
            Option.map

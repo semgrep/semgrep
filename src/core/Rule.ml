@@ -626,7 +626,7 @@ type steps_rule = steps_mode rule_info [@@deriving show]
 (* old: was t list -> hrules, but nice to allow for more precise hrules *)
 let hrules_of_rules (rules : 'mode rule_info list) :
     (Rule_ID.t, 'mode rule_info) Hashtbl.t =
-  rules |> Common.map (fun r -> (fst r.id, r)) |> Common.hash_of_list
+  rules |> List_.map (fun r -> (fst r.id, r)) |> Hashtbl_.hash_of_list
 
 let partition_rules (rules : rules) :
     search_rule list
@@ -865,13 +865,13 @@ let rec formula_of_mode (mode : mode) =
   | `Search formula -> [ formula ]
   | `Taint { sources = _, sources; sanitizers; sinks = _, sinks; propagators }
     ->
-      Common.map (fun src -> src.source_formula) sources
+      List_.map (fun src -> src.source_formula) sources
       @ (match sanitizers with
         | None -> []
         | Some (_, sanitizers) ->
-            Common.map (fun sanitizer -> sanitizer.sanitizer_formula) sanitizers)
-      @ Common.map (fun sink -> sink.sink_formula) sinks
-      @ Common.map (fun prop -> prop.propagator_formula) propagators
+            List_.map (fun sanitizer -> sanitizer.sanitizer_formula) sanitizers)
+      @ List_.map (fun sink -> sink.sink_formula) sinks
+      @ List_.map (fun prop -> prop.propagator_formula) propagators
   | `Extract { formula; extract = _; _ } -> [ formula ]
   | `Secrets { secrets; _ } -> secrets
   | `Steps steps ->
@@ -902,7 +902,7 @@ let selector_and_analyzer_of_xlang (xlang : Xlang.t) :
 (* return list of "positive" x list of Not *)
 let split_and (xs : formula list) : formula list * (tok * formula) list =
   xs
-  |> Common.partition_either (fun e ->
+  |> Either_.partition_either (fun e ->
          match e with
          (* positives *)
          | P _

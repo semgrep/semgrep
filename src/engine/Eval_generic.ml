@@ -85,11 +85,11 @@ let metavar_of_json s = function
  * so this format is not used anymore in semgrep-python, but we still
  * use it for some of our regression tests in tests/eval/.
  *)
-let parse_json file =
-  let json = JSON.load_json file in
+let parse_json (file : string) : env * code =
+  let json = UChan.with_open_in (Fpath.v file) JSON.json_of_chan in
   match json with
   | J.Object xs -> (
-      match Common.sort_by_key_lowfirst xs with
+      match Assoc.sort_by_key_lowfirst xs with
       | [
        ("code", J.String code);
        ("language", J.String lang);
@@ -106,11 +106,11 @@ let parse_json file =
             | _ -> failwith "only expressions are supported"
           in
           let metavars =
-            xs |> Common.map (fun (s, json) -> (s, metavar_of_json s json))
+            xs |> List_.map (fun (s, json) -> (s, metavar_of_json s json))
           in
           let env =
             {
-              mvars = Common.hash_of_list metavars;
+              mvars = Hashtbl_.hash_of_list metavars;
               constant_propagation = true;
               file = Fpath.v file;
             }
@@ -127,18 +127,18 @@ let parse_json file =
 let print_result xopt =
   match xopt with
   (* nosem *)
-  | None -> pr "NONE"
+  | None -> UCommon.pr "NONE"
   | Some v -> (
       match v with
       (* nosem *)
-      | Bool b -> pr (string_of_bool b)
+      | Bool b -> UCommon.pr (string_of_bool b)
       (* allow to abuse int to encode boolean ... ugly C tradition *)
       (* nosem *)
-      | Int 0L -> pr (string_of_bool false)
+      | Int 0L -> UCommon.pr (string_of_bool false)
       (* nosem *)
-      | Int _ -> pr (string_of_bool true)
+      | Int _ -> UCommon.pr (string_of_bool true)
       (* nosem *)
-      | _ -> pr "NONE")
+      | _ -> UCommon.pr "NONE")
 [@@action]
 
 (*****************************************************************************)
@@ -287,13 +287,13 @@ let rec eval env code =
   | G.Call ({ e = G.IdSpecial (G.Op op, _t); _ }, (_, args, _)) ->
       let values =
         args
-        |> Common.map (function
+        |> List_.map (function
              | G.Arg e -> eval env e
              | _ -> raise (NotHandled code))
       in
       eval_op op values code
   | G.Container (G.List, (_, xs, _)) ->
-      let vs = Common.map (eval env) xs in
+      let vs = List_.map (eval env) xs in
       List vs
   (* Emulate Python str just enough *)
   | G.Call ({ e = G.N (G.Id (("str", _), _)); _ }, (_, [ G.Arg e ], _)) ->
@@ -487,7 +487,7 @@ let bindings_to_env (config : Rule_options.t) ~file bindings =
   let constant_propagation = config.constant_propagation in
   let mvars =
     bindings
-    |> Common.map_filter (fun (mvar, mval) ->
+    |> List_.map_filter (fun (mvar, mval) ->
            let try_bind_to_exp e =
              try
                Some
@@ -517,16 +517,18 @@ let bindings_to_env (config : Rule_options.t) ~file bindings =
            | MV.E e -> try_bind_to_exp e
            | MV.Text (s, _, _) -> Some (mvar, String s)
            | x -> string_of_binding mvar x)
-    |> Common.hash_of_list
+    |> Hashtbl_.hash_of_list
   in
+
   { mvars; constant_propagation; file }
 
 let bindings_to_env_just_strings (config : Rule_options.t) ~file xs =
   let mvars =
     xs
-    |> Common.map_filter (fun (mvar, mval) -> string_of_binding mvar mval)
-    |> Common.hash_of_list
+    |> List_.map_filter (fun (mvar, mval) -> string_of_binding mvar mval)
+    |> Hashtbl_.hash_of_list
   in
+
   { mvars; constant_propagation = config.constant_propagation; file }
 
 (*****************************************************************************)

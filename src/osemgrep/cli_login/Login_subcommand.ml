@@ -13,14 +13,18 @@
 *)
 
 (*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+type caps = < stdout : Cap.Console.stdout ; network : Cap.Network.t >
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
 let print_success_message display_name : unit =
   let message =
     Ocolor_format.asprintf {|%s Successfully logged in as @{<cyan>%s@}! |}
-      (Logs_helpers.success_tag ())
-      display_name
+      (Logs_.success_tag ()) display_name
   in
   Logs.app (fun m -> m "%s" message)
 
@@ -56,7 +60,7 @@ let save_token ?(display_name = None) token =
       Exit_code.fatal
 
 let print_preamble () : unit =
-  Logs.app (fun m -> m "%a" Fmt_helpers.pp_heading "Login");
+  Logs.app (fun m -> m "%a" Fmt_.pp_heading "Login");
   let preamble =
     Ocolor_format.asprintf
       {|
@@ -79,7 +83,7 @@ let start_interactive_flow () : Uuidm.t option =
       Ocolor_format.asprintf
         {|%s @{<cyan>`semgrep login`@} is meant to be run in an interactive terminal.
 You can pass @{<cyan>`SEMGREP_APP_TOKEN`@} as an environment variable instead.|}
-        (Logs_helpers.err_tag ())
+        (Logs_.err_tag ())
     in
     Logs.err (fun m -> m "%s" msg);
     None)
@@ -102,9 +106,10 @@ You can pass @{<cyan>`SEMGREP_APP_TOKEN`@} as an environment variable instead.|}
     | __else__ -> None)
 
 (* NOTE: fetch_token will save the token iff valid (else error) *)
-let fetch_token session_id =
+let fetch_token caps session_id =
   match
-    Semgrep_login.fetch_token ~wait_hook:Console_Spinner.show_spinner session_id
+    Semgrep_login.fetch_token caps ~wait_hook:Console_Spinner.show_spinner
+      session_id
   with
   | Error msg ->
       Logs.err (fun m -> m "%s" msg);
@@ -121,20 +126,21 @@ let fetch_token session_id =
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run (conf : Login_CLI.conf) : Exit_code.t =
+let run caps (conf : Login_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
   let settings = Semgrep_settings.load () in
   match settings.Semgrep_settings.api_token with
   | None -> (
       match !Semgrep_envvars.v.app_token with
-      | Some token when String.length token > 0 ->
-          save_token token ~display_name:None
+      | Some token when String.length (Auth.string_of_token token) > 0 ->
+          let caps = Auth.cap_token_and_network token caps in
+          save_token ~display_name:None caps
       | None when String.length conf.one_time_seed > 0 ->
           let shared_secret = Uuidm.v5 Uuidm.nil conf.one_time_seed in
           Logs.debug (fun m ->
               m "using seed %s with uuid %s" conf.one_time_seed
                 (Uuidm.to_string shared_secret));
-          fetch_token shared_secret
+          fetch_token caps shared_secret
       | None
       | Some _ -> (
           let session_id = start_interactive_flow () in
@@ -145,25 +151,26 @@ let run (conf : Login_CLI.conf) : Exit_code.t =
               (* wait 100ms for the browser to open and then start showing the spinner *)
               match
                 Semgrep_login.fetch_token
-                  ~wait_hook:Console_Spinner.show_spinner session_id
+                  ~wait_hook:Console_Spinner.show_spinner caps session_id
               with
               | Error msg ->
                   Logs.err (fun m -> m "%s" msg);
                   Exit_code.fatal
               | Ok (token, display_name) ->
                   Console_Spinner.erase_spinner ();
-                  save_token token ~display_name:(Some display_name))))
+                  let caps = Auth.cap_token_and_network token caps in
+                  save_token caps ~display_name:(Some display_name))))
   | Some _ ->
       Logs.app (fun m ->
           m
             "%s You're already logged in. Use `semgrep logout` to log out \
              first, and then you can login with a new access token."
-            (Logs_helpers.err_tag ()));
+            (Logs_.err_tag ()));
       Exit_code.fatal
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let main (argv : string array) : Exit_code.t =
+let main caps (argv : string array) : Exit_code.t =
   let conf = Login_CLI.parse_argv Login_CLI.login_cmdline_info argv in
-  run conf
+  run caps conf

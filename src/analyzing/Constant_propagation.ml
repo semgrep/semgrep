@@ -373,7 +373,7 @@ let rec eval env x : svalue option =
 
 and eval_args env args =
   args |> Tok.unbracket
-  |> Common.map (function
+  |> List_.map (function
        | Arg e -> eval env e
        | _ -> None)
 
@@ -578,7 +578,7 @@ let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
         },
         _ ) ->
       xs
-      |> Common.map_filter (function
+      |> List_.map_filter (function
            | F
                {
                  s =
@@ -609,7 +609,7 @@ let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
         },
         _ ) ->
       xs
-      |> Common.map_filter (function
+      |> List_.map_filter (function
            | F
                {
                  s =

@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 module FT = File_type
 module R = Rule
 module E = Core_error
@@ -46,7 +46,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 
 let (xlangs_of_rules : Rule.t list -> Xlang.t list) =
  fun rs ->
-  rs |> Common.map (fun r -> r.R.target_analyzer) |> List.sort_uniq compare
+  rs |> List_.map (fun r -> r.R.target_analyzer) |> List.sort_uniq compare
 
 let first_xlang_of_rules (rs : Rule.t list) : Xlang.t =
   match rs with
@@ -69,7 +69,7 @@ let find_target_of_yaml_file file =
   try
     let d, b, ext = Common2.dbe_of_filename file in
     Common2.readdir_to_file_list d @ Common2.readdir_to_link_list d
-    |> Common.find_some (fun file2 ->
+    |> List_.find_some (fun file2 ->
            let path2 = Filename.concat d file2 in
            (* Config files have a single .yaml extension (assumption),
             * but test files may have multiple extensions, e.g.
@@ -151,14 +151,14 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
           {
             Xtarget.file = target;
             xlang;
-            lazy_content = lazy (File.read_file target);
+            lazy_content = lazy (UFile.read_file target);
             lazy_ast_and_errors;
           }
         in
         E.g_errors := [];
         Core_profiling.mode := MTime;
         let rules, extract_rules =
-          Common.partition_either
+          Either_.partition_either
             (fun r ->
               match r.Rule.mode with
               | `Extract _ as e -> Right { r with mode = e }
@@ -178,7 +178,7 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
         in
         let in_targets : In.target list =
           extracted_targets
-          |> Common.map
+          |> List_.map
                (fun Extract.{ extracted = Extracted path; analyzer; _ } ->
                  { In.path = !!path; analyzer; products = Product.all })
         in
@@ -203,7 +203,7 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
         let eres =
           try
             in_targets
-            |> Common.map (fun (t : In.target) ->
+            |> List_.map (fun (t : In.target) ->
                    let file = t.path in
                    let xlang = t.analyzer in
                    let lazy_ast_and_errors =
@@ -223,7 +223,7 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
                      {
                        Xtarget.file = Fpath.v file;
                        xlang;
-                       lazy_content = lazy (Common.read_file file);
+                       lazy_content = lazy (UCommon.read_file file);
                        lazy_ast_and_errors;
                      }
                    in
@@ -278,7 +278,7 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
         (if not (E.ErrorSet.is_empty res.errors) then
            let errors =
              E.ErrorSet.elements res.errors
-             |> Common.map Core_error.show |> String.concat "-----\n"
+             |> List_.map Core_error.show |> String.concat "-----\n"
            in
            failwith (spf "parsing error(s) on %s:\n%s" !!file errors));
         let actual_errors = !E.g_errors in
@@ -301,7 +301,7 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
     if prepend_lang then
       let langs =
         !!file |> find_target_of_yaml_file |> Fpath.v |> Lang.langs_of_filename
-        |> Common.map Lang.to_capitalized_alnum
+        |> List_.map Lang.to_capitalized_alnum
       in
       let langs =
         match langs with
@@ -317,7 +317,7 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
 let make_tests ?(unit_testing = false) ?(get_xlang = None)
     ?(prepend_lang = false) xs =
   let fullxs, _skipped_paths =
-    xs |> File.files_of_dirs_or_files_no_vcs_nofilter
+    xs |> UFile.files_of_dirs_or_files_no_vcs_nofilter
     |> List.filter Parse_rule.is_valid_rule_filename
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
@@ -328,7 +328,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None)
 
   let tests =
     fullxs
-    |> Common.map
+    |> List_.map
          (make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
             ~total_mismatch)
   in
@@ -340,7 +340,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None)
   (tests, total_mismatch, print_summary)
 
 let test_rules ?unit_testing xs =
-  let paths = File.Path.of_strings xs in
+  let paths = Fpath_.of_strings xs in
   let tests, total_mismatch, print_summary = make_tests ?unit_testing paths in
   tests |> List.iter (fun (_name, test) -> test ());
   print_summary ();

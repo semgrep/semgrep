@@ -28,9 +28,10 @@
 ; coupling: if you modify this, you probably need to modify the core-cache
 ; regexps in .github/workflow/tests.yml passed to the hashFiles function
 (dirs
-  src
+  TCB
   libs
-  tools
   languages
+  src
   js
+  tools
 )

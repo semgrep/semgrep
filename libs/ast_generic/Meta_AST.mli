@@ -25,4 +25,4 @@ val vof_arguments : AST_generic.arguments -> OCaml.v
 val vof_raw_tree : AST_generic.raw_tree -> OCaml.v
 
 (* -full_token_info *)
-val cmdline_flags_precision : unit -> Arg_helpers.flag_spec list
+val cmdline_flags_precision : unit -> Arg_.flag_spec list

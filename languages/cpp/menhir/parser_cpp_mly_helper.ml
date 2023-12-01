@@ -1,5 +1,6 @@
 open Common
 open Ast_cpp
+open Either_
 module Ast = Ast_cpp
 module Flag = Flag_parsing
 
@@ -335,7 +336,7 @@ let mk_e e = e
 let mk_funcall e1 args = Call (e1, args)
 
 let mk_constructor specs id (lp, params, rp) cp =
-  let params = Common.optlist_to_list params in
+  let params = List_.optlist_to_list params in
   let ftyp =
     {
       ft_ret = (nQ, TPrimitive (TVoid, snd id));

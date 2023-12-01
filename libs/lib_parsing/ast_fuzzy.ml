@@ -118,7 +118,7 @@ type tok = Tok.t [@@deriving show]
 type 'a wrap = 'a * tok [@@deriving show]
 
 type tree =
-  | Parens of tok * (trees, tok (* comma*)) Common.either list * tok
+  | Parens of tok * (trees, tok (* comma*)) Either_.t list * tok
   | Braces of tok * trees * tok
   | Angle of tok * trees * tok
   | Bracket of tok * trees * tok

@@ -43,7 +43,7 @@ let first_and_last = function
 let lines_of_file_at_range (range : position * position) (file : Fpath.t) :
     string list =
   let start, end_ = range in
-  File.lines_of_file (start.line, end_.line) file
+  UFile.lines_of_file (start.line, end_.line) file
 [@@profiling]
 
 (* Returns the text between the positions; start inclusive, end exclusive.
@@ -55,7 +55,7 @@ let lines_of_file_at_range (range : position * position) (file : Fpath.t) :
 let content_of_file_at_range (range : position * position) (file : Fpath.t) :
     string =
   let start, end_ = range in
-  let str = File.read_file file in
+  let str = UFile.read_file file in
   String.sub str start.offset (end_.offset - start.offset)
 [@@profiling]
 
@@ -93,7 +93,7 @@ let location_of_token_location loc =
 let parse_info_to_location pi =
   Tok.loc_of_tok pi |> Result.to_option |> Option.map location_of_token_location
 
-let tokens_to_locations toks = Common.map_filter parse_info_to_location toks
+let tokens_to_locations toks = List_.map_filter parse_info_to_location toks
 
 let tokens_to_single_loc (toks : Tok.t list) : location option =
   (* toks should be nonempty and should contain only origintoks, but since we
@@ -179,8 +179,7 @@ let sort_extra (extra : core_match_extra) =
 let sort_core_matches (matches : core_match list) : core_match list =
   let matches =
     matches
-    |> Common.map (fun (x : core_match) ->
-           { x with extra = sort_extra x.extra })
+    |> List_.map (fun (x : core_match) -> { x with extra = sort_extra x.extra })
   in
   List.stable_sort compare_match matches
 

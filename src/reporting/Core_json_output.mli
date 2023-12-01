@@ -3,7 +3,7 @@
  *)
 val match_to_match :
   Pattern_match.t * Textedit.t option ->
-  (Semgrep_output_v1_t.core_match, Core_error.t) Common.either
+  (Semgrep_output_v1_t.core_match, Core_error.t) Either.t
 
 (* Note that this uses and reset !Core_error.g_errors internally *)
 val core_output_of_matches_and_errors :

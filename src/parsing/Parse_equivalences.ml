@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 module Eq = Equivalence
 
 (*****************************************************************************)
@@ -26,17 +26,17 @@ let error s = failwith (spf "sgrep_equivalence: wrong format. %s" s)
 (*****************************************************************************)
 
 let parse file =
-  let str = File.read_file file in
+  let str = UFile.read_file file in
   let yaml_res = Yaml.of_string str in
   match yaml_res with
   | Result.Ok v -> (
       match v with
       | `O [ ("equivalences", `A xs) ] ->
           xs
-          |> Common.map (fun v ->
+          |> List_.map (fun v ->
                  match v with
                  | `O xs -> (
-                     match Common.sort_by_key_lowfirst xs with
+                     match Assoc.sort_by_key_lowfirst xs with
                      | [
                       ("id", `String id);
                       ("languages", `A langs);
@@ -44,7 +44,7 @@ let parse file =
                      ] ->
                          let languages =
                            langs
-                           |> Common.map (function
+                           |> List_.map (function
                                 | `String s -> (
                                     match Lang.of_string_opt s with
                                     | None ->

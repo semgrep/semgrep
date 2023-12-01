@@ -133,5 +133,5 @@ let show_selection_event (x : selection_event) : string =
 *)
 let show_selection_events (xs : selection_event list) : string =
   List.rev xs
-  |> Common.map (fun x -> show_selection_event x ^ "\n")
+  |> List_.map (fun x -> show_selection_event x ^ "\n")
   |> String.concat ""

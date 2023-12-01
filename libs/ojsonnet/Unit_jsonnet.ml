@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module Y = Yojson.Basic
 
 let dir_pass = Fpath.v "tests/jsonnet/eval_pass"
@@ -21,8 +21,8 @@ let related_file_of_target ~ext ~file =
 
 let test_maker_err dir =
   Common2.glob (spf "%s/*%s" !!dir "jsonnet")
-  |> File.Path.of_strings
-  |> Common.map (fun file ->
+  |> Fpath_.of_strings
+  |> List_.map (fun file ->
          ( Fpath.basename file,
            fun () ->
              let ast = Parse_jsonnet.parse_program file in
@@ -37,8 +37,8 @@ let test_maker_err dir =
 
 let test_maker_pass_fail dir pass_or_fail =
   Common2.glob (spf "%s/*%s" !!dir "jsonnet")
-  |> File.Path.of_strings
-  |> Common.map (fun file ->
+  |> Fpath_.of_strings
+  |> List_.map (fun file ->
          ( Fpath.basename file,
            fun () ->
              let comparison_file_path =
@@ -47,7 +47,7 @@ let test_maker_pass_fail dir pass_or_fail =
                | Error msg -> failwith msg
              in
              let correct =
-               Y.from_string (File.read_file comparison_file_path)
+               Y.from_string (UFile.read_file comparison_file_path)
              in
 
              let ast = Parse_jsonnet.parse_program file in
