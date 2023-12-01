@@ -2,7 +2,8 @@
    Tags used to filter tests.
 *)
 
-let todo_js = "todo:js"
+(* Should this be "js.todo"? Feel free to change it. *)
+let todo_js = "todo.js"
 
 (* Mandatory registration of all the tags used on our tests. *)
 let () = List.iter Alcotest_ext.declare_tag [ todo_js ]

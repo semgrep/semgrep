@@ -49,9 +49,36 @@ let list_flatten ll =
 (* Tags *)
 (****************************************************************************)
 
+(*
+   The tag syntax is a dot-separated identifier similar to pytest markers.
+   coupling: update the error message below when changing this syntax
+*)
+let tag_syntax = {|\A[a-z_][a-z_0-9]*(?:[.][a-z_][a-z_0-9]*)*\z|}
+
+let has_valid_tag_syntax =
+  (* We use the same regexp library as Alcotest to facilitate
+     future integration efforts. *)
+  let re = Re.Pcre.regexp tag_syntax in
+  fun tag -> Re.execp re tag
+
+let check_tag_syntax tag =
+  if not (has_valid_tag_syntax tag) then
+    invalid_arg
+      (sprintf
+         "Alcotest_ext.declare_tag: invalid syntax for test tag %S.\n\
+          It must be a dot-separated sequence of one or more lowercase \
+          alphanumeric\n\
+          identifiers e.g. \"foo_bar.v2.todo\" . It must match the following \
+          regexp:\n\
+         \  %s" tag tag_syntax)
+
 (* Duplicates are ok *)
 let declared_tags : string list ref = ref []
-let declare_tag str = declared_tags := str :: !declared_tags
+
+let declare_tag str =
+  check_tag_syntax str;
+  declared_tags := str :: !declared_tags
+
 let is_valid_tag str = List.mem str !declared_tags
 let list_valid_tags () = !declared_tags
 let has_tag tag test = List.mem tag test.tags
@@ -157,12 +184,17 @@ let group_by_key key_value_list =
 let to_alcotest tests : _ list =
   tests
   |> list_map (fun x ->
+         let tags =
+           match x.tags with
+           | [] -> ""
+           | tags -> sprintf " {%s}" (String.concat "," tags)
+         in
          let suite_name =
            match x.category with
            | [] -> x.name
            | path -> String.concat " > " path
          in
-         let suite_name = sprintf "[%s] %s" x.id suite_name in
+         let suite_name = sprintf "[%s]%s %s" x.id tags suite_name in
          let func = if x.skipped then Alcotest.skip else x.func in
          (* This is the format expected by Alcotest: *)
          (suite_name, (x.name, x.speed_level, func)))
