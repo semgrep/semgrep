@@ -2,9 +2,9 @@ import logging
 from pathlib import Path
 
 import pytest
+from tests.conftest import TESTS_PATH
 from tests.fixtures import RunSemgrep
 
-from ..conftest import TESTS_PATH
 from semdep.package_restrictions import is_in_range
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven

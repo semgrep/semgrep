@@ -1,8 +1,10 @@
 [tool.pytest.ini_options]
 minversion = "7.0"
+# note that we dont't put tests/qa here
 testpaths = [
     "tests/unit",
     "tests/e2e",
+    "tests/e2e-pro",
     "tests/consistency",
 ]
 markers = [
