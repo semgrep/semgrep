@@ -40,9 +40,13 @@ clean:
 
 # From fastest to slowest (on pad's machine):
 # - 'make quick-tests' (=~ 30s)
-# - 'make e2e' (=~ 2m20s)
+# - 'make e2e' (=~ 2m20s?)
+# - 'make e2e-pro' (=~ 2m20s?)
 # - 'make kinda-quick-tests' (=~ 3min40s )
 # - 'make test' (=~ 11min)
+#
+# Note that none of the target below are used in our CI test workflow.
+# Instead we call pytest directly which uses pyproject.toml for its config.
 
 PYTEST ?= pipenv run pytest -v --tb=short --durations=10
 
@@ -60,6 +64,10 @@ test:
 .PHONY: e2e
 e2e:
 	$(PYTEST) -n auto -v -m 'not no_semgrep_cli and not todo' tests/e2e
+
+.PHONY: e2e-pro
+e2e-pro:
+	$(PYTEST) -n auto -v -m 'not no_semgrep_cli and not todo' tests/e2e-pro
 
 # Run the extra tests on public repos and semgrep-rules
 .PHONY: qa
@@ -89,6 +97,7 @@ kinda-quick-tests:
 # See tests/semgrep_runner.py for the use of the environment variables below.
 # To run individual tests, export PYTEST_USE_OSEMGREP=true
 # and run 'pytest tests/e2e/test_output.py' in a shell for example.
+#TODO: right now we just run the e2e-only because it's our main goal for Q4
 .PHONY: osemgrep-e2e
 osemgrep-e2e:
 	PYTEST_USE_OSEMGREP=true $(MAKE) e2e

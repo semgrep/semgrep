@@ -8,10 +8,12 @@ from xml.etree import cElementTree
 
 import pytest
 from tests.conftest import TESTS_PATH
-from tests.e2e.test_ci import REPO_DIR_NAME
 from tests.fixtures import RunSemgrep
 
 from semgrep.constants import OutputFormat
+
+# coupling: also in test_ci.py
+REPO_DIR_NAME = "project_name"
 
 
 # https://stackoverflow.com/a/10077069
