@@ -32,7 +32,7 @@ let test_register_exception_printer () =
     "equal" "Pcre.Error(Pcre.BadPattern(\"nothing to repeat\", pos=0))" msg
 
 let tests =
-  Testutil.pack_tests "pcre settings"
+  Alcotest_ext.pack_tests "pcre settings"
     [
       ("match limit ok", test_match_limit_ok);
       ("match limit fail", test_match_limit_fail);

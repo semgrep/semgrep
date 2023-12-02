@@ -150,7 +150,7 @@ let test_python_autofix_printer () =
 let test_js_autofix_printer () = List.iter (check Lang.Js) polyglot_test_cases
 
 let tests =
-  Testutil.pack_tests "autofix printer"
+  Alcotest_ext.pack_tests "autofix printer"
     [
       ("test python autofix printer", test_python_autofix_printer);
       ("test js autofix printer", test_js_autofix_printer);

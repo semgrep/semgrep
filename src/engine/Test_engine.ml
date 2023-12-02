@@ -65,33 +65,35 @@ let single_xlang_from_rules file rules =
            (Xlang.show fst));
       fst
 
+let find_target_of_yaml_file_opt file =
+  let d, b, ext = Common2.dbe_of_filename file in
+  Common2.readdir_to_file_list d @ Common2.readdir_to_link_list d
+  |> List_.find_some_opt (fun file2 ->
+         let path2 = Filename.concat d file2 in
+         (* Config files have a single .yaml extension (assumption),
+          * but test files may have multiple extensions, e.g.
+          * ".test.yaml" (YAML test files), ".sites-available.conf",
+          * ... *)
+         match Common2.dbe_of_filename_many_ext_opt file2 with
+         | None -> None
+         | Some (_, b2, ext2) ->
+             if
+               b = b2 && ext <> ext2
+               (* .yaml.j2 are Jinja2 templates to generate Semgrep files *)
+               && ext2 <> "yaml.j2"
+               (* those are autofix test files that should be skipped *)
+               && (not (ext2 =~ ".*fixed"))
+               (* ugly: jsonnet exclusion below because of some .jsonnet and
+                * .yaml ambiguities in tests/rules
+                *)
+               && ext2 <> "jsonnet"
+             then Some path2
+             else None)
+
 let find_target_of_yaml_file file =
-  try
-    let d, b, ext = Common2.dbe_of_filename file in
-    Common2.readdir_to_file_list d @ Common2.readdir_to_link_list d
-    |> List_.find_some (fun file2 ->
-           let path2 = Filename.concat d file2 in
-           (* Config files have a single .yaml extension (assumption),
-            * but test files may have multiple extensions, e.g.
-            * ".test.yaml" (YAML test files), ".sites-available.conf",
-            * ... *)
-           match Common2.dbe_of_filename_many_ext_opt file2 with
-           | None -> None
-           | Some (_, b2, ext2) ->
-               if
-                 b = b2 && ext <> ext2
-                 (* .yaml.j2 are Jinja2 templates to generate Semgrep files *)
-                 && ext2 <> "yaml.j2"
-                 (* those are autofix test files that should be skipped *)
-                 && (not (ext2 =~ ".*fixed"))
-                 (* ugly: jsonnet exclusion below because of some .jsonnet and
-                  * .yaml ambiguities in tests/rules
-                  *)
-                 && ext2 <> "jsonnet"
-               then Some path2
-               else None)
-  with
-  | Not_found -> failwith (spf "could not find a target for %s" file)
+  match find_target_of_yaml_file_opt file with
+  | Some x -> x
+  | None -> failwith (spf "could not find a target for %s" file)
 
 (*****************************************************************************)
 (* Entry point *)
@@ -297,22 +299,29 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
             total_mismatch := !total_mismatch + num_errors;
             if unit_testing then Alcotest.fail msg)
   in
-  let name =
-    if prepend_lang then
-      let langs =
-        !!file |> find_target_of_yaml_file |> Fpath.v |> Lang.langs_of_filename
-        |> List_.map Lang.to_capitalized_alnum
+  match !!file |> find_target_of_yaml_file_opt with
+  | Some target_path ->
+      (* This assumes we can guess the target programming language
+         from the file extension. *)
+      let langs = target_path |> Fpath.v |> Lang.langs_of_filename in
+      let tags = Test_tags.tags_of_langs langs in
+      let name =
+        if prepend_lang then
+          let langs =
+            match langs with
+            | [] -> [ "Generic" ]
+            | _ -> List_.map Lang.to_capitalized_alnum langs
+          in
+          let lang = langs |> String.concat " " in
+          spf "%s %s" lang !!file
+        else !!file
       in
-      let langs =
-        match langs with
-        | [] -> [ "Generic" ]
-        | _ -> langs
-      in
-      let lang = langs |> String.concat " " in
-      spf "%s %s" lang !!file
-    else !!file
-  in
-  (name, test)
+      Alcotest_ext.create ~tags name test
+  | None ->
+      (* TODO: mark the test as xfail (expected to fail) instead of skipped
+         and add "missing target file" as the reason *)
+      let name = spf "Missing target file for rule file %s" !!file in
+      Alcotest_ext.create ~skipped:true name test
 
 let make_tests ?(unit_testing = false) ?(get_xlang = None)
     ?(prepend_lang = false) xs =
@@ -342,6 +351,6 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None)
 let test_rules ?unit_testing xs =
   let paths = Fpath_.of_strings xs in
   let tests, total_mismatch, print_summary = make_tests ?unit_testing paths in
-  tests |> List.iter (fun (_name, test) -> test ());
+  tests |> List.iter (fun (test : Alcotest_ext.test) -> test.func ());
   print_summary ();
   if !total_mismatch > 0 then exit 1

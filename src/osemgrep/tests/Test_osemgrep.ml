@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-open Testutil
 module TL = Test_login_subcommand
 
 (*****************************************************************************)
@@ -34,9 +33,8 @@ module TL = Test_login_subcommand
 (*****************************************************************************)
 
 (* no need for a token to access public rules in the registry *)
-let test_scan_config_registry_no_token : Testutil.test =
-  ( __FUNCTION__,
-    fun () ->
+let test_scan_config_registry_no_token : Alcotest_ext.test =
+  Alcotest_ext.create __FUNCTION__ (fun () ->
       Testutil_files.with_tempdir ~chdir:true (fun _tmp_path ->
           TL.with_logs
             ~f:(fun () ->
@@ -49,59 +47,60 @@ let test_scan_config_registry_no_token : Testutil.test =
                   "--config";
                   "r/python.lang.correctness.useless-eqeq.useless-eqeq";
                 |])
-            ~final:(fun res -> assert (res.exit_code =*= Exit_code.ok))) )
+            ~final:(fun res -> assert (res.exit_code =*= Exit_code.ok))))
 
 (* Remaining part of test_login.py (see also Test_login_subcommand.ml) *)
-let test_scan_config_registry_with_invalid_token : Testutil.test =
-  ( __FUNCTION__,
-    TL.with_login_test_env (fun () ->
-        Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" TL.fake_token (fun () ->
-            TL.with_fake_deployment_response TL.fake_deployment (fun () ->
-                (* log back in *)
-                TL.with_logs
-                  ~f:(fun () ->
-                    (* we're not calling CLI.main() because it would also do
-                     * some metrics call, so simpler to call directly
-                     * Login_subcommand.
-                     *)
-                    Login_subcommand.main [| "semgrep-login" |])
-                  ~final:(fun res ->
-                    assert (res.logs =~ "[.\n]*Saved access token");
-                    assert (res.exit_code =*= Exit_code.ok)));
+let test_scan_config_registry_with_invalid_token : Alcotest_ext.test =
+  Alcotest_ext.create __FUNCTION__
+    (TL.with_login_test_env (fun () ->
+         Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" TL.fake_token
+           (fun () ->
+             TL.with_fake_deployment_response TL.fake_deployment (fun () ->
+                 (* log back in *)
+                 TL.with_logs
+                   ~f:(fun () ->
+                     (* we're not calling CLI.main() because it would also do
+                      * some metrics call, so simpler to call directly
+                      * Login_subcommand.
+                      *)
+                     Login_subcommand.main [| "semgrep-login" |])
+                   ~final:(fun res ->
+                     assert (res.logs =~ "[.\n]*Saved access token");
+                     assert (res.exit_code =*= Exit_code.ok)));
 
-            (* Even if we are allowed to login with a fake token (because
-             * of the with_fake_deployment_response), outside of it
-             * we can't use the registry with an invalid token.
-             *
-             * alt: call CLI.main, but that would require to intercept
-             * the regular output of the program as CLI.main intercept
-             * exn in CLI.safe_run and transform them in output.
-             * TODO: test_login.py assert exit_code == 7
-             *)
-            try
-              Scan_subcommand.main
-                [|
-                  "semgrep-scan";
-                  "--experimental";
-                  "--config";
-                  "r/python.lang.correctness.useless-eqeq.useless-eqeq";
-                |]
-              |> ignore;
-              failwith "scan should fail when the token is invalid"
-            with
-            | Error.Semgrep_error
-                ( {|Failed to download config from https://semgrep.dev/c/r/python.lang.correctness.useless-eqeq.useless-eqeq: HTTP GET failed: 401 Unauthorized:
+             (* Even if we are allowed to login with a fake token (because
+              * of the with_fake_deployment_response), outside of it
+              * we can't use the registry with an invalid token.
+              *
+              * alt: call CLI.main, but that would require to intercept
+              * the regular output of the program as CLI.main intercept
+              * exn in CLI.safe_run and transform them in output.
+              * TODO: test_login.py assert exit_code == 7
+              *)
+             try
+               Scan_subcommand.main
+                 [|
+                   "semgrep-scan";
+                   "--experimental";
+                   "--config";
+                   "r/python.lang.correctness.useless-eqeq.useless-eqeq";
+                 |]
+               |> ignore;
+               failwith "scan should fail when the token is invalid"
+             with
+             | Error.Semgrep_error
+                 ( {|Failed to download config from https://semgrep.dev/c/r/python.lang.correctness.useless-eqeq.useless-eqeq: HTTP GET failed: 401 Unauthorized:
 {"error":"Not authorized"}|},
-                  _ ) ->
-                (* we got the exn as intended, good *)
-                ())) )
+                   _ ) ->
+                 (* we got the exn as intended, good *)
+                 ())))
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
 let tests =
-  pack_tests "Osemgrep (e2e)"
+  Alcotest_ext.pack_tests_pro "Osemgrep (e2e)"
     [
       test_scan_config_registry_no_token;
       test_scan_config_registry_with_invalid_token;

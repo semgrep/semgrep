@@ -1,2 +1,2 @@
-val tests : Testutil.test list
-val lwt_tests : Testutil.lwt_test list
+val tests : Alcotest_ext.test list
+val lwt_tests : Alcotest_ext.lwt_test list

@@ -1,5 +1,5 @@
-open Testutil
 open Fpath_.Operators
+open Alcotest_ext
 module OutJ = Semgrep_output_v1_t
 module In = Input_to_core_t
 

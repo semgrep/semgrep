@@ -321,20 +321,21 @@ let test_caseless () =
     [ Num_matches 1; Match_value "HeLLo" ]
 
 let tests =
-  [
-    ("word", test_word);
-    ("whitespace", test_whitespace);
-    ("ellipsis", test_ellipsis);
-    ("long ellipsis", test_long_ellipsis);
-    ("metavariables", test_metavariables);
-    ("ellipsis brackets", test_ellipsis_brackets);
-    ("explicit brackets", test_explicit_brackets);
-    ("custom brackets", test_custom_brackets);
-    ("backreferences", test_backreferences);
-    ("ellipsis metavariable", test_ellipsis_metavariable);
-    ("skip lines", test_skip_lines);
-    ("left-anchored ellipses", test_left_anchored_ellipses);
-    ("right-anchored ellipses", test_right_anchored_ellipses);
-    ("pure ellipsis", test_pure_ellipsis);
-    ("caseless", test_caseless);
-  ]
+  Alcotest_ext.simple_tests
+    [
+      ("word", test_word);
+      ("whitespace", test_whitespace);
+      ("ellipsis", test_ellipsis);
+      ("long ellipsis", test_long_ellipsis);
+      ("metavariables", test_metavariables);
+      ("ellipsis brackets", test_ellipsis_brackets);
+      ("explicit brackets", test_explicit_brackets);
+      ("custom brackets", test_custom_brackets);
+      ("backreferences", test_backreferences);
+      ("ellipsis metavariable", test_ellipsis_metavariable);
+      ("skip lines", test_skip_lines);
+      ("left-anchored ellipses", test_left_anchored_ellipses);
+      ("right-anchored ellipses", test_right_anchored_ellipses);
+      ("pure ellipsis", test_pure_ellipsis);
+      ("caseless", test_caseless);
+    ]
