@@ -2077,7 +2077,12 @@ def test_custom_validator(
     )
 
     snapshot.assert_match(
-        result.as_snapshot(),
+        result.as_snapshot(
+            mask=[
+                re.compile(r"Using Semgrep Pro Version:\s*(.+)"),
+                re.compile(r"Installed at\s*(.+)"),
+            ]
+        ),
         "output.txt",
     )
 

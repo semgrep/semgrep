@@ -39,8 +39,8 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 
   ENGINE
   Semgrep Secrets requires Semgrep Pro Engine
-  Using Semgrep Pro Version: e608a83
-  Installed at /Users/sal/dev/semgrep/bin/semgrep-core-proprietary
+  Using Semgrep Pro Version: <MASKED>
+  Installed at <MASKED>
 
 
 ┌─────────────┐
