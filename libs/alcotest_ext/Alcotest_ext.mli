@@ -1,6 +1,16 @@
 (*
    Utilities for writing test suites that are compatible with Alcotest.
 
+   This is the only module exported by this library. Other modules are
+   either hidden or included as submodules such as 'Alcotest_ext_tag'
+   which is exposed as 'Alcotest_ext.Tag'. This allows us to:
+   - use dedicated file-modules for data structures without cramming
+     everything into this single file such as Tag module providing Tag.t
+   - hide internal modules that shouldn't be accessed by users of the library
+
+   Dune exposes only this module as long as its name matches the name of the
+   library.
+
    Alcotest API:
    https://mirage.github.io/alcotest/alcotest/Alcotest/index.html
 *)
@@ -12,22 +22,7 @@ type output =
   | Merged_stdout_stderr
   | Separate_stdout_stderr
 
-module Tag : sig
-  (*
-     Tags are strings which is nice and extensible, but to prevent
-     misspellings and conflicts, we require them to be registered
-     using 'Tag.declare'.
-  *)
-  type t = private string
-
-  (* Create a tag. Each tag may only be created once. *)
-  val declare : string -> t
-  val list : unit -> t list
-  val compare : t -> t -> int
-  val equal : t -> t -> bool
-  val show : t -> string
-  val to_string : t -> string
-end
+module Tag : module type of Alcotest_ext_tag
 
 (*
    A test is a name and a function that raises exceptions to signal
