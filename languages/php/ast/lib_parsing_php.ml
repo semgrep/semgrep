@@ -27,7 +27,7 @@ let pr2, _pr2_once = Common2.mk_pr2_wrappers Flag_parsing.verbose_parsing
 (*****************************************************************************)
 
 let is_php_script file =
-  UFile.with_open_infile file (fun chan ->
+  UFile.with_open_in file (fun chan ->
       try
         let l = input_line chan in
         l =~ "#!/usr/.*/php" || l =~ "#!/bin/env php"

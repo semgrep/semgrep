@@ -75,8 +75,8 @@ val replace_named_pipe_by_regular_file_if_needed :
  *     pr "this goes in foo.txt"
  *   )
  *)
-val with_open_outfile : Fpath.t -> ((string -> unit) * out_channel -> 'a) -> 'a
-val with_open_infile : Fpath.t -> (in_channel -> 'a) -> 'a
+val with_open_out : Fpath.t -> ((string -> unit) * out_channel -> 'a) -> 'a
+val with_open_in : Fpath.t -> (in_channel -> 'a) -> 'a
 
 (* creation of /tmp files, a la gcc
  * ex: new_temp_file "cocci" ".c" will give "/tmp/cocci-3252-434465.c"
