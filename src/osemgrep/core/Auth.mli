@@ -13,9 +13,7 @@ val auth_header_of_token : token -> string * string
 (* TODO: should require a semgrep_dev capability or semgrep_settings capability *)
 val unsafe_token_of_string : string -> token
 
-(*
 val cap_token_and_network :
   token ->
   < network : Cap.Network.t ; .. > ->
   < token : token ; network : Cap.Network.t >
-*)

@@ -39,8 +39,14 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *)
 
 (*****************************************************************************)
-(* Types *)
+(* Types and constants *)
 (*****************************************************************************)
+
+(* TODO: could also do
+ * [type git_cap] abstract type and then
+ * let git_cap_of_exec _caps = unit
+ *)
+type caps = < exec : Cap.Exec.t >
 
 type status = {
   added : string list;
@@ -88,14 +94,14 @@ exception Error of string
  *)
 let _git_diff_lines_re = {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
 let git_diff_lines_re = SPcre.regexp _git_diff_lines_re
-let getcwd () = Sys.getcwd () |> Fpath.v
+let getcwd () = USys.getcwd () |> Fpath.v
 
 (*
    Create an optional -C option to change directory.
 
    Usage:
 
-     let cmd = Bos.Cmd.(v "git" %% cd cwd % "rev-parse" % "--show-toplevel") in
+     let cmd = Cmd.(git %% cd cwd % "rev-parse" % "--show-toplevel") in
      ...
 *)
 let cd (opt_cwd : Fpath.t option) : Cmd.args =
@@ -136,7 +142,7 @@ let range_of_git_diff lines =
 (* Entry points *)
 (*****************************************************************************)
 
-let git_check_output (args : Cmd.args) : string =
+let git_check_output _caps (args : Cmd.args) : string =
   let cmd : Cmd.t = (git, args) in
   match UCmd.string_of_run ~trim:true cmd with
   | Ok (str, (_, `Exited 0)) -> str
@@ -214,8 +220,8 @@ let run_with_worktree ~commit ?(branch = None) f =
   let rand_dir () =
     let uuid = Uuidm.v `V4 in
     let dir_name = "semgrep_git_worktree_" ^ Uuidm.to_string uuid in
-    let dir = Filename.concat (Filename.get_temp_dir_name ()) dir_name in
-    Unix.mkdir dir 0o777;
+    let dir = Filename.concat (UFilename.get_temp_dir_name ()) dir_name in
+    UUnix.mkdir dir 0o777;
     dir
   in
   let temp_dir = rand_dir () in
@@ -229,11 +235,11 @@ let run_with_worktree ~commit ?(branch = None) f =
   | Ok (`Exited 0) ->
       let work () =
         Fpath.append (Fpath.v temp_dir) relative_path
-        |> Fpath.to_string |> Unix.chdir;
+        |> Fpath.to_string |> UUnix.chdir;
         f ()
       in
       let cleanup () =
-        cwd |> Fpath.to_string |> Unix.chdir;
+        cwd |> Fpath.to_string |> UUnix.chdir;
         let cmd = (git, [ "worktree"; "remove"; temp_dir ]) in
         match UCmd.status_of_run ~quiet:true cmd with
         | Ok (`Exited 0) -> logger#info "Finished cleaning up git worktree"
@@ -268,7 +274,7 @@ let status ~cwd ~commit =
   in
   let check_dir file =
     try
-      match (Unix.stat file).st_kind with
+      match (UUnix.stat file).st_kind with
       | Unix.S_DIR -> true
       | _ -> false
     with
@@ -276,7 +282,7 @@ let status ~cwd ~commit =
   in
   let check_symlink file =
     try
-      match (Unix.lstat file).st_kind with
+      match (UUnix.lstat file).st_kind with
       | Unix.S_LNK -> true
       | _ -> false
     with
@@ -290,7 +296,7 @@ let status ~cwd ~commit =
   let rec parse = function
     | _ :: file :: tail when check_dir file && check_symlink file ->
         logger#info "Skipping %s since it is a symlink to a directory: %s" file
-          (Unix.realpath file);
+          (UUnix.realpath file);
         parse tail
     | "A" :: file :: tail ->
         added := file :: !added;
@@ -425,7 +431,7 @@ let git_log_json_format =
    \"contributor\": {\"commit_author_name\": \"%an\", \"commit_author_email\": \
    \"%ae\"}}"
 
-let time_to_str (timestamp : Common2.float_time) : string =
+let time_to_str (timestamp : float) : string =
   let date = Unix.gmtime timestamp in
   let year = date.tm_year + 1900 in
   let month = date.tm_mon + 1 in
