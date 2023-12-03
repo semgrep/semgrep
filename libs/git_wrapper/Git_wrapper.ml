@@ -233,7 +233,7 @@ let run_with_worktree ~commit ?(branch = None) f =
         f ()
       in
       let cleanup () =
-        cwd |> Fpath.to_string |> UUnix.chdir;
+        cwd |> Fpath.to_string |> Unix.chdir;
         let cmd = (git, [ "worktree"; "remove"; temp_dir ]) in
         match UCmd.status_of_run ~quiet:true cmd with
         | Ok (`Exited 0) -> logger#info "Finished cleaning up git worktree"
