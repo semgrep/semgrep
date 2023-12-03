@@ -32,7 +32,7 @@ let any_gen_of_string str =
    explicitly by calling a function. These functions are roughly those
    that call 'Common2.glob'.
 *)
-let tests () =
+let tests (caps : Cap.all_caps) =
   List.flatten
     [
       Unit_list_files.tests;
@@ -66,11 +66,11 @@ let tests () =
       Unit_metachecking.tests ();
       (* OSemgrep tests *)
       Unit_LS.tests;
-      Unit_Login.tests;
+      Unit_Login.tests caps;
       Unit_Fetching.tests;
-      Test_login_subcommand.tests;
-      Test_publish_subcommand.tests;
-      Test_osemgrep.tests;
+      Test_login_subcommand.tests (caps :> Login_subcommand.caps);
+      Test_publish_subcommand.tests (caps :> Publish_subcommand.caps);
+      Test_osemgrep.tests caps;
       (* Networking tests disabled as they will get rate limited sometimes *)
       (* And the SSL issues they've been testing have been stable *)
       (*Unit_Networking.tests;*)
@@ -92,8 +92,8 @@ let tests () =
    See https://github.com/mirage/alcotest/issues/358 for a request
    to allow what we want without this workaround.
 *)
-let tests_with_delayed_error () =
-  try tests () with
+let tests_with_delayed_error caps =
+  try tests caps with
   | e ->
       let exn = Exception.catch e in
       Alcotest_ext.simple_tests
@@ -102,7 +102,7 @@ let tests_with_delayed_error () =
             fun () -> Exception.reraise exn );
         ]
 
-let main () =
+let main (caps : Cap.all_caps) : unit =
   (* find the root of the semgrep repo as many of our tests rely on
      'let test_path = "tests/"' to find their test files *)
   let repo_root =
@@ -121,8 +121,8 @@ let main () =
       Core_CLI.register_exception_printers ();
       Logs_.setup_logging ~force_color:false ~level:(Some Logs.Debug) ();
       let alcotest_tests =
-        Alcotest_ext.to_alcotest (tests_with_delayed_error ())
+        Alcotest_ext.to_alcotest (tests_with_delayed_error caps)
       in
       Alcotest.run "semgrep-core" alcotest_tests)
 
-let () = main ()
+let () = Cap.main (fun all_caps -> main all_caps)

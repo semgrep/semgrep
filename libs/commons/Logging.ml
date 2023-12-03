@@ -140,7 +140,7 @@ let set_global_level level =
   apply_to_all_loggers (fun logger -> logger#set_level level)
 
 let add_PID_tag () =
-  let pid_string = Unix.getpid () |> string_of_int in
+  let pid_string = UUnix.getpid () |> string_of_int in
   apply_to_all_loggers (fun logger ->
       logger#add_tag_generator (fun () -> pid_string))
 

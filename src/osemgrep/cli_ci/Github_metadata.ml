@@ -147,13 +147,17 @@ let env : env Term.t =
 (*****************************************************************************)
 
 (* Split out shallow fetch so we can mock it away in tests. *)
-let shallow_fetch_branch branch_name =
+let shallow_fetch_branch caps branch_name =
   let _ =
-    Git_wrapper.git_check_output
-      Bos.Cmd.(
-        v "git" % "fetch" % "origin" % "--depth=1" % "--force"
-        % "--update-head-ok"
-        % Fmt.str "%s:%s" branch_name branch_name)
+    Git_wrapper.git_check_output caps
+      [
+        "fetch";
+        "origin";
+        "--depth=1";
+        "--force";
+        "--update-head-ok";
+        Fmt.str "%s:%s" branch_name branch_name;
+      ]
   in
   ()
 
@@ -161,22 +165,26 @@ let shallow_fetch_branch branch_name =
 
    Different from _shallow_fetch_branch because it does not assign a local
    name to the commit. It just does the fetch. *)
-let _shallow_fetch_commit commit_hash =
+let _shallow_fetch_commit caps commit_hash =
   let _ =
-    Git_wrapper.git_check_output
-      Bos.Cmd.(
-        v "git" % "fetch" % "origin" % "--depth=1" % "--force"
-        % "--update-head-ok"
-        % Digestif.SHA1.to_hex commit_hash)
+    Git_wrapper.git_check_output caps
+      [
+        "fetch";
+        "origin";
+        "--depth=1";
+        "--force";
+        "--update-head-ok";
+        Digestif.SHA1.to_hex commit_hash;
+      ]
   in
   ()
 
 (* Return sha hash of latest commit in a given branch.
 
    Does a git fetch of given branch with depth = 1. *)
-let get_latest_commit_hash_in_branch branch_name =
-  shallow_fetch_branch branch_name;
-  Git_wrapper.git_check_output Bos.Cmd.(v "git" % "rev-parse" % branch_name)
+let get_latest_commit_hash_in_branch caps branch_name =
+  shallow_fetch_branch caps branch_name;
+  Git_wrapper.git_check_output caps [ "rev-parse"; branch_name ]
   |> Digestif.SHA1.of_hex_opt |> Option.get
 
 (* Ref name of the branch pull request if from. *)
@@ -189,7 +197,8 @@ let get_head_branch_ref env =
    This will also ensure that a fetch is done prior to returning.
 
    Assumes we are in PR context. *)
-let get_head_branch_hash env =
+let get_head_branch_hash (caps : Git_wrapper.caps) (env : env) :
+    Digestif.SHA1.t option =
   let commit =
     Glom.(
       get_and_coerce_opt string env._GITHUB_EVENT_JSON
@@ -202,15 +211,19 @@ let get_head_branch_hash env =
           m "head branch %s has latest commit %a, fetching that commit now."
             head_branch_name Digestif.SHA1.pp commit);
       let _ =
-        Git_wrapper.git_check_output
-          Bos.Cmd.(
-            v "git" % "fetch" % "origin" % "--force" % "--depth=1"
-            % Digestif.SHA1.to_hex commit)
+        Git_wrapper.git_check_output caps
+          [
+            "fetch";
+            "origin";
+            "--force";
+            "--depth=1";
+            Digestif.SHA1.to_hex commit;
+          ]
       in
       Some commit
   | _ -> None
 
-let get_base_branch_ref env =
+let get_base_branch_ref (env : env) : string option =
   Glom.(
     get_and_coerce_opt string env._GITHUB_EVENT_JSON
       [ k "pull_request"; k "base"; k "ref" ])
@@ -218,9 +231,9 @@ let get_base_branch_ref env =
 (* Latest commit hash of the base branch of PR is being merged to.
 
    Assumes we are in PR context. *)
-let get_base_branch_hash env =
+let get_base_branch_hash caps (env : env) =
   let commit =
-    Option.map get_latest_commit_hash_in_branch (get_base_branch_ref env)
+    Option.map (get_latest_commit_hash_in_branch caps) (get_base_branch_ref env)
   in
   match (get_base_branch_ref env, commit) with
   | Some base_branch_name, Some commit ->
@@ -251,10 +264,10 @@ let get_base_branch_hash env =
      This will allow Semgrep to make this API request even for private
    repositories."
 *)
-let find_branchoff_point_from_github_api repo_name env :
+let find_branchoff_point_from_github_api caps repo_name env :
     Digestif.SHA1.t option Lwt.t =
-  let base_branch_hash = get_base_branch_hash env in
-  let head_branch_hash = get_head_branch_hash env in
+  let base_branch_hash = get_base_branch_hash caps env in
+  let head_branch_hash = get_head_branch_hash caps env in
 
   match (env._GH_TOKEN, env._GITHUB_API_URL, head_branch_hash) with
   | Some str_token, Some api_url, Some head_branch_hash ->
@@ -267,9 +280,9 @@ let find_branchoff_point_from_github_api repo_name env :
    "GithubActions is a shallow clone and the "base" that github sends
    is not the merge base. We must fetch and get the merge-base ourselves"
 *)
-let rec find_branchoff_point ?(attempt_count = 0) repo_name env =
-  let base_branch_hash = get_base_branch_hash env
-  and head_branch_hash = Option.get (get_head_branch_hash env) in
+let rec find_branchoff_point caps ?(attempt_count = 0) repo_name env =
+  let base_branch_hash = get_base_branch_hash caps env
+  and head_branch_hash = Option.get (get_head_branch_hash caps env) in
 
   let base_branch_name = Option.get (get_base_branch_ref env)
   and head_branch_name = Option.get (get_head_branch_ref env) in
@@ -285,23 +298,33 @@ let rec find_branchoff_point ?(attempt_count = 0) repo_name env =
     (* TODO let%lwt base = find_xxx in
      * Option.iter shallow_fetch_commit base;
      *)
-    find_branchoff_point_from_github_api repo_name env
+    find_branchoff_point_from_github_api caps repo_name env
   else
     (* XXX(dinosaure): we safely can use [Option.get]. This information is
        required to [get_base_branch_ref]. *)
     let _ =
-      Git_wrapper.git_check_output
-        Bos.Cmd.(
-          v "git" % "fetch" % "origin" % "--force" % "--update-head-ok"
-          % "--depth" % string_of_int fetch_depth
-          % Fmt.str "%s:%s" base_branch_name base_branch_name)
+      Git_wrapper.git_check_output caps
+        [
+          "fetch";
+          "origin";
+          "--force";
+          "--update-head-ok";
+          "--depth";
+          string_of_int fetch_depth;
+          Fmt.str "%s:%s" base_branch_name base_branch_name;
+        ]
     in
     let _ =
-      Git_wrapper.git_check_output
-        Bos.Cmd.(
-          v "git" % "fetch" % "origin" % "--force" % "--update-head-ok"
-          % "--depth" % string_of_int fetch_depth
-          % Digestif.SHA1.to_hex head_branch_hash)
+      Git_wrapper.git_check_output caps
+        [
+          "fetch";
+          "origin";
+          "--force";
+          "--update-head-ok";
+          "--depth";
+          string_of_int fetch_depth;
+          Digestif.SHA1.to_hex head_branch_hash;
+        ]
     in
 
     let cmd =
@@ -315,7 +338,8 @@ let rec find_branchoff_point ?(attempt_count = 0) repo_name env =
     | Ok (merge_base, (_, `Exited 0)) ->
         Lwt.return (Digestif.SHA1.of_hex_opt merge_base)
     | Ok (_, _) when attempt_count < _MAX_FETCH_ATTEMPT_COUNT ->
-        find_branchoff_point ~attempt_count:(succ attempt_count) repo_name env
+        find_branchoff_point caps ~attempt_count:(succ attempt_count) repo_name
+          env
     | Ok (_, _) ->
         Fmt.failwith
           "Could not find branch-off point between the baseline tip %s@%a and \
@@ -330,10 +354,11 @@ let rec find_branchoff_point ?(attempt_count = 0) repo_name env =
 (* Entry point *)
 (*****************************************************************************)
 
-class meta ~baseline_ref env gha_env =
+class meta caps ~baseline_ref env gha_env =
   object (self)
     inherit
-      Git_metadata.meta ~scan_environment:"github-actions" ~baseline_ref env as super
+      Git_metadata.meta
+        caps ~scan_environment:"github-actions" ~baseline_ref env as super
 
     method! project_metadata =
       {

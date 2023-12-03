@@ -85,7 +85,9 @@ let with_mock_envvars_and_normal_responses f =
 
 let with_logged_in f =
   let token = ok_token in
-  match Semgrep_login.save_token token with
+  let caps = Cap.network_caps_UNSAFE () in
+  let caps = Auth.cap_token_and_network token caps in
+  match Semgrep_login.save_token caps with
   | Ok _deployment_config -> f ()
   | Error e -> failwith e
 
@@ -93,16 +95,18 @@ let with_logged_in f =
 (* Tests *)
 (*****************************************************************************)
 
-let save_token_tests () =
+let save_token_tests caps =
   ignore with_logged_in;
   let valid_token_test () =
-    match Semgrep_login.save_token ok_token with
+    let caps = Auth.cap_token_and_network ok_token caps in
+    match Semgrep_login.save_token caps with
     | Ok _deployment_config ->
         Alcotest.(check bool) "logged in" true (Semgrep_login.is_logged_in ())
     | Error e -> failwith e
   in
   let invalid_token_test () =
-    match Semgrep_login.save_token bad_token with
+    let caps = Auth.cap_token_and_network bad_token caps in
+    match Semgrep_login.save_token caps with
     | Ok _deployment_config -> failwith "Expected error"
     | Error _ ->
         Alcotest.(check bool)
@@ -115,9 +119,9 @@ let save_token_tests () =
   in
   pack_tests "save_token" tests
 
-let fetch_token_tests () =
+let fetch_token_tests caps =
   let fetch_basic () =
-    let token = Semgrep_login.fetch_token secret in
+    let token = Semgrep_login.fetch_token caps secret in
     match token with
     | Ok (token, username) ->
         let str_token = Auth.string_of_token token in
@@ -135,7 +139,8 @@ let fetch_token_tests () =
       | _ -> retry_count := !retry_count + 1
     in
     let token =
-      Semgrep_login.fetch_token ~min_wait_ms:0 ~next_wait_ms:0 ~wait_hook secret
+      Semgrep_login.fetch_token ~min_wait_ms:0 ~next_wait_ms:0 ~wait_hook caps
+        secret
     in
     match token with
     | Error e ->
@@ -152,5 +157,5 @@ let fetch_token_tests () =
         with_mock_envvars (with_mock_four_o_four_responses fetch_no_internet) );
     ]
 
-let tests =
-  pack_suites "Osemgrep Login" [ save_token_tests (); fetch_token_tests () ]
+let tests caps =
+  pack_suites "Osemgrep Login" [ save_token_tests caps; fetch_token_tests caps ]
