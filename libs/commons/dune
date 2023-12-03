@@ -3,8 +3,8 @@
  (wrapped false)
  (flags (:standard  -open No_TCB))
  (libraries
-   TCB
    str
+   TCB
    unix
    fpath
    uri
@@ -16,6 +16,7 @@
    logs logs.fmt
    easy_logging easy_logging_yojson
    alcotest
+   alcotest_ext
    cmdliner
    bos
    re

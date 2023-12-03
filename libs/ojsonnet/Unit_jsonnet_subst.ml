@@ -56,4 +56,5 @@ let test_maker dirs pass_or_fail =
                           "this threw an error" (not pass_or_fail) true )))
   |> List_.flatten
 
-let tests () = Testutil.pack_tests "ojsonnet subst" (test_maker dir_pass true)
+let tests () =
+  Alcotest_ext.pack_tests "ojsonnet subst" (test_maker dir_pass true)

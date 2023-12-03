@@ -14,5 +14,5 @@ let test_python_printer () =
   List.iter check [ ("foo", "foo"); ("foo()", "foo()") ]
 
 let tests =
-  Testutil.pack_tests "ugly printer"
+  Alcotest_ext.pack_tests "ugly printer"
     [ ("test python printer", test_python_printer) ]

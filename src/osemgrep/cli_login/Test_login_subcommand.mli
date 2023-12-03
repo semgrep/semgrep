@@ -1,7 +1,7 @@
 (* alt: use Login_subcommand.caps *)
 val tests :
   < network : Cap.Network.t ; stdout : Cap.Console.stdout > ->
-  Testutil.test list
+  Alcotest_ext.test list
 
 (* to be reused in other tests *)
 

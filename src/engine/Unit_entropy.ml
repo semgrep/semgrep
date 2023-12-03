@@ -195,12 +195,13 @@ let test_high_score () =
                 s x))
 
 let tests =
-  [
-    ("information density", test_information_density);
-    ("low entropy", test_low_entropy);
-    ("high entropy", test_high_entropy);
-    ("low density", test_low_entropy);
-    ("high density", test_high_entropy);
-    ("low score", test_low_score);
-    ("high score", test_high_score);
-  ]
+  Alcotest_ext.simple_tests
+    [
+      ("information density", test_information_density);
+      ("low entropy", test_low_entropy);
+      ("high entropy", test_high_entropy);
+      ("low density", test_low_entropy);
+      ("high density", test_high_entropy);
+      ("low score", test_low_score);
+      ("high score", test_high_score);
+    ]

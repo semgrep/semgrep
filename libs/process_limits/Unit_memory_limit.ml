@@ -83,7 +83,7 @@ let test_memory_limit_with_stack () =
   | Memory_limit.ExceededMemoryLimit _ -> (* success *) ()
 
 let tests =
-  Testutil.pack_tests "memory limits"
+  Alcotest_ext.pack_tests "memory limits"
     [
       ("stack warning", test_stack_warning);
       ("memory limit (heap)", test_memory_limit_with_heap);

@@ -14,7 +14,7 @@
  *)
 open Common
 open Fpath_.Operators
-open Testutil
+open Alcotest_ext
 module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (*****************************************************************************)

@@ -70,9 +70,10 @@ let test_maker_pass_fail dir pass_or_fail =
                    "this threw an error" (not pass_or_fail) true ))
 
 let tests () =
-  test_maker_pass_fail dir_pass true
-  @ test_maker_pass_fail dir_pass_tutorial true
-  @ test_maker_pass_fail dir_fail false
-  @ test_maker_pass_fail dir_fail_tutorial false
-  @ test_maker_err dir_error
-  @ test_maker_err dir_error_tutorial
+  Alcotest_ext.simple_tests
+    (test_maker_pass_fail dir_pass true
+    @ test_maker_pass_fail dir_pass_tutorial true
+    @ test_maker_pass_fail dir_fail false
+    @ test_maker_pass_fail dir_fail_tutorial false
+    @ test_maker_err dir_error
+    @ test_maker_err dir_error_tutorial)

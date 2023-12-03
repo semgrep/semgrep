@@ -8,10 +8,12 @@ from xml.etree import cElementTree
 
 import pytest
 from tests.conftest import TESTS_PATH
-from tests.e2e.test_ci import REPO_DIR_NAME
 from tests.fixtures import RunSemgrep
 
 from semgrep.constants import OutputFormat
+
+# coupling: also in test_ci.py
+REPO_DIR_NAME = "project_name"
 
 
 # https://stackoverflow.com/a/10077069
@@ -269,131 +271,6 @@ def test_junit_xml_output(run_semgrep_in_tmp: RunSemgrep, snapshot):
     assert expected == result
 
 
-# If there are nosemgrep comments to ignore findings, SARIF output should include them
-# labeled as suppressed.
-@pytest.mark.kinda_slow
-@pytest.mark.osemfail
-def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    snapshot.assert_match(
-        run_semgrep_in_tmp(
-            "rules/regex-nosemgrep.yaml",
-            target_name="basic/regex-nosemgrep.txt",
-            output_format=OutputFormat.SARIF,
-        ).stdout,
-        "results.sarif",
-    )
-
-
-# Test that rule board information makes its way into SARIF output
-@pytest.mark.kinda_slow
-@pytest.mark.osemfail
-def test_sarif_output_rule_board(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    snapshot.assert_match(
-        run_semgrep_in_tmp(
-            "rules/rule-board-eqeq.yaml",
-            target_name="basic/stupid.py",
-            output_format=OutputFormat.SARIF,
-        ).stdout,
-        "results.sarif",
-    )
-
-
-@pytest.mark.kinda_slow
-@pytest.mark.osemfail
-def test_sarif_output_with_source(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    stdout = run_semgrep_in_tmp(
-        "rules/eqeq-source.yml", output_format=OutputFormat.SARIF
-    ).stdout
-    snapshot.assert_match(
-        run_semgrep_in_tmp(
-            "rules/eqeq-source.yml", output_format=OutputFormat.SARIF
-        ).stdout,
-        "results.sarif",
-    )
-
-    # Assert that each sarif rule object has a helpURI
-    for rule in json.loads(stdout)["runs"][0]["tool"]["driver"]["rules"]:
-        assert rule.get("helpUri", None) is not None
-
-
-@pytest.mark.kinda_slow
-@pytest.mark.osemfail
-def test_sarif_output_with_source_edit(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    stdout = run_semgrep_in_tmp(
-        "rules/eqeq-meta.yaml", output_format=OutputFormat.SARIF
-    ).stdout
-
-    snapshot.assert_match(stdout, "results.sarif")
-
-    # Assert that each sarif rule object has a helpURI
-    for rule in json.loads(stdout)["runs"][0]["tool"]["driver"]["rules"]:
-        assert rule.get("help", None) is not None
-
-
-@pytest.mark.kinda_slow
-@pytest.mark.osemfail
-def test_sarif_output_with_nosemgrep_and_error(
-    run_semgrep_in_tmp: RunSemgrep, snapshot
-):
-    snapshot.assert_match(
-        run_semgrep_in_tmp(
-            "rules/eqeq.yaml",
-            target_name="nosemgrep/eqeq-nosemgrep.py",
-            output_format=OutputFormat.SARIF,
-            options=["--error"],
-        ).stdout,
-        "results.sarif",
-    )
-
-
-@pytest.mark.kinda_slow
-@pytest.mark.osemfail
-def test_sarif_output_with_autofix(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    snapshot.assert_match(
-        run_semgrep_in_tmp(
-            "rules/autofix/autofix.yaml",
-            target_name="autofix/autofix.py",
-            output_format=OutputFormat.SARIF,
-            options=["--autofix", "--dryrun"],
-        ).stdout,
-        "results.sarif",
-    )
-
-
-IGNORE_LOG_REPORT_FIRST_LINE = "Some files were skipped or only partially analyzed."
-IGNORE_LOG_REPORT_LAST_LINE = (
-    "  For a full list of skipped files, run semgrep with the --verbose flag."
-)
-
-
-@pytest.mark.kinda_slow
-@pytest.mark.osemfail
-def test_sarif_output_with_dataflow_traces(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    snapshot.assert_match(
-        run_semgrep_in_tmp(
-            "rules/taint.yaml",
-            target_name="taint/taint.py",
-            output_format=OutputFormat.SARIF,
-            options=["--dataflow-traces"],
-        ).stdout,
-        "results.sarif",
-    )
-
-
-@pytest.mark.kinda_slow
-@pytest.mark.osemfail
-def test_sarif_output_when_errors(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    snapshot.assert_match(
-        run_semgrep_in_tmp(
-            "rules/eqeq.yaml",
-            target_name="basic/inexistent.py",
-            output_format=OutputFormat.SARIF,
-            assert_exit_code=2,
-        ).stdout,
-        "results.sarif",
-    )
-
-
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
 def test_json_output_with_dataflow_traces(run_semgrep_in_tmp: RunSemgrep, snapshot):
@@ -406,6 +283,12 @@ def test_json_output_with_dataflow_traces(run_semgrep_in_tmp: RunSemgrep, snapsh
         ).stdout,
         "results.json",
     )
+
+
+IGNORE_LOG_REPORT_FIRST_LINE = "Some files were skipped or only partially analyzed."
+IGNORE_LOG_REPORT_LAST_LINE = (
+    "  For a full list of skipped files, run semgrep with the --verbose flag."
+)
 
 
 @pytest.mark.kinda_slow
@@ -517,49 +400,6 @@ def test_git_repo_output(
             assume_targets_dir=False,
             target_name=repo_base,
         ).stderr,
-        "results.txt",
-    )
-
-
-@pytest.mark.kinda_slow
-@pytest.mark.osemfail
-def test_sca_output(run_semgrep_on_copied_files: RunSemgrep, snapshot):
-    results, _errors = run_semgrep_on_copied_files(
-        "rules/dependency_aware/monorepo_with_first_party.yaml",
-        target_name="dependency_aware/monorepo",
-        output_format=OutputFormat.TEXT,
-    )
-    snapshot.assert_match(
-        results,
-        "results.txt",
-    )
-
-
-@pytest.mark.kinda_slow
-@pytest.mark.osemfail
-def test_sca_lockfile_only_output(run_semgrep_on_copied_files: RunSemgrep, snapshot):
-    results, _errors = run_semgrep_on_copied_files(
-        "rules/dependency_aware/lodash-4.17.19.yaml",
-        target_name="dependency_aware/unreachable_multiple_copies/yarn.lock",
-        output_format=OutputFormat.TEXT,
-    )
-    snapshot.assert_match(
-        results,
-        "results.txt",
-    )
-
-
-@pytest.mark.kinda_slow
-@pytest.mark.osemfail
-def test_cli_test_secret_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    results, _ = run_semgrep_in_tmp(
-        "rules/secrets.yaml",
-        target_name="cli_test/basic/",
-        output_format=OutputFormat.TEXT,
-        force_color=True,
-    )
-    snapshot.assert_match(
-        results,
         "results.txt",
     )
 

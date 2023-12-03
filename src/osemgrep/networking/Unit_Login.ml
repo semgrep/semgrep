@@ -16,7 +16,7 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-open Testutil
+open Alcotest_ext
 
 (*****************************************************************************)
 (* Helpers *)
@@ -114,12 +114,10 @@ let save_token_tests caps =
           (Semgrep_login.is_logged_in ())
   in
   let tests =
-    pack_tests "save_token"
-      [
-        ("invalid token", invalid_token_test); ("valid token", valid_token_test);
-      ]
+    [ ("invalid token", invalid_token_test); ("valid token", valid_token_test) ]
+    |> List_.map (fun (n, f) -> (n, with_mock_envvars_and_normal_responses f))
   in
-  List_.map (fun (n, f) -> (n, with_mock_envvars_and_normal_responses f)) tests
+  pack_tests "save_token" tests
 
 let fetch_token_tests caps =
   let fetch_basic () =

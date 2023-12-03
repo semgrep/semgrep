@@ -176,80 +176,86 @@ let java_tests =
  *)
 
 let tests =
-  [
-    ( "pattern inference features",
-      fun () ->
-        let cases = [ (Lang.Python, python_tests); (Lang.Java, java_tests) ] in
-        cases
-        |> List.iter (fun (lang, tests) ->
-               tests
-               |> List.iter (fun (filename, range, sols) ->
-                      let file = test_path / filename in
-                      let config = Rule_options.default_config in
+  Alcotest_ext.simple_tests
+    [
+      ( "pattern inference features",
+        fun () ->
+          let cases =
+            [ (Lang.Python, python_tests); (Lang.Java, java_tests) ]
+          in
+          cases
+          |> List.iter (fun (lang, tests) ->
+                 tests
+                 |> List.iter (fun (filename, range, sols) ->
+                        let file = test_path / filename in
+                        let config = Rule_options.default_config in
 
-                      (* pattern candidates (as strings) *)
-                      let pats =
-                        Synthesizer.synthesize_patterns config range file
-                      in
-                      (* the code *)
-                      let ast =
-                        Parse_target.parse_and_resolve_name_fail_if_partial lang
-                          !!file
-                      in
-                      (* BUG? resolve again? already done above *)
-                      Naming_AST.resolve lang ast;
+                        (* pattern candidates (as strings) *)
+                        let pats =
+                          Synthesizer.synthesize_patterns config range file
+                        in
+                        (* the code *)
+                        let ast =
+                          Parse_target.parse_and_resolve_name_fail_if_partial
+                            lang !!file
+                        in
+                        (* BUG? resolve again? already done above *)
+                        Naming_AST.resolve lang ast;
 
-                      let r = Range.range_of_linecol_spec range !!file in
+                        let r = Range.range_of_linecol_spec range !!file in
 
-                      let check_pats (str, pat) =
-                        try
-                          (* the pattern AST *)
-                          let pattern = Parse_pattern.parse_pattern lang pat in
+                        let check_pats (str, pat) =
+                          try
+                            (* the pattern AST *)
+                            let pattern =
+                              Parse_pattern.parse_pattern lang pat
+                            in
 
-                          (* extracting the code at the range *)
-                          let e_opt = Range_to_AST.any_at_range_first r ast in
-                          match e_opt with
-                          | Some any ->
-                              let code =
-                                match (pattern, any) with
-                                | G.E _, G.S { G.s = G.ExprStmt (e, _); _ } ->
-                                    G.E e
-                                | _, x -> x
-                              in
-                              let matches_with_env =
-                                let env =
-                                  Matching_generic.environment_of_any lang
-                                    Rule_options.default_config code
+                            (* extracting the code at the range *)
+                            let e_opt = Range_to_AST.any_at_range_first r ast in
+                            match e_opt with
+                            | Some any ->
+                                let code =
+                                  match (pattern, any) with
+                                  | G.E _, G.S { G.s = G.ExprStmt (e, _); _ } ->
+                                      G.E e
+                                  | _, x -> x
                                 in
-                                Match_patterns.match_any_any pattern code env
-                              in
-                              (* Debugging note: uses pattern_to_string for convenience,
-                               * but really should match the code in the given file at
-                               * the given range *)
-                              if matches_with_env =*= [] then (
-                                pr2 str;
-                                pr2 (AST_generic.show_any pattern);
-                                pr2 (AST_generic.show_any code));
-                              Alcotest.(check bool)
-                                (spf "pattern:|%s| should match |%s" pat
-                                   (Pretty_print_pattern.pattern_to_string lang
-                                      code))
-                                true (matches_with_env <> [])
-                          | None ->
-                              failwith
-                                (spf "Couldn't find range %s in %s" range !!file)
-                        with
-                        | Parsing.Parse_error ->
-                            failwith (spf "problem parsing %s" pat)
-                      in
-                      pats |> List.iter check_pats;
-                      let pats_str =
-                        List.fold_left
-                          (fun s (s1, s2) -> s ^ s1 ^ ": " ^ s2 ^ "\n")
-                          "" pats
-                      in
-                      Alcotest.(check bool)
-                        ("Patterns do not match solution, where inferred \
-                          patterns are:\n" ^ pats_str)
-                        true (pats =*= sols))) );
-  ]
+                                let matches_with_env =
+                                  let env =
+                                    Matching_generic.environment_of_any lang
+                                      Rule_options.default_config code
+                                  in
+                                  Match_patterns.match_any_any pattern code env
+                                in
+                                (* Debugging note: uses pattern_to_string for convenience,
+                                 * but really should match the code in the given file at
+                                 * the given range *)
+                                if matches_with_env =*= [] then (
+                                  pr2 str;
+                                  pr2 (AST_generic.show_any pattern);
+                                  pr2 (AST_generic.show_any code));
+                                Alcotest.(check bool)
+                                  (spf "pattern:|%s| should match |%s" pat
+                                     (Pretty_print_pattern.pattern_to_string
+                                        lang code))
+                                  true (matches_with_env <> [])
+                            | None ->
+                                failwith
+                                  (spf "Couldn't find range %s in %s" range
+                                     !!file)
+                          with
+                          | Parsing.Parse_error ->
+                              failwith (spf "problem parsing %s" pat)
+                        in
+                        pats |> List.iter check_pats;
+                        let pats_str =
+                          List.fold_left
+                            (fun s (s1, s2) -> s ^ s1 ^ ": " ^ s2 ^ "\n")
+                            "" pats
+                        in
+                        Alcotest.(check bool)
+                          ("Patterns do not match solution, where inferred \
+                            patterns are:\n" ^ pats_str)
+                          true (pats =*= sols))) );
+    ]

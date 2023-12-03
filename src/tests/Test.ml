@@ -78,7 +78,7 @@ let tests (caps : Cap.all_caps) =
       (* End OSemgrep tests *)
       Aliengrep.Unit_tests.tests;
       (* Inline tests *)
-      Testutil.get_registered_tests ();
+      Alcotest_ext.get_registered_tests ();
     ]
 
 (*****************************************************************************)
@@ -96,10 +96,11 @@ let tests_with_delayed_error caps =
   try tests caps with
   | e ->
       let exn = Exception.catch e in
-      [
-        ( "ERROR DURING TEST SUITE INITIALIZATION",
-          fun () -> Exception.reraise exn );
-      ]
+      Alcotest_ext.simple_tests
+        [
+          ( "ERROR DURING TEST SUITE INITIALIZATION",
+            fun () -> Exception.reraise exn );
+        ]
 
 let main (caps : Cap.all_caps) : unit =
   (* find the root of the semgrep repo as many of our tests rely on
@@ -120,7 +121,7 @@ let main (caps : Cap.all_caps) : unit =
       Core_CLI.register_exception_printers ();
       Logs_.setup_logging ~force_color:false ~level:(Some Logs.Debug) ();
       let alcotest_tests =
-        Testutil.to_alcotest (tests_with_delayed_error caps)
+        Alcotest_ext.to_alcotest (tests_with_delayed_error caps)
       in
       Alcotest.run "semgrep-core" alcotest_tests)
 
