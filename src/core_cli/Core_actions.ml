@@ -99,7 +99,7 @@ let dump_v1_json file =
           in
           let v1 = AST_generic_to_v1.program ast in
           let s = Ast_generic_v1_j.string_of_program v1 in
-          pr s;
+          UCommon.pr s;
           if skipped_tokens <> [] then
             pr2 (spf "WARNING: fail to fully parse %s" !!file))
   | [] -> failwith (spf "unsupported language for %s" !!file)
@@ -152,7 +152,7 @@ let dump_equivalences file =
 let dump_rule file =
   let file = Core_scan.replace_named_pipe_by_regular_file file in
   let rules = Parse_rule.parse file in
-  rules |> List.iter (fun r -> pr (Rule.show r))
+  rules |> List.iter (fun r -> UCommon.pr (Rule.show r))
 [@@action]
 
 let prefilter_of_rules file =
@@ -172,7 +172,7 @@ let prefilter_of_rules file =
            })
   in
   let s = Semgrep_prefilter_j.string_of_prefilters xs in
-  pr s
+  UCommon.pr s
 [@@action]
 
 (* This is called from 'pysemgrep ci' to get contributors from
@@ -181,5 +181,5 @@ let prefilter_of_rules file =
  *)
 let dump_contributions () =
   Parse_contribution.get_contributions ()
-  |> Semgrep_output_v1_j.string_of_contributions |> pr
+  |> Semgrep_output_v1_j.string_of_contributions |> UCommon.pr
 [@@action]

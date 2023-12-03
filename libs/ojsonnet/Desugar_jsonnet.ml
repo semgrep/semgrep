@@ -491,7 +491,7 @@ and desugar_import env v : C.expr =
       let final_path = Filename.concat env.base str in
       if not (Sys.file_exists final_path) then
         error tk (spf "file does not exist: %s" final_path);
-      let s = Common.read_file final_path in
+      let s = UCommon.read_file final_path in
       C.L (mk_str_literal (s, tk))
 
 (*****************************************************************************)

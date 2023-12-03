@@ -70,7 +70,7 @@ let test_parse xs =
   ()
 
 let test_lexer file =
-  Common.with_open_infile file (fun chan ->
+  UCommon.with_open_infile file (fun chan ->
       let lexbuf = Lexing.from_channel chan in
       while true do
         let result = Lexer_java.token lexbuf in
@@ -81,13 +81,13 @@ let test_lexer file =
 let test_dump file =
   let s =
     if !Flag_parsing.sgrep_mode then
-      let ast = Parse_java.any_of_string (Common.read_file file) in
+      let ast = Parse_java.any_of_string (UCommon.read_file file) in
       Ast_java.show_any ast
     else
       let ast = Parse_java.parse_program file in
       Ast_java.show_program ast
   in
-  pr s
+  UCommon.pr s
 
 (*****************************************************************************)
 (* Main entry for Arg *)
