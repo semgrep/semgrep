@@ -18,7 +18,7 @@ let test_tokens_cpp file =
 
 (* used to be in Lib_parsing_cpp.ml *)
 let find_source_files_of_dir_or_files xs =
-  File.files_of_dirs_or_files_no_vcs_nofilter xs
+  UFile.files_of_dirs_or_files_no_vcs_nofilter xs
   |> List.filter (fun filename ->
          match File_type.file_type_of_file filename with
          | FT.PL (FT.C ("l" | "y")) -> false

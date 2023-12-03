@@ -292,7 +292,7 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
     in
     let start_range, end_range = m.Pattern_match.range_loc in
     let syntactic_ctx =
-      File.lines_of_file
+      UFile.lines_of_file
         (start_range.pos.line, end_range.pos.line)
         (Fpath.v m.Pattern_match.file)
     in

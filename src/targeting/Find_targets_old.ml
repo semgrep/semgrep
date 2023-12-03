@@ -32,7 +32,7 @@ let deduplicate_list l =
 (* similar to Run_semgrep.sort_targets_by_decreasing_size, could factorize *)
 let sort_files_by_decreasing_size files =
   files
-  |> List_.map (fun file -> (file, File.filesize file))
+  |> List_.map (fun file -> (file, UFile.filesize file))
   |> List.sort (fun (_, (a : int)) (_, b) -> compare b a)
   |> List_.map fst
 
@@ -305,7 +305,7 @@ let get_targets conf scanning_roots =
          let paths, skipped_paths3 =
            paths
            |> Result_.partition_result (fun path ->
-                  let size = File.filesize path in
+                  let size = UFile.filesize path in
                   if conf.max_target_bytes > 0 && size > conf.max_target_bytes
                   then
                     Error

@@ -78,7 +78,7 @@ let test_parse_common xs fullxs ext =
 let test_parse_js xs =
   let xs = Fpath_.of_strings xs in
   let fullxs =
-    File.files_of_dirs_or_files_no_vcs_nofilter xs
+    UFile.files_of_dirs_or_files_no_vcs_nofilter xs
     |> List.filter (fun filename ->
            match FT.file_type_of_file filename with
            | FT.PL (FT.Web FT.Js) -> true
@@ -91,7 +91,7 @@ let test_parse_js xs =
 let test_parse_ts xs =
   let xs = Fpath_.of_strings xs in
   let fullxs =
-    File.files_of_dirs_or_files_no_vcs_nofilter xs
+    UFile.files_of_dirs_or_files_no_vcs_nofilter xs
     |> List.filter (fun filename ->
            match FT.file_type_of_file filename with
            | FT.PL (FT.Web FT.TypeScript) -> true

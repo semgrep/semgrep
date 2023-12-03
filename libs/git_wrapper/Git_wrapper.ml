@@ -428,7 +428,7 @@ let get_project_url () : string option =
   match Bos.OS.Cmd.out_string ~trim:true out with
   | Ok (url, _) -> Some url
   | Error _ ->
-      File.find_first_match_with_whole_line (Fpath.v ".git/config") ".com"
+      UFile.find_first_match_with_whole_line (Fpath.v ".git/config") ".com"
 (* TODO(dinosaure): this line is pretty weak due to the [".com"] (what happens
    when the domain is [".io"]?). We probably should handle that by a new
    environment variable. I just copied what [pysemgrep] does.

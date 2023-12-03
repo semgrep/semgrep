@@ -27,7 +27,7 @@ let pr2, _pr2_once = Common2.mk_pr2_wrappers Flag_parsing.verbose_parsing
 (*****************************************************************************)
 
 let is_php_script file =
-  File.with_open_infile file (fun chan ->
+  UFile.with_open_infile file (fun chan ->
       try
         let l = input_line chan in
         l =~ "#!/usr/.*/php" || l =~ "#!/bin/env php"
@@ -61,7 +61,7 @@ let is_php_file filename =
  *)
 let find_source_files_of_dir_or_files ?(verbose = false) ?(include_hack = false)
     xs =
-  xs |> File.files_of_dirs_or_files_no_vcs_nofilter
+  xs |> UFile.files_of_dirs_or_files_no_vcs_nofilter
   |> List.filter (fun filename ->
          (* note: there was a possible race here because between the time we
           * do the 'find' and the time we call is_php_file(), the file may have

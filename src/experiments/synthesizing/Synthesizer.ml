@@ -23,7 +23,7 @@ let synthesize_patterns config s file =
     patterns
 
 let locate_patched_functions f =
-  let f = File.read_file f in
+  let f = UFile.read_file f in
 
   let d = In.diff_files_of_string f in
   let diff_files = d.In.cve_diffs in

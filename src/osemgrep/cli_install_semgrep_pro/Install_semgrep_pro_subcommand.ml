@@ -44,7 +44,7 @@ let add_semgrep_pro_version_stamp current_executable_path =
     Fpath.parent (Fpath.v current_executable_path) / version_stamp_filename
   in
   (* THINK: does this append or write entirely? *)
-  File.write_file pro_version_stamp_path Version.version
+  UFile.write_file pro_version_stamp_path Version.version
 
 let download_semgrep_pro platform_kind dest =
   let dest = !!dest in
@@ -86,7 +86,7 @@ let download_semgrep_pro platform_kind dest =
             |> Option.map int_of_string |> Option.value ~default:0
           in
 
-          File.write_file (Fpath.v dest) body;
+          UFile.write_file (Fpath.v dest) body;
           true)
 
 (*****************************************************************************)

@@ -378,7 +378,7 @@ let file_type_of_file file =
   | "R" ->
       PL R
   | "ex" -> PL Elixir
-  | _ when File.is_executable file -> Binary e
+  | _ when UFile.is_executable file -> Binary e
   | _ when b = "Makefile" || b = "mkfile" || b = "Imakefile" -> Config Makefile
   | _ when b = "Dockerfile" -> Config Dockerfile
   | _ when b = "dune" -> Config Sexp
@@ -387,7 +387,7 @@ let file_type_of_file file =
   | _ when b = "TARGETS" -> Config Makefile
   | _ when b = ".depend" -> Obj "depend"
   | _ when b = ".emacs" -> PL (Lisp Elisp)
-  | _ when File.filesize file > 300_000 -> Obj e
+  | _ when UFile.filesize file > 300_000 -> Obj e
   | _ -> Other e
 
 (*****************************************************************************)
@@ -420,6 +420,6 @@ let is_syncweb_obj_file file = !!file =~ ".*md5sum_"
 let is_json_filename filename = !!filename =~ ".*\\.json$"
 
 let files_of_dirs_or_files p xs =
-  xs |> File.files_of_dirs_or_files_no_vcs_nofilter
+  xs |> UFile.files_of_dirs_or_files_no_vcs_nofilter
   |> List.filter (fun filename -> p (file_type_of_file filename))
   |> List_.sort

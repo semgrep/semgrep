@@ -154,7 +154,7 @@ let cache_computation ?(use_cache = true) file ext_cache f =
     let file_cache = file ^ ext_cache in
     if
       Sys.file_exists file_cache
-      && File.filemtime (Fpath.v file_cache) >= File.filemtime (Fpath.v file)
+      && UFile.filemtime (Fpath.v file_cache) >= UFile.filemtime (Fpath.v file)
     then (
       logger#info "using cache: %s" file_cache;
       get_value file_cache)
@@ -173,7 +173,7 @@ let cache_computation_robust file ext_cache
   let dependencies =
     (* could do md5sum too *)
     ( file :: need_no_changed_files
-      |> List.map (fun f -> (f, File.filemtime (Fpath.v f))),
+      |> List.map (fun f -> (f, UFile.filemtime (Fpath.v f))),
       need_no_changed_variables )
   in
 

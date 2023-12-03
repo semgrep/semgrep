@@ -19,7 +19,7 @@ let test_tokens_ml file =
 
 let test_parse_ml_or_mli xs =
   let xs = Fpath_.of_strings xs in
-  let xs = List.map File.fullpath xs in
+  let xs = List.map UFile.fullpath xs in
 
   let fullxs, _skipped_paths =
     Lib_parsing_ml.find_source_files_of_dir_or_files xs
