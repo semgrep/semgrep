@@ -34,8 +34,7 @@ module TL = Test_login_subcommand
 
 (* no need for a token to access public rules in the registry *)
 let test_scan_config_registry_no_token all_caps : Alcotest_ext.test =
-  ( __FUNCTION__,
-    fun () ->
+  Alcotest_ext.create __FUNCTION__ (fun () ->
       Testutil_files.with_tempdir ~chdir:true (fun _tmp_path ->
           TL.with_logs
             ~f:(fun () ->
@@ -48,7 +47,7 @@ let test_scan_config_registry_no_token all_caps : Alcotest_ext.test =
                   "--config";
                   "r/python.lang.correctness.useless-eqeq.useless-eqeq";
                 |])
-            ~final:(fun res -> assert (res.exit_code =*= Exit_code.ok))) )
+            ~final:(fun res -> assert (res.exit_code =*= Exit_code.ok))))
 
 (* Remaining part of test_login.py (see also Test_login_subcommand.ml) *)
 let test_scan_config_registry_with_invalid_token caps : Alcotest_ext.test =
