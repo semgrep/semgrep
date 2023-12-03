@@ -43,6 +43,10 @@ rules:
         - languages/*
         - scripts/*
         - tools/*
+        - Core_actions.ml
+        - Core_CLI.ml
+        - Pro_actions.ml
+        - Pro_core_CLI.ml
 
   - id: use-pytest-mock
     pattern: import unittest.mock
