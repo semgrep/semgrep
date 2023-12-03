@@ -81,7 +81,7 @@ let test_logout_not_logged_in : Alcotest_ext.simple_test =
             assert (res.logs =~ ".*You are not logged in");
             assert (res.exit_code =*= Exit_code.ok))) )
 
-let test_login__tty caps : Alcotest_ext.simple_test =
+let test_login_no_tty caps : Alcotest_ext.simple_test =
   ( __FUNCTION__,
     with_login_test_env (fun () ->
         with_logs
