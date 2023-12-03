@@ -21,14 +21,14 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 
 let pr s =
-  UStdlib.print_string s;
-  UStdlib.print_string "\n";
-  flush UStdlib.stdout
+  Stdlib.print_string s;
+  Stdlib.print_string "\n";
+  flush Stdlib.stdout
 
 let pr_time name f =
-  let t1 = UUnix.gettimeofday () in
+  let t1 = Unix.gettimeofday () in
   Common.protect f ~finally:(fun () ->
-      let t2 = UUnix.gettimeofday () in
+      let t2 = Unix.gettimeofday () in
       pr (spf "%s: %.6f s" name (t2 -. t1)))
 
 (*****************************************************************************)
@@ -38,7 +38,7 @@ let pr_time name f =
 exception CmdError of Unix.process_status * string
 
 let process_output_to_list2 ?(verbose = false) command =
-  let chan = UUnix.open_process_in command in
+  let chan = Unix.open_process_in command in
   let res = ref ([] : string list) in
   let rec process_otl_aux () =
     let e = input_line chan in
@@ -69,7 +69,7 @@ let cmd_to_list_and_status = process_output_to_list2
 
 let cat file =
   let acc = ref [] in
-  let chan = UStdlib.open_in_bin file in
+  let chan = Stdlib.open_in_bin file in
   try
     while true do
       acc := input_text_line chan :: !acc
@@ -100,7 +100,7 @@ let cat file =
 *)
 let read_file ?(max_len = max_int) path =
   if !jsoo then (
-    let ic = UStdlib.open_in_bin path in
+    let ic = Stdlib.open_in_bin path in
     let s = really_input_string ic (in_channel_length ic) in
     close_in ic;
     s)
@@ -118,31 +118,31 @@ let read_file ?(max_len = max_int) path =
           if Buffer.length extbuf >= max_len then Buffer.sub extbuf 0 max_len
           else loop fd
     in
-    let fd = UUnix.openfile path [ Unix.O_RDONLY ] 0 in
+    let fd = Unix.openfile path [ Unix.O_RDONLY ] 0 in
     protect ~finally:(fun () -> Unix.close fd) (fun () -> loop fd)
 
 let write_file ~file s =
-  let chan = UStdlib.open_out_bin file in
+  let chan = Stdlib.open_out_bin file in
   output_string chan s;
   close_out chan
 
 (* could be in control section too *)
 
 let fullpath file =
-  if not (USys.file_exists file) then
+  if not (Sys.file_exists file) then
     failwith (spf "fullpath: file (or directory) %s does not exist" file);
   let dir, base =
-    if USys.is_directory file then (file, None)
+    if Sys.is_directory file then (file, None)
     else (Filename.dirname file, Some (Filename.basename file))
   in
   (* save *)
-  let old = USys.getcwd () in
+  let old = Sys.getcwd () in
 
-  USys.chdir dir;
-  let here = USys.getcwd () in
+  Sys.chdir dir;
+  let here = Sys.getcwd () in
 
   (* restore *)
-  USys.chdir old;
+  Sys.chdir old;
 
   match base with
   | None -> here
@@ -152,7 +152,7 @@ let fullpath file =
 let (with_open_outfile :
       string (* filename *) -> ((string -> unit) * out_channel -> 'a) -> 'a) =
  fun file f ->
-  let chan = UStdlib.open_out_bin file in
+  let chan = Stdlib.open_out_bin file in
   let xpr s = output_string chan s in
   unwind_protect
     (fun () ->
@@ -163,7 +163,7 @@ let (with_open_outfile :
 
 let (with_open_infile : string (* filename *) -> (in_channel -> 'a) -> 'a) =
  fun file f ->
-  let chan = UStdlib.open_in_bin file in
+  let chan = Stdlib.open_in_bin file in
   unwind_protect
     (fun () ->
       let res = f chan in
@@ -183,7 +183,7 @@ let _temp_files_created = Hashtbl.create 101
 
 (* ex: new_temp_file "cocci" ".c" will give "/tmp/cocci-3252-434465.c" *)
 let new_temp_file prefix suffix =
-  let pid = if !jsoo then 42 else UUnix.getpid () in
+  let pid = if !jsoo then 42 else Unix.getpid () in
   let processid = i_to_s pid in
   let tmp_file = Filename.temp_file (prefix ^ "-" ^ processid ^ "-") suffix in
   Hashtbl.add _temp_files_created tmp_file ();
@@ -196,14 +196,14 @@ let erase_temp_files () =
     _temp_files_created
     |> Hashtbl.iter (fun s () ->
            logger#info "erasing: %s" s;
-           USys.remove s);
+           Sys.remove s);
     Hashtbl.clear _temp_files_created)
 
 let erase_this_temp_file f =
   if not !save_tmp_files then (
     Hashtbl.remove _temp_files_created f;
     logger#info "erasing: %s" f;
-    USys.remove f)
+    Sys.remove f)
 
 (*****************************************************************************)
 (* Directories *)
@@ -250,19 +250,19 @@ let files_of_dir_or_files_no_vcs_nofilter xs =
 (* now in prelude: exception UnixExit of int *)
 let exn_to_real_unixexit f =
   try f () with
-  | UnixExit x -> UStdlib.exit x
+  | UnixExit x -> Stdlib.exit x
 
 let pp_do_in_zero_box f =
-  UFormat.open_box 0;
+  Format.open_box 0;
   f ();
-  UFormat.close_box ()
+  Format.close_box ()
 
 let before_exit = ref []
 
 let main_boilerplate f =
   if not !Sys.interactive then
     exn_to_real_unixexit (fun () ->
-        USys.set_signal USys.sigint
+        Sys.set_signal Sys.sigint
           (Sys.Signal_handle
              (fun _ ->
                pr2 "C-c intercepted, will do some cleaning before exiting";
@@ -274,7 +274,7 @@ let main_boilerplate f =
                 * The current solution is to not do some wild  try ... with e
                 * by having in the exn handler a case: UnixExit x -> raise ... | e ->
                 *)
-               USys.set_signal USys.sigint Sys.Signal_default;
+               Sys.set_signal Sys.sigint Sys.Signal_default;
                raise (UnixExit (-1))));
 
         (* The finalize() below makes it tedious to go back from exns when we use
@@ -284,7 +284,7 @@ let main_boilerplate f =
          * we have to be quicker here and set it for the finalize() below.
          *)
         if
-          USys.argv |> Array.to_list
+          Sys.argv |> Array.to_list
           |> List.exists (fun x -> x = "-debugger" || x = "--debugger")
         then debugger := true;
 
@@ -293,11 +293,11 @@ let main_boilerplate f =
             pp_do_in_zero_box (fun () ->
                 try f () with
                 (* <---- here it is *)
-                | UUnix.Unix_error (e, fm, argm) ->
+                | Unix.Unix_error (e, fm, argm) ->
                     pr2
                       (spf "exn Unix_error: %s %s %s\n" (Unix.error_message e)
                          fm argm);
-                    raise (UUnix.Unix_error (e, fm, argm))))
+                    raise (Unix.Unix_error (e, fm, argm))))
           (fun () ->
             !before_exit |> List.iter (fun f -> f ());
             erase_temp_files ()))

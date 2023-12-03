@@ -33,11 +33,11 @@ open Fpath_.Operators
 (*****************************************************************************)
 
 let fullpath file = UCommon.fullpath !!file |> Fpath.v
-let readable ~root path = Filename_.readable ~root:!!root !!path |> Fpath.v
+let _readable ~root path = Filename_.readable ~root:!!root !!path |> Fpath.v
 
 let files_of_dirs_or_files_no_vcs_nofilter xs =
-  xs |> Path.to_strings |> UCommon.files_of_dir_or_files_no_vcs_nofilter
-  |> Path.of_strings
+  xs |> Fpath_.to_strings |> UCommon.files_of_dir_or_files_no_vcs_nofilter
+  |> Fpath_.of_strings
 
 let input_text_line = Common.input_text_line
 let cat path = UCommon.cat !!path
