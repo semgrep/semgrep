@@ -1,7 +1,7 @@
 open Common
 module Arg = Cmdliner.Arg
 module Term = Cmdliner.Term
-module Cmd = Cmdliner.Cmd
+module XCmd = Cmdliner.Cmd
 
 (*****************************************************************************)
 (* Prelude *)
@@ -36,13 +36,13 @@ type env = {
 let env : env Term.t =
   let semgrep_repo_name =
     let doc = "The name of the Git repository." in
-    let env = Cmd.Env.info "SEMGREP_REPO_NAME" in
+    let env = XCmd.Env.info "SEMGREP_REPO_NAME" in
     Arg.(
       value & opt (some string) None & info [ "semgrep-repo-name" ] ~env ~doc)
   in
   let semgrep_repo_url =
     let doc = "The URL of the Git repository." in
-    let env = Cmd.Env.info "SEMGREP_REPO_URL" in
+    let env = XCmd.Env.info "SEMGREP_REPO_URL" in
     Arg.(
       value
       & opt (some Cmdliner_.uri) None
@@ -50,7 +50,7 @@ let env : env Term.t =
   in
   let semgrep_commit =
     let doc = "The commit of the Git repository." in
-    let env = Cmd.Env.info "SEMGREP_COMMIT" in
+    let env = XCmd.Env.info "SEMGREP_COMMIT" in
     Arg.(
       value
       & opt (some Cmdliner_.sha1) None
@@ -58,7 +58,7 @@ let env : env Term.t =
   in
   let semgrep_job_url =
     let doc = "The job URL." in
-    let env = Cmd.Env.info "SEMGREP_JOB_URL" in
+    let env = XCmd.Env.info "SEMGREP_JOB_URL" in
     Arg.(
       value
       & opt (some Cmdliner_.uri) None
@@ -66,17 +66,17 @@ let env : env Term.t =
   in
   let semgrep_pr_id =
     let doc = "The PR/MR ID." in
-    let env = Cmd.Env.info "SEMGREP_PR_ID" in
+    let env = XCmd.Env.info "SEMGREP_PR_ID" in
     Arg.(value & opt (some string) None & info [ "semgrep-pr-id" ] ~env ~doc)
   in
   let semgrep_pr_title =
     let doc = "The PR/MR title." in
-    let env = Cmd.Env.info "SEMGREP_PR_TITLE" in
+    let env = XCmd.Env.info "SEMGREP_PR_TITLE" in
     Arg.(value & opt (some string) None & info [ "semgrep-pr-title" ] ~env ~doc)
   in
   let semgrep_branch =
     let doc = "The Git branch." in
-    let env = Cmd.Env.info "SEMGREP_BRANCH" in
+    let env = XCmd.Env.info "SEMGREP_BRANCH" in
     Arg.(value & opt (some string) None & info [ "semgrep-branch" ] ~env ~doc)
   in
   let run _SEMGREP_REPO_NAME _SEMGREP_REPO_URL _SEMGREP_COMMIT _SEMGREP_JOB_URL
@@ -103,22 +103,18 @@ class meta ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
   object (self)
     method project_metadata : Project_metadata.t =
       let commit_title : string =
-        Git_wrapper.git_check_output
-          Bos.Cmd.(v "git" % "show" % "-s" % "--format=%B")
+        Git_wrapper.git_check_output [ "show"; "-s"; "--format=%B" ]
       in
       let commit_author_email : Emile.mailbox =
-        Git_wrapper.git_check_output
-          Bos.Cmd.(v "git" % "show" % "-s" % "--format=%ae")
+        Git_wrapper.git_check_output [ "show"; "-s"; "--format=%ae" ]
         |> Emile.of_string |> Result.get_ok
       in
       let commit_author_name : string =
-        Git_wrapper.git_check_output
-          Bos.Cmd.(v "git" % "show" % "-s" % "--format=%an")
+        Git_wrapper.git_check_output [ "show"; "-s"; "--format=%an" ]
       in
       (* Returns epoch time as str of head commit *)
       let commit_datetime : string =
-        Git_wrapper.git_check_output
-          Bos.Cmd.(v "git" % "show" % "-s" % "--format=%ct")
+        Git_wrapper.git_check_output [ "show"; "-s"; "--format=%ct" ]
       in
       {
         semgrep_version = Version.version;
@@ -163,8 +159,7 @@ class meta ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
       | Some repo_name -> repo_name
       | None ->
           let str =
-            Git_wrapper.git_check_output
-              Bos.Cmd.(v "git" % "rev-parse" % "--show-toplevel")
+            Git_wrapper.git_check_output [ "rev-parse"; "--show-toplevel" ]
           in
           Fpath.basename (Fpath.v str)
 
