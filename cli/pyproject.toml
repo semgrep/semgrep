@@ -4,6 +4,7 @@ minversion = "7.0"
 testpaths = [
     "tests/unit",
     "tests/e2e",
+    "tests/e2e-pysemgrep",
     "tests/e2e-pro",
     "tests/consistency",
 ]
