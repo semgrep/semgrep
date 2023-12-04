@@ -951,7 +951,7 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) : Rule.t =
     equivalences = equivs_opt;
     options = options_opt;
     validators = validators_opt;
-    dependency_formula = Option.value ~default:[] dep_formula_opt;
+    dependency_formula = dep_formula_opt;
   }
 
 let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)

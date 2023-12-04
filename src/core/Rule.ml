@@ -568,7 +568,7 @@ type 'mode rule_info = {
   metadata : JSON.t option;
   (* TODO(cooper): would be nice to have nonempty but common2 version not nice to work with; no pp for one *)
   validators : validator list option;
-  dependency_formula : dependency_formula;
+  dependency_formula : dependency_formula option;
 }
 [@@deriving show]
 
@@ -909,7 +909,7 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
     metadata = None;
     validators = None;
     product = `SAST;
-    dependency_formula = [];
+    dependency_formula = None;
   }
 
 (* TODO(dinosaure): Currently, on the Python side, we remove the metadatas and

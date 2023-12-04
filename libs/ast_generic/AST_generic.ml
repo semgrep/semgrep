@@ -2435,6 +2435,7 @@ type dependency = {
   transitivity : transitivity;
   url : string option;
   loc : Pos.t * Pos.t;
+  toks : Tok.t list;
 }
 
 and ecosystem = Npm

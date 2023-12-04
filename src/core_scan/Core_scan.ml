@@ -261,13 +261,31 @@ let print_match ?str config match_ ii_of_any =
   (* there are a few fake tokens in the generic ASTs now (e.g.,
    * for DotAccess generated outside the grammar) *)
   let { match_format; mvars; _ } = config in
-  let { Pattern_match.env; tokens = (lazy tokens_matched_code); taint_trace; _ }
-      =
+  let {
+    Pattern_match.env;
+    tokens = (lazy tokens_matched_code);
+    taint_trace;
+    dependency_match;
+    _;
+  } =
     match_
   in
   let toks = tokens_matched_code |> List.filter Tok.is_origintok in
-  (if mvars =*= [] then
-     Core_text_output.print_match ?str ~format:match_format toks
+  let dep_toks_and_version =
+    match dependency_match with
+    | Some (dmatched, _) ->
+        Some
+          ( dmatched.toks |> List.filter Tok.is_origintok,
+            dmatched.package_version )
+    | None -> None
+  in
+  (if mvars =*= [] then (
+     Core_text_output.print_match ?str ~format:match_format toks;
+     Option.iter
+       (fun (toks, version) ->
+         pr ("with dependency match at version " ^ version);
+         Core_text_output.print_match ~format:match_format toks)
+       dep_toks_and_version)
    else
      (* similar to the code of Lib_matcher.print_match, maybe could
       * factorize code a bit.
@@ -830,6 +848,7 @@ let parse_package_lock (expr : AST_generic.expr) : AST_generic.dependency list =
                            loc =
                              ( (Tok.unsafe_loc_of_tok nameTok).pos,
                                (Tok.unsafe_loc_of_tok nameTok).pos );
+                           toks = [ nameTok ];
                          }
                  | _ -> None)
       | _ -> [])

@@ -916,7 +916,8 @@ and matches_of_formula xconf rule xtarget formula opt_context :
 (* Main entry point *)
 (*****************************************************************************)
 
-let check_rule ({ R.mode = `Search formula; _ } as r) hook xconf xtarget =
+let check_rule ?(dms : Pattern_match.dependency_match list option = None)
+    ({ R.mode = `Search formula; _ } as r) hook xconf xtarget =
   let rule_id = fst r.id in
   let res, final_ranges = matches_of_formula xconf r xtarget formula None in
   let errors = res.errors |> E.ErrorSet.map (error_with_rule_id rule_id) in
@@ -929,6 +930,13 @@ let check_rule ({ R.mode = `Search formula; _ } as r) hook xconf xtarget =
        * but different mini-rules matches can now become the same match)
        *)
       |> PM.uniq
+      |> (match dms with
+         | None -> fun x -> x
+         | Some dms ->
+             List.concat_map (fun pm ->
+                 dms
+                 |> Common.map (fun dm ->
+                        { pm with Pattern_match.dependency_match = Some dm })))
       |> before_return (fun v ->
              v
              |> List.iter (fun (m : Pattern_match.t) ->
