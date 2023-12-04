@@ -65,6 +65,46 @@ BAD_CONFIG = dedent(
 """
 ).lstrip()
 FROZEN_ISOTIMESTAMP = "1970-01-01T00:00:00"
+VALIDATOR_CONFIG = dedent(
+    """
+    rules:
+      - id: semgrep_pat
+        message: Found Semgrep Secret
+        severity: ERROR
+        metadata:
+          product: secrets
+        languages:
+          - regex
+        validators:
+          - http:
+              request:
+                url: http://www.example.com/api/america
+                method: GET
+                headers:
+                  authorization: Bearer $SECRET
+                  user-agent: semgrep
+              response:
+              - match:
+                - status-code: '200'
+                result:
+                  metadata:
+                    confidence: HIGH
+                  validity: valid
+              - match:
+                - status-code: '401'
+                result:
+                  metadata:
+                    confidence: MEDIUM
+                  validity: invalid
+        patterns:
+        - patterns:
+          - pattern-regex: (?<REGEX>\\b((semgrep)_[a-zA-Z0-9_]{36,255})\\b)
+          - focus-metavariable: $REGEX
+          - metavariable-analysis:
+              analyzer: entropy
+              metavariable: $REGEX
+    """
+).lstrip()
 
 
 # To ensure our tests are as accurate as possible, lets try to autodetect what GITHUB_ vars
@@ -136,6 +176,9 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
 
     foo = repo_base / "foo.py"
     foo.write_text(f"x = 1\n")
+
+    secrets = repo_base / "secrets.txt"
+    secrets.write_text("SEMGREP_TOKEN=semgrep_vMrIzq9W7Ibjf1fR2g9cfvfzevvsCd1xpfgl\n")
 
     unknown_ext = repo_base / "xyz.txt"
     unknown_ext.write_text("xyz")
@@ -396,14 +439,23 @@ def enable_dependency_query() -> bool:
 
 
 @pytest.fixture
+def enabled_products() -> List[str]:
+    return ["sast", "sca"]
+
+
+@pytest.fixture
 def start_scan_mock(
-    requests_mock, scan_config, mocked_scan_id, enable_dependency_query
+    requests_mock,
+    scan_config,
+    mocked_scan_id,
+    enable_dependency_query,
+    enabled_products,
 ):
     start_scan_response = out.ScanResponse.from_json(
         {
             "info": {
                 **({"id": mocked_scan_id} if mocked_scan_id else {}),
-                "enabled_products": ["sast", "sca"],
+                "enabled_products": enabled_products,
                 "deployment_id": DEPLOYMENT_ID,
                 "deployment_name": "org_name",
             },
@@ -1979,14 +2031,70 @@ def test_existing_supply_chain_finding(
     assert len(findings_json["findings"]) == 0
 
 
+@pytest.mark.osemfail
 @pytest.mark.parametrize(
-    "enabled_products",
+    ("scan_config", "env", "enabled_products", "cli_options"),
+    [
+        (
+            VALIDATOR_CONFIG,
+            "fake_key",
+            ["secrets"],
+            ["--no-suppress-errors", "--allow-untrusted-validators"],
+        ),
+        (
+            VALIDATOR_CONFIG,
+            "fake_key",
+            ["secrets"],
+            ["--no-suppress-errors"],
+        ),
+        (
+            VALIDATOR_CONFIG,
+            None,
+            ["secrets"],
+            ["--no-suppress-errors", "--allow-untrusted-validators"],
+        ),
+    ],
+    ids=["valid-api-key", "no-untrusted", "no-api-key"],
+)
+def test_custom_validator(
+    git_tmp_path_with_commit,
+    snapshot,
+    run_semgrep: RunSemgrep,
+    start_scan_mock,
+    upload_results_mock,
+    complete_scan_mock,
+    env: str | None,
+    cli_options,
+):
+    result = run_semgrep(
+        subcommand="ci",
+        options=cli_options,
+        target_name=None,
+        strict=False,
+        assert_exit_code=None,
+        env={"SEMGREP_APP_TOKEN": env} if env else {},
+        use_click_runner=True,
+    )
+
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                re.compile(r"Using Semgrep Pro Version:\s*(.+)"),
+                re.compile(r"Installed at\s*(.+)"),
+            ]
+        ),
+        "output.txt",
+    )
+
+
+@pytest.mark.parametrize(
+    "_enabled_products",
     [[], ["product"]],
     ids=["empty-products", "non-empty-products"],
 )
 @pytest.mark.osemfail
 def test_enabled_products(
-    enabled_products: List[str],
+    _enabled_products: List[str],
     run_semgrep: RunSemgrep,
     mocker,
     git_tmp_path_with_commit,
@@ -1994,7 +2102,7 @@ def test_enabled_products(
     """
     Verify that for any given product, there is a valid output
     """
-    mocker.patch.object(ScanHandler, "enabled_products", enabled_products)
+    mocker.patch.object(ScanHandler, "enabled_products", _enabled_products)
 
     result = run_semgrep(
         options=["ci", "--no-suppress-errors"],
@@ -2005,11 +2113,11 @@ def test_enabled_products(
         use_click_runner=True,
     )
 
-    if not enabled_products:
+    if not _enabled_products:
         assert "Enabled products: None" in result.stderr
         assert "No products are enabled for this organization" in result.stderr
     else:
-        assert f"Enabled products: {enabled_products[0]}" in result.stderr
+        assert f"Enabled products: {_enabled_products[0]}" in result.stderr
         assert "No products are enabled for this organization" not in result.stderr
 
 
