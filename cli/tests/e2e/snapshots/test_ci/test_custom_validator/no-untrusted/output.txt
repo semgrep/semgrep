@@ -3,7 +3,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 === end of command
 
 === exit code
-2
+1
 === end of exit code
 
 === stdout - plain
@@ -27,29 +27,35 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 
   ENGINE
   Semgrep Secrets requires Semgrep Pro Engine
-Semgrep Pro Engine will be installed in /usr/bin/semgrep-core-proprietary
-No mock address: GET https://semgrep.dev/api/agent/deployments/deepbinary/manylinux?version=<MASKED>
-Traceback (most recent call last):
-  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 37, in wrapper
-    func(*args, **kwargs)
-  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/ci.py", line 419, in ci
-    run_install_semgrep_pro()
-  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/install.py", line 137, in run_install_semgrep_pro
-    download_semgrep_pro(state, platform_kind, semgrep_pro_path_tmp)
-  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/install.py", line 63, in download_semgrep_pro
-    with state.app_session.get(url, timeout=180, stream=True) as r:
-  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/requests/sessions.py", line 602, in get
-    return self.request("GET", url, **kwargs)
-  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/app/session.py", line 190, in request
-    response = super().request(*args, **kwargs)
-  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/requests/sessions.py", line 589, in request
-    resp = self.send(prep, **send_kwargs)
-  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/requests_mock/mocker.py", line 185, in _fake_send
-    return _original_send(session, request, **kwargs)
-  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/requests/sessions.py", line 703, in send
-    r = adapter.send(request, **kwargs)
-  File "/home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/lib/python3.10/site-packages/requests_mock/adapter.py", line 261, in send
-    raise exceptions.NoMockAddress(request)
-requests_mock.exceptions.NoMockAddress: No mock address: GET https://semgrep.dev/api/agent/deployments/deepbinary/manylinux?version=<MASKED>
+  Using Semgrep Pro Version: <MASKED>
+  Installed at <MASKED>
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 5 files tracked by git with 0 Code rules, 1 Secrets rule:
+
+
+  CODE RULES
+  Nothing to scan.
+
+  SECRETS RULES
+  Scanning 5 files.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+Some files were skipped or only partially analyzed.
+  Scan was limited to files tracked by git.
+
+CI scan completed successfully.
+  Found 0 findings (0 blocking) from 1 rule.
+  Uploading scan results
+  Finalizing scan           View results in Semgrep Cloud Platform:
+    https://semgrep.dev/orgs/org_name/findings
+  No blocking findings so exiting with code 0
+  semgrep.dev is suggesting a non-zero exit code (Test Reason)
 
 === end of stderr - plain
