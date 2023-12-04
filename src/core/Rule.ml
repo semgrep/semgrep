@@ -337,7 +337,9 @@ let is_sink_func_with_focus sink_formula =
   in
   let rec is_call_pattern = function
     | P { pat = Sem ((lazy (E { e = Call _; _ })), _); _ } -> true
-    | Or (_tok, formulas) -> List.for_all is_call_pattern formulas
+    | Or (_tok, formulas) ->
+        (* Each case in an 'Or' is independent, all must be call patterns. *)
+        List.for_all is_call_pattern formulas
     | And (_, { conjuncts; focus = []; _ }) ->
         (* NOTE: No `focus-metavariable:` here to make sure this is matching a call. *)
         is_call_pattern_conjuncts conjuncts
@@ -354,7 +356,8 @@ let is_sink_func_with_focus sink_formula =
     let remaining_conjuncts =
       List.filter (fun f -> not (is_inside_or_not f)) conjuncts
     in
-    List.for_all is_call_pattern remaining_conjuncts
+    remaining_conjuncts <> []
+    && List.for_all is_call_pattern remaining_conjuncts
   in
   match sink_formula with
   (* THINK: Should we just assume that if there is 'focus' then the match should
