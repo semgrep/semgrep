@@ -195,15 +195,15 @@ let protect ~finally work =
 
 (* Report the time a function takes. *)
 let with_time f =
-  let t1 = Unix.gettimeofday () in
+  let t1 = UUnix.gettimeofday () in
   let res = f () in
-  let t2 = Unix.gettimeofday () in
+  let t2 = UUnix.gettimeofday () in
   (res, t2 -. t1)
 
 let pr2_time name f =
-  let t1 = Unix.gettimeofday () in
+  let t1 = UUnix.gettimeofday () in
   protect f ~finally:(fun () ->
-      let t2 = Unix.gettimeofday () in
+      let t2 = UUnix.gettimeofday () in
       pr2 (spf "%s: %.6f s" name (t2 -. t1)))
 
 (*****************************************************************************)
