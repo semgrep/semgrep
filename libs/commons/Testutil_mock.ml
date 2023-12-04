@@ -28,7 +28,7 @@ let with_mocked_logs ~f ~final =
             over ();
             k ()
           in
-          msgf (fun ?header:_ ?tags:_ fmt -> UFormat.kfprintf k ppf fmt));
+          msgf (fun ?header:_ ?tags:_ fmt -> Format.kfprintf k ppf fmt));
     }
   in
   let old_reporter = Logs.reporter () in
