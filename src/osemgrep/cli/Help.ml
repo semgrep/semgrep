@@ -31,9 +31,9 @@
 (* Entry point *)
 (*****************************************************************************)
 
-let print_help () =
+let print_help (stdout : Cap.Console.stdout) =
   (* TODO: add a Out.printf_color? *)
-  Ocolor_format.printf
+  CapConsole.ocolor_format_printf stdout
     {|
 ┌──── @{<green>○○○@} ────┐
 │ Semgrep CLI │
@@ -58,8 +58,8 @@ For more information about Semgrep, visit @{<cyan;ul>https://semgrep.dev@}
 For the CLI docs visit @{<cyan;ul>https://semgrep.dev/docs/category/semgrep-cli/@}
 |}
 
-let print_semgrep_dashdash_help () =
-  Out.put
+let print_semgrep_dashdash_help (stdout : Cap.Console.stdout) =
+  CapConsole.out stdout
     {|Usage: semgrep [OPTIONS] COMMAND [ARGS]...
 
   To get started quickly, run `semgrep scan --config auto`

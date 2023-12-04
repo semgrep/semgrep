@@ -728,7 +728,7 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
+let run_conf (caps : Cap.all_caps) (conf : Scan_CLI.conf) : Exit_code.t =
   (* coupling: if you modify the pysemgrep fallback code below, you
    * probably also need to modify it in Ci_subcommand.ml
    *)
@@ -785,7 +785,10 @@ let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
   | _ when conf.test <> None -> Test_subcommand.run (Common2.some conf.test)
   | _ when conf.validate <> None ->
       Validate_subcommand.run (Common2.some conf.validate)
-  | _ when conf.show <> None -> Show_subcommand.run (Common2.some conf.show)
+  | _ when conf.show <> None ->
+      Show_subcommand.run
+        (caps :> Show_subcommand.caps)
+        (Common2.some conf.show)
   | _ when conf.ls ->
       Ls_subcommand.run ~target_roots:conf.target_roots
         ~targeting_conf:conf.targeting_conf ()
@@ -799,6 +802,6 @@ let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
 (* Entry point *)
 (*****************************************************************************)
 
-let main (argv : string array) : Exit_code.t =
+let main (caps : Cap.all_caps) (argv : string array) : Exit_code.t =
   let conf = Scan_CLI.parse_argv argv in
-  run_conf conf
+  run_conf caps conf
