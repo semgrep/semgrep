@@ -536,17 +536,17 @@ let display_with_gv g = OG.display_with_gv g.og
 
 let print_graph_generic ?(launch_gv = true) ?(extra_string = "") ~str_of_key
     filename g =
-  UCommon.with_open_outfile filename (fun (pr, _) ->
-      UCommon.pr "digraph misc {\n";
+  UCommon.with_open_outfile filename (fun (xpr, _) ->
+      xpr "digraph misc {\n";
       (* pr "size = \"10,10\";\n" ; *)
-      UCommon.pr extra_string;
-      UCommon.pr "\n";
+      xpr extra_string;
+      xpr "\n";
 
       g.og
       |> OG.iter_vertex (fun v ->
              let k = key_of_vertex v g in
              (* todo? could also use the str_of_key to represent the node *)
-             UCommon.pr
+             xpr
                (spf "%d [label=\"%s\"];\n" (OG.V.label v) (str_of_key k)));
 
       g.og
@@ -554,9 +554,9 @@ let print_graph_generic ?(launch_gv = true) ?(extra_string = "") ~str_of_key
              let succ = OG.succ g.og v in
              succ
              |> List.iter (fun v2 ->
-                    UCommon.pr
+                    xpr
                       (spf "%d -> %d;\n" (OG.V.label v) (OG.V.label v2))));
-      UCommon.pr "}\n");
+      xpr "}\n");
   if launch_gv then failwith "TODO: Ograph_extended.launch_gv_cmd filename";
   (* Ograph_extended.launch_gv_cmd filename; *)
   ()
