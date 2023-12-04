@@ -62,17 +62,18 @@ module Datetime = struct
       let year, mon, day, hour, min, sec = Common.matched6 s in
       (* mostly the inverse of unwrap above *)
       let tm =
-        {
-          Unix.tm_year = int_of_string year - 1900;
-          tm_mon = int_of_string mon - 1;
-          tm_mday = int_of_string day;
-          tm_hour = int_of_string hour;
-          tm_min = int_of_string min;
-          tm_sec = int_of_string sec;
-          tm_wday = 0;
-          tm_yday = 0;
-          tm_isdst = false;
-        }
+        Unix.
+          {
+            tm_year = int_of_string year - 1900;
+            tm_mon = int_of_string mon - 1;
+            tm_mday = int_of_string day;
+            tm_hour = int_of_string hour;
+            tm_min = int_of_string min;
+            tm_sec = int_of_string sec;
+            tm_wday = 0;
+            tm_yday = 0;
+            tm_isdst = false;
+          }
       in
       (* normalize *)
       (* ugly, but this is suggested in Unix.mli to get the inverse

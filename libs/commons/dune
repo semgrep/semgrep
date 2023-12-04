@@ -1,7 +1,7 @@
 (library
  (public_name commons)
  (wrapped false)
- (flags (:standard -open No_TCB))
+ (flags (:standard -open TCB))
  (libraries
    str
    TCB
@@ -11,8 +11,8 @@
    yojson
    atdgen-runtime
    fmt
-   ANSITerminal
    ocolor
+   ANSITerminal
    logs logs.fmt
    easy_logging easy_logging_yojson
    alcotest
