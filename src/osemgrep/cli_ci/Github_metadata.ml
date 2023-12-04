@@ -150,10 +150,14 @@ let env : env Term.t =
 let shallow_fetch_branch branch_name =
   let _ =
     Git_wrapper.git_check_output
-      Bos.Cmd.(
-        v "git" % "fetch" % "origin" % "--depth=1" % "--force"
-        % "--update-head-ok"
-        % Fmt.str "%s:%s" branch_name branch_name)
+      [
+        "fetch";
+        "origin";
+        "--depth=1";
+        "--force";
+        "--update-head-ok";
+        Fmt.str "%s:%s" branch_name branch_name;
+      ]
   in
   ()
 
@@ -164,10 +168,14 @@ let shallow_fetch_branch branch_name =
 let _shallow_fetch_commit commit_hash =
   let _ =
     Git_wrapper.git_check_output
-      Bos.Cmd.(
-        v "git" % "fetch" % "origin" % "--depth=1" % "--force"
-        % "--update-head-ok"
-        % Digestif.SHA1.to_hex commit_hash)
+      [
+        "fetch";
+        "origin";
+        "--depth=1";
+        "--force";
+        "--update-head-ok";
+        Digestif.SHA1.to_hex commit_hash;
+      ]
   in
   ()
 
@@ -176,7 +184,7 @@ let _shallow_fetch_commit commit_hash =
    Does a git fetch of given branch with depth = 1. *)
 let get_latest_commit_hash_in_branch branch_name =
   shallow_fetch_branch branch_name;
-  Git_wrapper.git_check_output Bos.Cmd.(v "git" % "rev-parse" % branch_name)
+  Git_wrapper.git_check_output [ "rev-parse"; branch_name ]
   |> Digestif.SHA1.of_hex_opt |> Option.get
 
 (* Ref name of the branch pull request if from. *)
@@ -203,9 +211,13 @@ let get_head_branch_hash env =
             head_branch_name Digestif.SHA1.pp commit);
       let _ =
         Git_wrapper.git_check_output
-          Bos.Cmd.(
-            v "git" % "fetch" % "origin" % "--force" % "--depth=1"
-            % Digestif.SHA1.to_hex commit)
+          [
+            "fetch";
+            "origin";
+            "--force";
+            "--depth=1";
+            Digestif.SHA1.to_hex commit;
+          ]
       in
       Some commit
   | _ -> None
@@ -291,17 +303,27 @@ let rec find_branchoff_point ?(attempt_count = 0) repo_name env =
        required to [get_base_branch_ref]. *)
     let _ =
       Git_wrapper.git_check_output
-        Bos.Cmd.(
-          v "git" % "fetch" % "origin" % "--force" % "--update-head-ok"
-          % "--depth" % string_of_int fetch_depth
-          % Fmt.str "%s:%s" base_branch_name base_branch_name)
+        [
+          "fetch";
+          "origin";
+          "--force";
+          "--update-head-ok";
+          "--depth";
+          string_of_int fetch_depth;
+          Fmt.str "%s:%s" base_branch_name base_branch_name;
+        ]
     in
     let _ =
       Git_wrapper.git_check_output
-        Bos.Cmd.(
-          v "git" % "fetch" % "origin" % "--force" % "--update-head-ok"
-          % "--depth" % string_of_int fetch_depth
-          % Digestif.SHA1.to_hex head_branch_hash)
+        [
+          "fetch";
+          "origin";
+          "--force";
+          "--update-head-ok";
+          "--depth";
+          string_of_int fetch_depth;
+          Digestif.SHA1.to_hex head_branch_hash;
+        ]
     in
 
     let cmd =

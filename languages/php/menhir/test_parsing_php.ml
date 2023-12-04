@@ -92,7 +92,7 @@ let test_json_fast_php file =
 let test_dump_php file =
   let cst = Parse_php.parse_program file in
   let s = Cst_php.show_program cst in
-  pr s
+  UCommon.pr s
 
 (*****************************************************************************)
 (* Misc *)

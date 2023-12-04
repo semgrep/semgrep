@@ -19,7 +19,7 @@ let parse file =
 let tests_path = "tests"
 
 let tests =
-  Testutil.pack_tests "parsing_cpp"
+  Alcotest_ext.pack_tests "parsing_cpp"
     [
       (*-----------------------------------------------------------------------*)
       (* Lexing *)

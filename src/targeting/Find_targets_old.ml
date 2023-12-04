@@ -32,7 +32,7 @@ let deduplicate_list l =
 (* similar to Run_semgrep.sort_targets_by_decreasing_size, could factorize *)
 let sort_files_by_decreasing_size files =
   files
-  |> List_.map (fun file -> (file, File.filesize file))
+  |> List_.map (fun file -> (file, UFile.filesize file))
   |> List.sort (fun (_, (a : int)) (_, b) -> compare b a)
   |> List_.map fst
 
@@ -187,7 +187,7 @@ let list_regular_files (conf : conf) (scan_root : Fpath.t) : Fpath.t list =
        *)
       if conf.respect_gitignore then (
         try files_from_git_ls ~cwd:scan_root with
-        | (Git_wrapper.Error _ | Common.CmdError _ | Unix.Unix_error _) as exn
+        | (Git_wrapper.Error _ | UCommon.CmdError _ | Unix.Unix_error _) as exn
           ->
             Logs.info (fun m ->
                 m
@@ -305,7 +305,7 @@ let get_targets conf scanning_roots =
          let paths, skipped_paths3 =
            paths
            |> Result_.partition_result (fun path ->
-                  let size = File.filesize path in
+                  let size = UFile.filesize path in
                   if conf.max_target_bytes > 0 && size > conf.max_target_bytes
                   then
                     Error
@@ -345,7 +345,7 @@ let files_of_dirs_or_files ?(keep_root_files = true)
     else (roots, [])
   in
   let paths =
-    paths |> Fpath_.to_strings |> Common.files_of_dir_or_files_no_vcs_nofilter
+    paths |> Fpath_.to_strings |> UCommon.files_of_dir_or_files_no_vcs_nofilter
     |> Fpath_.of_strings
   in
 

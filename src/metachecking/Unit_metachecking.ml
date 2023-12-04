@@ -1,6 +1,6 @@
 open Common
 open Fpath_.Operators
-open Testutil
+open Alcotest_ext
 module E = Core_error
 
 (*****************************************************************************)
@@ -51,12 +51,13 @@ let metachecker_checks_tests () =
 
 (* Test the entire `-test_check` path *)
 let metachecker_regression_tests () =
-  [
-    ( "metachecker regresion testing",
-      fun () ->
-        let path = tests_path / "metachecks" in
-        Test_metachecking.test_rules ~unit_testing:true [ path ] );
-  ]
+  Alcotest_ext.simple_tests
+    [
+      ( "metachecker regression testing",
+        fun () ->
+          let path = tests_path / "metachecks" in
+          Test_metachecking.test_rules ~unit_testing:true [ path ] );
+    ]
 
 (*****************************************************************************)
 (* All tests *)

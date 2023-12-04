@@ -47,7 +47,7 @@ let test_maker_pass_fail dir pass_or_fail =
                | Error msg -> failwith msg
              in
              let correct =
-               Y.from_string (File.read_file comparison_file_path)
+               Y.from_string (UFile.read_file comparison_file_path)
              in
 
              let ast = Parse_jsonnet.parse_program file in
@@ -70,9 +70,10 @@ let test_maker_pass_fail dir pass_or_fail =
                    "this threw an error" (not pass_or_fail) true ))
 
 let tests () =
-  test_maker_pass_fail dir_pass true
-  @ test_maker_pass_fail dir_pass_tutorial true
-  @ test_maker_pass_fail dir_fail false
-  @ test_maker_pass_fail dir_fail_tutorial false
-  @ test_maker_err dir_error
-  @ test_maker_err dir_error_tutorial
+  Alcotest_ext.simple_tests
+    (test_maker_pass_fail dir_pass true
+    @ test_maker_pass_fail dir_pass_tutorial true
+    @ test_maker_pass_fail dir_fail false
+    @ test_maker_pass_fail dir_fail_tutorial false
+    @ test_maker_err dir_error
+    @ test_maker_err dir_error_tutorial)

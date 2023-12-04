@@ -137,9 +137,9 @@ let test_symlink_as_root () =
         (List_files.list_regular_files ~keep_root:true root_path))
 
 let tests =
-  Testutil.pack_suites "List_files"
+  Alcotest_ext.pack_suites "List_files"
     [
-      Testutil.pack_tests "list"
+      Alcotest_ext.pack_tests "list"
         [
           ("regular_file_as_root", test_regular_file_as_root);
           ("empty_dir_as_root", test_empty_dir_as_root);

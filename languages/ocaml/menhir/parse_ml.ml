@@ -64,7 +64,7 @@ let parse filename =
       if !Flag.show_parsing_error then (
         pr2 ("parse error \n = " ^ error_msg_tok cur);
         let filelines = Common2.cat_array filename in
-        let checkpoint2 = Common.cat filename |> List.length in
+        let checkpoint2 = UCommon.cat filename |> List.length in
         let line_error = TH.line_of_tok cur in
         Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
 

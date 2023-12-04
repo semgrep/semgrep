@@ -90,7 +90,7 @@ let ast_or_exn_of_file (lang, file) =
 
 (* Cache_disk methods reused in a few places *)
 let cache_extra_for_input version (lang, file) =
-  (version, lang, Rpath.of_fpath file, File.filemtime file)
+  (version, lang, Rpath.of_fpath file, UFile.filemtime file)
 
 (* this is used for semgrep-core -generate_ast_binary done for Snowflake *)
 let binary_suffix : Fpath.ext = ".ast.binary"
@@ -175,7 +175,7 @@ let parse_and_resolve_name ?(parsing_cache_dir = None) version lang
                 version = version2
                 && Rpath.equal (Rpath.of_fpath file) file2
                 && Lang.equal lang lang2
-                && File.filemtime file =*= mtime2);
+                && UFile.filemtime file =*= mtime2);
             input_to_string =
               (fun (lang, file) ->
                 spf "Lang = %s, target = %s" (Lang.show lang) !!file);

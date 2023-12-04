@@ -112,8 +112,9 @@ let print_parsing_stat_list ?(verbose = false) statxs =
   in
 
   if verbose then (
-    pr "\n\n\n---------------------------------------------------------------";
-    pr "pbs with files:";
+    UCommon.pr
+      "\n\n\n---------------------------------------------------------------";
+    UCommon.pr "pbs with files:";
     statxs
     |> List.filter (function
          | { have_timeout = true; _ } -> true
@@ -126,19 +127,20 @@ let print_parsing_stat_list ?(verbose = false) statxs =
                error_line_count = n;
                _;
              }
-           -> pr (file ^ "  " ^ if timeout then "TIMEOUT" else i_to_s n));
+           ->
+           UCommon.pr (file ^ "  " ^ if timeout then "TIMEOUT" else i_to_s n));
 
-    pr "\n\n\n";
-    pr "files with lots of tokens passed/commentized:";
+    UCommon.pr "\n\n\n";
+    UCommon.pr "files with lots of tokens passed/commentized:";
     let threshold_passed = 100 in
     statxs
     |> List.filter (function
          | { commentized = n; _ } when n > threshold_passed -> true
          | _ -> false)
     |> List.iter (function { filename = file; commentized = n; _ } ->
-           pr (file ^ "  " ^ i_to_s n));
+           UCommon.pr (file ^ "  " ^ i_to_s n));
 
-    pr "\n\n\n");
+    UCommon.pr "\n\n\n");
 
   let total_lines =
     statxs |> List.fold_left (fun acc { total_line_count = x; _ } -> acc + x) 0
@@ -151,8 +153,8 @@ let print_parsing_stat_list ?(verbose = false) statxs =
   in
   let good = total_lines - bad in
 
-  pr "---------------------------------------------------------------";
-  pr
+  UCommon.pr "---------------------------------------------------------------";
+  UCommon.pr
     (spf "NB total files = %d; " total
     ^ spf "NB total lines = %d; " total_lines
     ^ spf "perfect = %d; " perfect
@@ -172,11 +174,11 @@ let print_parsing_stat_list ?(verbose = false) statxs =
     ^ "%");
   let gf, badf = (float_of_int good, float_of_int bad) in
   let passedf = float_of_int passed in
-  pr
+  UCommon.pr
     (spf "nb good = %d,  nb passed = %d " good passed
     ^ spf "=========> %f" (100.0 *. (passedf /. gf))
     ^ "%");
-  pr
+  UCommon.pr
     (spf "nb good = %d,  nb bad = %d " good bad
     ^ spf "=========> %f" (100.0 *. (gf /. (gf +. badf)))
     ^ "%")
@@ -189,7 +191,7 @@ let print_regression_information ~ext xs newscore =
   let xs = Fpath_.to_strings xs in
   let dirname_opt =
     match xs with
-    | [ x ] when Common2.is_directory x -> Some (Common.fullpath x)
+    | [ x ] when Common2.is_directory x -> Some (UCommon.fullpath x)
     | _ -> None
   in
   (* nosemgrep *)

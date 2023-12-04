@@ -139,7 +139,7 @@ let ast_based_fix ~fix (start, end_) (pm : Pattern_match.t) : Textedit.t option
   let fix_pattern = fix in
   let* lang = List.nth_opt pm.Pattern_match.rule_id.langs 0 in
   let metavars = pm.Pattern_match.env in
-  let target_contents = lazy (Common.read_file pm.Pattern_match.file) in
+  let target_contents = lazy (UCommon.read_file pm.Pattern_match.file) in
   let result =
     try
       (* Fixes are not exactly patterns, but they can contain metavariables that
@@ -288,7 +288,7 @@ let produce_autofixes (matches : Pattern_match.t list) =
   List_.map (fun m -> (m, render_fix m)) matches
 
 let apply_fixes_to_file matches_with_fixes ~file =
-  let file_text = Common.read_file file in
+  let file_text = UCommon.read_file file in
   let edits = List_.map snd matches_with_fixes |> List_.map_filter Fun.id in
   match Textedit.apply_edits_to_text file_text edits with
   | Success x -> x

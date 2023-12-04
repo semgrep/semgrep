@@ -446,7 +446,7 @@ let remove_empty_nodes g xs =
            remove_edge (parent n g, n) Has g)
 
 let basename_to_readable_disambiguator xs ~root =
-  let xs = xs |> List.map (Common.readable ~root) in
+  let xs = xs |> List.map (Filename_.readable ~root) in
   (* use the Hashtbl.find_all property of this hash *)
   let h = Hashtbl.create 101 in
   xs |> List.iter (fun file -> Hashtbl.add h (Filename.basename file) file);
@@ -499,7 +499,7 @@ let bottom_up_numbering g =
 (* Graph adjustments *)
 (*****************************************************************************)
 let load_adjust file =
-  Common.cat file
+  UCommon.cat file
   |> List_.exclude (fun s -> s =~ "#.*" || s =~ "^[ \t]*$")
   |> List.map (fun s ->
          match s with
@@ -507,7 +507,7 @@ let load_adjust file =
          | _ -> failwith ("wrong line format in adjust file: " ^ s))
 
 let load_whitelist file =
-  Common.cat file
+  UCommon.cat file
   |> List.map (fun s ->
          if s =~ "\\(.*\\) --> \\(.*\\) " then
            let s1, s2 = Common.matched2 s in
@@ -515,7 +515,7 @@ let load_whitelist file =
          else failwith (spf "load_whitelist: wrong line: %s" s))
 
 let save_whitelist xs file g =
-  Common.with_open_outfile file (fun (pr_no_nl, _chan) ->
+  UCommon.with_open_outfile file (fun (pr_no_nl, _chan) ->
       xs
       |> List.iter (fun (n1, n2) ->
              let file = file_of_node n2 g in
@@ -554,7 +554,7 @@ let adjust_graph g xs whitelist =
 (*****************************************************************************)
 (* assumes a "path/to/file.x" -> "path/to/file2.x" format *)
 let graph_of_dotfile dotfile =
-  let xs = Common.cat dotfile in
+  let xs = UCommon.cat dotfile in
   let deps =
     xs
     |> List_.map_filter (fun s ->
@@ -596,30 +596,31 @@ let graph_of_dotfile dotfile =
 (* Statistics *)
 (*****************************************************************************)
 let print_statistics stats g =
-  pr (spf "nb nodes = %d, nb edges = %d" (nb_nodes g) (nb_use_edges g));
-  pr (spf "parse errors = %d" (!(stats.parse_errors) |> List.length));
-  pr (spf "lookup fail = %d" (!(stats.lookup_fail) |> List.length));
+  UCommon.pr (spf "nb nodes = %d, nb edges = %d" (nb_nodes g) (nb_use_edges g));
+  UCommon.pr (spf "parse errors = %d" (!(stats.parse_errors) |> List.length));
+  UCommon.pr (spf "lookup fail = %d" (!(stats.lookup_fail) |> List.length));
 
-  pr
+  UCommon.pr
     (spf "unresolved method calls = %d"
        (!(stats.method_calls)
        |> List.filter (fun (_, x) -> not x)
        |> List.length));
-  pr
+  UCommon.pr
     (spf "(resolved method calls = %d)"
        (!(stats.method_calls) |> List.filter (fun (_, x) -> x) |> List.length));
 
-  pr
+  UCommon.pr
     (spf "unresolved field access = %d"
        (!(stats.field_access)
        |> List.filter (fun (_, x) -> not x)
        |> List.length));
-  pr
+  UCommon.pr
     (spf "(resolved field access) = %d)"
        (!(stats.field_access) |> List.filter (fun (_, x) -> x) |> List.length));
 
-  pr
+  UCommon.pr
     (spf "unresolved class access = %d"
        (!(stats.unresolved_class_access) |> List.length));
-  pr (spf "unresolved calls = %d" (!(stats.unresolved_calls) |> List.length));
+  UCommon.pr
+    (spf "unresolved calls = %d" (!(stats.unresolved_calls) |> List.length));
   ()

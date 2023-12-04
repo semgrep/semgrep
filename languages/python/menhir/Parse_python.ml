@@ -153,7 +153,7 @@ let rec parse ?(parsing_mode = Python) filename =
           pr2 ("parse error \n = " ^ error_msg_tok cur);
 
           let filelines = Common2.cat_array filename in
-          let checkpoint2 = Common.cat filename |> List.length in
+          let checkpoint2 = UCommon.cat filename |> List.length in
           let line_error = Tok.line_of_tok (TH.info_of_tok cur) in
           Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
         stat.PS.error_line_count <- stat.PS.total_line_count;

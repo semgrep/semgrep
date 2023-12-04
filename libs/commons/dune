@@ -1,20 +1,22 @@
 (library
  (public_name commons)
  (wrapped false)
+ (flags (:standard -open TCB))
  (libraries
-   TCB
    str
+   TCB
    unix
    fpath
    uri
    yojson
    atdgen-runtime
    fmt
-   ANSITerminal
    ocolor
+   ANSITerminal
    logs logs.fmt
    easy_logging easy_logging_yojson
    alcotest
+   alcotest_ext
    cmdliner
    bos
    re

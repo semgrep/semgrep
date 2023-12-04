@@ -2,20 +2,11 @@
 
 exception Error of string
 
-type status = {
-  added : string list;
-  modified : string list;
-  removed : string list;
-  unmerged : string list;
-  renamed : (string * string) list;
-}
-[@@deriving show]
-
 (* very general helper to run a git command and return its output
  * if everthing went fine or log the error (using Logs) and
  * raise an Error otherwise
  *)
-val git_check_output : Bos.Cmd.t -> string
+val git_check_output : Cmd.args -> string
 
 (*
    This is incomplete. Git offer a variety of filters and subfilters,
@@ -65,6 +56,15 @@ val get_merge_base : string -> string
 val run_with_worktree :
   commit:string -> ?branch:string option -> (unit -> 'a) -> 'a
 
+type status = {
+  added : string list;
+  modified : string list;
+  removed : string list;
+  unmerged : string list;
+  renamed : (string * string) list;
+}
+[@@deriving show]
+
 (* git status *)
 val status : cwd:Fpath.t -> commit:string -> status
 
@@ -111,7 +111,7 @@ val get_project_url : unit -> string option
     TODO: should maybe raise an exn instead if not run from a git repo.
 *)
 
-val get_git_logs : ?since:Common2.float_time option -> unit -> string list
+val get_git_logs : ?since:float option -> unit -> string list
 (** [get_git_logs()] will run 'git log' in the current directory
     and returns for each log a JSON string that fits the schema
     defined in semgrep_output_v1.atd contribution type.

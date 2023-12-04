@@ -452,7 +452,7 @@ let send_initialized info =
 
 let send_did_open info (path : Fpath.t) =
   let path = Fpath.to_string path in
-  let text = File.read_file (Fpath.v path) in
+  let text = UFile.read_file (Fpath.v path) in
   let textDocument =
     TextDocumentItem.create ~languageId:"python" ~version:1
       ~uri:(Uri.of_path path) ~text
@@ -1004,9 +1004,9 @@ let promise_tests =
 
 let tests =
   let prepare f () = Lwt_platform.run (f ()) in
-  Testutil.pack_tests "Language Server (e2e)"
+  Alcotest_ext.pack_tests "Language Server (e2e)"
     (promise_tests |> List_.map (fun (s, f) -> (s, prepare f)))
 
 let lwt_tests =
-  Testutil.pack_tests_lwt "Language Server (e2e)"
+  Alcotest_ext.pack_tests "Language Server (e2e)"
     (("Test LS with libev", test_ls_libev) :: promise_tests)

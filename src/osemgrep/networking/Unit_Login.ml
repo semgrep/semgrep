@@ -16,7 +16,7 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-open Testutil
+open Alcotest_ext
 
 (*****************************************************************************)
 (* Helpers *)
@@ -43,7 +43,9 @@ let with_mock_normal_responses =
           | Some "Bearer bad_token" -> (401, "./tests/login/bad_response.json")
           | _ -> failwith "Unexpected token"
         in
-        let body = body_path |> Common.read_file |> Cohttp_lwt.Body.of_string in
+        let body =
+          body_path |> UCommon.read_file |> Cohttp_lwt.Body.of_string
+        in
         Lwt.return Http_mock_client.(basic_response ~status body)
     | "/api/agent/tokens/requests" ->
         let%lwt () =
@@ -108,12 +110,10 @@ let save_token_tests () =
           (Semgrep_login.is_logged_in ())
   in
   let tests =
-    pack_tests "save_token"
-      [
-        ("invalid token", invalid_token_test); ("valid token", valid_token_test);
-      ]
+    [ ("invalid token", invalid_token_test); ("valid token", valid_token_test) ]
+    |> List_.map (fun (n, f) -> (n, with_mock_envvars_and_normal_responses f))
   in
-  List_.map (fun (n, f) -> (n, with_mock_envvars_and_normal_responses f)) tests
+  pack_tests "save_token" tests
 
 let fetch_token_tests () =
   let fetch_basic () =

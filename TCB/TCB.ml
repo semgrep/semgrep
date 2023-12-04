@@ -33,7 +33,7 @@
 
 (* U for "Unsafe/Unvetted" *)
 module UStdlib = Stdlib
-
+module Stdlib = struct end
 (* See also UUnix, USys, ... later *)
 
 (*###########################################################################*)
@@ -631,10 +631,6 @@ module Oo = struct end
 (* Other module aliases (FORBIDDEN) *)
 (*###########################################################################*)
 
-(* already in Stdlib and anyway unsafe and rarely used because new *)
-module Out_channel = struct end
-module In_channel = struct end
-
 (*###########################################################################*)
 (* RESTRICTED modules *)
 (*###########################################################################*)
@@ -657,6 +653,8 @@ module Sys = struct
   (* LATER? create different capabilities for each signal? *)
   let sigalrm = Sys.sigalrm
   let sigxfsz = Sys.sigxfsz
+  let sigint = Sys.sigint
+  let sigkill = Sys.sigkill
 
   type backend_type = Sys.backend_type
   type extra_prefix = Sys.extra_prefix
@@ -933,6 +931,15 @@ end
 (* Reading (RESTRICTED) *)
 (**************************************************************************)
 
+module In_channel = struct
+  (* most of the other functions are already in Stdlib so no need
+   * provide an extra alias for them
+   *)
+  let input_all = In_channel.input_all
+  (* FORBIDDEN:
+   *)
+end
+
 module Lexing = struct
   type position = Lexing.position = {
     pos_fname : string;
@@ -977,6 +984,12 @@ module Scanf = struct end
 (* Printing (RESTRICTED) *)
 (**************************************************************************)
 
+module Out_channel = struct
+  (* TODO? *)
+  (* FORBIDDEN:
+   *)
+end
+
 module UPrintf = Printf
 
 module Printf = struct
@@ -1000,6 +1013,7 @@ module Format = struct
   let fprintf = Format.fprintf
   let eprintf = Format.eprintf
   let sprintf = Format.sprintf
+  let kfprintf = Format.kfprintf
 
   (* pp_xxx are safe *)
   let pp_print_int = Format.pp_print_int

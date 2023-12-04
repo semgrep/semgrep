@@ -38,7 +38,7 @@ let on_request server ({ position; textDocument; _ } : HoverParams.t) =
     let file = Uri.to_path textDocument.uri in
     (* Add 1 to each list for the newline! *)
     let base_charpos =
-      let contents = Common.cat file in
+      let contents = UCommon.cat file in
       let lines =
         contents |> List_.index_list
         |> List.filter (fun (_, idx) -> idx < position.line)
