@@ -63,9 +63,7 @@ let find_first_match_with_whole_line path ?split term =
   find_first_match_with_whole_line path ?split term
   |> Result.to_option |> Option.join
 
-let filemtime file =
-  let stat = UUnix.stat !!file in
-  stat.st_mtime
+let filemtime file = (UUnix.stat !!file).st_mtime
 
 (* TODO? slow, and maybe we should cache it to avoid rereading
  * each time the same file for each match.

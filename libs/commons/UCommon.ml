@@ -38,6 +38,7 @@ let pr_time name f =
 exception CmdError of Unix.process_status * string
 
 let process_output_to_list2 ?(verbose = false) command =
+  (* alt: use Cmd.with_open_process_in *)
   let chan = UUnix.open_process_in command in
   let res = ref ([] : string list) in
   let rec process_otl_aux () =
@@ -119,7 +120,7 @@ let read_file ?(max_len = max_int) path =
           else loop fd
     in
     let fd = UUnix.openfile path [ Unix.O_RDONLY ] 0 in
-    protect ~finally:(fun () -> Unix.close fd) (fun () -> loop fd)
+    Common.protect ~finally:(fun () -> Unix.close fd) (fun () -> loop fd)
 
 let write_file ~file s =
   let chan = UStdlib.open_out_bin file in
@@ -262,7 +263,7 @@ let before_exit = ref []
 let main_boilerplate f =
   if not !Sys.interactive then
     exn_to_real_unixexit (fun () ->
-        USys.set_signal USys.sigint
+        USys.set_signal Sys.sigint
           (Sys.Signal_handle
              (fun _ ->
                pr2 "C-c intercepted, will do some cleaning before exiting";
@@ -274,7 +275,7 @@ let main_boilerplate f =
                 * The current solution is to not do some wild  try ... with e
                 * by having in the exn handler a case: UnixExit x -> raise ... | e ->
                 *)
-               USys.set_signal USys.sigint Sys.Signal_default;
+               USys.set_signal Sys.sigint Sys.Signal_default;
                raise (UnixExit (-1))));
 
         (* The finalize() below makes it tedious to go back from exns when we use
