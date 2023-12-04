@@ -446,7 +446,7 @@ let remove_empty_nodes g xs =
            remove_edge (parent n g, n) Has g)
 
 let basename_to_readable_disambiguator xs ~root =
-  let xs = xs |> List.map (Common.readable ~root) in
+  let xs = xs |> List.map (Filename_.readable ~root) in
   (* use the Hashtbl.find_all property of this hash *)
   let h = Hashtbl.create 101 in
   xs |> List.iter (fun file -> Hashtbl.add h (Filename.basename file) file);
