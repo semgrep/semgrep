@@ -85,7 +85,7 @@ CI="true" CIRCLECI="true" CIRCLE_PROJECT_USERNAME="project_name" CIRCLE_PROJECT_
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 4 files tracked by git with 4 Code rules, 3 Supply Chain rules:
+  Scanning 5 files tracked by git with 4 Code rules, 3 Supply Chain rules:
 
 
   CODE RULES
