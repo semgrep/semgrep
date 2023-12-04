@@ -53,11 +53,10 @@ let _ =
   Http_helpers.client_ref := Some (module Cohttp_lwt_jsoo.Client);
   Js.export_all
     (object%js
-       method init yaml_wasm_module =
-         init_jsoo yaml_wasm_module;
-         Parse_pattern.parse_pattern_ref := Parse_pattern2.parse_pattern;
-         Parse_target.just_parse_with_lang_ref :=
-           Parse_target2.just_parse_with_lang
+       method init wasm_module =
+         init_jsoo wasm_module;
+         set_parser_wasm_module wasm_module;
+         Parsing_init.init ()
 
        method setWriteRef f = write_ref := f
 
