@@ -84,7 +84,7 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_REPO_URL="git@github.com:example
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 4 files tracked by git with 4 Code rules, 3 Supply Chain rules:
+  Scanning 5 files tracked by git with 4 Code rules, 3 Supply Chain rules:
 
 
   CODE RULES
