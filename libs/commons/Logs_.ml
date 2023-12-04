@@ -69,7 +69,7 @@ let pp_sgr ppf style =
   Format.pp_print_as ppf 0 "m"
 
 (* alt: use Mtime_clock.now () *)
-let now () : float = Unix.gettimeofday ()
+let now () : float = UUnix.gettimeofday ()
 
 (* log reporter *)
 let reporter ?(with_timestamp = false) ?(dst = Fmt.stderr) () =

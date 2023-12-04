@@ -78,22 +78,22 @@ module Datetime = struct
       (* ugly, but this is suggested in Unix.mli to get the inverse
        * of the gmtime function.
        *)
-      let before = Sys.getenv_opt "TZ" in
-      Unix.putenv "TZ" "UTC";
+      let before = USys.getenv_opt "TZ" in
+      UUnix.putenv "TZ" "UTC";
       let _s, tm = Unix.mktime tm in
       (match before with
       | None ->
           (* argh, no unsetenv,
            * see https://discuss.ocaml.org/t/unset-environment-variable/9025/4
            *)
-          Unix.putenv "TZ" ""
-      | Some old -> Unix.putenv "TZ" old);
+          UUnix.putenv "TZ" ""
+      | Some old -> UUnix.putenv "TZ" old);
       tm)
     else failwith (spf "wrong datetime format: %s" s)
 
   let () =
     Alcotest_ext.test "Datetime" (fun () ->
-        let now = Unix.gmtime (Unix.gettimeofday ()) in
+        let now = Unix.gmtime (UUnix.gettimeofday ()) in
         let s : string = unwrap now in
         let now' = wrap s in
         if not (now =*= now') then

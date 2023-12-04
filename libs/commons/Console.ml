@@ -18,7 +18,7 @@ let execute_and_show_progress ~show len f =
     incr _count;
     ANSITerminal.set_cursor 1 (-1);
     ANSITerminal.printf [] "%d / %d" !_count len;
-    flush stdout
+    flush UStdlib.stdout
   in
   let nothing () = () in
 

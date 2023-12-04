@@ -32,7 +32,6 @@ class ['a] olist : 'a list -> object
   method view : 'a list
 end
 
-val typing_sux_test : unit -> unit
 (*e: common.mli misc/test *)
 
 (*x: common.mli globals *)
@@ -130,7 +129,6 @@ val pr2_xxxxxxxxxxxxxxxxx : unit -> unit
 
 (* use Dumper.dump *)
 val pr2_gen : 'a -> unit
-val dump : 'a -> string
 val pr2_once : string -> unit
 val mk_pr2_wrappers : bool ref -> (string -> unit) * (string -> unit)
 val redirect_stdout_opt : filename option -> (unit -> 'a) -> 'a
