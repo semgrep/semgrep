@@ -11,9 +11,8 @@
     lwt_platform.unix
  )
  (preprocess (pps ppx_profiling))
- ; for ocamldebug
- ;XXX(modes native byte)
-  (modes byte)
+  ; for ocamldebug
+  (modes native byte)
 )
 
 
