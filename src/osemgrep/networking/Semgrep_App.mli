@@ -9,14 +9,18 @@ type pro_engine_arch = Osx_arm64 | Osx_x86_64 | Manylinux_x86_64
 
 (* retrieves the deployment config from the provided token. *)
 val get_deployment_from_token :
-  Auth.token -> Semgrep_output_v1_t.deployment_config option
+  < network : Cap.Network.t ; token : Auth.token ; .. > ->
+  Semgrep_output_v1_t.deployment_config option
 
 (* retrieves the scan config from the provided token. *)
 val get_scan_config_from_token :
   Auth.token -> Semgrep_output_v1_t.scan_config option
 
-(* internally rely on api_token in ~/.settings and SEMGREP_REPO_NAME *)
-val url_for_policy : Auth.token -> Uri.t
+(* Internally rely on api_token in ~/.settings and SEMGREP_REPO_NAME
+ * Need the network to get the deployment info from the token.
+ *)
+val url_for_policy :
+  < network : Cap.Network.t ; token : Auth.token ; .. > -> Uri.t
 
 (* construct the Uri where to retrieve the scan configuration, depending on
    the parameters and the repository name *)
@@ -68,14 +72,18 @@ val report_failure :
  * TODO: pass an ATD construct instead of JSON below
  *)
 val upload_rule_to_registry :
-  Auth.token -> JSON.yojson -> (string, int * string) result
+  < network : Cap.Network.t ; token : Auth.token ; .. > ->
+  JSON.yojson ->
+  (string, int * string) result
 
-val get_identity_async : Auth.token -> string Lwt.t
+val get_identity_async :
+  < network : Cap.Network.t ; token : Auth.token ; .. > -> string Lwt.t
 
 (* lwt-friendly versions for the language-server *)
 
 val get_deployment_from_token_async :
-  Auth.token -> Semgrep_output_v1_t.deployment_config option Lwt.t
+  < network : Cap.Network.t ; token : Auth.token ; .. > ->
+  Semgrep_output_v1_t.deployment_config option Lwt.t
 
 val get_scan_config_from_token_async :
   Auth.token -> Semgrep_output_v1_t.scan_config option Lwt.t

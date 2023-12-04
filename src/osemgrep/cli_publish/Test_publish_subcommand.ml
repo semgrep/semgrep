@@ -100,7 +100,7 @@ let with_mocks f =
 (* Tests *)
 (*****************************************************************************)
 
-let test_publish () =
+let test_publish caps () =
   let tests_path = tests_path () in
   with_test_env (fun () ->
       with_mocks (fun () ->
@@ -117,7 +117,8 @@ let test_publish () =
           (* should require login *)
           with_logs
             ~f:(fun () ->
-              Publish_subcommand.main [| "semgrep-publish"; !!valid_target |])
+              Publish_subcommand.main caps
+                [| "semgrep-publish"; !!valid_target |])
             ~final:(fun res ->
               assert (res.exit_code =*= Exit_code.fatal);
               assert (
@@ -127,12 +128,12 @@ let test_publish () =
           (* log back in *)
           Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->
               with_logs
-                ~f:(fun () -> Login_subcommand.main [| "semgrep-login" |])
+                ~f:(fun () -> Login_subcommand.main caps [| "semgrep-login" |])
                 ~final:(fun res -> assert (res.exit_code =*= Exit_code.ok)));
 
           (* fails if no rule specified *)
           with_logs
-            ~f:(fun () -> Publish_subcommand.main [| "semgrep-publish" |])
+            ~f:(fun () -> Publish_subcommand.main caps [| "semgrep-publish" |])
             ~final:(fun res -> assert (res.exit_code =*= Exit_code.fatal));
 
           (* fails if invalid rule specified *)
@@ -141,7 +142,7 @@ let test_publish () =
               let path =
                 tests_path / "e2e" / "targets" / "semgrep-publish" / "invalid"
               in
-              Publish_subcommand.main [| "semgrep-publish"; !!path |])
+              Publish_subcommand.main caps [| "semgrep-publish"; !!path |])
             ~final:(fun res ->
               assert (res.exit_code =*= Exit_code.fatal);
               assert (Common.contains res.logs "Invalid rule definition:"));
@@ -152,7 +153,7 @@ let test_publish () =
               let path =
                 tests_path / "e2e" / "targets" / "semgrep-publish" / "multirule"
               in
-              Publish_subcommand.main [| "semgrep-publish"; !!path |])
+              Publish_subcommand.main caps [| "semgrep-publish"; !!path |])
             ~final:(fun res ->
               assert (res.exit_code =*= Exit_code.fatal);
               assert (
@@ -162,7 +163,7 @@ let test_publish () =
 
           with_logs
             ~f:(fun () ->
-              Publish_subcommand.main
+              Publish_subcommand.main caps
                 [| "semgrep-publish"; "--visibility=public"; !!valid_target |])
             ~final:(fun res ->
               assert (res.exit_code =*= Exit_code.fatal);
@@ -173,7 +174,7 @@ let test_publish () =
 
           with_logs
             ~f:(fun () ->
-              Publish_subcommand.main
+              Publish_subcommand.main caps
                 [|
                   "semgrep-publish";
                   "--visibility=public";
@@ -191,5 +192,5 @@ let test_publish () =
 (* Entry point *)
 (*****************************************************************************)
 
-let tests =
-  pack_tests "Osemgrep Publish (e2e)" [ ("test_publish", test_publish) ]
+let tests caps =
+  pack_tests "Osemgrep Publish (e2e)" [ ("test_publish", test_publish caps) ]
