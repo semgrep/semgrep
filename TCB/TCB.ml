@@ -33,7 +33,7 @@
 
 (* U for "Unsafe/Unvetted" *)
 module UStdlib = Stdlib
-
+module Stdlib = struct end
 (* See also UUnix, USys, ... later *)
 
 (*###########################################################################*)

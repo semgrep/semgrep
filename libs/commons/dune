@@ -1,7 +1,7 @@
 (library
  (public_name commons)
  (wrapped false)
- (flags (:standard -open No_TCB))
+ (flags (:standard -open TCB))
  (libraries
    str
    TCB
