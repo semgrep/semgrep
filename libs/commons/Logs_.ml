@@ -87,11 +87,11 @@ let reporter ?(with_timestamp = false) ?(dst = Fmt.stderr) () =
       msgf @@ fun ?header ?tags:_ fmt ->
       if with_timestamp then
         let current = now () in
-        Format.kfprintf k dst
+        UFormat.kfprintf k dst
           ("@[[%05.2f]%a: " ^^ fmt ^^ "@]@.")
           (current -. !time_program_start)
           Logs_fmt.pp_header (level, header)
-      else Format.kfprintf k dst ("@[%a" ^^ fmt ^^ "@]@.") pp_style style
+      else UFormat.kfprintf k dst ("@[%a" ^^ fmt ^^ "@]@.") pp_style style
     in
     Format.fprintf dst "%a" pp_style style_off;
     r
