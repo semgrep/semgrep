@@ -17,6 +17,7 @@ from collections import defaultdict
 from pathlib import Path
 from textwrap import dedent
 from typing import List
+from typing import Optional
 
 import pytest
 from requests.exceptions import ConnectionError
@@ -2063,7 +2064,7 @@ def test_custom_validator(
     start_scan_mock,
     upload_results_mock,
     complete_scan_mock,
-    env: str | None,
+    env: Optional[str],
     cli_options,
 ):
     result = run_semgrep(
