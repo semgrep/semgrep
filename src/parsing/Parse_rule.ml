@@ -946,6 +946,18 @@ let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
         match e.e with
         | Container (Dict, _) ->
             let root_dict = yaml_to_dict_no_env "rule file" e in
+            (* TODO: Hoist missed messaged out to Scan_subcommand somehow... *)
+            let missed = dict_take_opt root_dict "missed" in
+            let () =
+              match missed with
+              | Some (_key, v) ->
+                  let ct =
+                    generic_to_json (Rule_ID.of_string "dummy") _key v
+                    |> J.string_of_json |> int_of_string
+                  in
+                  Common.missed_count := ct
+              | None -> ()
+            in
             let rules =
               match dict_take_opt root_dict "rules" with
               | None -> missing_rules_field ()

@@ -329,3 +329,8 @@ end
 
 (* you should set this flag when you run code compiled by js_of_ocaml *)
 val jsoo : bool ref
+
+(* The count of missed pro rules for non-logged in users who are
+ *  using the semgrep registry.
+ *)
+val missed_count : int ref

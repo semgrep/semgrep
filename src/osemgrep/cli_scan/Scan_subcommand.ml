@@ -190,6 +190,14 @@ let print_feature_section ~(includes_token : bool) ~(engine : Engine_type.t) :
     features;
   ()
 
+let print_missed_count () : unit =
+  Logs.app (fun m ->
+      m "\n💎 Missed out on %d pro rules since you aren't logged in!\n%s"
+        !Common.missed_count
+        (Ocolor_format.asprintf
+           {|   Run @{<cyan>`semgrep login`@} to supercharge your security.|}));
+  ()
+
 let display_rule_source ~(rule_source : Rules_source.t) : unit =
   let msg =
     match rule_source with
@@ -699,11 +707,13 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
   let rules_and_origins =
     Rule_fetching.rules_from_rules_source_async ~token_opt:settings.api_token
       ~rewrite_rule_ids:conf.rewrite_rule_ids
-      ~registry_caching:conf.registry_caching conf.rules_source
+      ~registry_caching:conf.registry_caching ~ext:"json" conf.rules_source
   in
   let rules_and_origins =
     Lwt_platform.run (Lwt.pick (rules_and_origins :: spinner_ls))
   in
+
+  if new_cli_ux && !Common.missed_count > 0 then print_missed_count ();
 
   (* step2: getting the targets *)
   let targets_and_skipped =
