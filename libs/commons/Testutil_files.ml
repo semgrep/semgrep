@@ -208,7 +208,7 @@ let with_tempfiles_verbose (files : t list) func =
       write root files;
       (* Nice listing of the real file tree.
          Don't care if the 'tree' command is unavailable. *)
-      USys.command (sprintf "tree -a '%s'" !!root) |> ignore;
+      USys.command (Printf.sprintf "tree -a '%s'" !!root) |> ignore;
       func root)
 
 let () =

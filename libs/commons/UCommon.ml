@@ -21,9 +21,9 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 
 let pr s =
-  Stdlib.print_string s;
-  Stdlib.print_string "\n";
-  flush Stdlib.stdout
+  UStdlib.print_string s;
+  UStdlib.print_string "\n";
+  flush UStdlib.stdout
 
 let pr_time name f =
   let t1 = UUnix.gettimeofday () in
@@ -70,7 +70,7 @@ let cmd_to_list_and_status = process_output_to_list2
 
 let cat file =
   let acc = ref [] in
-  let chan = Stdlib.open_in_bin file in
+  let chan = UStdlib.open_in_bin file in
   try
     while true do
       acc := input_text_line chan :: !acc
@@ -101,7 +101,7 @@ let cat file =
 *)
 let read_file ?(max_len = max_int) path =
   if !jsoo then (
-    let ic = Stdlib.open_in_bin path in
+    let ic = UStdlib.open_in_bin path in
     let s = really_input_string ic (in_channel_length ic) in
     close_in ic;
     s)
@@ -123,7 +123,7 @@ let read_file ?(max_len = max_int) path =
     Common.protect ~finally:(fun () -> Unix.close fd) (fun () -> loop fd)
 
 let write_file ~file s =
-  let chan = Stdlib.open_out_bin file in
+  let chan = UStdlib.open_out_bin file in
   output_string chan s;
   close_out chan
 
@@ -153,7 +153,7 @@ let fullpath file =
 let (with_open_outfile :
       string (* filename *) -> ((string -> unit) * out_channel -> 'a) -> 'a) =
  fun file f ->
-  let chan = Stdlib.open_out_bin file in
+  let chan = UStdlib.open_out_bin file in
   let xpr s = output_string chan s in
   unwind_protect
     (fun () ->
@@ -164,7 +164,7 @@ let (with_open_outfile :
 
 let (with_open_infile : string (* filename *) -> (in_channel -> 'a) -> 'a) =
  fun file f ->
-  let chan = Stdlib.open_in_bin file in
+  let chan = UStdlib.open_in_bin file in
   unwind_protect
     (fun () ->
       let res = f chan in
@@ -251,7 +251,7 @@ let files_of_dir_or_files_no_vcs_nofilter xs =
 (* now in prelude: exception UnixExit of int *)
 let exn_to_real_unixexit f =
   try f () with
-  | UnixExit x -> Stdlib.exit x
+  | UnixExit x -> UStdlib.exit x
 
 let pp_do_in_zero_box f =
   UFormat.open_box 0;

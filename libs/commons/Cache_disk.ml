@@ -61,12 +61,12 @@ type ('input, 'value, 'extra) cache_methods = {
 (*****************************************************************************)
 
 (* input_value <=> Marshal.from_channel  *)
-let get_value filename = UCommon.with_open_infile filename Stdlib.input_value
+let get_value filename = UCommon.with_open_infile filename UStdlib.input_value
 
 (* output_value <=> Marshal.to_channel chan valu [Marshal.Closures] *)
 let write_value valu filename =
   UCommon.with_open_outfile filename (fun (_pr, chan) ->
-      Stdlib.output_value chan valu)
+      UStdlib.output_value chan valu)
 
 (*****************************************************************************)
 (* Entry points *)

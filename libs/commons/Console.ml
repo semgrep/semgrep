@@ -33,7 +33,7 @@ let execute_and_show_progress2 ?(show = true) len f =
     incr _count;
     ANSITerminal.set_cursor 1 (-1);
     ANSITerminal.eprintf [] "%d / %d" !_count len;
-    flush stderr
+    flush Stdlib.stderr
   in
   let nothing () = () in
 
