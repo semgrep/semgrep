@@ -36,7 +36,7 @@ poetry.lock:2:0:E:supply-chain1:found a dependency
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 4 files tracked by git with 4 Code rules, 3 Supply Chain rules:
+  Scanning 5 files tracked by git with 4 Code rules, 3 Supply Chain rules:
 
 
   CODE RULES

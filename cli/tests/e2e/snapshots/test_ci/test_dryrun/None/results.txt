@@ -84,7 +84,7 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 4 files tracked by git with 4 Code rules, 3 Supply Chain rules:
+  Scanning 5 files tracked by git with 4 Code rules, 3 Supply Chain rules:
 
 
   CODE RULES
@@ -732,7 +732,7 @@ Would have sent complete blob: {
         "errors": [],
         "total_time": <MASKED>
         "unsupported_exts": {
-            ".txt": 1
+            ".txt": 2
         },
         "lockfile_scan_info": {
             "poetry.lock": 3,
