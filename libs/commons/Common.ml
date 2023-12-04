@@ -72,8 +72,8 @@ let ( = ) = String.equal
 (* Disable physical equality/inequality operators *)
 (*****************************************************************************)
 
-let phys_equal = Stdlib.( == )
-let phys_not_equal = Stdlib.( != )
+let phys_equal = ( == )
+let phys_not_equal = ( != )
 
 type hidden_by_your_nanny = unit
 

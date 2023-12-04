@@ -33,7 +33,6 @@ open Fpath_.Operators
 (*****************************************************************************)
 
 let fullpath file = UCommon.fullpath !!file |> Fpath.v
-let _readable ~root path = Filename_.readable ~root:!!root !!path |> Fpath.v
 
 let files_of_dirs_or_files_no_vcs_nofilter xs =
   xs |> Fpath_.to_strings |> UCommon.files_of_dir_or_files_no_vcs_nofilter

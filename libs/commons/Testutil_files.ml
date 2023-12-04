@@ -208,7 +208,7 @@ let with_tempfiles_verbose (files : t list) func =
       write root files;
       (* Nice listing of the real file tree.
          Don't care if the 'tree' command is unavailable. *)
-      USys.command (sprintf "tree -a '%s'" !!root) |> ignore;
+      USys.command (Printf.sprintf "tree -a '%s'" !!root) |> ignore;
       func root)
 
 let () =
@@ -229,5 +229,5 @@ let () =
           assert (sort tree2 = sort tree);
 
           let paths = flatten tree |> Fpath_.to_strings in
-          List.iter Stdlib.print_endline paths;
+          List.iter UStdlib.print_endline paths;
           assert (paths = [ "a"; "b"; "c"; "d/e" ])))

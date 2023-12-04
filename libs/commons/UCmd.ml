@@ -11,4 +11,4 @@ let status_of_run ?quiet = Cmd.bos_apply (Bos.OS.Cmd.run_status ?quiet)
 (* TODO: switch to type Cmd.t for cmd *)
 let with_open_process_in (cmd : string) f =
   let chan = UUnix.open_process_in cmd in
-  Common.protect ~finally:(fun () -> Stdlib.close_in chan) (fun () -> f chan)
+  Common.protect ~finally:(fun () -> close_in chan) (fun () -> f chan)
