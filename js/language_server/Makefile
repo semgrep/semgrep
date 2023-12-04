@@ -45,6 +45,7 @@ dist/language-server-wasm.js: ../libyaml/dist/libyaml.o ../libpcre/dist/libpcre.
 		$(EMCC_DEFAULTS) \
 		-s INITIAL_MEMORY=31457280 \
 		-s SINGLE_FILE=1 \
+		$(EMCC_DEFAULTS) \
 		-sEXPORTED_FUNCTIONS=_malloc,_free,$(YAML_EXPORTED_FUNCTIONS),$(PCRE_EXPORTED_FUNCTIONS),$(TREESITTER_EXPORTED_FUNCTIONS),$(PARSER_EXPORTED_FUNCTIONS) \
 		-o $@
 

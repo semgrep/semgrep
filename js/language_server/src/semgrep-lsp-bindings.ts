@@ -10,11 +10,11 @@ declare global {
 }
 
 export const LSFactory = async () => {
-  const loadedYamlPCRE = await LSWasm();
+  const loadedLSWasm = await LSWasm();
   // libpcre regrettably must be global because semgrep eagerly compiles regexes
-  globalThis.LibPcreModule = loadedYamlPCRE;
+  globalThis.LibPcreModule = loadedLSWasm;
   const { init, handleClientMessage, setWriteRef } = require("./Main.bc");
-  init(loadedYamlPCRE);
+  init(loadedLSWasm);
   const clientMessageHandler = async (packet: any) => {
     const json = JSON.stringify(packet);
     const result = await handleClientMessage(json);
