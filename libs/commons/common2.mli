@@ -1,19 +1,15 @@
-(*s: common.mli *)
 (*###########################################################################*)
 (* Globals *)
 (*###########################################################################*)
-(*s: common.mli globals *)
+
 (*****************************************************************************)
 (* Flags *)
 (*****************************************************************************)
-(*s: common.mli globals flags *)
 (* see the corresponding section for the use of those flags. See also
  * the "Flags and actions" section at the end of this file.
  *)
 
 val verbose_level : int ref
-
-(*e: common.mli globals flags *)
 
 (*****************************************************************************)
 (* Flags and actions *)
@@ -23,7 +19,6 @@ val verbose_level : int ref
 (*****************************************************************************)
 (* Misc/test *)
 (*****************************************************************************)
-(*s: common.mli misc/test *)
 val generic_print : 'a -> string -> string
 
 class ['a] olist : 'a list -> object
@@ -32,9 +27,6 @@ class ['a] olist : 'a list -> object
   method view : 'a list
 end
 
-(*e: common.mli misc/test *)
-
-(*x: common.mli globals *)
 (*****************************************************************************)
 (* Module side effect *)
 (*****************************************************************************)
@@ -43,17 +35,16 @@ end
  * I also initialize the random seed, cf _init_random .
  * I also set Gc.stack_size, cf _init_gc_stack .
  *)
-(*x: common.mli globals *)
+
 (*****************************************************************************)
 (* Semi globals *)
 (*****************************************************************************)
 (* cf the _xxx variables in this file *)
-(*e: common.mli globals *)
 
 (*###########################################################################*)
 (* Basic features *)
 (*###########################################################################*)
-(*s: common.mli basic features *)
+
 (*****************************************************************************)
 (* Pervasive types and operators *)
 (*****************************************************************************)
@@ -75,8 +66,6 @@ end
 (* Same spirit. Trick found in Jane Street core lib, but originated somewhere
  * else I think: the ability to open nested modules. *)
 module Infix : sig
-  val ( |> ) : 'a -> ('a -> 'b) -> 'b
-  val ( =~ ) : string -> string -> bool
   val ( ==~ ) : string -> Str.regexp -> bool
 end
 
@@ -99,7 +88,7 @@ end
  * with Timeout -> raise Timeout | _ -> ...
  * The same is true for UnixExit (see below).
  *)
-(*x: common.mli basic features *)
+
 (*****************************************************************************)
 (* Debugging/logging *)
 (*****************************************************************************)
@@ -117,35 +106,21 @@ val reset_pr_indent : unit -> unit
  * which corresponds to stderr.
  *)
 val _prefix_pr : string ref
-val pr : string -> unit
 val pr_no_nl : string -> unit
 val pr_xxxxxxxxxxxxxxxxx : unit -> unit
 
 (* pr2 print on stderr, but can also in addition print into a file *)
 val _chan_pr2 : out_channel option ref
-val pr2 : string -> unit
 val pr2_no_nl : string -> unit
 val pr2_xxxxxxxxxxxxxxxxx : unit -> unit
 
 (* use Dumper.dump *)
-val pr2_gen : 'a -> unit
-val pr2_once : string -> unit
 val mk_pr2_wrappers : bool ref -> (string -> unit) * (string -> unit)
 val redirect_stdout_opt : filename option -> (unit -> 'a) -> 'a
 val redirect_stdout_stderr : filename -> (unit -> unit) -> unit
 val redirect_stdin : filename -> (unit -> unit) -> unit
 val redirect_stdin_opt : filename option -> (unit -> unit) -> unit
 val with_pr2_to_string : (unit -> unit) -> string list
-
-(*
-val fprintf : out_channel -> ('a, out_channel, unit) format -> 'a
-val printf : ('a, out_channel, unit) format -> 'a
-val eprintf : ('a, out_channel, unit) format -> 'a
-val sprintf : ('a, unit, string) format -> 'a
-*)
-
-(* alias *)
-val spf : ('a, unit, string) format -> 'a
 
 (* default = stderr *)
 val _chan : out_channel ref
@@ -179,12 +154,11 @@ val debug : (unit -> unit) -> unit
 (* see also logger.ml *)
 
 (* see flag: val debugger : bool ref *)
-(*x: common.mli basic features *)
+
 (*****************************************************************************)
 (* Profiling (cpu/mem) *)
 (*****************************************************************************)
 
-val get_mem : unit -> string
 val memory_stat : unit -> string
 val timenow : unit -> string
 val _count1 : int ref
@@ -200,7 +174,6 @@ val count5 : unit -> unit
 val profile_diagnostic_basic : unit -> string
 val time_func : (unit -> 'a) -> 'a
 
-(*x: common.mli basic features *)
 (*****************************************************************************)
 (* Test. But have a look at ounit.mli *)
 (*****************************************************************************)
@@ -256,7 +229,6 @@ val statistic_number : 'a list -> (int * 'a) list
 val statistic : 'a list -> (int * 'a) list
 val laws2 : string -> ('a -> bool * 'b) -> 'a gen -> 'a option * (int * 'b) list
 
-(*x: common.mli basic features *)
 (*****************************************************************************)
 (* Persistence *)
 (*****************************************************************************)
@@ -271,7 +243,6 @@ val write_back : ('a -> 'b) -> filename -> unit
 val marshal__to_string : 'a -> Marshal.extern_flags list -> string
 val marshal__from_string : string -> int -> 'a
 
-(*x: common.mli basic features *)
 (*****************************************************************************)
 (* Counter *)
 (*****************************************************************************)
@@ -283,7 +254,7 @@ val counter2 : unit -> int
 val counter3 : unit -> int
 
 type timestamp = int
-(*x: common.mli basic features *)
+
 (*****************************************************************************)
 (* String_of and (pretty) printing *)
 (*****************************************************************************)
@@ -317,14 +288,13 @@ val adjust_pp_with_indent_and_header : string -> (unit -> unit) -> unit
 val mk_str_func_of_assoc_conv :
   ('a * string) list -> (string -> 'a) * ('a -> string)
 
-(*x: common.mli basic features *)
 (*****************************************************************************)
 (* Macro *)
 (*****************************************************************************)
 
 (* was working with my macro.ml4 *)
 val macro_expand : string -> unit
-(*x: common.mli basic features *)
+
 (*****************************************************************************)
 (* Composition/Control *)
 (*****************************************************************************)
@@ -335,7 +305,6 @@ val compose : ('a -> 'b) -> ('c -> 'a) -> 'c -> 'b
 val flip : ('a -> 'b -> 'c) -> 'b -> 'a -> 'c
 val curry : ('a * 'b -> 'c) -> 'a -> 'b -> 'c
 val uncurry : ('a -> 'b -> 'c) -> 'a * 'b -> 'c
-val id : 'a -> 'a
 val do_nothing : unit -> unit
 val const : 'a -> 'b -> 'a
 val forever : (unit -> unit) -> unit
@@ -363,17 +332,15 @@ val run_hooks_action : 'a -> ('a -> unit) list ref -> unit
 type 'a mylazy = unit -> 'a
 
 (* emacs spirit *)
-val save_excursion : 'a ref -> 'a -> (unit -> 'b) -> 'b
 val save_excursion_and_disable : bool ref -> (unit -> 'b) -> 'b
 val save_excursion_and_enable : bool ref -> (unit -> 'b) -> 'b
-val memoized : ?use_cache:bool -> ('a, 'b) Hashtbl.t -> 'a -> (unit -> 'b) -> 'b
 val cache_in_ref : 'a option ref -> (unit -> 'a) -> 'a
 val oncef : ('a -> unit) -> 'a -> unit
 val once : bool ref -> (unit -> unit) -> unit
 val before_leaving : ('a -> unit) -> 'a -> 'a
 
 (* cf also the timeout function below that are control related too *)
-(*x: common.mli basic features *)
+
 (*****************************************************************************)
 (* Concurrency *)
 (*****************************************************************************)
@@ -384,7 +351,6 @@ exception FileAlreadyLocked
 val acquire_file_lock : filename -> unit
 val release_file_lock : filename -> unit
 
-(*x: common.mli basic features *)
 (*****************************************************************************)
 (* Error managment *)
 (*****************************************************************************)
@@ -396,17 +362,15 @@ val internal_error : string -> 'a
 val myassert : bool -> unit
 val warning : string -> 'a -> 'a
 val error_cant_have : 'a -> 'b
-val exn_to_s : exn -> string
 
 (* alias *)
-val string_of_exn : exn -> string
 val exn_to_s_with_backtrace : exn -> string
 
 type error = Error of string
 type evotype = unit
 
 val evoval : evotype
-(*x: common.mli basic features *)
+
 (*****************************************************************************)
 (* Environment *)
 (*****************************************************************************)
@@ -417,48 +381,11 @@ val check_stack_nbfiles : int -> unit
 
 (* internally common.ml set Gc. parameters *)
 val _init_gc_stack : unit
-(*x: common.mli basic features *)
-
-(*x: common.mli basic features *)
-(*****************************************************************************)
-(* Equality *)
-(*****************************************************************************)
-
-(* Using the generic (=) is tempting, but it backfires, so better avoid it *)
-
-(* To infer all the code that use an equal, and that should be
- * transformed, is not that easy, because (=) is used by many
- * functions, such as List.find, List.mem, and so on. The strategy to find
- * them is to turn what you were previously using into a function, because
- * (=) return an exception when applied to a function, then you simply
- * use ocamldebug to detect where the code has to be transformed by
- * finding where the exception was launched from.
- *)
-
-val ( =|= ) : int -> int -> bool
-val ( =<= ) : char -> char -> bool
-val ( =$= ) : string -> string -> bool
-val ( =:= ) : bool -> bool -> bool
-
-(* the evil generic (=). I define another symbol to more easily detect
- * it, cos the '=' sign is syntaxically overloaded in caml. It is also
- * used to define function.
- *)
-val ( =*= ) : 'a -> 'a -> bool
-
-(* if want to restrict the use of '=', uncomment this:
- *
- * val (=): unit -> unit -> bool
- *
- * But it will not forbid you to use caml functions like List.find, List.mem
- * which internaly use this convenient but evolution-unfriendly (=)
- *)
-(*e: common.mli basic features *)
 
 (*###########################################################################*)
 (* Basic types *)
 (*###########################################################################*)
-(*s: common.mli for basic types *)
+
 (*****************************************************************************)
 (* Bool *)
 (*****************************************************************************)
@@ -467,7 +394,6 @@ val ( ||| ) : 'a -> 'a -> 'a
 val ( ==> ) : bool -> bool -> bool
 val xor : 'a -> 'a -> bool
 
-(*x: common.mli for basic types *)
 (*****************************************************************************)
 (* Char *)
 (*****************************************************************************)
@@ -482,7 +408,7 @@ val is_lower : char -> bool
 val is_alpha : char -> bool
 val is_digit : char -> bool
 val cbetween : char -> char -> char -> bool
-(*x: common.mli for basic types *)
+
 (*****************************************************************************)
 (* Num *)
 (*****************************************************************************)
@@ -553,7 +479,6 @@ type 'a max_with_elem = int ref * 'a ref
 val update_max_with_elem :
   'a max_with_elem -> is_better:(int -> int ref -> bool) -> int * 'a -> unit
 
-(*x: common.mli for basic types *)
 (*****************************************************************************)
 (* Numeric/overloading *)
 (*****************************************************************************)
@@ -581,7 +506,7 @@ module ArithFloatInfix : sig
   val ( *.. ) : int -> int -> int
   val ( += ) : float ref -> float -> unit
 end
-(*x: common.mli for basic types *)
+
 (*****************************************************************************)
 (* Random *)
 (*****************************************************************************)
@@ -590,7 +515,7 @@ val _init_random : unit
 val random_list : 'a list -> 'a
 val randomize_list : 'a list -> 'a list
 val random_subset_of_list : int -> 'a list -> 'a list
-(*x: common.mli for basic types *)
+
 (*****************************************************************************)
 (* Tuples *)
 (*****************************************************************************)
@@ -616,52 +541,30 @@ val tuple_of_list3 : 'a list -> 'a * 'a * 'a
 val tuple_of_list4 : 'a list -> 'a * 'a * 'a * 'a
 val tuple_of_list5 : 'a list -> 'a * 'a * 'a * 'a * 'a
 val tuple_of_list6 : 'a list -> 'a * 'a * 'a * 'a * 'a * 'a
-(*x: common.mli for basic types *)
+
 (*****************************************************************************)
 (* Maybe *)
 (*****************************************************************************)
 
-type ('a, 'b) either = Left of 'a | Right of 'b
-type ('a, 'b, 'c) either3 = Left3 of 'a | Middle3 of 'b | Right3 of 'c
-
 val just : 'a option -> 'a
 val some : 'a option -> 'a (* alias *)
-val fmap : ('a -> 'b) -> 'a option -> 'b option
-val map_option : ('a -> 'b) -> 'a option -> 'b option (* alias *)
-val do_option : ('a -> unit) -> 'a option -> unit
-val opt : ('a -> unit) -> 'a option -> unit
 val optionise : (unit -> 'a) -> 'a option
 val some_or : 'a option -> 'a -> 'a
 val option_to_list : 'a option -> 'a list
-val partition_either : ('a -> ('b, 'c) either) -> 'a list -> 'b list * 'c list
-
-val partition_either3 :
-  ('a -> ('b, 'c, 'd) either3) -> 'a list -> 'b list * 'c list * 'd list
-
-val filter_some : 'a option list -> 'a list
-val map_filter : ('a -> 'b option) -> 'a list -> 'b list
-val find_some : ('a -> 'b option) -> 'a list -> 'b
-val find_some_opt : ('a -> 'b option) -> 'a list -> 'b option
 val list_to_single_or_exn : 'a list -> 'a
 val while_some : gen:(unit -> 'a option) -> f:('a -> 'b) -> unit -> 'b list
 val ( ||= ) : 'a option ref -> (unit -> 'a) -> unit
 val ( >>= ) : 'a option -> ('a -> 'b option) -> 'b option
 val ( |? ) : 'a option -> 'a Lazy.t -> 'a
 
-(*x: common.mli for basic types *)
 (*****************************************************************************)
 (* TriBool *)
 (*****************************************************************************)
 type bool3 = True3 | False3 | TrueFalsePb3 of string
-(*x: common.mli for basic types *)
+
 (*****************************************************************************)
 (* Strings *)
 (*****************************************************************************)
-
-val slength : string -> int (* alias *)
-val concat : string -> string list -> string (* alias *)
-val i_to_s : int -> string
-val s_to_i : string -> int
 
 (* strings take space in memory. Better when can share the space used by
  * similar strings.
@@ -677,7 +580,6 @@ val take_string_safe : int -> string -> string
 val split_on_char : char -> string -> string list
 val quote : string -> string
 val unquote : string -> string
-val null_string : string -> bool
 val is_blank_string : string -> bool
 val is_string_prefix : string -> string -> bool
 val plural : int -> string -> string
@@ -685,10 +587,8 @@ val showCodeHex : int list -> unit
 val size_mo_ko : int -> string
 val size_ko : int -> string
 val edit_distance : string -> string -> int
-val md5sum_of_string : string -> string
 val wrap : ?width:int -> string -> string
 
-(*x: common.mli for basic types *)
 (*****************************************************************************)
 (* Regexp *)
 (*****************************************************************************)
@@ -696,25 +596,10 @@ val wrap : ?width:int -> string -> string
 val regexp_alpha : Str.regexp
 val regexp_word : Str.regexp
 val _memo_compiled_regexp : (string, Str.regexp) Hashtbl.t
-val ( =~ ) : string -> string -> bool
 val ( ==~ ) : string -> Str.regexp -> bool
 val regexp_match : string -> string -> string
 val matched : int -> string -> string
-
-(* not yet politypic functions in ocaml *)
-val matched1 : string -> string
-val matched2 : string -> string * string
-val matched3 : string -> string * string * string
-val matched4 : string -> string * string * string * string
-val matched5 : string -> string * string * string * string * string
-val matched6 : string -> string * string * string * string * string * string
-
-val matched7 :
-  string -> string * string * string * string * string * string * string
-
 val string_match_substring : Str.regexp -> string -> bool
-val split : string (* sep regexp *) -> string -> string list
-val join : string (* sep *) -> string list -> string
 val split_list_regexp : string -> string list -> (string * string list) list
 val split_list_regexp_noheading : string
 val all_match : string (* regexp *) -> string -> string list
@@ -735,7 +620,6 @@ val regexp_string_of_regexp : regexp -> string
 val str_regexp_of_regexp : regexp -> Str.regexp
 val compile_regexp_union : regexp list -> Str.regexp
 
-(*x: common.mli for basic types *)
 (*****************************************************************************)
 (* Filenames *)
 (*****************************************************************************)
@@ -746,8 +630,6 @@ val compile_regexp_union : regexp list -> Str.regexp
 *)
 
 (* now at beginning of this file: type filename = string *)
-val dirname : string -> string
-val basename : string -> string
 val filesuffix : filename -> string
 val fileprefix : filename -> string
 val adjust_ext_if_needed : filename -> string -> filename
@@ -762,7 +644,7 @@ val dbe_of_filename_nodot : filename -> string * string * string
 
 (* Left (d,b,e) | Right (d,b)  if file has no extension *)
 val dbe_of_filename_safe :
-  filename -> (string * string * string, string * string) either
+  filename -> (string * string * string, string * string) Either.t
 
 val dbe_of_filename_noext_ok : filename -> string * string * string
 
@@ -793,16 +675,14 @@ val filename_without_leading_path : string -> filename -> filename
    val tree2_of_files: filename list -> (dirname, (string * filename)) tree2
 *)
 
-val realpath : filename -> filename
 val inits_of_absolute_dir : dirname -> dirname list
 val inits_of_relative_dir : dirname -> dirname list
 
-(*x: common.mli for basic types *)
 (*****************************************************************************)
 (* i18n *)
 (*****************************************************************************)
 type langage = English | Francais | Deutsch
-(*x: common.mli for basic types *)
+
 (*****************************************************************************)
 (* Dates *)
 (*****************************************************************************)
@@ -890,7 +770,6 @@ val minimum_dmy : date_dmy list -> date_dmy
 (* useful to put in logs as prefix *)
 val timestamp : unit -> string
 
-(*x: common.mli for basic types *)
 (*****************************************************************************)
 (* Lines/Words/Strings *)
 (*****************************************************************************)
@@ -908,17 +787,15 @@ val nblines_eff : filename -> int
 (* better when really large file, but fork is slow so don't call it often *)
 val nblines_with_wc : filename -> int
 val unix_diff : filename -> filename -> string list
-val unix_diff_strings : string -> string -> string list
 val words_of_string_with_newlines : string -> string list
 
 (* e.g. on "ab\n\nc" it will return [Left "ab"; Right (); Right (); Left "c"] *)
-val lines_with_nl_either : string -> (string, unit) either list
+val lines_with_nl_either : string -> (string, unit) Either.t list
 val n_space : int -> string
 
 (* reindent a string *)
 val indent_string : int -> string -> string
 
-(*x: common.mli for basic types *)
 (*****************************************************************************)
 (* Process/Files *)
 (*****************************************************************************)
@@ -926,7 +803,7 @@ val indent_string : int -> string -> string
    TODO: migrate file operations to the File module.
    TODO: alternatively, use the bos library; this would be a bigger migration.
 *)
-val cat : filename -> string list
+
 val cat_orig : filename -> string list
 val cat_array : filename -> string array
 val cat_excerpts : filename -> int list -> string list
@@ -934,21 +811,6 @@ val uncat : string list -> filename -> unit
 val interpolate : string -> string list
 val echo : string -> string
 val usleep : int -> unit
-
-exception CmdError of Unix.process_status * string
-
-val cmd_to_list_and_status :
-  ?verbose:bool -> string -> string list * Unix.process_status
-
-(* will raise CmdError *)
-val process_output_to_list : ?verbose:bool -> string -> string list
-val cmd_to_list : ?verbose:bool -> string -> string list (* alias *)
-
-(* will not raise CmdError *)
-val process_output_to_list2 :
-  ?verbose:bool -> string -> string list * Unix.process_status
-
-val command2 : string -> unit
 val _batch_mode : bool ref
 
 val command_safe :
@@ -1001,17 +863,6 @@ val glob : string -> filename list
   * to "ls pattern" in the shell.
   *)
 
-val files_of_dir_or_files : string (* ext *) -> string list -> filename list
-
-val files_of_dir_or_files_no_vcs :
-  string (* ext *) -> string list -> filename list
-
-(* use a post filter =~ for the ext filtering *)
-val files_of_dir_or_files_no_vcs_post_filter :
-  string (* regexp *) -> string list -> filename list
-
-val files_of_dir_or_files_no_vcs_nofilter : string list -> filename list
-val dirs_of_dir : dirname -> dirname list
 val common_prefix_of_files_or_dirs : path list -> dirname
 
 val sanity_check_files_and_adjust :
@@ -1518,14 +1369,10 @@ val hash_with_default :
 type 'a stack = 'a list
 
 val empty_stack : 'a stack
-
-(*val push : 'a -> 'a stack -> 'a stack*)
 val top : 'a stack -> 'a
 val pop : 'a stack -> 'a stack
 val top_option : 'a stack -> 'a option
-val push : 'a -> 'a stack ref -> unit
 
-(*x: common.mli for collection types *)
 (*****************************************************************************)
 (* Stack with undo/redo support *)
 (*****************************************************************************)
@@ -1662,12 +1509,9 @@ val empty_list : 'a list
 (* generic sort using Pervasives.compare *)
 val sort : 'a list -> 'a list
 val length : 'a list -> int
-val null : 'a list -> bool
 val head : 'a list -> 'a
 val tail : 'a list -> 'a list
 val is_singleton : 'a list -> bool
-
-(*e: common.mli for collection types *)
 
 (*###########################################################################*)
 (* Misc functions *)
