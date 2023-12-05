@@ -10,4 +10,4 @@ type conf = {
 }
 [@@deriving show]
 
-val run : conf -> Exit_code.t
+val run_conf : conf -> Exit_code.t

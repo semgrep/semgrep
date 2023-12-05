@@ -12,4 +12,4 @@
 val main : string array -> Exit_code.t
 
 (* internal *)
-val run : Install_CLI.conf -> Exit_code.t
+val run_conf : Install_CLI.conf -> Exit_code.t

@@ -1234,7 +1234,7 @@ let interactive_loop ~turbo xlang xtargets =
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run (conf : Interactive_CLI.conf) : Exit_code.t =
+let run_conf (conf : Interactive_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
   let targets, _skipped =
     Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
@@ -1266,4 +1266,4 @@ let run (conf : Interactive_CLI.conf) : Exit_code.t =
 
 let main (argv : string array) : Exit_code.t =
   let conf = Interactive_CLI.parse_argv argv in
-  run conf
+  run_conf conf

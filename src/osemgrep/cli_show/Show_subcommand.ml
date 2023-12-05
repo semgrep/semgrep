@@ -60,8 +60,7 @@ let dump_v_to_format ~json (v : OCaml.v) =
 (* Main logic *)
 (*****************************************************************************)
 
-let run (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
-  ignore caps;
+let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
   let stdout = caps#stdout in
   match conf.show_kind with
   | Version ->
@@ -118,4 +117,4 @@ let run (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
 (*****************************************************************************)
 let main (caps : caps) (argv : string array) : Exit_code.t =
   let conf = Show_CLI.parse_argv argv in
-  run caps conf
+  run_conf caps conf

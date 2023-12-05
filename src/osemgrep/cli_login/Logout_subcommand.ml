@@ -11,7 +11,7 @@
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run (conf : Logout_CLI.conf) : Exit_code.t =
+let run_conf (conf : Logout_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
   let settings = Semgrep_settings.load () in
   match settings.Semgrep_settings.api_token with
@@ -38,4 +38,4 @@ let run (conf : Logout_CLI.conf) : Exit_code.t =
 
 let main (argv : string array) : Exit_code.t =
   let conf = Logout_CLI.parse_argv Logout_CLI.logout_cmdline_info argv in
-  run conf
+  run_conf conf

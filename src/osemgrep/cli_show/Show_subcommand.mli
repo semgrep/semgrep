@@ -11,4 +11,4 @@ val main : < Cap.stdout ; Cap.network > -> string array -> Exit_code.t
 (* called from main() but also from Scan_subcommand.ml to manage the legacy
  * way to show things (e.g., 'semgrep scan --show-supported-languages')
  *)
-val run : < Cap.stdout ; Cap.network > -> Show_CLI.conf -> Exit_code.t
+val run_conf : < Cap.stdout ; Cap.network > -> Show_CLI.conf -> Exit_code.t
