@@ -77,7 +77,7 @@ let parse_rule_with_atd_experiment_and_exit (file : Fpath.t) : unit =
 (* Entry point *)
 (*****************************************************************************)
 
-let run (conf : conf) : Exit_code.t =
+let run_conf (conf : conf) : Exit_code.t =
   (* small experiment *)
   (match conf with
   | {

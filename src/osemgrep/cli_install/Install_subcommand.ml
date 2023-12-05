@@ -405,7 +405,7 @@ let add_semgrep_workflow ~(token : Auth.token) (conf : Install_CLI.conf) : unit
 (* Main logic *)
 (*****************************************************************************)
 
-let run (conf : Install_CLI.conf) : Exit_code.t =
+let run_conf (conf : Install_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:true ~level:conf.common.logging_level;
   (* In theory, we should use the same --metrics=xxx as in scan,
      but given that this is an experimental command that we need to validate
@@ -442,4 +442,4 @@ let run (conf : Install_CLI.conf) : Exit_code.t =
 (*****************************************************************************)
 let main (argv : string array) : Exit_code.t =
   let conf = Install_CLI.parse_argv argv in
-  run conf
+  run_conf conf

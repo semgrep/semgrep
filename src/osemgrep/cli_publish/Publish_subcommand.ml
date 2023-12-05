@@ -25,12 +25,12 @@ type caps = < stdout : Cap.Console.stdout ; network : Cap.Network.t >
 
 let get_test_code_for_config upload_target =
   let config_filenames =
-    match Rule_testing_utils.get_config_filenames upload_target with
+    match Rule_tests.get_config_filenames upload_target with
     | [] -> [ upload_target ]
     | other -> other
   in
   let config_test_filenames =
-    Rule_testing_utils.get_config_test_filenames upload_target config_filenames
+    Rule_tests.get_config_test_filenames upload_target config_filenames
       upload_target
   in
   (config_filenames, config_test_filenames)

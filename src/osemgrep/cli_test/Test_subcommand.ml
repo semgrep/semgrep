@@ -37,37 +37,6 @@ and target_kind =
 (* Helpers *)
 (*************************************************************************)
 
-(* from util.py *)
-let is_config_fixtest_suffix path =
-  let any_ext =
-    let base = Fpath.basename path in
-    match String.split_on_char '.' base with
-    | _ :: tl -> tl
-    | [] -> []
-  in
-  List.mem "fixed" any_ext
-
-let yml_extensions = [ ".yml"; ".yaml" ]
-
-let is_config_test_suffix path =
-  let ext =
-    let fst = Fpath.get_ext path in
-    let snd = Fpath.(get_ext (rem_ext path)) in
-    snd ^ fst
-  in
-  List.mem ext (List_.map (fun e -> ".test" ^ e) yml_extensions)
-  && not (is_config_fixtest_suffix path)
-
-let is_config_suffix path =
-  List.mem (Fpath.get_ext path) yml_extensions
-  && not (is_config_test_suffix path)
-
-let get_all_files path =
-  let str = Fpath.to_string path in
-  Sys.readdir str |> Array.to_list
-  |> List.filter (fun f -> Sys.file_exists f && not (Sys.is_directory f))
-  |> List_.map (Fpath.add_seg path)
-
 (* from test.py *)
 let comment_syntaxes =
   [ ("#", "\n"); ("//", "\n"); ("<!--", "-->"); ("(*", "*)") ]
@@ -347,16 +316,6 @@ let get_expected_and_reported_lines result test_files =
         check_ids matches_by_check_id)
     file_paths Map_.empty
 
-let relative_eq parent_target target parent_config config =
-  let rel_to a par =
-    match Fpath.find_prefix a par with
-    | None -> a
-    | Some pre -> Option.get (Fpath.rem_prefix pre a)
-  in
-  let rel1 = rel_to target parent_target
-  and rel2 = rel_to config parent_config in
-  Fpath.(equal (rem_ext ~multi:true rel1) (rem_ext ~multi:true rel2))
-
 let generate_check_output_line check_id matches soft_errors =
   let json_error_report =
     if soft_errors <> [] then
@@ -391,53 +350,6 @@ let generate_check_output_line check_id matches soft_errors =
   Printf.sprintf "\t✖ %s\n\t%s\n\ttest file path: %s\n\n" check_id all_errors
     test_file_names
 
-let get_config_filenames target =
-  let does_not_start_with_dot p =
-    not (String.starts_with ~prefix:"." (Fpath.basename p))
-  in
-  match target with
-  | Dir (path, None) ->
-      let str = Fpath.to_string path in
-      if Sys.file_exists str then
-        if Sys.is_directory str then
-          get_all_files path
-          |> List.filter is_config_suffix
-          |> List.filter does_not_start_with_dot
-          |> List.filter (fun path ->
-                 does_not_start_with_dot (Fpath.parent path))
-        else [ path ]
-      else []
-  | Dir (_, Some str)
-  | File (_, str) ->
-      if Sys.file_exists str then [ Fpath.v str ] else []
-
-let get_config_test_filenames target configs =
-  match target with
-  | File (path, str) -> Map_.add (Fpath.v str) [ path ] Map_.empty
-  | Dir (path, cfg_opt) ->
-      let original_config =
-        Option.value ~default:path (Option.map Fpath.v cfg_opt)
-      in
-      let targets = get_all_files path in
-      let is_file p =
-        let s = Fpath.to_string p in
-        Sys.file_exists s && not (Sys.is_directory s)
-      in
-      let target_matches_config config target =
-        let correct_suffix =
-          (is_config_test_suffix target || not (is_config_suffix target))
-          && not (is_config_fixtest_suffix target)
-        in
-
-        relative_eq path target original_config config
-        && is_file target && correct_suffix
-      in
-      List.fold_left
-        (fun m config ->
-          let tgts = List.filter (target_matches_config config) targets in
-          Map_.add config tgts m)
-        Map_.empty configs
-
 let checkid_passed matches_for_checkid =
   Map_.fold
     (fun _filename ((_, expected), (_, reported)) acc ->
@@ -447,6 +359,12 @@ let checkid_passed matches_for_checkid =
 (*****************************************************************************)
 (* Main logic *)
 (*****************************************************************************)
+
+(* TODO: reuse Rule_tests.ml *)
+let get_config_filenames _targets = failwith "TODO"
+
+(* TODO: reuse Rule_tests.ml *)
+let get_config_test_filenames _a _b = failwith "TODO"
 
 let run_conf (conf : conf) : Exit_code.t =
   let config_filenames = get_config_filenames conf.target in
@@ -752,5 +670,4 @@ let run_conf (conf : conf) : Exit_code.t =
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-
-let run (conf : conf) : Exit_code.t = run_conf conf
+(* TODO: let main ... *)

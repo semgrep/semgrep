@@ -782,11 +782,12 @@ let run_conf (caps : Cap.all_caps) (conf : Scan_CLI.conf) : Exit_code.t =
       Out.put Version.version;
       (* TOPORT: if enable_version_check: version_check() *)
       Exit_code.ok
-  | _ when conf.test <> None -> Test_subcommand.run (Common2.some conf.test)
+  | _ when conf.test <> None ->
+      Test_subcommand.run_conf (Common2.some conf.test)
   | _ when conf.validate <> None ->
-      Validate_subcommand.run (Common2.some conf.validate)
+      Validate_subcommand.run_conf (Common2.some conf.validate)
   | _ when conf.show <> None ->
-      Show_subcommand.run
+      Show_subcommand.run_conf
         (caps :> < Cap.stdout ; Cap.network >)
         (Common2.some conf.show)
   | _ when conf.ls ->
