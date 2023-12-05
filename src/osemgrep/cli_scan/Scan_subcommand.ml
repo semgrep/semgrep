@@ -787,7 +787,7 @@ let run_conf (caps : Cap.all_caps) (conf : Scan_CLI.conf) : Exit_code.t =
       Validate_subcommand.run (Common2.some conf.validate)
   | _ when conf.show <> None ->
       Show_subcommand.run
-        (caps :> Show_subcommand.caps)
+        (caps :> < Cap.stdout ; Cap.network >)
         (Common2.some conf.show)
   | _ when conf.ls ->
       Ls_subcommand.run ~target_roots:conf.target_roots

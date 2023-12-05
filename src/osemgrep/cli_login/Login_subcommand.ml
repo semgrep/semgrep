@@ -126,7 +126,7 @@ let fetch_token caps session_id =
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run caps (conf : Login_CLI.conf) : Exit_code.t =
+let run (caps : caps) (conf : Login_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
   let settings = Semgrep_settings.load () in
   match settings.Semgrep_settings.api_token with
@@ -171,6 +171,6 @@ let run caps (conf : Login_CLI.conf) : Exit_code.t =
 (* Entry point *)
 (*****************************************************************************)
 
-let main caps (argv : string array) : Exit_code.t =
+let main (caps : caps) (argv : string array) : Exit_code.t =
   let conf = Login_CLI.parse_argv Login_CLI.login_cmdline_info argv in
   run caps conf

@@ -38,8 +38,6 @@ let _MAX_FETCH_ATTEMPT_COUNT = 10
 (* A limit of how many fetch we should do until we find the common commit
    between two branches. *)
 
-type caps = < exec : Cap.Exec.t >
-
 (*****************************************************************************)
 (* Cmdliner *)
 (*****************************************************************************)
@@ -199,8 +197,7 @@ let get_head_branch_ref env =
    This will also ensure that a fetch is done prior to returning.
 
    Assumes we are in PR context. *)
-let get_head_branch_hash (caps : < caps ; .. >) (env : env) :
-    Digestif.SHA1.t option =
+let get_head_branch_hash caps (env : env) : Digestif.SHA1.t option =
   let commit =
     Glom.(
       get_and_coerce_opt string env._GITHUB_EVENT_JSON
