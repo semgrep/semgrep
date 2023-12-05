@@ -53,7 +53,6 @@ def expected_snapshot_for_findings(findings_path: Path):
 
 
 def main() -> None:
-
     findings_path = Path(sys.argv[1])
     findings = read_findings(findings_path)
     expected = read_findings(Path(expected_snapshot_for_findings(findings_path)))

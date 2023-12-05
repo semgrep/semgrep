@@ -305,7 +305,7 @@ def list_targets_and_exit(target_manager: TargetManager, product: out.Product) -
     targets = target_manager.get_files_for_language(None, product)
     for path in sorted(targets.kept):
         print(f"+ {path}")
-    for (path, reason) in target_manager.ignore_log.list_skipped_paths_with_reason():
+    for path, reason in target_manager.ignore_log.list_skipped_paths_with_reason():
         print(f"- [{reason}] {path}")
     exit(0)
 
@@ -313,6 +313,7 @@ def list_targets_and_exit(target_manager: TargetManager, product: out.Product) -
 ##############################################################################
 # Entry points
 ##############################################################################
+
 
 # cli/bin/semgrep -> main.py -> cli.py -> commands/scan.py -> run_scan()
 # old: this used to be called semgrep.semgrep_main.main

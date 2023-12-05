@@ -69,11 +69,10 @@ def _read_token_from_settings_file() -> Optional[str]:
     logger.debug("Getting API token from settings file")
     settings = get_state().settings
     login_token = settings.get("api_token")
-
-    if login_token and not isinstance(login_token, str):
-        raise ValueError()
-
-    return login_token
+    if login_token is None:
+        logger.debug("No API token found in settings file")
+        return None
+    return f"{login_token}"
 
 
 def set_token(token: str) -> None:

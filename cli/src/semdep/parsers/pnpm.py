@@ -53,7 +53,6 @@ def parse_package_key_post_6(key: str) -> Optional[Tuple[str, str]]:
 def parse_pnpm(
     lockfile_path: Path, _: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
-
     parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
         DependencyFileToParse(
             lockfile_path,

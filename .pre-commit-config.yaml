@@ -37,7 +37,7 @@ repos:
       - id: destroyed-symlinks
       - id: detect-private-key
       - id: end-of-file-fixer
-        exclude: "^\\.github/workflows/.+"
+        exclude: "^\\.github/workflows/.+|semgrep\\.opam$"
       - id: fix-byte-order-marker
       - id: fix-encoding-pragma
         args: [--remove]
@@ -131,7 +131,8 @@ repos:
     hooks:
       - id: prettier
         entry: env PRETTIER_LEGACY_CLI=1 prettier
-        exclude: "^perf/bench/dummy/.+$|^cli/tests/e2e/rules/.+$|^.+/Pipfile.lock$|^.devcontainer/devcontainer.json|^\\.github/workflows/.+\\.yml$"
+        types: [file]  # override `types: [json]`
+        files: \.(json|yml|yaml|md)$
 
   # ----------------------------------------------------------
   # Extra hooks using additional_dependencies

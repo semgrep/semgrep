@@ -541,7 +541,7 @@ class TargetManager:
     TargetManager not to be confused with https://jobs.target.com/search-jobs/store%20manager
     """
 
-    target_strings: Sequence[str]
+    target_strings: Sequence[str] | FrozenSet[Path]
     includes: Sequence[str] = Factory(list)
     excludes: Sequence[str] = Factory(list)
     max_target_bytes: int = -1
