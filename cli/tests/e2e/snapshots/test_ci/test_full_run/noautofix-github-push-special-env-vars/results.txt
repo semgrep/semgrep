@@ -24,7 +24,7 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_ACTOR="some_test_username" GITHUB_API_URL
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 4 files tracked by git with 4 Code rules, 3 Supply Chain rules:
+  Scanning 5 files tracked by git with 4 Code rules, 3 Supply Chain rules:
 
 
   CODE RULES

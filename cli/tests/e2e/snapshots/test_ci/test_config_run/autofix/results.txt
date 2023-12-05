@@ -88,7 +88,7 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 4 files tracked by git with 4 Code rules, 3 Supply Chain rules:
+  Scanning 5 files tracked by git with 4 Code rules, 3 Supply Chain rules:
 
 
   CODE RULES

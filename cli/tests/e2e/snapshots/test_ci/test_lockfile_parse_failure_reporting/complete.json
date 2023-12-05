@@ -5,7 +5,7 @@
     "errors": [],
     "total_time": 0.5,
     "unsupported_exts": {
-      ".txt": 1
+      ".txt": 2
     },
     "lockfile_scan_info": {},
     "parse_rate": {

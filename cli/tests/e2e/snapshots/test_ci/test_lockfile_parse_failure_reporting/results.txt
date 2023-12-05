@@ -84,7 +84,7 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 5 files tracked by git with 4 Code rules, 3 Supply Chain rules:
+  Scanning 6 files tracked by git with 4 Code rules, 3 Supply Chain rules:
 
 
   CODE RULES
