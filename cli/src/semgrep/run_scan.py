@@ -481,12 +481,14 @@ def run_scan(
             raise SemgrepError(e)
 
     respect_git_ignore = not no_git_ignore
+    target_strings = frozenset(Path(t) for t in target)
+
     try:
         target_manager = TargetManager(
             includes=include,
             excludes=exclude,
             max_target_bytes=max_target_bytes,
-            target_strings=target,
+            target_strings=target_strings,
             respect_git_ignore=respect_git_ignore,
             respect_rule_paths=respect_rule_paths,
             baseline_handler=baseline_handler,
@@ -599,23 +601,23 @@ def run_scan(
             logger.info("")
             try:
                 with baseline_handler.baseline_context():
-                    baseline_target_strings = target
+                    baseline_target_strings = target_strings
                     baseline_target_mode_config = target_mode_config
                     if target_mode_config.is_pro_diff_scan:
                         baseline_target_mode_config = TargetModeConfig.pro_diff_scan(
                             frozenset(
-                                t
+                                Path(t)
                                 for t in target_mode_config.get_diff_targets()
                                 if t.exists() and not t.is_symlink()
                             ),
                             target_mode_config.get_diff_depth(),
                         )
                     else:
-                        baseline_target_strings = [
-                            str(t)
+                        baseline_target_strings = frozenset(
+                            Path(t)
                             for t in baseline_targets
                             if t.exists() and not t.is_symlink()
-                        ]
+                        )
                     baseline_target_manager = TargetManager(
                         includes=include,
                         excludes=exclude,
