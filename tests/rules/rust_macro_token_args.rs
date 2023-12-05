@@ -5,7 +5,6 @@ fn test() -> () {
   let a2 = foo!(&x, 0);
   let a3 = foo!(0, &x);
   let a_bad = foo!(&x,);
-  // *& is parsed as one token, TODO
   let a_bad2 = foo!(*&x);
 
   let b1 = foo!(*x);
@@ -45,7 +44,7 @@ fn test() -> () {
 
   // ok: rust-macro-token-args
   sink(a_bad);
-  // ok: rust-macro-token-args
+  // ruleid: rust-macro-token-args
   sink(a_bad2);
   // ok: rust-macro-token-args
   sink(b_bad);
