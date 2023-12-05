@@ -306,7 +306,7 @@ class ConfigLoader:
             meta=out.RawJson({}),  # required for now, but we won't populate it
             scan_metadata=out.ScanMetadata(
                 cli_version=out.Version(__VERSION__),
-                unique_id=out.Uuid(str(state.request_id)),
+                unique_id=out.Uuid(str(state.local_scan_id)),
                 requested_products=products,
                 dry_run=True,  # semgrep scan never submits findings, so always a dry run
             ),
