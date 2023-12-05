@@ -15,7 +15,9 @@
    https://mirage.github.io/alcotest/alcotest/Alcotest/index.html
 *)
 
-type output =
+type expected_outcome = Should_succeed | Should_fail of string
+
+type output_kind =
   | Ignore_output
   | Stdout
   | Stderr
@@ -59,10 +61,11 @@ type 'a t = private {
   name : string;
   func : unit -> 'a;
   (***** Options *****)
+  expected_outcome : expected_outcome;
   tags : Tag.t list; (* tags must be declared once using 'create_tag' *)
   (* special "tag" supported directly by Alcotest: *)
   speed_level : Alcotest.speed_level;
-  check_output : output;
+  output_kind : output_kind;
   (* The 'skipped' property causes a test to be skipped by Alcotest but still
      shown as "[SKIP]" rather than being omitted. *)
   skipped : bool;
@@ -85,7 +88,8 @@ type lwt_test = unit Lwt.t t
 *)
 val create :
   ?category:string list ->
-  ?check_output:output ->
+  ?expected_outcome:expected_outcome ->
+  ?output_kind:output_kind ->
   ?skipped:bool ->
   ?speed_level:Alcotest.speed_level ->
   ?tags:Tag.t list ->
@@ -100,9 +104,10 @@ val create :
 *)
 val update :
   ?category:string list ->
-  ?check_output:output ->
+  ?expected_outcome:expected_outcome ->
   ?func:(unit -> 'a) ->
   ?name:string ->
+  ?output_kind:output_kind ->
   ?skipped:bool ->
   ?speed_level:Alcotest.speed_level ->
   ?tags:Tag.t list ->
@@ -124,14 +129,20 @@ val simple_tests : (string * (unit -> 'a)) list -> 'a t list
      )
 *)
 val test :
-  ?check_output:output ->
+  ?category:string list ->
+  ?expected_outcome:expected_outcome ->
+  ?output_kind:output_kind ->
+  ?skipped:bool ->
   ?speed_level:Alcotest.speed_level ->
   string ->
   (unit -> unit) ->
   unit
 
 val test_lwt :
-  ?check_output:output ->
+  ?category:string list ->
+  ?expected_outcome:expected_outcome ->
+  ?output_kind:output_kind ->
+  ?skipped:bool ->
   ?speed_level:Alcotest.speed_level ->
   string ->
   (unit -> unit Lwt.t) ->

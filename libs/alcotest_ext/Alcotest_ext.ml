@@ -22,26 +22,30 @@ let list_flatten ll =
 (* Main types *)
 (****************************************************************************)
 
+type expected_outcome = Alcotest_ext_types.expected_outcome =
+  | Should_succeed
+  | Should_fail of string
+
+type outcome = Alcotest_ext_types.outcome = Succeeded | Failed
+
 module Tag = Alcotest_ext_tag
 
-type output =
+type output_kind = Alcotest_ext_types.output_kind =
   | Ignore_output
   | Stdout
   | Stderr
   | Merged_stdout_stderr
   | Separate_stdout_stderr
 
-type 'a t = {
-  (* The will be used as a compact key
-     for referencing tests in filters and in file names. *)
+type 'a t = 'a Alcotest_ext_types.test = {
   id : string;
   category : string list;
   name : string;
   func : unit -> 'a;
-  (* Options *)
+  expected_outcome : expected_outcome;
   tags : Tag.t list;
   speed_level : Alcotest.speed_level;
-  check_output : output;
+  output_kind : output_kind;
   skipped : bool;
 }
 
@@ -67,22 +71,35 @@ let update_id x =
   let id = String.sub long_id 0 7 in
   { x with id }
 
-let create ?(category = []) ?(check_output = Ignore_output) ?(skipped = false)
-    ?(speed_level = `Quick) ?(tags = []) name func =
-  { id = ""; category; name; func; tags; speed_level; check_output; skipped }
+let create ?(category = []) ?(expected_outcome = Should_succeed)
+    ?(output_kind = Ignore_output) ?(skipped = false) ?(speed_level = `Quick)
+    ?(tags = []) name func =
+  {
+    id = "";
+    category;
+    name;
+    func;
+    expected_outcome;
+    tags;
+    speed_level;
+    output_kind;
+    skipped;
+  }
   |> update_id
 
 let opt option default = Option.value option ~default
 
-let update ?category ?check_output ?func ?name ?skipped ?speed_level ?tags old =
+let update ?category ?expected_outcome ?func ?name ?output_kind ?skipped
+    ?speed_level ?tags old =
   {
     id = "";
     category = opt category old.category;
     name = opt name old.name;
     func = opt func old.func;
+    expected_outcome = opt expected_outcome old.expected_outcome;
     tags = opt tags old.tags;
     speed_level = opt speed_level old.speed_level;
-    check_output = opt check_output old.check_output;
+    output_kind = opt output_kind old.output_kind;
     skipped = opt skipped old.skipped;
   }
   |> update_id
@@ -158,11 +175,17 @@ let registered_lwt_tests : lwt_test list ref = ref []
 let register x = registered_tests := x :: !registered_tests
 let register_lwt x = registered_lwt_tests := x :: !registered_lwt_tests
 
-let test ?check_output ?speed_level name func =
-  create ?check_output ?speed_level name func |> register
+let test ?category ?expected_outcome ?output_kind ?skipped ?speed_level name
+    func =
+  create ?category ?expected_outcome ?output_kind ?skipped ?speed_level name
+    func
+  |> register
 
-let test_lwt ?check_output ?speed_level name func =
-  create ?check_output ?speed_level name func |> register_lwt
+let test_lwt ?category ?expected_outcome ?output_kind ?skipped ?speed_level name
+    func =
+  create ?category ?expected_outcome ?output_kind ?skipped ?speed_level name
+    func
+  |> register_lwt
 
 let get_registered_tests () = List.rev !registered_tests
 let get_registered_lwt_tests () = List.rev !registered_lwt_tests

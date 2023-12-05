@@ -3,20 +3,15 @@
    Much of this is private to this library.
 *)
 
-type captured_output =
-  | Ignored
-  | Captured_stdout of string
-  | Captured_stderr of string
-  | Captured_stdout_stderr of string * string
-  | Captured_merged of string
+(*
+   This function must be called exactly once to define where things are
+   stored.
+*)
+val init :
+  ?status_workspace:string -> ?expectation_workspace:string -> unit -> unit
 
-type expected_outcome = Should_succeed | Should_fail of string
-type outcome = Succeeded | Failed
-
-type expectation = {
-  expected_outcome : expected_outcome;
-  expected_output : captured_output;
-}
-
-type result = { outcome : outcome; captured_output : captured_output }
-type status = { expectation : expectation option; result : result option }
+(*
+   These functions are available after the call to 'init'.
+*)
+val get_status_workspace : unit -> string
+val get_expectation_workspace : unit -> string
