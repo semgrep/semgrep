@@ -48,7 +48,7 @@ class ScanCompleteResult:
 class ScanHandler:
     def __init__(self, dry_run: bool = False) -> None:
         state = get_state()
-        self.local_id = str(state.request_id)
+        self.local_id = str(state.local_scan_id)
         self.scan_metadata = out.ScanMetadata(
             cli_version=out.Version(__VERSION__),
             unique_id=out.Uuid(self.local_id),

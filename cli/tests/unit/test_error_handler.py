@@ -42,7 +42,7 @@ def mock_get_token(mocker):
 def mocked_state(mocker, error_handler):
     mocked = mocker.MagicMock()
     mocked.app_session.user_agent = FAKE_USER_AGENT
-    mocked.request_id = uuid4()
+    mocked.local_scan_id = uuid4()
     mocked.env.fail_open_url = FAIL_OPEN_URL.replace("/failure", "")
     mocked.error_handler = error_handler
     mocker.patch("semgrep.state.get_state", return_value=mocked)
@@ -135,7 +135,7 @@ def test_send_with_scan_id(
         "method": "get",
         "url": "https://semgrep.dev/api/agent/deployments/current",
         "scan_id": 1234,
-        "request_id": str(mocked_state.request_id),
+        "request_id": str(mocked_state.local_scan_id),
     }
 
     expected_headers = {
@@ -175,7 +175,7 @@ def test_send_nominal_with_trace(
 
     expected_payload = {
         "error": expected_traceback,
-        "request_id": str(mocked_state.request_id),
+        "request_id": str(mocked_state.local_scan_id),
     }
     expected_headers = {
         "User-Agent": FAKE_USER_AGENT,
