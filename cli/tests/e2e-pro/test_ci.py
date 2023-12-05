@@ -2055,7 +2055,11 @@ def test_existing_supply_chain_finding(
             ["--no-suppress-errors", "--allow-untrusted-validators"],
         ),
     ],
-    ids=["valid-api-key", "no-untrusted", "no-api-key"],
+    ids=[
+        "valid-api-key",
+        "no-untrusted",
+        "no-api-key",
+    ],
 )
 def test_custom_validator(
     git_tmp_path_with_commit,
@@ -2064,9 +2068,12 @@ def test_custom_validator(
     start_scan_mock,
     upload_results_mock,
     complete_scan_mock,
+    mocker,
     env: Optional[str],
     cli_options,
 ):
+    mocker.patch.object(EngineType, "check_if_installed", return_value=True)
+
     result = run_semgrep(
         subcommand="ci",
         options=cli_options,
