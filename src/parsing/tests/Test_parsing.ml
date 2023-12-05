@@ -47,7 +47,7 @@ let process_exn () =
     | [] -> "failure"
     | line :: rest -> (
         (* Sue me. I don't want to write a real lexer and parser. *)
-        let tokens = Common.split " " line in
+        let tokens = String_.split ~sep:" " line in
         match tokens with
         | "Called" :: "from" :: funcname :: _in :: _file :: _filename :: "line"
           :: linenum :: _ ->
@@ -56,7 +56,7 @@ let process_exn () =
         | _ -> process rest)
   in
   let res =
-    Printexc.get_backtrace () |> Common.split (Str.quote "\n") |> process
+    Printexc.get_backtrace () |> String_.split ~sep:(Str.quote "\n") |> process
   in
   store := res :: !store;
   ()

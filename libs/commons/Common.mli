@@ -157,8 +157,6 @@ val protect : finally:(unit -> unit) -> (unit -> 'a) -> 'a
 (* shortcuts for string_of_int and int_of_string *)
 val i_to_s : int -> string
 val s_to_i : string -> int
-val null_string : string -> bool
-val contains : string -> string -> bool
 
 (* Shortcut for Printf.sprintf *)
 val spf : ('a, unit, string) format -> 'a
@@ -183,10 +181,6 @@ val matched6 : string -> string * string * string * string * string * string
 
 val matched7 :
   string -> string * string * string * string * string * string * string
-
-(* join/split strings *)
-val join : string (* sep *) -> string list -> string
-val split : string (* sep regexp *) -> string -> string list
 
 (*****************************************************************************)
 (* Lists *)
@@ -247,9 +241,6 @@ type 'a smap = 'a SMap.t
  *    )
  *)
 val ( let* ) : 'a option -> ('a -> 'b option) -> 'b option
-
-(* TODO: we should delete this function; let* is better *)
-val ( >>= ) : 'a option -> ('a -> 'b option) -> 'b option
 val ( ||| ) : 'a option -> 'a -> 'a
 
 (*****************************************************************************)

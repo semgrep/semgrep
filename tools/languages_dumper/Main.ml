@@ -169,7 +169,7 @@ let main () =
       (* --------------------------------------------------------- *)
       | xs when List.mem !action (Arg_helpers.action_list (all_actions ())) ->
           Arg_helpers.do_action !action xs (all_actions ())
-      | _ when not (Common.null_string !action) ->
+      | _ when not (String_.empty !action) ->
           failwith ("unrecognized action or wrong params: " ^ !action)
       (*e: [[Main.main()]] match [[args]] actions *)
       (* --------------------------------------------------------- *)

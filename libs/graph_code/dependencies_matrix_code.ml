@@ -276,7 +276,7 @@ let string_of_config_path_elem = function
         (G.string_of_node n)
 
 let string_of_config_path xs =
-  xs |> List.map string_of_config_path_elem |> Common.join "/"
+  xs |> List.map string_of_config_path_elem |> String.concat "/"
 
 (*****************************************************************************)
 (* Matrix analysis *)

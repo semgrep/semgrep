@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open Common
 open Either_
 module CST = Tree_sitter_cpp.CST
 module H = Parse_tree_sitter_helpers
@@ -637,7 +636,7 @@ let map_preproc_def (env : env) ((v1, v2, v3, v4) : CST.preproc_def) =
         (* TODO: parse exprs other than number literals. *)
         match token env tok (* preproc_arg *) with
         | OriginTok { str; _ } as t -> (
-            match str |> remove_comment >>= parse_number_literal t with
+            match Option.bind (remove_comment str) (parse_number_literal t) with
             | Some c -> DefineExpr c
             | None -> DefineTodo ("MacroBody", t))
         | t -> DefineTodo ("MacroBody", t))

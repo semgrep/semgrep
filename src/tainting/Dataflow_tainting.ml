@@ -248,8 +248,8 @@ let report_findings env findings =
 let unify_mvars_sets env mvars1 mvars2 =
   let xs =
     List.fold_left
-      (fun xs (mvar, mval) ->
-        xs >>= fun xs ->
+      (fun xs_opt (mvar, mval) ->
+        let* xs = xs_opt in
         match List.assoc_opt mvar mvars2 with
         | None -> Some ((mvar, mval) :: xs)
         | Some mval' ->

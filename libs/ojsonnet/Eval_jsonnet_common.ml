@@ -53,7 +53,7 @@ let int_to_cmp = function
 let log_call (env : V.env) str tk =
   Logs.debug (fun m ->
       m "calling %s> %s at %s"
-        (Common2.repeat "-" env.depth |> Common.join "")
+        (Common2.repeat "-" env.depth |> String.concat "")
         str (Tok.stringpos_of_tok tk))
 
 (*****************************************************************************)

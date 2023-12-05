@@ -564,7 +564,9 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
                | G.E e -> Some e
                | _ -> None
              in
-             match List.assoc_opt mvar bindings >>= mvalue_to_expr with
+             match
+               Option.bind (List.assoc_opt mvar bindings) mvalue_to_expr
+             with
              | Some e ->
                  let lang =
                    match Option.value opt_lang ~default:env.xtarget.xlang with

@@ -116,11 +116,11 @@ let pretty_corpus =
 
 let test =
   let suite =
-    Common.map
+    List_.map
       (fun (name, input, expected_output) ->
         (name, `Quick, fun () -> run_debug input expected_output))
       debug_corpus
-    @ Common.map
+    @ List_.map
         (fun (name, input, expected_output) ->
           (name, `Quick, fun () -> run_pretty input expected_output))
         pretty_corpus

@@ -310,7 +310,7 @@ let print_match ?str (config : Core_scan_config.t) match_ ii_of_any =
                   |> Core_text_output.join_with_space_if_needed
               | None -> failwith (spf "the metavariable '%s' was not bound" x))
      in
-     Out.put (spf "%s:%d: %s" file line (Common.join ":" strings_metavars));
+     Out.put (spf "%s:%d: %s" file line (String.concat ":" strings_metavars));
      ());
   Option.iter (print_taint_trace ~format:config.match_format) taint_trace
 
