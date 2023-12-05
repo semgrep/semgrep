@@ -1,12 +1,11 @@
 module Y = Yojson.Basic
 
-(* compatibility mode with json-wheel *)
-
 (* a JSON value as a string, e.g., "\"Foobar\"", "true", "[1,2]".
  * TODO: use a JsonStr of string instead of an alias for stricter typeing?
  *)
 type str = string
 
+(* compatibility mode with json-wheel *)
 type t =
   | Object of (string * t) list
   | Array of t list
@@ -17,6 +16,25 @@ type t =
   | Null
 [@@deriving show, eq]
 
+(* polymorphic variant style, used in Yojson.Basic.t *)
+type yojson =
+  [ `Null
+  | `Bool of bool
+  | `Int of int
+  | `Float of float
+  | `String of string
+  | `Assoc of (string * yojson) list
+  | `List of yojson list ]
+
+(* used in Ezjsonm.mli and Yaml.mli *)
+type ezjsonm =
+  [ `Null
+  | `Bool of bool
+  | `Float of float
+  | `String of string
+  | `A of ezjsonm list
+  | `O of (string * ezjsonm) list ]
+
 let member m j =
   match j with
   | Object members ->
@@ -25,7 +43,7 @@ let member m j =
         members
   | _ -> None
 
-let rec (to_yojson : t -> Y.t) = function
+let rec (to_yojson : t -> yojson) = function
   | Object xs -> `Assoc (xs |> List.map (fun (s, t) -> (s, to_yojson t)))
   | Array xs -> `List (xs |> List.map to_yojson)
   | String s -> `String s
@@ -38,7 +56,7 @@ let rec (to_yojson : t -> Y.t) = function
   | Float f -> `Float f
   | Null -> `Null
 
-let rec (from_yojson : Y.t -> t) = function
+let rec (from_yojson : yojson -> t) = function
   | `Assoc xs -> Object (xs |> List.map (fun (s, t) -> (s, from_yojson t)))
   | `List xs -> Array (xs |> List.map from_yojson)
   | `String s -> String s
@@ -47,12 +65,32 @@ let rec (from_yojson : Y.t -> t) = function
   | `Float f -> Float f
   | `Null -> Null
 
-let load_json file =
-  let y = Y.from_file file in
-  from_yojson y
+let rec yojson_to_ezjsonm (json : yojson) : ezjsonm =
+  match json with
+  | `Assoc xs -> `O (xs |> List.map (fun (s, t) -> (s, yojson_to_ezjsonm t)))
+  | `List xs -> `A (xs |> List.map yojson_to_ezjsonm)
+  | `String s -> `String s
+  | `Int i -> `Float (float_of_int i)
+  | `Bool b -> `Bool b
+  | `Float f -> `Float f
+  | `Null -> `Null
+
+let rec ezjsonm_to_yojson (json : ezjsonm) : yojson =
+  match json with
+  | `O xs -> `Assoc (xs |> List.map (fun (s, t) -> (s, ezjsonm_to_yojson t)))
+  | `A xs -> `List (xs |> List.map ezjsonm_to_yojson)
+  | `String s -> `String s
+  | `Bool b -> `Bool b
+  | `Float x when Float.is_integer x -> `Int (int_of_float x)
+  | `Float f -> `Float f
+  | `Null -> `Null
 
 let json_of_string str =
   let y = Y.from_string str in
+  from_yojson y
+
+let json_of_chan (chan : Chan.i) =
+  let y = Y.from_channel chan.ic in
   from_yojson y
 
 let string_of_json ?compact ?recursive ?allow_nan json =

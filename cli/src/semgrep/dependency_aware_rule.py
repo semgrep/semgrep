@@ -22,7 +22,9 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaInfo
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
+from semgrep.target_manager import SCA_PRODUCT
 from semgrep.target_manager import TargetManager
+
 
 SCA_FINDING_SCHEMA = 20220913
 
@@ -33,7 +35,7 @@ def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[DependencyP
     namespace, package name, and semver ranges
     """
     for entry in entries:
-        # schema checks should gaurantee we have these fields, but we'll code defensively
+        # schema checks should guarantee we have these fields, but we'll code defensively
         namespace = entry.get("namespace")
         if namespace is None:
             raise SemgrepError(f"project-depends-on is missing `namespace`")
@@ -73,7 +75,7 @@ def generate_unreachable_sca_findings(
 
     non_reachable_matches = []
     for ecosystem in ecosystems:
-        lockfile_paths = target_manager.get_lockfiles(ecosystem)
+        lockfile_paths = target_manager.get_lockfiles(ecosystem, SCA_PRODUCT)
 
         for lockfile_path in lockfile_paths:
             # Ignore errors here because we assume they are processed later
@@ -94,13 +96,12 @@ def generate_unreachable_sca_findings(
                     metadata=rule.metadata,
                     severity=rule.severity,
                     fix=None,
-                    fix_regex=None,
                     match=out.CoreMatch(
                         check_id=out.RuleId(rule.id),
                         path=out.Fpath(str(lockfile_path)),
                         start=out.Position(found_dep.line_number or 0, 0, 0),
                         end=out.Position(
-                            (found_dep.line_number + 1 if found_dep.line_number else 0),
+                            (found_dep.line_number if found_dep.line_number else 0),
                             0,
                             0,
                         ),

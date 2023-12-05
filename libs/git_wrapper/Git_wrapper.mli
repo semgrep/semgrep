@@ -1,26 +1,40 @@
 (* Small wrapper around the 'git' command-line program *)
 
-exception Error of string
+(* TODO: make sub capability with cap_git_exec *)
 
-type status = {
-  added : string list;
-  modified : string list;
-  removed : string list;
-  unmerged : string list;
-  renamed : (string * string) list;
-}
-[@@deriving show]
+exception Error of string
 
 (* very general helper to run a git command and return its output
  * if everthing went fine or log the error (using Logs) and
  * raise an Error otherwise
  *)
-val git_check_output : Bos.Cmd.t -> string
+val git_check_output : Cap.Exec.t -> Cmd.args -> string
 
-(* precondition: cwd must be a directory
+(*
+   This is incomplete. Git offer a variety of filters and subfilters,
+   and it would be a lot of work to translate them all into clean types.
+   Please extend this interface as needed.
+*)
+type ls_files_kind =
+  | Cached
+    (* --cached, the default:
+       Show all files cached in Git’s index, i.e. all tracked files *)
+  | Others
+(* --others:
+   Show other (i.e. untracked) files in the output,
+   that is mostly the complement of Cached but still
+   excluding .git/ *)
+
+(*
+   cwd: directory to cd into (-C)
+
+   The argument is the list of files to start scanning from which defaults
+   to the current directory.
+
    This returns a list of paths relative to cwd.
 *)
-val files_from_git_ls : cwd:Fpath.t -> Fpath.t list
+val ls_files :
+  ?cwd:Fpath.t -> ?kinds:ls_files_kind list -> Fpath.t list -> Fpath.t list
 
 (* get merge base between arg and HEAD *)
 val get_merge_base : string -> string
@@ -44,12 +58,29 @@ val get_merge_base : string -> string
 val run_with_worktree :
   commit:string -> ?branch:string option -> (unit -> 'a) -> 'a
 
+type status = {
+  added : string list;
+  modified : string list;
+  removed : string list;
+  unmerged : string list;
+  renamed : (string * string) list;
+}
+[@@deriving show]
+
 (* git status *)
 val status : cwd:Fpath.t -> commit:string -> status
 
 (* precondition: cwd must be a directory *)
 val is_git_repo : Fpath.t -> bool
 (** Returns true if passed directory a git repo*)
+
+(* Find the root of the repository containing 'cwd', if any.
+   The result may be a submodule of another git repo. *)
+val get_project_root : ?cwd:Fpath.t -> unit -> Fpath.t option
+
+(* Find the root of the git project containing 'cwd', if any.
+   The result is not a submodule of another git repo. *)
+val get_superproject_root : ?cwd:Fpath.t -> unit -> Fpath.t option
 
 (* precondition: cwd must be a directory *)
 val dirty_lines_of_file : ?git_ref:string -> Fpath.t -> (int * int) array option
@@ -82,7 +113,7 @@ val get_project_url : unit -> string option
     TODO: should maybe raise an exn instead if not run from a git repo.
 *)
 
-val get_git_logs : ?since:Common2.float_time option -> unit -> string list
+val get_git_logs : ?since:float option -> unit -> string list
 (** [get_git_logs()] will run 'git log' in the current directory
     and returns for each log a JSON string that fits the schema
     defined in semgrep_output_v1.atd contribution type.

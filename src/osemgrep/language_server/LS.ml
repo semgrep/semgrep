@@ -45,7 +45,7 @@ module MessageHandler = struct
       ~textDocumentSync:
         (`TextDocumentSyncOptions
           (TextDocumentSyncOptions.create ~openClose:true
-             ~change:TextDocumentSyncKind.Full ~save:(`Bool true) ()))
+             ~change:TextDocumentSyncKind.Incremental ~save:(`Bool true) ()))
       ~workspace:
         (ServerCapabilities.create_workspace
            ~workspaceFolders:

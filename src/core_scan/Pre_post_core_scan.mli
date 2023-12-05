@@ -18,6 +18,12 @@ module No_Op_Processor : Processor
 (* The default hook is the No_op_processor *)
 val hook_processor : (module Processor) ref
 
+(* Registers a processor for usage.
+   This processor will act as an "outer layer", preprocessing before other
+   registered processors, and postprocessing after.
+*)
+val push_processor : (module Processor) -> unit
+
 (* quite similar to Core_scan.core_scan_func *)
 type 'a core_scan_func_with_rules =
   'a ->

@@ -70,6 +70,9 @@ logger = getLogger(__name__)
 MAX_CHARS_TO_READ_FOR_SHEBANG = 255
 PATHS_ALWAYS_SKIPPED = (".git",)
 
+SCA_PRODUCT = out.Product(out.SCA())
+SAST_PRODUCT = out.Product(out.SAST())
+
 ALL_EXTENSIONS: Collection[FileExtension] = {
     ext
     for definition in LANGUAGE.definition_by_id.values()
@@ -172,6 +175,20 @@ class FileTargetingLog:
             if unsupported_lang_paths
             else self.target_manager.get_all_files()
         )
+
+    def list_skipped_paths_with_reason(self) -> List[Tuple[Path, str]]:
+        res: List[Tuple[Path, str]] = []
+        # The strings used to describe the reason are those defined
+        # in semgrep_output_v1.atd for type 'skip_reason':
+        for x in self.always_skipped:
+            res.append((x, "always_skipped"))
+        for x in self.cli_includes:
+            res.append((x, "cli_include_flags_do_not_match"))
+        for x in self.cli_excludes:
+            res.append((x, "cli_exclude_flags_match"))
+        for x in self.size_limit:
+            res.append((x, "exceeded_size_limit"))
+        return sorted(res)
 
     def __str__(self) -> str:
         limited_fragments = []
@@ -456,7 +473,7 @@ class Target:
             [
                 "git",
                 "ls-files",
-                "--other",
+                "--others",
                 "--exclude-standard",
             ]
         )
@@ -524,7 +541,7 @@ class TargetManager:
     TargetManager not to be confused with https://jobs.target.com/search-jobs/store%20manager
     """
 
-    target_strings: Sequence[str]
+    target_strings: FrozenSet[Path]
     includes: Sequence[str] = Factory(list)
     excludes: Sequence[str] = Factory(list)
     max_target_bytes: int = -1
@@ -532,7 +549,8 @@ class TargetManager:
     respect_rule_paths: bool = True
     baseline_handler: Optional[BaselineHandler] = None
     allow_unknown_extensions: bool = False
-    file_ignore: Optional[FileIgnore] = None
+    # ignore_profiles range is str of product.kind
+    ignore_profiles: Dict[str, FileIgnore] = Factory(dict)
     ignore_log: FileTargetingLog = Factory(FileTargetingLog, takes_self=True)
     targets: Sequence[Target] = field(init=False)
 
@@ -599,7 +617,7 @@ class TargetManager:
         return cast(List[Path], result)
 
     def filter_by_language(
-        self, language: Union[Language, Ecosystem], *, candidates: FrozenSet[Path]
+        self, language: Union[None, Language, Ecosystem], *, candidates: FrozenSet[Path]
     ) -> FilteredFiles:
         """
         Returns only paths that have the correct extension or shebang, or are the correct lockfile format
@@ -616,7 +634,7 @@ class TargetManager:
                 if any(str(path).endswith(ext) for ext in language.definition.exts)
                 or self.executes_with_shebang(path, language.definition.shebangs)
             )
-        else:
+        elif isinstance(language, Ecosystem):
             kept = frozenset(
                 path
                 for path in candidates
@@ -625,6 +643,8 @@ class TargetManager:
                     for lockfile_name in ECOSYSTEM_TO_LOCKFILES[language]
                 )
             )
+        else:
+            kept = frozenset(candidates)
         return FilteredFiles(kept, frozenset(candidates - kept))
 
     def filter_known_extensions(self, *, candidates: FrozenSet[Path]) -> FilteredFiles:
@@ -698,7 +718,9 @@ class TargetManager:
         return frozenset(f for target in self.targets for f in target.files())
 
     @lru_cache(maxsize=None)
-    def get_files_for_language(self, lang: Union[Language, Ecosystem]) -> FilteredFiles:
+    def get_files_for_language(
+        self, lang: Union[None, Language, Ecosystem], product: out.Product
+    ) -> FilteredFiles:
         """
         Return all files that are decendants of any directory in TARGET that have
         an extension matching LANG or are a lockfile for LANG ecosystem that match any pattern in INCLUDES and do not
@@ -710,8 +732,11 @@ class TargetManager:
         """
         all_files = self.get_all_files()
 
-        files = self.filter_by_language(lang, candidates=all_files)
-        self.ignore_log.by_language[lang].update(files.removed)
+        if lang:
+            files = self.filter_by_language(lang, candidates=all_files)
+            self.ignore_log.by_language[lang].update(files.removed)
+        else:
+            files = FilteredFiles(frozenset(all_files), frozenset())
 
         files = self.filter_includes(self.includes, candidates=files.kept)
         self.ignore_log.cli_includes.update(files.removed)
@@ -727,8 +752,10 @@ class TargetManager:
             files = self.filter_by_size(self.max_target_bytes, candidates=files.kept)
             self.ignore_log.size_limit.update(files.removed)
 
-        if self.file_ignore:
-            files = self.file_ignore.filter_paths(candidates=files.kept)
+        if product.kind in self.ignore_profiles:
+            file_ignore = self.ignore_profiles[product.kind]
+            files = file_ignore.filter_paths(candidates=files.kept)
+            # TODO: Fix ignore_log to log which profile filtered which files.
             self.ignore_log.semgrepignored.update(files.removed)
 
         kept_files = files.kept
@@ -754,6 +781,7 @@ class TargetManager:
         rule_includes: Sequence[str],
         rule_excludes: Sequence[str],
         rule_id: str,
+        rule_product: out.Product,
     ) -> FrozenSet[Path]:
         """
         Returns list of files that should be analyzed for a LANG
@@ -766,7 +794,7 @@ class TargetManager:
         in TARGET will bypass this global INCLUDE/EXCLUDE filter. The local INCLUDE/EXCLUDE
         filter is then applied.
         """
-        paths = self.get_files_for_language(lang)
+        paths = self.get_files_for_language(lang, rule_product)
 
         if self.respect_rule_paths:
             paths = self.filter_includes(rule_includes, candidates=paths.kept)
@@ -798,13 +826,15 @@ class TargetManager:
         }
 
     @lru_cache(maxsize=None)
-    def get_lockfiles(self, ecosystem: Ecosystem) -> FrozenSet[Path]:
+    def get_lockfiles(
+        self, ecosystem: Ecosystem, product: out.Product = SCA_PRODUCT
+    ) -> FrozenSet[Path]:
         """
         Return set of paths to lockfiles for a given ecosystem
 
         Respects semgrepignore/exclude flag
         """
-        return self.get_files_for_language(ecosystem).kept
+        return self.get_files_for_language(ecosystem, product).kept
 
     def find_single_lockfile(self, p: Path, ecosystem: Ecosystem) -> Optional[Path]:
         """

@@ -63,7 +63,7 @@ let tok_add_s = Tok.tok_add_s
 (* ---------------------------------------------------------------------- *)
 
 (* opti: less convenient, but using a hash is faster than using a match *)
-let keyword_table = Common.hash_of_list [
+let keyword_table = Hashtbl_.hash_of_list [
 
   "void",   (fun ii -> Tvoid ii);
   "char",   (fun ii -> Tchar ii);
@@ -105,6 +105,10 @@ let keyword_table = Common.hash_of_list [
   "explicit", (fun ii -> Texplicit ii);
   "mutable", (fun ii -> Tmutable ii);
   "virtual", (fun ii -> Tvirtual ii);
+
+  (* virtual specifier *)
+  "final", (fun ii -> Tfinal ii);
+  "override", (fun ii -> Toverride ii);
 
   (* c++0x:  *)
   "constexpr", (fun ii -> Tconstexpr ii);
@@ -541,7 +545,7 @@ rule token = parse
   (* this is also part of the case below, but we specialize it here to use the
    * right int_of_string *)
   | "0" (oct+ as n)
-     { TInt (int_of_string_opt( "0o" ^ n), tokinfo lexbuf) }
+     { TInt (Parsed_int.parse ( "0o" ^ n, tokinfo lexbuf)) }
 
   | (( decimal | hexa | octal)
         ( ['u' 'U']
@@ -551,7 +555,7 @@ rule token = parse
         | (['u' 'U'] ['l' 'L'] ['l' 'L'])
         | (['l' 'L'] ['l' 'L'])
         )?
-    ) as x { TInt (int_of_string_opt x, tokinfo lexbuf) }
+    ) as x { TInt (Parsed_int.parse (x, tokinfo lexbuf)) }
 
   | (real ['f' 'F']) as x { TFloat ((float_of_string_opt x, tokinfo lexbuf)) }
   | (real ['l' 'L']) as x { TFloat ((float_of_string_opt x, tokinfo lexbuf)) }

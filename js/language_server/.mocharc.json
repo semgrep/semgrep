@@ -1,0 +1,6 @@
+{
+  "spec": "out/tests",
+  "extension": ["js"],
+  "recursive": true,
+  "ui": "tdd"
+}

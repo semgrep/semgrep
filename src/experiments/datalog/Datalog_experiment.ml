@@ -63,7 +63,7 @@ type env = { facts : Datalog_fact.t list ref }
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let add env x = Common.push x env.facts
+let add env x = Stack_.push x env.facts
 
 let todo any =
   let s = IL.show_any any in
@@ -82,9 +82,9 @@ let instr env x =
   match x.i with
   | Assign (lval, e) -> (
       match (lval, e.e) with
-      | { base = Var n; rev_offset = [] }, Literal (G.Int s) ->
+      | { base = Var n; rev_offset = [] }, Literal (G.Int pi) ->
           let v = var_of_name env n in
-          let h = heap_of_int env s in
+          let h = heap_of_int env pi in
           add env (D.PointTo (v, h))
       | _ -> todo (I x))
   | _ -> todo (I x)
@@ -119,7 +119,7 @@ let gen_facts file outdir =
       inherit [_] AST_generic.iter_no_id_info
 
       method! visit_function_definition _env def =
-        Common.push (facts_of_function lang def) facts
+        Stack_.push (facts_of_function lang def) facts
     end
   in
   v#visit_program () ast;

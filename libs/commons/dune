@@ -1,25 +1,35 @@
 (library
  (public_name commons)
  (wrapped false)
+ (flags (:standard -open TCB))
  (libraries
    str
+   TCB
    unix
    fpath
    uri
    yojson
+   atdgen-runtime
    fmt
+   ocolor
    ANSITerminal
    logs logs.fmt
    easy_logging easy_logging_yojson
    alcotest
+   alcotest_ext
    cmdliner
    bos
    re
    pcre
-   parmap
    digestif.ocaml
    sexplib
+   ; web stuff
+   uuidm
+   ; async stuff
+   lwt
+   alcotest-lwt
  )
+ (inline_tests)
  ; can't use profiling.ppx because of circular dependencies :(
  (preprocess
    (pps
@@ -28,6 +38,7 @@
      ppx_deriving.ord
      ppx_hash
      ppx_sexp_conv
+     ppx_inline_test
    )
  )
 )

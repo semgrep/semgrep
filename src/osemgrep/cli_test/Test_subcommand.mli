@@ -16,4 +16,4 @@ and target_kind =
   | File of Fpath.t * Rules_config.config_string (* mandatory --config *)
 [@@deriving show]
 
-val run : conf -> Exit_code.t
+val run_conf : conf -> Exit_code.t

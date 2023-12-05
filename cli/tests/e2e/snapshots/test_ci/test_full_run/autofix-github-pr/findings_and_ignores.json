@@ -16,6 +16,7 @@
         "dev.semgrep.actions": [
           "block"
         ],
+        "source": "https://semgrep.dev/r/taint-test",
         "semgrep.dev": {
           "rule": {
             "rule_id": "abcf",
@@ -108,6 +109,7 @@
       "syntactic_id": "87cd1247dfc84bbd502c872035c71a63",
       "metadata": {
         "dev.semgrep.actions": [],
+        "source": "https://semgrep.dev/r/abceversion1",
         "semgrep.dev": {
           "rule": {
             "rule_id": "abce",
@@ -145,6 +147,7 @@
         "dev.semgrep.actions": [
           "block"
         ],
+        "source": "https://semgrep.dev/r/eqeq-four",
         "semgrep.dev": {
           "rule": {
             "rule_id": "abce",
@@ -179,6 +182,7 @@
       "syntactic_id": "8646a2dfc020913606969dcfe84e53c0",
       "metadata": {
         "dev.semgrep.actions": [],
+        "source": "https://semgrep.dev/r/eqeq-five",
         "semgrep.dev": {
           "rule": {
             "rule_id": "abcd",
@@ -214,7 +218,9 @@
       "index": 0,
       "commit_date": "sanitized",
       "syntactic_id": "f3b21c38bc22a1f1f870d49fc3a40244",
-      "metadata": {},
+      "metadata": {
+        "source": "https://semgrep.dev/r/eqeq-bad"
+      },
       "is_blocking": true,
       "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_4",
       "hashes": {
@@ -237,7 +243,9 @@
       "index": 0,
       "commit_date": "sanitized",
       "syntactic_id": "a557d3b401636ba873e590c81b693a8f",
-      "metadata": {},
+      "metadata": {
+        "source": "https://semgrep.dev/r/eqeq-bad"
+      },
       "is_blocking": true,
       "match_based_id": "e536489e68267e16e71dd76a61e27815fd86a7e2417d96f8e0c43af48540a41d41e6acad52f7ccda83b5c6168dd5559cd49169617e3aac1b7ea091d8a20ebf12_0",
       "hashes": {
@@ -260,7 +268,9 @@
       "index": 0,
       "commit_date": "sanitized",
       "syntactic_id": "d44049421636e370e7906a6bed5fce54",
-      "metadata": {},
+      "metadata": {
+        "source": "https://semgrep.dev/r/eqeq-bad"
+      },
       "is_blocking": true,
       "match_based_id": "5efd0945774f190445f7cf2b0b85568a845cc46dddc11e029205b882436dccf78e12a752408c13dfe97b572f8bc795099ca0bddb89b3040afcaf6a6d8c17b570_0",
       "hashes": {
@@ -283,7 +293,9 @@
       "index": 3,
       "commit_date": "sanitized",
       "syntactic_id": "f6c666e6921a44028a2015d0de15cc14",
-      "metadata": {},
+      "metadata": {
+        "source": "https://semgrep.dev/r/eqeq-bad"
+      },
       "is_blocking": true,
       "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_3",
       "hashes": {
@@ -306,7 +318,9 @@
       "index": 1,
       "commit_date": "sanitized",
       "syntactic_id": "8abb389b2f01d0e52d663251e1d24ba7",
-      "metadata": {},
+      "metadata": {
+        "source": "https://semgrep.dev/r/eqeq-bad"
+      },
       "is_blocking": true,
       "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_1",
       "hashes": {
@@ -329,7 +343,9 @@
       "index": 0,
       "commit_date": "sanitized",
       "syntactic_id": "8c695a6a4ab5ffff33d0103309a310c1",
-      "metadata": {},
+      "metadata": {
+        "source": "https://semgrep.dev/r/eqeq-bad"
+      },
       "is_blocking": true,
       "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_0",
       "hashes": {
@@ -356,6 +372,7 @@
       "syntactic_id": "0c6353c9e29a6595b15fe4f554cd4134",
       "metadata": {
         "dev.semgrep.actions": [],
+        "source": "https://semgrep.dev/r/abceversion1",
         "semgrep.dev": {
           "rule": {
             "rule_id": "abce",
@@ -393,6 +410,7 @@
         "dev.semgrep.actions": [
           "block"
         ],
+        "source": "https://semgrep.dev/r/eqeq-four",
         "semgrep.dev": {
           "rule": {
             "rule_id": "abce",
@@ -427,6 +445,7 @@
       "syntactic_id": "6ed37cfa23475cee444f54947efb9da4",
       "metadata": {
         "dev.semgrep.actions": [],
+        "source": "https://semgrep.dev/r/eqeq-five",
         "semgrep.dev": {
           "rule": {
             "rule_id": "abcd",
@@ -462,7 +481,9 @@
       "index": 0,
       "commit_date": "sanitized",
       "syntactic_id": "0db994486d207a88b9e7bc0475d8a14a",
-      "metadata": {},
+      "metadata": {
+        "source": "https://semgrep.dev/r/eqeq-bad"
+      },
       "is_blocking": true,
       "match_based_id": "f33d61e2c4592fb3a295213cb9d829c7d314041cef354f9b4199bf18526d72df596c0ef4c8e56289511e1ea8e2183752f403fd922f382d090846c456744367d2_0",
       "hashes": {
@@ -485,7 +506,9 @@
       "index": 0,
       "commit_date": "sanitized",
       "syntactic_id": "bf0f44ff9d49cd5ca3771b3ee6d2fcfc",
-      "metadata": {},
+      "metadata": {
+        "source": "https://semgrep.dev/r/eqeq-bad"
+      },
       "is_blocking": true,
       "match_based_id": "83fb2cbc6be00fffc142621a1b10702bdd228f97c42ca16ba5f902ec393231e1424bed8472cec7c9213190cb1f576e5a495b3aba5cef09ac2791715d3bf9e983_0",
       "hashes": {
@@ -508,7 +531,9 @@
       "index": 2,
       "commit_date": "sanitized",
       "syntactic_id": "c2d65932166aec2a4a96ff0e8deebd97",
-      "metadata": {},
+      "metadata": {
+        "source": "https://semgrep.dev/r/eqeq-bad"
+      },
       "is_blocking": true,
       "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_2",
       "hashes": {
@@ -527,13 +552,12 @@
   "renamed_paths": [],
   "rule_ids": [
     "eqeq-bad",
-    "eqeq-five",
     "eqeq-four",
-    "abceversion1",
     "taint-test",
+    "supply-chain3",
+    "eqeq-five",
     "supply-chain1",
-    "supply-chain2",
-    "supply-chain3"
+    "supply-chain2"
   ],
   "contributions": [
     {

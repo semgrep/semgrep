@@ -9,6 +9,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 === stdout - plain
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "foo.py",
@@ -30,7 +31,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "is_ignored": false,
         "lines": "    a == a",
         "message": "useless comparison",
-        "metadata": {},
+        "metadata": {
+          "source": "https://semgrep.dev/r/eqeq-bad"
+        },
         "metavars": {
           "$X": {
             "abstract_content": "a",
@@ -69,7 +72,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "is_ignored": false,
         "lines": "    a == a",
         "message": "useless comparison",
-        "metadata": {},
+        "metadata": {
+          "source": "https://semgrep.dev/r/eqeq-bad"
+        },
         "metavars": {
           "$X": {
             "abstract_content": "a",
@@ -108,7 +113,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "is_ignored": false,
         "lines": "    a == a",
         "message": "useless comparison",
-        "metadata": {},
+        "metadata": {
+          "source": "https://semgrep.dev/r/eqeq-bad"
+        },
         "metavars": {
           "$X": {
             "abstract_content": "a",
@@ -147,7 +154,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "is_ignored": false,
         "lines": "    y == y",
         "message": "useless comparison",
-        "metadata": {},
+        "metadata": {
+          "source": "https://semgrep.dev/r/eqeq-bad"
+        },
         "metavars": {
           "$X": {
             "abstract_content": "y",
@@ -200,7 +209,8 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
               "version_id": "version1"
             },
             "src": "unchanged"
-          }
+          },
+          "source": "https://semgrep.dev/r/eqeq-five"
         },
         "metavars": {
           "$X": {
@@ -252,7 +262,8 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
               "version_id": "version2"
             },
             "src": "new-version"
-          }
+          },
+          "source": "https://semgrep.dev/r/eqeq-four"
         },
         "metavars": {
           "$X": {
@@ -362,7 +373,8 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
               "version_id": "version1"
             },
             "src": "new-rule"
-          }
+          },
+          "source": "https://semgrep.dev/r/taint-test"
         },
         "metavars": {
           "$X": {
@@ -413,11 +425,12 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "[[package]]\nname = \"badlib\"",
+        "lines": "name = \"badlib\"",
         "message": "found a dependency",
         "metadata": {
           "dev.semgrep.actions": [],
-          "sca-kind": "upgrade-only"
+          "sca-kind": "upgrade-only",
+          "source": "https://semgrep.dev/-/advisories/supply-chain1"
         },
         "metavars": {},
         "sca_info": {
@@ -430,7 +443,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
             "found_dependency": {
               "allowed_hashes": {},
               "ecosystem": "pypi",
-              "line_number": 1,
+              "line_number": 2,
               "package": "badlib",
               "transitivity": "unknown",
               "version": "99.99.99"
@@ -446,7 +459,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       "path": "poetry.lock",
       "start": {
         "col": 0,
-        "line": 1,
+        "line": 2,
         "offset": 0
       }
     }
@@ -468,8 +481,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
   environment - running in environment git, triggering event is unknown
 
   CONNECTION
-  Reporting start of scan for deployment_name (scan_id=<MagicMock name='post()…
-  Fetching configuration from Semgrep Cloud Platform
+  Initializing scan (deployment=org_name, scan_id=12345)
   Enabled products: Code, Supply Chain
 
 ┌─────────────┐
@@ -498,6 +510,6 @@ CI scan completed successfully.
     https://semgrep.dev/orgs/org_name/findings
     https://semgrep.dev/orgs/org_name/supply-chain
   Has findings for blocking rules so exiting with code 1
-  semgrep.dev is suggesting a non-zero exit code <MASKED>
+  semgrep.dev is suggesting a non-zero exit code (Test Reason)
 
 === end of stderr - plain

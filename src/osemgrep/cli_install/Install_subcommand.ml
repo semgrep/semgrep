@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 
 (*****************************************************************************)
 (* Prelude *)
@@ -90,8 +90,7 @@ let install_gh_cli () : unit =
   match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
   | Ok _ -> Logs.app (fun m -> m "Github cli installed successfully")
   | _ ->
-      Logs.err (fun m ->
-          m "%s Github cli failed to install" (Logs_helpers.err_tag ()));
+      Logs.err (fun m -> m "%s Github cli failed to install" (Logs_.err_tag ()));
       (* TODO? we could instead just remove the last step of 'install-ci'
        * and let the user commit the workflow by himself?
        *)
@@ -219,16 +218,17 @@ let semgrep_app_token_secret_exists ~git_dir:dir : bool =
   | Ok b -> b
   | _ -> false
 
-let add_semgrep_gh_secret ~git_dir:dir ~token : unit =
+let add_semgrep_gh_secret ~git_dir:dir ~(token : Auth.token) : unit =
+  let str_token = Auth.string_of_token token in
   let cmd =
     Bos.Cmd.(
       v "gh" % "secret" % "set" % "SEMGREP_APP_TOKEN" % "-a" % "actions"
-      % "--body" % token)
+      % "--body" % str_token)
   in
   Bos.OS.Dir.with_current dir
     (fun () ->
       match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
-      | Ok _ -> Logs.debug (fun m -> m "Set SEMGREP_APP_TOKEN=%s" token)
+      | Ok _ -> Logs.debug (fun m -> m "Set SEMGREP_APP_TOKEN=%s" str_token)
       | _ ->
           Logs.warn (fun m -> m "Failed to set SEMGREP_APP_TOKEN for %s" !!dir);
           Error.abort "Failed to set SEMGREP_APP_TOKEN. Please add it manually")
@@ -380,7 +380,8 @@ let write_workflow_file ~git_dir:dir : unit =
    2. Commit and push changes to the repo
    3. Open a PR to the repo to merge the changes
 *)
-let add_semgrep_workflow ~token (conf : Install_CLI.conf) : unit =
+let add_semgrep_workflow ~(token : Auth.token) (conf : Install_CLI.conf) : unit
+    =
   let (repo : string) =
     match conf.repo with
     | Dir v -> Fpath.to_dir_path v |> Fpath.rem_empty_seg |> Fpath.to_string
@@ -404,7 +405,7 @@ let add_semgrep_workflow ~token (conf : Install_CLI.conf) : unit =
 (* Main logic *)
 (*****************************************************************************)
 
-let run (conf : Install_CLI.conf) : Exit_code.t =
+let run_conf (conf : Install_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:true ~level:conf.common.logging_level;
   (* In theory, we should use the same --metrics=xxx as in scan,
      but given that this is an experimental command that we need to validate
@@ -422,7 +423,7 @@ let run (conf : Install_CLI.conf) : Exit_code.t =
           m
             "%s You are not logged in! Run `semgrep login` before using \
              `semgrep install-ci`"
-            (Logs_helpers.err_tag ()));
+            (Logs_.err_tag ()));
       Exit_code.fatal
   | Some token ->
       (* setup gh *)
@@ -433,7 +434,7 @@ let run (conf : Install_CLI.conf) : Exit_code.t =
       add_semgrep_workflow ~token conf;
       Logs.app (fun m ->
           m "%s Installed semgrep workflow for this repository"
-            (Logs_helpers.success_tag ()));
+            (Logs_.success_tag ()));
       Exit_code.ok
 
 (*****************************************************************************)
@@ -441,4 +442,4 @@ let run (conf : Install_CLI.conf) : Exit_code.t =
 (*****************************************************************************)
 let main (argv : string array) : Exit_code.t =
   let conf = Install_CLI.parse_argv argv in
-  run conf
+  run_conf conf

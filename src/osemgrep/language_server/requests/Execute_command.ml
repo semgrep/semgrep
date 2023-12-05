@@ -42,5 +42,5 @@ let handle_execute_request (server : RPC_server.t) command arg_list :
       Logs.debug (fun m -> m "Unknown command: %s" command);
       Logs.debug (fun m ->
           m "Args: %s"
-            (String.concat ", " (Common.map Yojson.Safe.to_string arg_list)));
+            (String.concat ", " (List_.map Yojson.Safe.to_string arg_list)));
       (None, server)

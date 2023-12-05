@@ -14,14 +14,24 @@
  *)
 
 open Common
+module OutJ = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 let ( let/ ) = Result.bind
 
-(******************************************************************************)
+(*****************************************************************************)
+(* Constants *)
+(*****************************************************************************)
+
+(* For matching things of the form \<num>.
+   See `regex_fix` below for why this is needed.
+*)
+let capture_group_regex = "\\\\([0-9]+)"
+
+(*****************************************************************************)
 (* Main module for AST-based autofix. This module will attempt to synthesize a
  * fix based a rule's fix pattern and the match's metavariable bindings. *)
-(******************************************************************************)
+(*****************************************************************************)
 
 let parse_pattern lang pattern =
   try Ok (Parse_pattern.parse_pattern lang pattern) with
@@ -110,9 +120,9 @@ let validate_fix lang target_contents edit =
           fail "Failed to parse original file")
   | Error e -> fail (Exception.to_string e)
 
-(******************************************************************************)
-(* Entry Points *)
-(******************************************************************************)
+(*****************************************************************************)
+(* Kinds of fixes *)
+(*****************************************************************************)
 
 (* Attempts to render a fix. If successful, returns the text that should replace
  * the matched range in the target file. If unsuccessful, returns None.
@@ -124,16 +134,12 @@ let validate_fix lang target_contents edit =
  * - Printing of the resulting fix AST fails (probably because there is simply a
  *   node that is unhandled).
  * *)
-let render_fix pm =
-  let* fix_pattern = pm.Pattern_match.rule_id.fix in
+let ast_based_fix ~fix (start, end_) (pm : Pattern_match.t) : Textedit.t option
+    =
+  let fix_pattern = fix in
   let* lang = List.nth_opt pm.Pattern_match.rule_id.langs 0 in
   let metavars = pm.Pattern_match.env in
-  let start, end_ =
-    let start, end_ = pm.Pattern_match.range_loc in
-    let _, _, end_charpos = Tok.end_pos_of_loc end_ in
-    (start.Tok.pos.bytepos, end_charpos)
-  in
-  let target_contents = lazy (Common.read_file pm.Pattern_match.file) in
+  let target_contents = lazy (UCommon.read_file pm.Pattern_match.file) in
   let result =
     try
       (* Fixes are not exactly patterns, but they can contain metavariables that
@@ -200,24 +206,117 @@ let render_fix pm =
       |> List.iter (fun line -> logger#info "%s" line);
       None
 
-(* Apply the fix for the list of matches to the given file, returning the
- * resulting file contents. Currently used only for tests, but with some changes
- * could be used in production as well. *)
-let apply_fixes_to_file matches ~file =
-  let file_text = Common.read_file file in
-  let edits =
-    Common.map
-      (fun pm ->
-        match render_fix pm with
-        | Some edit -> edit
-        (* TODO option rather than exception if used in production *)
-        | None -> failwith (spf "could not render fix for %s" file))
-      matches
+let basic_fix ~(fix : string) (start, end_) (pm : Pattern_match.t) : Textedit.t
+    =
+  (* TODO: Use m.env instead *)
+  let replacement_text =
+    Metavar_replacement.interpolate_metavars fix
+      (Metavar_replacement.of_bindings pm.env)
   in
+  let edit = Textedit.{ path = pm.file; start; end_; replacement_text } in
+  edit
+
+let regex_fix ~fix_regexp:Rule.{ regexp; count; replacement } (start, end_)
+    (pm : Pattern_match.t) =
+  let rex = Pcre_.regexp regexp in
+  (* You need a minus one, to make it compatible with the inclusive Range.t *)
+  let content =
+    Range.content_at_range pm.file Range.{ start; end_ = end_ - 1 }
+  in
+  (* What is this for?
+     Before, when autofix was in the Python CLI, `fix-regex` had the semantics
+     of allowing backreferences to be substituted via the syntax '\1' for the
+     first backreference.
+     Unfortunately, the Pcre-ocaml library has no conception of this syntax. It
+     instead uses $1, $2, etc, for backreferences.
+     We don't want to break this existing behavior, however.
+     The fix will be that if someone gives us a replacement regex of the form
+     '\1', we will try to replace it instead with '$1', etc.
+  *)
+  let replaced_replacement =
+    let capture_group_rex = Pcre_.regexp capture_group_regex in
+    (* Confusingly, this $1 in the template is separate from the literal
+       capture group it is replacing. It is simply a dollar sign in front of
+       the capture group's number, which is captured in the `capture_group_regex`
+       above.
+       This lets us essentially capture everything matched by \<num> with
+       $<num>.
+    *)
+    Pcre_.replace ~rex:capture_group_rex ~template:"$$1" replacement
+  in
+  let replacement_text =
+    match count with
+    | None -> Pcre_.replace ~rex ~template:replaced_replacement content
+    | Some count ->
+        Common2.foldn
+          (fun content _i ->
+            Pcre_.replace_first ~rex ~template:replaced_replacement content)
+          content count
+  in
+  let edit = Textedit.{ path = pm.file; start; end_; replacement_text } in
+  edit
+
+(*****************************************************************************)
+(* Autofix selection logic *)
+(*****************************************************************************)
+
+let render_fix (pm : Pattern_match.t) : Textedit.t option =
+  let fix = pm.rule_id.fix in
+  let fix_regex = pm.rule_id.fix_regexp in
+  let range =
+    let start, end_ = pm.Pattern_match.range_loc in
+    let _, _, end_charpos = Tok.end_pos_of_loc end_ in
+    (start.Tok.pos.bytepos, end_charpos)
+  in
+  match (fix, fix_regex) with
+  | None, None -> None
+  | Some fix, _ -> (
+      match ast_based_fix ~fix range pm with
+      | None -> Some (basic_fix ~fix range pm)
+      | Some fix -> Some fix)
+  | _, Some fix_regexp -> Some (regex_fix ~fix_regexp range pm)
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
+(* Apply the fix for the list of matches to the given file, returning the
+ * resulting file contents. Currently used only for tests, but with some
+ * changes could be used in production as well.
+ *)
+let produce_autofixes (matches : Pattern_match.t list) =
+  List_.map (fun m -> (m, render_fix m)) matches
+
+let apply_fixes_to_file matches_with_fixes ~file =
+  let file_text = UCommon.read_file file in
+  let edits = List_.map snd matches_with_fixes |> List_.map_filter Fun.id in
   match Textedit.apply_edits_to_text file_text edits with
   | Success x -> x
   | Overlap { conflicting_edits; _ } ->
       failwith
         (spf "Could not apply fix because it overlapped with another: %s"
-           (Common.hd_exn "unexpected empty list" conflicting_edits)
+           (List_.hd_exn "unexpected empty list" conflicting_edits)
              .replacement_text)
+
+let apply_fixes (edits : Textedit.t list) =
+  (* TODO: *)
+  let modified_files, _failed_fixes =
+    Textedit.apply_edits ~dryrun:false edits
+  in
+
+  if modified_files <> [] then
+    Logs.info (fun m ->
+        m "successfully modified %s."
+          (String_.unit_str (List.length modified_files) "file(s)"))
+  else Logs.info (fun m -> m "no files modified.")
+
+let apply_fixes_of_core_matches (matches : OutJ.core_match list) =
+  matches
+  |> List_.map_filter (fun (m : OutJ.core_match) ->
+         let* replacement_text = m.extra.fix in
+         let start = m.start.offset in
+         let end_ = m.end_.offset in
+         Some
+           Textedit.
+             { path = Fpath.to_string m.path; start; end_; replacement_text })
+  |> apply_fixes

@@ -66,6 +66,10 @@ GROUP_TITLES: Dict[Tuple[out.Product, str], str] = {
     (out.Product(out.Secrets()), "valid"): "Valid Secrets Finding",
     (out.Product(out.Secrets()), "invalid"): "Invalid Secrets Finding",
     (out.Product(out.Secrets()), "unvalidated"): "Unvalidated Secrets Finding",
+    (
+        out.Product(out.Secrets()),
+        "validation error",
+    ): "Secrets Validation Error",
 }
 
 
@@ -622,11 +626,6 @@ def print_text_output(
             console.print(
                 f"{autofix_tag} {fix if fix else with_color(Colors.red, 'delete')}"
             )
-        elif rule_match.fix_regex:
-            fix_regex = rule_match.fix_regex
-            console.print(
-                f"{autofix_tag} s/{fix_regex.regex}/{fix_regex.replacement}/{fix_regex.count or 'g'}"
-            )
         elif (
             "sca_info" in rule_match.extra
             and "sca-fix-versions" in rule_match.metadata
@@ -725,6 +724,7 @@ class TextFormatter(BaseFormatter):
                 (out.Product(out.SCA()), "reachable"): [],
                 (out.Product(out.Secrets()), "valid"): [],
                 (out.Product(out.SCA()), "undetermined"): [],
+                (out.Product(out.Secrets()), "validation error"): [],
                 (out.Product(out.Secrets()), "unvalidated"): [],
                 (out.Product(out.SCA()), "unreachable"): [],
                 (out.Product(out.SAST()), "nonblocking"): [],
@@ -743,6 +743,8 @@ class TextFormatter(BaseFormatter):
                             subgroup = "valid"
                         elif isinstance(state.value, out.ConfirmedInvalid):
                             subgroup = "invalid"
+                        elif isinstance(state.value, out.ValidationError):
+                            subgroup = "validation error"
                         else:
                             subgroup = "unvalidated"
                 else:

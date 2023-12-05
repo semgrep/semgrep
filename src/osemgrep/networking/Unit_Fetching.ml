@@ -16,7 +16,7 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-open Testutil
+open Alcotest_ext
 
 (*****************************************************************************)
 (* Code *)
@@ -25,11 +25,12 @@ open Testutil
 let real_fetch_tests () =
   let fetch_ocaml_rules () =
     match
-      Rule_fetching.load_rules_from_url
-        Uri.(of_string "https://semgrep.dev/c/p/ocaml")
+      Rule_fetching.rules_from_dashdash_config ~rewrite_rule_ids:false
+        ~token_opt:None ~registry_caching:false (Rules_config.R (Pack "ocaml"))
     with
-    | { rules; _ } ->
-        Alcotest.(check bool) "fetch ocaml rules" true (List.length rules <> 0)
+    | [ { rules; _ } ] ->
+        Alcotest.(check bool) "fetch ocaml rules" true (not @@ List_.null rules)
+    | _ -> Alcotest.fail "fetch ocaml rules; got no rules"
   in
   pack_tests "fetch tests"
     [

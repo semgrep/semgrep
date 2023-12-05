@@ -61,13 +61,13 @@ let opt f env x =
 
 let rec comma_list = function
   | [] -> []
-  | Common.Left x :: rl -> x :: comma_list rl
-  | Common.Right _ :: rl -> comma_list rl
+  | Either.Left x :: rl -> x :: comma_list rl
+  | Either.Right _ :: rl -> comma_list rl
 
 let rec comma_list_dots = function
   | [] -> []
-  | Common.Left3 x :: rl -> x :: comma_list_dots rl
-  | (Common.Middle3 _ | Common.Right3 _) :: rl -> comma_list_dots rl
+  | Either_.Left3 x :: rl -> x :: comma_list_dots rl
+  | (Either_.Middle3 _ | Either_.Right3 _) :: rl -> comma_list_dots rl
 
 let brace (_, x, _) = x
 let bracket f (a, b, c) = (a, f b, c)
@@ -132,7 +132,7 @@ and toplevels env xs =
       | NamespaceDef (t, qi, _) ->
           let xs, rest =
             xs
-            |> Common.span (function
+            |> List_.span (function
                  (* less: actually I'm not sure you can mix NamespaceDef and BracketDef*)
                  | NamespaceDef _
                  | NamespaceBracketDef _ ->
@@ -205,7 +205,7 @@ and qualified_ident env xs =
   in
   leading
   @ (rest
-    |> Common.map_filter (function
+    |> List_.map_filter (function
          | QITok _ -> None
          | QI id -> Some (ident env id)))
 
@@ -304,29 +304,19 @@ and stmt env st acc =
       match (args, colon_st) with
       (* declare(strict=1); (or 0) can be skipped,
        * See 'i wiki/index.php/Pfff/Declare_strict' *)
-      | ( ( _,
-            [
-              Common.Left
-                (Name ("strict", _), (_, Sc (C (Int ((Some 1 | Some 0), _)))));
-            ],
-            _ ),
+      | ( (_, [ Either.Left (Name ("strict", _), (_, Sc (C (Int pi)))) ], _),
           SingleStmt (EmptyStmt _) )
       | ( ( _,
-            [
-              Common.Left
-                ( Name ("strict_types", _),
-                  (_, Sc (C (Int ((Some 1 | Some 0), _)))) );
-            ],
+            [ Either.Left (Name ("strict_types", _), (_, Sc (C (Int pi)))) ],
             _ ),
           SingleStmt (EmptyStmt _) )
-      (* declare(ticks=1); can be skipped too.
-       * http://www.php.net/manual/en/control-structures.declare.php#control-structures.declare.ticks
-       *) ->
+        when Parsed_int.eq_const pi 0 || Parsed_int.eq_const pi 1
+             (* declare(ticks=1); can be skipped too.
+              * http://www.php.net/manual/en/control-structures.declare.php#control-structures.declare.ticks
+              *) ->
           acc
-      | ( ( _,
-            [ Common.Left (Name ("ticks", _), (_, Sc (C (Int (Some 1, _))))) ],
-            _ ),
-          _ ) ->
+      | (_, [ Either.Left (Name ("ticks", _), (_, Sc (C (Int pi)))) ], _), _
+        when Parsed_int.eq_const pi 1 ->
           let cst = colon_stmt tok env colon_st in
           cst :: acc
       | _ -> error tok "TODO: declare")
@@ -647,10 +637,10 @@ and constant_def env
 and comma_list_dots_params f xs =
   match xs with
   | [] -> []
-  | Common.Left3 x :: rl -> A.ParamClassic (f x) :: comma_list_dots_params f rl
+  | Either_.Left3 x :: rl -> A.ParamClassic (f x) :: comma_list_dots_params f rl
   (* less: guard by sgrep_mode? *)
-  | Common.Middle3 t :: rl -> A.ParamEllipsis t :: comma_list_dots_params f rl
-  | Common.Right3 _ :: rl -> comma_list_dots_params f rl
+  | Either_.Middle3 t :: rl -> A.ParamEllipsis t :: comma_list_dots_params f rl
+  | Either_.Right3 _ :: rl -> comma_list_dots_params f rl
 
 and func_def env f =
   let _, params, _ = f.f_params in

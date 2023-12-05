@@ -32,6 +32,7 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
+
 ##############################################################################
 # Helpers
 ##############################################################################
@@ -39,6 +40,7 @@ logger = getLogger(__name__)
 class Task:
     path: str = field(converter=str)
     analyzer: Language  # Xlang; see Xlang.mli
+    products: Tuple[out.Product, ...]
     # semgrep-core no longer uses the rule_nums field.
     # We're keeping it for now because it's needed by
     # 'split_by_lang_label_for_product'.
@@ -57,6 +59,7 @@ class Task:
         return {
             "path": self.path,
             "analyzer": self.analyzer,
+            "products": tuple(x.to_json() for x in self.products),
         }
 
 
@@ -92,13 +95,17 @@ class Plan:
         mappings: List[Task],
         rules: List[Rule],
         *,
+        product: Optional[out.Product] = None,
         lockfiles_by_ecosystem: Optional[Dict[Ecosystem, FrozenSet[Path]]] = None,
+        unused_rules: Optional[List[Rule]] = None,
     ):
         self.target_mappings = TargetMappings(mappings)
         # important: this is a list of rule_ids, not a set
         # target_mappings relies on the index of each rule_id in rule_ids
         self.rules = rules
+        self.product = product
         self.lockfiles_by_ecosystem = lockfiles_by_ecosystem
+        self.unused_rules = unused_rules or []
 
     # TODO: make this counts_by_lang_label, returning TaskCounts
     def split_by_lang_label(self) -> Dict[str, "TargetMappings"]:
@@ -118,6 +125,7 @@ class Plan:
                 else Task(
                     path=task.path,
                     analyzer=task.analyzer,
+                    products=(product,),
                     rule_nums=tuple(
                         num
                         for num in task.rule_nums

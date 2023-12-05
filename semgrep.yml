@@ -1,5 +1,4 @@
-# This file contains Semgrep rules.
-# See https://semgrep.dev for more information.
+# This file contains Semgrep rules. See https://semgrep.dev for more info.
 #
 # You can use this file locally either with:
 #  - docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep:develop --config semgrep.yml
@@ -14,34 +13,32 @@
 
 rules:
   - id: no-print-in-semgrep
-    patterns:
-      - pattern-either:
-          - pattern: pr ...
-          - pattern: print_string ...
-      - pattern-not-inside: |
-          if !Flag.debug
-          then ...
-      - pattern-not-inside: |
-          let $F ... =
-             ...
-          [@@action]
+    match:
+      all:
+        - any:
+            - UCommon.pr ...
+            - pr ...
+            - print_string ...
+        - not:
+            inside: |
+              if !Flag.debug
+              then ...
+        - not:
+            inside: |
+              let $F ... =
+              ...
+              [@@action]
     message: you should not print anything on stdout as it may interfere with
       the JSON output we must return to the semgrep python wrapper.
+      Use Logs.debug() for debugging or Out.put() for actual valid output.
     languages: [ocaml]
     severity: ERROR
     paths:
       exclude:
-        - core_cli/*.ml
-        - cli/*.ml
-        - cli_*/*.ml
         - Test.ml
-        - Core_text_output.ml
-        - Matching_explanation.ml
+        - Check_*.ml
         - Unit_*.ml
         - Test_*.ml
-        - core_scan/*.ml
-        - experiments/*
-        - Check_*.ml
         - libs/*
         - languages/*
         - scripts/*
@@ -79,13 +76,13 @@ rules:
           - pattern: Pcre.exec_all
           - pattern: Pcre.split
     message: >-
-      You should use one of the equivalent functions in SPcre, which
+      You should use one of the equivalent functions in Pcre_, which
       automatically sets some flags and handles exceptions.
     languages: [ocaml]
     severity: ERROR
     paths:
       exclude:
-        - SPcre.ml
+        - Pcre_.ml
 
   - id: no-list-map2
     pattern: List.map2

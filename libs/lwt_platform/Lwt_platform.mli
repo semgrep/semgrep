@@ -13,3 +13,6 @@ val set_engine : unit -> unit
     This is important as select/poll is not great, and can easily
     run out of FDs, crashing the LS.
   *)
+
+val sleep : float -> unit Lwt.t
+(** [sleep delay] returns a promise that will be resolved after [delay] seconds. *)

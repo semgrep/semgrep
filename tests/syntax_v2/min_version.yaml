@@ -1,0 +1,25 @@
+rules:
+  - id: any-version
+    match: x
+    message: "This rule was successfully applied."
+    languages: [python]
+    severity: ERROR
+  - id: need-to-upgrade1
+    min-version: 1000.0.0
+    match: x
+    message: "This rule should have been skipped."
+    languages: [python]
+    severity: ERROR
+  - id: retired-feature1
+    max-version: 0.0.0
+    match: x
+    message: "This rule should have been skipped."
+    languages: [python]
+    severity: ERROR
+  - id: compatible-version-range
+    min-version: 1.0.0
+    max-version: 50.0.0
+    match: x
+    message: "This rule was successfully applied."
+    languages: [python]
+    severity: ERROR

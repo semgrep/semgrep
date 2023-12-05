@@ -33,6 +33,7 @@ local job(container=semgrep.ocaml_alpine_container, artifact=artifact_name, run_
     steps: [
       gha.speedy_checkout_step,
       actions.checkout_with_submodules(),
+      gha.git_safedir,
       {
         name: 'Build semgrep-core',
         run: |||

@@ -28,7 +28,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 type 'a env = {
   (* TODO: use Fpath.t *)
-  file : Common.filename;
+  file : string; (* filename *)
   (* get the charpos (offset) in file given a line x col *)
   conv : (int * int, int) Hashtbl.t;
   extra : 'a;
@@ -42,7 +42,7 @@ type 'a env = {
 let line_col_to_pos file =
   let size = Common2.filesize file + 2 in
   let h = Hashtbl.create size in
-  Common.with_open_infile file (fun chan ->
+  UCommon.with_open_infile file (fun chan ->
       let charpos = ref 0 in
       let line = ref 0 in
 

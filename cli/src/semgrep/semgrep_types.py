@@ -4,6 +4,8 @@ from typing import Collection
 from typing import Mapping
 from typing import NewType
 from typing import Optional
+from uuid import UUID
+from uuid import uuid4
 
 from attrs import frozen
 
@@ -17,6 +19,16 @@ Shebang = str
 
 JOIN_MODE = Mode("join")
 SEARCH_MODE = DEFAULT_MODE = Mode("search")
+FROZEN_ID: UUID = uuid4()
+
+
+def get_frozen_id() -> UUID:
+    """
+    Return a frozen UUID to identify a local scan and its corresponding results (if any)
+    within the Semgrep App. We avoid initializing this UUID within our state object to
+    prevent circular dependencies.
+    """
+    return FROZEN_ID
 
 
 class Language(str):
@@ -109,6 +121,5 @@ class _LanguageData:
 
 
 LANGUAGE = _LanguageData()
-
 
 ALLOWED_GLOB_TYPES = ("include", "exclude")

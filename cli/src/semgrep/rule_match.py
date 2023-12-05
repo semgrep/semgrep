@@ -13,7 +13,6 @@ from typing import Iterator
 from typing import List
 from typing import Optional
 from typing import Tuple
-from typing import TYPE_CHECKING
 from uuid import UUID
 
 from attrs import evolve
@@ -30,8 +29,8 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.util import get_lines
 
-if TYPE_CHECKING:
-    from semgrep.rule import Rule
+
+CliUniqueKey = Tuple[str, str, int, int, str, Optional[str]]
 
 
 def rstrip(value: Optional[str]) -> Optional[str]:
@@ -73,7 +72,6 @@ class RuleMatch:
     # We call rstrip() for consistency with semgrep-core, which ignores whitespace
     # including newline chars at the end of multiline patterns
     fix: Optional[str] = field(converter=rstrip, default=None)
-    fix_regex: Optional[out.FixRegex] = None
 
     # ???
     index: int = 0
@@ -96,7 +94,7 @@ class RuleMatch:
     lines: List[str] = field(init=False, repr=False)
     previous_line: str = field(init=False, repr=False)
     syntactic_context: str = field(init=False, repr=False)
-    cli_unique_key: Tuple = field(init=False, repr=False)
+    cli_unique_key: CliUniqueKey = field(init=False, repr=False)
     ci_unique_key: Tuple = field(init=False, repr=False)
     ordering_key: Tuple = field(init=False, repr=False)
     match_based_key: Tuple = field(init=False, repr=False)
@@ -201,7 +199,7 @@ class RuleMatch:
         return code
 
     @cli_unique_key.default
-    def get_cli_unique_key(self) -> Tuple:
+    def get_cli_unique_key(self) -> CliUniqueKey:
         """
         A unique key designed with data-completeness & correctness in mind.
 
@@ -209,34 +207,58 @@ class RuleMatch:
 
         Used for deduplication in the CLI before writing output.
         """
-        if self.from_transient_scan:
-            # NOTE: We include the previous scan's rules in the config for consistent fixed status work.
-            # For unique hashing/grouping, previous and current scan rules must have distinct check IDs.
-            # Hence, previous scan rules are annotated with a unique check ID, while the original ID is kept in metadata.
-            # As check_id is used for cli_unique_key, this patch fetches the check ID from metadata for previous scan findings.
-            # TODO: Once the fixed status work is stable, all findings should fetch the check ID from metadata.
-            # This fallback prevents breaking current scan results if an issue arises.
-            return (
-                self.annotated_rule_name,
-                str(self.path),
-                self.start.offset,
-                self.end.offset,
-                self.message,
-                None,
-            )
         return (
-            self.rule_id,
+            # NOTE: We include the previous scan's rules in the config for
+            # consistent fixed status work. For unique hashing/grouping,
+            # previous and current scan rules must have distinct check IDs.
+            # Hence, previous scan rules are annotated with a unique check ID,
+            # while the original ID is kept in metadata. As check_id is used
+            # for cli_unique_key, this patch fetches the check ID from metadata
+            # for previous scan findings.
+            # TODO: Once the fixed status work is stable, all findings should
+            # fetch the check ID from metadata. This fallback prevents breaking
+            # current scan results if an issue arises.
+            self.annotated_rule_name if self.from_transient_scan else self.rule_id,
             str(self.path),
             self.start.offset,
             self.end.offset,
             self.message,
             # TODO: Bring this back.
-            # This is necessary so we don't deduplicate taint findings which have different sources.
+            # This is necessary so we don't deduplicate taint findings which
+            # have different sources.
+            #
             # self.match.extra.dataflow_trace.to_json_string
             # if self.match.extra.dataflow_trace
             # else None,
             None,
+            # NOTE: previously, we considered self.match.extra.validation_state
+            # here, but since in some cases (e.g., with `anywhere`) we generate
+            # many matches in certain cases, we want to consider secrets
+            # matches unique under the above set of things, but with a priority
+            # associated with the validation state; i.e., a match with a
+            # confirmed valid state should replace all matches equal under the
+            # above key. We can't do that just by not considering validation
+            # state since we would pick one arbitrarily, and if we added it
+            # below then we would report _both_ valid and invalid (but we only
+            # want to report valid, if a valid one is present and unique per
+            # above fields). See also `should_report_instead`.
         )
+
+    def should_report_instead(self, other: "RuleMatch") -> bool:
+        """
+        Returns True iff we should report `self` in lieu of reporting `other`.
+        This is currently only used for the following items:
+        - secrets: a valid finding is reported over an invalid one
+
+        Assumes that self.cli_unique_key == other.cli_unique_key
+        """
+        if self.validation_state is None:
+            return False
+        if other.validation_state is None:
+            return True
+        return isinstance(
+            self.validation_state.value, out.ConfirmedValid
+        ) and not isinstance(other.validation_state.value, out.ConfirmedValid)
 
     @ci_unique_key.default
     def get_ci_unique_key(self) -> Tuple:

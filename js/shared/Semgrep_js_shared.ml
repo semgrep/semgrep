@@ -90,6 +90,50 @@ let setJustParseWithLang (func : jstring -> jstring -> Parsing_result2.t) =
           func (Js.string (Lang.to_lowercase_alnum lang)) (Js.string filename)
 
 (*****************************************************************************)
+(* Reporting *)
+(*****************************************************************************)
+
+let ppf, flush =
+  let b = Buffer.create 255 in
+  let flush () =
+    let s = Buffer.contents b in
+    Buffer.clear b;
+    s
+  in
+  (Format.formatter_of_buffer b, flush)
+
+let console_report _src _level ~over k msgf =
+  let k _ =
+    Firebug.console##error (Js.string (flush ()));
+    over ();
+    k ()
+  in
+  msgf @@ fun ?header ?tags fmt ->
+  ignore tags;
+  match header with
+  | None -> Format.kfprintf k ppf ("@[" ^^ fmt ^^ "@]@.")
+  | Some h -> Format.kfprintf k ppf ("[%s] @[" ^^ fmt ^^ "@]@.") h
+
+(*****************************************************************************)
+(* Promises *)
+(*****************************************************************************)
+
+let _Promise = Js.Unsafe.global##._Promise
+
+let promise_of_lwt lwt =
+  new%js _Promise
+    (Js.wrap_callback (fun resolve reject ->
+         try%lwt
+           let%lwt res = lwt () in
+           Js.Unsafe.fun_call resolve [| Js.Unsafe.inject res |]
+         with
+         | e ->
+             let msg = Printexc.to_string e in
+             Firebug.console##error (Js.string msg);
+             Js.Unsafe.fun_call reject
+               [| Js.Unsafe.inject (new%js Js.error_constr (Js.string msg)) |]))
+
+(*****************************************************************************)
 (* Entrypoints *)
 (*****************************************************************************)
 
@@ -97,7 +141,7 @@ let make_js_module ?(parse_target_ts_only = None) (langs : Lang.t list)
     parse_target parse_pattern =
   let lang_names =
     Array.of_list
-      (Common.map (fun x -> Js.string (Lang.to_lowercase_alnum x)) langs)
+      (List_.map (fun x -> Js.string (Lang.to_lowercase_alnum x)) langs)
   in
   Js.export "createParser" (fun wasm_module ->
       set_parser_wasm_module wasm_module;

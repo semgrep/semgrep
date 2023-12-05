@@ -1,9 +1,5 @@
 const SemgrepEngineWasm = require("../dist/semgrep-engine");
 
-import { getDirname } from "cross-dirname";
-
-const WASM_FILENAME = "semgrep-engine.wasm";
-
 export class MissingParserError extends Error {
   constructor(lang) {
     super(`No parser initialized for language: ${lang}`);
@@ -11,13 +7,8 @@ export class MissingParserError extends Error {
   }
 }
 
-export const EngineFactory = async (wasmUri) => {
-  if (!wasmUri) {
-    wasmUri = `${getDirname()}/${WASM_FILENAME}`;
-  }
-  const wasm = await SemgrepEngineWasm({
-    locateFile: (uri) => (uri === WASM_FILENAME ? wasmUri : uri),
-  });
+export const EngineFactory = async () => {
+  const wasm = await SemgrepEngineWasm();
   // libpcre regrettably must be global because semgrep eagerly compiles regexes
   globalThis.LibPcreModule = wasm;
   const {

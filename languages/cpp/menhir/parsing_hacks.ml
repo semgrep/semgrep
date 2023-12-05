@@ -122,7 +122,7 @@ let insert_virtual_positions l =
 (*****************************************************************************)
 let fix_tokens_for_language lang xs =
   xs
-  |> Common.map (fun tok ->
+  |> List_.map (fun tok ->
          if lang =*= Flag_parsing_cpp.C && TH.is_cpp_keyword tok then
            let ii = TH.info_of_tok tok in
            T.TIdent (Tok.content_of_tok ii, ii)
@@ -163,8 +163,8 @@ let fix_tokens_fuzzy toks =
     and iter_parens env xs =
       xs
       |> List.iter (function
-           | Left trees -> aux env trees
-           | Right _comma -> ())
+           | Either.Left trees -> aux env trees
+           | Either.Right _comma -> ())
     in
     aux () trees;
 

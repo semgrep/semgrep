@@ -128,7 +128,7 @@ and struct_kind = Struct | Union
 (* Expression *)
 (*****************************************************************************)
 and expr =
-  | Int of int option wrap
+  | Int of Parsed_int.t
   | Float of float option wrap
   | String of string wrap (* TODO: bracket *)
   | Char of string wrap
@@ -228,8 +228,7 @@ and stmt =
 and case = Case of tok * expr * stmt list | Default of tok * stmt list
 
 and for_header =
-  | ForClassic of
-      (var_decl list, expr) Common.either * expr option * expr option
+  | ForClassic of (var_decl list, expr) Either_.t * expr option * expr option
   (* sgrep-ext: *)
   | ForEllipsis of tok (* ... *)
 

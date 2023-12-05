@@ -1,4 +1,4 @@
-type range_kind = Plain | Inside | Regexp [@@deriving show]
+type range_kind = Plain | Inside | Anywhere | Regexp [@@deriving show]
 
 (* range with metavars *)
 type t = {
@@ -60,7 +60,7 @@ let (range_to_pattern_match_adjusted : Rule.t -> t -> Pattern_match.t) =
 let logger = Logging.get_logger [ __MODULE__ ]
 
 let included_in config rv1 rv2 =
-  Range.( $<=$ ) rv1.r rv2.r
+  (Range.( $<=$ ) rv1.r rv2.r || rv2.kind = Anywhere)
   && rv1.mvars
      |> List.for_all (fun (mvar, mval1) ->
             match List.assoc_opt mvar rv2.mvars with
@@ -106,28 +106,26 @@ let inside_compatible x y =
  * alt: we could do the rewriting ourselves, detecting that the
  * metavariable-regex has the wrong scope.
  *)
-let intersect_ranges config debug_matches xs ys =
-  let left_merge r1 r2 =
-    (* [r1] extended with [r2.mvars], assumes [included_in config r1 r2] *)
-    let r2_only_mvars =
-      r2.mvars
-      |> List.filter (fun (mvar, _) -> not (List.mem_assoc mvar r1.mvars))
-    in
-    { r1 with mvars = r2_only_mvars @ r1.mvars }
+let intersect_ranges config ~debug_matches xs ys =
+  let left_merge u v =
+    if included_in config u v && inside_compatible u v then
+      (* [u] extended with [v.mvars], assumes [included_in config u v] *)
+      let v_only_mvars =
+        v.mvars
+        |> List.filter (fun (mvar, _) -> not (List.mem_assoc mvar u.mvars))
+      in
+      Some { u with mvars = v_only_mvars @ u.mvars }
+    else None
   in
-  let left_included_merge us vs =
-    us
-    |> Common2.map_flatten (fun u ->
-           vs
-           |> Common.map_filter (fun v ->
-                  if included_in config u v && inside_compatible u v then
-                    Some (left_merge u v)
-                  else None))
+  let merge p us vs =
+    us |> Common2.map_flatten (fun u -> vs |> List_.map_filter (fun v -> p u v))
   in
   if debug_matches then
     logger#info "intersect_range:\n\t%s\nvs\n\t%s" (show_ranges xs)
       (show_ranges ys);
-  left_included_merge xs ys @ left_included_merge ys xs
+  merge left_merge xs ys
+  (* TODO: just call merge once? *)
+  @ merge (Fun.flip left_merge) xs ys
 [@@profiling]
 
 let difference_ranges config pos neg =
@@ -147,8 +145,9 @@ let difference_ranges config pos neg =
                     (* pattern-not-regex: x and y exclude each other *)
                     | Regexp -> included_in config x y || included_in config y x
                     (* pattern-not: we require the ranges to be equal *)
-                    | Plain -> included_in config x y && included_in config y x)
-             ))
+                    | Plain -> included_in config x y && included_in config y x
+                    (* not: { anywhere: y } -- y cannot occur *)
+                    | Anywhere -> true)))
   in
   surviving_pos
 [@@profiling]

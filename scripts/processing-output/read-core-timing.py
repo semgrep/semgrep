@@ -43,7 +43,6 @@ for target in target_times:
     target_parse_times[path] = 0
     target_match_times[path] = 0
     for rule in target["rule_times"]:
-
         p_time = rule["parse_time"]
         m_time = rule["match_time"]
 

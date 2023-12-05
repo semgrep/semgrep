@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 module R = Rule
 module XP = Xpattern
 module MR = Mini_rule
@@ -25,6 +25,7 @@ module RM = Range_with_metavars
 module E = Core_error
 module ME = Matching_explanation
 module GG = Generic_vs_generic
+module OutJ = Semgrep_output_v1_j
 open Match_env
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -111,7 +112,7 @@ type selector = {
 (*****************************************************************************)
 let xpatterns_in_formula (e : R.formula) : (Xpattern.t * bool) list =
   let res = ref [] in
-  e |> R.visit_new_formula (fun xpat ~inside:b -> Common.push (xpat, b) res);
+  e |> R.visit_new_formula (fun xpat ~inside:b -> Stack_.push (xpat, b) res);
   !res
 
 let partition_xpatterns xs =
@@ -123,11 +124,11 @@ let partition_xpatterns xs =
   |> List.iter (fun (xpat, inside) ->
          let { XP.pid; pstr = str, _; pat } = xpat in
          match pat with
-         | XP.Sem (x, _lang) -> Common.push (x, inside, pid, str) semgrep
-         | XP.Spacegrep x -> Common.push (x, pid, str) spacegrep
-         | XP.Aliengrep x -> Common.push (x, pid, str) aliengrep
+         | XP.Sem (x, _lang) -> Stack_.push (x, inside, pid, str) semgrep
+         | XP.Spacegrep x -> Stack_.push (x, pid, str) spacegrep
+         | XP.Aliengrep x -> Stack_.push (x, pid, str) aliengrep
          | XP.Regexp x ->
-             Common.push (Regexp_engine.pcre_compile x, pid, str) regexp);
+             Stack_.push (Regexp_engine.pcre_compile x, pid, str) regexp);
   (List.rev !semgrep, List.rev !spacegrep, List.rev !aliengrep, List.rev !regexp)
 
 let group_matches_per_pattern_id (xs : Pattern_match.t list) :
@@ -182,6 +183,7 @@ let (mini_rule_of_pattern :
     (* useful for debugging timeout *)
     pattern_string = pstr;
     fix = rule.Rule.fix;
+    fix_regexp = rule.Rule.fix_regexp;
   }
 
 (*****************************************************************************)
@@ -235,7 +237,7 @@ let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
         Common.with_time (fun () ->
             let mini_rules =
               patterns
-              |> Common.map (function (lazy pat), b, c, d ->
+              |> List_.map (function (lazy pat), b, c, d ->
                      mini_rule_of_pattern xlang rule (pat, b, c, d))
             in
 
@@ -330,8 +332,9 @@ let run_selector_on_ranges env selector_opt ranges =
       logger#info "run_selector_on_ranges: found %d matches"
         (List.length res.matches);
       res.matches
-      |> Common.map RM.match_result_to_range
-      |> RM.intersect_ranges env.xconf.config !debug_matches ranges
+      |> List_.map RM.match_result_to_range
+      |> RM.intersect_ranges env.xconf.config ~debug_matches:!debug_matches
+           ranges
 
 let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
     (ranges : RM.ranges) : RM.ranges =
@@ -341,7 +344,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
     else None
   in
   (* this will return a list of new ranges that have been restricted by the variables in focus_mvars *)
-  let apply_focus_mvars (focus_mvars : MV.mvar list) (range : RM.t) : RM.t stack
+  let apply_focus_mvars (focus_mvars : MV.mvar list) (range : RM.t) : RM.t list
       =
     (* A list that groups each metavariable under all of the `focus-metavariables`
      * within a `patterns` with the "metavariable value" that each one captures.
@@ -364,7 +367,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
     in
     let fm_mval_range_locs =
       fm_mvals
-      |> Common.map_filter (fun (focus_mvar, mval) ->
+      |> List_.map_filter (fun (focus_mvar, mval) ->
              let* range_loc =
                AST_generic_helpers.range_of_any_opt (MV.mvalue_to_any mval)
              in
@@ -372,7 +375,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
     in
     let focus_matches =
       fm_mval_range_locs
-      |> Common.map (fun (focus_mvar, mval, range_loc) ->
+      |> List_.map (fun (focus_mvar, mval, range_loc) ->
              {
                PM.rule_id = fake_rule_id (-1, focus_mvar);
                file = !!(env.xtarget.file);
@@ -388,7 +391,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
     in
     let focused_ranges =
       (* Filter out focused ranges that are outside of the original range *)
-      Common.map_filter
+      List_.map_filter
         (fun fms -> intersect (RM.match_result_to_range fms) range)
         focus_matches
     in
@@ -401,7 +404,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
      *)
     let focused_ranges_list =
       focus_mvars_list
-      |> Common.map (fun (_tok, focus_mvars) ->
+      |> List_.map (fun (_tok, focus_mvars) ->
              (* focus_mvars is a list of the metavariables under a single
                 focus-metavariable statement.
 
@@ -412,8 +415,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
              let focused_ranges = apply_focus_mvars focus_mvars init_range in
              focused_ranges)
     in
-    let intersect_ranges (list1 : RM.t stack) (list2 : RM.t stack) : RM.t stack
-        =
+    let intersect_ranges (list1 : RM.t list) (list2 : RM.t list) : RM.t list =
       match (list1, list2) with
       | [ range1 ], [ range2 ] -> (
           match intersect range1 range2 with
@@ -430,7 +432,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
             "Semgrep currently does not support multiple `focus-metavariable` \
              statements with multiple metavariables under a single `patterns`."
     in
-    let rec intersect_ranges_list (l : RM.t stack stack) : RM.t stack =
+    let rec intersect_ranges_list (l : RM.t list list) : RM.t list =
       match l with
       | [] -> failwith "No focus-metavariable statements found."
       | [ first ] -> first
@@ -481,10 +483,10 @@ let if_explanations (env : env) (ranges : RM.ranges)
   if env.xconf.matching_explanations then
     let matches =
       ranges
-      |> Common.map (fun range ->
+      |> List_.map (fun range ->
              RM.range_to_pattern_match_adjusted env.rule range)
     in
-    let xs = Common.map_filter (fun x -> x) children in
+    let xs = List_.map_filter (fun x -> x) children in
     let expl = { ME.op; pos = tok; children = xs; matches } in
     Some expl
   else None
@@ -508,7 +510,7 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
          *)
         let children =
           subs
-          |> Common.map (fun pat ->
+          |> List_.map (fun pat ->
                  let match_result =
                    matches_of_patterns env.rule env.xconf env.xtarget
                      [ (lazy pat, false, xpat.pid, "TODO") ]
@@ -522,7 +524,7 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
                   *)
                  let pos = snd xpat.pstr in
                  (* less: in theory we could decompose again pat and get children*)
-                 { ME.op = Out.XPat pstr; pos; matches; children = [] })
+                 { ME.op = XPat pstr; pos; matches; children = [] })
         in
         (* less: add a Out.EllipsisAndStmts intermediate? *)
         children
@@ -539,7 +541,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
     (cond : R.metavar_cond) : (RM.t * MV.bindings list) list =
   let file = env.xtarget.file in
   xs
-  |> Common.map_filter (fun (r, new_bindings) ->
+  |> List_.map_filter (fun (r, new_bindings) ->
          let map_bool r b = if b then Some (r, new_bindings) else None in
          let bindings = r.RM.mvars in
          match cond with
@@ -562,7 +564,9 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
                | G.E e -> Some e
                | _ -> None
              in
-             match List.assoc_opt mvar bindings >>= mvalue_to_expr with
+             match
+               Option.bind (List.assoc_opt mvar bindings) mvalue_to_expr
+             with
              | Some e ->
                  let lang =
                    match Option.value opt_lang ~default:env.xtarget.xlang with
@@ -710,27 +714,31 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
       let kind = if Xpattern.is_regexp xpat then RM.Regexp else RM.Plain in
       let ranges =
         match_results
-        |> Common.map RM.match_result_to_range
-        |> Common.map (fun r -> { r with RM.kind })
+        |> List_.map RM.match_result_to_range
+        |> List_.map (fun r -> { r with RM.kind })
       in
       (* we can decompose the pattern in subpatterns to provide
           * intermediate explanations for complex patterns like A...B
       *)
       let children =
-        children_explanations_of_xpat env xpat |> Common.map (fun x -> Some x)
+        children_explanations_of_xpat env xpat |> List_.map (fun x -> Some x)
       in
-      let expl = if_explanations env ranges children (Out.XPat pstr, tok) in
+      let expl = if_explanations env ranges children (OutJ.XPat pstr, tok) in
       (ranges, expl)
   | R.Inside (tok, formula) ->
       let ranges, expls = evaluate_formula env opt_context formula in
-      let expl = if_explanations env ranges [ expls ] (Out.Inside, tok) in
-      (Common.map (fun r -> { r with RM.kind = RM.Inside }) ranges, expl)
+      let expl = if_explanations env ranges [ expls ] (OutJ.Inside, tok) in
+      (List_.map (fun r -> { r with RM.kind = RM.Inside }) ranges, expl)
+  | R.Anywhere (tok, formula) ->
+      let ranges, expls = evaluate_formula env opt_context formula in
+      let expl = if_explanations env ranges [ expls ] (OutJ.Anywhere, tok) in
+      (List_.map (fun r -> { r with RM.kind = RM.Anywhere }) ranges, expl)
   | R.Or (tok, xs) ->
       let ranges, expls =
-        xs |> Common.map (evaluate_formula env opt_context) |> Common2.unzip
+        xs |> List_.map (evaluate_formula env opt_context) |> Common2.unzip
       in
       let ranges = List.flatten ranges in
-      let expl = if_explanations env ranges expls (Out.Or, tok) in
+      let expl = if_explanations env ranges expls (OutJ.Or, tok) in
       (ranges, expl)
   | R.And (t, ({ conditions = conds; focus; _ } as conj)) -> (
       (* we now treat pattern: and pattern-inside: differently. We first
@@ -752,7 +760,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
 
       (* let's start with the positive ranges *)
       let posrs, posrs_expls =
-        Common.map (evaluate_formula env opt_context) pos |> Common2.unzip
+        List_.map (evaluate_formula env opt_context) pos |> Common2.unzip
       in
       (* subtle: we need to process and intersect the pattern-inside after
        * (see tests/rules/inside.yaml).
@@ -763,7 +771,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
        *)
       let posrs, posrs_inside =
         posrs
-        |> Common.partition_either (fun xs ->
+        |> Either_.partition_either (fun xs ->
                match xs with
                (* todo? should we double check they are all inside? *)
                | { RM.kind = Inside; _ } :: _ -> Right xs
@@ -785,7 +793,8 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
             posrs
             |> List.fold_left
                  (fun acc r ->
-                   RM.intersect_ranges env.xconf.config !debug_matches acc r)
+                   RM.intersect_ranges env.xconf.config
+                     ~debug_matches:!debug_matches acc r)
                  ranges
           in
           (* optimization of `pattern: $X` *)
@@ -801,7 +810,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
                      RM.difference_ranges env.xconf.config ranges ranges_neg
                    in
                    let expl =
-                     if_explanations env ranges [ expl ] (Out.Negation, tok)
+                     if_explanations env ranges [ expl ] (OutJ.Negation, tok)
                    in
                    (ranges, expl :: acc_expls))
                  (ranges, [])
@@ -830,12 +839,12 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
                    in
                    let expl =
                      if_explanations env
-                       (Common.map fst ranges_with_bindings)
+                       (List_.map fst ranges_with_bindings)
                        []
-                       (Out.Filter (Tok.content_of_tok tok), tok)
+                       (OutJ.Filter (Tok.content_of_tok tok), tok)
                    in
                    (ranges_with_bindings, expl :: acc_expls))
-                 (Common.map (fun x -> (x, [])) ranges, [])
+                 (List_.map (fun x -> (x, [])) ranges, [])
           in
 
           (* Here, we unpack all the persistent bindings for each instance of the inner
@@ -853,7 +862,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
                    *)
                    r
                    :: (new_bindings_list
-                      |> Common.map (fun new_bindings ->
+                      |> List_.map (fun new_bindings ->
                              { r with RM.mvars = new_bindings @ r.RM.mvars })))
           in
 
@@ -867,13 +876,13 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
             | (tok, _mvar) :: _rest ->
                 [
                   if_explanations env ranges []
-                    (Out.Filter "metavariable-focus", tok);
+                    (OutJ.Filter "metavariable-focus", tok);
                 ]
           in
           let expl =
             if_explanations env ranges
               (posrs_expls @ negs_expls @ filter_expls @ focus_expls)
-              (Out.And, t)
+              (OutJ.And, t)
           in
           (ranges, expl))
   | R.Not _ -> failwith "Invalid Not; you can only negate inside an And"
@@ -926,7 +935,7 @@ let check_rule ({ R.mode = `Search formula; _ } as r) hook xconf xtarget =
     res with
     RP.matches =
       final_ranges
-      |> Common.map (RM.range_to_pattern_match_adjusted r)
+      |> List_.map (RM.range_to_pattern_match_adjusted r)
       (* dedup similar findings (we do that also in Match_patterns.ml,
        * but different mini-rules matches can now become the same match)
        *)

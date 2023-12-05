@@ -16,6 +16,25 @@ version: 2.1
 ###############################################################################
 
 jobs:
+  # This seems a bit redundant with the .github/workflow/build-xxx workflows
+  # but those workflows are using Alpine; here at least we test whether
+  # we build under Ubuntu. Moreover, when GHA behaves weird, it's nice to
+  # check whether similar commands are working fine in CircleCI.
+  build-ubuntu:
+    docker:
+      - image: returntocorp/ocaml:ubuntu-2023-10-17
+        user: root
+    working_directory: /src
+    steps:
+      - checkout
+      - run: git submodule update --init
+      - run: |
+          eval $(opam env)
+          make install-deps-UBUNTU-for-semgrep-core
+          make install-deps-for-semgrep-core
+          make install-deps
+          make core
+
   # Dogfood!
   semgrep:
     docker:
@@ -120,7 +139,24 @@ workflows:
   # no triggers, runs on every PRs
   semgrep:
     jobs:
-      - semgrep
+      - semgrep:
+          filters:
+            branches:
+              # we ignore those branches which are used by semgrep-ci
+              # because we can't signup semgrep-ci github app in circleCI
+              # and get annoying "block-unregister-user" error on those PRs
+              ignore:
+                - /release-.*/
+                - /update-semgrep-rules-.*/
+
+  build-and-check:
+    jobs:
+      - build-ubuntu:
+          filters:
+            branches:
+              ignore:
+                - /release-.*/
+                - /update-semgrep-rules-.*/
 
   #----------------------------------------
   # Crons

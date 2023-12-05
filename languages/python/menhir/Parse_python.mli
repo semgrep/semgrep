@@ -10,11 +10,11 @@ type parsing_mode =
  *)
 val parse :
   ?parsing_mode:parsing_mode (* default mode is Python *) ->
-  Common.filename ->
+  string (* filename *) ->
   (AST_python.program, Parser_python.token) Parsing_result.t
 
 val parse_program :
-  ?parsing_mode:parsing_mode -> Common.filename -> AST_python.program
+  ?parsing_mode:parsing_mode -> string (* filename *) -> AST_python.program
 
 (* other parsers *)
 
@@ -28,7 +28,7 @@ val type_of_string :
 (* for sgrep via fuzzy AST *)
 (*
 val parse_fuzzy:
-  Common.filename -> Ast_fuzzy.trees * Parser_python.token list
+  string (* filename *) -> Ast_fuzzy.trees * Parser_python.token list
 *)
 
 (* to help write test code *)

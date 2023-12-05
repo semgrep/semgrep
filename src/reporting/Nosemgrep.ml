@@ -1,4 +1,4 @@
-module Out = Semgrep_output_v1_j
+module OutJ = Semgrep_output_v1_j
 
 (*****************************************************************************)
 (* Prelude *)
@@ -37,7 +37,7 @@ let rule_id_re_str = {|(?:[:=][\s]?(?P<ids>([^,\s](?:[,\s]+)?)+))?|}
    * nosem and nosemgrep should be interchangeable
 *)
 let nosem_inline_re_str = {| nosem(?:grep)?|} ^ rule_id_re_str
-let nosem_inline_re = SPcre.regexp nosem_inline_re_str ~flags:[ `CASELESS ]
+let nosem_inline_re = Pcre_.regexp nosem_inline_re_str ~flags:[ `CASELESS ]
 
 (*
    A nosemgrep comment alone on its line.
@@ -52,7 +52,7 @@ let nosem_inline_re = SPcre.regexp nosem_inline_re_str ~flags:[ `CASELESS ]
      print('nosemgrep');
 *)
 let nosem_previous_line_re =
-  SPcre.regexp
+  Pcre_.regexp
     ({|^[^a-zA-Z0-9]* nosem(?:grep)?|} ^ rule_id_re_str)
     ~flags:[ `CASELESS ]
 
@@ -65,10 +65,10 @@ let nosem_previous_line_re =
    array IDs (["ids"]) collected during this recognition.
 *)
 let recognise_and_collect ~rex line =
-  SPcre.exec_all ~rex line
+  Pcre_.exec_all ~rex line
   |> Result.map
        (Array.map (fun subst ->
-            match SPcre.get_named_substring rex "ids" subst with
+            match Pcre_.get_named_substring rex "ids" subst with
             | Ok opt_s -> opt_s
             | Error _errmsg ->
                 (* TODO: log something? *)
@@ -80,17 +80,17 @@ let recognise_and_collect ~rex line =
    If [strict:true], we returns possible errors when [nosem] is used with an
    ID which is not equal to the rule's ID.
 *)
-let rule_match_nosem ~strict (rule_match : Out.cli_match) :
-    bool * Out.cli_error list =
+let rule_match_nosem ~strict (rule_match : OutJ.cli_match) :
+    bool * OutJ.cli_error list =
   let lines =
-    File.lines_of_file
-      (max 0 (rule_match.Out.start.line - 1), rule_match.Out.end_.line)
-      rule_match.Out.path
+    UFile.lines_of_file
+      (max 0 (rule_match.start.line - 1), rule_match.end_.line)
+      rule_match.path
   in
 
   let previous_line, line =
     match lines with
-    | line0 :: line1 :: _ when rule_match.Out.start.line > 0 ->
+    | line0 :: line1 :: _ when rule_match.start.line > 0 ->
         (Some line0, Some line1)
     | line :: _ -> (None, Some line)
     | [] (* XXX(dinosaure): is it possible? *) -> (None, None)
@@ -125,14 +125,14 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
           (Option.value ~default:[||] ids_line)
           (Option.value ~default:[||] ids_previous_line)
       in
-      let ids = Common.map_filter Fun.id (Array.to_list ids) in
-      let ids = Common.map (String.split_on_char ' ') ids in
-      let ids = Common.map List.hd (* nosemgrep: list-hd *) ids in
+      let ids = List_.map_filter Fun.id (Array.to_list ids) in
+      let ids = List_.map (String.split_on_char ' ') ids in
+      let ids = List_.map List.hd (* nosemgrep: list-hd *) ids in
       (* [String.split_on_char] can **not** return an empty list. *)
       (* check if the id specified by the user is the [rule_match]'s [rule_id]. *)
       let nosem_matches id =
         (* TODO: id should be a Rule_ID.t too *)
-        Rule_ID.ends_with rule_match.Out.check_id ~suffix:(Rule_ID.of_string id)
+        Rule_ID.ends_with rule_match.check_id ~suffix:(Rule_ID.of_string id)
       in
       List.fold_left
         (fun (result, errors) id ->
@@ -145,11 +145,11 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
                   "found 'nosem' comment with id '%s', but no corresponding \
                    rule trying '%s'"
                   id
-                  (Rule_ID.to_string rule_match.Out.check_id)
+                  (Rule_ID.to_string rule_match.check_id)
               in
-              let cli_error : Out.cli_error =
+              let cli_error : OutJ.cli_error =
                 {
-                  Out.code = 2;
+                  code = 2;
                   level = `Warning;
                   type_ = SemgrepError;
                   rule_id = None;
@@ -171,11 +171,11 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
 (* Entry point *)
 (*****************************************************************************)
 
-let process_ignores ~keep_ignored ~strict (out : Out.cli_output) :
-    Out.cli_output =
+let process_ignores ~keep_ignored ~strict (out : OutJ.cli_output) :
+    OutJ.cli_output =
   let results, errors =
     (* filters [rule_match]s by the [nosemgrep] tag. *)
-    Common.map_filter
+    List_.map_filter
       (fun rule_match ->
         let to_ignore, errors = rule_match_nosem ~strict rule_match in
         let rule_match =
@@ -187,7 +187,7 @@ let process_ignores ~keep_ignored ~strict (out : Out.cli_output) :
         if not to_ignore then Some (rule_match, errors)
         else if keep_ignored then Some (rule_match, errors)
         else None)
-      out.Out.results
+      out.results
     |> List.split
   in
-  { out with results; errors = List.concat (out.Out.errors :: errors) }
+  { out with results; errors = List.concat (out.errors :: errors) }

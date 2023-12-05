@@ -4,13 +4,13 @@
  * of_files_and_dirs> and compares it with any previous run, providing some
  * form of regression testing.
  *)
-val test_parse_js : Common.filename list -> unit
+val test_parse_js : string (* filename *) list -> unit
 
 (* Print the set of tokens in a JS file *)
-val test_tokens_js : Common.filename -> unit
+val test_tokens_js : string (* filename *) -> unit
 
 (* This makes accessible the different test_xxx functions above from
  * the command line, e.g. '$ pfff -parse_js foo.js will call the
  * test_parse_js function.
  *)
-val actions : unit -> Arg_helpers.cmdline_actions
+val actions : unit -> Arg_.cmdline_actions

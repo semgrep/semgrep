@@ -57,6 +57,7 @@
   *)
  *)
 open Common
+open Either_
 module Flag = Flag_parsing
 
 open Cst_php
@@ -78,16 +79,16 @@ let mk_var (s, tok) =
 
 let rec validate_parameter_list = function
   | [] -> ()
-  | Middle3 _ :: params  -> validate_parameter_list_empty params
-  | Left3 param :: params ->
+  | Either_.Middle3 _ :: params  -> validate_parameter_list_empty params
+  | Either_.Left3 param :: params ->
       if param.p_variadic <> None
       then validate_parameter_list_empty params
       else validate_parameter_list params
-  | Right3 _ :: params -> validate_parameter_list params
+  | Either_.Right3 _ :: params -> validate_parameter_list params
 
 and validate_parameter_list_empty = function
   | [] -> ()
-  | Right3 _ :: params -> validate_parameter_list_empty params
+  | Either_.Right3 _ :: params -> validate_parameter_list_empty params
   | _ ->
       if !Flag.sgrep_mode
       then ()
@@ -132,7 +133,7 @@ let str_of_info x = Tok.content_of_tok x
 (* The normal tokens *)
 (*-----------------------------------------*)
 %token <bool * Tok.t> T_BOOL
-%token <int option * Tok.t> T_LNUMBER
+%token <Parsed_int.t> T_LNUMBER
 %token <float option * Tok.t> T_DNUMBER
 %token <string * Tok.t>
  (* T_IDENT is for a regular ident and  T_VARIABLE is for a dollar ident. *)
@@ -398,7 +399,7 @@ statement:
      additional_catch* finally_clause?
      { let try_block = ($2,$3,$4) in
        let catch_block = ($10, $11, $12) in
-       let t = Common.hd_exn "unexpected empty list" $7 in (* TODO: return a list of types *)
+       let t = List_.hd_exn "unexpected empty list" $7 in (* TODO: return a list of types *)
        let catch = ($5, ($6, (t, DName $8), $9), catch_block) in
        Try($1, try_block, [catch] @ $13, o2l $14)
      }
@@ -613,7 +614,7 @@ parameter_bis:
      { let p = mk_param $3 in Left3 {p with p_ref=Some $1; p_variadic=Some $2; p_type=Some(HintVariadic ($2, None))} }
  (* varargs extension, and semgrep-ext: *)
  | "..."
-     { Middle3 $1 }
+     { Either_.Middle3 $1 }
 
 (* semgrep-ext: there are places where we expect a T_VARIABLE and we
  * also want to accept metavariables.
@@ -878,11 +879,11 @@ type_php_or_dots_list:
  | (*empty*)                     { [] }
  | non_empty_type_php_or_dots_list   { $1 }
  (* php-facebook-ext: trailing comma *)
- | non_empty_type_php_or_dots_list "," { $1 @ [Right3 $2] }
+ | non_empty_type_php_or_dots_list "," { $1 @ [Either_.Right3 $2] }
 
 type_php_or_dots:
- | type_php { Left3 $1 }
- | "..."    { Middle3 $1 }
+ | type_php { Either_.Left3 $1 }
+ | "..."    { Either_.Middle3 $1 }
 
 (* Do not confuse type_parameters and type_arguments. Type parameters
    * can only be simple identifiers, as in class Foo<T1, T2> { ... },

@@ -365,6 +365,11 @@ def scan_options(func: Callable) -> Callable:
     default=False,
 )
 @optgroup.option("--version", is_flag=True, default=False)
+@optgroup.option(
+    "--x-ls",
+    is_flag=True,
+    default=False,
+)
 @optgroup.group("Test and debug options")
 @optgroup.option("--test", is_flag=True, default=False)
 @optgroup.option(
@@ -445,8 +450,8 @@ def scan(
     validate: bool,
     verbose: bool,
     version: bool,
+    x_ls: bool,
 ) -> Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]:
-
     if version:
         print(__VERSION__)
         if enable_version_check:
@@ -454,6 +459,15 @@ def scan(
 
             version_check()
         return None
+
+    # I wish there was an easy way to leverage the engine_params from the
+    # new GET /api/cli/scans endpoint here but that info is not available
+    # until we fetch the rules which happens further along when processing
+    # the config.
+    if config and "secrets" in config:
+        # If the user has specified --config secrets, we should enable secrets
+        # so the engine is properly chosen.
+        run_secrets_flag = True
 
     # Handled error outside engine type for more actionable advice.
     if run_secrets_flag and requested_engine is EngineType.OSS:
@@ -594,6 +608,7 @@ def scan(
                 config_errors = list(chain(config_errors, metacheck_errors))
 
                 valid_str = "invalid" if config_errors else "valid"
+                # NOTE: get_rules will de-duplicate rules as the same rule can appear across multiple config packs
                 rule_count = len(resolved_configs.get_rules(True))
                 logger.info(
                     f"Configuration is {valid_str} - found {len(config_errors)} configuration error(s), and {rule_count} rule(s)."
@@ -615,8 +630,9 @@ def scan(
                     shown_severities,
                     _dependencies,
                     _dependency_parser_errors,
-                    _num_executed_rules,
-                    _,
+                    _contributions,
+                    executed_rule_count,
+                    missed_rule_count,
                 ) = semgrep.run_scan.run_scan(
                     diff_depth=diff_depth,
                     dump_command_for_core=dump_command_for_core,
@@ -651,6 +667,7 @@ def scan(
                     severity=severity,
                     optimizations=optimizations,
                     baseline_commit=baseline_commit,
+                    x_ls=x_ls,
                 )
             except SemgrepError as e:
                 output_handler.handle_semgrep_errors([e])
@@ -668,6 +685,8 @@ def scan(
                 severities=shown_severities,
                 print_summary=True,
                 engine_type=engine_type,
+                executed_rule_count=executed_rule_count,
+                missed_rule_count=missed_rule_count,
             )
 
             run_has_findings = any(filtered_matches_by_rule.values())

@@ -1,8 +1,516 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`misc interpolates metavariables in rule message 1`] = `
+{
+  "errors": [],
+  "explanations": [
+    {
+      "children": [
+        {
+          "children": [],
+          "loc": {
+            "end": {
+              "col": 33,
+              "line": 9,
+              "offset": 195,
+            },
+            "path": "test-interpolate-metavars.json",
+            "start": {
+              "col": 22,
+              "line": 9,
+              "offset": 184,
+            },
+          },
+          "matches": [
+            {
+              "check_id": "test-interpolate-metavars",
+              "end": {
+                "col": 21,
+                "line": 1,
+                "offset": 20,
+              },
+              "extra": {
+                "engine_kind": "OSS",
+                "message": "Print content is "Hello World"",
+                "metavars": {
+                  "$A": {
+                    "abstract_content": ""Hello World"",
+                    "end": {
+                      "col": 20,
+                      "line": 1,
+                      "offset": 19,
+                    },
+                    "start": {
+                      "col": 7,
+                      "line": 1,
+                      "offset": 6,
+                    },
+                  },
+                },
+                "validation_state": "NO_VALIDATOR",
+              },
+              "path": "test.py",
+              "start": {
+                "col": 1,
+                "line": 1,
+                "offset": 0,
+              },
+            },
+          ],
+          "op": [
+            "XPat",
+            "print($A)",
+          ],
+        },
+      ],
+      "loc": {
+        "end": {
+          "col": 17,
+          "line": 7,
+          "offset": 149,
+        },
+        "path": "test-interpolate-metavars.json",
+        "start": {
+          "col": 7,
+          "line": 7,
+          "offset": 139,
+        },
+      },
+      "matches": [
+        {
+          "check_id": "test-interpolate-metavars",
+          "end": {
+            "col": 21,
+            "line": 1,
+            "offset": 20,
+          },
+          "extra": {
+            "engine_kind": "OSS",
+            "message": "Print content is "Hello World"",
+            "metavars": {
+              "$A": {
+                "abstract_content": ""Hello World"",
+                "end": {
+                  "col": 20,
+                  "line": 1,
+                  "offset": 19,
+                },
+                "start": {
+                  "col": 7,
+                  "line": 1,
+                  "offset": 6,
+                },
+              },
+            },
+            "validation_state": "NO_VALIDATOR",
+          },
+          "path": "test.py",
+          "start": {
+            "col": 1,
+            "line": 1,
+            "offset": 0,
+          },
+        },
+      ],
+      "op": "And",
+    },
+  ],
+  "interfile_languages_used": [],
+  "paths": {
+    "scanned": [
+      "test.py",
+    ],
+  },
+  "results": [
+    {
+      "check_id": "test-interpolate-metavars",
+      "end": {
+        "col": 21,
+        "line": 1,
+        "offset": 20,
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "<MASKED>",
+        "is_ignored": false,
+        "lines": "print("Hello World")",
+        "message": "Print content is "Hello World"",
+        "metadata": {},
+        "metavars": {
+          "$A": {
+            "abstract_content": ""Hello World"",
+            "end": {
+              "col": 20,
+              "line": 1,
+              "offset": 19,
+            },
+            "start": {
+              "col": 7,
+              "line": 1,
+              "offset": 6,
+            },
+          },
+        },
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR",
+      },
+      "path": "test.py",
+      "start": {
+        "col": 1,
+        "line": 1,
+        "offset": 0,
+      },
+    },
+  ],
+  "skipped_rules": [],
+  "version": "<MASKED>",
+}
+`;
+
+exports[`misc js representation handles large ints 1`] = `
+{
+  "errors": [],
+  "explanations": [
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [],
+              "loc": {
+                "end": {
+                  "col": 73,
+                  "line": 9,
+                  "offset": 190,
+                },
+                "path": "test-representation.json",
+                "start": {
+                  "col": 24,
+                  "line": 9,
+                  "offset": 141,
+                },
+              },
+              "matches": [
+                {
+                  "check_id": "test",
+                  "end": {
+                    "col": 30,
+                    "line": 1,
+                    "offset": 29,
+                  },
+                  "extra": {
+                    "engine_kind": "OSS",
+                    "message": "test",
+                    "metavars": {
+                      "$ABOVE_SIGNED_INT32": {
+                        "abstract_content": "3000000000",
+                        "end": {
+                          "col": 29,
+                          "line": 1,
+                          "offset": 28,
+                        },
+                        "start": {
+                          "col": 19,
+                          "line": 1,
+                          "offset": 18,
+                        },
+                      },
+                      "$BELOW_SIGNED_INT32": {
+                        "abstract_content": "2000000000",
+                        "end": {
+                          "col": 17,
+                          "line": 1,
+                          "offset": 16,
+                        },
+                        "start": {
+                          "col": 7,
+                          "line": 1,
+                          "offset": 6,
+                        },
+                      },
+                    },
+                    "validation_state": "NO_VALIDATOR",
+                  },
+                  "path": "test-representation.py",
+                  "start": {
+                    "col": 1,
+                    "line": 1,
+                    "offset": 0,
+                  },
+                },
+              ],
+              "op": [
+                "XPat",
+                "print($BELOW_SIGNED_INT32, $ABOVE_SIGNED_INT32)",
+              ],
+            },
+            {
+              "children": [],
+              "loc": {
+                "end": {
+                  "col": 112,
+                  "line": 12,
+                  "offset": 342,
+                },
+                "path": "test-representation.json",
+                "start": {
+                  "col": 31,
+                  "line": 12,
+                  "offset": 261,
+                },
+              },
+              "matches": [
+                {
+                  "check_id": "test",
+                  "end": {
+                    "col": 30,
+                    "line": 1,
+                    "offset": 29,
+                  },
+                  "extra": {
+                    "engine_kind": "OSS",
+                    "message": "test",
+                    "metavars": {
+                      "$ABOVE_SIGNED_INT32": {
+                        "abstract_content": "3000000000",
+                        "end": {
+                          "col": 29,
+                          "line": 1,
+                          "offset": 28,
+                        },
+                        "start": {
+                          "col": 19,
+                          "line": 1,
+                          "offset": 18,
+                        },
+                      },
+                      "$BELOW_SIGNED_INT32": {
+                        "abstract_content": "2000000000",
+                        "end": {
+                          "col": 17,
+                          "line": 1,
+                          "offset": 16,
+                        },
+                        "start": {
+                          "col": 7,
+                          "line": 1,
+                          "offset": 6,
+                        },
+                      },
+                    },
+                    "validation_state": "NO_VALIDATOR",
+                  },
+                  "path": "test-representation.py",
+                  "start": {
+                    "col": 1,
+                    "line": 1,
+                    "offset": 0,
+                  },
+                },
+              ],
+              "op": [
+                "Filter",
+                ""int($BELOW_SIGNED_INT32) < 2147483647 and int($ABOVE_SIGNED_INT32) > 2147483647"",
+              ],
+            },
+          ],
+          "loc": {
+            "end": {
+              "col": 20,
+              "line": 10,
+              "offset": 211,
+            },
+            "path": "test-representation.json",
+            "start": {
+              "col": 13,
+              "line": 10,
+              "offset": 204,
+            },
+          },
+          "matches": [
+            {
+              "check_id": "test",
+              "end": {
+                "col": 30,
+                "line": 1,
+                "offset": 29,
+              },
+              "extra": {
+                "engine_kind": "OSS",
+                "message": "test",
+                "metavars": {
+                  "$ABOVE_SIGNED_INT32": {
+                    "abstract_content": "3000000000",
+                    "end": {
+                      "col": 29,
+                      "line": 1,
+                      "offset": 28,
+                    },
+                    "start": {
+                      "col": 19,
+                      "line": 1,
+                      "offset": 18,
+                    },
+                  },
+                  "$BELOW_SIGNED_INT32": {
+                    "abstract_content": "2000000000",
+                    "end": {
+                      "col": 17,
+                      "line": 1,
+                      "offset": 16,
+                    },
+                    "start": {
+                      "col": 7,
+                      "line": 1,
+                      "offset": 6,
+                    },
+                  },
+                },
+                "validation_state": "NO_VALIDATOR",
+              },
+              "path": "test-representation.py",
+              "start": {
+                "col": 1,
+                "line": 1,
+                "offset": 0,
+              },
+            },
+          ],
+          "op": "And",
+        },
+      ],
+      "loc": {
+        "end": {
+          "col": 14,
+          "line": 7,
+          "offset": 102,
+        },
+        "path": "test-representation.json",
+        "start": {
+          "col": 9,
+          "line": 7,
+          "offset": 97,
+        },
+      },
+      "matches": [
+        {
+          "check_id": "test",
+          "end": {
+            "col": 30,
+            "line": 1,
+            "offset": 29,
+          },
+          "extra": {
+            "engine_kind": "OSS",
+            "message": "test",
+            "metavars": {
+              "$ABOVE_SIGNED_INT32": {
+                "abstract_content": "3000000000",
+                "end": {
+                  "col": 29,
+                  "line": 1,
+                  "offset": 28,
+                },
+                "start": {
+                  "col": 19,
+                  "line": 1,
+                  "offset": 18,
+                },
+              },
+              "$BELOW_SIGNED_INT32": {
+                "abstract_content": "2000000000",
+                "end": {
+                  "col": 17,
+                  "line": 1,
+                  "offset": 16,
+                },
+                "start": {
+                  "col": 7,
+                  "line": 1,
+                  "offset": 6,
+                },
+              },
+            },
+            "validation_state": "NO_VALIDATOR",
+          },
+          "path": "test-representation.py",
+          "start": {
+            "col": 1,
+            "line": 1,
+            "offset": 0,
+          },
+        },
+      ],
+      "op": "And",
+    },
+  ],
+  "interfile_languages_used": [],
+  "paths": {
+    "scanned": [
+      "test-representation.py",
+    ],
+  },
+  "results": [
+    {
+      "check_id": "test",
+      "end": {
+        "col": 30,
+        "line": 1,
+        "offset": 29,
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "<MASKED>",
+        "is_ignored": false,
+        "lines": "print(2000000000, 3000000000)",
+        "message": "test",
+        "metadata": {},
+        "metavars": {
+          "$ABOVE_SIGNED_INT32": {
+            "abstract_content": "3000000000",
+            "end": {
+              "col": 29,
+              "line": 1,
+              "offset": 28,
+            },
+            "start": {
+              "col": 19,
+              "line": 1,
+              "offset": 18,
+            },
+          },
+          "$BELOW_SIGNED_INT32": {
+            "abstract_content": "2000000000",
+            "end": {
+              "col": 17,
+              "line": 1,
+              "offset": 16,
+            },
+            "start": {
+              "col": 7,
+              "line": 1,
+              "offset": 6,
+            },
+          },
+        },
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR",
+      },
+      "path": "test-representation.py",
+      "start": {
+        "col": 1,
+        "line": 1,
+        "offset": 0,
+      },
+    },
+  ],
+  "skipped_rules": [],
+  "version": "<MASKED>",
+}
+`;
+
 exports[`yaml parser parses a pattern with pattern-regex 1`] = `
 {
-  "engine_requested": "OSS",
   "errors": [],
   "explanations": [
     {
@@ -13,7 +521,7 @@ exports[`yaml parser parses a pattern with pattern-regex 1`] = `
           "line": 6,
           "offset": 99,
         },
-        "path": "test-rule-yaml.json",
+        "path": "test-rule-yaml-regex.json",
         "start": {
           "col": 24,
           "line": 6,
@@ -48,8 +556,11 @@ exports[`yaml parser parses a pattern with pattern-regex 1`] = `
       ],
     },
   ],
+  "interfile_languages_used": [],
   "paths": {
-    "scanned": [],
+    "scanned": [
+      "test.yaml",
+    ],
   },
   "results": [
     {
@@ -61,8 +572,13 @@ exports[`yaml parser parses a pattern with pattern-regex 1`] = `
       },
       "extra": {
         "engine_kind": "OSS",
+        "fingerprint": "<MASKED>",
+        "is_ignored": false,
+        "lines": "foo: bar",
         "message": "test",
+        "metadata": {},
         "metavars": {},
+        "severity": "ERROR",
         "validation_state": "NO_VALIDATOR",
       },
       "path": "test.yaml",
@@ -73,12 +589,6 @@ exports[`yaml parser parses a pattern with pattern-regex 1`] = `
       },
     },
   ],
-  "rules_by_engine": [
-    [
-      "test",
-      "OSS",
-    ],
-  ],
   "skipped_rules": [],
   "version": "<MASKED>",
 }
@@ -86,7 +596,6 @@ exports[`yaml parser parses a pattern with pattern-regex 1`] = `
 
 exports[`yaml parser parses a simple pattern 1`] = `
 {
-  "engine_requested": "OSS",
   "errors": [],
   "explanations": [
     {
@@ -146,8 +655,11 @@ exports[`yaml parser parses a simple pattern 1`] = `
       ],
     },
   ],
+  "interfile_languages_used": [],
   "paths": {
-    "scanned": [],
+    "scanned": [
+      "test.yaml",
+    ],
   },
   "results": [
     {
@@ -159,7 +671,11 @@ exports[`yaml parser parses a simple pattern 1`] = `
       },
       "extra": {
         "engine_kind": "OSS",
+        "fingerprint": "<MASKED>",
+        "is_ignored": false,
+        "lines": "foo: bar",
         "message": "test",
+        "metadata": {},
         "metavars": {
           "$X": {
             "abstract_content": "bar",
@@ -175,6 +691,7 @@ exports[`yaml parser parses a simple pattern 1`] = `
             },
           },
         },
+        "severity": "ERROR",
         "validation_state": "NO_VALIDATOR",
       },
       "path": "test.yaml",
@@ -184,12 +701,6 @@ exports[`yaml parser parses a simple pattern 1`] = `
         "offset": 0,
       },
     },
-  ],
-  "rules_by_engine": [
-    [
-      "test",
-      "OSS",
-    ],
   ],
   "skipped_rules": [],
   "version": "<MASKED>",

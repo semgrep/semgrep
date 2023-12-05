@@ -94,8 +94,8 @@ let map ~map_any x =
   let rec map x =
     match x with
     | Token tok -> Token tok
-    | List xs -> List (Common.map map xs)
-    | Tuple xs -> List (Common.map map xs)
+    | List xs -> List (List_.map map xs)
+    | Tuple xs -> List (List_.map map xs)
     | Case (cons, x) -> Case (cons, map x)
     | Option opt ->
         Option

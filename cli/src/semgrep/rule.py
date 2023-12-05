@@ -58,6 +58,8 @@ class Rule:
 
         # add typescript to languages if the rule supports javascript.
         # TODO: Move this hack to lang.json
+        # coupling: if you move this hack, also fix
+        # Core_runner.add_typescript_to_javascript_rules_hack
         if any(
             language == LANGUAGE.resolve("javascript") for language in rule_languages
         ):
@@ -141,7 +143,7 @@ class Rule:
 
     @property
     def metadata(self) -> Dict[str, Any]:
-        return self._raw.get("metadata", {})
+        return self._raw.get("metadata") or {}
 
     @property
     def is_blocking(self) -> bool:
@@ -202,12 +204,6 @@ class Rule:
     @property
     def fix(self) -> Optional[str]:
         return self._raw.get("fix")
-
-    # TODO: use v1.FixRegex and do the validation currently done
-    # in core_output.convert_to_rule_match() here
-    @property
-    def fix_regex(self) -> Optional[Dict[str, Any]]:
-        return self._raw.get("fix-regex")
 
     @classmethod
     def from_json(cls, rule_json: Dict[str, Any]) -> "Rule":
@@ -296,10 +292,10 @@ class Rule:
                 for key in sorted(raw.keys()):
                     next_raw = raw.get(key)
                     if next_raw is not None:
-                        patterns_to_add.append(get_subrules(next_raw))  # type: ignore[arg-type]
+                        patterns_to_add.append(get_subrules(next_raw))
             elif isinstance(raw, list):
                 for p in raw:
-                    patterns_to_add.append(get_subrules(p))  # type: ignore[arg-type]
+                    patterns_to_add.append(get_subrules(p))
             else:
                 raise ValueError(
                     f"This rule contains an unexpected pattern key: {self.id}:\n {str(raw)}"

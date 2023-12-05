@@ -58,7 +58,7 @@ let main_action _xs = raise Todo
 let test_json_pretty_printer file =
   let json = J.load_json file in
   let s = J.string_of_json json in
-  pr s
+  UCommon.pr s
 (*e: function [[Main.test_json_pretty_printer]] *)
 
 (* ---------------------------------------------------------------------- *)
@@ -169,7 +169,7 @@ let main () =
       (* --------------------------------------------------------- *)
       | xs when List.mem !action (Arg_helpers.action_list (all_actions ())) ->
           Arg_helpers.do_action !action xs (all_actions ())
-      | _ when not (Common.null_string !action) ->
+      | _ when not (String_.empty !action) ->
           failwith ("unrecognized action or wrong params: " ^ !action)
       (*e: [[Main.main()]] match [[args]] actions *)
       (* --------------------------------------------------------- *)

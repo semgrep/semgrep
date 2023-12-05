@@ -1,5 +1,6 @@
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/autofix/requests-use-timeout.py"
@@ -16,10 +17,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "fix_regex": {
-          "regex": "(.*)\\)",
-          "replacement": "\\1, timeout=30)"
-        },
+        "fix": "requests.get(url, timeout=30)",
         "fixed_lines": [
           "r = requests.get(url, timeout=30)"
         ],
@@ -48,10 +46,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "fix_regex": {
-          "regex": "(.*)\\)",
-          "replacement": "\\1, timeout=30)"
-        },
+        "fix": "requests.post(url, timeout=30)",
         "fixed_lines": [
           "r = requests.post(url, timeout=30)"
         ],
@@ -80,10 +75,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "fix_regex": {
-          "regex": "(.*)\\)",
-          "replacement": "\\1, timeout=30)"
-        },
+        "fix": "requests.request(\"GET\", url, timeout=30)",
         "fixed_lines": [
           "r = requests.request(\"GET\", url, timeout=30)"
         ],
@@ -112,10 +104,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "fix_regex": {
-          "regex": "(.*)\\)",
-          "replacement": "\\1, timeout=30)"
-        },
+        "fix": "requests.request(\"GET\", return_url(), timeout=30)",
         "fixed_lines": [
           "r = requests.request(\"GET\", return_url(), timeout=30)"
         ],
@@ -144,10 +133,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "fix_regex": {
-          "regex": "(.*)\\)",
-          "replacement": "\\1, timeout=30)"
-        },
+        "fix": "post(url, timeout=30)",
         "fixed_lines": [
           "    r = post(url, timeout=30)"
         ],

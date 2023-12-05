@@ -39,8 +39,8 @@ exception Malformed_rule_ID of string
 let to_string x = x
 
 let validate =
-  let rex = SPcre.regexp "^[a-zA-Z0-9._-]*$" in
-  fun str -> SPcre.pmatch_noerr ~rex str
+  let rex = Pcre_.regexp "^[a-zA-Z0-9._-]*$" in
+  fun str -> Pcre_.pmatch_noerr ~rex str
 
 let sanitize_string str =
   let buf = Buffer.create (String.length str) in
@@ -66,3 +66,7 @@ let last_elt_opt x =
 
 let ends_with r ~suffix:inc_or_exc_rule =
   r = inc_or_exc_rule || String.ends_with ~suffix:("." ^ inc_or_exc_rule) r
+
+(* For ATD 'string wrap' in semgrep_output_v1.atd *)
+let unwrap = to_string
+let wrap = of_string

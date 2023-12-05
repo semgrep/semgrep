@@ -156,6 +156,20 @@ let mvalue_of_any = function
   | Anys _ ->
       None
 
+let location_aware_equal_mvalue mval1 mval2 =
+  let ranges_equal =
+    let any1, any2 = (mvalue_to_any mval1, mvalue_to_any mval2) in
+    let range1, range2 =
+      ( AST_generic_helpers.range_of_any_opt any1,
+        AST_generic_helpers.range_of_any_opt any2 )
+    in
+    match (range1, range2) with
+    | Some (l1, r1), Some (l2, r2) ->
+        Tok.equal_location l1 l2 && Tok.equal_location r1 r2
+    | _ -> true
+  in
+  ranges_equal && equal_mvalue mval1 mval2
+
 (* This is used for metavariable-pattern: where we need to transform the content
  * of a metavariable into a program so we can use evaluate_formula on it *)
 let program_of_mvalue : mvalue -> G.program option =
@@ -247,7 +261,7 @@ let is_metavar_ellipsis s = s =~ metavar_ellipsis_regexp_string
 let mvars_of_regexp_string s =
   Regexp_engine.pcre_compile s
   |> Regexp_engine.pcre_regexp |> Pcre.names |> Array.to_list
-  |> Common.(map (fun s -> spf "$%s" s))
+  |> Common.(List_.map (fun s -> spf "$%s" s))
 
 (* TODO: remove when we kill numeric capture groups *)
 let metavar_for_capture_group = "^\\(\\$[0-9]+\\)$"

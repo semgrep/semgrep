@@ -41,6 +41,7 @@ from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
 from semgrep.core_runner import CoreRunner
 from semgrep.core_runner import get_contributions
+from semgrep.core_runner import Plan
 from semgrep.engine import EngineType
 from semgrep.error import FilesNotFoundError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
@@ -113,6 +114,16 @@ def get_file_ignore() -> FileIgnore:
     return file_ignore
 
 
+def file_ignore_to_ignore_profiles(file_ignore: FileIgnore) -> Dict[str, FileIgnore]:
+    # TODO: This pattern encodes the default Targeting Profiles
+    # of .semgrepignore. Don't hardcode this like it is.
+    return {
+        out.SAST().kind: file_ignore,
+        out.SCA().kind: file_ignore,
+        out.Secrets().kind: FileIgnore(file_ignore.base_path, frozenset()),
+    }
+
+
 def remove_matches_in_baseline(
     head_matches_by_rule: RuleMatchMap,
     baseline_matches_by_rule: RuleMatchMap,
@@ -168,13 +179,13 @@ def run_rules(
     OutputExtra,
     Dict[str, List[FoundDependency]],
     List[DependencyParserError],
-    int,
+    List[Plan],
 ]:
     if not target_mode_config:
         target_mode_config = TargetModeConfig.whole_scan()
 
     cli_ux = get_state().get_cli_ux_flavor()
-    num_executed_rules = scan_report.print_scan_status(
+    plans = scan_report.print_scan_status(
         filtered_rules,
         target_manager,
         target_mode_config,
@@ -285,13 +296,24 @@ def run_rules(
         output_extra,
         dependencies,
         dependency_parser_errors,
-        num_executed_rules,
+        plans,
     )
+
+
+# This is used for testing and comparing with osemgrep.
+def list_targets_and_exit(target_manager: TargetManager, product: out.Product) -> None:
+    targets = target_manager.get_files_for_language(None, product)
+    for path in sorted(targets.kept):
+        print(f"+ {path}")
+    for path, reason in target_manager.ignore_log.list_skipped_paths_with_reason():
+        print(f"- [{reason}] {path}")
+    exit(0)
 
 
 ##############################################################################
 # Entry points
 ##############################################################################
+
 
 # cli/bin/semgrep -> main.py -> cli.py -> commands/scan.py -> run_scan()
 # old: this used to be called semgrep.semgrep_main.main
@@ -335,6 +357,7 @@ def run_scan(
     baseline_commit: Optional[str] = None,
     baseline_commit_is_mergebase: bool = False,
     dump_contributions: bool = False,
+    x_ls: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -346,8 +369,9 @@ def run_scan(
     Collection[out.MatchSeverity],
     Dict[str, List[FoundDependency]],
     List[DependencyParserError],
-    int,
     out.Contributions,
+    int,  # Executed Rule Count
+    int,  # Missed Rule Count
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
 
@@ -385,6 +409,8 @@ def run_scan(
     # We determine if SAST / SCA is enabled based on the config str
     with_code_rules = configs_obj.with_code_rules
     with_supply_chain = configs_obj.with_supply_chain
+    # TODO: handle de-duplication for pro-rules
+    missed_rule_count = configs_obj.missed_rule_count
 
     # Metrics send part 1: add environment information
     # Must happen after configs are resolved because it is determined
@@ -455,18 +481,23 @@ def run_scan(
             raise SemgrepError(e)
 
     respect_git_ignore = not no_git_ignore
+    target_strings = frozenset(Path(t) for t in target)
+
     try:
         target_manager = TargetManager(
             includes=include,
             excludes=exclude,
             max_target_bytes=max_target_bytes,
-            target_strings=target,
+            target_strings=target_strings,
             respect_git_ignore=respect_git_ignore,
             respect_rule_paths=respect_rule_paths,
             baseline_handler=baseline_handler,
             allow_unknown_extensions=not skip_unknown_extensions,
-            file_ignore=get_file_ignore(),
+            ignore_profiles=file_ignore_to_ignore_profiles(get_file_ignore()),
         )
+        # Debugging option --x-ls
+        if x_ls:
+            list_targets_and_exit(target_manager, out.Product(out.SAST()))
     except FilesNotFoundError as e:
         raise SemgrepError(e)
 
@@ -519,7 +550,7 @@ def run_scan(
         output_extra,
         dependencies,
         dependency_parser_errors,
-        num_executed_rules,
+        plans,
     ) = run_rules(
         filtered_rules,
         target_manager,
@@ -570,23 +601,23 @@ def run_scan(
             logger.info("")
             try:
                 with baseline_handler.baseline_context():
-                    baseline_target_strings = target
+                    baseline_target_strings = target_strings
                     baseline_target_mode_config = target_mode_config
                     if target_mode_config.is_pro_diff_scan:
                         baseline_target_mode_config = TargetModeConfig.pro_diff_scan(
                             frozenset(
-                                t
+                                Path(t)
                                 for t in target_mode_config.get_diff_targets()
                                 if t.exists() and not t.is_symlink()
                             ),
                             target_mode_config.get_diff_depth(),
                         )
                     else:
-                        baseline_target_strings = [
-                            str(t)
+                        baseline_target_strings = frozenset(
+                            Path(t)
                             for t in baseline_targets
                             if t.exists() and not t.is_symlink()
-                        ]
+                        )
                     baseline_target_manager = TargetManager(
                         includes=include,
                         excludes=exclude,
@@ -595,7 +626,9 @@ def run_scan(
                         target_strings=baseline_target_strings,
                         respect_git_ignore=respect_git_ignore,
                         allow_unknown_extensions=not skip_unknown_extensions,
-                        file_ignore=get_file_ignore(),
+                        ignore_profiles=file_ignore_to_ignore_profiles(
+                            get_file_ignore()
+                        ),
                     )
 
                     (
@@ -604,7 +637,7 @@ def run_scan(
                         _,
                         _,
                         _,
-                        _,
+                        _plans,
                     ) = run_rules(
                         # only the rules that had a match
                         [
@@ -651,6 +684,7 @@ def run_scan(
         metrics.add_errors(semgrep_errors)
         metrics.add_profiling(profiler)
         metrics.add_parse_rates(output_extra.parsing_data)
+        metrics.add_interfile_languages_used(output_extra.core.interfile_languages_used)
 
     if autofix:
         apply_fixes(filtered_matches_by_rule.kept, dryrun)
@@ -658,6 +692,10 @@ def run_scan(
     renamed_targets = set(
         baseline_handler.status.renamed.values() if baseline_handler else []
     )
+    executed_rule_count = sum(
+        max(0, len(plan.rules) - len(plan.unused_rules)) for plan in plans
+    )
+
     return (
         filtered_matches_by_rule.kept,
         semgrep_errors,
@@ -669,8 +707,9 @@ def run_scan(
         shown_severities,
         dependencies,
         dependency_parser_errors,
-        num_executed_rules,
         contributions,
+        executed_rule_count,
+        missed_rule_count,
     )
 
 
@@ -704,6 +743,7 @@ def run_scan_and_return_json(
         profiler,
         output_extra,
         shown_severities,
+        _,
         _,
         _,
         _,

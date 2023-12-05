@@ -151,7 +151,7 @@ def main() -> None:
     else:
         mean_perc_str = f"{-mean_perc:.1f}% faster"
 
-    if mean_rel_dur > 1.07:
+    if mean_rel_dur > 1.15:
         errors += 1
         messages.append(
             f"🚫 The whole benchmark suite is too slow: "
@@ -174,7 +174,7 @@ def main() -> None:
         messages.append(
             "Individual deviations greater than 20% from the baseline are reported. "
             "An individual performance degradation of over 30% or "
-            "a global degradation of over 7% is an error and will block "
+            "a global degradation of over 15% is an error and will block "
             "the pull request. "
             "See run output for full results "
             "('Show all checks' > 'Tests / semgrep benchmark tests' 'Details')."

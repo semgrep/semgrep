@@ -16,18 +16,17 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-open Testutil
+open Alcotest_ext
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-let ok_token = "ok_token"
-let bad_token = "bad_token"
+let ok_token = Auth.unsafe_token_of_string "ok_token"
+let bad_token = Auth.unsafe_token_of_string "bad_token"
 
-let login_session =
-  ( Uuidm.of_string "00000000-0000-0000-0000-000000000000" |> Option.get,
-    snd (Semgrep_login.make_login_url ()) )
+let secret =
+  Uuidm.of_string "00000000-0000-0000-0000-000000000000" |> Option.get
 
 let fake_settings =
   "has_shown_metrics_notification: true\n\
@@ -44,7 +43,9 @@ let with_mock_normal_responses =
           | Some "Bearer bad_token" -> (401, "./tests/login/bad_response.json")
           | _ -> failwith "Unexpected token"
         in
-        let body = body_path |> Common.read_file |> Cohttp_lwt.Body.of_string in
+        let body =
+          body_path |> UCommon.read_file |> Cohttp_lwt.Body.of_string
+        in
         Lwt.return Http_mock_client.(basic_response ~status body)
     | "/api/agent/tokens/requests" ->
         let%lwt () =
@@ -84,44 +85,48 @@ let with_mock_envvars_and_normal_responses f =
 
 let with_logged_in f =
   let token = ok_token in
-  match Semgrep_login.save_token token with
-  | Ok () -> f ()
+  let caps = Cap.network_caps_UNSAFE () in
+  let caps = Auth.cap_token_and_network token caps in
+  match Semgrep_login.save_token caps with
+  | Ok _deployment_config -> f ()
   | Error e -> failwith e
 
 (*****************************************************************************)
 (* Tests *)
 (*****************************************************************************)
 
-let save_token_tests () =
+let save_token_tests caps =
   ignore with_logged_in;
   let valid_token_test () =
-    match Semgrep_login.save_token ok_token with
-    | Ok () ->
+    let caps = Auth.cap_token_and_network ok_token caps in
+    match Semgrep_login.save_token caps with
+    | Ok _deployment_config ->
         Alcotest.(check bool) "logged in" true (Semgrep_login.is_logged_in ())
     | Error e -> failwith e
   in
   let invalid_token_test () =
-    match Semgrep_login.save_token bad_token with
-    | Ok () -> failwith "Expected error"
+    let caps = Auth.cap_token_and_network bad_token caps in
+    match Semgrep_login.save_token caps with
+    | Ok _deployment_config -> failwith "Expected error"
     | Error _ ->
         Alcotest.(check bool)
           "not logged in" false
           (Semgrep_login.is_logged_in ())
   in
   let tests =
-    pack_tests "save_token"
-      [
-        ("invalid token", invalid_token_test); ("valid token", valid_token_test);
-      ]
+    [ ("invalid token", invalid_token_test); ("valid token", valid_token_test) ]
+    |> List_.map (fun (n, f) -> (n, with_mock_envvars_and_normal_responses f))
   in
-  Common.map (fun (n, f) -> (n, with_mock_envvars_and_normal_responses f)) tests
+  pack_tests "save_token" tests
 
-let fetch_token_tests () =
+let fetch_token_tests caps =
   let fetch_basic () =
-    let token = Semgrep_login.fetch_token login_session in
+    let token = Semgrep_login.fetch_token caps secret in
     match token with
     | Ok (token, username) ->
-        Alcotest.(check string) "token" ok_token token;
+        let str_token = Auth.string_of_token token in
+        let ok_token_str = Auth.string_of_token ok_token in
+        Alcotest.(check string) "token" ok_token_str str_token;
         Alcotest.(check string) "username" "testuser" username
     | Error e -> failwith e
   in
@@ -134,8 +139,8 @@ let fetch_token_tests () =
       | _ -> retry_count := !retry_count + 1
     in
     let token =
-      Semgrep_login.fetch_token ~min_wait_ms:0 ~next_wait_ms:0 ~wait_hook
-        login_session
+      Semgrep_login.fetch_token ~min_wait_ms:0 ~next_wait_ms:0 ~wait_hook caps
+        secret
     in
     match token with
     | Error e ->
@@ -152,5 +157,5 @@ let fetch_token_tests () =
         with_mock_envvars (with_mock_four_o_four_responses fetch_no_internet) );
     ]
 
-let tests =
-  pack_suites "Osemgrep Login" [ save_token_tests (); fetch_token_tests () ]
+let tests caps =
+  pack_suites "Osemgrep Login" [ save_token_tests caps; fetch_token_tests caps ]

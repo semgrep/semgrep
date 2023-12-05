@@ -41,6 +41,8 @@ type t = {
   gitignore_filter : Gitignore.filter;
 }
 
+type builtin_semgrepignore = Empty | Semgrep_scan_legacy
+
 (*
    TODO: Preprocess a file to expand ':include' directives before parsing it
    using gitignore rules.
@@ -50,17 +52,70 @@ type t = {
 
 type exclusion_mechanism = Gitignore_and_semgrepignore | Only_semgrepignore
 
-let create ?include_patterns ?(cli_patterns = []) ~exclusion_mechanism
-    ~project_root () =
+(*
+   The legacy built-in semgrepignore.
+
+   It was copied from templates/.semgrepignore in the Python source.
+*)
+let builtin_semgrepignore_for_semgrep_scan =
+  {|
+# Git administrative folder or file
+.git
+
+# Common large paths
+node_modules/
+build/
+dist/
+vendor/
+.env/
+.venv/
+.tox/
+*.min.js
+.npm/
+.yarn/
+
+# Common test paths
+test/
+tests/
+*_test.go
+
+# Semgrep rules folder
+.semgrep
+
+# Semgrep-action log folder
+.semgrep_logs/
+|}
+
+let gitignore_files = ("gitignore", ".gitignore")
+let semgrep_ignore_files = ("semgrepignore", ".semgrepignore")
+
+let contents_of_builtin_semgrepignore = function
+  | Empty -> ""
+  | Semgrep_scan_legacy -> builtin_semgrepignore_for_semgrep_scan
+
+let create ?include_patterns ?(cli_patterns = []) ~builtin_semgrepignore
+    ~exclusion_mechanism ~project_root () =
   let include_filter =
     Option.map (Include_filter.create ~project_root) include_patterns
   in
   let root_anchor = Glob.Pattern.root_pattern in
+  let builtin_patterns =
+    Parse_gitignore.from_string ~name:"built-in semgrepignore patterns"
+      ~source_kind:"built-in" ~anchor:root_anchor
+      (contents_of_builtin_semgrepignore builtin_semgrepignore)
+  in
   let cli_patterns =
     List.concat_map
       (Parse_gitignore.from_string ~name:"exclude pattern from command line"
-         ~kind:"exclude" ~anchor:root_anchor)
+         ~source_kind:"exclude" ~anchor:root_anchor)
       cli_patterns
+  in
+  let builtin_level : Gitignore.level =
+    {
+      level_kind = "built-in semgrepignore patterns";
+      source_name = "<built-in>";
+      patterns = builtin_patterns;
+    }
   in
   let cli_level : Gitignore.level =
     {
@@ -71,13 +126,24 @@ let create ?include_patterns ?(cli_patterns = []) ~exclusion_mechanism
   in
   let gitignore_filenames =
     match exclusion_mechanism with
-    | Gitignore_and_semgrepignore ->
-        [ ("gitignore", ".gitignore"); ("semgrepignore", ".semgrepignore") ]
-    | Only_semgrepignore -> [ ("semgrepignore", ".semgrepignore") ]
+    | Gitignore_and_semgrepignore -> [ gitignore_files; semgrep_ignore_files ]
+    | Only_semgrepignore -> [ semgrep_ignore_files ]
+  in
+  (* Check if there is a top level .semgrepignore. If not use builtins *)
+  let semgrep_ignore_exists =
+    let gitignore_cache =
+      Gitignores_cache.create ~gitignore_filenames:[ semgrep_ignore_files ]
+        ~project_root ()
+    in
+    Gitignores_cache.load gitignore_cache Ppath.root |> Option.is_some
+  in
+  let higher_priority_levels =
+    if semgrep_ignore_exists then [ cli_level ]
+    else [ builtin_level; cli_level ]
   in
   let gitignore_filter =
-    Gitignore_filter.create ~higher_priority_levels:[ cli_level ]
-      ~gitignore_filenames ~project_root ()
+    Gitignore_filter.create ~higher_priority_levels ~gitignore_filenames
+      ~project_root ()
   in
   { include_filter; gitignore_filter }
 

@@ -346,7 +346,7 @@ let entry_nodes g =
          else
            let xs = OG.succ g.og v in
            xs |> List.iter (fun n -> Hashtbl.replace hdone n true);
-           Common.push v res);
+           Stack_.push v res);
   !res |> List.map (fun i -> key_of_vertex i g) |> List.rev
 [@@profiling]
 
@@ -536,25 +536,25 @@ let display_with_gv g = OG.display_with_gv g.og
 
 let print_graph_generic ?(launch_gv = true) ?(extra_string = "") ~str_of_key
     filename g =
-  Common.with_open_outfile filename (fun (pr, _) ->
-      pr "digraph misc {\n";
+  UCommon.with_open_outfile filename (fun (xpr, _) ->
+      xpr "digraph misc {\n";
       (* pr "size = \"10,10\";\n" ; *)
-      pr extra_string;
-      pr "\n";
+      xpr extra_string;
+      xpr "\n";
 
       g.og
       |> OG.iter_vertex (fun v ->
              let k = key_of_vertex v g in
              (* todo? could also use the str_of_key to represent the node *)
-             pr (spf "%d [label=\"%s\"];\n" (OG.V.label v) (str_of_key k)));
+             xpr (spf "%d [label=\"%s\"];\n" (OG.V.label v) (str_of_key k)));
 
       g.og
       |> OG.iter_vertex (fun v ->
              let succ = OG.succ g.og v in
              succ
              |> List.iter (fun v2 ->
-                    pr (spf "%d -> %d;\n" (OG.V.label v) (OG.V.label v2))));
-      pr "}\n");
+                    xpr (spf "%d -> %d;\n" (OG.V.label v) (OG.V.label v2))));
+      xpr "}\n");
   if launch_gv then failwith "TODO: Ograph_extended.launch_gv_cmd filename";
   (* Ograph_extended.launch_gv_cmd filename; *)
   ()

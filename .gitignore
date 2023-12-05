@@ -163,6 +163,10 @@ dmypy.json
 
 ### custom stuff
 
+# JS stuff
+*.vscode-test
+out
+
 # semgrep-core build artifacts
 TAGS
 log_config.json
@@ -173,7 +177,6 @@ log_config.json
 # Do not check in compiled binaries
 /cli/src/semgrep/bin/*
 !/cli/src/semgrep/bin/__init__.py
-/bin
 
 # Ignore bench files
 perf/bench
@@ -194,3 +197,6 @@ act/
 
 # Artifacts from CI
 scripts/release/release_body.txt
+
+# Personal symlink to semgrep-proprietary used by 'make pro'
+/semgrep-proprietary

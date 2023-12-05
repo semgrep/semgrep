@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 open Pfff_or_tree_sitter
 
 (*****************************************************************************)
@@ -193,10 +193,6 @@ let just_parse_with_lang lang file =
       run file [ TreeSitter Parse_cairo_tree_sitter.parse ] (fun x -> x)
   | Lang.Csharp ->
       run file [ TreeSitter Parse_csharp_tree_sitter.parse ] (fun x -> x)
-  | Lang.Elixir ->
-      run file
-        [ TreeSitter Parse_elixir_tree_sitter.parse ]
-        Elixir_to_generic.program
   | Lang.Ruby ->
       run file
         [ TreeSitter Parse_ruby_tree_sitter.parse ]
@@ -233,8 +229,8 @@ let just_parse_with_lang lang file =
   | Lang.Swift ->
       run file [ TreeSitter Parse_swift_tree_sitter.parse ] (fun x -> x)
   | Lang.R -> run file [ TreeSitter Parse_r_tree_sitter.parse ] (fun x -> x)
-  (* externals *)
-  | Lang.Apex ->
-      (* Proprietary. The actual parser needs to register itself for
-         parsing to take place. *)
-      run_external_parser file Parsing_plugin.Apex.parse_target
+  (* External proprietary parsers. The parsers need to register themselves
+   * for parsing to take place.
+   *)
+  | Lang.Apex -> run_external_parser file Parsing_plugin.Apex.parse_target
+  | Lang.Elixir -> run_external_parser file Parsing_plugin.Elixir.parse_target

@@ -43,6 +43,7 @@ from semgrep.semgrep_interfaces.semgrep_metrics import Payload
 from semgrep.semgrep_interfaces.semgrep_metrics import Performance
 from semgrep.semgrep_interfaces.semgrep_metrics import ProFeatures
 from semgrep.semgrep_interfaces.semgrep_metrics import RuleStats
+from semgrep.semgrep_types import get_frozen_id
 from semgrep.types import FilteredMatches
 from semgrep.verbose_logging import getLogger
 
@@ -131,7 +132,7 @@ class Metrics:
             extension=Extension(),
             value=Misc(features=[]),
             started_at=Datetime(datetime.now().astimezone().isoformat()),
-            event_id=met.Uuid(str(uuid.uuid4())),
+            event_id=met.Uuid(str(get_frozen_id())),
             anonymous_user_id="",
             parse_rate=[],
             sent_at=Datetime(""),
@@ -162,6 +163,13 @@ class Metrics:
         Assumes configs is list of arguments passed to semgrep using --config
         """
         self.payload.value.engineRequested = engineType.name
+
+    @suppress_errors
+    def add_interfile_languages_used(self, used_langs: List[str]) -> None:
+        """
+        Assumes configs is list of arguments passed to semgrep using --config
+        """
+        self.payload.value.interfileLanguagesUsed = used_langs
 
     @suppress_errors
     def add_diff_depth(self, diff_depth: int) -> None:
@@ -419,13 +427,14 @@ class Metrics:
     # for it
     # TODO it's a bit unfortunate that our tests are going to post
     # metrics...
-    def _post_metrics(self, user_agent: str) -> None:
+    def _post_metrics(self, *, user_agent: str, local_scan_id: str) -> None:
         r = requests.post(
             METRICS_ENDPOINT,
             data=self.as_json(),
             headers={
                 "Content-Type": "application/json",
                 "User-Agent": user_agent,
+                "X-Semgrep-Scan-ID": local_scan_id,
             },
             timeout=3,
         )
@@ -438,9 +447,7 @@ class Metrics:
 
         Will if is_enabled is True
         """
-        from semgrep.state import get_state  # avoiding circular import
 
-        state = get_state()
         logger.verbose(
             f"{'Sending' if self.is_enabled else 'Not sending'} pseudonymous metrics since metrics are configured to {self.metrics_state.name} and registry usage is {self.is_using_registry}"
         )
@@ -450,6 +457,13 @@ class Metrics:
 
         self.gather_click_params()
         self.payload.sent_at = Datetime(datetime.now().astimezone().isoformat())
+
+        from semgrep.state import get_state  # avoiding circular import
+
+        state = get_state()
         self.payload.anonymous_user_id = state.settings.get("anonymous_user_id")
 
-        self._post_metrics(str(state.app_session.user_agent))
+        self._post_metrics(
+            user_agent=str(state.app_session.user_agent),
+            local_scan_id=str(state.local_scan_id),
+        )

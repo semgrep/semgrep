@@ -31,8 +31,9 @@
 (* Entry point *)
 (*****************************************************************************)
 
-let print_help () =
-  Ocolor_format.printf
+let print_help (stdout : Cap.Console.stdout) =
+  (* TODO: add a Out.printf_color? *)
+  CapConsole.ocolor_format_printf stdout
     {|
 ┌──── @{<green>○○○@} ────┐
 │ Semgrep CLI │
@@ -57,8 +58,8 @@ For more information about Semgrep, visit @{<cyan;ul>https://semgrep.dev@}
 For the CLI docs visit @{<cyan;ul>https://semgrep.dev/docs/category/semgrep-cli/@}
 |}
 
-let print_semgrep_dashdash_help () =
-  print_string
+let print_semgrep_dashdash_help (stdout : Cap.Console.stdout) =
+  CapConsole.out stdout
     {|Usage: semgrep [OPTIONS] COMMAND [ARGS]...
 
   To get started quickly, run `semgrep scan --config auto`
@@ -78,5 +79,4 @@ Commands:
   lsp                  Start the Semgrep LSP server (useful for IDEs)
   publish              Upload rule to semgrep.dev
   scan                 Run semgrep rules on files
-  show                 Show various information about Semgrep
-|}
+  show                 Show various information about Semgrep|}

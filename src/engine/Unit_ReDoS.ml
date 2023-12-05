@@ -182,8 +182,9 @@ let test_vulnerability_prediction () =
     pattern_expectations
 
 let tests =
-  [
-    ("unescape", test_unescape);
-    ("pcre pattern explosion", test_pcre_pattern_explosions);
-    ("vulnerability prediction", test_vulnerability_prediction);
-  ]
+  Alcotest_ext.simple_tests
+    [
+      ("unescape", test_unescape);
+      ("pcre pattern explosion", test_pcre_pattern_explosions);
+      ("vulnerability prediction", test_vulnerability_prediction);
+    ]

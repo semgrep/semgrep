@@ -12,20 +12,20 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open File.Operators
+open Fpath_.Operators
 open Lsp
 open Types
 open RPC_server
 module CN = Client_notification
 module CR = Client_request
 module Conv = Convert_utils
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-let fix_code_action_of_match (m : Out.cli_match) =
+let fix_code_action_of_match (m : OutJ.cli_match) =
   let fix =
     match m.extra.fix with
     | Some fix -> fix
@@ -51,7 +51,7 @@ let fix_code_action_of_match (m : Out.cli_match) =
   in
   `CodeAction action
 
-let ignore_code_action_of_match (m : Out.cli_match) =
+let ignore_code_action_of_match (m : OutJ.cli_match) =
   let command =
     Command.create
       ~arguments:
@@ -73,17 +73,17 @@ let ignore_code_action_of_match (m : Out.cli_match) =
   in
   `CodeAction action
 
-let code_actions_of_match (m : Out.cli_match) =
+let code_actions_of_match (m : OutJ.cli_match) =
   let ignore_action = ignore_code_action_of_match m in
   match m.extra.fix with
   | Some _ -> [ fix_code_action_of_match m; ignore_action ]
   | None -> [ ignore_action ]
 
-let code_actions_of_file (matches : Out.cli_match list) file =
+let code_actions_of_file (matches : OutJ.cli_match list) file =
   let matches =
-    List.filter (fun (m : Out.cli_match) -> m.path = file) matches
+    List.filter (fun (m : OutJ.cli_match) -> m.path = file) matches
   in
-  matches |> List.concat_map code_actions_of_match
+  List.concat_map code_actions_of_match matches
 
 (* Example *)
 (* A match that has an autofix will produce a diagnostic like this:
@@ -119,7 +119,7 @@ let code_actions_of_file (matches : Out.cli_match list) file =
     See:
     https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_codeAction
 *)
-let code_actions_of_cli_matches (matches : Out.cli_match list)
+let code_actions_of_cli_matches (matches : OutJ.cli_match list)
     (files : Fpath.t list) : [> `CodeAction of Lsp.Types.CodeAction.t ] list =
   List.concat_map (code_actions_of_file matches) files
 
@@ -132,7 +132,7 @@ let on_request server
   let file = uri |> Uri.to_path |> Fpath.v in
   let matches =
     let ranges =
-      Common.map (fun (d : Diagnostic.t) -> d.range) context.diagnostics
+      List_.map (fun (d : Diagnostic.t) -> d.range) context.diagnostics
     in
     Session.previous_scan_of_file server.session file
     |> Option.value ~default:[]

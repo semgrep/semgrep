@@ -14,7 +14,7 @@ type conf = {
   (* whether or not follow what is specified in the .gitignore
    * TODO? what about .semgrepignore?
    *)
-  respect_git_ignore : bool;
+  respect_gitignore : bool;
   (* TODO: not used for now *)
   baseline_commit : string option;
   (* TODO: not used for now *)
@@ -43,6 +43,12 @@ type conf = {
    This may raise Unix.Unix_error if the scanning root does not exist.
 *)
 val get_targets :
+  conf ->
+  Fpath.t list (* scanning roots *) ->
+  Fppath.t list * Semgrep_output_v1_t.skipped_target list
+
+(* Same as get_targets but drop the ppath (path within the project) *)
+val get_target_fpaths :
   conf ->
   Fpath.t list (* scanning roots *) ->
   Fpath.t list * Semgrep_output_v1_t.skipped_target list

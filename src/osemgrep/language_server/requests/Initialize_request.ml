@@ -20,7 +20,7 @@ open RPC_server
 module CN = Client_notification
 module CR = Client_request
 module Conv = Convert_utils
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 (*****************************************************************************)
 (* Server *)
@@ -43,11 +43,15 @@ let initialize_server server
       initializationOptions |> member "doHover" |> to_bool_option
       |> Option.value ~default:false
     in
+    let pro_intrafile =
+      scan_options |> member "pro_intrafile" |> to_bool_option
+      |> Option.value ~default:false
+    in
     let res =
       scan_options |> User_settings.t_of_yojson
       |> Result.value ~default:server.session.user_settings
     in
-    { res with do_hover }
+    { res with do_hover; pro_intrafile }
   in
   let workspace_folders =
     match (workspaceFolders, rootUri) with
@@ -67,6 +71,23 @@ let initialize_server server
           "intellij"
     | _ -> false
   in
+  (* Check the validity of the current API token here.
+     We do this asynchronously, since this is purely side-effecting,
+     and we don't care to percolate the monad.
+  *)
+  Lwt.async (fun () ->
+      let settings = Semgrep_settings.load () in
+      match settings.api_token with
+      | Some token ->
+          let caps = Cap.network_caps_UNSAFE () in
+          let caps = Auth.cap_token_and_network token caps in
+          (* "if not valid", basically *)
+          if%lwt Semgrep_login.verify_token_async caps |> Lwt.map not then (
+            RPC_server.notify_show_message ~kind:MessageType.Error
+              "Invalid Semgrep token detected, please log in again.";
+            Semgrep_settings.save { settings with api_token = None } |> ignore;
+            Lwt.return_unit)
+      | None -> Lwt.return_unit);
   (* We're using preemptive threads here as when semgrep scans run, they don't utilize Lwt at all,
       and so block the Lwt scheduler, meaning it cannot properly respond to requests until
       a scan is finished. With preemptive threads, the threads are guaranteed to run concurrently.

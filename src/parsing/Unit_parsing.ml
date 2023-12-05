@@ -1,6 +1,6 @@
 open Common
-open Testutil
-open File.Operators
+open Fpath_.Operators
+open Alcotest_ext
 module E = Core_error
 
 (*****************************************************************************)
@@ -22,23 +22,23 @@ let tests_path_parsing = tests_path / "parsing"
 
 let parsing_tests_for_lang files lang =
   files
-  |> Common.map (fun file ->
-         ( Filename.basename file,
-           fun () ->
+  |> List_.map (fun file ->
+         Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang)
+           (Filename.basename file) (fun () ->
              Parse_target.parse_and_resolve_name_fail_if_partial lang file
-             |> ignore ))
+             |> ignore))
 
 let partial_parsing_tests_for_lang files lang =
   files
-  |> Common.map (fun file ->
-         ( Filename.basename file,
-           fun () ->
+  |> List_.map (fun file ->
+         Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang)
+           (Filename.basename file) (fun () ->
              let { Parsing_result2.skipped_tokens = errs; _ } =
                Parse_target.parse_and_resolve_name lang file
              in
              if errs =*= [] then
                Alcotest.fail
-                 "it should parse partially the file (with some errors)" ))
+                 "it should parse partially the file (with some errors)"))
 
 (*****************************************************************************)
 (* Tests *)
@@ -51,7 +51,7 @@ let lang_parsing_tests () =
   (* TODO: infer dir and ext from lang using Lang helper functions *)
   let pack_parsing_tests_for_lang lang dir ext =
     let slang = Lang.show lang in
-    pack_tests slang
+    pack_tests_pro slang
       (let dir = tests_path_parsing / dir in
        let files = Common2.glob (spf "%s/*%s" !!dir ext) in
        if files =*= [] then
@@ -88,7 +88,7 @@ let lang_parsing_tests () =
       (* a few parsing tests where we expect some partials
        * See cpp/parsing_partial/
        *)
-      pack_tests "C++ partial parsing"
+      pack_tests_pro "C++ partial parsing"
         (let dir = tests_path_parsing / "cpp" / "parsing_partial" in
          let files = Common2.glob (spf "%s/*.cpp" !!dir) in
          let lang = Lang.Cpp in
@@ -110,8 +110,8 @@ let parsing_error_tests () =
   let dir = tests_path / "parsing_errors" in
   pack_tests "Parsing error detection"
     (let tests = Common2.glob (spf "%s/*" !!dir) in
-     tests |> File.Path.of_strings
-     |> Common.map (fun file ->
+     tests |> Fpath_.of_strings
+     |> List_.map (fun file ->
             ( Fpath.basename file,
               fun () ->
                 try
@@ -136,9 +136,24 @@ let parsing_rules_tests () =
         * CI: Common2.glob (spf "%s/*.jsonnet" dir)
         *)
      in
-     tests |> File.Path.of_strings
-     |> Common.map (fun file ->
+     tests |> Fpath_.of_strings
+     |> List_.map (fun file ->
             (Fpath.basename file, fun () -> Parse_rule.parse file |> ignore)))
+
+let parsing_rules_with_atd_tests () =
+  let dir = tests_path / "rules_v2" in
+  let tests1 =
+    Common2.glob (spf "%s/*.yaml" !!dir) @ Common2.glob (spf "%s/*.json" !!dir)
+  in
+  let dir = tests_path / "syntax_v2" in
+  let tests2 =
+    Common2.glob (spf "%s/*.yaml" !!dir) @ Common2.glob (spf "%s/*.json" !!dir)
+  in
+  pack_tests "Parsing rules with rule_schema_v2.atd"
+    (tests1 @ tests2 |> Fpath_.of_strings
+    |> List_.map (fun file ->
+           (!!file, fun () -> Parse_rules_with_atd.parse_rules_v2 file |> ignore))
+    )
 
 (*****************************************************************************)
 (* Tests *)
@@ -146,4 +161,9 @@ let parsing_rules_tests () =
 
 let tests () =
   List.flatten
-    [ lang_parsing_tests (); parsing_error_tests (); parsing_rules_tests () ]
+    [
+      lang_parsing_tests ();
+      parsing_error_tests ();
+      parsing_rules_tests ();
+      parsing_rules_with_atd_tests ();
+    ]

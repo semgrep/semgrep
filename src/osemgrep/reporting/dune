@@ -10,7 +10,9 @@
    digestif
 
    osemgrep_core
+   osemgrep_core_runner
    semgrep.reporting
+   semgrep.targeting
  )
  (preprocess
    (pps

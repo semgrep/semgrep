@@ -1,6 +1,6 @@
 open Lsp.Types
 module Conv = Convert_utils
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 
 let meth = "semgrep/loginFinish"
 let wait_before_retry_in_ms = 6 * 1000
@@ -25,9 +25,8 @@ let of_jsonrpc_params params : (Uri.t * Uuidm.t) option =
 (* Entry point *)
 (*****************************************************************************)
 
-let on_notification server params : unit =
+let on_notification _server params : unit =
   (* Emulating a poor man's writer's monad, mixed with some LWT goodness. *)
-  ignore server;
   let ( let^ ) (x : (_, string) Result.t Lwt.t) f : unit Lwt.t =
     let%lwt result = x in
     match result with
@@ -46,17 +45,19 @@ let on_notification server params : unit =
          return to the main event loop.
       *)
       Lwt.async (fun () ->
-          let^ url, sessionId =
+          let^ _url, sessionId =
             of_jsonrpc_params params
             |> Option.to_result ~none:"got invalid parameters"
             |> Lwt.return
           in
+          let caps = Cap.network_caps_UNSAFE () in
           let^ token, _ =
             Semgrep_login.fetch_token_async ~min_wait_ms:wait_before_retry_in_ms
-              ~max_retries (sessionId, url)
+              ~max_retries caps sessionId
           in
+          let caps = Auth.cap_token_and_network token caps in
           let^ _deployment =
-            Semgrep_App.get_deployment_from_token_async token
+            Semgrep_App.get_deployment_from_token_async caps
             |> Lwt.map (Option.to_result ~none:"failed to get deployment")
           in
           (* TODO: state.app_session.authenticate()
@@ -64,5 +65,5 @@ let on_notification server params : unit =
           *)
           RPC_server.notify_show_message ~kind:MessageType.Info
             "Successfully logged into Semgrep Code";
-          let^ () = Semgrep_login.save_token_async token in
+          let^ _deployment = Semgrep_login.save_token_async caps in
           Lwt.return ())

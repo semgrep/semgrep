@@ -9,6 +9,10 @@
     name: 'Make checkout speedy',
     run: 'git config --global fetch.parallel 50',
   },
+  git_safedir: {
+    name: 'Configure git safedir properly',
+    run: "git config --global --add safe.directory $(pwd)",
+  },
   // stay away dependabot, bad dog.
   dependabot_guard: {
     'if': "(github.actor != 'dependabot[bot]')",

@@ -258,19 +258,19 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         }
       },
       "flags": [],
-      "id": "6090c1ba-b6c8-853d-a43c-7119a6eb2ad0",
+      "id": "33cc4a1a-63bd-a197-79c4-f4bd6491df4a",
       "identifiers": [
         {
           "name": "Semgrep - supply-chain1",
           "type": "semgrep_type",
-          "url": "https://semgrep.dev/r/supply-chain1",
+          "url": "https://semgrep.dev/-/advisories/supply-chain1",
           "value": "supply-chain1"
         }
       ],
       "location": {
         "end_line": 2,
         "file": "poetry.lock",
-        "start_line": 1
+        "start_line": 2
       },
       "message": "found a dependency",
       "scanner": {
@@ -298,8 +298,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
   environment - running in environment git, triggering event is unknown
 
   CONNECTION
-  Reporting start of scan for deployment_name (scan_id=<MagicMock name='post()…
-  Fetching configuration from Semgrep Cloud Platform
+  Initializing scan (deployment=org_name, scan_id=12345)
   Enabled products: Code, Supply Chain
 
 ┌─────────────┐
@@ -328,6 +327,6 @@ CI scan completed successfully.
     https://semgrep.dev/orgs/org_name/findings
     https://semgrep.dev/orgs/org_name/supply-chain
   Has findings for blocking rules so exiting with code 1
-  semgrep.dev is suggesting a non-zero exit code <MASKED>
+  semgrep.dev is suggesting a non-zero exit code (Test Reason)
 
 === end of stderr - plain

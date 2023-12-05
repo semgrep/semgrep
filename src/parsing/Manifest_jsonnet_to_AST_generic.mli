@@ -4,4 +4,4 @@
  * we first parse and create a generic AST before calling
  * Parse_rule.parse_generic_ast to finally get a Rule.t
  *)
-val manifest_value : Value_jsonnet.value_ -> AST_generic.program
+val manifest_value : Value_jsonnet.t -> AST_generic.program

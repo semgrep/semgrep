@@ -74,8 +74,8 @@ let rec current_mode () =
       reset();
       current_mode ()
 
-let push_mode mode = Common.push mode _mode_stack
-let pop_mode () = ignore(Common2.pop2 _mode_stack)
+let push_mode mode = Stack_.push mode _mode_stack
+let pop_mode () = ignore(Stack_.pop _mode_stack)
 
 }
 
@@ -438,7 +438,7 @@ rule token = parse
   (* ----------------------------------------------------------------------- *)
   (* literals *)
   | integerLiteral as n
-      { IntegerLiteral (int_of_string_opt n, tokinfo lexbuf) }
+      { IntegerLiteral (Parsed_int.parse (n, tokinfo lexbuf)) }
   | floatingPointLiteral as n
       { FloatingPointLiteral (float_of_string_opt n, tokinfo lexbuf) }
 

@@ -1,7 +1,7 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module In = Input_to_core_t
-module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_t
 module Resp = Semgrep_output_v1_t
 open Find_targets (* conf type *)
 
@@ -32,9 +32,9 @@ let deduplicate_list l =
 (* similar to Run_semgrep.sort_targets_by_decreasing_size, could factorize *)
 let sort_files_by_decreasing_size files =
   files
-  |> Common.map (fun file -> (file, File.filesize file))
+  |> List_.map (fun file -> (file, UFile.filesize file))
   |> List.sort (fun (_, (a : int)) (_, b) -> compare b a)
-  |> Common.map fst
+  |> List_.map fst
 
 (*************************************************************************)
 (* Filtering *)
@@ -58,13 +58,13 @@ let global_filter ~opt_lang ~sort_by_decr_size paths =
   in
   let paths, skipped2 = Skip_target.exclude_big_files paths in
   let paths, skipped3 = Skip_target.exclude_minified_files paths in
-  let skipped = Common.flatten [ skipped1; skipped2; skipped3 ] in
+  let skipped = List_.flatten [ skipped1; skipped2; skipped3 ] in
   let sorted_paths =
     if sort_by_decr_size then sort_files_by_decreasing_size paths else paths
   in
   let sorted_skipped =
     List.sort
-      (fun (a : Out.skipped_target) b -> Fpath.compare a.path b.path)
+      (fun (a : OutJ.skipped_target) b -> Fpath.compare a.path b.path)
       skipped
   in
   (sorted_paths, sorted_skipped)
@@ -79,8 +79,8 @@ let global_filter ~opt_lang ~sort_by_decr_size paths =
      ((project_kind, project_root), path)
 *)
 let group_by_project_root func paths =
-  Common.map func paths |> Common.group_by fst
-  |> Common.map (fun (k, kv_list) -> (k, Common.map snd kv_list))
+  List_.map func paths |> Assoc.group_by fst
+  |> List_.map (fun (k, kv_list) -> (k, List_.map snd kv_list))
 
 (*
    Identify the project root for each scanning root and group them
@@ -100,14 +100,13 @@ let group_roots_by_project conf paths =
     | None -> None
     | Some proj_root -> Some (Project.Git_project, proj_root)
   in
-  if conf.respect_git_ignore then
+  if conf.respect_gitignore then
     paths
     |> group_by_project_root (fun path ->
-           match Git_project.find_any_project_root ?force_root path with
-           | (Project.Other_project as kind), root, git_path ->
-               ((kind, root), Ppath.to_fpath root git_path)
-           | (Project.Git_project as kind), root, git_path ->
-               ((kind, root), Ppath.to_fpath ~root git_path))
+           let kind, root, git_path =
+             Git_project.find_any_project_root ?force_root path
+           in
+           ((kind, root), Ppath.to_fpath root git_path))
   else
     (* ignore gitignore files but respect semgrepignore files *)
     paths
@@ -164,9 +163,9 @@ let files_from_git_ls ~cwd:scan_root =
       return frozenset(tracked | untracked_unignored - deleted)
   *)
   (* tracked files *)
-  let tracked_output = Git_wrapper.files_from_git_ls ~cwd:scan_root in
+  let tracked_output = Git_wrapper.ls_files ~cwd:scan_root [] in
   tracked_output
-  |> Common.map (fun x -> if !!scan_root = "." then x else scan_root // x)
+  |> List_.map (fun x -> if !!scan_root = "." then x else scan_root // x)
   |> List.filter is_valid_file
 [@@profiling]
 
@@ -186,10 +185,9 @@ let list_regular_files (conf : conf) (scan_root : Fpath.t) : Fpath.t list =
        * and so it does not really mean the user want to use git (and
        * a possible .gitignore) to list files.
        *)
-      if conf.respect_git_ignore then (
+      if conf.respect_gitignore then (
         try files_from_git_ls ~cwd:scan_root with
-        | (Git_wrapper.Error _ | Common.CmdError _ | Unix.Unix_error _) as exn
-          ->
+        | (Git_wrapper.Error _ | Unix.Unix_error _) as exn ->
             Logs.info (fun m ->
                 m
                   "Unable to ignore files ignored by git (%s is not a git \
@@ -229,7 +227,7 @@ let list_regular_files (conf : conf) (scan_root : Fpath.t) : Fpath.t list =
 let get_targets conf scanning_roots =
   (* python: =~ Target_manager.get_all_files() *)
   group_roots_by_project conf scanning_roots
-  |> Common.map (fun ((proj_kind, project_root), scanning_roots) ->
+  |> List_.map (fun ((proj_kind, project_root), scanning_roots) ->
          (* step0: starting point (git ls-files or List_files) *)
          let paths =
            scanning_roots
@@ -241,16 +239,19 @@ let get_targets conf scanning_roots =
          (* step1: filter with .gitignore and .semgrepignore *)
          let exclusion_mechanism : Semgrepignore.exclusion_mechanism =
            match (proj_kind : Project.kind) with
-           | Project.Git_project -> Gitignore_and_semgrepignore
-           | Project.Other_project -> Only_semgrepignore
+           | Git_project
+           | Gitignore_project ->
+               Gitignore_and_semgrepignore
+           | Other_project -> Only_semgrepignore
          in
          let ign =
            Semgrepignore.create ?include_patterns:conf.include_
-             ~cli_patterns:conf.exclude ~exclusion_mechanism ~project_root ()
+             ~cli_patterns:conf.exclude ~builtin_semgrepignore:Empty
+             ~exclusion_mechanism ~project_root ()
          in
          let paths, skipped_paths1 =
            paths
-           |> Common.partition_either (fun path ->
+           |> Either_.partition_either (fun path ->
                   Logs.debug (fun m -> m "Considering path %s" !!path);
                   let rel_path =
                     match Fpath.relativize ~root:project_root path with
@@ -302,8 +303,8 @@ let get_targets conf scanning_roots =
           *)
          let paths, skipped_paths3 =
            paths
-           |> Common.partition_result (fun path ->
-                  let size = File.filesize path in
+           |> Result_.partition_result (fun path ->
+                  let size = UFile.filesize path in
                   if conf.max_target_bytes > 0 && size > conf.max_target_bytes
                   then
                     Error
@@ -343,9 +344,10 @@ let files_of_dirs_or_files ?(keep_root_files = true)
     else (roots, [])
   in
   let paths =
-    paths |> File.Path.to_strings
-    |> Common.files_of_dir_or_files_no_vcs_nofilter |> File.Path.of_strings
+    paths |> Fpath_.to_strings |> UCommon.files_of_dir_or_files_no_vcs_nofilter
+    |> Fpath_.of_strings
   in
+
   let paths, skipped = global_filter ~opt_lang ~sort_by_decr_size paths in
   let paths = explicit_targets @ paths in
   let sorted_paths =
@@ -354,7 +356,7 @@ let files_of_dirs_or_files ?(keep_root_files = true)
   in
   let sorted_skipped =
     List.sort
-      (fun (a : Out.skipped_target) b -> Fpath.compare a.path b.path)
+      (fun (a : OutJ.skipped_target) b -> Fpath.compare a.path b.path)
       skipped
   in
   (sorted_paths, sorted_skipped)

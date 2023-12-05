@@ -622,7 +622,9 @@ class CoreRunner:
     def plan_core_run(
         rules: List[Rule],
         target_manager: TargetManager,
+        *,
         all_targets: Optional[Set[Path]] = None,
+        product: Optional[out.Product] = None,
     ) -> Plan:
         """
         Gets the targets to run for each rule
@@ -634,48 +636,50 @@ class CoreRunner:
 
         Note: this is a list because a target can appear twice (e.g. Java + Generic)
         """
-        target_info: Dict[Tuple[Path, Language], List[int]] = collections.defaultdict(
-            list
-        )
+        # The range of target_info is (index into rules x product as json)
+        # Using product as JSON because we want structural equality of products instead of object equality.
+        target_info: Dict[
+            Tuple[Path, Language], Tuple[List[int], Set[str]]
+        ] = collections.defaultdict(lambda: (list(), set()))
 
         lockfiles = target_manager.get_all_lockfiles()
-
-        rules = [
-            rule
-            for rule in rules
-            # filter out SCA rules with no relevant lockfiles
-            if not (isinstance(rule.product.value, out.SCA))
-            or any(lockfiles[ecosystem] for ecosystem in rule.ecosystems)
-        ]
+        unused_rules = []
 
         for rule_num, rule in enumerate(rules):
+            any_target = False
             for language in rule.languages:
                 targets = list(
                     target_manager.get_files_for_rule(
-                        language,
-                        rule.includes,
-                        rule.excludes,
-                        rule.id,
+                        language, rule.includes, rule.excludes, rule.id, rule.product
                     )
                 )
+                any_target = any_target or len(targets) > 0
 
                 for target in targets:
                     if all_targets is not None:
                         all_targets.add(target)
-                    target_info[target, language].append(rule_num)
+                    rules_nums, products = target_info[target, language]
+                    rules_nums.append(rule_num)
+                    products.add(rule.product.to_json_string())
+
+            if not any_target:
+                unused_rules.append(rule)
 
         return Plan(
             [
                 Task(
                     path=target,
                     analyzer=language,
+                    products=tuple(out.Product.from_json_string(x) for x in products),
                     # tuple conversion makes rule_nums hashable, so usable as cache key
-                    rule_nums=tuple(target_info[target, language]),
+                    rule_nums=tuple(rule_nums),
                 )
-                for target, language in target_info
+                for ((target, language), (rule_nums, products)) in target_info.items()
             ],
             rules,
+            product=product,
             lockfiles_by_ecosystem=lockfiles,
+            unused_rules=unused_rules,
         )
 
     def _run_rules_direct_to_semgrep_core_helper(
@@ -696,7 +700,7 @@ class CoreRunner:
         outputs: RuleMatchMap = collections.defaultdict(OrderedRuleMatchList)
         errors: List[SemgrepError] = []
         all_targets: Set[Path] = set()
-        file_timeouts: Dict[Path, int] = collections.defaultdict(lambda: 0)
+        file_timeouts: Dict[Path, int] = collections.defaultdict(int)
         max_timeout_files: Set[Path] = set()
         # TODO this is a quick fix, refactor this logic
 
@@ -727,7 +731,29 @@ class CoreRunner:
             )
 
         with exit_stack:
+            if self._binary_path is None:
+                if engine.is_pro:
+                    logger.error(
+                        f"""
+Semgrep Pro is either uninstalled or it is out of date.
+
+Try installing Semgrep Pro (`semgrep install-semgrep-pro`).
+                        """
+                    )
+                else:
+                    # This really shouldn't happen, but let's cover our bases
+                    logger.error(
+                        f"""
+Could not find the semgrep-core executable. Your Semgrep install is likely corrupted. Please uninstall Semgrep and try again.
+                        """
+                    )
+                sys.exit(2)
             cmd = [
+                # bugfix: self._binary_path is an Optional[Path]. The
+                # recommended way to convert a Path to a string is to use the
+                # str function. However, mypy allows the use of str to convert
+                # Optional values to strings. Make sure to check against None
+                # even though mypy won't warn you.
                 str(self._binary_path),
                 "-json",
             ]
@@ -760,11 +786,15 @@ class CoreRunner:
                 # for `plan`, the `baseline_handler` is disabled within the `target_manager`
                 # when executing `plan_core_run`.
                 plan = self.plan_core_run(
-                    rules, evolve(target_manager, baseline_handler=None), all_targets
+                    rules,
+                    evolve(target_manager, baseline_handler=None),
+                    all_targets=all_targets,
                 )
 
             else:
-                plan = self.plan_core_run(rules, target_manager, all_targets)
+                plan = self.plan_core_run(
+                    rules, target_manager, all_targets=all_targets
+                )
 
             plan.record_metrics()
             parsing_data.add_targets(plan)
@@ -905,7 +935,7 @@ class CoreRunner:
                         out.LexicalError,
                         out.ParseError,
                         out.PartialParsing,
-                        out.SpecifiedParseError,
+                        out.OtherParseError,
                         out.AstBuilderError,
                     ),
                 ):
@@ -994,7 +1024,7 @@ Exception raised: `{e}`
         target_mode_config: TargetModeConfig,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
-        Takes in rules and targets and retuns object with findings
+        Takes in rules and targets and returns object with findings
         """
         start = datetime.now()
 

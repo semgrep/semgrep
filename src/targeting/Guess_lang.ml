@@ -4,7 +4,7 @@
 *)
 
 open Common
-open File.Operators
+open Fpath_.Operators
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -64,7 +64,7 @@ let prepend_period_if_needed s =
    Both '.d.ts' and '.ts' are considered extensions of 'hello.d.ts'.
 *)
 let has_extension extensions =
-  has_suffix (Common.map prepend_period_if_needed extensions)
+  has_suffix (List_.map prepend_period_if_needed extensions)
 
 let has_lang_extension lang = has_extension (Lang.ext_of_lang lang)
 
@@ -91,7 +91,7 @@ let is_executable =
   Or (has_extension [ ".exe" ], Test_path f)
 
 let get_first_line path =
-  Common.with_open_infile !!path (fun ic ->
+  UCommon.with_open_infile !!path (fun ic ->
       try input_line ic with
       | End_of_file -> (* empty file *) "")
 
@@ -100,12 +100,12 @@ let get_first_line path =
    a single filesystem block.
 *)
 let get_first_block ?(block_size = 4096) path =
-  Common.with_open_infile !!path (fun ic ->
+  UCommon.with_open_infile !!path (fun ic ->
       let len = min block_size (in_channel_length ic) in
       really_input_string ic len)
 
-let shebang_re = lazy (SPcre.regexp "^#![ \t]*([^ \t]*)[ \t]*([^ \t].*)?$")
-let split_cmd_re = lazy (SPcre.regexp "[ \t]+")
+let shebang_re = lazy (Pcre_.regexp "^#![ \t]*([^ \t]*)[ \t]*([^ \t].*)?$")
+let split_cmd_re = lazy (Pcre_.regexp "[ \t]+")
 
 (*
    A shebang supports at most the name of the script and one argument:
@@ -131,7 +131,7 @@ let split_cmd_re = lazy (SPcre.regexp "[ \t]+")
      "#!/usr/bin/env -S bash -e -u" -> ["/usr/bin/env"; "bash"; "-e"; "-u"]
 *)
 let parse_shebang_line s =
-  let matched = SPcre.exec_noerr ~rex:(Lazy.force shebang_re) s in
+  let matched = Pcre_.exec_noerr ~rex:(Lazy.force shebang_re) s in
   match matched with
   | None -> None
   | Some matched -> (
@@ -143,7 +143,7 @@ let parse_shebang_line s =
           match string_chop_prefix ~pref:"-S" arg1 with
           | Some packed_args ->
               let args =
-                SPcre.split_noerr ~rex:(Lazy.force split_cmd_re)
+                Pcre_.split_noerr ~rex:(Lazy.force split_cmd_re)
                   ~on_error:[ packed_args ] packed_args
                 |> List.filter (fun fragment -> fragment <> "")
               in
@@ -172,10 +172,10 @@ let uses_shebang_command_name cmd_names =
    In case of an error, the result is false.
  *)
 let regexp pat =
-  let rex = SPcre.regexp pat in
+  let rex = Pcre_.regexp pat in
   let f path =
     let s = get_first_block path in
-    SPcre.pmatch_noerr ~rex s
+    Pcre_.pmatch_noerr ~rex s
   in
   Test_path f
 
@@ -300,4 +300,5 @@ let inspect_file lang path =
   let bool_res = inspect_file_p lang path in
   wrap_with_error_message lang path bool_res
 
-let inspect_files lang paths = Common.partition_result (inspect_file lang) paths
+let inspect_files lang paths =
+  Result_.partition_result (inspect_file lang) paths

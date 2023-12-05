@@ -1,0 +1,27 @@
+; This library should contain all UI code for the CLI
+(library
+  (public_name semgrep.osemgrep_cli_ui)
+  (name osemgrep_cli_ui)
+  (wrapped false)
+  (libraries
+  ; External libraries
+    ANSITerminal
+    cmdliner
+    ocolor
+    commons
+    lwt
+    lwt_platform
+
+    osemgrep_configuring
+    osemgrep_core
+  )
+ (preprocess
+   (pps
+     ppx_profiling
+     ppx_deriving.show
+     ppx_deriving.eq
+     ppx_hash
+     lwt_ppx
+   )
+ )
+)

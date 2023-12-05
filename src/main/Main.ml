@@ -50,17 +50,19 @@
  * and rename this binary to simply 'semgrep'.
  *)
 let () =
-  match Filename.basename Sys.argv.(0) with
-  (* osemgrep!! *)
-  | "osemgrep.bc"
-  | "osemgrep" ->
-      let exit_code = CLI.main Sys.argv in
-      (* TODO: remove or make debug-only *)
-      if exit_code <> Exit_code.ok then
-        Printf.eprintf "Error: %s\nExiting with error status %i: %s\n%!"
-          (Exit_code.to_message exit_code)
-          (Exit_code.to_int exit_code)
-          (String.concat " " (Array.to_list Sys.argv));
-      exit (Exit_code.to_int exit_code)
-  (* legacy semgrep-core *)
-  | _ -> Core_CLI.main Sys.argv
+  Cap.main (fun (caps : Cap.all_caps) ->
+      let argv = CapSys.argv caps#argv in
+      match Filename.basename argv.(0) with
+      (* osemgrep!! *)
+      | "osemgrep.bc"
+      | "osemgrep" ->
+          let exit_code = CLI.main caps argv in
+          (* remove? or make debug-only? or use Logs.info? *)
+          if exit_code <> Exit_code.ok then
+            Printf.eprintf "Error: %s\nExiting with error status %i: %s\n%!"
+              (Exit_code.to_message exit_code)
+              (Exit_code.to_int exit_code)
+              (String.concat " " (Array.to_list argv));
+          CapStdlib.exit caps#exit (Exit_code.to_int exit_code)
+      (* legacy semgrep-core *)
+      | _ -> Core_CLI.main argv)

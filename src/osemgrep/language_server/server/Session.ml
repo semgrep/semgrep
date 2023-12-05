@@ -1,7 +1,7 @@
 open Lsp
 open Types
-open File.Operators
-module Out = Semgrep_output_v1_t
+open Fpath_.Operators
+module OutJ = Semgrep_output_v1_t
 
 (*****************************************************************************)
 (* Types *)
@@ -10,7 +10,7 @@ module Out = Semgrep_output_v1_t
 (* We really don't wan't mutable state in the server.
    This is the only exception *)
 type session_cache = {
-  mutable rules : Rule.t list;
+  mutable rules : Rule.t list; [@opaque]
   mutable skipped_app_fingerprints : string list;
   mutable open_documents : Fpath.t list;
   lock : Lwt_mutex.t; [@opaque]
@@ -23,7 +23,7 @@ type t = {
         fun fmt c ->
           Yojson.Safe.pretty_print fmt (ServerCapabilities.yojson_of_t c)]
   workspace_folders : Fpath.t list;
-  cached_scans : (Fpath.t, Out.cli_match list) Hashtbl.t; [@opaque]
+  cached_scans : (Fpath.t, OutJ.cli_match list) Hashtbl.t; [@opaque]
   cached_session : session_cache;
   skipped_local_fingerprints : string list;
   user_settings : User_settings.t;
@@ -60,14 +60,14 @@ let dirty_files_of_folder folder =
   let git_repo = Git_wrapper.is_git_repo folder in
   if git_repo then
     let dirty_files = Git_wrapper.dirty_files folder in
-    Some (Common.map (fun x -> folder // x) dirty_files)
+    Some (List_.map (fun x -> folder // x) dirty_files)
   else None
 
 let decode_rules data =
   Common2.with_tmp_file ~str:data ~ext:"json" (fun file ->
       let file = Fpath.v file in
       let res =
-        Rule_fetching.load_rules_from_file ~origin:Other_origin
+        Rule_fetching.load_rules_from_file ~rewrite_rule_ids:false ~origin:App
           ~registry_caching:true file
       in
       Logs.info (fun m -> m "Loaded %d rules from CI" (List.length res.rules));
@@ -89,9 +89,10 @@ let auth_token () =
  * (and reparse rules...).
  * Once osemgrep is ready, we can just use its target manager directly here
  *)
+(* TODO: Cache targets *)
 let targets session =
   let dirty_files =
-    Common.map (fun f -> (f, dirty_files_of_folder f)) session.workspace_folders
+    List_.map (fun f -> (f, dirty_files_of_folder f)) session.workspace_folders
   in
   let member_folder_dirty_files file folder =
     let dirty_files = List.assoc folder dirty_files in
@@ -111,7 +112,9 @@ let targets session =
     let targets_conf =
       User_settings.find_targets_conf_of_t session.user_settings
     in
-    Find_targets.get_targets { targets_conf with project_root = Some f } [ f ]
+    Find_targets.get_target_fpaths
+      { targets_conf with project_root = Some f }
+      [ f ]
     |> fst
   in
   let targets =
@@ -125,7 +128,7 @@ let fetch_ci_rules_and_origins () =
   match token with
   | Some token ->
       let%lwt res =
-        Semgrep_App.fetch_scan_config_async ~token ~sca:false ~dry_run:true
+        Semgrep_App.fetch_scan_config_async token ~sca:false ~dry_run:true
           ~full_scan:true ~repository:""
       in
       let conf =
@@ -145,12 +148,12 @@ let fetch_rules session =
   in
   let home = Unix.getenv "HOME" |> Fpath.v in
   let rules_source =
-    session.user_settings.configuration |> Common.map Fpath.v
-    |> Common.map Fpath.normalize
-    |> Common.map (fun f ->
+    session.user_settings.configuration |> List_.map Fpath.v
+    |> List_.map Fpath.normalize
+    |> List_.map (fun f ->
            let p = Fpath.rem_prefix (Fpath.v "~/") f in
            Option.bind p (fun f -> Some (home // f)) |> Option.value ~default:f)
-    |> Common.map Fpath.to_string
+    |> List_.map Fpath.to_string
   in
   let rules_source =
     if rules_source = [] && ci_rules = None then (
@@ -182,7 +185,7 @@ let fetch_rules session =
     Rule_fetching.partition_rules_and_errors rules_and_origins
   in
   let rules =
-    Common.uniq_by
+    List_.uniq_by
       (fun r1 r2 -> Rule_ID.equal (fst r1.Rule.id) (fst r2.Rule.id))
       rules
   in
@@ -192,10 +195,7 @@ let fetch_rules session =
         exclude_rule_ids = [];
         severity = [];
         (* Exclude these as they require the pro engine which we don't support *)
-        exclude_products =
-          [
-            Rule_filtering.SCA; Rule_filtering.Secrets; Rule_filtering.Interfile;
-          ];
+        exclude_products = [ `SCA; `Secrets ];
       }
   in
   let rules, errors =
@@ -210,7 +210,7 @@ let fetch_skipped_app_fingerprints () =
   match auth_token with
   | Some token -> (
       let%lwt deployment_opt =
-        Semgrep_App.get_scan_config_from_token_async ~token
+        Semgrep_App.get_scan_config_from_token_async token
       in
       match deployment_opt with
       | Some deployment -> Lwt.return deployment.triage_ignored_match_based_ids
@@ -292,7 +292,7 @@ let update_workspace_folders ?(added = []) ?(removed = []) session =
 
 let record_results session results files =
   let results_by_file =
-    Common.group_by (fun (r : Out.cli_match) -> r.path) results
+    Assoc.group_by (fun (r : OutJ.cli_match) -> r.path) results
   in
   List.iter (fun f -> Hashtbl.replace session.cached_scans f []) files;
   List.iter

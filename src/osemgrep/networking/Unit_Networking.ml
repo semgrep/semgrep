@@ -16,7 +16,7 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-open Testutil
+open Alcotest_ext
 module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 (*****************************************************************************)
@@ -29,8 +29,8 @@ let get_and_check url =
   let response = Http_helpers.get uri in
   (* Check OK Status *)
   match response with
-  | Ok body -> body
-  | Error e -> failwith (Printf.sprintf "Error (%s): %s" url e)
+  | Ok (body, _) -> body
+  | Error (e, _) -> failwith (Printf.sprintf "Error (%s): %s" url e)
 
 let post_and_check url body =
   Logs.debug (fun m -> m "POST %s" url);
@@ -47,8 +47,8 @@ let get_and_check_lwt url =
   let%lwt response = Http_helpers.get_async uri in
   (* Check OK Status *)
   match response with
-  | Ok body -> Lwt.return body
-  | Error e -> failwith (Printf.sprintf "Error (%s): %s" url e)
+  | Ok (body, _) -> Lwt.return body
+  | Error (e, _) -> failwith (Printf.sprintf "Error (%s): %s" url e)
 
 let post_and_check_lwt url body =
   Logs.debug (fun m -> m "(lwt) POST %s" url);
@@ -61,13 +61,13 @@ let post_and_check_lwt url body =
 
 let get_and_check_multi urls (f : string -> unit) =
   Logs.debug (fun m -> m "GET synchronously");
-  urls |> Common.map get_and_check |> List.iter f
+  urls |> List_.map get_and_check |> List.iter f
 
 let post_and_check_multi (url_body_pairs : (string * string) list)
     (f : string -> unit) =
   Logs.debug (fun m -> m "POST synchronously");
   url_body_pairs
-  |> Common.map (fun (url, body) -> post_and_check url body)
+  |> List_.map (fun (url, body) -> post_and_check url body)
   |> List.iter f
 
 let get_and_check_multi_lwt ?(parallel = false) urls (f : string -> unit) =

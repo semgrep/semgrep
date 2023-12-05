@@ -197,6 +197,10 @@ let version = "1.35.0"
  *    in Match_tainting_mode.Formula_tbl
  * - 'deriving visitors' to generator visitor and mapper boilerplate code
  *    automatically
+ * - 'deriving sexp' because the Type.t type uses `alternate_name`, and itself
+ *    derives sexp because it is used by semgrep-pro's SIG.type_.
+ *    Since Type.t only uses `alternate_name`, we only need to derive sexp for
+ *    that and related types, and not others like expr, stmt
  *)
 
 (* Provide hash_* for the core ocaml types *)
@@ -450,6 +454,14 @@ class virtual ['self] iter_parent =
     method visit_id_info_id_t _env _ = ()
     method visit_resolved_name _env _ = ()
     method visit_tok _env _ = ()
+
+    method visit_parsed_int env pi =
+      Parsed_int.visit
+        (fun tok ->
+          self#visit_tok env tok;
+          tok)
+        pi
+      |> ignore
   end
 
 (* Basically a copy paste of iter_parent above, but with different return types
@@ -515,6 +527,7 @@ class virtual ['self] map_parent =
     method visit_id_info_id_t _env x = x
     method visit_resolved_name _env x = x
     method visit_tok _env x = x
+    method visit_parsed_int env pi = Parsed_int.map_tok (self#visit_tok env) pi
   end
 
 (*****************************************************************************)
@@ -626,6 +639,8 @@ and expr = {
   (* used to quickly get the range of an expression *)
   mutable e_range : (Tok.location * Tok.location) option;
       [@equal fun _a _b -> true] [@hash.ignore]
+  (* whether this expression is implicitly a return value in a function *)
+  mutable is_implicit_return : bool; [@hash.ignore]
 }
 
 and expr_kind =
@@ -801,7 +816,9 @@ and literal =
    * may not be able to represent all numbers. For example, OCaml integers
    * are limited to 63 bits, but C integers can use 64 bits.
    *)
-  | Int of int option wrap
+  (* See explanation for @name where the visitors are generated at the end of
+     * this long recursive type. *)
+  | Int of (Parsed_int.t[@name "parsed_int"])
   | Float of float option wrap
   | Char of string wrap
   (* String literals:
@@ -1337,6 +1354,9 @@ and other_stmt_operator =
   | OS_ThrowNothing
   | OS_ThrowArgsLocation
   | OS_Pass
+  (* TODO: OS_Async should be a 'other_stmt_with_stmt_operator' !
+   * See comment attached to 'OtherStmt' re 'stmt's not being allowed
+   * in the arguments. *)
   | OS_Async
   (* C/C++ *)
   | OS_Asm
@@ -2134,7 +2154,8 @@ let sc = Tok.unsafe_fake_tok ""
 let s skind = { s = skind; s_range = None }
 
 (* expressions *)
-let e ekind = { e = ekind; e_id = 0; e_range = None }
+let e ekind =
+  { e = ekind; e_id = 0; e_range = None; is_implicit_return = false }
 
 (* directives *)
 let d dkind = { d = dkind; d_attrs = [] }
@@ -2177,8 +2198,8 @@ let is_case_insensitive info = IdFlags.is_case_insensitive !(info.id_flags)
 
 (* TODO: move AST_generic_helpers.name_of_id and ids here *)
 
-let dotted_to_canonical xs = Common.map fst xs
-let canonical_to_dotted tid xs = xs |> Common.map (fun s -> (s, tid))
+let dotted_to_canonical xs = List_.map fst xs
+let canonical_to_dotted tid xs = xs |> List_.map (fun s -> (s, tid))
 
 (* ------------------------------------------------------------------------- *)
 (* Entities *)
@@ -2200,17 +2221,16 @@ let arg e = Arg e
 (* Expressions *)
 (* ------------------------------------------------------------------------- *)
 let special spec es =
-  Call (IdSpecial spec |> e, Tok.unsafe_fake_bracket (es |> Common.map arg))
-  |> e
+  Call (IdSpecial spec |> e, Tok.unsafe_fake_bracket (es |> List_.map arg)) |> e
 
 let opcall (op, tok) exprs : expr = special (Op op, tok) exprs
 
 let string_ (lquote, xs, rquote) : string wrap bracket =
-  let s = xs |> Common.map fst |> String.concat "" in
+  let s = xs |> List_.map fst |> String.concat "" in
   let t =
     match xs with
     | [] -> Tok.fake_tok lquote ""
-    | (_, t) :: ys -> Tok.combine_toks t (Common.map snd ys)
+    | (_, t) :: ys -> Tok.combine_toks t (List_.map snd ys)
   in
   (lquote, (s, t), rquote)
 
@@ -2219,7 +2239,7 @@ let string_ (lquote, xs, rquote) : string wrap bracket =
  *)
 let interpolated (lquote, xs, rquote) =
   match xs with
-  | [ Common.Left3 (str, tstr) ] ->
+  | [ Either_.Left3 (str, tstr) ] ->
       L (String (lquote, (str, tstr), rquote)) |> e
   | __else__ ->
       let special = IdSpecial (ConcatString InterpolatedConcat, lquote) |> e in
@@ -2227,16 +2247,16 @@ let interpolated (lquote, xs, rquote) =
         ( special,
           ( lquote,
             xs
-            |> Common.map (function
-                 | Common.Left3 x ->
+            |> List_.map (function
+                 | Either_.Left3 x ->
                      Arg (L (String (Tok.unsafe_fake_bracket x)) |> e)
-                 | Common.Right3 (lbrace, eopt, rbrace) ->
+                 | Either_.Right3 (lbrace, eopt, rbrace) ->
                      let special =
                        IdSpecial (InterpolatedElement, lbrace) |> e
                      in
-                     let args = eopt |> Option.to_list |> Common.map arg in
+                     let args = eopt |> Option.to_list |> List_.map arg in
                      Arg (Call (special, (lbrace, args, rbrace)) |> e)
-                 | Common.Middle3 e -> Arg e),
+                 | Either_.Middle3 e -> Arg e),
             rquote ) )
       |> e
 

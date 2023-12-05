@@ -18,10 +18,10 @@
 (*****************************************************************************)
 
 let find_source_files_of_dir_or_files xs =
-  File.files_of_dirs_or_files_no_vcs_nofilter xs
+  UFile.files_of_dirs_or_files_no_vcs_nofilter xs
   |> List.filter (fun filename ->
          let ftype = File_type.file_type_of_file filename in
          match ftype with
          | File_type.PL (File_type.Lisp _) -> true
          | _ -> false)
-  |> Common.sort
+  |> List_.sort

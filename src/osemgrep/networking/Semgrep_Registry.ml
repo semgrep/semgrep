@@ -5,6 +5,9 @@ module C = Rules_config
 (* Prelude *)
 (*****************************************************************************)
 (* Gather Semgrep registry related code.
+ *
+ * See also Rule_fetching.ml for the actual code fetching the rules from
+ * the registry.
  *)
 
 (*****************************************************************************)
@@ -25,7 +28,6 @@ let url_of_registry_config_kind rkind =
     | C.Registry s -> spf "%s/r/%s" prefix s
     | C.Pack s -> spf "%s/p/%s" prefix s
     | C.Snippet s -> spf "%s/s/%s" prefix s
-    | C.SavedSnippet (user, snippet) -> spf "%s/%s:%s" prefix user snippet
     (* The code below was commented at some point because handling those
      * shortcuts led to a 50s slowdown in make osemgrep-e2e; too many tests
      * are relying on those configs which take a long time to download.

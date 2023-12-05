@@ -1,0 +1,4 @@
+Java: Semgrep will now recognize `String.format(...)` expressions as constant
+strings when all their arguments are constant, but it will still not know
+what exact string it is. For example, code `String.format("Abc %s", "123")`
+will match pattern `"..."` but it will _not_ match pattern `"Abc 123"`.

@@ -14,6 +14,7 @@
  *)
 open Common
 module MV = Metavariable
+module OutJ = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -24,6 +25,8 @@ open Ppx_hash_lib.Std.Hash.Builtin
 (*****************************************************************************)
 (* Data structures to represent a Semgrep rule (=~ AST of a rule).
  *
+ * See also semgrep-interfaces/rule_schema_v2.atd which specifies the
+ * concrete syntax of a rule.
  * See also Mini_rule.ml where formula and many other features disappear.
  *)
 
@@ -78,6 +81,14 @@ type formula =
    * https://github.com/returntocorp/semgrep/issues/1218
    *)
   | Inside of tok * formula
+  (* alt: Could do this under a `where` (call it something like `also`).
+     Preferred this since existing where conditions are predicates on
+     metavariables and this is an additional separate formula. Additionally,
+     this version opens this up more naturally for negation (not
+     straightforward to negate a where clause, but can just use `not` for a
+     formula)
+  *)
+  | Anywhere of tok * formula
 
 (* The conjunction must contain at least
  * one positive "term" (unless it's inside a CondNestedFormula, in which
@@ -152,6 +163,8 @@ type precondition_with_range = {
 }
 [@@deriving show]
 
+type by_side_effect = Only | Yes | No [@@deriving show]
+
 (* The sources/sanitizers/sinks used to be a simple 'formula list',
  * but with taint labels things are bit more complicated.
  *)
@@ -166,7 +179,7 @@ and taint_source = {
   source_id : string;  (** See 'Parse_rule.parse_taint_source'. *)
   source_formula : formula;
   source_exact : bool;
-  source_by_side_effect : bool;
+  source_by_side_effect : by_side_effect;
   source_control : bool;
   label : string;
       (* The label to attach to the data.
@@ -222,6 +235,39 @@ and taint_sink = {
        * The sink will only trigger a finding if the data that reaches it
        * has a set of labels attached that satisfies the 'requires'.
        *)
+  sink_is_func_with_focus : bool;
+      (* True if the 'sink_formula' has the following shape:
+       *
+       *     patterns:
+       *     - pattern: <func>(<args>)
+       *     - focus-metavariable: $MVAR
+       *
+       * or, more generally, a shape like:
+       *
+       *     patterns:
+       *     - pattern-either:
+       *       - patterns:
+       *         - pattern-inside: |
+       *             <P>
+       *         - pattern: <func>(<args>)
+       *       - ...
+       *     - focus-metavariable: $MVAR
+       *
+       * that is, it matches a function call, and focuses on a specific part of
+       * the match.
+       *
+       * Then we infer that there is a preference for a "more precise" match of
+       * the sink, in constrast with other sink patterns such as `sink(...)`. We
+       * infer that the function call itself is not the sink, but more likely it
+       * is either the <func> or one (or more) of the <args>.
+       *
+       * WHY BOTHER WITH ALL THIS? Well, because for a long time most sink specs
+       * were of the form `sink(...)` and we want to maintain backwards
+       * compatibility for all those rules out there.
+       *)
+      (* TODO: Add `exact: true` option to sinks so one can skip this heuristic, and
+       * it could be a good default for "syntax 2.0". The current behavior could be
+       * `exact: compat`, and the old behavior could be `exact: false`. *)
 }
 
 (* e.g. if we want to specify that adding tainted data to a `HashMap` makes
@@ -274,10 +320,57 @@ let get_sink_requires { sink_requires; _ } =
   | None -> PLabel default_source_label
   | Some { precondition; _ } -> precondition
 
+(* Check if a formula is matching a function call and focusing on one of
+ * its subexpressions.
+ *
+ * See 'taint_sink', field 'sink_is_func_with_focus'. *)
+let is_sink_func_with_focus sink_formula =
+  let rec is_inside_or_not = function
+    | Inside _
+    | Not _ ->
+        true
+    | Or (_, formulas) -> List.for_all is_inside_or_not formulas
+    | P _
+    | And _
+    | Anywhere _ ->
+        false
+  in
+  let rec is_call_pattern = function
+    | P { pat = Sem ((lazy (E { e = Call _; _ })), _); _ } -> true
+    | Or (_tok, formulas) ->
+        (* Each case in an 'Or' is independent, all must be call patterns. *)
+        List.for_all is_call_pattern formulas
+    | And (_, { conjuncts; focus = []; _ }) ->
+        (* NOTE: No `focus-metavariable:` here to make sure this is matching a call. *)
+        is_call_pattern_conjuncts conjuncts
+    | P _
+    | Inside _
+    | Not _
+    | And _
+    | Anywhere _ ->
+        false
+  and is_call_pattern_conjuncts conjuncts =
+    (* The conjuncts that are 'inside' or 'not' (or an OR of those) can be
+     * disregarded, they just provide context. But the remaining conjuncts
+     * must all correspond to a func-call pattern. *)
+    let remaining_conjuncts =
+      List.filter (fun f -> not (is_inside_or_not f)) conjuncts
+    in
+    remaining_conjuncts <> []
+    && List.for_all is_call_pattern remaining_conjuncts
+  in
+  match sink_formula with
+  (* THINK: Should we just assume that if there is 'focus' then the match should
+   * be exact regardless of whether the 'conjuncts' are matching a function call? *)
+  | And (_, { conjuncts; focus = [ _focus ]; _ }) ->
+      is_call_pattern_conjuncts conjuncts
+  | __else__ -> false
+
 (*****************************************************************************)
 (* Extract mode (semgrep as a preprocessor) *)
 (*****************************************************************************)
 
+(* See also Extract.ml for extract mode helpers *)
 type extract = {
   formula : formula;
   dst_lang : Xlang.t;
@@ -290,7 +383,7 @@ type extract = {
 }
 
 (* SR wants to be able to choose rules to run on.
-   Behaves the same as paths. *)
+   Behaves the same as paths, but for rule ids. *)
 and extract_rule_ids = {
   required_rules : Rule_ID.t wrap list;
   excluded_rules : Rule_ID.t wrap list;
@@ -309,7 +402,7 @@ and extract_transform = NoTransform | Unquote | ConcatJsonArray
 and extract_reduction = Separate | Concat [@@deriving show]
 
 (*****************************************************************************)
-(* secrets mode *)
+(* secrets mode (Pro-only) *)
 (*****************************************************************************)
 
 (* This type encodes a basic HTTP request; mainly used for in the secrets
@@ -369,7 +462,10 @@ type request = {
 [@@deriving show]
 
 (* Used to match on the returned response of some request *)
-type response = { return_code : int; regex : Xpattern.regexp_string option }
+type response = {
+  return_code : Parsed_int.t;
+  regex : Xpattern.regexp_string option;
+}
 [@@deriving show]
 
 type secrets = {
@@ -384,7 +480,7 @@ type secrets = {
 [@@deriving show]
 
 type http_match_clause = {
-  status_code : int option;
+  status_code : Parsed_int.t option;
   (* Optional. Empty list if not set *)
   headers : header list;
   content : (formula * Xlang.t) option;
@@ -433,6 +529,22 @@ type paths = {
 [@@deriving show]
 
 (*****************************************************************************)
+(* Misc *)
+(*****************************************************************************)
+
+type fix_regexp = {
+  regexp : Xpattern.regexp_string;
+  (* Not using Parsed_int here, because we would rather fail early at rule
+     parsing time if we have to apply a regexp more times than we can
+     represent.
+     We also expect to never receive a count that is that big.
+  *)
+  count : int option;
+  replacement : string;
+}
+[@@deriving show, eq, hash]
+
+(*****************************************************************************)
 (* Shared mode definitions *)
 (*****************************************************************************)
 
@@ -449,7 +561,7 @@ type secrets_mode = [ `Secrets of secrets ] [@@deriving show]
 type steps_mode = [ `Steps of step list ] [@@deriving show]
 
 (*****************************************************************************)
-(* Steps mode *)
+(* Steps mode (Pro-only) *)
 (*****************************************************************************)
 and step = {
   step_mode : mode_for_step;
@@ -465,14 +577,11 @@ and mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
 (*****************************************************************************)
 
 type 'mode rule_info = {
+  (* --------------------------------- *)
   (* MANDATORY fields *)
+  (* --------------------------------- *)
   id : Rule_ID.t wrap;
   mode : 'mode;
-  (* Range of Semgrep versions supported by the rule.
-     Note that a rule with these fields may not even be parseable
-     in the current version of Semgrep and wouldn't even reach this point. *)
-  min_version : Version_info.t option;
-  max_version : Version_info.t option;
   (* Currently a dummy value for extract mode rules *)
   message : string;
   (* Currently a dummy value for extract mode rules *)
@@ -530,18 +639,25 @@ type 'mode rule_info = {
    *   target_analyzer = L (Typescript, []);
    *)
   target_analyzer : Xlang.t;
+  (* --------------------------------- *)
   (* OPTIONAL fields *)
+  (* --------------------------------- *)
   options : Rule_options.t option;
   (* deprecated? or should we resurrect the feature?
    * TODO: if we resurrect the feature, we should parse the string
    *)
   equivalences : string list option;
+  (* a.k.a autofix *)
   fix : string option;
-  fix_regexp : (Xpattern.regexp_string * int option * string) option;
+  fix_regexp : fix_regexp option;
   (* TODO: we should get rid of this and instead provide a more general
    * Xpattern.Filename feature that integrates well with the xpatterns.
    *)
   paths : paths option;
+  (* This is not a concrete field in the rule, but it's derived from
+   * other fields (e.g., metadata, mode) in Parse_rule.ml
+   *)
+  product : OutJ.product;
   (* ex: [("owasp", "A1: Injection")] but can be anything.
    * Metadata was (ab)used for the ("interfile", "true") setting, but this
    * is now done via Rule_options instead.
@@ -549,6 +665,11 @@ type 'mode rule_info = {
   metadata : JSON.t option;
   (* TODO(cooper): would be nice to have nonempty but common2 version not nice to work with; no pp for one *)
   validators : validator list option;
+  (* Range of Semgrep versions supported by the rule.
+     Note that a rule with these fields may not even be parseable
+     in the current version of Semgrep and wouldn't even reach this point. *)
+  min_version : Version_info.t option;
+  max_version : Version_info.t option;
 }
 [@@deriving show]
 
@@ -581,8 +702,10 @@ type steps_rule = steps_mode rule_info [@@deriving show]
 (* Helpers *)
 (*****************************************************************************)
 
-let hrules_of_rules (rules : t list) : hrules =
-  rules |> Common.map (fun r -> (fst r.id, r)) |> Common.hash_of_list
+(* old: was t list -> hrules, but nice to allow for more precise hrules *)
+let hrules_of_rules (rules : 'mode rule_info list) :
+    (Rule_ID.t, 'mode rule_info) Hashtbl.t =
+  rules |> List_.map (fun r -> (fst r.id, r)) |> Hashtbl_.hash_of_list
 
 let partition_rules (rules : rules) :
     search_rule list
@@ -631,6 +754,7 @@ let show_id rule = rule.id |> fst |> Rule_ID.to_string
 
 (* This is used to let the user know which rule the engine was using when
  * a Timeout or OutOfMemory exn occured.
+ * TODO: relation with Match_patterns.last_matched_rule?
  *)
 let last_matched_rule : Rule_ID.t option ref = ref None
 
@@ -778,14 +902,15 @@ let () = Printexc.register_printer opt_string_of_exn
    Evaluation order means that we will only visit children after parents.
    So we keep a reference cell around, and set it to true whenever we descend
    under an inside.
-   That way, pattern leaves underneath an Inside will properly be paired with
-   a true boolean.
+   That way, pattern leaves underneath an Inside/Anywhere will properly be
+   paired with a true boolean.
 *)
 let visit_new_formula f formula =
   let bref = ref false in
   let rec visit_new_formula f formula =
     match formula with
     | P p -> f p ~inside:!bref
+    | Anywhere (_, formula)
     | Inside (_, formula) ->
         Common.save_excursion bref true (fun () -> visit_new_formula f formula)
     | Not (_, x) -> visit_new_formula f x
@@ -797,18 +922,20 @@ let visit_new_formula f formula =
 
 (* used by the metachecker for precise error location *)
 let tok_of_formula = function
-  | And (t, _) -> t
+  | And (t, _)
   | Or (t, _)
+  | Inside (t, _)
+  | Anywhere (t, _)
   | Not (t, _) ->
       t
   | P p -> snd p.pstr
-  | Inside (t, _) -> t
 
 let kind_of_formula = function
   | P _ -> "pattern"
   | Or _
   | And _
   | Inside _
+  | Anywhere _
   | Not _ ->
       "formula"
 
@@ -817,13 +944,13 @@ let rec formula_of_mode (mode : mode) =
   | `Search formula -> [ formula ]
   | `Taint { sources = _, sources; sanitizers; sinks = _, sinks; propagators }
     ->
-      Common.map (fun src -> src.source_formula) sources
+      List_.map (fun src -> src.source_formula) sources
       @ (match sanitizers with
         | None -> []
         | Some (_, sanitizers) ->
-            Common.map (fun sanitizer -> sanitizer.sanitizer_formula) sanitizers)
-      @ Common.map (fun sink -> sink.sink_formula) sinks
-      @ Common.map (fun prop -> prop.propagator_formula) propagators
+            List_.map (fun sanitizer -> sanitizer.sanitizer_formula) sanitizers)
+      @ List_.map (fun sink -> sink.sink_formula) sinks
+      @ List_.map (fun prop -> prop.propagator_formula) propagators
   | `Extract { formula; extract = _; _ } -> [ formula ]
   | `Secrets { secrets; _ } -> secrets
   | `Steps steps ->
@@ -854,12 +981,13 @@ let selector_and_analyzer_of_xlang (xlang : Xlang.t) :
 (* return list of "positive" x list of Not *)
 let split_and (xs : formula list) : formula list * (tok * formula) list =
   xs
-  |> Common.partition_either (fun e ->
+  |> Either_.partition_either (fun e ->
          match e with
          (* positives *)
          | P _
          | And _
          | Inside _
+         | Anywhere _
          | Or _ ->
              Left e
          (* negatives *)
@@ -888,6 +1016,7 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
     paths = None;
     metadata = None;
     validators = None;
+    product = `SAST;
   }
 
 (* TODO(dinosaure): Currently, on the Python side, we remove the metadatas and

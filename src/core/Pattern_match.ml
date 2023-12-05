@@ -81,7 +81,7 @@ type t = {
   (* rule (or mini rule) responsible for the pattern match found *)
   rule_id : rule_id; [@equal fun a b -> a.id = b.id]
   (* location information: TODO Fpath.t *)
-  file : Common.filename;
+  file : string; (* filename *)
   (* less: redundant with location? *)
   (* note that the two Tok.location can be equal *)
   range_loc : Tok.location * Tok.location;
@@ -89,6 +89,16 @@ type t = {
   tokens : Tok.t list Lazy.t; [@equal fun _a _b -> true]
   (* metavars for the pattern match *)
   env : Metavariable.bindings;
+      [@equal
+        fun a b ->
+          List.equal
+            (fun (s1, m1) (s2, m2) ->
+              (* See the comment in Metavariable.mli for location_aware_equal_mvalue,
+                 but basically we would like to consider matches different if they
+                 metavariables bound to the same content, but at different locations.
+              *)
+              s1 = s2 && Metavariable.location_aware_equal_mvalue m1 m2)
+            a b]
   (* Lazy since construction involves forcing lazy token lists. *)
   (* We used to have `[@equal fun _a _b -> true]` here, but this causes issues with
      multiple findings to the same sink (but different sources) being removed
@@ -143,6 +153,7 @@ and rule_id = {
    * mini_rule? *)
   message : string;
   fix : string option;
+  fix_regexp : Rule.fix_regexp option;
   (* ?? why we need that? *)
   langs : Lang.t list;
   (* used for debugging (could be removed at some point) *)

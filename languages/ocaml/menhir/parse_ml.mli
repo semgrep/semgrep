@@ -1,8 +1,8 @@
 (* This is the main function. See flag_parsing_ml for settings. *)
 val parse :
-  Common.filename -> (Ast_ml.program, Parser_ml.token) Parsing_result.t
+  string (* filename *) -> (Ast_ml.program, Parser_ml.token) Parsing_result.t
 
-val parse_program : Common.filename -> Ast_ml.program
+val parse_program : string (* filename *) -> Ast_ml.program
 
 (* for semgrep *)
 val any_of_string : string -> Ast_ml.any

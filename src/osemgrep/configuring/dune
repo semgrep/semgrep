@@ -15,7 +15,6 @@
 
    osemgrep_core ; for Error.ml
   )
- (inline_tests)
  (preprocess
    (pps
      ppx_profiling

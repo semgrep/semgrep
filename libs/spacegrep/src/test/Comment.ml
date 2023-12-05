@@ -81,7 +81,7 @@ bye
 
 let test =
   "Comment",
-  tests |> Common.map (fun (name, style, input, expected_output) ->
+  tests |> List_.map (fun (name, style, input, expected_output) ->
     let run () =
       let output = C.remove_comments_from_string style input in
       Alcotest.(check string "equal" expected_output output)

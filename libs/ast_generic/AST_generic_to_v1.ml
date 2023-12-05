@@ -390,7 +390,7 @@ and map_literal = function
       let v1 = map_wrap map_of_bool v1 in
       `Bool v1
   | Int v1 ->
-      let v1 = map_wrap map_id v1 in
+      let v1 = map_wrap (map_of_option OCaml.map_of_int64) v1 in
       `Int v1
   | Float v1 ->
       let v1 = map_wrap map_id v1 in
@@ -654,8 +654,8 @@ and map_attribute = function
   | KeywordAttr v1 -> (
       let v1 = map_wrap map_keyword_attribute v1 in
       match v1 with
-      | Left v1, tok -> `KeywordAttr (v1, tok)
-      | Right s, tok -> `OtherAttribute (s, [ `Tk tok ]))
+      | Either.Left v1, tok -> `KeywordAttr (v1, tok)
+      | Either.Right s, tok -> `OtherAttribute (s, [ `Tk tok ]))
   | NamedAttr (t, v1, v3) ->
       let t = map_tok t in
       let v1 = map_name v1 and v3 = map_bracket (map_of_list map_argument) v3 in

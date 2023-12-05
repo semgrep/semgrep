@@ -37,5 +37,5 @@ dist/libyaml.js dist/libyaml.wasm: dist/libyaml.o
 		-O3 \
 		$^ \
 		$(EMCC_DEFAULTS) \
-		-sEXPORTED_FUNCTIONS=_malloc,_free,$(YAML_EXPORTED_METHODS) \
+		-sEXPORTED_FUNCTIONS=_malloc,_free,$(YAML_EXPORTED_FUNCTIONS) \
 		-o $(word 1,$@)

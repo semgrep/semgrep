@@ -123,7 +123,10 @@ FROM python:3.11-alpine AS semgrep-wheel
 WORKDIR /semgrep
 
 # Install some deps (build-base because ruamel.yaml has native code)
-RUN apk add --no-cache build-base zip bash
+#
+# libffi-dev is needed for installing Python dependencies in
+# scripts/build-wheels.sh on arm64
+RUN apk add --no-cache build-base zip bash libffi-dev
 
 # Copy in the CLI
 COPY cli ./cli
@@ -265,3 +268,19 @@ RUN rm /usr/local/bin/osemgrep && \
 ENV PATH="$PATH:/home/semgrep/bin"
 
 USER semgrep
+
+###############################################################################
+# Step 5 (optional) performance testing
+###############################################################################
+
+# Build target that exposes the performance benchmark tests in perf/ for
+# use in running performance benchmarks from a test build container, e.g., on PRs
+FROM semgrep-cli AS performance-tests
+
+COPY perf /semgrep/perf
+
+RUN apk add --no-cache make
+
+WORKDIR /semgrep/perf
+
+ENTRYPOINT ["make"]

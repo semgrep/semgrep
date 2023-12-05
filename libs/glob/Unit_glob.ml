@@ -30,7 +30,7 @@ let test pattern path matches () =
 (*****************************************************************************)
 
 let tests =
-  Testutil.pack_tests "Glob"
+  Alcotest_ext.pack_tests "Glob"
     [
       ("simple", test "abc" "abc" true);
       ("anchor left", test "abc" "xabc" false);

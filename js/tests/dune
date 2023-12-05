@@ -8,12 +8,18 @@
  (libraries
    js_of_ocaml
    semgrep.semgrep_js_shared
+   semgrep.semgrep_node_js_shared
    semgrep.engine
    integers_stubs_js
    libpcre_stubs_js
    libyaml_stubs_js
    alcotest
+   alcotest_ext
+   semgrep.language_server
+  lwt_platform.js
+  alcotest-lwt
+  cohttp-lwt-jsoo
  )
  (modes js)
  (preprocess
-  (pps js_of_ocaml-ppx)))
+  (pps js_of_ocaml-ppx lwt_ppx)))

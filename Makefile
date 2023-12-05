@@ -23,7 +23,7 @@
 #
 # Then to compile semgrep simply type:
 #
-#     $ make
+#     $ make all
 #
 # See INSTALL.md for more information
 # See also https://semgrep.dev/docs/contributing/contributing-code/
@@ -63,32 +63,41 @@
 # not exist but we still want 'make setup' to succeed
 -include libs/ocaml-tree-sitter-core/tree-sitter-config.mk
 
-# First (and default) target. Routine build.
-# It assumes all dependencies and configuration are already in place and correct.
-# It should be fast since it's called often during development.
-.PHONY: build
-build:
+# First (and default) target.
+.PHONY: default
+default: core
+
+# Routine build. It assumes all dependencies and configuration are already in
+# place and correct.
+.PHONY: all
+all:
 	# OCaml compilation
 	$(MAKE) core
 	$(MAKE) copy-core-for-cli
 	$(MAKE) build-semgrep-jsoo
+	$(MAKE) unused-libs
 	# Python setup
 	cd cli && pipenv install --dev
 	$(MAKE) -C cli build
+
+# Build library code that may not being used or tested in this repo such as
+# libs/graph_code which is used by semgrep-proprietary.
+# This checks that the code compiles.
+.PHONY: unused-libs
+unused-libs:
+	dune build languages
+	dune build libs
 
 #history: was called the 'all' target in semgrep-core/Makefile before
 .PHONY: core
 core:
 	$(MAKE) minimal-build
 	# make executables easily accessible for manual testing:
-	test -e bin || ln -s _build/install/default/bin .
 	ln -s semgrep-core bin/osemgrep
 
 #history: was called the 'all' target in semgrep-core/Makefile before
 .PHONY: core-bc
 core-bc: minimal-build-bc
-	# make executables easily accessible for manual testing:
-	test -e bin || ln -s _build/install/default/bin .
 	ln -s semgrep-core.bc bin/osemgrep.bc
 
 # Make binaries available to pysemgrep
@@ -154,7 +163,6 @@ clean:
 .PHONY: core-clean
 core-clean:
 	dune clean
-	rm -f bin
 	# We still need to keep the nonempty opam files in git for
 	# 'make setup', so we should only remove the empty opam files.
 	# This removes the gitignored opam files.
@@ -183,7 +191,11 @@ uninstall:
 
 # Note that this target is actually not used in CI; it's only for local dev
 .PHONY: test
-test:
+test: core-test
+
+# Note that this target is actually not used in CI; it's only for local dev
+.PHONY: test-all
+test-all:
 	$(MAKE) core-test
 	$(MAKE) -C cli test
 	$(MAKE) -C cli osempass
@@ -225,6 +237,25 @@ core-test-e2e:
 test-jsoo: build-semgrep-jsoo-debug
 	$(MAKE) -C js test
 
+# Test the compatibility with the main branch of semgrep-proprietary
+# in a separate work tree.
+.PHONY: pro
+pro:
+	test -L semgrep-proprietary || ln -s ../semgrep-proprietary .
+	@if ! test -e semgrep-proprietary; then \
+	  echo "** Please fix the symlink 'semgrep-proprietary'."; \
+	  echo "** Make it point to your semgrep-proprietary repo."; \
+	  exit 1; \
+	fi
+	set -eu && \
+	worktree_parent=$$(pwd)/.. && \
+	commit=$$(git rev-parse --short HEAD) && \
+	cd semgrep-proprietary && \
+	./scripts/check-compatibility \
+	  --worktree "$$worktree_parent"/semgrep-pro-compat \
+	  --semgrep-commit "$$commit" \
+	  --pro-commit origin/develop
+
 ###############################################################################
 # External dependencies installation targets
 ###############################################################################
@@ -233,17 +264,26 @@ test-jsoo: build-semgrep-jsoo-debug
 # Platform-independent dependencies installation
 # **************************************************
 
+# We need to install all the dependencies in a single 'opam install'
+# command so as to detect conflicts.
+REQUIRED_DEPS = ./ ./libs/ocaml-tree-sitter-core ./dev/required.opam
+OPTIONAL_DEPS = $(REQUIRED_DEPS) ./dev/optional.opam
+
 # This target is portable; it only assumes you have 'gcc', 'opam' and
 # other build-essential tools and a working OCaml (e.g., ocamlc) switch setup.
 # Note that this target is now called from our Dockerfile, so do not
 # run 'opam update' below to not slow down things.
+.PHONY: install-deps-for-semgrep-core
 install-deps-for-semgrep-core: semgrep.opam
 	# Fetch, build and install the tree-sitter runtime library locally.
 	cd libs/ocaml-tree-sitter-core \
 	&& ./configure \
 	&& ./scripts/install-tree-sitter-lib
 	# Install OCaml dependencies (globally) from *.opam files.
-	LIBRARY_PATH="/opt/homebrew/lib" opam install -y --deps-only ./ ./libs/ocaml-tree-sitter-core
+	# This now also installs the dev dependencies. This has the benefit
+	# of installing all the packages in one shot and detecting possible
+	# version conflicts.
+	opam install -y --deps-only $(REQUIRED_DEPS)
 
 # This will fail if semgrep.opam isn't up-to-date (in git),
 # and dune isn't installed yet. You can always install dune with
@@ -309,6 +349,10 @@ install-deps-ALPINE-for-pysemgrep:
 # -------------------------------------------------
 # Ubuntu
 # -------------------------------------------------
+UBUNTU_DEPS=pkg-config libgmp-dev libpcre3-dev libev-dev
+
+install-deps-UBUNTU-for-semgrep-core:
+	apt-get install -y $(UBUNTU_DEPS)
 
 # -------------------------------------------------
 # macOS (brew)
@@ -346,8 +390,8 @@ homebrew-setup:
 	# because this check was failing on some platform.
 	# See details at https://github.com/Homebrew/homebrew-core/pull/82693.
 	# This workaround may no longer be necessary.
-	opam install -y --deps-only --no-depexts ./libs/ocaml-tree-sitter-core
-	opam install -y --deps-only --no-depexts ./
+	# LIBRARY_PATH is set here so we build lwt w/libev
+	LIBRARY_PATH="$$(brew --prefix)/lib" opam install -y --deps-only --no-depexts $(REQUIRED_DEPS)
 
 # -------------------------------------------------
 # Arch Linux
@@ -363,20 +407,15 @@ homebrew-setup:
 # important dependencies change.
 .PHONY: setup
 setup: semgrep.opam
-	git submodule update --init
+	./scripts/check-bash-version
 	opam update -y
 	$(MAKE) install-deps-for-semgrep-core
 
-# Install development dependencies in addition to build dependencies.
+# Install optional development dependencies in addition to build dependencies.
 .PHONY: dev-setup
 dev-setup:
 	$(MAKE) setup
-	# This is partly redundant with `make setup`, called above. We include `./`
-	# and `./libs/ocaml-tree-sitter-core` so that if the dependencies specified in
-	# `./dev` conflict with any of the other dependencies, we get a conflict
-	# message here rather than having this command silently install the versions
-	# that `./dev` requires, potentially breaking the build.
-	opam install -y --deps-only ./dev ./ ./libs/ocaml-tree-sitter-core
+	opam install -y --deps-only $(OPTIONAL_DEPS)
 
 # Update and rebuild everything within the project.
 .PHONY: rebuild
@@ -536,6 +575,6 @@ check2:
 
 # see https://github.com/aryx/codemap for information on codemap
 visual:
-	codemap -screen_size 3 -filter pfff -efuns_client efuns_client -emacs_client /dev/null .
+	codemap -screen_size 3 -filter semgrep -efuns_client efuns_client -emacs_client /dev/null .
 visual2:
-	codemap -screen_size 3 -filter pfff -efuns_client efuns_client -emacs_client /dev/null src
+	codemap -screen_size 3 -filter semgrep -efuns_client efuns_client -emacs_client /dev/null src

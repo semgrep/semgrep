@@ -5,11 +5,14 @@
 // - we can build Linux and MacOS binaries and python "wheels" for pypi
 // - we don't have any perf regressions in our benchmarks
 
+local gha = import 'libs/gha.libsonnet';
 local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
 // some jobs rely on artifacts produced by this workflow
 local core_x86 = import 'build-test-core-x86.jsonnet';
+
+local docker_repository_name = 'returntocorp/semgrep';
 
 // ----------------------------------------------------------------------------
 // Helpers
@@ -92,7 +95,9 @@ local test_semgrep_core_job =
   semgrep.ocaml_alpine_container
   {
     steps: [
+      gha.speedy_checkout_step,
       actions.checkout_with_submodules(),
+      gha.git_safedir,
       {
         name: 'Build semgrep-core',
         run: |||
@@ -140,7 +145,9 @@ local test_osemgrep_job =
   semgrep.ocaml_alpine_container
   {
     steps: [
+      gha.speedy_checkout_step,
       actions.checkout_with_submodules(),
+      gha.git_safedir,
       {
         name: 'Build semgrep-core',
         run: |||
@@ -167,7 +174,10 @@ local test_osemgrep_job =
       {
         name: 'Run pytest for osemgrep known passing tests',
         'working-directory': 'cli',
-        run: 'make osempass',
+        run: |||
+          git config --global --add safe.directory "$(pwd)"
+          make osempass
+        |||,
       },
     ],
   };
@@ -239,7 +249,11 @@ local test_cli_job = {
     {
       name: 'Run pytest',
       'working-directory': 'cli',
-      // the --snapshot-update below works with the snapshot_update_pr_steps
+      // The --snapshot-update below works with the snapshot_update_pr_steps.
+      // Note that there are no tests/e2e/ argument to pytest below so it will
+      // run all the tests specified in cli/pyproject.toml which are
+      // all tests/xxx except tests/qa/ (which is run separately in another job
+      // see below).
       run: |||
         # tests should simulate CI environment iff they need one
         unset CI
@@ -372,6 +386,14 @@ local benchmarks_full_job = {
   ],
 };
 
+local trigger_semgrep_comparison_argo = {
+  secrets: 'inherit',
+  needs: [
+    'push-docker',
+  ],
+  uses: './.github/workflows/trigger-semgrep-comparison-argo.yml',
+};
+
 // ----------------------------------------------------------------------------
 // Docker
 // ----------------------------------------------------------------------------
@@ -420,7 +442,7 @@ local build_test_docker_job = {
     'docker-tags': docker_tags,
     // ??
     'artifact-name': 'image-test',
-    'repository-name': '${{ github.repository }}',
+    'repository-name': docker_repository_name,
     file: 'Dockerfile',
     // see the Dockerfile, this is the name root variant
     target: 'semgrep-cli',
@@ -444,7 +466,7 @@ local build_test_docker_nonroot_job = {
     |||,
     'docker-tags': docker_tags,
     'artifact-name': 'image-test-nonroot',
-    'repository-name': '${{ github.repository }}',
+    'repository-name': docker_repository_name,
     file: 'Dockerfile',
     // see the Dockerfile, this is the name of the nonroot variant
     target: 'nonroot',
@@ -465,7 +487,7 @@ local push_docker_job = {
   secrets: 'inherit',
   with: {
     'artifact-name': 'image-test',
-    'repository-name': '${{ github.repository }}',
+    'repository-name': docker_repository_name,
     'dry-run': false,
   },
 };
@@ -479,9 +501,29 @@ local push_docker_nonroot_job = {
   secrets: 'inherit',
   with: {
     'artifact-name': 'image-test-nonroot',
-    'repository-name': '${{ github.repository }}',
+    'repository-name': docker_repository_name,
     'dry-run': false,
   },
+};
+
+local build_test_docker_performance_tests_job = build_test_docker_nonroot_job + {
+  with: super.with + {
+    'docker-flavor': |||
+      latest=auto
+      suffix=-performance-tests,onlatest=true
+    |||,
+    'artifact-name': 'image-test-performance-tests',
+    target: 'performance-tests',
+  },
+};
+
+local push_docker_performance_tests_job = push_docker_nonroot_job + {
+  needs: [
+    'build-test-docker-performance-tests',
+  ],
+  with: super.with + {
+    'artifact-name': 'image-test-performance-tests',
+  }
 };
 
 // ----------------------------------------------------------------------------
@@ -498,7 +540,7 @@ local test_semgrep_pro_job = {
   secrets: 'inherit',
   with: {
     'artifact-name': 'image-test',
-    'repository-name': '${{ github.repository }}',
+    'repository-name': docker_repository_name,
   },
 };
 
@@ -538,8 +580,12 @@ local ignore_md = {
     'push-docker': push_docker_job,
     'build-test-docker-nonroot': build_test_docker_nonroot_job,
     'push-docker-nonroot': push_docker_nonroot_job,
+    'build-test-docker-performance-tests': build_test_docker_performance_tests_job,
+    'push-docker-performance-tests': push_docker_performance_tests_job,
     // Semgrep-pro mismatch check
     'test-semgrep-pro': test_semgrep_pro_job,
+    // trigger argo workflows
+    'trigger-semgrep-comparison-argo': trigger_semgrep_comparison_argo,
     // The inherit jobs also included from releases.yml
     'build-test-core-x86': {
       uses: './.github/workflows/build-test-core-x86.yml',

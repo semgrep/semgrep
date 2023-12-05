@@ -29,9 +29,17 @@
 ; Opam packages
 
 (package
+  (name alcotest_ext)
+  (synopsis "Extension of the Alcotest library")
+  (description "\
+Alcotest_ext extends the functionality of the Alcotest library by providing
+new subcommands for capturing, checking, and approving the output of tests.")
+)
+
+(package
   (name aliengrep)
-  (synopsis "XXX")
-  (description "XXX")
+  (synopsis "Generic Semgrep-like pattern search backed by PCRE")
+  (description "Generic Semgrep-like pattern search backed by PCRE")
 )
 
 (package
@@ -106,7 +114,6 @@ a few other projects developed at r2c.
     (ppxlib (>= "0.25.0"))
     (ppx_deriving (>= "5.2.1"))
     (ppx_hash (>= "v0.14.0" ))
-    (parmap (>= "1.2.4"))
     (digestif (>= "1.0.0"))
     uri
     bos
@@ -209,10 +216,6 @@ parsers, especially ocamlyacc/menhir based parsers.
   (synopsis "XXX")
   (description "XXX")
 )
-(package (name parser_elixir)
-  (synopsis "XXX")
-  (description "XXX")
-)
 (package (name parser_go)
   (synopsis "XXX")
   (description "XXX")
@@ -306,6 +309,10 @@ parsers, especially ocamlyacc/menhir based parsers.
   (description "XXX")
 )
 (package (name parser_typescript)
+  (synopsis "XXX")
+  (description "XXX")
+)
+(package (name parser_yaml)
   (synopsis "XXX")
   (description "XXX")
 )
@@ -409,6 +416,7 @@ For more information see https://semgrep.dev
     ; unit testing
     alcotest
     alcotest-js
+    alcotest-lwt
     ; text and terminal formating
     fmt
     ocolor
@@ -489,6 +497,11 @@ Uses indentation and standard braces to determine a crude parse tree
   (description "XXX")
 )
 (package (name tree-sitter-to-generic)
+  (synopsis "XXX")
+  (description "XXX")
+)
+
+(package (name TCB)
   (synopsis "XXX")
   (description "XXX")
 )

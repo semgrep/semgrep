@@ -1,5 +1,6 @@
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/autofix/terraform-ec2-instance-metadata-options.hcl"
@@ -16,10 +17,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "fix_regex": {
-          "regex": "(.*)\\}",
-          "replacement": "\\1\n  metadata_options {\n    http_tokens = \"required\"\n  }\n}\n"
-        },
+        "fix": "resource \"aws_instance\" \"example1\" {\n  ami           = \"ami-005e54dee72cc1d01\"\n  instance_type = \"t2.micro\"\n\n  metadata_options {\n    http_tokens = \"required\"\n  }\n}",
         "fixed_lines": [
           "resource \"aws_instance\" \"example1\" {",
           "  ami           = \"ami-005e54dee72cc1d01\"",
@@ -69,10 +67,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "fix_regex": {
-          "regex": "(.*)\\}",
-          "replacement": "\\1\n  metadata_options {\n    http_tokens = \"required\"\n  }\n}\n"
-        },
+        "fix": "resource \"aws_instance\" \"example2\" {\n  ami           = \"ami-005e54dee72cc1d02\"\n  instance_type = \"t2.micro\"\n\n  metadata_options {\n    http_tokens = \"required\"\n  }\n}",
         "fixed_lines": [
           "resource \"aws_instance\" \"example2\" {",
           "  ami           = \"ami-005e54dee72cc1d02\"",

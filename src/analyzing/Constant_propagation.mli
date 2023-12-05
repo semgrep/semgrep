@@ -6,6 +6,19 @@ val constant_propagation_and_evaluate_literal :
   ?lang:Lang.t -> AST_generic.expr -> AST_generic.svalue option
 (** Partially evaluate a Generic expression. *)
 
+type env
+
+type propagate_basic_visitor_funcs = {
+  visit_definition :
+    env * Iter_with_context.context -> AST_generic.definition -> unit;
+}
+
+val add_constant_env :
+  AST_generic.ident -> AST_generic.sid * AST_generic.svalue -> env -> unit
+
+(* used by pro engine *)
+val propagate_basic_visitor_hook : propagate_basic_visitor_funcs ref
+
 (* Works by side effect on the generic AST by modifying its refs.
  * We pass the lang because some constant propagation algorithm may be
  * specific to a language.

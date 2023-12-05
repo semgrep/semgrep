@@ -13,9 +13,13 @@ name: tests
 jobs:
   test-semgrep-core:
     steps:
+    - name: Make checkout speedy
+      run: git config --global fetch.parallel 50
     - uses: actions/checkout@v3
       with:
         submodules: true
+    - name: Configure git safedir properly
+      run: git config --global --add safe.directory $(pwd)
     - name: Build semgrep-core
       run: "\n          eval $(opam env)\n          make install-deps-ALPINE-for-semgrep-core\n
         \         make install-deps-for-semgrep-core\n          make core\n        "
@@ -30,14 +34,18 @@ jobs:
     - name: Publish match performance
       run: opam exec -- make report-perf-matching
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine-2023-10-17
+    container: returntocorp/ocaml:alpine-2023-11-07
     env:
       HOME: /root
   test-osemgrep:
     steps:
+    - name: Make checkout speedy
+      run: git config --global fetch.parallel 50
     - uses: actions/checkout@v3
       with:
         submodules: true
+    - name: Configure git safedir properly
+      run: git config --global --add safe.directory $(pwd)
     - name: Build semgrep-core
       run: "\n          eval $(opam env)\n          make install-deps-ALPINE-for-semgrep-core\n
         \         make install-deps-for-semgrep-core\n          make core\n        "
@@ -48,9 +56,10 @@ jobs:
         pipenv install --dev)\n        "
     - name: Run pytest for osemgrep known passing tests
       working-directory: cli
-      run: make osempass
+      run: "\n          git config --global --add safe.directory \"$(pwd)\"\n          make
+        osempass\n        "
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine-2023-10-17
+    container: returntocorp/ocaml:alpine-2023-11-07
     env:
       HOME: /root
   test-cli:
@@ -241,7 +250,7 @@ jobs:
       docker-tags: "\n  type=semver,pattern={{version}}\n  type=semver,pattern={{major}}.{{minor}}\n
         \ type=ref,event=pr\n  type=ref,event=branch\n  type=sha,event=branch\n  type=edge\n"
       artifact-name: image-test
-      repository-name: ${{ github.repository }}
+      repository-name: returntocorp/semgrep
       file: Dockerfile
       target: semgrep-cli
       enable-tests: true
@@ -254,7 +263,7 @@ jobs:
     secrets: inherit
     with:
       artifact-name: image-test
-      repository-name: ${{ github.repository }}
+      repository-name: returntocorp/semgrep
       dry-run: false
   build-test-docker-nonroot:
     needs:
@@ -266,7 +275,7 @@ jobs:
       docker-tags: "\n  type=semver,pattern={{version}}\n  type=semver,pattern={{major}}.{{minor}}\n
         \ type=ref,event=pr\n  type=ref,event=branch\n  type=sha,event=branch\n  type=edge\n"
       artifact-name: image-test-nonroot
-      repository-name: ${{ github.repository }}
+      repository-name: returntocorp/semgrep
       file: Dockerfile
       target: nonroot
       enable-tests: false
@@ -279,8 +288,34 @@ jobs:
     secrets: inherit
     with:
       artifact-name: image-test-nonroot
-      repository-name: ${{ github.repository }}
+      repository-name: returntocorp/semgrep
       dry-run: false
+  build-test-docker-performance-tests:
+    with:
+      docker-flavor: "\n      latest=auto\n      suffix=-performance-tests,onlatest=true\n
+        \   "
+      artifact-name: image-test-performance-tests
+      target: performance-tests
+      docker-tags: "\n  type=semver,pattern={{version}}\n  type=semver,pattern={{major}}.{{minor}}\n
+        \ type=ref,event=pr\n  type=ref,event=branch\n  type=sha,event=branch\n  type=edge\n"
+      repository-name: returntocorp/semgrep
+      file: Dockerfile
+      enable-tests: false
+    needs:
+    - build-test-docker
+    uses: ./.github/workflows/build-test-docker.yaml
+    secrets: inherit
+  push-docker-performance-tests:
+    needs:
+    - build-test-docker-performance-tests
+    with:
+      artifact-name: image-test-performance-tests
+      repository-name: returntocorp/semgrep
+      dry-run: false
+    uses: ./.github/workflows/push-docker.yaml
+    if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' &&
+      !(github.event.pull_request.head.repo.full_name != github.repository))
+    secrets: inherit
   test-semgrep-pro:
     needs:
     - build-test-docker
@@ -291,7 +326,12 @@ jobs:
     secrets: inherit
     with:
       artifact-name: image-test
-      repository-name: ${{ github.repository }}
+      repository-name: returntocorp/semgrep
+  trigger-semgrep-comparison-argo:
+    secrets: inherit
+    needs:
+    - push-docker
+    uses: ./.github/workflows/trigger-semgrep-comparison-argo.yml
   build-test-core-x86:
     uses: ./.github/workflows/build-test-core-x86.yml
     secrets: inherit

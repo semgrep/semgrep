@@ -14,7 +14,7 @@ repos:
   # Standard pre-commit hooks
   # ----------------------------------------------------------
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.3.0
+    rev: v4.5.0
     hooks:
       - id: check-added-large-files
       - id: check-ast
@@ -27,6 +27,7 @@ repos:
       - id: check-merge-conflict
       - id: check-shebang-scripts-are-executable
       - id: check-symlinks
+        exclude: "^bin"
       - id: check-toml
       - id: check-vcs-permalinks
       - id: check-xml
@@ -36,6 +37,7 @@ repos:
       - id: destroyed-symlinks
       - id: detect-private-key
       - id: end-of-file-fixer
+        exclude: "^\\.github/workflows/.+|semgrep\\.opam$"
       - id: fix-byte-order-marker
       - id: fix-encoding-pragma
         args: [--remove]
@@ -50,7 +52,7 @@ repos:
   # Extra hooks with repositories defining their own hooks
   # ----------------------------------------------------------
   - repo: https://github.com/myint/autoflake
-    rev: v1.4
+    rev: v2.2.1
     hooks:
       - id: autoflake
         args:
@@ -62,28 +64,28 @@ repos:
           - --exclude=/cli/src/semgrep/output_from_core.py
 
   - repo: https://github.com/psf/black
-    rev: 22.6.0
+    rev: 23.11.0
     hooks:
       - id: black
         args: [--exclude=/cli/src/semgrep/output_from_core.py]
 
   - repo: https://github.com/asottile/reorder_python_imports
-    rev: v3.1.0
+    rev: v3.12.0
     hooks:
       - id: reorder-python-imports
         args: ["--application-directories=cli/src", --py37-plus]
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.34.0
+    rev: v3.15.0
     hooks:
       - id: pyupgrade
         args: ["--py37-plus"]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.0.0
+    rev: v1.7.1
     hooks:
       - id: mypy
-        exclude: ^cli/tests/.+$|^setup.py$|^cli/src/semdep/external/packaging/.*$|^cli/src/semdep/external/parsy/.*$|^cli/scripts/.*$|^scripts/.+$|^stats/parsing-stats/.+$|^perf/.+$$
+        exclude: ^cli/tests/.+$|^setup.py$|^cli/src/semdep/external/packaging/.*$|^cli/src/semdep/external/parsy/.*$|^cli/scripts/.*$|^scripts/.+$|^stats/parsing-stats/.+$|^perf/.+$|^js/language_server/targets/.+$
         args: [--config, mypy.ini, --show-error-codes, --python-version, "3.11"]
         additional_dependencies: &mypy-deps
           # versions must be manually synced:
@@ -116,18 +118,21 @@ repos:
         additional_dependencies: *mypy-deps
 
   - repo: https://github.com/PyCQA/flake8
-    rev: 3.9.2
+    rev: 6.1.0
     hooks:
       - id: flake8
         additional_dependencies: ["flake8-bugbear==22.1.11"]
         args: ["--select=B,E9,F4,F63,F7,F82"]
 
   # Reformat YAML, JSON, and Markdown files
+  # NOTE: There is a bug in the current version of the hook (see fix here: https://github.com/prettier/prettier/issues/15742#issuecomment-1838040082)
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v2.7.1
+    rev: v4.0.0-alpha.3
     hooks:
       - id: prettier
-        exclude: "^perf/bench/dummy/.+$|^cli/tests/e2e/rules/.+$|^.+/Pipfile.lock$|^.devcontainer/devcontainer.json|^\\.github/workflows/.+\\.yml$"
+        entry: env PRETTIER_LEGACY_CLI=1 prettier
+        types: [file]  # override `types: [json]`
+        files: \.(json|yml|yaml|md)$
 
   # ----------------------------------------------------------
   # Extra hooks using additional_dependencies
@@ -179,7 +184,7 @@ repos:
   # Dogfood! running semgrep in pre-commit!
   # ----------------------------------------------------------
   - repo: https://github.com/returntocorp/semgrep
-    rev: v1.44.0
+    rev: v1.51.0
     hooks:
       - id: semgrep
         name: Semgrep Jsonnet
@@ -230,7 +235,7 @@ repos:
   # Use a fixed version of p/python and p/bandit to not get new findings
   # We run `semgrep ci` for our main rulesets
   - repo: https://github.com/returntocorp/semgrep
-    rev: v1.5.1
+    rev: v1.51.0
     hooks:
       - id: semgrep
         name: Semgrep Python
@@ -253,7 +258,7 @@ repos:
     # the 'language: docker_image', the 'entry:' field will then specify
     # which version to use. In the case below, we're actually running
     # returntocorp/semgrep:develop if you look at .pre-commit-hooks.yaml
-    rev: v1.5.1
+    rev: v1.51.0
     hooks:
       - id: semgrep-docker-develop
         name: Semgrep Develop Python

@@ -62,7 +62,7 @@ source1 = pair(part1, part2)
 multi_source1 = source1.sep_by(string(", "))
 
 # A key value pair. These can be a name followed by a nested list, but the only data we care about is in outermost list
-# This is why we produce None if the line is preceeded by more than 2 spaces, or if it ends in a colon
+# This is why we produce None if the line is preceded by more than 2 spaces, or if it ends in a colon
 # Examples:
 #   version "2.1.1"
 #   integrity sha512-Aolwjd7HSC2PyY0fDj/wA/EimQT4HfEnFYNp5s9CQlrdhyvWTtvZ5YzrUPu6R6/1jKiUlxu8bUhkdSnKHNAHMA==
@@ -230,7 +230,6 @@ def remove_trailing_octothorpe(s: Optional[str]) -> Optional[str]:
 def parse_yarn(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
-
     with open(lockfile_path) as f:
         lockfile_text = f.read()
     yarn_version = 1 if lockfile_text.startswith(YARN1_PREFIX) else 2

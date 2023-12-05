@@ -31,6 +31,7 @@ from semgrep.util import with_feature_status
 # Helpers
 ##############################################################################
 
+
 # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
 def _print_product_status(sast_enabled: bool = True, sca_enabled: bool = False) -> None:
     """
@@ -281,33 +282,14 @@ def print_scan_status(
     # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
     with_code_rules: bool = True,
     with_supply_chain: bool = False,
-) -> int:
+) -> List[Plan]:
     """
-    Print a section like:
-
-    Return total number of rules semgrep think is applicable to this repo
-    e.g. it skips rules when there are no files with a relevant extension since no findings will be found
+    Prints the scan status and returns the plans
     """
     legacy_ux = cli_ux == DesignTreatment.LEGACY
     simple_ux = cli_ux == DesignTreatment.SIMPLE
     detailed_ux = cli_ux == DesignTreatment.DETAILED
     minimal_ux = cli_ux == DesignTreatment.MINIMAL
-
-    # We skip printing the remaining output for pattern invocations
-    if minimal_ux:
-        return 0
-
-    if simple_ux:
-        logo = with_color(Colors.green, "○○○")
-        console.print(
-            f"""
-┌──── {logo} ────┐
-│ Semgrep CLI │
-└─────────────┘
-"""
-        )
-    else:
-        console.print(Title("Scan Status"))
 
     sast_plan = CoreRunner.plan_core_run(
         [
@@ -326,18 +308,45 @@ def print_scan_status(
         else evolve(
             target_manager, target_strings=target_mode_config.get_diff_targets()
         ),
+        product=out.Product(
+            out.SAST()
+        ),  # code-smell since secrets and sast are within the same plan
     )
 
+    lockfiles = target_manager.get_all_lockfiles()
     sca_plan = CoreRunner.plan_core_run(
-        [rule for rule in rules if isinstance(rule.product.value, out.SCA)],
+        [
+            rule
+            for rule in rules
+            if isinstance(rule.product.value, out.SCA)
+            and any(lockfiles[ecosystem] for ecosystem in rule.ecosystems)
+        ],
         target_manager,
+        product=out.Product(out.SCA()),
     )
+
+    plans = [sast_plan, sca_plan]
+
+    # We skip printing the remaining output for pattern invocations
+    if minimal_ux:
+        return plans
+
+    if simple_ux:
+        logo = with_color(Colors.green, "○○○")
+        console.print(
+            f"""
+┌──── {logo} ────┐
+│ Semgrep CLI │
+└─────────────┘
+"""
+        )
+    else:
+        console.print(Title("Scan Status"))
 
     _print_scan_plan_header(
         target_manager, sast_plan, sca_plan, target_mode_config, cli_ux
     )
 
-    sast_rule_count = len(sast_plan.rules)
     sca_rule_count = len(sca_plan.rules)
     has_sca_rules = sca_rule_count > 0
 
@@ -357,7 +366,7 @@ def print_scan_status(
             sast_enabled=with_code_rules,
             sca_enabled=with_supply_chain,
         )
-        return sast_rule_count + sca_rule_count
+        return plans
 
     if not has_sca_rules and not has_secret_rules and legacy_ux:
         # Print these SAST table without section headers
@@ -366,7 +375,7 @@ def print_scan_status(
             product=out.Product(out.SAST()),
             rule_count=alt_sast_rule_count,
         )
-        return sast_rule_count
+        return plans
 
     if legacy_ux:
         console.print(Padding(Title("Code Rules", order=2), (1, 0, 0, 0)))
@@ -409,4 +418,4 @@ def print_scan_status(
         console.print(Title("Progress", order=2))
         console.print(" ")  # space intentional for progress bar padding
 
-    return sast_rule_count + sca_rule_count
+    return plans

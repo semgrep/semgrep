@@ -25,6 +25,7 @@ from semgrep.verbose_logging import getLogger
 # Instantiate logger
 logger = getLogger(__name__)
 
+
 # Function to parse the composer.json manifest file and return required and required-dev dependencies as a dictionary
 def get_manifest_deps(parsed_manifest: Optional[JSON]) -> Set[str]:
     if not parsed_manifest:
@@ -45,7 +46,6 @@ def get_manifest_deps(parsed_manifest: Optional[JSON]) -> Set[str]:
 def parse_composer_lock(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
-
     parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
         DependencyFileToParse(lockfile_path, json_doc, ScaParserName(ComposerLock())),
         DependencyFileToParse(manifest_path, json_doc, ScaParserName(ComposerLock()))
@@ -92,6 +92,7 @@ def parse_composer_lock(
         # Extract version and package name from dependency fields
         version = fields["version"].as_str()
         package = fields["name"].as_str()
+        line_number = fields["name"].line_number
 
         # Initialize resolved_url and allowed_hashes
         resolved_url = None
@@ -115,7 +116,7 @@ def parse_composer_lock(
                 resolved_url=resolved_url,
                 allowed_hashes=allowed_hashes,
                 transitivity=transitivity(manifest_deps, [package]),
-                line_number=dep.line_number,
+                line_number=line_number,
             )
         )
     # Return the output list containing FoundDependency objects

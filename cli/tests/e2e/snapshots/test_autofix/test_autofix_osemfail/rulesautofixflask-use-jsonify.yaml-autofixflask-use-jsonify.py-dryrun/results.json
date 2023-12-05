@@ -1,5 +1,6 @@
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/autofix/flask-use-jsonify.py"
@@ -16,11 +17,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "fix_regex": {
-          "count": 1,
-          "regex": "(json\\.){0,1}dumps",
-          "replacement": "flask.jsonify"
-        },
+        "fix": "flask.jsonify(user_dict)",
         "fixed_lines": [
           "    return flask.jsonify(user_dict)"
         ],
@@ -63,11 +60,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "fix_regex": {
-          "count": 1,
-          "regex": "(json\\.){0,1}dumps",
-          "replacement": "flask.jsonify"
-        },
+        "fix": "flask.jsonify(user_dict)",
         "fixed_lines": [
           "    return flask.jsonify(user_dict)"
         ],

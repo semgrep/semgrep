@@ -20,6 +20,7 @@ from semgrep.test import SPACE_OR_NO_SPACE
 from semgrep.test import TODOOK
 from semgrep.test import TODORULEID
 
+
 # cf. https://docs.python.org/3/library/itertools.html#itertools-recipes
 @pytest.mark.quick
 def powerset(iterable: Iterable) -> Iterable[Tuple[Any, ...]]:

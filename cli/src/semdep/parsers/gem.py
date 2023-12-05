@@ -53,7 +53,7 @@ remotes = (
     string("  remote: ") >> any_char.until(string("\n"), consume_other=True)
 ).at_least(1)
 
-# Gemfile.lock contains both locked depedencies and manifest dependencies
+# Gemfile.lock contains both locked dependencies and manifest dependencies
 # Ignore everything until GEM, indicating locked dependencies
 # Then ignore everything until DEPENDENCIES, indicating manifest dependencies
 gemfile = (

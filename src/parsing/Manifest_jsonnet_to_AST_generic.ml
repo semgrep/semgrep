@@ -15,7 +15,7 @@
 
 module G = AST_generic
 module A = AST_jsonnet
-module E = Eval_jsonnet
+module E = Eval_jsonnet_envir
 module V = Value_jsonnet
 
 (*****************************************************************************)
@@ -35,7 +35,7 @@ let fb = Tok.unsafe_fake_bracket
 (* Entry point *)
 (*****************************************************************************)
 
-let rec value_to_expr (v : V.value_) : G.expr =
+let rec value_to_expr (v : V.t) : G.expr =
   match v with
   | V.Primitive x ->
       let literal =
@@ -50,7 +50,7 @@ let rec value_to_expr (v : V.value_) : G.expr =
   | Array (l, arr, r) ->
       let xs =
         arr |> Array.to_list
-        |> Common.map (fun (entry : V.lazy_value) ->
+        |> List_.map (fun (entry : V.lazy_value) ->
                value_to_expr
                  (match entry.value with
                  | Val v -> v
@@ -61,7 +61,7 @@ let rec value_to_expr (v : V.value_) : G.expr =
       (* TODO: evaluate asserts *)
       let xs =
         fields
-        |> Common.map_filter (fun { V.fld_name; fld_hidden; fld_value } ->
+        |> List_.map_filter (fun { V.fld_name; fld_hidden; fld_value } ->
                match fst fld_hidden with
                | A.Hidden -> None
                | A.Visible
@@ -78,6 +78,6 @@ let rec value_to_expr (v : V.value_) : G.expr =
       in
       G.Container (G.Dict, (l, xs, r)) |> G.e
 
-let manifest_value (v : V.value_) : G.program =
+let manifest_value (v : V.t) : G.program =
   let e = value_to_expr v in
   [ G.exprstmt e ]

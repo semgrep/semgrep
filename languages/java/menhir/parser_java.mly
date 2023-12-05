@@ -37,6 +37,7 @@
  *)
 %{
 open Common
+open Either_
 open AST_generic (* for the arithmetic operator *)
 open Ast_java
 
@@ -180,7 +181,7 @@ let mk_stmt_or_stmts = function
 (*-----------------------------------------*)
 
 (* tokens with "values" *)
-%token <int option * Tok.t> TInt
+%token <Parsed_int.t> TInt
 %token <float option * Tok.t> TFloat
 %token <string * Tok.t> TChar TString
 
@@ -1034,7 +1035,7 @@ catch_formal_parameter:
   | "..." { CatchEllipsis $1 }
 
 (* javaext: ? *)
-catch_type: list_sep(type_, OR) { Common.hd_exn "unexpected empty list" $1, Common.tl_exn "unexpected empty list" $1 }
+catch_type: list_sep(type_, OR) { List_.hd_exn "unexpected empty list" $1, List_.tl_exn "unexpected empty list" $1 }
 
 (* javaext: ? *)
 resource_specification: "(" list_sep(resource, ";") ";"? ")"

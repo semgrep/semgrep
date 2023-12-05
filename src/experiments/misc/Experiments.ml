@@ -18,10 +18,10 @@ let stat_matches file =
   pr2 (spf "matched: %d" (List.length matches));
   let per_files =
     matches
-    |> Common.map (fun m -> (m.Pattern_match.file, m))
-    |> Common.group_assoc_bykey_eff
-    |> Common.map (fun (file, xs) -> (file, List.length xs))
-    |> Common.sort_by_val_highfirst |> Common.take_safe 10
+    |> List_.map (fun m -> (m.Pattern_match.file, m))
+    |> Assoc.group_assoc_bykey_eff
+    |> List_.map (fun (file, xs) -> (file, List.length xs))
+    |> Assoc.sort_by_val_highfirst |> List_.take_safe 10
   in
   pr2 "biggest file offenders";
   per_files |> List.iter (fun (file, n) -> pr2 (spf " %60s: %d" file n));
@@ -30,7 +30,7 @@ let stat_matches file =
 module T = Genlex
 
 let ebnf_to_menhir file =
-  let xs = Common.cat file in
+  let xs = UCommon.cat file in
   let hkwd = Hashtbl.create 11 in
   let htokens = Hashtbl.create 11 in
   let lower = String.uncapitalize_ascii in
@@ -51,7 +51,7 @@ let ebnf_to_menhir file =
     let tokens = lexer chars in
     let xs = Stream.npeek 100 tokens in
     xs |> insert_space_when_needed
-    |> Common.map (function
+    |> List_.map (function
          | T.Kwd s -> spf "%s" s
          | T.Ident s ->
              if s =~ "^[A-Z]" then lower s
@@ -69,7 +69,7 @@ let ebnf_to_menhir file =
   in
   let ys =
     xs
-    |> Common.map (fun s ->
+    |> List_.map (fun s ->
            match s with
            | _ when s =~ "^ *\\([A-Z][a-zA-Z0-9]*\\) +::= \\(.*\\)$" ->
                let s1, s2 = Common.matched2 s in
@@ -83,20 +83,20 @@ let ebnf_to_menhir file =
            | _ when s =~ "^[ \t]*$" -> ""
            | _ -> failwith (spf "not handled: %s" s))
   in
-  pr "%{";
-  pr "%}";
-  pr "";
+  pr2 "%{";
+  pr2 "%}";
+  pr2 "";
 
-  htokens |> Common.hashset_to_list
-  |> List.iter (fun s -> pr (spf "%%token <unit> %s" s));
+  htokens |> Hashtbl_.hashset_to_list
+  |> List.iter (fun s -> pr2 (spf "%%token <unit> %s" s));
 
   let i = ref 0 in
-  hkwd |> Common.hashset_to_list
+  hkwd |> Hashtbl_.hashset_to_list
   |> List.iter (fun s ->
          incr i;
-         pr (spf "%%token <unit> X%d \"%s\"" !i s));
-  pr "%start <unit> compilationUnit";
-  pr "%%";
-  pr "";
+         pr2 (spf "%%token <unit> X%d \"%s\"" !i s));
+  pr2 "%start <unit> compilationUnit";
+  pr2 "%%";
+  pr2 "";
 
-  ys |> List.iter (fun s -> pr s)
+  ys |> List.iter (fun s -> pr2 s)

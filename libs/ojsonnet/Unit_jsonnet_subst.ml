@@ -1,10 +1,10 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module Y = Yojson.Basic
 
 let dir_pass =
   [ "tests/jsonnet/eval_pass"; "tests/jsonnet/tutorial_tests/pass" ]
-  |> File.Path.of_strings
+  |> Fpath_.of_strings
 
 let related_file_of_target ~ext ~file =
   let dirname, basename, _e = Common2.dbe_of_filename !!file in
@@ -18,10 +18,10 @@ let related_file_of_target ~ext ~file =
 
 let test_maker dirs pass_or_fail =
   dirs
-  |> Common.map (fun dir ->
+  |> List_.map (fun dir ->
          Common2.glob (spf "%s/*%s" !!dir "jsonnet")
-         |> File.Path.of_strings
-         |> Common.map (fun file ->
+         |> Fpath_.of_strings
+         |> List_.map (fun file ->
                 ( Fpath.basename file,
                   fun () ->
                     let comparison_file_path =
@@ -30,14 +30,14 @@ let test_maker dirs pass_or_fail =
                       | Error msg -> failwith msg
                     in
                     let correct =
-                      Y.from_string (File.read_file comparison_file_path)
+                      Y.from_string (UFile.read_file comparison_file_path)
                     in
 
                     let ast = Parse_jsonnet.parse_program file in
                     let core = Desugar_jsonnet.desugar_program file ast in
                     (* Currently slightly hacky, since we later may want to test for errors thrown *)
                     try
-                      let value_ = Eval_jsonnet_subst.eval_expr core in
+                      let value_ = Eval_jsonnet_subst.eval_program core in
                       let json =
                         JSON.to_yojson
                           (Eval_jsonnet_subst.manifest_value value_)
@@ -51,9 +51,10 @@ let test_maker dirs pass_or_fail =
                       Alcotest.(check bool)
                         result pass_or_fail (Y.equal json correct)
                     with
-                    | Eval_jsonnet_subst.Error _ ->
+                    | Eval_jsonnet_common.Error _ ->
                         Alcotest.(check bool)
                           "this threw an error" (not pass_or_fail) true )))
-  |> Common.flatten
+  |> List_.flatten
 
-let tests () = Testutil.pack_tests "ojsonnet subst" (test_maker dir_pass true)
+let tests () =
+  Alcotest_ext.pack_tests "ojsonnet subst" (test_maker dir_pass true)

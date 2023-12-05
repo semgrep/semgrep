@@ -34,6 +34,19 @@ type mvalue =
 *)
 type bindings = (mvar * mvalue) list [@@deriving show, eq]
 
+(* Mvalue equality reduces to equality on ASTs, which ignores the tokens
+   and instead compares the structure. It may optionally include the ident
+   info IDs, but the point is that it's agnostic to the positions of the
+   mvalues.
+   Sometimes we don't want this behavior. For instance, if we have two
+   matches which have $A bound to "true", but in different places in the
+   source, we might want to consider those matches different.
+   This equality function simply first discriminates on location of the
+   mvalues, and then checks for their literal equality, to make that
+   possible.
+*)
+val location_aware_equal_mvalue : mvalue -> mvalue -> bool
+
 (* return whether a string could be a metavariable name (e.g., "$FOO", but not
  * "FOO"). This mostly check for the regexp $[A-Z_][A-Z_0-9]* but
  * also handles special variables like $_GET in PHP which are actually
@@ -49,7 +62,7 @@ val mvars_of_regexp_string : string -> mvar list
 val is_metavar_for_capture_group : string -> bool
 val ii_of_mval : mvalue -> Tok.t list
 val str_of_mval : mvalue -> string
-val range_of_mvalue : mvalue -> (Common.filename * Range.t) option
+val range_of_mvalue : mvalue -> (string (* filename *) * Range.t) option
 
 (* we sometimes need to convert to an any to be able to use
  * Lib_AST.ii_of_any, or Lib_AST.abstract_position_info_any

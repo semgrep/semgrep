@@ -125,7 +125,7 @@ and interface_field =
 
 (* the 'type_' below can't be an interface itself and can't be a type param *)
 and constraint_ = tok option (* '~', "underlying" type *) * type_
-and expr_or_type = (expr, type_) Common.either
+and expr_or_type = (expr, type_) Either_.t
 
 (*****************************************************************************)
 (* Expression *)
@@ -187,7 +187,7 @@ and expr =
 (* old: was just a string in ast.go *)
 and literal =
   (* less: Bool of bool wrap | Nil of tok? *)
-  | Int of int option wrap
+  | Int of Parsed_int.t
   | Float of float option wrap
   | Imag of string wrap
   | Rune of string wrap (* unicode char *)
@@ -404,7 +404,7 @@ let package_and_imports_of_program xs =
   in
   let imports =
     xs
-    |> Common.map_filter (function
+    |> List_.map_filter (function
          | Import x -> Some x
          | _ -> None)
   in

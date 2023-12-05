@@ -7,7 +7,7 @@
 [@@@warning "-37"]
 
 open Printf
-open File.Operators
+open Fpath_.Operators
 
 type file_tree = Dir of string * file_tree list | File of string * file_kind
 and file_kind = Regular of string | Symlink of string
@@ -74,7 +74,7 @@ let test_empty_dir_as_root () =
 (* Because file listings are not guaranteed to be in any particular order. *)
 let compare_path_lists expected actual =
   let sort x =
-    List.sort Fpath.compare x |> Common.map ( !! ) |> String.concat "\n"
+    List.sort Fpath.compare x |> List_.map ( !! ) |> String.concat "\n"
   in
   Alcotest.(check string) "equal" (sort expected) (sort actual)
 
@@ -137,9 +137,9 @@ let test_symlink_as_root () =
         (List_files.list_regular_files ~keep_root:true root_path))
 
 let tests =
-  Testutil.pack_suites "List_files"
+  Alcotest_ext.pack_suites "List_files"
     [
-      Testutil.pack_tests "list"
+      Alcotest_ext.pack_tests "list"
         [
           ("regular_file_as_root", test_regular_file_as_root);
           ("empty_dir_as_root", test_empty_dir_as_root);
