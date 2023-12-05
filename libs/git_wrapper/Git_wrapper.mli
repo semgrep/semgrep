@@ -1,12 +1,14 @@
 (* Small wrapper around the 'git' command-line program *)
 
+(* TODO: make sub capability with cap_git_exec *)
+
 exception Error of string
 
 (* very general helper to run a git command and return its output
  * if everthing went fine or log the error (using Logs) and
  * raise an Error otherwise
  *)
-val git_check_output : Cmd.args -> string
+val git_check_output : Cap.Exec.t -> Cmd.args -> string
 
 (*
    This is incomplete. Git offer a variety of filters and subfilters,

@@ -40,10 +40,8 @@ val to_yojson : t -> yojson
 val from_yojson : yojson -> t
 val yojson_to_ezjsonm : yojson -> ezjsonm
 val ezjsonm_to_yojson : ezjsonm -> yojson
-
-(* TODO: use Fpath.t *)
-val load_json : string (* filename *) -> t
 val json_of_string : str -> t
+val json_of_chan : Chan.i -> t
 
 val string_of_json :
   ?compact:bool -> ?recursive:bool -> ?allow_nan:bool -> t -> str

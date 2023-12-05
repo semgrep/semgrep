@@ -3,6 +3,7 @@
   (public_name git_wrapper)
   (name git_wrapper)
   (wrapped false)
+;  (flags (:standard -open TCB -open Commons_TCB))
   (flags (:standard -open No_TCB))
   (libraries
      fpath

@@ -50,12 +50,14 @@ let on_notification _server params : unit =
             |> Option.to_result ~none:"got invalid parameters"
             |> Lwt.return
           in
+          let caps = Cap.network_caps_UNSAFE () in
           let^ token, _ =
             Semgrep_login.fetch_token_async ~min_wait_ms:wait_before_retry_in_ms
-              ~max_retries sessionId
+              ~max_retries caps sessionId
           in
+          let caps = Auth.cap_token_and_network token caps in
           let^ _deployment =
-            Semgrep_App.get_deployment_from_token_async token
+            Semgrep_App.get_deployment_from_token_async caps
             |> Lwt.map (Option.to_result ~none:"failed to get deployment")
           in
           (* TODO: state.app_session.authenticate()
@@ -63,5 +65,5 @@ let on_notification _server params : unit =
           *)
           RPC_server.notify_show_message ~kind:MessageType.Info
             "Successfully logged into Semgrep Code";
-          let^ _deployment = Semgrep_login.save_token_async token in
+          let^ _deployment = Semgrep_login.save_token_async caps in
           Lwt.return ())
