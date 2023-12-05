@@ -24,6 +24,7 @@ from semgrep.error import OK_EXIT_CODE
 from semgrep.error import SemgrepCoreError
 from semgrep.error import TARGET_PARSE_FAILURE_EXIT_CODE
 from semgrep.rule import Rule
+from semgrep.rule_match import CliUniqueKey
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchSet
 from semgrep.verbose_logging import getLogger
@@ -190,7 +191,7 @@ def core_matches_to_rule_matches(
             fix=fix,
         )
 
-    by_unique_key: Dict[Tuple, RuleMatch] = {}
+    by_unique_key: Dict[CliUniqueKey, RuleMatch] = {}
     for match in res.results:
         rule_match = convert_to_rule_match(match)
         curr = by_unique_key.setdefault(rule_match.cli_unique_key, rule_match)

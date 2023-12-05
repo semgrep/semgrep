@@ -30,6 +30,9 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.util import get_lines
 
 
+CliUniqueKey = Tuple[str, str, int, int, str, Optional[str]]
+
+
 def rstrip(value: Optional[str]) -> Optional[str]:
     return value.rstrip() if value is not None else None
 
@@ -91,7 +94,7 @@ class RuleMatch:
     lines: List[str] = field(init=False, repr=False)
     previous_line: str = field(init=False, repr=False)
     syntactic_context: str = field(init=False, repr=False)
-    cli_unique_key: Tuple = field(init=False, repr=False)
+    cli_unique_key: CliUniqueKey = field(init=False, repr=False)
     ci_unique_key: Tuple = field(init=False, repr=False)
     ordering_key: Tuple = field(init=False, repr=False)
     match_based_key: Tuple = field(init=False, repr=False)
@@ -196,7 +199,7 @@ class RuleMatch:
         return code
 
     @cli_unique_key.default
-    def get_cli_unique_key(self) -> Tuple:
+    def get_cli_unique_key(self) -> CliUniqueKey:
         """
         A unique key designed with data-completeness & correctness in mind.
 
@@ -244,6 +247,8 @@ class RuleMatch:
     def should_report_instead(self, other: "RuleMatch") -> bool:
         """
         Returns True iff we should report `self` in lieu of reporting `other`.
+        This is currently only used for the following items:
+        - secrets: a valid finding is reported over an invalid one
 
         Assumes that self.cli_unique_key == other.cli_unique_key
         """
