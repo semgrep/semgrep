@@ -103,18 +103,18 @@ class meta caps ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
   object (self)
     method project_metadata : Project_metadata.t =
       let commit_title : string =
-        Git_wrapper.git_check_output caps [ "show"; "-s"; "--format=%B" ]
+        Git_wrapper.git_check_output caps#exec [ "show"; "-s"; "--format=%B" ]
       in
       let commit_author_email : Emile.mailbox =
-        Git_wrapper.git_check_output caps [ "show"; "-s"; "--format=%ae" ]
+        Git_wrapper.git_check_output caps#exec [ "show"; "-s"; "--format=%ae" ]
         |> Emile.of_string |> Result.get_ok
       in
       let commit_author_name : string =
-        Git_wrapper.git_check_output caps [ "show"; "-s"; "--format=%an" ]
+        Git_wrapper.git_check_output caps#exec [ "show"; "-s"; "--format=%an" ]
       in
       (* Returns epoch time as str of head commit *)
       let commit_datetime : string =
-        Git_wrapper.git_check_output caps [ "show"; "-s"; "--format=%ct" ]
+        Git_wrapper.git_check_output caps#exec [ "show"; "-s"; "--format=%ct" ]
       in
       {
         semgrep_version = Version.version;
@@ -159,7 +159,8 @@ class meta caps ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
       | Some repo_name -> repo_name
       | None ->
           let str =
-            Git_wrapper.git_check_output caps [ "rev-parse"; "--show-toplevel" ]
+            Git_wrapper.git_check_output caps#exec
+              [ "rev-parse"; "--show-toplevel" ]
           in
           Fpath.basename (Fpath.v str)
 

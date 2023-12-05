@@ -46,7 +46,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * [type git_cap] abstract type and then
  * let git_cap_of_exec _caps = unit
  *)
-type caps = < exec : Cap.Exec.t >
 
 type status = {
   added : string list;

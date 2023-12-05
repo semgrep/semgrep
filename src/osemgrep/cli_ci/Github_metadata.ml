@@ -38,6 +38,8 @@ let _MAX_FETCH_ATTEMPT_COUNT = 10
 (* A limit of how many fetch we should do until we find the common commit
    between two branches. *)
 
+type caps = < exec : Cap.Exec.t >
+
 (*****************************************************************************)
 (* Cmdliner *)
 (*****************************************************************************)
@@ -149,7 +151,7 @@ let env : env Term.t =
 (* Split out shallow fetch so we can mock it away in tests. *)
 let shallow_fetch_branch caps branch_name =
   let _ =
-    Git_wrapper.git_check_output caps
+    Git_wrapper.git_check_output caps#exec
       [
         "fetch";
         "origin";
@@ -167,7 +169,7 @@ let shallow_fetch_branch caps branch_name =
    name to the commit. It just does the fetch. *)
 let _shallow_fetch_commit caps commit_hash =
   let _ =
-    Git_wrapper.git_check_output caps
+    Git_wrapper.git_check_output caps#exec
       [
         "fetch";
         "origin";
@@ -184,7 +186,7 @@ let _shallow_fetch_commit caps commit_hash =
    Does a git fetch of given branch with depth = 1. *)
 let get_latest_commit_hash_in_branch caps branch_name =
   shallow_fetch_branch caps branch_name;
-  Git_wrapper.git_check_output caps [ "rev-parse"; branch_name ]
+  Git_wrapper.git_check_output caps#exec [ "rev-parse"; branch_name ]
   |> Digestif.SHA1.of_hex_opt |> Option.get
 
 (* Ref name of the branch pull request if from. *)
@@ -197,7 +199,7 @@ let get_head_branch_ref env =
    This will also ensure that a fetch is done prior to returning.
 
    Assumes we are in PR context. *)
-let get_head_branch_hash (caps : Git_wrapper.caps) (env : env) :
+let get_head_branch_hash (caps : < caps ; .. >) (env : env) :
     Digestif.SHA1.t option =
   let commit =
     Glom.(
@@ -211,7 +213,7 @@ let get_head_branch_hash (caps : Git_wrapper.caps) (env : env) :
           m "head branch %s has latest commit %a, fetching that commit now."
             head_branch_name Digestif.SHA1.pp commit);
       let _ =
-        Git_wrapper.git_check_output caps
+        Git_wrapper.git_check_output caps#exec
           [
             "fetch";
             "origin";
@@ -303,7 +305,7 @@ let rec find_branchoff_point caps ?(attempt_count = 0) repo_name env =
     (* XXX(dinosaure): we safely can use [Option.get]. This information is
        required to [get_base_branch_ref]. *)
     let _ =
-      Git_wrapper.git_check_output caps
+      Git_wrapper.git_check_output caps#exec
         [
           "fetch";
           "origin";
@@ -315,7 +317,7 @@ let rec find_branchoff_point caps ?(attempt_count = 0) repo_name env =
         ]
     in
     let _ =
-      Git_wrapper.git_check_output caps
+      Git_wrapper.git_check_output caps#exec
         [
           "fetch";
           "origin";

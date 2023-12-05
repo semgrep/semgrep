@@ -18,7 +18,7 @@ type env = {
 val env : env Cmdliner.Term.t
 
 class meta :
-  < Git_wrapper.caps > ->
+  < exec : Cap.Exec.t ; .. > ->
   baseline_ref:Digestif.SHA1.t option ->
   Git_metadata.env ->
   env ->
