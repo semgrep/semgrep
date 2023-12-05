@@ -603,7 +603,7 @@ let register_unix_exn_printers () =
 let register_exception_printers () =
   register_stdlib_exn_printers ();
   register_unix_exn_printers ();
-  SPcre.register_exception_printer ()
+  Pcre_.register_exception_printer ()
 
 (*****************************************************************************)
 (* Main entry point *)

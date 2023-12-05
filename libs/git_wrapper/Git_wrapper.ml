@@ -92,7 +92,7 @@ exception Error of string
  * it's a multiline diff
  *)
 let _git_diff_lines_re = {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
-let git_diff_lines_re = SPcre.regexp _git_diff_lines_re
+let git_diff_lines_re = Pcre_.regexp _git_diff_lines_re
 let getcwd () = USys.getcwd () |> Fpath.v
 
 (*
@@ -125,7 +125,7 @@ let range_of_git_diff lines =
     let end_ = change_count + start in
     (start, end_)
   in
-  let matched_ranges = SPcre.exec_all ~rex:git_diff_lines_re lines in
+  let matched_ranges = Pcre_.exec_all ~rex:git_diff_lines_re lines in
   (* get the first capture group, then optionally split the comma if multiline
      diff *)
   match matched_ranges with

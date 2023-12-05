@@ -1,8 +1,7 @@
 (*
    Wrappers for using the Pcre module safely with settings that make
-   sense for semgrep.
-
-   The "S" in "SPcre" stands for Semgrep.
+   sense for semgrep such as automatically setting some flags and
+   handling exceptions.
 
    If you need a function from Pcre that is not being exposed by this module,
    please add it.
