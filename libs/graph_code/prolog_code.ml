@@ -79,7 +79,8 @@ let string_of_entity (xs, x) =
   match xs with
   | [] -> spf "'%s'" (escape_quote_and_double_quote x)
   | xs ->
-      spf "('%s', '%s')" (Common.join "." xs) (escape_quote_and_double_quote x)
+      spf "('%s', '%s')" (String.concat "." xs)
+        (escape_quote_and_double_quote x)
 
 (* Quite similar to database_code.string_of_id_kind, but with lowercase
  * because of prolog atom convention. See also prolog_code.pl comment
@@ -151,7 +152,7 @@ let string_of_fact fact =
 (*****************************************************************************)
 
 let entity_of_str s =
-  let xs = Common.split "\\." s in
+  let xs = String_.split ~sep:"\\." s in
   match List.rev xs with
   | [] -> raise Impossible
   | [ x ] -> ([], x)

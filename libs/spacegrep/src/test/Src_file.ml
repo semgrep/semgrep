@@ -60,11 +60,11 @@ let lines_of_range_corpus =
 
 let test =
   let suite =
-    Common.map
+    List_.map
       (fun (name, input, start, end_, expected_output) ->
         (name, `Quick, fun () -> test_highlight input start end_ expected_output))
       highlight_corpus
-    @ Common.map
+    @ List_.map
         (fun (name, input, start_word, end_word, expected_output) ->
           ( name,
             `Quick,

@@ -983,7 +983,7 @@ let str_of_name_namespace x =
       |> List.map (function
            | QITok _ -> "\\"
            | QI id -> str_of_ident id)
-      |> Common.join ""
+      |> String.concat ""
 
 let name_of_class_name x =
   match x with

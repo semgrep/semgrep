@@ -122,8 +122,8 @@ let test_publish caps () =
             ~final:(fun res ->
               assert (res.exit_code =*= Exit_code.fatal);
               assert (
-                Common.contains res.logs
-                  "run `semgrep login` before using upload"));
+                String_.contains res.logs
+                  ~term:"run `semgrep login` before using upload"));
 
           (* log back in *)
           Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->
@@ -145,7 +145,7 @@ let test_publish caps () =
               Publish_subcommand.main caps [| "semgrep-publish"; !!path |])
             ~final:(fun res ->
               assert (res.exit_code =*= Exit_code.fatal);
-              assert (Common.contains res.logs "Invalid rule definition:"));
+              assert (String_.contains res.logs ~term:"Invalid rule definition:"));
 
           (* fails if a yaml with more than one rule is specified *)
           with_logs
@@ -157,9 +157,10 @@ let test_publish caps () =
             ~final:(fun res ->
               assert (res.exit_code =*= Exit_code.fatal);
               assert (
-                Common.contains res.logs
-                  "Rule contains more than one rule: only yaml files with a \
-                   single can be published"));
+                String_.contains res.logs
+                  ~term:
+                    "Rule contains more than one rule: only yaml files with a \
+                     single can be published"));
 
           with_logs
             ~f:(fun () ->
@@ -168,9 +169,10 @@ let test_publish caps () =
             ~final:(fun res ->
               assert (res.exit_code =*= Exit_code.fatal);
               assert (
-                Common.contains res.logs
-                  "Only one public rule can be uploaded at a time: specify a \
-                   single Semgrep rule"));
+                String_.contains res.logs
+                  ~term:
+                    "Only one public rule can be uploaded at a time: specify a \
+                     single Semgrep rule"));
 
           with_logs
             ~f:(fun () ->
@@ -183,8 +185,8 @@ let test_publish caps () =
             ~final:(fun res ->
               assert (res.exit_code =*= Exit_code.fatal);
               assert (
-                Common.contains res.logs
-                  "--visibility=public requires --registry-id"));
+                String_.contains res.logs
+                  ~term:"--visibility=public requires --registry-id"));
 
           ()))
 

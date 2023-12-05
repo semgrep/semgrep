@@ -93,8 +93,6 @@ exception CNF_exploded
 (* Helpers *)
 (*****************************************************************************)
 
-let ( let* ) = Common.( >>= )
-
 (* NOTE "AND vs OR and map_filter":
  * We cannot use `Common.map_filter` for `R.Or`, because it has the wrong
  * semantics. We use `None` to say "we can't handle this", or in other words,

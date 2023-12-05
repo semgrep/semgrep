@@ -285,9 +285,9 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
     let rule_id = m.Pattern_match.rule_id in
     let path =
       m.Pattern_match.file |> fun p ->
-      renamed
-      >>= List_.find_some_opt (fun (before, after) ->
-              if after = p then Some before else None)
+      Option.bind renamed
+        (List_.find_some_opt (fun (before, after) ->
+             if after = p then Some before else None))
       |> Option.value ~default:p
     in
     let start_range, end_range = m.Pattern_match.range_loc in

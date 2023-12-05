@@ -159,7 +159,7 @@ type indent_status =
 (*****************************************************************************)
 (* Logging/Dumpers  *)
 (*****************************************************************************)
-let n_dash n = Common2.repeat "--" n |> Common.join ""
+let n_dash n = Common2.repeat "--" n |> String.concat ""
 
 let with_logging funcname f in_ =
   if !Flag.debug_parser then (

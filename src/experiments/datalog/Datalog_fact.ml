@@ -164,4 +164,4 @@ let string_of_fact fact =
          | I x ->
              spf "'%s'" x
          | Z i -> spf "%d" i)
-    |> Common.join ", ")
+    |> String.concat ", ")

@@ -38,7 +38,6 @@ let files_of_dirs_or_files_no_vcs_nofilter xs =
   xs |> Fpath_.to_strings |> UCommon.files_of_dir_or_files_no_vcs_nofilter
   |> Fpath_.of_strings
 
-let input_text_line = Common.input_text_line
 let cat path = UCommon.cat !!path
 let write_file path data = UCommon.write_file !!path data
 let read_file ?max_len path = UCommon.read_file ?max_len !!path
@@ -57,7 +56,7 @@ let find_first_match_with_whole_line path ?split:(chr = '\n') =
   really_input ic res 0 len;
   let lines = Bytes.split_on_char chr res in
   let lines = List_.map Bytes.unsafe_to_string lines in
-  List.find_opt (fun str -> Option.is_some (String_.contains term str)) lines
+  lines |> List.find_opt (fun str -> String_.contains ~term str)
 
 let find_first_match_with_whole_line path ?split term =
   find_first_match_with_whole_line path ?split term

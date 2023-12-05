@@ -311,33 +311,12 @@ let exn_to_s exn = Printexc.to_string exn
 
 let ( let* ) = Option.bind
 
-(* type 'a maybe  = Just of 'a | None *)
-let ( >>= ) m1 m2 =
-  match m1 with
-  | None -> None
-  | Some x -> m2 x
-
 (*
  (*http://roscidus.com/blog/blog/2013/10/13/ocaml-tips/#handling-option-types*)
   let (|?) maybe default =
     match maybe with
     | Some v -> v
     | None -> Lazy.force default
-*)
-(* deprecated: use Option.map
-   let map_opt f = function
-   | None -> None
-   | Some x -> Some (f x)
-*)
-(* deprecated: use Option.iter
-   let do_option f = function
-   | None -> ()
-   | Some x -> f x
-*)
-(* deprecated: use Option.to_list
-   let opt_to_list : 'a option -> 'a list = function
-   | None -> []
-   | Some x -> [x]
 *)
 
 (* not sure why but can't use let (?:) a b = ... then at use time ocaml yells*)
@@ -387,8 +366,6 @@ let candidate_match_func s re =
 
 let match_func s re = candidate_match_func s re
 let ( =~ ) s re = match_func s re
-let split sep s = Str.split (Str.regexp sep) s
-let join sep xs = String.concat sep xs
 
 (*****************************************************************************)
 (* Strings *)
@@ -397,15 +374,6 @@ let join sep xs = String.concat sep xs
 (* ruby *)
 let i_to_s = string_of_int
 let s_to_i = int_of_string
-let null_string s = s = ""
-
-let contains s1 s2 =
-  let re = Str.regexp_string s2 in
-  try
-    ignore (Str.search_forward re s1 0);
-    true
-  with
-  | Not_found -> false
 
 (*****************************************************************************)
 (* Dates *)
