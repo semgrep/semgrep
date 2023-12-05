@@ -821,8 +821,6 @@ val command2_y_or_no : string -> bool
 val command2_y_or_no_exit_if_no : string -> unit
 val do_in_fork : (unit -> unit) -> int
 val mkdir : ?mode:Unix.file_perm -> string -> unit
-val read_file : filename -> string
-val write_file : file:filename -> string -> unit
 val nblines_file : filename -> int
 val filesize : filename -> int
 val filemtime : filename -> float
@@ -896,12 +894,11 @@ val with_tmp_dir : (dirname -> 'a) -> 'a
 exception UnixExit of int
 
 val exn_to_real_unixexit : (unit -> 'a) -> 'a
-(*e: common.mli for basic types *)
 
 (*###########################################################################*)
 (* Collection-like types *)
 (*###########################################################################*)
-(*s: common.mli for collection types *)
+
 (*****************************************************************************)
 (* Nonempty List *)
 (*****************************************************************************)
@@ -926,14 +923,10 @@ val zip_safe : 'a list -> 'b list -> ('a * 'b) list
 val unzip : ('a * 'b) list -> 'a list * 'b list
 val unzip3 : ('a * 'b * 'c) list -> 'a list * 'b list * 'c list
 val unzip4 : ('a * 'b * 'c * 'd) list -> 'a list * 'b list * 'c list * 'd list
-val take : int -> 'a list -> 'a list
-val take_safe : int -> 'a list -> 'a list
 val take_until : ('a -> bool) -> 'a list -> 'a list
 val take_while : ('a -> bool) -> 'a list -> 'a list
-val drop : int -> 'a list -> 'a list
 val drop_while : ('a -> bool) -> 'a list -> 'a list
 val drop_until : ('a -> bool) -> 'a list -> 'a list
-val span : ('a -> bool) -> 'a list -> 'a list * 'a list
 val span_tail_call : ('a -> bool) -> 'a list -> 'a list * 'a list
 val skip_until : ('a list -> bool) -> 'a list -> 'a list
 val skipfirst : (* Eq a *) 'a -> 'a list -> 'a list
@@ -966,9 +959,6 @@ val enum : int -> int -> int list
 val enum_safe : int -> int -> int list
 val repeat : 'a -> int -> 'a list
 val generate : int -> 'a -> 'a list
-val index_list : 'a list -> ('a * int) list
-val index_list_0 : 'a list -> ('a * int) list
-val index_list_1 : 'a list -> ('a * int) list
 val index_list_and_total : 'a list -> ('a * int * int) list
 val iter_index : ('a -> int -> unit) -> 'a list -> unit
 val map_index : ('a -> int -> 'b) -> 'a list -> 'b list
@@ -1062,7 +1052,7 @@ val combinaison : 'a list -> ('a * 'a) list
 val insere : 'a -> 'a list list -> 'a list list
 val insereListeContenant : 'a list -> 'a -> 'a list list -> 'a list list
 val fusionneListeContenant : 'a * 'a -> 'a list list -> 'a list list
-(*x: common.mli for collection types *)
+
 (*****************************************************************************)
 (* Arrays *)
 (*****************************************************************************)
@@ -1078,13 +1068,7 @@ type idx = Idx of int
 val next_idx : idx -> idx
 val int_of_idx : idx -> int
 val array_find_index_typed : (idx -> bool) -> 'a array -> idx
-(*x: common.mli for collection types *)
-(*****************************************************************************)
-(* Fast array *)
-(*****************************************************************************)
 
-(* ?? *)
-(*x: common.mli for collection types *)
 (*****************************************************************************)
 (* Matrix *)
 (*****************************************************************************)
@@ -1102,7 +1086,7 @@ val nb_columns_matrix : 'a matrix -> int
 val rows_of_matrix : 'a matrix -> 'a list list
 val columns_of_matrix : 'a matrix -> 'a list list
 val all_elems_matrix_by_row : 'a matrix -> 'a list
-(*x: common.mli for collection types *)
+
 (*****************************************************************************)
 (* Set. But have a look too at set*.mli; it's better. Or use Hashtbl. *)
 (*****************************************************************************)
@@ -1151,17 +1135,17 @@ val nub : 'a list -> 'a list
  * - part only in b
  *)
 val diff_set_eff : 'a list -> 'a list -> 'a list * 'a list * 'a list
-(*x: common.mli for collection types *)
+
 (*****************************************************************************)
 (* Set as normal list *)
 (*****************************************************************************)
 
 (* cf above *)
-(*x: common.mli for collection types *)
+
 (*****************************************************************************)
 (* Set as sorted list *)
 (*****************************************************************************)
-(*x: common.mli for collection types *)
+
 (*****************************************************************************)
 (* Sets specialized *)
 (*****************************************************************************)
@@ -1201,7 +1185,6 @@ module StringSet : sig
   val split : string -> t -> t * bool * t
 end
 
-(*x: common.mli for collection types *)
 (*****************************************************************************)
 (* Assoc. But have a look too at Mapb.mli; it's better. Or use Hashtbl. *)
 (*****************************************************************************)
@@ -1237,7 +1220,7 @@ val sort_by_key_lowfirst : ('a, 'b) assoc -> ('a * 'b) list
 val sort_by_key_highfirst : ('a, 'b) assoc -> ('a * 'b) list
 val sortgen_by_key_lowfirst : ('a, 'b) assoc -> ('a * 'b) list
 val sortgen_by_key_highfirst : ('a, 'b) assoc -> ('a * 'b) list
-(*x: common.mli for collection types *)
+
 (*****************************************************************************)
 (* Assoc, specialized. *)
 (*****************************************************************************)
@@ -1284,7 +1267,6 @@ end
 val intintmap_to_list : 'a IntIntMap.t -> (IntIntMap.key * 'a) list
 val intintmap_string_of_t : 'a -> 'b -> string
 
-(*x: common.mli for collection types *)
 (*****************************************************************************)
 (* Hash *)
 (*****************************************************************************)
@@ -1321,12 +1303,12 @@ val hkeys : ('a, 'b) Hashtbl.t -> 'a list
 
 (* hunion h1 h2  adds all binding in h2 into h1 *)
 val hunion : ('a, 'b) Hashtbl.t -> ('a, 'b) Hashtbl.t -> unit
-(*x: common.mli for collection types *)
+
 (*****************************************************************************)
 (* Hash sets *)
 (*****************************************************************************)
 
-type 'a hashset = ('a, bool) Hashtbl.t
+type 'a hashset = 'a Hashtbl_.hashset
 
 (* common use of hashset, in a hash of hash *)
 val hash_hashset_add : 'a -> 'b -> ('a, 'b hashset) Hashtbl.t -> unit
@@ -1340,10 +1322,6 @@ val hashset_inter : 'a hashset -> 'a hashset -> unit
 val hashset_to_set :
   < fromlist : 'a list -> 'c ; .. > -> ('a, 'b) Hashtbl.t -> 'c
 
-val hashset_to_list : 'a hashset -> 'a list
-val hashset_of_list : 'a list -> 'a hashset
-
-(*x: common.mli for collection types *)
 (*****************************************************************************)
 (* Hash  with default value *)
 (*****************************************************************************)
@@ -1361,7 +1339,7 @@ val hash_with_default :
   ; to_h : ('a, 'b) Hashtbl.t
   ; update : 'a -> ('b -> 'b) -> unit
   ; assoc : 'a -> 'b >
-(*x: common.mli for collection types *)
+
 (*****************************************************************************)
 (* Stack *)
 (*****************************************************************************)
@@ -1387,12 +1365,11 @@ val redo_undo : 'a undo_stack -> 'a undo_stack
 val undo_pop : 'a undo_stack -> 'a undo_stack
 val top_undo_option : 'a undo_stack -> 'a option
 
-(*x: common.mli for collection types *)
 (*****************************************************************************)
 (* Binary tree *)
 (*****************************************************************************)
 (* type 'a bintree = Leaf of 'a | Branch of ('a bintree * 'a bintree) *)
-(*x: common.mli for collection types *)
+
 (*****************************************************************************)
 (* N-ary tree *)
 (*****************************************************************************)
@@ -1413,7 +1390,6 @@ val map_tree :
 val dirs_and_base_of_file : path -> string list * string
 val tree_of_files : filename list -> (dirname, string * filename) tree
 
-(*x: common.mli for collection types *)
 (*****************************************************************************)
 (* N-ary tree with updatable childrens *)
 (*****************************************************************************)
@@ -1470,7 +1446,7 @@ val find_multi_treeref_with_parents_some:
  ('a * ('a, 'b) treeref list ref -> 'a list -> 'c option) ->
  ('a, 'b) treeref -> 'c list
 *)
-(*x: common.mli for collection types *)
+
 (*****************************************************************************)
 (* Graph. But have a look too at Ograph_*.mli; it's better *)
 (*****************************************************************************)
@@ -1486,7 +1462,7 @@ val predecessors : 'a -> 'a graph -> 'a set
 val nodes : 'a graph -> 'a set
 val fold_upward : ('a -> 'b -> 'a) -> 'b set -> 'a -> 'b graph -> 'a
 val empty_graph : 'a list * 'b list
-(*x: common.mli for collection types *)
+
 (*****************************************************************************)
 (* Generic op *)
 (*****************************************************************************)
@@ -1516,11 +1492,7 @@ val is_singleton : 'a list -> bool
 (*###########################################################################*)
 (* Misc functions *)
 (*###########################################################################*)
-(*s: common.mli misc *)
 
-(*xxxx*)
-
-(*s: common.mli misc other *)
 (*****************************************************************************)
 (* DB *)
 (*****************************************************************************)
@@ -1539,9 +1511,6 @@ val is_singleton : 'a list -> bool
 
 (* cf ocamlcairo, ocamlgl and my opengl.ml  (otimetracker) *)
 
-(*e: common.mli misc other *)
-
-(*x: common.mli misc *)
 (*****************************************************************************)
 (* Geometry (ICFP raytracer) *)
 (*****************************************************************************)
@@ -1560,7 +1529,6 @@ val add_vector : vector -> vector -> vector
 val mult_vector : vector -> vector -> vector
 val sum_vector : vector list -> vector
 
-(*x: common.mli misc *)
 (*****************************************************************************)
 (* Pics (ICFP raytracer) *)
 (*****************************************************************************)
@@ -1584,7 +1552,6 @@ val diff2 : (int -> int -> diff -> unit) -> string * string -> unit
 
 val contain_any_token_with_egrep : string list -> filename -> bool
 
-(*x: common.mli misc *)
 (*****************************************************************************)
 (* Parsers (aop-colcombet)                                                 *)
 (*****************************************************************************)
@@ -1594,12 +1561,11 @@ val parserCommon : Lexing.lexbuf -> ('a -> Lexing.lexbuf -> 'b) -> 'a -> 'b
 val getDoubleParser :
   ('a -> Lexing.lexbuf -> 'b) -> 'a -> (string -> 'b) * (string -> 'b)
 
-(*x: common.mli misc *)
 (*****************************************************************************)
 (* Parsers (cocci) *)
 (*****************************************************************************)
 (* now in lib_parsing/parse_info.ml *)
-(*x: common.mli misc *)
+
 (*****************************************************************************)
 (* Scope managment (cocci) *)
 (*****************************************************************************)
@@ -1629,13 +1595,10 @@ val del_scope_h : ('a, 'b) scoped_h_env ref -> unit
 val do_in_new_scope_h : ('a, 'b) scoped_h_env ref -> (unit -> unit) -> unit
 val add_in_scope_h : ('a, 'b) scoped_h_env ref -> 'a * 'b -> unit
 
-(*x: common.mli misc *)
 (*****************************************************************************)
 (* Terminal (LFS) *)
 (*****************************************************************************)
 (* see console.ml *)
-
-(*e: common.mli misc *)
 
 (*****************************************************************************)
 (* Gc optimisation (pfff) *)
@@ -1654,10 +1617,8 @@ val unserial : 'a cached -> 'a
 (*###########################################################################*)
 (* Postlude *)
 (*###########################################################################*)
-(*s: common.mli postlude *)
+
 val cmdline_flags_devel : unit -> Arg_.cmdline_options
 val cmdline_flags_verbose : unit -> Arg_.cmdline_options
 val cmdline_flags_other : unit -> Arg_.cmdline_options
 val cmdline_actions : unit -> Arg_.cmdline_actions
-(*e: common.mli postlude *)
-(*e: common.mli *)

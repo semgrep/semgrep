@@ -2668,19 +2668,6 @@ let command_safe ?verbose:(_verbose = false) program args =
 
 let mkdir ?(mode = 0o770) file = UUnix.mkdir file mode
 
-let read_file file =
-  let ic = UStdlib.open_in_bin file in
-  let size = in_channel_length ic in
-  let buf = Bytes.create size in
-  really_input ic buf 0 size;
-  close_in ic;
-  buf |> Bytes.to_string
-
-let write_file ~file s =
-  let chan = UStdlib.open_out_bin file in
-  output_string chan s;
-  close_out chan
-
 (* TODO: add [@@profiling] but mutual deps :( *)
 let unix_stat file = UUnix.stat file
 
@@ -2886,7 +2873,7 @@ let tmp_file_cleanup_hooks = ref []
 
 let with_tmp_file ~(str : string) ~(ext : string) (f : string -> 'a) : 'a =
   let tmpfile = UCommon.new_temp_file "tmp" ("." ^ ext) in
-  write_file ~file:tmpfile str;
+  UCommon.write_file ~file:tmpfile str;
   Common.finalize
     (fun () -> f tmpfile)
     (fun () ->
@@ -2995,12 +2982,6 @@ let map_withkeep f xs = xs |> List.map (fun x -> (f x, x))
  * | (_,[]) -> failwith "take: not enough"
  * | (n,x::xs) -> x::take (n-1) xs
  *)
-
-let rec take_safe n xs =
-  match (n, xs) with
-  | 0, _ -> []
-  | _, [] -> []
-  | n, x :: xs -> x :: take_safe (n - 1) xs
 
 let rec take_until p = function
   | [] -> []
@@ -3192,9 +3173,6 @@ let index_list_and_total xs =
   else
     zip xs (enum 0 (List.length xs - 1))
     |> List.map (fun (a, b) -> (a, b, total))
-
-let index_list_0 xs = index_list xs
-let index_list_1 xs = xs |> index_list |> List.map (fun (x, i) -> (x, i + 1))
 
 let avg_list xs =
   let sum = sum_int xs in
@@ -4779,8 +4757,8 @@ let (diff : (int -> int -> diff -> unit) -> string list * string list -> unit) =
   let file1 = "/tmp/diff1-" ^ string_of_int (UUnix.getuid ()) in
   let file2 = "/tmp/diff2-" ^ string_of_int (UUnix.getuid ()) in
   let fileresult = "/tmp/diffresult-" ^ string_of_int (UUnix.getuid ()) in
-  write_file file1 (unwords xs);
-  write_file file2 (unwords ys);
+  UCommon.write_file file1 (unwords xs);
+  UCommon.write_file file2 (unwords ys);
   USys.command
     ("diff --side-by-side -W 1 " ^ file1 ^ " " ^ file2 ^ " > " ^ fileresult)
   |> ignore;
@@ -4821,8 +4799,8 @@ let _ =
 
 let (diff2 : (int -> int -> diff -> unit) -> string * string -> unit) =
  fun f (xstr, ystr) ->
-  write_file "/tmp/diff1" xstr;
-  write_file "/tmp/diff2" ystr;
+  UCommon.write_file "/tmp/diff1" xstr;
+  UCommon.write_file "/tmp/diff2" ystr;
   USys.command
     ("diff --side-by-side --left-column -W 1 "
    ^ "/tmp/diff1 /tmp/diff2 > /tmp/diffresult")

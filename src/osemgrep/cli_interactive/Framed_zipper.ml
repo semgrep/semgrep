@@ -54,7 +54,7 @@ let move_down m =
   else { m with pointer = m.pointer + 1 }
 
 let change_max_len t len = { t with max_len = len }
-let take n m = Common2.take_safe n m.after
+let take n m = List_.take_safe n m.after
 let of_list max_len l = { before_rev = []; after = l; pointer = 0; max_len }
 let append x m = { m with after = m.after @ [ x ] }
 
@@ -98,7 +98,7 @@ let is_bottom m =
 let show f t =
   let after_padded =
     if List.length t.after >= t.max_len then
-      Common2.take t.max_len (List_.map Option.some t.after)
+      List_.take t.max_len (List_.map Option.some t.after)
     else
       List_.map Option.some t.after
       @ List.init (t.max_len - List.length t.after) (fun _ -> None)
