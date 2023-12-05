@@ -2,7 +2,6 @@ from enum import auto
 from enum import Enum
 from typing import List
 from uuid import UUID
-from uuid import uuid4
 
 import click
 from attrs import Factory
