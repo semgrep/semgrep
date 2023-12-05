@@ -281,16 +281,14 @@ let mk_scan_func (conf : Scan_CLI.conf) file_match_results_hook errors targets
 let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
     (head : Core_result.t)
     (renamed : (string (* filename *) * string (* filename *)) list) =
-  let extract_sig renamed_opt m =
+  let extract_sig renamed m =
     let rule_id = m.Pattern_match.rule_id in
     let path =
-      let p = m.Pattern_match.file in
-      match renamed_opt with
-      | Some renamed ->
-          renamed
-          |> List_.find_some_opt (fun (before, after) ->
-                 if after = p then Some before else None)
-      | None -> Some p
+      m.Pattern_match.file |> fun p ->
+      Option.bind renamed
+        (List_.find_some_opt (fun (before, after) ->
+             if after = p then Some before else None))
+      |> Option.value ~default:p
     in
     let start_range, end_range = m.Pattern_match.range_loc in
     let syntactic_ctx =
