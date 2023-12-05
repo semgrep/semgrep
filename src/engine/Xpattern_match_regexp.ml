@@ -18,7 +18,7 @@ open Xpattern_matcher
 let logger = Logging.get_logger [ __MODULE__ ]
 
 let regexp_matcher ?(base_offset = 0) big_str file regexp =
-  let subs = SPcre.exec_all_noerr ~rex:regexp big_str in
+  let subs = Pcre_.exec_all_noerr ~rex:regexp big_str in
   subs |> Array.to_list
   |> List_.map (fun sub ->
          (* Below, we add `base_offset` to any instance of `bytepos`, because

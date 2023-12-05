@@ -10,8 +10,8 @@ val process_ignores :
 (* used by osemgrep but also by the language_server *)
 
 val rule_id_re_str : string
-val nosem_inline_re : SPcre.t
-val nosem_previous_line_re : SPcre.t
+val nosem_inline_re : Pcre_.t
+val nosem_previous_line_re : Pcre_.t
 
 (* used for the incremental display of matches *)
 

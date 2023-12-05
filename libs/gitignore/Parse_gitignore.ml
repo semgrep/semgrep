@@ -10,17 +10,17 @@ let read_lines_from_string =
      - eliminate trailing spaces
      - support Windows line endings regardless of current platform
   *)
-  let sep = SPcre.regexp " *\r?\n" in
+  let sep = Pcre_.regexp " *\r?\n" in
   fun str ->
-    match SPcre.split ~rex:sep str with
+    match Pcre_.split ~rex:sep str with
     | Ok res -> res
     | Error err ->
         (* not sure why it would happen so we let it fail *)
         raise (Pcre.Error err)
 
 let is_ignored_line =
-  let rex = SPcre.regexp "^(?:[ \t]$|#.*)$" in
-  fun str -> SPcre.pmatch_noerr ~rex str
+  let rex = Pcre_.regexp "^(?:[ \t]$|#.*)$" in
+  fun str -> Pcre_.pmatch_noerr ~rex str
 
 let rec contains_nontrailing_slash (pat : Glob.Pattern.t) =
   match pat with

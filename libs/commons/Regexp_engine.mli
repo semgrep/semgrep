@@ -2,7 +2,7 @@
    Type that holds the original pattern in PCRE syntax as well as its
    compiled form.
 *)
-type t = SPcre.t
+type t = Pcre_.t
 
 (* Extract the pattern in PCRE syntax *)
 val pcre_pattern : t -> string

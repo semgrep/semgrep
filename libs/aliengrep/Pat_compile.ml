@@ -19,8 +19,8 @@ type metavariable_kind =
 type metavariable = metavariable_kind * string [@@deriving show, eq]
 
 type t = {
-  pcre : SPcre.t;
-      [@printer fun fmt (x : SPcre.t) -> Format.fprintf fmt "{|%s|}" x.pattern]
+  pcre : Pcre_.t;
+      [@printer fun fmt (x : Pcre_.t) -> Format.fprintf fmt "{|%s|}" x.pattern]
   (*
      List of the PCRE capturing groups that we care about for extracting
      metavariable values.
@@ -49,8 +49,8 @@ let pat = {|
 |}
 ;;
 
-let rex = SPcre.regexp ~flags:[`EXTENDED] pat in
-SPcre.extract_all ~rex {|xx ab ab xx|};;
+let rex = Pcre_.regexp ~flags:[`EXTENDED] pat in
+Pcre_.extract_all ~rex {|xx ab ab xx|};;
 - : string array array = [|[|"ab ab"; ""; ""; "ab"|]|]
 
      Note that you'd get more matches if the word pattern was inlined
@@ -439,7 +439,7 @@ let compile conf pattern_ast =
   let pcre_pattern, metavariable_groups = to_regexp conf pattern_ast in
   (* `EXTENDED = literal whitespace and comments are ignored *)
   let pcre =
-    try SPcre.regexp ~flags:[ `EXTENDED ] pcre_pattern with
+    try Pcre_.regexp ~flags:[ `EXTENDED ] pcre_pattern with
     | exn ->
         (* bug *)
         let e = Exception.catch exn in

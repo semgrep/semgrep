@@ -50,33 +50,33 @@
 (*****************************************************************************)
 
 (* keep the string around for show *)
-type t = SPcre.t
+type t = Pcre_.t
 
 let pcre_pattern (x : t) = x.pattern
 let pcre_regexp (x : t) = x.regexp
 let show (x : t) = x.pattern
 let pp fmt (x : t) = Format.fprintf fmt "\"%s\"" x.pattern
 let equal (x1 : t) (x2 : t) = x1.pattern = x2.pattern
-let matching_exact_string s : t = SPcre.regexp (Pcre.quote s)
+let matching_exact_string s : t = Pcre_.regexp (Pcre.quote s)
 
 let matching_exact_word s =
   let pattern = "\b" ^ Pcre.quote s ^ "\b" in
-  SPcre.regexp pattern
+  Pcre_.regexp pattern
 
-let pcre_compile_with_flags ~flags pat = SPcre.regexp ~flags pat [@@profiling]
+let pcre_compile_with_flags ~flags pat = Pcre_.regexp ~flags pat [@@profiling]
 
 (*
    MULTILINE = ^ and $ match at the beginning and end of lines rather than
                just at the beginning and end of input.
 *)
-let pcre_compile pat = SPcre.regexp ~flags:[ `MULTILINE ] pat [@@profiling]
+let pcre_compile pat = Pcre_.regexp ~flags:[ `MULTILINE ] pat [@@profiling]
 
 let anchored_match ?on_error =
   (* ~iflags are precompiled flags for better performance compared to ~flags *)
   let iflags = Pcre.rflags [ `ANCHORED ] in
-  fun rex str -> SPcre.pmatch_noerr ?on_error ~iflags ~rex str
+  fun rex str -> Pcre_.pmatch_noerr ?on_error ~iflags ~rex str
 
-let unanchored_match ?on_error rex str = SPcre.pmatch_noerr ?on_error ~rex str
+let unanchored_match ?on_error rex str = Pcre_.pmatch_noerr ?on_error ~rex str
 
 let may_contain_end_of_string_assertions =
   (* The absence of the following guarantees (to the best of our knowledge)
@@ -90,8 +90,8 @@ let may_contain_end_of_string_assertions =
        (?<!   negative lookbehind assertion, which could be a DIY \A
        (?!    negative lookahead assertion, which could be a DIY \z
   *)
-  let rex = SPcre.regexp {|[$^]|\\[AZz]|\(\?<!|\(\?!|} in
-  fun s -> SPcre.pmatch_noerr ~rex s
+  let rex = Pcre_.regexp {|[$^]|\\[AZz]|\(\?<!|\(\?!|} in
+  fun s -> Pcre_.pmatch_noerr ~rex s
 
 (* Any string that may still contain a end-of-string assertions must go
    through this. *)

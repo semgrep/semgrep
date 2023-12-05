@@ -44,7 +44,7 @@ let tests (caps : Cap.all_caps) =
       Unit_ReDoS.tests;
       Unit_guess_lang.tests;
       Unit_memory_limit.tests;
-      Unit_SPcre.tests;
+      Unit_Pcre_.tests;
       Unit_tok.tests;
       Unit_regexp_engine.tests;
       Unit_Rpath.tests;
