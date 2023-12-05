@@ -1,4 +1,0 @@
-Inter-file diff scan will be gradually introduced to a small percentage of
-users through a slow rollout process. Users who enable the pro engine and
-engage in differential PR scans on Github or Gitlab may experience the impact
-of this update.
