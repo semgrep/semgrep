@@ -25,7 +25,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 def parse_pubspec_lock(
     lockfile_path: Path, _: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
-
     parsed_lockfile, _, errors = safe_parse_lockfile_and_manifest(
         DependencyFileToParse(
             lockfile_path,

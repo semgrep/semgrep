@@ -55,6 +55,7 @@ logger.addHandler(handler)
 PERF_PATH = "semgrep/perf"
 PERF_RULE_PATH = "semgrep.perf"
 
+
 # This class allows us to put semgrep results in a set and compute set
 # differences while saving the original JSON dictionary
 class SemgrepResult:
@@ -483,7 +484,6 @@ def run_benchmarks(
                 re.sub(r"\W+", "", option) for option in corpus.semgrep_options
             )
             for variant in variants:
-
                 # Run variant
                 name = ".".join(
                     ["semgrep"] + options + ["bench", corpus.name, variant.name]

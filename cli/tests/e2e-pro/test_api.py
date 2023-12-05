@@ -12,6 +12,7 @@ from tests.fixtures import RunSemgrep
 
 from semgrep.run_scan import run_scan_and_return_json
 
+
 # When calling osemgrep, stderr isn't available via this 'capsys' object,
 # causing the test to pass when it shouldn't.
 # TODO: use SemgrepRunner instead, which is drop-in replacement for CliRunner.

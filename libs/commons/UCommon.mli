@@ -82,25 +82,6 @@ val erase_temp_files : unit -> unit
 val erase_this_temp_file : string (* filename *) -> unit
 
 (*****************************************************************************)
-(* Subprocess *)
-(*****************************************************************************)
-(* Deprecated? Use Bos instead? *)
-
-(* This allows to capture the output of an external command.
- * It is more convenient to use than Unix.open_process_in.
- * Here is an example of use:
- *  let (lines, _status) = cmd_to_list_and_status "find /home" in
- *  ...
- *)
-val cmd_to_list_and_status :
-  ?verbose:bool -> string -> string list * Unix.process_status
-
-exception CmdError of Unix.process_status * string
-
-(* this may raise CmdError *)
-val cmd_to_list : ?verbose:bool -> string -> string list (* alias *)
-
-(*****************************************************************************)
 (* Profiling *)
 (*****************************************************************************)
 
