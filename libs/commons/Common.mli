@@ -4,13 +4,13 @@
 (* This module contains functions (and types) which are very often used.
  * They are so common (hence the name of this file) that lots of modules
  * just 'open Common' to get in scope those functions.
- * This file acts like a second stdlib.ml (used to be called pervasives.ml).
+ * This file acts like a second stdlib.ml.
  *
  * However, because this module is often open'ed, it should
  * not define too many functions (<100) because we can't impose
  * to other programmers the mental effort to know too many functions.
  * This was actually a big problem with the first version of Common.ml
- * (renamed to Common2.ml since).
+ * (renamed to common2.ml since).
  *)
 
 (*****************************************************************************)
@@ -39,9 +39,8 @@ val ( =:= ) : bool -> bool -> bool
  *)
 val ( =*= ) : 'a -> 'a -> bool
 
-(*****************************************************************************)
-(* Disable physical equality/inequality operators *)
-(*****************************************************************************)
+val equal_ref_option :
+  ('a -> 'b -> bool) -> 'a option ref -> 'b option ref -> bool
 
 (*
    Disable the use of (==) since some people confuse it with structural
@@ -59,9 +58,6 @@ type hidden_by_your_nanny
 
 val ( == ) : hidden_by_your_nanny
 val ( != ) : hidden_by_your_nanny
-
-val equal_ref_option :
-  ('a -> 'b -> bool) -> 'a option ref -> 'b option ref -> bool
 
 (*****************************************************************************)
 (* Comparison *)
@@ -144,8 +140,15 @@ val debugger : bool ref
 val unwind_protect : (unit -> 'a) -> (Exception.t -> unit) -> 'a
 val save_excursion : 'a ref -> 'a -> (unit -> 'b) -> 'b
 
-(* Java-inspired combinator *)
+(* Java-inspired combinator (DEPRECATED, use protect()) *)
 val finalize : (unit -> 'a) -> (unit -> unit) -> 'a
+val protect : finally:(unit -> unit) -> (unit -> 'a) -> 'a
+(* Same as 'Fun.protect' but it will not raise 'Finally_raised', if 'finally'
+ * raises any exception then that same exception is what 'protect' will raise.
+ * This can easily happen in Semgrep due to the asynchronous
+ * 'Time_limit.Timeout' exception raised when there is a timeout. Having to
+ * deal with 'Finally_raised' just makes things more complicated.
+ *)
 
 (*****************************************************************************)
 (* Strings and regexps *)
@@ -269,25 +272,6 @@ val input_text_line : in_channel -> string
 (*****************************************************************************)
 
 val memoized : ?use_cache:bool -> ('a, 'b) Hashtbl.t -> 'a -> (unit -> 'b) -> 'b
-
-(*****************************************************************************)
-(* Composition/Control *)
-(*****************************************************************************)
-
-val protect : finally:(unit -> unit) -> (unit -> 'a) -> 'a
-(** Same as 'Fun.protect' but it will not raise 'Finally_raised', if 'finally' raises
- * any exception then that same exception is what 'protect' will raise. This can easily
- * happen in Semgrep due to the asynchronous 'Time_limit.Timeout' exception raised
- * when there is a timeout. Having to deal with 'Finally_raised' just makes things
- * more complicated.
- *
- * alt: We tried using 'Unix.sigprocmask' to temporarily block 'SIGALRM' but somehow,
- * in rare cases (e.g.run p/default on repos/brotli/js/decode.js) we end up calling
- * 'Time_limit.set_timeout' while 'SIGALRM' is *blocked*. Unclear why, are we perhaps
- * calling 'set_timeout' from within a 'finally'? Or is 'Unix.sigprocmask' failing to
- * restore the signal mask? It works if we block/unblock (rather than block/restore)
- * but this does not play well with calls to 'protect' nested inside 'finally' blocks.
- *)
 
 (*****************************************************************************)
 (* Profiling *)
