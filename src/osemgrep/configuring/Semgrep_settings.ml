@@ -87,21 +87,29 @@ let load ?(maturity = Maturity.Default) () =
       && Unix.(stat (Fpath.to_string settings)).st_kind = Unix.S_REG
     then
       let data = UFile.read_file settings in
-      match Yaml.of_string data with
-      | Error _ ->
-          Logs.warn (fun m ->
-              m "Bad settings format; %a will be overriden. Contents:\n%s"
-                Fpath.pp settings data);
-          default_settings
-      | Ok value -> (
-          match of_yaml value with
-          | Error (`Msg msg) ->
-              Logs.warn (fun m ->
-                  m "Bad settings format; %a will be overriden. Contents:\n%s"
-                    Fpath.pp settings data);
-              Logs.info (fun m -> m "Decode error: %s" msg);
-              default_settings
-          | Ok s -> s)
+      let decoded =
+        match Yaml.of_string data with
+        | Error _ ->
+            Logs.warn (fun m ->
+                m "Bad settings format; %a will be overriden. Contents:\n%s"
+                  Fpath.pp settings data);
+            default_settings
+        | Ok value -> (
+            match of_yaml value with
+            | Error (`Msg msg) ->
+                Logs.warn (fun m ->
+                    m "Bad settings format; %a will be overriden. Contents:\n%s"
+                      Fpath.pp settings data);
+                Logs.info (fun m -> m "Decode error: %s" msg);
+                default_settings
+            | Ok s -> s)
+      in
+      let settings =
+        match !Semgrep_envvars.v.app_token with
+        | Some token -> { decoded with api_token = Some token }
+        | None -> decoded
+      in
+      settings
     else (
       (match maturity with
       | Maturity.Develop ->
