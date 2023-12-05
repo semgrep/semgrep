@@ -121,7 +121,8 @@ and translate_taint_source
          side_effect_obj;
        ])
 
-and translate_taint_sink { sink_id = _; sink_formula; sink_requires } :
+and translate_taint_sink
+    { sink_id = _; sink_formula; sink_requires; sink_is_func_with_focus = _ } :
     [> `O of (string * Yaml.value) list ] =
   let (`O sink_f) = translate_formula sink_formula in
   let requires_obj =

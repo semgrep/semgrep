@@ -245,27 +245,6 @@ let report_findings env findings =
   if findings <> [] then
     env.config.handle_findings env.fun_name findings env.lval_env
 
-(* Checks whether the sink corresponds has the shape
- *
- *     patterns:
- *     - pattern: <func>(<args>)
- *     - focus-metavariable: $MVAR
- *
- * In which case we know that the function call itself is not the sink, but
- * either the <func> or one (or more) of the <args>.
- *)
-let is_func_sink_with_focus taint_sink =
-  match taint_sink.Rule.sink_formula with
-  | Rule.And
-      ( _,
-        {
-          conjuncts = [ P { pat = Sem ((lazy (E { e = Call _; _ })), _); _ } ];
-          focus = [ _focus ];
-          _;
-        } ) ->
-      true
-  | __else__ -> false
-
 let unify_mvars_sets env mvars1 mvars2 =
   let xs =
     List.fold_left
@@ -1537,10 +1516,10 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
         (* After we introduced Top_sinks, we need to explicitly support sinks like
          * `sink(...)` by considering that all of the parameters are sinks. To make
          * sure that we are backwards compatible, we do this for any sink that does
-         * not match the `is_func_sink_with_focus` pattern.
+         * not match the `Rule.is_func_sink_with_focus` form.
          *)
         check_orig_if_sink { env with lval_env } instr.iorig all_args_taints
-          ~filter_sinks:(fun m -> not (is_func_sink_with_focus m.spec));
+          ~filter_sinks:(fun m -> not m.spec.sink_is_func_with_focus);
         let call_taints, lval_env =
           match
             check_function_signature { env with lval_env } e args args_taints

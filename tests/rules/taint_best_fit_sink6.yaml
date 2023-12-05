@@ -1,0 +1,28 @@
+rules:
+  - id: test
+    severity: WARNING
+    languages:
+      - java
+    message: Test
+    options:
+      taint_only_propagate_through_assignments: true
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern: |
+              "..."
+          - pattern-not: |
+              ""
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - patterns:
+                - pattern-inside: |
+                    public void $M() {
+                      ...
+                    }
+                - pattern: sink1("Abc", $VAL)
+              - patterns:
+                - pattern: sink2("123", $VAL)
+                - pattern-not: sink1(...)
+          - focus-metavariable: $VAL
