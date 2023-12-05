@@ -397,10 +397,7 @@ def enable_dependency_query() -> bool:
 
 @pytest.fixture
 def start_scan_mock(
-    requests_mock,
-    scan_config,
-    mocked_scan_id,
-    enable_dependency_query,
+    requests_mock, scan_config, mocked_scan_id, enable_dependency_query
 ):
     start_scan_response = out.ScanResponse.from_json(
         {
