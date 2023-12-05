@@ -68,8 +68,8 @@ let tests (caps : Cap.all_caps) =
       Unit_LS.tests;
       Unit_Login.tests caps;
       Unit_Fetching.tests;
-      Test_login_subcommand.tests (caps :> Login_subcommand.caps);
-      Test_publish_subcommand.tests (caps :> Publish_subcommand.caps);
+      Test_login_subcommand.tests (caps :> < Cap.stdout ; Cap.network >);
+      Test_publish_subcommand.tests (caps :> < Cap.stdout ; Cap.network >);
       Test_osemgrep.tests caps;
       (* Networking tests disabled as they will get rate limited sometimes *)
       (* And the SSL issues they've been testing have been stable *)

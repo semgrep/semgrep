@@ -64,7 +64,7 @@ let test_scan_config_registry_with_invalid_token caps : Alcotest_ext.test =
                       * Login_subcommand.
                       *)
                      Login_subcommand.main
-                       (caps :> Login_subcommand.caps)
+                       (caps :> < Cap.stdout ; Cap.network >)
                        [| "semgrep-login" |])
                    ~final:(fun res ->
                      assert (res.logs =~ "[.\n]*Saved access token");
