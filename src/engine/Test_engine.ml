@@ -67,6 +67,27 @@ let single_xlang_from_rules (file : Fpath.t) (rules : Rule.t list) : Xlang.t =
 (* Xtarget helpers *)
 (*****************************************************************************)
 
+let xtarget_of_target (xlang : Xlang.t) (target : Fpath.t) : Xtarget.t =
+  let lazy_ast_and_errors =
+    lazy
+      (match xlang with
+      | L (lang, _) ->
+          let { Parsing_result2.ast; skipped_tokens; _ } =
+            Parse_target.parse_and_resolve_name lang !!target
+          in
+          (ast, skipped_tokens)
+      | LRegex
+      | LSpacegrep
+      | LAliengrep ->
+          assert false)
+  in
+  {
+    Xtarget.file = target;
+    xlang;
+    lazy_content = lazy (UFile.read_file target);
+    lazy_ast_and_errors;
+  }
+
 (*****************************************************************************)
 (* target helpers *)
 (*****************************************************************************)
@@ -180,49 +201,16 @@ let run_check_for_extract_rules (extract_rules : Rule.extract_rule list)
       ~timeout:0. ~timeout_threshold:0 extract_rules xtarget
   in
   let adjusters = Extract.adjusters_of_extracted_targets extracted_targets in
-  let in_targets : In.target list =
-    extracted_targets
-    |> List_.map (fun Extract.{ extracted = Extracted path; analyzer; _ } ->
-           { In.path = !!path; analyzer; products = Product.all })
-  in
-  let xconf = Match_env.default_xconfig in
   try
-    in_targets
-    |> List_.map (fun (t : In.target) ->
-           let file = t.path in
-           let xlang = t.analyzer in
-           let lazy_ast_and_errors =
-             lazy
-               (match xlang with
-               | L (lang, _) ->
-                   let { Parsing_result2.ast; skipped_tokens; _ } =
-                     Parse_target.parse_and_resolve_name lang file
-                   in
-                   (ast, skipped_tokens)
-               | LRegex
-               | LSpacegrep
-               | LAliengrep ->
-                   assert false)
-           in
-           let xtarget =
-             {
-               Xtarget.file = Fpath.v file;
-               xlang;
-               lazy_content = lazy (UCommon.read_file file);
-               lazy_ast_and_errors;
-             }
-           in
-           let matches =
-             Match_rules.check
-               ~match_hook:(fun _ _ -> ())
-               ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
-           in
-           (* adjust the match location for extracted files *)
-           match
-             Hashtbl.find_opt adjusters.loc_adjuster (Extracted (Fpath.v file))
-           with
-           | Some match_result_loc_adjuster -> match_result_loc_adjuster matches
-           | None -> matches)
+    extracted_targets
+    |> List_.map
+         (fun Extract.{ extracted = Extracted file; analyzer = xlang; _ } ->
+           let xtarget = xtarget_of_target xlang file in
+           let xconf = Match_env.default_xconfig in
+           Match_rules.check
+             ~match_hook:(fun _ _ -> ())
+             ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
+           |> Extract.adjust_location_extracted_targets_if_needed adjusters file)
   with
   | exn ->
       failwith (spf "exn on %s (exn = %s)" !!rule_file (Common.exn_to_s exn))
@@ -267,30 +255,10 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
       in
 
       (* actual *)
-      let lazy_ast_and_errors =
-        lazy
-          (match xlang with
-          | L (lang, _) ->
-              let { Parsing_result2.ast; skipped_tokens; _ } =
-                Parse_target.parse_and_resolve_name lang !!target
-              in
-              (ast, skipped_tokens)
-          | LRegex
-          | LSpacegrep
-          | LAliengrep ->
-              assert false)
-      in
-      let xtarget =
-        {
-          Xtarget.file = target;
-          xlang;
-          lazy_content = lazy (UFile.read_file target);
-          lazy_ast_and_errors;
-        }
-      in
+      let xtarget = xtarget_of_target xlang target in
+      let xconf = Match_env.default_xconfig in
       let rules, extract_rules = Extract.partition_rules rules in
 
-      let xconf = Match_env.default_xconfig in
       E.g_errors := [];
       Core_profiling.mode := MTime;
       let res =
@@ -305,18 +273,15 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
               (spf "exn on %s (exn = %s)" !!rule_file (Common.exn_to_s exn))
       in
       check_can_marshall rule_file res;
+      check_parse_errors rule_file res.errors;
       let eres =
         run_check_for_extract_rules extract_rules rules rule_file xtarget
       in
 
-      res :: eres |> List.iter (check_profiling rule_file target);
-
       res :: eres
       |> List.iter (fun (res : Core_result.matches_single_file) ->
+             check_profiling rule_file target res;
              res.matches |> List.iter Core_json_output.match_to_push_error);
-
-      check_parse_errors rule_file res.errors;
-
       let actual_errors = !E.g_errors in
       E.g_errors := [];
       actual_errors
