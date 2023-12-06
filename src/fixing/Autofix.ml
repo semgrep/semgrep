@@ -12,8 +12,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
 open Common
+open Fpath_.Operators
 module OutJ = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -139,7 +139,7 @@ let ast_based_fix ~fix (start, end_) (pm : Pattern_match.t) : Textedit.t option
   let fix_pattern = fix in
   let* lang = List.nth_opt pm.Pattern_match.rule_id.langs 0 in
   let metavars = pm.Pattern_match.env in
-  let target_contents = lazy (UCommon.read_file pm.Pattern_match.file) in
+  let target_contents = lazy (UFile.read_file pm.Pattern_match.file) in
   let result =
     try
       (* Fixes are not exactly patterns, but they can contain metavariables that
@@ -183,7 +183,7 @@ let ast_based_fix ~fix (start, end_) (pm : Pattern_match.t) : Textedit.t option
       in
 
       let edit =
-        { Textedit.path = pm.file; start; end_; replacement_text = text }
+        { Textedit.path = !!(pm.file); start; end_; replacement_text = text }
       in
 
       (* Perform sanity checks for the resulting fix. *)
@@ -213,7 +213,7 @@ let basic_fix ~(fix : string) (start, end_) (pm : Pattern_match.t) : Textedit.t
     Metavar_replacement.interpolate_metavars fix
       (Metavar_replacement.of_bindings pm.env)
   in
-  let edit = Textedit.{ path = pm.file; start; end_; replacement_text } in
+  let edit = Textedit.{ path = !!(pm.file); start; end_; replacement_text } in
   edit
 
 let regex_fix ~fix_regexp:Rule.{ regexp; count; replacement } (start, end_)
@@ -221,7 +221,7 @@ let regex_fix ~fix_regexp:Rule.{ regexp; count; replacement } (start, end_)
   let rex = Pcre_.regexp regexp in
   (* You need a minus one, to make it compatible with the inclusive Range.t *)
   let content =
-    Range.content_at_range pm.file Range.{ start; end_ = end_ - 1 }
+    Range.content_at_range !!(pm.file) Range.{ start; end_ = end_ - 1 }
   in
   (* What is this for?
      Before, when autofix was in the Python CLI, `fix-regex` had the semantics
@@ -253,7 +253,7 @@ let regex_fix ~fix_regexp:Rule.{ regexp; count; replacement } (start, end_)
             Pcre_.replace_first ~rex ~template:replaced_replacement content)
           content count
   in
-  let edit = Textedit.{ path = pm.file; start; end_; replacement_text } in
+  let edit = Textedit.{ path = !!(pm.file); start; end_; replacement_text } in
   edit
 
 (*****************************************************************************)

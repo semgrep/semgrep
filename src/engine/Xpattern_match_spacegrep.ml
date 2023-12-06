@@ -110,5 +110,5 @@ let matches_of_spacegrep (xconfig : Match_env.xconfig) spacegreps file =
                 Some (Spacegrep.Parse_doc.of_src src, src));
       matcher = spacegrep_matcher xconfig;
     }
-    file
+    (Fpath.v file)
 [@@profiling]
