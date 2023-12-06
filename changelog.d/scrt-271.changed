@@ -1,4 +1,0 @@
-secrets: now performs more aggressive deduplication for instances where an
-invalid and valid match are reported at the same range. Instead of reporting
-both, we now report only the valid match when they are otherwise visually
-identical.
