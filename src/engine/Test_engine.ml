@@ -53,7 +53,7 @@ let first_xlang_of_rules (rs : Rule.t list) : Xlang.t =
   | [] -> failwith "no rules"
   | { R.target_analyzer = x; _ } :: _ -> x
 
-let single_xlang_from_rules file rules =
+let single_xlang_from_rules (file : Fpath.t) (rules : Rule.t list) : Xlang.t =
   let xlangs = xlangs_of_rules rules in
   match xlangs with
   | [] -> failwith (spf "no language found in %s" !!file)
@@ -65,8 +65,8 @@ let single_xlang_from_rules file rules =
            (Xlang.show fst));
       fst
 
-let find_target_of_yaml_file_opt file =
-  let d, b, ext = Common2.dbe_of_filename file in
+let find_target_of_yaml_file_opt (file : Fpath.t) : Fpath.t option =
+  let d, b, ext = Common2.dbe_of_filename !!file in
   Common2.readdir_to_file_list d @ Common2.readdir_to_link_list d
   |> List_.find_some_opt (fun file2 ->
          let path2 = Filename.concat d file2 in
@@ -87,35 +87,40 @@ let find_target_of_yaml_file_opt file =
                 * .yaml ambiguities in tests/rules
                 *)
                && ext2 <> "jsonnet"
-             then Some path2
+             then Some (Fpath.v path2)
              else None)
 
-let find_target_of_yaml_file file =
+let find_target_of_yaml_file (file : Fpath.t) : Fpath.t =
   match find_target_of_yaml_file_opt file with
   | Some x -> x
-  | None -> failwith (spf "could not find a target for %s" file)
+  | None -> failwith (spf "could not find a target for %s" !!file)
 
 (*****************************************************************************)
-(* Entry point *)
+(* Extract mode special handling *)
+(*****************************************************************************)
+
+(*****************************************************************************)
+(* Main logic *)
 (*****************************************************************************)
 
 let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
-    ~get_xlang ~prepend_lang (file : Fpath.t) : unit Alcotest_ext.t =
+    ~get_xlang ~prepend_lang (rule_file : Fpath.t) : unit Alcotest_ext.t =
   let test () =
-    Logs.info (fun m -> m "processing rule file %s" !!file);
-    logger#info "processing rule file %s" !!file;
-    match Parse_rule.parse file with
-    | [] -> logger#info "file %s is empty or all rules were skipped" !!file
+    Logs.info (fun m -> m "processing rule file %s" !!rule_file);
+    match Parse_rule.parse rule_file with
+    | [] ->
+        Logs.err (fun m ->
+            m "file %s is empty or all rules were skipped" !!rule_file)
     | rules -> (
         (* just a sanity check *)
         (* rules |> List.iter Check_rule.check; *)
         let xlang =
           match get_xlang with
-          | Some fn -> fn file rules
-          | None -> single_xlang_from_rules file rules
+          | Some fn -> fn rule_file rules
+          | None -> single_xlang_from_rules rule_file rules
         in
-        let target = find_target_of_yaml_file !!file |> Fpath.v in
-        logger#info "processing target %s" !!target;
+        let target = find_target_of_yaml_file rule_file in
+        Logs.info (fun m -> m "processing target %s" !!target);
         (* ugly: this is just for tests/rules/inception2.yaml, to use JSON
            to parse the pattern but YAML to parse the target *)
         let xlang =
@@ -196,13 +201,15 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
               ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
           with
           | exn ->
-              failwith (spf "exn on %s (exn = %s)" !!file (Common.exn_to_s exn))
+              failwith
+                (spf "exn on %s (exn = %s)" !!rule_file (Common.exn_to_s exn))
         in
         (* Check that the result can be marshalled, as this will be needed
            when using Parmap! See PA-1724. *)
         (try Marshal.to_string res [ Marshal.Closures ] |> ignore with
         | exn ->
-            failwith (spf "exn on %s (exn = %s)" !!file (Common.exn_to_s exn)));
+            failwith
+              (spf "exn on %s (exn = %s)" !!rule_file (Common.exn_to_s exn)));
         let eres =
           try
             in_targets
@@ -245,7 +252,8 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
                    | None -> matches)
           with
           | exn ->
-              failwith (spf "exn on %s (exn = %s)" !!file (Common.exn_to_s exn))
+              failwith
+                (spf "exn on %s (exn = %s)" !!rule_file (Common.exn_to_s exn))
         in
         res :: eres
         |> List.iter (fun (res : Core_result.matches_single_file) ->
@@ -267,14 +275,14 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
                               (spf
                                  "invalid value for match time: %g (rule: %s, \
                                   target: %s)"
-                                 rule_time.match_time !!file !!target);
+                                 rule_time.match_time !!rule_file !!target);
                           if not (rule_time.parse_time >= 0.) then
                             (* same for parse time *)
                             failwith
                               (spf
                                  "invalid value for parse time: %g (rule: %s, \
                                   target: %s)"
-                                 rule_time.parse_time !!file !!target)));
+                                 rule_time.parse_time !!rule_file !!target)));
         res :: eres
         |> List.iter (fun (res : Core_result.matches_single_file) ->
                res.matches |> List.iter Core_json_output.match_to_push_error);
@@ -283,7 +291,7 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
              E.ErrorSet.elements res.errors
              |> List_.map Core_error.show |> String.concat "-----\n"
            in
-           failwith (spf "parsing error(s) on %s:\n%s" !!file errors));
+           failwith (spf "parsing error(s) on %s:\n%s" !!rule_file errors));
         let actual_errors = !E.g_errors in
         E.g_errors := [];
         actual_errors
@@ -298,11 +306,11 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
             pr2 "---";
             fail_callback num_errors msg)
   in
-  match !!file |> find_target_of_yaml_file_opt with
+  match find_target_of_yaml_file_opt rule_file with
   | Some target_path ->
       (* This assumes we can guess the target programming language
          from the file extension. *)
-      let langs = target_path |> Fpath.v |> Lang.langs_of_filename in
+      let langs = Lang.langs_of_filename target_path in
       let tags = Test_tags.tags_of_langs langs in
       let name =
         if prepend_lang then
@@ -312,15 +320,19 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
             | _ -> List_.map Lang.to_capitalized_alnum langs
           in
           let lang = langs |> String.concat " " in
-          spf "%s %s" lang !!file
-        else !!file
+          spf "%s %s" lang !!rule_file
+        else !!rule_file
       in
       Alcotest_ext.create ~tags name test
   | None ->
       (* TODO: mark the test as xfail (expected to fail) instead of skipped
          and add "missing target file" as the reason *)
-      let name = spf "Missing target file for rule file %s" !!file in
+      let name = spf "Missing target file for rule file %s" !!rule_file in
       Alcotest_ext.create ~skipped:true name test
+
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
 
 let make_tests ?fail_callback ?(get_xlang = None) ?(prepend_lang = false)
     (xs : Fpath.t list) : unit Alcotest_ext.t list =
@@ -328,6 +340,7 @@ let make_tests ?fail_callback ?(get_xlang = None) ?(prepend_lang = false)
   |> List.filter Parse_rule.is_valid_rule_filename
   |> List_.map (make_test_rule_file ?fail_callback ~get_xlang ~prepend_lang)
 
+(* semgrep-core -test_rules *)
 let test_rules (paths : Fpath.t list) : unit =
   let total_mismatch = ref 0 in
   let fail_callback num_errors _msg =
@@ -337,3 +350,4 @@ let test_rules (paths : Fpath.t list) : unit =
   tests |> List.iter (fun (test : Alcotest_ext.test) -> test.func ());
   pr2 (spf "total mismatch: %d" !total_mismatch);
   if !total_mismatch > 0 then exit 1
+[@@action]

@@ -14,5 +14,6 @@ val make_tests :
 
 (* [test_rules dirs] run the tests discovered under [dirs]
  * and print a summary.
+ * This is what 'semgrep-core -test_rules' run.
  *)
 val test_rules : Fpath.t list -> unit
