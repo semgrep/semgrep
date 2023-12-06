@@ -35,7 +35,7 @@ type conf = {
   version : bool;
   show : Show_CLI.conf option;
   validate : Validate_subcommand.conf option;
-  test : Test_subcommand.conf option;
+  test : Test_CLI.conf option;
   ls : bool;
 }
 [@@deriving show]
