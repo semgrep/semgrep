@@ -11,6 +11,7 @@ If no settings have been configured on the system, DEFAULT_SETTINGS will be writ
 If the process does not have permission to the settings path, a PermissionError will be raised;
 callers should handle this gracefully.
 """
+import hashlib
 import os
 import uuid
 from pathlib import Path
@@ -48,7 +49,11 @@ def generate_anonymous_user_id(api_token: Optional[str]) -> str:
     return (
         str(uuid.uuid4())
         if api_token is None
-        else str(uuid.uuid5(uuid.UUID("0" * 32), api_token))
+        else str(
+            uuid.uuid5(
+                uuid.UUID("0" * 32), hashlib.sha256(api_token.encode()).hexdigest()
+            )
+        )
     )
 
 
