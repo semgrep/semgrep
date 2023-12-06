@@ -225,7 +225,7 @@ def ci(
 
     if allow_untrusted_validators and not run_secrets_flag:
         logger.debug(
-            "Implicity enable secrets validation since allow_untrusted_validators is set."
+            "Enabling secrets validation since allow_untrusted_validators is set."
         )
         run_secrets_flag = True
 
