@@ -37,7 +37,7 @@ def login() -> NoReturn:
     """
     state = get_state()
     saved_login_token = auth._read_token_from_settings_file()
-    if saved_login_token:
+    if saved_login_token and saved_login_token != state.env.app_token:
         click.echo(
             f"API token already exists in {state.settings.path}. To login with a different token logout use `semgrep logout`"
         )

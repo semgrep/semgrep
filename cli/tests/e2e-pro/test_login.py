@@ -16,6 +16,7 @@ def test_login(tmp_path, mocker):
 
     expected_logout_str = "Logged out (log back in with `semgrep login`)\n"
     fake_key = "key123"
+    alt_key = "key456"
 
     # Patch Token Validation:
     mocker.patch(
@@ -53,7 +54,7 @@ def test_login(tmp_path, mocker):
         cli,
         subcommand="login",
         args=[],
-        env={"SEMGREP_APP_TOKEN": fake_key},
+        env={"SEMGREP_APP_TOKEN": alt_key},
     )
     assert result.exit_code == 2
     assert "API token already exists in" in result.output
