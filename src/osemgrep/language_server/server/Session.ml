@@ -1,3 +1,4 @@
+module Env = Semgrep_envvars
 open Lsp
 open Types
 open Fpath_.Operators
@@ -237,6 +238,35 @@ let runner_conf session =
 let previous_scan_of_file session file =
   Hashtbl.find_opt session.cached_scans file
 
+let save_local_skipped_fingerprints session =
+  let save_dir = !Env.v.user_dot_semgrep_dir / "cache" / "fingerprints" in
+  if not (Sys.file_exists (Fpath.to_string save_dir)) then
+    Sys.mkdir (Fpath.to_string save_dir) 0o755;
+  let save_file_name =
+    String.concat "_" (List_.map Fpath.basename session.workspace_folders)
+    ^ ".txt"
+  in
+  let save_file = save_dir / save_file_name |> Fpath.to_string in
+  let skipped_fingerprints = skipped_fingerprints session in
+  let skipped_fingerprints = String.concat "\n" skipped_fingerprints in
+  UCommon.with_open_outfile save_file (fun (_pr, chan) ->
+      output_string chan skipped_fingerprints)
+
+let load_local_skipped_fingerprints session =
+  let save_dir = !Env.v.user_dot_semgrep_dir / "cache" / "fingerprints" in
+  let save_file_name =
+    String.concat "_" (List_.map Fpath.basename session.workspace_folders)
+    ^ ".txt"
+  in
+  let save_file = save_dir / save_file_name |> Fpath.to_string in
+  if not (Sys.file_exists save_file) then session
+  else
+    let skipped_local_fingerprints =
+      UCommon.read_file save_file
+      |> String.split_on_char '\n'
+      |> List.filter (fun s -> s <> "")
+    in
+    { session with skipped_local_fingerprints }
 (*****************************************************************************)
 (* State setters *)
 (*****************************************************************************)

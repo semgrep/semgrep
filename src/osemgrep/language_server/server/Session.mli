@@ -33,6 +33,12 @@ val show : t -> string
 val create : ServerCapabilities.t -> t
 (** [create capabilities] creates a [Session.t] given server capabilities *)
 
+val save_local_skipped_fingerprints : t -> unit
+(** [save_local_skipped_fingerprints t] saves the skipped fingerprints in the session to disk *)
+
+val load_local_skipped_fingerprints : t -> t
+(** [load_local_skipped_fingerprints t] loads the skipped fingerprints in the session from disk *)
+
 val cache_session : t -> unit Lwt.t
 (** [cache_session t] caches the rules and skipped fingerprints for the session. Fetches rules from any configured source
     as in [t.user_settings], and CI if an api token is available. This is an asynchronous operation,

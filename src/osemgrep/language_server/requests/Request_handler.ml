@@ -83,6 +83,7 @@ let on_request (type r) (request : r CR.t) server =
       handle_custom_request server meth params
   | CR.Shutdown ->
       Logs.debug (fun m -> m "Shutting down server");
+      Session.save_local_skipped_fingerprints server.session;
       (None, server)
   | CR.DebugEcho params -> process_result (params, server)
   | _ ->
