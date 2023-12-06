@@ -1,6 +1,5 @@
 (*
-   Create a list of tests for regression testing and a reference to use
-   to know the number of tests which failed once each test ran once.
+   Create a list of tests for regression testing
 *)
 val make_tests :
   ?fail_callback:
@@ -11,7 +10,7 @@ val make_tests :
   ?get_xlang:(Fpath.t -> Rule.rules -> Xlang.t) option ->
   ?prepend_lang:bool ->
   Fpath.t list ->
-  Alcotest_ext.test list * int ref (* total mismatch *)
+  Alcotest_ext.test list
 
 (* [test_rules dirs] run the tests discovered under [dirs]
  * and print a summary.

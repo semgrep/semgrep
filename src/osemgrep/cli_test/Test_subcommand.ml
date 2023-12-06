@@ -659,10 +659,12 @@ let run_conf (conf : Test_CLI.conf) : Exit_code.t =
 
   match conf.target with
   | Test_CLI.Dir (dir, None) ->
-      let fail_callback _num _msg = () in
-      let tests, total_mismatch =
-        Test_engine.make_tests ~fail_callback [ dir ]
+      (* coupling: similar to Test_engine.test_rules() *)
+      let total_mismatch = ref 0 in
+      let fail_callback num_errors _msg =
+        total_mismatch := !total_mismatch + num_errors
       in
+      let tests = Test_engine.make_tests ~fail_callback [ dir ] in
       tests |> List.iter (fun (test : Alcotest_ext.test) -> test.func ());
       Logs.app (fun m -> m "total mismatch: %d" !total_mismatch);
       if !total_mismatch > 0 then Exit_code.fatal else Exit_code.ok

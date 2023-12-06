@@ -100,8 +100,7 @@ let find_target_of_yaml_file file =
 (*****************************************************************************)
 
 let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
-    ~get_xlang ~prepend_lang ~total_mismatch (file : Fpath.t) :
-    unit Alcotest_ext.t =
+    ~get_xlang ~prepend_lang (file : Fpath.t) : unit Alcotest_ext.t =
   let test () =
     Logs.info (fun m -> m "processing rule file %s" !!file);
     logger#info "processing rule file %s" !!file;
@@ -297,7 +296,6 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
         | Error (num_errors, msg) ->
             pr2 msg;
             pr2 "---";
-            total_mismatch := !total_mismatch + num_errors;
             fail_callback num_errors msg)
   in
   match !!file |> find_target_of_yaml_file_opt with
@@ -330,18 +328,15 @@ let make_tests ?fail_callback ?(get_xlang = None) ?(prepend_lang = false) xs =
     |> List.filter Parse_rule.is_valid_rule_filename
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
-  let total_mismatch = ref 0 in
-  let tests =
-    fullxs
-    |> List_.map
-         (make_test_rule_file ?fail_callback ~get_xlang ~prepend_lang
-            ~total_mismatch)
-  in
-  (tests, total_mismatch)
+  fullxs
+  |> List_.map (make_test_rule_file ?fail_callback ~get_xlang ~prepend_lang)
 
 let test_rules paths =
-  let fail_callback _i _msg = () in
-  let tests, total_mismatch = make_tests ~fail_callback paths in
+  let total_mismatch = ref 0 in
+  let fail_callback num_errors _msg =
+    total_mismatch := !total_mismatch + num_errors
+  in
+  let tests = make_tests ~fail_callback paths in
   tests |> List.iter (fun (test : Alcotest_ext.test) -> test.func ());
   pr2 (spf "total mismatch: %d" !total_mismatch);
   if !total_mismatch > 0 then exit 1
