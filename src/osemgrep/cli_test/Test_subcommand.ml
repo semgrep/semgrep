@@ -656,7 +656,19 @@ let run_conf (conf : Test_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:true ~level:conf.common.logging_level;
   (* Metrics_.configure Metrics_.On; *)
   Logs.debug (fun m -> m "conf = %s" (Test_CLI.show_conf conf));
-  failwith "TODO"
+
+  match conf.target with
+  | Test_CLI.Dir (dir, None) ->
+      (* coupling: similar to Test_engine.test_rules() *)
+      let total_mismatch = ref 0 in
+      let fail_callback num_errors _msg =
+        total_mismatch := !total_mismatch + num_errors
+      in
+      let tests = Test_engine.make_tests ~fail_callback [ dir ] in
+      tests |> List.iter (fun (test : Alcotest_ext.test) -> test.func ());
+      Logs.app (fun m -> m "total mismatch: %d" !total_mismatch);
+      if !total_mismatch > 0 then Exit_code.fatal else Exit_code.ok
+  | _else_ -> failwith "TODO2"
 
 (*****************************************************************************)
 (* Entry point *)

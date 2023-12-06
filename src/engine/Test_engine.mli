@@ -1,13 +1,18 @@
 (*
-   Create a list of tests for unit testing and a function to print
-   a summary once each test ran once.
+   Create a list of tests for regression testing
 *)
 val make_tests :
-  ?unit_testing:bool ->
+  ?fail_callback:
+    ((* default to Alcotest.fail msg *)
+     int (* num errors *) ->
+    string (* msg *) ->
+    unit) ->
   ?get_xlang:(Fpath.t -> Rule.rules -> Xlang.t) option ->
   ?prepend_lang:bool ->
   Fpath.t list ->
-  Alcotest_ext.test list * int ref (* total mismatch *) * (unit -> unit)
+  Alcotest_ext.test list
 
-(* Run the tests and print a summary. *)
-val test_rules : ?unit_testing:bool -> string (* filename *) list -> unit
+(* [test_rules dirs] run the tests discovered under [dirs]
+ * and print a summary.
+ *)
+val test_rules : Fpath.t list -> unit
