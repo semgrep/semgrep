@@ -78,7 +78,7 @@ let to_yaml { has_shown_metrics_notification; api_token; anonymous_user_id } =
 (* Entry points *)
 (*****************************************************************************)
 
-let load ?(maturity = Maturity.Default) () =
+let load ?(maturity = Maturity.Default) ?(include_env = true) () =
   let settings = !Semgrep_envvars.v.user_settings_file in
   Logs.debug (fun m -> m "Loading settings from %a" Fpath.pp settings);
   try
@@ -87,21 +87,31 @@ let load ?(maturity = Maturity.Default) () =
       && Unix.(stat (Fpath.to_string settings)).st_kind = Unix.S_REG
     then
       let data = UFile.read_file settings in
-      match Yaml.of_string data with
-      | Error _ ->
-          Logs.warn (fun m ->
-              m "Bad settings format; %a will be overriden. Contents:\n%s"
-                Fpath.pp settings data);
-          default_settings
-      | Ok value -> (
-          match of_yaml value with
-          | Error (`Msg msg) ->
-              Logs.warn (fun m ->
-                  m "Bad settings format; %a will be overriden. Contents:\n%s"
-                    Fpath.pp settings data);
-              Logs.info (fun m -> m "Decode error: %s" msg);
-              default_settings
-          | Ok s -> s)
+      let decoded =
+        match Yaml.of_string data with
+        | Error _ ->
+            Logs.warn (fun m ->
+                m "Bad settings format; %a will be overriden. Contents:\n%s"
+                  Fpath.pp settings data);
+            default_settings
+        | Ok value -> (
+            match of_yaml value with
+            | Error (`Msg msg) ->
+                Logs.warn (fun m ->
+                    m "Bad settings format; %a will be overriden. Contents:\n%s"
+                      Fpath.pp settings data);
+                Logs.info (fun m -> m "Decode error: %s" msg);
+                default_settings
+            | Ok s -> s)
+      in
+      let settings =
+        if include_env then
+          match !Semgrep_envvars.v.app_token with
+          | Some token -> { decoded with api_token = Some token }
+          | None -> decoded
+        else decoded
+      in
+      settings
     else (
       (match maturity with
       | Maturity.Develop ->
