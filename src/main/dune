@@ -1,7 +1,8 @@
 (executables
  (names Main)
  (flags
-   (:include flags.sexp)
+   ( :standard )
+   ; (:include flags.sexp) TODO
 ;   (:standard -open TCB -open Commons_TCB)
    )
  (libraries
@@ -17,9 +18,9 @@
 
 
 ; use cli/flags.sh to generate the OS specific build flags
-(rule
- (targets flags.sexp)
- (action (run %{workspace_root}/src/main/flags.sh)))
+; (rule
+;  (targets flags.sexp)
+;  (action (run %{workspace_root}/src/main/flags.sh)))
 
 
 (install

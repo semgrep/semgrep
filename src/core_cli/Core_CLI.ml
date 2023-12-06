@@ -625,7 +625,7 @@ let main_no_exn_handler (sys_argv : string array) : unit =
    * > ignoring SIGXFSZ, continued attempts to increase the size of a file
    * > beyond the limit will fail with errno set to EFBIG.
    *)
-  Sys.set_signal Sys.sigxfsz Sys.Signal_ignore;
+  if Sys.unix then Sys.set_signal Sys.sigxfsz Sys.Signal_ignore;
 
   let usage_msg =
     spf

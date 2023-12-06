@@ -71,7 +71,34 @@ local job(container=semgrep.ocaml_alpine_container, artifact=artifact_name, run_
     workflow_call: null,
   },
   jobs: {
-    job: job(),
+    test_win: {
+      "runs-on": "windows-latest",
+      steps: [
+        {
+          uses: "ocaml/setup-ocaml@v2",
+          with: {
+            "ocaml-compiler": "4.14",
+            "opam-pin": false,
+            "opam-repositories": |||
+              opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset
+              default: https://github.com/ocaml/opam-repository.git
+            |||
+          }
+        },
+        {
+          run: "git config --system core.longpaths true"
+        },
+        {
+          uses: "actions/checkout@v4",
+          with: {
+            path: "checkout"
+          }
+        },
+        {
+          run: "opam install -y ./checkout/ --deps-only"
+        }
+      ],
+    }
   },
   // to be reused by other workflows
   export:: {

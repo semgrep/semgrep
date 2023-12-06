@@ -104,7 +104,7 @@ let known_subcommands =
     "scan";
     (* osemgrep-only *)
     "install-ci";
-    "interactive";
+    (* "interactive"; TODO *)
     "show";
     "test";
   ]
@@ -179,7 +179,7 @@ let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
         | "ci" -> Ci_subcommand.main caps subcmd_argv
         (* osemgrep-only: and by default! no need experimental! *)
         | "install-ci" -> Install_subcommand.main subcmd_argv
-        | "interactive" -> Interactive_subcommand.main subcmd_argv
+        (* | "interactive" -> Interactive_subcommand.main subcmd_argv  TODO fix*)
         | "show" ->
             Show_subcommand.main
               (caps :> < Cap.stdout ; Cap.network >)
@@ -269,7 +269,7 @@ let main (caps : Cap.all_caps) (argv : string array) : Exit_code.t =
    * > ignoring SIGXFSZ, continued attempts to increase the size of a file
    * > beyond the limit will fail with errno set to EFBIG.
    *)
-  CapSys.set_signal caps#signal Sys.sigxfsz Sys.Signal_ignore;
+  if Sys.unix then CapSys.set_signal caps#signal Sys.sigxfsz Sys.Signal_ignore;
 
   (* TODO? We used to tune the garbage collector but from profiling
      we found that the effect was small. Meanwhile, the memory
