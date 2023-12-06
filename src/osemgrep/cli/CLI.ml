@@ -106,6 +106,7 @@ let known_subcommands =
     "install-ci";
     "interactive";
     "show";
+    "test";
   ]
 
 let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
@@ -183,7 +184,7 @@ let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
             Show_subcommand.main
               (caps :> < Cap.stdout ; Cap.network >)
               subcmd_argv
-        (* LATER: "test" *)
+        | "test" -> Test_subcommand.main subcmd_argv
         | _else_ ->
             if experimental then
               (* this should never happen because we default to 'scan',

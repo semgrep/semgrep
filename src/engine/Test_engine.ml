@@ -102,6 +102,7 @@ let find_target_of_yaml_file file =
 let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
     ~total_mismatch file =
   let test () =
+    Logs.info (fun m -> m "processing rule file %s" !!file);
     logger#info "processing rule file %s" !!file;
     match Parse_rule.parse file with
     | [] -> logger#info "file %s is empty or all rules were skipped" !!file
