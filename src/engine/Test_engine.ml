@@ -99,8 +99,9 @@ let find_target_of_yaml_file file =
 (* Entry point *)
 (*****************************************************************************)
 
-let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
-    ~total_mismatch file =
+let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
+    ~get_xlang ~prepend_lang ~total_mismatch (file : Fpath.t) :
+    unit Alcotest_ext.t =
   let test () =
     Logs.info (fun m -> m "processing rule file %s" !!file);
     logger#info "processing rule file %s" !!file;
@@ -292,13 +293,12 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
         match
           E.compare_actual_to_expected actual_errors expected_error_lines
         with
-        | Ok () -> Hashtbl.add newscore !!file Common2.Ok
+        | Ok () -> ()
         | Error (num_errors, msg) ->
             pr2 msg;
             pr2 "---";
-            Hashtbl.add newscore !!file (Common2.Pb msg);
             total_mismatch := !total_mismatch + num_errors;
-            if unit_testing then Alcotest.fail msg)
+            fail_callback num_errors msg)
   in
   match !!file |> find_target_of_yaml_file_opt with
   | Some target_path ->
@@ -324,34 +324,24 @@ let make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
       let name = spf "Missing target file for rule file %s" !!file in
       Alcotest_ext.create ~skipped:true name test
 
-let make_tests ?(unit_testing = false) ?(get_xlang = None)
-    ?(prepend_lang = false) xs =
+let make_tests ?fail_callback ?(get_xlang = None) ?(prepend_lang = false) xs =
   let fullxs, _skipped_paths =
     xs |> UFile.files_of_dirs_or_files_no_vcs_nofilter
     |> List.filter Parse_rule.is_valid_rule_filename
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
-
-  let newscore = Common2.empty_score () in
-  let ext = "rule" in
   let total_mismatch = ref 0 in
-
   let tests =
     fullxs
     |> List_.map
-         (make_test_rule_file ~unit_testing ~get_xlang ~prepend_lang ~newscore
+         (make_test_rule_file ?fail_callback ~get_xlang ~prepend_lang
             ~total_mismatch)
   in
-  let print_summary () =
-    if not unit_testing then
-      Parsing_stat.print_regression_information ~ext xs newscore;
-    pr2 (spf "total mismatch: %d" !total_mismatch)
-  in
-  (tests, total_mismatch, print_summary)
+  (tests, total_mismatch)
 
-let test_rules ?unit_testing xs =
-  let paths = Fpath_.of_strings xs in
-  let tests, total_mismatch, print_summary = make_tests ?unit_testing paths in
+let test_rules paths =
+  let fail_callback _i _msg = () in
+  let tests, total_mismatch = make_tests ~fail_callback paths in
   tests |> List.iter (fun (test : Alcotest_ext.test) -> test.func ());
-  print_summary ();
+  pr2 (spf "total mismatch: %d" !total_mismatch);
   if !total_mismatch > 0 then exit 1

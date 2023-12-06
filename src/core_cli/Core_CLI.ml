@@ -393,7 +393,7 @@ let all_actions () =
       Arg_.mk_action_n_conv Fpath.v (Check_rule.stat_files Parse_rule.parse) );
     ( "-test_rules",
       " <files or dirs>",
-      Arg_.mk_action_n_arg Test_engine.test_rules );
+      Arg_.mk_action_n_conv Fpath.v Test_engine.test_rules );
     ( "-parse_rules",
       " <files or dirs>",
       Arg_.mk_action_n_arg Test_parsing.test_parse_rules );
