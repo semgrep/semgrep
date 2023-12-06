@@ -308,7 +308,7 @@ class OutputHandler:
         else:
             # ignore log was not created, so the run failed before it even started
             # create a fake log to track the errors
-            self.ignore_log = FileTargetingLog(TargetManager(["."]))
+            self.ignore_log = FileTargetingLog(TargetManager(frozenset([Path(".")])))
 
         if extra:
             self.extra = extra

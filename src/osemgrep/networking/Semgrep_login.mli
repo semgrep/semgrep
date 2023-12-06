@@ -21,19 +21,20 @@ val make_login_url : unit -> login_session
   * environment (gha, cli etc.)
   *)
 
+(* need the network to first check whether the token is valid *)
 val save_token_async :
   ?ident:string option ->
-  Auth.token ->
+  < network : Cap.Network.t ; token : Auth.token > ->
   (Semgrep_output_v1_t.deployment_config, string) result Lwt.t
 
 val save_token :
   ?ident:string option ->
-  Auth.token ->
+  < network : Cap.Network.t ; token : Auth.token > ->
   (Semgrep_output_v1_t.deployment_config, string) result
 (** [save_token ?ident token] will save the token to the user's settings file.
   * If it fails, it will return an error message.
-  * [ident] is the login identifier that can be used as an opaque UUID once hashed
-  * [token] (auth token) is the token to save for future API calls
+  * [ident] is the login identifier that can be used as an opaque UUID once
+  * hashed [token] (auth token) is the token to save for future API calls
   *)
 
 val is_logged_in : unit -> bool
@@ -46,6 +47,7 @@ val fetch_token :
   ?next_wait_ms:int ->
   ?max_retries:int ->
   ?wait_hook:(int -> unit) ->
+  < network : Cap.Network.t ; .. > ->
   shared_secret ->
   (Auth.token * string, string) result
 (** [fetch_token ?min_wait_ms ?next_wait_ms ?max_retries wait_hook shared_secret] will
@@ -61,18 +63,21 @@ val fetch_token_async :
   ?next_wait_ms:int ->
   ?max_retries:int ->
   ?wait_hook:(int -> unit) ->
+  < network : Cap.Network.t ; .. > ->
   shared_secret ->
   (Auth.token * string, string) result Lwt.t
-(** [fetch_token_async ?min_wait_ms ?next_wait_ms ?max_retries wait_hook shared_secret] will
-  * fetch the token using the request token and url the login session. It will retry up to [max_retries]
-  * times, waiting [min_wait_ms] ms between each retry, and increasing the
-  * wait time by [next_wait_ms] ms each time, returning a promise if successful. If it
-  * fails, it will return an error message. These will give users ~2 minutes to login
-  * [wait_hook] is a function that will be called before each retry
+(** [fetch_token_async ?min_wait_ms ?next_wait_ms ?max_retries wait_hook
+  * shared_secret] will fetch the token using the request token and url the
+  * login session. It will retry up to [max_retries] times, waiting
+  * [min_wait_ms] ms between each retry, and increasing the wait time
+  * by [next_wait_ms] ms each time, returning a promise if successful. If it
+  * fails, it will return an error message. These will give users ~2 minutes
+  * to login [wait_hook] is a function that will be called before each retry
   *)
 
-val verify_token_async : Auth.token -> bool Lwt.t
+val verify_token_async :
+  < network : Cap.Network.t ; token : Auth.token > -> bool Lwt.t
 (** [verify_token_async] verifies that a token is valid with the Semgrep App. *)
 
-val verify_token : Auth.token -> bool
+val verify_token : < network : Cap.Network.t ; token : Auth.token > -> bool
 (** [verify_token] verifies that a token is valid with the Semgrep App. *)

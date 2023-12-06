@@ -1,4 +1,5 @@
 open Common
+open Fpath_.Operators
 
 (*****************************************************************************)
 (* Prelude *)
@@ -24,7 +25,7 @@ let stat_matches file =
     |> Assoc.sort_by_val_highfirst |> List_.take_safe 10
   in
   pr2 "biggest file offenders";
-  per_files |> List.iter (fun (file, n) -> pr2 (spf " %60s: %d" file n));
+  per_files |> List.iter (fun (file, n) -> pr2 (spf " %60s: %d" !!file n));
   ()
 
 module T = Genlex

@@ -53,7 +53,7 @@ type conf = {
   version : bool;
   show : Show_CLI.conf option;
   validate : Validate_subcommand.conf option;
-  test : Test_subcommand.conf option;
+  test : Test_CLI.conf option;
   ls : bool;
 }
 [@@deriving show]
@@ -737,14 +737,6 @@ let o_test : bool Term.t =
   let info = Arg.info [ "test" ] ~doc:{|Run test suite.|} in
   Arg.value (Arg.flag info)
 
-let o_test_ignore_todo : bool Term.t =
-  H.negatable_flag [ "test-ignore-todo" ] ~neg_options:[ "no-test-ignore-todo" ]
-    ~default:false
-    ~doc:
-      {|If --test-ignore-todo, ignores rules marked as '#todoruleid:' in
-test files.
-|}
-
 (* alt: in configuration option *)
 let o_error : bool Term.t =
   H.negatable_flag [ "error" ] ~neg_options:[ "no-error" ]
@@ -1060,43 +1052,22 @@ let cmdline_term ~allow_empty_config : conf Term.t =
             Some { Validate_subcommand.rules_source; core_runner_conf; common }
       else None
     in
-    (* ugly: test should be a separate subcommand.
-     * alt: we could move this code in a Test_subcommand.cli_args()
-     *)
+    (* ugly: test should be a separate subcommand *)
     let test =
       if test then
         let target =
-          match (target_roots, config) with
-          | [ x ], [ config ] ->
-              let file_str = Fpath.to_string x in
-              if Sys.file_exists file_str && Sys.is_directory file_str then
-                Test_subcommand.Dir (x, Some config)
-              else Test_subcommand.File (x, config)
-          | [ x ], [] ->
-              let file_str = Fpath.to_string x in
-              if Sys.is_directory file_str then Test_subcommand.Dir (x, None)
-              else
-                (* was raise Exception but cleaner abort I think *)
-                Error.abort
-                  "--config is required when running a test on single file"
-          | _ :: _ :: _, _ ->
-              (* stricter: better error message '(directory or file)' *)
-              Error.abort
-                "only one target (directory or file) allowed for tests"
-          | _, _ :: _ :: _ ->
-              (* stricter: removed 'config directory' *)
-              Error.abort "only one config allowed for tests"
-          (* target_roots should always contain at least ["."] *)
-          | [], _ -> assert false
+          Test_CLI.target_kind_of_roots_and_config target_roots config
         in
         Some
-          {
-            Test_subcommand.target;
-            strict;
-            json;
-            optimizations;
-            ignore_todo = test_ignore_todo;
-          }
+          Test_CLI.
+            {
+              target;
+              strict;
+              json;
+              optimizations;
+              ignore_todo = test_ignore_todo;
+              common;
+            }
       else None
     in
 
@@ -1161,8 +1132,9 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     $ o_replacement $ o_respect_gitignore $ o_rewrite_rule_ids $ o_sarif
     $ o_scan_unknown_extensions $ o_secrets $ o_severity
     $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
-    $ o_test_ignore_todo $ o_text $ o_time $ o_timeout $ o_timeout_interfile
-    $ o_timeout_threshold $ o_validate $ o_version $ o_version_check $ o_vim)
+    $ Test_CLI.o_test_ignore_todo $ o_text $ o_time $ o_timeout
+    $ o_timeout_interfile $ o_timeout_threshold $ o_validate $ o_version
+    $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
 

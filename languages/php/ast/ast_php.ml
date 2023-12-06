@@ -482,7 +482,7 @@ let special x = "__special__" ^ x
 let has_modifier cv = List.length cv.cv_modifiers > 0
 let is_static modifiers = List.mem Static (List.map unwrap modifiers)
 let is_private modifiers = List.mem Private (List.map unwrap modifiers)
-let string_of_xhp_tag xs = ":" ^ Common.join ":" xs
+let string_of_xhp_tag xs = ":" ^ String.concat ":" xs
 let str_of_ident (s, _) = s
 let tok_of_ident (_, x) = x
 

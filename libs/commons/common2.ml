@@ -12,7 +12,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*x: common.ml *)
+open Common
+
 (*###########################################################################*)
 (* Prelude *)
 (*###########################################################################*)
@@ -34,13 +35,13 @@ exception UnixExit of int
 
 let rec (do_n : int -> (unit -> unit) -> unit) =
  fun i f ->
-  if i = 0 then ()
+  if i =|= 0 then ()
   else (
     f ();
     do_n (i - 1) f)
 
 let rec (foldn : ('a -> int -> 'a) -> 'a -> int -> 'a) =
- fun f acc i -> if i = 0 then acc else foldn f (f acc i) (i - 1)
+ fun f acc i -> if i =|= 0 then acc else foldn f (f acc i) (i - 1)
 
 let sum_int = List.fold_left ( + ) 0
 
@@ -66,7 +67,7 @@ let enum x n =
   if not (x <= n) then
     failwith (Printf.sprintf "bad values in enum, expect %d <= %d" x n);
   let rec enum_aux acc x n =
-    if x = n then n :: acc else enum_aux (x :: acc) (x + 1) n
+    if x =|= n then n :: acc else enum_aux (x :: acc) (x + 1) n
   in
   List.rev (enum_aux [] x n)
 
@@ -100,34 +101,7 @@ let (lines : string -> string list) =
   in
   Str.split_delim (Str.regexp "\n") s |> lines_aux
 
-let push v l = l := v :: !l
-
-let null xs =
-  match xs with
-  | [] -> true
-  | _ -> false
-
-let command2 s = ignore (USys.command s)
 let (matched : int -> string -> string) = fun i s -> Str.matched_group i s
-let matched1 s = matched 1 s
-let matched2 s = (matched 1 s, matched 2 s)
-let matched3 s = (matched 1 s, matched 2 s, matched 3 s)
-let matched4 s = (matched 1 s, matched 2 s, matched 3 s, matched 4 s)
-
-let matched5 s =
-  (matched 1 s, matched 2 s, matched 3 s, matched 4 s, matched 5 s)
-
-let matched6 s =
-  (matched 1 s, matched 2 s, matched 3 s, matched 4 s, matched 5 s, matched 6 s)
-
-let matched7 s =
-  ( matched 1 s,
-    matched 2 s,
-    matched 3 s,
-    matched 4 s,
-    matched 5 s,
-    matched 6 s,
-    matched 7 s )
 
 let (with_open_stringbuf : ((string -> unit) * Buffer.t -> unit) -> string) =
  fun f ->
@@ -438,10 +412,10 @@ let time_func f =
 let example b =
   if b then () else failwith ("ASSERT FAILURE: " ^ Printexc.get_backtrace ())
 
-let _ex1 = assert (enum 1 4 = [ 1; 2; 3; 4 ])
+let _ex1 = assert (enum 1 4 =*= [ 1; 2; 3; 4 ])
 
 let assert_equal a b =
-  if not (a = b) then
+  if not (a =*= b) then
     failwith
       ("assert_equal: those 2 values are not equal:\n\t" ^ Dumper.dump a
      ^ "\n\t" ^ Dumper.dump b ^ "\n")
@@ -474,7 +448,7 @@ let (test_all : unit -> unit) =
     !_list_bool
 
 let ( ++ ) a b = a @ b
-let _ex = example3 "++" ([ 1; 2 ] @ [ 3; 4; 5 ] = [ 1; 2; 3; 4; 5 ])
+let _ex = example3 "++" ([ 1; 2 ] @ [ 3; 4; 5 ] =*= [ 1; 2; 3; 4; 5 ])
 
 (*-------------------------------------------------------------------*)
 (* Regression testing *)
@@ -614,13 +588,13 @@ let (laws : string -> ('a -> bool) -> 'a gen -> 'a option) =
       [] 1000
   in
   let res = List.filter (fun (_x, b) -> not b) res in
-  if res = [] then None
+  if res =*= [] then None
   else Some (fst (List_.hd_exn "unexpected empty list" res))
 
 let rec (statistic_number : 'a list -> (int * 'a) list) = function
   | [] -> []
   | x :: xs ->
-      let splitg, splitd = List.partition (fun y -> y = x) xs in
+      let splitg, splitd = List.partition (fun y -> y =*= x) xs in
       (1 + List.length splitg, x) :: statistic_number splitd
 
 (* in pourcentage *)
@@ -642,7 +616,7 @@ let (laws2 :
   in
   let stat = statistic (List.map (fun (_x, (_b, v)) -> v) res) in
   let res = List.filter (fun (_x, (b, _v)) -> not b) res in
-  if res = [] then (None, stat)
+  if res =*= [] then (None, stat)
   else (Some (fst (List_.hd_exn "unexpected empty list" res)), stat)
 
 (* todo, do with coarbitrary ?? idea is that given a 'a, generate a 'b
@@ -828,11 +802,12 @@ let macro_expand s =
   let c = UStdlib.open_out_bin "/tmp/ttttt.ml" in
   output_string c s;
   close_out c;
-  command2
+  USys.command
     ("ocamlc -c -pp 'camlp4o pa_extend.cmo q_MLast.cmo -impl' "
-   ^ "-I +camlp4 -impl macro.ml4");
-  command2 "camlp4o ./macro.cmo pr_o.cmo /tmp/ttttt.ml";
-  command2 "rm -f /tmp/ttttt.ml"
+   ^ "-I +camlp4 -impl macro.ml4")
+  |> ignore;
+  USys.command "camlp4o ./macro.cmo pr_o.cmo /tmp/ttttt.ml" |> ignore;
+  USys.command "rm -f /tmp/ttttt.ml" |> ignore
 
 (*
 let t = macro_expand "{ x + y | (x,y) <- [(1,1);(2,2);(3,3)] and x>2 and y<3}"
@@ -879,7 +854,7 @@ let uncurry f (a, b) = f a b
 let id x = x
 let const x _y = x
 let do_nothing () = ()
-let rec applyn n f o = if n = 0 then o else applyn (n - 1) f (f o)
+let rec applyn n f o = if n =|= 0 then o else applyn (n - 1) f (f o)
 let on g f x y = g (f x) (f y)
 
 let forever f =
@@ -905,7 +880,7 @@ class ['a] shared_variable_hook (x : 'a) =
 (* src: from aop project. was called ptFix *)
 let rec fixpoint trans elem =
   let image = trans elem in
-  if image = elem then elem (* point fixe *) else fixpoint trans image
+  if image =*= elem then elem (* point fixe *) else fixpoint trans image
 
 (* le point fixe  pour les objets. was called ptFixForObjetct *)
 let rec fixpoint_for_object trans elem =
@@ -920,7 +895,7 @@ let (add_hook :
   var := fun arg k -> f arg (fun x -> oldvar x k)
 
 let (add_hook_action : ('a -> unit) -> ('a -> unit) list ref -> unit) =
- fun f hooks -> push f hooks
+ fun f hooks -> Stack_.push f hooks
 
 let (run_hooks_action : 'a -> ('a -> unit) list ref -> unit) =
  fun obj hooks ->
@@ -1067,13 +1042,8 @@ let warning s v =
   pr2 ("Warning: " ^ s ^ "; value = " ^ Dumper.dump v);
   v
 
-let exn_to_s exn = Printexc.to_string exn
-
 let exn_to_s_with_backtrace exn =
   Printexc.to_string exn ^ "\n" ^ Printexc.get_backtrace ()
-
-(* alias *)
-let string_of_exn exn = exn_to_s exn
 
 (* want or of merd, but cant cos cant put die ... in b (strict call) *)
 let ( ||| ) a b =
@@ -1106,8 +1076,8 @@ let _check_stack = ref true
 let check_stack_size limit =
   if !_check_stack then (
     pr2 "checking stack size (do ulimit -s 40000 if problem)";
-    let rec aux i = if i = limit then 0 else 1 + aux (i + 1) in
-    assert (aux 0 = limit);
+    let rec aux i = if i =|= limit then 0 else 1 + aux (i + 1) in
+    assert (aux 0 =|= limit);
     ())
 
 let test_check_stack_size limit =
@@ -1132,26 +1102,6 @@ let _init_gc_stack = ()
  *)
 let check_stack_nbfiles nbfiles = if nbfiles > 200 then check_stack_size 2000000
 
-(*****************************************************************************)
-(* Equality *)
-(*****************************************************************************)
-
-(* src: caml mailing list ? *)
-let ( =|= ) : int -> int -> bool = ( = )
-let ( =<= ) : char -> char -> bool = ( = )
-let ( =$= ) : string -> string -> bool = ( = )
-let ( =:= ) : bool -> bool -> bool = ( = )
-let ( =*= ) = ( = )
-
-(* if really want to forbid to use '='
-   let (=) = (=|=)
-*)
-let ( = ) () () = false
-
-(* prevent warning against unused (=) defined above. *)
-let _unused = ( = )
-
-(*x: common.ml *)
 (*###########################################################################*)
 (* Basic types *)
 (*###########################################################################*)
@@ -1301,7 +1251,7 @@ let _ = assert (int_of_octal "017" =|= 15)
 (* let int_of_hex s = int_of_base s 16, NONONONO cos 'A' - '0' does not give 10 !! *)
 
 let int_of_all s =
-  if String.length s >= 2 && String.get s 0 =<= '0' && is_digit (String.get s 1)
+  if String.length s >= 2 && String.get s 0 =$= '0' && is_digit (String.get s 1)
   then int_of_octal s
   else int_of_string s
 
@@ -1437,31 +1387,11 @@ let tuple_of_list6 = function
 (* Maybe *)
 (*****************************************************************************)
 
-(* type 'a maybe  = Just of 'a | None *)
-
-type ('a, 'b) either = Left of 'a | Right of 'b
-
-(* with sexp *)
-type ('a, 'b, 'c) either3 = Left3 of 'a | Middle3 of 'b | Right3 of 'c
-(* with sexp *)
-
 let just = function
   | Some x -> x
   | _ -> failwith "just: pb"
 
 let some = just
-
-let fmap f = function
-  | None -> None
-  | Some x -> Some (f x)
-
-let map_option = fmap
-
-let do_option f = function
-  | None -> ()
-  | Some x -> f x
-
-let opt = do_option
 
 let optionise f =
   try Some (f ()) with
@@ -1475,49 +1405,6 @@ let some_or = function
 let option_to_list = function
   | None -> []
   | Some x -> [ x ]
-
-let partition_either f l =
-  let rec part_either left right = function
-    | [] -> (List.rev left, List.rev right)
-    | x :: l -> (
-        match f x with
-        | Left e -> part_either (e :: left) right l
-        | Right e -> part_either left (e :: right) l)
-  in
-  part_either [] [] l
-
-let partition_either3 f l =
-  let rec part_either left middle right = function
-    | [] -> (List.rev left, List.rev middle, List.rev right)
-    | x :: l -> (
-        match f x with
-        | Left3 e -> part_either (e :: left) middle right l
-        | Middle3 e -> part_either left (e :: middle) right l
-        | Right3 e -> part_either left middle (e :: right) l)
-  in
-  part_either [] [] [] l
-
-(* pixel *)
-let rec filter_some = function
-  | [] -> []
-  | None :: l -> filter_some l
-  | Some e :: l -> e :: filter_some l
-
-let map_filter f xs = xs |> List.map f |> filter_some
-
-let rec find_some p = function
-  | [] -> raise Not_found
-  | x :: l -> (
-      match p x with
-      | Some v -> v
-      | None -> find_some p l)
-
-let rec find_some_opt p = function
-  | [] -> None
-  | x :: l -> (
-      match p x with
-      | Some v -> Some v
-      | None -> find_some_opt p l)
 
 (* same
    let map_find f xs =
@@ -1670,7 +1557,7 @@ let all_match re s =
         assert (substr ==~ regexp);
         (* @Effect: also use it's side effect *)
         let paren_matched = matched1 substr in
-        push paren_matched res;
+        Stack_.push paren_matched res;
         "" (* @Dummy *))
       s
   in
@@ -1725,13 +1612,6 @@ let compile_regexp_union xs =
 (* Strings *)
 (*****************************************************************************)
 
-let slength = String.length
-let concat = String.concat
-
-(* ruby *)
-let i_to_s = string_of_int
-let s_to_i = int_of_string
-
 (* strings take space in memory. Better when can share the space used by
    similar strings *)
 let _shareds = Hashtbl.create 100
@@ -1776,13 +1656,12 @@ let unquote s =
 (* easier to have this to be passed as hof, because ocaml dont have
  * haskell "section" operators
  *)
-let null_string s = s =$= ""
 let is_blank_string s = s =~ "^\\([ \t]\\)*$"
 
 (* src: lablgtk2/examples/entrycompletion.ml *)
 let is_string_prefix s1 s2 =
   String.length s1 <= String.length s2
-  && String.sub s2 0 (String.length s1) =$= s1
+  && String.sub s2 0 (String.length s1) = s1
 
 let plural i s =
   if i =|= 1 then Printf.sprintf "%d %s" i s else Printf.sprintf "%d %ss" i s
@@ -1829,7 +1708,7 @@ let matrix_distance s1 s2 =
   let m = String.length s2 in
   let mat = Array.make_matrix (n + 1) (m + 1) 0 in
   let t i j =
-    if String.get s1 (i - 1) =<= String.get s2 (j - 1) then 0 else 1
+    if String.get s1 (i - 1) =$= String.get s2 (j - 1) then 0 else 1
   in
   let min3 a b c = min (min a b) c in
 
@@ -1935,16 +1814,17 @@ let dbe_of_filename file =
     Filename.basename file |> filesuffix )
 
 let filename_of_dbe (dir, base, ext) =
-  if ext =$= "" then Filename.concat dir base
+  if ext = "" then Filename.concat dir base
   else Filename.concat dir (base ^ "." ^ ext)
 
 let dbe_of_filename_safe file =
-  try Left (dbe_of_filename file) with
-  | Invalid_argument _ -> Right (Filename.dirname file, Filename.basename file)
+  try Either.Left (dbe_of_filename file) with
+  | Invalid_argument _ ->
+      Either.Right (Filename.dirname file, Filename.basename file)
 
 let dbe_of_filename_nodot file =
   let d, b, e = dbe_of_filename file in
-  let d = if d =$= "." then "" else d in
+  let d = if d = "." then "" else d in
   (d, b, e)
 
 (* old:
@@ -1979,7 +1859,7 @@ let dbe_of_filename_many_ext_opt file =
 
 let replace_ext file oldext newext =
   let d, b, e = dbe_of_filename file in
-  assert (e =$= oldext);
+  assert (e = oldext);
   filename_of_dbe (d, b, newext)
 
 (* Given a file name, normalize it by removing "." and "..".  This works
@@ -2040,7 +1920,7 @@ let relative_to_absolute s =
 *)
 
 let relative_to_absolute s =
-  if s =$= "." then USys.getcwd ()
+  if s = "." then USys.getcwd ()
   else if Filename.is_relative s then USys.getcwd () ^ "/" ^ s
   else s
 
@@ -2050,7 +1930,7 @@ let is_absolute s = not (is_relative s)
 (* pre: prj_path must not contain regexp symbol *)
 let filename_without_leading_path prj_path s =
   let prj_path = chop_dirsymbol prj_path in
-  if s =$= prj_path then "."
+  if s = prj_path then "."
   else if s =~ "^" ^ prj_path ^ "/\\(.*\\)$" then matched1 s
   else
     failwith (spf "cant find filename_without_project_path: %s  %s" prj_path s)
@@ -2515,7 +2395,7 @@ let (lines_with_nl : string -> string list) =
  fun s ->
   let rec lines_aux = function
     | [] -> []
-    | [ x ] -> if x =$= "" then [] else [ x ^ "\n" ] (* old: [x] *)
+    | [ x ] -> if x = "" then [] else [ x ^ "\n" ] (* old: [x] *)
     | x :: xs ->
         let e = x ^ "\n" in
         e :: lines_aux xs
@@ -2617,14 +2497,14 @@ let nblines_eff2 file =
 
 (* could be in h_files-format *)
 let words_of_string_with_newlines s =
-  lines s |> List.map words |> List.flatten |> exclude null_string
+  lines s |> List.map words |> List.flatten |> exclude String_.empty
 
 let lines_with_nl_either s =
   let xs = Str.full_split (Str.regexp "\n") s in
   xs
   |> List.map (function
-       | Str.Delim _s -> Right ()
-       | Str.Text s -> Left s)
+       | Str.Delim _s -> Either.Right ()
+       | Str.Text s -> Either.Left s)
 
 (*
 let _ = example (lines_with_nl_either "ab\n\nc" =*=
@@ -2681,13 +2561,13 @@ let cat_excerpts file lines =
         else
           match lines with
           | [] -> acc
-          | c :: cdr when c == count -> aux (l :: acc) cdr (count + 1)
+          | c :: cdr when c =|= count -> aux (l :: acc) cdr (count + 1)
           | _ -> aux acc lines (count + 1)
       in
       aux [] lines 1 |> List.rev)
 
 let interpolate str =
-  command2 ("printf \"%s\\n\" " ^ str ^ ">/tmp/caml");
+  USys.command ("printf \"%s\\n\" " ^ str ^ ">/tmp/caml") |> ignore;
   cat "/tmp/caml"
 
 (* could do a print_string but printf dont like print_string *)
@@ -2718,49 +2598,15 @@ let do_in_fork f =
     UStdlib.exit 0)
   else pid
 
-exception CmdError of Unix.process_status * string
-
-let process_output_to_list2 ?(verbose = false) command =
-  let chan = UUnix.open_process_in command in
-  let res = ref ([] : string list) in
-  let rec process_otl_aux () =
-    let e = input_line chan in
-    res := e :: !res;
-    if verbose then pr2 e;
-    process_otl_aux ()
-  in
-  try process_otl_aux () with
-  | End_of_file ->
-      let stat = Unix.close_process_in chan in
-      (List.rev !res, stat)
-
-let cmd_to_list ?verbose command =
-  let l, exit_status = process_output_to_list2 ?verbose command in
-  match exit_status with
-  | Unix.WEXITED 0 -> l
-  | _ ->
-      raise
-        (CmdError
-           ( exit_status,
-             spf "CMD = %s, RESULT = %s" command (String.concat "\n" l) ))
-
-let process_output_to_list = cmd_to_list
-let cmd_to_list_and_status = process_output_to_list2
 let nblines_with_wc a = nblines_eff a
 
 let unix_diff file1 file2 =
-  let xs, _status = cmd_to_list_and_status (spf "diff -u %s %s" file1 file2) in
-  xs
-(* see also unix_diff_strings at the bottom *)
-
-let get_mem () =
-  cmd_to_list
-    ("grep VmData /proc/" ^ string_of_int (UUnix.getpid ()) ^ "/status")
-  |> join ""
-
-(* now in prelude:
- * let command2 s = ignore(USys.command s)
- *)
+  let cmd = (Cmd.Name "diff", [ "-u"; file1; file2 ]) in
+  match UCmd.lines_of_run ~trim:true cmd with
+  | Ok (xs, (_, `Exited 0)) -> xs
+  | Ok _
+  | Error (`Msg _) ->
+      failwith "unix_diff problem"
 
 let _batch_mode = ref false
 
@@ -2786,7 +2632,7 @@ let y_or_no msg =
 
 let command2_y_or_no cmd =
   if !_batch_mode then (
-    command2 cmd;
+    USys.command cmd |> ignore;
     true)
   else (
     pr2 (cmd ^ " [y/n] ?");
@@ -2794,7 +2640,7 @@ let command2_y_or_no cmd =
     | "y"
     | "yes"
     | "Y" ->
-        command2 cmd;
+        USys.command cmd |> ignore;
         true
     | "n"
     | "no"
@@ -2821,19 +2667,6 @@ let command_safe ?verbose:(_verbose = false) program args =
         failwith ("problem running: " ^ cmd_str)
 
 let mkdir ?(mode = 0o770) file = UUnix.mkdir file mode
-
-let read_file file =
-  let ic = UStdlib.open_in_bin file in
-  let size = in_channel_length ic in
-  let buf = Bytes.create size in
-  really_input ic buf 0 size;
-  close_in ic;
-  buf |> Bytes.to_string
-
-let write_file ~file s =
-  let chan = UStdlib.open_out_bin file in
-  output_string chan s;
-  close_out chan
 
 (* TODO: add [@@profiling] but mutual deps :( *)
 let unix_stat file = UUnix.stat file
@@ -2957,7 +2790,7 @@ let (readdir_to_link_list : string -> string list) =
 let (readdir_to_dir_size_list : string -> (string * int) list) =
  fun path ->
   USys.readdir path |> Array.to_list
-  |> map_filter (fun s ->
+  |> List_.map_filter (fun s ->
          let stat = UUnix.lstat (path ^ "/" ^ s) in
          if stat.st_kind =*= Unix.S_DIR then Some (s, stat.st_size) else None)
 
@@ -2980,64 +2813,6 @@ let glob pattern =
   let regex = pattern |> Re.Glob.glob ~anchored:true |> Re.compile in
   let files = UCommon.dir_contents dir in
   files |> List.filter (fun s -> Re.execp regex s)
-
-let dirs_of_dir dir =
-  assert (is_directory dir);
-  let xs = cmd_to_list (spf "find \"%s\" -type d" dir) in
-  match xs with
-  | [] -> failwith ("dirs_of_dir: pb with" ^ dir)
-  | _x :: xs -> xs
-
-(* TODO: do a files_of_dir_or_files ?no_vcs ?filter:Ext|Reg|Filter
-*)
-
-(* update: have added the -type f, so normally need less the sanity_check_xxx
- * function below *)
-let files_of_dir_or_files ext xs =
-  xs
-  |> List.map (fun x ->
-         if is_directory x then
-           cmd_to_list ("find " ^ x ^ " -noleaf -type f -name \"*." ^ ext ^ "\"")
-         else [ x ])
-  |> List.concat
-
-let grep_dash_v_str =
-  "| grep -v /.hg/ |grep -v /CVS/ | grep -v /.git/ |grep -v /_darcs/"
-  ^ "| grep -v /.svn/ | grep -v .git_annot | grep -v .marshall"
-
-let arg_symlink () = if !UCommon.follow_symlinks then " -L " else ""
-
-let files_of_dir_or_files_no_vcs ext xs =
-  xs
-  |> List.map (fun x ->
-         if is_directory x then
-           cmd_to_list
-             ("find " ^ arg_symlink () ^ x ^ " -noleaf -type f -name \"*." ^ ext
-            ^ "\"" ^ grep_dash_v_str)
-         else [ x ])
-  |> List.concat
-
-let files_of_dir_or_files_no_vcs_nofilter xs =
-  xs
-  |> List.map (fun x ->
-         if is_directory x then
-           cmd_to_list_and_status
-             ("find " ^ arg_symlink () ^ x ^ " -noleaf -type f "
-            ^ grep_dash_v_str)
-           |> fst
-         else [ x ])
-  |> List.concat
-
-let files_of_dir_or_files_no_vcs_post_filter regex xs =
-  xs
-  |> List.map (fun x ->
-         if is_directory x then
-           cmd_to_list
-             ("find " ^ arg_symlink () ^ x ^ " -noleaf -type f "
-            ^ grep_dash_v_str)
-           |> List.filter (fun s -> s =~ regex)
-         else [ x ])
-  |> List.concat
 
 let sanity_check_files_and_adjust ext files =
   let files =
@@ -3098,7 +2873,7 @@ let tmp_file_cleanup_hooks = ref []
 
 let with_tmp_file ~(str : string) ~(ext : string) (f : string -> 'a) : 'a =
   let tmpfile = UCommon.new_temp_file "tmp" ("." ^ ext) in
-  write_file ~file:tmpfile str;
+  UCommon.write_file ~file:tmpfile str;
   Common.finalize
     (fun () -> f tmpfile)
     (fun () ->
@@ -3117,7 +2892,7 @@ let with_tmp_dir f =
   Common.finalize
     (fun () -> f tmp_dir)
     (fun () ->
-      command2 (spf "rm -f %s/*" tmp_dir);
+      USys.command (spf "rm -f %s/*" tmp_dir) |> ignore;
       UUnix.rmdir tmp_dir)
 
 (* now in prelude: exception UnixExit of int *)
@@ -3207,12 +2982,6 @@ let map_withkeep f xs = xs |> List.map (fun x -> (f x, x))
  * | (_,[]) -> failwith "take: not enough"
  * | (n,x::xs) -> x::take (n-1) xs
  *)
-
-let rec take_safe n xs =
-  match (n, xs) with
-  | 0, _ -> []
-  | _, [] -> []
-  | n, x :: xs -> x :: take_safe (n - 1) xs
 
 let rec take_until p = function
   | [] -> []
@@ -3347,13 +3116,13 @@ let _ =
 (* not so easy to come up with ... used in aComment for split_paragraph *)
 let rec split_gen_when_aux f acc xs =
   match xs with
-  | [] -> if null acc then [] else [ List.rev acc ]
+  | [] -> if List_.null acc then [] else [ List.rev acc ]
   | x :: xs -> (
       match f (x :: xs) with
       | None -> split_gen_when_aux f (x :: acc) xs
       | Some rest ->
           let before = List.rev acc in
-          if null before then split_gen_when_aux f [] rest
+          if List_.null before then split_gen_when_aux f [] rest
           else before :: split_gen_when_aux f [] rest)
 
 (* could avoid introduce extra aux function by using ?(acc = []) *)
@@ -3392,7 +3161,7 @@ let rec skipfirst e = function
  *)
 
 let index_list xs =
-  if null xs then [] (* enum 0 (-1) generate an exception *)
+  if List_.null xs then [] (* enum 0 (-1) generate an exception *)
   else zip xs (enum 0 (List.length xs - 1))
 
 (* if you want to use this to show the progress while processing huge list,
@@ -3400,13 +3169,10 @@ let index_list xs =
  *)
 let index_list_and_total xs =
   let total = List.length xs in
-  if null xs then [] (* enum 0 (-1) generate an exception *)
+  if List_.null xs then [] (* enum 0 (-1) generate an exception *)
   else
     zip xs (enum 0 (List.length xs - 1))
     |> List.map (fun (a, b) -> (a, b, total))
-
-let index_list_0 xs = index_list xs
-let index_list_1 xs = xs |> index_list |> List.map (fun (x, i) -> (x, i + 1))
 
 let avg_list xs =
   let sum = sum_int xs in
@@ -4468,7 +4234,7 @@ let group_assoc_bykey_eff xs =
 let _test_group_assoc () =
   let xs = enum 0 10000 |> List.map (fun i -> (i_to_s i, i)) in
   let xs = ("0", 2) :: xs in
-  (*    let _ys = xs +> Common.groupBy (fun (a,resa) (b,resb) -> a =$= b)  *)
+  (*    let _ys = xs +> Common.groupBy (fun (a,resa) (b,resb) -> a = b)  *)
   let ys = xs |> group_assoc_bykey_eff in
   pr2_gen ys
 
@@ -4640,7 +4406,9 @@ let rec (treeref_node_iter :
 let find_treeref f tree =
   let res = ref [] in
 
-  tree |> treeref_node_iter (fun (n, xs) -> if f (n, xs) then push (n, xs) res);
+  tree
+  |> treeref_node_iter (fun (n, xs) ->
+         if f (n, xs) then Stack_.push (n, xs) res);
   match !res with
   | [ (n, xs) ] -> NodeRef (n, xs)
   | [] -> raise Not_found
@@ -4682,7 +4450,9 @@ let rec (treeref_node_iter2 :
 let find_treeref2 f tree =
   let res = ref [] in
 
-  tree |> treeref_node_iter2 (fun (n, xs) -> if f (n, xs) then push (n, xs) res);
+  tree
+  |> treeref_node_iter2 (fun (n, xs) ->
+         if f (n, xs) then Stack_.push (n, xs) res);
   match !res with
   | [ (n, xs) ] -> NodeRef2 (n, xs)
   | [] -> raise Not_found
@@ -4708,7 +4478,7 @@ let find_treeref_with_parents_some f tree =
   tree
   |> treeref_node_iter_with_parents (fun (n, xs) parents ->
          match f (n, xs) parents with
-         | Some v -> push v res
+         | Some v -> Stack_.push v res
          | None -> ());
   match !res with
   | [ v ] -> v
@@ -4721,7 +4491,7 @@ let find_multi_treeref_with_parents_some f tree =
   tree
   |> treeref_node_iter_with_parents (fun (n, xs) parents ->
          match f (n, xs) parents with
-         | Some v -> push v res
+         | Some v -> Stack_.push v res
          | None -> ());
   match !res with
   | [ _v ] -> !res
@@ -4987,10 +4757,11 @@ let (diff : (int -> int -> diff -> unit) -> string list * string list -> unit) =
   let file1 = "/tmp/diff1-" ^ string_of_int (UUnix.getuid ()) in
   let file2 = "/tmp/diff2-" ^ string_of_int (UUnix.getuid ()) in
   let fileresult = "/tmp/diffresult-" ^ string_of_int (UUnix.getuid ()) in
-  write_file file1 (unwords xs);
-  write_file file2 (unwords ys);
-  command2
-    ("diff --side-by-side -W 1 " ^ file1 ^ " " ^ file2 ^ " > " ^ fileresult);
+  UCommon.write_file file1 (unwords xs);
+  UCommon.write_file file2 (unwords ys);
+  USys.command
+    ("diff --side-by-side -W 1 " ^ file1 ^ " " ^ file2 ^ " > " ^ fileresult)
+  |> ignore;
   let res = cat fileresult in
   let a = ref 0 in
   let b = ref 0 in
@@ -5028,11 +4799,12 @@ let _ =
 
 let (diff2 : (int -> int -> diff -> unit) -> string * string -> unit) =
  fun f (xstr, ystr) ->
-  write_file "/tmp/diff1" xstr;
-  write_file "/tmp/diff2" ystr;
-  command2
+  UCommon.write_file "/tmp/diff1" xstr;
+  UCommon.write_file "/tmp/diff2" ystr;
+  USys.command
     ("diff --side-by-side --left-column -W 1 "
-   ^ "/tmp/diff1 /tmp/diff2 > /tmp/diffresult");
+   ^ "/tmp/diff1 /tmp/diff2 > /tmp/diffresult")
+  |> ignore;
   let res = cat "/tmp/diffresult" in
   let a = ref 0 in
   let b = ref 0 in
@@ -5189,7 +4961,7 @@ let regression_testing_vs newscore bestscore =
                  Hashtbl.add newbestscore res Ok
              | Pb x, Pb y ->
                  Hashtbl.add newbestscore res (Pb x);
-                 if not (x =$= y) then (
+                 if not (x = y) then (
                    UPrintf.printf
                      "Semipb: still error but not same error : %s\n" res;
                    UPrintf.printf "%s\n" (chop ("Old error: " ^ y));
@@ -5521,27 +5293,8 @@ let cmdline_actions () =
 
 (* Infix trick, seen in jane street lib and harrop's code, and maybe in GMP *)
 module Infix = struct
-  let ( |> ) = ( |> )
   let ( ==~ ) = ( ==~ )
-  let ( =~ ) = ( =~ )
 end
-
-(* based on code found in cameleon from maxence guesdon
- * alt: use Digest.string! far faster!
- *)
-let md5sum_of_string s =
-  let com = spf "echo %s | md5sum | cut -d\" \" -f 1" (Filename.quote s) in
-  match cmd_to_list com with
-  | [ s ] ->
-      (*pr2 s;*)
-      s
-  | _ -> failwith "md5sum_of_string wrong output"
-
-(* less: could also use the realpath C binding in Jane Street Core library. *)
-let realpath path =
-  match cmd_to_list (spf "realpath %s" path) with
-  | [ s ] -> s
-  | xs -> failwith (spf "problem with realpath on %s: %s " path (unlines xs))
 
 let with_pr2_to_string f =
   let file = UCommon.new_temp_file "pr2" "out" in
@@ -5571,7 +5324,7 @@ let format_to_string f =
   (try loop () with
   | End_of_file -> ());
   close_in i;
-  command2 ("rm -f " ^ nm);
+  USys.command ("rm -f " ^ nm) |> ignore;
   String.concat "\n" (List.rev !lines)
 
 (*---------------------------------------------------------------------------*)
@@ -5685,13 +5438,13 @@ let (tree_of_files : filename list -> (string, string * filename) tree) =
   (* now ready to build the tree recursively *)
   let rec aux (xs : ((string list * string) * filename) list) =
     let files_here, rest =
-      xs |> List.partition (fun ((dirs, _base), _) -> null dirs)
+      xs |> List.partition (fun ((dirs, _base), _) -> List_.null dirs)
     in
     let groups =
       rest
       |> group_by_mapped_key (fun ((dirs, _base), _) ->
              (* would be a file if null dirs *)
-             assert (not (null dirs));
+             assert (not (List_.null dirs));
              List_.hd_exn "unexpected empty list" dirs)
     in
 
@@ -5733,13 +5486,6 @@ let _ =
     )
 *)
 
-let unix_diff_strings s1 s2 =
-  let tmp1 = UCommon.new_temp_file "s1" "" in
-  write_file tmp1 s1;
-  let tmp2 = UCommon.new_temp_file "s2" "" in
-  write_file tmp2 s2;
-  unix_diff tmp1 tmp2
-
 (*****************************************************************************)
 (* Misc/test *)
 (*****************************************************************************)
@@ -5747,9 +5493,10 @@ let unix_diff_strings s1 s2 =
 let (generic_print : 'a -> string -> string) =
  fun v typ ->
   write_value v "/tmp/generic_print";
-  command2
+  USys.command
     ("printf 'let (v:" ^ typ ^ ")= Common.get_value \"/tmp/generic_print\" "
-   ^ " in v;;' " ^ " | calc.top > /tmp/result_generic_print");
+   ^ " in v;;' " ^ " | calc.top > /tmp/result_generic_print")
+  |> ignore;
   cat "/tmp/result_generic_print"
   |> drop_while (fun e -> not (e =~ "^#.*"))
   |> tail |> unlines

@@ -13,8 +13,6 @@
  * license.txt for more details.
  *)
 
-open Sexplib.Std
-
 let logger = Logging.get_logger [ __MODULE__ ]
 
 (*###########################################################################*)
@@ -51,7 +49,23 @@ let jsoo = ref false
 
 let spf = Printf.sprintf
 
-exception UnixExit of int
+(* alt: We tried using 'Unix.sigprocmask' to temporarily block 'SIGALRM' but
+ * somehow, in rare cases (e.g.run p/default on repos/brotli/js/decode.js) we
+ * end up calling 'Time_limit.set_timeout' while 'SIGALRM' is *blocked*.
+ * Unclear why, are we perhaps calling 'set_timeout' from within a
+ * 'finally'? Or is 'Unix.sigprocmask' failing to restore the signal mask?
+ * It works if we block/unblock (rather than block/restore) but this does not
+ * play well with calls to 'protect' nested inside 'finally' blocks.
+ *)
+let protect ~finally work =
+  (* nosemgrep: no-fun-protect *)
+  try Fun.protect ~finally work with
+  | Fun.Finally_raised exn1 as exn ->
+      (* Just re-raise whatever exception was raised during a 'finally',
+       * drop 'Finally_raised'.
+       *)
+      logger#error "protect: %s" (exn |> Exception.catch |> Exception.to_string);
+      Exception.catch_and_reraise exn1
 
 (*****************************************************************************)
 (* Equality *)
@@ -68,6 +82,15 @@ let ( =*= ) = ( = )
  *)
 let ( = ) = String.equal
 
+(* Used to give choice whether id_info fields should be checked in semgrep *)
+let equal_ref_option equal_f a b =
+  match (!a, !b) with
+  | None, None -> true
+  | Some a, Some b -> equal_f a b
+  | Some _, None
+  | None, Some _ ->
+      false
+
 (*****************************************************************************)
 (* Disable physical equality/inequality operators *)
 (*****************************************************************************)
@@ -79,15 +102,6 @@ type hidden_by_your_nanny = unit
 
 let ( == ) : hidden_by_your_nanny = ()
 let ( != ) : hidden_by_your_nanny = ()
-
-(* Used to allow choice of whether id_info fields should be checked *)
-let equal_ref_option equal_f a b =
-  match (!a, !b) with
-  | None, None -> true
-  | Some a, Some b -> equal_f a b
-  | Some _, None
-  | None, Some _ ->
-      false
 
 (*****************************************************************************)
 (* Comparison *)
@@ -175,20 +189,6 @@ let before_return f v =
   v
 
 (*****************************************************************************)
-(* Composition/Control *)
-(*****************************************************************************)
-
-let protect ~finally work =
-  (* nosemgrep: no-fun-protect *)
-  try Fun.protect ~finally work with
-  | Fun.Finally_raised exn1 as exn ->
-      (* Just re-raise whatever exception was raised during a 'finally',
-       * drop 'Finally_raised'.
-       *)
-      logger#error "protect: %s" (exn |> Exception.catch |> Exception.to_string);
-      Exception.catch_and_reraise exn1
-
-(*****************************************************************************)
 (* Profiling *)
 (*****************************************************************************)
 (* see also profiling/Profiling.ml now *)
@@ -254,6 +254,7 @@ let memoized ?(use_cache = true) h k f =
 exception Todo
 exception Impossible
 exception Multi_found (* to be consistent with Not_found *)
+exception UnixExit of int
 
 let exn_to_s exn = Printexc.to_string exn
 
@@ -269,7 +270,6 @@ let exn_to_s exn = Printexc.to_string exn
 (*****************************************************************************)
 (* Composition/Control *)
 (*****************************************************************************)
-(* now earlier *)
 
 (*****************************************************************************)
 (* Error management *)
@@ -311,33 +311,12 @@ let exn_to_s exn = Printexc.to_string exn
 
 let ( let* ) = Option.bind
 
-(* type 'a maybe  = Just of 'a | None *)
-let ( >>= ) m1 m2 =
-  match m1 with
-  | None -> None
-  | Some x -> m2 x
-
 (*
  (*http://roscidus.com/blog/blog/2013/10/13/ocaml-tips/#handling-option-types*)
   let (|?) maybe default =
     match maybe with
     | Some v -> v
     | None -> Lazy.force default
-*)
-(* deprecated: use Option.map
-   let map_opt f = function
-   | None -> None
-   | Some x -> Some (f x)
-*)
-(* deprecated: use Option.iter
-   let do_option f = function
-   | None -> ()
-   | Some x -> f x
-*)
-(* deprecated: use Option.to_list
-   let opt_to_list : 'a option -> 'a list = function
-   | None -> []
-   | Some x -> [x]
 *)
 
 (* not sure why but can't use let (?:) a b = ... then at use time ocaml yells*)
@@ -387,8 +366,6 @@ let candidate_match_func s re =
 
 let match_func s re = candidate_match_func s re
 let ( =~ ) s re = match_func s re
-let split sep s = Str.split (Str.regexp sep) s
-let join sep xs = String.concat sep xs
 
 (*****************************************************************************)
 (* Strings *)
@@ -397,15 +374,6 @@ let join sep xs = String.concat sep xs
 (* ruby *)
 let i_to_s = string_of_int
 let s_to_i = int_of_string
-let null_string s = s = ""
-
-let contains s1 s2 =
-  let re = Str.regexp_string s2 in
-  try
-    ignore (Str.search_forward re s1 0);
-    true
-  with
-  | Not_found -> false
 
 (*****************************************************************************)
 (* Dates *)

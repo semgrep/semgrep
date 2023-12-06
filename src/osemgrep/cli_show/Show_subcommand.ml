@@ -17,6 +17,11 @@ module J = JSON
  *)
 
 (*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+type caps = < stdout : Cap.Console.stdout ; network : Cap.Network.t >
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
@@ -55,16 +60,18 @@ let dump_v_to_format ~json (v : OCaml.v) =
 (* Main logic *)
 (*****************************************************************************)
 
-let run (conf : Show_CLI.conf) : Exit_code.t =
+let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
+  let stdout = caps#stdout in
   match conf.show_kind with
   | Version ->
-      Out.put Version.version;
+      CapConsole.out stdout Version.version;
       (* TODO? opportunity to perform version-check? *)
       Exit_code.ok
-  | Identity -> Whoami.print Whoami.Identity
-  | Deployment -> Whoami.print Whoami.Deployment
+  | Identity -> Whoami.print caps Whoami.Identity
+  | Deployment -> Whoami.print caps Whoami.Deployment
   | SupportedLanguages ->
-      Out.put (spf "supported languages are: %s" Xlang.supported_xlangs);
+      CapConsole.out stdout
+        (spf "supported languages are: %s" Xlang.supported_xlangs);
       Exit_code.ok (* dumpers *)
   (* TODO? error management? improve error message for parse errors?
    * or let CLI.safe_run do the right thing?
@@ -74,7 +81,7 @@ let run (conf : Show_CLI.conf) : Exit_code.t =
       let any = Parse_pattern.parse_pattern lang ~print_errors:true str in
       let v = Meta_AST.vof_any any in
       let s = dump_v_to_format ~json:conf.json v in
-      Out.put s;
+      CapConsole.out stdout s;
       Exit_code.ok
   | DumpAST (file, lang) ->
       (* mostly a copy paste of Core_CLI.dump_ast *)
@@ -83,9 +90,9 @@ let run (conf : Show_CLI.conf) : Exit_code.t =
       in
       let v = Meta_AST.vof_any (AST_generic.Pr ast) in
       (* 80 columns is too little *)
-      Format.set_margin 120;
+      UFormat.set_margin 120;
       let s = dump_v_to_format ~json:conf.json v in
-      Out.put s;
+      CapConsole.out stdout s;
       Exit_code.ok
   | DumpConfig config_str ->
       let settings = Semgrep_settings.load () in
@@ -98,7 +105,8 @@ let run (conf : Show_CLI.conf) : Exit_code.t =
           ~token_opt ~registry_caching:false config
       in
       rules_and_errors
-      |> List.iter (fun x -> Out.put (Rule_fetching.show_rules_and_origin x));
+      |> List.iter (fun x ->
+             CapConsole.out stdout (Rule_fetching.show_rules_and_origin x));
       Exit_code.ok
   | DumpEnginePath _pro -> failwith "TODO: dump-engine-path not implemented yet"
   | DumpCommandForCore ->
@@ -107,6 +115,6 @@ let run (conf : Show_CLI.conf) : Exit_code.t =
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let main (argv : string array) : Exit_code.t =
+let main (caps : caps) (argv : string array) : Exit_code.t =
   let conf = Show_CLI.parse_argv argv in
-  run conf
+  run_conf caps conf

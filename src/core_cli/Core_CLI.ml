@@ -393,7 +393,7 @@ let all_actions () =
       Arg_.mk_action_n_conv Fpath.v (Check_rule.stat_files Parse_rule.parse) );
     ( "-test_rules",
       " <files or dirs>",
-      Arg_.mk_action_n_arg Test_engine.test_rules );
+      Arg_.mk_action_n_conv Fpath.v Test_engine.test_rules );
     ( "-parse_rules",
       " <files or dirs>",
       Arg_.mk_action_n_arg Test_parsing.test_parse_rules );
@@ -467,7 +467,7 @@ let options actions =
       " report detailed matching times as part of the JSON response. Implies \
        '-json'." );
     ( "-pvar",
-      Arg.String (fun s -> mvars := Common.split "," s),
+      Arg.String (fun s -> mvars := String_.split ~sep:"," s),
       " <metavars> print the metavariables, not the matched code" );
     ( "-error_recovery",
       Arg.Unit
@@ -603,7 +603,7 @@ let register_unix_exn_printers () =
 let register_exception_printers () =
   register_stdlib_exn_printers ();
   register_unix_exn_printers ();
-  SPcre.register_exception_printer ()
+  Pcre_.register_exception_printer ()
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -644,7 +644,7 @@ let main_no_exn_handler (sys_argv : string array) : unit =
     @ (if Sys.getenv_opt env_profile <> None then [ "-profile" ] else [])
     @
     match Sys.getenv_opt env_extra with
-    | Some s -> Common.split "[ \t]+" s
+    | Some s -> String_.split ~sep:"[ \t]+" s
     | None -> []
   in
 
@@ -687,7 +687,7 @@ let main_no_exn_handler (sys_argv : string array) : unit =
       (* --------------------------------------------------------- *)
       | xs when List.mem config.action (Arg_.action_list (all_actions ())) ->
           Arg_.do_action config.action xs (all_actions ())
-      | _ when not (Common.null_string config.action) ->
+      | _ when not (String_.empty config.action) ->
           failwith ("unrecognized action or wrong params: " ^ !action)
       (* --------------------------------------------------------- *)
       (* main entry *)

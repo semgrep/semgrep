@@ -51,7 +51,7 @@ type rule = {
   fix_regexp : Rule.fix_regexp option;
 }
 
-and rules = rule list (*e: type [[Rule.rules]] *) [@@deriving show]
+and rules = rule list [@@deriving show]
 
 (* alias *)
 type t = rule [@@deriving show]

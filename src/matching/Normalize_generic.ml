@@ -12,7 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open Common (* >>= *)
+open Common
 open AST_generic
 
 (*****************************************************************************)
@@ -62,12 +62,14 @@ let normalize_import_opt is_pattern i =
         (* Drop the local aliases *)
         List_.map fst imports
       in
-      full_module_names is_pattern module_name (Some imports) >>= fun x ->
+      let* x = full_module_names is_pattern module_name (Some imports) in
       Some (t, x)
   | ImportAs (t, module_name, _alias_opt) ->
-      full_module_names is_pattern module_name None >>= fun x -> Some (t, x)
+      let* x = full_module_names is_pattern module_name None in
+      Some (t, x)
   | ImportAll (t, module_name, _t2) ->
-      full_module_names is_pattern module_name None >>= fun x -> Some (t, x)
+      let* x = full_module_names is_pattern module_name None in
+      Some (t, x)
   | Package _
   | PackageEnd _
   | Pragma _

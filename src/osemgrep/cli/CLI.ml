@@ -106,9 +106,10 @@ let known_subcommands =
     "install-ci";
     "interactive";
     "show";
+    "test";
   ]
 
-let dispatch_subcommand argv =
+let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
   match Array.to_list argv with
   (* impossible because argv[0] contains the program name *)
   | [] -> assert false
@@ -117,7 +118,7 @@ let dispatch_subcommand argv =
    *)
   | [ _ ]
   | [ _; "--experimental" ] ->
-      Help.print_help ();
+      Help.print_help caps#stdout;
       Migration.abort_if_use_of_legacy_dot_semgrep_yml ();
       Exit_code.ok
   | [ _; ("-h" | "--help") ]
@@ -128,7 +129,7 @@ let dispatch_subcommand argv =
    *)
   | [ _; ("-h" | "--help"); "--experimental" ]
   | [ _; "--experimental"; ("-h" | "--help") ] ->
-      Help.print_semgrep_dashdash_help ();
+      Help.print_semgrep_dashdash_help caps#stdout;
       Exit_code.ok
   | argv0 :: args -> (
       let subcmd, subcmd_args =
@@ -163,18 +164,27 @@ let dispatch_subcommand argv =
          *)
         | "install-semgrep-pro" when experimental ->
             Install_semgrep_pro_subcommand.main subcmd_argv
-        | "publish" when experimental -> Publish_subcommand.main subcmd_argv
-        | "login" when experimental -> Login_subcommand.main subcmd_argv
+        | "publish" when experimental ->
+            Publish_subcommand.main
+              (caps :> < Cap.stdout ; Cap.network >)
+              subcmd_argv
+        | "login" when experimental ->
+            Login_subcommand.main
+              (caps :> < Cap.stdout ; Cap.network >)
+              subcmd_argv
         | "logout" when experimental -> Logout_subcommand.main subcmd_argv
         | "lsp" -> Lsp_subcommand.main subcmd_argv
         (* partial support, still use Pysemgrep.Fallback in it *)
-        | "scan" -> Scan_subcommand.main subcmd_argv
-        | "ci" -> Ci_subcommand.main subcmd_argv
+        | "scan" -> Scan_subcommand.main caps subcmd_argv
+        | "ci" -> Ci_subcommand.main caps subcmd_argv
         (* osemgrep-only: and by default! no need experimental! *)
         | "install-ci" -> Install_subcommand.main subcmd_argv
         | "interactive" -> Interactive_subcommand.main subcmd_argv
-        | "show" -> Show_subcommand.main subcmd_argv
-        (* LATER: "test" *)
+        | "show" ->
+            Show_subcommand.main
+              (caps :> < Cap.stdout ; Cap.network >)
+              subcmd_argv
+        | "test" -> Test_subcommand.main subcmd_argv
         | _else_ ->
             if experimental then
               (* this should never happen because we default to 'scan',
@@ -233,7 +243,7 @@ let before_exit ~profile () : unit =
 (*****************************************************************************)
 
 (* called from ../../main/Main.ml *)
-let main (argv : string array) : Exit_code.t =
+let main (caps : Cap.all_caps) (argv : string array) : Exit_code.t =
   Printexc.record_backtrace true;
   let debug = Array.mem "--debug" argv in
   let profile = Array.mem "--profile" argv in
@@ -259,7 +269,7 @@ let main (argv : string array) : Exit_code.t =
    * > ignoring SIGXFSZ, continued attempts to increase the size of a file
    * > beyond the limit will fail with errno set to EFBIG.
    *)
-  Sys.set_signal Sys.sigxfsz Sys.Signal_ignore;
+  CapSys.set_signal caps#signal Sys.sigxfsz Sys.Signal_ignore;
 
   (* TODO? We used to tune the garbage collector but from profiling
      we found that the effect was small. Meanwhile, the memory
@@ -291,7 +301,7 @@ let main (argv : string array) : Exit_code.t =
   metrics_init ();
   (* TOPORT: maybe_set_git_safe_directories() *)
   (* TOADAPT? adapt more of Common.boilerplate? *)
-  let exit_code = safe_run ~debug (fun () -> dispatch_subcommand argv) in
+  let exit_code = safe_run ~debug (fun () -> dispatch_subcommand caps argv) in
   Metrics_.add_exit_code exit_code;
   send_metrics ();
   before_exit ~profile ();

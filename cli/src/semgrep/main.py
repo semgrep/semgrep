@@ -8,6 +8,7 @@ from semgrep.cli import cli
 # to call semgrep via cli/bin/semgrep because the Python Semgrep package
 # will soon disappear, hence the use of main.py here, not __main__.py
 
+
 # This is the entrypoint for the `pysemgrep` command.
 def main() -> int:
     # To match the program usage help between pysemgrep (legacy)

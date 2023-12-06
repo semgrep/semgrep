@@ -100,7 +100,7 @@ let with_mocks f =
 (* Tests *)
 (*****************************************************************************)
 
-let test_publish () =
+let test_publish caps () =
   let tests_path = tests_path () in
   with_test_env (fun () ->
       with_mocks (fun () ->
@@ -117,22 +117,23 @@ let test_publish () =
           (* should require login *)
           with_logs
             ~f:(fun () ->
-              Publish_subcommand.main [| "semgrep-publish"; !!valid_target |])
+              Publish_subcommand.main caps
+                [| "semgrep-publish"; !!valid_target |])
             ~final:(fun res ->
               assert (res.exit_code =*= Exit_code.fatal);
               assert (
-                Common.contains res.logs
-                  "run `semgrep login` before using upload"));
+                String_.contains res.logs
+                  ~term:"run `semgrep login` before using upload"));
 
           (* log back in *)
           Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->
               with_logs
-                ~f:(fun () -> Login_subcommand.main [| "semgrep-login" |])
+                ~f:(fun () -> Login_subcommand.main caps [| "semgrep-login" |])
                 ~final:(fun res -> assert (res.exit_code =*= Exit_code.ok)));
 
           (* fails if no rule specified *)
           with_logs
-            ~f:(fun () -> Publish_subcommand.main [| "semgrep-publish" |])
+            ~f:(fun () -> Publish_subcommand.main caps [| "semgrep-publish" |])
             ~final:(fun res -> assert (res.exit_code =*= Exit_code.fatal));
 
           (* fails if invalid rule specified *)
@@ -141,10 +142,10 @@ let test_publish () =
               let path =
                 tests_path / "e2e" / "targets" / "semgrep-publish" / "invalid"
               in
-              Publish_subcommand.main [| "semgrep-publish"; !!path |])
+              Publish_subcommand.main caps [| "semgrep-publish"; !!path |])
             ~final:(fun res ->
               assert (res.exit_code =*= Exit_code.fatal);
-              assert (Common.contains res.logs "Invalid rule definition:"));
+              assert (String_.contains res.logs ~term:"Invalid rule definition:"));
 
           (* fails if a yaml with more than one rule is specified *)
           with_logs
@@ -152,28 +153,30 @@ let test_publish () =
               let path =
                 tests_path / "e2e" / "targets" / "semgrep-publish" / "multirule"
               in
-              Publish_subcommand.main [| "semgrep-publish"; !!path |])
+              Publish_subcommand.main caps [| "semgrep-publish"; !!path |])
             ~final:(fun res ->
               assert (res.exit_code =*= Exit_code.fatal);
               assert (
-                Common.contains res.logs
-                  "Rule contains more than one rule: only yaml files with a \
-                   single can be published"));
+                String_.contains res.logs
+                  ~term:
+                    "Rule contains more than one rule: only yaml files with a \
+                     single can be published"));
 
           with_logs
             ~f:(fun () ->
-              Publish_subcommand.main
+              Publish_subcommand.main caps
                 [| "semgrep-publish"; "--visibility=public"; !!valid_target |])
             ~final:(fun res ->
               assert (res.exit_code =*= Exit_code.fatal);
               assert (
-                Common.contains res.logs
-                  "Only one public rule can be uploaded at a time: specify a \
-                   single Semgrep rule"));
+                String_.contains res.logs
+                  ~term:
+                    "Only one public rule can be uploaded at a time: specify a \
+                     single Semgrep rule"));
 
           with_logs
             ~f:(fun () ->
-              Publish_subcommand.main
+              Publish_subcommand.main caps
                 [|
                   "semgrep-publish";
                   "--visibility=public";
@@ -182,8 +185,8 @@ let test_publish () =
             ~final:(fun res ->
               assert (res.exit_code =*= Exit_code.fatal);
               assert (
-                Common.contains res.logs
-                  "--visibility=public requires --registry-id"));
+                String_.contains res.logs
+                  ~term:"--visibility=public requires --registry-id"));
 
           ()))
 
@@ -191,5 +194,5 @@ let test_publish () =
 (* Entry point *)
 (*****************************************************************************)
 
-let tests =
-  pack_tests "Osemgrep Publish (e2e)" [ ("test_publish", test_publish) ]
+let tests caps =
+  pack_tests "Osemgrep Publish (e2e)" [ ("test_publish", test_publish caps) ]

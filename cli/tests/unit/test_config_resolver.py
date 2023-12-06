@@ -26,7 +26,7 @@ def mock_env(monkeypatch):
 @pytest.fixture
 def mocked_state(mocker):
     mocked = mocker.MagicMock()
-    mocked.request_id = uuid4()
+    mocked.local_scan_id = uuid4()
     mocked.env.semgrep_url = API_URL
     mocker.patch("semgrep.config_resolver.get_state", return_value=mocked)
     return mocked

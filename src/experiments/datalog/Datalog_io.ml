@@ -39,7 +39,7 @@ let string_of_value = function
   | Z i -> spf "%d" i
 
 let csv_of_tuple xs =
-  (xs |> List_.map string_of_value |> Common.join ",") ^ "\n"
+  (xs |> List_.map string_of_value |> String.concat ",") ^ "\n"
 
 (*****************************************************************************)
 (* Write *)

@@ -277,7 +277,7 @@ let git_tmp_path () =
 
 let assert_contains (json : Json.t) str =
   let json_str = YS.to_string json in
-  if not (Common.contains json_str str) then
+  if not (String_.contains ~term:str json_str) then
     Alcotest.failf "Expected string `%s` in response %s" str json_str
 
 let mock_files () : _ * Fpath.t list =
@@ -647,7 +647,7 @@ let check_startup info folders (files : Fpath.t list) =
 
   let scanned_files =
     List.filter
-      (fun f -> not (Common.contains (Fpath.to_string f) "existing"))
+      (fun f -> not (String_.contains (Fpath.to_string f) ~term:"existing"))
       files
   in
 
@@ -813,7 +813,8 @@ let test_ls_ext () =
 
           let scanned_files =
             List.filter
-              (fun f -> not (Common.contains (Fpath.to_string f) "existing"))
+              (fun f ->
+                not (String_.contains (Fpath.to_string f) ~term:"existing"))
               files
           in
           let%lwt num_ids =
@@ -852,7 +853,8 @@ let test_ls_ext () =
                        notif.params |> Option.get |> Structured.yojson_of_t
                        |> member "uri"
                      in
-                     if Common.contains (YS.to_string uri) "modified" then
+                     if String_.contains (YS.to_string uri) ~term:"modified"
+                     then
                        assert (
                          List.length
                            (notif.params |> Option.get |> Structured.yojson_of_t
@@ -907,7 +909,7 @@ let test_ls_multi () =
       let files = workspace1_files @ workspace2_files in
       let scanned_files =
         List.filter
-          (fun f -> not (Common.contains (Fpath.to_string f) "existing"))
+          (fun f -> not (String_.contains (Fpath.to_string f) ~term:"existing"))
           files
       in
 
@@ -923,8 +925,8 @@ let test_ls_multi () =
                let%lwt notif = receive_notification info in
                (* If it's a workspace we removed, then we expect no diagnostics *)
                if
-                 Common.contains (Fpath.to_string file)
-                   (Fpath.to_string workspace1_root)
+                 String_.contains (Fpath.to_string file)
+                   ~term:(Fpath.to_string workspace1_root)
                then (
                  Alcotest.(check int)
                    "check number of diagnostics is good"

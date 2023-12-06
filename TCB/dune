@@ -1,4 +1,5 @@
-; Trusted Computing Base (see https://en.wikipedia.org/wiki/Trusted_computing_base)
+; The OCaml Trusted Computing Base!
+; see https://en.wikipedia.org/wiki/Trusted_computing_base for more info
 (library
  (public_name TCB)
  (wrapped false)

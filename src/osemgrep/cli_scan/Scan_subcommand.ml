@@ -284,17 +284,17 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
   let extract_sig renamed m =
     let rule_id = m.Pattern_match.rule_id in
     let path =
-      m.Pattern_match.file |> fun p ->
-      renamed
-      >>= List_.find_some_opt (fun (before, after) ->
-              if after = p then Some before else None)
+      !!(m.Pattern_match.file) |> fun p ->
+      Option.bind renamed
+        (List_.find_some_opt (fun (before, after) ->
+             if after = p then Some before else None))
       |> Option.value ~default:p
     in
     let start_range, end_range = m.Pattern_match.range_loc in
     let syntactic_ctx =
       UFile.lines_of_file
         (start_range.pos.line, end_range.pos.line)
-        (Fpath.v m.Pattern_match.file)
+        m.Pattern_match.file
     in
     (rule_id, path, syntactic_ctx)
   in
@@ -388,7 +388,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
                   in
                   let paths_in_match =
                     r.matches_with_fixes
-                    |> List_.map (fun (m, _) -> m.Pattern_match.file)
+                    |> List_.map (fun (m, _) -> !!(m.Pattern_match.file))
                     |> prepare_targets
                   in
                   let paths_in_scanned =
@@ -728,7 +728,7 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
+let run_conf (caps : Cap.all_caps) (conf : Scan_CLI.conf) : Exit_code.t =
   (* coupling: if you modify the pysemgrep fallback code below, you
    * probably also need to modify it in Ci_subcommand.ml
    *)
@@ -782,10 +782,14 @@ let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
       Out.put Version.version;
       (* TOPORT: if enable_version_check: version_check() *)
       Exit_code.ok
-  | _ when conf.test <> None -> Test_subcommand.run (Common2.some conf.test)
+  | _ when conf.test <> None ->
+      Test_subcommand.run_conf (Common2.some conf.test)
   | _ when conf.validate <> None ->
-      Validate_subcommand.run (Common2.some conf.validate)
-  | _ when conf.show <> None -> Show_subcommand.run (Common2.some conf.show)
+      Validate_subcommand.run_conf (Common2.some conf.validate)
+  | _ when conf.show <> None ->
+      Show_subcommand.run_conf
+        (caps :> < Cap.stdout ; Cap.network >)
+        (Common2.some conf.show)
   | _ when conf.ls ->
       Ls_subcommand.run ~target_roots:conf.target_roots
         ~targeting_conf:conf.targeting_conf ()
@@ -799,6 +803,6 @@ let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
 (* Entry point *)
 (*****************************************************************************)
 
-let main (argv : string array) : Exit_code.t =
+let main (caps : Cap.all_caps) (argv : string array) : Exit_code.t =
   let conf = Scan_CLI.parse_argv argv in
-  run_conf conf
+  run_conf caps conf

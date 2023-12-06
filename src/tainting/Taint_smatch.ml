@@ -12,8 +12,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
 open Common
+open Fpath_.Operators
 module PM = Pattern_match
 
 type overlap = float
@@ -89,7 +89,7 @@ module Top_matches = struct
   let _debug xs =
     xs |> S.elements
     |> List_.map (fun (Any m) ->
-           m.spec_id ^ ":" ^ Range.content_at_range m.spec_pm.file m.range)
+           m.spec_id ^ ":" ^ Range.content_at_range !!(m.spec_pm.file) m.range)
     |> String.concat " ; "
 
   let rec add (Any m' as x') top_matches =

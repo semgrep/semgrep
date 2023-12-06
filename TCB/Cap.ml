@@ -60,8 +60,7 @@ module FS = struct
   type root_w = cap
   type cwd_r = cap
   type cwd_w = cap
-  type tmp_r = cap
-  type tmp_w = cap
+  type tmp = cap
 end
 
 (**************************************************************************)
@@ -159,68 +158,46 @@ end
 
 type root = < root_r : FS.root_r ; root_w : FS.root_w >
 type cwd = < cwd_r : FS.cwd_r ; cwd_w : FS.cwd_w >
-type tmp = < tmp_r : FS.tmp_r ; tmp_w : FS.tmp_w >
+type tmp = < tmp : FS.tmp >
 type fs = < root ; cwd ; tmp >
-type console = < stdin : Console.stdin ; stdout : Console.stdout >
-
-type process_multi =
-  < fork : Process.fork ; domain : Process.domain ; thread : Process.thread >
-
-type process_single = < signal : Process.signal ; exit : Process.exit >
-
-type process =
-  < console
-  ; process_single
-  ; process_multi
-  ; argv : Process.argv
-  ; env : Process.env >
+type stdin = < stdin : Console.stdin >
+type stdout = < stdout : Console.stdout >
+type console = < stdin ; stdout >
+type fork = < fork : Process.fork >
+type domain = < domain : Process.domain >
+type thread = < thread : Process.thread >
+type process_multi = < fork ; domain ; thread >
+type signal = < signal : Process.signal >
+type exit = < exit : Process.exit >
+type process_single = < signal ; exit >
+type argv = < argv : Process.argv >
+type env = < env : Process.env >
+type process = < console ; process_single ; process_multi ; argv ; env >
+type exec = < exec : Exec.t >
 
 (* TODO: extend *)
 type network = < network : Network.t >
-type misc = < time : Misc.time ; random : Misc.random >
+type time = < time : Misc.time >
+type random = < random : Misc.random >
+type misc = < time ; random >
 
 (* alt: called "Stdenv.Base.env" in EIO *)
 type all_caps =
   < process
   ; fs (* a mix of fs and process_multi as it requires both *)
-  ; exec : Exec.t
+  ; exec
   ; network
   ; misc >
-
-(*
-(* "subtypes" of powerbox *)
-type no_network = {
-  process : process_powerbox;
-  fs : fs_powerbox;
-  exec : Exec.t;
-}
-
-type no_exec = { process : process_powerbox; fs : fs_powerbox }
-type no_fs = { process : process_powerbox }
-
-type no_concurrency = {
-  stdin : Console.stdin;
-  stdout : Console.stdout;
-  argv : Process.argv;
-  env : Process.env;
-}
-
-*)
 
 type no_cap = unit (* better than [type no_cap = cap] :) *)
 
 let powerbox : all_caps =
   object
-    (*let fs_powerbox : fs_powerbox = object *)
     method root_r = ()
     method root_w = ()
     method cwd_r = ()
     method cwd_w = ()
-    method tmp_r = ()
-    method tmp_w = ()
-    (*end*)
-
-    (*let process_powerbox : process_powerbox = object *)
+    method tmp = ()
     method stdin = ()
     method stdout = ()
     method argv = ()
@@ -230,13 +207,8 @@ let powerbox : all_caps =
     method exit = ()
     method domain = ()
     method thread = ()
-    (*  end *)
-
-    (* let misc_powerbox : misc_powerbox = object  *)
     method time = ()
     method random = ()
-    (*end *)
-
     method exec = ()
     method network = ()
   end

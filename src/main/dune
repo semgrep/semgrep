@@ -1,14 +1,18 @@
 (executables
  (names Main)
+ (flags
+   (:include flags.sexp)
+;   (:standard -open TCB -open Commons_TCB)
+   )
  (libraries
+    TCB
     semgrep_core_cli
     osemgrep_cli
     lwt_platform.unix
  )
  (preprocess (pps ppx_profiling))
- ; for ocamldebug
- (modes native byte)
- (flags (:include flags.sexp))
+  ; for ocamldebug
+  (modes native byte)
 )
 
 

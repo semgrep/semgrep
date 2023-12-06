@@ -181,7 +181,6 @@ manifest = (
 def parse_poetry(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
-
     parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
         DependencyFileToParse(
             lockfile_path,

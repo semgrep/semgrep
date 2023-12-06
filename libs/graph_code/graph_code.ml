@@ -380,7 +380,7 @@ let privacy_of_node n g =
 
 (* see also Graph_code_class_analysis.class_method_of_string *)
 let shortname_of_node (s, _kind) =
-  let xs = Common.split "[.]" s in
+  let xs = String_.split ~sep:"[.]" s in
   let s = Common2.list_last xs in
   (* undo what was in gensym, otherwise codemap for instance will not
    * recognize the entity as one hovers on its name in a file. *)

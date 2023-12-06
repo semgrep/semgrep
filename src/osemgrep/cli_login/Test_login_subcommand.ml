@@ -81,7 +81,7 @@ let test_logout_not_logged_in : Alcotest_ext.simple_test =
             assert (res.logs =~ ".*You are not logged in");
             assert (res.exit_code =*= Exit_code.ok))) )
 
-let test_login_no_tty : Alcotest_ext.simple_test =
+let test_login_no_tty caps : Alcotest_ext.simple_test =
   ( __FUNCTION__,
     with_login_test_env (fun () ->
         with_logs
@@ -92,7 +92,7 @@ let test_login_no_tty : Alcotest_ext.simple_test =
             let old_stdin = Unix.dup Unix.stdin in
             let in_, _out_ = Unix.pipe () in
             Unix.dup2 in_ Unix.stdin;
-            let exit_code = Login_subcommand.main [| "semgrep-login" |] in
+            let exit_code = Login_subcommand.main caps [| "semgrep-login" |] in
             Unix.dup2 old_stdin Unix.stdin;
             exit_code)
           ~final:(fun res ->
@@ -117,21 +117,23 @@ let fake_deployment =
   }
 |}
 
-let test_login_with_env_token : Alcotest_ext.simple_test =
+let test_login_with_env_token caps : Alcotest_ext.simple_test =
   ( __FUNCTION__,
     with_login_test_env (fun () ->
         Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->
             with_fake_deployment_response fake_deployment (fun () ->
                 (* login with env token *)
                 with_logs
-                  ~f:(fun () -> Login_subcommand.main [| "semgrep-login" |])
+                  ~f:(fun () ->
+                    Login_subcommand.main caps [| "semgrep-login" |])
                   ~final:(fun res ->
                     assert (res.logs =~ "[.\n]*Saved access token");
                     assert (res.exit_code =*= Exit_code.ok));
 
                 (* login should fail on second call *)
                 with_logs
-                  ~f:(fun () -> Login_subcommand.main [| "semgrep-login" |])
+                  ~f:(fun () ->
+                    Login_subcommand.main caps [| "semgrep-login" |])
                   ~final:(fun res ->
                     assert (res.logs =~ ".*You're already logged in");
                     assert (res.exit_code =*= Exit_code.fatal));
@@ -154,6 +156,10 @@ let test_login_with_env_token : Alcotest_ext.simple_test =
 (* Entry point *)
 (*****************************************************************************)
 
-let tests =
+let tests caps =
   pack_tests "Osemgrep Login (e2e)"
-    [ test_logout_not_logged_in; test_login_no_tty; test_login_with_env_token ]
+    [
+      test_logout_not_logged_in;
+      test_login_no_tty caps;
+      test_login_with_env_token caps;
+    ]

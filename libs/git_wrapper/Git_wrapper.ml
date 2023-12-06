@@ -42,6 +42,11 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Types and constants *)
 (*****************************************************************************)
 
+(* TODO: could also do
+ * [type git_cap] abstract type and then
+ * let git_cap_of_exec _caps = unit
+ *)
+
 type status = {
   added : string list;
   modified : string list;
@@ -87,7 +92,7 @@ exception Error of string
  * it's a multiline diff
  *)
 let _git_diff_lines_re = {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
-let git_diff_lines_re = SPcre.regexp _git_diff_lines_re
+let git_diff_lines_re = Pcre_.regexp _git_diff_lines_re
 let getcwd () = USys.getcwd () |> Fpath.v
 
 (*
@@ -120,7 +125,7 @@ let range_of_git_diff lines =
     let end_ = change_count + start in
     (start, end_)
   in
-  let matched_ranges = SPcre.exec_all ~rex:git_diff_lines_re lines in
+  let matched_ranges = Pcre_.exec_all ~rex:git_diff_lines_re lines in
   (* get the first capture group, then optionally split the comma if multiline
      diff *)
   match matched_ranges with
@@ -136,7 +141,7 @@ let range_of_git_diff lines =
 (* Entry points *)
 (*****************************************************************************)
 
-let git_check_output (args : Cmd.args) : string =
+let git_check_output _caps (args : Cmd.args) : string =
   let cmd : Cmd.t = (git, args) in
   match UCmd.string_of_run ~trim:true cmd with
   | Ok (str, (_, `Exited 0)) -> str
@@ -425,7 +430,7 @@ let git_log_json_format =
    \"contributor\": {\"commit_author_name\": \"%an\", \"commit_author_email\": \
    \"%ae\"}}"
 
-let time_to_str (timestamp : Common2.float_time) : string =
+let time_to_str (timestamp : float) : string =
   let date = Unix.gmtime timestamp in
   let year = date.tm_year + 1900 in
   let month = date.tm_mon + 1 in

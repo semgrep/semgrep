@@ -310,7 +310,7 @@ let print_match ?str (config : Core_scan_config.t) match_ ii_of_any =
                   |> Core_text_output.join_with_space_if_needed
               | None -> failwith (spf "the metavariable '%s' was not bound" x))
      in
-     Out.put (spf "%s:%d: %s" file line (Common.join ":" strings_metavars));
+     Out.put (spf "%s:%d: %s" file line (String.concat ":" strings_metavars));
      ());
   Option.iter (print_taint_trace ~format:config.match_format) taint_trace
 
@@ -377,7 +377,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
     max_match_per_file matches =
   let per_files =
     matches
-    |> List_.map (fun (m, _) -> (m.Pattern_match.file, m))
+    |> List_.map (fun (m, _) -> (!!(m.Pattern_match.file), m))
     |> Assoc.group_assoc_bykey_eff
   in
 
@@ -390,7 +390,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
   let new_matches =
     matches
     |> List_.exclude (fun (m, _) ->
-           Hashtbl.mem offending_files m.Pattern_match.file)
+           Hashtbl.mem offending_files !!(m.Pattern_match.file))
   in
   let new_errors, new_skipped =
     offending_file_list
@@ -794,14 +794,6 @@ let extracted_targets_of_config (config : Core_scan_config.t)
   in
   (in_targets, adjusters)
 
-(* adjust the match location for extracted targets *)
-let adjust_location_extracted_targets_if_needed (adjusters : Extract.adjusters)
-    (file : Fpath.t) (matches : RP.matches_single_file) : RP.matches_single_file
-    =
-  match Hashtbl.find_opt adjusters.loc_adjuster (Extracted file) with
-  | Some match_result_loc_adjuster -> match_result_loc_adjuster matches
-  | None -> matches
-
 (*****************************************************************************)
 (* a "core" scan *)
 (*****************************************************************************)
@@ -890,7 +882,7 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
     Match_rules.check ~match_hook ~timeout:config.timeout
       ~timeout_threshold:config.timeout_threshold xconf applicable_rules xtarget
     |> set_matches_to_proprietary_origin_if_needed xtarget
-    |> adjust_location_extracted_targets_if_needed adjusters file
+    |> Extract.adjust_location_extracted_targets_if_needed adjusters file
   in
   (* So we can display matches incrementally in osemgrep!
    * Note that this is run in a child process of Parmap, so

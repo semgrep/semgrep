@@ -37,7 +37,7 @@ let rule_id_re_str = {|(?:[:=][\s]?(?P<ids>([^,\s](?:[,\s]+)?)+))?|}
    * nosem and nosemgrep should be interchangeable
 *)
 let nosem_inline_re_str = {| nosem(?:grep)?|} ^ rule_id_re_str
-let nosem_inline_re = SPcre.regexp nosem_inline_re_str ~flags:[ `CASELESS ]
+let nosem_inline_re = Pcre_.regexp nosem_inline_re_str ~flags:[ `CASELESS ]
 
 (*
    A nosemgrep comment alone on its line.
@@ -52,7 +52,7 @@ let nosem_inline_re = SPcre.regexp nosem_inline_re_str ~flags:[ `CASELESS ]
      print('nosemgrep');
 *)
 let nosem_previous_line_re =
-  SPcre.regexp
+  Pcre_.regexp
     ({|^[^a-zA-Z0-9]* nosem(?:grep)?|} ^ rule_id_re_str)
     ~flags:[ `CASELESS ]
 
@@ -65,10 +65,10 @@ let nosem_previous_line_re =
    array IDs (["ids"]) collected during this recognition.
 *)
 let recognise_and_collect ~rex line =
-  SPcre.exec_all ~rex line
+  Pcre_.exec_all ~rex line
   |> Result.map
        (Array.map (fun subst ->
-            match SPcre.get_named_substring rex "ids" subst with
+            match Pcre_.get_named_substring rex "ids" subst with
             | Ok opt_s -> opt_s
             | Error _errmsg ->
                 (* TODO: log something? *)

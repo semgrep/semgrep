@@ -363,7 +363,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix =
   let equiv = [] in
   Match_patterns.check ~hook
     (Rule_options.default_config, equiv)
-    [ rule ] (!!file, lang, ast)
+    [ rule ] (file, lang, ast)
 
 (*
    For each input file with the language's extension, locate a pattern file
@@ -655,11 +655,7 @@ let get_extract_source_lang file rules =
 let extract_tests () =
   let path = tests_path / "extract" in
   pack_tests_pro "extract mode"
-    (let tests, _total_mismatch, _print_summary =
-       Test_engine.make_tests ~unit_testing:true
-         ~get_xlang:(Some get_extract_source_lang) [ path ]
-     in
-     tests)
+    (Test_engine.make_tests ~get_xlang:get_extract_source_lang [ path ])
 
 (*****************************************************************************)
 (* Tainting tests *)
@@ -815,13 +811,9 @@ let lang_tainting_tests () =
 
 let full_rule_regression_tests () =
   let path = tests_path / "rules" in
-  let tests1, _total_mismatch, _print_summary =
-    Test_engine.make_tests ~unit_testing:true ~prepend_lang:true [ path ]
-  in
+  let tests1 = Test_engine.make_tests ~prepend_lang:true [ path ] in
   let path = tests_path / "rules_v2" in
-  let tests2, _total_mismatch, _print_summary =
-    Test_engine.make_tests ~unit_testing:true ~prepend_lang:true [ path ]
-  in
+  let tests2 = Test_engine.make_tests ~prepend_lang:true [ path ] in
   let tests = tests1 @ tests2 in
   let groups =
     tests
@@ -849,11 +841,7 @@ let full_rule_regression_tests () =
  *)
 let full_rule_taint_maturity_tests () =
   let path = tests_path / "taint_maturity" in
-  pack_tests_pro "taint maturity"
-    (let tests, _total_mismatch, _print_summary =
-       Test_engine.make_tests ~unit_testing:true [ path ]
-     in
-     tests)
+  pack_tests_pro "taint maturity" (Test_engine.make_tests [ path ])
 
 (*
    Special exclusions for Semgrep JS
@@ -876,9 +864,7 @@ let mark_todo_js test =
  *)
 let full_rule_semgrep_rules_regression_tests () =
   let path = tests_path / "semgrep-rules" in
-  let tests, _total_mismatch, _print_summary =
-    Test_engine.make_tests ~unit_testing:true [ path ]
-  in
+  let tests = Test_engine.make_tests [ path ] in
   let groups =
     tests
     |> List_.map_filter (fun (test : Alcotest_ext.test) ->

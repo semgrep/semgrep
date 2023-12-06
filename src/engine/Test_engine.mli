@@ -1,13 +1,21 @@
 (*
-   Create a list of tests for unit testing and a function to print
-   a summary once each test ran once.
+   Create a list of tests for regression testing
 *)
 val make_tests :
-  ?unit_testing:bool ->
-  ?get_xlang:(Fpath.t -> Rule.rules -> Xlang.t) option ->
+  ?fail_callback:
+    ((* default to Alcotest.fail msg *)
+     int (* num errors *) ->
+    string (* msg *) ->
+    unit) ->
+  (* default to Test_engine.single_xlang_from_rules *)
+  ?get_xlang:(Fpath.t -> Rule.rules -> Xlang.t) ->
+  (* default to false *)
   ?prepend_lang:bool ->
   Fpath.t list ->
-  Alcotest_ext.test list * int ref (* total mismatch *) * (unit -> unit)
+  Alcotest_ext.test list
 
-(* Run the tests and print a summary. *)
-val test_rules : ?unit_testing:bool -> string (* filename *) list -> unit
+(* [test_rules dirs] run the tests discovered under [dirs]
+ * and print a summary.
+ * This is what 'semgrep-core -test_rules' run.
+ *)
+val test_rules : Fpath.t list -> unit

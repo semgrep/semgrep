@@ -81,6 +81,15 @@ let is_extract_rule (r : Rule.t) : bool =
   | `Steps _ ->
       false
 
+let partition_rules (rules : Rule.t list) : Rule.t list * Rule.extract_rule list
+    =
+  Either_.partition_either
+    (fun r ->
+      match r.Rule.mode with
+      | `Extract _ as e -> Right { r with mode = e }
+      | mode -> Left { r with mode })
+    rules
+
 (* this does not just filter, this also returns a better type *)
 let filter_extract_rules (rules : Rule.t list) : Rule.extract_rule list =
   rules
@@ -104,3 +113,11 @@ let adjusters_of_extracted_targets
          Hashtbl.add fn_tbl extracted adjuster;
          Hashtbl.add file_tbl extracted original);
   { loc_adjuster = fn_tbl; original_target = file_tbl }
+
+(* adjust the match location for extracted targets *)
+let adjust_location_extracted_targets_if_needed (adjusters : adjusters)
+    (file : Fpath.t) (matches : Core_result.matches_single_file) :
+    Core_result.matches_single_file =
+  match Hashtbl.find_opt adjusters.loc_adjuster (Extracted file) with
+  | Some match_result_loc_adjuster -> match_result_loc_adjuster matches
+  | None -> matches

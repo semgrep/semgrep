@@ -143,7 +143,7 @@ class Rule:
 
     @property
     def metadata(self) -> Dict[str, Any]:
-        return self._raw.get("metadata", {})
+        return self._raw.get("metadata") or {}
 
     @property
     def is_blocking(self) -> bool:
@@ -292,10 +292,10 @@ class Rule:
                 for key in sorted(raw.keys()):
                     next_raw = raw.get(key)
                     if next_raw is not None:
-                        patterns_to_add.append(get_subrules(next_raw))  # type: ignore[arg-type]
+                        patterns_to_add.append(get_subrules(next_raw))
             elif isinstance(raw, list):
                 for p in raw:
-                    patterns_to_add.append(get_subrules(p))  # type: ignore[arg-type]
+                    patterns_to_add.append(get_subrules(p))
             else:
                 raise ValueError(
                     f"This rule contains an unexpected pattern key: {self.id}:\n {str(raw)}"

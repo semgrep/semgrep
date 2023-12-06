@@ -76,13 +76,13 @@ rules:
           - pattern: Pcre.exec_all
           - pattern: Pcre.split
     message: >-
-      You should use one of the equivalent functions in SPcre, which
+      You should use one of the equivalent functions in Pcre_, which
       automatically sets some flags and handles exceptions.
     languages: [ocaml]
     severity: ERROR
     paths:
       exclude:
-        - SPcre.ml
+        - Pcre_.ml
 
   - id: no-list-map2
     pattern: List.map2

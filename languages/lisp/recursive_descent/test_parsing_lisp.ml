@@ -43,8 +43,6 @@ let test_parse_lisp xs =
 
 let actions () =
   [
-    ("-tokens_lisp", "   <file>", Arg_helpers.mk_action_1_arg test_tokens_lisp);
-    ( "-parse_lisp",
-      "   <files or dirs>",
-      Arg_helpers.mk_action_n_arg test_parse_lisp );
+    ("-tokens_lisp", "   <file>", Arg_.mk_action_1_arg test_tokens_lisp);
+    ("-parse_lisp", "   <files or dirs>", Arg_.mk_action_n_arg test_parse_lisp);
   ]
