@@ -441,8 +441,8 @@ and stmt env st =
         ( t,
           ForClassic
             ( expr_or_vars env est1,
-              Common2.fmap (expr env) est2,
-              Common2.fmap (expr env) est3 ),
+              Option.map (expr env) est2,
+              Option.map (expr env) est3 ),
           stmt env st )
   | AsmStmt
       ( asm_tk,

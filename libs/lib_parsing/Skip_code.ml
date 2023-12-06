@@ -110,7 +110,7 @@ let filter_files skip_list ~root relative_paths : Fpath.t list * Fpath.t list =
 
 (* copy paste of h_version_control/git.ml *)
 let find_vcs_root_from_absolute_path file =
-  let xs = String_.split ~sep:"/" (Common2.dirname !!file) in
+  let xs = String_.split ~sep:"/" (Filename.dirname !!file) in
   let xxs = Common2.inits xs in
   xxs |> List.rev
   |> List_.find_some_opt (fun xs ->

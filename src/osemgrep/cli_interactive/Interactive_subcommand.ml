@@ -678,7 +678,7 @@ let split_line (t1 : Tok.location) (t2 : Tok.location) (row, line) =
       Common2.string_of_chars (List.rev r_rev) )
 
 let preview_of_match { Pattern_match.range_loc = t1, t2; _ } file state =
-  let lines = Common2.cat file in
+  let lines = UCommon.cat file in
   let start_line = t1.pos.line in
   let end_line = t2.pos.line in
   let max_height = height_of_preview state.term in

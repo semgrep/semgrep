@@ -578,9 +578,9 @@ and exception_variable (env : env) ((v1, v2) : CST.exception_variable) =
 and map_anon_choice_rescue_d627f1b (env : env)
     (x : CST.anon_choice_rescue_d627f1b) =
   match x with
-  | `Rescue x -> Common2.Left3 (rescue env x)
-  | `Else x -> Middle3 (else_ env x)
-  | `Ensure x -> Right3 (ensure env x)
+  | `Rescue x -> Either_.Left3 (rescue env x)
+  | `Else x -> Either_.Middle3 (else_ env x)
+  | `Ensure x -> Either_.Right3 (ensure env x)
 
 and body_statement_ (env : env) (x : CST.body_statement_) : body_exn =
   let stmts, v2 =
@@ -592,7 +592,7 @@ and body_statement_ (env : env) (x : CST.body_statement_) : body_exn =
         | Some v1 -> (statements env v1, v2))
   in
   let rescue_exprs, else_expr, ensure_expr =
-    Common2.partition_either3 (map_anon_choice_rescue_d627f1b env) v2
+    Either_.partition_either3 (map_anon_choice_rescue_d627f1b env) v2
   in
   let ensure_expr =
     match ensure_expr with

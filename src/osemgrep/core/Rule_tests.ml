@@ -1,3 +1,4 @@
+open Fpath_.Operators
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -90,11 +91,9 @@ let relatively_eq parent_target target parent_config config =
   | _ -> false
 
 let get_config_filenames original_config =
-  if Common2.is_file (Fpath.to_string original_config) then [ original_config ]
+  if Common2.is_file !!original_config then [ original_config ]
   else
-    let configs =
-      Common2.(glob (spf "%s/**" (Fpath.to_string original_config)))
-    in
+    let configs = Common2.glob (Common.spf "%s/**" !!original_config) in
     configs
     |> List_.map_filter (fun file ->
            let fpath = Fpath.v file in
@@ -137,16 +136,13 @@ let get_config_filenames original_config =
 *)
 
 let get_config_test_filenames ~original_config ~configs ~original_target =
-  if
-    Common2.is_file (Fpath.to_string original_config)
-    && Common2.is_file (Fpath.to_string original_target)
-  then [ (original_config, [ original_target ]) ]
+  if Common2.is_file !!original_config && Common2.is_file !!original_target then
+    [ (original_config, [ original_target ]) ]
   else
     let targets =
-      (if Common2.is_file (Fpath.to_string original_target) then
-         Common2.(
-           glob (spf "%s/**" (Fpath.to_string (Fpath.parent original_target))))
-       else Common2.(glob (spf "%s/**" (Fpath.to_string original_target))))
+      (if Common2.is_file !!original_target then
+         Common2.glob (Common.spf "%s/**" !!(Fpath.parent original_target))
+       else Common2.glob (Common.spf "%s/**" !!original_target))
       |> List_.map Fpath.v
     in
 

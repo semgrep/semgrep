@@ -617,7 +617,7 @@ and hint_type env = function
       A.HintTuple (t1, List.map (hint_type env) (comma_list v1), t2)
   | HintCallback (_, (_, args, ret), _) ->
       let args = List.map (hint_type env) (comma_list_dots (brace args)) in
-      let ret = Common2.fmap (fun (_, t) -> hint_type env t) ret in
+      let ret = Option.map (fun (_, t) -> hint_type env t) ret in
       A.HintCallback (args, ret)
   | HintTypeConst (lhs, tok, rhs) ->
       A.HintTypeConst (hint_type env lhs, tok, hint_type env rhs)
@@ -651,8 +651,7 @@ and func_def env f =
     A.f_name = ident env f.f_name;
     A.f_attrs = attributes env f.f_attrs;
     A.f_params = params;
-    A.f_return_type =
-      Common2.fmap (fun (_, t) -> hint_type env t) f.f_return_type;
+    A.f_return_type = Option.map (fun (_, t) -> hint_type env t) f.f_return_type;
     A.f_body = A.Block (lb, List.fold_right (stmt_and_def env) body [], rb);
     A.f_kind = (A.Function, f.f_tok);
     A.m_modifiers = [];
@@ -668,7 +667,7 @@ and lambda_def env (l_use, ld) =
     A.f_name = (A.special "_lambda", wrap ld.f_tok);
     A.f_params = params;
     A.f_return_type =
-      Common2.fmap (fun (_, t) -> hint_type env t) ld.f_return_type;
+      Option.map (fun (_, t) -> hint_type env t) ld.f_return_type;
     A.f_body = A.Block (lb, List.fold_right (stmt_and_def env) body [], rb);
     A.f_kind = (A.AnonLambda, ld.f_tok);
     A.m_modifiers = [];
@@ -836,7 +835,7 @@ and method_def env m =
   let params = comma_list_dots_params (parameter env) params in
   (*
   let implicits =
-    params |> Common.map_filter (fun p ->
+    params |> List_.map_filter (fun p ->
       match p.p_modifier with
       | None -> None
       | Some modifier -> Some (p.p_name, modifier, p.p_type)
@@ -875,7 +874,7 @@ and method_def env m =
       A.f_attrs = attributes env m.f_attrs;
       A.f_params = params;
       A.f_return_type =
-        Common2.fmap (fun (_, t) -> hint_type env t) m.f_return_type;
+        Option.map (fun (_, t) -> hint_type env t) m.f_return_type;
       A.f_body = (* implicit_assigns @ *) method_body env m.f_body;
       A.f_kind = (A.Method, m.f_tok);
       A.l_uses = [];

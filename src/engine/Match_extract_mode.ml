@@ -91,7 +91,7 @@ let mk_extract_target (dst_lang : Xlang.t) (contents : string) :
     extracted_target =
   let suffix = Xlang.informative_suffix dst_lang in
   let f = UCommon.new_temp_file "extracted" suffix in
-  Common2.write_file ~file:f contents;
+  UCommon.write_file ~file:f contents;
   Extracted (Fpath.v f)
 
 (* Unquote string *)
