@@ -363,7 +363,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix =
   let equiv = [] in
   Match_patterns.check ~hook
     (Rule_options.default_config, equiv)
-    [ rule ] (!!file, lang, ast)
+    [ rule ] (file, lang, ast)
 
 (*
    For each input file with the language's extension, locate a pattern file

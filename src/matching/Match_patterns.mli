@@ -1,10 +1,14 @@
+(* This is the entry point function for matching/. check() below is called
+ * from engine/ in Match_search_mode.matches_of_patterns, called itself
+ * from Match_rules.check().
+ *)
 val check :
   hook:(Pattern_match.t -> unit) ->
   ?mvar_context:Metavariable.bindings option ->
   ?range_filter:(Tok.location * Tok.location -> bool) ->
   Rule_options.t * Equivalence.equivalences ->
   Mini_rule.rules ->
-  string (* filename *) * Lang.t * Target.t ->
+  Fpath.t * Lang.t * Target.t ->
   Pattern_match.t list
 (** Match mini-rules (patterns) against a target file.
   *

@@ -63,11 +63,12 @@ repos:
           - --ignore-init-module-imports
           - --exclude=/cli/src/semgrep/output_from_core.py
 
-  - repo: https://github.com/psf/black
-    rev: 23.11.0
-    hooks:
-      - id: black
-        args: [--exclude=/cli/src/semgrep/output_from_core.py]
+#TODO: commented Dec 6 2023 because generate precommit runtime errors
+#  - repo: https://github.com/psf/black
+#    rev: 23.11.0
+#    hooks:
+#      - id: black
+#        args: [--exclude=/cli/src/semgrep/output_from_core.py]
 
   - repo: https://github.com/asottile/reorder_python_imports
     rev: v3.12.0

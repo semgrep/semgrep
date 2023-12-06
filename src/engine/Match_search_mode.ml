@@ -243,12 +243,12 @@ let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
 
             if !debug_timeout || !debug_matches then
               (* debugging path *)
-              debug_semgrep config mini_rules !!file lang ast
+              debug_semgrep config mini_rules file lang ast
             else
               (* regular path *)
               Match_patterns.check
                 ~hook:(fun _ -> ())
-                ?mvar_context ?range_filter config mini_rules (!!file, lang, ast))
+                ?mvar_context ?range_filter config mini_rules (file, lang, ast))
       in
       let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
       RP.make_match_result matches errors
