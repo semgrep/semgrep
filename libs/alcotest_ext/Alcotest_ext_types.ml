@@ -36,10 +36,15 @@ type expected_outcome =
   | Should_succeed
   | Should_fail of string (* explains why we expect this test to fail *)
 
+(*
+   The expected output is optional so as to allow new tests for which
+   there's no expected output yet but there's an expected outcome defined
+   in the test suite.
+*)
 (* private? (part of test status) *)
 type expectation = {
   expected_outcome : expected_outcome;
-  expected_output : captured_output;
+  expected_output : (captured_output, string) Result.t;
 }
 
 (*
@@ -49,7 +54,18 @@ type expectation = {
    (success when expected outcome was Failed), ...
 *)
 (* private? *)
-type status = { expectation : expectation option; result : result option }
+type status = { expectation : expectation; result : (result, string) Result.t }
+
+(* A summary of the 'status' object using the same language as pytest.
+
+   PASS: expected success, actual success
+   FAIL: expected success, actual failure
+   XFAIL: expected failure, actual failure
+   XPASS: expected failure, actual success
+   MISSING: missing data
+*)
+(* private? *)
+type status_class = PASS | FAIL | XFAIL | XPASS | NEW | MISSING
 
 (* public *)
 type output_kind =

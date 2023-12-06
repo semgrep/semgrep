@@ -17,42 +17,6 @@
      * Does the test result match our expectations?
 *)
 
-(*
-
-Types:
-
-  result = (outcome, output)
-  expectation = (outcome, output)
-  status = (result, expectation)
-
-Primitives
-----------
-
-init_status_workspace : ?path:string -> unit -> unit
-
-get_outcome : test -> outcome
-set_outcome : test -> outcome -> unit
-clear_outcome : test -> unit
-
-init_expectation_workspace : ?path:string -> unit -> unit
-
-get_output : test -> output option
-set_output : test -> output -> unit
-clear_output : test -> unit
-
-get_expected_output : test -> output option
-set_expected_output : test -> output -> unit
-clear_expected_output : test -> unit
-
-Higher-level functions
-----------------------
-
-store_result : test -> result -> unit
-get_status : test -> status
-approve : test -> (unit, string) result
-cleanup_unknown_tests : test list -> unit
-*)
-
 open Printf
 module T = Alcotest_ext_types
 
@@ -67,6 +31,22 @@ module T = Alcotest_ext_types
 
 let list_map f xs = List.rev_map f xs |> List.rev
 let ( // ) a b = if Filename.is_relative b then Filename.concat a b else b
+
+exception Local_message of string
+
+(* Return the first error message and drop the other messages in case
+   of an error. *)
+let list_result_of_result_list (xs : ('a, _) Result.t list) :
+    ('a list, _) Result.t =
+  try
+    Ok
+      (list_map
+         (function
+           | Ok x -> x
+           | Error msg -> raise (Local_message msg))
+         xs)
+  with
+  | Local_message msg -> Error msg
 
 let rec mkdir_if_not_exists dir =
   match (Unix.stat dir).st_kind with
@@ -216,7 +196,7 @@ let set_output (test : _ T.test) data =
   else List.iter2 (fun path data -> write_file path data) paths data
 
 let clear_output (test : _ T.test) =
-  test |> get_output_paths |> list_map remove_file
+  test |> get_output_paths |> List.iter remove_file
 
 let get_expected_output_paths (test : _ T.test) =
   test.output_kind |> names_of_output
@@ -238,6 +218,19 @@ let clear_expected_output (test : _ T.test) =
 (* High-level interface *)
 (**************************************************************************)
 
+let captured_output_of_data (kind : T.output_kind) (data : string list) :
+    T.captured_output =
+  match (kind, data) with
+  | Ignore_output, [] -> Ignored
+  | Stdout, [ out ] -> Captured_stdout out
+  | Stderr, [ err ] -> Captured_stderr err
+  | Merged_stdout_stderr, [ out; err ] -> Captured_stdout_stderr (out, err)
+  | Separate_stdout_stderr, [ data ] -> Captured_merged data
+  | ( ( Ignore_output | Stdout | Stderr | Merged_stdout_stderr
+      | Separate_stdout_stderr ),
+      _ ) ->
+      assert false
+
 let data_of_captured_output (output : T.captured_output) : string list =
   match output with
   | Ignored -> []
@@ -246,34 +239,83 @@ let data_of_captured_output (output : T.captured_output) : string list =
   | Captured_stdout_stderr (out, err) -> [ out; err ]
   | Captured_merged data -> [ data ]
 
-let store_result (test : _ T.test) (res : T.result) =
+let save_result (test : _ T.test) (res : T.result) =
   let data = data_of_captured_output res.captured_output in
   set_outcome test res.outcome;
   set_output test data
+
+let get_expectation (test : _ T.test) : T.expectation =
+  let expected_output =
+    test |> get_expected_output |> list_result_of_result_list
+    |> Result.map (captured_output_of_data test.output_kind)
+  in
+  { expected_outcome = test.expected_outcome; expected_output }
+
+let get_result (test : _ T.test) : (T.result, string) Result.t =
+  match get_outcome test with
+  | Error _ as res -> res
+  | Ok outcome -> (
+      let opt_captured_output =
+        test |> get_output |> list_result_of_result_list
+        |> Result.map (captured_output_of_data test.output_kind)
+      in
+      match opt_captured_output with
+      | Error _ as res -> res
+      | Ok captured_output -> Ok { outcome; captured_output })
+
+let get_status (test : _ T.test) : T.status =
+  let expectation = get_expectation test in
+  let result = get_result test in
+  { expectation; result }
+
+let delete_result (test : _ T.test) =
+  clear_outcome test;
+  clear_output test
+
+let status_class_of_status ?(accept_missing_expected_output = false)
+    (status : T.status) : T.status_class =
+  match status.result with
+  | Error _ -> MISSING
+  | Ok result -> (
+      let expect = status.expectation in
+      let output_matches =
+        match (expect.expected_output, result.captured_output) with
+        | Ok output1, output2 when output1 = output2 -> true
+        | Error _, _ when accept_missing_expected_output -> true
+        | _ -> false
+      in
+      match (expect.expected_outcome, (result.outcome, output_matches)) with
+      | Should_succeed, (Succeeded, true) -> PASS
+      | Should_succeed, (Failed, _ | _, false) -> FAIL
+      | Should_fail _, (Succeeded, true) -> XPASS
+      | Should_fail _, (Failed, _ | _, false) -> XFAIL)
 
 let check_outcome (test : _ T.test) =
   match (test.expected_outcome, get_outcome test) with
   | Should_succeed, Ok Succeeded
   | Should_fail _, Ok Failed ->
-      ()
+      Ok ()
   | Should_succeed, Ok Failed ->
-      failwith (sprintf "Cannot approve test %S because it failed." test.id)
+      Error (sprintf "Cannot approve test %S because it failed." test.id)
   | Should_fail reason, Ok Succeeded ->
-      failwith
+      Error
         (sprintf
            "Cannot approve test %S because it succeeded but was expected to \
             fail.\n\
             The original reason given was:\n\
            \  %S" test.id reason)
-  | _, Error msg -> failwith msg
+  | _, Error msg -> Error msg
 
 let approve_new_output (test : _ T.test) =
-  check_outcome test;
-  clear_expected_output test;
-  let data =
-    test |> get_expected_output
-    |> list_map (function
-         | Ok data -> data
-         | Error msg -> failwith msg)
-  in
-  set_expected_output test data
+  match check_outcome test with
+  | Error _ as res -> res
+  | Ok () ->
+      clear_expected_output test;
+      let data =
+        test |> get_expected_output
+        |> list_map (function
+             | Ok data -> data
+             | Error msg -> failwith msg)
+      in
+      set_expected_output test data;
+      Ok ()

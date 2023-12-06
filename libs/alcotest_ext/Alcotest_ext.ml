@@ -26,8 +26,6 @@ type expected_outcome = Alcotest_ext_types.expected_outcome =
   | Should_succeed
   | Should_fail of string
 
-type outcome = Alcotest_ext_types.outcome = Succeeded | Failed
-
 module Tag = Alcotest_ext_tag
 
 type output_kind = Alcotest_ext_types.output_kind =
