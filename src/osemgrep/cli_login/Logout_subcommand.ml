@@ -13,7 +13,7 @@
    exit code. *)
 let run_conf (conf : Logout_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
-  let settings = Semgrep_settings.load () in
+  let settings = Semgrep_settings.load ~include_env:false () in
   match settings.Semgrep_settings.api_token with
   | None ->
       Logs.app (fun m ->

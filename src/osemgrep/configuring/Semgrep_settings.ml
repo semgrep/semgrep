@@ -78,7 +78,7 @@ let to_yaml { has_shown_metrics_notification; api_token; anonymous_user_id } =
 (* Entry points *)
 (*****************************************************************************)
 
-let load ?(maturity = Maturity.Default) () =
+let load ?(maturity = Maturity.Default) ?(include_env = true) () =
   let settings = !Semgrep_envvars.v.user_settings_file in
   Logs.debug (fun m -> m "Loading settings from %a" Fpath.pp settings);
   try
@@ -105,9 +105,11 @@ let load ?(maturity = Maturity.Default) () =
             | Ok s -> s)
       in
       let settings =
-        match !Semgrep_envvars.v.app_token with
-        | Some token -> { decoded with api_token = Some token }
-        | None -> decoded
+        if include_env then
+          match !Semgrep_envvars.v.app_token with
+          | Some token -> { decoded with api_token = Some token }
+          | None -> decoded
+        else decoded
       in
       settings
     else (
