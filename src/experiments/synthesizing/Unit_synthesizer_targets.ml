@@ -85,7 +85,8 @@ let ranges_matched lang file pattern : Range.t list =
                   minii_loc "" Out.SemgrepMatchFound
         *))
       (Rule_options.default_config, equiv)
-      [ rule ] (file, lang, ast)
+      [ rule ]
+      (Fpath.v file, lang, ast)
   in
   List_.map extract_range matches
 
