@@ -53,11 +53,19 @@ def generate_anonymous_user_id(api_token: Optional[str]) -> str:
 
 
 def generate_default_settings(api_token: Optional[str] = None) -> SettingsSchema:
-    return {
-        "has_shown_metrics_notification": False,
-        "api_token": api_token,
-        "anonymous_user_id": generate_anonymous_user_id(api_token),
-    }
+    anonymous_user_id = generate_anonymous_user_id(api_token)
+    return (
+        {
+            "has_shown_metrics_notification": False,
+            "api_token": api_token,
+            "anonymous_user_id": anonymous_user_id,
+        }
+        if api_token is not None
+        else {
+            "has_shown_metrics_notification": False,
+            "anonymous_user_id": anonymous_user_id,
+        }
+    )
 
 
 @define
