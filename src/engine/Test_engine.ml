@@ -322,7 +322,8 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
       let name = spf "Missing target file for rule file %s" !!file in
       Alcotest_ext.create ~skipped:true name test
 
-let make_tests ?fail_callback ?(get_xlang = None) ?(prepend_lang = false) xs =
+let make_tests ?fail_callback ?(get_xlang = None) ?(prepend_lang = false)
+    (xs : Fpath.t list) : unit Alcotest_ext.t list =
   let fullxs, _skipped_paths =
     xs |> UFile.files_of_dirs_or_files_no_vcs_nofilter
     |> List.filter Parse_rule.is_valid_rule_filename
@@ -331,7 +332,7 @@ let make_tests ?fail_callback ?(get_xlang = None) ?(prepend_lang = false) xs =
   fullxs
   |> List_.map (make_test_rule_file ?fail_callback ~get_xlang ~prepend_lang)
 
-let test_rules paths =
+let test_rules (paths : Fpath.t list) : unit =
   let total_mismatch = ref 0 in
   let fail_callback num_errors _msg =
     total_mismatch := !total_mismatch + num_errors
