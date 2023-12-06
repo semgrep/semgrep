@@ -324,12 +324,8 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
 
 let make_tests ?fail_callback ?(get_xlang = None) ?(prepend_lang = false)
     (xs : Fpath.t list) : unit Alcotest_ext.t list =
-  let fullxs, _skipped_paths =
-    xs |> UFile.files_of_dirs_or_files_no_vcs_nofilter
-    |> List.filter Parse_rule.is_valid_rule_filename
-    |> Skip_code.filter_files_if_skip_list ~root:xs
-  in
-  fullxs
+  xs |> UFile.files_of_dirs_or_files_no_vcs_nofilter
+  |> List.filter Parse_rule.is_valid_rule_filename
   |> List_.map (make_test_rule_file ?fail_callback ~get_xlang ~prepend_lang)
 
 let test_rules (paths : Fpath.t list) : unit =
