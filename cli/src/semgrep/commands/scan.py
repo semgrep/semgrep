@@ -479,13 +479,6 @@ def scan(
         output_format=output_format,
     )
 
-    # Implicity enable secrets if the user has specified --allow-untrusted-validators
-    if allow_untrusted_validators and not run_secrets_flag:
-        logger.debug(
-            "Enabling secrets validation since allow_untrusted_validators is set."
-        )
-        run_secrets_flag = True
-
     # Determine if we should actually run secrets validation. If the user has
     # explicitly enabled secrets validation, but are not logged in we should
     # not run secrets validation.
