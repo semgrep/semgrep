@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Fpath_.Operators
 open AST_generic
 module E = Core_error
 module J = JSON
@@ -229,10 +230,10 @@ let unsafe_match_to_match ((x : Pattern_match.t), (edit : Textedit.t option)) :
   *)
   let file =
     if
-      (x.file <> min_loc.pos.file || x.file <> max_loc.pos.file)
+      (!!(x.file) <> min_loc.pos.file || !!(x.file) <> max_loc.pos.file)
       && min_loc.pos.file <> "FAKE TOKEN LOCATION"
     then min_loc.pos.file
-    else x.file
+    else !!(x.file)
   in
   {
     check_id = x.rule_id.id;
@@ -264,7 +265,7 @@ let match_to_match ((x : Pattern_match.t), (edit : Textedit.t option)) :
      *)
   with
   | Tok.NoTokenLocation s ->
-      let loc = Tok.first_loc_of_file x.file in
+      let loc = Tok.first_loc_of_file !!(x.file) in
       let s =
         spf "NoTokenLocation with pattern %s, %s" x.rule_id.pattern_string s
       in

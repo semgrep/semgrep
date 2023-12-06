@@ -163,7 +163,7 @@ let match_rules_and_recurse m_env (file, hook, matches) rules matcher k any x =
                       let pm =
                         {
                           PM.rule_id;
-                          file = !!file;
+                          file;
                           env = mv;
                           range_loc;
                           tokens;
@@ -333,7 +333,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                               let pm =
                                 {
                                   PM.rule_id;
-                                  file = !!file;
+                                  file;
                                   env = mv;
                                   range_loc;
                                   tokens;
@@ -394,7 +394,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                 let pm =
                                   {
                                     PM.rule_id;
-                                    file = !!file;
+                                    file;
                                     env = mv;
                                     range_loc;
                                     tokens;
@@ -443,7 +443,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                   let pm =
                                     {
                                       PM.rule_id;
-                                      file = !!file;
+                                      file;
                                       env = mv;
                                       range_loc;
                                       tokens;
@@ -538,7 +538,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
                                   let pm =
                                     {
                                       PM.rule_id;
-                                      file = !!file;
+                                      file;
                                       env = mv;
                                       range_loc;
                                       tokens;

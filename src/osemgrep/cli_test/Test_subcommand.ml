@@ -1,3 +1,5 @@
+open Fpath_.Operators
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -233,7 +235,7 @@ let get_expected_and_reported_lines result test_files =
     result.Core_result.matches_with_fixes
     |> List.fold_left
          (fun reported_lines (result, _textedit) ->
-           let path = Unix.realpath result.Pattern_match.file
+           let path = Unix.realpath !!(result.Pattern_match.file)
            and check_id = Rule_ID.to_string result.rule_id.id
            and start_line = (fst result.range_loc).pos.line in
            let path_map =

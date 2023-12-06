@@ -1,3 +1,7 @@
+open Common.Operators
+open Notty
+open Notty_unix
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -17,9 +21,6 @@
  *  - completion on function names in the project! (or maybe put this in
  *    osemgrep-pro interactive)
  *)
-
-open Notty
-open Notty_unix
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -557,7 +558,7 @@ let buffer_matches_of_xtarget state (fake_rule : Rule.search_rule) xconf xtarget
     in
     matches
     |> List_.map_filter (fun (m : Pattern_match.t) ->
-           if m.file = Fpath.to_string xtarget.file then Some m
+           if m.file =*= xtarget.file then Some m
            else (
              logger#warning
                "Interactive: got match from non-current-xtarget file";
@@ -662,8 +663,8 @@ let split_line (t1 : Tok.location) (t2 : Tok.location) (row, line) =
   if row < t1.pos.line then (line, "", "")
   else if row > t2.pos.line then (line, "", "")
   else
-    let lb = if row = t1.pos.line then Some t1.pos.column else None in
-    let rb = if row = end_line then Some end_col else None in
+    let lb = if row =|= t1.pos.line then Some t1.pos.column else None in
+    let rb = if row =|= end_line then Some end_col else None in
     let l_rev, m_rev, r_rev, _ =
       String.fold_left
         (fun (l, m, r, i) c ->
@@ -860,7 +861,7 @@ let render_top_left_pane file_zipper state =
     file_zipper
     |> Framed_zipper.take lines_of_files
     |> List_.mapi (fun idx { file; _ } ->
-           if idx = Framed_zipper.relative_position file_zipper then
+           if idx =|= Framed_zipper.relative_position file_zipper then
              I.string
                A.(
                  fg (gray 19)
@@ -904,7 +905,7 @@ let render_screen ?(has_changed_query = false) state =
       let match_idx = Zipper.position matches_zipper + 1 in
       let total_matches = Zipper.length matches_zipper in
       let match_position_img =
-        if total_matches = 1 then I.void 0 0
+        if total_matches =|= 1 then I.void 0 0
         else
           I.string bg_match_position
             (Common.spf "%d/%d" match_idx total_matches)

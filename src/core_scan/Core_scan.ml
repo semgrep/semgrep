@@ -377,7 +377,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
     max_match_per_file matches =
   let per_files =
     matches
-    |> List_.map (fun (m, _) -> (m.Pattern_match.file, m))
+    |> List_.map (fun (m, _) -> (!!(m.Pattern_match.file), m))
     |> Assoc.group_assoc_bykey_eff
   in
 
@@ -390,7 +390,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
   let new_matches =
     matches
     |> List_.exclude (fun (m, _) ->
-           Hashtbl.mem offending_files m.Pattern_match.file)
+           Hashtbl.mem offending_files !!(m.Pattern_match.file))
   in
   let new_errors, new_skipped =
     offending_file_list

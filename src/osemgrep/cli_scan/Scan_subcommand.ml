@@ -284,7 +284,7 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
   let extract_sig renamed m =
     let rule_id = m.Pattern_match.rule_id in
     let path =
-      m.Pattern_match.file |> fun p ->
+      !!(m.Pattern_match.file) |> fun p ->
       Option.bind renamed
         (List_.find_some_opt (fun (before, after) ->
              if after = p then Some before else None))
@@ -294,7 +294,7 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
     let syntactic_ctx =
       UFile.lines_of_file
         (start_range.pos.line, end_range.pos.line)
-        (Fpath.v m.Pattern_match.file)
+        m.Pattern_match.file
     in
     (rule_id, path, syntactic_ctx)
   in
@@ -388,7 +388,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
                   in
                   let paths_in_match =
                     r.matches_with_fixes
-                    |> List_.map (fun (m, _) -> m.Pattern_match.file)
+                    |> List_.map (fun (m, _) -> !!(m.Pattern_match.file))
                     |> prepare_targets
                   in
                   let paths_in_scanned =
