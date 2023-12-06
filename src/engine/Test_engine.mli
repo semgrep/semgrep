@@ -7,7 +7,9 @@ val make_tests :
      int (* num errors *) ->
     string (* msg *) ->
     unit) ->
-  ?get_xlang:(Fpath.t -> Rule.rules -> Xlang.t) option ->
+  (* default to Test_engine.single_xlang_from_rules *)
+  ?get_xlang:(Fpath.t -> Rule.rules -> Xlang.t) ->
+  (* default to false *)
   ?prepend_lang:bool ->
   Fpath.t list ->
   Alcotest_ext.test list

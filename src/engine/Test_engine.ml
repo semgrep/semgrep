@@ -39,7 +39,7 @@ module In = Input_to_core_t
  *)
 
 (*****************************************************************************)
-(* Helpers *)
+(* Xlang helpers *)
 (*****************************************************************************)
 
 let (xlangs_of_rules : Rule.t list -> Xlang.t list) =
@@ -63,17 +63,13 @@ let single_xlang_from_rules (file : Fpath.t) (rules : Rule.t list) : Xlang.t =
            (Xlang.show fst));
       fst
 
-let test_name_for_target ~prepend_lang (langs : Language.t list)
-    (rule_file : Fpath.t) : string =
-  if prepend_lang then
-    let langs =
-      match langs with
-      | [] -> [ "Generic" ]
-      | _ -> List_.map Lang.to_capitalized_alnum langs
-    in
-    let lang = langs |> String.concat " " in
-    spf "%s %s" lang !!rule_file
-  else !!rule_file
+(*****************************************************************************)
+(* Xtarget helpers *)
+(*****************************************************************************)
+
+(*****************************************************************************)
+(* target helpers *)
+(*****************************************************************************)
 
 let find_target_of_yaml_file_opt (file : Fpath.t) : Fpath.t option =
   let d, b, ext = Common2.dbe_of_filename !!file in
@@ -104,6 +100,22 @@ let find_target_of_yaml_file (file : Fpath.t) : Fpath.t =
   match find_target_of_yaml_file_opt file with
   | Some x -> x
   | None -> failwith (spf "could not find a target for %s" !!file)
+
+(*****************************************************************************)
+(* Other helpers *)
+(*****************************************************************************)
+
+let test_name_for_target ~prepend_lang (langs : Language.t list)
+    (rule_file : Fpath.t) : string =
+  if prepend_lang then
+    let langs =
+      match langs with
+      | [] -> [ "Generic" ]
+      | _ -> List_.map Lang.to_capitalized_alnum langs
+    in
+    let lang = langs |> String.concat " " in
+    spf "%s %s" lang !!rule_file
+  else !!rule_file
 
 (*****************************************************************************)
 (* Checks *)
@@ -220,108 +232,102 @@ let run_check_for_extract_rules (extract_rules : Rule.extract_rule list)
 (*****************************************************************************)
 
 let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
-    ~get_xlang ~prepend_lang (rule_file : Fpath.t) : unit Alcotest_ext.t =
+    ?(get_xlang = single_xlang_from_rules) ?(prepend_lang = false)
+    (rule_file : Fpath.t) : unit Alcotest_ext.t =
   let test () =
     Logs.info (fun m -> m "processing rule file %s" !!rule_file);
-    match Parse_rule.parse rule_file with
-    | [] ->
-        Logs.err (fun m ->
-            m "file %s is empty or all rules were skipped" !!rule_file)
-    | rules -> (
-        (* just a sanity check *)
-        (* rules |> List.iter Check_rule.check; *)
-        let xlang =
-          match get_xlang with
-          | Some fn -> fn rule_file rules
-          | None -> single_xlang_from_rules rule_file rules
-        in
-        let target = find_target_of_yaml_file rule_file in
-        Logs.info (fun m -> m "processing target %s" !!target);
+    let rules = Parse_rule.parse rule_file in
+    (* TODO? sanity check rules |> List.iter Check_rule.check; *)
+    if rules =*= [] then
+      Logs.err (fun m ->
+          m "file %s is empty or all rules were skipped" !!rule_file)
+    else
+      let xlang = get_xlang rule_file rules in
+      let target = find_target_of_yaml_file rule_file in
+      Logs.info (fun m -> m "processing target %s" !!target);
 
-        (* ugly: this is just for tests/rules/inception2.yaml, to use JSON
-           to parse the pattern but YAML to parse the target *)
-        let xlang =
-          match (xlang, Lang.langs_of_filename target) with
-          | L (l, [ l2 ]), xs when not (List.mem l xs) ->
-              pr2 (spf "switching to another language: %s" (Lang.show l2));
-              Xlang.L (l2, [])
-          | _ -> xlang
-        in
+      (* ugly: this is just for tests/rules/inception2.yaml, to use JSON
+         to parse the pattern but YAML to parse the target *)
+      let xlang =
+        match (xlang, Lang.langs_of_filename target) with
+        | L (l, [ l2 ]), xs when not (List.mem l xs) ->
+            pr2 (spf "switching to another language: %s" (Lang.show l2));
+            Xlang.L (l2, [])
+        | _ -> xlang
+      in
 
-        (* expected *)
-        (* not tororuleid! not ok:! not todook:
-           see https://semgrep.dev/docs/writing-rules/testing-rules/
-           for the meaning of those labels.
-        *)
-        let regexp = ".*\\b\\(ruleid\\|todook\\):.*" in
-        let expected_error_lines =
-          E.expected_error_lines_of_files ~regexp [ !!target ]
-        in
+      (* expected *)
+      (* not tororuleid! not ok:! not todook:
+         see https://semgrep.dev/docs/writing-rules/testing-rules/
+         for the meaning of those labels.
+      *)
+      let regexp = ".*\\b\\(ruleid\\|todook\\):.*" in
+      let expected_error_lines =
+        E.expected_error_lines_of_files ~regexp [ !!target ]
+      in
 
-        (* actual *)
-        let lazy_ast_and_errors =
-          lazy
-            (match xlang with
-            | L (lang, _) ->
-                let { Parsing_result2.ast; skipped_tokens; _ } =
-                  Parse_target.parse_and_resolve_name lang !!target
-                in
-                (ast, skipped_tokens)
-            | LRegex
-            | LSpacegrep
-            | LAliengrep ->
-                assert false)
-        in
-        let xtarget =
-          {
-            Xtarget.file = target;
-            xlang;
-            lazy_content = lazy (UFile.read_file target);
-            lazy_ast_and_errors;
-          }
-        in
-        E.g_errors := [];
-        Core_profiling.mode := MTime;
-        let rules, extract_rules = Extract.partition_rules rules in
+      (* actual *)
+      let lazy_ast_and_errors =
+        lazy
+          (match xlang with
+          | L (lang, _) ->
+              let { Parsing_result2.ast; skipped_tokens; _ } =
+                Parse_target.parse_and_resolve_name lang !!target
+              in
+              (ast, skipped_tokens)
+          | LRegex
+          | LSpacegrep
+          | LAliengrep ->
+              assert false)
+      in
+      let xtarget =
+        {
+          Xtarget.file = target;
+          xlang;
+          lazy_content = lazy (UFile.read_file target);
+          lazy_ast_and_errors;
+        }
+      in
+      let rules, extract_rules = Extract.partition_rules rules in
 
-        let xconf = Match_env.default_xconfig in
-        let res =
-          try
-            (* !!!!let's go!!!! *)
-            Match_rules.check
-              ~match_hook:(fun _ _ -> ())
-              ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
-          with
-          | exn ->
-              failwith
-                (spf "exn on %s (exn = %s)" !!rule_file (Common.exn_to_s exn))
-        in
-        check_can_marshall rule_file res;
-        let eres =
-          run_check_for_extract_rules extract_rules rules rule_file xtarget
-        in
-
-        res :: eres |> List.iter (check_profiling rule_file target);
-
-        res :: eres
-        |> List.iter (fun (res : Core_result.matches_single_file) ->
-               res.matches |> List.iter Core_json_output.match_to_push_error);
-
-        check_parse_errors rule_file res.errors;
-
-        let actual_errors = !E.g_errors in
-        E.g_errors := [];
-        actual_errors
-        |> List.iter (fun e ->
-               Logs.debug (fun m -> m "found error: %s" (E.string_of_error e)));
-        match
-          E.compare_actual_to_expected actual_errors expected_error_lines
+      let xconf = Match_env.default_xconfig in
+      E.g_errors := [];
+      Core_profiling.mode := MTime;
+      let res =
+        try
+          (* !!!!let's go!!!! *)
+          Match_rules.check
+            ~match_hook:(fun _ _ -> ())
+            ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
         with
-        | Ok () -> ()
-        | Error (num_errors, msg) ->
-            pr2 msg;
-            pr2 "---";
-            fail_callback num_errors msg)
+        | exn ->
+            failwith
+              (spf "exn on %s (exn = %s)" !!rule_file (Common.exn_to_s exn))
+      in
+      check_can_marshall rule_file res;
+      let eres =
+        run_check_for_extract_rules extract_rules rules rule_file xtarget
+      in
+
+      res :: eres |> List.iter (check_profiling rule_file target);
+
+      res :: eres
+      |> List.iter (fun (res : Core_result.matches_single_file) ->
+             res.matches |> List.iter Core_json_output.match_to_push_error);
+
+      check_parse_errors rule_file res.errors;
+
+      let actual_errors = !E.g_errors in
+      E.g_errors := [];
+      actual_errors
+      |> List.iter (fun e ->
+             Logs.debug (fun m -> m "found error: %s" (E.string_of_error e)));
+      match E.compare_actual_to_expected actual_errors expected_error_lines with
+      | Ok () -> ()
+      | Error (num_errors, msg) ->
+          pr2 msg;
+          pr2 "---";
+          fail_callback num_errors msg
   in
 
   (* end of let test () *)
@@ -343,11 +349,11 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
 (* Entry points *)
 (*****************************************************************************)
 
-let make_tests ?fail_callback ?(get_xlang = None) ?(prepend_lang = false)
-    (xs : Fpath.t list) : unit Alcotest_ext.t list =
+let make_tests ?fail_callback ?get_xlang ?prepend_lang (xs : Fpath.t list) :
+    unit Alcotest_ext.t list =
   xs |> UFile.files_of_dirs_or_files_no_vcs_nofilter
   |> List.filter Parse_rule.is_valid_rule_filename
-  |> List_.map (make_test_rule_file ?fail_callback ~get_xlang ~prepend_lang)
+  |> List_.map (make_test_rule_file ?fail_callback ?get_xlang ?prepend_lang)
 
 (* semgrep-core -test_rules *)
 let test_rules (paths : Fpath.t list) : unit =
