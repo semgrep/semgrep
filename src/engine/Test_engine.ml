@@ -20,14 +20,12 @@ module E = Core_error
 module RP = Core_result
 module In = Input_to_core_t
 
-let logger = Logging.get_logger [ __MODULE__ ]
-
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
 (* This module allows to use semgrep-core -test_rules <files_or_dirs>
  * to automatically run all the semgrep rules in yaml files or directories
- * and make sure they match correctly (as specified by the special ruleid:
+ * and make sure they match correctly (as specified by the special 'ruleid:'
  * comment in it).
  *
  * This is also now used for regression testing as part of 'make test' in
@@ -35,7 +33,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *
  * This module provides a service similar to what semgrep --test provides,
  * but without requiring the Python wrapper. It is also significantly
- * faster than semgrep --test (not sure why).
+ * faster than semgrep --test.
  *
  * LATER: merge with osemgrep Test_subcommand.ml
  *)
@@ -64,6 +62,18 @@ let single_xlang_from_rules (file : Fpath.t) (rules : Rule.t list) : Xlang.t =
         (spf "too many languages found in %s, picking the first one: %s" !!file
            (Xlang.show fst));
       fst
+
+let test_name_for_target ~prepend_lang (langs : Language.t list)
+    (rule_file : Fpath.t) : string =
+  if prepend_lang then
+    let langs =
+      match langs with
+      | [] -> [ "Generic" ]
+      | _ -> List_.map Lang.to_capitalized_alnum langs
+    in
+    let lang = langs |> String.concat " " in
+    spf "%s %s" lang !!rule_file
+  else !!rule_file
 
 let find_target_of_yaml_file_opt (file : Fpath.t) : Fpath.t option =
   let d, b, ext = Common2.dbe_of_filename !!file in
@@ -96,8 +106,114 @@ let find_target_of_yaml_file (file : Fpath.t) : Fpath.t =
   | None -> failwith (spf "could not find a target for %s" !!file)
 
 (*****************************************************************************)
+(* Checks *)
+(*****************************************************************************)
+
+(* Check that the result can be marshalled, as this will be needed
+   when using Parmap! See PA-1724.
+*)
+let check_can_marshall (rule_file : Fpath.t) (res : RP.matches_single_file) :
+    unit =
+  try Marshal.to_string res [ Marshal.Closures ] |> ignore with
+  | exn ->
+      failwith (spf "exn on %s (exn = %s)" !!rule_file (Common.exn_to_s exn))
+
+let check_profiling (rule_file : Fpath.t) (target : Fpath.t)
+    (res : RP.matches_single_file) : unit =
+  match res.extra with
+  | Debug _
+  | No_info ->
+      failwith
+        "Impossible; type of res should match Report.mode, which we force to \
+         be MTime"
+  | Time { profiling } ->
+      profiling.rule_times
+      |> List.iter (fun (rule_time : Core_profiling.rule_profiling) ->
+             if not (rule_time.match_time >= 0.) then
+               (* match_time could be 0.0 if the rule contains no pattern or if the
+                  rules are skipped. Otherwise it's positive.
+               *)
+               failwith
+                 (spf "invalid value for match time: %g (rule: %s, target: %s)"
+                    rule_time.match_time !!rule_file !!target);
+             if not (rule_time.parse_time >= 0.) then
+               (* same for parse time *)
+               failwith
+                 (spf "invalid value for parse time: %g (rule: %s, target: %s)"
+                    rule_time.parse_time !!rule_file !!target))
+
+let check_parse_errors (rule_file : Fpath.t) (errors : Core_error.ErrorSet.t) :
+    unit =
+  if not (E.ErrorSet.is_empty errors) then
+    let errors =
+      E.ErrorSet.elements errors |> List_.map Core_error.show
+      |> String.concat "-----\n"
+    in
+    failwith (spf "parsing error(s) on %s:\n%s" !!rule_file errors)
+
+(*****************************************************************************)
 (* Extract mode special handling *)
 (*****************************************************************************)
+
+let run_check_for_extract_rules (extract_rules : Rule.extract_rule list)
+    (rules : Rule.t list) (rule_file : Fpath.t) (xtarget : Xtarget.t) :
+    RP.matches_single_file list =
+  (* coupling: This is basically duplicated from Core_scan
+     TODO we should test extract mode through integration tests
+     rather than duplicating all this
+  *)
+  let (extracted_targets : Extract.extracted_target_and_adjuster list) =
+    Match_extract_mode.extract
+      ~match_hook:(fun _ _ -> ())
+      ~timeout:0. ~timeout_threshold:0 extract_rules xtarget
+  in
+  let adjusters = Extract.adjusters_of_extracted_targets extracted_targets in
+  let in_targets : In.target list =
+    extracted_targets
+    |> List_.map (fun Extract.{ extracted = Extracted path; analyzer; _ } ->
+           { In.path = !!path; analyzer; products = Product.all })
+  in
+  let xconf = Match_env.default_xconfig in
+  try
+    in_targets
+    |> List_.map (fun (t : In.target) ->
+           let file = t.path in
+           let xlang = t.analyzer in
+           let lazy_ast_and_errors =
+             lazy
+               (match xlang with
+               | L (lang, _) ->
+                   let { Parsing_result2.ast; skipped_tokens; _ } =
+                     Parse_target.parse_and_resolve_name lang file
+                   in
+                   (ast, skipped_tokens)
+               | LRegex
+               | LSpacegrep
+               | LAliengrep ->
+                   assert false)
+           in
+           let xtarget =
+             {
+               Xtarget.file = Fpath.v file;
+               xlang;
+               lazy_content = lazy (UCommon.read_file file);
+               lazy_ast_and_errors;
+             }
+           in
+           let matches =
+             Match_rules.check
+               ~match_hook:(fun _ _ -> ())
+               ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
+           in
+           (* adjust the match location for extracted files *)
+           match
+             Hashtbl.find_opt adjusters.loc_adjuster (Extracted (Fpath.v file))
+           with
+           | Some match_result_loc_adjuster -> match_result_loc_adjuster matches
+           | None -> matches)
+  with
+  | exn ->
+      failwith (spf "exn on %s (exn = %s)" !!rule_file (Common.exn_to_s exn))
 
 (*****************************************************************************)
 (* Main logic *)
@@ -121,6 +237,7 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
         in
         let target = find_target_of_yaml_file rule_file in
         Logs.info (fun m -> m "processing target %s" !!target);
+
         (* ugly: this is just for tests/rules/inception2.yaml, to use JSON
            to parse the pattern but YAML to parse the target *)
         let xlang =
@@ -165,37 +282,12 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
         in
         E.g_errors := [];
         Core_profiling.mode := MTime;
-        let rules, extract_rules =
-          Either_.partition_either
-            (fun r ->
-              match r.Rule.mode with
-              | `Extract _ as e -> Right { r with mode = e }
-              | mode -> Left { r with mode })
-            rules
-        in
-        (* coupling: This is basically duplicated from Core_scan
-           TODO we should test extract mode through integration tests
-           rather than duplicating all this *)
-        let (extracted_targets : Extract.extracted_target_and_adjuster list) =
-          Match_extract_mode.extract
-            ~match_hook:(fun _ _ -> ())
-            ~timeout:0. ~timeout_threshold:0 extract_rules xtarget
-        in
-        let adjusters =
-          Extract.adjusters_of_extracted_targets extracted_targets
-        in
-        let in_targets : In.target list =
-          extracted_targets
-          |> List_.map
-               (fun Extract.{ extracted = Extracted path; analyzer; _ } ->
-                 { In.path = !!path; analyzer; products = Product.all })
-        in
+        let rules, extract_rules = Extract.partition_rules rules in
 
         let xconf = Match_env.default_xconfig in
         let res =
           try
-            (* TODO: Maybe we should be using Run_semgrep running the same
-               functions as for Semgrep CLI. *)
+            (* !!!!let's go!!!! *)
             Match_rules.check
               ~match_hook:(fun _ _ -> ())
               ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
@@ -204,99 +296,24 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
               failwith
                 (spf "exn on %s (exn = %s)" !!rule_file (Common.exn_to_s exn))
         in
-        (* Check that the result can be marshalled, as this will be needed
-           when using Parmap! See PA-1724. *)
-        (try Marshal.to_string res [ Marshal.Closures ] |> ignore with
-        | exn ->
-            failwith
-              (spf "exn on %s (exn = %s)" !!rule_file (Common.exn_to_s exn)));
+        check_can_marshall rule_file res;
         let eres =
-          try
-            in_targets
-            |> List_.map (fun (t : In.target) ->
-                   let file = t.path in
-                   let xlang = t.analyzer in
-                   let lazy_ast_and_errors =
-                     lazy
-                       (match xlang with
-                       | L (lang, _) ->
-                           let { Parsing_result2.ast; skipped_tokens; _ } =
-                             Parse_target.parse_and_resolve_name lang file
-                           in
-                           (ast, skipped_tokens)
-                       | LRegex
-                       | LSpacegrep
-                       | LAliengrep ->
-                           assert false)
-                   in
-                   let xtarget =
-                     {
-                       Xtarget.file = Fpath.v file;
-                       xlang;
-                       lazy_content = lazy (UCommon.read_file file);
-                       lazy_ast_and_errors;
-                     }
-                   in
-                   let matches =
-                     Match_rules.check
-                       ~match_hook:(fun _ _ -> ())
-                       ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
-                   in
-                   (* adjust the match location for extracted files *)
-                   match
-                     Hashtbl.find_opt adjusters.loc_adjuster
-                       (Extracted (Fpath.v file))
-                   with
-                   | Some match_result_loc_adjuster ->
-                       match_result_loc_adjuster matches
-                   | None -> matches)
-          with
-          | exn ->
-              failwith
-                (spf "exn on %s (exn = %s)" !!rule_file (Common.exn_to_s exn))
+          run_check_for_extract_rules extract_rules rules rule_file xtarget
         in
-        res :: eres
-        |> List.iter (fun (res : Core_result.matches_single_file) ->
-               match res.extra with
-               | Debug _
-               | No_info ->
-                   failwith
-                     "Impossible; type of res should match Report.mode, which \
-                      we force to be MTime"
-               | Time { profiling } ->
-                   profiling.rule_times
-                   |> List.iter
-                        (fun (rule_time : Core_profiling.rule_profiling) ->
-                          if not (rule_time.match_time >= 0.) then
-                            (* match_time could be 0.0 if the rule contains no
-                               pattern or if the
-                               rules are skipped. Otherwise it's positive. *)
-                            failwith
-                              (spf
-                                 "invalid value for match time: %g (rule: %s, \
-                                  target: %s)"
-                                 rule_time.match_time !!rule_file !!target);
-                          if not (rule_time.parse_time >= 0.) then
-                            (* same for parse time *)
-                            failwith
-                              (spf
-                                 "invalid value for parse time: %g (rule: %s, \
-                                  target: %s)"
-                                 rule_time.parse_time !!rule_file !!target)));
+
+        res :: eres |> List.iter (check_profiling rule_file target);
+
         res :: eres
         |> List.iter (fun (res : Core_result.matches_single_file) ->
                res.matches |> List.iter Core_json_output.match_to_push_error);
-        (if not (E.ErrorSet.is_empty res.errors) then
-           let errors =
-             E.ErrorSet.elements res.errors
-             |> List_.map Core_error.show |> String.concat "-----\n"
-           in
-           failwith (spf "parsing error(s) on %s:\n%s" !!rule_file errors));
+
+        check_parse_errors rule_file res.errors;
+
         let actual_errors = !E.g_errors in
         E.g_errors := [];
         actual_errors
         |> List.iter (fun e ->
-               logger#info "found error: %s" (E.string_of_error e));
+               Logs.debug (fun m -> m "found error: %s" (E.string_of_error e)));
         match
           E.compare_actual_to_expected actual_errors expected_error_lines
         with
@@ -306,23 +323,15 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
             pr2 "---";
             fail_callback num_errors msg)
   in
+
+  (* end of let test () *)
   match find_target_of_yaml_file_opt rule_file with
   | Some target_path ->
       (* This assumes we can guess the target programming language
          from the file extension. *)
       let langs = Lang.langs_of_filename target_path in
       let tags = Test_tags.tags_of_langs langs in
-      let name =
-        if prepend_lang then
-          let langs =
-            match langs with
-            | [] -> [ "Generic" ]
-            | _ -> List_.map Lang.to_capitalized_alnum langs
-          in
-          let lang = langs |> String.concat " " in
-          spf "%s %s" lang !!rule_file
-        else !!rule_file
-      in
+      let name = test_name_for_target ~prepend_lang langs rule_file in
       Alcotest_ext.create ~tags name test
   | None ->
       (* TODO: mark the test as xfail (expected to fail) instead of skipped
