@@ -81,6 +81,15 @@ let is_extract_rule (r : Rule.t) : bool =
   | `Steps _ ->
       false
 
+let partition_rules (rules : Rule.t list) : Rule.t list * Rule.extract_rule list
+    =
+  Either_.partition_either
+    (fun r ->
+      match r.Rule.mode with
+      | `Extract _ as e -> Right { r with mode = e }
+      | mode -> Left { r with mode })
+    rules
+
 (* this does not just filter, this also returns a better type *)
 let filter_extract_rules (rules : Rule.t list) : Rule.extract_rule list =
   rules

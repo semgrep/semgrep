@@ -655,7 +655,7 @@ let get_extract_source_lang file rules =
 let extract_tests () =
   let path = tests_path / "extract" in
   pack_tests_pro "extract mode"
-    (Test_engine.make_tests ~get_xlang:(Some get_extract_source_lang) [ path ])
+    (Test_engine.make_tests ~get_xlang:get_extract_source_lang [ path ])
 
 (*****************************************************************************)
 (* Tainting tests *)
