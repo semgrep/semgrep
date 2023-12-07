@@ -177,23 +177,26 @@ val pack_tests : string -> (string * (unit -> 'a)) list -> 'a t list
 val sort : 'a t list -> 'a t list
 
 (*
-   Alcotest.test is a list of Alcotest.test_case, so we need to assign
-   a test suite name to each test. This is done as follows:
-
-     "Foo>Bar>hello" -> suite name = "Foo>Bar", test name = "hello"
-
-   The speed level is set to either `Quick or `Slow for all the tests.
-   The default is `Quick.
-
-   Basic usage:
-
-     let alcotest_tests = to_alcotest my_quick_tests
-
-   Advanced usage with slow (background) tests:
-
-     let alcotest_tests =
-       to_alcotest ~speed_level:`Quick my_quick_tests
-       @ to_alcotest ~speed_level:`Slow my_slow_tests
+   Convert a test suite to be run with the Alcotest.run which provides
+   a command-line interface with the 'test' and 'list' subcommands only.
 *)
 val to_alcotest : test list -> unit Alcotest.test list
+
+(* Do we really need a special type for Lwt tests? *)
 val to_alcotest_lwt : lwt_test list -> unit Alcotest_lwt.test list
+
+(*
+   Launch the extended command-line interface with subcommands for running
+   the tests but also for checking test statuses and for approving
+   new output.
+
+   argv: command line to parse. Defaults to Sys.argv.
+   name: name of the program as shown in the --help page. Defaults to "test".
+*)
+val interpret_argv :
+  ?argv:string array ->
+  ?expectation_workspace:string ->
+  ?name:string ->
+  ?status_workspace:string ->
+  test list ->
+  int

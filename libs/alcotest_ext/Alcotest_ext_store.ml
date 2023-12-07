@@ -130,8 +130,8 @@ let make_late_init () =
 let get_status_workspace, set_status_workspace = make_late_init ()
 let get_expectation_workspace, set_expectation_workspace = make_late_init ()
 
-let init ?(status_workspace = default_status_workspace)
-    ?(expectation_workspace = default_expectation_workspace) () =
+let init ?(expectation_workspace = default_expectation_workspace)
+    ?(status_workspace = default_status_workspace) () =
   if status_workspace = expectation_workspace then
     invalid_arg
       "Alcotest_ext_store.init: status_workspace and expectation_workspace \
@@ -173,18 +173,24 @@ let get_outcome (test : _ T.test) : (T.outcome, string) Result.t =
   read_file path |> Result.map (outcome_of_string path)
 
 let clear_outcome (test : _ T.test) = test |> get_outcome_path |> remove_file
+let stdout_filename = "stdout"
+let stderr_filename = "stderr"
+let stdxxx_filename = "stdxxx"
 
 let names_of_output (output : T.output_kind) : string list =
   match output with
   | Ignore_output -> []
-  | Stdout -> [ "stdout" ]
-  | Stderr -> [ "stderr" ]
-  | Merged_stdout_stderr -> [ "stdxxx" ]
-  | Separate_stdout_stderr -> [ "stdout"; "stderr" ]
+  | Stdout -> [ stdout_filename ]
+  | Stderr -> [ stderr_filename ]
+  | Merged_stdout_stderr -> [ stdxxx_filename ]
+  | Separate_stdout_stderr -> [ stdout_filename; stderr_filename ]
+
+let get_file_path (test : _ T.test) filename =
+  get_status_workspace () // test.id // filename
 
 let get_output_paths (test : _ T.test) =
   test.output_kind |> names_of_output
-  |> list_map (fun name -> get_status_workspace () // test.id // name)
+  |> list_map (fun filename -> get_file_path test filename)
 
 let get_output (test : _ T.test) =
   test |> get_output_paths |> list_map read_file
@@ -213,6 +219,87 @@ let set_expected_output (test : _ T.test) (data : string list) =
 
 let clear_expected_output (test : _ T.test) =
   test |> get_expected_output_paths |> List.iter remove_file
+
+(**************************************************************************)
+(* Output redirection *)
+(**************************************************************************)
+
+(* Redirect e.g. stderr to stdout during the execution of the function func.
+   Usage:
+
+     with_redirect Unix.stderr Unix.stdout do_something
+
+   redirects stderr to stdout.
+*)
+let with_redirect_fd ~from ~to_ func () =
+  (* keep the original file alive *)
+  let original = Unix.dup from in
+  (* nosemgrep: no-fun-protect *)
+  Fun.protect
+    ~finally:(fun () -> Unix.close original)
+    (fun () ->
+      (* redirect to file *)
+      Unix.dup2 to_ from;
+      (* nosemgrep: no-fun-protect *)
+      Fun.protect
+        ~finally:(fun () -> (* cancel the redirect *)
+                            Unix.dup2 original from)
+        func)
+
+(* Redirect stdout or stderr to a file *)
+let with_redirect_fd_to_file fd filename func () =
+  let file = Unix.openfile filename [ O_CREAT; O_TRUNC; O_WRONLY ] 0o666 in
+  (* nosemgrep: no-fun-protect *)
+  Fun.protect
+    ~finally:(fun () -> Unix.close file)
+    (with_redirect_fd ~from:fd ~to_:file func)
+
+(* stdout/stderr redirect using buffered channels. We're careful about
+   flushing the channel of interest (from) before any redirection. *)
+let with_redirect ~from ~to_ func () =
+  flush from;
+  let from_fd = Unix.descr_of_out_channel from in
+  let to_fd = Unix.descr_of_out_channel to_ in
+  with_redirect_fd ~from:from_fd ~to_:to_fd
+    (fun () ->
+      (* nosemgrep: no-fun-protect *)
+      Fun.protect ~finally:(fun () -> flush from) func)
+    ()
+
+(* Redirect a buffered channel to a file. *)
+let with_redirect_to_file from filename func () =
+  flush from;
+  let from_fd = Unix.descr_of_out_channel from in
+  with_redirect_fd_to_file from_fd filename
+    (fun () ->
+      (* nosemgrep: no-fun-protect *)
+      Fun.protect ~finally:(fun () -> flush from) func)
+    ()
+
+let with_output_capture (test : unit T.test) =
+  let func = test.func in
+  match test.output_kind with
+  | Ignore_output -> func
+  | Stdout ->
+      with_redirect_to_file stdout (get_file_path test stdout_filename) func
+  | Stderr ->
+      with_redirect_to_file stderr (get_file_path test stderr_filename) func
+  | Merged_stdout_stderr ->
+      (* redirect stderr to stdout, then redirect stdout to stdxxx file *)
+      with_redirect ~from:stderr ~to_:stdout
+        (with_redirect_to_file stdout (get_file_path test stdxxx_filename) func)
+  | Separate_stdout_stderr ->
+      with_redirect_to_file stdout
+        (get_file_path test stdout_filename)
+        (with_redirect_to_file stderr (get_file_path test stderr_filename) func)
+
+let with_output_capture_lwt (test : unit Lwt.t T.test) =
+  (* TODO: IO redirections for Lwt *)
+  match test.output_kind with
+  | Ignore_output -> test.func
+  | _ ->
+      failwith
+        (sprintf "TODO: lwt test output capture (requested for test %s)" test.id)
 
 (**************************************************************************)
 (* High-level interface *)
@@ -275,7 +362,7 @@ let delete_result (test : _ T.test) =
 let status_class_of_status ?(accept_missing_expected_output = false)
     (status : T.status) : T.status_class =
   match status.result with
-  | Error _ -> MISSING
+  | Error _ -> MISS
   | Ok result -> (
       let expect = status.expectation in
       let output_matches =

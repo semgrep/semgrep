@@ -62,10 +62,12 @@ type status = { expectation : expectation; result : (result, string) Result.t }
    FAIL: expected success, actual failure
    XFAIL: expected failure, actual failure
    XPASS: expected failure, actual success
-   MISSING: missing data
+   MISS: missing data
+
+   Maximum string length for display: 5 characters
 *)
 (* private? *)
-type status_class = PASS | FAIL | XFAIL | XPASS | NEW | MISSING
+type status_class = PASS | FAIL | XFAIL | XPASS | MISS
 
 (* public *)
 type output_kind =

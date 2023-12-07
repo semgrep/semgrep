@@ -10,14 +10,13 @@
 #  ./test "full rule" | grep "full rule"
 
 # 'test' for running the tests or 'list' for only printing the list of tests
-subcommand=test
+subcommand=run
 options=""
 case "$(basename "$0")" in
   test)
-    options="-e"
     ;;
   *)
-    subcommand=list
+    subcommand=status
 esac
 
 ./_build/default/src/tests/test.exe "$subcommand" $options "$@"

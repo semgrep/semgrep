@@ -5,37 +5,27 @@
    Alcotest.
 *)
 
-open Printf
-
-(****************************************************************************)
-(* Helpers *)
-(****************************************************************************)
-
-(* safe version of List.map for ocaml < 5 *)
-let list_map f l = List.rev_map f l |> List.rev
-
-(* safe version of List.flatten *)
-let list_flatten ll =
-  List.fold_left (fun acc l -> List.rev_append l acc) [] ll |> List.rev
+module T = Alcotest_ext_types
+module Helpers = Alcotest_ext_helpers
 
 (****************************************************************************)
 (* Main types *)
 (****************************************************************************)
 
-type expected_outcome = Alcotest_ext_types.expected_outcome =
+type expected_outcome = T.expected_outcome =
   | Should_succeed
   | Should_fail of string
 
 module Tag = Alcotest_ext_tag
 
-type output_kind = Alcotest_ext_types.output_kind =
+type output_kind = T.output_kind =
   | Ignore_output
   | Stdout
   | Stderr
   | Merged_stdout_stderr
   | Separate_stdout_stderr
 
-type 'a t = 'a Alcotest_ext_types.test = {
+type 'a t = 'a T.test = {
   id : string;
   category : string list;
   name : string;
@@ -104,15 +94,17 @@ let update ?category ?expected_outcome ?func ?name ?output_kind ?skipped
 
 let has_tag tag test = List.mem tag test.tags
 let simple_test (name, func) = create name func
-let simple_tests simple_tests = list_map simple_test simple_tests
+let simple_tests simple_tests = Helpers.list_map simple_test simple_tests
 
 let pack_tests_pro suite_name (tests : _ list) : _ list =
-  list_map (fun x -> update x ~category:(suite_name :: x.category)) tests
+  Helpers.list_map
+    (fun x -> update x ~category:(suite_name :: x.category))
+    tests
 
 let pack_tests suite_name tests = pack_tests_pro suite_name (simple_tests tests)
 
 let pack_suites suite_name (tests : _ t list list) : _ t list =
-  tests |> list_flatten |> pack_tests_pro suite_name
+  tests |> Helpers.list_flatten |> pack_tests_pro suite_name
 
 (*
    Sort by category and test name.
@@ -123,51 +115,8 @@ let sort (tests : _ t list) : _ t list =
          let c = compare a.category b.category in
          if c <> 0 then c else String.compare a.name b.name)
 
-(*
-   Group pairs by the first value of the pair, preserving the original
-   order as much as possible.
-*)
-let group_by_key key_value_list =
-  let tbl = Hashtbl.create 100 in
-  key_value_list
-  |> List.iteri (fun pos (k, v) ->
-         let tbl_v =
-           match Hashtbl.find_opt tbl k with
-           | None -> (pos, [ v ])
-           | Some (pos, vl) -> (pos, v :: vl)
-         in
-         Hashtbl.replace tbl k tbl_v);
-  let clusters =
-    Hashtbl.fold (fun k (pos, vl) acc -> (pos, (k, List.rev vl)) :: acc) tbl []
-  in
-  clusters
-  |> List.sort (fun (pos1, _) (pos2, _) -> compare pos1 pos2)
-  |> list_map snd
-
-let to_alcotest tests : _ list =
-  tests
-  |> list_map (fun x ->
-         let tags =
-           match x.tags with
-           | [] -> ""
-           | tags ->
-               let tags =
-                 List.sort Tag.compare tags |> List.map Tag.to_string
-               in
-               sprintf " {%s}" (String.concat ", " tags)
-         in
-         let suite_name =
-           match x.category with
-           | [] -> x.name
-           | path -> String.concat " > " path
-         in
-         let suite_name = sprintf "[%s]%s %s" x.id tags suite_name in
-         let func = if x.skipped then Alcotest.skip else x.func in
-         (* This is the format expected by Alcotest: *)
-         (suite_name, (x.name, x.speed_level, func)))
-  |> group_by_key
-
-let to_alcotest_lwt = to_alcotest
+let to_alcotest = Alcotest_ext_run.to_alcotest
+let to_alcotest_lwt = Alcotest_ext_run.to_alcotest_lwt
 let registered_tests : test list ref = ref []
 let registered_lwt_tests : lwt_test list ref = ref []
 let register x = registered_tests := x :: !registered_tests
@@ -187,3 +136,4 @@ let test_lwt ?category ?expected_outcome ?output_kind ?skipped ?speed_level name
 
 let get_registered_tests () = List.rev !registered_tests
 let get_registered_lwt_tests () = List.rev !registered_lwt_tests
+let interpret_argv = Alcotest_ext_cmd.interpret_argv

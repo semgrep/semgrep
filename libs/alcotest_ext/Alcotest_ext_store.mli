@@ -8,7 +8,7 @@
    stored.
 *)
 val init :
-  ?status_workspace:string -> ?expectation_workspace:string -> unit -> unit
+  ?expectation_workspace:string -> ?status_workspace:string -> unit -> unit
 
 (*
    These functions are available after the call to 'init'.
@@ -50,3 +50,12 @@ val status_class_of_status :
    Returns an error message if the test status is not PASS or XFAIL.
 *)
 val approve_new_output : 'a Alcotest_ext_types.test -> (unit, string) Result.t
+
+(**************************************************************************)
+(* Wrappers for capturing test output *)
+(**************************************************************************)
+
+val with_output_capture : unit Alcotest_ext_types.test -> unit -> unit
+
+val with_output_capture_lwt :
+  unit Lwt.t Alcotest_ext_types.test -> unit -> unit Lwt.t
