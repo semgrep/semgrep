@@ -1,7 +1,7 @@
 # Semgrep pre-commit configuration.
 # See https://pre-commit.com/ for more information.
 # Once pre-commit is installed, you can run it locally with `pre-commit run --all`.
-# In case of program, try reset your cache with `pre-commit clean`
+# In case of troubles, try reset your cache with `pre-commit clean`
 #
 # This config defines also 2 "jobs" with the `stages: [manual]` directive
 # which are only exercised in CI (see .github/workflows/lint.yml).
