@@ -1,4 +1,5 @@
 open Fpath_.Operators
+module OutJ = Semgrep_output_v1_j
 
 (*****************************************************************************)
 (* Prelude *)
@@ -60,12 +61,12 @@ let xlang_for_rules_and_target (rules_origin : string) (rules : Rule.t list)
  *)
 
 let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
-    (target : Fpath.t) : int =
+    (target : Fpath.t) : OutJ.checks * int =
   (* actual matches *)
   let xtarget = Test_engine.xtarget_of_file xlang target in
   let xconf = Match_env.default_xconfig in
   (* TODO? extract rules *)
-  let res =
+  let (res : Core_result.matches_single_file) =
     Match_rules.check
       ~match_hook:(fun _ _ -> ())
       ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
@@ -86,11 +87,41 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
     Core_error.expected_error_lines_of_files ~regexp [ target ]
   in
 
+  let (matches_by_ruleid : (Rule_ID.t, Pattern_match.t list) Assoc.t) =
+    res.matches |> Assoc.group_by (fun (pm : Pattern_match.t) -> pm.rule_id.id)
+  in
   match
     Core_error.compare_actual_to_expected actual_errors expected_error_lines
   with
-  | Ok () -> 0
-  | Error (num_errors, _msg) -> num_errors
+  | Ok () ->
+      ( OutJ.
+          {
+            checks =
+              matches_by_ruleid
+              |> List_.map (fun (id, matches) ->
+                     (* alt: we could group by filename in matches, but all those
+                      * matches should have the same file
+                      *)
+                     let reported_lines =
+                       matches
+                       |> List_.map (fun (pm : Pattern_match.t) ->
+                              pm.range_loc |> fst |> fun (loc : Loc.t) ->
+                              loc.pos.line)
+                     in
+                     let expected_lines = reported_lines in
+                     let (rule_result : OutJ.rule_result) =
+                       OutJ.
+                         {
+                           passed = true;
+                           matches =
+                             [ (!!target, { reported_lines; expected_lines }) ];
+                           errors = [];
+                         }
+                     in
+                     (Rule_ID.to_string id, rule_result));
+          },
+        0 )
+  | Error (num_errors, _msg) -> (OutJ.{ checks = [] }, num_errors)
 
 (*****************************************************************************)
 (* Pad's temporary version *)
@@ -108,23 +139,44 @@ let run_conf (conf : Test_CLI.conf) : Exit_code.t =
         [ dir ] |> UFile.files_of_dirs_or_files_no_vcs_nofilter
         |> List.filter Parse_rule.is_valid_rule_filename
       in
-      rule_files
-      |> List.iter (fun rule_file ->
-             Logs.info (fun m -> m "processing rule file %s" !!rule_file);
-             (* TODO? sanity check? call Check_rule.check()? *)
-             let rules = Parse_rule.parse rule_file in
-             match Test_engine.find_target_of_yaml_file_opt rule_file with
-             | None ->
-                 Logs.warn (fun m ->
-                     m "could not find target for %s" !!rule_file)
-             | Some target ->
-                 Logs.info (fun m -> m "processing target %s" !!target);
-                 let xlang =
-                   xlang_for_rules_and_target !!rule_file rules target
-                 in
-                 let num_errors = run_rules_against_target xlang rules target in
-                 total_mismatch := !total_mismatch + num_errors);
+      let (results : (string * OutJ.checks) list) =
+        rule_files
+        |> List_.map (fun rule_file ->
+               Logs.info (fun m -> m "processing rule file %s" !!rule_file);
+               (* TODO? sanity check? call Check_rule.check()? *)
+               let rules = Parse_rule.parse rule_file in
+               match Test_engine.find_target_of_yaml_file_opt rule_file with
+               | None ->
+                   Logs.warn (fun m ->
+                       m "could not find target for %s" !!rule_file);
+                   (!!rule_file, OutJ.{ checks = [] })
+               | Some target ->
+                   Logs.info (fun m -> m "processing target %s" !!target);
+                   let xlang =
+                     xlang_for_rules_and_target !!rule_file rules target
+                   in
+                   let checks, num_errors =
+                     run_rules_against_target xlang rules target
+                   in
+                   total_mismatch := !total_mismatch + num_errors;
+                   (!!rule_file, checks))
+      in
       Logs.app (fun m -> m "total mismatch: %d" !total_mismatch);
+
+      if conf.json then
+        let res : OutJ.tests_result =
+          OutJ.
+            {
+              results;
+              config_missing_tests = [];
+              config_missing_fixtests = [];
+              config_with_errors = [];
+            }
+        in
+        let s = OutJ.string_of_tests_result res in
+        Out.put s
+      else Out.put "TODO: Text output";
+
       if !total_mismatch > 0 then Exit_code.fatal else Exit_code.ok
   | _else_ -> failwith "TODO2"
 
