@@ -31,6 +31,7 @@ exports[`misc interpolates metavariables in rule message 1`] = `
               },
               "extra": {
                 "engine_kind": "OSS",
+                "is_ignored": false,
                 "message": "Print content is "Hello World"",
                 "metavars": {
                   "$A": {
@@ -86,6 +87,7 @@ exports[`misc interpolates metavariables in rule message 1`] = `
           },
           "extra": {
             "engine_kind": "OSS",
+            "is_ignored": false,
             "message": "Print content is "Hello World"",
             "metavars": {
               "$A": {
@@ -200,6 +202,7 @@ exports[`misc js representation handles large ints 1`] = `
                   },
                   "extra": {
                     "engine_kind": "OSS",
+                    "is_ignored": false,
                     "message": "test",
                     "metavars": {
                       "$ABOVE_SIGNED_INT32": {
@@ -269,6 +272,7 @@ exports[`misc js representation handles large ints 1`] = `
                   },
                   "extra": {
                     "engine_kind": "OSS",
+                    "is_ignored": false,
                     "message": "test",
                     "metavars": {
                       "$ABOVE_SIGNED_INT32": {
@@ -337,6 +341,7 @@ exports[`misc js representation handles large ints 1`] = `
               },
               "extra": {
                 "engine_kind": "OSS",
+                "is_ignored": false,
                 "message": "test",
                 "metavars": {
                   "$ABOVE_SIGNED_INT32": {
@@ -402,6 +407,7 @@ exports[`misc js representation handles large ints 1`] = `
           },
           "extra": {
             "engine_kind": "OSS",
+            "is_ignored": false,
             "message": "test",
             "metavars": {
               "$ABOVE_SIGNED_INT32": {
@@ -538,6 +544,7 @@ exports[`yaml parser parses a pattern with pattern-regex 1`] = `
           },
           "extra": {
             "engine_kind": "OSS",
+            "is_ignored": false,
             "message": "test",
             "metavars": {},
             "validation_state": "NO_VALIDATOR",
@@ -623,6 +630,7 @@ exports[`yaml parser parses a simple pattern 1`] = `
           },
           "extra": {
             "engine_kind": "OSS",
+            "is_ignored": false,
             "message": "test",
             "metavars": {
               "$X": {
