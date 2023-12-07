@@ -1,0 +1,6 @@
+(test
+ (name test)
+ (libraries
+    alcotest_ext
+ )
+)
