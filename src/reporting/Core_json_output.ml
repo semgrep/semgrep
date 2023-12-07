@@ -250,6 +250,8 @@ let unsafe_match_to_match ((x : Pattern_match.t), (edit : Textedit.t option)) :
         metavars;
         dataflow_trace;
         fix = Option.map (fun edit -> edit.Textedit.replacement_text) edit;
+        is_ignored = false;
+        (* TODO *)
         engine_kind = x.engine_kind;
         validation_state = Some x.validation_state;
         extra_extra = None;

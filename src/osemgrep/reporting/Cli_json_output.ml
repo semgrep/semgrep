@@ -115,6 +115,8 @@ let exit_code_of_error_type (error_type : OutJ.error_type) : Exit_code.t =
   | OutOfMemory
   | TimeoutDuringInterfile
   | OutOfMemoryDuringInterfile
+  (* TODO? really? fatal for SemgrepWarning? *)
+  | SemgrepWarning
   | SemgrepError ->
       Exit_code.fatal
   | InvalidRuleSchemaError -> Exit_code.invalid_pattern
@@ -145,6 +147,7 @@ let cli_error_of_core_error (x : OutJ.core_error) : OutJ.cli_error =
         | ParseError
         | LexicalError
         | PartialParsing _
+        | SemgrepWarning
         | SemgrepError
         | InvalidRuleSchemaError ->
             None
@@ -191,6 +194,7 @@ let cli_error_of_core_error (x : OutJ.core_error) : OutJ.cli_error =
         | OutOfMemory
         | TimeoutDuringInterfile
         | OutOfMemoryDuringInterfile
+        | SemgrepWarning
         | SemgrepError
         | IncompatibleRule _
         | IncompatibleRule0
@@ -300,6 +304,7 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : OutJ.core_match) :
        extra_extra;
        validation_state;
        fix;
+       is_ignored;
        dataflow_trace;
      };
   } ->
@@ -350,8 +355,8 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : OutJ.core_match) :
             severity;
             metadata;
             fix;
+            is_ignored = Some is_ignored;
             (* TODO: extra fields *)
-            is_ignored = Some false;
             fingerprint = match_based_id_partial rule rule_id metavars !!path;
             sca_info = None;
             fixed_lines = None;
