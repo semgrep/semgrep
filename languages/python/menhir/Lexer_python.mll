@@ -127,8 +127,8 @@ let top_mode state =
   match !(state.mode) with
   | [] -> failwith "Lexer_python.top_mode: empty stack"
   | x::_ -> x
-let push_mode state mode = Common.push mode state.mode
-let pop_mode state = ignore(Common2.pop2 state.mode)
+let push_mode state mode = Stack_.push mode state.mode
+let pop_mode state = ignore(Stack_.pop state.mode)
 let set_mode state mode = begin pop_mode state; push_mode state mode end
 
 let pr_mode mode = pr2 (match mode with

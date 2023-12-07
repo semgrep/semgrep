@@ -76,7 +76,6 @@ go_mod = (
 def parse_go_mod(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
-
     parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
         DependencyFileToParse(lockfile_path, go_mod, ScaParserName(GoMod())), None
     )
@@ -86,12 +85,12 @@ def parse_go_mod(
     output = []
     for dir, data in parsed_lockfile:
         if dir == "exclude":
-            for ((_, dep), _) in data:
+            for (_, dep), _ in data:
                 if dep:
                     package, version = dep
                     exclude.add((package, version))
         if dir == "require":
-            for ((line_number, dep), comment) in data:
+            for (line_number, dep), comment in data:
                 if dep:
                     package, version = dep
                     output.append(

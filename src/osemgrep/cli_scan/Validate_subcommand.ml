@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module OutJ = Semgrep_output_v1_t
 
 (*****************************************************************************)
@@ -77,7 +77,7 @@ let parse_rule_with_atd_experiment_and_exit (file : Fpath.t) : unit =
 (* Entry point *)
 (*****************************************************************************)
 
-let run (conf : conf) : Exit_code.t =
+let run_conf (conf : conf) : Exit_code.t =
   (* small experiment *)
   (match conf with
   | {
@@ -119,7 +119,7 @@ let run (conf : conf) : Exit_code.t =
          *)
         let targets =
           rules_and_origin
-          |> Common.map_filter (fun (x : Rule_fetching.rules_and_origin) ->
+          |> List_.map_filter (fun (x : Rule_fetching.rules_and_origin) ->
                  match x.origin with
                  | Local_file path -> Some path
                  | CLI_argument

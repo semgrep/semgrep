@@ -3,7 +3,7 @@
  * dumper.ml 1.2 2005/02/06 12:38:21 rich Exp
  *)
 
-open Obj
+open UStdlib.Obj
 
 let rec dump r =
   if is_int r then string_of_int (magic r : int)

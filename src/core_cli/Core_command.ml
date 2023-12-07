@@ -39,7 +39,7 @@ let timeout_function file timeout f =
   | None ->
       let loc = Tok.first_loc_of_file file in
       let err = E.mk_error None loc "" OutJ.Timeout in
-      Common.push err E.g_errors
+      Stack_.push err E.g_errors
 
 (* for -e/-f *)
 let parse_pattern lang_pattern str =
@@ -94,7 +94,7 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
             res.explanations
             |> Option.iter (List.iter Matching_explanation.print);
           (* the match has already been printed above. We just print errors here *)
-          if not (null res.errors) then (
+          if not (List_.null res.errors) then (
             (* TODO? Logs.warn? *)
             Out.put
               "WARNING: some files were skipped or only partially analyzed:";
@@ -137,7 +137,7 @@ let pattern_of_config lang (config : Core_scan_config.t) =
   | Some _s1, Some _s2 ->
       failwith "I need just one pattern; use -f OR -e (not both)"
   | Some file, None ->
-      let s = File.read_file file in
+      let s = UFile.read_file file in
       (parse_pattern lang s, s)
   (* this is for Emma, who often confuses -e with -f :) *)
   | None, Some s when s =~ ".*\\.sgrep$" ->
@@ -185,7 +185,7 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
       (* simpler code path than in scan() *)
       let target_info, _skipped = Core_scan.targets_of_config config in
       let files =
-        target_info |> Common.map (fun (t : Input_to_core_t.target) -> t.path)
+        target_info |> List_.map (fun (t : Input_to_core_t.target) -> t.path)
       in
       (* sanity check *)
       if config.filter_irrelevant_rules then
@@ -205,7 +205,8 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
                          Metavariable.ii_of_mval)
                      ( Rule_options.default_config,
                        Core_scan.parse_equivalences config.equivalences_file )
-                     minirule (file, lang, ast)
+                     minirule
+                     (Fpath.v file, lang, ast)
                    |> ignore)
              in
 

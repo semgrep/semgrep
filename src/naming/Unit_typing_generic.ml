@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module G = AST_generic
 
 (*****************************************************************************)
@@ -11,7 +11,7 @@ let tests_path = Fpath.v "tests"
 let tests_path_typing = tests_path / "typing"
 
 let tests parse_program parse_pattern =
-  Testutil.pack_tests "typing_tests"
+  Alcotest_ext.pack_tests "typing_tests"
     [
       ( "test basic variable definitions java",
         fun () ->
@@ -174,7 +174,7 @@ let tests parse_program parse_pattern =
           files
           |> List.iter (fun file ->
                  try
-                   let _ = parse_pattern Lang.Java (Common.read_file file) in
+                   let _ = parse_pattern Lang.Java (UCommon.read_file file) in
                    ()
                  with
                  | Parsing_error.Syntax_error _ ->
@@ -186,7 +186,7 @@ let tests parse_program parse_pattern =
           files
           |> List.iter (fun file ->
                  try
-                   let _ = parse_pattern Lang.Go (Common.read_file file) in
+                   let _ = parse_pattern Lang.Go (UCommon.read_file file) in
                    ()
                  with
                  | Parsing_error.Syntax_error _ ->

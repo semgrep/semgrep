@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module OutJ = Semgrep_output_v1_j
 
 (*****************************************************************************)
@@ -89,7 +89,7 @@ let error_spans ~(error_type : OutJ.error_type) ~(location : OutJ.location) =
         }
       in
       Some [ span ]
-  | PartialParsing locs -> Some (locs |> Common.map core_location_to_error_span)
+  | PartialParsing locs -> Some (locs |> List_.map core_location_to_error_span)
   | _else_ -> None
 
 (* # TODO benchmarking code relies on error code value right now
@@ -115,6 +115,7 @@ let exit_code_of_error_type (error_type : OutJ.error_type) : Exit_code.t =
   | OutOfMemory
   | TimeoutDuringInterfile
   | OutOfMemoryDuringInterfile
+  (* TODO? really? fatal for SemgrepWarning? *)
   | SemgrepWarning
   | SemgrepError ->
       Exit_code.fatal
@@ -146,10 +147,10 @@ let cli_error_of_core_error (x : OutJ.core_error) : OutJ.cli_error =
         | ParseError
         | LexicalError
         | PartialParsing _
+        | SemgrepWarning
         | SemgrepError
         | InvalidRuleSchemaError ->
             None
-        | SemgrepWarning
         | OtherParseError
         | AstBuilderError
         | RuleParseError
@@ -263,7 +264,7 @@ let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
     string =
   let xpats = Rule.xpatterns_of_rule rule in
   let xpat_strs =
-    xpats |> Common.map (fun (xpat : Xpattern.t) -> fst xpat.pstr)
+    xpats |> List_.map (fun (xpat : Xpattern.t) -> fst xpat.pstr)
   in
   let sorted_xpat_strs = List.sort String.compare xpat_strs in
   let xpat_str = String.concat " " sorted_xpat_strs in
@@ -354,8 +355,8 @@ let cli_match_of_core_match (hrules : Rule.hrules) (m : OutJ.core_match) :
             severity;
             metadata;
             fix;
-            (* TODO: extra fields *)
             is_ignored = Some is_ignored;
+            (* TODO: extra fields *)
             fingerprint = match_based_id_partial rule rule_id metavars !!path;
             sca_info = None;
             fixed_lines = None;
@@ -402,20 +403,20 @@ let index_match_based_ids (matches : OutJ.cli_match list) : OutJ.cli_match list
     =
   matches
   (* preserve order *)
-  |> Common.mapi (fun i x -> (i, x))
+  |> List_.mapi (fun i x -> (i, x))
   (* Group by rule and path *)
-  |> Common.group_by (fun (_, (x : OutJ.cli_match)) -> (x.path, x.check_id))
+  |> Assoc.group_by (fun (_, (x : OutJ.cli_match)) -> (x.path, x.check_id))
   (* Sort by start line *)
-  |> Common.map (fun (path_and_rule_id, matches) ->
+  |> List_.map (fun (path_and_rule_id, matches) ->
          ( path_and_rule_id,
            List.sort
              (fun (_, (a : OutJ.cli_match)) (_, (b : OutJ.cli_match)) ->
                compare a.start.offset b.start.offset)
              matches ))
   (* Index per file *)
-  |> Common.map (fun (path_and_rule_id, matches) ->
+  |> List_.map (fun (path_and_rule_id, matches) ->
          let matches =
-           Common.mapi
+           List_.mapi
              (fun i (i', (x : OutJ.cli_match)) ->
                ( i',
                  {
@@ -432,7 +433,7 @@ let index_match_based_ids (matches : OutJ.cli_match list) : OutJ.cli_match list
   (* Flatten *)
   |> List.concat_map snd
   |> List.sort (fun (a, _) (b, _) -> a - b)
-  |> Common.map snd
+  |> List_.map snd
 
 (*****************************************************************************)
 (* Entry point *)
@@ -512,9 +513,9 @@ let cli_output_of_core_results ~logging_level (core : OutJ.core_output)
          *)
         results =
           matches
-          |> Common.map (cli_match_of_core_match hrules)
+          |> List_.map (cli_match_of_core_match hrules)
           |> dedup_and_sort;
-        errors = errors |> Common.map cli_error_of_core_error;
+        errors = errors |> List_.map cli_error_of_core_error;
         paths;
         skipped_rules;
         explanations;

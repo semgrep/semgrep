@@ -54,7 +54,7 @@ and map_block ({ btype = _kind, tk; blabels; bbody = lb, body, rb } : block) :
   let id = (Tok.content_of_tok tk, tk) in
   let labels_id =
     blabels
-    |> Common.map (function
+    |> List_.map (function
          | LblStr x -> G.L (G.String (fb x)) |> G.e
          | LblId id ->
              let n = H2.name_of_id id in
@@ -63,10 +63,10 @@ and map_block ({ btype = _kind, tk; blabels; bbody = lb, body, rb } : block) :
 
   let n = H2.name_of_id id in
   (* convert in a Record like map_object *)
-  let flds = Common.map map_block_body_element body in
+  let flds = List_.map map_block_body_element body in
   let body = G.Record (lb, flds, rb) |> G.e in
   let es = labels_id @ [ body ] in
-  let args = es |> Common.map G.arg in
+  let args = es |> List_.map G.arg in
   (* coupling: if you modify this code, you should adjust
    * Constant_propagation.terraform_stmt_to_vardefs.
    * bugfix: I used to transform that in a New (..., TyN n, ...) but
@@ -92,7 +92,7 @@ and map_block ({ btype = _kind, tk; blabels; bbody = lb, body, rb } : block) :
  *)
 let program (xs : config) : G.program =
   xs
-  |> Common.map (function
+  |> List_.map (function
        (* TODO? this should never happen in terraform files at the toplevel *)
        | Argument e ->
            let def = map_argument e in

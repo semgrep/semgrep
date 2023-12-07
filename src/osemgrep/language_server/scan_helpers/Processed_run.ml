@@ -26,7 +26,7 @@ let match_in_dirty_lines (cli_match : OutJ.cli_match) dirty_lines =
     in lines changed since last commit *)
 let filter_clean_lines git_ref matches =
   let matches_by_file =
-    matches |> Common.group_by (fun (m : OutJ.cli_match) -> m.path)
+    matches |> Assoc.group_by (fun (m : OutJ.cli_match) -> m.path)
   in
   let in_git, not_in_git =
     matches_by_file
@@ -49,7 +49,7 @@ let filter_clean_lines git_ref matches =
   let not_in_git_matches = not_in_git |> List.concat_map snd in
   in_git_matches @ not_in_git_matches
 
-let scan_conf = { Scan_CLI.default with strict = false; nosem = true }
+let scan_conf = { Output.default with strict = false; nosem = true }
 (*************************************************************************)
 (* Entry point *)
 (*************************************************************************)

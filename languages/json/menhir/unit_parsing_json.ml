@@ -8,7 +8,7 @@ open Common
 let tests_path = "tests"
 
 let tests =
-  Testutil.pack_tests "parsing_json"
+  Alcotest_ext.pack_tests "parsing_json"
     [
       ( "regression files",
         fun () ->

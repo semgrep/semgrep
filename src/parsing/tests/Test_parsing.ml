@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
+open Fpath_.Operators
 module PS = Parsing_stat
 module G = AST_generic
 module J = JSON
@@ -47,7 +47,7 @@ let process_exn () =
     | [] -> "failure"
     | line :: rest -> (
         (* Sue me. I don't want to write a real lexer and parser. *)
-        let tokens = Common.split " " line in
+        let tokens = String_.split ~sep:" " line in
         match tokens with
         | "Called" :: "from" :: funcname :: _in :: _file :: _filename :: "line"
           :: linenum :: _ ->
@@ -56,7 +56,7 @@ let process_exn () =
         | _ -> process rest)
   in
   let res =
-    Printexc.get_backtrace () |> Common.split (Str.quote "\n") |> process
+    Printexc.get_backtrace () |> String_.split ~sep:(Str.quote "\n") |> process
   in
   store := res :: !store;
   ()
@@ -218,12 +218,12 @@ let dump_tree_sitter_cst lang file =
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
 let test_parse_tree_sitter lang root_paths =
-  let paths = Common.map Common.fullpath root_paths |> File.Path.of_strings in
+  let paths = List_.map UCommon.fullpath root_paths |> Fpath_.of_strings in
   let paths, _skipped_paths =
     Find_targets_old.files_of_dirs_or_files (Some lang) paths
   in
   let stat_list = ref [] in
-  paths |> File.Path.to_strings
+  paths |> Fpath_.to_strings
   |> Console.progress (fun k ->
          List.iter (fun file ->
              k ();
@@ -280,7 +280,7 @@ let test_parse_tree_sitter lang root_paths =
                    print_exn file exn;
                    Parsing_stat.bad_stat file
              in
-             Common.push stat stat_list));
+             Stack_.push stat stat_list));
   Parsing_stat.print_parsing_stat_list !stat_list;
   ()
 
@@ -335,13 +335,13 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
 
   let paths =
     (* = absolute paths *)
-    Common.map Common.fullpath files_or_dirs |> File.Path.of_strings
+    List_.map UCommon.fullpath files_or_dirs |> Fpath_.of_strings
   in
   let paths, skipped =
     Find_targets_old.files_of_dirs_or_files (Some lang) paths
   in
   let stats =
-    paths |> File.Path.to_strings
+    paths |> Fpath_.to_strings
     |> List.rev_map (fun file ->
            pr2
              (spf "%05.1fs: [%s] processing %s" (Sys.time ())
@@ -425,7 +425,7 @@ let update_parsing_rate (acc : Parsing_stats_t.project_stats) :
 *)
 let aggregate_file_stats (results : (string * Parsing_stat.t list) list) :
     Parsing_stats_t.project_stats list =
-  Common.map
+  List_.map
     (fun (project_name, file_stats) ->
       let acc =
         {
@@ -510,7 +510,7 @@ let print_json lang results =
   print_endline (Yojson.Safe.prettify s)
 
 let parse_projects ~verbose lang project_dirs =
-  Common.map
+  List_.map
     (fun dir ->
       let name = dir in
       parse_project ~verbose lang name [ dir ])
@@ -552,7 +552,7 @@ let diff_pfff_tree_sitter xs =
 (*****************************************************************************)
 
 let test_parse_rules roots =
-  let roots = File.Path.of_strings roots in
+  let roots = Fpath_.of_strings roots in
   let targets, _skipped_paths =
     Find_targets_old.files_of_dirs_or_files (Some Lang.Yaml) roots
   in

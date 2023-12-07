@@ -12,8 +12,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
 open Common
+open Fpath_.Operators
 module OutJ = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -139,7 +139,7 @@ let ast_based_fix ~fix (start, end_) (pm : Pattern_match.t) : Textedit.t option
   let fix_pattern = fix in
   let* lang = List.nth_opt pm.Pattern_match.rule_id.langs 0 in
   let metavars = pm.Pattern_match.env in
-  let target_contents = lazy (Common.read_file pm.Pattern_match.file) in
+  let target_contents = lazy (UFile.read_file pm.Pattern_match.file) in
   let result =
     try
       (* Fixes are not exactly patterns, but they can contain metavariables that
@@ -183,7 +183,7 @@ let ast_based_fix ~fix (start, end_) (pm : Pattern_match.t) : Textedit.t option
       in
 
       let edit =
-        { Textedit.path = pm.file; start; end_; replacement_text = text }
+        { Textedit.path = !!(pm.file); start; end_; replacement_text = text }
       in
 
       (* Perform sanity checks for the resulting fix. *)
@@ -213,15 +213,15 @@ let basic_fix ~(fix : string) (start, end_) (pm : Pattern_match.t) : Textedit.t
     Metavar_replacement.interpolate_metavars fix
       (Metavar_replacement.of_bindings pm.env)
   in
-  let edit = Textedit.{ path = pm.file; start; end_; replacement_text } in
+  let edit = Textedit.{ path = !!(pm.file); start; end_; replacement_text } in
   edit
 
 let regex_fix ~fix_regexp:Rule.{ regexp; count; replacement } (start, end_)
     (pm : Pattern_match.t) =
-  let rex = SPcre.regexp regexp in
+  let rex = Pcre_.regexp regexp in
   (* You need a minus one, to make it compatible with the inclusive Range.t *)
   let content =
-    Range.content_at_range pm.file Range.{ start; end_ = end_ - 1 }
+    Range.content_at_range !!(pm.file) Range.{ start; end_ = end_ - 1 }
   in
   (* What is this for?
      Before, when autofix was in the Python CLI, `fix-regex` had the semantics
@@ -234,7 +234,7 @@ let regex_fix ~fix_regexp:Rule.{ regexp; count; replacement } (start, end_)
      '\1', we will try to replace it instead with '$1', etc.
   *)
   let replaced_replacement =
-    let capture_group_rex = SPcre.regexp capture_group_regex in
+    let capture_group_rex = Pcre_.regexp capture_group_regex in
     (* Confusingly, this $1 in the template is separate from the literal
        capture group it is replacing. It is simply a dollar sign in front of
        the capture group's number, which is captured in the `capture_group_regex`
@@ -242,18 +242,18 @@ let regex_fix ~fix_regexp:Rule.{ regexp; count; replacement } (start, end_)
        This lets us essentially capture everything matched by \<num> with
        $<num>.
     *)
-    SPcre.replace ~rex:capture_group_rex ~template:"$$1" replacement
+    Pcre_.replace ~rex:capture_group_rex ~template:"$$1" replacement
   in
   let replacement_text =
     match count with
-    | None -> SPcre.replace ~rex ~template:replaced_replacement content
+    | None -> Pcre_.replace ~rex ~template:replaced_replacement content
     | Some count ->
         Common2.foldn
           (fun content _i ->
-            SPcre.replace_first ~rex ~template:replaced_replacement content)
+            Pcre_.replace_first ~rex ~template:replaced_replacement content)
           content count
   in
-  let edit = Textedit.{ path = pm.file; start; end_; replacement_text } in
+  let edit = Textedit.{ path = !!(pm.file); start; end_; replacement_text } in
   edit
 
 (*****************************************************************************)
@@ -281,19 +281,19 @@ let render_fix (pm : Pattern_match.t) : Textedit.t option =
 (*****************************************************************************)
 
 let produce_autofixes (matches : Core_result.processed_match list) =
-  Common.map
+  List_.map
     (fun (m : Core_result.processed_match) ->
       { m with autofix_edit = render_fix m.pm })
     matches
 
 let apply_fixes_to_file edits ~file =
-  let file_text = Common.read_file file in
+  let file_text = UCommon.read_file file in
   match Textedit.apply_edits_to_text file_text edits with
   | Success x -> x
   | Overlap { conflicting_edits; _ } ->
       failwith
         (spf "Could not apply fix because it overlapped with another: %s"
-           (Common.hd_exn "unexpected empty list" conflicting_edits)
+           (List_.hd_exn "unexpected empty list" conflicting_edits)
              .replacement_text)
 
 let apply_fixes (edits : Textedit.t list) =
@@ -305,12 +305,12 @@ let apply_fixes (edits : Textedit.t list) =
   if modified_files <> [] then
     Logs.info (fun m ->
         m "successfully modified %s."
-          (String_utils.unit_str (List.length modified_files) "file(s)"))
+          (String_.unit_str (List.length modified_files) "file(s)"))
   else Logs.info (fun m -> m "no files modified.")
 
 let apply_fixes_of_core_matches (matches : OutJ.core_match list) =
   matches
-  |> Common.map_filter (fun (m : OutJ.core_match) ->
+  |> List_.map_filter (fun (m : OutJ.core_match) ->
          let* replacement_text = m.extra.fix in
          let start = m.start.offset in
          let end_ = m.end_.offset in

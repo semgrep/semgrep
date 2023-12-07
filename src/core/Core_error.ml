@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Fpath_.Operators
 module OutJ = Semgrep_output_v1_j
 module R = Rule
 
@@ -104,7 +105,7 @@ let mk_error_tok opt_rule_id tok msg err =
   mk_error opt_rule_id loc msg err
 
 let push_error rule_id loc msg err =
-  Common.push (mk_error (Some rule_id) loc msg err) g_errors
+  Stack_.push (mk_error (Some rule_id) loc msg err) g_errors
 
 let error_of_invalid_rule_error ((kind, rule_id, pos) : R.invalid_rule_error) :
     t =
@@ -217,7 +218,12 @@ let exn_to_error rule_id file (e : Exception.t) : t =
           Exception.reraise e
       | exn ->
           let trace = Exception.to_string e in
-          let loc = Tok.first_loc_of_file file in
+          let loc =
+            (* TODO: we shouldn't build Tok.t w/out a filename, but
+               lets do it here so we don't crash until we do *)
+            if not String.(equal file "") then Tok.first_loc_of_file file
+            else Tok.fake_location
+          in
           {
             rule_id;
             (* bugfix: we used to return [Out.FatalError] here, but pysemgrep
@@ -294,7 +300,7 @@ let try_with_exn_to_error file f =
   | Time_limit.Timeout _ as exn -> Exception.catch_and_reraise exn
   | exn ->
       let e = Exception.catch exn in
-      Common.push (exn_to_error None file e) g_errors
+      Stack_.push (exn_to_error None file e) g_errors
 
 let try_with_print_exn_and_reraise file f =
   try f () with
@@ -314,13 +320,13 @@ let default_error_regexp = ".*\\(ERROR\\|MATCH\\):"
 let (expected_error_lines_of_files :
       ?regexp:string ->
       ?ok_regexp:string option ->
-      string (* filename *) list ->
-      (string (* filename *) * int) (* line *) list) =
+      Fpath.t list ->
+      (Fpath.t * int) (* line *) list) =
  fun ?(regexp = default_error_regexp) ?(ok_regexp = None) test_files ->
   test_files
   |> List.concat_map (fun file ->
-         Common.cat file |> Common.index_list_1
-         |> Common.map_filter (fun (s, idx) ->
+         UFile.cat file |> List_.index_list_1
+         |> List_.map_filter (fun (s, idx) ->
                 (* Right now we don't care about the actual error messages. We
                  * don't check if they match. We are just happy to check for
                  * correct lines error reporting.
@@ -341,9 +347,9 @@ let (expected_error_lines_of_files :
 let compare_actual_to_expected actual_findings expected_findings_lines =
   let actual_findings_lines =
     actual_findings
-    |> Common.map (fun err ->
+    |> List_.map (fun err ->
            let loc = err.loc in
-           (loc.Tok.pos.file, loc.Tok.pos.line))
+           (Fpath.v loc.Tok.pos.file, loc.Tok.pos.line))
   in
   (* diff report *)
   let _common, only_in_expected, only_in_actual =
@@ -352,16 +358,16 @@ let compare_actual_to_expected actual_findings expected_findings_lines =
 
   only_in_expected
   |> List.iter (fun (src, l) ->
-         pr2 (spf "this one finding is missing: %s:%d" src l));
+         pr2 (spf "this one finding is missing: %s:%d" !!src l));
   only_in_actual
   |> List.iter (fun (src, l) ->
          pr2
-           (spf "this one finding was not expected: %s:%d (%s)" src l
+           (spf "this one finding was not expected: %s:%d (%s)" !!src l
               (actual_findings
               (* nosemgrep: ocaml.lang.best-practice.list.list-find-outside-try *)
               |> List.find (fun err ->
                      let loc = err.loc in
-                     src = loc.Tok.pos.file && l =|= loc.Tok.pos.line)
+                     !!src = loc.Tok.pos.file && l =|= loc.Tok.pos.line)
               |> string_of_error)));
   let num_errors = List.length only_in_actual + List.length only_in_expected in
   let msg =

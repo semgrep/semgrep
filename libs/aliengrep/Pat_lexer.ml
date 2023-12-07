@@ -9,7 +9,7 @@ open Printf
 
 type compiled_conf = {
   conf : Conf.t;
-  pcre : SPcre.t; (* holds the source pattern and the compiled regexp *)
+  pcre : Pcre_.t; (* holds the source pattern and the compiled regexp *)
 }
 
 type token =
@@ -68,7 +68,7 @@ let compile conf =
       ]
   in
   let pcre =
-    try SPcre.regexp pat with
+    try Pcre_.regexp pat with
     | exn ->
         let e = Exception.catch exn in
         Logs.err (fun m ->
@@ -84,11 +84,11 @@ let char_of_string str =
   else str.[0]
 
 let read_string ?(source_name = "<pattern>") conf str =
-  match SPcre.full_split ~rex:conf.pcre str with
+  match Pcre_.full_split ~rex:conf.pcre str with
   | Error pcre_err ->
       pattern_error source_name
         (sprintf "PCRE error while parsing aliengrep pattern: %s; pattern: %s"
-           (SPcre.show_error pcre_err)
+           (Pcre_.show_error pcre_err)
            conf.pcre.pattern)
   | Ok res ->
       res

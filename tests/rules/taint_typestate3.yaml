@@ -1,0 +1,17 @@
+rules:
+  - id: test
+    languages:
+      - cpp
+    message: Test
+    mode: taint
+    pattern-sources:
+      - by-side-effect: only
+        patterns:
+          - pattern: delete $VAR;
+          - focus-metavariable: $VAR
+    pattern-sinks:
+      - patterns:
+          - pattern: delete $VAR;
+          - focus-metavariable: $VAR
+    severity: ERROR
+

@@ -16,7 +16,7 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-open Testutil
+open Alcotest_ext
 
 (*****************************************************************************)
 (* Code *)
@@ -29,7 +29,7 @@ let real_fetch_tests () =
         ~token_opt:None ~registry_caching:false (Rules_config.R (Pack "ocaml"))
     with
     | [ { rules; _ } ] ->
-        Alcotest.(check bool) "fetch ocaml rules" true (not @@ Common.null rules)
+        Alcotest.(check bool) "fetch ocaml rules" true (not @@ List_.null rules)
     | _ -> Alcotest.fail "fetch ocaml rules; got no rules"
   in
   pack_tests "fetch tests"

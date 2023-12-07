@@ -1,3 +1,7 @@
+open Common.Operators
+open Notty
+open Notty_unix
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -17,9 +21,6 @@
  *  - completion on function names in the project! (or maybe put this in
  *    osemgrep-pro interactive)
  *)
-
-open Notty
-open Notty_unix
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -457,7 +458,7 @@ let is_pattern_menu state =
 let map_nonfirst f l =
   match l with
   | [] -> []
-  | x :: xs -> x :: Common.map f xs
+  | x :: xs -> x :: List_.map f xs
 
 (* Switch menus, when hitting the TAB key! *)
 let switch_menu = function
@@ -477,12 +478,12 @@ let translate_formula iformula =
     | Header -> None
     | IAll ipats ->
         let pats =
-          Zipper.to_list ipats |> Common.map fst |> Common.map_filter aux
+          Zipper.to_list ipats |> List_.map fst |> List_.map_filter aux
         in
         Some (Rule.And (fk, { conjuncts = pats; conditions = []; focus = [] }))
     | IAny ipats ->
         let pats =
-          Zipper.to_list ipats |> Common.map fst |> Common.map_filter aux
+          Zipper.to_list ipats |> List_.map fst |> List_.map_filter aux
         in
         Some (Rule.Or (fk, pats))
   in
@@ -556,8 +557,8 @@ let buffer_matches_of_xtarget state (fake_rule : Rule.search_rule) xconf xtarget
       Match_search_mode.check_rule fake_rule hook xconf xtarget
     in
     matches
-    |> Common.map_filter (fun (m : Pattern_match.t) ->
-           if m.file = Fpath.to_string xtarget.file then Some m
+    |> List_.map_filter (fun (m : Pattern_match.t) ->
+           if m.file =*= xtarget.file then Some m
            else (
              logger#warning
                "Interactive: got match from non-current-xtarget file";
@@ -649,10 +650,10 @@ let parse_pattern_opt s state =
 *)
 let placement_wrt_bound (lb, rb) idx =
   match (lb, rb) with
-  | None, None -> Common.Middle3 ()
-  | Some lb, _ when idx < lb -> Left3 ()
-  | _, Some rb when idx >= rb -> Right3 ()
-  | __else__ -> Middle3 ()
+  | None, None -> Either_.Middle3 ()
+  | Some lb, _ when idx < lb -> Either_.Left3 ()
+  | _, Some rb when idx >= rb -> Either_.Right3 ()
+  | __else__ -> Either_.Middle3 ()
 
 (* Given the range of a match, we want to split a given line
  * into things that are in the match, or are not.
@@ -662,15 +663,15 @@ let split_line (t1 : Tok.location) (t2 : Tok.location) (row, line) =
   if row < t1.pos.line then (line, "", "")
   else if row > t2.pos.line then (line, "", "")
   else
-    let lb = if row = t1.pos.line then Some t1.pos.column else None in
-    let rb = if row = end_line then Some end_col else None in
+    let lb = if row =|= t1.pos.line then Some t1.pos.column else None in
+    let rb = if row =|= end_line then Some end_col else None in
     let l_rev, m_rev, r_rev, _ =
       String.fold_left
         (fun (l, m, r, i) c ->
           match placement_wrt_bound (lb, rb) i with
-          | Common.Left3 _ -> (c :: l, m, r, i + 1)
-          | Middle3 _ -> (l, c :: m, r, i + 1)
-          | Right3 _ -> (l, m, c :: r, i + 1))
+          | Either_.Left3 _ -> (c :: l, m, r, i + 1)
+          | Either_.Middle3 _ -> (l, c :: m, r, i + 1)
+          | Either_.Right3 _ -> (l, m, c :: r, i + 1))
         ([], [], [], 0) line
     in
     ( Common2.string_of_chars (List.rev l_rev),
@@ -678,7 +679,7 @@ let split_line (t1 : Tok.location) (t2 : Tok.location) (row, line) =
       Common2.string_of_chars (List.rev r_rev) )
 
 let preview_of_match { Pattern_match.range_loc = t1, t2; _ } file state =
-  let lines = Common2.cat file in
+  let lines = UCommon.cat file in
   let start_line = t1.pos.line in
   let end_line = t2.pos.line in
   let max_height = height_of_preview state.term in
@@ -703,14 +704,14 @@ let preview_of_match { Pattern_match.range_loc = t1, t2; _ } file state =
   let line_num_imgs, line_imgs =
     lines
     (* Row is 1-indexed *)
-    |> Common.mapi (fun idx x -> (idx + 1, x))
+    |> List_.mapi (fun idx x -> (idx + 1, x))
     (* Get only the lines that we care about (the ones in the preview) *)
-    |> Common.map_filter (fun (idx, line) ->
+    |> List_.map_filter (fun (idx, line) ->
            if preview_start <= idx && idx < preview_end then
              Some (idx, split_line t1 t2 (idx, line))
            else None)
     (* Turn line numbers and the line contents to images *)
-    |> Common.map (fun (idx, (l, m, r)) ->
+    |> List_.map (fun (idx, (l, m, r)) ->
            ( I.(string fg_line_num (Int.to_string idx)),
              I.(
                string A.empty l
@@ -723,11 +724,11 @@ let preview_of_match { Pattern_match.range_loc = t1, t2; _ } file state =
   let line_num_imgs_aligned_and_padded =
     let max_line_num_len =
       line_num_imgs
-      |> Common.map (fun line_num_img -> I.width line_num_img)
+      |> List_.map (fun line_num_img -> I.width line_num_img)
       |> List.fold_left max 0
     in
     line_num_imgs
-    |> Common.map (fun line_num_img ->
+    |> List_.map (fun line_num_img ->
            I.hsnap ~align:`Right max_line_num_len line_num_img)
     |> I.vcat |> I.hpad 0 1
   in
@@ -737,23 +738,23 @@ let preview_of_match { Pattern_match.range_loc = t1, t2; _ } file state =
 let default_screen_img s state =
   let w = width_of_preview state.term in
   I.(
-    (get_default_screen_lines w |> Common.map (I.string (A.fg semgrep_green)))
+    (get_default_screen_lines w |> List_.map (I.string (A.fg semgrep_green)))
     @ [
         vpad 1 0
           (string A.(fg semgrep_green ++ st bold) "Semgrep Interactive Mode");
         vpad 1 1 (string A.empty "powered by Semgrep Open-Source Engine");
         string A.empty s;
       ]
-    |> Common.map (hsnap w)
+    |> List_.map (hsnap w)
     |> vcat
     |> I.vsnap (height_of_preview state.term))
 
 let no_matches_found_img state =
   let h = height_of_preview state.term in
   I.(
-    (get_ghost_lines h |> Common.map (I.string (A.fg light_blue)))
+    (get_ghost_lines h |> List_.map (I.string (A.fg light_blue)))
     @ [ vpad 2 0 (string A.empty "no matches found") ]
-    |> Common.map (hsnap (width_of_preview state.term))
+    |> List_.map (hsnap (width_of_preview state.term))
     |> vcat |> I.vsnap h)
 
 let render_preview_no_matches ~has_changed_query state =
@@ -806,7 +807,7 @@ let render_patterns iformula state =
     | IAll pats ->
         I.(
           pats |> Zipper.to_list
-          |> Common.map (fun (pat, is_focus') ->
+          |> List_.map (fun (pat, is_focus') ->
                  loop ~header:true (pat, is_focus && is_focus'))
           |> map_nonfirst (fun img ->
                  I.(hpad 2 0 (string A.empty "- " <|> img)))
@@ -814,7 +815,7 @@ let render_patterns iformula state =
     | IAny pats ->
         I.(
           pats |> Zipper.to_list
-          |> Common.map (fun (pat, is_focus') ->
+          |> List_.map (fun (pat, is_focus') ->
                  loop ~header:false (pat, is_focus && is_focus'))
           |> map_nonfirst (fun img ->
                  I.(hpad 2 0 (string A.empty "- " <|> img)))
@@ -859,8 +860,8 @@ let render_top_left_pane file_zipper state =
   let files =
     file_zipper
     |> Framed_zipper.take lines_of_files
-    |> Common.mapi (fun idx { file; _ } ->
-           if idx = Framed_zipper.relative_position file_zipper then
+    |> List_.mapi (fun idx { file; _ } ->
+           if idx =|= Framed_zipper.relative_position file_zipper then
              I.string
                A.(
                  fg (gray 19)
@@ -904,7 +905,7 @@ let render_screen ?(has_changed_query = false) state =
       let match_idx = Zipper.position matches_zipper + 1 in
       let total_matches = Zipper.length matches_zipper in
       let match_position_img =
-        if total_matches = 1 then I.void 0 0
+        if total_matches =|= 1 then I.void 0 0
         else
           I.string bg_match_position
             (Common.spf "%d/%d" match_idx total_matches)
@@ -1234,7 +1235,7 @@ let interactive_loop ~turbo xlang xtargets =
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run (conf : Interactive_CLI.conf) : Exit_code.t =
+let run_conf (conf : Interactive_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
   let targets, _skipped =
     Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
@@ -1250,7 +1251,7 @@ let run (conf : Interactive_CLI.conf) : Exit_code.t =
   let config = { config with roots = conf.target_roots; lang = Some xlang } in
   let xtargets =
     targets
-    |> Common.map (fun file ->
+    |> List_.map (fun file ->
            let xtarget =
              Core_scan.xtarget_of_file
                ~parsing_cache_dir:config.parsing_cache_dir xlang file
@@ -1266,4 +1267,4 @@ let run (conf : Interactive_CLI.conf) : Exit_code.t =
 
 let main (argv : string array) : Exit_code.t =
   let conf = Interactive_CLI.parse_argv argv in
-  run conf
+  run_conf conf

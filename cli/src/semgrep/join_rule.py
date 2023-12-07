@@ -192,7 +192,7 @@ def match_on_conditions(  # type: ignore
 
     # join them together
     joined: ModelSelect = reduce(  # type: ignore
-        lambda A, B: A.select().join(B, join_type=pw.JOIN.CROSS), collection_models  # type: ignore
+        lambda A, B: A.select().join(B, join_type=pw.JOIN.CROSS), collection_models
     )
 
     # evaluate conjoined conditions

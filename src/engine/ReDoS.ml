@@ -199,7 +199,7 @@ let find_vulnerable_subpatterns ?(dialect = Dialect.PCRE) re_str =
   match parse_regexp conf re_str with
   | None -> Error ()
   | Some re_ast ->
-      Ok (find_vulnerable_nodes re_ast |> Common.map (recover_source re_str))
+      Ok (find_vulnerable_nodes re_ast |> List_.map (recover_source re_str))
 
 let regexp_may_be_vulnerable ?dialect re_str =
   match find_vulnerable_subpatterns ?dialect re_str with

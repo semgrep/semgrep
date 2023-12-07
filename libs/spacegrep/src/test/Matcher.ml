@@ -45,7 +45,7 @@ let doc_eq doc1_str doc2_str =
 
 let matches_eq expected_doc_strings matches =
   let doc_strings =
-    Common.map (fun (x : Match.match_) -> x.capture.value) matches
+    List_.map (fun (x : Match.match_) -> x.capture.value) matches
   in
   printf "=== expected matches ===\n";
   List.iter (fun s -> printf "%s\n--\n" s) expected_doc_strings;
@@ -214,7 +214,7 @@ let matcher_corpus_two_line_ellipsis =
   [ ("two-line ellipsis", Matches [ "a b\nc" ], "a ...", "x\ny a b\nc\nd") ]
 
 let create_matcher_suite param matcher_corpus =
-  Common.map
+  List_.map
     (fun (name, expectation, pat_str, doc_str) ->
       (name, `Quick, fun () -> check_matching param pat_str doc_str expectation))
     matcher_corpus

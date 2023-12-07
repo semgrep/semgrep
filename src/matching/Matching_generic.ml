@@ -163,7 +163,7 @@ let (( >>= ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout) =
    *)
   let xs = m1 tin in
   (* try m2 on each possible returned bindings *)
-  let xxs = xs |> Common.map (fun binding -> m2 () binding) in
+  let xxs = xs |> List_.map (fun binding -> m2 () binding) in
   List.flatten xxs
 
 (* the disjunctive combinator *)
@@ -420,7 +420,7 @@ let rec inits_and_rest_of_list = function
   | [ e ] -> [ ([ e ], []) ]
   | e :: l ->
       ([ e ], l)
-      :: Common.map (fun (l, rest) -> (e :: l, rest)) (inits_and_rest_of_list l)
+      :: List_.map (fun (l, rest) -> (e :: l, rest)) (inits_and_rest_of_list l)
 
 let _ =
   Common2.example
@@ -490,9 +490,9 @@ let regexp_matcher_of_regexp_string s =
     in
     (* old: let re = Str.regexp x in (fun s -> Str.string_match re s 0) *)
     (* TODO: add `ANCHORED to be consistent with Python re.match (!re.search)*)
-    let re = SPcre.regexp ~flags x in
+    let re = Pcre_.regexp ~flags x in
     fun s2 ->
-      SPcre.pmatch_noerr ~rex:re s2 |> fun b ->
+      Pcre_.pmatch_noerr ~rex:re s2 |> fun b ->
       logger#debug "regexp match: %s on %s, result = %b" s s2 b;
       b)
   else failwith (spf "This is not a PCRE-compatible regexp: " ^ s)
@@ -668,7 +668,7 @@ let m_comb_fold (m_comb : _ comb_matcher) (xs : _ list)
 let m_comb_1to1 (m : _ matcher) a bs : _ comb_result =
  fun tin ->
   bs |> all_elem_and_rest_of_list
-  |> Common.map_filter (fun (b, other_bs) ->
+  |> List_.map_filter (fun (b, other_bs) ->
          match m a b tin with
          | [] -> None
          | tout -> Some (Lazy.force other_bs, tout))
@@ -676,7 +676,7 @@ let m_comb_1to1 (m : _ matcher) a bs : _ comb_result =
 let m_comb_1toN m_1toN a bs : _ comb_result =
  fun tin ->
   bs |> all_splits
-  |> Common.map_filter (fun (l, r) ->
+  |> List_.map_filter (fun (l, r) ->
          match m_1toN a l tin with
          | [] -> None
          | tout -> Some (r, tout))

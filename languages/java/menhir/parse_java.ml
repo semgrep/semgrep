@@ -60,7 +60,7 @@ let parse filename =
       (* -------------------------------------------------- *)
       (* Call parser *)
       (* -------------------------------------------------- *)
-      Left
+      Either.Left
         (Profiling.profile_code "Parser_java.main" (fun () ->
              Parser_java.goal lexer lexbuf_fake))
     with
@@ -81,14 +81,14 @@ let parse filename =
   in
 
   match elems with
-  | Left xs -> { Parsing_result.ast = xs; tokens = toks; stat }
-  | Right (_info_of_bads, line_error, cur) ->
+  | Either.Left xs -> { Parsing_result.ast = xs; tokens = toks; stat }
+  | Either.Right (_info_of_bads, line_error, cur) ->
       if not !Flag.error_recovery then
         raise (Parsing_error.Syntax_error (TH.info_of_tok cur));
 
       if !Flag.show_parsing_error then
         pr2 ("parse error \n = " ^ error_msg_tok cur);
-      let checkpoint2 = Common.cat filename |> List.length in
+      let checkpoint2 = UCommon.cat filename |> List.length in
 
       if !Flag.show_parsing_error then
         Parsing_helpers.print_bad line_error (checkpoint, checkpoint2) filelines;

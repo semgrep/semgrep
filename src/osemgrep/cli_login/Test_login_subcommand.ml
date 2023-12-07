@@ -13,8 +13,8 @@
  * LICENSE for more details.
  *)
 open Common
-open File.Operators
-open Testutil
+open Fpath_.Operators
+open Alcotest_ext
 
 (*****************************************************************************)
 (* Prelude *)
@@ -46,7 +46,7 @@ let with_logs ~f ~final =
            (Exit_code.to_message code));
       final { exit_code = code; logs = log_content })
 
-(* we return a fun () to match Testutil.test second element *)
+(* we return a fun () to match Alcotest_ext.test second element *)
 let with_login_test_env f () =
   Testutil_files.with_tempdir ~chdir:true (fun tmp_path ->
       Semgrep_envvars.with_envvar "SEMGREP_SETTINGS_FILE"
@@ -72,7 +72,7 @@ let with_fake_deployment_response return_value f =
  * be even more "e2e" by calling CLI.main() instead, but that would require
  * to move this file out of cli_login/ because of mutual dependencies.
  *)
-let test_logout_not_logged_in : Testutil.test =
+let test_logout_not_logged_in : Alcotest_ext.simple_test =
   ( __FUNCTION__,
     with_login_test_env (fun () ->
         with_logs
@@ -81,7 +81,7 @@ let test_logout_not_logged_in : Testutil.test =
             assert (res.logs =~ ".*You are not logged in");
             assert (res.exit_code =*= Exit_code.ok))) )
 
-let test_login_no_tty : Testutil.test =
+let test_login_no_tty caps : Alcotest_ext.simple_test =
   ( __FUNCTION__,
     with_login_test_env (fun () ->
         with_logs
@@ -92,7 +92,7 @@ let test_login_no_tty : Testutil.test =
             let old_stdin = Unix.dup Unix.stdin in
             let in_, _out_ = Unix.pipe () in
             Unix.dup2 in_ Unix.stdin;
-            let exit_code = Login_subcommand.main [| "semgrep-login" |] in
+            let exit_code = Login_subcommand.main caps [| "semgrep-login" |] in
             Unix.dup2 old_stdin Unix.stdin;
             exit_code)
           ~final:(fun res ->
@@ -117,21 +117,23 @@ let fake_deployment =
   }
 |}
 
-let test_login_with_env_token : Testutil.test =
+let test_login_with_env_token caps : Alcotest_ext.simple_test =
   ( __FUNCTION__,
     with_login_test_env (fun () ->
         Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->
             with_fake_deployment_response fake_deployment (fun () ->
                 (* login with env token *)
                 with_logs
-                  ~f:(fun () -> Login_subcommand.main [| "semgrep-login" |])
+                  ~f:(fun () ->
+                    Login_subcommand.main caps [| "semgrep-login" |])
                   ~final:(fun res ->
                     assert (res.logs =~ "[.\n]*Saved access token");
                     assert (res.exit_code =*= Exit_code.ok));
 
                 (* login should fail on second call *)
                 with_logs
-                  ~f:(fun () -> Login_subcommand.main [| "semgrep-login" |])
+                  ~f:(fun () ->
+                    Login_subcommand.main caps [| "semgrep-login" |])
                   ~final:(fun res ->
                     assert (res.logs =~ ".*You're already logged in");
                     assert (res.exit_code =*= Exit_code.fatal));
@@ -154,6 +156,10 @@ let test_login_with_env_token : Testutil.test =
 (* Entry point *)
 (*****************************************************************************)
 
-let tests =
+let tests caps =
   pack_tests "Osemgrep Login (e2e)"
-    [ test_logout_not_logged_in; test_login_no_tty; test_login_with_env_token ]
+    [
+      test_logout_not_logged_in;
+      test_login_no_tty caps;
+      test_login_with_env_token caps;
+    ]

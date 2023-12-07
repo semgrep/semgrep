@@ -95,7 +95,7 @@ class ErrorHandler:
         if "error" not in self.payload:
             self.capture_error()
 
-        self.payload["request_id"] = str(state.request_id)
+        self.payload["request_id"] = str(state.local_scan_id)
 
         try:
             requests.post(url, headers=headers, json=self.payload, timeout=3)

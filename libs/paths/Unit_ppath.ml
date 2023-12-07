@@ -1,5 +1,5 @@
 open Printf
-open File.Operators
+open Fpath_.Operators
 open Testutil_files (* file/dir/symlink *)
 module F = Testutil_files
 
@@ -8,7 +8,7 @@ module F = Testutil_files
 (*****************************************************************************)
 
 (* similar to F.with_tempfiles_verbose but takes a unit so
- * can be conveniently used inside a Testutil.test
+ * can be conveniently used inside a Alcotest_ext.test
  *)
 let test_with_files (files : F.t list) func () =
   F.with_tempfiles_verbose files func
@@ -18,7 +18,7 @@ let test_with_files (files : F.t list) func () =
 (*****************************************************************************)
 
 let tests =
-  Testutil.pack_tests "Ppath"
+  Alcotest_ext.pack_tests "Ppath"
     [
       ( "find project root",
         test_with_files

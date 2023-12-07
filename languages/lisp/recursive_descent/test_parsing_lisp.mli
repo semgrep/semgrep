@@ -5,4 +5,4 @@ val test_tokens_lisp : string (* filename *) -> unit
  * the command line, e.g. '$ pfff -parse_lisp foo.lisp will call the
  * test_parse_lisp function.
  *)
-val actions : unit -> Arg_helpers.cmdline_actions
+val actions : unit -> Arg_.cmdline_actions

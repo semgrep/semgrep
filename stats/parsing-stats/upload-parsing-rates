@@ -16,6 +16,7 @@ HOST = "https://dashboard.semgrep.dev"
 
 Stat = namedtuple("Stat", ["lang", "line_count", "parse_success", "translation_rate"])
 
+
 #
 # Return an array of 0 or 1 dicts, whose field values will be posted over HTTP.
 # See Parsing_stats.atd for the input format.

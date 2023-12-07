@@ -65,12 +65,12 @@ let rec expr_to_expr (e : G.expr) : A.expr =
   | G.Container (kind, (l, xs, r)) -> (
       match kind with
       | G.Array ->
-          let arr_inside = xs |> Common.map (fun e -> expr_to_expr e) in
+          let arr_inside = xs |> List_.map (fun e -> expr_to_expr e) in
           A.A (l, A.Array arr_inside, r)
       | G.Dict ->
           let members =
             xs
-            |> Common.map (fun e ->
+            |> List_.map (fun e ->
                    match e.G.e with
                    | G.Container (G.Tuple, (l, [ k; v ], _)) ->
                        let fld_name =

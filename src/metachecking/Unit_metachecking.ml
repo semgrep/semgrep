@@ -1,6 +1,6 @@
 open Common
-open File.Operators
-open Testutil
+open Fpath_.Operators
+open Alcotest_ext
 module E = Core_error
 
 (*****************************************************************************)
@@ -33,7 +33,7 @@ let metachecker_checks_tests () =
     (let dir = tests_path / "errors" in
      let files = Common2.glob (spf "%s/*.yaml" !!dir) in
      files
-     |> Common.map (fun file ->
+     |> List_.map (fun file ->
             let file = Fpath.v file in
             ( Fpath.basename file,
               fun () ->
@@ -46,17 +46,18 @@ let metachecker_checks_tests () =
                            E.g_errors := errs @ !E.g_errors));
                 let actual = !E.g_errors in
                 E.g_errors := [];
-                let expected = E.expected_error_lines_of_files [ !!file ] in
+                let expected = E.expected_error_lines_of_files [ file ] in
                 E.compare_actual_to_expected_for_alcotest actual expected )))
 
 (* Test the entire `-test_check` path *)
 let metachecker_regression_tests () =
-  [
-    ( "metachecker regresion testing",
-      fun () ->
-        let path = tests_path / "metachecks" in
-        Test_metachecking.test_rules ~unit_testing:true [ path ] );
-  ]
+  Alcotest_ext.simple_tests
+    [
+      ( "metachecker regression testing",
+        fun () ->
+          let path = tests_path / "metachecks" in
+          Test_metachecking.test_rules ~unit_testing:true [ path ] );
+    ]
 
 (*****************************************************************************)
 (* All tests *)

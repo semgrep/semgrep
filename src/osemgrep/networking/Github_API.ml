@@ -4,7 +4,8 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 
 let find_branchoff_point_async ~gh_token ~api_url ~repo_name ~base_branch_hash
     head_branch_hash =
-  let headers = [ ("Authorization", Fmt.str "Bearer %s" gh_token) ] in
+  let str = Auth.string_of_token gh_token in
+  let headers = [ ("Authorization", Fmt.str "Bearer %s" str) ] in
   let%lwt response =
     Http_helpers.get_async ~headers
       (Uri.of_string
@@ -12,7 +13,7 @@ let find_branchoff_point_async ~gh_token ~api_url ~repo_name ~base_branch_hash
             Digestif.SHA1.pp base_branch_hash Digestif.SHA1.pp head_branch_hash))
   in
   match response with
-  | Ok body ->
+  | Ok (body, _) ->
       let body = body |> Yojson.Basic.from_string in
       let commit =
         Option.bind

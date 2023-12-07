@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Fpath_.Operators
 open AST_generic
 module E = Core_error
 module J = JSON
@@ -93,7 +94,7 @@ let metavar_string_of_any any =
   any |> AST_generic_helpers.ii_of_any
   |> List.filter Tok.is_origintok
   |> List.sort Tok.compare_pos
-  |> Common.map Tok.content_of_tok
+  |> List_.map Tok.content_of_tok
   |> Core_text_output.join_with_space_if_needed
 
 let get_propagated_value default_start mvalue =
@@ -163,7 +164,7 @@ let token_to_intermediate_var token : OutJ.match_intermediate_var option =
       : OutJ.match_intermediate_var)
 
 let tokens_to_intermediate_vars tokens =
-  Common.map_filter token_to_intermediate_var tokens
+  List_.map_filter token_to_intermediate_var tokens
 
 let rec taint_call_trace (trace : PM.taint_call_trace) :
     OutJ.match_call_trace option =
@@ -215,7 +216,7 @@ let unsafe_match_to_match
         | (lazy trace) -> taint_trace_to_dataflow_trace trace)
       x.taint_trace
   in
-  let metavars = x.env |> Common.map (metavars startp) in
+  let metavars = x.env |> List_.map (metavars startp) in
   (* message where the metavars have been interpolated *)
   (* TODO(secrets): apply masking logic here *)
   let message =
@@ -230,10 +231,10 @@ let unsafe_match_to_match
   *)
   let file =
     if
-      (x.file <> min_loc.pos.file || x.file <> max_loc.pos.file)
+      (!!(x.file) <> min_loc.pos.file || !!(x.file) <> max_loc.pos.file)
       && min_loc.pos.file <> "FAKE TOKEN LOCATION"
     then min_loc.pos.file
-    else x.file
+    else !!(x.file)
   in
   {
     check_id = x.rule_id.id;
@@ -252,6 +253,7 @@ let unsafe_match_to_match
         fix =
           Option.map (fun edit -> edit.Textedit.replacement_text) autofix_edit;
         is_ignored;
+        (* TODO *)
         engine_kind = x.engine_kind;
         validation_state = Some x.validation_state;
         extra_extra = None;
@@ -259,7 +261,7 @@ let unsafe_match_to_match
   }
 
 let match_to_match (x : Core_result.processed_match) :
-    (OutJ.core_match, Core_error.t) Common.either =
+    (OutJ.core_match, Core_error.t) Either.t =
   try
     Left (unsafe_match_to_match x)
     (* raised by min_max_ii_by_pos in range_of_any when the AST of the
@@ -267,7 +269,7 @@ let match_to_match (x : Core_result.processed_match) :
      *)
   with
   | Tok.NoTokenLocation s ->
-      let loc = Tok.first_loc_of_file x.pm.file in
+      let loc = Tok.first_loc_of_file !!(x.pm.file) in
       let s =
         spf "NoTokenLocation with pattern %s, %s" x.pm.rule_id.pattern_string s
       in
@@ -301,36 +303,37 @@ let rec explanation_to_explanation (exp : Matching_explanation.t) :
   let tloc = Tok.unsafe_loc_of_tok pos in
   {
     op;
-    children = children |> Common.map explanation_to_explanation;
+    children = children |> List_.map explanation_to_explanation;
     matches =
       matches
-      |> Common.map (fun pm ->
+      |> List_.map (fun pm ->
              unsafe_match_to_match (Core_result.mk_processed_match pm));
     loc = OutUtils.location_of_token_location tloc;
   }
 
 let profiling_to_profiling (profiling_data : Core_profiling.t) : OutJ.profile =
   let rule_ids : Rule_ID.t list =
-    profiling_data.rules |> Common.map (fun (rule : Rule.t) -> fst rule.id)
+    profiling_data.rules |> List_.map (fun (rule : Rule.t) -> fst rule.id)
   in
   {
     targets =
       profiling_data.file_times
-      |> Common.map
+      |> List_.map
            (fun { Core_profiling.file = target; rule_times; run_time } ->
              let (rule_id_to_rule_prof
                    : (Rule_ID.t, Core_profiling.rule_profiling) Hashtbl.t) =
                rule_times
-               |> Common.map (fun (rp : Core_profiling.rule_profiling) ->
+               |> List_.map (fun (rp : Core_profiling.rule_profiling) ->
                       (rp.rule_id, rp))
-               |> Common.hash_of_list
+               |> Hashtbl_.hash_of_list
              in
+
              OutJ.
                {
                  path = target;
                  match_times =
                    rule_ids
-                   |> Common.map (fun rule_id ->
+                   |> List_.map (fun rule_id ->
                           try
                             let rprof : Core_profiling.rule_profiling =
                               Hashtbl.find rule_id_to_rule_prof rule_id
@@ -344,7 +347,7 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : OutJ.profile =
                   *)
                  parse_times =
                    rule_ids
-                   |> Common.map (fun rule_id ->
+                   |> List_.map (fun rule_id ->
                           try
                             let rprof : Core_profiling.rule_profiling =
                               Hashtbl.find rule_id_to_rule_prof rule_id
@@ -352,7 +355,7 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : OutJ.profile =
                             rprof.parse_time
                           with
                           | Not_found -> 0.);
-                 num_bytes = File.filesize target;
+                 num_bytes = UFile.filesize target;
                  run_time;
                });
     rules = rule_ids;
@@ -363,8 +366,8 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : OutJ.profile =
      *)
     total_bytes =
       profiling_data.file_times
-      |> Common.map (fun { Core_profiling.file = target; _ } ->
-             File.filesize target)
+      |> List_.map (fun { Core_profiling.file = target; _ } ->
+             UFile.filesize target)
       |> Common2.sum_int;
     (* those are filled later in pysemgrep from the Profiler class *)
     profiling_times = [];
@@ -397,7 +400,7 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : OutJ.profile =
 
 let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
   let matches, new_errs =
-    Common.partition_either match_to_match res.processed_matches
+    Either_.partition_either match_to_match res.processed_matches
   in
   let errs = !E.g_errors @ new_errs @ res.errors in
   E.g_errors := [];
@@ -410,7 +413,7 @@ let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
   in
   {
     results = matches |> OutUtils.sort_core_matches;
-    errors = errs |> Common.map error_to_error;
+    errors = errs |> List_.map error_to_error;
     paths =
       {
         skipped = skipped_targets;
@@ -421,7 +424,7 @@ let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
       };
     skipped_rules =
       res.skipped_rules
-      |> Common.map (fun ((kind, rule_id, tk) : Rule.invalid_rule_error) ->
+      |> List_.map (fun ((kind, rule_id, tk) : Rule.invalid_rule_error) ->
              let loc = Tok.unsafe_loc_of_tok tk in
              OutJ.
                {
@@ -431,11 +434,10 @@ let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
                });
     time = profiling |> Option.map profiling_to_profiling;
     explanations =
-      res.explanations |> Option.map (Common.map explanation_to_explanation);
+      res.explanations |> Option.map (List_.map explanation_to_explanation);
     rules_by_engine = Some res.rules_by_engine;
     interfile_languages_used =
-      Some
-        (Common.map (fun l -> Xlang.to_string l) res.interfile_languages_used);
+      Some (List_.map (fun l -> Xlang.to_string l) res.interfile_languages_used);
     engine_requested = Some `OSS;
     version = Some Version.version;
   }

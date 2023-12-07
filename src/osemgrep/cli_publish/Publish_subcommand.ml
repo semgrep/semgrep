@@ -15,34 +15,39 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
  *)
 
 (*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+type caps = < stdout : Cap.Console.stdout ; network : Cap.Network.t >
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
 let get_test_code_for_config upload_target =
   let config_filenames =
-    match Rule_testing_utils.get_config_filenames upload_target with
+    match Rule_tests.get_config_filenames upload_target with
     | [] -> [ upload_target ]
     | other -> other
   in
   let config_test_filenames =
-    Rule_testing_utils.get_config_test_filenames upload_target config_filenames
+    Rule_tests.get_config_test_filenames upload_target config_filenames
       upload_target
   in
   (config_filenames, config_test_filenames)
 
-let upload_rule token rule_file (conf : Publish_CLI.conf) test_code_file =
+let upload_rule caps rule_file (conf : Publish_CLI.conf) test_code_file =
   let rule_file = Fpath.to_string rule_file in
   (* THINK: is this the same as get_config(...).get_rules()? *)
   let rules, errors =
     try
       let rules, errors =
-        Rule_fetching.rules_from_rules_source ~token_opt:(Some token)
+        Rule_fetching.rules_from_rules_source ~token_opt:(Some caps#token)
           ~rewrite_rule_ids:true ~registry_caching:false
           (Rules_source.Configs [ rule_file ])
         |> Rule_fetching.partition_rules_and_errors
       in
       ( rules,
-        Common.map
+        List_.map
           (fun ((_, rule_id, _) as err) ->
             Rule.{ rule_id = Some rule_id; kind = InvalidRule err })
           errors )
@@ -59,7 +64,7 @@ let upload_rule token rule_file (conf : Publish_CLI.conf) test_code_file =
   | _ :: _, _ ->
       Logs.err (fun m ->
           m "    Invalid rule definition: %s is invalid: %s" rule_file
-            (errors |> Common.map Rule.string_of_error |> String.concat ", "));
+            (errors |> List_.map Rule.string_of_error |> String.concat ", "));
       false
   | _, [ rule ] -> (
       (* TODO: This emits a "fatal: No remote configured to list refs from."
@@ -72,7 +77,7 @@ let upload_rule token rule_file (conf : Publish_CLI.conf) test_code_file =
         | None -> "<none>"
         | Some url -> url
       in
-      let rule_source = File.read_file (Fpath.v rule_file) in
+      let rule_source = UFile.read_file (Fpath.v rule_file) in
       let rule =
         let origin_note =
           Common.spf "published from %s in %s" rule_file project_url
@@ -94,14 +99,14 @@ let upload_rule token rule_file (conf : Publish_CLI.conf) test_code_file =
           | lang :: _ -> `String (Lang.to_string lang)
         in
         let deployment_id =
-          match Semgrep_App.get_deployment_from_token ~token with
+          match Semgrep_App.get_deployment_from_token caps with
           | None -> `Null
           | Some config -> `Int config.id
         in
         let test_target =
           match test_code_file with
           | None -> `Null
-          | Some file -> `String (File.read_file file)
+          | Some file -> `String (UFile.read_file file)
         in
         let registry_id =
           match conf.registry_id with
@@ -123,7 +128,7 @@ let upload_rule token rule_file (conf : Publish_CLI.conf) test_code_file =
       in
 
       let semgrep_url = !Semgrep_envvars.v.semgrep_url in
-      match Semgrep_App.upload_rule_to_registry ~token request_json with
+      match Semgrep_App.upload_rule_to_registry caps request_json with
       | Error (status_code, text) ->
           Logs.err (fun m ->
               m "    Failed to upload rule with status code %d" status_code);
@@ -161,7 +166,7 @@ let upload_rule token rule_file (conf : Publish_CLI.conf) test_code_file =
 (* Main logic *)
 (*****************************************************************************)
 
-let run_conf (conf : Publish_CLI.conf) : Exit_code.t =
+let run_conf (caps : caps) (conf : Publish_CLI.conf) : Exit_code.t =
   let settings = Semgrep_settings.load () in
   match settings.Semgrep_settings.api_token with
   | Some token -> (
@@ -208,8 +213,8 @@ let run_conf (conf : Publish_CLI.conf) : Exit_code.t =
                   | [] -> None
                   | first :: _ -> Some first
                 in
-
-                if not (upload_rule token config_filename conf first_test_case)
+                let caps = Auth.cap_token_and_network token caps in
+                if not (upload_rule caps config_filename conf first_test_case)
                 then fail_count + 1
                 else fail_count)
               0 config_filenames
@@ -227,6 +232,6 @@ let run_conf (conf : Publish_CLI.conf) : Exit_code.t =
 (* Entry point *)
 (*****************************************************************************)
 
-let main (argv : string array) : Exit_code.t =
+let main (caps : caps) (argv : string array) : Exit_code.t =
   let conf = Publish_CLI.parse_argv argv in
-  run_conf conf
+  run_conf caps conf

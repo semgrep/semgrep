@@ -1,4 +1,5 @@
 module OutJ = Semgrep_output_v1_j
+open Fpath_.Operators
 
 (*****************************************************************************)
 (* Prelude *)
@@ -37,7 +38,7 @@ let rule_id_re_str = {|(?:[:=][\s]?(?P<ids>([^,\s](?:[,\s]+)?)+))?|}
    * nosem and nosemgrep should be interchangeable
 *)
 let nosem_inline_re_str = {| nosem(?:grep)?|} ^ rule_id_re_str
-let nosem_inline_re = SPcre.regexp nosem_inline_re_str ~flags:[ `CASELESS ]
+let nosem_inline_re = Pcre_.regexp nosem_inline_re_str ~flags:[ `CASELESS ]
 
 (*
    A nosemgrep comment alone on its line.
@@ -52,7 +53,7 @@ let nosem_inline_re = SPcre.regexp nosem_inline_re_str ~flags:[ `CASELESS ]
      print('nosemgrep');
 *)
 let nosem_previous_line_re =
-  SPcre.regexp
+  Pcre_.regexp
     ({|^[^a-zA-Z0-9]* nosem(?:grep)?|} ^ rule_id_re_str)
     ~flags:[ `CASELESS ]
 
@@ -65,10 +66,10 @@ let nosem_previous_line_re =
    array IDs (["ids"]) collected during this recognition.
 *)
 let recognise_and_collect ~rex (line_num, line) =
-  SPcre.exec_all ~rex line
+  Pcre_.exec_all ~rex line
   |> Result.map
        (Array.map (fun subst ->
-            match SPcre.get_named_substring_and_ofs rex "ids" subst with
+            match Pcre_.get_named_substring_and_ofs rex "ids" subst with
             | Ok (Some (s, (begin_ofs, _end_ofs))) ->
                 Some (line_num, s, begin_ofs)
             | Ok None
@@ -86,15 +87,14 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
   let lines =
     (* Minus one, because we need the preceding line. *)
     let start, end_ = pm.range_loc in
-    let start_line = max (start.pos.line - 1) 1 in
-    let end_line = end_.pos.line in
-    File.lines_of_file (start_line, end_line) (Fpath.v pm.file)
-    |> Common.mapi (fun idx x -> (start_line + idx, x))
+    let start_line = max 0 (start.pos.line - 1) in
+    UFile.lines_of_file (start_line, end_.pos.line) pm.file
+    |> List_.mapi (fun idx x -> (start_line + idx, x))
   in
 
   let path = pm.file in
   let linecol_to_bytepos_fun =
-    (Pos.full_converters_large path).linecol_to_bytepos_fun
+    (Pos.full_converters_large !!path).linecol_to_bytepos_fun
   in
 
   let previous_line, line =
@@ -133,8 +133,8 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
   | ids_line, ids_previous_line ->
       let ids = Array.append ids_line ids_previous_line in
       let ids =
-        Array.to_list ids |> Common.map_filter Fun.id
-        |> Common.map (fun (line_num, s, col) ->
+        Array.to_list ids |> List_.map_filter Fun.id
+        |> List_.map (fun (line_num, s, col) ->
                (* [String.split_on_char] can **not** return an empty list. *)
                ( line_num,
                  List.hd (String.split_on_char ' ' s) (* nosemgrep: list-hd *),
@@ -166,7 +166,7 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
                       bytepos = linecol_to_bytepos_fun (line_num, col);
                       line = line_num;
                       column = col;
-                      file = path;
+                      file = !!path;
                     };
               }
           in
@@ -204,7 +204,7 @@ let produce_ignored (matches : Core_result.processed_match list) :
     Core_result.processed_match list * Core_error.t list =
   (* filters [rule_match]s by the [nosemgrep] tag. *)
   let matches, wide_errors =
-    Common.map
+    List_.map
       (fun (pm : Core_result.processed_match) ->
         let is_ignored, errors = rule_match_nosem pm.pm in
         ({ pm with is_ignored }, errors))

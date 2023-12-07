@@ -70,7 +70,6 @@ def _get_match_context(
 def _apply_fix(
     rule_match: RuleMatch, file_offsets: FileOffsets, fix: str
 ) -> Tuple[Fix, FileOffsets]:
-
     p = rule_match.path
     lines = _get_lines(p)
 
@@ -138,7 +137,6 @@ def matches_overlap(x: RuleMatch, y: RuleMatch) -> bool:
 def deduplicate_overlapping_matches(
     rules_and_matches: Iterable[Tuple[Rule, OrderedRuleMatchList]]
 ) -> OrderedRuleMatchList:
-
     final_matches = []
 
     ordered_matches = sorted(

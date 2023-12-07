@@ -20,7 +20,6 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
-open Common
 
 (*****************************************************************************)
 (* Purpose *)
@@ -198,7 +197,7 @@ let vof_int64 x = VInt x
 let vof_float x = VFloat x
 let vof_string x = VString x
 let vof_bool b = VBool b
-let vof_list ofa x = VList (Common.map ofa x)
+let vof_list ofa x = VList (List_.map ofa x)
 
 let vof_option ofa x =
   match x with
@@ -210,21 +209,21 @@ let vof_ref ofa x =
   | { contents = x } -> VRef (ofa x)
 
 let vof_either _of_a _of_b = function
-  | Left v1 ->
+  | Either.Left v1 ->
       let v1 = _of_a v1 in
       VSum ("Left", [ v1 ])
-  | Right v1 ->
+  | Either.Right v1 ->
       let v1 = _of_b v1 in
       VSum ("Right", [ v1 ])
 
 let vof_either3 _of_a _of_b _of_c = function
-  | Left3 v1 ->
+  | Either_.Left3 v1 ->
       let v1 = _of_a v1 in
       VSum ("Left3", [ v1 ])
-  | Middle3 v1 ->
+  | Either_.Middle3 v1 ->
       let v1 = _of_b v1 in
       VSum ("Middle3", [ v1 ])
-  | Right3 v1 ->
+  | Either_.Right3 v1 ->
       let v1 = _of_c v1 in
       VSum ("Right3", [ v1 ])
 
@@ -263,7 +262,7 @@ let option_ofv a__of_sexp sexp =
 (* Format pretty printers *)
 (*****************************************************************************)
 let add_sep xs =
-  xs |> Common.map (fun x -> Right x) |> Common2.join_gen (Left ())
+  xs |> List_.map (fun x -> Either.Right x) |> Common2.join_gen (Either.Left ())
 
 (*
  * OCaml value pretty printer. A similar functionnality is provided by
@@ -288,7 +287,7 @@ let add_sep xs =
 
 let string_of_v ?(max_depth = max_int) v =
   Common2.format_to_string (fun () ->
-      let ppf = Format.printf in
+      let ppf = UFormat.printf in
       let rec aux max_depth v =
         if max_depth <= 0 then ppf "..."
         else
@@ -303,8 +302,8 @@ let string_of_v ?(max_depth = max_int) v =
               ppf "(@[";
               xs |> add_sep
               |> List.iter (function
-                   | Left _ -> ppf ",@ "
-                   | Right v -> aux (max_depth - 1) v);
+                   | Either.Left _ -> ppf ",@ "
+                   | Either.Right v -> aux (max_depth - 1) v);
               ppf "@])"
           | VDict xs ->
               ppf "{@[";
@@ -322,8 +321,8 @@ let string_of_v ?(max_depth = max_int) v =
                   ppf "@[<hov 2>%s(@," s;
                   xs |> add_sep
                   |> List.iter (function
-                       | Left _ -> ppf ",@ "
-                       | Right v -> aux (max_depth - 1) v);
+                       | Either.Left _ -> ppf ",@ "
+                       | Either.Right v -> aux (max_depth - 1) v);
                   ppf "@])")
           | VVar (s, i64) -> ppf "%s_%Ld" s i64
           | VArrow _v1 -> failwith "Arrow TODO"
@@ -340,8 +339,8 @@ let string_of_v ?(max_depth = max_int) v =
               ppf "[@[<hov>";
               xs |> add_sep
               |> List.iter (function
-                   | Left _ -> ppf ";@ "
-                   | Right v -> aux (max_depth - 1) v);
+                   | Either.Left _ -> ppf ";@ "
+                   | Either.Right v -> aux (max_depth - 1) v);
               ppf "@]]"
           | VTODO _v1 -> ppf "VTODO"
       in
@@ -369,23 +368,23 @@ let map_of_int x = x
 let map_of_int64 x = x
 
 let map_of_either _of_a _of_b = function
-  | Left v1 ->
+  | Either.Left v1 ->
       let v1 = _of_a v1 in
-      Left v1
-  | Right v1 ->
+      Either.Left v1
+  | Either.Right v1 ->
       let v1 = _of_b v1 in
-      Right v1
+      Either.Right v1
 
 let map_of_either3 _of_a _of_b _of_c = function
-  | Left3 v1 ->
+  | Either_.Left3 v1 ->
       let v1 = _of_a v1 in
-      Left3 v1
-  | Middle3 v1 ->
+      Either_.Left3 v1
+  | Either_.Middle3 v1 ->
       let v1 = _of_b v1 in
-      Middle3 v1
-  | Right3 v1 ->
+      Either_.Middle3 v1
+  | Either_.Right3 v1 ->
       let v1 = _of_c v1 in
-      Right3 v1
+      Either_.Right3 v1
 
 let map_of_all3 of_a of_b of_c (a, b, c) = (of_a a, of_b b, of_c c)
 
@@ -477,11 +476,11 @@ let v_list of_a xs = List.iter of_a xs
 
 let v_either of_a of_b x =
   match x with
-  | Left a -> of_a a
-  | Right b -> of_b b
+  | Either.Left a -> of_a a
+  | Either.Right b -> of_b b
 
 let v_either3 of_a of_b of_c x =
   match x with
-  | Left3 a -> of_a a
-  | Middle3 b -> of_b b
-  | Right3 c -> of_c c
+  | Either_.Left3 a -> of_a a
+  | Either_.Middle3 b -> of_b b
+  | Either_.Right3 c -> of_c c

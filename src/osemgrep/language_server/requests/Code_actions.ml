@@ -12,7 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open File.Operators
+open Fpath_.Operators
 open Lsp
 open Types
 open RPC_server
@@ -57,7 +57,7 @@ let code_actions_of_file (matches : OutJ.cli_match list) file =
       (fun (m : OutJ.cli_match) -> m.path = file && m.extra.fix <> None)
       matches
   in
-  Common.map code_action_of_match matches
+  List_.map code_action_of_match matches
 
 (* Example *)
 (* A match that has an autofix will produce a diagnostic like this:
@@ -106,7 +106,7 @@ let on_request server
   let file = uri |> Uri.to_path |> Fpath.v in
   let matches =
     let ranges =
-      Common.map (fun (d : Diagnostic.t) -> d.range) context.diagnostics
+      List_.map (fun (d : Diagnostic.t) -> d.range) context.diagnostics
     in
     Session.previous_scan_of_file server.session file
     |> Option.value ~default:[]

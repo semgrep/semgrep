@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Fpath_.Operators
 module MV = Metavariable
 module PM = Pattern_match
 module RP = Core_result
@@ -59,13 +60,13 @@ let info_of_token_location loc = Tok.OriginTok loc
 let (matches_of_matcher :
       ('xpattern * Xpattern.pattern_id * string) list ->
       ('target_content, 'xpattern) t ->
-      string (* filename *) ->
+      Fpath.t ->
       Core_profiling.times Core_result.match_result) =
  fun xpatterns matcher file ->
   if xpatterns =*= [] then Core_result.empty_match_result
   else
     let target_content_opt, parse_time =
-      Common.with_time (fun () -> matcher.init file)
+      Common.with_time (fun () -> matcher.init !!file)
     in
     match target_content_opt with
     | None ->
@@ -75,9 +76,9 @@ let (matches_of_matcher :
           Common.with_time (fun () ->
               xpatterns
               |> List.concat_map (fun (xpat, id, pstr) ->
-                     let xs = matcher.matcher target_content file xpat in
+                     let xs = matcher.matcher target_content !!file xpat in
                      xs
-                     |> Common.map (fun ((loc1, loc2), env) ->
+                     |> List_.map (fun ((loc1, loc2), env) ->
                             (* this will be adjusted later *)
                             let rule_id = Match_env.fake_rule_id (id, pstr) in
                             {

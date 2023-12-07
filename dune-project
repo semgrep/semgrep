@@ -29,9 +29,17 @@
 ; Opam packages
 
 (package
+  (name alcotest_ext)
+  (synopsis "Extension of the Alcotest library")
+  (description "\
+Alcotest_ext extends the functionality of the Alcotest library by providing
+new subcommands for capturing, checking, and approving the output of tests.")
+)
+
+(package
   (name aliengrep)
-  (synopsis "XXX")
-  (description "XXX")
+  (synopsis "Generic Semgrep-like pattern search backed by PCRE")
+  (description "Generic Semgrep-like pattern search backed by PCRE")
 )
 
 (package
@@ -489,6 +497,11 @@ Uses indentation and standard braces to determine a crude parse tree
   (description "XXX")
 )
 (package (name tree-sitter-to-generic)
+  (synopsis "XXX")
+  (description "XXX")
+)
+
+(package (name TCB)
   (synopsis "XXX")
   (description "XXX")
 )

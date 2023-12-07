@@ -53,7 +53,7 @@ let rec print_indent indent { op; children; matches; pos } =
     spf "%s op = %s (at %d), matches = %s" (Common2.n_space indent)
       (OutJ.show_matching_operation op)
       (Tok.bytepos_of_tok pos)
-      (matches |> Common.map match_to_charpos_range |> Common.join " ")
+      (matches |> List_.map match_to_charpos_range |> String.concat " ")
   in
   Out.put s;
   children |> List.iter (print_indent (indent + 2))

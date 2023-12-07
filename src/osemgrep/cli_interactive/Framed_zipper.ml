@@ -54,12 +54,12 @@ let move_down m =
   else { m with pointer = m.pointer + 1 }
 
 let change_max_len t len = { t with max_len = len }
-let take n m = Common2.take_safe n m.after
+let take n m = List_.take_safe n m.after
 let of_list max_len l = { before_rev = []; after = l; pointer = 0; max_len }
 let append x m = { m with after = m.after @ [ x ] }
 
 let to_list m =
-  let pad_with_false = Common.map (fun x -> (x, false)) in
+  let pad_with_false = List_.map (fun x -> (x, false)) in
   match m.after with
   | [] -> pad_with_false (List.rev m.before_rev)
   | x :: xs ->
@@ -72,7 +72,7 @@ let map_current f m =
   {
     m with
     after =
-      Common.mapi
+      List_.mapi
         (fun idx x -> if idx = relative_position m then f x else x)
         m.after;
   }
@@ -98,14 +98,14 @@ let is_bottom m =
 let show f t =
   let after_padded =
     if List.length t.after >= t.max_len then
-      Common2.take t.max_len (Common.map Option.some t.after)
+      List_.take t.max_len (List_.map Option.some t.after)
     else
-      Common.map Option.some t.after
+      List_.map Option.some t.after
       @ List.init (t.max_len - List.length t.after) (fun _ -> None)
   in
   let contents =
     after_padded
-    |> Common.mapi (fun i x ->
+    |> List_.mapi (fun i x ->
            let element =
              match x with
              | None -> "<NONE>"

@@ -1,0 +1,2 @@
+Updated the parser used for Rust. The largest change relates to how macros are
+parsed.

@@ -85,9 +85,10 @@ let ranges_matched lang file pattern : Range.t list =
                   minii_loc "" Out.SemgrepMatchFound
         *))
       (Rule_options.default_config, equiv)
-      [ rule ] (file, lang, ast)
+      [ rule ]
+      (Fpath.v file, lang, ast)
   in
-  Common.map extract_range matches
+  List_.map extract_range matches
 
 let run_single_test file linecols expected_pattern =
   let lang, _, inferred_pattern =
@@ -99,7 +100,7 @@ let run_single_test file linecols expected_pattern =
   in
   let pattern_correct = actual_pattern = expected_pattern in
   let ranges_expected =
-    Common.map (fun lcs -> Range.range_of_linecol_spec lcs file) linecols
+    List_.map (fun lcs -> Range.range_of_linecol_spec lcs file) linecols
   in
   let ranges_actual = ranges_matched lang file inferred_pattern in
   let ranges_correct =
@@ -118,10 +119,12 @@ let run_single_test file linecols expected_pattern =
 (*****************************************************************************)
 
 let tests =
-  [
-    ( "pattern from targets",
-      fun () ->
-        stmt_tests @ statement_list_tests
-        |> List.iter (fun (file, linecols, expected_pattern) ->
-               run_single_test (test_path ^ file) linecols expected_pattern) );
-  ]
+  Alcotest_ext.simple_tests
+    [
+      ( "pattern from targets",
+        fun () ->
+          stmt_tests @ statement_list_tests
+          |> List.iter (fun (file, linecols, expected_pattern) ->
+                 run_single_test (test_path ^ file) linecols expected_pattern)
+      );
+    ]

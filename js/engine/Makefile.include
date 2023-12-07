@@ -1,7 +1,7 @@
 EMCC_DEFAULTS = \
    -sALLOW_MEMORY_GROWTH=1 \
    --no-entry \
-   -sEXPORTED_RUNTIME_METHODS=UTF8ToString,stringToUTF8,stringToAscii,lengthBytesUTF8,getValue,setValue,intArrayFromString,writeArrayToMemory \
+   -sEXPORTED_RUNTIME_METHODS=UTF8ToString,stringToUTF8,stringToAscii,AsciiToString,lengthBytesUTF8,getValue,setValue,intArrayFromString,writeArrayToMemory \
    -sMODULARIZE \
    -sSINGLE_FILE=1
 

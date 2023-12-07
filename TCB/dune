@@ -1,0 +1,14 @@
+; The OCaml Trusted Computing Base!
+; see https://en.wikipedia.org/wiki/Trusted_computing_base for more info
+(library
+ (public_name TCB)
+ (wrapped false)
+ (libraries
+    unix
+ )
+ (preprocess
+   (pps
+     ppx_deriving.show
+   )
+ )
+)

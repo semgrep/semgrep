@@ -39,17 +39,17 @@ let string_of_value = function
   | Z i -> spf "%d" i
 
 let csv_of_tuple xs =
-  (xs |> Common.map string_of_value |> Common.join ",") ^ "\n"
+  (xs |> List_.map string_of_value |> String.concat ",") ^ "\n"
 
 (*****************************************************************************)
 (* Write *)
 (*****************************************************************************)
 let write_facts_for_doop facts dir =
-  let facts = facts |> Common.map D.meta_fact in
-  let groups = facts |> Common.group_assoc_bykey_eff in
+  let facts = facts |> List_.map D.meta_fact in
+  let groups = facts |> Assoc.group_assoc_bykey_eff in
   groups
   |> List.iter (fun (table, tuples) ->
          let file = Filename.concat dir table ^ ".csv" in
          pr2 (spf "generating tuples for %s" file);
-         Common.with_open_outfile file (fun (mypr, _chan) ->
+         UCommon.with_open_outfile file (fun (mypr, _chan) ->
              tuples |> List.iter (fun tuple -> mypr (csv_of_tuple tuple))))

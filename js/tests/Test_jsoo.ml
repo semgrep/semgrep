@@ -22,41 +22,55 @@ open Js_of_ocaml
 (* Code *)
 (*****************************************************************************)
 
-(* skipped_tests is a list of test names and and optional indicies to skip *)
-(* for example: *)
-(* ("foo", []) will skip all tests with "foo" in the name *)
-(* ("foo", [1; 3]) will skip test with "fool" in the name AND whose index are 1 or 3 *)
-let skipped_tests =
-  [
-    (* TODO: investigate C++ test issues *)
-    ("Cpp", []);
-    ("C++", []);
-    (* TODO: re-enable once we fix Julia build slowness *)
-    ("Julia", []);
-    (* TODO: re-enable once we fix Ruby build slowness *)
-    ("Ruby", []);
-    (* TODO: re-enable this when we fix the jsoo int overflow bug *)
-    ("Go", [ 24 ]);
-    (* TODO: investigate c_array_inits pattern parse error*)
-    ("C", [ 2 ]);
-  ]
+(* Old code for skipping tests that are known to fail.
+      The new code skips test based on tags. Tags are set elsewhere.
 
-(* Filter to skip tests *)
-let test_filter ~name ~index =
-  if
-    List.filter
-      (fun (language, indexes) ->
-        Common.contains
-          (String.lowercase_ascii name)
-          (String.lowercase_ascii language)
-        && (indexes = [] || List.exists (fun n2 -> n2 = index) indexes))
-      skipped_tests
-    <> []
-  then `Skip
-  else `Run
+   (* skipped_tests is a list of test names and and optional indicies to skip *)
+   (* for example: *)
+   (* ("foo", []) will skip all tests with "foo" in the name *)
+   (* ("foo", [1; 3]) will skip test with "fool" in the name AND whose index are 1 or 3 *)
+   let skipped_tests =
+     [
+       (* TODO: investigate C++ test issues *)
+       ("Cpp", []);
+       ("C++", []);
+       (* TODO: re-enable once we fix Julia build slowness *)
+       ("Julia", []);
+       (* TODO: re-enable once we fix Ruby build slowness *)
+       ("Ruby", []);
+       (* TODO: re-enable this when we fix the jsoo int overflow bug *)
+       ("Go", [ 24 ]);
+       (* TODO: investigate c_array_inits pattern parse error*)
+       ("C", [ 2 ]);
+     ]
+
+   let test_filter ~name ~index =
+     if
+       List.filter
+         (fun (language, indexes) ->
+           Common.contains
+             (String.lowercase_ascii name)
+             (String.lowercase_ascii language)
+           && (indexes = [] || List.exists (fun n2 -> n2 = index) indexes))
+         skipped_tests
+       <> []
+     then `Skip
+     else `Run
+*)
+
+(* This may skip more tests than necessary depending on the tagging accuracy.
+   Ideally, tests that are expected to fail and only those should be marked
+   as xfail rather than being skipped so we can detect when their status
+   changes. *)
+let skip_todo_tests tests =
+  tests
+  |> List_.map (fun test ->
+         if Alcotest_ext.has_tag Test_tags.todo_js test then
+           Alcotest_ext.update ~skipped:true test
+         else test)
 
 (* Stolen from Logs' logs_browser.ml *)
-let _ =
+let () =
   Logs.set_level (Some Logs.Debug);
   Logs.set_reporter { Logs.report = Semgrep_js_shared.console_report };
   Js.export_all
@@ -83,38 +97,42 @@ let _ =
          in
          let lwt_tests = [ Test_LS_e2e.lwt_tests ] |> List.flatten in
          let tests =
-           Common.map
-             (fun (name, f) ->
+           List_.map
+             (fun (test : Alcotest_ext.test) ->
                let f () =
                  Semgrep_js_shared.wrap_with_js_error
                    ~hook:
-                     (Some (fun () -> Firebug.console##log (Js.string name)))
-                   f
+                     (Some
+                        (fun () -> Firebug.console##log (Js.string test.name)))
+                   test.func
                in
-               (name, f))
+               Alcotest_ext.update test ~func:f)
              tests
+           |> skip_todo_tests
          in
          let lwt_tests =
-           Common.map
-             (fun (name, f) ->
+           List_.map
+             (fun (test : Alcotest_ext.lwt_test) ->
                let f () =
                  Semgrep_js_shared.wrap_with_js_error
                    ~hook:
-                     (Some (fun () -> Firebug.console##log (Js.string name)))
-                   f
+                     (Some
+                        (fun () -> Firebug.console##log (Js.string test.name)))
+                   test.func
                in
-               (name, f))
+               Alcotest_ext.update test ~func:f)
              lwt_tests
+           |> skip_todo_tests
          in
          let run () =
            Alcotest.run "semgrep-js"
-             (Testutil.to_alcotest tests)
-             ~and_exit:false ~argv ~filter:test_filter
+             (Alcotest_ext.to_alcotest tests)
+             ~and_exit:false ~argv
          in
          let run_lwt () : unit Lwt.t =
            Alcotest_lwt.run "semgrep-js"
-             (Testutil.to_alcotest_lwt lwt_tests)
-             ~and_exit:false ~argv ~filter:test_filter
+             (Alcotest_ext.to_alcotest_lwt lwt_tests)
+             ~and_exit:false ~argv
          in
          (* Some gymnastics are needed here because we need to
             produce a top level promise, in order to properly transform the

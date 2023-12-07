@@ -1,6 +1,6 @@
 open Common
-open File.Operators
-open Testutil
+open Fpath_.Operators
+open Alcotest_ext
 module R = Rule
 module MR = Mini_rule
 module P = Pattern_match
@@ -107,14 +107,13 @@ let pack_tests_for_lang
        polyglot_pattern_path:Fpath.t ->
        Fpath.t list ->
        Language.t ->
-       (string * (unit -> unit)) list) ~test_pattern_path ~polyglot_pattern_path
-    lang dir ext =
-  pack_tests
+       Alcotest_ext.test list) ~test_pattern_path ~polyglot_pattern_path lang
+    dir ext =
+  pack_tests_pro
     (spf "semgrep %s" (Lang.show lang))
     (let dir = test_pattern_path / dir in
-     let files =
-       Common2.glob (spf "%s/*%s" !!dir ext) |> File.Path.of_strings
-     in
+     let files = Common2.glob (spf "%s/*%s" !!dir ext) |> Fpath_.of_strings in
+
      lang_test_fn ~polyglot_pattern_path files lang)
 
 (*****************************************************************************)
@@ -237,7 +236,7 @@ let language_exceptions =
 (* TODO: infer dir and ext from lang using Lang helper functions *)
 let make_maturity_tests ?(lang_exn = language_exceptions) lang dir ext maturity
     =
-  pack_tests
+  pack_tests_pro
     (spf "Maturity %s for %s" (show_maturity_level maturity) (Lang.show lang))
     (let dir = tests_path_patterns / dir in
      let features = assoc_maturity_level |> List.assoc maturity in
@@ -254,9 +253,9 @@ let make_maturity_tests ?(lang_exn = language_exceptions) lang dir ext maturity
                 (spf "%s actually exist! remove it from exceptions" !!path));
      let features = Common2.minus_set features exns in
      features
-     |> Common.map (fun base ->
-            ( base,
-              fun () ->
+     |> List_.map (fun base ->
+            Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang) base
+              (fun () ->
                 let path = dir / (base ^ ext) in
                 (* if it's a does-not-apply (NA) case, consider adding it
                  * to language_exceptions above
@@ -264,7 +263,7 @@ let make_maturity_tests ?(lang_exn = language_exceptions) lang dir ext maturity
                 if not (Sys.file_exists !!path) then
                   failwith
                     (spf "missing test file %s for maturity %s" !!path
-                       (show_maturity_level maturity)) )))
+                       (show_maturity_level maturity)))))
 
 let maturity_tests () =
   (* coupling: https://semgrep.dev/docs/language-support/ *)
@@ -364,7 +363,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix =
   let equiv = [] in
   Match_patterns.check ~hook
     (Rule_options.default_config, equiv)
-    [ rule ] (!!file, lang, ast)
+    [ rule ] (file, lang, ast)
 
 (*
    For each input file with the language's extension, locate a pattern file
@@ -374,9 +373,9 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix =
 *)
 let regression_tests_for_lang ~polyglot_pattern_path files lang =
   files
-  |> Common.map (fun file ->
-         ( Fpath.basename file,
-           fun () ->
+  |> List_.map (fun file ->
+         Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang)
+           (Fpath.basename file) (fun () ->
              let sgrep_file =
                match
                  related_file_of_target ~polyglot_pattern_path ~ext:"sgrep"
@@ -385,7 +384,7 @@ let regression_tests_for_lang ~polyglot_pattern_path files lang =
                | Ok file -> file
                | Error msg -> failwith msg
              in
-             let pattern = File.read_file sgrep_file in
+             let pattern = UFile.read_file sgrep_file in
 
              (* old: semgrep-core used to support user-defined
                 * equivalences, but the feature has been now deprecated.
@@ -406,15 +405,15 @@ let regression_tests_for_lang ~polyglot_pattern_path files lang =
              |> ignore;
              let actual = !E.g_errors in
              E.g_errors := [];
-             let expected = E.expected_error_lines_of_files [ !!file ] in
-             E.compare_actual_to_expected_for_alcotest actual expected ))
+             let expected = E.expected_error_lines_of_files [ file ] in
+             E.compare_actual_to_expected_for_alcotest actual expected))
 
 let make_lang_regression_tests ~test_pattern_path ~polyglot_pattern_path
     lang_data =
   (* TODO: infer dir and ext from lang using Lang helper functions *)
   let lang_tests =
     lang_data
-    |> Common.map (fun (lang, dir, ext) ->
+    |> List_.map (fun (lang, dir, ext) ->
            pack_tests_for_lang ~lang_test_fn:regression_tests_for_lang
              ~test_pattern_path ~polyglot_pattern_path lang dir ext)
   in
@@ -424,26 +423,26 @@ let lang_regression_tests ~polyglot_pattern_path =
   let test_pattern_path = tests_path_patterns in
   let regular_tests =
     full_lang_info
-    |> Common.map (fun (lang, dir, ext) ->
+    |> List_.map (fun (lang, dir, ext) ->
            pack_tests_for_lang ~lang_test_fn:regression_tests_for_lang
              ~test_pattern_path ~polyglot_pattern_path lang dir ext)
   in
   let irregular_tests =
     [
-      pack_tests "semgrep Typescript on Javascript (no JSX)"
+      pack_tests_pro "semgrep Typescript on Javascript (no JSX)"
         (let dir = test_pattern_path / "js" in
          let files = Common2.glob (spf "%s/*.js" !!dir) in
          let files =
-           Common.exclude (fun s -> s =~ ".*xml" || s =~ ".*jsx") files
-           |> File.Path.of_strings
+           List_.exclude (fun s -> s =~ ".*xml" || s =~ ".*jsx") files
+           |> Fpath_.of_strings
          in
+
          let lang = Lang.Ts in
          regression_tests_for_lang ~polyglot_pattern_path files lang);
-      pack_tests "semgrep C++ on C tests"
+      pack_tests_pro "semgrep C++ on C tests"
         (let dir = test_pattern_path / "c" in
-         let files =
-           Common2.glob (spf "%s/*.c" !!dir) |> File.Path.of_strings
-         in
+         let files = Common2.glob (spf "%s/*.c" !!dir) |> Fpath_.of_strings in
+
          let lang = Lang.Cpp in
          regression_tests_for_lang ~polyglot_pattern_path files lang);
     ]
@@ -477,16 +476,15 @@ let compare_fixes ~polyglot_pattern_path ~file matches =
       | Ok file -> file
       | Error msg -> failwith msg
     in
-    File.read_file expected_fixed_file
+    UFile.read_file expected_fixed_file
   in
   let processed_matches =
-    Autofix.produce_autofixes
-      (Common.map Core_result.mk_processed_match matches)
+    Autofix.produce_autofixes (List_.map Core_result.mk_processed_match matches)
   in
   let file = Fpath.to_string file in
   let fixed_text =
     processed_matches
-    |> Common.map_filter (fun (m : Core_result.processed_match) ->
+    |> List_.map_filter (fun (m : Core_result.processed_match) ->
            m.autofix_edit)
     |> Autofix.apply_fixes_to_file ~file
   in
@@ -494,9 +492,9 @@ let compare_fixes ~polyglot_pattern_path ~file matches =
 
 let autofix_tests_for_lang ~polyglot_pattern_path files lang =
   files
-  |> Common.map (fun file ->
-         ( Fpath.basename file,
-           fun () ->
+  |> List_.map (fun file ->
+         Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang)
+           (Fpath.basename file) (fun () ->
              let sgrep_file =
                match
                  related_file_of_target ~polyglot_pattern_path ~ext:"sgrep"
@@ -505,12 +503,12 @@ let autofix_tests_for_lang ~polyglot_pattern_path files lang =
                | Ok file -> file
                | Error msg -> failwith msg
              in
-             let pattern = File.read_file sgrep_file in
+             let pattern = UFile.read_file sgrep_file in
              let fix =
                match
                  related_file_of_target ~polyglot_pattern_path ~ext:"fix" ~file
                with
-               | Ok fix_file -> Fix (File.read_file fix_file)
+               | Ok fix_file -> Fix (UFile.read_file fix_file)
                | Error _ -> (
                    (* A poor man's configuration format.
                       Either two or three lines.
@@ -521,7 +519,7 @@ let autofix_tests_for_lang ~polyglot_pattern_path files lang =
                        ~ext:"fix-regex" ~file
                    with
                    | Ok fix_regex_file -> (
-                       match File.cat fix_regex_file with
+                       match UFile.cat fix_regex_file with
                        | [ l1; l2 ] -> FixRegex (l1, None, l2)
                        | [ l1; l2; l3 ] ->
                            FixRegex (l1, Some (int_of_string l2), l3)
@@ -551,13 +549,13 @@ let autofix_tests_for_lang ~polyglot_pattern_path files lang =
              E.g_errors := [];
              match fix with
              | NoFix -> ()
-             | _ -> compare_fixes ~polyglot_pattern_path ~file matches ))
+             | _ -> compare_fixes ~polyglot_pattern_path ~file matches))
 
 let lang_autofix_tests ~polyglot_pattern_path =
   let test_pattern_path = tests_path_autofix in
   let lang_tests =
     full_lang_info
-    |> Common.map (fun (lang, dir, ext) ->
+    |> List_.map (fun (lang, dir, ext) ->
            pack_tests_for_lang ~lang_test_fn:autofix_tests_for_lang
              ~test_pattern_path ~polyglot_pattern_path lang dir ext)
   in
@@ -568,20 +566,21 @@ let lang_autofix_tests ~polyglot_pattern_path =
 (*****************************************************************************)
 
 let eval_regression_tests () =
-  [
-    ( "eval regression testing",
-      fun () ->
-        let dir = tests_path / "eval" in
-        let files = Common2.glob (spf "%s/*.json" !!dir) in
-        files
-        |> List.iter (fun file ->
-               let env, code = Eval_generic.parse_json file in
-               let res = Eval_generic.eval env code in
-               Alcotest.(check bool)
-                 (spf "%s should evaluate to true" file)
-                 true
-                 (Eval_generic.Bool true =*= res)) );
-  ]
+  Alcotest_ext.simple_tests
+    [
+      ( "eval regression testing",
+        fun () ->
+          let dir = tests_path / "eval" in
+          let files = Common2.glob (spf "%s/*.json" !!dir) in
+          files
+          |> List.iter (fun file ->
+                 let env, code = Eval_generic.parse_json file in
+                 let res = Eval_generic.eval env code in
+                 Alcotest.(check bool)
+                   (spf "%s should evaluate to true" file)
+                   true
+                   (Eval_generic.Bool true =*= res)) );
+    ]
 
 (*****************************************************************************)
 (* Analyze_rule (filter irrelevant rules) tests *)
@@ -598,7 +597,7 @@ let test_irrelevant_rule rule_file target_file =
                (spf "Rule %s: no regex prefilter formula"
                   (Rule_ID.to_string (fst rule.id)))
          | Some (f, func) ->
-             let content = File.read_file target_file in
+             let content = UFile.read_file target_file in
              let s = Semgrep_prefilter_j.string_of_formula f in
              if func content then
                Alcotest.fail
@@ -632,13 +631,13 @@ let filter_irrelevant_rules_tests () =
     (let dir = tests_path / "irrelevant_rules" in
      let target_files =
        Common2.glob (spf "%s/*" !!dir)
-       |> File.Path.of_strings
+       |> Fpath_.of_strings
        |> File_type.files_of_dirs_or_files (function
             | File_type.Config File_type.Yaml -> false
             | _ -> true (* TODO include .test.yaml*))
      in
      target_files
-     |> Common.map (fun target_file -> test_irrelevant_rule_file target_file))
+     |> List_.map (fun target_file -> test_irrelevant_rule_file target_file))
 
 (*****************************************************************************)
 (* Extract tests *)
@@ -647,9 +646,7 @@ let filter_irrelevant_rules_tests () =
 let get_extract_source_lang file rules =
   let _, _, erules, _, _ = R.partition_rules rules in
   let erule_langs =
-    erules
-    |> Common.map (fun r -> r.R.target_analyzer)
-    |> List.sort_uniq compare
+    erules |> List_.map (fun r -> r.R.target_analyzer) |> List.sort_uniq compare
   in
   match erule_langs with
   | [] -> failwith (spf "no language for extract rule found in %s" !!file)
@@ -664,12 +661,8 @@ let get_extract_source_lang file rules =
 
 let extract_tests () =
   let path = tests_path / "extract" in
-  pack_tests "extract mode"
-    (let tests, _total_mismatch, _print_summary =
-       Test_engine.make_tests ~unit_testing:true
-         ~get_xlang:(Some get_extract_source_lang) [ path ]
-     in
-     tests)
+  pack_tests_pro "extract mode"
+    (Test_engine.make_tests ~get_xlang:get_extract_source_lang [ path ])
 
 (*****************************************************************************)
 (* Tainting tests *)
@@ -712,7 +705,7 @@ let tainting_test lang rules_file file =
              {
                Xtarget.file;
                xlang = Xlang.L (lang, []);
-               lazy_content = lazy (File.read_file file);
+               lazy_content = lazy (UFile.read_file file);
                lazy_ast_and_errors = lazy (ast, []);
              }
            in
@@ -734,7 +727,7 @@ let tainting_test lang rules_file file =
   in
   let actual =
     matches
-    |> Common.map (fun m ->
+    |> List_.map (fun m ->
            {
              rule_id = Some m.P.rule_id.id;
              E.typ = OutJ.SemgrepMatchFound;
@@ -743,14 +736,14 @@ let tainting_test lang rules_file file =
              details = None;
            })
   in
-  let expected = E.expected_error_lines_of_files [ !!file ] in
+  let expected = E.expected_error_lines_of_files [ file ] in
   E.compare_actual_to_expected_for_alcotest actual expected
 
 let tainting_tests_for_lang files lang =
   files
-  |> Common.map (fun file ->
-         ( Fpath.basename file,
-           fun () ->
+  |> List_.map (fun file ->
+         Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang)
+           (Fpath.basename file) (fun () ->
              let rules_file =
                let d, b, _e = Common2.dbe_of_filename !!file in
                let candidate1 = Common2.filename_of_dbe (d, b, "yaml") in
@@ -759,66 +752,62 @@ let tainting_tests_for_lang files lang =
                  failwith
                    (spf "could not find tainting rules file for %s" !!file)
              in
-             tainting_test lang rules_file file ))
+             tainting_test lang rules_file file))
 
 let lang_tainting_tests () =
   let taint_tests_path = tests_path / "tainting_rules" in
   pack_suites "lang tainting rules testing"
     [
-      pack_tests "tainting Go"
+      pack_tests_pro "tainting Go"
         (let dir = taint_tests_path / "go" in
-         let files =
-           Common2.glob (spf "%s/*.go" !!dir) |> File.Path.of_strings
-         in
+         let files = Common2.glob (spf "%s/*.go" !!dir) |> Fpath_.of_strings in
+
          let lang = Lang.Go in
          tainting_tests_for_lang files lang);
-      pack_tests "tainting PHP"
+      pack_tests_pro "tainting PHP"
         (let dir = taint_tests_path / "php" in
-         let files =
-           Common2.glob (spf "%s/*.php" !!dir) |> File.Path.of_strings
-         in
+         let files = Common2.glob (spf "%s/*.php" !!dir) |> Fpath_.of_strings in
+
          let lang = Lang.Php in
          tainting_tests_for_lang files lang);
-      pack_tests "tainting Python"
+      pack_tests_pro "tainting Python"
         (let dir = taint_tests_path / "python" in
-         let files =
-           Common2.glob (spf "%s/*.py" !!dir) |> File.Path.of_strings
-         in
+         let files = Common2.glob (spf "%s/*.py" !!dir) |> Fpath_.of_strings in
+
          let lang = Lang.Python in
          tainting_tests_for_lang files lang);
-      pack_tests "tainting Java"
+      pack_tests_pro "tainting Java"
         (let dir = taint_tests_path / "java" in
          let files =
-           Common2.glob (spf "%s/*.java" !!dir) |> File.Path.of_strings
+           Common2.glob (spf "%s/*.java" !!dir) |> Fpath_.of_strings
          in
+
          let lang = Lang.Java in
          tainting_tests_for_lang files lang);
-      pack_tests "tainting Javascript"
+      pack_tests_pro "tainting Javascript"
         (let dir = taint_tests_path / "js" in
-         let files =
-           Common2.glob (spf "%s/*.js" !!dir) |> File.Path.of_strings
-         in
+         let files = Common2.glob (spf "%s/*.js" !!dir) |> Fpath_.of_strings in
+
          let lang = Lang.Js in
          tainting_tests_for_lang files lang);
-      pack_tests "tainting Ruby"
+      pack_tests_pro "tainting Ruby"
         (let dir = taint_tests_path / "ruby" in
-         let files =
-           Common2.glob (spf "%s/*.rb" !!dir) |> File.Path.of_strings
-         in
+         let files = Common2.glob (spf "%s/*.rb" !!dir) |> Fpath_.of_strings in
+
          let lang = Lang.Ruby in
          tainting_tests_for_lang files lang);
-      pack_tests "tainting Typescript"
+      pack_tests_pro "tainting Typescript"
         (let dir = taint_tests_path / "ts" in
-         let files =
-           Common2.glob (spf "%s/*.ts" !!dir) |> File.Path.of_strings
-         in
+         let files = Common2.glob (spf "%s/*.ts" !!dir) |> Fpath_.of_strings in
+
          let lang = Lang.Ts in
          tainting_tests_for_lang files lang);
-      pack_tests "tainting Scala"
+      pack_tests_pro "tainting Scala"
         (let dir = taint_tests_path / "scala" in
          let files =
-           Common2.glob (spf "%s/*.scala" !!dir) |> File.Path.of_strings
+           Common2.glob (spf "%s/*.scala" !!dir) |> Fpath_.of_strings
          in
+
          let lang = Lang.Scala in
          tainting_tests_for_lang files lang);
     ]
@@ -829,28 +818,24 @@ let lang_tainting_tests () =
 
 let full_rule_regression_tests () =
   let path = tests_path / "rules" in
-  let tests1, _total_mismatch, _print_summary =
-    Test_engine.make_tests ~unit_testing:true ~prepend_lang:true [ path ]
-  in
+  let tests1 = Test_engine.make_tests ~prepend_lang:true [ path ] in
   let path = tests_path / "rules_v2" in
-  let tests2, _total_mismatch, _print_summary =
-    Test_engine.make_tests ~unit_testing:true ~prepend_lang:true [ path ]
-  in
+  let tests2 = Test_engine.make_tests ~prepend_lang:true [ path ] in
   let tests = tests1 @ tests2 in
   let groups =
     tests
-    |> Common.map (fun (name, ftest) ->
+    |> List_.map (fun (test : Alcotest_ext.test) ->
            let group =
-             match String.split_on_char ' ' name with
+             match String.split_on_char ' ' test.name with
              | lang :: _ -> lang
-             | _ -> name
+             | _ -> test.name
            in
-           (group, (name, ftest)))
-    |> Common.group_assoc_bykey_eff
+           (group, test))
+    |> Assoc.group_assoc_bykey_eff
   in
 
   pack_suites "full rule"
-    (groups |> Common.map (fun (group, tests) -> pack_tests group tests))
+    (groups |> List_.map (fun (group, tests) -> pack_tests_pro group tests))
 
 (* TODO: For now we only have taint maturity tests for Beta, there are no
  * specific tests for GA.
@@ -863,11 +848,20 @@ let full_rule_regression_tests () =
  *)
 let full_rule_taint_maturity_tests () =
   let path = tests_path / "taint_maturity" in
-  pack_tests "taint maturity"
-    (let tests, _total_mismatch, _print_summary =
-       Test_engine.make_tests ~unit_testing:true [ path ]
-     in
-     tests)
+  pack_tests_pro "taint maturity" (Test_engine.make_tests [ path ])
+
+(*
+   Special exclusions for Semgrep JS
+*)
+let mark_todo_js test =
+  match test.name with
+  | s
+    when (* The target file has an unsupported .erb extension, making it excluded
+            correctly by the OCaml test suite but not by the JS test suite
+            (or something close to this). *)
+         s =~ ".*/ruby/rails/security/brakeman/check-reverse-tabnabbing.yaml" ->
+      Alcotest_ext.update test ~tags:(Test_tags.todo_js :: test.tags)
+  | _ -> test
 
 (* quite similar to full_rule_regression_tests but prefer to pack_tests
  * with "full semgrep rule Java", so one can just run the Java tests
@@ -877,14 +871,13 @@ let full_rule_taint_maturity_tests () =
  *)
 let full_rule_semgrep_rules_regression_tests () =
   let path = tests_path / "semgrep-rules" in
-  let tests, _total_mismatch, _print_summary =
-    Test_engine.make_tests ~unit_testing:true [ path ]
-  in
+  let tests = Test_engine.make_tests [ path ] in
   let groups =
     tests
-    |> Common.map_filter (fun (name, ftest) ->
+    |> List_.map_filter (fun (test : Alcotest_ext.test) ->
+           let test = mark_todo_js test in
            let group_opt =
-             match name with
+             match test.name with
              (* TODO: cleanup nodejsscan? "no target for" error *)
              | s
                when s =~ ".*/contrib/nodejsscan/xss_serialize_js.yaml"
@@ -905,6 +898,8 @@ let full_rule_semgrep_rules_regression_tests () =
                     || s =~ ".*/contrib/nodejsscan/eval_drpc_deserialize.yaml"
                     || s =~ ".*/contrib/nodejsscan/error_disclosure.yaml"
                     (* TODO: cleanup semgrep-rules: "no target for" error *)
+                    (* TODO: do this filtering before Test_engine.make_tests
+                       because it already requires the target files. *)
                     || s =~ ".*/contrib/dlint/dlint-equivalent.yaml"
                     || s =~ ".*/fingerprints/fingerprints.yaml"
                     || s
@@ -916,7 +911,7 @@ let full_rule_semgrep_rules_regression_tests () =
                        =~ ".*/python/django/maintainability/duplicate-path-assignment.yaml"
                     (* ?? *)
                     || s =~ ".*/yaml/semgrep/consistency/.*" ->
-                 Some "PB"
+                 Some "XFAIL"
              (* not rule files *)
              | s when s =~ ".*.test.yml" -> None
              (* not languages tests *)
@@ -924,27 +919,34 @@ let full_rule_semgrep_rules_regression_tests () =
              | s when s =~ ".*/semgrep-rules/tests/" -> None
              (* ok let's keep all the other one with the appropriate group name *)
              | s when s =~ ".*/semgrep-rules/\\([a-zA-Z]+\\)/.*" ->
-                 let s = Common.matched1 name in
+                 (* This is confusing because it looks like a programming
+                    language from Lang.t but there's no guarantee that
+                    it's a valid one.
+                    TODO: don't capitalize? leave a slash? *)
+                 let s = Common.matched1 test.name in
                  Some (String.capitalize_ascii s)
-             (* this skips the semgrep-rules/.github enrtries *)
+             (* this skips the semgrep-rules/.github entries *)
              | _ ->
-                 logger#info "skipping %s" name;
+                 logger#info "skipping %s" test.name;
                  None
            in
-           group_opt |> Option.map (fun groupname -> (groupname, (name, ftest))))
-    |> Common.group_assoc_bykey_eff
+           group_opt |> Option.map (fun groupname -> (groupname, test)))
+    |> Assoc.group_assoc_bykey_eff
   in
+
   pack_suites "full semgrep rule"
     (groups
-    |> Common.map (fun (group, tests) ->
-           pack_tests (spf "%s" group) tests
-           |> Common.map (fun (name, ftest) ->
-                  let test () =
-                    match group with
-                    | "PB" ->
+    |> List_.map (fun (group, tests) ->
+           tests
+           |> List_.map (fun (test : Alcotest_ext.test) ->
+                  match group with
+                  | "XFAIL" ->
+                      (* TODO: mark these tests as XFAIL
+                         once Alcotest_ext supports it *)
+                      let ftest () =
                         let is_throwing =
                           try
-                            ftest ();
+                            test.func ();
                             false
                           with
                           | _exn -> true
@@ -952,9 +954,10 @@ let full_rule_semgrep_rules_regression_tests () =
                         if not is_throwing then
                           Alcotest.fail
                             "this used to raise an error (good news?)"
-                    | _ -> ftest ()
-                  in
-                  (name, test))))
+                      in
+                      Alcotest_ext.update test ~func:ftest
+                  | _ -> test)
+           |> pack_tests_pro group))
 
 (*****************************************************************************)
 (* All tests *)

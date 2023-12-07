@@ -1,13 +1,13 @@
 let with_setenv envvar str f =
-  let old = Sys.getenv_opt envvar in
-  Unix.putenv envvar str;
+  let old = USys.getenv_opt envvar in
+  UUnix.putenv envvar str;
   Common.finalize f (fun () ->
       match old with
-      | Some str -> Unix.putenv envvar str
+      | Some str -> UUnix.putenv envvar str
       (* ugly: Unix does not provide unsetenv,
        * see https://discuss.ocaml.org/t/unset-environment-variable/9025
        *)
-      | None -> Unix.putenv envvar "")
+      | None -> UUnix.putenv envvar "")
 
 let with_mocked_logs ~f ~final =
   let buffer = Buffer.create 1000 in
@@ -35,7 +35,7 @@ let with_mocked_logs ~f ~final =
   Common.finalize
     (fun () ->
       Logs.set_reporter reporter_to_format_strbuf;
-      Common.save_excursion Logs_helpers.in_mock_context true (fun () ->
+      Common.save_excursion Logs_.in_mock_context true (fun () ->
           (* f() might call Logs_helpers.setup_logging() internally, but this will not
            * call Logs.set_reporter and override the reporter we set above
            * thx to disable_set_reporter

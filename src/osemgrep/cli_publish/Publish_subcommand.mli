@@ -6,4 +6,4 @@
    This function returns an exit code to be passed to the 'exit' function.
 *)
 
-val main : string array -> Exit_code.t
+val main : < Cap.stdout ; Cap.network > -> string array -> Exit_code.t

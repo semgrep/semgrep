@@ -95,7 +95,6 @@ def fork_semgrep(
     args: Optional[List[str]],
     env: Optional[Dict[str, str]] = None,
 ) -> Result:
-
     argv: List[str] = []
 
     if args is None:

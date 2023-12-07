@@ -13,6 +13,7 @@
  *
  *)
 open Common
+open Either_
 module T = Token_scala
 module TH = Token_helpers_scala
 module Flag = Flag_parsing
@@ -158,7 +159,7 @@ type indent_status =
 (*****************************************************************************)
 (* Logging/Dumpers  *)
 (*****************************************************************************)
-let n_dash n = Common2.repeat "--" n |> Common.join ""
+let n_dash n = Common2.repeat "--" n |> String.concat ""
 
 let with_logging funcname f in_ =
   if !Flag.debug_parser then (
@@ -1273,8 +1274,8 @@ and funType in_ : type_ =
       | Middle3 tys -> TyFunction2 (tys, ii, ty)
       | Right3 l_ty -> TyFunction1 (l_ty, ii, ty))
 
-and funTypeArgs in_ : ((ident * type_) list, type_ list bracket, type_) either3
-    =
+and funTypeArgs in_ :
+    ((ident * type_) list, type_ list bracket, type_) Either_.either3 =
   match in_.token with
   | LPAREN _ ->
       if is_typed_fun_param_after_lparen in_ then
@@ -2463,7 +2464,7 @@ and caseClauses in_ : case_clauses =
  *  TypeCaseClause  ::= `case` (InfixType | `_`) `=>` Type [semi]
  *  }}}
 *)
-and typeCaseClause icase in_ : ((tok, type_) either, type_) case_clause =
+and typeCaseClause icase in_ : ((tok, type_) Either.t, type_) case_clause =
   let l_ty =
     inSepRegion (ARROW icase)
       (fun () ->
@@ -3426,7 +3427,7 @@ let usingParamClauseInner ~caseParam owner implicitmod in_ =
       in
       if is_type then
         let tys = types in_ in
-        (Common.map (fun ty -> ParamType ty) tys, Some ii)
+        (List_.map (fun ty -> ParamType ty) tys, Some ii)
       else
         (* TODO: not right to reuse? *)
         (* no implciitmod?*)

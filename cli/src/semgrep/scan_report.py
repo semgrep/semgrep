@@ -31,6 +31,7 @@ from semgrep.util import with_feature_status
 # Helpers
 ##############################################################################
 
+
 # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
 def _print_product_status(sast_enabled: bool = True, sca_enabled: bool = False) -> None:
     """

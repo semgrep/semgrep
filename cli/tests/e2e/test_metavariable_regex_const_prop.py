@@ -1,6 +1,7 @@
 import pytest
 from tests.fixtures import RunSemgrep
 
+
 # TODO: This can be marked osempass once we port cli_unique_key deduplication
 # https://github.com/returntocorp/semgrep/pull/8510
 @pytest.mark.kinda_slow

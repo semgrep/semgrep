@@ -141,11 +141,11 @@ let generic_to_json rule_id (key : key) ast =
     | G.L (String (_, (s, _), _)) ->
         (* should use the unescaped string *)
         J.String s
-    | G.Container (Array, (_, xs, _)) -> J.Array (xs |> Common.map aux)
+    | G.Container (Array, (_, xs, _)) -> J.Array (xs |> List_.map aux)
     | G.Container (Dict, (_, xs, _)) ->
         J.Object
           (xs
-          |> Common.map (fun x ->
+          |> List_.map (fun x ->
                  match x.G.e with
                  | G.Container
                      ( G.Tuple,
@@ -219,7 +219,7 @@ let take_opt (dict : dict) (env : env) (f : env -> key -> G.expr -> 'a)
   Option.map (fun (key, value) -> f env key value) (dict_take_opt dict key_str)
 
 (* Mutates the Hashtbl! *)
-let take (dict : dict) (env : env) (f : env -> key -> G.expr -> 'a)
+let take_key (dict : dict) (env : env) (f : env -> key -> G.expr -> 'a)
     (key_str : string) : 'a =
   match take_opt dict env f key_str with
   | Some res -> res
@@ -263,7 +263,7 @@ let parse_string_wrap_no_env (key : key) x =
 
 let parse_list_no_env (key : key) f x =
   match x.G.e with
-  | G.Container (Array, (_, xs, _)) -> Common.map f xs
+  | G.Container (Array, (_, xs, _)) -> List_.map f xs
   | _ -> yaml_error_at_key key ("Expected a list for " ^ fst key)
 
 let parse_string_wrap_list_no_env (key : key) e =
@@ -299,12 +299,14 @@ let method_ env (key : key) x =
 
 let parse_auth env (key : key) x : Rule.auth =
   let auth = yaml_to_dict env key x in
-  match take auth env parse_string "type" with
+  match take_key auth env parse_string "type" with
   | "sigv4" ->
-      let secret_access_key = take auth env parse_string "secret_access_key" in
-      let access_key_id = take auth env parse_string "access_key_id" in
-      let region = take auth env parse_string "region" in
-      let service = take auth env parse_string "service" in
+      let secret_access_key =
+        take_key auth env parse_string "secret_access_key"
+      in
+      let access_key_id = take_key auth env parse_string "access_key_id" in
+      let region = take_key auth env parse_string "region" in
+      let service = take_key auth env parse_string "service" in
       AWS_SIGV4 { secret_access_key; access_key_id; region; service }
   | auth_ty ->
       error_at_key env.id key
@@ -312,7 +314,7 @@ let parse_auth env (key : key) x : Rule.auth =
 
 let parse_list env (key : key) f x =
   match x.G.e with
-  | G.Container (Array, (_, xs, _)) -> Common.map (f env) xs
+  | G.Container (Array, (_, xs, _)) -> List_.map (f env) xs
   | _ -> error_at_key env.id key ("Expected a list for " ^ fst key)
 
 let parse_listi env (key : key) f x =
@@ -321,7 +323,7 @@ let parse_listi env (key : key) f x =
     f env x
   in
   match x.G.e with
-  | G.Container (Array, (_, xs, _)) -> Common.mapi get_component xs
+  | G.Container (Array, (_, xs, _)) -> List_.mapi get_component xs
   | _ -> error_at_key env.id key ("Expected a list for " ^ fst key)
 
 let parse_string_wrap_list conv env (key : key) e =

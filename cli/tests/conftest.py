@@ -42,6 +42,7 @@ TESTS_PATH = Path(__file__).parent
 # Pytest hacks
 ##############################################################################
 
+
 # ???
 def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption(

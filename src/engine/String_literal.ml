@@ -7,9 +7,9 @@
    \" -> "
 *)
 let approximate_unescape =
-  let rex = SPcre.regexp "\\\\[\\\\'\"]" in
+  let rex = Pcre_.regexp "\\\\[\\\\'\"]" in
   fun s ->
-    SPcre.substitute ~rex
+    Pcre_.substitute ~rex
       ~subst:(fun s ->
         assert (String.length s = 2);
         String.sub s 1 1)

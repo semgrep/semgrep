@@ -235,6 +235,39 @@ and taint_sink = {
        * The sink will only trigger a finding if the data that reaches it
        * has a set of labels attached that satisfies the 'requires'.
        *)
+  sink_is_func_with_focus : bool;
+      (* True if the 'sink_formula' has the following shape:
+       *
+       *     patterns:
+       *     - pattern: <func>(<args>)
+       *     - focus-metavariable: $MVAR
+       *
+       * or, more generally, a shape like:
+       *
+       *     patterns:
+       *     - pattern-either:
+       *       - patterns:
+       *         - pattern-inside: |
+       *             <P>
+       *         - pattern: <func>(<args>)
+       *       - ...
+       *     - focus-metavariable: $MVAR
+       *
+       * that is, it matches a function call, and focuses on a specific part of
+       * the match.
+       *
+       * Then we infer that there is a preference for a "more precise" match of
+       * the sink, in constrast with other sink patterns such as `sink(...)`. We
+       * infer that the function call itself is not the sink, but more likely it
+       * is either the <func> or one (or more) of the <args>.
+       *
+       * WHY BOTHER WITH ALL THIS? Well, because for a long time most sink specs
+       * were of the form `sink(...)` and we want to maintain backwards
+       * compatibility for all those rules out there.
+       *)
+      (* TODO: Add `exact: true` option to sinks so one can skip this heuristic, and
+       * it could be a good default for "syntax 2.0". The current behavior could be
+       * `exact: compat`, and the old behavior could be `exact: false`. *)
 }
 
 (* e.g. if we want to specify that adding tainted data to a `HashMap` makes
@@ -286,6 +319,52 @@ let get_sink_requires { sink_requires; _ } =
   match sink_requires with
   | None -> PLabel default_source_label
   | Some { precondition; _ } -> precondition
+
+(* Check if a formula is matching a function call and focusing on one of
+ * its subexpressions.
+ *
+ * See 'taint_sink', field 'sink_is_func_with_focus'. *)
+let is_sink_func_with_focus sink_formula =
+  let rec is_inside_or_not = function
+    | Inside _
+    | Not _ ->
+        true
+    | Or (_, formulas) -> List.for_all is_inside_or_not formulas
+    | P _
+    | And _
+    | Anywhere _ ->
+        false
+  in
+  let rec is_call_pattern = function
+    | P { pat = Sem ((lazy (E { e = Call _; _ })), _); _ } -> true
+    | Or (_tok, formulas) ->
+        (* Each case in an 'Or' is independent, all must be call patterns. *)
+        List.for_all is_call_pattern formulas
+    | And (_, { conjuncts; focus = []; _ }) ->
+        (* NOTE: No `focus-metavariable:` here to make sure this is matching a call. *)
+        is_call_pattern_conjuncts conjuncts
+    | P _
+    | Inside _
+    | Not _
+    | And _
+    | Anywhere _ ->
+        false
+  and is_call_pattern_conjuncts conjuncts =
+    (* The conjuncts that are 'inside' or 'not' (or an OR of those) can be
+     * disregarded, they just provide context. But the remaining conjuncts
+     * must all correspond to a func-call pattern. *)
+    let remaining_conjuncts =
+      List.filter (fun f -> not (is_inside_or_not f)) conjuncts
+    in
+    remaining_conjuncts <> []
+    && List.for_all is_call_pattern remaining_conjuncts
+  in
+  match sink_formula with
+  (* THINK: Should we just assume that if there is 'focus' then the match should
+   * be exact regardless of whether the 'conjuncts' are matching a function call? *)
+  | And (_, { conjuncts; focus = [ _focus ]; _ }) ->
+      is_call_pattern_conjuncts conjuncts
+  | __else__ -> false
 
 (*****************************************************************************)
 (* Extract mode (semgrep as a preprocessor) *)
@@ -626,7 +705,7 @@ type steps_rule = steps_mode rule_info [@@deriving show]
 (* old: was t list -> hrules, but nice to allow for more precise hrules *)
 let hrules_of_rules (rules : 'mode rule_info list) :
     (Rule_ID.t, 'mode rule_info) Hashtbl.t =
-  rules |> Common.map (fun r -> (fst r.id, r)) |> Common.hash_of_list
+  rules |> List_.map (fun r -> (fst r.id, r)) |> Hashtbl_.hash_of_list
 
 let partition_rules (rules : rules) :
     search_rule list
@@ -865,13 +944,13 @@ let rec formula_of_mode (mode : mode) =
   | `Search formula -> [ formula ]
   | `Taint { sources = _, sources; sanitizers; sinks = _, sinks; propagators }
     ->
-      Common.map (fun src -> src.source_formula) sources
+      List_.map (fun src -> src.source_formula) sources
       @ (match sanitizers with
         | None -> []
         | Some (_, sanitizers) ->
-            Common.map (fun sanitizer -> sanitizer.sanitizer_formula) sanitizers)
-      @ Common.map (fun sink -> sink.sink_formula) sinks
-      @ Common.map (fun prop -> prop.propagator_formula) propagators
+            List_.map (fun sanitizer -> sanitizer.sanitizer_formula) sanitizers)
+      @ List_.map (fun sink -> sink.sink_formula) sinks
+      @ List_.map (fun prop -> prop.propagator_formula) propagators
   | `Extract { formula; extract = _; _ } -> [ formula ]
   | `Secrets { secrets; _ } -> secrets
   | `Steps steps ->
@@ -902,7 +981,7 @@ let selector_and_analyzer_of_xlang (xlang : Xlang.t) :
 (* return list of "positive" x list of Not *)
 let split_and (xs : formula list) : formula list * (tok * formula) list =
   xs
-  |> Common.partition_either (fun e ->
+  |> Either_.partition_either (fun e ->
          match e with
          (* positives *)
          | P _

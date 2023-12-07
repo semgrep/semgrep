@@ -64,7 +64,7 @@ let test_filter (files : F.t list) selection () =
 (*****************************************************************************)
 
 let tests =
-  Testutil.pack_tests "Gitignore"
+  Alcotest_ext.pack_tests "Gitignore"
     [
       ("list one file", test_list [ file "a" ]);
       ( "list hierarchy",
@@ -117,4 +117,14 @@ let tests =
             ("/b/d", true);
             ("/b/b/c", true);
           ] );
+      (* unanchored patterns should not match if the parent dir hasn't been matched, and the path is excluded *)
+      ( "excluded patterns",
+        test_filter
+          [
+            File (".gitignore", "a/\n!dir/a\n!a/b");
+            dir "dir" [ dir "a" [ file "b" ] ];
+            dir "a" [ file "b" ];
+          ]
+          [ ("/a/", false); ("/a", true); ("/dir/a/b", true); ("/a/b", false) ]
+      );
     ]

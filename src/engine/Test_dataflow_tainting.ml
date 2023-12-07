@@ -1,5 +1,5 @@
 open Common
-open File.Operators
+open Fpath_.Operators
 module G = AST_generic
 module RM = Range_with_metavars
 
@@ -41,7 +41,7 @@ let test_tainting lang file options config def =
       | Taint.Arg arg -> Taint._show_arg arg
       | Taint.Control -> "<control>"
     in
-    taint |> Taint.Taint_set.elements |> Common.map show_taint
+    taint |> Taint.Taint_set.elements |> List_.map show_taint
     |> String.concat ", "
     |> fun str -> "{ " ^ str ^ " }"
   in
@@ -74,7 +74,7 @@ let test_dfg_tainting rules_file file =
   let _search_rules, taint_rules, _extract_rules, _secrets_rules, _join_rules =
     Rule.partition_rules rules
   in
-  let rule = Common.hd_exn "unexpected empty list" taint_rules in
+  let rule = List_.hd_exn "unexpected empty list" taint_rules in
   pr2 "Tainting";
   pr2 "========";
   let handle_findings _ _ _ = () in
@@ -90,13 +90,13 @@ let test_dfg_tainting rules_file file =
   in
   Common.pr2 "\nSources";
   Common.pr2 "-------";
-  pr2_ranges !!file (debug_taint.sources |> Common.map fst);
+  pr2_ranges !!file (debug_taint.sources |> List_.map fst);
   Common.pr2 "\nSanitizers";
   Common.pr2 "----------";
   pr2_ranges !!file debug_taint.sanitizers;
   Common.pr2 "\nSinks";
   Common.pr2 "-----";
-  pr2_ranges !!file (debug_taint.sinks |> Common.map fst);
+  pr2_ranges !!file (debug_taint.sinks |> List_.map fst);
   let v =
     object
       inherit [_] AST_generic.iter_no_id_info as super
@@ -112,7 +112,5 @@ let test_dfg_tainting rules_file file =
 
 let actions () =
   [
-    ( "-dfg_tainting",
-      "<rules> <target>",
-      Arg_helpers.mk_action_2_arg test_dfg_tainting );
+    ("-dfg_tainting", "<rules> <target>", Arg_.mk_action_2_arg test_dfg_tainting);
   ]
