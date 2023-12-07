@@ -405,7 +405,7 @@ let regression_tests_for_lang ~polyglot_pattern_path files lang =
              |> ignore;
              let actual = !E.g_errors in
              E.g_errors := [];
-             let expected = E.expected_error_lines_of_files [ !!file ] in
+             let expected = E.expected_error_lines_of_files [ file ] in
              E.compare_actual_to_expected_for_alcotest actual expected))
 
 let make_lang_regression_tests ~test_pattern_path ~polyglot_pattern_path
@@ -729,7 +729,7 @@ let tainting_test lang rules_file file =
              details = None;
            })
   in
-  let expected = E.expected_error_lines_of_files [ !!file ] in
+  let expected = E.expected_error_lines_of_files [ file ] in
   E.compare_actual_to_expected_for_alcotest actual expected
 
 let tainting_tests_for_lang files lang =

@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Fpath_.Operators
 module OutJ = Semgrep_output_v1_j
 module R = Rule
 
@@ -317,12 +318,12 @@ let default_error_regexp = ".*\\(ERROR\\|MATCH\\):"
 let (expected_error_lines_of_files :
       ?regexp:string ->
       ?ok_regexp:string option ->
-      string (* filename *) list ->
-      (string (* filename *) * int) (* line *) list) =
+      Fpath.t list ->
+      (Fpath.t * int) (* line *) list) =
  fun ?(regexp = default_error_regexp) ?(ok_regexp = None) test_files ->
   test_files
   |> List.concat_map (fun file ->
-         UCommon.cat file |> List_.index_list_1
+         UFile.cat file |> List_.index_list_1
          |> List_.map_filter (fun (s, idx) ->
                 (* Right now we don't care about the actual error messages. We
                  * don't check if they match. We are just happy to check for
@@ -346,7 +347,7 @@ let compare_actual_to_expected actual_findings expected_findings_lines =
     actual_findings
     |> List_.map (fun err ->
            let loc = err.loc in
-           (loc.Tok.pos.file, loc.Tok.pos.line))
+           (Fpath.v loc.Tok.pos.file, loc.Tok.pos.line))
   in
   (* diff report *)
   let _common, only_in_expected, only_in_actual =
@@ -355,16 +356,16 @@ let compare_actual_to_expected actual_findings expected_findings_lines =
 
   only_in_expected
   |> List.iter (fun (src, l) ->
-         pr2 (spf "this one finding is missing: %s:%d" src l));
+         pr2 (spf "this one finding is missing: %s:%d" !!src l));
   only_in_actual
   |> List.iter (fun (src, l) ->
          pr2
-           (spf "this one finding was not expected: %s:%d (%s)" src l
+           (spf "this one finding was not expected: %s:%d (%s)" !!src l
               (actual_findings
               (* nosemgrep: ocaml.lang.best-practice.list.list-find-outside-try *)
               |> List.find (fun err ->
                      let loc = err.loc in
-                     src = loc.Tok.pos.file && l =|= loc.Tok.pos.line)
+                     !!src = loc.Tok.pos.file && l =|= loc.Tok.pos.line)
               |> string_of_error)));
   let num_errors = List.length only_in_actual + List.length only_in_expected in
   let msg =

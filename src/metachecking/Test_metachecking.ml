@@ -88,7 +88,7 @@ let test_rules ?(unit_testing = false) xs =
          (* not tororuleid! not ok:! *)
          let regexp = ".*\\b\\(ruleid\\|todook\\):.*" in
          let expected_error_lines =
-           E.expected_error_lines_of_files ~regexp [ !!target ]
+           E.expected_error_lines_of_files ~regexp [ target ]
          in
 
          (* actual *)

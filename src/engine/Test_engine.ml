@@ -67,7 +67,8 @@ let single_xlang_from_rules (file : Fpath.t) (rules : Rule.t list) : Xlang.t =
 (* Xtarget helpers *)
 (*****************************************************************************)
 
-let xtarget_of_target (xlang : Xlang.t) (target : Fpath.t) : Xtarget.t =
+(* TODO: factorize with Core_scan.xtarget_of_file *)
+let xtarget_of_file (xlang : Xlang.t) (target : Fpath.t) : Xtarget.t =
   let lazy_ast_and_errors =
     lazy
       (match xlang with
@@ -205,7 +206,7 @@ let run_check_for_extract_rules (extract_rules : Rule.extract_rule list)
     extracted_targets
     |> List_.map
          (fun Extract.{ extracted = Extracted file; analyzer = xlang; _ } ->
-           let xtarget = xtarget_of_target xlang file in
+           let xtarget = xtarget_of_file xlang file in
            let xconf = Match_env.default_xconfig in
            Match_rules.check
              ~match_hook:(fun _ _ -> ())
@@ -251,11 +252,11 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
       *)
       let regexp = ".*\\b\\(ruleid\\|todook\\):.*" in
       let expected_error_lines =
-        E.expected_error_lines_of_files ~regexp [ !!target ]
+        E.expected_error_lines_of_files ~regexp [ target ]
       in
 
       (* actual *)
-      let xtarget = xtarget_of_target xlang target in
+      let xtarget = xtarget_of_file xlang target in
       let xconf = Match_env.default_xconfig in
       let rules, extract_rules = Extract.partition_rules rules in
 

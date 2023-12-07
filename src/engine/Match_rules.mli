@@ -1,12 +1,15 @@
 (* this can be raised when timeout_threshold is set *)
 exception File_timeout
 
-(*
-   Return matches, errors, match time.
-
-   This will run the search-mode and taint-mode rules.
-   This can raise File_timeout.
-*)
+(* Matches many rules against one target. This function is called from
+ * Test_engine.ml, Test_subcommand.ml, and of course Core_scan.ml
+ * (and also Match_extract_mode.ml now).
+ *
+ * Return matches, errors, and match time.
+ *
+ * This will run the search-mode and taint-mode rules.
+ * This can also raise File_timeout.
+ *)
 val check :
   match_hook:(string -> Pattern_match.t -> unit) ->
   timeout:float ->

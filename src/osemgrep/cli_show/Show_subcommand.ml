@@ -11,7 +11,7 @@ module J = JSON
  *
  * LATER: get rid of Core_CLI.dump_pattern and Core_CLI.dump_ast functions
  *
- * Note that we're using Out.put() here, to print on stdout (Logs.app
+ * Note that we're using CapConsole.out() here, to print on stdout (Logs.app()
  * is printing on stderr, but for a show command it's probably better to
  * print on stdout).
  *)
@@ -19,6 +19,7 @@ module J = JSON
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
+(* we need the network for the 'semgrep show identity/deployment' *)
 type caps = < stdout : Cap.Console.stdout ; network : Cap.Network.t >
 
 (*****************************************************************************)
