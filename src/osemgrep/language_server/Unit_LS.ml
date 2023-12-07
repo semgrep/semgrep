@@ -55,6 +55,7 @@ let mock_run_results (files : string list) : Core_runner.result =
         metavars = [];
         dataflow_trace = None;
         fix = None;
+        is_ignored = false;
         engine_kind = `OSS;
         validation_state = Some `No_validator;
         extra_extra = None;
