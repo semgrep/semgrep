@@ -46,7 +46,7 @@ let metachecker_checks_tests () =
                            E.g_errors := errs @ !E.g_errors));
                 let actual = !E.g_errors in
                 E.g_errors := [];
-                let expected = E.expected_error_lines_of_files [ !!file ] in
+                let expected = E.expected_error_lines_of_files [ file ] in
                 E.compare_actual_to_expected_for_alcotest actual expected )))
 
 (* Test the entire `-test_check` path *)

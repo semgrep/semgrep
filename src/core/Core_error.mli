@@ -74,13 +74,13 @@ val severity_of_error :
 val expected_error_lines_of_files :
   ?regexp:string ->
   ?ok_regexp:string option ->
-  string (* filename *) list ->
-  (string (* filename *) * int) (* line with ERROR *) list
+  Fpath.t list ->
+  (Fpath.t * int) (* line with ERROR *) list
 
 (* Return the number of errors and an error message, if there's any error. *)
 val compare_actual_to_expected :
-  t list -> (string (* filename *) * int) list -> (unit, int * string) result
+  t list -> (Fpath.t * int) list -> (unit, int * string) result
 
 (* Call Alcotest.fail in case of errors *)
 val compare_actual_to_expected_for_alcotest :
-  t list -> (string (* filename *) * int) list -> unit
+  t list -> (Fpath.t * int) list -> unit

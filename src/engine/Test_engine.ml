@@ -252,7 +252,7 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
       *)
       let regexp = ".*\\b\\(ruleid\\|todook\\):.*" in
       let expected_error_lines =
-        E.expected_error_lines_of_files ~regexp [ !!target ]
+        E.expected_error_lines_of_files ~regexp [ target ]
       in
 
       (* actual *)

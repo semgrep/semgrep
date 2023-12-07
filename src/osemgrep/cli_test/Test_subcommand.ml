@@ -83,7 +83,7 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
   *)
   let regexp = ".*\\b\\(ruleid\\|todook\\):.*" in
   let expected_error_lines =
-    Core_error.expected_error_lines_of_files ~regexp [ !!target ]
+    Core_error.expected_error_lines_of_files ~regexp [ target ]
   in
 
   match
