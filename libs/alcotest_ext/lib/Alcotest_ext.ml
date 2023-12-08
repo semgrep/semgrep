@@ -5,8 +5,7 @@
    Alcotest.
 *)
 
-module T = Alcotest_ext_types
-module Helpers = Alcotest_ext_helpers
+module T = Types
 
 (****************************************************************************)
 (* Main types *)
@@ -16,7 +15,8 @@ type expected_outcome = T.expected_outcome =
   | Should_succeed
   | Should_fail of string
 
-module Tag = Alcotest_ext_tag
+(* export *)
+module Tag = Tag
 
 type output_kind = T.output_kind =
   | Ignore_output
@@ -115,8 +115,8 @@ let sort (tests : _ t list) : _ t list =
          let c = compare a.category b.category in
          if c <> 0 then c else String.compare a.name b.name)
 
-let to_alcotest = Alcotest_ext_run.to_alcotest
-let to_alcotest_lwt = Alcotest_ext_run.to_alcotest_lwt
+let to_alcotest = Run.to_alcotest
+let to_alcotest_lwt = Run.to_alcotest_lwt
 let registered_tests : test list ref = ref []
 let registered_lwt_tests : lwt_test list ref = ref []
 let register x = registered_tests := x :: !registered_tests
@@ -136,4 +136,4 @@ let test_lwt ?category ?expected_outcome ?output_kind ?skipped ?speed_level name
 
 let get_registered_tests () = List.rev !registered_tests
 let get_registered_lwt_tests () = List.rev !registered_lwt_tests
-let interpret_argv = Alcotest_ext_cmd.interpret_argv
+let interpret_argv = Cmd.interpret_argv

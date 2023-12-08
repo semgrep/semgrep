@@ -18,8 +18,7 @@
 *)
 
 open Printf
-module Helpers = Alcotest_ext_helpers
-module T = Alcotest_ext_types
+module T = Types
 
 (**************************************************************************)
 (* Helpers *)
@@ -110,8 +109,8 @@ let init_settings
     ?(status_workspace_root = default_status_workspace_root) ~project_name () =
   if status_workspace_root = expectation_workspace_root then
     invalid_arg
-      "Alcotest_ext_store.init: status_workspace and expectation_workspace \
-       must be different folders.";
+      "Store.init: status_workspace and expectation_workspace must be \
+       different folders.";
   set_status_workspace (status_workspace_root // project_name);
   set_expectation_workspace (expectation_workspace_root // project_name)
 
@@ -187,7 +186,7 @@ let get_output (test : _ T.test) =
 let set_output (test : _ T.test) data =
   let paths = test |> get_output_paths in
   if List.length data <> List.length paths then
-    invalid_arg "Alcotest_ext_store.set_output_data"
+    invalid_arg "Store.set_output_data"
   else List.iter2 (fun path data -> write_file path data) paths data
 
 let clear_output (test : _ T.test) =
@@ -203,7 +202,7 @@ let get_expected_output (test : _ T.test) =
 let set_expected_output (test : _ T.test) (data : string list) =
   let paths = test |> get_expected_output_paths in
   if List.length data <> List.length paths then
-    invalid_arg "Alcotest_ext_store.set_expected_output_data"
+    invalid_arg "Store.set_expected_output_data"
   else List.iter2 (fun path data -> write_file path data) paths data
 
 let clear_expected_output (test : _ T.test) =

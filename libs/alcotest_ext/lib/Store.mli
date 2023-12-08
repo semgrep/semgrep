@@ -24,20 +24,19 @@ val init_workspace : unit -> unit
 *)
 val get_status_workspace : unit -> string
 val get_expectation_workspace : unit -> string
-val get_status : 'a Alcotest_ext_types.test -> Alcotest_ext_types.status
+val get_status : 'a Types.test -> Types.status
 
 (*
    Save a test result, typically from a test that was just run.
 
    Overwrites any previous result silently.
 *)
-val save_result :
-  'a Alcotest_ext_types.test -> Alcotest_ext_types.result -> unit
+val save_result : 'a Types.test -> Types.result -> unit
 
 (*
    Remove the result from a possible previous run.
 *)
-val delete_result : 'a Alcotest_ext_types.test -> unit
+val delete_result : 'a Types.test -> unit
 
 (*
    Summarize the status of a test.
@@ -48,9 +47,7 @@ val delete_result : 'a Alcotest_ext_types.test -> unit
    the test to become the reference with no questions asked.
 *)
 val status_class_of_status :
-  ?accept_missing_expected_output:bool ->
-  Alcotest_ext_types.status ->
-  Alcotest_ext_types.status_class
+  ?accept_missing_expected_output:bool -> Types.status -> Types.status_class
 
 (*
    Replace the expected output of a test with a satisfying outcome
@@ -58,13 +55,11 @@ val status_class_of_status :
 
    Returns an error message if the test status is not PASS or XFAIL.
 *)
-val approve_new_output : 'a Alcotest_ext_types.test -> (unit, string) Result.t
+val approve_new_output : 'a Types.test -> (unit, string) Result.t
 
 (**************************************************************************)
 (* Wrappers for capturing test output *)
 (**************************************************************************)
 
-val with_result_capture : unit Alcotest_ext_types.test -> unit -> unit
-
-val with_result_capture_lwt :
-  unit Lwt.t Alcotest_ext_types.test -> unit -> unit Lwt.t
+val with_result_capture : unit Types.test -> unit -> unit
+val with_result_capture_lwt : unit Lwt.t Types.test -> unit -> unit Lwt.t

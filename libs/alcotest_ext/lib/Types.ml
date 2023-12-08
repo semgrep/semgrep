@@ -87,7 +87,7 @@ type 'a test = {
   func : unit -> 'a;
   (* Options *)
   expected_outcome : expected_outcome;
-  tags : Alcotest_ext_tag.t list;
+  tags : Tag.t list;
   speed_level : Alcotest.speed_level;
   output_kind : output_kind;
   skipped : bool;

@@ -25,16 +25,13 @@ type cmd_conf = Run_tests of conf | Status of conf | Approve of conf
 let run_with_conf tests (cmd_conf : cmd_conf) =
   match cmd_conf with
   | Run_tests conf ->
-      Alcotest_ext_store.init_workspace ();
-      Alcotest_ext_run.run_tests ?filter_by_substring:conf.filter_by_substring
-        tests
+      Store.init_workspace ();
+      Run.run_tests ?filter_by_substring:conf.filter_by_substring tests
   | Status conf ->
-      Alcotest_ext_run.list_status ?filter_by_substring:conf.filter_by_substring
-        tests
+      Run.list_status ?filter_by_substring:conf.filter_by_substring tests
   | Approve conf ->
-      Alcotest_ext_store.init_workspace ();
-      Alcotest_ext_run.approve_output
-        ?filter_by_substring:conf.filter_by_substring tests
+      Store.init_workspace ();
+      Run.approve_output ?filter_by_substring:conf.filter_by_substring tests
 
 (****************************************************************************)
 (* Command-line options *)
@@ -140,8 +137,8 @@ let interpret_argv ?(argv = Sys.argv) ?expectation_workspace_root
   (* TODO: is there any reason why we shouldn't always record a stack
      backtrace when running tests? *)
   with_record_backtrace (fun () ->
-      Alcotest_ext_store.init_settings ?expectation_workspace_root
-        ?status_workspace_root ~project_name ();
+      Store.init_settings ?expectation_workspace_root ?status_workspace_root
+        ~project_name ();
       Cmd.group ~default:(root_term tests) (root_info ~project_name)
         (subcommands tests)
       |> Cmd.eval ~argv)

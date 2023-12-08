@@ -24,7 +24,7 @@ type output_kind =
   | Merged_stdout_stderr
   | Separate_stdout_stderr
 
-module Tag : module type of Alcotest_ext_tag
+module Tag : module type of Tag
 
 (*
    A test is a name and a function that raises exceptions to signal

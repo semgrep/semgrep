@@ -3,8 +3,7 @@
 *)
 
 open Printf
-module T = Alcotest_ext_types
-module Helpers = Alcotest_ext_helpers
+module T = Types
 
 let format_test_path (test : _ T.test) =
   String.concat " > " (test.category @ [ test.name ])
@@ -21,18 +20,14 @@ let string_of_status_class (x : T.status_class) =
 let format_status_class (status : T.status) =
   sprintf "%5s"
     (sprintf "[%s]"
-       (status |> Alcotest_ext_store.status_class_of_status
-      |> string_of_status_class))
+       (status |> Store.status_class_of_status |> string_of_status_class))
 
 (* Sample output: "", " {foo, bar}" *)
 let format_tags (test : _ T.test) =
   match test.tags with
   | [] -> ""
   | tags ->
-      let tags =
-        List.sort Alcotest_ext_tag.compare tags
-        |> Helpers.list_map Alcotest_ext_tag.to_string
-      in
+      let tags = List.sort Tag.compare tags |> Helpers.list_map Tag.to_string in
       sprintf " {%s}" (String.concat ", " tags)
 
 (*
@@ -75,12 +70,10 @@ let to_alcotest_generic ~wrap_test_function tests : _ list =
   |> group_by_key
 
 let to_alcotest tests =
-  to_alcotest_generic ~wrap_test_function:Alcotest_ext_store.with_result_capture
-    tests
+  to_alcotest_generic ~wrap_test_function:Store.with_result_capture tests
 
 let to_alcotest_lwt tests =
-  to_alcotest_generic
-    ~wrap_test_function:Alcotest_ext_store.with_result_capture_lwt tests
+  to_alcotest_generic ~wrap_test_function:Store.with_result_capture_lwt tests
 
 let contains_regexp pat =
   let rex = Re.Pcre.regexp pat in
@@ -135,11 +128,11 @@ let run_tests_lwt ?filter_by_substring tests =
 let list_status ?filter_by_substring tests =
   tests
   |> filter ?filter_by_substring
-  |> Helpers.list_map (fun test -> (test, Alcotest_ext_store.get_status test))
+  |> Helpers.list_map (fun test -> (test, Store.get_status test))
   |> print_statuses
 
 let approve_output ?filter_by_substring tests =
   tests
   |> filter ?filter_by_substring
-  |> Helpers.list_map Alcotest_ext_store.approve_new_output
+  |> Helpers.list_map Store.approve_new_output
   |> raise_errors
