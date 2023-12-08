@@ -55,7 +55,10 @@ module MessageHandler = struct
              (FileOperationOptions.create ~didCreate:reg_opts
                 ~didRename:reg_opts ~didDelete:reg_opts ())
            ())
-      ~hoverProvider:(`Bool true) ~codeActionProvider:(`Bool true) ()
+      ~hoverProvider:(`Bool true) ~codeActionProvider:(`Bool true)
+      ~executeCommandProvider:
+        (ExecuteCommandOptions.create ~commands:[ "semgrep/ignore" ] ())
+      ()
 end
 
 module LanguageServer = RPC_server.Make (MessageHandler)
