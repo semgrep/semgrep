@@ -25,12 +25,14 @@ type cmd_conf = Run_tests of conf | Status of conf | Approve of conf
 let run_with_conf tests (cmd_conf : cmd_conf) =
   match cmd_conf with
   | Run_tests conf ->
+      Alcotest_ext_store.init_workspace ();
       Alcotest_ext_run.run_tests ?filter_by_substring:conf.filter_by_substring
         tests
   | Status conf ->
       Alcotest_ext_run.list_status ?filter_by_substring:conf.filter_by_substring
         tests
   | Approve conf ->
+      Alcotest_ext_store.init_workspace ();
       Alcotest_ext_run.approve_output
         ?filter_by_substring:conf.filter_by_substring tests
 
@@ -103,7 +105,10 @@ let subcmd_approve tests =
 (****************************************************************************)
 
 let root_doc = "run this project's tests"
-let root_info name = Cmd.info name ~doc:root_doc
+
+let root_info ~project_name =
+  let name = "test " ^ project_name in
+  Cmd.info name ~doc:root_doc
 
 let root_term tests =
   (*
@@ -113,6 +118,12 @@ let root_term tests =
 
 let subcommands tests =
   [ subcmd_run tests; subcmd_status tests; subcmd_approve tests ]
+
+let with_record_backtrace func =
+  let original_state = Printexc.backtrace_status () in
+  Printexc.record_backtrace true;
+  (* nosemgrep: no-fun-protect *)
+  Fun.protect ~finally:(fun () -> Printexc.record_backtrace original_state) func
 
 (*
      $ cmdliner-demo-subcmd           -> parsed as root subcommand
@@ -124,10 +135,13 @@ let subcommands tests =
 
    Otherwise, 'conf' is returned to the application.
 *)
-let interpret_argv ?(argv = Sys.argv) ?expectation_workspace ?(name = "test")
-    ?status_workspace tests =
-  (* TODO: don't initialize folders until necessary e.g. not when just
-     calling --help. *)
-  Alcotest_ext_store.init ?expectation_workspace ?status_workspace ();
-  Cmd.group ~default:(root_term tests) (root_info name) (subcommands tests)
-  |> Cmd.eval ~argv
+let interpret_argv ?(argv = Sys.argv) ?expectation_workspace_root
+    ?status_workspace_root ~project_name tests =
+  (* TODO: is there any reason why we shouldn't always record a stack
+     backtrace when running tests? *)
+  with_record_backtrace (fun () ->
+      Alcotest_ext_store.init_settings ?expectation_workspace_root
+        ?status_workspace_root ~project_name ();
+      Cmd.group ~default:(root_term tests) (root_info ~project_name)
+        (subcommands tests)
+      |> Cmd.eval ~argv)

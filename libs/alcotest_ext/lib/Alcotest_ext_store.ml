@@ -18,6 +18,7 @@
 *)
 
 open Printf
+module Helpers = Alcotest_ext_helpers
 module T = Alcotest_ext_types
 
 (**************************************************************************)
@@ -48,31 +49,6 @@ let list_result_of_result_list (xs : ('a, _) Result.t list) :
   with
   | Local_message msg -> Error msg
 
-let rec mkdir_if_not_exists dir =
-  match (Unix.stat dir).st_kind with
-  | S_DIR -> ()
-  | S_REG
-  | S_CHR
-  | S_BLK
-  | S_LNK
-  | S_FIFO
-  | S_SOCK ->
-      failwith
-        (sprintf
-           "File %S already exists but is not a folder as required by the \
-            testing setup."
-           dir)
-  | exception Unix.Unix_error (ENOENT, _, _) ->
-      let parent = Filename.dirname dir in
-      if parent = dir then
-        failwith
-          (sprintf
-             "Folder %S doesn't exist and has no parent that we could create."
-             dir)
-      else (
-        mkdir_if_not_exists parent;
-        Sys.mkdir dir 0o777)
-
 let with_file_in path f =
   if Sys.file_exists path then
     (* nosemgrep: no-open-in *)
@@ -100,12 +76,12 @@ let remove_file path = if Sys.file_exists path then Sys.remove path
    The status workspace is a temporary folder outside of version control,
    and by normally out of programmer's sight.
 *)
-let default_status_workspace = "_build" // "_alcotest_ext"
+let default_status_workspace_root = "_build" // "_alcotest_ext"
 
 (*
    The expectation workspace is under version control.
 *)
-let default_expectation_workspace = "expect"
+let default_expectation_workspace_root = "expect"
 
 let not_initialized () =
   failwith "Missing initialization call: Alcotest_ext.init ()"
@@ -130,16 +106,29 @@ let make_late_init () =
 let get_status_workspace, set_status_workspace = make_late_init ()
 let get_expectation_workspace, set_expectation_workspace = make_late_init ()
 
-let init ?(expectation_workspace = default_expectation_workspace)
-    ?(status_workspace = default_status_workspace) () =
-  if status_workspace = expectation_workspace then
+let init_settings
+    ?(expectation_workspace_root = default_expectation_workspace_root)
+    ?(status_workspace_root = default_status_workspace_root) ~project_name () =
+  if status_workspace_root = expectation_workspace_root then
     invalid_arg
       "Alcotest_ext_store.init: status_workspace and expectation_workspace \
        must be different folders.";
-  set_status_workspace status_workspace;
-  set_expectation_workspace expectation_workspace;
-  mkdir_if_not_exists status_workspace;
-  mkdir_if_not_exists expectation_workspace
+  set_status_workspace (status_workspace_root // project_name);
+  set_expectation_workspace (expectation_workspace_root // project_name)
+
+let init_workspace () =
+  Helpers.make_dir_if_not_exists ~recursive:true (get_status_workspace ());
+  Helpers.make_dir_if_not_exists ~recursive:true (get_expectation_workspace ())
+
+let get_test_status_workspace (test : _ T.test) =
+  get_status_workspace () // test.id
+
+let get_test_expectation_workspace (test : _ T.test) =
+  get_expectation_workspace () // test.id
+
+let init_test_workspace test =
+  Helpers.make_parent_dir_if_not_exists (get_test_status_workspace test);
+  Helpers.make_parent_dir_if_not_exists (get_test_expectation_workspace test)
 
 (**************************************************************************)
 (* Read/write data *)
@@ -152,7 +141,7 @@ let corrupted_file path =
         Remove it and retry." path)
 
 let get_outcome_path (test : _ T.test) =
-  get_status_workspace () // test.id // "outcome"
+  get_test_status_workspace test // "outcome"
 
 let string_of_outcome (outcome : T.outcome) =
   match outcome with
@@ -166,7 +155,8 @@ let outcome_of_string path data : T.outcome =
   | _ -> corrupted_file path
 
 let set_outcome (test : _ T.test) outcome =
-  outcome |> string_of_outcome |> write_file (get_outcome_path test)
+  let path = get_outcome_path test in
+  outcome |> string_of_outcome |> write_file path
 
 let get_outcome (test : _ T.test) : (T.outcome, string) Result.t =
   let path = get_outcome_path test in
@@ -276,8 +266,7 @@ let with_redirect_to_file from filename func () =
       Fun.protect ~finally:(fun () -> flush from) func)
     ()
 
-let with_output_capture (test : unit T.test) =
-  let func = test.func in
+let with_output_capture (test : unit T.test) func =
   match test.output_kind with
   | Ignore_output -> func
   | Stdout ->
@@ -293,13 +282,43 @@ let with_output_capture (test : unit T.test) =
         (get_file_path test stdout_filename)
         (with_redirect_to_file stderr (get_file_path test stderr_filename) func)
 
-let with_output_capture_lwt (test : unit Lwt.t T.test) =
+let with_outcome_capture (test : unit T.test) func () =
+  try
+    let res = func () in
+    set_outcome test Succeeded;
+    res
+  with
+  | e ->
+      let trace = Printexc.get_raw_backtrace () in
+      set_outcome test Failed;
+      Printexc.raise_with_backtrace e trace
+
+let with_outcome_capture_lwt (test : unit Lwt.t T.test) func () =
+  Lwt.catch
+    (fun () ->
+      Lwt.bind (func ()) (fun res ->
+          set_outcome test Succeeded;
+          Lwt.return res))
+    (fun e ->
+      let trace = Printexc.get_raw_backtrace () in
+      set_outcome test Failed;
+      Printexc.raise_with_backtrace e trace)
+
+let with_output_capture_lwt (test : unit Lwt.t T.test) func =
   (* TODO: IO redirections for Lwt *)
   match test.output_kind with
-  | Ignore_output -> test.func
+  | Ignore_output -> func
   | _ ->
       failwith
         (sprintf "TODO: lwt test output capture (requested for test %s)" test.id)
+
+let with_result_capture (test : unit T.test) =
+  init_test_workspace test;
+  test.func |> with_output_capture test |> with_outcome_capture test
+
+let with_result_capture_lwt (test : unit Lwt.t T.test) =
+  init_test_workspace test;
+  test.func |> with_output_capture_lwt test |> with_outcome_capture_lwt test
 
 (**************************************************************************)
 (* High-level interface *)

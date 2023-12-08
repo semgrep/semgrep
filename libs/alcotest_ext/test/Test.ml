@@ -23,4 +23,4 @@ let tests =
       (fun () -> failwith "this exception is expected");
   ]
 
-let () = Alcotest_ext.interpret_argv tests |> exit
+let () = Alcotest_ext.interpret_argv ~project_name:"alcotest_ext" tests |> exit

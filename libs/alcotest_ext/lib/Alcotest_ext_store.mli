@@ -5,10 +5,19 @@
 
 (*
    This function must be called exactly once to define where things are
-   stored.
+   stored. It doesn't write to the file system.
 *)
-val init :
-  ?expectation_workspace:string -> ?status_workspace:string -> unit -> unit
+val init_settings :
+  ?expectation_workspace_root:string ->
+  ?status_workspace_root:string ->
+  project_name:string ->
+  unit ->
+  unit
+
+(*
+   Create missing folders.
+*)
+val init_workspace : unit -> unit
 
 (*
    These functions are available after the call to 'init'.
@@ -55,7 +64,7 @@ val approve_new_output : 'a Alcotest_ext_types.test -> (unit, string) Result.t
 (* Wrappers for capturing test output *)
 (**************************************************************************)
 
-val with_output_capture : unit Alcotest_ext_types.test -> unit -> unit
+val with_result_capture : unit Alcotest_ext_types.test -> unit -> unit
 
-val with_output_capture_lwt :
+val with_result_capture_lwt :
   unit Lwt.t Alcotest_ext_types.test -> unit -> unit Lwt.t

@@ -1,4 +1,4 @@
-(test
+(executable
  (name test)
  (libraries
     alcotest_ext

@@ -195,8 +195,8 @@ val to_alcotest_lwt : lwt_test list -> unit Alcotest_lwt.test list
 *)
 val interpret_argv :
   ?argv:string array ->
-  ?expectation_workspace:string ->
-  ?name:string ->
-  ?status_workspace:string ->
+  ?expectation_workspace_root:string ->
+  ?status_workspace_root:string ->
+  project_name:string ->
   test list ->
   int

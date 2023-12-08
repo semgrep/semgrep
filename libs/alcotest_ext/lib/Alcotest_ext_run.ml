@@ -75,12 +75,12 @@ let to_alcotest_generic ~wrap_test_function tests : _ list =
   |> group_by_key
 
 let to_alcotest tests =
-  to_alcotest_generic ~wrap_test_function:Alcotest_ext_store.with_output_capture
+  to_alcotest_generic ~wrap_test_function:Alcotest_ext_store.with_result_capture
     tests
 
 let to_alcotest_lwt tests =
   to_alcotest_generic
-    ~wrap_test_function:Alcotest_ext_store.with_output_capture_lwt tests
+    ~wrap_test_function:Alcotest_ext_store.with_result_capture_lwt tests
 
 let contains_regexp pat =
   let rex = Re.Pcre.regexp pat in
