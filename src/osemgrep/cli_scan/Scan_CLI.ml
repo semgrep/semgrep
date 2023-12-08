@@ -105,6 +105,8 @@ let default : conf =
         dataflow_traces = false;
         matching_explanations = false;
         time_flag = false;
+        nosem = true;
+        strict = false;
         (* better to set to false for now; annoying to add --ast-caching to
          * each command, but while we're still developing osemgrep it is
          * better to eliminate some source of complexity by default.
@@ -964,6 +966,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
         max_memory_mb;
         ast_caching;
         dataflow_traces;
+        nosem;
+        strict;
         time_flag;
         matching_explanations;
       }

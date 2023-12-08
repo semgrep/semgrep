@@ -589,6 +589,13 @@ val size_ko : int -> string
 val edit_distance : string -> string -> int
 val wrap : ?width:int -> string -> string
 
+(* strip c s removes all contiguous prefixes of [c] from [s]
+   e.g. strip 'a' "abc"   = "bc"
+        strip 'b' "abc"   = "abc"
+        strip 'c' "cabcc" = "ab"
+*)
+val strip : char -> string -> string
+
 (*****************************************************************************)
 (* Regexp *)
 (*****************************************************************************)

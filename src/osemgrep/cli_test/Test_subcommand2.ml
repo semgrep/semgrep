@@ -197,9 +197,9 @@ let get_expected_and_reported_lines result test_files =
       test_files
   in
   let reported_lines =
-    result.Core_result.matches_with_fixes
+    result.Core_result.processed_matches
     |> List.fold_left
-         (fun reported_lines (result, _textedit) ->
+         (fun reported_lines { Core_result.pm = result; _ } ->
            let path = Unix.realpath !!(result.Pattern_match.file)
            and check_id = Rule_ID.to_string result.rule_id.id
            and start_line = (fst result.range_loc).pos.line in

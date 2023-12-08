@@ -11,7 +11,7 @@
       "check_id": "rules.any-file",
       "end": {
         "col": 1,
-        "line": 0,
+        "line": 1,
         "offset": 0
       },
       "extra": {
@@ -28,7 +28,7 @@
       "path": "targets/empty/totally_empty_file",
       "start": {
         "col": 1,
-        "line": 0,
+        "line": 1,
         "offset": 0
       }
     }

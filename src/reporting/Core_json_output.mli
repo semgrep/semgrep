@@ -2,7 +2,7 @@
  * trying to get the range of a match or metavar.
  *)
 val match_to_match :
-  Pattern_match.t * Textedit.t option ->
+  Core_result.processed_match ->
   (Semgrep_output_v1_t.core_match, Core_error.t) Either.t
 
 (* Note that this uses and reset !Core_error.g_errors internally *)

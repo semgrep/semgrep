@@ -72,6 +72,8 @@ let core_runner_conf_of_t settings =
       (* TODO: This is breaks things in LSP.js *)
       ast_caching = false;
       dataflow_traces = false;
+      nosem = true;
+      strict = false;
       matching_explanations = false;
       time_flag = false;
     }

@@ -280,16 +280,14 @@ let render_fix (pm : Pattern_match.t) : Textedit.t option =
 (* Entry point *)
 (*****************************************************************************)
 
-(* Apply the fix for the list of matches to the given file, returning the
- * resulting file contents. Currently used only for tests, but with some
- * changes could be used in production as well.
- *)
-let produce_autofixes (matches : Pattern_match.t list) =
-  List_.map (fun m -> (m, render_fix m)) matches
+let produce_autofixes (matches : Core_result.processed_match list) =
+  List_.map
+    (fun (m : Core_result.processed_match) ->
+      { m with autofix_edit = render_fix m.pm })
+    matches
 
-let apply_fixes_to_file matches_with_fixes ~file =
+let apply_fixes_to_file edits ~file =
   let file_text = UCommon.read_file file in
-  let edits = List_.map snd matches_with_fixes |> List_.map_filter Fun.id in
   match Textedit.apply_edits_to_text file_text edits with
   | Success x -> x
   | Overlap { conflicting_edits; _ } ->

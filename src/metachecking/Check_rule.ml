@@ -224,7 +224,8 @@ let semgrep_check config metachecks rules : Core_error.t list =
   let res = Core_scan.scan_with_exn_handler config in
   match res with
   | Ok result ->
-      result.matches_with_fixes |> List_.map fst
+      result.processed_matches
+      |> List_.map (fun (m : Core_result.processed_match) -> m.pm)
       |> List_.map match_to_semgrep_error
   | Error (exn, _) -> Exception.reraise exn
 
