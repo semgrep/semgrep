@@ -329,8 +329,8 @@ let captured_output_of_data (kind : T.output_kind) (data : string list) :
   | Ignore_output, [] -> Ignored
   | Stdout, [ out ] -> Captured_stdout out
   | Stderr, [ err ] -> Captured_stderr err
-  | Merged_stdout_stderr, [ out; err ] -> Captured_stdout_stderr (out, err)
-  | Separate_stdout_stderr, [ data ] -> Captured_merged data
+  | Merged_stdout_stderr, [ data ] -> Captured_merged data
+  | Separate_stdout_stderr, [ out; err ] -> Captured_stdout_stderr (out, err)
   | ( ( Ignore_output | Stdout | Stderr | Merged_stdout_stderr
       | Separate_stdout_stderr ),
       _ ) ->
@@ -341,8 +341,8 @@ let data_of_captured_output (output : T.captured_output) : string list =
   | Ignored -> []
   | Captured_stdout out -> [ out ]
   | Captured_stderr err -> [ err ]
-  | Captured_stdout_stderr (out, err) -> [ out; err ]
   | Captured_merged data -> [ data ]
+  | Captured_stdout_stderr (out, err) -> [ out; err ]
 
 let save_result (test : _ T.test) (res : T.result) =
   let data = data_of_captured_output res.captured_output in

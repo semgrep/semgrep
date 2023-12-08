@@ -1,8 +1,8 @@
 #! /usr/bin/env bash
 #
-# Run the test executable in the current directory.
+# Run the test executable from the current directory.
 #
-# This script is a substitute to a symbolic link to the executable created
+# This script is a substitute for a symbolic link to the executable created
 # by dune. The problems we're working around are:
 # 1. dune fails on dangling symlinks so we can't just symlink to 'test.exe'.
 # 2. 'dune runtest' doesn't run in the directory it's called from but in a
