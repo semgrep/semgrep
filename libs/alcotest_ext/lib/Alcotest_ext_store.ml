@@ -73,15 +73,14 @@ let remove_file path = if Sys.file_exists path then Sys.remove path
 (**************************************************************************)
 
 (*
-   The status workspace is a temporary folder outside of version control,
-   and by normally out of programmer's sight.
+   The status workspace is a temporary folder outside of version control.
 *)
-let default_status_workspace_root = "_build" // "_alcotest_ext"
+let default_status_workspace_root = "_test_results" // "status"
 
 (*
    The expectation workspace is under version control.
 *)
-let default_expectation_workspace_root = "expect"
+let default_expectation_workspace_root = "_test_results" // "expect"
 
 let not_initialized () =
   failwith "Missing initialization call: Alcotest_ext.init ()"
@@ -127,8 +126,8 @@ let get_test_expectation_workspace (test : _ T.test) =
   get_expectation_workspace () // test.id
 
 let init_test_workspace test =
-  Helpers.make_parent_dir_if_not_exists (get_test_status_workspace test);
-  Helpers.make_parent_dir_if_not_exists (get_test_expectation_workspace test)
+  Helpers.make_dir_if_not_exists (get_test_status_workspace test);
+  Helpers.make_dir_if_not_exists (get_test_expectation_workspace test)
 
 (**************************************************************************)
 (* Read/write data *)

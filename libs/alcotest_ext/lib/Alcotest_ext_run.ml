@@ -65,7 +65,7 @@ let to_alcotest_generic ~wrap_test_function tests : _ list =
            | path -> String.concat " > " path
          in
          let suite_name =
-           sprintf "%s %s %s" test.id (format_tags test) suite_name
+           sprintf "%s%s %s" test.id (format_tags test) suite_name
          in
          let func =
            if test.skipped then Alcotest.skip else wrap_test_function test

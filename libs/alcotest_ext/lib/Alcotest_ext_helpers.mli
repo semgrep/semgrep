@@ -12,8 +12,3 @@ val list_flatten : 'a list list -> 'a list
    Also create its parents if they don't exist and 'recursive' is true.
 *)
 val make_dir_if_not_exists : ?recursive:bool -> string -> unit
-
-(* Create a file's parent directory if it doesn't exist.
-   Also create its parents if they don't exist and 'recursive' is true.
-*)
-val make_parent_dir_if_not_exists : ?recursive:bool -> string -> unit
