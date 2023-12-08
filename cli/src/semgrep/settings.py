@@ -59,12 +59,12 @@ def generate_default_settings(api_token: Optional[str] = None) -> SettingsSchema
         "anonymous_user_id": anonymous_user_id,
     }
     return (
-        logged_out_settings
-        if api_token is not None
-        else {
+        {
             **logged_out_settings,
             "api_token": api_token,
         }
+        if api_token is not None
+        else logged_out_settings
     )
 
 
