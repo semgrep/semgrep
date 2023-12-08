@@ -1,1 +1,1 @@
-Users can now ignore findings locally in Semgrep IDE Extensions
+Users can now ignore findings locally in Semgrep IDE Extensions, per workspace, and this will persist between restarts
