@@ -16,11 +16,31 @@ let string_of_status_class (x : T.status_class) =
   | XPASS -> "XPASS"
   | MISS -> "MISS"
 
+let style_of_status_class (x : T.status_class) : Color.style =
+  match x with
+  | PASS -> Green
+  | FAIL -> Red
+  | XFAIL -> Green
+  | XPASS -> Red
+  | MISS -> Yellow
+
+let success_of_status_class (x : T.status_class) =
+  match x with
+  | PASS -> true
+  | FAIL -> false
+  | XFAIL -> true
+  | XPASS -> false
+  | MISS -> false
+
 (* Fixed-width output: "[PASS] ", "[XFAIL]" *)
 let format_status_class (status : T.status) =
-  sprintf "%5s"
-    (sprintf "[%s]"
-       (status |> Store.status_class_of_status |> string_of_status_class))
+  let status_class = Store.status_class_of_status status in
+  let style = style_of_status_class status_class in
+  let displayed_string = status_class |> string_of_status_class in
+  let padding = max 0 (5 - String.length displayed_string) in
+  sprintf "[%s]%s"
+    (Color.format Color style displayed_string)
+    (String.make padding ' ')
 
 (* Sample output: "", " {foo, bar}" *)
 let format_tags (test : _ T.test) =
@@ -110,7 +130,18 @@ let print_status ((test : _ T.test), status) =
     (format_status_class status)
     test.id (format_tags test) (format_test_path test)
 
-let print_statuses statuses = statuses |> List.iter print_status
+let is_overall_success statuses =
+  statuses
+  |> List.for_all (fun (_test, status) ->
+         status |> Store.status_class_of_status |> success_of_status_class)
+
+let print_statuses statuses =
+  statuses |> List.iter print_status;
+  let overall_success = is_overall_success statuses in
+  if overall_success then print_endline "All expectations were met."
+  else print_endline "Some expectations were not met.";
+  if overall_success then 0 else 1
+
 let alcotest_argv = [| ""; "test"; "-e" |]
 
 let run_tests ?filter_by_substring tests =

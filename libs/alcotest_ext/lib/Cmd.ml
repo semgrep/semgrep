@@ -29,6 +29,7 @@ let run_with_conf tests (cmd_conf : cmd_conf) =
       Run.run_tests ?filter_by_substring:conf.filter_by_substring tests
   | Status conf ->
       Run.list_status ?filter_by_substring:conf.filter_by_substring tests
+      |> exit
   | Approve conf ->
       Store.init_workspace ();
       Run.approve_output ?filter_by_substring:conf.filter_by_substring tests
