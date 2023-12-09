@@ -9,15 +9,4 @@
 #  ./test "full rule"
 #  ./test "full rule" | grep "full rule"
 
-# 'test' for running the tests or 'list' for only printing the list of tests
-subcommand=run
-options=""
-case "$(basename "$0")" in
-  test)
-    ;;
-  *)
-    subcommand=status
-esac
-
-./_build/default/src/tests/test.exe "$subcommand" $options "$@"
-echo
+./_build/default/src/tests/test.exe "$@"
