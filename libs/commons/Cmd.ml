@@ -16,27 +16,26 @@ type name = Name of string
 type args = string list
 type t = name * args
 
-let to_cmd (Name str, args) = Bos.Cmd.(v str %% of_list args)
-let bos_apply f x = f (to_cmd x)
-let to_string = bos_apply Bos.Cmd.to_string
+(* shortcut *)
+type run_status = Bos.OS.Cmd.run_status
 
 (*****************************************************************************)
 (* API *)
 (*****************************************************************************)
-(* Note that we put here just Bos.Cmd, which is safe, and not Bos.OS.Cmd
+(* Note that we use here just Bos.Cmd, which is safe, and not Bos.OS.Cmd
  * which actually execute stuff and is so unsafe (and people should prefer
  * to use CapExec.ml)
  *)
 
-(*
-let empty = Bos.Cmd.empty
-let of_list = Bos.Cmd.of_list
-let pp = Bos.Cmd.pp
-let v = Bos.Cmd.v
-let ( % ) = Bos.Cmd.( % )
-let ( %% ) = Bos.Cmd.( %% )
-*)
+let to_cmd (Name str, args) = Bos.Cmd.(v str %% of_list args)
+let bos_apply f x = f (to_cmd x)
+let to_string = bos_apply Bos.Cmd.to_string
 
-(* FORBIDDEN:
- *  - ??
- *)
+(* old:
+   let empty = Bos.Cmd.empty
+   let of_list = Bos.Cmd.of_list
+   let pp = Bos.Cmd.pp
+   let v = Bos.Cmd.v
+   let ( % ) = Bos.Cmd.( % )
+   let ( %% ) = Bos.Cmd.( %% )
+*)
