@@ -23,6 +23,7 @@ and show_kind =
   | DumpPattern of string * Lang.t
   | DumpAST of Fpath.t * Lang.t
   | DumpConfig of Rules_config.config_string
+  | DumpRuleV2 of Fpath.t
   | DumpEnginePath of bool (* pro = true *)
   | DumpCommandForCore
 [@@deriving show]

@@ -69,15 +69,6 @@ let test_parse xs =
   Parsing_stat.print_regression_information ~ext xs newscore;
   ()
 
-let test_lexer file =
-  UCommon.with_open_infile file (fun chan ->
-      let lexbuf = Lexing.from_channel chan in
-      while true do
-        let result = Lexer_java.token lexbuf in
-        pr2_gen result;
-        if Token_helpers_java.is_eof result then exit 0
-      done)
-
 let test_dump file =
   let s =
     if !Flag_parsing.sgrep_mode then
@@ -95,7 +86,6 @@ let test_dump file =
 
 let actions () =
   [
-    ("-tokens_java", "   <file>", Arg_.mk_action_1_arg test_lexer);
     ("-parse_java", "   <file or dir>", Arg_.mk_action_n_arg test_parse);
     ("-dump_java", "   <file>", Arg_.mk_action_1_arg test_dump);
   ]
