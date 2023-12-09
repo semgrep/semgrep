@@ -14,4 +14,4 @@ type reason =
 (*
    Call the 'exit' function with the appropriate exit code and logging.
 *)
-val exit_semgrep : reason -> 'a
+val exit_semgrep : Cap.Process.exit -> reason -> 'a

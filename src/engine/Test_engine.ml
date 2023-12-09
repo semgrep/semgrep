@@ -312,7 +312,7 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
       Alcotest_ext.create ~skipped:true name test
 
 (*****************************************************************************)
-(* Entry points *)
+(* Entry point *)
 (*****************************************************************************)
 
 let make_tests ?fail_callback ?get_xlang ?prepend_lang (xs : Fpath.t list) :
@@ -320,15 +320,3 @@ let make_tests ?fail_callback ?get_xlang ?prepend_lang (xs : Fpath.t list) :
   xs |> UFile.files_of_dirs_or_files_no_vcs_nofilter
   |> List.filter Parse_rule.is_valid_rule_filename
   |> List_.map (make_test_rule_file ?fail_callback ?get_xlang ?prepend_lang)
-
-(* semgrep-core -test_rules *)
-let test_rules (paths : Fpath.t list) : unit =
-  let total_mismatch = ref 0 in
-  let fail_callback num_errors _msg =
-    total_mismatch := !total_mismatch + num_errors
-  in
-  let tests = make_tests ~fail_callback paths in
-  tests |> List.iter (fun (test : Alcotest_ext.test) -> test.func ());
-  pr2 (spf "total mismatch: %d" !total_mismatch);
-  if !total_mismatch > 0 then exit 1
-[@@action]

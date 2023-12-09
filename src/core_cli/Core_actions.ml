@@ -183,3 +183,22 @@ let dump_contributions () =
   Parse_contribution.get_contributions ()
   |> Semgrep_output_v1_j.string_of_contributions |> UCommon.pr
 [@@action]
+
+(*****************************************************************************)
+(* Other actions *)
+(*****************************************************************************)
+
+(* [test_rules dirs] run the tests discovered under [dirs]
+ * and print a summary.
+ * This is what 'semgrep-core -test_rules' run.
+ *)
+let test_rules caps (paths : Fpath.t list) : unit =
+  let total_mismatch = ref 0 in
+  let fail_callback num_errors _msg =
+    total_mismatch := !total_mismatch + num_errors
+  in
+  let tests = Test_engine.make_tests ~fail_callback paths in
+  tests |> List.iter (fun (test : Alcotest_ext.test) -> test.func ());
+  pr2 (spf "total mismatch: %d" !total_mismatch);
+  if !total_mismatch > 0 then CapStdlib.exit caps#exit 1
+[@@action]

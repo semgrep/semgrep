@@ -116,7 +116,9 @@ let check_rule_id_mismatch reported_lines test_lines =
           "Failing due to rule id mismatch. There is a test denoted with \
            'ruleid: <rule name>' where the rule name does not exist or is not \
            expected in the test file.");
-    exit 2 (* EXIT_FAILURE *))
+    failwith "TODO exit 2"
+    (* exit 2 *)
+    (* EXIT_FAILURE *))
 
 module IS = Set.Make (Int)
 

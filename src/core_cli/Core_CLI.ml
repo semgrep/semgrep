@@ -203,7 +203,7 @@ let dump_patterns_of_rule (file : Fpath.t) =
     xpats
 [@@action]
 
-let dump_ast ?(naming = false) lang file =
+let dump_ast ?(naming = false) caps lang file =
   let file = Core_scan.replace_named_pipe_by_regular_file file in
   E.try_with_print_exn_and_reraise !!file (fun () ->
       let res =
@@ -217,7 +217,7 @@ let dump_ast ?(naming = false) lang file =
       UCommon.pr s;
       if Parsing_result2.has_error res then (
         dump_parsing_errors file res;
-        Core_exit_code.(exit_semgrep False)))
+        Core_exit_code.(exit_semgrep caps#exit False)))
 [@@action]
 
 (*****************************************************************************)
@@ -270,7 +270,7 @@ let mk_config () =
 (* The actions *)
 (*****************************************************************************)
 
-let all_actions () =
+let all_actions (caps : Cap.all_caps) () =
   [
     (* possibly useful to the user *)
     ( "-show_ast_json",
@@ -306,13 +306,13 @@ let all_actions () =
       " <file>",
       fun file ->
         Arg_.mk_action_1_conv Fpath.v
-          (dump_ast ~naming:false (Xlang.lang_of_opt_xlang_exn !lang))
+          (dump_ast ~naming:false caps (Xlang.lang_of_opt_xlang_exn !lang))
           file );
     ( "-dump_named_ast",
       " <file>",
       fun file ->
         Arg_.mk_action_1_conv Fpath.v
-          (dump_ast ~naming:true (Xlang.lang_of_opt_xlang_exn !lang))
+          (dump_ast ~naming:true caps (Xlang.lang_of_opt_xlang_exn !lang))
           file );
     ( "-dump_il_all",
       " <file>",
@@ -397,7 +397,7 @@ let all_actions () =
       Arg_.mk_action_n_conv Fpath.v (Check_rule.stat_files Parse_rule.parse) );
     ( "-test_rules",
       " <files or dirs>",
-      Arg_.mk_action_n_conv Fpath.v Test_engine.test_rules );
+      Arg_.mk_action_n_conv Fpath.v (Core_actions.test_rules caps) );
     ( "-parse_rules",
       " <files or dirs>",
       Arg_.mk_action_n_arg Test_parsing.test_parse_rules );
@@ -415,7 +415,7 @@ let all_actions () =
 (* The options *)
 (*****************************************************************************)
 
-let options actions =
+let options caps actions =
   [
     ( "-e",
       Arg.String (fun s -> pattern_string := Some s),
@@ -571,7 +571,7 @@ let options actions =
         Arg.Unit
           (fun () ->
             pr2 version;
-            Core_exit_code.(exit_semgrep Success)),
+            Core_exit_code.(exit_semgrep caps#exit Success)),
         "  guess what" );
     ]
 
@@ -617,7 +617,7 @@ let register_exception_printers () =
 (* Main entry point *)
 (*****************************************************************************)
 
-let main_no_exn_handler (sys_argv : string array) : unit =
+let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
   profile_start := Unix.gettimeofday ();
 
   (* SIGXFSZ (file size limit exceeded)
@@ -658,7 +658,9 @@ let main_no_exn_handler (sys_argv : string array) : unit =
 
   (* does side effect on many global flags *)
   let args =
-    Arg_.parse_options (options all_actions) usage_msg (Array.of_list argv)
+    Arg_.parse_options
+      (options caps (all_actions caps))
+      usage_msg (Array.of_list argv)
   in
 
   let config = mk_config () in
@@ -693,8 +695,9 @@ let main_no_exn_handler (sys_argv : string array) : unit =
       (* --------------------------------------------------------- *)
       (* actions, useful to debug subpart *)
       (* --------------------------------------------------------- *)
-      | xs when List.mem config.action (Arg_.action_list (all_actions ())) ->
-          Arg_.do_action config.action xs (all_actions ())
+      | xs when List.mem config.action (Arg_.action_list (all_actions caps ()))
+        ->
+          Arg_.do_action config.action xs (all_actions caps ())
       | _ when not (String_.empty config.action) ->
           failwith ("unrecognized action or wrong params: " ^ !action)
       (* --------------------------------------------------------- *)
@@ -708,7 +711,7 @@ let main_no_exn_handler (sys_argv : string array) : unit =
              for now just turn it off *)
           (* if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc (); *)
           let config = { config with roots = Fpath_.of_strings roots } in
-          Core_command.semgrep_core_dispatch config)
+          Core_command.semgrep_core_dispatch caps config)
 
 let with_exception_trace f =
   Printexc.record_backtrace true;
@@ -722,9 +725,10 @@ let with_exception_trace f =
  * but now Core_CLI.ml is a library that can be called from
  * Semgrep-pro, hence the introduction of a function.
  *)
-let main (argv : string array) : unit =
+let main (caps : Cap.all_caps) (argv : string array) : unit =
   UCommon.main_boilerplate (fun () ->
       register_exception_printers ();
       Common.finalize
-        (fun () -> with_exception_trace (fun () -> main_no_exn_handler argv))
+        (fun () ->
+          with_exception_trace (fun () -> main_no_exn_handler caps argv))
         (fun () -> !Hooks.exit |> List.iter (fun f -> f ())))

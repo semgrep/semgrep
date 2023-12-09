@@ -14,12 +14,6 @@ val make_tests :
   Fpath.t list ->
   Alcotest_ext.test list
 
-(* [test_rules dirs] run the tests discovered under [dirs]
- * and print a summary.
- * This is what 'semgrep-core -test_rules' run.
- *)
-val test_rules : Fpath.t list -> unit
-
 (* helpers used in Test_subcommand.ml *)
 val find_target_of_yaml_file_opt : Fpath.t -> Fpath.t option
 val xlangs_of_rules : Rule.t list -> Xlang.t list
