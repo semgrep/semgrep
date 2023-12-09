@@ -26,7 +26,13 @@ let run_with_conf tests (cmd_conf : cmd_conf) =
   match cmd_conf with
   | Run_tests conf ->
       Store.init_workspace ();
-      Run.run_tests ?filter_by_substring:conf.filter_by_substring tests
+      (* TODO: display the alcotest_ext status in the first pass, which
+         would require running the test suite ourselves rather than
+         using the original Alcotest.run. *)
+      Run.run_tests ?filter_by_substring:conf.filter_by_substring tests;
+      Run.list_status ?filter_by_substring:conf.filter_by_substring
+        ~only_important:true tests
+      |> exit
   | Status conf ->
       Run.list_status ?filter_by_substring:conf.filter_by_substring tests
       |> exit

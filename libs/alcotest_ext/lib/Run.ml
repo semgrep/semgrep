@@ -5,38 +5,41 @@
 open Printf
 module T = Types
 
+type success = OK | OK_where_no_missing_data | Not_OK
+
 let format_test_path (test : _ T.test) =
   String.concat " > " (test.category @ [ test.name ])
 
-let string_of_status_class (x : T.status_class) =
-  match x with
-  | PASS -> "PASS"
-  | FAIL -> "FAIL"
-  | XFAIL -> "XFAIL"
-  | XPASS -> "XPASS"
-  | MISS -> "MISS"
+let string_of_status_summary (sum : T.status_summary) =
+  let class_string =
+    match sum.status_class with
+    | PASS -> "PASS"
+    | FAIL -> "FAIL"
+    | XFAIL -> "XFAIL"
+    | XPASS -> "XPASS"
+    | MISS -> "MISS"
+  in
+  if sum.has_expected_output then class_string else class_string ^ " (new)"
 
-let style_of_status_class (x : T.status_class) : Color.style =
-  match x with
-  | PASS -> Green
-  | FAIL -> Red
-  | XFAIL -> Green
-  | XPASS -> Red
-  | MISS -> Yellow
+let success_of_status_summary (sum : T.status_summary) =
+  match sum.status_class with
+  | PASS
+  | XFAIL ->
+      if sum.has_expected_output then OK else OK_where_no_missing_data
+  | FAIL -> Not_OK
+  | XPASS -> Not_OK
+  | MISS -> OK_where_no_missing_data
 
-let success_of_status_class (x : T.status_class) =
-  match x with
-  | PASS -> true
-  | FAIL -> false
-  | XFAIL -> true
-  | XPASS -> false
-  | MISS -> false
+let style_of_status_summary (sum : T.status_summary) : Color.style =
+  match success_of_status_summary sum with
+  | OK -> Green
+  | OK_where_no_missing_data -> Yellow
+  | Not_OK -> Red
 
 (* Fixed-width output: "[PASS] ", "[XFAIL]" *)
-let format_status_class (status : T.status) =
-  let status_class = Store.status_class_of_status status in
-  let style = style_of_status_class status_class in
-  let displayed_string = status_class |> string_of_status_class in
+let format_status_summary (sum : T.status_summary) =
+  let style = style_of_status_summary sum in
+  let displayed_string = sum |> string_of_status_summary in
   let padding = max 0 (5 - String.length displayed_string) in
   sprintf "[%s]%s"
     (Color.format Color style displayed_string)
@@ -79,8 +82,13 @@ let to_alcotest_generic ~wrap_test_function tests : _ list =
            | [] -> test.name
            | path -> String.concat " > " path
          in
+         let xfail_note =
+           match test.expected_outcome with
+           | Should_succeed -> ""
+           | Should_fail reason -> sprintf " [xfail: %s]" reason
+         in
          let suite_name =
-           sprintf "%s%s %s" test.id (format_tags test) suite_name
+           sprintf "%s%s%s %s" test.id xfail_note (format_tags test) suite_name
          in
          let func =
            if test.skipped then Alcotest.skip else wrap_test_function test
@@ -125,42 +133,80 @@ let raise_errors (xs : (_, string) Result.t list) : unit =
       let msg = String.concat "\n" error_messages in
       failwith msg
 
-let print_status ((test : _ T.test), status) =
-  printf "%s %s%s %s\n"
-    (format_status_class status)
-    test.id (format_tags test) (format_test_path test)
+let is_important_status (sum : T.status_summary) =
+  (not sum.has_expected_output)
+  ||
+  match success_of_status_summary sum with
+  | OK -> false
+  | OK_where_no_missing_data
+  | Not_OK ->
+      true
+
+let print_status ?(only_important = false) ((test : _ T.test), status) =
+  let sum = Store.status_summary_of_status status in
+  let show =
+    match only_important with
+    | true -> is_important_status sum
+    | false -> true
+  in
+  if show then
+    printf "%s %s%s %s\n"
+      (format_status_summary sum)
+      test.id (format_tags test) (format_test_path test)
 
 let is_overall_success statuses =
   statuses
   |> List.for_all (fun (_test, status) ->
-         status |> Store.status_class_of_status |> success_of_status_class)
+         match
+           status |> Store.status_summary_of_status |> success_of_status_summary
+         with
+         | OK
+         | OK_where_no_missing_data ->
+             true
+         | Not_OK -> false)
 
-let print_statuses statuses =
-  statuses |> List.iter print_status;
+let print_statuses ?only_important statuses =
+  print_newline ();
+  print_endline (Color.format Color Bold "Summary");
+  statuses |> List.iter (print_status ?only_important);
   let overall_success = is_overall_success statuses in
+  (* TODO: show counts: total number of tests, number of selected tests,
+     number of tests in pass/fail/xfail/xpass, percentage of success *)
   if overall_success then print_endline "All expectations were met."
   else print_endline "Some expectations were not met.";
   if overall_success then 0 else 1
 
-let alcotest_argv = [| ""; "test"; "-e" |]
+(* Important: for unknown reasons, the "test" subcommand of alcotest
+   force an exit after Alcotest.run, regardless of the 'and_exit' argument
+   that we pass. *)
+let alcotest_argv = [| ""; "-e" |]
 
 let run_tests ?filter_by_substring tests =
-  tests
-  |> filter ?filter_by_substring
-  |> to_alcotest
-  |> Alcotest.run ~argv:alcotest_argv "test"
+  let alcotest_tests = tests |> filter ?filter_by_substring |> to_alcotest in
+  (try
+     Alcotest.run ~and_exit:false ~argv:alcotest_argv "test" alcotest_tests
+   with
+  | Alcotest.Test_error -> ());
+  (* Alcotest doesn't print a trailing newline here but only when the program
+     exits, it seems (?) *)
+  print_newline ()
 
 let run_tests_lwt ?filter_by_substring tests =
-  tests
-  |> filter ?filter_by_substring
-  |> to_alcotest_lwt
-  |> Alcotest_lwt.run ~argv:alcotest_argv "test"
+  let alcotest_tests =
+    tests |> filter ?filter_by_substring |> to_alcotest_lwt
+  in
+  Lwt.catch
+    (fun () ->
+      Alcotest_lwt.run ~and_exit:false ~argv:alcotest_argv "test" alcotest_tests)
+    (function
+      | Alcotest.Test_error -> Lwt.return ()
+      | e -> raise e)
 
-let list_status ?filter_by_substring tests =
+let list_status ?filter_by_substring ?only_important tests =
   tests
   |> filter ?filter_by_substring
   |> Helpers.list_map (fun test -> (test, Store.get_status test))
-  |> print_statuses
+  |> print_statuses ?only_important
 
 let approve_output ?filter_by_substring tests =
   tests

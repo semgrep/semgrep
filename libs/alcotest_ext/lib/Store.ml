@@ -310,13 +310,19 @@ let with_output_capture_lwt (test : unit Lwt.t T.test) func =
       failwith
         (sprintf "TODO: lwt test output capture (requested for test %s)" test.id)
 
-let with_result_capture (test : unit T.test) =
+let with_result_capture (test : unit T.test) () =
   init_test_workspace test;
-  test.func |> with_output_capture test |> with_outcome_capture test
+  let func =
+    test.func |> with_output_capture test |> with_outcome_capture test
+  in
+  func ()
 
-let with_result_capture_lwt (test : unit Lwt.t T.test) =
+let with_result_capture_lwt (test : unit Lwt.t T.test) () =
   init_test_workspace test;
-  test.func |> with_output_capture_lwt test |> with_outcome_capture_lwt test
+  let func =
+    test.func |> with_output_capture_lwt test |> with_outcome_capture_lwt test
+  in
+  func ()
 
 (**************************************************************************)
 (* High-level interface *)
@@ -376,23 +382,29 @@ let delete_result (test : _ T.test) =
   clear_outcome test;
   clear_output test
 
-let status_class_of_status ?(accept_missing_expected_output = false)
-    (status : T.status) : T.status_class =
+let status_summary_of_status (status : T.status) : T.status_summary =
   match status.result with
-  | Error _ -> MISS
-  | Ok result -> (
+  | Error _ ->
+      {
+        status_class = MISS;
+        has_expected_output = false (* incorrect but does it matter? *);
+      }
+  | Ok result ->
       let expect = status.expectation in
-      let output_matches =
+      let has_expected_output, output_matches =
         match (expect.expected_output, result.captured_output) with
-        | Ok output1, output2 when output1 = output2 -> true
-        | Error _, _ when accept_missing_expected_output -> true
-        | _ -> false
+        | Ok output1, output2 when output1 = output2 -> (true, true)
+        | Ok _, _ -> (true, false)
+        | Error _, _ -> (false, true)
       in
-      match (expect.expected_outcome, (result.outcome, output_matches)) with
-      | Should_succeed, (Succeeded, true) -> PASS
-      | Should_succeed, (Failed, _ | _, false) -> FAIL
-      | Should_fail _, (Succeeded, true) -> XPASS
-      | Should_fail _, (Failed, _ | _, false) -> XFAIL)
+      let status_class : T.status_class =
+        match (expect.expected_outcome, (result.outcome, output_matches)) with
+        | Should_succeed, (Succeeded, true) -> PASS
+        | Should_succeed, (Failed, _ | _, false) -> FAIL
+        | Should_fail _, (Succeeded, true) -> XPASS
+        | Should_fail _, (Failed, _ | _, false) -> XFAIL
+      in
+      { status_class; has_expected_output }
 
 let check_outcome (test : _ T.test) =
   match (test.expected_outcome, get_outcome test) with

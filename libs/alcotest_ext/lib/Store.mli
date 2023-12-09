@@ -46,8 +46,7 @@ val delete_result : 'a Types.test -> unit
    is false. Note however that a user typically wants the first output of
    the test to become the reference with no questions asked.
 *)
-val status_class_of_status :
-  ?accept_missing_expected_output:bool -> Types.status -> Types.status_class
+val status_summary_of_status : Types.status -> Types.status_summary
 
 (*
    Replace the expected output of a test with a satisfying outcome

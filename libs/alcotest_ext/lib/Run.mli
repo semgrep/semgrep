@@ -12,5 +12,10 @@ val run_tests_lwt :
 (* Print the status of each test.
    Return a non-zero exit status if any of the tests is not a success
    (PASS or XFAIL). *)
-val list_status : ?filter_by_substring:string -> _ Types.test list -> int
+val list_status :
+  ?filter_by_substring:string ->
+  ?only_important:bool ->
+  _ Types.test list ->
+  int
+
 val approve_output : ?filter_by_substring:string -> _ Types.test list -> unit

@@ -53,7 +53,6 @@ type expectation = {
    other statuses such as: missing expectation, missing result, xpass
    (success when expected outcome was Failed), ...
 *)
-(* private? *)
 type status = { expectation : expectation; result : (result, string) Result.t }
 
 (* A summary of the 'status' object using the same language as pytest.
@@ -66,8 +65,12 @@ type status = { expectation : expectation; result : (result, string) Result.t }
 
    Maximum string length for display: 5 characters
 *)
-(* private? *)
 type status_class = PASS | FAIL | XFAIL | XPASS | MISS
+
+type status_summary = {
+  status_class : status_class;
+  has_expected_output : bool;
+}
 
 (* public *)
 type output_kind =
