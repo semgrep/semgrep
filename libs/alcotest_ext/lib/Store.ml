@@ -428,7 +428,7 @@ let approve_new_output (test : _ T.test) =
   | Ok () ->
       clear_expected_output test;
       let data =
-        test |> get_expected_output
+        test |> get_output
         |> list_map (function
              | Ok data -> data
              | Error msg -> failwith msg)
