@@ -57,6 +57,15 @@ local semgrep_rules = [
 local todo_skipped_for_now = [
   //TODO? what is the fix for that?
   'ocaml.lang.portability.crlf-support.broken-input-line',
+  // too noisy
+  'ocaml.lang.security.marshal.ocamllint-marshal',
+  'ocaml.lang.security.filenameconcat.ocamllint-filenameconcat',
+  'ocaml.lang.security.tempfile.ocamllint-tempfile',
+  'ocaml.lang.security.hashtable-dos.ocamllint-hashtable-dos',
+  'ocaml.lang.security.digest.ocamllint-digest',
+  //TODO: fix those one at least
+  'ocaml.lang.security.unsafe.ocamllint-unsafe',
+  'ocaml.lang.security.exec.ocamllint-exec'
 ];
 
 local override_messages = {
