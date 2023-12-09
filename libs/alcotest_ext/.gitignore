@@ -2,4 +2,4 @@
 /_build/_tests
 
 # Created by the Alcotest_ext executable
-/_test_results/*/status
+/_test_results/status

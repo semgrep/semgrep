@@ -47,17 +47,33 @@ type simple_test = string * (unit -> unit)
 (* Conversions *)
 (****************************************************************************)
 
-(* Create a short alphanumeric hash. With only 28 bits, there's a tiny
-   chance that we run into collisions. *)
-let update_id x =
+let hash_string_28bit_hex str =
   (* 30-bit hash *)
-  let hash = Hashtbl.hash_param 1_000_000 1_000_000 (x.category, x.name) in
+  let hash = Hashtbl.hash_param 1_000_000 1_000_000 str in
   let long_id = Printf.sprintf "%08x" hash in
   assert (String.length long_id = 8);
   (* 28 bits or 7 hexadecimal characters *)
   (* nosemgrep: ocamllint-str-first-chars *)
-  let id = String.sub long_id 0 7 in
-  { x with id }
+  String.sub long_id 0 7
+
+(*
+   Create an hexadecimal hash with the following structure:
+
+   xxxxxxxyyyyyyy
+   ^^^^^^^
+   category
+          ^^^^^^^
+          test name
+
+   With 56 bits, we're not going to run on collisions in practice
+   unless it's done on purpose.
+   TODO: check for collisions where appropriate
+*)
+let update_id (test : _ T.test) =
+  let id =
+    hash_string_28bit_hex test.category ^ hash_string_28bit_hex test.name
+  in
+  { test with id }
 
 let create ?(category = []) ?(expected_outcome = Should_succeed)
     ?(output_kind = Ignore_output) ?(skipped = false) ?(speed_level = `Quick)

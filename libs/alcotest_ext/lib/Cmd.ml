@@ -30,6 +30,7 @@ let run_with_conf tests (cmd_conf : cmd_conf) =
          would require running the test suite ourselves rather than
          using the original Alcotest.run. *)
       Run.run_tests ?filter_by_substring:conf.filter_by_substring tests;
+      print_newline ();
       Run.list_status ?filter_by_substring:conf.filter_by_substring
         ~only_important:true tests
       |> exit

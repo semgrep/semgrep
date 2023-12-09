@@ -166,7 +166,6 @@ let is_overall_success statuses =
          | Not_OK -> false)
 
 let print_statuses ?only_important statuses =
-  print_newline ();
   print_endline (Color.format Color Bold "Summary");
   statuses |> List.iter (print_status ?only_important);
   let overall_success = is_overall_success statuses in
