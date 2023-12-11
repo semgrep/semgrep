@@ -576,7 +576,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                   * Timeout and would generate a TimeoutError code for it,
                   * but we intercept Timeout here to give a better diagnostic.
                   *)
-                 | (Match_rules.File_timeout | Out_of_memory) as exn ->
+                 | (Match_rules.File_timeout _ | Out_of_memory) as exn ->
                      (* TODO? why we use Match_patters.last_matched_rule here
                       * and below Rule.last_matched_rule?
                       *)
@@ -589,16 +589,21 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                            rule.MR.pattern_string);
                      let loc = Tok.first_loc_of_file !!file in
                      let errors =
+                       let (error_ty, rule_id) = (match exn with
+                           | Match_rules.File_timeout rule_ids ->
+                             logger#info "Timeout on %s" !!file;
+                             (* TODO really several rules contributed
+                                to this file timeout. Once we get rid
+                                of the python wrapper we should send
+                                all the rule ids through. *)
+                             (OutJ.Timeout, Common2.hd_opt rule_ids)
+                           | Out_of_memory ->
+                             logger#info "OutOfMemory on %s" !!file;
+                             (OutJ.OutOfMemory, !Rule.last_matched_rule)
+                           | _ -> raise Impossible)
+                       in
                        Core_error.ErrorSet.singleton
-                         (E.mk_error !Rule.last_matched_rule loc ""
-                            (match exn with
-                            | Match_rules.File_timeout ->
-                                logger#info "Timeout on %s" !!file;
-                                OutJ.Timeout
-                            | Out_of_memory ->
-                                logger#info "OutOfMemory on %s" !!file;
-                                OutJ.OutOfMemory
-                            | _ -> raise Impossible))
+                         (E.mk_error rule_id loc "" error_ty)
                      in
                      ( Core_result.make_match_result [] errors
                          (Core_profiling.empty_partial_profiling file),
