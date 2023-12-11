@@ -41,6 +41,9 @@ let run_semgrep ?(targets = None) ?(rules = None) ?(git_ref = None)
   if rules = [] then (
     Logs.debug (fun m -> m "No rules to run! Not scanning anything.");
     ([], []))
+  else if targets = Some [] then (
+    Logs.debug (fun m -> m "No targets to scan! Not scanning anything.");
+    ([], []))
   else (
     Logs.debug (fun m -> m "Running Semgrep with %d rules" (List.length rules));
     (* !!!Dispatch to the Semgrep engine!!! *)

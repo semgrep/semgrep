@@ -99,7 +99,7 @@ let (lines : string -> string list) =
     | [ x ] -> if x = "" then [] else [ x ]
     | x :: xs -> x :: lines_aux xs
   in
-  Str.split_delim (Str.regexp "\n") s |> lines_aux
+  Str.split_delim (Str.regexp "\r\n\\|\n") s |> lines_aux
 
 let (matched : int -> string -> string) = fun i s -> Str.matched_group i s
 
@@ -2429,6 +2429,10 @@ let (split_space : string -> string list) =
 
 let n_space n = repeat " " n |> join ""
 
+let ends_with_carriage_return s =
+  let n = String.length s in
+  if n =|= 0 then false else s.[n - 1] =$= '\r'
+
 let indent_string n s =
   let xs = lines s in
   xs |> List.map (fun s -> n_space n ^ s) |> unlines
@@ -2519,7 +2523,7 @@ let cat_orig file =
   let rec cat_orig_aux () =
     try
       (* cant do input_line chan::aux() cos ocaml eval from right to left ! *)
-      let l = input_line chan in
+      let l = Common.input_text_line chan in
       l :: cat_orig_aux ()
     with
     | End_of_file -> []
@@ -2532,7 +2536,7 @@ let cat file =
   let rec cat_aux acc () =
     (* cant do input_line chan::aux() cos ocaml eval from right to left ! *)
     let b, l =
-      try (true, input_line chan) with
+      try (true, Common.input_text_line chan) with
       | End_of_file -> (false, "")
     in
     if b then cat_aux (l :: acc) () else acc
@@ -2554,7 +2558,7 @@ let cat_excerpts file lines =
       let lines = List.sort compare lines in
       let rec aux acc lines count =
         let b, l =
-          try (true, input_line chan) with
+          try (true, Common.input_text_line chan) with
           | End_of_file -> (false, "")
         in
         if not b then acc
@@ -5317,7 +5321,7 @@ let format_to_string f =
   let i = UStdlib.open_in_bin nm in
   let lines = ref [] in
   let rec loop _ =
-    let cur = input_line i in
+    let cur = Common.input_text_line i in
     lines := cur :: !lines;
     loop ()
   in
