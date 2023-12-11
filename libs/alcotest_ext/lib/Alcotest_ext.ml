@@ -27,6 +27,7 @@ type output_kind = T.output_kind =
 
 type 'a t = 'a T.test = {
   id : string;
+  internal_full_name : string;
   category : string list;
   name : string;
   func : unit -> 'a;
@@ -47,39 +48,30 @@ type simple_test = string * (unit -> unit)
 (* Conversions *)
 (****************************************************************************)
 
-let hash_string_28bit_hex str =
-  (* 30-bit hash *)
-  let hash = Hashtbl.hash_param 1_000_000 1_000_000 str in
-  let long_id = Printf.sprintf "%08x" hash in
-  assert (String.length long_id = 8);
-  (* 28 bits or 7 hexadecimal characters *)
-  (* nosemgrep: ocamllint-str-first-chars *)
-  String.sub long_id 0 7
-
 (*
-   Create an hexadecimal hash with the following structure:
+   Create an hexadecimal hash that is just long enough to not suffer from
+   collisions in realistic use cases defined as:
+   "works fine up to 1 million tests".
 
-   xxxxxxxyyyyyyy
-   ^^^^^^^
-   category
-          ^^^^^^^
-          test name
-
-   With 56 bits, we're not going to run on collisions in practice
-   unless it's done on purpose.
-   TODO: check for collisions where appropriate
+   With 12 hexadecimal characters (48 bits), the probability of a collision
+   within 1 million hashes is 0.0018. If anyone runs into collisions due
+   to having more than a million tests, we can add an option to increase
+   the number of bits.
 *)
 let update_id (test : _ T.test) =
-  let id =
-    hash_string_28bit_hex test.category ^ hash_string_28bit_hex test.name
-  in
-  { test with id }
+  let internal_full_name = T.recompute_internal_full_name test in
+  let md5_hex = internal_full_name |> Digest.string |> Digest.to_hex in
+  assert (String.length md5_hex = 32);
+  (* nosemgrep: ocamllint-str-first-chars *)
+  let id = String.sub md5_hex 0 12 in
+  { test with id; internal_full_name }
 
 let create ?(category = []) ?(expected_outcome = Should_succeed)
     ?(output_kind = Ignore_output) ?(skipped = false) ?(speed_level = `Quick)
     ?(tags = []) name func =
   {
     id = "";
+    internal_full_name = "";
     category;
     name;
     func;
@@ -97,6 +89,7 @@ let update ?category ?expected_outcome ?func ?name ?output_kind ?skipped
     ?speed_level ?tags old =
   {
     id = "";
+    internal_full_name = "";
     category = opt category old.category;
     name = opt name old.name;
     func = opt func old.func;

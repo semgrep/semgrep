@@ -53,6 +53,8 @@ module Tag : module type of Tag
 type 'a t = private {
   (* Hash of the full name of the test, computed automatically. *)
   id : string;
+  (* Full name of the test, derived automatically from category and name. *)
+  internal_full_name : string;
   (* Categories are made for organizing tests as a tree which is useful
      for display and filtering. A new category is created typically when
      grouping multiple test suites into one with 'pack_suites'.

@@ -7,8 +7,31 @@ module T = Types
 
 type success = OK | OK_where_no_missing_data | Not_OK
 
-let format_test_path (test : _ T.test) =
-  String.concat " > " (test.category @ [ test.name ])
+(*
+   Check that no two tests have the same full name or the same ID.
+*)
+let check_id_uniqueness (tests : _ T.test list) =
+  let id_tbl = Hashtbl.create 1000 in
+  tests
+  |> List.iter (fun (test : _ T.test) ->
+         let id = test.id in
+         let name = test.internal_full_name in
+         match Hashtbl.find_opt id_tbl id with
+         | None -> Hashtbl.add id_tbl id test.internal_full_name
+         | Some name0 ->
+             if name = name0 then
+               failwith (sprintf "Two tests have the same name: %s" name)
+             else
+               failwith
+                 (sprintf
+                    "Hash collision for two tests with different names:\n\
+                    \  %S\n\
+                    \  %S\n\
+                     These names result in the same hash ID: %s\n\
+                     If this is accidental, please report the problem to the \
+                     authors of\n\
+                     alcotest_ext."
+                    name0 name id))
 
 let string_of_status_summary (sum : T.status_summary) =
   let class_string =
@@ -114,8 +137,8 @@ let filter ?filter_by_substring tests =
     | Some sub ->
         let contains_substring = contains_regexp (Re.Pcre.quote sub) in
         tests
-        |> List.filter (fun test ->
-               contains_substring (format_test_path test)
+        |> List.filter (fun (test : _ T.test) ->
+               contains_substring test.internal_full_name
                || contains_substring test.id)
   in
   tests
@@ -152,7 +175,7 @@ let print_status ?(only_important = false) ((test : _ T.test), status) =
   if show then
     printf "%s %s%s %s\n"
       (format_status_summary sum)
-      test.id (format_tags test) (format_test_path test)
+      test.id (format_tags test) test.internal_full_name
 
 let is_overall_success statuses =
   statuses
@@ -181,6 +204,7 @@ let print_statuses ?only_important statuses =
 let alcotest_argv = [| ""; "-e" |]
 
 let run_tests ?filter_by_substring tests =
+  check_id_uniqueness tests;
   let alcotest_tests = tests |> filter ?filter_by_substring |> to_alcotest in
   (try
      Alcotest.run ~and_exit:false ~argv:alcotest_argv "test" alcotest_tests
@@ -191,6 +215,7 @@ let run_tests ?filter_by_substring tests =
   print_newline ()
 
 let run_tests_lwt ?filter_by_substring tests =
+  check_id_uniqueness tests;
   let alcotest_tests =
     tests |> filter ?filter_by_substring |> to_alcotest_lwt
   in
@@ -202,12 +227,14 @@ let run_tests_lwt ?filter_by_substring tests =
       | e -> raise e)
 
 let list_status ?filter_by_substring ?only_important tests =
+  check_id_uniqueness tests;
   tests
   |> filter ?filter_by_substring
   |> Helpers.list_map (fun test -> (test, Store.get_status test))
   |> print_statuses ?only_important
 
 let approve_output ?filter_by_substring tests =
+  check_id_uniqueness tests;
   tests
   |> filter ?filter_by_substring
   |> Helpers.list_map Store.approve_new_output

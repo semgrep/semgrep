@@ -83,8 +83,13 @@ type output_kind =
 (* public *)
 type 'a test = {
   (* The ID will be used as a compact key
-     for referencing tests in filters and in file names. *)
+     for referencing tests in filters and in file names.
+     It's a hash of the internal full name. Both must be unique. *)
   id : string;
+  (* 'internal_full_name' is derived from 'category' and 'name' and is not
+     expected to change. It may be used for display purposes but we could
+     choose to display the test name differently in the future. *)
+  internal_full_name : string;
   category : string list;
   name : string;
   func : unit -> 'a;
@@ -95,3 +100,8 @@ type 'a test = {
   output_kind : output_kind;
   skipped : bool;
 }
+
+(* TODO: move to a module that has an mli? *)
+(* "path > to > name" *)
+let recompute_internal_full_name (test : _ test) =
+  String.concat " > " (test.category @ [ test.name ])
