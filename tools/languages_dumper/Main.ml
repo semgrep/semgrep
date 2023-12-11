@@ -56,7 +56,7 @@ let main_action _xs = raise Todo
 
 (*s: function [[Main.test_json_pretty_printer]] *)
 let test_json_pretty_printer file =
-  let json = J.load_json file in
+  let json = UChan.with_open_in (Fpath.v file) J.json_of_chan in
   let s = J.string_of_json json in
   UCommon.pr s
 (*e: function [[Main.test_json_pretty_printer]] *)
@@ -65,11 +65,9 @@ let test_json_pretty_printer file =
 (*s: function [[Main.pfff_extra_actions]] *)
 let pfff_extra_actions () =
   [
-    ( "-dump_json",
-      " <file>",
-      Arg_helpers.mk_action_1_arg test_json_pretty_printer );
+    ("-dump_json", " <file>", Arg_.mk_action_1_arg test_json_pretty_printer);
     (*s: [[Main.pfff_extra_actions]] other cases *)
-    ("-json_pp", " <file>", Arg_helpers.mk_action_1_arg test_json_pretty_printer)
+    ("-json_pp", " <file>", Arg_.mk_action_1_arg test_json_pretty_printer)
     (*e: [[Main.pfff_extra_actions]] other cases *);
   ]
 (*e: function [[Main.pfff_extra_actions]] *)
@@ -79,11 +77,12 @@ let pfff_extra_actions () =
 (*****************************************************************************)
 
 (*s: function [[Main.all_actions]] *)
-let all_actions () =
-  pfff_extra_actions ()
-  (*s: [[Main.all_actions]] concatenated actions *)
-  (* Test_parsing_generic.actions() @ *)
-  (*x: [[Main.all_actions]] concatenated actions *)
+let all_actions () = pfff_extra_actions ()
+
+(*s: [[Main.all_actions]] concatenated actions *)
+(* Test_parsing_generic.actions() @ *)
+(*x: [[Main.all_actions]] concatenated actions *)
+(*
   @ Test_parsing_ml.actions ()
   @ Test_parsing_scala.actions ()
   @ Test_parsing_php.actions ()
@@ -94,6 +93,7 @@ let all_actions () =
   @ Test_parsing_cpp.actions ()
   @ Test_parsing_java.actions ()
   @ Test_parsing_go.actions () @ []
+*)
 (*e: function [[Main.all_actions]] *)
 
 (*s: function [[Main.options]] *)
@@ -126,13 +126,14 @@ let options () =
   @ Common2.cmdline_flags_other ()
   (*e: [[Main.options]] concatenated flags *)
   (*s: [[Main.options]] concatenated actions *)
-  @ Arg_helpers.options_of_actions action (all_actions ())
+  @ Arg_.options_of_actions action (all_actions ())
   @ (*e: [[Main.options]] concatenated actions *)
   [
     ( "-version",
       Arg.Unit
         (fun () ->
-          pr2 (spf "pfff version: %s" (*Config_pfff.version*) "DEPRECATED");
+          UCommon.pr2
+            (spf "pfff version: %s" (*Config_pfff.version*) "DEPRECATED");
           exit 0),
       "  guess what" );
   ]
@@ -154,7 +155,7 @@ let main () =
     ^ " [options] <file or dir> " ^ "\n" ^ "Options are:"
   in
   (* does side effect on many global flags *)
-  let args = Arg_helpers.parse_options (options ()) usage_msg Sys.argv in
+  let args = Arg_.parse_options (options ()) usage_msg Sys.argv in
 
   if Sys.file_exists !log_config_file then (
     Logging.load_config_file !log_config_file;
@@ -167,8 +168,8 @@ let main () =
       (* --------------------------------------------------------- *)
       (* actions, useful to debug subpart *)
       (* --------------------------------------------------------- *)
-      | xs when List.mem !action (Arg_helpers.action_list (all_actions ())) ->
-          Arg_helpers.do_action !action xs (all_actions ())
+      | xs when List.mem !action (Arg_.action_list (all_actions ())) ->
+          Arg_.do_action !action xs (all_actions ())
       | _ when not (String_.empty !action) ->
           failwith ("unrecognized action or wrong params: " ^ !action)
       (*e: [[Main.main()]] match [[args]] actions *)
@@ -180,9 +181,9 @@ let main () =
       (* empty entry *)
       (* --------------------------------------------------------- *)
       | [] ->
-          Arg_helpers.usage usage_msg (options ());
+          Arg_.usage usage_msg (options ());
           failwith "too few arguments")
 
 (*****************************************************************************)
 
-let _ = Common.main_boilerplate (fun () -> main ())
+let _ = UCommon.main_boilerplate (fun () -> main ())

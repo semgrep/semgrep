@@ -573,5 +573,5 @@ let display_strongly_connected_components ~str_of_key hscc g =
 (* stat *)
 (*****************************************************************************)
 let stat g =
-  pr2_gen ("cnt = ", g.cnt);
+  UCommon.pr2_gen ("cnt = ", g.cnt);
   ()

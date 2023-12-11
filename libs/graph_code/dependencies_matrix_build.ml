@@ -66,7 +66,7 @@ let hashtbl_find_node h n =
 let hashtbl_find h n =
   try Hashtbl.find h n with
   | Not_found ->
-      pr2_gen ("PB:", n);
+      UCommon.pr2_gen ("PB:", n);
       raise Not_found
 
 (*****************************************************************************)
@@ -223,7 +223,7 @@ let hill_climbing nodes dm =
   let a, m = reduced_matrix nodes dm in
   let n = Array.length a in
   let current_score = score_upper_triangle m dm in
-  pr2 (spf "current score = %d" current_score);
+  UCommon.pr2 (spf "current score = %d" current_score);
 
   let rec aux (a, m) current_score i ~jump =
     let j = i + jump in
@@ -234,7 +234,7 @@ let hill_climbing nodes dm =
       let a1, m1 = switch i j (a, m) in
       let new_score = score_upper_triangle m1 dm in
       if new_score < current_score then (
-        pr2
+        UCommon.pr2
           (spf " %s <-> %s, before = %d, after = %d (jmp=%d)"
              (G.string_of_node a.(i))
              (G.string_of_node a.(j))
@@ -366,7 +366,7 @@ let info_orders dm =
              (fst dm.i_to_name.(i))
              nrow ncol h ))
   |> Array.to_list |> Assoc.sort_by_key_lowfirst
-  |> List.iter (fun (_, s) -> pr2 s)
+  |> List.iter (fun (_, s) -> UCommon.pr2 s)
 
 (*****************************************************************************)
 (* Manual ordering *)
@@ -385,7 +385,8 @@ let optional_manual_reordering (s, _node_kind) nodes constraints_opt =
           |> List.map (fun (s, node_kind) ->
                  match Common2.hfind_option s horder with
                  | None ->
-                     pr2 (spf "INFO_TXT: could not find %s in constraint set" s);
+                     UCommon.pr2
+                       (spf "INFO_TXT: could not find %s in constraint set" s);
                      ((s, node_kind), !current)
                  | Some n ->
                      current := n;
@@ -393,7 +394,7 @@ let optional_manual_reordering (s, _node_kind) nodes constraints_opt =
         in
         Assoc.sort_by_val_lowfirst nodes_with_order |> List.map fst
       else (
-        pr2 (spf "didn't find entry in constraints for %s" s);
+        UCommon.pr2 (spf "didn't find entry in constraints for %s" s);
         nodes)
 
 (*****************************************************************************)
