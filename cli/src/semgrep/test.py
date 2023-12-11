@@ -657,7 +657,7 @@ def generate_test_results(
             "No unit tests found. See https://semgrep.dev/docs/writing-rules/testing-rules"
         )
     elif num_tests == num_tests_passed:
-        print(f"{num_tests_passed}/{num_tests}: ✓ All tests passed ")
+        print(f"{num_tests_passed}/{num_tests}: ✓ All tests passed")
     else:
         print(
             f"{num_tests_passed}/{num_tests}: {num_tests - num_tests_passed} unit tests did not pass:"
@@ -668,7 +668,7 @@ def generate_test_results(
     if num_fixtests == 0:
         print("No tests for fixes found.")
     elif num_fixtests == num_fixtests_passed:
-        print(f"{num_fixtests_passed}/{num_fixtests}: ✓ All fix tests passed ")
+        print(f"{num_fixtests_passed}/{num_fixtests}: ✓ All fix tests passed")
     else:
         print(
             f"{num_fixtests_passed}/{num_fixtests}: {num_fixtests - num_fixtests_passed} fix tests did not pass: "

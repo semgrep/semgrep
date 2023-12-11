@@ -1,3 +1,4 @@
+open Common
 open Fpath_.Operators
 module OutJ = Semgrep_output_v1_j
 
@@ -65,6 +66,25 @@ let rule_files_and_rules_of_config_string
 *)
 let combine_checks (xs : OutJ.checks list) : OutJ.checks =
   OutJ.{ checks = xs |> List.concat_map (fun x -> x.checks) }
+
+let report_tests_result ~json (res : OutJ.tests_result) : unit =
+  if json then
+    let s = OutJ.string_of_tests_result res in
+    Out.put s
+  else
+    let passed = ref 0 in
+    let total = ref 0 in
+    res.results
+    |> List.iter (fun (_rule_file, (checks : OutJ.checks)) ->
+           checks.checks
+           |> List.iter (fun (_rule_id, (rule_res : OutJ.rule_result)) ->
+                  incr total;
+                  if rule_res.passed then incr passed));
+    Out.put
+      (spf "%d/%d: %s" !passed !total
+         (if !passed =|= !total then "✓ All tests passed" else "TODO failure"));
+    (* TODO *)
+    Out.put "No tests for fixes found."
 
 (*****************************************************************************)
 (* Calling the engine *)
@@ -225,23 +245,18 @@ let run_conf (conf : Test_CLI.conf) : Exit_code.t =
                (rule_file, combine_checks all_checks))
   in
   Logs.app (fun m -> m "total mismatch: %d" !total_mismatch);
-
-  if conf.json then
-    let res : OutJ.tests_result =
-      OutJ.
-        {
-          results =
-            results |> List_.map (fun (file, checks) -> (!!file, checks));
-          (* TODO *)
-          fixtest_results = [];
-          config_missing_tests = [];
-          config_missing_fixtests = [];
-          config_with_errors = [];
-        }
-    in
-    let s = OutJ.string_of_tests_result res in
-    Out.put s
-  else Out.put "TODO: Text output";
+  let res : OutJ.tests_result =
+    OutJ.
+      {
+        results = results |> List_.map (fun (file, checks) -> (!!file, checks));
+        (* TODO *)
+        fixtest_results = [];
+        config_missing_tests = [];
+        config_missing_fixtests = [];
+        config_with_errors = [];
+      }
+  in
+  report_tests_result ~json:conf.json res;
   if !total_mismatch > 0 then Exit_code.fatal else Exit_code.ok
 
 (*****************************************************************************)
