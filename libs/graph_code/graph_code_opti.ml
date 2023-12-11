@@ -46,7 +46,7 @@ type graph = {
 let hashtbl_find h n =
   try Hashtbl.find h n with
   | Not_found ->
-      pr2_gen ("PB:", n);
+      UCommon.pr2_gen ("PB:", n);
       raise Not_found
 
 (*****************************************************************************)
