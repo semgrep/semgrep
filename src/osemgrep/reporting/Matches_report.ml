@@ -58,7 +58,7 @@ let sort_by_groups als =
     | `Merged -> 10
   in
   let compare_group x y = group_order x - group_order y in
-  als |> List.stable_sort (Common2.on compare_group fst)
+  als |> List.stable_sort (Common.on compare_group fst)
 
 let is_blocking (json : Yojson.Basic.t) =
   match Yojson.Basic.Util.member "dev.semgrep.actions" json with

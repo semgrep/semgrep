@@ -94,7 +94,7 @@ let cmdline_term =
     let repo =
       match repo_arg with
       | "." -> Dir (Fpath.v ".")
-      | _ when Common2.dir_exists repo_arg -> Dir (Fpath.v repo_arg)
+      | _ when UFile.dir_exists (Fpath.v repo_arg) -> Dir (Fpath.v repo_arg)
       | _ ->
           let owner, repo =
             match String.split_on_char '/' repo_arg with

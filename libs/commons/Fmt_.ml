@@ -3,6 +3,10 @@
 (*****************************************************************************)
 (* Helper functions for pretty printing (ASCII-art) *)
 
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
 let line width =
   String.init (3 * width) (fun i ->
       char_of_int
@@ -52,8 +56,14 @@ let layout_table (h1, heading) entries =
        entries
 
 (*****************************************************************************)
-(* Entry point *)
+(* Entry points *)
 (*****************************************************************************)
+
+let with_buffer_to_string f =
+  let buf = Buffer.create 100 in
+  let (ppf : Format.formatter) = Format.formatter_of_buffer buf in
+  f ppf;
+  Buffer.contents buf
 
 let pp_table (h1, heading) ppf entries =
   let lines = layout_table (h1, heading) entries in

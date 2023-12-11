@@ -39,7 +39,7 @@ type 'a env = {
 
 (* mostly a copy-paste of Parse_info.full_charpos_to_pos_large *)
 let line_col_to_pos file =
-  let size = Common2.filesize file + 2 in
+  let size = UFile.filesize (Fpath.v file) + 2 in
   let h = Hashtbl.create size in
   UCommon.with_open_infile file (fun chan ->
       let charpos = ref 0 in

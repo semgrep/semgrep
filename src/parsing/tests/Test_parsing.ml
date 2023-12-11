@@ -225,63 +225,57 @@ let test_parse_tree_sitter lang root_paths =
   in
   let stat_list = ref [] in
   paths |> Fpath_.to_strings
-  |> Console.progress (fun k ->
-         List.iter (fun file ->
-             k ();
-             logger#info "processing %s" file;
-             let stat =
-               try
-                 (match lang with
-                 (* less: factorize with dump_tree_sitter_cst_lang *)
-                 | Lang.Ruby ->
-                     Tree_sitter_ruby.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Java ->
-                     Tree_sitter_java.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Go ->
-                     Tree_sitter_go.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Csharp ->
-                     Tree_sitter_c_sharp.Parse.file file
-                     |> fail_on_error |> ignore
-                 | Lang.Kotlin ->
-                     Tree_sitter_kotlin.Parse.file file
-                     |> fail_on_error |> ignore
-                 | Lang.Js ->
-                     Tree_sitter_tsx.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Jsonnet ->
-                     Tree_sitter_jsonnet.Parse.file file
-                     |> fail_on_error |> ignore
-                 | Lang.Ts ->
-                     Tree_sitter_tsx.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Rust ->
-                     Tree_sitter_rust.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Ocaml ->
-                     Tree_sitter_ocaml.Parse.file file
-                     |> fail_on_error |> ignore
-                 | Lang.C ->
-                     Tree_sitter_c.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Cpp ->
-                     Tree_sitter_cpp.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Html ->
-                     Tree_sitter_html.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Vue ->
-                     Tree_sitter_vue.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Php ->
-                     Tree_sitter_php.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Terraform ->
-                     Tree_sitter_hcl.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Dart ->
-                     Tree_sitter_dart.Parse.file file |> fail_on_error |> ignore
-                 | _ ->
-                     failwith
-                       (spf "lang %s not supported with tree-sitter"
-                          (Lang.to_string lang)));
-                 Parsing_stat.correct_stat file
-               with
-               | exn ->
-                   print_exn file exn;
-                   Parsing_stat.bad_stat file
-             in
-             Stack_.push stat stat_list));
+  |> List.iter (fun file ->
+         logger#info "processing %s" file;
+         let stat =
+           try
+             (match lang with
+             (* less: factorize with dump_tree_sitter_cst_lang *)
+             | Lang.Ruby ->
+                 Tree_sitter_ruby.Parse.file file |> fail_on_error |> ignore
+             | Lang.Java ->
+                 Tree_sitter_java.Parse.file file |> fail_on_error |> ignore
+             | Lang.Go ->
+                 Tree_sitter_go.Parse.file file |> fail_on_error |> ignore
+             | Lang.Csharp ->
+                 Tree_sitter_c_sharp.Parse.file file |> fail_on_error |> ignore
+             | Lang.Kotlin ->
+                 Tree_sitter_kotlin.Parse.file file |> fail_on_error |> ignore
+             | Lang.Js ->
+                 Tree_sitter_tsx.Parse.file file |> fail_on_error |> ignore
+             | Lang.Jsonnet ->
+                 Tree_sitter_jsonnet.Parse.file file |> fail_on_error |> ignore
+             | Lang.Ts ->
+                 Tree_sitter_tsx.Parse.file file |> fail_on_error |> ignore
+             | Lang.Rust ->
+                 Tree_sitter_rust.Parse.file file |> fail_on_error |> ignore
+             | Lang.Ocaml ->
+                 Tree_sitter_ocaml.Parse.file file |> fail_on_error |> ignore
+             | Lang.C ->
+                 Tree_sitter_c.Parse.file file |> fail_on_error |> ignore
+             | Lang.Cpp ->
+                 Tree_sitter_cpp.Parse.file file |> fail_on_error |> ignore
+             | Lang.Html ->
+                 Tree_sitter_html.Parse.file file |> fail_on_error |> ignore
+             | Lang.Vue ->
+                 Tree_sitter_vue.Parse.file file |> fail_on_error |> ignore
+             | Lang.Php ->
+                 Tree_sitter_php.Parse.file file |> fail_on_error |> ignore
+             | Lang.Terraform ->
+                 Tree_sitter_hcl.Parse.file file |> fail_on_error |> ignore
+             | Lang.Dart ->
+                 Tree_sitter_dart.Parse.file file |> fail_on_error |> ignore
+             | _ ->
+                 failwith
+                   (spf "lang %s not supported with tree-sitter"
+                      (Lang.to_string lang)));
+             Parsing_stat.correct_stat file
+           with
+           | exn ->
+               print_exn file exn;
+               Parsing_stat.bad_stat file
+         in
+         Stack_.push stat stat_list);
   Parsing_stat.print_parsing_stat_list !stat_list;
   ()
 

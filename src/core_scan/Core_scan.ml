@@ -178,7 +178,7 @@ let replace_named_pipe_by_regular_file path =
 let sort_targets_by_decreasing_size (targets : In.target list) : In.target list
     =
   targets
-  |> List_.map (fun target -> (target, Common2.filesize target.In.path))
+  |> List_.map (fun target -> (target, UFile.filesize (Fpath.v target.In.path)))
   |> List.sort (fun (_, (a : int)) (_, b) -> compare b a)
   |> List_.map fst
 

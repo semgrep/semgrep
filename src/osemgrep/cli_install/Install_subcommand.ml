@@ -299,8 +299,8 @@ let git_commit () : unit =
  *)
 let semgrep_workflow_exists ~repo : bool =
   let dir, cmd =
-    if Common2.dir_exists repo then
-      ( Fpath.to_dir_path Fpath.(v repo),
+    if UFile.dir_exists (Fpath.v repo) then
+      ( Fpath.to_dir_path (Fpath.v repo),
         Bos.Cmd.(v "gh" % "workflow" % "view" % "semgrep.yml") )
     else
       ( Bos.OS.Dir.current () |> Rresult.R.get_ok,
@@ -322,7 +322,7 @@ let semgrep_workflow_exists ~repo : bool =
    and then return the path to the cloned repo.
 *)
 let prep_repo (repo : string) : Fpath.t =
-  if Common2.dir_exists repo then Fpath.v repo
+  if UFile.dir_exists (Fpath.v repo) then Fpath.v repo
   else
     let tmp_dir =
       Filename.concat

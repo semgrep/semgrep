@@ -52,7 +52,7 @@ let find_cmt_files_of_dir_or_files (xs : Fpath.t list) : Fpath.t list =
        let hfiles = Hashtbl.create 101 in
        xs
        |> List.iter (fun file ->
-              let d, b, e = Common2.dbe_of_filename !!file in
+              let d, b, e = Filename_.dbe_of_filename !!file in
               Hashtbl.add hfiles (d, b) e);
        Common2.hkeys hfiles
        |> List.map (fun (d, b) ->
@@ -61,8 +61,8 @@ let find_cmt_files_of_dir_or_files (xs : Fpath.t list) : Fpath.t list =
               | [ "cmt"; "cmti" ]
               | [ "cmti"; "cmt" ]
               | [ "cmt" ] ->
-                  Common2.filename_of_dbe (d, b, "cmt")
-              | [ "cmti" ] -> Common2.filename_of_dbe (d, b, "cmti")
+                  Filename_.filename_of_dbe (d, b, "cmt")
+              | [ "cmti" ] -> Filename_.filename_of_dbe (d, b, "cmti")
               | _ -> raise Impossible))
   |> Fpath_.of_strings |> List_.sort
 

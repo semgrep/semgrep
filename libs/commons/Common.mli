@@ -83,6 +83,21 @@ val binary_search_bigarr1 :
 val to_comparison : ('a -> 'a -> int) -> 'a -> 'a -> order
 
 (*****************************************************************************)
+(* Composition/Control *)
+(*****************************************************************************)
+
+(* see also Fun.id *)
+
+val compose : ('a -> 'b) -> ('c -> 'a) -> 'c -> 'b
+val flip : ('a -> 'b -> 'c) -> 'b -> 'a -> 'c
+val curry : ('a * 'b -> 'c) -> 'a -> 'b -> 'c
+val uncurry : ('a -> 'b -> 'c) -> 'a * 'b -> 'c
+val do_nothing : unit -> unit
+val const : 'a -> 'b -> 'a
+val applyn : int -> ('a -> 'a) -> 'a -> 'a
+val on : ('b -> 'b -> 'c) -> ('a -> 'b) -> 'a -> 'a -> 'c
+
+(*****************************************************************************)
 (* Exceptions *)
 (*****************************************************************************)
 (* see also Exception.ml functions as well as Time_limit.Timeout

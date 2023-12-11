@@ -114,9 +114,9 @@ let rec merge cmp cmb xs ys =
 let update source updates =
   match (source, updates) with
   | `Assoc xs, `Assoc ys ->
-      let xs = List.sort (Common2.on String.compare fst) xs in
-      let ys = List.sort (Common2.on String.compare fst) ys in
-      `Assoc (merge (Common2.on String.compare fst) (fun _ x -> x) xs ys)
+      let xs = List.sort (Common.on String.compare fst) xs in
+      let ys = List.sort (Common.on String.compare fst) ys in
+      `Assoc (merge (Common.on String.compare fst) (fun _ x -> x) xs ys)
   | _ -> updates
 
 (* When a json is not a [String ...]  *)

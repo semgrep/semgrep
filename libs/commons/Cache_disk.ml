@@ -114,9 +114,7 @@ let (cache_monad :
    * up-to-date without even reading it
    *)
   if USys.file_exists !!cache_file then
-    let (v : ('value, 'extra) cached_value_on_disk) =
-      Common2.get_value !!cache_file
-    in
+    let (v : ('value, 'extra) cached_value_on_disk) = get_value !!cache_file in
     let { extra; value } = v in
     if methods.check_extra extra then (
       Logs.debug (fun m ->

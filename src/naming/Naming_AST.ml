@@ -734,7 +734,7 @@ let resolve lang prog =
                      * uses also Filename in 'from ...conf import x'.
                      *)
                     let sid = SId.mk () in
-                    let _, b, _ = Common2.dbe_of_filename_noext_ok s in
+                    let _, b, _ = Filename_.dbe_of_filename_noext_ok s in
                     let base = (b, tok) in
                     let canonical = dotted_to_canonical [ base; id ] in
                     let resolved =
@@ -745,7 +745,7 @@ let resolve lang prog =
                   when Lang.is_js lang && fst id <> Ast_js.default_entity ->
                     (* for JS *)
                     let sid = SId.mk () in
-                    let _, b, _ = Common2.dbe_of_filename_noext_ok s in
+                    let _, b, _ = Filename_.dbe_of_filename_noext_ok s in
                     let base = (b, tok) in
                     let canonical = dotted_to_canonical [ base; id ] in
                     let resolved =

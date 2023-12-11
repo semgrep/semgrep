@@ -262,7 +262,7 @@ let option_ofv a__of_sexp sexp =
 (* Format pretty printers *)
 (*****************************************************************************)
 let add_sep xs =
-  xs |> List_.map (fun x -> Either.Right x) |> Common2.join_gen (Either.Left ())
+  xs |> List_.map (fun x -> Either.Right x) |> List_.join_gen (Either.Left ())
 
 (*
  * OCaml value pretty printer. A similar functionnality is provided by
@@ -286,63 +286,64 @@ let add_sep xs =
  *)
 
 let string_of_v ?(max_depth = max_int) v =
-  Common2.format_to_string (fun () ->
-      let ppf = UFormat.printf in
+  Fmt_.with_buffer_to_string (fun ppf ->
       let rec aux max_depth v =
-        if max_depth <= 0 then ppf "..."
+        if max_depth <= 0 then Format.fprintf ppf "..."
         else
           match v with
-          | VUnit -> ppf "()"
-          | VBool v1 -> if v1 then ppf "true" else ppf "false"
-          | VFloat v1 -> ppf "%f" v1
-          | VChar v1 -> ppf "'%c'" v1
-          | VString v1 -> ppf "\"%s\"" v1
-          | VInt i -> ppf "%Ld" i
+          | VUnit -> Format.fprintf ppf "()"
+          | VBool v1 ->
+              if v1 then Format.fprintf ppf "true"
+              else Format.fprintf ppf "false"
+          | VFloat v1 -> Format.fprintf ppf "%f" v1
+          | VChar v1 -> Format.fprintf ppf "'%c'" v1
+          | VString v1 -> Format.fprintf ppf "\"%s\"" v1
+          | VInt i -> Format.fprintf ppf "%Ld" i
           | VTuple xs ->
-              ppf "(@[";
+              Format.fprintf ppf "(@[";
               xs |> add_sep
               |> List.iter (function
-                   | Either.Left _ -> ppf ",@ "
+                   | Either.Left _ -> Format.fprintf ppf ",@ "
                    | Either.Right v -> aux (max_depth - 1) v);
-              ppf "@])"
+              Format.fprintf ppf "@])"
           | VDict xs ->
-              ppf "{@[";
+              Format.fprintf ppf "{@[";
               xs
               |> List.iter (fun (s, v) ->
                      (* less: could open a box there too? *)
-                     ppf "@,%s=" s;
+                     Format.fprintf ppf "@,%s=" s;
                      aux (max_depth - 1) v;
-                     ppf ";@ ");
-              ppf "@]}"
+                     Format.fprintf ppf ";@ ");
+              Format.fprintf ppf "@]}"
           | VSum (s, xs) -> (
               match xs with
-              | [] -> ppf "%s" s
+              | [] -> Format.fprintf ppf "%s" s
               | _y :: _ys ->
-                  ppf "@[<hov 2>%s(@," s;
+                  Format.fprintf ppf "@[<hov 2>%s(@," s;
                   xs |> add_sep
                   |> List.iter (function
-                       | Either.Left _ -> ppf ",@ "
+                       | Either.Left _ -> Format.fprintf ppf ",@ "
                        | Either.Right v -> aux (max_depth - 1) v);
-                  ppf "@])")
-          | VVar (s, i64) -> ppf "%s_%Ld" s i64
+                  Format.fprintf ppf "@])")
+          | VVar (s, i64) -> Format.fprintf ppf "%s_%Ld" s i64
           | VArrow _v1 -> failwith "Arrow TODO"
-          | VNone -> ppf "None"
+          | VNone -> Format.fprintf ppf "None"
           | VSome v ->
-              ppf "Some(@[";
+              Format.fprintf ppf "Some(@[";
               aux (max_depth - 1) v;
-              ppf "@])"
+              Format.fprintf ppf "@])"
           | VRef v ->
-              ppf "Ref(@[";
+              Format.fprintf ppf "Ref(@[";
               aux (max_depth - 1) v;
-              ppf "@])"
+              Format.fprintf ppf "@])"
           | VList xs ->
-              ppf "[@[<hov>";
+              Format.fprintf ppf "[@[<hov>";
               xs |> add_sep
               |> List.iter (function
-                   | Either.Left _ -> ppf ";@ "
+                   | Either.Left _ -> Format.fprintf ppf ";@ "
                    | Either.Right v -> aux (max_depth - 1) v);
-              ppf "@]]"
-          | VTODO _v1 -> ppf "VTODO"
+              Format.fprintf ppf "@]]"
+          | VTODO _v1 -> Format.fprintf ppf "VTODO"
       in
       aux max_depth v)
 

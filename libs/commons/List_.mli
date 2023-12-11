@@ -87,3 +87,5 @@ val index_list_0 : 'a list -> ('a * int) list
 
 (* similar to index_list_0 but start the index at 1 *)
 val index_list_1 : 'a list -> ('a * int) list
+val join_gen : 'a -> 'a list -> 'a list
+val enum : int -> int -> int list
