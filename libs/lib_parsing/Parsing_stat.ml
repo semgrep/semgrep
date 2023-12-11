@@ -199,9 +199,9 @@ let print_regression_information ~ext xs newscore =
   if Sys.file_exists score_path then
     dirname_opt
     |> Option.iter (fun dirname ->
-           pr2 "------------------------------";
-           pr2 "regression testing information";
-           pr2 "------------------------------";
+           UCommon.pr2 "------------------------------";
+           UCommon.pr2 "regression testing information";
+           UCommon.pr2 "------------------------------";
            let str = Str.global_replace (Str.regexp "/") "__" dirname in
            let file =
              Filename.concat score_path
@@ -209,7 +209,9 @@ let print_regression_information ~ext xs newscore =
            in
            logger#debug "saving regression info in %s" file;
            Common2.regression_testing newscore file)
-  else pr2 (spf "no regression info available: %s does not exist" score_path)
+  else
+    UCommon.pr2
+      (spf "no regression info available: %s does not exist" score_path)
 
 (*****************************************************************************)
 (* Most problematic tokens *)
@@ -242,15 +244,15 @@ let print_recurring_problematic_tokens xs =
                          (fun () -> (0, (file, line_error)))
                          h)));
   Common2.pr2_xxxxxxxxxxxxxxxxx ();
-  pr2 "maybe 10 most problematic tokens";
+  UCommon.pr2 "maybe 10 most problematic tokens";
   Common2.pr2_xxxxxxxxxxxxxxxxx ();
   Hashtbl_.hash_to_list h
   |> List.sort (fun (_k1, (v1, _)) (_k2, (v2, _)) -> compare v2 v1)
   |> List_.take_safe 10
   |> List.iter (fun (k, (i, (file_ex, line_ex))) ->
-         pr2 (spf "%s: present in %d parsing errors" k i);
-         pr2 "example: ";
+         UCommon.pr2 (spf "%s: present in %d parsing errors" k i);
+         UCommon.pr2 "example: ";
          let lines = lines_around_error_line ~context:2 (file_ex, line_ex) in
-         lines |> List.iter (fun s -> pr2 ("       " ^ s)));
+         lines |> List.iter (fun s -> UCommon.pr2 ("       " ^ s)));
   Common2.pr2_xxxxxxxxxxxxxxxxx ();
   ()

@@ -2,7 +2,7 @@
   rules: [
     {
       id: 'forbid-exit',
-      match: { any: ['exit $N', 'Unix._exit $N'] },
+      match: { any: ['exit $N', 'Unix._exit $N', 'UStdlib.exit $N'] },
       languages: ['ocaml'],
       severity: 'ERROR',
       message: |||

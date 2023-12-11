@@ -85,7 +85,8 @@ let dump_and_print_errors dumper (res : 'a Tree_sitter_run.Parsing_result.t) =
   | None -> failwith "unknown error from tree-sitter parser");
   res.errors
   |> List.iter (fun err ->
-         pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err))
+         UCommon.pr2
+           (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err))
 
 let has_errors_other_than_missing_tokens
     (res : _ Tree_sitter_run.Parsing_result.t) =
@@ -109,7 +110,7 @@ let extract_pattern_from_tree_sitter_result
         if print_errors then
           res.errors
           |> List.iter (fun err ->
-                 pr2
+                 UCommon.pr2
                    (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err));
         (* to be backward compatible with what we do in PfffPat *)
         raise Parsing.Parse_error)

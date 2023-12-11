@@ -53,7 +53,7 @@ let test_parse xs =
                with
                | exn ->
                    let e = Exception.catch exn in
-                   pr2
+                   UCommon.pr2
                      (spf "PB with %s (exn = %s)" !!file (Common.exn_to_s exn));
                    Exception.reraise e
              in

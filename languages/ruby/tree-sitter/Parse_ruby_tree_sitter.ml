@@ -101,7 +101,7 @@ let operator (env : env) (x : CST.operator) =
   | `BANG tok -> (Right Op_UBang, token2 env tok)
   (* TODO *)
   | `BQUOT tok ->
-      pr2_gen tok;
+      UCommon.pr2_gen tok;
       failwith "Op_BQUOT???"
 
 let int_or_float (env : env) (x : CST.int_or_float) =

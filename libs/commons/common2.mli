@@ -826,7 +826,6 @@ val command_safe :
 val y_or_no : string -> bool
 val command2_y_or_no : string -> bool
 val command2_y_or_no_exit_if_no : string -> unit
-val do_in_fork : (unit -> unit) -> int
 val mkdir : ?mode:Unix.file_perm -> string -> unit
 val nblines_file : filename -> int
 val filesize : filename -> int
@@ -889,18 +888,6 @@ val with_tmp_file : str:string -> ext:string -> (filename -> 'a) -> 'a
  * order in which they are called is unspecified. *)
 val register_tmp_file_cleanup_hook : (string -> unit) -> unit
 val with_tmp_dir : (dirname -> 'a) -> 'a
-
-(* If the user use some exit 0 in his code, then no one can intercept this
- * exit and do something before exiting. There is exn handler for exit 0
- * so better never use exit 0 but instead use an exception and just at
- * the very toplevel transform this exn in a unix exit code.
- *
- * subtil: same problem than with Timeout. Do not intercept such exception
- * with some blind try (...) with _ -> ...
- *)
-exception UnixExit of int
-
-val exn_to_real_unixexit : (unit -> 'a) -> 'a
 
 (*###########################################################################*)
 (* Collection-like types *)

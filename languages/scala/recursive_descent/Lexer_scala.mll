@@ -70,7 +70,7 @@ let rec current_mode () =
   match !_mode_stack with
   | top :: _ -> top
   | [] ->
-      pr2("mode_stack is empty, defaulting to INITIAL");
+      UCommon.pr2("mode_stack is empty, defaulting to INITIAL");
       reset();
       current_mode ()
 

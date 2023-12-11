@@ -34,14 +34,14 @@ type result = { exit_code : Exit_code.t; logs : string }
 
 let with_logs ~f ~final =
   Testutil_mock.with_mocked_logs ~f ~final:(fun log_content res ->
-      pr2 (spf "logs = %s" log_content);
+      UCommon.pr2 (spf "logs = %s" log_content);
       let code =
         match res with
         | Ok code -> code
         | Error (Error.Exit code) -> code
         | _ -> Exit_code.fatal
       in
-      pr2
+      UCommon.pr2
         (spf "exit_code = %d, meaning = %s" (Exit_code.to_int code)
            (Exit_code.to_message code));
       final { exit_code = code; logs = log_content })

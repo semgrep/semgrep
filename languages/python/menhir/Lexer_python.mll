@@ -131,7 +131,7 @@ let push_mode state mode = Stack_.push mode state.mode
 let pop_mode state = ignore(Stack_.pop state.mode)
 let set_mode state mode = begin pop_mode state; push_mode state mode end
 
-let pr_mode mode = pr2 (match mode with
+let pr_mode mode = UCommon.pr2 (match mode with
   | STATE_TOKEN -> "token"
   | STATE_OFFSET -> "offset"
   | STATE_UNDERSCORE_TOKEN -> "_token"

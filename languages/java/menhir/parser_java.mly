@@ -144,8 +144,8 @@ let expr_to_typename expr =
     | NameId id -> [id]
     | Dot (e, _, id) -> aux e @ [id]
     | _ ->
-        pr2 "cast_expression pb";
-        pr2_gen expr;
+        UCommon.pr2 "cast_expression pb";
+        UCommon.pr2_gen expr;
         raise Todo
    in
    let xs = aux expr in
@@ -624,8 +624,8 @@ method_invocation:
               | _ -> Call (Dot (Name (name (List.rev xs)),tok,x),($2,$3,$4))
               )
           | _ ->
-              pr2 "method_invocation pb";
-              pr2_gen $1;
+              UCommon.pr2 "method_invocation pb";
+              UCommon.pr2_gen $1;
               raise Impossible
          *)
         }

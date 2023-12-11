@@ -63,7 +63,7 @@ let fake_deployment =
 
 let with_logs ~f ~final =
   Testutil_mock.with_mocked_logs ~f ~final:(fun log_content res ->
-      pr2 (spf "logs = %s" log_content);
+      UCommon.pr2 (spf "logs = %s" log_content);
       let exit_code, logs =
         match res with
         | Ok code -> (code, log_content)

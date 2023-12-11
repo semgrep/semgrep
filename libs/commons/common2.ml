@@ -170,19 +170,19 @@ let out_chan_pr2 ?(newline = true) s =
       flush chan
 
 let pr2 s =
-  prerr_string !_prefix_pr;
-  do_n !_tab_level_print (fun () -> prerr_string " ");
-  prerr_string s;
-  prerr_string "\n";
-  flush stderr;
+  UStdlib.prerr_string !_prefix_pr;
+  do_n !_tab_level_print (fun () -> UStdlib.prerr_string " ");
+  UStdlib.prerr_string s;
+  UStdlib.prerr_string "\n";
+  flush UStdlib.stderr;
   out_chan_pr2 s;
   ()
 
 let pr2_no_nl s =
-  prerr_string !_prefix_pr;
-  do_n !_tab_level_print (fun () -> prerr_string " ");
-  prerr_string s;
-  flush stderr;
+  UStdlib.prerr_string !_prefix_pr;
+  do_n !_tab_level_print (fun () -> UStdlib.prerr_string " ");
+  UStdlib.prerr_string s;
+  flush UStdlib.stderr;
   out_chan_pr2 ~newline:false s;
   ()
 
@@ -219,9 +219,9 @@ let pr2_gen x = pr2 (Dumper.dump x)
 
 (* ---------------------------------------------------------------------- *)
 let xxx_once f s =
-  if !Common.disable_pr2_once then pr2 s
-  else if not (Hashtbl.mem Common._already_printed s) then (
-    Hashtbl.add Common._already_printed s true;
+  if !UCommon.disable_pr2_once then UCommon.pr2 s
+  else if not (Hashtbl.mem UCommon._already_printed s) then (
+    Hashtbl.add UCommon._already_printed s true;
     f ("(ONCE) " ^ s))
 
 let pr2_once s = xxx_once pr2 s
@@ -261,16 +261,16 @@ let redirect_stdout_stderr file f =
   let descr = Unix.descr_of_out_channel chan in
 
   let saveout = Unix.dup UUnix.stdout in
-  let saveerr = Unix.dup Unix.stderr in
+  let saveerr = Unix.dup UUnix.stderr in
   Unix.dup2 descr UUnix.stdout;
-  Unix.dup2 descr Unix.stderr;
+  Unix.dup2 descr UUnix.stderr;
   flush UStdlib.stdout;
-  flush stderr;
+  flush UStdlib.stderr;
   f ();
   flush UStdlib.stdout;
-  flush stderr;
+  flush UStdlib.stderr;
   Unix.dup2 saveout UUnix.stdout;
-  Unix.dup2 saveerr Unix.stderr;
+  Unix.dup2 saveerr UUnix.stderr;
   close_out chan
 
 let redirect_stdin file f =
@@ -310,7 +310,7 @@ let spf = Printf.sprintf
 
 (* ---------------------------------------------------------------------- *)
 
-let _chan = ref stderr
+let _chan = ref UStdlib.stderr
 
 let start_log_file () =
   let filename = spf "/tmp/debugml%d:%d" (UUnix.getuid ()) (UUnix.getpid ()) in
@@ -347,7 +347,7 @@ let (print_n : int -> string -> unit) =
  fun i s -> do_n i (fun () -> UStdlib.print_string s)
 
 let (printerr_n : int -> string -> unit) =
- fun i s -> do_n i (fun () -> prerr_string s)
+ fun i s -> do_n i (fun () -> UStdlib.prerr_string s)
 
 let _debug = ref true
 let debugon () = _debug := true
@@ -2594,19 +2594,6 @@ let usleep s =
  * let command2 s = ignore(USys.command s)
  *)
 
-let do_in_fork f =
-  let pid = UUnix.fork () in
-  if pid =|= 0 then (
-    (* Unix.setsid(); *)
-    USys.set_signal Sys.sigint
-      (Sys.Signal_handle
-         (fun _ ->
-           pr2 "being killed";
-           UUnix.kill 0 Sys.sigkill));
-    f ();
-    UStdlib.exit 0)
-  else pid
-
 let nblines_with_wc a = nblines_eff a
 
 let unix_diff file1 file2 =
@@ -2903,11 +2890,6 @@ let with_tmp_dir f =
     (fun () ->
       USys.command (spf "rm -f %s/*" tmp_dir) |> ignore;
       UUnix.rmdir tmp_dir)
-
-(* now in prelude: exception UnixExit of int *)
-let exn_to_real_unixexit f =
-  try f () with
-  | UnixExit x -> UStdlib.exit x
 
 let uncat xs file =
   UCommon.with_open_outfile file (fun (pr, _chan) ->
@@ -4976,7 +4958,7 @@ let regression_testing_vs newscore bestscore =
                    UPrintf.printf "%s\n" (chop ("Old error: " ^ y));
                    UPrintf.printf "New error: %s\n" x)));
   flush UStdlib.stdout;
-  flush stderr;
+  flush UStdlib.stderr;
   newbestscore
 
 let regression_testing newscore best_score_file =
@@ -5239,7 +5221,7 @@ let cmdline_flags_verbose () =
   [
     ("-verbose_level", Arg.Set_int verbose_level, " <int> guess what");
     ( "-disable_pr2_once",
-      Arg.Set Common.disable_pr2_once,
+      Arg.Set UCommon.disable_pr2_once,
       " to print more messages" );
   ]
 

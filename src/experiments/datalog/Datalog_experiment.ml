@@ -67,7 +67,7 @@ let add env x = Stack_.push x env.facts
 
 let todo any =
   let s = IL.show_any any in
-  pr2 s;
+  UCommon.pr2 s;
   failwith "Datalog_experiment: TODO: IL element not handled (see above)"
 
 let var_of_name _env name = spf "%s__%s" (fst name.ident) (G.SId.show name.sid)
@@ -125,5 +125,5 @@ let gen_facts file outdir =
   v#visit_program () ast;
 
   let facts = !facts |> List.rev |> List.flatten in
-  pr2 (spf "generating %d facts in %s" (List.length facts) outdir);
+  UCommon.pr2 (spf "generating %d facts in %s" (List.length facts) outdir);
   Datalog_io.write_facts_for_doop facts outdir

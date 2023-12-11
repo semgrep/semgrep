@@ -8,7 +8,7 @@ module Flag = Flag_parsing
 (*****************************************************************************)
 
 let test_tokens_go file =
-  if not (file =~ ".*\\.go") then pr2 "warning: seems not a Go file";
+  if not (file =~ ".*\\.go") then UCommon.pr2 "warning: seems not a Go file";
 
   Flag.verbose_lexing := true;
   Flag.verbose_parsing := true;
@@ -16,7 +16,7 @@ let test_tokens_go file =
 
   let toks = Parse_go.tokens (Parsing_helpers.file file) in
   let toks = Parsing_hacks_go.fix_tokens toks in
-  toks |> List.iter (fun x -> pr2_gen x);
+  toks |> List.iter (fun x -> UCommon.pr2_gen x);
   ()
 
 (* TODO: was Error_code.try_with_print_exn_and_reraise *)

@@ -135,7 +135,7 @@ let generic_to_json rule_id (key : key) ast =
     | G.L (Int pi) -> (
         match Parsed_int.to_int_opt pi with
         | None ->
-            Common.pr2 (G.show_expr_kind x.G.e);
+            UCommon.pr2 (G.show_expr_kind x.G.e);
             error_at_expr rule_id x "no value for generic integer"
         | Some i -> J.Int i)
     | G.L (String (_, (s, _), _)) ->
@@ -158,7 +158,7 @@ let generic_to_json rule_id (key : key) ast =
           )
     | G.Alias (_alias, e) -> aux e
     | _ ->
-        Common.pr2 (G.show_expr_kind x.G.e);
+        UCommon.pr2 (G.show_expr_kind x.G.e);
         error_at_expr rule_id x "Unexpected generic representation of yaml"
   in
   aux ast

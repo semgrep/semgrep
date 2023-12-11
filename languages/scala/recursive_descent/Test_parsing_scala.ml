@@ -9,14 +9,15 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 
 let test_tokens file =
-  if not (file =~ ".*\\.scala") then pr2 "warning: seems not a Scala file";
+  if not (file =~ ".*\\.scala") then
+    UCommon.pr2 "warning: seems not a Scala file";
 
   Flag.verbose_lexing := true;
   Flag.verbose_parsing := true;
   Flag.exn_when_lexical_error := true;
 
   let toks = Parse_scala.tokens (Parsing_helpers.file file) in
-  toks |> List.iter (fun x -> pr2_gen x);
+  toks |> List.iter (fun x -> UCommon.pr2_gen x);
   ()
 
 let test_parse xs =

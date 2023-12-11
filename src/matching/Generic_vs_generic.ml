@@ -488,7 +488,7 @@ let rec m_name_inner a b =
       | Some file ->
           let m = module_name_of_filename file in
           let t = snd idb in
-          pr2_gen m;
+          UCommon.pr2_gen m;
           let _n = H.name_of_ids [ (m, t); idb ] in
           (* retry with qualified target *)
           (* m_name a n *)

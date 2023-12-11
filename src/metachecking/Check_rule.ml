@@ -285,7 +285,7 @@ let check_files mk_config fparser input =
     | metachecks :: xs -> run_checks config fparser metachecks xs
   in
   match config.output_format with
-  | Text -> List.iter (fun err -> pr2 (E.string_of_error err)) errors
+  | Text -> List.iter (fun err -> UCommon.pr2 (E.string_of_error err)) errors
   | Json _ ->
       let (res : Core_result.t) =
         Core_result.mk_final_result_with_just_errors errors
@@ -314,11 +314,11 @@ let stat_files fparser xs =
                 match res with
                 | None ->
                     incr bad;
-                    pr2
+                    UCommon.pr2
                       (spf "PB: no regexp prefilter for rule %s:%s" !!file
                          (Rule_ID.to_string (fst r.id)))
                 | Some (f, _f) ->
                     incr good;
                     let s = Semgrep_prefilter_j.string_of_formula f in
-                    pr2 (spf "regexp: %s" s)));
-  pr2 (spf "good = %d, no regexp found = %d" !good !bad)
+                    UCommon.pr2 (spf "regexp: %s" s)));
+  UCommon.pr2 (spf "good = %d, no regexp found = %d" !good !bad)

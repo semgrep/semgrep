@@ -55,11 +55,11 @@ type stat_per_lang = {
 }
 
 let report_stat_per_lang x =
-  pr2 (spf "LANG = %s" x.xlang);
-  pr2 (spf " # rules = %d" x.total_rules);
-  pr2 (spf " total time = %.1f" x.total_time);
-  pr2 (spf " total #files = %d" x.total_files);
-  pr2 (spf " avg #files = %d" (x.total_files / x.total_rules));
+  UCommon.pr2 (spf "LANG = %s" x.xlang);
+  UCommon.pr2 (spf " # rules = %d" x.total_rules);
+  UCommon.pr2 (spf " total time = %.1f" x.total_time);
+  UCommon.pr2 (spf " total #files = %d" x.total_files);
+  UCommon.pr2 (spf " avg #files = %d" (x.total_files / x.total_rules));
   ()
 
 let map_with_previous f base xs =
@@ -119,23 +119,23 @@ let stat file =
   let ys = xs |> Common2.split_list_regexp "^Running rule" in
   let runs = ys |> List_.map parse_run in
 
-  if !debug then runs |> List.iter (fun r -> pr2 (show_run r));
+  if !debug then runs |> List.iter (fun r -> UCommon.pr2 (show_run r));
 
   (* reporting *)
-  pr2 (spf "TIMEOUT FILES (timeout = %.1f" !timeout);
+  UCommon.pr2 (spf "TIMEOUT FILES (timeout = %.1f" !timeout);
   let timeout_files =
     runs |> List.concat_map (fun x -> x.timeout) |> Common2.uniq
   in
-  timeout_files |> List.iter pr2_gen;
+  timeout_files |> List.iter UCommon.pr2_gen;
 
-  pr2 "SLOW FILES";
+  UCommon.pr2 "SLOW FILES";
   let problematic_files =
     runs
     |> List.concat_map (fun x -> x.files)
     |> List_.exclude (fun (file, _) -> List.mem file timeout_files)
     |> Assoc.sort_by_val_highfirst |> List_.take_safe 30
   in
-  problematic_files |> List.iter pr2_gen;
+  problematic_files |> List.iter UCommon.pr2_gen;
 
   let problematic_rules =
     runs
@@ -144,10 +144,10 @@ let stat file =
              x.files |> List_.map snd |> Common2.sum_float ))
     |> Assoc.sort_by_val_highfirst |> List_.take_safe 30
   in
-  pr2 "PROBLEMATIC RULES";
-  problematic_rules |> List.iter pr2_gen;
+  UCommon.pr2 "PROBLEMATIC RULES";
+  problematic_rules |> List.iter UCommon.pr2_gen;
 
-  pr2 "STATS PER LANGUAGES";
+  UCommon.pr2 "STATS PER LANGUAGES";
   let groups = runs |> Assoc.group_by (fun x -> x.lang) in
   let stats =
     groups
