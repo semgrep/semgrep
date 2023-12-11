@@ -14,7 +14,7 @@ module OutJ = Semgrep_output_v1_j
  *)
 
 (*****************************************************************************)
-(* Types *)
+(* Types and constants *)
 (*****************************************************************************)
 
 (*****************************************************************************)
@@ -34,6 +34,37 @@ let xlang_for_rules_and_target (rules_origin : string) (rules : Rule.t list)
           m "too many languages found in %s, picking the first one: %s"
             rules_origin (Xlang.show fst));
       fst
+
+let rule_files_and_rules_of_config_string
+    (config_string : Rules_config.config_string) : (Fpath.t * Rule.t list) list
+    =
+  let (config : Rules_config.t) =
+    Rules_config.parse_config_string ~in_docker:false config_string
+  in
+  (* LESS: restrict to just File? *)
+  let (rules_and_origin : Rule_fetching.rules_and_origin list) =
+    Rule_fetching.rules_from_dashdash_config ~rewrite_rule_ids:false
+      ~token_opt:None ~registry_caching:false config
+  in
+  rules_and_origin
+  |> List_.map_filter (fun (x : Rule_fetching.rules_and_origin) ->
+         match x.origin with
+         | Local_file f ->
+             (* TODO: return also rule errors *)
+             Some (f, x.rules)
+         | CLI_argument
+         | Registry
+         | App
+         | Untrusted_remote _ ->
+             Logs.warn (fun m ->
+                 m "skipping rules not from local files: %s"
+                   (Rule_fetching.show_origin x.origin));
+             None)
+
+(* TODO: have run_rules_against_target to take multiple targets instead
+*)
+let combine_checks (xs : OutJ.checks list) : OutJ.checks =
+  OutJ.{ checks = xs |> List.concat_map (fun x -> x.checks) }
 
 (*****************************************************************************)
 (* Calling the engine *)
@@ -131,15 +162,15 @@ let run_conf (conf : Test_CLI.conf) : Exit_code.t =
   (* Metrics_.configure Metrics_.On; *)
   Logs.debug (fun m -> m "conf = %s" (Test_CLI.show_conf conf));
 
-  match conf.target with
-  | Test_CLI.Dir (dir, None) ->
-      let total_mismatch = ref 0 in
-      (* coupling: similar to Test_engine.test_rules() *)
-      let rule_files =
-        [ dir ] |> UFile.files_of_dirs_or_files_no_vcs_nofilter
-        |> List.filter Parse_rule.is_valid_rule_filename
-      in
-      let (results : (string * OutJ.checks) list) =
+  let total_mismatch = ref 0 in
+  let (results : (Fpath.t * OutJ.checks) list) =
+    match conf.target with
+    | Test_CLI.Dir (dir, None) ->
+        (* coupling: similar to Test_engine.test_rules() *)
+        let rule_files =
+          [ dir ] |> UFile.files_of_dirs_or_files_no_vcs_nofilter
+          |> List.filter Parse_rule.is_valid_rule_filename
+        in
         rule_files
         |> List_.map (fun rule_file ->
                Logs.info (fun m -> m "processing rule file %s" !!rule_file);
@@ -149,7 +180,7 @@ let run_conf (conf : Test_CLI.conf) : Exit_code.t =
                | None ->
                    Logs.warn (fun m ->
                        m "could not find target for %s" !!rule_file);
-                   (!!rule_file, OutJ.{ checks = [] })
+                   (rule_file, OutJ.{ checks = [] })
                | Some target ->
                    Logs.info (fun m -> m "processing target %s" !!target);
                    let xlang =
@@ -159,26 +190,59 @@ let run_conf (conf : Test_CLI.conf) : Exit_code.t =
                      run_rules_against_target xlang rules target
                    in
                    total_mismatch := !total_mismatch + num_errors;
-                   (!!rule_file, checks))
-      in
-      Logs.app (fun m -> m "total mismatch: %d" !total_mismatch);
-
-      if conf.json then
-        let res : OutJ.tests_result =
-          OutJ.
-            {
-              results;
-              config_missing_tests = [];
-              config_missing_fixtests = [];
-              config_with_errors = [];
-            }
+                   (rule_file, checks))
+    | Test_CLI.File (path, config_str)
+    | Test_CLI.Dir (path, Some config_str) ->
+        let rule_files_and_rules =
+          rule_files_and_rules_of_config_string config_str
         in
-        let s = OutJ.string_of_tests_result res in
-        Out.put s
-      else Out.put "TODO: Text output";
+        (* alt: use Find_targets.get_target_fpaths but then it requires
+         * a Find_targets.conf, and this will respect the .semgrepignore
+         * which may be annoying, so simpler to just get all the files
+         * under the directory
+         *)
+        let targets =
+          UCommon.files_of_dir_or_files_no_vcs_nofilter [ !!path ]
+          |> Fpath_.of_strings
+        in
 
-      if !total_mismatch > 0 then Exit_code.fatal else Exit_code.ok
-  | _else_ -> failwith "TODO2"
+        rule_files_and_rules
+        |> List_.map (fun (rule_file, rules) ->
+               Logs.info (fun m -> m "processing rule file %s" !!rule_file);
+               let all_checks =
+                 targets
+                 |> List_.map (fun target ->
+                        Logs.info (fun m -> m "processing target %s" !!target);
+                        let xlang =
+                          xlang_for_rules_and_target config_str rules target
+                        in
+                        let checks, num_errors =
+                          run_rules_against_target xlang rules target
+                        in
+                        total_mismatch := !total_mismatch + num_errors;
+                        checks)
+               in
+               (rule_file, combine_checks all_checks))
+  in
+  Logs.app (fun m -> m "total mismatch: %d" !total_mismatch);
+
+  if conf.json then
+    let res : OutJ.tests_result =
+      OutJ.
+        {
+          results =
+            results |> List_.map (fun (file, checks) -> (!!file, checks));
+          (* TODO *)
+          fixtest_results = [];
+          config_missing_tests = [];
+          config_missing_fixtests = [];
+          config_with_errors = [];
+        }
+    in
+    let s = OutJ.string_of_tests_result res in
+    Out.put s
+  else Out.put "TODO: Text output";
+  if !total_mismatch > 0 then Exit_code.fatal else Exit_code.ok
 
 (*****************************************************************************)
 (* Entry point *)
