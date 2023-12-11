@@ -116,23 +116,31 @@ let module_name env (v1, dots) =
   let v1 = dotted_name env v1 in
   match dots with
   | None -> G.DottedName v1
-  (* transforming '. foo.bar' in G.Filename "./foo/bar" *)
+  (* transforming '.foo.bar' into ["."; "foo"; "bar"] *)
   | Some toks ->
-      let count =
-        toks
-        |> List_.map Tok.content_of_tok
-        |> String.concat "" |> String.length
-      in
-      let tok = List_.hd_exn "unexpected empty list" toks in
-      let elems = v1 |> List_.map fst in
-      let prefixes =
-        match count with
-        | 1 -> [ "." ]
-        | 2 -> [ ".." ]
-        | n -> Common2.repeat ".." (n - 1)
-      in
-      let s = String.concat "/" (prefixes @ elems) in
-      G.FileName (s, tok)
+    (* This code relies on the parser enforcing that (..+) isn't
+       allowed after the first module name. IE multiple dots will
+       always be the first n elements. Should we assert this is true
+       when debugging so this will explode otherwise? *)
+    let count =
+      toks
+      |> Common.map Tok.content_of_tok
+      |> String.concat "" |> String.length
+    in
+    let tok = Common.hd_exn "unexpected empty list" toks in
+    let prefixes =
+      match count with
+      | 1 -> [(".", tok)]
+      | 2 -> [("..", tok)]
+      | n -> Common2.repeat ("..", tok) (n - 1)
+    in
+    (* FIXME: The parser should really just always handback the dotted
+       name list with these relative names ("." and "..") *)
+    (* This is gross, but there are empty strings in some dotted names
+       that where getting removed via string concatination earlier. *)
+    match v1 with
+    | [("", _)] -> G.DottedName prefixes
+    | _ -> G.DottedName (prefixes @ v1)
 
 let rec expr env (x : expr) =
   match x with
