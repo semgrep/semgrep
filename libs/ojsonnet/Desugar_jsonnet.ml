@@ -119,7 +119,7 @@ let desugar_ident env v : C.ident = (desugar_wrap desugar_string) env v
 let rec desugar_expr env v : C.expr =
   try desugar_expr_aux env v with
   | Failure "TODO" ->
-      pr2 (spf "TODO: construct not handled:\n %s" (show_expr v));
+      UCommon.pr2 (spf "TODO: construct not handled:\n %s" (show_expr v));
       failwith "TODO:desugar"
 
 and desugar_expr_aux env v =

@@ -652,7 +652,7 @@ let get_extract_source_lang file rules =
   | [] -> failwith (spf "no language for extract rule found in %s" !!file)
   | [ x ] -> x
   | xlang :: _ ->
-      pr2
+      UCommon.pr2
         (spf
            "too many languages from extract rules found in %s, picking the \
             first one: %s"

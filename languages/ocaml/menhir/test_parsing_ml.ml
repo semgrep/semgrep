@@ -7,14 +7,15 @@ module Flag = Flag_parsing
 (*****************************************************************************)
 
 let test_tokens_ml file =
-  if not (file =~ ".*\\.ml[iyl]?") then pr2 "warning: seems not a ocaml file";
+  if not (file =~ ".*\\.ml[iyl]?") then
+    UCommon.pr2 "warning: seems not a ocaml file";
 
   Flag.verbose_lexing := true;
   Flag.verbose_parsing := true;
   Flag.exn_when_lexical_error := true;
 
   let toks = Parse_ml.tokens (Parsing_helpers.file file) in
-  toks |> List.iter (fun x -> pr2_gen x);
+  toks |> List.iter (fun x -> UCommon.pr2_gen x);
   ()
 
 let test_parse_ml_or_mli xs =

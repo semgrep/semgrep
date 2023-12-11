@@ -51,7 +51,7 @@ let dump_il_all file =
   let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
   let xs = AST_to_IL.stmt lang (AST_generic.stmt1 ast) in
-  List.iter (fun stmt -> pr2 (IL.show_stmt stmt)) xs
+  List.iter (fun stmt -> UCommon.pr2 (IL.show_stmt stmt)) xs
 [@@action]
 
 let dump_il file =
@@ -66,13 +66,13 @@ let dump_il file =
       | Some { G.name = EN n; _ } -> G.show_name n
       | Some _ -> "<entity>"
     in
-    pr2 (spf "Function name: %s" name);
+    UCommon.pr2 (spf "Function name: %s" name);
     let s =
       AST_generic.show_any
         (G.S (AST_generic_helpers.funcbody_to_stmt fdef.G.fbody))
     in
-    pr2 s;
-    pr2 "==>";
+    UCommon.pr2 s;
+    UCommon.pr2 "==>";
 
     (* Creating a CFG and throwing it away here so the implicit return
      * analysis pass may be run in order to mark implicit return nodes.
@@ -84,7 +84,7 @@ let dump_il file =
      *)
     let _, xs = AST_to_IL.function_definition lang fdef in
     let s = IL.show_any (IL.Ss xs) in
-    pr2 s
+    UCommon.pr2 s
   in
   Visit_function_defs.visit report_func_def_with_name ast
 [@@action]
@@ -101,7 +101,7 @@ let dump_v1_json file =
           let s = Ast_generic_v1_j.string_of_program v1 in
           UCommon.pr s;
           if skipped_tokens <> [] then
-            pr2 (spf "WARNING: fail to fully parse %s" !!file))
+            UCommon.pr2 (spf "WARNING: fail to fully parse %s" !!file))
   | [] -> failwith (spf "unsupported language for %s" !!file)
 [@@action]
 
@@ -115,7 +115,7 @@ let generate_ast_json file =
       let s = Ast_generic_v1_j.string_of_program v1 in
       let file = !!file ^ ".ast.json" |> Fpath.v in
       UFile.write_file file s;
-      pr2 (spf "saved JSON output in %s" !!file)
+      UCommon.pr2 (spf "saved JSON output in %s" !!file)
   | [] -> failwith (spf "unsupported language for %s" !!file)
 [@@action]
 
@@ -126,7 +126,7 @@ let generate_ast_binary lang file =
   let file = Fpath.(file + Parse_with_caching.binary_suffix) in
   assert (Parse_with_caching.is_binary_ast_filename file);
   Common2.write_value final !!file;
-  pr2 (spf "saved marshalled generic AST in %s" !!file)
+  UCommon.pr2 (spf "saved marshalled generic AST in %s" !!file)
 [@@action]
 
 let dump_ext_of_lang () =
@@ -138,7 +138,7 @@ let dump_ext_of_lang () =
                lang_str ^ "->" ^ String.concat ", " (Lang.ext_of_lang lang)
            | None -> "")
   in
-  pr2
+  UCommon.pr2
     (spf "Language to supported file extension mappings:\n %s"
        (String.concat "\n" lang_to_exts))
 [@@action]
@@ -146,7 +146,7 @@ let dump_ext_of_lang () =
 let dump_equivalences file =
   let file = Core_scan.replace_named_pipe_by_regular_file file in
   let xs = Parse_equivalences.parse file in
-  pr2_gen xs
+  UCommon.pr2_gen xs
 [@@action]
 
 let dump_rule file =
@@ -199,6 +199,6 @@ let test_rules caps (paths : Fpath.t list) : unit =
   in
   let tests = Test_engine.make_tests ~fail_callback paths in
   tests |> List.iter (fun (test : Alcotest_ext.test) -> test.func ());
-  pr2 (spf "total mismatch: %d" !total_mismatch);
+  UCommon.pr2 (spf "total mismatch: %d" !total_mismatch);
   if !total_mismatch > 0 then CapStdlib.exit caps#exit 1
 [@@action]

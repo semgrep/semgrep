@@ -1,4 +1,3 @@
-open Common
 open AST_generic
 open Fpath_.Operators
 module H = AST_generic_helpers
@@ -16,11 +15,11 @@ let test_typing_generic ~parse_program file =
       method! visit_function_definition _ def =
         let body = H.funcbody_to_stmt def.fbody in
         let s = AST_generic.show_any (S body) in
-        pr2 s;
-        pr2 "==>";
+        UCommon.pr2 s;
+        UCommon.pr2 "==>";
         let xs = AST_to_IL.stmt lang body in
         let s = IL.show_any (IL.Ss xs) in
-        pr2 s
+        UCommon.pr2 s
     end
   in
   v#visit_program () ast
@@ -32,7 +31,7 @@ let test_constant_propagation ~parse_program file =
   Naming_AST.resolve lang ast;
   Constant_propagation.propagate_basic lang ast;
   let s = AST_generic.show_any (AST_generic.Pr ast) in
-  pr2 s
+  UCommon.pr2 s
 
 let test_il_generic ~parse_program file =
   let file = Fpath.v file in
@@ -47,12 +46,12 @@ let test_il_generic ~parse_program file =
       method! visit_function_definition _ def =
         let body = H.funcbody_to_stmt def.fbody in
         let s = AST_generic.show_any (S body) in
-        pr2 s;
-        pr2 "==>";
+        UCommon.pr2 s;
+        UCommon.pr2 "==>";
 
         let xs = AST_to_IL.stmt lang body in
         let s = IL.show_any (IL.Ss xs) in
-        pr2 s
+        UCommon.pr2 s
     end
   in
   v#visit_program () ast
@@ -91,13 +90,13 @@ let test_dfg_svalue ~parse_program file =
         let CFG_build.{ fparams = inputs; fcfg = flow } =
           CFG_build.cfg_of_fdef lang def
         in
-        pr2 "Constness";
+        UCommon.pr2 "Constness";
         let mapping = Dataflow_svalue.fixpoint lang inputs flow in
         Dataflow_svalue.update_svalue flow mapping;
         DataflowY.display_mapping flow mapping
           (Dataflow_var_env.env_to_str (Pretty_print_AST.svalue_to_string lang));
         let s = AST_generic.show_any (S (H.funcbody_to_stmt def.fbody)) in
-        pr2 s
+        UCommon.pr2 s
     end
   in
   v#visit_program () ast

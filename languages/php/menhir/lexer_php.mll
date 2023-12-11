@@ -43,7 +43,7 @@ let error s =
   then raise (Lexical s)
   else
     if !Flag.verbose_lexing
-    then pr2 ("LEXER: " ^ s)
+    then UCommon.pr2 ("LEXER: " ^ s)
 
 (* pad: hack around ocamllex to emulate the yyless() of flex. The semantic
  * is not exactly the same than yyless(), so I use yyback() instead.
@@ -817,7 +817,7 @@ and initial = parse
            ("php"|"\"php\""|"\'php\'") WHITESPACE*">"
      {
        (* XXX if short_tags normally otherwise T_INLINE_HTML *)
-       (* pr2 "BAD USE OF <? at initial state, replace by <?php"; *)
+       (* UCommon.pr2 "BAD USE OF <? at initial state, replace by <?php"; *)
        set_mode ST_IN_SCRIPTING;
        T_OPEN_TAG(tokinfo lexbuf);
      }

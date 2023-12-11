@@ -13,7 +13,7 @@ let test_tokens_cpp file =
   Flag.verbose_lexing := true;
   Flag.verbose_parsing := true;
   let toks = Parse_cpp.tokens (Parsing_helpers.file file) in
-  toks |> List.iter (fun x -> pr2_gen x);
+  toks |> List.iter (fun x -> UCommon.pr2_gen x);
   ()
 
 (* used to be in Lib_parsing_cpp.ml *)
@@ -57,7 +57,8 @@ let test_parse_cpp ?lang xs =
                with
                | exn ->
                    (* TODO: be more strict, Common.hd_exn "unexpected empty list" failure, Stack overflow *)
-                   pr2 (spf "PB on %s, exn = %s" !!file (Common.exn_to_s exn));
+                   UCommon.pr2
+                     (spf "PB on %s, exn = %s" !!file (Common.exn_to_s exn));
                    Parsing_stat.bad_stat !!file
              in
              Stack_.push stat stat_list;
@@ -151,7 +152,7 @@ let test_parse_cpp_fuzzy xs =
                    ()
                  with
                  | exn ->
-                     pr2
+                     UCommon.pr2
                        (spf "PB with: %s, exn = %s" !!file (Common.exn_to_s exn)))))
 
 (*****************************************************************************)

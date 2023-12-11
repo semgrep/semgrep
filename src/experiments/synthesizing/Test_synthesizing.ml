@@ -19,7 +19,7 @@ module In = Input_to_core_j
 
 let expr_at_range s file =
   let r = Range.range_of_linecol_spec s !!file in
-  pr2_gen r;
+  UCommon.pr2_gen r;
   let ast = Parse_target.parse_program !!file in
   (* just to see if it works with Naming on *)
   let lang = Lang.lang_of_filename_exn file in

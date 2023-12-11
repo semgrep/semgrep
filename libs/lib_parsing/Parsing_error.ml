@@ -59,7 +59,7 @@ exception Other_error of string * Tok.t
 let lexical_error s lexbuf =
   let info = Tok.tok_of_lexbuf lexbuf in
   if !Flag_parsing.exn_when_lexical_error then raise (Lexical_error (s, info))
-  else if !Flag_parsing.verbose_lexing then Common.pr2_once ("LEXER: " ^ s)
+  else if !Flag_parsing.verbose_lexing then UCommon.pr2_once ("LEXER: " ^ s)
   else ()
 
 (****************************************************************************)

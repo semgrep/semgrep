@@ -64,7 +64,7 @@ let process_exn () =
 let print_exn file e =
   let trace = Printexc.get_backtrace () in
   process_exn ();
-  pr2 (spf "%s: exn = %s\n%s" file (Common.exn_to_s e) trace)
+  UCommon.pr2 (spf "%s: exn = %s\n%s" file (Common.exn_to_s e) trace)
 
 (* This function collects all the function name and line number pairs, and then
    sorts them in descending order of frequency.
@@ -85,11 +85,11 @@ let report_counts () =
     |> IMap.of_seq |> IMap.to_rev_seq |> List.of_seq
   in
   (* Report all the statistics. *)
-  pr2 "\nTODO statistics:";
+  UCommon.pr2 "\nTODO statistics:";
   List.fold_left
     (fun acc (count, filename) -> acc ^ Common.spf "\n%s -> %d" filename count)
     "" counts
-  |> pr2
+  |> UCommon.pr2
 
 let dump_and_print_errors dumper (res : 'a Tree_sitter_run.Parsing_result.t) =
   (match res.program with
@@ -97,7 +97,8 @@ let dump_and_print_errors dumper (res : 'a Tree_sitter_run.Parsing_result.t) =
   | None -> failwith "unknown error from tree-sitter parser");
   res.errors
   |> List.iter (fun err ->
-         pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err))
+         UCommon.pr2
+           (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err))
 
 let fail_on_error (parsing_res : 'a Tree_sitter_run.Parsing_result.t) =
   match (parsing_res.program, parsing_res.errors) with
@@ -118,7 +119,7 @@ let dump_pfff_ast lang file =
   in
   let v = Meta_AST.vof_any (G.Pr ast) in
   let s = OCaml.string_of_v v in
-  pr2 s
+  UCommon.pr2 s
 
 (*****************************************************************************)
 (* Tree-sitter only *)
@@ -343,7 +344,7 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
   let stats =
     paths |> Fpath_.to_strings
     |> List.rev_map (fun file ->
-           pr2
+           UCommon.pr2
              (spf "%05.1fs: [%s] processing %s" (Sys.time ())
                 (Lang.to_capitalized_alnum lang)
                 file);
@@ -371,7 +372,7 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
                  Parsing_stat.bad_stat file
            in
            if verbose && stat.PS.error_line_count > 0 then
-             pr2 (spf "FAILED TO FULLY PARSE: %s" stat.PS.filename);
+             UCommon.pr2 (spf "FAILED TO FULLY PARSE: %s" stat.PS.filename);
            stat)
   in
   (stats, skipped)
@@ -403,7 +404,7 @@ let parse_project ~verbose lang name files_or_dirs =
   let stat_list =
     List.filter (fun stat -> not stat.PS.have_timeout) stat_list
   in
-  pr2
+  UCommon.pr2
     (spf "%05.1fs: [%s] done parsing %s" (Sys.time ())
        (Lang.to_capitalized_alnum lang)
        name);
@@ -529,7 +530,7 @@ let parsing_regressions lang files_or_dirs =
   raise Todo
 
 let diff_pfff_tree_sitter xs =
-  pr2 "NOTE: consider using -full_token_info to get also diff on tokens";
+  UCommon.pr2 "NOTE: consider using -full_token_info to get also diff on tokens";
   xs
   |> List.iter (fun file ->
          let ast1 =
@@ -545,7 +546,7 @@ let diff_pfff_tree_sitter xs =
          Common2.with_tmp_file ~str:s1 ~ext:"x" (fun file1 ->
              Common2.with_tmp_file ~str:s2 ~ext:"x" (fun file2 ->
                  let xs = Common2.unix_diff file1 file2 in
-                 xs |> List.iter pr2)))
+                 xs |> List.iter UCommon.pr2)))
 
 (*****************************************************************************)
 (* Rule parsing *)

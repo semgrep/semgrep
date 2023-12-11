@@ -50,6 +50,6 @@ let write_facts_for_doop facts dir =
   groups
   |> List.iter (fun (table, tuples) ->
          let file = Filename.concat dir table ^ ".csv" in
-         pr2 (spf "generating tuples for %s" file);
+         UCommon.pr2 (spf "generating tuples for %s" file);
          UCommon.with_open_outfile file (fun (mypr, _chan) ->
              tuples |> List.iter (fun tuple -> mypr (csv_of_tuple tuple))))

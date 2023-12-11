@@ -308,7 +308,7 @@ let try_with_print_exn_and_reraise file f =
   | exn ->
       let e = Exception.catch exn in
       let err = exn_to_error None file e in
-      pr2 (string_of_error err);
+      UCommon.pr2 (string_of_error err);
       Exception.reraise e
 
 (*****************************************************************************)
@@ -358,10 +358,10 @@ let compare_actual_to_expected actual_findings expected_findings_lines =
 
   only_in_expected
   |> List.iter (fun (src, l) ->
-         pr2 (spf "this one finding is missing: %s:%d" !!src l));
+         UCommon.pr2 (spf "this one finding is missing: %s:%d" !!src l));
   only_in_actual
   |> List.iter (fun (src, l) ->
-         pr2
+         UCommon.pr2
            (spf "this one finding was not expected: %s:%d (%s)" !!src l
               (actual_findings
               (* nosemgrep: ocaml.lang.best-practice.list.list-find-outside-try *)

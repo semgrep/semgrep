@@ -19,7 +19,7 @@ let find_source_files_of_dir_or_files xs =
 (*****************************************************************************)
 
 let test_tokens_python file =
-  if not (file =~ ".*\\.py") then pr2 "warning: seems not a python file";
+  if not (file =~ ".*\\.py") then UCommon.pr2 "warning: seems not a python file";
 
   Flag.verbose_lexing := true;
   Flag.verbose_parsing := true;
@@ -30,7 +30,7 @@ let test_tokens_python file =
     Parse_python.tokens parsing_mode (Parsing_helpers.file file)
     |> Parsing_hacks_python.fix_tokens
   in
-  toks |> List.iter (fun x -> pr2_gen x);
+  toks |> List.iter (fun x -> UCommon.pr2_gen x);
   ()
 
 let test_parse_python_common parsing_mode xs =

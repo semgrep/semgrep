@@ -10,7 +10,7 @@ module FT = File_type
 (*****************************************************************************)
 
 let test_tokens_js file =
-  if not (file =~ ".*\\.js") then pr2 "warning: seems not a .js file";
+  if not (file =~ ".*\\.js") then UCommon.pr2 "warning: seems not a .js file";
 
   Flag.verbose_lexing := true;
   Flag.verbose_parsing := true;
@@ -19,7 +19,7 @@ let test_tokens_js file =
     Parse_js.tokens (Parsing_helpers.file file)
     (* |> Parsing_hacks_js.fix_tokens  *)
   in
-  toks |> List.iter (fun x -> pr2_gen x);
+  toks |> List.iter (fun x -> UCommon.pr2_gen x);
   ()
 
 let test_parse_common xs fullxs ext =
@@ -59,7 +59,8 @@ let test_parse_common xs fullxs ext =
                           *)))
                with
                | Stack_overflow as exn ->
-                   pr2 (spf "PB on %s, exn = %s" !!file (Common.exn_to_s exn));
+                   UCommon.pr2
+                     (spf "PB on %s, exn = %s" !!file (Common.exn_to_s exn));
                    {
                      Parsing_result.ast = [];
                      tokens = [];

@@ -64,7 +64,7 @@ type env = { lang : Lang.t; (* indentation level *) level : int }
 (* Helpers *)
 (*****************************************************************************)
 let todo any =
-  pr2 (show_any any);
+  UCommon.pr2 (show_any any);
   "*TODO*"
 
 let rec indent = function

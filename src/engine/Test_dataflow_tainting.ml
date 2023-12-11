@@ -20,11 +20,11 @@ let pr2_ranges file rwms =
            let loc1, _ = pm.Pattern_match.range_loc in
            string_of_int loc1.Tok.pos.line
          in
-         Common.pr2 (code_text ^ " @l." ^ line_str))
+         UCommon.pr2 (code_text ^ " @l." ^ line_str))
 
 let test_tainting lang file options config def =
-  Common.pr2 "\nDataflow";
-  Common.pr2 "--------";
+  UCommon.pr2 "\nDataflow";
+  UCommon.pr2 "--------";
   let flow, mapping =
     Match_tainting_mode.check_fundef lang options config None
       AST_to_IL.empty_ctx
@@ -75,8 +75,8 @@ let test_dfg_tainting rules_file file =
     Rule.partition_rules rules
   in
   let rule = List_.hd_exn "unexpected empty list" taint_rules in
-  pr2 "Tainting";
-  pr2 "========";
+  UCommon.pr2 "Tainting";
+  UCommon.pr2 "========";
   let handle_findings _ _ _ = () in
   let xconf = Match_env.default_xconfig in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf rule.options in
@@ -88,14 +88,14 @@ let test_dfg_tainting rules_file file =
     Match_tainting_mode.taint_config_of_rule ~per_file_formula_cache:tbl xconf
       !!file (ast, []) rule handle_findings
   in
-  Common.pr2 "\nSources";
-  Common.pr2 "-------";
+  UCommon.pr2 "\nSources";
+  UCommon.pr2 "-------";
   pr2_ranges !!file (debug_taint.sources |> List_.map fst);
-  Common.pr2 "\nSanitizers";
-  Common.pr2 "----------";
+  UCommon.pr2 "\nSanitizers";
+  UCommon.pr2 "----------";
   pr2_ranges !!file debug_taint.sanitizers;
-  Common.pr2 "\nSinks";
-  Common.pr2 "-----";
+  UCommon.pr2 "\nSinks";
+  UCommon.pr2 "-----";
   pr2_ranges !!file (debug_taint.sinks |> List_.map fst);
   let v =
     object

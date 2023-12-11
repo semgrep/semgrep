@@ -1,6 +1,6 @@
 module FZ = Framed_zipper
 
-let emit zipper = Common.pr2 (FZ.show Int.to_string zipper)
+let emit zipper = UCommon.pr2 (FZ.show Int.to_string zipper)
 
 let%expect_test "empty" =
   let zipper = FZ.empty_with_max_len 5 in
@@ -140,11 +140,10 @@ let%expect_test "position" =
   let zipper = FZ.move_down zipper in
   let zipper = FZ.move_down zipper in
   emit zipper;
-  Common.(
-    pr2
-      (spf "absolute: %d, relative: %d"
-         (FZ.absolute_position zipper)
-         (FZ.relative_position zipper)));
+  UCommon.pr2
+    (Common.spf "absolute: %d, relative: %d"
+       (FZ.absolute_position zipper)
+       (FZ.relative_position zipper));
   [%expect {|
     [3 | 3, 4, (5)]
     absolute: 4, relative: 2 |}]
@@ -152,14 +151,14 @@ let%expect_test "position" =
 let%expect_test "top_bottom" =
   let str_of_bool b = if b then "T" else "F" in
   let zipper = FZ.of_list 3 [ 1; 2; 3 ] in
-  Common.pr2 (str_of_bool (FZ.is_top zipper));
-  Common.pr2 (str_of_bool (FZ.is_bottom zipper));
+  UCommon.pr2 (str_of_bool (FZ.is_top zipper));
+  UCommon.pr2 (str_of_bool (FZ.is_bottom zipper));
   let zipper = FZ.move_down zipper in
-  Common.pr2 (str_of_bool (FZ.is_top zipper));
-  Common.pr2 (str_of_bool (FZ.is_bottom zipper));
+  UCommon.pr2 (str_of_bool (FZ.is_top zipper));
+  UCommon.pr2 (str_of_bool (FZ.is_bottom zipper));
   let zipper = FZ.move_down zipper in
-  Common.pr2 (str_of_bool (FZ.is_top zipper));
-  Common.pr2 (str_of_bool (FZ.is_bottom zipper));
+  UCommon.pr2 (str_of_bool (FZ.is_top zipper));
+  UCommon.pr2 (str_of_bool (FZ.is_bottom zipper));
   [%expect {|
     T
     F

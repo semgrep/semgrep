@@ -58,7 +58,7 @@ let single_xlang_from_rules (file : Fpath.t) (rules : Rule.t list) : Xlang.t =
   | [ x ] -> x
   | _ :: _ :: _ ->
       let fst = first_xlang_of_rules rules in
-      pr2
+      UCommon.pr2
         (spf "too many languages found in %s, picking the first one: %s" !!file
            (Xlang.show fst));
       fst
@@ -240,7 +240,7 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
       let xlang =
         match (xlang, Lang.langs_of_filename target) with
         | L (l, [ l2 ]), xs when not (List.mem l xs) ->
-            pr2 (spf "switching to another language: %s" (Lang.show l2));
+            UCommon.pr2 (spf "switching to another language: %s" (Lang.show l2));
             Xlang.L (l2, [])
         | _ -> xlang
       in
@@ -291,8 +291,8 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
       match E.compare_actual_to_expected actual_errors expected_error_lines with
       | Ok () -> ()
       | Error (num_errors, msg) ->
-          pr2 msg;
-          pr2 "---";
+          UCommon.pr2 msg;
+          UCommon.pr2 "---";
           fail_callback num_errors msg
   in
 

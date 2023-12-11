@@ -232,7 +232,7 @@ let rec lexer_function tr lexbuf =
       tr.current <- v;
       tr.passed <- v :: tr.passed;
 
-      if !Flag.debug_lexer then pr2_gen v;
+      if !Flag.debug_lexer then UCommon.pr2_gen v;
 
       if TH.is_comment v then lexer_function (*~pass*) tr lexbuf else v
 
@@ -323,11 +323,11 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
              | Parsing.Parse_error
              (* menhir *)
              | Parser_cpp.Error ->
-                 pr2
+                 UCommon.pr2
                    ("parse error \n = "
                    ^ error_msg_tok tr.Parsing_helpers.current)
              | Parsing_error.Other_error (s, _i) ->
-                 pr2
+                 UCommon.pr2
                    ("semantic error " ^ s ^ "\n ="
                    ^ error_msg_tok tr.Parsing_helpers.current)
              | _ -> Exception.reraise e);
@@ -370,7 +370,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
           then
             Parsing_helpers.print_bad line_error (checkpoint, checkpoint2)
               filelines
-          else pr2 "PB: bad: but on tokens not from original file";
+          else UCommon.pr2 "PB: bad: but on tokens not from original file";
 
           let info_of_bads =
             Common2.map_eff_rev TH.info_of_tok tr.Parsing_helpers.passed

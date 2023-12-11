@@ -121,7 +121,7 @@ let group_rules xconf rules xtarget =
                  "Skipping malformed secrets rule without validation.";
                Right3 { r with mode }
            | `Steps _ ->
-               pr2 (Rule.show_rule r);
+               UCommon.pr2 (Rule.show_rule r);
                raise Multistep_rules_not_available)
   in
   (* Taint rules are only relevant to each other if they are meant to be

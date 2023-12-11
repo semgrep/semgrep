@@ -216,7 +216,7 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
              else E.try_with_exn_to_error file (fun () -> process file));
 
       let n = List.length !E.g_errors in
-      if n > 0 then pr2 (spf "error count: %d" n)
+      if n > 0 then UCommon.pr2 (spf "error count: %d" n)
 
 (*****************************************************************************)
 (* Entry point *)

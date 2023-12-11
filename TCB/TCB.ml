@@ -327,7 +327,7 @@ let ( @ ) = ( @ )
 *)
 
 (**************************************************************************)
-(* Stdin/Stdout (FORBIDDEN) (see also Sys/Unix/... modules)  *)
+(* Stdin/Stdout/Stderr (FORBIDDEN) (see also Sys/Unix/... modules)  *)
 (**************************************************************************)
 
 (* See also for Out: Printf/Format/Printexc
@@ -336,6 +336,7 @@ let ( @ ) = ( @ )
 
 let stdin = ()
 let stdout = ()
+let stderr = ()
 
 (* printing on stdout *)
 let print_char = ()
@@ -346,28 +347,21 @@ let print_float = ()
 let print_endline = ()
 let print_newline = ()
 
+(* stderr is forbidden, buts logs are an ambient authority *)
+let prerr_char = ()
+let prerr_string = ()
+let prerr_bytes = ()
+let prerr_int = ()
+let prerr_float = ()
+let prerr_endline = ()
+let prerr_newline = ()
+
 (* reading on stdin *)
 let read_line = ()
 let read_int = ()
 let read_int_opt = ()
 let read_float = ()
 let read_float_opt = ()
-
-(**************************************************************************)
-(* Stderr *)
-(**************************************************************************)
-
-(* stderr is an ambient authority *)
-(*
-let stderr = stderr
-let prerr_char = prerr_char
-let prerr_string = prerr_string
-let prerr_bytes = prerr_bytes
-let prerr_int = prerr_int
-let prerr_float = prerr_float
-let prerr_endline = prerr_endline
-let prerr_newline = prerr_newline
-*)
 
 (**************************************************************************)
 (* Filesystem (FORBIDDEN) (see also Sys/Unix modules) *)
@@ -757,7 +751,7 @@ module Unix = struct
 
   let stdin = ()
   let stdout = ()
-  let stderr = Unix.stderr
+  let stderr = ()
   let descr_of_out_channel = Unix.descr_of_out_channel
   let descr_of_in_channel = Unix.descr_of_in_channel
 
@@ -873,6 +867,10 @@ module Unix = struct
   type setattr_when = Unix.setattr_when
   type flush_queue = Unix.flush_queue
   type flow_action = Unix.flow_action
+
+  (* FORBIDDEN:
+   * - a lot
+   *)
 end
 
 (*###########################################################################*)
@@ -1008,10 +1006,8 @@ module Format = struct
   (* already a capability *)
   type formatter = Format.formatter
 
-  let err_formatter = Format.err_formatter
   let formatter_of_buffer = Format.formatter_of_buffer
   let fprintf = Format.fprintf
-  let eprintf = Format.eprintf
   let sprintf = Format.sprintf
   let kfprintf = Format.kfprintf
 
@@ -1027,8 +1023,8 @@ module Format = struct
 
   (* FORBIDDEN:
       - all the print_xxx variant that use directly to stdout
-      - std_formatter
-      - printf
+      - std_formatter, err_formatter
+      - printf, eprintf
       - stdbuf, str_formatter (unsafe in the end)
   *)
 end

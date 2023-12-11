@@ -83,29 +83,6 @@ val binary_search_bigarr1 :
 val to_comparison : ('a -> 'a -> int) -> 'a -> 'a -> order
 
 (*****************************************************************************)
-(* debugging *)
-(*****************************************************************************)
-(* see also Dumper.ml *)
-
-(* Print a string and a newline to stderr, then flush stderr. The '2'
- * is used to refect that it prints on stderr (file descriptor '2' in Unix). *)
-val pr2 : string -> unit
-
-(* Print on stderr any data structure (using Dumper.dump) *)
-val pr2_gen : 'a -> unit
-
-(* Print on stderr but only once (to avoid printing the same error
- * again and again) *)
-val pr2_once : string -> unit
-
-(* forbid pr2_once to do the once "optimisation" *)
-val _already_printed : (string, bool) Hashtbl.t
-val disable_pr2_once : bool ref
-
-(* to be used in pipes as in foo() |> before_return (fun v -> pr2_gen v)*)
-val before_return : ('a -> unit) -> 'a -> 'a
-
-(*****************************************************************************)
 (* Exceptions *)
 (*****************************************************************************)
 (* see also Exception.ml functions as well as Time_limit.Timeout
@@ -120,8 +97,13 @@ exception Impossible
 (* similar to Not_found but to use when something returns too many findings *)
 exception Multi_found
 
-(* You should use this instead of 'exit n' because it allows you
- * to intercept the exn and do something special before exiting.
+(* If the user use some [exit 0] in his code, then no one can intercept this
+ * exit and do something before exiting. There is exn handler for exit 0
+ * so better never use exit 0 but instead use an exception and just at
+ * the very toplevel transform this exn in a unix exit code.
+ *
+ * subtil: same problem than with Timeout. Do not intercept such exception
+ * with some blind try (...) with _ -> ...
  *)
 exception UnixExit of int
 
@@ -149,6 +131,13 @@ val protect : finally:(unit -> unit) -> (unit -> 'a) -> 'a
  * 'Time_limit.Timeout' exception raised when there is a timeout. Having to
  * deal with 'Finally_raised' just makes things more complicated.
  *)
+
+(*****************************************************************************)
+(* Debugging *)
+(*****************************************************************************)
+
+(* to be used in pipes as in foo() |> before_return (fun v -> pr2_gen v)*)
+val before_return : ('a -> unit) -> 'a -> 'a
 
 (*****************************************************************************)
 (* Strings and regexps *)
@@ -275,12 +264,6 @@ val memoized : ?use_cache:bool -> ('a, 'b) Hashtbl.t -> 'a -> (unit -> 'b) -> 'b
    LATER: could be moved to CapCommon.ml
 *)
 val with_time : (unit -> 'a) -> 'a * float
-
-(*
-   Run a function and print how long it took to return or to raise an
-   exception. pr2_time prints to stderr.
-*)
-val pr2_time : string -> (unit -> 'a) -> 'a
 
 (*****************************************************************************)
 (* Operators *)

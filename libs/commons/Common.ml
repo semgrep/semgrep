@@ -165,24 +165,6 @@ let%test _ = binary_search_arr ~f:(cmp 0) [| 1; 2; 4; 5 |] =*= Error 0
 (*****************************************************************************)
 (* Debugging/logging *)
 (*****************************************************************************)
-
-let pr2 s =
-  prerr_string s;
-  prerr_string "\n";
-  flush stderr
-
-let _already_printed = Hashtbl.create 101
-let disable_pr2_once = ref false
-
-let xxx_once f s =
-  if !disable_pr2_once then pr2 s
-  else if not (Hashtbl.mem _already_printed s) then (
-    Hashtbl.add _already_printed s true;
-    f ("(ONCE) " ^ s))
-
-let pr2_once s = xxx_once pr2 s
-let pr2_gen x = pr2 (Dumper.dump x)
-
 (* to be used in pipe operations *)
 let before_return f v =
   f v;
@@ -199,12 +181,6 @@ let with_time f =
   let res = f () in
   let t2 = UUnix.gettimeofday () in
   (res, t2 -. t1)
-
-let pr2_time name f =
-  let t1 = UUnix.gettimeofday () in
-  protect f ~finally:(fun () ->
-      let t2 = UUnix.gettimeofday () in
-      pr2 (spf "%s: %.6f s" name (t2 -. t1)))
 
 (*****************************************************************************)
 (* Exn *)

@@ -24,7 +24,7 @@ let execute_and_show_progress ~show len f =
 
   (* ANSITerminal.printf [] "0 / %d" len; flush stdout; *)
   if !Common2._batch_mode || not show then f nothing else f continue_pourcentage;
-  Common.pr2 ""
+  UCommon.pr2 ""
 
 let execute_and_show_progress2 ?(show = true) len f =
   let _count = ref 0 in
@@ -33,7 +33,7 @@ let execute_and_show_progress2 ?(show = true) len f =
     incr _count;
     ANSITerminal.set_cursor 1 (-1);
     ANSITerminal.eprintf [] "%d / %d" !_count len;
-    flush stderr
+    flush UStdlib.stderr
   in
   let nothing () = () in
 
