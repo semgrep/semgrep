@@ -32,7 +32,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Types *)
 (*****************************************************************************)
 (* This can be captured in Run_semgrep.ml *)
-exception File_timeout of (Rule_ID.t list)
+exception File_timeout of Rule_ID.t list
 
 (* TODO make this one of the Semgrep_error_code exceptions *)
 exception Multistep_rules_not_available
@@ -161,16 +161,16 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
     match res_opt with
     | Some res -> res
     | None ->
-      incr cnt_timeout;
-      rule_timeouts := rule_id :: !rule_timeouts;
-      if timeout_threshold > 0 && !cnt_timeout >= timeout_threshold then
-        raise (File_timeout !rule_timeouts);
-      let loc = Tok.first_loc_of_file file in
-      let error = E.mk_error (Some rule_id) loc "" OutJ.Timeout in
-      RP.make_match_result []
-        (Core_error.ErrorSet.singleton error)
-        (Core_profiling.empty_rule_profiling rule)
-        
+        incr cnt_timeout;
+        rule_timeouts := rule_id :: !rule_timeouts;
+        if timeout_threshold > 0 && !cnt_timeout >= timeout_threshold then
+          raise (File_timeout !rule_timeouts);
+        let loc = Tok.first_loc_of_file file in
+        let error = E.mk_error (Some rule_id) loc "" OutJ.Timeout in
+        RP.make_match_result []
+          (Core_error.ErrorSet.singleton error)
+          (Core_profiling.empty_rule_profiling rule)
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
