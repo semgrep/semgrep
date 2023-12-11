@@ -32,6 +32,32 @@ let pr_time name f =
       pr (spf "%s: %.6f s" name (t2 -. t1)))
 
 (*****************************************************************************)
+(* Stderr *)
+(*****************************************************************************)
+let pr2 s =
+  UStdlib.prerr_string s;
+  UStdlib.prerr_string "\n";
+  flush UStdlib.stderr
+
+let _already_printed = Hashtbl.create 101
+let disable_pr2_once = ref false
+
+let xxx_once f s =
+  if !disable_pr2_once then pr2 s
+  else if not (Hashtbl.mem _already_printed s) then (
+    Hashtbl.add _already_printed s true;
+    f ("(ONCE) " ^ s))
+
+let pr2_once s = xxx_once pr2 s
+let pr2_gen x = pr2 (Dumper.dump x)
+
+let pr2_time name f =
+  let t1 = UUnix.gettimeofday () in
+  protect f ~finally:(fun () ->
+      let t2 = UUnix.gettimeofday () in
+      pr2 (spf "%s: %.6f s" name (t2 -. t1)))
+
+(*****************************************************************************)
 (* Files *)
 (*****************************************************************************)
 
@@ -218,7 +244,9 @@ let files_of_dir_or_files_no_vcs_nofilter xs =
 (* now in prelude: exception UnixExit of int *)
 let exn_to_real_unixexit f =
   try f () with
-  | UnixExit x -> UStdlib.exit x
+  | UnixExit x ->
+      (* nosemgrep: forbid-exit *)
+      UStdlib.exit x
 
 let pp_do_in_zero_box f =
   UFormat.open_box 0;

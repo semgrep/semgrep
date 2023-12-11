@@ -65,24 +65,40 @@ type 'a match_result = {
 (* shortcut *)
 type matches_single_file = Core_profiling.partial_profiling match_result
 
+(* What is postprocessing information?
+   These are just match-specific information that we "after" a core scan has
+   occurred. This information is initially set to a nullary value, but will be
+   filled in by Pre_post_core_scan.
+
+   When we bridge the gap from `Core_result.t` to `Out.core_output`, we have
+   to associate each match to a (potential) edit or ignored status.
+   We will choose to embed the fix information in `Core_result.t`, as
+   autofixing and nosemgrep are now valid functions of the core engine, and
+   thus the produced fixes are related to its produced results.
+   These edits start as all None, but will be filled in by
+   `Autofix.produce_autofixes`, and the associated Autofix_processor step.
+
+   alt: we could have added this to `Pattern_match.t`, but that felt a bit early.
+   alt: we could have produced this information when going from Core_result.t to
+   Out.core_output, but this would require us to do autofixing and ignoring at
+   the same time as output, which conflates process of producing output and
+   side-effectively applying autofixes / filtering. In addition, the `Autofix`
+   and `Nosemgrep` modules are not available from that directory.
+*)
+type processed_match = {
+  pm : Pattern_match.t;
+  is_ignored : bool;
+  autofix_edit : Textedit.t option;
+}
+[@@deriving show]
+
 type t = {
   (* old: matches : Pattern_match.t list
-     Why did we add the fixes here?
-     When we bridge the gap from `Core_result.t` to `Out.core_output`, we have
-     to associate each match to a (potential) edit.
-     We will choose to embed the fix information in `Core_result.t`, as
-     autofixing is now a valid function of the core engine, and thus the
-     produced fixes are related to its produced results.
-     These edits start as all None, but will be filled in by
-     `Autofix.produce_autofixes`, and the associated Autofix_processor step.
-     alt: we could have added this to `Pattern_match.t`, but felt a bit early
-     alt: we could have produced these autofixes when going from
-          Core_result.t to Out.core_output, but this would require us to do
-          autofixing at the same time as output, which conflates process of
-          producing output and side-effectively applying autofixes.
-          In addition, the `Autofix` module is not available from that dir.
+     Why did we add `postprocessing_info` here?
+
+     See the `postprocessing_info` type for more.
   *)
-  matches_with_fixes : (Pattern_match.t * Textedit.t option) list;
+  processed_matches : processed_match list;
   errors : Core_error.t list;
   skipped_rules : Rule.invalid_rule_error list;
   rules_with_targets : Rule.rule list;
@@ -105,6 +121,7 @@ type result_or_exn = (t, Exception.t * Core_error.t option) result
 (* Builders *)
 (*****************************************************************************)
 
+let mk_processed_match pm = { pm; is_ignored = false; autofix_edit = None }
 let empty_times_profiling = { parse_time = 0.0; match_time = 0.0 }
 
 (* TODO: should get rid of that *)
@@ -123,7 +140,7 @@ let mk_final_result_with_just_errors (errors : Core_error.t list) : t =
   {
     errors;
     (* default values *)
-    matches_with_fixes = [];
+    processed_matches = [];
     rules_with_targets = [];
     skipped_rules = [];
     extra = No_info;
@@ -296,13 +313,13 @@ let make_final_result
     (skipped_rules : Rule.invalid_rule_error list) (scanned : Fpath.t list)
     (interfile_languages_used : Xlang.t list) ~rules_parse_time =
   (* contenating information from the match_result list *)
-  let matches_with_nullary_fixes =
+  let unprocessed_matches =
     results
     |> List.concat_map (fun (x : _ match_result) -> x.matches)
-    (* These fixes are initially None, and will be populated with fixes
-       after we run Autofix.produce_autofixes.
+    (* These fixes and ignores are initially all unset, and will be populated
+       after we run our Pre_post_core_scan
     *)
-    |> List_.map (fun res -> (res, None))
+    |> List_.map mk_processed_match
   in
   let explanations =
     results |> List.concat_map (fun (x : _ match_result) -> x.explanations)
@@ -355,7 +372,7 @@ let make_final_result
     | MNo_info -> No_info
   in
   {
-    matches_with_fixes = matches_with_nullary_fixes;
+    processed_matches = unprocessed_matches;
     errors;
     extra;
     skipped_rules;

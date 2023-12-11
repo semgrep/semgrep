@@ -165,24 +165,6 @@ let%test _ = binary_search_arr ~f:(cmp 0) [| 1; 2; 4; 5 |] =*= Error 0
 (*****************************************************************************)
 (* Debugging/logging *)
 (*****************************************************************************)
-
-let pr2 s =
-  prerr_string s;
-  prerr_string "\n";
-  flush stderr
-
-let _already_printed = Hashtbl.create 101
-let disable_pr2_once = ref false
-
-let xxx_once f s =
-  if !disable_pr2_once then pr2 s
-  else if not (Hashtbl.mem _already_printed s) then (
-    Hashtbl.add _already_printed s true;
-    f ("(ONCE) " ^ s))
-
-let pr2_once s = xxx_once pr2 s
-let pr2_gen x = pr2 (Dumper.dump x)
-
 (* to be used in pipe operations *)
 let before_return f v =
   f v;
@@ -199,12 +181,6 @@ let with_time f =
   let res = f () in
   let t2 = UUnix.gettimeofday () in
   (res, t2 -. t1)
-
-let pr2_time name f =
-  let t1 = UUnix.gettimeofday () in
-  protect f ~finally:(fun () ->
-      let t2 = UUnix.gettimeofday () in
-      pr2 (spf "%s: %.6f s" name (t2 -. t1)))
 
 (*****************************************************************************)
 (* Exn *)
@@ -263,13 +239,32 @@ let exn_to_s exn = Printexc.to_string exn
 (*###########################################################################*)
 
 (*****************************************************************************)
-(* Test *)
-(*****************************************************************************)
-(* See Alcotest_ext. and Testutil_* modules *)
-
-(*****************************************************************************)
 (* Composition/Control *)
 (*****************************************************************************)
+
+let compose f g x = f (g x)
+(* does not work :( let ( rond_utf_symbol ) f g x = f(g(x)) *)
+
+(* trick to have something similar to the   1 `max` 4   haskell infix notation.
+   by Keisuke Nakano on the caml mailing list.
+   >    let ( /* ) x y = y x
+   >    and ( */ ) x y = x y
+   or
+   let ( <| ) x y = y x
+   and ( |> ) x y = x y
+
+   > Then we can make an infix operator <| f |> for a binary function f.
+*)
+
+let flip f a b = f b a
+let curry f x y = f (x, y)
+let uncurry f (a, b) = f a b
+let const x _y = x
+let do_nothing () = ()
+let rec applyn n f o = if n =|= 0 then o else applyn (n - 1) f (f o)
+
+(* I think Brandon added that, not sure where it comes from *)
+let on g f x y = g (f x) (f y)
 
 (*****************************************************************************)
 (* Error management *)
@@ -284,6 +279,11 @@ let exn_to_s exn = Printexc.to_string exn
 (* Flags and actions *)
 (*****************************************************************************)
 (* See Cmdliner now *)
+
+(*****************************************************************************)
+(* Test *)
+(*****************************************************************************)
+(* See Alcotest_ext. and Testutil_* modules *)
 
 (*###########################################################################*)
 (* Basic types *)

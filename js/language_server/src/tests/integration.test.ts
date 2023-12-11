@@ -8,6 +8,11 @@ import * as vscode from "vscode";
 const EXPECTED_CAPABILITIES = {
   capabilities: {
     codeActionProvider: true,
+    executeCommandProvider: {
+      commands: [
+        "semgrep/ignore"
+      ]
+    },
     hoverProvider: true,
     textDocumentSync: {
       change: 2,

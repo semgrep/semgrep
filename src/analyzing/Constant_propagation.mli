@@ -1,7 +1,3 @@
-val hook_constant_propagation_and_evaluate_literal :
-  (AST_generic.expr -> AST_generic.svalue option) option ref
-(** Provide the analysis with extra information about constants. *)
-
 val constant_propagation_and_evaluate_literal :
   ?lang:Lang.t -> AST_generic.expr -> AST_generic.svalue option
 (** Partially evaluate a Generic expression. *)

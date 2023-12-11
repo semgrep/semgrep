@@ -60,34 +60,10 @@ type conf = {
 let metarules_pack = "p/semgrep-rule-lints"
 
 (*****************************************************************************)
-(* Experiment *)
-(*****************************************************************************)
-
-(* TODO: use validation ocaml code to enforce the CHECK: in rule_schema_v2.atd.
- * For example, check that at least one and only one field is set in formula.
- * Reclaim some of the jsonschema power. Maybe define combinators to express
- * that in rule_schema_v2_adapter.ml?
- *)
-let parse_rule_with_atd_experiment_and_exit (file : Fpath.t) : unit =
-  let rules = Parse_rules_with_atd.parse_rules_v2 file in
-  pr2 (Rule_schema_v2_t.show_rules rules);
-  exit 0
-
-(*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
 let run_conf (conf : conf) : Exit_code.t =
-  (* small experiment *)
-  (match conf with
-  | {
-   common = { maturity = Maturity.Develop; _ };
-   rules_source = Rules_source.Configs [ file ];
-   _;
-  } ->
-      parse_rule_with_atd_experiment_and_exit (Fpath.v file)
-  | _else_ -> ());
-
   let settings = Semgrep_settings.load () in
   let token_opt = settings.api_token in
   (* Checking (1) and (2). Parsing the rules is already a form of validation.

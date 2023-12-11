@@ -178,7 +178,7 @@ let replace_named_pipe_by_regular_file path =
 let sort_targets_by_decreasing_size (targets : In.target list) : In.target list
     =
   targets
-  |> List_.map (fun target -> (target, Common2.filesize target.In.path))
+  |> List_.map (fun target -> (target, UFile.filesize (Fpath.v target.In.path)))
   |> List.sort (fun (_, (a : int)) (_, b) -> compare b a)
   |> List_.map fst
 
@@ -377,7 +377,8 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
     max_match_per_file matches =
   let per_files =
     matches
-    |> List_.map (fun (m, _) -> (!!(m.Pattern_match.file), m))
+    |> List_.map (fun ({ pm; _ } : Core_result.processed_match) ->
+           (!!(pm.file), pm))
     |> Assoc.group_assoc_bykey_eff
   in
 
@@ -389,8 +390,8 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
   let offending_files = Hashtbl_.hashset_of_list offending_file_list in
   let new_matches =
     matches
-    |> List_.exclude (fun (m, _) ->
-           Hashtbl.mem offending_files !!(m.Pattern_match.file))
+    |> List_.exclude (fun ({ pm; _ } : Core_result.processed_match) ->
+           Hashtbl.mem offending_files !!(pm.file))
   in
   let new_errors, new_skipped =
     offending_file_list
@@ -763,7 +764,7 @@ let extracted_targets_of_config (config : Core_scan_config.t)
     (List.length basic_targets);
   let match_hook str match_ =
     if !Extract.debug_extract_mode && config.output_format =*= Text then (
-      pr2 "extracted content from ";
+      UCommon.pr2 "extracted content from ";
       print_match ~str config match_ Metavariable.ii_of_mval)
   in
   let (extracted_targets : Extract.extracted_target_and_adjuster list) =
@@ -968,12 +969,12 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
       invalid_rules scanned interfile_languages_used ~rules_parse_time
   in
   logger#info "found %d matches, %d errors"
-    (List.length res.matches_with_fixes)
+    (List.length res.processed_matches)
     (List.length res.errors);
 
-  let matches_with_fixes, new_errors, new_skipped =
+  let processed_matches, new_errors, new_skipped =
     filter_files_with_too_many_matches_and_transform_as_timeout
-      config.max_match_per_file res.matches_with_fixes
+      config.max_match_per_file res.processed_matches
   in
 
   (* note: uncomment the following and use semgrep-core -stat_matches
@@ -997,7 +998,7 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
         Core_profiling.Debug { skipped_targets; profiling }
     | (Core_profiling.Time _ | Core_profiling.No_info) as x -> x
   in
-  { res with matches_with_fixes; errors; extra }
+  { res with processed_matches; errors; extra }
 
 (*****************************************************************************)
 (* Entry point *)

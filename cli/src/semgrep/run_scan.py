@@ -52,7 +52,7 @@ from semgrep.git import get_project_url
 from semgrep.ignores import FileIgnore
 from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.ignores import Parser
-from semgrep.nosemgrep import process_ignores
+from semgrep.nosemgrep import filter_ignored
 from semgrep.output import DEFAULT_SHOWN_SEVERITIES
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
@@ -166,6 +166,7 @@ def run_rules(
     time_flag: bool,
     matching_explanations: bool,
     engine_type: EngineType,
+    strict: bool,
     # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
     run_secrets: bool = False,
     disable_secrets_validation: bool = False,
@@ -214,6 +215,7 @@ def run_rules(
         time_flag,
         matching_explanations,
         engine_type,
+        strict,
         run_secrets,
         disable_secrets_validation,
         target_mode_config,
@@ -560,6 +562,7 @@ def run_scan(
         time_flag,
         matching_explanations,
         engine_type,
+        strict,
         run_secrets,
         disable_secrets_validation,
         target_mode_config,
@@ -652,6 +655,7 @@ def run_scan(
                         time_flag,
                         matching_explanations,
                         engine_type,
+                        strict,
                         run_secrets,
                         disable_secrets_validation,
                         baseline_target_mode_config,
@@ -667,11 +671,10 @@ def run_scan(
 
     ignores_start_time = time.time()
     keep_ignored = disable_nosem or output_handler.formatter.keep_ignores()
-    filtered_matches_by_rule, nosem_errors = process_ignores(
-        rule_matches_by_rule, keep_ignored=keep_ignored, strict=strict
+    filtered_matches_by_rule = filter_ignored(
+        rule_matches_by_rule, keep_ignored=keep_ignored
     )
     profiler.save("ignores_time", ignores_start_time)
-    output_handler.handle_semgrep_errors(nosem_errors)
 
     profiler.save("total_time", rule_start_time)
 

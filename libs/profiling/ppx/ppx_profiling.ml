@@ -124,7 +124,7 @@ let mk_args loc params =
 
 (* copy paste of module_ml.ml *)
 let module_name_of_filename s =
-  let _d, b, _e = Common2.dbe_of_filename s in
+  let _d, b, _e = Filename_.dbe_of_filename s in
   String.capitalize_ascii b
 
 (*****************************************************************************)

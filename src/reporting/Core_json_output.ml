@@ -205,7 +205,8 @@ let taint_trace_to_dataflow_trace (traces : PM.taint_trace_item list) :
       taint_sink = taint_call_trace sink_call_trace;
     }
 
-let unsafe_match_to_match ((x : Pattern_match.t), (edit : Textedit.t option)) :
+let unsafe_match_to_match
+    ({ pm = x; is_ignored; autofix_edit } : Core_result.processed_match) :
     OutJ.core_match =
   let min_loc, max_loc = x.range_loc in
   let startp, endp = OutUtils.position_range min_loc max_loc in
@@ -249,8 +250,9 @@ let unsafe_match_to_match ((x : Pattern_match.t), (edit : Textedit.t option)) :
         metadata = Option.map JSON.to_yojson x.metadata_override;
         metavars;
         dataflow_trace;
-        fix = Option.map (fun edit -> edit.Textedit.replacement_text) edit;
-        is_ignored = false;
+        fix =
+          Option.map (fun edit -> edit.Textedit.replacement_text) autofix_edit;
+        is_ignored;
         (* TODO *)
         engine_kind = x.engine_kind;
         validation_state = Some x.validation_state;
@@ -258,20 +260,20 @@ let unsafe_match_to_match ((x : Pattern_match.t), (edit : Textedit.t option)) :
       };
   }
 
-let match_to_match ((x : Pattern_match.t), (edit : Textedit.t option)) :
+let match_to_match (x : Core_result.processed_match) :
     (OutJ.core_match, Core_error.t) Either.t =
   try
-    Left (unsafe_match_to_match (x, edit))
+    Left (unsafe_match_to_match x)
     (* raised by min_max_ii_by_pos in range_of_any when the AST of the
      * pattern in x.code or the metavar does not contain any token
      *)
   with
   | Tok.NoTokenLocation s ->
-      let loc = Tok.first_loc_of_file !!(x.file) in
+      let loc = Tok.first_loc_of_file !!(x.pm.file) in
       let s =
-        spf "NoTokenLocation with pattern %s, %s" x.rule_id.pattern_string s
+        spf "NoTokenLocation with pattern %s, %s" x.pm.rule_id.pattern_string s
       in
-      let err = E.mk_error (Some x.rule_id.id) loc s OutJ.MatchingError in
+      let err = E.mk_error (Some x.pm.rule_id.id) loc s OutJ.MatchingError in
       Right err
 [@@profiling]
 
@@ -302,7 +304,10 @@ let rec explanation_to_explanation (exp : Matching_explanation.t) :
   {
     op;
     children = children |> List_.map explanation_to_explanation;
-    matches = matches |> List_.map (fun m -> unsafe_match_to_match (m, None));
+    matches =
+      matches
+      |> List_.map (fun pm ->
+             unsafe_match_to_match (Core_result.mk_processed_match pm));
     loc = OutUtils.location_of_token_location tloc;
   }
 
@@ -395,7 +400,7 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : OutJ.profile =
 
 let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
   let matches, new_errs =
-    Either_.partition_either match_to_match res.matches_with_fixes
+    Either_.partition_either match_to_match res.processed_matches
   in
   let errs = !E.g_errors @ new_errs @ res.errors in
   E.g_errors := [];

@@ -52,7 +52,7 @@ let regexp_matcher ?(base_offset = 0) big_str file regexp =
            | 1 -> []
            | _ when n <= 0 -> raise Impossible
            | n ->
-               Common2.enum 1 (n - 1)
+               List_.enum 1 (n - 1)
                |> List_.map_filter (fun n ->
                       try
                         let bytepos, _ = Pcre.get_substring_ofs sub n in

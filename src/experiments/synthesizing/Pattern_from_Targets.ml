@@ -88,9 +88,9 @@ let rec show_replacements reps =
 
 let rec show_patterns (patterns : pattern_instrs) =
   match patterns with
-  | [] -> pr2 "---"
+  | [] -> UCommon.pr2 "---"
   | (_any, pattern, replacements) :: pats ->
-      pr2
+      UCommon.pr2
         ("( " (* ^ (p_any any) ^ ", " *) ^ p_any pattern
         ^ ", "
         ^ show_replacements replacements
@@ -98,9 +98,9 @@ let rec show_patterns (patterns : pattern_instrs) =
       show_patterns pats
 
 let show_pattern_sets patsets =
-  pr2 "[";
+  UCommon.pr2 "[";
   List.iter show_patterns patsets;
-  pr2 "]\n"
+  UCommon.pr2 "]\n"
 
 (*****************************************************************************)
 (* Pattern_from_Code Helpers *)
@@ -204,7 +204,7 @@ let pattern_from_args env args : pattern_instrs =
         match f (E arg) with
         | E x -> Args (Arg (Ellipsis el |> G.e) :: Arg x :: xs)
         | x ->
-            pr2 (show_any x);
+            UCommon.pr2 (show_any x);
             raise InvalidSubstitution)
     | Args (_ :: _) -> args
     | _ -> raise InvalidSubstitution
@@ -352,7 +352,7 @@ let rec pattern_from_stmt env ({ s; _ } as stmt) : pattern_instrs =
             | E x -> S (replace_sk stmt (ExprStmt (x, sc)))
             | _ -> raise InvalidSubstitution)
         | _ ->
-            pr2 "h1";
+            UCommon.pr2 "h1";
             raise InvalidSubstitution
       in
       let _, pattern =
@@ -437,7 +437,7 @@ let rec generate_patterns_help (target_patterns : pattern_instrs list) =
   (* Flatten the list. Each node n will have a corresponding set of patterns Sn *)
   if false then (
     (* Set this for debug info *)
-    pr2 "target patterns";
+    UCommon.pr2 "target patterns";
     show_pattern_sets target_patterns);
   let pattern_children =
     List_.map (List_.map get_one_step_replacements) target_patterns

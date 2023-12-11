@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open Common
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -40,7 +39,7 @@ type 'a env = {
 
 (* mostly a copy-paste of Parse_info.full_charpos_to_pos_large *)
 let line_col_to_pos file =
-  let size = Common2.filesize file + 2 in
+  let size = UFile.filesize (Fpath.v file) + 2 in
   let h = Hashtbl.create size in
   UCommon.with_open_infile file (fun chan ->
       let charpos = ref 0 in
@@ -92,17 +91,17 @@ let str env (tok : Tree_sitter_run.Token.t) =
 
 let debug_sexp_cst_after_error sexp_cst =
   let s = Printexc.get_backtrace () in
-  pr2 "Some constructs are not handled yet";
-  pr2 "CST was:";
+  UCommon.pr2 "Some constructs are not handled yet";
+  UCommon.pr2 "CST was:";
   (* bugfix: do not use CST.dump_tree because it prints on stdout
    * and will mess up our interaction with semgrep python wrapper and
    * also for the parsing_stat CI job.
    *
    * alt: Use Print_sexp.to_stderr of martin
    *)
-  pr2 (Sexplib.Sexp.to_string_hum sexp_cst);
-  pr2 "Original backtrace:";
-  pr2 s
+  UCommon.pr2 (Sexplib.Sexp.to_string_hum sexp_cst);
+  UCommon.pr2 "Original backtrace:";
+  UCommon.pr2 s
 
 let wrap_parser tree_sitter_parser ast_mapper =
   let res : 'a Tree_sitter_run.Parsing_result.t = tree_sitter_parser () in

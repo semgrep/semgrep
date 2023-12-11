@@ -58,7 +58,7 @@ let single_xlang_from_rules (file : Fpath.t) (rules : Rule.t list) : Xlang.t =
   | [ x ] -> x
   | _ :: _ :: _ ->
       let fst = first_xlang_of_rules rules in
-      pr2
+      UCommon.pr2
         (spf "too many languages found in %s, picking the first one: %s" !!file
            (Xlang.show fst));
       fst
@@ -94,7 +94,7 @@ let xtarget_of_file (xlang : Xlang.t) (target : Fpath.t) : Xtarget.t =
 (*****************************************************************************)
 
 let find_target_of_yaml_file_opt (file : Fpath.t) : Fpath.t option =
-  let d, b, ext = Common2.dbe_of_filename !!file in
+  let d, b, ext = Filename_.dbe_of_filename !!file in
   Common2.readdir_to_file_list d @ Common2.readdir_to_link_list d
   |> List_.find_some_opt (fun file2 ->
          let path2 = Filename.concat d file2 in
@@ -102,7 +102,7 @@ let find_target_of_yaml_file_opt (file : Fpath.t) : Fpath.t option =
           * but test files may have multiple extensions, e.g.
           * ".test.yaml" (YAML test files), ".sites-available.conf",
           * ... *)
-         match Common2.dbe_of_filename_many_ext_opt file2 with
+         match Filename_.dbe_of_filename_many_ext_opt file2 with
          | None -> None
          | Some (_, b2, ext2) ->
              if
@@ -240,7 +240,7 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
       let xlang =
         match (xlang, Lang.langs_of_filename target) with
         | L (l, [ l2 ]), xs when not (List.mem l xs) ->
-            pr2 (spf "switching to another language: %s" (Lang.show l2));
+            UCommon.pr2 (spf "switching to another language: %s" (Lang.show l2));
             Xlang.L (l2, [])
         | _ -> xlang
       in
@@ -291,8 +291,8 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
       match E.compare_actual_to_expected actual_errors expected_error_lines with
       | Ok () -> ()
       | Error (num_errors, msg) ->
-          pr2 msg;
-          pr2 "---";
+          UCommon.pr2 msg;
+          UCommon.pr2 "---";
           fail_callback num_errors msg
   in
 
@@ -312,7 +312,7 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
       Alcotest_ext.create ~skipped:true name test
 
 (*****************************************************************************)
-(* Entry points *)
+(* Entry point *)
 (*****************************************************************************)
 
 let make_tests ?fail_callback ?get_xlang ?prepend_lang (xs : Fpath.t list) :
@@ -320,15 +320,3 @@ let make_tests ?fail_callback ?get_xlang ?prepend_lang (xs : Fpath.t list) :
   xs |> UFile.files_of_dirs_or_files_no_vcs_nofilter
   |> List.filter Parse_rule.is_valid_rule_filename
   |> List_.map (make_test_rule_file ?fail_callback ?get_xlang ?prepend_lang)
-
-(* semgrep-core -test_rules *)
-let test_rules (paths : Fpath.t list) : unit =
-  let total_mismatch = ref 0 in
-  let fail_callback num_errors _msg =
-    total_mismatch := !total_mismatch + num_errors
-  in
-  let tests = make_tests ~fail_callback paths in
-  tests |> List.iter (fun (test : Alcotest_ext.test) -> test.func ());
-  pr2 (spf "total mismatch: %d" !total_mismatch);
-  if !total_mismatch > 0 then exit 1
-[@@action]

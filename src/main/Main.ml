@@ -65,4 +65,4 @@ let () =
               (String.concat " " (Array.to_list argv));
           CapStdlib.exit caps#exit (Exit_code.to_int exit_code)
       (* legacy semgrep-core *)
-      | _ -> Core_CLI.main argv)
+      | _ -> Core_CLI.main caps argv)

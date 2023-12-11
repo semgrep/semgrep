@@ -518,6 +518,12 @@ let send_code_action ~(path : Fpath.t) ~diagnostics ~line_start ~char_start
   in
   send_request info req
 
+let send_execute_command ~command ~arguments info =
+  let req =
+    CR.ExecuteCommand (ExecuteCommandParams.create ~command ~arguments ())
+  in
+  send_request info req
+
 let send_hover info (path : Fpath.t) ~character ~line =
   let textDocument =
     TextDocumentIdentifier.create ~uri:(Uri.of_path (Fpath.to_string path))
@@ -769,13 +775,40 @@ let test_ls_specs () =
                let%lwt res =
                  receive_response_result CodeActionResult.t_of_yojson info
                in
-               assert (List.length (Option.get res) = 1);
-               (match res with
-               | Some (`CodeAction { kind; _ } :: _) ->
-                   assert (
-                     CodeActionKind.yojson_of_t (Option.get kind)
-                     = `String "quickfix")
-               | _ -> Alcotest.fail "expected code action kind");
+               assert (List.length (Option.get res) = 2);
+               let command =
+                 match res with
+                 | Some
+                     [
+                       `CodeAction { kind; _ };
+                       `CodeAction { command = Some command; _ };
+                     ] ->
+                     assert (
+                       CodeActionKind.yojson_of_t (Option.get kind)
+                       = `String "quickfix");
+                     assert (command.command = "semgrep/ignore");
+                     assert (Option.is_some command.arguments);
+                     command
+                 | _ -> Alcotest.fail "expected code action kind"
+               in
+
+               (* execute command *)
+               let%lwt () =
+                 send_execute_command ~command:command.command
+                   ~arguments:(Option.get command.arguments)
+                   info
+               in
+               let%lwt params =
+                 receive_notification_params
+                   PublishDiagnosticsParams.t_of_yojson info
+               in
+               let not_ignored_ids =
+                 List_.map (fun d -> d.Diagnostic.code) params.diagnostics
+               in
+               Alcotest.(check int)
+                 "new finding from modified file with ignored finding"
+                 (List.length not_ignored_ids)
+                 (List.length new_ids - 1);
 
                Lwt.return_unit)
       in

@@ -87,9 +87,6 @@ class RuleMatch:
     # match. Seems easier to just calculate it w/index
     match_formula_string: str = ""
 
-    # None means we didn't check; ignore status is unknown
-    is_ignored: Optional[bool] = field(default=None)
-
     # derived attributes
     lines: List[str] = field(init=False, repr=False)
     previous_line: str = field(init=False, repr=False)
@@ -121,6 +118,10 @@ class RuleMatch:
     @property
     def end(self) -> out.Position:
         return self.match.end
+
+    @property
+    def is_ignored(self) -> bool:
+        return self.match.extra.is_ignored
 
     # TODO: diff with rule.py product() method?
     @property

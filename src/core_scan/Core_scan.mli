@@ -120,8 +120,8 @@ val replace_named_pipe_by_regular_file : Fpath.t -> Fpath.t
 
 val filter_files_with_too_many_matches_and_transform_as_timeout :
   int ->
-  (Pattern_match.t * Textedit.t option) list ->
-  (Pattern_match.t * Textedit.t option) list
+  Core_result.processed_match list ->
+  Core_result.processed_match list
   * Core_error.t list
   * Semgrep_output_v1_j.skipped_target list
 

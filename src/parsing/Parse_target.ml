@@ -111,7 +111,7 @@ let parse_and_resolve_name lang file =
 let parse_and_resolve_name_warn_if_partial lang file =
   let { ast; skipped_tokens; _ } = parse_and_resolve_name lang file in
   if skipped_tokens <> [] (* nosemgrep *) then
-    pr2 (spf "WARNING: fail to fully parse %s" file);
+    UCommon.pr2 (spf "WARNING: fail to fully parse %s" file);
   ast
 
 let parse_and_resolve_name_fail_if_partial lang file =

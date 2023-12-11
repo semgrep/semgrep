@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-open Common
 open Parse_js
 module TH = Token_helpers_js
 module Flag = Flag_parsing
@@ -30,7 +29,7 @@ let parse_program filename =
   | Parsing.Parse_error ->
       let cur = tr.Parsing_helpers.current in
       if !Flag.show_parsing_error then
-        pr2 ("parse error \n = " ^ error_msg_tok cur);
+        UCommon.pr2 ("parse error \n = " ^ error_msg_tok cur);
       raise (Parsing_error.Syntax_error (TH.info_of_tok cur))
 
 let any_of_string str =

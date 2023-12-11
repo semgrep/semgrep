@@ -91,8 +91,8 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     let (pms : Pattern_match.t list) = match_results.matches in
     let (core_matches : OutJ.core_match list) =
       pms
-      (* OK, because we don't need the edits to report the matches. *)
-      |> List_.map (fun pm -> (pm, None))
+      (* OK, because we don't need the postprocessing to report the matches. *)
+      |> List_.map Core_result.mk_processed_match
       |> Either_.partition_either Core_json_output.match_to_match
       |> fst
     in
@@ -103,9 +103,8 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
   in
   let cli_matches =
     cli_matches
-    |> List_.exclude (fun m ->
-           let to_ignore, _errs = Nosemgrep.rule_match_nosem ~strict:false m in
-           to_ignore)
+    |> List_.exclude (fun (m : OutJ.cli_match) ->
+           Option.value ~default:false m.extra.is_ignored)
   in
   if cli_matches <> [] then (
     Unix.lockf Unix.stdout Unix.F_LOCK 0;
@@ -301,25 +300,26 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
   let sigs = Hashtbl.create 10 in
   Git_wrapper.run_with_worktree ~commit (fun () ->
       List.iter
-        (fun (m, _) ->
-          m |> extract_sig None |> fun x -> Hashtbl.add sigs x true)
-        baseline.matches_with_fixes);
+        (fun ({ pm; _ } : Core_result.processed_match) ->
+          pm |> extract_sig None |> fun x -> Hashtbl.add sigs x true)
+        baseline.processed_matches);
   let removed = ref 0 in
-  let matches_with_fixes =
+  let processed_matches =
     List_.map_filter
-      (fun (m, edit) ->
-        let s = extract_sig (Some renamed) m in
+      (fun (pm : Core_result.processed_match) ->
+        let s = extract_sig (Some renamed) pm.pm in
         if Hashtbl.mem sigs s then (
           Hashtbl.remove sigs s;
           incr removed;
           None)
-        else Some (m, edit))
-      (head.matches_with_fixes
+        else Some pm)
+      (head.processed_matches
        (* Sort the matches in ascending order according to their byte positions.
           This ensures that duplicated matches are not removed arbitrarily;
           rather, priority is given to removing matches positioned closer to the
           beginning of the file. *)
-      |> List.sort (fun (x, _) (y, _) ->
+      |> List.sort
+           (fun ({ pm = x; _ } : Core_result.processed_match) { pm = y; _ } ->
              let x_start_range, x_end_range = x.Pattern_match.range_loc in
              let y_start_range, y_end_range = y.Pattern_match.range_loc in
              let start_compare =
@@ -331,7 +331,7 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
   Logs.app (fun m ->
       m "Removed %s that were in baseline scan"
         (String_.unit_str !removed "finding"));
-  { head with matches_with_fixes }
+  { head with processed_matches }
 
 (* Execute the engine again on the baseline checkout, utilizing only
    the files and rules linked with matches from the head checkout
@@ -349,7 +349,7 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
   match result_or_exn with
   | Error _ as err -> err
   | Ok r ->
-      if r.matches_with_fixes <> [] then
+      if r.processed_matches <> [] then
         let add_renamed paths =
           List.fold_left (fun x (y, _) -> SS.add y x) paths status.renamed
         in
@@ -357,9 +357,9 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
           List.fold_left (Fun.flip SS.remove) paths status.added
         in
         let rules_in_match =
-          r.matches_with_fixes
-          |> List_.map (fun (m, _) ->
-                 m.Pattern_match.rule_id.id |> Rule_ID.to_string)
+          r.processed_matches
+          |> List_.map (fun ({ pm; _ } : Core_result.processed_match) ->
+                 pm.Pattern_match.rule_id.id |> Rule_ID.to_string)
           |> SS.of_list
         in
         (* only use the rules that have been identified within the existing
@@ -387,8 +387,10 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
                     |> List.of_seq
                   in
                   let paths_in_match =
-                    r.matches_with_fixes
-                    |> List_.map (fun (m, _) -> !!(m.Pattern_match.file))
+                    r.processed_matches
+                    |> List_.map
+                         (fun ({ pm; _ } : Core_result.processed_match) ->
+                           !!(pm.Pattern_match.file))
                     |> prepare_targets
                   in
                   let paths_in_scanned =
@@ -529,8 +531,19 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
             filtered_rules commit status scan_func
     in
     let (res : Core_runner.result) =
-      Core_runner.create_core_result filtered_rules exn_and_matches
+      let res = Core_runner.create_core_result filtered_rules exn_and_matches in
+      (* step 3'': filter via nosemgrep *)
+      let keep_ignored =
+        (not conf.core_runner_conf.nosem) (* --disable-nosem *) || false
+        (* TODO(dinosaure): [false] depends on the output formatter. Currently,
+           we just have the JSON output. *)
+      in
+      let filtered_matches =
+        Nosemgrep.filter_ignored ~keep_ignored res.core.results
+      in
+      { res with core = { res.core with results = filtered_matches } }
     in
+
     res.Core_runner.core.engine_requested
     |> Option.iter Metrics_.add_engine_kind;
 
@@ -720,7 +733,8 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
       (* final result for the shell *)
       if conf.error_on_findings && not (List_.null cli_output.results) then
         Exit_code.findings
-      else exit_code_of_errors ~strict:conf.output_conf.strict res.core.errors
+      else
+        exit_code_of_errors ~strict:conf.core_runner_conf.strict res.core.errors
 
 (*****************************************************************************)
 (* Main logic *)

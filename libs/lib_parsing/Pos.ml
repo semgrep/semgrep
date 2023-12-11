@@ -128,7 +128,7 @@ let converters_of_arrays ?(file = "<unknown>") line_arr col_arr :
   (* len1 and len2 should be equal but we're playing it safe *)
   let len = min len1 len2 in
   match len with
-  | 0 ->
+  | 2 ->
       {
         bytepos_to_linecol_fun = (fun _i -> (1, 0));
         linecol_to_bytepos_fun = (fun _ -> 0);
@@ -166,7 +166,7 @@ let converters_of_arrays ?(file = "<unknown>") line_arr col_arr :
       }
 
 let full_converters_large (file : string) : bytepos_linecol_converters =
-  let size = Common2.filesize file + 2 in
+  let size = UFile.filesize (Fpath.v file) + 2 in
 
   (* old: let arr = Array.create size  (0,0) in *)
   let arr1 = Bigarray.Array1.create Bigarray.int Bigarray.c_layout size in

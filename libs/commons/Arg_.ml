@@ -78,10 +78,10 @@ let parse_options options usage_msg argv =
   with
   | Arg.Bad msg ->
       Printf.eprintf "%s" msg;
-      UStdlib.exit 2
+      raise (UnixExit 2)
   | Arg.Help msg ->
       UPrintf.printf "%s" msg;
-      UStdlib.exit 0
+      raise (UnixExit 0)
 
 let usage usage_msg options = Arg.usage (Arg.align options) usage_msg
 
@@ -125,7 +125,7 @@ let arg_parse2 l msg short_usage_fun =
       (* eprintf "%s" msg; exit 2; *)
       let xs = lines msg in
       (* take only head, it's where the error msg is *)
-      pr2 (List_.hd_exn "unexpected empty list" xs);
+      UCommon.pr2 (List_.hd_exn "unexpected empty list" xs);
       short_usage_fun ();
       raise (UnixExit 2)
   | Arg.Help _msg ->

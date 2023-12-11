@@ -92,10 +92,10 @@ let parse file =
                          in
                          { Eq.id; left; op; right; languages }
                      | x ->
-                         pr2_gen x;
+                         UCommon.pr2_gen x;
                          error "wrong equivalence fields")
                  | x ->
-                     pr2_gen x;
+                     UCommon.pr2_gen x;
                      error "wrong equivalence fields")
       | _ -> error "missing equivalences entry")
   | Result.Error (`Msg s) ->

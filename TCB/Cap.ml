@@ -58,9 +58,19 @@ end
 module FS = struct
   type root_r = cap
   type root_w = cap
+  type root_all_r = cap
+  type root_all_w = cap
   type cwd_r = cap
   type cwd_w = cap
+  type home_r = cap
+  type home_w = cap
+  type dotfiles_r = cap
+  type dotfiles_w = cap
   type tmp = cap
+
+  (* files or directories mentioned in argv *)
+  type files_argv_r = cap
+  type files_argv_w = cap
 end
 
 (**************************************************************************)
@@ -92,13 +102,18 @@ end
 module Process = struct
   (* basic stuff *)
   type argv = cap
+
+  (* less: could split in env_r, env_w *)
   type env = cap
 
   (* advanced stuff
    * TODO: subtypes, like timeout signal very important
+   * TODO: split signal?
    *)
   type signal = cap
   type exit = cap
+  type pid = cap
+  type kill = cap
   type fork = cap
   type thread = cap
   type domain = cap
@@ -112,7 +127,7 @@ end
 module Console = struct
   type stdin = cap
   type stdout = cap
-  (* no stderr, ambient authority *)
+  type stderr = cap
 end
 
 (**************************************************************************)
@@ -156,27 +171,46 @@ end
  * objects are extensible Product type!
  *)
 
+(* fs *)
 type root = < root_r : FS.root_r ; root_w : FS.root_w >
+type root_all = < root_all_r : FS.root_all_r ; root_all_w : FS.root_all_w >
 type cwd = < cwd_r : FS.cwd_r ; cwd_w : FS.cwd_w >
+type home = < home_r : FS.home_r ; home_w : FS.home_w >
+type dotfiles = < dotfiles_r : FS.dotfiles_r ; dotfiles_w : FS.dotfiles_w >
 type tmp = < tmp : FS.tmp >
-type fs = < root ; cwd ; tmp >
+
+type files_argv =
+  < files_argv_r : FS.files_argv_r ; files_argv_w : FS.files_argv_w >
+
+type fs = < root ; root_all ; cwd ; home ; dotfiles ; tmp ; files_argv >
+
+(* console *)
 type stdin = < stdin : Console.stdin >
 type stdout = < stdout : Console.stdout >
-type console = < stdin ; stdout >
+type stderr = < stderr : Console.stderr >
+type console = < stdin ; stdout ; stderr >
+
+(* process *)
+type argv = < argv : Process.argv >
+type env = < env : Process.env >
+type signal = < signal : Process.signal >
+type exit = < exit : Process.exit >
+type pid = < pid : Process.pid >
+type kill = < kill : Process.kill >
 type fork = < fork : Process.fork >
 type domain = < domain : Process.domain >
 type thread = < thread : Process.thread >
-type process_multi = < fork ; domain ; thread >
-type signal = < signal : Process.signal >
-type exit = < exit : Process.exit >
+type process_multi = < pid ; kill ; fork ; domain ; thread >
 type process_single = < signal ; exit >
-type argv = < argv : Process.argv >
-type env = < env : Process.env >
-type process = < console ; process_single ; process_multi ; argv ; env >
+type process = < argv ; env ; console ; process_single ; process_multi >
+
+(* exec *)
 type exec = < exec : Exec.t >
 
-(* TODO: extend *)
+(* networl *)
 type network = < network : Network.t >
+
+(* misc *)
 type time = < time : Misc.time >
 type random = < random : Misc.random >
 type misc = < time ; random >
@@ -193,22 +227,42 @@ type no_cap = unit (* better than [type no_cap = cap] :) *)
 
 let powerbox : all_caps =
   object
+    (* fs *)
     method root_r = ()
     method root_w = ()
+    method root_all_r = ()
+    method root_all_w = ()
     method cwd_r = ()
     method cwd_w = ()
+    method home_r = ()
+    method home_w = ()
+    method dotfiles_r = ()
+    method dotfiles_w = ()
+    method files_argv_r = ()
+    method files_argv_w = ()
     method tmp = ()
+
+    (* console *)
     method stdin = ()
     method stdout = ()
+    method stderr = ()
+
+    (* process *)
     method argv = ()
     method env = ()
+    method pid = ()
+    method kill = ()
     method signal = ()
     method fork = ()
     method exit = ()
     method domain = ()
     method thread = ()
+
+    (* misc *)
     method time = ()
     method random = ()
+
+    (* dangerous stuff *)
     method exec = ()
     method network = ()
   end

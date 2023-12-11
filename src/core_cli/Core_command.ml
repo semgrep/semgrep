@@ -54,7 +54,7 @@ let parse_pattern lang_pattern str =
              Tok.unsafe_fake_tok "no loc" ))
 [@@profiling]
 
-let output_core_results (result_or_exn : Core_result.result_or_exn)
+let output_core_results caps (result_or_exn : Core_result.result_or_exn)
     (config : Core_scan_config.t) : unit =
   (* note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
@@ -85,7 +85,8 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
       logger#info "size of returned JSON string: %d" (String.length s);
       Out.put s;
       match result_or_exn with
-      | Error (e, _) -> Core_exit_code.exit_semgrep (Unknown_exception e)
+      | Error (e, _) ->
+          Core_exit_code.exit_semgrep caps#exit (Unknown_exception e)
       | Ok _ -> ())
   | Text -> (
       match result_or_exn with
@@ -106,10 +107,10 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
 (* semgrep-core -rules *)
 (*****************************************************************************)
 
-let semgrep_core_with_rules_and_formatted_output (config : Core_scan_config.t) :
-    unit =
+let semgrep_core_with_rules_and_formatted_output caps
+    (config : Core_scan_config.t) : unit =
   let res = Core_scan.scan_with_exn_handler config in
-  output_core_results res config
+  output_core_results caps res config
 
 (*****************************************************************************)
 (* semgrep-core -e/-f *)
@@ -215,13 +216,14 @@ let semgrep_core_with_one_pattern (config : Core_scan_config.t) : unit =
              else E.try_with_exn_to_error file (fun () -> process file));
 
       let n = List.length !E.g_errors in
-      if n > 0 then pr2 (spf "error count: %d" n)
+      if n > 0 then UCommon.pr2 (spf "error count: %d" n)
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let semgrep_core_dispatch (config : Core_scan_config.t) : unit =
+let semgrep_core_dispatch (caps : Cap.all_caps) (config : Core_scan_config.t) :
+    unit =
   if config.rule_source <> None then
-    semgrep_core_with_rules_and_formatted_output config
+    semgrep_core_with_rules_and_formatted_output caps config
   else semgrep_core_with_one_pattern config

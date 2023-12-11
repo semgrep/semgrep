@@ -116,7 +116,9 @@ let check_rule_id_mismatch reported_lines test_lines =
           "Failing due to rule id mismatch. There is a test denoted with \
            'ruleid: <rule name>' where the rule name does not exist or is not \
            expected in the test file.");
-    exit 2 (* EXIT_FAILURE *))
+    failwith "TODO exit 2"
+    (* exit 2 *)
+    (* EXIT_FAILURE *))
 
 module IS = Set.Make (Int)
 
@@ -197,9 +199,9 @@ let get_expected_and_reported_lines result test_files =
       test_files
   in
   let reported_lines =
-    result.Core_result.matches_with_fixes
+    result.Core_result.processed_matches
     |> List.fold_left
-         (fun reported_lines (result, _textedit) ->
+         (fun reported_lines { Core_result.pm = result; _ } ->
            let path = Unix.realpath !!(result.Pattern_match.file)
            and check_id = Rule_ID.to_string result.rule_id.id
            and start_line = (fst result.range_loc).pos.line in

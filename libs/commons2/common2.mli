@@ -301,15 +301,7 @@ val macro_expand : string -> unit
 
 val ( +!> ) : 'a ref -> ('a -> 'a) -> unit
 val ( $ ) : ('a -> 'b) -> ('b -> 'c) -> 'a -> 'c
-val compose : ('a -> 'b) -> ('c -> 'a) -> 'c -> 'b
-val flip : ('a -> 'b -> 'c) -> 'b -> 'a -> 'c
-val curry : ('a * 'b -> 'c) -> 'a -> 'b -> 'c
-val uncurry : ('a -> 'b -> 'c) -> 'a * 'b -> 'c
-val do_nothing : unit -> unit
-val const : 'a -> 'b -> 'a
 val forever : (unit -> unit) -> unit
-val applyn : int -> ('a -> 'a) -> 'a -> 'a
-val on : ('b -> 'b -> 'c) -> ('a -> 'b) -> 'a -> 'a -> 'c
 
 class ['a] shared_variable_hook : 'a -> object
   val mutable data : 'a
@@ -589,6 +581,13 @@ val size_ko : int -> string
 val edit_distance : string -> string -> int
 val wrap : ?width:int -> string -> string
 
+(* strip c s removes all contiguous prefixes of [c] from [s]
+   e.g. strip 'a' "abc"   = "bc"
+        strip 'b' "abc"   = "abc"
+        strip 'c' "cabcc" = "ab"
+*)
+val strip : char -> string -> string
+
 (*****************************************************************************)
 (* Regexp *)
 (*****************************************************************************)
@@ -630,36 +629,7 @@ val compile_regexp_union : regexp list -> Str.regexp
 *)
 
 (* now at beginning of this file: type filename = string *)
-val filesuffix : filename -> string
-val fileprefix : filename -> string
 val adjust_ext_if_needed : filename -> string -> filename
-
-(* db for dir, base *)
-val db_of_filename : filename -> string * filename
-val filename_of_db : string * filename -> filename
-
-(* dbe for dir, base, ext *)
-val dbe_of_filename : filename -> string * string * string
-val dbe_of_filename_nodot : filename -> string * string * string
-
-(* Left (d,b,e) | Right (d,b)  if file has no extension *)
-val dbe_of_filename_safe :
-  filename -> (string * string * string, string * string) Either.t
-
-val dbe_of_filename_noext_ok : filename -> string * string * string
-
-(* [dbe_of_filename_many_ext_opt filename] returns [Some (d,b,e)], where
- * [d] is the directory path, and [b ^ "." ^ e] is the base name, where
- * [b] contains no period '.' characters. If this split is not possible,
- * the result is [None].
- * E.g.:
- *     dbe_of_filename_many_ext_opt "foo.test.yaml" = Some (".", "foo", "test.yaml")
- *     dbe_of_filename_many_ext_opt "foo"           = None
- *)
-val dbe_of_filename_many_ext_opt :
-  filename -> (dirname * string * string) option
-
-val filename_of_dbe : string * string * string -> filename
 
 (* ex: replace_ext "toto.c" "c" "var" *)
 val replace_ext : filename -> string -> string -> filename
@@ -805,7 +775,6 @@ val indent_string : int -> string -> string
 *)
 
 val cat_orig : filename -> string list
-val cat_array : filename -> string array
 val cat_excerpts : filename -> int list -> string list
 val uncat : string list -> filename -> unit
 val interpolate : string -> string list
@@ -819,23 +788,8 @@ val command_safe :
 val y_or_no : string -> bool
 val command2_y_or_no : string -> bool
 val command2_y_or_no_exit_if_no : string -> unit
-val do_in_fork : (unit -> unit) -> int
 val mkdir : ?mode:Unix.file_perm -> string -> unit
 val nblines_file : filename -> int
-val filesize : filename -> int
-val filemtime : filename -> float
-val lfile_exists : filename -> bool
-
-(* no raised Unix_error if the directory does not exist *)
-val dir_exists : path -> bool
-
-(* raise Unix_error if the directory does not exist *)
-val is_directory : path -> bool
-
-(* raise Unix_error if the file does not exist *)
-val is_file : path -> bool
-val is_symlink : filename -> bool
-val is_executable : filename -> bool
 val unix_lstat_eff : filename -> Unix.stats
 val unix_stat_eff : filename -> Unix.stats
 
@@ -882,18 +836,6 @@ val with_tmp_file : str:string -> ext:string -> (filename -> 'a) -> 'a
  * order in which they are called is unspecified. *)
 val register_tmp_file_cleanup_hook : (string -> unit) -> unit
 val with_tmp_dir : (dirname -> 'a) -> 'a
-
-(* If the user use some exit 0 in his code, then no one can intercept this
- * exit and do something before exiting. There is exn handler for exit 0
- * so better never use exit 0 but instead use an exception and just at
- * the very toplevel transform this exn in a unix exit code.
- *
- * subtil: same problem than with Timeout. Do not intercept such exception
- * with some blind try (...) with _ -> ...
- *)
-exception UnixExit of int
-
-val exn_to_real_unixexit : (unit -> 'a) -> 'a
 
 (*###########################################################################*)
 (* Collection-like types *)
@@ -955,7 +897,6 @@ val pack_safe : int -> 'a list -> 'a list list
 
 (* return a list of size n which chunks from original list *)
 val chunks : int -> 'a list -> 'a list list
-val enum : int -> int -> int list
 val enum_safe : int -> int -> int list
 val repeat : 'a -> int -> 'a list
 val generate : int -> 'a -> 'a list
@@ -983,7 +924,6 @@ val fold_k : ('a -> 'b -> ('a -> 'a) -> 'a) -> ('a -> 'a) -> 'a -> 'b list -> 'a
 val fold_right1 : ('a -> 'a -> 'a) -> 'a list -> 'a
 val fold_left : ('a -> 'b -> 'a) -> 'a -> 'b list -> 'a
 val rev_map : ('a -> 'b) -> 'a list -> 'b list
-val join_gen : 'a -> 'a list -> 'a list
 
 val do_withenv :
   (('a -> 'b) -> 'c -> 'd) -> ('e -> 'a -> 'b * 'e) -> 'e -> 'c -> 'd * 'e

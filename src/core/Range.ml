@@ -73,7 +73,7 @@ let range_of_line_spec str file =
     let converters = Pos.full_converters_large file in
     let start = ref (-1) in
     let end_ = ref (-1) in
-    for i = 0 to Common2.filesize file do
+    for i = 0 to UFile.filesize (Fpath.v file) do
       let l, _ = converters.bytepos_to_linecol_fun i in
       if l =|= line1 then start := i;
       if l =|= line2 then end_ := i
@@ -92,7 +92,7 @@ let range_of_linecol_spec str file =
     let converters = Pos.full_converters_large file in
     let start = ref (-1) in
     let end_ = ref (-1) in
-    for i = 0 to Common2.filesize file do
+    for i = 0 to UFile.filesize (Fpath.v file) do
       let l, c = converters.bytepos_to_linecol_fun i in
       if (l, c) =*= (line1, col1) then start := i;
       if (l, c) =*= (line2, col2) then end_ := i

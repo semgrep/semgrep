@@ -232,9 +232,9 @@ let tests =
                                  * but really should match the code in the given file at
                                  * the given range *)
                                 if matches_with_env =*= [] then (
-                                  pr2 str;
-                                  pr2 (AST_generic.show_any pattern);
-                                  pr2 (AST_generic.show_any code));
+                                  UCommon.pr2 str;
+                                  UCommon.pr2 (AST_generic.show_any pattern);
+                                  UCommon.pr2 (AST_generic.show_any code));
                                 Alcotest.(check bool)
                                   (spf "pattern:|%s| should match |%s" pat
                                      (Pretty_print_pattern.pattern_to_string

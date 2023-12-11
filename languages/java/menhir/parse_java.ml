@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-open Common
 module Flag = Flag_parsing
 module PS = Parsing_stat
 module TH = Token_helpers_java
@@ -44,7 +43,7 @@ let tokens input_source =
 (*****************************************************************************)
 let parse filename =
   let stat = Parsing_stat.default_stat filename in
-  let filelines = Common2.cat_array filename in
+  let filelines = UFile.cat_array (Fpath.v filename) in
 
   let toks = tokens (Parsing_helpers.file filename) in
   let toks = Parsing_hacks_java.fix_tokens toks in
@@ -87,7 +86,7 @@ let parse filename =
         raise (Parsing_error.Syntax_error (TH.info_of_tok cur));
 
       if !Flag.show_parsing_error then
-        pr2 ("parse error \n = " ^ error_msg_tok cur);
+        UCommon.pr2 ("parse error \n = " ^ error_msg_tok cur);
       let checkpoint2 = UCommon.cat filename |> List.length in
 
       if !Flag.show_parsing_error then

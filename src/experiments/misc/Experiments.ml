@@ -16,7 +16,7 @@ open Fpath_.Operators
  *)
 let stat_matches file =
   let (matches : Pattern_match.t list) = Common2.get_value file in
-  pr2 (spf "matched: %d" (List.length matches));
+  UCommon.pr2 (spf "matched: %d" (List.length matches));
   let per_files =
     matches
     |> List_.map (fun m -> (m.Pattern_match.file, m))
@@ -24,8 +24,9 @@ let stat_matches file =
     |> List_.map (fun (file, xs) -> (file, List.length xs))
     |> Assoc.sort_by_val_highfirst |> List_.take_safe 10
   in
-  pr2 "biggest file offenders";
-  per_files |> List.iter (fun (file, n) -> pr2 (spf " %60s: %d" !!file n));
+  UCommon.pr2 "biggest file offenders";
+  per_files
+  |> List.iter (fun (file, n) -> UCommon.pr2 (spf " %60s: %d" !!file n));
   ()
 
 module T = Genlex
@@ -84,20 +85,20 @@ let ebnf_to_menhir file =
            | _ when s =~ "^[ \t]*$" -> ""
            | _ -> failwith (spf "not handled: %s" s))
   in
-  pr2 "%{";
-  pr2 "%}";
-  pr2 "";
+  UCommon.pr2 "%{";
+  UCommon.pr2 "%}";
+  UCommon.pr2 "";
 
   htokens |> Hashtbl_.hashset_to_list
-  |> List.iter (fun s -> pr2 (spf "%%token <unit> %s" s));
+  |> List.iter (fun s -> UCommon.pr2 (spf "%%token <unit> %s" s));
 
   let i = ref 0 in
   hkwd |> Hashtbl_.hashset_to_list
   |> List.iter (fun s ->
          incr i;
-         pr2 (spf "%%token <unit> X%d \"%s\"" !i s));
-  pr2 "%start <unit> compilationUnit";
-  pr2 "%%";
-  pr2 "";
+         UCommon.pr2 (spf "%%token <unit> X%d \"%s\"" !i s));
+  UCommon.pr2 "%start <unit> compilationUnit";
+  UCommon.pr2 "%%";
+  UCommon.pr2 "";
 
-  ys |> List.iter (fun s -> pr2 s)
+  ys |> List.iter (fun s -> UCommon.pr2 s)

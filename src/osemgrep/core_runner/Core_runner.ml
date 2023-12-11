@@ -24,8 +24,9 @@ type conf = {
   optimizations : bool;
   max_memory_mb : int;
   timeout : float;
-  timeout_threshold : int;
-  (* output flags *)
+  timeout_threshold : int; (* output flags *)
+  nosem : bool;
+  strict : bool;
   time_flag : bool;
   matching_explanations : bool;
   (* TODO: actually seems like semgrep-core always return them,
@@ -199,6 +200,8 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
    optimizations;
    ast_caching;
    matching_explanations;
+   nosem;
+   strict;
    (* TODO *)
    time_flag = _;
    dataflow_traces = _;
@@ -223,6 +226,8 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
         filter_irrelevant_rules;
         parsing_cache_dir;
         matching_explanations;
+        nosem;
+        strict;
         version = Version.version;
       }
 

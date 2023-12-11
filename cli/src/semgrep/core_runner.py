@@ -690,6 +690,7 @@ class CoreRunner:
         time_flag: bool,
         matching_explanations: bool,
         engine: EngineType,
+        strict: bool,
         run_secrets: bool,
         disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
@@ -768,6 +769,9 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
 
             # adding multi-core option
             cmd.extend(["-j", str(self._jobs)])
+
+            if strict:
+                cmd.extend(["-strict"])
 
             # adding targets option
             if target_mode_config.is_pro_diff_scan:
@@ -962,6 +966,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
         time_flag: bool,
         matching_explanations: bool,
         engine: EngineType,
+        strict: bool,
         run_secrets: bool,
         disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
@@ -982,6 +987,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                 time_flag,
                 matching_explanations,
                 engine,
+                strict,
                 run_secrets,
                 disable_secrets_validation,
                 target_mode_config,
@@ -1019,6 +1025,7 @@ Exception raised: `{e}`
         time_flag: bool,
         matching_explanations: bool,
         engine: EngineType,
+        strict: bool,
         run_secrets: bool,
         disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
@@ -1039,6 +1046,7 @@ Exception raised: `{e}`
             time_flag,
             matching_explanations,
             engine,
+            strict,
             run_secrets,
             disable_secrets_validation,
             target_mode_config,

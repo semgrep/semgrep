@@ -1,4 +1,3 @@
-open Common
 open Fpath_.Operators
 module Flag = Flag_parsing
 
@@ -10,13 +9,13 @@ let test_tokens_lisp file =
   let file = Fpath.v file in
   (match File_type.file_type_of_file file with
   | File_type.PL (File_type.Lisp _) -> ()
-  | _ -> pr2 "warning: seems not a lisp file");
+  | _ -> UCommon.pr2 "warning: seems not a lisp file");
 
   Flag.verbose_lexing := true;
   Flag.verbose_parsing := true;
 
   let toks = Parse_lisp.tokens (Parsing_helpers.File file) in
-  toks |> List.iter (fun x -> pr2_gen x);
+  toks |> List.iter (fun x -> UCommon.pr2_gen x);
   ()
 
 let test_parse_lisp xs =
@@ -26,7 +25,7 @@ let test_parse_lisp xs =
 
   fullxs
   |> List.iter (fun file ->
-         pr2 ("PARSING: " ^ !!file);
+         UCommon.pr2 ("PARSING: " ^ !!file);
 
          let _xs, stat = Parse_lisp.parse !!file in
          Stack_.push stat stat_list);

@@ -26,3 +26,5 @@ val pp_tables :
   unit
 (** Pretty-prints two tables with headings side by side, with some spacing in between.
     Look at [pp_table] for the individual arguments. *)
+
+val with_buffer_to_string : (Format.formatter -> unit) -> string

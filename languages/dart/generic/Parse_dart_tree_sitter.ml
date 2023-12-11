@@ -1914,7 +1914,7 @@ and map_selectors (env : env) (x : CST.selector list) : expr -> expr =
   (* reverse to
       [f4; f3; f2; f1]
   *)
-  |> List.fold_left Common2.compose (fun x -> x)
+  |> List.fold_left Common.compose (fun x -> x)
 (* compose from the left
     fun x -> f4 (f3 (f2 (f1 x)))
 *)
