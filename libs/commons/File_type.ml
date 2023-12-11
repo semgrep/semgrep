@@ -118,7 +118,7 @@ and media_type = Sound of string | Picture of string | Video of string
  * filenames, so it has to be fast!
  *)
 let file_type_of_file file =
-  let _d, b, e = Common2.dbe_of_filename_noext_ok !!file in
+  let _d, b, e = Filename_.dbe_of_filename_noext_ok !!file in
   match e with
   | "ml"
   | "mli"

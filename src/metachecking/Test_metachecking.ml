@@ -60,7 +60,7 @@ let test_rules ?(unit_testing = false) xs =
          (* rules |> List.iter Check_rule.check; *)
          let target =
            try
-             let d, b, ext = Common2.dbe_of_filename !!file in
+             let d, b, ext = Filename_.dbe_of_filename !!file in
              Common2.readdir_to_file_list d @ Common2.readdir_to_link_list d
              |> List_.find_some (fun file2 ->
                     let path2 = Filename.concat d file2 |> Fpath.v in
@@ -68,7 +68,7 @@ let test_rules ?(unit_testing = false) xs =
                      * but test files may have multiple extensions, e.g.
                      * ".test.yaml" (YAML test files), ".sites-available.conf",
                      * ... *)
-                    match Common2.dbe_of_filename_many_ext_opt file2 with
+                    match Filename_.dbe_of_filename_many_ext_opt file2 with
                     | None -> None
                     | Some (_, b2, ext2) ->
                         if

@@ -191,7 +191,7 @@ let print_regression_information ~ext xs newscore =
   let xs = Fpath_.to_strings xs in
   let dirname_opt =
     match xs with
-    | [ x ] when Common2.is_directory x -> Some (UCommon.fullpath x)
+    | [ x ] when UFile.is_directory (Fpath.v x) -> Some (UCommon.fullpath x)
     | _ -> None
   in
   (* nosemgrep *)
@@ -219,7 +219,7 @@ let print_regression_information ~ext xs newscore =
 
 (* inspired by a comment by a reviewer of my CC'09 paper *)
 let lines_around_error_line ~context (file, line) =
-  let arr = Common2.cat_array file in
+  let arr = UFile.cat_array (Fpath.v file) in
 
   let startl = max 0 (line - context) in
   let endl = min (Array.length arr) (line + context) in

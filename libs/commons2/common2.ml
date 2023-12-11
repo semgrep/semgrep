@@ -63,15 +63,7 @@ let rec drop n xs =
   | _, [] -> failwith "drop: not enough"
   | n, _x :: xs -> drop (n - 1) xs
 
-let enum x n =
-  if not (x <= n) then
-    failwith (Printf.sprintf "bad values in enum, expect %d <= %d" x n);
-  let rec enum_aux acc x n =
-    if x =|= n then n :: acc else enum_aux (x :: acc) (x + 1) n
-  in
-  List.rev (enum_aux [] x n)
-
-let enum_safe x n = if x > n then [] else enum x n
+let enum_safe x n = if x > n then [] else List_.enum x n
 
 let rec take n xs =
   match (n, xs) with
@@ -90,7 +82,7 @@ let rec list_last = function
 
 let (list_of_string : string -> char list) = function
   | "" -> []
-  | s -> enum 0 (String.length s - 1) |> List.map (String.get s)
+  | s -> List_.enum 0 (String.length s - 1) |> List.map (String.get s)
 
 let (lines : string -> string list) =
  fun s ->
@@ -412,7 +404,7 @@ let time_func f =
 let example b =
   if b then () else failwith ("ASSERT FAILURE: " ^ Printexc.get_backtrace ())
 
-let _ex1 = assert (enum 1 4 =*= [ 1; 2; 3; 4 ])
+let _ex1 = assert (List_.enum 1 4 =*= [ 1; 2; 3; 4 ])
 
 let assert_equal a b =
   if not (a =*= b) then
@@ -834,28 +826,6 @@ let ( +!> ) refo f = refo := f !refo
  *)
 
 let ( $ ) f g x = g (f x)
-let compose f g x = f (g x)
-(* dont work :( let ( rond_utf_symbol ) f g x = f(g(x)) *)
-
-(* trick to have something similar to the   1 `max` 4   haskell infix notation.
-   by Keisuke Nakano on the caml mailing list.
-   >    let ( /* ) x y = y x
-   >    and ( */ ) x y = x y
-   or
-   let ( <| ) x y = y x
-   and ( |> ) x y = x y
-
-   > Then we can make an infix operator <| f |> for a binary function f.
-*)
-
-let flip f a b = f b a
-let curry f x y = f (x, y)
-let uncurry f (a, b) = f a b
-let id x = x
-let const x _y = x
-let do_nothing () = ()
-let rec applyn n f o = if n =|= 0 then o else applyn (n - 1) f (f o)
-let on g f x y = g (f x) (f y)
 
 let forever f =
   while true do
@@ -1399,7 +1369,7 @@ let optionise f =
 
 (* pixel *)
 let some_or = function
-  | None -> id
+  | None -> Fun.id
   | Some e -> fun _ -> e
 
 let option_to_list = function
@@ -1762,9 +1732,6 @@ let strip c s =
 (* Filenames *)
 (*****************************************************************************)
 
-let dirname = Filename.dirname
-let basename = Filename.basename
-
 type filename = string (* TODO could check that exist :) type sux *)
 
 (* with sexp *)
@@ -1780,96 +1747,16 @@ module BasicType = struct
   type filename = string
 end
 
-(* updated: added '-' in filesuffix because of file like foo.c-- *)
-let (filesuffix : filename -> string) =
- fun s ->
-  try regexp_match s ".+\\.\\([a-zA-Z0-9_-]+\\)$" with
-  | _ -> "NOEXT"
-
-let (fileprefix : filename -> string) =
- fun s ->
-  try regexp_match s "\\(.+\\)\\.\\([a-zA-Z0-9_]+\\)?$" with
-  | _ -> s
-
-(*
-let _ = example (filesuffix "toto.c" =$= "c")
-let _ = example (fileprefix "toto.c" =$= "toto")
-*)
-
-(*
-assert (s = fileprefix s ^ filesuffix s)
-
-let withoutExtension s = global_replace (regexp "\\..*$") "" s
-let () = example "without"
-    (withoutExtension "toto.s.toto" = "toto")
-*)
-
 let adjust_ext_if_needed filename ext =
   if String.get ext 0 <> '.' then
     failwith "I need an extension such as .c not just c";
 
   if not (filename =~ ".*\\" ^ ext) then filename ^ ext else filename
 
-let db_of_filename file = (dirname file, basename file)
-let filename_of_db (basedir, file) = Filename.concat basedir file
-
-let dbe_of_filename file =
-  (* raise Invalid_argument if no ext, so safe to use later the unsafe
-   * fileprefix and filesuffix functions (well filesuffix is safe by default)
-   *)
-  ignore (Filename.chop_extension file);
-  ( Filename.dirname file,
-    Filename.basename file |> fileprefix,
-    Filename.basename file |> filesuffix )
-
-let filename_of_dbe (dir, base, ext) =
-  if ext = "" then Filename.concat dir base
-  else Filename.concat dir (base ^ "." ^ ext)
-
-let dbe_of_filename_safe file =
-  try Either.Left (dbe_of_filename file) with
-  | Invalid_argument _ ->
-      Either.Right (Filename.dirname file, Filename.basename file)
-
-let dbe_of_filename_nodot file =
-  let d, b, e = dbe_of_filename file in
-  let d = if d = "." then "" else d in
-  (d, b, e)
-
-(* old:
- * let re_be = Str.regexp "\\([^.]*\\)\\.\\(.*\\)"
- * let dbe_of_filename_noext_ok file =
- *   ...
- *   if Str.string_match re_be base 0
- *   then
- *     let (b, e) = matched2 base in
- *     (dir, b, e)
- *
- *  That way files like foo.md5sum.c would not be considered .c
- *  but .md5sum.c, but then it has too many disadvantages because
- *  then regular files like qemu.root.c would not be considered
- *  .c files, so it's better instead to fix syncweb to not generate
- *  .md5sum.c but .md5sum_c files!
- *)
-
-let dbe_of_filename_noext_ok file =
-  let dir = Filename.dirname file in
-  let base = Filename.basename file in
-  (dir, fileprefix base, filesuffix base)
-
-let dbe_of_filename_many_ext_opt file =
-  let re_be = Str.regexp "\\([^.]*\\)\\.\\(.*\\)" in
-  let dir = Filename.dirname file in
-  let base = Filename.basename file in
-  if Str.string_match re_be base 0 then
-    let b, e = matched2 base in
-    Some (dir, b, e)
-  else None
-
 let replace_ext file oldext newext =
-  let d, b, e = dbe_of_filename file in
+  let d, b, e = Filename_.dbe_of_filename file in
   assert (e = oldext);
-  filename_of_dbe (d, b, newext)
+  Filename_.filename_of_dbe (d, b, newext)
 
 (* Given a file name, normalize it by removing "." and "..".  This works
  * exclusively by processing the string, not relying on any file system
@@ -2200,7 +2087,7 @@ let days_in_week_of_day day =
   let start_d = mday - wday in
   let end_d = mday + (6 - wday) in
 
-  enum start_d end_d
+  List_.enum start_d end_d
   |> List.map (fun mday -> Unix.mktime { tm with Unix.tm_mday = mday } |> fst)
 
 let first_day_in_week_of_day day =
@@ -2550,8 +2437,6 @@ let cat file =
   close_in chan;
   x
 
-let cat_array file = "" :: cat file |> Array.of_list
-
 (* Spec for cat_excerpts:
    let cat_excerpts file lines =
    let arr = cat_array file in
@@ -2664,52 +2549,8 @@ let command_safe ?verbose:(_verbose = false) program args =
 
 let mkdir ?(mode = 0o770) file = UUnix.mkdir file mode
 
-(* TODO: add [@@profiling] but mutual deps :( *)
-let unix_stat file = UUnix.stat file
-
-let filesize file =
-  if not !Common.jsoo (* this does not work well with jsoo *) then
-    (unix_stat file).st_size
-    (* src: https://rosettacode.org/wiki/File_size#OCaml *)
-  else
-    let ic = UStdlib.open_in_bin file in
-    let i = in_channel_length ic in
-    close_in ic;
-    i
-
-let filemtime file =
-  if !Common.jsoo then failwith "JSOO:filemtime" else (unix_stat file).st_mtime
-
 (* opti? use wc -l ? *)
 let nblines_file file = cat file |> List.length
-
-let lfile_exists filename =
-  try
-    match (UUnix.lstat filename).st_kind with
-    | Unix.S_REG
-    | Unix.S_LNK ->
-        true
-    | _ -> false
-  with
-  | UUnix.Unix_error (Unix.ENOENT, _, _) -> false
-
-(* Helps avoid the `Fatal error: exception Unix_error: No such file or directory stat` *)
-let dir_exists path =
-  try
-    match (UUnix.lstat path).st_kind with
-    | S_DIR -> true
-    | _ -> false
-  with
-  | UUnix.Unix_error (Unix.ENOENT, _, _) -> false
-
-let is_directory file = (unix_stat file).st_kind =*= Unix.S_DIR
-let is_file file = (unix_stat file).st_kind =*= Unix.S_REG
-let is_symlink file = (UUnix.lstat file).st_kind =*= Unix.S_LNK
-
-let is_executable file =
-  let stat = unix_stat file in
-  let perms = stat.st_perm in
-  stat.st_kind =*= Unix.S_REG && perms land 0o011 <> 0
 
 (* ---------------------------------------------------------------------- *)
 (* _eff variant *)
@@ -2817,7 +2658,7 @@ let sanity_check_files_and_adjust ext files =
            if not (file =~ ".*\\." ^ ext) then (
              pr2 ("warning: seems not a ." ^ ext ^ " file");
              false)
-           else if is_directory file then (
+           else if UFile.is_directory (Fpath.v file) then (
              pr2 (spf "warning: %s is a directory" file);
              false)
            else true)
@@ -3153,7 +2994,7 @@ let rec skipfirst e = function
 
 let index_list xs =
   if List_.null xs then [] (* enum 0 (-1) generate an exception *)
-  else zip xs (enum 0 (List.length xs - 1))
+  else zip xs (List_.enum 0 (List.length xs - 1))
 
 (* if you want to use this to show the progress while processing huge list,
  * consider instead Common_extra.progress
@@ -3162,7 +3003,7 @@ let index_list_and_total xs =
   let total = List.length xs in
   if List_.null xs then [] (* enum 0 (-1) generate an exception *)
   else
-    zip xs (enum 0 (List.length xs - 1))
+    zip xs (List_.enum 0 (List.length xs - 1))
     |> List.map (fun (a, b) -> (a, b, total))
 
 let avg_list xs =
@@ -3233,15 +3074,6 @@ let rec list_init = function
  *   let last_n n l = List.rev (take n (List.rev l))
  *   let last l = Common.hd_exn "unexpected empty list" (last_n 1 l)
  *)
-
-(* Tail-recursive to prevent stack overflows. *)
-let join_gen a xs =
-  let rec aux acc = function
-    | [] -> List.rev acc
-    | [ x ] -> List.rev (x :: acc)
-    | x :: xs -> aux (a :: x :: acc) xs
-  in
-  aux [] xs
 
 (* todo: foldl, foldr (a more consistent foldr) *)
 
@@ -3824,8 +3656,9 @@ let (columns_of_matrix : 'a matrix -> 'a list list) =
  fun m ->
   let nbcols = nb_columns_matrix m in
   let nbrows = nb_rows_matrix m in
-  enum 0 (nbcols - 1)
-  |> List.map (fun j -> enum 0 (nbrows - 1) |> List.map (fun i -> m.(i).(j)))
+  List_.enum 0 (nbcols - 1)
+  |> List.map (fun j ->
+         List_.enum 0 (nbrows - 1) |> List.map (fun i -> m.(i).(j)))
 
 let all_elems_matrix_by_row m = rows_of_matrix m |> List.flatten
 let ex_matrix1 = [| [| 0; 1; 2 |]; [| 3; 4; 5 |]; [| 6; 7; 8 |] |]
@@ -4223,7 +4056,7 @@ let group_assoc_bykey_eff xs =
   keys |> List.map (fun k -> (k, Hashtbl.find_all h k))
 
 let _test_group_assoc () =
-  let xs = enum 0 10000 |> List.map (fun i -> (i_to_s i, i)) in
+  let xs = List_.enum 0 10000 |> List.map (fun i -> (i_to_s i, i)) in
   let xs = ("0", 2) :: xs in
   (*    let _ys = xs +> Common.groupBy (fun (a,resa) (b,resb) -> a = b)  *)
   let ys = xs |> group_assoc_bykey_eff in
@@ -5351,7 +5184,7 @@ let _ = example
 *)
 
 let dirs_and_base_of_file file =
-  let dir, base = db_of_filename file in
+  let dir, base = Filename_.db_of_filename file in
   let dirs = split "/" dir in
   let dirs =
     match dirs with
@@ -5368,7 +5201,7 @@ let _ = example
 let inits_of_absolute_dir dir =
   if not (is_absolute dir) then
     failwith (spf "inits_of_absolute_dir: %s is not an absolute path" dir);
-  if not (is_directory dir) then
+  if not (UFile.is_directory (Fpath.v dir)) then
     failwith (spf "inits_of_absolute_dir: %s is not a directory" dir);
   let dir = chop_dirsymbol dir in
 

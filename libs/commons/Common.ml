@@ -239,13 +239,32 @@ let exn_to_s exn = Printexc.to_string exn
 (*###########################################################################*)
 
 (*****************************************************************************)
-(* Test *)
-(*****************************************************************************)
-(* See Alcotest_ext. and Testutil_* modules *)
-
-(*****************************************************************************)
 (* Composition/Control *)
 (*****************************************************************************)
+
+let compose f g x = f (g x)
+(* does not work :( let ( rond_utf_symbol ) f g x = f(g(x)) *)
+
+(* trick to have something similar to the   1 `max` 4   haskell infix notation.
+   by Keisuke Nakano on the caml mailing list.
+   >    let ( /* ) x y = y x
+   >    and ( */ ) x y = x y
+   or
+   let ( <| ) x y = y x
+   and ( |> ) x y = x y
+
+   > Then we can make an infix operator <| f |> for a binary function f.
+*)
+
+let flip f a b = f b a
+let curry f x y = f (x, y)
+let uncurry f (a, b) = f a b
+let const x _y = x
+let do_nothing () = ()
+let rec applyn n f o = if n =|= 0 then o else applyn (n - 1) f (f o)
+
+(* I think Brandon added that, not sure where it comes from *)
+let on g f x y = g (f x) (f y)
 
 (*****************************************************************************)
 (* Error management *)
@@ -260,6 +279,11 @@ let exn_to_s exn = Printexc.to_string exn
 (* Flags and actions *)
 (*****************************************************************************)
 (* See Cmdliner now *)
+
+(*****************************************************************************)
+(* Test *)
+(*****************************************************************************)
+(* See Alcotest_ext. and Testutil_* modules *)
 
 (*###########################################################################*)
 (* Basic types *)

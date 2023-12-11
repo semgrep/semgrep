@@ -166,7 +166,7 @@ let converters_of_arrays ?(file = "<unknown>") line_arr col_arr :
       }
 
 let full_converters_large (file : string) : bytepos_linecol_converters =
-  let size = Common2.filesize file + 2 in
+  let size = UFile.filesize (Fpath.v file) + 2 in
 
   (* old: let arr = Array.create size  (0,0) in *)
   let arr1 = Bigarray.Array1.create Bigarray.int Bigarray.c_layout size in

@@ -261,7 +261,7 @@ let passed_a_define tr =
 let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
     (Ast.program, T.token) Parsing_result.t =
   let stat = Parsing_stat.default_stat !!file in
-  let filelines = Common2.cat_array !!file in
+  let filelines = UFile.cat_array file in
 
   (* -------------------------------------------------- *)
   (* call lexer and get all the tokens *)

@@ -94,7 +94,7 @@ let xtarget_of_file (xlang : Xlang.t) (target : Fpath.t) : Xtarget.t =
 (*****************************************************************************)
 
 let find_target_of_yaml_file_opt (file : Fpath.t) : Fpath.t option =
-  let d, b, ext = Common2.dbe_of_filename !!file in
+  let d, b, ext = Filename_.dbe_of_filename !!file in
   Common2.readdir_to_file_list d @ Common2.readdir_to_link_list d
   |> List_.find_some_opt (fun file2 ->
          let path2 = Filename.concat d file2 in
@@ -102,7 +102,7 @@ let find_target_of_yaml_file_opt (file : Fpath.t) : Fpath.t option =
           * but test files may have multiple extensions, e.g.
           * ".test.yaml" (YAML test files), ".sites-available.conf",
           * ... *)
-         match Common2.dbe_of_filename_many_ext_opt file2 with
+         match Filename_.dbe_of_filename_many_ext_opt file2 with
          | None -> None
          | Some (_, b2, ext2) ->
              if

@@ -135,7 +135,7 @@ let _ =
 
 (* copy paste of module_ml.ml *)
 let module_name_of_filename file =
-  let _d, b, _e = Common2.dbe_of_filename file in
+  let _d, b, _e = Filename_.dbe_of_filename file in
   let module_name = String.capitalize_ascii b in
   module_name
 
