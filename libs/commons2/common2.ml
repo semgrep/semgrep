@@ -2325,10 +2325,6 @@ let (split_space : string -> string list) =
 
 let n_space n = repeat " " n |> join ""
 
-let ends_with_carriage_return s =
-  let n = String.length s in
-  if n =|= 0 then false else s.[n - 1] =$= '\r'
-
 let indent_string n s =
   let xs = lines s in
   xs |> List.map (fun s -> n_space n ^ s) |> unlines
