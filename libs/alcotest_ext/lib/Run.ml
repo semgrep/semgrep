@@ -205,17 +205,67 @@ let is_important_status (_test, _status, (sum : T.status_summary)) =
   | Not_OK ->
       true
 
-let print_status ((test : _ T.test), _status, sum) =
+let diff_output (output_file_pairs : Store.output_file_pair list) =
+  output_file_pairs
+  |> List.iter
+       (fun
+         ({ path_to_expected_output; path_to_output; _ } :
+           Store.output_file_pair)
+       ->
+         flush stdout;
+         flush stderr;
+         match
+           Sys.command
+             (sprintf "diff -u --color '%s' '%s'" path_to_expected_output
+                path_to_output)
+         with
+         | _ -> (* yolo *) ());
+  print_newline ()
+
+let print_status ?(output_style = Full)
+    ((test : _ T.test), (status : T.status), sum) =
   printf "%s %s%s %s\n"
     (format_status_summary sum)
-    test.id (format_tags test) test.internal_full_name
+    test.id (format_tags test) test.internal_full_name;
 
-let print_statuses ?(only_important = false) tests_with_status =
+  match output_style with
+  | Short -> ()
+  | Full -> (
+      (* Details about expectations *)
+      (match status.expectation.expected_outcome with
+      | Should_succeed -> ()
+      | Should_fail reason -> printf "  expected to fail: %S" reason);
+      (match test.output_kind with
+      | Ignore_output -> ()
+      | _ ->
+          let text =
+            match test.output_kind with
+            | Ignore_output -> assert false
+            | Stdout -> "stdout"
+            | Stderr -> "stderr"
+            | Merged_stdout_stderr -> "merged stdout and stderr"
+            | Separate_stdout_stderr -> "separate stdout and stderr"
+          in
+          printf "  checked output: %s\n" text);
+      (* Details about results *)
+      match status.expectation.expected_output with
+      | Error msg ->
+          printf "Missing file(s) containing the expected output: %s\n" msg
+      | Ok expected_output -> (
+          match status.result with
+          | Error msg ->
+              printf "Missing file(s) containing the test output: %s\n" msg
+          | Ok result ->
+              if result.captured_output <> expected_output then
+                let output_file_pairs = Store.get_output_file_pairs test in
+                diff_output output_file_pairs))
+
+let print_statuses ~only_important ~output_style tests_with_status =
   let tests_with_status =
     if only_important then List.filter is_important_status tests_with_status
     else tests_with_status
   in
-  tests_with_status |> List.iter print_status
+  tests_with_status |> List.iter (print_status ~output_style)
 
 let is_overall_success statuses =
   statuses
@@ -255,11 +305,11 @@ let print_status_introduction () =
 
 let print_short_status tests_with_status =
   print_endline (Color.format Color Bold "Short status");
-  print_statuses ~only_important:true tests_with_status
+  print_statuses ~only_important:true ~output_style:Short tests_with_status
 
 let print_long_status tests_with_status =
   print_endline (Color.format Color Bold "Long status");
-  print_statuses tests_with_status
+  print_statuses ~only_important:false ~output_style:Full tests_with_status
 
 let plural num = if num >= 2 then "s" else ""
 

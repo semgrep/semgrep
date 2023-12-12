@@ -173,12 +173,11 @@ let names_of_output (output : T.output_kind) : string list =
   | Merged_stdout_stderr -> [ stdxxx_filename ]
   | Separate_stdout_stderr -> [ stdout_filename; stderr_filename ]
 
-let get_file_path (test : _ T.test) filename =
+let get_output_path (test : _ T.test) filename =
   get_status_workspace () // test.id // filename
 
 let get_output_paths (test : _ T.test) =
-  test.output_kind |> names_of_output
-  |> list_map (fun filename -> get_file_path test filename)
+  test.output_kind |> names_of_output |> list_map (get_output_path test)
 
 let get_output (test : _ T.test) =
   test |> get_output_paths |> list_map read_file
@@ -192,9 +191,12 @@ let set_output (test : _ T.test) data =
 let clear_output (test : _ T.test) =
   test |> get_output_paths |> List.iter remove_file
 
+let get_expected_output_path (test : _ T.test) filename =
+  get_expectation_workspace () // test.id // filename
+
 let get_expected_output_paths (test : _ T.test) =
   test.output_kind |> names_of_output
-  |> list_map (fun name -> get_expectation_workspace () // test.id // name)
+  |> list_map (get_expected_output_path test)
 
 let get_expected_output (test : _ T.test) =
   test |> get_expected_output_paths |> list_map read_file
@@ -207,6 +209,21 @@ let set_expected_output (test : _ T.test) (data : string list) =
 
 let clear_expected_output (test : _ T.test) =
   test |> get_expected_output_paths |> List.iter remove_file
+
+type output_file_pair = {
+  short_name : string;
+  path_to_expected_output : string;
+  path_to_output : string;
+}
+
+let get_output_file_pairs (test : _ T.test) =
+  test.output_kind |> names_of_output
+  |> Helpers.list_map (fun name ->
+         {
+           short_name = name;
+           path_to_expected_output = get_expected_output_path test name;
+           path_to_output = get_output_path test name;
+         })
 
 (**************************************************************************)
 (* Output redirection *)
@@ -268,17 +285,21 @@ let with_output_capture (test : unit T.test) func =
   match test.output_kind with
   | Ignore_output -> func
   | Stdout ->
-      with_redirect_to_file stdout (get_file_path test stdout_filename) func
+      with_redirect_to_file stdout (get_output_path test stdout_filename) func
   | Stderr ->
-      with_redirect_to_file stderr (get_file_path test stderr_filename) func
+      with_redirect_to_file stderr (get_output_path test stderr_filename) func
   | Merged_stdout_stderr ->
       (* redirect stderr to stdout, then redirect stdout to stdxxx file *)
       with_redirect ~from:stderr ~to_:stdout
-        (with_redirect_to_file stdout (get_file_path test stdxxx_filename) func)
+        (with_redirect_to_file stdout
+           (get_output_path test stdxxx_filename)
+           func)
   | Separate_stdout_stderr ->
       with_redirect_to_file stdout
-        (get_file_path test stdout_filename)
-        (with_redirect_to_file stderr (get_file_path test stderr_filename) func)
+        (get_output_path test stdout_filename)
+        (with_redirect_to_file stderr
+           (get_output_path test stderr_filename)
+           func)
 
 let with_outcome_capture (test : unit T.test) func () =
   try

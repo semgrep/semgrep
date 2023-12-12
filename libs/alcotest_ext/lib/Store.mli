@@ -19,6 +19,17 @@ val init_settings :
 *)
 val init_workspace : unit -> unit
 
+type output_file_pair = {
+  short_name : string;
+  path_to_expected_output : string;
+  path_to_output : string;
+}
+
+(*
+   For diffing output against expected output
+*)
+val get_output_file_pairs : 'a Types.test -> output_file_pair list
+
 (*
    These functions are available after the call to 'init'.
 *)
