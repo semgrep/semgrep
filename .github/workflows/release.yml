@@ -334,19 +334,22 @@ jobs:
       - uses: actions/setup-python@v4
         id: python-setup
         with:
-          # Pin to python 3.9 for pipgrip issues: see https://github.com/returntocorp/semgrep/issues/4213
+          # Pin to python 3.9 for pipgrip issues:
+          # see https://github.com/returntocorp/semgrep/issues/4213
           python-version: "3.9.x"
       - name: Brew update
         run: brew update
-      # pipgrip tries to install python@3.11, and that has linking issues unless --overwrite is passed.
-      # we may be able to remove the python setup above.
-      - name: Brew install python@3.11
-        run: brew install --overwrite python@3.11
+      # pipgrip tries to install python@3.12, and that has linking issues unless
+      # --overwrite is passed. We may be able to remove the python setup above.
+      - name: Brew install python@3.12
+        run: brew install --overwrite python@3.12
       - name: Install pipgrip
         run: brew install --overwrite pipgrip
       - name: Dry Run Brew PR
-        # This step does some brew oddities (setting a fake version, and setting a revision) to allow the brew PR prep to succeed
-        # The `brew bump-formula-pr` does checks to ensure your PR is legit, but we want to do a phony PR (or at least prep it) for Dry Run only
+        # This step does some brew oddities (setting a fake version, and
+        # setting a revision)# to allow the brew PR prep to succeed.
+        # The `brew bump-formula-pr` does checks to ensure your PR is legit,
+        # but we want to do a phony PR (or at least prep it) for Dry Run only
         env:
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
         if: ${{ contains(github.ref, '-test-release') || needs.inputs.outputs.dry-run == 'true' }}
