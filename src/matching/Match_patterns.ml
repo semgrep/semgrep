@@ -307,7 +307,7 @@ let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true)
           |> List.iter (fun (pattern, rule) ->
                  match AST_generic_helpers.range_of_any_opt (E x) with
                  | None ->
-                     logger#error "Skipping because we lack range info: %s"
+                     logger#debug "Skipping because we lack range info: %s"
                        (show_expr_kind x.e);
                      ()
                  | Some range_loc when range_filter range_loc ->
