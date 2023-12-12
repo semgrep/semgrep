@@ -1833,6 +1833,22 @@ let filename_without_leading_path prj_path s =
 
 (* realpath: see end of file *)
 
+let grep_dash_v_str =
+  "| grep -v /.hg/ |grep -v /CVS/ | grep -v /.git/ |grep -v /_darcs/"
+  ^ "| grep -v /.svn/ | grep -v .git_annot | grep -v .marshall"
+
+let arg_symlink () = if !UCommon.follow_symlinks then " -L " else ""
+
+let files_of_dir_or_files_no_vcs ext xs =
+  xs
+  |> List_.map (fun x ->
+         if USys.is_directory x then
+           UCmd.cmd_to_list
+             ("find " ^ arg_symlink () ^ x ^ " -noleaf -type f -name \"*." ^ ext
+            ^ "\"" ^ grep_dash_v_str)
+         else [ x ])
+  |> List.concat
+
 (*****************************************************************************)
 (* i18n *)
 (*****************************************************************************)

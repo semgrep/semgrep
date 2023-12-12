@@ -648,6 +648,9 @@ val filename_without_leading_path : string -> filename -> filename
 val inits_of_absolute_dir : dirname -> dirname list
 val inits_of_relative_dir : dirname -> dirname list
 
+val files_of_dir_or_files_no_vcs :
+  string (* extension *) -> string (* root *) list -> string (* filename *) list
+
 (*****************************************************************************)
 (* i18n *)
 (*****************************************************************************)
