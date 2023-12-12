@@ -83,6 +83,11 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 (* Types *)
 (*****************************************************************************)
 
+(* TODO: probably far more needed at some point
+ * - exec for git.
+ *)
+type caps = < Cap.stdout ; Cap.network ; Cap.exec >
+
 (*****************************************************************************)
 (* Error management *)
 (*****************************************************************************)
@@ -169,14 +174,15 @@ let at_url_maybe ppf () : unit =
  * them because it's faster than using YAML.
  * TODO: factorize with Session.decode_rules()
  *)
-let decode_json_rules (data : string) : Rule_fetching.rules_and_origin =
+let decode_json_rules caps (data : string) : Rule_fetching.rules_and_origin =
   Common2.with_tmp_file ~str:data ~ext:"json" (fun file ->
       let file = Fpath.v file in
       Rule_fetching.load_rules_from_file ~rewrite_rule_ids:false ~origin:App
-        ~registry_caching:false file)
+        ~registry_caching:false caps file)
 
 let scan_config_and_rules_from_deployment ~dry_run
-    (prj_meta : OutJ.project_metadata) (token : Auth.token)
+    (prj_meta : OutJ.project_metadata)
+    (caps : < Cap.network ; Auth.cap_token ; .. >)
     (deployment_config : OutJ.deployment_config) :
     Semgrep_App.scan_id * OutJ.scan_config * Rule_fetching.rules_and_origin list
     =
@@ -199,7 +205,7 @@ let scan_config_and_rules_from_deployment ~dry_run
       proj_config = ProjectConfig.load_all()
       metadata_dict = {**metadata_dict, **proj_config.to_dict()}
   *)
-  match Semgrep_App.start_scan ~dry_run token prj_meta scan_metadata with
+  match Semgrep_App.start_scan ~dry_run caps prj_meta scan_metadata with
   | Error msg ->
       Logs.err (fun m -> m "Could not start scan %s" msg);
       Error.exit Exit_code.fatal
@@ -213,22 +219,24 @@ let scan_config_and_rules_from_deployment ~dry_run
               at_url_maybe ());
         match
           (* TODO: should pass and use scan_id *)
-          Semgrep_App.fetch_scan_config token ~sca:false ~dry_run
+          Semgrep_App.fetch_scan_config caps ~sca:false ~dry_run
             ~full_scan:prj_meta.is_full_scan ~repository:prj_meta.repository
         with
         | Error msg ->
             Logs.err (fun m -> m "Failed to download configuration: %s" msg);
             let r = Exit_code.fatal in
-            Semgrep_App.report_failure ~dry_run token ~scan_id r;
+            Semgrep_App.report_failure ~dry_run caps ~scan_id r;
             Error.exit r
         | Ok config -> config
       in
 
       let rules_and_origins =
-        try decode_json_rules scan_config.rule_config with
+        try
+          decode_json_rules (caps :> < Cap.network >) scan_config.rule_config
+        with
         | Error.Semgrep_error (_, opt_ex) as e ->
             let ex = Option.value ~default:Exit_code.fatal opt_ex in
-            Semgrep_App.report_failure ~dry_run token ~scan_id ex;
+            Semgrep_App.report_failure ~dry_run caps ~scan_id ex;
             let e = Exception.catch e in
             Exception.reraise e
       in
@@ -567,13 +575,14 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   in
   (results, complete)
 
-let upload_findings ~dry_run
+let upload_findings ~dry_run (caps : < Cap.network ; .. >)
     (depl_opt : (Auth.token * OutJ.deployment_config) option)
     (scan_id_opt : Semgrep_App.scan_id option) blocking_findings filtered_rules
     (cli_output : OutJ.cli_output) : Semgrep_App.app_block_override =
   match (depl_opt, scan_id_opt) with
   | Some (token, deployment_config), Some scan_id ->
       Logs.app (fun m -> m "  Uploading findings.");
+      let caps = Auth.cap_token_and_network token caps in
       let results, complete =
         findings_and_complete
           ~has_blocking_findings:(not (List_.null blocking_findings))
@@ -581,7 +590,7 @@ let upload_findings ~dry_run
       in
       let override =
         match
-          Semgrep_App.upload_findings token ~scan_id ~dry_run ~results ~complete
+          Semgrep_App.upload_findings caps ~scan_id ~dry_run ~results ~complete
         with
         | Ok a -> a
         | Error msg ->
@@ -609,7 +618,7 @@ let upload_findings ~dry_run
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run_conf caps (ci_conf : Ci_CLI.conf) : Exit_code.t =
+let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   let conf = ci_conf.scan_conf in
   (match conf.common.maturity with
   (* coupling: copy-pasted from Scan_subcommand.ml *)
@@ -641,7 +650,7 @@ let run_conf caps (ci_conf : Ci_CLI.conf) : Exit_code.t =
   in
   (* TODO: pass baseline commit! *)
   let prj_meta =
-    generate_meta_from_environment (caps :> < exec : Cap.Exec.t ; .. >) None
+    generate_meta_from_environment (caps :> < Cap.exec ; .. >) None
   in
   Logs.app (fun m -> m "%a" Fmt_.pp_heading "Debugging Info");
   report_scan_environment prj_meta;
@@ -660,10 +669,13 @@ let run_conf caps (ci_conf : Ci_CLI.conf) : Exit_code.t =
         ( None,
           Rule_fetching.rules_from_rules_source ~token_opt:settings.api_token
             ~rewrite_rule_ids:conf.rewrite_rule_ids
-            ~registry_caching:conf.registry_caching conf.rules_source )
+            ~registry_caching:conf.registry_caching
+            (caps :> < Cap.network >)
+            conf.rules_source )
     | Some (token, depl) ->
+        let caps = Auth.cap_token_and_network token caps in
         let scan_id, scan_config, rules =
-          scan_config_and_rules_from_deployment ~dry_run prj_meta token depl
+          scan_config_and_rules_from_deployment ~dry_run prj_meta caps depl
         in
         (Some (scan_id, scan_config), rules)
   in
@@ -749,14 +761,16 @@ let run_conf caps (ci_conf : Ci_CLI.conf) : Exit_code.t =
         ());
 
     let res =
-      Scan_subcommand.run_scan_files conf profiler rules_and_origin
-        targets_and_ignored
+      Scan_subcommand.run_scan_files
+        (caps :> < Cap.stdout >)
+        conf profiler rules_and_origin targets_and_ignored
     in
     match res with
     | Error e ->
         (match (depl_opt, scan_config_opt) with
         | Some (token, _), Some (scan_id, _scan_config) ->
-            Semgrep_App.report_failure ~dry_run token ~scan_id e
+            let caps = Auth.cap_token_and_network token caps in
+            Semgrep_App.report_failure ~dry_run caps ~scan_id e
         | _else -> ());
         Logs.err (fun m -> m "Encountered error when running rules");
         e
@@ -802,7 +816,7 @@ let run_conf caps (ci_conf : Ci_CLI.conf) : Exit_code.t =
           ~non_blocking_findings ~non_blocking_rules;
         let scan_id_opt = Option.map fst scan_config_opt in
         let app_block_override =
-          upload_findings ~dry_run depl_opt scan_id_opt blocking_findings
+          upload_findings ~dry_run caps depl_opt scan_id_opt blocking_findings
             filtered_rules cli_output
         in
         let audit_mode = false in
@@ -814,7 +828,8 @@ let run_conf caps (ci_conf : Ci_CLI.conf) : Exit_code.t =
       (match (depl_opt, scan_config_opt) with
       | Some (token, _), Some (scan_id, _scan_config) ->
           let r = Option.value ~default:Exit_code.fatal ex in
-          Semgrep_App.report_failure ~dry_run token ~scan_id r
+          let caps = Auth.cap_token_and_network token caps in
+          Semgrep_App.report_failure ~dry_run caps ~scan_id r
       | _else -> ());
       Logs.err (fun m ->
           m "Encountered error when running rules: %s" (Printexc.to_string e));
@@ -825,6 +840,6 @@ let run_conf caps (ci_conf : Ci_CLI.conf) : Exit_code.t =
 (* Entry point *)
 (*****************************************************************************)
 
-let main caps (argv : string array) : Exit_code.t =
+let main (caps : caps) (argv : string array) : Exit_code.t =
   let conf = Ci_CLI.parse_argv argv in
   run_conf caps conf

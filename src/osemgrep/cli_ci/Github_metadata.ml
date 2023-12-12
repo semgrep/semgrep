@@ -272,7 +272,7 @@ let find_branchoff_point_from_github_api caps repo_name env :
   | Some str_token, Some api_url, Some head_branch_hash ->
       let gh_token = Auth.unsafe_token_of_string str_token in
       Github_API.find_branchoff_point_async ~gh_token ~api_url ~repo_name
-        ~base_branch_hash head_branch_hash
+        ~base_branch_hash caps head_branch_hash
   | __else__ -> Lwt.return_none
 
 (* from meta.py:

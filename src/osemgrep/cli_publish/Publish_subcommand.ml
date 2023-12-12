@@ -17,7 +17,7 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type caps = < stdout : Cap.Console.stdout ; network : Cap.Network.t >
+type caps = < Cap.stdout ; Cap.network >
 
 (*****************************************************************************)
 (* Helpers *)
@@ -43,6 +43,7 @@ let upload_rule caps rule_file (conf : Publish_CLI.conf) test_code_file =
       let rules, errors =
         Rule_fetching.rules_from_rules_source ~token_opt:(Some caps#token)
           ~rewrite_rule_ids:true ~registry_caching:false
+          (caps :> < Cap.network >)
           (Rules_source.Configs [ rule_file ])
         |> Rule_fetching.partition_rules_and_errors
       in

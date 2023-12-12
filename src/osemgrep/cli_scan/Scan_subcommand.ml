@@ -30,6 +30,12 @@ module SS = Set.Make (String)
 *)
 
 (*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+(* TODO: probably far more needed at some point *)
+type caps = < Cap.stdout ; Cap.network >
+
+(*****************************************************************************)
 (* Logging/Profiling/Debugging *)
 (*****************************************************************************)
 
@@ -426,7 +432,8 @@ let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
 (*****************************************************************************)
 (* Conduct the scan *)
 (*****************************************************************************)
-let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
+let run_scan_files (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
+    (profiler : Profiler.t)
     (rules_and_origins : Rule_fetching.rules_and_origin list)
     (targets_and_skipped : Fpath.t list * OutJ.skipped_target list) :
     (Rule.rule list * Core_runner.result * OutJ.cli_output, Exit_code.t) result
@@ -629,7 +636,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     *)
     Ok (filtered_rules, res, cli_output)
 
-let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
+let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   let profiler = Profiler.make () in
   Profiler.start profiler ~name:"total_time";
 
@@ -712,7 +719,9 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
   let rules_and_origins =
     Rule_fetching.rules_from_rules_source_async ~token_opt:settings.api_token
       ~rewrite_rule_ids:conf.rewrite_rule_ids
-      ~registry_caching:conf.registry_caching conf.rules_source
+      ~registry_caching:conf.registry_caching
+      (caps :> < Cap.network >)
+      conf.rules_source
   in
   let rules_and_origins =
     Lwt_platform.run (Lwt.pick (rules_and_origins :: spinner_ls))
@@ -724,7 +733,9 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
   in
   (* step3: let's go *)
   let res =
-    run_scan_files conf profiler rules_and_origins targets_and_skipped
+    run_scan_files
+      (caps :> < Cap.stdout >)
+      conf profiler rules_and_origins targets_and_skipped
   in
   match res with
   | Error ex -> ex
@@ -742,7 +753,7 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run_conf (caps : Cap.all_caps) (conf : Scan_CLI.conf) : Exit_code.t =
+let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   (* coupling: if you modify the pysemgrep fallback code below, you
    * probably also need to modify it in Ci_subcommand.ml
    *)
@@ -797,9 +808,13 @@ let run_conf (caps : Cap.all_caps) (conf : Scan_CLI.conf) : Exit_code.t =
       (* TOPORT: if enable_version_check: version_check() *)
       Exit_code.ok
   | _ when conf.test <> None ->
-      Test_subcommand.run_conf (Common2.some conf.test)
+      Test_subcommand.run_conf
+        (caps :> < Cap.stdout ; Cap.network >)
+        (Common2.some conf.test)
   | _ when conf.validate <> None ->
-      Validate_subcommand.run_conf (Common2.some conf.validate)
+      Validate_subcommand.run_conf
+        (caps :> < Cap.stdout ; Cap.network >)
+        (Common2.some conf.validate)
   | _ when conf.show <> None ->
       Show_subcommand.run_conf
         (caps :> < Cap.stdout ; Cap.network >)
@@ -811,12 +826,12 @@ let run_conf (caps : Cap.all_caps) (conf : Scan_CLI.conf) : Exit_code.t =
       (* --------------------------------------------------------- *)
       (* Let's go *)
       (* --------------------------------------------------------- *)
-      run_scan_conf conf
+      run_scan_conf caps conf
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let main (caps : Cap.all_caps) (argv : string array) : Exit_code.t =
+let main (caps : caps) (argv : string array) : Exit_code.t =
   let conf = Scan_CLI.parse_argv argv in
   run_conf caps conf

@@ -38,6 +38,9 @@ module OutJ = Semgrep_output_v1_t
 (* Types and constants *)
 (*****************************************************************************)
 
+(* TODO: should use stdout, right now we abuse Logs.app *)
+type caps = < Cap.stdout ; Cap.network >
+
 (* a slice of Scan_CLI.conf *)
 type conf = {
   (* Right now we use --config to get the list of rules for validate, but
@@ -63,7 +66,7 @@ let metarules_pack = "p/semgrep-rule-lints"
 (* Entry point *)
 (*****************************************************************************)
 
-let run_conf (conf : conf) : Exit_code.t =
+let run_conf (caps : caps) (conf : conf) : Exit_code.t =
   let settings = Semgrep_settings.load () in
   let token_opt = settings.api_token in
   (* Checking (1) and (2). Parsing the rules is already a form of validation.
@@ -73,7 +76,9 @@ let run_conf (conf : conf) : Exit_code.t =
    *)
   let rules_and_origin =
     Rule_fetching.rules_from_rules_source ~token_opt ~rewrite_rule_ids:true
-      ~registry_caching:false conf.rules_source
+      ~registry_caching:false
+      (caps :> < Cap.network >)
+      conf.rules_source
   in
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origin
@@ -115,7 +120,9 @@ let run_conf (conf : conf) : Exit_code.t =
         let metarules_and_origin =
           Rule_fetching.rules_from_dashdash_config ~token_opt
             ~rewrite_rule_ids:true (* default *)
-            ~registry_caching:false config
+            ~registry_caching:false
+            (caps :> < Cap.network >)
+            config
         in
         let metarules, metaerrors =
           Rule_fetching.partition_rules_and_errors metarules_and_origin
