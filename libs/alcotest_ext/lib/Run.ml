@@ -242,13 +242,13 @@ let is_overall_success statuses =
 let print_status_introduction () =
   printf
     "The status of completed tests is reported below as one of four kinds:\n\
-     - [PASS]: a successful test that was expected to succeed (good)\n\
-     - [FAIL]: a failing test that was expected to succeed (needs fixing)\n\
-     - [XFAIL]: a failing test that was expected to fail (tolerated failure)\n\
-     - [XPASS]: a successful test that was expected to fail (progress?)\n\
+     - PASS: a successful test that was expected to succeed (good);\n\
+     - FAIL: a failing test that was expected to succeed (needs fixing);\n\
+     - XFAIL: a failing test that was expected to fail (tolerated failure);\n\
+     - XPASS: a successful test that was expected to fail (progress?).\n\
      Other states:\n\
-     - [MISS]: indicates a test that never ran.\n\
-     - [xxxx*]: indicates a new test for which the output should be compared to\n\
+     - MISS: a test that never ran;\n\
+     - xxxx*: a new test for which the output should be compared to\n\
     \  expected output when such expected output is missing. In these cases, you\n\
     \  should review the test output and run the 'approve' subcommand when\n\
     \  satisfied.\n"
