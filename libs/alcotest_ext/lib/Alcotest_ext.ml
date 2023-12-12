@@ -58,7 +58,7 @@ type simple_test = string * (unit -> unit)
    to having more than a million tests, we can add an option to increase
    the number of bits.
 *)
-let update_id (test : _ T.test) =
+let update_id (test : _ t) =
   let internal_full_name = T.recompute_internal_full_name test in
   let md5_hex = internal_full_name |> Digest.string |> Digest.to_hex in
   assert (String.length md5_hex = 32);
@@ -93,6 +93,7 @@ let update ?category ?expected_outcome ?func ?name ?output_kind ?skipped
     category = opt category old.category;
     name = opt name old.name;
     func = opt func old.func;
+    (* requires same type for func and old.func *)
     expected_outcome = opt expected_outcome old.expected_outcome;
     tags = opt tags old.tags;
     speed_level = opt speed_level old.speed_level;
@@ -101,6 +102,8 @@ let update ?category ?expected_outcome ?func ?name ?output_kind ?skipped
   }
   |> update_id
 
+(* Allow conversion from Lwt to synchronous function *)
+let update_func (test : 'a t) func : 'b t = { test with func }
 let has_tag tag test = List.mem tag test.tags
 let simple_test (name, func) = create name func
 let simple_tests simple_tests = Helpers.list_map simple_test simple_tests

@@ -37,4 +37,7 @@ let rec make_dir_if_not_exists ?(recursive = false) dir =
         make_dir_if_not_exists ~recursive parent;
         Sys.mkdir dir 0o777)
       else if Sys.file_exists parent then Sys.mkdir dir 0o777
-      else failwith (sprintf "The parent folder of %S doesn't exist" dir)
+      else
+        failwith
+          (sprintf "The parent folder of %S doesn't exist (current folder: %S)"
+             dir (Sys.getcwd ()))

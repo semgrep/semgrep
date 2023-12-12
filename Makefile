@@ -193,6 +193,12 @@ uninstall:
 .PHONY: test
 test: core-test
 
+# Experimental - only (re-)run the failed tests
+.PHONY: retest
+retest:
+	$(MAKE) build-core-test
+	./test run --lazy
+
 # Note that this target is actually not used in CI; it's only for local dev
 .PHONY: test-all
 test-all:

@@ -331,17 +331,15 @@ let with_output_capture_lwt (test : unit Lwt.t T.test) func =
       failwith
         (sprintf "TODO: lwt test output capture (requested for test %s)" test.id)
 
-let with_result_capture (test : unit T.test) () =
+let with_result_capture (test : unit T.test) func () =
   init_test_workspace test;
-  let func =
-    test.func |> with_output_capture test |> with_outcome_capture test
-  in
+  let func = func |> with_output_capture test |> with_outcome_capture test in
   func ()
 
-let with_result_capture_lwt (test : unit Lwt.t T.test) () =
+let with_result_capture_lwt (test : unit Lwt.t T.test) func () =
   init_test_workspace test;
   let func =
-    test.func |> with_output_capture_lwt test |> with_outcome_capture_lwt test
+    func |> with_output_capture_lwt test |> with_outcome_capture_lwt test
   in
   func ()
 

@@ -116,6 +116,12 @@ val update :
   'a t ->
   'a t
 
+(*
+   Special case of the 'update' function that allows a different type
+   for the new test function. This is useful for converting an Lwt test
+   to a regular one.
+*)
+val update_func : 'a t -> (unit -> 'b) -> 'b t
 val has_tag : Tag.t -> 'a t -> bool
 
 (* Convert legacy optionless format to new format *)

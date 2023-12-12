@@ -137,7 +137,71 @@ let group_by_key key_value_list =
   |> List.sort (fun (pos1, _) (pos2, _) -> compare pos1 pos2)
   |> Helpers.list_map snd
 
-let to_alcotest_generic ~wrap_test_function tests : _ list =
+(*
+   Protect against tests that mutate global variables.
+
+   A way to do this would be to fork off a new process for each test but
+   it's probably too costly and prevents the test from using hacks relying
+   on globals (such as the lazy initialization of some shared resource).
+
+   The Alcotest_ext system needs at least the relative path to its own
+   files to remain valid even if a test changes the current directory
+   by a call to chdir. An alternative way to do that would be to use
+   absolute paths but it makes error messages a little uglier.
+
+   Some other mutable globals could also be protected. They include:
+   - environment variables
+   - whether the stack backtrace should be recorded
+   - terminal settings (affecting color output)
+   - ...
+
+   TODO: add options at test creation time to tolerate the failure to restore
+   this or that setting.
+*)
+let protect_globals (func : unit -> 'a) : unit -> 'a =
+  let protect_global ?error_if_changed get set func () =
+    let original_value = get () in
+    (* nosemgrep: no-fun-protect *)
+    Fun.protect func ~finally:(fun () ->
+        let current_value = get () in
+        set original_value;
+        match error_if_changed with
+        | Some err_msg_func when current_value <> original_value ->
+            Alcotest.fail (err_msg_func original_value current_value)
+        | _ -> ())
+  in
+  func
+  |> protect_global Sys.getcwd Sys.chdir ~error_if_changed:(fun old new_ ->
+         sprintf "Current working directory (cwd) wasn't restored: %s -> %s" old
+           new_)
+  |> protect_global Printexc.backtrace_status Printexc.record_backtrace
+(* TODO: more universal settings to protect? *)
+
+(* TODO: remove this code duplication by either removing support for Lwt
+   (do we really need it?) or some other abtraction mechanism like a functor
+   or a polymorphic record providing bind, return, catch, etc. *)
+let protect_globals_lwt (func : unit -> 'a Lwt.t) : unit -> 'a Lwt.t =
+  let protect_global ?error_if_changed get set func () =
+    let original_value = get () in
+    Lwt.finalize func (fun () ->
+        let current_value = get () in
+        set original_value;
+        (match error_if_changed with
+        | Some err_msg_func when current_value <> original_value ->
+            Alcotest.fail (err_msg_func original_value current_value)
+        | _ -> ());
+        Lwt.return ())
+  in
+  func
+  |> protect_global Sys.getcwd Sys.chdir ~error_if_changed:(fun old new_ ->
+         sprintf "Current working directory (cwd) wasn't restored: %s -> %s" old
+           new_)
+  |> protect_global Printexc.backtrace_status Printexc.record_backtrace
+(* TODO: more universal settings to protect? *)
+
+let to_alcotest_generic
+    ~(wrap_test_function : 'a T.test -> (unit -> 'a) -> unit -> 'a)
+    (tests : 'a T.test list) : _ list =
   tests
   |> Helpers.list_map (fun (test : _ T.test) ->
          let suite_name =
@@ -154,17 +218,28 @@ let to_alcotest_generic ~wrap_test_function tests : _ list =
            sprintf "%s%s%s %s" test.id xfail_note (format_tags test) suite_name
          in
          let func =
-           if test.skipped then Alcotest.skip else wrap_test_function test
+           (*
+         A "skipped" test is marked as skipped in Alcotest's run output
+         and leaves no trace such that Alcotest_ext thinks it never ran.
+       *)
+           if test.skipped then Alcotest.skip
+           else wrap_test_function test test.func
          in
          (* This is the format expected by Alcotest: *)
          (suite_name, (test.name, test.speed_level, func)))
   |> group_by_key
 
 let to_alcotest tests =
-  to_alcotest_generic ~wrap_test_function:Store.with_result_capture tests
+  let wrap_test_function test func =
+    func |> protect_globals |> Store.with_result_capture test
+  in
+  to_alcotest_generic ~wrap_test_function tests
 
 let to_alcotest_lwt tests =
-  to_alcotest_generic ~wrap_test_function:Store.with_result_capture_lwt tests
+  let wrap_test_function test func =
+    func |> protect_globals_lwt |> Store.with_result_capture_lwt test
+  in
+  to_alcotest_generic ~wrap_test_function tests
 
 let contains_regexp pat =
   let rex = Re.Pcre.regexp pat in
@@ -203,14 +278,15 @@ let print_errors (xs : (_, string) Result.t list) : int =
       eprintf "%s%s\n%!" error_str msg;
       1
 
-let is_important_status (_test, _status, (sum : T.status_summary)) =
-  (not sum.has_expected_output)
-  ||
-  match success_of_status_summary sum with
-  | OK -> false
-  | OK_where_no_missing_data
-  | Not_OK ->
-      true
+let is_important_status ((test : _ T.test), _status, (sum : T.status_summary)) =
+  (not test.skipped)
+  && ((not sum.has_expected_output)
+     ||
+     match success_of_status_summary sum with
+     | OK -> false
+     | OK_where_no_missing_data
+     | Not_OK ->
+         true)
 
 let diff_output (output_file_pairs : Store.output_file_pair list) =
   output_file_pairs
