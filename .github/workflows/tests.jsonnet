@@ -250,16 +250,13 @@ local test_cli_job = {
       name: 'Run pytest',
       'working-directory': 'cli',
       // The --snapshot-update below works with the snapshot_update_pr_steps.
-      // Note that there are no tests/e2e/ argument to pytest below so it will
-      // run all the tests specified in cli/pyproject.toml which are
-      // all tests/xxx except tests/qa/ (which is run separately in another job
-      // see below).
+      //
       run: |||
         # tests should simulate CI environment iff they need one
         unset CI
         unset "${!GITHUB_@}"
 
-        pipenv run pytest -n auto -vv --snapshot-update --allow-snapshot-deletion
+        PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make test-for-ci
       |||,
     },
   ] + snapshot_update_pr_steps,
