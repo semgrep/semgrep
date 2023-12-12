@@ -6,6 +6,18 @@
 # This config defines also 2 "jobs" with the `stages: [manual]` directive
 # which are only exercised in CI (see .github/workflows/lint.yml).
 
+# NOTE "Python"
+#
+# TL;DR PLEASE DO NOT update Python dependencies unless strictly needed !
+#
+# In the past, bumping some of the dependencies in this file (e.g. Black to 23.11.0)
+# has caused pre-commit to fail for many of us, with the inevitable disruption that
+# this causes.
+#
+# Given that we are in the process of replacing the Python CLI, it is not a good use
+# of time to deal with issues caused by bumping Python dependencies, unless it is
+# truly needed.
+
 exclude: "^tests|^cli/tests/e2e/(targets|snapshots|rules/syntax)|^cli/tests/performance/targets_perf_sca|^cli/src/semgrep/external|^cli/src/semdep/external|^cli/bin|\\binvalid\\b|TOPORT"
 default_stages: [commit]
 # See https://pre-commit.com/#pre-commit-configyaml---repos
@@ -53,7 +65,7 @@ repos:
   # Extra hooks with repositories defining their own hooks
   # ----------------------------------------------------------
   - repo: https://github.com/myint/autoflake
-    rev: v2.2.1
+    rev: v2.2.1 # PLEASE DO NOT CHANGE [see NOTE "Python"]
     hooks:
       - id: autoflake
         args:
@@ -68,25 +80,25 @@ repos:
   # Note that you need at least pre-commit 3.2.0 to use black
   # See https://github.com/psf/black/issues/4065
   - repo: https://github.com/psf/black
-    rev: 23.11.0
+    rev: 23.10.1 # PLEASE DO NOT CHANGE [see NOTE "Python"]
     hooks:
       - id: black
         args: [--exclude=/cli/src/semgrep/output_from_core.py]
 
   - repo: https://github.com/asottile/reorder_python_imports
-    rev: v3.12.0
+    rev: v3.12.0 # PLEASE DO NOT CHANGE [see NOTE "Python"]
     hooks:
       - id: reorder-python-imports
         args: ["--application-directories=cli/src", --py37-plus]
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.0
+    rev: v3.15.0 # PLEASE DO NOT CHANGE [see NOTE "Python"]
     hooks:
       - id: pyupgrade
         args: ["--py37-plus"]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.7.1
+    rev: v1.7.1 # PLEASE DO NOT CHANGE [see NOTE "Python"]
     hooks:
       - id: mypy
         exclude: ^cli/tests/.+$|^setup.py$|^cli/src/semdep/external/packaging/.*$|^cli/src/semdep/external/parsy/.*$|^cli/scripts/.*$|^scripts/.+$|^stats/parsing-stats/.+$|^perf/.+$|^js/language_server/targets/.+$
@@ -122,7 +134,7 @@ repos:
         additional_dependencies: *mypy-deps
 
   - repo: https://github.com/PyCQA/flake8
-    rev: 6.1.0
+    rev: 6.1.0 # PLEASE DO NOT CHANGE [see NOTE "Python"]
     hooks:
       - id: flake8
         additional_dependencies: ["flake8-bugbear==22.1.11"]
