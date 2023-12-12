@@ -114,6 +114,7 @@ install_requires = [
     "click~=8.1",
     "colorama~=0.4.0",
     "defusedxml~=0.7.1",
+    "exceptiongroup~=1.2.0",
     "glom~=22.1",
     "jsonschema~=4.6",
     "packaging>=21.0",
