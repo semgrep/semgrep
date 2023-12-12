@@ -99,6 +99,7 @@ type 'a test = {
   speed_level : Alcotest.speed_level;
   output_kind : output_kind;
   skipped : bool;
+  tolerate_chdir : bool;
 }
 
 (* TODO: move to a module that has an mli? *)

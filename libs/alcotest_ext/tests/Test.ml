@@ -21,6 +21,8 @@ let tests =
         prerr_string "error\n");
     t "xfail" ~expected_outcome:(Should_fail "raises exception on purpose")
       (fun () -> failwith "this exception is expected");
+    t "skipped" ~skipped:true (fun () -> failwith "this shouldn't happen");
+    t "chdir" ~tolerate_chdir:true (fun () -> Sys.chdir "/");
   ]
 
 let () = Alcotest_ext.interpret_argv ~project_name:"alcotest_ext" tests |> exit

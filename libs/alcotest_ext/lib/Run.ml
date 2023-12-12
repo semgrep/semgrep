@@ -137,6 +137,14 @@ let group_by_key key_value_list =
   |> List.sort (fun (pos1, _) (pos2, _) -> compare pos1 pos2)
   |> Helpers.list_map snd
 
+let chdir_error (test : _ T.test) =
+  if test.tolerate_chdir then None
+  else
+    Some
+      (fun old new_ ->
+        sprintf "Current working directory (cwd) wasn't restored: %s -> %s" old
+          new_)
+
 (*
    Protect against tests that mutate global variables.
 
@@ -158,7 +166,7 @@ let group_by_key key_value_list =
    TODO: add options at test creation time to tolerate the failure to restore
    this or that setting.
 *)
-let protect_globals (func : unit -> 'a) : unit -> 'a =
+let protect_globals test (func : unit -> 'a) : unit -> 'a =
   let protect_global ?error_if_changed get set func () =
     let original_value = get () in
     (* nosemgrep: no-fun-protect *)
@@ -171,16 +179,14 @@ let protect_globals (func : unit -> 'a) : unit -> 'a =
         | _ -> ())
   in
   func
-  |> protect_global Sys.getcwd Sys.chdir ~error_if_changed:(fun old new_ ->
-         sprintf "Current working directory (cwd) wasn't restored: %s -> %s" old
-           new_)
+  |> protect_global Sys.getcwd Sys.chdir ?error_if_changed:(chdir_error test)
   |> protect_global Printexc.backtrace_status Printexc.record_backtrace
 (* TODO: more universal settings to protect? *)
 
 (* TODO: remove this code duplication by either removing support for Lwt
    (do we really need it?) or some other abtraction mechanism like a functor
    or a polymorphic record providing bind, return, catch, etc. *)
-let protect_globals_lwt (func : unit -> 'a Lwt.t) : unit -> 'a Lwt.t =
+let protect_globals_lwt test (func : unit -> 'a Lwt.t) : unit -> 'a Lwt.t =
   let protect_global ?error_if_changed get set func () =
     let original_value = get () in
     Lwt.finalize func (fun () ->
@@ -193,9 +199,7 @@ let protect_globals_lwt (func : unit -> 'a Lwt.t) : unit -> 'a Lwt.t =
         Lwt.return ())
   in
   func
-  |> protect_global Sys.getcwd Sys.chdir ~error_if_changed:(fun old new_ ->
-         sprintf "Current working directory (cwd) wasn't restored: %s -> %s" old
-           new_)
+  |> protect_global Sys.getcwd Sys.chdir ?error_if_changed:(chdir_error test)
   |> protect_global Printexc.backtrace_status Printexc.record_backtrace
 (* TODO: more universal settings to protect? *)
 
@@ -231,13 +235,13 @@ let to_alcotest_generic
 
 let to_alcotest tests =
   let wrap_test_function test func =
-    func |> protect_globals |> Store.with_result_capture test
+    func |> protect_globals test |> Store.with_result_capture test
   in
   to_alcotest_generic ~wrap_test_function tests
 
 let to_alcotest_lwt tests =
   let wrap_test_function test func =
-    func |> protect_globals_lwt |> Store.with_result_capture_lwt test
+    func |> protect_globals_lwt test |> Store.with_result_capture_lwt test
   in
   to_alcotest_generic ~wrap_test_function tests
 

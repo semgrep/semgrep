@@ -71,6 +71,9 @@ type 'a t = private {
   (* The 'skipped' property causes a test to be skipped by Alcotest but still
      shown as "[SKIP]" rather than being omitted. *)
   skipped : bool;
+  (* If the test function changes the current directory without restoring it,
+     it's an error unless this flag is set. *)
+  tolerate_chdir : bool;
 }
 
 type test = unit t
@@ -95,6 +98,7 @@ val create :
   ?skipped:bool ->
   ?speed_level:Alcotest.speed_level ->
   ?tags:Tag.t list ->
+  ?tolerate_chdir:bool ->
   string ->
   (unit -> 'a) ->
   'a t
@@ -113,6 +117,7 @@ val update :
   ?skipped:bool ->
   ?speed_level:Alcotest.speed_level ->
   ?tags:Tag.t list ->
+  ?tolerate_chdir:bool ->
   'a t ->
   'a t
 

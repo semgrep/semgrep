@@ -36,6 +36,7 @@ type 'a t = 'a T.test = {
   speed_level : Alcotest.speed_level;
   output_kind : output_kind;
   skipped : bool;
+  tolerate_chdir : bool;
 }
 
 type test = unit t
@@ -68,7 +69,7 @@ let update_id (test : _ t) =
 
 let create ?(category = []) ?(expected_outcome = Should_succeed)
     ?(output_kind = Ignore_output) ?(skipped = false) ?(speed_level = `Quick)
-    ?(tags = []) name func =
+    ?(tags = []) ?(tolerate_chdir = false) name func =
   {
     id = "";
     internal_full_name = "";
@@ -80,13 +81,14 @@ let create ?(category = []) ?(expected_outcome = Should_succeed)
     speed_level;
     output_kind;
     skipped;
+    tolerate_chdir;
   }
   |> update_id
 
 let opt option default = Option.value option ~default
 
 let update ?category ?expected_outcome ?func ?name ?output_kind ?skipped
-    ?speed_level ?tags old =
+    ?speed_level ?tags ?tolerate_chdir old =
   {
     id = "";
     internal_full_name = "";
@@ -99,6 +101,7 @@ let update ?category ?expected_outcome ?func ?name ?output_kind ?skipped
     speed_level = opt speed_level old.speed_level;
     output_kind = opt output_kind old.output_kind;
     skipped = opt skipped old.skipped;
+    tolerate_chdir = opt tolerate_chdir old.tolerate_chdir;
   }
   |> update_id
 
