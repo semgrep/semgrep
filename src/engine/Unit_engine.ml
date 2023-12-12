@@ -587,6 +587,7 @@ let eval_regression_tests () =
 (*****************************************************************************)
 
 let test_irrelevant_rule rule_file target_file =
+  (* nosemgrep: ocaml.lang.security.hashtable-dos.ocamllint-hashtable-dos *)
   let cache = Some (Hashtbl.create 101) in
   let rules = Parse_rule.parse rule_file in
   rules
@@ -941,21 +942,13 @@ let full_rule_semgrep_rules_regression_tests () =
            |> List_.map (fun (test : Alcotest_ext.test) ->
                   match group with
                   | "XFAIL" ->
-                      (* TODO: mark these tests as XFAIL
-                         once Alcotest_ext supports it *)
-                      let ftest () =
-                        let is_throwing =
-                          try
-                            test.func ();
-                            false
-                          with
-                          | _exn -> true
-                        in
-                        if not is_throwing then
-                          Alcotest.fail
-                            "this used to raise an error (good news?)"
-                      in
-                      Alcotest_ext.update test ~func:ftest
+                      (* TODO: populate the excuse below with the exact reason
+                         found in the comments above *)
+                      Alcotest_ext.update test
+                        ~expected_outcome:
+                          (Should_fail
+                             "excluded semgrep-rule (see OCaml source file for \
+                              details)")
                   | _ -> test)
            |> pack_tests_pro group))
 

@@ -11,8 +11,15 @@ set -e
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-# main tests
-dune runtest -f --no-buffer src/tests
+# Main tests.
+#
+# This script must run from the project root, not in a temporary folder
+# such as _build because it checks the files containing the expected test
+# output.
+# A checking the status of the tests and approving the output is done with
+# './test status' and './test approve'. See './test --help' for options.
+# This uses the in-house project alcotest_ext.
+./test
 
 # run inline tests
 dune runtest -f --no-buffer libs/commons

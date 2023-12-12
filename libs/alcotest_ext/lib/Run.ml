@@ -399,9 +399,18 @@ let run_tests_with_alcotest_lwt tests =
       | e -> raise e)
 
 (* Run this before a run or Lwt run. Returns the filtered tests. *)
-let before_run ?filter_by_substring tests =
+let before_run ?filter_by_substring ?(lazy_ = false) tests =
   Store.init_workspace ();
   check_id_uniqueness tests;
+  let tests =
+    match lazy_ with
+    | false -> tests
+    | true ->
+        (* Read the status of each test so we can skip them *)
+        let tests_with_status = get_tests_with_status tests in
+        List.filter is_important_status tests_with_status
+        |> Helpers.list_map (fun (test, _, _) -> test)
+  in
   print_status_introduction ();
   let selected_tests = tests |> filter ?filter_by_substring in
   (* It would probably be less confusing to report the 4-way outcome here
@@ -421,13 +430,13 @@ let after_run tests selected_tests =
 (*
    Entry point for the 'run' subcommand
 *)
-let run_tests ?filter_by_substring tests =
-  let selected_tests = before_run ?filter_by_substring tests in
+let run_tests ?filter_by_substring ?lazy_ tests =
+  let selected_tests = before_run ?filter_by_substring ?lazy_ tests in
   run_tests_with_alcotest selected_tests;
   after_run tests selected_tests
 
-let run_tests_lwt ?filter_by_substring tests =
-  let selected_tests = before_run ?filter_by_substring tests in
+let run_tests_lwt ?filter_by_substring ?lazy_ tests =
+  let selected_tests = before_run ?filter_by_substring ?lazy_ tests in
   Lwt.bind (run_tests_with_alcotest_lwt selected_tests) (fun () ->
       after_run tests selected_tests |> Lwt.return)
 

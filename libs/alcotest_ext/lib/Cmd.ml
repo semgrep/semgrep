@@ -9,11 +9,16 @@ open Cmdliner
    not all of them use all the fields.
 *)
 type conf = {
+  (* All subcommands *)
   filter_by_substring : string option;
+  (* Status *)
   status_output_style : Run.status_output_style;
+  (* Run *)
+  lazy_ : bool;
 }
 
-let default_conf = { filter_by_substring = None; status_output_style = Full }
+let default_conf =
+  { filter_by_substring = None; status_output_style = Full; lazy_ = false }
 
 (*
    Subcommands:
@@ -30,7 +35,9 @@ type cmd_conf = Run_tests of conf | Status of conf | Approve of conf
 let run_with_conf tests (cmd_conf : cmd_conf) =
   match cmd_conf with
   | Run_tests conf ->
-      Run.run_tests ?filter_by_substring:conf.filter_by_substring tests |> exit
+      Run.run_tests ?filter_by_substring:conf.filter_by_substring
+        ~lazy_:conf.lazy_ tests
+      |> exit
   | Status conf ->
       Run.list_status ?filter_by_substring:conf.filter_by_substring
         ~output_style:conf.status_output_style tests
@@ -59,13 +66,21 @@ let filter_by_substring_term : string option Term.t =
 (* Subcommand: run (replaces alcotest's 'test') *)
 (****************************************************************************)
 
+let lazy_term : bool Term.t =
+  let info =
+    Arg.info [ "lazy" ]
+      ~doc:"Run only the tests that were not previously successful."
+  in
+  Arg.value (Arg.flag info)
+
 let run_doc = "Run the tests."
 
-let subcmd_run_term tests =
-  let combine filter_by_substring =
-    Run_tests { default_conf with filter_by_substring } |> run_with_conf tests
+let subcmd_run_term tests : unit Term.t =
+  let combine filter_by_substring lazy_ =
+    Run_tests { default_conf with filter_by_substring; lazy_ }
+    |> run_with_conf tests
   in
-  Term.(const combine $ filter_by_substring_term)
+  Term.(const combine $ filter_by_substring_term $ lazy_term)
 
 let subcmd_run tests =
   let info = Cmd.info "run" ~doc:run_doc in
@@ -84,12 +99,13 @@ let short_term : bool Term.t =
 
 let status_doc = "List the current status of the tests."
 
-let subcmd_status_term tests =
+let subcmd_status_term tests : unit Term.t =
   let combine filter_by_substring short =
     let status_output_style : Run.status_output_style =
       if short then Short else Full
     in
-    Status { filter_by_substring; status_output_style } |> run_with_conf tests
+    Status { default_conf with filter_by_substring; status_output_style }
+    |> run_with_conf tests
   in
   Term.(const combine $ filter_by_substring_term $ short_term)
 
@@ -103,7 +119,7 @@ let subcmd_status tests =
 
 let approve_doc = "Approve the new output of tests run previously."
 
-let subcmd_approve_term tests =
+let subcmd_approve_term tests : unit Term.t =
   let combine filter_by_substring =
     Approve { default_conf with filter_by_substring } |> run_with_conf tests
   in
