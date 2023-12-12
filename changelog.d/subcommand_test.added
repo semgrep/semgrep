@@ -1,4 +1,0 @@
-A new subcommand 'semgrep test', which is an alias for 'semgrep scan
---test'. This means that if you were running semgrep on a test
-directory, you will now have to use 'semgrep scan test' otherwise it
-will be interpreted as the new 'semgrep test' subcommand.
