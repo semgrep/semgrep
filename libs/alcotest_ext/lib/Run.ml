@@ -5,6 +5,19 @@
 open Printf
 module T = Types
 
+type status_output_style = Short | Full
+
+type status_stats = {
+  total_tests : int;
+  selected_tests : int;
+  pass : int ref;
+  fail : int ref;
+  xfail : int ref;
+  xpass : int ref;
+  miss : int ref;
+  needs_approval : int ref;
+}
+
 type success = OK | OK_where_no_missing_data | Not_OK
 
 (*
@@ -34,15 +47,13 @@ let check_id_uniqueness (tests : _ T.test list) =
                     name0 name id))
 
 let string_of_status_summary (sum : T.status_summary) =
-  let class_string =
-    match sum.status_class with
-    | PASS -> "PASS"
-    | FAIL -> "FAIL"
-    | XFAIL -> "XFAIL"
-    | XPASS -> "XPASS"
-    | MISS -> "MISS"
-  in
-  if sum.has_expected_output then class_string else class_string ^ " (new)"
+  let approval_suffix = if sum.has_expected_output then "" else "*" in
+  match sum.status_class with
+  | PASS -> "PASS" ^ approval_suffix
+  | FAIL -> "FAIL" ^ approval_suffix
+  | XFAIL -> "XFAIL" ^ approval_suffix
+  | XPASS -> "XPASS" ^ approval_suffix
+  | MISS -> "MISS"
 
 let success_of_status_summary (sum : T.status_summary) =
   match sum.status_class with
@@ -59,14 +70,43 @@ let style_of_status_summary (sum : T.status_summary) : Color.style =
   | OK_where_no_missing_data -> Yellow
   | Not_OK -> Red
 
+let brackets s = sprintf "[%s]" s
+
 (* Fixed-width output: "[PASS] ", "[XFAIL]" *)
 let format_status_summary (sum : T.status_summary) =
   let style = style_of_status_summary sum in
-  let displayed_string = sum |> string_of_status_summary in
-  let padding = max 0 (5 - String.length displayed_string) in
-  sprintf "[%s]%s"
+  let displayed_string = sum |> string_of_status_summary |> brackets in
+  let padding = max 0 (7 - String.length displayed_string) in
+  sprintf "%s%s"
     (Color.format Color style displayed_string)
     (String.make padding ' ')
+
+let stats_of_tests tests tests_with_status =
+  let stats =
+    {
+      total_tests = List.length tests;
+      selected_tests = List.length tests_with_status;
+      pass = ref 0;
+      fail = ref 0;
+      xfail = ref 0;
+      xpass = ref 0;
+      miss = ref 0;
+      needs_approval = ref 0;
+    }
+  in
+  tests_with_status
+  |> List.iter (fun (_test, _status, (sum : T.status_summary)) ->
+         (match sum.status_class with
+         | MISS -> ()
+         | _ -> if not sum.has_expected_output then incr stats.needs_approval);
+         incr
+           (match sum.status_class with
+           | PASS -> stats.pass
+           | FAIL -> stats.fail
+           | XFAIL -> stats.xfail
+           | XPASS -> stats.xpass
+           | MISS -> stats.miss));
+  stats
 
 (* Sample output: "", " {foo, bar}" *)
 let format_tags (test : _ T.test) =
@@ -156,7 +196,7 @@ let raise_errors (xs : (_, string) Result.t list) : unit =
       let msg = String.concat "\n" error_messages in
       failwith msg
 
-let is_important_status (sum : T.status_summary) =
+let is_important_status (_test, _status, (sum : T.status_summary)) =
   (not sum.has_expected_output)
   ||
   match success_of_status_summary sum with
@@ -165,47 +205,121 @@ let is_important_status (sum : T.status_summary) =
   | Not_OK ->
       true
 
-let print_status ?(only_important = false) ((test : _ T.test), status) =
-  let sum = Store.status_summary_of_status status in
-  let show =
-    match only_important with
-    | true -> is_important_status sum
-    | false -> true
+let print_status ((test : _ T.test), _status, sum) =
+  printf "%s %s%s %s\n"
+    (format_status_summary sum)
+    test.id (format_tags test) test.internal_full_name
+
+let print_statuses ?(only_important = false) tests_with_status =
+  let tests_with_status =
+    if only_important then List.filter is_important_status tests_with_status
+    else tests_with_status
   in
-  if show then
-    printf "%s %s%s %s\n"
-      (format_status_summary sum)
-      test.id (format_tags test) test.internal_full_name
+  tests_with_status |> List.iter print_status
 
 let is_overall_success statuses =
   statuses
-  |> List.for_all (fun (_test, status) ->
-         match
-           status |> Store.status_summary_of_status |> success_of_status_summary
-         with
+  |> List.for_all (fun (_test, _status, sum) ->
+         match sum |> success_of_status_summary with
          | OK
          | OK_where_no_missing_data ->
              true
          | Not_OK -> false)
 
-let print_statuses ?only_important statuses =
-  print_endline (Color.format Color Bold "Summary");
-  statuses |> List.iter (print_status ?only_important);
-  let overall_success = is_overall_success statuses in
-  (* TODO: show counts: total number of tests, number of selected tests,
-     number of tests in pass/fail/xfail/xpass, percentage of success *)
-  if overall_success then print_endline "All expectations were met."
-  else print_endline "Some expectations were not met.";
+(*
+   Status output:
+   0. Introduction: explain how to read the output.
+   1. Long status: for each selected test, show all the details one might
+      want to know about the test.
+   2. Short status: for each selected test that's considered important
+      (= needs our attention), list a short summary of the test status.
+   3. Summary: give the counts for each test with a particular state.
+
+   Options:
+   --full: all of the above, the default
+   --short: show only short status and summary
+*)
+let print_status_introduction () =
+  printf
+    "The status of completed tests is reported below as one of four kinds:\n\
+     - [PASS]: a successful test that was expected to succeed (good)\n\
+     - [FAIL]: a failing test that was expected to succeed (needs fixing)\n\
+     - [XFAIL]: a failing test that was expected to fail (tolerated failure)\n\
+     - [XPASS]: a successful test that was expected to fail (progress?)\n\
+     Other states:\n\
+     - [MISS]: indicates a test that never ran.\n\
+     - [xxxx*]: indicates a new test for which the output should be compared to\n\
+    \  expected output when such expected output is missing. In these cases, you\n\
+    \  should review the test output and run the 'approve' subcommand when\n\
+    \  satisfied.\n"
+
+let print_short_status tests_with_status =
+  print_endline (Color.format Color Bold "Short status");
+  print_statuses ~only_important:true tests_with_status
+
+let print_long_status tests_with_status =
+  print_endline (Color.format Color Bold "Long status");
+  print_statuses tests_with_status
+
+let plural num = if num >= 2 then "s" else ""
+
+let print_status_summary tests tests_with_status =
+  let stats = stats_of_tests tests tests_with_status in
+  let overall_success = is_overall_success tests_with_status in
+  printf
+    "%i/%i selected test%s:\n\
+    \  %i successful (%i pass, %i xfail),\n\
+    \  %i unsuccessful (%i fail, %i xpass),\n\
+     %i new test%s\n\
+     %i test%s whose output needs first-time approval\n\
+     overall status: %s\n"
+    stats.selected_tests stats.total_tests (plural stats.total_tests)
+    (!(stats.pass) + !(stats.xfail))
+    !(stats.pass) !(stats.xfail)
+    (!(stats.fail) + !(stats.xpass))
+    !(stats.fail) !(stats.xpass) !(stats.miss) (plural !(stats.miss))
+    !(stats.needs_approval)
+    (plural !(stats.needs_approval))
+    (if overall_success then Color.format Color Green "success"
+     else Color.format Color Red "failure");
   if overall_success then 0 else 1
+
+let print_full_status tests tests_with_status =
+  print_status_introduction ();
+  print_newline ();
+  print_long_status tests_with_status;
+  print_newline ();
+  print_short_status tests_with_status;
+  print_status_summary tests tests_with_status
+
+let print_short_status tests tests_with_status =
+  print_short_status tests_with_status;
+  print_status_summary tests tests_with_status
+
+let get_tests_with_status tests =
+  tests
+  |> Helpers.list_map (fun test ->
+         let status = Store.get_status test in
+         (test, status, Store.status_summary_of_status status))
+
+(*
+   Entry point for the status subcommand
+*)
+let list_status ?filter_by_substring ?(output_style = Full) tests =
+  check_id_uniqueness tests;
+  let selected_tests = filter ?filter_by_substring tests in
+  let tests_with_status = get_tests_with_status selected_tests in
+  match output_style with
+  | Full -> print_full_status tests tests_with_status
+  | Short -> print_short_status tests tests_with_status
 
 (* Important: for unknown reasons, the "test" subcommand of alcotest
    force an exit after Alcotest.run, regardless of the 'and_exit' argument
    that we pass. *)
 let alcotest_argv = [| ""; "-e" |]
 
-let run_tests ?filter_by_substring tests =
-  check_id_uniqueness tests;
-  let alcotest_tests = tests |> filter ?filter_by_substring |> to_alcotest in
+let run_tests_with_alcotest tests =
+  let alcotest_tests = to_alcotest tests in
   (try
      Alcotest.run ~and_exit:false ~argv:alcotest_argv "test" alcotest_tests
    with
@@ -214,26 +328,57 @@ let run_tests ?filter_by_substring tests =
      exits, it seems (?) *)
   print_newline ()
 
-let run_tests_lwt ?filter_by_substring tests =
-  check_id_uniqueness tests;
-  let alcotest_tests =
-    tests |> filter ?filter_by_substring |> to_alcotest_lwt
-  in
+let run_tests_with_alcotest_lwt tests =
+  let alcotest_tests = to_alcotest_lwt tests in
   Lwt.catch
     (fun () ->
-      Alcotest_lwt.run ~and_exit:false ~argv:alcotest_argv "test" alcotest_tests)
+      Lwt.bind
+        (Alcotest_lwt.run ~and_exit:false ~argv:alcotest_argv "test"
+           alcotest_tests) (fun () ->
+          print_newline ();
+          Lwt.return ()))
     (function
       | Alcotest.Test_error -> Lwt.return ()
       | e -> raise e)
 
-let list_status ?filter_by_substring ?only_important tests =
+(* Run this before a run or Lwt run. Returns the filtered tests. *)
+let before_run ?filter_by_substring tests =
+  Store.init_workspace ();
   check_id_uniqueness tests;
-  tests
-  |> filter ?filter_by_substring
-  |> Helpers.list_map (fun test -> (test, Store.get_status test))
-  |> print_statuses ?only_important
+  print_status_introduction ();
+  let selected_tests = tests |> filter ?filter_by_substring in
+  (* It would probably be less confusing to report the 4-way outcome here
+     (pass/fail/xfail/xpass) but we can't as long as we rely on Alcotest
+     for running and printing test results. *)
+  print_endline (Color.format Color Bold "Test run");
+  print_endline
+    "In this section, tests are reported as either OK or FAIL without looking\n\
+     at the expected outcome or expected output.";
+  selected_tests
 
+(* Run this after a run or Lwt run. *)
+let after_run tests selected_tests =
+  let tests_with_status = get_tests_with_status selected_tests in
+  print_full_status tests tests_with_status
+
+(*
+   Entry point for the 'run' subcommand
+*)
+let run_tests ?filter_by_substring tests =
+  let selected_tests = before_run ?filter_by_substring tests in
+  run_tests_with_alcotest selected_tests;
+  after_run tests selected_tests
+
+let run_tests_lwt ?filter_by_substring tests =
+  let selected_tests = before_run ?filter_by_substring tests in
+  Lwt.bind (run_tests_with_alcotest_lwt selected_tests) (fun () ->
+      after_run tests selected_tests |> Lwt.return)
+
+(*
+   Entry point for the 'approve' subcommand
+*)
 let approve_output ?filter_by_substring tests =
+  Store.init_workspace ();
   check_id_uniqueness tests;
   tests
   |> filter ?filter_by_substring

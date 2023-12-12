@@ -8,7 +8,12 @@ open Cmdliner
    Configuration object type that is used for all subcommands although
    not all of them use all the fields.
 *)
-type conf = { filter_by_substring : string option }
+type conf = {
+  filter_by_substring : string option;
+  status_output_style : Run.status_output_style;
+}
+
+let default_conf = { filter_by_substring = None; status_output_style = Full }
 
 (*
    Subcommands:
@@ -25,20 +30,12 @@ type cmd_conf = Run_tests of conf | Status of conf | Approve of conf
 let run_with_conf tests (cmd_conf : cmd_conf) =
   match cmd_conf with
   | Run_tests conf ->
-      Store.init_workspace ();
-      (* TODO: display the alcotest_ext status in the first pass, which
-         would require running the test suite ourselves rather than
-         using the original Alcotest.run. *)
-      Run.run_tests ?filter_by_substring:conf.filter_by_substring tests;
-      print_newline ();
-      Run.list_status ?filter_by_substring:conf.filter_by_substring
-        ~only_important:true tests
-      |> exit
+      Run.run_tests ?filter_by_substring:conf.filter_by_substring tests |> exit
   | Status conf ->
-      Run.list_status ?filter_by_substring:conf.filter_by_substring tests
+      Run.list_status ?filter_by_substring:conf.filter_by_substring
+        ~output_style:conf.status_output_style tests
       |> exit
   | Approve conf ->
-      Store.init_workspace ();
       Run.approve_output ?filter_by_substring:conf.filter_by_substring tests
 
 (****************************************************************************)
@@ -48,7 +45,7 @@ let run_with_conf tests (cmd_conf : cmd_conf) =
    Some of the command-line options are shared among subcommands.
 *)
 
-let filter_by_substring_term =
+let filter_by_substring_term : string option Term.t =
   let info =
     Arg.info
       [ "s"; "filter-substring" ]
@@ -65,7 +62,7 @@ let run_doc = "Run the tests."
 
 let subcmd_run_term tests =
   let combine filter_by_substring =
-    Run_tests { filter_by_substring } |> run_with_conf tests
+    Run_tests { default_conf with filter_by_substring } |> run_with_conf tests
   in
   Term.(const combine $ filter_by_substring_term)
 
@@ -77,13 +74,23 @@ let subcmd_run tests =
 (* Subcommand: status (replaces alcotest's 'list') *)
 (****************************************************************************)
 
+let short_term : bool Term.t =
+  let info =
+    Arg.info [ "short" ]
+      ~doc:"Report only the status of tests that need attention."
+  in
+  Arg.value (Arg.flag info)
+
 let status_doc = "List the current status of the tests."
 
 let subcmd_status_term tests =
-  let combine filter_by_substring =
-    Status { filter_by_substring } |> run_with_conf tests
+  let combine filter_by_substring short =
+    let status_output_style : Run.status_output_style =
+      if short then Short else Full
+    in
+    Status { filter_by_substring; status_output_style } |> run_with_conf tests
   in
-  Term.(const combine $ filter_by_substring_term)
+  Term.(const combine $ filter_by_substring_term $ short_term)
 
 let subcmd_status tests =
   let info = Cmd.info "status" ~doc:status_doc in
@@ -97,7 +104,7 @@ let approve_doc = "Approve the new output of tests run previously."
 
 let subcmd_approve_term tests =
   let combine filter_by_substring =
-    Approve { filter_by_substring } |> run_with_conf tests
+    Approve { default_conf with filter_by_substring } |> run_with_conf tests
   in
   Term.(const combine $ filter_by_substring_term)
 
