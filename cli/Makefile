@@ -4,7 +4,7 @@
 
 # Run everything that makes sense to run.
 .PHONY: default
-default:
+default: Pipfile.lock
 	$(MAKE) build
 	$(MAKE) test
 	$(MAKE) qa
@@ -33,6 +33,9 @@ clean:
 	rm -rf build/ semgrep.egg-info/ .eggs/
 	rm -rf .pytest_cache/ .benchmarks/
 	rm -f cli/src/semgrep/bin/semgrep-core
+
+Pipfile.lock: setup.py
+	pipenv update
 
 ###############################################################################
 # Tests
