@@ -37,6 +37,7 @@ let run_with_conf tests (cmd_conf : cmd_conf) =
       |> exit
   | Approve conf ->
       Run.approve_output ?filter_by_substring:conf.filter_by_substring tests
+      |> exit
 
 (****************************************************************************)
 (* Command-line options *)

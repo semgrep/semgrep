@@ -183,7 +183,8 @@ let filter ?filter_by_substring tests =
   in
   tests
 
-let raise_errors (xs : (_, string) Result.t list) : unit =
+(* Returns an exit code *)
+let print_errors (xs : (_, string) Result.t list) : int =
   let error_messages =
     xs
     |> List.filter_map (function
@@ -191,10 +192,16 @@ let raise_errors (xs : (_, string) Result.t list) : unit =
          | Error msg -> Some msg)
   in
   match error_messages with
-  | [] -> ()
-  | _ ->
+  | [] -> 0
+  | xs ->
+      let n_errors = List.length xs in
+      let error_str =
+        if n_errors >= 2 then Color.format Color Red "Errors:\n"
+        else Color.format Color Red "Error: "
+      in
       let msg = String.concat "\n" error_messages in
-      failwith msg
+      eprintf "%s%s\n%!" error_str msg;
+      1
 
 let is_important_status (_test, _status, (sum : T.status_summary)) =
   (not sum.has_expected_output)
@@ -234,7 +241,7 @@ let print_status ?(output_style = Full)
       (* Details about expectations *)
       (match status.expectation.expected_outcome with
       | Should_succeed -> ()
-      | Should_fail reason -> printf "  expected to fail: %S" reason);
+      | Should_fail reason -> printf "  expected to fail: %S\n" reason);
       (match test.output_kind with
       | Ignore_output -> ()
       | _ ->
@@ -291,17 +298,17 @@ let is_overall_success statuses =
 *)
 let print_status_introduction () =
   printf
-    "The status of completed tests is reported below as one of four kinds:\n\
-     - PASS: a successful test that was expected to succeed (good);\n\
-     - FAIL: a failing test that was expected to succeed (needs fixing);\n\
-     - XFAIL: a failing test that was expected to fail (tolerated failure);\n\
-     - XPASS: a successful test that was expected to fail (progress?).\n\
-     Other states:\n\
-     - MISS: a test that never ran;\n\
-     - xxxx*: a new test for which the output should be compared to\n\
-    \  expected output when such expected output is missing. In these cases, you\n\
-    \  should review the test output and run the 'approve' subcommand when\n\
-    \  satisfied.\n"
+    {|The status of completed tests is reported below as one of four kinds:
+- PASS: a successful test that was expected to succeed (good);
+- FAIL: a failing test that was expected to succeed (needs fixing);
+- XFAIL: a failing test that was expected to fail (tolerated failure);
+- XPASS: a successful test that was expected to fail (progress?).
+Other states:
+- MISS: a test that never ran;
+- xxxx*: a new test for which the expected output is missing.
+  In this case, you should review the test output and run the 'approve'
+  subcommand once you're satisfied with the output.
+|}
 
 let print_short_status tests_with_status =
   print_endline (Color.format Color Bold "Short status");
@@ -433,4 +440,4 @@ let approve_output ?filter_by_substring tests =
   tests
   |> filter ?filter_by_substring
   |> Helpers.list_map Store.approve_new_output
-  |> raise_errors
+  |> print_errors

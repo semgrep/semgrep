@@ -443,16 +443,22 @@ let check_outcome (test : _ T.test) =
            \  %S" test.id reason)
   | _, Error msg -> Error msg
 
+exception Local_error of string
+
 let approve_new_output (test : _ T.test) =
   match check_outcome test with
   | Error _ as res -> res
-  | Ok () ->
+  | Ok () -> (
       clear_expected_output test;
-      let data =
-        test |> get_output
-        |> list_map (function
-             | Ok data -> data
-             | Error msg -> failwith msg)
-      in
-      set_expected_output test data;
-      Ok ()
+      try
+        let data =
+          test |> get_output
+          |> list_map (function
+               | Ok data -> data
+               | Error msg -> raise (Local_error msg))
+        in
+        set_expected_output test data;
+        Ok ()
+      with
+      | Local_error msg ->
+          Error (sprintf "Cannot approve output for test %s: %s" test.id msg))

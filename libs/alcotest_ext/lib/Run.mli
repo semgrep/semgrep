@@ -20,4 +20,4 @@ val list_status :
   _ Types.test list ->
   int
 
-val approve_output : ?filter_by_substring:string -> _ Types.test list -> unit
+val approve_output : ?filter_by_substring:string -> _ Types.test list -> int
