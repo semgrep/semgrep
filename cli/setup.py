@@ -123,7 +123,7 @@ install_requires = [
     "ruamel.yaml>=0.16.0,<0.18",
     "tomli~=2.0.1",
     "typing-extensions~=4.2",
-    "urllib3~=1.26",
+    "urllib3~=2.0",
     "wcmatch~=8.3",
 ]
 
