@@ -114,6 +114,7 @@ install_requires = [
     "click~=8.1",
     "colorama~=0.4.0",
     "defusedxml~=0.7.1",
+    "exceptiongroup~=1.2.0",
     "glom~=22.1",
     "jsonschema~=4.6",
     "packaging>=21.0",
@@ -123,7 +124,7 @@ install_requires = [
     "ruamel.yaml>=0.16.0,<0.18",
     "tomli~=2.0.1",
     "typing-extensions~=4.2",
-    "urllib3~=1.26",
+    "urllib3~=2.0",
     "wcmatch~=8.3",
 ]
 
