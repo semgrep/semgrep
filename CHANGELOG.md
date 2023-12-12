@@ -6,6 +6,68 @@
 
 <!-- insertion point -->
 
+## [1.53.0](https://github.com/returntocorp/semgrep/releases/tag/v1.53.0) - 2023-12-12
+
+
+### Added
+
+
+- Users can now ignore findings locally in Semgrep IDE Extensions, per workspace, and this will persist between restarts (pdx-154)
+- A new subcommand 'semgrep test', which is an alias for 'semgrep scan
+  --test'. This means that if you were running semgrep on a test
+  directory, you will now have to use 'semgrep scan test' otherwise it
+  will be interpreted as the new 'semgrep test' subcommand. (subcommand_test)
+
+
+### Changed
+
+
+- Handling qualified identifiers in constant propagation
+
+  We've added support for qualified identifiers in constant propagation. Notably,
+  this enables the following matches (with the pro engine):
+
+  ```yaml
+  rules:
+    - id: cpp-const-field
+      languages:
+        - cpp
+      message: testing
+      severity: INFO
+      pattern: std::cout<<1
+  ```
+
+  ```cpp
+  #include<iostream>
+  #include "a.h"
+
+  namespace B {
+  class Bar {
+      public:
+          static const int one = 1;
+  };
+  }
+
+  int main() {
+      // ruleid: cpp-const-field
+      std::cout<<1<<std::endl;
+
+      // ruleid: cpp-const-field
+      std::cout<<A::Foo::one<<std::endl;
+
+      // ruleid: cpp-const-field
+      std::cout<<B::Bar::one<<std::endl;
+  }
+  ``` (gh-9354)
+
+
+### Fixed
+
+
+- Updated the parser used for Rust. The largest change relates to how macros are
+  parsed. (rust)
+
+
 ## [1.52.0](https://github.com/returntocorp/semgrep/releases/tag/v1.52.0) - 2023-12-05
 
 ### Added
