@@ -51,7 +51,7 @@ let diagnostics_of_file is_intellij matches file =
   let diagnostics =
     List_.uniq_by
       (fun (a : Diagnostic.t) (b : Diagnostic.t) ->
-        Common2.on String.equal
+        Common.on String.equal
           (fun x -> x |> Diagnostic.yojson_of_t |> Yojson.Safe.to_string)
           a b)
       diagnostics

@@ -33,12 +33,12 @@ module TL = Test_login_subcommand
 (*****************************************************************************)
 
 (* no need for a token to access public rules in the registry *)
-let test_scan_config_registry_no_token all_caps : Alcotest_ext.test =
+let test_scan_config_registry_no_token (caps : Cap.all_caps) =
   Alcotest_ext.create __FUNCTION__ (fun () ->
       Testutil_files.with_tempdir ~chdir:true (fun _tmp_path ->
           TL.with_logs
             ~f:(fun () ->
-              CLI.main all_caps
+              CLI.main caps
                 [|
                   "semgrep";
                   "scan";
@@ -105,5 +105,6 @@ let tests caps =
   Alcotest_ext.pack_tests_pro "Osemgrep (e2e)"
     [
       test_scan_config_registry_no_token caps;
-      test_scan_config_registry_with_invalid_token caps;
+      test_scan_config_registry_with_invalid_token
+        (caps :> < Cap.stdout ; Cap.network >);
     ]

@@ -30,8 +30,8 @@ let code_of_reason = function
   | Bad_command_line -> 1
   | Unknown_exception _ -> (* same code as an uncaught exception *) 2
 
-let exit_semgrep reason =
+let exit_semgrep (caps : Cap.Process.exit) reason =
   let code = code_of_reason reason in
   let msg = string_of_reason reason in
   logger#info "exit %i: %s" code msg;
-  exit code
+  CapStdlib.exit caps code

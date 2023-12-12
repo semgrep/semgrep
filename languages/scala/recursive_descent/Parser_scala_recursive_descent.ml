@@ -181,11 +181,11 @@ let error x in_ =
   let tok = in_.token in
   let info = TH.info_of_tok tok in
   if !Flag.debug_parser then (
-    pr2 (T.show tok);
-    pr2 x);
+    UCommon.pr2 (T.show tok);
+    UCommon.pr2 x);
   raise (Parsing_error.Syntax_error info)
 
-let warning s = if !Flag.debug_parser then pr2 ("WARNING: " ^ s)
+let warning s = if !Flag.debug_parser then UCommon.pr2 ("WARNING: " ^ s)
 
 (*****************************************************************************)
 (* Helpers  *)

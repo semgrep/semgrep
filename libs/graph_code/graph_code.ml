@@ -224,10 +224,10 @@ let create () =
 
 let add_node n g =
   if G.has_node n g.has then (
-    pr2_gen n;
+    UCommon.pr2_gen n;
     raise (Error (NodeAlreadyPresent n)));
   if G.has_node n g.use then (
-    pr2_gen n;
+    UCommon.pr2_gen n;
     raise (Error (NodeAlreadyPresent n)));
 
   G.add_vertex_if_not_present n g.has;
@@ -544,10 +544,9 @@ let adjust_graph g xs whitelist =
          | [] -> failwith (spf "could not find entity %s" s1)
          | _ -> failwith (spf "multiple entities with %s as a name" s1));
   whitelist
-  |> Console.progress ~show:true (fun k ->
-         List.iter (fun (n1, n2) ->
-             k ();
-             remove_edge (n1, n2) Use g))
+  |> (*|> Console.progress ~show:true (fun k -> *)
+  List.iter (fun (n1, n2) -> (*k (); *)
+                             remove_edge (n1, n2) Use g)
 
 (*****************************************************************************)
 (* Example *)
@@ -562,7 +561,7 @@ let graph_of_dotfile dotfile =
              let src, dst = Common.matched2 s in
              Some (src, dst)
            else (
-             pr2 (spf "ignoring line: %s" s);
+             UCommon.pr2 (spf "ignoring line: %s" s);
              None))
   in
   let g = create () in
@@ -582,7 +581,7 @@ let graph_of_dotfile dotfile =
              g |> add_node (dst, E.File);
              g |> add_edge ((dstdir, E.Dir), (dst, E.File)) Has)
          with
-         | Assert_failure _ -> pr2_gen (src, dst));
+         | Assert_failure _ -> UCommon.pr2_gen (src, dst));
   (* step2: use *)
   deps
   |> List.iter (fun (src, dst) ->

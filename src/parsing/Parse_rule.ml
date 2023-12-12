@@ -202,7 +202,7 @@ let parse_options rule_id (key : key) value =
          * this in the JSON to the semgrep wrapper and user.
          *)
         (*raise (InvalidYamlException (spf "unknown option: %s" field_name))*)
-        pr2 (spf "WARNING: unknown option: %s" field_name))
+        UCommon.pr2 (spf "WARNING: unknown option: %s" field_name))
       (fun () -> Rule_options_j.t_of_string s)
   in
   (options, Some key)

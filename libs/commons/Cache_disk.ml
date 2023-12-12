@@ -114,9 +114,7 @@ let (cache_monad :
    * up-to-date without even reading it
    *)
   if USys.file_exists !!cache_file then
-    let (v : ('value, 'extra) cached_value_on_disk) =
-      Common2.get_value !!cache_file
-    in
+    let (v : ('value, 'extra) cached_value_on_disk) = get_value !!cache_file in
     let { extra; value } = v in
     if methods.check_extra extra then (
       Logs.debug (fun m ->
@@ -182,7 +180,7 @@ let cache_computation_robust file ext_cache
     && get_value dependencies_cache =*= dependencies
   then get_value file_cache
   else (
-    pr2 ("cache computation recompute " ^ file);
+    UCommon.pr2 ("cache computation recompute " ^ file);
     let res = f () in
     write_value dependencies dependencies_cache;
     write_value res file_cache;

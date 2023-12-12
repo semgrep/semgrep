@@ -311,12 +311,12 @@ let maturity_tests () =
 (*****************************************************************************)
 
 let related_file_of_target ~polyglot_pattern_path ~ext ~file =
-  let dirname, basename, _e = Common2.dbe_of_filename !!file in
-  let candidate1 = Common2.filename_of_dbe (dirname, basename, ext) in
+  let dirname, basename, _e = Filename_.dbe_of_filename !!file in
+  let candidate1 = Filename_.filename_of_dbe (dirname, basename, ext) in
   if Sys.file_exists candidate1 then Ok (Fpath.v candidate1)
   else
     let candidate2 =
-      Common2.filename_of_dbe (!!polyglot_pattern_path, basename, ext)
+      Filename_.filename_of_dbe (!!polyglot_pattern_path, basename, ext)
     in
     if Sys.file_exists candidate2 then Ok (Fpath.v candidate2)
     else
@@ -609,8 +609,8 @@ let test_irrelevant_rule_file target_file =
   ( Fpath.basename target_file,
     fun () ->
       let rules_file =
-        let d, b, _e = Common2.dbe_of_filename !!target_file in
-        let candidate1 = Common2.filename_of_dbe (d, b, "yaml") in
+        let d, b, _e = Filename_.dbe_of_filename !!target_file in
+        let candidate1 = Filename_.filename_of_dbe (d, b, "yaml") in
         if Sys.file_exists candidate1 then Fpath.v candidate1
         else
           failwith
@@ -652,7 +652,7 @@ let get_extract_source_lang file rules =
   | [] -> failwith (spf "no language for extract rule found in %s" !!file)
   | [ x ] -> x
   | xlang :: _ ->
-      pr2
+      UCommon.pr2
         (spf
            "too many languages from extract rules found in %s, picking the \
             first one: %s"
@@ -745,8 +745,8 @@ let tainting_tests_for_lang files lang =
          Alcotest_ext.create ~tags:(Test_tags.tags_of_lang lang)
            (Fpath.basename file) (fun () ->
              let rules_file =
-               let d, b, _e = Common2.dbe_of_filename !!file in
-               let candidate1 = Common2.filename_of_dbe (d, b, "yaml") in
+               let d, b, _e = Filename_.dbe_of_filename !!file in
+               let candidate1 = Filename_.filename_of_dbe (d, b, "yaml") in
                if Sys.file_exists candidate1 then Fpath.v candidate1
                else
                  failwith

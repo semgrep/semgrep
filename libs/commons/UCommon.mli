@@ -3,6 +3,26 @@
 val pr : string -> unit
 
 (*****************************************************************************)
+(* debugging *)
+(*****************************************************************************)
+(* see also Dumper.ml *)
+
+(* Print a string and a newline to stderr, then flush stderr. The '2'
+ * is used to refect that it prints on stderr (file descriptor '2' in Unix). *)
+val pr2 : string -> unit
+
+(* Print on stderr any data structure (using Dumper.dump) *)
+val pr2_gen : 'a -> unit
+
+(* Print on stderr but only once (to avoid printing the same error
+ * again and again) *)
+val pr2_once : string -> unit
+
+(* forbid pr2_once to do the once "optimisation" *)
+val _already_printed : (string, bool) Hashtbl.t
+val disable_pr2_once : bool ref
+
+(*****************************************************************************)
 (* Real file paths - deprecated, use File.mli *)
 (*****************************************************************************)
 (* Deprecated!
@@ -25,7 +45,7 @@ val dir_contents : string (* filename *) -> string (* filename *) list
  * Deprecated?
  *)
 val files_of_dir_or_files_no_vcs_nofilter :
-  string list -> string (* filename *) list
+  string (* root *) list -> string (* filename *) list
 
 (* ugly: internal flag for files_of_dir_or_files_no_vcs_nofilter *)
 val follow_symlinks : bool ref
@@ -90,6 +110,12 @@ val erase_this_temp_file : string (* filename *) -> unit
    exception. pr_time prints to stdout.
 *)
 val pr_time : string -> (unit -> 'a) -> 'a
+
+(*
+   Run a function and print how long it took to return or to raise an
+   exception. pr2_time prints to stderr.
+*)
+val pr2_time : string -> (unit -> 'a) -> 'a
 
 (*****************************************************************************)
 (* Misc *)

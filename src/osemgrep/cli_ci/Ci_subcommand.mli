@@ -5,7 +5,9 @@
 
    This function returns an exit code to be passed to the 'exit' function.
 *)
-val main : Cap.all_caps -> string array -> Exit_code.t
+val main :
+  < Cap.network ; Cap.stdout ; Cap.exec > -> string array -> Exit_code.t
 
 (* internal *)
-val run_conf : Cap.all_caps -> Ci_CLI.conf -> Exit_code.t
+val run_conf :
+  < Cap.network ; Cap.stdout ; Cap.exec > -> Ci_CLI.conf -> Exit_code.t

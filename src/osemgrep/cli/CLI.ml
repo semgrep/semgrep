@@ -81,8 +81,8 @@ let log_cli_feature (flag : string) : unit =
    otherwise metrics will not be send as Metrics.g.config default
    to Off
 *)
-let send_metrics () : unit =
-  if Metrics_.is_enabled () then Semgrep_Metrics.send ()
+let send_metrics (caps : < Cap.network ; .. >) : unit =
+  if Metrics_.is_enabled () then Semgrep_Metrics.send caps
   else Logs.debug (fun m -> m "Metrics not enabled, skipping sending")
 
 (*****************************************************************************)
@@ -163,7 +163,9 @@ let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
          * down when we know we don't handle certain kind of arguments).
          *)
         | "install-semgrep-pro" when experimental ->
-            Install_semgrep_pro_subcommand.main subcmd_argv
+            Install_semgrep_pro_subcommand.main
+              (caps :> < Cap.network >)
+              subcmd_argv
         | "publish" when experimental ->
             Publish_subcommand.main
               (caps :> < Cap.stdout ; Cap.network >)
@@ -172,11 +174,18 @@ let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
             Login_subcommand.main
               (caps :> < Cap.stdout ; Cap.network >)
               subcmd_argv
-        | "logout" when experimental -> Logout_subcommand.main subcmd_argv
+        | "logout" when experimental ->
+            Logout_subcommand.main (caps :> < Cap.stdout >) subcmd_argv
         | "lsp" -> Lsp_subcommand.main subcmd_argv
         (* partial support, still use Pysemgrep.Fallback in it *)
-        | "scan" -> Scan_subcommand.main caps subcmd_argv
-        | "ci" -> Ci_subcommand.main caps subcmd_argv
+        | "scan" ->
+            Scan_subcommand.main
+              (caps :> < Cap.stdout ; Cap.network >)
+              subcmd_argv
+        | "ci" ->
+            Ci_subcommand.main
+              (caps :> < Cap.stdout ; Cap.network ; Cap.exec >)
+              subcmd_argv
         (* osemgrep-only: and by default! no need experimental! *)
         | "install-ci" -> Install_subcommand.main subcmd_argv
         | "interactive" -> Interactive_subcommand.main subcmd_argv
@@ -184,7 +193,10 @@ let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
             Show_subcommand.main
               (caps :> < Cap.stdout ; Cap.network >)
               subcmd_argv
-        | "test" -> Test_subcommand.main subcmd_argv
+        | "test" ->
+            Test_subcommand.main
+              (caps :> < Cap.stdout ; Cap.network >)
+              subcmd_argv
         | _else_ ->
             if experimental then
               (* this should never happen because we default to 'scan',
@@ -303,6 +315,6 @@ let main (caps : Cap.all_caps) (argv : string array) : Exit_code.t =
   (* TOADAPT? adapt more of Common.boilerplate? *)
   let exit_code = safe_run ~debug (fun () -> dispatch_subcommand caps argv) in
   Metrics_.add_exit_code exit_code;
-  send_metrics ();
+  send_metrics (caps :> < Cap.network >);
   before_exit ~profile ();
   exit_code

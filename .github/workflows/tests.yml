@@ -98,8 +98,8 @@ jobs:
     - name: Run pytest
       working-directory: cli
       run: "\n        # tests should simulate CI environment iff they need one\n        unset
-        CI\n        unset \"${!GITHUB_@}\"\n\n        pipenv run pytest -n auto -vv
-        --snapshot-update --allow-snapshot-deletion\n      "
+        CI\n        unset \"${!GITHUB_@}\"\n\n        PYTEST_EXTRA_ARGS=\"--snapshot-update
+        --allow-snapshot-deletion\" make test-for-ci\n      "
     - name: Prepare repo for snapshot commit
       if: failure()
       run: "\n      # the commit step that follows will fail to fetch the pfff submodule\n

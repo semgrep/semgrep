@@ -194,8 +194,7 @@ Semgrep, Inc will:
 
 > `anonymous_user_id: "5f52484c-3f82-4779-9353-b29bbd3193b6"`
 
-Semgrep generates a new random UUID and saves the ID locally to a `~/.semgrep/settings.yml` file
-when the ID is not present to help improve Semgrep products.
+To help improve Semgrep products, the Semgrep CLI generates a Universally Unique Identifier (UUID) which is saved locally to a `~/.semgrep/settings.yml` file when the ID does not already exist.
 
 The Semgrep team uses this ID to help answer the following questions:
 

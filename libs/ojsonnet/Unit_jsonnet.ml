@@ -10,8 +10,8 @@ let dir_error = Fpath.v "tests/jsonnet/errors"
 let dir_error_tutorial = Fpath.v "tests/jsonnet/tutorial_tests/error"
 
 let related_file_of_target ~ext ~file =
-  let dirname, basename, _e = Common2.dbe_of_filename !!file in
-  let path = Common2.filename_of_dbe (dirname, basename, ext) in
+  let dirname, basename, _e = Filename_.dbe_of_filename !!file in
+  let path = Filename_.filename_of_dbe (dirname, basename, ext) in
   if Sys.file_exists path then Ok (Fpath.v path)
   else
     let msg =

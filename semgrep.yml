@@ -44,17 +44,6 @@ rules:
         - scripts/*
         - tools/*
 
-  - id: use-pytest-mock
-    pattern: import unittest.mock
-    message: >-
-      Instead of importing unittest.mock,
-      use the pytest-mock plugin by requesting the `mocker` fixture.
-    languages: [python]
-    severity: ERROR
-    paths:
-      include:
-        - tests/
-
   - id: use-state-for-global-settings
     pattern: global $VAR
     message: |
@@ -264,13 +253,6 @@ rules:
     paths:
       include:
         - cli/src/*
-  # not ready yet
-  #  - id: no-exit-in-semgrep
-  #    pattern: |
-  #      exit $X
-  #    message: do not use directly exit. raise instead UnixExit $X
-  #    languages: [ocaml]
-  #    severity: ERROR
 
   # Rules that used to be in pfff.yml and could be put in p/ocaml at some point
   - id: bad-pervasives
@@ -306,15 +288,8 @@ rules:
     #TODO: fix at some point
     paths:
       exclude:
-        - commons/common2.ml
-        - commons_wrappers/graph/graphe.ml
-        - h_visualization/plot_jgraph.ml
-        - lang_c/analyze/test_analyze_c.ml
-        - lang_cpp/parsing/test_parsing_cpp.ml
-        - lang_php/analyze/foundation/unit_foundation_php.ml
-        - lang_php/analyze/foundation/unit_prolog_php.ml
-        - main_db.ml
-        - tests/Test.ml
+        - libs/commons2/common2.ml
+
   - id: bad-changelog-extension
     pattern-regex: .*
     message: |
@@ -333,6 +308,7 @@ rules:
         - changelog.d/*.changed
         - changelog.d/*.fixed
         - changelog.d/*.infra
+
   - id: pass-console-to-rich-progress
     patterns:
       - pattern: rich.progress.track(...)

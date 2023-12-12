@@ -150,9 +150,9 @@ let rec parse ?(parsing_mode = Python) filename =
           raise (Parsing_error.Syntax_error (TH.info_of_tok cur));
 
         if !Flag.show_parsing_error then (
-          pr2 ("parse error \n = " ^ error_msg_tok cur);
+          UCommon.pr2 ("parse error \n = " ^ error_msg_tok cur);
 
-          let filelines = Common2.cat_array filename in
+          let filelines = UFile.cat_array (Fpath.v filename) in
           let checkpoint2 = UCommon.cat filename |> List.length in
           let line_error = Tok.line_of_tok (TH.info_of_tok cur) in
           Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);

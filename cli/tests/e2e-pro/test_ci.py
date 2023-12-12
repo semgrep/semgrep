@@ -13,6 +13,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from collections import defaultdict
 from pathlib import Path
 from textwrap import dedent
@@ -21,7 +22,9 @@ from typing import List
 import pytest
 from requests.exceptions import ConnectionError
 from ruamel.yaml import YAML
+from tests.conftest import load_anonymous_user_id
 from tests.conftest import make_semgrepconfig_file
+from tests.conftest import make_settings_file
 from tests.conftest import str_containing
 from tests.e2e.test_baseline import _git_commit
 from tests.e2e.test_baseline import _git_merge
@@ -37,6 +40,7 @@ from semgrep.meta import GithubMeta
 from semgrep.meta import GitlabMeta
 from semgrep.meta import GitMeta
 from semgrep.metrics import Metrics
+from semgrep.settings import generate_anonymous_user_id
 
 ##############################################################################
 # Constants
@@ -65,7 +69,8 @@ BAD_CONFIG = dedent(
 """
 ).lstrip()
 FROZEN_ISOTIMESTAMP = "1970-01-01T00:00:00"
-
+DUMMY_APP_TOKEN_ALICE = "peasoup"
+DUMMY_APP_TOKEN_BOB = "coolcucumber"
 
 # To ensure our tests are as accurate as possible, lets try to autodetect what GITHUB_ vars
 # the app code uses, so the tests can enforce the env is mocked appropriately.
@@ -2041,3 +2046,74 @@ def test_pro_diff_slow_rollout(
         mock_send.assert_called_once_with(2)
     else:
         mock_send.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "env",
+    [
+        {  # ci run with app token alice
+            "SEMGREP_APP_TOKEN": DUMMY_APP_TOKEN_ALICE,
+            "SEMGREP_SETTINGS_FILE": tempfile.NamedTemporaryFile().name,
+            "EXISTING_SEMGREP_SETTINGS": False,
+        },
+        {  # ci run with app token bob
+            "SEMGREP_APP_TOKEN": DUMMY_APP_TOKEN_BOB,
+            "SEMGREP_SETTINGS_FILE": tempfile.NamedTemporaryFile().name,
+            "EXISTING_SEMGREP_SETTINGS": False,
+        },
+        {  # ci run with app token but existing settings file
+            "SEMGREP_APP_TOKEN": DUMMY_APP_TOKEN_BOB,
+            "SEMGREP_SETTINGS_FILE": tempfile.NamedTemporaryFile().name,
+            "EXISTING_SEMGREP_SETTINGS": True,
+        },
+    ],
+    ids=["token-alice", "token-bob", "existing-settings"],
+)
+@pytest.mark.osemfail
+def test_ci_uuid(
+    env,
+    run_semgrep: RunSemgrep,
+    mocker,
+):
+    """
+    Verify that the expected UUID is generated for a fresh CI run.
+    When we don't have an existing settings file, we should generate a fixed UUID
+    Otherwise, we should continue using the same UUID.
+    """
+
+    settings_file = env.get("SEMGREP_SETTINGS_FILE")
+    # Check if we should mimic an existing settings file via simulation
+    existing_settings = env.get("EXISTING_SEMGREP_SETTINGS")
+    del env["EXISTING_SEMGREP_SETTINGS"]
+
+    generated_uuid = generate_anonymous_user_id(env.get("SEMGREP_APP_TOKEN"))
+    # Assume we will generate a new UUID from app_token
+    expected_uuid = generated_uuid
+
+    # Simulate the case where we have an existing settings file
+    if existing_settings:
+        make_settings_file(settings_file)
+        # Update the expected UUID to be the one in the settings file
+        expected_uuid = load_anonymous_user_id(settings_file)
+
+    # We don't actually need to run a full scan here: just need to mock out the
+    # first few steps of the scan process (1 sec vs 30 sec for this test suite)
+    mocker.patch.object(ScanHandler, "start_scan", side_effect=Exception("Timeout"))
+
+    result = run_semgrep(
+        subcommand="ci",
+        options=["--dry-run", "--no-suppress-errors"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=None,
+        env=env,
+        use_click_runner=True,
+    )
+
+    # Check that the UUID in the settings file matches the expected UUID
+    found_uuid = load_anonymous_user_id(settings_file)
+
+    assert found_uuid is not None, "Expected UUID to be generated in settings"
+    assert (
+        found_uuid == expected_uuid
+    ), f"Expected {expected_uuid} but found {found_uuid}"

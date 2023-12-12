@@ -106,7 +106,8 @@ let parse ?(pp = !Flag_php.pp_default) filename =
              * error code, in which case we will fall back to the regular
              * case. *)
             let cmd_need_pp = spf "%s -q %s %s" cmd pp_flag filename in
-            if !Flag_php.verbose_pp then pr2 (spf "executing %s" cmd_need_pp);
+            if !Flag_php.verbose_pp then
+              UCommon.pr2 (spf "executing %s" cmd_need_pp);
             let ret = Sys.command cmd_need_pp in
             if ret =|= 0 then orig_filename
             else
@@ -115,7 +116,8 @@ let parse ?(pp = !Flag_php.pp_default) filename =
                   let fullcmd =
                     spf "%s %s %s > %s" cmd pp_flag filename tmpfile
                   in
-                  if !Flag_php.verbose_pp then pr2 (spf "executing %s" fullcmd);
+                  if !Flag_php.verbose_pp then
+                    UCommon.pr2 (spf "executing %s" fullcmd);
                   let ret = Sys.command fullcmd in
                   if ret <> 0 then
                     failwith "The preprocessor command returned an error code";
@@ -123,7 +125,7 @@ let parse ?(pp = !Flag_php.pp_default) filename =
   in
 
   let stat = Parsing_stat.default_stat filename in
-  let filelines = Common2.cat_array filename in
+  let filelines = UFile.cat_array (Fpath.v filename) in
 
   let toks = tokens (Parsing_helpers.file filename) in
   (* note that now that pfff support XHP constructs directly,
@@ -175,7 +177,7 @@ let parse ?(pp = !Flag_php.pp_default) filename =
         raise (Parsing_error.Syntax_error (TH.info_of_tok cur));
 
       if !Flag.show_parsing_error then
-        pr2 ("parse error\n = " ^ error_msg_tok cur);
+        UCommon.pr2 ("parse error\n = " ^ error_msg_tok cur);
       let checkpoint2 = UCommon.cat filename |> List.length in
 
       if !Flag.show_parsing_error then

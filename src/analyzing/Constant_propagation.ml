@@ -19,9 +19,6 @@ module H = AST_generic_helpers
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
-(* Deep Semgrep *)
-let hook_constant_propagation_and_evaluate_literal = ref None
-
 (* TODO: Remove duplication between the Generic-based and IL-based passes,
    ideally we should have a single pass, the IL-based. *)
 
@@ -222,11 +219,6 @@ let has_just_one_constructor stats cstr =
       logger#debug "No stats for %s" cstr;
       false
 
-let deep_constant_propagation_and_evaluate_literal x =
-  match !hook_constant_propagation_and_evaluate_literal with
-  | None -> None
-  | Some f -> f x
-
 (*****************************************************************************)
 (* Partial evaluation *)
 (*****************************************************************************)
@@ -328,6 +320,12 @@ let rec eval env x : svalue option =
         FN (Id (_, { id_svalue = { contents = Some x }; _ })) )
     when is_lang env Lang.Terraform ->
       Some x
+  (* id_svalue is populated when used with the pro engine. *)
+  | DotAccess (_, _, FN (Id (_, { id_svalue = { contents = Some x }; _ }))) ->
+      Some x
+  | N (IdQualified { name_info = { id_svalue = { contents = Some x }; _ }; _ })
+    ->
+      Some x
   (* ugly: dockerfile specific *)
   | Call
       ( { e = N (Id (("!dockerfile_expand!", _), _)); _ },
@@ -363,13 +361,8 @@ let rec eval env x : svalue option =
   | Call (({ e = DotAccess (_, _, FN (Id _)); _ } as e), args) ->
       let* name = H.name_of_dot_access e in
       eval_call env name args
-  | N name -> (
-      match find_name env name with
-      | Some svalue -> Some svalue
-      | None -> deep_constant_propagation_and_evaluate_literal x)
-  | _ ->
-      (* deep: *)
-      deep_constant_propagation_and_evaluate_literal x
+  | N name -> find_name env name
+  | _ -> None
 
 and eval_args env args =
   args |> Tok.unbracket

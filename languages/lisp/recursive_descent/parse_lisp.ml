@@ -130,7 +130,7 @@ let parse filename =
             (Parsing_error.Other_error ("trailing constructs", TH.info_of_tok x))
     with
     | Parsing_error.Other_error (s, info) ->
-        pr2
+        UCommon.pr2
           (spf "Parse error: %s, {%s} at %s" s (Tok.content_of_tok info)
              (Tok.stringpos_of_tok info));
         stat.PS.error_line_count <- stat.PS.total_line_count;

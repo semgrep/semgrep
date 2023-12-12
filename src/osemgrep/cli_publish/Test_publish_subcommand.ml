@@ -63,7 +63,7 @@ let fake_deployment =
 
 let with_logs ~f ~final =
   Testutil_mock.with_mocked_logs ~f ~final:(fun log_content res ->
-      pr2 (spf "logs = %s" log_content);
+      UCommon.pr2 (spf "logs = %s" log_content);
       let exit_code, logs =
         match res with
         | Ok code -> (code, log_content)
@@ -100,7 +100,7 @@ let with_mocks f =
 (* Tests *)
 (*****************************************************************************)
 
-let test_publish caps () =
+let test_publish (caps : < Cap.network ; Cap.stdout >) () =
   let tests_path = tests_path () in
   with_test_env (fun () ->
       with_mocks (fun () ->
@@ -111,7 +111,10 @@ let test_publish caps () =
           in
 
           with_logs
-            ~f:(fun () -> Logout_subcommand.main [| "semgrep-logout" |])
+            ~f:(fun () ->
+              Logout_subcommand.main
+                (caps :> < Cap.stdout >)
+                [| "semgrep-logout" |])
             ~final:(fun res -> assert (res.exit_code =*= Exit_code.ok));
 
           (* should require login *)
@@ -194,5 +197,5 @@ let test_publish caps () =
 (* Entry point *)
 (*****************************************************************************)
 
-let tests caps =
+let tests (caps : < Cap.network ; Cap.stdout >) =
   pack_tests "Osemgrep Publish (e2e)" [ ("test_publish", test_publish caps) ]

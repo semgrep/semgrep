@@ -29,6 +29,9 @@ val files_of_dirs_or_files_no_vcs_nofilter : Fpath.t list -> Fpath.t list
    are recognized and removed from the end of the line.
 *)
 val cat : Fpath.t -> string list
+
+(* this is 1-based access, line 1 is at res.[1] *)
+val cat_array : Fpath.t -> string array
 val write_file : Fpath.t -> string -> unit
 
 (* [lines_of_file (start_line, end_line) file] returns
@@ -99,3 +102,14 @@ val find_first_match_with_whole_line :
 val is_executable : Fpath.t -> bool
 val filesize : Fpath.t -> int
 val filemtime : Fpath.t -> float
+
+(* raise Unix_error if the directory does not exist *)
+val is_directory : Fpath.t -> bool
+
+(* raise Unix_error if the file does not exist *)
+val is_file : Fpath.t -> bool
+val is_symlink : Fpath.t -> bool
+val lfile_exists : Fpath.t -> bool
+
+(* no raised Unix_error if the directory does not exist *)
+val dir_exists : Fpath.t -> bool

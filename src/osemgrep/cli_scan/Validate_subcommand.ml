@@ -38,6 +38,9 @@ module OutJ = Semgrep_output_v1_t
 (* Types and constants *)
 (*****************************************************************************)
 
+(* TODO: should use stdout, right now we abuse Logs.app *)
+type caps = < Cap.stdout ; Cap.network >
+
 (* a slice of Scan_CLI.conf *)
 type conf = {
   (* Right now we use --config to get the list of rules for validate, but
@@ -60,34 +63,10 @@ type conf = {
 let metarules_pack = "p/semgrep-rule-lints"
 
 (*****************************************************************************)
-(* Experiment *)
-(*****************************************************************************)
-
-(* TODO: use validation ocaml code to enforce the CHECK: in rule_schema_v2.atd.
- * For example, check that at least one and only one field is set in formula.
- * Reclaim some of the jsonschema power. Maybe define combinators to express
- * that in rule_schema_v2_adapter.ml?
- *)
-let parse_rule_with_atd_experiment_and_exit (file : Fpath.t) : unit =
-  let rules = Parse_rules_with_atd.parse_rules_v2 file in
-  pr2 (Rule_schema_v2_t.show_rules rules);
-  exit 0
-
-(*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let run_conf (conf : conf) : Exit_code.t =
-  (* small experiment *)
-  (match conf with
-  | {
-   common = { maturity = Maturity.Develop; _ };
-   rules_source = Rules_source.Configs [ file ];
-   _;
-  } ->
-      parse_rule_with_atd_experiment_and_exit (Fpath.v file)
-  | _else_ -> ());
-
+let run_conf (caps : caps) (conf : conf) : Exit_code.t =
   let settings = Semgrep_settings.load () in
   let token_opt = settings.api_token in
   (* Checking (1) and (2). Parsing the rules is already a form of validation.
@@ -97,7 +76,9 @@ let run_conf (conf : conf) : Exit_code.t =
    *)
   let rules_and_origin =
     Rule_fetching.rules_from_rules_source ~token_opt ~rewrite_rule_ids:true
-      ~registry_caching:false conf.rules_source
+      ~registry_caching:false
+      (caps :> < Cap.network >)
+      conf.rules_source
   in
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origin
@@ -139,7 +120,9 @@ let run_conf (conf : conf) : Exit_code.t =
         let metarules_and_origin =
           Rule_fetching.rules_from_dashdash_config ~token_opt
             ~rewrite_rule_ids:true (* default *)
-            ~registry_caching:false config
+            ~registry_caching:false
+            (caps :> < Cap.network >)
+            config
         in
         let metarules, metaerrors =
           Rule_fetching.partition_rules_and_errors metarules_and_origin

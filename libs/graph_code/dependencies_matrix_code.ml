@@ -130,7 +130,7 @@ let hashtbl_find_node h n =
 
 (* poor's man DSM visualizer (use codegraph for a real visualization) *)
 let display dm =
-  pr2_gen dm;
+  UCommon.pr2_gen dm;
   ()
 
 (*****************************************************************************)

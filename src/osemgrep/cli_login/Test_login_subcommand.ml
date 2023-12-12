@@ -34,14 +34,14 @@ type result = { exit_code : Exit_code.t; logs : string }
 
 let with_logs ~f ~final =
   Testutil_mock.with_mocked_logs ~f ~final:(fun log_content res ->
-      pr2 (spf "logs = %s" log_content);
+      UCommon.pr2 (spf "logs = %s" log_content);
       let code =
         match res with
         | Ok code -> code
         | Error (Error.Exit code) -> code
         | _ -> Exit_code.fatal
       in
-      pr2
+      UCommon.pr2
         (spf "exit_code = %d, meaning = %s" (Exit_code.to_int code)
            (Exit_code.to_message code));
       final { exit_code = code; logs = log_content })
@@ -72,11 +72,11 @@ let with_fake_deployment_response return_value f =
  * be even more "e2e" by calling CLI.main() instead, but that would require
  * to move this file out of cli_login/ because of mutual dependencies.
  *)
-let test_logout_not_logged_in : Alcotest_ext.simple_test =
+let test_logout_not_logged_in caps : Alcotest_ext.simple_test =
   ( __FUNCTION__,
     with_login_test_env (fun () ->
         with_logs
-          ~f:(fun () -> Logout_subcommand.main [| "semgrep-logout" |])
+          ~f:(fun () -> Logout_subcommand.main caps [| "semgrep-logout" |])
           ~final:(fun res ->
             assert (res.logs =~ ".*You are not logged in");
             assert (res.exit_code =*= Exit_code.ok))) )
@@ -140,14 +140,20 @@ let test_login_with_env_token caps : Alcotest_ext.simple_test =
 
                 (* clear login (by logging out) *)
                 with_logs
-                  ~f:(fun () -> Logout_subcommand.main [| "semgrep-logout" |])
+                  ~f:(fun () ->
+                    Logout_subcommand.main
+                      (caps :> < Cap.stdout >)
+                      [| "semgrep-logout" |])
                   ~final:(fun res ->
                     assert (res.logs =~ ".*Logged out!");
                     assert (res.exit_code =*= Exit_code.ok));
 
                 (* logout twice should work *)
                 with_logs
-                  ~f:(fun () -> Logout_subcommand.main [| "semgrep-logout" |])
+                  ~f:(fun () ->
+                    Logout_subcommand.main
+                      (caps :> < Cap.stdout >)
+                      [| "semgrep-logout" |])
                   ~final:(fun res ->
                     assert (res.logs =~ ".*You are not logged in");
                     assert (res.exit_code =*= Exit_code.ok))))) )
@@ -156,10 +162,10 @@ let test_login_with_env_token caps : Alcotest_ext.simple_test =
 (* Entry point *)
 (*****************************************************************************)
 
-let tests caps =
+let tests (caps : < Cap.network ; Cap.stdout >) =
   pack_tests "Osemgrep Login (e2e)"
     [
-      test_logout_not_logged_in;
+      test_logout_not_logged_in (caps :> < Cap.stdout >);
       test_login_no_tty caps;
       test_login_with_env_token caps;
     ]

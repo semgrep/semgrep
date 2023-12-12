@@ -279,7 +279,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                                 |> List_.map (fun tok -> revert_loc tok)
                               in
                               if skipped_tokens <> [] then
-                                pr2
+                                UCommon.pr2
                                   (spf
                                      "rule %s: metavariable-pattern: failed to \
                                       fully parse the content of %s"

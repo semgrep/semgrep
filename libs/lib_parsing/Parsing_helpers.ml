@@ -100,7 +100,7 @@ let tokenize_and_adjust_pos lexbuf table filename tokenizer visitor_tok is_eof =
       | Parsing_error.Lexical_error (s, info) ->
           raise (Parsing_error.Lexical_error (s, adjust_info info))
     in
-    if !Flag_parsing.debug_lexer then Common.pr2_gen tok;
+    if !Flag_parsing.debug_lexer then UCommon.pr2_gen tok;
     let tok = tok |> visitor_tok adjust_info in
     if is_eof tok then List.rev (tok :: acc) else tokens_aux (tok :: acc)
   in
@@ -135,7 +135,7 @@ let mk_lexer_for_yacc toks is_comment =
   let rec lexer lexbuf =
     match tr.rest with
     | [] ->
-        Common.pr2 "LEXER: ALREADY AT END";
+        UCommon.pr2 "LEXER: ALREADY AT END";
         tr.current
     | v :: xs ->
         tr.rest <- xs;
@@ -228,7 +228,7 @@ let error_message_info info =
   error_message_token_location loc
 
 let print_bad line_error (start_line, end_line) filelines =
-  pr2 ("badcount: " ^ i_to_s (end_line - start_line));
+  UCommon.pr2 ("badcount: " ^ i_to_s (end_line - start_line));
 
   for i = start_line to end_line do
     let s = filelines.(i) in
@@ -239,6 +239,6 @@ let print_bad line_error (start_line, end_line) filelines =
       else s
     in
 
-    if i =|= line_error then pr2 ("BAD:!!!!!" ^ " " ^ line)
-    else pr2 ("bad:" ^ " " ^ line)
+    if i =|= line_error then UCommon.pr2 ("BAD:!!!!!" ^ " " ^ line)
+    else UCommon.pr2 ("bad:" ^ " " ^ line)
   done

@@ -63,15 +63,7 @@ let rec drop n xs =
   | _, [] -> failwith "drop: not enough"
   | n, _x :: xs -> drop (n - 1) xs
 
-let enum x n =
-  if not (x <= n) then
-    failwith (Printf.sprintf "bad values in enum, expect %d <= %d" x n);
-  let rec enum_aux acc x n =
-    if x =|= n then n :: acc else enum_aux (x :: acc) (x + 1) n
-  in
-  List.rev (enum_aux [] x n)
-
-let enum_safe x n = if x > n then [] else enum x n
+let enum_safe x n = if x > n then [] else List_.enum x n
 
 let rec take n xs =
   match (n, xs) with
@@ -90,7 +82,7 @@ let rec list_last = function
 
 let (list_of_string : string -> char list) = function
   | "" -> []
-  | s -> enum 0 (String.length s - 1) |> List.map (String.get s)
+  | s -> List_.enum 0 (String.length s - 1) |> List.map (String.get s)
 
 let (lines : string -> string list) =
  fun s ->
@@ -170,19 +162,19 @@ let out_chan_pr2 ?(newline = true) s =
       flush chan
 
 let pr2 s =
-  prerr_string !_prefix_pr;
-  do_n !_tab_level_print (fun () -> prerr_string " ");
-  prerr_string s;
-  prerr_string "\n";
-  flush stderr;
+  UStdlib.prerr_string !_prefix_pr;
+  do_n !_tab_level_print (fun () -> UStdlib.prerr_string " ");
+  UStdlib.prerr_string s;
+  UStdlib.prerr_string "\n";
+  flush UStdlib.stderr;
   out_chan_pr2 s;
   ()
 
 let pr2_no_nl s =
-  prerr_string !_prefix_pr;
-  do_n !_tab_level_print (fun () -> prerr_string " ");
-  prerr_string s;
-  flush stderr;
+  UStdlib.prerr_string !_prefix_pr;
+  do_n !_tab_level_print (fun () -> UStdlib.prerr_string " ");
+  UStdlib.prerr_string s;
+  flush UStdlib.stderr;
   out_chan_pr2 ~newline:false s;
   ()
 
@@ -219,9 +211,9 @@ let pr2_gen x = pr2 (Dumper.dump x)
 
 (* ---------------------------------------------------------------------- *)
 let xxx_once f s =
-  if !Common.disable_pr2_once then pr2 s
-  else if not (Hashtbl.mem Common._already_printed s) then (
-    Hashtbl.add Common._already_printed s true;
+  if !UCommon.disable_pr2_once then UCommon.pr2 s
+  else if not (Hashtbl.mem UCommon._already_printed s) then (
+    Hashtbl.add UCommon._already_printed s true;
     f ("(ONCE) " ^ s))
 
 let pr2_once s = xxx_once pr2 s
@@ -261,16 +253,16 @@ let redirect_stdout_stderr file f =
   let descr = Unix.descr_of_out_channel chan in
 
   let saveout = Unix.dup UUnix.stdout in
-  let saveerr = Unix.dup Unix.stderr in
+  let saveerr = Unix.dup UUnix.stderr in
   Unix.dup2 descr UUnix.stdout;
-  Unix.dup2 descr Unix.stderr;
+  Unix.dup2 descr UUnix.stderr;
   flush UStdlib.stdout;
-  flush stderr;
+  flush UStdlib.stderr;
   f ();
   flush UStdlib.stdout;
-  flush stderr;
+  flush UStdlib.stderr;
   Unix.dup2 saveout UUnix.stdout;
-  Unix.dup2 saveerr Unix.stderr;
+  Unix.dup2 saveerr UUnix.stderr;
   close_out chan
 
 let redirect_stdin file f =
@@ -310,7 +302,7 @@ let spf = Printf.sprintf
 
 (* ---------------------------------------------------------------------- *)
 
-let _chan = ref stderr
+let _chan = ref UStdlib.stderr
 
 let start_log_file () =
   let filename = spf "/tmp/debugml%d:%d" (UUnix.getuid ()) (UUnix.getpid ()) in
@@ -347,7 +339,7 @@ let (print_n : int -> string -> unit) =
  fun i s -> do_n i (fun () -> UStdlib.print_string s)
 
 let (printerr_n : int -> string -> unit) =
- fun i s -> do_n i (fun () -> prerr_string s)
+ fun i s -> do_n i (fun () -> UStdlib.prerr_string s)
 
 let _debug = ref true
 let debugon () = _debug := true
@@ -412,7 +404,7 @@ let time_func f =
 let example b =
   if b then () else failwith ("ASSERT FAILURE: " ^ Printexc.get_backtrace ())
 
-let _ex1 = assert (enum 1 4 =*= [ 1; 2; 3; 4 ])
+let _ex1 = assert (List_.enum 1 4 =*= [ 1; 2; 3; 4 ])
 
 let assert_equal a b =
   if not (a =*= b) then
@@ -834,28 +826,6 @@ let ( +!> ) refo f = refo := f !refo
  *)
 
 let ( $ ) f g x = g (f x)
-let compose f g x = f (g x)
-(* dont work :( let ( rond_utf_symbol ) f g x = f(g(x)) *)
-
-(* trick to have something similar to the   1 `max` 4   haskell infix notation.
-   by Keisuke Nakano on the caml mailing list.
-   >    let ( /* ) x y = y x
-   >    and ( */ ) x y = x y
-   or
-   let ( <| ) x y = y x
-   and ( |> ) x y = x y
-
-   > Then we can make an infix operator <| f |> for a binary function f.
-*)
-
-let flip f a b = f b a
-let curry f x y = f (x, y)
-let uncurry f (a, b) = f a b
-let id x = x
-let const x _y = x
-let do_nothing () = ()
-let rec applyn n f o = if n =|= 0 then o else applyn (n - 1) f (f o)
-let on g f x y = g (f x) (f y)
 
 let forever f =
   while true do
@@ -1399,7 +1369,7 @@ let optionise f =
 
 (* pixel *)
 let some_or = function
-  | None -> id
+  | None -> Fun.id
   | Some e -> fun _ -> e
 
 let option_to_list = function
@@ -1762,9 +1732,6 @@ let strip c s =
 (* Filenames *)
 (*****************************************************************************)
 
-let dirname = Filename.dirname
-let basename = Filename.basename
-
 type filename = string (* TODO could check that exist :) type sux *)
 
 (* with sexp *)
@@ -1780,96 +1747,16 @@ module BasicType = struct
   type filename = string
 end
 
-(* updated: added '-' in filesuffix because of file like foo.c-- *)
-let (filesuffix : filename -> string) =
- fun s ->
-  try regexp_match s ".+\\.\\([a-zA-Z0-9_-]+\\)$" with
-  | _ -> "NOEXT"
-
-let (fileprefix : filename -> string) =
- fun s ->
-  try regexp_match s "\\(.+\\)\\.\\([a-zA-Z0-9_]+\\)?$" with
-  | _ -> s
-
-(*
-let _ = example (filesuffix "toto.c" =$= "c")
-let _ = example (fileprefix "toto.c" =$= "toto")
-*)
-
-(*
-assert (s = fileprefix s ^ filesuffix s)
-
-let withoutExtension s = global_replace (regexp "\\..*$") "" s
-let () = example "without"
-    (withoutExtension "toto.s.toto" = "toto")
-*)
-
 let adjust_ext_if_needed filename ext =
   if String.get ext 0 <> '.' then
     failwith "I need an extension such as .c not just c";
 
   if not (filename =~ ".*\\" ^ ext) then filename ^ ext else filename
 
-let db_of_filename file = (dirname file, basename file)
-let filename_of_db (basedir, file) = Filename.concat basedir file
-
-let dbe_of_filename file =
-  (* raise Invalid_argument if no ext, so safe to use later the unsafe
-   * fileprefix and filesuffix functions (well filesuffix is safe by default)
-   *)
-  ignore (Filename.chop_extension file);
-  ( Filename.dirname file,
-    Filename.basename file |> fileprefix,
-    Filename.basename file |> filesuffix )
-
-let filename_of_dbe (dir, base, ext) =
-  if ext = "" then Filename.concat dir base
-  else Filename.concat dir (base ^ "." ^ ext)
-
-let dbe_of_filename_safe file =
-  try Either.Left (dbe_of_filename file) with
-  | Invalid_argument _ ->
-      Either.Right (Filename.dirname file, Filename.basename file)
-
-let dbe_of_filename_nodot file =
-  let d, b, e = dbe_of_filename file in
-  let d = if d = "." then "" else d in
-  (d, b, e)
-
-(* old:
- * let re_be = Str.regexp "\\([^.]*\\)\\.\\(.*\\)"
- * let dbe_of_filename_noext_ok file =
- *   ...
- *   if Str.string_match re_be base 0
- *   then
- *     let (b, e) = matched2 base in
- *     (dir, b, e)
- *
- *  That way files like foo.md5sum.c would not be considered .c
- *  but .md5sum.c, but then it has too many disadvantages because
- *  then regular files like qemu.root.c would not be considered
- *  .c files, so it's better instead to fix syncweb to not generate
- *  .md5sum.c but .md5sum_c files!
- *)
-
-let dbe_of_filename_noext_ok file =
-  let dir = Filename.dirname file in
-  let base = Filename.basename file in
-  (dir, fileprefix base, filesuffix base)
-
-let dbe_of_filename_many_ext_opt file =
-  let re_be = Str.regexp "\\([^.]*\\)\\.\\(.*\\)" in
-  let dir = Filename.dirname file in
-  let base = Filename.basename file in
-  if Str.string_match re_be base 0 then
-    let b, e = matched2 base in
-    Some (dir, b, e)
-  else None
-
 let replace_ext file oldext newext =
-  let d, b, e = dbe_of_filename file in
+  let d, b, e = Filename_.dbe_of_filename file in
   assert (e = oldext);
-  filename_of_dbe (d, b, newext)
+  Filename_.filename_of_dbe (d, b, newext)
 
 (* Given a file name, normalize it by removing "." and "..".  This works
  * exclusively by processing the string, not relying on any file system
@@ -1945,6 +1832,22 @@ let filename_without_leading_path prj_path s =
     failwith (spf "cant find filename_without_project_path: %s  %s" prj_path s)
 
 (* realpath: see end of file *)
+
+let grep_dash_v_str =
+  "| grep -v /.hg/ |grep -v /CVS/ | grep -v /.git/ |grep -v /_darcs/"
+  ^ "| grep -v /.svn/ | grep -v .git_annot | grep -v .marshall"
+
+let arg_symlink () = if !UCommon.follow_symlinks then " -L " else ""
+
+let files_of_dir_or_files_no_vcs ext xs =
+  xs
+  |> List_.map (fun x ->
+         if USys.is_directory x then
+           UCmd.cmd_to_list
+             ("find " ^ arg_symlink () ^ x ^ " -noleaf -type f -name \"*." ^ ext
+            ^ "\"" ^ grep_dash_v_str)
+         else [ x ])
+  |> List.concat
 
 (*****************************************************************************)
 (* i18n *)
@@ -2200,7 +2103,7 @@ let days_in_week_of_day day =
   let start_d = mday - wday in
   let end_d = mday + (6 - wday) in
 
-  enum start_d end_d
+  List_.enum start_d end_d
   |> List.map (fun mday -> Unix.mktime { tm with Unix.tm_mday = mday } |> fst)
 
 let first_day_in_week_of_day day =
@@ -2550,8 +2453,6 @@ let cat file =
   close_in chan;
   x
 
-let cat_array file = "" :: cat file |> Array.of_list
-
 (* Spec for cat_excerpts:
    let cat_excerpts file lines =
    let arr = cat_array file in
@@ -2593,19 +2494,6 @@ let usleep s =
 (* now in prelude:
  * let command2 s = ignore(USys.command s)
  *)
-
-let do_in_fork f =
-  let pid = UUnix.fork () in
-  if pid =|= 0 then (
-    (* Unix.setsid(); *)
-    USys.set_signal Sys.sigint
-      (Sys.Signal_handle
-         (fun _ ->
-           pr2 "being killed";
-           UUnix.kill 0 Sys.sigkill));
-    f ();
-    UStdlib.exit 0)
-  else pid
 
 let nblines_with_wc a = nblines_eff a
 
@@ -2677,52 +2565,8 @@ let command_safe ?verbose:(_verbose = false) program args =
 
 let mkdir ?(mode = 0o770) file = UUnix.mkdir file mode
 
-(* TODO: add [@@profiling] but mutual deps :( *)
-let unix_stat file = UUnix.stat file
-
-let filesize file =
-  if not !Common.jsoo (* this does not work well with jsoo *) then
-    (unix_stat file).st_size
-    (* src: https://rosettacode.org/wiki/File_size#OCaml *)
-  else
-    let ic = UStdlib.open_in_bin file in
-    let i = in_channel_length ic in
-    close_in ic;
-    i
-
-let filemtime file =
-  if !Common.jsoo then failwith "JSOO:filemtime" else (unix_stat file).st_mtime
-
 (* opti? use wc -l ? *)
 let nblines_file file = cat file |> List.length
-
-let lfile_exists filename =
-  try
-    match (UUnix.lstat filename).st_kind with
-    | Unix.S_REG
-    | Unix.S_LNK ->
-        true
-    | _ -> false
-  with
-  | UUnix.Unix_error (Unix.ENOENT, _, _) -> false
-
-(* Helps avoid the `Fatal error: exception Unix_error: No such file or directory stat` *)
-let dir_exists path =
-  try
-    match (UUnix.lstat path).st_kind with
-    | S_DIR -> true
-    | _ -> false
-  with
-  | UUnix.Unix_error (Unix.ENOENT, _, _) -> false
-
-let is_directory file = (unix_stat file).st_kind =*= Unix.S_DIR
-let is_file file = (unix_stat file).st_kind =*= Unix.S_REG
-let is_symlink file = (UUnix.lstat file).st_kind =*= Unix.S_LNK
-
-let is_executable file =
-  let stat = unix_stat file in
-  let perms = stat.st_perm in
-  stat.st_kind =*= Unix.S_REG && perms land 0o011 <> 0
 
 (* ---------------------------------------------------------------------- *)
 (* _eff variant *)
@@ -2830,7 +2674,7 @@ let sanity_check_files_and_adjust ext files =
            if not (file =~ ".*\\." ^ ext) then (
              pr2 ("warning: seems not a ." ^ ext ^ " file");
              false)
-           else if is_directory file then (
+           else if UFile.is_directory (Fpath.v file) then (
              pr2 (spf "warning: %s is a directory" file);
              false)
            else true)
@@ -2903,11 +2747,6 @@ let with_tmp_dir f =
     (fun () ->
       USys.command (spf "rm -f %s/*" tmp_dir) |> ignore;
       UUnix.rmdir tmp_dir)
-
-(* now in prelude: exception UnixExit of int *)
-let exn_to_real_unixexit f =
-  try f () with
-  | UnixExit x -> UStdlib.exit x
 
 let uncat xs file =
   UCommon.with_open_outfile file (fun (pr, _chan) ->
@@ -3171,7 +3010,7 @@ let rec skipfirst e = function
 
 let index_list xs =
   if List_.null xs then [] (* enum 0 (-1) generate an exception *)
-  else zip xs (enum 0 (List.length xs - 1))
+  else zip xs (List_.enum 0 (List.length xs - 1))
 
 (* if you want to use this to show the progress while processing huge list,
  * consider instead Common_extra.progress
@@ -3180,7 +3019,7 @@ let index_list_and_total xs =
   let total = List.length xs in
   if List_.null xs then [] (* enum 0 (-1) generate an exception *)
   else
-    zip xs (enum 0 (List.length xs - 1))
+    zip xs (List_.enum 0 (List.length xs - 1))
     |> List.map (fun (a, b) -> (a, b, total))
 
 let avg_list xs =
@@ -3251,15 +3090,6 @@ let rec list_init = function
  *   let last_n n l = List.rev (take n (List.rev l))
  *   let last l = Common.hd_exn "unexpected empty list" (last_n 1 l)
  *)
-
-(* Tail-recursive to prevent stack overflows. *)
-let join_gen a xs =
-  let rec aux acc = function
-    | [] -> List.rev acc
-    | [ x ] -> List.rev (x :: acc)
-    | x :: xs -> aux (a :: x :: acc) xs
-  in
-  aux [] xs
 
 (* todo: foldl, foldr (a more consistent foldr) *)
 
@@ -3842,8 +3672,9 @@ let (columns_of_matrix : 'a matrix -> 'a list list) =
  fun m ->
   let nbcols = nb_columns_matrix m in
   let nbrows = nb_rows_matrix m in
-  enum 0 (nbcols - 1)
-  |> List.map (fun j -> enum 0 (nbrows - 1) |> List.map (fun i -> m.(i).(j)))
+  List_.enum 0 (nbcols - 1)
+  |> List.map (fun j ->
+         List_.enum 0 (nbrows - 1) |> List.map (fun i -> m.(i).(j)))
 
 let all_elems_matrix_by_row m = rows_of_matrix m |> List.flatten
 let ex_matrix1 = [| [| 0; 1; 2 |]; [| 3; 4; 5 |]; [| 6; 7; 8 |] |]
@@ -4241,7 +4072,7 @@ let group_assoc_bykey_eff xs =
   keys |> List.map (fun k -> (k, Hashtbl.find_all h k))
 
 let _test_group_assoc () =
-  let xs = enum 0 10000 |> List.map (fun i -> (i_to_s i, i)) in
+  let xs = List_.enum 0 10000 |> List.map (fun i -> (i_to_s i, i)) in
   let xs = ("0", 2) :: xs in
   (*    let _ys = xs +> Common.groupBy (fun (a,resa) (b,resb) -> a = b)  *)
   let ys = xs |> group_assoc_bykey_eff in
@@ -4976,7 +4807,7 @@ let regression_testing_vs newscore bestscore =
                    UPrintf.printf "%s\n" (chop ("Old error: " ^ y));
                    UPrintf.printf "New error: %s\n" x)));
   flush UStdlib.stdout;
-  flush stderr;
+  flush UStdlib.stderr;
   newbestscore
 
 let regression_testing newscore best_score_file =
@@ -5239,7 +5070,7 @@ let cmdline_flags_verbose () =
   [
     ("-verbose_level", Arg.Set_int verbose_level, " <int> guess what");
     ( "-disable_pr2_once",
-      Arg.Set Common.disable_pr2_once,
+      Arg.Set UCommon.disable_pr2_once,
       " to print more messages" );
   ]
 
@@ -5369,7 +5200,7 @@ let _ = example
 *)
 
 let dirs_and_base_of_file file =
-  let dir, base = db_of_filename file in
+  let dir, base = Filename_.db_of_filename file in
   let dirs = split "/" dir in
   let dirs =
     match dirs with
@@ -5386,7 +5217,7 @@ let _ = example
 let inits_of_absolute_dir dir =
   if not (is_absolute dir) then
     failwith (spf "inits_of_absolute_dir: %s is not an absolute path" dir);
-  if not (is_directory dir) then
+  if not (UFile.is_directory (Fpath.v dir)) then
     failwith (spf "inits_of_absolute_dir: %s is not a directory" dir);
   let dir = chop_dirsymbol dir in
 

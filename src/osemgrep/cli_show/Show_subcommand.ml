@@ -20,7 +20,7 @@ module J = JSON
 (* Types *)
 (*****************************************************************************)
 (* we need the network for the 'semgrep show identity/deployment' *)
-type caps = < stdout : Cap.Console.stdout ; network : Cap.Network.t >
+type caps = < Cap.stdout ; Cap.network >
 
 (*****************************************************************************)
 (* Helpers *)
@@ -103,11 +103,23 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
       let rules_and_errors =
         Rule_fetching.rules_from_dashdash_config
           ~rewrite_rule_ids:true (* command-line default *)
-          ~token_opt ~registry_caching:false config
+          ~token_opt ~registry_caching:false
+          (caps :> < Cap.network >)
+          config
       in
       rules_and_errors
       |> List.iter (fun x ->
              CapConsole.out stdout (Rule_fetching.show_rules_and_origin x));
+      Exit_code.ok
+  | DumpRuleV2 file ->
+      (* TODO: use validation ocaml code to enforce the
+       * CHECK: in rule_schema_v2.atd.
+       * For example, check that at least one and only one field is set in formula.
+       * Reclaim some of the jsonschema power. Maybe define combinators to express
+       * that in rule_schema_v2_adapter.ml?
+       *)
+      let rules = Parse_rules_with_atd.parse_rules_v2 file in
+      CapConsole.out stdout (Rule_schema_v2_t.show_rules rules);
       Exit_code.ok
   | DumpEnginePath _pro -> failwith "TODO: dump-engine-path not implemented yet"
   | DumpCommandForCore ->

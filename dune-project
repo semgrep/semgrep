@@ -120,6 +120,11 @@ a few other projects developed at r2c.
   )
 )
 
+(package (name commons2)
+  (synopsis "XXX")
+  (description "XXX")
+)
+
 (package (name concurrency)
   (synopsis "XXX")
   (description "XXX")

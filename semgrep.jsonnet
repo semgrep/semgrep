@@ -1,14 +1,28 @@
 // -*- jsonnet -*-
 
-// legacy rules written in YAML
-local yml = import 'semgrep.yml';
-
-// registry rules!
+// ----------------------------------------------------------------------------
+// Registry rules!
+// ----------------------------------------------------------------------------
 local ocaml = import 'p/ocaml';
 
-// this is useful to factorize exclude
-local test_code_globs = ['Unit_*.ml', 'Test_*.ml'];
-local less_important_code_globs = ['spacegrep/', 'experiments/', 'scripts/'];
+//Temporary hack to not report p/ocaml findings on semgrep libs
+//TODO: we should use +: instead of :, as in
+//  [ r + { paths +: { exclude +: [ "libs/*", "tools/*", "languages/*" ] } }
+// but this is not supported yet by ojsonnet hence the use of :
+local ocaml_rules =
+  [
+    r { paths: { exclude: ['libs/*', 'tools/*', 'languages/*'] } }
+    for r in ocaml.rules
+  ];
+
+// ----------------------------------------------------------------------------
+// legacy rules written in YAML
+// ----------------------------------------------------------------------------
+local yml = import 'semgrep.yml';
+
+// ----------------------------------------------------------------------------
+// jsonnet rules
+// ----------------------------------------------------------------------------
 
 local semgrep_rules = [
   // new syntax!
@@ -54,9 +68,38 @@ local semgrep_rules = [
   },
 ];
 
+// ----------------------------------------------------------------------------
+// TCB rules
+// ----------------------------------------------------------------------------
+
+local exit_rules = import 'TCB/forbid_exit.jsonnet';
+
+local tcb_rules =
+  [
+    r { paths: { exclude: ['tools/*', 'scripts/*', '*_main.ml'] } }
+    for r in exit_rules.rules
+  ];
+
+// ----------------------------------------------------------------------------
+// Skip and last-minute override
+// ----------------------------------------------------------------------------
+
+// this is useful to factorize exclude
+//local test_code_globs = ['Unit_*.ml', 'Test_*.ml'];
+//local less_important_code_globs = ['spacegrep/', 'experiments/', 'scripts/'];
+
 local todo_skipped_for_now = [
   //TODO? what is the fix for that?
   'ocaml.lang.portability.crlf-support.broken-input-line',
+  // too noisy
+  'ocaml.lang.security.marshal.ocamllint-marshal',
+  'ocaml.lang.security.filenameconcat.ocamllint-filenameconcat',
+  'ocaml.lang.security.tempfile.ocamllint-tempfile',
+  'ocaml.lang.security.hashtable-dos.ocamllint-hashtable-dos',
+  'ocaml.lang.security.digest.ocamllint-digest',
+  //TODO: fix those one at least
+  'ocaml.lang.security.unsafe.ocamllint-unsafe',
+  'ocaml.lang.security.exec.ocamllint-exec'
 ];
 
 local override_messages = {
@@ -70,17 +113,11 @@ local override_messages = {
   |||,
 };
 
-//Temporary hack to not report p/ocaml findings on semgrep libs
-//TODO: we should use +: instead of :, as in
-//  [ r + { paths +: { exclude +: [ "libs/*", "tools/*", "languages/*" ] } }
-// but this is not supported yet by ojsonnet hence the use of :
-local ocaml_rules =
-  [
-    r { paths: { exclude: ['libs/*', 'tools/*', 'languages/*'] } }
-    for r in ocaml.rules
-  ];
+// ----------------------------------------------------------------------------
+// Entry point
+// ----------------------------------------------------------------------------
 
-local all = yml.rules + semgrep_rules + ocaml_rules;
+local all = yml.rules + semgrep_rules + ocaml_rules + tcb_rules;
 
 {
   rules:

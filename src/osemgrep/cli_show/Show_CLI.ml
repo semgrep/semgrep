@@ -46,6 +46,7 @@ and show_kind =
    * alt: we could accept multiple Files via multiple target_roots *)
   | DumpAST of Fpath.t * Lang.t
   | DumpConfig of Rules_config.config_string
+  | DumpRuleV2 of Fpath.t
   (* 'semgrep show ???'
    * accessible also as 'semgrep scan --dump-engine-path
    * LATER: get rid of it? *)
@@ -92,6 +93,7 @@ let cmdline_term : conf Term.t =
       match args with
       | [ "version" ] -> Version
       | [ "dump-config"; config_str ] -> DumpConfig config_str
+      | [ "dump-rule-v2"; file ] -> DumpRuleV2 (Fpath.v file)
       | [ "supported-languages" ] -> SupportedLanguages
       | [ "identity" ] -> Identity
       | [ "deployment" ] -> Deployment
@@ -123,6 +125,8 @@ let man : Cmdliner.Manpage.block list =
     `P "Print a list of languages that are currently supported by Semgrep.";
     `Pre "semgrep show dump-config <STRING>";
     `P "Dump the internal representation of the result of --config=<STRING>";
+    `Pre "semgrep show dump-rule-v2 <FILE>";
+    `P "Dump the internal representation of a rule using the new (v2) syntax";
   ]
   @ CLI_common.help_page_bottom
 

@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
+open Common
 
 (*****************************************************************************)
 (* Faster List.map *)
@@ -242,7 +243,7 @@ let enum x n =
   if not (x <= n) then
     failwith (Printf.sprintf "bad values in enum, expect %d <= %d" x n);
   let rec enum_aux acc x n =
-    if x = n then n :: acc else enum_aux (x :: acc) (x + 1) n
+    if x =|= n then n :: acc else enum_aux (x :: acc) (x + 1) n
   in
   List.rev (enum_aux [] x n)
 
@@ -333,3 +334,24 @@ let rec uniq_by eq xs =
       match List.find_opt (fun y -> eq x y) xs with
       | Some _ -> uniq_by eq xs
       | None -> x :: uniq_by eq xs)
+
+(*****************************************************************************)
+(* Misc (was in common2.ml) *)
+(*****************************************************************************)
+
+(* Tail-recursive to prevent stack overflows. *)
+let join_gen a xs =
+  let rec aux acc = function
+    | [] -> List.rev acc
+    | [ x ] -> List.rev (x :: acc)
+    | x :: xs -> aux (a :: x :: acc) xs
+  in
+  aux [] xs
+
+let enum x n =
+  if not (x <= n) then
+    failwith (Printf.sprintf "bad values in enum, expect %d <= %d" x n);
+  let rec enum_aux acc x n =
+    if x =|= n then n :: acc else enum_aux (x :: acc) (x + 1) n
+  in
+  List.rev (enum_aux [] x n)

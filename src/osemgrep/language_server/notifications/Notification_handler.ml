@@ -49,6 +49,8 @@ let on_notification notification (server : RPC_server.t) =
     | _ when server.state = RPC_server.State.Uninitialized -> server
     | CN.Initialized ->
         Logs.debug (fun m -> m "Server initialized");
+        let session = Session.load_local_skipped_fingerprints server.session in
+        let server = { server with session } in
         Scan_helpers.refresh_rules server;
         server
     | CN.DidSaveTextDocument { textDocument = { uri }; _ } ->

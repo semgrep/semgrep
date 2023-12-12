@@ -178,7 +178,7 @@ let replace_named_pipe_by_regular_file path =
 let sort_targets_by_decreasing_size (targets : In.target list) : In.target list
     =
   targets
-  |> List_.map (fun target -> (target, Common2.filesize target.In.path))
+  |> List_.map (fun target -> (target, UFile.filesize (Fpath.v target.In.path)))
   |> List.sort (fun (_, (a : int)) (_, b) -> compare b a)
   |> List_.map fst
 
@@ -764,7 +764,7 @@ let extracted_targets_of_config (config : Core_scan_config.t)
     (List.length basic_targets);
   let match_hook str match_ =
     if !Extract.debug_extract_mode && config.output_format =*= Text then (
-      pr2 "extracted content from ";
+      UCommon.pr2 "extracted content from ";
       print_match ~str config match_ Metavariable.ii_of_mval)
   in
   let (extracted_targets : Extract.extracted_target_and_adjuster list) =

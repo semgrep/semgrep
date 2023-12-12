@@ -269,7 +269,7 @@ let ci_tests () =
     Lwt_platform.run (Session.cache_session session);
     let rules = session.cached_session.rules in
     Alcotest.(check int) "rules" 1 (List.length rules);
-    let skipped_fingerprints = session.cached_session.skipped_fingerprints in
+    let skipped_fingerprints = Session.skipped_fingerprints session in
     Alcotest.(check int)
       "skipped_fingerprints" 1
       (List.length skipped_fingerprints)

@@ -1,1 +1,1 @@
-val tests : Alcotest_ext.test list
+val tests : < Cap.network > -> Alcotest_ext.test list

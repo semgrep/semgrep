@@ -81,7 +81,7 @@ let build g =
          | E.TopStmts
          | E.Other _
          | E.MultiDirs ->
-             pr2_gen n;
+             UCommon.pr2_gen n;
              raise Todo);
 
          try
