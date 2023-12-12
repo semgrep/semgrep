@@ -11,7 +11,8 @@ let string_of_token (Token str) = str
 let unsafe_token_of_string str = Token str
 let auth_header_of_token (Token str) = ("Authorization", "Bearer " ^ str)
 
-(* TODO: is there shorter way to combine? *)
+type cap_token = < token : token >
+
 let cap_token_and_network token caps =
   object
     method network = caps#network

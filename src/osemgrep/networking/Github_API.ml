@@ -3,11 +3,11 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 (* GitHub REST API *)
 
 let find_branchoff_point_async ~gh_token ~api_url ~repo_name ~base_branch_hash
-    head_branch_hash =
+    caps head_branch_hash =
   let str = Auth.string_of_token gh_token in
   let headers = [ ("Authorization", Fmt.str "Bearer %s" str) ] in
   let%lwt response =
-    Http_helpers.get_async ~headers
+    Http_helpers.get_async ~headers caps#network
       (Uri.of_string
          (Fmt.str "%a/repos/%s/compare/%a...%a" Uri.pp api_url repo_name
             Digestif.SHA1.pp base_branch_hash Digestif.SHA1.pp head_branch_hash))

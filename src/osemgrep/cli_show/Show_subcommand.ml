@@ -20,7 +20,7 @@ module J = JSON
 (* Types *)
 (*****************************************************************************)
 (* we need the network for the 'semgrep show identity/deployment' *)
-type caps = < stdout : Cap.Console.stdout ; network : Cap.Network.t >
+type caps = < Cap.stdout ; Cap.network >
 
 (*****************************************************************************)
 (* Helpers *)
@@ -103,7 +103,9 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
       let rules_and_errors =
         Rule_fetching.rules_from_dashdash_config
           ~rewrite_rule_ids:true (* command-line default *)
-          ~token_opt ~registry_caching:false config
+          ~token_opt ~registry_caching:false
+          (caps :> < Cap.network >)
+          config
       in
       rules_and_errors
       |> List.iter (fun x ->

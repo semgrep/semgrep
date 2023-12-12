@@ -17,6 +17,7 @@ module OutJ = Semgrep_output_v1_j
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
+type caps = < Cap.stdout ; Cap.network >
 
 (*****************************************************************************)
 (* Helpers *)
@@ -36,7 +37,7 @@ let xlang_for_rules_and_target (rules_origin : string) (rules : Rule.t list)
             rules_origin (Xlang.show fst));
       fst
 
-let rule_files_and_rules_of_config_string
+let rule_files_and_rules_of_config_string caps
     (config_string : Rules_config.config_string) : (Fpath.t * Rule.t list) list
     =
   let (config : Rules_config.t) =
@@ -45,7 +46,7 @@ let rule_files_and_rules_of_config_string
   (* LESS: restrict to just File? *)
   let (rules_and_origin : Rule_fetching.rules_and_origin list) =
     Rule_fetching.rules_from_dashdash_config ~rewrite_rule_ids:false
-      ~token_opt:None ~registry_caching:false config
+      ~token_opt:None ~registry_caching:false caps config
   in
   rules_and_origin
   |> List_.map_filter (fun (x : Rule_fetching.rules_and_origin) ->
@@ -177,7 +178,7 @@ let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
 (*****************************************************************************)
 (* Pad's temporary version *)
 (*****************************************************************************)
-let run_conf (conf : Test_CLI.conf) : Exit_code.t =
+let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:true ~level:conf.common.logging_level;
   (* Metrics_.configure Metrics_.On; *)
   Logs.debug (fun m -> m "conf = %s" (Test_CLI.show_conf conf));
@@ -214,7 +215,7 @@ let run_conf (conf : Test_CLI.conf) : Exit_code.t =
     | Test_CLI.File (path, config_str)
     | Test_CLI.Dir (path, Some config_str) ->
         let rule_files_and_rules =
-          rule_files_and_rules_of_config_string config_str
+          rule_files_and_rules_of_config_string (caps :> Cap.network) config_str
         in
         (* alt: use Find_targets.get_target_fpaths but then it requires
          * a Find_targets.conf, and this will respect the .semgrepignore
@@ -262,6 +263,6 @@ let run_conf (conf : Test_CLI.conf) : Exit_code.t =
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let main (argv : string array) : Exit_code.t =
+let main (caps : caps) (argv : string array) : Exit_code.t =
   let conf = Test_CLI.parse_argv argv in
-  run_conf conf
+  run_conf caps conf

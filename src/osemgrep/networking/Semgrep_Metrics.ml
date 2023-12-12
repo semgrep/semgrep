@@ -31,7 +31,7 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 (* API *)
 (*****************************************************************************)
 
-let send () =
+let send caps =
   (* Populate the sent_at timestamp *)
   Metrics_.prepare_to_send ();
   let user_agent = Metrics_.string_of_user_agent () in
@@ -42,7 +42,7 @@ let send () =
   in
   Logs.debug (fun m -> m "Metrics: %s" metrics);
   Logs.debug (fun m -> m "userAgent: '%s'" user_agent);
-  match Http_helpers.post ~body:metrics ~headers url with
+  match Http_helpers.post ~body:metrics ~headers caps#network url with
   | Ok body -> Logs.debug (fun m -> m "Metrics Endpoint response: %s" body)
   | Error (status_code, err) ->
       Logs.warn (fun m -> m "Metrics Endpoint error: %d %s" status_code err)
