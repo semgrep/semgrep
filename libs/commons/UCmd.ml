@@ -3,7 +3,11 @@ open Common
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Small wrapper around Bos.OS.Cmd *)
+(* Small wrapper around Bos.OS.Cmd
+ *
+ * A few functions contain a 'nosemgrep: forbid-exec' because anyway
+ * those functions  will/are also blacklisted in forbid-exec.jsonnet.
+ *)
 
 (*****************************************************************************)
 (* Old Common.cmd_to_list *)
@@ -13,6 +17,7 @@ exception CmdError of Unix.process_status * string
 
 let process_output_to_list ?(verbose = false) command =
   (* alt: use Cmd.with_open_process_in *)
+  (* nosemgrep: forbid-exec *)
   let chan = UUnix.open_process_in command in
   let res = ref ([] : string list) in
   let rec process_otl_aux () =
@@ -52,5 +57,6 @@ let status_of_run ?quiet = Cmd.bos_apply (Bos.OS.Cmd.run_status ?quiet)
 
 (* TODO: switch to type Cmd.t for cmd *)
 let with_open_process_in (cmd : string) f =
+  (* nosemgrep: forbid-exec *)
   let chan = UUnix.open_process_in cmd in
   Common.protect ~finally:(fun () -> close_in chan) (fun () -> f chan)
