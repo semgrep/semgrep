@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -17,7 +17,10 @@
 (* Prelude *)
 (*****************************************************************************)
 (* An Abstract Syntax Tree (AST) for OCaml.
- * (for a Concrete Syntax Tree see old/cst_ml_ml or ocaml-tree-sitter-semgrep).
+ *
+ * For a Concrete Syntax Tree see either
+ *   - old/cst_ml_ml
+ *   - ../tree-sitter/semgrep-ocaml/lib/CST.ml
  *
  * TODO:
  *  - lots of missing xxx bracket, lots of missing tok for correct l/r range
@@ -178,6 +181,27 @@ and for_direction = To of tok | Downto of tok
 (* TODO: attribute? and keyword_attribute? *)
 and rec_opt = tok option
 
+(* ------------------------------------------------------------------------- *)
+(* object *)
+(* ------------------------------------------------------------------------- *)
+and object_ = {
+  o_tok : Tok.t; (* 'object' *)
+  (* TODO: self *)
+  o_body : object_member list;
+}
+
+and object_member = Method of method_ | Field of object_field
+
+and method_ = {
+  m_tok : Tok.t; (* 'method' *)
+  (* TODO: m_attrs *)
+  m_params : parameter list;
+  m_rettype : type_ option;
+  m_body : expr;
+}
+
+and object_field = ident * type_ option * expr
+
 (*****************************************************************************)
 (* Patterns *)
 (*****************************************************************************)
@@ -280,7 +304,14 @@ and mutable_opt = tok option (* mutable *)
 (* ------------------------------------------------------------------------- *)
 (* Class (and object) *)
 (* ------------------------------------------------------------------------- *)
-(* Nope ... represented via an ItemTodo "Class" *)
+
+type class_decl = {
+  c_tok : Tok.t; (* 'class' *)
+  c_name : ident;
+  c_params : parameter list;
+  c_body : object_;
+}
+[@@deriving show]
 
 (* ------------------------------------------------------------------------- *)
 (* Module *)
@@ -329,6 +360,7 @@ and item_kind =
   | Let of tok * rec_opt * let_binding list
   | TopExpr of expr
   | Module of tok * module_declaration
+  | Class of class_decl
   (* TODO
    * - directives (#xxx)
    * - floating attributes ([@@@ ])

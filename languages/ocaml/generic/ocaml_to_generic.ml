@@ -618,6 +618,11 @@ and attribute x =
 and item { i; iattrs } =
   let attrs = attributes iattrs in
   match i with
+  (* TODO *)
+  | Class { c_tok; c_name; _ } ->
+      let id = ident c_name in
+      let ent = G.basic_entity id in
+      [ G.DefStmt (ent, G.OtherDef (("Class", c_tok), [])) |> G.s ]
   | TopExpr e ->
       let e = expr e in
       [ G.exprstmt e ]
