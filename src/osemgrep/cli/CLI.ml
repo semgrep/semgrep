@@ -205,7 +205,7 @@ let dispatch_subcommand (caps : Cap.all_caps) (argv : string array) =
               Error.abort (Printf.sprintf "unknown semgrep command: %s" subcmd)
             else raise Pysemgrep.Fallback
       with
-      | Pysemgrep.Fallback -> Pysemgrep.pysemgrep argv)
+      | Pysemgrep.Fallback -> Pysemgrep.pysemgrep (caps :> < Cap.exec >) argv)
 [@@profiling]
 
 (*****************************************************************************)

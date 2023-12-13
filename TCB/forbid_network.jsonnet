@@ -1,29 +1,31 @@
-// TODO: factorize those .get/.post and Unix/UUnix with list comprehensions
 {
   rules: [
+    // TODO: move this at the toplevel, but ojsonnet bug!
+    local unix_funcs_network = [
+      'socket',
+      'socketpair',
+      'accept',
+      'bind',
+      'connect',
+      'listen',
+      'establish_server',
+    ];
     {
       id: 'forbid-network',
-      match: { any: [
-	// Cohttp
-        'Client.get ...',
-        'Client.post ...',
-        'Cohttp_lwt_unix.get ...',
-        'Cohttp_lwt_unix.post ...',
-	// Unix
-        'Unix.socket ...',
-        'Unix.socketpair ...',
-        'Unix.accept ...',
-        'Unix.bind ...',
-        'Unix.connect ...',
-        'Unix.listen ...',
-	// UUnix
-        'UUnix.socket ...',
-        'UUnix.socketpair ...',
-        'UUnix.accept ...',
-        'UUnix.bind ...',
-        'UUnix.connect ...',
-        'UUnix.listen ...',
-      ] },
+      match: {
+        any:
+          // Cohttp
+          [
+            'Client.get',
+            'Client.post',
+            'Cohttp_lwt_unix.get',
+            'Cohttp_lwt_unix.post',
+          ] +
+          // Unix
+          [('Unix.' + p) for p in unix_funcs_network] +
+          [('UUnix.' + p) for p in unix_funcs_network] +
+          [],
+      },
       paths: {
         exclude: ['http_helpers.ml'],
       },
