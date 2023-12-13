@@ -174,13 +174,11 @@ let run_conf (caps : caps) (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
 
         (* Get Pro version, it serves as a simple check that the binary works *)
         let version =
-          let cmd = Bos.Cmd.(v !!semgrep_pro_path_tmp % "-pro_version") in
+          let cmd = (Cmd.Name !!semgrep_pro_path_tmp, [ "-pro_version" ]) in
           let opt =
             Time_limit.set_timeout ~name:"check pro version" 10.0 (fun () ->
-                let path_r =
-                  Bos.OS.Cmd.run_out ~err:Bos.OS.Cmd.err_run_out cmd
-                in
-                let result = Bos.OS.Cmd.out_string ~trim:true path_r in
+                (* TODO?  Bos.OS.Cmd.run_out ~err:Bos.OS.Cmd.err_run_out *)
+                let result = UCmd.string_of_run ~trim:true cmd in
                 match result with
                 | Ok (output, _) -> Some output
                 | Error _ -> None)

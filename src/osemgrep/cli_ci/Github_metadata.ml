@@ -1,7 +1,7 @@
 open Common
 module Arg = Cmdliner.Arg
 module Term = Cmdliner.Term
-module Cmd = Cmdliner.Cmd
+module Cmdl = Cmdliner.Cmd
 
 (*****************************************************************************)
 (* Prelude *)
@@ -45,30 +45,30 @@ let _MAX_FETCH_ATTEMPT_COUNT = 10
 let env : env Term.t =
   let github_event_path =
     let doc = "The GitHub event path." in
-    let env = Cmd.Env.info "GITHUB_EVENT_PATH" in
+    let env = Cmdl.Env.info "GITHUB_EVENT_PATH" in
     Arg.(
       value & opt Glom.cli Glom.default & info [ "github-event-path" ] ~env ~doc)
   in
   let github_sha =
     let doc = "The GitHub commit." in
-    let env = Cmd.Env.info "GITHUB_SHA" in
+    let env = Cmdl.Env.info "GITHUB_SHA" in
     Arg.(
       value & opt (some Cmdliner_.sha1) None & info [ "github-sha" ] ~env ~doc)
   in
   let gh_token =
     let doc = "The GitHub token." in
-    let env = Cmd.Env.info "GH_TOKEN" in
+    let env = Cmdl.Env.info "GH_TOKEN" in
     Arg.(value & opt (some string) None & info [ "gh-token" ] ~env ~doc)
   in
   let github_repository =
     let doc = "The GitHub repository." in
-    let env = Cmd.Env.info "GITHUB_REPOSITORY" in
+    let env = Cmdl.Env.info "GITHUB_REPOSITORY" in
     Arg.(
       value & opt (some string) None & info [ "github-repository" ] ~env ~doc)
   in
   let github_server_url =
     let doc = "The GitHub server URL." in
-    let env = Cmd.Env.info "GITHUB_SERVER_URL" in
+    let env = Cmdl.Env.info "GITHUB_SERVER_URL" in
     Arg.(
       value
       & opt Cmdliner_.uri (Uri.of_string "https://github.com")
@@ -76,7 +76,7 @@ let env : env Term.t =
   in
   let github_api_url =
     let doc = "The GitHub API URL." in
-    let env = Cmd.Env.info "GITHUB_API_URL" in
+    let env = Cmdl.Env.info "GITHUB_API_URL" in
     Arg.(
       value
       & opt (some Cmdliner_.uri) None
@@ -84,34 +84,34 @@ let env : env Term.t =
   in
   let github_run_id =
     let doc = "The GitHub run ID." in
-    let env = Cmd.Env.info "GITHUB_RUN_ID" in
+    let env = Cmdl.Env.info "GITHUB_RUN_ID" in
     Arg.(value & opt (some string) None & info [ "github-run-id" ] ~doc ~env)
   in
   let github_event_name =
     let doc = "The GitHub event name." in
-    let env = Cmd.Env.info "GITHUB_EVENT_NAME" in
+    let env = Cmdl.Env.info "GITHUB_EVENT_NAME" in
     Arg.(
       value & opt (some string) None & info [ "github-event-name" ] ~doc ~env)
   in
   let github_ref =
     let doc = "The GitHub ref." in
-    let env = Cmd.Env.info "GITHUB_REF" in
+    let env = Cmdl.Env.info "GITHUB_REF" in
     Arg.(value & opt (some string) None & info [ "github-ref" ] ~doc ~env)
   in
   let github_head_ref =
     let doc = "The GitHub HEAD ref." in
-    let env = Cmd.Env.info "GITHUB_HEAD_REF" in
+    let env = Cmdl.Env.info "GITHUB_HEAD_REF" in
     Arg.(value & opt (some string) None & info [ "github-head-ref" ] ~doc ~env)
   in
   let github_repository_id =
     let doc = "The ID of the repository." in
-    let env = Cmd.Env.info "GITHUB_REPOSITORY_ID" in
+    let env = Cmdl.Env.info "GITHUB_REPOSITORY_ID" in
     Arg.(
       value & opt (some string) None & info [ "github-repository-id" ] ~doc ~env)
   in
   let github_repository_owner_id =
     let doc = "The repository owner's account ID." in
-    let env = Cmd.Env.info "GITHUB_REPOSITORY_OWNER_ID" in
+    let env = Cmdl.Env.info "GITHUB_REPOSITORY_OWNER_ID" in
     Arg.(
       value
       & opt (some string) None
@@ -327,13 +327,14 @@ let rec find_branchoff_point caps ?(attempt_count = 0) repo_name env =
     in
 
     let cmd =
-      Bos.Cmd.(
-        v "git" % "merge-base"
-        % Digestif.SHA1.to_hex base_branch_hash
-        % Digestif.SHA1.to_hex head_branch_hash)
+      ( Cmd.Name "git",
+        [
+          "merge-base";
+          Digestif.SHA1.to_hex base_branch_hash;
+          Digestif.SHA1.to_hex head_branch_hash;
+        ] )
     in
-    let out = Bos.OS.Cmd.run_out cmd in
-    match Bos.OS.Cmd.out_string ~trim:true out with
+    match UCmd.string_of_run ~trim:true cmd with
     | Ok (merge_base, (_, `Exited 0)) ->
         Lwt.return (Digestif.SHA1.of_hex_opt merge_base)
     | Ok (_, _) when attempt_count < _MAX_FETCH_ATTEMPT_COUNT ->

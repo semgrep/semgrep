@@ -11,7 +11,12 @@
       ] },
       languages: ['ocaml'],
       paths: {
-        exclude: ['TCB/*', 'tools/*', 'scripts/*', '*_main.ml', 'Main.ml', 'Test.ml', 'Tests.ml'],
+        exclude: [
+           'TCB/*',
+           'tools/*', 'scripts/*',
+            '*_main.ml', 'Main.ml',
+            'Test*.ml',
+         ],
       },
       severity: 'ERROR',
       message: |||
