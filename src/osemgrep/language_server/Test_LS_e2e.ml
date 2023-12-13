@@ -1029,9 +1029,9 @@ module Test = Alcotest_ext
 
 let promise_tests =
   [
-    Test.create "Test LS" test_ls_specs;
-    Test.create "Test LS exts" test_ls_ext;
-    Test.create "Test LS multi-workspaces" test_ls_multi;
+    Test.create "Test LS" test_ls_specs ~tolerate_chdir:true;
+    Test.create "Test LS exts" test_ls_ext ~tolerate_chdir:true;
+    Test.create "Test LS multi-workspaces" test_ls_multi ~tolerate_chdir:true;
     Test.create "Test LS login" test_login
       ~expected_outcome:
         (Should_fail "TODO: currently failing in js tests in CI");

@@ -76,6 +76,7 @@ let tests (caps : Cap.all_caps) =
       (*Unit_Networking.tests;*)
       Test_LS_e2e.tests;
       (* End OSemgrep tests *)
+      Spacegrep_tests.Test.tests ();
       Aliengrep.Unit_tests.tests;
       (* Inline tests *)
       Alcotest_ext.get_registered_tests ();

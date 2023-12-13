@@ -317,35 +317,37 @@ let print_status ?(output_style = Full)
 
   match output_style with
   | Short -> ()
-  | Full -> (
-      (* Details about expectations *)
-      (match status.expectation.expected_outcome with
-      | Should_succeed -> ()
-      | Should_fail reason -> printf "  expected to fail: %S\n" reason);
-      (match test.output_kind with
-      | Ignore_output -> ()
-      | _ ->
-          let text =
-            match test.output_kind with
-            | Ignore_output -> assert false
-            | Stdout -> "stdout"
-            | Stderr -> "stderr"
-            | Merged_stdout_stderr -> "merged stdout and stderr"
-            | Separate_stdout_stderr -> "separate stdout and stderr"
-          in
-          printf "  checked output: %s\n" text);
-      (* Details about results *)
-      match status.expectation.expected_output with
-      | Error msg ->
-          printf "Missing file(s) containing the expected output: %s\n" msg
-      | Ok expected_output -> (
-          match status.result with
-          | Error msg ->
-              printf "Missing file(s) containing the test output: %s\n" msg
-          | Ok result ->
-              if result.captured_output <> expected_output then
-                let output_file_pairs = Store.get_output_file_pairs test in
-                diff_output output_file_pairs))
+  | Full ->
+      if (* Details about expectations *)
+         test.skipped then printf "  always skipped\n"
+      else (
+        (match status.expectation.expected_outcome with
+        | Should_succeed -> ()
+        | Should_fail reason -> printf "  expected to fail: %S\n" reason);
+        (match test.output_kind with
+        | Ignore_output -> ()
+        | _ ->
+            let text =
+              match test.output_kind with
+              | Ignore_output -> assert false
+              | Stdout -> "stdout"
+              | Stderr -> "stderr"
+              | Merged_stdout_stderr -> "merged stdout and stderr"
+              | Separate_stdout_stderr -> "separate stdout and stderr"
+            in
+            printf "  checked output: %s\n" text);
+        (* Details about results *)
+        match status.expectation.expected_output with
+        | Error msg ->
+            printf "Missing file(s) containing the expected output: %s\n" msg
+        | Ok expected_output -> (
+            match status.result with
+            | Error msg ->
+                printf "Missing file(s) containing the test output: %s\n" msg
+            | Ok result ->
+                if result.captured_output <> expected_output then
+                  let output_file_pairs = Store.get_output_file_pairs test in
+                  diff_output output_file_pairs))
 
 let print_statuses ~only_important ~output_style tests_with_status =
   let tests_with_status =
@@ -461,22 +463,23 @@ let run_tests_with_alcotest tests =
      Alcotest.run ~and_exit:false ~argv:alcotest_argv "test" alcotest_tests
    with
   | Alcotest.Test_error -> ());
-  (* Alcotest doesn't print a trailing newline here but only when the program
-     exits, it seems (?) *)
-  print_newline ()
+  Format.print_flush ()
 
 let run_tests_with_alcotest_lwt tests =
   let alcotest_tests = to_alcotest_lwt tests in
-  Lwt.catch
+  Lwt.finalize
     (fun () ->
-      Lwt.bind
-        (Alcotest_lwt.run ~and_exit:false ~argv:alcotest_argv "test"
-           alcotest_tests) (fun () ->
-          print_newline ();
-          Lwt.return ()))
-    (function
-      | Alcotest.Test_error -> Lwt.return ()
-      | e -> raise e)
+      Lwt.catch
+        (fun () ->
+          Lwt.bind
+            (Alcotest_lwt.run ~and_exit:false ~argv:alcotest_argv "test"
+               alcotest_tests) (fun () -> Lwt.return ()))
+        (function
+          | Alcotest.Test_error -> Lwt.return ()
+          | e -> raise e))
+    (fun () ->
+      Format.print_flush ();
+      Lwt.return ())
 
 (* Run this before a run or Lwt run. Returns the filtered tests. *)
 let before_run ?filter_by_substring ?(lazy_ = false) tests =

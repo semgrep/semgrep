@@ -314,10 +314,9 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
       let name = test_name_for_target ~prepend_lang langs rule_file in
       Alcotest_ext.create ~tags name test
   | None ->
-      (* TODO: mark the test as xfail (expected to fail) instead of skipped
-         and add "missing target file" as the reason *)
-      let name = spf "Missing target file for rule file %s" !!rule_file in
-      Alcotest_ext.create ~skipped:true name test
+      let name = !!rule_file in
+      let reason = spf "Missing target file for rule file %s" !!rule_file in
+      Alcotest_ext.create name test ~expected_outcome:(Should_fail reason)
 
 let find_rule_files roots =
   roots |> UFile.files_of_dirs_or_files_no_vcs_nofilter

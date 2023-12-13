@@ -59,17 +59,19 @@ let lines_of_range_corpus =
   ]
 
 let test =
-  let suite =
-    List_.map
-      (fun (name, input, start, end_, expected_output) ->
-        (name, `Quick, fun () -> test_highlight input start end_ expected_output))
-      highlight_corpus
-    @ List_.map
-        (fun (name, input, start_word, end_word, expected_output) ->
-          ( name,
-            `Quick,
-            fun () ->
-              test_lines_of_range input start_word end_word expected_output ))
-        lines_of_range_corpus
-  in
-  ("Src_file", suite)
+  Alcotest_ext.pack_suites "Src_file"
+    [
+      Alcotest_ext.pack_tests "highlight"
+        (List_.map
+           (fun (name, input, start, end_, expected_output) ->
+             (name, fun () -> test_highlight input start end_ expected_output))
+           highlight_corpus);
+      Alcotest_ext.pack_tests "lines_of_range"
+        (List_.map
+           (fun (name, input, start_word, end_word, expected_output) ->
+             ( name,
+               fun () ->
+                 test_lines_of_range input start_word end_word expected_output
+             ))
+           lines_of_range_corpus);
+    ]

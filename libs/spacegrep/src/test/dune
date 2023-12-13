@@ -1,4 +1,8 @@
-(executable
-  (name test)
-  (libraries spacegrep alcotest)
+(library
+  (name spacegrep_tests)
+  (libraries
+     spacegrep
+     alcotest
+     alcotest_ext
+  )
 )
