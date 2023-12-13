@@ -63,6 +63,7 @@ let filemtime file =
   if !Common.jsoo then failwith "JSOO:filemtime"
   else (UUnix.stat !!file).st_mtime
 
+(* TODO? there's also USys.is_directory? *)
 let is_directory file = (UUnix.stat !!file).st_kind =*= Unix.S_DIR
 let is_file file = (UUnix.stat !!file).st_kind =*= Unix.S_REG
 let is_symlink file = (UUnix.lstat !!file).st_kind =*= Unix.S_LNK

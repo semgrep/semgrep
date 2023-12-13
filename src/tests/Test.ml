@@ -67,7 +67,7 @@ let tests (caps : Cap.all_caps) =
       (* OSemgrep tests *)
       Unit_LS.tests;
       Unit_Login.tests caps;
-      Unit_Fetching.tests;
+      Unit_Fetching.tests (caps :> < Cap.network >);
       Test_login_subcommand.tests (caps :> < Cap.stdout ; Cap.network >);
       Test_publish_subcommand.tests (caps :> < Cap.stdout ; Cap.network >);
       Test_osemgrep.tests caps;

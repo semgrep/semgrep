@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "test"
+version = "0.0.1"
+description = "test"
+authors = ["r2c"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+faker = "^13.11.0"
+
+[tool.poetry.group.dev.dependencies]
+
+[foo.bar.baz]
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.source]]
+name = "semgrep"
+url = "https://artifact.semgrep.com/"
+secondary = false

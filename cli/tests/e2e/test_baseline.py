@@ -626,14 +626,14 @@ def test_renamed_file(git_tmp_path, snapshot, new_name):
     }, "the old path should be gone now"
 
 
-@pytest.mark.todo
-def test_multiple_on_same_line(git_tmp_path, snapshot):
-    pass
-
-
-@pytest.mark.todo
-def test_run_in_subdirectory(git_tmp_path, snapshot):
-    pass
+# TODO
+# def test_multiple_on_same_line(git_tmp_path, snapshot):
+#    pass
+#
+#
+# TODO
+# def test_run_in_subdirectory(git_tmp_path, snapshot):
+#    pass
 
 
 def test_unstaged_changes(git_tmp_path, snapshot):
@@ -680,12 +680,11 @@ def test_staged_changes(git_tmp_path, snapshot):
     assert_err_match(snapshot, output, "error.txt")
 
 
-@pytest.mark.todo
-def test_baseline_has_head_untracked(git_tmp_path, snapshot):
-    pass
+# TODO
+# def test_baseline_has_head_untracked(git_tmp_path, snapshot):
+#    pass
 
 
-@pytest.mark.no_semgrep_cli
 def test_not_git_directory(monkeypatch, tmp_path, snapshot):
     # Should abort baseline scan if not a git directory
     monkeypatch.chdir(tmp_path)

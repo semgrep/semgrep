@@ -1,11 +1,8 @@
 (* This is the main function. raise Parse_error when not Flag.error_recovery.*)
 val parse :
-  ?pp:string option ->
-  string (* filename *) ->
-  (Cst_php.program, Parser_php.token) Parsing_result.t
+  string (* filename *) -> (Cst_php.program, Parser_php.token) Parsing_result.t
 
-val parse_program :
-  ?pp:string option -> string (* filename *) -> Cst_php.program
+val parse_program : string (* filename *) -> Cst_php.program
 
 (* for sgrep/spatch patterns *)
 val any_of_string : string -> Cst_php.any

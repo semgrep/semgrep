@@ -24,6 +24,7 @@ from typing import Union
 
 import colorama
 import pytest
+from ruamel.yaml import YAML
 from tests import fixtures
 from tests.semgrep_runner import SemgrepRunner
 
@@ -79,6 +80,20 @@ def pytest_collection_modifyitems(items: pytest.Item, config: pytest.Config) -> 
 def make_semgrepconfig_file(dir_path: Path, contents: str) -> None:
     semgrepconfig_path = dir_path / ".semgrepconfig"
     semgrepconfig_path.write_text(contents)
+
+
+def make_settings_file(unique_path: Path) -> None:
+    Path(unique_path).write_text(
+        "anonymous_user_id: 5f52484c-3f82-4779-9353-b29bbd3193b6\n"
+        "has_shown_metrics_notification: true\n"
+    )
+
+
+def load_anonymous_user_id(settings_file: Path) -> Optional[str]:
+    with open(settings_file) as fd:
+        yaml_contents = YAML(typ="safe").load(fd)
+    raw_value = yaml_contents.get("anonymous_user_id")
+    return f"{raw_value}" if raw_value else None
 
 
 def mark_masked(obj, path):
@@ -345,11 +360,7 @@ def _run_semgrep(
     # Use a unique settings file so multithreaded pytest works well
     if "SEMGREP_SETTINGS_FILE" not in env:
         unique_settings_file = tempfile.NamedTemporaryFile().name
-        Path(unique_settings_file).write_text(
-            "anonymous_user_id: 5f52484c-3f82-4779-9353-b29bbd3193b6\n"
-            "has_shown_metrics_notification: true\n"
-        )
-
+        make_settings_file(Path(unique_settings_file))
         env["SEMGREP_SETTINGS_FILE"] = unique_settings_file
     if "SEMGREP_VERSION_CACHE_PATH" not in env:
         env["SEMGREP_VERSION_CACHE_PATH"] = tempfile.TemporaryDirectory().name

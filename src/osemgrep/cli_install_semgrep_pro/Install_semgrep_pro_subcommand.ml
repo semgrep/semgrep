@@ -30,8 +30,11 @@ module Http_helpers = Http_helpers.Make (Lwt_platform)
 *)
 
 (*****************************************************************************)
-(* Constants *)
+(* Types and Constants *)
 (*****************************************************************************)
+
+(* TODO: does not even use stdout right now, it abuses Logs.app *)
+type caps = < Cap.network >
 
 let version_stamp_filename = "pro-installed-by.txt"
 
@@ -46,7 +49,7 @@ let add_semgrep_pro_version_stamp current_executable_path =
   (* THINK: does this append or write entirely? *)
   UFile.write_file pro_version_stamp_path Version.version
 
-let download_semgrep_pro platform_kind dest =
+let download_semgrep_pro (caps : < Cap.network ; .. >) platform_kind dest =
   let dest = !!dest in
   match (Semgrep_settings.load ()).api_token with
   | None ->
@@ -54,7 +57,8 @@ let download_semgrep_pro platform_kind dest =
           m "No API token found, please run `semgrep login` first.");
       false
   | Some token -> (
-      match Semgrep_App.fetch_pro_binary token platform_kind with
+      let caps = Auth.cap_token_and_network token caps in
+      match Semgrep_App.fetch_pro_binary caps platform_kind with
       | Error (_, { code = 401; _ }) ->
           Logs.err (fun m ->
               m
@@ -74,10 +78,10 @@ let download_semgrep_pro platform_kind dest =
       (* THINK: ??? is this raise for status? *)
       | Error _ -> false
       | Ok (body, { response; _ }) ->
-          (* Make sure no such binary exists. We have had weird situations when the
-             * downloaded binary was corrupted, and overwriting it did not fix it, but
-             * it was necessary to `rm -f` it.
-          *)
+          (* Make sure no such binary exists. We have had weird situations
+           * when the downloaded binary was corrupted, and overwriting it did
+           * not fix it, but it was necessary to `rm -f` it.
+           *)
           if Sys.file_exists dest then FileUtil.rm [ dest ];
 
           (* TODO: does this matter if we don't have a progress bar? *)
@@ -95,7 +99,7 @@ let download_semgrep_pro platform_kind dest =
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run_conf (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
+let run_conf (caps : caps) (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
   (* We want to install to basically wherever the current executable is,
      but to the name `semgrep-core-proprietary`, which is where the ultimate
      Python wrapper entry point knows to look for the pro binary.
@@ -151,7 +155,7 @@ let run_conf (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
 
       let download_succeeded =
         match conf.custom_binary with
-        | None -> download_semgrep_pro platform_kind semgrep_pro_path_tmp
+        | None -> download_semgrep_pro caps platform_kind semgrep_pro_path_tmp
         | Some custom_binary_path ->
             FileUtil.cp [ custom_binary_path ] !!semgrep_pro_path_tmp;
             true
@@ -170,13 +174,11 @@ let run_conf (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
 
         (* Get Pro version, it serves as a simple check that the binary works *)
         let version =
-          let cmd = Bos.Cmd.(v !!semgrep_pro_path_tmp % "-pro_version") in
+          let cmd = (Cmd.Name !!semgrep_pro_path_tmp, [ "-pro_version" ]) in
           let opt =
             Time_limit.set_timeout ~name:"check pro version" 10.0 (fun () ->
-                let path_r =
-                  Bos.OS.Cmd.run_out ~err:Bos.OS.Cmd.err_run_out cmd
-                in
-                let result = Bos.OS.Cmd.out_string ~trim:true path_r in
+                (* TODO?  Bos.OS.Cmd.run_out ~err:Bos.OS.Cmd.err_run_out *)
+                let result = UCmd.string_of_run ~trim:true cmd in
                 match result with
                 | Ok (output, _) -> Some output
                 | Error _ -> None)
@@ -204,6 +206,6 @@ let run_conf (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
 (* Entry point *)
 (*****************************************************************************)
 
-let main (argv : string array) : Exit_code.t =
+let main (caps : caps) (argv : string array) : Exit_code.t =
   let conf = Install_semgrep_pro_CLI.parse_argv argv in
-  run_conf conf
+  run_conf caps conf

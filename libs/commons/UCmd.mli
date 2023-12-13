@@ -14,3 +14,8 @@ val status_of_run :
   ?quiet:bool -> Cmd.t -> (Bos.OS.Cmd.status, [> Rresult.R.msg ]) result
 
 val with_open_process_in : string -> (in_channel -> 'a) -> 'a
+
+(* old style *)
+exception CmdError of Unix.process_status * string
+
+val cmd_to_list : ?verbose:bool -> string -> string list

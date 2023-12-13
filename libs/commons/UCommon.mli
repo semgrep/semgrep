@@ -45,7 +45,7 @@ val dir_contents : string (* filename *) -> string (* filename *) list
  * Deprecated?
  *)
 val files_of_dir_or_files_no_vcs_nofilter :
-  string list -> string (* filename *) list
+  string (* root *) list -> string (* filename *) list
 
 (* ugly: internal flag for files_of_dir_or_files_no_vcs_nofilter *)
 val follow_symlinks : bool ref
