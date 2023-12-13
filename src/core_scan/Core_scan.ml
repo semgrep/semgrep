@@ -589,27 +589,29 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                            rule.MR.pattern_string);
                      let loc = Tok.first_loc_of_file !!file in
                      let errors =
-                       let error_ty, rule_id =
-                         match exn with
-                         | Match_rules.File_timeout rule_ids ->
-                             logger#info "Timeout on %s" !!file;
-                             (* TODO what happened here is several rules
-                                timed out while trying to scan a file.
-                                Which heuristically indicates that the
-                                file is probably the problem. Once we
-                                get rid of the wrapper we should send
-                                all the rules we tried and also improve
-                                the error message displayed to clearly
-                                state that someone investigating should
-                                assume the timeout is due to the file *)
-                             (OutJ.Timeout, Common2.hd_opt rule_ids)
-                         | Out_of_memory ->
-                             logger#info "OutOfMemory on %s" !!file;
-                             (OutJ.OutOfMemory, !Rule.last_matched_rule)
-                         | _ -> raise Impossible
-                       in
-                       Core_error.ErrorSet.singleton
-                         (E.mk_error rule_id loc "" error_ty)
+                       match exn with
+                       | Match_rules.File_timeout rule_ids ->
+                           logger#info "Timeout on %s" !!file;
+                           (* TODO what happened here is several rules
+                              timed out while trying to scan a file.
+                              Which heuristically indicates that the
+                              file is probably the problem. Once we get
+                              rid of the python wrapper we should
+                              improve the error message displayed to
+                              clearly state that someone investigating
+                              should assume the timeout is due to the
+                              file *)
+                           rule_ids
+                           |> List_.map (fun error_rule_id ->
+                                  E.mk_error (Some error_rule_id) loc ""
+                                    OutJ.Timeout)
+                           |> E.ErrorSet.of_list
+                       | Out_of_memory ->
+                           logger#info "OutOfMemory on %s" !!file;
+                           E.ErrorSet.singleton
+                             (E.mk_error !Rule.last_matched_rule loc ""
+                                OutJ.OutOfMemory)
+                       | _ -> raise Impossible
                      in
                      ( Core_result.make_match_result [] errors
                          (Core_profiling.empty_partial_profiling file),
