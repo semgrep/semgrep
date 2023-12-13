@@ -422,7 +422,12 @@ def run_scan(
         metrics.add_project_url(project_url)
         metrics.add_integration_name(environ.get("SEMGREP_INTEGRATION_NAME"))
         metrics.add_configs(configs)
-        metrics.add_engine_type(engine_type)
+        metrics.add_engine_config(
+            engine_type,
+            ("all" if allow_untrusted_validators else "pro_rules")
+            if run_secrets and not disable_secrets_validation
+            else None,
+        )
         metrics.add_is_diff_scan(baseline_commit is not None)
         if engine_type.is_pro:
             metrics.add_diff_depth(diff_depth)
