@@ -55,13 +55,15 @@ jobs:
           mv $filename.new $filename
         done
         opam exec -- dune build src/main
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/{libstdc++-6.dll,libgcc_s_seh-1.dll,libwinpthread-1.dll,libpcre-1.dll,libgmp-10.dll}.dll _build/default/src/main/
-        tar czvf osemgrep.tar.gz _build/default/src/main
+        echo 'print("foo")' > test.py
+        _build/install/default/bin/semgrep-core -e 'print($X)' -lang python -json test.py
+        tar czvf osemgrep.tar.gz _build/install/default/bin/semgrep-core \
+          d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libstdc++-6.dll \
+          d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgcc_s_seh-1.dll \
+          d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libwinpthread-1.dll \
+          d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libpcre-1.dll \
+          d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgmp-10.dll
     - uses: actions/upload-artifact@v3
       with:
         path: checkout/osemgrep.tar.gz
         name: windows-artifacts
-    - shell: bash
-      run: |
-        echo 'print("foo")' > test.py
-        checkout/_build/default/src/main/Main.exe -e 'print($X)' -lang python -json test.py
