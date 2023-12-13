@@ -194,7 +194,7 @@ function unix_open(path, flags, perm) {
   // Node is weird and doesn't like opening NUL on Windows
   // if its fs.openSync("NUL", "rs+") call, so we have to
   // special case it and use \\\\.\\nul instead.
-  if (globalThis.process.platform === "win32" && path == "NUL") {
+  if (globalThis.process.platform === "win32" && path === "NUL") {
     path = "\\\\.\\nul";
     const device = new MlNodeDevice("");
     const fd = device.fs.openSync(path, "rs+");
