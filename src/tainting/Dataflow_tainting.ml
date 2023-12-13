@@ -175,14 +175,15 @@ let any_is_best_sanitizer env any =
   |> List.filter (fun (m : R.taint_sanitizer TM.t) ->
          (not m.spec.sanitizer_exact) || TM.is_best_match env.top_matches m)
 
-let any_is_best_source env any =
+(* TODO: We could return source matches already split by `by-side-effect` here ? *)
+let any_is_best_source ?(is_lval = false) env any =
   env.config.is_source any
   |> List.filter (fun (m : R.taint_source TM.t) ->
          (* Remove sources that should match exactly but do not here. *)
          match m.spec.source_by_side_effect with
-         | Only -> TM.is_exact m
-         (* 'Yes' should probably be treated like 'Only' but for backwards
-          * compatibility we keep it this way. *)
+         | Only -> is_lval && TM.is_exact m
+         (* 'Yes' should probably require an exact match like 'Only' but for
+          *  backwards compatibility we keep it this way. *)
          | Yes
          | No ->
              (not m.spec.source_exact) || TM.is_best_match env.top_matches m)
@@ -212,7 +213,8 @@ let any_of_lval lval =
   | { base = VarSpecial (_, tok); rev_offset = [] } -> G.Tk tok
   | { base = Mem e; rev_offset = [] } -> any_of_orig e.eorig
 
-let lval_is_source env lval = any_is_best_source env (any_of_lval lval)
+let lval_is_source env lval =
+  any_is_best_source ~is_lval:true env (any_of_lval lval)
 
 let lval_is_best_sanitizer env lval =
   any_is_best_sanitizer env (any_of_lval lval)
