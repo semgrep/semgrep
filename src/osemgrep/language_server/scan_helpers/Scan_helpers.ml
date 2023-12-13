@@ -167,6 +167,16 @@ let scan_file server uri =
     let file = Fpath.v file_path in
     let targets = [ file ] in
     let session_targets = Session.targets server.session in
+    (* If the file opened isn't a target, try updating targets just in case *)
+    (* This feels fine since if it is an actual target, we need to do this, and if not *)
+    (* then the user won't see results either way. *)
+    if not (List.mem file session_targets) then (
+      Logs.warn (fun m ->
+          m
+            "File %a is not in the session targets recalculating targets just \
+             in case"
+            Fpath.pp file);
+      Session.cache_workspace_targets server.session);
     let targets = if List.mem file session_targets then targets else [] in
     let targets = Some targets in
     let results, _ = run_semgrep ~targets server in

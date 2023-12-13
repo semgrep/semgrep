@@ -818,6 +818,7 @@ let test_ls_specs () =
       (* nosem *)
       FileUtil.cp [ List.hd files |> Fpath.to_string ] (added |> Fpath.to_string);
 
+      (* Tests target caching *)
       let%lwt () = send_did_add info added in
       let%lwt () = send_did_open info added in
 
