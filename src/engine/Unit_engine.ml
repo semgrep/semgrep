@@ -587,7 +587,6 @@ let eval_regression_tests () =
 (*****************************************************************************)
 
 let test_irrelevant_rule rule_file target_file =
-  (* nosemgrep: ocaml.lang.security.hashtable-dos.ocamllint-hashtable-dos *)
   let cache = Some (Hashtbl.create 101) in
   let rules = Parse_rule.parse rule_file in
   rules
