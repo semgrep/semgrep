@@ -90,9 +90,8 @@ You can pass @{<cyan>`SEMGREP_APP_TOKEN`@} as an environment variable instead.|}
   else (
     print_preamble ();
     let session_id, url = Semgrep_login.make_login_url () in
-    let cmd = Bos.Cmd.(v "open" % Uri.to_string url) in
-    let res = Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string in
-    match res with
+    let cmd = (Cmd.Name "open", [ Uri.to_string url ]) in
+    match UCmd.status_of_run cmd with
     | Ok _ ->
         Logs.app (fun m -> m "Opening your sign-in link automatically...");
         let msg =

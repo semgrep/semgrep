@@ -30,7 +30,7 @@
           [('Unix.' + p) for p in unix_funcs] +
           [('UUnix.' + p) for p in unix_funcs] +
           // Bos
-          //   TODO Bos.OS.Cmd.xxx
+          ['Bos.OS.Cmd.$F'] +
           // Feather
           ['Feather.run'] +
           // UCmd
@@ -39,7 +39,11 @@
       },
       languages: ['ocaml'],
       paths: {
-        exclude: ['TCB/*', 'tools/*', 'scripts/*', 'stats/*', 'Test*.ml'],
+        exclude: [
+           'TCB/*',
+           'tools/*', 'scripts/*', 'stats/*',
+           'Test*.ml',  'Unit_*.ml',
+        ],
       },
       severity: 'ERROR',
       message: |||
