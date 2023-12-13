@@ -1,3 +1,4 @@
+// TODO: factorize those .get/.post and Unix/UUnix with list comprehensions
 {
   rules: [
     {
@@ -15,6 +16,13 @@
         'Unix.bind ...',
         'Unix.connect ...',
         'Unix.listen ...',
+	// UUnix
+        'UUnix.socket ...',
+        'UUnix.socketpair ...',
+        'UUnix.accept ...',
+        'UUnix.bind ...',
+        'UUnix.connect ...',
+        'UUnix.listen ...',
       ] },
       paths: {
         exclude: ['http_helpers.ml'],
