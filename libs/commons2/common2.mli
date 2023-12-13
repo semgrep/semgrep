@@ -17,17 +17,6 @@ val verbose_level : int ref
 (* cf poslude *)
 
 (*****************************************************************************)
-(* Misc/test *)
-(*****************************************************************************)
-val generic_print : 'a -> string -> string
-
-class ['a] olist : 'a list -> object
-  val xs : 'a list
-  method fold : ('b -> 'a -> 'b) -> 'b -> 'b
-  method view : 'a list
-end
-
-(*****************************************************************************)
 (* Module side effect *)
 (*****************************************************************************)
 (*
@@ -275,9 +264,6 @@ val pp_f_in_box : (unit -> 'a) -> 'a
 val pp_do_in_zero_box : (unit -> unit) -> unit
 val pp : string -> unit
 
-(* convert something printed using Format to print into a string *)
-val format_to_string : (unit -> unit) -> (* printer *) string
-
 (* works with _tab_level_print enabling to mix some calls to pp, pr2
  * and indent_do to sometimes use advanced indentation pretty printing
  * (with the pp* functions) and sometimes explicit and simple indendation
@@ -287,13 +273,6 @@ val adjust_pp_with_indent_and_header : string -> (unit -> unit) -> unit
 
 val mk_str_func_of_assoc_conv :
   ('a * string) list -> (string -> 'a) * ('a -> string)
-
-(*****************************************************************************)
-(* Macro *)
-(*****************************************************************************)
-
-(* was working with my macro.ml4 *)
-val macro_expand : string -> unit
 
 (*****************************************************************************)
 (* Composition/Control *)
@@ -780,17 +759,10 @@ val indent_string : int -> string -> string
 val cat_orig : filename -> string list
 val cat_excerpts : filename -> int list -> string list
 val uncat : string list -> filename -> unit
-val interpolate : string -> string list
 val echo : string -> string
 val usleep : int -> unit
 val _batch_mode : bool ref
-
-val command_safe :
-  ?verbose:bool -> filename (* executable *) -> string list (* args *) -> int
-
 val y_or_no : string -> bool
-val command2_y_or_no : string -> bool
-val command2_y_or_no_exit_if_no : string -> unit
 val mkdir : ?mode:Unix.file_perm -> string -> unit
 val nblines_file : filename -> int
 val unix_lstat_eff : filename -> Unix.stats
@@ -838,7 +810,6 @@ val with_tmp_file : str:string -> ext:string -> (filename -> 'a) -> 'a
 (* Runs just before a tmp file is deleted. Multiple hooks can be added, but the
  * order in which they are called is unspecified. *)
 val register_tmp_file_cleanup_hook : (string -> unit) -> unit
-val with_tmp_dir : (dirname -> 'a) -> 'a
 
 (*###########################################################################*)
 (* Collection-like types *)
@@ -1479,21 +1450,6 @@ type pixel = int * int * int
 
 val write_ppm : int -> int -> pixel list -> filename -> unit
 val test_ppm1 : unit -> unit
-(*x: common.mli misc *)
-(*****************************************************************************)
-(* Diff (LFS) *)
-(*****************************************************************************)
-
-type diff = Match | BnotinA | AnotinB
-
-val diff : (int -> int -> diff -> unit) -> string list * string list -> unit
-val diff2 : (int -> int -> diff -> unit) -> string * string -> unit
-
-(*****************************************************************************)
-(* Grep (coccinelle) *)
-(*****************************************************************************)
-
-val contain_any_token_with_egrep : string list -> filename -> bool
 
 (*****************************************************************************)
 (* Parsers (aop-colcombet)                                                 *)

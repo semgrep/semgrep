@@ -85,58 +85,11 @@ let is_comment v =
 (* Main entry point *)
 (*****************************************************************************)
 
-let parse ?(pp = !Flag_php.pp_default) filename =
-  let orig_filename = filename in
-  let filename =
-    (* note that now that pfff support XHP constructs directly,
-     * this code is not that needed.
-     *)
-    match pp with
-    | None -> orig_filename
-    | Some cmd ->
-        Profiling.profile_code "Parse_php.pp_maybe" (fun () ->
-            let pp_flag = if !Flag_php.verbose_pp then "-v" else "" in
-
-            (* The following requires the preprocessor command to
-             * support the -q command line flag.
-             *
-             * Maybe a little bit specific to XHP and xhpize ... But
-             * because I use as a convention that 0 means no_need_pp, if
-             * the preprocessor does not support -q, it should return an
-             * error code, in which case we will fall back to the regular
-             * case. *)
-            let cmd_need_pp = spf "%s -q %s %s" cmd pp_flag filename in
-            if !Flag_php.verbose_pp then
-              UCommon.pr2 (spf "executing %s" cmd_need_pp);
-            let ret = Sys.command cmd_need_pp in
-            if ret =|= 0 then orig_filename
-            else
-              Profiling.profile_code "Parse_php.pp" (fun () ->
-                  let tmpfile = UCommon.new_temp_file "pp" ".pphp" in
-                  let fullcmd =
-                    spf "%s %s %s > %s" cmd pp_flag filename tmpfile
-                  in
-                  if !Flag_php.verbose_pp then
-                    UCommon.pr2 (spf "executing %s" fullcmd);
-                  let ret = Sys.command fullcmd in
-                  if ret <> 0 then
-                    failwith "The preprocessor command returned an error code";
-                  tmpfile))
-  in
-
+let parse filename =
   let stat = Parsing_stat.default_stat filename in
   let filelines = UFile.cat_array (Fpath.v filename) in
 
   let toks = tokens (Parsing_helpers.file filename) in
-  (* note that now that pfff support XHP constructs directly,
-   * this code is not that needed.
-   *)
-  let toks =
-    if filename = orig_filename then toks
-    else
-      (* Pp_php.adapt_tokens_pp ~tokenizer:tokens ~orig_filename toks *)
-      failwith "no more pp"
-  in
   let toks = Parsing_hacks_php.fix_tokens toks in
 
   let tr, lexer, lexbuf_fake =
@@ -193,8 +146,8 @@ let parse ?(pp = !Flag_php.pp_default) filename =
       }
 [@@profiling]
 
-let parse_program ?pp file =
-  let res = parse ?pp file in
+let parse_program file =
+  let res = parse file in
   res.Parsing_result.ast
 
 (*****************************************************************************)
