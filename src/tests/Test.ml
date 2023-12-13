@@ -123,6 +123,5 @@ let main (caps : Cap.all_caps) : unit =
       Logs_.setup_logging ~force_color:false ~level:(Some Logs.Debug) ();
       Alcotest_ext.interpret_argv ~project_name:"semgrep-core"
         (tests_with_delayed_error caps))
-  |> exit
 
 let () = Cap.main (fun all_caps -> main all_caps)
