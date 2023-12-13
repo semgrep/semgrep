@@ -103,7 +103,7 @@ local todo_skipped_for_now = [
 ];
 
 local override_messages = {
-  // semgrep specific adjustments
+  // Semgrep specific adjustments
   'ocaml.lang.best-practice.exception.bad-reraise': |||
     You should not re-raise exceptions using 'raise' because it loses track
     of where the exception was raised originally. See commons/Exception.mli
