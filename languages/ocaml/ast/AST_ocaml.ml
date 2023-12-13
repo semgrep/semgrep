@@ -96,6 +96,7 @@ type expr =
    *)
   | Constructor of name * expr option
   | PolyVariant of (tok (* '`' *) * ident) * expr option
+  | Obj of object_
   (* special case of Constr *)
   | Tuple of expr list
   | List of expr list bracket
@@ -186,21 +187,35 @@ and rec_opt = tok option
 (* ------------------------------------------------------------------------- *)
 and object_ = {
   o_tok : Tok.t; (* 'object' *)
-  (* TODO: self *)
-  o_body : object_member list;
+  (* TODO: self = (pattern * type_ option) bracket option *)
+  o_body : class_field list;
 }
 
-and object_member = Method of method_ | Field of object_field
+and class_field =
+  | Method of method_
+  | InstanceVar of instance_variable
+  (* TODO:
+   * - inherit
+   *)
+  | CfldTodo of todo_category * class_field list
 
 and method_ = {
+  (* TODO: override !, attrs *)
   m_tok : Tok.t; (* 'method' *)
-  (* TODO: m_attrs *)
+  m_name : ident;
   m_params : parameter list;
   m_rettype : type_ option;
-  m_body : expr;
+  m_body : expr option;
 }
 
-and object_field = ident * type_ option * expr
+and instance_variable = {
+  (* TODO: override !, attrs *)
+  inst_tok : Tok.t; (* 'val' *)
+  inst_name : ident;
+  inst_type : type_ option;
+  (* TODO: :> *)
+  inst_expr : expr option;
+}
 
 (*****************************************************************************)
 (* Patterns *)
@@ -305,13 +320,30 @@ and mutable_opt = tok option (* mutable *)
 (* Class (and object) *)
 (* ------------------------------------------------------------------------- *)
 
-type class_decl = {
-  c_tok : Tok.t; (* 'class' *)
+type class_binding = {
+  (* c_attrs: 'virtual' *)
   c_name : ident;
+  c_tparams : type_parameter list;
   c_params : parameter list;
-  c_body : object_;
+  (* TODO: c_rettype *)
+  c_body : class_expr option; (* TODO: attributes *)
 }
-[@@deriving show]
+
+and class_expr =
+  (* simple_class_expr *)
+  | ClObj of object_
+  (* TODO:
+   * - ClassPathExp
+   * - InstClassExp
+   * - TypedClassExp
+   * - ParenClassExp
+   * - ClassFunc
+   * - ClassApp
+   * - LetClassApp
+   * - LetOpenClass
+   *)
+  | ClTodo of todo_category * class_expr list
+[@@deriving show { with_path = false }]
 
 (* ------------------------------------------------------------------------- *)
 (* Module *)
@@ -360,7 +392,7 @@ and item_kind =
   | Let of tok * rec_opt * let_binding list
   | TopExpr of expr
   | Module of tok * module_declaration
-  | Class of class_decl
+  | Class of tok (* 'class' *) * class_binding list
   (* TODO
    * - directives (#xxx)
    * - floating attributes ([@@@ ])

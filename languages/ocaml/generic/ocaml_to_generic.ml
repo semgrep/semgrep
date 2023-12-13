@@ -231,6 +231,8 @@ and option_expr_to_ctor_arguments v =
 
 and expr e =
   match e with
+  (* TODO *)
+  | Obj { o_tok; _ } -> G.OtherExpr (("Obj", o_tok), []) |> G.e
   | ParenExpr (l, e, r) -> (
       let e = expr e in
       match e.G.e with
@@ -619,10 +621,12 @@ and item { i; iattrs } =
   let attrs = attributes iattrs in
   match i with
   (* TODO *)
-  | Class { c_tok; c_name; _ } ->
-      let id = ident c_name in
-      let ent = G.basic_entity id in
-      [ G.DefStmt (ent, G.OtherDef (("Class", c_tok), [])) |> G.s ]
+  | Class (c_tok, xs) ->
+      xs
+      |> List_.map (fun { c_name; _ } ->
+             let id = ident c_name in
+             let ent = G.basic_entity id in
+             G.DefStmt (ent, G.OtherDef (("Class", c_tok), [])) |> G.s)
   | TopExpr e ->
       let e = expr e in
       [ G.exprstmt e ]
