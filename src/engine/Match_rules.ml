@@ -162,7 +162,7 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
     | Some res -> res
     | None ->
         incr cnt_timeout;
-        rule_timeouts := rule_id :: !rule_timeouts;
+        Stack_.push rule_id rule_timeouts;
         if timeout_threshold > 0 && !cnt_timeout >= timeout_threshold then
           raise (File_timeout !rule_timeouts);
         let loc = Tok.first_loc_of_file file in
