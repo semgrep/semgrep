@@ -73,7 +73,7 @@ let ws_prefix s =
   let rec index_rec s lim i acc =
     if i >= lim then List.rev acc
     else
-      let c = String.unsafe_get s i in
+      let c = s.[i] in
       if c = ' ' then index_rec s lim (i + 1) (' ' :: acc)
       else if c = '\t' then index_rec s lim (i + 1) ('\t' :: acc)
       else List.rev acc
