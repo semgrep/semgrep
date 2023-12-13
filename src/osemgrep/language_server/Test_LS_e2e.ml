@@ -137,7 +137,6 @@ let timeout = 30.0
 (*****************************************************************************)
 
 let checked_command s =
-  (* nosemgrep: ocaml.lang.security.exec.ocamllint-exec *)
   if Sys.command s <> 0 then
     Alcotest.failf "command %s exited with non-zero code" s
 
