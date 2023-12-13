@@ -593,10 +593,15 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                          match exn with
                          | Match_rules.File_timeout rule_ids ->
                              logger#info "Timeout on %s" !!file;
-                             (* TODO really several rules contributed
-                                to this file timeout. Once we get rid
-                                of the python wrapper we should send
-                                all the rule ids through. *)
+                             (* TODO what happened here is several rules
+                                timed out while trying to scan a file.
+                                Which heuristically indicates that the
+                                file is probably the problem. Once we
+                                get rid of the wrapper we should send
+                                all the rules we tried and also improve
+                                the error message displayed to clearly
+                                state that someone investigating should
+                                assume the timeout is due to the file *)
                              (OutJ.Timeout, Common2.hd_opt rule_ids)
                          | Out_of_memory ->
                              logger#info "OutOfMemory on %s" !!file;
