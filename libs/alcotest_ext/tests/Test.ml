@@ -25,4 +25,12 @@ let tests =
     t "chdir" ~tolerate_chdir:true (fun () -> Sys.chdir "/");
   ]
 
-let () = Alcotest_ext.interpret_argv ~project_name:"alcotest_ext" tests |> exit
+let () =
+  Alcotest_ext.interpret_argv
+    ~project_name:"alcotest_ext"
+    ~handle_subcommand_result:(
+      fun exit_code _ ->
+        print_endline "<handling result before exiting>";
+        exit exit_code
+    )
+    tests

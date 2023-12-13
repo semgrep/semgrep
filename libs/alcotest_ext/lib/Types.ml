@@ -17,10 +17,10 @@
    When running a test suite, it's considered a success if all the tests
    complete with status PASS or XFAIL.
 *)
-(* private *)
+(* public *)
 type outcome = Succeeded | Failed
 
-(* private *)
+(* public *)
 type captured_output =
   | Ignored
   | Captured_stdout of string
@@ -28,7 +28,7 @@ type captured_output =
   | Captured_stdout_stderr of string * string
   | Captured_merged of string
 
-(* private *)
+(* public *)
 type result = { outcome : outcome; captured_output : captured_output }
 
 (* public *)
@@ -41,7 +41,6 @@ type expected_outcome =
    there's no expected output yet but there's an expected outcome defined
    in the test suite.
 *)
-(* private? (part of test status) *)
 type expectation = {
   expected_outcome : expected_outcome;
   expected_output : (captured_output, string) Result.t;
@@ -101,6 +100,8 @@ type 'a test = {
   skipped : bool;
   tolerate_chdir : bool;
 }
+
+type 'a test_with_status = 'a test * status * status_summary
 
 (* TODO: move to a module that has an mli? *)
 (* "path > to > name" *)

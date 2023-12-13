@@ -15,6 +15,40 @@ type expected_outcome = T.expected_outcome =
   | Should_succeed
   | Should_fail of string
 
+type outcome = T.outcome = Succeeded | Failed
+
+type captured_output = T.captured_output =
+  | Ignored
+  | Captured_stdout of string
+  | Captured_stderr of string
+  | Captured_stdout_stderr of string * string
+  | Captured_merged of string
+
+type result = T.result =
+  { outcome : outcome; captured_output : captured_output }
+
+type expectation = T.expectation = {
+  expected_outcome : expected_outcome;
+  expected_output : (captured_output, string) Result.t;
+}
+
+type status = T.status =
+  { expectation : expectation; result : (result, string) Result.t }
+
+type status_class = T.status_class = PASS | FAIL | XFAIL | XPASS | MISS
+
+type status_summary = T.status_summary = {
+  status_class : status_class;
+  has_expected_output : bool;
+}
+
+type test_with_status = unit T.test * status * status_summary
+
+type subcommand_result = Cmd.subcommand_result =
+  | Run_result of test_with_status list
+  | Status_result of test_with_status list
+  | Approve_result
+
 (* export *)
 module Tag = Tag
 

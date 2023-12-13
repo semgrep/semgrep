@@ -15,7 +15,34 @@
    https://mirage.github.io/alcotest/alcotest/Alcotest/index.html
 *)
 
-type expected_outcome = Should_succeed | Should_fail of string
+type expected_outcome =
+  | Should_succeed
+  | Should_fail of string (* explains why we expect this test to fail *)
+
+type outcome = Succeeded | Failed
+
+type captured_output =
+  | Ignored
+  | Captured_stdout of string
+  | Captured_stderr of string
+  | Captured_stdout_stderr of string * string
+  | Captured_merged of string
+
+type result = { outcome : outcome; captured_output : captured_output }
+
+type expectation = {
+  expected_outcome : expected_outcome;
+  expected_output : (captured_output, string) Result.t;
+}
+
+type status = { expectation : expectation; result : (result, string) Result.t }
+
+type status_class = PASS | FAIL | XFAIL | XPASS | MISS
+
+type status_summary = {
+  status_class : status_class;
+  has_expected_output : bool;
+}
 
 type output_kind =
   | Ignore_output
@@ -73,10 +100,17 @@ type 'a t = private {
   skipped : bool;
   (* If the test function changes the current directory without restoring it,
      it's an error unless this flag is set. *)
-  tolerate_chdir : bool;
+  tolerate_chdir: bool;
 }
 
 type test = unit t
+
+type test_with_status = test * status * status_summary
+
+type subcommand_result =
+  | Run_result of test_with_status list
+  | Status_result of test_with_status list
+  | Approve_result
 
 (* Legacy type that doesn't support options *)
 type simple_test = string * (unit -> unit)
@@ -203,13 +237,22 @@ val to_alcotest_lwt : lwt_test list -> unit Alcotest_lwt.test list
    the tests but also for checking test statuses and for approving
    new output.
 
+   Return value: exit code reflecting overall success or failure (0 or 1),
+   and subcommand-specific data for export to JUnit or similar.
+
    argv: command line to parse. Defaults to Sys.argv.
-   name: name of the program as shown in the --help page. Defaults to "test".
+   expectation_workspace_root: Storage path for expected output,
+     defaults to '_test_results/expect'.
+   status_workspace_root: Storage path for test results, defaults to
+     '_test_results/status'.
+   project_name: name of the program as shown in the --help page and used
+     as a folder name for storing test results.
 *)
 val interpret_argv :
   ?argv:string array ->
   ?expectation_workspace_root:string ->
+  ?handle_subcommand_result:(int -> subcommand_result -> unit) ->
   ?status_workspace_root:string ->
   project_name:string ->
   test list ->
-  int
+  unit

@@ -448,9 +448,12 @@ let list_status ?filter_by_substring ?(output_style = Full) tests =
   check_id_uniqueness tests;
   let selected_tests = filter ?filter_by_substring tests in
   let tests_with_status = get_tests_with_status selected_tests in
-  match output_style with
-  | Full -> print_full_status tests tests_with_status
-  | Short -> print_short_status tests tests_with_status
+  let exit_code =
+    match output_style with
+    | Full -> print_full_status tests tests_with_status
+    | Short -> print_short_status tests tests_with_status
+  in
+  exit_code, tests_with_status
 
 (* Important: for unknown reasons, the "test" subcommand of alcotest
    force an exit after Alcotest.run, regardless of the 'and_exit' argument
@@ -508,7 +511,8 @@ let before_run ?filter_by_substring ?(lazy_ = false) tests =
 (* Run this after a run or Lwt run. *)
 let after_run tests selected_tests =
   let tests_with_status = get_tests_with_status selected_tests in
-  print_full_status tests tests_with_status
+  let exit_code = print_full_status tests tests_with_status in
+  exit_code, tests_with_status
 
 (*
    Entry point for the 'run' subcommand

@@ -28,23 +28,37 @@ let default_conf =
 *)
 type cmd_conf = Run_tests of conf | Status of conf | Approve of conf
 
+type subcommand_result =
+  | Run_result of unit Types.test_with_status list
+  | Status_result of unit Types.test_with_status list
+  | Approve_result
+
 (****************************************************************************)
 (* Dispatch subcommands to do real work *)
 (****************************************************************************)
 
-let run_with_conf tests (cmd_conf : cmd_conf) =
+let run_with_conf
+    (tests,
+     (handle_subcommand_result : int -> subcommand_result -> 'a))
+    (cmd_conf : cmd_conf) =
   match cmd_conf with
   | Run_tests conf ->
-      Run.run_tests ?filter_by_substring:conf.filter_by_substring
-        ~lazy_:conf.lazy_ tests
-      |> exit
+      let exit_code, tests_with_status =
+        Run.run_tests ?filter_by_substring:conf.filter_by_substring
+          ~lazy_:conf.lazy_ tests
+      in
+      handle_subcommand_result exit_code (Run_result tests_with_status)
   | Status conf ->
-      Run.list_status ?filter_by_substring:conf.filter_by_substring
+      let exit_code, tests_with_status =
+        Run.list_status ?filter_by_substring:conf.filter_by_substring
         ~output_style:conf.status_output_style tests
-      |> exit
+      in
+      handle_subcommand_result exit_code (Status_result tests_with_status)
   | Approve conf ->
-      Run.approve_output ?filter_by_substring:conf.filter_by_substring tests
-      |> exit
+      let exit_code =
+        Run.approve_output ?filter_by_substring:conf.filter_by_substring tests
+      in
+      handle_subcommand_result exit_code Approve_result
 
 (****************************************************************************)
 (* Command-line options *)
@@ -75,16 +89,16 @@ let lazy_term : bool Term.t =
 
 let run_doc = "Run the tests."
 
-let subcmd_run_term tests : unit Term.t =
+let subcmd_run_term test_spec : unit Term.t =
   let combine filter_by_substring lazy_ =
     Run_tests { default_conf with filter_by_substring; lazy_ }
-    |> run_with_conf tests
+    |> run_with_conf test_spec
   in
   Term.(const combine $ filter_by_substring_term $ lazy_term)
 
-let subcmd_run tests =
+let subcmd_run test_spec =
   let info = Cmd.info "run" ~doc:run_doc in
-  Cmd.v info (subcmd_run_term tests)
+  Cmd.v info (subcmd_run_term test_spec)
 
 (****************************************************************************)
 (* Subcommand: status (replaces alcotest's 'list') *)
@@ -165,12 +179,15 @@ let with_record_backtrace func =
    Otherwise, 'conf' is returned to the application.
 *)
 let interpret_argv ?(argv = Sys.argv) ?expectation_workspace_root
+    ?(handle_subcommand_result = fun exit_code _ -> exit exit_code)
     ?status_workspace_root ~project_name tests =
   (* TODO: is there any reason why we shouldn't always record a stack
      backtrace when running tests? *)
+  let test_spec = (tests, handle_subcommand_result) in
   with_record_backtrace (fun () ->
       Store.init_settings ?expectation_workspace_root ?status_workspace_root
         ~project_name ();
-      Cmd.group ~default:(root_term tests) (root_info ~project_name)
-        (subcommands tests)
-      |> Cmd.eval ~argv)
+      Cmd.group ~default:(root_term test_spec) (root_info ~project_name)
+        (subcommands test_spec)
+      |> Cmd.eval ~argv
+      |> (* does not reach this point by default *) exit)
