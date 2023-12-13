@@ -21,7 +21,7 @@
     "@types/mocha": "^10.0.3",
     "@types/node": "^20.9.0",
     "@types/vscode": "^1.83.2",
-    "@vscode/test-electron": "^2.3.6",
+    "@vscode/test-electron": "^2.3.8",
     "find-process": "^1.4.7",
     "glob": "^10.3.10",
     "json-rpc-2.0": "^1.6.0",
