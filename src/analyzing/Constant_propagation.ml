@@ -646,8 +646,8 @@ type propagate_basic_visitor_funcs = {
     env * Iter_with_context.context -> AST_generic.definition -> unit;
 }
 
-let propagate_basic_visitor_hook : propagate_basic_visitor_funcs ref =
-  ref { visit_definition = (fun (_env, _ctx) _x -> ()) }
+let hook_propagate_basic_visitor : propagate_basic_visitor_funcs option ref =
+  ref None
 
 (* !Note that this assumes Naming_AST.resolve has been called before! *)
 let propagate_basic lang prog =
@@ -730,7 +730,8 @@ let propagate_basic lang prog =
               | None, _ -> ());
             super#visit_definition (env, ctx) x
         | _ ->
-            !propagate_basic_visitor_hook.visit_definition (env, ctx) x;
+            !hook_propagate_basic_visitor
+            |> Option.iter (fun v -> v.visit_definition (env, ctx) x);
             super#visit_definition (env, ctx) x
 
       (* the uses (and also defs for Python Assign) *)
