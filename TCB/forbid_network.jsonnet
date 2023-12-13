@@ -3,10 +3,12 @@
     {
       id: 'forbid-network',
       match: { any: [
+	// Cohttp
         'Client.get ...',
         'Client.post ...',
         'Cohttp_lwt_unix.get ...',
         'Cohttp_lwt_unix.post ...',
+	// Unix
         'Unix.socket ...',
         'Unix.socketpair ...',
         'Unix.accept ...',
@@ -24,5 +26,4 @@
       |||,
     },
   ],
-
 }
