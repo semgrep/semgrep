@@ -73,11 +73,12 @@ local semgrep_rules = [
 // ----------------------------------------------------------------------------
 
 local exit_rules = import 'TCB/forbid_exit.jsonnet';
+local network_rules = import 'TCB/forbid_network.jsonnet';
 
 local tcb_rules =
   [
     r { paths: { exclude: ['tools/*', 'scripts/*', '*_main.ml'] } }
-    for r in exit_rules.rules
+    for r in exit_rules.rules + network_rules.rules
   ];
 
 // ----------------------------------------------------------------------------
