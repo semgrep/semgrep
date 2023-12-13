@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open Ast_ml
+open AST_ocaml
 module G = AST_generic
 module H = AST_generic_helpers
 

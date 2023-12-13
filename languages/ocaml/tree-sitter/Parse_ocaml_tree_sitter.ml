@@ -15,7 +15,7 @@
 open Common
 module CST = Tree_sitter_ocaml.CST
 module H = Parse_tree_sitter_helpers
-open Ast_ml
+open AST_ocaml
 
 (*****************************************************************************)
 (* Prelude *)

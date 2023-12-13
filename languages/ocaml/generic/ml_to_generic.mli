@@ -1,2 +1,2 @@
-val program : Ast_ml.program -> AST_generic.program
-val any : Ast_ml.any -> AST_generic.any
+val program : AST_ocaml.program -> AST_generic.program
+val any : AST_ocaml.any -> AST_generic.any

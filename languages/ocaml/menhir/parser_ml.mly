@@ -10,7 +10,7 @@
 (*  under the terms of the Q Public License version 1.0.               *)
 (*                                                                     *)
 (***********************************************************************)
-open Ast_ml
+open AST_ocaml
 open Either_
 
 (*************************************************************************)
@@ -205,10 +205,10 @@ let topseqexpr v1 = mki (TopExpr (seq1 v1))
 (*************************************************************************)
 (* Rules type declaration *)
 (*************************************************************************)
-%start <Ast_ml.item list> interface
-%start <Ast_ml.item list> implementation
-%start <Ast_ml.any> semgrep_pattern
-%start <Ast_ml.type_> type_for_lsp
+%start <AST_ocaml.item list> interface
+%start <AST_ocaml.item list> implementation
+%start <AST_ocaml.any> semgrep_pattern
+%start <AST_ocaml.type_> type_for_lsp
 
 %%
 (*************************************************************************)
