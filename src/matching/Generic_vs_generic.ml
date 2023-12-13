@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -2694,6 +2694,8 @@ and m_block a b =
 
 and m_for_var_or_expr a b =
   match (a, b) with
+  (* dots: *)
+  | G.ForInitExpr { e = G.Ellipsis _; _ }, _ -> return ()
   | G.ForInitVar (a1, a2), B.ForInitVar (b1, b2) ->
       m_entity a1 b1 >>= fun () -> m_variable_definition a2 b2
   | G.ForInitExpr a1, B.ForInitExpr b1 -> m_expr a1 b1
