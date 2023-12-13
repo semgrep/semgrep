@@ -124,10 +124,10 @@ let module_name env (v1, dots) =
        when debugging so this will explode otherwise? *)
     let count =
       toks
-      |> Common.map Tok.content_of_tok
+      |> List_.map Tok.content_of_tok
       |> String.concat "" |> String.length
     in
-    let tok = Common.hd_exn "unexpected empty list" toks in
+    let tok = List_.hd_exn "unexpected empty list" toks in
     let prefixes =
       match count with
       | 1 -> [(".", tok)]
