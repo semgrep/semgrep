@@ -1323,7 +1323,8 @@ and multi_for_each =
 and for_var_or_expr =
   (* newvar: *)
   | ForInitVar of entity * variable_definition
-  (* less: should rename ForInitAssign really *)
+  (* Note that the expr can contain Ellipsis
+   * less: should rename ForInitAssign really *)
   | ForInitExpr of expr
 
 and other_stmt_with_stmt_operator =
