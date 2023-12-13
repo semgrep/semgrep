@@ -1,0 +1,4 @@
+metrics: added more granular information about pro engine configurations to
+help differentiate scans using different engine capabilities. For instance,
+maintainers are now able to distinguish intraprocedural scans without secrets
+valdiation from intraprocedural scans with secrets validation.
