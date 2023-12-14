@@ -24,7 +24,7 @@ jobs:
     - shell: bash
       run: |
         export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
-        which ocamlc
+        opam exec -- which ocamlc
         opam search notty
         opam list
         opam exec -- opam install --dry-run --debug notty
