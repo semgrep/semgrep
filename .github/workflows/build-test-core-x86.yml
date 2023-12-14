@@ -18,6 +18,8 @@ jobs:
       with:
         ocaml-compiler: "4.14"
         opam-pin: false
+        opam-repositories: |
+          default: https://github.com/ocaml/opam-repository.git
     - id: build-tree-sitter
       shell: bash
       run: |
