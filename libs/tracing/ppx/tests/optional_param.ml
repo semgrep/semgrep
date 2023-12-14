@@ -1,1 +1,1 @@
-let foo ?a b = a + b [@@tracing]
+let foo ?a b = a + b [@@trace]
