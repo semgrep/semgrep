@@ -78,11 +78,20 @@ type t = {
   min_fetch_depth : int;
 }
 
+(* What about temp? Well we use ocaml stdlib definition of a temp directory.
+   This is fine EXCEPT on windows. stdlib on windows expects TEMP (not TMP)
+   to be set, and if it's not (which it isn't by default), it uses "." :(
+*)
+
 (* less: make it Lazy? so at least not run in ocaml init time before main() *)
 let of_current_sys_env () : t =
   let user_dot_semgrep_dir =
     let parent_dir =
-      match Sys.getenv_opt "XDG_CONFIG_HOME" with
+      let home_env_var =
+        (* In windows USERPROFILE=C:\Users\<user> *)
+        if Sys.win32 then "USERPROFILE" else "XDG_CONFIG_HOME"
+      in
+      match Sys.getenv_opt home_env_var with
       | Some x when Sys.is_directory x -> Fpath.v x
       | _else_ -> Fpath.v (env_or (fun x -> x) "HOME" "/")
     in

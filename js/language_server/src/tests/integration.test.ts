@@ -101,12 +101,9 @@ suite("Server e2e", async () => {
   const documentSelector: lsclient.DocumentSelector = [{ language: "python" }];
   const serverModule = path.join(__dirname, "../../../dist/semgrep-lsp.js");
   const serverOptions: lsclient.ServerOptions = {
-    run: { module: serverModule, transport: lsclient.TransportKind.ipc },
-    debug: {
       module: serverModule,
       transport: lsclient.TransportKind.ipc,
-      options: { execArgv: ["--nolazy", "--inspect=6014"] },
-    },
+      options: { execArgv: ["--nolazy", "--inspect=6009"] },
   };
   const clientOptions: lsclient.LanguageClientOptions = {
     documentSelector,
