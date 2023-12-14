@@ -145,6 +145,7 @@ let () =
                 (* I don't know why, but on my (Brandon's) machine, the
                    e2e tests fail unless they are run in this order.
                 *)
+                Alcotest_ext.init ();
                 let%lwt () = run_lwt () in
                 run ();
                 Lwt.return_unit))
