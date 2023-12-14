@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -17,13 +17,16 @@
 (* Prelude *)
 (*****************************************************************************)
 (* An Abstract Syntax Tree (AST) for OCaml.
- * (for a Concrete Syntax Tree see old/cst_ml_ml or ocaml-tree-sitter-semgrep).
+ *
+ * For a Concrete Syntax Tree see either
+ *   - old/cst_ml_ml
+ *   - ../tree-sitter/semgrep-ocaml/lib/CST.ml
  *
  * TODO:
  *  - lots of missing xxx bracket, lots of missing tok for correct l/r range
  *  - attributes at more places (@xxx)
  *  - extensions at many places (%xxx)
- *  - classes and objects
+ *  - classes and objects (still work to do)
  *  - functors, module types, first-class modules
  *  - GADTs
  *  - see the XxxTodo
@@ -36,13 +39,12 @@
 (* ------------------------------------------------------------------------- *)
 (* Token/info *)
 (* ------------------------------------------------------------------------- *)
-type tok = Tok.t [@@deriving show]
 
 (* a shortcut to annotate some information with token/position information *)
-type 'a wrap = 'a * tok [@@deriving show]
+type 'a wrap = 'a * Tok.t [@@deriving show]
 
 (* round(), square[], curly{}, angle<> brackets *)
-type 'a bracket = tok * 'a * tok [@@deriving show]
+type 'a bracket = Tok.t * 'a * Tok.t [@@deriving show]
 
 (* ------------------------------------------------------------------------- *)
 (* Names  *)
@@ -65,12 +67,12 @@ type todo_category = string wrap [@@deriving show]
 type type_ =
   | TyName of name (* include builtins *)
   | TyVar of ident (* 'a *)
-  | TyAny of tok (* _ *)
+  | TyAny of Tok.t (* _ *)
   | TyFunction of type_ * type_
   | TyApp of type_ list * name (* less: could be merged with TyName *)
   | TyTuple of type_ list (* at least 2 *)
   (* sgrep-ext: *)
-  | TyEllipsis of tok
+  | TyEllipsis of Tok.t
   (* TODO:
    * - Rows, PolyVariants, inline record
    * - Object, Class
@@ -92,7 +94,8 @@ type expr =
    * alt: Constructor of name * expr list bracket option
    *)
   | Constructor of name * expr option
-  | PolyVariant of (tok (* '`' *) * ident) * expr option
+  | PolyVariant of (Tok.t (* '`' *) * ident) * expr option
+  | Obj of object_
   (* special case of Constr *)
   | Tuple of expr list
   | List of expr list bracket
@@ -109,7 +112,7 @@ type expr =
    * We used to have 'Tuple of expr list bracket', but this was not enough
    * because in code like Foo (1+2), there are no tuple, but
    * we still want to remember those parenthesis in the AST.
-   * Thus, we keed those parenthesis in the AST and let ml_to_generic.ml
+   * Thus, we keed those parenthesis in the AST and let ocaml_to_generic.ml
    * do the right thing depending on the context in which those
    * ParenExpr are used (for Tuple, for Constructor, or for regular grouping).
    *)
@@ -119,29 +122,29 @@ type expr =
   | Infix of expr * string wrap * expr
   | Call of expr * argument list
   (* could be factorized with Prefix but it's not a usual prefix operator! *)
-  | RefAccess of tok (* ! *) * expr
-  | RefAssign of expr * tok (* := *) * expr
+  | RefAccess of Tok.t (* ! *) * expr
+  | RefAssign of expr * Tok.t (* := *) * expr
   (* less: lhs type to factorize xx and xx <- yy, for Array/String/BigArray *)
   (* special case of RefAccess and RefAssign *)
-  | FieldAccess of expr * tok * name
-  | FieldAssign of expr * tok * name * tok (* <- *) * expr
+  | FieldAccess of expr * Tok.t * name
+  | FieldAssign of expr * Tok.t * name * Tok.t (* <- *) * expr
   (* we unsugar { x } in { x = x } *)
   | Record of expr option (* with *) * (name * expr) list bracket
-  | New of tok * name
-  | ObjAccess of expr * tok (* # *) * ident
+  | New of Tok.t * name
+  | ObjAccess of expr * Tok.t (* # *) * ident
   (* > 1 elt for mutually recursive let (let x and y and z) *)
-  | LetIn of tok * rec_opt * let_binding list * expr
-  | Fun of tok (* 'fun' *) * parameter list (* at least one *) * expr
-  | Function of tok (* 'function' *) * match_case list
-  | If of tok * expr * expr * expr option
-  | Match of tok * expr * match_case list
-  | Try of tok * expr * match_case list
-  | While of tok * expr * expr
-  | For of tok * ident * expr * for_direction * expr * expr
+  | LetIn of Tok.t * rec_opt * let_binding list * expr
+  | Fun of Tok.t (* 'fun' *) * parameter list (* at least one *) * expr
+  | Function of Tok.t (* 'function' *) * match_case list
+  | If of Tok.t * expr * expr * expr option
+  | Match of Tok.t * expr * match_case list
+  | Try of Tok.t * expr * match_case list
+  | While of Tok.t * expr * expr
+  | For of Tok.t * ident * expr * for_direction * expr * expr
   (* regular construct but also semgrep-ext: for Typed metavariables *)
-  | TypedExpr of expr * tok (* : *) * type_
+  | TypedExpr of expr * Tok.t (* : *) * type_
   (* sgrep-ext: *)
-  | Ellipsis of tok
+  | Ellipsis of Tok.t
   | DeepEllipsis of expr bracket
   (* TODO:
    * - LocalOpen, LocalModule
@@ -163,7 +166,7 @@ and literal =
   | Char of string wrap
   | String of string wrap (* TODO bracket *)
   | Bool of bool wrap
-  | Unit of tok * tok (* () or begin/end *)
+  | Unit of Tok.t * Tok.t (* () or begin/end *)
 
 and argument =
   | Arg of expr
@@ -172,11 +175,46 @@ and argument =
   | ArgQuestion of ident * expr
 
 and match_case = pattern * match_action
-and match_action = expr option (* when *) * tok (* -> *) * expr
-and for_direction = To of tok | Downto of tok
+and match_action = expr option (* when *) * Tok.t (* -> *) * expr
+and for_direction = To of Tok.t | Downto of Tok.t
 
 (* TODO: attribute? and keyword_attribute? *)
-and rec_opt = tok option
+and rec_opt = Tok.t option
+
+(* ------------------------------------------------------------------------- *)
+(* object *)
+(* ------------------------------------------------------------------------- *)
+and object_ = {
+  o_tok : Tok.t; (* 'object' *)
+  (* TODO: self = (pattern * type_ option) bracket option *)
+  o_body : class_field list;
+}
+
+and class_field =
+  | Method of method_
+  | InstanceVar of instance_variable
+  (* TODO:
+   * - inherit
+   *)
+  | CfldTodo of todo_category
+
+and method_ = {
+  (* TODO: override !, attrs *)
+  m_tok : Tok.t; (* 'method' *)
+  m_name : ident;
+  m_params : parameter list;
+  m_rettype : type_ option;
+  m_body : expr option;
+}
+
+and instance_variable = {
+  (* TODO: override !, attrs *)
+  inst_tok : Tok.t; (* 'val' *)
+  inst_name : ident;
+  inst_type : type_ option;
+  (* TODO: :> *)
+  inst_expr : expr option;
+}
 
 (*****************************************************************************)
 (* Patterns *)
@@ -186,22 +224,22 @@ and pattern =
   | PatLiteral of literal (* can be signed *)
   (* alt: PatConstructor of name * pattern list bracket option *)
   | PatConstructor of name * pattern option
-  | PatPolyVariant of (tok (* '`' *) * ident) * pattern option
+  | PatPolyVariant of (Tok.t (* '`' *) * ident) * pattern option
   (* special cases of PatConstructor *)
-  | PatConsInfix of pattern * tok (* :: *) * pattern
+  | PatConsInfix of pattern * Tok.t (* :: *) * pattern
   (* some brackets are fake_info *)
   | PatTuple of pattern list bracket
   | PatList of pattern list bracket
-  | PatUnderscore of tok
+  | PatUnderscore of Tok.t
   (* TODO: can also have just ; _ and can have typed name *)
   (* we unsugar { x } in { x = x } *)
   | PatRecord of (name * pattern) list bracket
   | PatAs of pattern * ident
   (* OCaml disjunction patterns extension *)
   | PatDisj of pattern * pattern
-  | PatTyped of pattern * tok * type_
+  | PatTyped of pattern * Tok.t * type_
   (* sgrep-ext: *)
-  | PatEllipsis of tok
+  | PatEllipsis of Tok.t
   (* TODO:
    * - LocalOpen,
    * - Array, BigArray,
@@ -274,13 +312,37 @@ and constructor_decl_kind = (* of ... *)
 and field_decl = ident * type_ * mutable_opt
 
 (* TODO: keyword attribute *)
-and mutable_opt = tok option (* mutable *)
+and mutable_opt = Tok.t option (* mutable *)
 [@@deriving show { with_path = false }]
 
 (* ------------------------------------------------------------------------- *)
 (* Class (and object) *)
 (* ------------------------------------------------------------------------- *)
-(* Nope ... represented via an ItemTodo "Class" *)
+
+type class_binding = {
+  (* c_attrs: 'virtual' *)
+  c_name : ident;
+  c_tparams : type_parameter list;
+  c_params : parameter list;
+  (* TODO: c_rettype *)
+  c_body : class_expr option; (* TODO: attributes *)
+}
+
+and class_expr =
+  (* simple_class_expr *)
+  | ClObj of object_
+  (* TODO:
+   * - ClassPathExp
+   * - InstClassExp
+   * - TypedClassExp
+   * - ParenClassExp
+   * - ClassFunc
+   * - ClassApp
+   * - LetClassApp
+   * - LetOpenClass
+   *)
+  | ClTodo of todo_category * class_expr list
+[@@deriving show { with_path = false }]
 
 (* ------------------------------------------------------------------------- *)
 (* Module *)
@@ -318,17 +380,18 @@ and item = { i : item_kind; iattrs : attributes }
  * valid in both contexts.
  *)
 and item_kind =
-  | Type of tok * type_declaration list (* mutually recursive *)
-  | Exception of tok * ident * type_ list
-  | External of tok * ident * type_ * string wrap list (* primitive decls *)
+  | Type of Tok.t * type_declaration list (* mutually recursive *)
+  | Exception of Tok.t * ident * type_ list
+  | External of Tok.t * ident * type_ * string wrap list (* primitive decls *)
   (* TODO: '!' option *)
-  | Open of tok * name
+  | Open of Tok.t * name
   (* only in sig_item *)
-  | Val of tok * ident * type_
+  | Val of Tok.t * ident * type_
   (* only in struct_item *)
-  | Let of tok * rec_opt * let_binding list
+  | Let of Tok.t * rec_opt * let_binding list
   | TopExpr of expr
-  | Module of tok * module_declaration
+  | Module of Tok.t * module_declaration
+  | Class of Tok.t (* 'class' *) * class_binding list
   (* TODO
    * - directives (#xxx)
    * - floating attributes ([@@@ ])
@@ -345,11 +408,11 @@ type program = item list [@@deriving show]
 (*****************************************************************************)
 type partial =
   (* partial stmts *)
-  | PartialIf of tok * expr
-  | PartialMatch of tok * expr
-  | PartialTry of tok * expr
+  | PartialIf of Tok.t * expr
+  | PartialMatch of Tok.t * expr
+  | PartialTry of Tok.t * expr
   (* other *)
-  | PartialLetIn of tok * rec_opt * let_binding list * tok (* in *)
+  | PartialLetIn of Tok.t * rec_opt * let_binding list * Tok.t (* in *)
 [@@deriving show { with_path = false }]
 
 type any =

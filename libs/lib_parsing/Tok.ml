@@ -143,6 +143,13 @@ let pp_full_token_info = ref false
 (* for ppx_deriving *)
 let pp fmt t = if !pp_full_token_info then pp fmt t else Format.fprintf fmt "()"
 
+(* not sure why we also need to define this one, but without this
+ * semgrep-core -diff_pfff_tree_sitter, which uses AST_generic.show_program,
+ * always display the full token info of the token
+ *)
+let pp_t_always_equal fmt t =
+  if !pp_full_token_info then pp fmt t else Format.fprintf fmt "()"
+
 (*****************************************************************************)
 (* Fake tokens (safe and unsafe) *)
 (*****************************************************************************)

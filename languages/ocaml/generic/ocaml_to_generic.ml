@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open Ast_ml
+open AST_ocaml
 module G = AST_generic
 module H = AST_generic_helpers
 
@@ -69,7 +69,7 @@ let mk_var_or_func tlet params tret body =
 
 let defs_of_bindings tlet attrs xs =
   xs
-  |> List_.map (function
+  |> list (function
        | Either.Left (ent, params, tret, body) ->
            let ent = add_attrs ent attrs in
            G.DefStmt (ent, mk_var_or_func tlet params tret body) |> G.s
@@ -117,7 +117,6 @@ and type_kind = function
   | TyEllipsis v1 ->
       let v1 = tok v1 in
       G.TyEllipsis v1
-  (* TODO *)
   | TyName v1 ->
       let v1 = name_ v1 in
       G.TyN v1
@@ -132,14 +131,14 @@ and type_kind = function
       G.TyFun ([ G.Param (G.param_of_type v1) ], v2)
   | TyApp (v1, v2) ->
       let v1 = list type_ v1 and v2 = name v2 in
-      G.TyApply (G.TyN v2 |> G.t, fb (v1 |> List_.map (fun t -> G.TA t)))
+      G.TyApply (G.TyN v2 |> G.t, fb (v1 |> list (fun t -> G.TA t)))
   | TyTuple v1 ->
       let v1 = list type_ v1 in
       G.TyTuple (fb v1)
   | TyTodo (t, v1) ->
       let t = todo_category t in
       let v1 = list type_ v1 in
-      G.OtherType (t, List_.map (fun x -> G.T x) v1)
+      G.OtherType (t, list (fun x -> G.T x) v1)
 
 and expr_body e : G.stmt = stmt e
 
@@ -164,7 +163,7 @@ and stmt e : G.stmt =
       let v1 = stmt v1 and v2 = list match_case v2 in
       let catches =
         v2
-        |> List_.map (fun (pat, e) ->
+        |> list (fun (pat, e) ->
                (fake "catch", G.CatchPattern pat, G.exprstmt e))
       in
       G.Try (t, v1, catches, None, None) |> G.s
@@ -231,6 +230,19 @@ and option_expr_to_ctor_arguments v =
 
 and expr e =
   match e with
+  | Obj { o_tok; o_body } ->
+      let cdef =
+        G.
+          {
+            ckind = (Object, o_tok);
+            cextends = [];
+            cimplements = [];
+            cmixins = [];
+            cparams = fb [];
+            cbody = fb (list class_field o_body);
+          }
+      in
+      G.AnonClass cdef |> G.e
   | ParenExpr (l, e, r) -> (
       let e = expr e in
       match e.G.e with
@@ -377,7 +389,7 @@ and expr e =
   | ExprTodo (t, xs) ->
       let t = todo_category t in
       let xs = list expr xs in
-      G.OtherExpr (t, List_.map (fun x -> G.E x) xs) |> G.e
+      G.OtherExpr (t, list (fun x -> G.E x) xs) |> G.e
   | If _
   | Try _
   | For _
@@ -491,7 +503,7 @@ and pattern = function
   | PatTodo (t, xs) ->
       let t = todo_category t in
       let xs = list pattern xs in
-      G.OtherPat (t, List_.map (fun x -> G.P x) xs)
+      G.OtherPat (t, list (fun x -> G.P x) xs)
 
 and let_binding = function
   | LetClassic v1 ->
@@ -533,6 +545,33 @@ and parameter = function
       | _ -> G.ParamPattern v)
   | ParamTodo x -> G.OtherParam (x, [])
 
+and class_field (fld : class_field) : G.field =
+  match fld with
+  | Method { m_name; m_tok; m_params; m_rettype; m_body } ->
+      let id = ident m_name in
+      let ent = G.basic_entity id in
+      let fparams = fb (list parameter m_params) in
+      let frettype = option type_ m_rettype in
+      let fbody =
+        match m_body with
+        | None -> G.FBNothing
+        | Some e ->
+            let e = expr e in
+            G.FBExpr e
+      in
+      let fdef = G.{ fkind = (Method, m_tok); fparams; frettype; fbody } in
+      G.fld (ent, G.FuncDef fdef)
+  | InstanceVar { inst_tok = _; inst_name; inst_type; inst_expr } ->
+      let id = ident inst_name in
+      let ent = G.basic_entity id in
+      let vinit = option expr inst_expr in
+      let vtype = option type_ inst_type in
+      let def = G.{ vinit; vtype } in
+      G.fld (ent, G.VarDef def)
+  | CfldTodo todok ->
+      let st = G.OtherStmt (G.OS_Todo, [ G.TodoK todok ]) |> G.s in
+      G.F st
+
 and type_declaration x =
   match x with
   | TyDecl { tname; tparams; tbody } ->
@@ -547,7 +586,6 @@ and type_declaration x =
 and type_parameter v =
   match v with
   | TyParam v -> G.tparam_of_id (ident v)
-  (* TODO *)
   | TyParamTodo (s, t) -> G.OtherTypeParam ((s, t), [])
 
 and type_def_kind = function
@@ -597,7 +635,7 @@ and module_expr = function
   | ModuleTodo (t, xs) ->
       let t = todo_category t in
       let xs = list module_expr xs in
-      G.OtherModule (t, List_.map (fun x -> G.ModDk x) xs)
+      G.OtherModule (t, list (fun x -> G.ModDk x) xs)
 
 and attributes xs = list attribute xs
 
@@ -615,9 +653,45 @@ and attribute x =
       let name = H.name_of_ids dotted in
       G.NamedAttr (t1, name, (t2, args, t2))
 
+and class_binding (c_tok : Tok.t) (binding : class_binding) : G.definition =
+  let { c_name; c_tparams; c_params; c_body } = binding in
+  let id = ident c_name in
+  let tparams = list type_parameter c_tparams in
+  let ent = G.basic_entity ~tparams id in
+  let cparams = fb (list parameter c_params) in
+  let cbody =
+    match c_body with
+    | None -> fb []
+    | Some x -> (
+        match x with
+        | ClTodo (todok, _xs) ->
+            let st = G.OtherStmt (G.OS_Todo, [ G.TodoK todok ]) |> G.s in
+            fb [ G.F st ]
+        | ClObj { o_tok = _; o_body } ->
+            let flds = list class_field o_body in
+            fb flds)
+  in
+  let cdef =
+    G.
+      {
+        ckind = (Class, c_tok);
+        cextends = [];
+        cimplements = [];
+        cmixins = [];
+        cparams;
+        cbody;
+      }
+  in
+  (ent, G.ClassDef cdef)
+
 and item { i; iattrs } =
   let attrs = attributes iattrs in
   match i with
+  | Class (c_tok, xs) ->
+      xs
+      |> list (fun x ->
+             let def = class_binding c_tok x in
+             G.DefStmt def |> G.s)
   | TopExpr e ->
       let e = expr e in
       [ G.exprstmt e ]

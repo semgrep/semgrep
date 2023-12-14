@@ -1912,7 +1912,7 @@ and class_kind =
   | Class (* or Struct for C/Solidity *)
   | Interface (* abused for Contract in Solidity *)
   | Trait
-  (* Kotlin/Scala *)
+  (* Kotlin/Scala/OCaml *)
   | Object
 
 (* A parent can have arguments in Scala/Java/Kotlin (because constructors

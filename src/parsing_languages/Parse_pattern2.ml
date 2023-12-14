@@ -59,7 +59,7 @@ let parse_pattern print_errors options lang str =
       Php_to_generic.any any
   | Lang.Ocaml ->
       let any = Parse_ml.any_of_string str in
-      Ml_to_generic.any any
+      Ocaml_to_generic.any any
   | Lang.Python
   | Lang.Python2
   | Lang.Python3 ->

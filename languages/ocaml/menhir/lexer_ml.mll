@@ -14,7 +14,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-module Ast = Ast_ml
+module Ast = AST_ocaml
 module Flag = Flag_parsing
 
 open Parser_ml
