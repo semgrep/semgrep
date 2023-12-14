@@ -33,7 +33,7 @@ jobs:
         make PREFIX="$prefix" CFLAGS="-O3 -Wall -Wextra"
         make PREFIX="$prefix" install
     - id: install-depexts
-      run: opam depext conf-pkg-config conf-gmp conf-libpcre
+      run: opam depext conf-pkg-config conf-gmp conf-libpcre conf-libev
     - id: install-deps
       run: opam install -y ./checkout/ ./checkout/libs/ocaml-tree-sitter-core --deps-only
     - id: build-semgrep
