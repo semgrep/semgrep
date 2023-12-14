@@ -21,13 +21,6 @@ jobs:
         opam-repositories: |
           opam-repository-mingw: https://github.com/tpetr/opam-repository-mingw.git#sunset
           default: https://github.com/ocaml/opam-repository.git
-    - shell: bash
-      run: |
-        export PATH="/cygdrive/d/a/semgrep/semgrep/_opam/bin:${CYGWIN_ROOT_BIN}:${PATH}"
-        opam search -V notty
-        opam list
-        opam install --dry-run --debug notty.0.2.3
-        opam list
     - id: build-tree-sitter
       shell: bash
       run: |
@@ -47,6 +40,7 @@ jobs:
       shell: bash
       run: |
         export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
+        export C_INCLUDE_PATH="d:/cygwin/usr/include"
         cd checkout
         export TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include
         export TREESITTER_LIBDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/lib
