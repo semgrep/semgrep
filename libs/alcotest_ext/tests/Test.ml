@@ -26,11 +26,9 @@ let tests =
   ]
 
 let () =
-  Alcotest_ext.interpret_argv
-    ~project_name:"alcotest_ext"
-    ~handle_subcommand_result:(
-      fun exit_code _ ->
-        print_endline "<handling result before exiting>";
-        exit exit_code
-    )
-    tests
+  Alcotest_ext.interpret_argv ~project_name:"alcotest_ext"
+    ~handle_subcommand_result:(fun exit_code _ ->
+      print_endline "<handling result before exiting>";
+      (* nosemgrep: forbid-exit *)
+      exit exit_code)
+    (fun () -> tests)

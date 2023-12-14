@@ -74,12 +74,12 @@ let remove_file path = if Sys.file_exists path then Sys.remove path
 (*
    The status workspace is a temporary folder outside of version control.
 *)
-let default_status_workspace_root = "_test_results" // "status"
+let default_status_workspace_root = "_build" // "alcotest_ext" // "status"
 
 (*
    The expectation workspace is under version control.
 *)
-let default_expectation_workspace_root = "_test_results" // "expect"
+let default_expectation_workspace_root = "tests" // "snapshots"
 
 let not_initialized () =
   failwith "Missing initialization call: Alcotest_ext.init ()"

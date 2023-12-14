@@ -212,7 +212,7 @@ core-test:
 	$(MAKE) build-core-test
 	# The following command ensures that we can call 'test.exe --help'
 	# from the directory of the checkout
-	./_build/default/src/tests/test.exe --show-errors --help 2>&1 >/dev/null
+	./test --help 2>&1 >/dev/null
 	./scripts/run-core-test
 
 # Please keep this standalone target.

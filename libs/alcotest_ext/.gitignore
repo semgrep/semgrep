@@ -1,5 +1,2 @@
-# Created when running the original Alcotest as part of the 'run subcommand'
-/_build/_tests
-
-# Created by the Alcotest_ext executable
-/_test_results/status
+# Alcotest and Alcotest_ext
+/_build

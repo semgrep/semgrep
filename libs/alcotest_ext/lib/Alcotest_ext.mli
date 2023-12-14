@@ -36,7 +36,6 @@ type expectation = {
 }
 
 type status = { expectation : expectation; result : (result, string) Result.t }
-
 type status_class = PASS | FAIL | XFAIL | XPASS | MISS
 
 type status_summary = {
@@ -100,11 +99,10 @@ type 'a t = private {
   skipped : bool;
   (* If the test function changes the current directory without restoring it,
      it's an error unless this flag is set. *)
-  tolerate_chdir: bool;
+  tolerate_chdir : bool;
 }
 
 type test = unit t
-
 type test_with_status = test * status * status_summary
 
 type subcommand_result =
@@ -241,10 +239,10 @@ val to_alcotest_lwt : lwt_test list -> unit Alcotest_lwt.test list
    and subcommand-specific data for export to JUnit or similar.
 
    argv: command line to parse. Defaults to Sys.argv.
-   expectation_workspace_root: Storage path for expected output,
-     defaults to '_test_results/expect'.
-   status_workspace_root: Storage path for test results, defaults to
-     '_test_results/status'.
+   expectation_workspace_root: Storage path for expected output. The default
+     is 'tests/snapshots'.
+   status_workspace_root: Storage path for test results. The default is
+     '_build/alcotest_ext/status'.
    project_name: name of the program as shown in the --help page and used
      as a folder name for storing test results.
 *)
@@ -254,5 +252,5 @@ val interpret_argv :
   ?handle_subcommand_result:(int -> subcommand_result -> unit) ->
   ?status_workspace_root:string ->
   project_name:string ->
-  test list ->
+  (unit -> test list) ->
   unit

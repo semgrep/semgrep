@@ -200,6 +200,3 @@ scripts/release/release_body.txt
 
 # Personal symlink to semgrep-proprietary used by 'make pro'
 /semgrep-proprietary
-
-# alcotest_ext test results
-/_test_results/status

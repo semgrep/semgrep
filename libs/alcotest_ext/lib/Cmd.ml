@@ -2,6 +2,7 @@
    Command-line interface generated for a test program.
 *)
 
+open Printf
 open Cmdliner
 
 (*
@@ -38,9 +39,14 @@ type subcommand_result =
 (****************************************************************************)
 
 let run_with_conf
-    (tests,
-     (handle_subcommand_result : int -> subcommand_result -> 'a))
+    ( (get_tests : unit -> unit Types.test list),
+      (handle_subcommand_result : int -> subcommand_result -> 'a) )
     (cmd_conf : cmd_conf) =
+  (*
+     The creation of tests can take a while so it's delayed until we
+     really need the tests. This makes '--help' fast.
+  *)
+  let tests = get_tests () in
   match cmd_conf with
   | Run_tests conf ->
       let exit_code, tests_with_status =
@@ -51,7 +57,7 @@ let run_with_conf
   | Status conf ->
       let exit_code, tests_with_status =
         Run.list_status ?filter_by_substring:conf.filter_by_substring
-        ~output_style:conf.status_output_style tests
+          ~output_style:conf.status_output_style tests
       in
       handle_subcommand_result exit_code (Status_result tests_with_status)
   | Approve conf ->
@@ -87,7 +93,7 @@ let lazy_term : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
-let run_doc = "Run the tests."
+let run_doc = "run the tests"
 
 let subcmd_run_term test_spec : unit Term.t =
   let combine filter_by_substring lazy_ =
@@ -111,7 +117,7 @@ let short_term : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
-let status_doc = "List the current status of the tests."
+let status_doc = "show test status"
 
 let subcmd_status_term tests : unit Term.t =
   let combine filter_by_substring short =
@@ -131,7 +137,7 @@ let subcmd_status tests =
 (* Subcommand: approve *)
 (****************************************************************************)
 
-let approve_doc = "Approve the new output of tests run previously."
+let approve_doc = "approve new test output"
 
 let subcmd_approve_term tests : unit Term.t =
   let combine filter_by_substring =
@@ -147,20 +153,42 @@ let subcmd_approve tests =
 (* Main command *)
 (****************************************************************************)
 
-let root_doc = "run this project's tests"
+let root_doc ~project_name = sprintf "run tests for %s" project_name
+
+let root_man ~project_name : Manpage.block list =
+  [
+    `S Manpage.s_description;
+    `P
+      (sprintf
+         {|This is the program built for running and managing the tests for this project,
+%s. It revolves around 3 main subcommands: 'run', 'status', and 'approve'.
+Use the 'status' subcommand to check the status of each test without having
+to re-run them. 'approve' must be used on tests whose output is captured
+so as to make their latest output the new reference.
+|}
+         project_name);
+    `P
+      (sprintf
+         {|This test program was configured to store the temporary results in
+'%s' and the expected test output in the persistent folder '%s'.
+The latter should be kept under version control (git or similar).
+|}
+         (Store.get_status_workspace ())
+         (Store.get_expectation_workspace ()));
+  ]
 
 let root_info ~project_name =
-  let name = "test " ^ project_name in
-  Cmd.info name ~doc:root_doc
+  let name = Filename.basename Sys.argv.(0) in
+  Cmd.info name ~doc:(root_doc ~project_name) ~man:(root_man ~project_name)
 
-let root_term tests =
+let root_term test_spec =
   (*
   Term.ret (Term.const (`Help (`Pager, None)))
 *)
-  subcmd_run_term tests
+  subcmd_run_term test_spec
 
-let subcommands tests =
-  [ subcmd_run tests; subcmd_status tests; subcmd_approve tests ]
+let subcommands test_spec =
+  [ subcmd_run test_spec; subcmd_status test_spec; subcmd_approve test_spec ]
 
 let with_record_backtrace func =
   let original_state = Printexc.backtrace_status () in
@@ -180,14 +208,14 @@ let with_record_backtrace func =
 *)
 let interpret_argv ?(argv = Sys.argv) ?expectation_workspace_root
     ?(handle_subcommand_result = fun exit_code _ -> exit exit_code)
-    ?status_workspace_root ~project_name tests =
+    ?status_workspace_root ~project_name
+    (get_tests : unit -> unit Types.test list) =
   (* TODO: is there any reason why we shouldn't always record a stack
      backtrace when running tests? *)
-  let test_spec = (tests, handle_subcommand_result) in
+  let test_spec = (get_tests, handle_subcommand_result) in
   with_record_backtrace (fun () ->
       Store.init_settings ?expectation_workspace_root ?status_workspace_root
         ~project_name ();
       Cmd.group ~default:(root_term test_spec) (root_info ~project_name)
         (subcommands test_spec)
-      |> Cmd.eval ~argv
-      |> (* does not reach this point by default *) exit)
+      |> Cmd.eval ~argv |> (* does not reach this point by default *) exit)

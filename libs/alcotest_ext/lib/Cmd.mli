@@ -23,5 +23,5 @@ val interpret_argv :
   ?handle_subcommand_result:(int -> subcommand_result -> unit) ->
   ?status_workspace_root:string ->
   project_name:string ->
-  unit Types.test list ->
+  (unit -> unit Types.test list) ->
   unit

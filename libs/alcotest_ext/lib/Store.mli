@@ -3,6 +3,9 @@
    Much of this is private to this library.
 *)
 
+val default_expectation_workspace_root : string
+val default_status_workspace_root : string
+
 (*
    This function must be called exactly once to define where things are
    stored. It doesn't write to the file system.
