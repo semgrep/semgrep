@@ -1018,8 +1018,8 @@ let scan ?match_hook config ((valid_rules, invalid_rules), rules_parse_time) :
 (*****************************************************************************)
 
 let get_rules config =
-  Trace_core.with_span ~__FILE__ ~__LINE__ "get_rules" @@ fun _sp ->
   Common.with_time (fun () -> rules_from_rule_source config)
+[@@trace]
 
 let scan_with_exn_handler (config : Core_scan_config.t) :
     Core_result.result_or_exn =
