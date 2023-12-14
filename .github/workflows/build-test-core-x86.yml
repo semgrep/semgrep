@@ -53,7 +53,7 @@ jobs:
         done
         opam exec -- dune build src/main
         echo 'print("foo")' > test.py
-        _build/install/default/bin/semgrep-core -e 'print($X)' -lang python -json test.py
+        _build/default/src/main/Main.exe -e 'print($X)' -lang python -json test.py
         tar czvf osemgrep.tar.gz _build/default/src/main/Main.exe \
           d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libstdc++-6.dll \
           d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgcc_s_seh-1.dll \
