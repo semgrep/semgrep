@@ -15,6 +15,10 @@
    https://mirage.github.io/alcotest/alcotest/Alcotest/index.html
 *)
 
+(****************************************************************************)
+(* A bunch of types for advanced uses and subject to frequent changes. *)
+(****************************************************************************)
+
 type expected_outcome =
   | Should_succeed
   | Should_fail of string (* explains why we expect this test to fail *)
@@ -49,6 +53,10 @@ type output_kind =
   | Stderr
   | Merged_stdout_stderr
   | Separate_stdout_stderr
+
+(****************************************************************************)
+(* Main interface *)
+(****************************************************************************)
 
 module Tag : module type of Tag
 
@@ -105,6 +113,12 @@ type 'a t = private {
 type test = unit t
 type test_with_status = test * status * status_summary
 
+(*
+   The return type of each subcommand.
+   It allows custom code to do something with the test data e.g. export
+   to the JUnit format via the optional 'handle_subcommand_result' argument
+   of 'interpret_argv'.
+*)
 type subcommand_result =
   | Run_result of test_with_status list
   | Status_result of test_with_status list
