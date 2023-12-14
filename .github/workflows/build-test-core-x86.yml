@@ -23,6 +23,7 @@ jobs:
           default: https://github.com/ocaml/opam-repository.git
     - shell: bash
       run: |
+        export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
         opam install -y notty
         opam list
     - id: build-tree-sitter
