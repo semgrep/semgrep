@@ -23,8 +23,7 @@ jobs:
           default: https://github.com/ocaml/opam-repository.git
     - shell: bash
       run: |
-        export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
-        opam exec -- which ocamlc
+        export PATH="/cygdrive/d/a/semgrep/semgrep/_opam/bin:${CYGWIN_ROOT_BIN}:${PATH}"
         opam search notty
         opam list
         opam exec -- opam install --dry-run --debug notty
