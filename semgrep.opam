@@ -28,7 +28,7 @@ depends: [
   "ocolor"
   "ANSITerminal"
   "terminal_size"
-  "notty" {os != "win32"}
+  "notty"
   "easy_logging" {= "0.8.1"}
   "easy_logging_yojson" {= "0.8.1"}
   "logs"

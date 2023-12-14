@@ -104,7 +104,7 @@ let known_subcommands =
     "scan";
     (* osemgrep-only *)
     "install-ci";
-    (* "interactive"; TODO *)
+    "interactive";
     "show";
     "test";
   ]
