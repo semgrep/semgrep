@@ -18,7 +18,7 @@ set -eu
 # Note however that the pre-commit CI action may loop forever if
 # you leave those commands uncommented (no idea why, go figure again).
 
-if [[ -z ${SKIP_OCAMLFORMAT+set} ]]; then
+if [[ -v SKIP_OCAMLFORMAT ]]; then
   echo "*** SKIP_OCAMLFORMAT is set. Skipping ocamlformat step!"
   exit 0
 fi
