@@ -24,7 +24,8 @@ jobs:
     - shell: bash
       run: |
         export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
-        opam install -y notty
+        opam search notty
+        opam install --dry-run notty
         opam list
     - id: build-tree-sitter
       shell: bash
