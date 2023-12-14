@@ -377,6 +377,27 @@ functions.
   )
 )
 
+(package
+  (name tracing)
+  (version "1.5.5")
+  (synopsis "Small library to help trace code")
+  (description "\
+This is a small library of utilities used by Semgrep to
+trace functions for the purpose of reporting them in
+metrics
+"
+  )
+  (maintainers "Emma Jin <emma@semgrep.com>")
+  (authors "Emma Jin <emma@semgrep.com>")
+  (license "LGPL-2.1-only")
+
+  (depends
+    (ocaml (>= "4.13.0"))
+    (dune (>= "3.2.0" ))
+    (commons (>= "1.5.5"))
+  )
+)
+
 (package (name semgrep)
   (version 1.38.0)
   (synopsis "Like grep but for code: fast and syntax-aware semantic code pattern for many languages")

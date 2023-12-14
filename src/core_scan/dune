@@ -4,6 +4,8 @@
  (wrapped false)
  (libraries
     parmap
+    trace
+    trace-tef
 
     commons
 
