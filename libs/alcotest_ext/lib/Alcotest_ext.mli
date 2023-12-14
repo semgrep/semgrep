@@ -236,12 +236,29 @@ val pack_tests : string -> (string * (unit -> 'a)) list -> 'a t list
 val sort : 'a t list -> 'a t list
 
 (*
+   This initialization is needed for running the tests obtained with
+   'to_alcotest' or 'to_alcotest_lwt' used when bypassing 'interpret_argv'.
+*)
+val init_settings :
+  ?expectation_workspace_root:string ->
+  ?status_workspace_root:string ->
+  project_name:string ->
+  unit ->
+  unit
+
+(*
    Convert a test suite to be run with the Alcotest.run which provides
    a command-line interface with the 'test' and 'list' subcommands only.
+   Requires a prior call to 'init_settings'.
 *)
 val to_alcotest : test list -> unit Alcotest.test list
 
-(* Do we really need a special type for Lwt tests? *)
+(*
+   Same as 'to_alcotest' but with Lwt promises.
+   Requires a prior call to 'init_settings'.
+
+   TODO: Do we really need a special type for Lwt tests?
+*)
 val to_alcotest_lwt : lwt_test list -> unit Alcotest_lwt.test list
 
 (*
