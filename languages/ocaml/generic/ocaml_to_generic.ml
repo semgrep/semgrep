@@ -70,8 +70,8 @@ let mk_var_or_func tlet params tret body =
 let defs_of_bindings tlet attrs xs =
   xs
   |> list (function
-       | Either.Left (ent, params, tret, body) ->
-           let ent = add_attrs ent attrs in
+       | Either.Left (ent, params, tret, body, lattrs) ->
+           let ent = add_attrs ent (attrs @ lattrs) in
            G.DefStmt (ent, mk_var_or_func tlet params tret body) |> G.s
        | Either.Right (pat, e) ->
            (* TODO no attrs *)
@@ -523,16 +523,17 @@ and let_binding = function
                *)
               idinfo.G.id_type := Some ty
           | _ -> raise Impossible);
-          Either.Left (ent, [], None, G.exprstmt v2)
+          Either.Left (ent, [], None, G.exprstmt v2, [])
       | _ -> Either.Right (v1, v2))
 
-and let_def { lname; lparams; lrettype; lbody } =
+and let_def { lname; lparams; lrettype; lbody; lattrs } =
   let v1 = ident lname in
   let v2 = list parameter lparams in
   let v3 = option type_ lrettype in
   let (v4 : G.stmt) = expr_body lbody in
+  let v5 = attributes lattrs in
   let ent = G.basic_entity v1 in
-  (ent, v2, v3, v4)
+  (ent, v2, v3, v4, v5)
 
 and parameter = function
   | Param v -> (

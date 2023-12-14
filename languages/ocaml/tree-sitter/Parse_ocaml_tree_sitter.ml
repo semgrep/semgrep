@@ -1760,6 +1760,7 @@ and map_labeled_argument (env : env) (x : CST.labeled_argument) =
 
 and map_let_binding (env : env) ((v1, v2, v3) : CST.let_binding) : let_binding =
   let pat = map_binding_pattern_ext env v1 in
+  let lattrs = List_.map (map_item_attribute env) v3 in
   let v2 =
     match v2 with
     | Some (v1, v2, v3, v4, v5) -> (
@@ -1781,14 +1782,14 @@ and map_let_binding (env : env) ((v1, v2, v3) : CST.let_binding) : let_binding =
         let v5 = map_sequence_expression_ext env v5 |> seq1 in
         match (pat, v1, v2) with
         | PatVar id, _, _ ->
-            LetClassic { lname = id; lparams = v1; lrettype = v2; lbody = v5 }
+            LetClassic
+              { lname = id; lparams = v1; lrettype = v2; lbody = v5; lattrs }
         | pat, [], None -> LetPattern (pat, v5)
         (* TODO: grammar js is wrong there too, this can not happen *)
         | _ -> raise (Parsing_error.Other_error ("Invalid let binding", v4)))
     (* TODO: grammar.js is wrong, this can not happen *)
     | None -> raise Impossible
   in
-  let _v3 = List_.map (map_item_attribute env) v3 in
   v2
 
 and map_list_binding_pattern (env : env)
@@ -2578,10 +2579,12 @@ and map_simple_expression (env : env) (x : CST.simple_expression) : expr =
   | `List_exp x -> map_list_expression env x
   | `Array_exp x -> map_array_expression env x
   | `Record_exp x -> map_record_expression env x
-  | `Prefix_exp (v1, v2) ->
+  | `Prefix_exp (v1, v2) -> (
       let v1 = str env v1 (* prefix_operator *) in
       let v2 = map_simple_expression_ext env v2 in
-      Prefix (v1, v2)
+      match v1 with
+      | "!", tk -> RefAccess (tk, v2)
+      | _else_ -> Prefix (v1, v2))
   | `Hash_exp (v1, v2, v3) ->
       let v1 = map_simple_expression_ext env v1 in
       let v2 = token env v2 (* hash_operator *) in

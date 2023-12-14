@@ -264,6 +264,11 @@ and let_def = {
   lparams : parameter list; (* can be empty *)
   lrettype : type_ option;
   lbody : expr;
+  (* each individual 'let' can have its own attributes,
+   * which forces to make let_def mutually recursive with attributes, which
+   * is itself mutually recursive with item.
+   *)
+  lattrs : attributes;
 }
 
 and parameter =
@@ -277,8 +282,12 @@ and parameter =
 (* Type declaration *)
 (* ------------------------------------------------------------------------- *)
 
+(* old: the type below used to be a clearly separate 'type ...' and not 'and',
+ * but with attributes in let_def, everything is now mutually recursive.
+ *)
+
 (* TODO: keyword attribute: private, constraints *)
-type type_declaration =
+and type_declaration =
   | TyDecl of type_declaration_classic
   (* TODO: Extension (+=) decl, .. *)
   | TyDeclTodo of todo_category
@@ -319,7 +328,10 @@ and mutable_opt = Tok.t option (* mutable *)
 (* Class (and object) *)
 (* ------------------------------------------------------------------------- *)
 
-type class_binding = {
+(* This also used to be separate 'type ...' but is now mutually recursive
+ * because of attributes in let_def.
+ *)
+and class_binding = {
   (* c_attrs: 'virtual' *)
   c_name : ident;
   c_tparams : type_parameter list;
@@ -347,7 +359,7 @@ and class_expr =
 (* ------------------------------------------------------------------------- *)
 (* Module *)
 (* ------------------------------------------------------------------------- *)
-type module_declaration = {
+and module_declaration = {
   mname : ident;
   (* TODO: mparams: for functors *)
   mbody : module_expr;
@@ -373,7 +385,10 @@ and dotted_ident = ident list
 (* Toplevel *)
 (*****************************************************************************)
 
-(* Signature/Structure items *)
+(* Signature/Structure items.
+ * Note that for Let, the attributes are actually in the nested
+ * let_binding, so iattrs will be empty.
+ *)
 and item = { i : item_kind; iattrs : attributes }
 
 (* could split in sig_item and struct_item but many constructions are
