@@ -43,7 +43,7 @@ open Either_
 (*************************************************************************)
 (* Helpers *)
 (*************************************************************************)
-let (qufix: name -> tok -> ident -> name) =
+let (qufix: name -> Tok.t -> ident -> name) =
  fun longname _dottok ident ->
   match longname with
   | xs, ident2 -> xs @ [ident2], ident

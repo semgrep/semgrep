@@ -3177,7 +3177,7 @@ and map_type_parameter_constraint (env : env)
   let _v5 = List_.map (map_item_attribute env) v5 in
   tconstraint
 
-and map_typed (env : env) ((v1, v2) : CST.typed) : tok * type_ =
+and map_typed (env : env) ((v1, v2) : CST.typed) : Tok.t * type_ =
   let v1 = token env v1 (* ":" *) in
   let v2 = map_type_ext env v2 in
   (v1, v2)
@@ -3204,7 +3204,7 @@ and rec_opt env x =
   | Some tok -> Some (token env tok)
 
 and map_value_definition (env : env) ((v1, v2, v3) : CST.value_definition) :
-    tok * rec_opt * let_binding list =
+    Tok.t * rec_opt * let_binding list =
   let t, recopt =
     match v1 with
     | `Let_opt_attr_opt_rec (v1, v2, v3) ->
