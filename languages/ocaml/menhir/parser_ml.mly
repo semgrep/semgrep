@@ -1022,7 +1022,7 @@ type_variance:
 let_binding:
  | val_ident fun_binding
       { let (lparams, (lrettype, _teq, body)) = $2 in
-        LetClassic { lname = $1; lparams; lrettype; lbody = seq1 body; } }
+        LetClassic { lname = $1; lparams; lrettype; lbody = seq1 body; lattrs = [] } }
  | pattern "=" seq_expr
       { LetPattern ($1, seq1 $3) }
 
