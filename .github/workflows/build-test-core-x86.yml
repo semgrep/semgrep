@@ -8,16 +8,9 @@ jobs:
     runs-on: windows-latest
     steps:
     - run: git config --system core.longpaths true
-    - id: cache-git
-      uses: actions/cache@v3
-      with:
-        path: checkout
-        key: semgrep-${{ github.sha }}
     - name: Make checkout speedy
       run: git config --global fetch.parallel 50
-      if: steps.cache-git.outputs.cache-hit != 'true'
     - uses: actions/checkout@v3
-      if: steps.cache-git.outputs.cache-hit != 'true'
       with:
         submodules: true
         path: checkout
@@ -28,7 +21,8 @@ jobs:
         opam-repositories: |
           opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset
           default: https://github.com/ocaml/opam-repository.git
-    - shell: bash
+    - id: build-tree-sitter
+      shell: bash
       run: |
         export CC=x86_64-w64-mingw32-gcc
         cd checkout/libs/ocaml-tree-sitter-core
@@ -38,9 +32,12 @@ jobs:
         cd downloads/tree-sitter
         make PREFIX="$prefix" CFLAGS="-O3 -Wall -Wextra"
         make PREFIX="$prefix" install
-    - run: opam depext conf-pkg-config conf-gmp conf-libpcre
-    - run: opam install -y ./checkout/ ./checkout/libs/ocaml-tree-sitter-core --deps-only
-    - shell: bash
+    - id: install-depexts
+      run: opam depext conf-pkg-config conf-gmp conf-libpcre
+    - id: install-deps
+      run: opam install -y ./checkout/ ./checkout/libs/ocaml-tree-sitter-core --deps-only
+    - id: build-semgrep
+      shell: bash
       run: |
         export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
         cd checkout
@@ -54,7 +51,7 @@ jobs:
           grep -v rpath $filename > $filename.new
           mv $filename.new $filename
         done
-        opam exec -- dune build src/main
+        opam exec -- dune build _build/install/default/bin/semgrep-core
         echo 'print("foo")' > test.py
         _build/install/default/bin/semgrep-core -e 'print($X)' -lang python -json test.py
         tar czvf osemgrep.tar.gz _build/install/default/bin/semgrep-core \
