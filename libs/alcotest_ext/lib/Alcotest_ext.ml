@@ -24,16 +24,20 @@ type captured_output = T.captured_output =
   | Captured_stdout_stderr of string * string
   | Captured_merged of string
 
-type result = T.result =
-  { outcome : outcome; captured_output : captured_output }
+type result = T.result = {
+  outcome : outcome;
+  captured_output : captured_output;
+}
 
 type expectation = T.expectation = {
   expected_outcome : expected_outcome;
   expected_output : (captured_output, string) Result.t;
 }
 
-type status = T.status =
-  { expectation : expectation; result : (result, string) Result.t }
+type status = T.status = {
+  expectation : expectation;
+  result : (result, string) Result.t;
+}
 
 type status_class = T.status_class = PASS | FAIL | XFAIL | XPASS | MISS
 

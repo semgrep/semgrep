@@ -303,6 +303,7 @@ let diff_output (test : _ T.test)
          flush stdout;
          flush stderr;
          match
+           (* nosemgrep: forbid-exec *)
            Sys.command
              (sprintf "diff -u --color '%s' '%s'" path_to_expected_output
                 path_to_output)

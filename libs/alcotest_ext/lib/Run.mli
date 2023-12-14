@@ -8,8 +8,10 @@ val to_alcotest : unit Types.test list -> unit Alcotest.test list
 val to_alcotest_lwt : unit Lwt.t Types.test list -> unit Alcotest_lwt.test list
 
 val run_tests :
-  ?filter_by_substring:string -> ?lazy_:bool ->
-  unit Types.test list -> int * unit Types.test_with_status list
+  ?filter_by_substring:string ->
+  ?lazy_:bool ->
+  unit Types.test list ->
+  int * unit Types.test_with_status list
 
 val run_tests_lwt :
   ?filter_by_substring:string ->
