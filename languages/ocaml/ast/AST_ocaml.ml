@@ -113,7 +113,7 @@ type expr =
    * We used to have 'Tuple of expr list bracket', but this was not enough
    * because in code like Foo (1+2), there are no tuple, but
    * we still want to remember those parenthesis in the AST.
-   * Thus, we keed those parenthesis in the AST and let ml_to_generic.ml
+   * Thus, we keed those parenthesis in the AST and let ocaml_to_generic.ml
    * do the right thing depending on the context in which those
    * ParenExpr are used (for Tuple, for Constructor, or for regular grouping).
    *)
@@ -197,7 +197,7 @@ and class_field =
   (* TODO:
    * - inherit
    *)
-  | CfldTodo of todo_category * class_field list
+  | CfldTodo of todo_category
 
 and method_ = {
   (* TODO: override !, attrs *)

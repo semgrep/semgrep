@@ -1109,7 +1109,7 @@ and map_class_field (env : env) (x : CST.class_field) : class_field =
         | None -> None
       in
       let _v5 = List_.map (map_item_attribute env) v5 in
-      CfldTodo (("Inherit", tinherit), [])
+      CfldTodo ("Inherit", tinherit)
   | `Inst_var_defi (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let inst_tok = token env v1 (* "val" *) in
       let _v2 =
@@ -1165,19 +1165,19 @@ and map_class_field (env : env) (x : CST.class_field) : class_field =
       Method { m_tok; m_name; m_params; m_rettype; m_body }
   | `Type_param_cons x ->
       let tk = map_type_parameter_constraint env x in
-      CfldTodo (("Constraint", tk), [])
+      CfldTodo ("Constraint", tk)
   | `Class_init (v1, v2, v3) ->
       let tinitializer = token env v1 (* "initializer" *) in
       let _v2 = map_sequence_expression_ext env v2 |> seq1 in
       let _v3 = List_.map (map_item_attribute env) v3 in
-      CfldTodo (("ClassInit", tinitializer), [])
+      CfldTodo ("ClassInit", tinitializer)
 
 and map_class_field_ext (env : env) (x : CST.class_field_ext) : class_field =
   match x with
   | `Class_field x -> map_class_field env x
   | `Item_exte x ->
       let t = map_item_extension env x in
-      CfldTodo (t, [])
+      CfldTodo t
 
 and map_class_field_specification (env : env)
     (x : CST.class_field_specification) =
@@ -2072,7 +2072,7 @@ and map_object_expression (env : env)
         | `Class_field_ext x -> map_class_field_ext env x
         | `Floa_attr x ->
             let tk = map_floating_attribute env x in
-            CfldTodo (("ClassFloatAttr", tk), []))
+            CfldTodo ("ClassFloatAttr", tk))
       v4
   in
   let _v5 = token env v5 (* "end" *) in
