@@ -308,6 +308,12 @@ let all_actions (caps : Cap.all_caps) () =
         Arg_.mk_action_1_conv Fpath.v
           (dump_ast ~naming:false caps (Xlang.lang_of_opt_xlang_exn !lang))
           file );
+    ( "-dump_lang_ast",
+      " <file>",
+      fun file ->
+        Arg_.mk_action_1_conv Fpath.v
+          (Test_parsing.dump_lang_ast (Xlang.lang_of_opt_xlang_exn !lang))
+          file );
     ( "-dump_named_ast",
       " <file>",
       fun file ->
@@ -503,6 +509,7 @@ let options caps actions =
     ( "-tree_sitter_only",
       Arg.Set Flag.tree_sitter_only,
       " only use tree-sitter-based parsers" );
+    ("-pfff_only", Arg.Set Flag.pfff_only, " only use pfff-based parsers");
     ( "-timeout",
       Arg.Set_float timeout,
       " <float> maxinum time to spend running a rule on a single file (in \
