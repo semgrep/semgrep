@@ -51,7 +51,7 @@ jobs:
           grep -v rpath $filename > $filename.new
           mv $filename.new $filename
         done
-        opam exec -- dune build _build/install/default/bin/semgrep-core
+        opam exec -- dune build @install
         echo 'print("foo")' > test.py
         _build/install/default/bin/semgrep-core -e 'print($X)' -lang python -json test.py
         tar czvf osemgrep.tar.gz _build/install/default/bin/semgrep-core \
