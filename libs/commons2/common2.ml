@@ -2463,10 +2463,8 @@ let nblines_with_wc a = nblines_eff a
 let unix_diff file1 file2 =
   let cmd = (Cmd.Name "diff", [ "-u"; file1; file2 ]) in
   match UCmd.lines_of_run ~trim:true cmd with
-  | Ok (xs, (_, `Exited 0)) -> xs
-  | Ok _
-  | Error (`Msg _) ->
-      failwith "unix_diff problem"
+  | Ok (xs, _status) -> xs
+  | Error (`Msg s) -> failwith (spf "unix_diff problem: %s" s)
 
 let _batch_mode = ref false
 

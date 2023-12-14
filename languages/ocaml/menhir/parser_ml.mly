@@ -620,7 +620,7 @@ simple_expr:
  | "(" seq_expr ")"
      { match $2 with
      | [] -> Sequence ($1, [], $3)
-     (* Ml_to_generic will do the right thing if x is a tuple or
+     (* Ocaml_to_generic will do the right thing if x is a tuple or
       * if this expression is part of a Constructor call.
       *)
      | [x] -> ParenExpr ($1, x, $3)

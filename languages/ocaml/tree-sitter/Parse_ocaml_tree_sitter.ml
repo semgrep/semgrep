@@ -1387,10 +1387,16 @@ and map_expression (env : env) (x : CST.expression) : expr =
       let v3 = map_expression_ext env v3 in
       (* TODO? Constructor or Infix? *)
       Infix (v1, v2, v3)
-  | `App_exp (v1, v2) ->
+  | `App_exp (v1, v2) -> (
       let v1 = map_simple_expression_ext env v1 in
       let v2 = List_.map (map_argument env) v2 in
-      Call (v1, v2)
+      (* TODO? parser_ml.mly has a special grammar rule
+       * for constructor with arguments. In grammar.js there is
+       * no such rule so we need this hack
+       *)
+      match (v1, v2) with
+      | Constructor (x, None), [ Arg e ] -> Constructor (x, Some e)
+      | _else_ -> Call (v1, v2))
   | `Infix_exp x -> map_infix_expression env x
   | `Sign_exp (v1, v2) ->
       let v1 = map_sign_operator env v1 in
@@ -2184,7 +2190,7 @@ and map_parenthesized_expression (env : env) (x : CST.parenthesized_expression)
       (* like in parser_ml.mly *)
       match v2 with
       | [] -> Sequence (v1, [], v3)
-      (* Ml_to_generic will do the right thing if x is a tuple or
+      (* Ocaml_to_generic will do the right thing if x is a tuple or
        * if this expression is part of a Constructor call.
        *)
       | [ x ] -> ParenExpr (v1, x, v3)
@@ -2686,9 +2692,11 @@ and map_simple_module_expression_ext (env : env)
 (* diff with map_binding_pattern? no Or, as, here *)
 and map_simple_pattern (env : env) (x : CST.simple_pattern) : pattern =
   match x with
-  | `Value_pat x ->
+  | `Value_pat x -> (
       let x = map_value_pattern env x in
-      PatVar x
+      match x with
+      | "_", tk -> PatUnderscore tk
+      | _else_ -> PatVar x)
   | `Signed_cst x ->
       let x = map_signed_constant env x in
       PatLiteral x
