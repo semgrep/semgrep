@@ -292,11 +292,12 @@ let is_important_status ((test : _ T.test), _status, (sum : T.status_summary)) =
      | Not_OK ->
          true)
 
-let diff_output (output_file_pairs : Store.output_file_pair list) =
+let diff_output (test : _ T.test)
+    (output_file_pairs : Store.output_file_pair list) =
   output_file_pairs
   |> List.iter
        (fun
-         ({ path_to_expected_output; path_to_output; _ } :
+         ({ short_name; path_to_expected_output; path_to_output } :
            Store.output_file_pair)
        ->
          flush stdout;
@@ -306,7 +307,12 @@ let diff_output (output_file_pairs : Store.output_file_pair list) =
              (sprintf "diff -u --color '%s' '%s'" path_to_expected_output
                 path_to_output)
          with
-         | _ -> (* yolo *) ());
+         | 0 -> ()
+         | _nonzero ->
+             printf "  Captured %s differs from expectation for test %s %s\n"
+               short_name test.id test.internal_full_name;
+             printf "  Path to expected output: %s\n" path_to_expected_output;
+             printf "  Path to latest output: %s\n" path_to_output);
   print_newline ()
 
 let print_status ?(output_style = Full)
@@ -347,7 +353,7 @@ let print_status ?(output_style = Full)
             | Ok result ->
                 if result.captured_output <> expected_output then
                   let output_file_pairs = Store.get_output_file_pairs test in
-                  diff_output output_file_pairs))
+                  diff_output test output_file_pairs))
 
 let print_statuses ~only_important ~output_style tests_with_status =
   let tests_with_status =
@@ -453,7 +459,7 @@ let list_status ?filter_by_substring ?(output_style = Full) tests =
     | Full -> print_full_status tests tests_with_status
     | Short -> print_short_status tests tests_with_status
   in
-  exit_code, tests_with_status
+  (exit_code, tests_with_status)
 
 (* Important: for unknown reasons, the "test" subcommand of alcotest
    force an exit after Alcotest.run, regardless of the 'and_exit' argument
@@ -512,7 +518,7 @@ let before_run ?filter_by_substring ?(lazy_ = false) tests =
 let after_run tests selected_tests =
   let tests_with_status = get_tests_with_status selected_tests in
   let exit_code = print_full_status tests tests_with_status in
-  exit_code, tests_with_status
+  (exit_code, tests_with_status)
 
 (*
    Entry point for the 'run' subcommand

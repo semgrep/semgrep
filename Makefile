@@ -222,8 +222,7 @@ core-test:
 # './test <filter>' where <filter> selects the tests to run.
 .PHONY: build-core-test
 build-core-test:
-	# The test executable has a few options that can be useful in some
-	# contexts.
+	# Invoke the test program with './test'. Check out './test --help'.
 	dune build ./_build/default/src/tests/test.exe
 
 .PHONY: test-bc
