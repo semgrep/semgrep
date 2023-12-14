@@ -36,6 +36,17 @@
 (* Entry point *)
 (*****************************************************************************)
 
+let reset_pro_hooks () =
+  Generic_vs_generic.hook_find_possible_parents := None;
+  Constant_propagation.hook_propagate_basic_visitor := None;
+  Dataflow_svalue.hook_constness_of_function := None;
+  Dataflow_svalue.hook_transfer_of_assume := None;
+  Match_tainting_mode.hook_setup_hook_function_taint_signature := None;
+  Dataflow_tainting.hook_function_taint_signature := None;
+  Dataflow_tainting.hook_find_attribute_in_class := None;
+  (* TODO: more Pro hooks ? *)
+  ()
+
 (* Useful for defensive programming, especially in tests which may leave
  * bad state behind.
  * Note that it's currently unused, because we should prefer to fix our tests
@@ -47,10 +58,9 @@ let reset () =
   Core_profiling.mode := Core_profiling.MNo_info;
   AST_generic_equals.busy_with_equal := AST_generic_equals.Not_busy;
   Rule.last_matched_rule := None;
+  reset_pro_hooks ();
   (* TODO?
-   * - semgrep-pro hooks?
-   * - Match_patterns.last_matched_rule?
-   * - Http_helpers.client_ref?
+   * - Http_helpers.client_ref ?
    * - many more
    *)
   ()

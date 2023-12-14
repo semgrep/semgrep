@@ -220,17 +220,14 @@ let run_check_for_extract_rules (extract_rules : Rule.extract_rule list)
 (* Main logic *)
 (*****************************************************************************)
 
-let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
-    ?(get_xlang = single_xlang_from_rules) ?(prepend_lang = false)
-    (rule_file : Fpath.t) : unit Alcotest_ext.t =
-  let test () =
-    Logs.info (fun m -> m "processing rule file %s" !!rule_file);
-    let rules = Parse_rule.parse rule_file in
-    (* TODO? sanity check rules |> List.iter Check_rule.check; *)
-    if rules =*= [] then
+let read_rules_file ~get_xlang rule_file =
+  match Parse_rule.parse rule_file with
+  (* TODO? sanity check rules |> List.iter Check_rule.check; *)
+  | [] ->
       Logs.err (fun m ->
-          m "file %s is empty or all rules were skipped" !!rule_file)
-    else
+          m "file %s is empty or all rules were skipped" !!rule_file);
+      None
+  | rules ->
       let xlang = get_xlang rule_file rules in
       let target = find_target_of_yaml_file rule_file in
       Logs.info (fun m -> m "processing target %s" !!target);
@@ -239,61 +236,72 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
          to parse the pattern but YAML to parse the target *)
       let xlang =
         match (xlang, Lang.langs_of_filename target) with
-        | L (l, [ l2 ]), xs when not (List.mem l xs) ->
+        | Xlang.L (l, [ l2 ]), xs when not (List.mem l xs) ->
             UCommon.pr2 (spf "switching to another language: %s" (Lang.show l2));
             Xlang.L (l2, [])
         | _ -> xlang
       in
+      Some (rules, target, xlang)
 
-      (* expected *)
-      (* not tororuleid! not ok:! not todook:
-         see https://semgrep.dev/docs/writing-rules/testing-rules/
-         for the meaning of those labels.
-      *)
-      let regexp = ".*\\b\\(ruleid\\|todook\\):.*" in
-      let expected_error_lines =
-        E.expected_error_lines_of_files ~regexp [ target ]
-      in
+let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
+    ?(get_xlang = single_xlang_from_rules) ?(prepend_lang = false)
+    (rule_file : Fpath.t) : unit Alcotest_ext.t =
+  let test () =
+    Logs.info (fun m -> m "processing rule file %s" !!rule_file);
+    match read_rules_file ~get_xlang rule_file with
+    | None -> ()
+    | Some (rules, target, xlang) -> (
+        (* expected *)
+        (* not tororuleid! not ok:! not todook:
+           see https://semgrep.dev/docs/writing-rules/testing-rules/
+           for the meaning of those labels.
+        *)
+        let regexp = ".*\\b\\(ruleid\\|todook\\):.*" in
+        let expected_error_lines =
+          E.expected_error_lines_of_files ~regexp [ target ]
+        in
 
-      (* actual *)
-      let xtarget = xtarget_of_file xlang target in
-      let xconf = Match_env.default_xconfig in
-      let rules, extract_rules = Extract.partition_rules rules in
+        (* actual *)
+        let xtarget = xtarget_of_file xlang target in
+        let xconf = Match_env.default_xconfig in
+        let rules, extract_rules = Extract.partition_rules rules in
 
-      E.g_errors := [];
-      Core_profiling.mode := MTime;
-      let res =
-        try
-          (* !!!!let's go!!!! *)
-          Match_rules.check
-            ~match_hook:(fun _ _ -> ())
-            ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
+        E.g_errors := [];
+        Core_profiling.mode := MTime;
+        let res =
+          try
+            (* !!!!let's go!!!! *)
+            Match_rules.check
+              ~match_hook:(fun _ _ -> ())
+              ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
+          with
+          | exn ->
+              failwith
+                (spf "exn on %s (exn = %s)" !!rule_file (Common.exn_to_s exn))
+        in
+        check_can_marshall rule_file res;
+        check_parse_errors rule_file res.errors;
+        let eres =
+          run_check_for_extract_rules extract_rules rules rule_file xtarget
+        in
+
+        res :: eres
+        |> List.iter (fun (res : Core_result.matches_single_file) ->
+               check_profiling rule_file target res;
+               res.matches |> List.iter Core_json_output.match_to_push_error);
+        let actual_errors = !E.g_errors in
+        E.g_errors := [];
+        actual_errors
+        |> List.iter (fun e ->
+               Logs.debug (fun m -> m "found error: %s" (E.string_of_error e)));
+        match
+          E.compare_actual_to_expected actual_errors expected_error_lines
         with
-        | exn ->
-            failwith
-              (spf "exn on %s (exn = %s)" !!rule_file (Common.exn_to_s exn))
-      in
-      check_can_marshall rule_file res;
-      check_parse_errors rule_file res.errors;
-      let eres =
-        run_check_for_extract_rules extract_rules rules rule_file xtarget
-      in
-
-      res :: eres
-      |> List.iter (fun (res : Core_result.matches_single_file) ->
-             check_profiling rule_file target res;
-             res.matches |> List.iter Core_json_output.match_to_push_error);
-      let actual_errors = !E.g_errors in
-      E.g_errors := [];
-      actual_errors
-      |> List.iter (fun e ->
-             Logs.debug (fun m -> m "found error: %s" (E.string_of_error e)));
-      match E.compare_actual_to_expected actual_errors expected_error_lines with
-      | Ok () -> ()
-      | Error (num_errors, msg) ->
-          UCommon.pr2 msg;
-          UCommon.pr2 "---";
-          fail_callback num_errors msg
+        | Ok () -> ()
+        | Error (num_errors, msg) ->
+            UCommon.pr2 msg;
+            UCommon.pr2 "---";
+            fail_callback num_errors msg)
   in
 
   (* end of let test () *)
@@ -311,12 +319,21 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
       let name = spf "Missing target file for rule file %s" !!rule_file in
       Alcotest_ext.create ~skipped:true name test
 
+let find_rule_files roots =
+  roots |> UFile.files_of_dirs_or_files_no_vcs_nofilter
+  |> List.filter Parse_rule.is_valid_rule_filename
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
+let collect_tests ?(get_xlang = single_xlang_from_rules) (xs : Fpath.t list) =
+  xs |> find_rule_files
+  |> List_.map_filter (fun rule_file ->
+         let* _rules, target, xlang = read_rules_file ~get_xlang rule_file in
+         Some (rule_file, target, xlang))
+
 let make_tests ?fail_callback ?get_xlang ?prepend_lang (xs : Fpath.t list) :
     unit Alcotest_ext.t list =
-  xs |> UFile.files_of_dirs_or_files_no_vcs_nofilter
-  |> List.filter Parse_rule.is_valid_rule_filename
+  xs |> find_rule_files
   |> List_.map (make_test_rule_file ?fail_callback ?get_xlang ?prepend_lang)

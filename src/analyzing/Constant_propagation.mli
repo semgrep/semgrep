@@ -13,7 +13,7 @@ val add_constant_env :
   AST_generic.ident -> AST_generic.sid * AST_generic.svalue -> env -> unit
 
 (* used by pro engine *)
-val propagate_basic_visitor_hook : propagate_basic_visitor_funcs ref
+val hook_propagate_basic_visitor : propagate_basic_visitor_funcs option ref
 
 (* Works by side effect on the generic AST by modifying its refs.
  * We pass the lang because some constant propagation algorithm may be
