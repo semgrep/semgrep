@@ -233,17 +233,26 @@ let to_alcotest_generic
          (suite_name, (test.name, test.speed_level, func)))
   |> group_by_key
 
-let to_alcotest tests =
-  let wrap_test_function test func =
-    func |> protect_globals test |> Store.with_result_capture test
+let to_alcotest_internal ~with_storage tests =
+  let wrap_test_function =
+    if with_storage then fun test func ->
+      func |> protect_globals test |> Store.with_result_capture test
+    else fun test func -> func |> protect_globals test
   in
   to_alcotest_generic ~wrap_test_function tests
 
-let to_alcotest_lwt tests =
-  let wrap_test_function test func =
-    func |> protect_globals_lwt test |> Store.with_result_capture_lwt test
+let to_alcotest_lwt_internal ~with_storage tests =
+  let wrap_test_function =
+    if with_storage then fun test func ->
+      func |> protect_globals_lwt test |> Store.with_result_capture_lwt test
+    else fun test func -> func |> protect_globals_lwt test
   in
   to_alcotest_generic ~wrap_test_function tests
+
+(* Exported versions that exposes a plain Alcotest test suite that doesn't
+   write test statuses. *)
+let to_alcotest = to_alcotest_internal ~with_storage:false
+let to_alcotest_lwt = to_alcotest_lwt_internal ~with_storage:false
 
 let contains_regexp pat =
   let rex = Re.Pcre.regexp pat in
@@ -468,7 +477,7 @@ let list_status ?filter_by_substring ?(output_style = Full) tests =
 let alcotest_argv = [| ""; "-e" |]
 
 let run_tests_with_alcotest tests =
-  let alcotest_tests = to_alcotest tests in
+  let alcotest_tests = to_alcotest_internal ~with_storage:true tests in
   (try
      Alcotest.run ~and_exit:false ~argv:alcotest_argv "test" alcotest_tests
    with
@@ -476,7 +485,7 @@ let run_tests_with_alcotest tests =
   Format.print_flush ()
 
 let run_tests_with_alcotest_lwt tests =
-  let alcotest_tests = to_alcotest_lwt tests in
+  let alcotest_tests = to_alcotest_lwt_internal ~with_storage:true tests in
   Lwt.finalize
     (fun () ->
       Lwt.catch

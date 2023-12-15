@@ -168,7 +168,6 @@ let sort (tests : _ t list) : _ t list =
          let c = compare a.category b.category in
          if c <> 0 then c else String.compare a.name b.name)
 
-let init_settings = Store.init_settings
 let to_alcotest = Run.to_alcotest
 let to_alcotest_lwt = Run.to_alcotest_lwt
 let registered_tests : test list ref = ref []

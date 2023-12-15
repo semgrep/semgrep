@@ -236,17 +236,6 @@ val pack_tests : string -> (string * (unit -> 'a)) list -> 'a t list
 val sort : 'a t list -> 'a t list
 
 (*
-   This initialization is needed for running the tests obtained with
-   'to_alcotest' or 'to_alcotest_lwt' used when bypassing 'interpret_argv'.
-*)
-val init_settings :
-  ?expectation_workspace_root:string ->
-  ?status_workspace_root:string ->
-  project_name:string ->
-  unit ->
-  unit
-
-(*
    Convert a test suite to be run with the Alcotest.run which provides
    a command-line interface with the 'test' and 'list' subcommands only.
    Requires a prior call to 'init_settings'.
