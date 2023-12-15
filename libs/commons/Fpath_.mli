@@ -56,3 +56,8 @@ module Operators : sig
 end
 
 val readable : root:Fpath.t -> Fpath.t -> Fpath.t
+
+(* Returns a string where if the last element is a directory there
+   will not be a trailing slash to signify this. *)
+val to_string_no_trailing_slash : Fpath.t -> string
+  
