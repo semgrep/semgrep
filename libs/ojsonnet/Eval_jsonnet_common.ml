@@ -43,6 +43,20 @@ let sv v =
   let s = V.show v in
   if String.length s > 100 then Str.first_chars s 100 ^ "..." else s
 
+let debug = false
+
+(* note that this can be really slow when you use Std_jsonnet.ml *)
+let show_env (env : V.env) : string =
+  if debug then V.show_env env else "<turn debug on>"
+
+let show_lazy_value (lv : V.lazy_value) : string =
+  if debug then V.show_lazy_value lv else "<turn debug on>"
+
+let string_of_local_id = function
+  | V.LSelf -> "self"
+  | V.LSuper -> "super"
+  | V.LId s -> s
+
 let int_to_cmp = function
   | -1 -> Inf
   | 0 -> Eq
@@ -55,6 +69,10 @@ let log_call (env : V.env) str tk =
       m "calling %s> %s at %s"
         (Common2.repeat "-" env.depth |> String.concat "")
         str (Tok.stringpos_of_tok tk))
+
+let eval_bracket ofa env (v1, v2, v3) =
+  let v2 = ofa env v2 in
+  (v1, v2, v3)
 
 (*****************************************************************************)
 (* Builtins *)

@@ -12,7 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
+open Common
 module G = AST_generic
 module A = AST_jsonnet
 module E = Eval_jsonnet_envir
@@ -35,6 +35,9 @@ let fb = Tok.unsafe_fake_bracket
 (* Entry point *)
 (*****************************************************************************)
 
+(* Mostly a copy of Eval_jsonnet_envir.manifest_value, but
+ * converting to AST_generic instead of JSON
+ *)
 let rec value_to_expr (v : V.t) : G.expr =
   match v with
   | V.Primitive x ->
@@ -52,9 +55,12 @@ let rec value_to_expr (v : V.t) : G.expr =
         arr |> Array.to_list
         |> List_.map (fun (entry : V.lazy_value) ->
                value_to_expr
-                 (match entry.value with
+                 (match entry with
+                 | Closure (env, e) -> E.eval_program_with_env env e
+                 (* impossible too? *)
                  | Val v -> v
-                 | Unevaluated e -> E.eval_program_with_env entry.env e))
+                 | Lv lv -> Lazy.force lv
+                 | Unevaluated _ -> raise Impossible))
       in
       G.Container (G.Array, (l, xs, r)) |> G.e
   | Object (l, (_assertsTODO, fields), r) ->
@@ -66,11 +72,13 @@ let rec value_to_expr (v : V.t) : G.expr =
                | A.Hidden -> None
                | A.Visible
                | A.ForcedVisible ->
-                   (*let v = Lazy.force fld_value.v *)
                    let v =
-                     match fld_value.value with
+                     match fld_value with
+                     | Closure (env, e) -> E.eval_program_with_env env e
+                     (* impossible? *)
                      | Val v -> v
-                     | Unevaluated e -> E.eval_program_with_env fld_value.env e
+                     | Lv lv -> Lazy.force lv
+                     | Unevaluated _ -> raise Impossible
                    in
                    let e = value_to_expr v in
                    let k = G.L (G.String (fb fld_name)) |> G.e in

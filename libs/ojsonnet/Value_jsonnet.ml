@@ -1,7 +1,7 @@
 (* Yoann Padioleau
  * Sophia Roshal
  *
- * Copyright (C) 2022 Semgrep Inc.
+ * Copyright (C) 2022-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -48,7 +48,7 @@ and object_ = asserts list * value_field list
 
 (* opti? make it a hashtbl of string -> field for faster lookup? *)
 and value_field = {
-  (* like Str, strictly evaluated! *)
+  (* like Str above, the field name is strictly evaluated! *)
   fld_name : string Core.wrap;
   fld_hidden : Core.hidden Core.wrap;
   fld_value : lazy_value;
@@ -71,8 +71,15 @@ and asserts = Core.obj_assert * env
  * there could be nested objects/arrays which also have lazy semantics
  * themselves, and thus again need to be able to modify a specifc environment
  *)
-and lazy_value = { value : val_or_unevaluated_; env : env }
-and val_or_unevaluated_ = Val of t | Unevaluated of Core.expr
+and lazy_value =
+  (* for strict *)
+  | Val of t
+  (* for strict actually but just to handle Self, or could be for envir too *)
+  | Lv of t Lazy.t
+  (* for subst *)
+  | Unevaluated of Core.expr
+  (* for envir *)
+  | Closure of env * Core.expr
 
 (*****************************************************************************)
 (* Env *)
@@ -97,7 +104,8 @@ and env = {
   depth : int;
 }
 
-and local_id = LSelf | LSuper | LId of string [@@deriving show]
+and local_id = LSelf | LSuper | LId of string
+[@@deriving show { with_path = false }]
 
 (*****************************************************************************)
 (* Helpers *)
