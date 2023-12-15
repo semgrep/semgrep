@@ -657,6 +657,21 @@ Each should be one of INFO, WARNING, or ERROR.
           [ ("INFO", `Info); ("WARNING", `Warning); ("ERROR", `Error) ])
        [] info)
 
+let o_confidence : string list Term.t =
+  let info =
+    Arg.info [ "confidence" ]
+      ~doc:
+        {|Report findings only from rules matching the supplied confidence
+level. By default all applicable rules are run. Can add multiple times.
+Each should be one of LOW, MEDIUM, or HIGH.
+|}
+  in
+  Arg.value
+    (Arg.opt_all
+       (Cmdliner.Arg.enum
+          [ ("LOW", "LOW"); ("MEDIUM", "MEDIUM"); ("HIGH", "HIGH") ])
+       [] info)
+
 let o_exclude_rule_ids : string list Term.t =
   let info =
     Arg.info [ "exclude-rule" ]
@@ -827,7 +842,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
   let combine allow_untrusted_validators ast_caching autofix baseline_commit
-      common config dataflow_traces diff_depth dryrun dump_ast
+      common confidence config dataflow_traces diff_depth dryrun dump_ast
       dump_command_for_core dump_engine_path emacs error exclude_
       exclude_rule_ids force_color gitlab_sast gitlab_secrets include_ json
       junit_xml lang ls matching_explanations max_chars_per_line
@@ -1084,7 +1099,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       Error.abort
         "Cannot create auto config when metrics are off. Please allow metrics \
          or run with a specific config.";
-
+    if confidence <> [] then ();
+    (* TODO: implement --confidence flag. *)
     (* warnings.
      * ugly: TODO: remove the Default guard once we get the warning message
      * in osemgrep equal to the one in pysemgrep or when we remove
@@ -1124,19 +1140,19 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     (* !the o_xxx must be in alphabetic orders to match the parameters of
      * combine above! *)
     const combine $ o_allow_untrusted_validators $ o_ast_caching $ o_autofix
-    $ o_baseline_commit $ CLI_common.o_common $ o_config $ o_dataflow_traces
-    $ o_diff_depth $ o_dryrun $ o_dump_ast $ o_dump_command_for_core
-    $ o_dump_engine_path $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids
-    $ o_force_color $ o_gitlab_sast $ o_gitlab_secrets $ o_include $ o_json
-    $ o_junit_xml $ o_lang $ o_ls $ o_matching_explanations
-    $ o_max_chars_per_line $ o_max_lines_per_finding $ o_max_memory_mb
-    $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_no_secrets_validation
-    $ o_nosem $ o_optimizations $ o_oss $ o_output $ o_pattern $ o_pro
-    $ o_project_root $ o_pro_intrafile $ o_pro_languages $ o_registry_caching
-    $ o_replacement $ o_respect_gitignore $ o_rewrite_rule_ids $ o_sarif
-    $ o_scan_unknown_extensions $ o_secrets $ o_severity
-    $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
-    $ Test_CLI.o_test_ignore_todo $ o_text $ o_time $ o_timeout
+    $ o_baseline_commit $ CLI_common.o_common $ o_confidence $ o_config
+    $ o_dataflow_traces $ o_diff_depth $ o_dryrun $ o_dump_ast
+    $ o_dump_command_for_core $ o_dump_engine_path $ o_emacs $ o_error
+    $ o_exclude $ o_exclude_rule_ids $ o_force_color $ o_gitlab_sast
+    $ o_gitlab_secrets $ o_include $ o_json $ o_junit_xml $ o_lang $ o_ls
+    $ o_matching_explanations $ o_max_chars_per_line $ o_max_lines_per_finding
+    $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs
+    $ o_no_secrets_validation $ o_nosem $ o_optimizations $ o_oss $ o_output
+    $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile $ o_pro_languages
+    $ o_registry_caching $ o_replacement $ o_respect_gitignore
+    $ o_rewrite_rule_ids $ o_sarif $ o_scan_unknown_extensions $ o_secrets
+    $ o_severity $ o_show_supported_languages $ o_strict $ o_target_roots
+    $ o_test $ Test_CLI.o_test_ignore_todo $ o_text $ o_time $ o_timeout
     $ o_timeout_interfile $ o_timeout_threshold $ o_validate $ o_version
     $ o_version_check $ o_vim)
 

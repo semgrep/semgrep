@@ -18,7 +18,6 @@ from pathlib import Path
 from sys import getrecursionlimit
 from sys import setrecursionlimit
 from typing import Any
-from typing import Collection
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -58,9 +57,12 @@ from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.output_extra import OutputExtra
 from semgrep.profile_manager import ProfileManager
+from semgrep.rule import filter_rules_by_security_categories
+from semgrep.rule import filter_rules_by_severity
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.rule_match import RuleMatchSet
+from semgrep.rule_metadata import Confidence
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
@@ -321,6 +323,7 @@ def list_targets_and_exit(target_manager: TargetManager, product: out.Product) -
 # old: this used to be called semgrep.semgrep_main.main
 def run_scan(
     *,
+    confidence: Optional[Sequence[str]] = None,
     diff_depth: int = DEFAULT_DIFF_DEPTH,
     dump_command_for_core: bool = False,
     time_flag: bool = False,
@@ -368,7 +371,7 @@ def run_scan(
     List[Rule],
     ProfileManager,
     OutputExtra,
-    Collection[out.MatchSeverity],
+    Set[out.MatchSeverity],
     Dict[str, List[FoundDependency]],
     List[DependencyParserError],
     out.Contributions,
@@ -427,14 +430,33 @@ def run_scan(
         if engine_type.is_pro:
             metrics.add_diff_depth(diff_depth)
 
-    if not severity:
-        shown_severities = DEFAULT_SHOWN_SEVERITIES
-        filtered_rules = all_rules
-    else:
-        shown_severities = {out.MatchSeverity.from_json(s) for s in severity}
-        filtered_rules = [
-            rule for rule in all_rules if rule.severity in shown_severities
-        ]
+    # MARK: Filter rules by confidence and severity
+
+    # 1. Set filtered_rules to all_rules by default or the rules filtered by severity
+    shown_severities = (
+        {out.MatchSeverity.from_json(s) for s in severity}
+        if severity
+        else DEFAULT_SHOWN_SEVERITIES
+    )
+    filtered_rules: List[Rule] = (
+        all_rules
+        if not severity
+        else filter_rules_by_severity(all_rules, shown_severities)
+    )
+
+    # 2. Apply confidence filter
+    confidence_criteria: Set[Confidence] = (
+        {Confidence._from(c) for c in confidence} if confidence else set()
+    )
+    filtered_rules = (
+        filtered_rules
+        if not confidence
+        else filter_rules_by_security_categories(
+            filtered_rules, confidence=confidence_criteria
+        )
+    )
+
+    # 3. Apply exclude rules
     filtered_rules = filter_exclude_rule(filtered_rules, exclude_rule)
 
     output_handler.handle_semgrep_errors(config_errors)

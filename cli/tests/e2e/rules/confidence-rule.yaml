@@ -1,0 +1,49 @@
+rules:
+  - id: confidence-rule-high
+    patterns:
+      - pattern-not-inside: |
+          def __eq__(...):
+              ...
+      - pattern-not-inside: assert(...)
+      - pattern-not-inside: assertTrue(...)
+      - pattern-not-inside: assertFalse(...)
+      - pattern-either:
+          - pattern: $X == $X
+          - pattern: $X != $X
+          - patterns:
+              - pattern-inside: |
+                  def __init__(...):
+                      ...
+              - pattern: self.$X == self.$X
+      - pattern-not: 1 == 1
+    message: "high confidence for eqeq-is-bad `$X == $X` or `$X != $X`"
+    languages: [python]
+    severity: ERROR
+    metadata:
+      confidence: HIGH
+      shortlink: https://sg.run/xyz1
+      source: https://semgrep.dev/r/eqeq-bad
+  - id: confidence-rule-medium
+    patterns:
+      - pattern-not-inside: |
+          def __eq__(...):
+              ...
+      - pattern-not-inside: assert(...)
+      - pattern-not-inside: assertTrue(...)
+      - pattern-not-inside: assertFalse(...)
+      - pattern-either:
+          - pattern: $X == $X
+          - pattern: $X != $X
+          - patterns:
+              - pattern-inside: |
+                  def __init__(...):
+                      ...
+              - pattern: self.$X == self.$X
+      - pattern-not: 1 == 1
+    message: "medium confidence for eqeq-is-bad `$X == $X` or `$X != $X`"
+    languages: [python]
+    severity: ERROR
+    metadata:
+      confidence: MEDIUM
+      shortlink: https://sg.run/xyz1
+      source: https://semgrep.dev/r/eqeq-bad

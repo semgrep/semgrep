@@ -18,6 +18,9 @@ from semgrep.rule_lang import RuleValidation
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
+from semgrep.rule_metadata import Confidence
+from semgrep.rule_metadata import Impact
+from semgrep.rule_metadata import Likelihood
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.semgrep_types import LANGUAGE
@@ -144,6 +147,31 @@ class Rule:
     @property
     def metadata(self) -> Dict[str, Any]:
         return self._raw.get("metadata") or {}
+
+    @property
+    def confidence(self) -> Confidence:
+        raw_value = self.metadata.get("confidence") or ""
+        return (
+            Confidence.UNKNOWN
+            if not raw_value
+            else Confidence._from(raw_value, Confidence.UNKNOWN)
+        )
+
+    @property
+    def impact(self) -> Impact:
+        raw_value = self.metadata.get("impact") or ""
+        return (
+            Impact.UNKNOWN if not raw_value else Impact._from(raw_value, Impact.UNKNOWN)
+        )
+
+    @property
+    def likelihood(self) -> Likelihood:
+        raw_value = self.metadata.get("likelihood") or ""
+        return (
+            Likelihood.UNKNOWN
+            if not raw_value
+            else Likelihood._from(raw_value, Likelihood.UNKNOWN)
+        )
 
     @property
     def is_blocking(self) -> bool:
@@ -326,3 +354,33 @@ def rule_without_metadata(rule: Rule) -> Rule:
     new_rule = Rule(rule._raw.copy())
     new_rule._raw.pop("metadata", None)
     return new_rule
+
+
+def filter_rules_by_severity(
+    rules: Sequence[Rule], severity: Set[out.MatchSeverity]
+) -> List[Rule]:
+    """
+    Filter rules by severity
+    """
+    return [rule for rule in rules if rule.severity in severity]
+
+
+def filter_rules_by_security_categories(
+    rules: Sequence[Rule],
+    *,
+    confidence: Optional[Set[Confidence]] = None,
+    impact: Optional[Set[Impact]] = None,
+    likelihood: Optional[Set[Likelihood]] = None,
+) -> List[Rule]:
+    """
+    Filter rules by security categories (i.e. confidence, impact, and likelihood).
+
+    If a given category is not specified, then the filter on that category is not applied.
+    """
+    return [
+        rule
+        for rule in rules
+        if (not confidence or rule.confidence in confidence)
+        and (not impact or rule.impact in impact)
+        and (not likelihood or rule.likelihood in likelihood)
+    ]

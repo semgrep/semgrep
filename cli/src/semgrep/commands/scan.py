@@ -354,6 +354,11 @@ def scan_options(func: Callable) -> Callable:
     default=False,
 )
 @click.option(
+    "--confidence",
+    multiple=True,
+    type=click.Choice(["LOW", "MEDIUM", "HIGH"]),
+)
+@click.option(
     "--severity",
     multiple=True,
     type=click.Choice(["INFO", "WARNING", "ERROR"]),
@@ -403,6 +408,7 @@ def scan(
     *,
     autofix: bool,
     baseline_commit: Optional[str],
+    confidence: Optional[Tuple[str, ...]],
     config: Optional[Tuple[str, ...]],
     debug: bool,
     diff_depth: int,
@@ -634,6 +640,7 @@ def scan(
                     executed_rule_count,
                     missed_rule_count,
                 ) = semgrep.run_scan.run_scan(
+                    confidence=confidence,
                     diff_depth=diff_depth,
                     dump_command_for_core=dump_command_for_core,
                     time_flag=time_flag,

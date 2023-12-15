@@ -5,7 +5,6 @@ from collections import defaultdict
 from functools import reduce
 from pathlib import Path
 from typing import Any
-from typing import Collection
 from typing import Dict
 from typing import FrozenSet
 from typing import List
@@ -67,13 +66,13 @@ FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
     OutputFormat.VIM: VimFormatter,
 }
 
-DEFAULT_SHOWN_SEVERITIES: Collection[out.MatchSeverity] = frozenset(
+DEFAULT_SHOWN_SEVERITIES: Set[out.MatchSeverity] = frozenset(
     {
         out.MatchSeverity(out.Info()),
         out.MatchSeverity(out.Warning()),
         out.MatchSeverity(out.Error()),
     }
-)
+)  # type: ignore
 
 
 def get_path_str(target: Path) -> str:
@@ -158,7 +157,7 @@ class OutputHandler:
         self.is_ci_invocation = False
         self.filtered_rules: List[Rule] = []
         self.extra: Optional[OutputExtra] = None
-        self.severities: Collection[out.MatchSeverity] = DEFAULT_SHOWN_SEVERITIES
+        self.severities: Set[out.MatchSeverity] = DEFAULT_SHOWN_SEVERITIES
         self.explanations: Optional[List[out.MatchingExplanation]] = None
         self.engine_type: EngineType = EngineType.OSS
 
@@ -283,7 +282,7 @@ class OutputHandler:
         profiler: Optional[ProfileManager] = None,
         extra: Optional[OutputExtra] = None,
         explanations: Optional[List[out.MatchingExplanation]] = None,
-        severities: Optional[Collection[out.MatchSeverity]] = None,
+        severities: Optional[Set[out.MatchSeverity]] = None,
         print_summary: bool = False,
         is_ci_invocation: bool = False,
         executed_rule_count: int = 0,
