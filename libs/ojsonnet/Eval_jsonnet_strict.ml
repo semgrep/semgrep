@@ -1,7 +1,6 @@
 (* Yoann Padioleau
- * Sophia Roshal
  *
- * Copyright (C) 2022 Semgrep Inc.
+ * Copyright (C) 2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -24,14 +23,17 @@ open Eval_jsonnet_common
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Core_jsonnet to Value_jsonnet Jsonnet evaluator.
- *
- * See https://jsonnet.org/ref/spec.html#semantics
+(* Core_jsonnet to Value_jsonnet Jsonnet evaluator using
+ * strict semantics. This does not respect the spec at
+ * https://jsonnet.org/ref/spec.html#semantics
  *
  * This is using an environment-style evaluation and closures instead
- * of lambda substitutions like in the spec.
+ * of lambda substitutions like in the spec, as well as a strict
+ * evaluation semantic.
  * See Eval_jsonnet_subst for the substitution-based evaluator
- * which is more correct (but far slower).
+ * which is more correct (but far slower), or Eval_jsonnet_envir
+ * which is also an environment-style evaluation but trying
+ * to respect the lazy semantic of jsonnet.
  *)
 
 (*****************************************************************************)
@@ -47,38 +49,31 @@ let string_of_local_id = function
   | V.LSuper -> "super"
   | V.LId s -> s
 
-let debug = false
+let to_lazy_value (v : V.t) : V.lazy_value =
+  { V.value = Val v; env = V.empty_env }
 
-(* note that this can be really slow when you use Std_jsonnet.ml *)
-let show_env (env : V.env) : string =
-  if debug then V.show_env env else "<turn debug on>"
+let to_value (v : V.lazy_value) : V.t =
+  match v.value with
+  | Val v -> v
+  | Unevaluated _e -> raise Impossible
 
-let show_lazy_value (lv : V.lazy_value) : string =
-  if debug then V.show_lazy_value lv else "<turn debug on>"
-
-(* Start of big mutually recursive functions *)
-let rec lookup (env : V.env) tk local_id =
+let lookup (env : V.env) tk local_id =
   let id = string_of_local_id local_id in
   let entry =
     try Map_.find local_id env.locals with
     | Not_found ->
         Logs.debug (fun m ->
-            m "lookup fail for %s in env = %s" id (show_env env));
+            m "lookup fail for %s in env = %s" id (V.show_env env));
         error tk (spf "could not find '%s' in the environment" id)
   in
-  Logs.debug (fun m -> m "found '%s', value = %s" id (show_lazy_value entry));
-  evaluate_lazy_value_ entry
-
-and evaluate_lazy_value_ (v : V.lazy_value) =
-  match v.value with
-  | Val v -> v
-  | Unevaluated e -> eval_expr v.env e
+  Logs.debug (fun m -> m "found '%s', value = %s" id (V.show_lazy_value entry));
+  to_value entry
 
 (*****************************************************************************)
 (* eval_expr *)
 (*****************************************************************************)
 
-and eval_expr (env : V.env) (e : expr) : V.t =
+let rec eval_expr (env : V.env) (e : expr) : V.t =
   match e with
   | L lit ->
       let prim =
@@ -92,14 +87,14 @@ and eval_expr (env : V.env) (e : expr) : V.t =
             V.Double (f, tk)
       in
       V.Primitive prim
-  (* lazy evaluation of Array elements and Lambdas *)
   | Array (l, xs, r) ->
       let elts =
         xs
-        |> List_.map (fun x -> { V.value = Unevaluated x; env })
+        |> List_.map (fun x -> eval_expr env x |> to_lazy_value)
         |> Array.of_list
       in
       Array (l, elts, r)
+  (* TODO: need closure here, so put env with it *)
   | Lambda f -> Lambda f
   | O v -> eval_obj_inside env v
   | Id (s, tk) -> lookup env tk (V.LId s)
@@ -119,7 +114,7 @@ and eval_expr (env : V.env) (e : expr) : V.t =
         binds
         |> List.fold_left
              (fun acc (B (id, _teq, e_i)) ->
-               let binding = { V.value = Unevaluated e_i; env } in
+               let binding = eval_expr env e_i |> to_lazy_value in
                Map_.add (V.LId (fst id)) binding acc)
              env.locals
       in
@@ -137,7 +132,7 @@ and eval_expr (env : V.env) (e : expr) : V.t =
             | _ when i >= 0 && i < Array.length arr ->
                 let ei = arr.(i) in
                 (* TODO: Is this the right environment to evaluate in? *)
-                evaluate_lazy_value_ ei
+                to_value ei
             | _else_ ->
                 error tkf (spf "Out of bound for array index: %s" (sv index))
           else error tkf (spf "Not an integer: %s" (sv index))
@@ -152,7 +147,7 @@ and eval_expr (env : V.env) (e : expr) : V.t =
               (spf "string bounds error: %d not within [0, %d)" i
                  (String.length s))
       (* Field access! A tricky operation. *)
-      | ( (V.Object (_l, (_assertsTODO, fields), _r) as obj),
+      | ( (V.Object (_l, (_assertsTODO, fields), _r) as _obj),
           Primitive (Str (fld, tk)) ) -> (
           match
             fields
@@ -163,36 +158,7 @@ and eval_expr (env : V.env) (e : expr) : V.t =
           | Some fld -> (
               match fld.fld_value.value with
               | V.Val v -> v
-              | V.Unevaluated e ->
-                  (* Late-bound self.
-                   * We need to do the self assignment on field access rather
-                   * than on object creation, because when objects are merged,
-                   * we need self to reference the new merged object rather
-                   * than the original. Here's such an example:
-                   *
-                   *    ({ name : self.y } + {y : 42})["name"]
-                   *
-                   * If we were to do the assignment of self before doing the
-                   * field access, we would have the following (incorrect)
-                   * evaluation where o = { name : self.y }
-                   *       ({name : o.y} + {y : 42})["name"]
-                   *       o.y
-                   *       {name : self.y}.y
-                   *       Error no such field.
-                   * However, if we only assign self on access, we get the
-                   * following (correct) evaluation
-                   *      ({ name : self.y } + {y : 42})["name"]
-                   *      { name : self.y, y : 42 }["name"]
-                   *      {name: self.y, y : 42}[y]
-                   *      42
-                   *)
-                  let locals =
-                    if !Conf_ojsonnet.implement_self then
-                      env.locals
-                      |> Map_.add V.LSelf { V.value = V.Val obj; env }
-                    else env.locals
-                  in
-                  eval_expr { env with locals } e))
+              | V.Unevaluated _e -> raise Impossible))
       | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv index)))
   | Call (e0, args) -> eval_call env e0 args
   | UnaryOp ((op, tk), e) -> (
@@ -282,7 +248,7 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
             in
             Array
               ( fk,
-                Array.init n (fun i -> { V.value = Unevaluated (e i); env }),
+                Array.init n (fun i -> eval_expr env (e i) |> to_lazy_value),
                 fk )
           else error tk (spf "Got non-integer %f in std.makeArray" n)
       | v, _e' ->
@@ -559,9 +525,9 @@ and eval_std_cmp env tk (el : expr) (er : expr) : cmp =
     | V.Array (_, [||], _), V.Array (_, _, _) -> Inf
     | V.Array (_, _, _), V.Array (_, [||], _) -> Sup
     | V.Array (al, ax, ar), V.Array (bl, bx, br) -> (
-        let a0 = evaluate_lazy_value_ ax.(0) in
+        let a0 = to_value ax.(0) in
 
-        let b0 = evaluate_lazy_value_ bx.(0) in
+        let b0 = to_value bx.(0) in
 
         match eval_std_cmp_value_ a0 b0 with
         | (Inf | Sup) as r -> r
@@ -608,34 +574,13 @@ and eval_obj_inside env (l, x, r) : V.t =
                      {
                        V.fld_name;
                        fld_hidden;
-                       (* fields are evaluated lazily! Sometimes with an
-                        * env adjusted (see eval_plus_object()).
-                        * We do not bind Self here! This is done on field
-                        * access instead (late bound).
-                        *)
-                       fld_value = { value = Unevaluated fld_value; env };
+                       fld_value = eval_expr env fld_value |> to_lazy_value;
                      }
                | v -> error tk (spf "field name was not a string: %s" (sv v)))
       in
       let asserts_with_env = List.map (fun x -> (x, env)) assertsTODO in
       V.Object (l, (asserts_with_env, fields), r)
   | ObjectComp _x -> error l "TODO: ObjectComp"
-(*
-      let v = eval_obj_comprehension env x in
-
-and eval_obj_comprehension env v =
-  (fun env (_fldname, _tk, v3, v4) ->
-    let v3 = eval_expr env v3 in
-    let v4 = eval_for_comp env v4 in
-    ...)
-    env v
-
-and eval_for_comp env v =
-  (fun env (_tk1, _id, _tk2, v4) ->
-    let v4 = eval_expr env v4 in
-    ...)
-    env v
-*)
 
 (*****************************************************************************)
 (* Entry points *)
@@ -655,10 +600,6 @@ and eval_program (e : Core_jsonnet.program) : V.t =
 (*****************************************************************************)
 (* Manfestation *)
 (*****************************************************************************)
-(* After we switched to explicitely representing the environment in
- * Value_jsonnet.ml, this function became mutually recursive with
- * eval_expr() and so need to be defined in the same file.
- *)
 and manifest_value (v : V.t) : JSON.t =
   match v with
   | Primitive x -> (
@@ -672,8 +613,8 @@ and manifest_value (v : V.t) : JSON.t =
       J.Array
         (arr |> Array.to_list
         |> List_.map (fun (entry : V.lazy_value) ->
-               manifest_value (evaluate_lazy_value_ entry)))
-  | V.Object (_l, (_assertsTODO, fields), _r) as obj ->
+               manifest_value (to_value entry)))
+  | V.Object (_l, (_assertsTODO, fields), _r) as _obj ->
       (* TODO: evaluate asserts *)
       let xs =
         fields
@@ -682,21 +623,7 @@ and manifest_value (v : V.t) : JSON.t =
                | A.Hidden -> None
                | A.Visible
                | A.ForcedVisible ->
-                   (* similar to what we do in eval_expr on field access *)
-                   let locals =
-                     if !Conf_ojsonnet.implement_self then
-                       fld_value.env.locals
-                       |> Map_.add V.LSelf
-                            { V.value = Val obj; env = fld_value.env }
-                     else fld_value.env.locals
-                   in
-                   let v =
-                     match fld_value.value with
-                     | Val v -> v
-                     | Unevaluated e ->
-                         eval_expr { fld_value.env with locals } e
-                   in
-                   let j = manifest_value v in
+                   let j = manifest_value (to_value fld_value) in
                    Some (fst fld_name, j))
       in
       J.Object xs
