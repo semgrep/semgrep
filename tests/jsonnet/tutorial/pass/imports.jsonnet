@@ -1,4 +1,4 @@
-local martinis = import 'martinis.libsonnet';
+local martinis = import '../libs/martinis.libsonnet';
 
 {
   'Vodka Martini': martinis['Vodka Martini'],
