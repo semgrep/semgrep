@@ -36,16 +36,32 @@
 (* Entry point *)
 (*****************************************************************************)
 
+type pro_hook_ref = Pro_hook_ref : 'a option ref -> pro_hook_ref
+
+let pro_hooks_refs =
+  [
+    Pro_hook_ref Generic_vs_generic.hook_find_possible_parents;
+    Pro_hook_ref Constant_propagation.hook_propagate_basic_visitor;
+    Pro_hook_ref Dataflow_svalue.hook_constness_of_function;
+    Pro_hook_ref Dataflow_svalue.hook_transfer_of_assume;
+    Pro_hook_ref Match_tainting_mode.hook_setup_hook_function_taint_signature;
+    Pro_hook_ref Dataflow_tainting.hook_function_taint_signature;
+    Pro_hook_ref Dataflow_tainting.hook_find_attribute_in_class;
+    (* TODO: more Pro hooks ? *)
+  ]
+
 let reset_pro_hooks () =
-  Generic_vs_generic.hook_find_possible_parents := None;
-  Constant_propagation.hook_propagate_basic_visitor := None;
-  Dataflow_svalue.hook_constness_of_function := None;
-  Dataflow_svalue.hook_transfer_of_assume := None;
-  Match_tainting_mode.hook_setup_hook_function_taint_signature := None;
-  Dataflow_tainting.hook_function_taint_signature := None;
-  Dataflow_tainting.hook_find_attribute_in_class := None;
-  (* TODO: more Pro hooks ? *)
-  ()
+  pro_hooks_refs |> List.iter (fun (Pro_hook_ref pro_hook) -> pro_hook := None)
+
+let save_pro_hooks_and_reset f0 =
+  let f =
+    pro_hooks_refs
+    |> List.fold_left
+         (fun f (Pro_hook_ref pro_hook) () ->
+           Common.save_excursion pro_hook None f)
+         f0
+  in
+  f ()
 
 (* Useful for defensive programming, especially in tests which may leave
  * bad state behind.
