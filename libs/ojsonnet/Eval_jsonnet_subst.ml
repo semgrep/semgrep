@@ -105,9 +105,7 @@ let rec parameter_list_contains parameters id =
       if id = name then true else parameter_list_contains t id
   | [] -> false
 
-let eval_bracket ofa (v1, v2, v3) =
-  let v2 = ofa v2 in
-  (v1, v2, v3)
+let to_lazy_value e : V.lazy_value = Unevaluated e
 
 (*****************************************************************************)
 (* Subst *)
@@ -318,11 +316,19 @@ let rec substitute_kw kw sub expr =
 (* eval_expr *)
 (*****************************************************************************)
 
+let rec to_value env (v : V.lazy_value) : V.t =
+  match v with
+  | Val v -> v
+  | Unevaluated e -> eval_expr env e
+  | Lv _
+  | Closure _ ->
+      raise Impossible
+
 (* Note that we pass an environment here, but we just use its depth field
  * for debugging purpose. We do not use its locals field; we use substitution
  * to handle locals, not the environment.
  *)
-let rec eval_expr env expr =
+and eval_expr env expr =
   match expr with
   | L v ->
       let prim =
@@ -338,7 +344,7 @@ let rec eval_expr env expr =
       V.Primitive prim
   (* lazy evaluation of Array elements and Lambdas *)
   | Array (l, xs, r) ->
-      let elts = xs |> List_.map (fun x -> V.Unevaluated x) |> Array.of_list in
+      let elts = xs |> List_.map (fun x -> to_lazy_value x) |> Array.of_list in
       Array (l, elts, r)
   | Lambda v -> Lambda v
   | O v -> eval_obj_inside env v
@@ -360,7 +366,7 @@ let rec eval_expr env expr =
       eval_expr env new_e
   | ArrayAccess (v1, v2) -> (
       let e = eval_expr env v1 in
-      let l, index, _r = (eval_bracket (eval_expr env)) v2 in
+      let l, index, _r = eval_bracket eval_expr env v2 in
       match (e, index) with
       | Array (_l, arr, _r), Primitive (Double (f, tkf)) ->
           if Float.is_integer f then
@@ -370,7 +376,7 @@ let rec eval_expr env expr =
                 error tkf (spf "negative value for array index: %s" (sv index))
             | _ when i >= 0 && i < Array.length arr ->
                 let ei = arr.(i) in
-                evaluate_lazy_value_ env ei
+                to_value env ei
             | _else_ ->
                 error tkf (spf "Out of bound for array index: %s" (sv index))
           else error tkf (spf "Not an integer: %s" (sv index))
@@ -635,9 +641,9 @@ and eval_std_cmp env tk (el : expr) (er : expr) : cmp =
     | V.Array (_, [||], _), V.Array (_, _, _) -> Inf
     | V.Array (_, _, _), V.Array (_, [||], _) -> Sup
     | V.Array (al, ax, ar), V.Array (bl, bx, br) -> (
-        let a0 = evaluate_lazy_value_ env ax.(0) in
+        let a0 = to_value env ax.(0) in
 
-        let b0 = evaluate_lazy_value_ env bx.(0) in
+        let b0 = to_value env bx.(0) in
 
         match eval_std_cmp_value_ a0 b0 with
         | (Inf | Sup) as r -> r
@@ -715,7 +721,7 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
                 ( Lambda fdef,
                   (fk, [ Arg (L (Number (string_of_int i, fk))) ], fk) )
             in
-            Array (fk, Array.init n (fun i -> V.Unevaluated (e i)), fk)
+            Array (fk, Array.init n (fun i -> to_lazy_value (e i)), fk)
           else error tk (spf "Got non-integer %f in std.makeArray" n)
       | v, _e' ->
           error tk (spf "Improper arguments to std.makeArray: %s" (sv v)))
@@ -821,7 +827,7 @@ and eval_obj_inside env (l, x, r) : V.t =
                         * We do not bind Self here! This is done on field
                         * access instead (late bound).
                         *)
-                       fld_value = V.Unevaluated fld_value;
+                       fld_value = to_lazy_value fld_value;
                      }
                | v -> error tk (spf "field name was not a string: %s" (sv v)))
       in
@@ -931,20 +937,12 @@ and eval_plus_object _tk objl objr =
                {
                  V.fld_name;
                  fld_hidden = new_hidden;
-                 fld_value = V.Unevaluated new_fld_value;
+                 fld_value = to_lazy_value new_fld_value;
                })
   in
 
   let all_fields = new_ers @ lflds_no_overlap in
   (l, (asserts, all_fields), r)
-
-and evaluate_lazy_value_ env (v : V.lazy_value) =
-  match v with
-  | Val v -> v
-  | Unevaluated e -> eval_expr env e
-  | Lv _
-  | Closure _ ->
-      raise Impossible
 
 (*****************************************************************************)
 (* Manifest *)
@@ -965,7 +963,7 @@ and manifest_value (v : V.t) : JSON.t =
       J.Array
         (arr |> Array.to_list
         |> List_.map (fun (entry : V.lazy_value) ->
-               manifest_value (evaluate_lazy_value_ env entry)))
+               manifest_value (to_value env entry)))
   | V.Object (_l, (_assertsTODO, fields), _r) ->
       (* TODO: evaluate asserts *)
       let xs =

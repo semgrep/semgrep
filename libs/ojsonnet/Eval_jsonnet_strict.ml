@@ -555,23 +555,12 @@ and eval_obj_inside env (l, x, r) : V.t =
   | ObjectComp _x -> error l "TODO: ObjectComp"
 
 (*****************************************************************************)
-(* Entry points *)
+(* Manfestation *)
 (*****************************************************************************)
 and tostring (v : V.t) : string =
   let j = manifest_value v in
   JSON.string_of_json j
 
-(*Same as eval_expr but with profiling *)
-and eval_program_with_env (env : V.env) (e : Core_jsonnet.program) : V.t =
-  eval_expr env e
-[@@profiling]
-
-and eval_program (e : Core_jsonnet.program) : V.t =
-  eval_program_with_env V.empty_env e
-
-(*****************************************************************************)
-(* Manfestation *)
-(*****************************************************************************)
 and manifest_value (v : V.t) : JSON.t =
   match v with
   | Primitive x -> (
@@ -599,3 +588,15 @@ and manifest_value (v : V.t) : JSON.t =
                    Some (fst fld_name, j))
       in
       J.Object xs
+
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
+
+(*Same as eval_expr but with profiling *)
+let eval_program_with_env (env : V.env) (e : Core_jsonnet.program) : V.t =
+  eval_expr env e
+[@@profiling]
+
+let eval_program (e : Core_jsonnet.program) : V.t =
+  eval_program_with_env V.empty_env e

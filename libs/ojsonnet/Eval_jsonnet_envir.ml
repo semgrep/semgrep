@@ -24,12 +24,12 @@ open Eval_jsonnet_common
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Core_jsonnet to Value_jsonnet Jsonnet evaluator.
+(* Core_jsonnet to Value_jsonnet Jsonnet evaluator using
+ * an environment-style evaluation and closures instead
+ * of lambda substitutions like in the spec.
  *
  * See https://jsonnet.org/ref/spec.html#semantics
  *
- * This is using an environment-style evaluation and closures instead
- * of lambda substitutions like in the spec.
  * See Eval_jsonnet_subst for the substitution-based evaluator
  * which is more correct (but far slower).
  *)
@@ -49,9 +49,9 @@ let rec lookup (env : V.env) tk local_id =
         error tk (spf "could not find '%s' in the environment" id)
   in
   Logs.debug (fun m -> m "found '%s', value = %s" id (show_lazy_value entry));
-  evaluate_lazy_value_ entry
+  to_value entry
 
-and evaluate_lazy_value_ (v : V.lazy_value) =
+and to_value (v : V.lazy_value) : V.t =
   match v with
   | Closure (env, e) -> eval_expr env e
   (* We use Val for self/super to actually store the ref to the V.Object *)
@@ -59,6 +59,8 @@ and evaluate_lazy_value_ (v : V.lazy_value) =
   | Lv _
   | Unevaluated _ ->
       raise Impossible
+
+and to_lazy_value env x : V.lazy_value = V.Closure (env, x)
 
 (*****************************************************************************)
 (* eval_expr *)
@@ -81,7 +83,7 @@ and eval_expr (env : V.env) (e : expr) : V.t =
   (* lazy evaluation of Array elements and Lambdas *)
   | Array (l, xs, r) ->
       let elts =
-        xs |> List_.map (fun x -> V.Closure (env, x)) |> Array.of_list
+        xs |> List_.map (fun x -> to_lazy_value env x) |> Array.of_list
       in
       Array (l, elts, r)
   | Lambda f -> Lambda f
@@ -103,7 +105,7 @@ and eval_expr (env : V.env) (e : expr) : V.t =
         binds
         |> List.fold_left
              (fun acc (B (id, _teq, e_i)) ->
-               let binding = V.Closure (env, e_i) in
+               let binding = to_lazy_value env e_i in
                Map_.add (V.LId (fst id)) binding acc)
              env.locals
       in
@@ -121,7 +123,7 @@ and eval_expr (env : V.env) (e : expr) : V.t =
             | _ when i >= 0 && i < Array.length arr ->
                 let ei = arr.(i) in
                 (* TODO: Is this the right environment to evaluate in? *)
-                evaluate_lazy_value_ ei
+                to_value ei
             | _else_ ->
                 error tkf (spf "Out of bound for array index: %s" (sv index))
           else error tkf (spf "Not an integer: %s" (sv index))
@@ -266,7 +268,7 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
                 ( Lambda fdef,
                   (fk, [ Arg (L (Number (string_of_int i, fk))) ], fk) )
             in
-            Array (fk, Array.init n (fun i -> V.Closure (env, e i)), fk)
+            Array (fk, Array.init n (fun i -> to_lazy_value env (e i)), fk)
           else error tk (spf "Got non-integer %f in std.makeArray" n)
       | v, _e' ->
           error tk (spf "Improper arguments to std.makeArray: %s" (sv v)))
@@ -547,9 +549,9 @@ and eval_std_cmp env tk (el : expr) (er : expr) : cmp =
     | V.Array (_, [||], _), V.Array (_, _, _) -> Inf
     | V.Array (_, _, _), V.Array (_, [||], _) -> Sup
     | V.Array (al, ax, ar), V.Array (bl, bx, br) -> (
-        let a0 = evaluate_lazy_value_ ax.(0) in
+        let a0 = to_value ax.(0) in
 
-        let b0 = evaluate_lazy_value_ bx.(0) in
+        let b0 = to_value bx.(0) in
 
         match eval_std_cmp_value_ a0 b0 with
         | (Inf | Sup) as r -> r
@@ -601,7 +603,7 @@ and eval_obj_inside env (l, x, r) : V.t =
                         * We do not bind Self here! This is done on field
                         * access instead (late bound).
                         *)
-                       fld_value = V.Closure (env, fld_value);
+                       fld_value = to_lazy_value env fld_value;
                      }
                | v -> error tk (spf "field name was not a string: %s" (sv v)))
       in
@@ -626,23 +628,12 @@ and eval_for_comp env v =
 *)
 
 (*****************************************************************************)
-(* Entry points *)
+(* Manfestation *)
 (*****************************************************************************)
 and tostring (v : V.t) : string =
   let j = manifest_value v in
   JSON.string_of_json j
 
-(*Same as eval_expr but with profiling *)
-and eval_program_with_env (env : V.env) (e : Core_jsonnet.program) : V.t =
-  eval_expr env e
-[@@profiling]
-
-and eval_program (e : Core_jsonnet.program) : V.t =
-  eval_program_with_env V.empty_env e
-
-(*****************************************************************************)
-(* Manfestation *)
-(*****************************************************************************)
 (* After we switched to explicitely representing the environment in
  * Value_jsonnet.ml, this function became mutually recursive with
  * eval_expr() and so need to be defined in the same file.
@@ -660,7 +651,7 @@ and manifest_value (v : V.t) : JSON.t =
       J.Array
         (arr |> Array.to_list
         |> List_.map (fun (entry : V.lazy_value) ->
-               manifest_value (evaluate_lazy_value_ entry)))
+               manifest_value (to_value entry)))
   | V.Object (_l, (_assertsTODO, fields), _r) as obj ->
       (* TODO: evaluate asserts *)
       let xs =
@@ -689,3 +680,15 @@ and manifest_value (v : V.t) : JSON.t =
                    Some (fst fld_name, j))
       in
       J.Object xs
+
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
+
+(*Same as eval_expr but with profiling *)
+let eval_program_with_env (env : V.env) (e : Core_jsonnet.program) : V.t =
+  eval_expr env e
+[@@profiling]
+
+let eval_program (e : Core_jsonnet.program) : V.t =
+  eval_program_with_env V.empty_env e
