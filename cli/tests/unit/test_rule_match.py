@@ -391,17 +391,19 @@ def test_rule_match_to_app_finding(snapshot, mocker):
     snapshot.assert_match(app_finding_str, "results.json")
 
 
-def create_sca_rule_match(sca_kind, reachable_in_code, transitivity):
+def create_sca_rule_match(
+    sca_kind, reachable_in_code, transitivity, range="== 1.11.82", version="1.11.82"
+):
     dependency_match = out.DependencyMatch(
         dependency_pattern=out.DependencyPattern(
             ecosystem=out.Ecosystem(out.Pypi()),
             package="awscli",
-            semver_range="== 1.11.82",
+            semver_range=range,
         ),
         found_dependency=out.FoundDependency(
             ecosystem=out.Ecosystem(out.Pypi()),
             package="awscli",
-            version="1.11.82",
+            version=version,
             resolved_url=None,
             allowed_hashes={
                 "sha256": [
@@ -450,3 +452,15 @@ def test_supply_chain_blocking():
         "upgrade-only", False, out.Transitive()
     ).is_blocking
     assert create_sca_rule_match("upgrade-only", False, out.Unknown()).is_blocking
+
+
+@pytest.mark.quick
+def test_different_versions_have_different_match_based_ids():
+    match1 = create_sca_rule_match(
+        "reachable", False, out.Direct(), ">=1.11.0", "1.11.82"
+    )
+    match2 = create_sca_rule_match(
+        "reachable", False, out.Transitive(), ">=1.11.0", "1.11.83"
+    )  # Different version
+
+    assert match1.match_based_id != match2.match_based_id
