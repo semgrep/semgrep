@@ -62,6 +62,42 @@ let lookup (env : V.env) tk local_id =
   to_value entry
 
 (*****************************************************************************)
+(* Manfestation *)
+(*****************************************************************************)
+(* not mutually recursive with eval_expr when in strict model *)
+let rec manifest_value (v : V.t) : JSON.t =
+  match v with
+  | Primitive x -> (
+      match x with
+      | Null _t -> J.Null
+      | Bool (b, _tk) -> J.Bool b
+      | Double (f, _tk) -> J.Float f
+      | Str (s, _tk) -> J.String s)
+  | Lambda { f_tok = tk; _ } -> error tk (spf "Lambda value: %s" (sv v))
+  | Array (_, arr, _) ->
+      J.Array
+        (arr |> Array.to_list
+        |> List_.map (fun (entry : V.lazy_value) ->
+               manifest_value (to_value entry)))
+  | V.Object (_l, (_assertsTODO, fields), _r) as _obj ->
+      (* TODO: evaluate asserts *)
+      let xs =
+        fields
+        |> List_.map_filter (fun { V.fld_name; fld_hidden; fld_value } ->
+               match fst fld_hidden with
+               | A.Hidden -> None
+               | A.Visible
+               | A.ForcedVisible ->
+                   let j = manifest_value (to_value fld_value) in
+                   Some (fst fld_name, j))
+      in
+      J.Object xs
+
+let tostring (v : V.t) : string =
+  let j = manifest_value v in
+  JSON.string_of_json j
+
+(*****************************************************************************)
 (* eval_expr *)
 (*****************************************************************************)
 
@@ -553,41 +589,6 @@ and eval_obj_inside env (l, x, r) : V.t =
       let asserts_with_env = List.map (fun x -> (x, env)) assertsTODO in
       V.Object (l, (asserts_with_env, fields), r)
   | ObjectComp _x -> error l "TODO: ObjectComp"
-
-(*****************************************************************************)
-(* Manfestation *)
-(*****************************************************************************)
-and tostring (v : V.t) : string =
-  let j = manifest_value v in
-  JSON.string_of_json j
-
-and manifest_value (v : V.t) : JSON.t =
-  match v with
-  | Primitive x -> (
-      match x with
-      | Null _t -> J.Null
-      | Bool (b, _tk) -> J.Bool b
-      | Double (f, _tk) -> J.Float f
-      | Str (s, _tk) -> J.String s)
-  | Lambda { f_tok = tk; _ } -> error tk (spf "Lambda value: %s" (sv v))
-  | Array (_, arr, _) ->
-      J.Array
-        (arr |> Array.to_list
-        |> List_.map (fun (entry : V.lazy_value) ->
-               manifest_value (to_value entry)))
-  | V.Object (_l, (_assertsTODO, fields), _r) as _obj ->
-      (* TODO: evaluate asserts *)
-      let xs =
-        fields
-        |> List_.map_filter (fun { V.fld_name; fld_hidden; fld_value } ->
-               match fst fld_hidden with
-               | A.Hidden -> None
-               | A.Visible
-               | A.ForcedVisible ->
-                   let j = manifest_value (to_value fld_value) in
-                   Some (fst fld_name, j))
-      in
-      J.Object xs
 
 (*****************************************************************************)
 (* Entry points *)
