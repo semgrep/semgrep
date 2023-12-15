@@ -15,6 +15,7 @@
 
 open Common
 module G = AST_generic
+module H = AST_generic_helpers
 
 (* returns possibly the inferred type of the expression,
  * as well as an ident option that can then be used to query LSP to get the
@@ -22,7 +23,7 @@ module G = AST_generic
 let rec type_of_expr lang e : G.name Type.t * G.ident option =
   match e.G.e with
   | G.L lit ->
-      let t = type_of_lit lit in
+      let t = type_of_lit lang lit in
       (t, None)
   | G.DotAccess
       (_obj, _, FN (Id (("length", _), { id_type = { contents = None }; _ })))
@@ -134,7 +135,7 @@ let rec type_of_expr lang e : G.name Type.t * G.ident option =
       (t, idopt)
   | _else_ -> (Type.NoType, None)
 
-and type_of_lit = function
+and type_of_lit lang = function
   (* NB: We could infer Type.Number for JS int/float literals, but we can
      * handle that relationship in matching and we can be more precise for
      * now. One actual rule uses `float` for a typed metavariable in JS so
@@ -142,12 +143,21 @@ and type_of_lit = function
   | G.Int _ -> Type.Builtin Type.Int
   | G.Float _ -> Type.Builtin Type.Float
   | G.Bool _ -> Type.Builtin Type.Bool
+  | G.String (_, (_, t), _) when lang =*= Lang.Cpp ->
+      type_of_ast_generic_type lang
+        (G.TyPointer
+           ( t,
+             {
+               t = G.TyN (H.name_of_id ("char", t));
+               t_attrs = [ KeywordAttr (Const, t) ];
+             } )
+        |> G.t)
   | G.String _ -> Type.Builtin Type.String
   | _else_ -> Type.NoType
 
 and type_of_name lang = function
   | Id (ident, { id_svalue = { contents = Some (Lit lit) }; _ }) ->
-      let t = type_of_lit lit in
+      let t = type_of_lit lang lit in
       (t, Some ident)
   | Id (ident, { id_svalue = { contents = Some (Cst Cbool) }; _ }) ->
       (Type.Builtin Type.Bool, Some ident)
