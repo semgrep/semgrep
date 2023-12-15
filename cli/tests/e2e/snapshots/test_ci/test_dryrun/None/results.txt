@@ -217,7 +217,7 @@ Would have sent findings and ignores blob: {
                 "sca-kind": "upgrade-only"
             },
             "is_blocking": false,
-            "match_based_id": "2c4ff12fcdf80ef1c00dd0f566ae102d792c7ba68e560d70f111aae3b3216c0b1b943e74d2ce29c0361f1fbc37bd4e9aafd32c3435a36c61b8bd3963efe0d7a1_0",
+            "match_based_id": "31dd84080dabe6873b9bfc1f168b0a37b93c785e573c21e7133b812bf6b5cfd032d55befeb800ebc69dc8c1b0c4f7cdfad0ebfac575846ee3de74f665a08bdd5_0",
             "hashes": {
                 "start_line_hash": "13ed086097ee3dd997602b5df99fff011f3880f4fd53daca82db975bf8dd71dd",
                 "end_line_hash": "13ed086097ee3dd997602b5df99fff011f3880f4fd53daca82db975bf8dd71dd",
