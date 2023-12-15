@@ -118,11 +118,11 @@ let test =
   let suite =
     List_.map
       (fun (name, input, expected_output) ->
-        (name, `Quick, fun () -> run_debug input expected_output))
+        (name, fun () -> run_debug input expected_output))
       debug_corpus
     @ List_.map
         (fun (name, input, expected_output) ->
-          (name, `Quick, fun () -> run_pretty input expected_output))
+          (name, fun () -> run_pretty input expected_output))
         pretty_corpus
   in
-  ("Parser", suite)
+  Alcotest_ext.pack_tests "Parser" suite

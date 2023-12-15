@@ -1,0 +1,15 @@
+#! /usr/bin/env bash
+#
+# Run the dummy test executable from the current directory.
+#
+# This script is a substitute for a symbolic link to the executable created
+# by dune. The problems we're working around are:
+# 1. dune fails on dangling symlinks so we can't just symlink to 'test.exe'.
+# 2. 'dune runtest' doesn't run in the directory it's called from but in a
+#    copy, causing the test workspace to be in a temporary, hidden copy under
+#    dune's '_build" folder.
+#
+set -eu
+
+test_exe="../../_build/default/libs/alcotest_ext/tests/test.exe"
+"$test_exe" "$@"

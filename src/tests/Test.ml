@@ -76,6 +76,7 @@ let tests (caps : Cap.all_caps) =
       (*Unit_Networking.tests;*)
       Test_LS_e2e.tests;
       (* End OSemgrep tests *)
+      Spacegrep_tests.Test.tests ();
       Aliengrep.Unit_tests.tests;
       (* Inline tests *)
       Alcotest_ext.get_registered_tests ();
@@ -120,9 +121,7 @@ let main (caps : Cap.all_caps) : unit =
       Data_init.init ();
       Core_CLI.register_exception_printers ();
       Logs_.setup_logging ~force_color:false ~level:(Some Logs.Debug) ();
-      let alcotest_tests =
-        Alcotest_ext.to_alcotest (tests_with_delayed_error caps)
-      in
-      Alcotest.run "semgrep-core" alcotest_tests)
+      Alcotest_ext.interpret_argv ~project_name:"semgrep-core" (fun () ->
+          tests_with_delayed_error caps))
 
 let () = Cap.main (fun all_caps -> main all_caps)

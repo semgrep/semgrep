@@ -6,6 +6,7 @@
     process_limits
     lib_parsing
     aliengrep
+    spacegrep_tests
 
     ; unix platform stuff
     lwt_platform.unix

@@ -193,6 +193,12 @@ uninstall:
 .PHONY: test
 test: core-test
 
+# Experimental - only (re-)run the failed tests
+.PHONY: retest
+retest:
+	$(MAKE) build-core-test
+	./test run --lazy
+
 # Note that this target is actually not used in CI; it's only for local dev
 .PHONY: test-all
 test-all:
@@ -206,7 +212,7 @@ core-test:
 	$(MAKE) build-core-test
 	# The following command ensures that we can call 'test.exe --help'
 	# from the directory of the checkout
-	./_build/default/src/tests/test.exe --show-errors --help 2>&1 >/dev/null
+	./test --help 2>&1 >/dev/null
 	./scripts/run-core-test
 
 # Please keep this standalone target.
@@ -216,8 +222,7 @@ core-test:
 # './test <filter>' where <filter> selects the tests to run.
 .PHONY: build-core-test
 build-core-test:
-	# The test executable has a few options that can be useful in some
-	# contexts.
+	# Invoke the test program with './test'. Check out './test --help'.
 	dune build ./_build/default/src/tests/test.exe
 
 .PHONY: test-bc
