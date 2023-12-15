@@ -116,10 +116,10 @@ let just_parse_with_lang lang file =
   | Lang.Ocaml ->
       run file
         [
-          Pfff (throw_tokens Parse_ml.parse);
           TreeSitter Parse_ocaml_tree_sitter.parse;
+          Pfff (throw_tokens Parse_ml.parse);
         ]
-        Ml_to_generic.program
+        Ocaml_to_generic.program
   | Lang.Php ->
       run file
         [

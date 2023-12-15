@@ -1,0 +1,47 @@
+{
+  "Daiquiri": {
+    "ingredients": [
+      {
+        "kind": "Banks Rum",
+        "qty": 1.5
+      },
+      {
+        "kind": "Lime",
+        "qty": 1
+      },
+      {
+        "kind": "Simple Syrup",
+        "qty": 0.5
+      }
+    ],
+    "served": "Straight Up"
+  },
+  "Mojito": {
+    "garnish": "Lime wedge",
+    "ingredients": [
+      {
+        "action": "muddle",
+        "kind": "Mint",
+        "qty": 6,
+        "unit": "leaves"
+      },
+      {
+        "kind": "Banks Rum",
+        "qty": 1.5
+      },
+      {
+        "kind": "Lime",
+        "qty": 0.5
+      },
+      {
+        "kind": "Simple Syrup",
+        "qty": 0.5
+      },
+      {
+        "kind": "Soda",
+        "qty": 3
+      }
+    ],
+    "served": "Over crushed ice"
+  }
+}

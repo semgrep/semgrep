@@ -3,7 +3,7 @@
 *)
 
 open Printf
-open Ast_ml
+open AST_ocaml
 
 (*****************************************************************************)
 (* Pretty-printing *)

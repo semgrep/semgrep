@@ -31,8 +31,6 @@ open Common
  * reference.
  *)
 
-exception UnixExit of int
-
 let rec (do_n : int -> (unit -> unit) -> unit) =
  fun i f ->
   if i =|= 0 then ()
@@ -91,7 +89,7 @@ let (lines : string -> string list) =
     | [ x ] -> if x = "" then [] else [ x ]
     | x :: xs -> x :: lines_aux xs
   in
-  Str.split_delim (Str.regexp "\n") s |> lines_aux
+  Str.split_delim (Str.regexp "\r\n\\|\n") s |> lines_aux
 
 let (matched : int -> string -> string) = fun i s -> Str.matched_group i s
 
@@ -783,33 +781,6 @@ let mk_str_func_of_assoc_conv xs =
 (* now at bottom of file
    let format_to_string f =
    ...
-*)
-
-(*****************************************************************************)
-(* Macro *)
-(*****************************************************************************)
-
-(* put your macro in macro.ml4, and you can test it interactivly as in lisp *)
-let macro_expand s =
-  let c = UStdlib.open_out_bin "/tmp/ttttt.ml" in
-  output_string c s;
-  close_out c;
-  USys.command
-    ("ocamlc -c -pp 'camlp4o pa_extend.cmo q_MLast.cmo -impl' "
-   ^ "-I +camlp4 -impl macro.ml4")
-  |> ignore;
-  USys.command "camlp4o ./macro.cmo pr_o.cmo /tmp/ttttt.ml" |> ignore;
-  USys.command "rm -f /tmp/ttttt.ml" |> ignore
-
-(*
-let t = macro_expand "{ x + y | (x,y) <- [(1,1);(2,2);(3,3)] and x>2 and y<3}"
-let x = { x + y | (x,y) <- [(1,1);(2,2);(3,3)] and x > 2 and y < 3}
-let t = macro_expand "{1 .. 10}"
-let x = {1 .. 10} +> List.map (fun i -> i)
-let t = macro_expand "[1;2] to append to [2;4]"
-let t = macro_expand "{x = 2; x = 3}"
-
-let t = macro_expand "type 'a bintree = Leaf of 'a | Branch of ('a bintree * 'a bintree)"
 *)
 
 (*****************************************************************************)
@@ -2431,7 +2402,7 @@ let cat_orig file =
   let rec cat_orig_aux () =
     try
       (* cant do input_line chan::aux() cos ocaml eval from right to left ! *)
-      let l = input_line chan in
+      let l = Common.input_text_line chan in
       l :: cat_orig_aux ()
     with
     | End_of_file -> []
@@ -2444,7 +2415,7 @@ let cat file =
   let rec cat_aux acc () =
     (* cant do input_line chan::aux() cos ocaml eval from right to left ! *)
     let b, l =
-      try (true, input_line chan) with
+      try (true, Common.input_text_line chan) with
       | End_of_file -> (false, "")
     in
     if b then cat_aux (l :: acc) () else acc
@@ -2464,7 +2435,7 @@ let cat_excerpts file lines =
       let lines = List.sort compare lines in
       let rec aux acc lines count =
         let b, l =
-          try (true, input_line chan) with
+          try (true, Common.input_text_line chan) with
           | End_of_file -> (false, "")
         in
         if not b then acc
@@ -2475,10 +2446,6 @@ let cat_excerpts file lines =
           | _ -> aux acc lines (count + 1)
       in
       aux [] lines 1 |> List.rev)
-
-let interpolate str =
-  USys.command ("printf \"%s\\n\" " ^ str ^ ">/tmp/caml") |> ignore;
-  cat "/tmp/caml"
 
 (* could do a print_string but printf dont like print_string *)
 let echo s =
@@ -2491,19 +2458,13 @@ let usleep s =
     ()
   done
 
-(* now in prelude:
- * let command2 s = ignore(USys.command s)
- *)
-
 let nblines_with_wc a = nblines_eff a
 
 let unix_diff file1 file2 =
   let cmd = (Cmd.Name "diff", [ "-u"; file1; file2 ]) in
   match UCmd.lines_of_run ~trim:true cmd with
-  | Ok (xs, (_, `Exited 0)) -> xs
-  | Ok _
-  | Error (`Msg _) ->
-      failwith "unix_diff problem"
+  | Ok (xs, _status) -> xs
+  | Error (`Msg s) -> failwith (spf "unix_diff problem: %s" s)
 
 let _batch_mode = ref false
 
@@ -2526,42 +2487,6 @@ let y_or_no msg =
           aux ()
     in
     aux ()
-
-let command2_y_or_no cmd =
-  if !_batch_mode then (
-    USys.command cmd |> ignore;
-    true)
-  else (
-    pr2 (cmd ^ " [y/n] ?");
-    match UStdlib.read_line () with
-    | "y"
-    | "yes"
-    | "Y" ->
-        USys.command cmd |> ignore;
-        true
-    | "n"
-    | "no"
-    | "N" ->
-        false
-    | _ -> failwith "answer by yes or no")
-
-let command2_y_or_no_exit_if_no cmd =
-  let res = command2_y_or_no cmd in
-  if res then () else raise (UnixExit 1)
-
-let command_safe ?verbose:(_verbose = false) program args =
-  let pid = UUnix.fork () in
-  let cmd_str = program :: args |> join " " in
-  if pid =|= 0 then (
-    pr2 ("running: " ^ cmd_str);
-    UUnix.execv program (Array.of_list (program :: args)))
-  else
-    let _pid2, status = UUnix.waitpid [] pid in
-    match status with
-    | Unix.WEXITED retcode -> retcode
-    | Unix.WSIGNALED _
-    | Unix.WSTOPPED _ ->
-        failwith ("problem running: " ^ cmd_str)
 
 let mkdir ?(mode = 0o770) file = UUnix.mkdir file mode
 
@@ -2734,19 +2659,6 @@ let with_tmp_file ~(str : string) ~(ext : string) (f : string -> 'a) : 'a =
       UCommon.erase_this_temp_file tmpfile)
 
 let register_tmp_file_cleanup_hook f = Stack_.push f tmp_file_cleanup_hooks
-
-let with_tmp_dir f =
-  let tmp_dir =
-    UFilename.temp_file (spf "with-tmp-dir-%d" (UUnix.getpid ())) ""
-  in
-  UUnix.unlink tmp_dir;
-  (* who cares about race *)
-  UUnix.mkdir tmp_dir 0o755;
-  Common.finalize
-    (fun () -> f tmp_dir)
-    (fun () ->
-      USys.command (spf "rm -f %s/*" tmp_dir) |> ignore;
-      UUnix.rmdir tmp_dir)
 
 let uncat xs file =
   UCommon.with_open_outfile file (fun (pr, _chan) ->
@@ -4588,107 +4500,6 @@ let test_ppm1 () =
     "img.ppm"
 
 (*****************************************************************************)
-(* Diff (lfs) *)
-(*****************************************************************************)
-type diff = Match | BnotinA | AnotinB
-
-let (diff : (int -> int -> diff -> unit) -> string list * string list -> unit) =
- fun f (xs, ys) ->
-  let file1 = "/tmp/diff1-" ^ string_of_int (UUnix.getuid ()) in
-  let file2 = "/tmp/diff2-" ^ string_of_int (UUnix.getuid ()) in
-  let fileresult = "/tmp/diffresult-" ^ string_of_int (UUnix.getuid ()) in
-  UCommon.write_file file1 (unwords xs);
-  UCommon.write_file file2 (unwords ys);
-  USys.command
-    ("diff --side-by-side -W 1 " ^ file1 ^ " " ^ file2 ^ " > " ^ fileresult)
-  |> ignore;
-  let res = cat fileresult in
-  let a = ref 0 in
-  let b = ref 0 in
-  res
-  |> List.iter (fun s ->
-         match s with
-         | ""
-         | " " ->
-             f !a !b Match;
-             incr a;
-             incr b
-         | ">" ->
-             f !a !b BnotinA;
-             incr b
-         | "|"
-         | "/"
-         | "\\" ->
-             f !a !b BnotinA;
-             f !a !b AnotinB;
-             incr a;
-             incr b
-         | "<" ->
-             f !a !b AnotinB;
-             incr a
-         | _ -> raise Common.Impossible)
-(*
-let _ =
-  diff
-    ["0";"a";"b";"c";"d";    "f";"g";"h";"j";"q";            "z"]
-    [    "a";"b";"c";"d";"e";"f";"g";"i";"j";"k";"r";"x";"y";"z"]
-   (fun x y -> pr "match")
-   (fun x y -> pr "a_not_in_b")
-   (fun x y -> pr "b_not_in_a")
-*)
-
-let (diff2 : (int -> int -> diff -> unit) -> string * string -> unit) =
- fun f (xstr, ystr) ->
-  UCommon.write_file "/tmp/diff1" xstr;
-  UCommon.write_file "/tmp/diff2" ystr;
-  USys.command
-    ("diff --side-by-side --left-column -W 1 "
-   ^ "/tmp/diff1 /tmp/diff2 > /tmp/diffresult")
-  |> ignore;
-  let res = cat "/tmp/diffresult" in
-  let a = ref 0 in
-  let b = ref 0 in
-  res
-  |> List.iter (fun s ->
-         match s with
-         | "(" ->
-             f !a !b Match;
-             incr a;
-             incr b
-         | ">" ->
-             f !a !b BnotinA;
-             incr b
-         | "|" ->
-             f !a !b BnotinA;
-             f !a !b AnotinB;
-             incr a;
-             incr b
-         | "<" ->
-             f !a !b AnotinB;
-             incr a
-         | _ -> raise Common.Impossible)
-
-(*****************************************************************************)
-(* Grep *)
-(*****************************************************************************)
-
-(* src: coccinelle *)
-let contain_any_token_with_egrep tokens file =
-  let tokens =
-    tokens
-    |> List.map (fun s ->
-           match () with
-           | _ when s =~ "^[A-Za-z_][A-Za-z_0-9]*$" -> "\\b" ^ s ^ "\\b"
-           | _ when s =~ "^[A-Za-z_]" -> "\\b" ^ s
-           | _ when s =~ ".*[A-Za-z_]$" -> s ^ "\\b"
-           | _ -> s)
-  in
-  let cmd = spf "egrep -q '(%s)' %s" (join "|" tokens) file in
-  match USys.command cmd with
-  | 0 (* success *) -> true
-  | _ (* failure *) -> false (* no match, so not worth trying *)
-
-(*****************************************************************************)
 (* Parsers (aop-colcombet) *)
 (*****************************************************************************)
 
@@ -5141,32 +4952,6 @@ let with_pr2_to_string f =
   redirect_stdout_stderr file f;
   cat file
 
-(* julia: convert something printed using format to print into a string *)
-let format_to_string f =
-  let nm, o = UFilename.open_temp_file "format_to_s" ".out" in
-  (* to avoid interference with other code using Format.printf, e.g.
-   * Ounit.run_tt
-   *)
-  UFormat.print_flush ();
-  UFormat.set_formatter_out_channel o;
-  let _ = f () in
-  UFormat.print_newline ();
-  UFormat.print_flush ();
-  UFormat.set_formatter_out_channel UStdlib.stdout;
-  close_out o;
-  let i = UStdlib.open_in_bin nm in
-  let lines = ref [] in
-  let rec loop _ =
-    let cur = input_line i in
-    lines := cur :: !lines;
-    loop ()
-  in
-  (try loop () with
-  | End_of_file -> ());
-  close_in i;
-  USys.command ("rm -f " ^ nm) |> ignore;
-  String.concat "\n" (List.rev !lines)
-
 (*---------------------------------------------------------------------------*)
 (* Directories part 2 *)
 (*---------------------------------------------------------------------------*)
@@ -5325,45 +5110,3 @@ let _ =
      =*= "/home/pad/pfff"
     )
 *)
-
-(*****************************************************************************)
-(* Misc/test *)
-(*****************************************************************************)
-
-let (generic_print : 'a -> string -> string) =
- fun v typ ->
-  write_value v "/tmp/generic_print";
-  USys.command
-    ("printf 'let (v:" ^ typ ^ ")= Common.get_value \"/tmp/generic_print\" "
-   ^ " in v;;' " ^ " | calc.top > /tmp/result_generic_print")
-  |> ignore;
-  cat "/tmp/result_generic_print"
-  |> drop_while (fun e -> not (e =~ "^#.*"))
-  |> tail |> unlines
-  |> fun s ->
-  if s =~ ".*= \\(.+\\)" then matched1 s
-  else "error in generic_print, not good format:" ^ s
-
-(* let main () = pr (generic_print [1;2;3;4] "int list") *)
-
-class ['a] olist (ys : 'a list) =
-  object
-    val xs = ys
-    method view = xs
-
-    (*    method fold f a = List.fold_left f a xs *)
-    method fold : 'b. ('b -> 'a -> 'b) -> 'b -> 'b =
-      fun f accu -> List.fold_left f accu xs
-  end
-
-(* let _ = write_value ((new setb[])#add 1) "/tmp/test" *)
-(*
-let typing_sux_test () =
-  let x = UObj.magic [ 1; 2; 3 ] in
-  let f1 xs = List.iter print_int xs in
-  let f2 xs = List.iter print_string xs in
-  f1 x;
-  f2 x
-*)
-(* let (test: 'a osetb -> 'a ocollection) = fun o -> (o :> 'a ocollection) *)
-(* let _ = test (new osetb (Setb.empty)) *)

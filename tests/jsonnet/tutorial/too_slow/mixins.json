@@ -1,0 +1,67 @@
+{
+  "Virgin Daiquiri": {
+    "garnish": "Lime wedge",
+    "ingredients": [
+      {
+        "kind": "Water",
+        "qty": 2
+      },
+      {
+        "kind": "Vanilla Essence",
+        "qty": "dash"
+      },
+      {
+        "kind": "Angustura Bitters",
+        "qty": "dash"
+      },
+      {
+        "kind": "Lime",
+        "qty": 1
+      },
+      {
+        "kind": "Simple Syrup",
+        "qty": 0.5
+      }
+    ],
+    "served": "Straight Up"
+  },
+  "Virgin Whiskey Sour": {
+    "garnish": "Lemon Juice twist",
+    "ingredients": [
+      {
+        "kind": "Water",
+        "qty": 2
+      },
+      {
+        "kind": "Angustura Bitters",
+        "qty": "tsp"
+      },
+      {
+        "kind": "Lemon Juice",
+        "qty": 1
+      },
+      {
+        "kind": "Simple Syrup",
+        "qty": 0.5
+      }
+    ],
+    "served": "Straight Up"
+  },
+  "Whiskey Sour": {
+    "ingredients": [
+      {
+        "kind": "Whiskey",
+        "qty": 2
+      },
+      {
+        "kind": "Lemon Juice",
+        "qty": 1
+      },
+      {
+        "kind": "Simple Syrup",
+        "qty": 0.5
+      }
+    ],
+    "served": "In a plastic cup"
+  }
+}

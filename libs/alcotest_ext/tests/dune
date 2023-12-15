@@ -1,0 +1,18 @@
+; A dummy test suite with some failing tests and some successful tests
+(executable
+ (name test)
+ (modules Test)
+ (libraries
+    alcotest_ext
+ )
+)
+
+; The test suite that exercises the dummy test suite in various ways
+; and checks that it outputs what it's supposed to.
+(executable
+ (name meta_test)
+ (modules Meta_test)
+ (libraries
+    alcotest_ext
+ )
+)

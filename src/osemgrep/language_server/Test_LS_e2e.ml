@@ -1024,24 +1024,28 @@ let test_ls_libev () =
 (* Entry point *)
 (*****************************************************************************)
 
+module Test = Alcotest_ext
+
 let promise_tests =
-  ignore test_login;
   [
-    ("Test LS", test_ls_specs);
-    ("Test LS exts", test_ls_ext);
-    ("Test LS multi-workspaces", test_ls_multi);
-    (* TODO: currently failing in js tests in CI
-          ("Test Login", test_login);
-    *)
-    ("Test LS with no folders", test_ls_no_folders);
+    Test.create "Test LS" test_ls_specs ~tolerate_chdir:true;
+    Test.create "Test LS exts" test_ls_ext ~tolerate_chdir:true;
+    Test.create "Test LS multi-workspaces" test_ls_multi ~tolerate_chdir:true;
+    Test.create "Test LS login" test_login
+      ~expected_outcome:
+        (Should_fail "TODO: currently failing in js tests in CI");
+    Test.create "Test LS with no folders" test_ls_no_folders;
   ]
-  |> List_.map (fun (s, f) -> (s, with_timeout f))
+  |> List_.map (fun (test : _ Test.t) ->
+         Test.update test ~func:(with_timeout test.func))
 
 let tests =
   let prepare f () = Lwt_platform.run (f ()) in
-  Alcotest_ext.pack_tests "Language Server (e2e)"
-    (promise_tests |> List_.map (fun (s, f) -> (s, prepare f)))
+  Test.pack_tests_pro "Language Server (e2e)"
+    (promise_tests
+    |> List_.map (fun (test : _ Test.t) ->
+           Test.update_func test (prepare test.func)))
 
 let lwt_tests =
-  Alcotest_ext.pack_tests "Language Server (e2e)"
-    (("Test LS with libev", test_ls_libev) :: promise_tests)
+  Test.pack_tests_pro "Language Server (e2e)"
+    (Test.create "Test LS with libev" test_ls_libev :: promise_tests)

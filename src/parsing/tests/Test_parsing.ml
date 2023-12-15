@@ -280,6 +280,24 @@ let test_parse_tree_sitter lang root_paths =
   ()
 
 (*****************************************************************************)
+(* AST specific dumpers *)
+(*****************************************************************************)
+(* used to be offered by the ./bin/pfff tool *)
+let dump_lang_ast (lang : Lang.t) (file : Fpath.t) : unit =
+  match lang with
+  | Lang.Ocaml ->
+      let (ast : AST_ocaml.program) =
+        if !Flag_semgrep.tree_sitter_only then
+          let res = Parse_ocaml_tree_sitter.parse !!file in
+          res.program |> List_.optlist_to_list
+        else Parse_ml.parse_program !!file
+      in
+      let s = AST_ocaml.show_program ast in
+      UCommon.pr2 s
+  | _else_ ->
+      failwith (spf "dumper not supported yet for lang: %s" (Lang.show lang))
+
+(*****************************************************************************)
 (* Pfff and tree-sitter parsing *)
 (*****************************************************************************)
 

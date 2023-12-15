@@ -48,9 +48,9 @@ class ['self] matching_visitor =
   object (self : 'self)
     inherit ['self] AST_generic.iter_no_id_info as super
 
-    (**************************************************************************)
+    (********************************************************************)
     (* Helpers *)
-    (**************************************************************************)
+    (********************************************************************)
 
     (* The recurse argument is subtle. It is needed because we want different
      * behaviors depending on the context:
@@ -175,15 +175,14 @@ class ['self] matching_visitor =
       if env.implicit_return && e.is_implicit_return then
         let ret = Return (fake "return", Some e, sc) |> s in
         self#visit_stmt env ret
-      else ()
 
-    (**************************************************************************)
+    (*********************************************************************)
     (* Overrides:
      *
      * These implement matching-specific behavior such as generating partial
      * nodes.
      * *)
-    (**************************************************************************)
+    (*********************************************************************)
 
     method! visit_xml_body env xml =
       match xml with

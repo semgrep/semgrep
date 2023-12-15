@@ -14,6 +14,12 @@ val make_tests :
   Fpath.t list ->
   Alcotest_ext.test list
 
+(* For Pro tests *)
+val collect_tests :
+  ?get_xlang:(Fpath.t -> Rule.rules -> Xlang.t) ->
+  Fpath.t list (* roots *) ->
+  (Fpath.t (* rule file *) * Fpath.t (* target file *) * Xlang.t) list
+
 (* helpers used in Test_subcommand.ml *)
 val find_target_of_yaml_file_opt : Fpath.t -> Fpath.t option
 val xlangs_of_rules : Rule.t list -> Xlang.t list

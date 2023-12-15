@@ -136,7 +136,7 @@ let fetch_token_tests caps =
     let wait_hook _delay =
       match !retry_count with
       | 12 -> failwith "Unexpected wait"
-      | _ -> retry_count := !retry_count + 1
+      | _ -> incr retry_count
     in
     let token =
       Semgrep_login.fetch_token ~min_wait_ms:0 ~next_wait_ms:0 ~wait_hook caps

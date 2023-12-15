@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2022-2023 r2c
+ * Copyright (C) 2022-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -23,7 +23,7 @@
  * function had to be mutually recursive with eval_expr() and so was
  * moved in Eval_jsonnet.ml
  * Still it's nice to hide this implememtation detail and still provide
- * a separate Manufest_jsonnet.ml file, even if it's just wrapping
+ * a separate Manifest_jsonnet.ml file, even if it's just wrapping
  * Eval_jsonnet.manifest_value()
  *)
 
@@ -31,4 +31,4 @@
 (* Entry point *)
 (*****************************************************************************)
 
-let manifest_value = Eval_jsonnet_envir.manifest_value
+let manifest_value = Eval_jsonnet.manifest_value

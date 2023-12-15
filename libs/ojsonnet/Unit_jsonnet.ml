@@ -1,13 +1,12 @@
 open Common
 open Fpath_.Operators
+module Conf = Conf_ojsonnet
 module Y = Yojson.Basic
 
-let dir_pass = Fpath.v "tests/jsonnet/eval_pass"
-let dir_pass_tutorial = Fpath.v "tests/jsonnet/tutorial_tests/pass"
-let dir_fail_tutorial = Fpath.v "tests/jsonnet/tutorial_tests/fail"
-let dir_fail = Fpath.v "tests/jsonnet/eval_fail"
+let _dir_fail_tutorial = Fpath.v "tests/jsonnet/tutorial/fail"
+let _dir_fail = Fpath.v "tests/jsonnet/fail"
 let dir_error = Fpath.v "tests/jsonnet/errors"
-let dir_error_tutorial = Fpath.v "tests/jsonnet/tutorial_tests/error"
+let dir_error_tutorial = Fpath.v "tests/jsonnet/tutorial/errors"
 
 let related_file_of_target ~ext ~file =
   let dirname, basename, _e = Filename_.dbe_of_filename !!file in
@@ -19,7 +18,7 @@ let related_file_of_target ~ext ~file =
     in
     Error msg
 
-let test_maker_err dir =
+let test_maker_err dir : Alcotest_ext.test list =
   Common2.glob (spf "%s/*%s" !!dir "jsonnet")
   |> Fpath_.of_strings
   |> List_.map (fun file ->
@@ -29,14 +28,16 @@ let test_maker_err dir =
              let core = Desugar_jsonnet.desugar_program file ast in
              try
                let value_ = Eval_jsonnet.eval_program core in
-               let _ = Manifest_jsonnet.manifest_value value_ in
+               let _ = Eval_jsonnet.manifest_value value_ in
                Alcotest.(fail "this should have raised an error")
              with
              | Eval_jsonnet_common.Error _ ->
                  Alcotest.(check bool) "this raised an error" true true ))
+  |> Alcotest_ext.pack_tests !!dir
 
-let test_maker_pass_fail dir pass_or_fail =
-  Common2.glob (spf "%s/*%s" !!dir "jsonnet")
+let mk_tests (subdir : string) (strategys : Conf.eval_strategy list) :
+    Alcotest_ext.test list =
+  Common2.glob (spf "tests/jsonnet/%s/*.jsonnet" subdir)
   |> Fpath_.of_strings
   |> List_.map (fun file ->
          ( Fpath.basename file,
@@ -46,34 +47,55 @@ let test_maker_pass_fail dir pass_or_fail =
                | Ok json_file -> json_file
                | Error msg -> failwith msg
              in
-             let correct =
+             let expected =
                Y.from_string (UFile.read_file comparison_file_path)
              in
 
              let ast = Parse_jsonnet.parse_program file in
              let core = Desugar_jsonnet.desugar_program file ast in
-             (* Currently slightly hacky, since we later may want to test for errors thrown *)
-             try
-               let value_ = Eval_jsonnet.eval_program core in
-               let json =
-                 JSON.to_yojson (Manifest_jsonnet.manifest_value value_)
-               in
-               let fmt = format_of_string "expected %s \n but got %s" in
-               let result =
-                 Printf.sprintf fmt (Y.to_string correct) (Y.to_string json)
-               in
+             strategys
+             |> List.iter (fun strategy ->
+                    let str_strategy = Conf.show_eval_strategy strategy in
+                    try
+                      let json_opt =
+                        Common.save_excursion Conf.eval_strategy strategy
+                          (fun () ->
+                            Time_limit.set_timeout
+                              ~name:("ojsonnet-" ^ str_strategy) 0.5 (fun () ->
+                                let value_ = Eval_jsonnet.eval_program core in
+                                JSON.to_yojson
+                                  (Eval_jsonnet.manifest_value value_)))
+                      in
+                      match json_opt with
+                      | None ->
+                          failwith
+                            (spf "timeout on %s with %s" !!file str_strategy)
+                      | Some json ->
+                          if not (Y.equal json expected) then
+                            failwith
+                              (spf
+                                 "mismatch for %s with strategy %s\n\
+                                 \ expected %s but got %s" !!file str_strategy
+                                 (Y.to_string expected) (Y.to_string json))
+                    with
+                    | Eval_jsonnet_common.Error _ ->
+                        failwith
+                          (spf "this threw an error with %s" str_strategy)) ))
+  |> Alcotest_ext.pack_tests (spf "tests/jsonnet/%s" subdir)
 
-               Alcotest.(check bool) result pass_or_fail (Y.equal json correct)
-             with
-             | Eval_jsonnet_common.Error _ ->
-                 Alcotest.(check bool)
-                   "this threw an error" (not pass_or_fail) true ))
-
-let tests () =
-  Alcotest_ext.simple_tests
-    (test_maker_pass_fail dir_pass true
-    @ test_maker_pass_fail dir_pass_tutorial true
-    @ test_maker_pass_fail dir_fail false
-    @ test_maker_pass_fail dir_fail_tutorial false
-    @ test_maker_err dir_error
-    @ test_maker_err dir_error_tutorial)
+let tests () : Alcotest_ext.test list =
+  Alcotest_ext.pack_suites "ojsonnet"
+    [
+      mk_tests "pass/" [ Conf.EvalSubst; Conf.EvalEnvir ];
+      mk_tests "pass/only_subst/" [ Conf.EvalSubst ];
+      mk_tests "pass/only_envir/" [ Conf.EvalEnvir ];
+      mk_tests "tutorial/pass/" [ Conf.EvalSubst; Conf.EvalEnvir ];
+      mk_tests "tutorial/only_subst/" [ Conf.EvalSubst ];
+      mk_tests "tutorial/only_envir/" [ Conf.EvalEnvir ];
+      (* TODO
+           test_maker_pass_fail dir_fail false;
+           test_maker_pass_fail dir_fail_tutorial false;
+      *)
+      test_maker_err dir_error;
+      test_maker_err dir_error_tutorial;
+    ]

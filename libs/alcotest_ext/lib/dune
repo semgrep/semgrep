@@ -1,0 +1,11 @@
+; Extension of the Alcotest library
+(library
+  (public_name alcotest_ext)
+  (name alcotest_ext)
+  (libraries
+    alcotest
+    alcotest-lwt
+    cmdliner
+    lwt
+  )
+)

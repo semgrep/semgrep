@@ -15,7 +15,7 @@
 open Common
 module CST = Tree_sitter_ocaml.CST
 module H = Parse_tree_sitter_helpers
-open Ast_ml
+open AST_ocaml
 
 (*****************************************************************************)
 (* Prelude *)
@@ -1012,26 +1012,26 @@ and map_binding_pattern_ext (env : env) (x : CST.binding_pattern_ext) : pattern
       PatTodo (t, [])
 
 and map_class_binding (env : env)
-    ((v1, v2, v3, v4, v5, v6, v7) : CST.class_binding) =
+    ((v1, v2, v3, v4, v5, v6, v7) : CST.class_binding) : class_binding =
   let _v1 =
     match v1 with
     | Some tok -> Some (token env tok) (* "virtual" *)
     | None -> None
   in
-  let _v2 =
+  let c_tparams =
     match v2 with
     | Some x ->
         map_anon_LBRACK_type_param_rep_COMMA_type_param_RBRACK_cea5434 env x
     | None -> []
   in
-  let _v3 = token env v3 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
-  let _v4 = List_.map (map_parameter env) v4 in
+  let c_name = str env v3 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
+  let c_params = List_.map (map_parameter env) v4 in
   let _v5 =
     match v5 with
     | Some x -> Some (map_class_typed env x)
     | None -> None
   in
-  let _v6 =
+  let c_body =
     match v6 with
     | Some (v1, v2) ->
         let _v1 = token env v1 (* "=" *) in
@@ -1040,13 +1040,14 @@ and map_class_binding (env : env)
     | None -> None
   in
   let _v7 = List_.map (map_item_attribute env) v7 in
-  ()
+  { c_name; c_tparams; c_params; c_body }
 
-and map_class_definition (env : env) ((v1, v2, v3, v4) : CST.class_definition) =
-  let v1 = token env v1 (* "class" *) in
-  let _v2 = map_attribute_opt env v2 in
-  let _v3 = map_class_binding env v3 in
-  let _v4 =
+and map_class_definition (env : env) ((v1, v2, v3, v4) : CST.class_definition) :
+    item =
+  let tclass = token env v1 (* "class" *) in
+  let _attrs = map_attribute_opt env v2 in
+  let v3 = map_class_binding env v3 in
+  let v4 =
     List_.map
       (fun (v1, v2) ->
         let _v1 = token env v1 (* "and" *) in
@@ -1054,44 +1055,45 @@ and map_class_definition (env : env) ((v1, v2, v3, v4) : CST.class_definition) =
         v2)
       v4
   in
-  ItemTodo (("Class", v1), []) |> mki
+  Class (tclass, v3 :: v4) |> mki
 
-and map_class_expression (env : env) (x : CST.class_expression) =
+and map_class_expression (env : env) (x : CST.class_expression) : class_expr =
   match x with
   | `Simple_class_exp x -> map_simple_class_expression env x
   | `Class_func (v1, v2, v3, v4) ->
-      let _v1 = token env v1 (* "fun" *) in
+      let tfun = token env v1 (* "fun" *) in
       let _v2 = List_.map (map_parameter env) v2 in
       let _v3 = token env v3 (* "->" *) in
-      let _v4 = map_class_expression_ext env v4 in
-      ()
+      let v4 = map_class_expression_ext env v4 in
+      ClTodo (("ClassFunc", tfun), [ v4 ])
   | `Class_app (v1, v2) ->
-      let _v1 = map_simple_class_expression env v1 in
-      let _v2 = List_.map (map_argument env) v2 in
-      ()
+      let v1 = map_simple_class_expression env v1 in
+      let _v2TODO = List_.map (map_argument env) v2 in
+      v1
   | `Let_class_exp (v1, v2, v3) ->
       let _v1 = map_value_definition env v1 in
-      let _v2 = token env v2 (* "in" *) in
-      let _v3 = map_class_expression_ext env v3 in
-      ()
+      let tin = token env v2 (* "in" *) in
+      let v3 = map_class_expression_ext env v3 in
+      ClTodo (("LetClass", tin), [ v3 ])
   | `Let_open_class_exp (v1, v2, v3, v4) ->
-      let _v1 = token env v1 (* "let" *) in
+      let tlet = token env v1 (* "let" *) in
       let _v2 = map_open_module env v2 in
       let _v3 = token env v3 (* "in" *) in
-      let _v4 = map_class_expression_ext env v4 in
-      ()
+      let v4 = map_class_expression_ext env v4 in
+      ClTodo (("LetOpenClass", tlet), [ v4 ])
 
-and map_class_expression_ext (env : env) (x : CST.class_expression_ext) =
+and map_class_expression_ext (env : env) (x : CST.class_expression_ext) :
+    class_expr =
   match x with
   | `Class_exp x -> map_class_expression env x
   | `Exte x ->
-      let _t = map_extension env x in
-      ()
+      let todo = map_extension env x in
+      ClTodo (todo, [])
 
-and map_class_field (env : env) (x : CST.class_field) =
+and map_class_field (env : env) (x : CST.class_field) : class_field =
   match x with
   | `Inhe_defi (v1, v2, v3, v4, v5) ->
-      let _v1 = token env v1 (* "inherit" *) in
+      let tinherit = token env v1 (* "inherit" *) in
       let _v2 =
         match v2 with
         | Some tok -> Some (token env tok) (* "!" *)
@@ -1107,17 +1109,17 @@ and map_class_field (env : env) (x : CST.class_field) =
         | None -> None
       in
       let _v5 = List_.map (map_item_attribute env) v5 in
-      ()
+      CfldTodo ("Inherit", tinherit)
   | `Inst_var_defi (v1, v2, v3, v4, v5, v6, v7, v8) ->
-      let _v1 = token env v1 (* "val" *) in
+      let inst_tok = token env v1 (* "val" *) in
       let _v2 =
         match v2 with
         | Some tok -> Some (token env tok) (* "!" *)
         | None -> None
       in
       let _v3 = List_.map (map_anon_choice_muta_d43fe41 env) v3 in
-      let _v4 = token env v4 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
-      let _v5 = map_typed_opt env v5 in
+      let inst_name = str env v4 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
+      let inst_type = map_typed_opt env v5 in
       let _v6 =
         match v6 with
         | Some (v1, v2) ->
@@ -1126,7 +1128,7 @@ and map_class_field (env : env) (x : CST.class_field) =
             Some v2
         | None -> None
       in
-      let _v7 =
+      let inst_expr =
         match v7 with
         | Some (v1, v2) ->
             let _v1 = token env v1 (* "=" *) in
@@ -1135,23 +1137,23 @@ and map_class_field (env : env) (x : CST.class_field) =
         | None -> None
       in
       let _v8 = List_.map (map_item_attribute env) v8 in
-      ()
+      InstanceVar { inst_tok; inst_name; inst_type; inst_expr }
   | `Meth_defi (v1, v2, v3, v4, v5, v6, v7, v8) ->
-      let _v1 = token env v1 (* "method" *) in
+      let m_tok = token env v1 (* "method" *) in
       let _v2 =
         match v2 with
         | Some tok -> Some (token env tok) (* "!" *)
         | None -> None
       in
       let _v3 = List_.map (map_anon_choice_priv_c7cc539 env) v3 in
-      let _v4 = token env v4 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
-      let _v5 = List_.map (map_parameter env) v5 in
-      let _v6 =
+      let m_name = str env v4 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
+      let m_params = List_.map (map_parameter env) v5 in
+      let m_rettype =
         match v6 with
         | Some x -> Some (map_polymorphic_typed env x)
         | None -> None
       in
-      let _v7 =
+      let m_body =
         match v7 with
         | Some (v1, v2) ->
             let _v1 = token env v1 (* "=" *) in
@@ -1160,22 +1162,22 @@ and map_class_field (env : env) (x : CST.class_field) =
         | None -> None
       in
       let _v8 = List_.map (map_item_attribute env) v8 in
-      ()
+      Method { m_tok; m_name; m_params; m_rettype; m_body }
   | `Type_param_cons x ->
-      let _x = map_type_parameter_constraint env x in
-      ()
+      let tk = map_type_parameter_constraint env x in
+      CfldTodo ("Constraint", tk)
   | `Class_init (v1, v2, v3) ->
-      let _v1 = token env v1 (* "initializer" *) in
+      let tinitializer = token env v1 (* "initializer" *) in
       let _v2 = map_sequence_expression_ext env v2 |> seq1 in
       let _v3 = List_.map (map_item_attribute env) v3 in
-      ()
+      CfldTodo ("ClassInit", tinitializer)
 
-and map_class_field_ext (env : env) (x : CST.class_field_ext) =
+and map_class_field_ext (env : env) (x : CST.class_field_ext) : class_field =
   match x with
   | `Class_field x -> map_class_field env x
   | `Item_exte x ->
-      let _t = map_item_extension env x in
-      ()
+      let t = map_item_extension env x in
+      CfldTodo t
 
 and map_class_field_specification (env : env)
     (x : CST.class_field_specification) =
@@ -1385,10 +1387,16 @@ and map_expression (env : env) (x : CST.expression) : expr =
       let v3 = map_expression_ext env v3 in
       (* TODO? Constructor or Infix? *)
       Infix (v1, v2, v3)
-  | `App_exp (v1, v2) ->
+  | `App_exp (v1, v2) -> (
       let v1 = map_simple_expression_ext env v1 in
       let v2 = List_.map (map_argument env) v2 in
-      Call (v1, v2)
+      (* TODO? parser_ml.mly has a special grammar rule
+       * for constructor with arguments. In grammar.js there is
+       * no such rule so we need this hack
+       *)
+      match (v1, v2) with
+      | Constructor (x, None), [ Arg e ] -> Constructor (x, Some e)
+      | _else_ -> Call (v1, v2))
   | `Infix_exp x -> map_infix_expression env x
   | `Sign_exp (v1, v2) ->
       let v1 = map_sign_operator env v1 in
@@ -1521,7 +1529,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
       let _v3 = token env v3 (* "in" *) in
       let v4 = map_sequence_expression_ext env v4 |> seq1 in
       ExprTodo (("LocalExn", v1), [ v4 ])
-  | `Obj_exp x -> map_object_expression env x
+  | `Obj_exp x -> Obj (map_object_expression env x)
 
 and map_expression_ext (env : env) (x : CST.expression_ext) =
   match x with
@@ -1631,12 +1639,12 @@ and map_field_pattern (env : env) ((v1, v2, v3) : CST.field_pattern) =
   (v1, v3)
 
 and map_floating_attribute (env : env)
-    ((v1, v2, v3, v4) : CST.floating_attribute) =
+    ((v1, v2, v3, v4) : CST.floating_attribute) : Tok.t =
   let v1 = token env v1 (* "[@@@" *) in
   let _v2 = map_attribute_id env v2 in
   let _v3 = map_attribute_payload_opt env v3 in
   let _v4 = token env v4 (* "]" *) in
-  ItemTodo (("Attr", v1), []) |> mki
+  v1
 
 and map_guard (env : env) ((v1, v2) : CST.guard) =
   let _v1 = token env v1 (* "when" *) in
@@ -1752,6 +1760,7 @@ and map_labeled_argument (env : env) (x : CST.labeled_argument) =
 
 and map_let_binding (env : env) ((v1, v2, v3) : CST.let_binding) : let_binding =
   let pat = map_binding_pattern_ext env v1 in
+  let lattrs = List_.map (map_item_attribute env) v3 in
   let v2 =
     match v2 with
     | Some (v1, v2, v3, v4, v5) -> (
@@ -1773,14 +1782,14 @@ and map_let_binding (env : env) ((v1, v2, v3) : CST.let_binding) : let_binding =
         let v5 = map_sequence_expression_ext env v5 |> seq1 in
         match (pat, v1, v2) with
         | PatVar id, _, _ ->
-            LetClassic { lname = id; lparams = v1; lrettype = v2; lbody = v5 }
+            LetClassic
+              { lname = id; lparams = v1; lrettype = v2; lbody = v5; lattrs }
         | pat, [], None -> LetPattern (pat, v5)
         (* TODO: grammar js is wrong there too, this can not happen *)
         | _ -> raise (Parsing_error.Other_error ("Invalid let binding", v4)))
     (* TODO: grammar.js is wrong, this can not happen *)
     | None -> raise Impossible
   in
-  let _v3 = List_.map (map_item_attribute env) v3 in
   v2
 
 and map_list_binding_pattern (env : env)
@@ -2050,8 +2059,8 @@ and map_object_copy_expression (env : env)
   ExprTodo (("ObjCopy", v1), v2 |> List_.map snd)
 
 and map_object_expression (env : env)
-    ((v1, v2, v3, v4, v5) : CST.object_expression) =
-  let v1 = token env v1 (* "object" *) in
+    ((v1, v2, v3, v4, v5) : CST.object_expression) : object_ =
+  let o_tok = token env v1 (* "object" *) in
   let _v2 = map_attribute_opt env v2 in
   let _v3 =
     match v3 with
@@ -2063,20 +2072,18 @@ and map_object_expression (env : env)
         ()
     | None -> ()
   in
-  let _v4 =
+  let o_body =
     List_.map
       (fun x ->
         match x with
-        | `Class_field_ext x ->
-            let _x = map_class_field_ext env x in
-            ()
+        | `Class_field_ext x -> map_class_field_ext env x
         | `Floa_attr x ->
-            let _x = map_floating_attribute env x in
-            ())
+            let tk = map_floating_attribute env x in
+            CfldTodo ("ClassFloatAttr", tk))
       v4
   in
   let _v5 = token env v5 (* "end" *) in
-  ExprTodo (("Object", v1), [])
+  { o_tok; o_body }
 
 and map_open_module (env : env) ((v1, v2, v3, v4, v5) : CST.open_module) =
   let v1 = token env v1 (* "open" *) in
@@ -2184,7 +2191,7 @@ and map_parenthesized_expression (env : env) (x : CST.parenthesized_expression)
       (* like in parser_ml.mly *)
       match v2 with
       | [] -> Sequence (v1, [], v3)
-      (* Ml_to_generic will do the right thing if x is a tuple or
+      (* Ocaml_to_generic will do the right thing if x is a tuple or
        * if this expression is part of a Constructor call.
        *)
       | [ x ] -> ParenExpr (v1, x, v3)
@@ -2450,7 +2457,9 @@ and map_signature_item (env : env) (x : CST.signature_item) : item =
       { i = ItemTodo (("Include", v1), []); iattrs = v4 }
   | `Class_defi x -> map_class_definition env x
   | `Class_type_defi x -> map_class_type_definition env x
-  | `Floa_attr x -> map_floating_attribute env x
+  | `Floa_attr x ->
+      let tk = map_floating_attribute env x in
+      ItemTodo (("Attr", tk), []) |> mki
 
 and map_signature_item_ext (env : env) (x : CST.signature_item_ext) =
   match x with
@@ -2462,10 +2471,10 @@ and map_signature_item_ext (env : env) (x : CST.signature_item_ext) =
 and map_simple_class_expression (env : env) (x : CST.simple_class_expression) =
   match x with
   | `Class_path x ->
-      let _, _id = map_class_path env x in
-      ()
+      let _, id = map_class_path env x in
+      ClTodo (("ClassPath", snd id), [])
   | `Inst_class (v1, v2, v3, v4, v5) ->
-      let _v1 = token env v1 (* "[" *) in
+      let lb = token env v1 (* "[" *) in
       let _v2 = map_type_ext env v2 in
       let _v3 =
         List_.map
@@ -2475,23 +2484,23 @@ and map_simple_class_expression (env : env) (x : CST.simple_class_expression) =
             v2)
           v3
       in
-      let _v4 = token env v4 (* "]" *) in
+      let _rb = token env v4 (* "]" *) in
       let _v5 = map_class_path env v5 in
-      ()
+      ClTodo (("InstClass", lb), [])
   | `Obj_exp x ->
-      let _x = map_object_expression env x in
-      ()
+      let x = map_object_expression env x in
+      ClObj x
   | `Typed_class_exp (v1, v2, v3, v4) ->
-      let _v1 = token env v1 (* "(" *) in
-      let _v2 = map_class_expression_ext env v2 in
+      let _lp = token env v1 (* "(" *) in
+      let e = map_class_expression_ext env v2 in
       let _v3 = map_class_typed env v3 in
-      let _v4 = token env v4 (* ")" *) in
-      ()
+      let _rp = token env v4 (* ")" *) in
+      e
   | `Paren_class_exp (v1, v2, v3) ->
-      let _v1 = token env v1 (* "(" *) in
-      let _v2 = map_class_expression_ext env v2 in
-      let _v3 = token env v3 (* ")" *) in
-      ()
+      let _lp = token env v1 (* "(" *) in
+      let e = map_class_expression_ext env v2 in
+      let _rp = token env v3 (* ")" *) in
+      e
 
 and map_simple_class_type (env : env) (x : CST.simple_class_type) =
   match x with
@@ -2570,10 +2579,12 @@ and map_simple_expression (env : env) (x : CST.simple_expression) : expr =
   | `List_exp x -> map_list_expression env x
   | `Array_exp x -> map_array_expression env x
   | `Record_exp x -> map_record_expression env x
-  | `Prefix_exp (v1, v2) ->
+  | `Prefix_exp (v1, v2) -> (
       let v1 = str env v1 (* prefix_operator *) in
       let v2 = map_simple_expression_ext env v2 in
-      Prefix (v1, v2)
+      match v1 with
+      | "!", tk -> RefAccess (tk, v2)
+      | _else_ -> Prefix (v1, v2))
   | `Hash_exp (v1, v2, v3) ->
       let v1 = map_simple_expression_ext env v1 in
       let v2 = token env v2 (* hash_operator *) in
@@ -2684,9 +2695,11 @@ and map_simple_module_expression_ext (env : env)
 (* diff with map_binding_pattern? no Or, as, here *)
 and map_simple_pattern (env : env) (x : CST.simple_pattern) : pattern =
   match x with
-  | `Value_pat x ->
+  | `Value_pat x -> (
       let x = map_value_pattern env x in
-      PatVar x
+      match x with
+      | "_", tk -> PatUnderscore tk
+      | _else_ -> PatVar x)
   | `Signed_cst x ->
       let x = map_signed_constant env x in
       PatLiteral x
@@ -2976,7 +2989,9 @@ and map_structure_item (env : env) (x : CST.structure_item) : item =
       { i = ItemTodo (("Include", v1), []); iattrs = v4 }
   | `Class_defi x -> map_class_definition env x
   | `Class_type_defi x -> map_class_type_definition env x
-  | `Floa_attr x -> map_floating_attribute env x
+  | `Floa_attr x ->
+      let tk = map_floating_attribute env x in
+      ItemTodo (("Attr", tk), []) |> mki
 
 and map_structure_item_ext (env : env) (x : CST.structure_item_ext) =
   match x with
@@ -3165,15 +3180,15 @@ and map_type_ext (env : env) (x : CST.type_ext) =
       TyTodo (t, [])
 
 and map_type_parameter_constraint (env : env)
-    ((v1, v2, v3, v4, v5) : CST.type_parameter_constraint) =
-  let _v1 = token env v1 (* "constraint" *) in
+    ((v1, v2, v3, v4, v5) : CST.type_parameter_constraint) : Tok.t =
+  let tconstraint = token env v1 (* "constraint" *) in
   let _v2 = map_type_ext env v2 in
   let _v3 = token env v3 (* "=" *) in
   let _v4 = map_type_ext env v4 in
   let _v5 = List_.map (map_item_attribute env) v5 in
-  ()
+  tconstraint
 
-and map_typed (env : env) ((v1, v2) : CST.typed) : tok * type_ =
+and map_typed (env : env) ((v1, v2) : CST.typed) : Tok.t * type_ =
   let v1 = token env v1 (* ":" *) in
   let v2 = map_type_ext env v2 in
   (v1, v2)
@@ -3200,7 +3215,7 @@ and rec_opt env x =
   | Some tok -> Some (token env tok)
 
 and map_value_definition (env : env) ((v1, v2, v3) : CST.value_definition) :
-    tok * rec_opt * let_binding list =
+    Tok.t * rec_opt * let_binding list =
   let t, recopt =
     match v1 with
     | `Let_opt_attr_opt_rec (v1, v2, v3) ->

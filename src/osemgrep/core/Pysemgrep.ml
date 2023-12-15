@@ -13,6 +13,6 @@
 exception Fallback
 
 (* dispatch back to pysemgrep! *)
-let pysemgrep argv =
+let pysemgrep (caps : < Cap.exec >) argv =
   (* pysemgrep should be in the PATH, thx to the code in ../../../cli/bin/semgrep *)
-  Unix.execvp "pysemgrep" argv
+  CapUnix.execvp caps#exec "pysemgrep" argv
