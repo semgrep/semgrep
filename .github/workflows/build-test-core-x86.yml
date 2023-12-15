@@ -25,8 +25,10 @@ jobs:
       run: |
         export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
         C:/hostedtoolcache/windows/cygwin/3.4.9/x86_64/setup-x86_64.exe --quiet-mode --root D:/cygwin --site https://mirrors.kernel.org/sourceware/cygwin --packages cygwin-devel --symlink-type=sys
-        find d:/cygwin/usr -name 'ioctl.h'
-        opam install --debug notty
+        echo "include paths:"
+        x86_64-w64-mingw32-gcc -E -Wp,-v -xc /dev/null
+        echo "ioctl.h:"
+        find d:/cygwin -name 'ioctl.h'
     - id: build-tree-sitter
       shell: bash
       run: |
