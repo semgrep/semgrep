@@ -323,7 +323,29 @@ let eval_std_method env e0 (method_str, tk) (l, args, r) =
   (* default to regular call, handled by std.jsonnet code hopefully *)
   | _else_ -> eval_call env e0 (l, args, r)
 
-and eval_binary_op (env : V.env) (el : expr) (op, tk) (er : expr) =
+let eval_unary_op (env : V.env) (op : unary_op wrap) (e : expr) : V.t =
+  let op, tk = op in
+  match op with
+  | UBang -> (
+      match env.eval_expr env e with
+      | V.Primitive (Bool (b, tk)) -> V.Primitive (Bool (not b, tk))
+      | v -> error tk (spf "Not a boolean for unary !: %s" (sv v)))
+  | UPlus -> (
+      match env.eval_expr env e with
+      | V.Primitive (Double (f, tk)) -> V.Primitive (Double (f, tk))
+      | v -> error tk (spf "Not a number for unary +: %s" (sv v)))
+  | UMinus -> (
+      match env.eval_expr env e with
+      | V.Primitive (Double (f, tk)) -> V.Primitive (Double (-.f, tk))
+      | v -> error tk (spf "Not a number for unary -: %s" (sv v)))
+  | UTilde -> (
+      match env.eval_expr env e with
+      | V.Primitive (Double (f, tk)) ->
+          let f = f |> Int64.of_float |> Int64.lognot |> Int64.to_float in
+          V.Primitive (Double (f, tk))
+      | v -> error tk (spf "Not a number for unary -: %s" (sv v)))
+
+let eval_binary_op (env : V.env) (el : expr) (op, tk) (er : expr) =
   match op with
   | Plus -> (
       match (env.eval_expr env el, env.eval_expr env er) with

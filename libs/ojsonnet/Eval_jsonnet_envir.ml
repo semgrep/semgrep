@@ -100,99 +100,9 @@ and eval_expr (env : V.env) (e : expr) : V.t =
              env.locals
       in
       eval_expr { env with locals } e
-  | ArrayAccess (v1, v2) -> (
-      let e = eval_expr env v1 in
-      let l, index, _r = (eval_bracket eval_expr) env v2 in
-      match (e, index) with
-      | Array (_l, arr, _r), Primitive (Double (f, tkf)) ->
-          if Float.is_integer f then
-            let i = int_of_float f in
-            match i with
-            | _ when i < 0 ->
-                error tkf (spf "negative value for array index: %s" (sv index))
-            | _ when i >= 0 && i < Array.length arr ->
-                let ei = arr.(i) in
-                (* TODO: Is this the right environment to evaluate in? *)
-                to_value ei
-            | _else_ ->
-                error tkf (spf "Out of bound for array index: %s" (sv index))
-          else error tkf (spf "Not an integer: %s" (sv index))
-      | Primitive (Str (s, tk)), Primitive (Double (f, tkf)) ->
-          let i = int_of_float f in
-          if i >= 0 && i < String.length s then
-            (* TODO: which token to use for good tracing in case of error? *)
-            let s' = String.make 1 (String.get s i) in
-            Primitive (Str (s', tk))
-          else
-            error tkf
-              (spf "string bounds error: %d not within [0, %d)" i
-                 (String.length s))
-      (* Field access! A tricky operation. *)
-      | ( (V.Object (_l, (_assertsTODO, fields), _r) as obj),
-          Primitive (Str (fld, tk)) ) -> (
-          match
-            fields
-            |> List.find_opt (fun (field : V.value_field) ->
-                   fst field.fld_name = fld)
-          with
-          | None -> error tk (spf "field '%s' not present in %s" fld (sv e))
-          | Some fld -> (
-              match fld.fld_value with
-              | V.Lv _
-              | V.Unevaluated _ ->
-                  raise Impossible
-              | V.Val v -> v
-              | V.Closure (_env_closure_TODO_maybe, e) ->
-                  (* Late-bound self.
-                   * We need to do the self assignment on field access rather
-                   * than on object creation, because when objects are merged,
-                   * we need self to reference the new merged object rather
-                   * than the original. Here's such an example:
-                   *
-                   *    ({ name : self.y } + {y : 42})["name"]
-                   *
-                   * If we were to do the assignment of self before doing the
-                   * field access, we would have the following (incorrect)
-                   * evaluation where o = { name : self.y }
-                   *       ({name : o.y} + {y : 42})["name"]
-                   *       o.y
-                   *       {name : self.y}.y
-                   *       Error no such field.
-                   * However, if we only assign self on access, we get the
-                   * following (correct) evaluation
-                   *      ({ name : self.y } + {y : 42})["name"]
-                   *      { name : self.y, y : 42 }["name"]
-                   *      {name: self.y, y : 42}[y]
-                   *      42
-                   *)
-                  let locals =
-                    if !Conf_ojsonnet.implement_self then
-                      env.locals |> Map_.add V.LSelf (V.Val obj)
-                    else env.locals
-                  in
-                  eval_expr { env with locals } e))
-      | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv index)))
+  | ArrayAccess (v1, v2) -> eval_array_access env v1 v2
   | Call (e0, args) -> H.eval_call env e0 args
-  | UnaryOp ((op, tk), e) -> (
-      match op with
-      | UBang -> (
-          match eval_expr env e with
-          | Primitive (Bool (b, tk)) -> Primitive (Bool (not b, tk))
-          | v -> error tk (spf "Not a boolean for unary !: %s" (sv v)))
-      | UPlus -> (
-          match eval_expr env e with
-          | Primitive (Double (f, tk)) -> Primitive (Double (f, tk))
-          | v -> error tk (spf "Not a number for unary +: %s" (sv v)))
-      | UMinus -> (
-          match eval_expr env e with
-          | Primitive (Double (f, tk)) -> Primitive (Double (-.f, tk))
-          | v -> error tk (spf "Not a number for unary -: %s" (sv v)))
-      | UTilde -> (
-          match eval_expr env e with
-          | Primitive (Double (f, tk)) ->
-              let f = f |> Int64.of_float |> Int64.lognot |> Int64.to_float in
-              Primitive (Double (f, tk))
-          | v -> error tk (spf "Not a number for unary -: %s" (sv v))))
+  | UnaryOp ((op, tk), e) -> H.eval_unary_op env (op, tk) e
   | BinaryOp (el, (op, tk), er) -> H.eval_binary_op env el (op, tk) er
   | If (tif, e1, e2, e3) -> (
       match eval_expr env e1 with
@@ -204,6 +114,78 @@ and eval_expr (env : V.env) (e : expr) : V.t =
       | Primitive (Str (s, tk)) -> error tk (spf "ERROR: %s" s)
       | v -> error tk (spf "ERROR: %s" (tostring v)))
   | ExprTodo ((s, tk), _ast_expr) -> error tk (spf "ERROR: ExprTODO: %s" s)
+
+and eval_array_access env v1 v2 =
+  let e = eval_expr env v1 in
+  let l, index, _r = (eval_bracket eval_expr) env v2 in
+  match (e, index) with
+  | Array (_l, arr, _r), Primitive (Double (f, tkf)) ->
+      if Float.is_integer f then
+        let i = int_of_float f in
+        match i with
+        | _ when i < 0 ->
+            error tkf (spf "negative value for array index: %s" (sv index))
+        | _ when i >= 0 && i < Array.length arr ->
+            let ei = arr.(i) in
+            (* TODO: Is this the right environment to evaluate in? *)
+            to_value ei
+        | _else_ ->
+            error tkf (spf "Out of bound for array index: %s" (sv index))
+      else error tkf (spf "Not an integer: %s" (sv index))
+  | Primitive (Str (s, tk)), Primitive (Double (f, tkf)) ->
+      let i = int_of_float f in
+      if i >= 0 && i < String.length s then
+        (* TODO: which token to use for good tracing in case of error? *)
+        let s' = String.make 1 (String.get s i) in
+        Primitive (Str (s', tk))
+      else
+        error tkf
+          (spf "string bounds error: %d not within [0, %d)" i (String.length s))
+  (* Field access! A tricky operation. *)
+  | ( (V.Object (_l, (_assertsTODO, fields), _r) as obj),
+      Primitive (Str (fld, tk)) ) -> (
+      match
+        fields
+        |> List.find_opt (fun (field : V.value_field) ->
+               fst field.fld_name = fld)
+      with
+      | None -> error tk (spf "field '%s' not present in %s" fld (sv e))
+      | Some fld -> (
+          match fld.fld_value with
+          | V.Lv _
+          | V.Unevaluated _ ->
+              raise Impossible
+          | V.Val v -> v
+          | V.Closure (_env_closure_TODO_maybe, e) ->
+              (* Late-bound self.
+               * We need to do the self assignment on field access rather
+               * than on object creation, because when objects are merged,
+               * we need self to reference the new merged object rather
+               * than the original. Here's such an example:
+               *
+               *    ({ name : self.y } + {y : 42})["name"]
+               *
+               * If we were to do the assignment of self before doing the
+               * field access, we would have the following (incorrect)
+               * evaluation where o = { name : self.y }
+               *       ({name : o.y} + {y : 42})["name"]
+               *       o.y
+               *       {name : self.y}.y
+               *       Error no such field.
+               * However, if we only assign self on access, we get the
+               * following (correct) evaluation
+               *      ({ name : self.y } + {y : 42})["name"]
+               *      { name : self.y, y : 42 }["name"]
+               *      {name: self.y, y : 42}[y]
+               *      42
+               *)
+              let locals =
+                if !Conf_ojsonnet.implement_self then
+                  env.locals |> Map_.add V.LSelf (V.Val obj)
+                else env.locals
+              in
+              eval_expr { env with locals } e))
+  | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv index))
 
 (* In theory, we should just recursively evaluate f(ei), but
  * ei is actually not an expression but a lazy_value coming from
@@ -264,10 +246,6 @@ and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
   in
   let flds' = lflds' @ rflds' in
   (l, (asserts, flds'), r)
-
-(*****************************************************************************)
-(* eval_obj_inside *)
-(*****************************************************************************)
 
 and eval_obj_inside env (l, x, r) : V.t =
   match x with
