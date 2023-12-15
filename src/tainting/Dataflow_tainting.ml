@@ -1762,6 +1762,11 @@ let transfer :
         params
         |> List.fold_left
              (fun lval_env var ->
+               (* This is a *new* variable, so we clean any taint that we may have
+                * attached to it previously. This can happen when a lambda is called
+                * inside a loop. *)
+               let lval_env = Lval_env.clean lval_env (LV.lval_of_var var) in
+               (* Now check if the parameter is itself a taint source. *)
                let _, lval_env = check_tainted_var { env with lval_env } var in
                lval_env)
              in'

@@ -1,0 +1,10 @@
+taint-mode: Semgrep will now treat lambdas' parameters as fresh, so a taint rule
+that finds double-delete's should not be triggered on the code below:
+
+```cpp
+for (ListNode *node : list) {
+	list.erase(node, [](ListNode *p) {
+		delete p;
+	});
+}
+```
