@@ -1,4 +1,4 @@
-local utils = import 'utils.libsonnet';
+local utils = import '../libs/utils.libsonnet';
 {
   Negroni: {
     // Divide 3oz among the 3 ingredients.

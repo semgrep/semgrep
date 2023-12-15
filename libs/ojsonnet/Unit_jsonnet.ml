@@ -1,9 +1,8 @@
 open Common
 open Fpath_.Operators
+module Conf = Conf_ojsonnet
 module Y = Yojson.Basic
 
-let dir_pass = Fpath.v "tests/jsonnet/pass"
-let dir_pass_tutorial = Fpath.v "tests/jsonnet/tutorial/pass"
 let _dir_fail_tutorial = Fpath.v "tests/jsonnet/tutorial/fail"
 let _dir_fail = Fpath.v "tests/jsonnet/fail"
 let dir_error = Fpath.v "tests/jsonnet/errors"
@@ -36,8 +35,9 @@ let test_maker_err dir : Alcotest_ext.test list =
                  Alcotest.(check bool) "this raised an error" true true ))
   |> Alcotest_ext.pack_tests !!dir
 
-let test_maker_pass_fail dir pass_or_fail strategy : Alcotest_ext.test list =
-  Common2.glob (spf "%s/*%s" !!dir "jsonnet")
+let mk_tests (subdir : string) (strategys : Conf.eval_strategy list) :
+    Alcotest_ext.test list =
+  Common2.glob (spf "tests/jsonnet/%s/*.jsonnet" subdir)
   |> Fpath_.of_strings
   |> List_.map (fun file ->
          ( Fpath.basename file,
@@ -47,38 +47,51 @@ let test_maker_pass_fail dir pass_or_fail strategy : Alcotest_ext.test list =
                | Ok json_file -> json_file
                | Error msg -> failwith msg
              in
-             let correct =
+             let expected =
                Y.from_string (UFile.read_file comparison_file_path)
              in
 
              let ast = Parse_jsonnet.parse_program file in
              let core = Desugar_jsonnet.desugar_program file ast in
-             (* Currently slightly hacky, since we later may want to test for errors thrown *)
-             try
-               let json =
-                 Common.save_excursion Conf_ojsonnet.eval_strategy strategy
-                   (fun () ->
-                     let value_ = Eval_jsonnet.eval_program core in
-                     JSON.to_yojson (Eval_jsonnet.manifest_value value_))
-               in
-               let fmt = format_of_string "expected %s \n but got %s" in
-               let result =
-                 Printf.sprintf fmt (Y.to_string correct) (Y.to_string json)
-               in
-
-               Alcotest.(check bool) result pass_or_fail (Y.equal json correct)
-             with
-             | Eval_jsonnet_common.Error _ ->
-                 Alcotest.(check bool)
-                   "this threw an error" (not pass_or_fail) true ))
-  |> Alcotest_ext.pack_tests
-       (spf "%s (%s)" !!dir (Conf_ojsonnet.show_eval_strategy strategy))
+             strategys
+             |> List.iter (fun strategy ->
+                    let str_strategy = Conf.show_eval_strategy strategy in
+                    try
+                      let json_opt =
+                        Common.save_excursion Conf.eval_strategy strategy
+                          (fun () ->
+                            Time_limit.set_timeout
+                              ~name:("ojsonnet-" ^ str_strategy) 0.5 (fun () ->
+                                let value_ = Eval_jsonnet.eval_program core in
+                                JSON.to_yojson
+                                  (Eval_jsonnet.manifest_value value_)))
+                      in
+                      match json_opt with
+                      | None ->
+                          failwith
+                            (spf "timeout on %s with %s" !!file str_strategy)
+                      | Some json ->
+                          if not (Y.equal json expected) then
+                            failwith
+                              (spf
+                                 "mismatch for %s with strategy %s\n\
+                                 \ expected %s but got %s" !!file str_strategy
+                                 (Y.to_string expected) (Y.to_string json))
+                    with
+                    | Eval_jsonnet_common.Error _ ->
+                        failwith
+                          (spf "this threw an error with %s" str_strategy)) ))
+  |> Alcotest_ext.pack_tests (spf "tests/jsonnet/%s" subdir)
 
 let tests () : Alcotest_ext.test list =
   Alcotest_ext.pack_suites "ojsonnet"
     [
-      test_maker_pass_fail dir_pass true Conf_ojsonnet.EvalSubst;
-      test_maker_pass_fail dir_pass_tutorial true Conf_ojsonnet.EvalSubst;
+      mk_tests "pass/" [ Conf.EvalSubst; Conf.EvalEnvir ];
+      mk_tests "pass/only_subst/" [ Conf.EvalSubst ];
+      mk_tests "pass/only_envir/" [ Conf.EvalEnvir ];
+      mk_tests "tutorial/pass/" [ Conf.EvalSubst; Conf.EvalEnvir ];
+      mk_tests "tutorial/only_subst/" [ Conf.EvalSubst ];
+      mk_tests "tutorial/only_envir/" [ Conf.EvalEnvir ];
       (* TODO
            test_maker_pass_fail dir_fail false;
            test_maker_pass_fail dir_fail_tutorial false;

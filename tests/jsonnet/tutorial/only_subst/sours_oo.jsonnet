@@ -1,4 +1,4 @@
-local templates = import 'templates.libsonnet';
+local templates = import '../libs/templates.libsonnet';
 
 {
   // The template requires us to override
