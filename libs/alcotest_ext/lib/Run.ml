@@ -216,7 +216,7 @@ let to_alcotest_generic
          let xfail_note =
            match test.expected_outcome with
            | Should_succeed -> ""
-           | Should_fail reason -> sprintf " [xfail: %s]" reason
+           | Should_fail _reason -> " [xfail]"
          in
          let suite_name =
            sprintf "%s%s%s %s" test.id xfail_note (format_tags test) suite_name
