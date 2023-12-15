@@ -1,7 +1,6 @@
 from enum import auto
 from enum import Enum
 from typing import Optional
-from typing import Self
 
 
 class BetterEnum(Enum):
@@ -9,8 +8,19 @@ class BetterEnum(Enum):
     A base class for enums that provides some additional functionality.
     """
 
+    # NOTE: Ideally we could just write `from typing import Self` above,
+    # (see https://docs.python.org/3/whatsnew/3.11.html#whatsnew311-pep673)
+    # but we have to support Python 3.8, 3.9, and 3.10 for backwards compatibility,
+    # we instead import this at runtime to make mypy happy.
+    try:
+        # Python 3.11+
+        from typing import Self
+    except ImportError:
+        # Python 3.8, 3.9, 3.10
+        pass
+
     @classmethod
-    def _from(cls, raw_value: str, fallback: Optional[Self] = None) -> Self:
+    def _from(cls, raw_value: str, fallback: Optional[Self] = None) -> Self:  # type: ignore
         try:
             return cls.__getitem__(raw_value.upper())
         except KeyError:
