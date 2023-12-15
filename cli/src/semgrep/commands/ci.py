@@ -609,27 +609,31 @@ def ci(
                 "  Semgrep Cloud Platform is still processing the results of the scan, they will be available soon:"
             )
 
+        optional_ref = f"&ref={metadata.branch}" if metadata.branch else "" # todo: understand & implement other ref options available in semgrep.dev
         logger.info(
-            f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/findings"
+            f"    All Findings: https://semgrep.dev/orgs/{scan_handler.deployment_name}/findings?repo={metadata.repo_name}{optional_ref}"
         )
+        if num_blocking_findings > 0:
+            logger.info(
+                f"    Blocking Findings: https://semgrep.dev/orgs/{scan_handler.deployment_name}/findings?repo={metadata.repo_name}&action_type=block{optional_ref}"
+            )
         if "r2c-internal-project-depends-on" in scan_handler.rules:
             logger.info(
                 f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/supply-chain"
             )
 
     audit_mode = metadata.event_name in audit_on
-    if num_blocking_findings > 0:
-        if audit_mode:
-            logger.info(
-                f"  Audit mode is on for {metadata.event_name}, so exiting with code 0 even if matches found",
-            )
-            exit_code = 0
-        else:
-            logger.info("  Has findings for blocking rules so exiting with code 1")
-            exit_code = 1
-    else:
+    if num_blocking_findings == 0:
         logger.info("  No blocking findings so exiting with code 0")
         exit_code = 0
+    elif audit_mode:
+        logger.info(
+            f"  Has findings for blocking rules but Audit mode is on for {metadata.event_name}, so exiting with code 0"
+        )
+        exit_code = 0
+    else:
+        logger.info("  Has findings for blocking rules so exiting with code 1. Blocking rules may be controlled by your organization.")
+        exit_code = 1
 
     if complete_result and complete_result.app_block_override and not audit_mode:
         logger.info(
