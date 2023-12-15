@@ -1,7 +1,7 @@
 type eval_strategy = EvalSubst | EvalEnvir | EvalStrict
 [@@deriving show { with_path = false }]
 
-let eval_strategy = ref EvalSubst
+let eval_strategy = ref EvalEnvir
 
 (* set to false to debug *)
 let use_std = ref true
