@@ -68,7 +68,8 @@ let tests =
         (T.mask_line ~mask:"<MASKED RUN ID>" ~after:"This run has ID `"
            ~before:"'" ()
         @@@ T.mask_pcre_pattern ~mask:"<MASKED DURATION>" {|in [0-9]+\.[0-9]+s|}
-        )
+        @@@ T.mask_line ~after:"Called from " ()
+        @@@ T.mask_line ~after:"Re-raised at " ())
       "standard flow" test_standard_flow;
   ]
 

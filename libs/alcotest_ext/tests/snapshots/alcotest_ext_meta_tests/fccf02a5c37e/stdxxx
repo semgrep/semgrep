@@ -89,15 +89,15 @@ This run has ID `<MASKED RUN ID>'.
 └──────────────────────────────────────────────────────────────────────────────────────────────┘
 [failure] this exception is expected
           Raised at Stdlib.failwith in file "stdlib.ml", line 29, characters 17-33
-          Called from Stdlib__Fun.protect in file "fun.ml", line 33, characters 8-15
-          Re-raised at Stdlib__Fun.protect in file "fun.ml", line 38, characters 6-52
-          Called from Stdlib__Fun.protect in file "fun.ml", line 33, characters 8-15
-          Re-raised at Stdlib__Fun.protect in file "fun.ml", line 38, characters 6-52
-          Called from Alcotest_ext__Store.with_output_capture.(fun) in file "libs/alcotest_ext/lib/Store.ml", line 337, characters 4-11
-          Called from Alcotest_ext__Store.with_outcome_capture in file "libs/alcotest_ext/lib/Store.ml", line 342, characters 14-21
-          Re-raised at Alcotest_ext__Store.with_outcome_capture in file "libs/alcotest_ext/lib/Store.ml", line 349, characters 6-43
-          Called from Alcotest_engine__Core.Make.protect_test.(fun) in file "src/alcotest-engine/core.ml", line 181, characters 17-23
-          Called from Alcotest_engine__Monad.Identity.catch in file "src/alcotest-engine/monad.ml", line 24, characters 31-35
+          Called from <MASKED>
+          Re-raised at <MASKED>
+          Called from <MASKED>
+          Re-raised at <MASKED>
+          Called from <MASKED>
+          Called from <MASKED>
+          Re-raised at <MASKED>
+          Called from <MASKED>
+          Called from <MASKED>
 
 Logs saved to `~/semgrep/libs/alcotest_ext/_build/_tests/test/85349a4a9157 U+005BxfailU+003A raises exception on purposeU+005D xfail.000.output'.
  ──────────────────────────────────────────────────────────────────────────────
@@ -343,15 +343,15 @@ This run has ID `<MASKED RUN ID>'.
 └──────────────────────────────────────────────────────────────────────────────────────────────┘
 [failure] this exception is expected
           Raised at Stdlib.failwith in file "stdlib.ml", line 29, characters 17-33
-          Called from Stdlib__Fun.protect in file "fun.ml", line 33, characters 8-15
-          Re-raised at Stdlib__Fun.protect in file "fun.ml", line 38, characters 6-52
-          Called from Stdlib__Fun.protect in file "fun.ml", line 33, characters 8-15
-          Re-raised at Stdlib__Fun.protect in file "fun.ml", line 38, characters 6-52
-          Called from Alcotest_ext__Store.with_output_capture.(fun) in file "libs/alcotest_ext/lib/Store.ml", line 337, characters 4-11
-          Called from Alcotest_ext__Store.with_outcome_capture in file "libs/alcotest_ext/lib/Store.ml", line 342, characters 14-21
-          Re-raised at Alcotest_ext__Store.with_outcome_capture in file "libs/alcotest_ext/lib/Store.ml", line 349, characters 6-43
-          Called from Alcotest_engine__Core.Make.protect_test.(fun) in file "src/alcotest-engine/core.ml", line 181, characters 17-23
-          Called from Alcotest_engine__Monad.Identity.catch in file "src/alcotest-engine/monad.ml", line 24, characters 31-35
+          Called from <MASKED>
+          Re-raised at <MASKED>
+          Called from <MASKED>
+          Re-raised at <MASKED>
+          Called from <MASKED>
+          Called from <MASKED>
+          Re-raised at <MASKED>
+          Called from <MASKED>
+          Called from <MASKED>
 
 Logs saved to `~/semgrep/libs/alcotest_ext/_build/_tests/test/85349a4a9157 U+005BxfailU+003A raises exception on purposeU+005D xfail.000.output'.
  ──────────────────────────────────────────────────────────────────────────────
