@@ -54,7 +54,7 @@ and value_field = {
   fld_value : lazy_value;
 }
 
-and asserts = Core.obj_assert * env [@@deriving show]
+and asserts = Core.obj_assert * env
 
 (*****************************************************************************)
 (* Lazy values *)
@@ -97,7 +97,7 @@ and env = {
   depth : int;
 }
 
-and local_id = LSelf | LSuper | LId of string
+and local_id = LSelf | LSuper | LId of string [@@deriving show]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -107,7 +107,3 @@ let empty_obj : t =
   Object (fk, ([], []), fk)
 
 let empty_env = { locals = Map_.empty; depth = 0 }
-
-(*****************************************************************************)
-(* Program *)
-(*****************************************************************************)

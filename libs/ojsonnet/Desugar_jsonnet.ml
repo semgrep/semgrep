@@ -384,7 +384,8 @@ and desugar_obj_inside env (l, v, r) : C.expr =
              | OField x -> Right3 x)
       in
       let binds =
-        if env.within_an_object then binds
+        if env.within_an_object || not !Conf_ojsonnet.implement_dollar then
+          binds
         else binds @ [ B (("$", fk), fk, IdSpecial (Self, fk)) ]
       in
       let asserts' =
@@ -395,7 +396,7 @@ and desugar_obj_inside env (l, v, r) : C.expr =
         fields |> List_.map (fun field -> desugar_field env (field, binds))
       in
       let obj = C.Object (asserts', fields') in
-      if env.within_an_object then
+      if env.within_an_object && !Conf_ojsonnet.implement_self then
         C.Local
           ( fk,
             [
@@ -500,8 +501,8 @@ and desugar_import env v : C.expr =
 
 let desugar_expr_profiled env e = desugar_expr env e [@@profiling]
 
-let desugar_program ?(import_callback = default_callback) ?(use_std = true)
-    (file : Fpath.t) (e : program) : C.program =
+let desugar_program ?(import_callback = default_callback) (file : Fpath.t)
+    (e : program) : C.program =
   let env =
     {
       within_an_object = false;
@@ -510,7 +511,7 @@ let desugar_program ?(import_callback = default_callback) ?(use_std = true)
     }
   in
   let e =
-    if use_std then
+    if !Conf_ojsonnet.use_std then
       let std = Std_jsonnet.get_std_jsonnet () in
       (* 'local std = e_std; e' *)
       Local (fk, [ B (("std", fk), fk, std) ], fk, e)
