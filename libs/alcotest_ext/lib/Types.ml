@@ -96,6 +96,7 @@ type 'a test = {
   expected_outcome : expected_outcome;
   tags : Tag.t list;
   speed_level : Alcotest.speed_level;
+  mask_output : (string -> string) option;
   output_kind : output_kind;
   skipped : bool;
   tolerate_chdir : bool;

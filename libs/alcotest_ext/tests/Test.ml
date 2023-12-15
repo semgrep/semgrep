@@ -1,5 +1,5 @@
 (*
-   Test suite for testing alcotest_ext itself.
+   Dummy suite exercising a variety of test options.
 *)
 
 (* We should consider a shorter name for this library. *)
@@ -23,10 +23,12 @@ let tests =
       (fun () -> failwith "this exception is expected");
     t "skipped" ~skipped:true (fun () -> failwith "this shouldn't happen");
     t "chdir" ~tolerate_chdir:true (fun () -> Sys.chdir "/");
+    t ~output_kind:Stdout ~mask_output:String.lowercase_ascii "masked"
+      (fun () -> print_endline "HELLO");
   ]
 
 let () =
-  Alcotest_ext.interpret_argv ~project_name:"alcotest_ext"
+  Alcotest_ext.interpret_argv ~project_name:"alcotest_ext_dummy_tests"
     ~handle_subcommand_result:(fun exit_code _ ->
       print_endline "<handling result before exiting>";
       (* nosemgrep: forbid-exit *)

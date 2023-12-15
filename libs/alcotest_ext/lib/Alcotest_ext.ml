@@ -72,6 +72,7 @@ type 'a t = 'a T.test = {
   expected_outcome : expected_outcome;
   tags : Tag.t list;
   speed_level : Alcotest.speed_level;
+  mask_output : (string -> string) option;
   output_kind : output_kind;
   skipped : bool;
   tolerate_chdir : bool;
@@ -105,7 +106,7 @@ let update_id (test : _ t) =
   let id = String.sub md5_hex 0 12 in
   { test with id; internal_full_name }
 
-let create ?(category = []) ?(expected_outcome = Should_succeed)
+let create ?(category = []) ?(expected_outcome = Should_succeed) ?mask_output
     ?(output_kind = Ignore_output) ?(skipped = false) ?(speed_level = `Quick)
     ?(tags = []) ?(tolerate_chdir = false) name func =
   {
@@ -117,6 +118,7 @@ let create ?(category = []) ?(expected_outcome = Should_succeed)
     expected_outcome;
     tags;
     speed_level;
+    mask_output;
     output_kind;
     skipped;
     tolerate_chdir;
@@ -125,8 +127,8 @@ let create ?(category = []) ?(expected_outcome = Should_succeed)
 
 let opt option default = Option.value option ~default
 
-let update ?category ?expected_outcome ?func ?name ?output_kind ?skipped
-    ?speed_level ?tags ?tolerate_chdir old =
+let update ?category ?expected_outcome ?func ?mask_output ?name ?output_kind
+    ?skipped ?speed_level ?tags ?tolerate_chdir old =
   {
     id = "";
     internal_full_name = "";
@@ -137,11 +139,25 @@ let update ?category ?expected_outcome ?func ?name ?output_kind ?skipped
     expected_outcome = opt expected_outcome old.expected_outcome;
     tags = opt tags old.tags;
     speed_level = opt speed_level old.speed_level;
+    mask_output = opt mask_output old.mask_output;
     output_kind = opt output_kind old.output_kind;
     skipped = opt skipped old.skipped;
     tolerate_chdir = opt tolerate_chdir old.tolerate_chdir;
   }
   |> update_id
+
+let mask_line ?(mask = "<MASKED>") ?(after = "") ?(before = "") () =
+  let pat =
+    Printf.sprintf {|%s[^\n]*%s|} (Re.Pcre.quote after) (Re.Pcre.quote before)
+  in
+  let rex = Re.Pcre.regexp pat in
+  let subst _matched = after ^ mask ^ before in
+  fun subj -> Re.Pcre.substitute ~rex ~subst subj
+
+let mask_pcre_pattern ?(mask = "<MASKED>") pat =
+  let rex = Re.Pcre.regexp pat in
+  let subst _matched = mask in
+  fun subj -> Re.Pcre.substitute ~rex ~subst subj
 
 (* Allow conversion from Lwt to synchronous function *)
 let update_func (test : 'a t) func : 'b t = { test with func }

@@ -41,18 +41,6 @@ val get_expectation_workspace : unit -> string
 val get_status : 'a Types.test -> Types.status
 
 (*
-   Save a test result, typically from a test that was just run.
-
-   Overwrites any previous result silently.
-*)
-val save_result : 'a Types.test -> Types.result -> unit
-
-(*
-   Remove the result from a possible previous run.
-*)
-val delete_result : 'a Types.test -> unit
-
-(*
    Summarize the status of a test.
 
    The option 'accept_missing_expected_output' is for the special case of

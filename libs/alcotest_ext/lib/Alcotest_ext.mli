@@ -47,16 +47,16 @@ type status_summary = {
   has_expected_output : bool;
 }
 
+(****************************************************************************)
+(* Main interface *)
+(****************************************************************************)
+
 type output_kind =
   | Ignore_output
   | Stdout
   | Stderr
   | Merged_stdout_stderr
   | Separate_stdout_stderr
-
-(****************************************************************************)
-(* Main interface *)
-(****************************************************************************)
 
 module Tag : module type of Tag
 
@@ -101,6 +101,9 @@ type 'a t = private {
   tags : Tag.t list; (* tags must be declared once using 'create_tag' *)
   (* special "tag" supported directly by Alcotest: *)
   speed_level : Alcotest.speed_level;
+  (* An optional function to rewrite any output data so as to mask the
+     variable parts. *)
+  mask_output : (string -> string) option;
   output_kind : output_kind;
   (* The 'skipped' property causes a test to be skipped by Alcotest but still
      shown as "[SKIP]" rather than being omitted. *)
@@ -140,6 +143,7 @@ type lwt_test = unit Lwt.t t
 val create :
   ?category:string list ->
   ?expected_outcome:expected_outcome ->
+  ?mask_output:(string -> string) ->
   ?output_kind:output_kind ->
   ?skipped:bool ->
   ?speed_level:Alcotest.speed_level ->
@@ -158,6 +162,7 @@ val update :
   ?category:string list ->
   ?expected_outcome:expected_outcome ->
   ?func:(unit -> 'a) ->
+  ?mask_output:(string -> string) option ->
   ?name:string ->
   ?output_kind:output_kind ->
   ?skipped:bool ->
@@ -166,6 +171,15 @@ val update :
   ?tolerate_chdir:bool ->
   'a t ->
   'a t
+
+(*
+   String replacement utilities to be used for masking the variable parts
+   of captured output. This is for the 'mask_output' option of 'create'.
+*)
+val mask_line :
+  ?mask:string -> ?after:string -> ?before:string -> unit -> string -> string
+
+val mask_pcre_pattern : ?mask:string -> string -> string -> string
 
 (*
    Special case of the 'update' function that allows a different type
@@ -238,13 +252,15 @@ val sort : 'a t list -> 'a t list
 (*
    Convert a test suite to be run with the Alcotest.run which provides
    a command-line interface with the 'test' and 'list' subcommands only.
-   Requires a prior call to 'init_settings'.
+
+   The outcome of tests that are expected to fail (Should_fail) will
+   be flipped so as to produce OK iff the test function raises an exception
+   as expected.
 *)
 val to_alcotest : test list -> unit Alcotest.test list
 
 (*
    Same as 'to_alcotest' but with Lwt promises.
-   Requires a prior call to 'init_settings'.
 
    TODO: Do we really need a special type for Lwt tests?
 *)

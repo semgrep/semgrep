@@ -64,6 +64,11 @@ let with_file_out path f =
 let read_file path : (string, string) Result.t =
   with_file_in path (fun ic -> really_input_string ic (in_channel_length ic))
 
+let read_file_exn path : string =
+  match read_file path with
+  | Ok data -> data
+  | Error msg -> failwith msg
+
 let write_file path data = with_file_out path (fun oc -> output_string oc data)
 let remove_file path = if Sys.file_exists path then Sys.remove path
 
@@ -160,10 +165,15 @@ let get_outcome (test : _ T.test) : (T.outcome, string) Result.t =
   let path = get_outcome_path test in
   read_file path |> Result.map (outcome_of_string path)
 
-let clear_outcome (test : _ T.test) = test |> get_outcome_path |> remove_file
+(* File names used to the test output, possibly after masking the variable
+   parts. *)
 let stdout_filename = "stdout"
 let stderr_filename = "stderr"
 let stdxxx_filename = "stdxxx"
+
+(* stdout.orig, stderr.orig, etc. obtained after masking the variable parts
+   of the test output as specified by the option 'mask_output' function. *)
+let orig_suffix = ".orig"
 
 let names_of_output (output : T.output_kind) : string list =
   match output with
@@ -182,15 +192,6 @@ let get_output_paths (test : _ T.test) =
 let get_output (test : _ T.test) =
   test |> get_output_paths |> list_map read_file
 
-let set_output (test : _ T.test) data =
-  let paths = test |> get_output_paths in
-  if List.length data <> List.length paths then
-    invalid_arg "Store.set_output_data"
-  else List.iter2 (fun path data -> write_file path data) paths data
-
-let clear_output (test : _ T.test) =
-  test |> get_output_paths |> List.iter remove_file
-
 let get_expected_output_path (test : _ T.test) filename =
   get_expectation_workspace () // test.id // filename
 
@@ -205,7 +206,12 @@ let set_expected_output (test : _ T.test) (data : string list) =
   let paths = test |> get_expected_output_paths in
   if List.length data <> List.length paths then
     invalid_arg "Store.set_expected_output_data"
-  else List.iter2 (fun path data -> write_file path data) paths data
+  else
+    List.iter2
+      (fun path data ->
+        Helpers.make_dir_if_not_exists (Filename.dirname path);
+        write_file path data)
+      paths data
 
 let clear_expected_output (test : _ T.test) =
   test |> get_expected_output_paths |> List.iter remove_file
@@ -281,25 +287,54 @@ let with_redirect_to_file from filename func () =
       Fun.protect ~finally:(fun () -> flush from) func)
     ()
 
+(* Iff the test is configured to rewrite its output so as to mask the
+   unpredicable parts, we rewrite the standard output file and we make a
+   backup of the original. *)
+let mask_output (test : unit T.test) =
+  match test.mask_output with
+  | None -> ()
+  | Some rewrite_string ->
+      get_output_paths test
+      |> List.iter (fun std_path ->
+             let backup_path = std_path ^ orig_suffix in
+             if Sys.file_exists backup_path then Sys.remove backup_path;
+             Sys.rename std_path backup_path;
+             let orig_data = read_file_exn backup_path in
+             let masked_data =
+               try rewrite_string orig_data with
+               | e ->
+                   failwith
+                     (sprintf
+                        "Exception raised by the test's mask_output function: \
+                         %s"
+                        (Printexc.to_string e))
+             in
+             write_file std_path masked_data)
+
 let with_output_capture (test : unit T.test) func =
-  match test.output_kind with
-  | Ignore_output -> func
-  | Stdout ->
-      with_redirect_to_file stdout (get_output_path test stdout_filename) func
-  | Stderr ->
-      with_redirect_to_file stderr (get_output_path test stderr_filename) func
-  | Merged_stdout_stderr ->
-      (* redirect stderr to stdout, then redirect stdout to stdxxx file *)
-      with_redirect ~from:stderr ~to_:stdout
-        (with_redirect_to_file stdout
-           (get_output_path test stdxxx_filename)
-           func)
-  | Separate_stdout_stderr ->
-      with_redirect_to_file stdout
-        (get_output_path test stdout_filename)
-        (with_redirect_to_file stderr
-           (get_output_path test stderr_filename)
-           func)
+  let func =
+    match test.output_kind with
+    | Ignore_output -> func
+    | Stdout ->
+        with_redirect_to_file stdout (get_output_path test stdout_filename) func
+    | Stderr ->
+        with_redirect_to_file stderr (get_output_path test stderr_filename) func
+    | Merged_stdout_stderr ->
+        (* redirect stderr to stdout, then redirect stdout to stdxxx file *)
+        with_redirect ~from:stderr ~to_:stdout
+          (with_redirect_to_file stdout
+             (get_output_path test stdxxx_filename)
+             func)
+    | Separate_stdout_stderr ->
+        with_redirect_to_file stdout
+          (get_output_path test stdout_filename)
+          (with_redirect_to_file stderr
+             (get_output_path test stderr_filename)
+             func)
+  in
+  fun () ->
+    func ();
+    mask_output test
 
 let with_outcome_capture (test : unit T.test) func () =
   try
@@ -360,19 +395,6 @@ let captured_output_of_data (kind : T.output_kind) (data : string list) :
       _ ) ->
       assert false
 
-let data_of_captured_output (output : T.captured_output) : string list =
-  match output with
-  | Ignored -> []
-  | Captured_stdout out -> [ out ]
-  | Captured_stderr err -> [ err ]
-  | Captured_merged data -> [ data ]
-  | Captured_stdout_stderr (out, err) -> [ out; err ]
-
-let save_result (test : _ T.test) (res : T.result) =
-  let data = data_of_captured_output res.captured_output in
-  set_outcome test res.outcome;
-  set_output test data
-
 let get_expectation (test : _ T.test) : T.expectation =
   let expected_output =
     test |> get_expected_output |> list_result_of_result_list
@@ -396,10 +418,6 @@ let get_status (test : _ T.test) : T.status =
   let expectation = get_expectation test in
   let result = get_result test in
   { expectation; result }
-
-let delete_result (test : _ T.test) =
-  clear_outcome test;
-  clear_output test
 
 let status_summary_of_status (status : T.status) : T.status_summary =
   match status.result with

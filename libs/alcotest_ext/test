@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 #
-# Run the test executable from the current directory.
+# Run the dummy test executable from the current directory.
 #
 # This script is a substitute for a symbolic link to the executable created
 # by dune. The problems we're working around are:

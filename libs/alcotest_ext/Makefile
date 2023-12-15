@@ -8,9 +8,9 @@ build:
 
 .PHONY: test
 test: build
-	./test
+	./meta-test
 
 # The test program offers various options. This is one of them.
 .PHONY: retest
 retest: build
-	./test --lazy
+	./meta-test --lazy
