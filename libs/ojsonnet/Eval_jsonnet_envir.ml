@@ -1,7 +1,7 @@
 (* Yoann Padioleau
  * Sophia Roshal
  *
- * Copyright (C) 2022 Semgrep Inc.
+ * Copyright (C) 2022-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -20,6 +20,7 @@ module A = AST_jsonnet
 module J = JSON
 module V = Value_jsonnet
 open Eval_jsonnet_common
+module H = Eval_jsonnet_common
 
 (*****************************************************************************)
 (* Prelude *)
@@ -68,18 +69,7 @@ and to_lazy_value env x : V.lazy_value = V.Closure (env, x)
 
 and eval_expr (env : V.env) (e : expr) : V.t =
   match e with
-  | L lit ->
-      let prim =
-        match lit with
-        | A.Null tk -> V.Null tk
-        | A.Bool (b, tk) -> V.Bool (b, tk)
-        | A.Str x -> V.Str (A.string_of_string_ x)
-        | A.Number (s, tk) ->
-            (* TODO: double check things *)
-            let f = float_of_string s in
-            V.Double (f, tk)
-      in
-      V.Primitive prim
+  | L lit -> H.eval_literal env lit
   (* lazy evaluation of Array elements and Lambdas *)
   | Array (l, xs, r) ->
       let elts =
@@ -99,7 +89,7 @@ and eval_expr (env : V.env) (e : expr) : V.t =
            (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, [ meth ], _))), _))
          as e0),
         (l, args, r) ) ->
-      eval_std_method env e0 meth (l, args, r)
+      H.eval_std_method env e0 meth (l, args, r)
   | Local (_tlocal, binds, _tsemi, e) ->
       let locals =
         binds
@@ -182,7 +172,7 @@ and eval_expr (env : V.env) (e : expr) : V.t =
                   in
                   eval_expr { env with locals } e))
       | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv index)))
-  | Call (e0, args) -> eval_call env e0 args
+  | Call (e0, args) -> H.eval_call env e0 args
   | UnaryOp ((op, tk), e) -> (
       match op with
       | UBang -> (
@@ -215,127 +205,6 @@ and eval_expr (env : V.env) (e : expr) : V.t =
       | v -> error tk (spf "ERROR: %s" (tostring v)))
   | ExprTodo ((s, tk), _ast_expr) -> error tk (spf "ERROR: ExprTODO: %s" s)
 
-and eval_std_method env e0 (method_str, tk) (l, args, r) =
-  match (method_str, args) with
-  | "type", [ Arg e ] ->
-      log_call env ("std." ^ method_str) l;
-      let v = eval_expr env e in
-      let s = std_type v in
-      Primitive (Str (s, l))
-  (* this method is called in std.jsonnet equals()::, and calls to
-   * this equals() are generated in Desugar_jsonnet when
-   * desugaring the == operator.
-   *)
-  | "type", _else_ ->
-      error tk
-        (spf "Improper #arguments to std.type: expected 1, got %d"
-           (List.length args))
-  | "primitiveEquals", [ Arg e; Arg e' ] ->
-      log_call env ("std." ^ method_str) l;
-      let v = eval_expr env e in
-      let v' = eval_expr env e' in
-      let b = std_primivite_equals v v' in
-      Primitive (Bool (b, l))
-  | "primitiveEquals", _else_ ->
-      error tk
-        (spf "Improper #arguments to std.primitiveEquals: expected 2, got %d"
-           (List.length args))
-  | "length", [ Arg e ] -> (
-      log_call env ("std." ^ method_str) l;
-      match eval_expr env e with
-      | Primitive (Str (s, tk)) ->
-          let i = String.length s in
-          Primitive (Double (float_of_int i, tk))
-      | Array (_, arr, _) ->
-          let i = Array.length arr in
-          Primitive (Double (float_of_int i, tk))
-      | V.Object (_, (_asserts, flds), _) ->
-          let i = List.length flds in
-          (* TODO: in the spec they use std.objectFieldsEx *)
-          Primitive (Double (float_of_int i, tk))
-      | v ->
-          error l
-            (spf "length operates on strings, objects, and arrays, got %s"
-               (sv v)))
-  | "makeArray", [ Arg e; Arg e' ] -> (
-      log_call env ("std." ^ method_str) l;
-      match (eval_expr env e, eval_expr env e') with
-      | Primitive (Double (n, tk)), Lambda fdef ->
-          if Float.is_integer n then
-            let n = Float.to_int n in
-            let e i =
-              Call
-                ( Lambda fdef,
-                  (fk, [ Arg (L (Number (string_of_int i, fk))) ], fk) )
-            in
-            Array (fk, Array.init n (fun i -> to_lazy_value env (e i)), fk)
-          else error tk (spf "Got non-integer %f in std.makeArray" n)
-      | v, _e' ->
-          error tk (spf "Improper arguments to std.makeArray: %s" (sv v)))
-  | "makeArray", _else_ ->
-      error tk
-        (spf "Improper number of arguments to std.makeArray: expected 2, got %d"
-           (List.length args))
-  | "filter", [ Arg e; Arg e' ] -> (
-      match (eval_expr env e, eval_expr env e') with
-      | Lambda f, Array (l, eis, r) ->
-          (* note that we do things lazily even here, so we still
-           * return an Array with the same lazy value elements in it,
-           * but just filtered
-           *)
-          let elts' =
-            (* TODO? use Array.to_seqi instead? *)
-            eis |> Array.to_list |> List_.index_list
-            |> List.filter_map (fun (ei, ji) ->
-                   match eval_std_filter_element env tk f ei with
-                   | Primitive (Bool (false, _)), _ -> None
-                   | Primitive (Bool (true, _)), _ -> Some ji
-                   | v ->
-                       error tk
-                         (spf "filter function must return boolean, got: %s"
-                            (sv (fst v))))
-            |> Array.of_list
-            |> Array.map (fun idx -> eis.(idx))
-          in
-          Array (l, elts', r)
-      | v1, v2 ->
-          error tk
-            (spf
-               "Builtin function filter expected (function, array) but got \
-                (%s, %s)"
-               (sv v1) (sv v2)))
-  | "filter", _else_ ->
-      error tk
-        (spf "Improper number of arguments to std.filter: expected 2, got %d"
-           (List.length args))
-  | "objectHasEx", [ Arg e; Arg e'; Arg e'' ] -> (
-      match (eval_expr env e, eval_expr env e', eval_expr env e'') with
-      | V.Object o, Primitive (Str (s, _)), Primitive (Bool (b, _)) ->
-          let _, (_asserts, flds), _ = o in
-          let eltopt =
-            flds |> List.find_opt (fun { V.fld_name; _ } -> fst fld_name = s)
-          in
-          let b =
-            match eltopt with
-            | None -> false
-            | Some { fld_hidden = visibility, _; _ } ->
-                visibility <> A.Hidden || b
-          in
-          Primitive (Bool (b, tk))
-      | v1, v2, v3 ->
-          error tk
-            (spf
-               "Builtin function objectHasEx expected (object, string, \
-                boolean), got (%s, %s, %s)"
-               (sv v1) (sv v2) (sv v3)))
-  | "objectHasEx", _else_ ->
-      error tk
-        (spf
-           "Improper number of arguments to std.objectHasEx: expected 3, got %d"
-           (List.length args))
-  (* default to regular call, handled by std.jsonnet code hopefully *)
-  | _else_ -> eval_call env e0 (l, args, r)
-
 (* In theory, we should just recursively evaluate f(ei), but
  * ei is actually not an expression but a lazy_value coming from
  * a array, so we can't just call eval_call(). The code below is
@@ -349,49 +218,8 @@ and eval_std_filter_element (env : V.env) (tk : tok) (f : function_definition)
       let locals = Map_.add (V.LId (fst id)) ei env.locals in
       (* similar to eval_call *)
       (*TODO: Is the environment correct? *)
-      (eval_expr { (*env with*) depth = env.depth + 1; locals } f_body, env)
+      (eval_expr { env with depth = env.depth + 1; locals } f_body, env)
   | _else_ -> error tk "filter function takes 1 parameter"
-
-and eval_call env e0 (largs, args, _rargs) =
-  match eval_expr env e0 with
-  | Lambda { f_tok = _; f_params = lparams, params, rparams; f_body = eb } ->
-      let fstr =
-        match e0 with
-        | Id (s, _) -> s
-        | ArrayAccess
-            ( Id (obj, _),
-              (_, L (Str (None, DoubleQuote, (_, [ (meth, _) ], _))), _) ) ->
-            spf "%s.%s" obj meth
-        | _else_ -> "<unknown>"
-      in
-      log_call env fstr largs;
-      (* the named_args are supposed to be the last one *)
-      let basic_args, named_args =
-        args
-        |> Either_.partition_either (function
-             | Arg ei -> Left ei
-             | NamedArg (id, _tk, ei) -> Right (fst id, ei))
-      in
-      (* opti? use a hashtbl? but for < 5 elts, probably worse? *)
-      let hnamed_args = Hashtbl_.hash_of_list named_args in
-      let basic_args = Array.of_list basic_args in
-      let m = Array.length basic_args in
-      let binds =
-        params
-        |> List_.mapi (fun i (P (id, teq, ei')) ->
-               let ei'' =
-                 match i with
-                 | _ when i < m -> basic_args.(i) (* ei *)
-                 | _ when Hashtbl.mem hnamed_args (fst id) ->
-                     Hashtbl.find hnamed_args (fst id)
-                 | _else_ -> ei'
-               in
-               B (id, teq, ei''))
-      in
-      eval_expr
-        { env with depth = env.depth + 1 }
-        (Local (lparams, binds, rparams, eb))
-  | v -> error largs (spf "not a function: %s" (sv v))
 
 and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
   let l, (lassert, lflds), _r = objl in
@@ -691,4 +519,12 @@ let eval_program_with_env (env : V.env) (e : Core_jsonnet.program) : V.t =
 [@@profiling]
 
 let eval_program (e : Core_jsonnet.program) : V.t =
-  eval_program_with_env V.empty_env e
+  eval_program_with_env
+    {
+      V.empty_env with
+      eval_expr;
+      eval_std_filter_element;
+      to_lazy_value;
+      eval_expr_for_call = eval_expr;
+    }
+    e

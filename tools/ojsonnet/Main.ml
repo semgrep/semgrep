@@ -103,7 +103,7 @@ let term : conf Term.t =
         | false, false, false -> default_eval_strategy
         | true, false, false -> Conf_ojsonnet.EvalEnvir
         | false, true, false -> Conf_ojsonnet.EvalSubst
-        | false, false, true -> Conf_ojsonnet.EvalStrict
+        | false, false, true -> failwith "TODO: no more strict evaluator"
         | _else_ ->
             failwith "option mutually exclusive --envir/--strict/--subst");
     }

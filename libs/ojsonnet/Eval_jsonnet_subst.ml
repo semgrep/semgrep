@@ -14,10 +14,11 @@
  *)
 open Common
 open Core_jsonnet
-open Eval_jsonnet_common
-module V = Value_jsonnet
 module A = AST_jsonnet
 module J = JSON
+module V = Value_jsonnet
+open Eval_jsonnet_common
+module H = Eval_jsonnet_common
 
 (*****************************************************************************)
 (* Prelude *)
@@ -105,7 +106,7 @@ let rec parameter_list_contains parameters id =
       if id = name then true else parameter_list_contains t id
   | [] -> false
 
-let to_lazy_value e : V.lazy_value = Unevaluated e
+let to_lazy_value _env e : V.lazy_value = Unevaluated e
 
 (*****************************************************************************)
 (* Subst *)
@@ -330,23 +331,14 @@ let rec to_value env (v : V.lazy_value) : V.t =
  *)
 and eval_expr env expr =
   match expr with
-  | L v ->
-      let prim =
-        match v with
-        | A.Null tk -> V.Null tk
-        | A.Bool (b, tk) -> V.Bool (b, tk)
-        | A.Str x -> V.Str (A.string_of_string_ x)
-        | A.Number (s, tk) ->
-            (* TODO: double check things *)
-            let f = float_of_string s in
-            V.Double (f, tk)
-      in
-      V.Primitive prim
+  | L lit -> H.eval_literal env lit
   (* lazy evaluation of Array elements and Lambdas *)
   | Array (l, xs, r) ->
-      let elts = xs |> List_.map (fun x -> to_lazy_value x) |> Array.of_list in
+      let elts =
+        xs |> List_.map (fun x -> to_lazy_value env x) |> Array.of_list
+      in
       Array (l, elts, r)
-  | Lambda v -> Lambda v
+  | Lambda f -> Lambda f
   | O v -> eval_obj_inside env v
   | Id (name, tk) -> error tk ("trying to evaluate just a variable: " ^ name)
   | IdSpecial (_, tk) -> error tk "evaluating just a keyword"
@@ -355,7 +347,7 @@ and eval_expr env expr =
            (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, [ meth ], _))), _))
          as e0),
         (l, args, r) ) ->
-      eval_std_method env e0 meth (l, args, r)
+      H.eval_std_method env e0 meth (l, args, r)
   | Local (_tlocal, binds, _tsemi, e) ->
       let new_e =
         List.fold_left
@@ -366,7 +358,7 @@ and eval_expr env expr =
       eval_expr env new_e
   | ArrayAccess (v1, v2) -> (
       let e = eval_expr env v1 in
-      let l, index, _r = eval_bracket eval_expr env v2 in
+      let l, index, _r = (eval_bracket eval_expr) env v2 in
       match (e, index) with
       | Array (_l, arr, _r), Primitive (Double (f, tkf)) ->
           if Float.is_integer f then
@@ -438,7 +430,7 @@ and eval_expr env expr =
                   in
                   eval_expr env new_e))
       | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv index)))
-  | Call (e0, args) -> eval_call env e0 args
+  | Call (e0, args) -> H.eval_call env e0 args
   | UnaryOp ((op, tk), e) -> (
       match op with
       | UBang -> (
@@ -484,7 +476,7 @@ and eval_binary_op env el (op, tk) er =
       | Primitive (Str (s, tk)), v -> Primitive (Str (s ^ tostring v, tk))
       | v, Primitive (Str (s, tk)) -> Primitive (Str (tostring v ^ s, tk))
       | V.Object objl, V.Object objr ->
-          let obj = eval_plus_object tk objl objr in
+          let obj = eval_plus_object env tk objl objr in
 
           V.Object obj
       | v1, v2 ->
@@ -569,66 +561,25 @@ and eval_binary_op env el (op, tk) er =
             (spf "binary operator wrong operands: %s %s %s" (sv v1)
                (Tok.content_of_tok tk) (sv v2)))
 
-and eval_call env e0 (largs, args, _rargs) =
-  (*Check if this is a standard library call. If it is, call the environment
-   * model evaluation to get more efficiency (for example, on
-   * array_comprehensions2.jsonnet, this optimization creates an approx 100x
-   * speedup (11 seconds down to 0.1)
-   *)
-  let v0 =
-    match e0 with
-    | ArrayAccess
-        (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, [ _ ], _))), _)) ->
-        (* set locals so that "std" shows up in the environment when evaluating *)
-        let e0_and_std =
-          Local (fk, [ B (("std", fk), fk, Lazy.force std) ], fk, e0)
-        in
-        (* !!! Switch to Eval_jsonnet !!! but just to access the code of the
-         * function; the function itself is still executed below
-         * using the subst model.
-         *)
-        Eval_jsonnet_envir.eval_program e0_and_std
-    | _ -> eval_expr env e0
-  in
-  match v0 with
-  | Lambda { f_tok = _; f_params = lparams, params, rparams; f_body = eb } ->
-      let fstr =
-        match e0 with
-        | Id (s, _) -> s
-        | ArrayAccess
-            ( Id (obj, _),
-              (_, L (Str (None, DoubleQuote, (_, [ (meth, _) ], _))), _) ) ->
-            spf "%s.%s" obj meth
-        | _else_ -> "<unknown>"
+(* Check if this is a standard library call. If it is, call the environment
+ * model evaluation to get more efficiency (for example, on
+ * array_comprehensions2.jsonnet, this optimization creates an approx 100x
+ * speedup (11 seconds down to 0.1)
+ *)
+and eval_expr_for_call env e0 =
+  match e0 with
+  | ArrayAccess
+      (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, [ _ ], _))), _)) ->
+      (* set locals so that "std" shows up in the environment when evaluating *)
+      let e0_and_std =
+        Local (fk, [ B (("std", fk), fk, Lazy.force std) ], fk, e0)
       in
-      log_call env fstr largs;
-      (* the named_args are supposed to be the last one *)
-      let basic_args, named_args =
-        args
-        |> Either_.partition_either (function
-             | Arg ei -> Left ei
-             | NamedArg (id, _tk, ei) -> Right (fst id, ei))
-      in
-      (* opti? use a hashtbl? but for < 5 elts, probably worse? *)
-      let hnamed_args = Hashtbl_.hash_of_list named_args in
-      let basic_args = Array.of_list basic_args in
-      let m = Array.length basic_args in
-      let binds =
-        params
-        |> List_.mapi (fun i (P (id, teq, ei')) ->
-               let ei'' =
-                 match i with
-                 | _ when i < m -> basic_args.(i) (* ei *)
-                 | _ when Hashtbl.mem hnamed_args (fst id) ->
-                     Hashtbl.find hnamed_args (fst id)
-                 | _else_ -> ei'
-               in
-               B (id, teq, ei''))
-      in
-      eval_expr
-        { env with depth = env.depth + 1 }
-        (Local (lparams, binds, rparams, eb))
-  | v -> error largs (spf "not a function: %s" (sv v))
+      (* !!! Switch to Eval_jsonnet !!! but just to access the code of the
+       * function; the function itself is still executed below
+       * using the subst model.
+       *)
+      Eval_jsonnet_envir.eval_program e0_and_std
+  | _ -> eval_expr env e0
 
 (* -------------------------------------- *)
 (* Std builtins *)
@@ -668,140 +619,20 @@ and eval_std_cmp env tk (el : expr) (er : expr) : cmp =
   in
   eval_std_cmp_value_ (eval_expr env el) (eval_expr env er)
 
-and eval_std_method env e0 (method_str, tk) (l, args, r) =
-  match (method_str, args) with
-  | "type", [ Arg e ] ->
-      log_call env ("std." ^ method_str) l;
-      let v = eval_expr env e in
-      let s = std_type v in
-      Primitive (Str (s, l))
-  (* this method is called in std.jsonnet equals()::, and calls to
-   * this equals() are generated in Desugar_jsonnet when
-   * desugaring the == operator.
-   *)
-  | "type", _else_ ->
-      error tk
-        (spf "Improper #arguments to std.type: expected 1, got %d"
-           (List.length args))
-  | "primitiveEquals", [ Arg e; Arg e' ] ->
-      log_call env ("std." ^ method_str) l;
-      let v = eval_expr env e in
-      let v' = eval_expr env e' in
-      let b = std_primivite_equals v v' in
-      Primitive (Bool (b, l))
-  | "primitiveEquals", _else_ ->
-      error tk
-        (spf "Improper #arguments to std.primitiveEquals: expected 2, got %d"
-           (List.length args))
-  | "length", [ Arg e ] -> (
-      log_call env ("std." ^ method_str) l;
-      match eval_expr env e with
-      | Primitive (Str (s, tk)) ->
-          let i = String.length s in
-          Primitive (Double (float_of_int i, tk))
-      | Array (_, arr, _) ->
-          let i = Array.length arr in
-          Primitive (Double (float_of_int i, tk))
-      | V.Object (_, (_asserts, flds), _) ->
-          let i = List.length flds in
-          (* TODO: in the spec they use std.objectFieldsEx *)
-          Primitive (Double (float_of_int i, tk))
-      | v ->
-          error l
-            (spf "length operates on strings, objects, and arrays, got %s"
-               (sv v)))
-  | "makeArray", [ Arg e; Arg e' ] -> (
-      log_call env ("std." ^ method_str) l;
-      match (eval_expr env e, eval_expr env e') with
-      | Primitive (Double (n, tk)), Lambda fdef ->
-          if Float.is_integer n then
-            let n = Float.to_int n in
-            let e i =
-              Call
-                ( Lambda fdef,
-                  (fk, [ Arg (L (Number (string_of_int i, fk))) ], fk) )
-            in
-            Array (fk, Array.init n (fun i -> to_lazy_value (e i)), fk)
-          else error tk (spf "Got non-integer %f in std.makeArray" n)
-      | v, _e' ->
-          error tk (spf "Improper arguments to std.makeArray: %s" (sv v)))
-  | "makeArray", _else_ ->
-      error tk
-        (spf "Improper number of arguments to std.makeArray: expected 2, got %d"
-           (List.length args))
-  | "filter", [ Arg e; Arg e' ] -> (
-      match (eval_expr env e, eval_expr env e') with
-      | Lambda f, Array (l, eis, r) ->
-          (* note that we do things lazily even here, so we still
-           * return an Array with the same lazy value elements in it,
-           * but just filtered
-           *)
-          let elts' =
-            (* TODO? use Array.to_seqi instead? *)
-            eis |> Array.to_list |> List_.index_list
-            |> List.filter_map (fun (ei, ji) ->
-                   match eval_std_filter_element env tk f ei with
-                   | Primitive (Bool (false, _)) -> None
-                   | Primitive (Bool (true, _)) -> Some ji
-                   | v ->
-                       error tk
-                         (spf "filter function must return boolean, got: %s"
-                            (sv v)))
-            |> Array.of_list
-            |> Array.map (fun idx -> eis.(idx))
-          in
-          Array (l, elts', r)
-      | v1, v2 ->
-          error tk
-            (spf
-               "Builtin function filter expected (function, array) but got \
-                (%s, %s)"
-               (sv v1) (sv v2)))
-  | "filter", _else_ ->
-      error tk
-        (spf "Improper number of arguments to std.filter: expected 2, got %d"
-           (List.length args))
-  | "objectHasEx", [ Arg e; Arg e'; Arg e'' ] -> (
-      match (eval_expr env e, eval_expr env e', eval_expr env e'') with
-      | V.Object o, Primitive (Str (s, _)), Primitive (Bool (b, _)) ->
-          let _, (_asserts, flds), _ = o in
-          let eltopt =
-            flds |> List.find_opt (fun { V.fld_name; _ } -> fst fld_name = s)
-          in
-          let b =
-            match eltopt with
-            | None -> false
-            | Some { fld_hidden = visibility, _; _ } ->
-                visibility <> A.Hidden || b
-          in
-          Primitive (Bool (b, tk))
-      | v1, v2, v3 ->
-          error tk
-            (spf
-               "Builtin function objectHasEx expected (object, string, \
-                boolean), got (%s, %s, %s)"
-               (sv v1) (sv v2) (sv v3)))
-  | "objectHasEx", _else_ ->
-      error tk
-        (spf
-           "Improper number of arguments to std.objectHasEx: expected 3, got %d"
-           (List.length args))
-  (* default to regular call, handled by std.jsonnet code hopefully *)
-  | _else_ -> eval_call env e0 (l, args, r)
-
 and eval_std_filter_element env (tk : tok) (f : function_definition)
-    (ei : V.lazy_value) : V.t =
+    (ei : V.lazy_value) : V.t * V.env =
   match f with
-  | { f_params = _l, [ P (_id, _eq, _default) ], _r; _ } -> (
-      (* similar to eval_expr for Local *)
-      (* similar to eval_call *)
-      (*TODO: Is the environment correct? *)
-      match ei with
-      | Val _
-      | Lv _
-      | Closure _ ->
-          error (Tok.unsafe_fake_tok "oof") "shouldn't have been evaluated"
-      | Unevaluated e -> eval_call env (Lambda f) (_l, [ Arg e ], _r))
+  | { f_params = _l, [ P (_id, _eq, _default) ], _r; _ } ->
+      ( (* similar to eval_expr for Local *)
+        (* similar to eval_call *)
+        (*TODO: Is the environment correct? *)
+        (match ei with
+        | Val _
+        | Lv _
+        | Closure _ ->
+            error (Tok.unsafe_fake_tok "oof") "shouldn't have been evaluated"
+        | Unevaluated e -> eval_call env (Lambda f) (_l, [ Arg e ], _r)),
+        env )
   | _else_ -> error tk "filter function takes 1 parameter"
 
 and eval_obj_inside env (l, x, r) : V.t =
@@ -827,17 +658,17 @@ and eval_obj_inside env (l, x, r) : V.t =
                         * We do not bind Self here! This is done on field
                         * access instead (late bound).
                         *)
-                       fld_value = to_lazy_value fld_value;
+                       fld_value = to_lazy_value env fld_value;
                      }
                | v -> error tk (spf "field name was not a string: %s" (sv v)))
       in
       let new_assertsTODO =
-        assertsTODO |> List.map (fun ass -> (ass, V.empty_env))
+        assertsTODO |> List.map (fun ass -> (ass, empty_env))
       in
       V.Object (l, (new_assertsTODO, fields), r)
   | ObjectComp _x -> error l "TODO: ObjectComp"
 
-and eval_plus_object _tk objl objr =
+and eval_plus_object env _tk objl objr =
   let l, (lassert, lflds), _r = objl in
   let _, (rassert, rflds), r = objr in
   let asserts = lassert @ rassert in
@@ -937,7 +768,7 @@ and eval_plus_object _tk objl objr =
                {
                  V.fld_name;
                  fld_hidden = new_hidden;
-                 fld_value = to_lazy_value new_fld_value;
+                 fld_value = to_lazy_value env new_fld_value;
                })
   in
 
@@ -950,7 +781,7 @@ and eval_plus_object _tk objl objr =
 
 (* note that this is mutually recursive with eval_expr *)
 and manifest_value (v : V.t) : JSON.t =
-  let env = V.empty_env in
+  let env = empty_env in
   match v with
   | Primitive x -> (
       match x with
@@ -1007,8 +838,17 @@ and tostring (v : V.t) : string =
   let j = manifest_value v in
   JSON.string_of_json j
 
+and empty_env =
+  {
+    V.empty_env with
+    eval_expr;
+    eval_std_filter_element;
+    to_lazy_value;
+    eval_expr_for_call;
+  }
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let eval_program (x : Core_jsonnet.program) : V.t = eval_expr V.empty_env x
+let eval_program (x : Core_jsonnet.program) : V.t = eval_expr empty_env x
