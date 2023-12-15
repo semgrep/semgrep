@@ -193,6 +193,10 @@ val has_tag : Tag.t -> 'a t -> bool
 val simple_test : string * (unit -> 'a) -> 'a t
 val simple_tests : (string * (unit -> 'a)) list -> 'a t list
 
+(* Legacy interface. It's fine to keep using it but it doesn't allow
+   defining tests with special options such as capturing and checking stdout. *)
+val pack_tests : string -> simple_test list -> test list
+
 (* Register a test. The test gets added to the global list of tests.
    This is meant to declare inline tests as follows:
 
@@ -233,10 +237,6 @@ val get_registered_lwt_tests : unit -> lwt_test list
 *)
 val pack_tests_pro : string -> 'a t list -> 'a t list
 val pack_suites : string -> 'a t list list -> 'a t list
-
-(* Legacy interface. It's fine to keep using it but it doesn't allow
-   defining tests with special options such as capturing and checking stdout. *)
-val pack_tests : string -> (string * (unit -> 'a)) list -> 'a t list
 
 (*
    Sort tests by path, alphabetically:

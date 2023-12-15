@@ -62,7 +62,7 @@ let tests (caps : Cap.all_caps) =
       (* TODO Unit_matcher.spatch_unittest ~xxx *)
       (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
       Unit_engine.tests ();
-      Unit_jsonnet_subst.tests ();
+      Unit_jsonnet.tests ();
       Unit_metachecking.tests ();
       (* OSemgrep tests *)
       Unit_LS.tests;

@@ -1,5 +1,2 @@
-(* TODO: at some point we probably would prefer an AST_generic.program
- * which could track the origin of tokens through import, eval, and
- * manifestation and that we could pass to osemgrep to evaluate the rules.
- *)
+(* Now just an alias for Eval_jsonnet.manifest_value() *)
 val manifest_value : Value_jsonnet.t -> JSON.t
