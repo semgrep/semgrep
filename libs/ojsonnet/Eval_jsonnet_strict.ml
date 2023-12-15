@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2024 Semgrep Inc.
+ * Copyright (C) 2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -24,12 +24,11 @@ open Eval_jsonnet_common
 (* Prelude *)
 (*****************************************************************************)
 (* Core_jsonnet to Value_jsonnet Jsonnet evaluator using
- * strict semantics. This does not respect the spec at
+ * strict evaluation semantic. This does not respect the spec at
  * https://jsonnet.org/ref/spec.html#semantics
  *
- * This is using an environment-style evaluation and closures instead
- * of lambda substitutions like in the spec, as well as a strict
- * evaluation semantic.
+ * This is using an environment-style evaluation instead
+ * of lambda substitutions like in the spec.
  * See Eval_jsonnet_subst for the substitution-based evaluator
  * which is more correct (but far slower), or Eval_jsonnet_envir
  * which is also an environment-style evaluation but trying
@@ -40,22 +39,15 @@ open Eval_jsonnet_common
 (* Helpers *)
 (*****************************************************************************)
 
-let eval_bracket ofa env (v1, v2, v3) =
-  let v2 = ofa env v2 in
-  (v1, v2, v3)
-
-let string_of_local_id = function
-  | V.LSelf -> "self"
-  | V.LSuper -> "super"
-  | V.LId s -> s
-
-let to_lazy_value (v : V.t) : V.lazy_value =
-  { V.value = Val v; env = V.empty_env }
+let to_lazy_value (v : V.t) : V.lazy_value = V.Val v
 
 let to_value (v : V.lazy_value) : V.t =
-  match v.value with
+  match v with
   | Val v -> v
-  | Unevaluated _e -> raise Impossible
+  | Lv v -> Lazy.force v
+  | Closure _
+  | Unevaluated _ ->
+      raise Impossible
 
 let lookup (env : V.env) tk local_id =
   let id = string_of_local_id local_id in
@@ -63,10 +55,10 @@ let lookup (env : V.env) tk local_id =
     try Map_.find local_id env.locals with
     | Not_found ->
         Logs.debug (fun m ->
-            m "lookup fail for %s in env = %s" id (V.show_env env));
+            m "lookup fail for %s in env = %s" id (show_env env));
         error tk (spf "could not find '%s' in the environment" id)
   in
-  Logs.debug (fun m -> m "found '%s', value = %s" id (V.show_lazy_value entry));
+  Logs.debug (fun m -> m "found '%s', value = %s" id (show_lazy_value entry));
   to_value entry
 
 (*****************************************************************************)
@@ -155,10 +147,7 @@ let rec eval_expr (env : V.env) (e : expr) : V.t =
                    fst field.fld_name = fld)
           with
           | None -> error tk (spf "field '%s' not present in %s" fld (sv e))
-          | Some fld -> (
-              match fld.fld_value.value with
-              | V.Val v -> v
-              | V.Unevaluated _e -> raise Impossible))
+          | Some fld -> fld.fld_value |> to_value)
       | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv index)))
   | Call (e0, args) -> eval_call env e0 args
   | UnaryOp ((op, tk), e) -> (
@@ -390,25 +379,8 @@ and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
   in
   (* Add Super to the environment of the right fields *)
   let rflds' =
+    (* TODO, need to handle super *)
     rflds
-    |> List_.map (fun ({ V.fld_value = { value; env }; _ } as fld) ->
-           (* TODO: here we bind super to objl, and this works for simple
-            * examples (e.g., basic_super1.jsonnet) but failed for
-            * more complex examples where the accessed field uses self, as in
-            *   { x: 1, w: 1, y: self.x } +
-            *   { x: 2, w: 2, y: super.y, z : super.w }
-            * which should return { x: 2, w: 2, y : 2, z : 1 }
-            * but currently return { x : 2, w : 2, y : 1, z : 1 }
-            * because super is bounded just to the left object
-            * ({ x: 1, w: 1, y: self.x), and in that context
-            * self.x is evaluated to 1 not 2
-            * (see also eval_fail/basic_super2.jsonnet)
-            *)
-           let locals =
-             env.locals
-             |> Map_.add V.LSuper { V.value = V.Val (V.Object objl); env }
-           in
-           { fld with fld_value = { value; env = { env with locals } } })
   in
   let flds' = lflds' @ rflds' in
   (l, (asserts, flds'), r)

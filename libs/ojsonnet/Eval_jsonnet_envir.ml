@@ -38,24 +38,6 @@ open Eval_jsonnet_common
 (* Helpers *)
 (*****************************************************************************)
 
-let eval_bracket ofa env (v1, v2, v3) =
-  let v2 = ofa env v2 in
-  (v1, v2, v3)
-
-let string_of_local_id = function
-  | V.LSelf -> "self"
-  | V.LSuper -> "super"
-  | V.LId s -> s
-
-let debug = false
-
-(* note that this can be really slow when you use Std_jsonnet.ml *)
-let show_env (env : V.env) : string =
-  if debug then V.show_env env else "<turn debug on>"
-
-let show_lazy_value (lv : V.lazy_value) : string =
-  if debug then V.show_lazy_value lv else "<turn debug on>"
-
 (* Start of big mutually recursive functions *)
 let rec lookup (env : V.env) tk local_id =
   let id = string_of_local_id local_id in
@@ -70,9 +52,13 @@ let rec lookup (env : V.env) tk local_id =
   evaluate_lazy_value_ entry
 
 and evaluate_lazy_value_ (v : V.lazy_value) =
-  match v.value with
+  match v with
+  | Closure (env, e) -> eval_expr env e
+  (* We use Val for self/super to actually store the ref to the V.Object *)
   | Val v -> v
-  | Unevaluated e -> eval_expr v.env e
+  | Lv _
+  | Unevaluated _ ->
+      raise Impossible
 
 (*****************************************************************************)
 (* eval_expr *)
@@ -95,9 +81,7 @@ and eval_expr (env : V.env) (e : expr) : V.t =
   (* lazy evaluation of Array elements and Lambdas *)
   | Array (l, xs, r) ->
       let elts =
-        xs
-        |> List_.map (fun x -> { V.value = Unevaluated x; env })
-        |> Array.of_list
+        xs |> List_.map (fun x -> V.Closure (env, x)) |> Array.of_list
       in
       Array (l, elts, r)
   | Lambda f -> Lambda f
@@ -119,7 +103,7 @@ and eval_expr (env : V.env) (e : expr) : V.t =
         binds
         |> List.fold_left
              (fun acc (B (id, _teq, e_i)) ->
-               let binding = { V.value = Unevaluated e_i; env } in
+               let binding = V.Closure (env, e_i) in
                Map_.add (V.LId (fst id)) binding acc)
              env.locals
       in
@@ -161,9 +145,12 @@ and eval_expr (env : V.env) (e : expr) : V.t =
           with
           | None -> error tk (spf "field '%s' not present in %s" fld (sv e))
           | Some fld -> (
-              match fld.fld_value.value with
+              match fld.fld_value with
+              | V.Lv _
+              | V.Unevaluated _ ->
+                  raise Impossible
               | V.Val v -> v
-              | V.Unevaluated e ->
+              | V.Closure (_env_closure_TODO_maybe, e) ->
                   (* Late-bound self.
                    * We need to do the self assignment on field access rather
                    * than on object creation, because when objects are merged,
@@ -188,8 +175,7 @@ and eval_expr (env : V.env) (e : expr) : V.t =
                    *)
                   let locals =
                     if !Conf_ojsonnet.implement_self then
-                      env.locals
-                      |> Map_.add V.LSelf { V.value = V.Val obj; env }
+                      env.locals |> Map_.add V.LSelf (V.Val obj)
                     else env.locals
                   in
                   eval_expr { env with locals } e))
@@ -280,10 +266,7 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
                 ( Lambda fdef,
                   (fk, [ Arg (L (Number (string_of_int i, fk))) ], fk) )
             in
-            Array
-              ( fk,
-                Array.init n (fun i -> { V.value = Unevaluated (e i); env }),
-                fk )
+            Array (fk, Array.init n (fun i -> V.Closure (env, e i)), fk)
           else error tk (spf "Got non-integer %f in std.makeArray" n)
       | v, _e' ->
           error tk (spf "Improper arguments to std.makeArray: %s" (sv v)))
@@ -425,7 +408,7 @@ and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
   (* Add Super to the environment of the right fields *)
   let rflds' =
     rflds
-    |> List_.map (fun ({ V.fld_value = { value; env }; _ } as fld) ->
+    |> List_.map (fun ({ V.fld_value; _ } as fld) ->
            (* TODO: here we bind super to objl, and this works for simple
             * examples (e.g., basic_super1.jsonnet) but failed for
             * more complex examples where the accessed field uses self, as in
@@ -438,11 +421,16 @@ and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
             * self.x is evaluated to 1 not 2
             * (see also eval_fail/basic_super2.jsonnet)
             *)
-           let locals =
-             env.locals
-             |> Map_.add V.LSuper { V.value = V.Val (V.Object objl); env }
-           in
-           { fld with fld_value = { value; env = { env with locals } } })
+           match fld_value with
+           | Lv _
+           | Unevaluated _
+           | Val _ ->
+               raise Impossible
+           | Closure (env, e) ->
+               let locals =
+                 env.locals |> Map_.add V.LSuper (V.Val (V.Object objl))
+               in
+               { fld with fld_value = Closure ({ env with locals }, e) })
   in
   let flds' = lflds' @ rflds' in
   (l, (asserts, flds'), r)
@@ -613,7 +601,7 @@ and eval_obj_inside env (l, x, r) : V.t =
                         * We do not bind Self here! This is done on field
                         * access instead (late bound).
                         *)
-                       fld_value = { value = Unevaluated fld_value; env };
+                       fld_value = V.Closure (env, fld_value);
                      }
                | v -> error tk (spf "field name was not a string: %s" (sv v)))
       in
@@ -682,19 +670,20 @@ and manifest_value (v : V.t) : JSON.t =
                | A.Hidden -> None
                | A.Visible
                | A.ForcedVisible ->
-                   (* similar to what we do in eval_expr on field access *)
-                   let locals =
-                     if !Conf_ojsonnet.implement_self then
-                       fld_value.env.locals
-                       |> Map_.add V.LSelf
-                            { V.value = Val obj; env = fld_value.env }
-                     else fld_value.env.locals
-                   in
                    let v =
-                     match fld_value.value with
+                     match fld_value with
+                     | Lv _
+                     | Unevaluated _ ->
+                         raise Impossible
                      | Val v -> v
-                     | Unevaluated e ->
-                         eval_expr { fld_value.env with locals } e
+                     | Closure (env, e) ->
+                         (* similar to what we do in eval_expr on field access *)
+                         let locals =
+                           if !Conf_ojsonnet.implement_self then
+                             env.locals |> Map_.add V.LSelf (V.Val obj)
+                           else env.locals
+                         in
+                         eval_expr { env with locals } e
                    in
                    let j = manifest_value v in
                    Some (fst fld_name, j))
