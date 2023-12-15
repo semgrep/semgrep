@@ -1,4 +1,5 @@
-type eval_strategy = EvalSubst | EvalEnvir | EvalStrict [@@deriving show]
+type eval_strategy = EvalSubst | EvalEnvir | EvalStrict
+[@@deriving show { with_path = false }]
 
 let eval_strategy = ref EvalEnvir
 

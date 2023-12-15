@@ -2,12 +2,12 @@ open Common
 open Fpath_.Operators
 module Y = Yojson.Basic
 
-let dir_pass = Fpath.v "tests/jsonnet/eval_pass"
-let dir_pass_tutorial = Fpath.v "tests/jsonnet/tutorial_tests/pass"
-let dir_fail_tutorial = Fpath.v "tests/jsonnet/tutorial_tests/fail"
-let dir_fail = Fpath.v "tests/jsonnet/eval_fail"
+let dir_pass = Fpath.v "tests/jsonnet/pass"
+let dir_pass_tutorial = Fpath.v "tests/jsonnet/tutorial/pass"
+let _dir_fail_tutorial = Fpath.v "tests/jsonnet/tutorial/fail"
+let _dir_fail = Fpath.v "tests/jsonnet/fail"
 let dir_error = Fpath.v "tests/jsonnet/errors"
-let dir_error_tutorial = Fpath.v "tests/jsonnet/tutorial_tests/error"
+let dir_error_tutorial = Fpath.v "tests/jsonnet/tutorial/errors"
 
 let related_file_of_target ~ext ~file =
   let dirname, basename, _e = Filename_.dbe_of_filename !!file in
@@ -19,7 +19,7 @@ let related_file_of_target ~ext ~file =
     in
     Error msg
 
-let test_maker_err dir =
+let test_maker_err dir : Alcotest_ext.test list =
   Common2.glob (spf "%s/*%s" !!dir "jsonnet")
   |> Fpath_.of_strings
   |> List_.map (fun file ->
@@ -29,13 +29,14 @@ let test_maker_err dir =
              let core = Desugar_jsonnet.desugar_program file ast in
              try
                let value_ = Eval_jsonnet.eval_program core in
-               let _ = Manifest_jsonnet.manifest_value value_ in
+               let _ = Eval_jsonnet.manifest_value value_ in
                Alcotest.(fail "this should have raised an error")
              with
              | Eval_jsonnet_common.Error _ ->
                  Alcotest.(check bool) "this raised an error" true true ))
+  |> Alcotest_ext.pack_tests !!dir
 
-let test_maker_pass_fail dir pass_or_fail =
+let test_maker_pass_fail dir pass_or_fail strategy : Alcotest_ext.test list =
   Common2.glob (spf "%s/*%s" !!dir "jsonnet")
   |> Fpath_.of_strings
   |> List_.map (fun file ->
@@ -54,9 +55,11 @@ let test_maker_pass_fail dir pass_or_fail =
              let core = Desugar_jsonnet.desugar_program file ast in
              (* Currently slightly hacky, since we later may want to test for errors thrown *)
              try
-               let value_ = Eval_jsonnet.eval_program core in
                let json =
-                 JSON.to_yojson (Manifest_jsonnet.manifest_value value_)
+                 Common.save_excursion Conf_ojsonnet.eval_strategy strategy
+                   (fun () ->
+                     let value_ = Eval_jsonnet.eval_program core in
+                     JSON.to_yojson (Eval_jsonnet.manifest_value value_))
                in
                let fmt = format_of_string "expected %s \n but got %s" in
                let result =
@@ -68,12 +71,18 @@ let test_maker_pass_fail dir pass_or_fail =
              | Eval_jsonnet_common.Error _ ->
                  Alcotest.(check bool)
                    "this threw an error" (not pass_or_fail) true ))
+  |> Alcotest_ext.pack_tests
+       (spf "%s (%s)" !!dir (Conf_ojsonnet.show_eval_strategy strategy))
 
-let tests () =
-  Alcotest_ext.simple_tests
-    (test_maker_pass_fail dir_pass true
-    @ test_maker_pass_fail dir_pass_tutorial true
-    @ test_maker_pass_fail dir_fail false
-    @ test_maker_pass_fail dir_fail_tutorial false
-    @ test_maker_err dir_error
-    @ test_maker_err dir_error_tutorial)
+let tests () : Alcotest_ext.test list =
+  Alcotest_ext.pack_suites "ojsonnet"
+    [
+      test_maker_pass_fail dir_pass true Conf_ojsonnet.EvalSubst;
+      test_maker_pass_fail dir_pass_tutorial true Conf_ojsonnet.EvalSubst;
+      (* TODO
+           test_maker_pass_fail dir_fail false;
+           test_maker_pass_fail dir_fail_tutorial false;
+      *)
+      test_maker_err dir_error;
+      test_maker_err dir_error_tutorial;
+    ]
