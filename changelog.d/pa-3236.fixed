@@ -1,0 +1,24 @@
+In C++, the string literal now has a type of `char *`. It won't match with the
+`string` type. For instance,
+
+```yaml
+- metavariable-type:
+    metavariable: $EXPR
+    type: string
+```
+
+will only match
+
+```cpp
+string f;
+// MATCH
+int x = f.length();
+```
+
+but not
+
+```cpp
+const char *s;
+// OK
+s = "foo";
+```
