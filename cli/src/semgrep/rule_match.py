@@ -353,6 +353,7 @@ class RuleMatch:
                 match_formula_str = match_formula_str.replace(
                     metavar, metavars[metavar]["abstract_content"]
                 )
+
         if self.from_transient_scan:
             # NOTE: We include the previous scan's rules in the config for consistent fixed status work.
             # For unique hashing/grouping, previous and current scan rules must have distinct check IDs.
@@ -365,6 +366,19 @@ class RuleMatch:
                 path,
                 self.annotated_rule_name,
             )
+
+        # Check if the match is non-code-match and reachable is False
+        if "sca_info" in self.extra and not self.extra["sca_info"].reachable:
+            # Include dependency package and version in the key
+            dependency = self.extra["sca_info"].dependency_match.found_dependency
+            return (
+                match_formula_str,
+                path,
+                self.rule_id,
+                dependency.package,
+                dependency.version,
+            )
+
         return (match_formula_str, path, self.rule_id)
 
     # This will supercede syntactic id, as currently that will change even if
