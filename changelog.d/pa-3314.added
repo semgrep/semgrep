@@ -1,0 +1,5 @@
+feat: Semgrep will now support a confidence filter to limit findings.
+
+```sh
+sg --confidence HIGH --config cli/tests/e2e/rules/confidence-rule.yaml
+```
