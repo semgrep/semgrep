@@ -1,0 +1,1 @@
+Enhanced get_match_based_key in RuleMatch to uniquely identify non-code-match findings by including dependency package and version, ensuring distinct match_based_id generation for different package versions.
