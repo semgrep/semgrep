@@ -102,6 +102,20 @@ and env = {
   locals : (local_id, lazy_value) Map_.t;
   (* for call tracing *)
   depth : int;
+  (* methods to help factorize code between the Eval_jsonnet_xxx.ml *)
+  eval_expr : env -> Core_jsonnet.expr -> t;
+  eval_expr_for_call : env -> Core_jsonnet.expr -> t;
+  eval_std_filter_element :
+    env -> Tok.t -> Core_jsonnet.function_definition -> lazy_value -> t * env;
+  eval_plus_object :
+    env ->
+    Tok.t ->
+    object_ Core.bracket ->
+    object_ Core.bracket ->
+    object_ Core.bracket;
+  to_lazy_value : env -> Core_jsonnet.expr -> lazy_value;
+  to_value : env -> lazy_value -> t;
+  tostring : t -> string;
 }
 
 and local_id = LSelf | LSuper | LId of string
@@ -114,4 +128,18 @@ let empty_obj : t =
   let fk = Tok.unsafe_fake_tok "" in
   Object (fk, ([], []), fk)
 
-let empty_env = { locals = Map_.empty; depth = 0 }
+let empty_env =
+  {
+    locals = Map_.empty;
+    depth = 0;
+    eval_expr = (fun _ _ -> failwith "TODO: eval_expr not implemented");
+    eval_std_filter_element =
+      (fun _ _ -> failwith "TODO: eval_std_filter_element not implemented");
+    eval_plus_object =
+      (fun _ _ _ _ -> failwith "TODO: eval_plus_object not implemented");
+    eval_expr_for_call =
+      (fun _ _ -> failwith "TODO: eval_expr_for_call not implemented");
+    to_lazy_value = (fun _ _ -> failwith "TODO: to_lazy_value not implemented");
+    to_value = (fun _ _ -> failwith "TODO: to_value not implemented");
+    tostring = (fun _ -> failwith "TODO: tostring not implemented");
+  }
