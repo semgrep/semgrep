@@ -161,6 +161,45 @@ let std_primivite_equals (v : V.t) (v' : V.t) : bool =
    *)
   | _else_ -> false
 
+(* Seems like std.cmp() is not defined in std.jsonnet nor mentionned in
+ * the Jsonnet Standard library spec, so I guess it's a hidden builtin
+ * so we dont need to produce a value_ that other code can use; we can
+ * return a cmp.
+ *)
+let eval_std_cmp (env : V.env) tk (el : expr) (er : expr) : cmp =
+  let rec eval_std_cmp_value_ (v_el : V.t) (v_er : V.t) : cmp =
+    match (v_el, v_er) with
+    | V.Array (_, [||], _), V.Array (_, [||], _) -> Eq
+    | V.Array (_, [||], _), V.Array (_, _, _) -> Inf
+    | V.Array (_, _, _), V.Array (_, [||], _) -> Sup
+    | V.Array (al, ax, ar), V.Array (bl, bx, br) -> (
+        let a0 = env.to_value env ax.(0) in
+
+        let b0 = env.to_value env bx.(0) in
+
+        match eval_std_cmp_value_ a0 b0 with
+        | (Inf | Sup) as r -> r
+        | Eq ->
+            let a_sub =
+              V.Array (al, Array.sub ax 1 (Array.length ax - 1), ar)
+            in
+            let b_sub =
+              V.Array (bl, Array.sub bx 1 (Array.length bx - 1), br)
+            in
+            eval_std_cmp_value_ a_sub b_sub)
+    | Primitive (Double (fl, _)), Primitive (Double (fr, _)) ->
+        Float.compare fl fr |> int_to_cmp
+    | Primitive (Str (strl, _)), Primitive (Str (strr, _)) ->
+        (* TODO? or use unicode? *)
+        String.compare strl strr |> int_to_cmp
+    (* note that it does not make sense to compare (<, <=, >=, >) 2 booleans
+     * or 2 nulls. They are not ordonnable
+     *)
+    | _else_ ->
+        error tk (spf "comparing uncomparable: %s vs %s" (sv v_el) (sv v_er))
+  in
+  eval_std_cmp_value_ (env.eval_expr env el) (env.eval_expr env er)
+
 let eval_std_method env e0 (method_str, tk) (l, args, r) =
   match (method_str, args) with
   | "type", [ Arg e ] ->
@@ -283,6 +322,105 @@ let eval_std_method env e0 (method_str, tk) (l, args, r) =
            (List.length args))
   (* default to regular call, handled by std.jsonnet code hopefully *)
   | _else_ -> eval_call env e0 (l, args, r)
+
+and eval_binary_op (env : V.env) (el : expr) (op, tk) (er : expr) =
+  match op with
+  | Plus -> (
+      match (env.eval_expr env el, env.eval_expr env er) with
+      | V.Array (l1, arr1, _r1), V.Array (_l2, arr2, r2) ->
+          V.Array (l1, Array.append arr1 arr2, r2)
+      | V.Primitive (Double (f1, tk)), V.Primitive (Double (f2, _)) ->
+          V.Primitive (Double (f1 +. f2, tk))
+      | V.Primitive (Str (s1, tk1)), V.Primitive (Str (s2, _tk2)) ->
+          V.Primitive (Str (s1 ^ s2, tk1))
+      | V.Primitive (Str (s, tk)), v ->
+          V.Primitive (Str (s ^ env.tostring v, tk))
+      | v, V.Primitive (Str (s, tk)) ->
+          V.Primitive (Str (env.tostring v ^ s, tk))
+      | V.Object objl, V.Object objr ->
+          let obj = env.eval_plus_object env tk objl objr in
+          V.Object obj
+      | v1, v2 ->
+          error tk (spf "TODO: Plus (%s, %s) not yet handled" (sv v1) (sv v2)))
+  | And -> (
+      match env.eval_expr env el with
+      | V.Primitive (Bool (b, _)) as v -> if b then env.eval_expr env er else v
+      | v -> error tk (spf "Not a boolean for &&: %s" (sv v)))
+  | Or -> (
+      match env.eval_expr env el with
+      | V.Primitive (Bool (b, _)) as v -> if b then v else env.eval_expr env er
+      | v -> error tk (spf "Not a boolean for ||: %s" (sv v)))
+  | Lt
+  | LtE
+  | Gt
+  | GtE ->
+      let cmp = eval_std_cmp env tk el er in
+      let bool =
+        match (op, cmp) with
+        | Lt, Inf -> true
+        | Lt, (Eq | Sup) -> false
+        | LtE, (Inf | Eq) -> true
+        | LtE, Sup -> true
+        | Gt, (Inf | Eq) -> false
+        | Gt, Sup -> true
+        | GtE, Inf -> false
+        | GtE, (Eq | Sup) -> true
+        | ( ( Plus | Minus | Mult | Div | LSL | LSR | And | Or | BitAnd | BitOr
+            | BitXor ),
+            _ ) ->
+            assert false
+      in
+      Primitive (Bool (bool, tk))
+  | Minus
+  | Mult
+  | Div -> (
+      match (env.eval_expr env el, env.eval_expr env er) with
+      | Primitive (Double (f1, itk)), Primitive (Double (f2, _)) ->
+          let op =
+            match op with
+            | Minus -> ( -. )
+            | Mult -> ( *. )
+            | Div -> ( /. )
+            | _else_ -> assert false
+          in
+          Primitive (Double (op f1 f2, itk))
+      | v1, v2 ->
+          error tk
+            (spf "binary operator wrong operands: %s %s %s" (sv v1)
+               (Tok.content_of_tok tk) (sv v2)))
+  | LSL
+  | LSR
+  | BitAnd
+  | BitOr
+  | BitXor -> (
+      let v1 = env.eval_expr env el in
+      let v2 = env.eval_expr env er in
+      match (v1, v2) with
+      | Primitive (Double (f1, tk1)), Primitive (Double (f2, tk2)) ->
+          let i1 = Int64.of_float f1 in
+          let i2 = Int64.of_float f2 in
+          let i64 =
+            match op with
+            | LSL ->
+                let i2 = Int64.to_int i2 in
+                if i2 < 0 then
+                  error tk2 (spf "negative number for LSL: %s" (sv v2))
+                else Int64.shift_left i1 i2
+            | LSR ->
+                let i2 = Int64.to_int i2 in
+                if i2 < 0 then
+                  error tk2 (spf "negative number for LSR: %s" (sv v2))
+                else Int64.shift_right i1 i2
+            | BitAnd -> Int64.logand i1 i2
+            | BitOr -> Int64.logor i1 i2
+            | BitXor -> Int64.logxor i1 i2
+            | _else_ -> assert false
+          in
+          Primitive (Double (Int64.to_float i64, tk1))
+      | v1, v2 ->
+          error tk
+            (spf "binary operator wrong operands: %s %s %s" (sv v1)
+               (Tok.content_of_tok tk) (sv v2)))
 
 (*****************************************************************************)
 (* Common evaluation *)
