@@ -25,13 +25,8 @@ jobs:
       run: |
         export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
         C:/hostedtoolcache/windows/cygwin/3.4.9/x86_64/setup-x86_64.exe --quiet-mode --root D:/cygwin --site https://mirrors.kernel.org/sourceware/cygwin --packages cygwin-devel --symlink-type=sys
-        echo "d:/"
-        ls -lah d:/cygwin/usr/include
-        echo "/d/"
-        ls -lah /d/cygwin/usr/include
-        echo "/"
-        ls -lah /cygwin/usr/include
-        export C_INCLUDE_PATH="/d/cygwin/usr/include"
+        mkdir -p /usr/x86_64-w64-mingw32/sys-root/usr/local
+        ln -s /d/cygwin/usr/include /usr/x86_64-w64-mingw32/sys-root/usr/local/include
         echo "include paths:"
         x86_64-w64-mingw32-gcc -E -Wp,-v -xc /dev/null || true
         echo "ioctl.h:"
