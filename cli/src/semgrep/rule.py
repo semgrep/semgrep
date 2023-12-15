@@ -151,26 +151,31 @@ class Rule:
     @property
     def confidence(self) -> Confidence:
         raw_value = self.metadata.get("confidence") or ""
-        return (
+        return cast(
+            Confidence,  # casting required for 3.10 and below
             Confidence.UNKNOWN
             if not raw_value
-            else Confidence._from(raw_value, Confidence.UNKNOWN)
+            else Confidence._from(raw_value, Confidence.UNKNOWN),
         )
 
     @property
     def impact(self) -> Impact:
         raw_value = self.metadata.get("impact") or ""
-        return (
-            Impact.UNKNOWN if not raw_value else Impact._from(raw_value, Impact.UNKNOWN)
+        return cast(
+            Impact,  # casting required for 3.10 and below
+            Impact.UNKNOWN
+            if not raw_value
+            else Impact._from(raw_value, Impact.UNKNOWN),
         )
 
     @property
     def likelihood(self) -> Likelihood:
         raw_value = self.metadata.get("likelihood") or ""
-        return (
+        return cast(
+            Likelihood,  # casting required for 3.10 and below
             Likelihood.UNKNOWN
             if not raw_value
-            else Likelihood._from(raw_value, Likelihood.UNKNOWN)
+            else Likelihood._from(raw_value, Likelihood.UNKNOWN),
         )
 
     @property
