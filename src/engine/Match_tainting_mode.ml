@@ -235,6 +235,10 @@ let concat_map_with_expls f xs =
   in
   (res, List.flatten (List.rev !all_expls))
 
+let%test _ =
+  concat_map_with_expls (fun x -> ([ -x; x ], [ 2 * x; 3 * x ])) [ 0; 1; 2 ]
+  =*= ([ 0; 0; -1; 1; -2; 2 ], [ 0; 0; 2; 3; 4; 6 ])
+
 let find_range_w_metas formula_cache (xconf : Match_env.xconfig)
     (xtarget : Xtarget.t) (rule : R.t) (specs : (R.formula * 'a) list) :
     (RM.t * 'a) list * ME.t list =
